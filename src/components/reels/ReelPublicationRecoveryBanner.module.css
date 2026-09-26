@@ -1,0 +1,63 @@
+.console {
+  position: fixed !important;
+  top: max(64px, calc(env(safe-area-inset-top) + 56px));
+  left: 50%;
+  z-index: 1200;
+  width: min(calc(100vw - 12px), 540px) !important;
+  max-height: calc(100dvh - max(76px, calc(env(safe-area-inset-top) + 68px)));
+  margin: 0 !important;
+  overflow-y: auto !important;
+  transform: translateX(-50%);
+  scrollbar-width: thin;
+  scrollbar-color: #45adff #05070a;
+}
+
+.glassAction {
+  appearance: none;
+  justify-self: center;
+  margin: 0;
+  padding: 1.4cqw 0;
+  border: 0;
+  color: #45adff;
+  background: transparent;
+  font-family: 'Roboto Condensed', Inter, system-ui, sans-serif;
+  font-size: 3.2cqw;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-shadow: 0 0 1cqw rgb(69 173 255 / 56%);
+  cursor: pointer;
+}
+
+.glassAction[data-ink='green'] {
+  color: #c8ffd2;
+  text-shadow: 0 0 1cqw rgb(53 217 90 / 56%);
+}
+
+.glassAction[data-ink='red'] {
+  color: #ff5b6e;
+  text-shadow: 0 0 1cqw rgb(255 91 110 / 56%);
+}
+
+.glassAction[data-ink='gold'] {
+  color: #ffd700;
+  text-shadow: 0 0 1cqw rgb(255 215 0 / 56%);
+}
+
+.glassAction:disabled {
+  cursor: wait;
+  opacity: 0.48;
+}
+
+.glassAction:active:not(:disabled) {
+  color: #fff;
+}
+
+.glassAction:focus-visible {
+  outline: 0.4cqw solid #8fd4ff;
+  outline-offset: 0.8cqw;
+}
+
+@media (min-width: 700px) {
+  .glassAction { font-size: 17px; }
+}

@@ -7,6 +7,7 @@
  */
 
 import { supabase } from '../lib/supabase';
+import { getAccessToken } from '../lib/authUtils';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // MESSENGER PREFERENCES
@@ -290,69 +291,160 @@ export const wishlistService = {
 // SAVED REELS SERVICE
 // ═══════════════════════════════════════════════════════════════════════════
 
+const SAVED_REELS_PAGE_LIMIT = 50;
+const MAX_SAVED_REELS_PAGE_LIMIT = 100;
+const MAX_SAVED_REELS_PAGES = 100;
+
+function clampSavedReelsPageLimit(value) {
+  const parsed = Number.parseInt(value, 10);
+  if (!Number.isFinite(parsed)) return SAVED_REELS_PAGE_LIMIT;
+  return Math.min(MAX_SAVED_REELS_PAGE_LIMIT, Math.max(1, parsed));
+}
+
+function mergeSavedReelRows(current, incoming) {
+  const byReelId = new Map();
+  for (const row of [...current, ...incoming]) {
+    if (!row?.reel_id) continue;
+    const existing = byReelId.get(row.reel_id);
+    if (!existing) {
+      byReelId.set(row.reel_id, row);
+      continue;
+    }
+    byReelId.set(row.reel_id, {
+      ...existing,
+      saved_target_ids: [...new Set([
+        ...(existing.saved_target_ids || [existing.saved_target_id].filter(Boolean)),
+        ...(row.saved_target_ids || [row.saved_target_id].filter(Boolean)),
+      ])],
+    });
+  }
+  return [...byReelId.values()];
+}
+
+async function fetchSavedReelsPage({ userId, cursor = null, limit, signal } = {}) {
+  const token = getAccessToken();
+  if (!token) throw new Error('Authentication required');
+  const params = new URLSearchParams({
+    limit: String(clampSavedReelsPageLimit(limit)),
+  });
+  if (cursor) params.set('cursor', cursor);
+  const response = await fetch(`/api/reels/saved?${params.toString()}`, {
+    method: 'GET',
+    cache: 'no-store',
+    credentials: 'same-origin',
+    headers: {
+      Accept: 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    signal,
+  });
+  const payload = await response.json().catch(() => null);
+  if (!response.ok || !payload?.success || !Array.isArray(payload.data)) {
+    throw new Error(payload?.error || `Saved Reels request failed (${response.status})`);
+  }
+  if (payload.data.some(row => row?.user_id !== userId)) {
+    throw new Error('Saved Reels response owner mismatch');
+  }
+  const hasMore = payload.has_more === true;
+  const nextCursor = hasMore && typeof payload.next_cursor === 'string'
+    ? payload.next_cursor
+    : null;
+  if (hasMore && (!nextCursor || nextCursor === cursor)) {
+    throw new Error('Saved Reels pagination did not advance');
+  }
+  return {
+    data: payload.data,
+    hasMore,
+    nextCursor,
+    partial: payload.partial === true,
+  };
+}
+
 export const savedReelsService = {
-  async getSavedReels(userId) {
+  async getSavedReelsPage(userId, { cursor = null, limit = SAVED_REELS_PAGE_LIMIT, signal } = {}) {
     try {
-      const { data, error } = await supabase
-        .from('saved_reels')
-        // BUG FIX (Bug 28): include source_type so callers know which table to join
-        .select('id, user_id, reel_id, saved_at, source_type')
-        .eq('user_id', userId)
-        .order('saved_at', { ascending: false });
+      if (!userId) return { data: [], hasMore: false, nextCursor: null, partial: false };
+      return await fetchSavedReelsPage({ userId, cursor, limit, signal });
+    } catch (error) {
+      console.warn('[SavedReels] Error getting saved Reels page:', error);
+      throw error;
+    }
+  },
 
-      if (error) throw error;
-      const rows = data || [];
-      const reelIds = rows.filter((row) => row.source_type !== 'post').map((row) => row.reel_id);
-      const postIds = rows.filter((row) => row.source_type === 'post').map((row) => row.reel_id);
-      const [reelResult, postResult] = await Promise.all([
-        reelIds.length
-          ? supabase
-              .from('social_reels')
-              .select(
-                'id, author_id, caption, video_url, thumbnail_url, view_count, like_count, comment_count, created_at, source_type'
-              )
-              .in('id', reelIds)
-          : Promise.resolve({ data: [], error: null }),
-        postIds.length
-          ? supabase
-              .from('social_posts')
-              .select(
-                'id, author_id, content, media_urls, thumbnail_url, like_count, comment_count, created_at'
-              )
-              .in('id', postIds)
-          : Promise.resolve({ data: [], error: null }),
-      ]);
-      if (reelResult.error) throw reelResult.error;
-      if (postResult.error) throw postResult.error;
-
-      const reelMap = new Map(
-        (reelResult.data || []).map((reel) => [reel.id, { ...reel, source: 'reels' }])
+  async getSavedReels(userId, {
+    signal,
+    pageLimit = MAX_SAVED_REELS_PAGE_LIMIT,
+    maxPages = MAX_SAVED_REELS_PAGES,
+  } = {}) {
+    try {
+      if (!userId) return [];
+      const safeMaxPages = Math.min(
+        MAX_SAVED_REELS_PAGES,
+        Math.max(1, Number.parseInt(maxPages, 10) || MAX_SAVED_REELS_PAGES),
       );
-      const postMap = new Map(
-        (postResult.data || []).map((post) => [
-          post.id,
-          {
-            id: post.id,
-            author_id: post.author_id,
-            caption: post.content || '',
-            video_url: Array.isArray(post.media_urls) ? post.media_urls[0] : null,
-            thumbnail_url: post.thumbnail_url || null,
-            like_count: post.like_count || 0,
-            comment_count: post.comment_count || 0,
-            created_at: post.created_at,
-            source: 'posts',
-          },
-        ])
-      );
-
-      return rows
-        .map((row) => ({
-          ...row,
-          reel: row.source_type === 'post' ? postMap.get(row.reel_id) : reelMap.get(row.reel_id),
-        }))
-        .filter((row) => row.reel?.video_url);
+      const seenCursors = new Set();
+      let cursor = null;
+      let rows = [];
+      for (let pageNumber = 0; pageNumber < safeMaxPages; pageNumber += 1) {
+        const page = await fetchSavedReelsPage({ userId, cursor, limit: pageLimit, signal });
+        rows = mergeSavedReelRows(rows, page.data);
+        if (!page.hasMore) return rows;
+        if (seenCursors.has(page.nextCursor)) {
+          throw new Error('Saved Reels pagination repeated a cursor');
+        }
+        seenCursors.add(page.nextCursor);
+        cursor = page.nextCursor;
+      }
+      throw new Error('Saved Reels pagination exceeded its safety limit');
     } catch (error) {
       console.warn('[SavedReels] Error getting saved reels:', error);
+      throw error;
+    }
+  },
+
+  async getAllSavedReels(userId, options = {}) {
+    return savedReelsService.getSavedReels(userId, options);
+  },
+
+  async getSavedReelsForIds(userId, reelIds, { signal } = {}) {
+    try {
+      if (!userId) return [];
+      const ids = [...new Set(
+        (Array.isArray(reelIds) ? reelIds : [])
+          .map(value => String(value || '').trim())
+          .filter(Boolean),
+      )];
+      if (!ids.length) return [];
+      const token = getAccessToken();
+      if (!token) throw new Error('Authentication required');
+      let rows = [];
+      for (let index = 0; index < ids.length; index += MAX_SAVED_REELS_PAGE_LIMIT) {
+        const response = await fetch('/api/reels/saved-status', {
+          method: 'POST',
+          cache: 'no-store',
+          credentials: 'same-origin',
+          headers: {
+            Accept: 'application/json',
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            reel_ids: ids.slice(index, index + MAX_SAVED_REELS_PAGE_LIMIT),
+          }),
+          signal,
+        });
+        const payload = await response.json().catch(() => null);
+        if (!response.ok || !payload?.success || !Array.isArray(payload.data)) {
+          throw new Error(payload?.error || `Saved Reel status request failed (${response.status})`);
+        }
+        if (payload.data.some(row => row?.user_id !== userId)) {
+          throw new Error('Saved Reel status response owner mismatch');
+        }
+        rows = mergeSavedReelRows(rows, payload.data);
+      }
+      return rows;
+    } catch (error) {
+      console.warn('[SavedReels] Error getting saved Reel status:', error);
       throw error;
     }
   },
@@ -363,11 +455,17 @@ export const savedReelsService = {
     try {
       const { data, error } = await supabase
         .from('saved_reels')
-        .insert({
-          user_id: userId,
-          reel_id: reelId,
-          source_type: sourceType,
-        })
+        .upsert(
+          {
+            user_id: userId,
+            reel_id: reelId,
+            source_type: sourceType,
+          },
+          {
+            onConflict: 'user_id,reel_id',
+            ignoreDuplicates: true,
+          },
+        )
         .select()
         .maybeSingle();
 
@@ -381,11 +479,18 @@ export const savedReelsService = {
 
   async unsaveReel(userId, reelId) {
     try {
-      const { error } = await supabase
+      const targetIds = [...new Set(
+        (Array.isArray(reelId) ? reelId : [reelId]).filter(Boolean),
+      )];
+      if (!userId || targetIds.length === 0) return;
+      let query = supabase
         .from('saved_reels')
         .delete()
-        .eq('user_id', userId)
-        .eq('reel_id', reelId);
+        .eq('user_id', userId);
+      query = targetIds.length === 1
+        ? query.eq('reel_id', targetIds[0])
+        : query.in('reel_id', targetIds);
+      const { error } = await query;
 
       if (error) throw error;
     } catch (error) {

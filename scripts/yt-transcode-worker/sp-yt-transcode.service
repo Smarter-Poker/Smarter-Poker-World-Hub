@@ -1,23 +1,31 @@
 # /etc/systemd/system/sp-yt-transcode.service
 # Smarter Poker YouTube → native MP4 conversion worker.
-# Runs alongside sp-transcode.service (HEVC pipeline) on the same Hetzner box.
+# Runs only on the dedicated reels-transcode-worker (Hetzner server 128782737).
 
 [Unit]
 Description=Smarter Poker YouTube Transcode Worker
-After=network.target
+Wants=network-online.target
+After=network-online.target
 Documentation=https://github.com/Smarter-Poker/Smarter-Poker-World-Hub
+# Limit restarts to prevent runaway crash loops.
+StartLimitBurst=5
+StartLimitIntervalSec=300
 
 [Service]
 Type=simple
 User=openclaw
 WorkingDirectory=/opt/smarter-poker/yt-transcode-worker
 EnvironmentFile=/etc/sp-yt-transcode.env
+UnsetEnvironment=NODE_OPTIONS NODE_PATH NODE_TLS_REJECT_UNAUTHORIZED LD_PRELOAD LD_LIBRARY_PATH PYTHONHOME PYTHONPATH
+ExecStartPre=/usr/bin/sha256sum --quiet -c release-manifest.sha256
+ExecStartPre=/usr/bin/timeout --signal=TERM --kill-after=5s 130s /usr/bin/node index.js --preflight-only
 ExecStart=/usr/bin/node index.js
 Restart=on-failure
 RestartSec=15
-# Limit restarts to prevent runaway crash loops
-StartLimitBurst=5
-StartLimitIntervalSec=300
+TimeoutStartSec=150
+TimeoutStopSec=30
+KillMode=control-group
+SendSIGKILL=yes
 # yt-dlp + ffmpeg can use a lot of RAM on big videos; cap it
 MemoryHigh=2G
 MemoryMax=3G

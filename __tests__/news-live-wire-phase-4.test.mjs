@@ -11,6 +11,7 @@ const SOURCE_BOXES_API = read('pages/api/news/source-boxes.js');
 const EVENTS_API = read('pages/api/news/events.js');
 const REELS_API = read('pages/api/news/reels.js');
 const VIDEOS_API = read('pages/api/news/videos.js');
+const REELS_SERVER = read('src/lib/server/reelsFeed.js');
 const AVATAR_CONTEXT = read('src/contexts/AvatarContext.jsx');
 const NEWS_BOX = read('src/components/news/NewsBox.js');
 const LIVE_WIRE_STYLES = read('src/components/news/LiveWireStyles.js');
@@ -98,9 +99,12 @@ test('events API uses canonical geocoded tournament data without retaining locat
 
 test('public secondary feeds expose explicit allowlisted payloads', () => {
   for (const api of [REELS_API, VIDEOS_API]) {
-    assert.match(api, /\.select\('id, author_id, caption, thumbnail_url, video_url, view_count, created_at'\)/);
+    assert.match(api, /readPokerReelsFeed/);
     assert.doesNotMatch(api, /from\('social_reels'\)[\s\S]{0,100}\.select\('\*'\)/);
   }
+  assert.match(REELS_SERVER, /const REEL_SELECT = \[/);
+  assert.match(REELS_SERVER, /'canonical_asset_key'/);
+  assert.match(REELS_SERVER, /'rights_status'/);
   assert.match(EVENTS_API, /\.select\('source,native_id,venue_id,venue_name,event_name,start_time,buy_in,guaranteed,game_type,day_of_week,specific_date,is_recurring,city,state,latitude,longitude'\)/);
   assert.doesNotMatch(EVENTS_API, /from\('unified_events_calendar'\)[\s\S]{0,100}\.select\('\*'\)/);
   assert.doesNotMatch(REELS_API, /\.\.\.reel/);
@@ -108,11 +112,12 @@ test('public secondary feeds expose explicit allowlisted payloads', () => {
 
 test('secondary feed failures are errors while legitimate empty feeds remain empty successes', () => {
   for (const api of [REELS_API, VIDEOS_API]) {
-    assert.match(api, /if \(error\) \{\s*throw error;/);
-    assert.match(api, /if \(!data\?\.length\) \{[\s\S]{0,160}return res\.status\(200\)\.json\(\{ success: true, data: \[\] \}\);/);
+    assert.match(api, /const result = await readPokerReelsFeed/);
+    assert.match(api, /return res\.status\(200\)\.json\(\{ success: true, data:/);
     assert.match(api, /return res\.status\(500\)\.json\(\{ success: false, error:/);
     assert.doesNotMatch(api, /fallback: true/);
   }
+  assert.match(REELS_SERVER, /if \(error\) throw error;/);
   assert.match(EVENTS_API, /return res\.status\(503\)\.json\(\{ success: false, error: 'Tournament feed unavailable' \}\)/);
 });
 
@@ -143,26 +148,35 @@ test('reel playback accepts every supported YouTube form and uses the player bri
 });
 
 test('saved and authored reel collections use the real data contracts', () => {
-  assert.match(MY_REELS_PAGE, /\.eq\('author_id', authUser\.id\)/);
-  assert.doesNotMatch(MY_REELS_PAGE, /\.eq\('user_id', authUser\.id\)/);
-  assert.match(SAVED_REELS_SERVICE, /\.from\('social_reels'\)/);
-  assert.match(SAVED_REELS_SERVICE, /\.from\('social_posts'\)/);
-  assert.match(SAVED_REELS_SERVICE, /reel: row\.source_type === 'post'/);
+  assert.match(MY_REELS_PAGE, /fetch\(`\/api\/reels\/mine\?\$\{params\.toString\(\)\}`/);
+  assert.match(MY_REELS_PAGE, /params\.set\('cursor', cursor\)/);
+  assert.match(MY_REELS_PAGE, /Authorization: `Bearer \$\{token\}`/);
+  assert.doesNotMatch(MY_REELS_PAGE, /\.from\('social_reels'\)/);
+  assert.match(SAVED_REELS_SERVICE, /fetch\(`\/api\/reels\/saved\?\$\{params\.toString\(\)\}`/);
+  assert.match(SAVED_REELS_SERVICE, /params\.set\('cursor', cursor\)/);
+  assert.match(SAVED_REELS_SERVICE, /Authorization: `Bearer \$\{token\}`/);
+  assert.doesNotMatch(SAVED_REELS_SERVICE, /\.from\('social_(?:reels|posts)'\)/);
+  assert.match(REELS_SERVER, /export async function readOwnedPokerReels/);
+  assert.match(REELS_SERVER, /\.eq\('author_id', ownerId\)/);
+  assert.match(REELS_SERVER, /export async function readSavedPokerReels/);
+  assert.match(REELS_SERVER, /\.from\('saved_reels'\)/);
+  assert.match(REELS_SERVER, /\.eq\('user_id', userId\)/);
 });
 
 test('reels pagination and route modes do not skip or ignore requested feeds', () => {
-  assert.match(REELS_PAGE, /standardOffset = 60 \+ \(nextPage - 1\) \* 30/);
-  assert.match(REELS_PAGE, /horseOffset = 60 \+ \(nextPage - 1\) \* 20/);
+  assert.match(REELS_PAGE, /cursor: reelsCursorRef\.current/);
+  assert.match(REELS_PAGE, /payload\.next_cursor/);
+  assert.match(REELS_PAGE, /mergePokerReels\(prev, mappedFiltered\)/);
   assert.match(REELS_PAGE, /feedMode === 'trending'/);
   assert.match(REELS_PAGE, /feedMode === 'following'/);
   assert.match(REELS_PAGE, /const \[muted, setMuted\] = useState\(true\)/);
   assert.match(REELS_PAGE, /const \[preferencesLoaded, setPreferencesLoaded\] = useState\(false\)/);
-  assert.match(REELS_PAGE, /reelsPreferences\.get\(authUser\?\.id\)/);
+  assert.match(REELS_PAGE, /reelsPreferences\.get\(ownerRequest\.ownerId\)/);
   assert.match(REELS_PAGE, /autoPlay=\{preferencesLoaded && preferences\.autoplay\}/);
   assert.match(REELS_PAGE, /preferences\.autoplay \? 'loadVideoById' : 'cueVideoById'/);
   assert.match(REELS_PAGE, /if \(!userGesturedThisLoadRef\.current\) return/);
   assert.match(REELS_PAGE, /router\.query\.upload !== '1'/);
-  assert.match(REELS_PAGE, /reelsPreferences\.update\(user\?\.id, newPrefs\)/);
+  assert.match(REELS_PAGE, /reelsPreferences\.update\(ownerRequest\.ownerId, newPrefs\)/);
   assert.doesNotMatch(REELS_PAGE, /\{\/\* Back button \*\/\}[\s\S]{0,400}href="\/hub\/social-media"/);
   assert.match(REELS_PAGE, /duration < 1/);
   assert.match(REELS_PAGE, /onDurationChange=\{handleNativeVideoMetadata\}/);

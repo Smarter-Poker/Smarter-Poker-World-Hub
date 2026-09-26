@@ -1,24 +1,18 @@
-name: Deploy YT Transcode Worker (Hetzner)
+name: Deploy Rights-Gated YT Transcode Worker
 
-# Auto-deploys scripts/yt-transcode-worker/* to the Hetzner box on every
-# push to main. Also runnable manually via workflow_dispatch.
-#
-# Required repository secrets (set once via GitHub Settings → Secrets):
-#   HETZNER_SSH_PRIVATE_KEY  — private key matching the public key in Hetzner Cloud
-#   HETZNER_HOST             — public IP or hostname of the Ashburn CX22
-#   HETZNER_SSH_USER         — defaults to 'openclaw' if unset
-#   SUPABASE_SERVICE_ROLE_KEY — written to /etc/sp-yt-transcode.env on first run
-#   YT_GOOGLE_EMAIL           — Google account for yt-dlp cookie auth
-#   YT_GOOGLE_PASS            — Google account password
-#
-# Note: this workflow uses `on: push`, NOT `schedule:`, so it does not violate
-# the cron-governance rule in CLAUDE.md §11.5.
+# Deploys immutable worker releases to the Hetzner media host. Credentials are
+# host-managed: this workflow validates only their shape and never exports,
+# copies, prints, or rewrites values in /etc/sp-yt-transcode.env. Native
+# processing remains fail-closed behind the
+# database youtube_native_transcode control.
+# Required repository secrets: HETZNER_HOST and HETZNER_SSH_PRIVATE_KEY.
 
 on:
   push:
     branches: [main]
     paths:
       - 'scripts/yt-transcode-worker/**'
+      - 'supabase/migrations/20260906235959_video_reels_integrity_foundation.sql'
       - '.github/workflows/deploy-yt-worker.yml'
   workflow_dispatch:
 
@@ -26,163 +20,475 @@ concurrency:
   group: deploy-yt-worker
   cancel-in-progress: false
 
+permissions:
+  contents: read
+
 jobs:
   deploy:
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    timeout-minutes: 10
-
+    environment: Production
+    timeout-minutes: 20
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Require the exact merged main revision
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF" = refs/heads/main
+          git fetch --no-tags --depth=1 origin main
+          test "$(git rev-parse HEAD)" = "$(git rev-parse FETCH_HEAD)"
 
       - name: Set up SSH agent
-        uses: webfactory/ssh-agent@v0.9.0
+        uses: webfactory/ssh-agent@dc588b651fe13675774614f8e6a936a468676387 # v0.9.0
         with:
           ssh-private-key: ${{ secrets.HETZNER_SSH_PRIVATE_KEY }}
 
-      - name: Trust Hetzner host key
-        run: |
-          mkdir -p ~/.ssh
-          ssh-keyscan -H "${{ secrets.HETZNER_HOST }}" >> ~/.ssh/known_hosts
-
-      - name: Bootstrap (idempotent — apt + pip + dirs)
+      # Canonical reels-transcode-worker: Hetzner server 128782737. The
+      # fingerprint, rather than an IP printed in logs, binds this deploy to it.
+      - name: Trust the canonical reels-transcode-worker host
         env:
           HOST: ${{ secrets.HETZNER_HOST }}
-          USER: ${{ secrets.HETZNER_SSH_USER || 'openclaw' }}
+          EXPECTED_ED25519_FINGERPRINT: SHA256:sZTpafVw76Jpgu+pwgp5X3nuaSfEnedVuZd/eWWiG+4
         run: |
-          ssh "$USER@$HOST" 'bash -s' <<'EOSSH'
-          set -e
-          # Install once, fast-no-op afterwards
-          if ! command -v yt-dlp >/dev/null 2>&1; then
-            sudo apt-get update -y
-            sudo apt-get install -y python3 python3-pip ffmpeg
-            sudo pip3 install --upgrade --break-system-packages yt-dlp || sudo pip3 install --upgrade yt-dlp
+          set -euo pipefail
+          test -n "$HOST"
+          mkdir -p ~/.ssh
+          ssh-keyscan -T 10 -t ed25519 -H "$HOST" > ~/.ssh/known_hosts 2>/dev/null
+          test -s ~/.ssh/known_hosts
+          actual_fingerprint="$(ssh-keygen -lf ~/.ssh/known_hosts -E sha256 | awk '{print $2}' | sort -u)"
+          test "$actual_fingerprint" = "$EXPECTED_ED25519_FINGERPRINT"
+          chmod 0600 ~/.ssh/known_hosts
+          ssh-keygen -F "$HOST" -f ~/.ssh/known_hosts >/dev/null
+          printf '%s\n' \
+            'Host *' \
+            '  StrictHostKeyChecking yes' \
+            '  UserKnownHostsFile ~/.ssh/known_hosts' > ~/.ssh/config
+          chmod 0600 ~/.ssh/config
+
+      - name: Validate host-managed configuration boundary
+        env:
+          HOST: ${{ secrets.HETZNER_HOST }}
+          SSH_USER: ${{ secrets.HETZNER_SSH_USER || 'root' }}
+        run: |
+          ssh "$SSH_USER@$HOST" 'bash -s' <<'EOSSH'
+          set -euo pipefail
+          sudo test -f /etc/sp-yt-transcode.env
+          test "$(sudo stat -c '%U:%G %a' /etc/sp-yt-transcode.env)" = 'root:root 600'
+          if sudo grep -Evq '^([[:space:]]*|[[:space:]]*#.*|(NEXT_PUBLIC_SUPABASE_URL|SUPABASE_SERVICE_ROLE_KEY|WORKER_ID|MAX_CONCURRENT_YT)=.*)$' /etc/sp-yt-transcode.env; then
+            exit 1
           fi
-          # Always upgrade yt-dlp (YouTube changes their player frequently)
-          sudo pip3 install --upgrade --break-system-packages yt-dlp 2>/dev/null \
-            || sudo pip3 install --upgrade yt-dlp
-          # Install camoufox (stealth Firefox for cookie harvesting)
-          if ! python3 -c "import camoufox" 2>/dev/null; then
-            sudo pip3 install --break-system-packages "camoufox[geoip]" 2>/dev/null \
-              || sudo pip3 install "camoufox[geoip]"
+          test "$(sudo grep -Ec '^NEXT_PUBLIC_SUPABASE_URL=' /etc/sp-yt-transcode.env)" -eq 1
+          test "$(sudo grep -Ec '^SUPABASE_SERVICE_ROLE_KEY=' /etc/sp-yt-transcode.env)" -eq 1
+          test "$(sudo grep -Ec '^SUPABASE_URL=' /etc/sp-yt-transcode.env || true)" -eq 0
+          sudo grep -Eq '^NEXT_PUBLIC_SUPABASE_URL=https://[A-Za-z0-9-]+\.supabase\.co/?$' /etc/sp-yt-transcode.env
+          # Either a legacy service_role JWT or a Supabase secret API key
+          # (sb_secret_...). Both are matched unquoted, whole-line and free of
+          # whitespace; grep -q never prints the value.
+          sudo grep -Eq '^SUPABASE_SERVICE_ROLE_KEY=(eyJ[A-Za-z0-9_-]*\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+|sb_secret_[A-Za-z0-9_-]{20,})$' /etc/sp-yt-transcode.env
+          if sudo grep -q '^WORKER_ID=' /etc/sp-yt-transcode.env; then
+            test "$(sudo grep -Ec '^WORKER_ID=' /etc/sp-yt-transcode.env)" -eq 1
+            sudo grep -Eq '^WORKER_ID=[A-Za-z0-9._:-]{1,80}$' /etc/sp-yt-transcode.env
           fi
-          # Download camoufox browser binary (idempotent)
-          python3 -m camoufox fetch 2>/dev/null || true
-          sudo mkdir -p /opt/smarter-poker/yt-transcode-worker
-          sudo chown "$(whoami):$(whoami)" /opt/smarter-poker/yt-transcode-worker
-          yt-dlp --version
-          ffmpeg -version | head -1
-          python3 -c "import camoufox; print('camoufox OK')"
+          if sudo grep -q '^MAX_CONCURRENT_YT=' /etc/sp-yt-transcode.env; then
+            test "$(sudo grep -Ec '^MAX_CONCURRENT_YT=' /etc/sp-yt-transcode.env)" -eq 1
+            sudo grep -Eq '^MAX_CONCURRENT_YT=[1-6]$' /etc/sp-yt-transcode.env
+          fi
           EOSSH
 
-      - name: Sync worker code
+      - name: Verify existing runtime
         env:
           HOST: ${{ secrets.HETZNER_HOST }}
-          USER: ${{ secrets.HETZNER_SSH_USER || 'openclaw' }}
+          SSH_USER: ${{ secrets.HETZNER_SSH_USER || 'root' }}
         run: |
-          rsync -azv --delete \
-            --exclude=node_modules \
-            --exclude=DEPLOY.md \
-            --exclude=cookies.txt \
-            -e "ssh -o StrictHostKeyChecking=accept-new" \
-            scripts/yt-transcode-worker/ \
-            "$USER@$HOST:/opt/smarter-poker/yt-transcode-worker/"
-          ssh "$USER@$HOST" 'cd /opt/smarter-poker/yt-transcode-worker && npm install --omit=dev'
+          ssh "$SSH_USER@$HOST" 'bash -s' <<'EOSSH'
+          set -euo pipefail
+          test "$(uname -s)" = Linux
+          test "$(uname -m)" = x86_64
+          test -x /usr/bin/python3
+          test -x /usr/bin/ffmpeg
+          test -x /usr/bin/node
+          /usr/bin/python3 -c 'import sys; assert sys.version_info[:2] == (3,12)'
+          node_major="$(/usr/bin/node -p 'Number(process.versions.node.split(".")[0])')"
+          case "$node_major" in (*[!0-9]*|'') exit 1 ;; esac
+          test "$node_major" -ge 18
+          id -u openclaw >/dev/null
+          /usr/bin/node --version
+          /usr/bin/python3 --version
+          /usr/bin/ffmpeg -version | head -1
+          sudo install -d -o root -g root -m 0755 \
+            /opt/smarter-poker/yt-transcode-releases \
+            /opt/smarter-poker/yt-transcode-releases/.staging
+          test "$(sudo stat -c '%U:%G %a' /opt/smarter-poker/yt-transcode-releases)" = 'root:root 755'
+          EOSSH
 
-      - name: Write env file (root-owned, 0600)
+      - name: Stage and preflight immutable worker release
         env:
+          BUILD_IMAGE: ${{ vars.VIDEO_YT_BUILD_IMAGE }}
           HOST: ${{ secrets.HETZNER_HOST }}
-          USER: ${{ secrets.HETZNER_SSH_USER || 'openclaw' }}
-          SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-        run: |
-          ssh "$USER@$HOST" "sudo tee /etc/sp-yt-transcode.env >/dev/null" <<EOF
-          NEXT_PUBLIC_SUPABASE_URL=https://kuklfnapbkmacvwxktbh.supabase.co
-          SUPABASE_SERVICE_ROLE_KEY=$SERVICE_KEY
-          WORKER_ID=hetzner-ash-yt-01
-          MAX_CONCURRENT_YT=6
-          EOF
-          ssh "$USER@$HOST" 'sudo chmod 600 /etc/sp-yt-transcode.env && sudo chown root:root /etc/sp-yt-transcode.env'
+          SSH_USER: ${{ secrets.HETZNER_SSH_USER || 'root' }}
+          # Owner decision (23 Sep 2026): official images only. The build
+          # container downloads the official Node.js v20.20.2 linux-x64 tarball
+          # from nodejs.org and accepts it only when its sha256 equals BOTH the
+          # literal pin below AND the tarball's line in the official
+          # SHASUMS256.txt; any mismatch fails closed before the archive is
+          # opened. Extraction uses the stdlib tarfile/lzma modules with the
+          # "data" filter (no apt, no xz binary). The toolchain only builds the
+          # payload: the release carries no Node runtime, and the host keeps
+          # running it with its own /usr/bin/node (>= 18, checked above).
+          NODE_TOOLCHAIN_PY: |
+            import hashlib
+            import os
+            import re
+            import sys
+            import tarfile
+            import urllib.request
 
-      - name: Install / update systemd units (worker + cookie-refresh timer)
+            RELEASE = 'node-v20.20.2-linux-x64'
+            TARBALL = RELEASE + '.tar.xz'
+            TARBALL_URL = 'https://nodejs.org/dist/v20.20.2/node-v20.20.2-linux-x64.tar.xz'
+            SHASUMS_URL = 'https://nodejs.org/dist/v20.20.2/SHASUMS256.txt'
+            # From https://nodejs.org/dist/v20.20.2/SHASUMS256.txt, resolved 23 Sep 2026.
+            PINNED_SHA256 = 'df770b2a6f130ed8627c9782c988fda9669fa23898329a61a871e32f965e007d'
+
+
+            def fail(message):
+                sys.exit('node toolchain: ' + message)
+
+
+            def fetch(url, destination, limit):
+                with urllib.request.urlopen(url, timeout=120) as response, open(destination, 'xb') as output:
+                    received = 0
+                    while True:
+                        chunk = response.read(1 << 20)
+                        if not chunk:
+                            break
+                        received += len(chunk)
+                        if received > limit:
+                            fail('download exceeds its size bound: ' + url)
+                        output.write(chunk)
+
+
+            download_dir, toolchain_dir = sys.argv[1], sys.argv[2]
+            os.makedirs(download_dir, mode=0o700)
+            shasums_path = os.path.join(download_dir, 'SHASUMS256.txt')
+            tarball_path = os.path.join(download_dir, TARBALL)
+            fetch(SHASUMS_URL, shasums_path, 64 * 1024)
+            fetch(TARBALL_URL, tarball_path, 64 * 1024 * 1024)
+            listed = []
+            with open(shasums_path, encoding='ascii') as shasums:
+                for line in shasums:
+                    match = re.fullmatch(r'([0-9a-f]{64})  (\S+)\n?', line)
+                    if match and match.group(2) == TARBALL:
+                        listed.append(match.group(1))
+            if len(listed) != 1:
+                fail('SHASUMS256.txt must list ' + TARBALL + ' exactly once')
+            if listed[0] != PINNED_SHA256:
+                fail('SHASUMS256.txt entry does not match the pinned sha256')
+            digest = hashlib.sha256()
+            with open(tarball_path, 'rb') as tarball:
+                for chunk in iter(lambda: tarball.read(1 << 20), b''):
+                    digest.update(chunk)
+            actual = digest.hexdigest()
+            if actual != PINNED_SHA256 or actual != listed[0]:
+                fail('downloaded tarball does not match the pinned and published sha256')
+            if not hasattr(tarfile, 'data_filter'):
+                fail('this Python lacks tarfile extraction filters')
+            with tarfile.open(tarball_path, mode='r:xz') as archive:
+                for member in archive.getmembers():
+                    if member.name != RELEASE and not member.name.startswith(RELEASE + '/'):
+                        fail('unexpected archive member outside ' + RELEASE)
+                archive.extractall(toolchain_dir, filter='data')
+            os.remove(tarball_path)
+            print(TARBALL + ' sha256 ' + actual + ' matches the pin and SHASUMS256.txt')
+        run: |
+          set -euo pipefail
+          # GitHub-hosted runners hold no pre-seeded build image. Only the
+          # official Docker Hub python:3.12-slim-bookworm image, pinned by its
+          # linux/amd64 manifest digest, is ever pulled; the selection below
+          # still re-validates the reference, the resolved image ID and the
+          # platform before anything runs.
+          [[ "$BUILD_IMAGE" =~ ^(docker\.io/)?(library/)?python@sha256:[0-9a-f]{64}$ ]] || exit 1
+          timeout --signal=TERM --kill-after=10s 600s \
+            docker pull --quiet --platform linux/amd64 "$BUILD_IMAGE" >/dev/null
+          # Accept only immutable registry digests of the official Docker Hub
+          # python image (library/python); no bare local image ID and no
+          # third-party image.
+          [[ "$BUILD_IMAGE" =~ ^(docker\.io/)?(library/)?python@sha256:[0-9a-f]{64}$ ]] || exit 1
+          image_id="$(docker image inspect --format '{{.Id}}' "$BUILD_IMAGE")"
+          [[ "$image_id" =~ ^sha256:[0-9a-f]{64}$ ]] || exit 1
+          test "$(docker image inspect --format '{{.Os}}/{{.Architecture}}' "$image_id")" = linux/amd64
+          local_stage="$(mktemp -d "$RUNNER_TEMP/yt-worker-stage.XXXXXX")"
+          build_container="wh-yt-worker-build-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          trap 'docker rm -f "$build_container" >/dev/null 2>&1 || true; rm -rf -- "$local_stage"' EXIT
+          # Fixed payload excludes cookies, environment, legacy helpers and storage-gc-orphans.py.
+          for leaf in index.js package.json package-lock.json yt-dlp.version yt-dlp.requirements.txt; do
+            cp "scripts/yt-transcode-worker/$leaf" "$local_stage/$leaf"
+          done
+          ytdlp_version="$(tr -d '[:space:]' < scripts/yt-transcode-worker/yt-dlp.version)"
+          case "$ytdlp_version" in (*[!0-9.]*|'') exit 2 ;; esac
+          grep -Fq "yt-dlp==$ytdlp_version" scripts/yt-transcode-worker/yt-dlp.requirements.txt
+          timeout --signal=TERM --kill-after=10s 900s docker run --rm --pull=never \
+            --name "$build_container" --platform linux/amd64 --cpus=2 \
+            --memory=1g --memory-swap=1g --pids-limit=256 --read-only \
+            --tmpfs /tmp:rw,nosuid,size=256m \
+            --tmpfs /opt/node-toolchain:rw,exec,nosuid,nodev,size=256m \
+            --user "$(id -u):$(id -g)" \
+            --env HOME=/tmp --env NODE_TOOLCHAIN_PY \
+            --mount "type=bind,src=$local_stage,dst=/release" \
+            --workdir /release --entrypoint /bin/sh "$image_id" -eu -c '
+              python3 -c "import sys,platform; assert sys.version_info[:2] == (3,12); assert platform.machine() == \"x86_64\""
+              grep -qx "VERSION_CODENAME=bookworm" /etc/os-release
+              python3 -I -c "$NODE_TOOLCHAIN_PY" /tmp/node-download /opt/node-toolchain
+              PATH="/opt/node-toolchain/node-v20.20.2-linux-x64/bin:$PATH"
+              export PATH
+              test "$(command -v node)" = /opt/node-toolchain/node-v20.20.2-linux-x64/bin/node
+              test "$(node -v)" = v20.20.2
+              test "$(command -v npm)" = /opt/node-toolchain/node-v20.20.2-linux-x64/bin/npm
+              npm --version >/dev/null
+              npm ci --omit=dev --ignore-scripts --no-audit --no-fund
+              node --check index.js
+              python3 -m pip install --disable-pip-version-check --no-cache-dir --no-deps \
+                --no-compile --only-binary=:all: --require-hashes --target vendor --requirement yt-dlp.requirements.txt
+              test "$(PYTHONPATH=/release/vendor python3 -s -m yt_dlp --version)" = "$(cat yt-dlp.version)"
+            '
+          (cd "$local_stage" && find . \( -type f -o -type l \) ! -name release-manifest.sha256 -print0 \
+            | LC_ALL=C sort -z | xargs -0 sha256sum > release-manifest.sha256)
+          archive="$RUNNER_TEMP/sp-yt-worker-${GITHUB_SHA}.tgz"
+          upload="sp-yt-worker-${GITHUB_SHA}-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}.tgz"
+          tar -czf "$archive" -C "$local_stage" .
+          archive_hash="$(sha256sum "$archive" | awk '{print $1}')"
+          scp "$archive" "$SSH_USER@$HOST:$upload"
+          ssh "$SSH_USER@$HOST" 'bash -s' -- \
+            "$GITHUB_SHA" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" "$archive_hash" "$ytdlp_version" <<'EOSSH'
+          set -euo pipefail
+          release_sha="$1"
+          run_id="$2"
+          run_attempt="$3"
+          archive_hash="$4"
+          ytdlp_version="$5"
+          case "$release_sha" in (*[!0-9a-f]*|'') exit 2 ;; esac
+          test "${#release_sha}" -eq 40
+          case "$run_id" in (*[!0-9]*|'') exit 2 ;; esac
+          case "$run_attempt" in (*[!0-9]*|'') exit 2 ;; esac
+          case "$ytdlp_version" in (*[!0-9.]*|'') exit 2 ;; esac
+          case "$archive_hash" in (*[!0-9a-f]*|'') exit 2 ;; esac
+          test "${#archive_hash}" -eq 64
+          upload="$HOME/sp-yt-worker-${release_sha}-${run_id}-${run_attempt}.tgz"
+          stage=''
+          cleanup_stage() {
+            rm -f "$upload"
+            if [ -n "$stage" ] && sudo test -d "$stage"; then
+              sudo rm -rf -- "$stage"
+            fi
+          }
+          trap cleanup_stage EXIT
+          echo "$archive_hash  $upload" | sha256sum -c -
+          stage="$(sudo mktemp -d "/opt/smarter-poker/yt-transcode-releases/.staging/${release_sha}.XXXXXX")"
+          release="/opt/smarter-poker/yt-transcode-releases/${release_sha}"
+          sudo tar --no-same-owner -xzf "$upload" -C "$stage"
+          rm -f "$upload"
+          sudo sh -c "cd '$stage' && sha256sum --quiet -c release-manifest.sha256"
+          test "$(sudo env -u PYTHONHOME -u PYTHONPATH PYTHONDONTWRITEBYTECODE=1 PYTHONPATH="$stage/vendor" /usr/bin/python3 -s -m yt_dlp --version)" = "$ytdlp_version"
+          if [ -e "$release" ]; then
+            test ! -L "$release"
+            sudo test -d "$release"
+            sudo test -f "$release/release-manifest.sha256"
+            test "$(sudo stat -c '%U:%G' "$release")" = 'root:root'
+            test -z "$(sudo find "$release" -xdev \( ! -user root -o ! -group root \) -print -quit)"
+            test -z "$(sudo find "$release" -xdev -perm /022 -print -quit)"
+            sudo cmp -s "$stage/release-manifest.sha256" "$release/release-manifest.sha256"
+            sudo sh -c "cd '$stage' && sha256sum -c release-manifest.sha256"
+            sudo sh -c "cd '$release' && sha256sum -c release-manifest.sha256"
+            sudo rm -rf -- "$stage"
+            stage=''
+          else
+            sudo chown -R root:root "$stage"
+            sudo chmod -R u=rwX,go=rX "$stage"
+            test -z "$(sudo find "$stage" -xdev \( ! -user root -o ! -group root \) -print -quit)"
+            test -z "$(sudo find "$stage" -xdev -perm /022 -print -quit)"
+            sudo sh -c "cd '$stage' && sha256sum -c release-manifest.sha256"
+            sudo mv "$stage" "$release"
+            stage=''
+          fi
+          sudo sh -c "cd '$release' && sha256sum -c release-manifest.sha256"
+          preflight_unit="sp-yt-worker-preflight-${run_id}-${run_attempt}"
+          sudo systemd-run --quiet --wait --collect --unit "$preflight_unit" \
+            --property Type=oneshot \
+            --property User=openclaw \
+            --property WorkingDirectory="$release" \
+            --property EnvironmentFile=/etc/sp-yt-transcode.env \
+            /usr/bin/timeout --signal=TERM --kill-after=5s 130s \
+            /usr/bin/node index.js --preflight-only
+          EOSSH
+
+      - name: Install unit and verify stable exact release
         env:
           HOST: ${{ secrets.HETZNER_HOST }}
-          USER: ${{ secrets.HETZNER_SSH_USER || 'openclaw' }}
+          SSH_USER: ${{ secrets.HETZNER_SSH_USER || 'root' }}
         run: |
+          set -euo pipefail
+          unit_upload="sp-yt-transcode-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}.service"
           scp scripts/yt-transcode-worker/sp-yt-transcode.service \
-            "$USER@$HOST:/tmp/sp-yt-transcode.service"
-          scp scripts/yt-transcode-worker/sp-yt-cookie-refresh.service \
-            "$USER@$HOST:/tmp/sp-yt-cookie-refresh.service"
-          scp scripts/yt-transcode-worker/sp-yt-cookie-refresh.timer \
-            "$USER@$HOST:/tmp/sp-yt-cookie-refresh.timer"
-          # 2026-05-12: new keep-alive units that refresh cookie lifetimes
-          # WITHOUT re-running the broken camoufox/scrapling headless harvest.
-          # See scripts/yt-transcode-worker/keep-alive-cookies.sh for the full
-          # rationale. The keep-alive timer fires every 30 min and extends
-          # the existing LOGIN_INFO cookies indefinitely.
-          scp scripts/yt-transcode-worker/sp-yt-cookie-keepalive.service \
-            "$USER@$HOST:/tmp/sp-yt-cookie-keepalive.service"
-          scp scripts/yt-transcode-worker/sp-yt-cookie-keepalive.timer \
-            "$USER@$HOST:/tmp/sp-yt-cookie-keepalive.timer"
-          ssh "$USER@$HOST" '
-            sudo mv /tmp/sp-yt-transcode.service /etc/systemd/system/sp-yt-transcode.service
-            sudo mv /tmp/sp-yt-cookie-keepalive.service /etc/systemd/system/sp-yt-cookie-keepalive.service
-            sudo mv /tmp/sp-yt-cookie-keepalive.timer /etc/systemd/system/sp-yt-cookie-keepalive.timer
+            "$SSH_USER@$HOST:$unit_upload"
+          expected_hash="$(sha256sum scripts/yt-transcode-worker/index.js | awk '{print $1}')"
+          expected_unit_hash="$(sha256sum scripts/yt-transcode-worker/sp-yt-transcode.service | awk '{print $1}')"
+          ssh "$SSH_USER@$HOST" 'bash -s' -- \
+            "$GITHUB_SHA" "$expected_hash" "$expected_unit_hash" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" <<'EOSSH'
+          set -euo pipefail
+          expected_sha="$1"
+          expected_hash="$2"
+          expected_unit_hash="$3"
+          run_id="$4"
+          run_attempt="$5"
+          live=/opt/smarter-poker/yt-transcode-worker
+          release="/opt/smarter-poker/yt-transcode-releases/${expected_sha}"
+          legacy_backup=/opt/smarter-poker/yt-transcode-worker.pre-releases
+          unit=/etc/systemd/system/sp-yt-transcode.service
+          unit_backup="/opt/smarter-poker/yt-transcode-releases/.unit-backup-${run_id}-${run_attempt}"
+          unit_upload="$HOME/sp-yt-transcode-${run_id}-${run_attempt}.service"
+
+          case "$expected_sha" in (*[!0-9a-f]*|'') exit 2 ;; esac
+          case "$expected_hash" in (*[!0-9a-f]*|'') exit 2 ;; esac
+          case "$expected_unit_hash" in (*[!0-9a-f]*|'') exit 2 ;; esac
+          test "${#expected_sha}" -eq 40
+          test "${#expected_hash}" -eq 64
+          test "${#expected_unit_hash}" -eq 64
+          case "$run_id" in (*[!0-9]*|'') exit 2 ;; esac
+          case "$run_attempt" in (*[!0-9]*|'') exit 2 ;; esac
+
+          sudo test -d "$release"
+          test ! -L "$release"
+          sudo sh -c "cd '$release' && sha256sum -c release-manifest.sha256"
+          test "$(sha256sum "$unit_upload" | awk '{print $1}')" = "$expected_unit_hash"
+          sudo systemd-analyze verify "$unit_upload"
+
+          old_target=''
+          legacy_moved=false
+          had_live=false
+          had_unit=false
+          enabled_before="$(sudo systemctl is-enabled sp-yt-transcode 2>/dev/null || true)"
+          case "$enabled_before" in enabled|disabled) ;; *) exit 1 ;; esac
+          active_before="$(sudo systemctl show sp-yt-transcode -p ActiveState --value)"
+          case "$active_before" in active|inactive) ;; *) exit 1 ;; esac
+          was_active=false
+          if [ -e "$live" ] || [ -L "$live" ]; then had_live=true; fi
+          if [ "$had_live" = true ] && [ ! -L "$live" ]; then
+            sudo test -d "$live"
+          fi
+          if [ -L "$live" ]; then old_target="$(readlink "$live")"; fi
+          if [ -e "$live" ] && [ ! -L "$live" ]; then
+            sudo test ! -e "$legacy_backup"
+          fi
+          if sudo test -f "$unit"; then
+            sudo cp -a "$unit" "$unit_backup"
+            had_unit=true
+          fi
+          if [ "$active_before" = active ]; then
+            was_active=true
+          fi
+
+          rollback() {
+            status=$?
+            trap - ERR
+            set +e
+            if [ "$had_unit" = true ]; then
+              sudo cp -a "$unit_backup" "$unit"
+            else
+              sudo rm -f "$unit"
+            fi
+            sudo rm -f "$live"
+            if [ "$legacy_moved" = true ] && sudo test -d "$legacy_backup"; then
+              sudo mv "$legacy_backup" "$live"
+            elif [ -n "$old_target" ]; then
+              sudo ln -s "$old_target" "$live"
+            fi
             sudo systemctl daemon-reload
-            sudo systemctl enable sp-yt-transcode
+            if [ "$was_active" = true ] && [ "$had_live" = true ]; then
+              sudo systemctl reset-failed sp-yt-transcode >/dev/null 2>&1
+              sudo systemctl restart sp-yt-transcode
+            else
+              sudo systemctl stop sp-yt-transcode
+            fi
+            sudo rm -f "$unit_backup"
+            rm -f "$unit_upload"
+            exit "$status"
+          }
+          trap rollback ERR
 
-            # Disable the OLD camoufox harvest timer — it produces anonymous
-            # cookies that destroy auth state. The new keep-alive replaces it.
-            sudo systemctl disable --now sp-yt-cookie-refresh.timer || true
+          if [ -e "$live" ] && [ ! -L "$live" ]; then
+            sudo mv "$live" "$legacy_backup"
+            legacy_moved=true
+          fi
+          next_link="/opt/smarter-poker/yt-transcode-worker.next-${run_id}-${run_attempt}"
+          sudo rm -f "$next_link"
+          sudo ln -s "$release" "$next_link"
+          sudo mv -Tf "$next_link" "$live"
 
-            # Enable + start the new keep-alive timer. Runs every 30 min.
-            sudo systemctl enable --now sp-yt-cookie-keepalive.timer
+          sudo mv "$unit_upload" "$unit"
+          sudo chown root:root "$unit"
+          sudo chmod 0644 "$unit"
+          test "$(sudo sha256sum "$unit" | awk '{print $1}')" = "$expected_unit_hash"
+          sudo systemctl daemon-reload
+          # BEGIN preserve-active-state
+          if [ "$was_active" = true ]; then
+          restarts_before="$(sudo systemctl show sp-yt-transcode -p NRestarts --value 2>/dev/null || printf 0)"
+          case "$restarts_before" in (*[!0-9]*|'') restarts_before=0 ;; esac
+          sudo systemctl reset-failed sp-yt-transcode >/dev/null 2>&1 || true
+          sudo systemctl restart sp-yt-transcode
+          first_invocation="$(sudo systemctl show sp-yt-transcode -p InvocationID --value)"
+          test -n "$first_invocation"
+          sudo systemctl is-active --quiet sp-yt-transcode
+          test "$(readlink "$live")" = "$release"
+          test "$(sha256sum "$live/index.js" | awk '{print $1}')" = "$expected_hash"
+          sudo sh -c "cd '$live' && sha256sum -c release-manifest.sha256"
+          ready=false
+          for _ in $(seq 1 130); do
+            sudo systemctl is-active --quiet sp-yt-transcode || break
+            if sudo journalctl "_SYSTEMD_INVOCATION_ID=$first_invocation" --no-pager \
+              | grep -Fq 'Startup preflight: schema and RPC behavior contract verified'; then
+              ready=true
+              break
+            fi
+            sleep 1
+          done
+          test "$ready" = true
+          sudo systemctl is-active --quiet sp-yt-transcode
+          test "$(sudo systemctl show sp-yt-transcode -p InvocationID --value)" = "$first_invocation"
+          restarts_after="$(sudo systemctl show sp-yt-transcode -p NRestarts --value)"
+          case "$restarts_after" in (*[!0-9]*|'') exit 1 ;; esac
+          test "$restarts_after" -le "$((restarts_before + 1))"
+          if sudo journalctl "_SYSTEMD_INVOCATION_ID=$first_invocation" --no-pager \
+            | grep -Eiq 'FATAL|uncaught|SyntaxError|ERR_MODULE_NOT_FOUND'; then
+            # Never print the journal wholesale: service output can carry request
+            # URLs, headers or environment-derived values. Show the unit state and
+            # a bounded tail with credential-looking lines dropped and URL
+            # userinfo, query strings, JWTs and long opaque strings masked.
+            sudo systemctl status sp-yt-transcode --no-pager --lines=0 | head -n 12 || true
+            sudo journalctl "_SYSTEMD_INVOCATION_ID=$first_invocation" --no-pager \
+              | grep -Eiv 'secret|token|passw|authorization|bearer|cookie|credential|api[_-]?key|service_role|environ' \
+              | sed -E \
+                  -e 's#(https?://)[^/@[:space:]]+@#\1[REDACTED]@#g' \
+                  -e 's#[?][^[:space:]]*#?[REDACTED]#g' \
+                  -e 's#eyJ[A-Za-z0-9_.-]+#[REDACTED]#g' \
+                  -e 's#[A-Za-z0-9_+=-]{32,}#[REDACTED]#g' \
+              | cut -c1-400 | tail -n 60 || true
+            # `false`, not `exit 1`: an explicit exit bypasses the ERR trap and
+            # would leave the failed release promoted without rollback.
+            false
+          fi
 
-            # Ensure the keep-alive script is executable on the box
-            sudo chmod +x /opt/smarter-poker/yt-transcode-worker/keep-alive-cookies.sh || true
-            sudo chmod +x /opt/smarter-poker/yt-transcode-worker/install-pot-provider.sh || true
+          else
+            test "$(sudo systemctl show sp-yt-transcode -p ActiveState --value)" = inactive
+            echo "Immutable release verified; YT worker remains inactive."
+          fi
+          # END preserve-active-state
+          test "$(sudo systemctl is-enabled sp-yt-transcode 2>/dev/null || true)" = "$enabled_before"
+          test "$(readlink "$live")" = "$release"
+          sudo sh -c "cd '$live' && sha256sum --quiet -c release-manifest.sha256"
 
-            sudo systemctl restart sp-yt-transcode
-            sleep 3
-            sudo systemctl is-active sp-yt-transcode
-            sudo systemctl is-active sp-yt-cookie-keepalive.timer
-          '
-
-      - name: Install + start bgutil-pot-provider (no-cookie YouTube auth)
-        env:
-          HOST: ${{ secrets.HETZNER_HOST }}
-          USER: ${{ secrets.HETZNER_SSH_USER || 'openclaw' }}
-        run: |
-          # Copy the bgutil systemd unit + health timer + install script to Hetzner.
-          # All three files are idempotent — safe to scp on every deploy.
-          scp scripts/yt-transcode-worker/bgutil-pot-provider.service \
-            "$USER@$HOST:/tmp/bgutil-pot-provider.service"
-          scp scripts/yt-transcode-worker/sp-yt-pot-health.service \
-            "$USER@$HOST:/tmp/sp-yt-pot-health.service"
-          scp scripts/yt-transcode-worker/sp-yt-pot-health.timer \
-            "$USER@$HOST:/tmp/sp-yt-pot-health.timer"
-          ssh "$USER@$HOST" '
-            sudo mv /tmp/bgutil-pot-provider.service /etc/systemd/system/bgutil-pot-provider.service
-            sudo mv /tmp/sp-yt-pot-health.service /etc/systemd/system/sp-yt-pot-health.service
-            sudo mv /tmp/sp-yt-pot-health.timer /etc/systemd/system/sp-yt-pot-health.timer
-            sudo systemctl daemon-reload
-
-            # Run the installer ONCE inline so the npm/pip packages are present
-            # before we try to enable the service. Subsequent runs are handled
-            # by sp-yt-pot-health.timer every 5 min (which also self-heals).
-            bash /opt/smarter-poker/yt-transcode-worker/install-pot-provider.sh || true
-
-            # Enable + start the health timer (which runs the installer every 5 min,
-            # and restarts bgutil-pot-provider if its HTTP probe fails).
-            sudo systemctl enable --now sp-yt-pot-health.timer
-
-            echo "--- bgutil-pot-provider status ---"
-            sudo systemctl is-active bgutil-pot-provider || true
-            curl -sS --max-time 3 -o /dev/null -w "probe :4416 → %{http_code}\n" http://127.0.0.1:4416/ || true
-          '
-
-      - name: Tail recent logs (sanity check)
-        env:
-          HOST: ${{ secrets.HETZNER_HOST }}
-          USER: ${{ secrets.HETZNER_SSH_USER || 'openclaw' }}
-        run: |
-          ssh "$USER@$HOST" 'sudo journalctl -u sp-yt-transcode -n 30 --no-pager'
+          # Preserve legacy services, packages and backups; this release never retires them.
+          trap - ERR
+          sudo rm -f "$unit_backup"
+          EOSSH

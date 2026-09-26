@@ -4,7 +4,7 @@
  * Swipe right to see more reels
  */
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   YouTubeErrorOverlay,
   reportFailureToServer,
@@ -14,22 +14,36 @@ import { useSupabase } from '../../providers/SupabaseProvider';
 import { busEmit, eventBus, EventType } from '../../engine/EventBus';
 import { getAccessToken, getAuthUser } from '../../lib/authUtils';
 import Link from 'next/link';
+import { useRouter } from 'next/router';
 import GiphyPicker from '../shared/GiphyPicker';
-
-const C = {
-  bg: '#FFFFFF',
-  card: '#FFFFFF',
-  text: '#050505',
-  textSec: '#65676B',
-  border: '#DADDE1',
-  blue: '#1877F2',
-};
+import { fetchPokerReels } from '../../lib/reelsFeedClient';
+import {
+  loadReelFollowState,
+  loadReelInteractionState,
+  normaliseReelAuthorIds,
+  normaliseReelIds,
+} from '../../lib/reelInteractionHydration';
+import { createLatestRequestGuard } from '../../lib/latestRequestGuard.mjs';
+import { savedReelsService } from '../../services/preferences-service';
+import {
+  loadWatchedReelIds,
+  loadNotInterestedReelIds,
+  persistWatchedReelIds,
+  persistNotInterestedReelIds,
+  readReelsSessionFlag,
+  safeSetReelsSessionStorage,
+} from '../../lib/reelsWatchedStorage.mjs';
+import { createReelAccountScope } from '../../lib/reelAccountScope.mjs';
+import VideoLibraryConsole, {
+  ConsoleCopy,
+  ConsoleDataRow,
+} from '../video-library/console/VideoLibraryConsole';
 
 // Time ago helper
 function timeAgo(d) {
   if (!d) return '';
   const s = Math.floor((Date.now() - new Date(d).getTime()) / 1000);
-  if (s < 60) return 'Just now';
+  if (s < 60) return 'Just Now';
   if (s < 3600) return `${Math.floor(s / 60)}m`;
   if (s < 86400) return `${Math.floor(s / 3600)}h`;
   return `${Math.floor(s / 86400)}d`;
@@ -38,8 +52,8 @@ function timeAgo(d) {
 // Format view count (456000 -> 456K)
 function formatViews(count) {
   if (!count) return '0';
-  if (count >= 1000000) return `${(count / 1000000).toFixed(1)}M`;
-  if (count >= 1000) return `${(count / 1000).toFixed(0)}K`;
+  if (count >= 1000000) return `${Math.floor(count / 1000000)}M`;
+  if (count >= 1000) return `${Math.floor(count / 1000)}K`;
   return count.toString();
 }
 
@@ -71,173 +85,51 @@ function getYouTubeThumbnail(url) {
 
 // Individual Reel Card in the carousel
 function ReelCard({ reel, onClick }) {
-  const [isHovered, setIsHovered] = useState(false);
-  const videoRef = useRef(null);
-
   const isYouTube = isYouTubeUrl(reel.video_url);
   const youtubeThumbnail = isYouTube
     ? reel.thumbnail_url || getYouTubeThumbnail(reel.video_url)
     : null;
 
-  const handleClick = () => {
-    // Always use internal viewer - no more opening YouTube externally
-    if (onClick) {
-      onClick();
-    }
-  };
-
-  const handleMouseEnter = () => {
-    setIsHovered(true);
-    if (!isYouTube && videoRef.current) {
-      const p = videoRef.current.play();
-      if (p !== undefined) p.catch(() => {}); // suppress AbortError on rapid hover
-    }
-  };
-
-  const handleMouseLeave = () => {
-    setIsHovered(false);
-    if (!isYouTube && videoRef.current) {
-      videoRef.current.pause();
-      videoRef.current.currentTime = 0;
-    }
-  };
-
   return (
-    <div
-      onClick={handleClick}
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
-      style={{
-        width: 140,
-        height: 250,
-        borderRadius: 12,
-        overflow: 'hidden',
-        position: 'relative',
-        cursor: 'pointer',
-        flexShrink: 0,
-        background: '#000',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-        transform: isHovered ? 'scale(1.02)' : 'scale(1)',
-        transition: 'transform 0.2s',
-      }}
+    <button
+      type="button"
+      onClick={onClick}
+      className="vlc-reel-card"
+      aria-label={`Open reel by ${reel.profiles?.username || 'Poker Creator'}`}
     >
-      {/* Thumbnail image for YouTube, video for direct URLs */}
-      {isYouTube ? (
-        <img
-          src={youtubeThumbnail || '/default-reel-thumb.jpg'}
-          alt={reel.caption || 'Reel'}
-          loading="lazy"
-          style={{
-            width: '100%',
-            height: '100%',
-            objectFit: 'cover',
-            objectPosition: 'center top',
-          }}
-        />
-      ) : (
-        <video
-          ref={videoRef}
-          src={reel.video_url}
-          muted
-          loop
-          playsInline
-          preload="none"
-          poster={reel.thumbnail_url || undefined}
-          style={{
-            width: '100%',
-            height: '100%',
-            objectFit: 'cover',
-          }}
-        />
-      )}
-
-      {/* Gradient overlay */}
-      <div
-        style={{
-          position: 'absolute',
-          bottom: 0,
-          left: 0,
-          right: 0,
-          height: 80,
-          background: 'linear-gradient(transparent, rgba(0,0,0,0.8))',
-        }}
-      />
-
-      {/* Author info */}
-      <div
-        style={{
-          position: 'absolute',
-          bottom: 8,
-          left: 8,
-          right: 8,
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-          <img
-            src={reel.profiles?.avatar_url || '/default-avatar.png'}
-            alt={reel.profiles?.username || 'User'}
-            style={{
-              width: 24,
-              height: 24,
-              borderRadius: '50%',
-              objectFit: 'cover',
-              border: '2px solid white',
-            }}
+      <span className="vlc-reel-card__media">
+        {isYouTube && youtubeThumbnail ? (
+          <img src={youtubeThumbnail} alt={reel.caption || 'Reel'} loading="lazy" />
+        ) : !isYouTube ? (
+          <video
+            src={reel.video_url}
+            muted
+            playsInline
+            preload="none"
+            poster={reel.thumbnail_url || undefined}
+            aria-label={reel.caption || 'Poker reel preview'}
           />
-          <span
-            style={{
-              color: 'white',
-              fontSize: 11,
-              fontWeight: 600,
-              textShadow: '0 1px 2px rgba(0,0,0,0.5)',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            {reel.profiles?.username || 'User'}
-          </span>
-        </div>
-        {reel.caption && (
-          <p
-            style={{
-              color: 'rgba(255,255,255,0.9)',
-              fontSize: 10,
-              margin: 0,
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-              textShadow: '0 1px 2px rgba(0,0,0,0.5)',
-            }}
-          >
-            {reel.caption}
-          </p>
+        ) : (
+          <span className="vlc-reel-card__fallback">Verified Poker Video</span>
         )}
-      </div>
-
-      {/* View count intentionally hidden - visible to poster only, not shown publicly */}
-    </div>
+      </span>
+      <span className="vlc-reel-card__author">
+        {reel.profiles?.avatar_url ? <img src={reel.profiles.avatar_url} alt="" /> : null}
+        <span>{reel.profiles?.username || 'Poker Creator'}</span>
+      </span>
+      <span className="vlc-reel-card__caption">{reel.caption || 'Open Reel'}</span>
+    </button>
   );
 }
 
-/*
- * ITEM 11 (2026-09-08): the Not Interested set is owned by ReelViewer but has
- * to be honoured by ReelsFeedCarousel's loadReels, which is a different
- * component - the first version of this fix put a ref in ReelViewer and read it
- * from the carousel, which is a ReferenceError on every load. localStorage is
- * the persisted source of truth for both, so both read it through here.
- */
-function readNotInterested() {
-  if (typeof window === 'undefined') return new Set();
-  try {
-    return new Set(JSON.parse(localStorage.getItem('reels-not-interested') || '[]'));
-  } catch {
-    return new Set();
-  }
-}
-
 function ReelViewer({ reels, startIndex, onClose }) {
-  const { user: authUser } = useSupabase();
+  const { user: providerUser } = useSupabase();
+  const [authUser, setAuthUser] = useState(providerUser || null);
+  const activeUserIdRef = useRef(providerUser?.id || null);
+  const accountScopeRef = useRef(null);
+  if (!accountScopeRef.current) {
+    accountScopeRef.current = createReelAccountScope(providerUser?.id);
+  }
 
   // Source-aware atomic engagement counter.
   // Reels in the carousel may come from social_reels OR social_posts.
@@ -268,14 +160,20 @@ function ReelViewer({ reels, startIndex, onClose }) {
     // is allowed without gesture); after the first gesture the preference
     // flips and persists indefinitely.
     if (typeof window === 'undefined') return true;
-    try { return localStorage.getItem('sp:reels:muted') !== '0'; }
-    catch (_) { return true; }
+    try {
+      return localStorage.getItem('sp:reels:muted') !== '0';
+    } catch (_) {
+      return true;
+    }
   });
   // Persist muted preference across reloads — see useState initializer above.
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    try { localStorage.setItem('sp:reels:muted', muted ? '1' : '0'); }
-    catch (_) { /* sandboxed contexts may throw */ }
+    try {
+      localStorage.setItem('sp:reels:muted', muted ? '1' : '0');
+    } catch (_) {
+      /* sandboxed contexts may throw */
+    }
   }, [muted]);
   const [liked, setLiked] = useState({});
   const [disliked, setDisliked] = useState({});
@@ -293,6 +191,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
   const [likeCounts, setLikeCounts] = useState({});
   const [commentCounts, setCommentCounts] = useState({});
   const [saved, setSaved] = useState({});
+  const savedTargetsByReelRef = useRef(new Map());
   const [viewCounts, setViewCounts] = useState({});
   const [captionExpanded, setCaptionExpanded] = useState(false);
   const [showShortcutsOverlay, setShowShortcutsOverlay] = useState(false);
@@ -338,24 +237,17 @@ function ReelViewer({ reels, startIndex, onClose }) {
   // Phase 9: Watched Indicator
   const [watchedReelIds, setWatchedReelIds] = useState([]);
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem('smarter-reels-watched');
-      if (stored) {
-        try {
-          setWatchedReelIds(JSON.parse(stored));
-        } catch (e) {
-          console.warn('[ReelsFeedCarousel] Handled exception:', e);
-        }
-      }
-    }
+    setWatchedReelIds(loadWatchedReelIds(activeUserIdRef.current));
   }, []);
 
   // #8 Share Options Modal
   const [showShareModal, setShowShareModal] = useState(false);
+  const [sharingToFeed, setSharingToFeed] = useState(false);
+  const [sharedToFeed, setSharedToFeed] = useState(false);
   // #7 Animated Like Counter
   const [likeBounceId, setLikeBounceId] = useState(null);
   // #4 Not Interested - persist disliked reel IDs in localStorage
-  const [notInterestedIds, setNotInterestedIds] = useState(readNotInterested);
+  const [notInterestedIds, setNotInterestedIds] = useState(loadNotInterestedReelIds);
   // #6 Comment Pagination
   const [commentPage, setCommentPage] = useState(0);
   const [hasMoreComments, setHasMoreComments] = useState(false);
@@ -376,7 +268,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
   const errorToastTimerRef = useRef(null);
   const showErrorToast = (msg) => {
     if (errorToastTimerRef.current) clearTimeout(errorToastTimerRef.current);
-    setErrorToast(msg);
+    setErrorToast(String(msg).replace(/\b[a-z]/g, (letter) => letter.toUpperCase()));
     errorToastTimerRef.current = setTimeout(() => setErrorToast(null), 3000);
   };
   // #6 Comment Like Counts
@@ -407,6 +299,9 @@ function ReelViewer({ reels, startIndex, onClose }) {
   const [reelCommentMediaType, setReelCommentMediaType] = useState(null);
   const [uploadingReelImage, setUploadingReelImage] = useState(false);
   const commentInputRef = useRef(null);
+  const commentRequestGuardRef = useRef(null);
+  const activeCommentReelIdRef = useRef(null);
+  if (!commentRequestGuardRef.current) commentRequestGuardRef.current = createLatestRequestGuard();
   const viewedReelsRef = useRef(new Set());
   const reelFileInputRef = useRef(null);
   const videoRef = useRef(null);
@@ -415,6 +310,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
   const [reportReason, setReportReason] = useState('');
   const [reportSubmitted, setReportSubmitted] = useState(false);
   const containerRef = useRef(null);
+  const dialogRef = useRef(null);
   const overlayTimerRef = useRef(null);
   const touchStartRef = useRef({ x: 0, y: 0 });
   const swipeStartRef = useRef(null);
@@ -423,9 +319,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
   // re-renders and slot transitions. Once any user gesture is captured,
   // every subsequent video can unmute on its onPlaying event without an
   // extra click. See the matching fix in src/components/social/Reels.jsx.
-  const userInteractedRef = useRef(
-    typeof window !== 'undefined' && window.sessionStorage?.getItem('sp:reels:interacted') === '1'
-  );
+  const userInteractedRef = useRef(readReelsSessionFlag('sp:reels:interacted'));
   // Stricter than userInteractedRef: only true when a gesture happened on
   // THIS page load. Browsers gate autoplay-with-sound per-document; the
   // sessionStorage-backed userInteractedRef can be true on reload without
@@ -456,88 +350,157 @@ function ReelViewer({ reels, startIndex, onClose }) {
   const goNextRef = useRef(null);
 
   const currentReel = reels[currentIndex];
+  activeCommentReelIdRef.current = currentReel?.id || null;
+  const interactionReelIds = useMemo(() => normaliseReelIds(reels), [reels]);
+  const interactionAuthorIds = useMemo(() => normaliseReelAuthorIds(reels), [reels]);
+
+  const clearAccountOwnedState = useCallback(() => {
+    commentRequestGuardRef.current.abort();
+    setLiked({});
+    setDisliked({});
+    setFollowing({});
+    setSaved({});
+    savedTargetsByReelRef.current = new Map();
+    setWatchedReelIds(loadWatchedReelIds(activeUserIdRef.current));
+    setNotInterestedIds(loadNotInterestedReelIds(activeUserIdRef.current));
+    setShowComments(false);
+    setReelComments([]);
+    setCommentText('');
+    setCommentLikes({});
+    setCommentLikeCounts({});
+    setReplyTo(null);
+    setEditingComment(null);
+    setEditCommentText('');
+    setShowReelGifPicker(false);
+    setReelCommentMediaUrl(null);
+    setReelCommentMediaType(null);
+    setUploadingReelImage(false);
+    setShowShareModal(false);
+    setSharingToFeed(false);
+    setSharedToFeed(false);
+    setShowMoreMenu(false);
+    setShowReactionPicker(false);
+    setShowContextMenu(false);
+    setShowReportModal(false);
+    setReportReason('');
+    setReportSubmitted(false);
+    setShareToast(false);
+    setCopyToast(false);
+    setErrorToast(null);
+  }, []);
+
+  const bindAuthUser = useCallback(
+    (nextUser) => {
+      const nextOwnerId = nextUser?.id || null;
+      const changed = accountScopeRef.current.bind(nextOwnerId);
+      activeUserIdRef.current = nextOwnerId;
+      if (changed) clearAccountOwnedState();
+      setAuthUser(nextUser || null);
+    },
+    [clearAccountOwnedState]
+  );
+
+  useEffect(() => {
+    bindAuthUser(providerUser || null);
+  }, [bindAuthUser, providerUser]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const hydrateCurrentUser = () => {
+      const nextUser = getAuthUser() || null;
+      if (!cancelled) bindAuthUser(nextUser);
+    };
+    hydrateCurrentUser();
+    const { data: subscription } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!cancelled) bindAuthUser(session?.user || null);
+    });
+    window.addEventListener('storage', hydrateCurrentUser);
+    return () => {
+      cancelled = true;
+      window.removeEventListener('storage', hydrateCurrentUser);
+      subscription?.subscription?.unsubscribe?.();
+    };
+  }, [bindAuthUser]);
 
   // Phase 9: Watched Indicator Timer
   useEffect(() => {
     if (!currentReel?.id) return;
+    const ownerRequest = accountScopeRef.current.capture(activeUserIdRef.current);
     const watchTimer = setTimeout(() => {
+      if (!ownerRequest.isCurrent()) return;
       setWatchedReelIds((prev) => {
         if (prev.includes(currentReel.id)) return prev;
-        const next = [...prev, currentReel.id].slice(-500);
-        localStorage.setItem('smarter-reels-watched', JSON.stringify(next));
-        return next;
+        return persistWatchedReelIds([...prev, currentReel.id], ownerRequest.ownerId);
       });
     }, 3000); // 3 seconds = watched
     return () => clearTimeout(watchTimer);
-  }, [currentReel?.id]);
+  }, [currentReel?.id, authUser?.id]);
 
-  // Pre-fetch existing likes + bookmarks + dislikes + follows on mount
+  // Hydrate interaction truth only for Reels loaded in this viewer. The helper
+  // chunks IDs so query-string and PostgREST row limits cannot truncate state.
   useEffect(() => {
-    if (!authUser?.id) return;
-    // Load likes — limit 500 to guard against users with massive engagement history
-    supabase
-      .from('social_likes')
-      .select('post_id')
-      .eq('user_id', authUser.id)
-      .eq('reaction_type', 'like')
-      .limit(500)
-      .then(({ data }) => {
-        if (data) {
-          const likeMap = {};
-          data.forEach((row) => {
-            likeMap[row.post_id] = true;
-          });
-          setLiked(likeMap);
+    const ownerId = activeUserIdRef.current;
+    if (!ownerId || interactionReelIds.length === 0) {
+      setLiked({});
+      setDisliked({});
+      setSaved({});
+      savedTargetsByReelRef.current = new Map();
+      return undefined;
+    }
+
+    let cancelled = false;
+    const controller = new AbortController();
+    const ownerRequest = accountScopeRef.current.capture(ownerId);
+    loadReelInteractionState(supabase, ownerId, reels, {
+      loadSavedReels: (ownerId, reelIds, options) =>
+        savedReelsService.getSavedReelsForIds(ownerId, reelIds, options),
+      signal: controller.signal,
+    })
+      .then((state) => {
+        if (cancelled || !ownerRequest.isCurrent()) return;
+        setLiked(state.liked);
+        setDisliked(state.disliked);
+        setSaved(state.saved);
+        savedTargetsByReelRef.current = new Map(Object.entries(state.savedTargets));
+      })
+      .catch((error) => {
+        if (!cancelled && ownerRequest.isCurrent()) {
+          setLiked({});
+          setDisliked({});
+          setSaved({});
+          savedTargetsByReelRef.current = new Map();
+          console.warn('[ReelCarousel] Interaction hydration failed:', error?.message || error);
         }
       });
-    // Load dislikes
-    supabase
-      .from('social_likes')
-      .select('post_id')
-      .eq('user_id', authUser.id)
-      .eq('reaction_type', 'dislike')
-      .limit(500)
-      .then(({ data }) => {
-        if (data) {
-          const dislikeMap = {};
-          data.forEach((row) => {
-            dislikeMap[row.post_id] = true;
-          });
-          setDisliked(dislikeMap);
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
+  }, [authUser?.id, interactionReelIds, reels]);
+
+  // Follow state is author-scoped and limited to creators in this viewer.
+  useEffect(() => {
+    const ownerId = activeUserIdRef.current;
+    if (!ownerId || interactionAuthorIds.length === 0) {
+      setFollowing({});
+      return undefined;
+    }
+    let cancelled = false;
+    const ownerRequest = accountScopeRef.current.capture(ownerId);
+    loadReelFollowState(supabase, ownerId, interactionAuthorIds)
+      .then((state) => {
+        if (!cancelled && ownerRequest.isCurrent()) setFollowing(state);
+      })
+      .catch((error) => {
+        if (!cancelled && ownerRequest.isCurrent()) {
+          setFollowing({});
+          console.warn('[ReelCarousel] Follow hydration failed:', error?.message || error);
         }
       });
-    // Load bookmarks
-    supabase
-      .from('social_interactions')
-      .select('post_id')
-      .eq('user_id', authUser.id)
-      .eq('interaction_type', 'bookmark')
-      .limit(500)
-      .then(({ data }) => {
-        if (data) {
-          const saveMap = {};
-          data.forEach((row) => {
-            saveMap[row.post_id] = true;
-          });
-          setSaved(saveMap);
-        }
-      });
-    // Load follows
-    supabase
-      .from('social_follows')
-      .select('following_id')
-      .eq('follower_id', authUser.id)
-      .limit(1000)
-      .then(({ data }) => {
-        if (data) {
-          const followMap = {};
-          data.forEach((row) => {
-            followMap[row.following_id] = true;
-          });
-          setFollowing(followMap);
-        }
-      });
-  }, [authUser?.id]);
+    return () => {
+      cancelled = true;
+    };
+  }, [authUser?.id, interactionAuthorIds]);
 
   // EventBus listeners - sync like/bookmark from other viewers
   useEffect(() => {
@@ -555,7 +518,11 @@ function ReelViewer({ reels, startIndex, onClose }) {
     };
     const handleBookmarkBus = (event) => {
       const d = event?.payload;
-      if (d?.postId) setSaved((prev) => ({ ...prev, [d.postId]: d.added }));
+      if (d?.postId && authUser?.id && d.userId === authUser.id) {
+        setSaved((prev) => ({ ...prev, [d.postId]: d.added }));
+        if (d.added) savedTargetsByReelRef.current.set(d.postId, [d.postId]);
+        else savedTargetsByReelRef.current.delete(d.postId);
+      }
     };
     const handleCommentBus = (event) => {
       const d = event?.payload;
@@ -568,7 +535,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
     };
     const handleFollowBus = (event) => {
       const d = event?.payload;
-      if (d?.followedId && d?.followerId !== authUser?.id) {
+      if (d?.followedId && authUser?.id && d.followerId === authUser.id) {
         setFollowing((prev) => ({ ...prev, [d.followedId]: d.added }));
       }
     };
@@ -726,6 +693,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
     document.body.classList.add('reels-lock');
     document.documentElement.classList.add('reels-lock');
     return () => {
+      commentRequestGuardRef.current?.abort();
       document.body.classList.remove('reels-lock');
       document.documentElement.classList.remove('reels-lock');
       // Clear any legacy inline styles that may still be on the elements
@@ -826,15 +794,22 @@ function ReelViewer({ reels, startIndex, onClose }) {
 
   const handleLike = async () => {
     if (!currentReel) return;
+    const currentId = currentReel.id;
+    const userId = activeUserIdRef.current;
+    if (!userId) {
+      showErrorToast('Sign in to like Reels');
+      return;
+    }
+    const ownerRequest = accountScopeRef.current.capture(userId);
     if (likeDebounceRef.current) return;
     likeDebounceRef.current = true;
     setTimeout(() => {
       likeDebounceRef.current = false;
     }, 300);
 
-    const currentId = currentReel.id;
     // Optimistic UI update - always fire so heart turns red immediately
     const wasLiked = liked[currentId];
+    const wasDisliked = disliked[currentId];
     setLiked((prev) => ({ ...prev, [currentId]: !prev[currentId] }));
     setLikeCounts((prev) => ({
       ...prev,
@@ -849,12 +824,9 @@ function ReelViewer({ reels, startIndex, onClose }) {
       setLikeBounceId(null);
     }, 400);
 
-    // Resolve userId fresh to avoid stale closure if authUser not yet hydrated
-    const userId = authUser?.id || getAuthUser()?.id;
-    if (!userId) return; // No auth - keep optimistic UI but skip DB write
-
     // Mutual exclusion: remove dislike when liking
-    if (!wasLiked && disliked[currentId]) {
+    let removedDislike = false;
+    if (!wasLiked && wasDisliked) {
       setDisliked((prev) => ({ ...prev, [currentId]: false }));
       try {
         const { error } = await supabase
@@ -864,8 +836,18 @@ function ReelViewer({ reels, startIndex, onClose }) {
           .eq('user_id', userId)
           .eq('reaction_type', 'dislike');
         if (error) throw error;
+        if (!ownerRequest.isCurrent()) return;
+        removedDislike = true;
       } catch (e) {
-        console.warn('[ReelsFeedCarousel] Handled exception:', e);
+        if (!ownerRequest.isCurrent()) return;
+        setDisliked((prev) => ({ ...prev, [currentId]: true }));
+        setLiked((prev) => ({ ...prev, [currentId]: wasLiked }));
+        setLikeCounts((prev) => ({
+          ...prev,
+          [currentId]: Math.max(0, (prev[currentId] || 0) + (wasLiked ? 1 : -1)),
+        }));
+        showErrorToast('Like failed - try again');
+        return;
       }
     }
 
@@ -879,6 +861,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
           .eq('user_id', userId)
           .eq('reaction_type', 'like');
         if (error) throw error;
+        if (!ownerRequest.isCurrent()) return;
         busEmit.socialPostLiked(currentId, userId, { added: false, reactionType: 'like' });
       } else {
         // DB trigger (trig_sync_like_count) handles like_count atomically - no RPC needed
@@ -886,47 +869,78 @@ function ReelViewer({ reels, startIndex, onClose }) {
           .from('social_likes')
           .insert({ post_id: currentId, user_id: userId, reaction_type: 'like' });
         if (error) throw error;
+        if (!ownerRequest.isCurrent()) return;
         busEmit.socialPostLiked(currentId, userId, { added: true, reactionType: 'like' });
       }
     } catch (err) {
+      if (!ownerRequest.isCurrent()) return;
       console.warn('Reel like persistence failed:', err.message);
       showErrorToast('Like failed - resyncing state...');
       // Authoritative state resynchronization
       try {
-        const [{ data: postData }, { data: likeData }] = await Promise.all([
-          supabase.from('social_posts').select('like_count').eq('id', currentId).maybeSingle(),
-          supabase.from('social_likes').select('reaction_type').eq('post_id', currentId).eq('user_id', userId)
+        const counterTable = currentReel.source === 'posts' ? 'social_posts' : 'social_reels';
+        const [postResult, likeResult] = await Promise.all([
+          supabase.from(counterTable).select('like_count').eq('id', currentId).maybeSingle(),
+          supabase
+            .from('social_likes')
+            .select('reaction_type')
+            .eq('post_id', currentId)
+            .eq('user_id', userId),
         ]);
-        if (postData) setLikeCounts(prev => ({ ...prev, [currentId]: postData.like_count || 0 }));
-        if (likeData) {
-          setLiked(prev => ({ ...prev, [currentId]: likeData.some(r => r.reaction_type === 'like') }));
-          setDisliked(prev => ({ ...prev, [currentId]: likeData.some(r => r.reaction_type === 'dislike') }));
+        if (!ownerRequest.isCurrent()) return;
+        if (postResult.error) throw postResult.error;
+        if (likeResult.error) throw likeResult.error;
+        if (postResult.data) {
+          setLikeCounts((prev) => ({ ...prev, [currentId]: postResult.data.like_count || 0 }));
         }
-      } catch (e) { console.warn('Resync failed:', e); }
+        const reactions = likeResult.data || [];
+        setLiked((prev) => ({
+          ...prev,
+          [currentId]: reactions.some((r) => r.reaction_type === 'like'),
+        }));
+        setDisliked((prev) => ({
+          ...prev,
+          [currentId]: reactions.some((r) => r.reaction_type === 'dislike'),
+        }));
+      } catch (e) {
+        if (!ownerRequest.isCurrent()) return;
+        console.warn('Resync failed:', e);
+        setLiked((prev) => ({ ...prev, [currentId]: wasLiked }));
+        setDisliked((prev) => ({ ...prev, [currentId]: removedDislike ? false : wasDisliked }));
+        setLikeCounts((prev) => ({
+          ...prev,
+          [currentId]: Math.max(0, (prev[currentId] || 0) + (wasLiked ? 1 : -1)),
+        }));
+      }
     }
   };
 
   const handleDislike = async () => {
     if (!currentReel) return;
+    const currentId = currentReel.id;
+    const userId = activeUserIdRef.current;
+    if (!userId) {
+      showErrorToast('Sign in to manage Reel recommendations');
+      return;
+    }
+    const ownerRequest = accountScopeRef.current.capture(userId);
     if (likeDebounceRef.current) return;
     likeDebounceRef.current = true;
     setTimeout(() => {
       likeDebounceRef.current = false;
     }, 300);
 
-    const currentId = currentReel.id;
     const wasDisliked = disliked[currentId];
+    const wasLiked = liked[currentId];
     setDisliked((prev) => ({ ...prev, [currentId]: !prev[currentId] }));
     // Mutual exclusion: remove like when disliking
-    if (!wasDisliked && liked[currentId]) {
+    if (!wasDisliked && wasLiked) {
       setLiked((prev) => ({ ...prev, [currentId]: false }));
       setLikeCounts((prev) => ({ ...prev, [currentId]: Math.max(0, (prev[currentId] || 0) - 1) }));
     }
 
-    const userId = authUser?.id || getAuthUser()?.id;
-    if (!userId) return; // No auth - keep optimistic UI but skip DB write
-
-    if (!wasDisliked && liked[currentId]) {
+    let removedLike = false;
+    if (!wasDisliked && wasLiked) {
       try {
         // DB trigger handles like_count decrement when like is removed - no RPC needed
         const { error } = await supabase
@@ -936,8 +950,15 @@ function ReelViewer({ reels, startIndex, onClose }) {
           .eq('user_id', userId)
           .eq('reaction_type', 'like');
         if (error) throw error;
+        if (!ownerRequest.isCurrent()) return;
+        removedLike = true;
       } catch (e) {
-        console.warn('[ReelsFeedCarousel] Handled exception:', e);
+        if (!ownerRequest.isCurrent()) return;
+        setLiked((prev) => ({ ...prev, [currentId]: true }));
+        setLikeCounts((prev) => ({ ...prev, [currentId]: (prev[currentId] || 0) + 1 }));
+        setDisliked((prev) => ({ ...prev, [currentId]: wasDisliked }));
+        showErrorToast('Dislike failed - try again');
+        return;
       }
     }
 
@@ -950,26 +971,24 @@ function ReelViewer({ reels, startIndex, onClose }) {
           .eq('user_id', userId)
           .eq('reaction_type', 'dislike');
         if (error) throw error;
+        if (!ownerRequest.isCurrent()) return;
         // #4 Not Interested - remove from filter
         setNotInterestedIds((prev) => {
           const n = new Set(prev);
           n.delete(currentId);
-          if (typeof window !== 'undefined')
-            localStorage.setItem('reels-not-interested', JSON.stringify([...n]));
-          return n;
+          return persistNotInterestedReelIds(n, userId);
         });
       } else {
         const { error } = await supabase
           .from('social_likes')
           .insert({ post_id: currentId, user_id: userId, reaction_type: 'dislike' });
         if (error) throw error;
+        if (!ownerRequest.isCurrent()) return;
         // #4 Not Interested - add to filter
         setNotInterestedIds((prev) => {
           const n = new Set(prev);
           n.add(currentId);
-          if (typeof window !== 'undefined')
-            localStorage.setItem('reels-not-interested', JSON.stringify([...n]));
-          return n;
+          return persistNotInterestedReelIds(n, userId);
         });
         /*
          * Move off it. The load filter above keeps it away on every future
@@ -981,20 +1000,41 @@ function ReelViewer({ reels, startIndex, onClose }) {
         goNext();
       }
     } catch (err) {
+      if (!ownerRequest.isCurrent()) return;
       console.warn('Reel dislike persistence failed:', err.message);
       showErrorToast('Action failed - resyncing state...');
       // Authoritative state resynchronization
       try {
-        const [{ data: postData }, { data: likeData }] = await Promise.all([
-          supabase.from('social_posts').select('like_count').eq('id', currentId).maybeSingle(),
-          supabase.from('social_likes').select('reaction_type').eq('post_id', currentId).eq('user_id', userId)
+        const counterTable = currentReel.source === 'posts' ? 'social_posts' : 'social_reels';
+        const [postResult, likeResult] = await Promise.all([
+          supabase.from(counterTable).select('like_count').eq('id', currentId).maybeSingle(),
+          supabase
+            .from('social_likes')
+            .select('reaction_type')
+            .eq('post_id', currentId)
+            .eq('user_id', userId),
         ]);
-        if (postData) setLikeCounts(prev => ({ ...prev, [currentId]: postData.like_count || 0 }));
-        if (likeData) {
-          setLiked(prev => ({ ...prev, [currentId]: likeData.some(r => r.reaction_type === 'like') }));
-          setDisliked(prev => ({ ...prev, [currentId]: likeData.some(r => r.reaction_type === 'dislike') }));
+        if (!ownerRequest.isCurrent()) return;
+        if (postResult.error) throw postResult.error;
+        if (likeResult.error) throw likeResult.error;
+        if (postResult.data) {
+          setLikeCounts((prev) => ({ ...prev, [currentId]: postResult.data.like_count || 0 }));
         }
-      } catch (e) { console.warn('Resync failed:', e); }
+        const reactions = likeResult.data || [];
+        setLiked((prev) => ({
+          ...prev,
+          [currentId]: reactions.some((r) => r.reaction_type === 'like'),
+        }));
+        setDisliked((prev) => ({
+          ...prev,
+          [currentId]: reactions.some((r) => r.reaction_type === 'dislike'),
+        }));
+      } catch (e) {
+        if (!ownerRequest.isCurrent()) return;
+        console.warn('Resync failed:', e);
+        setDisliked((prev) => ({ ...prev, [currentId]: wasDisliked }));
+        setLiked((prev) => ({ ...prev, [currentId]: removedLike ? false : wasLiked }));
+      }
     }
   };
 
@@ -1002,25 +1042,47 @@ function ReelViewer({ reels, startIndex, onClose }) {
   const handleToggleComments = async () => {
     const opening = !showComments;
     setShowComments(opening);
+    if (!opening) {
+      commentRequestGuardRef.current.abort();
+      setLoadingMoreComments(false);
+      return;
+    }
     // Always fetch fresh comments when opening
-    if (opening && currentReel?.id) {
+    if (currentReel?.id) {
+      const reelId = currentReel.id;
+      const ownerRequest = accountScopeRef.current.capture();
+      const commentRequest = commentRequestGuardRef.current.begin({ append: false });
       setCommentPage(0);
       try {
-        const { data } = await supabase
+        const { data, error } = await supabase
           .from('social_comments')
           .select('*, profiles:author_id (username, avatar_url)')
-          .eq('post_id', currentReel.id)
+          .eq('post_id', reelId)
           .order('created_at', { ascending: commentSort === 'oldest' })
           .limit(50);
+        if (error) throw error;
+        if (
+          !ownerRequest.isCurrent() ||
+          !commentRequest.isCurrent() ||
+          activeCommentReelIdRef.current !== reelId
+        )
+          return;
         setReelComments(data || []);
         setHasMoreComments((data || []).length >= 50);
         // #6 Load comment like counts
         try {
-          const { data: clData } = await supabase
+          const { data: clData, error: commentLikesError } = await supabase
             .from('social_interactions')
             .select('metadata')
-            .eq('post_id', currentReel.id)
+            .eq('post_id', reelId)
             .eq('interaction_type', 'comment_like');
+          if (commentLikesError) throw commentLikesError;
+          if (
+            !ownerRequest.isCurrent() ||
+            !commentRequest.isCurrent() ||
+            activeCommentReelIdRef.current !== reelId
+          )
+            return;
           const clCounts = {};
           (clData || []).forEach((row) => {
             const cid = row.metadata?.comment_id;
@@ -1028,11 +1090,32 @@ function ReelViewer({ reels, startIndex, onClose }) {
           });
           setCommentLikeCounts(clCounts);
         } catch (e) {
-          console.warn('[ReelsFeedCarousel] Handled exception:', e);
+          if (
+            ownerRequest.isCurrent() &&
+            commentRequest.isCurrent() &&
+            activeCommentReelIdRef.current === reelId
+          ) {
+            console.warn('[ReelsFeedCarousel] Handled exception:', e);
+          }
         }
-      } catch {
-        setReelComments([]);
+      } catch (error) {
+        if (
+          ownerRequest.isCurrent() &&
+          commentRequest.isCurrent() &&
+          activeCommentReelIdRef.current === reelId
+        ) {
+          console.warn('[ReelsFeedCarousel] Comment load failed:', error?.message || error);
+          setReelComments([]);
+        }
+      } finally {
+        commentRequest.finish();
       }
+      if (
+        !ownerRequest.isCurrent() ||
+        !commentRequest.isCurrent() ||
+        activeCommentReelIdRef.current !== reelId
+      )
+        return;
       // BUG FIX (RFC-4): cancel previous focus timer — prevents focus() on unmounted input.
       if (commentFocusTimerRef.current) clearTimeout(commentFocusTimerRef.current);
       commentFocusTimerRef.current = setTimeout(() => {
@@ -1045,15 +1128,26 @@ function ReelViewer({ reels, startIndex, onClose }) {
   // #6 Comment Pagination - Load More
   const loadMoreComments = async () => {
     if (!currentReel?.id || loadingMoreComments || !hasMoreComments) return;
+    const reelId = currentReel.id;
+    const ownerRequest = accountScopeRef.current.capture();
+    const commentRequest = commentRequestGuardRef.current.begin({ append: true });
+    if (!commentRequest) return;
     setLoadingMoreComments(true);
     const nextPage = commentPage + 1;
     try {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('social_comments')
         .select('*, profiles:author_id (username, avatar_url)')
-        .eq('post_id', currentReel.id)
+        .eq('post_id', reelId)
         .order('created_at', { ascending: commentSort === 'oldest' })
         .range(nextPage * 50, (nextPage + 1) * 50 - 1);
+      if (error) throw error;
+      if (
+        !ownerRequest.isCurrent() ||
+        !commentRequest.isCurrent() ||
+        activeCommentReelIdRef.current !== reelId
+      )
+        return;
       if (data && data.length > 0) {
         setReelComments((prev) => [...prev, ...data]);
         setCommentPage(nextPage);
@@ -1061,16 +1155,27 @@ function ReelViewer({ reels, startIndex, onClose }) {
       } else {
         setHasMoreComments(false);
       }
-    } catch {
-      setHasMoreComments(false);
+    } catch (error) {
+      if (
+        ownerRequest.isCurrent() &&
+        commentRequest.isCurrent() &&
+        activeCommentReelIdRef.current === reelId
+      ) {
+        console.warn('[ReelsFeedCarousel] Comment pagination failed:', error?.message || error);
+        setHasMoreComments(false);
+      }
+    } finally {
+      if (ownerRequest.isCurrent() && commentRequest.finish()) setLoadingMoreComments(false);
     }
-    setLoadingMoreComments(false);
   };
 
   // Submit comment (supports text + GIF/image media)
   const handleSubmitComment = async (e) => {
     if (e && e.key !== 'Enter') return;
-    if ((!commentText.trim() && !reelCommentMediaUrl) || !authUser?.id || !currentReel?.id) return;
+    const userId = activeUserIdRef.current;
+    if ((!commentText.trim() && !reelCommentMediaUrl) || !userId || !currentReel?.id) return;
+    const ownerRequest = accountScopeRef.current.capture(userId);
+    const reelId = currentReel.id;
     const text = commentText.trim();
     const mediaUrl = reelCommentMediaUrl;
     const mediaType = reelCommentMediaType;
@@ -1094,34 +1199,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
       },
     ]);
     try {
-      // Proxy post creation for reels: if the reel comes from social_reels,
-      // create a proxy record in social_posts so the FK on social_comments works.
-      if (currentReel.source === 'reels') {
-        const { data: existing } = await supabase
-          .from('social_posts')
-          .select('id')
-          .eq('id', currentReel.id)
-          .maybeSingle();
-        if (!existing) {
-          // BUG FIX #18: social_posts uses author_id (not user_id) and
-          // media_urls as a JSONB array (not media_url text). The wrong
-          // column names were silently swallowed by .catch(), preventing
-          // the proxy FK row from ever being created — causing all comments
-          // on social_reels-sourced reels to fail with a FK violation.
-          const { error: proxyErr } = await supabase
-            .from('social_posts')
-            .insert({
-              id: currentReel.id,
-              author_id: currentReel.author_id || authUser.id,
-              content: currentReel.caption || '',
-              content_type: 'video',
-              media_urls: currentReel.video_url ? [currentReel.video_url] : [],
-              visibility: 'public',
-            });
-          if (proxyErr) console.warn('[ReelsFeedCarousel] Proxy post creation failed:', proxyErr?.message);
-        }
-      }
-      const payload = { post_id: currentReel.id, author_id: authUser.id, content: text || '' };
+      const payload = { post_id: reelId, author_id: userId, content: text || '' };
       if (mediaUrl) {
         payload.media_url = mediaUrl;
         payload.media_type = mediaType;
@@ -1131,18 +1209,23 @@ function ReelViewer({ reels, startIndex, onClose }) {
       }
       const { error } = await supabase.from('social_comments').insert(payload);
       if (error) throw error;
-      busEmit.socialCommentAdded(currentReel.id, authUser.id);
+      if (!ownerRequest.isCurrent()) return;
+      busEmit.socialCommentAdded(reelId, userId);
       // DB trigger handles comment_count increment atomically
-      setCommentCounts((prev) => ({ ...prev, [currentReel.id]: (prev[currentReel.id] || 0) + 1 }));
+      setCommentCounts((prev) => ({ ...prev, [reelId]: (prev[reelId] || 0) + 1 }));
     } catch {
+      if (!ownerRequest.isCurrent()) return;
       setReelComments((prev) => prev.filter((c) => c.id !== tempId));
-      showErrorToast('Comment failed \u2014 please try again');
+      showErrorToast('Comment failed - please try again');
     }
   };
 
   // Phase 6 - Comment like toggle
   const handleCommentLike = async (commentId) => {
-    if (!authUser?.id) return;
+    const userId = activeUserIdRef.current;
+    if (!userId || !currentReel?.id) return;
+    const ownerRequest = accountScopeRef.current.capture(userId);
+    const reelId = currentReel.id;
     // Guard: skip temp comments (optimistic, not yet DB-persisted).
     // Temp IDs are Date.now() — a 13-digit numeric string when cast.
     // Liking a temp ID would insert a dangling social_interactions row
@@ -1164,21 +1247,24 @@ function ReelViewer({ reels, startIndex, onClose }) {
         const { error } = await supabase
           .from('social_interactions')
           .delete()
-          .eq('user_id', authUser.id)
-          .eq('post_id', currentReel.id)
+          .eq('user_id', userId)
+          .eq('post_id', reelId)
           .eq('interaction_type', 'comment_like')
           .eq('metadata->>comment_id', commentId);
         if (error) throw error;
+        if (!ownerRequest.isCurrent()) return;
       } else {
         const { error } = await supabase.from('social_interactions').insert({
-          user_id: authUser.id,
-          post_id: currentReel.id,
+          user_id: userId,
+          post_id: reelId,
           interaction_type: 'comment_like',
           metadata: { comment_id: commentId },
         });
         if (error) throw error;
+        if (!ownerRequest.isCurrent()) return;
       }
     } catch (err) {
+      if (!ownerRequest.isCurrent()) return;
       console.warn('Comment like persistence failed:', err.message);
       showErrorToast('Like failed - resyncing state...');
       // Authoritative state resynchronization
@@ -1188,51 +1274,58 @@ function ReelViewer({ reels, startIndex, onClose }) {
         // column, so this resync 42703'd and never resynced anything.
         const [{ data: commentData }, { data: likeData }] = await Promise.all([
           supabase.from('social_comments').select('like_count').eq('id', commentId).maybeSingle(),
-          supabase.from('social_interactions').select('id')
-            .eq('user_id', authUser.id)
-            .eq('post_id', currentReel.id)
+          supabase
+            .from('social_interactions')
+            .select('id')
+            .eq('user_id', userId)
+            .eq('post_id', reelId)
             .eq('interaction_type', 'comment_like')
-            .eq('metadata->>comment_id', commentId)
+            .eq('metadata->>comment_id', commentId),
         ]);
-        if (commentData) setCommentLikeCounts(prev => ({ ...prev, [commentId]: commentData.like_count || 0 }));
-        if (likeData) setCommentLikes(prev => ({ ...prev, [commentId]: likeData.length > 0 }));
-      } catch (e) { console.warn('Resync failed:', e); }
+        if (!ownerRequest.isCurrent()) return;
+        if (commentData)
+          setCommentLikeCounts((prev) => ({ ...prev, [commentId]: commentData.like_count || 0 }));
+        if (likeData) setCommentLikes((prev) => ({ ...prev, [commentId]: likeData.length > 0 }));
+      } catch (e) {
+        if (ownerRequest.isCurrent()) console.warn('Resync failed:', e);
+      }
     }
   };
 
   // Phase 6 - Delete own comment
   const handleDeleteComment = async (commentId) => {
-    if (!authUser?.id || !currentReel?.id) return;
-    // Optimistic remove — functional updater avoids stale-snapshot issues
-    // under concurrent rapid deletes (using 'const prev = ...' is a closure
-    // snapshot that becomes wrong after the first async delete in flight)
+    const userId = activeUserIdRef.current;
+    if (!userId || !currentReel?.id) return;
+    const ownerRequest = accountScopeRef.current.capture(userId);
+    const reelId = currentReel.id;
+    const deletedIndex = reelComments.findIndex((comment) => comment.id === commentId);
+    const deletedComment = deletedIndex >= 0 ? reelComments[deletedIndex] : null;
     setReelComments((c) => c.filter((x) => x.id !== commentId));
     try {
       const { error } = await supabase
         .from('social_comments')
         .delete()
         .eq('id', commentId)
-        .eq('author_id', authUser.id);
+        .eq('author_id', userId);
       if (error) throw error;
+      if (!ownerRequest.isCurrent()) return;
       // DB trigger handles comment_count decrement atomically
       setCommentCounts((p) => ({
         ...p,
-        [currentReel.id]: Math.max(0, (p[currentReel.id] || 1) - 1),
+        [reelId]: Math.max(0, (p[reelId] || 1) - 1),
       }));
-      busEmit.socialCommentAdded &&
-        busEmit.socialCommentAdded(currentReel.id, authUser.id, { removed: true });
-    } catch {
-      // Re-fetch to restore accurate state (safer than restoring a stale snapshot)
-      supabase
-        .from('social_comments')
-        .select('*, profiles:author_id (username, avatar_url)')
-        .eq('post_id', currentReel.id)
-        .order('created_at', { ascending: commentSort === 'oldest' })
-        .limit(50)
-        .then(({ data }) => {
-          if (data) setReelComments(data);
-        });
-      showErrorToast('Delete failed \u2014 please try again');
+      busEmit.socialCommentAdded && busEmit.socialCommentAdded(reelId, userId, { removed: true });
+    } catch (error) {
+      if (!ownerRequest.isCurrent()) return;
+      console.warn('[ReelCarousel] Comment delete failed:', error?.message || error);
+      if (activeCommentReelIdRef.current !== reelId || !deletedComment) return;
+      setReelComments((current) => {
+        if (current.some((comment) => comment.id === commentId)) return current;
+        const restored = [...current];
+        restored.splice(Math.min(deletedIndex, restored.length), 0, deletedComment);
+        return restored;
+      });
+      showErrorToast('Delete failed - please try again');
     }
   };
 
@@ -1242,7 +1335,10 @@ function ReelViewer({ reels, startIndex, onClose }) {
     setEditCommentText(comment.content || '');
   };
   const handleSaveEdit = async (commentId) => {
-    if (!editCommentText.trim() || !authUser?.id) return;
+    const userId = activeUserIdRef.current;
+    if (!editCommentText.trim() || !userId || !currentReel?.id) return;
+    const ownerRequest = accountScopeRef.current.capture(userId);
+    const reelId = currentReel.id;
     const orig = reelComments.find((c) => c.id === commentId);
     setReelComments((prev) =>
       prev.map((c) => (c.id === commentId ? { ...c, content: editCommentText.trim() } : c))
@@ -1253,22 +1349,18 @@ function ReelViewer({ reels, startIndex, onClose }) {
         .from('social_comments')
         .update({ content: editCommentText.trim() })
         .eq('id', commentId)
-        .eq('author_id', authUser.id);
+        .eq('author_id', userId);
       if (error) throw error;
-    } catch {
-      // Re-fetch to restore accurate state (safer than restoring a stale snapshot)
-      supabase
-        .from('social_comments')
-        .select('*, profiles:author_id (username, avatar_url)')
-        .eq('post_id', orig.post_id)
-        .order('created_at', { ascending: commentSort === 'oldest' })
-        .limit(50)
-        .then(({ data }) => {
-          if (data) setReelComments(data);
-        });
-      showErrorToast('Edit failed \u2014 please try again');
+      if (!ownerRequest.isCurrent()) return;
+    } catch (error) {
+      if (!ownerRequest.isCurrent()) return;
+      console.warn('[ReelCarousel] Comment edit failed:', error?.message || error);
+      if (activeCommentReelIdRef.current === reelId && orig) {
+        setReelComments((prev) => prev.map((c) => (c.id === commentId ? orig : c)));
+        showErrorToast('Edit failed - please try again');
+      }
     }
-    setEditCommentText('');
+    if (ownerRequest.isCurrent()) setEditCommentText('');
   };
 
   // Phase 7 - Playback speed toggle
@@ -1284,7 +1376,9 @@ function ReelViewer({ reels, startIndex, onClose }) {
 
   // Handle image upload for reel comments
   const handleReelImageUpload = async (file) => {
-    if (!file || !authUser?.id) return;
+    const userId = activeUserIdRef.current;
+    if (!file || !userId) return;
+    const ownerRequest = accountScopeRef.current.capture(userId);
     setUploadingReelImage(true);
     try {
       const formData = new FormData();
@@ -1301,6 +1395,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
           const ctx = canvas.getContext('2d');
           ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
           const blob = await new Promise((r) => canvas.toBlob(r, 'image/jpeg', 0.82));
+          if (!ownerRequest.isCurrent()) return;
           uploadFile = new File([blob], file.name.replace(/\.[^.]+$/, '.jpg'), {
             type: 'image/jpeg',
           });
@@ -1308,8 +1403,10 @@ function ReelViewer({ reels, startIndex, onClose }) {
           uploadFile = file;
         }
       }
+      if (!ownerRequest.isCurrent()) return;
       if (uploadFile.size > 4.5 * 1024 * 1024) {
-        showErrorToast('Image is too large (max 4.5MB).');
+        if (!ownerRequest.isCurrent()) return;
+        showErrorToast('Image Is Too Large. Maximum 4608 KB.');
         setUploadingReelImage(false);
         return;
       }
@@ -1326,14 +1423,14 @@ function ReelViewer({ reels, startIndex, onClose }) {
         body: formData,
       });
       const result = await resp.json();
-      if (resp.ok && result.success) {
+      if (ownerRequest.isCurrent() && resp.ok && result.success) {
         setReelCommentMediaUrl(result.url);
         setReelCommentMediaType('image');
       }
     } catch (err) {
-      console.warn('[ReelComment] Upload error:', err);
+      if (ownerRequest.isCurrent()) console.warn('[ReelComment] Upload error:', err);
     }
-    setUploadingReelImage(false);
+    if (ownerRequest.isCurrent()) setUploadingReelImage(false);
   };
 
   // Share handler - opens share modal only; repost to feed requires explicit user tap
@@ -1344,16 +1441,21 @@ function ReelViewer({ reels, startIndex, onClose }) {
   };
 
   const shareReelUrl = currentReel
-    ? `${typeof window !== 'undefined' ? window.location.origin : 'https://smarter.poker'}/hub/social-media?reel=${currentReel.id}`
+    ? `${typeof window !== 'undefined' ? window.location.origin : 'https://smarter.poker'}/hub/reels?id=${encodeURIComponent(currentReel.id)}`
     : '';
 
   const handleShareAction = async (platform) => {
+    const reel = currentReel;
+    const userId = activeUserIdRef.current;
+    const ownerRequest = accountScopeRef.current.capture(userId);
+    if (!reel?.id) return;
     setShowShareModal(false);
     const url = shareReelUrl;
     const title = 'Check out this poker reel on Smarter.Poker';
     try {
       if (platform === 'copy') {
         await navigator.clipboard.writeText(url);
+        if (!ownerRequest.isCurrent()) return;
         // BUG FIX (RFC-5): cancel previous share toast timer before scheduling a new one.
         if (shareToastTimerRef.current) clearTimeout(shareToastTimerRef.current);
         setShareToast(true);
@@ -1363,6 +1465,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
         }, 2000);
       } else if (platform === 'native' && navigator.share) {
         await navigator.share({ title, url });
+        if (!ownerRequest.isCurrent()) return;
       } else if (platform === 'x') {
         window.open(
           `https://twitter.com/intent/tweet?text=${encodeURIComponent(title)}&url=${encodeURIComponent(url)}`,
@@ -1378,10 +1481,12 @@ function ReelViewer({ reels, startIndex, onClose }) {
       }
       // Clipboard copy = link preview, not a social share — skip metric + bus event
       if (platform !== 'copy') {
-        incrementMetric(currentReel, 'share_count', 1);
-        if (authUser?.id) busEmit.socialPostShared(currentReel.id, authUser.id);
+        if (!ownerRequest.isCurrent()) return;
+        incrementMetric(reel, 'share_count', 1);
+        if (userId) busEmit.socialPostShared(reel.id, userId);
       }
     } catch {
+      if (!ownerRequest.isCurrent()) return;
       // BUG FIX (RFC-5 fallback): same cancel-before-reschedule pattern in error path
       if (shareToastTimerRef.current) clearTimeout(shareToastTimerRef.current);
       setShareToast(true);
@@ -1393,22 +1498,24 @@ function ReelViewer({ reels, startIndex, onClose }) {
   };
 
   // Share to My Feed - creates a social_posts entry linking this reel
-  const [sharingToFeed, setSharingToFeed] = useState(false);
-  const [sharedToFeed, setSharedToFeed] = useState(false);
   const handleShareToFeed = async () => {
-    if (!currentReel?.id || !authUser?.id || sharingToFeed) return;
+    const reel = currentReel;
+    const userId = activeUserIdRef.current;
+    if (!reel?.id || !userId || sharingToFeed) return;
+    const ownerRequest = accountScopeRef.current.capture(userId);
     setSharingToFeed(true);
     try {
-      const videoUrl = currentReel.video_url;
-      const caption = currentReel.caption || 'Check out this reel!';
-      const reelLink = window.location.origin + '/hub/reels?id=' + currentReel.id;
+      const videoUrl = reel.video_url;
+      const caption = reel.caption || 'Check out this reel!';
+      const reelLink = window.location.origin + '/hub/reels?id=' + reel.id;
       // #5 Duplicate guard
       const { data: existing } = await supabase
         .from('social_posts')
         .select('id')
-        .eq('author_id', authUser.id)
+        .eq('author_id', userId)
         .eq('link_url', reelLink)
         .limit(1);
+      if (!ownerRequest.isCurrent()) return;
       if (existing && existing.length > 0) {
         setSharedToFeed(true);
         setSharingToFeed(false);
@@ -1422,7 +1529,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
       }
       const postContent = caption + '\n\n' + reelLink;
       const { error } = await supabase.from('social_posts').insert({
-        author_id: authUser.id,
+        author_id: userId,
         content: postContent,
         content_type: videoUrl ? 'video' : 'text',
         media_urls: videoUrl ? [videoUrl] : [],
@@ -1430,8 +1537,9 @@ function ReelViewer({ reels, startIndex, onClose }) {
         link_url: reelLink,
       });
       if (error) throw error;
-      incrementMetric(currentReel, 'share_count', 1);
-      busEmit.socialPostShared(currentReel.id, authUser.id);
+      if (!ownerRequest.isCurrent()) return;
+      incrementMetric(reel, 'share_count', 1);
+      busEmit.socialPostShared(reel.id, userId);
       busEmit.dataMutated('social');
       setSharedToFeed(true);
       // BUG FIX (RFC-6): cancel-before-reschedule on success path
@@ -1441,24 +1549,27 @@ function ReelViewer({ reels, startIndex, onClose }) {
         setSharedToFeed(false);
       }, 3000);
     } catch (err) {
+      if (!ownerRequest.isCurrent()) return;
       console.warn('Share to feed failed:', err.message);
-      showErrorToast('Share failed \u2014 try again');
+      showErrorToast('Share failed - try again');
     }
-    setSharingToFeed(false);
+    if (ownerRequest.isCurrent()) setSharingToFeed(false);
   };
 
   const handleReport = async () => {
     if (!currentReel?.id || !reportReason.trim()) return;
-    const authUserLocal = getAuthUser();
-    if (!authUserLocal?.id) return;
+    const userId = activeUserIdRef.current;
+    if (!userId) return;
+    const ownerRequest = accountScopeRef.current.capture(userId);
     try {
       const { error } = await supabase.from('social_interactions').insert({
-        user_id: authUserLocal.id,
+        user_id: userId,
         post_id: currentReel.id,
         interaction_type: 'report',
         metadata: { reason: reportReason.trim() },
       });
       if (error) throw error;
+      if (!ownerRequest.isCurrent()) return;
       setReportSubmitted(true);
       // BUG FIX (RFC-7): track report modal dismiss timer — prevents setState-after-unmount.
       if (reportModalTimerRef.current) clearTimeout(reportModalTimerRef.current);
@@ -1469,6 +1580,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
         setReportReason('');
       }, 2000);
     } catch (err) {
+      if (!ownerRequest.isCurrent()) return;
       // Roll back the optimistic submitted state and show an error
       setReportSubmitted(false);
       console.warn('[ReelsFeedCarousel] Report submission failed:', err?.message || err);
@@ -1481,7 +1593,9 @@ function ReelViewer({ reels, startIndex, onClose }) {
 
   const handleFollow = async () => {
     const authorId = currentReel?.author_id || currentReel?.profiles?.id;
-    if (!authorId || !authUser?.id || authorId === authUser.id) return;
+    const userId = activeUserIdRef.current;
+    if (!authorId || !userId || authorId === userId) return;
+    const ownerRequest = accountScopeRef.current.capture(userId);
     const wasFollowing = following[authorId];
     setFollowing((prev) => ({ ...prev, [authorId]: !prev[authorId] }));
     haptic(wasFollowing ? 5 : 15);
@@ -1490,20 +1604,23 @@ function ReelViewer({ reels, startIndex, onClose }) {
         const { error } = await supabase
           .from('social_follows')
           .delete()
-          .eq('follower_id', authUser.id)
+          .eq('follower_id', userId)
           .eq('following_id', authorId);
         if (error) throw error;
+        if (!ownerRequest.isCurrent()) return;
       } else {
         const { error } = await supabase
           .from('social_follows')
-          .insert({ follower_id: authUser.id, following_id: authorId });
+          .insert({ follower_id: userId, following_id: authorId });
         if (error) throw error;
+        if (!ownerRequest.isCurrent()) return;
       }
       busEmit.socialFollowChanged &&
-        busEmit.socialFollowChanged(authorId, authUser.id, { added: !wasFollowing });
+        busEmit.socialFollowChanged(authorId, userId, { added: !wasFollowing });
     } catch {
+      if (!ownerRequest.isCurrent()) return;
       setFollowing((prev) => ({ ...prev, [authorId]: wasFollowing }));
-      showErrorToast('Follow failed \u2014 try again');
+      showErrorToast('Follow failed - try again');
     }
   };
 
@@ -1512,6 +1629,8 @@ function ReelViewer({ reels, startIndex, onClose }) {
   // This effect handles the remaining state and native video autoplay.
   // dep: currentIndex ONLY - do NOT add `reels` (causes double-fire + play on unloaded src)
   useEffect(() => {
+    commentRequestGuardRef.current.abort();
+    setLoadingMoreComments(false);
     setReelComments([]);
     setCommentText('');
     setShowOverlay(false);
@@ -1640,33 +1759,36 @@ function ReelViewer({ reels, startIndex, onClose }) {
 
   // Save/Bookmark handler
   const handleSave = async () => {
-    if (!currentReel?.id || !authUser?.id) return;
-    const wasSaved = saved[currentReel.id];
-    setSaved((prev) => ({ ...prev, [currentReel.id]: !prev[currentReel.id] }));
+    const reel = currentReel;
+    const userId = activeUserIdRef.current;
+    if (!reel?.id || !userId) return;
+    const ownerRequest = accountScopeRef.current.capture(userId);
+    const wasSaved = saved[reel.id];
+    setSaved((prev) => ({ ...prev, [reel.id]: !prev[reel.id] }));
     haptic(wasSaved ? 5 : 15);
     try {
       if (wasSaved) {
-        const { error } = await supabase
-          .from('social_interactions')
-          .delete()
-          .eq('post_id', currentReel.id)
-          .eq('user_id', authUser.id)
-          .eq('interaction_type', 'bookmark');
-        if (error) throw error;
+        const savedTargets = savedTargetsByReelRef.current.get(reel.id);
+        await savedReelsService.unsaveReel(
+          userId,
+          savedTargets?.length ? savedTargets : [reel.id, reel.source_post_id].filter(Boolean)
+        );
+        if (!ownerRequest.isCurrent()) return;
+        savedTargetsByReelRef.current.delete(reel.id);
       } else {
-        // Removed redundant DELETE before INSERT — if state says not saved,
-        // no row exists to delete. The extra round-trip wasted latency.
-        const { error } = await supabase.from('social_interactions').insert({
-          post_id: currentReel.id,
-          user_id: authUser.id,
-          interaction_type: 'bookmark',
-        });
-        if (error) throw error;
+        await savedReelsService.saveReel(userId, reel.id, 'reel');
+        if (!ownerRequest.isCurrent()) return;
+        savedTargetsByReelRef.current.set(reel.id, [reel.id]);
       }
-      busEmit.socialPostBookmarked(currentReel.id, authUser.id, { added: !wasSaved });
+      try {
+        busEmit.socialPostBookmarked(reel.id, userId, { added: !wasSaved });
+      } catch (eventError) {
+        console.warn('[ReelCarousel] Bookmark event failed:', eventError?.message || eventError);
+      }
     } catch {
-      setSaved((prev) => ({ ...prev, [currentReel.id]: wasSaved }));
-      showErrorToast('Save failed \u2014 try again');
+      if (!ownerRequest.isCurrent()) return;
+      setSaved((prev) => ({ ...prev, [reel.id]: wasSaved }));
+      showErrorToast('Save failed - try again');
     }
   };
 
@@ -1707,7 +1829,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
       if (!userInteractedRef.current) {
         userInteractedRef.current = true;
         try {
-          window.sessionStorage?.setItem('sp:reels:interacted', '1');
+          safeSetReelsSessionStorage('sp:reels:interacted', '1');
         } catch (_) {}
       }
       if (userWantsSoundRef.current) {
@@ -1738,12 +1860,103 @@ function ReelViewer({ reels, startIndex, onClose }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // The master is the only visible surface. Keep focus in its live controls
+  // and return it to the actual carousel trigger when the viewer closes.
+  useEffect(() => {
+    const returnFocus = document.activeElement;
+    const oldOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    dialogRef.current?.focus();
+    const trapFocus = (event) => {
+      if (event.key !== 'Tab') return;
+      const controls = [
+        ...(dialogRef.current?.querySelectorAll(
+          'button:not(:disabled), a[href], input:not(:disabled), [tabindex="0"]'
+        ) || []),
+      ].filter((element) => element.getClientRects().length > 0);
+      const first = controls[0];
+      const last = controls[controls.length - 1];
+      if (!first) {
+        event.preventDefault();
+        dialogRef.current?.focus();
+        return;
+      }
+      if (
+        event.shiftKey &&
+        (document.activeElement === first || document.activeElement === dialogRef.current)
+      ) {
+        event.preventDefault();
+        last.focus();
+      } else if (
+        !event.shiftKey &&
+        (document.activeElement === last || document.activeElement === dialogRef.current)
+      ) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+    document.addEventListener('keydown', trapFocus);
+    return () => {
+      document.removeEventListener('keydown', trapFocus);
+      document.body.style.overflow = oldOverflow;
+      if (returnFocus?.isConnected) returnFocus.focus();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (
+      showComments ||
+      showShareModal ||
+      showReportModal ||
+      showContextMenu ||
+      showMoreMenu ||
+      showReactionPicker ||
+      showShortcutsOverlay
+    ) {
+      dialogRef.current?.focus();
+    }
+  }, [
+    showComments,
+    showShareModal,
+    showReportModal,
+    showContextMenu,
+    showMoreMenu,
+    showReactionPicker,
+    showShortcutsOverlay,
+  ]);
+
   // Keyboard navigation
   useEffect(() => {
     const handleKey = (e) => {
       // Don't intercept keyboard while typing in an input/textarea
       const tag = e.target.tagName;
-      if (tag === 'INPUT' || tag === 'TEXTAREA' || e.target.isContentEditable) return;
+      if (
+        e.key !== 'Escape' &&
+        (tag === 'INPUT' || tag === 'TEXTAREA' || e.target.isContentEditable)
+      )
+        return;
+      if (
+        showComments ||
+        showShareModal ||
+        showReportModal ||
+        showContextMenu ||
+        showMoreMenu ||
+        showReactionPicker ||
+        showShortcutsOverlay
+      ) {
+        if (e.key === 'Escape') {
+          setShowComments(false);
+          setShowShareModal(false);
+          setShowReportModal(false);
+          setShowContextMenu(false);
+          setShowMoreMenu(false);
+          setShowReactionPicker(false);
+          setShowShortcutsOverlay(false);
+          setShowReelGifPicker(false);
+          dialogRef.current?.focus();
+        }
+        return;
+      }
       if (
         e.key === 'ArrowRight' ||
         e.key === 'ArrowDown' ||
@@ -1784,7 +1997,10 @@ function ReelViewer({ reels, startIndex, onClose }) {
       // Uses DOM refs only to avoid stale closures
       if (e.key === ' ') {
         e.preventDefault();
-        if (videoRef.current) {
+        if (
+          videoRef.current &&
+          !isYouTubeUrl(reelsRef.current[currentIndexRef.current]?.video_url)
+        ) {
           if (videoRef.current.paused) {
             videoRef.current.play().catch(() => {});
           } else {
@@ -1817,7 +2033,17 @@ function ReelViewer({ reels, startIndex, onClose }) {
     };
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
-  }, [currentIndex, onClose, showComments]);
+  }, [
+    currentIndex,
+    onClose,
+    showComments,
+    showShareModal,
+    showReportModal,
+    showContextMenu,
+    showMoreMenu,
+    showReactionPicker,
+    showShortcutsOverlay,
+  ]);
 
   if (!currentReel) return null;
 
@@ -1919,2124 +2145,908 @@ function ReelViewer({ reels, startIndex, onClose }) {
     progressRAF.current = requestAnimationFrame(updateProgress);
   };
 
+  const closePanel = () => {
+    setShowComments(false);
+    setShowShareModal(false);
+    setShowReportModal(false);
+    setShowContextMenu(false);
+    setShowMoreMenu(false);
+    setShowReactionPicker(false);
+    setShowShortcutsOverlay(false);
+    setShowReelGifPicker(false);
+    setReportReason('');
+    setReportSubmitted(false);
+  };
+  const panelTitle = showReportModal
+    ? 'Report This Reel'
+    : showShareModal
+      ? 'Share This Reel'
+      : showContextMenu
+        ? 'Reel Actions'
+        : showShortcutsOverlay
+          ? 'Keyboard Shortcuts'
+          : showReactionPicker
+            ? 'Choose A Reaction'
+            : showMoreMenu
+              ? 'Playback Options'
+              : showComments
+                ? 'Reel Comments'
+                : null;
+  const togglePlayback = () => {
+    userInteractedRef.current = true;
+    if (isYouTubeUrl(currentReel.video_url)) {
+      sendYTCmd(paused ? 'playVideo' : 'pauseVideo');
+      setPaused(!paused);
+      setYtReady(true);
+    } else if (videoRef.current) {
+      if (videoRef.current.paused) {
+        videoRef.current.play().catch(() => showErrorToast('Tap Play To Resume'));
+      } else videoRef.current.pause();
+    }
+  };
+  const toggleSound = () => {
+    setMuted((previous) => {
+      const next = !previous;
+      sendYTCmd(next ? 'mute' : 'unMute');
+      if (!next) sendYTCmd('setVolume', [100]);
+      userWantsSoundRef.current = !next;
+      if (videoRef.current) videoRef.current.muted = next;
+      return next;
+    });
+  };
+
   return (
     <div
-      ref={containerRef}
-      style={{
-        position: 'fixed',
-        inset: 0,
-        background: 'rgba(0,0,0,0.95)',
-        zIndex: 10000,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-      }}
+      className="vlc-carousel-viewer-shell"
+      ref={dialogRef}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="carousel-viewer-title"
+      tabIndex={-1}
     >
-      {/* FULL-SCREEN TOUCH OVERLAY — handles taps + swipes ABOVE the iframe */}
-      <div
-        onTouchStart={(e) => {
-          swipeStartRef.current = {
-            y: e.touches[0].clientY,
-            x: e.touches[0].clientX,
-            t: Date.now(),
-          };
-          swipeDeltaRef.current = 0;
-          userInteractedRef.current = true; // Mark user as having interacted
-          handleLongPressTouchStart();
-        }}
-        onTouchMove={(e) => {
-          if (!swipeStartRef.current) return;
-          swipeDeltaRef.current = e.touches[0].clientY - swipeStartRef.current.y;
-          cancelLongPress();
-          e.preventDefault();
-        }}
-        onTouchEnd={(e) => {
-          cancelLongPress();
-          const delta = swipeDeltaRef.current;
-          swipeStartRef.current = null;
-          if (Math.abs(delta) > 50) {
-            if (e.cancelable) e.preventDefault();
-            try {
-              navigator?.vibrate?.(10);
-            } catch (_) {}
-            if (userWantsSoundRef.current) {
-              sendYTCmd('unMute');
-              sendYTCmd('setVolume', [100]);
-              setMuted(false);
-              userWantsSoundRef.current = true;
-            }
-            if (delta < 0) goNext();
-            else goPrev();
-            return;
-          }
-        }}
-        onClick={handleTap}
-        onContextMenu={(e) => {
-          e.preventDefault();
-          setShowContextMenu(true);
-        }}
-        style={{
-          position: 'absolute',
-          inset: 0,
-          zIndex: 5,
-          touchAction: 'none',
-          cursor: 'pointer',
-        }}
-      />
-      {/* Close button - always touchable; fades when overlay hidden but stays accessible */}
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          onClose();
-        }}
-        aria-label="Close"
-        className="sp-icon-btn sp-overlay-close"
-        style={{ '--sp-btn-size': '44px',
-          position: 'absolute',
-          top: 'calc(env(safe-area-inset-top, 0px) + 12px)',
-          right: 12,
-          width: 44,
-          height: 44,
-          minWidth: 44,
-          minHeight: 44,
-          borderRadius: '50%',
-          background: 'rgba(255,255,255,0.1)',
-          border: 'none',
-          color: 'white',
-          fontSize: 20,
-          cursor: 'pointer',
-          touchAction: 'manipulation',
-          WebkitTapHighlightColor: 'transparent',
-          zIndex: 10,
-          opacity: showOverlay ? 1 : 0.3,
-          transition: 'opacity 0.3s ease',
-          pointerEvents: 'auto',
-        }}
+      <VideoLibraryConsole
+        eyebrow="Social Feed"
+        title={panelTitle || 'Reel Viewer'}
+        titleId="carousel-viewer-title"
+        titleAs="h1"
+        subtitle={
+          currentReel.profiles?.username ? `By ${currentReel.profiles.username}` : 'Poker Video'
+        }
+        pill={`${currentIndex + 1} Of ${reels.length}`}
+        pillInk="blue"
+        foot="plates"
+        plates={
+          panelTitle
+            ? {
+                secondary: { label: 'Close Viewer', onClick: onClose, ink: 'silver' },
+                primary: { label: 'Back To Reel', onClick: closePanel, ink: 'white' },
+              }
+            : {
+                secondary: {
+                  label: 'Previous Reel',
+                  onClick: goPrev,
+                  disabled: currentIndex === 0,
+                  ink: 'silver',
+                },
+                primary: {
+                  label: 'Next Reel',
+                  onClick: goNext,
+                  disabled: currentIndex >= reels.length - 1,
+                  ink: 'white',
+                },
+              }
+        }
+        className="vlc-carousel-viewer-console"
       >
-        ✕
-      </button>
+        <div className="vlc-carousel-viewer-toolbar">
+          <button type="button" onClick={onClose} aria-label="Close">
+            Close Viewer
+          </button>
+          {panelTitle && (
+            <button type="button" onClick={closePanel}>
+              Back To Reel
+            </button>
+          )}
+        </div>
+        <div className="vlc-carousel-viewer-layout" hidden={Boolean(panelTitle)}>
+          <div
+            ref={containerRef}
+            className="vlc-carousel-viewer-stage"
+            data-overlay-visible={showOverlay}
+          >
+            {/* FULL-SCREEN TOUCH OVERLAY — handles taps + swipes ABOVE the iframe */}
+            <div
+              onTouchStart={(e) => {
+                swipeStartRef.current = {
+                  y: e.touches[0].clientY,
+                  x: e.touches[0].clientX,
+                  t: Date.now(),
+                };
+                swipeDeltaRef.current = 0;
+                userInteractedRef.current = true; // Mark user as having interacted
+                handleLongPressTouchStart();
+              }}
+              onTouchMove={(e) => {
+                if (!swipeStartRef.current) return;
+                swipeDeltaRef.current = e.touches[0].clientY - swipeStartRef.current.y;
+                cancelLongPress();
+                e.preventDefault();
+              }}
+              onTouchEnd={(e) => {
+                cancelLongPress();
+                const delta = swipeDeltaRef.current;
+                swipeStartRef.current = null;
+                if (Math.abs(delta) > 50) {
+                  if (e.cancelable) e.preventDefault();
+                  try {
+                    navigator?.vibrate?.(10);
+                  } catch (_) {}
+                  if (userWantsSoundRef.current) {
+                    sendYTCmd('unMute');
+                    sendYTCmd('setVolume', [100]);
+                    setMuted(false);
+                    userWantsSoundRef.current = true;
+                  }
+                  if (delta < 0) goNext();
+                  else goPrev();
+                  return;
+                }
+              }}
+              onClick={handleTap}
+              onContextMenu={(e) => {
+                e.preventDefault();
+                setShowContextMenu(true);
+              }}
+              style={{
+                position: 'absolute',
+                inset: 0,
+                zIndex: 5,
+                touchAction: 'none',
+                cursor: 'pointer',
+              }}
+            />
 
-      {/* Reel container - FULLSCREEN TikTok-style */}
-      <div
-        style={{
-          width: '100vw',
-          height: '100vh',
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: '#000',
-        }}
-      >
-        {/* YouTube thumbnail — instant visual feedback while iframe loads */}
-        {isYouTubeUrl(currentReel.video_url) && (
-          <img
-            src={`https://img.youtube.com/vi/${getYouTubeVideoId(currentReel.video_url)}/maxresdefault.jpg`}
-            style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              width: '100%',
-              height: '100%',
-              objectFit: 'cover',
-              zIndex: 0,
-            }}
-            alt=""
-            onError={(e) => {
-              // maxresdefault may not exist; fall back to hqdefault
-              e.target.src = `https://img.youtube.com/vi/${getYouTubeVideoId(currentReel.video_url)}/hqdefault.jpg`;
-            }}
-          />
-        )}
+            <div className="vlc-carousel-viewer-media">
+              {/* YouTube thumbnail — instant visual feedback while iframe loads */}
+              {isYouTubeUrl(currentReel.video_url) && (
+                <img
+                  src={`https://img.youtube.com/vi/${getYouTubeVideoId(currentReel.video_url)}/maxresdefault.jpg`}
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'cover',
+                    zIndex: 0,
+                  }}
+                  alt=""
+                  onError={(e) => {
+                    // maxresdefault may not exist; fall back to hqdefault
+                    e.target.src = `https://img.youtube.com/vi/${getYouTubeVideoId(currentReel.video_url)}/hqdefault.jpg`;
+                  }}
+                />
+              )}
 
-        {/* PERSISTENT YouTube iframe — ALWAYS rendered, hidden when viewing native video.
+              {/* PERSISTENT YouTube iframe — ALWAYS rendered, hidden when viewing native video.
                     This prevents React from destroying/recreating the iframe when switching
                     between YouTube and direct-upload reels. */}
-        {(() => {
-          // Find the first YouTube video in the reel list for the initial iframe src.
-          // startIndex may point to a direct upload, so we need a valid YT ID.
-          const firstYTReel = reels.find((r) => isYouTubeUrl(r.video_url));
-          const initialVideoId = firstYTReel ? getYouTubeVideoId(firstYTReel.video_url) : null;
-          if (!initialVideoId) return null; // No YouTube reels at all — skip iframe entirely
-          const isCurrentYT = isYouTubeUrl(currentReel.video_url);
-          return (
-            <div
-              style={{
-                position: 'relative',
-                width: '100%',
-                height: '100%',
-                pointerEvents: 'none',
-                display: isCurrentYT ? 'block' : 'none', // Hide but keep alive
-              }}
-            >
-              <iframe
-                ref={ytIframeRef}
-                src={`https://www.youtube-nocookie.com/embed/${initialVideoId}?autoplay=1&mute=1&rel=0&modestbranding=1&playsinline=1&controls=0&showinfo=0&iv_load_policy=3&fs=0&disablekb=1&cc_load_policy=0&enablejsapi=1&origin=${typeof window !== 'undefined' ? window.location.origin : ''}`}
+              {(() => {
+                // Find the first YouTube video in the reel list for the initial iframe src.
+                // startIndex may point to a direct upload, so we need a valid YT ID.
+                const firstYTReel = reels.find((r) => isYouTubeUrl(r.video_url));
+                const initialVideoId = firstYTReel
+                  ? getYouTubeVideoId(firstYTReel.video_url)
+                  : null;
+                if (!initialVideoId) return null; // No YouTube reels at all — skip iframe entirely
+                const isCurrentYT = isYouTubeUrl(currentReel.video_url);
+                return (
+                  <div
+                    style={{
+                      position: 'relative',
+                      width: '100%',
+                      height: '100%',
+                      pointerEvents: 'none',
+                      display: isCurrentYT ? 'block' : 'none', // Hide but keep alive
+                    }}
+                  >
+                    <iframe
+                      ref={ytIframeRef}
+                      src={`https://www.youtube-nocookie.com/embed/${initialVideoId}?autoplay=1&mute=1&rel=0&modestbranding=1&playsinline=1&controls=0&showinfo=0&iv_load_policy=3&fs=0&disablekb=1&cc_load_policy=0&enablejsapi=1&origin=${typeof window !== 'undefined' ? window.location.origin : ''}`}
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        border: 'none',
+                        pointerEvents: 'none',
+                        position: 'relative',
+                        zIndex: 1,
+                      }}
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                      onLoad={() => {
+                        ytIframeReadyRef.current = true;
+                        // Force play + unmute via postMessage
+                        sendYTCmd('playVideo');
+                        if (userInteractedRef.current && userWantsSoundRef.current) {
+                          sendYTCmd('unMute');
+                          sendYTCmd('setVolume', [100]);
+                          // Only flip React state if a gesture happened on THIS load.
+                          // YT iframe is cross-origin so we cannot verify unMute.
+                          if (userGesturedThisLoadRef.current) setMuted(false);
+                        }
+                        // BUG FIX (RFC-8): cancel any previous retry batch before
+                        // scheduling new ones — prevents stale postMessage to old iframe
+                        // when user swipes while the timers are pending.
+                        ytAutoplayTimersRef.current.forEach((t) => clearTimeout(t));
+                        ytAutoplayTimersRef.current = [300, 800, 1500].map((delay) =>
+                          setTimeout(() => {
+                            sendYTCmd('playVideo');
+                            if (userInteractedRef.current && userWantsSoundRef.current) {
+                              sendYTCmd('unMute');
+                              sendYTCmd('setVolume', [100]);
+                            }
+                          }, delay)
+                        );
+                      }}
+                    />
+                  </div>
+                );
+              })()}
+
+              {/* Native video element — shown for direct uploads, hidden for YouTube */}
+              <video
+                ref={videoRef}
+                key={currentReel.id}
+                src={!isYouTubeUrl(currentReel.video_url) ? currentReel.video_url : undefined}
+                autoPlay={!isYouTubeUrl(currentReel.video_url)}
+                // Always render muted=true so the browser permits autoplay
+                // unconditionally. The new onPlaying handler flips muted=false
+                // synchronously inside the playing event IF the user has
+                // gestured this tab session — see the global gesture-capture
+                // useEffect added above.
+                muted={muted}
+                playsInline
+                poster={currentReel.thumbnail_url || undefined}
                 style={{
                   width: '100%',
                   height: '100%',
-                  border: 'none',
-                  pointerEvents: 'none',
-                  position: 'relative',
-                  zIndex: 1,
+                  objectFit: 'cover',
+                  display: !isYouTubeUrl(currentReel.video_url) ? 'block' : 'none',
                 }}
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-                onLoad={() => {
-                  ytIframeReadyRef.current = true;
-                  // Force play + unmute via postMessage
-                  sendYTCmd('playVideo');
-                  if (userInteractedRef.current && userWantsSoundRef.current) {
-                    sendYTCmd('unMute');
-                    sendYTCmd('setVolume', [100]);
-                    // Only flip React state if a gesture happened on THIS load.
-                    // YT iframe is cross-origin so we cannot verify unMute.
-                    if (userGesturedThisLoadRef.current) setMuted(false);
+                onPlaying={(e) => {
+                  // Successful playback — clear stall watchdog so it doesn't
+                  // auto-skip a video that simply took longer to start.
+                  if (videoStallTimerRef.current) {
+                    clearTimeout(videoStallTimerRef.current);
+                    videoStallTimerRef.current = null;
                   }
-                  // BUG FIX (RFC-8): cancel any previous retry batch before
-                  // scheduling new ones — prevents stale postMessage to old iframe
-                  // when user swipes while the timers are pending.
-                  ytAutoplayTimersRef.current.forEach((t) => clearTimeout(t));
-                  ytAutoplayTimersRef.current = [300, 800, 1500].map((delay) =>
-                    setTimeout(() => {
-                      sendYTCmd('playVideo');
-                      if (userInteractedRef.current && userWantsSoundRef.current) {
-                        sendYTCmd('unMute');
-                        sendYTCmd('setVolume', [100]);
+                  // Verify-after-unmute: when sessionStorage[sp:reels:interacted]
+                  // is preset from a prior page load, userInteractedRef is true
+                  // but the browser hasn't seen a fresh gesture this load. Setting
+                  // muted=false may be silently ignored. Only flip React state
+                  // after confirming the DOM accepted the change — never lie.
+                  if (userInteractedRef.current && userWantsSoundRef.current) {
+                    try {
+                      e.target.muted = false;
+                      if (!e.target.muted) {
+                        if (e.target.volume === 0) e.target.volume = 1.0;
+                        setMuted(false);
                       }
-                    }, delay)
+                    } catch (_) {
+                      /* best-effort */
+                    }
+                  }
+                }}
+                onLoadedMetadata={() => {
+                  // Metadata reached → video IS decodable. Clear stall watchdog.
+                  if (videoStallTimerRef.current) {
+                    clearTimeout(videoStallTimerRef.current);
+                    videoStallTimerRef.current = null;
+                  }
+                }}
+                onError={(e) => {
+                  // Surface decode failures (most commonly HEVC on Chrome desktop —
+                  // Chrome doesn't license H.265). Without this, users saw a black
+                  // box with the play button forever. Now: record broken URL in
+                  // session-scoped skip-set, then auto-advance.
+                  const err = e.currentTarget?.error;
+                  const url = currentReel?.video_url;
+                  console.warn('[ReelsFeedCarousel] video decode failed', {
+                    code: err?.code,
+                    message: err?.message,
+                    src: url,
+                    suggestion: 'Likely H.265/HEVC - needs server-side transcode to H.264',
+                  });
+                  if (typeof window !== 'undefined') {
+                    window.__reelDecodeError = (window.__reelDecodeError || 0) + 1;
+                  }
+                  if (url) brokenUrlsRef.current.add(url);
+                  if (videoStallTimerRef.current) {
+                    clearTimeout(videoStallTimerRef.current);
+                    videoStallTimerRef.current = null;
+                  }
+                  goNext();
+                }}
+                onPlay={() => {
+                  setPaused(false);
+                  progressRAF.current = requestAnimationFrame(updateProgress);
+                }}
+                onPause={() => {
+                  setPaused(true);
+                  if (progressRAF.current) cancelAnimationFrame(progressRAF.current);
+                }}
+                onEnded={() => {
+                  if (progressRAF.current) cancelAnimationFrame(progressRAF.current);
+                  setProgress(0);
+                  goNext();
+                }}
+              />
+
+              {/* Preload next 10 YouTube thumbnails for instant visual feedback */}
+              {Array.from({ length: 10 }, (_, offset) => offset + 1).map((offset) => {
+                const nextReel = reels[currentIndex + offset];
+                if (!nextReel?.video_url) return null;
+                const nextUrl = nextReel.video_url;
+                if (isYouTubeUrl(nextUrl)) {
+                  const nextVid = getYouTubeVideoId(nextUrl);
+                  if (!nextVid) return null;
+                  return (
+                    <img
+                      key={`preload-${nextReel.id}`}
+                      src={`https://img.youtube.com/vi/${nextVid}/hqdefault.jpg`}
+                      style={{
+                        position: 'absolute',
+                        width: 1,
+                        height: 1,
+                        opacity: 0,
+                        pointerEvents: 'none',
+                      }}
+                      alt=""
+                    />
                   );
-                }}
-              />
-            </div>
-          );
-        })()}
-
-        {/* Native video element — shown for direct uploads, hidden for YouTube */}
-        <video
-          ref={videoRef}
-          key={currentReel.id}
-          src={!isYouTubeUrl(currentReel.video_url) ? currentReel.video_url : undefined}
-          autoPlay={!isYouTubeUrl(currentReel.video_url)}
-          // Always render muted=true so the browser permits autoplay
-          // unconditionally. The new onPlaying handler flips muted=false
-          // synchronously inside the playing event IF the user has
-          // gestured this tab session — see the global gesture-capture
-          // useEffect added above.
-          muted={muted}
-          playsInline
-          poster={currentReel.thumbnail_url || undefined}
-          style={{
-            width: '100%',
-            height: '100%',
-            objectFit: 'cover',
-            display: !isYouTubeUrl(currentReel.video_url) ? 'block' : 'none',
-          }}
-          onPlaying={(e) => {
-            // Successful playback — clear stall watchdog so it doesn't
-            // auto-skip a video that simply took longer to start.
-            if (videoStallTimerRef.current) {
-              clearTimeout(videoStallTimerRef.current);
-              videoStallTimerRef.current = null;
-            }
-            // Verify-after-unmute: when sessionStorage[sp:reels:interacted]
-            // is preset from a prior page load, userInteractedRef is true
-            // but the browser hasn't seen a fresh gesture this load. Setting
-            // muted=false may be silently ignored. Only flip React state
-            // after confirming the DOM accepted the change — never lie.
-            if (userInteractedRef.current && userWantsSoundRef.current) {
-              try {
-                e.target.muted = false;
-                if (!e.target.muted) {
-                  if (e.target.volume === 0) e.target.volume = 1.0;
-                  setMuted(false);
+                } else {
+                  return (
+                    <link key={`preload-${nextReel.id}`} rel="preload" href={nextUrl} as="video" />
+                  );
                 }
-              } catch (_) {
-                /* best-effort */
-              }
-            }
-          }}
-          onLoadedMetadata={() => {
-            // Metadata reached → video IS decodable. Clear stall watchdog.
-            if (videoStallTimerRef.current) {
-              clearTimeout(videoStallTimerRef.current);
-              videoStallTimerRef.current = null;
-            }
-          }}
-          onError={(e) => {
-            // Surface decode failures (most commonly HEVC on Chrome desktop —
-            // Chrome doesn't license H.265). Without this, users saw a black
-            // box with the play button forever. Now: record broken URL in
-            // session-scoped skip-set, then auto-advance.
-            const err = e.currentTarget?.error;
-            const url = currentReel?.video_url;
-            console.warn('[ReelsFeedCarousel] video decode failed', {
-              code: err?.code,
-              message: err?.message,
-              src: url,
-              suggestion: 'Likely H.265/HEVC - needs server-side transcode to H.264',
-            });
-            if (typeof window !== 'undefined') {
-              window.__reelDecodeError = (window.__reelDecodeError || 0) + 1;
-            }
-            if (url) brokenUrlsRef.current.add(url);
-            if (videoStallTimerRef.current) {
-              clearTimeout(videoStallTimerRef.current);
-              videoStallTimerRef.current = null;
-            }
-            goNext();
-          }}
-          onPlay={() => {
-            setPaused(false);
-            progressRAF.current = requestAnimationFrame(updateProgress);
-          }}
-          onPause={() => {
-            setPaused(true);
-            if (progressRAF.current) cancelAnimationFrame(progressRAF.current);
-          }}
-          onEnded={() => {
-            if (progressRAF.current) cancelAnimationFrame(progressRAF.current);
-            setProgress(0);
-            goNext();
-          }}
-        />
-
-        {/* Preload next 10 YouTube thumbnails for instant visual feedback */}
-        {Array.from({ length: 10 }, (_, offset) => offset + 1).map((offset) => {
-          const nextReel = reels[currentIndex + offset];
-          if (!nextReel?.video_url) return null;
-          const nextUrl = nextReel.video_url;
-          if (isYouTubeUrl(nextUrl)) {
-            const nextVid = getYouTubeVideoId(nextUrl);
-            if (!nextVid) return null;
-            return (
-              <img
-                key={`preload-${nextReel.id}`}
-                src={`https://img.youtube.com/vi/${nextVid}/hqdefault.jpg`}
-                style={{
-                  position: 'absolute',
-                  width: 1,
-                  height: 1,
-                  opacity: 0,
-                  pointerEvents: 'none',
-                }}
-                alt=""
-              />
-            );
-          } else {
-            return <link key={`preload-${nextReel.id}`} rel="preload" href={nextUrl} as="video" />;
-          }
-        })}
-
-        {/* Play Button Overlay - visible when explicitly paused (ytReady suppresses it during autoplay startup) */}
-        {paused && ytReady && !ytError && (
-          <div
-            style={{
-              position: 'absolute',
-              top: '50%',
-              left: '50%',
-              transform: 'translate(-50%, -50%)',
-              width: 80,
-              height: 80,
-              borderRadius: '50%',
-              background: 'rgba(0,0,0,0.4)',
-              border: '2px solid rgba(255,255,255,0.8)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: 'white',
-              fontSize: 40,
-              zIndex: 20,
-              pointerEvents: 'none',
-            }}
-          >
-            ▶
-          </div>
-        )}
-
-        {/* YouTube Error Overlay — Age-restricted / unavailable video */}
-        {ytError &&
-          (() => {
-            const videoUrl = currentReel?.video_url;
-            const videoId = getYouTubeVideoId(videoUrl);
-            return (
+              })}
+            </div>
+            {paused && ytReady && !ytError && (
+              <span className="vlc-carousel-play-state" aria-live="polite">
+                Paused
+              </span>
+            )}
+            {showHeart && (
+              <span className="vlc-carousel-like-confirmation" role="status">
+                Liked
+              </span>
+            )}
+            {ytError && (
               <YouTubeErrorOverlay
                 errorCode={ytError}
-                videoId={videoId}
-                videoUrl={videoUrl}
-                thumbnailUrl={
-                  videoId ? `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg` : null
-                }
-                actionLabel="Skipping in 3 seconds..."
-                style={{ pointerEvents: 'auto' }}
+                videoId={getYouTubeVideoId(currentReel.video_url)}
+                videoUrl={currentReel.video_url}
+                thumbnailUrl={getYouTubeThumbnail(currentReel.video_url)}
+                actionLabel="Skipping In 3 Seconds"
               />
-            );
-          })()}
-
-        {/* Author overlay */}
-        <div
-          style={{
-            position: 'absolute',
-            bottom: 80,
-            left: 16,
-            right: 16,
-            pointerEvents: showOverlay ? 'auto' : 'none',
-            opacity: showOverlay ? 1 : 0,
-            transition: 'opacity 0.3s ease',
-          }}
-        >
-          <Link
-            href={`/hub/user/${currentReel.profiles?.username}`}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 12,
-              textDecoration: 'none',
-              marginBottom: 12,
-            }}
-          >
-            <img
-              src={currentReel.profiles?.avatar_url || '/default-avatar.png'}
-              alt={currentReel.profiles?.username || 'User'}
-              style={{
-                width: 44,
-                height: 44,
-                borderRadius: '50%',
-                objectFit: 'cover',
-                border: '2px solid white',
-              }}
-            />
-            <div>
-              <div
-                style={{
-                  color: 'white',
-                  fontWeight: 600,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 6,
-                }}
-              >
-                <span>{currentReel.profiles?.full_name || currentReel.profiles?.username}</span>
-                {watchedReelIds.includes(currentReel?.id) && (
-                  <span
-                    style={{
-                      fontSize: 10,
-                      fontWeight: 700,
-                      color: 'rgba(255,255,255,0.7)',
-                      background: 'rgba(255,255,255,0.15)',
-                      padding: '2px 6px',
-                      borderRadius: 4,
-                      backdropFilter: 'blur(4px)',
-                    }}
-                  >
-                    Watched
-                  </span>
-                )}
-              </div>
-              <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12 }}>
-                {timeAgo(currentReel.created_at)}
-              </div>
-            </div>
-          </Link>
-          {/* Follow button - only for other users' reels */}
-          {currentReel.author_id && authUser?.id && currentReel.author_id !== authUser.id && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                handleFollow();
-              }}
-              style={{
-                padding: '4px 14px',
-                borderRadius: 6,
-                fontSize: 12,
-                fontWeight: 600,
-                cursor: 'pointer',
-                background: following[currentReel.author_id] ? 'transparent' : '#1877F2',
-                color: 'white',
-                border: following[currentReel.author_id]
-                  ? '1px solid rgba(255,255,255,0.5)'
-                  : 'none',
-                marginBottom: 8,
-              }}
-            >
-              {following[currentReel.author_id] ? 'Following' : 'Follow'}
-            </button>
-          )}
-          {currentReel.caption &&
-            (() => {
-              const MAX_LEN = 100;
-              const isLong = currentReel.caption.length > MAX_LEN;
-              return (
-                <p
-                  style={{
-                    color: 'white',
-                    fontSize: 14,
-                    margin: 0,
-                    textShadow: '0 1px 3px rgba(0,0,0,0.5)',
-                  }}
-                >
-                  {captionExpanded || !isLong
-                    ? currentReel.caption
-                    : `${currentReel.caption.slice(0, MAX_LEN)}...`}
-                  {isLong && (
-                    <span
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setCaptionExpanded(!captionExpanded);
-                      }}
-                      style={{
-                        color: 'rgba(255,255,255,0.6)',
-                        cursor: 'pointer',
-                        marginLeft: 4,
-                        fontSize: 13,
-                      }}
-                    >
-                      {captionExpanded ? ' Less' : ' See More'}
-                    </span>
-                  )}
-                </p>
-              );
-            })()}
-        </div>
-
-        {/* Right Action Sidebar - hidden by default, shown on tap */}
-        <div
-          onClick={(e) => e.stopPropagation()}
-          style={{
-            position: 'absolute',
-            right: 12,
-            bottom: 110,
-            zIndex: 20,
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 24,
-            alignItems: 'center',
-            opacity: showOverlay ? 1 : 0,
-            transition: 'opacity 0.3s ease',
-            pointerEvents: showOverlay ? 'auto' : 'none',
-          }}
-        >
-          {/* Heart - tap to like, long-press for reactions */}
-          <div style={{ position: 'relative' }}>
-            <button
-              onClick={() => {
-                handleLike();
-                if (!liked[currentReel.id]) {
-                  // BUG FIX (RFC-9): cancel previous heart timer, use tracked ref
-                  setShowHeart(true);
-                  if (showHeartTimerRef.current) clearTimeout(showHeartTimerRef.current);
-                  showHeartTimerRef.current = setTimeout(() => {
-                    showHeartTimerRef.current = null;
-                    setShowHeart(false);
-                  }, 800);
-                }
-              }}
-              onPointerDown={() => {
-                reactionTimerRef.current = setTimeout(() => {
-                  haptic(20);
-                  setShowReactionPicker(true);
-                }, 500);
-              }}
-              onPointerUp={() => clearTimeout(reactionTimerRef.current)}
-              onPointerLeave={() => clearTimeout(reactionTimerRef.current)}
-              aria-label={liked[currentReel.id] ? 'Unlike' : 'Like'}
-              style={{
-                background: 'none',
-                border: 'none',
-                cursor: 'pointer',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-              }}
-            >
-              <svg
-                width="32"
-                height="32"
-                viewBox="0 0 24 24"
-                fill={liked[currentReel.id] ? '#ef4444' : 'none'}
-                stroke={liked[currentReel.id] ? '#ef4444' : 'white'}
-                strokeWidth="2"
-                style={{
-                  filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))',
-                  transition: 'transform 0.15s ease',
-                }}
-              >
-                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-              </svg>
-              <span
-                style={{
-                  color: 'white',
-                  fontSize: 11,
-                  textShadow: '0 1px 2px rgba(0,0,0,0.5)',
-                  transition: 'transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
-                  transform: likeBounceId === currentReel.id ? 'scale(1.4)' : 'scale(1)',
-                  display: 'inline-block',
-                }}
-              >
-                {likeCounts[currentReel.id] || 0}
-              </span>
-            </button>
-            {/* ITEM 26 (2026-09-08): viewCounts was merged from the DB on load
-                and incremented after a 2s dwell, then read by nobody - the
-                numbers were correct and invisible. Not a button: a view is
-                something that happened, not something to tap. */}
-            <div
-              aria-label={`${viewCounts[currentReel.id] || 0} views`}
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                gap: 2,
-                color: 'white',
-              }}
-            >
-              <svg
-                width="26"
-                height="26"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.8"
-                aria-hidden="true"
-                style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))' }}
-              >
-                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                <circle cx="12" cy="12" r="3" />
-              </svg>
-              <span style={{ fontSize: 11, textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}>
-                {viewCounts[currentReel.id] || 0}
-              </span>
-            </div>
-            {/* Reaction Picker - appears on long-press */}
-            {showReactionPicker && (
-              <div
-                style={{
-                  position: 'absolute',
-                  right: 48,
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  display: 'flex',
-                  gap: 4,
-                  padding: '8px 12px',
-                  borderRadius: 24,
-                  background: 'rgba(0,0,0,0.85)',
-                  backdropFilter: 'blur(12px)',
-                  WebkitBackdropFilter: 'blur(12px)',
-                  border: '1px solid rgba(255,255,255,0.15)',
-                  boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
-                  animation: 'fadeInScale 0.2s ease',
-                }}
-              >
-                {[
-                  { emoji: '\u2764\uFE0F', label: 'Love', type: 'like' },
-                  { emoji: '\uD83D\uDC4D', label: 'Thumbs Up', type: 'thumbsup' },
-                  { emoji: '\uD83D\uDC4E', label: 'Thumbs Down', type: 'dislike' },
-                  { emoji: '\uD83D\uDE02', label: 'Laughing', type: 'laughing' },
-                  { emoji: '\uD83D\uDE22', label: 'Crying', type: 'crying' },
-                  { emoji: '\uD83D\uDE21', label: 'Angry', type: 'angry' },
-                ].map((r) => (
-                  <button
-                    key={r.type}
-                    onClick={() => {
-                      // BUG FIX (RFC-9): use showHeartTimerRef for all reaction-picker heart animations
-                      const triggerHeart = () => {
-                        if (!liked[currentReel.id]) {
-                          setShowHeart(true);
-                          if (showHeartTimerRef.current) clearTimeout(showHeartTimerRef.current);
-                          showHeartTimerRef.current = setTimeout(() => {
-                            showHeartTimerRef.current = null;
-                            setShowHeart(false);
-                          }, 800);
-                        }
-                      };
-                      if (r.type === 'like') {
-                        handleLike();
-                        triggerHeart();
-                      } else if (r.type === 'dislike') handleDislike();
-                      else {
-                        handleLike();
-                        triggerHeart();
-                      }
-                      setShowReactionPicker(false);
-                      haptic(10);
-                    }}
-                    aria-label={r.label}
-                    style={{
-                      background: 'none',
-                      border: 'none',
-                      cursor: 'pointer',
-                      fontSize: 28,
-                      padding: '4px',
-                      transition: 'transform 0.15s ease',
-                    }}
-                    onMouseEnter={(e) => (e.target.style.transform = 'scale(1.3)')}
-                    onMouseLeave={(e) => (e.target.style.transform = 'scale(1)')}
-                  >
-                    {r.emoji}
-                  </button>
-                ))}
-              </div>
             )}
           </div>
-
-          {/* Comment */}
-          <button
-            onClick={handleToggleComments}
-            aria-label="Comments"
-            style={{
-              background: 'none',
-              border: 'none',
-              cursor: 'pointer',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-            }}
-          >
-            <svg
-              width="32"
-              height="32"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="white"
-              strokeWidth="2"
-              style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))' }}
-            >
-              <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
-            </svg>
-            <span
-              style={{
-                color: showComments ? '#1877F2' : 'white',
-                fontSize: 11,
-                textShadow: '0 1px 2px rgba(0,0,0,0.5)',
-              }}
-            >
-              {commentCounts[currentReel.id] || 0}
-            </span>
-          </button>
-
-          {/* Share */}
-          <button
-            onClick={() => {
-              handleShare();
-              haptic(10);
-            }}
-            aria-label="Share"
-            style={{
-              background: 'none',
-              border: 'none',
-              cursor: 'pointer',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-            }}
-          >
-            <svg
-              width="28"
-              height="28"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="white"
-              strokeWidth="2"
-              style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))' }}
-            >
-              <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
-              <polyline points="16 6 12 2 8 6" />
-              <line x1="12" y1="2" x2="12" y2="15" />
-            </svg>
-            <span style={{ color: 'white', fontSize: 11, textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}>
-              Share
-            </span>
-          </button>
-
-          {/* Save */}
-          <button
-            onClick={handleSave}
-            aria-label={saved[currentReel.id] ? 'Unsave' : 'Save'}
-            style={{
-              background: 'none',
-              border: 'none',
-              cursor: 'pointer',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-            }}
-          >
-            <svg
-              width="28"
-              height="28"
-              viewBox="0 0 24 24"
-              fill={saved[currentReel.id] ? 'white' : 'none'}
-              stroke="white"
-              strokeWidth="2"
-              style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))' }}
-            >
-              <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
-            </svg>
-            <span style={{ color: 'white', fontSize: 11, textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}>
-              {saved[currentReel.id] ? 'Saved' : 'Save'}
-            </span>
-          </button>
-
-          {/* More (···) - opens panel with Sound, Report, Speed, Link */}
-          <div style={{ position: 'relative' }}>
-            <button
-              onClick={() => setShowMoreMenu((prev) => !prev)}
-              aria-label="More options"
-              style={{
-                background: 'none',
-                border: 'none',
-                cursor: 'pointer',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-              }}
-            >
-              <svg
-                width="28"
-                height="28"
-                viewBox="0 0 24 24"
-                fill="white"
-                stroke="none"
-                style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))' }}
-              >
-                <circle cx="12" cy="5" r="2" />
-                <circle cx="12" cy="12" r="2" />
-                <circle cx="12" cy="19" r="2" />
-              </svg>
-              <span
-                style={{ color: 'white', fontSize: 10, textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}
-              >
-                More
-              </span>
-            </button>
-            {/* More Menu Panel */}
-            {showMoreMenu && (
-              <div
-                style={{
-                  position: 'absolute',
-                  right: 48,
-                  bottom: 0,
-                  minWidth: 180,
-                  padding: '8px 0',
-                  borderRadius: 12,
-                  background: 'rgba(0,0,0,0.9)',
-                  backdropFilter: 'blur(16px)',
-                  WebkitBackdropFilter: 'blur(16px)',
-                  border: '1px solid rgba(255,255,255,0.12)',
-                  boxShadow: '0 8px 32px rgba(0,0,0,0.6)',
-                  animation: 'fadeInScale 0.2s ease',
+          <div className="vlc-carousel-viewer-details">
+            <div className="vlc-carousel-command-grid">
+              <button type="button" onClick={togglePlayback}>
+                {paused ? 'Play' : 'Pause'}
+              </button>
+              <button type="button" onClick={toggleSound}>
+                {muted ? 'Unmute' : 'Mute'}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  handleLike();
+                  if (!liked[currentReel.id]) {
+                    setShowHeart(true);
+                    clearTimeout(showHeartTimerRef.current);
+                    showHeartTimerRef.current = setTimeout(() => setShowHeart(false), 800);
+                  }
                 }}
+                onPointerDown={() => {
+                  clearTimeout(reactionTimerRef.current);
+                  reactionTimerRef.current = setTimeout(() => {
+                    haptic(20);
+                    setShowReactionPicker(true);
+                  }, 500);
+                }}
+                onPointerUp={() => clearTimeout(reactionTimerRef.current)}
+                onPointerLeave={() => clearTimeout(reactionTimerRef.current)}
+                onPointerCancel={() => clearTimeout(reactionTimerRef.current)}
+                aria-label={liked[currentReel.id] ? 'Unlike' : 'Like'}
+                aria-pressed={Boolean(liked[currentReel.id])}
               >
-                <button
-                  onClick={() => {
-                    setMuted((prev) => {
-                      const next = !prev;
-                      sendYTCmd(next ? 'mute' : 'unMute');
-                      if (!next) sendYTCmd('setVolume', [100]);
-                      userWantsSoundRef.current = !next;
-                      return next;
-                    });
-                    setShowMoreMenu(false);
-                  }}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 12,
-                    width: '100%',
-                    padding: '10px 16px',
-                    background: 'none',
-                    border: 'none',
-                    color: 'white',
-                    fontSize: 14,
-                    cursor: 'pointer',
-                    textAlign: 'left',
-                  }}
-                >
-                  {muted ? (
-                    <svg
-                      width="20"
-                      height="20"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                    >
-                      <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
-                      <line x1="23" y1="9" x2="17" y2="15" />
-                      <line x1="17" y1="9" x2="23" y2="15" />
-                    </svg>
-                  ) : (
-                    <svg
-                      width="20"
-                      height="20"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                    >
-                      <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
-                      <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
-                    </svg>
-                  )}
-                  {muted ? 'Unmute' : 'Mute'}
-                </button>
-                <button
-                  onClick={() => {
-                    handleSpeedToggle();
-                    setShowMoreMenu(false);
-                  }}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 12,
-                    width: '100%',
-                    padding: '10px 16px',
-                    background: 'none',
-                    border: 'none',
-                    color: playbackSpeed !== 1 ? '#00d4ff' : 'white',
-                    fontSize: 14,
-                    cursor: 'pointer',
-                    textAlign: 'left',
-                  }}
-                >
-                  <div
-                    style={{
-                      width: 20,
-                      height: 20,
-                      borderRadius: '50%',
-                      border: '1.5px solid currentColor',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: 9,
-                      fontWeight: 700,
-                    }}
-                  >
-                    {playbackSpeed}x
+                {liked[currentReel.id] ? 'Liked' : 'Like'}{' '}
+                {formatViews(likeCounts[currentReel.id] || 0)}
+              </button>
+              <button type="button" onClick={handleToggleComments} aria-label="Comments">
+                Comments {formatViews(commentCounts[currentReel.id] || 0)}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  handleShare();
+                  haptic(10);
+                }}
+                aria-label="Share"
+              >
+                Share
+              </button>
+              <button
+                type="button"
+                onClick={handleSave}
+                aria-label={saved[currentReel.id] ? 'Unsave' : 'Save'}
+                aria-pressed={Boolean(saved[currentReel.id])}
+              >
+                {saved[currentReel.id] ? 'Saved' : 'Save'}
+              </button>
+              <button type="button" onClick={() => setShowReactionPicker(true)}>
+                Reactions
+              </button>
+              <button type="button" onClick={() => setShowMoreMenu(true)} aria-label="More Options">
+                More Options
+              </button>
+            </div>
+            <div className="vlc-carousel-author">
+              {currentReel.profiles?.avatar_url && (
+                <img src={currentReel.profiles.avatar_url} alt="" />
+              )}
+              {currentReel.profiles?.username ? (
+                <Link href={`/hub/user/${currentReel.profiles.username}`}>
+                  {currentReel.profiles.full_name || currentReel.profiles.username}
+                </Link>
+              ) : (
+                <span>Poker Creator</span>
+              )}
+            </div>
+            <ConsoleDataRow label="Published" value={timeAgo(currentReel.created_at)} />
+            <ConsoleDataRow
+              label="Views"
+              value={formatViews(viewCounts[currentReel.id] || currentReel.view_count || 0)}
+            />
+            {watchedReelIds.includes(currentReel.id) && (
+              <ConsoleDataRow label="Watch State" value="Watched" valueInk="blue" />
+            )}
+            {!isYouTubeUrl(currentReel.video_url) && (
+              <ConsoleDataRow label="Playback" value={`${Math.floor(progress)}%`} />
+            )}
+            {currentReel.author_id && authUser?.id && currentReel.author_id !== authUser.id && (
+              <button
+                type="button"
+                onClick={handleFollow}
+                aria-pressed={Boolean(following[currentReel.author_id])}
+              >
+                {following[currentReel.author_id] ? 'Following' : 'Follow Creator'}
+              </button>
+            )}
+            {currentReel.caption && (
+              <ConsoleCopy>
+                {captionExpanded || currentReel.caption.length <= 100
+                  ? currentReel.caption
+                  : `${currentReel.caption.slice(0, 100)}...`}
+                {currentReel.caption.length > 100 && (
+                  <button type="button" onClick={() => setCaptionExpanded(!captionExpanded)}>
+                    {captionExpanded ? 'See Less' : 'See More'}
+                  </button>
+                )}
+              </ConsoleCopy>
+            )}
+          </div>
+        </div>
+
+        {panelTitle && (
+          <div className="vlc-carousel-panel">
+            {showReportModal ? (
+              reportSubmitted ? (
+                <ConsoleCopy role="status">
+                  Report Submitted. Thank You. We Will Review This Content.
+                </ConsoleCopy>
+              ) : (
+                <>
+                  <ConsoleCopy>Why Are You Reporting This Content?</ConsoleCopy>
+                  <div className="vlc-carousel-options" role="group" aria-label="Report Reason">
+                    {[
+                      'Inappropriate Content',
+                      'Spam Or Scam',
+                      'Harassment',
+                      'Misinformation',
+                      'Other',
+                    ].map((reason) => (
+                      <button
+                        type="button"
+                        key={reason}
+                        onClick={() => setReportReason(reason)}
+                        aria-pressed={reportReason === reason}
+                      >
+                        {reason}
+                      </button>
+                    ))}
                   </div>
-                  Speed ({playbackSpeed}x)
-                </button>
+                  <div className="vlc-carousel-command-grid">
+                    <button type="button" onClick={closePanel}>
+                      Cancel
+                    </button>
+                    <button type="button" onClick={handleReport} disabled={!reportReason}>
+                      Submit Report
+                    </button>
+                  </div>
+                </>
+              )
+            ) : showShareModal ? (
+              <>
                 <button
+                  type="button"
+                  onClick={handleShareToFeed}
+                  disabled={sharingToFeed || sharedToFeed}
+                >
+                  {sharedToFeed
+                    ? 'Shared To My Feed'
+                    : sharingToFeed
+                      ? 'Sharing...'
+                      : 'Share To My Feed'}
+                </button>
+                <ConsoleCopy>Or Share Externally</ConsoleCopy>
+                <div className="vlc-carousel-command-grid">
+                  {[
+                    ['copy', 'Copy Link'],
+                    ['x', 'X'],
+                    ['facebook', 'Facebook'],
+                    ['whatsapp', 'WhatsApp'],
+                  ].map(([id, label]) => (
+                    <button type="button" key={id} onClick={() => handleShareAction(id)}>
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </>
+            ) : showContextMenu ? (
+              <div className="vlc-carousel-options">
+                <button
+                  type="button"
                   onClick={() => {
-                    const url = `${window.location.origin}/hub/reels?id=${currentReel?.id || ''}`;
-                    navigator.clipboard
-                      .writeText(url)
-                      .then(() => {
-                        // BUG FIX (RFC-10): cancel previous copyToast timer before starting a new one.
-                        setCopyToast(true);
-                        if (copyToastTimerRef.current) clearTimeout(copyToastTimerRef.current);
-                        copyToastTimerRef.current = setTimeout(() => {
-                          copyToastTimerRef.current = null;
-                          setCopyToast(false);
-                        }, 2000);
-                      })
-                      .catch((e) =>
-                        console.warn('[App] Handled promise rejection:', e?.message || e)
-                      );
-                    setShowMoreMenu(false);
-                  }}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 12,
-                    width: '100%',
-                    padding: '10px 16px',
-                    background: 'none',
-                    border: 'none',
-                    color: 'white',
-                    fontSize: 14,
-                    cursor: 'pointer',
-                    textAlign: 'left',
+                    closePanel();
+                    handleSave();
                   }}
                 >
-                  <svg
-                    width="20"
-                    height="20"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                  >
-                    <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
-                    <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
-                  </svg>
-                  Copy Link
+                  {saved[currentReel.id] ? 'Unsave' : 'Save Reel'}
                 </button>
                 <button
+                  type="button"
                   onClick={() => {
+                    closePanel();
+                    handleShare();
+                  }}
+                >
+                  Share / Repost
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    closePanel();
                     setShowReportModal(true);
-                    setShowMoreMenu(false);
-                  }}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 12,
-                    width: '100%',
-                    padding: '10px 16px',
-                    background: 'none',
-                    border: 'none',
-                    color: '#ef4444',
-                    fontSize: 14,
-                    cursor: 'pointer',
-                    textAlign: 'left',
-                    borderTop: '1px solid rgba(255,255,255,0.08)',
                   }}
                 >
-                  <svg
-                    width="20"
-                    height="20"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                  >
-                    <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" />
-                    <line x1="4" y1="22" x2="4" y2="15" />
-                  </svg>
                   Report
                 </button>
               </div>
-            )}
-          </div>
-        </div>
-
-        {/* Double-tap heart burst */}
-        {showHeart && (
-          <div
-            style={{
-              position: 'absolute',
-              top: '50%',
-              left: '50%',
-              transform: 'translate(-50%, -50%)',
-              fontSize: 80,
-              pointerEvents: 'none',
-              zIndex: 25,
-              animation: 'heartBurst 0.8s ease-out forwards',
-            }}
-          >
-            ❤️
-          </div>
-        )}
-
-        {/* Progress bar for native videos - rail always rendered, fill tracks playback */}
-        {!isYouTubeUrl(currentReel.video_url) && (
-          <div
-            style={{
-              position: 'absolute',
-              bottom: 0,
-              left: 0,
-              right: 0,
-              height: 3,
-              background: 'rgba(255,255,255,0.15)',
-              zIndex: 25,
-            }}
-          >
-            <div
-              style={{
-                width: `${progress}%`,
-                height: '100%',
-                background: 'linear-gradient(90deg, #FF2D55, #FF6B6B)',
-                transition: 'width 0.1s linear',
-                willChange: 'width',
-              }}
-            />
-          </div>
-        )}
-
-        {/* Share Toast */}
-        {shareToast && (
-          <div
-            style={{
-              position: 'absolute',
-              top: 60,
-              left: '50%',
-              transform: 'translateX(-50%)',
-              background: 'rgba(255,255,255,0.15)',
-              color: 'white',
-              padding: '8px 20px',
-              borderRadius: 20,
-              fontSize: 14,
-              zIndex: 30,
-              backdropFilter: 'blur(10px)',
-            }}
-          >
-            Link Copied
-          </div>
-        )}
-
-        {/* #10 Error Toast */}
-        {errorToast && (
-          <div
-            style={{
-              position: 'absolute',
-              top: 60,
-              left: '50%',
-              transform: 'translateX(-50%)',
-              background: 'rgba(255,69,58,0.15)',
-              border: '1px solid rgba(255,69,58,0.4)',
-              borderRadius: 12,
-              padding: '8px 20px',
-              color: '#FF453A',
-              fontSize: 13,
-              fontWeight: 600,
-              zIndex: 30,
-              backdropFilter: 'blur(10px)',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            {errorToast}
-          </div>
-        )}
-
-        {/* Keyboard Shortcuts Overlay */}
-        {showShortcutsOverlay && (
-          <div
-            onClick={() => setShowShortcutsOverlay(false)}
-            style={{
-              position: 'absolute',
-              inset: 0,
-              background: 'rgba(0,0,0,0.7)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              zIndex: 260,
-            }}
-          >
-            <div
-              onClick={(e) => e.stopPropagation()}
-              style={{
-                background: '#1a1a2e',
-                borderRadius: 16,
-                padding: '20px 24px',
-                border: '1px solid rgba(255,255,255,0.15)',
-                maxWidth: 320,
-                width: '90%',
-              }}
-            >
-              <div
-                style={{
-                  color: 'white',
-                  fontWeight: 700,
-                  fontSize: 16,
-                  marginBottom: 16,
-                  textAlign: 'center',
-                }}
-              >
-                Keyboard Shortcuts
-              </div>
-              {[
-                ['↑ / ↓', 'Previous / Next Reel'],
-                ['← / →', 'Previous / Next Reel'],
-                ['L', 'Like / Heart'],
-                ['S', 'Save / Bookmark'],
-                ['C', 'Comments'],
-                ['M', 'Mute / Unmute'],
-                ['Esc', 'Close Viewer'],
-                ['?', 'Toggle This Menu'],
-              ].map(([key, desc]) => (
-                <div
-                  key={key}
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    padding: '6px 0',
-                    borderBottom: '1px solid rgba(255,255,255,0.06)',
-                  }}
-                >
-                  <span
-                    style={{
-                      color: '#00d4ff',
-                      fontWeight: 600,
-                      fontSize: 13,
-                      fontFamily: 'monospace',
-                      background: 'rgba(0,212,255,0.1)',
-                      padding: '2px 8px',
-                      borderRadius: 6,
-                    }}
-                  >
-                    {key}
-                  </span>
-                  <span style={{ color: 'rgba(255,255,255,0.7)', fontSize: 13 }}>{desc}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-        {/* Phase 9: Long Press Context Menu */}
-        {showContextMenu && (
-          <div
-            onClick={(e) => {
-              e.stopPropagation();
-              setShowContextMenu(false);
-            }}
-            style={{
-              position: 'absolute',
-              inset: 0,
-              background: 'rgba(0,0,0,0.6)',
-              backdropFilter: 'blur(10px)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              zIndex: 300,
-            }}
-          >
-            <div
-              onClick={(e) => e.stopPropagation()}
-              style={{
-                background: 'rgba(25, 25, 40, 0.95)',
-                border: '1px solid rgba(255,255,255,0.1)',
-                borderRadius: 16,
-                width: 260,
-                display: 'flex',
-                flexDirection: 'column',
-                overflow: 'hidden',
-                boxShadow: '0 20px 40px rgba(0,0,0,0.5)',
-              }}
-            >
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setShowContextMenu(false);
-                  handleSave();
-                }}
-                style={{
-                  background: 'transparent',
-                  border: 'none',
-                  borderBottom: '1px solid rgba(255,255,255,0.05)',
-                  padding: '16px 20px',
-                  color: 'white',
-                  fontSize: 16,
-                  fontWeight: 600,
-                  textAlign: 'left',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 12,
-                  cursor: 'pointer',
-                }}
-              >
-                <svg
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  fill={saved[currentReel?.id] ? 'white' : 'none'}
-                  stroke="white"
-                  strokeWidth="2"
-                >
-                  <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
-                </svg>
-                {saved[currentReel?.id] ? 'Unsave' : 'Save Reel'}
-              </button>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setShowContextMenu(false);
-                  handleShare();
-                }}
-                style={{
-                  background: 'transparent',
-                  border: 'none',
-                  borderBottom: '1px solid rgba(255,255,255,0.05)',
-                  padding: '16px 20px',
-                  color: 'white',
-                  fontSize: 16,
-                  fontWeight: 600,
-                  textAlign: 'left',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 12,
-                  cursor: 'pointer',
-                }}
-              >
-                <svg
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="white"
-                  strokeWidth="2"
-                >
-                  <line x1="22" y1="2" x2="11" y2="13" />
-                  <polygon points="22 2 15 22 11 13 2 9 22 2" />
-                </svg>
-                Share / Repost
-              </button>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setShowContextMenu(false);
-                  setShowReportModal(true);
-                }}
-                style={{
-                  background: 'transparent',
-                  border: 'none',
-                  padding: '16px 20px',
-                  color: '#ff3b30',
-                  fontSize: 16,
-                  fontWeight: 600,
-                  textAlign: 'left',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 12,
-                  cursor: 'pointer',
-                }}
-              >
-                <svg
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
-                  <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" />
-                  <line x1="4" y1="22" x2="4" y2="15" />
-                </svg>
-                Report
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* #8 Share Options Modal */}
-        {showShareModal && (
-          <div
-            onClick={() => setShowShareModal(false)}
-            style={{
-              position: 'absolute',
-              inset: 0,
-              background: 'rgba(0,0,0,0.7)',
-              display: 'flex',
-              alignItems: 'flex-end',
-              justifyContent: 'center',
-              zIndex: 40,
-            }}
-          >
-            <div
-              onClick={(e) => e.stopPropagation()}
-              style={{
-                background: '#1a1a2e',
-                borderRadius: '16px 16px 0 0',
-                padding: '16px 20px 24px',
-                width: '100%',
-                maxWidth: 400,
-                border: '1px solid rgba(255,255,255,0.1)',
-              }}
-            >
-              <div style={{ textAlign: 'center', marginBottom: 4 }}>
-                <div
-                  style={{
-                    width: 40,
-                    height: 4,
-                    background: 'rgba(255,255,255,0.2)',
-                    borderRadius: 2,
-                    margin: '0 auto 12px',
-                  }}
-                />
-                <div style={{ color: 'white', fontWeight: 700, fontSize: 16, marginBottom: 16 }}>
-                  Share This Reel
-                </div>
-              </div>
-              {/* PRIMARY: Share to My Feed */}
-              <button
-                onClick={handleShareToFeed}
-                disabled={sharingToFeed || sharedToFeed}
-                style={{
-                  width: '100%',
-                  padding: '14px',
-                  borderRadius: 12,
-                  marginBottom: 14,
-                  background: sharedToFeed
-                    ? 'linear-gradient(135deg, #00c853, #69f0ae)'
-                    : 'linear-gradient(135deg, #0A84FF, #30D5C8)',
-                  color: 'white',
-                  fontWeight: 700,
-                  fontSize: 15,
-                  border: 'none',
-                  cursor: sharingToFeed ? 'wait' : 'pointer',
-                  opacity: sharingToFeed ? 0.7 : 1,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 8,
-                  transition: 'all 0.3s ease',
-                }}
-              >
-                {sharedToFeed ? (
-                  <>
-                    <svg
-                      width="18"
-                      height="18"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="white"
-                      strokeWidth="3"
-                    >
-                      <path d="M20 6L9 17l-5-5" />
-                    </svg>{' '}
-                    Shared To My Feed!
-                  </>
-                ) : sharingToFeed ? (
-                  'Sharing...'
-                ) : (
-                  <>
-                    <svg
-                      width="18"
-                      height="18"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="white"
-                      strokeWidth="2"
-                    >
-                      <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
-                      <polyline points="16 6 12 2 8 6" />
-                      <line x1="12" y1="2" x2="12" y2="15" />
-                    </svg>{' '}
-                    Share To My Feed
-                  </>
-                )}
-              </button>
-              <div
-                style={{
-                  color: 'rgba(255,255,255,0.4)',
-                  fontSize: 11,
-                  textAlign: 'center',
-                  marginBottom: 10,
-                  fontWeight: 500,
-                }}
-              >
-                OR SHARE EXTERNALLY
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
+            ) : showShortcutsOverlay ? (
+              <>
                 {[
-                  { id: 'copy', label: 'Copy Link', color: '#00d4ff' },
-                  { id: 'x', label: 'X', color: '#fff' },
-                  { id: 'facebook', label: 'Facebook', color: '#1877F2' },
-                  { id: 'whatsapp', label: 'WhatsApp', color: '#25D366' },
-                ].map((p) => (
+                  ['Up / Down', 'Previous / Next Reel'],
+                  ['Left / Right', 'Previous / Next Reel'],
+                  ['Space', 'Play / Pause'],
+                  ['L', 'Like'],
+                  ['S', 'Save'],
+                  ['C', 'Comments'],
+                  ['M', 'Mute / Unmute'],
+                  ['Esc', 'Close'],
+                  ['?', 'This Menu'],
+                ].map(([key, label]) => (
+                  <ConsoleDataRow key={key} label={key} value={label} />
+                ))}
+              </>
+            ) : showReactionPicker ? (
+              <div className="vlc-carousel-options">
+                {[
+                  ['like', 'Love'],
+                  ['thumbsup', 'Approve'],
+                  ['dislike', 'Not For Me'],
+                  ['laughing', 'Funny'],
+                  ['crying', 'Tough Spot'],
+                  ['angry', 'Disagree'],
+                ].map(([type, label]) => (
                   <button
-                    key={p.id}
-                    onClick={() => handleShareAction(p.id)}
-                    style={{
-                      background: 'rgba(255,255,255,0.08)',
-                      border: '1px solid rgba(255,255,255,0.1)',
-                      borderRadius: 12,
-                      padding: '14px 4px',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      gap: 6,
+                    type="button"
+                    key={type}
+                    onClick={() => {
+                      if (type === 'dislike') handleDislike();
+                      else handleLike();
+                      closePanel();
+                      haptic(10);
                     }}
                   >
-                    <div
-                      style={{
-                        width: 24,
-                        height: 24,
-                        borderRadius: '50%',
-                        background: p.color,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                      }}
-                    >
-                      <span
-                        style={{
-                          fontSize: 12,
-                          color: p.id === 'x' ? '#000' : '#fff',
-                          fontWeight: 700,
-                        }}
-                      >
-                        {p.id === 'copy'
-                          ? '\u{1F517}'
-                          : p.id === 'x'
-                            ? 'X'
-                            : p.id === 'facebook'
-                              ? 'f'
-                              : 'W'}
-                      </span>
-                    </div>
-                    <span style={{ color: 'white', fontSize: 10, fontWeight: 500 }}>{p.label}</span>
+                    {label}
                   </button>
                 ))}
               </div>
-            </div>
-          </div>
-        )}
-
-        {/* Heart burst animation CSS */}
-        <style>{`
-                    @keyframes heartBurst {
-                        0% { opacity: 1; transform: translate(-50%, -50%) scale(0.3); }
-                        50% { opacity: 1; transform: translate(-50%, -50%) scale(1.2); }
-                        100% { opacity: 0; transform: translate(-50%, -50%) scale(1.5); }
-                    }
-                    @keyframes soundWave {
-                        0% { height: 2px; }
-                        100% { height: var(--max-h, 10px); }
-                    }
-                    @keyframes fadeInScale {
-                        from { opacity: 0; transform: scale(0.85); }
-                        to { opacity: 1; transform: scale(1); }
-                    }
-                `}</style>
-
-        {/* Comment drawer */}
-        {showComments && (
-          <div
-            onClick={(e) => e.stopPropagation()}
-            style={{
-              position: 'absolute',
-              bottom: 0,
-              left: 0,
-              right: 0,
-              maxHeight: '40vh',
-              background: 'rgba(0,0,0,0.85)',
-              borderTop: '1px solid rgba(255,255,255,0.15)',
-              display: 'flex',
-              flexDirection: 'column',
-              backdropFilter: 'blur(12px)',
-              zIndex: 30,
-            }}
-          >
-            <div
-              style={{
-                padding: '12px 16px',
-                borderBottom: '1px solid rgba(255,255,255,0.1)',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-              }}
-            >
-              <span style={{ fontWeight: 600, color: 'white', fontSize: 14 }}>
-                Comments ({reelComments.length})
-              </span>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                {/* Phase 8 - Sort toggle */}
+            ) : showMoreMenu ? (
+              <div className="vlc-carousel-options">
+                <button type="button" onClick={toggleSound}>
+                  {muted ? 'Unmute' : 'Mute'}
+                </button>
+                <button type="button" onClick={handleSpeedToggle}>
+                  Speed {Math.round(playbackSpeed * 100)}%
+                </button>
+                <button type="button" onClick={() => handleShareAction('copy')}>
+                  Copy Link
+                </button>
                 <button
+                  type="button"
+                  onClick={() => {
+                    closePanel();
+                    setShowShortcutsOverlay(true);
+                  }}
+                >
+                  Keyboard Shortcuts
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    closePanel();
+                    setShowReportModal(true);
+                  }}
+                >
+                  Report
+                </button>
+              </div>
+            ) : showComments ? (
+              <>
+                <ConsoleDataRow label="Comments" value={formatViews(reelComments.length)} />
+                <button
+                  type="button"
                   onClick={() => {
                     const next = commentSort === 'newest' ? 'oldest' : 'newest';
                     setCommentSort(next);
-                    setReelComments((prev) =>
-                      [...prev].sort((a, b) =>
+                    setReelComments((previous) =>
+                      [...previous].sort((a, b) =>
                         next === 'newest'
                           ? new Date(b.created_at) - new Date(a.created_at)
                           : new Date(a.created_at) - new Date(b.created_at)
                       )
                     );
                   }}
-                  style={{
-                    background: 'rgba(255,255,255,0.08)',
-                    border: '1px solid rgba(255,255,255,0.15)',
-                    borderRadius: 12,
-                    padding: '3px 10px',
-                    fontSize: 10,
-                    fontWeight: 600,
-                    color: 'rgba(255,255,255,0.6)',
-                    cursor: 'pointer',
-                  }}
                 >
-                  {commentSort === 'newest' ? 'Newest' : 'Oldest'}
+                  Sort: {commentSort === 'newest' ? 'Newest' : 'Oldest'}
                 </button>
-                <button
-                  onClick={() => setShowComments(false)}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    color: 'white',
-                    fontSize: 18,
-                    cursor: 'pointer',
-                  }}
-                >
-                  X
-                </button>
-              </div>
-            </div>
-            <div style={{ flex: 1, overflowY: 'auto', padding: '8px 16px' }}>
-              {reelComments.length === 0 && (
-                <p
-                  style={{
-                    color: 'rgba(255,255,255,0.5)',
-                    fontSize: 13,
-                    textAlign: 'center',
-                    padding: 20,
-                  }}
-                >
-                  No Comments Yet. Be The First!
-                </p>
-              )}
-              {reelComments.map((c) => (
-                <div
-                  key={c.id}
-                  style={{
-                    display: 'flex',
-                    gap: 8,
-                    marginBottom: 12,
-                    paddingLeft: c.parent_id ? 24 : 0,
-                  }}
-                >
-                  <img
-                    src={c.profiles?.avatar_url || '/default-avatar.png'}
-                    alt={c.profiles?.username || 'User'}
-                    style={{ width: 28, height: 28, borderRadius: '50%', objectFit: 'cover' }}
-                  />
-                  <div style={{ flex: 1 }}>
-                    <span style={{ color: 'rgba(255,255,255,0.9)', fontSize: 12, fontWeight: 600 }}>
-                      {c.profiles?.username || 'User'}
-                    </span>
-                    <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11, marginLeft: 8 }}>
-                      {c.created_at ? timeAgo(c.created_at) : ''}
-                    </span>
-                    {/* Phase 7 - Inline edit mode */}
-                    {editingComment === c.id ? (
-                      <div style={{ marginTop: 4, display: 'flex', gap: 6, alignItems: 'center' }}>
-                        <input
-                          value={editCommentText}
-                          onChange={(e) => setEditCommentText(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') handleSaveEdit(c.id);
-                            if (e.key === 'Escape') {
+                <div className="vlc-carousel-comments">
+                  {reelComments.length === 0 && (
+                    <ConsoleCopy>No Comments Yet. Be The First!</ConsoleCopy>
+                  )}
+                  {reelComments.map((comment) => (
+                    <article
+                      key={comment.id}
+                      className="vlc-carousel-comment"
+                      data-reply={Boolean(comment.parent_id)}
+                    >
+                      <div className="vlc-carousel-author">
+                        {comment.profiles?.avatar_url && (
+                          <img src={comment.profiles.avatar_url} alt="" />
+                        )}
+                        <span>{comment.profiles?.username || 'Poker Member'}</span>
+                        <span>{timeAgo(comment.created_at)}</span>
+                      </div>
+                      {editingComment === comment.id ? (
+                        <div className="vlc-carousel-edit">
+                          <label>
+                            Edit Comment
+                            <input
+                              value={editCommentText}
+                              onChange={(event) => setEditCommentText(event.target.value)}
+                              maxLength={COMMENT_MAX_LENGTH}
+                              autoFocus
+                              onKeyDown={(event) => {
+                                if (event.key === 'Enter') handleSaveEdit(comment.id);
+                                if (event.key === 'Escape') {
+                                  setEditingComment(null);
+                                  setEditCommentText('');
+                                }
+                              }}
+                            />
+                          </label>
+                          <button type="button" onClick={() => handleSaveEdit(comment.id)}>
+                            Save
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
                               setEditingComment(null);
                               setEditCommentText('');
-                            }
-                          }}
-                          style={{
-                            flex: 1,
-                            background: 'rgba(255,255,255,0.1)',
-                            border: '1px solid rgba(0,212,255,0.3)',
-                            borderRadius: 8,
-                            padding: '6px 10px',
-                            color: 'white',
-                            fontSize: 13,
-                            outline: 'none',
-                          }}
-                          autoFocus
-                        />
-                        <button
-                          onClick={() => handleSaveEdit(c.id)}
-                          style={{
-                            background: '#1877F2',
-                            border: 'none',
-                            borderRadius: 6,
-                            padding: '4px 10px',
-                            color: 'white',
-                            fontSize: 11,
-                            fontWeight: 600,
-                            cursor: 'pointer',
-                          }}
-                        >
-                          Save
-                        </button>
-                        <button
-                          onClick={() => {
-                            setEditingComment(null);
-                            setEditCommentText('');
-                          }}
-                          style={{
-                            background: 'none',
-                            border: 'none',
-                            color: 'rgba(255,255,255,0.4)',
-                            fontSize: 11,
-                            cursor: 'pointer',
-                          }}
-                        >
-                          Cancel
-                        </button>
-                      </div>
-                    ) : (
-                      c.content && (
-                        <p
-                          style={{
-                            color: 'rgba(255,255,255,0.8)',
-                            fontSize: 13,
-                            margin: '2px 0 0',
-                          }}
-                        >
-                          {c.content}
-                        </p>
-                      )
-                    )}
-                    {c.media_url && (
-                      <div style={{ position: 'relative', display: 'inline-block', marginTop: 4 }}>
-                        <img
-                          src={c.media_url}
-                          alt={c.media_type === 'gif' ? 'GIF' : 'Image'}
-                          style={{
-                            maxWidth: 180,
-                            maxHeight: 140,
-                            borderRadius: 8,
-                            display: 'block',
-                          }}
-                          onError={(e) => {
-                            e.target.style.display = 'none';
-                          }}
-                        />
-                        {c.media_type === 'gif' && (
-                          <span
-                            style={{
-                              position: 'absolute',
-                              bottom: 4,
-                              left: 4,
-                              background: 'rgba(0,0,0,0.6)',
-                              color: 'white',
-                              fontSize: 8,
-                              fontWeight: 700,
-                              padding: '1px 4px',
-                              borderRadius: 3,
                             }}
                           >
-                            GIF
-                          </span>
-                        )}
-                      </div>
-                    )}
-                    {/* Phase 6+7 - Comment engagement row */}
-                    <div style={{ display: 'flex', gap: 14, marginTop: 4, alignItems: 'center' }}>
-                      <button
-                        onClick={() => handleCommentLike(c.id)}
-                        style={{
-                          background: 'none',
-                          border: 'none',
-                          cursor: 'pointer',
-                          padding: 0,
-                          color: commentLikes[c.id] ? '#FF2D55' : 'rgba(255,255,255,0.4)',
-                          fontSize: 12,
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 3,
-                        }}
-                      >
-                        {commentLikes[c.id] ? '❤️' : '🤍'}
-                        {commentLikeCounts[c.id] > 0 && (
-                          <span style={{ fontSize: 10, opacity: 0.6 }}>
-                            {commentLikeCounts[c.id]}
-                          </span>
-                        )}
-                      </button>
-                      <button
-                        onClick={() => {
-                          setReplyTo({ id: c.id, username: c.profiles?.username || 'User' });
-                          setCommentText(`@${c.profiles?.username || 'User'} `);
-                        }}
-                        style={{
-                          background: 'none',
-                          border: 'none',
-                          cursor: 'pointer',
-                          padding: 0,
-                          color: 'rgba(255,255,255,0.4)',
-                          fontSize: 12,
-                        }}
-                      >
-                        Reply
-                      </button>
-                      {(c.profiles?.username === 'You' || c.author_id === authUser?.id) && (
-                        <>
-                          <button
-                            onClick={() => handleEditComment(c)}
-                            style={{
-                              background: 'none',
-                              border: 'none',
-                              cursor: 'pointer',
-                              padding: 0,
-                              color: 'rgba(255,255,255,0.4)',
-                              fontSize: 12,
-                            }}
-                          >
-                            Edit
+                            Cancel
                           </button>
-                          <button
-                            onClick={() => handleDeleteComment(c.id)}
-                            style={{
-                              background: 'none',
-                              border: 'none',
-                              cursor: 'pointer',
-                              padding: 0,
-                              color: 'rgba(255,255,255,0.3)',
-                              fontSize: 12,
-                              marginLeft: 'auto',
-                            }}
-                          >
-                            Delete
-                          </button>
-                        </>
+                        </div>
+                      ) : (
+                        comment.content && <ConsoleCopy>{comment.content}</ConsoleCopy>
                       )}
-                    </div>
-                  </div>
-                </div>
-              ))}
-              {/* #6 Comment Pagination - Load More */}
-              {hasMoreComments && (
-                <button
-                  onClick={loadMoreComments}
-                  disabled={loadingMoreComments}
-                  style={{
-                    width: '100%',
-                    padding: '10px',
-                    background: 'rgba(255,255,255,0.08)',
-                    border: '1px solid rgba(255,255,255,0.12)',
-                    borderRadius: 10,
-                    color: 'rgba(255,255,255,0.7)',
-                    fontSize: 13,
-                    fontWeight: 500,
-                    cursor: loadingMoreComments ? 'wait' : 'pointer',
-                    marginTop: 4,
-                  }}
-                >
-                  {loadingMoreComments ? 'Loading...' : 'Load More Comments'}
-                </button>
-              )}
-            </div>
-            {/* GIF Picker for reel comments */}
-            {showReelGifPicker && (
-              <div style={{ padding: '0 8px 4px' }}>
-                <GiphyPicker
-                  compact
-                  onSelect={(gifUrl) => {
-                    setReelCommentMediaUrl(gifUrl);
-                    setReelCommentMediaType('gif');
-                    setShowReelGifPicker(false);
-                  }}
-                  onClose={() => setShowReelGifPicker(false)}
-                />
-              </div>
-            )}
-            {/* Media preview */}
-            {reelCommentMediaUrl && (
-              <div style={{ padding: '4px 16px', position: 'relative', display: 'inline-block' }}>
-                <img
-                  src={reelCommentMediaUrl}
-                  alt="Preview"
-                  style={{ maxWidth: 140, maxHeight: 100, borderRadius: 8, display: 'block' }}
-                />
-                <button
-                  onClick={() => {
-                    setReelCommentMediaUrl(null);
-                    setReelCommentMediaType(null);
-                  }}
-                  style={{
-                    position: 'absolute',
-                    top: 8,
-                    right: 20,
-                    width: 20,
-                    height: 20,
-                    borderRadius: '50%',
-                    background: 'rgba(0,0,0,0.6)',
-                    color: 'white',
-                    border: 'none',
-                    cursor: 'pointer',
-                    fontSize: 12,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
-                >
-                  &times;
-                </button>
-              </div>
-            )}
-            {/* Hidden file input */}
-            <input
-              type="file"
-              accept="image/*"
-              ref={reelFileInputRef}
-              style={{ display: 'none' }}
-              onChange={(e) => {
-                const f = e.target.files?.[0];
-                if (f) handleReelImageUpload(f);
-                e.target.value = '';
-              }}
-            />
-            {/* Reply-to indicator */}
-            {replyTo && (
-              <div
-                style={{
-                  padding: '6px 16px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 8,
-                  borderTop: '1px solid rgba(255,255,255,0.1)',
-                  background: 'rgba(0,212,255,0.06)',
-                }}
-              >
-                <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12 }}>
-                  Replying to{' '}
-                  <span style={{ color: '#00d4ff', fontWeight: 600 }}>@{replyTo.username}</span>
-                </span>
-                <button
-                  onClick={() => {
-                    setReplyTo(null);
-                    setCommentText('');
-                  }}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    color: 'rgba(255,255,255,0.4)',
-                    fontSize: 14,
-                    cursor: 'pointer',
-                    marginLeft: 'auto',
-                  }}
-                >
-                  X
-                </button>
-              </div>
-            )}
-            <div
-              style={{
-                padding: '8px 16px',
-                borderTop: '1px solid rgba(255,255,255,0.1)',
-                display: 'flex',
-                gap: 8,
-                alignItems: 'center',
-              }}
-            >
-              <input
-                ref={commentInputRef}
-                value={commentText}
-                onChange={(e) => {
-                  if (e.target.value.length <= COMMENT_MAX_LENGTH) setCommentText(e.target.value);
-                }}
-                onKeyDown={handleSubmitComment}
-                onPaste={(e) => {
-                  const items = e.clipboardData?.items;
-                  if (!items) return;
-                  for (const item of items) {
-                    if (item.type.startsWith('image/')) {
-                      e.preventDefault();
-                      handleReelImageUpload(item.getAsFile());
-                      return;
-                    }
-                  }
-                }}
-                placeholder="Add a comment..."
-                style={{
-                  flex: 1,
-                  padding: '8px 12px',
-                  borderRadius: 20,
-                  border: '1px solid rgba(255,255,255,0.2)',
-                  background: 'rgba(255,255,255,0.1)',
-                  color: 'white',
-                  fontSize: 13,
-                  outline: 'none',
-                }}
-                maxLength={COMMENT_MAX_LENGTH}
-              />
-              <button
-                onClick={() => setShowReelGifPicker(!showReelGifPicker)}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  cursor: 'pointer',
-                  color: showReelGifPicker ? '#1877F2' : 'rgba(255,255,255,0.6)',
-                  fontWeight: 700,
-                  fontSize: 11,
-                }}
-              >
-                GIF
-              </button>
-              <button
-                onClick={() => reelFileInputRef.current?.click()}
-                disabled={uploadingReelImage}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  cursor: uploadingReelImage ? 'wait' : 'pointer',
-                  color: 'rgba(255,255,255,0.6)',
-                  fontSize: 15,
-                  opacity: uploadingReelImage ? 0.5 : 1,
-                }}
-              >
-                {uploadingReelImage ? '...' : '📷'}
-              </button>
-              {(commentText.trim() || reelCommentMediaUrl) && (
-                <button
-                  onClick={() => handleSubmitComment(null)}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    cursor: 'pointer',
-                    color: '#1877F2',
-                    fontWeight: 600,
-                    fontSize: 13,
-                  }}
-                >
-                  Post
-                </button>
-              )}
-            </div>
-            {/* Phase 8 - Character counter */}
-            {commentText.length > 0 && (
-              <div
-                style={{
-                  textAlign: 'right',
-                  fontSize: 10,
-                  color:
-                    commentText.length >= COMMENT_MAX_LENGTH - 20
-                      ? '#ef4444'
-                      : 'rgba(255,255,255,0.3)',
-                  paddingRight: 16,
-                  paddingBottom: 4,
-                }}
-              >
-                {commentText.length}/{COMMENT_MAX_LENGTH}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Phase 8 - Copy Link Toast */}
-        {copyToast && (
-          <div
-            style={{
-              position: 'absolute',
-              top: 80,
-              left: '50%',
-              transform: 'translateX(-50%)',
-              background: 'rgba(0,212,255,0.15)',
-              border: '1px solid rgba(0,212,255,0.4)',
-              borderRadius: 12,
-              padding: '8px 20px',
-              color: '#00d4ff',
-              fontSize: 13,
-              fontWeight: 600,
-              zIndex: 300,
-              backdropFilter: 'blur(10px)',
-            }}
-          >
-            Link Copied!
-          </div>
-        )}
-
-        {/* Report Modal */}
-        {showReportModal && (
-          <div
-            onClick={() => {
-              setShowReportModal(false);
-              setReportReason('');
-              setReportSubmitted(false);
-            }}
-            style={{
-              position: 'fixed',
-              inset: 0,
-              background: 'rgba(0,0,0,0.8)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              zIndex: 10002,
-            }}
-          >
-            <div
-              onClick={(e) => e.stopPropagation()}
-              style={{
-                background: '#1a1a2e',
-                borderRadius: 16,
-                padding: 24,
-                width: '85%',
-                maxWidth: 360,
-                border: '1px solid rgba(255,255,255,0.1)',
-              }}
-            >
-              {reportSubmitted ? (
-                <div style={{ textAlign: 'center', color: 'white' }}>
-                  <div style={{ fontSize: 40, marginBottom: 12 }}>✓</div>
-                  <div style={{ fontSize: 16, fontWeight: 600 }}>Report Submitted</div>
-                  <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', marginTop: 8 }}>
-                    Thank You. We Will Review This Content.
-                  </div>
-                </div>
-              ) : (
-                <>
-                  <div style={{ color: 'white', fontWeight: 700, fontSize: 18, marginBottom: 16 }}>
-                    Report This Reel
-                  </div>
-                  <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: 13, marginBottom: 12 }}>
-                    Why Are You Reporting This Content?
-                  </div>
-                  {[
-                    'Inappropriate Content',
-                    'Spam Or Scam',
-                    'Harassment',
-                    'Misinformation',
-                    'Other',
-                  ].map((reason) => (
-                    <button
-                      key={reason}
-                      onClick={() => setReportReason(reason)}
-                      style={{
-                        display: 'block',
-                        width: '100%',
-                        textAlign: 'left',
-                        padding: '10px 14px',
-                        marginBottom: 6,
-                        borderRadius: 10,
-                        fontSize: 14,
-                        cursor: 'pointer',
-                        background:
-                          reportReason === reason
-                            ? 'rgba(24,119,242,0.2)'
-                            : 'rgba(255,255,255,0.06)',
-                        border:
-                          reportReason === reason
-                            ? '1px solid #1877F2'
-                            : '1px solid rgba(255,255,255,0.1)',
-                        color: reportReason === reason ? '#1877F2' : 'white',
-                      }}
-                    >
-                      {reason}
-                    </button>
+                      {comment.media_url && (
+                        <img
+                          className="vlc-carousel-comment-media"
+                          src={comment.media_url}
+                          alt={comment.media_type === 'gif' ? 'Comment GIF' : 'Comment Image'}
+                          onError={(event) => {
+                            event.currentTarget.style.display = 'none';
+                          }}
+                        />
+                      )}
+                      <div className="vlc-carousel-command-grid">
+                        <button
+                          type="button"
+                          onClick={() => handleCommentLike(comment.id)}
+                          aria-pressed={Boolean(commentLikes[comment.id])}
+                        >
+                          {commentLikes[comment.id] ? 'Liked' : 'Like'}{' '}
+                          {formatViews(commentLikeCounts[comment.id] || 0)}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setReplyTo({
+                              id: comment.id,
+                              username: comment.profiles?.username || 'Poker Member',
+                            });
+                            setCommentText(`@${comment.profiles?.username || 'Poker Member'} `);
+                            commentInputRef.current?.focus();
+                          }}
+                        >
+                          Reply
+                        </button>
+                        {comment.author_id === authUser?.id && (
+                          <>
+                            <button type="button" onClick={() => handleEditComment(comment)}>
+                              Edit
+                            </button>
+                            <button type="button" onClick={() => handleDeleteComment(comment.id)}>
+                              Delete
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </article>
                   ))}
-                  <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
-                    <button
-                      onClick={() => {
-                        setShowReportModal(false);
-                        setReportReason('');
-                      }}
-                      style={{
-                        flex: 1,
-                        padding: '10px',
-                        borderRadius: 10,
-                        fontSize: 14,
-                        fontWeight: 600,
-                        background: 'rgba(255,255,255,0.08)',
-                        color: 'white',
-                        border: 'none',
-                        cursor: 'pointer',
-                      }}
-                    >
-                      Cancel
+                  {hasMoreComments && (
+                    <button type="button" onClick={loadMoreComments} disabled={loadingMoreComments}>
+                      {loadingMoreComments ? 'Loading...' : 'Load More Comments'}
                     </button>
+                  )}
+                </div>
+                {showReelGifPicker && (
+                  <GiphyPicker
+                    compact
+                    onSelect={(gifUrl) => {
+                      setReelCommentMediaUrl(gifUrl);
+                      setReelCommentMediaType('gif');
+                      setShowReelGifPicker(false);
+                    }}
+                    onClose={() => setShowReelGifPicker(false)}
+                  />
+                )}
+                {reelCommentMediaUrl && (
+                  <div className="vlc-carousel-media-preview">
+                    <img
+                      className="vlc-carousel-comment-media"
+                      src={reelCommentMediaUrl}
+                      alt="Comment Media Preview"
+                    />
                     <button
-                      onClick={handleReport}
-                      disabled={!reportReason}
-                      style={{
-                        flex: 1,
-                        padding: '10px',
-                        borderRadius: 10,
-                        fontSize: 14,
-                        fontWeight: 600,
-                        background: reportReason ? '#ef4444' : 'rgba(255,255,255,0.08)',
-                        color: 'white',
-                        border: 'none',
-                        cursor: reportReason ? 'pointer' : 'not-allowed',
-                        opacity: reportReason ? 1 : 0.5,
+                      type="button"
+                      onClick={() => {
+                        setReelCommentMediaUrl(null);
+                        setReelCommentMediaType(null);
                       }}
                     >
-                      Submit Report
+                      Remove Media
                     </button>
                   </div>
-                </>
-              )}
-            </div>
+                )}
+                <input
+                  type="file"
+                  accept="image/*"
+                  ref={reelFileInputRef}
+                  hidden
+                  onChange={(event) => {
+                    const file = event.target.files?.[0];
+                    if (file) handleReelImageUpload(file);
+                    event.target.value = '';
+                  }}
+                />
+                {replyTo && (
+                  <div className="vlc-carousel-reply">
+                    <ConsoleCopy>Replying To @{replyTo.username}</ConsoleCopy>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setReplyTo(null);
+                        setCommentText('');
+                      }}
+                    >
+                      Cancel Reply
+                    </button>
+                  </div>
+                )}
+                <label className="vlc-carousel-comment-input">
+                  Add A Comment
+                  <input
+                    ref={commentInputRef}
+                    value={commentText}
+                    maxLength={COMMENT_MAX_LENGTH}
+                    onChange={(event) => {
+                      if (event.target.value.length <= COMMENT_MAX_LENGTH)
+                        setCommentText(event.target.value);
+                    }}
+                    onKeyDown={handleSubmitComment}
+                    onPaste={(event) => {
+                      for (const item of event.clipboardData?.items || []) {
+                        if (item.type.startsWith('image/')) {
+                          event.preventDefault();
+                          handleReelImageUpload(item.getAsFile());
+                          return;
+                        }
+                      }
+                    }}
+                    placeholder="Add A Comment..."
+                  />
+                </label>
+                <div className="vlc-carousel-command-grid">
+                  <button type="button" onClick={() => setShowReelGifPicker(!showReelGifPicker)}>
+                    GIF
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => reelFileInputRef.current?.click()}
+                    disabled={uploadingReelImage}
+                  >
+                    {uploadingReelImage ? 'Uploading' : 'Add Image'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleSubmitComment(null)}
+                    disabled={!commentText.trim() && !reelCommentMediaUrl}
+                  >
+                    Post
+                  </button>
+                </div>
+                {commentText.length > 0 && (
+                  <ConsoleDataRow
+                    label="Characters"
+                    value={`${commentText.length} / ${COMMENT_MAX_LENGTH}`}
+                  />
+                )}
+              </>
+            ) : null}
           </div>
         )}
-      </div>
+        {(shareToast || copyToast) && <ConsoleCopy role="status">Link Copied</ConsoleCopy>}
+        {errorToast && <ConsoleCopy role="alert">{errorToast}</ConsoleCopy>}
+      </VideoLibraryConsole>
+      <ReelsFeedConsoleStyles />
     </div>
   );
 }
-
 // Main Reels Feed Carousel component
 export function ReelsFeedCarousel() {
+  const router = useRouter();
+  const { user: providerUser } = useSupabase();
+  const ownerId = providerUser?.id || null;
   const [reels, setReels] = useState([]);
+  const reelsRequestGuardRef = useRef(null);
+  if (!reelsRequestGuardRef.current) reelsRequestGuardRef.current = createLatestRequestGuard();
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const [viewerOpen, setViewerOpen] = useState(false);
@@ -4048,49 +3058,21 @@ export function ReelsFeedCarousel() {
   const reloadDebounceRef = useRef(null);
 
   const loadReels = useCallback(async (isBackground = false) => {
+    const reelsRequest = reelsRequestGuardRef.current.begin({ append: false });
     // Background refresh (triggered by Realtime): don't flash the loading skeleton.
     // Only the very first load should show the shimmer placeholder.
     if (!isBackground) setLoading(true);
     try {
-      // M7.1 (2026-05-03): retired the social_posts fallback. Every public
-      // video post now has a social_reels mirror via the
-      // trg_social_posts_video_to_reel_mirror trigger, so a separate
-      // social_posts query produced duplicates rather than fresh content
-      // (and the dedup-by-video_url filter dropped the iframe variant
-      // anyway, making the work pure waste). All reel content surfaces
-      // through social_reels now — including horse-posted videos.
-      const reelsResult = await supabase
-        .from('social_reels')
-        .select(
-          `
-                    id, author_id, caption, video_url, thumbnail_url, view_count, like_count, comment_count, created_at, is_public, source_type, source_post_id,
-                    profiles:author_id (id, username, avatar_url, full_name)
-                `
-        )
-        .eq('is_public', true)
-        .order('created_at', { ascending: false })
-        .limit(50);
-
-      const rawReels = reelsResult.data || [];
-      // Dedup by video_url — multiple horses can post the SAME YouTube
-      // clip, each landing as its own social_reels row via the mirror
-      // trigger. Without this filter the carousel renders the same clip
-      // up to 169 times in a row.
-      const seenUrls = new Set();
-      const notInterested = readNotInterested();
-      const allReels = rawReels
-        // ITEM 11: honour Not Interested here, the way Reels.jsx:1017 and
-        // pages/hub/reels.js:754 already do. Without it the Set was written on
-        // every dislike and read by nobody, so a reel dismissed in the feed
-        // disappeared from /hub/reels and kept showing in the feed.
-        .filter((r) => !notInterested.has(r.id))
-        .filter((r) => {
-          if (!r.video_url) return true;
-          if (seenUrls.has(r.video_url)) return false;
-          seenUrls.add(r.video_url);
-          return true;
-        })
-        .map((r) => ({ ...r, source: 'reels' }));
+      const payload = await fetchPokerReels({
+        limit: 50,
+        signal: reelsRequest.signal,
+        scope: 'social-carousel',
+      });
+      if (!reelsRequest.isCurrent()) return;
+      const notInterested = loadNotInterestedReelIds(ownerId);
+      const allReels = payload.data
+        .filter((reel) => !notInterested.has(reel.id))
+        .map((reel) => ({ ...reel, source: 'reels' }));
 
       // Sort merged set by date descending
       allReels.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
@@ -4098,12 +3080,19 @@ export function ReelsFeedCarousel() {
       setReels(allReels);
       setLoadError(false);
     } catch (e) {
+      if (e?.name === 'AbortError') return;
       console.warn('Load reels error:', e);
-      setLoadError(true);
+      if (reelsRequest.isCurrent()) {
+        setReels([]);
+        setLoadError(true);
+      }
+    } finally {
+      if (reelsRequest.finish()) {
+        isInitialLoadRef.current = false;
+        setLoading(false);
+      }
     }
-    isInitialLoadRef.current = false;
-    setLoading(false);
-  }, []);
+  }, [ownerId]);
 
   // Initial load + Realtime subscriptions
   useEffect(() => {
@@ -4133,22 +3122,7 @@ export function ReelsFeedCarousel() {
       .on(
         'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'social_reels' },
-        (payload) => {
-          const next = payload?.new;
-          if (!next?.id) return;
-          setReels((prev) =>
-            prev.map((r) => {
-              if (r.id !== next.id) return r;
-              if (r.video_url === next.video_url) return r;
-              return {
-                ...r,
-                video_url: next.video_url,
-                source_type: next.source_type,
-                thumbnail_url: next.thumbnail_url || r.thumbnail_url,
-              };
-            })
-          );
-        }
+        debouncedReload
       )
       .subscribe();
 
@@ -4162,9 +3136,22 @@ export function ReelsFeedCarousel() {
     eventBus.on(EventType.DATA_MUTATED, handleDataMutated);
 
     return () => {
+      reelsRequestGuardRef.current.abort();
       if (reloadDebounceRef.current) clearTimeout(reloadDebounceRef.current);
       supabase.removeChannel(_ch);
       eventBus.off(EventType.DATA_MUTATED, handleDataMutated);
+    };
+  }, [loadReels]);
+
+  useEffect(() => {
+    const revalidateVisibleFeed = () => {
+      if (document.visibilityState === 'visible') loadReels(true);
+    };
+    window.addEventListener('focus', revalidateVisibleFeed);
+    document.addEventListener('visibilitychange', revalidateVisibleFeed);
+    return () => {
+      window.removeEventListener('focus', revalidateVisibleFeed);
+      document.removeEventListener('visibilitychange', revalidateVisibleFeed);
     };
   }, [loadReels]);
 
@@ -4173,165 +3160,89 @@ export function ReelsFeedCarousel() {
     setViewerOpen(true);
   };
 
-  // Don't render if no reels
-  if (!loading && reels.length === 0) return null;
-
-  // Loading state - skeleton shimmer
+  // Loading uses the exact same native-ratio chassis as the final carousel.
   if (loading) {
     return (
-      <div
-        style={{
-          background: C.card,
-          borderRadius: 8,
-          padding: 16,
-          marginBottom: 16,
-          boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
-        }}
-      >
-        <div style={{ display: 'flex', gap: 12, overflow: 'hidden' }}>
-          {[1, 2, 3].map((i) => (
-            <div
-              key={i}
-              style={{
-                width: 140,
-                height: 250,
-                borderRadius: 12,
-                background: C.border,
-                flexShrink: 0,
-                animation: 'pulse 1.5s ease-in-out infinite',
-              }}
-            />
-          ))}
-        </div>
+      <div className="vlc-feed-console-shell">
+        <VideoLibraryConsole
+          eyebrow="Social Feed"
+          title="Poker Reels"
+          subtitle="Verified Video Channel"
+          pill="Tuning"
+          pillInk="blue"
+          foot="foot"
+          aria-label="Poker Reels Loading"
+        >
+          <ConsoleCopy align="center">Preparing The Latest Playable Poker Reels.</ConsoleCopy>
+          <ConsoleDataRow label="Signal" value="Connecting" valueInk="blue" />
+        </VideoLibraryConsole>
+        <ReelsFeedConsoleStyles />
       </div>
     );
   }
 
-  // Error state with retry
+  // Keep recovery visible; the legacy pre-check returned null before this branch.
   if (loadError) {
     return (
-      <div
-        style={{
-          background: C.card,
-          borderRadius: 8,
-          padding: 16,
-          marginBottom: 16,
-          boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
-          textAlign: 'center',
-        }}
-      >
-        <div style={{ color: C.textSec, fontSize: 13, marginBottom: 8 }}>Could Not Load Reels</div>
-        <button
-          onClick={() => loadReels()}
-          style={{
-            background: C.blue,
-            color: 'white',
-            border: 'none',
-            borderRadius: 20,
-            padding: '6px 18px',
-            fontSize: 13,
-            fontWeight: 600,
-            cursor: 'pointer',
+      <div className="vlc-feed-console-shell">
+        <VideoLibraryConsole
+          eyebrow="Social Feed"
+          title="Reel Signal Interrupted"
+          subtitle="Account State Protected"
+          pill="Attention"
+          pillInk="red"
+          foot="plates"
+          plates={{
+            secondary: {
+              label: 'Browse All Reels',
+              onClick: () => router.push('/hub/reels'),
+              ink: 'silver',
+            },
+            primary: { label: 'Retry Signal', onClick: () => loadReels(), ink: 'blue' },
           }}
+          aria-label="Poker Reels Connection Recovery"
         >
-          Retry
-        </button>
+          <ConsoleCopy align="center">
+            The Reel Service Did Not Answer. Try The Signal Again.
+          </ConsoleCopy>
+          <ConsoleDataRow label="Account State" value="Protected" valueInk="green" />
+        </VideoLibraryConsole>
+        <ReelsFeedConsoleStyles />
       </div>
     );
   }
+
+  // Preserve the feed's quiet behavior when the verified service has no rows.
+  if (reels.length === 0) return null;
 
   return (
     <>
-      <div
-        style={{
-          background: C.card,
-          borderRadius: 8,
-          padding: 16,
-          marginBottom: 16,
-          boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
-        }}
-      >
-        {/* Header */}
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            marginBottom: 12,
+      <div className="vlc-feed-console-shell">
+        <VideoLibraryConsole
+          eyebrow="Social Feed"
+          title="Poker Reels"
+          subtitle="Swipe The Verified Video Rail"
+          pill={`${reels.length} Live`}
+          pillInk="blue"
+          foot="plates"
+          plates={{
+            secondary: { label: 'Refresh Reels', onClick: () => loadReels(), ink: 'silver' },
+            primary: {
+              label: 'Browse All Reels',
+              onClick: () => router.push('/hub/reels'),
+              ink: 'white',
+            },
           }}
+          aria-label="Poker Reels In The Social Feed"
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ fontSize: 20 }}>🎬</span>
-            <span style={{ fontWeight: 600, color: C.text }}>Reels</span>
+          <div ref={scrollRef} className="vlc-feed-reel-strip">
+            {reels.map((reel, index) => (
+              <ReelCard key={reel.id} reel={reel} onClick={() => openViewer(index)} />
+            ))}
           </div>
-          <Link
-            href="/hub/reels"
-            style={{
-              color: C.blue,
-              fontSize: 14,
-              fontWeight: 600,
-              textDecoration: 'none',
-            }}
-          >
-            See All →
-          </Link>
-        </div>
-
-        {/* Horizontal scroll container */}
-        <div
-          ref={scrollRef}
-          style={{
-            display: 'flex',
-            gap: 12,
-            overflowX: 'auto',
-            paddingBottom: 8,
-            scrollbarWidth: 'none',
-            msOverflowStyle: 'none',
-            scrollSnapType: 'x mandatory',
-            WebkitOverflowScrolling: 'touch',
-          }}
-        >
-          {reels.map((reel, index) => (
-            <div key={reel.id} style={{ scrollSnapAlign: 'start' }}>
-              <ReelCard reel={reel} onClick={() => openViewer(index)} />
-            </div>
-          ))}
-
-          {/* See more card */}
-          <Link
-            href="/hub/reels"
-            style={{
-              width: 140,
-              height: 250,
-              borderRadius: 12,
-              flexShrink: 0,
-              background: 'linear-gradient(135deg, #833AB4, #FD1D1D, #FCB045)',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              textDecoration: 'none',
-              scrollSnapAlign: 'start',
-            }}
-          >
-            <div
-              style={{
-                width: 48,
-                height: 48,
-                borderRadius: '50%',
-                background: 'rgba(255,255,255,0.2)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                marginBottom: 8,
-              }}
-            >
-              <span style={{ fontSize: 24, color: 'white' }}>→</span>
-            </div>
-            <span style={{ color: 'white', fontWeight: 600, fontSize: 14 }}>See All</span>
-            <span style={{ color: 'rgba(255,255,255,0.8)', fontSize: 12 }}>Reels</span>
-          </Link>
-        </div>
+          <ConsoleCopy align="center">Select A Reel To Enter The Full Viewer.</ConsoleCopy>
+        </VideoLibraryConsole>
+        <ReelsFeedConsoleStyles />
       </div>
 
       {/* Full-screen viewer */}
@@ -4342,12 +3253,309 @@ export function ReelsFeedCarousel() {
           onClose={() => setViewerOpen(false)}
         />
       )}
-
-      {/* Hide scrollbar */}
-      <style>{`
-                .reels-carousel::-webkit-scrollbar { display: none; }
-            `}</style>
     </>
+  );
+}
+
+function ReelsFeedConsoleStyles() {
+  return (
+    <style jsx global>{`
+      .vlc-feed-console-shell {
+        width: 100%;
+        max-width: 760px;
+        margin: 0 auto 16px;
+        background: #000;
+      }
+      .vlc-feed-reel-strip {
+        display: flex;
+        gap: 2.4cqw;
+        width: 100%;
+        overflow-x: auto;
+        padding-bottom: 2cqw;
+        scroll-snap-type: x mandatory;
+        overscroll-behavior-inline: contain;
+      }
+      .vlc-reel-card {
+        appearance: none;
+        display: flex;
+        flex-direction: column;
+        position: relative;
+        flex: 0 0 38cqw;
+        min-width: 0;
+        padding: 0;
+        border: 0;
+        border-radius: 0;
+        background: transparent;
+        color: #f4f7fb;
+        cursor: pointer;
+        scroll-snap-align: start;
+        font-family: 'Roboto Condensed', 'Arial Narrow', sans-serif;
+        text-align: left;
+      }
+      .vlc-reel-card:focus-visible {
+        outline: 2px solid #45adff;
+        outline-offset: -2px;
+      }
+      .vlc-reel-card__media {
+        display: grid;
+        width: 100%;
+        aspect-ratio: 9 / 16;
+        overflow: hidden;
+      }
+      .vlc-reel-card__media img,
+      .vlc-reel-card__media video {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+      .vlc-reel-card__fallback {
+        align-self: center;
+        color: #45adff;
+        font-size: 3cqw;
+        text-align: center;
+      }
+      .vlc-reel-card__author {
+        display: flex;
+        align-items: center;
+        gap: 1.5cqw;
+        padding-top: 2cqw;
+        color: #45adff;
+        font-size: 3cqw;
+        overflow-wrap: anywhere;
+      }
+      .vlc-reel-card__author img {
+        width: 6cqw;
+        height: 6cqw;
+        object-fit: cover;
+      }
+      .vlc-reel-card__caption {
+        padding-top: 1cqw;
+        font:
+          500 3cqw/1.4 Inter,
+          system-ui,
+          sans-serif;
+        overflow-wrap: anywhere;
+      }
+      .vlc-carousel-viewer-shell.vlc-carousel-viewer-shell {
+        position: fixed;
+        inset: 0;
+        z-index: 10000;
+        display: grid;
+        align-items: start;
+        justify-items: center;
+        width: 100%;
+        height: 100dvh;
+        max-width: none;
+        max-height: none;
+        overflow: auto;
+        padding: max(8px, env(safe-area-inset-top)) 0 max(8px, env(safe-area-inset-bottom));
+        border: 0 !important;
+        border-radius: 0 !important;
+        background-color: #000 !important;
+        background-image: none !important;
+        box-shadow: none !important;
+      }
+      .vlc-carousel-viewer-console {
+        width: min(100%, 540px);
+      }
+      .vlc-carousel-viewer-layout {
+        display: grid;
+        gap: 3cqw;
+        min-width: 0;
+      }
+      .vlc-carousel-viewer-layout[hidden] {
+        display: none;
+      }
+      .vlc-carousel-viewer-stage {
+        position: relative;
+        width: 100%;
+        aspect-ratio: 9 / 16;
+        overflow: hidden;
+        background: #000;
+      }
+      .vlc-carousel-viewer-media {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+      }
+      .vlc-carousel-viewer-details {
+        display: flex;
+        flex-direction: column;
+        gap: 2cqw;
+        min-width: 0;
+      }
+      .vlc-carousel-viewer-toolbar,
+      .vlc-carousel-command-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        align-items: center;
+        gap: 1.5cqw;
+      }
+      .vlc-carousel-panel,
+      .vlc-carousel-options,
+      .vlc-carousel-comments,
+      .vlc-carousel-edit,
+      .vlc-carousel-media-preview,
+      .vlc-carousel-reply {
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+        gap: 3cqw;
+      }
+      .vlc-carousel-viewer-console .vlc-carousel-panel button,
+      .vlc-carousel-viewer-console .vlc-carousel-viewer-toolbar button,
+      .vlc-carousel-viewer-console .vlc-carousel-viewer-details button {
+        appearance: none;
+        display: block;
+        width: 100%;
+        min-width: 0;
+        min-height: 44px;
+        padding: 2cqw;
+        border: 0 !important;
+        border-radius: 0 !important;
+        background-color: transparent !important;
+        background-image: none !important;
+        box-shadow: none !important;
+        color: #45adff !important;
+        font:
+          700 3.7cqw/1.3 'Roboto Condensed',
+          'Arial Narrow',
+          sans-serif;
+        text-align: center;
+        overflow-wrap: anywhere;
+        cursor: pointer;
+      }
+      .vlc-carousel-viewer-console button:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+      }
+      .vlc-carousel-viewer-console button[aria-pressed='true'] {
+        color: #c8ffd2 !important;
+      }
+      .vlc-carousel-viewer-console button:focus-visible,
+      .vlc-carousel-viewer-console input:focus-visible {
+        outline: 2px solid #45adff;
+        outline-offset: -2px;
+      }
+      .vlc-carousel-viewer-console button:active {
+        color: #f4f7fb !important;
+      }
+      .vlc-carousel-author {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 2cqw;
+        overflow-wrap: anywhere;
+      }
+      .vlc-carousel-author img {
+        width: 8cqw;
+        height: 8cqw;
+        object-fit: cover;
+      }
+      .vlc-carousel-author a,
+      .vlc-carousel-author span {
+        color: #e4e7ec;
+        font:
+          600 3.5cqw/1.4 'Roboto Condensed',
+          sans-serif;
+      }
+      .vlc-carousel-comment {
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+        gap: 2cqw;
+        padding-block: 2cqw;
+      }
+      .vlc-carousel-comment[data-reply='true'] {
+        padding-left: 3cqw;
+      }
+      .vlc-carousel-comment-media {
+        max-width: 100%;
+        max-height: 50cqw;
+        object-fit: contain;
+        align-self: flex-start;
+      }
+      .vlc-carousel-comment-input,
+      .vlc-carousel-edit label {
+        display: flex;
+        flex-direction: column;
+        gap: 2cqw;
+        color: #45adff;
+        font:
+          600 3.7cqw/1.4 'Roboto Condensed',
+          sans-serif;
+      }
+      .vlc-carousel-viewer-console input:not([type='file']) {
+        width: 100%;
+        min-width: 0;
+        min-height: 44px;
+        padding: 2cqw;
+        border: 0 !important;
+        border-radius: 0 !important;
+        background-color: transparent !important;
+        background-image: none !important;
+        box-shadow: none !important;
+        color: #e4e7ec !important;
+        font:
+          500 3.7cqw/1.4 Inter,
+          system-ui,
+          sans-serif;
+      }
+      .vlc-carousel-play-state,
+      .vlc-carousel-like-confirmation {
+        position: absolute;
+        inset: 42% 0 auto;
+        z-index: 6;
+        pointer-events: none;
+        text-align: center;
+        color: #f4f7fb;
+        font:
+          800 6cqw/1.4 'Roboto Condensed',
+          sans-serif;
+        text-shadow: 0 1px 2px #000;
+      }
+      .vlc-carousel-like-confirmation {
+        animation: carouselLikeConfirmation 0.8s ease-out forwards;
+      }
+      @keyframes carouselLikeConfirmation {
+        0% {
+          opacity: 1;
+          transform: scale(0.8);
+        }
+        50% {
+          opacity: 1;
+          transform: scale(1.1);
+        }
+        100% {
+          opacity: 0;
+          transform: scale(1.2);
+        }
+      }
+      @media (min-width: 900px) {
+        .vlc-carousel-viewer-shell.vlc-carousel-viewer-shell {
+          padding: 16px;
+        }
+        .vlc-carousel-viewer-console {
+          width: min(100%, 900px);
+        }
+        .vlc-carousel-viewer-layout {
+          grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+          align-items: start;
+        }
+        .vlc-carousel-viewer-console .vlc-carousel-panel button,
+        .vlc-carousel-viewer-console .vlc-carousel-viewer-toolbar button,
+        .vlc-carousel-viewer-console .vlc-carousel-viewer-details button,
+        .vlc-carousel-author a,
+        .vlc-carousel-author span {
+          font-size: 2.1cqw;
+        }
+        .vlc-carousel-author img {
+          width: 5cqw;
+          height: 5cqw;
+        }
+      }
+    `}</style>
   );
 }
 
