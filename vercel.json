@@ -767,6 +767,18 @@
       "schedule": "0 * * * *"
     }
   ],
+  "redirects": [
+    {
+      "source": "/portfolio",
+      "destination": "/Portfolio",
+      "permanent": true
+    },
+    {
+      "source": "/portfolio/:path*",
+      "destination": "/Portfolio/:path*",
+      "permanent": true
+    }
+  ],
   "rewrites": [
     {
       "source": "/commander",
