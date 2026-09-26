@@ -14,7 +14,7 @@ test('embedded Reels renders every lifecycle through the exact shared console', 
   assert.match(VIEWER, /title="Tuning Reel Signal"/);
   assert.match(VIEWER, /title="Signal Interrupted"/);
   assert.match(VIEWER, /title="No Reels Yet"/);
-  assert.match(VIEWER, /<main className=\{styles\.shell\} aria-label="Embedded Poker Reels Viewer">/);
+  assert.match(VIEWER, /<main className=\{styles\.shell\} aria-label=\{`Embedded \$\{topicLabel\} Reels Viewer`\}>/);
   assert.match(VIEWER, /foot="foot"/);
   assert.match(VIEWER, /className=\{styles\.viewport\}/);
   assert.match(VIEWER, /className=\{styles\.media\}/);

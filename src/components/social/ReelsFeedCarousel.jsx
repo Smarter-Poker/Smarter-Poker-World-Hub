@@ -16,7 +16,7 @@ import { getAccessToken, getAuthUser } from '../../lib/authUtils';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import GiphyPicker from '../shared/GiphyPicker';
-import { canonicalReelKey, fetchPokerReels } from '../../lib/reelsFeedClient';
+import { buildReelPath, canonicalReelKey, fetchPokerReels } from '../../lib/reelsFeedClient';
 import { scanReelsContinuations } from '../../lib/reelsContinuation.mjs';
 import {
   BACKGROUND_REELS_REFRESH,
@@ -47,6 +47,7 @@ import VideoLibraryConsole, {
   ConsoleCopy,
   ConsoleDataRow,
 } from '../video-library/console/VideoLibraryConsole';
+import ReelResponsibleGamingNotice from './ReelResponsibleGamingNotice';
 
 // Time ago helper
 function timeAgo(d) {
@@ -90,6 +91,27 @@ function getYouTubeThumbnail(url) {
   const videoId = getYouTubeVideoId(url);
   if (videoId) return `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
   return null;
+}
+
+function reelTopicLabel(reel) {
+  const topic = String(reel?.topic || '').trim().toLowerCase();
+  if (topic === 'cash') return 'Cash Poker';
+  if (topic === 'tournament') return 'Tournament Poker';
+  if (topic === 'slots') return 'Casino And Slots';
+  if (topic === 'sports') return 'Sports';
+  return 'Poker';
+}
+
+function reelSourceName(reel) {
+  return reel?.channel_name
+    || reel?.profiles?.full_name
+    || reel?.profiles?.username
+    || `${reelTopicLabel(reel)} Creator`;
+}
+
+function reelSourceUrl(reel) {
+  if (reel?.playback_type !== 'youtube_embed' && !isYouTubeUrl(reel?.video_url)) return null;
+  return reel?.source_attribution_url || reel?.source_url || reel?.original_youtube_url || null;
 }
 
 const REELS_NEAR_END_THRESHOLD = 3;
@@ -176,7 +198,7 @@ function ReelCard({ reel, onClick }) {
   const youtubeThumbnail = isYouTube
     ? reel.thumbnail_url || getYouTubeThumbnail(reel.video_url)
     : null;
-  const creatorName = reel.profiles?.username || reel.channel_name || 'Reel Creator';
+  const creatorName = reelSourceName(reel);
 
   return (
     <button
@@ -474,6 +496,8 @@ function ReelViewer({
   const goNextRef = useRef(null);
 
   const currentReel = reels[currentIndex];
+  const currentSourceName = reelSourceName(currentReel);
+  const currentSourceUrl = reelSourceUrl(currentReel);
   activeCommentReelIdRef.current = currentReel?.id || null;
   const interactionReelIds = useMemo(() => normaliseReelIds(reels), [reels]);
   const interactionAuthorIds = useMemo(() => normaliseReelAuthorIds(reels), [reels]);
@@ -1565,7 +1589,7 @@ function ReelViewer({
   };
 
   const shareReelUrl = currentReel
-    ? `${typeof window !== 'undefined' ? window.location.origin : 'https://smarter.poker'}/hub/reels?id=${encodeURIComponent(currentReel.id)}`
+    ? `${typeof window !== 'undefined' ? window.location.origin : 'https://smarter.poker'}${buildReelPath(currentReel)}`
     : '';
 
   const handleShareAction = async (platform) => {
@@ -1575,7 +1599,7 @@ function ReelViewer({
     if (!reel?.id) return;
     setShowShareModal(false);
     const url = shareReelUrl;
-    const title = 'Check out this poker reel on Smarter.Poker';
+    const title = 'Check Out This Reel On Smarter.Poker';
     try {
       if (platform === 'copy') {
         await navigator.clipboard.writeText(url);
@@ -1621,7 +1645,7 @@ function ReelViewer({
     }
   };
 
-  // Share to My Feed - creates a social_posts entry linking this reel
+  // Share to My Feed through the server-owned canonical Reel reader.
   const handleShareToFeed = async () => {
     const reel = currentReel;
     const userId = activeUserIdRef.current;
@@ -1629,42 +1653,24 @@ function ReelViewer({
     const ownerRequest = accountScopeRef.current.capture(userId);
     setSharingToFeed(true);
     try {
-      const videoUrl = reel.video_url;
-      const caption = reel.caption || 'Check out this reel!';
-      const reelLink = window.location.origin + '/hub/reels?id=' + reel.id;
-      // #5 Duplicate guard
-      const { data: existing } = await supabase
-        .from('social_posts')
-        .select('id')
-        .eq('author_id', userId)
-        .eq('link_url', reelLink)
-        .limit(1);
-      if (!ownerRequest.isCurrent()) return;
-      if (existing && existing.length > 0) {
-        setSharedToFeed(true);
-        setSharingToFeed(false);
-        // BUG FIX (RFC-6): cancel-before-reschedule, prevent setState-after-unmount
-        if (sharedToFeedTimerRef.current) clearTimeout(sharedToFeedTimerRef.current);
-        sharedToFeedTimerRef.current = setTimeout(() => {
-          sharedToFeedTimerRef.current = null;
-          setSharedToFeed(false);
-        }, 3000);
-        return;
-      }
-      const postContent = caption + '\n\n' + reelLink;
-      const { error } = await supabase.from('social_posts').insert({
-        author_id: userId,
-        content: postContent,
-        content_type: videoUrl ? 'video' : 'text',
-        media_urls: videoUrl ? [videoUrl] : [],
-        visibility: 'public',
-        link_url: reelLink,
+      const token = getAccessToken();
+      if (!token) throw new Error('Authentication required');
+      const response = await fetch('/api/social/share-reel-to-feed', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ reel_id: reel.id }),
       });
-      if (error) throw error;
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || 'Share failed');
       if (!ownerRequest.isCurrent()) return;
-      incrementMetric(reel, 'share_count', 1);
-      busEmit.socialPostShared(reel.id, userId);
-      busEmit.dataMutated('social');
+      if (!result.already_shared) {
+        incrementMetric(reel, 'share_count', 1);
+        busEmit.socialPostShared(reel.id, userId);
+        busEmit.dataMutated('social');
+      }
       setSharedToFeed(true);
       // BUG FIX (RFC-6): cancel-before-reschedule on success path
       if (sharedToFeedTimerRef.current) clearTimeout(sharedToFeedTimerRef.current);
@@ -2334,9 +2340,9 @@ function ReelViewer({
         titleId="carousel-viewer-title"
         titleAs="h1"
         subtitle={
-          currentReel.profiles?.username || currentReel.channel_name
-            ? `By ${currentReel.profiles?.username || currentReel.channel_name}`
-            : 'Verified Video'
+          currentSourceName
+            ? `By ${currentSourceName}`
+            : `Verified ${reelTopicLabel(currentReel)} Video`
         }
         pill={`${currentIndex + 1} Of ${reels.length}${hasMore ? '+' : ''}`}
         pillInk="blue"
@@ -2428,7 +2434,10 @@ function ReelViewer({
               }}
               style={{
                 position: 'absolute',
-                inset: 0,
+                top: 0,
+                right: 0,
+                bottom: isYouTubeUrl(currentReel.video_url) ? 56 : 0,
+                left: 0,
                 zIndex: 5,
                 touchAction: 'none',
                 cursor: 'pointer',
@@ -2475,26 +2484,40 @@ function ReelViewer({
                       position: 'relative',
                       width: '100%',
                       height: '100%',
-                      pointerEvents: 'none',
+                      pointerEvents: isCurrentYT ? 'auto' : 'none',
                       display: isCurrentYT ? 'block' : 'none', // Hide but keep alive
                     }}
                   >
                     <iframe
                       ref={ytIframeRef}
-                      src={`https://www.youtube-nocookie.com/embed/${initialVideoId}?autoplay=1&mute=1&rel=0&modestbranding=1&playsinline=1&controls=0&showinfo=0&iv_load_policy=3&fs=0&disablekb=1&cc_load_policy=0&enablejsapi=1&origin=${typeof window !== 'undefined' ? window.location.origin : ''}`}
+                      src={`https://www.youtube-nocookie.com/embed/${initialVideoId}?autoplay=1&mute=1&rel=0&playsinline=1&controls=1&iv_load_policy=3&fs=1&cc_load_policy=0&enablejsapi=1&origin=${encodeURIComponent(typeof window !== 'undefined' ? window.location.origin : 'https://smarter.poker')}&widget_referrer=${encodeURIComponent(typeof window !== 'undefined' ? window.location.origin : 'https://smarter.poker')}`}
                       style={{
                         width: '100%',
                         height: '100%',
                         border: 'none',
-                        pointerEvents: 'none',
+                        pointerEvents: isCurrentYT ? 'auto' : 'none',
                         position: 'relative',
                         zIndex: 1,
                       }}
                       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                       allowFullScreen
+                      referrerPolicy="strict-origin-when-cross-origin"
+                      title={`${reelTopicLabel(currentReel)} Reel From ${currentSourceName}`}
                       onLoad={() => {
                         ytIframeReadyRef.current = true;
-                        // Force play + unmute via postMessage
+                        const loadedReel = reelsRef.current[currentIndexRef.current];
+                        if (!isYouTubeUrl(loadedReel?.video_url)) {
+                          // The persistent iframe may finish loading while a
+                          // native Reel is already active. Pause only after the
+                          // API bridge exists so an early index-effect command
+                          // cannot lose the race and start hidden audio.
+                          ytAutoplayTimersRef.current.forEach((timer) => clearTimeout(timer));
+                          ytAutoplayTimersRef.current = [];
+                          sendYTCmd('pauseVideo');
+                          return;
+                        }
+                        const loadedVideoId = getYouTubeVideoId(loadedReel.video_url);
+                        if (loadedVideoId) sendYTCmd('loadVideoById', [loadedVideoId]);
                         sendYTCmd('playVideo');
                         if (userInteractedRef.current && userWantsSoundRef.current) {
                           sendYTCmd('unMute');
@@ -2509,6 +2532,11 @@ function ReelViewer({
                         ytAutoplayTimersRef.current.forEach((t) => clearTimeout(t));
                         ytAutoplayTimersRef.current = [300, 800, 1500].map((delay) =>
                           setTimeout(() => {
+                            const latestReel = reelsRef.current[currentIndexRef.current];
+                            if (!isYouTubeUrl(latestReel?.video_url)) {
+                              sendYTCmd('pauseVideo');
+                              return;
+                            }
                             sendYTCmd('playVideo');
                             if (userInteractedRef.current && userWantsSoundRef.current) {
                               sendYTCmd('unMute');
@@ -2611,8 +2639,10 @@ function ReelViewer({
                 }}
               />
 
-              {/* Preload next 10 YouTube thumbnails for instant visual feedback */}
-              {Array.from({ length: 10 }, (_, offset) => offset + 1).map((offset) => {
+              {/* Keep the media window bounded to current + next. Mounting one
+                  native preload beyond that can consume an entire mobile data
+                  budget before the player ever reaches those Reels. */}
+              {Array.from({ length: 1 }, (_, offset) => offset + 1).map((offset) => {
                 const nextReel = reels[currentIndex + offset];
                 if (!nextReel?.video_url) return null;
                 const nextUrl = nextReel.video_url;
@@ -2731,9 +2761,19 @@ function ReelViewer({
                   {currentReel.profiles.full_name || currentReel.profiles.username}
                 </Link>
               ) : (
-                <span>{currentReel.channel_name || 'Reel Creator'}</span>
+                <span>{currentSourceName}</span>
               )}
             </div>
+            {currentSourceUrl ? (
+              <a
+                href={currentSourceUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="vlc-carousel-source-link"
+              >
+                View Original On {currentSourceName}
+              </a>
+            ) : null}
             <ConsoleDataRow label="Published" value={timeAgo(currentReel.created_at)} />
             <ConsoleDataRow
               label="Views"
@@ -2775,6 +2815,7 @@ function ReelViewer({
                 )}
               </ConsoleCopy>
             )}
+            <ReelResponsibleGamingNotice topic={currentReel.topic} />
           </div>
         </div>
 
@@ -4148,6 +4189,20 @@ function ReelsFeedConsoleStyles() {
           600 3.5cqw/1.4 'Roboto Condensed',
           sans-serif;
       }
+      .vlc-carousel-source-link {
+        display: inline-flex;
+        width: fit-content;
+        min-height: 44px;
+        align-items: center;
+        color: #8fd4ff;
+        font: 800 3.2cqw/1.3 'Roboto Condensed', 'Arial Narrow', sans-serif;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+      .vlc-carousel-source-link:focus-visible {
+        outline: 2px solid #8fd4ff;
+        outline-offset: 2px;
+      }
       .vlc-carousel-comment {
         display: flex;
         flex-direction: column;
@@ -4235,7 +4290,8 @@ function ReelsFeedConsoleStyles() {
         .vlc-carousel-viewer-console .vlc-carousel-viewer-toolbar button,
         .vlc-carousel-viewer-console .vlc-carousel-viewer-details button,
         .vlc-carousel-author a,
-        .vlc-carousel-author span {
+        .vlc-carousel-author span,
+        .vlc-carousel-source-link {
           font-size: 2.1cqw;
         }
         .vlc-carousel-author img {

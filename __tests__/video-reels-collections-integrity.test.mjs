@@ -413,12 +413,13 @@ test('collection cursors are typed, keyset-based, and reject cross-page replay',
   assert.match(SERVER, /saved_at['"],\s*\{ ascending: false \}/);
 });
 
-test('collection readers page without skips and collapse legacy saved aliases across pages', async () => {
+test('collection readers keep slots and sports across My Reels, Saved, and saved-status', async () => {
   const ownerId = '11111111-1111-4111-8111-111111111111';
   const reelA = nativeRow({
     id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
     author_id: ownerId,
     caption: 'A',
+    topic: 'slots',
     canonical_asset_key: 'native:a',
     source_post_id: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
     created_at: '2026-09-06T13:00:00.000Z',
@@ -427,6 +428,7 @@ test('collection readers page without skips and collapse legacy saved aliases ac
     id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
     author_id: ownerId,
     caption: 'B',
+    topic: 'sports',
     canonical_asset_key: 'native:b',
     created_at: '2026-09-06T12:00:00.000Z',
   });

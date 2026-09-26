@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';
 import test from 'node:test';
+import vm from 'node:vm';
 
 const read = path => readFileSync(new URL(path, import.meta.url), 'utf8');
 const REELS_PAGE = read('../pages/hub/reels.js');
@@ -10,8 +11,13 @@ const SHARED_COMPOSER = read('../src/components/social/SharedPostCreator.jsx');
 const STORIES = read('../src/components/social/Stories.jsx');
 const SOCIAL_PAGE = read('../pages/hub/social-media/index.js');
 const SOCIAL_FEED_API = read('../pages/api/social/feed.js');
+const SHARE_REEL_API = read('../pages/api/social/share-reel-to-feed.js');
 const FEED_CACHE = read('../src/lib/feedCache.js');
 const REEL_RECOVERY = read('../src/components/reels/ReelPublicationRecoveryBanner.jsx');
+const REELS_SERVER = read('../src/lib/server/reelsFeed.js');
+const RESPONSIBLE_GAMING_NOTICE = read('../src/components/social/ReelResponsibleGamingNotice.jsx');
+const MY_REELS = read('../pages/hub/reels/my-reels.js');
+const SAVED_REELS = read('../pages/hub/reels/saved.js');
 
 function between(source, start, end) {
   const from = source.indexOf(start);
@@ -19,6 +25,100 @@ function between(source, start, end) {
   assert.ok(from >= 0, `missing section start: ${start}`);
   assert.ok(to > from, `missing section end: ${end}`);
   return source.slice(from, to);
+}
+
+function loadShareReelRoute({
+  reel = {
+    id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+    topic: 'slots',
+    caption: 'Canonical Casino Reel',
+    thumbnail_url: 'https://img.youtube.com/vi/M7lc1UVf-VE/maxresdefault.jpg',
+    source_name: 'Verified Slot Channel',
+  },
+  insertError = null,
+  recoveredPostId = null,
+} = {}) {
+  const transformed = SHARE_REEL_API
+    .replace(/^import(?:[\s\S]*?)from\s+['"][^'"]+['"];\s*/gm, '')
+    .replace('export default async function handler', 'async function handler');
+  assert.doesNotMatch(transformed, /^\s*import\s/m);
+
+  const calls = { inserts: [], reads: [], keyReads: 0 };
+  const supabase = {
+    from(table) {
+      assert.equal(table, 'social_posts');
+      const state = { filters: [] };
+      const query = {
+        select() { return query; },
+        eq(column, value) { state.filters.push(['eq', column, value]); return query; },
+        in(column, values) { state.filters.push(['in', column, [...values]]); return query; },
+        limit() { return query; },
+        insert(payload) {
+          calls.inserts.push(JSON.parse(JSON.stringify(payload)));
+          return {
+            select() {
+              return {
+                async maybeSingle() {
+                  return insertError
+                    ? { data: null, error: insertError }
+                    : { data: { id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb' }, error: null };
+                },
+              };
+            },
+          };
+        },
+        then(resolve, reject) {
+          const isKeyRead = state.filters.some(
+            filter => filter[0] === 'eq' && filter[1] === 'metadata->>publication_key',
+          );
+          if (isKeyRead) calls.keyReads += 1;
+          calls.reads.push(JSON.parse(JSON.stringify(state.filters)));
+          const data = isKeyRead && calls.keyReads > 1 && recoveredPostId
+            ? [{ id: recoveredPostId }]
+            : [];
+          return Promise.resolve({ data, error: null }).then(resolve, reject);
+        },
+      };
+      return query;
+    },
+  };
+
+  const context = {
+    URLSearchParams,
+    process: {
+      env: {
+        NEXT_PUBLIC_SUPABASE_URL: 'https://test-project.supabase.co',
+        SUPABASE_SERVICE_ROLE_KEY: 'service-role-test',
+      },
+    },
+    console: { warn() {} },
+    createClient() { return supabase; },
+    applyRateLimit() { return true; },
+    LIMITS: { write: {} },
+    async getServerUserWithFallback() {
+      return { user: { id: '11111111-1111-4111-8111-111111111111' } };
+    },
+    async readPublicReelById() { return { data: reel }; },
+    buildReelPath(value) {
+      const category = value.topic === 'slots' ? 'casino-slots' : 'poker';
+      return `/hub/reels?id=${encodeURIComponent(value.id)}&category=${category}`;
+    },
+  };
+  context.globalThis = context;
+  vm.runInNewContext(`${transformed}\nglobalThis.__handler = handler;`, context);
+
+  async function request(body) {
+    const response = {
+      statusCode: 200,
+      body: null,
+      status(value) { this.statusCode = value; return this; },
+      json(value) { this.body = JSON.parse(JSON.stringify(value)); return this; },
+    };
+    await context.__handler({ method: 'POST', body, headers: {} }, response);
+    return response;
+  }
+
+  return { calls, request };
 }
 
 test('every Reel viewer sequences refreshes, appends, and comment loads', () => {
@@ -152,10 +252,156 @@ test('social feed filtering has a hard scan budget and exposes partial continuat
 });
 
 test('new and legacy Reel shares resolve through the canonical deep-link route', () => {
-  assert.match(REELS_CAROUSEL, /\/hub\/reels\?id=\$\{encodeURIComponent\(currentReel\.id\)\}/);
+  for (const source of [REELS_PAGE, REELS_COMPONENT, REELS_CAROUSEL]) {
+    assert.match(source, /buildReelPath\(currentReel\)/);
+  }
+  assert.match(REELS_PAGE, /deepLinkId \? 'for-you' : legacyCategory \|\| 'poker'/);
+  assert.match(REELS_CAROUSEL, /fetch\('\/api\/social\/share-reel-to-feed'/);
+  assert.doesNotMatch(REELS_CAROUSEL, /\.from\('social_posts'\)[\s\S]{0,500}\.insert\(/);
+  assert.match(SHARE_REEL_API, /readPublicReelById\(\{[\s\S]*category: 'for-you'/);
+  assert.match(SHARE_REEL_API, /\.eq\('metadata->>publication_key', publicationKey\)/);
+  assert.match(SHARE_REEL_API, /const reelLinks = \[reelLink, legacyReelLink\]/);
+  assert.match(SHARE_REEL_API, /\.in\('link_url', reelLinks\)/);
+  assert.match(SHARE_REEL_API, /content_type: 'link'/);
+  assert.match(SHARE_REEL_API, /media_urls: \[\]/);
+  assert.match(SHARE_REEL_API, /publication_key: publicationKey/);
+  assert.match(SHARE_REEL_API, /error\.code === '23505'[\s\S]*findExistingShare/);
+  assert.doesNotMatch(SHARE_REEL_API, /media_urls: \[reel\.video_url\]/);
+  assert.doesNotMatch(SHARE_REEL_API, /const \{ reel_id, video_url, caption/);
   assert.doesNotMatch(REELS_CAROUSEL, /\/hub\/social-media\?reel=/);
   assert.match(SOCIAL_PAGE, /router\.query\.reel/);
   assert.match(SOCIAL_PAGE, /\/hub\/reels\?id=/);
+  assert.match(SOCIAL_PAGE, /function sharedReelPathForPost/);
+  assert.match(SOCIAL_PAGE, /router\.push\(sharedReelPath\)/);
+  assert.match(SOCIAL_PAGE, /shared_reel_channel_name/);
+  assert.match(SOCIAL_PAGE, /const inlineReelsCarousel = <ReelsFeedCarousel key="reels-carousel"/);
+  assert.match(SOCIAL_PAGE, /\{inlineReelsCarousel\}[\s\S]*Welcome To Smarter\.Poker/);
+});
+
+test('sharing stores one canonical Reel reference and ignores hostile media fields', async () => {
+  const harness = loadShareReelRoute();
+  const response = await harness.request({
+    reel_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+    user_description: 'Worth Watching',
+    video_url: 'https://attacker.invalid/video.mp4',
+    caption: 'Attacker Caption',
+  });
+
+  assert.equal(response.statusCode, 200);
+  assert.equal(harness.calls.inserts.length, 1);
+  const inserted = harness.calls.inserts[0];
+  assert.equal(inserted.content_type, 'link');
+  assert.deepEqual(inserted.media_urls, []);
+  assert.equal(inserted.link_url,
+    'https://smarter.poker/hub/reels?id=aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa&category=casino-slots');
+  assert.equal(inserted.metadata.shared_reel_id, 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa');
+  assert.equal(inserted.metadata.shared_reel_topic, 'slots');
+  assert.equal(inserted.metadata.shared_reel_channel_name, 'Verified Slot Channel');
+  assert.match(SHARE_REEL_API, /reel\.source_name \|\| reel\.channel_name \|\| null/);
+  assert.equal(inserted.metadata.publication_key,
+    'reel-share:11111111-1111-4111-8111-111111111111:aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa');
+  assert.doesNotMatch(JSON.stringify(inserted), /attacker\.invalid|Attacker Caption/);
+});
+
+test('a simultaneous Reel share converges on the database publication key', async () => {
+  const harness = loadShareReelRoute({
+    insertError: { code: '23505', message: 'duplicate key value violates unique constraint' },
+    recoveredPostId: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+  });
+  const response = await harness.request({
+    reel_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+  });
+
+  assert.equal(response.statusCode, 200);
+  assert.deepEqual(response.body, {
+    success: true,
+    already_shared: true,
+    postId: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+  });
+  assert.equal(harness.calls.inserts.length, 1);
+  assert.equal(harness.calls.keyReads, 2, 'the 23505 loser must read back the durable winner');
+});
+
+test('an unavailable Reel cannot be shared into the social feed', async () => {
+  const harness = loadShareReelRoute({ reel: null });
+  const response = await harness.request({
+    reel_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+  });
+
+  assert.equal(response.statusCode, 404);
+  assert.equal(harness.calls.inserts.length, 0);
+});
+
+test('every Reel surface keeps one active player and preserves YouTube controls', () => {
+  for (const [name, source] of [
+    ['standalone', REELS_PAGE],
+    ['library viewer', REELS_COMPONENT],
+    ['social carousel', REELS_CAROUSEL],
+  ]) {
+    assert.equal((source.match(/<iframe\b/g) || []).length, 1,
+      `${name} must own exactly one iframe implementation`);
+    assert.match(source, /controls=1/);
+    assert.match(source, /widget_referrer=/);
+    assert.match(source, /referrerPolicy="strict-origin-when-cross-origin"/);
+    assert.doesNotMatch(source, /controls=0|modestbranding=1|disablekb=1|showinfo=0|fs=0/);
+  }
+
+  assert.match(REELS_COMPONENT, /\{isActive && videoId \? \(/);
+  assert.match(REELS_COMPONENT, /\) : isActive && reel\.video_url \? \(/);
+  assert.doesNotMatch(REELS_PAGE, /<iframe[^>]+preload/i,
+    'the standalone reader may prefetch posters but cannot mount a second player');
+  assert.match(REELS_CAROUSEL, /Array\.from\(\{ length: 1 \}/,
+    'the social viewer may warm only the immediately next Reel');
+  assert.doesNotMatch(REELS_CAROUSEL, /Array\.from\(\{ length: (?:[2-9]|\d{2,}) \}/,
+    'the social viewer cannot fan out native media preloads');
+  assert.match(REELS_PAGE, /const nextReel = reels\[currentIndex \+ 1\]/,
+    'the full-page viewer may warm only the immediately next Reel');
+  assert.doesNotMatch(REELS_PAGE, /reels\.slice\(currentIndex \+ 1, currentIndex \+ (?:[3-9]|\d{2,})\)/,
+    'the full-page viewer cannot fan out a mobile media-resource window');
+  assert.match(
+    REELS_CAROUSEL,
+    /const loadedReel = reelsRef\.current\[currentIndexRef\.current\][\s\S]*!isYouTubeUrl\(loadedReel\?\.video_url\)[\s\S]*sendYTCmd\('pauseVideo'\)[\s\S]*return;/,
+    'an iframe that finishes loading behind a native Reel must pause after its API bridge is ready',
+  );
+  assert.match(
+    REELS_CAROUSEL,
+    /const latestReel = reelsRef\.current\[currentIndexRef\.current\][\s\S]*!isYouTubeUrl\(latestReel\?\.video_url\)[\s\S]*sendYTCmd\('pauseVideo'\)[\s\S]*return;/,
+    'delayed autoplay retries must re-check the active Reel before they can play or unmute',
+  );
+});
+
+test('third-party Reels expose accurate source attribution with a neutral fallback', () => {
+  assert.match(REELS_SERVER, /'source_id',[\s\S]*'source_name'/);
+  assert.match(REELS_SERVER, /sourceNameFromMetadata\(sourcePost\?\.metadata\)/);
+  assert.match(REELS_SERVER, /source_attribution_url: sourceAttributionUrl/);
+  assert.match(REELS_SERVER, /row\.source_name[\s\S]*Original YouTube Source/);
+  for (const source of [REELS_PAGE, REELS_COMPONENT, REELS_CAROUSEL]) {
+    assert.match(source, /View Original On/);
+    assert.match(source, /channel_name/);
+  }
+});
+
+test('the mixed embedded viewer keeps loading and empty copy category-neutral', () => {
+  assert.match(REELS_COMPONENT, /verifying playable Reel footage/);
+  assert.match(REELS_COMPONENT, /subtitle="Verified Reel Video"/);
+  assert.doesNotMatch(REELS_COMPONENT, /playable poker footage|Verified Poker Video/i);
+});
+
+test('slots Reels carry the responsible-gaming console notice on every viewer', () => {
+  assert.match(RESPONSIBLE_GAMING_NOTICE, /topic[\s\S]*!== 'slots'/);
+  assert.match(RESPONSIBLE_GAMING_NOTICE, /Set Limits, Take Breaks/);
+  assert.match(RESPONSIBLE_GAMING_NOTICE, /\/hub\/commander\/responsible-gaming/);
+  for (const source of [REELS_PAGE, REELS_COMPONENT, REELS_CAROUSEL]) {
+    assert.match(source, /<ReelResponsibleGamingNotice topic=/);
+  }
+});
+
+test('following deep links authenticate and mixed collections avoid poker-only copy', () => {
+  assert.match(REELS_PAGE, /function feedModeForReelsRoute/);
+  assert.equal((REELS_PAGE.match(/feedModeForReelsRoute\(router\.query\)/g) || []).length, 2,
+    'both initial and continuation reads must derive following mode from the category');
+  assert.doesNotMatch(MY_REELS, /Eligible Poker Clips|Poker Clips/);
+  assert.doesNotMatch(SAVED_REELS, /Saved Poker Reels|Poker Clips/);
 });
 
 test('persistent feed and Story caches are viewer-scoped and bounded', () => {

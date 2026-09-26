@@ -21,6 +21,8 @@ const PENDING_ROW = Object.freeze({
 const CONFIRMED_ROW = Object.freeze({
   video_id: VIDEO_ID, hit_count: 1, verification_status: 'confirmed', resolved: false,
 });
+const ELIGIBLE_LIBRARY_TYPES = Object.freeze(['cash', 'tournament', 'slots']);
+const ELIGIBLE_REEL_TOPICS = Object.freeze(['poker', 'cash', 'tournament', 'slots', 'sports']);
 
 const plain = value => JSON.parse(JSON.stringify(value));
 
@@ -134,6 +136,7 @@ function loadRoute({
       return false;
     },
     LIMITS: { write: {} },
+    VIDEO_LIBRARY_ALLOWED_TYPES: ELIGIBLE_LIBRARY_TYPES,
     async getServerUserWithFallback() {
       return user ? { user, error: null } : { user: null, error: 'No token' };
     },
@@ -322,6 +325,23 @@ test('unauthenticated, ineligible and unrecorded reports keep their behaviour an
   assert.equal((await unrecorded.report()).statusCode, 503);
   assert.equal(unrecorded.calls.fetch.length, 0);
   assert.equal(unrecorded.verdictCalls().length, 0);
+});
+
+test('slots and sports supply can enter the same bounded adjudication path', async () => {
+  const harness = loadRoute({ assetRow: null, reelRow: { id: 'reel-1' } });
+  const res = await harness.report();
+  assert.equal(res.statusCode, 202);
+
+  const assetLookup = harness.calls.tables.find(state => state.table === 'video_library_videos');
+  const reelLookup = harness.calls.tables.find(state => state.table === 'social_reels');
+  assert.deepEqual(
+    assetLookup.filters.find(filter => filter[0] === 'in' && filter[1] === 'type')?.[2],
+    [...ELIGIBLE_LIBRARY_TYPES],
+  );
+  assert.deepEqual(
+    reelLookup.filters.find(filter => filter[0] === 'in' && filter[1] === 'topic')?.[2],
+    [...ELIGIBLE_REEL_TOPICS],
+  );
 });
 
 test('adjudication failures never fail the stored report and are always logged', async () => {

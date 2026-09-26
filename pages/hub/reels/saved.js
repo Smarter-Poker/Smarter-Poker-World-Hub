@@ -10,6 +10,7 @@ import { supabase } from '../../../src/lib/supabase';
 import { getYouTubeThumbnail } from '../../../src/lib/socialHelpers';
 import { createLatestRequestGuard } from '../../../src/lib/latestRequestGuard.mjs';
 import { createReelAccountScope } from '../../../src/lib/reelAccountScope.mjs';
+import { buildReelPath } from '../../../src/lib/reelsFeedClient';
 import VideoLibraryConsole, {
     ConsoleCopy,
     ConsoleDataRow,
@@ -163,7 +164,7 @@ export default function SavedReels() {
     };
 
     return <PageTransition>
-        <SEOHead title="Saved Reels" description="View your saved poker reels and short clips." canonical="/hub/reels/saved" noindex />
+        <SEOHead title="Saved Reels" description="View your saved poker, casino and slots, and sports Reels." canonical="/hub/reels/saved" noindex />
         <main className="vlc-collection-page">
             <UniversalHeader pageDepth={2} />
             <div className="vlc-collection-shell">
@@ -172,7 +173,7 @@ export default function SavedReels() {
                     eyebrow="Personal Archive"
                     title="Saved Reels"
                     titleId="saved-reels-title"
-                    subtitle="Your Watch Later Collection, Synchronized To This Account"
+                    subtitle="Your Poker, Casino And Slots, And Sports Watch Later Collection"
                     pill={`${compactCount(savedReels.length)} Saved`}
                     pillInk="gold"
                     foot="plates"
@@ -226,20 +227,30 @@ function mergeSavedRows(current, incoming) {
 function SavedTile({ item, index, onRemove }) {
     const reel = item.reel;
     const poster = reel.thumbnail_url || getYouTubeThumbnail(reel.video_url);
+    const topicLabel = reelTopicLabel(reel);
     return <article className="vlc-reel-record vlc-reel-record-saved">
-        <Link href={`/hub/reels?id=${encodeURIComponent(reel.id)}`} className="vlc-saved-link" aria-label={`Play ${reel.caption || 'reel'}`}>
+        <Link href={buildReelPath(reel)} className="vlc-saved-link" aria-label={`Play ${reel.caption || `${topicLabel} reel`}`}>
             <div className="vlc-reel-poster">
                 {poster ? <img src={poster} alt="" loading="lazy" /> : <span className="vlc-reel-no-poster">Preview Pending</span>}
                 <span className="vlc-reel-index">Saved {index + 1}</span>
                 <span className="vlc-reel-command">Open Reel</span>
             </div>
             <div className="vlc-reel-copy">
-                <h2>{reel.caption?.split('\n')[0] || 'Saved Reel'}</h2>
-                <p>{compactCount(reel.like_count || 0)} Likes  /  Saved {new Date(item.saved_at).toLocaleDateString()}</p>
+                <h2>{reel.caption?.split('\n')[0] || `Saved ${topicLabel} Reel`}</h2>
+                <p>{topicLabel}  /  {compactCount(reel.like_count || 0)} Likes  /  Saved {new Date(item.saved_at).toLocaleDateString()}</p>
             </div>
         </Link>
         <button className="vlc-remove-command" type="button" onClick={() => onRemove(item.reel_id)} aria-label={`Remove ${reel.caption || 'reel'} from saved reels`}>Remove From Saved</button>
     </article>;
+}
+
+function reelTopicLabel(reel) {
+    const topic = String(reel?.topic || '').trim().toLowerCase();
+    if (topic === 'cash') return 'Cash Poker';
+    if (topic === 'tournament') return 'Tournament Poker';
+    if (topic === 'slots') return 'Casino And Slots';
+    if (topic === 'sports') return 'Sports';
+    return 'Poker';
 }
 
 function CollectionState({ text, action }) {

@@ -32,8 +32,10 @@ import {
 } from '../../src/utils/videoToTrainingMapper';
 import HubPageSummary from '../../src/components/seo/HubPageSummary';
 import {
+  buildReelPath,
   fetchPokerReels,
-  mergePokerReels,
+  mergeReels,
+  normalizeReelsCategory,
 } from '../../src/lib/reelsFeedClient';
 import {
   loadReelFollowState,
@@ -64,6 +66,7 @@ import VideoLibraryConsole, {
   ConsoleCopy,
   ConsoleDataRow,
 } from '../../src/components/video-library/console/VideoLibraryConsole';
+import ReelResponsibleGamingNotice from '../../src/components/social/ReelResponsibleGamingNotice';
 import {
   fetchPublicReelsListing,
   feedListingCacheHeaders,
@@ -232,6 +235,72 @@ function ReelsListing({ items }) {
   );
 }
 
+function firstQueryValue(value) {
+  return Array.isArray(value) ? value[0] : value;
+}
+
+function categoryForReelsRoute(query = {}) {
+  const deepLinkId = firstQueryValue(query.id);
+  const legacyFeed = String(firstQueryValue(query.feed) || '').trim().toLowerCase();
+  const legacyCategory = legacyFeed === 'following'
+    ? 'following'
+    : legacyFeed === 'foryou' || legacyFeed === 'trending'
+      ? 'for-you'
+      : null;
+  return normalizeReelsCategory(
+    firstQueryValue(query.category),
+    deepLinkId ? 'for-you' : legacyCategory || 'poker',
+  );
+}
+
+const REELS_CATEGORY_COPY = Object.freeze({
+  poker: Object.freeze({ label: 'Poker', title: 'Poker Reels', footage: 'poker footage' }),
+  'casino-slots': Object.freeze({
+    label: 'Casino And Slots',
+    title: 'Casino And Slots Reels',
+    footage: 'casino and slots footage',
+  }),
+  sports: Object.freeze({ label: 'Sports', title: 'Sports Reels', footage: 'sports footage' }),
+  'for-you': Object.freeze({ label: 'Mixed', title: 'For You Reels', footage: 'mixed footage' }),
+  following: Object.freeze({
+    label: 'Following',
+    title: 'Following Reels',
+    footage: 'followed creator footage',
+  }),
+});
+
+function presentationForReelsRoute(query = {}) {
+  const category = categoryForReelsRoute(query);
+  return REELS_CATEGORY_COPY[category] || REELS_CATEGORY_COPY.poker;
+}
+
+function feedModeForReelsRoute(query = {}) {
+  if (categoryForReelsRoute(query) === 'following') return 'following';
+  const requested = String(firstQueryValue(query.feed) || '');
+  return ['following', 'trending'].includes(requested) ? requested : 'foryou';
+}
+
+function reelTopicLabel(reel) {
+  const topic = String(reel?.topic || '').trim().toLowerCase();
+  if (topic === 'cash') return 'Cash Poker';
+  if (topic === 'tournament') return 'Tournament Poker';
+  if (topic === 'slots') return 'Casino And Slots';
+  if (topic === 'sports') return 'Sports';
+  return 'Poker';
+}
+
+function reelSourceName(reel) {
+  return reel?.channel_name
+    || reel?.profiles?.full_name
+    || reel?.profiles?.username
+    || `${reelTopicLabel(reel)} Creator`;
+}
+
+function reelSourceUrl(reel) {
+  if (reel?.playback_type !== 'youtube_embed' && !getYouTubeVideoId(reel?.video_url)) return null;
+  return reel?.source_attribution_url || reel?.source_url || reel?.original_youtube_url || null;
+}
+
 /**
  * Ids the canonical Reels reader admits for the public feed, or null.
  *
@@ -373,6 +442,7 @@ export default function ReelsPage({ reelsListing = null }) {
   const likeDebounceRef = useRef(false);
   const slideDebounceRef = useRef(false);
   const router = useRouter();
+  const routePresentation = presentationForReelsRoute(router.query);
   const [user, setUser] = useState(null);
   const activeUserIdRef = useRef(null);
   const accountScopeRef = useRef(null);
@@ -893,7 +963,7 @@ export default function ReelsPage({ reelsListing = null }) {
       playVideoOnLoadTimersRef.current.forEach((t) => clearTimeout(t));
       playVideoOnLoadTimersRef.current = [];
     };
-  }, [router.isReady, router.query.feed, router.query.id]);
+  }, [router.isReady, router.query.category, router.query.feed, router.query.id]);
 
   useEffect(() => () => {
     reelsRequestGuardRef.current?.abort();
@@ -933,9 +1003,8 @@ export default function ReelsPage({ reelsListing = null }) {
     const initialId = Array.isArray(router.query.id) ? router.query.id[0] : router.query.id;
     const deepLinkRequest = { id: initialId };
     try {
-      const feedMode = ['following', 'trending'].includes(String(router.query.feed))
-        ? String(router.query.feed)
-        : 'foryou';
+      const routeCategory = categoryForReelsRoute(router.query);
+      const feedMode = feedModeForReelsRoute(router.query);
       const authUser = feedMode === 'following' ? getAuthUser() : null;
       if (feedMode === 'following' && !authUser?.id) {
         setReels([]);
@@ -946,7 +1015,7 @@ export default function ReelsPage({ reelsListing = null }) {
       const mapFeedReel = (video) => ({
         ...video,
         source: 'reels',
-        profiles: video.profiles || { username: 'Anonymous' },
+        profiles: video.profiles || null,
       });
       const payload = await scanReelsContinuations({
         fetchPage: (cursor, pageNumber) => fetchPokerReels({
@@ -958,6 +1027,7 @@ export default function ReelsPage({ reelsListing = null }) {
           sort: feedMode === 'trending' ? 'popular' : 'recent',
           signal: reelsRequest.signal,
           scope: feedMode === 'following' ? 'following' : 'standalone',
+          category: routeCategory,
           accessToken: feedMode === 'following' ? getAccessToken() : null,
         }),
         selectRows: (rows) => {
@@ -997,6 +1067,7 @@ export default function ReelsPage({ reelsListing = null }) {
               sort: feedMode === 'trending' ? 'popular' : 'recent',
               signal: reelsRequest.signal,
               scope: feedMode === 'following' ? 'following' : 'standalone',
+              category: routeCategory,
               accessToken: feedMode === 'following' ? getAccessToken() : null,
             })).data.map(mapFeedReel),
           });
@@ -1088,7 +1159,7 @@ export default function ReelsPage({ reelsListing = null }) {
       if (settled.current && !background) setLoading(false);
       if (settled.flushQueued) scheduleBackgroundReelsRefresh();
     }
-  }, [notInterestedIds, router.query.feed, router.query.id, scheduleBackgroundReelsRefresh]);
+  }, [notInterestedIds, router.query.category, router.query.feed, router.query.id, scheduleBackgroundReelsRefresh]);
   loadReelsRef.current = loadReels;
 
   useEffect(() => {
@@ -1146,6 +1217,9 @@ export default function ReelsPage({ reelsListing = null }) {
   }, [reels.length, router.query.id]);
 
   const currentReel = reels[currentIndex];
+  const currentSourceName = reelSourceName(currentReel);
+  const currentSourceUrl = reelSourceUrl(currentReel);
+  const currentTopicLabel = reelTopicLabel(currentReel);
   activeCommentReelIdRef.current = currentReel?.id || null;
 
   // Phase 9: Watched Indicator Timer
@@ -1258,9 +1332,8 @@ export default function ReelsPage({ reelsListing = null }) {
     setLoadingMore(true);
     setLoadMoreError(null);
     try {
-      const feedMode = ['following', 'trending'].includes(String(router.query.feed))
-        ? String(router.query.feed)
-        : 'foryou';
+      const routeCategory = categoryForReelsRoute(router.query);
+      const feedMode = feedModeForReelsRoute(router.query);
       const existingIds = new Set(reels.map((reel) => reel.id));
       const existingUrls = new Set(reels.map((reel) => reel.video_url).filter(Boolean));
       const seenUrlsThisScan = new Set();
@@ -1272,13 +1345,14 @@ export default function ReelsPage({ reelsListing = null }) {
           sort: feedMode === 'trending' ? 'popular' : 'recent',
           signal: reelsRequest.signal,
           scope: feedMode === 'following' ? 'following' : 'standalone',
+          category: routeCategory,
           accessToken: feedMode === 'following' ? getAccessToken() : null,
         }),
         selectRows: (rows) => rows
           .map((reel) => ({
             ...reel,
             source: 'reels',
-            profiles: reel.profiles || { username: 'Anonymous' },
+            profiles: reel.profiles || null,
           }))
           .filter((reel) => {
             if (existingIds.has(reel.id) || notInterestedIds.has(reel.id)) return false;
@@ -1301,7 +1375,7 @@ export default function ReelsPage({ reelsListing = null }) {
           setLoadMoreError('More Reels remain beyond filtered results. Continue when ready.');
         }
       } else {
-        setReels((prev) => mergePokerReels(prev, mappedFiltered));
+        setReels((prev) => mergeReels(prev, mappedFiltered, { category: routeCategory }));
         const lc = {},
           cc = {},
           vc = {};
@@ -1933,9 +2007,8 @@ export default function ReelsPage({ reelsListing = null }) {
   };
 
   const shareUrl = currentReel
-    ? (typeof window !== 'undefined' ? window.location.origin : 'https://smarter.poker') +
-      '/hub/reels?id=' +
-      currentReel.id
+    ? (typeof window !== 'undefined' ? window.location.origin : 'https://smarter.poker')
+      + buildReelPath(currentReel)
     : '';
 
   const handleShareAction = async (platform) => {
@@ -1944,7 +2017,7 @@ export default function ReelsPage({ reelsListing = null }) {
     if (!reel?.id) return;
     setShowShareModal(false);
     const url = shareUrl;
-    const title = `Check out this poker reel on Smarter.Poker`;
+    const title = 'Check Out This Reel On Smarter.Poker';
     try {
       if (platform === 'copy') {
         await navigator.clipboard.writeText(url);
@@ -2721,13 +2794,14 @@ export default function ReelsPage({ reelsListing = null }) {
       }}
     />
   ) : null;
+  const followingSignInRequired = categoryForReelsRoute(router.query) === 'following' && !user?.id;
 
   if (loading) {
     return (
       <>
         <SEOHead
-          title="Poker Reels - Short Poker Content"
-          description="Watch And Share Short Poker Video On Smarter.Poker Reels: Hands Worth Watching Twice, Reads That Paid Off And Moments From The Circuit. Free To Watch, No Account Needed, And Nothing In It Is A Wager."
+          title={`${routePresentation.title} - Short Video Content`}
+          description={`Watch And Share Verified ${routePresentation.label} Video On Smarter.Poker Reels. Free To Watch With Source Attribution And Playable Media Checks.`}
           canonical="/hub/reels"
         />
         {user && <ReelPublicationRecoveryBanner user={user} onRecovered={loadReels} />}
@@ -2735,9 +2809,9 @@ export default function ReelsPage({ reelsListing = null }) {
         <ReelsConsoleScreen
           title="Tuning Reel Signal"
           titleAs="h2"
-          subtitle="Live Poker Video"
+          subtitle={`Live ${routePresentation.label} Video`}
           pill="Connecting"
-          copy="The console is verifying playable poker footage and preparing your first reel."
+          copy={`The console is verifying playable ${routePresentation.footage} and preparing your first reel.`}
           rows={[
             { label: 'Source', value: 'Verified Library' },
             { label: 'Playback', value: 'Preparing', valueInk: 'blue' },
@@ -2804,22 +2878,32 @@ export default function ReelsPage({ reelsListing = null }) {
         {user && <ReelPublicationRecoveryBanner user={user} onRecovered={loadReels} />}
         {uploadModal}
         <ReelsConsoleScreen
-          title="No Reels Yet"
-          subtitle="Verified Poker Video"
+          title={followingSignInRequired ? 'Sign In For Following' : 'No Reels Yet'}
+          subtitle={`Verified ${routePresentation.label} Video`}
           pill={hasMore ? 'Scanning' : 'Stand By'}
-          copy="No playable Reel is available in this pass. Continue the verified scan or return to the social feed."
+          copy={followingSignInRequired
+            ? 'The Following Reel channel is account specific. Sign in to load videos from creators you follow.'
+            : 'No playable Reel is available in this pass. Continue the verified scan or return to the social feed.'}
           rows={[
             { label: 'Playback', value: 'No Match' },
             { label: 'Safety Check', value: 'Complete', valueInk: 'green' },
           ]}
           secondary={{ label: 'Back To Feed', onClick: () => router.push('/hub/social-media') }}
           primary={{
-            label: loadingMore ? 'Finding Reels' : hasMore ? 'Continue Finding Reels' : 'Refresh Library',
+            label: followingSignInRequired
+              ? 'Sign In'
+              : loadingMore
+                ? 'Finding Reels'
+                : hasMore
+                  ? 'Continue Finding Reels'
+                  : 'Refresh Library',
             ink: 'blue',
             disabled: loadingMore,
-            onClick: hasMore && reelsCursorRef.current
-              ? () => void loadMoreReels()
-              : () => void loadReels(),
+            onClick: followingSignInRequired
+              ? () => router.push('/login')
+              : hasMore && reelsCursorRef.current
+                ? () => void loadMoreReels()
+                : () => void loadReels(),
           }}
         />
         {/* Server rendered for crawlers (AEO phase 3). The console title above is
@@ -2863,12 +2947,12 @@ export default function ReelsPage({ reelsListing = null }) {
         <meta
           property="og:title"
           content={
-            currentReel?.caption ? currentReel.caption.slice(0, 70) : 'Poker Reel on Smarter.Poker'
+            currentReel?.caption ? currentReel.caption.slice(0, 70) : 'Reel On Smarter.Poker'
           }
         />
         <meta
           property="og:description"
-          content={`${currentReel?.profiles?.username ? `by ${currentReel.profiles.username} - ` : ''}Watch poker reels on Smarter.Poker`}
+          content={`By ${currentSourceName}. Watch ${currentTopicLabel} Reels On Smarter.Poker`}
         />
         {videoId && (
           <meta
@@ -2879,7 +2963,7 @@ export default function ReelsPage({ reelsListing = null }) {
         <meta property="og:type" content="video.other" />
         <meta
           property="og:url"
-          content={`https://smarter.poker/hub/reels${currentReel?.id ? `?id=${currentReel.id}` : ''}`}
+          content={`https://smarter.poker${currentReel?.id ? buildReelPath(currentReel) : '/hub/reels'}`}
         />
         <meta name="twitter:card" content="summary_large_image" />
       </Head>
@@ -2907,7 +2991,7 @@ export default function ReelsPage({ reelsListing = null }) {
         <VideoLibraryConsole
           eyebrow="Video Library"
           title="Reels"
-          subtitle={currentReel?.profiles?.username ? `By ${currentReel.profiles.username}` : 'Live Poker Video'}
+          subtitle={`By ${currentSourceName}`}
           pill={`${currentIndex + 1} Of ${reels.length}`}
           pillInk="blue"
           titleAs="h1"
@@ -2917,7 +3001,7 @@ export default function ReelsPage({ reelsListing = null }) {
             primary: { label: 'Next Reel', onClick: () => slideToNextRef.current() },
           }}
           className={styles.liveConsole}
-          aria-label="Poker Reels viewer"
+          aria-label={`${currentTopicLabel} Reels Viewer`}
         >
       {/* Live video stage */}
       <div
@@ -2963,7 +3047,7 @@ export default function ReelsPage({ reelsListing = null }) {
             clipPath: 'inset(0)',
             background: '#000',
             zIndex: 1,
-            pointerEvents: 'none',
+            pointerEvents: videoId ? 'auto' : 'none',
             transition: slideDirection ? 'transform 0.12s ease-out, opacity 0.1s ease-out' : 'none',
             transform:
               slideDirection === 'up'
@@ -2981,10 +3065,11 @@ export default function ReelsPage({ reelsListing = null }) {
             <iframe
               ref={iframeRef}
               key="yt-player-persistent"
-              src={`https://www.youtube-nocookie.com/embed/${videoId}?autoplay=${preferencesLoaded && preferences.autoplay ? 1 : 0}&mute=1&controls=0&showinfo=0&rel=0&modestbranding=1&playsinline=1&enablejsapi=1&origin=${typeof window !== 'undefined' ? window.location.origin : 'https://smarter.poker'}&iv_load_policy=3&disablekb=1&fs=0&cc_load_policy=${preferences.showCaptions ? 1 : 0}`}
-              title="Poker Reel"
+              src={`https://www.youtube-nocookie.com/embed/${videoId}?autoplay=${preferencesLoaded && preferences.autoplay ? 1 : 0}&mute=1&controls=1&rel=0&playsinline=1&enablejsapi=1&origin=${encodeURIComponent(typeof window !== 'undefined' ? window.location.origin : 'https://smarter.poker')}&widget_referrer=${encodeURIComponent(typeof window !== 'undefined' ? window.location.origin : 'https://smarter.poker')}&iv_load_policy=3&fs=1&cc_load_policy=${preferences.showCaptions ? 1 : 0}`}
+              title={`${currentTopicLabel} Reel From ${currentSourceName}`}
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
               allowFullScreen
+              referrerPolicy="strict-origin-when-cross-origin"
               onLoad={(e) => {
                 // BUG FIX: With key="yt-player-persistent" this onLoad fires ONCE at
                 // mount (not on every reel swipe). Establish the postMessage API bridge
@@ -3023,7 +3108,7 @@ export default function ReelsPage({ reelsListing = null }) {
                 width: '100%',
                 height: '100%',
                 border: 'none',
-                pointerEvents: 'none',
+                pointerEvents: 'auto',
               }}
             />
           ) : currentReel?.video_url ? (
@@ -3243,9 +3328,9 @@ export default function ReelsPage({ reelsListing = null }) {
           style={{
             position: 'absolute',
             top: 0,
+            right: 0,
+            bottom: videoId ? 56 : 0,
             left: 0,
-            width: '100%',
-            height: '100%',
             zIndex: 50,
             cursor: 'pointer',
             touchAction: 'none', // Prevent browser handling of all touch gestures
@@ -3266,62 +3351,17 @@ export default function ReelsPage({ reelsListing = null }) {
 {!videoId && !currentReel?.video_url && <div className={styles.stageSignal}>Video Unavailable</div>}
         {isPaused && ytReady && <div className={styles.stageSignal}>Paused</div>}
         {showHeart && <div className={`${styles.stageSignal} ${styles.likedSignal}`}>Liked</div>}
-        {/* Preload next reel - hidden iframe for instant switching */}
-        {reels[currentIndex + 1] &&
-          (() => {
-            const nextVid = getYouTubeVideoId(reels[currentIndex + 1]?.video_url);
-            return nextVid ? (
-              <>
-                <img
-                  src={`https://img.youtube.com/vi/${nextVid}/hqdefault.jpg`}
-                  style={{
-                    position: 'absolute',
-                    width: 1,
-                    height: 1,
-                    opacity: 0,
-                    pointerEvents: 'none',
-                  }}
-                  alt=""
-                />
-                <iframe
-                  src={`https://www.youtube-nocookie.com/embed/${nextVid}?autoplay=0&mute=1&controls=0&showinfo=0&rel=0&modestbranding=1&playsinline=1&enablejsapi=1&origin=${typeof window !== 'undefined' ? window.location.origin : 'https://smarter.poker'}`}
-                  title="Preload"
-                  style={{
-                    position: 'absolute',
-                    width: 1,
-                    height: 1,
-                    opacity: 0,
-                    pointerEvents: 'none',
-                  }}
-                  tabIndex={-1}
-                  aria-hidden="true"
-                />
-              </>
-            ) : null;
-          })()}
-
-        {/*
-          TIKTOK-STYLE PREFETCH (2026-05-11): warm the browser cache for the
-          NEXT 10 reels so swiping feels instant. Three preload strategies:
-            1. Native MP4 reels → <link rel="preload" as="video">. The browser
-               pre-downloads (or at least pre-resolves + pre-fetches start) the
-               file. Crucial for /hub/reels which previously had NO preload at
-               all — every native swipe cold-loaded. ReelsFeedCarousel.jsx
-               already does this; we're achieving parity.
-            2. YouTube reels → <img> hqdefault.jpg prefetch. YT serves these
-               from a separate CDN; pre-fetching skips ~100-200ms latency on
-               the swipe-thumbnail render path. (Pre-loading the actual YT
-               iframe for >1 ahead would trigger YT's anti-throttling limits.)
-            3. <link rel="dns-prefetch"> + <link rel="preconnect"> for YT
-               domains so the TLS handshake is cached for any iframe load.
-        */}
+        {/* Bound the live media-resource window to current + next. YouTube gets
+            a poster-only warmup and native media gets one preload hint; no
+            second player or ten-video mobile download window is created. */}
         {(() => {
           if (typeof window === 'undefined') return null;
-          const upcoming = reels.slice(currentIndex + 1, currentIndex + 11);
-          if (upcoming.length === 0) return null;
+          const nextReel = reels[currentIndex + 1];
+          if (!nextReel?.video_url) return null;
+          const nextUrl = nextReel.video_url;
+          const nextVideoId = getYouTubeVideoId(nextUrl);
           return (
             <>
-              {/* DNS preconnect for YT — done once, cheap, helps every YT swipe */}
               <link rel="dns-prefetch" href="https://www.youtube-nocookie.com" />
               <link
                 rel="preconnect"
@@ -3329,34 +3369,27 @@ export default function ReelsPage({ reelsListing = null }) {
                 crossOrigin="anonymous"
               />
               <link rel="dns-prefetch" href="https://img.youtube.com" />
-              {upcoming.map((r) => {
-                const url = r?.video_url || '';
-                if (!url) return null;
-                const ytId = getYouTubeVideoId(url);
-                if (ytId) {
-                  // YT reel — prefetch thumbnail only (NOT the iframe — would
-                  // trigger YT's per-page iframe quota and degrade everything).
-                  return (
-                    <img
-                      key={`spw-prefetch-${r.id}`}
-                      src={`https://img.youtube.com/vi/${ytId}/hqdefault.jpg`}
-                      alt=""
-                      style={{
-                        position: 'absolute',
-                        width: 1,
-                        height: 1,
-                        opacity: 0,
-                        pointerEvents: 'none',
-                      }}
-                    />
-                  );
-                }
-                // Native MP4 — full preload hint to the browser. <link as=video>
-                // is a valid hint anywhere in the DOM (not just <head>) per
-                // HTML5 spec — Chrome/Safari honor it and pre-fetch the start
-                // of the file. Result: native swipes feel instant.
-                return <link key={`spw-prefetch-${r.id}`} rel="preload" href={url} as="video" />;
-              })}
+              {nextVideoId ? (
+                <img
+                  key={`spw-prefetch-${nextReel.id}`}
+                  src={`https://img.youtube.com/vi/${nextVideoId}/hqdefault.jpg`}
+                  alt=""
+                  style={{
+                    position: 'absolute',
+                    width: 1,
+                    height: 1,
+                    opacity: 0,
+                    pointerEvents: 'none',
+                  }}
+                />
+              ) : (
+                <link
+                  key={`spw-prefetch-${nextReel.id}`}
+                  rel="preload"
+                  href={nextUrl}
+                  as="video"
+                />
+              )}
             </>
           );
         })()}
@@ -3386,8 +3419,18 @@ export default function ReelsPage({ reelsListing = null }) {
           {currentReel?.profiles?.avatar_url && <img src={currentReel.profiles.avatar_url} alt="" className={styles.avatar} loading="lazy" onError={(event) => { event.currentTarget.hidden = true; }} />}
           {currentReel?.profiles?.username
             ? <Link className={styles.link} href={`/hub/user/${currentReel.profiles.username}`}>{currentReel.profiles.full_name || currentReel.profiles.username}</Link>
-            : <span className={styles.copy}>Poker Creator</span>}
+            : <span className={styles.copy}>{currentSourceName}</span>}
         </div>
+        {currentSourceUrl ? (
+          <a
+            className={styles.link}
+            href={currentSourceUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            View Original On {currentSourceName}
+          </a>
+        ) : null}
         {currentReel?.profiles?.id && user?.id && currentReel.profiles.id !== user.id && (
           <ReelAction onClick={handleFollow} aria-pressed={Boolean(following[currentReel.profiles.id])}>{following[currentReel.profiles.id] ? 'Following' : 'Follow'}</ReelAction>
         )}
@@ -3400,6 +3443,7 @@ export default function ReelsPage({ reelsListing = null }) {
             {currentReel.caption.length > 100 && <ReelAction onClick={() => setCaptionExpanded((previous) => !previous)}>{captionExpanded ? 'See Less' : 'See More'}</ReelAction>}
           </>
         )}
+        <ReelResponsibleGamingNotice topic={currentReel?.topic} />
         <div className={styles.actions} aria-label="Reel Actions">
           <ReelAction aria-label={liked[currentReel?.id] ? 'Unlike' : 'Like'} aria-pressed={Boolean(liked[currentReel?.id])}
             onClick={() => {
@@ -3612,7 +3656,7 @@ export default function ReelsPage({ reelsListing = null }) {
         <ReelsConsoleDialog title="Train This Spot" onClose={() => setTtsOverlay(null)}
           primary={{ label: 'Open Audited Hand Review', onClick: () => { setTtsOverlay(null); router.push('/hub/training/hand-history-upload?source=reels'); } }}>
           {(videoId || currentReel?.thumbnail_url) && <img src={videoId ? `https://img.youtube.com/vi/${videoId}/mqdefault.jpg` : currentReel.thumbnail_url} className={styles.media} alt="Training Source Reel" />}
-          <p className={styles.copy}>{ttsOverlay.ctx.title || 'Poker Reel'}</p>
+          <p className={styles.copy}>{ttsOverlay.ctx.title || `${currentTopicLabel} Reel`}</p>
           <ConsoleCopy>AI-Matched Drills For This Reel</ConsoleCopy>
           {ttsOverlay.games.map((game, index) => (
             <div key={game.id} className={styles.comment}>

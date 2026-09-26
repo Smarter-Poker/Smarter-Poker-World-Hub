@@ -3,9 +3,9 @@
  *
  * This is the one server-side boundary for public Reel-backed surfaces. It
  * deliberately uses the service role, then reapplies the complete public,
- * poker-topic, playback and source-availability contract before returning a
- * row. Callers must not add a client-side Supabase fallback: doing so would
- * bypass the same safety checks this module centralises.
+ * category, playback and source-availability contract before returning a row.
+ * Callers must not add a client-side Supabase fallback: doing so would bypass
+ * the same safety checks this module centralises.
  */
 import { createClient } from '../supabaseServerClient';
 import {
@@ -49,6 +49,11 @@ const REEL_CATEGORY_TOPICS = Object.freeze({
     following: Object.freeze(['poker', 'cash', 'tournament', 'slots', 'sports']),
 });
 const REEL_CATEGORIES = new Set(Object.keys(REEL_CATEGORY_TOPICS));
+// Authenticated collections are category-neutral. A Reel that is eligible in
+// any public category must not disappear from My Reels, Saved Reels, or the
+// saved-status response merely because those legacy APIs predate category
+// rails. This is an internal constant, never a client-controlled override.
+const COLLECTION_CATEGORY = 'for-you';
 const ALLOWED_LIBRARY_TYPES = new Set(VIDEO_LIBRARY_ALLOWED_TYPES);
 const UNPLAYABLE_AVAILABILITY = new Set([
     'unavailable',
@@ -138,6 +143,8 @@ const REEL_SELECT = [
 const LIBRARY_SELECT = [
     'id',
     'youtube_video_id',
+    'source_id',
+    'source_name',
     'type',
     'availability_status',
     'embeddable',
@@ -270,6 +277,20 @@ function safeHttpUrl(value) {
     } catch (_) {
         return null;
     }
+}
+
+function boundedSourceName(value) {
+    if (typeof value !== 'string') return null;
+    const compact = value.replace(/\s+/g, ' ').trim();
+    return compact && compact.length <= 160 ? compact : null;
+}
+
+function sourceNameFromMetadata(metadata) {
+    if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) return null;
+    return boundedSourceName(metadata.clip_source)
+        || boundedSourceName(metadata.source_name)
+        || boundedSourceName(metadata.channel_name)
+        || boundedSourceName(metadata.source);
 }
 
 function isTrustedNativeUrl(value, authorId) {
@@ -583,7 +604,7 @@ async function loadEligibilityContext(client, rows) {
         sourcePostIds.length
             ? readAllByValues(client, {
                 table: 'social_posts',
-                select: 'id,author_id,visibility,audience_mode,audience_list,is_deleted',
+                select: 'id,author_id,visibility,audience_mode,audience_list,is_deleted,metadata',
                 column: 'id',
                 values: sourcePostIds,
             })
@@ -780,6 +801,13 @@ function normalizeEligibleRow(row, context, scope, options = {}) {
     const canonicalAssetKey = canonicalKeyForRow({ ...row, video_url: videoUrl });
     if (!canonicalAssetKey) return null;
     const topic = explicitTopic;
+    const sourcePost = row.source_post_id ? context.postById.get(row.source_post_id) : null;
+    const sourceName = boundedSourceName(asset?.source_name)
+        || boundedSourceName(asset?.source_id)
+        || sourceNameFromMetadata(sourcePost?.metadata);
+    const sourceAttributionUrl = youtubeId
+        ? `https://www.youtube.com/watch?v=${youtubeId}`
+        : null;
 
     return {
         id: row.id,
@@ -805,6 +833,10 @@ function normalizeEligibleRow(row, context, scope, options = {}) {
         original_youtube_url: youtubeId
             ? `https://www.youtube.com/watch?v=${youtubeId}`
             : null,
+        source_id: boundedSourceName(asset?.source_id),
+        source_name: sourceName,
+        source_url: sourceAttributionUrl,
+        source_attribution_url: sourceAttributionUrl,
         origin_type: originType,
         playback_type: playbackType,
         topic,
@@ -822,7 +854,8 @@ function normalizeEligibleRow(row, context, scope, options = {}) {
         legacy_transition_expires_at: legacyTransitionEligible
             ? new Date(row.legacy_transition_expires_at).toISOString()
             : null,
-        title: row.caption?.split('\n')[0]?.replace(/^\u{1F3AC}\s*/u, '') || 'Poker Reel',
+        title: row.caption?.split('\n')[0]?.replace(/^\u{1F3AC}\s*/u, '')
+            || (topic === 'slots' ? 'Casino And Slots Reel' : topic === 'sports' ? 'Sports Reel' : 'Poker Reel'),
         profiles: null,
         _hasLivePost: Boolean(row.source_post_id && context.livePostIds.has(row.source_post_id)),
         _managedLibrary: managedLibrary,
@@ -860,7 +893,7 @@ async function fetchCanonicalGroupRows(client, rows, options = {}) {
             .eq('is_deleted', false)
             .eq('media_status', 'ready')
             .not('created_at', 'is', null)
-            .in('topic', ['poker', 'cash', 'tournament']);
+            .in('topic', topicsForCategory(options.category));
     };
     const [byKey, byYoutube, byUrl] = await Promise.all([
         storedKeys.length
@@ -913,10 +946,14 @@ async function canonicalWinners(client, candidateRawRows, scope, options = {}) {
 
 async function canonicalOwnerWinners(client, candidateRawRows, ownerId) {
     if (!candidateRawRows.length) return new Map();
-    const allRawRows = await fetchCanonicalGroupRows(client, candidateRawRows, { ownerId });
+    const allRawRows = await fetchCanonicalGroupRows(client, candidateRawRows, {
+        ownerId,
+        category: COLLECTION_CATEGORY,
+    });
     const allEligibleRows = await eligibleRows(client, allRawRows, 'all', {
         allowOwnerPrivate: true,
         ownerId,
+        category: COLLECTION_CATEGORY,
     });
     const winnerByKey = new Map();
     for (const row of allEligibleRows) {
@@ -931,7 +968,11 @@ async function canonicalOwnerWinners(client, candidateRawRows, ownerId) {
 
 function publicRow(row, profileMap) {
     const profile = profileMap.get(row.author_id) || null;
-    const channelName = profile?.full_name || profile?.username || 'Smarter.Poker';
+    const channelName = row.source_name
+        || (row.playback_type === 'youtube_embed' ? 'Original YouTube Source' : null)
+        || profile?.full_name
+        || profile?.username
+        || 'Smarter.Poker';
     const {
         _hasLivePost,
         _managedLibrary,
@@ -1163,8 +1204,12 @@ async function loadSavedTargetContext(client, savedRows, userId) {
     const candidateRawRows = [...candidateById.values()];
     if (!candidateRawRows.length) return null;
 
-    const canonicalRawRows = await fetchCanonicalGroupRows(client, candidateRawRows);
-    const canonicalEligibleRows = await eligibleRows(client, canonicalRawRows, 'all');
+    const canonicalRawRows = await fetchCanonicalGroupRows(client, candidateRawRows, {
+        category: COLLECTION_CATEGORY,
+    });
+    const canonicalEligibleRows = await eligibleRows(client, canonicalRawRows, 'all', {
+        category: COLLECTION_CATEGORY,
+    });
     const winnerByKey = new Map();
     const directTargetKeys = new Map();
     const postTargetKeys = new Map();
@@ -1305,7 +1350,8 @@ export async function readSavedPokerReelsForIds(options = {}) {
 }
 
 /**
- * Read the authenticated creator's own playable poker Reels. This is the only
+ * Read the authenticated creator's own playable Reels across every supported
+ * category. This is the only
  * collection reader that may return a non-public Reel, and then only when the
  * verified caller owns both the Reel and any linked source post.
  */
@@ -1347,6 +1393,7 @@ export async function readOwnedPokerReels(options = {}) {
         const eligible = await eligibleRows(client, rawRows, 'all', {
             allowOwnerPrivate: true,
             ownerId,
+            category: COLLECTION_CATEGORY,
         });
         const winnerByKey = await canonicalOwnerWinners(client, rawRows, ownerId);
         for (const row of eligible) {
@@ -1461,7 +1508,29 @@ export async function readSavedPokerReels(options = {}) {
 }
 
 /**
- * Read one canonical, public poker Reel page. When `id` is supplied it may be
+ * Read one canonical, public Reel through the same availability, rights,
+ * category, and canonical-winner gates as the public feed. This is the
+ * authoritative detail reader for server-side consumers such as sharing.
+ */
+export async function readPublicReelById(options = {}) {
+    const client = options.client || getServiceClient();
+    const category = normaliseCategory(options.category || 'for-you', 'all');
+    const detail = await readDetail(
+        client,
+        String(options.id || '').trim(),
+        'all',
+        'recent',
+        category,
+    );
+    return {
+        data: detail.row || null,
+        category,
+        detailStatus: detail.status,
+    };
+}
+
+/**
+ * Read one canonical, public Reel page. When `id` is supplied it may be
  * either a social_reels.id or the linked social_posts.id; the resolved target
  * is moved to index zero without duplicating its canonical asset in the page.
  */

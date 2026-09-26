@@ -16,9 +16,10 @@
  * Body: { videoId: string, errorCode: number, surface: string }
  * Returns: { ok: true, status: string, adjudicated: boolean } or { error: string }
  */
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
+import { VIDEO_LIBRARY_ALLOWED_TYPES } from '../../../src/lib/videoLibraryAvailability';
 
 // NOTE: Removed edge runtime — this handler uses Node.js Pages Router API (req.query/res.status/etc)
 // and cannot run on Vercel Edge Runtime. Keep as Node.js runtime.
@@ -45,6 +46,7 @@ const OEMBED_STATUS_VERDICTS = Object.freeze({
     410: 'unavailable',
 });
 const NEGATIVE_VERDICTS = Object.freeze(['private', 'restricted', 'unavailable']);
+const ELIGIBLE_REEL_TOPICS = Object.freeze(['poker', 'cash', 'tournament', 'slots', 'sports']);
 const DB_TIMESTAMP_RE = /^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?(?:Z|[+-]\d{2}(?::?\d{2})?)$/;
 
 // Per-instance bound on outbound oEmbed traffic: at most one check per video
@@ -223,14 +225,15 @@ export default async function handler(req, res) {
         }
 
         // Do not let an authenticated attacker spend verifier capacity on
-        // arbitrary YouTube IDs. The ID must already belong to a poker library
-        // asset or a currently public, ready poker Reel that our UI can serve.
+        // arbitrary YouTube IDs. The ID must already belong to an eligible
+        // library asset or a currently public, ready Reel that our UI can
+        // serve across poker, casino/slots, or sports.
         const [assetResult, reelResult] = await Promise.all([
             supabase
                 .from('video_library_videos')
                 .select('id')
                 .eq('youtube_video_id', normalizedVideoId)
-                .in('type', ['cash', 'tournament'])
+                .in('type', VIDEO_LIBRARY_ALLOWED_TYPES)
                 .limit(1)
                 .maybeSingle(),
             supabase
@@ -238,7 +241,7 @@ export default async function handler(req, res) {
                 .select('id')
                 .eq('is_public', true)
                 .eq('media_status', 'ready')
-                .in('topic', ['poker', 'cash', 'tournament'])
+                .in('topic', ELIGIBLE_REEL_TOPICS)
                 .or(
                     `youtube_video_id.eq.${normalizedVideoId},canonical_asset_key.eq.youtube:${normalizedVideoId}`
                 )

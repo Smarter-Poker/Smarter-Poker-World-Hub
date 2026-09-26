@@ -9,6 +9,7 @@ import { supabase } from '../../../src/lib/supabase';
 import { getYouTubeThumbnail } from '../../../src/lib/socialHelpers';
 import { createLatestRequestGuard } from '../../../src/lib/latestRequestGuard.mjs';
 import { createReelAccountScope } from '../../../src/lib/reelAccountScope.mjs';
+import { buildReelPath } from '../../../src/lib/reelsFeedClient';
 import VideoLibraryConsole, {
     ConsoleCopy,
     ConsoleDataRow,
@@ -159,7 +160,7 @@ export default function MyReels() {
 
     return (
         <PageTransition>
-            <SEOHead title="My Reels" description="Manage your posted poker reels and short clips." canonical="/hub/reels/my-reels" noindex />
+            <SEOHead title="My Reels" description="Manage your eligible poker, casino and slots, and sports Reels." canonical="/hub/reels/my-reels" noindex />
             <main className="vlc-collection-page">
                 <UniversalHeader pageDepth={2} />
                 <div className="vlc-collection-shell">
@@ -168,7 +169,7 @@ export default function MyReels() {
                         eyebrow="Creator Channel"
                         title="My Reels"
                         titleId="my-reels-title"
-                        subtitle="Your Eligible Poker Clips, Including Private Uploads"
+                        subtitle="Your Eligible Reels Across Poker, Casino And Slots, And Sports"
                         pill={`${compactCount(reels.length)} Loaded`}
                         pillInk="blue"
                         foot="plates"
@@ -214,7 +215,8 @@ function mergeReelRows(current, incoming) {
 
 function ReelTile({ reel, index }) {
     const poster = reel.thumbnail_url || getYouTubeThumbnail(reel.video_url);
-    const title = reel.caption?.split('\n')[0] || 'Untitled Reel';
+    const topicLabel = reelTopicLabel(reel);
+    const title = reel.caption?.split('\n')[0] || `${topicLabel} Reel`;
     const contents = <>
         <div className="vlc-reel-poster">
             {poster ? <img src={poster} alt="" loading="lazy" /> : <span className="vlc-reel-no-poster">Preview Pending</span>}
@@ -224,14 +226,23 @@ function ReelTile({ reel, index }) {
         <div className="vlc-reel-copy">
             <h2>{title}</h2>
             <p>{reel.is_public
-                ? `${compactCount(reel.view_count || 0)} Views  /  ${compactCount(reel.like_count || 0)} Likes`
-                : 'Only You Can See This Reel'}</p>
+                ? `${topicLabel}  /  ${compactCount(reel.view_count || 0)} Views  /  ${compactCount(reel.like_count || 0)} Likes`
+                : `${topicLabel}  /  Only You Can See This Reel`}</p>
         </div>
     </>;
     if (!reel.is_public) {
         return <article className="vlc-reel-record" aria-label={`Private Reel: ${reel.caption || 'reel'}`}>{contents}</article>;
     }
-    return <Link className="vlc-reel-record vlc-reel-record-link" href={`/hub/reels?id=${encodeURIComponent(reel.id)}`} aria-label={`Play ${reel.caption || 'reel'}`}>{contents}</Link>;
+    return <Link className="vlc-reel-record vlc-reel-record-link" href={buildReelPath(reel)} aria-label={`Play ${reel.caption || `${topicLabel} reel`}`}>{contents}</Link>;
+}
+
+function reelTopicLabel(reel) {
+    const topic = String(reel?.topic || '').trim().toLowerCase();
+    if (topic === 'cash') return 'Cash Poker';
+    if (topic === 'tournament') return 'Tournament Poker';
+    if (topic === 'slots') return 'Casino And Slots';
+    if (topic === 'sports') return 'Sports';
+    return 'Poker';
 }
 
 function CollectionState({ text, action }) {

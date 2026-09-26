@@ -82,6 +82,23 @@ export function normalizeReelsCategory(value, fallback = 'poker') {
   return category;
 }
 
+export function reelCategoryForTopic(value) {
+  const topic = String(value || '').trim().toLowerCase();
+  if (topic === 'slots') return 'casino-slots';
+  if (topic === 'sports') return 'sports';
+  return 'poker';
+}
+
+export function buildReelPath(reel) {
+  const id = String(reel?.id || '').trim();
+  if (!UUID_RE.test(id)) return '/hub/reels';
+  const params = new URLSearchParams({
+    id,
+    category: reelCategoryForTopic(reel?.topic),
+  });
+  return `/hub/reels?${params.toString()}`;
+}
+
 function allowedTopicsForCategory(category) {
   const normalized = normalizeReelsCategory(category);
   return REEL_CATEGORY_TOPICS[normalized === 'following' ? 'for-you' : normalized];

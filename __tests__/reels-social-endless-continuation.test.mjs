@@ -195,8 +195,15 @@ test('counter-only refreshes cannot abort or strand a cursor continuation', () =
   assert.match(realtime, /scheduleBackgroundReelsRefresh\(\)/);
 });
 
-test('the Social Media feed still mounts exactly one inline Reels carousel', () => {
-  assert.equal((socialPage.match(/<ReelsFeedCarousel\b/g) || []).length, 1);
+test('the Social Media feed mounts one inline Reels carousel in both populated and empty states', () => {
+  assert.equal((socialPage.match(/<ReelsFeedCarousel\b/g) || []).length, 1,
+    'one element definition must serve both mutually exclusive branches');
+  assert.match(socialPage, /const inlineReelsCarousel = <ReelsFeedCarousel key="reels-carousel"/);
+  assert.match(
+    socialPage,
+    /posts\.filter\(\(p\) => !blockedUserIds\.has\(p\.authorId\)\)\.length === 0[\s\S]*\? \([\s\S]*\{inlineReelsCarousel\}[\s\S]*\) : \([\s\S]*filteredPosts\.length < 3[\s\S]*inlineReelsCarousel/,
+    'the two mount sites must stay on opposite sides of the feed-state ternary',
+  );
 });
 
 test('the Social Media rail exposes category-correct feeds and keeps Following authenticated', () => {
@@ -274,7 +281,8 @@ test('mixed-source cards use channel attribution without poker-only fallback cop
     'function ReelViewer('
   );
 
-  assert.match(card, /reel\.profiles\?\.username \|\| reel\.channel_name \|\| 'Reel Creator'/);
+  assert.match(card, /const creatorName = reelSourceName\(reel\)/);
+  assert.match(source, /reel\?\.channel_name[\s\S]*reel\?\.profiles\?\.full_name/);
   assert.match(card, />Verified Video</);
   assert.doesNotMatch(card, /Poker Creator|Verified Poker Video|Poker reel preview/);
 });

@@ -6,14 +6,14 @@
 - **Branch:** `agent/codex-reels-supply-20260926/feat/reels-multiverse-supply`
 - **Delivery PR:** `#1977` on remote branch `agent/cowork-video-p1/fix/video-reels-integrity-phase-1`
 - **Workspace:** `/Volumes/SmarterWork/agent-work/codex-reels-supply-20260926`
-- **Candidate revision recovered:** `270d0875be28c91a245a4e50af84ba7b1e244ab0`
-- **Protected baseline at latest fetch:** `origin/main` `068c2653a24c4f1a81ef1572c516abf91d2ca9d7`
+- **Candidate revision recovered:** `946a75a44471fb02e0b1d75e78b4da19c331f919` plus the final uncommitted audit repairs listed below
+- **Protected baseline at latest fetch:** `origin/main` `990be89d230f2072fc50abe173132edb8e9a1e9a`
 - **Operation owner:** this task owns source repair, database installation, protected PR completion, Vercel/Open Claw publication, and live verification
 - **Next gate:** integrate the latest protected baseline, run exact-candidate checks, publish through PR #1977 and the Workers protected PR route, deploy World Hub/Open Claw/worker changes, and prove managed inventory plus more-than-50 continuation live.
 
 ## Policy Receipt
 
-- **Read at:** `2026-09-26T15:06:06.679Z`
+- **Read at:** `2026-09-26T22:03:52.551Z`
 - **Policy version:** `2.9`
 - **Manifest SHA-256:** `7663cc909626f7e9966931d27166ad8774addc801f7ad1898a2d7564bc13c378`
 - **Owner policy:** `76228d75677eb76ca9dcfbf65fd68ddb7aac3941f61154acc456ae8230a9a4fa`
@@ -62,3 +62,10 @@
 - Applied the corrected `horse_video_reels_atomic_publisher` migration once at `2026-09-26T15:07:46Z`; installed ledger version `20260926150746`. Readback proved one exact SECURITY DEFINER overload, fixed `search_path=public, extensions`, service-role-only execute, RLS enabled with zero browser policies, service-role-only ledger/sequence privileges, all required indexes, both video modes enabled, and zero migration-created semantic rows, posts, or Reels.
 - Advisor WARN totals remained unchanged after the horse migration. The new locked ledger intentionally added one INFO `rls_enabled_no_policy` finding and two INFO `unused_index` findings; the table exposes no browser grants or policies and the indexes back the RPC's 30/90-day semantic reuse checks.
 - Final adversarial source review repaired category-preserving canonical deduplication, continuation scanning through initially empty/filtered pages, stale/deleted/cross-category Reel reconciliation, counter-update refresh starvation, and composite-RPC live-signature validation. The combined focused Node 20 verification passed 66/66 with zero ESLint errors.
+- Freshly reread the canonical and portable policy set, repository instructions, Social Community skill/workflow, protected-file registry, migration safety rules, Video Library metal-frame rule, publication procedure, and this checkpoint after resumption. The owned worktree remains writable, uses the required `Smarter-Poker` identity, and had 37 GiB free at read time.
+- Workers PR `#145` passed exact-candidate and protected-main CI, squash-merged as `be7a1dea6aaddd747c62246ccc7e417e1700fbf7`, deployed successfully, and reported the exact merged revision healthy in production. Its horse route has not been invoked yet because the World Hub/Open Claw source remains unpublished.
+- The latest audit repaired all-category My/Saved/saved-status loading, slots/sports embed-failure adjudication, and category-preserving Reels share/deep-link construction. Final exact-candidate verification remains in progress.
+- The share-to-feed API now reads the authoritative public Reel, ignores hostile client media/caption/topic fields, stores one canonical link wrapper, and converges concurrent requests through the durable publication key. The social feed reopens that canonical Reel and retains the ordinary article-reader path for non-Reel links.
+- The command rail now uses canonical mixed-category URLs, while six-month-old `feed=foryou`, `feed=trending`, `feed=following`, and categoryless Reel bookmarks retain safe fallbacks. Mixed viewer loading/empty copy is category-neutral.
+- Every viewer mounts at most one active player and warms only the immediately next media resource. The focused menu, stale-bookmark, single-carousel, hostile-share, and player-window run passed 56/56; the final post-copy focused run passed 45/45.
+- The complete Phase 1 maintained suite passed 278 Node, 25 Vitest, and 15 Python tests (318 total) after the final player-window and route repairs. Current-main integration, full lint/build, browser proof, hosted checks, publication, and live behavior proof remain pending.

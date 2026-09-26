@@ -15,8 +15,9 @@ import { busEmit, eventBus, EventType } from '../../engine/EventBus';
 import Link from 'next/link';
 import GiphyPicker from '../shared/GiphyPicker';
 import {
+  buildReelPath,
   fetchPokerReels,
-  mergePokerReels,
+  mergeReels,
 } from '../../lib/reelsFeedClient';
 import {
   loadReelFollowState,
@@ -48,6 +49,7 @@ import VideoLibraryConsole, {
   ConsoleCopy,
   ConsoleDataRow,
 } from '../video-library/console/VideoLibraryConsole';
+import ReelResponsibleGamingNotice from './ReelResponsibleGamingNotice';
 import styles from './ReelsConsole.module.css';
 
 // ReelsConsole.module.css keeps every full-screen close action below env(safe-area-inset-top).
@@ -71,6 +73,27 @@ function getYouTubeVideoId(url) {
 
 function isYouTubeUrl(url) {
   return !!(url && (url.includes('youtube.com') || url.includes('youtu.be')));
+}
+
+function reelTopicLabel(reel) {
+  const topic = String(reel?.topic || '').trim().toLowerCase();
+  if (topic === 'cash') return 'Cash Poker';
+  if (topic === 'tournament') return 'Tournament Poker';
+  if (topic === 'slots') return 'Casino And Slots';
+  if (topic === 'sports') return 'Sports';
+  return 'Poker';
+}
+
+function reelSourceName(reel) {
+  return reel?.channel_name
+    || reel?.profiles?.full_name
+    || reel?.profiles?.username
+    || `${reelTopicLabel(reel)} Creator`;
+}
+
+function reelSourceUrl(reel) {
+  if (reel?.playback_type !== 'youtube_embed' && !isYouTubeUrl(reel?.video_url)) return null;
+  return reel?.source_attribution_url || reel?.source_url || reel?.original_youtube_url || null;
 }
 
 // Time ago helper
@@ -958,6 +981,7 @@ export function ReelsViewer({ onClose }) {
           cursor,
           signal: reelsRequest.signal,
           scope: 'library-viewer',
+          category: 'for-you',
         }),
         selectRows: (rows) => rows
           .map((reel) => ({ ...reel, source: 'reels' }))
@@ -987,6 +1011,7 @@ export function ReelsViewer({ onClose }) {
               id,
               signal: reelsRequest.signal,
               scope: 'library-viewer',
+              category: 'for-you',
             })).data.map((reel) => ({ ...reel, source: 'reels' })),
           });
         if (!reelsRequest.isCurrent()) return;
@@ -1159,6 +1184,7 @@ export function ReelsViewer({ onClose }) {
           cursor,
           signal: reelsRequest.signal,
           scope: 'library-viewer',
+          category: 'for-you',
         }),
         selectRows: (rows) => rows
           .map((reel) => ({ ...reel, source: 'reels' }))
@@ -1186,7 +1212,7 @@ export function ReelsViewer({ onClose }) {
           lc[reel.id] = reel.like_count || 0;
           cc[reel.id] = reel.comment_count || 0;
         });
-        setReels((prev) => mergePokerReels(prev, fresh));
+        setReels((prev) => mergeReels(prev, fresh, { category: 'for-you' }));
         setLikeCounts((prev) => ({ ...prev, ...lc }));
         setCommentCounts((prev) => ({ ...prev, ...cc }));
       }
@@ -1722,7 +1748,7 @@ export function ReelsViewer({ onClose }) {
   };
 
   const shareReelUrl = currentReel
-    ? `${typeof window !== 'undefined' ? window.location.origin : 'https://smarter.poker'}/hub/reels?id=${currentReel.id}`
+    ? `${typeof window !== 'undefined' ? window.location.origin : 'https://smarter.poker'}${buildReelPath(currentReel)}`
     : '';
 
   const handleShareAction = async (platform) => {
@@ -1732,7 +1758,7 @@ export function ReelsViewer({ onClose }) {
     if (!reel?.id) return;
     setShowShareModal(false);
     const url = shareReelUrl;
-    const title = 'Check out this poker reel on Smarter.Poker';
+    const title = 'Check Out This Reel On Smarter.Poker';
     try {
       if (platform === 'copy') {
         await navigator.clipboard.writeText(url);
@@ -2227,7 +2253,7 @@ export function ReelsViewer({ onClose }) {
         title="Tuning Reel Signal"
         subtitle="Embedded Viewer"
         pill="Connecting"
-        copy="The console is verifying playable poker footage and preparing the viewer."
+        copy="The console is verifying playable Reel footage and preparing the viewer."
         rows={[
           { label: 'Source', value: 'Verified Library' },
           { label: 'Playback', value: 'Preparing', valueInk: 'blue' },
@@ -2260,7 +2286,7 @@ export function ReelsViewer({ onClose }) {
     return (
       <ReelViewerConsoleState
         title="No Reels Yet"
-        subtitle="Verified Poker Video"
+        subtitle="Verified Reel Video"
         pill={hasMore ? 'Scanning' : 'Stand By'}
         copy="No playable Reel is available in this pass. Continue the scan or close the viewer."
         rows={[
@@ -2381,8 +2407,30 @@ export function ReelsViewer({ onClose }) {
   };
 
   const authorId = currentReel?.author_id || currentReel?.profiles?.id;
-  const authorName =
-    currentReel?.profiles?.full_name || currentReel?.profiles?.username || 'Poker Creator';
+  const authorName = reelSourceName(currentReel);
+  const topicLabel = reelTopicLabel(currentReel);
+  const sourceUrl = reelSourceUrl(currentReel);
+  const publisherName = currentReel?.profiles?.full_name || currentReel?.profiles?.username || null;
+  const publisherLabel = publisherName || authorName;
+  const showAuthorAvatar = Boolean(currentReel?.profiles?.avatar_url);
+  const authorIdentity = (
+    <>
+      {showAuthorAvatar ? (
+        <img
+          className={styles.avatar}
+          src={currentReel.profiles.avatar_url}
+          alt={`${publisherLabel} Avatar`}
+        />
+      ) : null}
+      <span>
+        <span className={styles.authorName}>{publisherLabel}</span>
+        <span className={styles.authorMeta}>
+          {timeAgo(currentReel?.created_at)}
+          {watchedReelIds.includes(currentReel?.id) ? ' / Watched' : ''}
+        </span>
+      </span>
+    </>
+  );
   const currentCaption = currentReel?.caption || '';
   const visibleCaption =
     captionExpanded || currentCaption.length <= 140
@@ -2935,7 +2983,7 @@ export function ReelsViewer({ onClose }) {
   }
 
   return (
-    <main className={styles.shell} aria-label="Embedded Poker Reels Viewer">
+    <main className={styles.shell} aria-label={`Embedded ${topicLabel} Reels Viewer`}>
       <VideoLibraryConsole
         eyebrow="Video Library"
         title="Reels"
@@ -2945,7 +2993,7 @@ export function ReelsViewer({ onClose }) {
         titleAs="h1"
         foot="foot"
         className={`${styles.console} ${activeDialogKey ? styles.liveConsoleHidden : ''}`}
-        aria-label="Embedded Poker Reels Viewer"
+        aria-label={`Embedded ${topicLabel} Reels Viewer`}
         aria-hidden={activeDialogKey ? 'true' : undefined}
         inert={activeDialogKey ? '' : undefined}
       >
@@ -2971,8 +3019,11 @@ export function ReelsViewer({ onClose }) {
                 if (!reel) return null;
                 const isActive = index === currentIndex;
                 const videoId = getYouTubeVideoId(reel.video_url);
+                const embedOrigin = typeof window !== 'undefined'
+                  ? window.location.origin
+                  : 'https://smarter.poker';
                 const embedSource = videoId
-                  ? `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&mute=1&loop=1&playlist=${videoId}&rel=0&modestbranding=1&playsinline=1&controls=0&showinfo=0&iv_load_policy=3&fs=0&disablekb=1&cc_load_policy=0&enablejsapi=1&origin=${typeof window !== 'undefined' ? window.location.origin : 'https://smarter.poker'}`
+                  ? `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&mute=1&loop=1&playlist=${videoId}&rel=0&playsinline=1&controls=1&iv_load_policy=3&fs=1&cc_load_policy=0&enablejsapi=1&origin=${encodeURIComponent(embedOrigin)}&widget_referrer=${encodeURIComponent(embedOrigin)}`
                   : null;
 
                 return (
@@ -2992,17 +3043,17 @@ export function ReelsViewer({ onClose }) {
                       />
                     ) : null}
 
-                    {videoId ? (
+                    {isActive && videoId ? (
                       <iframe
-                        ref={isActive ? ytIframeRef : null}
+                        ref={ytIframeRef}
                         className={styles.media}
                         key={reel.id}
                         src={embedSource}
                         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                         allowFullScreen
-                        title={reel.caption || 'Poker Reel'}
+                        referrerPolicy="strict-origin-when-cross-origin"
+                        title={reel.caption || `${reelTopicLabel(reel)} Reel`}
                         onLoad={() => {
-                          if (!isActive) return;
                           onLoadRetryTimersRef.current.forEach((timer) => clearTimeout(timer));
                           sendYTCmd('playVideo');
                           autoUnmute();
@@ -3017,9 +3068,9 @@ export function ReelsViewer({ onClose }) {
                           );
                         }}
                       />
-                    ) : reel.video_url ? (
+                    ) : isActive && reel.video_url ? (
                       <video
-                        ref={isActive ? videoRef : null}
+                        ref={videoRef}
                         className={styles.media}
                         key={reel.id}
                         src={reel.video_url}
@@ -3108,7 +3159,11 @@ export function ReelsViewer({ onClose }) {
                       <div className={styles.stageSignal}>Playback Paused</div>
                     ) : null}
                     {isActive ? (
-                      <div className={styles.stageInfo} data-visible={showOverlay || paused}>
+                      <div
+                        className={styles.stageInfo}
+                        data-visible={showOverlay || paused}
+                        style={videoId ? { bottom: 64 } : undefined}
+                      >
                         <span>{authorName}</span>
                         {visibleCaption ? <span className={styles.stageCaption}>{visibleCaption}</span> : null}
                       </div>
@@ -3127,29 +3182,29 @@ export function ReelsViewer({ onClose }) {
             </div>
 
             <aside className={styles.commandPanel} aria-label="Reel Commands">
-              <Link
-                href={currentReel?.profiles?.username
-                  ? `/hub/user/${currentReel.profiles.username}`
-                  : '/hub/reels'}
-                className={`${styles.authorLink} ${
-                  currentReel?.profiles?.avatar_url ? '' : styles.authorTextOnly
-                }`}
-              >
-                {currentReel?.profiles?.avatar_url ? (
-                  <img
-                    className={styles.avatar}
-                    src={currentReel.profiles.avatar_url}
-                    alt={`${authorName} Avatar`}
-                  />
-                ) : null}
-                <span>
-                  <span className={styles.authorName}>{authorName}</span>
-                  <span className={styles.authorMeta}>
-                    {timeAgo(currentReel?.created_at)}
-                    {watchedReelIds.includes(currentReel?.id) ? ' / Watched' : ''}
-                  </span>
-                </span>
-              </Link>
+              {currentReel?.profiles?.username ? (
+                <Link
+                  href={`/hub/user/${currentReel.profiles.username}`}
+                  className={`${styles.authorLink} ${
+                    showAuthorAvatar ? '' : styles.authorTextOnly
+                  }`}
+                >
+                  {authorIdentity}
+                </Link>
+              ) : sourceUrl ? (
+                <a
+                  href={sourceUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`${styles.authorLink} ${styles.authorTextOnly}`}
+                >
+                  {authorIdentity}
+                </a>
+              ) : (
+                <Link href="/hub/reels" className={`${styles.authorLink} ${styles.authorTextOnly}`}>
+                  {authorIdentity}
+                </Link>
+              )}
 
               {currentCaption ? (
                 <p className={styles.caption}>
@@ -3165,6 +3220,19 @@ export function ReelsViewer({ onClose }) {
                   ) : null}
                 </p>
               ) : null}
+
+              {sourceUrl ? (
+                <a
+                  className={styles.wordAction}
+                  href={sourceUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  View Original On {authorName}
+                </a>
+              ) : null}
+
+              <ReelResponsibleGamingNotice topic={currentReel?.topic} />
 
               <div className={styles.actionGrid}>
                 <button type="button" className={styles.wordAction} onClick={onClose}>

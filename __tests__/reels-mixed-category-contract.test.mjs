@@ -16,12 +16,22 @@ const API_SOURCE = readFileSync(
   new URL('../pages/api/reels/feed.js', import.meta.url),
   'utf8',
 );
+const REELS_PAGE_SOURCE = readFileSync(
+  new URL('../pages/hub/reels.js', import.meta.url),
+  'utf8',
+);
+const HAMBURGER_MENU_SOURCE = readFileSync(
+  new URL('../src/config/hamburgerMenus.js', import.meta.url),
+  'utf8',
+);
 
 const {
+  buildReelPath,
   fetchPokerReels,
   isPlayablePokerReel,
   isPlayableReel,
   normalizeReelsCategory,
+  reelCategoryForTopic,
   sanitizeReels,
 } = await import(
   `data:text/javascript;base64,${Buffer.from(CLIENT_SOURCE).toString('base64')}`
@@ -74,6 +84,33 @@ test('the client keeps category boundaries while For You admits every approved t
   assert.equal(
     sanitizeReels([{ ...sports, topic: 'unknown' }], { category: 'for-you' }).length,
     0,
+  );
+});
+
+test('canonical Reel links preserve category and old bookmarks can fall back to For You', () => {
+  assert.equal(reelCategoryForTopic('cash'), 'poker');
+  assert.equal(reelCategoryForTopic('tournament'), 'poker');
+  assert.equal(reelCategoryForTopic('slots'), 'casino-slots');
+  assert.equal(reelCategoryForTopic('sports'), 'sports');
+  assert.equal(
+    buildReelPath({ id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', topic: 'slots' }),
+    '/hub/reels?id=bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb&category=casino-slots',
+  );
+  assert.equal(
+    buildReelPath({ id: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc', topic: 'sports' }),
+    '/hub/reels?id=cccccccc-cccc-4ccc-8ccc-cccccccccccc&category=sports',
+  );
+  assert.equal(buildReelPath({ id: 'not-a-uuid', topic: 'sports' }), '/hub/reels');
+  assert.match(HAMBURGER_MENU_SOURCE, /'For You', '\/hub\/reels\?category=for-you'/);
+  assert.match(HAMBURGER_MENU_SOURCE, /'Poker', '\/hub\/reels\?category=poker'/);
+  assert.match(HAMBURGER_MENU_SOURCE, /'Casino And Slots', '\/hub\/reels\?category=casino-slots'/);
+  assert.match(HAMBURGER_MENU_SOURCE, /'Sports', '\/hub\/reels\?category=sports'/);
+  assert.match(HAMBURGER_MENU_SOURCE, /'Following', '\/hub\/reels\?category=following'/);
+  assert.match(HAMBURGER_MENU_SOURCE, /'Trending', '\/hub\/reels\?category=for-you&feed=trending'/);
+  assert.match(
+    REELS_PAGE_SOURCE,
+    /legacyFeed === 'following'[\s\S]*\? 'following'[\s\S]*legacyFeed === 'foryou' \|\| legacyFeed === 'trending'[\s\S]*\? 'for-you'/,
+    'old feed-only bookmarks must retain their mixed or authenticated category instead of collapsing to poker',
   );
 });
 
@@ -131,6 +168,7 @@ test('the server owns the allowlist and applies it before pagination', () => {
   assert.match(SERVER_SOURCE, /'casino-slots': Object\.freeze\(\['slots'\]\)/);
   assert.match(SERVER_SOURCE, /sports: Object\.freeze\(\['sports'\]\)/);
   assert.match(SERVER_SOURCE, /'for-you': Object\.freeze\(\['poker', 'cash', 'tournament', 'slots', 'sports'\]\)/);
+  assert.match(SERVER_SOURCE, /topic === 'slots' \? 'Casino And Slots Reel' : topic === 'sports' \? 'Sports Reel'/);
   assert.match(SERVER_SOURCE, /function normaliseCategory\(value, scope = 'all'\)/);
   assert.match(SERVER_SOURCE, /throw new ReelsFeedInputError\('Invalid Reels category'\)/);
   assert.match(SERVER_SOURCE, /\.in\('topic', topicsForCategory\(category\)\)/);

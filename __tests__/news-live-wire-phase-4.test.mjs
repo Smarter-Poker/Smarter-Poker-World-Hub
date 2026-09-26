@@ -166,7 +166,11 @@ test('saved and authored reel collections use the real data contracts', () => {
 test('reels pagination and route modes do not skip or ignore requested feeds', () => {
   assert.match(REELS_PAGE, /cursor: reelsCursorRef\.current/);
   assert.match(REELS_PAGE, /payload\.next_cursor/);
-  assert.match(REELS_PAGE, /mergePokerReels\(prev, mappedFiltered\)/);
+  assert.match(
+    REELS_PAGE,
+    /mergeReels\(prev, mappedFiltered, \{ category: routeCategory \}\)/,
+  );
+  assert.match(REELS_PAGE, /category: routeCategory/);
   assert.match(REELS_PAGE, /feedMode === 'trending'/);
   assert.match(REELS_PAGE, /feedMode === 'following'/);
   assert.match(REELS_PAGE, /const \[muted, setMuted\] = useState\(true\)/);

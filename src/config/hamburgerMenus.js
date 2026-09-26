@@ -441,9 +441,12 @@ export const MENU_CONFIGS = {
     'reels': (user, state, handlers) => ({
         menuItems: [
             createMenuItem.section('Feed'),
-            createMenuItem.navigation('For You', '/hub/reels?feed=foryou'),
-            createMenuItem.navigation('Following', '/hub/reels?feed=following'),
-            createMenuItem.navigation('Trending', '/hub/reels?feed=trending'),
+            createMenuItem.navigation('For You', '/hub/reels?category=for-you'),
+            createMenuItem.navigation('Poker', '/hub/reels?category=poker'),
+            createMenuItem.navigation('Casino And Slots', '/hub/reels?category=casino-slots'),
+            createMenuItem.navigation('Sports', '/hub/reels?category=sports'),
+            createMenuItem.navigation('Following', '/hub/reels?category=following'),
+            createMenuItem.navigation('Trending', '/hub/reels?category=for-you&feed=trending'),
             createMenuItem.divider(),
             createMenuItem.action('Upload Reel', handlers.onUploadReel, null, true),
             createMenuItem.navigation('My Reels', '/hub/reels/my-reels'),

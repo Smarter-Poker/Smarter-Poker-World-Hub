@@ -88,6 +88,7 @@ import { HubErrorBoundary } from '../../../src/components/ui/HubErrorBoundary';
 import { useActiveIdentity } from '../../../src/contexts/ActiveIdentityContext';
 import { isHorseOnlineNow } from '../../../src/lib/horsePresence';
 import { blockUser, getBlockedUsers } from '../../../src/services/privacy-service';
+import { buildReelPath } from '../../../src/lib/reelsFeedClient';
 
 // God-Mode Stack
 import { useSocialStore } from '../../../src/stores/socialStore';
@@ -153,6 +154,22 @@ let _typingSendChannel = null;
 function getTypingChannel() {
   if (!_typingSendChannel) _typingSendChannel = supabase.channel('social-feed');
   return _typingSendChannel;
+}
+
+function sharedReelPathForPost(post) {
+  const sharedReelId = String(post?.metadata?.shared_reel_id || '').trim();
+  if (!sharedReelId) return null;
+  const canonicalPath = buildReelPath({
+    id: sharedReelId,
+    topic: post?.metadata?.shared_reel_topic,
+  });
+  if (canonicalPath === '/hub/reels') return null;
+  // Older shares predate shared_reel_topic. Keep those category-neutral so
+  // the detail reader can find poker, slots, or sports without guessing.
+  if (!post?.metadata?.shared_reel_topic) {
+    return `/hub/reels?id=${encodeURIComponent(sharedReelId)}`;
+  }
+  return canonicalPath;
 }
 
 /*
@@ -1858,18 +1875,142 @@ const PostCard = React.memo(
             </div>
           </div>
         )}
-        {/* 🔗 LINK PREVIEW for posts with link_url but NO media_urls (ghost fleet posts) */}
-        {(!post.mediaUrls || post.mediaUrls.length === 0) && post.link_url && (
-          <ArticleCard
-            url={post.link_url}
-            title={post.link_title}
-            description={post.link_description}
-            image={post.link_image}
-            siteName={post.link_site_name}
-            fallbackContent={post.content}
-            onClick={onOpenArticle}
-          />
-        )}
+        {/* Link preview for posts with link_url but no media_urls. Shared Reel
+            wrappers must reopen their canonical Reel rather than the sharing
+            post ID or the article proxy. */}
+        {(!post.mediaUrls || post.mediaUrls.length === 0) && post.link_url &&
+          (() => {
+            const sharedReelPath = sharedReelPathForPost(post);
+            if (!sharedReelPath) {
+              return (
+                <ArticleCard
+                  url={post.link_url}
+                  title={post.link_title}
+                  description={post.link_description}
+                  image={post.link_image}
+                  siteName={post.link_site_name}
+                  fallbackContent={post.content}
+                  onClick={onOpenArticle}
+                />
+              );
+            }
+
+            const sourceName =
+              post.metadata?.shared_reel_channel_name || post.link_site_name || 'Smarter.Poker Reels';
+            return (
+              <button
+                type="button"
+                onClick={() => router.push(sharedReelPath)}
+                aria-label={`Open Shared Reel From ${sourceName}`}
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'minmax(124px, 38%) 1fr',
+                  width: 'calc(100% - 24px)',
+                  minHeight: 132,
+                  margin: '4px 12px 12px',
+                  padding: 0,
+                  overflow: 'hidden',
+                  borderRadius: 14,
+                  border: '1px solid rgba(104, 202, 255, 0.62)',
+                  background:
+                    'linear-gradient(145deg, rgba(10, 27, 42, 0.98), rgba(2, 8, 16, 0.99))',
+                  boxShadow:
+                    'inset 0 1px 0 rgba(224, 248, 255, 0.22), inset 0 -1px 0 rgba(0, 74, 128, 0.65), 0 10px 28px rgba(0, 20, 38, 0.24)',
+                  color: '#eaf8ff',
+                  textAlign: 'left',
+                  cursor: 'pointer',
+                  fontFamily: 'inherit',
+                }}
+              >
+                <span
+                  style={{
+                    position: 'relative',
+                    display: 'grid',
+                    placeItems: 'center',
+                    minHeight: 132,
+                    overflow: 'hidden',
+                    background:
+                      'radial-gradient(circle at 50% 45%, rgba(0, 151, 255, 0.46), rgba(1, 10, 20, 0.98) 68%)',
+                    borderRight: '1px solid rgba(104, 202, 255, 0.35)',
+                  }}
+                >
+                  {post.link_image ? (
+                    <img
+                      src={post.link_image}
+                      alt=""
+                      loading="lazy"
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                      onError={(event) => {
+                        event.currentTarget.style.display = 'none';
+                      }}
+                    />
+                  ) : null}
+                  <span
+                    aria-hidden="true"
+                    style={{
+                      position: 'absolute',
+                      display: 'grid',
+                      placeItems: 'center',
+                      width: 48,
+                      height: 48,
+                      borderRadius: '50%',
+                      border: '1px solid rgba(220, 247, 255, 0.82)',
+                      background:
+                        'linear-gradient(145deg, rgba(235, 250, 255, 0.94), rgba(69, 172, 238, 0.9))',
+                      boxShadow:
+                        'inset 0 1px 0 white, 0 0 0 5px rgba(0, 143, 255, 0.16), 0 8px 22px rgba(0, 0, 0, 0.48)',
+                    }}
+                  >
+                    <svg width="19" height="22" viewBox="0 0 19 22" fill="none">
+                      <path d="M2 2.2L17 11L2 19.8V2.2Z" fill="#03131f" stroke="#03131f" />
+                    </svg>
+                  </span>
+                </span>
+                <span style={{ padding: '18px 16px', alignSelf: 'center', minWidth: 0 }}>
+                  <span
+                    style={{
+                      display: 'block',
+                      marginBottom: 7,
+                      color: '#72d6ff',
+                      fontSize: 10,
+                      fontWeight: 800,
+                      letterSpacing: '0.18em',
+                      textTransform: 'uppercase',
+                    }}
+                  >
+                    Shared Reel
+                  </span>
+                  <span
+                    style={{
+                      display: '-webkit-box',
+                      overflow: 'hidden',
+                      WebkitBoxOrient: 'vertical',
+                      WebkitLineClamp: 2,
+                      color: '#f5fbff',
+                      fontSize: 15,
+                      fontWeight: 750,
+                      lineHeight: 1.3,
+                    }}
+                  >
+                    {post.link_title || 'Watch This Reel On Smarter.Poker'}
+                  </span>
+                  <span
+                    style={{
+                      display: 'block',
+                      marginTop: 9,
+                      overflow: 'hidden',
+                      color: '#9eb9c9',
+                      fontSize: 12,
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {sourceName}
+                  </span>
+                </span>
+              </button>
+            );
+          })()}
         <div
           style={{
             padding: '8px 12px',
@@ -5936,6 +6077,10 @@ function SocialMediaPage() {
       jsonLd={SOCIAL_SCHEMA}
     />
   );
+  // One element definition, mounted from mutually exclusive empty/populated
+  // branches below. This preserves the populated-feed insertion point without
+  // ever opening two 50-row readers or two realtime channels.
+  const inlineReelsCarousel = <ReelsFeedCarousel key="reels-carousel" />;
 
   // Only show loading skeleton if intro is done and still loading
   if (loading )
@@ -7743,65 +7888,68 @@ function SocialMediaPage() {
                       message and no call to action. */}
                   {posts.filter((p) => !blockedUserIds.has(p.authorId)).length === 0 &&
                   !showClubPostsOnly ? (
-                    <div style={{ textAlign: 'center', padding: '48px 24px', color: C.textSec }}>
-                      <div style={{ fontSize: 56, marginBottom: 12 }}>🎰</div>
-                      <h3 style={{ color: C.text, fontSize: 18, marginBottom: 8 }}>
-                        Welcome To Smarter.Poker
-                      </h3>
-                      <p style={{ marginBottom: 16, lineHeight: 1.5 }}>
-                        Your Poker Community Feed Is Empty. Follow Players, Join Clubs, Or Share
-                        Your First Hand To Get Started!
-                      </p>
-                      <div
-                        style={{
-                          display: 'flex',
-                          gap: 8,
-                          justifyContent: 'center',
-                          flexWrap: 'wrap',
-                        }}
-                      >
-                        <Link prefetch={false}
-                          href="/hub/friends"
+                    <>
+                      {inlineReelsCarousel}
+                      <div style={{ textAlign: 'center', padding: '36px 24px 48px', color: C.textSec }}>
+                        <div style={{ fontSize: 56, marginBottom: 12 }}>🎰</div>
+                        <h3 style={{ color: C.text, fontSize: 18, marginBottom: 8 }}>
+                          Welcome To Smarter.Poker
+                        </h3>
+                        <p style={{ marginBottom: 16, lineHeight: 1.5 }}>
+                          Your Poker Community Feed Is Empty. Follow Players, Join Clubs, Or Share
+                          Your First Hand To Get Started!
+                        </p>
+                        <div
                           style={{
-                            padding: '8px 16px',
-                            background: C.blue,
-                            color: 'white',
-                            borderRadius: 20,
-                            fontWeight: 600,
-                            textDecoration: 'none',
-                            fontSize: 13,
+                            display: 'flex',
+                            gap: 8,
+                            justifyContent: 'center',
+                            flexWrap: 'wrap',
                           }}
                         >
-                          Find Players
-                        </Link>
-                        <span
-                          role="button"
-                          tabIndex={0}
-                          onKeyDown={spKeyActivate}
-                          onClick={() => {
-                            const input = document.querySelector(
-                              '[placeholder*="What\'s on your mind"]'
-                            );
-                            if (input) {
-                              input.scrollIntoView({ behavior: 'smooth' });
-                              setTimeout(() => input.focus(), 400);
-                            }
-                          }}
-                          style={{
-                            padding: '8px 16px',
-                            background: C.card,
-                            color: C.text,
-                            borderRadius: 20,
-                            fontWeight: 600,
-                            cursor: 'pointer',
-                            fontSize: 13,
-                            border: `1px solid ${C.border}`,
-                          }}
-                        >
-                          Create A Post
-                        </span>
+                          <Link prefetch={false}
+                            href="/hub/friends"
+                            style={{
+                              padding: '8px 16px',
+                              background: C.blue,
+                              color: 'white',
+                              borderRadius: 20,
+                              fontWeight: 600,
+                              textDecoration: 'none',
+                              fontSize: 13,
+                            }}
+                          >
+                            Find Players
+                          </Link>
+                          <span
+                            role="button"
+                            tabIndex={0}
+                            onKeyDown={spKeyActivate}
+                            onClick={() => {
+                              const input = document.querySelector(
+                                '[placeholder*="What\'s on your mind"]'
+                              );
+                              if (input) {
+                                input.scrollIntoView({ behavior: 'smooth' });
+                                setTimeout(() => input.focus(), 400);
+                              }
+                            }}
+                            style={{
+                              padding: '8px 16px',
+                              background: C.card,
+                              color: C.text,
+                              borderRadius: 20,
+                              fontWeight: 600,
+                              cursor: 'pointer',
+                              fontSize: 13,
+                              border: `1px solid ${C.border}`,
+                            }}
+                          >
+                            Create A Post
+                          </span>
+                        </div>
                       </div>
-                    </div>
+                    </>
                   ) : (
                     <>
                       {/* Render posts, with one Reels carousel and one Trending Venues
@@ -7901,7 +8049,7 @@ function SocialMediaPage() {
                             {(index === 2 ||
                               (filteredPosts.length < 3 &&
                                 index === filteredPosts.length - 1)) && (
-                              <ReelsFeedCarousel key="reels-carousel" />
+                              inlineReelsCarousel
                             )}
                             {/* Insert Trending Venues after 1st post */}
                             {index === 0 && (
