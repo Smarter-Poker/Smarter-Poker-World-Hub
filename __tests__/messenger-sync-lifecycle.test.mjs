@@ -136,17 +136,21 @@ test('notification snapshots obey request ordering and persisted read invalidati
 });
 
 test('notification broadcasts refresh peer instances including matching React ids in another window', () => {
-    let receive, refreshes = 0;
+    let receive, refreshes = 0, rows = [{ id: 'delete-me' }, { id: 'keep-me' }];
     const code = slice(notifications, "        const cleanupNotifBc = listenBroadcast(", '        const catchUp =');
     evaluate(code, {
         listenBroadcast: (_channel, handler) => { receive = handler; }, mounted: { current: true },
         BROADCAST_TAB_ID: 'window-a', instanceId: 'feed-a', user: { id: 'account-a' }, fetchNotifications: () => refreshes++,
+        setNotifications: update => { rows = update(rows); },
     }, 'undefined');
     receive({ action: 'refresh_notifications', tabId: 'window-a', instanceId: 'feed-a' }); assert.equal(refreshes, 0);
     receive({ action: 'refresh_notifications', tabId: 'window-b', instanceId: 'feed-a' });
     receive({ action: 'refresh_notifications', tabId: 'window-a', instanceId: 'feed-b' });
     assert.equal(refreshes, 2);
     receive({ action: 'mark_all_read', userId: 'another-account' }); assert.equal(refreshes, 2);
+    receive({ action: 'delete', id: 'delete-me', tabId: 'window-a' }); assert.equal(rows.length, 2);
+    receive({ action: 'delete', id: 'delete-me', tabId: 'window-b' });
+    assert.deepEqual(rows, [{ id: 'keep-me' }]); assert.equal(refreshes, 2, 'optimistic delete must not fetch pre-delete state');
 });
 
 test('Messenger return and cross-window events use current workspace handlers without reading a hidden window', () => {

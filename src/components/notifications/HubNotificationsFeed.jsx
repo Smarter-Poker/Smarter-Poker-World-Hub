@@ -432,8 +432,14 @@ export default function HubNotificationsFeed({ embedded = false, onNotifCleared 
         const cleanupNotifBc = listenBroadcast('smarter_poker_notif_sync', (msg) => {
             if ((msg?.tabId === BROADCAST_TAB_ID && msg?.instanceId === instanceId) || !mounted.current) return;
             if (msg?.userId && msg.userId !== user.id) return;
+            // Deletion has an existing optimistic animation and broadcasts
+            // before persistence. Preserve that flow; its failure emits refresh.
+            if (msg?.action === 'delete' && msg?.id) {
+                if (msg.tabId !== BROADCAST_TAB_ID) setNotifications(prev => prev.filter(n => n.id !== msg.id));
+                return;
+            }
             const action = typeof msg === 'string' ? msg : msg?.action;
-            if (['delete', 'mark_read', 'mark_all_read', 'refresh_notifications'].includes(action)) {
+            if (['mark_read', 'mark_all_read', 'refresh_notifications'].includes(action)) {
                 // The broadcast is an invalidation, never authority to read or
                 // delete every row. Fetch the persisted state for this account.
                 fetchNotifications();
