@@ -144,10 +144,29 @@ test('rollback is explicit, guarded, and changes only the three rights labels', 
   const rollback = source.slice(source.indexOf('-- ROLLBACK'));
   assert.match(rollback, /-- BEGIN;/);
   assert.match(rollback, /-- SET TRANSACTION ISOLATION LEVEL SERIALIZABLE;/);
+  assert.match(rollback, /-- SET LOCAL lock_timeout = '5s';/);
+  assert.match(rollback, /-- SET LOCAL statement_timeout = '60s';/);
   assert.match(rollback, /-- SELECT pg_advisory_xact_lock/);
   assert.match(rollback, /--   IF current_setting\('session_replication_role'\) IS DISTINCT FROM 'origin' THEN/);
   assert.match(rollback, /session_replication_role must be origin so the maintained trigger executes/);
   assert.match(rollback, /-- SELECT set_config\('request\.jwt\.claim\.role', 'service_role', true\);/);
+  assert.match(
+    rollback,
+    /-- SELECT id\n-- FROM public\.social_posts[\s\S]*14f549d1-8079-436f-8c4e-c42ec0432de5[\s\S]*61a5aaa3-0ee7-4003-8af3-c4e64e240078[\s\S]*-- ORDER BY id\n-- FOR UPDATE;/,
+  );
+  assert.match(
+    rollback,
+    /-- SELECT id\n-- FROM public\.social_reels[\s\S]*9f65fa3e-9023-4697-8b15-c8f5c4c1c82f[\s\S]*31dc2cba-a031-4b6c-9530-168fe080e118[\s\S]*-- ORDER BY id\n-- FOR UPDATE;/,
+  );
+  const rollbackOrder = [
+    rollback.indexOf('-- SELECT id\n-- FROM public.social_posts'),
+    rollback.indexOf('-- SELECT id\n-- FROM public.social_reels'),
+    rollback.indexOf('-- CREATE TEMP TABLE _sup07_post_rights_rollback_before'),
+    rollback.indexOf('-- CREATE TEMP TABLE _sup07_reels_rollback_unchanged'),
+    rollback.indexOf('-- DO $rollback$'),
+  ];
+  assert.ok(rollbackOrder.every(index => index >= 0));
+  assert.deepEqual(rollbackOrder, rollbackOrder.toSorted((a, b) => a - b));
   assert.match(rollback, /_sup07_post_rights_rollback_before/);
   assert.match(rollback, /_sup07_reels_rollback_unchanged/);
   assert.match(rollback, /_sup07_post_rights_rollback_before[\s\S]*14f549d1-8079-436f-8c4e-c42ec0432de5/);

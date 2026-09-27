@@ -63,6 +63,19 @@ const POST_IDS = [
   '5cab43ba-cb10-4043-955f-63415e755e63',
   '61a5aaa3-0ee7-4003-8af3-c4e64e240078',
 ];
+const ALL_POST_IDS = [
+  '14f549d1-8079-436f-8c4e-c42ec0432de5',
+  ...POST_IDS,
+];
+const REEL_IDS = [
+  '9f65fa3e-9023-4697-8b15-c8f5c4c1c82f',
+  'b3258975-db9f-42d5-a581-6c305b180b8f',
+  '2cb727a7-aee1-4e33-975c-db31bc587aea',
+  '0ac10eae-0380-4836-be80-759ce93ee878',
+  '46747b18-3e80-4975-abad-09c41e091155',
+  '8e87782d-dec1-4a54-aab9-1251df417b92',
+  '31dc2cba-a031-4b6c-9530-168fe080e118',
+];
 
 function pg17Bin() {
   return [
@@ -320,13 +333,17 @@ test('PostgreSQL 17 proves the SUP-07 trigger regression, forward repair, rollba
   const clients = [];
   let admin;
 
-  const createDatabase = async label => {
-    const name = `sup07_${label}_${randomUUID().replaceAll('-', '').slice(0, 8)}`;
-    await admin.query(`CREATE DATABASE ${name}`);
+  const connectDatabase = async name => {
     const db = new Client({ host: socket, port, user: 'postgres', database: name });
     await db.connect();
     clients.push(db);
     return db;
+  };
+
+  const createDatabase = async label => {
+    const name = `sup07_${label}_${randomUUID().replaceAll('-', '').slice(0, 8)}`;
+    await admin.query(`CREATE DATABASE ${name}`);
+    return connectDatabase(name);
   };
 
   try {
@@ -620,6 +637,86 @@ test('PostgreSQL 17 proves the SUP-07 trigger regression, forward repair, rollba
       );
       await db.query('ROLLBACK');
       assert.deepEqual(await state(db), before, 'ambiguous-post mutation must roll back the complete rollback attempt');
+    });
+
+    await t.test('rollback locks every protected post and Reel before it snapshots or mutates', async () => {
+      const db = await createDatabase('rollback_concurrency');
+      await installPostPredecessorState(db);
+      await db.query(followup);
+      const before = await state(db);
+      const database = db.connectionParameters.database;
+      const blocker = await connectDatabase(database);
+      const contender = await connectDatabase(database);
+
+      await db.query(`
+        CREATE FUNCTION public.zz_pause_rollback_after_row_locks()
+        RETURNS trigger LANGUAGE plpgsql AS $$
+        BEGIN
+          PERFORM pg_advisory_xact_lock(2147483001);
+          RETURN NEW;
+        END $$;
+        CREATE TRIGGER zz_pause_rollback_after_row_locks
+          BEFORE UPDATE OF rights_status ON public.social_posts
+          FOR EACH ROW EXECUTE FUNCTION public.zz_pause_rollback_after_row_locks();
+      `);
+      await blocker.query('BEGIN');
+      await blocker.query('SELECT pg_advisory_xact_lock(2147483001)');
+
+      const rollbackPromise = db.query(rollback);
+      rollbackPromise.catch(() => undefined);
+      try {
+        const waitDeadline = Date.now() + 5_000;
+        let rollbackReachedPause = false;
+        while (!rollbackReachedPause && Date.now() < waitDeadline) {
+          const waiting = await contender.query(`
+            SELECT EXISTS (
+              SELECT 1
+              FROM pg_catalog.pg_locks
+              WHERE pid = $1
+                AND locktype = 'advisory'
+                AND NOT granted
+            ) AS waiting
+          `, [db.processID]);
+          rollbackReachedPause = waiting.rows[0].waiting;
+          if (!rollbackReachedPause) {
+            await new Promise(resolve => setTimeout(resolve, 10));
+          }
+        }
+        assert.equal(
+          rollbackReachedPause,
+          true,
+          'rollback must reach its post-lock update before the concurrency probe',
+        );
+
+        for (const id of ALL_POST_IDS) {
+          await assert.rejects(
+            contender.query(
+              'SELECT id FROM public.social_posts WHERE id = $1::uuid FOR UPDATE NOWAIT',
+              [id],
+            ),
+            error => error.code === '55P03',
+            `rollback must hold the social_posts lock for ${id}`,
+          );
+        }
+        for (const id of REEL_IDS) {
+          await assert.rejects(
+            contender.query(
+              'SELECT id FROM public.social_reels WHERE id = $1::uuid FOR UPDATE NOWAIT',
+              [id],
+            ),
+            error => error.code === '55P03',
+            `rollback must hold the social_reels lock for ${id}`,
+          );
+        }
+      } finally {
+        await blocker.query('COMMIT');
+        await rollbackPromise;
+      }
+
+      const after = await state(db);
+      assert.ok(after.posts.filter(row => POST_IDS.includes(row.id)).every(row => row.rights_status === 'unknown'));
+      assert.deepEqual(after.posts.map(row => row.immutable), before.posts.map(row => row.immutable));
+      assert.deepEqual(after.reels, before.reels);
     });
   } finally {
     await Promise.allSettled(clients.map(client => client.end()));

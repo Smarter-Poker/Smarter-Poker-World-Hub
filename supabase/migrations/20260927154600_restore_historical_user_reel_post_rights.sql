@@ -17,7 +17,7 @@
 -- HOW:
 --   - fail closed unless the exact prior migration and three affected posts
 --     remain in the observed post-SUP-07 state;
---   - re-prove the three owner-scoped public Storage objects;
+--   - re-prove the four owner-scoped public Storage objects;
 --   - supply the service-role request claim expected by the existing trigger
 --     and restore only rights_status on the three exact post UUIDs;
 --   - compare complete row images and refuse any change beyond rights_status.
@@ -366,6 +366,7 @@ COMMIT;
 -- BEGIN;
 -- SET TRANSACTION ISOLATION LEVEL SERIALIZABLE;
 -- SET LOCAL lock_timeout = '5s';
+-- SET LOCAL statement_timeout = '60s';
 -- SELECT pg_advisory_xact_lock(hashtextextended('sup07-historical-user-reels-v2-post-rights', 0));
 -- DO $rollback_session_mode$
 -- BEGIN
@@ -375,6 +376,29 @@ COMMIT;
 -- END
 -- $rollback_session_mode$;
 -- SELECT set_config('request.jwt.claim.role', 'service_role', true);
+-- SELECT id
+-- FROM public.social_posts
+-- WHERE id IN (
+--   '14f549d1-8079-436f-8c4e-c42ec0432de5',
+--   '7f85c90e-057f-4784-9ff6-39f16c76aa78',
+--   '5cab43ba-cb10-4043-955f-63415e755e63',
+--   '61a5aaa3-0ee7-4003-8af3-c4e64e240078'
+-- )
+-- ORDER BY id
+-- FOR UPDATE;
+-- SELECT id
+-- FROM public.social_reels
+-- WHERE id IN (
+--   '9f65fa3e-9023-4697-8b15-c8f5c4c1c82f',
+--   'b3258975-db9f-42d5-a581-6c305b180b8f',
+--   '2cb727a7-aee1-4e33-975c-db31bc587aea',
+--   '0ac10eae-0380-4836-be80-759ce93ee878',
+--   '46747b18-3e80-4975-abad-09c41e091155',
+--   '8e87782d-dec1-4a54-aab9-1251df417b92',
+--   '31dc2cba-a031-4b6c-9530-168fe080e118'
+-- )
+-- ORDER BY id
+-- FOR UPDATE;
 -- CREATE TEMP TABLE _sup07_post_rights_rollback_before ON COMMIT DROP AS
 -- SELECT *
 -- FROM public.social_posts
