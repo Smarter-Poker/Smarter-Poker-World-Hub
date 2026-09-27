@@ -129,6 +129,29 @@ test('live Reel validation rejects partial, duplicate, stale, legacy, and restri
     () => validateFeedPage(page([{ ...row, caption: 'Members-only subscribers' }], { category: 'sports' }), 'sports'),
     /subscription-only text/,
   );
+  for (const restrictedCopy of [
+    'Membership is required',
+    'Available to this channel’s members',
+    'This video is private',
+    'Video unavailable',
+    'This video was removed',
+    'Not available in your country',
+    'Embedding is disabled',
+    'Confirm that you are not a bot',
+  ]) {
+    assert.throws(
+      () => validateFeedPage(page([{ ...row, title: restrictedCopy }], { category: 'sports' }), 'sports'),
+      /subscription-only text/,
+    );
+  }
+  assert.throws(
+    () => validateFeedPage(page([{ ...row, availability_status: 'unavailable' }], { category: 'sports' }), 'sports'),
+    /Unavailable Reel/,
+  );
+  assert.throws(
+    () => validateFeedPage(page([{ ...row, author_id: 'not-a-uuid' }], { category: 'sports' }), 'sports'),
+    /author identity/,
+  );
   assert.throws(
     () => validateFeedPage(page([{
       ...row,

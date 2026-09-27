@@ -59,6 +59,7 @@ test('the published Reels verifier is read-only and rejects hostile live payload
   const checkedAt = new Date().toISOString();
   const row = {
     id: '00000000-0000-4000-8000-000000000001',
+    author_id: '00000000-0000-4000-8000-000000000002',
     topic: 'sports',
     media_status: 'ready',
     rights_status: 'embed_only',
@@ -106,7 +107,7 @@ test('the published Reels verifier is read-only and rejects hostile live payload
       livePage([{ ...row, availability_status: 'restricted' }], 'sports'),
       'sports',
     ),
-    /Unverified library Reel/,
+    /Unavailable Reel/,
   );
   assert.equal(selectOrdinaryArticle([{
     id: row.id,

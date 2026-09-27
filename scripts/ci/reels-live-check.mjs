@@ -48,15 +48,19 @@ const ALLOWED_ORIGINS = new Set([
 ]);
 const RESTRICTED_TEXT = Object.freeze([
   /\brequires?\s+(?:a\s+)?subscription\b/i,
-  /\bsubscription\s+required\b/i,
+  /\b(?:membership|subscription)\s+(?:is\s+)?required\b/i,
   /\bmembers?[-\s]+only\b/i,
   /\b(?:premium|subscriber)[-\s]+only\b/i,
-  /\bavailable\s+to\s+(?:this\s+)?channel(?:'s)?\s+members\b/i,
+  /\bavailable\s+to\s+(?:this\s+)?channel(?:['’]s)?\s+members\b/i,
   /\bage[-\s]+restricted\b/i,
   /\bconfirm\s+your\s+age\b/i,
   /\bsign\s+in\s+to\s+continue\b/i,
   /\blogin\s+required\b/i,
   /\bsubscribe\s+to\s+(?:watch|view|continue)\b/i,
+  /\b(?:this\s+)?video\s+(?:(?:is|was|has\s+been)\s+)?(?:private|unavailable|removed|deleted)\b/i,
+  /\b(?:not|isn['’]t)\s+available\s+in\s+(?:your|this)\s+(?:country|region)\b/i,
+  /\bembedding\s+(?:is\s+)?disabled\b/i,
+  /\bconfirm\s+(?:that\s+)?you(?:['’]re|\s+are)\s+not\s+a\s+bot\b/i,
 ]);
 
 const SUP07_GROUPS = Object.freeze([
@@ -219,6 +223,7 @@ export function validateReelRow(row, category, {
 } = {}) {
   assert.ok(row && typeof row === 'object', 'Reel row is not an object');
   assert.match(String(row.id || ''), UUID, 'Reel identity is invalid');
+  assert.match(String(row.author_id || ''), UUID, 'Reel author identity is invalid');
   if (requirePublic) assert.equal(row.is_public, true, 'Non-public Reel reached the public feed');
   const topic = String(row.topic || '').toLowerCase();
   const narrowUnknown = category === 'for-you' && isNarrowUnknownNativeReel(row);
@@ -231,6 +236,9 @@ export function validateReelRow(row, category, {
   assert.ok(typeof row.video_url === 'string' && row.video_url.startsWith('https://'), 'Reel playback URL is not HTTPS');
   assert.equal(hasRestrictedText(row), false, 'Restricted or subscription-only text reached the public feed');
   assert.equal(row.legacy_transition_eligible, false, 'Legacy-transition Reel reached the canonical public feed');
+  if (row.availability_status != null) {
+    assert.equal(row.availability_status, 'verified', 'Unavailable Reel reached the public feed');
+  }
   if (row.playback_type === 'youtube_embed') {
     assert.match(String(row.youtube_video_id || ''), YOUTUBE_ID, 'YouTube Reel identity is invalid');
     assert.equal(row.canonical_asset_key, `youtube:${row.youtube_video_id}`, 'YouTube canonical identity disagrees with playback identity');
@@ -455,6 +463,7 @@ export function selfTest() {
   const checkedAt = new Date().toISOString();
   const row = {
     id,
+    author_id: '00000000-0000-4000-8000-000000000004',
     topic: 'sports',
     media_status: 'ready',
     rights_status: 'embed_only',
@@ -494,7 +503,7 @@ export function selfTest() {
   );
   assert.throws(
     () => validateFeedPage(page([{ ...row, availability_status: 'restricted' }]), 'sports'),
-    /Unverified library Reel/,
+    /Unavailable Reel/,
   );
   assert.throws(
     () => validateFeedPage(page([{ ...row, caption: 'Subscription required' }]), 'sports'),
