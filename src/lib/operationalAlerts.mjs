@@ -58,6 +58,31 @@ export function withDestination(payload) {
   if (typeof payload.target_task_id === 'string' && payload.target_task_id.trim()) return payload;
   return { ...payload, target_task_id: ALERT_TASK_ID };
 }
+// Ids of still-open firing rows of one writer whose payload[field] equals value.
+// Recovery evidence is only worth an inbox row when it answers one of these;
+// otherwise every healthy deploy would enter the inbox as a new incident.
+// Throws on any lookup failure so callers keep the delivery retryable.
+export async function openFiringAlertIds({ source, alertname, field, value }) {
+  if (![source, alertname, field, value].every((v) => typeof v === 'string' && v.trim())
+      || !/^[A-Za-z0-9_]+$/.test(field)) {
+    throw new TypeError('source, alertname, payload field and value are required');
+  }
+  const url = (process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL || '').trim();
+  const key = (process.env.SUPABASE_SERVICE_ROLE_KEY || '').trim();
+  if (!url || !key) throw new Error('Operational inbox is not configured');
+  const query = new URLSearchParams({ select: 'id', source: `eq.${source}`, alertname: `eq.${alertname}`,
+    status: 'eq.firing', investigation_status: 'in.(new,investigating)',
+    [`payload->>${field}`]: `eq.${value}`, limit: '50' });
+  const response = await fetch(`${url.replace(/\/$/, '')}/rest/v1/operational_alert_events?${query}`, {
+    method: 'GET', headers: { apikey: key, Authorization: `Bearer ${key}` }, signal: AbortSignal.timeout(8000),
+  });
+  if (!response.ok) throw new Error(`Operational inbox lookup refused (${response.status})`);
+  const rows = await response.json();
+  if (!Array.isArray(rows) || rows.some((row) => !Number.isSafeInteger(row?.id) || row.id <= 0)) {
+    throw new Error('Operational inbox lookup returned an invalid result');
+  }
+  return rows.map((row) => row.id);
+}
 export async function recordOperationalAlerts(rawEvents) {
   if (!rawEvents.length) return [];
   const events = rawEvents.map((event) => (object(event) ? { ...event, payload: withDestination(event.payload) } : event));
