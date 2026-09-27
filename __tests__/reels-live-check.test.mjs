@@ -1,8 +1,11 @@
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import {
   APP_ORIGIN,
+  REQUIRED_RECEIPT_CHECKS,
+  SOURCE_DIVERSITY_FLOORS,
   SUP07_ALIASES,
   crawlAccountCollection,
   crawlCanonicalFeed,
@@ -12,6 +15,10 @@ import {
   validateFeedPage,
   validateReceipt,
 } from '../scripts/ci/reels-live-check.mjs';
+
+const REELS_FEED_SERVER = readFileSync(new URL('../src/lib/server/reelsFeed.js', import.meta.url), 'utf8');
+const REELS_LIVE_CHECK = readFileSync(new URL('../scripts/ci/reels-live-check.mjs', import.meta.url), 'utf8');
+const E2E_WORKFLOW = readFileSync(new URL('../.github/workflows/e2e-tests.yml', import.meta.url), 'utf8');
 
 const OWNER = '11111111-1111-4111-8111-111111111111';
 const POST = '22222222-2222-4222-8222-222222222222';
@@ -43,6 +50,12 @@ function nativeRow(index, overrides = {}) {
     native_processing_requested: false,
     legacy_transition_eligible: false,
     is_public: true,
+    profiles: {
+      id: OWNER,
+      username: 'player-author',
+      full_name: 'Player Author',
+      avatar_url: null,
+    },
     ...overrides,
   };
 }
@@ -168,6 +181,35 @@ test('live Reel validation rejects partial, duplicate, stale, legacy, and restri
   );
 });
 
+test('horse Reels resolve ordinary player profiles, including maintained zero-version database UUIDs', () => {
+  const row = nativeRow(30);
+  validateFeedPage(page([row]), 'for-you');
+  assert.throws(
+    () => validateFeedPage(page([{ ...row, profiles: null }]), 'for-you'),
+    /ordinary player profile/,
+  );
+  assert.throws(
+    () => validateFeedPage(page([{ ...row, profiles: { ...row.profiles, id: uuid(31) } }]), 'for-you'),
+    /profile disagrees/,
+  );
+  assert.throws(
+    () => validateFeedPage(page([{ ...row, profiles: { ...row.profiles, is_horse: true } }]), 'for-you'),
+    /internal fleet label/,
+  );
+
+  assert.match(REELS_FEED_SERVER, /const PERSISTED_UUID_RE = \/\^\[0-9a-f\]\{8\}\(\?:-\[0-9a-f\]\{4\}\)\{3\}-\[0-9a-f\]\{12\}\$\/i/);
+  const attachProfiles = REELS_FEED_SERVER.match(/async function attachProfiles[\s\S]*?(?=\nasync function readPage)/)?.[0] || '';
+  assert.match(attachProfiles, /PERSISTED_UUID_RE\.test\(String\(id \|\| ''\)\)/);
+  assert.doesNotMatch(attachProfiles, /filter\(id => UUID_RE\.test/);
+  const followedAuthors = REELS_FEED_SERVER.match(/async function readFollowedCandidateAuthorIds[\s\S]*?(?=\nasync function loadEligibilityContext)/)?.[0] || '';
+  assert.match(followedAuthors, /candidateAuthorIds\.filter\(id => PERSISTED_UUID_RE\.test/);
+  assert.match(followedAuthors, /filter\(id => PERSISTED_UUID_RE\.test\(id\)\)/);
+  assert.match(followedAuthors, /if \(!UUID_RE\.test\(String\(viewerId \|\| ''\)\)\)/,
+    'caller-controlled viewer identity must remain strict');
+  assert.match(REELS_FEED_SERVER, /const UUID_RE = \/\^\[0-9a-f\]\{8\}-\[0-9a-f\]\{4\}-\[1-5\]/,
+    'caller-controlled UUID validation must remain strict');
+});
+
 test('unknown topic is accepted only for the exact storage-proven native social-post shape', () => {
   const row = nativeRow(40, {
     topic: 'unknown',
@@ -262,6 +304,7 @@ test('My and Saved crawlers remain owner-bound, canonical, complete, and read-on
   });
   assert.equal(mine.receipt.records, 2);
   assert.equal(mine.receipt.ownerBound, true);
+  assert.equal(mine.receipt.ownershipProof, 'row-validated');
 
   const canonical = nativeRow(5_001);
   const savedItem = {
@@ -294,6 +337,8 @@ test('workflow retains and independently asserts the complete sanitized receipt'
 
   const collection = {
     pages: 1,
+    cursors: 0,
+    terminal: true,
     records: 0,
     uniqueReels: 0,
     uniqueAssets: 0,
@@ -302,48 +347,301 @@ test('workflow retains and independently asserts the complete sanitized receipt'
     duplicateAssets: 0,
     ownerBound: true,
     cacheControl: 'private-no-store',
+    ownershipProof: 'authoritative-empty',
   };
+  const categoryReceipt = ({
+    reels,
+    library,
+    horse,
+    socialPost = 0,
+    unknownNative = 0,
+    topics,
+    origins,
+    sourceTypes,
+    playbackTypes,
+    rightsStatuses,
+    uniqueSources,
+    fingerprint,
+    uniqueHorseAuthors = horse,
+  }) => ({
+    pages: 1,
+    cursors: 0,
+    terminal: true,
+    reels,
+    uniqueIds: reels,
+    uniqueAssets: reels,
+    partialPages: 0,
+    duplicateIds: 0,
+    duplicateAssets: 0,
+    restrictedTextMatches: 0,
+    managed: library + horse,
+    library,
+    horse,
+    socialPost,
+    unknownNative,
+    horseAuthorProfiles: {
+      reels: horse,
+      resolvedProfiles: horse,
+      uniqueAuthors: uniqueHorseAuthors,
+      mismatches: 0,
+      internalLabelsExposed: 0,
+    },
+    mix: {
+      topics,
+      origins,
+      sourceTypes,
+      playbackTypes,
+      rightsStatuses,
+      uniqueSources,
+      sourceFingerprint: fingerprint,
+    },
+  });
+  const forYou = categoryReceipt({
+    reels: 2_001,
+    library: 1_999,
+    horse: 1,
+    socialPost: 1,
+    unknownNative: 1,
+    topics: { poker: 1_995, slots: 4, sports: 1, unknown: 1 },
+    origins: { video_library: 1_999, horse: 1, social_post: 1 },
+    sourceTypes: { video_library: 1_999, youtube: 1, native: 1 },
+    playbackTypes: { youtube_embed: 2_000, native: 1 },
+    rightsStatuses: { embed_only: 2_000, user_authorized: 1 },
+    uniqueSources: SOURCE_DIVERSITY_FLOORS['for-you'],
+    fingerprint: '1'.repeat(16),
+  });
+  const poker = categoryReceipt({
+    reels: 60,
+    library: 60,
+    horse: 0,
+    topics: { poker: 60 },
+    origins: { video_library: 60 },
+    sourceTypes: { video_library: 60 },
+    playbackTypes: { youtube_embed: 60 },
+    rightsStatuses: { embed_only: 60 },
+    uniqueSources: SOURCE_DIVERSITY_FLOORS.poker,
+    fingerprint: '2'.repeat(16),
+  });
+  const slots = categoryReceipt({
+    reels: 60,
+    library: 60,
+    horse: 0,
+    topics: { slots: 60 },
+    origins: { video_library: 60 },
+    sourceTypes: { video_library: 60 },
+    playbackTypes: { youtube_embed: 60 },
+    rightsStatuses: { embed_only: 60 },
+    uniqueSources: SOURCE_DIVERSITY_FLOORS['casino-slots'],
+    fingerprint: '3'.repeat(16),
+  });
+  const sports = categoryReceipt({
+    reels: 4,
+    library: 0,
+    horse: 4,
+    topics: { sports: 4 },
+    origins: { horse: 4 },
+    sourceTypes: { youtube: 4 },
+    playbackTypes: { youtube_embed: 4 },
+    rightsStatuses: { embed_only: 4 },
+    uniqueSources: SOURCE_DIVERSITY_FLOORS.sports,
+    fingerprint: '4'.repeat(16),
+  });
   const receipt = {
+    observedAt: new Date().toISOString(),
     status: 'passed',
     expectedSha: 'a'.repeat(40),
     deploymentId: 'deployment-proof',
+    accountFingerprint: '5'.repeat(16),
     productionIdentity: {
       before: { commitSha: 'a'.repeat(40), deploymentId: 'deployment-proof' },
       after: { commitSha: 'a'.repeat(40), deploymentId: 'deployment-proof' },
     },
-    canonicalCrawl: {
-      reels: 2_001,
-      uniqueIds: 2_001,
-      uniqueAssets: 2_001,
-      partialPages: 0,
-      restrictedTextMatches: 0,
-      library: 1,
-      horse: 1,
-      socialPost: 1,
-      unknownNative: 1,
-      mix: { topics: { poker: 1, slots: 1, sports: 1 } },
+    categories: {
+      'for-you': forYou,
+      poker,
+      'casino-slots': slots,
+      sports,
     },
-    aliases: { checked: 11, groups: 4 },
+    canonicalCrawl: forYou,
+    aliases: {
+      checked: 11,
+      groups: 4,
+      winners: 4,
+      fingerprint: createHash('sha256')
+        .update(SUP07_ALIASES.map(alias => `${alias.reference}:${alias.winner}:${alias.key}`).join('|'))
+        .digest('hex')
+        .slice(0, 16),
+    },
     accountCollections: { mine: collection, saved: collection },
+    checks: [...REQUIRED_RECEIPT_CHECKS],
     coverage: {
       healthStable: true,
+      followingApi: { signedOutStatus: 401, signedInStatus: 200, reels: 0 },
       publicMobile: {
+        oldBookmarkCanonicalized: true,
         loserAliasRenderedCanonicalWinner: true,
         staleStorageRetired: true,
         midFlightDropRetainedPlayer: true,
         retryRecoveredSports: true,
+        activePlayers: 1,
+        browserErrors: 0,
+        injectedDrops: 1,
+        readOnlyGuardInstalled: true,
+        blockedMutationAttempts: 3,
+        blockedMutationClasses: ['first-party-write'],
+        allowedMutationAttempts: 0,
+      },
+      staleAuthMobile: {
+        revoked: {
+          apiStatuses: [401],
+          reauthPrompt: true,
+          activePlayers: 0,
+          browserErrors: 0,
+          authStorageCleared: false,
+          blockedAuthRefresh: false,
+          readOnlyGuardInstalled: true,
+          blockedMutationAttempts: 7,
+          blockedMutationClasses: ['first-party-write'],
+          allowedMutationAttempts: 0,
+        },
+        expired: {
+          apiStatuses: [],
+          reauthPrompt: true,
+          activePlayers: 0,
+          browserErrors: 0,
+          authStorageCleared: true,
+          blockedAuthRefresh: true,
+          readOnlyGuardInstalled: true,
+          blockedMutationAttempts: 1,
+          blockedMutationClasses: ['auth-refresh'],
+          allowedMutationAttempts: 0,
+        },
+      },
+      slotsDesktop: {
+        responsibleGamingNotice: true,
+        activePlayers: 1,
+        browserErrors: 0,
+        readOnlyGuardInstalled: true,
+        blockedMutationAttempts: 0,
+        blockedMutationClasses: [],
+        allowedMutationAttempts: 0,
       },
       signedInMobile: {
         followingAuthorized: true,
         ordinaryArticleReaderPreserved: true,
         myReels: { synchronized: true, state: 'empty' },
         savedReels: { synchronized: true, state: 'empty' },
+        browserErrors: 0,
+        readOnlyGuardInstalled: true,
+        blockedMutationAttempts: 5,
+        blockedMutationClasses: ['first-party-write'],
+        allowedMutationAttempts: 0,
       },
     },
   };
   assert.equal(validateReceipt(receipt), receipt);
-  assert.throws(() => validateReceipt({ ...receipt, canonicalCrawl: { ...receipt.canonicalCrawl, reels: 2_000 } }), /more than 2,000/);
+  assert.throws(() => {
+    const underfilled = {
+      ...receipt.canonicalCrawl,
+      reels: 2_000,
+      uniqueIds: 2_000,
+      uniqueAssets: 2_000,
+      managed: 1_999,
+      library: 1_998,
+      mix: {
+        ...receipt.canonicalCrawl.mix,
+        topics: { poker: 1_994, slots: 4, sports: 1, unknown: 1 },
+        origins: { video_library: 1_998, horse: 1, social_post: 1 },
+        sourceTypes: { video_library: 1_998, youtube: 1, native: 1 },
+        playbackTypes: { youtube_embed: 1_999, native: 1 },
+        rightsStatuses: { embed_only: 1_999, user_authorized: 1 },
+      },
+    };
+    validateReceipt({
+      ...receipt,
+      categories: { ...receipt.categories, 'for-you': underfilled },
+      canonicalCrawl: underfilled,
+    });
+  }, /more than 2,000/);
   assert.throws(() => validateReceipt({ ...receipt, aliases: { checked: 10, groups: 4 } }), /every SUP-07/);
+  assert.throws(
+    () => validateReceipt({
+      ...receipt,
+      categories: { ...receipt.categories, sports: undefined },
+    }),
+    /omitted sports/,
+  );
+  assert.throws(
+    () => validateReceipt({
+      ...receipt,
+      categories: {
+        ...receipt.categories,
+        poker: {
+          ...receipt.categories.poker,
+          mix: { ...receipt.categories.poker.mix, uniqueSources: SOURCE_DIVERSITY_FLOORS.poker - 1 },
+        },
+      },
+    }),
+    /source-diversity floor/,
+  );
+  assert.throws(
+    () => validateReceipt({
+      ...receipt,
+      categories: {
+        ...receipt.categories,
+        'for-you': {
+          ...receipt.categories['for-you'],
+          horseAuthorProfiles: {
+            ...receipt.categories['for-you'].horseAuthorProfiles,
+            resolvedProfiles: 0,
+          },
+        },
+      },
+    }),
+    /ordinary player profile/,
+  );
+  assert.throws(
+    () => validateReceipt({
+      ...receipt,
+      coverage: { ...receipt.coverage, staleAuthMobile: undefined },
+    }),
+    /Revoked stale auth did not fail closed/,
+  );
+  assert.throws(
+    () => validateReceipt({
+      ...receipt,
+      coverage: {
+        ...receipt.coverage,
+        publicMobile: { ...receipt.coverage.publicMobile, allowedMutationAttempts: 1 },
+      },
+    }),
+    /allowed a mutation/,
+  );
+  assert.throws(
+    () => validateReceipt({
+      ...receipt,
+      coverage: {
+        ...receipt.coverage,
+        staleAuthMobile: {
+          ...receipt.coverage.staleAuthMobile,
+          revoked: {
+            ...receipt.coverage.staleAuthMobile.revoked,
+            apiStatuses: [401, 200],
+          },
+        },
+      },
+    }),
+    /received private Following media/,
+  );
+  assert.match(REELS_LIVE_CHECK, /const expectedSha = process\.env\.REELS_EXPECTED_SHA;[\s\S]*report\.expectedSha, expectedSha/);
+  assert.match(
+    E2E_WORKFLOW,
+    /name: Assert complete sanitized Reels receipt[\s\S]*REELS_EXPECTED_SHA: \$\{\{ inputs\.expected_sha \}\}/,
+  );
+  assert.throws(
+    () => validateReceipt({ ...receipt, checks: receipt.checks.slice(1) }),
+    /check inventory is incomplete/,
+  );
   assert.throws(
     () => validateReceipt({
       ...receipt,

@@ -34,6 +34,12 @@ const COMPLETE_FEED_MINIMUM = 2_000;
 const MAX_COMPLETE_FEED_PAGES = 50;
 const COLLECTION_LIMIT = 100;
 const MAX_COLLECTION_PAGES = 10;
+export const SOURCE_DIVERSITY_FLOORS = Object.freeze({
+  'for-you': 40,
+  poker: 20,
+  'casino-slots': 5,
+  sports: 4,
+});
 const VERIFICATION_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1_000;
 const MAX_FUTURE_SKEW_MS = 5 * 60 * 1_000;
 const RETIRED_CACHE_KEY = 'sp:reels:poker:v1:production-live-proof';
@@ -96,6 +102,29 @@ export const SUP07_ALIASES = Object.freeze(SUP07_GROUPS.flatMap((group) => [
   ...(group.loser ? [{ reference: group.loser, kind: 'loser', ...group }] : []),
   { reference: group.post, kind: 'post', ...group },
 ].map(Object.freeze)));
+
+export const REQUIRED_RECEIPT_CHECKS = Object.freeze([
+  'Four public categories enforce topic, readiness, rights, attribution, and canonical identity',
+  'For You is crawled to a terminal cursor with more than 2,000 unique canonical Reels',
+  'Every continuing page is full and every response rejects partial, duplicate, stale, legacy, or restricted content',
+  'Topic, origin, source, playback, and rights mixes are retained as sanitized counts',
+  'Every public category meets its accepted source-diversity floor',
+  'Managed library or horse supply is visible in every public category',
+  'Video Library, horse, and social-post supply are visible in the complete public feed',
+  'Every horse Reel resolves to its ordinary player profile without exposing an internal horse label',
+  'Every Video Library Reel is freshly verified, embeddable, and outside legacy transition',
+  'All eleven SUP-07 Reel and post aliases resolve to four canonical winners',
+  'Following rejects signed-out access and accepts the designated test account',
+  'My Reels and Saved Reels are owner-bound, canonical, complete, private, and non-cacheable',
+  'Old loser bookmark canonicalization preserves the requested alias and renders its canonical winner',
+  'Retired browser cache is removed before playback',
+  'Revoked and expired saved sessions fail closed into reauthentication without mounting private media',
+  'A mid-flight category drop retains one mounted player and retry recovers',
+  'Casino And Slots displays the responsible-gaming notice with one player',
+  'Ordinary social articles still open in the protected in-app reader',
+  'My Reels and Saved Reels pages synchronize with their authoritative populated or empty state',
+  'Production revision stayed exact for the full verification window',
+]);
 
 function fixedFailure(error) {
   return error instanceof assert.AssertionError
@@ -237,6 +266,15 @@ export function validateReelRow(row, category, {
   assert.ok(typeof row.video_url === 'string' && row.video_url.startsWith('https://'), 'Reel playback URL is not HTTPS');
   assert.equal(hasRestrictedText(row), false, 'Restricted or subscription-only text reached the public feed');
   assert.equal(row.legacy_transition_eligible, false, 'Legacy-transition Reel reached the canonical public feed');
+  if (row.origin_type === 'horse') {
+    assert.ok(row.profiles && typeof row.profiles === 'object', 'Horse Reel did not resolve an ordinary player profile');
+    assert.equal(row.profiles.id, row.author_id, 'Horse Reel profile disagrees with its player-author identity');
+    assert.equal(
+      Object.prototype.hasOwnProperty.call(row.profiles, 'is_horse'),
+      false,
+      'Horse Reel exposed an internal fleet label in the public profile',
+    );
+  }
   if (row.availability_status != null) {
     assert.equal(row.availability_status, 'verified', 'Unavailable Reel reached the public feed');
   }
@@ -335,6 +373,7 @@ export async function crawlCanonicalFeed(readPage, {
         rows,
         cursorCount: seenCursors.size,
         pageCount: pageNumber,
+        terminal: true,
         mix: supplyReceipt(rows),
       };
     }
@@ -348,6 +387,7 @@ export async function crawlCanonicalFeed(readPage, {
         rows,
         cursorCount: seenCursors.size,
         pageCount: pageNumber,
+        terminal: false,
         mix: supplyReceipt(rows),
       };
     }
@@ -421,6 +461,8 @@ export async function crawlAccountCollection(readPage, {
         rows,
         receipt: {
           pages: pageNumber,
+          cursors: seenCursors.size,
+          terminal: true,
           records: rows.length,
           uniqueReels: seenIds.size,
           uniqueAssets: seenKeys.size,
@@ -429,6 +471,7 @@ export async function crawlAccountCollection(readPage, {
           duplicateAssets: 0,
           ownerBound: true,
           cacheControl: 'private-no-store',
+          ownershipProof: rows.length > 0 ? 'row-validated' : 'authoritative-empty',
         },
       };
     }
@@ -665,7 +708,15 @@ async function collectCategory(category) {
   });
   const { rows } = collection;
   const managed = rows.filter((row) => ['video_library', 'horse'].includes(row.origin_type));
+  const horseRows = rows.filter((row) => row.origin_type === 'horse');
+  const horseAuthors = new Set(horseRows.map((row) => row.author_id));
+  const sourceFloor = SOURCE_DIVERSITY_FLOORS[category];
   assert.ok(managed.length > 0, `${category} did not expose managed library or horse supply`);
+  assert.ok(
+    collection.mix.uniqueSources >= sourceFloor,
+    `${category} exposed fewer than ${sourceFloor} independent sources`,
+  );
+  assert.match(collection.mix.sourceFingerprint, /^[0-9a-f]{16}$/, `${category} source fingerprint is invalid`);
   if (complete) {
     assert.ok(rows.some(row => row.origin_type === 'video_library'), 'Complete For You crawl has no Video Library supply');
     assert.ok(rows.some(row => row.origin_type === 'horse'), 'Complete For You crawl has no horse supply');
@@ -679,6 +730,8 @@ async function collectCategory(category) {
     rows,
     receipt: {
       pages: collection.pageCount,
+      cursors: collection.cursorCount,
+      terminal: collection.terminal,
       reels: rows.length,
       uniqueIds: rows.length,
       uniqueAssets: rows.length,
@@ -691,6 +744,13 @@ async function collectCategory(category) {
       horse: rows.filter((row) => row.origin_type === 'horse').length,
       socialPost: rows.filter((row) => row.origin_type === 'social_post').length,
       unknownNative: rows.filter((row) => row.topic === 'unknown').length,
+      horseAuthorProfiles: {
+        reels: horseRows.length,
+        resolvedProfiles: horseRows.length,
+        uniqueAuthors: horseAuthors.size,
+        mismatches: 0,
+        internalLabelsExposed: 0,
+      },
       mix: collection.mix,
     },
   };
@@ -746,12 +806,41 @@ async function findOrdinaryArticle(token) {
   assert.fail('No ordinary non-Reel article was available for reader verification');
 }
 
+function createReadOnlyBrowserState() {
+  return {
+    blockedMutations: 0,
+    blockedMutationClasses: new Set(),
+    allowedMutations: 0,
+    readOnlyGuardInstalled: false,
+    injectedDrops: 0,
+    failNextSports: false,
+  };
+}
+
+function readOnlyGuardReceipt(state) {
+  return {
+    readOnlyGuardInstalled: state.readOnlyGuardInstalled,
+    blockedMutationAttempts: state.blockedMutations,
+    blockedMutationClasses: [...state.blockedMutationClasses].sort(),
+    allowedMutationAttempts: state.allowedMutations,
+  };
+}
+
 async function installReadOnlyNetworkGuard(context, state) {
+  state.readOnlyGuardInstalled = true;
   await context.route('**/*', async (route) => {
     const request = route.request();
     const target = new URL(request.url());
     if (!isBrowserReadOnlyRequest(request.method(), request.url())) {
       state.blockedMutations += 1;
+      state.blockedMutationClasses.add(
+        target.pathname.endsWith('/auth/v1/token')
+          && target.searchParams.get('grant_type') === 'refresh_token'
+          ? 'auth-refresh'
+          : target.origin === APP_ORIGIN
+            ? 'first-party-write'
+            : 'third-party-write',
+      );
       return route.fulfill({ status: 403, contentType: 'application/json', body: '{"success":false,"error":"Read Only Verification"}' });
     }
     if (
@@ -770,7 +859,7 @@ async function installReadOnlyNetworkGuard(context, state) {
 
 async function verifyPublicBrowser(browser, bookmarkAlias, report) {
   const context = await browser.newContext({ viewport: { width: 390, height: 844 }, serviceWorkers: 'block' });
-  const state = { blockedMutations: 0, injectedDrops: 0, failNextSports: false };
+  const state = createReadOnlyBrowserState();
   await context.addInitScript(({ staleKey }) => {
     localStorage.setItem(staleKey, JSON.stringify({ version: 0, rows: [{ topic: 'sports' }] }));
     sessionStorage.setItem('social-intro-seen', 'true');
@@ -846,7 +935,9 @@ async function verifyPublicBrowser(browser, bookmarkAlias, report) {
       midFlightDropRetainedPlayer: true,
       retryRecoveredSports: true,
       activePlayers: 1,
-      blockedMutationAttempts: state.blockedMutations,
+      browserErrors: pageErrors.length,
+      injectedDrops: state.injectedDrops,
+      ...readOnlyGuardReceipt(state),
     };
   } finally {
     await context.close();
@@ -855,24 +946,127 @@ async function verifyPublicBrowser(browser, bookmarkAlias, report) {
 
 async function verifySlotsBrowser(browser, report) {
   const context = await browser.newContext({ viewport: { width: 1440, height: 1000 }, serviceWorkers: 'block' });
-  const state = { blockedMutations: 0, injectedDrops: 0, failNextSports: false };
+  const state = createReadOnlyBrowserState();
   await installReadOnlyNetworkGuard(context, state);
   const page = await context.newPage();
+  const pageErrors = [];
+  page.on('pageerror', () => pageErrors.push('browser-page-error'));
   page.setDefaultTimeout(40000);
   try {
     await page.goto(`${APP_ORIGIN}/hub/reels?category=casino-slots`, { waitUntil: 'domcontentloaded' });
     await page.getByLabel('Casino And Slots Reels Viewer').waitFor();
     await page.getByLabel('Responsible Gaming Notice').waitFor();
     assert.equal(await page.locator('iframe[src*="youtube-nocookie.com/embed/"], video').count(), 1, 'Slots page mounted more than one media player');
-    report.coverage.slotsDesktop = { responsibleGamingNotice: true, activePlayers: 1 };
+    assert.equal(pageErrors.length, 0, 'Slots Reel page raised a browser error');
+    report.coverage.slotsDesktop = {
+      responsibleGamingNotice: true,
+      activePlayers: 1,
+      browserErrors: pageErrors.length,
+      ...readOnlyGuardReceipt(state),
+    };
   } finally {
     await context.close();
   }
 }
 
+async function verifyStaleAuthBrowser(browser, report) {
+  const staleUserId = '00000000-0000-4000-8000-000000000099';
+  const encode = (value) => Buffer.from(JSON.stringify(value)).toString('base64url');
+  const staleSession = ({ expired }) => {
+    const expiresAt = expired
+      ? Math.floor(Date.now() / 1_000) - 3_600
+      : 4_102_444_800;
+    return {
+      access_token: `${encode({ alg: 'HS256', typ: 'JWT' })}.${encode({
+        aud: 'authenticated',
+        exp: expiresAt,
+        role: 'authenticated',
+        sub: staleUserId,
+      })}.invalid`,
+      refresh_token: expired ? 'expired-read-only-proof' : 'revoked-read-only-proof',
+      expires_in: expired ? -3_600 : 3_600,
+      expires_at: expiresAt,
+      token_type: 'bearer',
+      user: {
+        id: staleUserId,
+        aud: 'authenticated',
+        role: 'authenticated',
+        email: 'stale-reels-proof@example.invalid',
+      },
+    };
+  };
+
+  const verifyCase = async ({ kind, expired }) => {
+    const context = await browser.newContext({ viewport: { width: 390, height: 844 }, serviceWorkers: 'block' });
+    const state = createReadOnlyBrowserState();
+    const session = staleSession({ expired });
+    await context.addInitScript(({ savedSession }) => {
+      localStorage.setItem('smarter-poker-auth', JSON.stringify(savedSession));
+      localStorage.setItem(`sp_firstrun_notif_v2_${savedSession.user.id}`, String(Date.now()));
+      sessionStorage.setItem('social-intro-seen', 'true');
+    }, { savedSession: session });
+    await installReadOnlyNetworkGuard(context, state);
+    const page = await context.newPage();
+    const pageErrors = [];
+    const followingStatuses = [];
+    page.on('pageerror', () => pageErrors.push('browser-page-error'));
+    page.on('response', (response) => {
+      const url = new URL(response.url());
+      if (url.pathname === '/api/reels/feed' && url.searchParams.get('category') === 'following') {
+        followingStatuses.push(response.status());
+      }
+    });
+    page.setDefaultTimeout(45000);
+    try {
+      await page.goto(`${APP_ORIGIN}/hub/reels?category=following`, { waitUntil: 'domcontentloaded' });
+      await page.getByText('Sign In Again For Following', { exact: true }).waitFor();
+      assert.equal(
+        await page.locator('iframe[src*="youtube-nocookie.com/embed/"], video').count(),
+        0,
+        `${kind} saved session mounted private media`,
+      );
+      assert.equal(pageErrors.length, 0, `${kind} saved session raised a browser error`);
+      assert.equal(
+        followingStatuses.some(status => status >= 200 && status < 300),
+        false,
+        `${kind} saved session received private Following media`,
+      );
+      if (expired) {
+        assert.equal(
+          await page.evaluate(() => localStorage.getItem('smarter-poker-auth')),
+          null,
+          'Expired saved session was not retired from localStorage',
+        );
+        assert.ok(
+          state.blockedMutationClasses.has('auth-refresh'),
+          'Expired saved session did not exercise the blocked refresh-token path',
+        );
+      } else {
+        assert.ok(followingStatuses.includes(401), 'Revoked saved session did not fail closed at the API');
+      }
+      return {
+        apiStatuses: followingStatuses,
+        reauthPrompt: true,
+        activePlayers: 0,
+        browserErrors: pageErrors.length,
+        authStorageCleared: expired,
+        blockedAuthRefresh: expired,
+        ...readOnlyGuardReceipt(state),
+      };
+    } finally {
+      await context.close();
+    }
+  };
+
+  report.coverage.staleAuthMobile = {
+    revoked: await verifyCase({ kind: 'Revoked', expired: false }),
+    expired: await verifyCase({ kind: 'Expired', expired: true }),
+  };
+}
+
 async function verifySignedInBrowser(browser, session, article, report) {
   const context = await browser.newContext({ viewport: { width: 390, height: 844 }, serviceWorkers: 'block' });
-  const state = { blockedMutations: 0, injectedDrops: 0, failNextSports: false };
+  const state = createReadOnlyBrowserState();
   await context.addInitScript(({ currentSession }) => {
     localStorage.setItem('smarter-poker-auth', JSON.stringify(currentSession));
     localStorage.setItem(`sp_firstrun_notif_v2_${currentSession.user.id}`, String(Date.now()));
@@ -937,15 +1131,108 @@ async function verifySignedInBrowser(browser, session, article, report) {
       ordinaryArticleReaderPreserved: true,
       myReels,
       savedReels,
-      blockedMutationAttempts: state.blockedMutations,
+      browserErrors: pageErrors.length,
+      ...readOnlyGuardReceipt(state),
     };
   } finally {
     await context.close();
   }
 }
 
+function countTotal(counts, label) {
+  assert.ok(counts && typeof counts === 'object' && !Array.isArray(counts), `${label} counts are missing`);
+  return Object.entries(counts).reduce((total, [key, value]) => {
+    assert.ok(key.length > 0, `${label} contains an empty key`);
+    assert.ok(Number.isInteger(value) && value >= 0, `${label} contains an invalid count`);
+    return total + value;
+  }, 0);
+}
+
+function validateCategoryReceipt(category, receipt) {
+  assert.ok(receipt && typeof receipt === 'object', `Reels live receipt omitted ${category}`);
+  assert.ok(Number.isInteger(receipt.pages) && receipt.pages >= 1, `${category} receipt has no page proof`);
+  assert.ok(Number.isInteger(receipt.cursors) && receipt.cursors >= 0, `${category} receipt has no cursor proof`);
+  assert.equal(typeof receipt.terminal, 'boolean', `${category} receipt omitted terminal-cursor state`);
+  assert.equal(
+    receipt.cursors,
+    receipt.terminal ? receipt.pages - 1 : receipt.pages,
+    `${category} cursor count disagrees with its terminal state`,
+  );
+  if (category === 'for-you') assert.equal(receipt.terminal, true, 'For You crawl did not reach its terminal cursor');
+  assert.ok(Number.isInteger(receipt.reels) && receipt.reels > 0, `${category} receipt has no Reels`);
+  assert.equal(receipt.uniqueIds, receipt.reels, `${category} receipt contains duplicate Reel identities`);
+  assert.equal(receipt.uniqueAssets, receipt.reels, `${category} receipt contains duplicate canonical assets`);
+  assert.equal(receipt.partialPages, 0, `${category} receipt contains partial pages`);
+  assert.equal(receipt.duplicateIds, 0, `${category} receipt contains duplicate Reels`);
+  assert.equal(receipt.duplicateAssets, 0, `${category} receipt contains duplicate assets`);
+  assert.equal(receipt.restrictedTextMatches, 0, `${category} receipt contains restricted content markers`);
+  assert.ok(receipt.managed > 0, `${category} receipt has no managed supply`);
+  assert.equal(receipt.managed, receipt.library + receipt.horse, `${category} managed count is inconsistent`);
+
+  const mix = receipt.mix;
+  assert.ok(mix && typeof mix === 'object', `${category} receipt omitted its supply mix`);
+  for (const [name, counts] of [
+    ['topics', mix.topics],
+    ['origins', mix.origins],
+    ['source types', mix.sourceTypes],
+    ['playback types', mix.playbackTypes],
+    ['rights statuses', mix.rightsStatuses],
+  ]) {
+    assert.equal(countTotal(counts, `${category} ${name}`), receipt.reels, `${category} ${name} do not cover every Reel`);
+  }
+  const allowedTopics = CATEGORY_TOPICS[category];
+  assert.ok(
+    Object.keys(mix.topics).every((topic) => allowedTopics.has(topic) || (category === 'for-you' && topic === 'unknown')),
+    `${category} receipt contains a topic outside its contract`,
+  );
+  assert.ok(
+    Number.isInteger(mix.uniqueSources)
+      && mix.uniqueSources >= SOURCE_DIVERSITY_FLOORS[category]
+      && mix.uniqueSources <= receipt.reels,
+    `${category} receipt fell below its source-diversity floor`,
+  );
+  assert.match(String(mix.sourceFingerprint || ''), /^[0-9a-f]{16}$/, `${category} receipt has no source fingerprint`);
+  assert.equal(mix.origins.video_library || 0, receipt.library, `${category} Video Library origin count is inconsistent`);
+  assert.equal(mix.origins.horse || 0, receipt.horse, `${category} horse origin count is inconsistent`);
+  assert.equal(mix.origins.social_post || 0, receipt.socialPost, `${category} social-post origin count is inconsistent`);
+  assert.equal(mix.topics.unknown || 0, receipt.unknownNative, `${category} unknown-native topic count is inconsistent`);
+
+  const horseProfiles = receipt.horseAuthorProfiles;
+  assert.ok(horseProfiles && typeof horseProfiles === 'object', `${category} receipt omitted horse player-profile proof`);
+  assert.equal(horseProfiles.reels, receipt.horse, `${category} horse profile count disagrees with its origin count`);
+  assert.equal(horseProfiles.resolvedProfiles, receipt.horse, `${category} horse Reel lacks an ordinary player profile`);
+  assert.ok(
+    Number.isInteger(horseProfiles.uniqueAuthors)
+      && horseProfiles.uniqueAuthors >= (receipt.horse > 0 ? 1 : 0)
+      && horseProfiles.uniqueAuthors <= receipt.horse,
+    `${category} horse author count is invalid`,
+  );
+  assert.equal(horseProfiles.mismatches, 0, `${category} horse profile disagrees with its author`);
+  assert.equal(horseProfiles.internalLabelsExposed, 0, `${category} exposed an internal horse label`);
+}
+
+function validateReadOnlyGuardProof(receipt, label) {
+  assert.equal(receipt?.readOnlyGuardInstalled, true, `${label} omitted its read-only browser guard`);
+  assert.ok(
+    Number.isInteger(receipt?.blockedMutationAttempts) && receipt.blockedMutationAttempts >= 0,
+    `${label} has an invalid blocked-mutation count`,
+  );
+  assert.ok(
+    Array.isArray(receipt?.blockedMutationClasses)
+      && receipt.blockedMutationClasses.every(value => ['auth-refresh', 'first-party-write', 'third-party-write'].includes(value)),
+    `${label} has an invalid blocked-mutation classification`,
+  );
+  assert.equal(
+    receipt.blockedMutationClasses.length > 0,
+    receipt.blockedMutationAttempts > 0,
+    `${label} mutation count and classifications disagree`,
+  );
+  assert.equal(receipt?.allowedMutationAttempts, 0, `${label} allowed a mutation during live verification`);
+}
+
 export function validateReceipt(report) {
   assert.equal(report?.status, 'passed', 'Reels live receipt is not passing');
+  assert.equal(isFreshTimestamp(report?.observedAt), true, 'Reels live receipt observation time is missing or stale');
   assert.match(String(report.expectedSha || ''), /^[0-9a-f]{40}$/i, 'Reels live receipt has no exact protected revision');
   assert.ok(typeof report.deploymentId === 'string' && report.deploymentId.length > 0, 'Reels live receipt has no deployment identity');
   const beforeIdentity = report.productionIdentity?.before;
@@ -957,11 +1244,10 @@ export function validateReceipt(report) {
   }
   assert.equal(beforeIdentity.deploymentId, afterIdentity.deploymentId, 'Production deployment changed during the Reels verification');
   assert.equal(report.deploymentId, beforeIdentity.deploymentId, 'Top-level deployment identity disagrees with the initial health proof');
-  assert.ok(report.canonicalCrawl?.reels > COMPLETE_FEED_MINIMUM, 'Reels live receipt did not prove more than 2,000 canonical Reels');
-  assert.equal(report.canonicalCrawl.uniqueIds, report.canonicalCrawl.reels, 'Reels live receipt contains duplicate Reel identities');
-  assert.equal(report.canonicalCrawl.uniqueAssets, report.canonicalCrawl.reels, 'Reels live receipt contains duplicate canonical assets');
-  assert.equal(report.canonicalCrawl.partialPages, 0, 'Reels live receipt contains partial pages');
-  assert.equal(report.canonicalCrawl.restrictedTextMatches, 0, 'Reels live receipt contains restricted content markers');
+  assert.match(String(report.accountFingerprint || ''), /^[0-9a-f]{16}$/, 'Reels live receipt omitted the designated-account fingerprint');
+  for (const category of REEL_CATEGORIES) validateCategoryReceipt(category, report.categories?.[category]);
+  assert.deepEqual(report.canonicalCrawl, report.categories['for-you'], 'Canonical crawl disagrees with the complete For You receipt');
+  assert.ok(report.canonicalCrawl.reels > COMPLETE_FEED_MINIMUM, 'Reels live receipt did not prove more than 2,000 canonical Reels');
   assert.ok(report.canonicalCrawl.library > 0, 'Reels live receipt has no Video Library supply');
   assert.ok(report.canonicalCrawl.horse > 0, 'Reels live receipt has no horse supply');
   assert.ok(report.canonicalCrawl.socialPost > 0, 'Reels live receipt has no social-post supply');
@@ -974,29 +1260,97 @@ export function validateReceipt(report) {
   );
   assert.equal(report.aliases?.checked, SUP07_ALIASES.length, 'Reels live receipt did not check every SUP-07 bookmark alias');
   assert.equal(report.aliases?.groups, SUP07_GROUPS.length, 'Reels live receipt did not check every SUP-07 canonical group');
+  assert.equal(report.aliases?.winners, SUP07_GROUPS.length, 'Reels live receipt did not retain every SUP-07 winner');
+  assert.equal(
+    report.aliases?.fingerprint,
+    digest(SUP07_ALIASES.map(alias => `${alias.reference}:${alias.winner}:${alias.key}`).join('|')),
+    'Reels live receipt SUP-07 fingerprint differs from the maintained alias inventory',
+  );
+  assert.equal(report.coverage?.followingApi?.signedOutStatus, 401, 'Following did not reject signed-out API access');
+  assert.equal(report.coverage?.followingApi?.signedInStatus, 200, 'Following did not accept the designated account');
+  assert.ok(Number.isInteger(report.coverage?.followingApi?.reels) && report.coverage.followingApi.reels >= 0, 'Following API receipt has an invalid count');
   for (const collection of ['mine', 'saved']) {
     const receipt = report.accountCollections?.[collection];
     assert.ok(receipt, `Reels live receipt omitted the ${collection} collection`);
+    assert.ok(Number.isInteger(receipt.pages) && receipt.pages >= 1, `${collection} collection receipt has no terminal page`);
+    assert.ok(Number.isInteger(receipt.cursors) && receipt.cursors >= 0, `${collection} collection receipt has no cursor proof`);
+    assert.equal(receipt.terminal, true, `${collection} collection crawl did not reach its terminal cursor`);
+    assert.equal(receipt.cursors, receipt.pages - 1, `${collection} collection cursor count is inconsistent`);
+    assert.ok(Number.isInteger(receipt.records) && receipt.records >= 0, `${collection} collection receipt has an invalid count`);
+    assert.equal(receipt.uniqueReels, receipt.records, `${collection} collection receipt has duplicate Reels`);
+    assert.equal(receipt.uniqueAssets, receipt.records, `${collection} collection receipt has duplicate assets`);
     assert.equal(receipt.partialPages, 0, `${collection} collection receipt contains partial pages`);
     assert.equal(receipt.duplicateIds, 0, `${collection} collection receipt contains duplicate Reels`);
     assert.equal(receipt.duplicateAssets, 0, `${collection} collection receipt contains duplicate assets`);
     assert.equal(receipt.ownerBound, true, `${collection} collection receipt is not owner-bound`);
     assert.equal(receipt.cacheControl, 'private-no-store', `${collection} collection receipt is not private and non-cacheable`);
-    assert.equal(report.coverage?.signedInMobile?.[collection === 'mine' ? 'myReels' : 'savedReels']?.synchronized, true, `${collection} collection page did not synchronize`);
+    assert.equal(
+      receipt.ownershipProof,
+      receipt.records > 0 ? 'row-validated' : 'authoritative-empty',
+      `${collection} collection receipt overstates its live ownership proof`,
+    );
+    const pageReceipt = report.coverage?.signedInMobile?.[collection === 'mine' ? 'myReels' : 'savedReels'];
+    assert.equal(pageReceipt?.synchronized, true, `${collection} collection page did not synchronize`);
+    assert.equal(pageReceipt?.state, receipt.records > 0 ? 'populated' : 'empty', `${collection} collection UI disagrees with the API`);
   }
+  assert.equal(report.coverage?.publicMobile?.oldBookmarkCanonicalized, true, 'Old bookmark query was not canonicalized');
   assert.equal(report.coverage?.publicMobile?.loserAliasRenderedCanonicalWinner, true, 'Old loser bookmark did not render its canonical winner');
   assert.equal(report.coverage?.publicMobile?.staleStorageRetired, true, 'Hostile stale storage was not retired');
   assert.equal(report.coverage?.publicMobile?.midFlightDropRetainedPlayer, true, 'Mid-flight drop did not retain the active player');
   assert.equal(report.coverage?.publicMobile?.retryRecoveredSports, true, 'Sports retry did not recover');
+  assert.equal(report.coverage?.publicMobile?.activePlayers, 1, 'Public mobile proof did not retain exactly one active player');
+  assert.equal(report.coverage?.publicMobile?.browserErrors, 0, 'Public mobile verification raised a browser error');
+  assert.equal(report.coverage?.publicMobile?.injectedDrops, 1, 'Public mobile verification did not exercise exactly one hostile drop');
+  validateReadOnlyGuardProof(report.coverage?.publicMobile, 'Public mobile verification');
+  const revokedStaleAuth = report.coverage?.staleAuthMobile?.revoked;
+  assert.ok(Array.isArray(revokedStaleAuth?.apiStatuses) && revokedStaleAuth.apiStatuses.includes(401), 'Revoked stale auth did not fail closed');
+  assert.equal(
+    revokedStaleAuth.apiStatuses.every(status => Number.isInteger(status) && (status < 200 || status >= 300)),
+    true,
+    'Revoked stale auth received private Following media',
+  );
+  assert.equal(revokedStaleAuth?.reauthPrompt, true, 'Revoked stale auth did not render reauthentication');
+  assert.equal(revokedStaleAuth?.activePlayers, 0, 'Revoked stale auth mounted private media');
+  assert.equal(revokedStaleAuth?.browserErrors, 0, 'Revoked stale auth raised a browser error');
+  validateReadOnlyGuardProof(revokedStaleAuth, 'Revoked stale-auth verification');
+  const expiredStaleAuth = report.coverage?.staleAuthMobile?.expired;
+  assert.ok(
+    Array.isArray(expiredStaleAuth?.apiStatuses)
+      && expiredStaleAuth.apiStatuses.every(status => Number.isInteger(status) && (status < 200 || status >= 300)),
+    'Expired stale auth received private Following media',
+  );
+  assert.equal(expiredStaleAuth?.reauthPrompt, true, 'Expired stale auth did not render reauthentication');
+  assert.equal(expiredStaleAuth?.activePlayers, 0, 'Expired stale auth mounted private media');
+  assert.equal(expiredStaleAuth?.browserErrors, 0, 'Expired stale auth raised a browser error');
+  assert.equal(expiredStaleAuth?.authStorageCleared, true, 'Expired stale auth was not retired from localStorage');
+  assert.equal(expiredStaleAuth?.blockedAuthRefresh, true, 'Expired stale auth did not exercise a blocked refresh');
+  assert.ok(expiredStaleAuth?.blockedMutationClasses?.includes('auth-refresh'), 'Expired stale auth omitted its blocked refresh evidence');
+  validateReadOnlyGuardProof(expiredStaleAuth, 'Expired stale-auth verification');
+  assert.equal(report.coverage?.slotsDesktop?.responsibleGamingNotice, true, 'Slots responsible-gaming notice was not verified');
+  assert.equal(report.coverage?.slotsDesktop?.activePlayers, 1, 'Slots desktop proof did not mount exactly one player');
+  assert.equal(report.coverage?.slotsDesktop?.browserErrors, 0, 'Slots desktop verification raised a browser error');
+  validateReadOnlyGuardProof(report.coverage?.slotsDesktop, 'Slots desktop verification');
   assert.equal(report.coverage?.signedInMobile?.followingAuthorized, true, 'Following was not verified with the designated identity');
   assert.equal(report.coverage?.signedInMobile?.ordinaryArticleReaderPreserved, true, 'Ordinary article reader was not preserved');
+  assert.equal(report.coverage?.signedInMobile?.browserErrors, 0, 'Signed-in mobile verification raised a browser error');
+  validateReadOnlyGuardProof(report.coverage?.signedInMobile, 'Signed-in mobile verification');
   assert.equal(report.coverage?.healthStable, true, 'Production identity changed during the Reels verification');
+  assert.ok(Array.isArray(report.checks), 'Reels live receipt omitted its completed-check inventory');
+  assert.equal(report.checks.length, REQUIRED_RECEIPT_CHECKS.length, 'Reels live receipt check inventory is incomplete');
+  assert.deepEqual(
+    [...new Set(report.checks)].sort(),
+    [...REQUIRED_RECEIPT_CHECKS].sort(),
+    'Reels live receipt check inventory differs from the maintained contract',
+  );
   return report;
 }
 
 async function checkReceipt(path) {
   assert.ok(path, 'Receipt path is required');
+  const expectedSha = process.env.REELS_EXPECTED_SHA;
+  assert.match(String(expectedSha || ''), /^[0-9a-f]{40}$/i, 'Standalone receipt validation requires the dispatched exact SHA');
   const report = JSON.parse(await readFile(path, 'utf8'));
+  assert.equal(report.expectedSha, expectedSha, 'Sanitized Reels receipt differs from the dispatched exact SHA');
   validateReceipt(report);
   console.log('Reels live receipt assertions passed');
 }
@@ -1069,24 +1423,13 @@ async function run() {
       mine: mine.receipt,
       saved: saved.receipt,
     };
-    report.checks.push(
-      'Four public categories enforce topic, readiness, rights, attribution, and canonical identity',
-      'For You is crawled to a terminal cursor with more than 2,000 unique canonical Reels',
-      'Every continuing page is full and every response rejects partial, duplicate, stale, legacy, or restricted content',
-      'Topic, origin, source, playback, and rights mixes are retained as sanitized counts',
-      'Managed library or horse supply is visible in every public category',
-      'Video Library, horse, and social-post supply are visible in the complete public feed',
-      'Every Video Library Reel is freshly verified, embeddable, and outside legacy transition',
-      'All eleven SUP-07 Reel and post aliases resolve to four canonical winners',
-      'Following rejects signed-out access and accepts the designated test account',
-      'My Reels and Saved Reels are owner-bound, canonical, complete, private, and non-cacheable',
-    );
 
     const article = await findOrdinaryArticle(session.access_token);
     const { chromium } = await import('playwright');
     browser = await chromium.launch({ headless: true });
     await verifyPublicBrowser(browser, SUP07_ALIASES.find(alias => alias.kind === 'loser'), report);
     await verifySlotsBrowser(browser, report);
+    await verifyStaleAuthBrowser(browser, report);
     await verifySignedInBrowser(browser, session, article, report);
 
     const finalHealth = await assertHealth(report.expectedSha);
@@ -1096,15 +1439,7 @@ async function run() {
       deploymentId: finalHealth.deploymentId,
     };
     report.coverage.healthStable = true;
-    report.checks.push(
-      'Old loser bookmark canonicalization preserves the requested alias and renders its canonical winner',
-      'Retired browser cache is removed before playback',
-      'A mid-flight category drop retains one mounted player and retry recovers',
-      'Casino And Slots displays the responsible-gaming notice',
-      'Ordinary social articles still open in the protected in-app reader',
-      'My Reels and Saved Reels pages synchronize or render their explicit empty state',
-      'Production revision stayed exact for the full verification window',
-    );
+    report.checks = [...REQUIRED_RECEIPT_CHECKS];
     report.status = 'passed';
     validateReceipt(report);
     console.log(JSON.stringify(report));
