@@ -136,7 +136,9 @@ EXPECTED_TRANSIENT_REASONS = frozenset({
 })
 # A content-specific expected transient remains in the per-video failure ledger,
 # but one such row must not discard a large batch of conclusive work. Widespread
-# expected transients still fail the run as a provider/parser anomaly.
+# inconclusive results, including operational parser/transport failures, still
+# fail the run as a provider/parser anomaly. Individual inconclusive rows are
+# never published regardless of the batch-level budget.
 EXPECTED_TRANSIENT_MIN_BUDGET = 5
 EXPECTED_TRANSIENT_MAX_RATIO = 0.10
 RELEASE_RECOVERY_SURFACE_PREFIX = 'release_recovery_v2_'
@@ -2663,12 +2665,40 @@ def _expected_transient_budget_exceeded(stats):
     return transient > budget
 
 
+def _verifier_inconclusive_budget_exceeded(stats):
+    """Fail systemic verifier drift without discarding conclusive batch work.
+
+    Every operational error and expected transient remains an UNKNOWN row and
+    cannot publish. The batch itself may still succeed when a small bounded
+    minority is inconclusive; otherwise one temporary upstream response would
+    invalidate hundreds of independently verified publications. An entirely
+    inconclusive batch, or more than max(5, 10%), remains a hard failure.
+    """
+    attempted = (
+        stats['verification_attempted']
+        + stats['platform_verification_attempted']
+        + stats['failure_verification_attempted']
+    )
+    inconclusive = (
+        stats['verifier_errors_observed']
+        + stats['expected_transient_verifier_results']
+    )
+    if not attempted or not inconclusive:
+        return False
+    if inconclusive >= attempted:
+        return True
+    budget = max(
+        EXPECTED_TRANSIENT_MIN_BUDGET,
+        int(attempted * EXPECTED_TRANSIENT_MAX_RATIO),
+    )
+    return inconclusive > budget
+
+
 def _stats_require_nonzero_exit(stats):
     return bool(
         stats['rpc_errors']
         or stats['failure_verdict_errors']
-        or stats['verifier_errors_observed']
-        or _expected_transient_budget_exceeded(stats)
+        or _verifier_inconclusive_budget_exceeded(stats)
         or stats['checkpoint_write_errors']
         or stats['deadline_reached']
         or stats['feed_visibility_failures']
