@@ -653,7 +653,12 @@ def _is_operational_verifier_error(result):
 
 
 def _classify_http_error(prefix, error):
-    if error.code in (404, 410):
+    # Only oEmbed is the durable content-identity endpoint in this pipeline.
+    # A 404/410 from the embed document or the internal player endpoint can be
+    # caused by endpoint, key, routing, or transport drift after oEmbed already
+    # proved the exact video exists. Keep those failures operational/unknown so
+    # they cannot poison the 14-day availability verdict.
+    if prefix == 'oembed' and error.code in (404, 410):
         return _availability('unavailable', f'{prefix}_http_{error.code}')
     return _availability('error', f'{prefix}_http_{error.code}')
 

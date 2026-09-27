@@ -415,6 +415,14 @@ test('publisher/scraper preflights are read-only and yt-dlp ignores host state',
   assert.match(scraper, /AI analysis pre-warm failed/);
   assert.match(scraper, /AI tagging trigger failed/);
   assert.match(scraper, /summary\['errors'\]\.append\(f'Report commit unconfirmed:/);
+  const purge = scraper.slice(
+    scraper.indexOf('def check_playable'),
+    scraper.indexOf('# ── Published-date + views backfill'),
+  );
+  assert.match(purge, /error\.code in \(404, 410\)/);
+  assert.match(purge, /record_youtube_embed_failure_verdict/);
+  assert.match(purge, /p_verification_started_at/);
+  assert.doesNotMatch(purge, /\.update\s*\(/, 'purge must not write catalog availability directly');
   assert.doesNotMatch(scraper, /SLACK_WEBHOOK_URL|hooks\.slack\.com/);
   assert.doesNotMatch(dispatcher, /Twilio HTTP \{resp\.status_code\}: \{resp\.text/);
 

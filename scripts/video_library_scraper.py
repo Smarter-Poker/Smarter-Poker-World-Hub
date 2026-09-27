@@ -387,17 +387,28 @@ def yt_upload_date_to_iso(ud: str) -> str | None:
     return None
 
 
-def check_playable(vid_id: str) -> bool:
-    """Returns True if the video is publicly embeddable (YouTube oEmbed 200)."""
+def check_playable(vid_id: str) -> dict:
+    """Return a tri-state oEmbed observation without inventing restrictions."""
     url = f'https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v={vid_id}&format=json'
+    verification_started_at = datetime.now(timezone.utc).isoformat()
     try:
         req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
         with urllib.request.urlopen(req, timeout=6):
-            return True
-    except urllib.error.HTTPError:
-        return False
+            return {
+                'status': 'playable',
+                'verification_started_at': verification_started_at,
+            }
+    except urllib.error.HTTPError as error:
+        return {
+            'status': 'unavailable' if error.code in (404, 410) else 'unknown',
+            'verification_started_at': verification_started_at,
+            'http_status': error.code,
+        }
     except (urllib.error.URLError, TimeoutError, OSError):
-        return True  # Network error — don't delete on uncertainty
+        return {
+            'status': 'unknown',
+            'verification_started_at': verification_started_at,
+        }
 
 
 def scrape_succeeded(summary: dict) -> bool:
@@ -445,10 +456,11 @@ def report_to_api(summary: dict) -> dict:
 
 def purge_dead_videos(batch_size: int = 20, dry_run: bool = False) -> dict:
     """
-    Check all DB videos via YouTube oEmbed API. Mark confirmed 4xx rows
-    unavailable instead of deleting them, preserving published lineage and
-    allowing the database trigger to hide linked posts/Reels atomically.
-    Network errors remain non-destructive.
+    Check all DB videos via YouTube oEmbed. Only 404/410 are definitive here;
+    401/403/429/5xx and transport failures remain unknown. Record definitive
+    removals through the canonical race-safe verdict RPC so the catalog and
+    shared failure registry change in one transaction. Nothing writes the
+    catalog table directly.
     """
     log.info('Starting dead-video purge...')
     # 2026-08-15: same 1000-row PostgREST cap — the purge silently stopped
@@ -466,41 +478,60 @@ def purge_dead_videos(batch_size: int = 20, dry_run: bool = False) -> dict:
             break
         _page += 1
 
-    dead_ids   = []
-    dead_vids  = []
-    checked    = 0
+    dead_vids = []
+    checked = 0
+    unknown = 0
 
     for v in all_vids:
         vid_id = v['youtube_video_id']
-        if not check_playable(vid_id):
-            dead_ids.append(v['id'])
-            dead_vids.append((v['source_id'], vid_id, v['title'][:60]))
+        observation = check_playable(vid_id)
+        if observation['status'] == 'unavailable':
+            dead_vids.append({
+                'source_id': v['source_id'],
+                'video_id': vid_id,
+                'title': v['title'][:60],
+                'verification_started_at': observation['verification_started_at'],
+            })
+        elif observation['status'] == 'unknown':
+            unknown += 1
         checked += 1
         time.sleep(0.08)  # ~12/sec — polite
 
-    log.info(f'Checked {checked} videos. Dead: {len(dead_ids)}')
+    log.info(f'Checked {checked} videos. Dead: {len(dead_vids)}. Unknown: {unknown}')
     for d in dead_vids:
-        log.warning(f'  DEAD [{d[0]}] {d[1]} — {d[2]}')
+        log.warning(f"  DEAD [{d['source_id']}] {d['video_id']} — {d['title']}")
 
-    if dead_ids and not dry_run:
-        checked_at = datetime.now(timezone.utc).isoformat()
-        for db_id in dead_ids:
-            (supabase.table('video_library_videos')
-             .update({
-                 'availability_status': 'unavailable',
-                 'embeddable': False,
-                 'availability_checked_at': checked_at,
-                 'availability_failure_reason': 'youtube_oembed_http_4xx',
-                 'availability_source': 'youtube_oembed',
-             })
-             .eq('id', db_id)
-             .execute())
-        log.info(f'Marked {len(dead_ids)} unplayable videos unavailable; lineage retained.')
+    if dead_vids and not dry_run:
+        for dead in dead_vids:
+            response = supabase.rpc(
+                'record_youtube_embed_failure_verdict',
+                {
+                    'p_video_id': dead['video_id'],
+                    'p_verdict': 'unavailable',
+                    'p_error_code': 100,
+                    'p_surface': 'video_library_purge',
+                    'p_verification_started_at': dead['verification_started_at'],
+                },
+            ).execute()
+            rows = response.data if isinstance(response.data, list) else []
+            verdict = rows[0] if rows else None
+            if not (
+                isinstance(verdict, dict)
+                and verdict.get('verification_status') == 'confirmed'
+                and verdict.get('resolved') is False
+            ):
+                raise RuntimeError(
+                    f"Purge verdict was not confirmed for {dead['video_id']}"
+                )
+        log.info(
+            f'Marked {len(dead_vids)} removed videos unavailable through the canonical verdict RPC.'
+        )
 
     return {
         'checked': checked,
-        'dead': len(dead_ids),
-        'marked_unavailable': 0 if dry_run else len(dead_ids),
+        'dead': len(dead_vids),
+        'unknown': unknown,
+        'marked_unavailable': 0 if dry_run else len(dead_vids),
         'purged': 0,
     }
 

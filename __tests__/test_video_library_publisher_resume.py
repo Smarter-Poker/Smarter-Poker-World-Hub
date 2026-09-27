@@ -194,6 +194,76 @@ class VideoLibraryPublisherResumeTest(unittest.TestCase):
                     self.assertEqual(result['status'], expected_status)
                     self.assertEqual(result['reason'], expected_reason)
 
+    def test_embed_404_after_public_oembed_stays_operational_unknown(self):
+        bridge = self.bridge
+        calls = []
+
+        def urlopen(request, **_kwargs):
+            calls.append(request.full_url)
+            if '/oembed?' in request.full_url:
+                return self._oembed_response()
+            if '/embed/' in request.full_url:
+                raise bridge.urllib.error.HTTPError(
+                    request.full_url, 404, 'test embed route failure', {}, None
+                )
+            raise AssertionError(f'unexpected verification URL: {request.full_url}')
+
+        bridge._run_isolated_ytdlp = lambda *_args, **_kwargs: SimpleNamespace(
+            returncode=0,
+            stdout=json.dumps({
+                'availability': 'public',
+                'age_limit': 0,
+                'playable_in_embed': True,
+            }),
+            stderr='',
+        )
+        with mock.patch.object(bridge.urllib.request, 'urlopen', side_effect=urlopen):
+            result = bridge.verify_youtube_video_scrapling('M7lc1UVf-VE')
+
+        self.assertEqual(result, {
+            'available': False,
+            'status': 'error',
+            'reason': 'youtube_embed_http_404',
+        })
+        self.assertEqual(len(calls), 2)
+        self.assertNotIn(result['status'], bridge.PERMANENT_FAILURE_STATUSES)
+
+    def test_player_410_after_public_oembed_and_embed_stays_operational_unknown(self):
+        bridge = self.bridge
+        calls = []
+
+        def urlopen(request, **_kwargs):
+            calls.append(request.full_url)
+            if '/oembed?' in request.full_url:
+                return self._oembed_response()
+            if '/embed/' in request.full_url:
+                return self._embed_response()
+            if '/youtubei/v1/player?' in request.full_url:
+                raise bridge.urllib.error.HTTPError(
+                    request.full_url, 410, 'test player route failure', {}, None
+                )
+            raise AssertionError(f'unexpected verification URL: {request.full_url}')
+
+        bridge._run_isolated_ytdlp = lambda *_args, **_kwargs: SimpleNamespace(
+            returncode=0,
+            stdout=json.dumps({
+                'availability': 'public',
+                'age_limit': 0,
+                'playable_in_embed': True,
+            }),
+            stderr='',
+        )
+        with mock.patch.object(bridge.urllib.request, 'urlopen', side_effect=urlopen):
+            result = bridge.verify_youtube_video_scrapling('M7lc1UVf-VE')
+
+        self.assertEqual(result, {
+            'available': False,
+            'status': 'error',
+            'reason': 'youtube_player_http_410',
+        })
+        self.assertEqual(len(calls), 3)
+        self.assertNotIn(result['status'], bridge.PERMANENT_FAILURE_STATUSES)
+
     def test_bot_challenge_is_operational_unless_the_anonymous_embed_proves_public(self):
         bridge = self.bridge
         bridge._run_isolated_ytdlp = lambda *_args, **_kwargs: SimpleNamespace(

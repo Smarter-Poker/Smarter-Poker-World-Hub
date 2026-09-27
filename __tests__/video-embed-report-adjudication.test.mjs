@@ -159,7 +159,7 @@ function loadRoute({
 }
 
 test('a definitive oEmbed answer records exactly one mirrored negative verdict', async () => {
-  for (const [status, verdict] of [[401, 'private'], [403, 'restricted'], [404, 'unavailable'], [410, 'unavailable']]) {
+  for (const [status, verdict] of [[404, 'unavailable'], [410, 'unavailable']]) {
     const upstream = oembedResponse(status);
     const harness = loadRoute({ fetchImpl: async () => upstream });
     const res = await harness.report({ videoId: ` ${VIDEO_ID} `, errorCode: '101', surface: 'Reels' });
@@ -200,7 +200,7 @@ test('a definitive oEmbed answer records exactly one mirrored negative verdict',
 });
 
 test('non-definitive oEmbed answers never adjudicate and the report still succeeds', async () => {
-  for (const status of [200, 204, 301, 302, 400, 402, 408, 429, 500, 502, 503]) {
+  for (const status of [200, 204, 301, 302, 400, 401, 402, 403, 408, 429, 500, 502, 503]) {
     const harness = loadRoute({ fetchImpl: async () => oembedResponse(status) });
     const res = await harness.report();
     assert.equal(res.statusCode, 202, `oEmbed ${status}`);
@@ -417,7 +417,7 @@ test('repeated reports for one video cannot amplify outbound oEmbed traffic', as
 });
 
 test('the route never sends a verified verdict for any upstream status', async () => {
-  const definitive = new Map([[401, 'private'], [403, 'restricted'], [404, 'unavailable'], [410, 'unavailable']]);
+  const definitive = new Map([[404, 'unavailable'], [410, 'unavailable']]);
   for (let status = 100; status <= 599; status += 1) {
     const harness = loadRoute({ fetchImpl: async () => oembedResponse(status) });
     await harness.report();
@@ -434,10 +434,10 @@ test('the route never sends a verified verdict for any upstream status', async (
 test('the status mapping mirrors the Python verifier and the installed verdict RPC', () => {
   const classifier = VERIFIER.match(/def _classify_http_error\(prefix, error\):\n([\s\S]*?)\n\n\ndef /)?.[1];
   assert.ok(classifier, 'the verifier classifier must remain discoverable');
-  assert.match(classifier, /error\.code == 401:\s*\n\s*return _availability\('private'/);
-  assert.match(classifier, /error\.code == 403:\s*\n\s*return _availability\('restricted'/);
+  assert.doesNotMatch(classifier, /error\.code\s*==\s*(?:401|403)/);
   assert.match(classifier, /error\.code in \(404, 410\):\s*\n\s*return _availability\('unavailable'/);
-  assert.match(ROUTE, /401: 'private',\s*403: 'restricted',\s*404: 'unavailable',\s*410: 'unavailable',/);
+  assert.match(ROUTE, /404: 'unavailable',\s*410: 'unavailable',/);
+  assert.doesNotMatch(ROUTE, /401: 'private'|403: 'restricted'/);
 
   assert.match(
     MIGRATION,

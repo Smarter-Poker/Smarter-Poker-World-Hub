@@ -7,11 +7,13 @@
  *
  * After the pending report is stored, this same request performs ONE bounded
  * server-side YouTube oEmbed check. Only an independent, definitive oEmbed
- * answer (401/403/404/410) corroborating the player error records a negative
+ * answer (404/410) corroborating the player error records a negative
  * verdict through the service-role verdict RPC, which quarantines the video
- * for every feed immediately. Anything else (200, 429, 5xx, redirects,
- * timeouts, network errors) leaves the report pending for the verifier. This
- * route never records a `verified` verdict.
+ * for every feed immediately. Bare 401/403 responses can be authentication,
+ * challenge, or transport policy and therefore remain pending for the full
+ * verifier. Anything else (200, 401, 403, 429, 5xx, redirects, timeouts,
+ * network errors) also remains pending. This route never records a `verified`
+ * verdict.
  *
  * Body: { videoId: string, errorCode: number, surface: string }
  * Returns: { ok: true, status: string, adjudicated: boolean } or { error: string }
@@ -40,12 +42,10 @@ const OEMBED_VERDICT_SURFACE = 'player_report_oembed';
 // Mirrors _classify_http_error in scripts/video_library_to_reels.py exactly.
 // Every other status is unknown and must never adjudicate.
 const OEMBED_STATUS_VERDICTS = Object.freeze({
-    401: 'private',
-    403: 'restricted',
     404: 'unavailable',
     410: 'unavailable',
 });
-const NEGATIVE_VERDICTS = Object.freeze(['private', 'restricted', 'unavailable']);
+const NEGATIVE_VERDICTS = Object.freeze(['unavailable']);
 const ELIGIBLE_REEL_TOPICS = Object.freeze(['poker', 'cash', 'tournament', 'slots', 'sports']);
 const DB_TIMESTAMP_RE = /^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?(?:Z|[+-]\d{2}(?::?\d{2})?)$/;
 
