@@ -56,8 +56,10 @@ test('the published Reels verifier is read-only and rejects hostile live payload
   for (const method of ['POST', 'PUT', 'PATCH', 'DELETE']) {
     assert.equal(isBrowserReadOnlyRequest(method, `${APP_ORIGIN}/api/reels/feed`), false);
   }
+  const checkedAt = new Date().toISOString();
   const row = {
     id: '00000000-0000-4000-8000-000000000001',
+    author_id: '00000000-0000-4000-8000-000000000002',
     topic: 'sports',
     media_status: 'ready',
     rights_status: 'embed_only',
@@ -68,31 +70,44 @@ test('the published Reels verifier is read-only and rejects hostile live payload
     source_name: 'Verified Source',
     source_attribution_url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
     origin_type: 'video_library',
+    is_public: true,
     availability_status: 'verified',
     embeddable: true,
+    availability_checked_at: checkedAt,
+    verification_status: 'resolved',
+    last_verified_at: checkedAt,
     legacy_transition_eligible: false,
   };
+  const livePage = (data, category) => ({
+    success: true,
+    category,
+    data,
+    has_more: false,
+    next_cursor: null,
+    partial: false,
+    pagination: { limit: data.length, hasMore: false, nextCursor: null },
+  });
   validateFeedPage(
-    { success: true, category: 'sports', data: [row], has_more: false },
+    livePage([row], 'sports'),
     'sports',
   );
   validateFeedPage(
-    { success: true, category: 'following', data: [row], has_more: false },
+    livePage([row], 'following'),
     'following',
   );
   assert.throws(
     () => validateFeedPage(
-      { success: true, category: 'poker', data: [row], has_more: false },
+      livePage([row], 'poker'),
       'poker',
     ),
     /category topic contract/,
   );
   assert.throws(
     () => validateFeedPage(
-      { success: true, category: 'sports', data: [{ ...row, availability_status: 'restricted' }], has_more: false },
+      livePage([{ ...row, availability_status: 'restricted' }], 'sports'),
       'sports',
     ),
-    /Unverified library Reel/,
+    /Unavailable Reel/,
   );
   assert.equal(selectOrdinaryArticle([{
     id: row.id,
@@ -106,6 +121,63 @@ test('the published Reels verifier is read-only and rejects hostile live payload
     mediaUrls: [],
     link_url: `${APP_ORIGIN}/hub/reels?id=${row.id}`,
   }]), null);
+  assert.equal(selectOrdinaryArticle([{
+    id: row.id,
+    contentType: 'link',
+    mediaUrls: ['https://media.poker.org/prod/images/article_landscape/story.jpg'],
+    link_url: null,
+    content: 'Read more at https://www.poker.org/latest-news/story',
+  }])?.id, row.id);
+  assert.equal(selectOrdinaryArticle([{
+    id: row.id,
+    contentType: 'link',
+    mediaUrls: ['https://example.com/story.jpg'],
+    link_url: null,
+    content: `Shared Reel ${APP_ORIGIN}/hub/reels?id=${row.id}`,
+  }]), null);
+  assert.equal(selectOrdinaryArticle([{
+    id: row.id,
+    contentType: 'article',
+    mediaUrls: [],
+    link_url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+  }]), null);
+  assert.equal(selectOrdinaryArticle([{
+    id: row.id,
+    contentType: 'article',
+    mediaUrls: [],
+    link_url: null,
+    content: 'Content-only https://example.com/story',
+  }]), null, 'zero-media PostCard does not apply its content URL fallback');
+  assert.equal(selectOrdinaryArticle([{
+    id: row.id,
+    contentType: 'article',
+    mediaUrls: ['https://example.com/one.jpg', 'https://example.com/two.jpg'],
+    link_url: 'https://example.com/story',
+  }]), null, 'multi-media PostCard renders a gallery instead of ArticleCard');
+  assert.equal(selectOrdinaryArticle([{
+    id: row.id,
+    contentType: 'link',
+    mediaUrls: [],
+    link_url: 'https://example.com/story',
+    metadata: { shared_reel_id: row.id },
+  }]), null, 'shared Reel wrappers navigate to their canonical Reel');
+  for (const url of [
+    'https://www.facebook.com/story',
+    'https://fb.watch/story',
+    'https://fb.com/story',
+    'https://www.instagram.com/p/story',
+    'https://www.tiktok.com/@player/video/1',
+    'https://twitter.com/player/status/1',
+    'https://x.com/player/status/1',
+    'https://www.threads.net/@player/post/1',
+  ]) {
+    assert.equal(selectOrdinaryArticle([{
+      id: row.id,
+      contentType: 'article',
+      mediaUrls: [],
+      link_url: url,
+    }]), null, `${url} opens directly instead of using ArticleReaderModal`);
+  }
 });
 
 test('phase-one migration separates provenance, playback, topic, rights, and identity', () => {

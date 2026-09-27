@@ -1,5 +1,6 @@
 import './auth-network-deadline.test.mjs';
 import './notification-feed-recovery.test.mjs';
+import './union-leave-read-errors.test.mjs';
 /**
  * META-GUARD: __tests__/_test-guards-exist.test.mjs
  * ─────────────────────────────────────────────────────────────────────────
@@ -264,6 +265,11 @@ import './profile-reels-console.test.mjs';
 import './reels-carousel-console.test.mjs';
 import './reels-console-dependencies.test.mjs';
 import './reels-embedded-console-visual.test.mjs';
+import './historical-user-reels-recovery-migration.test.mjs';
+import './historical-user-reels-post-rights-followup-migration.test.mjs';
+import './reels-live-check.test.mjs';
+import './reels-mixed-category-contract.test.mjs';
+import './reels-social-endless-continuation.test.mjs';
 import './social-feed-request-sequencing.test.mjs';
 import './user-reel-publication-recovery.test.mjs';
 import './video-clipper-storage-namespace.test.mjs';

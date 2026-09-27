@@ -53,14 +53,23 @@ test('real media remains primary while cards render as engraved scan rows', () =
   assert.match(CSS, /\.vl-media-failed::after \{[\s\S]*Preview unavailable/);
 });
 
-test('375 and 393 layouts keep every command visible in wrapping rows', () => {
+test('375 and 393 layouts expose a swipeable command rail without hiding its scroll affordance', () => {
   assert.match(CSS, /@media \(max-width: 393px\)/);
   assert.match(CSS, /@media \(max-width: 375px\)/);
-  assert.match(CSS, /\.vl-type-toggle-row--mobile \{[\s\S]*overflow-x: visible[\s\S]*flex-wrap: wrap/);
-  assert.match(CSS, /\.vl-type-toggle-row--mobile \{ grid-template-columns: repeat\(3, minmax\(0, 1fr\)\)/);
+  assert.match(CSS, /\.vl-type-toggle-row--mobile \{[\s\S]*overflow-x: auto[\s\S]*flex-wrap: nowrap/);
+  assert.match(CSS, /\.vl-type-toggle-row--mobile \{[\s\S]*scrollbar-width: thin/);
+  assert.match(CSS, /\.vl-type-toggle-row--mobile \.vl-filter-button \{[\s\S]*flex: 0 0 auto[\s\S]*min-width: max-content[\s\S]*white-space: nowrap/);
+  assert.doesNotMatch(CSS, /\.vl-type-toggle-row--mobile\s*\{[^}]*grid-template-columns/);
   assert.doesNotMatch(CSS, /scroll-snap-type: x mandatory/);
+  assert.doesNotMatch(CSS, /\.vl-type-toggle-row--mobile::\-webkit-scrollbar\s*\{\s*display:\s*none/);
   assert.match(CSS, /grid-template-columns: minmax\(108px, 41%\) minmax\(0, 1fr\)/);
   assert.match(CSS, /grid-template-columns: minmax\(102px, 40%\) minmax\(0, 1fr\)/);
+});
+
+test('late desktop shell rules cannot override the 375 and 393 edge treatment', () => {
+  assert.match(CSS, /@media \(min-width: 769px\) \{[\s\S]*\.video-library-page \{[^}]*padding: 20px/);
+  assert.match(CSS, /@media \(max-width: 393px\) \{[\s\S]*\.video-library-page \{[^}]*padding-inline: 3px/);
+  assert.match(CSS, /@media \(max-width: 393px\) \{[\s\S]*\.vl-header-area \{[^}]*margin-inline: -3px/);
 });
 
 test('loading, empty, sync-error, playback-error, playlist, and training states remain wired', () => {

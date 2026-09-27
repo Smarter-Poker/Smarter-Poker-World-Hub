@@ -165,6 +165,12 @@ jobs:
         run: >-
           node --experimental-vm-modules --test
           __tests__/messenger-workspace.test.mjs
+          __tests__/messenger-send-reliability.test.mjs
+          __tests__/messenger-send-operation.test.mjs
+          __tests__/messenger-send-live-safety.test.mjs
+          __tests__/messenger-continuity-client.test.mjs
+          __tests__/messenger-continuity-server.test.mjs
+          __tests__/messenger-continuity-live-safety.test.mjs
           __tests__/messenger-read-state.test.mjs
           __tests__/messenger-sync-lifecycle.test.mjs
           __tests__/messenger-completion-lifecycle.test.mjs
@@ -190,6 +196,8 @@ jobs:
           __tests__/push-rotation-ownership.test.mjs
           __tests__/push-health-snapshot.test.mjs
           __tests__/zombie-endpoint-retirement.test.mjs
+          __tests__/push-worker-delivery-receipt.test.mjs
+          __tests__/push-enrollment-nudge.test.mjs
 
       - name: "CHECK 24: Training server-authority contracts"
         run: npm run test:training:phase6-authority
@@ -256,8 +264,18 @@ jobs:
 
       - name: Engine Alert Receipt PostgreSQL Contracts
         run: node --test __tests__/engine-alert-receipts-postgres.test.mjs
+
+      - name: Historical User Reels Rights PostgreSQL Contracts
+        run: npm run audit:video-reels:post-rights-db
+
       - name: One Reaction Invokes One Notification Handler
         run: PG_BIN="$PHASE6_POSTGRES_BIN" python3 scripts/ci/test-reaction-notification-postgres.py
+
+      - name: Messenger Sends Preserve Request Identity
+        run: PG_BIN="$PHASE6_POSTGRES_BIN" python3 scripts/ci/test-messenger-send-postgres.py
+
+      - name: Messenger Account Continuity And History Navigation
+        run: PG_BIN="$PHASE6_POSTGRES_BIN" python3 scripts/ci/test-messenger-continuity-postgres.py
 
       - name: Messenger Reads Stop At The Displayed Message
         run: PG_BIN="$PHASE6_POSTGRES_BIN" python3 scripts/ci/test-messenger-bounded-read-postgres.py

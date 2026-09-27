@@ -329,6 +329,8 @@ export default function VideoLibraryPage() {
     const saveWatchSessionRef = useRef(null);
     const openedQueryVideoRef = useRef(null);
     const queryVideoFetchRef = useRef(null);
+    const queryVideoRequestRef = useRef(0);
+    const requestedQueryVideoIdRef = useRef(null);
     const hadNavigationQueryRef = useRef(false);
     const lastNavigationQueryRef = useRef(null);
     useEffect(() => {
@@ -404,13 +406,6 @@ export default function VideoLibraryPage() {
         if (router.query.v && allVideos.length > 0) {
             const rawVideoId = String(Array.isArray(router.query.v) ? router.query.v[0] : router.query.v);
             const requestedVideoId = canonicalStoredVideoId(rawVideoId);
-            if (requestedVideoId !== rawVideoId) {
-                void router.replace(
-                    { pathname: router.pathname, query: { ...router.query, v: requestedVideoId } },
-                    undefined,
-                    { shallow: true, scroll: false },
-                );
-            }
             const target = allVideos.find(v => v.videoId === requestedVideoId);
             if (target && openedQueryVideoRef.current !== requestedVideoId && handleOpenVideoRef.current) {
                 setDeepLinkStatus(null);
@@ -1317,25 +1312,45 @@ export default function VideoLibraryPage() {
         return () => catalogAbortRef.current?.abort();
     }, [selectedSource, selectedType, catalogSearchQuery, sortMode, libraryFilter, userId, visibleLibrarySyncState, personalIdsForFilter, fetchCatalogPage]);
 
+    const rawRequestedQueryVideoId = router.query.v
+        ? String(Array.isArray(router.query.v) ? router.query.v[0] : router.query.v)
+        : null;
+    const requestedQueryVideoId = rawRequestedQueryVideoId
+        ? canonicalStoredVideoId(rawRequestedQueryVideoId)
+        : null;
+    const requestedQueryVideoInCurrentPage = requestedQueryVideoId
+        ? allVideos.some(video => video.videoId === requestedQueryVideoId)
+        : false;
+    requestedQueryVideoIdRef.current = requestedQueryVideoId;
+
+    useEffect(() => {
+        if (
+            !router.isReady
+            || !rawRequestedQueryVideoId
+            || !requestedQueryVideoId
+            || requestedQueryVideoId === rawRequestedQueryVideoId
+        ) return;
+        void router.replace(
+            { pathname: router.pathname, query: { ...router.query, v: requestedQueryVideoId } },
+            undefined,
+            { shallow: true, scroll: false },
+        );
+    }, [router.isReady, router.pathname, rawRequestedQueryVideoId, requestedQueryVideoId]);
+
     // A shared video deep link may point beyond the currently paginated page.
     // Resolve that one catalog row directly rather than downloading the whole
-    // archive or silently leaving the requested video closed.
+    // archive or silently leaving the requested video closed. Depend on the
+    // requested row's presence instead of the allVideos array identity: the
+    // first catalog page normally arrives while this request is in flight, and
+    // aborting on every page refresh used to strand valid legacy bookmarks.
     useEffect(() => {
         if (!router.isReady || !handleOpenVideoRef.current) return undefined;
-        if (!router.query.v) {
+        if (!requestedQueryVideoId) {
             queryVideoFetchRef.current = null;
             setDeepLinkStatus(null);
             return undefined;
         }
-        const rawVideoId = String(Array.isArray(router.query.v) ? router.query.v[0] : router.query.v);
-        const requestedVideoId = canonicalStoredVideoId(rawVideoId);
-        if (requestedVideoId !== rawVideoId) {
-            void router.replace(
-                { pathname: router.pathname, query: { ...router.query, v: requestedVideoId } },
-                undefined,
-                { shallow: true, scroll: false },
-            );
-        }
+        const requestedVideoId = requestedQueryVideoId;
         if (!isVideoLibraryVideoAllowed(requestedVideoId)) {
             queryVideoFetchRef.current = requestedVideoId;
             setDeepLinkStatus({
@@ -1344,9 +1359,15 @@ export default function VideoLibraryPage() {
             });
             return undefined;
         }
-        if (openedQueryVideoRef.current === requestedVideoId || allVideos.some(video => video.videoId === requestedVideoId)) return undefined;
+        if (openedQueryVideoRef.current === requestedVideoId || requestedQueryVideoInCurrentPage) return undefined;
         if (queryVideoFetchRef.current === requestedVideoId) return undefined;
         queryVideoFetchRef.current = requestedVideoId;
+        const requestId = ++queryVideoRequestRef.current;
+        const requestIsCurrent = () => (
+            requestId === queryVideoRequestRef.current
+            && requestedQueryVideoIdRef.current === requestedVideoId
+            && queryVideoFetchRef.current === requestedVideoId
+        );
         setDeepLinkStatus(null);
         const controller = new AbortController();
         fetch(`/api/video-library/catalog?limit=1&ids=${encodeURIComponent(requestedVideoId)}`, {
@@ -1356,6 +1377,7 @@ export default function VideoLibraryPage() {
         })
             .then(response => response.ok ? response.json() : Promise.reject(new Error(`Deep-link catalog request failed (${response.status})`)))
             .then(payload => {
+                if (!requestIsCurrent()) return;
                 const video = payload?.data?.[0];
                 if (video?.videoId !== requestedVideoId || !isVideoLibraryVideoAllowed(video)) {
                     setDeepLinkStatus({
@@ -1373,17 +1395,27 @@ export default function VideoLibraryPage() {
                 });
             })
             .catch(error => {
-                if (error?.name !== 'AbortError') {
-                    queryVideoFetchRef.current = null;
-                    setDeepLinkStatus({
-                        type: 'error',
-                        message: 'The saved video could not be verified right now. Retry without clearing your bookmark.',
-                    });
-                    reportVideoLibraryIssue('catalog_load', error);
-                }
+                if (error?.name === 'AbortError' || !requestIsCurrent()) return;
+                queryVideoFetchRef.current = null;
+                setDeepLinkStatus({
+                    type: 'error',
+                    message: 'The saved video could not be verified right now. Retry without clearing your bookmark.',
+                });
+                reportVideoLibraryIssue('catalog_load', error);
             });
-        return () => controller.abort();
-    }, [router.isReady, router.query.v, allVideos, deepLinkRetryNonce]);
+        return () => {
+            if (requestId === queryVideoRequestRef.current) {
+                queryVideoRequestRef.current += 1;
+            }
+            controller.abort();
+            if (
+                queryVideoFetchRef.current === requestedVideoId
+                && openedQueryVideoRef.current !== requestedVideoId
+            ) {
+                queryVideoFetchRef.current = null;
+            }
+        };
+    }, [router.isReady, requestedQueryVideoId, requestedQueryVideoInCurrentPage, deepLinkRetryNonce]);
 
     // Server-backed infinite pagination. The current response is appended only
     // if it still belongs to the latest filter/search request.
