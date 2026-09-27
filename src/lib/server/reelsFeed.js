@@ -638,7 +638,10 @@ async function loadEligibilityContext(client, rows) {
                     'playback_type',
                     'topic',
                     'rights_status',
+                    'source_asset_id',
+                    'youtube_video_id',
                     'canonical_asset_key',
+                    'publication_key',
                 ].join(','),
                 column: 'id',
                 values: sourcePostIds,
@@ -736,6 +739,9 @@ function sourcePostOwnsUnknownNativeUpload(row, sourcePost, videoUrl) {
         || sourcePost.playback_type !== 'native'
         || sourcePost.rights_status !== 'user_authorized'
         || sourcePost.topic !== 'unknown'
+        || sourcePost.source_asset_id != null
+        || sourcePost.youtube_video_id != null
+        || sourcePost.publication_key != null
         || sourcePost.canonical_asset_key !== row.canonical_asset_key
         || !Array.isArray(sourcePost.media_urls)
     ) return false;

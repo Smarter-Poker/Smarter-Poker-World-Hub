@@ -448,12 +448,31 @@ COMMIT;
 --   ) FOR UPDATE;
 --
 --   IF EXISTS (
+--     WITH expected(id, canonical_asset_key, source_post_id) AS (VALUES
+--       ('b3258975-db9f-42d5-a581-6c305b180b8f'::uuid, 'native:7726a4055b7753f1b8306349ce6419bd'::text, '7f85c90e-057f-4784-9ff6-39f16c76aa78'::uuid),
+--       ('2cb727a7-aee1-4e33-975c-db31bc587aea'::uuid, 'native:7726a4055b7753f1b8306349ce6419bd'::text, '7f85c90e-057f-4784-9ff6-39f16c76aa78'::uuid),
+--       ('0ac10eae-0380-4836-be80-759ce93ee878'::uuid, 'native:5bde286bd5cdae63943270adcd7052b5'::text, '5cab43ba-cb10-4043-955f-63415e755e63'::uuid),
+--       ('46747b18-3e80-4975-abad-09c41e091155'::uuid, 'native:5bde286bd5cdae63943270adcd7052b5'::text, '5cab43ba-cb10-4043-955f-63415e755e63'::uuid),
+--       ('8e87782d-dec1-4a54-aab9-1251df417b92'::uuid, 'native:6e9a7279c927086f2807818e63db935f'::text, '61a5aaa3-0ee7-4003-8af3-c4e64e240078'::uuid),
+--       ('31dc2cba-a031-4b6c-9530-168fe080e118'::uuid, 'native:6e9a7279c927086f2807818e63db935f'::text, '61a5aaa3-0ee7-4003-8af3-c4e64e240078'::uuid)
+--     )
+--     SELECT 1
+--     FROM expected e
+--     LEFT JOIN public.social_reels r USING (id)
+--     WHERE r.id IS NULL
+--        OR r.canonical_asset_key IS DISTINCT FROM e.canonical_asset_key
+--        OR r.source_post_id IS DISTINCT FROM e.source_post_id
+--   ) THEN
+--     RAISE EXCEPTION 'SUP-07 rollback refused: repaired Reel lineage drifted';
+--   END IF;
+--
+--   IF EXISTS (
 --     SELECT 1 FROM public.social_reels
 --     WHERE id IN (
 --       'b3258975-db9f-42d5-a581-6c305b180b8f', '0ac10eae-0380-4836-be80-759ce93ee878',
 --       '8e87782d-dec1-4a54-aab9-1251df417b92'
 --     )
---       AND (topic <> 'poker' OR view_count < CASE id
+--       AND (topic IS DISTINCT FROM 'poker' OR view_count IS NULL OR view_count < CASE id
 --         WHEN 'b3258975-db9f-42d5-a581-6c305b180b8f' THEN 63
 --         WHEN '0ac10eae-0380-4836-be80-759ce93ee878' THEN 10
 --         WHEN '8e87782d-dec1-4a54-aab9-1251df417b92' THEN 5
@@ -465,7 +484,7 @@ COMMIT;
 --       '46747b18-3e80-4975-abad-09c41e091155',
 --       '31dc2cba-a031-4b6c-9530-168fe080e118'
 --     )
---       AND (topic <> 'poker' OR view_count <> 0)
+--       AND (topic IS DISTINCT FROM 'poker' OR view_count IS DISTINCT FROM 0)
 --   ) THEN
 --     RAISE EXCEPTION 'SUP-07 rollback refused: repaired Reel state drifted';
 --   END IF;

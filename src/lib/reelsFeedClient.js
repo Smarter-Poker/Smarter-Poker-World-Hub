@@ -273,6 +273,7 @@ export function isUnclassifiedNativeCommunityReel(reel) {
     && !reel?.source_asset_id
     && !reel?.publication_key
     && !reel?.source_story_id
+    && !reel?.original_youtube_url
     && !reelYouTubeId(reel)
     && UUID_RE.test(String(reel?.source_post_id || ''))
     && String(reel?.canonical_asset_key || '').startsWith('native:')

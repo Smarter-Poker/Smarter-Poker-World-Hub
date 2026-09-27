@@ -163,7 +163,8 @@ function loadCollectionReaderHarness(client) {
       'globalThis.__readOwned = readOwnedPokerReels;' +
       'globalThis.__readSaved = readSavedPokerReels;' +
       'globalThis.__readSavedForIds = readSavedPokerReelsForIds;' +
-      'globalThis.__readFeed = readPokerReelsFeed;',
+      'globalThis.__readFeed = readPokerReelsFeed;' +
+      'globalThis.__readPublic = readPublicReelById;',
     context,
   );
   return {
@@ -171,10 +172,11 @@ function loadCollectionReaderHarness(client) {
     readSaved: context.__readSaved,
     readSavedForIds: context.__readSavedForIds,
     readFeed: context.__readFeed,
+    readPublic: context.__readPublic,
   };
 }
 
-function createMemoryClient(tables) {
+function createMemoryClient(tables, { validNativeStorage = true } = {}) {
   const queryLog = [];
   class Query {
     constructor(table) {
@@ -201,6 +203,12 @@ function createMemoryClient(tables) {
       return this;
     }
     or(expression) {
+      const directMatch = expression.match(/^id\.eq\.([^,]+),source_post_id\.eq\.([^,]+)$/);
+      if (directMatch) {
+        const [, reelId, sourcePostId] = directMatch;
+        this.predicates.push(row => row?.id === reelId || row?.source_post_id === sourcePostId);
+        return this;
+      }
       const match = expression.match(
         /^(\w+)\.lt\.([^,]+),and\(\1\.eq\.([^,]+),id\.lt\.([^)]+)\)$/,
       );
@@ -255,7 +263,7 @@ function createMemoryClient(tables) {
       if (name !== 'fn_filter_valid_user_video_storage_urls') {
         throw new Error(`Unsupported memory-client RPC: ${name}`);
       }
-      return { data: args.p_candidates, error: null };
+      return { data: validNativeStorage ? args.p_candidates : [], error: null };
     },
   };
 }
@@ -542,6 +550,115 @@ test('collection readers keep slots and sports across My Reels, Saved, and saved
     followQueriesAfter - followQueriesBefore <= 2,
     'one candidate page must use at most two bounded follow-membership queries',
   );
+});
+
+test('public server readers admit only storage-proven unknown native uploads and preserve old aliases', async () => {
+  const ownerId = '11111111-1111-4111-8111-111111111111';
+  const postId = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc';
+  const canonicalAssetKey = 'native:historical-community-upload';
+  const winner = nativeRow({
+    id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+    author_id: ownerId,
+    source_type: 'native',
+    source_post_id: postId,
+    origin_type: 'social_post',
+    topic: 'unknown',
+    canonical_asset_key: canonicalAssetKey,
+    publication_key: null,
+    created_at: '2026-05-08T12:00:00.000Z',
+  });
+  const loser = {
+    ...winner,
+    id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+    created_at: '2026-05-08T12:00:01.000Z',
+  };
+  const sourcePost = {
+    id: postId,
+    author_id: ownerId,
+    content_type: 'video',
+    media_urls: [winner.video_url],
+    visibility: 'public',
+    audience_mode: null,
+    audience_list: null,
+    is_flagged: false,
+    is_deleted: false,
+    metadata: {},
+    origin_type: 'legacy',
+    playback_type: 'native',
+    topic: 'unknown',
+    rights_status: 'user_authorized',
+    source_asset_id: null,
+    youtube_video_id: null,
+    canonical_asset_key: canonicalAssetKey,
+    publication_key: null,
+  };
+  const tablesForPost = post => ({
+    social_reels: [loser, winner],
+    social_posts: [post],
+    profiles: [{ id: ownerId, username: 'owner', full_name: 'Owner', avatar_url: null }],
+    social_follows: [{ follower_id: ownerId, following_id: ownerId }],
+    video_library_videos: [],
+    youtube_embed_failures: [],
+  });
+
+  const client = createMemoryClient(tablesForPost(sourcePost));
+  const { readFeed, readPublic } = loadCollectionReaderHarness(client);
+  const forYou = await readFeed({ client, category: 'for-you', scope: 'all', limit: 10 });
+  assert.deepEqual([...forYou.data].map(row => row.id), [winner.id]);
+  assert.equal(forYou.data[0].topic, 'unknown');
+
+  for (const directId of [winner.id, loser.id, postId]) {
+    const detail = await readPublic({ client, id: directId, category: 'for-you' });
+    assert.equal(detail.detailStatus, 'found');
+    assert.equal(detail.data.id, winner.id, `alias ${directId} must resolve the oldest winner`);
+  }
+
+  for (const category of ['poker', 'casino-slots', 'sports']) {
+    const strictFeed = await readFeed({ client, category, scope: 'all', limit: 10 });
+    assert.deepEqual([...strictFeed.data], [], `${category} must remain topic strict`);
+  }
+  const following = await readFeed({
+    client,
+    category: 'following',
+    scope: 'following',
+    viewerId: ownerId,
+    limit: 10,
+  });
+  assert.deepEqual([...following.data], [], 'Following must never admit an unknown topic');
+
+  const hostilePosts = [
+    { ...sourcePost, visibility: 'private' },
+    { ...sourcePost, is_flagged: true },
+    { ...sourcePost, author_id: '22222222-2222-4222-8222-222222222222' },
+    { ...sourcePost, media_urls: ['https://test-project.supabase.co/storage/v1/object/public/social-media/videos/11111111-1111-4111-8111-111111111111/other.mp4'] },
+    { ...sourcePost, source_asset_id: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd' },
+    { ...sourcePost, youtube_video_id: 'M7lc1UVf-VE' },
+    { ...sourcePost, publication_key: 'managed:forged' },
+  ];
+  for (const hostilePost of hostilePosts) {
+    const hostileClient = createMemoryClient(tablesForPost(hostilePost));
+    const hostileReader = loadCollectionReaderHarness(hostileClient).readPublic;
+    const detail = await hostileReader({
+      client: hostileClient,
+      id: winner.id,
+      category: 'for-you',
+    });
+    assert.equal(detail.detailStatus, 'unavailable');
+    assert.equal(detail.data, null);
+  }
+
+  const missingStorageClient = createMemoryClient(
+    tablesForPost(sourcePost),
+    { validNativeStorage: false },
+  );
+  const missingStorageReader = loadCollectionReaderHarness(missingStorageClient).readPublic;
+  const missingStorage = await missingStorageReader({
+    client: missingStorageClient,
+    id: winner.id,
+    category: 'for-you',
+  });
+  assert.equal(missingStorage.detailStatus, 'unavailable');
+  assert.equal(missingStorage.data, null);
 });
 
 test('collection APIs fail closed and use only the verified token owner', async () => {

@@ -143,6 +143,7 @@ test('the client keeps category boundaries while For You admits every approved t
     { ...community, source_post_id: null },
     { ...community, publication_key: 'forged' },
     { ...community, youtube_video_id: 'M7lc1UVf-VE' },
+    { ...community, original_youtube_url: 'https://www.youtube.com/watch?v=M7lc1UVf-VE' },
     { ...community, is_public: false },
     { ...community, video_url: 'https://attacker.example/community.mp4' },
   ]) {

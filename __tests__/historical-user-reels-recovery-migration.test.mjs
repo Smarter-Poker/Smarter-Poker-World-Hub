@@ -127,6 +127,10 @@ test('Tier 3 rollback is explicit, transaction-bound, and preserves later winner
   assert.match(rollback, /-- BEGIN;/);
   assert.match(rollback, /-- SET TRANSACTION ISOLATION LEVEL SERIALIZABLE;/);
   assert.match(rollback, /-- SELECT pg_advisory_xact_lock/);
+  assert.match(rollback, /canonical_asset_key IS DISTINCT FROM e\.canonical_asset_key/);
+  assert.match(rollback, /source_post_id IS DISTINCT FROM e\.source_post_id/);
+  assert.match(rollback, /view_count IS NULL OR view_count < CASE id/);
+  assert.match(rollback, /view_count IS DISTINCT FROM 0/);
   assert.match(rollback, /view_count < CASE id/);
   assert.match(rollback, /THEN view_count - 63/);
   assert.match(rollback, /THEN view_count - 10/);
