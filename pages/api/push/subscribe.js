@@ -2,7 +2,11 @@
  * POST   /api/push/subscribe  -- persist a device push subscription
  * DELETE /api/push/subscribe  -- deactivate it
  *
- * Body (POST): { endpoint, keys: { p256dh, auth }, userAgent, deviceLabel }
+ * Body (POST): { endpoint, keys: { p256dh, auth }, userAgent, deviceLabel, deviceId,
+ *                replacesEndpoint, repairOnly }
+ *   repairOnly: true is the silent sync. It refreshes an enrollment this account
+ *   already holds on this device and otherwise answers 409 repair_not_enrolled
+ *   with no writes, so no account is enrolled without its own tap.
  *
  * ONE ACCOUNT PER DEVICE: the same browser endpoint can only belong to one user
  * at a time. When a second account subscribes from the same endpoint, every row
@@ -18,6 +22,7 @@ import { applyRateLimit } from '../../../src/lib/apiRateLimit';
 import { validatePushEndpoint, validatePushKeys } from '../../../src/lib/push/push-endpoint';
 import { notify } from '../../../src/lib/notify';
 import { changePushSubscription } from '../../../src/lib/push/subscription-ownership.mjs';
+import { hasRepairableEnrollment } from '../../../src/lib/push/subscription-repair.mjs';
 
 let _supabase = null;
 function getSupabase() {
@@ -102,6 +107,18 @@ export default async function handler(req, res) {
         // the new subscription, endpoint replacement, and the preference update.
         const rawDeviceId = typeof body?.deviceId === 'string' ? body.deviceId.trim() : '';
         const deviceId = /^[A-Za-z0-9-]{8,64}$/.test(rawDeviceId) ? rawDeviceId : null;
+
+        // CONSENT (2026-09-27). The silent background sync sends repairOnly:
+        // it may refresh an enrollment this account already holds on this
+        // device, never create one. OS permission is per origin, so on a shared
+        // browser the next account to sign in would otherwise be enrolled, and
+        // the previous one displaced, without either of them tapping anything.
+        if (body?.repairOnly === true) {
+            const repairable = await hasRepairableEnrollment(supabase, user.id, { endpoint, device_id: deviceId });
+            if (!repairable) {
+                return res.status(409).json({ error: 'This device is not enrolled for this account.', code: 'repair_not_enrolled' });
+            }
+        }
         const result = await changePushSubscription(supabase, user.id, {
             endpoint, p256dh, auth, transport, platform, device_id: deviceId,
             user_agent: String(body.userAgent || req.headers['user-agent'] || '').slice(0, 500),

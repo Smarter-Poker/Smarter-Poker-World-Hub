@@ -49,9 +49,11 @@ test('authenticated failures enter the inbox before any processing, with stable 
   assert.equal(calls[0].event_key, calls[2].event_key);
   assert.equal(calls[1].event_key, calls[3].event_key);
 });
-test('ready evidence is scoped to the exact deployment, stored before successful acknowledgment, and never texted', async (t) => {
-  const events = [];
+const isLookup = (url) => url.includes('/rest/v1/operational_alert_events?');
+test('ready evidence answering an open failure is scoped to the exact deployment, stored before successful acknowledgment, and never texted', async (t) => {
+  const events = []; const lookups = [];
   stubFetch(async (url, init) => {
+    if (isLookup(url)) { lookups.push(new URL(url)); return { ok: true, json: async () => [{ id: 7 }] }; }
     assert.match(url, /\/rpc\/fn_record_operational_alerts$/);
     events.push(JSON.parse(init.body).p_events[0]); return { ok: true, json: async () => [42] };
   }, t);
@@ -61,15 +63,47 @@ test('ready evidence is scoped to the exact deployment, stored before successful
   assert.equal(events[0].status, 'resolved');
   assert.equal(events[0].payload.resolutionScope, 'deployment_only');
   assert.equal(events[0].payload.deploymentId, 'dpl-1');
+  const q = lookups[0].searchParams;
+  assert.equal(q.get('source'), 'eq.worldhub.deploy-monitor');
+  assert.equal(q.get('alertname'), 'eq.VercelDeploymentFailed');
+  assert.equal(q.get('status'), 'eq.firing');
+  assert.equal(q.get('investigation_status'), 'in.(new,investigating)');
+  assert.equal(q.get('payload->>deploymentId'), 'eq.dpl-1');
+});
+test('a healthy deploy with no open failure for that deployment creates no inbox row', async (t) => {
+  // Regression: every production deploy used to add a new resolved
+  // VercelDeploymentFailed row (199 by 2026-09-27) that no firing row could match.
+  let recorded = 0;
+  stubFetch(async (url) => {
+    if (isLookup(url)) return { ok: true, json: async () => [] };
+    recorded += 1; return { ok: true, json: async () => [43] };
+  }, t);
+  for (const type of ['deployment.ready', 'deployment.succeeded']) {
+    const res = await invoke(event(type));
+    assert.equal(res.code, 200); assert.equal(res.body.action, 'no_open_failure');
+    assert.equal(res.body.sent, false); assert.deepEqual(res.body.receipts, []);
+  }
+  assert.equal(recorded, 0);
 });
 test('queue failure or malformed receipt keeps failure and recovery deliveries retryable', async (t) => {
   const responses = [{ ok: false, status: 503 }, { ok: true, json: async () => [] }];
   for (const response of responses) {
-    stubFetch(async () => response, t);
+    stubFetch(async (url) => (isLookup(url) ? { ok: true, json: async () => [{ id: 7 }] } : response), t);
     for (const type of ['deployment.error', 'deployment.ready']) {
       const result = await invoke(event(type));
       assert.equal(result.code, 503); assert.equal(result.body.sent, false);
     }
+  }
+});
+test('a failed or malformed open-failure lookup keeps recovery deliveries retryable', async (t) => {
+  const lookups = [{ ok: false, status: 503 }, { ok: true, json: async () => [44] }, { ok: true, json: async () => ({}) }];
+  for (const lookup of lookups) {
+    stubFetch(async (url) => {
+      assert.ok(isLookup(url), 'nothing may be recorded without a valid lookup');
+      return lookup;
+    }, t);
+    const result = await invoke(event('deployment.ready'));
+    assert.equal(result.code, 503); assert.equal(result.body.sent, false);
   }
 });
 test('unauthenticated, unrelated, ambiguous, canceled and check-only events cannot create actionable alerts', async (t) => {
@@ -86,7 +120,7 @@ test('unauthenticated, unrelated, ambiguous, canceled and check-only events cann
   assert.equal((await invoke(missing)).code, 400);
 });
 test('legacy project identity remains supported, but missing identity never falls through', async (t) => {
-  stubFetch(async () => ({ ok: true, json: async () => [44] }), t);
+  stubFetch(async (url) => ({ ok: true, json: async () => (isLookup(url) ? [{ id: 7 }] : [44]) }), t);
   const legacy = event('deployment.succeeded'); delete legacy.payload.project; legacy.payload.projectId = project;
   assert.equal((await invoke(legacy)).body.status, 'resolved');
   delete legacy.payload.projectId;

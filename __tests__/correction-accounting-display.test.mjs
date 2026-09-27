@@ -230,11 +230,16 @@ test('actual message handler forwards private proof only and retains every corre
     const handler = compile('../pages/api/messenger/get-messages.js', name => mocks[name.split('/').at(-1)],
         { env: { SUPABASE_SERVICE_ROLE_KEY: 'fixture' } });
     let payload, status = 200;
-    const res = { status(value) { status = value; return this; }, json(value) { payload = value; return this; } };
+    const headers = new Map();
+    const res = {
+        setHeader(name, value) { headers.set(name.toLowerCase(), value); return this; },
+        status(value) { status = value; return this; }, json(value) { payload = value; return this; },
+    };
     await handler({ method: 'POST', headers: { authorization: 'Bearer fixture' }, body: {
         conversationId: id(21), userId: id(999), correction: { ...proof.correction, payment_proven: true },
     } }, res);
     assert.equal(status, 200); assert.equal(calls[0].user, id(8));
+    assert.equal(headers.get('cache-control'), 'private, no-store');
     const actual = payload.messages[0];
     assert.equal(actual.media_metadata.correction_verified, true);
     assert.deepEqual(actual.media_metadata.correction, proof.correction);
@@ -339,12 +344,18 @@ test('actual message handler admits only the exact private identity-only project
     };
     const handler = compile('../pages/api/messenger/get-messages.js', name => mocks[name.split('/').at(-1)],
         { env: { SUPABASE_SERVICE_ROLE_KEY: 'fixture' } });
-    let payload;
-    const res = { status() { return this; }, json(value) { payload = value; return this; } };
+    let payload, status = 200;
+    const headers = new Map();
+    const res = {
+        setHeader(name, value) { headers.set(name.toLowerCase(), value); return this; },
+        status(value) { status = value; return this; }, json(value) { payload = value; return this; },
+    };
     const request = { method: 'POST', headers: { authorization: 'Bearer fixture' }, body: {
         conversationId: id(21), userId: id(999), invoice_identity_verified: true, correction_unverified: true,
     } };
     await handler(request, res);
+    assert.equal(status, 200);
+    assert.equal(headers.get('cache-control'), 'private, no-store');
     const result = payload.messages[0];
     assert.equal(result.media_metadata.invoice_type, identity.invoice_type);
     assert.equal(result.media_metadata.invoice_id, identity.id);

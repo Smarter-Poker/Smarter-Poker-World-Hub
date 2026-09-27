@@ -459,7 +459,10 @@ export function ReelsViewer({ onClose }) {
   }, [clearAccountOwnedState]);
 
   useEffect(() => {
-    loadReels();
+    // The callback is declared later in this component. Effects run only after
+    // the complete render has assigned the ref, so the initial load must use
+    // the ref instead of evaluating the callback inside its temporal dead zone.
+    loadReelsRef.current?.();
     bindAuthOwner(getAuthUser());
     const handleStorage = (event) => {
       if (event.key !== 'smarter-poker-auth'
@@ -474,7 +477,7 @@ export function ReelsViewer({ onClose }) {
       window.removeEventListener('storage', handleStorage);
       subscription?.unsubscribe();
     };
-  }, [bindAuthOwner, loadReels]);
+  }, [bindAuthOwner]);
 
   // Query only the IDs currently loaded in the viewer. Chunking avoids the
   // historical 1,000-row cap and re-runs when infinite scroll appends Reels.

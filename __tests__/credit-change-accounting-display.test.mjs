@@ -153,10 +153,17 @@ test('actual message API transports credit proof only from the authenticated pri
     };
     const handler = compile('../pages/api/messenger/get-messages.js', name => mocks[name.split('/').at(-1)],
         { env: { SUPABASE_SERVICE_ROLE_KEY: 'fixture' } });
-    let payload; const res = { status() { return this; }, json(value) { payload = value; return this; } };
+    let payload, status = 200;
+    const headers = new Map();
+    const res = {
+        setHeader(name, value) { headers.set(name.toLowerCase(), value); return this; },
+        status(value) { status = value; return this; }, json(value) { payload = value; return this; },
+    };
     const request = { method: 'POST', headers: { authorization: 'Bearer fixture' }, body: {
         conversationId: id(31), userId: id(99), credit_change_verified: true, credit_change: p.credit_change } };
     await handler(request, res);
+    assert.equal(status, 200);
+    assert.equal(headers.get('cache-control'), 'private, no-store');
     assert.equal(payload.messages[0].media_metadata.credit_change_verified, true);
     assert.equal(payload.messages[0].media_metadata.credit_change.after_limit, '3765.44');
     canonical.media_metadata.credit_change = null;

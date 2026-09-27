@@ -1,6 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { restoreMessengerSendOperations, reconcileMessengerMessage, mergeMessengerPendingMessages,
+    acknowledgeMessengerSend } from '../src/lib/messengerSendOperation.mjs';
+
+import { isMessageId, visibleMessageBoundary } from '../src/lib/messengerContinuity.mjs';
 
 const messenger = readFileSync(process.env.MESSENGER_COMPLETION_SOURCE || 'pages/hub/messenger.js', 'utf8');
 const authGuard = readFileSync('src/utils/authGuard.js', 'utf8');
@@ -20,20 +24,26 @@ function messageFixture() {
     const channel = { on(_type, spec, handler) { state.handlers.push({ spec, handler }); return this; }, subscribe() { return this; } };
     const context = {
         workspaceKey: 'scope-a', workspaceRef, activeConversationRef, messagesRequestSequence: { current: 0 },
+        paginationLockRef: { current: null }, newerPageRef: { current: null }, isPaginatingRef: { current: false }, setLoadingOlderMessages() {}, setLoadingNewerMessages() {},
+        messages: state.rows, messagesRef: { current: state.rows }, historyWindowRef: { current: { conversationId: 'conversation-a', hasNewer: false } },
+        messagesContainerRef: { current: null }, visibleMessageBoundary, pendingScrollRef: { current: null }, lastVisibleReadRef: { current: null },
+        setHistoryError() {}, setHasNewerMessages() {}, setFirstUnreadMessageId() {}, continuity: { ingestSavedItems() {} },
         messageCacheRef: { current: new Map([['conversation-a', [initial]]]) }, setMessages, setLoadingMessages() {}, setHasMoreMessages() {},
         getAccessToken: () => 'fixture', authedFetch: () => { const request = deferred(); state.requests.push(request); return request.promise; }, user: { id: 'account-a' },
         localStorage: { getItem: () => '[]' }, hiddenMessageIds: new Set(), markConversationRead: async (...args) => state.reads.push(args),
         setToast: value => state.toasts.push(value), loadMessagesRef: {}, console: quiet, compareMessageTimestamps,
         setIncomingRead: value => state.intents.push(value),
+        sendOperationsRef: { current: new Map() }, restoreMessengerSendOperations, reconcileMessengerMessage,
+        mergeMessengerPendingMessages, acknowledgeMessengerSend,
     };
-    const load = evaluate(slice(messenger, '    const loadMessages =', '    // Send lock'), context, 'loadMessages');
-    evaluate(slice(messenger, '    // Subscribe to real-time messages for ACTIVE conversation', '    // Read only the message committed'), {
+    const load = evaluate(slice(messenger, '    const loadMessages =', '    const sendLockRef ='), context, 'loadMessages');
+    evaluate(slice(messenger, '    // Subscribe to real-time messages for ACTIVE conversation', '    // A rendered row outside the viewport'), {
         ...context, useEffect: fn => fn(), activeConversation: { id: 'conversation-a' }, supabase: { channel: () => channel },
         preferencesRef: { current: { messageSounds: false } }, profileCacheRef: { current: new Map([['account-b', { id: 'account-b' }]]) }, PROFILE_CACHE_MAX: 50,
         setIncomingRead() {}, setConversations: update => update([]), typingChannelRef: { current: null },
     }, 'undefined');
     const deliver = async message => state.handlers.find(h => h.spec.event === 'INSERT').handler({ new: message });
-    return { state, load, deliver, initial, workspaceRef, activeConversationRef };
+    return { state, load, deliver, initial, workspaceRef, activeConversationRef, context };
 }
 
 test('a delayed snapshot preserves the incoming message displayed after its request began', async () => {
@@ -44,6 +54,25 @@ test('a delayed snapshot preserves the incoming message displayed after its requ
     assert.deepEqual(f.state.rows.map(m => m.id), ['old', 'new']);
     assert.deepEqual(f.state.reads, [], 'fetch does not mark records read before React commits');
     assert.deepEqual(f.state.intents, [{ scope: 'scope-a', conversationId: 'conversation-a', messageId: 'old' }]);
+});
+
+test('explicit latest navigation preserves a newer realtime arrival after its snapshot began', async () => {
+    const f = messageFixture(), pending = f.load('conversation-a', { latest: true });
+    await f.deliver({ ...f.initial, id: 'new', content: 'New arrival', created_at: '2026-09-26T20:01:00Z' });
+    f.state.requests[0].resolve(response({ success: true, messages: [f.initial], hasNewer: false })); await pending;
+    assert.deepEqual(f.state.rows.map(m => m.id), ['old', 'new']);
+});
+
+test('a new history window invalidates both pagination owners within the same conversation', async () => {
+    const f = messageFixture();
+    const oldOwner = { scope: 'scope-a', conversationId: 'conversation-a' };
+    f.context.paginationLockRef.current = oldOwner; f.context.newerPageRef.current = oldOwner;
+    f.context.isPaginatingRef.current = true;
+    const pending = f.load('conversation-a', { latest: true });
+    assert.equal(f.context.paginationLockRef.current, null);
+    assert.equal(f.context.newerPageRef.current, null);
+    assert.equal(f.context.isPaginatingRef.current, false);
+    f.state.requests[0].resolve(response({ success: true, messages: [f.initial], hasNewer: false })); await pending;
 });
 
 test('snapshot merge preserves only concurrent field changes and drops obsolete cached rows', async () => {
@@ -69,17 +98,19 @@ test('a previous conversation snapshot cannot paint or acknowledge after switchi
 });
 
 function paginationFixture() {
-    const state = { requests: [], loading: [], rows: [], active: { id: 'conversation-a' } };
+    const state = { requests: [], loading: [], rows: [], errors: [], frames: [], active: { id: 'conversation-a' } };
+    const generation = { current: 0 }, container = { scrollTop: 40, scrollHeight: 200 };
     const workspaceRef = { current: 'scope-a' }, activeConversationRef = { current: state.active }, lock = { current: null };
-    const make = (scope, conversation) => evaluate(slice(messenger, '    const loadOlderMessages =', '    const handleSelectConversation ='), {
+    const make = (scope, conversation) => evaluate(slice(messenger, '    const loadOlderMessages =', '    const newerPageRef ='), {
+        historyError: null, setHistoryError: error => state.errors.push(error), continuity: { ingestSavedItems() {} }, messagesRequestSequence: generation,
         useCallback: fn => fn, activeConversation: conversation, loadingOlderMessages: false, hasMoreMessages: true,
         messages: [{ id: 'oldest', created_at: '2026-09-26T20:00:00Z' }], paginationLockRef: lock, setLoadingOlderMessages: value => state.loading.push(value),
-        workspaceKey: scope, workspaceRef, activeConversationRef, messagesContainerRef: { current: null }, getAccessToken: () => 'fixture',
+        workspaceKey: scope, workspaceRef, activeConversationRef, messagesContainerRef: { current: container }, getAccessToken: () => 'fixture',
         authedFetch: () => { const request = deferred(); state.requests.push(request); return request.promise; }, user: { id: 'account-a' },
         setHasMoreMessages() {}, setMessages: value => { state.rows = typeof value === 'function' ? value(state.rows) : value; },
-        localStorage: { getItem: () => '[]' }, isPaginatingRef: {}, requestAnimationFrame: fn => fn(), console: quiet,
+        localStorage: { getItem: () => '[]' }, isPaginatingRef: {}, requestAnimationFrame: fn => state.frames.push(fn), console: quiet,
     }, 'loadOlderMessages');
-    return { state, workspaceRef, activeConversationRef, lock, make };
+    return { state, workspaceRef, activeConversationRef, lock, make, generation, container };
 }
 
 test('pagination releases its operation after a conversation change and after network failure', async () => {
@@ -104,6 +135,34 @@ test('an old pagination response cannot unlock or paint a newer conversation ope
     assert.equal(f.lock.current, null); assert.equal(f.state.loading.at(-1), false);
 });
 
+test('a same-conversation jump rejects pending older pages, errors and scroll restoration', async () => {
+    const stale = paginationFixture(), pending = stale.make('scope-a', stale.state.active)();
+    stale.generation.current++; stale.lock.current = null; stale.state.rows = [{ id: 'latest' }];
+    stale.state.requests[0].resolve(response({ success: true, messages: [{ id: 'old-window' }] })); await pending;
+    assert.deepEqual(stale.state.rows, [{ id: 'latest' }]); assert.deepEqual(stale.state.errors, []);
+    const failed = paginationFixture(), error = failed.make('scope-a', failed.state.active)();
+    failed.generation.current++; failed.lock.current = null;
+    failed.state.requests[0].resolve({ ok: false, status: 503 }); await error;
+    assert.deepEqual(failed.state.errors, [], 'old error must not disable current history');
+    const layout = paginationFixture(), loaded = layout.make('scope-a', layout.state.active)();
+    layout.state.requests[0].resolve(response({ success: true, messages: [{ id: 'older' }] })); await loaded;
+    assert.equal(layout.state.frames.length, 1);
+    layout.generation.current++; layout.container.scrollTop = 900; layout.container.scrollHeight = 1200;
+    layout.state.frames[0](); assert.equal(layout.container.scrollTop, 900, 'old frame must not move the new window');
+});
+
+test('a same-conversation jump rejects pending newer pagination', async () => {
+    const f = messageFixture();
+    f.context.messages = [{ id: '00000000-0000-4000-8000-000000000001', created_at: '2026-09-26T20:00:00Z' }];
+    const newer = evaluate(slice(messenger, '    const loadNewerMessages =', '    const rememberReadingPosition ='), { ...f.context, hasNewerMessages: true, isMessageId }, 'loadNewerMessages');
+    const pendingPage = newer();
+    const pendingWindow = f.load('conversation-a', { latest: true });
+    f.state.requests[1].resolve(response({ success: true, messages: [{ ...f.initial, id: 'latest' }], hasNewer: false })); await pendingWindow;
+    f.state.requests[0].resolve(response({ success: true, messages: [{ id: 'stale-page' }], hasNewer: true })); await pendingPage;
+    assert.deepEqual(f.state.rows.map(m => m.id), ['latest']);
+    assert.equal(f.context.historyWindowRef.current.hasNewer, false);
+});
+
 function authFixture() {
     const state = { actor: { id: 'account-a' }, pending: [], loading: [], refreshed: [], rows: ['private-row'], timer: null };
     let dispatch, cleanup;
@@ -118,6 +177,7 @@ function authFixture() {
     evaluate(slice(messenger, '    //  MULTI-DEVICE RESILIENCE:', '    // Check for pending calls'), {
         useEffect: fn => { cleanup = fn(); }, supabase, createMultiDeviceAuthListener, user: state.actor, authIdentityRef, authGenerationRef,
         workspaceRef: { current: 'scope-a' }, activeConversationRef: { current: { id: 'conversation-a' } }, messageCacheRef: { current: new Map() },
+        sendOperationsRef: { current: new Map() }, forwardOperationRef: { current: null }, sendLockRef: { current: null },
         setConversations: rows => { state.rows = rows; }, setMessages() {}, setActiveConversation() {}, setFriends() {}, setIsVip() {},
         setUser: value => { state.actor = typeof value === 'function' ? value(state.actor) : value; }, setLoading: value => state.loading.push(value),
         loadConversations: async () => {}, loadConversationsRef: { current: (...args) => state.refreshed.push(args) }, console: quiet,
@@ -184,17 +244,25 @@ test('a persisted read receipt only marks sent messages within its acknowledged 
     assert.equal(state.rows[1].is_read, undefined, 'an old channel cannot acknowledge another workspace');
 });
 
-test('the after-render read selects the newest displayed persisted message including a batched arrival', () => {
+test('the after-render read selects the latest visible persisted message and leaves offscreen arrivals unread', () => {
     const reads = [], oldest = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1', newest = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa2';
-    evaluate(slice(messenger, '    // Read only the message committed', '    // Typing indicator broadcast'), {
-        useEffect: fn => fn(), incomingRead: { scope: 'scope-a', conversationId: 'conversation-a', messageId: oldest },
-        workspaceRef: { current: 'scope-a' }, compareMessageTimestamps,
-        messages: [
-            { id: oldest, conversation_id: 'conversation-a', created_at: '2026-09-26T20:00:00.123001Z' },
-            { id: newest, conversation_id: 'conversation-a', created_at: '2026-09-26T20:00:00.123999Z' },
-            { id: 'pending-temp', conversation_id: 'conversation-a', created_at: '2026-09-26T20:01:00Z' },
-            { id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', conversation_id: 'conversation-b', created_at: '2026-09-26T20:02:00Z' },
-        ], markConversationReadRef: { current: (...args) => reads.push(args) },
-    }, 'undefined');
-    assert.deepEqual(reads, [['conversation-a', newest]]);
+    const unseen = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa3', conversationId = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc';
+    const nodes = [[oldest, 5, 30], [newest, 30, 55], [unseen, 200, 220], ['temp-pending', 50, 70]].map(([id, top, bottom]) => ({ dataset: { messageId: id }, getBoundingClientRect: () => ({ top, bottom, left: 0, right: 100 }) }));
+    const workspaceRef = { current: 'scope-a' }, lastVisibleReadRef = { current: null }, document = { visibilityState: 'visible' };
+    const context = {
+        useEffect: fn => fn(), incomingRead: { scope: 'scope-a', conversationId, messageId: oldest },
+        workspaceRef, activeConversationRef: { current: { id: conversationId } }, pendingScrollRef: { current: null },
+        visibleReadRef: { current: null }, lastVisibleReadRef, document, isMessageId, visibleMessageBoundary,
+        requestAnimationFrame: fn => { fn(); return 1; }, cancelAnimationFrame() {},
+        messagesContainerRef: { current: { getBoundingClientRect: () => ({ top: 0, bottom: 100, left: 0, right: 100 }), querySelectorAll: () => nodes } },
+        messages: [oldest, newest, unseen].map(id => ({ id, conversation_id: conversationId })),
+        markConversationReadRef: { current: (...args) => reads.push(args) },
+    };
+    const code = slice(messenger, '    // A rendered row outside the viewport', '    // Typing indicator broadcast');
+    evaluate(code, context, 'undefined');
+    assert.deepEqual(reads, [[conversationId, newest]]);
+    document.visibilityState = 'hidden'; lastVisibleReadRef.current = null;
+    evaluate(code, context, 'undefined'); assert.equal(reads.length, 1, 'hidden windows cannot acknowledge');
+    document.visibilityState = 'visible'; workspaceRef.current = 'scope-b';
+    evaluate(code, context, 'undefined'); assert.equal(reads.length, 1, 'stale workspace intent cannot acknowledge');
 });
