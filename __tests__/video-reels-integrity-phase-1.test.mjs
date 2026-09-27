@@ -401,6 +401,8 @@ test('malformed and old localStorage Reel caches are retired and never hydrated'
     retirePokerReelsCache();
     assert.deepEqual(removed.sort(), ['sp:reels:poker:v1:broken', 'sp:reels:poker:v1:old']);
     assert.equal(values.get('unrelated'), 'preserved');
+    assert.match(REELS_PAGE, /retirePokerReelsCache/);
+    assert.match(REELS_PAGE, /useEffect\(\(\) => \{\s*retirePokerReelsCache\(\);\s*\}, \[\]\)/);
   } finally {
     delete globalThis.window;
   }

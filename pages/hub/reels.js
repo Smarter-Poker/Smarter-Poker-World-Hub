@@ -38,6 +38,7 @@ import {
   feedModeForReelsRoute,
   fetchPokerReels,
   mergeReels,
+  retirePokerReelsCache,
 } from '../../src/lib/reelsFeedClient';
 import {
   loadReelFollowState,
@@ -326,6 +327,14 @@ export async function getServerSideProps({ res }) {
 
 export default function ReelsPage({ reelsListing = null }) {
   const [reels, setReels] = useState([]);
+  // The feed client also performs eager cleanup at module load, but Pages
+  // Router hydration can reuse a server-evaluated module graph. Repeat the
+  // idempotent cleanup after the browser mounts so an old localStorage Reel
+  // cache is removed even in that hostile hydration state. Eligibility is
+  // still always hydrated from the authoritative API, never from this cache.
+  useEffect(() => {
+    retirePokerReelsCache();
+  }, []);
   const reelsCursorRef = useRef(null);
   const reelsRouteNamespaceRef = useRef(null);
   const reelsRequestGuardRef = useRef(null);
@@ -1007,14 +1016,11 @@ export default function ReelsPage({ reelsListing = null }) {
       const routeCategory = categoryForReelsRoute(router.query);
       const feedMode = feedModeForReelsRoute(router.query);
       const routeNamespace = `${routeCategory}:${feedMode}`;
-      if (reelsRouteNamespaceRef.current !== routeNamespace) {
-        reelsRouteNamespaceRef.current = routeNamespace;
-        currentIndexRef.current = 0;
-        setCurrentIndex(0);
-      }
+      const routeNamespaceChanged = reelsRouteNamespaceRef.current !== routeNamespace;
       const authUser = feedMode === 'following' ? getAuthUser() : null;
       const followingAccessToken = feedMode === 'following' ? getAccessToken() : null;
       if (feedMode === 'following' && !authUser?.id) {
+        reelsRouteNamespaceRef.current = routeNamespace;
         setReels([]);
         currentIndexRef.current = 0;
         setCurrentIndex(0);
@@ -1022,6 +1028,7 @@ export default function ReelsPage({ reelsListing = null }) {
         return;
       }
       if (feedMode === 'following' && !followingAccessToken) {
+        reelsRouteNamespaceRef.current = routeNamespace;
         setFollowingReauthRequired(true);
         setReels([]);
         currentIndexRef.current = 0;
@@ -1068,6 +1075,15 @@ export default function ReelsPage({ reelsListing = null }) {
         },
       });
       if (!reelsRequest.isCurrent()) return;
+      // Commit a route namespace change only after its authoritative response
+      // lands. If a category switch drops mid-flight, the mounted Reel and its
+      // index remain intact until the user retries instead of collapsing into
+      // an empty error screen.
+      if (!background && routeNamespaceChanged) {
+        reelsRouteNamespaceRef.current = routeNamespace;
+        currentIndexRef.current = 0;
+        setCurrentIndex(0);
+      }
       if (background) {
         const windowComplete = !payload.next_cursor && payload.continuation_paused !== true;
         const flaggedIds = [...staleReelIdsRef.current];
@@ -1176,6 +1192,10 @@ export default function ReelsPage({ reelsListing = null }) {
         return;
       }
       console.warn('Load reels error:', e);
+      if (reelsRef.current.length > 0) {
+        setLoadError('network');
+        return;
+      }
       setReels([]);
       currentIndexRef.current = 0;
       setCurrentIndex(0);
@@ -3565,6 +3585,16 @@ export default function ReelsPage({ reelsListing = null }) {
         {!showCommentPanel && loadingMore && <p role="status" className={styles.status}>Finding Reels</p>}
         {!showCommentPanel && loadMoreError && !loadingMore && (
           <ReelAction onClick={() => void loadMoreReels()} aria-label="Retry loading more Reels">Retry More Reels</ReelAction>
+        )}
+        {loadError && reels.length > 0 && (
+          <>
+            <p role="alert" className={`${styles.status} ${styles.error}`}>
+              New Reels Could Not Be Loaded. Showing Your Current Reel.
+            </p>
+            <ReelAction onClick={() => void loadReels()} aria-label="Retry Reel channel">
+              Retry Reel Channel
+            </ReelAction>
+          </>
         )}
         {hasMore && !loadingMore && !loadMoreError && <ReelAction onClick={() => void loadMoreReels()}>Continue Finding Reels</ReelAction>}
       </div>

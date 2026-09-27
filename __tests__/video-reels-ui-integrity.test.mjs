@@ -19,6 +19,7 @@ const RESPONSIBLE_GAMING_NOTICE = read('../src/components/social/ReelResponsible
 const MY_REELS = read('../pages/hub/reels/my-reels.js');
 const SAVED_REELS = read('../pages/hub/reels/saved.js');
 const UPLOAD_REEL_MODAL = read('../src/components/reels/UploadReelModal.jsx');
+const APP_SHELL = read('../pages/_app.js');
 
 function between(source, start, end) {
   const from = source.indexOf(start);
@@ -730,6 +731,30 @@ test('a background refresh queues behind a foreground load and never supersedes 
   assert.deepEqual(coordinator.settle(interrupted), { current: false, flushQueued: false });
 });
 
+test('a failed foreground channel switch retains the mounted Reel and exposes a retry', () => {
+  const loader = between(
+    REELS_PAGE,
+    'const loadReels = useCallback(async (mode) => {',
+    'loadReelsRef.current = loadReels;',
+  );
+  assert.match(loader, /const routeNamespaceChanged = reelsRouteNamespaceRef\.current !== routeNamespace;/);
+  assert.match(
+    loader,
+    /if \(!background && routeNamespaceChanged\) \{[\s\S]*reelsRouteNamespaceRef\.current = routeNamespace;[\s\S]*setCurrentIndex\(0\);/,
+  );
+  assert.match(
+    loader,
+    /if \(reelsRef\.current\.length > 0\) \{\s*setLoadError\('network'\);\s*return;\s*\}\s*setReels\(\[\]\)/,
+  );
+  assert.match(REELS_PAGE, /New Reels Could Not Be Loaded\. Showing Your Current Reel\./);
+  assert.match(REELS_PAGE, /aria-label="Retry Reel channel"/);
+  assert.match(
+    APP_SHELL,
+    /const pageErrorBoundaryKey = resolvedPath === '\/hub\/reels'[\s\S]*?\? resolvedPath[\s\S]*?: router\.asPath;/,
+  );
+  assert.match(APP_SHELL, /<PageErrorBoundary key=\{pageErrorBoundaryKey\}>/);
+});
+
 test('Reel viewers route realtime and focus revalidation through the background refresh', () => {
   for (const [name, source] of [['standalone', REELS_PAGE], ['library viewer', REELS_COMPONENT]]) {
     const realtime = between(source, '// Realtime subscription', '.subscribe();');
@@ -763,7 +788,7 @@ test('Reel viewers route realtime and focus revalidation through the background 
     assert.match(loader, /if \(settled\.current && !background\) setLoading\(false\);/);
     assert.match(source, /createReelsRefreshCoordinator\(reelsRequestGuardRef\.current\)/,
       `${name}: background and foreground loads share the one latest-request guard`);
-    assert.match(loader, /if \(!reelsRequest\.isCurrent\(\)\) return;\s*if \(background\)/,
+    assert.match(loader, /if \(!reelsRequest\.isCurrent\(\)\) return;[\s\S]*?if \(background\)/,
       `${name}: the latest-request guard still gates the background merge`);
   }
   assert.match(
