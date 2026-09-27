@@ -6,14 +6,14 @@
 - **Branch:** `agent/codex-reels-verdict/fix/reels-shared-verdict`
 - **Delivery PRs:** application `#1977`; Open Claw repairs `#1985`, `#1986`, and `#1987`; current shared-verdict follow-up pending
 - **Workspace:** `/Volumes/SmarterWork/agent-work/codex-reels-verdict`
-- **Exact tested source revision:** `b36c0aecc1be4bf515c6a2adc8797ace7fc4aef9` (the checkpoint-only commit that follows does not change runtime source)
+- **Exact tested runtime/database source revision:** `bff7367c325b19add43acb9c9d877f2a58f698be` (a checkpoint-only receipt refresh follows and does not change runtime/database source)
 - **Protected baseline at latest fetch:** `origin/main` `4a1b285bdbb54c4e999d9c023548d142faf65527`
 - **Operation owner:** this task owns source repair, database installation, protected PR completion, Vercel/Open Claw publication, and live verification
 - **Next gate:** deliver the installed batch shared-verdict RPC, make the Workers horse publisher consume only those durable proofs without per-horse YouTube fan-out, repair the long-lived SSH backfill transport, complete a positive bounded backfill, then require the next legitimate `:25` horse cycle plus strict database/API/browser readback.
 
 ## Policy Receipt
 
-- **Read at:** canonical `2026-09-27T03:32:08.156Z`; portable `2026-09-27T03:32:12.888Z`
+- **Read at:** canonical `2026-09-27T03:43:10.827Z`; portable `2026-09-27T03:42:56.894Z`
 - **Policy version:** `2.9`
 - **Manifest SHA-256:** `7663cc909626f7e9966931d27166ad8774addc801f7ad1898a2d7564bc13c378`
 - **Owner policy:** `76228d75677eb76ca9dcfbf65fd68ddb7aac3941f61154acc456ae8230a9a4fa`
