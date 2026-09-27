@@ -227,6 +227,101 @@ class IsolatedYtDlpRuntimeTest(unittest.TestCase):
                 with self.assertRaisesRegex(module.YtDlpUnavailableError, 'self-check failed'):
                     module.ensure_ytdlp_runtime()
 
+    def test_scraper_purge_treats_only_404_and_410_as_definitive(self):
+        scraper = self.scraper
+
+        class Response:
+            status = 200
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *_args):
+                return False
+
+        with mock.patch.object(scraper.urllib.request, 'urlopen', return_value=Response()):
+            self.assertEqual(scraper.check_playable('M7lc1UVf-VE')['status'], 'playable')
+
+        for status, expected in (
+            (401, 'unknown'),
+            (403, 'unknown'),
+            (404, 'unavailable'),
+            (410, 'unavailable'),
+            (429, 'unknown'),
+            (500, 'unknown'),
+        ):
+            error = scraper.urllib.error.HTTPError(
+                'https://www.youtube.com/oembed', status, 'test', {}, None
+            )
+            with self.subTest(status=status), mock.patch.object(
+                scraper.urllib.request,
+                'urlopen',
+                side_effect=error,
+            ):
+                self.assertEqual(
+                    scraper.check_playable('M7lc1UVf-VE')['status'],
+                    expected,
+                )
+
+    def test_scraper_purge_uses_only_the_race_safe_verdict_rpc(self):
+        scraper = self.scraper
+        rpc_calls = []
+
+        class Query:
+            def select(self, *_args):
+                return self
+
+            def range(self, *_args):
+                return self
+
+            def execute(self):
+                return types.SimpleNamespace(data=[{
+                    'id': '11111111-1111-4111-8111-111111111111',
+                    'youtube_video_id': 'M7lc1UVf-VE',
+                    'source_id': 'TEST',
+                    'title': 'Removed test video',
+                }])
+
+        class Rpc:
+            def __init__(self, arguments):
+                self.arguments = arguments
+
+            def execute(self):
+                return types.SimpleNamespace(data=[{
+                    'video_id': self.arguments['p_video_id'],
+                    'verification_status': 'confirmed',
+                    'resolved': False,
+                }])
+
+        class Supabase:
+            def table(self, name):
+                self.table_name = name
+                return Query()
+
+            def rpc(self, name, arguments):
+                rpc_calls.append((name, arguments))
+                return Rpc(arguments)
+
+        scraper.supabase = Supabase()
+        scraper.time.sleep = lambda _seconds: None
+        scraper.check_playable = lambda _video_id: {
+            'status': 'unavailable',
+            'verification_started_at': '2026-09-27T04:00:00+00:00',
+        }
+        result = scraper.purge_dead_videos()
+
+        self.assertEqual(result, {
+            'checked': 1,
+            'dead': 1,
+            'unknown': 0,
+            'marked_unavailable': 1,
+            'purged': 0,
+        })
+        self.assertEqual(len(rpc_calls), 1)
+        self.assertEqual(rpc_calls[0][0], 'record_youtube_embed_failure_verdict')
+        self.assertEqual(rpc_calls[0][1]['p_verdict'], 'unavailable')
+        self.assertEqual(rpc_calls[0][1]['p_surface'], 'video_library_purge')
+
     def test_run_aborts_before_any_database_access_or_verdict(self):
         bridge = self.bridge
         with mock.patch.object(importlib.util, 'find_spec', return_value=None):

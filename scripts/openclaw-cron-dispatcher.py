@@ -1021,8 +1021,9 @@ SCRIPT_JOB_SCRIPTS = {
 # and returns before the bridge runs. Scheduled that way, no new library video
 # could ever reach social_reels - the last video_library reel was written
 # 2026-04-22 while the library gained 185 videos on 2026-08-30. The daily job
-# now runs the verified bridge itself, bounded to the newest 500 library videos by
-# published_at (the bridge stamps created_at = now(), so an unbounded run
+# now runs the verified bridge itself, bounded to 750 candidates with reserved
+# library, poker-pool, and sports-pool renewal lanes (the bridge stamps
+# created_at = now(), so an unbounded run
 # after a gap would drop the whole backlog onto the feed in one burst; the
 # backlog is a deliberate manual run: `video_library_to_reels.py` with no
 # --limit). Caption sync is folded into the end of every bridge run.
@@ -1031,7 +1032,9 @@ SCRIPT_JOB_SCRIPTS = {
 # verified atomic publisher, never as the old direct-write bridge.
 SCRIPT_JOBS = {
     '/api/cron/video-library-scraper':  [],                   # full daily run
-    '/api/cron/video-library-reels':    ['--limit', '750', '--verify'],  # bounded verified atomic publisher
+    '/api/cron/video-library-reels':    [
+        '--limit', '750', '--verify', '--verify-platform-supply'
+    ],  # bounded official publisher plus shared poker/sports verdict renewal
     '/api/cron/video-library-backfill': ['--backfill'],
     '/api/cron/video-library-purge':    ['--purge'],
     '/api/cron/video-library-views':    ['--refresh-views'],
