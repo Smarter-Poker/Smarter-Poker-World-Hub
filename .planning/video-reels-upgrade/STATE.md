@@ -2,18 +2,18 @@
 
 - **Current phase:** 1 of 10
 - **Phase name:** Restore Safe Supply And Endless Delivery
-- **Status:** Active release; source, database, and worker delivery are green, while World Hub/Open Claw protected publication and live proof remain in progress
-- **Branch:** `agent/codex-reels-supply-20260926/feat/reels-multiverse-supply`
-- **Delivery PR:** `#1977` on remote branch `agent/cowork-video-p1/fix/video-reels-integrity-phase-1`
-- **Workspace:** `/Volumes/SmarterWork/agent-work/codex-reels-supply-20260926`
+- **Status:** Active release; the application and three Open Claw release repairs are protected-merged, while the bounded backfill transport and shared-verdict horse consumer are being repaired and live positive supply proof remains pending
+- **Branch:** `agent/codex-reels-verdict/fix/reels-shared-verdict`
+- **Delivery PRs:** application `#1977`; Open Claw repairs `#1985`, `#1986`, and `#1987`; current shared-verdict follow-up pending
+- **Workspace:** `/Volumes/SmarterWork/agent-work/codex-reels-verdict`
 - **Exact tested source revision:** `b36c0aecc1be4bf515c6a2adc8797ace7fc4aef9` (the checkpoint-only commit that follows does not change runtime source)
-- **Protected baseline at latest fetch:** `origin/main` `990be89d230f2072fc50abe173132edb8e9a1e9a`
+- **Protected baseline at latest fetch:** `origin/main` `4a1b285bdbb54c4e999d9c023548d142faf65527`
 - **Operation owner:** this task owns source repair, database installation, protected PR completion, Vercel/Open Claw publication, and live verification
-- **Next gate:** validate, commit, and push the deterministic inventory plus single-header law repair exposed by hosted run `36283210494`; then pass current-head protected checks, squash merge, verify Vercel/Open Claw exact-tree publication, run the guarded production publisher, and prove managed inventory plus more-than-50 continuation live.
+- **Next gate:** deliver the installed batch shared-verdict RPC, make the Workers horse publisher consume only those durable proofs without per-horse YouTube fan-out, repair the long-lived SSH backfill transport, complete a positive bounded backfill, then require the next legitimate `:25` horse cycle plus strict database/API/browser readback.
 
 ## Policy Receipt
 
-- **Read at:** canonical `2026-09-27T00:47:27.799Z`; portable `2026-09-27T00:48:04.639Z`
+- **Read at:** canonical `2026-09-27T03:32:08.156Z`; portable `2026-09-27T03:32:12.888Z`
 - **Policy version:** `2.9`
 - **Manifest SHA-256:** `7663cc909626f7e9966931d27166ad8774addc801f7ad1898a2d7564bc13c378`
 - **Owner policy:** `76228d75677eb76ca9dcfbf65fd68ddb7aac3941f61154acc456ae8230a9a4fa`
@@ -78,3 +78,8 @@
 - PR #1977 current-head Build Safety Gate run `36283210494`, job `108518925384`, proved the CHECK 17 repair in hosted CI and advanced through CHECK 26. CHECK 8 then ran 2,409 tests and failed exactly two stale source contracts: the generated Phase 2 Training inventory and a Reels menu law that still required an inline header after the page was hardened to reuse one header owner across loading, recovery, empty, and viewer states.
 - Reproduced both failures locally. Regenerated the deterministic inventory with unchanged counts and gaps; its only changes are eight shifted line references in `src/config/hamburgerMenus.js`. Strengthened the Reels law to prove the extracted `reelsNavigationHeader` owns exactly one `UniversalHeader` and that the populated viewer remains gated by `showOverlay`, without changing runtime source.
 - Verified the exact 96-file CHECK 8 list parsed from `.github/workflows/build-safety-gate.yml`: 2,409 tests executed, 2,408 passed, 0 failed, and 1 was intentionally skipped. The focused seven-test menu/inventory contract, deterministic inventory check, targeted ESLint, policy drift check, and `git diff --check` also pass.
+- PR #1977 passed all seven required contexts and protected squash-merged as `967a790e6f0db32a6ef45b398a630e7798134299`; Vercel deployment `dpl_ByZwWNbSvij1A7hAsWjXa2b7Q7oa` became READY and `https://smarter.poker/api/health` reported that exact application revision.
+- Open Claw follow-ups #1985 (`79f48d830e7bce057eb228ab801413befd462d97`), #1986 (`27e5ed8fc8600248427ce91ba53b916c2fc4901a`), and #1987 (`4a1b285bdbb54c4e999d9c023548d142faf65527`) protected-merged after repairing whitespace-tolerant alert input, pipefail/SIGPIPE promotion, and nondeterministic Python bytecode in immutable release manifests. Run `36291392398` passed the exact #1987 safety gate.
+- Exact-main Open Claw run `36291139117` successfully promoted `27e5ed8fc8600248427ce91ba53b916c2fc4901a`. Manual backfill run `36291233735` correctly refused a nondeterministic same-SHA release before mutation; #1987 fixed that cause. The following exact `4a1b285bdbb54c4e999d9c023548d142faf65527` backfill run `36291706111` promoted successfully but its silent long-lived SSH connection dropped with `client_loop: send disconnect: Broken pipe` before publisher output. A scoped keepalive repair is in progress; no backfill success is claimed.
+- The first legitimate post-promotion horse cycle, operation `c0f1eeb9-5fd0-407e-9a5c-fd562694c624`, returned HTTP 503 with due/attempted/failed `51/51/51`, created `0`, and `305` backoff-short-circuited candidate checks. Production reproduction proved one anti-bot-class yt-dlp result activated a process-wide 15-minute backoff, while the publisher collapsed all subsequent unknown verdicts into definite invalid-supply errors.
+- Installed the additive service-role-only `fresh_public_youtube_verification_ids` migration at ledger version `20260927034032`. Readback proves one stable, set-returning SECURITY DEFINER overload with fixed `search_path=public, extensions`, service-role execute only, no PUBLIC/anonymous/authenticated execute, scalar-authority delegation, and zero results for malformed identifiers. It does not alter or replay any installed migration.
