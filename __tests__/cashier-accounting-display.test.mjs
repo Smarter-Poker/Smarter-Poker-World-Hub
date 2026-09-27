@@ -220,10 +220,15 @@ test('the existing message API passes only the authenticated private-reader proo
     new Function('require', 'module', 'exports', 'process', code)(name => mocks[name.split('/').at(-1)],
         module, module.exports, { env: { SUPABASE_SERVICE_ROLE_KEY: 'fixture' } });
     let payload, status = 200;
-    const res = { status(value) { status = value; return this; }, json(value) { payload = value; return this; } };
+    const headers = new Map();
+    const res = {
+        setHeader(name, value) { headers.set(name.toLowerCase(), value); return this; },
+        status(value) { status = value; return this; }, json(value) { payload = value; return this; },
+    };
     await module.exports.default({ method: 'POST', headers: { authorization: 'Bearer fixture' },
         body: { conversationId: id(21), userId: id(999), cashier: receipt('hold').cashier } }, res);
     assert.equal(status, 200); assert.equal(calls[0].user, id(8));
+    assert.equal(headers.get('cache-control'), 'private, no-store');
     const meta = payload.messages[0].media_metadata;
     assert.equal(meta.cashier_verified, true); assert.equal(meta.cashier.event_kind, 'approval');
     assert.equal(meta.cashier.invoice_id, proof.id); assert.equal(meta.source_ledger_id, proof.source_ledger_id);

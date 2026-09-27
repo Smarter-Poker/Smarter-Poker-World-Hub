@@ -162,25 +162,48 @@ function derivedSnapshotPolicy({
 }
 
 function privateContinuationSnapshotQuestions() {
+  // Real canonical geometry (scripts/preflop-deep/tree_gen.py, pot 550 chips,
+  // eff 9750): flop bets are int(round(550 * f)) chips, so "75%" is b412 =
+  // 74.909% and the id/label/potFraction are what SolverPolicyService derives.
+  // After b412 is called the turn pot is 1374 and the cumulative b1442 target
+  // adds 1030 chips = 74.964%.
   const actions = [
     {
       id: 'check', sourceCode: 'c', family: 'check', label: 'Check', frequency: 0.1,
       legal: true, size: { unit: 'none', exact: false },
     },
     {
-      id: 'bet_33pct', sourceCode: 'b200', family: 'bet', label: 'Bet 33% Pot', frequency: 0.2,
+      id: 'bet_33_09pct', sourceCode: 'b182', family: 'bet', label: 'Bet 33.1% Pot', frequency: 0.2,
       legal: true,
-      size: { unit: 'chips', chips: 200, bigBlinds: 2, potFraction: 0.33, exact: true },
+      size: { unit: 'chips', chips: 182, bigBlinds: 1.82, potFraction: 182 / 550, exact: true },
     },
     {
-      id: 'bet_75pct', sourceCode: 'b412', family: 'bet', label: 'Bet 75% Pot', frequency: 0.6,
+      id: 'bet_74_91pct', sourceCode: 'b412', family: 'bet', label: 'Bet 74.9% Pot', frequency: 0.6,
       legal: true,
-      size: { unit: 'chips', chips: 412, bigBlinds: 4.12, potFraction: 0.75, exact: true },
+      size: { unit: 'chips', chips: 412, bigBlinds: 4.12, potFraction: 412 / 550, exact: true },
     },
     {
-      id: 'bet_125pct', sourceCode: 'b700', family: 'bet', label: 'Bet 125% Pot', frequency: 0.1,
+      id: 'bet_125_09pct', sourceCode: 'b688', family: 'bet', label: 'Bet 125.1% Pot', frequency: 0.1,
       legal: true,
-      size: { unit: 'chips', chips: 700, bigBlinds: 7, potFraction: 1.25, exact: true },
+      size: { unit: 'chips', chips: 688, bigBlinds: 6.88, potFraction: 688 / 550, exact: true },
+    },
+  ];
+  const turnActions = [
+    actions[0],
+    {
+      id: 'bet_32_97pct', sourceCode: 'b865', family: 'bet', label: 'Bet 33% Pot', frequency: 0.2,
+      legal: true,
+      size: { unit: 'chips', chips: 453, bigBlinds: 4.53, potFraction: 453 / 1374, exact: true },
+    },
+    {
+      id: 'bet_74_96pct', sourceCode: 'b1442', family: 'bet', label: 'Bet 75% Pot', frequency: 0.6,
+      legal: true,
+      size: { unit: 'chips', chips: 1030, bigBlinds: 10.3, potFraction: 1030 / 1374, exact: true },
+    },
+    {
+      id: 'bet_125_04pct', sourceCode: 'b2130', family: 'bet', label: 'Bet 125% Pot', frequency: 0.1,
+      legal: true,
+      size: { unit: 'chips', chips: 1718, bigBlinds: 17.18, potFraction: 1718 / 1374, exact: true },
     },
   ];
   const parentScenarioHash = 'hu_cash_BTN_100bb_AsKdQc';
@@ -193,7 +216,7 @@ function privateContinuationSnapshotQuestions() {
     heroCards: ['9h', '8h'],
     boardCards: ['As', 'Kd', 'Qc'],
     options: actions.map(({ id, label }) => ({ id, text: label })),
-    correctAnswer: 'bet_75pct',
+    correctAnswer: 'bet_74_91pct',
     gtoFrequencies: Object.fromEntries(actions.map(({ id, frequency }) => [id, frequency * 100])),
     policyChecksum: SHA,
     solverProvenance: parentProvenance,
@@ -243,9 +266,9 @@ function privateContinuationSnapshotQuestions() {
     sourceClassification: 'SOLVER_DERIVED_RESPONSE',
     heroCards: ['9h', '8h'],
     boardCards: childBoard,
-    options: actions.map(({ id, label }) => ({ id, text: label })),
-    correctAnswer: 'bet_75pct',
-    gtoFrequencies: Object.fromEntries(actions.map(({ id, frequency }) => [id, frequency * 100])),
+    options: turnActions.map(({ id, label }) => ({ id, text: label })),
+    correctAnswer: 'bet_74_96pct',
+    gtoFrequencies: Object.fromEntries(turnActions.map(({ id, frequency }) => [id, frequency * 100])),
     policyChecksum: SHA,
     solverProvenance: childProvenance,
     scenario: {
@@ -280,7 +303,7 @@ function privateContinuationSnapshotQuestions() {
     boardCards: childBoard,
     potBb: child.scenario.pot,
     provenance: childProvenance,
-    actions,
+    actions: turnActions,
   });
   return { parent, child };
 }

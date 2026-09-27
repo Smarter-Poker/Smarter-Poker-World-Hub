@@ -1,14 +1,8 @@
 name: YT Worker Diagnostics (read-only)
 
 # Read-only diagnostic workflow — SSHes to Hetzner, tails the worker journal,
-# reports cookies.txt metadata, lists running yt-dlp/ffmpeg child processes,
-# and prints resource usage. Does NOT mutate cookies, code, or the worker.
+# lists running yt-dlp/ffmpeg child processes, and prints resource usage.
 # Safe to dispatch any time, no destructive side effects.
-#
-# Why this exists: deploy-yt-cookies / deploy-yt-worker / refresh-yt-cookies
-# all run mutating ops before they tail the journal. When the worker appears
-# stuck and you need to see WHAT it's doing without overwriting cookies or
-# restarting the worker, dispatch this instead.
 
 on:
   workflow_dispatch:
@@ -23,42 +17,47 @@ concurrency:
   group: yt-worker-diag
   cancel-in-progress: false
 
+permissions:
+  contents: read
+
 jobs:
   diagnose:
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    environment: Production
     timeout-minutes: 3
     steps:
       - name: Set up SSH agent
-        uses: webfactory/ssh-agent@v0.9.0
+        uses: webfactory/ssh-agent@dc588b651fe13675774614f8e6a936a468676387 # v0.9.0
         with:
           ssh-private-key: ${{ secrets.HETZNER_SSH_PRIVATE_KEY }}
 
-      - name: Trust Hetzner host key
-        run: |
-          mkdir -p ~/.ssh
-          ssh-keyscan -H "${{ secrets.HETZNER_HOST }}" >> ~/.ssh/known_hosts
-
-      - name: Cookie state (counts only, no content)
+      # Canonical reels-transcode-worker: Hetzner server 128782737.
+      - name: Trust the independently pinned reels-transcode-worker host key
         env:
           HOST: ${{ secrets.HETZNER_HOST }}
-          USER: ${{ secrets.HETZNER_SSH_USER || 'openclaw' }}
+          EXPECTED_ED25519_FINGERPRINT: SHA256:sZTpafVw76Jpgu+pwgp5X3nuaSfEnedVuZd/eWWiG+4
         run: |
-          ssh "$USER@$HOST" '
-            echo "=== cookies.txt ==="
-            sudo ls -la /opt/smarter-poker/yt-transcode-worker/cookies.txt
-            echo "lines:        $(sudo wc -l < /opt/smarter-poker/yt-transcode-worker/cookies.txt)"
-            echo "yt-entries:   $(sudo grep -c "\.youtube\.com" /opt/smarter-poker/yt-transcode-worker/cookies.txt || echo 0)"
-            echo "LOGIN_INFO:   $(sudo grep -cw LOGIN_INFO /opt/smarter-poker/yt-transcode-worker/cookies.txt || echo 0)"
-            echo "SAPISID:      $(sudo grep -cw SAPISID /opt/smarter-poker/yt-transcode-worker/cookies.txt || echo 0)"
-            echo "HSID:         $(sudo grep -cw HSID /opt/smarter-poker/yt-transcode-worker/cookies.txt || echo 0)"
-          '
+          set -euo pipefail
+          test -n "$HOST"
+          mkdir -p ~/.ssh
+          ssh-keyscan -T 10 -t ed25519 -H "$HOST" > ~/.ssh/known_hosts 2>/dev/null
+          test -s ~/.ssh/known_hosts
+          actual_fingerprint="$(ssh-keygen -lf ~/.ssh/known_hosts -E sha256 | awk '{print $2}' | sort -u)"
+          test "$actual_fingerprint" = "$EXPECTED_ED25519_FINGERPRINT"
+          chmod 0600 ~/.ssh/known_hosts
+          printf '%s\n' \
+            'Host *' \
+            '  StrictHostKeyChecking yes' \
+            '  UserKnownHostsFile ~/.ssh/known_hosts' > ~/.ssh/config
+          chmod 0600 ~/.ssh/config
 
       - name: Worker process / resource state
         env:
           HOST: ${{ secrets.HETZNER_HOST }}
-          USER: ${{ secrets.HETZNER_SSH_USER || 'openclaw' }}
+          SSH_USER: ${{ secrets.HETZNER_SSH_USER || 'root' }}
         run: |
-          ssh "$USER@$HOST" '
+          ssh "$SSH_USER@$HOST" '
             echo "=== systemd ==="
             sudo systemctl status sp-yt-transcode --no-pager --lines=0 | head -10
             echo ""
@@ -75,7 +74,27 @@ jobs:
       - name: Worker journal tail
         env:
           HOST: ${{ secrets.HETZNER_HOST }}
-          USER: ${{ secrets.HETZNER_SSH_USER || 'openclaw' }}
+          SSH_USER: ${{ secrets.HETZNER_SSH_USER || 'root' }}
           TAIL_LINES: ${{ inputs.tail_lines }}
         run: |
-          ssh "$USER@$HOST" "sudo journalctl -u sp-yt-transcode -n $TAIL_LINES --no-pager"
+          case "$TAIL_LINES" in (*[!0-9]*|'') exit 2 ;; esac
+          test "$TAIL_LINES" -ge 1
+          test "$TAIL_LINES" -le 500
+          # Bounded and filtered: credential-looking lines are dropped and URL
+          # userinfo, query strings, JWTs and long opaque strings are masked, so
+          # a diagnostic run cannot publish service credentials into a run log.
+          ssh "$SSH_USER@$HOST" 'bash -s' -- "$TAIL_LINES" <<'EOSSH'
+          set -euo pipefail
+          tail_lines="$1"
+          case "$tail_lines" in (*[!0-9]*|'') exit 2 ;; esac
+          test "$tail_lines" -ge 1
+          test "$tail_lines" -le 500
+          sudo journalctl -u sp-yt-transcode -n "$tail_lines" --no-pager \
+            | grep -Eiv 'secret|token|passw|authorization|bearer|cookie|credential|api[_-]?key|service_role|environ' \
+            | sed -E \
+                -e 's#(https?://)[^/@[:space:]]+@#\1[REDACTED]@#g' \
+                -e 's#[?][^[:space:]]*#?[REDACTED]#g' \
+                -e 's#eyJ[A-Za-z0-9_.-]+#[REDACTED]#g' \
+                -e 's#[A-Za-z0-9_+=-]{32,}#[REDACTED]#g' \
+            | cut -c1-400 || true
+          EOSSH

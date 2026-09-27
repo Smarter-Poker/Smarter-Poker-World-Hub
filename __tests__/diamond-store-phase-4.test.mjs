@@ -13,7 +13,8 @@ const CHECKOUT = read('pages/api/store/create-checkout-session.js');
 
 test('store section navigation is native, addressable, and stays in the current app surface', () => {
   assert.match(SHOWCASE, /const TAB_ROUTES = \{/);
-  assert.match(SHOWCASE, /<Link[\s\S]*?href=\{TAB_ROUTES\[id\]\}/);
+  assert.match(SHOWCASE, /<Link[\s\S]*?href=\{storeTabHref\(id, clubId\)\}/);
+  assert.match(SHOWCASE, /const route = TAB_ROUTES\[tabId\]/);
   assert.doesNotMatch(SHOWCASE, /target=.*_blank|window\.open\(/);
   assert.match(SHOWCASE, /aria-current=\{id === activeTab \? 'page' : undefined\}/);
   assert.match(SHOWCASE_CSS, /\.tab\s*\{[\s\S]*?place-items:\s*center/);

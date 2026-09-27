@@ -337,12 +337,14 @@ test('the ?view= deep link leaves the legacy ?tab= redirect and Stripe returns a
   const page = await read('pages/hub/diamond-store.js');
   // The legacy deep-link redirect still owns ?tab=, untouched.
   assert.match(page, /const raw = router\.query\.tab;/);
-  assert.match(page, /router\.replace\(TAB_ROUTES\[tab\]\)/);
+  assert.match(page, /router\.replace\(withLegacyTabQuery\(TAB_ROUTES\[tab\], router\.query\)\)/);
   // Stripe's return parameters are still read and verified where they were.
   assert.match(page, /const rawSuccess = Array\.isArray\(router\.query\.success\)/);
   assert.match(page, /const rawCanceled = Array\.isArray\(router\.query\.canceled\)/);
-  // `view` is read in exactly one place and is never written into a route.
+  // `view` is read in exactly one place. It is written back only by the sub-tab
+  // control, through one address builder, and never by the deep-link effect.
   assert.equal((page.match(/router\.query\.view/g) || []).length, 1);
+  assert.equal((page.match(/clubShopAddress\(/g) || []).length, 3);
   for (const route of Object.entries({
     diamonds: '/hub/diamond-store',
     vip: '/hub/vip-membership',

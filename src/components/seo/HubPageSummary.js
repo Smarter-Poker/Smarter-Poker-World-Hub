@@ -367,7 +367,7 @@ export const HUB_PAGE_SUMMARIES = {
   reels: {
     heading: 'About Reels',
     lead:
-      'Reels Is Short Poker Video: Hands Worth Watching Twice, Reads That Paid Off, Tournament Moments From The Circuit And Clips Players Record At The Table. Everything Is Vertical, Short And Poker, Which Is The Point: A Feed That Does Not Wander Off Into Everything Else. Watching Is Free And Needs No Account, And Nothing In It Is A Wager.',
+      'Reels Is The Short-Video Feed For Poker Highlights And Strategy, Responsible Casino And Slots Entertainment, And Sports Clips From Approved Sources. Every Reel Must Pass The Same Public Playback, Attribution And Safety Checks Before It Reaches The Feed. Watching Is Free And Needs No Account, And Nothing In It Is A Wager.',
     links: [
       { name: 'Video Library', href: '/hub/video-library', text: 'Longer Strategy Content And Tournament Coverage.' },
       { name: 'Social Hub', href: '/hub/social-media', text: 'The Feed The Clips Get Discussed In.' },

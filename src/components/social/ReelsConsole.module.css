@@ -1,0 +1,475 @@
+.shell {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  overflow: auto;
+  box-sizing: border-box;
+  display: grid;
+  align-items: start;
+  justify-items: center;
+  padding: max(8px, env(safe-area-inset-top)) 0 max(8px, env(safe-area-inset-bottom));
+  background: #000;
+}
+
+.console {
+  width: min(100%, 1000px);
+}
+
+.liveArea {
+  position: relative;
+  min-width: 0;
+}
+
+.liveGrid {
+  display: grid;
+  gap: 4cqw;
+  min-width: 0;
+}
+
+.viewport {
+  position: relative;
+  width: 100%;
+  height: min(124cqw, 66dvh);
+  min-height: 360px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  scroll-snap-type: y mandatory;
+  scrollbar-width: none;
+  background: #000;
+  touch-action: pan-y;
+}
+
+.viewport::-webkit-scrollbar {
+  display: none;
+}
+
+.slide {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  scroll-snap-align: start;
+  background: #000;
+}
+
+.media,
+.poster {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  object-fit: cover;
+}
+
+.poster {
+  z-index: 0;
+}
+
+.media {
+  z-index: 1;
+}
+
+.stageSignal,
+.stageInfo {
+  position: absolute;
+  z-index: 4;
+  color: #f4f7fb;
+  font-family: 'Roboto Condensed', var(--font-rajdhani, 'Arial Narrow'), sans-serif;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  text-shadow: 0 0 12px rgb(0 0 0 / 95%);
+  pointer-events: none;
+}
+
+.stageSignal {
+  inset: 50% auto auto 50%;
+  transform: translate(-50%, -50%);
+  font-size: 15px;
+}
+
+.stageInfo {
+  inset: auto 14px 14px;
+  font-size: 12px;
+  line-height: 1.45;
+  opacity: 1;
+  transition: opacity 160ms ease;
+}
+
+.stageInfo[data-visible='false'] {
+  opacity: 0;
+}
+
+.stageCaption {
+  display: block;
+  margin-block-start: 5px;
+  color: #d7dee7;
+  font-family: var(--font-inter, Inter), system-ui, sans-serif;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.progressTrack {
+  position: absolute;
+  z-index: 5;
+  inset: auto 0 0;
+  height: 3px;
+  overflow: hidden;
+  background: rgb(255 255 255 / 20%);
+  pointer-events: none;
+}
+
+.progressValue {
+  width: 100%;
+  height: 100%;
+  transform: scaleX(var(--reel-progress, 0));
+  transform-origin: left center;
+  background: #45adff;
+}
+
+.commandPanel {
+  display: grid;
+  align-content: start;
+  gap: 2.4cqw;
+  min-width: 0;
+}
+
+.authorLink {
+  display: grid;
+  grid-template-columns: 50px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  color: #e4e7ec;
+  text-decoration: none;
+}
+
+.authorTextOnly,
+.commentTextOnly {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.avatar,
+.commentAvatar {
+  display: block;
+  width: 50px;
+  height: 50px;
+  object-fit: cover;
+}
+
+.commentAvatar {
+  width: 34px;
+  height: 34px;
+}
+
+.authorName,
+.authorMeta,
+.caption,
+.dialogCopy,
+.commentName,
+.commentCopy,
+.counter,
+.status {
+  margin: 0;
+}
+
+.authorName,
+.commentName {
+  color: #e4e7ec;
+  font-family: 'Roboto Condensed', var(--font-rajdhani, 'Arial Narrow'), sans-serif;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.authorName,
+.authorMeta {
+  display: block;
+}
+
+.authorMeta,
+.dialogCopy,
+.commentCopy,
+.counter {
+  color: #aeb8c5;
+  font-family: var(--font-inter, Inter), system-ui, sans-serif;
+  line-height: 1.45;
+}
+
+.authorMeta,
+.counter {
+  font-size: 12px;
+}
+
+.caption {
+  color: #d7dee7;
+  font-family: var(--font-inter, Inter), system-ui, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.actionGrid,
+.dialogActions,
+.shareGrid,
+.commentActions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 2px 10px;
+  min-width: 0;
+}
+
+.actionGrid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.wordAction,
+.wordActionDanger,
+.inlineAction,
+.captionAction {
+  appearance: none;
+  min-width: 0;
+  min-height: 44px;
+  margin: 0;
+  padding: 9px 7px;
+  border: 0;
+  background: transparent;
+  color: #d7dee7;
+  font-family: 'Roboto Condensed', var(--font-rajdhani, 'Arial Narrow'), sans-serif;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: 0.08em;
+  text-align: center;
+  text-transform: uppercase;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.inlineAction,
+.captionAction {
+  display: inline;
+  width: auto;
+  min-height: 44px;
+  padding-inline: 8px;
+  color: #45adff;
+}
+
+.wordActionDanger {
+  color: #ff5b6e;
+}
+
+.wordAction:disabled,
+.wordActionDanger:disabled,
+.inlineAction:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.wordAction:focus-visible,
+.wordActionDanger:focus-visible,
+.inlineAction:focus-visible,
+.captionAction:focus-visible,
+.field:focus-visible,
+.textArea:focus-visible,
+.fileAction:focus-visible {
+  outline: 3px solid #8fd4ff;
+  outline-offset: -3px;
+}
+
+.dialogCopy,
+.commentCopy {
+  font-size: 13px;
+}
+
+.choiceList,
+.commentList,
+.shortcutList {
+  display: grid;
+  gap: 0;
+  min-width: 0;
+}
+
+.choiceList > * + *,
+.comment + .comment,
+.shortcut + .shortcut {
+  border-block-start: 1px solid rgb(228 231 236 / 16%);
+}
+
+.comment {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  gap: 10px;
+  padding-block: 12px;
+}
+
+.commentBody {
+  min-width: 0;
+}
+
+.commentMedia,
+.previewMedia {
+  display: block;
+  width: min(100%, 220px);
+  max-height: 160px;
+  margin-block-start: 8px;
+  object-fit: contain;
+}
+
+.commentActions {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  justify-content: start;
+  margin-block-start: 4px;
+}
+
+.field,
+.textArea {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 44px;
+  margin: 0;
+  padding: 10px 8px;
+  border: 0;
+  border-block-end: 1px solid rgb(228 231 236 / 38%);
+  background: transparent;
+  color: #f4f7fb;
+  font: 500 14px/1.45 var(--font-inter, Inter), system-ui, sans-serif;
+}
+
+.textArea {
+  min-height: 110px;
+  resize: vertical;
+}
+
+.composer {
+  display: grid;
+  gap: 8px;
+  margin-block-start: 12px;
+}
+
+.composerActions {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 4px;
+}
+
+.fileAction {
+  display: grid;
+  place-items: center;
+  min-height: 44px;
+  color: #d7dee7;
+  font-family: 'Roboto Condensed', var(--font-rajdhani, 'Arial Narrow'), sans-serif;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.fileInput {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}
+
+.shortcut {
+  display: grid;
+  grid-template-columns: minmax(80px, 0.7fr) minmax(0, 1.3fr);
+  gap: 12px;
+  padding-block: 8px;
+  color: #d7dee7;
+  font-family: var(--font-inter, Inter), system-ui, sans-serif;
+  font-size: 13px;
+}
+
+.statusStack {
+  position: absolute;
+  z-index: 30;
+  inset: 10px 10px auto;
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  pointer-events: none;
+}
+
+.status {
+  color: #c8ffd2;
+  font-family: 'Roboto Condensed', var(--font-rajdhani, 'Arial Narrow'), sans-serif;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-align: center;
+  text-shadow: 0 1px 2px #000, 0 0 12px #000;
+  text-transform: uppercase;
+}
+
+.errorStatus {
+  color: #ff5b6e;
+}
+
+.liveConsoleHidden {
+  position: fixed;
+  inset: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.dialogLayer {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  overflow: auto;
+  box-sizing: border-box;
+  display: grid;
+  align-items: start;
+  justify-items: center;
+  padding: max(8px, env(safe-area-inset-top)) 0 max(8px, env(safe-area-inset-bottom));
+  background: #000;
+}
+
+.dialogShell {
+  width: min(100%, 1000px);
+  min-width: 0;
+}
+
+.dialogConsole {
+  width: 100%;
+}
+
+@media (min-width: 760px) {
+  .shell {
+    align-items: center;
+    padding: 18px;
+  }
+
+  .liveGrid {
+    grid-template-columns: minmax(0, 1.45fr) minmax(240px, 0.75fr);
+    align-items: start;
+  }
+
+  .viewport {
+    height: min(67cqw, 72dvh);
+    min-height: 500px;
+  }
+
+  .actionGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .dialogLayer {
+    align-items: center;
+    padding: 18px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stageInfo {
+    transition: none;
+  }
+}

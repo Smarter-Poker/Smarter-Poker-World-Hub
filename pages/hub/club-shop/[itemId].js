@@ -28,6 +28,7 @@ import { getVerifiedCheckoutAuthorization } from '../../../src/lib/store/checkou
 import { leaveForCheckout } from '../../../src/lib/store/leaveForCheckout.mjs';
 import {
   classifyClubPurchaseRefusal,
+  clubPurchaseRefusalNotice,
   getClubDiamondPurchaseProjection,
   normalizeClubCardQuote,
   normalizeVerifiedClubPurchaseSuccess,
@@ -232,8 +233,11 @@ export default function ClubShopItemDetail({ routeItemId = null }) {
         if (!confirmedAuthorization || !verifiedAccountId) {
           throw new Error('The Club Shop Catalog Could Not Be Bound To Your Current Account.');
         }
-        const verifiedBalance =
-          Number.isSafeInteger(body.balance) && body.balance >= 0 ? body.balance : null;
+        // A negative wallet is a reported debt, not a corrupt read: a card
+        // refund can claw back already-spent Diamonds. Card checkout stays
+        // paused for it further down; the catalog still has to render so the
+        // member can see what they owe against.
+        const verifiedBalance = Number.isSafeInteger(body.balance) ? body.balance : null;
         const verifiedItems = normalizeVerifiedClubShopItems(body.items, verifiedBalance);
         const verifiedContext = normalizeVerifiedClubShopContext(
           body.clubId ?? null,
@@ -611,9 +615,23 @@ export default function ClubShopItemDetail({ routeItemId = null }) {
             await loadItem({ preserveContext: true });
             if (!attemptIsCurrent()) return false;
           }
+          // The server already says exactly why it refused: sold out, an
+          // unused copy is still owned, the purchase limit is reached, the
+          // price moved. Answering all of those with "confirm again" left the
+          // member pressing Buy forever with nothing to act on. Its copy is
+          // shown only when the refusal is bound to this account and this
+          // request and is a definitive business outcome; anything unbound,
+          // throttled, timed out or 5xx keeps the uncertain wording, because
+          // it does not prove the charge did not commit.
+          const refusalNotice = clubPurchaseRefusalNotice(response.status, body, {
+            accountId: expectedAccountId,
+            requestId: durableRequestId,
+          });
           setState({
             kind: 'error',
-            message: 'Purchase Status Is Uncertain. Confirm Again To Verify The Original Purchase.',
+            message: refusalNotice.definitiveOutcome
+              ? refusalNotice.message
+              : 'Purchase Status Is Uncertain. Confirm Again To Verify The Original Purchase.',
           });
           return false;
         }
@@ -845,7 +863,12 @@ export default function ClubShopItemDetail({ routeItemId = null }) {
         throw new Error('Your Signed-In Account Changed. The Checkout Link Was Not Opened.');
       }
       if (!attemptIsCurrent()) return;
-      leaveForCheckout(checkoutSession.url);
+      // A refusal returns null and navigates nothing. Swallowed, the shopper saw
+      // a redirect toast, a re-enabled button and no redirect, with the durable
+      // request still claimed. It is an error, so it takes the error path.
+      if (!leaveForCheckout(checkoutSession.url)) {
+        throw new Error('The Checkout Page Could Not Be Opened. Please Try Again.');
+      }
     } catch (error) {
       if (!attemptIsCurrent() || error?.name === 'AbortError') return;
       if (checkoutRequestReplacementRequired(error) && checkoutRequestId) {

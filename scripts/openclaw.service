@@ -1,8 +1,7 @@
 # /etc/systemd/system/openclaw.service
 # Smarter Poker Open Claw — apscheduler-based cron dispatcher.
 # Fires authenticated HTTP GETs against smarter.poker/api/cron/* on the
-# cadence defined in /opt/openclaw/dispatcher.py.
-# Runs alongside sp-yt-transcode.service on the same Hetzner CX22.
+# cadence defined in the immutable /opt/openclaw/current release.
 
 [Unit]
 Description=Smarter Poker Open Claw Cron Dispatcher
@@ -18,9 +17,25 @@ StartLimitIntervalSec=0
 [Service]
 Type=simple
 User=openclaw
-WorkingDirectory=/opt/openclaw
-EnvironmentFile=-/etc/openclaw.env
-ExecStart=/usr/bin/python3 /opt/openclaw/dispatcher.py
+WorkingDirectory=/opt/openclaw/current
+EnvironmentFile=/etc/openclaw.env
+Environment=PYTHONNOUSERSITE=1
+Environment=PYTHONDONTWRITEBYTECODE=1
+Environment=SP_LOG_DIR=/var/log/openclaw
+Environment=SP_EVIDENCE_DIR=/var/lib/openclaw/evidence
+# Start gates stay local to this host: the release manifest and the
+# dispatcher's own runtime/script contract. This unit runs EVERY platform
+# cron, so a Supabase outage or a video pipeline misconfiguration must never
+# keep it from starting. The scraper and publisher schema preflights gate the
+# release in deploy-openclaw.yml before promotion, and the Reel publisher
+# re-reads its system publisher and kill switches on every run, failing closed.
+ExecStartPre=/usr/bin/sha256sum --quiet -c release-manifest.sha256
+ExecStartPre=/usr/bin/env -u PYTHONHOME -u PYTHONPATH PYTHONPATH=/opt/openclaw/current/vendor /usr/bin/python3 -s /opt/openclaw/current/openclaw-cron-dispatcher.py --preflight-only
+ExecStart=/usr/bin/env -u PYTHONHOME -u PYTHONPATH PYTHONPATH=/opt/openclaw/current/vendor /usr/bin/python3 -s /opt/openclaw/current/openclaw-cron-dispatcher.py
+TimeoutStartSec=300
+TimeoutStopSec=30
+KillMode=control-group
+SendSIGKILL=yes
 # Restart on ANY exit (crash or clean exit), always.
 Restart=always
 RestartSec=15

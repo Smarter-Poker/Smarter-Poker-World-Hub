@@ -22,7 +22,7 @@ function fixture() {
     const page = fs.readFileSync(new URL('../pages/hub/messenger.js', import.meta.url), 'utf8');
     const start = page.indexOf('    resolveConversationRef.current = async');
     const end = page.indexOf('    useMessengerConversationLink({', start);
-    const buildResolver = new Function('context', `const { user, workspaceRef, getAccessToken, authedFetch, setClubAccess, setWorkspaceSelection, setConversations, setPendingConversationId, setConversationDraft, setToast } = context; const resolveConversationRef = {}; ${page.slice(start, end)} return resolveConversationRef.current;`);
+    const buildResolver = new Function('context', `const { user, workspaceRef, getAccessToken, authedFetch, setClubAccess, setWorkspaceSelection, setConversations, setPendingConversationId, deepLinkDraftRef, setToast } = context; const resolveConversationRef = {}; ${page.slice(start, end)} return resolveConversationRef.current;`);
     const pending = [], accepted = [], toasts = [], workspaceRef = { current: 'account-a:social:1' };
     const props = { userId: 'account-a', scope: workspaceRef.current, conversation: 'invoice-a', draft: '' };
     const context = {
@@ -32,7 +32,7 @@ function fixture() {
         setWorkspaceSelection: value => accepted.push(['workspace', value]),
         setConversations: value => accepted.push(['conversations', value]),
         setPendingConversationId: value => accepted.push(['pending', value]),
-        setConversationDraft: value => accepted.push(['draft', value]),
+        deepLinkDraftRef: { set current(value) { accepted.push(['draft', value.text]); accepted.push(['draftOwner', value]); } },
         setToast: value => toasts.push(value),
     };
     return {
@@ -78,7 +78,8 @@ test('an unavailable link remains unconsumed and can retry on a new scope', asyn
     assert.match(f.toasts[0].message, /Unavailable/); assert.deepEqual(f.accepted, []);
     f.render({ scope: 'account-a:social:2', draft: 'Invoice question' }); f.commit();
     f.pending[1].resolve(response()); await settle();
-    assert.deepEqual(f.accepted.find(([kind]) => kind === 'draft'), ['draft', 'Invoice question']); f.unmount();
+    assert.deepEqual(f.accepted.find(([kind]) => kind === 'draft'), ['draft', 'Invoice question']);
+    assert.deepEqual(f.accepted.find(([kind]) => kind === 'draftOwner')[1], { actorId: 'account-a', conversationId: 'invoice-a', text: 'Invoice question' }); f.unmount();
 });
 test('missing auth and array-shaped conversation parameters never dispatch a request', () => {
     const f = fixture(); f.render({ userId: null }); f.commit();

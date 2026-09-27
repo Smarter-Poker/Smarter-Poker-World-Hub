@@ -121,15 +121,23 @@ export default async function handler(req, res) {
             });
         }
 
+        // Record only what the RPC actually reported. Its `already_refunded`
+        // early return carries neither a currency nor a buyer, so defaulting
+        // to 'chips' filed a replayed Diamond refund under the legacy chip
+        // currency against an undefined buyer. A missing field is recorded as
+        // null, which is the truth: this replay settled nothing new.
+        const refundedCurrency = typeof result.currency === 'string' ? result.currency : null;
+        const refundedBuyerId = result.buyer_id ?? null;
+
         try {
             await logAudit(getSupabase(), {
                 actionType: 'marketplace_refund',
                 userId: user.id,
                 clubId,
                 amount: result.amount,
-                currency: result.currency || 'chips',
+                currency: refundedCurrency,
                 ip: extractIP(req),
-                details: { purchaseId, buyerId: result.buyer_id, reason, alreadyRefunded: !!result.already_refunded },
+                details: { purchaseId, buyerId: refundedBuyerId, reason, alreadyRefunded: !!result.already_refunded },
             });
         } catch (auditErr) {
             console.warn('[refund-purchase] audit log failed (refund still applied):', auditErr?.message || auditErr);
@@ -138,9 +146,9 @@ export default async function handler(req, res) {
         return res.status(200).json({
             success: true,
             amount: result.amount,
-            currency: result.currency || 'chips',
-            buyerId: result.buyer_id,
-            balanceAfter: result.balance_after,
+            currency: refundedCurrency,
+            buyerId: refundedBuyerId,
+            balanceAfter: result.balance_after ?? null,
             alreadyRefunded: !!result.already_refunded,
         });
     } catch (err) {

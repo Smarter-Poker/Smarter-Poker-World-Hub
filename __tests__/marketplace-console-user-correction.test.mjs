@@ -87,7 +87,8 @@ test('Marketplace keeps its existing route navigation instead of standalone obje
     ]);
 
   assert.match(showcase, /<nav className=\{styles\.tabs\}/);
-  assert.match(showcase, /<Link[\s\S]*?href=\{TAB_ROUTES\[id\]\}/);
+  assert.match(showcase, /<Link[\s\S]*?href=\{storeTabHref\(id, clubId\)\}/);
+  assert.match(showcase, /const route = TAB_ROUTES\[tabId\]/);
   assert.match(showcase, /aria-current=\{id === activeTab \? 'page' : undefined\}/);
   assert.match(showcaseStyles, /\.tabs\s*\{/);
   const cssRule = (source, selector) => {

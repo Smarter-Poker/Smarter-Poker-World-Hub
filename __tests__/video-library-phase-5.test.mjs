@@ -114,8 +114,8 @@ test('mark-unwatched persists and clears every local watch-state projection', ()
 test('action feedback reports actual outcome and clipboard failures never claim success', () => {
   assert.match(PAGE, /copyTextToClipboard/);
   assert.match(PAGE, /Link could not be copied\. Try again\./);
-  assert.match(PAGE, /shareToast\.message/);
-  assert.match(PAGE, /vl-action-notice--\$\{shareToast\.tone\}/);
+  assert.match(PAGE, /visibleShareToast\.message/);
+  assert.match(PAGE, /vl-action-notice--\$\{visibleShareToast\.tone\}/);
   assert.match(CSS, /\.vl-action-notice--error/);
   assert.match(CSS, /\.vl-action-notice--info/);
 });
@@ -128,9 +128,135 @@ test('deep links, auth switches, and pagination remounts are guarded', () => {
   assert.match(PAGE, /sessionUserId: userId/);
   assert.match(PAGE, /Some saved library data could not be refreshed/);
   assert.match(PLAYLISTS, /Error fetching playlists:[\s\S]*throw error/);
-  assert.match(PAGE, /\[displayedCount, videos\.length,/);
+  assert.match(PAGE, /\[displayedCount, catalogNextOffset, catalogHasMore,/);
   assert.doesNotMatch(PAGE, /dbLoaded/);
   assert.match(PAGE, /catalogSearchQuery, sortMode, libraryFilter/);
+});
+
+test('an off-page video deep link survives the first catalog page refresh', () => {
+  const effectStart = PAGE.indexOf('// A shared video deep link may point beyond');
+  const effectEnd = PAGE.indexOf('// Server-backed infinite pagination', effectStart);
+  const deepLinkEffect = PAGE.slice(effectStart, effectEnd);
+
+  assert.ok(effectStart > 0 && effectEnd > effectStart, 'deep-link resolver effect must remain present');
+  assert.match(
+    PAGE,
+    /const requestedQueryVideoInCurrentPage = requestedQueryVideoId[\s\S]*?allVideos\.some\(video => video\.videoId === requestedQueryVideoId\)/,
+    'array churn must be projected to the requested row presence before becoming an effect dependency'
+  );
+  assert.match(
+    deepLinkEffect,
+    /openedQueryVideoRef\.current === requestedVideoId \|\| requestedQueryVideoInCurrentPage/,
+    'a row already delivered by the main catalog must suppress the one-row request'
+  );
+  assert.doesNotMatch(
+    deepLinkEffect,
+    /\[[^\]]*allVideos[^\]]*\]/,
+    'an unrelated first-page replacement must not abort an off-page bookmark request'
+  );
+  assert.match(
+    deepLinkEffect,
+    /controller\.abort\(\);[\s\S]*?queryVideoFetchRef\.current = null/,
+    'a genuinely superseded request must release its retry guard after aborting'
+  );
+  assert.match(
+    deepLinkEffect,
+    /requestId === queryVideoRequestRef\.current[\s\S]*?requestedQueryVideoIdRef\.current === requestedVideoId/,
+    'a response must belong to both the latest request generation and current route before it can mutate the viewer'
+  );
+});
+
+test('a delayed bookmark response cannot open or report after the route changes', async () => {
+  const effectStart = PAGE.indexOf('// A shared video deep link may point beyond');
+  const callbackStart = PAGE.indexOf('    useEffect(() => {', effectStart) + '    useEffect(() => {'.length;
+  const callbackEnd = PAGE.indexOf(
+    '    }, [router.isReady, requestedQueryVideoId, requestedQueryVideoInCurrentPage, deepLinkRetryNonce]);',
+    callbackStart
+  );
+  assert.ok(effectStart > 0 && callbackStart > effectStart && callbackEnd > callbackStart);
+
+  const runActualEffect = new Function('context', `
+    const {
+      router, handleOpenVideoRef, requestedQueryVideoId, queryVideoFetchRef,
+      setDeepLinkStatus, isVideoLibraryVideoAllowed, openedQueryVideoRef,
+      requestedQueryVideoInCurrentPage, queryVideoRequestRef,
+      requestedQueryVideoIdRef, AbortController, fetch,
+      STATIC_VIDEO_CANONICAL_ALIASES, reportVideoLibraryIssue
+    } = context;
+    return (() => {${PAGE.slice(callbackStart, callbackEnd)}})();
+  `);
+
+  const pending = [];
+  const opened = [];
+  const statuses = [];
+  const issues = [];
+  const queryVideoFetchRef = { current: null };
+  const queryVideoRequestRef = { current: 0 };
+  const requestedQueryVideoIdRef = { current: null };
+  const openedQueryVideoRef = { current: null };
+  const context = {
+    router: { isReady: true },
+    handleOpenVideoRef: { current: video => opened.push(video.videoId) },
+    queryVideoFetchRef,
+    queryVideoRequestRef,
+    requestedQueryVideoIdRef,
+    openedQueryVideoRef,
+    requestedQueryVideoInCurrentPage: false,
+    setDeepLinkStatus: status => statuses.push(status),
+    isVideoLibraryVideoAllowed: value => Boolean(typeof value === 'string' ? value : value?.videoId),
+    AbortController: class {
+      constructor() { this.signal = { aborted: false }; }
+      abort() { this.signal.aborted = true; }
+    },
+    fetch: (url, options) => new Promise(resolve => pending.push({ url, options, resolve })),
+    STATIC_VIDEO_CANONICAL_ALIASES: new Map(),
+    reportVideoLibraryIssue: (...args) => issues.push(args),
+  };
+  const begin = videoId => {
+    requestedQueryVideoIdRef.current = videoId;
+    return runActualEffect({ ...context, requestedQueryVideoId: videoId });
+  };
+  const response = (videoId, ok = true) => ({
+    ok,
+    status: ok ? 200 : 503,
+    json: async () => ({ data: [{ videoId }] }),
+  });
+  const settle = async () => {
+    for (let index = 0; index < 8; index += 1) await Promise.resolve();
+  };
+
+  const cleanupA = begin('AAAAAAAAAAA');
+  assert.equal(pending.length, 1);
+  requestedQueryVideoIdRef.current = 'BBBBBBBBBBB';
+  cleanupA();
+  const cleanupB = begin('BBBBBBBBBBB');
+  assert.equal(pending.length, 2);
+
+  // Fetch can resolve even after AbortController fires. The page's actual
+  // latest-request guard must still suppress every stale mutation.
+  pending[0].resolve(response('AAAAAAAAAAA'));
+  await settle();
+  assert.deepEqual(opened, []);
+  assert.deepEqual(statuses.filter(Boolean), []);
+  assert.deepEqual(issues, []);
+
+  requestedQueryVideoIdRef.current = 'CCCCCCCCCCC';
+  cleanupB();
+  const cleanupC = begin('CCCCCCCCCCC');
+  assert.equal(pending.length, 3);
+  pending[1].resolve(response('BBBBBBBBBBB', false));
+  await settle();
+  assert.deepEqual(opened, []);
+  assert.deepEqual(statuses.filter(Boolean), []);
+  assert.deepEqual(issues, []);
+
+  pending[2].resolve(response('CCCCCCCCCCC'));
+  await settle();
+  assert.deepEqual(opened, ['CCCCCCCCCCC']);
+  assert.equal(openedQueryVideoRef.current, 'CCCCCCCCCCC');
+  assert.deepEqual(statuses.filter(Boolean), []);
+  assert.deepEqual(issues, []);
+  cleanupC();
 });
 
 test('supported player settings are wired and the false HD control is retired', () => {
@@ -141,18 +267,58 @@ test('supported player settings are wired and the false HD control is retired', 
   assert.match(HARDENING, /video_library_preferences =/);
 });
 
+test('the hamburger exposes every canonical Video Library view and source', () => {
+  const menuStart = MENU.indexOf("'video-library':");
+  const menuEnd = MENU.indexOf("'trivia':", menuStart);
+  const videoMenu = MENU.slice(menuStart, menuEnd);
+  const sourceStart = DATA.indexOf('export const SOURCES = [');
+  const canonicalSources = [...DATA.slice(sourceStart).matchAll(
+    /\{ id: '([^']+)', name: '([^']+)', logo: (?:null|'[^']+') \}/g
+  )]
+    .map(([, id, name]) => ({ id, name }))
+    .filter(({ id }) => id !== 'ALL');
+  const menuSources = [...videoMenu.matchAll(
+    /createMenuItem\.navigation\('([^']+)', '\/hub\/video-library\?source=([^']+)'\)/g
+  )].map(([, name, id]) => ({ id, name }));
+
+  assert.deepEqual(menuSources, canonicalSources);
+  assert.match(videoMenu, /'Slots', '\/hub\/video-library\?type=slots'/);
+  assert.match(videoMenu, /'Playlists', '\/hub\/video-library\?filter=playlists'/);
+  assert.match(videoMenu, /'Bally Poker Live', '\/hub\/video-library\?source=LATB'/);
+  assert.doesNotMatch(videoMenu, /Live at the Bike/);
+});
+
+test('a collapsed mobile source list keeps its deep-linked active source visible', () => {
+  assert.match(PAGE, /requestedSource === 'ALL' \|\| SOURCES\.some\(source => source\?\.id === requestedSource\)/);
+  assert.match(PAGE, /className={`vl-source-button\$\{isActive \? ' is-active' : ''\}`}/);
+  assert.match(
+    CSS,
+    /\.vl-source-pills:not\(\.is-expanded\) > \.vl-source-button:nth-child\(n \+ 11\):not\(\.is-active\) \{ display: none !important; \}/
+  );
+  assert.doesNotMatch(
+    CSS,
+    /\.vl-source-pills:not\(\.is-expanded\) > \.vl-source-button:nth-child\(n \+ 11\) \{ display: none !important; \}/
+  );
+});
+
 test('desktop actions, playlist wiring, touch controls, and safe-area layout remain reachable', () => {
   assert.match(PAGE, /onMouseMove=\{!isTouchDevice \? vlRevealHud : undefined\}/);
   assert.match(PAGE, /setShowPlaylistModal\(selectedVideo\)/);
   assert.match(PAGE, /aria-labelledby="vl-playlist-title"/);
   assert.match(PAGE, /ref=\{playlistDialogRef\}/);
-  assert.match(PAGE, /ref=\{ttsDialogRef\} role="dialog"/);
+  assert.match(PAGE, /ref=\{ttsDialogRef\}[\s\S]{0,100}role="dialog"/);
   assert.match(PAGE, /containDialogFocus/);
   assert.match(PAGE, /ref=\{reelsDialogRef\}/);
   assert.match(PAGE, /e\.metaKey \|\| e\.ctrlKey \|\| e\.altKey/);
   assert.match(YOUTUBE_HOOK, /e\.source !== iframeRef\.current\.contentWindow/);
-  assert.match(PAGE, /top: 0, bottom: 64/);
+  assert.match(PAGE, /vl-swipe-zone--previous/);
+  assert.match(PAGE, /vl-swipe-zone--next/);
   assert.equal(BOTTOM_NAV_ROUTES['/hub/video-library']?.theme, 'dark');
   assert.doesNotMatch(PAGE, /<BottomNavBar/);
-  assert.ok((CSS.match(/env\(safe-area-inset-bottom/g) || []).length >= 2);
+  // PIN MOVED (mobile phase 9, 2026-09-14): the page's own bottom pad
+  // (82px + safe area) is gone; BottomNavSpacer in _app.js owns the bottom
+  // clearance for every route in bottom-nav-routes.json. The playlist sheet
+  // still pads its own bottom edge, which is the one env() that remains.
+  assert.ok((CSS.match(/env\(safe-area-inset-bottom/g) || []).length >= 1);
+  assert.doesNotMatch(CSS, /calc\(82px \+ env\(safe-area-inset-bottom/);
 });

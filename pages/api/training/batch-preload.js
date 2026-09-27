@@ -36,6 +36,7 @@ import {
     prepareTrainingAttemptDelivery,
     recordTrainingQuestionsServedForAttempt,
     recoverTrainingAttemptHand,
+    trainingQuestionCampaignEligibility,
 } from '../../../src/lib/training/trainingAttemptDelivery.mjs';
 import {
     filterTrainingQuestionsForAttempt,
@@ -51,6 +52,10 @@ import {
 import {
     validateTrainingAttestationContinuationPrecommit,
 } from '../../../src/lib/training/trainingAttestationContinuationContract.mjs';
+import {
+    createTrainingAttestationCohortCollector,
+    logTrainingAttestationCohortStage,
+} from '../../../src/lib/training/trainingAttestationCohortDiagnostics.mjs';
 import {
     buildTrainingCacheRow,
     cacheQuestionFromRow,
@@ -75,9 +80,20 @@ function getSupabase() {
  * boundary. This deliberately does not add cards, a board, seats, a street,
  * pot geometry, stacks, options, frequencies, or provenance that the source
  * did not provide.
+ *
+ * `rejections` is an optional server-only tally (reason -> count). A dropped
+ * candidate used to vanish between "engine generated N" and "engines returned
+ * empty" with no trace of why; the tally names the contract or eligibility
+ * reason without recording the question itself.
  */
-function normalizeCampaignQuestionWithoutFabrication(question) {
-    if (!question || typeof question !== 'object' || Array.isArray(question)) return null;
+function normalizeCampaignQuestionWithoutFabrication(question, rejections = null) {
+    const reject = (reason) => {
+        if (rejections) rejections[reason] = (rejections[reason] || 0) + 1;
+        return null;
+    };
+    if (!question || typeof question !== 'object' || Array.isArray(question)) {
+        return reject('question_missing');
+    }
     if (String(question.type || '').toUpperCase() === 'CHART') {
         normalizeAuditedChartQuestion(question);
     }
@@ -95,9 +111,26 @@ function normalizeCampaignQuestionWithoutFabrication(question) {
     }
 
     const canonical = enforceTrainingQuestionContract(enforceSolverClaimHonesty(question));
-    return isTrainingQuestionValid(canonical) && isTrainingQuestionCampaignEligible(canonical)
-        ? canonical
-        : null;
+    if (!isTrainingQuestionValid(canonical)) {
+        const issue = String(canonical?.questionContract?.issues?.[0] || 'unspecified').slice(0, 120);
+        return reject(`question_contract_invalid: ${issue}`);
+    }
+    if (!isTrainingQuestionCampaignEligible(canonical)) {
+        const { reason } = trainingQuestionCampaignEligibility(canonical);
+        return reject(`campaign_ineligible: ${String(reason || 'unspecified').slice(0, 80)} `
+            + `(source=${String(canonical?.source || '').slice(0, 40)}, `
+            + `classification=${String(canonical?.dataQuality || '').slice(0, 40)})`);
+    }
+    return canonical;
+}
+
+/** One bounded server-log line for engine candidates the campaign contract refused. */
+function reportRejectedEngineCandidates({ gameId, level, generated, accepted, rejections }) {
+    if (generated <= accepted) return;
+    console.warn(
+        `[BatchPreload] ${generated - accepted} of ${generated} engine candidates for ${gameId} `
+        + `L${level} were refused by the campaign contract: ${JSON.stringify(rejections)}`,
+    );
 }
 
 export default async function handler(req, res) {
@@ -214,14 +247,37 @@ export default async function handler(req, res) {
                   targetHands: attemptTargetHands,
               })
               : null;
-          const refuseUnavailableAttestationContinuationCohort = () => res.status(422).json({
-              success: false,
-              error: 'No exact 20-hand continuation cohort is available for this public precommit.',
-              code: 'TRAINING_ATTESTATION_CONTINUATION_COHORT_UNAVAILABLE',
-          });
+          // Every cohort refusal is the same public 422 by design: the body
+          // must not reveal which stage failed, which parent qualified, or
+          // anything about the hidden continuation branch. The server log
+          // receives a structured stage + counts line instead (never ids,
+          // answers, options, receipts, or secrets) so an operator can tell an
+          // empty catalog from a lost provenance seal from a missing child.
+          const refuseUnavailableAttestationContinuationCohort = (stage, counts = {}, detail = null) => {
+              logTrainingAttestationCohortStage({
+                  stage,
+                  counts: {
+                      gameId,
+                      level: gameLevel,
+                      difficulty,
+                      targetStreet: targetStreet || 'any',
+                      questionCount,
+                      ...counts,
+                  },
+                  detail,
+              });
+              return res.status(422).json({
+                  success: false,
+                  error: 'No exact 20-hand continuation cohort is available for this public precommit.',
+                  code: 'TRAINING_ATTESTATION_CONTINUATION_COHORT_UNAVAILABLE',
+              });
+          };
           if (attestationContinuationRequested
               && (!attestationContinuationPrecommit || isSingleHandRecovery)) {
-              return refuseUnavailableAttestationContinuationCohort();
+              return refuseUnavailableAttestationContinuationCohort('precommit_rejected', {
+                  precommitValid: attestationContinuationPrecommit ? 1 : 0,
+                  singleHandRecovery: isSingleHandRecovery ? 1 : 0,
+              });
           }
           const attemptSelection = {
               gameMode,
@@ -378,6 +434,11 @@ export default async function handler(req, res) {
           // a false shortfall without ever reaching generation.
           const cachedQuestions = usable.slice(0, candidateQuestionCount);
           let solverQuestions = [];
+          // Server-only count of engine-built parents before the four-choice
+          // and campaign-eligibility contracts filtered them. It lets the
+          // cohort log separate "the catalog returned nothing" from "the
+          // catalog returned parents that the delivery contract rejected".
+          let generatedParentCandidates = 0;
 
           if (cachedQuestions.length < candidateQuestionCount
               || attestationContinuationPrecommit) {
@@ -432,17 +493,38 @@ export default async function handler(req, res) {
                               spotTypes: scenarioConfig?.spotTypes || undefined,
                               stackDepths: scenarioConfig?.stackDepths || undefined,
                               seenIds: generationSeenIds,
+                              // Campaign attempts admit only progress-bearing
+                              // authority; the engine uses this to choose its
+                              // honest fallback instead of rows this route
+                              // would have to refuse.
+                              admissibleForCaller: isTrainingQuestionCampaignEligible,
                           });
+                      generatedParentCandidates = Array.isArray(batch) ? batch.length : 0;
                       if (batch && batch.length > 0) {
+                          const rejections = {};
                           solverQuestions = batch
                               .map(question => ({
-                                  question_data: normalizeCampaignQuestionWithoutFabrication(question),
+                                  question_data: normalizeCampaignQuestionWithoutFabrication(question, rejections),
                               }))
                               .filter(row => row.question_data);
                           console.debug(`[BatchPreload] DeterministicEngine generated ${batch.length} solver questions for ${gameId}`);
+                          reportRejectedEngineCandidates({
+                              gameId,
+                              level: gameLevel,
+                              generated: batch.length,
+                              accepted: solverQuestions.length,
+                              rejections,
+                          });
                       }
                   } catch (solverErr) {
                       console.warn('[BatchPreload] ▲ Solver engine failed:', solverErr.message);
+                      if (attestationContinuationPrecommit) {
+                          logTrainingAttestationCohortStage({
+                              stage: 'solver_engine_failed',
+                              counts: { gameId, level: gameLevel, difficulty },
+                              detail: solverErr?.message,
+                          });
+                      }
                   }
               } else if (gameCfg?.engine === 'SCENARIO' || pioConfig?.sourceOfTruth === 'SCENARIO') {
                   // SCENARIO/PSYCHOLOGY: Use DeterministicEngine for scenario questions too
@@ -460,12 +542,20 @@ export default async function handler(req, res) {
                           seenIds: Array.from(seenIds),
                       });
                       if (batch && batch.length > 0) {
+                          const rejections = {};
                           solverQuestions = batch
                               .map(question => ({
-                                  question_data: normalizeCampaignQuestionWithoutFabrication(question),
+                                  question_data: normalizeCampaignQuestionWithoutFabrication(question, rejections),
                               }))
                               .filter(row => row.question_data);
                           console.debug(`[BatchPreload] Engine generated ${batch.length} scenario questions for ${gameId}`);
+                          reportRejectedEngineCandidates({
+                              gameId,
+                              level: gameLevel,
+                              generated: batch.length,
+                              accepted: solverQuestions.length,
+                              rejections,
+                          });
                       }
                   } catch (scenarioErr) {
                       console.warn('[BatchPreload] ▲ Scenario engine failed:', scenarioErr.message);
@@ -480,7 +570,11 @@ export default async function handler(req, res) {
               // ●●● Engine-only — no AI fallback. Return 404 if no solver data exists. ●●●
               console.warn(`[BatchPreload] No questions for ${gameId} level ${gameLevel} - engines returned empty.`);
               if (attestationContinuationPrecommit) {
-                  return refuseUnavailableAttestationContinuationCohort();
+                  return refuseUnavailableAttestationContinuationCohort('no_candidate_questions', {
+                      cachedQuestions: cachedQuestions.length,
+                      generatedParentCandidates,
+                      solverQuestions: solverQuestions.length,
+                  });
               }
               return res.status(404).json({ success: false, error: 'No questions available for this game/level. Solver data not yet loaded for this configuration.' });
           }
@@ -568,7 +662,14 @@ export default async function handler(req, res) {
 
           if (configuredCandidates.length < questionCount) {
               if (attestationContinuationPrecommit) {
-                  return refuseUnavailableAttestationContinuationCohort();
+                  return refuseUnavailableAttestationContinuationCohort('configured_candidate_shortfall', {
+                      cachedQuestions: cachedQuestions.length,
+                      generatedParentCandidates,
+                      solverQuestions: solverQuestions.length,
+                      batchCandidates: batch.length,
+                      enrichedCandidates: enrichedCandidates.length,
+                      configuredCandidates: configuredCandidates.length,
+                  });
               }
               return res.status(422).json({
                   success: false,
@@ -649,7 +750,11 @@ export default async function handler(req, res) {
           }
           if (canonicalPairs.length < questionCount) {
               if (attestationContinuationPrecommit) {
-                  return refuseUnavailableAttestationContinuationCohort();
+                  return refuseUnavailableAttestationContinuationCohort('canonical_pair_shortfall', {
+                      configuredCandidates: configuredCandidates.length,
+                      canonicalPairs: canonicalPairs.length,
+                      canonicalizeFailures: canonicalizeFailures.length,
+                  });
               }
               return res.status(422).json({
                   success: false,
@@ -662,6 +767,7 @@ export default async function handler(req, res) {
           let attestationContinuationCohort = null;
           if (attestationContinuationPrecommit) {
               deterministicEngine.setSupabaseClient(getSupabase());
+              const cohortCollector = createTrainingAttestationCohortCollector();
               const cohort = await selectTrainingAttestationContinuationCohort({
                   questionPairs: canonicalPairs,
                   targetHands: questionCount,
@@ -669,16 +775,22 @@ export default async function handler(req, res) {
                   gameConfig: declaredCfg,
                   precommit: attestationContinuationPrecommit,
                   queryNextStreet: (request) => deterministicEngine.queryNextStreet(request),
+                  collector: cohortCollector,
               });
               if (!cohort) {
-                  return refuseUnavailableAttestationContinuationCohort();
+                  return refuseUnavailableAttestationContinuationCohort('cohort_unavailable', {
+                      canonicalPairs: canonicalPairs.length,
+                      ...cohortCollector.summary(),
+                  });
               }
               selectedCanonicalPairs = [...cohort.questionPairs];
               attestationContinuationCohort = cohort.publicContract;
           }
           if (selectedCanonicalPairs.length !== questionCount) {
               if (attestationContinuationPrecommit) {
-                  return refuseUnavailableAttestationContinuationCohort();
+                  return refuseUnavailableAttestationContinuationCohort('selected_pair_shortfall', {
+                      selectedCanonicalPairs: selectedCanonicalPairs.length,
+                  });
               }
               return res.status(422).json({
                   success: false,

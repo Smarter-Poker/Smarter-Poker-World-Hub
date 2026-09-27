@@ -27,12 +27,17 @@ import test from 'node:test';
 const ROOT = process.cwd();
 const read = (f) => readFileSync(join(ROOT, f), 'utf8');
 /** Prose about a call is not a call. */
+// A block comment starts at a line start, after whitespace or after `{(;,`.
+// A bare `/\*` would also match inside string attributes such as
+// accept="image/\*" and silently strip the code that follows up to the next
+// comment end, hiding exactly the reads this law looks for.
 const code = (f) =>
-  read(f).replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+  read(f).replace(/(^|[\s{(;,])\/\*[\s\S]*?\*\//g, '$1').replace(/^\s*\/\/.*$/gm, '');
 
 const FEED = 'pages/hub/social-media/index.js';
 const CAROUSEL = 'src/components/social/ReelsFeedCarousel.jsx';
 const GOLIVE = 'src/components/social/GoLiveModal.jsx';
+const FEED_SEQUENCE = 'src/lib/socialFeedSequence.mjs';
 
 test('the club-posts filter can still be switched ON', () => {
   const src = code(FEED);
@@ -64,11 +69,22 @@ test('Not Interested is still read, not just written', () => {
    * on every load. Both must go through the module-level reader, which reads the
    * localStorage both components already persist to.
    */
-  assert.match(src, /function readNotInterested\(\)/, 'the shared reader is gone');
+  /*
+   * Phase 1 Video Library/Reels (2026-09-23): the shared reader moved to the
+   * module src/lib/reelsWatchedStorage.mjs and became account-scoped, so one
+   * player's dismissals never filter another player's feed after a sign-in
+   * switch. It is still a module-level reader of the persisted Set, never a
+   * ref owned by another component.
+   */
   assert.match(
     src,
-    /const notInterested = readNotInterested\(\);/,
-    'loadReels must read the persisted Set, not a ref from another component'
+    /import \{[^}]*\bloadNotInterestedReelIds\b[^}]*\} from '\.\.\/\.\.\/lib\/reelsWatchedStorage\.mjs';/,
+    'the shared, account-scoped reader is gone'
+  );
+  assert.match(
+    src,
+    /const notInterested = loadNotInterestedReelIds\(ownerId\);/,
+    'loadReels must read the persisted, account-scoped Set, not a ref from another component'
   );
   assert.ok(
     !/notInterestedIdsRef/.test(src),
@@ -101,6 +117,7 @@ test('every GoLiveModal close path resets the modal', () => {
 
 test('exactly one reels carousel is injected, and a short feed still gets it', () => {
   const src = code(FEED);
+  const sequence = code(FEED_SEQUENCE);
   const injections = (src.match(/<ReelsFeedCarousel\b/g) || []).length;
   assert.equal(
     injections,
@@ -109,9 +126,17 @@ test('exactly one reels carousel is injected, and a short feed still gets it', (
       'fetch and opens its own realtime channel - hoist both out of the component first.'
   );
   assert.match(
-    src,
-    /filteredPosts\.length < 3/,
+    sequence,
+    /posts\.length < 3/,
     'the short-feed fallback is gone, so a feed with fewer than 3 posts shows no carousel'
+  );
+  assert.match(src, /buildSocialFeedSequence\(filteredPosts\)\.map/);
+  assert.match(src, /if \(item\.kind === 'reels'\) return inlineReelsCarousel/);
+  assert.match(src, /<PostCard\s+key=\{item\.key\}/);
+  assert.doesNotMatch(
+    src,
+    /<React\.Fragment key=\{p\.id\}>/,
+    'the carousel must remain a keyed peer instead of inheriting a realtime-moving post parent'
   );
   // The header claimed "every 3 posts" for months while the code injected once.
   assert.ok(

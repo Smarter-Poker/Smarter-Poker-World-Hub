@@ -37,13 +37,39 @@ name: E2E Tests (Playwright)
 # It remains runnable on demand, which is what it is for while it is red.
 on:
   workflow_dispatch:
+    inputs:
+      suite:
+        description: Verification suite to run
+        type: choice
+        options: [full, messenger-live, messenger-send-live, messenger-continuity-live, reels-live]
+        default: full
+      expected_sha:
+        description: Full deployed commit SHA required for a published live verification
+        type: string
+        default: ''
+      messenger_fixture_conversation_id:
+        description: Exact parent-owned sole-participant fixture UUID for messenger-send-live
+        type: string
+        default: ''
+      messenger_request_id:
+        description: Exact stable request UUID for messenger-send-live
+        type: string
+        default: ''
+      messenger_fixture_message_id:
+        description: Exact parent-owned old anchor message UUID for messenger-continuity-live
+        type: string
+        default: ''
+      messenger_fixture_first_unread_id:
+        description: Exact parent-owned first unread message UUID for messenger-continuity-live
+        type: string
+        default: ''
 
 permissions:
   contents: read
   issues: write
 
 concurrency:
-  group: e2e-${{ github.ref }}
+  group: e2e-${{ github.ref }}-${{ inputs.suite || 'full' }}
   # FALSE ON main, true anywhere else (2026-09-08).
   #
   # This workflow triggers on `push: [main]` and `workflow_dispatch` only - the
@@ -69,6 +95,7 @@ concurrency:
 
 jobs:
   e2e:
+    if: ${{ inputs.suite == 'full' || inputs.suite == '' }}
     name: Playwright E2E Tests
     runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
     # A clean install + production build consumes ~7 minutes. The authenticated
@@ -324,3 +351,126 @@ jobs:
               issue_number: pr,
               body: `${status} **E2E Tests:** ${{ job.status }}\n\n[View full report](${runUrl})`
             });
+
+
+  messenger-live:
+    name: Published Messenger Test Account Verification
+    if: ${{ inputs.suite == 'messenger-live' || inputs.suite == 'messenger-send-live' || inputs.suite == 'messenger-continuity-live' }}
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
+    timeout-minutes: 12
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24.12.0'
+          cache: npm
+      - name: Verify live probe safety
+        run: |
+          node scripts/ci/messenger-live-check.mjs --self-test
+          node --test __tests__/messenger-send-live-safety.test.mjs
+      - name: Restore locked dependencies
+        id: live-nm-cache
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: nm-wh-noscripts-${{ runner.os }}-node24-${{ hashFiles('package-lock.json') }}
+      - name: Install locked dependencies
+        if: steps.live-nm-cache.outputs.cache-hit != 'true'
+        run: npm ci --ignore-scripts
+      - name: Verify continuity probe safety
+        run: node --test __tests__/messenger-continuity-live-safety.test.mjs
+      - name: Install verification browser
+        run: |
+          if [ "${{ runner.environment }}" = "self-hosted" ]; then npx playwright install chromium; else npx playwright install --with-deps chromium; fi
+      - name: Verify published Messenger with designated test account
+        if: ${{ inputs.suite == 'messenger-live' }}
+        run: node scripts/ci/messenger-live-check.mjs
+        env:
+          TEST_USER_EMAIL: ${{ vars.TEST_USER_EMAIL || secrets.TEST_USER_EMAIL }}
+          TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          MESSENGER_EXPECTED_SHA: ${{ inputs.expected_sha }}
+      - name: Verify exact isolated Messenger send operation
+        if: ${{ inputs.suite == 'messenger-send-live' }}
+        run: node scripts/ci/messenger-live-check.mjs --isolated-send
+        env:
+          TEST_USER_EMAIL: ${{ vars.TEST_USER_EMAIL || secrets.TEST_USER_EMAIL }}
+          TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          MESSENGER_EXPECTED_SHA: ${{ inputs.expected_sha }}
+          MESSENGER_VERIFY_MODE: isolated-send
+          MESSENGER_FIXTURE_CONVERSATION_ID: ${{ inputs.messenger_fixture_conversation_id }}
+          MESSENGER_REQUEST_ID: ${{ inputs.messenger_request_id }}
+      - name: Verify exact isolated Messenger continuity state
+        if: ${{ inputs.suite == 'messenger-continuity-live' }}
+        run: node scripts/ci/messenger-continuity-live.mjs
+        env:
+          TEST_USER_EMAIL: ${{ vars.TEST_USER_EMAIL || secrets.TEST_USER_EMAIL }}
+          TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          MESSENGER_EXPECTED_SHA: ${{ inputs.expected_sha }}
+          MESSENGER_VERIFY_MODE: isolated-continuity
+          MESSENGER_FIXTURE_CONVERSATION_ID: ${{ inputs.messenger_fixture_conversation_id }}
+          MESSENGER_FIXTURE_MESSAGE_ID: ${{ inputs.messenger_fixture_message_id }}
+          MESSENGER_FIXTURE_FIRST_UNREAD_ID: ${{ inputs.messenger_fixture_first_unread_id }}
+      - name: Retain sanitized verification receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: messenger-live-receipt
+          path: test-results/messenger*/result.json
+          if-no-files-found: warn
+          retention-days: 7
+
+  reels-live:
+    name: Published Reels Test Account Verification
+    if: ${{ inputs.suite == 'reels-live' }}
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24.12.0'
+          cache: npm
+      - name: Verify Reels live probe safety
+        run: node scripts/ci/reels-live-check.mjs --self-test
+      - name: Restore locked dependencies
+        id: reels-live-nm-cache
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: nm-wh-noscripts-${{ runner.os }}-node24-${{ hashFiles('package-lock.json') }}
+      - name: Install locked dependencies
+        if: steps.reels-live-nm-cache.outputs.cache-hit != 'true'
+        run: npm ci --ignore-scripts
+      - name: Install verification browser
+        run: |
+          if [ "${{ runner.environment }}" = "self-hosted" ]; then npx playwright install chromium; else npx playwright install --with-deps chromium; fi
+      - name: Verify published Reels with designated test account
+        run: node scripts/ci/reels-live-check.mjs
+        env:
+          TEST_USER_EMAIL: ${{ vars.TEST_USER_EMAIL || secrets.TEST_USER_EMAIL }}
+          TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          REELS_EXPECTED_SHA: ${{ inputs.expected_sha }}
+      - name: Assert complete sanitized Reels receipt
+        run: node scripts/ci/reels-live-check.mjs --check-receipt test-results/reels-live/result.json
+        env:
+          REELS_EXPECTED_SHA: ${{ inputs.expected_sha }}
+      - name: Retain sanitized verification receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: reels-live-receipt
+          path: test-results/reels-live/result.json
+          if-no-files-found: error
+          retention-days: 7

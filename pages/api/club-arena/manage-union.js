@@ -611,14 +611,16 @@ export default async function handler(req, res) {
       // Union lead manages club leave requests
       // ═══════════════════════════════════════════════════════════
       if (action === 'list_leave') {
-        const { data: leaveReqs } = await getSupabase()
+        const { data: leaveReqs, error: leaveReadError } = await getSupabase()
           .from('union_leave_requests')
           .select('id, union_id, club_id, club_name, reason, status, requested_at, reviewed_by, reviewed_at')
           .eq('union_id', unionId)
           .eq('status', 'pending')
           .order('requested_at', { ascending: false });
 
-        return res.status(200).json({ success: true, leaveRequests: leaveReqs || [] });
+        if (leaveReadError) throw leaveReadError;
+        if (!Array.isArray(leaveReqs)) throw new Error('Union leave request read returned invalid rows');
+        return res.status(200).json({ success: true, leaveRequests: leaveReqs });
       }
 
       if (action === 'approve_leave' || action === 'deny_leave') {

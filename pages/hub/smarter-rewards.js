@@ -4,6 +4,12 @@
 
 import DiamondStorePage from './diamond-store';
 
-export default function SmarterRewardsPage() {
-  return <DiamondStorePage initialTab="rewards" />;
+export default function SmarterRewardsPage(props) {
+  return <DiamondStorePage {...props} initialTab="rewards" />;
 }
+
+/* The wrapper must re-export the store's own getServerSideProps. Without it
+   this route is statically optimized: it first-paints the hardcoded fallback
+   price table instead of the live database catalog, and it loses the store's
+   deliberate `private, no-store` header. */
+export { getServerSideProps } from './diamond-store';

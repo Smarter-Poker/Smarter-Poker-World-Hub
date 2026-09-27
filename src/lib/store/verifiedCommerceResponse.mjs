@@ -5,6 +5,12 @@ const FULFILLMENT_MODES = new Set(['automatic', 'manual', 'none']);
 const DEFINITIVE_MERCH_REFUSAL_CODES = new Set([
   'INVALID_ITEMS',
   'ITEM_UNAVAILABLE',
+  // Both offer-confirmation refusals are account-and-request-bound 400s that
+  // the route returns before it reaches any settlement path, which is the
+  // strongest available proof that nothing was charged. Leaving them out kept
+  // the durable request bound to an attempt that provably never executed.
+  'OFFER_CONFIRMATION_MISMATCH',
+  'OFFER_CONFIRMATION_REQUIRED',
   'SHIPPING_ADDRESS_INCOMPLETE',
   'insufficient_diamonds',
   'duplicate_lines',
