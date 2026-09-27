@@ -54,6 +54,7 @@ import { useActiveIdentity } from '../../src/contexts/ActiveIdentityContext';
 // BottomNavBar intentionally removed from messenger — input area was blocked
 
 import ClubArenaWorkspace from '../../src/components/messenger/ClubArenaWorkspace';
+import { requestPushNudge } from '../../src/lib/push/enrollment-nudge.mjs';
 import AccountingInvoiceCard from '../../src/components/messenger/AccountingInvoiceCard';
 import AccountingConversationIntroduction from '../../src/components/messenger/AccountingConversationIntroduction';
 import { getTheme } from '../../src/components/messenger/MessengerTheme';
@@ -310,6 +311,13 @@ function MessengerPage() {
     const [weeklyPreview, setWeeklyPreview] = useState(null);
     const [pendingConversationId, setPendingConversationId] = useState(null);
     const clubDrawerOpen = !!workspaceSelection.clubId;
+    // A meaningful moment for notifications: the person opened their invoices.
+    // The prompt host decides whether an ask is allowed (cool-down, already on,
+    // blocked, and never for the owner's receipts).
+    const invoiceWorkspaceOpen = clubDrawerOpen && workspaceSelection.folder === 'invoices';
+    useEffect(() => {
+        if (invoiceWorkspaceOpen) requestPushNudge('invoice_workspace');
+    }, [invoiceWorkspaceOpen]);
 
 
     const getClubMetadata = () => {

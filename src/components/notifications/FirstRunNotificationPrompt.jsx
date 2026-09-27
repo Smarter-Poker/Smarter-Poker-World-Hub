@@ -1,5 +1,13 @@
 /**
- * FirstRunNotificationPrompt -- the one-time "turn on notifications" modal.
+ * FirstRunNotificationPrompt -- the World Hub's notification opt-in host.
+ *
+ * 2026-09-27: it is no longer only a one-time modal. It hosts every opt-in
+ * ask: the first visit, plus the meaningful moments features announce with
+ * requestPushNudge() (the Messenger invoice workspace here; joining a club and
+ * a first rakeback receipt in Club Arena). WHEN an ask may appear is decided
+ * by src/lib/push/enrollment-nudge.mjs: a Not Now starts a cool-down instead of
+ * closing the door, at most one ask a day, never when this device is already
+ * on, turned off by the person, or blocked, and never for Dan's receipts.
  *
  * Replaces the OneSignal-backed NotificationPrompt. Now drives the self-hosted
  * VAPID flow in src/lib/push-client.js.
@@ -44,45 +52,37 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/router';
 import {
     enablePush, isWebPushSupported, notificationPermission,
-    hasLocalSubscription, isIos, isIosStandalonePwa,
+    hasLocalSubscription, isIos, isIosStandalonePwa, isOptedOut,
 } from '../../lib/push-client';
+import {
+    decideNudge, readNudgeState, writeLedger, recordShown, recordDismissed,
+    NUDGE_EVENT, takePendingNudge,
+} from '../../lib/push/enrollment-nudge.mjs';
 import InstallAppSheet from '../pwa/InstallAppSheet';
 
 /**
- * ONE re-offer, on purpose. Read this before changing the suffix again.
+ * The legacy one-time key. Still WRITTEN when the person answers, because the
+ * other app's older bundle (and the E2E harnesses) read it as "already asked".
+ * It is no longer a permanent door: enrollment-nudge.mjs reads it as one
+ * earlier Not Now and applies the cool-down. See the history below.
  *
- * This prompt asks once per account per browser and then closes that door for
- * good. Between 2026-08-19 and 2026-08-29 the door was being closed against a
- * question nobody could answer yes to: /sw.js — the only worker on this origin
- * with a `push` handler — could not install at all, because one entry in its
- * precache manifest 404'd (PR #929). Everyone who saw this sheet in that window
- * and said Not Now, or tapped Enable and hit the error, had
- * `sp_firstrun_notif_<uid>` written anyway, permanently.
- *
- * Measured the day the worker was fixed: 1 subscribed user out of 1,023
- * profiles, against 2,437 pushes in seven days skipped for `no_subscription`.
- * Shipping the fix without this line would have fixed push for an audience that
- * could never be asked again.
- *
- * `_v2` gives everybody exactly one more ask. It is NOT a re-prompt lever to
- * reach for whenever enrolment looks low — bumping it again re-asks a thousand
- * people who already said no, and the honest reading of a second no is that
- * they meant the first one. Bump it only if the enrolment path is broken again
- * in a way that made their answer meaningless, and say here what broke.
+ * ONE re-offer, on purpose (2026-08-29). Between 2026-08-19 and 2026-08-29
+ * /sw.js could not install at all (PR #929), so everyone asked in that window
+ * had this key written against a question nobody could answer yes to. `_v2`
+ * gave everybody exactly one more ask. Do not bump it as a re-prompt lever.
  *
  * MUST stay in step with Club Arena's copy of this key
- * (club-arena src/components/notifications/FirstRunPushPrompt.tsx). Same
- * origin, same device, one subscription behind both apps: if one app re-offers
- * and the other does not, a player gets asked twice about the same thing.
+ * (club-arena src/components/notifications/FirstRunPushPrompt.tsx).
  */
 const KEY_PREFIX = 'sp_firstrun_notif_v2_';
 const SHOW_DELAY_MS = 20_000; // let the user land before asking for anything
+// A moment the person just created (opening the invoice workspace) is asked
+// about promptly, but not in the same frame as the thing they came to do.
+const MOMENT_DELAY_MS = 2_500;
 
-// The install nudge uses its OWN key with a cooldown rather than the permanent
-// "asked once" key. Installing is a multi-step manual action a user may
-// reasonably defer, and marking it done forever would mean the real permission
-// prompt never appears either -- the same one-way door that made a rotated
-// subscription silent forever. A week is long enough not to nag.
+// The install nudge keeps its OWN cool-down key: installing is a multi-step
+// manual action a user may reasonably defer, and marking it done forever would
+// mean the real permission prompt never appears either.
 const IOS_KEY_PREFIX = 'sp_firstrun_ios_install_';
 const IOS_COOLDOWN_MS = 7 * 24 * 60 * 60 * 1000;
 
@@ -96,13 +96,44 @@ const SUPPRESSED_ROUTES = [
     '/hub/club-arena',
 ];
 
+const COPY = {
+    first_run: {
+        title: 'Never Miss A Game',
+        body: 'Turn On Notifications And We Will Alert You When A Seat Opens, A Friend Goes Live, A Game Fills Up, Or Someone Messages You. You Can Fine-Tune Exactly Which Alerts You Get At Any Time.',
+    },
+    invoice_workspace: {
+        title: 'Get Invoice Updates On This Device',
+        body: 'Turn On Notifications And We Will Tell You When A New Invoice Or Club Statement Arrives. You Can Change This Any Time In Settings.',
+    },
+    rakeback_receipt: {
+        title: 'Get Your Rakeback Receipts On This Device',
+        body: 'Turn On Notifications And We Will Tell You When A Rakeback Receipt Is Posted To Your Account. You Can Change This Any Time In Settings.',
+    },
+    club_joined: {
+        title: 'Stay In Touch With Your Club',
+        body: 'Turn On Notifications And We Will Tell You When A Seat Opens, A Tournament You Registered For Starts, Or Your Club Messages You.',
+    },
+};
+
+function isSuppressed(path) {
+    return SUPPRESSED_ROUTES.some((r) => path === r || path.startsWith(`${r}/`));
+}
+
+function isAutomatedBrowser() {
+    // An automation-driven browser is not a person and is never asked: it
+    // cannot consent, and a sheet over an unattended journey blocks the run.
+    try { return typeof navigator !== 'undefined' && navigator.webdriver === true; } catch { return false; }
+}
+
 export default function FirstRunNotificationPrompt({ userId }) {
     const router = useRouter();
-    const [state, setState] = useState(null); // null | 'ask' | 'blocked' | 'success'
+    const [state, setState] = useState(null); // null | 'ask' | 'install' | 'blocked' | 'success'
+    const [moment, setMoment] = useState('first_run');
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState(null);
     const timer = useRef(null);
     const mounted = useRef(true);
+    const openRef = useRef(false);
 
     useEffect(() => {
         mounted.current = true;
@@ -112,82 +143,95 @@ export default function FirstRunNotificationPrompt({ userId }) {
         };
     }, []);
 
+    useEffect(() => { openRef.current = Boolean(state); }, [state]);
+
     const markDone = useCallback(() => {
         try { localStorage.setItem(`${KEY_PREFIX}${userId}`, String(Date.now())); } catch { /* private mode */ }
     }, [userId]);
 
+    /**
+     * Decide, and if the policy allows it, show. Everything about WHETHER is in
+     * enrollment-nudge.mjs; this only reads the device honestly.
+     */
+    const show = useCallback(async (requested) => {
+        if (!userId || openRef.current || !mounted.current) return;
+        if (isAutomatedBrowser()) return;
+        const path = router.pathname || '';
+        if (isSuppressed(path)) return;
+
+        // iOS Safari has no PushManager until the site is installed to the
+        // Home Screen and opened standalone. That is a prerequisite, not a dead
+        // end, so the policy may offer the install steps instead of nothing.
+        const permission = notificationPermission();
+        let device = { supported: true, iosNeedsInstall: false, permission, subscribed: false, optedOut: isOptedOut() };
+        if (!isWebPushSupported()) {
+            device = { ...device, supported: false, iosNeedsInstall: isIos() && !isIosStandalonePwa() };
+        } else if (permission === 'granted') {
+            device.subscribed = await hasLocalSubscription();
+        }
+        if (!mounted.current || openRef.current) return;
+
+        const now = Date.now();
+        const stored = readNudgeState(typeof window !== 'undefined' ? window.localStorage : null, userId);
+        const decision = decideNudge({ userId, moment: requested, now, device, ...stored });
+        if (!decision.show) {
+            if (decision.reason === 'already_on') markDone(); // older bundles agree
+            return;
+        }
+        writeLedger(window.localStorage, userId, recordShown(stored.ledger, now));
+        setMoment(requested);
+        setError(null);
+        openRef.current = true;
+        if (decision.variant === 'install') setState('install');
+        else setState('ask');
+    }, [userId, router.pathname, markDone]);
+
+    // The first-visit ask, after the person has had time to land.
     useEffect(() => {
         if (!userId || typeof window === 'undefined') return undefined;
-
-        const path = router.pathname || '';
-        if (SUPPRESSED_ROUTES.some((r) => path === r || path.startsWith(`${r}/`))) return undefined;
-
-        let alreadyAsked = false;
-        try { alreadyAsked = Boolean(localStorage.getItem(`${KEY_PREFIX}${userId}`)); } catch { /* ignore */ }
-        if (alreadyAsked) return undefined;
-
-        if (!isWebPushSupported()) {
-            // iOS Safari has no PushManager until the site is installed to the
-            // Home Screen and opened standalone. That is not a dead end, it is
-            // a prerequisite -- so say so, rather than showing nothing and
-            // leaving the user to conclude push is broken.
-            if (isIos() && !isIosStandalonePwa()) {
-                let lastAsked = 0;
-                try {
-                    lastAsked = Number(localStorage.getItem(`${IOS_KEY_PREFIX}${userId}`) || 0);
-                } catch { /* private mode */ }
-                if (Date.now() - lastAsked < IOS_COOLDOWN_MS) return undefined;
-
-                timer.current = setTimeout(() => {
-                    if (mounted.current) setState('install');
-                }, SHOW_DELAY_MS);
-                return () => { if (timer.current) clearTimeout(timer.current); };
-            }
-
-            // Any other browser without push support genuinely cannot do this.
-            return undefined;
-        }
-
-        (async () => {
-            const perm = notificationPermission();
-            if (perm === 'granted' && (await hasLocalSubscription())) {
-                markDone(); // nothing to ask for
-                return;
-            }
-            timer.current = setTimeout(() => {
-                if (!mounted.current) return;
-                setState(perm === 'denied' ? 'blocked' : 'ask');
-            }, SHOW_DELAY_MS);
-        })();
-
+        if (isSuppressed(router.pathname || '')) return undefined;
+        timer.current = setTimeout(() => { void show('first_run'); }, SHOW_DELAY_MS);
         return () => { if (timer.current) clearTimeout(timer.current); };
-    }, [userId, router.pathname, markDone]);
+    }, [userId, router.pathname, show]);
+
+    // Meaningful moments announced by features (requestPushNudge).
+    useEffect(() => {
+        if (!userId || typeof window === 'undefined') return undefined;
+        let momentTimer = null;
+        const onNudge = (e) => {
+            const m = e?.detail?.moment;
+            if (!m) return;
+            try { window.__spPendingPushNudge = null; } catch { /* ignore */ }
+            if (momentTimer) clearTimeout(momentTimer);
+            momentTimer = setTimeout(() => { void show(m); }, MOMENT_DELAY_MS);
+        };
+        window.addEventListener(NUDGE_EVENT, onNudge);
+        const pending = takePendingNudge();
+        if (pending) momentTimer = setTimeout(() => { void show(pending); }, MOMENT_DELAY_MS);
+        return () => {
+            window.removeEventListener(NUDGE_EVENT, onNudge);
+            if (momentTimer) clearTimeout(momentTimer);
+        };
+    }, [userId, show]);
+
+    const close = () => { openRef.current = false; setState(null); };
 
     const handleEnable = async () => {
         if (busy) return;
         setBusy(true);
         setError(null);
+        // DELIBERATE: nothing is awaited before enablePush(). iOS only honours
+        // the permission dialog while the originating tap gesture is alive.
         const result = await enablePush();
         if (!mounted.current) return;
         setBusy(false);
 
-        // ONLY AN ANSWER SPENDS THE ASK.
-        //
-        // markDone() used to run here unconditionally, so a user who tapped
-        // Enable and hit a TECHNICAL failure -- worker still installing, a
-        // dropped VAPID fetch, a flaky minute of signal -- had their one and
-        // only prompt recorded as spent. They wanted notifications. They said
-        // so. The platform wrote down "asked, done" and never offered again.
-        //
-        // That is how the 2026-08-19..29 outage turned a fixable bug into a
-        // permanent loss of audience. The outage is over; the mechanism is not.
-        //
-        // Success and a DENIED permission are both real answers and are
-        // recorded. Anything else leaves the door open for the next session.
+        // ONLY AN ANSWER SPENDS THE ASK. Success and a DENIED permission are
+        // real answers; a technical failure leaves the door open.
         if (result.ok || notificationPermission() === 'denied') markDone();
         if (result.ok) {
             setState('success');
-            setTimeout(() => { if (mounted.current) setState(null); }, 2600);
+            setTimeout(() => { if (mounted.current) close(); }, 2600);
         } else if (notificationPermission() === 'denied') {
             setState('blocked');
         } else {
@@ -196,30 +240,29 @@ export default function FirstRunNotificationPrompt({ userId }) {
     };
 
     const handleDismiss = () => {
-        // The install nudge is deferrable, not answerable -- record it against
-        // its own cooldown key so the real permission prompt still runs once
-        // the user installs and opens the app.
+        const storage = typeof window !== 'undefined' ? window.localStorage : null;
+        const stored = readNudgeState(storage, userId);
         if (state === 'install') {
+            // The install nudge is deferrable, not answerable: its own cool-down
+            // key, so the real permission prompt still runs once installed.
             try {
                 localStorage.setItem(`${IOS_KEY_PREFIX}${userId}`, String(Date.now()));
             } catch { /* private mode */ }
-        } else {
+            writeLedger(storage, userId, recordDismissed(stored.ledger, Date.now(), stored.legacyAskedAt));
+        } else if (state === 'ask') {
+            // Not Now: a cool-down, not a permanent no.
+            writeLedger(storage, userId, recordDismissed(stored.ledger, Date.now(), stored.legacyAskedAt));
             markDone();
         }
-        setState(null);
+        close();
     };
 
     if (!state) return null;
 
     // ── The install path uses the SHARED sheet ────────────────────────────
-    // This component used to draw its own three-step Add-to-Home-Screen list.
-    // So did the PWA install banner. Two hand-maintained copies of the same
-    // instructions is exactly the duplication that had five notification
-    // renderers disagreeing about routing, so there is now one install UI.
-    // The shared sheet also handles what an inline list cannot: it upgrades
-    // itself to a one-tap native install if Chrome fires beforeinstallprompt
-    // while it is open, and it tells iOS Chrome/Firefox users to switch to
-    // Safari rather than hunt for a menu item their share sheet lacks.
+    // One install UI for the whole site: it upgrades itself to a one-tap
+    // native install when Chrome offers one, and tells iOS Chrome/Firefox
+    // users to switch to Safari.
     if (state === 'install') {
         return (
             <InstallAppSheet
@@ -229,24 +272,34 @@ export default function FirstRunNotificationPrompt({ userId }) {
         );
     }
 
+    const copy = COPY[moment] || COPY.first_run;
+    // The first visit keeps its modal. A moment the person just created gets a
+    // card that does not block the page they are using.
+    const modal = moment === 'first_run' || state === 'blocked';
+
     return (
         <div
             role="dialog"
-            aria-modal="true"
+            aria-modal={modal ? 'true' : 'false'}
             aria-label="Enable notifications"
-            style={{
+            data-push-nudge={moment}
+            style={modal ? {
                 position: 'fixed', inset: 0, zIndex: 99998,
                 display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
                 background: 'rgba(0,0,0,0.6)', padding: '16px',
                 paddingBottom: 'calc(16px + env(safe-area-inset-bottom, 0px))',
+            } : {
+                position: 'fixed', left: 0, right: 0, bottom: 0, zIndex: 99998,
+                display: 'flex', justifyContent: 'center', pointerEvents: 'none',
+                padding: '16px', paddingBottom: 'calc(16px + env(safe-area-inset-bottom, 0px))',
             }}
-            onClick={handleDismiss}
+            onClick={modal ? handleDismiss : undefined}
         >
             <div
                 onClick={(e) => e.stopPropagation()}
                 style={{
                     width: '100%', maxWidth: 420, borderRadius: 18,
-                    background: '#111827', color: '#fff',
+                    background: '#111827', color: '#fff', pointerEvents: 'auto',
                     border: '1px solid rgba(255,255,255,0.1)',
                     boxShadow: '0 20px 60px rgba(0,0,0,0.5)', padding: 22,
                 }}
@@ -276,11 +329,9 @@ export default function FirstRunNotificationPrompt({ userId }) {
                     </>
                 ) : (
                     <>
-                        <h3 style={{ fontSize: 18, fontWeight: 700, margin: 0 }}>Never Miss A Game</h3>
+                        <h3 style={{ fontSize: 18, fontWeight: 700, margin: 0 }}>{copy.title}</h3>
                         <p style={{ marginTop: 8, fontSize: 14, color: '#9CA3AF', lineHeight: 1.5 }}>
-                            Turn On Notifications And We Will Alert You When A Seat Opens, A Friend Goes
-                            Live, A Game Fills Up, Or Someone Messages You. You Can Fine-Tune Exactly
-                            Which Alerts You Get At Any Time.
+                            {copy.body}
                         </p>
                         {error && (
                             <p style={{ marginTop: 10, fontSize: 13, color: '#FCA5A5' }}>{error}</p>

@@ -196,6 +196,8 @@ jobs:
           __tests__/push-rotation-ownership.test.mjs
           __tests__/push-health-snapshot.test.mjs
           __tests__/zombie-endpoint-retirement.test.mjs
+          __tests__/push-worker-delivery-receipt.test.mjs
+          __tests__/push-enrollment-nudge.test.mjs
 
       - name: "CHECK 24: Training server-authority contracts"
         run: npm run test:training:phase6-authority

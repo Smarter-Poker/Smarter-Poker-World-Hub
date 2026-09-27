@@ -18,6 +18,10 @@
  * 'granted', so it can never steal the permission dialog from the first-run
  * flow. Throttled to once per hour per device. Errors are never surfaced.
  *
+ * It NEVER ENROLLS (2026-09-27). Permission is granted to the origin, not to
+ * an account, so it runs with repairOnly and the server refreshes only an
+ * enrollment this account already holds on this device.
+ *
  * It also relays the service worker's SP_PUSH_RECEIVED message onto the app's
  * existing `smarter_poker_notif_sync` broadcast, so when a push lands while the
  * app is open the header bell, the club-arena bell and the notifications page
@@ -61,7 +65,9 @@ export default function PushSubscriptionSync() {
             running.current = true;
             lastRunRef.current = Date.now();
             try {
-                await enablePush();
+                // repairOnly: refresh what THIS account already enrolled on this
+                // device, never enroll a different signed-in account silently.
+                await enablePush({ repairOnly: true });
                 try { localStorage.setItem(SYNC_KEY, String(Date.now())); } catch { /* ignore */ }
             } catch {
                 // Silent by design. A failed repair must never interrupt the user.
