@@ -176,10 +176,35 @@ test('manual publication can request at most three bounded verified backfill bat
     /ssh[\s\\]*-o ServerAliveInterval=30[\s\\]*-o ServerAliveCountMax=60[\s\\]*-o TCPKeepAlive=yes[\s\\]*"\$SSH_USER@\$HOST"/,
   );
   assert.match(backfill, /systemd-run[\s\S]*--wait[\s\S]*--collect/);
+  assert.match(backfill, /trap cleanup_active_unit EXIT HUP INT TERM/);
+  assert.match(backfill, /systemctl stop "\$active_unit\.service"/);
   assert.match(backfill, /--property=User=openclaw/);
   assert.match(backfill, /--property=EnvironmentFile=\/etc\/openclaw\.env/);
   assert.match(backfill, /video_library_to_reels\.py"[\s\\]*--limit 750 --verify/);
+  assert.match(backfill, /journalctl -u "\$unit\.service"[\s\S]*Publisher results:/);
+  assert.match(backfill, /test "\$unit_rc" -eq 0/);
+  assert.match(
+    backfill,
+    /name: Revoke current Reel backfill custody[\s\S]*always\(\)[\s\S]*systemctl stop "\$unit"/,
+  );
   assert.doesNotMatch(backfill, /cat \/etc\/openclaw\.env|source \/etc\/openclaw\.env|set -a/);
+});
+
+test('manual stale-backfill cleanup is exact-operation scoped and cannot glob unrelated units', () => {
+  assert.match(
+    deployWorkflow,
+    /publisher_backfill_cleanup_operations:[\s\S]*type: string/,
+  );
+  const cleanupStart = deployWorkflow.indexOf('- name: Stop explicitly identified stale Reel backfill units');
+  const runtimeStart = deployWorkflow.indexOf('- name: Verify runtime and prepare release directories');
+  assert.ok(cleanupStart >= 0 && runtimeStart > cleanupStart);
+  const cleanup = deployWorkflow.slice(cleanupStart, runtimeStart);
+  assert.match(cleanup, /re\.fullmatch\(r'\[1-9\]\[0-9\]\*:\[1-9\]\[0-9\]\{0,2\}'/);
+  assert.match(cleanup, /openclaw-reels-backfill-\$\{run_id\}-\$\{run_attempt\}-\$\{batch\}\.service/);
+  assert.match(cleanup, /for batch in 1 2 3/);
+  assert.match(cleanup, /systemctl stop "\$unit"/);
+  assert.match(cleanup, /case "\$active_state" in \(''\|inactive\|failed\)/);
+  assert.doesNotMatch(cleanup, /openclaw-reels-backfill-\*/);
 });
 
 test('Open Claw workflow builds a hash-locked per-SHA release before atomic promotion', () => {
