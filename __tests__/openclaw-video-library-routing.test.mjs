@@ -187,7 +187,7 @@ test('manual publication can request at most three bounded verified backfill bat
   assert.match(backfill, /--property=EnvironmentFile=\/etc\/openclaw\.env/);
   assert.match(
     backfill,
-    /video_library_to_reels\.py"[\s\\]*--limit 750 --verify --release-recovery/,
+    /video_library_to_reels\.py"[\s\\]*--limit 675 --verify --release-recovery/,
   );
   assert.match(backfill, /journalctl -u "\$unit\.service"[\s\S]*Publisher results:/);
   assert.match(backfill, /test "\$unit_rc" -eq 0/);

@@ -539,6 +539,33 @@ class VideoLibraryPublisherResumeTest(unittest.TestCase):
         self.assertTrue(bridge._expected_transient_budget_exceeded(all_inconclusive))
         self.assertTrue(bridge._stats_require_nonzero_exit(all_inconclusive))
 
+    def test_sparse_operational_errors_stay_unpublished_without_discarding_batch(self):
+        bridge = self.bridge
+
+        production_shape = bridge._new_stats()
+        production_shape['verification_attempted'] = 400
+        production_shape['platform_verification_attempted'] = 350
+        production_shape['verifier_errors_observed'] = 2
+        production_shape['expected_transient_verifier_results'] = 3
+        self.assertFalse(
+            bridge._verifier_inconclusive_budget_exceeded(production_shape)
+        )
+        self.assertFalse(bridge._stats_require_nonzero_exit(production_shape))
+
+        systemic = bridge._new_stats()
+        systemic['verification_attempted'] = 750
+        systemic['verifier_errors_observed'] = 76
+        self.assertTrue(bridge._verifier_inconclusive_budget_exceeded(systemic))
+        self.assertTrue(bridge._stats_require_nonzero_exit(systemic))
+
+        all_operational_errors = bridge._new_stats()
+        all_operational_errors['platform_verification_attempted'] = 1
+        all_operational_errors['verifier_errors_observed'] = 1
+        self.assertTrue(
+            bridge._verifier_inconclusive_budget_exceeded(all_operational_errors)
+        )
+        self.assertTrue(bridge._stats_require_nonzero_exit(all_operational_errors))
+
     def test_production_host_dual_bot_challenge_uses_the_exact_public_embed_proof(self):
         bridge = self.bridge
 
