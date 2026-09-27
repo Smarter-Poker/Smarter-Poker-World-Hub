@@ -29,7 +29,7 @@
  * still open any URL on the origin.
  */
 
-const SP_PUSH_SW = 'sp-push-dedicated-v2-authenticated-rotation';
+const SP_PUSH_SW = 'sp-push-dedicated-v3-delivery-receipt';
 
 self.addEventListener('install', () => {
     // Nothing to cache. Take over immediately rather than waiting for every
@@ -229,9 +229,39 @@ self.addEventListener('push', (event) => {
                     })
                     .catch(() => {});
             })
+            // DELIVERY RECEIPT (2026-09-27). This worker owns every World Hub
+            // enrollment, and until today it never reported a displayed push:
+            // only the app worker (worker/index.js) did. Every subscription made
+            // here therefore kept last_receipt_at NULL for ever, read as a
+            // zombie to /api/cron/push-health, and was retired as
+            // no_receipt_while_sibling_confirmed whenever the same device also
+            // held a root-worker row. Sent after display, never before it.
+            .then(() => sendReceipt())
             .catch(() => {})
     );
 });
+
+/**
+ * Best-effort worker acknowledgment after showNotification resolves: endpoint
+ * telemetry for /api/push/receipt, not proof a person read the banner. The
+ * route is session-less by design and answers 204; a failure here is dropped
+ * so it can never stop a notification from displaying.
+ */
+function sendReceipt() {
+    return self.registration.pushManager
+        .getSubscription()
+        .then((sub) => {
+            if (!sub || !sub.endpoint) return null;
+            return fetch('/api/push/receipt', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ endpoint: sub.endpoint }),
+                credentials: 'same-origin',
+                keepalive: true,
+            });
+        })
+        .catch(() => null);
+}
 
 self.addEventListener('notificationclick', (event) => {
     event.notification.close();
