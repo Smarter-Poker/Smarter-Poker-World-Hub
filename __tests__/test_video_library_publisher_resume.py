@@ -307,6 +307,238 @@ class VideoLibraryPublisherResumeTest(unittest.TestCase):
         self.assertEqual(result['status'], 'restricted')
         self.assertEqual(result['reason'], 'youtube_age_restricted')
 
+    def test_oembed_403_requires_two_matching_restriction_sources(self):
+        bridge = self.bridge
+
+        def private_embed(request, **_kwargs):
+            if '/oembed?' in request.full_url:
+                raise bridge.urllib.error.HTTPError(
+                    request.full_url, 403, 'test oembed denial', {}, None
+                )
+            if '/embed/' in request.full_url:
+                return self._embed_response(
+                    status='ERROR',
+                    playable=False,
+                    reason='Private video',
+                )
+            raise AssertionError(request.full_url)
+
+        bridge._run_isolated_ytdlp = lambda *_args, **_kwargs: SimpleNamespace(
+            returncode=1,
+            stdout='',
+            stderr='ERROR: Private video',
+        )
+        with mock.patch.object(
+            bridge.urllib.request,
+            'urlopen',
+            side_effect=private_embed,
+        ):
+            private = bridge.verify_youtube_video_scrapling('M7lc1UVf-VE')
+        self.assertEqual(private, {
+            'available': False,
+            'status': 'private',
+            'reason': 'youtube_private',
+        })
+
+        bridge._run_isolated_ytdlp = lambda *_args, **_kwargs: SimpleNamespace(
+            returncode=1,
+            stdout='',
+            stderr='Sign in to confirm you are not a bot',
+        )
+        with mock.patch.object(
+            bridge.urllib.request,
+            'urlopen',
+            side_effect=private_embed,
+        ):
+            uncorroborated = bridge.verify_youtube_video_scrapling('M7lc1UVf-VE')
+        self.assertEqual(uncorroborated, {
+            'available': False,
+            'status': 'error',
+            'reason': 'oembed_http_403',
+        })
+
+    def test_oembed_403_rejects_mismatched_or_single_source_restrictions(self):
+        bridge = self.bridge
+
+        def denied_oembed_with_embed(embed, player=None):
+            def urlopen(request, **_kwargs):
+                if '/oembed?' in request.full_url:
+                    raise bridge.urllib.error.HTTPError(
+                        request.full_url, 403, 'test oembed denial', {}, None
+                    )
+                if '/embed/' in request.full_url:
+                    return embed
+                if '/youtubei/v1/player?' in request.full_url:
+                    return player or self._player_response()
+                raise AssertionError(request.full_url)
+            return urlopen
+
+        age_embed = self._embed_response(
+            status='UNPLAYABLE',
+            playable=False,
+            reason='Confirm your age to continue',
+        )
+        bridge._run_isolated_ytdlp = lambda *_args, **_kwargs: SimpleNamespace(
+            returncode=1,
+            stdout='',
+            stderr="This video is available to this channel's members",
+        )
+        with mock.patch.object(
+            bridge.urllib.request,
+            'urlopen',
+            side_effect=denied_oembed_with_embed(age_embed),
+        ):
+            mismatched_nonzero = bridge.verify_youtube_video_scrapling(
+                'M7lc1UVf-VE'
+            )
+        self.assertEqual(mismatched_nonzero, {
+            'available': False,
+            'status': 'error',
+            'reason': 'oembed_http_403',
+        })
+
+        identity = {
+            'id': 'M7lc1UVf-VE',
+            'availability': 'public',
+            'age_limit': 18,
+            'playable_in_embed': True,
+            'live_status': 'not_live',
+        }
+        bridge._run_isolated_ytdlp = lambda *_args, **_kwargs: SimpleNamespace(
+            returncode=0,
+            stdout=json.dumps(identity),
+            stderr='',
+        )
+        public_embed = self._embed_response()
+        with mock.patch.object(
+            bridge.urllib.request,
+            'urlopen',
+            side_effect=denied_oembed_with_embed(public_embed),
+        ):
+            single_source_age = bridge.verify_youtube_video_scrapling(
+                'M7lc1UVf-VE'
+            )
+        self.assertEqual(single_source_age, {
+            'available': False,
+            'status': 'error',
+            'reason': 'oembed_http_403',
+        })
+
+        bridge._run_isolated_ytdlp = lambda *_args, **_kwargs: SimpleNamespace(
+            returncode=0,
+            stdout=json.dumps({
+                **identity,
+                'age_limit': 0,
+                'playable_in_embed': False,
+            }),
+            stderr='',
+        )
+        with mock.patch.object(
+            bridge.urllib.request,
+            'urlopen',
+            side_effect=denied_oembed_with_embed(public_embed),
+        ):
+            single_source_embed_disabled = bridge.verify_youtube_video_scrapling(
+                'M7lc1UVf-VE'
+            )
+        self.assertEqual(single_source_embed_disabled, {
+            'available': False,
+            'status': 'error',
+            'reason': 'oembed_http_403',
+        })
+
+        private_embed = self._embed_response(
+            status='ERROR',
+            playable=False,
+            reason='Private video',
+        )
+        bridge._run_isolated_ytdlp = lambda *_args, **_kwargs: SimpleNamespace(
+            returncode=0,
+            stdout=json.dumps({
+                **identity,
+                'availability': 'needs_auth',
+                'age_limit': 0,
+            }),
+            stderr='',
+        )
+        with mock.patch.object(
+            bridge.urllib.request,
+            'urlopen',
+            side_effect=denied_oembed_with_embed(private_embed),
+        ):
+            generic_auth = bridge.verify_youtube_video_scrapling('M7lc1UVf-VE')
+        self.assertEqual(generic_auth, {
+            'available': False,
+            'status': 'error',
+            'reason': 'oembed_http_403',
+        })
+
+        bridge._run_isolated_ytdlp = lambda *_args, **_kwargs: SimpleNamespace(
+            returncode=0,
+            stdout=json.dumps(identity),
+            stderr='',
+        )
+        with mock.patch.object(
+            bridge.urllib.request,
+            'urlopen',
+            side_effect=denied_oembed_with_embed(age_embed),
+        ):
+            matching_age = bridge.verify_youtube_video_scrapling('M7lc1UVf-VE')
+        self.assertEqual(matching_age, {
+            'available': False,
+            'status': 'restricted',
+            'reason': 'youtube_age_restricted',
+        })
+
+    def test_nonzero_ytdlp_upcoming_is_expected_transient(self):
+        bridge = self.bridge
+        bridge._run_isolated_ytdlp = lambda *_args, **_kwargs: SimpleNamespace(
+            returncode=1,
+            stdout='',
+            stderr='ERROR: This live event will begin in a few moments.',
+        )
+        with mock.patch.object(
+            bridge.urllib.request,
+            'urlopen',
+            side_effect=self._verification_urlopen,
+        ):
+            result = bridge.verify_youtube_video_scrapling('M7lc1UVf-VE')
+        self.assertEqual(result, {
+            'available': False,
+            'status': 'error',
+            'reason': 'youtube_upcoming',
+        })
+        self.assertFalse(bridge._is_operational_verifier_error(result))
+
+    def test_sparse_public_proof_gap_is_expected_but_systemic_gaps_fail(self):
+        bridge = self.bridge
+        result = {
+            'available': False,
+            'status': 'error',
+            'reason': 'youtube_embed_public_proof_incomplete',
+        }
+        self.assertTrue(bridge._is_expected_transient_verifier_result(result))
+        self.assertFalse(bridge._is_operational_verifier_error(result))
+
+        sparse = bridge._new_stats()
+        sparse['verification_attempted'] = 400
+        sparse['platform_verification_attempted'] = 350
+        sparse['expected_transient_verifier_results'] = 1
+        self.assertFalse(bridge._expected_transient_budget_exceeded(sparse))
+        self.assertFalse(bridge._stats_require_nonzero_exit(sparse))
+
+        widespread = bridge._new_stats()
+        widespread['verification_attempted'] = 40
+        widespread['expected_transient_verifier_results'] = 6
+        self.assertTrue(bridge._expected_transient_budget_exceeded(widespread))
+        self.assertTrue(bridge._stats_require_nonzero_exit(widespread))
+
+        all_inconclusive = bridge._new_stats()
+        all_inconclusive['platform_verification_attempted'] = 1
+        all_inconclusive['expected_transient_verifier_results'] = 1
+        self.assertTrue(bridge._expected_transient_budget_exceeded(all_inconclusive))
+        self.assertTrue(bridge._stats_require_nonzero_exit(all_inconclusive))
+
     def test_production_host_dual_bot_challenge_uses_the_exact_public_embed_proof(self):
         bridge = self.bridge
 
@@ -1346,9 +1578,9 @@ class VideoLibraryPublisherResumeTest(unittest.TestCase):
         def verify(row):
             attempts.append(row['youtube_video_id'])
             return {
-                'available': True,
-                'status': 'verified',
-                'reason': None,
+                'available': False,
+                'status': 'error',
+                'reason': 'yt_dlp_nonzero',
                 'verification_started_at': checked_at,
                 'verification_checked_at': checked_at,
             }
@@ -1372,6 +1604,8 @@ class VideoLibraryPublisherResumeTest(unittest.TestCase):
         self.assertEqual(stats['platform_candidates'], 0)
         self.assertEqual(stats['failure_verification_reused'], 1)
         self.assertEqual(stats['failure_verification_attempted'], 0)
+        self.assertEqual(stats['verifier_errors_observed'], 1)
+        self.assertEqual(stats['expected_transient_verifier_results'], 0)
         self.assertEqual(stats['release_recovery_candidates'], 1)
         self.assertEqual(stats['release_recovery_unknown'], 1)
         self.assertEqual(stats['release_recovery_race_deferred'], 1)
