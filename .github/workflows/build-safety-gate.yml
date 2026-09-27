@@ -264,6 +264,10 @@ jobs:
 
       - name: Engine Alert Receipt PostgreSQL Contracts
         run: node --test __tests__/engine-alert-receipts-postgres.test.mjs
+
+      - name: Historical User Reels Rights PostgreSQL Contracts
+        run: npm run audit:video-reels:post-rights-db
+
       - name: One Reaction Invokes One Notification Handler
         run: PG_BIN="$PHASE6_POSTGRES_BIN" python3 scripts/ci/test-reaction-notification-postgres.py
 

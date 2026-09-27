@@ -7,7 +7,7 @@
 // written to evidence.
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { pathToFileURL } from 'node:url';
 
 export const APP_ORIGIN = 'https://smarter.poker';
@@ -26,10 +26,76 @@ const CATEGORY_TOPICS = Object.freeze({
   sports: new Set(['sports']),
 });
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const POSTGRES_UUID = /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i;
 const YOUTUBE_ID = /^[A-Za-z0-9_-]{11}$/;
 const PAGE_LIMIT = 20;
-const FOR_YOU_PAGES = 3;
+const COMPLETE_FEED_LIMIT = 120;
+const COMPLETE_FEED_MINIMUM = 2_000;
+const MAX_COMPLETE_FEED_PAGES = 50;
+const COLLECTION_LIMIT = 100;
+const MAX_COLLECTION_PAGES = 10;
+const VERIFICATION_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1_000;
+const MAX_FUTURE_SKEW_MS = 5 * 60 * 1_000;
 const RETIRED_CACHE_KEY = 'sp:reels:poker:v1:production-live-proof';
+const ALLOWED_ORIGINS = new Set([
+  'user_upload',
+  'story',
+  'social_post',
+  'video_library',
+  'horse',
+  'pokernews',
+  'generated',
+  'legacy',
+]);
+const RESTRICTED_TEXT = Object.freeze([
+  /\brequires?\s+(?:a\s+)?subscription\b/i,
+  /\b(?:membership|subscription)\s+(?:is\s+)?required\b/i,
+  /\bmembers?[-\s]+only\b/i,
+  /\b(?:premium|subscriber)[-\s]+only\b/i,
+  /\bavailable\s+to\s+(?:this\s+)?channel(?:['’]s)?\s+members\b/i,
+  /\bage[-\s]+restricted\b/i,
+  /\bconfirm\s+your\s+age\b/i,
+  /\bsign\s+in\s+to\s+continue\b/i,
+  /\blogin\s+required\b/i,
+  /\bsubscribe\s+to\s+(?:watch|view|continue)\b/i,
+  /\b(?:this\s+)?video\s+(?:(?:is|was|has\s+been)\s+)?(?:private|unavailable|removed|deleted)\b/i,
+  /\b(?:not|isn['’]t)\s+available\s+in\s+(?:your|this)\s+(?:country|region)\b/i,
+  /\bembedding\s+(?:is\s+)?disabled\b/i,
+  /\bconfirm\s+(?:that\s+)?you(?:['’]re|\s+are)\s+not\s+a\s+bot\b/i,
+]);
+
+const SUP07_GROUPS = Object.freeze([
+  Object.freeze({
+    winner: 'b3258975-db9f-42d5-a581-6c305b180b8f',
+    loser: '2cb727a7-aee1-4e33-975c-db31bc587aea',
+    post: '7f85c90e-057f-4784-9ff6-39f16c76aa78',
+    key: 'native:7726a4055b7753f1b8306349ce6419bd',
+  }),
+  Object.freeze({
+    winner: '0ac10eae-0380-4836-be80-759ce93ee878',
+    loser: '46747b18-3e80-4975-abad-09c41e091155',
+    post: '5cab43ba-cb10-4043-955f-63415e755e63',
+    key: 'native:5bde286bd5cdae63943270adcd7052b5',
+  }),
+  Object.freeze({
+    winner: '8e87782d-dec1-4a54-aab9-1251df417b92',
+    loser: '31dc2cba-a031-4b6c-9530-168fe080e118',
+    post: '61a5aaa3-0ee7-4003-8af3-c4e64e240078',
+    key: 'native:6e9a7279c927086f2807818e63db935f',
+  }),
+  Object.freeze({
+    winner: '9f65fa3e-9023-4697-8b15-c8f5c4c1c82f',
+    loser: null,
+    post: '14f549d1-8079-436f-8c4e-c42ec0432de5',
+    key: 'native:504c25ca805a2d6caf36cba72ae93b92',
+  }),
+]);
+
+export const SUP07_ALIASES = Object.freeze(SUP07_GROUPS.flatMap((group) => [
+  { reference: group.winner, kind: 'winner', ...group },
+  ...(group.loser ? [{ reference: group.loser, kind: 'loser', ...group }] : []),
+  { reference: group.post, kind: 'post', ...group },
+].map(Object.freeze)));
 
 function fixedFailure(error) {
   return error instanceof assert.AssertionError
@@ -39,6 +105,56 @@ function fixedFailure(error) {
 
 function digest(value) {
   return createHash('sha256').update(String(value)).digest('hex').slice(0, 16);
+}
+
+function isFreshTimestamp(value, nowMs = Date.now()) {
+  const observed = Date.parse(value || '');
+  return Number.isFinite(observed)
+    && nowMs - observed <= VERIFICATION_MAX_AGE_MS
+    && observed <= nowMs + MAX_FUTURE_SKEW_MS;
+}
+
+function hasRestrictedText(row) {
+  const searchable = [row?.caption, row?.title, row?.source_name, row?.source_id]
+    .filter(value => typeof value === 'string')
+    .join(' ');
+  return RESTRICTED_TEXT.some(pattern => pattern.test(searchable));
+}
+
+export function isNarrowUnknownNativeReel(row) {
+  return String(row?.topic || '').toLowerCase() === 'unknown'
+    && row?.origin_type === 'social_post'
+    && row?.source_type === 'native'
+    && row?.playback_type === 'native'
+    && row?.rights_status === 'user_authorized'
+    && row?.native_processing_requested === false
+    && !row?.source_asset_id
+    && !row?.publication_key
+    && !row?.source_story_id
+    && !row?.youtube_video_id
+    && UUID.test(String(row?.source_post_id || ''))
+    && String(row?.canonical_asset_key || '').startsWith('native:');
+}
+
+function countBy(rows, select) {
+  return rows.reduce((counts, row) => {
+    const value = String(select(row) || 'unknown').trim().toLowerCase() || 'unknown';
+    counts[value] = (counts[value] || 0) + 1;
+    return counts;
+  }, {});
+}
+
+function supplyReceipt(rows) {
+  const sourceNames = [...new Set(rows.map(row => row.source_name || 'native'))].sort();
+  return {
+    topics: countBy(rows, row => row.topic),
+    origins: countBy(rows, row => row.origin_type),
+    sourceTypes: countBy(rows, row => row.source_type),
+    playbackTypes: countBy(rows, row => row.playback_type),
+    rightsStatuses: countBy(rows, row => row.rights_status),
+    uniqueSources: sourceNames.length,
+    sourceFingerprint: digest(sourceNames.join('|')),
+  };
 }
 
 export function validateConfiguration(env) {
@@ -80,48 +196,248 @@ function isYouTubeAttribution(value, youtubeId) {
   }
 }
 
-export function validateReelRow(row, category) {
+function isTrustedNativeUrl(value, authorId) {
+  if (!POSTGRES_UUID.test(String(authorId || ''))) return false;
+  try {
+    const parsed = new URL(value);
+    if (
+      parsed.protocol !== 'https:'
+      || parsed.origin !== AUTH_ORIGIN
+      || parsed.username
+      || parsed.password
+      || parsed.port
+      || parsed.search
+      || parsed.hash
+      || !parsed.pathname.startsWith('/storage/v1/object/public/')
+    ) return false;
+    const objectRef = decodeURIComponent(parsed.pathname.slice('/storage/v1/object/public/'.length));
+    const escapedAuthor = String(authorId).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    return new RegExp(`^(?:social-media/(?:reels|videos)|stories/stories|live-recordings)/${escapedAuthor}/[^/]+$`).test(objectRef);
+  } catch {
+    return false;
+  }
+}
+
+export function validateReelRow(row, category, {
+  nowMs = Date.now(),
+  requirePublic = true,
+} = {}) {
   assert.ok(row && typeof row === 'object', 'Reel row is not an object');
   assert.match(String(row.id || ''), UUID, 'Reel identity is invalid');
-  assert.ok(CATEGORY_TOPICS[category]?.has(String(row.topic || '').toLowerCase()), 'Reel escaped its category topic contract');
+  assert.match(String(row.author_id || ''), POSTGRES_UUID, 'Reel author identity is invalid');
+  if (requirePublic) assert.equal(row.is_public, true, 'Non-public Reel reached the public feed');
+  const topic = String(row.topic || '').toLowerCase();
+  const narrowUnknown = category === 'for-you' && isNarrowUnknownNativeReel(row);
+  assert.ok(CATEGORY_TOPICS[category]?.has(topic) || narrowUnknown, 'Reel escaped its category topic contract');
   assert.equal(row.media_status, 'ready', 'Reel is not ready');
   assert.ok(!['blocked', 'restricted'].includes(row.rights_status), 'Blocked or restricted Reel reached the public feed');
+  assert.ok(ALLOWED_ORIGINS.has(row.origin_type), 'Reel origin is not part of the canonical contract');
   assert.ok(['youtube_embed', 'native'].includes(row.playback_type), 'Reel playback type is not supported');
   assert.ok(typeof row.canonical_asset_key === 'string' && row.canonical_asset_key.trim(), 'Reel canonical identity is missing');
   assert.ok(typeof row.video_url === 'string' && row.video_url.startsWith('https://'), 'Reel playback URL is not HTTPS');
+  assert.equal(hasRestrictedText(row), false, 'Restricted or subscription-only text reached the public feed');
+  assert.equal(row.legacy_transition_eligible, false, 'Legacy-transition Reel reached the canonical public feed');
+  if (row.availability_status != null) {
+    assert.equal(row.availability_status, 'verified', 'Unavailable Reel reached the public feed');
+  }
   if (row.playback_type === 'youtube_embed') {
     assert.match(String(row.youtube_video_id || ''), YOUTUBE_ID, 'YouTube Reel identity is invalid');
     assert.equal(row.canonical_asset_key, `youtube:${row.youtube_video_id}`, 'YouTube canonical identity disagrees with playback identity');
+    assert.ok(['embed_only', 'owned', 'licensed'].includes(row.rights_status), 'YouTube Reel lacks a supported rights contract');
     assert.ok(typeof row.source_name === 'string' && row.source_name.trim(), 'YouTube source name is missing');
     assert.ok(
       isYouTubeAttribution(row.source_attribution_url || row.source_url, row.youtube_video_id),
       'YouTube source attribution is missing or disagrees with playback identity',
     );
+    const assetProof = row.availability_status === 'verified'
+      && row.embeddable === true
+      && isFreshTimestamp(row.availability_checked_at, nowMs);
+    const verifierProof = row.verification_status === 'resolved'
+      && isFreshTimestamp(row.last_verified_at, nowMs);
+    assert.ok(assetProof || verifierProof, 'YouTube Reel lacks fresh positive availability proof');
+  } else {
+    assert.ok(['owned', 'licensed', 'user_authorized'].includes(row.rights_status), 'Native Reel lacks a supported rights contract');
+    assert.ok(isTrustedNativeUrl(row.video_url, row.author_id), 'Native Reel playback is outside verified account storage');
+    if (row.youtube_video_id) {
+      assert.match(String(row.youtube_video_id), YOUTUBE_ID, 'Native Reel source identity is invalid');
+      assert.equal(row.canonical_asset_key, `youtube:${row.youtube_video_id}`, 'Native Reel source identity disagrees with its canonical asset');
+    } else {
+      assert.ok(row.canonical_asset_key.startsWith('native:'), 'Native Reel canonical identity is invalid');
+    }
   }
   if (row.origin_type === 'video_library') {
     assert.equal(row.availability_status, 'verified', 'Unverified library Reel reached the public feed');
     assert.equal(row.embeddable, true, 'Non-embeddable library Reel reached the public feed');
-    assert.equal(row.legacy_transition_eligible, false, 'Legacy-transition library Reel reached the hardened public feed');
+    assert.ok(isFreshTimestamp(row.availability_checked_at, nowMs), 'Stale library Reel reached the public feed');
   }
   return row;
 }
 
-export function validateFeedPage(payload, category, seenIds = new Set(), seenKeys = new Set()) {
+function validatePagination(payload, requestedLimit) {
+  assert.equal(payload.partial, false, 'Reels API returned a partial page');
+  assert.equal(typeof payload.has_more, 'boolean', 'Reels API omitted continuation truth');
+  assert.ok(payload.pagination && typeof payload.pagination === 'object', 'Reels API omitted pagination metadata');
+  assert.equal(payload.pagination.limit, payload.data.length, 'Pagination row count disagrees with the payload');
+  assert.equal(payload.pagination.hasMore, payload.has_more, 'Pagination continuation truth disagrees with the payload');
+  assert.equal(payload.pagination.nextCursor ?? null, payload.next_cursor ?? null, 'Pagination cursor disagrees with the payload');
+  if (payload.has_more) {
+    assert.equal(payload.data.length, requestedLimit, 'Continuing Reels page was shorter than the requested limit');
+    assert.ok(typeof payload.next_cursor === 'string' && payload.next_cursor.length > 0, 'Continuation cursor is missing');
+  } else {
+    assert.equal(payload.next_cursor ?? null, null, 'Terminal Reels page returned a continuation cursor');
+  }
+}
+
+export function validateFeedPage(
+  payload,
+  category,
+  seenIds = new Set(),
+  seenKeys = new Set(),
+  { requestedLimit = PAGE_LIMIT, nowMs = Date.now() } = {},
+) {
   assert.equal(payload?.success, true, 'Reels feed did not return success');
   assert.equal(payload.category, category, 'Reels feed returned the wrong category');
   assert.ok(Array.isArray(payload.data), 'Reels feed data is not a list');
-  assert.ok(payload.data.length <= PAGE_LIMIT, 'Reels feed exceeded the requested bound');
+  assert.ok(payload.data.length <= requestedLimit, 'Reels feed exceeded the requested bound');
+  validatePagination(payload, requestedLimit);
   for (const row of payload.data) {
-    validateReelRow(row, category);
+    validateReelRow(row, category, { nowMs });
     assert.ok(!seenIds.has(row.id), 'Reels continuation repeated a Reel id');
     assert.ok(!seenKeys.has(row.canonical_asset_key), 'Reels continuation repeated a canonical asset');
     seenIds.add(row.id);
     seenKeys.add(row.canonical_asset_key);
   }
-  if (payload.has_more) {
-    assert.ok(typeof payload.next_cursor === 'string' && payload.next_cursor.length > 0, 'Continuation cursor is missing');
+  return payload.data;
+}
+
+export async function crawlCanonicalFeed(readPage, {
+  category = 'for-you',
+  requestedLimit = COMPLETE_FEED_LIMIT,
+  minimumExclusive = COMPLETE_FEED_MINIMUM,
+  maxPages = MAX_COMPLETE_FEED_PAGES,
+  requireTerminal = true,
+  nowMs = Date.now(),
+} = {}) {
+  assert.equal(typeof readPage, 'function', 'Canonical feed crawler requires a page reader');
+  const seenIds = new Set();
+  const seenKeys = new Set();
+  const seenCursors = new Set();
+  const rows = [];
+  let cursor = null;
+  for (let pageNumber = 1; pageNumber <= maxPages; pageNumber += 1) {
+    const payload = await readPage(cursor);
+    const pageRows = validateFeedPage(payload, category, seenIds, seenKeys, { requestedLimit, nowMs });
+    if (pageNumber > 1) assert.ok(pageRows.length > 0, 'Reels continuation returned an empty page');
+    rows.push(...pageRows);
+    if (!payload.has_more) {
+      assert.ok(rows.length > minimumExclusive, `Canonical Reels crawl did not exceed ${minimumExclusive} unique Reels`);
+      return {
+        rows,
+        cursorCount: seenCursors.size,
+        pageCount: pageNumber,
+        mix: supplyReceipt(rows),
+      };
+    }
+    assert.ok(!seenCursors.has(payload.next_cursor), 'Reels continuation repeated a cursor');
+    assert.notEqual(payload.next_cursor, cursor, 'Reels continuation did not advance');
+    seenCursors.add(payload.next_cursor);
+    cursor = payload.next_cursor;
+    if (!requireTerminal && pageNumber === maxPages) {
+      assert.ok(rows.length > minimumExclusive, `Reels sample did not exceed ${minimumExclusive} unique Reels`);
+      return {
+        rows,
+        cursorCount: seenCursors.size,
+        pageCount: pageNumber,
+        mix: supplyReceipt(rows),
+      };
+    }
+  }
+  assert.fail(`Canonical Reels crawl exceeded its ${maxPages}-page safety bound`);
+}
+
+export function validateCollectionPage(
+  payload,
+  collection,
+  ownerId,
+  seenIds = new Set(),
+  seenKeys = new Set(),
+  { requestedLimit = COLLECTION_LIMIT, nowMs = Date.now() } = {},
+) {
+  assert.ok(['mine', 'saved'].includes(collection), 'Unknown Reel collection');
+  assert.match(String(ownerId || ''), UUID, 'Collection owner identity is invalid');
+  assert.equal(payload?.success, true, `${collection} Reels did not return success`);
+  assert.ok(Array.isArray(payload.data), `${collection} Reels data is not a list`);
+  assert.ok(payload.data.length <= requestedLimit, `${collection} Reels exceeded the requested bound`);
+  validatePagination(payload, requestedLimit);
+  for (const item of payload.data) {
+    const row = collection === 'saved' ? item?.reel : item;
+    if (collection === 'saved') {
+      assert.match(String(item?.id || ''), UUID, 'Saved Reel record identity is invalid');
+      assert.equal(item.user_id, ownerId, 'Saved Reels response escaped the designated account');
+      assert.match(String(item.reel_id || ''), UUID, 'Saved Reel canonical target is invalid');
+      assert.equal(item.reel_id, row?.id, 'Saved Reel target did not resolve to its canonical winner');
+      assert.ok(Array.isArray(item.saved_target_ids) && item.saved_target_ids.length > 0, 'Saved Reel aliases are missing');
+      assert.ok(item.saved_target_ids.every(id => UUID.test(String(id))), 'Saved Reel alias identity is invalid');
+      assert.equal(row?.is_public, true, 'Saved collection exposed a non-public Reel');
+    } else {
+      assert.equal(row?.author_id, ownerId, 'My Reels response escaped the designated account');
+    }
+    validateReelRow(row, 'for-you', { nowMs, requirePublic: collection === 'saved' });
+    assert.ok(!seenIds.has(row.id), `${collection} Reels continuation repeated a Reel id`);
+    assert.ok(!seenKeys.has(row.canonical_asset_key), `${collection} Reels continuation repeated a canonical asset`);
+    seenIds.add(row.id);
+    seenKeys.add(row.canonical_asset_key);
   }
   return payload.data;
+}
+
+export async function crawlAccountCollection(readPage, {
+  collection,
+  ownerId,
+  requestedLimit = COLLECTION_LIMIT,
+  maxPages = MAX_COLLECTION_PAGES,
+  nowMs = Date.now(),
+} = {}) {
+  assert.equal(typeof readPage, 'function', 'Account collection crawler requires a page reader');
+  const seenIds = new Set();
+  const seenKeys = new Set();
+  const seenCursors = new Set();
+  const rows = [];
+  let cursor = null;
+  for (let pageNumber = 1; pageNumber <= maxPages; pageNumber += 1) {
+    const payload = await readPage(cursor);
+    const pageRows = validateCollectionPage(
+      payload,
+      collection,
+      ownerId,
+      seenIds,
+      seenKeys,
+      { requestedLimit, nowMs },
+    );
+    if (pageNumber > 1) assert.ok(pageRows.length > 0, `${collection} Reels continuation returned an empty page`);
+    rows.push(...pageRows);
+    if (!payload.has_more) {
+      return {
+        rows,
+        receipt: {
+          pages: pageNumber,
+          records: rows.length,
+          uniqueReels: seenIds.size,
+          uniqueAssets: seenKeys.size,
+          partialPages: 0,
+          duplicateIds: 0,
+          duplicateAssets: 0,
+          ownerBound: true,
+          cacheControl: 'private-no-store',
+        },
+      };
+    }
+    assert.ok(!seenCursors.has(payload.next_cursor), `${collection} Reels continuation repeated a cursor`);
+    assert.notEqual(payload.next_cursor, cursor, `${collection} Reels continuation did not advance`);
+    seenCursors.add(payload.next_cursor);
+    cursor = payload.next_cursor;
+  }
+  assert.fail(`${collection} Reels crawl exceeded its ${maxPages}-page safety bound`);
 }
 
 export function selectOrdinaryArticle(posts) {
@@ -145,8 +461,10 @@ export function selfTest() {
   assert.equal(isBrowserReadOnlyRequest('POST', `${APP_ORIGIN}/api/reels/feed`), false);
   assert.equal(isBrowserReadOnlyRequest('DELETE', `${APP_ORIGIN}/api/reels/feed`), false);
   const id = '00000000-0000-4000-8000-000000000001';
+  const checkedAt = new Date().toISOString();
   const row = {
     id,
+    author_id: '00000000-0000-4000-8000-000000000004',
     topic: 'sports',
     media_status: 'ready',
     rights_status: 'embed_only',
@@ -157,29 +475,85 @@ export function selfTest() {
     source_name: 'Source',
     source_attribution_url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
     origin_type: 'video_library',
+    is_public: true,
     availability_status: 'verified',
     embeddable: true,
+    availability_checked_at: checkedAt,
+    verification_status: 'resolved',
+    last_verified_at: checkedAt,
     legacy_transition_eligible: false,
   };
-  validateFeedPage({ success: true, category: 'sports', data: [row], has_more: false }, 'sports');
+  const page = (data, category = 'sports', overrides = {}) => ({
+    success: true,
+    category,
+    data,
+    has_more: false,
+    next_cursor: null,
+    partial: false,
+    pagination: { limit: data.length, hasMore: false, nextCursor: null },
+    ...overrides,
+  });
+  validateFeedPage(page([row]), 'sports');
   assert.throws(
-    () => validateFeedPage({ success: true, category: 'poker', data: [row], has_more: false }, 'poker'),
+    () => validateFeedPage(page([row], 'poker'), 'poker'),
     /category topic contract/,
   );
   assert.throws(
-    () => validateFeedPage({ success: true, category: 'sports', data: [row, row], has_more: false }, 'sports'),
+    () => validateFeedPage(page([row, row]), 'sports'),
     /repeated a Reel id/,
   );
   assert.throws(
-    () => validateFeedPage({ success: true, category: 'sports', data: [{ ...row, availability_status: 'restricted' }], has_more: false }, 'sports'),
-    /Unverified library Reel/,
+    () => validateFeedPage(page([{ ...row, availability_status: 'restricted' }]), 'sports'),
+    /Unavailable Reel/,
   );
+  assert.throws(
+    () => validateFeedPage(page([{ ...row, caption: 'Subscription required' }]), 'sports'),
+    /subscription-only text/,
+  );
+  assert.throws(
+    () => validateFeedPage(page([row], 'sports', { partial: true }), 'sports'),
+    /partial page/,
+  );
+  const unknownNative = {
+    ...row,
+    id: '00000000-0000-4000-8000-000000000002',
+    author_id: '00000000-0000-4000-8000-000000000004',
+    topic: 'unknown',
+    origin_type: 'social_post',
+    source_type: 'native',
+    playback_type: 'native',
+    rights_status: 'user_authorized',
+    native_processing_requested: false,
+    source_asset_id: null,
+    publication_key: null,
+    source_story_id: null,
+    youtube_video_id: null,
+    source_post_id: '00000000-0000-4000-8000-000000000003',
+    canonical_asset_key: 'native:self-test',
+    video_url: 'https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/social-media/videos/00000000-0000-4000-8000-000000000004/test.mp4',
+    source_name: null,
+    source_attribution_url: null,
+    availability_status: null,
+    embeddable: null,
+    availability_checked_at: null,
+  };
+  validateFeedPage(page([unknownNative], 'for-you'), 'for-you');
+  assert.throws(
+    () => validateFeedPage(page([{ ...unknownNative, publication_key: 'forged' }], 'for-you'), 'for-you'),
+    /category topic contract/,
+  );
+  assert.equal(SUP07_ALIASES.length, 11, 'SUP-07 live alias inventory drifted');
   assert.equal(selectOrdinaryArticle([{ id, contentType: 'article', mediaUrls: [], link_url: 'https://example.com/story' }])?.id, id);
   assert.equal(selectOrdinaryArticle([{ id, contentType: 'link', mediaUrls: [], link_url: `${APP_ORIGIN}/hub/reels?id=${id}` }]), null);
   console.log('Reels live verifier safety checks passed');
 }
 
-async function readJson(path, { token = null, expectedStatus = 200 } = {}) {
+async function readJson(path, {
+  token = null,
+  expectedStatus = 200,
+  expectedCache = /no-store/i,
+  requireAuthorizationVary = false,
+} = {}) {
   const response = await fetch(`${APP_ORIGIN}${path}`, {
     method: 'GET',
     headers: {
@@ -192,7 +566,10 @@ async function readJson(path, { token = null, expectedStatus = 200 } = {}) {
     signal: AbortSignal.timeout(25000),
   });
   assert.equal(response.status, expectedStatus, `Unexpected HTTP status for ${new URL(path, APP_ORIGIN).pathname}`);
-  assert.match(response.headers.get('cache-control') || '', /no-store/i, 'Live API response is cacheable');
+  assert.match(response.headers.get('cache-control') || '', expectedCache, 'Live API response is cacheable');
+  if (requireAuthorizationVary) {
+    assert.match(response.headers.get('vary') || '', /(?:^|,)\s*Authorization\s*(?:,|$)/i, 'Private API response omitted Authorization from Vary');
+  }
   return response.json();
 }
 
@@ -209,38 +586,92 @@ async function assertHealth(expectedSha) {
 }
 
 async function collectCategory(category) {
-  const seenIds = new Set();
-  const seenKeys = new Set();
-  const rows = [];
-  let cursor = null;
-  const pages = category === 'for-you' ? FOR_YOU_PAGES : 3;
-  for (let index = 0; index < pages; index += 1) {
-    const params = new URLSearchParams({ category, limit: String(PAGE_LIMIT), sort: 'recent' });
+  const complete = category === 'for-you';
+  const requestedLimit = complete ? COMPLETE_FEED_LIMIT : PAGE_LIMIT;
+  const requestedPages = complete ? MAX_COMPLETE_FEED_PAGES : 3;
+  const collection = await crawlCanonicalFeed(async (cursor) => {
+    const params = new URLSearchParams({
+      category,
+      scope: 'all',
+      limit: String(requestedLimit),
+      sort: 'recent',
+    });
     if (cursor) params.set('cursor', cursor);
-    const payload = await readJson(`/api/reels/feed?${params.toString()}`);
-    rows.push(...validateFeedPage(payload, category, seenIds, seenKeys));
-    cursor = payload.next_cursor || null;
-    if (category === 'for-you' && index < FOR_YOU_PAGES - 1) {
-      assert.ok(payload.has_more && cursor, 'For You did not sustain three-page continuation');
-    }
-    if (!cursor) break;
-  }
-  assert.ok(rows.length > 0, `${category} category is empty`);
-  if (category === 'for-you') assert.ok(rows.length > 50, 'For You did not provide more than 50 distinct Reels');
+    return readJson(`/api/reels/feed?${params.toString()}`);
+  }, {
+    category,
+    requestedLimit,
+    minimumExclusive: complete ? COMPLETE_FEED_MINIMUM : 0,
+    maxPages: requestedPages,
+    requireTerminal: complete,
+  });
+  const { rows } = collection;
   const managed = rows.filter((row) => ['video_library', 'horse'].includes(row.origin_type));
   assert.ok(managed.length > 0, `${category} did not expose managed library or horse supply`);
+  if (complete) {
+    assert.ok(rows.some(row => row.origin_type === 'video_library'), 'Complete For You crawl has no Video Library supply');
+    assert.ok(rows.some(row => row.origin_type === 'horse'), 'Complete For You crawl has no horse supply');
+    assert.ok(rows.some(row => row.origin_type === 'social_post'), 'Complete For You crawl has no social-post supply');
+    assert.ok(rows.some(row => row.topic === 'sports'), 'Complete For You crawl has no Sports supply');
+    assert.ok(rows.some(row => row.topic === 'slots'), 'Complete For You crawl has no Casino And Slots supply');
+    assert.ok(rows.some(row => ['poker', 'cash', 'tournament'].includes(row.topic)), 'Complete For You crawl has no Poker supply');
+  }
   return {
     firstId: rows[0].id,
     rows,
     receipt: {
-      pages: Math.ceil(rows.length / PAGE_LIMIT),
+      pages: collection.pageCount,
       reels: rows.length,
+      uniqueIds: rows.length,
+      uniqueAssets: rows.length,
+      partialPages: 0,
+      duplicateIds: 0,
+      duplicateAssets: 0,
+      restrictedTextMatches: 0,
       managed: managed.length,
       library: rows.filter((row) => row.origin_type === 'video_library').length,
       horse: rows.filter((row) => row.origin_type === 'horse').length,
-      sourceFingerprint: digest([...new Set(rows.map((row) => row.source_name || 'native'))].sort().join('|')),
+      socialPost: rows.filter((row) => row.origin_type === 'social_post').length,
+      unknownNative: rows.filter((row) => row.topic === 'unknown').length,
+      mix: collection.mix,
     },
   };
+}
+
+async function verifySup07Aliases() {
+  for (const alias of SUP07_ALIASES) {
+    const params = new URLSearchParams({
+      category: 'for-you',
+      scope: 'all',
+      sort: 'recent',
+      limit: '1',
+      id: alias.reference,
+    });
+    const payload = await readJson(`/api/reels/feed?${params.toString()}`);
+    const rows = validateFeedPage(payload, 'for-you', new Set(), new Set(), { requestedLimit: 1 });
+    assert.equal(rows.length, 1, 'SUP-07 bookmark alias did not resolve exactly one canonical Reel');
+    assert.equal(rows[0].id, alias.winner, 'SUP-07 bookmark alias resolved the wrong canonical winner');
+    assert.equal(rows[0].source_post_id, alias.post, 'SUP-07 bookmark alias lost its source post');
+    assert.equal(rows[0].canonical_asset_key, alias.key, 'SUP-07 bookmark alias resolved the wrong canonical asset');
+  }
+  return {
+    checked: SUP07_ALIASES.length,
+    groups: SUP07_GROUPS.length,
+    winners: SUP07_GROUPS.length,
+    fingerprint: digest(SUP07_ALIASES.map(alias => `${alias.reference}:${alias.winner}:${alias.key}`).join('|')),
+  };
+}
+
+async function collectAccountCollection(collection, token, ownerId) {
+  return crawlAccountCollection(async (cursor) => {
+    const params = new URLSearchParams({ limit: String(COLLECTION_LIMIT) });
+    if (cursor) params.set('cursor', cursor);
+    return readJson(`/api/reels/${collection}?${params.toString()}`, {
+      token,
+      expectedCache: /(?=.*\bprivate\b)(?=.*\bno-store\b)/i,
+      requireAuthorizationVary: true,
+    });
+  }, { collection, ownerId });
 }
 
 async function findOrdinaryArticle(token) {
@@ -279,7 +710,7 @@ async function installReadOnlyNetworkGuard(context, state) {
   });
 }
 
-async function verifyPublicBrowser(browser, forYouId, report) {
+async function verifyPublicBrowser(browser, bookmarkAlias, report) {
   const context = await browser.newContext({ viewport: { width: 390, height: 844 }, serviceWorkers: 'block' });
   const state = { blockedMutations: 0, injectedDrops: 0, failNextSports: false };
   await context.addInitScript(({ staleKey }) => {
@@ -296,22 +727,30 @@ async function verifyPublicBrowser(browser, forYouId, report) {
       const url = new URL(response.url());
       return url.pathname === '/api/reels/feed'
         && url.searchParams.get('category') === 'for-you'
+        && url.searchParams.get('id') === bookmarkAlias.reference
         && response.status() === 200;
     });
-    await page.goto(`${APP_ORIGIN}/hub/reels?feed=trending&id=${forYouId}`, { waitUntil: 'domcontentloaded' });
-    await initialResponse;
+    await page.goto(`${APP_ORIGIN}/hub/reels?feed=trending&id=${bookmarkAlias.reference}`, { waitUntil: 'domcontentloaded' });
+    const bookmarkResponse = await initialResponse;
+    const bookmarkPayload = await bookmarkResponse.json();
+    assert.equal(bookmarkPayload?.data?.[0]?.id, bookmarkAlias.winner, 'Old Reel alias did not render its canonical winner');
+    assert.equal(bookmarkPayload?.data?.[0]?.canonical_asset_key, bookmarkAlias.key, 'Old Reel alias rendered the wrong canonical asset');
     await page.getByLabel(/Reels Viewer$/).waitFor();
     await page.waitForFunction(({ id }) => {
       const params = new URL(location.href).searchParams;
       return params.get('category') === 'for-you'
         && params.get('feed') === 'trending'
         && params.get('id') === id;
-    }, { id: forYouId });
+    }, { id: bookmarkAlias.reference });
     assert.equal(await page.evaluate((key) => localStorage.getItem(key), RETIRED_CACHE_KEY), null, 'Retired Reel cache survived page startup');
     const players = page.locator('iframe[src*="youtube-nocookie.com/embed/"], video');
     assert.equal(await players.count(), 1, 'Published Reel page mounted more than one media player');
     await players.first().evaluate((element) => { element.dataset.liveProofPlayer = 'mounted'; });
-    await page.getByRole('link', { name: /^View Original On / }).waitFor();
+    if (bookmarkPayload.data[0].source_attribution_url) {
+      await page.getByRole('link', { name: /^View Original On / }).waitFor();
+    } else {
+      assert.equal(await page.getByRole('link', { name: /^View Original On / }).count(), 0, 'Native Reel rendered forged external attribution');
+    }
 
     state.failNextSports = true;
     await page.getByRole('button', { name: 'Menu', exact: true }).click({ force: true });
@@ -344,6 +783,7 @@ async function verifyPublicBrowser(browser, forYouId, report) {
     assert.equal(pageErrors.length, 0, 'Published Reel page raised a browser error');
     report.coverage.publicMobile = {
       oldBookmarkCanonicalized: true,
+      loserAliasRenderedCanonicalWinner: true,
       staleStorageRetired: true,
       midFlightDropRetainedPlayer: true,
       retryRecoveredSports: true,
@@ -382,6 +822,8 @@ async function verifySignedInBrowser(browser, session, article, report) {
   }, { currentSession: session });
   await installReadOnlyNetworkGuard(context, state);
   const page = await context.newPage();
+  const pageErrors = [];
+  page.on('pageerror', () => pageErrors.push('browser-page-error'));
   page.setDefaultTimeout(45000);
   try {
     const followingResponse = page.waitForResponse((response) => {
@@ -402,14 +844,103 @@ async function verifySignedInBrowser(browser, session, article, report) {
     assert.equal(new URL(page.url()).pathname, '/hub/social-media', 'Ordinary article was rewritten into a Reel route');
     await page.locator('button[aria-label="Close"]:visible').last().click();
     await reader.waitFor({ state: 'detached' });
+
+    const verifyCollectionPage = async ({ path, apiPath, emptyText }) => {
+      const apiResponse = page.waitForResponse((response) => {
+        const url = new URL(response.url());
+        return url.pathname === apiPath;
+      });
+      await page.goto(`${APP_ORIGIN}${path}`, { waitUntil: 'domcontentloaded' });
+      assert.equal((await apiResponse).status(), 200, `${path} account collection request was rejected`);
+      await page.getByText('Account Synchronized', { exact: true }).waitFor();
+      await page.waitForFunction(({ expectedEmptyText }) => (
+        Boolean(document.querySelector('.vlc-reel-grid'))
+        || document.body.innerText.includes(expectedEmptyText)
+      ), { expectedEmptyText: emptyText });
+      assert.equal(await page.locator('[role="alert"]:visible').count(), 0, `${path} rendered an account collection alert`);
+      return {
+        synchronized: true,
+        state: await page.locator('.vlc-reel-grid').count() > 0 ? 'populated' : 'empty',
+      };
+    };
+    const myReels = await verifyCollectionPage({
+      path: '/hub/reels/my-reels',
+      apiPath: '/api/reels/mine',
+      emptyText: 'Your Channel Is Quiet. Publish Your First Reel To Start The Feed',
+    });
+    const savedReels = await verifyCollectionPage({
+      path: '/hub/reels/saved',
+      apiPath: '/api/reels/saved',
+      emptyText: 'No Saved Reels Yet. Save A Reel And It Will Appear Here',
+    });
+    assert.equal(pageErrors.length, 0, 'Signed-in Reel surfaces raised a browser error');
     report.coverage.signedInMobile = {
       followingAuthorized: true,
       ordinaryArticleReaderPreserved: true,
+      myReels,
+      savedReels,
       blockedMutationAttempts: state.blockedMutations,
     };
   } finally {
     await context.close();
   }
+}
+
+export function validateReceipt(report) {
+  assert.equal(report?.status, 'passed', 'Reels live receipt is not passing');
+  assert.match(String(report.expectedSha || ''), /^[0-9a-f]{40}$/i, 'Reels live receipt has no exact protected revision');
+  assert.ok(typeof report.deploymentId === 'string' && report.deploymentId.length > 0, 'Reels live receipt has no deployment identity');
+  const beforeIdentity = report.productionIdentity?.before;
+  const afterIdentity = report.productionIdentity?.after;
+  for (const [position, identity] of [['before', beforeIdentity], ['after', afterIdentity]]) {
+    assert.ok(identity && typeof identity === 'object', `Reels live receipt omitted the ${position} production identity`);
+    assert.equal(identity.commitSha, report.expectedSha, `${position} production revision differs from the protected revision`);
+    assert.ok(typeof identity.deploymentId === 'string' && identity.deploymentId.length > 0, `${position} production identity has no deployment id`);
+  }
+  assert.equal(beforeIdentity.deploymentId, afterIdentity.deploymentId, 'Production deployment changed during the Reels verification');
+  assert.equal(report.deploymentId, beforeIdentity.deploymentId, 'Top-level deployment identity disagrees with the initial health proof');
+  assert.ok(report.canonicalCrawl?.reels > COMPLETE_FEED_MINIMUM, 'Reels live receipt did not prove more than 2,000 canonical Reels');
+  assert.equal(report.canonicalCrawl.uniqueIds, report.canonicalCrawl.reels, 'Reels live receipt contains duplicate Reel identities');
+  assert.equal(report.canonicalCrawl.uniqueAssets, report.canonicalCrawl.reels, 'Reels live receipt contains duplicate canonical assets');
+  assert.equal(report.canonicalCrawl.partialPages, 0, 'Reels live receipt contains partial pages');
+  assert.equal(report.canonicalCrawl.restrictedTextMatches, 0, 'Reels live receipt contains restricted content markers');
+  assert.ok(report.canonicalCrawl.library > 0, 'Reels live receipt has no Video Library supply');
+  assert.ok(report.canonicalCrawl.horse > 0, 'Reels live receipt has no horse supply');
+  assert.ok(report.canonicalCrawl.socialPost > 0, 'Reels live receipt has no social-post supply');
+  assert.ok(report.canonicalCrawl.unknownNative > 0, 'Reels live receipt did not exercise the narrow native unknown-topic exception');
+  assert.ok(report.canonicalCrawl.mix?.topics?.sports > 0, 'Reels live receipt has no Sports supply');
+  assert.ok(report.canonicalCrawl.mix?.topics?.slots > 0, 'Reels live receipt has no Casino And Slots supply');
+  assert.ok(
+    ['poker', 'cash', 'tournament'].some(topic => report.canonicalCrawl.mix?.topics?.[topic] > 0),
+    'Reels live receipt has no Poker supply',
+  );
+  assert.equal(report.aliases?.checked, SUP07_ALIASES.length, 'Reels live receipt did not check every SUP-07 bookmark alias');
+  assert.equal(report.aliases?.groups, SUP07_GROUPS.length, 'Reels live receipt did not check every SUP-07 canonical group');
+  for (const collection of ['mine', 'saved']) {
+    const receipt = report.accountCollections?.[collection];
+    assert.ok(receipt, `Reels live receipt omitted the ${collection} collection`);
+    assert.equal(receipt.partialPages, 0, `${collection} collection receipt contains partial pages`);
+    assert.equal(receipt.duplicateIds, 0, `${collection} collection receipt contains duplicate Reels`);
+    assert.equal(receipt.duplicateAssets, 0, `${collection} collection receipt contains duplicate assets`);
+    assert.equal(receipt.ownerBound, true, `${collection} collection receipt is not owner-bound`);
+    assert.equal(receipt.cacheControl, 'private-no-store', `${collection} collection receipt is not private and non-cacheable`);
+    assert.equal(report.coverage?.signedInMobile?.[collection === 'mine' ? 'myReels' : 'savedReels']?.synchronized, true, `${collection} collection page did not synchronize`);
+  }
+  assert.equal(report.coverage?.publicMobile?.loserAliasRenderedCanonicalWinner, true, 'Old loser bookmark did not render its canonical winner');
+  assert.equal(report.coverage?.publicMobile?.staleStorageRetired, true, 'Hostile stale storage was not retired');
+  assert.equal(report.coverage?.publicMobile?.midFlightDropRetainedPlayer, true, 'Mid-flight drop did not retain the active player');
+  assert.equal(report.coverage?.publicMobile?.retryRecoveredSports, true, 'Sports retry did not recover');
+  assert.equal(report.coverage?.signedInMobile?.followingAuthorized, true, 'Following was not verified with the designated identity');
+  assert.equal(report.coverage?.signedInMobile?.ordinaryArticleReaderPreserved, true, 'Ordinary article reader was not preserved');
+  assert.equal(report.coverage?.healthStable, true, 'Production identity changed during the Reels verification');
+  return report;
+}
+
+async function checkReceipt(path) {
+  assert.ok(path, 'Receipt path is required');
+  const report = JSON.parse(await readFile(path, 'utf8'));
+  validateReceipt(report);
+  console.log('Reels live receipt assertions passed');
 }
 
 async function run() {
@@ -428,6 +959,13 @@ async function run() {
   try {
     const health = await assertHealth(report.expectedSha);
     report.deploymentId = health.deploymentId;
+    report.productionIdentity = {
+      before: {
+        commitSha: health.commitSha,
+        deploymentId: health.deploymentId,
+      },
+      after: null,
+    };
 
     const { createClient } = await import('@supabase/supabase-js');
     const auth = createClient(AUTH_ORIGIN, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY, {
@@ -456,6 +994,7 @@ async function run() {
       collections[category] = await collectCategory(category);
       report.categories[category] = collections[category].receipt;
     }
+    report.canonicalCrawl = collections['for-you'].receipt;
     const topicSupply = new Set(REEL_CATEGORIES.flatMap((category) => collections[category].rows.map((row) => row.topic)));
     assert.ok(topicSupply.has('sports'), 'Live feed has no Sports supply');
     assert.ok(topicSupply.has('slots'), 'Live feed has no Casino And Slots supply');
@@ -463,33 +1002,53 @@ async function run() {
     const allRows = REEL_CATEGORIES.flatMap((category) => collections[category].rows);
     assert.ok(allRows.some((row) => row.origin_type === 'video_library'), 'Live feed has no managed Video Library supply');
     assert.ok(allRows.some((row) => row.origin_type === 'horse'), 'Live feed has no managed horse supply');
+    report.aliases = await verifySup07Aliases();
+    const [mine, saved] = await Promise.all([
+      collectAccountCollection('mine', session.access_token, session.user.id),
+      collectAccountCollection('saved', session.access_token, session.user.id),
+    ]);
+    report.accountCollections = {
+      mine: mine.receipt,
+      saved: saved.receipt,
+    };
     report.checks.push(
       'Four public categories enforce topic, readiness, rights, attribution, and canonical identity',
-      'For You sustains three distinct continuation pages with more than 50 Reels',
+      'For You is crawled to a terminal cursor with more than 2,000 unique canonical Reels',
+      'Every continuing page is full and every response rejects partial, duplicate, stale, legacy, or restricted content',
+      'Topic, origin, source, playback, and rights mixes are retained as sanitized counts',
       'Managed library or horse supply is visible in every public category',
-      'Video Library and horse supply are both visible in the live public feed',
-      'Every sampled Video Library Reel is verified, embeddable, and outside legacy transition',
+      'Video Library, horse, and social-post supply are visible in the complete public feed',
+      'Every Video Library Reel is freshly verified, embeddable, and outside legacy transition',
+      'All eleven SUP-07 Reel and post aliases resolve to four canonical winners',
       'Following rejects signed-out access and accepts the designated test account',
+      'My Reels and Saved Reels are owner-bound, canonical, complete, private, and non-cacheable',
     );
 
     const article = await findOrdinaryArticle(session.access_token);
     const { chromium } = await import('playwright');
     browser = await chromium.launch({ headless: true });
-    await verifyPublicBrowser(browser, collections['for-you'].firstId, report);
+    await verifyPublicBrowser(browser, SUP07_ALIASES.find(alias => alias.kind === 'loser'), report);
     await verifySlotsBrowser(browser, report);
     await verifySignedInBrowser(browser, session, article, report);
 
     const finalHealth = await assertHealth(report.expectedSha);
     assert.equal(finalHealth.deploymentId, report.deploymentId, 'Production deployment changed during verification');
+    report.productionIdentity.after = {
+      commitSha: finalHealth.commitSha,
+      deploymentId: finalHealth.deploymentId,
+    };
+    report.coverage.healthStable = true;
     report.checks.push(
-      'Old bookmark canonicalization preserves the requested Reel and feed mode',
+      'Old loser bookmark canonicalization preserves the requested alias and renders its canonical winner',
       'Retired browser cache is removed before playback',
       'A mid-flight category drop retains one mounted player and retry recovers',
       'Casino And Slots displays the responsible-gaming notice',
       'Ordinary social articles still open in the protected in-app reader',
+      'My Reels and Saved Reels pages synchronize or render their explicit empty state',
       'Production revision stayed exact for the full verification window',
     );
     report.status = 'passed';
+    validateReceipt(report);
     console.log(JSON.stringify(report));
   } catch (error) {
     report.status = 'failed';
@@ -504,5 +1063,9 @@ async function run() {
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   if (process.argv.includes('--self-test')) selfTest();
+  else if (process.argv.includes('--check-receipt')) {
+    const index = process.argv.indexOf('--check-receipt');
+    await checkReceipt(process.argv[index + 1]);
+  }
   else await run();
 }

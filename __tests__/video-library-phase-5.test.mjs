@@ -141,6 +141,40 @@ test('supported player settings are wired and the false HD control is retired', 
   assert.match(HARDENING, /video_library_preferences =/);
 });
 
+test('the hamburger exposes every canonical Video Library view and source', () => {
+  const menuStart = MENU.indexOf("'video-library':");
+  const menuEnd = MENU.indexOf("'trivia':", menuStart);
+  const videoMenu = MENU.slice(menuStart, menuEnd);
+  const sourceStart = DATA.indexOf('export const SOURCES = [');
+  const canonicalSources = [...DATA.slice(sourceStart).matchAll(
+    /\{ id: '([^']+)', name: '([^']+)', logo: (?:null|'[^']+') \}/g
+  )]
+    .map(([, id, name]) => ({ id, name }))
+    .filter(({ id }) => id !== 'ALL');
+  const menuSources = [...videoMenu.matchAll(
+    /createMenuItem\.navigation\('([^']+)', '\/hub\/video-library\?source=([^']+)'\)/g
+  )].map(([, name, id]) => ({ id, name }));
+
+  assert.deepEqual(menuSources, canonicalSources);
+  assert.match(videoMenu, /'Slots', '\/hub\/video-library\?type=slots'/);
+  assert.match(videoMenu, /'Playlists', '\/hub\/video-library\?filter=playlists'/);
+  assert.match(videoMenu, /'Bally Poker Live', '\/hub\/video-library\?source=LATB'/);
+  assert.doesNotMatch(videoMenu, /Live at the Bike/);
+});
+
+test('a collapsed mobile source list keeps its deep-linked active source visible', () => {
+  assert.match(PAGE, /requestedSource === 'ALL' \|\| SOURCES\.some\(source => source\?\.id === requestedSource\)/);
+  assert.match(PAGE, /className={`vl-source-button\$\{isActive \? ' is-active' : ''\}`}/);
+  assert.match(
+    CSS,
+    /\.vl-source-pills:not\(\.is-expanded\) > \.vl-source-button:nth-child\(n \+ 11\):not\(\.is-active\) \{ display: none !important; \}/
+  );
+  assert.doesNotMatch(
+    CSS,
+    /\.vl-source-pills:not\(\.is-expanded\) > \.vl-source-button:nth-child\(n \+ 11\) \{ display: none !important; \}/
+  );
+});
+
 test('desktop actions, playlist wiring, touch controls, and safe-area layout remain reachable', () => {
   assert.match(PAGE, /onMouseMove=\{!isTouchDevice \? vlRevealHud : undefined\}/);
   assert.match(PAGE, /setShowPlaylistModal\(selectedVideo\)/);

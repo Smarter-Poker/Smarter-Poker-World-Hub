@@ -1531,14 +1531,17 @@
 
     .vl-type-toggle-row--mobile {
         display: flex;
-        gap: 0;
+        gap: 6px;
         min-width: 0;
-        overflow-x: visible;
-        flex-wrap: wrap;
-    }
-
-    .vl-type-toggle-row--mobile::-webkit-scrollbar {
-        display: none;
+        max-width: 100%;
+        overflow-x: auto;
+        overflow-y: hidden;
+        flex-wrap: nowrap;
+        padding-block-end: 8px;
+        overscroll-behavior-inline: contain;
+        scrollbar-color: var(--vl-blue) rgb(205 222 238 / 14%);
+        scrollbar-width: thin;
+        -webkit-overflow-scrolling: touch;
     }
 
     .vl-type-toggle-row--mobile .vl-filter-group-label {
@@ -1552,8 +1555,8 @@
         min-height: 44px;
         padding-inline: 12px;
         border-block-start: 1px solid var(--vl-rule);
-        scroll-snap-align: start;
         font-size: 12px;
+        white-space: nowrap;
     }
 
     .vl-type-toggle-row--mobile .vl-filter-count {
@@ -1830,11 +1833,11 @@
     display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
     overflow-x: visible; min-width: 0;
 }
-.vl-type-toggle-row { display: grid !important; }
+.vl-type-toggle-row--desktop { display: grid !important; }
 @media (max-width: 768px) {
-    .vl-type-toggle-row--mobile { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
-    .vl-type-toggle-row--mobile .vl-filter-button { min-width: 0; width: 100%; white-space: normal; }
-    .vl-source-pills:not(.is-expanded) > .vl-source-button:nth-child(n + 11) { display: none !important; }
+    /* A deep-linked source can sit beyond the collapsed ten-item preview.
+       Keep that active command visible so the URL never selects a hidden control. */
+    .vl-source-pills:not(.is-expanded) > .vl-source-button:nth-child(n + 11):not(.is-active) { display: none !important; }
     .vl-cw-grid, .vl-new-week-grid, .vl-up-next-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .vl-continuity-card, .vl-new-week-card, .vl-up-next-card { min-width: 0; width: 100%; }
     .vl-up-next-card { grid-template-columns: minmax(0, 1fr); }
@@ -1843,8 +1846,10 @@
     .vl-playlist-dialog { padding-bottom: env(safe-area-inset-bottom, 0px); }
 }
 
-/* Former page inline layout stays authoritative after responsive artwork rules.
-   Keep main's shell geometry while the recovered console owns the paint. */
-.video-library-page { width: 100%; max-width: 100vw; padding: 20px; background: #0a0a0a; }
-.vl-header-area { max-width: 1400px; margin: 0 auto 24px; }
-.vl-global-header { margin-bottom: 20px; }
+/* Former desktop shell geometry stays authoritative after responsive artwork rules.
+   Mobile retains the 375/393 edge treatment declared above. */
+@media (min-width: 769px) {
+    .video-library-page { width: 100%; max-width: 100vw; padding: 20px; background: #0a0a0a; }
+    .vl-header-area { max-width: 1400px; margin: 0 auto 24px; }
+    .vl-global-header { margin-bottom: 20px; }
+}
