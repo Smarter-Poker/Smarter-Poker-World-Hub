@@ -18,6 +18,19 @@ export function authorizedAlert(req, expected, header = 'authorization') {
   const b = Buffer.from(supplied.trim());
   return a.length > 0 && a.length === b.length && timingSafeEqual(a, b);
 }
+// One row per alert episode. Alertmanager identifies an alert by its label set
+// and an episode of it by startsAt; a repeat delivery of a still-firing alert
+// carries the same pair. Annotations are evidence, not identity: a rule whose
+// summary prints a live value ("silent for 20.47k minutes") changes them on
+// every repeat, and hashing them made OpenClawFleetLongSilence open a new row
+// every four hours (57 rows for one episode that started 2026-09-17 19:01 UTC).
+// The destination task id is stored beside the evidence, never inside the hash.
+export function alertmanagerEpisodeKey({ alert, receiver = null, externalURL = null }) {
+  return alertEventKey({
+    alert: { labels: alert.labels, startsAt: alert.startsAt ?? null, status: alert.status },
+    receiver, externalURL,
+  });
+}
 export function alertmanagerEvents(payload, source = 'alertmanager') {
   if (!object(payload) || !Array.isArray(payload.alerts) || payload.alerts.length > 200) {
     throw new TypeError('Expected at most 200 Alertmanager alerts');
@@ -31,10 +44,7 @@ export function alertmanagerEvents(payload, source = 'alertmanager') {
     // Preserve every label, annotation and timestamp. Do not truncate evidence
     // to the old SMS character limit or combine unrelated alerts into one row.
     const evidence = { alert, receiver: payload.receiver || null, externalURL: payload.externalURL || null };
-    // The event key is the hash of the evidence alone, so a repeat delivery of the
-    // same alert keeps deduplicating against the row that already exists. The
-    // destination task id is stored beside the evidence, never inside the hash.
-    return { source, event_key: alertEventKey(evidence), alertname: alert.labels.alertname,
+    return { source, event_key: alertmanagerEpisodeKey(evidence), alertname: alert.labels.alertname,
       status: alert.status, severity: alert.labels.severity || 'unknown',
       payload: withDestination(evidence) };
   });
