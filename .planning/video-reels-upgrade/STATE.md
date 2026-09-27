@@ -13,7 +13,7 @@
 
 ## Policy Receipt
 
-- **Read at:** `2026-09-26T22:30:34.618Z`
+- **Read at:** `2026-09-27T00:24:51.917Z`
 - **Policy version:** `2.9`
 - **Manifest SHA-256:** `7663cc909626f7e9966931d27166ad8774addc801f7ad1898a2d7564bc13c378`
 - **Owner policy:** `76228d75677eb76ca9dcfbf65fd68ddb7aac3941f61154acc456ae8230a9a4fa`
@@ -72,3 +72,4 @@
 - Integrated protected World Hub main `990be89d230f2072fc50abe173132edb8e9a1e9a`, then repaired canonical category navigation, source attribution, publication visibility telemetry, hostile route/auth recovery, stale-cache cleanup after hydration, and query-only page preservation for mid-flight category drops.
 - Final local hostile-state browser proof on desktop `1440x900` and mobile `393x852` passed: all canonical category/menu destinations were present, one active YouTube player was retained while advancing, slots displayed the responsible-gaming notice, stale Reel localStorage was removed, stale auth could not enter Following, old `feed=trending&id=...` bookmarks retained both values while adding `category=for-you`, and a synthetic 503 category switch kept the mounted Reel plus an explicit retry.
 - Exact source revision `b36c0aecc1be4bf515c6a2adc8797ace7fc4aef9` passed the maintained Phase 1 suite with 284 Node, 25 Vitest, and 20 Python tests (329 total), repository-wide ESLint across 4,511 files in 112 bounded batches, `git diff --check`, and the complete Node 24 production build. The build also passed every bundled cross-product law suite, generated 504/504 static pages, and passed the Personal Assistant performance budget. Local static generation logged its existing fail-soft unregistered external API-key notice because the isolated worktree does not carry production credentials; the build exited zero and generated every page.
+- Reconciled the concurrently advanced PR branch without force-pushing. Its three remote-only commits were GitHub merges of already-integrated protected-main revisions; `git merge-tree` completed without conflicts and produced a tree byte-identical to the locally qualified candidate. Merge commit `68d7be607d7173630f4f6c0fe0ed63b0bdd4726b` has identical first-parent and result tree `88eb53f112a5e99dd90d7700bbdfd791a79872fd`, so the recorded source, lint, build, and hostile-browser evidence remains applicable.
