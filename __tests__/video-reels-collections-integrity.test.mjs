@@ -552,6 +552,67 @@ test('collection readers keep slots and sports across My Reels, Saved, and saved
   );
 });
 
+test('Following keeps persisted zero-version horse authors and hydrates their ordinary profiles', async () => {
+  const viewerId = '11111111-1111-4111-8111-111111111111';
+  const horseAuthorId = '00000000-0000-0000-0000-000000000028';
+  const youtubeId = 'dQw4w9WgXcQ';
+  const checkedAt = new Date().toISOString();
+  const horseReel = nativeRow({
+    id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+    author_id: horseAuthorId,
+    caption: 'Maintained horse sports clip',
+    video_url: `https://www.youtube.com/watch?v=${youtubeId}`,
+    original_youtube_url: `https://www.youtube.com/watch?v=${youtubeId}`,
+    youtube_video_id: youtubeId,
+    source_type: 'horse',
+    origin_type: 'horse',
+    playback_type: 'youtube_embed',
+    topic: 'sports',
+    rights_status: 'embed_only',
+    canonical_asset_key: `youtube:${youtubeId}`,
+    publication_key: `horse:${youtubeId}`,
+    created_at: checkedAt,
+  });
+  const tables = {
+    social_reels: [horseReel],
+    social_posts: [],
+    saved_reels: [],
+    profiles: [{
+      id: horseAuthorId,
+      username: 'maintained-horse-player',
+      full_name: 'Maintained Horse Player',
+      avatar_url: null,
+    }],
+    social_follows: [{ follower_id: viewerId, following_id: horseAuthorId }],
+    video_library_videos: [{
+      id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+      youtube_video_id: youtubeId,
+      type: 'cash',
+      url: `https://www.youtube.com/watch?v=${youtubeId}`,
+      availability_status: 'verified',
+      embeddable: true,
+      availability_checked_at: checkedAt,
+    }],
+    youtube_embed_failures: [],
+  };
+  const client = createMemoryClient(tables);
+  const { readFeed } = loadCollectionReaderHarness(client);
+  const following = await readFeed({
+    client,
+    category: 'following',
+    viewerId,
+    scope: 'following',
+    sort: 'recent',
+    limit: 10,
+  });
+
+  assert.deepEqual([...following.data].map(row => row.id), [horseReel.id]);
+  assert.equal(following.data[0].author_id, horseAuthorId);
+  assert.equal(following.data[0].profiles.id, horseAuthorId);
+  assert.equal(following.data[0].profiles.username, 'maintained-horse-player');
+  assert.equal(Object.hasOwn(following.data[0].profiles, 'is_horse'), false);
+});
+
 test('public server readers admit only storage-proven unknown native uploads and preserve old aliases', async () => {
   const ownerId = '11111111-1111-4111-8111-111111111111';
   const postId = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc';

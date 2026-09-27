@@ -464,6 +464,8 @@ jobs:
           REELS_EXPECTED_SHA: ${{ inputs.expected_sha }}
       - name: Assert complete sanitized Reels receipt
         run: node scripts/ci/reels-live-check.mjs --check-receipt test-results/reels-live/result.json
+        env:
+          REELS_EXPECTED_SHA: ${{ inputs.expected_sha }}
       - name: Retain sanitized verification receipt
         if: always()
         uses: actions/upload-artifact@v4
