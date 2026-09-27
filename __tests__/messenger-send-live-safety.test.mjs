@@ -1,6 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readFileSync, mkdtempSync, rmSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { APP_ORIGIN, AUTH_ORIGIN, allowMutation } from '../scripts/ci/messenger-live-check.mjs';
 import { FIXTURE_TITLE, sendConfiguration, allowedSendRequest, validateFixture, verifyPersistedSend } from '../scripts/ci/messenger-send-live-check.mjs';
 
@@ -10,6 +13,26 @@ const other = '00000000-0000-4000-8000-000000000003';
 const env = { TEST_USER_EMAIL: 'fixture@example.invalid', TEST_USER_PASSWORD: 'local-fixture-value', NEXT_PUBLIC_SUPABASE_URL: AUTH_ORIGIN, NEXT_PUBLIC_SUPABASE_ANON_KEY: 'local-fixture-key', MESSENGER_EXPECTED_SHA: 'a'.repeat(40), MESSENGER_VERIFY_MODE: 'isolated-send', MESSENGER_FIXTURE_CONVERSATION_ID: id, MESSENGER_REQUEST_ID: requestId };
 const expected = sendConfiguration(env);
 const url = APP_ORIGIN + '/api/messenger/send-message';
+
+test('actual send entry points reach configuration validation and retain a receipt', () => {
+  for (const args of [['scripts/ci/messenger-live-check.mjs', '--isolated-send'], ['scripts/ci/messenger-send-live-check.mjs']]) {
+    const evidenceDir = mkdtempSync(join(tmpdir(), 'messenger-probe-entry-'));
+    try {
+      const result = spawnSync(process.execPath, args, {
+        env: { PATH: process.env.PATH, MESSENGER_EVIDENCE_DIR: evidenceDir },
+        encoding: 'utf8', timeout: 5000,
+      });
+      assert.ifError(result.error);
+      assert.equal(result.status, 1, result.stderr);
+      assert.doesNotMatch(result.stderr, /unsettled top-level await/);
+      const receipt = JSON.parse(readFileSync(join(evidenceDir, 'result.json'), 'utf8'));
+      assert.equal(receipt.status, 'failed');
+      assert.match(receipt.failure, /TEST_USER_EMAIL is required/);
+    } finally {
+      rmSync(evidenceDir, { recursive: true, force: true });
+    }
+  }
+});
 
 test('send mode requires explicit fixture, operation identity, mode and exact deployed revision', () => {
   for (const field of ['MESSENGER_VERIFY_MODE', 'MESSENGER_FIXTURE_CONVERSATION_ID', 'MESSENGER_REQUEST_ID', 'MESSENGER_EXPECTED_SHA', 'TEST_USER_EMAIL', 'TEST_USER_PASSWORD']) {
