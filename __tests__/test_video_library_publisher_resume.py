@@ -307,6 +307,105 @@ class VideoLibraryPublisherResumeTest(unittest.TestCase):
         self.assertEqual(result['status'], 'restricted')
         self.assertEqual(result['reason'], 'youtube_age_restricted')
 
+    def test_oembed_403_requires_two_matching_restriction_sources(self):
+        bridge = self.bridge
+
+        def private_embed(request, **_kwargs):
+            if '/oembed?' in request.full_url:
+                raise bridge.urllib.error.HTTPError(
+                    request.full_url, 403, 'test oembed denial', {}, None
+                )
+            if '/embed/' in request.full_url:
+                return self._embed_response(
+                    status='ERROR',
+                    playable=False,
+                    reason='Private video',
+                )
+            raise AssertionError(request.full_url)
+
+        bridge._run_isolated_ytdlp = lambda *_args, **_kwargs: SimpleNamespace(
+            returncode=1,
+            stdout='',
+            stderr='ERROR: Private video',
+        )
+        with mock.patch.object(
+            bridge.urllib.request,
+            'urlopen',
+            side_effect=private_embed,
+        ):
+            private = bridge.verify_youtube_video_scrapling('M7lc1UVf-VE')
+        self.assertEqual(private, {
+            'available': False,
+            'status': 'private',
+            'reason': 'youtube_private',
+        })
+
+        bridge._run_isolated_ytdlp = lambda *_args, **_kwargs: SimpleNamespace(
+            returncode=1,
+            stdout='',
+            stderr='Sign in to confirm you are not a bot',
+        )
+        with mock.patch.object(
+            bridge.urllib.request,
+            'urlopen',
+            side_effect=private_embed,
+        ):
+            uncorroborated = bridge.verify_youtube_video_scrapling('M7lc1UVf-VE')
+        self.assertEqual(uncorroborated, {
+            'available': False,
+            'status': 'error',
+            'reason': 'oembed_http_403',
+        })
+
+    def test_nonzero_ytdlp_upcoming_is_expected_transient(self):
+        bridge = self.bridge
+        bridge._run_isolated_ytdlp = lambda *_args, **_kwargs: SimpleNamespace(
+            returncode=1,
+            stdout='',
+            stderr='ERROR: This live event will begin in a few moments.',
+        )
+        with mock.patch.object(
+            bridge.urllib.request,
+            'urlopen',
+            side_effect=self._verification_urlopen,
+        ):
+            result = bridge.verify_youtube_video_scrapling('M7lc1UVf-VE')
+        self.assertEqual(result, {
+            'available': False,
+            'status': 'error',
+            'reason': 'youtube_upcoming',
+        })
+        self.assertFalse(bridge._is_operational_verifier_error(result))
+
+    def test_sparse_public_proof_gap_is_expected_but_systemic_gaps_fail(self):
+        bridge = self.bridge
+        result = {
+            'available': False,
+            'status': 'error',
+            'reason': 'youtube_embed_public_proof_incomplete',
+        }
+        self.assertTrue(bridge._is_expected_transient_verifier_result(result))
+        self.assertFalse(bridge._is_operational_verifier_error(result))
+
+        sparse = bridge._new_stats()
+        sparse['verification_attempted'] = 400
+        sparse['platform_verification_attempted'] = 350
+        sparse['expected_transient_verifier_results'] = 1
+        self.assertFalse(bridge._expected_transient_budget_exceeded(sparse))
+        self.assertFalse(bridge._stats_require_nonzero_exit(sparse))
+
+        widespread = bridge._new_stats()
+        widespread['verification_attempted'] = 40
+        widespread['expected_transient_verifier_results'] = 6
+        self.assertTrue(bridge._expected_transient_budget_exceeded(widespread))
+        self.assertTrue(bridge._stats_require_nonzero_exit(widespread))
+
+        all_inconclusive = bridge._new_stats()
+        all_inconclusive['platform_verification_attempted'] = 1
+        all_inconclusive['expected_transient_verifier_results'] = 1
+        self.assertTrue(bridge._expected_transient_budget_exceeded(all_inconclusive))
+        self.assertTrue(bridge._stats_require_nonzero_exit(all_inconclusive))
+
     def test_production_host_dual_bot_challenge_uses_the_exact_public_embed_proof(self):
         bridge = self.bridge
 

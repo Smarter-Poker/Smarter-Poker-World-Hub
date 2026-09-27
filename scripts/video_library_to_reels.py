@@ -129,10 +129,16 @@ PERMANENT_FAILURE_STATUSES = frozenset(
     {'private', 'restricted', 'unavailable', 'embed_disabled'}
 )
 EXPECTED_TRANSIENT_REASONS = frozenset({
+    'youtube_embed_public_proof_incomplete',
     'youtube_upcoming',
     'youtube_made_for_kids',
     'youtube_restriction_signal_conflict',
 })
+# A content-specific expected transient remains in the per-video failure ledger,
+# but one such row must not discard a large batch of conclusive work. Widespread
+# expected transients still fail the run as a provider/parser anomaly.
+EXPECTED_TRANSIENT_MIN_BUDGET = 5
+EXPECTED_TRANSIENT_MAX_RATIO = 0.10
 RELEASE_RECOVERY_SURFACE_PREFIX = 'release_recovery_v2_'
 YOUTUBE_ANDROID_CLIENT_VERSION = '20.10.38'
 
@@ -663,6 +669,13 @@ def _is_operational_verifier_error(result):
     )
 
 
+def _is_expected_transient_verifier_result(result):
+    return (
+        result.get('status') == 'error'
+        and result.get('reason') in EXPECTED_TRANSIENT_REASONS
+    )
+
+
 def _classify_http_error(prefix, error):
     # Only oEmbed is the durable content-identity endpoint in this pipeline.
     # A 404/410 from the embed document or the internal player endpoint can be
@@ -739,7 +752,31 @@ def _combined_process_output(stdout, stderr):
     return '\n'.join(_text(value) for value in (stdout, stderr))
 
 
-def _adjudicate_failed_ytdlp(detail, embed_verdict, fallback_reason):
+def _classify_youtube_transient_detail(detail):
+    """Recognize exact non-permanent states that yt-dlp reports as failures."""
+    if isinstance(detail, bytes):
+        detail = detail.decode('utf-8', errors='replace')
+    normalised = ' '.join(str(detail or '').lower().split())
+    if any(
+        marker in normalised
+        for marker in (
+            'this live event will begin in a few moments',
+            'this live event will begin in',
+            'premieres in ',
+        )
+    ):
+        return _availability('error', 'youtube_upcoming')
+    return None
+
+
+def _adjudicate_failed_ytdlp(
+    detail,
+    embed_verdict,
+    fallback_reason,
+    *,
+    allow_embed_fallback=True,
+    allow_challenge_rescue=True,
+):
     """Resolve explicit/challenge output without promoting generic failures."""
     if 'no module named' in detail.lower() and 'yt_dlp' in detail.lower():
         raise YtDlpUnavailableError(
@@ -750,12 +787,20 @@ def _adjudicate_failed_ytdlp(detail, embed_verdict, fallback_reason):
         if embed_verdict['status'] == explicit['status']:
             return explicit
         return _availability('error', 'youtube_restriction_signal_conflict')
-    if embed_verdict['status'] in PERMANENT_FAILURE_STATUSES:
+    transient = _classify_youtube_transient_detail(detail)
+    if transient:
+        return transient
+    if (
+        allow_embed_fallback
+        and embed_verdict['status'] in PERMANENT_FAILURE_STATUSES
+    ):
         return embed_verdict
     if _is_youtube_bot_challenge(detail):
-        if embed_verdict['status'] == 'challenge':
+        if allow_challenge_rescue and embed_verdict['status'] == 'challenge':
             return _availability('verified')
-        return embed_verdict
+        if allow_embed_fallback:
+            return embed_verdict
+        return _availability('error', fallback_reason)
     if any(
         marker in detail.lower()
         for marker in ('login required', 'sign in to continue')
@@ -939,6 +984,8 @@ def verify_youtube_video_scrapling(video_id):
         'Accept-Language': 'en-US,en;q=0.9',
     }
 
+    oembed_public = False
+    oembed_failure = None
     try:
         request = urllib.request.Request(oembed_url, headers=request_headers)
         with urllib.request.urlopen(request, timeout=12) as response:
@@ -949,8 +996,15 @@ def verify_youtube_video_scrapling(video_id):
                 return _availability('error', 'oembed_payload_malformed')
             if not metadata.get('title') or not metadata.get('author_name'):
                 return _availability('error', 'oembed_missing_metadata')
+            oembed_public = True
     except urllib.error.HTTPError as error:
-        return _classify_http_error('oembed', error)
+        oembed_failure = _classify_http_error('oembed', error)
+        # YouTube returns an otherwise-unspecific 403 for some private videos.
+        # Continue only for that status so the anonymous embed and yt-dlp can
+        # independently agree on an explicit permanent restriction. A public
+        # result still requires the oEmbed metadata proof above.
+        if error.code != 403:
+            return oembed_failure
     except (OSError, ValueError, json.JSONDecodeError) as error:
         log.warning('oEmbed verification unknown for %s: %s', video_id, error)
         return _availability('error', 'oembed_network_or_parse_error')
@@ -982,11 +1036,16 @@ def verify_youtube_video_scrapling(video_id):
         # restriction-first adjudication as a nonzero exit; a generic timeout
         # remains operational UNKNOWN and can never inherit the embed positive.
         detail = _combined_process_output(error.stdout, error.stderr)
-        return _adjudicate_failed_ytdlp(
+        adjudicated = _adjudicate_failed_ytdlp(
             detail,
             embed_verdict,
             'yt_dlp_timeout',
+            allow_embed_fallback=oembed_public,
+            allow_challenge_rescue=oembed_public,
         )
+        if not oembed_public and adjudicated['status'] not in PERMANENT_FAILURE_STATUSES:
+            return oembed_failure
+        return adjudicated
     except OSError as error:
         log.warning('yt-dlp verification unknown for %s: %s', video_id, error)
         return _availability('error', 'yt_dlp_execution_error')
@@ -996,11 +1055,20 @@ def verify_youtube_video_scrapling(video_id):
         # stdout and stderr. Inspect both so a bot challenge can never hide an
         # explicit private/member/age/region/embed-disabled/removal signal.
         detail = _combined_process_output(completed.stdout, completed.stderr)
-        return _adjudicate_failed_ytdlp(
+        adjudicated = _adjudicate_failed_ytdlp(
             detail,
             embed_verdict,
             'yt_dlp_nonzero',
+            allow_embed_fallback=oembed_public,
+            allow_challenge_rescue=oembed_public,
         )
+        if (
+            not oembed_public
+            and adjudicated['status'] not in PERMANENT_FAILURE_STATUSES
+            and adjudicated.get('reason') not in EXPECTED_TRANSIENT_REASONS
+        ):
+            return oembed_failure
+        return adjudicated
 
     try:
         metadata = json.loads(completed.stdout)
@@ -1021,7 +1089,7 @@ def verify_youtube_video_scrapling(video_id):
             return _availability('restricted', f'youtube_{availability}')
         return _availability('error', 'youtube_restriction_signal_conflict')
     if availability == 'needs_auth':
-        if embed_verdict['available']:
+        if embed_verdict['available'] and oembed_public:
             return embed_verdict
         if embed_verdict['status'] in PERMANENT_FAILURE_STATUSES:
             return embed_verdict
@@ -1045,6 +1113,8 @@ def verify_youtube_video_scrapling(video_id):
         return _availability('error', 'youtube_upcoming')
     if live_status not in ('not_live', 'is_live', 'was_live', 'post_live'):
         return _availability('error', 'youtube_live_status_unknown')
+    if not oembed_public:
+        return oembed_failure
     if embed_verdict['status'] == 'challenge':
         return _availability('verified')
     return embed_verdict
@@ -1751,6 +1821,7 @@ def _new_stats():
         'transient_cooldown': 0,
         'verification_attempted': 0,
         'verifier_errors_observed': 0,
+        'expected_transient_verifier_results': 0,
         'verified': 0,
         'created': 0,
         'repaired_or_updated': 0,
@@ -2189,6 +2260,8 @@ def run_bridge(args):
                     stats['platform_verification_outcomes'][availability['status']] += 1
                 if _is_operational_verifier_error(availability):
                     stats['verifier_errors_observed'] += 1
+                elif _is_expected_transient_verifier_result(availability):
+                    stats['expected_transient_verifier_results'] += 1
 
                 verdict = None
                 if not args.dry_run:
@@ -2400,6 +2473,11 @@ def run_bridge(args):
                 stats['failure_verification_outcomes'][availability['status']] += 1
                 if _is_operational_verifier_error(availability):
                     stats['verifier_errors_observed'] += 1
+                elif (
+                    not can_reuse
+                    and _is_expected_transient_verifier_result(availability)
+                ):
+                    stats['expected_transient_verifier_results'] += 1
 
                 outcome = _attempt_outcome(availability, verdict)
                 if args.dry_run:
@@ -2537,11 +2615,30 @@ def run_bridge(args):
     return stats
 
 
+def _expected_transient_budget_exceeded(stats):
+    attempted = (
+        stats['verification_attempted']
+        + stats['platform_verification_attempted']
+        + stats['failure_verification_attempted']
+    )
+    transient = stats['expected_transient_verifier_results']
+    if not attempted or not transient:
+        return False
+    if transient >= attempted:
+        return True
+    budget = max(
+        EXPECTED_TRANSIENT_MIN_BUDGET,
+        int(attempted * EXPECTED_TRANSIENT_MAX_RATIO),
+    )
+    return transient > budget
+
+
 def _stats_require_nonzero_exit(stats):
     return bool(
         stats['rpc_errors']
         or stats['failure_verdict_errors']
         or stats['verifier_errors_observed']
+        or _expected_transient_budget_exceeded(stats)
         or stats['checkpoint_write_errors']
         or stats['deadline_reached']
         or stats['feed_visibility_failures']
