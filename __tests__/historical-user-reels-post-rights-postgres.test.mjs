@@ -481,7 +481,7 @@ test('PostgreSQL 17 proves the SUP-07 trigger regression, forward repair, rollba
         }
         await assert.rejects(
           db.query(followup),
-          error => /expected three owned storage objects, found 2/.test(error.message),
+          error => /expected four owned storage objects, found 3/.test(error.message),
           `${mode} object must not be accepted as ownership proof`,
         );
         await db.query('ROLLBACK');
@@ -524,6 +524,102 @@ test('PostgreSQL 17 proves the SUP-07 trigger regression, forward repair, rollba
       );
       await db.query('ROLLBACK');
       assert.deepEqual(await state(db), before, 'failed postapply must roll back all three attempted updates');
+    });
+
+    await t.test('a later trigger cannot delete a preserved Reel during the forward repair', async () => {
+      const db = await createDatabase('forward_reel_delete');
+      await installPostPredecessorState(db);
+      const before = await state(db);
+      await db.query(`
+        CREATE FUNCTION public.zz_delete_preserved_reel() RETURNS trigger LANGUAGE plpgsql AS $$
+        BEGIN
+          DELETE FROM public.social_reels
+          WHERE id = '9f65fa3e-9023-4697-8b15-c8f5c4c1c82f';
+          RETURN NEW;
+        END $$;
+        CREATE TRIGGER zz_delete_preserved_reel
+          AFTER UPDATE OF rights_status ON public.social_posts
+          FOR EACH ROW EXECUTE FUNCTION public.zz_delete_preserved_reel();
+      `);
+      await assert.rejects(
+        db.query(followup),
+        error => /a Reel row changed or disappeared/.test(error.message),
+      );
+      await db.query('ROLLBACK');
+      assert.deepEqual(await state(db), before, 'a missing Reel must roll back the complete forward repair');
+    });
+
+    await t.test('a later trigger cannot delete a preserved Reel during rollback', async () => {
+      const db = await createDatabase('rollback_reel_delete');
+      await installPostPredecessorState(db);
+      await db.query(followup);
+      const before = await state(db);
+      await db.query(`
+        CREATE FUNCTION public.zz_delete_preserved_reel() RETURNS trigger LANGUAGE plpgsql AS $$
+        BEGIN
+          DELETE FROM public.social_reels
+          WHERE id = '9f65fa3e-9023-4697-8b15-c8f5c4c1c82f';
+          RETURN NEW;
+        END $$;
+        CREATE TRIGGER zz_delete_preserved_reel
+          AFTER UPDATE OF rights_status ON public.social_posts
+          FOR EACH ROW EXECUTE FUNCTION public.zz_delete_preserved_reel();
+      `);
+      await assert.rejects(
+        db.query(rollback),
+        error => /a Reel row changed or disappeared/.test(error.message),
+      );
+      await db.query('ROLLBACK');
+      assert.deepEqual(await state(db), before, 'a missing Reel must roll back the complete rollback attempt');
+    });
+
+    await t.test('a later trigger cannot mutate the ambiguous source post during the forward repair', async () => {
+      const db = await createDatabase('forward_ambiguous_post_mutation');
+      await installPostPredecessorState(db);
+      const before = await state(db);
+      await db.query(`
+        CREATE FUNCTION public.zz_mutate_ambiguous_post() RETURNS trigger LANGUAGE plpgsql AS $$
+        BEGIN
+          UPDATE public.social_posts
+          SET content = content || ':unexpected-ambiguous-drift'
+          WHERE id = '14f549d1-8079-436f-8c4e-c42ec0432de5';
+          RETURN NEW;
+        END $$;
+        CREATE TRIGGER zz_mutate_ambiguous_post
+          AFTER UPDATE OF rights_status ON public.social_posts
+          FOR EACH ROW EXECUTE FUNCTION public.zz_mutate_ambiguous_post();
+      `);
+      await assert.rejects(
+        db.query(followup),
+        error => /post bytes changed beyond rights_status/.test(error.message),
+      );
+      await db.query('ROLLBACK');
+      assert.deepEqual(await state(db), before, 'ambiguous-post mutation must roll back the complete forward repair');
+    });
+
+    await t.test('a later trigger cannot mutate the ambiguous source post during rollback', async () => {
+      const db = await createDatabase('rollback_ambiguous_post_mutation');
+      await installPostPredecessorState(db);
+      await db.query(followup);
+      const before = await state(db);
+      await db.query(`
+        CREATE FUNCTION public.zz_mutate_ambiguous_post() RETURNS trigger LANGUAGE plpgsql AS $$
+        BEGIN
+          UPDATE public.social_posts
+          SET content = content || ':unexpected-ambiguous-drift'
+          WHERE id = '14f549d1-8079-436f-8c4e-c42ec0432de5';
+          RETURN NEW;
+        END $$;
+        CREATE TRIGGER zz_mutate_ambiguous_post
+          AFTER UPDATE OF rights_status ON public.social_posts
+          FOR EACH ROW EXECUTE FUNCTION public.zz_mutate_ambiguous_post();
+      `);
+      await assert.rejects(
+        db.query(rollback),
+        error => /post bytes changed beyond rights_status/.test(error.message),
+      );
+      await db.query('ROLLBACK');
+      assert.deepEqual(await state(db), before, 'ambiguous-post mutation must roll back the complete rollback attempt');
     });
   } finally {
     await Promise.allSettled(clients.map(client => client.end()));

@@ -29,6 +29,7 @@ const POKER_POST_IDS = Object.freeze([
   '61a5aaa3-0ee7-4003-8af3-c4e64e240078',
 ]);
 const AMBIGUOUS_POST_ID = '14f549d1-8079-436f-8c4e-c42ec0432de5';
+const AMBIGUOUS_REEL_ID = '9f65fa3e-9023-4697-8b15-c8f5c4c1c82f';
 
 function block(tag) {
   const match = sql.match(new RegExp(`DO \\$${tag}\\$([\\s\\S]*?)\\$${tag}\\$;`));
@@ -85,11 +86,15 @@ test('preflight pins the installed predecessor, exact rows, and owned storage', 
   assert.match(preflight, /public\.social_posts[\s\S]*FOR UPDATE/);
   assert.match(preflight, /public\.social_reels[\s\S]*FOR SHARE/);
   for (const id of POKER_POST_IDS) assert.ok(preflight.includes(id));
-  assert.match(preflight, /p\.rights_status IS DISTINCT FROM 'unknown'/);
+  assert.ok(preflight.includes(AMBIGUOUS_POST_ID));
+  assert.ok(preflight.includes(AMBIGUOUS_REEL_ID));
+  assert.match(preflight, /p\.rights_status IS DISTINCT FROM CASE[\s\S]*THEN 'user_authorized'[\s\S]*ELSE 'unknown'/);
   assert.match(preflight, /r\.rights_status IS DISTINCT FROM 'user_authorized'/);
-  assert.equal((preflight.match(/jsonb_build_object\(/g) || []).length, 3);
+  assert.match(preflight, /WHEN r\.id = '9f65fa3e-9023-4697-8b15-c8f5c4c1c82f'::uuid THEN 'unknown'/);
+  assert.match(preflight, /social_reels WHERE id = ANY\(v_reel_ids\)\) <> 7/);
+  assert.equal((preflight.match(/jsonb_build_object\(/g) || []).length, 4);
   assert.match(preflight, /fn_filter_valid_user_video_storage_urls/);
-  assert.match(preflight, /v_count <> 3/);
+  assert.match(preflight, /v_count <> 4/);
 });
 
 test('repair supplies the trigger service-role claim and changes rights only', () => {
@@ -115,11 +120,20 @@ test('repair supplies the trigger service-role claim and changes rights only', (
 
 test('postapply compares complete rows and protects Reels and the ambiguous post', () => {
   const postapply = block('postapply');
+  assert.match(sql, /_sup07_post_rights_before[\s\S]*14f549d1-8079-436f-8c4e-c42ec0432de5/);
+  assert.match(sql, /_sup07_reels_unchanged[\s\S]*9f65fa3e-9023-4697-8b15-c8f5c4c1c82f/);
+  assert.match(postapply, /SELECT count\(\*\) FROM _sup07_post_rights_before\) <> 4/);
+  assert.match(postapply, /LEFT JOIN public\.social_posts p USING \(id\)/);
+  assert.match(postapply, /b\.id = '14f549d1-8079-436f-8c4e-c42ec0432de5'::uuid[\s\S]*to_jsonb\(p\) IS DISTINCT FROM to_jsonb\(b\)/);
   assert.match(postapply, /to_jsonb\(p\) - 'rights_status'/);
   assert.match(postapply, /to_jsonb\(b\) - 'rights_status'/);
   assert.match(postapply, /rights_status IS DISTINCT FROM 'user_authorized'/);
+  assert.match(postapply, /LEFT JOIN public\.social_reels r USING \(id\)/);
+  assert.match(postapply, /r\.id IS NULL/);
   assert.match(postapply, /to_jsonb\(r\) IS DISTINCT FROM to_jsonb\(b\)/);
-  assert.match(postapply, /a Reel row changed/);
+  assert.match(postapply, /SELECT count\(\*\) FROM _sup07_reels_unchanged\) <> 7/);
+  assert.match(postapply, /FROM _sup07_reels_unchanged b[\s\S]*JOIN public\.social_reels r USING \(id\)[\s\S]*\) <> 7/);
+  assert.match(postapply, /a Reel row changed or disappeared/);
   assert.ok(postapply.includes(AMBIGUOUS_POST_ID));
   assert.match(postapply, /p\.topic IS DISTINCT FROM 'unknown'/);
   assert.match(postapply, /p\.topics IS NOT NULL/);
@@ -136,6 +150,8 @@ test('rollback is explicit, guarded, and changes only the three rights labels', 
   assert.match(rollback, /-- SELECT set_config\('request\.jwt\.claim\.role', 'service_role', true\);/);
   assert.match(rollback, /_sup07_post_rights_rollback_before/);
   assert.match(rollback, /_sup07_reels_rollback_unchanged/);
+  assert.match(rollback, /_sup07_post_rights_rollback_before[\s\S]*14f549d1-8079-436f-8c4e-c42ec0432de5/);
+  assert.match(rollback, /_sup07_reels_rollback_unchanged[\s\S]*9f65fa3e-9023-4697-8b15-c8f5c4c1c82f/);
   assert.match(rollback, /p\.content IS DISTINCT FROM e\.content/);
   assert.match(rollback, /p\.media_urls IS DISTINCT FROM jsonb_build_array\(e\.media_url\)/);
   assert.match(rollback, /p\.visibility IS DISTINCT FROM 'public'/);
@@ -148,10 +164,17 @@ test('rollback is explicit, guarded, and changes only the three rights labels', 
   assert.match(rollback, /--   SET rights_status = 'unknown'/);
   assert.match(rollback, /--     AND rights_status = 'user_authorized'/);
   assert.match(rollback, /expected three updates/);
+  assert.match(rollback, /--   IF \(SELECT count\(\*\) FROM _sup07_post_rights_rollback_before\) <> 4/);
+  assert.match(rollback, /--     LEFT JOIN public\.social_posts p USING \(id\)/);
+  assert.match(rollback, /b\.id = '14f549d1-8079-436f-8c4e-c42ec0432de5'::uuid[\s\S]*to_jsonb\(p\) IS DISTINCT FROM to_jsonb\(b\)/);
   assert.match(rollback, /to_jsonb\(p\) - 'rights_status'/);
   assert.match(rollback, /to_jsonb\(b\) - 'rights_status'/);
   assert.match(rollback, /post bytes changed beyond rights_status/);
+  assert.match(rollback, /--     LEFT JOIN public\.social_reels r USING \(id\)/);
+  assert.match(rollback, /--     WHERE r\.id IS NULL/);
   assert.match(rollback, /to_jsonb\(r\) IS DISTINCT FROM to_jsonb\(b\)/);
-  assert.match(rollback, /a Reel row changed/);
+  assert.match(rollback, /--   IF \(SELECT count\(\*\) FROM _sup07_reels_rollback_unchanged\) <> 7/);
+  assert.match(rollback, /--     FROM _sup07_reels_rollback_unchanged b[\s\S]*--     JOIN public\.social_reels r USING \(id\)[\s\S]*--   \) <> 7/);
+  assert.match(rollback, /a Reel row changed or disappeared/);
   assert.match(rollback, /-- COMMIT;/);
 });

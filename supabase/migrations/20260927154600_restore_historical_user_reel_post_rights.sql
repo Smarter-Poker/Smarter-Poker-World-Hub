@@ -33,11 +33,13 @@ DO $preflight$
 DECLARE
   v_owner constant uuid := '47965354-0e56-43ef-931c-ddaab82af765';
   v_post_ids constant uuid[] := ARRAY[
+    '14f549d1-8079-436f-8c4e-c42ec0432de5',
     '7f85c90e-057f-4784-9ff6-39f16c76aa78',
     '5cab43ba-cb10-4043-955f-63415e755e63',
     '61a5aaa3-0ee7-4003-8af3-c4e64e240078'
   ]::uuid[];
   v_reel_ids constant uuid[] := ARRAY[
+    '9f65fa3e-9023-4697-8b15-c8f5c4c1c82f',
     'b3258975-db9f-42d5-a581-6c305b180b8f',
     '2cb727a7-aee1-4e33-975c-db31bc587aea',
     '0ac10eae-0380-4836-be80-759ce93ee878',
@@ -123,6 +125,11 @@ BEGIN
   IF EXISTS (
     WITH expected(id, asset_key, media_url) AS (VALUES
       (
+        '14f549d1-8079-436f-8c4e-c42ec0432de5'::uuid,
+        'native:504c25ca805a2d6caf36cba72ae93b92'::text,
+        'https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/live-recordings/47965354-0e56-43ef-931c-ddaab82af765/9e32239c-beb7-4d3d-85d9-e3cb862d6e32.webm'::text
+      ),
+      (
         '7f85c90e-057f-4784-9ff6-39f16c76aa78'::uuid,
         'native:7726a4055b7753f1b8306349ce6419bd'::text,
         'https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/social-media/videos/47965354-0e56-43ef-931c-ddaab82af765/1778431224994_vg2sab_IMG_8637.mp4'::text
@@ -151,9 +158,22 @@ BEGIN
        OR p.is_deleted IS DISTINCT FROM false
        OR p.origin_type IS DISTINCT FROM 'legacy'
        OR p.playback_type IS DISTINCT FROM 'native'
-       OR p.topic IS DISTINCT FROM 'poker'
-       OR p.topics IS DISTINCT FROM ARRAY['poker']::text[]
-       OR p.rights_status IS DISTINCT FROM 'unknown'
+       OR p.topic IS DISTINCT FROM CASE
+            WHEN p.id = '14f549d1-8079-436f-8c4e-c42ec0432de5'::uuid THEN 'unknown'
+            ELSE 'poker'
+          END
+       OR (
+            p.id = '14f549d1-8079-436f-8c4e-c42ec0432de5'::uuid
+            AND p.topics IS NOT NULL
+          )
+       OR (
+            p.id <> '14f549d1-8079-436f-8c4e-c42ec0432de5'::uuid
+            AND p.topics IS DISTINCT FROM ARRAY['poker']::text[]
+          )
+       OR p.rights_status IS DISTINCT FROM CASE
+            WHEN p.id = '14f549d1-8079-436f-8c4e-c42ec0432de5'::uuid THEN 'user_authorized'
+            ELSE 'unknown'
+          END
        OR p.canonical_asset_key IS DISTINCT FROM e.asset_key
        OR p.source_asset_id IS NOT NULL
        OR p.youtube_video_id IS NOT NULL
@@ -168,7 +188,10 @@ BEGIN
     WHERE r.id = ANY(v_reel_ids)
       AND (
         r.author_id IS DISTINCT FROM v_owner
-        OR r.topic IS DISTINCT FROM 'poker'
+        OR r.topic IS DISTINCT FROM CASE
+             WHEN r.id = '9f65fa3e-9023-4697-8b15-c8f5c4c1c82f'::uuid THEN 'unknown'
+             ELSE 'poker'
+           END
         OR r.playback_type IS DISTINCT FROM 'native'
         OR r.source_type IS DISTINCT FROM 'native'
         OR r.origin_type IS DISTINCT FROM 'social_post'
@@ -177,7 +200,7 @@ BEGIN
         OR r.is_public IS DISTINCT FROM true
         OR r.is_deleted IS DISTINCT FROM false
       )
-  ) OR (SELECT count(*) FROM public.social_reels WHERE id = ANY(v_reel_ids)) <> 6 THEN
+  ) OR (SELECT count(*) FROM public.social_reels WHERE id = ANY(v_reel_ids)) <> 7 THEN
     RAISE EXCEPTION 'SUP-07 post-rights preflight failed: repaired Reel state drifted';
   END IF;
 
@@ -199,11 +222,16 @@ BEGIN
         'playback_url',
         'https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/social-media/videos/47965354-0e56-43ef-931c-ddaab82af765/1778253042728_lbgtfe_IMG_8652.mp4',
         'author_id', v_owner
+      ),
+      jsonb_build_object(
+        'playback_url',
+        'https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/live-recordings/47965354-0e56-43ef-931c-ddaab82af765/9e32239c-beb7-4d3d-85d9-e3cb862d6e32.webm',
+        'author_id', v_owner
       )
     )
   );
-  IF v_count <> 3 THEN
-    RAISE EXCEPTION 'SUP-07 post-rights preflight failed: expected three owned storage objects, found %', v_count;
+  IF v_count <> 4 THEN
+    RAISE EXCEPTION 'SUP-07 post-rights preflight failed: expected four owned storage objects, found %', v_count;
   END IF;
 END
 $preflight$;
@@ -212,6 +240,7 @@ CREATE TEMP TABLE _sup07_post_rights_before ON COMMIT DROP AS
 SELECT *
 FROM public.social_posts
 WHERE id IN (
+  '14f549d1-8079-436f-8c4e-c42ec0432de5',
   '7f85c90e-057f-4784-9ff6-39f16c76aa78',
   '5cab43ba-cb10-4043-955f-63415e755e63',
   '61a5aaa3-0ee7-4003-8af3-c4e64e240078'
@@ -221,6 +250,7 @@ CREATE TEMP TABLE _sup07_reels_unchanged ON COMMIT DROP AS
 SELECT *
 FROM public.social_reels
 WHERE id IN (
+  '9f65fa3e-9023-4697-8b15-c8f5c4c1c82f',
   'b3258975-db9f-42d5-a581-6c305b180b8f',
   '2cb727a7-aee1-4e33-975c-db31bc587aea',
   '0ac10eae-0380-4836-be80-759ce93ee878',
@@ -261,13 +291,27 @@ $repair$;
 
 DO $postapply$
 BEGIN
-  IF EXISTS (
-    SELECT 1
+  IF (SELECT count(*) FROM _sup07_post_rights_before) <> 4 OR (
+    SELECT count(*)
     FROM _sup07_post_rights_before b
     JOIN public.social_posts p USING (id)
-    WHERE p.rights_status IS DISTINCT FROM 'user_authorized'
-       OR (to_jsonb(p) - 'rights_status') IS DISTINCT FROM
-          (to_jsonb(b) - 'rights_status')
+  ) <> 4 OR EXISTS (
+    SELECT 1
+    FROM _sup07_post_rights_before b
+    LEFT JOIN public.social_posts p USING (id)
+    WHERE p.id IS NULL
+       OR (
+            b.id = '14f549d1-8079-436f-8c4e-c42ec0432de5'::uuid
+            AND to_jsonb(p) IS DISTINCT FROM to_jsonb(b)
+          )
+       OR (
+            b.id <> '14f549d1-8079-436f-8c4e-c42ec0432de5'::uuid
+            AND (
+              p.rights_status IS DISTINCT FROM 'user_authorized'
+              OR (to_jsonb(p) - 'rights_status') IS DISTINCT FROM
+                 (to_jsonb(b) - 'rights_status')
+            )
+          )
   ) OR (
     SELECT count(*)
     FROM public.social_posts
@@ -281,13 +325,18 @@ BEGIN
     RAISE EXCEPTION 'SUP-07 post-rights postapply failed: post bytes changed beyond rights_status';
   END IF;
 
-  IF EXISTS (
-    SELECT 1
+  IF (SELECT count(*) FROM _sup07_reels_unchanged) <> 7 OR (
+    SELECT count(*)
     FROM _sup07_reels_unchanged b
     JOIN public.social_reels r USING (id)
-    WHERE to_jsonb(r) IS DISTINCT FROM to_jsonb(b)
+  ) <> 7 OR EXISTS (
+    SELECT 1
+    FROM _sup07_reels_unchanged b
+    LEFT JOIN public.social_reels r USING (id)
+    WHERE r.id IS NULL
+       OR to_jsonb(r) IS DISTINCT FROM to_jsonb(b)
   ) THEN
-    RAISE EXCEPTION 'SUP-07 post-rights postapply failed: a Reel row changed';
+    RAISE EXCEPTION 'SUP-07 post-rights postapply failed: a Reel row changed or disappeared';
   END IF;
 
   IF EXISTS (
@@ -317,7 +366,6 @@ COMMIT;
 -- BEGIN;
 -- SET TRANSACTION ISOLATION LEVEL SERIALIZABLE;
 -- SET LOCAL lock_timeout = '5s';
--- SET LOCAL statement_timeout = '60s';
 -- SELECT pg_advisory_xact_lock(hashtextextended('sup07-historical-user-reels-v2-post-rights', 0));
 -- DO $rollback_session_mode$
 -- BEGIN
@@ -331,6 +379,7 @@ COMMIT;
 -- SELECT *
 -- FROM public.social_posts
 -- WHERE id IN (
+--   '14f549d1-8079-436f-8c4e-c42ec0432de5',
 --   '7f85c90e-057f-4784-9ff6-39f16c76aa78',
 --   '5cab43ba-cb10-4043-955f-63415e755e63',
 --   '61a5aaa3-0ee7-4003-8af3-c4e64e240078'
@@ -339,6 +388,7 @@ COMMIT;
 -- SELECT *
 -- FROM public.social_reels
 -- WHERE id IN (
+--   '9f65fa3e-9023-4697-8b15-c8f5c4c1c82f',
 --   'b3258975-db9f-42d5-a581-6c305b180b8f',
 --   '2cb727a7-aee1-4e33-975c-db31bc587aea',
 --   '0ac10eae-0380-4836-be80-759ce93ee878',
@@ -381,6 +431,22 @@ COMMIT;
 --         '2026-05-11 16:00:55.887949+00',
 --         'native:7726a4055b7753f1b8306349ce6419bd',
 --         1, 0, 4, 0, '{}'::jsonb
+--       ),
+--       (
+--         '14f549d1-8079-436f-8c4e-c42ec0432de5',
+--         chr(128308) || ' Live replay: V23 Testing ',
+--         'https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/live-recordings/47965354-0e56-43ef-931c-ddaab82af765/9e32239c-beb7-4d3d-85d9-e3cb862d6e32.webm',
+--         '2026-05-16 14:20:29.942260+00',
+--         '2026-05-16 14:20:29.942260+00',
+--         'native:504c25ca805a2d6caf36cba72ae93b92',
+--         1, 0, 0, 0,
+--         jsonb_build_object(
+--           'ended', true,
+--           'source', 'live_broadcast',
+--           'category', 'just_chatting',
+--           'stream_id', '9e32239c-beb7-4d3d-85d9-e3cb862d6e32',
+--           'description', 'Live From Fire Keepers ' || chr(128293)
+--         )
 --       )
 --     )
 --     SELECT 1
@@ -399,8 +465,18 @@ COMMIT;
 --        OR p.is_deleted IS DISTINCT FROM false
 --        OR p.origin_type IS DISTINCT FROM 'legacy'
 --        OR p.playback_type IS DISTINCT FROM 'native'
---        OR p.topic IS DISTINCT FROM 'poker'
---        OR p.topics IS DISTINCT FROM ARRAY['poker']::text[]
+--        OR p.topic IS DISTINCT FROM CASE
+--             WHEN p.id = '14f549d1-8079-436f-8c4e-c42ec0432de5'::uuid THEN 'unknown'
+--             ELSE 'poker'
+--           END
+--        OR (
+--             p.id = '14f549d1-8079-436f-8c4e-c42ec0432de5'::uuid
+--             AND p.topics IS NOT NULL
+--           )
+--        OR (
+--             p.id <> '14f549d1-8079-436f-8c4e-c42ec0432de5'::uuid
+--             AND p.topics IS DISTINCT FROM ARRAY['poker']::text[]
+--           )
 --        OR p.rights_status IS DISTINCT FROM 'user_authorized'
 --        OR p.canonical_asset_key IS DISTINCT FROM e.canonical_asset_key
 --        OR p.source_asset_id IS NOT NULL
@@ -415,11 +491,12 @@ COMMIT;
 --     SELECT count(*)
 --     FROM public.social_posts
 --     WHERE id IN (
+--       '14f549d1-8079-436f-8c4e-c42ec0432de5',
 --       '7f85c90e-057f-4784-9ff6-39f16c76aa78',
 --       '5cab43ba-cb10-4043-955f-63415e755e63',
 --       '61a5aaa3-0ee7-4003-8af3-c4e64e240078'
 --     )
---   ) <> 3 THEN
+--   ) <> 4 THEN
 --     RAISE EXCEPTION 'SUP-07 post-rights rollback refused: exact source-post bytes drifted';
 --   END IF;
 --
@@ -439,13 +516,27 @@ COMMIT;
 -- $rollback$;
 -- DO $rollback_postassert$
 -- BEGIN
---   IF EXISTS (
---     SELECT 1
+--   IF (SELECT count(*) FROM _sup07_post_rights_rollback_before) <> 4 OR (
+--     SELECT count(*)
 --     FROM _sup07_post_rights_rollback_before b
 --     JOIN public.social_posts p USING (id)
---     WHERE p.rights_status IS DISTINCT FROM 'unknown'
---        OR (to_jsonb(p) - 'rights_status') IS DISTINCT FROM
---           (to_jsonb(b) - 'rights_status')
+--   ) <> 4 OR EXISTS (
+--     SELECT 1
+--     FROM _sup07_post_rights_rollback_before b
+--     LEFT JOIN public.social_posts p USING (id)
+--     WHERE p.id IS NULL
+--        OR (
+--             b.id = '14f549d1-8079-436f-8c4e-c42ec0432de5'::uuid
+--             AND to_jsonb(p) IS DISTINCT FROM to_jsonb(b)
+--           )
+--        OR (
+--             b.id <> '14f549d1-8079-436f-8c4e-c42ec0432de5'::uuid
+--             AND (
+--               p.rights_status IS DISTINCT FROM 'unknown'
+--               OR (to_jsonb(p) - 'rights_status') IS DISTINCT FROM
+--                  (to_jsonb(b) - 'rights_status')
+--             )
+--           )
 --   ) OR (
 --     SELECT count(*)
 --     FROM public.social_posts
@@ -459,15 +550,18 @@ COMMIT;
 --     RAISE EXCEPTION 'SUP-07 post-rights rollback failed: post bytes changed beyond rights_status';
 --   END IF;
 --
---   IF EXISTS (
---     SELECT 1
+--   IF (SELECT count(*) FROM _sup07_reels_rollback_unchanged) <> 7 OR (
+--     SELECT count(*)
 --     FROM _sup07_reels_rollback_unchanged b
 --     JOIN public.social_reels r USING (id)
---     WHERE to_jsonb(r) IS DISTINCT FROM to_jsonb(b)
---   ) OR (
---     SELECT count(*) FROM _sup07_reels_rollback_unchanged
---   ) <> 6 THEN
---     RAISE EXCEPTION 'SUP-07 post-rights rollback failed: a Reel row changed';
+--   ) <> 7 OR EXISTS (
+--     SELECT 1
+--     FROM _sup07_reels_rollback_unchanged b
+--     LEFT JOIN public.social_reels r USING (id)
+--     WHERE r.id IS NULL
+--        OR to_jsonb(r) IS DISTINCT FROM to_jsonb(b)
+--   ) THEN
+--     RAISE EXCEPTION 'SUP-07 post-rights rollback failed: a Reel row changed or disappeared';
 --   END IF;
 -- END
 -- $rollback_postassert$;
