@@ -171,6 +171,10 @@ test('manual publication can request at most three bounded verified backfill bat
   assert.match(backfill, /test "\$\(sudo readlink "\$current"\)" = "\$release"/);
   assert.match(backfill, /sha256sum --quiet -c release-manifest\.sha256/);
   assert.match(backfill, /case "\$batch_count" in 1\|2\|3\)/);
+  assert.match(
+    backfill,
+    /ssh[\s\\]*-o ServerAliveInterval=30[\s\\]*-o ServerAliveCountMax=60[\s\\]*-o TCPKeepAlive=yes[\s\\]*"\$SSH_USER@\$HOST"/,
+  );
   assert.match(backfill, /systemd-run[\s\S]*--wait[\s\S]*--collect/);
   assert.match(backfill, /--property=User=openclaw/);
   assert.match(backfill, /--property=EnvironmentFile=\/etc\/openclaw\.env/);
