@@ -90,7 +90,7 @@
         { "href": "/hub/social-media?compose=1", "label": "Create", "title": "Create A Post", "icon": "compose" },
         { "href": "/hub/friends", "label": "Friends", "title": "Friends", "icon": "users" },
         { "href": "/hub/messenger", "label": "Chat", "title": "Messenger", "icon": "message" },
-        { "href": "/hub/reels", "label": "Reels", "title": "Poker Reels", "icon": "film" },
+        { "href": "/hub/reels", "label": "Reels", "title": "Reels", "icon": "film" },
         { "href": "/hub/social-pages", "label": "Pages", "title": "Social Pages", "icon": "layout" }
       ]
     },

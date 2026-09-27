@@ -138,6 +138,72 @@ class VideoLibraryPublisherResumeTest(unittest.TestCase):
             return cls._player_response()
         raise AssertionError(f'unexpected verification URL: {request.full_url}')
 
+    def test_postgres_timestamp_parser_accepts_variable_fractional_precision(self):
+        bridge = self.bridge
+        expected_microseconds = {
+            1: 400000,
+            2: 450000,
+            3: 456000,
+            4: 456200,
+            5: 456260,
+            6: 456267,
+        }
+
+        for width, microsecond in expected_microseconds.items():
+            fraction = '456267'[:width]
+            suffix = 'Z' if width % 2 else '+00:00'
+            with self.subTest(width=width, suffix=suffix):
+                parsed = bridge._parse_timestamp(
+                    f'2026-09-27T07:01:47.{fraction}{suffix}'
+                )
+                self.assertIsNotNone(parsed)
+                self.assertEqual(parsed.tzinfo, timezone.utc)
+                self.assertEqual(parsed.microsecond, microsecond)
+
+        production_value = bridge._parse_timestamp(
+            '2026-09-27T07:01:47.45626+00:00'
+        )
+        self.assertEqual(
+            production_value,
+            datetime(2026, 9, 27, 7, 1, 47, 456260, tzinfo=timezone.utc),
+        )
+        production_row = {
+            'availability_status': 'verified',
+            'embeddable': True,
+            'availability_checked_at': '2026-09-27T07:01:47.45626+00:00',
+        }
+        proof_time = datetime(2026, 9, 27, 8, 0, tzinfo=timezone.utc)
+        self.assertTrue(
+            bridge._public_verification_is_fresh(production_row, proof_time)
+        )
+        self.assertFalse(bridge._catalog_row_is_stale(production_row, proof_time))
+        offset_value = bridge._parse_timestamp(
+            '2026-09-27T02:01:47.45626-05:00'
+        )
+        self.assertEqual(offset_value, production_value)
+
+    def test_postgres_timestamp_parser_rejects_malformed_or_hostile_values(self):
+        bridge = self.bridge
+        invalid_values = (
+            None,
+            '',
+            'not-a-timestamp',
+            '2026-09-27T07:01:47.1234567+00:00',
+            '2026-09-27T07:01:47.45626+00:00;drop table social_reels',
+            '2026-09-27T07:01:47.45626+00:00\n',
+            '2026-09-27T07:01:47.45626+00:00\nignored',
+            '2026-02-30T07:01:47.45626+00:00',
+            '2026-09-27T07:01:47.45626+25:00',
+            '2026-09-27T07:01:47.45626+00:60',
+            '2026-09-27T07:01:47.45626+12:99',
+            '2026-09-27T07:01:47.45626-00:60',
+            '2026-09-27T07:01:47,45626+00:00',
+        )
+
+        for value in invalid_values:
+            with self.subTest(value=value):
+                self.assertIsNone(bridge._parse_timestamp(value))
+
     def test_subscription_login_region_and_embed_failures_are_quarantined(self):
         bridge = self.bridge
         cases = [
