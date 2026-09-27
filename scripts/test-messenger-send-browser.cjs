@@ -23,6 +23,11 @@ async function scenario(name, behavior) {
   const requests = [];
   const joins = [];
   const backgroundSends = [];
+  const continuity = {
+    draft: { text: '', replyToId: null, revision: 0 },
+    pin: { value: false, revision: 0 },
+    position: { messageId: null, offset: 0, revision: 0 },
+  };
   let releaseResponse;
   let conversationJoined;
   const seed = { id: uuid(11), conversation_id: conversationId, sender_id: uuid(2), content: 'Local Verification Seed', created_at: '2026-09-26T12:00:00Z', message_type: 'text' };
@@ -61,7 +66,19 @@ async function scenario(name, behavior) {
     let body = {}; try { body = request.postDataJSON() || {}; } catch {}
     if (url.pathname.startsWith('/api/')) {
       if (url.pathname === '/api/messenger/get-conversations') return respond({ success: true, workspace: 'social', clubId: null, folder: 'messages', clubs: [], conversations: [conv], conversation: conv, unreadCounts: { messages: 0, invoices: 0 } });
-      if (url.pathname === '/api/messenger/get-messages') return respond({ success: true, messages: [seed, ...sent.values()] });
+      if (url.pathname === '/api/messenger/get-messages') return respond({ success: true, messages: [seed, ...sent.values()], savedItems: [], firstUnreadMessageId: null, hasOlder: false, hasNewer: false, anchorMessageId: body.anchorMessageId || null, anchorUnavailable: false });
+      if (url.pathname === '/api/messenger/continuity') {
+        if (body.action === 'read') return respond({ success: true, state: continuity, states: { [conversationId]: continuity }, pins: [], saved: [], hasMoreSaved: false, nextSavedCursor: null });
+        assert.equal(body.conversationId, conversationId, 'Continuity write escaped the local send fixture');
+        assert.ok(['draft', 'position'].includes(body.field), 'Send fixture unexpectedly changed pin or saved state');
+        const previous = continuity[body.field];
+        const oldValue = Object.fromEntries(Object.entries(previous).filter(([key]) => key !== 'revision'));
+        const unchanged = JSON.stringify(oldValue) === JSON.stringify(body.value);
+        if (!unchanged && previous.revision !== body.expectedRevision) return respond({ success: false, field: body.field, revision: previous.revision, value: oldValue, error: 'Fixture Revision Conflict' }, 409);
+        const revision = previous.revision + (unchanged ? 0 : 1);
+        continuity[body.field] = { ...body.value, revision };
+        return respond({ success: true, field: body.field, revision, value: body.value, state: continuity });
+      }
       if (url.pathname === '/api/messenger/mark-read') return respond({ success: true, marked: 0, readThrough: seed.created_at });
       if (url.pathname === '/api/user/get-header-stats') return respond({ success: true, profile: { ...user, full_name: 'Send Fixture', diamonds: 0 }, notificationCount: 0, unreadMessages: 0, messengerUnread: { social: 0, total: 0, clubs: {} } });
       if (url.pathname === '/api/messenger/send-message') {
