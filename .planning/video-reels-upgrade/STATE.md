@@ -2,18 +2,18 @@
 
 - **Current phase:** 1 of 10
 - **Phase name:** Restore Safe Supply And Endless Delivery
-- **Status:** Active release; the application and four Open Claw release repairs are protected-merged, while the exact-main backfill and shared-verdict horse consumer are being completed and live positive supply proof remains pending
-- **Branch:** `agent/codex-reels-verdict/fix/reels-shared-verdict`
-- **Delivery PRs:** application `#1977`; Open Claw repairs `#1985`, `#1986`, `#1987`, and `#1988`; current shared-verdict follow-up `#1989`
-- **Workspace:** `/Volumes/SmarterWork/agent-work/codex-reels-verdict`
-- **Exact tested integrated source revision:** `6e0c9e9d7ff5e6d6ccfacb6baca6e98fad0647eb` (the checkpoint-only evidence update that follows does not change runtime/database source)
-- **Protected baseline at latest fetch:** `origin/main` `ac012ee67a180ca630841e6f4d82585940ed1843`
+- **Status:** Active recovery release; the application, shared-verdict database authority, Workers consumer, and stale-backfill containment are protected-merged and published. A fail-closed YouTube verifier recovery is locally green and awaiting protected delivery before bounded positive backfill and final live proof.
+- **Branch:** `agent/codex-reels-verifier-recovery-20260927`
+- **Delivery PRs:** application `#1977`; Open Claw repairs `#1985`, `#1986`, `#1987`, and `#1988`; batch verdict RPC `#1989`; stale-backfill cleanup `#1990`; Workers shared-verdict consumer `#147`; verifier recovery follow-up pending
+- **Workspace:** `/Volumes/SmarterWork/agent-work/codex-reels-supply-20260926`
+- **Exact tested integrated source revision:** working tree based on `a1015fdc404d52c9dca6c51617f0ccb6a408b71d`; verifier recovery is not yet committed or published
+- **Protected baseline at latest fetch:** `origin/main` `a1015fdc404d52c9dca6c51617f0ccb6a408b71d`
 - **Operation owner:** this task owns source repair, database installation, protected PR completion, Vercel/Open Claw publication, and live verification
-- **Next gate:** finish protected delivery of the installed batch shared-verdict RPC, make the Workers horse publisher consume only those durable proofs without per-horse YouTube fan-out, complete the exact-main positive bounded backfill through the merged keepalive transport, then require the next legitimate `:25` horse cycle plus strict database/API/browser readback.
+- **Next gate:** protected-deliver the verifier recovery, promote that exact merged main through Open Claw, run only bounded exact-main recovery batches, prove fresh positive poker/slots/sports supply, then require the next legitimate `:25` horse cycle plus strict database/API/browser hostile-state readback.
 
 ## Policy Receipt
 
-- **Read at:** canonical `2026-09-27T03:43:10.827Z`; portable `2026-09-27T03:42:56.894Z`
+- **Read at:** canonical `2026-09-27T04:13:10.777Z`; portable `2026-09-27T04:14:04.031Z`
 - **Policy version:** `2.9`
 - **Manifest SHA-256:** `7663cc909626f7e9966931d27166ad8774addc801f7ad1898a2d7564bc13c378`
 - **Owner policy:** `76228d75677eb76ca9dcfbf65fd68ddb7aac3941f61154acc456ae8230a9a4fa`
@@ -85,3 +85,9 @@
 - Installed the additive service-role-only `fresh_public_youtube_verification_ids` migration at ledger version `20260927034032`. Readback proves one stable, set-returning SECURITY DEFINER overload with fixed `search_path=public, extensions`, service-role execute only, no PUBLIC/anonymous/authenticated execute, scalar-authority delegation, and zero results for malformed identifiers. It does not alter or replay any installed migration.
 - Open Claw keepalive PR `#1988` passed protected CI and squash-merged as `ac012ee67a180ca630841e6f4d82585940ed1843`. The shared-verdict branch integrated that protected revision without conflicts; the combined migration and Open Claw routing contracts passed 23/23, policy drift check passed, and both diff checks passed.
 - Shared-verdict RPC PR `#1989` head `8fae3d951d64d8c69ccc268c3ae5e685552739f3` reached hosted Build Safety Gate run `36292388247`, where CHECK 8 passed 2,409 existing tests and failed only the exhaustive CI-reachability assertion because the new migration contract had not been imported by the meta-guard. The failure was reproduced locally: 1,775 tests, 1,774 passed, exactly one failed with `fresh-public-youtube-verification-ids-migration.test.mjs` unreachable. Added the missing direct import without changing runtime or database source; the repaired meta-guard now passes 1,779/1,779 and the focused batch-authority contract passes 4/4.
+- Shared-verdict RPC PR `#1989` passed hosted run `36292959433`, protected squash-merged as `a1015fdc404d52c9dca6c51617f0ccb6a408b71d`, and retained the already-installed one-time ledger version `20260927034032` without replay. The installed service-role-only batch RPC remains the sole Workers freshness authority.
+- Workers PR `#147` passed focused 54/54, pretest 4/4, Vitest 549/549 across 66 files, exact-candidate CI `36292665627`, exact-main CI `36292744805`, and automatic deployment `36292744801`; protected main is `c245ba6a65de328229e2ce468e081d93148ca9fc` and production health reported that exact revision. It consumes one bounded shared batch verdict and performs no per-horse YouTube fan-out.
+- The broken backfill was contained rather than trusted: its GitHub run was cancelled, its detached exact-operation units were stopped, and PR `#1990` protected-merged as `846f38b3385c990f6c6f19588db1dc326b3ef4ec`. Exact-main cleanup run `36293223787` succeeded on `a1015fdc404d52c9dca6c51617f0ccb6a408b71d`. Database reads at `04:04:57Z`, `04:05:59Z`, and `04:06:35Z` remained identical at high-water `2026-09-27T04:04:25.948844Z` with zero later writes, proving the stale process did not survive cleanup.
+- Recovery testing first proved the old behavior unsafe: the focused Python suite produced five failures and three errors and the JavaScript contract produced two failures. The implementation now requires oEmbed plus exact anonymous embed identity/public-playback proof, lets explicit private/member/Premium/subscription/age/region/embed-disabled/removed signals override a positive preview, treats generic authentication or malformed/transport states as operational unknowns, and permits anti-bot rescue only through the exact anonymous proof.
+- Release recovery is bounded to the inclusive incident window `2026-09-27T03:32:27Z` through `2026-09-27T04:04:25.948844Z`; after a row receives a new verifier timestamp it automatically leaves the bypass. Daily capacity is reserved across the managed library, poker pool, and sports pool at 360/195/195 from a 750-candidate ceiling, with unused capacity reclaimed and all writes routed through the shared race-safe verdict RPC.
+- The current recovery working tree passed `git diff --check`, Python byte-compilation, the complete connected JavaScript set at 76/76, and the verifier/runtime Python set at 29/29. Protected CI, merge, exact-main Open Claw promotion, production recovery batches, fresh-positive database proof, and final browser/API proof remain pending and must not be inferred from these local results.

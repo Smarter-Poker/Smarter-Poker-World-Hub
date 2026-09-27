@@ -849,7 +849,7 @@ jobs:
               /usr/bin/env -u PYTHONHOME -u PYTHONPATH \
                 "PYTHONPATH=$current/vendor" \
                 /usr/bin/python3 -s "$current/video_library_to_reels.py" \
-                  --limit 750 --verify; then
+                  --limit 750 --verify --release-recovery; then
               unit_rc=0
             else
               unit_rc=$?

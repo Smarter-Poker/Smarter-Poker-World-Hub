@@ -29,8 +29,9 @@ Safety contract:
     Open Claw never calls for this job;
   * only explicitly supported ``cash``, ``tournament``, and ``slots`` catalog
     rows are eligible;
-  * every new or repaired publication is verified with both YouTube oEmbed and
-    yt-dlp's embedded-player metadata, and every unknown/error state fails closed;
+  * every new or repaired publication is verified with YouTube oEmbed, the
+    exact anonymous embed bootstrap, and yt-dlp restriction metadata; every
+    unknown/error state fails closed;
   * authenticated player reports remain non-censoring until this verifier
     adjudicates them through the race-safe failure-verdict RPC;
   * no code in this process inserts directly into social_reels/social_posts;
@@ -47,7 +48,8 @@ Open Claw runs this daily after the catalog scraper. The dispatcher
 packages on PYTHONPATH; there is no virtualenv on the host:
 
     PYTHONPATH=/opt/openclaw/current/vendor /usr/bin/python3 -s \
-        /opt/openclaw/current/video_library_to_reels.py --limit 750 --verify
+        /opt/openclaw/current/video_library_to_reels.py --limit 750 --verify \
+        --verify-platform-supply
 
 ``--verify`` remains as an explicit scheduler assertion and compatibility
 flag. Verification is mandatory even when the flag is omitted.
@@ -89,13 +91,19 @@ EXISTING_PAGE_SIZE = 1000
 FAILURE_PAGE_SIZE = 1000
 FAILURE_VERIFY_LIMIT = 500
 FEED_VISIBILITY_BATCH_SIZE = 100
+PLATFORM_POOL_LIMIT = 1_000
 YOUTUBE_ID_RE = re.compile(r'^[A-Za-z0-9_-]{11}$')
+VERIFIER_INCIDENT_START = datetime(2026, 9, 27, 3, 32, 27, tzinfo=timezone.utc)
+VERIFIER_INCIDENT_END = datetime(
+    2026, 9, 27, 4, 4, 25, 948844, tzinfo=timezone.utc
+)
 # Renew well before the database's 7-day public-playback cutoff (installed
 # SQL: fn_is_video_library_asset_eligible and its sibling predicates accept
 # availability_checked_at no older than interval '7 days'; the JavaScript
 # mirror is VIDEO_LIBRARY_VERIFICATION_MAX_AGE_MS). The dispatcher retains its
-# daily 07:00 schedule and bounded 500-row pass, so the current ~2,200 poker
-# and slots rows are re-verified about every five days. The 12-hour value below is only
+# daily 07:00 schedule and bounded 750-row pass. Its reserved 360 library slots
+# cycle the current ~2,200 poker and slots rows inside seven days, while 195
+# poker and 195 sports slots keep both Workers pools fresh. The 12-hour value below is only
 # the "due for renewal" threshold that makes every daily run pick the oldest
 # rows; it is not the public expiry. Whole-catalog coverage inside one run is
 # not implied: stale rows remain fail-closed until the existing verifier
@@ -199,7 +207,7 @@ def _bounded_env_int(name, default, minimum, maximum):
 
 
 # Six parallel yt-dlp probes keep the Open Claw systemd cgroup comfortably
-# below its 512 MB limit while processing the 500-row daily renewal batch.
+# below its 512 MB limit while processing the 750-row daily renewal batch.
 VERIFY_CONCURRENCY = _bounded_env_int('VIDEO_LIBRARY_VERIFY_CONCURRENCY', 6, 1, 8)
 # Open Claw enforces a 1,800-second subprocess ceiling. Stop accepting new
 # network work at 1,650 seconds so an in-flight bounded operation can finish,
@@ -637,22 +645,119 @@ def _is_operational_verifier_error(result):
 
 
 def _classify_http_error(prefix, error):
-    if error.code == 401:
-        return _availability('private', f'{prefix}_http_401')
-    if error.code == 403:
-        return _availability('restricted', f'{prefix}_http_403')
     if error.code in (404, 410):
         return _availability('unavailable', f'{prefix}_http_{error.code}')
     return _availability('error', f'{prefix}_http_{error.code}')
 
 
+def _classify_youtube_restriction_detail(detail):
+    """Classify only explicit content verdicts; auth/challenge text stays unknown."""
+    normalised = str(detail or '').lower()
+    if 'private video' in normalised or 'this video is private' in normalised:
+        return _availability('private', 'youtube_private')
+    if any(
+        marker in normalised
+        for marker in (
+            'members-only',
+            'members only',
+            'premium',
+            'subscription',
+            'subscriber',
+        )
+    ):
+        return _availability('restricted', 'youtube_members_only')
+    if any(
+        marker in normalised
+        for marker in ('age-restricted', 'age restricted', 'confirm your age')
+    ):
+        return _availability('restricted', 'youtube_age_restricted')
+    if any(
+        marker in normalised
+        for marker in ('not available in your country', 'not available in your region')
+    ):
+        return _availability('restricted', 'youtube_region_restricted')
+    if 'embedding disabled' in normalised or 'playback on other websites has been disabled' in normalised:
+        return _availability('embed_disabled', 'youtube_embed_disabled')
+    if any(
+        marker in normalised
+        for marker in ('video unavailable', 'video has been removed', 'video was removed', 'deleted video')
+    ):
+        return _availability('unavailable', 'youtube_unavailable')
+    return None
+
+
+def _anonymous_embed_verdict(video_id, request_headers):
+    """Read YouTube's anonymous embed bootstrap and require exact public proof."""
+    embed_url = (
+        f'https://www.youtube.com/embed/{video_id}?'
+        + urllib.parse.urlencode(
+            {'enablejsapi': '1', 'origin': 'https://smarter.poker'}
+        )
+    )
+    headers = {**request_headers, 'Referer': 'https://smarter.poker/'}
+    try:
+        request = urllib.request.Request(embed_url, headers=headers)
+        with urllib.request.urlopen(request, timeout=15) as response:
+            if response.status != 200:
+                return _availability('error', f'youtube_embed_http_{response.status}')
+            page = response.read(4 * 1024 * 1024).decode('utf-8', errors='replace')
+    except urllib.error.HTTPError as error:
+        return _classify_http_error('youtube_embed', error)
+    except OSError as error:
+        log.warning('Anonymous embed verification unknown for %s: %s', video_id, error)
+        return _availability('error', 'youtube_embed_network_error')
+
+    marker = re.search(r'"PLAYER_VARS"\s*:\s*', page)
+    if marker is None:
+        return _availability('error', 'youtube_embed_payload_missing')
+    identities = set(
+        re.findall(r'"VIDEO_ID"\s*:\s*"([A-Za-z0-9_-]{11})"', page)
+    )
+    if identities != {video_id}:
+        return _availability('error', 'youtube_embed_identity_mismatch')
+    try:
+        player_vars, _ = json.JSONDecoder().raw_decode(page, marker.end())
+        embedded_response = player_vars['embedded_player_response']
+        if not isinstance(embedded_response, str):
+            raise TypeError('embedded_player_response must be a JSON string')
+        player = json.loads(embedded_response)
+        if not isinstance(player, dict):
+            raise TypeError('embedded player response must be an object')
+    except (KeyError, TypeError, ValueError, json.JSONDecodeError):
+        return _availability('error', 'youtube_embed_payload_malformed')
+
+    playability = player.get('previewPlayabilityStatus')
+    flags = player.get('videoFlags')
+    if not isinstance(playability, dict):
+        return _availability('error', 'youtube_embed_public_proof_incomplete')
+    detail = ' '.join(
+        str(playability.get(key) or '') for key in ('reason', 'status')
+    )
+    explicit = _classify_youtube_restriction_detail(detail)
+    if explicit:
+        return explicit
+    if str(playability.get('status') or '').upper() != 'OK':
+        return _availability('error', 'youtube_embed_unplayable_unknown')
+    if (
+        playability.get('playableInEmbed') is not True
+        or not isinstance(flags, dict)
+        or flags.get('playableInEmbed') is not True
+        or flags.get('isCrawlable') is not True
+    ):
+        return _availability('error', 'youtube_embed_public_proof_incomplete')
+    return _availability('verified')
+
+
 def verify_youtube_video_scrapling(video_id):
     """Fail-closed YouTube verification (legacy function name retained).
 
-    oEmbed proves public metadata is available. yt-dlp then has to explicitly
-    report public/unlisted availability and ``playable_in_embed=true``.
-    Private, members-only, age/region restricted, embed-disabled, throttled,
-    malformed, and network-unknown responses are never publishable.
+    oEmbed proves public metadata is available. The anonymous YouTube embed
+    bootstrap must prove the exact requested identity and public embedded
+    playback. yt-dlp remains an independent restriction source; an explicit
+    private, subscription, age, region, or embed-disabled verdict overrides a
+    positive preview. A recognised anti-bot challenge may be rescued only by
+    the oEmbed plus exact anonymous-player proof. Every other unknown fails
+    closed without being mis-recorded as a permanent restriction.
     """
     if not YOUTUBE_ID_RE.fullmatch(str(video_id or '')):
         return _availability('error', 'invalid_youtube_id')
@@ -681,6 +786,8 @@ def verify_youtube_video_scrapling(video_id):
         log.warning('oEmbed verification unknown for %s: %s', video_id, error)
         return _availability('error', 'oembed_network_or_parse_error')
 
+    embed_verdict = _anonymous_embed_verdict(video_id, request_headers)
+
     try:
         completed = _run_isolated_ytdlp(
             [
@@ -708,18 +815,23 @@ def verify_youtube_video_scrapling(video_id):
             raise YtDlpUnavailableError(
                 'yt_dlp became unimportable in the isolated child during the run'
             )
-        if 'private video' in detail:
-            return _availability('private', 'youtube_private')
-        if any(marker in detail for marker in ('members-only', 'members only', 'premium', 'subscription')):
-            return _availability('restricted', 'youtube_members_only')
-        if any(marker in detail for marker in ('age-restricted', 'sign in to confirm your age', 'login required')):
-            return _availability('restricted', 'youtube_login_required')
-        if 'not available in your country' in detail:
-            return _availability('restricted', 'youtube_region_restricted')
-        if 'embedding disabled' in detail:
-            return _availability('embed_disabled', 'youtube_embed_disabled')
-        if any(marker in detail for marker in ('video unavailable', 'removed', 'deleted')):
-            return _availability('unavailable', 'youtube_unavailable')
+        explicit = _classify_youtube_restriction_detail(detail)
+        if explicit:
+            return explicit
+        if embed_verdict['status'] in PERMANENT_FAILURE_STATUSES:
+            return embed_verdict
+        if any(
+            marker in detail
+            for marker in (
+                'confirm you are not a bot',
+                "confirm you're not a bot",
+                'sign in to confirm you are not a bot',
+                'not a bot',
+            )
+        ):
+            return embed_verdict
+        if any(marker in detail for marker in ('login required', 'sign in to continue')):
+            return _availability('error', 'youtube_auth_required')
         return _availability('error', 'yt_dlp_nonzero')
 
     try:
@@ -730,8 +842,14 @@ def verify_youtube_video_scrapling(video_id):
     availability = str(metadata.get('availability') or '').lower()
     if availability == 'private':
         return _availability('private', 'youtube_private')
-    if availability in ('premium_only', 'subscriber_only', 'needs_auth'):
+    if availability in ('premium_only', 'subscriber_only'):
         return _availability('restricted', f'youtube_{availability}')
+    if availability == 'needs_auth':
+        if embed_verdict['available']:
+            return embed_verdict
+        if embed_verdict['status'] in PERMANENT_FAILURE_STATUSES:
+            return embed_verdict
+        return _availability('error', 'youtube_availability_needs_auth')
     if availability not in ('public', 'unlisted'):
         return _availability('error', 'youtube_availability_unknown')
     try:
@@ -744,7 +862,7 @@ def verify_youtube_video_scrapling(video_id):
         return _availability('embed_disabled', 'youtube_embed_disabled')
     if metadata.get('live_status') == 'is_upcoming':
         return _availability('error', 'youtube_upcoming')
-    return _availability('verified')
+    return embed_verdict
 
 
 def _verdict_for_availability(result):
@@ -818,12 +936,21 @@ def _verification_is_fresh(row, now=None):
     )
 
 
+def _in_verifier_incident_window(value):
+    checked = _parse_timestamp(value)
+    return bool(
+        checked
+        and VERIFIER_INCIDENT_START <= checked <= VERIFIER_INCIDENT_END
+    )
+
+
 def _candidate_plan(
     row,
     current,
     caption_matches,
     now,
     force_audit,
+    release_recovery=False,
 ):
     """Return a stable priority tuple or a cooldown/complete skip reason."""
     checked = _parse_timestamp(row.get('availability_checked_at'))
@@ -835,6 +962,15 @@ def _candidate_plan(
 
     if force_audit:
         return (0, checked_sort, str(row.get('id') or ''), 'forced_audit')
+    if release_recovery and _in_verifier_incident_window(
+        row.get('availability_checked_at')
+    ):
+        return (
+            0,
+            checked_sort,
+            str(row.get('id') or ''),
+            'verifier_incident_recovery',
+        )
     if is_complete and caption_matches and _verification_is_fresh(row, now):
         return 'already_current'
     if checked is None or checked > now + timedelta(minutes=5):
@@ -854,7 +990,7 @@ def _candidate_plan(
     return (4, checked_sort, str(row.get('id') or ''), 'transient_retry')
 
 
-def _failure_candidate_plan(row, now, force_audit):
+def _failure_candidate_plan(row, now, force_audit, release_recovery=False):
     """Prioritize fresh reports and cool down already-adjudicated failures."""
     status = str(row.get('verification_status') or 'pending').lower()
     last_seen = _parse_timestamp(row.get('last_seen_at'))
@@ -864,6 +1000,10 @@ def _failure_candidate_plan(row, now, force_audit):
     oldest_verified = last_verified.timestamp() if last_verified else 0
     if force_audit:
         return (0, oldest_verified, stable_id, 'forced_failure_audit')
+    if release_recovery and _in_verifier_incident_window(
+        row.get('last_verified_at')
+    ):
+        return (0, oldest_verified, stable_id, 'verifier_incident_recovery')
     if status == 'pending':
         return (0, oldest_seen, stable_id, 'pending_report')
     if last_verified is None or last_verified > now + timedelta(minutes=5):
@@ -911,6 +1051,69 @@ def _select_failure_plans(plans, limit):
     return selected
 
 
+def _select_supply_candidates(catalog_plans, platform_plans, limit):
+    """Bound one run while reserving renewal capacity for every supply family."""
+    if limit is None:
+        return list(catalog_plans), list(platform_plans)
+
+    catalog_quota = max(1, (limit * 12) // 25)
+    platform_quota = max(0, limit - catalog_quota)
+    poker_quota = (platform_quota + 1) // 2
+    sports_quota = platform_quota // 2
+
+    poker = [
+        item for item in platform_plans if item[1].get('platform_source') == 'poker'
+    ]
+    sports = [
+        item for item in platform_plans if item[1].get('platform_source') == 'sports'
+    ]
+    selected_catalog = list(catalog_plans[:catalog_quota])
+    selected_platform = list(poker[:poker_quota]) + list(sports[:sports_quota])
+
+    selected_ids = {
+        ('catalog', str(row.get('youtube_video_id') or ''))
+        for _, row in selected_catalog
+    }
+    selected_ids.update(
+        (str(row.get('platform_source') or ''), str(row.get('youtube_video_id') or ''))
+        for _, row in selected_platform
+    )
+    leftovers = []
+    leftovers.extend(
+        (plan, row)
+        for plan, row in catalog_plans
+        if ('catalog', str(row.get('youtube_video_id') or '')) not in selected_ids
+    )
+    leftovers.extend(
+        (plan, row)
+        for plan, row in platform_plans
+        if (
+            str(row.get('platform_source') or ''),
+            str(row.get('youtube_video_id') or ''),
+        ) not in selected_ids
+    )
+    leftovers.sort(
+        key=lambda item: (
+            item[0][:3],
+            0 if item[1].get('platform_source') == 'poker' else 1,
+        )
+    )
+    remaining = max(0, limit - len(selected_catalog) - len(selected_platform))
+    for item in leftovers[:remaining]:
+        if item[1].get('platform_source'):
+            selected_platform.append(item)
+        else:
+            selected_catalog.append(item)
+    selected_catalog.sort(key=lambda item: item[0][:3])
+    selected_platform.sort(
+        key=lambda item: (
+            0 if item[1].get('platform_source') == 'poker' else 1,
+            item[0][:3],
+        )
+    )
+    return selected_catalog, selected_platform
+
+
 def _load_existing_publications():
     """Map canonical library UUIDs to their current Reel publication state."""
     existing = {}
@@ -952,6 +1155,71 @@ def _load_embed_failure_rows():
             break
         offset += len(rows)
     return failure_rows
+
+
+def _youtube_id_from_url(value):
+    try:
+        parsed = urllib.parse.urlparse(str(value or '').strip())
+    except ValueError:
+        return None
+    host = (parsed.hostname or '').lower().rstrip('.')
+    path_parts = [part for part in parsed.path.split('/') if part]
+    candidate = None
+    if host == 'youtu.be':
+        candidate = path_parts[0] if path_parts else None
+    elif host == 'youtube.com' or host.endswith('.youtube.com'):
+        if parsed.path.rstrip('/') == '/watch':
+            candidate = urllib.parse.parse_qs(parsed.query).get('v', [None])[0]
+        elif len(path_parts) >= 2 and path_parts[0] in ('shorts', 'embed', 'live'):
+            candidate = path_parts[1]
+    candidate = str(candidate or '')
+    return candidate if YOUTUBE_ID_RE.fullmatch(candidate) else None
+
+
+def _load_platform_supply_rows(exclude_video_ids=None):
+    """Load the exact bounded platform pools consumed by the Workers fleet."""
+    seen = {
+        str(video_id)
+        for video_id in (exclude_video_ids or ())
+        if YOUTUBE_ID_RE.fullmatch(str(video_id or ''))
+    }
+    supply_rows = []
+    specifications = (
+        (
+            'poker',
+            'poker_clips',
+            {'is_active': 'eq.true', 'oembed_ok': 'not.is.false'},
+            'published_at.desc.nullslast',
+        ),
+        ('sports', 'sports_clips', {}, 'created_at.desc.nullslast'),
+    )
+    for platform_source, table, filters, order in specifications:
+        rows = _select_page(
+            table,
+            'video_id,source_url',
+            filters,
+            order,
+            PLATFORM_POOL_LIMIT,
+            0,
+        )
+        for row in rows:
+            video_id = str(row.get('video_id') or '')
+            source_url = str(row.get('source_url') or '')
+            if (
+                not YOUTUBE_ID_RE.fullmatch(video_id)
+                or _youtube_id_from_url(source_url) != video_id
+                or video_id in seen
+            ):
+                continue
+            seen.add(video_id)
+            supply_rows.append(
+                {
+                    'youtube_video_id': video_id,
+                    'source_url': source_url,
+                    'platform_source': platform_source,
+                }
+            )
+    return supply_rows
 
 
 def _catalog_pages(source=None):
@@ -1222,6 +1490,20 @@ def _new_stats():
         'would_publish': 0,
         'rejected': 0,
         'invalid_rows': 0,
+        'platform_rows_loaded': 0,
+        'platform_candidate_pool': 0,
+        'platform_candidates': 0,
+        'platform_deferred_by_limit': 0,
+        'platform_cooldown': 0,
+        'platform_verification_attempted': 0,
+        'platform_verified': 0,
+        'platform_rejected': 0,
+        'platform_unknown': 0,
+        'release_recovery_candidates': 0,
+        'release_recovery_resolved': 0,
+        'release_recovery_rejected': 0,
+        'release_recovery_unknown': 0,
+        'release_recovery_race_deferred': 0,
         'failure_reports_loaded': 0,
         'failure_candidates': 0,
         'failure_deferred_by_limit': 0,
@@ -1250,6 +1532,18 @@ def _new_stats():
         'failure_candidate_reasons': Counter(),
         'failure_verification_outcomes': Counter(),
         'verification_outcomes': Counter(),
+        'platform_candidate_reasons': Counter(),
+        'platform_verification_outcomes': Counter(),
+        'platform_by_source': {
+            source: {
+                'candidate': 0,
+                'attempted': 0,
+                'verified': 0,
+                'rejected': 0,
+                'unknown': 0,
+            }
+            for source in ('poker', 'sports')
+        },
         'ops07': {
             'by_topic': {},
             'by_source_family': {},
@@ -1294,6 +1588,11 @@ def _write_checkpoint(args, stats, phase, cursor=None):
         'source': args.source,
         'limit': args.limit,
         'force_audit': bool(getattr(args, 'audit_all', False)),
+        'release_recovery': bool(getattr(args, 'release_recovery', False)),
+        'verify_platform_supply': bool(
+            getattr(args, 'verify_platform_supply', False)
+            or getattr(args, 'release_recovery', False)
+        ),
         'resume_basis': 'supabase_availability_and_atomic_publication_state',
         'stats': stats,
     }
@@ -1369,6 +1668,10 @@ def run_bridge(args):
     log.info('Loaded %s YouTube verification records', len(failure_rows))
 
     force_audit = bool(getattr(args, 'audit_all', False))
+    release_recovery = bool(getattr(args, 'release_recovery', False))
+    verify_platform_supply = bool(
+        getattr(args, 'verify_platform_supply', False) or release_recovery
+    )
     stats['failure_reports_loaded'] = len(failure_rows)
     stats['pending_embed_reports'] = sum(
         1 for row in failure_rows if row.get('verification_status') == 'pending'
@@ -1378,9 +1681,18 @@ def run_bridge(args):
         for row in failure_rows
         if row.get('verification_status') == 'confirmed' and row.get('resolved') is False
     }
+    failure_by_video_id = {}
     failure_plans = []
     for failure_row in failure_rows:
-        plan = _failure_candidate_plan(failure_row, datetime.now(timezone.utc), force_audit)
+        video_id = str(failure_row.get('video_id') or '')
+        if video_id:
+            failure_by_video_id.setdefault(video_id, failure_row)
+        plan = _failure_candidate_plan(
+            failure_row,
+            datetime.now(timezone.utc),
+            force_audit,
+            release_recovery,
+        )
         if plan in ('permanent_cooldown', 'transient_cooldown'):
             stats['failure_cooldown'] += 1
         elif plan:
@@ -1397,6 +1709,7 @@ def run_bridge(args):
     )
     max_candidates = None if force_audit else args.limit
     planned_candidates = []
+    planned_platform_candidates = []
     catalog_by_video_id = {}
     feed_visibility_publications = []
     freshness_now = datetime.now(timezone.utc)
@@ -1440,6 +1753,7 @@ def run_bridge(args):
                 caption_matches,
                 freshness_now,
                 force_audit,
+                release_recovery,
             )
             if plan == 'already_current':
                 if vid_id in active_confirmed_ids:
@@ -1489,20 +1803,77 @@ def run_bridge(args):
 
     planned_candidates.sort(key=lambda item: item[0][:3])
     stats['candidate_pool'] = len(planned_candidates)
-    if max_candidates is not None:
-        stats['deferred_by_limit'] = max(0, len(planned_candidates) - max_candidates)
-        planned_candidates = planned_candidates[:max_candidates]
+
+    if verify_platform_supply and not args.source and not args.sync_captions:
+        platform_rows = _load_platform_supply_rows(set(catalog_by_video_id))
+        stats['platform_rows_loaded'] = len(platform_rows)
+        for position, row in enumerate(platform_rows):
+            video_id = str(row.get('youtube_video_id') or '')
+            failure_row = failure_by_video_id.get(video_id)
+            if failure_row is None:
+                plan = (0, position, video_id, 'missing_platform_verdict')
+            else:
+                plan = _failure_candidate_plan(
+                    failure_row,
+                    freshness_now,
+                    force_audit,
+                    release_recovery,
+                )
+            if plan in ('permanent_cooldown', 'transient_cooldown') or plan is None:
+                stats['platform_cooldown'] += 1
+                continue
+            planned_platform_candidates.append((plan, row))
+        planned_platform_candidates.sort(
+            key=lambda item: (
+                0 if item[1].get('platform_source') == 'poker' else 1,
+                item[0][:3],
+            )
+        )
+
+    stats['platform_candidate_pool'] = len(planned_platform_candidates)
+    selected_catalog_plans, selected_platform_plans = _select_supply_candidates(
+        planned_candidates,
+        planned_platform_candidates,
+        max_candidates,
+    )
+    stats['deferred_by_limit'] = max(
+        0,
+        len(planned_candidates) - len(selected_catalog_plans),
+    )
+    stats['platform_deferred_by_limit'] = max(
+        0,
+        len(planned_platform_candidates) - len(selected_platform_plans),
+    )
+    planned_candidates = selected_catalog_plans
     candidates = [row for _, row in planned_candidates]
+    platform_candidates = [row for _, row in selected_platform_plans]
     stats['candidates'] = len(candidates)
+    stats['platform_candidates'] = len(platform_candidates)
     stats['candidate_reasons'].update(plan[3] for plan, _ in planned_candidates)
+    stats['platform_candidate_reasons'].update(
+        plan[3] for plan, _ in selected_platform_plans
+    )
+    for _, row in selected_platform_plans:
+        stats['platform_by_source'][row['platform_source']]['candidate'] += 1
     for row in candidates:
         _record_ops07(stats, 'candidate', row)
+    release_recovery_ids = {
+        str(row.get('youtube_video_id') or row.get('video_id') or '')
+        for plan, row in (
+            planned_candidates
+            + selected_platform_plans
+            + selected_failure_plans
+        )
+        if plan[3] == 'verifier_incident_recovery'
+    }
+    stats['release_recovery_candidates'] = len(release_recovery_ids)
     _write_checkpoint(
         args,
         stats,
         'planned',
         {
             'catalog_candidates': len(candidates),
+            'platform_candidates': len(platform_candidates),
             'failure_candidates': len(selected_failure_plans),
         },
     )
@@ -1568,9 +1939,12 @@ def run_bridge(args):
                 }
 
                 effective_availability = availability
-                if availability['available'] and not (
-                    verdict['verification_status'] == 'resolved'
-                    and verdict['resolved'] is True
+                if verdict['verification_status'] == 'pending' or (
+                    availability['available']
+                    and not (
+                        verdict['verification_status'] == 'resolved'
+                        and verdict['resolved'] is True
+                    )
                 ):
                     effective_availability = {
                         **availability,
@@ -1584,7 +1958,11 @@ def run_bridge(args):
                 # matching catalog availability row in one transaction. A
                 # separate PATCH here would reopen a split-write race.
                 if not effective_availability['available']:
-                    if not availability['available']:
+                    if (
+                        not availability['available']
+                        and verdict['verification_status'] == 'confirmed'
+                        and verdict['resolved'] is False
+                    ):
                         stats['rejected'] += 1
                         _record_ops07(stats, 'rejected', row)
                     log.warning(
@@ -1626,6 +2004,102 @@ def run_bridge(args):
                 'catalog_batch',
                 {
                     **last_catalog_commit,
+                    'batch_start': start,
+                    'batch_size': len(batch),
+                },
+            )
+            if abort:
+                break
+
+    if platform_candidates and not abort:
+        log.info(
+            'Verifying %s platform supply candidates with concurrency=%s',
+            len(platform_candidates),
+            min(VERIFY_CONCURRENCY, len(platform_candidates)),
+        )
+    last_platform_commit = {}
+    with ThreadPoolExecutor(max_workers=VERIFY_CONCURRENCY) as executor:
+        for start in range(0, len(platform_candidates) if not abort else 0, VERIFY_CONCURRENCY):
+            if _deadline_due(deadline_at, VERIFY_BATCH_START_RESERVE_SECONDS):
+                _mark_deadline(stats, 'platform_verification')
+                _write_checkpoint(args, stats, 'deadline', last_platform_commit)
+                abort = True
+                break
+            batch = platform_candidates[start:start + VERIFY_CONCURRENCY]
+            verified_results = executor.map(_verify_row, batch)
+            for row, availability in zip(batch, verified_results):
+                video_id = str(row.get('youtube_video_id') or '')
+                platform_source = str(row.get('platform_source') or '')
+                source_stats = stats['platform_by_source'][platform_source]
+                stats['platform_verification_attempted'] += 1
+                source_stats['attempted'] += 1
+                stats['platform_verification_outcomes'][availability['status']] += 1
+                if _is_operational_verifier_error(availability):
+                    stats['verifier_errors_observed'] += 1
+
+                verdict = None
+                if not args.dry_run:
+                    if _deadline_due(deadline_at):
+                        _mark_deadline(stats, 'platform_verdict')
+                        abort = True
+                        break
+                    try:
+                        verdict = _record_embed_verdict(
+                            video_id,
+                            availability,
+                            surface=f'horse_{platform_source}_supply_verifier',
+                        )
+                    except RuntimeError as error:
+                        stats['failure_verdict_errors'] += 1
+                        stats['aborted_reason'] = 'failure_verdict_failed'
+                        log.error('Platform supply verdict failed for %s: %s', video_id, error)
+                        abort = True
+                        break
+                verification_cache[video_id] = {
+                    'availability': availability,
+                    'verdict': verdict,
+                }
+                last_platform_commit = {
+                    'video_id': video_id,
+                    'platform_source': platform_source,
+                }
+
+                if args.dry_run:
+                    if availability['available']:
+                        stats['platform_verified'] += 1
+                        source_stats['verified'] += 1
+                    elif availability['status'] in PERMANENT_FAILURE_STATUSES:
+                        stats['platform_rejected'] += 1
+                        source_stats['rejected'] += 1
+                    else:
+                        stats['platform_unknown'] += 1
+                        source_stats['unknown'] += 1
+                    continue
+
+                if (
+                    verdict['verification_status'] == 'resolved'
+                    and verdict['resolved'] is True
+                    and availability['available']
+                ):
+                    stats['platform_verified'] += 1
+                    source_stats['verified'] += 1
+                elif (
+                    verdict['verification_status'] == 'confirmed'
+                    and verdict['resolved'] is False
+                ):
+                    stats['platform_rejected'] += 1
+                    source_stats['rejected'] += 1
+                else:
+                    stats['platform_unknown'] += 1
+                    source_stats['unknown'] += 1
+                    if verdict['verification_status'] == 'pending':
+                        stats['failure_race_deferred'] += 1
+            _write_checkpoint(
+                args,
+                stats,
+                'platform_batch',
+                {
+                    **last_platform_commit,
                     'batch_start': start,
                     'batch_size': len(batch),
                 },
@@ -1841,10 +2315,45 @@ def run_bridge(args):
                     ', '.join(missing_asset_ids[:20]),
                 )
 
+    for video_id in release_recovery_ids:
+        cached = verification_cache.get(video_id)
+        if not cached:
+            stats['release_recovery_unknown'] += 1
+            continue
+        availability = cached['availability']
+        verdict = cached.get('verdict')
+        if args.dry_run:
+            if availability['available']:
+                stats['release_recovery_resolved'] += 1
+            elif availability['status'] in PERMANENT_FAILURE_STATUSES:
+                stats['release_recovery_rejected'] += 1
+            else:
+                stats['release_recovery_unknown'] += 1
+            continue
+        if (
+            verdict
+            and verdict.get('verification_status') == 'resolved'
+            and verdict.get('resolved') is True
+            and availability['available']
+        ):
+            stats['release_recovery_resolved'] += 1
+        elif (
+            verdict
+            and verdict.get('verification_status') == 'confirmed'
+            and verdict.get('resolved') is False
+        ):
+            stats['release_recovery_rejected'] += 1
+        else:
+            stats['release_recovery_unknown'] += 1
+            if verdict and verdict.get('verification_status') == 'pending':
+                stats['release_recovery_race_deferred'] += 1
+
     stats['verification_outcomes'] = dict(stats['verification_outcomes'])
     stats['candidate_reasons'] = dict(stats['candidate_reasons'])
     stats['failure_candidate_reasons'] = dict(stats['failure_candidate_reasons'])
     stats['failure_verification_outcomes'] = dict(stats['failure_verification_outcomes'])
+    stats['platform_candidate_reasons'] = dict(stats['platform_candidate_reasons'])
+    stats['platform_verification_outcomes'] = dict(stats['platform_verification_outcomes'])
     return stats
 
 
@@ -1867,6 +2376,11 @@ def _write_evidence(args, stats, elapsed, fatal_error=None, exit_code=0):
         'source': args.source,
         'limit': args.limit,
         'force_audit': bool(getattr(args, 'audit_all', False)),
+        'release_recovery': bool(getattr(args, 'release_recovery', False)),
+        'verify_platform_supply': bool(
+            getattr(args, 'verify_platform_supply', False)
+            or getattr(args, 'release_recovery', False)
+        ),
         'verification_required': True,
         'max_runtime_seconds': MAX_RUNTIME_SECONDS,
         'verification_refresh_hours': int(
@@ -1931,6 +2445,19 @@ def main():
         help='Ignore freshness/cooldowns and exhaustively reverify every eligible row',
     )
     parser.add_argument(
+        '--verify-platform-supply',
+        action='store_true',
+        help='Renew the bounded Workers poker and sports pools in the shared verifier',
+    )
+    parser.add_argument(
+        '--release-recovery',
+        action='store_true',
+        help=(
+            'Reverify only rows written during the bounded 2026-09-27 verifier '
+            'incident; also includes the platform supply pools'
+        ),
+    )
+    parser.add_argument(
         '--preflight-only',
         action='store_true',
         dest='preflight_only',
@@ -1964,12 +2491,14 @@ def main():
     fatal_error = None
     exit_code = 0
     log.info(
-        'Starting video-library publisher dry_run=%s limit=%s source=%s verification=mandatory sync_only=%s force_audit=%s max_runtime=%ss',
+        'Starting video-library publisher dry_run=%s limit=%s source=%s verification=mandatory sync_only=%s force_audit=%s release_recovery=%s platform_supply=%s max_runtime=%ss',
         args.dry_run,
         args.limit,
         args.source or 'ALL',
         args.sync_captions,
         args.audit_all,
+        args.release_recovery,
+        args.verify_platform_supply or args.release_recovery,
         MAX_RUNTIME_SECONDS,
     )
     try:

@@ -50,7 +50,10 @@ test('the Video Library Reel bridge always resolves to the deployed publisher sc
   const scriptTargets = assignmentBlock('SCRIPT_JOB_SCRIPTS');
   const workerRoutes = assignmentBlock('WORKERS_PREFERRED');
 
-  assert.match(scriptJobs, /'\/api\/cron\/video-library-reels':\s*\['--limit',\s*'750',\s*'--verify'\]/);
+  assert.match(
+    scriptJobs,
+    /'\/api\/cron\/video-library-reels':\s*\[\s*'--limit',\s*'750',\s*'--verify',\s*'--verify-platform-supply'\s*\]/,
+  );
   assert.match(scriptTargets, /'\/api\/cron\/video-library-reels':\s*REELS_BRIDGE_PY/);
   assert.doesNotMatch(workerRoutes, /\/api\/cron\/video-library-reels/);
   // 2026-09-23 owner decision: the horse-authored workers bridge is never a
@@ -180,7 +183,10 @@ test('manual publication can request at most three bounded verified backfill bat
   assert.match(backfill, /systemctl stop "\$active_unit\.service"/);
   assert.match(backfill, /--property=User=openclaw/);
   assert.match(backfill, /--property=EnvironmentFile=\/etc\/openclaw\.env/);
-  assert.match(backfill, /video_library_to_reels\.py"[\s\\]*--limit 750 --verify/);
+  assert.match(
+    backfill,
+    /video_library_to_reels\.py"[\s\\]*--limit 750 --verify --release-recovery/,
+  );
   assert.match(backfill, /journalctl -u "\$unit\.service"[\s\S]*Publisher results:/);
   assert.match(backfill, /test "\$unit_rc" -eq 0/);
   assert.match(
@@ -188,6 +194,33 @@ test('manual publication can request at most three bounded verified backfill bat
     /name: Revoke current Reel backfill custody[\s\S]*always\(\)[\s\S]*systemctl stop "\$unit"/,
   );
   assert.doesNotMatch(backfill, /cat \/etc\/openclaw\.env|source \/etc\/openclaw\.env|set -a/);
+});
+
+test('release recovery verifies the exact Workers poker and sports pools without publishing them directly', () => {
+  assert.match(publisher, /PLATFORM_POOL_LIMIT = 1_000/);
+  assert.match(publisher, /def _load_platform_supply_rows\(exclude_video_ids=None\):/);
+  assert.match(
+    publisher,
+    /VERIFIER_INCIDENT_START = datetime\(2026, 9, 27, 3, 32, 27, tzinfo=timezone\.utc\)/,
+  );
+  assert.match(
+    publisher,
+    /VERIFIER_INCIDENT_END = datetime\(\s*2026, 9, 27, 4, 4, 25, 948844, tzinfo=timezone\.utc\s*\)/,
+  );
+  assert.match(
+    publisher,
+    /'poker_clips'[\s\S]*\{'is_active': 'eq\.true', 'oembed_ok': 'not\.is\.false'\}[\s\S]*'published_at\.desc\.nullslast'/,
+  );
+  assert.match(
+    publisher,
+    /'sports_clips'[\s\S]*'created_at\.desc\.nullslast'/,
+  );
+  assert.match(publisher, /surface=f'horse_\{platform_source\}_supply_verifier'/);
+  assert.doesNotMatch(
+    publisher,
+    /platform_source[\s\S]{0,400}_publish_row\(/,
+    'platform-only supply may receive a shared verdict but never impersonate an official library publication',
+  );
 });
 
 test('manual stale-backfill cleanup is exact-operation scoped and cannot glob unrelated units', () => {
