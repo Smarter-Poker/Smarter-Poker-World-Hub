@@ -1,32 +1,20 @@
 import { randomUUID } from 'node:crypto';
 import { ALERT_TASK_ID, recordOperationalAlerts } from '../operationalAlerts.mjs';
 import { resolveOperationalPushMetadata } from './operational-push-metadata.mjs';
+import { OWNER_OPERATIONAL_ID, OWNER_OPERATIONAL_TYPES, isOwnerOperationalRow } from '../notifications/ownerOperationalClassifier.mjs';
 
 // Dan's explicit operational-alert destination. Ordinary customer notifications
 // and other recipients retain their existing delivery/preferences.
-export const ALERT_OWNER_ID = '47965354-0e56-43ef-931c-ddaab82af765';
+export const ALERT_OWNER_ID = OWNER_OPERATIONAL_ID;
 export const ROUTED_REASON = 'operational_routed_to_codex';
-const TYPES = new Set([
-  'financial_incident', 'financial_incident_resolved', 'financial_attestation',
-  'engine_break_failed', 'engine_break_recovered', 'guarantee_bank_short',
-  'guarantee_bank_recovered', 'estate_digest',
-]);
+const TYPES = OWNER_OPERATIONAL_TYPES;
 
+// push_outbox rows use `event`/`title`; the shared classifier speaks
+// `type`/`title`/`data` (the notifications-table shape). Translate rather
+// than keep a second copy of the type/title list here — see
+// src/lib/notifications/ownerOperationalClassifier.mjs for why.
 export function isOwnerOperationalPush(userId, row = {}) {
-  // PostgreSQL accepts case, braces and alternate hyphen grouping for the same
-  // UUID. Compare the identity before the first database round trip, retaining
-  // the original caller string in the event evidence.
-  if (typeof userId !== 'string') return false;
-  const identity = userId.trim().replace(/^\{([^{}]+)\}$/, '$1').replace(/-/g, '').toLowerCase();
-  if (identity !== ALERT_OWNER_ID.replace(/-/g, '')) return false;
-  if (TYPES.has(row.event)) return true;
-  // These are the actual legacy system-notification producers. Do not mute
-  // the whole system category: it also carries account-security notices.
-  return row.event === 'system' && (
-    row.title === 'Push Health Alert'
-    || row.title === 'Notifications May Not Be Reaching This Device'
-    || /^Horse Fleet (?:Alert|Recovered): /.test(String(row.title || ''))
-  );
+  return isOwnerOperationalRow(userId, { type: row.event, title: row.title, data: row.data });
 }
 
 function inboxEvent(row, resolution) {
@@ -47,10 +35,7 @@ function inboxEvent(row, resolution) {
 // function receives the original notification, never a caller-provided linked
 // UUID treated as proof of another notification's content.
 export function isOwnerOperationalNotification(userId, row = {}) {
-  if (isOwnerOperationalPush(userId, { event: row.type, title: row.title })) return true;
-  return isOwnerOperationalPush(userId, { event: 'system', title: 'Push Health Alert' })
-    && row.type === 'system' && row.data?.component === 'club-arena-engine'
-    && typeof row.data?.alertname === 'string' && row.data.alertname.length > 0;
+  return isOwnerOperationalRow(userId, row);
 }
 
 // One bounded retry for the exact original in its owning request. The original
