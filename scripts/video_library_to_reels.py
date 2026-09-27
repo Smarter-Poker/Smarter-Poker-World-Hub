@@ -676,6 +676,16 @@ def _is_expected_transient_verifier_result(result):
     )
 
 
+def _same_permanent_restriction(first, second):
+    """Require two sources to name the same permanent content restriction."""
+    return bool(
+        first.get('status') in PERMANENT_FAILURE_STATUSES
+        and second.get('status') == first.get('status')
+        and first.get('reason')
+        and second.get('reason') == first.get('reason')
+    )
+
+
 def _classify_http_error(prefix, error):
     # Only oEmbed is the durable content-identity endpoint in this pipeline.
     # A 404/410 from the embed document or the internal player endpoint can be
@@ -784,7 +794,7 @@ def _adjudicate_failed_ytdlp(
         )
     explicit = _classify_youtube_restriction_detail(detail)
     if explicit:
-        if embed_verdict['status'] == explicit['status']:
+        if _same_permanent_restriction(embed_verdict, explicit):
             return explicit
         return _availability('error', 'youtube_restriction_signal_conflict')
     transient = _classify_youtube_transient_detail(detail)
@@ -1043,7 +1053,9 @@ def verify_youtube_video_scrapling(video_id):
             allow_embed_fallback=oembed_public,
             allow_challenge_rescue=oembed_public,
         )
-        if not oembed_public and adjudicated['status'] not in PERMANENT_FAILURE_STATUSES:
+        if not oembed_public:
+            if _same_permanent_restriction(embed_verdict, adjudicated):
+                return adjudicated
             return oembed_failure
         return adjudicated
     except OSError as error:
@@ -1062,11 +1074,11 @@ def verify_youtube_video_scrapling(video_id):
             allow_embed_fallback=oembed_public,
             allow_challenge_rescue=oembed_public,
         )
-        if (
-            not oembed_public
-            and adjudicated['status'] not in PERMANENT_FAILURE_STATUSES
-            and adjudicated.get('reason') not in EXPECTED_TRANSIENT_REASONS
-        ):
+        if not oembed_public:
+            if _same_permanent_restriction(embed_verdict, adjudicated):
+                return adjudicated
+            if adjudicated.get('reason') == 'youtube_upcoming':
+                return adjudicated
             return oembed_failure
         return adjudicated
 
@@ -1081,14 +1093,22 @@ def verify_youtube_video_scrapling(video_id):
 
     availability = str(metadata.get('availability') or '').lower()
     if availability == 'private':
-        if embed_verdict['status'] == 'private':
-            return _availability('private', 'youtube_private')
+        restriction = _availability('private', 'youtube_private')
+        if _same_permanent_restriction(embed_verdict, restriction):
+            return restriction
+        if not oembed_public:
+            return oembed_failure
         return _availability('error', 'youtube_restriction_signal_conflict')
     if availability in ('premium_only', 'subscriber_only'):
-        if embed_verdict['status'] == 'restricted':
-            return _availability('restricted', f'youtube_{availability}')
+        restriction = _availability('restricted', 'youtube_members_only')
+        if _same_permanent_restriction(embed_verdict, restriction):
+            return restriction
+        if not oembed_public:
+            return oembed_failure
         return _availability('error', 'youtube_restriction_signal_conflict')
     if availability == 'needs_auth':
+        if not oembed_public:
+            return oembed_failure
         if embed_verdict['available'] and oembed_public:
             return embed_verdict
         if embed_verdict['status'] in PERMANENT_FAILURE_STATUSES:
@@ -1100,12 +1120,24 @@ def verify_youtube_video_scrapling(video_id):
     if type(age_limit) not in (int, float):
         return _availability('error', 'youtube_age_limit_unknown')
     if age_limit > 0:
-        return _availability('restricted', 'youtube_age_restricted')
+        restriction = _availability('restricted', 'youtube_age_restricted')
+        if not oembed_public and not _same_permanent_restriction(
+            embed_verdict,
+            restriction,
+        ):
+            return oembed_failure
+        return restriction
     if age_limit != 0:
         return _availability('error', 'youtube_age_limit_unknown')
     playable_in_embed = metadata.get('playable_in_embed')
     if playable_in_embed is False:
-        return _availability('embed_disabled', 'youtube_embed_disabled')
+        restriction = _availability('embed_disabled', 'youtube_embed_disabled')
+        if not oembed_public and not _same_permanent_restriction(
+            embed_verdict,
+            restriction,
+        ):
+            return oembed_failure
+        return restriction
     if playable_in_embed is not True:
         return _availability('error', 'youtube_embed_playability_unknown')
     live_status = metadata.get('live_status')
@@ -2471,13 +2503,11 @@ def run_bridge(args):
                         }
 
                 stats['failure_verification_outcomes'][availability['status']] += 1
-                if _is_operational_verifier_error(availability):
-                    stats['verifier_errors_observed'] += 1
-                elif (
-                    not can_reuse
-                    and _is_expected_transient_verifier_result(availability)
-                ):
-                    stats['expected_transient_verifier_results'] += 1
+                if not can_reuse:
+                    if _is_operational_verifier_error(availability):
+                        stats['verifier_errors_observed'] += 1
+                    elif _is_expected_transient_verifier_result(availability):
+                        stats['expected_transient_verifier_results'] += 1
 
                 outcome = _attempt_outcome(availability, verdict)
                 if args.dry_run:
