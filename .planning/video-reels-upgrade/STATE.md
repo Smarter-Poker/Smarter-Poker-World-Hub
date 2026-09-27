@@ -2,18 +2,18 @@
 
 - **Current phase:** 1 of 10
 - **Phase name:** Restore Safe Supply And Endless Delivery
-- **Status:** Active release; source repairs are implemented, all three production publisher migrations are installed, and exact-candidate integration/publication is in progress
+- **Status:** Active release; source, database, and worker delivery are green, while World Hub/Open Claw protected publication and live proof remain in progress
 - **Branch:** `agent/codex-reels-supply-20260926/feat/reels-multiverse-supply`
 - **Delivery PR:** `#1977` on remote branch `agent/cowork-video-p1/fix/video-reels-integrity-phase-1`
 - **Workspace:** `/Volumes/SmarterWork/agent-work/codex-reels-supply-20260926`
-- **Candidate revision recovered:** `946a75a44471fb02e0b1d75e78b4da19c331f919` plus the final uncommitted audit repairs listed below
+- **Exact tested source revision:** `b36c0aecc1be4bf515c6a2adc8797ace7fc4aef9` (the checkpoint-only commit that follows does not change runtime source)
 - **Protected baseline at latest fetch:** `origin/main` `990be89d230f2072fc50abe173132edb8e9a1e9a`
 - **Operation owner:** this task owns source repair, database installation, protected PR completion, Vercel/Open Claw publication, and live verification
-- **Next gate:** integrate the latest protected baseline, run exact-candidate checks, publish through PR #1977 and the Workers protected PR route, deploy World Hub/Open Claw/worker changes, and prove managed inventory plus more-than-50 continuation live.
+- **Next gate:** push the tested candidate to PR #1977, pass current-head protected checks, squash merge, verify Vercel/Open Claw exact-tree publication, run the guarded production publisher, and prove managed inventory plus more-than-50 continuation live.
 
 ## Policy Receipt
 
-- **Read at:** `2026-09-26T22:03:52.551Z`
+- **Read at:** `2026-09-26T22:30:34.618Z`
 - **Policy version:** `2.9`
 - **Manifest SHA-256:** `7663cc909626f7e9966931d27166ad8774addc801f7ad1898a2d7564bc13c378`
 - **Owner policy:** `76228d75677eb76ca9dcfbf65fd68ddb7aac3941f61154acc456ae8230a9a4fa`
@@ -38,11 +38,10 @@
 
 ## Acceptance Evidence Still Required
 
-- Targeted and full local tests/build on the final candidate.
-- Horse-video forward-migration ledger/function/policy readback with no new advisor findings.
-- Protected PR checks green and squash merge revision recorded.
-- Open Claw and World Hub production revisions verified against the merged source.
-- Live anonymous and signed-in proof of managed poker, slots, and sports categories, horse/player-author equality, three-page continuation, deep-link recovery, stale storage, and mid-flight retry.
+- World Hub PR #1977 current-head checks green and protected squash merge revision recorded.
+- Vercel and Open Claw production revisions verified against the merged source.
+- Guarded production publication/readback with more than 2,000 eligible/feed-visible managed Reels or an explicit per-row rejection ledger.
+- Live anonymous and signed-in proof of managed poker, slots, and sports categories, horse/player-author equality, three-page continuation, deep-link recovery, stale storage, mid-flight retry, source attribution, and the protected article reader.
 
 ## Evidence Recorded This Run
 
@@ -69,3 +68,7 @@
 - The command rail now uses canonical mixed-category URLs, while six-month-old `feed=foryou`, `feed=trending`, `feed=following`, and categoryless Reel bookmarks retain safe fallbacks. Mixed viewer loading/empty copy is category-neutral.
 - Every viewer mounts at most one active player and warms only the immediately next media resource. The focused menu, stale-bookmark, single-carousel, hostile-share, and player-window run passed 56/56; the final post-copy focused run passed 45/45.
 - The complete Phase 1 maintained suite passed 278 Node, 25 Vitest, and 15 Python tests (318 total) after the final player-window and route repairs. Current-main integration, full lint/build, browser proof, hosted checks, publication, and live behavior proof remain pending.
+- Workers follow-up PR `#146` passed exact-source tests and protected CI, squash-merged as `664c663f8ab4a3acd24789978a8a76bb600cc38f`, deployed in run `36275731992`, and reported that exact merged revision healthy in production. The earlier PR #145 evidence remains historical; #146 is the current worker publication for Phase 1.
+- Integrated protected World Hub main `990be89d230f2072fc50abe173132edb8e9a1e9a`, then repaired canonical category navigation, source attribution, publication visibility telemetry, hostile route/auth recovery, stale-cache cleanup after hydration, and query-only page preservation for mid-flight category drops.
+- Final local hostile-state browser proof on desktop `1440x900` and mobile `393x852` passed: all canonical category/menu destinations were present, one active YouTube player was retained while advancing, slots displayed the responsible-gaming notice, stale Reel localStorage was removed, stale auth could not enter Following, old `feed=trending&id=...` bookmarks retained both values while adding `category=for-you`, and a synthetic 503 category switch kept the mounted Reel plus an explicit retry.
+- Exact source revision `b36c0aecc1be4bf515c6a2adc8797ace7fc4aef9` passed the maintained Phase 1 suite with 284 Node, 25 Vitest, and 20 Python tests (329 total), repository-wide ESLint across 4,511 files in 112 bounded batches, `git diff --check`, and the complete Node 24 production build. The build also passed every bundled cross-product law suite, generated 504/504 static pages, and passed the Personal Assistant performance budget. Local static generation logged its existing fail-soft unregistered external API-key notice because the isolated worktree does not carry production credentials; the build exited zero and generated every page.
