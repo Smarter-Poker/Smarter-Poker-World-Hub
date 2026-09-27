@@ -2,14 +2,14 @@
 
 - **Current phase:** 1 of 10
 - **Phase name:** Restore Safe Supply And Endless Delivery
-- **Status:** Active release; the application and three Open Claw release repairs are protected-merged, while the bounded backfill transport and shared-verdict horse consumer are being repaired and live positive supply proof remains pending
+- **Status:** Active release; the application and four Open Claw release repairs are protected-merged, while the exact-main backfill and shared-verdict horse consumer are being completed and live positive supply proof remains pending
 - **Branch:** `agent/codex-reels-verdict/fix/reels-shared-verdict`
-- **Delivery PRs:** application `#1977`; Open Claw repairs `#1985`, `#1986`, and `#1987`; current shared-verdict follow-up pending
+- **Delivery PRs:** application `#1977`; Open Claw repairs `#1985`, `#1986`, `#1987`, and `#1988`; current shared-verdict follow-up `#1989`
 - **Workspace:** `/Volumes/SmarterWork/agent-work/codex-reels-verdict`
-- **Exact tested runtime/database source revision:** `bff7367c325b19add43acb9c9d877f2a58f698be` (a checkpoint-only receipt refresh follows and does not change runtime/database source)
-- **Protected baseline at latest fetch:** `origin/main` `4a1b285bdbb54c4e999d9c023548d142faf65527`
+- **Exact tested integrated source revision:** `6e0c9e9d7ff5e6d6ccfacb6baca6e98fad0647eb` (the checkpoint-only evidence update that follows does not change runtime/database source)
+- **Protected baseline at latest fetch:** `origin/main` `ac012ee67a180ca630841e6f4d82585940ed1843`
 - **Operation owner:** this task owns source repair, database installation, protected PR completion, Vercel/Open Claw publication, and live verification
-- **Next gate:** deliver the installed batch shared-verdict RPC, make the Workers horse publisher consume only those durable proofs without per-horse YouTube fan-out, repair the long-lived SSH backfill transport, complete a positive bounded backfill, then require the next legitimate `:25` horse cycle plus strict database/API/browser readback.
+- **Next gate:** finish protected delivery of the installed batch shared-verdict RPC, make the Workers horse publisher consume only those durable proofs without per-horse YouTube fan-out, complete the exact-main positive bounded backfill through the merged keepalive transport, then require the next legitimate `:25` horse cycle plus strict database/API/browser readback.
 
 ## Policy Receipt
 
@@ -83,3 +83,4 @@
 - Exact-main Open Claw run `36291139117` successfully promoted `27e5ed8fc8600248427ce91ba53b916c2fc4901a`. Manual backfill run `36291233735` correctly refused a nondeterministic same-SHA release before mutation; #1987 fixed that cause. The following exact `4a1b285bdbb54c4e999d9c023548d142faf65527` backfill run `36291706111` promoted successfully but its silent long-lived SSH connection dropped with `client_loop: send disconnect: Broken pipe` before publisher output. A scoped keepalive repair is in progress; no backfill success is claimed.
 - The first legitimate post-promotion horse cycle, operation `c0f1eeb9-5fd0-407e-9a5c-fd562694c624`, returned HTTP 503 with due/attempted/failed `51/51/51`, created `0`, and `305` backoff-short-circuited candidate checks. Production reproduction proved one anti-bot-class yt-dlp result activated a process-wide 15-minute backoff, while the publisher collapsed all subsequent unknown verdicts into definite invalid-supply errors.
 - Installed the additive service-role-only `fresh_public_youtube_verification_ids` migration at ledger version `20260927034032`. Readback proves one stable, set-returning SECURITY DEFINER overload with fixed `search_path=public, extensions`, service-role execute only, no PUBLIC/anonymous/authenticated execute, scalar-authority delegation, and zero results for malformed identifiers. It does not alter or replay any installed migration.
+- Open Claw keepalive PR `#1988` passed protected CI and squash-merged as `ac012ee67a180ca630841e6f4d82585940ed1843`. The shared-verdict branch integrated that protected revision without conflicts; the combined migration and Open Claw routing contracts passed 23/23, policy drift check passed, and both diff checks passed.
