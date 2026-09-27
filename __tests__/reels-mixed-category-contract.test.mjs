@@ -195,6 +195,7 @@ test('the server owns the allowlist and applies it before pagination', () => {
   assert.match(SERVER_SOURCE, /normalizeEligibleRow[\s\S]*topicsForCategory\(category\)\.includes\(explicitTopic\)/);
   assert.match(API_SOURCE, /if \(category === 'following'\) scope = 'following'/);
   assert.match(API_SOURCE, /category:\s*result\.category/);
+  assert.match(SERVER_SOURCE, /options\.includeProfiles === false[\s\S]*?rows\.map\(row => publicRow\(row, EMPTY_PROFILE_MAP\)\)/);
   assert.equal(normalizeReelsCategory('not-a-category'), 'poker');
 });
 

@@ -63,6 +63,20 @@ test('all 13 World Hub families share one canonical command identity with the fo
       assert.ok(isTitleCased(item.title), `${world.id}/${item.title} is not Title Cased`);
     }
   }
+
+  const reelsCommand = registry.worlds
+    .find((world) => world.id === 'social-media')
+    ?.items.find((item) => item.href === '/hub/reels');
+  assert.deepEqual(reelsCommand, {
+    href: '/hub/reels',
+    label: 'Reels',
+    title: 'Reels',
+    icon: 'film',
+  });
+  const auditedReelsCommand = auditInventory.worlds
+    .find((world) => world.id === 'social-media')
+    ?.primaryDestinations.find((item) => item.href === '/hub/reels');
+  assert.equal(auditedReelsCommand?.description, 'Reels');
 });
 
 test('every family has a real adaptive menu configuration', () => {

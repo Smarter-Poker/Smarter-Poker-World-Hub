@@ -89,6 +89,10 @@ import { useActiveIdentity } from '../../../src/contexts/ActiveIdentityContext';
 import { isHorseOnlineNow } from '../../../src/lib/horsePresence';
 import { blockUser, getBlockedUsers } from '../../../src/services/privacy-service';
 import { buildReelPath } from '../../../src/lib/reelsFeedClient';
+import {
+  buildSocialFeedSequence,
+  SOCIAL_FEED_REELS_KEY,
+} from '../../../src/lib/socialFeedSequence.mjs';
 
 // God-Mode Stack
 import { useSocialStore } from '../../../src/stores/socialStore';
@@ -6080,7 +6084,7 @@ function SocialMediaPage() {
   // One element definition, mounted from mutually exclusive empty/populated
   // branches below. This preserves the populated-feed insertion point without
   // ever opening two 50-row readers or two realtime channels.
-  const inlineReelsCarousel = <ReelsFeedCarousel key="reels-carousel" />;
+  const inlineReelsCarousel = <ReelsFeedCarousel key={SOCIAL_FEED_REELS_KEY} />;
 
   // Only show loading skeleton if intro is done and still loading
   if (loading )
@@ -7998,9 +8002,36 @@ function SocialMediaPage() {
                             </div>
                           );
                         }
-                        return filteredPosts.map((p, index) => (
-                          <React.Fragment key={p.id}>
+                        // Post cards and injected surfaces are one keyed sibling
+                        // sequence. A realtime prepend can move the carousel, but
+                        // cannot reparent and remount it under a different post.
+                        return buildSocialFeedSequence(filteredPosts).map((item) => {
+                          if (item.kind === 'reels') return inlineReelsCarousel;
+                          if (item.kind === 'trending-venues') {
+                            return (
+                              <TrendingVenues
+                                key={item.key}
+                                onCheckIn={(venue) =>
+                                  window.dispatchEvent(
+                                    new CustomEvent('sp-trigger-checkin', { detail: venue })
+                                  )
+                                }
+                              />
+                            );
+                          }
+                          if (item.kind === 'share-streak-leaderboard') {
+                            return (
+                              <ShareStreakLeaderboard
+                                key={item.key}
+                                currentUserId={user?.id}
+                              />
+                            );
+                          }
+
+                          const p = item.post;
+                          return (
                             <PostCard
+                              key={item.key}
                               post={{ ...p, isGodMode }}
                               currentUserId={user?.id}
                               currentUserName={user?.name}
@@ -8036,41 +8067,8 @@ function SocialMediaPage() {
                               }}
                               horseProfileIds={horseProfileIds}
                             />
-                            {/* ONE carousel, after the 3rd post - or after the last
-                                post when the feed is shorter than that, which used to
-                                mean no carousel appeared at all.
-
-                                Deliberately NOT "every 3 posts", which is what the file
-                                header claimed for months: each instance runs its own
-                                50-row fetch AND opens its own realtime channel, so
-                                periodic injection multiplies both. If that ever becomes
-                                the product decision, hoist the fetch and the
-                                subscription out of the component first. */}
-                            {(index === 2 ||
-                              (filteredPosts.length < 3 &&
-                                index === filteredPosts.length - 1)) && (
-                              inlineReelsCarousel
-                            )}
-                            {/* Insert Trending Venues after 1st post */}
-                            {index === 0 && (
-                              <TrendingVenues
-                                key="trending-venues"
-                                onCheckIn={(venue) =>
-                                  window.dispatchEvent(
-                                    new CustomEvent('sp-trigger-checkin', { detail: venue })
-                                  )
-                                }
-                              />
-                            )}
-                            {/* Insert Share Streak Leaderboard after 5th post */}
-                            {index === 4 && (
-                              <ShareStreakLeaderboard
-                                key="share-streak-lb"
-                                currentUserId={user?.id}
-                              />
-                            )}
-                          </React.Fragment>
-                        ));
+                          );
+                        });
                       })()}
 
                       {/* Leaderboard fallback: show after all posts if feed has < 5 posts */}
