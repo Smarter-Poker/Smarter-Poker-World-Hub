@@ -211,6 +211,14 @@ test('release recovery verifies the exact Workers poker and sports pools without
   );
   assert.match(
     publisher,
+    /CANCELLED_RECOVERY_START = datetime\(\s*2026, 9, 27, 4, 54, 42, 529360, tzinfo=timezone\.utc\s*\)/,
+  );
+  assert.match(
+    publisher,
+    /CANCELLED_RECOVERY_END = datetime\(\s*2026, 9, 27, 4, 56, 42, 443254, tzinfo=timezone\.utc\s*\)/,
+  );
+  assert.match(
+    publisher,
     /'poker_clips'[\s\S]*\{'is_active': 'eq\.true', 'oembed_ok': 'not\.is\.false'\}[\s\S]*'published_at\.desc\.nullslast'/,
   );
   assert.match(
@@ -220,7 +228,11 @@ test('release recovery verifies the exact Workers poker and sports pools without
   assert.match(publisher, /surface = f'horse_\{lane\}_supply_verifier'/);
   assert.match(publisher, /def _interleave_supply_candidates\(catalog_rows, platform_rows\):/);
   assert.match(publisher, /catalog_quota = max\(1, \(limit \* 8\) \/\/ 15\)/);
-  assert.match(publisher, /RELEASE_RECOVERY_SURFACE_PREFIX = 'release_recovery_'/);
+  assert.match(publisher, /RELEASE_RECOVERY_SURFACE_PREFIX = 'release_recovery_v2_'/);
+  assert.match(
+    publisher,
+    /str\(row\.get\('verification_status'\) or ''\)\.lower\(\) == 'error'[\s\S]*_in_cancelled_recovery_window\(row\.get\('last_verified_at'\)\)/,
+  );
   assert.doesNotMatch(
     publisher,
     /platform_source[\s\S]{0,400}_publish_row\(/,

@@ -2,10 +2,11 @@
 
 import importlib.util
 import json
+import subprocess
 import tempfile
 import time
 import unittest
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from types import SimpleNamespace
 from unittest import mock
@@ -167,14 +168,18 @@ class VideoLibraryPublisherResumeTest(unittest.TestCase):
 
     def test_ytdlp_access_metadata_must_be_public_age_free_and_embeddable(self):
         bridge = self.bridge
+        identity = {
+            'id': 'M7lc1UVf-VE',
+            'live_status': 'not_live',
+        }
         cases = [
-            ({'availability': 'premium_only', 'age_limit': 0, 'playable_in_embed': True}, 'error', 'youtube_restriction_signal_conflict'),
-            ({'availability': 'subscriber_only', 'age_limit': 0, 'playable_in_embed': True}, 'error', 'youtube_restriction_signal_conflict'),
-            ({'availability': 'needs_auth', 'age_limit': 0, 'playable_in_embed': True}, 'verified', None),
-            ({'availability': 'public', 'age_limit': 18, 'playable_in_embed': True}, 'restricted', 'youtube_age_restricted'),
-            ({'availability': 'public', 'age_limit': 0, 'playable_in_embed': False}, 'embed_disabled', 'youtube_embed_disabled'),
-            ({'availability': 'public', 'age_limit': 0, 'playable_in_embed': True, 'live_status': 'is_upcoming'}, 'error', 'youtube_upcoming'),
-            ({'availability': 'public', 'age_limit': 0, 'playable_in_embed': True}, 'verified', None),
+            ({**identity, 'availability': 'premium_only', 'age_limit': 0, 'playable_in_embed': True}, 'error', 'youtube_restriction_signal_conflict'),
+            ({**identity, 'availability': 'subscriber_only', 'age_limit': 0, 'playable_in_embed': True}, 'error', 'youtube_restriction_signal_conflict'),
+            ({**identity, 'availability': 'needs_auth', 'age_limit': 0, 'playable_in_embed': True}, 'verified', None),
+            ({**identity, 'availability': 'public', 'age_limit': 18, 'playable_in_embed': True}, 'restricted', 'youtube_age_restricted'),
+            ({**identity, 'availability': 'public', 'age_limit': 0, 'playable_in_embed': False}, 'embed_disabled', 'youtube_embed_disabled'),
+            ({**identity, 'availability': 'public', 'age_limit': 0, 'playable_in_embed': True, 'live_status': 'is_upcoming'}, 'error', 'youtube_upcoming'),
+            ({**identity, 'availability': 'public', 'age_limit': 0, 'playable_in_embed': True}, 'verified', None),
         ]
 
         with mock.patch.object(
@@ -211,9 +216,11 @@ class VideoLibraryPublisherResumeTest(unittest.TestCase):
         bridge._run_isolated_ytdlp = lambda *_args, **_kwargs: SimpleNamespace(
             returncode=0,
             stdout=json.dumps({
+                'id': 'M7lc1UVf-VE',
                 'availability': 'public',
                 'age_limit': 0,
                 'playable_in_embed': True,
+                'live_status': 'not_live',
             }),
             stderr='',
         )
@@ -247,9 +254,11 @@ class VideoLibraryPublisherResumeTest(unittest.TestCase):
         bridge._run_isolated_ytdlp = lambda *_args, **_kwargs: SimpleNamespace(
             returncode=0,
             stdout=json.dumps({
+                'id': 'M7lc1UVf-VE',
                 'availability': 'public',
                 'age_limit': 0,
                 'playable_in_embed': True,
+                'live_status': 'not_live',
             }),
             stderr='',
         )
@@ -297,6 +306,344 @@ class VideoLibraryPublisherResumeTest(unittest.TestCase):
         self.assertFalse(result['available'])
         self.assertEqual(result['status'], 'restricted')
         self.assertEqual(result['reason'], 'youtube_age_restricted')
+
+    def test_production_host_dual_bot_challenge_uses_the_exact_public_embed_proof(self):
+        bridge = self.bridge
+
+        player_challenge = self._response(json.dumps({
+            'playabilityStatus': {
+                'status': 'LOGIN_REQUIRED',
+                'reason': 'Sign in to confirm you’re not a bot',
+            },
+        }).encode('utf-8'))
+
+        def challenged_public(request, **_kwargs):
+            if '/oembed?' in request.full_url:
+                return self._oembed_response()
+            if '/embed/' in request.full_url:
+                return self._embed_response()
+            if '/youtubei/v1/player?' in request.full_url:
+                return player_challenge
+            raise AssertionError(request.full_url)
+
+        bridge._run_isolated_ytdlp = lambda *_args, **_kwargs: SimpleNamespace(
+            returncode=1,
+            stdout='',
+            stderr='Sign in to confirm you are not a bot',
+        )
+        with mock.patch.object(
+            bridge.urllib.request,
+            'urlopen',
+            side_effect=challenged_public,
+        ):
+            result = bridge.verify_youtube_video_scrapling('M7lc1UVf-VE')
+        self.assertEqual(result, {
+            'available': True,
+            'status': 'verified',
+            'reason': None,
+        })
+
+        # A generic login failure is not the same signal. Both anonymous
+        # clients must independently report the specific YouTube bot challenge.
+        bridge._run_isolated_ytdlp = lambda *_args, **_kwargs: SimpleNamespace(
+            returncode=1,
+            stdout='',
+            stderr='Login required to continue',
+        )
+        with mock.patch.object(
+            bridge.urllib.request,
+            'urlopen',
+            side_effect=challenged_public,
+        ):
+            login = bridge.verify_youtube_video_scrapling('M7lc1UVf-VE')
+        self.assertEqual(login, {
+            'available': False,
+            'status': 'error',
+            'reason': 'youtube_auth_required',
+        })
+
+    def test_public_ytdlp_metadata_can_corroborate_a_challenged_player(self):
+        bridge = self.bridge
+
+        def challenged_player(request, **_kwargs):
+            if '/oembed?' in request.full_url:
+                return self._oembed_response()
+            if '/embed/' in request.full_url:
+                return self._embed_response()
+            if '/youtubei/v1/player?' in request.full_url:
+                return self._response(json.dumps({
+                    'playabilityStatus': {
+                        'status': 'LOGIN_REQUIRED',
+                        'reason': 'Sign in to confirm you are not a bot',
+                    },
+                }).encode('utf-8'))
+            raise AssertionError(request.full_url)
+
+        bridge._run_isolated_ytdlp = lambda *_args, **_kwargs: SimpleNamespace(
+            returncode=0,
+            stdout=json.dumps({
+                'id': 'M7lc1UVf-VE',
+                'availability': 'public',
+                'age_limit': 0,
+                'playable_in_embed': True,
+                'live_status': 'not_live',
+            }),
+            stderr='',
+        )
+        with mock.patch.object(
+            bridge.urllib.request,
+            'urlopen',
+            side_effect=challenged_player,
+        ):
+            result = bridge.verify_youtube_video_scrapling('M7lc1UVf-VE')
+        self.assertEqual(result, {
+            'available': True,
+            'status': 'verified',
+            'reason': None,
+        })
+
+    def test_challenged_player_requires_exact_complete_public_ytdlp_metadata(self):
+        bridge = self.bridge
+
+        def challenged_player(request, **_kwargs):
+            if '/oembed?' in request.full_url:
+                return self._oembed_response()
+            if '/embed/' in request.full_url:
+                return self._embed_response()
+            if '/youtubei/v1/player?' in request.full_url:
+                return self._response(json.dumps({
+                    'playabilityStatus': {
+                        'status': 'LOGIN_REQUIRED',
+                        'reason': 'Sign in to confirm you are not a bot',
+                    },
+                }).encode('utf-8'))
+            raise AssertionError(request.full_url)
+
+        cases = [
+            (
+                [],
+                'yt_dlp_payload_malformed',
+            ),
+            (
+                {
+                    'availability': 'public',
+                    'age_limit': 0,
+                    'playable_in_embed': True,
+                    'live_status': 'not_live',
+                },
+                'youtube_ytdlp_identity_mismatch',
+            ),
+            (
+                {
+                    'id': 'D5R_ZQZDR1Q',
+                    'availability': 'public',
+                    'age_limit': 0,
+                    'playable_in_embed': True,
+                    'live_status': 'not_live',
+                },
+                'youtube_ytdlp_identity_mismatch',
+            ),
+            (
+                {
+                    'id': 'M7lc1UVf-VE',
+                    'availability': 'public',
+                    'playable_in_embed': True,
+                    'live_status': 'not_live',
+                },
+                'youtube_age_limit_unknown',
+            ),
+            (
+                {
+                    'id': 'M7lc1UVf-VE',
+                    'availability': 'public',
+                    'age_limit': None,
+                    'playable_in_embed': True,
+                    'live_status': 'not_live',
+                },
+                'youtube_age_limit_unknown',
+            ),
+            (
+                {
+                    'id': 'M7lc1UVf-VE',
+                    'availability': 'public',
+                    'age_limit': 0,
+                    'playable_in_embed': True,
+                },
+                'youtube_live_status_unknown',
+            ),
+            (
+                {
+                    'id': 'M7lc1UVf-VE',
+                    'availability': 'public',
+                    'age_limit': 0,
+                    'live_status': 'not_live',
+                },
+                'youtube_embed_playability_unknown',
+            ),
+            (
+                {
+                    'id': 'M7lc1UVf-VE',
+                    'availability': 'public',
+                    'age_limit': 0,
+                    'playable_in_embed': None,
+                    'live_status': 'not_live',
+                },
+                'youtube_embed_playability_unknown',
+            ),
+            (
+                {
+                    'id': 'M7lc1UVf-VE',
+                    'availability': 'public',
+                    'age_limit': 0,
+                    'playable_in_embed': 'true',
+                    'live_status': 'not_live',
+                },
+                'youtube_embed_playability_unknown',
+            ),
+        ]
+        with mock.patch.object(
+            bridge.urllib.request,
+            'urlopen',
+            side_effect=challenged_player,
+        ):
+            for metadata, reason in cases:
+                with self.subTest(metadata=metadata):
+                    bridge._run_isolated_ytdlp = lambda *_args, payload=metadata, **_kwargs: SimpleNamespace(
+                        returncode=0,
+                        stdout=json.dumps(payload),
+                        stderr='',
+                    )
+                    result = bridge.verify_youtube_video_scrapling('M7lc1UVf-VE')
+                    self.assertEqual(result, {
+                        'available': False,
+                        'status': 'error',
+                        'reason': reason,
+                    })
+
+    def test_split_ytdlp_output_cannot_hide_an_explicit_restriction(self):
+        bridge = self.bridge
+
+        def challenged_player(request, **_kwargs):
+            if '/oembed?' in request.full_url:
+                return self._oembed_response()
+            if '/embed/' in request.full_url:
+                return self._embed_response()
+            if '/youtubei/v1/player?' in request.full_url:
+                return self._response(json.dumps({
+                    'playabilityStatus': {
+                        'status': 'LOGIN_REQUIRED',
+                        'reason': 'Sign in to confirm you are not a bot',
+                    },
+                }).encode('utf-8'))
+            raise AssertionError(request.full_url)
+
+        with mock.patch.object(
+            bridge.urllib.request,
+            'urlopen',
+            side_effect=challenged_player,
+        ):
+            bridge._run_isolated_ytdlp = lambda *_args, **_kwargs: SimpleNamespace(
+                returncode=1,
+                stdout='This video is private',
+                stderr='Sign in to confirm you are not a bot',
+            )
+            explicit = bridge.verify_youtube_video_scrapling('M7lc1UVf-VE')
+            self.assertEqual(explicit, {
+                'available': False,
+                'status': 'error',
+                'reason': 'youtube_restriction_signal_conflict',
+            })
+
+            bridge._run_isolated_ytdlp = lambda *_args, **_kwargs: SimpleNamespace(
+                returncode=1,
+                stdout='',
+                stderr='This is not a bot tutorial',
+            )
+            broad_phrase = bridge.verify_youtube_video_scrapling('M7lc1UVf-VE')
+            self.assertEqual(broad_phrase, {
+                'available': False,
+                'status': 'error',
+                'reason': 'yt_dlp_nonzero',
+            })
+
+    def test_timed_out_ytdlp_only_rescues_a_captured_exact_bot_challenge(self):
+        bridge = self.bridge
+
+        def challenged_player(request, **_kwargs):
+            if '/oembed?' in request.full_url:
+                return self._oembed_response()
+            if '/embed/' in request.full_url:
+                return self._embed_response()
+            if '/youtubei/v1/player?' in request.full_url:
+                return self._response(json.dumps({
+                    'playabilityStatus': {
+                        'status': 'LOGIN_REQUIRED',
+                        'reason': 'Sign in to confirm you are not a bot',
+                    },
+                }).encode('utf-8'))
+            raise AssertionError(request.full_url)
+
+        with mock.patch.object(
+            bridge.urllib.request,
+            'urlopen',
+            side_effect=challenged_player,
+        ):
+            generic_timeout = subprocess.TimeoutExpired(
+                cmd=['yt-dlp'],
+                timeout=40,
+                output=b'waiting for response',
+                stderr=b'',
+            )
+            bridge._run_isolated_ytdlp = mock.Mock(side_effect=generic_timeout)
+            generic = bridge.verify_youtube_video_scrapling('M7lc1UVf-VE')
+            self.assertEqual(generic, {
+                'available': False,
+                'status': 'error',
+                'reason': 'yt_dlp_timeout',
+            })
+
+            challenge_timeout = subprocess.TimeoutExpired(
+                cmd=['yt-dlp'],
+                timeout=40,
+                output=b'',
+                stderr='Sign in to confirm you\u2019re   not a bot'.encode('utf-8'),
+            )
+            bridge._run_isolated_ytdlp = mock.Mock(side_effect=challenge_timeout)
+            rescued = bridge.verify_youtube_video_scrapling('M7lc1UVf-VE')
+            self.assertEqual(rescued, {
+                'available': True,
+                'status': 'verified',
+                'reason': None,
+            })
+
+            conflicting_timeout = subprocess.TimeoutExpired(
+                cmd=['yt-dlp'],
+                timeout=40,
+                output=b'This video is private',
+                stderr=b'Sign in to confirm you are not a bot',
+            )
+            bridge._run_isolated_ytdlp = mock.Mock(side_effect=conflicting_timeout)
+            conflict = bridge.verify_youtube_video_scrapling('M7lc1UVf-VE')
+            self.assertEqual(conflict, {
+                'available': False,
+                'status': 'error',
+                'reason': 'youtube_restriction_signal_conflict',
+            })
+
+    def test_ytdlp_spawn_error_stays_unknown_despite_public_anonymous_proof(self):
+        bridge = self.bridge
+        bridge._run_isolated_ytdlp = mock.Mock(side_effect=OSError('spawn failed'))
+        with mock.patch.object(
+            bridge.urllib.request,
+            'urlopen',
+            side_effect=self._verification_urlopen,
+        ):
+            result = bridge.verify_youtube_video_scrapling('M7lc1UVf-VE')
+        self.assertEqual(result, {
+            'available': False,
+            'status': 'error',
+            'reason': 'yt_dlp_execution_error',
+        })
 
     def test_anonymous_player_separates_public_from_members_private_and_unsafe(self):
         bridge = self.bridge
@@ -516,7 +863,7 @@ class VideoLibraryPublisherResumeTest(unittest.TestCase):
 
     def test_release_recovery_rechecks_only_incident_rows_and_transient_errors(self):
         bridge = self.bridge
-        now = datetime.fromisoformat('2026-09-27T04:10:00+00:00')
+        now = datetime.fromisoformat('2026-09-27T05:10:00+00:00')
         incident = {
             'id': '11111111-1111-4111-8111-111111111111',
             'availability_status': 'restricted',
@@ -569,11 +916,234 @@ class VideoLibraryPublisherResumeTest(unittest.TestCase):
             bridge._failure_candidate_plan(failure, now, False, True)[3],
             'verifier_incident_recovery',
         )
+        # The first recovery generation ran under a broken production-host
+        # verifier. Its durable surface is history, not a reason to strand the
+        # affected error rows forever.
         attempted = {**failure, 'surface': 'release_recovery_failure'}
+        self.assertEqual(
+            bridge._failure_candidate_plan(attempted, now, False, True)[3],
+            'verifier_incident_recovery',
+        )
+        attempted = {
+            **failure,
+            'surface': f'{bridge.RELEASE_RECOVERY_SURFACE_PREFIX}failure',
+        }
         self.assertEqual(
             bridge._failure_candidate_plan(attempted, now, False, True),
             'permanent_cooldown',
         )
+
+    def test_release_recovery_retries_cancelled_batch_errors_once_but_not_restrictions(self):
+        bridge = self.bridge
+        now = datetime.fromisoformat('2026-09-27T05:10:00+00:00')
+        retry_at = bridge.CANCELLED_RECOVERY_START.isoformat()
+
+        catalog_error = {
+            'id': '11111111-1111-4111-8111-111111111111',
+            'availability_status': 'error',
+            'availability_checked_at': retry_at,
+            'published_at': '2026-09-01T00:00:00+00:00',
+        }
+        self.assertEqual(
+            bridge._candidate_plan(
+                catalog_error, None, False, now, False, True,
+            )[3],
+            'verifier_incident_recovery',
+        )
+
+        for permanent_status in ('private', 'restricted', 'unavailable', 'embed_disabled'):
+            permanent = {
+                **catalog_error,
+                'availability_status': permanent_status,
+            }
+            self.assertEqual(
+                bridge._candidate_plan(
+                    permanent, None, False, now, False, True,
+                ),
+                'permanent_cooldown',
+            )
+
+        failure_error = {
+            'video_id': 'M7lc1UVf-VE',
+            'verification_status': 'error',
+            'last_seen_at': retry_at,
+            'last_verified_at': retry_at,
+            'surface': 'release_recovery_catalog',
+        }
+        self.assertEqual(
+            bridge._failure_candidate_plan(
+                failure_error, now, False, True,
+            )[3],
+            'verifier_incident_recovery',
+        )
+
+        current_generation_attempt = {
+            **failure_error,
+            'surface': f'{bridge.RELEASE_RECOVERY_SURFACE_PREFIX}failure',
+        }
+        self.assertEqual(
+            bridge._failure_candidate_plan(
+                current_generation_attempt, now, False, True,
+            ),
+            'transient_cooldown',
+        )
+
+        confirmed = {
+            **failure_error,
+            'verification_status': 'confirmed',
+            'resolved': False,
+        }
+        self.assertEqual(
+            bridge._failure_candidate_plan(confirmed, now, False, True),
+            'permanent_cooldown',
+        )
+
+        after_cancelled_batch = {
+            **failure_error,
+            'last_verified_at': '2026-09-27T04:56:42.443255+00:00',
+        }
+        self.assertEqual(
+            bridge._failure_candidate_plan(
+                after_cancelled_batch, now, False, True,
+            ),
+            'transient_cooldown',
+        )
+
+        newer_report = {
+            **failure_error,
+            'last_seen_at': (
+                bridge.CANCELLED_RECOVERY_END + timedelta(microseconds=1)
+            ).isoformat(),
+        }
+        self.assertEqual(
+            bridge._failure_candidate_plan(
+                newer_report, now, False, True,
+            ),
+            'transient_cooldown',
+        )
+
+    def test_release_recovery_windows_are_exact_and_inclusive(self):
+        bridge = self.bridge
+        now = datetime.fromisoformat('2026-09-27T05:10:00+00:00')
+
+        for boundary in (
+            bridge.VERIFIER_INCIDENT_START,
+            bridge.VERIFIER_INCIDENT_END,
+        ):
+            catalog = {
+                'id': '11111111-1111-4111-8111-111111111111',
+                'availability_status': 'restricted',
+                'availability_checked_at': boundary.isoformat(),
+                'published_at': '2026-09-01T00:00:00+00:00',
+            }
+            failure = {
+                'video_id': 'M7lc1UVf-VE',
+                'verification_status': 'confirmed',
+                'last_seen_at': boundary.isoformat(),
+                'last_verified_at': boundary.isoformat(),
+                'surface': 'release_recovery_failure',
+            }
+            self.assertEqual(
+                bridge._candidate_plan(
+                    catalog, None, False, now, False, True,
+                )[3],
+                'verifier_incident_recovery',
+            )
+            self.assertEqual(
+                bridge._failure_candidate_plan(
+                    failure, now, False, True,
+                )[3],
+                'verifier_incident_recovery',
+            )
+
+        for outside in (
+            bridge.VERIFIER_INCIDENT_START - timedelta(microseconds=1),
+            bridge.VERIFIER_INCIDENT_END + timedelta(microseconds=1),
+        ):
+            catalog = {
+                'id': '11111111-1111-4111-8111-111111111111',
+                'availability_status': 'restricted',
+                'availability_checked_at': outside.isoformat(),
+                'published_at': '2026-09-01T00:00:00+00:00',
+            }
+            failure = {
+                'video_id': 'M7lc1UVf-VE',
+                'verification_status': 'confirmed',
+                'last_seen_at': outside.isoformat(),
+                'last_verified_at': outside.isoformat(),
+            }
+            self.assertEqual(
+                bridge._candidate_plan(
+                    catalog, None, False, now, False, True,
+                ),
+                'permanent_cooldown',
+            )
+            self.assertEqual(
+                bridge._failure_candidate_plan(
+                    failure, now, False, True,
+                ),
+                'permanent_cooldown',
+            )
+
+        for boundary in (
+            bridge.CANCELLED_RECOVERY_START,
+            bridge.CANCELLED_RECOVERY_END,
+        ):
+            catalog = {
+                'id': '11111111-1111-4111-8111-111111111111',
+                'availability_status': 'error',
+                'availability_checked_at': boundary.isoformat(),
+                'published_at': '2026-09-01T00:00:00+00:00',
+            }
+            failure = {
+                'video_id': 'M7lc1UVf-VE',
+                'verification_status': 'error',
+                'last_seen_at': boundary.isoformat(),
+                'last_verified_at': boundary.isoformat(),
+                'surface': 'release_recovery_catalog',
+            }
+            self.assertEqual(
+                bridge._candidate_plan(
+                    catalog, None, False, now, False, True,
+                )[3],
+                'verifier_incident_recovery',
+            )
+            self.assertEqual(
+                bridge._failure_candidate_plan(
+                    failure, now, False, True,
+                )[3],
+                'verifier_incident_recovery',
+            )
+
+        for outside in (
+            bridge.CANCELLED_RECOVERY_START - timedelta(microseconds=1),
+            bridge.CANCELLED_RECOVERY_END + timedelta(microseconds=1),
+        ):
+            catalog = {
+                'id': '11111111-1111-4111-8111-111111111111',
+                'availability_status': 'error',
+                'availability_checked_at': outside.isoformat(),
+                'published_at': '2026-09-01T00:00:00+00:00',
+            }
+            failure = {
+                'video_id': 'M7lc1UVf-VE',
+                'verification_status': 'error',
+                'last_seen_at': outside.isoformat(),
+                'last_verified_at': outside.isoformat(),
+                'surface': 'release_recovery_catalog',
+            }
+            self.assertEqual(
+                bridge._candidate_plan(
+                    catalog, None, False, now, False, True,
+                ),
+                'transient_cooldown',
+            )
+            self.assertEqual(
+                bridge._failure_candidate_plan(
+                    failure, now, False, True,
+                ),
+                'transient_cooldown',
+            )
 
     def test_current_unknown_attempt_never_inherits_an_older_confirmed_counter(self):
         bridge = self.bridge
@@ -726,6 +1296,86 @@ class VideoLibraryPublisherResumeTest(unittest.TestCase):
         self.assertEqual(stats['failure_race_deferred'], 1)
         self.assertEqual(stats['verified'], 0)
         self.assertEqual(stats['created'], 0)
+        bridge._publish_row.assert_not_called()
+
+    def test_release_recovery_reuses_a_pending_same_run_attempt_exactly_once(self):
+        bridge = self.bridge
+        bridge.ensure_ytdlp_runtime = lambda: '2026.08.19'
+        bridge.get_system_bot_id = lambda: '33333333-3333-4333-8333-333333333333'
+        bridge.read_publication_controls = lambda: {
+            'video_library_reel_creation': True,
+            'video_library_reel_publication': True,
+        }
+        asset = {
+            'id': '11111111-1111-4111-8111-111111111111',
+            'youtube_video_id': 'M7lc1UVf-VE',
+            'source_id': 'TEST',
+            'source_name': 'Test',
+            'title': 'Incident candidate',
+            'thumbnail_url': None,
+            'published_at': '2026-09-01T00:00:00+00:00',
+            'type': 'cash',
+            'availability_status': 'restricted',
+            'embeddable': False,
+            'availability_checked_at': bridge.VERIFIER_INCIDENT_END.isoformat(),
+        }
+        failure = {
+            'video_id': 'M7lc1UVf-VE',
+            'verification_status': 'confirmed',
+            'resolved': False,
+            'last_seen_at': bridge.VERIFIER_INCIDENT_END.isoformat(),
+            'last_verified_at': bridge.VERIFIER_INCIDENT_END.isoformat(),
+            'surface': 'release_recovery_failure',
+            'error_code': None,
+        }
+        bridge._load_existing_publications = lambda: {}
+        bridge._load_embed_failure_rows = lambda: [failure]
+        bridge._catalog_pages = lambda _source=None: iter([[asset]])
+        # Deliberately violate the loader's exclusion contract to prove the
+        # bridge itself cannot verify the same ID once as catalog, once as a
+        # platform candidate, and again as a failure row in one operation.
+        bridge._load_platform_supply_rows = lambda _excluded=None: [{
+            'youtube_video_id': 'M7lc1UVf-VE',
+            'source_url': 'https://www.youtube.com/watch?v=M7lc1UVf-VE',
+            'platform_source': 'poker',
+        }]
+        bridge._deadline_due = lambda *_args, **_kwargs: False
+        attempts = []
+        checked_at = datetime.now(timezone.utc).isoformat()
+
+        def verify(row):
+            attempts.append(row['youtube_video_id'])
+            return {
+                'available': True,
+                'status': 'verified',
+                'reason': None,
+                'verification_started_at': checked_at,
+                'verification_checked_at': checked_at,
+            }
+
+        bridge._verify_row = verify
+        bridge._record_embed_verdict = lambda *_args, **_kwargs: {
+            'video_id': 'M7lc1UVf-VE',
+            'hit_count': 1,
+            'verification_status': 'pending',
+            'resolved': False,
+        }
+        bridge._publish_row = mock.Mock(
+            side_effect=AssertionError('a pending race must not publish')
+        )
+
+        arguments = self._arguments()
+        arguments.release_recovery = True
+        stats = bridge.run_bridge(arguments)
+
+        self.assertEqual(attempts, ['M7lc1UVf-VE'])
+        self.assertEqual(stats['platform_candidates'], 0)
+        self.assertEqual(stats['failure_verification_reused'], 1)
+        self.assertEqual(stats['failure_verification_attempted'], 0)
+        self.assertEqual(stats['release_recovery_candidates'], 1)
+        self.assertEqual(stats['release_recovery_unknown'], 1)
+        self.assertEqual(stats['release_recovery_race_deferred'], 1)
+        self.assertEqual(stats['failure_race_deferred'], 1)
         bridge._publish_row.assert_not_called()
 
     def test_deadline_checkpoint_resumes_from_database_without_duplicate_publish(self):
