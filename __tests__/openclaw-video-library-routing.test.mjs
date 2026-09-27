@@ -106,6 +106,8 @@ test('the publisher posts only as a verified non-horse official account behind i
     && preflight.indexOf('get_system_bot_id()') < preflight.indexOf("_request('GET', relation"),
   'the preflight checks the publisher before any other read');
   assert.match(preflight, /read_publication_controls\(\)/);
+  assert.match(preflight, /'poker_clips': 'video_id,source_url,is_active,oembed_ok,published_at'/);
+  assert.match(preflight, /'sports_clips': 'video_id,source_url,created_at'/);
 });
 
 test('poker clip supply routes remain wired to their real workers handlers', () => {
@@ -215,7 +217,10 @@ test('release recovery verifies the exact Workers poker and sports pools without
     publisher,
     /'sports_clips'[\s\S]*'created_at\.desc\.nullslast'/,
   );
-  assert.match(publisher, /surface=f'horse_\{platform_source\}_supply_verifier'/);
+  assert.match(publisher, /surface = f'horse_\{lane\}_supply_verifier'/);
+  assert.match(publisher, /def _interleave_supply_candidates\(catalog_rows, platform_rows\):/);
+  assert.match(publisher, /catalog_quota = max\(1, \(limit \* 8\) \/\/ 15\)/);
+  assert.match(publisher, /RELEASE_RECOVERY_SURFACE_PREFIX = 'release_recovery_'/);
   assert.doesNotMatch(
     publisher,
     /platform_source[\s\S]{0,400}_publish_row\(/,

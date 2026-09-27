@@ -101,9 +101,9 @@ VERIFIER_INCIDENT_END = datetime(
 # SQL: fn_is_video_library_asset_eligible and its sibling predicates accept
 # availability_checked_at no older than interval '7 days'; the JavaScript
 # mirror is VIDEO_LIBRARY_VERIFICATION_MAX_AGE_MS). The dispatcher retains its
-# daily 07:00 schedule and bounded 750-row pass. Its reserved 360 library slots
-# cycle the current ~2,200 poker and slots rows inside seven days, while 195
-# poker and 195 sports slots keep both Workers pools fresh. The 12-hour value below is only
+# daily 07:00 schedule and bounded 750-row pass. Its reserved 400 library slots
+# cycle the current ~2,200 poker and slots rows inside six runs, while 175
+# poker and 175 sports slots do the same for both Workers pools. The 12-hour value below is only
 # the "due for renewal" threshold that makes every daily run pick the oldest
 # rows; it is not the public expiry. Whole-catalog coverage inside one run is
 # not implied: stale rows remain fail-closed until the existing verifier
@@ -117,7 +117,13 @@ PERMANENT_RETRY_AGE = timedelta(days=14)
 PERMANENT_FAILURE_STATUSES = frozenset(
     {'private', 'restricted', 'unavailable', 'embed_disabled'}
 )
-EXPECTED_TRANSIENT_REASONS = frozenset({'youtube_upcoming'})
+EXPECTED_TRANSIENT_REASONS = frozenset({
+    'youtube_upcoming',
+    'youtube_made_for_kids',
+    'youtube_restriction_signal_conflict',
+})
+RELEASE_RECOVERY_SURFACE_PREFIX = 'release_recovery_'
+YOUTUBE_ANDROID_CLIENT_VERSION = '20.10.38'
 
 
 def _first_writable_dir(*candidates: Path) -> Path:
@@ -481,6 +487,8 @@ def run_schema_preflight():
             'id,author_id,source_post_id,origin_type,source_asset_id,'
             'canonical_asset_key,playback_type,is_deleted,caption,created_at'
         ),
+        'poker_clips': 'video_id,source_url,is_active,oembed_ok,published_at',
+        'sports_clips': 'video_id,source_url,created_at',
     }
     for relation, columns in relation_contracts.items():
         rows = _request('GET', relation, params={'select': columns, 'limit': 1})
@@ -660,6 +668,7 @@ def _classify_youtube_restriction_detail(detail):
         for marker in (
             'members-only',
             'members only',
+            "channel's members",
             'premium',
             'subscription',
             'subscriber',
@@ -687,7 +696,7 @@ def _classify_youtube_restriction_detail(detail):
 
 
 def _anonymous_embed_verdict(video_id, request_headers):
-    """Read YouTube's anonymous embed bootstrap and require exact public proof."""
+    """Require both exact embed corroboration and anonymous player playback."""
     embed_url = (
         f'https://www.youtube.com/embed/{video_id}?'
         + urllib.parse.urlencode(
@@ -745,6 +754,88 @@ def _anonymous_embed_verdict(video_id, request_headers):
         or flags.get('isCrawlable') is not True
     ):
         return _availability('error', 'youtube_embed_public_proof_incomplete')
+    api_key_match = re.search(
+        r'"INNERTUBE_API_KEY"\s*:\s*("(?:\\.|[^"\\])*")',
+        page,
+    )
+    if api_key_match is None:
+        return _availability('error', 'youtube_player_api_key_missing')
+    try:
+        api_key = json.loads(api_key_match.group(1))
+    except (TypeError, json.JSONDecodeError):
+        return _availability('error', 'youtube_player_api_key_malformed')
+    if not isinstance(api_key, str) or not api_key:
+        return _availability('error', 'youtube_player_api_key_malformed')
+
+    player_request = urllib.request.Request(
+        'https://www.youtube.com/youtubei/v1/player?'
+        + urllib.parse.urlencode({'key': api_key, 'prettyPrint': 'false'}),
+        data=json.dumps(
+            {
+                'context': {
+                    'client': {
+                        'clientName': 'ANDROID',
+                        'clientVersion': YOUTUBE_ANDROID_CLIENT_VERSION,
+                        'hl': 'en',
+                        'gl': 'US',
+                    },
+                },
+                'videoId': video_id,
+            }
+        ).encode('utf-8'),
+        headers={
+            **request_headers,
+            'Content-Type': 'application/json',
+            'Referer': embed_url,
+        },
+        method='POST',
+    )
+    try:
+        with urllib.request.urlopen(player_request, timeout=15) as response:
+            if response.status != 200:
+                return _availability('error', f'youtube_player_http_{response.status}')
+            player_response = json.loads(
+                response.read(4 * 1024 * 1024).decode('utf-8', errors='strict')
+            )
+    except urllib.error.HTTPError as error:
+        return _classify_http_error('youtube_player', error)
+    except (OSError, UnicodeError, json.JSONDecodeError) as error:
+        log.warning('Anonymous player verification unknown for %s: %s', video_id, error)
+        return _availability('error', 'youtube_player_network_or_parse_error')
+
+    if not isinstance(player_response, dict):
+        return _availability('error', 'youtube_player_payload_malformed')
+    player_status = player_response.get('playabilityStatus')
+    player_details = player_response.get('videoDetails')
+    streaming_data = player_response.get('streamingData')
+    if not isinstance(player_status, dict):
+        return _availability('error', 'youtube_player_public_proof_incomplete')
+    player_detail = ' '.join(
+        str(player_status.get(key) or '') for key in ('reason', 'status')
+    )
+    explicit = _classify_youtube_restriction_detail(player_detail)
+    if explicit:
+        return explicit
+    if str(player_status.get('status') or '').upper() != 'OK':
+        return _availability('error', 'youtube_player_unplayable_unknown')
+    if player_status.get('playableInEmbed') is not True:
+        return _availability('error', 'youtube_player_public_proof_incomplete')
+    if (
+        not isinstance(player_details, dict)
+        or player_details.get('videoId') != video_id
+        or player_details.get('isPrivate') is not False
+    ):
+        return _availability('error', 'youtube_player_identity_or_privacy_unknown')
+    if any(
+        player_details.get(key) is True
+        for key in ('isMadeForKids', 'isKidsContent')
+    ):
+        return _availability('error', 'youtube_made_for_kids')
+    if not isinstance(streaming_data, dict) or not any(
+        streaming_data.get(key)
+        for key in ('formats', 'adaptiveFormats', 'hlsManifestUrl', 'dashManifestUrl')
+    ):
+        return _availability('error', 'youtube_player_stream_proof_missing')
     return _availability('verified')
 
 
@@ -817,7 +908,9 @@ def verify_youtube_video_scrapling(video_id):
             )
         explicit = _classify_youtube_restriction_detail(detail)
         if explicit:
-            return explicit
+            if embed_verdict['status'] == explicit['status']:
+                return explicit
+            return _availability('error', 'youtube_restriction_signal_conflict')
         if embed_verdict['status'] in PERMANENT_FAILURE_STATUSES:
             return embed_verdict
         if any(
@@ -841,9 +934,13 @@ def verify_youtube_video_scrapling(video_id):
 
     availability = str(metadata.get('availability') or '').lower()
     if availability == 'private':
-        return _availability('private', 'youtube_private')
+        if embed_verdict['status'] == 'private':
+            return _availability('private', 'youtube_private')
+        return _availability('error', 'youtube_restriction_signal_conflict')
     if availability in ('premium_only', 'subscriber_only'):
-        return _availability('restricted', f'youtube_{availability}')
+        if embed_verdict['status'] == 'restricted':
+            return _availability('restricted', f'youtube_{availability}')
+        return _availability('error', 'youtube_restriction_signal_conflict')
     if availability == 'needs_auth':
         if embed_verdict['available']:
             return embed_verdict
@@ -944,6 +1041,30 @@ def _in_verifier_incident_window(value):
     )
 
 
+def _release_recovery_was_attempted(row):
+    return str((row or {}).get('surface') or '').startswith(
+        RELEASE_RECOVERY_SURFACE_PREFIX
+    )
+
+
+def _attempt_outcome(availability, verdict=None):
+    """Describe this attempt, never a preserved older database verdict."""
+    if availability.get('available'):
+        if verdict is None or (
+            verdict.get('verification_status') == 'resolved'
+            and verdict.get('resolved') is True
+        ):
+            return 'verified'
+        return 'unknown'
+    if availability.get('status') in PERMANENT_FAILURE_STATUSES:
+        if verdict is None or (
+            verdict.get('verification_status') == 'confirmed'
+            and verdict.get('resolved') is False
+        ):
+            return 'rejected'
+    return 'unknown'
+
+
 def _candidate_plan(
     row,
     current,
@@ -1000,8 +1121,10 @@ def _failure_candidate_plan(row, now, force_audit, release_recovery=False):
     oldest_verified = last_verified.timestamp() if last_verified else 0
     if force_audit:
         return (0, oldest_verified, stable_id, 'forced_failure_audit')
-    if release_recovery and _in_verifier_incident_window(
-        row.get('last_verified_at')
+    if (
+        release_recovery
+        and _in_verifier_incident_window(row.get('last_verified_at'))
+        and not _release_recovery_was_attempted(row)
     ):
         return (0, oldest_verified, stable_id, 'verifier_incident_recovery')
     if status == 'pending':
@@ -1056,7 +1179,10 @@ def _select_supply_candidates(catalog_plans, platform_plans, limit):
     if limit is None:
         return list(catalog_plans), list(platform_plans)
 
-    catalog_quota = max(1, (limit * 12) // 25)
+    # A 750-row daily run reserves 400/175/175. Each current pool therefore
+    # completes inside six runs, leaving one full-day margin before the
+    # seven-day public gate instead of depending on a perfect seventh run.
+    catalog_quota = max(1, (limit * 8) // 15)
     platform_quota = max(0, limit - catalog_quota)
     poker_quota = (platform_quota + 1) // 2
     sports_quota = platform_quota // 2
@@ -1112,6 +1238,27 @@ def _select_supply_candidates(catalog_plans, platform_plans, limit):
         )
     )
     return selected_catalog, selected_platform
+
+
+def _interleave_supply_candidates(catalog_rows, platform_rows):
+    """Round-robin all three lanes so a deadline cannot starve one source."""
+    lanes = [
+        ('catalog', list(catalog_rows)),
+        ('poker', [row for row in platform_rows if row.get('platform_source') == 'poker']),
+        ('sports', [row for row in platform_rows if row.get('platform_source') == 'sports']),
+    ]
+    positions = [0, 0, 0]
+    ordered = []
+    while True:
+        advanced = False
+        for index, (lane, rows) in enumerate(lanes):
+            if positions[index] >= len(rows):
+                continue
+            ordered.append((lane, rows[positions[index]]))
+            positions[index] += 1
+            advanced = True
+        if not advanced:
+            return ordered
 
 
 def _load_existing_publications():
@@ -1489,6 +1636,7 @@ def _new_stats():
         'repaired_or_updated': 0,
         'would_publish': 0,
         'rejected': 0,
+        'unknown': 0,
         'invalid_rows': 0,
         'platform_rows_loaded': 0,
         'platform_candidate_pool': 0,
@@ -1753,7 +1901,10 @@ def run_bridge(args):
                 caption_matches,
                 freshness_now,
                 force_audit,
-                release_recovery,
+                release_recovery
+                and not _release_recovery_was_attempted(
+                    failure_by_video_id.get(vid_id)
+                ),
             )
             if plan == 'already_current':
                 if vid_id in active_confirmed_ids:
@@ -1878,105 +2029,121 @@ def run_bridge(args):
         },
     )
 
-    if candidates:
+    supply_work = _interleave_supply_candidates(candidates, platform_candidates)
+    if supply_work:
         log.info(
-            'Verifying %s candidates with concurrency=%s',
-            len(candidates),
-            min(VERIFY_CONCURRENCY, len(candidates)),
+            'Verifying %s interleaved catalog/poker/sports candidates with concurrency=%s',
+            len(supply_work),
+            min(VERIFY_CONCURRENCY, len(supply_work)),
         )
     abort = False
     verification_cache = {}
-    last_catalog_commit = {}
+    last_supply_commit = {}
     with ThreadPoolExecutor(max_workers=VERIFY_CONCURRENCY) as executor:
-        for start in range(0, len(candidates), VERIFY_CONCURRENCY):
+        for start in range(0, len(supply_work), VERIFY_CONCURRENCY):
             if _deadline_due(deadline_at, VERIFY_BATCH_START_RESERVE_SECONDS):
-                _mark_deadline(stats, 'catalog_verification')
-                _write_checkpoint(args, stats, 'deadline', last_catalog_commit)
+                _mark_deadline(stats, 'supply_verification')
+                _write_checkpoint(args, stats, 'deadline', last_supply_commit)
                 abort = True
                 break
-            batch = candidates[start:start + VERIFY_CONCURRENCY]
-            verified_results = executor.map(_verify_row, batch)
-            for row, availability in zip(batch, verified_results):
-                vid_id = str(row.get('youtube_video_id') or '')
-                stats['verification_attempted'] += 1
-                stats['verification_outcomes'][availability['status']] += 1
+            batch = supply_work[start:start + VERIFY_CONCURRENCY]
+            verified_results = executor.map(_verify_row, [row for _, row in batch])
+            for (lane, row), availability in zip(batch, verified_results):
+                video_id = str(row.get('youtube_video_id') or '')
+                is_catalog = lane == 'catalog'
+                if is_catalog:
+                    stats['verification_attempted'] += 1
+                    stats['verification_outcomes'][availability['status']] += 1
+                else:
+                    source_stats = stats['platform_by_source'][lane]
+                    stats['platform_verification_attempted'] += 1
+                    source_stats['attempted'] += 1
+                    stats['platform_verification_outcomes'][availability['status']] += 1
                 if _is_operational_verifier_error(availability):
                     stats['verifier_errors_observed'] += 1
-                if args.dry_run:
-                    verification_cache[vid_id] = {'availability': availability, 'verdict': None}
-                    last_catalog_commit = {
-                        'asset_id': str(row.get('id') or ''),
-                        'video_id': vid_id,
-                    }
-                    if availability['available']:
-                        stats['verified'] += 1
-                        stats['would_publish'] += 1
-                        _record_ops07(stats, 'verified', row)
-                    else:
-                        stats['rejected'] += 1
-                        _record_ops07(stats, 'rejected', row)
-                    continue
 
-                if _deadline_due(deadline_at):
-                    _mark_deadline(stats, 'catalog_verdict')
-                    abort = True
-                    break
-                try:
-                    verdict = _record_embed_verdict(vid_id, availability)
-                except RuntimeError as error:
-                    stats['failure_verdict_errors'] += 1
-                    stats['aborted_reason'] = 'failure_verdict_failed'
-                    log.error('Embed verdict failed for %s: %s', vid_id, error)
-                    abort = True
-                    break
-                last_catalog_commit = {
-                    'asset_id': str(row.get('id') or ''),
-                    'video_id': vid_id,
-                }
-                verification_cache[vid_id] = {
+                verdict = None
+                if not args.dry_run:
+                    if _deadline_due(deadline_at):
+                        _mark_deadline(stats, 'supply_verdict')
+                        abort = True
+                        break
+                    if video_id in release_recovery_ids:
+                        surface = f'{RELEASE_RECOVERY_SURFACE_PREFIX}{lane}'
+                    elif is_catalog:
+                        surface = 'video_library_verifier'
+                    else:
+                        surface = f'horse_{lane}_supply_verifier'
+                    try:
+                        verdict = _record_embed_verdict(
+                            video_id,
+                            availability,
+                            surface=surface,
+                        )
+                    except RuntimeError as error:
+                        stats['failure_verdict_errors'] += 1
+                        stats['aborted_reason'] = 'failure_verdict_failed'
+                        log.error('Supply verdict failed for %s: %s', video_id, error)
+                        abort = True
+                        break
+
+                verification_cache[video_id] = {
                     'availability': availability,
                     'verdict': verdict,
                 }
+                last_supply_commit = {
+                    'asset_id': str(row.get('id') or '') if is_catalog else None,
+                    'video_id': video_id,
+                    'lane': lane,
+                }
+                outcome = _attempt_outcome(availability, verdict)
 
-                effective_availability = availability
-                if verdict['verification_status'] == 'pending' or (
-                    availability['available']
-                    and not (
-                        verdict['verification_status'] == 'resolved'
-                        and verdict['resolved'] is True
-                    )
-                ):
-                    effective_availability = {
-                        **availability,
-                        'available': False,
-                        'status': 'error',
-                        'reason': 'newer_embed_report_requires_reverification',
-                    }
-                    stats['failure_race_deferred'] += 1
+                if not is_catalog:
+                    if outcome == 'verified':
+                        stats['platform_verified'] += 1
+                        source_stats['verified'] += 1
+                    elif outcome == 'rejected':
+                        stats['platform_rejected'] += 1
+                        source_stats['rejected'] += 1
+                    else:
+                        stats['platform_unknown'] += 1
+                        source_stats['unknown'] += 1
+                        if verdict and verdict['verification_status'] == 'pending':
+                            stats['failure_race_deferred'] += 1
+                    continue
 
-                # The verdict RPC owns both youtube_embed_failures and every
-                # matching catalog availability row in one transaction. A
-                # separate PATCH here would reopen a split-write race.
-                if not effective_availability['available']:
-                    if (
-                        not availability['available']
-                        and verdict['verification_status'] == 'confirmed'
-                        and verdict['resolved'] is False
-                    ):
-                        stats['rejected'] += 1
-                        _record_ops07(stats, 'rejected', row)
+                if outcome == 'verified':
+                    stats['verified'] += 1
+                    _record_ops07(stats, 'verified', row)
+                    if args.dry_run:
+                        stats['would_publish'] += 1
+                        continue
+                elif outcome == 'rejected':
+                    stats['rejected'] += 1
+                    _record_ops07(stats, 'rejected', row)
                     log.warning(
-                        '%s %s (%s): %s',
-                        'Deferred' if availability['available'] else 'Rejected',
-                        vid_id,
-                        effective_availability['status'],
-                        effective_availability.get('reason'),
+                        'Rejected %s (%s): %s',
+                        video_id,
+                        availability['status'],
+                        availability.get('reason'),
+                    )
+                    continue
+                else:
+                    stats['unknown'] += 1
+                    if verdict and verdict['verification_status'] == 'pending':
+                        stats['failure_race_deferred'] += 1
+                    log.warning(
+                        'Deferred %s (%s): %s',
+                        video_id,
+                        availability['status'],
+                        availability.get('reason')
+                        or 'authoritative verdict did not accept this attempt',
                     )
                     continue
 
-                stats['verified'] += 1
-                _record_ops07(stats, 'verified', row)
-
+                # The verdict RPC owns both youtube_embed_failures and every
+                # matching catalog availability row in one transaction. Only
+                # the accepted current attempt can proceed to publication.
                 if _deadline_due(deadline_at):
                     stats['publication_deferred_deadline'] += 1
                     _mark_deadline(stats, 'catalog_publication')
@@ -1996,110 +2163,14 @@ def run_bridge(args):
                         stats['repaired_or_updated'] += 1
                 except RuntimeError as error:
                     stats['rpc_errors'] += 1
-                    log.error('Publication failed for %s: %s', vid_id, error)
+                    log.error('Publication failed for %s: %s', video_id, error)
                 time.sleep(0.15)
             _write_checkpoint(
                 args,
                 stats,
-                'catalog_batch',
+                'supply_batch',
                 {
-                    **last_catalog_commit,
-                    'batch_start': start,
-                    'batch_size': len(batch),
-                },
-            )
-            if abort:
-                break
-
-    if platform_candidates and not abort:
-        log.info(
-            'Verifying %s platform supply candidates with concurrency=%s',
-            len(platform_candidates),
-            min(VERIFY_CONCURRENCY, len(platform_candidates)),
-        )
-    last_platform_commit = {}
-    with ThreadPoolExecutor(max_workers=VERIFY_CONCURRENCY) as executor:
-        for start in range(0, len(platform_candidates) if not abort else 0, VERIFY_CONCURRENCY):
-            if _deadline_due(deadline_at, VERIFY_BATCH_START_RESERVE_SECONDS):
-                _mark_deadline(stats, 'platform_verification')
-                _write_checkpoint(args, stats, 'deadline', last_platform_commit)
-                abort = True
-                break
-            batch = platform_candidates[start:start + VERIFY_CONCURRENCY]
-            verified_results = executor.map(_verify_row, batch)
-            for row, availability in zip(batch, verified_results):
-                video_id = str(row.get('youtube_video_id') or '')
-                platform_source = str(row.get('platform_source') or '')
-                source_stats = stats['platform_by_source'][platform_source]
-                stats['platform_verification_attempted'] += 1
-                source_stats['attempted'] += 1
-                stats['platform_verification_outcomes'][availability['status']] += 1
-                if _is_operational_verifier_error(availability):
-                    stats['verifier_errors_observed'] += 1
-
-                verdict = None
-                if not args.dry_run:
-                    if _deadline_due(deadline_at):
-                        _mark_deadline(stats, 'platform_verdict')
-                        abort = True
-                        break
-                    try:
-                        verdict = _record_embed_verdict(
-                            video_id,
-                            availability,
-                            surface=f'horse_{platform_source}_supply_verifier',
-                        )
-                    except RuntimeError as error:
-                        stats['failure_verdict_errors'] += 1
-                        stats['aborted_reason'] = 'failure_verdict_failed'
-                        log.error('Platform supply verdict failed for %s: %s', video_id, error)
-                        abort = True
-                        break
-                verification_cache[video_id] = {
-                    'availability': availability,
-                    'verdict': verdict,
-                }
-                last_platform_commit = {
-                    'video_id': video_id,
-                    'platform_source': platform_source,
-                }
-
-                if args.dry_run:
-                    if availability['available']:
-                        stats['platform_verified'] += 1
-                        source_stats['verified'] += 1
-                    elif availability['status'] in PERMANENT_FAILURE_STATUSES:
-                        stats['platform_rejected'] += 1
-                        source_stats['rejected'] += 1
-                    else:
-                        stats['platform_unknown'] += 1
-                        source_stats['unknown'] += 1
-                    continue
-
-                if (
-                    verdict['verification_status'] == 'resolved'
-                    and verdict['resolved'] is True
-                    and availability['available']
-                ):
-                    stats['platform_verified'] += 1
-                    source_stats['verified'] += 1
-                elif (
-                    verdict['verification_status'] == 'confirmed'
-                    and verdict['resolved'] is False
-                ):
-                    stats['platform_rejected'] += 1
-                    source_stats['rejected'] += 1
-                else:
-                    stats['platform_unknown'] += 1
-                    source_stats['unknown'] += 1
-                    if verdict['verification_status'] == 'pending':
-                        stats['failure_race_deferred'] += 1
-            _write_checkpoint(
-                args,
-                stats,
-                'platform_batch',
-                {
-                    **last_platform_commit,
+                    **last_supply_commit,
                     'batch_start': start,
                     'batch_size': len(batch),
                 },
@@ -2175,7 +2246,11 @@ def run_bridge(args):
                                 vid_id,
                                 availability,
                                 error_code=error_code,
-                                surface='embed_failure_verifier',
+                                surface=(
+                                    f'{RELEASE_RECOVERY_SURFACE_PREFIX}failure'
+                                    if vid_id in release_recovery_ids
+                                    else 'embed_failure_verifier'
+                                ),
                             )
                         except RuntimeError as error:
                             stats['failure_verdict_errors'] += 1
@@ -2195,20 +2270,21 @@ def run_bridge(args):
                 if _is_operational_verifier_error(availability):
                     stats['verifier_errors_observed'] += 1
 
+                outcome = _attempt_outcome(availability, verdict)
                 if args.dry_run:
                     last_failure_commit = {'video_id': vid_id}
-                    if availability['status'] == 'verified':
+                    if outcome == 'verified':
                         stats['failure_resolved'] += 1
-                    elif availability['status'] in PERMANENT_FAILURE_STATUSES:
+                    elif outcome == 'rejected':
                         stats['failure_confirmed'] += 1
                     else:
                         stats['failure_transient'] += 1
                     continue
 
                 verdict_status = verdict['verification_status']
-                if verdict_status == 'resolved' and verdict['resolved'] is True:
+                if outcome == 'verified':
                     stats['failure_resolved'] += 1
-                elif verdict_status == 'confirmed' and verdict['resolved'] is False:
+                elif outcome == 'rejected':
                     stats['failure_confirmed'] += 1
                 elif verdict_status == 'pending':
                     stats['failure_race_deferred'] += 1
@@ -2217,15 +2293,6 @@ def run_bridge(args):
 
                 catalog_row = catalog_by_video_id.get(vid_id)
                 if catalog_row and not can_reuse:
-                    effective_availability = availability
-                    if availability['available'] and verdict_status != 'resolved':
-                        effective_availability = {
-                            **availability,
-                            'available': False,
-                            'status': 'error',
-                            'reason': 'newer_embed_report_requires_reverification',
-                        }
-
                     # A newer report may have landed while the primary library
                     # verification was in flight. When the immediate race-safe
                     # retry resolves that report, finish the already-selected
@@ -2235,16 +2302,13 @@ def run_bridge(args):
                     )
                     if (
                         selected_for_catalog
-                        and not effective_availability['available']
-                        and not availability['available']
+                        and outcome == 'rejected'
                     ):
                         stats['rejected'] += 1
                         _record_ops07(stats, 'rejected', catalog_row)
                     if (
                         selected_for_catalog
-                        and effective_availability['available']
-                        and verdict_status == 'resolved'
-                        and verdict['resolved'] is True
+                        and outcome == 'verified'
                     ):
                         if _deadline_due(deadline_at):
                             stats['publication_deferred_deadline'] += 1
@@ -2322,26 +2386,10 @@ def run_bridge(args):
             continue
         availability = cached['availability']
         verdict = cached.get('verdict')
-        if args.dry_run:
-            if availability['available']:
-                stats['release_recovery_resolved'] += 1
-            elif availability['status'] in PERMANENT_FAILURE_STATUSES:
-                stats['release_recovery_rejected'] += 1
-            else:
-                stats['release_recovery_unknown'] += 1
-            continue
-        if (
-            verdict
-            and verdict.get('verification_status') == 'resolved'
-            and verdict.get('resolved') is True
-            and availability['available']
-        ):
+        outcome = _attempt_outcome(availability, verdict)
+        if outcome == 'verified':
             stats['release_recovery_resolved'] += 1
-        elif (
-            verdict
-            and verdict.get('verification_status') == 'confirmed'
-            and verdict.get('resolved') is False
-        ):
+        elif outcome == 'rejected':
             stats['release_recovery_rejected'] += 1
         else:
             stats['release_recovery_unknown'] += 1

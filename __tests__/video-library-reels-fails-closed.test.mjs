@@ -258,7 +258,18 @@ def _urlopen(req, *a, **k):
         payload = ('<script>ytcfg.set(' + json.dumps({
             'PLAYER_VARS': {'embedded_player_response': json.dumps(player)},
             'VIDEO_ID': 'M7lc1UVf-VE',
+            'INNERTUBE_API_KEY': 'public-test-key',
         }) + ');</script>').encode()
+    elif 'youtube.com/youtubei/v1/player?' in url:
+        payload = json.dumps({
+            'playabilityStatus': {'status': 'OK', 'playableInEmbed': True},
+            'videoDetails': {
+                'videoId': 'M7lc1UVf-VE',
+                'isPrivate': False,
+                'isMadeForKids': False,
+            },
+            'streamingData': {'formats': [{'itag': 18}]},
+        }).encode()
     else:
         payload = json.dumps({'title': 'Verified Title', 'author_name': 'Channel'}).encode()
     return R(payload)
@@ -370,6 +381,8 @@ def handler(state):
                     'publication_key': 'video-library:' + ASSET,
                 }])
             if table == 'youtube_embed_failures':
+                return self._reply(200, [])
+            if table in ('poker_clips', 'sports_clips'):
                 return self._reply(200, [])
             return self._reply(404, {'message': 'unknown relation ' + table})
 
