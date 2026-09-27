@@ -232,7 +232,7 @@ probe_log = sandbox / 'probes.log'
     '    print("2026.08.19")\n'
     'else:\n'
     '    open(%r, "a").write("yt-dlp " + sys.argv[-1] + "\\n")\n'
-    '    print(json.dumps({"availability": "public", "age_limit": 0,\n'
+    '    print(json.dumps({"id": "M7lc1UVf-VE", "availability": "public", "age_limit": 0,\n'
     '                      "playable_in_embed": True, "live_status": "not_live"}))\n' % str(probe_log))
 
 # Runs the real script with every non-local urlopen (YouTube oEmbed) answered

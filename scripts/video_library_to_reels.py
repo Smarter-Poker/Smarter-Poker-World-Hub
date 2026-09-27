@@ -97,6 +97,17 @@ VERIFIER_INCIDENT_START = datetime(2026, 9, 27, 3, 32, 27, tzinfo=timezone.utc)
 VERIFIER_INCIDENT_END = datetime(
     2026, 9, 27, 4, 4, 25, 948844, tzinfo=timezone.utc
 )
+# The first bounded recovery was cancelled after production YouTube egress
+# began returning its bot challenge for ordinary public controls. It wrote 90
+# operational-error verdicts before custody was revoked. This exact window is
+# a second, finite recovery generation: only error rows may bypass cooldown;
+# the 12 explicit confirmed restrictions from the same operation never do.
+CANCELLED_RECOVERY_START = datetime(
+    2026, 9, 27, 4, 54, 42, 529000, tzinfo=timezone.utc
+)
+CANCELLED_RECOVERY_END = datetime(
+    2026, 9, 27, 4, 56, 42, 443254, tzinfo=timezone.utc
+)
 # Renew well before the database's 7-day public-playback cutoff (installed
 # SQL: fn_is_video_library_asset_eligible and its sibling predicates accept
 # availability_checked_at no older than interval '7 days'; the JavaScript
@@ -122,7 +133,7 @@ EXPECTED_TRANSIENT_REASONS = frozenset({
     'youtube_made_for_kids',
     'youtube_restriction_signal_conflict',
 })
-RELEASE_RECOVERY_SURFACE_PREFIX = 'release_recovery_'
+RELEASE_RECOVERY_SURFACE_PREFIX = 'release_recovery_v2_'
 YOUTUBE_ANDROID_CLIENT_VERSION = '20.10.38'
 
 
@@ -700,6 +711,18 @@ def _classify_youtube_restriction_detail(detail):
     return None
 
 
+def _is_youtube_bot_challenge(detail):
+    normalised = str(detail or '').lower()
+    return any(
+        marker in normalised
+        for marker in (
+            'sign in to confirm you are not a bot',
+            "sign in to confirm you're not a bot",
+            'sign in to confirm you’re not a bot',
+        )
+    )
+
+
 def _anonymous_embed_verdict(video_id, request_headers):
     """Require both exact embed corroboration and anonymous player playback."""
     embed_url = (
@@ -821,6 +844,13 @@ def _anonymous_embed_verdict(video_id, request_headers):
     explicit = _classify_youtube_restriction_detail(player_detail)
     if explicit:
         return explicit
+    # Production egress can be challenged even when oEmbed and the exact
+    # anonymous embed bootstrap both prove a public, crawlable, embeddable
+    # identity. Preserve that as an intermediate state, never as a positive on
+    # its own. The caller promotes it only when yt-dlp independently reports
+    # the same specific bot challenge, or returns complete public metadata.
+    if _is_youtube_bot_challenge(player_detail):
+        return _availability('challenge', 'youtube_player_bot_challenge')
     if str(player_status.get('status') or '').upper() != 'OK':
         return _availability('error', 'youtube_player_unplayable_unknown')
     if player_status.get('playableInEmbed') is not True:
@@ -874,6 +904,8 @@ def verify_youtube_video_scrapling(video_id):
             if response.status != 200:
                 return _availability('error', f'oembed_http_{response.status}')
             metadata = json.loads(response.read(256 * 1024).decode('utf-8'))
+            if not isinstance(metadata, dict):
+                return _availability('error', 'oembed_payload_malformed')
             if not metadata.get('title') or not metadata.get('author_name'):
                 return _availability('error', 'oembed_missing_metadata')
     except urllib.error.HTTPError as error:
@@ -906,7 +938,12 @@ def verify_youtube_video_scrapling(video_id):
         return _availability('error', 'yt_dlp_execution_error')
 
     if completed.returncode != 0:
-        detail = (completed.stderr or completed.stdout or '').lower()
+        # yt-dlp can split the content verdict and the egress challenge across
+        # stdout and stderr. Inspect both so a bot challenge can never hide an
+        # explicit private/member/age/region/embed-disabled/removal signal.
+        detail = '\n'.join(
+            str(value or '') for value in (completed.stdout, completed.stderr)
+        ).lower()
         if 'no module named' in detail and 'yt_dlp' in detail:
             raise YtDlpUnavailableError(
                 'yt_dlp became unimportable in the isolated child during the run'
@@ -918,15 +955,9 @@ def verify_youtube_video_scrapling(video_id):
             return _availability('error', 'youtube_restriction_signal_conflict')
         if embed_verdict['status'] in PERMANENT_FAILURE_STATUSES:
             return embed_verdict
-        if any(
-            marker in detail
-            for marker in (
-                'confirm you are not a bot',
-                "confirm you're not a bot",
-                'sign in to confirm you are not a bot',
-                'not a bot',
-            )
-        ):
+        if _is_youtube_bot_challenge(detail):
+            if embed_verdict['status'] == 'challenge':
+                return _availability('verified')
             return embed_verdict
         if any(marker in detail for marker in ('login required', 'sign in to continue')):
             return _availability('error', 'youtube_auth_required')
@@ -936,6 +967,10 @@ def verify_youtube_video_scrapling(video_id):
         metadata = json.loads(completed.stdout)
     except (TypeError, json.JSONDecodeError):
         return _availability('error', 'yt_dlp_invalid_json')
+    if not isinstance(metadata, dict):
+        return _availability('error', 'yt_dlp_payload_malformed')
+    if metadata.get('id') != video_id:
+        return _availability('error', 'youtube_ytdlp_identity_mismatch')
 
     availability = str(metadata.get('availability') or '').lower()
     if availability == 'private':
@@ -954,16 +989,25 @@ def verify_youtube_video_scrapling(video_id):
         return _availability('error', 'youtube_availability_needs_auth')
     if availability not in ('public', 'unlisted'):
         return _availability('error', 'youtube_availability_unknown')
-    try:
-        age_limit = int(metadata.get('age_limit') or 0)
-    except (TypeError, ValueError):
+    age_limit = metadata.get('age_limit')
+    if type(age_limit) not in (int, float):
         return _availability('error', 'youtube_age_limit_unknown')
     if age_limit > 0:
         return _availability('restricted', 'youtube_age_restricted')
-    if metadata.get('playable_in_embed') is not True:
+    if age_limit != 0:
+        return _availability('error', 'youtube_age_limit_unknown')
+    playable_in_embed = metadata.get('playable_in_embed')
+    if playable_in_embed is False:
         return _availability('embed_disabled', 'youtube_embed_disabled')
-    if metadata.get('live_status') == 'is_upcoming':
+    if playable_in_embed is not True:
+        return _availability('error', 'youtube_embed_playability_unknown')
+    live_status = metadata.get('live_status')
+    if live_status == 'is_upcoming':
         return _availability('error', 'youtube_upcoming')
+    if live_status not in ('not_live', 'is_live', 'was_live', 'post_live'):
+        return _availability('error', 'youtube_live_status_unknown')
+    if embed_verdict['status'] == 'challenge':
+        return _availability('verified')
     return embed_verdict
 
 
@@ -1046,9 +1090,44 @@ def _in_verifier_incident_window(value):
     )
 
 
+def _in_cancelled_recovery_window(value):
+    checked = _parse_timestamp(value)
+    return bool(
+        checked
+        and CANCELLED_RECOVERY_START <= checked <= CANCELLED_RECOVERY_END
+    )
+
+
 def _release_recovery_was_attempted(row):
     return str((row or {}).get('surface') or '').startswith(
         RELEASE_RECOVERY_SURFACE_PREFIX
+    )
+
+
+def _catalog_release_recovery_eligible(row):
+    """Select only the two proven poisoned windows for the current generation."""
+    if _in_verifier_incident_window(row.get('availability_checked_at')):
+        return True
+    return (
+        str(row.get('availability_status') or '').lower() == 'error'
+        and _in_cancelled_recovery_window(row.get('availability_checked_at'))
+    )
+
+
+def _failure_release_recovery_eligible(row):
+    """Allow one v2 attempt; never bypass a confirmed v1 restriction."""
+    if not row or _release_recovery_was_attempted(row):
+        return False
+    last_seen = _parse_timestamp(row.get('last_seen_at'))
+    if _in_verifier_incident_window(row.get('last_verified_at')):
+        # A report received after the poisoned operation is newer authority.
+        # Let the normal pending-report lane adjudicate it instead of replaying
+        # this generation from the old verifier timestamp/surface.
+        return not last_seen or last_seen <= VERIFIER_INCIDENT_END
+    return (
+        str(row.get('verification_status') or '').lower() == 'error'
+        and _in_cancelled_recovery_window(row.get('last_verified_at'))
+        and (not last_seen or last_seen <= CANCELLED_RECOVERY_END)
     )
 
 
@@ -1088,9 +1167,7 @@ def _candidate_plan(
 
     if force_audit:
         return (0, checked_sort, str(row.get('id') or ''), 'forced_audit')
-    if release_recovery and _in_verifier_incident_window(
-        row.get('availability_checked_at')
-    ):
+    if release_recovery and _catalog_release_recovery_eligible(row):
         return (
             0,
             checked_sort,
@@ -1128,8 +1205,7 @@ def _failure_candidate_plan(row, now, force_audit, release_recovery=False):
         return (0, oldest_verified, stable_id, 'forced_failure_audit')
     if (
         release_recovery
-        and _in_verifier_incident_window(row.get('last_verified_at'))
-        and not _release_recovery_was_attempted(row)
+        and _failure_release_recovery_eligible(row)
     ):
         return (0, oldest_verified, stable_id, 'verifier_incident_recovery')
     if status == 'pending':
@@ -1907,8 +1983,11 @@ def run_bridge(args):
                 freshness_now,
                 force_audit,
                 release_recovery
-                and not _release_recovery_was_attempted(
-                    failure_by_video_id.get(vid_id)
+                and (
+                    failure_by_video_id.get(vid_id) is None
+                    or _failure_release_recovery_eligible(
+                        failure_by_video_id.get(vid_id)
+                    )
                 ),
             )
             if plan == 'already_current':
@@ -1965,6 +2044,11 @@ def run_bridge(args):
         stats['platform_rows_loaded'] = len(platform_rows)
         for position, row in enumerate(platform_rows):
             video_id = str(row.get('youtube_video_id') or '')
+            # The loader receives this same exclusion set, but enforce the
+            # invariant here as well so a stale/alternate loader cannot cause
+            # one ID to be verified and written twice in a single operation.
+            if video_id in catalog_by_video_id:
+                continue
             failure_row = failure_by_video_id.get(video_id)
             if failure_row is None:
                 plan = (0, position, video_id, 'missing_platform_verdict')
@@ -2209,10 +2293,12 @@ def run_bridge(args):
             batch = failure_candidates[start:start + VERIFY_CONCURRENCY]
             uncached = []
             for failure_row in batch:
-                cached = verification_cache.get(str(failure_row.get('video_id') or ''))
+                cached_video_id = str(failure_row.get('video_id') or '')
+                cached = verification_cache.get(cached_video_id)
                 if cached and (
                     args.dry_run
                     or (cached.get('verdict') or {}).get('verification_status') != 'pending'
+                    or cached_video_id in release_recovery_ids
                 ):
                     continue
                 uncached.append({'youtube_video_id': failure_row['video_id']})
@@ -2226,6 +2312,7 @@ def run_bridge(args):
                     and (
                         args.dry_run
                         or (cached.get('verdict') or {}).get('verification_status') != 'pending'
+                        or vid_id in release_recovery_ids
                     )
                 )
                 if can_reuse:
@@ -2292,7 +2379,8 @@ def run_bridge(args):
                 elif outcome == 'rejected':
                     stats['failure_confirmed'] += 1
                 elif verdict_status == 'pending':
-                    stats['failure_race_deferred'] += 1
+                    if not can_reuse:
+                        stats['failure_race_deferred'] += 1
                 else:
                     stats['failure_transient'] += 1
 

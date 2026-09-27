@@ -2,18 +2,18 @@
 
 - **Current phase:** 1 of 10
 - **Phase name:** Restore Safe Supply And Endless Delivery
-- **Status:** Active recovery release; the application, shared-verdict database authority, Workers consumer, and stale-backfill containment are protected-merged and published. A fail-closed YouTube verifier recovery is locally green and awaiting protected delivery before bounded positive backfill and final live proof.
-- **Branch:** `agent/codex-reels-verifier-recovery-20260927`
-- **Delivery PRs:** application `#1977`; Open Claw repairs `#1985`, `#1986`, `#1987`, and `#1988`; batch verdict RPC `#1989`; stale-backfill cleanup `#1990`; Workers shared-verdict consumer `#147`; verifier recovery follow-up pending
+- **Status:** Active recovery release; the application, shared-verdict database authority, Workers consumer, stale-backfill containment, and first verifier recovery are protected-merged and published. The first exact-main recovery batch was stopped after production egress exposed a YouTube challenge state. A second bounded, generation-aware verifier hotfix is locally green and awaiting protected delivery before fresh-positive backfill and final live proof.
+- **Branch:** `agent/codex-reels-bot-challenge-recovery-20260927`
+- **Delivery PRs:** application `#1977`; Open Claw repairs `#1985`, `#1986`, `#1987`, `#1988`, and verifier recovery `#1991`; batch verdict RPC `#1989`; stale-backfill cleanup `#1990`; Workers shared-verdict consumer `#147`; production-egress hotfix follow-up pending
 - **Workspace:** `/Volumes/SmarterWork/agent-work/codex-reels-supply-20260926`
-- **Exact tested integrated source revision:** working tree based on `a1015fdc404d52c9dca6c51617f0ccb6a408b71d`; verifier recovery is not yet committed or published
-- **Protected baseline at latest fetch:** `origin/main` `a1015fdc404d52c9dca6c51617f0ccb6a408b71d`
+- **Exact tested integrated source revision:** working tree based on `368e01b958ba2a0f83021a7385e21ada39715d64`; production-egress verifier hotfix is not yet committed or published
+- **Protected baseline at latest fetch:** `origin/main` `368e01b958ba2a0f83021a7385e21ada39715d64`
 - **Operation owner:** this task owns source repair, database installation, protected PR completion, Vercel/Open Claw publication, and live verification
-- **Next gate:** protected-deliver the verifier recovery, promote that exact merged main through Open Claw, run only bounded exact-main recovery batches, prove fresh positive poker/slots/sports supply, then require the next legitimate `:25` horse cycle plus strict database/API/browser hostile-state readback.
+- **Next gate:** protected-deliver the production-egress verifier hotfix, promote that exact merged main through Open Claw, run only bounded exact-main v2 recovery batches, stop immediately unless fresh positive poker/slots/sports supply appears, then require the next legitimate `:25` horse cycle plus strict database/API/browser hostile-state readback.
 
 ## Policy Receipt
 
-- **Read at:** canonical `2026-09-27T04:13:10.777Z`; portable `2026-09-27T04:14:04.031Z`
+- **Read at:** canonical `2026-09-27T05:00:23.512Z`; portable `2026-09-27T05:00:29.069Z`
 - **Policy version:** `2.9`
 - **Manifest SHA-256:** `7663cc909626f7e9966931d27166ad8774addc801f7ad1898a2d7564bc13c378`
 - **Owner policy:** `76228d75677eb76ca9dcfbf65fd68ddb7aac3941f61154acc456ae8230a9a4fa`
@@ -38,8 +38,7 @@
 
 ## Acceptance Evidence Still Required
 
-- World Hub PR #1977 current-head checks green and protected squash merge revision recorded.
-- Vercel and Open Claw production revisions verified against the merged source.
+- Production-egress hotfix required checks green, protected squash merge revision recorded, and exact merged Open Claw publication verified.
 - Guarded production publication/readback with more than 2,000 eligible/feed-visible managed Reels or an explicit per-row rejection ledger.
 - Live anonymous and signed-in proof of managed poker, slots, and sports categories, horse/player-author equality, three-page continuation, deep-link recovery, stale storage, mid-flight retry, source attribution, and the protected article reader.
 
@@ -95,3 +94,10 @@
 - The weekly stale-video purge was also a conflicting writer: every oEmbed HTTP error previously wrote `unavailable` directly to the catalog. It is now tri-state, treats only 404/410 as definitive, keeps 401/403/429/5xx/network states UNKNOWN, and records a definitive removal only through the canonical race-safe verdict RPC with the probe start time. It performs no direct catalog availability update. Its executable purge/runtime tests are green.
 - A final adversarial pass found that the shared HTTP classifier still treated embed-document and internal-player 404/410 responses as permanent after oEmbed had already returned public metadata. Only an oEmbed 404/410 is now durable; embed/player HTTP failures remain operational UNKNOWN unless an exact-ID payload supplies an explicit restriction. End-to-end regressions cover oEmbed-200/embed-404 and oEmbed-200/embed-200/player-410 and assert that neither becomes a permanent verdict. The independent reviewer returned CLEAN after the correction.
 - The corrected recovery working tree passed `git diff --check`, Python byte-compilation, the complete connected JavaScript set at 91/91, and the verifier/runtime Python set at 35/35 with targeted ESLint clean. The earlier pre-review 76/76 and 29/29 runs apply only to the superseded first commit; protected CI, merge, exact-main Open Claw promotion, production recovery batches, fresh-positive database proof, and final browser/API proof remain pending and must not be inferred from local results.
+- Verifier recovery PR `#1991` head `ceccd3bf943967a26d700c1f4f4413cab4865a11` passed all seven required contexts: Undefined `36295192391/108552635587`, U4.2 `36295192434/108552635762`, Pre-Deploy `36295192439/108552635924`, TypeScript `36295192439/108552635903`, U4.3 `36295192434/108552635884`, Audit Marker `36295192394/108552635741`, and No Conflict `36295192418/108552635816`. It protected-squash-merged as `368e01b958ba2a0f83021a7385e21ada39715d64`. Exact-main Open Claw deployment `36295443636/108553317543` succeeded; Vercel deployment `dpl_4F744JvM2we5P4hSVkFbRXtB1ENn` became READY and `/api/health` reported the exact revision at `2026-09-27T04:53:25.497Z`.
+- The exact-main release-recovery run `36295602490`, job `108553748812`, was stopped after batch 1 proved the production host received YouTube's `Sign in to confirm you are not a bot` challenge for ordinary public controls. It produced zero positive verdicts and is not success evidence. Its owning run reached terminal CANCELLED, exact batch-1 custody was revoked, and batches 2/3 were absent.
+- Three post-cleanup database readbacks at `04:58:12Z`, `04:59:06.867879Z`, and `04:59:54.080458Z` were identical: high-water `2026-09-27T04:56:42.443254Z`, 102 touched rows, zero resolved positives, 12 confirmed restrictions, and 90 operational errors. No later write occurred. Independent probes proved all 12 confirmations legitimate: 11 exact age gates and one exact members-only gate.
+- Read-only production-host controls proved the cause: public IDs `Gbyg7P0uPJM` and `M7lc1UVf-VE` had oEmbed 200 plus exact public embed bootstrap but both Android and WEB player clients returned the exact bot challenge; members-only `j6tF7h0Xs2E` and age-gated `WkANKUbB7Vo` still returned their explicit restrictions before the generic challenge.
+- The production-egress hotfix now accepts a challenge only after oEmbed metadata, exact embed identity, public/crawlable/embed flags, and independent corroboration by the same precise yt-dlp challenge or complete exact-ID public metadata. Explicit private/member/Premium/subscription/age/region/embed-disabled/removed signals still win. Successful metadata must be an object with exact ID, numeric age limit exactly zero, explicit supported live state, and boolean embed playability; split stdout/stderr restrictions, malformed payloads, generic login text, and broad `not a bot` phrases stay fail-closed.
+- Recovery generation v2 is finite and exactly bounded to the canceled-operation write window `2026-09-27T04:54:42.529000Z` through `2026-09-27T04:56:42.443254Z`. It retries only error rows, never the 12 confirmed/permanent rows, permits one retry after a legacy `release_recovery_*` surface, writes distinct `release_recovery_v2_*` surfaces, rejects its own prior attempt on restart, defers newer reports to the normal pending lane, and deduplicates a video shared by catalog/platform/failure queues to one verifier/RPC attempt per operation.
+- The hotfix was developed with retained RED proofs for the production challenge, malformed/mismatched/incomplete metadata, split-output restriction, exact recovery boundaries, and same-run duplicate attempt. Current verifier/runtime verification passes 42/42 and the complete connected JavaScript set passes 91/91; Python byte-compilation, `git diff --check`, and portable/canonical policy drift also pass. The independent final adversarial review returned CLEAN on these exact bytes. Commit/push, hosted CI, protected merge, exact-main publication, bounded backfill, and live behavior proof remain pending.
