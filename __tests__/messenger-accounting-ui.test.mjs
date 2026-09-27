@@ -46,7 +46,7 @@ test('message API uses the authenticated database page and preserves provenance 
  const module={exports:{}};
  const mocks={serverAuth:{getServerUserWithFallback:async()=>({user:{id:'verified-user'}})},supabaseServerClient:{createClient:()=>db},apiRateLimit:{applyRateLimit:()=>true,LIMITS:{}},apiErrorHandler:{reportApiError:()=>{}},'accountingMessage.mjs':{verifyAccountingMessage},'messengerWorkspace.mjs':{readMessengerMessages:privateReader}};
  new Function('require','module','exports','process',code)(p=>mocks[p.split('/').at(-1)],module,module.exports,{env:{SUPABASE_SERVICE_ROLE_KEY:'fixture'}});
- let status=200,payload=null;const res={status(n){status=n;return this;},json(v){payload=v;return this;}};
+ let status=200,payload=null;const res={setHeader(){},status(n){status=n;return this;},json(v){payload=v;return this;}};
  const cursor='2026-09-14T12:00:00.123456Z',beforeId='00000000-0000-4000-8000-000000000001';
  await module.exports.default({method:'POST',headers:{authorization:'Bearer fixture'},body:{userId:'forged',conversationId:'conversation',before:cursor,beforeId,limit:500}},res);
  assert.equal(status,200);assert.equal(calls[0].userId,'verified-user');assert.equal(calls[0].before,cursor);assert.equal(calls[0].limit,200);assert.equal(payload.messages[0].media_metadata.issued_status,'pending');assert.equal(payload.messages[0].media_metadata.status,'paid');

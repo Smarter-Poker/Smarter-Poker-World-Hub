@@ -456,7 +456,10 @@ export function MessageBubble({
     onForward, 
     onCallBack, 
     onReply, 
-    onUnsend, 
+    onUnsend,
+    onSave,
+    isSaved = false,
+    saving = false,
     currentUserId,
     theme: C = defaultTheme 
 }) {
@@ -644,6 +647,13 @@ export function MessageBubble({
                         zIndex: 20,
                         minWidth: 180,
                     }}>
+                        {onSave && !message.is_deleted && !String(message.id).startsWith('temp-') && (
+                            <button type="button" aria-label={isSaved ? 'Remove Saved Message' : 'Save Message'} disabled={saving}
+                                onClick={() => { onSave(message, !isSaved); setShowMenu(false); }}
+                                style={{ display: 'block', width: '100%', padding: '10px 16px', border: 'none', background: 'transparent', cursor: 'pointer', textAlign: 'left', color: C.blue, fontSize: 14 }}>
+                                {isSaved ? 'Remove Saved Message' : 'Save Message'}
+                            </button>
+                        )}
                         {!message.is_deleted && (
                             <button
                                 onClick={() => {

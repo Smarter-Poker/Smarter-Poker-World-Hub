@@ -257,6 +257,7 @@ function historyFixture(options = {}) {
         let status = 200, payload;
         await module.exports.default({ method: 'POST', headers: { authorization: 'Bearer local-fixture' },
             body: { conversationId: CONVERSATION, userId: OTHER } }, {
+            setHeader() {},
             status(value) { status = value; return this; }, json(value) { payload = value; return this; },
         });
         return { status, payload };

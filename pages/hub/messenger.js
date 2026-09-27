@@ -15,6 +15,9 @@ import Image from 'next/image';
 import { supabase } from '../../src/lib/supabase';
 import { getAuthUser, getAccessToken, ensureAuthReady, authedFetch } from '../../src/lib/authUtils';
 import useMessengerConversationLink from '../../src/hooks/useMessengerConversationLink';
+import useMessengerContinuity from '../../src/hooks/useMessengerContinuity';
+import ContinuityStatus from '../../src/components/messenger/ContinuityStatus';
+import { isMessageId, visibleMessageBoundary } from '../../src/lib/messengerContinuity.mjs';
 import { broadcastSync, listenBroadcast } from '../../src/lib/broadcastSync';
 import { HubErrorBoundary } from '../../src/components/ui/HubErrorBoundary';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
@@ -28,7 +31,7 @@ import useMessengerSearch from '../../src/hooks/useMessengerSearch';
 import { resolveMessengerClubEntry } from '../../src/lib/messengerClubEntry.mjs';
 import { createMessengerSendOperation, restoreMessengerSendOperations, messengerOperationMessage,
     mergeMessengerPendingMessages, reconcileMessengerMessage, acknowledgeMessengerSend,
-    performMessengerSend } from '../../src/lib/messengerSendOperation.mjs';
+    performMessengerSend, saveMessengerSendOperation } from '../../src/lib/messengerSendOperation.mjs';
 
 // Dynamic import for LiveKit (client-side only)
 const LiveKitCall = dynamic(
@@ -359,6 +362,8 @@ function MessengerPage() {
     workspaceRef.current = workspaceKey;
     const [activeConversation, setActiveConversation] = useState(null);
     const [messages, setMessages] = useState([]);
+    const messagesRef = useRef(messages);
+    messagesRef.current = messages;
     const sendOperationsRef = useRef(new Map());
     const sendOperationRef = useRef(null);
     const forwardOperationRef = useRef(null);
@@ -405,12 +410,23 @@ function MessengerPage() {
     // Online Presence
     const [otherUserStatus, setOtherUserStatus] = useState('offline'); // 'online' | 'away' | 'offline'
     const [otherUserLastSeen, setOtherUserLastSeen] = useState(null);
-    // Pinned Conversations
-    const [pinnedConvoIds, setPinnedConvoIds] = useState(() => {
-        try {
-            return JSON.parse(localStorage.getItem('sp-pinned-conversations') || '[]');
-        } catch { return []; }
+    const { controller: continuity, edit: editContinuity, flush: flushContinuity } = useMessengerContinuity({
+        actorId: user?.id, scope: workspaceKey, identityRef: authIdentityRef,
+        workspace: { workspace: workspaceSelection.clubId ? 'club' : 'social', clubId: workspaceSelection.clubId, folder: workspaceSelection.folder },
     });
+    const pinnedConvoIds = continuity.pins;
+    const [showSavedMessages, setShowSavedMessages] = useState(false);
+    const [hasNewerMessages, setHasNewerMessages] = useState(false);
+    const [loadingNewerMessages, setLoadingNewerMessages] = useState(false);
+    const [historyError, setHistoryError] = useState(null);
+    const [firstUnreadMessageId, setFirstUnreadMessageId] = useState(null);
+    const historyWindowRef = useRef({ conversationId: null, hasNewer: false });
+    const pendingScrollRef = useRef(null);
+    const explicitAnchorRef = useRef(null);
+    const stickToBottomRef = useRef(true);
+    const visibleReadRef = useRef(null);
+    const lastVisibleReadRef = useRef(null);
+    const restoreSequenceRef = useRef(0);
     // Stable identity for "which conversations exist", independent of order or
     // of the array being rebuilt. See the request-count effect below.
     const conversationIdKey = useMemo(
@@ -572,7 +588,7 @@ function MessengerPage() {
                 if (showMessageSearch) { setShowMessageSearch(false); return; }
                 if (forwardingMessage) { setForwardingMessage(null); return; }
                 if (editingMessage) { setEditingMessage(null); setEditText(''); return; }
-                if (replyToMessage) { setReplyToMessage(null); return; }
+                if (replyToMessage) { clearReply(); return; }
                 if (menuOpen) { setMenuOpen(false); return; }
                 // On mobile, Escape navigates back to sidebar
                 if (isMobile && activeConversation) { setActiveConversation(null); setShowSidebar(true); return; }
@@ -618,6 +634,13 @@ function MessengerPage() {
         setShowMessageSearch(false);
         setShowUserInfo(false);
         setInboxError(null);
+        setShowSavedMessages(false);
+        setFirstUnreadMessageId(null);
+        setHistoryError(null);
+        historyWindowRef.current = { conversationId: null, hasNewer: false };
+        pendingScrollRef.current = null;
+        lastVisibleReadRef.current = null;
+        setReplyToMessage(null);
         if (user?.id) { setLoading(true); loadConversationsRef.current?.(user.id); }
     }, [workspaceKey]);
     useEffect(() => { goOnlineUserRef.current = user; }, [user]);
@@ -644,12 +667,14 @@ function MessengerPage() {
             if (currentUser?.id) loadConversationsRef.current?.(currentUser.id, { invalidate: true });
         });
         document.addEventListener('visibilitychange', onVisibility);
+        window.addEventListener('focus', onVisibility);
         window.addEventListener('online', goOnline);
         window.addEventListener('offline', goOffline);
         if (!navigator.onLine) setConnectionStatus('disconnected');
         return () => {
             stopUnreadSync();
             document.removeEventListener('visibilitychange', onVisibility);
+            window.removeEventListener('focus', onVisibility);
             window.removeEventListener('online', goOnline);
             window.removeEventListener('offline', goOffline);
         };
@@ -732,7 +757,7 @@ function MessengerPage() {
     // different user in the same session correctly opens THAT conversation.
     const lastHandledUid = useRef(null);
     const [composeFocus, setComposeFocus] = useState(false);
-    const [conversationDraft, setConversationDraft] = useState(''); // pre-filled text from ?draft= param
+    const deepLinkDraftRef = useRef(null);
     useEffect(() => {
         if (!user?.id) return;
         const { compose, uid } = router.query;
@@ -799,7 +824,7 @@ function MessengerPage() {
             setWorkspaceSelection({ clubId: result.clubId, folder: result.folder });
             setConversations(result.conversations);
             setPendingConversationId(result.conversation.id);
-            if (draftText) setConversationDraft(draftText);
+            if (draftText) deepLinkDraftRef.current = { actorId: accountId, conversationId, text: draftText.slice(0, 2000) };
         } catch (error) {
             if (workspaceRef.current === requestScope && controls.isCurrent?.() !== false) setToast({ type: 'error', message: error.message });
         }
@@ -834,21 +859,6 @@ function MessengerPage() {
         url.searchParams.delete('draft');
         window.history.replaceState(null, '', url.pathname + url.search);
     }, [pendingConversationId, conversations, workspaceKey]);
-
-    // BUG-FIX: Clear conversationDraft when the user switches to a different
-    // conversation AFTER the initial deep-link draft has been consumed.
-    // Without this, every subsequent conversation gets the stale draft
-    // pre-filled because conversationDraft state never resets.
-    const lastDraftConvId = useRef(null);
-    useEffect(() => {
-        if (!activeConversation?.id) return;
-        if (lastDraftConvId.current !== null &&
-            lastDraftConvId.current !== activeConversation.id &&
-            conversationDraft) {
-            setConversationDraft('');
-        }
-        lastDraftConvId.current = activeConversation.id;
-    }, [activeConversation?.id]);
 
     // ═══════════════════════════════════════════════════════════════════════════
     // MESSAGE REQUEST COUNT: Fetch pending message requests for sidebar badge
@@ -1051,14 +1061,71 @@ function MessengerPage() {
     // The scroll-to-bottom effect must NOT fire in this case — rAF in loadOlderMessages restores position.
     const isPaginatingRef = useRef(false);
 
-    // Scroll to bottom when messages change — but skip during backward pagination
+    // Keep an older reading window stable; scroll only for an explicit target
+    // or when the reader was already at the newest edge.
     useEffect(() => {
-        if (isPaginatingRef.current) {
-            isPaginatingRef.current = false;
-            return;
+        if (isPaginatingRef.current) { isPaginatingRef.current = false; return; }
+        const scope = workspaceRef.current;
+        const conversationId = activeConversationRef.current?.id;
+        let frame;
+        const placeViewport = () => {
+            if (scope !== workspaceRef.current || conversationId !== activeConversationRef.current?.id) return;
+            const container = messagesContainerRef.current;
+            const target = pendingScrollRef.current;
+            if (!container || loadingMessages) return;
+            // Dynamic bubbles initially render zero-height placeholders. Neither
+            // a reading target nor a receipt may be resolved from that geometry.
+            const rows = [...container.querySelectorAll('[data-message-id]')];
+            if (rows.some(row => row.getBoundingClientRect().height <= 0)) return;
+            if (container && target?.conversationId === conversationId && target.scope === scope) {
+                const node = target.messageId && container.querySelector(`[data-message-id="${target.messageId}"]`);
+                if (node) container.scrollTop += node.getBoundingClientRect().top - container.getBoundingClientRect().top - (target.offset || 0);
+                else if (target.bottom) container.scrollTop = container.scrollHeight;
+                pendingScrollRef.current = null;
+                stickToBottomRef.current = !historyWindowRef.current.hasNewer && container.scrollHeight - container.scrollTop - container.clientHeight < 80;
+            } else if (container && stickToBottomRef.current && !historyWindowRef.current.hasNewer) container.scrollTop = container.scrollHeight;
+            visibleReadRef.current?.();
+        };
+        const queuePlacement = () => { cancelAnimationFrame(frame); frame = requestAnimationFrame(placeViewport); };
+        const observer = typeof ResizeObserver === 'function' ? new ResizeObserver(queuePlacement) : null;
+        const container = messagesContainerRef.current;
+        if (container) {
+            observer?.observe(container);
+            container.querySelectorAll('[data-message-id]').forEach(row => observer?.observe(row));
         }
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, [messages]);
+        queuePlacement();
+        return () => { cancelAnimationFrame(frame); observer?.disconnect(); };
+    }, [messages, loadingMessages]);
+
+    const activeDraftReplyId = isMessageId(activeConversation?.id) ? continuity.state(activeConversation.id).draft.replyToId : null;
+    useEffect(() => {
+        if (!activeDraftReplyId) { setReplyToMessage(null); return; }
+        const conversationId = activeConversation?.id;
+        const scope = workspaceRef.current;
+        let cancelled = false;
+        const found = messages.find(message => message.id === activeDraftReplyId && !message.is_deleted);
+        if (found) { setReplyToMessage(found); return; }
+        setReplyToMessage({ id: activeDraftReplyId, content: 'Loading Original Message...' });
+        void (async () => {
+            try {
+                const response = await authedFetch('/api/messenger/get-messages', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getAccessToken()}` },
+                    body: JSON.stringify({ conversationId, anchorMessageId: activeDraftReplyId, limit: 10 }),
+                });
+                const result = await response.json();
+                if (cancelled || scope !== workspaceRef.current || activeConversationRef.current?.id !== conversationId) return;
+                const original = response.ok && result.success ? result.messages?.find(message => message.id === activeDraftReplyId && !message.is_deleted) : null;
+                setReplyToMessage(original || { id: activeDraftReplyId, unavailable: true, content: 'Original Message Is Unavailable' });
+            } catch {
+                if (!cancelled && scope === workspaceRef.current) setReplyToMessage({ id: activeDraftReplyId, unavailable: true, content: 'Original Message Is Unavailable' });
+            }
+        })();
+        return () => { cancelled = true; };
+    }, [activeDraftReplyId, activeConversation?.id, workspaceKey]);
+    const clearReply = () => {
+        setReplyToMessage(null);
+        if (isMessageId(activeConversation?.id)) editContinuity(activeConversation.id, 'draft', { text: continuity.state(activeConversation.id).draft.text, replyToId: null });
+    };
 
     // Refresh the same authorized workspace used for initial loading.
     useEffect(() => {
@@ -1161,6 +1228,12 @@ function MessengerPage() {
                     if (activeConversationRef.current?.id === newMsg.conversation_id) loadMessagesRef.current?.(newMsg.conversation_id);
                     return;
                 }
+                if (historyWindowRef.current.conversationId === newMsg.conversation_id && historyWindowRef.current.hasNewer) {
+                    // Keep the current history window contiguous. Load Newer or
+                    // Jump To Latest fetches this arrival through the private reader.
+                    loadConversationsRef.current?.(user.id, { invalidate: true });
+                    return;
+                }
                 if (newMsg.sender_id === user.id) {
                     if (workspaceRef.current !== requestScope || activeConversationRef.current?.id !== newMsg.conversation_id) return;
                     const operation = sendOperationsRef.current.get(newMsg.request_id);
@@ -1254,16 +1327,22 @@ function MessengerPage() {
     // subscription and create a gap window on every incoming message.
     }, [user?.id, activeConversation?.id]);
 
-    // Read only the message committed to this visible conversation. Returning
-    // to a hidden window reloads its authoritative messages through goOnline.
+    // A rendered row outside the viewport is not read. History navigation may
+    // intentionally leave many newer rows unloaded or below the visible edge.
+    visibleReadRef.current = () => {
+        const conversationId = activeConversationRef.current?.id;
+        if (!isMessageId(conversationId) || document.visibilityState !== 'visible' || pendingScrollRef.current) return;
+        const boundary = visibleMessageBoundary(messagesContainerRef.current);
+        if (!boundary || !messages.some(message => message.id === boundary.last && message.conversation_id === conversationId)) return;
+        const key = `${workspaceRef.current}:${conversationId}:${boundary.last}`;
+        if (lastVisibleReadRef.current === key) return;
+        lastVisibleReadRef.current = key;
+        markConversationReadRef.current?.(conversationId, boundary.last);
+    };
     useEffect(() => {
         if (!incomingRead || incomingRead.scope !== workspaceRef.current) return;
-        const displayed = messages.filter(message => message?.conversation_id === incomingRead.conversationId
-            && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(message.id || '')
-            && Number.isFinite(Date.parse(message.created_at)));
-        const latest = displayed.reduce((previous, message) => !previous || compareMessageTimestamps(message.created_at, previous.created_at) > 0
-            || (compareMessageTimestamps(message.created_at, previous.created_at) === 0 && message.id > previous.id) ? message : previous, null);
-        if (latest) markConversationReadRef.current?.(incomingRead.conversationId, latest.id);
+        const frame = requestAnimationFrame(() => visibleReadRef.current?.());
+        return () => cancelAnimationFrame(frame);
     }, [incomingRead]);
 
     // Typing indicator broadcast
@@ -1725,13 +1804,24 @@ function MessengerPage() {
     };
     markConversationReadRef.current = markConversationRead;
 
-    const loadMessages = async (conversationId) => {
+    const loadMessages = async (conversationId, navigation = {}) => {
         const requestScope = workspaceKey;
         const requestSequence = ++messagesRequestSequence.current;
+        // A new bounded window invalidates pages owned by its predecessor,
+        // including navigation within the same conversation.
+        paginationLockRef.current = null;
+        newerPageRef.current = null;
+        isPaginatingRef.current = false;
+        setLoadingOlderMessages(false);
+        setLoadingNewerMessages(false);
         const current = () => workspaceRef.current === requestScope && activeConversationRef.current?.id === conversationId && messagesRequestSequence.current === requestSequence;
         // Optimistic UI check for instant loading
-        const cachedMessages = messageCacheRef.current.get(conversationId);
-        const messagesAtStart = new Map((cachedMessages || []).map(message => [message.id, message]));
+        const currentAnchor = !navigation.firstUnread && !navigation.latest && !navigation.anchorMessageId
+            && historyWindowRef.current.conversationId === conversationId ? visibleMessageBoundary(messagesContainerRef.current) : null;
+        const anchorMessageId = navigation.anchorMessageId || currentAnchor?.first;
+        const cachedMessages = navigation.anchorMessageId || navigation.firstUnread || navigation.latest ? null : messageCacheRef.current.get(conversationId);
+        const messagesAtStart = new Map((messagesRef.current || []).map(message => [message.id, message]));
+        const replacingWindow = !!(navigation.anchorMessageId || navigation.firstUnread || navigation.latest);
         if (cachedMessages) {
             setMessages(cachedMessages);
             setLoadingMessages(false);
@@ -1740,6 +1830,8 @@ function MessengerPage() {
             setLoadingMessages(true);
         }
         setHasMoreMessages(true); // Reset on new conversation
+        setHistoryError(null);
+        lastVisibleReadRef.current = null;
         try {
 
             // Use API route to bypass RLS issues
@@ -1750,7 +1842,8 @@ function MessengerPage() {
                     'Content-Type': 'application/json',
                     ...(msgToken ? { Authorization: `Bearer ${msgToken}` } : {}),
                 },
-                body: JSON.stringify({ conversationId, userId: user.id, limit: 50 }),
+                body: JSON.stringify({ conversationId, userId: user.id, limit: 50,
+                    ...(anchorMessageId ? { anchorMessageId } : { firstUnread: navigation.firstUnread === true }) }),
             });
 
             if (!response.ok) throw new Error(`Request failed (${response.status})`);
@@ -1767,6 +1860,7 @@ function MessengerPage() {
                     catch { return hiddenMessageIds; }
                 })();
                 const filtered = result.messages.filter(m => !freshHiddenIds.has(m.id));
+                continuity.ingestSavedItems(result.savedItems);
                 for (const operation of restoreMessengerSendOperations(localStorage, user.id)) {
                     if (!sendOperationsRef.current.has(operation.requestId)) sendOperationsRef.current.set(operation.requestId, operation);
                 }
@@ -1780,6 +1874,11 @@ function MessengerPage() {
                     // Only preserve changes made while this request was pending.
                     // Older cached rows remain owned by the server snapshot.
                     for (const message of previous) {
+                        const lastReturned = filtered.at(-1);
+                        const newArrivalAtLatestEdge = !messagesAtStart.has(message?.id) && result.hasNewer !== true
+                            && (!lastReturned || compareMessageTimestamps(message.created_at, lastReturned.created_at) > 0
+                                || (compareMessageTimestamps(message.created_at, lastReturned.created_at) === 0 && String(message.id) > String(lastReturned.id)));
+                        if (replacingWindow && !merged.has(message?.id) && !newArrivalAtLatestEdge) continue;
                         if (message && !freshHiddenIds.has(message.id) && messagesAtStart.get(message.id) !== message
                             && (!message.conversation_id || message.conversation_id === conversationId)) {
                             const initial = messagesAtStart.get(message.id);
@@ -1793,7 +1892,14 @@ function MessengerPage() {
                     return mergeMessengerPendingMessages(rows, sendOperationsRef.current.values(), user.id, conversationId).sort((a, b) =>
                         compareMessageTimestamps(a.created_at, b.created_at) || String(a.id).localeCompare(String(b.id)));
                 });
-                setHasMoreMessages(result.messages.length >= 50);
+                setHasMoreMessages(result.hasOlder ?? result.messages.length >= 50);
+                setHasNewerMessages(result.hasNewer === true);
+                historyWindowRef.current = { conversationId, hasNewer: result.hasNewer === true };
+                if (result.firstUnreadMessageId) setFirstUnreadMessageId(previous => previous || result.firstUnreadMessageId);
+                const target = result.anchorMessageId || (navigation.firstUnread ? result.firstUnreadMessageId : null);
+                pendingScrollRef.current = { scope: requestScope, conversationId, messageId: target,
+                    offset: result.anchorUnavailable ? 0 : navigation.offset ?? currentAnchor?.offset ?? 0, bottom: !target };
+                if (result.anchorUnavailable) setToast({ type: 'info', message: 'That Message Is No Longer Available. Showing Recent Messages.' });
                 if (filtered.length) setIncomingRead({ scope: requestScope, conversationId, messageId: filtered[filtered.length - 1].id });
             } else {
                 if (!current()) return;
@@ -1802,7 +1908,7 @@ function MessengerPage() {
 
         } catch (e) {
             console.warn('Load messages error:', e);
-            if (current()) setToast({ type: 'error', message: 'Messages Could Not Be Loaded. Please Retry.' });
+            if (current()) { setHistoryError({ direction: 'window', navigation }); setToast({ type: 'error', message: 'Messages Could Not Be Loaded. Please Retry.' }); }
         } finally {
             if (current()) setLoadingMessages(false);
         }
@@ -1817,7 +1923,7 @@ function MessengerPage() {
     // FIX #3: useRef-based lock prevents duplicate pagination from rapid scroll
     const paginationLockRef = useRef(null);
     const loadOlderMessages = useCallback(async () => {
-        if (!activeConversation || !hasMoreMessages || messages.length === 0) return;
+        if (!activeConversation || !hasMoreMessages || messages.length === 0 || historyError?.direction === 'older') return;
         // Double-check with ref lock (state updates are async, ref is synchronous)
         if (paginationLockRef.current?.scope === workspaceKey && paginationLockRef.current?.conversationId === activeConversation.id) return;
         const operation = { scope: workspaceKey, conversationId: activeConversation.id };
@@ -1826,9 +1932,12 @@ function MessengerPage() {
         // Capture conversation at pagination start — user may switch before fetch resolves
         const paginationConvId = activeConversation.id;
         const requestScope = workspaceKey;
+        const windowSequence = messagesRequestSequence.current;
+        const currentWindow = () => messagesRequestSequence.current === windowSequence && workspaceRef.current === requestScope && activeConversationRef.current?.id === paginationConvId;
         try {
             const container = messagesContainerRef.current;
             const prevScrollHeight = container?.scrollHeight || 0;
+            const prevScrollTop = container?.scrollTop || 0;
             const oldestMsg = messages[0];
             const msgToken = getAccessToken();
             const response = await authedFetch('/api/messenger/get-messages', {
@@ -1840,6 +1949,7 @@ function MessengerPage() {
                 body: JSON.stringify({
                     conversationId: paginationConvId,
                     userId: user.id,
+                    firstUnread: false,
                     before: oldestMsg.created_at,
                     beforeId: oldestMsg.id,
                     limit: 50,
@@ -1848,7 +1958,7 @@ function MessengerPage() {
             if (!response.ok) throw new Error(`Request failed (${response.status})`);
             const result = await response.json();
             // Staleness guard: discard if user switched conversations while paginating
-            if (paginationLockRef.current !== operation || workspaceRef.current !== requestScope || activeConversationRef.current?.id !== paginationConvId) return;
+            if (paginationLockRef.current !== operation || !currentWindow()) return;
             if (result.success && result.messages?.length > 0) {
                 // Filter out hidden messages — re-read from localStorage for freshness
                 const freshHiddenIds = (() => {
@@ -1856,18 +1966,19 @@ function MessengerPage() {
                     catch { return new Set(); }
                 })();
                 const filteredOlder = result.messages.filter(m => !freshHiddenIds.has(m.id));
+                continuity.ingestSavedItems(result.savedItems);
                 setMessages(prev => {
-                    if (workspaceRef.current !== requestScope || activeConversationRef.current?.id !== paginationConvId) return prev;
+                    if (!currentWindow()) return prev;
                     // Signal scroll effect to skip — rAF below will restore position
                     isPaginatingRef.current = true;
                     const existingIds = new Set(prev.map(message => message.id));
                     return [...filteredOlder.filter(message => !existingIds.has(message.id)), ...prev];
                 });
-                setHasMoreMessages(result.messages.length >= 50);
+                setHasMoreMessages(result.hasOlder ?? result.messages.length >= 50);
                 // Preserve scroll position after prepending older messages
                 requestAnimationFrame(() => {
-                    if (container && workspaceRef.current === requestScope && activeConversationRef.current?.id === paginationConvId) {
-                        container.scrollTop = container.scrollHeight - prevScrollHeight;
+                    if (container && currentWindow()) {
+                        container.scrollTop = prevScrollTop + container.scrollHeight - prevScrollHeight;
                     }
                 });
             } else {
@@ -1875,19 +1986,72 @@ function MessengerPage() {
             }
         } catch (e) {
             console.warn('Load older messages error:', e);
+            if (currentWindow()) setHistoryError({ direction: 'older' });
         } finally {
             if (paginationLockRef.current === operation) {
                 paginationLockRef.current = null;
                 setLoadingOlderMessages(false);
             }
         }
-    }, [activeConversation, loadingOlderMessages, hasMoreMessages, messages, user, workspaceKey]);
+    }, [activeConversation, loadingOlderMessages, hasMoreMessages, messages, user, workspaceKey, historyError]);
+
+    const newerPageRef = useRef(null);
+    const loadNewerMessages = async () => {
+        const conversationId = activeConversationRef.current?.id;
+        const scope = workspaceRef.current;
+        if (!conversationId || !hasNewerMessages || (newerPageRef.current?.scope === scope && newerPageRef.current?.conversationId === conversationId)) return;
+        const latest = messages.filter(message => isMessageId(message.id)).at(-1);
+        if (!latest) return;
+        const owner = { scope, conversationId };
+        const windowSequence = messagesRequestSequence.current;
+        newerPageRef.current = owner;
+        setLoadingNewerMessages(true);
+        setHistoryError(null);
+        const currentWindow = () => messagesRequestSequence.current === windowSequence && workspaceRef.current === scope && activeConversationRef.current?.id === conversationId;
+        const current = () => newerPageRef.current === owner && currentWindow();
+        try {
+            const response = await authedFetch('/api/messenger/get-messages', {
+                method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getAccessToken()}` },
+                body: JSON.stringify({ conversationId, after: latest.created_at, afterId: latest.id, limit: 50 }),
+            });
+            const result = await response.json();
+            if (!current()) return;
+            if (!response.ok || !result.success || !Array.isArray(result.messages)) throw new Error('Messages Unavailable');
+            continuity.ingestSavedItems(result.savedItems);
+            setMessages(previous => currentWindow() ? result.messages.reduce((rows, message) => reconcileMessengerMessage(rows, message), previous) : previous);
+            setHasNewerMessages(result.hasNewer === true);
+            historyWindowRef.current = { conversationId, hasNewer: result.hasNewer === true };
+        } catch {
+            if (current()) setHistoryError({ direction: 'newer' });
+        } finally {
+            if (newerPageRef.current === owner) { newerPageRef.current = null; setLoadingNewerMessages(false); }
+        }
+    };
+
+    const rememberReadingPosition = () => {
+        const conversationId = activeConversationRef.current?.id;
+        if (!isMessageId(conversationId) || pendingScrollRef.current) return;
+        const boundary = visibleMessageBoundary(messagesContainerRef.current);
+        if (boundary) editContinuity(conversationId, 'position', { messageId: boundary.first, offset: boundary.offset });
+    };
 
     const handleSelectConversation = async (conversation) => {
+        rememberReadingPosition();
+        flushContinuity();
+        const selectionSequence = ++restoreSequenceRef.current;
+        newerPageRef.current = null;
+        setLoadingNewerMessages(false);
         activeConversationRef.current = conversation;
         paginationLockRef.current = null;
         setLoadingOlderMessages(false);
         setActiveConversation(conversation);
+        setReplyToMessage(null);
+        setFirstUnreadMessageId(null);
+        setHistoryError(null);
+        setHasNewerMessages(false);
+        historyWindowRef.current = { conversationId: conversation.id, hasNewer: false };
+        pendingScrollRef.current = { scope: workspaceRef.current, conversationId: conversation.id, bottom: true };
+        stickToBottomRef.current = true;
         setMessageSearchQuery('');
         setShowMessageSearch(false);
         setComposeFocus(false); // Reset auto-focus so switching chats doesn't pop the mobile keyboard
@@ -1931,8 +2095,23 @@ function MessengerPage() {
             return;
         }
 
-        // Regular conversation handling
-        await loadMessages(conversation.id);
+        // Read continuity before choosing a bounded history window. Edits made
+        // while this response is pending stay owned by the local draft.
+        const scope = workspaceRef.current;
+        await continuity.read(conversation.id);
+        if (selectionSequence !== restoreSequenceRef.current || scope !== workspaceRef.current || activeConversationRef.current?.id !== conversation.id) return;
+        const linkedDraft = deepLinkDraftRef.current;
+        if (linkedDraft?.actorId === user.id && linkedDraft.conversationId === conversation.id) {
+            if (!continuity.state(conversation.id).draft.text) editContinuity(conversation.id, 'draft', { text: linkedDraft.text, replyToId: null });
+            else setToast({ type: 'info', message: 'Your Existing Draft Was Kept.' });
+            deepLinkDraftRef.current = null;
+        }
+        const position = continuity.state(conversation.id).position;
+        const explicit = explicitAnchorRef.current;
+        explicitAnchorRef.current = null;
+        await loadMessages(conversation.id, explicit?.conversationId === conversation.id
+            ? { anchorMessageId: explicit.messageId }
+            : position.messageId ? { anchorMessageId: position.messageId, offset: position.offset } : { firstUnread: true });
 
         // The persisted read receipt clears the badge after messages load.
 
@@ -2033,12 +2212,15 @@ function MessengerPage() {
             setToast({ type: 'error', message: 'Message Could Not Be Prepared. Please Check The Message And Try Again.' });
             return null;
         }
+        try { saveMessengerSendOperation(localStorage, operation); }
+        catch { setToast({ type: 'error', message: 'Message Could Not Be Saved For Retry. Your Draft Was Kept.' }); return null; }
         sendOperationsRef.current.set(operation.requestId, operation);
+        options.onRecorded?.();
         return runSendOperation(operation);
     };
     sendOperationRef.current = queueMessengerSend;
 
-    const handleSendMessage = async (content) => {
+    const handleSendMessage = async (content, controls = {}) => {
         if (!user || !activeConversation || !content.trim()) return;
 
         // Special handling for Jarvis AI
@@ -2080,6 +2262,7 @@ function MessengerPage() {
                 saveJarvisHistory(updated);
                 return updated;
             });
+            controls.onRecorded?.();
 
             // Show typing indicator
             const typingMsg = {
@@ -2153,6 +2336,10 @@ function MessengerPage() {
             return;
         }
 
+        if (replyToMessage?.unavailable || replyToMessage?.content === 'Loading Original Message...') {
+            setToast({ type: 'error', message: 'Remove The Unavailable Reply Before Sending.' });
+            return;
+        }
         // A retry reuses this operation rather than rebuilding from the composer.
         if (sendLockRef.current) return;
         const sendOwner = {};
@@ -2161,10 +2348,18 @@ function MessengerPage() {
         if (replyToMessage) {
             const replyText = (replyToMessage.content || replyToMessage.text || '').replace(/\[REPLY:[^\]]+\]\s*/, '').slice(0, 80);
             finalContent = `[REPLY:${replyText}] ${finalContent}`;
-            setReplyToMessage(null);
         }
+        const conversationId = activeConversation.id;
+        const draftOwner = continuity.state(conversationId).draft;
         try {
-            await queueMessengerSend(finalContent);
+            await queueMessengerSend(finalContent, { onRecorded: () => {
+                if (controls.consumeDraft) continuity.clearDraftIfUnchanged(conversationId, draftOwner);
+                else if (draftOwner.replyToId) editContinuity(conversationId, 'draft', { text: draftOwner.text, replyToId: null });
+                setReplyToMessage(null);
+                controls.onRecorded?.();
+                if (historyWindowRef.current.hasNewer) void loadMessages(conversationId, { latest: true });
+                stickToBottomRef.current = true;
+            } });
         } finally {
             if (sendLockRef.current === sendOwner) sendLockRef.current = null;
         }
@@ -2381,6 +2576,7 @@ function MessengerPage() {
     // Handle reply — sets the reply state with the message being replied to
     const handleReplyMessage = (message) => {
         setReplyToMessage(message);
+        if (isMessageId(activeConversation?.id) && isMessageId(message?.id)) editContinuity(activeConversation.id, 'draft', { text: continuity.state(activeConversation.id).draft.text, replyToId: message.id });
         setEditingMessage(null); // Cancel any active edit
     };
 
@@ -2461,15 +2657,15 @@ function MessengerPage() {
         handleSendMessage(`[GIF](${gifUrl})`);
     };
 
-    // Pin/Unpin conversation
-    const handleTogglePin = (conversationId) => {
-        setPinnedConvoIds(prev => {
-            const updated = prev.includes(conversationId)
-                ? prev.filter(id => id !== conversationId)
-                : [...prev, conversationId].slice(0, 5); // max 5 pinned
-            localStorage.setItem('sp-pinned-conversations', JSON.stringify(updated));
-            return updated;
-        });
+    const handleTogglePin = (conversationId) => continuity.write(conversationId, 'pin', !pinnedConvoIds.includes(conversationId));
+    const handleSaveMessage = async (message, saved) => {
+        if (isMessageId(message?.id) && isMessageId(message.conversation_id)
+            && await continuity.write(message.conversation_id, 'saved', { messageId: message.id, saved }) && saved) await continuity.read(message.conversation_id);
+    };
+    const openSavedMessage = async item => {
+        explicitAnchorRef.current = { conversationId: item.conversationId, messageId: item.messageId };
+        setShowSavedMessages(false);
+        await resolveConversationRef.current(item.conversationId);
     };
 
     // Uploads retain their original account, destination and club identity. Only
@@ -2990,7 +3186,8 @@ function MessengerPage() {
             return;
         }
 
-        const otherUser = activeConversation?.otherUser;
+        const continuityButtonStyle = { minHeight: 44, border: `1px solid ${C.border}`, borderRadius: 8, background: C.card, color: C.blue, padding: '8px 12px', cursor: 'pointer', fontSize: 13, fontWeight: 600 };
+    const otherUser = activeConversation?.otherUser;
 
         // 🔒 CRITICAL VALIDATION: Ensure we're calling the right person
         if (!otherUser?.id) {
@@ -3345,6 +3542,7 @@ function MessengerPage() {
         );
     }
 
+    const continuityButtonStyle = { minHeight: 44, border: `1px solid ${C.border}`, borderRadius: 8, background: C.card, color: C.blue, padding: '8px 12px', cursor: 'pointer', fontSize: 13, fontWeight: 600 };
     const otherUser = activeConversation?.otherUser;
 
     // A group thread has no other user, so every header that read otherUser
@@ -3812,6 +4010,7 @@ function MessengerPage() {
 
             <div className="messenger-page" style={{
                 display: 'flex',
+                height: router.query.hideHeader === 'true' ? 'calc(100dvh - var(--sp-footer-height, 56px))' : 'calc(100dvh - var(--sp-header-height, 54px) - var(--sp-footer-height, 56px))',
                 background: C.bg,
                 fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif',
             }}>
@@ -3829,6 +4028,25 @@ function MessengerPage() {
                     flexShrink: 0,
                 }}>
                     <div data-messenger-inbox-scroll style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
+                    <div style={{ padding: '8px 16px' }}>
+                        <button type="button" aria-label="Saved Messages" onClick={() => { setShowSavedMessages(value => !value); if (!showSavedMessages) void continuity.read(); }}
+                            style={continuityButtonStyle}>
+                            Saved Messages
+                        </button>
+                    </div>
+                    <ContinuityStatus controller={continuity} theme={C} />
+                    {showSavedMessages && <section aria-label="Saved Messages List" style={{ padding: '8px 16px', color: C.text, borderBottom: `1px solid ${C.border}` }}>
+                        {continuity.loading ? <p>Loading Saved Messages...</p> : continuity.errors.has('read') ? <p>Saved Messages Are Unavailable.</p>
+                            : continuity.saved.length === 0 ? <p>No Saved Messages Yet</p> : continuity.saved.map(item => <div key={item.messageId} style={{ marginBottom: 12 }}>
+                                <button type="button" aria-label="Open Saved Message" disabled={!item.message || item.message.is_deleted} onClick={() => openSavedMessage(item)}
+                                    style={{ border: 0, background: 'none', color: C.text, textAlign: 'left', cursor: 'pointer', width: '100%', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                    {item.message && !item.message.is_deleted ? (item.message.content || 'Saved Message').slice(0, 120) : 'Message Is No Longer Available'}
+                                </button>
+                                <button type="button" aria-label="Remove Saved Message" onClick={() => continuity.write(item.conversationId, 'saved', { messageId: item.messageId, saved: false })}
+                                    style={continuityButtonStyle}>Remove</button>
+                            </div>)}
+                        {continuity.hasMoreSaved && !continuity.loading && <button type="button" style={continuityButtonStyle} onClick={() => continuity.read(null, continuity.nextSavedCursor)}>Load More Saved Messages</button>}
+                    </section>}
                     {/* Header - SmarterPoker Messenger Style */}
                     <div style={{
                         padding: '12px 16px',
@@ -4005,13 +4223,7 @@ function MessengerPage() {
                                         )}
                                         onBlock={handleToggleBlock}
                                         theme={C}
-                                        onPin={(id) => {
-                                            setPinnedConvoIds(prev => {
-                                                const next = prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id];
-                                                try { localStorage.setItem('sp-pinned-conversations', JSON.stringify(next)); } catch (e) { console.warn('[App] Handled exception:', e); }
-                                                return next;
-                                            });
-                                        }}
+                                        onPin={handleTogglePin}
                                         onDelete={async (id) => {
                                             // Optimistic UI: remove immediately
                                             setConversations(prev => prev.filter(c => c.id !== id));
@@ -4240,6 +4452,8 @@ function MessengerPage() {
                     ════════════════════════════════════════════════════════ */}
                 <main style={{
                     flex: 1,
+                    minHeight: 0,
+                    minWidth: 0,
                     display: (isMobile && showSidebar) ? 'none' : 'flex',
                     flexDirection: 'column',
                     background: C.card,
@@ -4416,9 +4630,7 @@ function MessengerPage() {
                                                           onKeyDown={spKeyActivate}
                                                             key={result.id}
                                                             onClick={() => {
-                                                                // Scroll to message (future: highlight it)
-                                                                const el = document.getElementById(`msg-${result.id}`);
-                                                                el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                                                void loadMessages(activeConversation.id, { anchorMessageId: result.id });
                                                                 setShowMessageSearch(false);
                                                                 setMessageSearchQuery('');
                                                             }}
@@ -4466,8 +4678,20 @@ function MessengerPage() {
                                     </div>
                                 )}
 
+                                {!activeConversation.isJarvis && <div style={{ display: 'flex', gap: 8, padding: '6px 12px', flexWrap: 'wrap' }}>
+                                    {firstUnreadMessageId && <button type="button" style={continuityButtonStyle} onClick={() => loadMessages(activeConversation.id, { anchorMessageId: firstUnreadMessageId })}>Jump To First Unread</button>}
+                                    {hasNewerMessages && <button type="button" style={continuityButtonStyle} onClick={() => loadMessages(activeConversation.id, { latest: true })}>Jump To Latest</button>}
+                                    {historyError && <button type="button" style={continuityButtonStyle} onClick={() => {
+                                        const retry = historyError; setHistoryError(null);
+                                        if (retry.direction === 'newer') void loadNewerMessages();
+                                        else if (retry.direction === 'older') void loadMessages(activeConversation.id, { anchorMessageId: messages.find(message => isMessageId(message.id))?.id });
+                                        else void loadMessages(activeConversation.id, retry.navigation);
+                                    }}>Retry Loading Messages</button>}
+                                </div>}
                                 <div
                                     ref={messagesContainerRef}
+                                    data-messenger-message-scroll
+                                    data-conversation-id={activeConversation.id}
                                     onScroll={(e) => {
                                         // Infinite scroll — load older messages when near top
                                         if (e.target.scrollTop < 100 && hasMoreMessages && !loadingOlderMessages) {
@@ -4477,11 +4701,15 @@ function MessengerPage() {
                                         // BUGFIX: Only call setState when value actually changes to avoid re-renders on every scroll frame
                                         const el = e.target;
                                         const distFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
-                                        const shouldShow = distFromBottom > 200;
+                                        stickToBottomRef.current = distFromBottom < 80 && !historyWindowRef.current.hasNewer;
+                                        rememberReadingPosition();
+                                        visibleReadRef.current?.();
+                                        const shouldShow = distFromBottom > 200 || historyWindowRef.current.hasNewer;
                                         setShowScrollDown(prev => prev === shouldShow ? prev : shouldShow);
                                     }}
                                     style={{
                                     flex: 1,
+                                    minHeight: 0,
                                     overflowY: 'auto',
                                     padding: '16px 0',
                                     position: 'relative',
@@ -4583,6 +4811,9 @@ function MessengerPage() {
                                                         onCallBack={startCall}
                                                         onReply={handleReplyMessage}
                                                         onUnsend={handleUnsendMessage}
+                                                        onSave={activeConversation.isJarvis ? undefined : handleSaveMessage}
+                                                        isSaved={continuity.savedState(msg.id).saved === true}
+                                                        saving={continuity.isSaving(activeConversation.id, 'saved')}
                                                         currentUserId={user.id}
                                                         theme={C}
                                                     />
@@ -4599,13 +4830,17 @@ function MessengerPage() {
                                     ); })()}
                                     {/* Typing indicator */}
                                     {otherTyping && <TypingIndicator name={otherUser?.full_name || otherUser?.display_name || otherUser?.username} theme={C} />}
+                                    {hasNewerMessages && <button type="button" disabled={loadingNewerMessages} onClick={loadNewerMessages}
+                                        style={{ ...continuityButtonStyle, display: 'block', margin: '12px auto' }}>
+                                        {loadingNewerMessages ? 'Loading Newer Messages...' : 'Load Newer Messages'}
+                                    </button>}
                                     <div ref={messagesEndRef} />
                                 </div>
 
                                 {/* Phase 3: Scroll-to-bottom FAB */}
                                 {showScrollDown && (
                                     <button
-                                        onClick={() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })}
+                                        onClick={() => { stickToBottomRef.current = true; if (hasNewerMessages) void loadMessages(activeConversation.id, { latest: true }); else messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }}
                                         style={{
                                             position: 'absolute',
                                             bottom: 80,
@@ -4671,7 +4906,7 @@ function MessengerPage() {
                                                 {(replyToMessage.content || '').replace(/\[REPLY:[^\]]+\]\s*/, '').slice(0, 80)}
                                             </div>
                                         </div>
-                                        <button onClick={() => setReplyToMessage(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.textSec, fontSize: 18 }}>×</button>
+                                        <button onClick={clearReply} style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.textSec, fontSize: 18 }}>×</button>
                                     </div>
                                 )}
                                 {/* Edit bar — shows when editing a message */}
@@ -4699,7 +4934,10 @@ function MessengerPage() {
                                     </div>
                                 )}
 
-                                <MessageInput key={activeConversation.id} onSend={handleSendMessage} onTyping={broadcastTyping} onMediaUpload={handleMediaUpload} onGifSend={handleGifSend} onVoiceSend={handleVoiceSend} autoFocus={composeFocus} initialText={conversationDraft} theme={C} />
+                                <ContinuityStatus controller={continuity} conversationId={activeConversation.isJarvis ? null : activeConversation.id} theme={C}
+                                    onUsePosition={position => loadMessages(activeConversation.id, position.messageId ? { anchorMessageId: position.messageId, offset: position.offset } : { latest: true })} />
+                                <MessageInput key={`${user.id}:${activeConversation.id}`} onSend={handleSendMessage} onTyping={broadcastTyping} onMediaUpload={handleMediaUpload} onGifSend={handleGifSend} onVoiceSend={handleVoiceSend} autoFocus={composeFocus} value={activeConversation.isJarvis ? undefined : continuity.state(activeConversation.id).draft.text}
+                                    onDraftChange={activeConversation.isJarvis ? undefined : text => editContinuity(activeConversation.id, 'draft', { text, replyToId: continuity.state(activeConversation.id).draft.replyToId })} theme={C} />
                             </>
                         ) : (
                             /* No conversation selected */
