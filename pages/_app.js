@@ -947,6 +947,12 @@ export default function App({ Component, pageProps }) {
   // over its internal routes.
   const resolvedPath =
     (router.asPath || router.pathname).split(/[?#]/, 1)[0].replace(/\/+$/, '') || '/';
+  // Category/feed/deep-link changes on the full-screen Reel viewer must not
+  // remount the page before an in-flight request can settle. All other routes
+  // retain the historical full-URL error-boundary reset behavior.
+  const pageErrorBoundaryKey = resolvedPath === '/hub/reels'
+    ? resolvedPath
+    : router.asPath;
   // Every Poker Near Me route owns a complete SEOHead. Keeping the generic
   // social defaults mounted as a separate next/head instance causes both the
   // default and route-specific Open Graph/Twitter tags to survive SSR, leaving
@@ -1165,7 +1171,7 @@ export default function App({ Component, pageProps }) {
                         <NavigationGuard>
                           <ActiveIdentityProvider>
                             <WorldThemeProvider>
-                              <PageErrorBoundary key={router.asPath}>
+                              <PageErrorBoundary key={pageErrorBoundaryKey}>
                                 {isTrainingRoute ? (
                                   <div
                                     className="sp-training-route-shell"

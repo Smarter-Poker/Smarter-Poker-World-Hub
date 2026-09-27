@@ -51,13 +51,18 @@ async function fireConfetti(opts) {
     } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
 }
 import { useAvatar } from '../../src/contexts/AvatarContext';
-import { Eye, TrendingUp, Trophy, MapPin, ExternalLink, Bookmark, BookmarkCheck, Share2, Twitter, Facebook, LinkIcon, CheckCircle, ChevronUp, Newspaper, Globe, ChevronRight, ChevronLeft, Film, Clock, Mail, Calendar, PlayCircle, Search, X } from 'lucide-react';
+import { Eye, TrendingUp, Trophy, MapPin, ExternalLink, Bookmark, BookmarkCheck, Share2, Twitter, Facebook, LinkIcon, CheckCircle, ChevronUp, Newspaper, Globe, Clock, Mail, Calendar, PlayCircle, Search, X } from 'lucide-react';
 
 import { useExternalLink } from '../../src/components/ui/ExternalLinkModal';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import { getNewsPreferences, updateNewsPreferences } from '../../src/services/newsPreferences';
 import { getNewsBookmarks, addNewsBookmark, removeNewsBookmark } from '../../src/services/newsBookmarks';
 import LiveWireStyles from '../../src/components/news/LiveWireStyles';
+import {
+    ConsoleCopy,
+    ConsoleDataRow,
+    VideoLibraryConsole,
+} from '../../src/components/video-library/console';
 import {
     getReadLater,
     addToReadLater,
@@ -1557,7 +1562,7 @@ function NewsHub() {
                                     onClick={() => selectSection('reels')}
                                     onKeyDown={(event) => handleSectionKeyDown(event, 'reels')}
                                 >
-                                    <Film size={14} /> Reels
+                                    Reels
                                 </button>
                                 <button
                                     role="tab"
@@ -1978,90 +1983,106 @@ function NewsHub() {
                                         )}
                                     </section>
 
-                                    {/* Reels Preview Section - Shows on News tab */}
-                                    <section className="reels-preview-section">
-                                        <div className="section-header-row">
-                                            <h2 className="section-title">
-                                                <Film size={18} /> Poker Reels
-                                            </h2>
+                                    {/* CLUB ARENA NEWS REELS PREVIEW START */}
+                                    <VideoLibraryConsole
+                                        as="section"
+                                        className="news-reels-console news-reels-console--preview"
+                                        eyebrow="News Desk"
+                                        title="Poker Reels"
+                                        titleAs="h2"
+                                        subtitle="Fresh Short Form Poker"
+                                        pill={reels.length > 0 ? `${reels.length} Live` : 'Daily'}
+                                        pillInk="blue"
+                                        foot="foot"
+                                        aria-busy={hasMounted && reelsLoading}
+                                    >
+                                        <div className="news-reels-console__intro">
+                                            <ConsoleCopy>Real Poker Clips Selected From The Live Reels Feed.</ConsoleCopy>
                                             <button
-                                                className="see-all-btn"
+                                                type="button"
+                                                className="news-reels-console__text-action"
                                                 onClick={() => selectSection('reels')}
                                             >
-                                                See All <ChevronRight size={13} style={{ verticalAlign: '-2px' }} />
+                                                See All Reels
                                             </button>
                                         </div>
+
                                         {reels.length > 0 ? (
-                                            <div className="reels-carousel-wrapper">
-                                                <button className="carousel-arrow carousel-left" aria-label="Scroll reels left" onClick={() => reelsCarouselRef.current?.scrollBy({ left: -300, behavior: 'smooth' })}>
-                                                    <ChevronLeft size={20} />
-                                                </button>
-                                                <div className="reels-carousel" ref={reelsCarouselRef}>
+                                            <div className="news-reels-console__carousel-shell">
+                                                <div className="news-reels-console__carousel-actions" aria-label="Reel Carousel Controls">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => reelsCarouselRef.current?.scrollBy({ left: -300, behavior: 'smooth' })}
+                                                    >
+                                                        Previous Reels
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => reelsCarouselRef.current?.scrollBy({ left: 300, behavior: 'smooth' })}
+                                                    >
+                                                        Next Reels
+                                                    </button>
+                                                </div>
+                                                <div className="news-reels-console__carousel" ref={reelsCarouselRef} role="list">
                                                     {reels.slice(0, 10).map((reel, idx) => (
-                                                        <ReelCard key={reel.id} reel={reel} onClick={() => openReelViewer(idx)} />
+                                                        <div className="news-reels-console__carousel-item" role="listitem" key={reel.id || reel.youtube_id}>
+                                                            <ReelCard reel={reel} onClick={() => openReelViewer(idx)} />
+                                                        </div>
                                                     ))}
                                                 </div>
-                                                <button className="carousel-arrow carousel-right" aria-label="Scroll reels right" onClick={() => reelsCarouselRef.current?.scrollBy({ left: 300, behavior: 'smooth' })}>
-                                                    <ChevronRight size={20} />
-                                                </button>
                                             </div>
                                         ) : hasMounted && reelsLoading ? (
-                                            <div className="reels-empty-state">
-                                                <div className="loading-spinner" />
-                                                <span>Loading Reels...</span>
-                                            </div>
+                                            <ConsoleCopy align="center" role="status">Loading Reels...</ConsoleCopy>
                                         ) : reelsError ? (
-                                            <div className="reels-empty-state">
-                                                <span>Could Not Load Reels.</span>
-                                                <button onClick={() => refreshReels()}>Retry</button>
+                                            <div className="news-reels-console__state" role="alert">
+                                                <ConsoleCopy align="center">Reels Are Temporarily Unavailable.</ConsoleCopy>
+                                                <button type="button" onClick={() => refreshReels()}>Retry Reels</button>
                                             </div>
                                         ) : (
-                                            <div className="reels-empty-state">
-                                                <span>No Reels Yet - Check Back Soon.</span>
-                                            </div>
+                                            <ConsoleCopy align="center" role="status">No Reels Available Yet. Check Back Soon.</ConsoleCopy>
                                         )}
-                                    </section>
+                                    </VideoLibraryConsole>
+                                    {/* CLUB ARENA NEWS REELS PREVIEW END */}
                                 </>
                             )}
                             
                             {activeSection === 'reels' && (
-                                /* Reels Section - Full View */
-                                <section className="reels-section">
-                                    <h2 className="section-title">
-                                        <Film size={18} /> Poker Reels
-                                    </h2>
-                                    <p className="section-desc">
-                                        Short-Form Poker Content From Top YouTube Channels - Updated Daily
-                                    </p>
-
+                                /* CLUB ARENA NEWS REELS FULL START */
+                                <VideoLibraryConsole
+                                    as="section"
+                                    className="news-reels-console news-reels-console--full"
+                                    eyebrow="News Desk"
+                                    title="Poker Reels"
+                                    titleAs="h2"
+                                    subtitle="Short Form Poker Updated Daily"
+                                    pill={reels.length > 0 ? `${reels.length} Live` : 'Reels'}
+                                    pillInk="blue"
+                                    foot="foot"
+                                    aria-busy={hasMounted && reelsLoading}
+                                >
                                     {hasMounted && reelsLoading ? (
-                                        <div className="no-results" role="status">
-                                            <div className="loading-spinner" />
-                                            <p>Loading Reels...</p>
-                                        </div>
+                                        <ConsoleCopy align="center" role="status">Loading Reels...</ConsoleCopy>
                                     ) : reelsError ? (
-                                        <div className="no-results" role="alert">
-                                            <Film size={48} />
-                                            <p>Reels Are Temporarily Unavailable.</p>
-                                            <button type="button" onClick={() => refreshReels()}>Retry</button>
+                                        <div className="news-reels-console__state" role="alert">
+                                            <ConsoleCopy align="center">Reels Are Temporarily Unavailable.</ConsoleCopy>
+                                            <button type="button" onClick={() => refreshReels()}>Retry Reels</button>
                                         </div>
                                     ) : reels.length === 0 ? (
-                                        <div className="no-results">
-                                            <Film size={48} />
-                                            <p>No Reels Available Yet. Check Back Soon!</p>
-                                        </div>
+                                        <ConsoleCopy align="center" role="status">No Reels Available Yet. Check Back Soon.</ConsoleCopy>
                                     ) : (
-                                        <div className="reels-grid">
+                                        <div className="news-reels-console__grid" role="list">
                                             {reels.map((reel, idx) => (
-                                                <ReelCard
-                                                    key={reel.id || reel.youtube_id}
-                                                    reel={reel}
-                                                    onClick={() => openReelViewer(idx)}
-                                                />
+                                                <div className="news-reels-console__grid-item" role="listitem" key={reel.id || reel.youtube_id}>
+                                                    <ReelCard
+                                                        reel={reel}
+                                                        onClick={() => openReelViewer(idx)}
+                                                    />
+                                                </div>
                                             ))}
                                         </div>
                                     )}
-                                </section>
+                                </VideoLibraryConsole>
+                                /* CLUB ARENA NEWS REELS FULL END */
                             )}
 
                             {activeSection === 'videos' && (
@@ -2985,37 +3006,6 @@ function NewsHub() {
                     }
 
                     /* ═══════════════════════════════════════════════ */
-                    /* PHASE 2: REELS CAROUSEL ARROWS */
-                    /* ═══════════════════════════════════════════════ */
-                    .reels-carousel-wrapper {
-                        position: relative;
-                    }
-                    .carousel-arrow {
-                        position: absolute;
-                        top: 50%;
-                        transform: translateY(-50%);
-                        width: 36px;
-                        height: 36px;
-                        display: flex;
-                        align-items: center;
-                        justify-content: center;
-                        background: rgba(0, 0, 0, 0.7);
-                        backdrop-filter: blur(8px);
-                        border: 1px solid rgba(255, 255, 255, 0.15);
-                        border-radius: 50%;
-                        color: #fff;
-                        cursor: pointer;
-                        transition: all 0.2s;
-                        z-index: 10;
-                    }
-                    .carousel-arrow:hover {
-                        background: rgba(94, 245, 240, 0.3);
-                        border-color: #5ef5f0;
-                    }
-                    .carousel-left { left: -12px; }
-                    .carousel-right { right: -12px; }
-
-                    /* ═══════════════════════════════════════════════ */
                     /* PHASE 2: TRENDING MEDAL STYLING (styled rank badges, no emoji) */
                     /* ═══════════════════════════════════════════════ */
                     .rank.rank-medal {
@@ -3461,149 +3451,183 @@ function NewsHub() {
                         color: rgba(255, 255, 255, 0.55);
                     }
 
-                    /* Reels Preview Section (on News tab) */
-                    .reels-preview-section {
-                        position: relative;
-                        margin-top: 32px;
-                        padding: 24px;
-                        border: none;
-                        border-radius: 16px;
-                        background:
-                            linear-gradient(135deg, rgba(30, 32, 38, 0.95) 0%, rgba(20, 22, 28, 0.98) 100%);
-                        box-shadow:
-                            inset 0 0 0 2px rgba(180, 195, 220, 0.35),
-                            inset 0 0 0 4px rgba(100, 115, 140, 0.15),
-                            0 8px 32px rgba(0, 0, 0, 0.6);
-                        overflow: hidden;
+                    /* CLUB ARENA NEWS REELS CSS START */
+                    .news-reels-console {
+                        width: 100%;
+                        margin-block: 18px 28px;
                     }
 
-                    .reels-preview-section::before {
+                    .news-reels-console__intro,
+                    .news-reels-console__state {
+                        display: flex;
+                        flex-direction: column;
+                        align-items: stretch;
+                        gap: 12px;
+                    }
+
+                    .news-reels-console__text-action,
+                    .news-reels-console__state button,
+                    .news-reels-console__carousel-actions button,
+                    .news-reels-viewer__close {
+                        appearance: none;
+                        min-width: 44px;
+                        min-height: 44px;
+                        margin: 0;
+                        padding: 8px 0;
+                        border: 0;
+                        background: transparent;
+                        color: #45adff;
+                        font-family: 'Roboto Condensed', var(--font-rajdhani, 'Arial Narrow'), sans-serif;
+                        font-size: 14px;
+                        font-weight: 800;
+                        letter-spacing: 0.08em;
+                        line-height: 1.2;
+                        text-align: center;
+                        text-transform: uppercase;
+                        cursor: pointer;
+                        touch-action: manipulation;
+                        -webkit-tap-highlight-color: transparent;
+                    }
+
+                    .news-reels-console__text-action:focus-visible,
+                    .news-reels-console__state button:focus-visible,
+                    .news-reels-console__carousel-actions button:focus-visible,
+                    .news-reels-viewer__close:focus-visible {
+                        outline: 3px solid #8fd4ff;
+                        outline-offset: 2px;
+                    }
+
+                    .news-reels-console__text-action:active,
+                    .news-reels-console__state button:active,
+                    .news-reels-console__carousel-actions button:active,
+                    .news-reels-viewer__close:active {
+                        color: #f4f7fb;
+                    }
+
+                    .news-reels-console__carousel-shell {
+                        min-width: 0;
+                    }
+
+                    .news-reels-console__carousel-actions {
                         display: none;
                     }
 
-                    .reels-empty-state {
+                    .news-reels-console__carousel {
                         display: flex;
-                        align-items: center;
-                        justify-content: center;
-                        gap: 10px;
-                        padding: 24px;
-                        color: rgba(255, 255, 255, 0.55);
-                        font-size: 13px;
-                    }
-
-                    .reels-empty-state button {
-                        padding: 6px 14px;
-                        background: rgba(94, 245, 240, 0.1);
-                        border: 1px solid rgba(94, 245, 240, 0.35);
-                        border-radius: 8px;
-                        color: #5ef5f0;
-                        font-size: 12px;
-                        font-weight: 600;
-                        cursor: pointer;
-                        transition: background 0.15s;
-                    }
-
-                    .reels-empty-state button:hover {
-                        background: rgba(94, 245, 240, 0.2);
-                    }
-
-                    .section-header-row {
-                        display: flex;
-                        align-items: center;
-                        justify-content: space-between;
-                        margin-bottom: 16px;
-                    }
-
-                    .section-header-row .section-title {
-                        margin-bottom: 0;
-                    }
-
-                    .see-all-btn {
-                        position: relative;
-                        background: 
-                            linear-gradient(135deg, rgba(30, 32, 38, 0.95) 0%, rgba(20, 22, 28, 0.98) 100%);
-                        border: none;
-                        border-radius: 10px;
-                        padding: 10px 18px;
-                        color: #E4E6EB;
-                        font-size: 13px;
-                        font-weight: 600;
-                        cursor: pointer;
-                        transition: all 0.2s;
-                        box-shadow: 
-                            inset 0 0 0 2px rgba(180, 195, 220, 0.35),
-                            inset 0 0 0 4px rgba(100, 115, 140, 0.15),
-                            0 4px 16px rgba(0, 0, 0, 0.4);
-                    }
-
-                    .see-all-btn:hover {
-                        transform: translateY(-1px);
-                        box-shadow: 
-                            inset 0 0 0 2px rgba(0, 212, 255, 0.5),
-                            inset 0 0 0 4px rgba(0, 212, 255, 0.2),
-                            0 6px 24px rgba(0, 212, 255, 0.3);
-                        color: #00D4FF;
-                    }
-
-                    .reels-carousel {
-                        display: flex;
-                        gap: 16px;
+                        gap: 12px;
+                        width: 100%;
+                        min-width: 0;
+                        margin: 0;
+                        padding: 4px 4px 12px;
                         overflow-x: auto;
-                        width: 0;
-                        min-width: 100%;
-                        padding-bottom: 8px;
-                        scrollbar-width: thin;
-                        scrollbar-color: rgba(255,255,255,0.2) transparent;
+                        overscroll-behavior-inline: contain;
+                        scroll-snap-type: x mandatory;
+                        scrollbar-width: none;
+                        touch-action: pan-x pan-y;
                     }
 
-                    .reels-carousel::-webkit-scrollbar {
-                        height: 6px;
+                    .news-reels-console__carousel::-webkit-scrollbar {
+                        display: none;
                     }
 
-                    .reels-carousel::-webkit-scrollbar-track {
-                        background: transparent;
+                    .news-reels-console__carousel-item {
+                        flex: 0 0 calc(50% - 6px);
+                        min-width: 0;
+                        scroll-snap-align: start;
                     }
 
-                    .reels-carousel::-webkit-scrollbar-thumb {
-                        background: rgba(255,255,255,0.2);
-                        border-radius: 3px;
-                    }
-
-                    /* NOTE: this is a plain global <style> tag (not styled-jsx), so child
-                       component classes are targeted directly — :global() is not valid here */
-                    .reels-carousel .reel-card {
-                        flex-shrink: 0 !important;
-                        width: 220px !important;
-                        max-width: 220px !important;
-                    }
-
-                    .reels-carousel .reel-thumbnail {
-                        width: 100% !important;
-                        height: 391px !important;
-                        aspect-ratio: auto !important;
-                        overflow: hidden !important;
-                        position: relative !important;
-                    }
-
-                    .reels-carousel .reel-thumbnail img {
-                        position: absolute !important;
-                        top: 0 !important;
-                        left: 0 !important;
-                        width: 100% !important;
-                        height: 100% !important;
-                        object-fit: cover !important;
-                    }
-
-                    /* Reels Section */
-                    .reels-section {
-                        padding-bottom: 24px;
-                    }
-
-                    .reels-grid {
+                    .news-reels-console__grid {
                         display: grid;
-                        grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-                        gap: 16px;
+                        grid-template-columns: repeat(2, minmax(0, 1fr));
+                        gap: 18px 12px;
+                        min-width: 0;
                     }
+
+                    .news-reels-console__grid-item {
+                        min-width: 0;
+                    }
+
+                    .news-reels-viewer {
+                        position: fixed;
+                        inset: 0;
+                        z-index: 99999;
+                        display: flex;
+                        align-items: flex-start;
+                        justify-content: center;
+                        width: 100%;
+                        height: 100dvh;
+                        padding: max(env(safe-area-inset-top, 0px), 8px) 0 max(env(safe-area-inset-bottom, 0px), 8px);
+                        overflow-y: auto;
+                        background: #000;
+                        touch-action: pan-y;
+                    }
+
+                    .news-reels-viewer__console {
+                        width: min(100%, 680px);
+                        margin: auto;
+                    }
+
+                    .news-reels-viewer__close {
+                        align-self: center;
+                        color: #ff5b6e;
+                    }
+
+                    .news-reels-viewer__media {
+                        position: relative;
+                        width: min(100%, 360px);
+                        aspect-ratio: 9 / 16;
+                        margin-inline: auto;
+                        overflow: hidden;
+                        background: #000;
+                    }
+
+                    .news-reels-viewer__media iframe,
+                    .news-reels-viewer__media video {
+                        display: block;
+                        width: 100%;
+                        height: 100%;
+                        border: 0;
+                        background: #000;
+                        object-fit: contain;
+                    }
+
+                    @media (min-width: 769px) {
+                        .news-reels-console {
+                            margin-block: 28px 40px;
+                        }
+
+                        .news-reels-console__intro {
+                            display: grid;
+                            grid-template-columns: minmax(0, 1fr) auto;
+                            align-items: center;
+                            gap: 28px;
+                        }
+
+                        .news-reels-console__text-action {
+                            min-width: 160px;
+                        }
+
+                        .news-reels-console__carousel-actions {
+                            display: flex;
+                            justify-content: flex-end;
+                            gap: 24px;
+                            margin-bottom: 10px;
+                        }
+
+                        .news-reels-console__carousel-item {
+                            flex-basis: 190px;
+                        }
+
+                        .news-reels-console__grid {
+                            grid-template-columns: repeat(4, minmax(0, 1fr));
+                            gap: 30px 20px;
+                        }
+
+                        .news-reels-viewer {
+                            padding-inline: 24px;
+                        }
+                    }
+                    /* CLUB ARENA NEWS REELS CSS END */
 
                     /* Videos section (?tab=videos) */
                     .videos-grid {
@@ -4163,8 +4187,6 @@ function NewsHub() {
                     .section-tab:focus-visible,
                     .source-chip:focus-visible,
                     .view-toggle button:focus-visible,
-                    .see-all-btn:focus-visible,
-                    .carousel-arrow:focus-visible,
                     .scroll-to-top-fab:focus-visible,
                     .news-list-item:focus-visible,
                     .breaking-ticker:focus-visible,
@@ -4173,7 +4195,6 @@ function NewsHub() {
                     .close-modal:focus-visible,
                     .newsletter button:focus-visible,
                     .feed-filter-chip button:focus-visible,
-                    .reels-empty-state button:focus-visible,
                     .mspt-list li:focus-visible,
                     .trending-list li:focus-visible,
                     .history-list li:focus-visible {
@@ -4295,34 +4316,6 @@ function NewsHub() {
                             z-index: 10 !important;
                         }
 
-                        /* === REELS FIX === */
-                        .reels-carousel {
-                             display: flex !important;
-                             overflow-x: auto !important;
-                             gap: 12px !important;
-                             padding-bottom: 12px !important;
-                             scroll-snap-type: x mandatory !important;
-                             -webkit-overflow-scrolling: touch !important;
-                        }
-                        
-                        .reel-card,
-                        .reels-carousel .reel-card {
-                             min-width: 180px !important;
-                             width: 180px !important;
-                             max-width: 180px !important;
-                             height: auto !important;
-                             flex-shrink: 0 !important;
-                             scroll-snap-align: start !important;
-                             margin-right: 0 !important;
-                        }
-
-                        /* Match the desktop carousel selector's specificity so the phone
-                           sizing wins (media queries add none of their own) */
-                        .reels-carousel .reel-thumbnail {
-                             height: auto !important;
-                             aspect-ratio: 9 / 16 !important;
-                        }
-
                         /* === IMAGES === */
                         .box-image {
                             height: auto !important;
@@ -4388,18 +4381,19 @@ function NewsHub() {
             {reelViewerOpen && reels.length > 0 && (() => {
                 const currentReel = reels[safeReelIndex] || reels[0];
                 const videoId = getYouTubeVideoId(currentReel?.video_url);
-                const displayTitle = currentReel?.title || currentReel?.caption?.split('\n')[0] || 'Poker Reel';
-                const channelName = currentReel?.channel_name || currentReel?.profiles?.full_name || 'Smarter.Poker';
+                const displayTitle = typeof currentReel?.title === 'string' && currentReel.title.trim()
+                    ? currentReel.title.trim()
+                    : (typeof currentReel?.caption === 'string' && currentReel.caption.split('\n')[0].trim()) || 'Poker Reel';
+                const channelName = typeof currentReel?.channel_name === 'string' && currentReel.channel_name.trim()
+                    ? currentReel.channel_name.trim()
+                    : (typeof currentReel?.profiles?.full_name === 'string' && currentReel.profiles.full_name.trim()) || 'Smarter.Poker';
 
                 return (
                     <div
                         role="dialog"
                         aria-modal="true"
-                        aria-label="Reel viewer"
-                        style={{
-                            position: 'fixed', inset: 0, background: '#000', zIndex: 99999,
-                            height: '100dvh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center'
-                        }}
+                        aria-labelledby="news-reels-viewer-title"
+                        className="news-reels-viewer"
                         onClick={(e) => { if (e.target === e.currentTarget) setReelViewerOpen(false); }}
                         onTouchStart={(e) => { reelSwipeStartRef.current = e.changedTouches[0]?.clientY ?? null; }}
                         onTouchEnd={(e) => {
@@ -4413,129 +4407,91 @@ function NewsHub() {
                         tabIndex={-1}
                         ref={reelViewerRef}
                     >
-                        {/* Close button - subtle, top-left */}
-                        <button
-                            onClick={() => setReelViewerOpen(false)}
-                            aria-label="Close"
-                            className="sp-icon-btn sp-overlay-close sp-overlay-close--left"
-                            style={{ '--sp-btn-size': '44px',
-                                position: 'absolute', top: 'calc(env(safe-area-inset-top, 0px) + 12px)', left: 12, zIndex: 10,
-                                width: 44, height: 44, minWidth: 44, minHeight: 44, borderRadius: '50%',
-                                touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent',
-                                background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(8px)',
-                                border: 'none', color: 'white', fontSize: 18, cursor: 'pointer',
-                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                transition: 'background 0.2s'
+                        {/* CLUB ARENA NEWS REELS VIEWER START */}
+                        <VideoLibraryConsole
+                            as="div"
+                            className="news-reels-viewer__console"
+                            eyebrow={channelName}
+                            title={displayTitle}
+                            titleId="news-reels-viewer-title"
+                            titleAs="h2"
+                            subtitle="Now Playing"
+                            pill={`${safeReelIndex + 1} Of ${reels.length}`}
+                            pillInk="blue"
+                            plates={{
+                                secondary: {
+                                    label: 'Previous Reel',
+                                    onClick: () => setReelViewerIndex(Math.max(safeReelIndex - 1, 0)),
+                                    disabled: safeReelIndex === 0,
+                                    ink: 'silver',
+                                },
+                                primary: {
+                                    label: 'Next Reel',
+                                    onClick: () => setReelViewerIndex(Math.min(safeReelIndex + 1, reels.length - 1)),
+                                    disabled: safeReelIndex >= reels.length - 1,
+                                    ink: 'white',
+                                },
                             }}
-                            onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.3)'}
-                            onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.15)'}
-                        >×</button>
-
-                        {/* Previous arrow */}
-                        {safeReelIndex > 0 && (
+                            onClick={(event) => event.stopPropagation()}
+                        >
                             <button
-                                onClick={() => setReelViewerIndex(safeReelIndex - 1)}
-                                aria-label="Previous reel"
-                                style={{
-                                    position: 'absolute', left: 16, top: '50%', transform: 'translateY(-50%)', zIndex: 10,
-                                    width: 48, height: 48, borderRadius: '50%',
-                                    background: 'rgba(255,255,255,0.1)', border: 'none',
-                                    color: 'white', fontSize: 24, cursor: 'pointer',
-                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                    transition: 'background 0.2s'
-                                }}
-                                onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.25)'}
-                                onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
-                            ><ChevronLeft size={28} /></button>
-                        )}
+                                type="button"
+                                className="news-reels-viewer__close"
+                                onClick={() => setReelViewerOpen(false)}
+                            >
+                                Close Viewer
+                            </button>
 
-                        {/* Next arrow */}
-                        {safeReelIndex < reels.length - 1 && (
-                            <button
-                                onClick={() => setReelViewerIndex(safeReelIndex + 1)}
-                                aria-label="Next reel"
-                                style={{
-                                    position: 'absolute', right: 16, top: '50%', transform: 'translateY(-50%)', zIndex: 10,
-                                    width: 48, height: 48, borderRadius: '50%',
-                                    background: 'rgba(255,255,255,0.1)', border: 'none',
-                                    color: 'white', fontSize: 24, cursor: 'pointer',
-                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                    transition: 'background 0.2s'
-                                }}
-                                onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.25)'}
-                                onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
-                            ><ChevronRight size={28} /></button>
-                        )}
-
-                        {/* Video container — sized to the 9:16 reel so the letterbox areas
-                            stay part of the backdrop and click-to-close keeps working */}
-                        <div style={{ position: 'relative', height: '100%', maxHeight: '100dvh', aspectRatio: '9 / 16', maxWidth: '100vw' }}>
-                            {videoId ? (
-                                <>
-                                <iframe
-                                    key={currentReel.id}
-                                    ref={reelYouTubeRef}
-                                    title={displayTitle}
-                                    src={`https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&mute=1&rel=0&modestbranding=1&playsinline=1&controls=1&iv_load_policy=3&enablejsapi=1&origin=${typeof window !== 'undefined' ? window.location.origin : 'https://smarter.poker'}`}
-                                    style={{ width: '100%', height: '100%', border: 'none' }}
-                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                    allowFullScreen
-                                    onLoad={() => {
-                                        const player = reelYouTubeRef.current?.contentWindow;
-                                        if (!player) return;
-                                        player.postMessage(JSON.stringify({ event: 'listening', id: currentReel.id, channel: 'news-reels' }), 'https://www.youtube-nocookie.com');
-                                        player.postMessage(JSON.stringify({ event: 'command', func: 'addEventListener', args: ['onStateChange'] }), 'https://www.youtube-nocookie.com');
-                                        player.postMessage(JSON.stringify({ event: 'command', func: 'addEventListener', args: ['onError'] }), 'https://www.youtube-nocookie.com');
-                                    }}
-                                />
-                                {/* YouTube Error Overlay */}
-                                {newsYtManaged && (
-                                    <YouTubeErrorOverlay
-                                        errorCode={newsYtManaged}
-                                        videoId={videoId}
-                                        actionLabel="Skipping in 3 seconds..."
+                            <div className="news-reels-viewer__media">
+                                {videoId ? (
+                                    <>
+                                        <iframe
+                                            key={currentReel.id}
+                                            ref={reelYouTubeRef}
+                                            title={displayTitle}
+                                            src={`https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&mute=1&rel=0&modestbranding=1&playsinline=1&controls=1&iv_load_policy=3&enablejsapi=1&origin=${typeof window !== 'undefined' ? window.location.origin : 'https://smarter.poker'}`}
+                                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                            allowFullScreen
+                                            onLoad={() => {
+                                                const player = reelYouTubeRef.current?.contentWindow;
+                                                if (!player) return;
+                                                player.postMessage(JSON.stringify({ event: 'listening', id: currentReel.id, channel: 'news-reels' }), 'https://www.youtube-nocookie.com');
+                                                player.postMessage(JSON.stringify({ event: 'command', func: 'addEventListener', args: ['onStateChange'] }), 'https://www.youtube-nocookie.com');
+                                                player.postMessage(JSON.stringify({ event: 'command', func: 'addEventListener', args: ['onError'] }), 'https://www.youtube-nocookie.com');
+                                            }}
+                                        />
+                                        {newsYtManaged && (
+                                            <YouTubeErrorOverlay
+                                                errorCode={newsYtManaged}
+                                                videoId={videoId}
+                                                actionLabel="Skipping In 3 Seconds"
+                                            />
+                                        )}
+                                    </>
+                                ) : currentReel?.video_url ? (
+                                    <video
+                                        key={currentReel.id}
+                                        src={currentReel.video_url}
+                                        autoPlay
+                                        muted
+                                        controls
+                                        playsInline
+                                        onEnded={() => {
+                                            if (safeReelIndex < reels.length - 1) setReelViewerIndex(safeReelIndex + 1);
+                                        }}
+                                        onError={() => {
+                                            if (safeReelIndex < reels.length - 1) setReelViewerIndex(safeReelIndex + 1);
+                                        }}
                                     />
+                                ) : (
+                                    <ConsoleCopy align="center" role="status">Video Unavailable.</ConsoleCopy>
                                 )}
-                                </>
-                            ) : currentReel?.video_url ? (
-                                <video
-                                    key={currentReel.id}
-                                    src={currentReel.video_url}
-                                    autoPlay
-                                    muted
-                                    controls
-                                    playsInline
-                                    style={{ width: '100%', height: '100%', objectFit: 'contain', background: '#000' }}
-                                    onClick={(e) => e.stopPropagation()}
-                                    onEnded={() => {
-                                        if (safeReelIndex < reels.length - 1) setReelViewerIndex(safeReelIndex + 1);
-                                    }}
-                                    onError={() => {
-                                        if (safeReelIndex < reels.length - 1) setReelViewerIndex(safeReelIndex + 1);
-                                    }}
-                                />
-                            ) : null}
-                        </div>
+                            </div>
 
-                        {/* Bottom info bar */}
-                        <div style={{
-                            position: 'absolute', bottom: 0, left: 0, right: 0, padding: '16px 20px',
-                            background: 'linear-gradient(transparent, rgba(0,0,0,0.85))',
-                            display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end',
-                            pointerEvents: 'none'
-                        }}>
-                            <div>
-                                <div style={{ color: 'white', fontSize: 15, fontWeight: 600, marginBottom: 4, textShadow: '0 1px 3px rgba(0,0,0,0.7)' }}>
-                                    {displayTitle}
-                                </div>
-                                <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12 }}>
-                                    {channelName}
-                                </div>
-                            </div>
-                            <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: 13, fontWeight: 500 }}>
-                                {safeReelIndex + 1} / {reels.length}
-                            </div>
-                        </div>
+                            <ConsoleDataRow label="Channel" value={channelName} />
+                            <ConsoleDataRow label="Position" value={`${safeReelIndex + 1} Of ${reels.length}`} valueInk="blue" />
+                        </VideoLibraryConsole>
+                        {/* CLUB ARENA NEWS REELS VIEWER END */}
                     </div>
                 );
             })()}

@@ -319,7 +319,7 @@ export const MENU_CONFIGS = {
             createMenuItem.navigation('Work Schedule & Dealer Downs', '/hub/toke-tracker'),
             createMenuItem.navigation('◆ Set Monthly Goal', '/hub/toke-tracker/shift'),
             createMenuItem.divider(),
-            createMenuItem.navigation('Reels', '/hub/reels', MenuIcons.video),
+            createMenuItem.navigation('Reels', '/hub/reels?category=for-you', MenuIcons.video),
             createMenuItem.navigation('News', '/hub/news'),
             createMenuItem.navigation('Poker Near Me', '/hub/poker-near-me/lobby'),
             createMenuItem.navigation('Home Games', '/hub/home-games'),
@@ -441,9 +441,12 @@ export const MENU_CONFIGS = {
     'reels': (user, state, handlers) => ({
         menuItems: [
             createMenuItem.section('Feed'),
-            createMenuItem.navigation('For You', '/hub/reels?feed=foryou'),
-            createMenuItem.navigation('Following', '/hub/reels?feed=following'),
-            createMenuItem.navigation('Trending', '/hub/reels?feed=trending'),
+            createMenuItem.navigation('For You', '/hub/reels?category=for-you'),
+            createMenuItem.navigation('Poker', '/hub/reels?category=poker'),
+            createMenuItem.navigation('Casino And Slots', '/hub/reels?category=casino-slots'),
+            createMenuItem.navigation('Sports', '/hub/reels?category=sports'),
+            createMenuItem.navigation('Following', '/hub/reels?category=following'),
+            createMenuItem.navigation('Trending', '/hub/reels?category=for-you&feed=trending'),
             createMenuItem.divider(),
             createMenuItem.action('Upload Reel', handlers.onUploadReel, null, true),
             createMenuItem.navigation('My Reels', '/hub/reels/my-reels'),
@@ -1039,7 +1042,7 @@ export const MENU_CONFIGS = {
             createMenuItem.navigation('Feed', '/hub/social-media', MenuIcons.message),
             createMenuItem.navigation('Friends', '/hub/friends', MenuIcons.users),
             createMenuItem.navigation('Messenger', '/hub/messenger', MenuIcons.chat),
-            createMenuItem.navigation('Reels', '/hub/reels', MenuIcons.video),
+            createMenuItem.navigation('Reels', '/hub/reels?category=for-you', MenuIcons.video),
             createMenuItem.divider(),
             createMenuItem.section('Content'),
             createMenuItem.navigation('News', '/hub/news', MenuIcons.news),
@@ -1341,7 +1344,7 @@ export const MENU_CONFIGS = {
             createMenuItem.navigation('Past Streams', '/hub/lives?filter=past'),
             createMenuItem.divider(),
             createMenuItem.section('Quick Links'),
-            createMenuItem.navigation('Reels', '/hub/reels'),
+            createMenuItem.navigation('Reels', '/hub/reels?category=for-you'),
             createMenuItem.navigation('Social Hub', '/hub/social-media')
         ],
         bottomLinks: [

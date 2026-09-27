@@ -4,7 +4,9 @@ import path from 'node:path';
 import { test } from 'node:test';
 
 import {
+  compositeRpcProbeCandidates,
   declaredObjects,
+  proveCompositeRpcSignatures,
   unappliedObjects,
 } from '../scripts/ci/check-migrations-applied.mjs';
 
@@ -14,6 +16,7 @@ const emptyLiveSchema = () => ({
   tables: new Map(),
   fns: new Set(),
   rpcArgs: new Map(),
+  readOnlyRpcs: new Set(),
 });
 
 test('CHECK 17 excludes a migration-only table dropped before the final schema', () => {
@@ -61,6 +64,163 @@ test('CHECK 17 still enforces persistent columns and RPC functions', () => {
   assert.deepEqual(unappliedObjects(declared, live), [
     ['column', 'training_attempts.durable_receipt'],
     ['function', 'training_missing_rpc(p_attempt_id)'],
+  ]);
+});
+
+test('CHECK 17 recognizes published composite row RPCs without weakening scalar signature checks', () => {
+  const declared = declaredObjects(`
+    CREATE FUNCTION public.legacy_transition_eligible(p_reel public.social_reels)
+    RETURNS boolean LANGUAGE sql AS $$ SELECT true $$;
+    CREATE FUNCTION public.training_scalar_rpc(p_value uuid)
+    RETURNS boolean LANGUAGE sql AS $$ SELECT true $$;
+    CREATE FUNCTION public.fn_video_library_publisher_is_eligible(p_profile_id uuid)
+    RETURNS boolean LANGUAGE sql AS $$ SELECT true $$;
+  `);
+  const live = {
+    tables: new Map([['social_reels', new Set(['id', 'video_url'])]]),
+    fns: new Set(['legacy_transition_eligible', 'training_scalar_rpc']),
+    rpcArgs: new Map([
+      // PostgREST expands the relation row instead of publishing `p_reel`.
+      ['legacy_transition_eligible', [new Set(['id', 'video_url'])]],
+      ['training_scalar_rpc', [new Set(['wrong_argument'])]],
+    ]),
+  };
+
+  assert.deepEqual(unappliedObjects(declared, live), [
+    ['function signature', 'training_scalar_rpc(p_value)'],
+    ['function', 'fn_video_library_publisher_is_eligible(p_profile_id)'],
+  ]);
+});
+
+test('CHECK 17 positively proves only the hidden stable composite overload', async () => {
+  const declared = declaredObjects(`
+    CREATE FUNCTION public.legacy_transition_eligible(p_post public.social_posts)
+    RETURNS boolean LANGUAGE sql STABLE AS $$ SELECT false $$;
+    CREATE FUNCTION public.legacy_transition_eligible(p_reel public.social_reels)
+    RETURNS boolean LANGUAGE sql STABLE AS $$ SELECT false $$;
+  `);
+  const live = {
+    tables: new Map([
+      ['social_posts', new Set(['id', 'content_type'])],
+      ['social_reels', new Set(['id', 'video_url'])],
+    ]),
+    fns: new Set(['legacy_transition_eligible']),
+    rpcArgs: new Map([
+      ['legacy_transition_eligible', [new Set(['id', 'content_type'])]],
+    ]),
+    readOnlyRpcs: new Set(['legacy_transition_eligible']),
+  };
+
+  const candidates = compositeRpcProbeCandidates(declared.fns, live);
+  assert.deepEqual(candidates, [{
+    name: 'legacy_transition_eligible',
+    argument: 'p_reel',
+    qualifiedType: 'public.social_reels',
+    proofKey: 'legacy_transition_eligible(p_reel:public.social_reels)',
+  }]);
+
+  const calls = [];
+  const proofs = await proveCompositeRpcSignatures(
+    candidates,
+    { url: 'https://project.example', key: 'test-service-key' },
+    async (...args) => {
+      calls.push(args);
+      return { ok: true, status: 200 };
+    }
+  );
+
+  assert.deepEqual([...proofs], ['legacy_transition_eligible(p_reel:public.social_reels)']);
+  assert.equal(calls.length, 1);
+  const [label, target, init, options] = calls[0];
+  assert.equal(label, 'check-migrations-applied:legacy_transition_eligible:p_reel');
+  assert.equal(target, 'https://project.example/rest/v1/rpc/legacy_transition_eligible');
+  assert.equal(init.method, 'POST');
+  assert.equal(init.headers.apikey, 'test-service-key');
+  assert.equal(init.headers.Authorization, 'Bearer test-service-key');
+  assert.equal(init.headers['Content-Type'], 'application/json');
+  assert.equal(init.headers.Prefer, 'tx=rollback');
+  assert.equal(init.body, '{"p_reel":null}');
+  assert.deepEqual(options.returnStatuses, [300, 400, 404, 405, 406, 409, 422]);
+
+  assert.deepEqual(unappliedObjects(declared, { ...live, compositeRpcProofs: proofs }), []);
+});
+
+test('CHECK 17 hidden composite proof is exact and non-2xx never passes', async () => {
+  const declared = declaredObjects(`
+    CREATE FUNCTION public.publish_video(p_reel public.social_reels)
+    RETURNS boolean LANGUAGE sql IMMUTABLE AS $$ SELECT false $$;
+  `);
+  const live = {
+    tables: new Map([['social_reels', new Set(['id', 'video_url'])]]),
+    fns: new Set(['publish_video']),
+    rpcArgs: new Map([['publish_video', [new Set(['wrong_argument'])]]]),
+    readOnlyRpcs: new Set(['publish_video']),
+  };
+  const candidates = compositeRpcProbeCandidates(declared.fns, live);
+
+  for (const status of [300, 400, 401, 403, 404, 500]) {
+    const proofs = await proveCompositeRpcSignatures(
+      candidates,
+      { url: 'https://project.example', key: 'test-service-key' },
+      async () => ({ ok: false, status })
+    );
+    assert.equal(proofs.size, 0, `HTTP ${status} must not prove the overload`);
+  }
+
+  const success204 = await proveCompositeRpcSignatures(
+    candidates,
+    { url: 'https://project.example', key: 'test-service-key' },
+    async () => ({ ok: true, status: 204 })
+  );
+  assert.equal(success204.size, 1);
+
+  const wrongProof = new Set(['publish_video(p_reel:public.social_posts)']);
+  assert.deepEqual(unappliedObjects(declared, { ...live, compositeRpcProofs: wrongProof }), [
+    ['function signature', 'publish_video(p_reel)'],
+  ]);
+});
+
+test('CHECK 17 never probes volatile, scalar, multi-argument, non-table, or non-GET RPCs', () => {
+  const declared = declaredObjects(`
+    CREATE FUNCTION public.volatile_composite(p_reel public.social_reels)
+    RETURNS boolean LANGUAGE sql VOLATILE AS $$ SELECT false $$;
+    CREATE FUNCTION public.scalar_rpc(p_reel uuid)
+    RETURNS boolean LANGUAGE sql STABLE AS $$ SELECT false $$;
+    CREATE FUNCTION public.multi_rpc(p_reel public.social_reels, p_flag boolean)
+    RETURNS boolean LANGUAGE sql STABLE AS $$ SELECT false $$;
+    CREATE FUNCTION public.non_table_rpc(p_reel public.missing_relation)
+    RETURNS boolean LANGUAGE sql STABLE AS $$ SELECT false $$;
+    CREATE FUNCTION public.no_get_rpc(p_reel public.social_reels)
+    RETURNS boolean LANGUAGE sql STABLE AS $$ SELECT false $$;
+  `);
+  const names = declared.fns.map((fn) => fn.name);
+  const live = {
+    tables: new Map([['social_reels', new Set(['id'])]]),
+    fns: new Set(names),
+    rpcArgs: new Map(names.map((name) => [name, [new Set(['wrong_argument'])]])),
+    readOnlyRpcs: new Set(['volatile_composite', 'scalar_rpc', 'multi_rpc', 'non_table_rpc']),
+  };
+
+  assert.deepEqual(compositeRpcProbeCandidates(declared.fns, live), []);
+});
+
+test('CHECK 17 rejects a wrong live overload for a declared composite row RPC', () => {
+  const declared = declaredObjects(`
+    CREATE FUNCTION public.publish_video(p_reel public.social_reels)
+    RETURNS boolean LANGUAGE sql AS $$ SELECT true $$;
+  `);
+  const live = {
+    tables: new Map([['social_reels', new Set(['id', 'video_url', 'topic'])]]),
+    fns: new Set(['publish_video']),
+    rpcArgs: new Map([
+      // A scalar overload can legitimately share a name with one composite
+      // field; it is still not the declared relation-row signature.
+      ['publish_video', [new Set(['id'])]],
+    ]),
+  };
+
+  assert.deepEqual(unappliedObjects(declared, live), [
+    ['function signature', 'publish_video(p_reel)'],
   ]);
 });
 

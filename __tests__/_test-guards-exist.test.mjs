@@ -231,11 +231,47 @@ import './world-copy-policy.test.mjs';
 // executes is the same kind of decoration as a healthcheck that pings an
 // unauthenticated endpoint, which is the very failure it exists to prevent.
 import './openclaw-workers-secret.test.mjs';
+// Required CHECK 8 also enforces the recovered Video worker publication boundary.
+import './openclaw-video-library-routing.test.mjs';
+// The same boundary's shared 7-day availability-freshness contract: SQL,
+// JavaScript readers, Python renewal target and daily verifier capacity.
+import './video-library-freshness-contract.test.mjs';
+import './video-library-official-publisher-migration.test.mjs';
+import './yt-worker-release-safety.test.mjs';
 // 2026-09-21, fleet recertification D1: /api/cron/video-library-reels reaches
 // only the gated workers route, and the reels bridge script refuses to write
 // while the fleet switch is off or as anything but a pinned non-horse
 // profile. Same CHECK 8 reasoning as the block above.
 import './video-library-reels-fails-closed.test.mjs';
+// Video Library and Reels Phase 1 (2026-09-23): the suites behind
+// `npm run test:video-reels-phase-1` that need nothing from node_modules, so
+// CHECK 8 (which does not `npm ci`) executes them instead of only naming them.
+// Poker-only canonical feed, fail-closed availability, owner-scoped state and
+// the painted console surfaces. Left out on purpose: video-library-phase-8
+// (imports eslint) and yt-transcode-worker-rights-guard (imports
+// @supabase/supabase-js); both stay in the npm script.
+import './auxiliary-reels-console.test.mjs';
+import './background-video-upload-recovery.test.mjs';
+import './news-live-wire-phase-4.test.mjs';
+import './news-reels-club-arena-console.test.mjs';
+import './profile-reels-console.test.mjs';
+import './reels-carousel-console.test.mjs';
+import './reels-console-dependencies.test.mjs';
+import './reels-embedded-console-visual.test.mjs';
+import './social-feed-request-sequencing.test.mjs';
+import './user-reel-publication-recovery.test.mjs';
+import './video-clipper-storage-namespace.test.mjs';
+import './video-embed-report-adjudication.test.mjs';
+import './video-library-access-phase-9.test.mjs';
+import './video-library-club-arena-console.test.mjs';
+import './video-library-phase-5.test.mjs';
+import './video-library-phase-6.test.mjs';
+import './video-library-phase-7.test.mjs';
+import './video-reels-api-resilience.test.mjs';
+import './video-reels-collections-integrity.test.mjs';
+import './video-reels-integrity-phase-1.test.mjs';
+import './video-reels-ui-integrity.test.mjs';
+import './video-reels-youtube-sql-security.test.mjs';
 
 // 2026-09-04: a synthetic probe never signs a person out. login-probe was
 // pointed at Dan's own account and called a bare signOut() - global scope -
