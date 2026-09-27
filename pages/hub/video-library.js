@@ -329,6 +329,8 @@ export default function VideoLibraryPage() {
     const saveWatchSessionRef = useRef(null);
     const openedQueryVideoRef = useRef(null);
     const queryVideoFetchRef = useRef(null);
+    const queryVideoRequestRef = useRef(0);
+    const requestedQueryVideoIdRef = useRef(null);
     const hadNavigationQueryRef = useRef(false);
     const lastNavigationQueryRef = useRef(null);
     useEffect(() => {
@@ -1319,6 +1321,7 @@ export default function VideoLibraryPage() {
     const requestedQueryVideoInCurrentPage = requestedQueryVideoId
         ? allVideos.some(video => video.videoId === requestedQueryVideoId)
         : false;
+    requestedQueryVideoIdRef.current = requestedQueryVideoId;
 
     useEffect(() => {
         if (
@@ -1359,6 +1362,12 @@ export default function VideoLibraryPage() {
         if (openedQueryVideoRef.current === requestedVideoId || requestedQueryVideoInCurrentPage) return undefined;
         if (queryVideoFetchRef.current === requestedVideoId) return undefined;
         queryVideoFetchRef.current = requestedVideoId;
+        const requestId = ++queryVideoRequestRef.current;
+        const requestIsCurrent = () => (
+            requestId === queryVideoRequestRef.current
+            && requestedQueryVideoIdRef.current === requestedVideoId
+            && queryVideoFetchRef.current === requestedVideoId
+        );
         setDeepLinkStatus(null);
         const controller = new AbortController();
         fetch(`/api/video-library/catalog?limit=1&ids=${encodeURIComponent(requestedVideoId)}`, {
@@ -1368,6 +1377,7 @@ export default function VideoLibraryPage() {
         })
             .then(response => response.ok ? response.json() : Promise.reject(new Error(`Deep-link catalog request failed (${response.status})`)))
             .then(payload => {
+                if (!requestIsCurrent()) return;
                 const video = payload?.data?.[0];
                 if (video?.videoId !== requestedVideoId || !isVideoLibraryVideoAllowed(video)) {
                     setDeepLinkStatus({
@@ -1385,16 +1395,18 @@ export default function VideoLibraryPage() {
                 });
             })
             .catch(error => {
-                if (error?.name !== 'AbortError') {
-                    queryVideoFetchRef.current = null;
-                    setDeepLinkStatus({
-                        type: 'error',
-                        message: 'The saved video could not be verified right now. Retry without clearing your bookmark.',
-                    });
-                    reportVideoLibraryIssue('catalog_load', error);
-                }
+                if (error?.name === 'AbortError' || !requestIsCurrent()) return;
+                queryVideoFetchRef.current = null;
+                setDeepLinkStatus({
+                    type: 'error',
+                    message: 'The saved video could not be verified right now. Retry without clearing your bookmark.',
+                });
+                reportVideoLibraryIssue('catalog_load', error);
             });
         return () => {
+            if (requestId === queryVideoRequestRef.current) {
+                queryVideoRequestRef.current += 1;
+            }
             controller.abort();
             if (
                 queryVideoFetchRef.current === requestedVideoId

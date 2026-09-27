@@ -159,6 +159,104 @@ test('an off-page video deep link survives the first catalog page refresh', () =
     /controller\.abort\(\);[\s\S]*?queryVideoFetchRef\.current = null/,
     'a genuinely superseded request must release its retry guard after aborting'
   );
+  assert.match(
+    deepLinkEffect,
+    /requestId === queryVideoRequestRef\.current[\s\S]*?requestedQueryVideoIdRef\.current === requestedVideoId/,
+    'a response must belong to both the latest request generation and current route before it can mutate the viewer'
+  );
+});
+
+test('a delayed bookmark response cannot open or report after the route changes', async () => {
+  const effectStart = PAGE.indexOf('// A shared video deep link may point beyond');
+  const callbackStart = PAGE.indexOf('    useEffect(() => {', effectStart) + '    useEffect(() => {'.length;
+  const callbackEnd = PAGE.indexOf(
+    '    }, [router.isReady, requestedQueryVideoId, requestedQueryVideoInCurrentPage, deepLinkRetryNonce]);',
+    callbackStart
+  );
+  assert.ok(effectStart > 0 && callbackStart > effectStart && callbackEnd > callbackStart);
+
+  const runActualEffect = new Function('context', `
+    const {
+      router, handleOpenVideoRef, requestedQueryVideoId, queryVideoFetchRef,
+      setDeepLinkStatus, isVideoLibraryVideoAllowed, openedQueryVideoRef,
+      requestedQueryVideoInCurrentPage, queryVideoRequestRef,
+      requestedQueryVideoIdRef, AbortController, fetch,
+      STATIC_VIDEO_CANONICAL_ALIASES, reportVideoLibraryIssue
+    } = context;
+    return (() => {${PAGE.slice(callbackStart, callbackEnd)}})();
+  `);
+
+  const pending = [];
+  const opened = [];
+  const statuses = [];
+  const issues = [];
+  const queryVideoFetchRef = { current: null };
+  const queryVideoRequestRef = { current: 0 };
+  const requestedQueryVideoIdRef = { current: null };
+  const openedQueryVideoRef = { current: null };
+  const context = {
+    router: { isReady: true },
+    handleOpenVideoRef: { current: video => opened.push(video.videoId) },
+    queryVideoFetchRef,
+    queryVideoRequestRef,
+    requestedQueryVideoIdRef,
+    openedQueryVideoRef,
+    requestedQueryVideoInCurrentPage: false,
+    setDeepLinkStatus: status => statuses.push(status),
+    isVideoLibraryVideoAllowed: value => Boolean(typeof value === 'string' ? value : value?.videoId),
+    AbortController: class {
+      constructor() { this.signal = { aborted: false }; }
+      abort() { this.signal.aborted = true; }
+    },
+    fetch: (url, options) => new Promise(resolve => pending.push({ url, options, resolve })),
+    STATIC_VIDEO_CANONICAL_ALIASES: new Map(),
+    reportVideoLibraryIssue: (...args) => issues.push(args),
+  };
+  const begin = videoId => {
+    requestedQueryVideoIdRef.current = videoId;
+    return runActualEffect({ ...context, requestedQueryVideoId: videoId });
+  };
+  const response = (videoId, ok = true) => ({
+    ok,
+    status: ok ? 200 : 503,
+    json: async () => ({ data: [{ videoId }] }),
+  });
+  const settle = async () => {
+    for (let index = 0; index < 8; index += 1) await Promise.resolve();
+  };
+
+  const cleanupA = begin('AAAAAAAAAAA');
+  assert.equal(pending.length, 1);
+  requestedQueryVideoIdRef.current = 'BBBBBBBBBBB';
+  cleanupA();
+  const cleanupB = begin('BBBBBBBBBBB');
+  assert.equal(pending.length, 2);
+
+  // Fetch can resolve even after AbortController fires. The page's actual
+  // latest-request guard must still suppress every stale mutation.
+  pending[0].resolve(response('AAAAAAAAAAA'));
+  await settle();
+  assert.deepEqual(opened, []);
+  assert.deepEqual(statuses.filter(Boolean), []);
+  assert.deepEqual(issues, []);
+
+  requestedQueryVideoIdRef.current = 'CCCCCCCCCCC';
+  cleanupB();
+  const cleanupC = begin('CCCCCCCCCCC');
+  assert.equal(pending.length, 3);
+  pending[1].resolve(response('BBBBBBBBBBB', false));
+  await settle();
+  assert.deepEqual(opened, []);
+  assert.deepEqual(statuses.filter(Boolean), []);
+  assert.deepEqual(issues, []);
+
+  pending[2].resolve(response('CCCCCCCCCCC'));
+  await settle();
+  assert.deepEqual(opened, ['CCCCCCCCCCC']);
+  assert.equal(openedQueryVideoRef.current, 'CCCCCCCCCCC');
+  assert.deepEqual(statuses.filter(Boolean), []);
+  assert.deepEqual(issues, []);
+  cleanupC();
 });
 
 test('supported player settings are wired and the false HD control is retired', () => {

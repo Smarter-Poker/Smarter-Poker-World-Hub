@@ -443,20 +443,37 @@ export async function crawlAccountCollection(readPage, {
 export function selectOrdinaryArticle(posts) {
   return (Array.isArray(posts) ? posts : []).find((post) => {
     if (!['link', 'article'].includes(String(post?.contentType || '').toLowerCase())) return false;
-    // PostCard renders ArticleCard for link/article rows in both of its media
-    // branches.  The ingestion fleet also keeps many article URLs in the post
-    // body while using mediaUrls[0] as the card image, so requiring an empty
-    // media list or a populated link_url incorrectly declares those live
-    // article cards unavailable.  Resolve the same URL fallback as PostCard.
-    const candidate = post.link_url
-      || String(post.content || '').match(/https?:\/\/[^\s"'<>]+/)?.[0]
-      || null;
+    if (String(post?.metadata?.shared_reel_id || '').trim()) return false;
+    if (post.mediaUrls != null && !Array.isArray(post.mediaUrls)) return false;
+
+    const mediaCount = Array.isArray(post.mediaUrls) ? post.mediaUrls.length : 0;
+    // PostCard renders a single-media link/article through ArticleCard, but
+    // two or more media items enter its gallery branch instead. With no media,
+    // the separate ArticleCard branch requires link_url and does not apply the
+    // content fallback. Mirror those two render paths exactly so the probe can
+    // only select a card that really opens ArticleReaderModal.
+    if (mediaCount > 1) return false;
+    const contentUrl = String(post.content || '').match(/https?:\/\/[^\s"'<>]+/)?.[0] || null;
+    const candidate = post.link_url || (mediaCount === 1 ? contentUrl : null);
     if (!candidate) return false;
     try {
-      const parsed = new URL(candidate, APP_ORIGIN);
+      const parsed = new URL(candidate);
       if (parsed.protocol !== 'https:' || parsed.username || parsed.password) return false;
       if (parsed.origin === APP_ORIGIN && parsed.pathname.startsWith('/hub/reels')) return false;
-      return !/(^|\.)youtube\.com$|(^|\.)youtu\.be$/i.test(parsed.hostname);
+      const hostname = parsed.hostname.toLowerCase();
+      // ArticleCard deliberately opens these domains in a new browser tab;
+      // they cannot prove that the protected in-app reader still works.
+      if ([
+        'facebook.com',
+        'fb.watch',
+        'fb.com',
+        'instagram.com',
+        'tiktok.com',
+        'twitter.com',
+        'x.com',
+        'threads.net',
+      ].some((domain) => hostname.includes(domain))) return false;
+      return !/(^|\.)youtube\.com$|(^|\.)youtu\.be$/i.test(hostname);
     } catch {
       return false;
     }
@@ -555,10 +572,36 @@ export function selfTest() {
   assert.equal(selectOrdinaryArticle([{
     id,
     contentType: 'link',
-    mediaUrls: ['https://example.com/story.jpg'],
+    mediaUrls: ['https://media.poker.org/story.jpg'],
     link_url: null,
-    content: 'Read the full story at https://example.com/story',
+    content: 'Read the full story at https://www.poker.org/latest-news/story',
   }])?.id, id);
+  assert.equal(selectOrdinaryArticle([{
+    id,
+    contentType: 'link',
+    mediaUrls: [],
+    link_url: null,
+    content: 'Content-only https://example.com/story',
+  }]), null);
+  assert.equal(selectOrdinaryArticle([{
+    id,
+    contentType: 'article',
+    mediaUrls: ['https://example.com/one.jpg', 'https://example.com/two.jpg'],
+    link_url: 'https://example.com/story',
+  }]), null);
+  assert.equal(selectOrdinaryArticle([{
+    id,
+    contentType: 'link',
+    mediaUrls: [],
+    link_url: 'https://example.com/story',
+    metadata: { shared_reel_id: id },
+  }]), null);
+  assert.equal(selectOrdinaryArticle([{
+    id,
+    contentType: 'article',
+    mediaUrls: [],
+    link_url: 'https://www.instagram.com/p/story',
+  }]), null);
   assert.equal(selectOrdinaryArticle([{ id, contentType: 'link', mediaUrls: [], link_url: `${APP_ORIGIN}/hub/reels?id=${id}` }]), null);
   console.log('Reels live verifier safety checks passed');
 }
