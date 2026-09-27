@@ -76,3 +76,11 @@ test('pending limit refuses new work without evicting ambiguous sends',()=>{
     assert.throws(()=>save(disk,operation()),/Resolve Pending/);assert.equal(disk.length,100);
     save(disk,operation({requestId:uuid(100)}));assert.equal(disk.length,100);
 });
+test('a server-rejected long reply retains its original text for recovery',async()=>{
+    const content='[REPLY:Original] '+ 'a'.repeat(2000),op=operation({content}),disk=storage();
+    assert.equal(await perform(op,{storage:disk,currentActor:()=>actor,changed:()=>{},
+        send:async()=>({ok:false,json:async()=>({error:'Payload Too Large'})})}),null);
+    const [restored]=restore(disk,actor);
+    assert.equal(JSON.parse(restored.body).content,content);
+    assert.equal(restored.status,'failed');
+});

@@ -9,7 +9,7 @@ const copy = value => JSON.parse(JSON.stringify(value));
 export function createMessengerSendOperation({ actorId, conversationId, content, metadata = null,
     messageType = 'text', profile = null, requestId = globalThis.crypto.randomUUID(), createdAt = new Date().toISOString() }) {
     if (!UUID.test(requestId) || !UUID.test(actorId) || !UUID.test(conversationId)
-        || typeof content !== 'string' || !content.trim() || content.length > 2000) {
+        || typeof content !== 'string' || !content.trim() || content.length > MAX_RECORD_BYTES / 2) {
         throw new Error('Invalid Message Operation');
     }
     const payload = { requestId, conversationId, content, message_type: messageType, media_metadata: copy(metadata) };
@@ -49,7 +49,7 @@ export function restoreMessengerSendOperations(storage, actorId) {
             if (value.actorId !== actorId || value.requestId !== payload.requestId || !UUID.test(value.requestId)
                 || !UUID.test(value.actorId) || !UUID.test(value.conversationId)
                 || value.conversationId !== payload.conversationId || typeof payload.content !== 'string'
-                || !payload.content.trim() || payload.content.length > 2000
+                || !payload.content.trim() || payload.content.length > MAX_RECORD_BYTES / 2
                 || !Number.isFinite(Date.parse(value.createdAt))
                 || !['text', 'shared_post', 'gif', 'image', 'system'].includes(payload.message_type)
                 || name !== key(value)) continue;
