@@ -15,6 +15,7 @@ import {
 
 const OWNER = '11111111-1111-4111-8111-111111111111';
 const POST = '22222222-2222-4222-8222-222222222222';
+const OFFICIAL_VIDEO_LIBRARY_AUTHOR = '00000000-0000-0000-0000-000000000001';
 
 function uuid(index) {
   return `00000000-0000-4000-8000-${index.toString(16).padStart(12, '0')}`;
@@ -105,6 +106,10 @@ test('live Reel validation rejects partial, duplicate, stale, legacy, and restri
 
   const row = youtubeRow();
   validateFeedPage(page([row], { category: 'sports' }), 'sports');
+  validateFeedPage(
+    page([youtubeRow(2, { author_id: OFFICIAL_VIDEO_LIBRARY_AUTHOR })], { category: 'sports' }),
+    'sports',
+  );
   assert.throws(
     () => validateFeedPage(page([row], { category: 'sports', partial: true }), 'sports'),
     /partial page/,

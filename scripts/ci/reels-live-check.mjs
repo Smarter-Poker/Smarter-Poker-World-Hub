@@ -26,6 +26,7 @@ const CATEGORY_TOPICS = Object.freeze({
   sports: new Set(['sports']),
 });
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const POSTGRES_UUID = /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i;
 const YOUTUBE_ID = /^[A-Za-z0-9_-]{11}$/;
 const PAGE_LIMIT = 20;
 const COMPLETE_FEED_LIMIT = 120;
@@ -196,7 +197,7 @@ function isYouTubeAttribution(value, youtubeId) {
 }
 
 function isTrustedNativeUrl(value, authorId) {
-  if (!UUID.test(String(authorId || ''))) return false;
+  if (!POSTGRES_UUID.test(String(authorId || ''))) return false;
   try {
     const parsed = new URL(value);
     if (
@@ -223,7 +224,7 @@ export function validateReelRow(row, category, {
 } = {}) {
   assert.ok(row && typeof row === 'object', 'Reel row is not an object');
   assert.match(String(row.id || ''), UUID, 'Reel identity is invalid');
-  assert.match(String(row.author_id || ''), UUID, 'Reel author identity is invalid');
+  assert.match(String(row.author_id || ''), POSTGRES_UUID, 'Reel author identity is invalid');
   if (requirePublic) assert.equal(row.is_public, true, 'Non-public Reel reached the public feed');
   const topic = String(row.topic || '').toLowerCase();
   const narrowUnknown = category === 'for-you' && isNarrowUnknownNativeReel(row);
