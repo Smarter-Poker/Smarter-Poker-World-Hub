@@ -20,6 +20,17 @@ export const REELS_BACKGROUND_REFRESH_DELAY_MS = 400;
 /** Upper bound on individually verified Reels per background refresh. */
 export const MAX_STALE_REEL_CHECKS = 5;
 
+/**
+ * The full-page loading console is only a cold-start state. Once a Reel is
+ * mounted, a foreground category change must leave that player in the tree
+ * until the replacement response succeeds. This preserves the media node and
+ * playback position when a route request drops mid-flight.
+ */
+export function shouldShowInitialReelsLoadingConsole({ loading = false, reelCount = 0 } = {}) {
+  const count = Number(reelCount);
+  return Boolean(loading) && !(Number.isFinite(count) && count > 0);
+}
+
 const POKER_TOPICS = new Set(['poker', 'cash', 'tournament']);
 const BLOCKED_RIGHTS = new Set(['blocked', 'restricted']);
 const UNAVAILABLE_STATUSES = new Set([400, 404, 410]);
