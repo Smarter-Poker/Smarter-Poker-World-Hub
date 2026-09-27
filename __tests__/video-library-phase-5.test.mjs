@@ -133,6 +133,34 @@ test('deep links, auth switches, and pagination remounts are guarded', () => {
   assert.match(PAGE, /catalogSearchQuery, sortMode, libraryFilter/);
 });
 
+test('an off-page video deep link survives the first catalog page refresh', () => {
+  const effectStart = PAGE.indexOf('// A shared video deep link may point beyond');
+  const effectEnd = PAGE.indexOf('// Server-backed infinite pagination', effectStart);
+  const deepLinkEffect = PAGE.slice(effectStart, effectEnd);
+
+  assert.ok(effectStart > 0 && effectEnd > effectStart, 'deep-link resolver effect must remain present');
+  assert.match(
+    PAGE,
+    /const requestedQueryVideoInCurrentPage = requestedQueryVideoId[\s\S]*?allVideos\.some\(video => video\.videoId === requestedQueryVideoId\)/,
+    'array churn must be projected to the requested row presence before becoming an effect dependency'
+  );
+  assert.match(
+    deepLinkEffect,
+    /openedQueryVideoRef\.current === requestedVideoId \|\| requestedQueryVideoInCurrentPage/,
+    'a row already delivered by the main catalog must suppress the one-row request'
+  );
+  assert.doesNotMatch(
+    deepLinkEffect,
+    /\[[^\]]*allVideos[^\]]*\]/,
+    'an unrelated first-page replacement must not abort an off-page bookmark request'
+  );
+  assert.match(
+    deepLinkEffect,
+    /controller\.abort\(\);[\s\S]*?queryVideoFetchRef\.current = null/,
+    'a genuinely superseded request must release its retry guard after aborting'
+  );
+});
+
 test('supported player settings are wired and the false HD control is retired', () => {
   assert.match(PAGE, /autoplay=\$\{preferences\.autoplay === false \? 0 : 1\}/);
   assert.match(PAGE, /cc_load_policy=\$\{preferences\.captions \? 1 : 0\}/);

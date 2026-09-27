@@ -404,13 +404,6 @@ export default function VideoLibraryPage() {
         if (router.query.v && allVideos.length > 0) {
             const rawVideoId = String(Array.isArray(router.query.v) ? router.query.v[0] : router.query.v);
             const requestedVideoId = canonicalStoredVideoId(rawVideoId);
-            if (requestedVideoId !== rawVideoId) {
-                void router.replace(
-                    { pathname: router.pathname, query: { ...router.query, v: requestedVideoId } },
-                    undefined,
-                    { shallow: true, scroll: false },
-                );
-            }
             const target = allVideos.find(v => v.videoId === requestedVideoId);
             if (target && openedQueryVideoRef.current !== requestedVideoId && handleOpenVideoRef.current) {
                 setDeepLinkStatus(null);
@@ -1317,25 +1310,44 @@ export default function VideoLibraryPage() {
         return () => catalogAbortRef.current?.abort();
     }, [selectedSource, selectedType, catalogSearchQuery, sortMode, libraryFilter, userId, visibleLibrarySyncState, personalIdsForFilter, fetchCatalogPage]);
 
+    const rawRequestedQueryVideoId = router.query.v
+        ? String(Array.isArray(router.query.v) ? router.query.v[0] : router.query.v)
+        : null;
+    const requestedQueryVideoId = rawRequestedQueryVideoId
+        ? canonicalStoredVideoId(rawRequestedQueryVideoId)
+        : null;
+    const requestedQueryVideoInCurrentPage = requestedQueryVideoId
+        ? allVideos.some(video => video.videoId === requestedQueryVideoId)
+        : false;
+
+    useEffect(() => {
+        if (
+            !router.isReady
+            || !rawRequestedQueryVideoId
+            || !requestedQueryVideoId
+            || requestedQueryVideoId === rawRequestedQueryVideoId
+        ) return;
+        void router.replace(
+            { pathname: router.pathname, query: { ...router.query, v: requestedQueryVideoId } },
+            undefined,
+            { shallow: true, scroll: false },
+        );
+    }, [router.isReady, router.pathname, rawRequestedQueryVideoId, requestedQueryVideoId]);
+
     // A shared video deep link may point beyond the currently paginated page.
     // Resolve that one catalog row directly rather than downloading the whole
-    // archive or silently leaving the requested video closed.
+    // archive or silently leaving the requested video closed. Depend on the
+    // requested row's presence instead of the allVideos array identity: the
+    // first catalog page normally arrives while this request is in flight, and
+    // aborting on every page refresh used to strand valid legacy bookmarks.
     useEffect(() => {
         if (!router.isReady || !handleOpenVideoRef.current) return undefined;
-        if (!router.query.v) {
+        if (!requestedQueryVideoId) {
             queryVideoFetchRef.current = null;
             setDeepLinkStatus(null);
             return undefined;
         }
-        const rawVideoId = String(Array.isArray(router.query.v) ? router.query.v[0] : router.query.v);
-        const requestedVideoId = canonicalStoredVideoId(rawVideoId);
-        if (requestedVideoId !== rawVideoId) {
-            void router.replace(
-                { pathname: router.pathname, query: { ...router.query, v: requestedVideoId } },
-                undefined,
-                { shallow: true, scroll: false },
-            );
-        }
+        const requestedVideoId = requestedQueryVideoId;
         if (!isVideoLibraryVideoAllowed(requestedVideoId)) {
             queryVideoFetchRef.current = requestedVideoId;
             setDeepLinkStatus({
@@ -1344,7 +1356,7 @@ export default function VideoLibraryPage() {
             });
             return undefined;
         }
-        if (openedQueryVideoRef.current === requestedVideoId || allVideos.some(video => video.videoId === requestedVideoId)) return undefined;
+        if (openedQueryVideoRef.current === requestedVideoId || requestedQueryVideoInCurrentPage) return undefined;
         if (queryVideoFetchRef.current === requestedVideoId) return undefined;
         queryVideoFetchRef.current = requestedVideoId;
         setDeepLinkStatus(null);
@@ -1382,8 +1394,16 @@ export default function VideoLibraryPage() {
                     reportVideoLibraryIssue('catalog_load', error);
                 }
             });
-        return () => controller.abort();
-    }, [router.isReady, router.query.v, allVideos, deepLinkRetryNonce]);
+        return () => {
+            controller.abort();
+            if (
+                queryVideoFetchRef.current === requestedVideoId
+                && openedQueryVideoRef.current !== requestedVideoId
+            ) {
+                queryVideoFetchRef.current = null;
+            }
+        };
+    }, [router.isReady, requestedQueryVideoId, requestedQueryVideoInCurrentPage, deepLinkRetryNonce]);
 
     // Server-backed infinite pagination. The current response is appended only
     // if it still belongs to the latest filter/search request.
