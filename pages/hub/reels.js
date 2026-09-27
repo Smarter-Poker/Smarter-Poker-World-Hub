@@ -626,12 +626,35 @@ export default function ReelsPage({ reelsListing = null }) {
 
   const bindAuthUser = useCallback((nextUser) => {
     const next = nextUser?.id ? nextUser : null;
+    const previousUserId = activeUserIdRef.current;
     const binding = accountScopeRef.current.bind(next?.id);
     activeUserIdRef.current = next?.id || null;
     if (binding.changed) clearAccountOwnedState();
-    if (binding.changed) setFollowingReauthRequired(false);
+    if (binding.changed) {
+      if (
+        previousUserId
+        && !next?.id
+        && feedModeForReelsRoute(router.query) === 'following'
+      ) {
+        // An expired saved session can be cleared by Supabase while the
+        // Following request is still in flight. clearAccountOwnedState aborts
+        // that request, so its finally block is no longer current and cannot
+        // dismiss the cold-start console. Settle the auth-loss state here so a
+        // stale localStorage session fails closed into the reauthentication
+        // console instead of leaving the user on "Tuning Reel Signal".
+        setFollowingReauthRequired(true);
+        setLoading(false);
+        setLoadError(null);
+        setHasMore(false);
+        setReels([]);
+        currentIndexRef.current = 0;
+        setCurrentIndex(0);
+      } else {
+        setFollowingReauthRequired(false);
+      }
+    }
     setUser(next);
-  }, [clearAccountOwnedState]);
+  }, [clearAccountOwnedState, router.query]);
 
   // React to both same-tab Supabase transitions and cross-tab storage changes.
   // The owner ref changes before React paints, so no late A response can reach B.

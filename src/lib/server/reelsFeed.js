@@ -38,6 +38,12 @@ const LEGACY_TRANSITION_MAX_REMAINING_MS = 7 * 24 * 60 * 60 * 1_000;
 const MAX_FUTURE_SKEW_MS = VIDEO_LIBRARY_MAX_FUTURE_SKEW_MS;
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+// Some maintained system and horse player profiles use historical, valid
+// PostgreSQL UUIDs whose version nibble is zero. Keep the strict RFC-shaped
+// expression above for caller-controlled identities, but do not drop a
+// persisted author from public profile hydration merely because that legacy
+// database identifier predates the versioned-id rule.
+const PERSISTED_UUID_RE = /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i;
 const YOUTUBE_ID_RE = /^[A-Za-z0-9_-]{11}$/;
 const CURSOR_TIMESTAMP_RE = /^\d{4}-\d{2}-\d{2}T[^\s]{1,40}$/;
 const COLLECTION_CURSOR_TIMESTAMP_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,9})?(?:Z|[+-]\d{2}:\d{2})$/;
@@ -554,7 +560,7 @@ async function readFollowedCandidateAuthorIds(client, viewerId, candidateAuthorI
     if (!UUID_RE.test(String(viewerId || ''))) {
         throw new ReelsFeedInputError('Authentication required for the Following feed');
     }
-    const authorIds = unique(candidateAuthorIds.filter(id => UUID_RE.test(String(id || ''))));
+    const authorIds = unique(candidateAuthorIds.filter(id => PERSISTED_UUID_RE.test(String(id || ''))));
     if (!authorIds.length) return new Set();
     const pages = await Promise.all(chunks(authorIds).map(async authorChunk => {
         const { data, error } = await client
@@ -567,7 +573,7 @@ async function readFollowedCandidateAuthorIds(client, viewerId, candidateAuthorI
     }));
     return new Set(pages.flat()
         .map(row => String(row?.following_id || ''))
-        .filter(id => UUID_RE.test(id)));
+        .filter(id => PERSISTED_UUID_RE.test(id)));
 }
 
 async function loadEligibilityContext(client, rows) {
@@ -1089,7 +1095,9 @@ function publicRow(row, profileMap) {
 }
 
 async function attachProfiles(client, rows) {
-    const authorIds = unique(rows.map(row => row.author_id).filter(id => UUID_RE.test(id)));
+    const authorIds = unique(rows
+        .map(row => row.author_id)
+        .filter(id => PERSISTED_UUID_RE.test(String(id || ''))));
     const profiles = authorIds.length
         ? await readAllByValues(client, {
             table: 'profiles',

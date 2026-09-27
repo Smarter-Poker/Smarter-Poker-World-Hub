@@ -406,8 +406,8 @@ test('slots Reels carry the responsible-gaming console notice on every viewer', 
 
 test('following deep links authenticate and mixed collections avoid poker-only copy', () => {
   assert.match(REELS_PAGE, /feedModeForReelsRoute,/);
-  assert.equal((REELS_PAGE.match(/feedModeForReelsRoute\(router\.query\)/g) || []).length, 4,
-    'both initial and continuation reads and their auth-error paths derive Following from the category');
+  assert.equal((REELS_PAGE.match(/feedModeForReelsRoute\(router\.query\)/g) || []).length, 5,
+    'initial, continuation, auth-error, and expired-session paths derive Following from the category');
   assert.match(
     REELS_PAGE,
     /`\/auth\/login\?redirect=\$\{encodeURIComponent\([\s\S]*router\.asPath \|\| '\/hub\/reels\?category=following'/,
@@ -416,6 +416,11 @@ test('following deep links authenticate and mixed collections avoid poker-only c
   assert.match(REELS_PAGE, /followingReauthRequired/);
   assert.match(REELS_PAGE, /feedMode === 'following' && !followingAccessToken[\s\S]*setFollowingReauthRequired\(true\)/);
   assert.match(REELS_PAGE, /\[401, 403\]\.includes\(e\?\.status\)[\s\S]*setFollowingReauthRequired\(true\)/);
+  assert.match(
+    REELS_PAGE,
+    /previousUserId[\s\S]*!next\?\.id[\s\S]*feedModeForReelsRoute\(router\.query\) === 'following'[\s\S]*setFollowingReauthRequired\(true\);[\s\S]*setLoading\(false\);/,
+    'an expired saved Following session must leave the cold-start loader and fail closed into reauthentication',
+  );
   assert.doesNotMatch(MY_REELS, /Eligible Poker Clips|Poker Clips/);
   assert.doesNotMatch(SAVED_REELS, /Saved Poker Reels|Poker Clips/);
   assert.match(REELS_PAGE, /const reelsNavigationHeader = \([\s\S]*commandMenuItems=\{menuConfig\.menuItems\}/);
