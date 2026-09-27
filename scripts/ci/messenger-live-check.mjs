@@ -264,5 +264,6 @@ async function run() {
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   if (process.argv.includes('--self-test')) selfTest();
+  else if (process.argv.includes('--isolated-send')) await (await import('./messenger-send-live-check.mjs')).runIsolatedSend();
   else await run();
 }
