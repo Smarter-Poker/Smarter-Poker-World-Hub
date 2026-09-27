@@ -276,7 +276,7 @@ async function getRegistration() {
 }
 
 
-async function persistSubscription(subscription, replacedEndpoint) {
+async function persistSubscription(subscription, replacedEndpoint, repairOnly) {
     const json = subscription.toJSON();
     const res = await withTimeout(
         fetch('/api/push/subscribe', {
@@ -296,12 +296,18 @@ async function persistSubscription(subscription, replacedEndpoint) {
                 // inflates the device count on /admin/push-health and every send
                 // burns a request on it until the push service finally 404s.
                 replacesEndpoint: replacedEndpoint || undefined,
+                // The silent sync may only refresh what this account already
+                // enrolled here; the server refuses anything else (409).
+                repairOnly: repairOnly === true ? true : undefined,
             }),
         }),
         T.save,
         'Saving your subscription'
     );
     if (res.status === 401) throw new Error('You need to be signed in to enable notifications.');
+    if (res.status === 409 && repairOnly === true) {
+        throw Object.assign(new Error('This device is not enrolled for this account.'), { code: 'repair_not_enrolled' });
+    }
     if (!res.ok) {
         const body = await res.json().catch(() => ({}));
         throw new Error(body?.error || `Could not save subscription (${res.status})`);
@@ -311,9 +317,16 @@ async function persistSubscription(subscription, replacedEndpoint) {
 
 /**
  * Enable push on this device.
- * @returns {Promise<{ ok: boolean, error?: string, permission?: string }>}
+ *
+ * `repairOnly` is for the silent PushSubscriptionSync ONLY: it refreshes an
+ * enrollment this account already holds on this device and never creates one,
+ * because browser permission belongs to the origin, not to whoever is signed
+ * in. Every tap-driven caller passes nothing.
+ * @param {{ repairOnly?: boolean }} [options]
+ * @returns {Promise<{ ok: boolean, error?: string, permission?: string, code?: string }>}
  */
-export async function enablePush() {
+export async function enablePush(options = {}) {
+    const repairOnly = options?.repairOnly === true;
     if (!isWebPushSupported()) {
         if (isIos() && !isIosStandalonePwa()) {
             return {
@@ -326,6 +339,7 @@ export async function enablePush() {
 
     // -- STEP 1: permission FIRST, while the tap gesture is still alive -------
     let permission = Notification.permission;
+    if (repairOnly && permission !== 'granted') return { ok: false, permission, code: 'not_granted' };
     if (permission === 'default') {
         try {
             permission = await withTimeout(Notification.requestPermission(), T.permission, 'Permission prompt');
@@ -398,12 +412,13 @@ export async function enablePush() {
         // Never report the endpoint we just created as the one it replaced.
         await persistSubscription(
             subscription,
-            replacedEndpoint && replacedEndpoint !== subscription.endpoint ? replacedEndpoint : null
+            replacedEndpoint && replacedEndpoint !== subscription.endpoint ? replacedEndpoint : null,
+            repairOnly
         );
         clearOptOut();
         return { ok: true, permission: 'granted' };
     } catch (e) {
-        return { ok: false, error: e?.message || 'Could not enable notifications.' };
+        return { ok: false, error: e?.message || 'Could not enable notifications.', code: e?.code };
     }
 }
 
