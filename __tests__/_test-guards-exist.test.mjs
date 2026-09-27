@@ -1,5 +1,6 @@
 import './auth-network-deadline.test.mjs';
 import './notification-feed-recovery.test.mjs';
+import './union-leave-read-errors.test.mjs';
 /**
  * META-GUARD: __tests__/_test-guards-exist.test.mjs
  * ─────────────────────────────────────────────────────────────────────────
