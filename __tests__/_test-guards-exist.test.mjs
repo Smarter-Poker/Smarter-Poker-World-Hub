@@ -294,6 +294,13 @@ import './a-script-never-wears-a-persons-face.law.test.mjs';
 // 2026-09-04: the hub notices a revoked session (it would have looked signed
 // in for seven days; PostgREST checks signatures, not session rows).
 import './the-hub-notices-a-revoked-session.law.test.mjs';
+// 2026-09-27: HubNotificationsFeed painted routed owner-operational rows
+// straight off a raw postgres_changes socket subscription, bypassing the
+// personal_notifications view's own exclusion. Pins the shared classifier
+// (src/lib/notifications/ownerOperationalClassifier.mjs) both the client
+// feed and the server push router now import from, so the three lists
+// CLAUDE.md 10.84 warns about drifting stay one list.
+import './owner-operational-realtime-feed-visibility.test.mjs';
 // 2026-09-04: a probe that cannot run says so where probes speak (recovery-probe
 // had been silent for a day: unconfigured, and exiting before its heartbeat).
 import './a-probe-that-cannot-run-says-so.law.test.mjs';
