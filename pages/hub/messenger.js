@@ -26,6 +26,9 @@ import { eventBus, EventType, busEmit } from '../../src/engine/EventBus';
 import useTrainingBus from '../../src/hooks/useTrainingBus';
 import useMessengerSearch from '../../src/hooks/useMessengerSearch';
 import { resolveMessengerClubEntry } from '../../src/lib/messengerClubEntry.mjs';
+import { createMessengerSendOperation, restoreMessengerSendOperations, messengerOperationMessage,
+    mergeMessengerPendingMessages, reconcileMessengerMessage, acknowledgeMessengerSend,
+    performMessengerSend } from '../../src/lib/messengerSendOperation.mjs';
 
 // Dynamic import for LiveKit (client-side only)
 const LiveKitCall = dynamic(
@@ -356,6 +359,9 @@ function MessengerPage() {
     workspaceRef.current = workspaceKey;
     const [activeConversation, setActiveConversation] = useState(null);
     const [messages, setMessages] = useState([]);
+    const sendOperationsRef = useRef(new Map());
+    const sendOperationRef = useRef(null);
+    const forwardOperationRef = useRef(null);
     const [loadingMessages, setLoadingMessages] = useState(false);
     const [hasMoreMessages, setHasMoreMessages] = useState(true);
     const [loadingOlderMessages, setLoadingOlderMessages] = useState(false);
@@ -962,6 +968,9 @@ function MessengerPage() {
                 setMessages([]);
                 setActiveConversation(null);
                 messageCacheRef.current.clear();
+                sendOperationsRef.current.clear();
+                forwardOperationRef.current = null;
+                sendLockRef.current = null;
                 setFriends([]);
                 setIsVip(false);
             }
@@ -1152,8 +1161,13 @@ function MessengerPage() {
                     if (activeConversationRef.current?.id === newMsg.conversation_id) loadMessagesRef.current?.(newMsg.conversation_id);
                     return;
                 }
-                // Skip if this is our own message (already added via optimistic update)
-                if (newMsg.sender_id === user.id) return;
+                if (newMsg.sender_id === user.id) {
+                    if (workspaceRef.current !== requestScope || activeConversationRef.current?.id !== newMsg.conversation_id) return;
+                    const operation = sendOperationsRef.current.get(newMsg.request_id);
+                    if (operation) acknowledgeMessengerSend(operation, newMsg, localStorage);
+                    setMessages(previous => reconcileMessengerMessage(previous, { ...newMsg, status: 'sent' }));
+                    return;
+                }
 
                 // Play sound for incoming message (respect preferences — read from ref to avoid stale closure)
                 if (preferencesRef.current.messageSounds !== false) playMessageSound();
@@ -1378,20 +1392,9 @@ function MessengerPage() {
                             duration: 0,
                             status: receiptStatus,
                         });
-                        // Route through authenticated API (not anon supabase.rpc) to bypass RLS
-                        const receiptToken = getAccessToken();
-                        authedFetch('/api/messenger/send-message', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                ...(receiptToken ? { Authorization: `Bearer ${receiptToken}` } : {}),
-                            },
-                            body: JSON.stringify({
-                                conversationId: currentConvo.id,
-                                content: `[CALL_RECEIPT]${receiptPayload}`,
-                                media_metadata: getClubMetadata(),
-                            }),
-                        }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
+                        sendOperationRef.current?.(`[CALL_RECEIPT]${receiptPayload}`, {
+                            conversationId: currentConvo.id, actorId: user.id,
+                        });
                     }
 
                     // ── MISSED CALL NOTIFICATION: Only for timeout (not for active decline) ──
@@ -1764,6 +1767,13 @@ function MessengerPage() {
                     catch { return hiddenMessageIds; }
                 })();
                 const filtered = result.messages.filter(m => !freshHiddenIds.has(m.id));
+                for (const operation of restoreMessengerSendOperations(localStorage, user.id)) {
+                    if (!sendOperationsRef.current.has(operation.requestId)) sendOperationsRef.current.set(operation.requestId, operation);
+                }
+                for (const message of filtered) {
+                    const operation = sendOperationsRef.current.get(message.request_id);
+                    if (operation) acknowledgeMessengerSend(operation, message, localStorage);
+                }
                 setMessages(previous => {
                     if (!current()) return previous;
                     const merged = new Map(filtered.map(message => [message.id, message]));
@@ -1779,7 +1789,8 @@ function MessengerPage() {
                             merged.set(message.id, { ...snapshot, ...changedFields });
                         }
                     }
-                    return [...merged.values()].sort((a, b) =>
+                    const rows = [...merged.values()].reduce((all, message) => reconcileMessengerMessage(all, message), []);
+                    return mergeMessengerPendingMessages(rows, sendOperationsRef.current.values(), user.id, conversationId).sort((a, b) =>
                         compareMessageTimestamps(a.created_at, b.created_at) || String(a.id).localeCompare(String(b.id)));
                 });
                 setHasMoreMessages(result.messages.length >= 50);
@@ -1799,9 +1810,8 @@ function MessengerPage() {
     // Keep ref in sync so the reconnect handler always calls the latest version
     loadMessagesRef.current = loadMessages;
 
-    // Send lock — prevents double-send from rapid Enter spam, thumbs-up taps, or retry button mashing.
-    // Without this, two concurrent authedFetch('/api/messenger/send-message') calls create duplicate DB rows.
-    const sendLockRef = useRef(false);
+    // Own the composer submission until its response; explicit retries use the saved operation.
+    const sendLockRef = useRef(null);
 
     // Load older messages (pagination — triggered when scrolling to top)
     // FIX #3: useRef-based lock prevents duplicate pagination from rapid scroll
@@ -1963,6 +1973,71 @@ function MessengerPage() {
         }
     };
 
+    const runSendOperation = async (operation) => {
+        if (!operation || authIdentityRef.current !== operation.actorId) return null;
+        const scope = workspaceRef.current;
+        const generation = authGenerationRef.current;
+        const current = () => authGenerationRef.current === generation && authIdentityRef.current === operation.actorId
+            && workspaceRef.current === scope;
+        const changed = updated => {
+            if (!current()) return;
+            const row = updated.receipt || messengerOperationMessage(updated);
+            const cached = messageCacheRef.current.get(updated.conversationId) || [];
+            messageCacheRef.current.set(updated.conversationId, reconcileMessengerMessage(cached, row));
+            if (activeConversationRef.current?.id === updated.conversationId) {
+                setMessages(previous => current() && activeConversationRef.current?.id === updated.conversationId
+                    ? reconcileMessengerMessage(previous, row) : previous);
+            }
+        };
+        try {
+            const receipt = await performMessengerSend(operation, {
+                storage: localStorage, currentActor: () => authGenerationRef.current === generation ? authIdentityRef.current : null,
+                changed,
+                send: body => {
+                    if (authGenerationRef.current !== generation || authIdentityRef.current !== operation.actorId) throw new Error('Account Changed');
+                    return authedFetch('/api/messenger/send-message', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getAccessToken()}` },
+                        body,
+                    });
+                },
+            });
+            if (current()) {
+                if (receipt) {
+                    loadConversationsRef.current?.(operation.actorId, { invalidate: true });
+                    busEmit.dataMutated('messenger');
+                    busEmit.messageSent(operation.conversationId);
+                } else setToast({ type: 'error', message: 'Message Was Not Confirmed. Open This Conversation And Tap Retry.' });
+            }
+            return receipt;
+        } catch (error) {
+            operation.status = 'failed';
+            changed(operation);
+            if (current()) setToast({ type: 'error', message: 'Message Could Not Be Saved For Retry. Please Check Browser Storage.' });
+            return null;
+        }
+    };
+    const queueMessengerSend = async (content, options = {}) => {
+        const actorId = options.actorId || user?.id;
+        if (!actorId || authIdentityRef.current !== actorId) return Promise.resolve(null);
+        let operation;
+        try {
+        operation = createMessengerSendOperation({
+            actorId, conversationId: options.conversationId || activeConversation?.id, content,
+            requestId: options.requestId, metadata: options.metadata === undefined ? getClubMetadata() : options.metadata,
+            messageType: options.messageType || 'text', profile: options.profile || (isClubMode && clubPage
+                ? { id: actorId, username: clubPage.name, avatar_url: clubPage.avatar_url, is_club_identity: true, club_id: clubPage.id }
+                : { id: actorId, username: user.username, avatar_url: user.avatar_url }),
+        });
+        } catch {
+            setToast({ type: 'error', message: 'Message Could Not Be Prepared. Please Check The Message And Try Again.' });
+            return null;
+        }
+        sendOperationsRef.current.set(operation.requestId, operation);
+        return runSendOperation(operation);
+    };
+    sendOperationRef.current = queueMessengerSend;
+
     const handleSendMessage = async (content) => {
         if (!user || !activeConversation || !content.trim()) return;
 
@@ -2078,101 +2153,32 @@ function MessengerPage() {
             return;
         }
 
-        // Regular message handling
-        // Prepend reply context if replying to a message
-        let finalContent = content.trim();
-
-        // Send lock: prevent double-send from rapid Enter spam, thumbs-up, or retry mashing
+        // A retry reuses this operation rather than rebuilding from the composer.
         if (sendLockRef.current) return;
-        sendLockRef.current = true;
-
-        // Capture conversation at send time — user may switch before the await resolves
-        const sendConversationId = activeConversation.id;
-
+        const sendOwner = {};
+        sendLockRef.current = sendOwner;
+        let finalContent = content.trim();
         if (replyToMessage) {
             const replyText = (replyToMessage.content || replyToMessage.text || '').replace(/\[REPLY:[^\]]+\]\s*/, '').slice(0, 80);
             finalContent = `[REPLY:${replyText}] ${finalContent}`;
-            setReplyToMessage(null); // Clear reply state after embedding
+            setReplyToMessage(null);
         }
-
-        // Optimistic update - show message immediately
-        const tempId = `temp-${Date.now()}`;
-        const optimisticMsg = {
-            id: tempId,
-            content: finalContent,
-            created_at: new Date().toISOString(),
-            sender_id: user.id,
-            profiles: isClubMode && clubPage
-                ? { id: user.id, username: clubPage.name, avatar_url: clubPage.avatar_url, is_club_identity: true, club_id: clubPage.id }
-                : { id: user.id, username: user.username, avatar_url: user.avatar_url },
-            status: 'sending',
-        };
-        setMessages(prev => [...prev, optimisticMsg]);
-        // Update conversation preview and re-sort to move to top
-        setConversations(prev => {
-            const updated = prev.map(c =>
-                c.id === sendConversationId
-                    ? { ...c, last_message_preview: finalContent, last_message_at: new Date().toISOString() }
-                    : c
-            );
-            // Re-sort by last_message_at (most recent first)
-            return updated.sort((a, b) => {
-                const timeA = a.last_message_at ? new Date(a.last_message_at).getTime() : 0;
-                const timeB = b.last_message_at ? new Date(b.last_message_at).getTime() : 0;
-                return timeB - timeA;
-            });
-        });
-
         try {
-            // Route through API for XSS sanitization, rate limiting, and auth verification
-            const sendToken = getAccessToken();
-            const sendResp = await authedFetch('/api/messenger/send-message', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...(sendToken ? { Authorization: `Bearer ${sendToken}` } : {}),
-                },
-                body: JSON.stringify({
-                    conversationId: sendConversationId,
-                    content: finalContent,
-                    media_metadata: getClubMetadata(),
-                }),
-            });
-            const sendResult = await sendResp.json();
-            if (!sendResp.ok || !sendResult.success) throw new Error(sendResult.error || 'Send failed');
-            const data = sendResult.msgId;
-
-            // Replace optimistic message with real one — only if still in same conversation
-            if (activeConversationRef.current?.id === sendConversationId) {
-                const realId = data || tempId;
-                setMessages(prev => prev.map(m =>
-                    m.id === tempId
-                        ? { ...m, id: realId, content: sendResult.content || m.content, status: 'sent' }
-                        : m
-                ));
-            }
-
-            // Notify header to refresh unread badges
-            busEmit.dataMutated('messenger');
-            // DEEP SWEEP FIX: Push native global Message Sent event
-            busEmit.messageSent(sendConversationId, activeConversation.otherUser?.id);
-        } catch (e) {
-            console.warn('Send message error:', e);
-            // Mark message as failed
-            setMessages(prev => prev.map(m =>
-                m.id === tempId ? { ...m, status: 'failed' } : m
-            ));
-            setToast({ type: 'error', message: 'Failed To Send Message. Tap To Retry.' });
+            await queueMessengerSend(finalContent);
         } finally {
-            sendLockRef.current = false;
+            if (sendLockRef.current === sendOwner) sendLockRef.current = null;
         }
     };
 
-    // Retry handler for failed messages — removes failed msg and re-sends
+    // Only the saved original operation may be retried. A different active
+    // conversation or account must never become its destination or sender.
     const handleRetryMessage = (failedMsg) => {
-        if (!failedMsg?.content) return;
-        setMessages(prev => prev.filter(m => m.id !== failedMsg.id));
-        handleSendMessage(failedMsg.content);
+        if (!failedMsg?.request_id || failedMsg.sender_id !== authIdentityRef.current
+            || activeConversationRef.current?.id !== failedMsg.conversation_id) return;
+        const operation = sendOperationsRef.current.get(failedMsg.request_id);
+        if (!operation || operation.actorId !== failedMsg.sender_id
+            || operation.conversationId !== failedMsg.conversation_id) return;
+        return runSendOperation(operation);
     };
 
     // Handle message reaction
@@ -2422,58 +2428,31 @@ function MessengerPage() {
     };
 
     const handleForwardSend = async (targetConversation) => {
-        if (!forwardingMessage || !targetConversation || !user) return;
+        if (!forwardingMessage || !targetConversation || !user || forwardOperationRef.current) return;
+        const owner = {};
+        forwardOperationRef.current = owner;
+        const actorId = user.id;
+        const scope = workspaceRef.current;
+        const generation = authGenerationRef.current;
+        const current = () => authIdentityRef.current === actorId && authGenerationRef.current === generation && workspaceRef.current === scope;
+        const original = forwardingMessage;
         try {
-            // Strip tokens that don't make sense when forwarded to a different conversation
-            let rawContent = forwardingMessage.content || '';
-
-            // Call receipts — never forward (contain call state for THIS conversation's call)
+            let rawContent = original.content || '';
             if (rawContent.startsWith('[CALL_RECEIPT]')) {
                 setToast({ type: 'info', message: 'Call Receipts Cannot Be Forwarded' });
-                setForwardingMessage(null);
                 return;
             }
-
-            // Strip [REPLY:...] prefix — the reply context is meaningless in a different thread
             rawContent = rawContent.replace(/^\[REPLY:[^\]]+\]\s*/, '');
-
-            // If content is now empty (was reply-only), use placeholder
-            const content = rawContent.trim()
-                ? `[Forwarded] ${rawContent.trim()}`
-                : '[Forwarded Message]';
-
-            const token = getAccessToken();
-            const resp = await authedFetch('/api/messenger/send-message', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-                },
-                body: JSON.stringify({
-                    conversationId: targetConversation.id,
-                    content,
-                    media_metadata: getClubMetadata(),
-                }),
-            });
-            if (!resp.ok) {
-                const errData = await resp.json().catch(() => ({}));
-                throw new Error(errData.error || `Forward failed (${resp.status})`);
+            const content = rawContent.trim() ? `[Forwarded] ${rawContent.trim()}` : '[Forwarded Message]';
+            const receipt = await queueMessengerSend(content, { actorId, conversationId: targetConversation.id });
+            if (receipt && current()) {
+                setToast({ type: 'success', message: `Message Forwarded To ${targetConversation.otherUser?.full_name || targetConversation.otherUser?.display_name || targetConversation.otherUser?.username || 'Conversation'}` });
+                busEmit.messageForwarded(original.conversation_id || activeConversation?.id, targetConversation.id);
             }
-            setToast({ type: 'success', message: `Message Forwarded To ${targetConversation.otherUser?.full_name || targetConversation.otherUser?.display_name || targetConversation.otherUser?.username || 'Conversation'}` });
-            // Update the target conversation's sidebar preview (global listener skips own messages)
-            const forwardedAt = new Date().toISOString();
-            setConversations(prev => prev.map(c =>
-                c.id === targetConversation.id
-                    ? { ...c, last_message_preview: content, last_message_at: forwardedAt }
-                    : c
-            ));
-            // DEEP SWEEP FIX: Push native global Message Forwarded event
-            busEmit.messageForwarded(forwardingMessage.conversation_id || activeConversation?.id, targetConversation.id);
-        } catch (e) {
-            console.warn('Forward error:', e);
-            setToast({ type: 'error', message: 'Failed To Forward Message' });
+        } finally {
+            if (forwardOperationRef.current === owner) forwardOperationRef.current = null;
+            if (current()) setForwardingMessage(previous => previous === original ? null : previous);
         }
-        setForwardingMessage(null);
     };
 
     // Handle GIF send — sends GIF URL as a message
@@ -2493,228 +2472,81 @@ function MessengerPage() {
         });
     };
 
-    // Handle media (photo/video) upload
-    const handleMediaUpload = async (file) => {
-        if (!user || !activeConversation || !file) {
-            return;
+    // Uploads retain their original account, destination and club identity. Only
+    // the final URL enters a durable send operation; a blob preview is not retryable.
+    const uploadMessengerAttachment = async (file, { fileName, mimeType, contentForUrl, timeoutMs }) => {
+        if (!user || !activeConversation || !file) return;
+        const actorId = user.id;
+        const conversationId = activeConversation.id;
+        const generation = authGenerationRef.current;
+        const scope = workspaceRef.current;
+        const requestId = crypto.randomUUID();
+        const metadata = getClubMetadata();
+        const profile = isClubMode && clubPage
+            ? { id: actorId, username: clubPage.name, avatar_url: clubPage.avatar_url, is_club_identity: true, club_id: clubPage.id }
+            : { id: actorId, username: user.full_name || user.username || user.user_metadata?.username, avatar_url: user.avatar_url || user.user_metadata?.avatar_url };
+        const sameAccount = () => authIdentityRef.current === actorId && authGenerationRef.current === generation;
+        const current = () => sameAccount() && workspaceRef.current === scope && activeConversationRef.current?.id === conversationId;
+        const blobUrl = URL.createObjectURL(file);
+        const tempId = `temp-${requestId}`;
+        setMessages(previous => [...previous, { id: tempId, request_id: requestId, conversation_id: conversationId,
+            content: contentForUrl(blobUrl), created_at: new Date().toISOString(), sender_id: actorId,
+            profiles: profile, status: 'sending' }]);
+        setToast({ type: 'info', message: 'Uploading...' });
+        try {
+            const token = getAccessToken();
+            const response = await authedFetch('/api/social/upload-url', {
+                method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                body: JSON.stringify({ fileName, fileSize: file.size, mimeType, folder: 'messages', prefix: actorId }),
+            });
+            const upload = await response.json();
+            if (!response.ok || !upload.success || !upload.signedUrl || !upload.publicUrl) throw new Error('Upload Could Not Be Started');
+            if (!sameAccount()) return;
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), timeoutMs);
+            try {
+                const result = await fetch(upload.signedUrl, { method: 'PUT', headers: { 'Content-Type': mimeType }, body: file, signal: controller.signal });
+                if (!result.ok) throw new Error('Upload Did Not Complete');
+            } finally { clearTimeout(timeout); }
+            if (!sameAccount()) return;
+            await queueMessengerSend(contentForUrl(upload.publicUrl), { actorId, conversationId, requestId, metadata, profile });
+        } catch (error) {
+            if (current()) {
+                setMessages(previous => current() ? previous.filter(message => message.id !== tempId) : previous);
+                setToast({ type: 'error', message: 'Upload Failed. Select The File Again To Retry.' });
+            }
+        } finally {
+            URL.revokeObjectURL(blobUrl);
         }
-        // Capture conversationId at start — if user switches conversation during a slow
-        // upload the setMessages update must target the original conversation's messages.
-        const uploadConversationId = activeConversation.id;
+    };
 
-
+    // Handle media (photo/video) upload.
+    const handleMediaUpload = async (file) => {
+        if (!user || !activeConversation || !file) return;
         const isImage = file.type.startsWith('image/');
         const isVideo = file.type.startsWith('video/');
         if (!isImage && !isVideo) {
             setToast({ type: 'error', message: 'Only Images And Videos Are Supported' });
             return;
         }
-
-        // File size limit: 10MB for images, 50MB for videos
         const maxSize = isVideo ? 50 * 1024 * 1024 : 10 * 1024 * 1024;
         if (file.size > maxSize) {
-            setToast({ type: 'error', message: `File too large. Max ${isVideo ? '50MB' : '10MB'}` });
+            setToast({ type: 'error', message: `File Too Large. Max ${isVideo ? '50MB' : '10MB'}` });
             return;
         }
-
-        // Optimistic UI update
-        const tempId = `temp-${Date.now()}`;
-        const mediaPreview = URL.createObjectURL(file);
-        const tempMessage = {
-            id: tempId,
-            content: isImage ? `Photo` : `Video`,
-            media_url: mediaPreview,
-            media_type: isImage ? 'image' : 'video',
-            created_at: new Date().toISOString(),
-            sender_id: user.id,
-            status: 'sending',
-            profiles: { id: user.id, username: user.full_name || user.username || user.user_metadata?.username, avatar_url: user.avatar_url || user.user_metadata?.avatar_url },
-            _blobUrl: mediaPreview, // Track for cleanup
-        };
-        setMessages(prev => [...prev, tempMessage]);
-        setToast({ type: 'success', message: 'Uploading...' });
-        setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
-
-        try {
-            // ── SIGNED-URL UPLOAD (bypasses SDK auth lock, works with social-media bucket) ──
-            // The 'user-media' bucket doesn't exist — use upload-url proxy to social-media bucket.
-            const uploadToken = getAccessToken();
-            const metaRes = await authedFetch('/api/social/upload-url', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${uploadToken}` },
-                body: JSON.stringify({
-                    fileName: file.name || `media_${Date.now()}.${isVideo ? 'mp4' : 'jpg'}`,
-                    fileSize: file.size,
-                    mimeType: file.type || (isVideo ? 'video/mp4' : 'image/jpeg'),
-                    folder: 'messages',
-                    prefix: user.id,
-                }),
-            });
-            if (!metaRes.ok) {
-                const errText = await metaRes.text().catch(() => 'unknown');
-                throw new Error(`Upload URL error: ${metaRes.status} ${errText.slice(0, 100)}`);
-            }
-            const meta = await metaRes.json();
-            if (!meta.success || !meta.signedUrl) throw new Error(meta.error || 'No signed URL returned');
-
-            // PUT the file directly to Supabase Storage via the signed URL
-            const uploadController = new AbortController();
-            const uploadTimeout = setTimeout(() => uploadController.abort(), 5 * 60 * 1000); // 5min for large video
-            const uploadRes = await fetch(meta.signedUrl, {
-                method: 'PUT',
-                headers: { 'Content-Type': file.type || (isVideo ? 'video/mp4' : 'image/jpeg') },
-                body: file,
-                signal: uploadController.signal,
-            });
-            clearTimeout(uploadTimeout);
-            if (!uploadRes.ok) throw new Error(`Storage PUT failed: HTTP ${uploadRes.status}`);
-
-            const publicUrl = meta.publicUrl;
-
-
-            // Send message with media URL — route through API for XSS sanitization + rate limiting
-            const content = isImage
-                ? `[Image](${publicUrl})`
-                : `[Video](${publicUrl})`;
-
-            const mediaToken = getAccessToken();
-            const mediaResp = await authedFetch('/api/messenger/send-message', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...(mediaToken ? { Authorization: `Bearer ${mediaToken}` } : {}),
-                },
-                body: JSON.stringify({
-                    conversationId: uploadConversationId, // use captured id — user may have switched conversations
-                    content: content,
-                    media_metadata: getClubMetadata(),
-                }),
-            });
-            const mediaResult = await mediaResp.json();
-            if (!mediaResp.ok || !mediaResult.success) throw new Error(mediaResult.error || 'Send failed');
-
-            // Update message with real data — only if user hasn't switched conversations
-            if (activeConversationRef.current?.id === uploadConversationId) {
-                setMessages(prev => prev.map(m =>
-                    m.id === tempId
-                        ? { ...m, id: mediaResult.msgId || tempId, content, media_url: publicUrl, status: 'sent' }
-                        : m
-                ));
-            }
-
-            // Revoke blob URL to prevent memory leak
-            URL.revokeObjectURL(mediaPreview);
-
-            // Notify header to refresh unread badges
-            busEmit.dataMutated('messenger');
-
-            setToast({ type: 'success', message: `${isImage ? 'Photo' : 'Video'} sent!` });
-        } catch (e) {
-            console.warn('Media upload error:', e);
-            setMessages(prev => prev.map(m =>
-                m.id === tempId && activeConversationRef.current?.id === uploadConversationId
-                    ? { ...m, status: 'failed' } : m
-            ));
-            // Revoke blob URL on failure too to prevent memory leak
-            URL.revokeObjectURL(mediaPreview);
-            setToast({ type: 'error', message: `Upload failed: ${e.message || 'Unknown error'}` });
-        }
+        return uploadMessengerAttachment(file, {
+            fileName: file.name || `media_${Date.now()}.${isVideo ? 'mp4' : 'jpg'}`,
+            mimeType: file.type || (isVideo ? 'video/mp4' : 'image/jpeg'),
+            contentForUrl: url => isImage ? `[Image](${url})` : `[Video](${url})`, timeoutMs: 5 * 60 * 1000,
+        });
     };
 
-    // ═══════════════════════════════════════════════════════════════════════════
-    // VOICE MESSAGE UPLOAD — Uploads audio blob to Supabase, sends as [Audio](url)
-    // ═══════════════════════════════════════════════════════════════════════════
     const handleVoiceSend = async (audioBlob, durationSeconds) => {
         if (!user || !activeConversation || !audioBlob) return;
-        // Capture conversationId at start — voice uploads can take seconds; user may switch.
-        const voiceConversationId = activeConversation.id;
-
-        // Optimistic UI
-        const tempId = `temp-voice-${Date.now()}`;
-        const blobUrl = URL.createObjectURL(audioBlob);
-        const tempMessage = {
-            id: tempId,
-            content: `[Audio](${blobUrl})|dur:${durationSeconds || 0}`,
-            created_at: new Date().toISOString(),
-            sender_id: user.id,
-            status: 'sending',
-            profiles: { id: user.id, username: user.full_name || user.username || user.user_metadata?.username, avatar_url: user.avatar_url || user.user_metadata?.avatar_url },
-        };
-        setMessages(prev => [...prev, tempMessage]);
-        setToast({ type: 'success', message: 'Sending Voice Message...' });
-        setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
-
-        try {
-            // ── SIGNED-URL UPLOAD for voice (bypasses SDK auth lock, social-media bucket) ──
-            const voiceUploadToken = getAccessToken();
-            const voiceMetaRes = await authedFetch('/api/social/upload-url', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${voiceUploadToken}` },
-                body: JSON.stringify({
-                    fileName: `voice_${Date.now()}.webm`,
-                    fileSize: audioBlob.size,
-                    mimeType: 'audio/webm',
-                    folder: 'messages',
-                    prefix: user.id,
-                }),
-            });
-            if (!voiceMetaRes.ok) throw new Error(`Voice upload URL: HTTP ${voiceMetaRes.status}`);
-            const voiceMeta = await voiceMetaRes.json();
-            if (!voiceMeta.success || !voiceMeta.signedUrl) throw new Error(voiceMeta.error || 'No signed URL');
-
-            const voiceController = new AbortController();
-            const voiceUploadTimeout = setTimeout(() => voiceController.abort(), 60000); // 60s for audio upload
-            const voicePutRes = await fetch(voiceMeta.signedUrl, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'audio/webm' },
-                body: audioBlob,
-                signal: voiceController.signal,
-            });
-            clearTimeout(voiceUploadTimeout);
-            if (!voicePutRes.ok) throw new Error(`Voice PUT failed: HTTP ${voicePutRes.status}`);
-
-            const publicUrl = voiceMeta.publicUrl;
-
-            const content = `[Audio](${publicUrl})|dur:${durationSeconds || 0}`;
-
-            // Send via API
-            const voiceToken = getAccessToken();
-            const resp = await authedFetch('/api/messenger/send-message', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...(voiceToken ? { Authorization: `Bearer ${voiceToken}` } : {}),
-                },
-                body: JSON.stringify({
-                    conversationId: voiceConversationId,
-                    content: content,
-                    media_metadata: getClubMetadata(),
-                }),
-            });
-            const result = await resp.json();
-            if (!resp.ok || !result.success) throw new Error(result.error || 'Send failed');
-
-            // Only update UI if user hasn't switched conversations during the upload
-            if (activeConversationRef.current?.id === voiceConversationId) {
-                setMessages(prev => prev.map(m =>
-                    m.id === tempId
-                        ? { ...m, id: result.msgId || tempId, content, status: 'sent' }
-                        : m
-                ));
-            }
-
-            URL.revokeObjectURL(blobUrl);
-            busEmit.dataMutated('messenger');
-            setToast({ type: 'success', message: 'Voice Message Sent' });
-        } catch (e) {
-            console.warn('Voice upload error:', e);
-            setMessages(prev => prev.map(m =>
-                m.id === tempId && activeConversationRef.current?.id === voiceConversationId
-                    ? { ...m, status: 'failed' } : m
-            ));
-            URL.revokeObjectURL(blobUrl);
-            setToast({ type: 'error', message: `Voice Send Failed: ${e.message}` });
-        }
+        return uploadMessengerAttachment(audioBlob, {
+            fileName: `voice_${Date.now()}.webm`, mimeType: 'audio/webm',
+            contentForUrl: url => `[Audio](${url})|dur:${durationSeconds || 0}`, timeoutMs: 60000,
+        });
     };
 
     const handleSearchUser = useCallback((query) => {
@@ -3377,24 +3209,7 @@ function MessengerPage() {
                 status: receiptStatus,
             });
 
-            try {
-                // Route through authenticated API (not anon supabase.rpc) to bypass RLS
-                const endReceiptToken = getAccessToken();
-                await authedFetch('/api/messenger/send-message', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        ...(endReceiptToken ? { Authorization: `Bearer ${endReceiptToken}` } : {}),
-                    },
-                    body: JSON.stringify({
-                        conversationId: activeConversation.id,
-                        content: `[CALL_RECEIPT]${receiptPayload}`,
-                        media_metadata: getClubMetadata(),
-                    }),
-                });
-            } catch (e) {
-                console.warn('[Messenger] Call receipt save failed (non-blocking):', e?.message || e);
-            }
+            await queueMessengerSend(`[CALL_RECEIPT]${receiptPayload}`, { conversationId: activeConversation.id });
         }
         callStartTimeRef.current = null;
 
@@ -4752,6 +4567,7 @@ function MessengerPage() {
                                                             <div style={{ flex: 1, height: 1, background: C.border }} />
                                                         </div>
                                                     )}
+                                                    <div data-message-id={msg.id} data-client-request-id={msg.request_id || undefined} data-send-status={msg.status || undefined}>
                                                     <MessageBubble
                                                         message={msg}
                                                         isOwn={isOwn}
@@ -4770,6 +4586,13 @@ function MessengerPage() {
                                                         currentUserId={user.id}
                                                         theme={C}
                                                     />
+                                                    {isOwn && msg.status === 'failed' && msg.request_id && (
+                                                        <button type="button" aria-label="Retry Message" onClick={() => handleRetryMessage(msg)}
+                                                            style={{ display: 'block', margin: '0 8px 8px auto', border: 0, background: 'none', color: C.blue, cursor: 'pointer' }}>
+                                                            Retry Message
+                                                        </button>
+                                                    )}
+                                                    </div>
                                                 </Fragment>
                                             );
                                         })

@@ -59,6 +59,32 @@ export default async function handler(req, res) {
 
           // Reverse descending order to chronological ascending for display
           const sorted = [...(messages || [])].reverse();
+          // The finance-owned private reader defines the visible page but has
+          // a fixed projection. Enrich only the caller's already-authorized
+          // rows so send recovery can match a committed request after reload.
+          const ownIds = [...new Set(sorted.filter(m => m.sender_id === userId).map(m => m.id))];
+          const requestIds = new Map();
+          try {
+            for (let start = 0; start < ownIds.length; start += 100) {
+              const batch = ownIds.slice(start, start + 100);
+              const { data: rows, error: requestError } = await getSupabase()
+                  .from('social_messages')
+                  .select('id,request_id')
+                  .eq('conversation_id', conversationId)
+                  .eq('sender_id', userId)
+                  .in('id', batch);
+              if (requestError || !Array.isArray(rows) || rows.length !== batch.length ||
+                  new Set(rows.map(row => row.id)).size !== batch.length ||
+                  rows.some(row => !batch.includes(row.id) || requestIds.has(row.id) ||
+                      (row.request_id !== null && (typeof row.request_id !== 'string' ||
+                          !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(row.request_id))))) {
+                  throw Object.assign(new Error('Message Requests Unavailable'), { status: 503 });
+              }
+              for (const row of rows) requestIds.set(row.id, row.request_id);
+            }
+          } catch {
+              throw Object.assign(new Error('Message Requests Unavailable'), { status: 503 });
+          }
           // Reactions, in ONE query for the whole page.
           //
           // This route never returned reactions, and the get_message_reactions
@@ -126,6 +152,7 @@ export default async function handler(req, res) {
               }
               return {
                   ...m,
+                  ...(m.sender_id === userId ? { request_id: requestIds.get(m.id) } : {}),
                   profiles: prof,
                   text: m.content ?? null, // alias content → text for frontend compatibility
                   reactions: reactionsByMessage[m.id] || [],

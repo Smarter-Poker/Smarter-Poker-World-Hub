@@ -165,6 +165,9 @@ jobs:
         run: >-
           node --experimental-vm-modules --test
           __tests__/messenger-workspace.test.mjs
+          __tests__/messenger-send-reliability.test.mjs
+          __tests__/messenger-send-operation.test.mjs
+          __tests__/messenger-send-live-safety.test.mjs
           __tests__/messenger-read-state.test.mjs
           __tests__/messenger-sync-lifecycle.test.mjs
           __tests__/messenger-completion-lifecycle.test.mjs
@@ -258,6 +261,9 @@ jobs:
         run: node --test __tests__/engine-alert-receipts-postgres.test.mjs
       - name: One Reaction Invokes One Notification Handler
         run: PG_BIN="$PHASE6_POSTGRES_BIN" python3 scripts/ci/test-reaction-notification-postgres.py
+
+      - name: Messenger Sends Preserve Request Identity
+        run: PG_BIN="$PHASE6_POSTGRES_BIN" python3 scripts/ci/test-messenger-send-postgres.py
 
       - name: Messenger Reads Stop At The Displayed Message
         run: PG_BIN="$PHASE6_POSTGRES_BIN" python3 scripts/ci/test-messenger-bounded-read-postgres.py

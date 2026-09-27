@@ -41,10 +41,18 @@ on:
       suite:
         description: Verification suite to run
         type: choice
-        options: [full, messenger-live, reels-live]
+        options: [full, messenger-live, messenger-send-live, reels-live]
         default: full
       expected_sha:
         description: Full deployed commit SHA required for a published live verification
+        type: string
+        default: ''
+      messenger_fixture_conversation_id:
+        description: Exact parent-owned sole-participant fixture UUID for messenger-send-live
+        type: string
+        default: ''
+      messenger_request_id:
+        description: Exact stable request UUID for messenger-send-live
         type: string
         default: ''
 
@@ -339,7 +347,7 @@ jobs:
 
   messenger-live:
     name: Published Messenger Test Account Verification
-    if: ${{ inputs.suite == 'messenger-live' }}
+    if: ${{ inputs.suite == 'messenger-live' || inputs.suite == 'messenger-send-live' }}
     runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 12
     permissions:
@@ -351,7 +359,9 @@ jobs:
           node-version: '24.12.0'
           cache: npm
       - name: Verify live probe safety
-        run: node scripts/ci/messenger-live-check.mjs --self-test
+        run: |
+          node scripts/ci/messenger-live-check.mjs --self-test
+          node --test __tests__/messenger-send-live-safety.test.mjs
       - name: Restore locked dependencies
         id: live-nm-cache
         uses: actions/cache@v4
@@ -365,6 +375,7 @@ jobs:
         run: |
           if [ "${{ runner.environment }}" = "self-hosted" ]; then npx playwright install chromium; else npx playwright install --with-deps chromium; fi
       - name: Verify published Messenger with designated test account
+        if: ${{ inputs.suite == 'messenger-live' }}
         run: node scripts/ci/messenger-live-check.mjs
         env:
           TEST_USER_EMAIL: ${{ vars.TEST_USER_EMAIL || secrets.TEST_USER_EMAIL }}
@@ -372,12 +383,24 @@ jobs:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
           MESSENGER_EXPECTED_SHA: ${{ inputs.expected_sha }}
+      - name: Verify exact isolated Messenger send operation
+        if: ${{ inputs.suite == 'messenger-send-live' }}
+        run: node scripts/ci/messenger-live-check.mjs --isolated-send
+        env:
+          TEST_USER_EMAIL: ${{ vars.TEST_USER_EMAIL || secrets.TEST_USER_EMAIL }}
+          TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          MESSENGER_EXPECTED_SHA: ${{ inputs.expected_sha }}
+          MESSENGER_VERIFY_MODE: isolated-send
+          MESSENGER_FIXTURE_CONVERSATION_ID: ${{ inputs.messenger_fixture_conversation_id }}
+          MESSENGER_REQUEST_ID: ${{ inputs.messenger_request_id }}
       - name: Retain sanitized verification receipt
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: messenger-live-receipt
-          path: test-results/messenger-live/result.json
+          path: test-results/messenger*/result.json
           if-no-files-found: warn
           retention-days: 7
 
