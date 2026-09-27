@@ -50,7 +50,10 @@ test('the Video Library Reel bridge always resolves to the deployed publisher sc
   const scriptTargets = assignmentBlock('SCRIPT_JOB_SCRIPTS');
   const workerRoutes = assignmentBlock('WORKERS_PREFERRED');
 
-  assert.match(scriptJobs, /'\/api\/cron\/video-library-reels':\s*\['--limit',\s*'750',\s*'--verify'\]/);
+  assert.match(
+    scriptJobs,
+    /'\/api\/cron\/video-library-reels':\s*\[\s*'--limit',\s*'750',\s*'--verify',\s*'--verify-platform-supply'\s*\]/,
+  );
   assert.match(scriptTargets, /'\/api\/cron\/video-library-reels':\s*REELS_BRIDGE_PY/);
   assert.doesNotMatch(workerRoutes, /\/api\/cron\/video-library-reels/);
   // 2026-09-23 owner decision: the horse-authored workers bridge is never a
@@ -103,6 +106,8 @@ test('the publisher posts only as a verified non-horse official account behind i
     && preflight.indexOf('get_system_bot_id()') < preflight.indexOf("_request('GET', relation"),
   'the preflight checks the publisher before any other read');
   assert.match(preflight, /read_publication_controls\(\)/);
+  assert.match(preflight, /'poker_clips': 'video_id,source_url,is_active,oembed_ok,published_at'/);
+  assert.match(preflight, /'sports_clips': 'video_id,source_url,created_at'/);
 });
 
 test('poker clip supply routes remain wired to their real workers handlers', () => {
@@ -171,11 +176,85 @@ test('manual publication can request at most three bounded verified backfill bat
   assert.match(backfill, /test "\$\(sudo readlink "\$current"\)" = "\$release"/);
   assert.match(backfill, /sha256sum --quiet -c release-manifest\.sha256/);
   assert.match(backfill, /case "\$batch_count" in 1\|2\|3\)/);
+  assert.match(
+    backfill,
+    /ssh[\s\\]*-o ServerAliveInterval=30[\s\\]*-o ServerAliveCountMax=60[\s\\]*-o TCPKeepAlive=yes[\s\\]*"\$SSH_USER@\$HOST"/,
+  );
   assert.match(backfill, /systemd-run[\s\S]*--wait[\s\S]*--collect/);
+  assert.match(backfill, /trap cleanup_active_unit EXIT HUP INT TERM/);
+  assert.match(backfill, /systemctl stop "\$active_unit\.service"/);
   assert.match(backfill, /--property=User=openclaw/);
   assert.match(backfill, /--property=EnvironmentFile=\/etc\/openclaw\.env/);
-  assert.match(backfill, /video_library_to_reels\.py"[\s\\]*--limit 750 --verify/);
+  assert.match(
+    backfill,
+    /video_library_to_reels\.py"[\s\\]*--limit 750 --verify --release-recovery/,
+  );
+  assert.match(backfill, /journalctl -u "\$unit\.service"[\s\S]*Publisher results:/);
+  assert.match(backfill, /test "\$unit_rc" -eq 0/);
+  assert.match(
+    backfill,
+    /name: Revoke current Reel backfill custody[\s\S]*always\(\)[\s\S]*systemctl stop "\$unit"/,
+  );
   assert.doesNotMatch(backfill, /cat \/etc\/openclaw\.env|source \/etc\/openclaw\.env|set -a/);
+});
+
+test('release recovery verifies the exact Workers poker and sports pools without publishing them directly', () => {
+  assert.match(publisher, /PLATFORM_POOL_LIMIT = 1_000/);
+  assert.match(publisher, /def _load_platform_supply_rows\(exclude_video_ids=None\):/);
+  assert.match(
+    publisher,
+    /VERIFIER_INCIDENT_START = datetime\(2026, 9, 27, 3, 32, 27, tzinfo=timezone\.utc\)/,
+  );
+  assert.match(
+    publisher,
+    /VERIFIER_INCIDENT_END = datetime\(\s*2026, 9, 27, 4, 4, 25, 948844, tzinfo=timezone\.utc\s*\)/,
+  );
+  assert.match(
+    publisher,
+    /CANCELLED_RECOVERY_START = datetime\(\s*2026, 9, 27, 4, 54, 42, 529360, tzinfo=timezone\.utc\s*\)/,
+  );
+  assert.match(
+    publisher,
+    /CANCELLED_RECOVERY_END = datetime\(\s*2026, 9, 27, 4, 56, 42, 443254, tzinfo=timezone\.utc\s*\)/,
+  );
+  assert.match(
+    publisher,
+    /'poker_clips'[\s\S]*\{'is_active': 'eq\.true', 'oembed_ok': 'not\.is\.false'\}[\s\S]*'published_at\.desc\.nullslast'/,
+  );
+  assert.match(
+    publisher,
+    /'sports_clips'[\s\S]*'created_at\.desc\.nullslast'/,
+  );
+  assert.match(publisher, /surface = f'horse_\{lane\}_supply_verifier'/);
+  assert.match(publisher, /def _interleave_supply_candidates\(catalog_rows, platform_rows\):/);
+  assert.match(publisher, /catalog_quota = max\(1, \(limit \* 8\) \/\/ 15\)/);
+  assert.match(publisher, /RELEASE_RECOVERY_SURFACE_PREFIX = 'release_recovery_v2_'/);
+  assert.match(
+    publisher,
+    /str\(row\.get\('verification_status'\) or ''\)\.lower\(\) == 'error'[\s\S]*_in_cancelled_recovery_window\(row\.get\('last_verified_at'\)\)/,
+  );
+  assert.doesNotMatch(
+    publisher,
+    /platform_source[\s\S]{0,400}_publish_row\(/,
+    'platform-only supply may receive a shared verdict but never impersonate an official library publication',
+  );
+});
+
+test('manual stale-backfill cleanup is exact-operation scoped and cannot glob unrelated units', () => {
+  assert.match(
+    deployWorkflow,
+    /publisher_backfill_cleanup_operations:[\s\S]*type: string/,
+  );
+  const cleanupStart = deployWorkflow.indexOf('- name: Stop explicitly identified stale Reel backfill units');
+  const runtimeStart = deployWorkflow.indexOf('- name: Verify runtime and prepare release directories');
+  assert.ok(cleanupStart >= 0 && runtimeStart > cleanupStart);
+  const cleanup = deployWorkflow.slice(cleanupStart, runtimeStart);
+  assert.match(cleanup, /re\.fullmatch\(r'\[1-9\]\[0-9\]\*:\[1-9\]\[0-9\]\{0,2\}'/);
+  assert.match(cleanup, /openclaw-reels-backfill-\$\{run_id\}-\$\{run_attempt\}-\$\{batch\}\.service/);
+  assert.match(cleanup, /for batch in 1 2 3/);
+  assert.match(cleanup, /systemctl stop "\$unit"/);
+  assert.match(cleanup, /case "\$active_state" in \(''\|inactive\|failed\)/);
+  assert.doesNotMatch(cleanup, /openclaw-reels-backfill-\*/);
 });
 
 test('Open Claw workflow builds a hash-locked per-SHA release before atomic promotion', () => {
@@ -195,6 +274,17 @@ test('Open Claw workflow builds a hash-locked per-SHA release before atomic prom
   assert.match(deployWorkflow, /\/opt\/openclaw\/releases\/\$\{release_sha\}/);
   assert.match(deployWorkflow, /--only-binary=:all:[\s\\]*--require-hashes/);
   assert.match(deployWorkflow, /release-manifest\.sha256/);
+  const bytecodeEnv = deployWorkflow.indexOf('--env PYTHONDONTWRITEBYTECODE=1');
+  const bytecodeDirectoryGuard = deployWorkflow.indexOf('-type d -name __pycache__ -print -quit');
+  const bytecodeFileGuard = deployWorkflow.indexOf("-name '*.pyc' -o -name '*.pyo'");
+  const manifestCreation = deployWorkflow.indexOf('xargs -0 sha256sum > release-manifest.sha256');
+  assert.ok(bytecodeEnv >= 0, 'build-container imports must not write Python bytecode');
+  assert.ok(bytecodeDirectoryGuard > bytecodeEnv && bytecodeDirectoryGuard < manifestCreation);
+  assert.ok(bytecodeFileGuard > bytecodeEnv && bytecodeFileGuard < manifestCreation);
+  assert.match(
+    deployWorkflow,
+    /test "\$\(sudo sha256sum "\$release\/release-manifest\.sha256"[^\n]+" = "\$manifest_hash"/,
+  );
   assert.match(deployWorkflow, /trap rollback ERR/);
   assert.match(deployWorkflow, /"\$was_active" = true[^\n]*"\$had_unit" = true/);
   assert.doesNotMatch(deployWorkflow, /"\$was_active" = true[^\n]*"\$had_current" = true/);
@@ -337,6 +427,14 @@ test('publisher/scraper preflights are read-only and yt-dlp ignores host state',
   assert.match(scraper, /AI analysis pre-warm failed/);
   assert.match(scraper, /AI tagging trigger failed/);
   assert.match(scraper, /summary\['errors'\]\.append\(f'Report commit unconfirmed:/);
+  const purge = scraper.slice(
+    scraper.indexOf('def check_playable'),
+    scraper.indexOf('# ── Published-date + views backfill'),
+  );
+  assert.match(purge, /error\.code in \(404, 410\)/);
+  assert.match(purge, /record_youtube_embed_failure_verdict/);
+  assert.match(purge, /p_verification_started_at/);
+  assert.doesNotMatch(purge, /\.update\s*\(/, 'purge must not write catalog availability directly');
   assert.doesNotMatch(scraper, /SLACK_WEBHOOK_URL|hooks\.slack\.com/);
   assert.doesNotMatch(dispatcher, /Twilio HTTP \{resp\.status_code\}: \{resp\.text/);
 
@@ -457,6 +555,18 @@ test('Open Claw builds only locally and an inactive service is never started', (
 
   assert.ok(build > 0 && transfer > build);
   assert.match(deployWorkflow, /actual != \{normalize\(k\): v for k, v in expected\.items\(\)\}/);
+  assert.match(
+    deployWorkflow,
+    /journalctl "_SYSTEMD_INVOCATION_ID=\$invocation_two" --no-pager \\\n\s+\| grep -F "Registered: \$route  \[" >\/dev\/null/,
+  );
+  assert.match(
+    deployWorkflow,
+    /journalctl "_SYSTEMD_INVOCATION_ID=\$invocation_two" --no-pager \\\n\s+\| grep -E 'ERROR\|Exception\|Traceback' >\/dev\/null; then/,
+  );
+  assert.doesNotMatch(
+    deployWorkflow,
+    /journalctl "_SYSTEMD_INVOCATION_ID=\$invocation_two" --no-pager \\\n\s+\| grep -[FE]q/,
+  );
   const body = deployWorkflow.match(/# BEGIN preserve-active-state([\s\S]*?)# END preserve-active-state/)?.[1];
   assert.ok(body);
   const result = spawnSync('bash', ['-euc', `

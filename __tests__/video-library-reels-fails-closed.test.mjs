@@ -80,7 +80,7 @@ function runPython(source, args, timeout) {
 
 test('the dispatcher runs video-library-reels only as the local verified publisher', () => {
   assert.match(pyDict('SCRIPT_JOBS'),
-    new RegExp(`'${JOB}':\\s*\\['--limit',\\s*'750',\\s*'--verify'\\]`));
+    new RegExp(`'${JOB}':\\s*\\[\\s*'--limit',\\s*'750',\\s*'--verify',\\s*'--verify-platform-supply'\\s*\\]`));
   assert.match(pyDict('SCRIPT_JOB_SCRIPTS'), new RegExp(`'${JOB}':\\s*REELS_BRIDGE_PY`));
   assert.match(dispatcherCode, /^REELS_BRIDGE_PY = _resolve_script\('video_library_to_reels\.py'\)$/m);
   // The horse-authored workers route is never a target for this job.
@@ -170,7 +170,7 @@ print('RESULT ' + json.dumps(out))
 
 test('every dispatcher host runs the local publisher and never the horse workers route', () => {
   const r = runPython(DISPATCH_HARNESS, [DISPATCHER], 120_000);
-  assert.deepEqual(r.script_args, ['--limit', '750', '--verify']);
+  assert.deepEqual(r.script_args, ['--limit', '750', '--verify', '--verify-platform-supply']);
   assert.equal(fs.realpathSync(r.script), fs.realpathSync(BRIDGE), 'the job must resolve to this repo\'s publisher');
   assert.equal(r.in_workers_preferred, false, `${JOB} must not route to the workers service`);
   assert.equal(r.horse_route_targeted, false, `${HORSE_ROUTE} must not be a workers target`);
@@ -185,7 +185,10 @@ test('every dispatcher host runs the local publisher and never the horse workers
     const [{ cmd, timeout }] = host.spawned;
     assert.equal(cmd[0], r.python);
     assert.equal(fs.realpathSync(cmd[1]), fs.realpathSync(BRIDGE));
-    assert.deepEqual(cmd.slice(2), ['--limit', '750', '--verify']);
+    assert.deepEqual(
+      cmd.slice(2),
+      ['--limit', '750', '--verify', '--verify-platform-supply'],
+    );
     assert.equal(timeout, 1800);
   }
 });
@@ -229,7 +232,7 @@ probe_log = sandbox / 'probes.log'
     '    print("2026.08.19")\n'
     'else:\n'
     '    open(%r, "a").write("yt-dlp " + sys.argv[-1] + "\\n")\n'
-    '    print(json.dumps({"availability": "public", "age_limit": 0,\n'
+    '    print(json.dumps({"id": "M7lc1UVf-VE", "availability": "public", "age_limit": 0,\n'
     '                      "playable_in_embed": True, "live_status": "not_live"}))\n' % str(probe_log))
 
 # Runs the real script with every non-local urlopen (YouTube oEmbed) answered
@@ -247,7 +250,29 @@ def _urlopen(req, *a, **k):
         status = 200
         def __enter__(self): return self
         def __exit__(self, *a): return False
-    return R(json.dumps({'title': 'Verified Title', 'author_name': 'Channel'}).encode())
+    if 'youtube.com/embed/' in url:
+        player = {
+            'previewPlayabilityStatus': {'status': 'OK', 'playableInEmbed': True},
+            'videoFlags': {'playableInEmbed': True, 'isCrawlable': True},
+        }
+        payload = ('<script>ytcfg.set(' + json.dumps({
+            'PLAYER_VARS': {'embedded_player_response': json.dumps(player)},
+            'VIDEO_ID': 'M7lc1UVf-VE',
+            'INNERTUBE_API_KEY': 'public-test-key',
+        }) + ');</script>').encode()
+    elif 'youtube.com/youtubei/v1/player?' in url:
+        payload = json.dumps({
+            'playabilityStatus': {'status': 'OK', 'playableInEmbed': True},
+            'videoDetails': {
+                'videoId': 'M7lc1UVf-VE',
+                'isPrivate': False,
+                'isMadeForKids': False,
+            },
+            'streamingData': {'formats': [{'itag': 18}]},
+        }).encode()
+    else:
+        payload = json.dumps({'title': 'Verified Title', 'author_name': 'Channel'}).encode()
+    return R(payload)
 urllib.request.urlopen = _urlopen
 script = sys.argv[1]
 sys.argv = sys.argv[1:]
@@ -356,6 +381,8 @@ def handler(state):
                     'publication_key': 'video-library:' + ASSET,
                 }])
             if table == 'youtube_embed_failures':
+                return self._reply(200, [])
+            if table in ('poker_clips', 'sports_clips'):
                 return self._reply(200, [])
             return self._reply(404, {'message': 'unknown relation ' + table})
 
@@ -561,6 +588,7 @@ test('(f) with the fleet switch off, a valid official publisher still verifies a
     const s = scenarios[name];
     assert.equal(s.code, 0, `${name}\n${show(s)}`);
     assert.ok(s.probes.some((p) => p.startsWith('oembed ') && p.includes(ids.video)), `${name}: no oEmbed probe\n${show(s)}`);
+    assert.ok(s.probes.some((p) => p.includes(`/embed/${ids.video}`)), `${name}: no anonymous embed proof\n${show(s)}`);
     assert.ok(s.probes.some((p) => p === `yt-dlp https://www.youtube.com/watch?v=${ids.video}`),
       `${name}: no yt-dlp probe\n${show(s)}`);
     // No direct table writes: only the verdict and publication RPCs.
