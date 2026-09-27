@@ -38,6 +38,7 @@ class VideoLibraryPublisherResumeTest(unittest.TestCase):
         return SimpleNamespace(
             source=None,
             limit=2,
+            failure_verify_limit=None,
             sync_captions=False,
             audit_all=False,
             release_recovery=False,
@@ -45,6 +46,109 @@ class VideoLibraryPublisherResumeTest(unittest.TestCase):
             dry_run=False,
             deadline_at=time.monotonic() + 1_000,
         )
+
+    def test_manual_supply_can_defer_auxiliary_failure_queue_without_changing_default(self):
+        bridge = self.bridge
+        now = datetime.now(timezone.utc)
+        supply_asset = {
+            'id': '11111111-1111-4111-8111-111111111111',
+            'youtube_video_id': 'Gbyg7P0uPJM',
+            'source_id': 'TEST',
+            'source_name': 'Test',
+            'title': 'Bounded supply candidate',
+            'thumbnail_url': None,
+            'published_at': '2026-09-20T01:00:00+00:00',
+            'type': 'cash',
+            'availability_status': 'unknown',
+            'embeddable': None,
+            'availability_checked_at': None,
+        }
+        failure_rows = [
+            {
+                'id': f'failure-{index}',
+                'video_id': video_id,
+                'verification_status': 'pending',
+                'resolved': False,
+                'last_seen_at': (now - timedelta(hours=index + 1)).isoformat(),
+                'last_verified_at': None,
+                'surface': 'reels',
+                'error_code': None,
+            }
+            for index, video_id in enumerate(('M7lc1UVf-VE', 'D5R_ZQZDR1Q'))
+        ]
+        bridge.ensure_ytdlp_runtime = lambda: '2026.08.19'
+        bridge.get_system_bot_id = lambda: '00000000-0000-0000-0000-000000000001'
+        bridge.read_publication_controls = lambda: {
+            'video_library_reel_creation': True,
+            'video_library_reel_publication': True,
+        }
+        bridge._load_existing_publications = lambda: {}
+        bridge._load_embed_failure_rows = lambda: failure_rows
+        bridge._catalog_pages = lambda _source=None: iter([[supply_asset]])
+        bridge._load_platform_supply_rows = lambda _excluded=None: []
+        bridge._deadline_due = lambda *_args, **_kwargs: False
+        checked_at = now.isoformat()
+        bridge._verify_row = mock.Mock(return_value={
+            'available': True,
+            'status': 'verified',
+            'reason': None,
+            'verification_started_at': checked_at,
+            'verification_checked_at': checked_at,
+        })
+        bridge._record_embed_verdict = lambda video_id, *_args, **_kwargs: {
+            'video_id': video_id,
+            'hit_count': 0,
+            'verification_status': 'resolved',
+            'resolved': True,
+        }
+        bridge._publish_row = lambda row, _author_id: {
+            'social_post_id': f"post-{row['id']}",
+            'social_reel_id': f"reel-{row['id']}",
+            'was_created': True,
+        }
+        bridge._feed_visible_asset_ids = lambda _rows: {supply_asset['id']}
+
+        arguments = self._arguments()
+        arguments.failure_verify_limit = 0
+        stats = bridge.run_bridge(arguments)
+
+        self.assertEqual(stats['candidates'], 1)
+        self.assertEqual(stats['verification_attempted'], 1)
+        self.assertEqual(stats['failure_reports_loaded'], 2)
+        self.assertEqual(stats['failure_candidates'], 0)
+        self.assertEqual(stats['failure_deferred_by_limit'], 2)
+        self.assertEqual(stats['failure_verification_attempted'], 0)
+        self.assertEqual(
+            [call.args[0]['youtube_video_id'] for call in bridge._verify_row.call_args_list],
+            [supply_asset['youtube_video_id']],
+        )
+
+        bridge._catalog_pages = lambda _source=None: iter([[]])
+        bridge._verify_row = mock.Mock(return_value={
+            'available': True,
+            'status': 'verified',
+            'reason': None,
+            'verification_started_at': checked_at,
+            'verification_checked_at': checked_at,
+        })
+        ordinary_arguments = self._arguments()
+        ordinary_arguments.dry_run = True
+        ordinary_stats = bridge.run_bridge(ordinary_arguments)
+
+        self.assertEqual(bridge.FAILURE_VERIFY_LIMIT, 500)
+        self.assertEqual(ordinary_stats['failure_candidates'], 2)
+        self.assertEqual(ordinary_stats['failure_deferred_by_limit'], 0)
+        self.assertEqual(ordinary_stats['failure_verification_attempted'], 2)
+        self.assertEqual(bridge._verify_row.call_count, 2)
+
+        for accepted in ('0', str(bridge.FAILURE_VERIFY_LIMIT)):
+            self.assertEqual(
+                bridge._bounded_failure_verify_limit(accepted),
+                int(accepted),
+            )
+        for refused in ('-1', str(bridge.FAILURE_VERIFY_LIMIT + 1)):
+            with self.assertRaises(bridge.argparse.ArgumentTypeError):
+                bridge._bounded_failure_verify_limit(refused)
 
     @staticmethod
     def _response(body, status=200):
