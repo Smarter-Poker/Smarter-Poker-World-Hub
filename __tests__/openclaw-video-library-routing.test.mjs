@@ -195,6 +195,17 @@ test('Open Claw workflow builds a hash-locked per-SHA release before atomic prom
   assert.match(deployWorkflow, /\/opt\/openclaw\/releases\/\$\{release_sha\}/);
   assert.match(deployWorkflow, /--only-binary=:all:[\s\\]*--require-hashes/);
   assert.match(deployWorkflow, /release-manifest\.sha256/);
+  const bytecodeEnv = deployWorkflow.indexOf('--env PYTHONDONTWRITEBYTECODE=1');
+  const bytecodeDirectoryGuard = deployWorkflow.indexOf('-type d -name __pycache__ -print -quit');
+  const bytecodeFileGuard = deployWorkflow.indexOf("-name '*.pyc' -o -name '*.pyo'");
+  const manifestCreation = deployWorkflow.indexOf('xargs -0 sha256sum > release-manifest.sha256');
+  assert.ok(bytecodeEnv >= 0, 'build-container imports must not write Python bytecode');
+  assert.ok(bytecodeDirectoryGuard > bytecodeEnv && bytecodeDirectoryGuard < manifestCreation);
+  assert.ok(bytecodeFileGuard > bytecodeEnv && bytecodeFileGuard < manifestCreation);
+  assert.match(
+    deployWorkflow,
+    /test "\$\(sudo sha256sum "\$release\/release-manifest\.sha256"[^\n]+" = "\$manifest_hash"/,
+  );
   assert.match(deployWorkflow, /trap rollback ERR/);
   assert.match(deployWorkflow, /"\$was_active" = true[^\n]*"\$had_unit" = true/);
   assert.doesNotMatch(deployWorkflow, /"\$was_active" = true[^\n]*"\$had_current" = true/);
