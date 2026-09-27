@@ -731,7 +731,15 @@ jobs:
         run: |
           set -euo pipefail
           case "$PUBLISHER_BACKFILL_BATCHES" in 1|2|3) ;; *) exit 2 ;; esac
-          ssh "$SSH_USER@$HOST" 'bash -s' -- \
+          # A verified batch may run silently for several minutes while the
+          # transient systemd unit waits on upstream video probes. Keep the
+          # encrypted SSH transport active so an idle intermediary cannot
+          # sever the proof-bearing wait before systemd returns its exit code.
+          ssh \
+            -o ServerAliveInterval=30 \
+            -o ServerAliveCountMax=60 \
+            -o TCPKeepAlive=yes \
+            "$SSH_USER@$HOST" 'bash -s' -- \
             "$GITHUB_SHA" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" \
             "$PUBLISHER_BACKFILL_BATCHES" <<'EOSSH'
           set -euo pipefail
