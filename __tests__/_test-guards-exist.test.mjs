@@ -237,6 +237,7 @@ import './openclaw-video-library-routing.test.mjs';
 // JavaScript readers, Python renewal target and daily verifier capacity.
 import './video-library-freshness-contract.test.mjs';
 import './video-library-official-publisher-migration.test.mjs';
+import './fresh-public-youtube-verification-ids-migration.test.mjs';
 import './yt-worker-release-safety.test.mjs';
 // 2026-09-21, fleet recertification D1: /api/cron/video-library-reels reaches
 // only the gated workers route, and the reels bridge script refuses to write
