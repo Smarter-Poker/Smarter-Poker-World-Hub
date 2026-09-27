@@ -675,11 +675,14 @@ jobs:
             /api/cron/video-library-backfill \
             /api/cron/video-library-purge \
             /api/cron/video-library-views; do
+            # Do not use grep -q here. With pipefail enabled, grep can close the
+            # pipe on the first match and journalctl then exits on SIGPIPE (141),
+            # turning a successful registration check into a failed release.
             sudo journalctl "_SYSTEMD_INVOCATION_ID=$invocation_two" --no-pager \
-              | grep -Fq "Registered: $route  ["
+              | grep -F "Registered: $route  [" >/dev/null
           done
           if sudo journalctl "_SYSTEMD_INVOCATION_ID=$invocation_two" --no-pager \
-            | grep -Eq 'ERROR|Exception|Traceback'; then
+            | grep -E 'ERROR|Exception|Traceback' >/dev/null; then
             # Never print the journal wholesale: service output can carry request
             # URLs, headers or environment-derived values. Show the unit state and
             # a bounded tail with credential-looking lines dropped and URL

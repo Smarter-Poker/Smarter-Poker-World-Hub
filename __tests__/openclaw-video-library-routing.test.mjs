@@ -457,6 +457,18 @@ test('Open Claw builds only locally and an inactive service is never started', (
 
   assert.ok(build > 0 && transfer > build);
   assert.match(deployWorkflow, /actual != \{normalize\(k\): v for k, v in expected\.items\(\)\}/);
+  assert.match(
+    deployWorkflow,
+    /journalctl "_SYSTEMD_INVOCATION_ID=\$invocation_two" --no-pager \\\n\s+\| grep -F "Registered: \$route  \[" >\/dev\/null/,
+  );
+  assert.match(
+    deployWorkflow,
+    /journalctl "_SYSTEMD_INVOCATION_ID=\$invocation_two" --no-pager \\\n\s+\| grep -E 'ERROR\|Exception\|Traceback' >\/dev\/null; then/,
+  );
+  assert.doesNotMatch(
+    deployWorkflow,
+    /journalctl "_SYSTEMD_INVOCATION_ID=\$invocation_two" --no-pager \\\n\s+\| grep -[FE]q/,
+  );
   const body = deployWorkflow.match(/# BEGIN preserve-active-state([\s\S]*?)# END preserve-active-state/)?.[1];
   assert.ok(body);
   const result = spawnSync('bash', ['-euc', `
