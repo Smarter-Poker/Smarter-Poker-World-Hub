@@ -167,7 +167,11 @@ test('full-screen viewers preserve bounded-scan cursors and expose continuation 
 
 test('the upload deep link remains reachable while the feed is loading, empty, or unavailable', () => {
   assert.match(REELS_PAGE, /router\.query\.upload !== '1'/);
-  const loadingState = between(REELS_PAGE, 'if (loading) {', 'if (loadError && !reels.length) {');
+  const loadingState = between(
+    REELS_PAGE,
+    'if (shouldShowInitialReelsLoadingConsole({ loading, reelCount: reels.length })) {',
+    'if (loadError && !reels.length) {',
+  );
   const errorState = between(REELS_PAGE, 'if (loadError && !reels.length) {', 'if (!reels.length) {');
   const emptyState = between(REELS_PAGE, 'if (!reels.length) {', 'const videoId =');
   for (const state of [loadingState, errorState, emptyState]) {
@@ -746,13 +750,42 @@ test('a failed foreground channel switch retains the mounted Reel and exposes a 
     loader,
     /if \(reelsRef\.current\.length > 0\) \{\s*setLoadError\('network'\);\s*return;\s*\}\s*setReels\(\[\]\)/,
   );
+  assert.match(
+    loader,
+    /if \(reelsRef\.current\.length === 0\) setLoading\(true\);/,
+    'an in-flight foreground channel switch must not enter the cold-start loading state',
+  );
   assert.match(REELS_PAGE, /New Reels Could Not Be Loaded\. Showing Your Current Reel\./);
   assert.match(REELS_PAGE, /aria-label="Retry Reel channel"/);
+  assert.match(
+    REELS_PAGE,
+    /shouldShowInitialReelsLoadingConsole\(\{\s*loading,\s*reelCount:\s*reels\.length\s*\}\)/,
+    'a foreground channel load must not replace an already mounted player with the cold-start console',
+  );
   assert.match(
     APP_SHELL,
     /const pageErrorBoundaryKey = resolvedPath === '\/hub\/reels'[\s\S]*?\? resolvedPath[\s\S]*?: router\.asPath;/,
   );
   assert.match(APP_SHELL, /<PageErrorBoundary key=\{pageErrorBoundaryKey\}>/);
+});
+
+test('the cold-start loading decision preserves player identity during a rejected channel transition', async () => {
+  const { shouldShowInitialReelsLoadingConsole } = await import(REALTIME_REFRESH);
+
+  assert.equal(
+    shouldShowInitialReelsLoadingConsole({ loading: true, reelCount: 0 }),
+    true,
+    'a true cold start still renders the loading console',
+  );
+  assert.equal(
+    shouldShowInitialReelsLoadingConsole({ loading: true, reelCount: 1 }),
+    false,
+    'an in-flight category request keeps the mounted player in the tree',
+  );
+  assert.equal(
+    shouldShowInitialReelsLoadingConsole({ loading: false, reelCount: 1 }),
+    false,
+  );
 });
 
 test('the embedded library viewer starts through its loader ref without a temporal-dead-zone crash', () => {
@@ -793,8 +826,11 @@ test('Reel viewers route realtime and focus revalidation through the background 
     assert.match(loader, /const background = mode === BACKGROUND_REELS_REFRESH;/);
     assert.match(loader, /const reelsRequest = reelsRefreshCoordinatorRef\.current\.begin\(\{ background \}\);\s*if \(!reelsRequest\) return;/,
       `${name}: a background refresh never supersedes an unresolved foreground load`);
-    assert.match(loader, /if \(!background\) \{\s*setLoading\(true\);/,
-      `${name}: only a foreground load shows the loading console`);
+    const loadingPattern = name === 'standalone'
+      ? /if \(!background\) \{[\s\S]*?if \(reelsRef\.current\.length === 0\) setLoading\(true\);/
+      : /if \(!background\) \{\s*setLoading\(true\);/;
+    assert.match(loader, loadingPattern,
+      `${name}: only a cold foreground load shows the loading console`);
     assert.match(loader, /reelsRefreshCoordinatorRef\.current\.settle\(reelsRequest\)[\s\S]*?if \(settled\.flushQueued\) scheduleBackgroundReelsRefresh\(\);/);
     assert.match(loader, /if \(background\) \{[\s\S]*?mergeBackgroundReels\(\{[\s\S]*?activeIndex: currentIndexRef\.current,/);
     assert.match(loader, /if \(settled\.current && !background\) setLoading\(false\);/);

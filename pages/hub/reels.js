@@ -54,6 +54,7 @@ import {
   createReelsRefreshCoordinator,
   mergeBackgroundReels,
   resolveStaleReels,
+  shouldShowInitialReelsLoadingConsole,
 } from '../../src/lib/reelsRealtimeRefresh.mjs';
 import {
   loadWatchedReelIds,
@@ -1001,7 +1002,10 @@ export default function ReelsPage({ reelsListing = null }) {
     // Either kind of full refresh supersedes an unresolved append.
     setLoadingMore(false);
     if (!background) {
-      setLoading(true);
+      // The full-screen loading console is a cold-start state. During a
+      // category switch, keep the existing player mounted until the new
+      // authoritative response succeeds (or the user retries a dropped one).
+      if (reelsRef.current.length === 0) setLoading(true);
       setLoadError(null);
       setFollowingReauthRequired(false);
       setLoadMoreError(null);
@@ -2894,7 +2898,7 @@ export default function ReelsPage({ reelsListing = null }) {
     </div>
   );
 
-  if (loading) {
+  if (shouldShowInitialReelsLoadingConsole({ loading, reelCount: reels.length })) {
     return (
       <>
         <SEOHead
