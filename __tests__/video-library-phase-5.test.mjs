@@ -114,8 +114,8 @@ test('mark-unwatched persists and clears every local watch-state projection', ()
 test('action feedback reports actual outcome and clipboard failures never claim success', () => {
   assert.match(PAGE, /copyTextToClipboard/);
   assert.match(PAGE, /Link could not be copied\. Try again\./);
-  assert.match(PAGE, /shareToast\.message/);
-  assert.match(PAGE, /vl-action-notice--\$\{shareToast\.tone\}/);
+  assert.match(PAGE, /visibleShareToast\.message/);
+  assert.match(PAGE, /vl-action-notice--\$\{visibleShareToast\.tone\}/);
   assert.match(CSS, /\.vl-action-notice--error/);
   assert.match(CSS, /\.vl-action-notice--info/);
 });
@@ -128,7 +128,7 @@ test('deep links, auth switches, and pagination remounts are guarded', () => {
   assert.match(PAGE, /sessionUserId: userId/);
   assert.match(PAGE, /Some saved library data could not be refreshed/);
   assert.match(PLAYLISTS, /Error fetching playlists:[\s\S]*throw error/);
-  assert.match(PAGE, /\[displayedCount, videos\.length,/);
+  assert.match(PAGE, /\[displayedCount, catalogNextOffset, catalogHasMore,/);
   assert.doesNotMatch(PAGE, /dbLoaded/);
   assert.match(PAGE, /catalogSearchQuery, sortMode, libraryFilter/);
 });
@@ -146,13 +146,19 @@ test('desktop actions, playlist wiring, touch controls, and safe-area layout rem
   assert.match(PAGE, /setShowPlaylistModal\(selectedVideo\)/);
   assert.match(PAGE, /aria-labelledby="vl-playlist-title"/);
   assert.match(PAGE, /ref=\{playlistDialogRef\}/);
-  assert.match(PAGE, /ref=\{ttsDialogRef\} role="dialog"/);
+  assert.match(PAGE, /ref=\{ttsDialogRef\}[\s\S]{0,100}role="dialog"/);
   assert.match(PAGE, /containDialogFocus/);
   assert.match(PAGE, /ref=\{reelsDialogRef\}/);
   assert.match(PAGE, /e\.metaKey \|\| e\.ctrlKey \|\| e\.altKey/);
   assert.match(YOUTUBE_HOOK, /e\.source !== iframeRef\.current\.contentWindow/);
-  assert.match(PAGE, /top: 0, bottom: 64/);
+  assert.match(PAGE, /vl-swipe-zone--previous/);
+  assert.match(PAGE, /vl-swipe-zone--next/);
   assert.equal(BOTTOM_NAV_ROUTES['/hub/video-library']?.theme, 'dark');
   assert.doesNotMatch(PAGE, /<BottomNavBar/);
-  assert.ok((CSS.match(/env\(safe-area-inset-bottom/g) || []).length >= 2);
+  // PIN MOVED (mobile phase 9, 2026-09-14): the page's own bottom pad
+  // (82px + safe area) is gone; BottomNavSpacer in _app.js owns the bottom
+  // clearance for every route in bottom-nav-routes.json. The playlist sheet
+  // still pads its own bottom edge, which is the one env() that remains.
+  assert.ok((CSS.match(/env\(safe-area-inset-bottom/g) || []).length >= 1);
+  assert.doesNotMatch(CSS, /calc\(82px \+ env\(safe-area-inset-bottom/);
 });

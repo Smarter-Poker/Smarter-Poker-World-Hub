@@ -90,8 +90,11 @@ function isTransientBody(body) {
  * @param {string} label   prefix for log lines, e.g. 'check-phantom-columns'
  * @param {string} target  absolute URL
  * @param {object} [init]  fetch init; a `signal` is added per attempt
- * @param {object} [opts]  { attempts, perAttemptTimeoutMs, totalBudgetMs, parse, exitCode }
+ * @param {object} [opts]  { attempts, perAttemptTimeoutMs, totalBudgetMs, parse, exitCode,
+ *                           returnStatuses }
  *                         parse: 'json' (default) | 'text' | 'response'
+ *                         returnStatuses: explicit non-2xx statuses a caller needs to
+ *                         inspect as an assertion result rather than transport failure
  * @returns {Promise<any>} parsed body, or the Response when parse==='response'
  *
  * On unrecoverable failure it prints why and calls process.exit(1). Callers do
@@ -103,6 +106,7 @@ export async function resilientFetch(label, target, init = {}, opts = {}) {
   const perAttempt = opts.perAttemptTimeoutMs ?? PER_ATTEMPT_TIMEOUT_MS;
   const budget = opts.totalBudgetMs ?? TOTAL_BUDGET_MS;
   const parse = opts.parse ?? 'json';
+  const returnStatuses = new Set(opts.returnStatuses || []);
   // Callers differ: the U4.x gates exit 2, the economy gates exit 1. Preserve
   // whatever the caller already used so this refactor cannot change what a
   // failure looks like from outside.
@@ -116,7 +120,7 @@ export async function resilientFetch(label, target, init = {}, opts = {}) {
     try {
       const res = await fetch(target, { ...init, signal: AbortSignal.timeout(perAttempt) });
 
-      if (res.ok) {
+      if (res.ok || returnStatuses.has(res.status)) {
         const ms = Date.now() - startedAttempt;
         if (attempt > 1) console.warn(`[${label}] recovered on attempt ${attempt} after ${ms}ms.`);
         if (ms > perAttempt / 4) {

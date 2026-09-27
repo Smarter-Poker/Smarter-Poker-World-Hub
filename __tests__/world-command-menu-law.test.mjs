@@ -181,7 +181,13 @@ test('the approved hamburger trigger covers routes without duplicating the heade
   }
   assert.match(friendsSource, /commandMenuItems=\{menuConfig\.menuItems\}/);
   assert.match(messengerSource, /commandMenuItems=\{menuConfig\.menuItems\}/);
-  assert.match(reelsSource, /showOverlay && \([\s\S]*?<UniversalHeader/);
+  assert.match(reelsSource, /const reelsNavigationHeader = \([\s\S]*?<UniversalHeader/);
+  assert.match(reelsSource, /\{showOverlay && reelsNavigationHeader\}/);
+  assert.equal(
+    (reelsSource.match(/<UniversalHeader\b/g) || []).length,
+    1,
+    'Reels must reuse one UniversalHeader across loading, recovery, empty, and viewer states'
+  );
   assert.match(reelsSource, /if \(menuOpenRef\.current\) return;/);
   assert.match(reelsSource, /getComputedStyle\(commandMenu\)\.visibility === 'visible'/);
   assert.match(drawerSource, /data-world-menu-trigger="route-fallback"/);

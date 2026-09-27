@@ -904,30 +904,18 @@ function CreateStoryModal({ userId, onClose, onCreated }) {
                 p_link_url: null,
             });
 
-            if (createError) {
+            if (createError || !storyId) {
                 console.debug('[Stories] Create error:', createError);
-                throw createError;
+                throw createError || new Error('Story creation returned no confirmed Story ID');
             }
 
             console.debug('[Stories] ✅ Story created! ID:', storyId);
 
-            // Auto-save videos to Reels
-            if (mediaType === 'video' && mediaUrl) {
-                const { error: err_social_reels_j0afb } = await supabase.from('social_reels').insert({
-                    author_id: userId,
-                    video_url: mediaUrl,
-                    caption: text || null,
-                    source_story_id: storyId,
-                });
-                if (err_social_reels_j0afb) console.warn('[Supabase] Silent mutation failed in social_reels:', err_social_reels_j0afb.message);
-            }
-
             // Cleanup local preview
             if (mediaPreview) URL.revokeObjectURL(mediaPreview);
 
-            // Show success toast, then close after 2 seconds
             setShowSuccess(true);
-            toast.success('Posted Successfully!', 2000);
+            toast.success('Story posted!', 2500);
             setTimeout(() => {
                 onCreated();
             }, 2000);
