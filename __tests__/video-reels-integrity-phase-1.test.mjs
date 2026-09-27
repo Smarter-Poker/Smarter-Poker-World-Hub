@@ -121,6 +121,26 @@ test('the published Reels verifier is read-only and rejects hostile live payload
     mediaUrls: [],
     link_url: `${APP_ORIGIN}/hub/reels?id=${row.id}`,
   }]), null);
+  assert.equal(selectOrdinaryArticle([{
+    id: row.id,
+    contentType: 'link',
+    mediaUrls: ['https://example.com/story.jpg'],
+    link_url: null,
+    content: 'Read more at https://example.com/story',
+  }])?.id, row.id);
+  assert.equal(selectOrdinaryArticle([{
+    id: row.id,
+    contentType: 'link',
+    mediaUrls: ['https://example.com/story.jpg'],
+    link_url: null,
+    content: `Shared Reel ${APP_ORIGIN}/hub/reels?id=${row.id}`,
+  }]), null);
+  assert.equal(selectOrdinaryArticle([{
+    id: row.id,
+    contentType: 'article',
+    mediaUrls: [],
+    link_url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+  }]), null);
 });
 
 test('phase-one migration separates provenance, playback, topic, rights, and identity', () => {
