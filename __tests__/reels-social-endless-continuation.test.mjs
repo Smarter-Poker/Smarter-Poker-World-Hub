@@ -1,7 +1,13 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
-import { canonicalReelKey } from '../src/lib/reelsFeedClient.js';
+
+process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://test-project.supabase.co';
+
+const {
+  canonicalReelKey,
+  isUnclassifiedNativeCommunityReel,
+} = await import('../src/lib/reelsFeedClient.js');
 
 const source = readFileSync(
   new URL('../src/components/social/ReelsFeedCarousel.jsx', import.meta.url),
@@ -36,7 +42,10 @@ function loadRealtimeCategoryHelper() {
     'const SOCIAL_REEL_CATEGORY_TOPICS',
     'function mergeCarouselReels'
   );
-  return Function(`${helperSource}\nreturn realtimeRowForCategory;`)();
+  return Function(
+    'isUnclassifiedNativeCommunityReel',
+    `${helperSource}\nreturn realtimeRowForCategory;`,
+  )(isUnclassifiedNativeCommunityReel);
 }
 
 test('cursor metadata and merged Reel identity behave deterministically', () => {
@@ -81,6 +90,36 @@ test('category realtime adaptation rejects explicit cross-category topic changes
   assert.equal(
     realtimeRowForCategory({ topic: 'poker' }, 'sports').topic,
     '__category_ineligible__'
+  );
+  const ownerId = '11111111-1111-4111-8111-111111111111';
+  const community = {
+    id: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
+    author_id: ownerId,
+    video_url: `https://test-project.supabase.co/storage/v1/object/public/social-media/videos/${ownerId}/community.mp4`,
+    source_post_id: 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee',
+    source_asset_id: null,
+    source_story_id: null,
+    publication_key: null,
+    canonical_asset_key: 'native:community',
+    youtube_video_id: null,
+    is_public: true,
+    is_deleted: false,
+    media_status: 'ready',
+    origin_type: 'social_post',
+    source_type: 'native',
+    playback_type: 'native',
+    rights_status: 'user_authorized',
+    native_processing_requested: false,
+    topic: 'unknown',
+  };
+  assert.equal(realtimeRowForCategory(community, 'for-you').topic, 'poker');
+  assert.equal(
+    realtimeRowForCategory(community, 'poker').topic,
+    '__category_ineligible__',
+  );
+  assert.equal(
+    realtimeRowForCategory({ ...community, rights_status: 'unknown' }, 'for-you').topic,
+    '__category_ineligible__',
   );
   const partialCounter = { id: 'slot-1', view_count: 3 };
   assert.equal(realtimeRowForCategory(partialCounter, 'casino-slots'), partialCounter);

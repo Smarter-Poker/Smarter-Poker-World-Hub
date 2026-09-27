@@ -16,7 +16,12 @@ import { getAccessToken, getAuthUser } from '../../lib/authUtils';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import GiphyPicker from '../shared/GiphyPicker';
-import { buildReelPath, canonicalReelKey, fetchPokerReels } from '../../lib/reelsFeedClient';
+import {
+  buildReelPath,
+  canonicalReelKey,
+  fetchPokerReels,
+  isUnclassifiedNativeCommunityReel,
+} from '../../lib/reelsFeedClient';
 import { scanReelsContinuations } from '../../lib/reelsContinuation.mjs';
 import {
   BACKGROUND_REELS_REFRESH,
@@ -99,6 +104,7 @@ function reelTopicLabel(reel) {
   if (topic === 'tournament') return 'Tournament Poker';
   if (topic === 'slots') return 'Casino And Slots';
   if (topic === 'sports') return 'Sports';
+  if (topic === 'unknown') return 'Community';
   return 'Poker';
 }
 
@@ -140,9 +146,12 @@ function realtimeRowForCategory(row, category) {
   }
   const topic = String(row.topic || '').trim().toLowerCase();
   const allowed = SOCIAL_REEL_CATEGORY_TOPICS[category] || SOCIAL_REEL_CATEGORY_TOPICS['for-you'];
+  const unknownNativeAllowed = category === 'for-you'
+    && topic === 'unknown'
+    && isUnclassifiedNativeCommunityReel(row);
   return {
     ...row,
-    topic: allowed.has(topic) ? 'poker' : '__category_ineligible__',
+    topic: allowed.has(topic) || unknownNativeAllowed ? 'poker' : '__category_ineligible__',
   };
 }
 

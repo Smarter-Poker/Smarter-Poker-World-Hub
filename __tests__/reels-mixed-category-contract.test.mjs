@@ -33,6 +33,7 @@ const {
   fetchPokerReels,
   isPlayablePokerReel,
   isPlayableReel,
+  isUnclassifiedNativeCommunityReel,
   normalizeReelsCategory,
   reelCategoryForTopic,
   sanitizeReels,
@@ -53,6 +54,31 @@ function verifiedYouTubeReel(overrides = {}) {
     rights_status: 'embed_only',
     verification_status: 'resolved',
     last_verified_at: new Date().toISOString(),
+    ...overrides,
+  };
+}
+
+function unclassifiedNativeCommunityReel(overrides = {}) {
+  const authorId = '11111111-1111-4111-8111-111111111111';
+  return {
+    id: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
+    author_id: authorId,
+    video_url: `https://test-project.supabase.co/storage/v1/object/public/social-media/videos/${authorId}/community.mp4`,
+    youtube_video_id: null,
+    source_asset_id: null,
+    source_story_id: null,
+    source_post_id: 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee',
+    publication_key: null,
+    canonical_asset_key: 'native:community',
+    topic: 'unknown',
+    is_public: true,
+    is_deleted: false,
+    media_status: 'ready',
+    origin_type: 'social_post',
+    source_type: 'native',
+    playback_type: 'native',
+    rights_status: 'user_authorized',
+    native_processing_requested: false,
     ...overrides,
   };
 }
@@ -88,6 +114,40 @@ test('the client keeps category boundaries while For You admits every approved t
     sanitizeReels([{ ...sports, topic: 'unknown' }], { category: 'for-you' }).length,
     0,
   );
+
+  const community = unclassifiedNativeCommunityReel();
+  assert.equal(isUnclassifiedNativeCommunityReel(community), true);
+  assert.equal(isPlayableReel(community, { category: 'for-you' }), true);
+  assert.equal(isPlayableReel(community, { category: 'poker' }), false);
+  assert.equal(isPlayableReel(community, { category: 'casino-slots' }), false);
+  assert.equal(isPlayableReel(community, { category: 'sports' }), false);
+  assert.equal(isPlayableReel(community, { category: 'following' }), false);
+  assert.equal(
+    isPlayableReel(community, { category: 'poker', directId: community.id }),
+    true,
+    'an exact old Reel bookmark remains a direct-detail exception',
+  );
+  assert.equal(
+    isPlayableReel(community, { category: 'sports', directId: community.source_post_id }),
+    true,
+    'an exact old source-post bookmark resolves the same canonical detail',
+  );
+  assert.equal(
+    isPlayableReel(community, { category: 'following', directId: community.id }),
+    false,
+    'Following never admits an unclassified row',
+  );
+  for (const hostile of [
+    { ...community, origin_type: 'horse' },
+    { ...community, rights_status: 'unknown' },
+    { ...community, source_post_id: null },
+    { ...community, publication_key: 'forged' },
+    { ...community, youtube_video_id: 'M7lc1UVf-VE' },
+    { ...community, is_public: false },
+    { ...community, video_url: 'https://attacker.example/community.mp4' },
+  ]) {
+    assert.equal(isPlayableReel(hostile, { category: 'for-you' }), false);
+  }
 });
 
 test('canonical Reel links preserve category and old bookmarks can fall back to For You', () => {
@@ -95,6 +155,7 @@ test('canonical Reel links preserve category and old bookmarks can fall back to 
   assert.equal(reelCategoryForTopic('tournament'), 'poker');
   assert.equal(reelCategoryForTopic('slots'), 'casino-slots');
   assert.equal(reelCategoryForTopic('sports'), 'sports');
+  assert.equal(reelCategoryForTopic('unknown'), 'for-you');
   assert.equal(
     buildReelPath({ id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', topic: 'slots' }),
     '/hub/reels?id=bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb&category=casino-slots',
@@ -102,6 +163,10 @@ test('canonical Reel links preserve category and old bookmarks can fall back to 
   assert.equal(
     buildReelPath({ id: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc', topic: 'sports' }),
     '/hub/reels?id=cccccccc-cccc-4ccc-8ccc-cccccccccccc&category=sports',
+  );
+  assert.equal(
+    buildReelPath({ id: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd', topic: 'unknown' }),
+    '/hub/reels?id=dddddddd-dddd-4ddd-8ddd-dddddddddddd&category=for-you',
   );
   assert.equal(buildReelPath({ id: 'not-a-uuid', topic: 'sports' }), '/hub/reels');
   assert.match(HAMBURGER_MENU_SOURCE, /'For You', '\/hub\/reels\?category=for-you'/);
@@ -146,6 +211,7 @@ test('the social carousel requests For You and filters a hostile mixed response 
         success: true,
         data: [
           verifiedYouTubeReel({ topic: 'sports' }),
+          unclassifiedNativeCommunityReel(),
           verifiedYouTubeReel({ id: 'bad', topic: 'unknown' }),
         ],
         next_cursor: 'next-page',
@@ -157,7 +223,7 @@ test('the social carousel requests For You and filters a hostile mixed response 
     assert.match(requests[0], /[?&]category=for-you(?:&|$)/);
     assert.doesNotMatch(requests[0], /[?&]scope=/);
     assert.equal(result.category, 'for-you');
-    assert.deepEqual(result.data.map(row => row.topic), ['sports']);
+    assert.deepEqual(result.data.map(row => row.topic), ['sports', 'unknown']);
     assert.equal(result.next_cursor, 'next-page');
   } finally {
     globalThis.fetch = originalFetch;
@@ -188,11 +254,12 @@ test('the server owns the allowlist and applies it before pagination', () => {
   assert.match(SERVER_SOURCE, /'casino-slots': Object\.freeze\(\['slots'\]\)/);
   assert.match(SERVER_SOURCE, /sports: Object\.freeze\(\['sports'\]\)/);
   assert.match(SERVER_SOURCE, /'for-you': Object\.freeze\(\['poker', 'cash', 'tournament', 'slots', 'sports'\]\)/);
-  assert.match(SERVER_SOURCE, /topic === 'slots' \? 'Casino And Slots Reel' : topic === 'sports' \? 'Sports Reel'/);
+  assert.match(SERVER_SOURCE, /topic === 'slots'[\s\S]*'Casino And Slots Reel'[\s\S]*topic === 'sports'[\s\S]*'Sports Reel'[\s\S]*topic === 'unknown'[\s\S]*'Community Reel'/);
   assert.match(SERVER_SOURCE, /function normaliseCategory\(value, scope = 'all'\)/);
   assert.match(SERVER_SOURCE, /throw new ReelsFeedInputError\('Invalid Reels category'\)/);
-  assert.match(SERVER_SOURCE, /\.in\('topic', topicsForCategory\(category\)\)/);
-  assert.match(SERVER_SOURCE, /normalizeEligibleRow[\s\S]*topicsForCategory\(category\)\.includes\(explicitTopic\)/);
+  assert.match(SERVER_SOURCE, /\.in\('topic', candidateTopicsForCategory\([\s\S]*category/);
+  assert.match(SERVER_SOURCE, /normalizeEligibleRow[\s\S]*unknownNativeUpload[\s\S]*isUnknownNativeUploadShape/);
+  assert.match(SERVER_SOURCE, /allowUnknownNativeUpload: scope !== 'following'/);
   assert.match(API_SOURCE, /if \(category === 'following'\) scope = 'following'/);
   assert.match(API_SOURCE, /category:\s*result\.category/);
   assert.equal(normalizeReelsCategory('not-a-category'), 'poker');
@@ -201,7 +268,7 @@ test('the server owns the allowlist and applies it before pagination', () => {
 test('canonical duplicate lookups retain the requested non-poker category', () => {
   assert.match(
     SERVER_SOURCE,
-    /applyPublicReadyFilters\(query, options\.category\)/,
+    /applyPublicReadyFilters\([\s\S]*query,[\s\S]*options\.category/,
     'related canonical rows must use the same category as the candidate page',
   );
   assert.match(

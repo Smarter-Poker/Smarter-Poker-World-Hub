@@ -266,6 +266,7 @@ function reelTopicLabel(reel) {
   if (topic === 'tournament') return 'Tournament Poker';
   if (topic === 'slots') return 'Casino And Slots';
   if (topic === 'sports') return 'Sports';
+  if (topic === 'unknown') return 'Community';
   return 'Poker';
 }
 

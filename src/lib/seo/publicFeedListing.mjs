@@ -211,7 +211,7 @@ export function reelsItemListSchema(items, origin = 'https://smarter.poker') {
       uploadDate: r.createdAt,
       url: `${origin}${r.href}`,
     }));
-  return itemList('Latest Poker Reels On Smarter Poker', nodes);
+  return itemList('Latest Reels On Smarter Poker', nodes);
 }
 
 /**

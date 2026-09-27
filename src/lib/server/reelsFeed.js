@@ -217,6 +217,13 @@ function topicsForCategory(category) {
     return REEL_CATEGORY_TOPICS[category] || REEL_CATEGORY_TOPICS.poker;
 }
 
+function candidateTopicsForCategory(category, includeUnknownNativeUploads = false) {
+    const topics = topicsForCategory(category);
+    return includeUnknownNativeUploads && !topics.includes('unknown')
+        ? [...topics, 'unknown']
+        : topics;
+}
+
 function unique(values) {
     return [...new Set(values.filter(Boolean))];
 }
@@ -456,13 +463,17 @@ function applyCollectionCursorFilter(query, cursor, timestampColumn) {
     );
 }
 
-function applyPublicReadyFilters(query, category = 'poker') {
+function applyPublicReadyFilters(
+    query,
+    category = 'poker',
+    includeUnknownNativeUploads = false,
+) {
     return query
         .eq('is_public', true)
         .eq('is_deleted', false)
         .eq('media_status', 'ready')
         .not('created_at', 'is', null)
-        .in('topic', topicsForCategory(category));
+        .in('topic', candidateTopicsForCategory(category, includeUnknownNativeUploads));
 }
 
 function applyScopeFilter(query, scope) {
@@ -484,9 +495,16 @@ function applyCursorFilter(query, cursor, sort) {
     );
 }
 
-async function readCandidateChunk(client, { cursor, sort, scope, category, limit }) {
+async function readCandidateChunk(client, {
+    cursor,
+    sort,
+    scope,
+    category,
+    limit,
+    allowUnknownNativeUpload = false,
+}) {
     let query = client.from('social_reels').select(REEL_SELECT);
-    query = applyPublicReadyFilters(query, category);
+    query = applyPublicReadyFilters(query, category, allowUnknownNativeUpload);
     query = applyScopeFilter(query, scope);
     query = applyCursorFilter(query, cursor, sort);
     if (sort === 'popular') {
@@ -604,7 +622,23 @@ async function loadEligibilityContext(client, rows) {
         sourcePostIds.length
             ? readAllByValues(client, {
                 table: 'social_posts',
-                select: 'id,author_id,visibility,audience_mode,audience_list,is_deleted,metadata',
+                select: [
+                    'id',
+                    'author_id',
+                    'content_type',
+                    'media_urls',
+                    'visibility',
+                    'audience_mode',
+                    'audience_list',
+                    'is_flagged',
+                    'is_deleted',
+                    'metadata',
+                    'origin_type',
+                    'playback_type',
+                    'topic',
+                    'rights_status',
+                    'canonical_asset_key',
+                ].join(','),
                 column: 'id',
                 values: sourcePostIds,
             })
@@ -677,6 +711,37 @@ function hasActiveLegacyTransition(row, nowMs = Date.now()) {
         && expiresAt - nowMs <= LEGACY_TRANSITION_MAX_REMAINING_MS + MAX_FUTURE_SKEW_MS;
 }
 
+function isUnknownNativeUploadShape(row, explicitTopic, youtubeId) {
+    return explicitTopic === 'unknown'
+        && row?.origin_type === 'social_post'
+        && row?.source_type === 'native'
+        && row?.playback_type === 'native'
+        && row?.rights_status === 'user_authorized'
+        && row?.native_processing_requested === false
+        && !row?.source_asset_id
+        && !row?.publication_key
+        && !row?.source_story_id
+        && !youtubeId
+        && UUID_RE.test(String(row?.source_post_id || ''))
+        && String(row?.canonical_asset_key || '').startsWith('native:');
+}
+
+function sourcePostOwnsUnknownNativeUpload(row, sourcePost, videoUrl) {
+    if (
+        !isPublicAudiencePost(sourcePost)
+        || sourcePost.is_flagged === true
+        || sourcePost.author_id !== row.author_id
+        || sourcePost.content_type !== 'video'
+        || sourcePost.playback_type !== 'native'
+        || sourcePost.rights_status !== 'user_authorized'
+        || sourcePost.topic !== 'unknown'
+        || sourcePost.canonical_asset_key !== row.canonical_asset_key
+        || !Array.isArray(sourcePost.media_urls)
+    ) return false;
+    const expectedUrl = safeHttpUrl(videoUrl);
+    return Boolean(expectedUrl) && sourcePost.media_urls.some(url => safeHttpUrl(url) === expectedUrl);
+}
+
 function normalizeEligibleRow(row, context, scope, options = {}) {
     if (!row || row.is_deleted === true || row.media_status !== 'ready') return null;
     const ownerId = String(options.ownerId || '').trim();
@@ -688,10 +753,12 @@ function normalizeEligibleRow(row, context, scope, options = {}) {
 
     const explicitTopic = String(row.topic || '').trim().toLowerCase();
     const category = options.category || 'poker';
-    if (!topicsForCategory(category).includes(explicitTopic)) return null;
+    const youtubeId = rowYouTubeId(row);
+    const unknownNativeUpload = options.allowUnknownNativeUpload === true
+        && isUnknownNativeUploadShape(row, explicitTopic, youtubeId);
+    if (!topicsForCategory(category).includes(explicitTopic) && !unknownNativeUpload) return null;
     const explicitRights = String(row.rights_status || '').trim().toLowerCase();
     if (explicitRights === 'blocked' || explicitRights === 'restricted') return null;
-    const youtubeId = rowYouTubeId(row);
     const declaredPlayback = inferPlayback(row, youtubeId);
     if (!declaredPlayback) return null;
     const asset = context.assetById.get(row.source_asset_id)
@@ -756,6 +823,11 @@ function normalizeEligibleRow(row, context, scope, options = {}) {
             && sourcePost.author_id === ownerId;
         if (!publicSourceIsLive && !ownerSourceIsLive) return null;
         if (!publicSourceIsLive) effectiveIsPublic = false;
+        if (unknownNativeUpload && !sourcePostOwnsUnknownNativeUpload(
+            row,
+            sourcePost,
+            row.video_url,
+        )) return null;
     }
 
     const originType = inferOrigin(row, managedLibrary);
@@ -855,7 +927,13 @@ function normalizeEligibleRow(row, context, scope, options = {}) {
             ? new Date(row.legacy_transition_expires_at).toISOString()
             : null,
         title: row.caption?.split('\n')[0]?.replace(/^\u{1F3AC}\s*/u, '')
-            || (topic === 'slots' ? 'Casino And Slots Reel' : topic === 'sports' ? 'Sports Reel' : 'Poker Reel'),
+            || (topic === 'slots'
+                ? 'Casino And Slots Reel'
+                : topic === 'sports'
+                    ? 'Sports Reel'
+                    : topic === 'unknown'
+                        ? 'Community Reel'
+                        : 'Poker Reel'),
         profiles: null,
         _hasLivePost: Boolean(row.source_post_id && context.livePostIds.has(row.source_post_id)),
         _managedLibrary: managedLibrary,
@@ -887,13 +965,22 @@ async function fetchCanonicalGroupRows(client, rows, options = {}) {
 
     const ownerId = String(options.ownerId || '').trim();
     const baseFilter = query => {
-        if (!UUID_RE.test(ownerId)) return applyPublicReadyFilters(query, options.category);
+        if (!UUID_RE.test(ownerId)) {
+            return applyPublicReadyFilters(
+                query,
+                options.category,
+                options.allowUnknownNativeUpload === true,
+            );
+        }
         return query
             .eq('author_id', ownerId)
             .eq('is_deleted', false)
             .eq('media_status', 'ready')
             .not('created_at', 'is', null)
-            .in('topic', topicsForCategory(options.category));
+            .in('topic', candidateTopicsForCategory(
+                options.category,
+                options.allowUnknownNativeUpload === true,
+            ));
     };
     const [byKey, byYoutube, byUrl] = await Promise.all([
         storedKeys.length
@@ -949,9 +1036,11 @@ async function canonicalOwnerWinners(client, candidateRawRows, ownerId) {
     const allRawRows = await fetchCanonicalGroupRows(client, candidateRawRows, {
         ownerId,
         category: COLLECTION_CATEGORY,
+        allowUnknownNativeUpload: true,
     });
     const allEligibleRows = await eligibleRows(client, allRawRows, 'all', {
         allowOwnerPrivate: true,
+        allowUnknownNativeUpload: true,
         ownerId,
         category: COLLECTION_CATEGORY,
     });
@@ -1017,12 +1106,14 @@ async function readPage(client, { limit, cursor, sort, scope, category, viewerId
     while (selected.length < limit + 1 && scanned < MAX_SCAN_ROWS) {
         const remainingBudget = MAX_SCAN_ROWS - scanned;
         const chunkSize = Math.min(SCAN_CHUNK_SIZE, remainingBudget);
+        const allowUnknownNativeUpload = category === 'for-you';
         const rawRows = await readCandidateChunk(client, {
             cursor: scanCursor,
             sort,
             scope,
             category,
             limit: chunkSize,
+            allowUnknownNativeUpload,
         });
         if (!rawRows.length) {
             exhausted = true;
@@ -1033,8 +1124,9 @@ async function readPage(client, { limit, cursor, sort, scope, category, viewerId
         lastScannedCursor = cursorForRow(lastRawRow, sort);
         scanCursor = lastScannedCursor;
 
-        const candidateEligible = await eligibleRows(client, rawRows, scope, { category });
-        const winnerByKey = await canonicalWinners(client, rawRows, scope, { category });
+        const eligibilityOptions = { category, allowUnknownNativeUpload };
+        const candidateEligible = await eligibleRows(client, rawRows, scope, eligibilityOptions);
+        const winnerByKey = await canonicalWinners(client, rawRows, scope, eligibilityOptions);
         const followedWinnerAuthors = scope === 'following'
             ? await readFollowedCandidateAuthorIds(
                 client,
@@ -1088,9 +1180,15 @@ async function readDetail(client, id, scope, sort, category, viewerId = null) {
     const directRows = Array.isArray(data) ? data : [];
     if (!directRows.length) return { status: 'not_found', row: null };
 
-    const directEligible = await eligibleRows(client, directRows, scope, { category });
+    // A direct Reel/post bookmark may resolve an otherwise unclassified native
+    // user upload. Following remains topic-strict even for direct references.
+    const eligibilityOptions = {
+        category,
+        allowUnknownNativeUpload: scope !== 'following',
+    };
+    const directEligible = await eligibleRows(client, directRows, scope, eligibilityOptions);
     if (!directEligible.length) return { status: 'unavailable', row: null };
-    const winnerByKey = await canonicalWinners(client, directRows, scope, { category });
+    const winnerByKey = await canonicalWinners(client, directRows, scope, eligibilityOptions);
     const requested = directEligible.find(row => row.id === id || row.source_post_id === id)
         || directEligible[0];
     const winner = winnerByKey.get(requested.canonical_asset_key) || requested;
@@ -1206,9 +1304,11 @@ async function loadSavedTargetContext(client, savedRows, userId) {
 
     const canonicalRawRows = await fetchCanonicalGroupRows(client, candidateRawRows, {
         category: COLLECTION_CATEGORY,
+        allowUnknownNativeUpload: true,
     });
     const canonicalEligibleRows = await eligibleRows(client, canonicalRawRows, 'all', {
         category: COLLECTION_CATEGORY,
+        allowUnknownNativeUpload: true,
     });
     const winnerByKey = new Map();
     const directTargetKeys = new Map();
@@ -1392,6 +1492,7 @@ export async function readOwnedPokerReels(options = {}) {
 
         const eligible = await eligibleRows(client, rawRows, 'all', {
             allowOwnerPrivate: true,
+            allowUnknownNativeUpload: true,
             ownerId,
             category: COLLECTION_CATEGORY,
         });

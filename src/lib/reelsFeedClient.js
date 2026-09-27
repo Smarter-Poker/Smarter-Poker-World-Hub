@@ -120,6 +120,7 @@ export function reelCategoryForTopic(value) {
   const topic = String(value || '').trim().toLowerCase();
   if (topic === 'slots') return 'casino-slots';
   if (topic === 'sports') return 'sports';
+  if (topic === 'unknown') return 'for-you';
   return 'poker';
 }
 
@@ -254,14 +255,48 @@ function isTrustedNativeUrl(value, authorId) {
 }
 
 /**
+ * The only unclassified row shape that can remain playable is an original
+ * public native upload attached to its social post. The canonical server also
+ * proves that post ownership and storage-object existence; this client check
+ * prevents stale or hostile payloads from widening the exception.
+ */
+export function isUnclassifiedNativeCommunityReel(reel) {
+  return String(reel?.topic || '').trim().toLowerCase() === 'unknown'
+    && reel?.is_public === true
+    && reel?.is_deleted !== true
+    && reel?.media_status === 'ready'
+    && reel?.origin_type === 'social_post'
+    && reel?.source_type === 'native'
+    && reel?.playback_type === 'native'
+    && reel?.rights_status === 'user_authorized'
+    && reel?.native_processing_requested === false
+    && !reel?.source_asset_id
+    && !reel?.publication_key
+    && !reel?.source_story_id
+    && !reelYouTubeId(reel)
+    && UUID_RE.test(String(reel?.source_post_id || ''))
+    && String(reel?.canonical_asset_key || '').startsWith('native:')
+    && isTrustedNativeUrl(reel?.video_url, reel?.author_id);
+}
+
+/**
  * Defense-in-depth for stale caches and mid-flight responses. The server is
  * authoritative, but a pre-migration browser cache must never re-introduce a
  * slot/sports/blocked/non-ready row after the API contract changes.
  */
-export function isPlayableReel(reel, { category = 'for-you' } = {}) {
+export function isPlayableReel(reel, { category = 'for-you', directId = null } = {}) {
   if (!reel || typeof reel !== 'object') return false;
   if (!reel.id || typeof reel.video_url !== 'string' || !reel.video_url.trim()) return false;
-  if (!allowedTopicsForCategory(category).includes(String(reel.topic || '').toLowerCase())) return false;
+  const normalizedCategory = normalizeReelsCategory(category);
+  const topic = String(reel.topic || '').trim().toLowerCase();
+  const directMatch = UUID_RE.test(String(directId || ''))
+    && (reel.id === directId || reel.source_post_id === directId);
+  const unknownNativeAllowed = isUnclassifiedNativeCommunityReel(reel)
+    && normalizedCategory !== 'following'
+    && (normalizedCategory === 'for-you' || directMatch);
+  if (!allowedTopicsForCategory(normalizedCategory).includes(topic) && !unknownNativeAllowed) {
+    return false;
+  }
   if (reel.media_status !== 'ready') return false;
   if (['blocked', 'restricted'].includes(reel.rights_status)) return false;
   if (!['youtube_embed', 'native'].includes(reel.playback_type)) return false;
@@ -320,10 +355,10 @@ export function isPlayablePokerReel(reel) {
   return isPlayableReel(reel, { category: 'poker' });
 }
 
-export function sanitizeReels(rows, { category = 'for-you' } = {}) {
+export function sanitizeReels(rows, { category = 'for-you', directId = null } = {}) {
   const seen = new Set();
   return (Array.isArray(rows) ? rows : []).filter(reel => {
-    if (!isPlayableReel(reel, { category })) return false;
+    if (!isPlayableReel(reel, { category, directId })) return false;
     const key = canonicalReelKey(reel);
     if (seen.has(key)) return false;
     seen.add(key);
@@ -409,6 +444,6 @@ export async function fetchPokerReels({
   }
 
   rememberServerTransitionEvidence(payload.data);
-  const rows = sanitizeReels(payload.data, { category: effectiveCategory });
+  const rows = sanitizeReels(payload.data, { category: effectiveCategory, directId: id });
   return { ...payload, category: effectiveCategory, data: rows };
 }
