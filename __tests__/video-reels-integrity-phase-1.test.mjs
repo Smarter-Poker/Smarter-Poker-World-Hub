@@ -56,6 +56,7 @@ test('the published Reels verifier is read-only and rejects hostile live payload
   for (const method of ['POST', 'PUT', 'PATCH', 'DELETE']) {
     assert.equal(isBrowserReadOnlyRequest(method, `${APP_ORIGIN}/api/reels/feed`), false);
   }
+  const checkedAt = new Date().toISOString();
   const row = {
     id: '00000000-0000-4000-8000-000000000001',
     topic: 'sports',
@@ -68,28 +69,41 @@ test('the published Reels verifier is read-only and rejects hostile live payload
     source_name: 'Verified Source',
     source_attribution_url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
     origin_type: 'video_library',
+    is_public: true,
     availability_status: 'verified',
     embeddable: true,
+    availability_checked_at: checkedAt,
+    verification_status: 'resolved',
+    last_verified_at: checkedAt,
     legacy_transition_eligible: false,
   };
+  const livePage = (data, category) => ({
+    success: true,
+    category,
+    data,
+    has_more: false,
+    next_cursor: null,
+    partial: false,
+    pagination: { limit: data.length, hasMore: false, nextCursor: null },
+  });
   validateFeedPage(
-    { success: true, category: 'sports', data: [row], has_more: false },
+    livePage([row], 'sports'),
     'sports',
   );
   validateFeedPage(
-    { success: true, category: 'following', data: [row], has_more: false },
+    livePage([row], 'following'),
     'following',
   );
   assert.throws(
     () => validateFeedPage(
-      { success: true, category: 'poker', data: [row], has_more: false },
+      livePage([row], 'poker'),
       'poker',
     ),
     /category topic contract/,
   );
   assert.throws(
     () => validateFeedPage(
-      { success: true, category: 'sports', data: [{ ...row, availability_status: 'restricted' }], has_more: false },
+      livePage([{ ...row, availability_status: 'restricted' }], 'sports'),
       'sports',
     ),
     /Unverified library Reel/,

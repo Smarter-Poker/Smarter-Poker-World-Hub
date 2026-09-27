@@ -408,7 +408,7 @@ jobs:
     name: Published Reels Test Account Verification
     if: ${{ inputs.suite == 'reels-live' }}
     runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
-    timeout-minutes: 15
+    timeout-minutes: 30
     permissions:
       contents: read
     steps:
@@ -439,11 +439,13 @@ jobs:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
           REELS_EXPECTED_SHA: ${{ inputs.expected_sha }}
+      - name: Assert complete sanitized Reels receipt
+        run: node scripts/ci/reels-live-check.mjs --check-receipt test-results/reels-live/result.json
       - name: Retain sanitized verification receipt
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: reels-live-receipt
           path: test-results/reels-live/result.json
-          if-no-files-found: warn
+          if-no-files-found: error
           retention-days: 7
