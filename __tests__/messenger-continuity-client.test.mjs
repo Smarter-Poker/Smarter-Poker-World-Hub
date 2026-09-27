@@ -198,3 +198,36 @@ test('draft and position debounce independently; pagehide flushes both finite wr
     assert.deepEqual(new Set(calls.filter(call => call.action === 'write').map(call => call.field)), new Set(['draft', 'position']));
     assert.equal(timers.size, 0); cleanup();
 });
+
+for (const status of [200, 409]) for (const field of ['saved', 'pin', 'draft', 'position']) {
+    test(`delayed ${status} ${field} receipt cannot regress newer observed revision or conflict`, async () => {
+        const wait = deferred(), broadcasts = [];
+        const remote = { ...value('New remote draft', 2), pin: { value: false, revision: 2 }, position: { messageId: id(9), offset: 8, revision: 2 } };
+        const { controller } = setup({ committed: (...event) => broadcasts.push(event), reply: body => body.action === 'read'
+            ? response({ state: remote, pins: [], saved: [] }) : wait.promise });
+        const submitted = field === 'saved' ? { messageId: message, saved: true } : field === 'pin' ? true
+            : field === 'draft' ? { text: 'My local draft', replyToId: null } : { messageId: message, offset: 4 };
+        if (field === 'draft' || field === 'position') controller.edit(conversation, field, submitted);
+        const saving = controller.write(conversation, field, submitted); await tick();
+        if (field === 'saved') controller.ingestSavedItems([{ messageId: message, conversationId: conversation, saved: false, revision: 2 }]);
+        else await controller.read(conversation);
+        const before = structuredClone(field === 'saved' ? controller.savedState(message) : controller.state(conversation)[field]);
+        wait.resolve({ ok: status === 200, status, body: { success: status === 200, revision: 1, value: submitted, error: 'Changed' } });
+        await saving;
+        assert.deepEqual(field === 'saved' ? controller.savedState(message) : controller.state(conversation)[field], before);
+        assert.deepEqual(broadcasts, []);
+        if (field === 'saved') assert.equal(controller.saved.length, 0);
+        if (field === 'pin') assert.deepEqual(controller.pins, []);
+    });
+}
+
+test('an obsolete receipt retains a queued explicit saved intent for manual retry at the newest revision', async () => {
+    const wait = deferred(), { controller, calls } = setup({ reply: (body, count) => count === 1 ? wait.promise : response({ revision: 3, value: body.value }) });
+    const saving = controller.write(conversation, 'saved', { messageId: message, saved: true }); await tick();
+    void controller.write(conversation, 'saved', { messageId: message, saved: false });
+    controller.ingestSavedItems([{ messageId: message, conversationId: conversation, saved: true, revision: 2 }]);
+    wait.resolve(response({ revision: 1 })); await saving; await tick();
+    assert.equal(calls.length, 1);
+    const failure = controller.errors.get(`${conversation}:saved:${message}`); assert.equal(failure.value.saved, false);
+    await controller.retry(failure); assert.equal(calls[1].expectedRevision, 2); assert.equal(calls[1].value.saved, false);
+});

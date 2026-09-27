@@ -7,6 +7,7 @@ const fieldValue = (field, item) => field === 'draft' ? { text: item.text, reply
     : field === 'position' ? { messageId: item.messageId || null, offset: item.offset || 0 } : item.value;
 const equal = (left, right) => JSON.stringify(left) === JSON.stringify(right);
 const validRevision = value => Number.isSafeInteger(value) && value >= 0;
+const observedRevision = item => Math.max(item?.revision || 0, item?.remote?.revision || 0);
 const valid = (field, item) => item && validRevision(item.revision) && (field === 'draft'
     ? typeof item.text === 'string' && item.text.length <= 2000 && (item.replyToId == null || isMessageId(item.replyToId))
     : field === 'position' ? (item.messageId == null || isMessageId(item.messageId)) && Number.isInteger(item.offset) && Math.abs(item.offset) <= 100000
@@ -89,7 +90,7 @@ export function createContinuityController({ actorId, workspace, storage, reques
         if (!valid(field, remote)) throw new Error('Invalid Continuity Response');
         const record = state(conversationId);
         const local = record[field];
-        if (remote.revision < local.revision) return;
+        if (remote.revision < observedRevision(local)) return;
         if (local.dirty && !equal(fieldValue(field, local), fieldValue(field, remote))) {
             record[field] = { ...local, remote, conflict: local.revision !== remote.revision };
         } else record[field] = { ...remote, dirty: false };
@@ -181,6 +182,17 @@ export function createContinuityController({ actorId, workspace, storage, reques
                 const result = await request({ action: 'write', conversationId, field, expectedRevision: revision, value: wireValue });
                 if (!isCurrent()) return false;
                 const data = result.body;
+                const newestRevision = field === 'saved' ? savedRevisions.get(wireValue.messageId) || 0 : observedRevision(record[field]);
+                if (validRevision(data.revision) && data.revision < newestRevision) {
+                    // A later read or peer receipt already established newer
+                    // state. Never replay an older HTTP receipt over it, clear
+                    // its conflict, or broadcast that obsolete value to peers.
+                    if (!errors.has(operationKey)) errors.set(operationKey, {
+                        message: 'This Change Was Updated On Another Device', conversationId, field,
+                        value: queued.get(operationKey)?.[2] ?? wireValue, revision: newestRevision,
+                    });
+                    return false;
+                }
                 if (!result.ok || data.success !== true) {
                     if (result.status === 409 && validRevision(data.revision)) {
                         if (field === 'draft' || field === 'position') record[field] = { ...record[field], conflict: true,
@@ -251,7 +263,7 @@ export function createContinuityController({ actorId, workspace, storage, reques
         const remote = readLocalContinuity(storage, actorId, conversationId);
         for (const field of ['draft', 'position']) {
             const local = state(conversationId)[field];
-            if (remote[field].revision < local.revision) continue;
+            if (remote[field].revision < observedRevision(local)) continue;
             if (!local.dirty) state(conversationId)[field] = remote[field];
             else if (!equal(fieldValue(field, local), fieldValue(field, remote[field]))) {
                 state(conversationId)[field] = { ...local, conflict: true, remote: remote[field] };
