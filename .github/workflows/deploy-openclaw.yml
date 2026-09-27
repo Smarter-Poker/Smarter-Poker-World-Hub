@@ -375,7 +375,8 @@ jobs:
             --name "$build_container" --platform linux/amd64 --cpus=2 \
             --memory=1g --memory-swap=1g --pids-limit=256 --read-only \
             --tmpfs /tmp:rw,nosuid,size=256m --user "$(id -u):$(id -g)" \
-            --env HOME=/tmp --mount "type=bind,src=$local_stage,dst=/release" \
+            --env HOME=/tmp --env PYTHONDONTWRITEBYTECODE=1 \
+            --mount "type=bind,src=$local_stage,dst=/release" \
             --workdir /release --entrypoint /bin/sh "$image_id" -eu -c '
               python3 -c "import sys,platform; assert sys.version_info[:2] == (3,10); assert platform.machine() == \"x86_64\""
               python3 -m pip install --disable-pip-version-check --no-cache-dir \
@@ -383,6 +384,12 @@ jobs:
                 --target vendor --requirement openclaw-requirements.lock
               PYTHONPATH=/release/vendor python3 -s -c "import apscheduler,requests,supabase,yt_dlp"
             '
+          # The import probe must not add timestamp-bearing bytecode to the
+          # immutable input. Otherwise two builds of one SHA can produce
+          # different manifests and a safe same-SHA backfill dispatch cannot
+          # prove it is reusing the release that main already promoted.
+          test -z "$(find "$local_stage" -type d -name __pycache__ -print -quit)"
+          test -z "$(find "$local_stage" -type f \( -name '*.pyc' -o -name '*.pyo' \) -print -quit)"
           (cd "$local_stage" && find . -type f ! -name release-manifest.sha256 -print0 \
             | LC_ALL=C sort -z | xargs -0 sha256sum > release-manifest.sha256)
           archive="$RUNNER_TEMP/openclaw-${GITHUB_SHA}.tgz"
