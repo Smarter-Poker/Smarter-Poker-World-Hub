@@ -151,6 +151,7 @@ function functionArguments(signature) {
 // Keep SQL types private so the long-standing declaredObjects().fns contract
 // remains `{ name, args }` for callers that compare or serialize it.
 const functionArgumentTypes = new WeakMap();
+const functionVolatility = new WeakMap();
 
 export function declaredObjects(sql) {
   const clean = sql.replace(/--[^\n]*/g, '').replace(/\/\*[\s\S]*?\*\//g, '');
@@ -178,6 +179,15 @@ export function declaredObjects(sql) {
         args: args.map((argument) => argument.name),
       };
       functionArgumentTypes.set(fn, args.map((argument) => argument.type));
+      // A path-level OpenAPI GET can belong to a sibling overload, so retain
+      // the declared volatility of this exact overload as a second guard before
+      // exercising a hidden composite signature. Missing volatility means
+      // PostgreSQL's VOLATILE default and is deliberately not probe-eligible.
+      const remainder = clean.slice(m.index + m[0].length);
+      const bodyMarker = remainder.search(/\bas\s+(?:\$[a-z0-9_]*\$|e?')/i);
+      const attributes = bodyMarker >= 0 ? remainder.slice(0, bodyMarker) : '';
+      const volatility = attributes.match(/\b(stable|immutable)\b/i)?.[1]?.toLowerCase() || null;
+      functionVolatility.set(fn, volatility);
       return fn;
     });
   // A migration can legitimately use a durable table as private staging and
@@ -320,12 +330,114 @@ async function liveSchema() {
       .map((p) => p.slice(5))
   );
   const rpcArgs = new Map([...fns].map((name) => [name, rpcArgumentSets(doc, name)]));
-  return { tables, fns, rpcArgs };
+  const readOnlyRpcs = new Set(
+    Object.entries(doc.paths || {})
+      .filter(([path, operations]) => path.startsWith('/rpc/') && operations?.get)
+      .map(([path]) => path.slice(5))
+  );
+  return { tables, fns, rpcArgs, readOnlyRpcs, url: url.replace(/\/$/, ''), key };
+}
+
+function compositeSignatureProofKey(fn) {
+  const argumentTypes = functionArgumentTypes.get(fn) || [];
+  if (fn.args.length !== 1 || argumentTypes.length !== 1) return null;
+  return `${fn.name}(${fn.args[0]}:${argumentTypes[0]})`;
+}
+
+function hasPublishedSignature(fn, live) {
+  const argumentTypes = functionArgumentTypes.get(fn) || [];
+  const singleArgumentType = argumentTypes.length === 1
+    ? argumentTypes[0].split('.').at(-1)
+    : null;
+  const liveSignatures = live.rpcArgs.get(fn.name) || [];
+  if (singleArgumentType && fn.args.length === 1 && live.tables.has(singleArgumentType)) {
+    const relationColumns = live.tables.get(singleArgumentType);
+    const expandedCompositeReady = relationColumns.size > 0
+      && liveSignatures.some((liveArgs) =>
+        liveArgs.size === relationColumns.size
+        && [...relationColumns].every((column) => liveArgs.has(column))
+      );
+    if (expandedCompositeReady) return true;
+  }
+  return liveSignatures.some((liveArgs) =>
+    fn.args.every((argument) => liveArgs.has(argument))
+  );
+}
+
+/** PostgREST collapses overloads onto one OpenAPI path and can omit one
+ * composite-row signature from the document. Return only exact declarations
+ * that are safe to prove with a read-only function call. */
+export function compositeRpcProbeCandidates(declaredFunctions, live) {
+  const candidates = new Map();
+  for (const fn of declaredFunctions) {
+    const argumentTypes = functionArgumentTypes.get(fn) || [];
+    const qualifiedType = argumentTypes[0];
+    const relation = qualifiedType?.split('.').at(-1);
+    const proofKey = compositeSignatureProofKey(fn);
+    if (
+      !proofKey
+      || fn.args.length !== 1
+      || argumentTypes.length !== 1
+      || !live.fns.has(fn.name)
+      || !live.tables.has(relation)
+      || !live.readOnlyRpcs?.has(fn.name)
+      || !['stable', 'immutable'].includes(functionVolatility.get(fn))
+      || hasPublishedSignature(fn, live)
+    ) {
+      continue;
+    }
+    candidates.set(proofKey, {
+      name: fn.name,
+      argument: fn.args[0],
+      qualifiedType,
+      proofKey,
+    });
+  }
+  return [...candidates.values()];
+}
+
+/** Positively exercise an otherwise hidden PostgREST overload. JSON null is
+ * an actual SQL NULL, unlike the text `null` in a GET query parameter. The
+ * candidate builder requires both a GET-exposed RPC path and an exact
+ * STABLE/IMMUTABLE declaration, so this POST cannot perform a write. */
+export async function proveCompositeRpcSignatures(
+  candidates,
+  { url, key },
+  request = resilientFetch
+) {
+  const proofs = new Set();
+  for (const candidate of candidates) {
+    const response = await request(
+      `check-migrations-applied:${candidate.name}:${candidate.argument}`,
+      `${url}/rest/v1/rpc/${encodeURIComponent(candidate.name)}`,
+      {
+        method: 'POST',
+        headers: {
+          apikey: key,
+          Authorization: `Bearer ${key}`,
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+          Prefer: 'tx=rollback',
+        },
+        body: JSON.stringify({ [candidate.argument]: null }),
+      },
+      {
+        exitCode: 2,
+        parse: 'response',
+        // Missing, ambiguous, or uncallable overloads are assertion failures.
+        // Authentication and transient failures retain resilientFetch's
+        // fail/error behavior and can never manufacture a proof token.
+        returnStatuses: [300, 400, 404, 405, 406, 409, 422],
+      }
+    );
+    if (response?.ok) proofs.add(candidate.proofKey);
+  }
+  return proofs;
 }
 
 export function unappliedObjects(declared, live) {
   const failures = [];
-  const { tables, fns, rpcArgs } = live;
+  const { tables, fns, compositeRpcProofs = new Set() } = live;
   for (const t of declared.tables) if (!tables.has(t)) failures.push(['table/view', t]);
   for (const [t, c] of declared.columns) {
     // A column on a table the API does not expose cannot be judged here.
@@ -346,23 +458,8 @@ export function unappliedObjects(declared, live) {
       // live expanded signature to equal that relation's complete column set.
       // A scalar overload named like one relation column must not satisfy it;
       // scalar and multi-argument overloads retain the named-argument check.
-      const argumentTypes = functionArgumentTypes.get(fn) || [];
-      const singleArgumentType = argumentTypes.length === 1
-        ? argumentTypes[0].split('.').at(-1)
-        : null;
-      const liveSignatures = rpcArgs.get(fn.name) || [];
-      if (singleArgumentType && fn.args.length === 1 && tables.has(singleArgumentType)) {
-        const relationColumns = tables.get(singleArgumentType);
-        const compositeSignatureReady = relationColumns.size > 0
-          && liveSignatures.some((liveArgs) =>
-            liveArgs.size === relationColumns.size
-            && [...relationColumns].every((column) => liveArgs.has(column))
-          );
-        if (compositeSignatureReady) continue;
-      }
-      const signatureReady = liveSignatures.some((liveArgs) =>
-        fn.args.every((argument) => liveArgs.has(argument))
-      );
+      const signatureReady = hasPublishedSignature(fn, live)
+        || compositeRpcProofs.has(compositeSignatureProofKey(fn));
       if (!signatureReady) {
         failures.push(['function signature', `${fn.name}(${fn.args.join(', ')})`]);
       }
@@ -379,13 +476,22 @@ async function main() {
     return;
   }
 
-  const { tables, fns, rpcArgs } = await liveSchema();
-  const failures = [];
-
+  const declarations = [];
   for (const file of files) {
     if (!existsSync(join(REPO, file))) continue;
-    const d = declaredObjects(readFileSync(join(REPO, file), 'utf8'));
-    for (const [kind, name] of unappliedObjects(d, { tables, fns, rpcArgs })) {
+    declarations.push({ file, declared: declaredObjects(readFileSync(join(REPO, file), 'utf8')) });
+  }
+
+  const live = await liveSchema();
+  const probeCandidates = compositeRpcProbeCandidates(
+    declarations.flatMap(({ declared }) => declared.fns),
+    live
+  );
+  const compositeRpcProofs = await proveCompositeRpcSignatures(probeCandidates, live);
+  const failures = [];
+
+  for (const { file, declared } of declarations) {
+    for (const [kind, name] of unappliedObjects(declared, { ...live, compositeRpcProofs })) {
       failures.push([file, kind, name]);
     }
   }
