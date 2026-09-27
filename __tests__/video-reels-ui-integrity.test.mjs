@@ -755,6 +755,18 @@ test('a failed foreground channel switch retains the mounted Reel and exposes a 
   assert.match(APP_SHELL, /<PageErrorBoundary key=\{pageErrorBoundaryKey\}>/);
 });
 
+test('the embedded library viewer starts through its loader ref without a temporal-dead-zone crash', () => {
+  const initialEffect = between(
+    REELS_COMPONENT,
+    'useEffect(() => {\n    // The callback is declared later in this component.',
+    '  // Query only the IDs currently loaded in the viewer.',
+  );
+  assert.match(initialEffect, /loadReelsRef\.current\?\.\(\)/);
+  assert.doesNotMatch(initialEffect, /\bloadReels\s*\(/);
+  assert.match(initialEffect, /\}, \[bindAuthOwner\]\);/);
+  assert.match(REELS_COMPONENT, /loadReelsRef\.current = loadReels;/);
+});
+
 test('Reel viewers route realtime and focus revalidation through the background refresh', () => {
   for (const [name, source] of [['standalone', REELS_PAGE], ['library viewer', REELS_COMPONENT]]) {
     const realtime = between(source, '// Realtime subscription', '.subscribe();');
