@@ -67,6 +67,10 @@ test('the published Reels verifier is read-only and rejects hostile live payload
     video_url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
     source_name: 'Verified Source',
     source_attribution_url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+    origin_type: 'video_library',
+    availability_status: 'verified',
+    embeddable: true,
+    legacy_transition_eligible: false,
   };
   validateFeedPage(
     { success: true, category: 'sports', data: [row], has_more: false },
@@ -82,6 +86,13 @@ test('the published Reels verifier is read-only and rejects hostile live payload
       'poker',
     ),
     /category topic contract/,
+  );
+  assert.throws(
+    () => validateFeedPage(
+      { success: true, category: 'sports', data: [{ ...row, availability_status: 'restricted' }], has_more: false },
+      'sports',
+    ),
+    /Unverified library Reel/,
   );
   assert.equal(selectOrdinaryArticle([{
     id: row.id,

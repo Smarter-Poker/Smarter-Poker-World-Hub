@@ -98,6 +98,11 @@ export function validateReelRow(row, category) {
       'YouTube source attribution is missing or disagrees with playback identity',
     );
   }
+  if (row.origin_type === 'video_library') {
+    assert.equal(row.availability_status, 'verified', 'Unverified library Reel reached the public feed');
+    assert.equal(row.embeddable, true, 'Non-embeddable library Reel reached the public feed');
+    assert.equal(row.legacy_transition_eligible, false, 'Legacy-transition library Reel reached the hardened public feed');
+  }
   return row;
 }
 
@@ -151,6 +156,10 @@ export function selfTest() {
     video_url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
     source_name: 'Source',
     source_attribution_url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+    origin_type: 'video_library',
+    availability_status: 'verified',
+    embeddable: true,
+    legacy_transition_eligible: false,
   };
   validateFeedPage({ success: true, category: 'sports', data: [row], has_more: false }, 'sports');
   assert.throws(
@@ -160,6 +169,10 @@ export function selfTest() {
   assert.throws(
     () => validateFeedPage({ success: true, category: 'sports', data: [row, row], has_more: false }, 'sports'),
     /repeated a Reel id/,
+  );
+  assert.throws(
+    () => validateFeedPage({ success: true, category: 'sports', data: [{ ...row, availability_status: 'restricted' }], has_more: false }, 'sports'),
+    /Unverified library Reel/,
   );
   assert.equal(selectOrdinaryArticle([{ id, contentType: 'article', mediaUrls: [], link_url: 'https://example.com/story' }])?.id, id);
   assert.equal(selectOrdinaryArticle([{ id, contentType: 'link', mediaUrls: [], link_url: `${APP_ORIGIN}/hub/reels?id=${id}` }]), null);
@@ -447,10 +460,15 @@ async function run() {
     assert.ok(topicSupply.has('sports'), 'Live feed has no Sports supply');
     assert.ok(topicSupply.has('slots'), 'Live feed has no Casino And Slots supply');
     assert.ok([...topicSupply].some((topic) => ['poker', 'cash', 'tournament'].includes(topic)), 'Live feed has no Poker supply');
+    const allRows = REEL_CATEGORIES.flatMap((category) => collections[category].rows);
+    assert.ok(allRows.some((row) => row.origin_type === 'video_library'), 'Live feed has no managed Video Library supply');
+    assert.ok(allRows.some((row) => row.origin_type === 'horse'), 'Live feed has no managed horse supply');
     report.checks.push(
       'Four public categories enforce topic, readiness, rights, attribution, and canonical identity',
       'For You sustains three distinct continuation pages with more than 50 Reels',
       'Managed library or horse supply is visible in every public category',
+      'Video Library and horse supply are both visible in the live public feed',
+      'Every sampled Video Library Reel is verified, embeddable, and outside legacy transition',
       'Following rejects signed-out access and accepts the designated test account',
     );
 
