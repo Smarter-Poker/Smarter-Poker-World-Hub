@@ -103,7 +103,7 @@ VERIFIER_INCIDENT_END = datetime(
 # a second, finite recovery generation: only error rows may bypass cooldown;
 # the 12 explicit confirmed restrictions from the same operation never do.
 CANCELLED_RECOVERY_START = datetime(
-    2026, 9, 27, 4, 54, 42, 529000, tzinfo=timezone.utc
+    2026, 9, 27, 4, 54, 42, 529360, tzinfo=timezone.utc
 )
 CANCELLED_RECOVERY_END = datetime(
     2026, 9, 27, 4, 56, 42, 443254, tzinfo=timezone.utc

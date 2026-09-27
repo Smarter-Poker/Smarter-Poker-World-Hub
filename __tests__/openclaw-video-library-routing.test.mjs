@@ -211,7 +211,7 @@ test('release recovery verifies the exact Workers poker and sports pools without
   );
   assert.match(
     publisher,
-    /CANCELLED_RECOVERY_START = datetime\(\s*2026, 9, 27, 4, 54, 42, 529000, tzinfo=timezone\.utc\s*\)/,
+    /CANCELLED_RECOVERY_START = datetime\(\s*2026, 9, 27, 4, 54, 42, 529360, tzinfo=timezone\.utc\s*\)/,
   );
   assert.match(
     publisher,
