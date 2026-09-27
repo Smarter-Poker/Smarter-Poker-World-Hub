@@ -1991,6 +1991,7 @@ def _write_checkpoint(args, stats, phase, cursor=None):
         'dry_run': args.dry_run,
         'source': args.source,
         'limit': args.limit,
+        'failure_verify_limit': getattr(args, 'failure_verify_limit', None),
         'force_audit': bool(getattr(args, 'audit_all', False)),
         'release_recovery': bool(getattr(args, 'release_recovery', False)),
         'verify_platform_supply': bool(
@@ -2102,7 +2103,16 @@ def run_bridge(args):
         elif plan:
             failure_plans.append((plan, failure_row))
     failure_plans.sort(key=lambda item: item[0][:3])
-    failure_limit = None if force_audit else FAILURE_VERIFY_LIMIT
+    requested_failure_limit = getattr(args, 'failure_verify_limit', None)
+    failure_limit = (
+        None
+        if force_audit
+        else (
+            FAILURE_VERIFY_LIMIT
+            if requested_failure_limit is None
+            else requested_failure_limit
+        )
+    )
     stats['failure_deferred_by_limit'] = (
         max(0, len(failure_plans) - failure_limit) if failure_limit is not None else 0
     )
@@ -2743,6 +2753,7 @@ def _write_evidence(args, stats, elapsed, fatal_error=None, exit_code=0):
         'dry_run': args.dry_run,
         'source': args.source,
         'limit': args.limit,
+        'failure_verify_limit': getattr(args, 'failure_verify_limit', None),
         'force_audit': bool(getattr(args, 'audit_all', False)),
         'release_recovery': bool(getattr(args, 'release_recovery', False)),
         'verify_platform_supply': bool(
@@ -2757,7 +2768,13 @@ def _write_evidence(args, stats, elapsed, fatal_error=None, exit_code=0):
         'transient_retry_hours': int(TRANSIENT_RETRY_AGE.total_seconds() // 3600),
         'permanent_retry_days': PERMANENT_RETRY_AGE.days,
         'failure_queue_limit': (
-            None if getattr(args, 'audit_all', False) else FAILURE_VERIFY_LIMIT
+            None
+            if getattr(args, 'audit_all', False)
+            else (
+                FAILURE_VERIFY_LIMIT
+                if getattr(args, 'failure_verify_limit', None) is None
+                else args.failure_verify_limit
+            )
         ),
         'verification_concurrency': VERIFY_CONCURRENCY,
         'sync_captions_only': args.sync_captions,
@@ -2782,6 +2799,15 @@ def _positive_int(value):
     return parsed
 
 
+def _bounded_failure_verify_limit(value):
+    parsed = int(value)
+    if parsed < 0 or parsed > FAILURE_VERIFY_LIMIT:
+        raise argparse.ArgumentTypeError(
+            f'must be between 0 and {FAILURE_VERIFY_LIMIT}'
+        )
+    return parsed
+
+
 def main():
     parser = argparse.ArgumentParser(
         description='Publish verified video-library entries through the atomic Reels RPC',
@@ -2792,6 +2818,15 @@ def main():
         type=_positive_int,
         default=None,
         help='Maximum publish, repair, or verification-renewal candidates',
+    )
+    parser.add_argument(
+        '--failure-verify-limit',
+        type=_bounded_failure_verify_limit,
+        default=None,
+        help=(
+            'Maximum auxiliary embed-failure reports to verify after supply; '
+            'defaults to the ordinary bounded maintenance limit'
+        ),
     )
     parser.add_argument('--source', type=str, default=None, help='Single source ID, e.g. HCL')
     parser.add_argument(
@@ -2835,6 +2870,11 @@ def main():
 
     if args.audit_all and args.limit is not None:
         parser.error('--audit-all/--force-audit is exhaustive and cannot be combined with --limit')
+    if args.audit_all and args.failure_verify_limit is not None:
+        parser.error(
+            '--audit-all/--force-audit is exhaustive and cannot be combined '
+            'with --failure-verify-limit'
+        )
 
     if args.source:
         args.source = args.source.strip().upper()
@@ -2859,9 +2899,10 @@ def main():
     fatal_error = None
     exit_code = 0
     log.info(
-        'Starting video-library publisher dry_run=%s limit=%s source=%s verification=mandatory sync_only=%s force_audit=%s release_recovery=%s platform_supply=%s max_runtime=%ss',
+        'Starting video-library publisher dry_run=%s limit=%s failure_verify_limit=%s source=%s verification=mandatory sync_only=%s force_audit=%s release_recovery=%s platform_supply=%s max_runtime=%ss',
         args.dry_run,
         args.limit,
+        args.failure_verify_limit,
         args.source or 'ALL',
         args.sync_captions,
         args.audit_all,

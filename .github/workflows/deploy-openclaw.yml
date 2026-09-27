@@ -839,10 +839,13 @@ jobs:
             # The interactive recovery path must close its feed-visibility
             # proof inside the script's 1,650-second budget and before the
             # 1,800-second unit ceiling. Exact run 36324447969 exhausted that
-            # script budget after only 570 of 675 interleaved attempts, so
-            # this manual path uses a conservative 500-candidate bound. The
-            # ordinary daily 750-candidate renewal retains its separate
-            # scheduler contract.
+            # script budget after only 570 of 675 interleaved attempts. Exact
+            # run 36327553029 then proved that --limit 500 still admitted an
+            # independent 500-row auxiliary failure queue and timed out after
+            # 718 fresh probes. This manual supply path therefore uses a
+            # conservative 500-candidate bound and explicitly defers the
+            # auxiliary failure queue to the ordinary scheduled maintenance
+            # contract.
             if sudo systemd-run \
               --quiet \
               --wait \
@@ -856,7 +859,7 @@ jobs:
               /usr/bin/env -u PYTHONHOME -u PYTHONPATH \
                 "PYTHONPATH=$current/vendor" \
                 /usr/bin/python3 -s "$current/video_library_to_reels.py" \
-                  --limit 500 --verify --release-recovery; then
+                  --limit 500 --failure-verify-limit 0 --verify --release-recovery; then
               unit_rc=0
             else
               unit_rc=$?

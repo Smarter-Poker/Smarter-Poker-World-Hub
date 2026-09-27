@@ -259,12 +259,13 @@ function SavedTile({ item, index, onRemove }) {
 }
 
 function reelTopicLabel(reel) {
-    const topic = String(reel?.topic || '').trim().toLowerCase();
-    if (topic === 'cash') return 'Cash Poker';
-    if (topic === 'tournament') return 'Tournament Poker';
-    if (topic === 'slots') return 'Casino And Slots';
-    if (topic === 'sports') return 'Sports';
-    return 'Poker';
+  const topic = String(reel?.topic || '').trim().toLowerCase();
+  if (topic === 'cash') return 'Cash Poker';
+  if (topic === 'tournament') return 'Tournament Poker';
+  if (topic === 'slots') return 'Casino And Slots';
+  if (topic === 'sports') return 'Sports';
+  if (topic === 'unknown') return 'Community';
+  return 'Poker';
 }
 
 function CollectionState({ text, action }) {
