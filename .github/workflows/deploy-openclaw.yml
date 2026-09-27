@@ -129,10 +129,13 @@ jobs:
       # TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_PHONE_NUMBER and
       # ADMIN_PHONE. A configured secret replaces only its own key, after the
       # whole merged contract validates, through a root-owned 0600 temporary
-      # file and one atomic rename. An unset secret leaves the host value
-      # alone. Every other key (CRON_SECRET, WORKERS_CRON_SECRET, Supabase and
-      # routing) stays host-managed and is never written by deployment. Values
-      # are never printed; errors name only the key.
+      # file and one atomic rename. Outer copy/paste whitespace is normalized.
+      # An unset or still-malformed secret is never uploaded and leaves the
+      # host value alone; the complete host contract is then required below,
+      # so fallback cannot turn a missing/invalid destination into a pass.
+      # Every other key (CRON_SECRET, WORKERS_CRON_SECRET, Supabase and routing)
+      # stays host-managed and is never written by deployment. Values are
+      # never printed; warnings and errors name only the key.
       - name: Validate the complete runtime contract and merge managed alert keys
         env:
           HOST: ${{ secrets.OPENCLAW_HOST }}
@@ -153,12 +156,18 @@ jobs:
           MANAGED_KEYS = ('TWILIO_ACCOUNT_SID', 'TWILIO_AUTH_TOKEN', 'TWILIO_PHONE_NUMBER', 'ADMIN_PHONE')
           lines = []
           for key in MANAGED_KEYS:
-              value = os.environ.get(key, '')
-              if not value:
+              raw_value = os.environ.get(key, '')
+              if not raw_value:
                   continue
+              value = raw_value.strip()
               if (len(value) < 2 or any(ch.isspace() for ch in value)
                       or any(ch in value for ch in ('"', "'", '\\'))):
-                  raise SystemExit(f'GitHub secret {key} is malformed')
+                  print(
+                      f'::warning title=Open Claw alert secret fallback::{key} is malformed; '
+                      'retaining the validated host value',
+                      file=sys.stderr,
+                  )
+                  continue
               lines.append(f'{key}={value}\n')
           with open(sys.argv[1], 'w', encoding='utf-8') as handle:
               handle.writelines(lines)

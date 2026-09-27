@@ -479,6 +479,47 @@ test('Open Claw builds only locally and an inactive service is never started', (
 });
 
 
+test('runner alert secrets normalize safely and malformed values retain the validated host copy', () => {
+  const marker = `python3 - "$managed" <<'PY'\n`;
+  const start = deployWorkflow.indexOf(marker);
+  assert.ok(start >= 0, 'runner managed-secret collector is missing');
+  const end = deployWorkflow.indexOf('\n          PY\n', start);
+  assert.ok(end > start);
+  const program = deployWorkflow.slice(start + marker.length, end)
+    .split('\n').map(line => line.replace(/^ {10}/, '')).join('\n') + '\n';
+
+  const dir = mkdtempSync(join(tmpdir(), 'openclaw-managed-alert-'));
+  const managedPath = join(dir, 'managed.env');
+  const outerWhitespaceToken = 'TOKENVALUE0123456789';
+  const malformedSid = 'AC BAD SECRET MUST NOT LEAK';
+  try {
+    const result = spawnSync('python3', ['-', managedPath], {
+      input: program,
+      encoding: 'utf8',
+      timeout: 10000,
+      env: {
+        PATH: process.env.PATH,
+        TWILIO_ACCOUNT_SID: malformedSid,
+        TWILIO_AUTH_TOKEN: `  ${outerWhitespaceToken}\n`,
+        TWILIO_PHONE_NUMBER: '+15550000001',
+        ADMIN_PHONE: '',
+      },
+    });
+    const output = result.stdout + result.stderr;
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(readFileSync(managedPath, 'utf8'), [
+      `TWILIO_AUTH_TOKEN=${outerWhitespaceToken}`,
+      'TWILIO_PHONE_NUMBER=+15550000001',
+      '',
+    ].join('\n'));
+    assert.match(output, /TWILIO_ACCOUNT_SID is malformed; retaining the validated host value/);
+    assert.doesNotMatch(output, new RegExp(malformedSid));
+    assert.doesNotMatch(output, new RegExp(outerWhitespaceToken));
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 test('managed alert keys merge key by key, atomically, only after the full contract validates', () => {
   const marker = `sudo /usr/bin/python3 - /etc/openclaw.env "$managed_upload" <<'PY'\n`;
   const start = deployWorkflow.indexOf(marker);
@@ -548,6 +589,14 @@ test('managed alert keys merge key by key, atomically, only after the full contr
     assert.notEqual(result.status, 0);
     assert.match(result.output, /missing or malformed \/etc\/openclaw\.env key: ADMIN_PHONE/);
     assert.equal(result.env, missingAdmin);
+
+    // Omitting a malformed GitHub value cannot make a malformed retained host
+    // value pass the complete runtime contract.
+    const malformedHostSid = complete.replace(/^TWILIO_ACCOUNT_SID=.*$/m, 'TWILIO_ACCOUNT_SID=AC BAD');
+    result = run(malformedHostSid, '');
+    assert.notEqual(result.status, 0);
+    assert.match(result.output, /missing or malformed \/etc\/openclaw\.env key: TWILIO_ACCOUNT_SID/);
+    assert.equal(result.env, malformedHostSid);
 
     // A configured secret replaces only its own key in place and appends a
     // missing one; host-managed lines, quoting and comments are untouched.
