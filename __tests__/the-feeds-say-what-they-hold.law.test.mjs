@@ -6,17 +6,18 @@
  *     /hub/reels   105 words, all of them HubPageSummary
  *     /hub/lives   113 words, all of them HubPageSummary
  *
- * Both pages read their feeds (social_reels; live_streams and
- * scheduled_lives) in the browser, so the crawlers behind ChatGPT, Claude and
- * Perplexity were told a feed exists and shown none of it.
+ * Both pages read their feeds in the browser, so the crawlers behind ChatGPT,
+ * Claude and Perplexity were told a feed exists and shown none of it.
  *
- * The fix reads a bounded slice on the server with the ANONYMOUS client and
- * renders it beside HubPageSummary. This law holds the parts that make that
- * safe and keeps it from quietly becoming a no-op:
+ * The fix reads a bounded slice on the server and renders it beside
+ * HubPageSummary. Reels uses the same canonical fail-closed For You reader as
+ * the main viewer; Lives uses the anonymous client. This law holds the parts
+ * that make those reads safe and keeps them from quietly becoming a no-op:
  *
- *   1. each page has getServerSideProps and it calls the shared reader;
- *   2. the reader uses the publishable key, never a service role or secret;
- *   3. every query is limited and the whole read is raced against a deadline;
+ *   1. each page has getServerSideProps and calls its approved reader;
+ *   2. Reels explicitly requests the mixed For You category and projects out
+ *      person data; Lives uses the publishable key, never a service role;
+ *   3. every read is limited and raced against a deadline;
  *   4. the listing is rendered in the page's own tree, beside the summary,
  *      not inside a dynamic(ssr:false) / client-only wrapper;
  *   5. the pure helpers drop private, deleted, draft and stale rows, carry no
@@ -32,6 +33,7 @@ import { fileURLToPath } from 'node:url';
 import {
   FEED_LISTING_LIMIT,
   FEED_LISTING_TIMEOUT_MS,
+  REELS_FEED_LISTING_TIMEOUT_MS,
   withDeadline,
   toReelListing,
   toLivesListing,
@@ -66,20 +68,11 @@ function code(file) {
 
 const DATA = 'src/lib/seo/publicFeedData.js';
 const PAGES = [
-  { file: 'pages/hub/reels.js', reader: 'fetchPublicReelsListing', tag: /<ReelsListing items=\{reelsListing\} \/>/g, summary: /<HubPageSummary page="reels"[^>]*\/>/g },
+  { file: 'pages/hub/reels.js', tag: /<ReelsListing items=\{reelsListing\} \/>/g, summary: /<HubPageSummary page="reels"[^>]*\/>/g },
   { file: 'pages/hub/lives.js', reader: 'fetchPublicLivesListing', tag: /<LivesListing listing=\{livesListing\} \/>/g, summary: /<HubPageSummary page="lives"[^>]*\/>/g },
 ];
 
 for (const page of PAGES) {
-  test(`${page.file} reads its feed on the server through the shared reader`, () => {
-    const src = code(page.file);
-    const gssp = src.match(/export async function getServerSideProps\([^)]*\)\s*\{([\s\S]*?)\n\}/);
-    assert.ok(gssp, `${page.file} must export getServerSideProps`);
-    assert.match(gssp[1], new RegExp(`await ${page.reader}\\(\\)`), `getServerSideProps must call ${page.reader}()`);
-    assert.match(gssp[1], /feedListingCacheHeaders\(res\)/, 'getServerSideProps must set the short shared cache');
-    assert.match(src, new RegExp(`import \\{[^}]*${page.reader}[^}]*\\} from '../../src/lib/seo/publicFeedData'`));
-  });
-
   test(`${page.file} renders the listing beside every summary, outside any client-only wrapper`, () => {
     const src = code(page.file);
     const summaries = (src.match(page.summary) || []).length;
@@ -94,7 +87,26 @@ for (const page of PAGES) {
   });
 }
 
-test('the reader uses the anonymous client and nothing stronger', () => {
+test('Reels SSR uses the canonical mixed reader directly, bounded and without person output', () => {
+  const src = code('pages/hub/reels.js');
+  const gssp = src.match(/export async function getServerSideProps\([^)]*\)\s*\{([\s\S]*?)\n\}/);
+  assert.ok(gssp, 'Reels must export getServerSideProps');
+  assert.match(gssp[1], /await readCanonicalCrawlerReels\(\)/);
+  assert.match(gssp[1], /feedListingCacheHeaders\(res\)/);
+  assert.match(src, /import \{ readPokerReelsFeed \} from '\.\.\/\.\.\/src\/lib\/server\/reelsFeed'/);
+  assert.match(src, /readPokerReelsFeed\(\{[\s\S]*?limit: FEED_LISTING_LIMIT,[\s\S]*?scope: 'all',[\s\S]*?category: 'for-you',[\s\S]*?includeProfiles: false/);
+  assert.match(src, /withDeadline\([\s\S]*?REELS_FEED_LISTING_TIMEOUT_MS,[\s\S]*?null/);
+  assert.match(src, /result\?\.category !== 'for-you'/);
+  assert.match(src, /toReelListing\(result\.data, FEED_LISTING_LIMIT\)/);
+  assert.doesNotMatch(src, /fetchPublicReelsListing|readCanonicalCrawlerReelIds|admitCanonicalReels/);
+});
+
+test('Lives SSR uses the bounded anonymous reader and nothing stronger', () => {
+  const page = code('pages/hub/lives.js');
+  const gssp = page.match(/export async function getServerSideProps\([^)]*\)\s*\{([\s\S]*?)\n\}/);
+  assert.ok(gssp, 'Lives must export getServerSideProps');
+  assert.match(gssp[1], /await fetchPublicLivesListing\(\)/);
+  assert.match(gssp[1], /feedListingCacheHeaders\(res\)/);
   const src = code(DATA);
   assert.match(src, /resolveAnonKey\(process\.env\.NEXT_PUBLIC_SUPABASE_ANON_KEY\)/);
   assert.match(src, /persistSession: false/);
@@ -102,20 +114,22 @@ test('the reader uses the anonymous client and nothing stronger', () => {
   assert.doesNotMatch(src, /from 'profiles'|\.from\('profiles'\)|profiles!|broadcaster_id|author_id|email/, 'no person is read');
 });
 
-test('every query is limited and the read is raced against a deadline', () => {
+test('every anonymous Lives query is limited and the read is raced against a deadline', () => {
   const src = code(DATA);
   const froms = (src.match(/\.from\('/g) || []).length;
   const limits = (src.match(/\.limit\(FEED_LISTING_LIMIT\)/g) || []).length;
   const signals = (src.match(/\.abortSignal\(signal\)/g) || []).length;
-  assert.equal(froms, 4, 'reels (1) and lives (3) queries');
+  assert.equal(froms, 3, 'live, recorded and upcoming queries');
   assert.equal(limits, froms, 'every query must be limited');
   assert.equal(signals, froms, 'every query must be abortable');
   assert.match(src, /withDeadline\(read\(ctrl\.signal\), FEED_LISTING_TIMEOUT_MS, null\)/);
   assert.match(src, /setTimeout\(\(\) => ctrl\.abort\(\), FEED_LISTING_TIMEOUT_MS\)/);
-  assert.match(src, /\.eq\('is_public', true\)/);
-  assert.match(src, /\.not\('is_deleted', 'is', true\)/);
   assert.ok(FEED_LISTING_LIMIT > 0 && FEED_LISTING_LIMIT <= 50, 'a small bound');
   assert.ok(FEED_LISTING_TIMEOUT_MS > 0 && FEED_LISTING_TIMEOUT_MS <= 3000, 'a short deadline');
+  assert.ok(
+    REELS_FEED_LISTING_TIMEOUT_MS >= 8000 && REELS_FEED_LISTING_TIMEOUT_MS <= 12000,
+    'the cached canonical Reels read has a finite budget above observed production latency',
+  );
 });
 
 test('withDeadline gives up on a hung read and swallows a failed one', async () => {
@@ -139,20 +153,22 @@ const REEL = (over = {}) => ({
   ...over,
 });
 
-test('reels: only public, undeleted, captioned rows, with no person and a real link', () => {
+test('reels: mixed canonical rows keep only public listing fields and a real link', () => {
   const items = toReelListing([
-    REEL(),
+    REEL({ topic: 'poker', origin_type: 'user_upload', profiles: { username: 'secret-player' } }),
+    REEL({ id: 'slots-managed', topic: 'slots', origin_type: 'video_library', video_url: 'slots-v' }),
+    REEL({ id: 'sports-horse', topic: 'sports', source_type: 'horse', video_url: 'sports-v' }),
     REEL({ id: 'r2', is_public: false, video_url: 'v2' }),
     REEL({ id: 'r3', is_deleted: true, video_url: 'v3' }),
     REEL({ id: 'r4', caption: '   ', video_url: 'v4' }),
     REEL({ id: 'r5', video_url: 'https://youtube.com/watch?v=x' }),
     REEL({ id: 'r6', is_deleted: null, thumbnail_url: 'javascript:alert(1)', video_url: 'v6' }),
   ]);
-  assert.deepEqual(items.map((i) => i.id), ['r1', 'r6']);
+  assert.deepEqual(items.map((i) => i.id), ['r1', 'slots-managed', 'sports-horse', 'r6']);
   assert.equal(items[0].caption, 'Hero Calls The River');
   assert.equal(items[0].href, '/hub/reels?id=r1');
-  assert.equal(items[1].thumbnailUrl, null);
-  assert.doesNotMatch(JSON.stringify(items), /secret-user-id|author/);
+  assert.equal(items.find((item) => item.id === 'r6')?.thumbnailUrl, null);
+  assert.doesNotMatch(JSON.stringify(items), /secret-user-id|secret-player|author|profile/);
   assert.equal(toReelListing(null).length, 0);
   const many = Array.from({ length: 60 }, (_, i) => REEL({ id: `m${i}`, video_url: `v${i}` }));
   assert.equal(toReelListing(many).length, FEED_LISTING_LIMIT);
@@ -162,12 +178,26 @@ test('reels schema: VideoObject only where name, thumbnail and upload date all e
   const items = toReelListing([REEL(), REEL({ id: 'r2', thumbnail_url: null, video_url: 'v2' })]);
   const schema = reelsItemListSchema(items);
   assert.equal(schema['@type'], 'ItemList');
+  assert.equal(schema.name, 'Latest Reels On Smarter Poker');
   assert.equal(schema.itemListElement.length, 1);
   const v = schema.itemListElement[0].item;
   assert.equal(v['@type'], 'VideoObject');
   for (const k of ['name', 'thumbnailUrl', 'uploadDate']) assert.ok(v[k], `${k} required`);
   assert.equal(v.url, 'https://smarter.poker/hub/reels?id=r1');
   assert.equal(reelsItemListSchema(toReelListing([REEL({ thumbnail_url: null })])), null, 'no complete node, no schema');
+});
+
+test('the Reels summary tells the truth about the approved mixed feed', () => {
+  const src = code('src/components/seo/HubPageSummary.js');
+  const start = src.indexOf('  reels: {');
+  const end = src.indexOf('  lives: {', start);
+  const reels = src.slice(start, end);
+  assert.match(reels, /Poker Highlights And Strategy/);
+  assert.match(reels, /Responsible Casino And Slots Entertainment/);
+  assert.match(reels, /Sports Clips From Approved Sources/);
+  assert.match(reels, /Watching Is Free And Needs No Account/);
+  assert.match(reels, /Nothing In It Is A Wager/);
+  assert.doesNotMatch(reels, /Everything Is Vertical, Short And Poker|—/);
 });
 
 const NOW = Date.parse('2026-09-22T12:00:00Z');

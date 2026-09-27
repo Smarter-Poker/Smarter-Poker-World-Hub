@@ -37,6 +37,7 @@ const code = (f) =>
 const FEED = 'pages/hub/social-media/index.js';
 const CAROUSEL = 'src/components/social/ReelsFeedCarousel.jsx';
 const GOLIVE = 'src/components/social/GoLiveModal.jsx';
+const FEED_SEQUENCE = 'src/lib/socialFeedSequence.mjs';
 
 test('the club-posts filter can still be switched ON', () => {
   const src = code(FEED);
@@ -116,6 +117,7 @@ test('every GoLiveModal close path resets the modal', () => {
 
 test('exactly one reels carousel is injected, and a short feed still gets it', () => {
   const src = code(FEED);
+  const sequence = code(FEED_SEQUENCE);
   const injections = (src.match(/<ReelsFeedCarousel\b/g) || []).length;
   assert.equal(
     injections,
@@ -124,9 +126,17 @@ test('exactly one reels carousel is injected, and a short feed still gets it', (
       'fetch and opens its own realtime channel - hoist both out of the component first.'
   );
   assert.match(
-    src,
-    /filteredPosts\.length < 3/,
+    sequence,
+    /posts\.length < 3/,
     'the short-feed fallback is gone, so a feed with fewer than 3 posts shows no carousel'
+  );
+  assert.match(src, /buildSocialFeedSequence\(filteredPosts\)\.map/);
+  assert.match(src, /if \(item\.kind === 'reels'\) return inlineReelsCarousel/);
+  assert.match(src, /<PostCard\s+key=\{item\.key\}/);
+  assert.doesNotMatch(
+    src,
+    /<React\.Fragment key=\{p\.id\}>/,
+    'the carousel must remain a keyed peer instead of inheriting a realtime-moving post parent'
   );
   // The header claimed "every 3 posts" for months while the code injected once.
   assert.ok(

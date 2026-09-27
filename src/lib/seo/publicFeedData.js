@@ -1,5 +1,5 @@
 /**
- * Server-side reads for the crawlable listings on /hub/reels and /hub/lives.
+ * Server-side reads for the crawlable listing on /hub/lives.
  *
  * AEO (2026-09-22). See src/lib/seo/publicFeedListing.mjs for why these exist.
  *
@@ -19,7 +19,6 @@ import {
   FEED_LISTING_LIMIT,
   FEED_LISTING_TIMEOUT_MS,
   withDeadline,
-  toReelListing,
   toLivesListing,
 } from './publicFeedListing.mjs';
 
@@ -29,25 +28,6 @@ function anonClient() {
   return createClient(url, key, {
     auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
   });
-}
-
-/** The same source filter the reels feed applies in the browser (pages/hub/reels.js loadReels). */
-const REELS_FEED_SOURCES =
-  'source_type.in.(user,video_library),and(source_type.in.(youtube,native),source_post_id.not.is.null)';
-
-async function readReels(signal) {
-  const { data, error } = await anonClient()
-    .from('social_reels')
-    .select('id, caption, thumbnail_url, video_url, created_at, is_public, is_deleted')
-    .eq('is_public', true)
-    // IS NOT TRUE, so a null is_deleted counts as not deleted.
-    .not('is_deleted', 'is', true)
-    .or(REELS_FEED_SOURCES)
-    .order('created_at', { ascending: false })
-    .limit(FEED_LISTING_LIMIT)
-    .abortSignal(signal);
-  if (error) throw error;
-  return toReelListing(data);
 }
 
 /** Safe columns only: live_streams column grants exclude the rest for anon. */
@@ -96,11 +76,6 @@ async function bounded(read) {
   } finally {
     clearTimeout(timer);
   }
-}
-
-/** Latest public reels as listing items, or null when they could not be read in time. */
-export function fetchPublicReelsListing() {
-  return bounded(readReels);
 }
 
 /** Live, recorded and upcoming public streams, or null when they could not be read in time. */

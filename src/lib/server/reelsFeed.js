@@ -152,6 +152,7 @@ const LIBRARY_SELECT = [
 ].join(',');
 
 let serviceClient = null;
+const EMPTY_PROFILE_MAP = new Map();
 
 export class ReelsFeedInputError extends Error {
     constructor(message) {
@@ -1593,7 +1594,13 @@ export async function readPokerReelsFeed(options = {}) {
         }
     }
 
-    const data = await attachProfiles(client, rows);
+    // Server-rendered crawlable listings project every row down to public
+    // caption/date/link fields and have no use for profile records. Let those
+    // callers skip the otherwise unnecessary person-data lookup; the default
+    // remains unchanged for interactive clients that render creator chrome.
+    const data = options.includeProfiles === false
+        ? rows.map(row => publicRow(row, EMPTY_PROFILE_MAP))
+        : await attachProfiles(client, rows);
     return {
         data,
         category,
