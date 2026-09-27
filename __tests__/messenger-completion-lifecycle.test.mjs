@@ -1,6 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { restoreMessengerSendOperations, reconcileMessengerMessage, mergeMessengerPendingMessages,
+    acknowledgeMessengerSend } from '../src/lib/messengerSendOperation.mjs';
 
 const messenger = readFileSync(process.env.MESSENGER_COMPLETION_SOURCE || 'pages/hub/messenger.js', 'utf8');
 const authGuard = readFileSync('src/utils/authGuard.js', 'utf8');
@@ -25,8 +27,10 @@ function messageFixture() {
         localStorage: { getItem: () => '[]' }, hiddenMessageIds: new Set(), markConversationRead: async (...args) => state.reads.push(args),
         setToast: value => state.toasts.push(value), loadMessagesRef: {}, console: quiet, compareMessageTimestamps,
         setIncomingRead: value => state.intents.push(value),
+        sendOperationsRef: { current: new Map() }, restoreMessengerSendOperations, reconcileMessengerMessage,
+        mergeMessengerPendingMessages, acknowledgeMessengerSend,
     };
-    const load = evaluate(slice(messenger, '    const loadMessages =', '    // Send lock'), context, 'loadMessages');
+    const load = evaluate(slice(messenger, '    const loadMessages =', '    const sendLockRef ='), context, 'loadMessages');
     evaluate(slice(messenger, '    // Subscribe to real-time messages for ACTIVE conversation', '    // Read only the message committed'), {
         ...context, useEffect: fn => fn(), activeConversation: { id: 'conversation-a' }, supabase: { channel: () => channel },
         preferencesRef: { current: { messageSounds: false } }, profileCacheRef: { current: new Map([['account-b', { id: 'account-b' }]]) }, PROFILE_CACHE_MAX: 50,
@@ -118,6 +122,7 @@ function authFixture() {
     evaluate(slice(messenger, '    //  MULTI-DEVICE RESILIENCE:', '    // Check for pending calls'), {
         useEffect: fn => { cleanup = fn(); }, supabase, createMultiDeviceAuthListener, user: state.actor, authIdentityRef, authGenerationRef,
         workspaceRef: { current: 'scope-a' }, activeConversationRef: { current: { id: 'conversation-a' } }, messageCacheRef: { current: new Map() },
+        sendOperationsRef: { current: new Map() }, forwardOperationRef: { current: null }, sendLockRef: { current: null },
         setConversations: rows => { state.rows = rows; }, setMessages() {}, setActiveConversation() {}, setFriends() {}, setIsVip() {},
         setUser: value => { state.actor = typeof value === 'function' ? value(state.actor) : value; }, setLoading: value => state.loading.push(value),
         loadConversations: async () => {}, loadConversationsRef: { current: (...args) => state.refreshed.push(args) }, console: quiet,
