@@ -129,6 +129,12 @@ test('Tier 3 rollback is explicit, transaction-bound, and preserves later winner
   assert.match(rollback, /-- SELECT pg_advisory_xact_lock/);
   assert.match(rollback, /canonical_asset_key IS DISTINCT FROM e\.canonical_asset_key/);
   assert.match(rollback, /source_post_id IS DISTINCT FROM e\.source_post_id/);
+  assert.match(rollback, /r\.author_id IS DISTINCT FROM e\.author_id/);
+  assert.match(rollback, /r\.video_url IS DISTINCT FROM e\.video_url/);
+  assert.match(rollback, /p\.author_id IS DISTINCT FROM e\.author_id/);
+  assert.match(rollback, /p\.media_urls IS DISTINCT FROM jsonb_build_array\(e\.media_url\)/);
+  assert.match(rollback, /p\.content IS DISTINCT FROM e\.content/);
+  assert.match(rollback, /repaired source-post lineage drifted/);
   assert.match(rollback, /view_count IS NULL OR view_count < CASE id/);
   assert.match(rollback, /view_count IS DISTINCT FROM 0/);
   assert.match(rollback, /view_count < CASE id/);

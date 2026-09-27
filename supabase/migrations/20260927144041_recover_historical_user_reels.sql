@@ -448,22 +448,42 @@ COMMIT;
 --   ) FOR UPDATE;
 --
 --   IF EXISTS (
---     WITH expected(id, canonical_asset_key, source_post_id) AS (VALUES
---       ('b3258975-db9f-42d5-a581-6c305b180b8f'::uuid, 'native:7726a4055b7753f1b8306349ce6419bd'::text, '7f85c90e-057f-4784-9ff6-39f16c76aa78'::uuid),
---       ('2cb727a7-aee1-4e33-975c-db31bc587aea'::uuid, 'native:7726a4055b7753f1b8306349ce6419bd'::text, '7f85c90e-057f-4784-9ff6-39f16c76aa78'::uuid),
---       ('0ac10eae-0380-4836-be80-759ce93ee878'::uuid, 'native:5bde286bd5cdae63943270adcd7052b5'::text, '5cab43ba-cb10-4043-955f-63415e755e63'::uuid),
---       ('46747b18-3e80-4975-abad-09c41e091155'::uuid, 'native:5bde286bd5cdae63943270adcd7052b5'::text, '5cab43ba-cb10-4043-955f-63415e755e63'::uuid),
---       ('8e87782d-dec1-4a54-aab9-1251df417b92'::uuid, 'native:6e9a7279c927086f2807818e63db935f'::text, '61a5aaa3-0ee7-4003-8af3-c4e64e240078'::uuid),
---       ('31dc2cba-a031-4b6c-9530-168fe080e118'::uuid, 'native:6e9a7279c927086f2807818e63db935f'::text, '61a5aaa3-0ee7-4003-8af3-c4e64e240078'::uuid)
+--     WITH expected(id, author_id, canonical_asset_key, source_post_id, video_url) AS (VALUES
+--       ('b3258975-db9f-42d5-a581-6c305b180b8f'::uuid, '47965354-0e56-43ef-931c-ddaab82af765'::uuid, 'native:7726a4055b7753f1b8306349ce6419bd'::text, '7f85c90e-057f-4784-9ff6-39f16c76aa78'::uuid, 'https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/social-media/videos/47965354-0e56-43ef-931c-ddaab82af765/1778431224994_vg2sab_IMG_8637.mp4'::text),
+--       ('2cb727a7-aee1-4e33-975c-db31bc587aea'::uuid, '47965354-0e56-43ef-931c-ddaab82af765'::uuid, 'native:7726a4055b7753f1b8306349ce6419bd'::text, '7f85c90e-057f-4784-9ff6-39f16c76aa78'::uuid, 'https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/social-media/videos/47965354-0e56-43ef-931c-ddaab82af765/1778431224994_vg2sab_IMG_8637.mp4'::text),
+--       ('0ac10eae-0380-4836-be80-759ce93ee878'::uuid, '47965354-0e56-43ef-931c-ddaab82af765'::uuid, 'native:5bde286bd5cdae63943270adcd7052b5'::text, '5cab43ba-cb10-4043-955f-63415e755e63'::uuid, 'https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/social-media/videos/47965354-0e56-43ef-931c-ddaab82af765/1778253164336_j1hq8z_IMG_8650.mp4'::text),
+--       ('46747b18-3e80-4975-abad-09c41e091155'::uuid, '47965354-0e56-43ef-931c-ddaab82af765'::uuid, 'native:5bde286bd5cdae63943270adcd7052b5'::text, '5cab43ba-cb10-4043-955f-63415e755e63'::uuid, 'https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/social-media/videos/47965354-0e56-43ef-931c-ddaab82af765/1778253164336_j1hq8z_IMG_8650.mp4'::text),
+--       ('8e87782d-dec1-4a54-aab9-1251df417b92'::uuid, '47965354-0e56-43ef-931c-ddaab82af765'::uuid, 'native:6e9a7279c927086f2807818e63db935f'::text, '61a5aaa3-0ee7-4003-8af3-c4e64e240078'::uuid, 'https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/social-media/videos/47965354-0e56-43ef-931c-ddaab82af765/1778253042728_lbgtfe_IMG_8652.mp4'::text),
+--       ('31dc2cba-a031-4b6c-9530-168fe080e118'::uuid, '47965354-0e56-43ef-931c-ddaab82af765'::uuid, 'native:6e9a7279c927086f2807818e63db935f'::text, '61a5aaa3-0ee7-4003-8af3-c4e64e240078'::uuid, 'https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/social-media/videos/47965354-0e56-43ef-931c-ddaab82af765/1778253042728_lbgtfe_IMG_8652.mp4'::text)
 --     )
 --     SELECT 1
 --     FROM expected e
 --     LEFT JOIN public.social_reels r USING (id)
 --     WHERE r.id IS NULL
+--        OR r.author_id IS DISTINCT FROM e.author_id
 --        OR r.canonical_asset_key IS DISTINCT FROM e.canonical_asset_key
 --        OR r.source_post_id IS DISTINCT FROM e.source_post_id
+--        OR r.video_url IS DISTINCT FROM e.video_url
 --   ) THEN
 --     RAISE EXCEPTION 'SUP-07 rollback refused: repaired Reel lineage drifted';
+--   END IF;
+--
+--   IF EXISTS (
+--     WITH expected(id, author_id, canonical_asset_key, media_url, content) AS (VALUES
+--       ('7f85c90e-057f-4784-9ff6-39f16c76aa78'::uuid, '47965354-0e56-43ef-931c-ddaab82af765'::uuid, 'native:7726a4055b7753f1b8306349ce6419bd'::text, 'https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/social-media/videos/47965354-0e56-43ef-931c-ddaab82af765/1778431224994_vg2sab_IMG_8637.mp4'::text, 'Can JJ Hold Up?!'::text),
+--       ('5cab43ba-cb10-4043-955f-63415e755e63'::uuid, '47965354-0e56-43ef-931c-ddaab82af765'::uuid, 'native:5bde286bd5cdae63943270adcd7052b5'::text, 'https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/social-media/videos/47965354-0e56-43ef-931c-ddaab82af765/1778253164336_j1hq8z_IMG_8650.mp4'::text, 'Can We Quadruple Up?! '::text),
+--       ('61a5aaa3-0ee7-4003-8af3-c4e64e240078'::uuid, '47965354-0e56-43ef-931c-ddaab82af765'::uuid, 'native:6e9a7279c927086f2807818e63db935f'::text, 'https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/social-media/videos/47965354-0e56-43ef-931c-ddaab82af765/1778253042728_lbgtfe_IMG_8652.mp4'::text, 'JJ vs K6d '::text)
+--     )
+--     SELECT 1
+--     FROM expected e
+--     LEFT JOIN public.social_posts p USING (id)
+--     WHERE p.id IS NULL
+--        OR p.author_id IS DISTINCT FROM e.author_id
+--        OR p.canonical_asset_key IS DISTINCT FROM e.canonical_asset_key
+--        OR p.media_urls IS DISTINCT FROM jsonb_build_array(e.media_url)
+--        OR p.content IS DISTINCT FROM e.content
+--   ) THEN
+--     RAISE EXCEPTION 'SUP-07 rollback refused: repaired source-post lineage drifted';
 --   END IF;
 --
 --   IF EXISTS (
