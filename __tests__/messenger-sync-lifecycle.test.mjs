@@ -2,6 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
+import { isMessageId, visibleMessageBoundary } from '../src/lib/messengerContinuity.mjs';
+
 const messenger = readFileSync('pages/hub/messenger.js', 'utf8');
 const notifications = readFileSync('src/components/notifications/HubNotificationsFeed.jsx', 'utf8');
 const slice = (source, from, to) => source.slice(source.indexOf(from), source.indexOf(to, source.indexOf(from)));
@@ -15,14 +17,14 @@ const readMessageId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
 
 function readFixture() {
     const state = { requests: [], broadcasts: [], receipts: [], cleared: [], refreshes: [], toasts: [], hidden: false };
-    const workspaceRef = { current: 'scope-a' }, activeConversationRef = { current: { id: 'conversation-a' } };
+    const workspaceRef = { current: 'scope-a' }, activeConversationRef = { current: { id: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc' } };
     const code = slice(messenger, '    const markConversationRead =', '    const loadMessages =');
     const read = evaluate(code, {
         workspaceKey: 'scope-a', workspaceRef, activeConversationRef, markConversationReadRef: {},
         document: { get visibilityState() { return state.hidden ? 'hidden' : 'visible'; } },
         user: { id: 'account-a' }, getAccessToken: () => 'fixture',
         authedFetch: (url, options) => { const pending = deferred(); state.requests.push({ url, options, ...pending }); return pending.promise; },
-        setConversations: update => state.cleared.push(update([{ id: 'conversation-a', unreadCount: 2 }])),
+        setConversations: update => state.cleared.push(update([{ id: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc', unreadCount: 2 }])),
         loadConversationsRef: { current: (...args) => state.refreshes.push(args) },
         preferencesRef: { current: {} }, typingChannelRef: { current: { send: async msg => { state.receipts.push(msg); } } },
         refreshUnread: () => state.refreshes.push('header'), broadcastSync: (...args) => state.broadcasts.push(args),
@@ -33,36 +35,36 @@ function readFixture() {
 
 test('incoming reads never persist for a hidden or different conversation', async () => {
     const f = readFixture(); f.state.hidden = true;
-    await f.read('conversation-a', readMessageId); f.state.hidden = false;
+    await f.read('cccccccc-cccc-4ccc-8ccc-cccccccccccc', readMessageId); f.state.hidden = false;
     await f.read('conversation-b', readMessageId);
     assert.equal(f.state.requests.length, 0);
 });
 
 test('visible reads wait for persistence, then invalidate inbox and publish the receipt', async () => {
-    const f = readFixture(), pending = f.read('conversation-a', readMessageId);
+    const f = readFixture(), pending = f.read('cccccccc-cccc-4ccc-8ccc-cccccccccccc', readMessageId);
     assert.equal(f.state.cleared.length, 0); assert.equal(f.state.receipts.length, 0);
-    assert.deepEqual(JSON.parse(f.state.requests[0].options.body), { conversationId: 'conversation-a', throughMessageId: readMessageId });
+    assert.deepEqual(JSON.parse(f.state.requests[0].options.body), { conversationId: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc', throughMessageId: readMessageId });
     f.state.requests[0].resolve(response({ success: true, readThrough: '2026-09-26T20:00:00.123001Z' })); await pending;
     assert.equal(f.state.cleared.length, 0, 'a bounded receipt refreshes counts without clearing later arrivals');
     assert.deepEqual(f.state.refreshes[0], ['account-a', { invalidate: true }]);
-    assert.equal(f.state.receipts[0].payload.conversationId, 'conversation-a');
+    assert.equal(f.state.receipts[0].payload.conversationId, 'cccccccc-cccc-4ccc-8ccc-cccccccccccc');
     assert.equal(f.state.receipts[0].payload.readThrough, '2026-09-26T20:00:00.123001Z');
     assert.equal(f.state.broadcasts.length, 1);
 });
 
 test('temporary or missing message ids never produce a read request', async () => {
     const f = readFixture();
-    await f.read('conversation-a');
-    await f.read('conversation-a', 'temp-123');
+    await f.read('cccccccc-cccc-4ccc-8ccc-cccccccccccc');
+    await f.read('cccccccc-cccc-4ccc-8ccc-cccccccccccc', 'temp-123');
     assert.equal(f.state.requests.length, 0);
 });
 
 test('rejected reads retain counts and a delayed read never sends on the newly selected channel', async () => {
-    const failed = readFixture(), write = failed.read('conversation-a', readMessageId);
+    const failed = readFixture(), write = failed.read('cccccccc-cccc-4ccc-8ccc-cccccccccccc', readMessageId);
     failed.state.requests[0].resolve(response({ success: false })); await write;
     assert.equal(failed.state.cleared.length, 0); assert.equal(failed.state.broadcasts.length, 0);
     assert.equal(failed.state.toasts.length, 1);
-    const moved = readFixture(), old = moved.read('conversation-a', readMessageId);
+    const moved = readFixture(), old = moved.read('cccccccc-cccc-4ccc-8ccc-cccccccccccc', readMessageId);
     moved.activeConversationRef.current = { id: 'conversation-b' };
     moved.workspaceRef.current = 'scope-b';
     moved.state.requests[0].resolve(response({ success: true })); await old;
@@ -71,28 +73,33 @@ test('rejected reads retain counts and a delayed read never sends on the newly s
 
 test('the actual incoming-message subscription schedules a scoped read after displaying the message', async () => {
     const handlers = [], profile = deferred(), candidates = [], painted = [];
-    const workspaceRef = { current: 'scope-a' }, activeConversationRef = { current: { id: 'conversation-a' } };
+    const workspaceRef = { current: 'scope-a' }, activeConversationRef = { current: { id: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc' } };
     const channel = { on(_type, spec, handler) { handlers.push({ spec, handler }); return this; }, subscribe() { return this; } };
     const query = { select() { return this; }, eq() { return this; }, maybeSingle() { return profile.promise; } };
-    const block = slice(messenger, '    // Subscribe to real-time messages for ACTIVE conversation', '    // Typing indicator broadcast');
+    const block = slice(messenger, '    // Subscribe to real-time messages for ACTIVE conversation', '    // A rendered row outside the viewport');
     let incomingRead;
     const f = readFixture();
     evaluate(block, {
-        useEffect: fn => fn(), user: { id: 'account-a' }, activeConversation: { id: 'conversation-a' },
+        useEffect: fn => fn(), user: { id: 'account-a' }, activeConversation: { id: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc' },
         workspaceKey: 'scope-a', workspaceRef, activeConversationRef,
         supabase: { channel: () => channel, from: () => query },
         preferencesRef: { current: { messageSounds: false } }, profileCacheRef: { current: new Map() }, PROFILE_CACHE_MAX: 50,
         setMessages: update => painted.push(update([])), setIncomingRead: value => { candidates.push(value); },
         setConversations: update => update([]), typingChannelRef: { current: null }, loadMessagesRef: {},
-        incomingRead, messages: [], compareMessageTimestamps, markConversationReadRef: { current: f.read },
+        historyWindowRef: { current: { hasNewer: false } }, incomingRead, messages: [], compareMessageTimestamps, markConversationReadRef: { current: f.read },
     }, 'undefined');
     const handler = handlers.find(h => h.spec.event === 'INSERT').handler;
-    const event = { new: { id: readMessageId, sender_id: 'account-b', conversation_id: 'conversation-a', content: 'Hello', created_at: '2026-09-26T20:00:00Z' } };
+    const event = { new: { id: readMessageId, sender_id: 'account-b', conversation_id: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc', content: 'Hello', created_at: '2026-09-26T20:00:00Z' } };
     const pending = handler(event); profile.resolve({ data: { id: 'account-b' } }); await pending;
     assert.equal(painted[0][0].id, readMessageId);
-    assert.deepEqual(candidates, [{ scope: 'scope-a', conversationId: 'conversation-a', messageId: readMessageId }]);
-    const effect = slice(messenger, '    // Read only the message committed', '    // Typing indicator broadcast');
-    evaluate(effect, { useEffect: fn => fn(), incomingRead: candidates[0], workspaceRef, messages: painted[0], compareMessageTimestamps, markConversationReadRef: { current: f.read } }, 'undefined');
+    assert.deepEqual(candidates, [{ scope: 'scope-a', conversationId: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc', messageId: readMessageId }]);
+    const effect = slice(messenger, '    // A rendered row outside the viewport', '    // Typing indicator broadcast');
+    evaluate(effect, { useEffect: fn => fn(), incomingRead: candidates[0], workspaceRef, messages: painted[0], compareMessageTimestamps,
+        isMessageId, visibleMessageBoundary, document: { visibilityState: 'visible' }, activeConversationRef,
+        visibleReadRef: { current: null }, lastVisibleReadRef: { current: null }, pendingScrollRef: { current: null },
+        requestAnimationFrame: fn => { fn(); return 1; }, cancelAnimationFrame() {},
+        messagesContainerRef: { current: { getBoundingClientRect: () => ({ top: 0, bottom: 100, left: 0, right: 100 }), querySelectorAll: () => [{ dataset: { messageId: readMessageId }, getBoundingClientRect: () => ({ top: 0, bottom: 50, left: 0, right: 100 }) }] } },
+        markConversationReadRef: { current: f.read } }, 'undefined');
     assert.equal(f.state.requests.length, 1);
     f.state.requests[0].resolve(response({ success: true }));
     workspaceRef.current = 'scope-b';

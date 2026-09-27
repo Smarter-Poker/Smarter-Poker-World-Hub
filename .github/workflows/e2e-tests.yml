@@ -41,7 +41,7 @@ on:
       suite:
         description: Verification suite to run
         type: choice
-        options: [full, messenger-live, messenger-send-live, reels-live]
+        options: [full, messenger-live, messenger-send-live, messenger-continuity-live, reels-live]
         default: full
       expected_sha:
         description: Full deployed commit SHA required for a published live verification
@@ -53,6 +53,14 @@ on:
         default: ''
       messenger_request_id:
         description: Exact stable request UUID for messenger-send-live
+        type: string
+        default: ''
+      messenger_fixture_message_id:
+        description: Exact parent-owned old anchor message UUID for messenger-continuity-live
+        type: string
+        default: ''
+      messenger_fixture_first_unread_id:
+        description: Exact parent-owned first unread message UUID for messenger-continuity-live
         type: string
         default: ''
 
@@ -347,7 +355,7 @@ jobs:
 
   messenger-live:
     name: Published Messenger Test Account Verification
-    if: ${{ inputs.suite == 'messenger-live' || inputs.suite == 'messenger-send-live' }}
+    if: ${{ inputs.suite == 'messenger-live' || inputs.suite == 'messenger-send-live' || inputs.suite == 'messenger-continuity-live' }}
     runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 12
     permissions:
@@ -371,6 +379,8 @@ jobs:
       - name: Install locked dependencies
         if: steps.live-nm-cache.outputs.cache-hit != 'true'
         run: npm ci --ignore-scripts
+      - name: Verify continuity probe safety
+        run: node --test __tests__/messenger-continuity-live-safety.test.mjs
       - name: Install verification browser
         run: |
           if [ "${{ runner.environment }}" = "self-hosted" ]; then npx playwright install chromium; else npx playwright install --with-deps chromium; fi
@@ -395,6 +405,19 @@ jobs:
           MESSENGER_VERIFY_MODE: isolated-send
           MESSENGER_FIXTURE_CONVERSATION_ID: ${{ inputs.messenger_fixture_conversation_id }}
           MESSENGER_REQUEST_ID: ${{ inputs.messenger_request_id }}
+      - name: Verify exact isolated Messenger continuity state
+        if: ${{ inputs.suite == 'messenger-continuity-live' }}
+        run: node scripts/ci/messenger-continuity-live.mjs
+        env:
+          TEST_USER_EMAIL: ${{ vars.TEST_USER_EMAIL || secrets.TEST_USER_EMAIL }}
+          TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          MESSENGER_EXPECTED_SHA: ${{ inputs.expected_sha }}
+          MESSENGER_VERIFY_MODE: isolated-continuity
+          MESSENGER_FIXTURE_CONVERSATION_ID: ${{ inputs.messenger_fixture_conversation_id }}
+          MESSENGER_FIXTURE_MESSAGE_ID: ${{ inputs.messenger_fixture_message_id }}
+          MESSENGER_FIXTURE_FIRST_UNREAD_ID: ${{ inputs.messenger_fixture_first_unread_id }}
       - name: Retain sanitized verification receipt
         if: always()
         uses: actions/upload-artifact@v4
