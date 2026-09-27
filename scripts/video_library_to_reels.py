@@ -1182,11 +1182,42 @@ def _record_embed_verdict(video_id, result, error_code=None, surface='video_libr
     return verdict
 
 
+_POSTGRES_TIMESTAMP_RE = re.compile(
+    r'(?P<date>\d{4}-\d{2}-\d{2})'
+    r'(?P<separator>[T ])'
+    r'(?P<time>\d{2}:\d{2}:\d{2})'
+    r'(?:\.(?P<fraction>\d{1,6}))?'
+    r'(?P<zone>Z|[+-](?:[01]\d|2[0-3]):[0-5]\d)?'
+)
+
+
 def _parse_timestamp(value):
+    """Parse the exact PostgreSQL timestamp shapes emitted by PostgREST.
+
+    CPython 3.10 accepts only three- or six-digit fractional seconds through
+    ``datetime.fromisoformat``. PostgreSQL emits only the precision it needs,
+    so otherwise valid values such as ``.45626+00:00`` were treated as stale
+    on the production host. Validate the whole input first, then right-pad the
+    supported one-to-six-digit fraction without truncating or accepting an
+    ambiguous timestamp.
+    """
     if not value:
         return None
+    raw = str(value)
+    match = _POSTGRES_TIMESTAMP_RE.fullmatch(raw)
+    if not match:
+        return None
+    fraction = match.group('fraction')
+    if fraction:
+        fraction = fraction.ljust(6, '0')
+        raw = (
+            f"{match.group('date')}{match.group('separator')}"
+            f"{match.group('time')}.{fraction}{match.group('zone') or ''}"
+        )
+    if raw.endswith('Z'):
+        raw = f'{raw[:-1]}+00:00'
     try:
-        parsed = datetime.fromisoformat(str(value).replace('Z', '+00:00'))
+        parsed = datetime.fromisoformat(raw)
         if parsed.tzinfo is None:
             parsed = parsed.replace(tzinfo=timezone.utc)
         return parsed.astimezone(timezone.utc)

@@ -276,7 +276,7 @@ test('new and legacy Reel shares resolve through the canonical deep-link route',
   assert.match(SOCIAL_PAGE, /function sharedReelPathForPost/);
   assert.match(SOCIAL_PAGE, /router\.push\(sharedReelPath\)/);
   assert.match(SOCIAL_PAGE, /shared_reel_channel_name/);
-  assert.match(SOCIAL_PAGE, /const inlineReelsCarousel = <ReelsFeedCarousel key="reels-carousel"/);
+  assert.match(SOCIAL_PAGE, /const inlineReelsCarousel = <ReelsFeedCarousel key=\{SOCIAL_FEED_REELS_KEY\}/);
   assert.match(SOCIAL_PAGE, /\{inlineReelsCarousel\}[\s\S]*Welcome To Smarter\.Poker/);
 });
 
