@@ -2,6 +2,7 @@
 
 import importlib.util
 import json
+import subprocess
 import tempfile
 import time
 import unittest
@@ -564,6 +565,85 @@ class VideoLibraryPublisherResumeTest(unittest.TestCase):
                 'status': 'error',
                 'reason': 'yt_dlp_nonzero',
             })
+
+    def test_timed_out_ytdlp_only_rescues_a_captured_exact_bot_challenge(self):
+        bridge = self.bridge
+
+        def challenged_player(request, **_kwargs):
+            if '/oembed?' in request.full_url:
+                return self._oembed_response()
+            if '/embed/' in request.full_url:
+                return self._embed_response()
+            if '/youtubei/v1/player?' in request.full_url:
+                return self._response(json.dumps({
+                    'playabilityStatus': {
+                        'status': 'LOGIN_REQUIRED',
+                        'reason': 'Sign in to confirm you are not a bot',
+                    },
+                }).encode('utf-8'))
+            raise AssertionError(request.full_url)
+
+        with mock.patch.object(
+            bridge.urllib.request,
+            'urlopen',
+            side_effect=challenged_player,
+        ):
+            generic_timeout = subprocess.TimeoutExpired(
+                cmd=['yt-dlp'],
+                timeout=40,
+                output=b'waiting for response',
+                stderr=b'',
+            )
+            bridge._run_isolated_ytdlp = mock.Mock(side_effect=generic_timeout)
+            generic = bridge.verify_youtube_video_scrapling('M7lc1UVf-VE')
+            self.assertEqual(generic, {
+                'available': False,
+                'status': 'error',
+                'reason': 'yt_dlp_timeout',
+            })
+
+            challenge_timeout = subprocess.TimeoutExpired(
+                cmd=['yt-dlp'],
+                timeout=40,
+                output=b'',
+                stderr='Sign in to confirm you\u2019re   not a bot'.encode('utf-8'),
+            )
+            bridge._run_isolated_ytdlp = mock.Mock(side_effect=challenge_timeout)
+            rescued = bridge.verify_youtube_video_scrapling('M7lc1UVf-VE')
+            self.assertEqual(rescued, {
+                'available': True,
+                'status': 'verified',
+                'reason': None,
+            })
+
+            conflicting_timeout = subprocess.TimeoutExpired(
+                cmd=['yt-dlp'],
+                timeout=40,
+                output=b'This video is private',
+                stderr=b'Sign in to confirm you are not a bot',
+            )
+            bridge._run_isolated_ytdlp = mock.Mock(side_effect=conflicting_timeout)
+            conflict = bridge.verify_youtube_video_scrapling('M7lc1UVf-VE')
+            self.assertEqual(conflict, {
+                'available': False,
+                'status': 'error',
+                'reason': 'youtube_restriction_signal_conflict',
+            })
+
+    def test_ytdlp_spawn_error_stays_unknown_despite_public_anonymous_proof(self):
+        bridge = self.bridge
+        bridge._run_isolated_ytdlp = mock.Mock(side_effect=OSError('spawn failed'))
+        with mock.patch.object(
+            bridge.urllib.request,
+            'urlopen',
+            side_effect=self._verification_urlopen,
+        ):
+            result = bridge.verify_youtube_video_scrapling('M7lc1UVf-VE')
+        self.assertEqual(result, {
+            'available': False,
+            'status': 'error',
+            'reason': 'yt_dlp_execution_error',
+        })
 
     def test_anonymous_player_separates_public_from_members_private_and_unsafe(self):
         bridge = self.bridge

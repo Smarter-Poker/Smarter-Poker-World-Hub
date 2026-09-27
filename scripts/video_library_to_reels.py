@@ -712,15 +712,56 @@ def _classify_youtube_restriction_detail(detail):
 
 
 def _is_youtube_bot_challenge(detail):
-    normalised = str(detail or '').lower()
+    if isinstance(detail, bytes):
+        detail = detail.decode('utf-8', errors='replace')
+    normalised = ' '.join(
+        str(detail or '')
+        .lower()
+        .replace('\u2018', "'")
+        .replace('\u2019', "'")
+        .split()
+    )
     return any(
         marker in normalised
         for marker in (
             'sign in to confirm you are not a bot',
             "sign in to confirm you're not a bot",
-            'sign in to confirm you’re not a bot',
         )
     )
+
+
+def _combined_process_output(stdout, stderr):
+    def _text(value):
+        if isinstance(value, bytes):
+            return value.decode('utf-8', errors='replace')
+        return str(value or '')
+
+    return '\n'.join(_text(value) for value in (stdout, stderr))
+
+
+def _adjudicate_failed_ytdlp(detail, embed_verdict, fallback_reason):
+    """Resolve explicit/challenge output without promoting generic failures."""
+    if 'no module named' in detail.lower() and 'yt_dlp' in detail.lower():
+        raise YtDlpUnavailableError(
+            'yt_dlp became unimportable in the isolated child during the run'
+        )
+    explicit = _classify_youtube_restriction_detail(detail)
+    if explicit:
+        if embed_verdict['status'] == explicit['status']:
+            return explicit
+        return _availability('error', 'youtube_restriction_signal_conflict')
+    if embed_verdict['status'] in PERMANENT_FAILURE_STATUSES:
+        return embed_verdict
+    if _is_youtube_bot_challenge(detail):
+        if embed_verdict['status'] == 'challenge':
+            return _availability('verified')
+        return embed_verdict
+    if any(
+        marker in detail.lower()
+        for marker in ('login required', 'sign in to continue')
+    ):
+        return _availability('error', 'youtube_auth_required')
+    return _availability('error', fallback_reason)
 
 
 def _anonymous_embed_verdict(video_id, request_headers):
@@ -933,7 +974,20 @@ def verify_youtube_video_scrapling(video_id):
             ],
             timeout=40,
         )
-    except (OSError, subprocess.TimeoutExpired) as error:
+    except subprocess.TimeoutExpired as error:
+        log.warning('yt-dlp verification unknown for %s: %s', video_id, error)
+        # TimeoutExpired preserves any output captured before termination. A
+        # production bot challenge may therefore be complete and independently
+        # corroborated even though yt-dlp did not exit. Apply the same ordered
+        # restriction-first adjudication as a nonzero exit; a generic timeout
+        # remains operational UNKNOWN and can never inherit the embed positive.
+        detail = _combined_process_output(error.stdout, error.stderr)
+        return _adjudicate_failed_ytdlp(
+            detail,
+            embed_verdict,
+            'yt_dlp_timeout',
+        )
+    except OSError as error:
         log.warning('yt-dlp verification unknown for %s: %s', video_id, error)
         return _availability('error', 'yt_dlp_execution_error')
 
@@ -941,27 +995,12 @@ def verify_youtube_video_scrapling(video_id):
         # yt-dlp can split the content verdict and the egress challenge across
         # stdout and stderr. Inspect both so a bot challenge can never hide an
         # explicit private/member/age/region/embed-disabled/removal signal.
-        detail = '\n'.join(
-            str(value or '') for value in (completed.stdout, completed.stderr)
-        ).lower()
-        if 'no module named' in detail and 'yt_dlp' in detail:
-            raise YtDlpUnavailableError(
-                'yt_dlp became unimportable in the isolated child during the run'
-            )
-        explicit = _classify_youtube_restriction_detail(detail)
-        if explicit:
-            if embed_verdict['status'] == explicit['status']:
-                return explicit
-            return _availability('error', 'youtube_restriction_signal_conflict')
-        if embed_verdict['status'] in PERMANENT_FAILURE_STATUSES:
-            return embed_verdict
-        if _is_youtube_bot_challenge(detail):
-            if embed_verdict['status'] == 'challenge':
-                return _availability('verified')
-            return embed_verdict
-        if any(marker in detail for marker in ('login required', 'sign in to continue')):
-            return _availability('error', 'youtube_auth_required')
-        return _availability('error', 'yt_dlp_nonzero')
+        detail = _combined_process_output(completed.stdout, completed.stderr)
+        return _adjudicate_failed_ytdlp(
+            detail,
+            embed_verdict,
+            'yt_dlp_nonzero',
+        )
 
     try:
         metadata = json.loads(completed.stdout)
