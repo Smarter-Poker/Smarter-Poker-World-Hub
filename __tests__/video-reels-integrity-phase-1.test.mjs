@@ -121,6 +121,63 @@ test('the published Reels verifier is read-only and rejects hostile live payload
     mediaUrls: [],
     link_url: `${APP_ORIGIN}/hub/reels?id=${row.id}`,
   }]), null);
+  assert.equal(selectOrdinaryArticle([{
+    id: row.id,
+    contentType: 'link',
+    mediaUrls: ['https://media.poker.org/prod/images/article_landscape/story.jpg'],
+    link_url: null,
+    content: 'Read more at https://www.poker.org/latest-news/story',
+  }])?.id, row.id);
+  assert.equal(selectOrdinaryArticle([{
+    id: row.id,
+    contentType: 'link',
+    mediaUrls: ['https://example.com/story.jpg'],
+    link_url: null,
+    content: `Shared Reel ${APP_ORIGIN}/hub/reels?id=${row.id}`,
+  }]), null);
+  assert.equal(selectOrdinaryArticle([{
+    id: row.id,
+    contentType: 'article',
+    mediaUrls: [],
+    link_url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+  }]), null);
+  assert.equal(selectOrdinaryArticle([{
+    id: row.id,
+    contentType: 'article',
+    mediaUrls: [],
+    link_url: null,
+    content: 'Content-only https://example.com/story',
+  }]), null, 'zero-media PostCard does not apply its content URL fallback');
+  assert.equal(selectOrdinaryArticle([{
+    id: row.id,
+    contentType: 'article',
+    mediaUrls: ['https://example.com/one.jpg', 'https://example.com/two.jpg'],
+    link_url: 'https://example.com/story',
+  }]), null, 'multi-media PostCard renders a gallery instead of ArticleCard');
+  assert.equal(selectOrdinaryArticle([{
+    id: row.id,
+    contentType: 'link',
+    mediaUrls: [],
+    link_url: 'https://example.com/story',
+    metadata: { shared_reel_id: row.id },
+  }]), null, 'shared Reel wrappers navigate to their canonical Reel');
+  for (const url of [
+    'https://www.facebook.com/story',
+    'https://fb.watch/story',
+    'https://fb.com/story',
+    'https://www.instagram.com/p/story',
+    'https://www.tiktok.com/@player/video/1',
+    'https://twitter.com/player/status/1',
+    'https://x.com/player/status/1',
+    'https://www.threads.net/@player/post/1',
+  ]) {
+    assert.equal(selectOrdinaryArticle([{
+      id: row.id,
+      contentType: 'article',
+      mediaUrls: [],
+      link_url: url,
+    }]), null, `${url} opens directly instead of using ArticleReaderModal`);
+  }
 });
 
 test('phase-one migration separates provenance, playback, topic, rights, and identity', () => {
