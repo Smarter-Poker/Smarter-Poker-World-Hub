@@ -30,6 +30,11 @@ on:
           - '1'
           - '2'
           - '3'
+      publisher_backfill_cleanup_operations:
+        description: Exact stale backfill operation identities as run_id:attempt CSV
+        required: false
+        default: ''
+        type: string
 
 concurrency:
   group: deploy-openclaw
@@ -79,6 +84,61 @@ jobs:
             '  StrictHostKeyChecking yes' \
             '  UserKnownHostsFile ~/.ssh/known_hosts' > ~/.ssh/config
           chmod 0600 ~/.ssh/config
+
+      - name: Stop explicitly identified stale Reel backfill units
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.publisher_backfill_cleanup_operations != '' }}
+        env:
+          HOST: ${{ secrets.OPENCLAW_HOST }}
+          SSH_USER: ${{ secrets.HETZNER_SSH_USER || 'root' }}
+          CLEANUP_OPERATIONS: ${{ inputs.publisher_backfill_cleanup_operations }}
+        run: |
+          set -euo pipefail
+          normalized_operations="$(python3 - "$CLEANUP_OPERATIONS" <<'PY'
+          import re
+          import sys
+
+          raw = sys.argv[1]
+          if len(raw) > 256:
+              raise SystemExit('cleanup operation list is too long')
+          operations = [item.strip() for item in raw.split(',')]
+          if not 1 <= len(operations) <= 10:
+              raise SystemExit('cleanup requires between one and ten operation identities')
+          if len(set(operations)) != len(operations):
+              raise SystemExit('cleanup operation identities must be unique')
+          for operation in operations:
+              if not re.fullmatch(r'[1-9][0-9]*:[1-9][0-9]{0,2}', operation):
+                  raise SystemExit('cleanup identities must be run_id:attempt')
+              print(operation)
+          PY
+          )"
+          mapfile -t cleanup_operations <<< "$normalized_operations"
+          test "${#cleanup_operations[@]}" -ge 1
+          ssh \
+            -o ServerAliveInterval=30 \
+            -o ServerAliveCountMax=60 \
+            -o TCPKeepAlive=yes \
+            "$SSH_USER@$HOST" 'bash -s' -- "${cleanup_operations[@]}" <<'EOSSH'
+          set -euo pipefail
+          for operation in "$@"; do
+            run_id="${operation%%:*}"
+            run_attempt="${operation##*:}"
+            case "$run_id" in (*[!0-9]*|'') exit 2 ;; esac
+            case "$run_attempt" in (*[!0-9]*|'') exit 2 ;; esac
+            for batch in 1 2 3; do
+              unit="openclaw-reels-backfill-${run_id}-${run_attempt}-${batch}.service"
+              load_state="$(sudo systemctl show "$unit" -p LoadState --value 2>/dev/null || true)"
+              if [ -z "$load_state" ] || [ "$load_state" = not-found ]; then
+                printf 'Reel backfill unit absent: %s\n' "$unit"
+                continue
+              fi
+              sudo systemctl stop "$unit"
+              active_state="$(sudo systemctl show "$unit" -p ActiveState --value 2>/dev/null || true)"
+              case "$active_state" in (''|inactive|failed) ;; (*) exit 1 ;; esac
+              sudo systemctl reset-failed "$unit" >/dev/null 2>&1 || true
+              printf 'Reel backfill unit stopped: %s\n' "$unit"
+            done
+          done
+          EOSSH
 
       - name: Verify runtime and prepare release directories
         env:
@@ -761,9 +821,22 @@ jobs:
           sudo test -f /etc/openclaw.env
           test "$(sudo stat -c '%U:%G %a' /etc/openclaw.env)" = 'root:root 600'
 
+          active_unit=''
+          cleanup_active_unit() {
+            rc=$?
+            trap - EXIT HUP INT TERM
+            if [ -n "$active_unit" ]; then
+              sudo systemctl stop "$active_unit.service" || rc=$?
+              sudo systemctl reset-failed "$active_unit.service" >/dev/null 2>&1 || true
+            fi
+            exit "$rc"
+          }
+          trap cleanup_active_unit EXIT HUP INT TERM
+
           for batch in $(seq 1 "$batch_count"); do
             unit="openclaw-reels-backfill-${run_id}-${run_attempt}-${batch}"
-            sudo systemd-run \
+            active_unit="$unit"
+            if sudo systemd-run \
               --quiet \
               --wait \
               --collect \
@@ -776,6 +849,51 @@ jobs:
               /usr/bin/env -u PYTHONHOME -u PYTHONPATH \
                 "PYTHONPATH=$current/vendor" \
                 /usr/bin/python3 -s "$current/video_library_to_reels.py" \
-                  --limit 750 --verify
+                  --limit 750 --verify; then
+              unit_rc=0
+            else
+              unit_rc=$?
+            fi
+            active_unit=''
+            publisher_result="$(
+              sudo journalctl -u "$unit.service" --no-pager --output=cat \
+                | sed -n 's/^.*Publisher results: /Publisher results: /p' \
+                | tail -n 1
+            )"
+            test -n "$publisher_result"
+            printf 'Batch %s %s\n' "$batch" "$publisher_result"
+            test "$unit_rc" -eq 0
+          done
+          trap - EXIT HUP INT TERM
+          EOSSH
+
+      - name: Revoke current Reel backfill custody
+        if: ${{ always() && github.event_name == 'workflow_dispatch' && inputs.publisher_backfill_batches != '0' }}
+        env:
+          HOST: ${{ secrets.OPENCLAW_HOST }}
+          SSH_USER: ${{ secrets.HETZNER_SSH_USER || 'root' }}
+        run: |
+          set -euo pipefail
+          ssh \
+            -o ServerAliveInterval=30 \
+            -o ServerAliveCountMax=60 \
+            -o TCPKeepAlive=yes \
+            "$SSH_USER@$HOST" 'bash -s' -- "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" <<'EOSSH'
+          set -euo pipefail
+          run_id="$1"
+          run_attempt="$2"
+          case "$run_id" in (*[!0-9]*|'') exit 2 ;; esac
+          case "$run_attempt" in (*[!0-9]*|'') exit 2 ;; esac
+          for batch in 1 2 3; do
+            unit="openclaw-reels-backfill-${run_id}-${run_attempt}-${batch}.service"
+            load_state="$(sudo systemctl show "$unit" -p LoadState --value 2>/dev/null || true)"
+            if [ -z "$load_state" ] || [ "$load_state" = not-found ]; then
+              continue
+            fi
+            sudo systemctl stop "$unit"
+            active_state="$(sudo systemctl show "$unit" -p ActiveState --value 2>/dev/null || true)"
+            case "$active_state" in (''|inactive|failed) ;; (*) exit 1 ;; esac
+            sudo systemctl reset-failed "$unit" >/dev/null 2>&1 || true
+            printf 'Reel backfill custody revoked: %s\n' "$unit"
           done
           EOSSH
