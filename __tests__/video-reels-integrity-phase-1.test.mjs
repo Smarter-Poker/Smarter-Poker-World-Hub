@@ -1,6 +1,12 @@
 import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';
 import test from 'node:test';
+import {
+  APP_ORIGIN,
+  isBrowserReadOnlyRequest,
+  selectOrdinaryArticle,
+  validateFeedPage,
+} from '../scripts/ci/reels-live-check.mjs';
 
 const TEST_STORAGE_HOST = 'test-project.supabase.co';
 process.env.NEXT_PUBLIC_SUPABASE_URL = `https://${TEST_STORAGE_HOST}`;
@@ -44,6 +50,48 @@ const {
   sanitizePokerReels,
 } = clientModule;
 const feedCacheModule = await import(`data:text/javascript;base64,${Buffer.from(FEED_CACHE).toString('base64')}`);
+
+test('the published Reels verifier is read-only and rejects hostile live payloads', () => {
+  assert.equal(isBrowserReadOnlyRequest('GET', `${APP_ORIGIN}/api/reels/feed`), true);
+  for (const method of ['POST', 'PUT', 'PATCH', 'DELETE']) {
+    assert.equal(isBrowserReadOnlyRequest(method, `${APP_ORIGIN}/api/reels/feed`), false);
+  }
+  const row = {
+    id: '00000000-0000-4000-8000-000000000001',
+    topic: 'sports',
+    media_status: 'ready',
+    rights_status: 'embed_only',
+    playback_type: 'youtube_embed',
+    youtube_video_id: 'dQw4w9WgXcQ',
+    canonical_asset_key: 'youtube:dQw4w9WgXcQ',
+    video_url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+    source_name: 'Verified Source',
+    source_attribution_url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+  };
+  validateFeedPage(
+    { success: true, category: 'sports', data: [row], has_more: false },
+    'sports',
+  );
+  assert.throws(
+    () => validateFeedPage(
+      { success: true, category: 'poker', data: [row], has_more: false },
+      'poker',
+    ),
+    /category topic contract/,
+  );
+  assert.equal(selectOrdinaryArticle([{
+    id: row.id,
+    contentType: 'article',
+    mediaUrls: [],
+    link_url: 'https://example.com/story',
+  }])?.id, row.id);
+  assert.equal(selectOrdinaryArticle([{
+    id: row.id,
+    contentType: 'article',
+    mediaUrls: [],
+    link_url: `${APP_ORIGIN}/hub/reels?id=${row.id}`,
+  }]), null);
+});
 
 test('phase-one migration separates provenance, playback, topic, rights, and identity', () => {
   assert.equal(Boolean(MIGRATION), true, `${MIGRATION_PATH} must exist`);

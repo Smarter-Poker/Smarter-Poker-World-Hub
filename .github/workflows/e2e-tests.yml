@@ -41,10 +41,10 @@ on:
       suite:
         description: Verification suite to run
         type: choice
-        options: [full, messenger-live]
+        options: [full, messenger-live, reels-live]
         default: full
       expected_sha:
-        description: Full deployed commit SHA required for messenger-live
+        description: Full deployed commit SHA required for a published live verification
         type: string
         default: ''
 
@@ -79,7 +79,7 @@ concurrency:
 
 jobs:
   e2e:
-    if: ${{ inputs.suite != 'messenger-live' }}
+    if: ${{ inputs.suite == 'full' || inputs.suite == '' }}
     name: Playwright E2E Tests
     runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
     # A clean install + production build consumes ~7 minutes. The authenticated
@@ -378,5 +378,49 @@ jobs:
         with:
           name: messenger-live-receipt
           path: test-results/messenger-live/result.json
+          if-no-files-found: warn
+          retention-days: 7
+
+  reels-live:
+    name: Published Reels Test Account Verification
+    if: ${{ inputs.suite == 'reels-live' }}
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24.12.0'
+          cache: npm
+      - name: Verify Reels live probe safety
+        run: node scripts/ci/reels-live-check.mjs --self-test
+      - name: Restore locked dependencies
+        id: reels-live-nm-cache
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: nm-wh-noscripts-${{ runner.os }}-node24-${{ hashFiles('package-lock.json') }}
+      - name: Install locked dependencies
+        if: steps.reels-live-nm-cache.outputs.cache-hit != 'true'
+        run: npm ci --ignore-scripts
+      - name: Install verification browser
+        run: |
+          if [ "${{ runner.environment }}" = "self-hosted" ]; then npx playwright install chromium; else npx playwright install --with-deps chromium; fi
+      - name: Verify published Reels with designated test account
+        run: node scripts/ci/reels-live-check.mjs
+        env:
+          TEST_USER_EMAIL: ${{ vars.TEST_USER_EMAIL || secrets.TEST_USER_EMAIL }}
+          TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          REELS_EXPECTED_SHA: ${{ inputs.expected_sha }}
+      - name: Retain sanitized verification receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: reels-live-receipt
+          path: test-results/reels-live/result.json
           if-no-files-found: warn
           retention-days: 7
