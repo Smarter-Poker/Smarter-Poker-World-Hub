@@ -20,6 +20,7 @@ export const REEL_CATEGORIES = Object.freeze([
 ]);
 const CATEGORY_TOPICS = Object.freeze({
   'for-you': new Set(['poker', 'cash', 'tournament', 'slots', 'sports']),
+  following: new Set(['poker', 'cash', 'tournament', 'slots', 'sports']),
   poker: new Set(['poker', 'cash', 'tournament']),
   'casino-slots': new Set(['slots']),
   sports: new Set(['sports']),
@@ -434,9 +435,7 @@ async function run() {
     const anonymousFollowing = await readJson('/api/reels/feed?category=following&limit=20', { expectedStatus: 401 });
     assert.equal(anonymousFollowing.success, false, 'Signed-out Following unexpectedly succeeded');
     const following = await readJson('/api/reels/feed?category=following&limit=20', { token: session.access_token });
-    assert.equal(following.success, true, 'Signed-in Following did not succeed');
-    assert.equal(following.category, 'following', 'Signed-in Following returned the wrong category');
-    assert.ok(Array.isArray(following.data), 'Signed-in Following data is not a list');
+    validateFeedPage(following, 'following');
     report.coverage.followingApi = { signedOutStatus: 401, signedInStatus: 200, reels: following.data.length };
 
     const collections = {};

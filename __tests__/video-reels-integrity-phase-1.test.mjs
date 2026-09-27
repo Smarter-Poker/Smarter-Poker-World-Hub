@@ -72,6 +72,10 @@ test('the published Reels verifier is read-only and rejects hostile live payload
     { success: true, category: 'sports', data: [row], has_more: false },
     'sports',
   );
+  validateFeedPage(
+    { success: true, category: 'following', data: [row], has_more: false },
+    'following',
+  );
   assert.throws(
     () => validateFeedPage(
       { success: true, category: 'poker', data: [row], has_more: false },
