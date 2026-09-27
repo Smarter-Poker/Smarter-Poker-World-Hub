@@ -3,21 +3,22 @@
  *
  * AEO (2026-09-22). Fetched as OAI-SearchBot with scripts stripped, /hub/reels
  * served 105 words and /hub/lives 113, and every one of them came from the
- * HubPageSummary block. Both pages load their feeds in the browser from
- * Supabase, so ChatGPT, Claude and Perplexity crawlers, which do not run
- * JavaScript, saw a description of a feed and none of the feed.
+ * HubPageSummary block. Both pages load their feeds in the browser, so
+ * ChatGPT, Claude and Perplexity crawlers, which do not run JavaScript, saw a
+ * description of a feed and none of the feed.
  *
- * This module is the pure half of the fix: it turns rows the ANONYMOUS
- * Supabase client returned into plain listing items and into JSON-LD. It
- * performs no I/O and imports nothing, so the law in
+ * This module is the pure half of the fix: it turns rows already admitted by
+ * the canonical fail-closed Reels reader, or rows returned by the anonymous
+ * Lives reader, into plain listing items and JSON-LD. It performs no I/O and
+ * imports nothing, so the law in
  * __tests__/the-feeds-say-what-they-hold.law.test.mjs can exercise it with
- * fixture rows. The fetch lives in src/lib/seo/publicFeedData.js.
+ * fixture rows. The canonical Reels read lives in pages/hub/reels.js; the
+ * anonymous Lives read lives in src/lib/seo/publicFeedData.js.
  *
  * Rules it keeps:
- *   - A row is listed only if it is plainly public: a reel must be
+ *   - A row is listed only if it is plainly public: a canonical Reel must be
  *     is_public and not deleted; a stream must not be a draft; a recording
- *     must be posted. RLS already applies to the anonymous client; these
- *     checks are a second lock, never a widening.
+ *     must be posted. These checks are a second lock, never a widening.
  *   - Nothing identifies a person. No author or broadcaster ids, no emails,
  *     no names (anonymous visitors cannot read profiles, so neither can this).
  *   - A row with no title or caption is skipped rather than given one.
@@ -29,6 +30,14 @@ export const FEED_LISTING_LIMIT = 24;
 
 /** The longest a server render will wait for the feed before giving up. */
 export const FEED_LISTING_TIMEOUT_MS = 2000;
+
+/**
+ * The canonical Reel reader reapplies availability, rights, lineage and
+ * canonical-winner gates across related rows. Production reads have reached
+ * 7.45 seconds, so the cached SSR response gets its own finite budget instead
+ * of inheriting the much smaller three-query Lives budget.
+ */
+export const REELS_FEED_LISTING_TIMEOUT_MS = 10_000;
 
 /** A stream still marked live after this long is treated as stale, not live. */
 export const LIVE_STALE_AFTER_MS = 12 * 60 * 60 * 1000;
@@ -87,8 +96,8 @@ export function formatListingDateTime(iso) {
 }
 
 /**
- * Rows from social_reels → listing items. Only the columns the page needs
- * survive; the author is never carried.
+ * Canonically admitted social_reels rows → listing items. Only the columns
+ * the page needs survive; the author and profile are never carried.
  */
 export function toReelListing(rows, limit = FEED_LISTING_LIMIT) {
   if (!Array.isArray(rows)) return [];

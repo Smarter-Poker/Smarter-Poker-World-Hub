@@ -167,6 +167,10 @@ test('manual Open Claw deploy can dispatch only the exact merged main workflow',
 });
 
 test('manual publication can request at most three bounded verified backfill batches after promotion', () => {
+  assert.match(
+    deployWorkflow,
+    /description: Verified 500-item Reel publisher batches to run after promotion/,
+  );
   assert.match(deployWorkflow, /publisher_backfill_batches:[\s\S]*options:[\s\S]*- '0'[\s\S]*- '1'[\s\S]*- '2'[\s\S]*- '3'/);
   assert.match(
     deployWorkflow,
@@ -187,7 +191,12 @@ test('manual publication can request at most three bounded verified backfill bat
   assert.match(backfill, /--property=EnvironmentFile=\/etc\/openclaw\.env/);
   assert.match(
     backfill,
-    /video_library_to_reels\.py"[\s\\]*--limit 675 --verify --release-recovery/,
+    /video_library_to_reels\.py"[\s\\]*--limit 500 --verify --release-recovery/,
+  );
+  assert.match(
+    dispatcher,
+    /'\/api\/cron\/video-library-reels':\s*\[\s*'--limit',\s*'750',\s*'--verify',\s*'--verify-platform-supply'\s*\]/,
+    'the manual recovery correction must not reduce the ordinary daily renewal contract',
   );
   assert.match(backfill, /journalctl -u "\$unit\.service"[\s\S]*Publisher results:/);
   assert.match(backfill, /test "\$unit_rc" -eq 0/);

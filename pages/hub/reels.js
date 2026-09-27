@@ -70,15 +70,13 @@ import VideoLibraryConsole, {
   ConsoleDataRow,
 } from '../../src/components/video-library/console/VideoLibraryConsole';
 import ReelResponsibleGamingNotice from '../../src/components/social/ReelResponsibleGamingNotice';
-import {
-  fetchPublicReelsListing,
-  feedListingCacheHeaders,
-} from '../../src/lib/seo/publicFeedData';
+import { feedListingCacheHeaders } from '../../src/lib/seo/publicFeedData';
 import {
   FEED_LISTING_LIMIT,
-  FEED_LISTING_TIMEOUT_MS,
   formatListingDate,
+  REELS_FEED_LISTING_TIMEOUT_MS,
   reelsItemListSchema,
+  toReelListing,
   withDeadline,
 } from '../../src/lib/seo/publicFeedListing.mjs';
 import { readPokerReelsFeed } from '../../src/lib/server/reelsFeed';
@@ -283,46 +281,45 @@ function reelSourceUrl(reel) {
 }
 
 /**
- * Ids the canonical Reels reader admits for the public feed, or null.
+ * A crawler-safe projection of the canonical For You feed, or null.
  *
  * readPokerReelsFeed (src/lib/server/reelsFeed.js) is the same fail-closed
- * reader behind /api/reels/feed that the browser feed uses: poker topics
- * only, ready playback, fresh verified availability and the confirmed-failure
- * quarantine. A failure, a timeout or an empty answer yields null, so no
- * listing is rendered rather than an unverified one.
+ * reader behind /api/reels/feed that the browser feed uses. The explicit
+ * For You category admits the approved Poker, Casino And Slots, and Sports
+ * topics, including managed video-library and horse publications, only after
+ * the canonical ready-playback, rights, freshness, attribution and
+ * confirmed-failure gates pass. toReelListing then reduces those rows to the
+ * bounded public fields the HTML needs, so no author or profile survives.
+ * A failure, timeout, mismatched category or empty answer yields null.
  */
-async function readCanonicalCrawlerReelIds() {
+async function readCanonicalCrawlerReels() {
   const result = await withDeadline(
-    readPokerReelsFeed({ limit: FEED_LISTING_LIMIT, sort: 'recent', scope: 'all' }),
-    FEED_LISTING_TIMEOUT_MS,
+    readPokerReelsFeed({
+      limit: FEED_LISTING_LIMIT,
+      sort: 'recent',
+      scope: 'all',
+      category: 'for-you',
+      includeProfiles: false,
+    }),
+    REELS_FEED_LISTING_TIMEOUT_MS,
     null
   );
-  if (!result || !Array.isArray(result.data)) return null;
-  const ids = result.data.map((row) => row?.id).filter((id) => typeof id === 'string' && id);
-  return ids.length ? new Set(ids) : null;
-}
-
-/** Only ever narrows: an item is kept when the canonical reader admitted its id. */
-function admitCanonicalReels(items, canonicalIds) {
-  if (!Array.isArray(items) || !(canonicalIds instanceof Set)) return null;
-  const admitted = items.filter((item) => canonicalIds.has(item?.id));
-  return admitted.length ? admitted : null;
+  if (result?.category !== 'for-you' || !Array.isArray(result.data)) return null;
+  const listing = toReelListing(result.data, FEED_LISTING_LIMIT);
+  return listing.length ? listing : null;
 }
 
 /**
  * The latest public reels, read on the server so the HTML carries them
  * (AEO, 2026-09-22: a non-JavaScript crawler saw 105 words and no reels).
- * Anonymous client, row limit and deadline live in publicFeedData.js, so
- * nothing a signed-out visitor cannot read reaches the HTML. A reel is then
- * listed only if the canonical reader admits it too, so a private, off-topic
- * (slots), unverified or quarantined reel never reaches the server HTML. On
- * any failure reelsListing is null and the page renders without a listing.
+ * It comes directly from the same canonical fail-closed reader as the main
+ * viewer, with an explicit small limit and server deadline. The projection
+ * carries no person data. On any failure reelsListing is null and the page
+ * renders without a listing.
  */
 export async function getServerSideProps({ res }) {
   feedListingCacheHeaders(res);
-  const canonicalIds = readCanonicalCrawlerReelIds().catch(() => null);
-  const publicListing = await fetchPublicReelsListing();
-  const reelsListing = admitCanonicalReels(publicListing, await canonicalIds);
+  const reelsListing = await readCanonicalCrawlerReels();
   return { props: { reelsListing } };
 }
 

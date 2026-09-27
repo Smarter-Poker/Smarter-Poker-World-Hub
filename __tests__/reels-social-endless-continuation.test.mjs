@@ -1,13 +1,16 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
-
 process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://test-project.supabase.co';
 
 const {
   canonicalReelKey,
   isUnclassifiedNativeCommunityReel,
 } = await import('../src/lib/reelsFeedClient.js');
+import {
+  buildSocialFeedSequence,
+  SOCIAL_FEED_REELS_KEY,
+} from '../src/lib/socialFeedSequence.mjs';
 
 const source = readFileSync(
   new URL('../src/components/social/ReelsFeedCarousel.jsx', import.meta.url),
@@ -234,15 +237,52 @@ test('counter-only refreshes cannot abort or strand a cursor continuation', () =
   assert.match(realtime, /scheduleBackgroundReelsRefresh\(\)/);
 });
 
-test('the Social Media feed mounts one inline Reels carousel in both populated and empty states', () => {
+test('the Social Media feed mounts one stable peer carousel in both populated and empty states', () => {
   assert.equal((socialPage.match(/<ReelsFeedCarousel\b/g) || []).length, 1,
     'one element definition must serve both mutually exclusive branches');
-  assert.match(socialPage, /const inlineReelsCarousel = <ReelsFeedCarousel key="reels-carousel"/);
+  assert.match(socialPage, /const inlineReelsCarousel = <ReelsFeedCarousel key=\{SOCIAL_FEED_REELS_KEY\}/);
+  assert.match(socialPage, /buildSocialFeedSequence\(filteredPosts\)\.map\(\(item\) => \{/);
+  assert.match(socialPage, /if \(item\.kind === 'reels'\) return inlineReelsCarousel/);
+  assert.match(socialPage, /<PostCard\s+key=\{item\.key\}/);
+  assert.doesNotMatch(socialPage, /<React\.Fragment key=\{p\.id\}>/);
   assert.match(
     socialPage,
-    /posts\.filter\(\(p\) => !blockedUserIds\.has\(p\.authorId\)\)\.length === 0[\s\S]*\? \([\s\S]*\{inlineReelsCarousel\}[\s\S]*\) : \([\s\S]*filteredPosts\.length < 3[\s\S]*inlineReelsCarousel/,
-    'the two mount sites must stay on opposite sides of the feed-state ternary',
+    /posts\.filter\(\(p\) => !blockedUserIds\.has\(p\.authorId\)\)\.length === 0[\s\S]*\? \([\s\S]*\{inlineReelsCarousel\}[\s\S]*\) : \([\s\S]*buildSocialFeedSequence\(filteredPosts\)/,
+    'empty and populated branches must share the one stable element definition',
   );
+});
+
+test('prepend and reorder preserve the carousel sibling key and insertion contract', () => {
+  const posts = ['a', 'b', 'c', 'd', 'e'].map((id) => ({ id }));
+  const cases = [
+    posts,
+    [{ id: 'new' }, ...posts],
+    [posts[4], posts[1], posts[3], posts[0], posts[2]],
+    posts.slice(0, 2),
+    posts.slice(0, 1),
+  ];
+
+  for (const rows of cases) {
+    const sequence = buildSocialFeedSequence(rows);
+    const reels = sequence.filter((item) => item.kind === 'reels');
+    assert.equal(reels.length, 1, `expected one carousel for ${rows.length} posts`);
+    assert.equal(reels[0].key, SOCIAL_FEED_REELS_KEY);
+    const reelsIndex = sequence.indexOf(reels[0]);
+    const postsBefore = sequence
+      .slice(0, reelsIndex)
+      .filter((item) => item.kind === 'post').length;
+    assert.equal(postsBefore, Math.min(3, rows.length));
+    assert.equal(sequence.filter((item) => item.kind === 'trending-venues').length, 1);
+    assert.equal(
+      sequence.filter((item) => item.kind === 'share-streak-leaderboard').length,
+      rows.length >= 5 ? 1 : 0,
+    );
+  }
+
+  const before = buildSocialFeedSequence(posts).find((item) => item.kind === 'reels');
+  const afterPrepend = buildSocialFeedSequence([{ id: 'new' }, ...posts])
+    .find((item) => item.kind === 'reels');
+  assert.equal(before.key, afterPrepend.key, 'the carousel key cannot inherit the third post id');
 });
 
 test('the Social Media rail exposes category-correct feeds and keeps Following authenticated', () => {
