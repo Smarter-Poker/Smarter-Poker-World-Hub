@@ -14,6 +14,14 @@ const foundation = readFileSync(
   new URL('../supabase/migrations/20260906235959_video_reels_integrity_foundation.sql', import.meta.url),
   'utf8',
 );
+const postgresHarness = readFileSync(
+  new URL('./historical-user-reels-post-rights-postgres.test.mjs', import.meta.url),
+  'utf8',
+);
+const buildSafetyGate = readFileSync(
+  new URL('../.github/workflows/build-safety-gate.yml', import.meta.url),
+  'utf8',
+);
 
 const POKER_POST_IDS = Object.freeze([
   '7f85c90e-057f-4784-9ff6-39f16c76aa78',
@@ -44,6 +52,16 @@ test('SUP-07 post-rights follow-up is one guarded forward migration', () => {
   assert.match(sql, /sup07-historical-user-reels-v2-post-rights/);
   assert.doesNotMatch(sql, /^\s*(?:INSERT\s+INTO|DELETE\s+FROM|TRUNCATE)\b/im);
   assert.doesNotMatch(source, /\p{Extended_Pictographic}/u);
+});
+
+test('the required hosted PostgreSQL gate exports the binary path the harness consumes', () => {
+  assert.match(buildSafetyGate, /PHASE6_POSTGRES_BIN=\$postgres_bin/);
+  assert.match(
+    buildSafetyGate,
+    /Historical User Reels Rights PostgreSQL Contracts[\s\S]*npm run audit:video-reels:post-rights-db/,
+  );
+  assert.match(postgresHarness, /process\.env\.PHASE6_POSTGRES_BIN/);
+  assert.match(postgresHarness, /['"]\/usr\/local\/pgsql\/bin['"]/);
 });
 
 test('preflight pins the installed predecessor, exact rows, and owned storage', () => {

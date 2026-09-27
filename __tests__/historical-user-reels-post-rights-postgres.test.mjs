@@ -66,9 +66,11 @@ const POST_IDS = [
 
 function pg17Bin() {
   return [
+    process.env.PHASE6_POSTGRES_BIN,
     process.env.PG17_BINDIR,
     '/opt/homebrew/opt/postgresql@17/bin',
     '/usr/local/opt/postgresql@17/bin',
+    '/usr/local/pgsql/bin',
     '/usr/lib/postgresql/17/bin',
   ].filter(Boolean).find(directory => existsSync(join(directory, 'postgres')));
 }
