@@ -18,6 +18,8 @@ from unittest.mock import patch
 spec = importlib.util.spec_from_file_location('runtime', Path(__file__).with_name('local_scraper_runtime.py'))
 runtime = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(runtime)
+# The owner's routing rule: every operational alert names the production-alerts fleet.
+FLEET = '01a09b86-5ba8-7290-8657-1041f13dd3ca'
 
 
 class RuntimeProof(unittest.TestCase):
@@ -185,6 +187,53 @@ class RuntimeProof(unittest.TestCase):
         (self.root / 'receipts' / event.name).write_text('{"id":true}')
         with self.assertRaisesRegex(runtime.RuntimeFault, 'receipt_invalid'):
             runtime.flush_outbox(self.root)
+
+    # Regression: production row 6507 (2026-09-13) reached the store with no
+    # payload.target_task_id. Fails on the pre-fix runner, which never set it.
+    def test_every_delivered_fault_names_the_fleet_and_keeps_its_evidence(self):
+        self.install()
+        with contextlib.redirect_stderr(io.StringIO()):
+            self.assertEqual(runtime.run(self.root), 1)
+        [sent] = self.requests
+        self.assertEqual(sent['p_payload'],
+                         {'failure_code': 'daemon_exited_7', 'release_revision': self.sha, 'target_task_id': FLEET})
+        [queued] = (self.root / 'outbox').glob('*.json')
+        self.assertEqual(json.loads(queued.read_text())['p_payload']['target_task_id'], FLEET)
+
+    # An earlier runner may have left an unaddressed event in the outbox. Fails
+    # on the pre-fix runner, which sent the stored event as it was.
+    def test_an_event_queued_without_a_destination_is_addressed_when_delivered(self):
+        key = hashlib.sha256(b'unknown:release_missing').hexdigest()
+        legacy = {'p_source': 'local.pokeratlas-runtime', 'p_event_key': key,
+                  'p_alertname': 'LocalScraperRuntimeFailure', 'p_status': 'firing', 'p_severity': 'critical',
+                  'p_payload': {'failure_code': 'release_missing', 'release_revision': 'unknown'}}
+        runtime.atomic_write(self.root / 'outbox' / (key + '.json'), runtime.json_bytes(legacy))
+        self.assertEqual(runtime.flush_outbox(self.root), 1)
+        [sent] = self.requests
+        self.assertEqual(sent['p_event_key'], key)
+        self.assertEqual(sent['p_payload'],
+                         {'failure_code': 'release_missing', 'release_revision': 'unknown', 'target_task_id': FLEET})
+        self.assertTrue((self.root / 'receipts' / (key + '.json')).exists())
+
+    # Fails on the pre-fix runner, which delivered whatever destination it found.
+    def test_an_event_naming_another_task_is_refused_and_never_sent(self):
+        path = runtime.queue_fault(self.root, 'release_missing')
+        event = json.loads(path.read_text())
+        event['p_payload']['target_task_id'] = 'other-task'
+        path.write_text(json.dumps(event))
+        with self.assertRaisesRegex(runtime.RuntimeFault, 'outbox_target_foreign'):
+            runtime.flush_outbox(self.root)
+        self.assertEqual(self.requests, [])
+        self.assertFalse((self.root / 'receipts').exists())
+
+    # Guard: launchd starts only the copied runner, outside the release it
+    # checks. It must import nothing from this repository, which is why it
+    # mirrors the shared writer's destination rule instead of importing it.
+    def test_installed_runner_starts_alone_on_the_standard_library(self):
+        self.install()
+        started = subprocess.run([sys.executable, '-I', str(self.root / 'runner.py'), '--help'],
+                                 capture_output=True, timeout=20)
+        self.assertEqual(started.returncode, 0, started.stderr.decode(errors='replace')[-400:])
 
     def test_wrong_project_or_public_auth_permissions_refused(self):
         auth = self.root / 'auth.json'
