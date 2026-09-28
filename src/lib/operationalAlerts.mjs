@@ -49,14 +49,30 @@ export function alertmanagerEvents(payload, source = 'alertmanager') {
       payload: withDestination(evidence) };
   });
 }
-// Every row this writer records names its destination. Rows without
+// Every row this writer records names the production-alerts fleet. Rows without
 // payload.target_task_id were indistinguishable from mis-routed ones (A2 board,
 // 2026-09-20: 13/13 alertmanager arrivals carried none), so the writer fills it
-// in for any caller that did not, and never overwrites one that did.
+// in for any caller that names no destination (absent, null or blank). A caller
+// that names any other destination is refused, never re-addressed: the owner's
+// routing rule has one destination, the fleet triages by this field, and the
+// hourly addressing check counts such a row as unaddressed. The writer used to
+// keep it, which recorded exactly that row. scripts/operational_alerts.py
+// applies this rule to the Python senders; smarter-poker-workers refuses
+// another destination too.
+export class AlertDestinationError extends TypeError {
+  constructor() {
+    super('payload.target_task_id names a task other than the production-alerts fleet');
+    this.name = 'AlertDestinationError';
+  }
+}
 export function withDestination(payload) {
   if (!object(payload)) return payload;
-  if (typeof payload.target_task_id === 'string' && payload.target_task_id.trim()) return payload;
-  return { ...payload, target_task_id: ALERT_TASK_ID };
+  const requested = payload.target_task_id;
+  if (requested === undefined || requested === null || (typeof requested === 'string' && !requested.trim())) {
+    return { ...payload, target_task_id: ALERT_TASK_ID };
+  }
+  if (requested === ALERT_TASK_ID) return payload;
+  throw new AlertDestinationError();
 }
 // Ids of still-open firing rows of one writer whose payload[field] equals value.
 // Recovery evidence is only worth an inbox row when it answers one of these;

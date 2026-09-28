@@ -1,4 +1,4 @@
-import { ALERT_TASK_ID, alertEventKey, authorizedAlert, recordOperationalAlerts } from '../../../src/lib/operationalAlerts.mjs';
+import { ALERT_TASK_ID, AlertDestinationError, alertEventKey, authorizedAlert, recordOperationalAlerts } from '../../../src/lib/operationalAlerts.mjs';
 export const config = { api: { bodyParser: { sizeLimit: '256kb' } } };
 
 export default async function handler(req, res) {
@@ -16,7 +16,12 @@ export default async function handler(req, res) {
     const ids = await recordOperationalAlerts([{ source: b.source, event_key: b.eventKey || alertEventKey(b),
       alertname: b.alertname, status: b.status, severity: b.severity || 'critical', payload: b.payload }]);
     return res.status(200).json({ recorded: true, ids, destination: 'codex', taskId: ALERT_TASK_ID });
-  } catch {
+  } catch (error) {
+    // Naming another destination is refused for good: a retry of the same
+    // request cannot succeed, so it is a bad request, not an outage.
+    if (error instanceof AlertDestinationError) {
+      return res.status(400).json({ recorded: false, error: 'payload.target_task_id must name the production-alerts fleet', taskId: ALERT_TASK_ID });
+    }
     return res.status(503).json({ recorded: false, error: 'Operational inbox unavailable; retry delivery' });
   }
 }
