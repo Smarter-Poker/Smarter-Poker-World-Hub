@@ -100,30 +100,59 @@ test('a repeat delivery of one alert episode keeps one identity when its annotat
   }
 });
 
-test('the writer fills a missing destination for any caller and never overwrites a supplied one', async () => {
+test('the writer fills a missing destination, keeps the fleet and refuses any other destination', async () => {
   assert.equal(withDestination({ note: 'x' }).target_task_id, ALERT_TASK_ID);
-  assert.equal(withDestination({ target_task_id: 'other-task' }).target_task_id, 'other-task');
   assert.equal(withDestination({ target_task_id: '  ' }).target_task_id, ALERT_TASK_ID);
+  assert.equal(withDestination({ target_task_id: null }).target_task_id, ALERT_TASK_ID);
+  assert.equal(withDestination({ target_task_id: ALERT_TASK_ID }).target_task_id, ALERT_TASK_ID);
   assert.equal(withDestination(null), null);
+  // Regression: a supplied destination other than the fleet used to be kept, so
+  // the writer recorded a row the fleet never triages and the hourly addressing
+  // check calls unaddressed. Fails on the pre-fix writer, which returned it.
+  for (const foreign of ['other-task', ALERT_TASK_ID.toUpperCase(), ` ${ALERT_TASK_ID}`, 42, {}]) {
+    assert.throws(() => withDestination({ target_task_id: foreign }), { name: 'AlertDestinationError' });
+  }
   const env = { url: process.env.NEXT_PUBLIC_SUPABASE_URL, key: process.env.SUPABASE_SERVICE_ROLE_KEY };
   const realFetch = globalThis.fetch;
   let body = null;
+  let calls = 0;
   process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://inbox.example';
   process.env.SUPABASE_SERVICE_ROLE_KEY = 'test-key';
-  globalThis.fetch = async (_url, init) => { body = JSON.parse(init.body); return { ok: true, json: async () => [101, 102] }; };
+  globalThis.fetch = async (_url, init) => { calls += 1; body = JSON.parse(init.body); return { ok: true, json: async () => [101, 102] }; };
   try {
     const ids = await recordOperationalAlerts([
       { source: 'worker', event_key: 'k1', alertname: 'fault', status: 'firing', severity: 'critical', payload: { detail: 1 } },
-      { source: 'worker', event_key: 'k2', alertname: 'fault', status: 'firing', severity: 'critical', payload: { detail: 2, target_task_id: 'kept' } },
+      { source: 'worker', event_key: 'k2', alertname: 'fault', status: 'firing', severity: 'critical', payload: { detail: 2, target_task_id: ALERT_TASK_ID } },
     ]);
     assert.deepEqual(ids, [101, 102]);
     assert.equal(body.p_events[0].payload.target_task_id, ALERT_TASK_ID);
     assert.equal(body.p_events[0].payload.detail, 1);
-    assert.equal(body.p_events[1].payload.target_task_id, 'kept');
+    assert.equal(body.p_events[1].payload.target_task_id, ALERT_TASK_ID);
+    // One foreign destination refuses the whole batch before anything is sent.
+    await assert.rejects(recordOperationalAlerts([
+      { source: 'worker', event_key: 'k3', alertname: 'fault', status: 'firing', severity: 'critical', payload: { detail: 3 } },
+      { source: 'worker', event_key: 'k4', alertname: 'fault', status: 'firing', severity: 'critical', payload: { detail: 4, target_task_id: 'other-task' } },
+    ]), { name: 'AlertDestinationError' });
+    assert.equal(calls, 1);
   } finally {
     globalThis.fetch = realFetch;
     process.env.NEXT_PUBLIC_SUPABASE_URL = env.url; process.env.SUPABASE_SERVICE_ROLE_KEY = env.key;
     if (env.url === undefined) delete process.env.NEXT_PUBLIC_SUPABASE_URL;
     if (env.key === undefined) delete process.env.SUPABASE_SERVICE_ROLE_KEY;
+  }
+});
+
+// Fails on the pre-fix intake, which stored the foreign destination (or, with
+// the store down, answered 503 and so invited a retry that can never succeed).
+test('the intake answers a foreign destination with a permanent 400 and records nothing', async () => {
+  const original = globalThis.fetch;
+  globalThis.fetch = async () => { throw new Error('must not call'); };
+  try {
+    const r = response();
+    await intake(request({ source: 'worker', alertname: 'fault', status: 'firing', payload: { detail: 1, target_task_id: 'other-task' } }), r);
+    assert.equal(r.code, 400);
+    assert.equal(r.body.recorded, false);
+  } finally {
+    globalThis.fetch = original;
   }
 });

@@ -31,6 +31,10 @@ import { validateCronAuth } from '../../../src/utils/cron-auth';
 import { withCronHealth } from '../../../src/lib/cronHealth';
 import { vapidConfig, isPushConfigured } from '../../../src/lib/push/web-push';
 import { notify, notifyAdmins } from '../../../src/lib/notify';
+// The cooldown lookup: which recipients were already told within the window.
+// It also reads the owner account's routed operational originals, which have
+// no personal inbox row.
+import { filterRecentlyAlerted } from '../../../src/lib/push/alertCooldown.mjs';
 
 const ZOMBIE_RECEIPT_DAYS = 3;
 // Ceiling on per-user alerts in one run. Each alert is a notifications insert
@@ -47,29 +51,6 @@ let _supabase = null;
 function getSupabase() {
     if (!_supabase) _supabase = createClient();
     return _supabase;
-}
-
-/**
- * Returns the subset of userIds that have NOT already received `title` within
- * the cooldown window, so a persistent problem is reported once a week rather
- * than once a day. Fails OPEN (returns everyone) -- a lookup failure must not
- * silence a genuine alert.
- */
-async function filterRecentlyAlerted(supabase, userIds, title, sinceIso) {
-    if (!userIds.length) return [];
-    try {
-        const { data, error } = await supabase
-            .from('notifications')
-            .select('user_id')
-            .in('user_id', userIds)
-            .eq('title', title)
-            .gte('created_at', sinceIso);
-        if (error) return userIds;
-        const already = new Set((data || []).map((n) => n.user_id));
-        return userIds.filter((id) => !already.has(id));
-    } catch {
-        return userIds;
-    }
 }
 
 async function handler(req, res) {

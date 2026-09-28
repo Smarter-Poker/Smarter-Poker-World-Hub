@@ -28,10 +28,29 @@ FILES = (
 )
 INPUTS = ('all-venues.json', 'pokeratlas-slug-map.json')
 SUPABASE_URL = 'https://kuklfnapbkmacvwxktbh.supabase.co'
+# Every operational alert is addressed to the production-alerts fleet. The
+# shared writer, scripts/operational_alerts.py, owns this value and rule. This
+# runner is copied alone outside its release and imports only the standard
+# library, so it keeps a mirror; scripts/test_operational_alerts.py fails CI if
+# the mirror differs.
+FLEET_TASK_ID = '01a09b86-5ba8-7290-8657-1041f13dd3ca'
 
 
 class RuntimeFault(RuntimeError):
     """A fixed, secret-free failure code safe for the operational inbox."""
+
+
+def addressed(payload):
+    """Mirror of operational_alerts.addressed: fill a missing destination,
+    keep the fleet's and refuse any other."""
+    if not isinstance(payload, dict):
+        raise RuntimeFault('outbox_invalid')
+    requested = payload.get('target_task_id')
+    if requested is None or (isinstance(requested, str) and not requested.strip()):
+        return dict(payload, target_task_id=FLEET_TASK_ID)
+    if requested == FLEET_TASK_ID:
+        return dict(payload)
+    raise RuntimeFault('outbox_target_foreign')
 
 
 def atomic_write(path, data, mode=0o600):
@@ -121,7 +140,7 @@ def queue_fault(root, code, revision='unknown'):
     event = {'p_source': 'local.pokeratlas-runtime', 'p_event_key': key,
              'p_alertname': 'LocalScraperRuntimeFailure', 'p_status': 'firing',
              'p_severity': 'critical',
-             'p_payload': {'failure_code': code, 'release_revision': revision}}
+             'p_payload': addressed({'failure_code': code, 'release_revision': revision})}
     path = root / 'outbox' / (key + '.json')
     # A receipt acknowledges delivery, not remediation. Repeated launchd
     # attempts must not create new episodes or erase a pending observation.
@@ -143,9 +162,12 @@ def flush_outbox(root, opener=urllib.request.urlopen):
             if not isinstance(receipt, dict) or receipt.get('event_key') != event['p_event_key'] or type(receipt.get('id')) is not int or receipt['id'] <= 0:
                 raise RuntimeFault('receipt_invalid')
             continue
+        # Address at delivery too: an event queued by an earlier runner may name
+        # no destination, and one that names another task is never sent.
+        body = dict(event, p_payload=addressed(event.get('p_payload')))
         request = urllib.request.Request(
             auth['url'] + '/rest/v1/rpc/fn_record_operational_alert',
-            data=json_bytes(event), method='POST',
+            data=json_bytes(body), method='POST',
             headers={'apikey': auth['key'], 'Authorization': 'Bearer ' + auth['key'],
                      'Content-Type': 'application/json'})
         try:

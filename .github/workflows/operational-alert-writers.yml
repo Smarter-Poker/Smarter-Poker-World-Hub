@@ -1,0 +1,35 @@
+name: Operational Alert Writers Address The Fleet
+
+# Every Python writer of public.operational_alert_events (scripts/operational_alerts.py,
+# used by the charity and tour scrapers, and its standard-library mirror in
+# scripts/local_scraper_runtime.py) addresses its rows to the production-alerts
+# fleet task and refuses a foreign target. This runs the regression suite on
+# every pull request that touches any Python file or this workflow: the suite's
+# guard fails when any other Python file reaches the store itself, and that new
+# sender can live in any .py file, so a narrower path list would let it through.
+# build-safety-gate.yml already runs scripts/test_local_scraper_runtime.py and
+# __tests__/operational-alert-inbox.test.mjs on every pull request.
+#
+# pull_request only: no schedule (World Hub CLAUDE.md section 11).
+on:
+  pull_request:
+    paths:
+      - '**.py'
+      - .github/workflows/operational-alert-writers.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: operational-alert-writers-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  python-writers-address-the-fleet:
+    name: Python Operational Alert Writers Address The Fleet
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run the writer regression suites
+        run: python3 -m unittest scripts/test_operational_alerts.py scripts/test_local_scraper_runtime.py -v

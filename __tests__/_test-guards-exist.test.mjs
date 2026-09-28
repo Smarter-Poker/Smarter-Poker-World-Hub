@@ -354,6 +354,11 @@ import './a-club-table-count-has-one-writer.law.test.mjs';
 // see it. CHECK 26 reads the live PostgREST catalogue instead. This law pins
 // the scanner's parser and its decision; CI runs the scanner itself.
 import './an-rpc-call-names-a-live-function.law.test.mjs';
+// 2026-09-28: push-health's once-per-window cooldown also reads the owner's
+// routed operational originals (store-only delivery writes no personal row
+// for them), and fails open per recipient. Imported here so CHECK 8 runs it
+// on every pull request.
+import './push-health-alert-cooldown.test.mjs';
 
 const REPO = path.resolve(new URL('.', import.meta.url).pathname, '..');
 
