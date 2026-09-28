@@ -239,7 +239,7 @@ export default function HubNotificationsFeed({ embedded = false, onNotifCleared 
                 return;
             }
 
-            const page = (feedData.notifications || []).filter(isVisibleNotification)
+            const page = (feedData.notifications || []).filter(n => isVisibleNotification(n, au.id))
                 .map(n => ({ ...n, read: n.read === true || n.is_read === true }));
             const enriched = append ? [...new Map([...notificationsRef.current, ...page].map(n => [n.id, n])).values()] : page;
             const totalUnread = feedData.totalUnread ?? enriched.filter(n => !n.read).length;
@@ -406,7 +406,7 @@ export default function HubNotificationsFeed({ embedded = false, onNotifCleared 
             .channel(`notifs:${user.id}:${instanceId}`)
             .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${user.id}` }, (payload) => {
                 // Prepend new notification to the list in real-time
-                if (payload.new && isVisibleNotification(payload.new)) {
+                if (payload.new && isVisibleNotification(payload.new, user.id)) {
                     const n = payload.new;
                     if (mounted.current && getAuthUser()?.id === user.id) {
                         // Realtime rows arrive straight from Postgres and never
@@ -430,7 +430,7 @@ export default function HubNotificationsFeed({ embedded = false, onNotifCleared 
             // An archived club payout becomes part of the weekly summary.
             // Remove any already-open copy without waiting for the next fetch.
             .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'notifications', filter: `user_id=eq.${user.id}` }, (payload) => {
-                if (payload.new?.id && !isVisibleNotification(payload.new) && mounted.current && getAuthUser()?.id === user.id) {
+                if (payload.new?.id && !isVisibleNotification(payload.new, user.id) && mounted.current && getAuthUser()?.id === user.id) {
                     setNotifications(prev => prev.filter(n => n.id !== payload.new.id));
                     try { localStorage.removeItem('sp-notif-cache'); } catch (_) { console.warn('[App] Notification Cache Unavailable'); }
                 }
@@ -775,7 +775,7 @@ export default function HubNotificationsFeed({ embedded = false, onNotifCleared 
                             <p style={{ color: C.textSec }}>When Someone Likes, Comments, Or Tags You, You'll See It Here.</p>
                         </div>
                     ) : (
-                        notifications.filter(n => isVisibleNotification(n) && user?.id === getAuthUser()?.id).map(n => {
+                        notifications.filter(n => isVisibleNotification(n, user?.id) && user?.id === getAuthUser()?.id).map(n => {
                             // Comprehensive notification icon map — category-based + message parsing
                             const getNotifIcon = () => {
                                 const s = 14; const clr = '#fff';

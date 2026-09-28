@@ -168,7 +168,7 @@ test('versioned cache retains personal and current invoice rows, excludes archiv
     { id: 'current-invoice', type: 'accounting_invoice' }];
   const raw = notificationCache(rows, ALERT_OWNER_ID, 1000);
   assert.deepEqual(JSON.parse(raw), [
-    { ...rows[1], _cache_ts: 1000, _cache_user: ALERT_OWNER_ID, _cache_version: 3 },
+    { ...rows[1], _cache_ts: 1000, _cache_user: ALERT_OWNER_ID, _cache_version: 4 },
     rows[2],
   ]);
   assert.deepEqual(readNotificationCache(raw, ALERT_OWNER_ID, 1001).map(row => row.id),
@@ -184,7 +184,7 @@ test('a retained current-version cache cannot restore archived invoice details o
   // missing read-time filter. Its first, now-hidden row still owns the cache.
   const raw = JSON.stringify([
     { id: 'invoice-detail', type: 'accounting_invoice_detail', _cache_ts: 1000,
-      _cache_user: ALERT_OWNER_ID, _cache_version: 3 },
+      _cache_user: ALERT_OWNER_ID, _cache_version: 4 },
     ...visible,
   ]);
   assert.deepEqual(readNotificationCache(raw, ALERT_OWNER_ID, 1001), visible);
