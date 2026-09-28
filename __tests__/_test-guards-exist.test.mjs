@@ -301,6 +301,12 @@ import './the-hub-notices-a-revoked-session.law.test.mjs';
 // feed and the server push router now import from, so the three lists
 // CLAUDE.md 10.84 warns about drifting stay one list.
 import './owner-operational-realtime-feed-visibility.test.mjs';
+// 2026-09-28: get_unified_user_profile() and get_user_cross_product_summary()
+// (SECURITY DEFINER, self-view) read raw public.notifications instead of the
+// destination-masked public.personal_notifications view, a second leak of
+// owner-operational content independent of the realtime feed above and the
+// push/feed paths PR #1946 closed. Pins that both RPCs read the masked view.
+import './owner-self-view-rpcs-read-the-masked-notification-view.test.mjs';
 // 2026-09-04: a probe that cannot run says so where probes speak (recovery-probe
 // had been silent for a day: unconfigured, and exiting before its heartbeat).
 import './a-probe-that-cannot-run-says-so.law.test.mjs';
