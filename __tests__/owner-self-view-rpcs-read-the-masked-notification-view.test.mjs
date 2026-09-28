@@ -44,11 +44,15 @@ const FUNCTIONS_THAT_MUST_READ_THE_MASKED_VIEW = [
   'get_user_cross_product_summary',
 ];
 
+const stripComments = (sql) => sql.replace(/--[^\n]*/g, ' ').replace(/\s+/g, ' ');
+
+// Blanks string literals too, so a message string that happens to contain the
+// words "from notifications" can never be mistaken for a real table read.
+// Do NOT use this version to look for a literal jsonb key name (e.g.
+// 'engagement') - it blanks those the same way, and the search below never
+// matches. Use stripComments alone for that.
 const stripLiteralsAndComments = (sql) =>
-  sql
-    .replace(/--[^\n]*/g, ' ')
-    .replace(/'(?:[^']|'')*'/g, "''")
-    .replace(/\s+/g, ' ');
+  stripComments(sql).replace(/'(?:[^']|'')*'/g, "''");
 
 function functionBody(sql, from, to) {
   const slice = sql.slice(from, to);
@@ -59,12 +63,10 @@ function functionBody(sql, from, to) {
   return close === -1 ? slice : slice.slice(0, close + tag.length);
 }
 
-function lastDefinitionOfEveryFunction() {
+function lastDefinitionOfEveryFunction(transform) {
   const last = new Map();
   for (const file of readdirSync(MIGRATIONS).filter((f) => f.endsWith('.sql')).sort()) {
-    const sql = stripLiteralsAndComments(
-      readFileSync(path.join(MIGRATIONS, file), 'utf8').toLowerCase(),
-    );
+    const sql = transform(readFileSync(path.join(MIGRATIONS, file), 'utf8').toLowerCase());
     const marks = [
       ...sql.matchAll(/create\s+(?:or\s+replace\s+)?function\s+(?:public\.)?([a-z_0-9]+)/g),
     ].map((m) => ({ name: m[1], at: m.index }));
@@ -84,7 +86,7 @@ const rawNotificationsTableReads = (body) =>
   [...body.matchAll(/\bfrom\s+notifications\b/g)].map((m) => m[0]);
 
 test('the owner-self-view RPCs read personal_notifications, never the raw table', () => {
-  const last = lastDefinitionOfEveryFunction();
+  const last = lastDefinitionOfEveryFunction(stripLiteralsAndComments);
   const offenders = [];
   for (const name of FUNCTIONS_THAT_MUST_READ_THE_MASKED_VIEW) {
     const def = last.get(name);
@@ -115,7 +117,14 @@ test('get_unified_user_profile only exposes engagement/recent_notifications for 
   // Guards against a future edit widening this to non-self viewers, which
   // would leak the masked-but-still-preserved raw rows to someone else via a
   // join or a relaxed condition instead of a table read.
-  const def = lastDefinitionOfEveryFunction().get('get_unified_user_profile');
+  //
+  // Uses stripComments alone (literals intact): 'engagement' is itself a
+  // quoted string literal, so stripLiteralsAndComments blanks it to '' and
+  // the search below could never match against that version - checked here
+  // by the deliberate red-control in this same file's history (see PR
+  // #2011 CI run 36376610624, "expected: /'engagement',...then/, actual:
+  // <literals blanked>").
+  const def = lastDefinitionOfEveryFunction(stripComments).get('get_unified_user_profile');
   assert.ok(def, 'get_unified_user_profile is not defined by any migration');
   assert.match(
     def.body,
