@@ -4,15 +4,30 @@ import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
  * DELETE /api/auth/delete-account
  * Auth: Bearer token required
  *
- * Deletes user profile data from Supabase and signs out the auth user.
+ * Closes the caller's account: the person is removed, the books are kept.
+ * Called by the World Hub settings page and by the Club Arena app.
  *
- * [2026-07-25] DOC CORRECTION: this endpoint HARD-DELETES. It removes the
- * user's rows and then calls auth.admin.deleteUser() — there is NO disabled
- * state, NO 30-day grace window, and NO recovery. The previous docstring
- * promised soft-delete + recovery that the code never implemented; any UX
- * copy or support script based on that promise was wrong. If a grace window
- * is ever wanted, implement ban/disable + a scheduled purge — don't just
- * edit this comment back.
+ * [2026-09-29] NOBODY COULD DELETE THEIR ACCOUNT. This endpoint used to
+ * hard-delete rows with the service role and then hard-delete the Auth user.
+ * The database had since made two things true that it was never taught:
+ *   1. service_role has no write privilege on cashout_requests, so the first
+ *      write ("cancel pending cashouts") failed with 42501 for every account;
+ *   2. financial journals are append-only, every account is born with one
+ *      (The Mint's signup grant in diamond_transactions), and that journal
+ *      references profiles AND auth.users ON DELETE CASCADE - so deleting
+ *      either is refused (P0403) for every account.
+ * Found from the Club Arena app on the Android emulator (Close My Account ->
+ * 500). Apple (App Review 5.1.1(v)) and Google Play require in-app deletion.
+ *
+ * Now: the database closes the account in one transaction
+ * (public.fn_close_account, Club Arena migration 20260929051751: refuses
+ * while money or authority remains, leaves every club the way the club's own
+ * departure path does, deletes personal non-financial rows, scrubs the person
+ * from the profile, records gdpr_deletion_requests), then the Auth user is
+ * SOFT-deleted (email and phone obfuscated, identities and sessions removed,
+ * the row kept so nothing cascades into the journals), then the erasure
+ * request is marked completed. Financial journals stay, keyed by an id that
+ * no longer points at anyone. There is no grace window and no recovery.
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { rateLimit } from '../../../src/lib/apiRateLimit';
@@ -29,39 +44,27 @@ function getSupabase() {
     return _supabase;
 }
 
-
 /**
- * GDPR ERASURE, HONESTLY REPORTED.
- *
- * Every erasure step below used to be its own `const { error: err_xxx } = ...`
- * followed by a console.warn, and then the handler returned
- * "Account has been permanently deleted" regardless. So a failed erasure --
- * PII left behind on a user who asked to be forgotten -- was a line in a log
- * nobody reads and a 200 to the user saying it was done. The auth user is then
- * HARD deleted, so there is no account left to retry from and no owner to
- * trace the leftovers back to.
- *
- * A ZERO-ROW match is NOT an error here and is deliberately not treated as
- * one: most users have no MFA factors, no promo redemptions, no friendships.
- * Nothing to erase is a successful erasure.
- *
- * A real error IS a compliance failure, so it is collected and reported.
+ * What each refusal from fn_close_account tells the player. Both callers show
+ * `error` as it is, so each one is the whole instruction. A reason missing
+ * here answers 500 "contact support" and closes nothing.
  */
-async function eraseFrom(sb, table, applyFilters, failures) {
-    try {
-        const { error } = await applyFilters(sb.from(table).delete());
-        if (error) {
-            console.error(`[delete-account] ERASURE FAILED for ${table}:`, error.message);
-            failures.push({ table, error: error.message });
-            return false;
-        }
-        return true;
-    } catch (e) {
-        console.error(`[delete-account] ERASURE THREW for ${table}:`, e?.message || e);
-        failures.push({ table, error: e?.message || String(e) });
-        return false;
-    }
-}
+export const REFUSALS = {
+    seated: 'You are still seated at a table. Leave the table, then close your account.',
+    tournament_entry: 'You are registered or playing in a tournament. Unregister or finish it, then close your account.',
+    pending_cashout: 'A cashout request is still in progress. Wait for your club to finish or decline it, then close your account.',
+    escrow: 'Some of your chips are held in escrow. Wait for your club to release them, then close your account.',
+    chip_request: 'A chip request is still pending. Cancel it or wait for your club to answer, then close your account.',
+    club_chips: 'You still hold chips, credit or a balance in a club. Cash out or settle it with your agent, then close your account.',
+    wallet_balance: 'Your wallet still holds a balance. Settle it, then close your account.',
+    open_ticket: 'You hold an unused tournament ticket. Use it or ask your club to cancel it, then close your account.',
+    club_agent: 'You are an agent in a club. Ask the club owner to remove your agent role, then close your account.',
+    downline: 'Players in a club are still assigned to you. Ask the club owner to move them, then close your account.',
+    club_owner: 'You own a club. Transfer it or close it, then close your account.',
+    club_staff: 'You are staff in a club. Ask the owner to change your role to player, then close your account.',
+    union_owner: 'You own a union. Transfer it, then close your account.',
+    financial: 'Something in a club still holds value for you, such as a rakeback payout or unclaimed commission. Settle it with your club, then close your account.',
+};
 
 export default async function handler(req, res) {
   const rl = rateLimit(req, { max: 3, windowMs: 3600000 }); // 3 per hour
@@ -77,24 +80,19 @@ export default async function handler(req, res) {
           return res.status(401).json({ error: 'Not authenticated' });
       }
 
-      const token = authHeader.replace('Bearer ', '');
-      const { user: authUser, error: authErr } = await getServerUserWithFallback(req, getSupabase());
-    const authData = { user: authUser };
-      const user = authData?.user;
-
+      const { user, error: authErr } = await getServerUserWithFallback(req, getSupabase());
       if (authErr || !user) {
           return res.status(401).json({ error: 'Invalid or expired session' });
       }
 
       // ── [Phase 6.1.27] Step-up MFA gate ─────────────────────────────────
-      // Account deletion is irreversible after the 30-day grace window. A
-      // stolen 12h mfa_session cookie can't be allowed to trigger erase —
-      // require a fresh (within-5-min) second-factor confirmation.
+      // Closing an account cannot be undone. A stolen 12h mfa_session cookie
+      // can't be allowed to trigger it - require a fresh (within-5-min)
+      // second-factor confirmation.
       //
-      // If the user has no MFA enrolled at all, we fall back to the rate
-      // limit + email-confirmation-link pattern that was in place before
-      // 6.1.21 (they can still delete, just more slowly). This prevents
-      // soft-locking accounts that never enrolled a second factor.
+      // If the user has no MFA enrolled at all, the rate limit is the gate
+      // (they can still close, just more slowly). This prevents soft-locking
+      // accounts that never enrolled a second factor.
       {
           const { data: factor } = await getSupabase()
               .from('user_mfa_factors')
@@ -114,175 +112,75 @@ export default async function handler(req, res) {
           }
       }
 
-      try {
-          const userId = user.id;
+      const userId = user.id;
 
-          // ── 0. BLOCK deletion if user has active chip balances ──
-          // Chips must be cashed out or returned to agents first.
-          const { data: activeBalances } = await getSupabase()
-              .from('club_members')
-              .select('club_id, chip_balance, locked_chips')
-              .eq('user_id', userId)
-              .or('chip_balance.gt.0,locked_chips.gt.0');
-
-          if (activeBalances?.length > 0) {
-              const totalChips = activeBalances.reduce((sum, m) => sum + (m.chip_balance || 0) + (m.locked_chips || 0), 0);
-              return res.status(400).json({
-                  error: 'Cannot delete account with active chip balances',
-                  details: `You have ${totalChips.toLocaleString()} chips across ${activeBalances.length} club(s). Please cash out or contact your agent first.`,
-                  clubs_with_balance: activeBalances.length,
-              });
-          }
-
-          // ── 0b. Block if user is an active agent (would break settlement) ──
-          const { data: activeAgent } = await getSupabase()
-              .from('agents')
-              .select('id, club_id')
-              .eq('user_id', userId)
-              .eq('status', 'active')
-              .limit(1);
-
-          if (activeAgent?.length > 0) {
-              return res.status(400).json({
-                  error: 'Cannot delete account while active as an agent',
-                  details: 'Please have the club owner remove your agent role first.',
-              });
-          }
-
-          // ── 0d. Block if user owns any clubs (would orphan the club) ──
-          const { data: ownedClubs } = await getSupabase()
-              .from('clubs')
-              .select('id, name')
-              .eq('owner_id', userId);
-
-          if (ownedClubs?.length > 0) {
-              return res.status(400).json({
-                  error: 'Cannot delete account while you own clubs',
-                  details: `You own ${ownedClubs.length} club(s): ${ownedClubs.map(c => c.name).join(', ')}. Transfer ownership or delete the club(s) first.`,
-                  clubs_owned: ownedClubs.length,
-              });
-          }
-
-          // ── 0e. Block if user owns any unions (would orphan the union) ──
-          const { data: ownedUnions } = await getSupabase()
-              .from('unions')
-              .select('id, name')
-              .eq('owner_id', userId);
-
-          if (ownedUnions?.length > 0) {
-              return res.status(400).json({
-                  error: 'Cannot delete account while you own unions',
-                  details: `You own ${ownedUnions.length} union(s): ${ownedUnions.map(u => u.name).join(', ')}. Transfer ownership first.`,
-                  unions_owned: ownedUnions.length,
-              });
-          }
-
-          // Collected across every erasure step so the response can tell the
-          // truth about what was actually removed.
-          const erasureFailures = [];
-
-          // ── 0c. Cancel any pending cashout requests ──
-          // Money in flight. If this fails the account is erased with a pending
-          // cashout still open against a player_id that no longer exists, and
-          // nothing will ever resolve it. A zero-row match is fine and normal --
-          // most users have no pending cashout -- but an ERROR is not.
-          const { error: err_cashout_requests_0c2tx } = await getSupabase()
-            .from('cashout_requests')
-            .update({ status: 'cancelled', cancelled_at: new Date().toISOString(), agent_note: 'Account deleted' })
-              .eq('player_id', userId)
-              .eq('status', 'pending');
-          if (err_cashout_requests_0c2tx) {
-            console.error('[delete-account] CRITICAL: could not cancel pending cashouts before erasure:', err_cashout_requests_0c2tx.message);
-            return res.status(500).json({
+      // ── 1. The database closes the account, in one transaction ──
+      const { data: closed, error: closeErr } = await getSupabase().rpc('fn_close_account', {
+          p_user_id: userId,
+      });
+      if (closeErr) {
+          console.error('[delete-account] CRITICAL: fn_close_account failed:', closeErr.message);
+          return res.status(500).json({
               success: false,
-              error: 'Could not close your pending cashout requests, so the account was NOT deleted. Nothing has been removed. Please contact support.',
-            });
-          }
-
-          // ── 0d. Remove club memberships (zero-balance only at this point) ──
-          await eraseFrom(getSupabase(), 'club_members', (q) => q.eq('user_id', userId), erasureFailures);
-
-          // ── 1. Delete user profile data ──
-          // Remove diamond balance
-          await eraseFrom(getSupabase(), 'user_diamond_balance', (q) => q.eq('user_id', userId), erasureFailures);
-
-          // Remove diamond reward claims
-          await eraseFrom(getSupabase(), 'diamond_reward_claims', (q) => q.eq('user_id', userId), erasureFailures);
-
-          // Remove diamond transactions
-          await eraseFrom(getSupabase(), 'diamond_transactions', (q) => q.eq('user_id', userId), erasureFailures);
-
-          // Remove promo code redemptions
-          await eraseFrom(getSupabase(), 'promo_code_redemptions', (q) => q.eq('user_id', userId), erasureFailures);
-
-          // Remove MFA factors
-          await eraseFrom(getSupabase(), 'user_mfa_factors', (q) => q.eq('user_id', userId), erasureFailures);
-
-          // Remove active sessions
-          await eraseFrom(getSupabase(), 'user_sessions', (q) => q.eq('user_id', userId), erasureFailures);
-
-          // Remove notifications
-          await eraseFrom(getSupabase(), 'notifications', (q) => q.eq('user_id', userId), erasureFailures);
-
-          // Remove friendships (both directions)
-          await eraseFrom(getSupabase(), 'friendships', (q) => q.eq('user_id', userId), erasureFailures);
-          await eraseFrom(getSupabase(), 'friendships', (q) => q.eq('friend_id', userId), erasureFailures);
-
-          // Remove the profile (must be after dependent records)
-          // The profile is the anchor record. If it survives while the auth user
-          // is hard-deleted, the row becomes ORPHANED PII: still holding the
-          // person's name, email and username, with no account left to trace it
-          // to and no way for them to ask again. Stop before that happens.
-          const { error: err_profiles_2sqi2 } = await getSupabase()
-            .from('profiles')
-            .delete()
-              .eq('id', userId);
-          if (err_profiles_2sqi2) {
-              console.error('[delete-account] CRITICAL: profile delete FAILED - refusing to hard-delete the auth user, which would orphan this PII:', err_profiles_2sqi2.message);
-              return res.status(500).json({
-                  success: false,
-                  error: 'Your profile could not be removed, so the deletion was stopped before your login was destroyed. Your account still exists. Please contact support.',
-                  failedTables: [...erasureFailures.map((f) => f.table), 'profiles'],
-              });
-          }
-
-          // ── 2. Delete the auth user (hard delete via admin API) ──
-          const { error: deleteError } = await getSupabase().auth.admin.deleteUser(userId);
-
-          if (deleteError) {
-              console.error('[delete-account] CRITICAL: auth user deletion failed AFTER profile data was removed - the login still exists with no profile behind it:', deleteError.message);
-              return res.status(500).json({
-                  success: false,
-                  error: 'Your data was removed but your login could not be deleted. Please contact support so this can be completed.',
-                  dataRemoved: true,
-                  loginRemoved: false,
-              });
-          }
-
-          // Only now is "permanently deleted" a true statement -- and only for
-          // the tables that actually succeeded.
-          if (erasureFailures.length > 0) {
-              console.error('[delete-account] PARTIAL ERASURE - account deleted but these tables still hold data:', erasureFailures);
-              return res.status(200).json({
-                  success: true,
-                  partial: true,
-                  message: 'Your account has been deleted, but some records could not be removed and have been escalated.',
-                  failedTables: erasureFailures.map((f) => f.table),
-              });
-          }
-
-          console.info('[delete-account] Account deletion completed successfully.');
-
-          return res.status(200).json({
-              success: true,
-              message: 'Account has been permanently deleted'
+              error: 'Your account could not be closed. Nothing was changed. Please try again, or contact support.',
           });
-
-      } catch (error) {
-          console.warn('[delete-account] Error:', error);
-          return res.status(500).json({ error: 'Failed to delete account. Please contact support.' });
+      }
+      if (!closed?.ok) {
+          const refusal = Object.prototype.hasOwnProperty.call(REFUSALS, closed?.reason)
+              ? REFUSALS[closed.reason]
+              : null;
+          if (refusal) {
+              return res.status(400).json({
+                  success: false,
+                  error: refusal,
+                  reason: closed.reason,
+                  ...(Array.isArray(closed.blockers) ? { blockers: closed.blockers } : {}),
+              });
+          }
+          console.error('[delete-account] CRITICAL: fn_close_account refused with an unknown reason:', closed?.reason);
+          return res.status(500).json({
+              success: false,
+              error: 'Your account could not be closed. Nothing was changed. Please contact support.',
+          });
       }
 
+      // ── 2. Soft-delete the Auth user ──
+      // Soft, on purpose: a hard delete removes the auth.users row, which
+      // cascades into the append-only financial journals and is refused.
+      // Soft-delete obfuscates the email and phone, removes the identities
+      // and sessions, and keeps the row, so the login is gone for good.
+      const { error: deleteError } = await getSupabase().auth.admin.deleteUser(userId, true);
+      if (deleteError) {
+          console.error('[delete-account] CRITICAL: auth soft-delete failed AFTER the profile was scrubbed:', deleteError.message);
+          return res.status(500).json({
+              success: false,
+              error: 'Your personal data was removed, but your login could not be closed. Please contact support so this can be completed.',
+              dataRemoved: true,
+              loginRemoved: false,
+          });
+      }
+
+      // ── 3. The erasure record says it finished ──
+      // Best effort: the account IS closed either way. A request left at
+      // 'anonymized' is visible to support in gdpr_deletion_requests.
+      if (closed.request_id) {
+          try {
+              const { error: markErr } = await getSupabase().rpc('fn_mark_gdpr_completed', {
+                  p_request_id: closed.request_id,
+              });
+              if (markErr) {
+                  console.warn('[delete-account] fn_mark_gdpr_completed failed; request stays anonymized:', closed.request_id, markErr.message);
+              }
+          } catch (markErr) {
+              console.warn('[delete-account] fn_mark_gdpr_completed threw; request stays anonymized:', closed.request_id, markErr?.message || markErr);
+          }
+      }
+
+      console.info('[delete-account] Account closed.');
+      return res.status(200).json({
+          success: true,
+          message: 'Your account has been closed and your personal data removed.',
+      });
   } catch (err) {
       try { reportApiError(err, req); } catch (_reportError) { console.warn('[App] Handled exception:', _reportError?.message || _reportError); }
     console.warn('[API Error]', err);

@@ -38,9 +38,11 @@ import { readFileSync } from 'node:fs';
 
 const SRC = readFileSync(new URL('../src/lib/profileColumns.js', import.meta.url), 'utf8');
 
-/** Columns `authenticated` has NO SELECT grant on (production, 2026-09-03). */
+/** Columns `authenticated` has NO SELECT grant on (production, 2026-09-03;
+    `birthday` from 2026-09-29, Club Arena migration
+    the_full_birthday_is_its_owners_alone). */
 const REVOKED_FROM_AUTHENTICATED = [
-  'age_verified', 'age_verified_at', 'email', 'horse_profile', 'horse_status',
+  'age_verified', 'age_verified_at', 'birthday', 'email', 'horse_profile', 'horse_status',
   'is_farming_flagged', 'is_horse', 'jurisdiction_acknowledged_at',
   'jurisdiction_country', 'jurisdiction_region', 'kyc_completed_at',
   'kyc_inquiry_id', 'kyc_provider', 'kyc_rejection_reason', 'kyc_status',
