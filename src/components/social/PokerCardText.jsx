@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import {
   clubArenaCardUrl,
-  SUIT_SYMBOL,
   tokenizePokerText,
+  truncatePokerText,
 } from '../../lib/pokerCardMarkup';
 
 const RANK_NAME = {
@@ -10,6 +10,9 @@ const RANK_NAME = {
   '8': 'Eight', '9': 'Nine', T: 'Ten', J: 'Jack', Q: 'Queen', K: 'King', A: 'Ace',
 };
 const SUIT_NAME = { h: 'hearts', d: 'diamonds', c: 'clubs', s: 'spades' };
+// The last-resort text when neither image loads is plain "10h" or "As", with
+// ten written the way players read it; the label still says "Ten of hearts".
+const RANK_TEXT = { T: '10' };
 
 export function PokerCardImage({ rank, suit, size = 'inline', selected = false }) {
   const [fallback, setFallback] = useState(0);
@@ -47,7 +50,7 @@ export function PokerCardImage({ rank, suit, size = 'inline', selected = false }
           fontSize: size === 'picker' ? 15 : 11,
         }}
       >
-        {rank}{SUIT_SYMBOL[suit]}
+        {RANK_TEXT[rank] || rank}{suit}
       </span>
     );
   }
@@ -88,5 +91,18 @@ export default function PokerCardText({ text, style = {}, className = '' }) {
         <React.Fragment key={`text-${index}`}>{token.value}</React.Fragment>
       ))}
     </span>
+  );
+}
+
+// A preview of post text: cut to maxLength with a card counting as one
+// character and never split, then drawn with the Club Arena artwork.
+export function PokerCardSnippet({ text, maxLength, ellipsis = '...', style, className }) {
+  const snippet = truncatePokerText(text || '', maxLength);
+  if (!snippet.text) return null;
+  return (
+    <>
+      <PokerCardText text={snippet.text} style={style} className={className} />
+      {snippet.truncated ? ellipsis : null}
+    </>
   );
 }
