@@ -265,6 +265,31 @@ body.world-poker-near-me {
   white-space: nowrap;
 }
 
+/* A global `h2 { font-size: 1.5rem !important }` outranks the size above, so a
+   heading that carries the painted label style renders at 24px and the nowrap
+   above then clips it. Home Games Near Me showed this: "Browse Home Games By
+   City" needed 377px inside a 304px column and was cut off on every phone.
+   Restore the label's own size for headings, and let a block level label wrap
+   instead of clipping if it still cannot fit. */
+h1.pnc-label,
+h2.pnc-label,
+h3.pnc-label,
+h4.pnc-label,
+h5.pnc-label,
+h6.pnc-label {
+  font-size: 2.7cqw !important;
+}
+
+h1.pnc-label,
+h2.pnc-label,
+h3.pnc-label,
+h4.pnc-label,
+h5.pnc-label,
+h6.pnc-label,
+p.pnc-label {
+  white-space: normal;
+}
+
 .pnc-data-row {
   display: grid;
   min-width: 0;

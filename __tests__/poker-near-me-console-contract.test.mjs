@@ -305,3 +305,21 @@ test('console artwork provenance and no-baked-data policy ship with the assets',
     assert.match(provenance, /dynamic|live value|DOM content/i);
   }
 });
+
+test('a painted label used as a heading keeps its own size and can wrap', () => {
+  // A global `h2 { font-size: 1.5rem !important }` outranks .pnc-label, so a
+  // heading carrying the label style rendered at 24px and `white-space: nowrap`
+  // clipped it. Home Games Near Me lost the end of "Browse Home Games By City"
+  // on every phone width. Both halves of the repair are pinned here.
+  const css = read('src/styles/worlds/poker-near-me-console.css');
+  assert.match(
+    css,
+    /h1\.pnc-label[\s\S]*?h6\.pnc-label\s*\{[^}]*font-size:\s*2\.7cqw\s*!important/,
+    'a heading label must beat the global h2 font-size',
+  );
+  assert.match(
+    css,
+    /h6\.pnc-label,\s*\n\s*p\.pnc-label\s*\{[^}]*white-space:\s*normal/,
+    'a block level label must wrap instead of clipping',
+  );
+});
