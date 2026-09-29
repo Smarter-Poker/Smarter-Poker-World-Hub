@@ -20,7 +20,7 @@
  * SmarterPoker Dark color schema
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { useRouter } from 'next/router';
 import { getAuthUser } from '../../../src/lib/authUtils';
@@ -28,8 +28,10 @@ import { useAvatar } from '../../../src/contexts/AvatarContext';
 import { getTriviaPreferences, updateTriviaPreferences } from '../../../src/services/triviaPreferences';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
+import TriviaConsole from '../../../src/components/trivia/console/TriviaConsole';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import * as triviaAudio from '../../../src/lib/trivia/triviaAudio';
+import { toTitleCase } from '../../../src/lib/trivia/titleCase';
 
 const GAME_SETTINGS_KEY = 'trivia_settings';
 
@@ -71,15 +73,19 @@ function readGameSettings() {
  * not manage. `audio` mirrors `soundEffects` — the games key sound off `audio`.
  */
 function writeGameSettings(prefs) {
-    if (typeof window === 'undefined') return;
+    if (typeof window === 'undefined') return false;
     // Sound is owned by triviaAudio (localStorage key 'trivia_audio_muted'),
     // which is what TriviaGame and every synthesized cue actually read. Writing
     // only `audio` here left a third, silently-diverging mute switch: turning
     // sound off on this page did nothing inside TriviaGame. Push the change to
     // the real owner first; `audio` below stays as a mirror for the game pages'
     // own settings blobs.
+    let audioSynced = true;
     try { triviaAudio.setMuted(!prefs.soundEffects); }
-    catch (e) { console.warn('[TriviaSettings] Could not set mute:', e?.message || e); }
+    catch (e) {
+        console.warn('[TriviaSettings] Could not set mute:', e?.message || e);
+        audioSynced = false;
+    }
     try {
         let existing = {};
         try { existing = JSON.parse(localStorage.getItem(GAME_SETTINGS_KEY) || '{}') || {}; } catch (e) { existing = {}; }
@@ -95,9 +101,68 @@ function writeGameSettings(prefs) {
             difficulty: prefs.difficulty
         };
         localStorage.setItem(GAME_SETTINGS_KEY, JSON.stringify(merged));
+        return audioSynced;
     } catch (e) {
         console.warn('[TriviaSettings] Could not persist game settings:', e);
+        return false;
     }
+}
+
+/**
+ * A two-state control printed as a lit word on the glass: "On" in green,
+ * "Off" in muted ink. Native button semantics provide Enter and Space; the
+ * switch role and aria-checked carry the state. Defined at module scope so a
+ * re-render never remounts it (and never drops keyboard focus).
+ */
+function ToggleSwitch({ checked, onChange, label }) {
+    return (
+        <button
+            type="button"
+            className="tc-word trivia-progress-switch"
+            role="switch"
+            aria-checked={!!checked}
+            aria-label={label}
+            data-checked={checked ? 'true' : 'false'}
+            onClick={onChange}
+        >
+            {checked ? 'On' : 'Off'}
+        </button>
+    );
+}
+
+function SettingRow({ title, description, status, stacked = false, children }) {
+    return (
+        <li className="trivia-progress-setting" data-layout={stacked ? 'stacked' : 'inline'}>
+            <div className="trivia-progress-setting__row">
+                <div className="trivia-progress-setting__copy">
+                    <h2 className="trivia-progress-setting__title">{title}</h2>
+                    <p className="trivia-progress-setting__description">{description}</p>
+                </div>
+                {!stacked && <div className="trivia-progress-setting__control">{children}</div>}
+            </div>
+            {stacked && children}
+            {status}
+        </li>
+    );
+}
+
+function ChoiceRow({ label, options, value, onSelect }) {
+    return (
+        <div className="trivia-progress-choice-group" role="group" aria-label={label}>
+            {options.map(option => (
+                <button
+                    type="button"
+                    key={option}
+                    className="tc-word trivia-progress-choice"
+                    onClick={() => onSelect(option)}
+                    aria-pressed={value === option}
+                    data-selected={value === option ? 'true' : 'false'}
+                >
+                    {toTitleCase(option)}
+                </button>
+            ))}
+        </div>
+    );
 }
 
 export default function TriviaSettings() {
@@ -110,6 +175,7 @@ export default function TriviaSettings() {
     const [isLoading, setIsLoading] = useState(true);
     const [saveMessage, setSaveMessage] = useState('');
     const [saveIsError, setSaveIsError] = useState(false);
+    const [saveKey, setSaveKey] = useState('');
 
     const [preferences, setPreferences] = useState(DEFAULT_PREFERENCES);
 
@@ -155,22 +221,28 @@ export default function TriviaSettings() {
         setPreferences(prev => (prev.soundEffects === !m ? prev : { ...prev, soundEffects: !m }));
     }), []);
 
-    const flash = (message, isError = false) => {
+    // One pending clear at a time, and none after unmount.
+    const flashTimerRef = useRef(null);
+    useEffect(() => () => window.clearTimeout(flashTimerRef.current), []);
+
+    const flash = (message, isError = false, key = '') => {
         setSaveMessage(message);
         setSaveIsError(isError);
-        setTimeout(() => setSaveMessage(''), 2500);
+        setSaveKey(key);
+        window.clearTimeout(flashTimerRef.current);
+        flashTimerRef.current = window.setTimeout(() => setSaveMessage(''), 2500);
     };
 
     /**
-     * Autosave every change (toggles AND difficulty — difficulty used to require
+     * Autosave every change (toggles AND difficulty - difficulty used to require
      * a manual Save button that then navigated away from the page after 1s).
      * Game-side settings are written first because they are local and cannot
      * fail; the account-level write rolls back the UI if it errors.
      */
-    const persist = async (newPrefs, onRollback) => {
+    const persist = async (key, newPrefs, onRollback) => {
         writeGameSettings(newPrefs);
         if (!userId) {
-            flash('Saved on this device. Sign in to sync across devices.');
+            flash('Saved On This Device. Sign In To Sync Across Devices.', false, key);
             return;
         }
         try {
@@ -180,10 +252,10 @@ export default function TriviaSettings() {
                 hintsEnabled: newPrefs.hintsEnabled,
                 difficulty: newPrefs.difficulty
             });
-            flash('Settings saved');
+            flash('Settings Saved', false, key);
         } catch (error) {
             console.warn('Error auto-saving:', error);
-            flash('Failed to save. Please try again.', true);
+            flash('Failed To Save. Please Try Again.', true, key);
             if (onRollback) onRollback();
         }
     };
@@ -192,7 +264,7 @@ export default function TriviaSettings() {
         const oldValue = preferences[key];
         const newPrefs = { ...preferences, [key]: !oldValue };
         setPreferences(newPrefs);
-        persist(newPrefs, () => {
+        persist(key, newPrefs, () => {
             setPreferences(prev => ({ ...prev, [key]: oldValue }));
             writeGameSettings({ ...newPrefs, [key]: oldValue });
         });
@@ -203,90 +275,30 @@ export default function TriviaSettings() {
         if (oldValue === value) return;
         const newPrefs = { ...preferences, [key]: value };
         setPreferences(newPrefs);
-        persist(newPrefs, () => {
+        persist(key, newPrefs, () => {
             setPreferences(prev => ({ ...prev, [key]: oldValue }));
             writeGameSettings({ ...newPrefs, [key]: oldValue });
         });
     };
 
-    /**
-     * Accessible toggle. Was a click-only <div> with no role, no tab stop and
-     * no keyboard handling — unusable with a keyboard or a screen reader.
-     */
-    const ToggleSwitch = ({ checked, onChange, label }) => (
-        <div
-            role="switch"
-            aria-checked={!!checked}
-            aria-label={label}
-            tabIndex={0}
-            onClick={onChange}
-            onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar') {
-                    e.preventDefault();
-                    onChange();
-                }
-            }}
-            style={{
-                width: '50px',
-                height: '26px',
-                flexShrink: 0,
-                background: checked ? '#2374e1' : '#3a3b3c',
-                borderRadius: '13px',
-                position: 'relative',
-                cursor: 'pointer',
-                transition: 'background 0.2s'
-            }}
+    // Save feedback prints in the row that changed, where the player is looking.
+    const statusFor = (key) => (saveMessage && saveKey === key ? (
+        <p
+            className={`trivia-progress-status ${saveIsError ? 'tc-ink--red' : 'tc-ink--green'}`}
+            role={saveIsError ? 'alert' : 'status'}
+            data-tone={saveIsError ? 'error' : 'success'}
         >
-            <div style={{
-                width: '22px',
-                height: '22px',
-                background: '#fff',
-                borderRadius: '50%',
-                position: 'absolute',
-                top: '2px',
-                left: checked ? '26px' : '2px',
-                transition: 'left 0.2s'
-            }} />
-        </div>
-    );
+            {saveMessage}
+        </p>
+    ) : null);
 
-    const SettingRow = ({ title, description, children }) => (
-        <div style={{ background: '#242526', border: '1px solid #4e4f50', borderRadius: '12px', padding: '20px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
-                <div style={{ minWidth: '180px', flex: 1 }}>
-                    <div style={{ color: '#e4e6eb', fontWeight: 'bold', marginBottom: '4px' }}>{title}</div>
-                    <div style={{ color: '#65676b', fontSize: '14px' }}>{description}</div>
-                </div>
-                {children}
-            </div>
-        </div>
-    );
-
-    const ChoiceRow = ({ options, value, onSelect }) => (
-        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-            {options.map(option => (
-                <button
-                    key={option}
-                    onClick={() => onSelect(option)}
-                    aria-pressed={value === option}
-                    style={{
-                        flex: '1 1 auto',
-                        minWidth: '76px',
-                        padding: '12px',
-                        background: value === option ? '#2374e1' : '#3a3b3c',
-                        border: value === option ? 'none' : '1px solid #4e4f50',
-                        color: '#e4e6eb',
-                        borderRadius: '8px',
-                        cursor: 'pointer',
-                        fontWeight: value === option ? 'bold' : 'normal',
-                        textTransform: 'capitalize'
-                    }}
-                >
-                    {option}
-                </button>
-            ))}
-        </div>
-    );
+    const toggles = [
+        { key: 'soundEffects', title: 'Sound Effects', description: 'Countdown Heartbeat And Answer Feedback Sounds' },
+        { key: 'haptics', title: 'Haptic Vibration', description: 'Vibrate As The Shot Clock Runs Down (Mobile Only)' },
+        { key: 'screenShake', title: 'Screen Shake', description: 'Shake The Board In The Final Seconds Of A Question' },
+        { key: 'timerEnabled', title: 'Timer', description: 'Show The Countdown Timer During Questions' },
+        { key: 'hintsEnabled', title: 'Show Hints', description: 'Display Hints For Difficult Questions Where Available' },
+    ];
 
     return (
         <>
@@ -298,136 +310,87 @@ export default function TriviaSettings() {
             />
 
             <PageTransition>
-                <div style={{ minHeight: '100vh', width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box', background: '#18191a' }}>
+                <div
+                    className="trivia-progress-page trivia-progress-page--settings"
+                    data-trivia-family="progress"
+                    data-trivia-surface="settings"
+                >
                     <UniversalHeader pageDepth={2} />
 
-                    <div style={{ padding: '120px 20px 40px', maxWidth: '800px', margin: '0 auto' }}>
-                        <button
-                            onClick={() => router.push('/hub/trivia')}
-                            style={{
-                                background: 'rgba(35, 116, 225, 0.1)',
-                                border: '1px solid rgba(35, 116, 225, 0.3)',
-                                color: '#2374e1',
-                                padding: '8px 16px',
-                                borderRadius: '8px',
-                                cursor: 'pointer',
-                                marginBottom: '20px'
+                    <main className="trivia-progress-shell">
+                        <TriviaConsole
+                            className="trivia-progress-console"
+                            eyebrow="Player Controls"
+                            title="Trivia Settings"
+                            titleAs="h1"
+                            titleId="trivia-settings-title"
+                            subtitle="Changes Save Automatically"
+                            pill={isLoading ? 'Loading' : userId ? 'Synced' : 'Local'}
+                            pillInk={!isLoading && userId ? 'green' : 'blue'}
+                            aria-labelledby="trivia-settings-title"
+                            secondaryAction={{
+                                label: 'Back To Trivia',
+                                onClick: () => router.push('/hub/trivia'),
                             }}
                         >
-                            Back To Trivia
-                        </button>
-
-                        <h1 style={{ fontSize: '32px', fontWeight: 'bold', color: '#e4e6eb', marginBottom: '12px' }}>
-                            Trivia Settings
-                        </h1>
-                        <p style={{ color: '#65676b', marginBottom: '12px' }}>
-                            Customize Your Trivia Experience. Changes Save Automatically.
+                        <p className="trivia-progress-intro">
+                            {userId
+                                ? 'Customize Your Trivia Experience. Every Change Saves To Your Account.'
+                                : 'Customize Your Trivia Experience. Signed Out, Changes Save On This Device Only.'}
                         </p>
 
                         {isLoading ? (
-                            <div style={{ color: '#65676b', textAlign: 'center', padding: '40px' }}>
-                                Loading Settings...
-                            </div>
+                            <p className="trivia-progress-state trivia-progress-state--loading" role="status">
+                                Loading Settings
+                            </p>
                         ) : (
-                            <div style={{ display: 'grid', gap: '20px', marginTop: '28px' }}>
-                                <SettingRow
-                                    title="Sound Effects"
-                                    description="Countdown Heartbeat And Answer Feedback Sounds"
-                                >
-                                    <ToggleSwitch
-                                        label="Sound Effects"
-                                        checked={preferences.soundEffects}
-                                        onChange={() => handleToggle('soundEffects')}
-                                    />
-                                </SettingRow>
+                            <ul className="trivia-progress-settings-list" aria-label="Trivia Preferences">
+                                {toggles.map(toggle => (
+                                    <SettingRow
+                                        key={toggle.key}
+                                        title={toggle.title}
+                                        description={toggle.description}
+                                        status={statusFor(toggle.key)}
+                                    >
+                                        <ToggleSwitch
+                                            label={toggle.title}
+                                            checked={preferences[toggle.key]}
+                                            onChange={() => handleToggle(toggle.key)}
+                                        />
+                                    </SettingRow>
+                                ))}
 
                                 <SettingRow
-                                    title="Haptic Vibration"
-                                    description="Vibrate As The Shot Clock Runs Down (Mobile Only)"
+                                    title="Feedback Intensity"
+                                    description="How Strong The Vibration, Shake And Audio Cues Feel"
+                                    status={statusFor('intensity')}
+                                    stacked
                                 >
-                                    <ToggleSwitch
-                                        label="Haptic Vibration"
-                                        checked={preferences.haptics}
-                                        onChange={() => handleToggle('haptics')}
-                                    />
-                                </SettingRow>
-
-                                <SettingRow
-                                    title="Screen Shake"
-                                    description="Shake The Board In The Final Seconds Of A Question"
-                                >
-                                    <ToggleSwitch
-                                        label="Screen Shake"
-                                        checked={preferences.screenShake}
-                                        onChange={() => handleToggle('screenShake')}
-                                    />
-                                </SettingRow>
-
-                                <SettingRow
-                                    title="Timer"
-                                    description="Show The Countdown Timer During Questions"
-                                >
-                                    <ToggleSwitch
-                                        label="Timer"
-                                        checked={preferences.timerEnabled}
-                                        onChange={() => handleToggle('timerEnabled')}
-                                    />
-                                </SettingRow>
-
-                                <SettingRow
-                                    title="Show Hints"
-                                    description="Display Hints For Difficult Questions Where Available"
-                                >
-                                    <ToggleSwitch
-                                        label="Show Hints"
-                                        checked={preferences.hintsEnabled}
-                                        onChange={() => handleToggle('hintsEnabled')}
-                                    />
-                                </SettingRow>
-
-                                <div style={{ background: '#242526', border: '1px solid #4e4f50', borderRadius: '12px', padding: '20px' }}>
-                                    <div style={{ color: '#e4e6eb', fontWeight: 'bold', marginBottom: '4px' }}>Feedback Intensity</div>
-                                    <div style={{ color: '#65676b', fontSize: '14px', marginBottom: '12px' }}>
-                                        How Strong The Vibration, Shake And Audio Cues Feel
-                                    </div>
                                     <ChoiceRow
+                                        label="Feedback Intensity"
                                         options={['low', 'medium', 'high']}
                                         value={preferences.intensity}
                                         onSelect={(value) => handleChoice('intensity', value)}
                                     />
-                                </div>
+                                </SettingRow>
 
-                                <div style={{ background: '#242526', border: '1px solid #4e4f50', borderRadius: '12px', padding: '20px' }}>
-                                    <div style={{ color: '#e4e6eb', fontWeight: 'bold', marginBottom: '4px' }}>Difficulty Level</div>
-                                    <div style={{ color: '#65676b', fontSize: '14px', marginBottom: '12px' }}>
-                                        Preferred Question Difficulty In Endless Mode
-                                    </div>
+                                <SettingRow
+                                    title="Difficulty Level"
+                                    description="Preferred Question Difficulty In Endless Mode"
+                                    status={statusFor('difficulty')}
+                                    stacked
+                                >
                                     <ChoiceRow
+                                        label="Difficulty Level"
                                         options={DIFFICULTY_OPTIONS}
                                         value={preferences.difficulty}
                                         onSelect={(value) => handleChoice('difficulty', value)}
                                     />
-                                </div>
-                            </div>
+                                </SettingRow>
+                            </ul>
                         )}
-
-                        {saveMessage && (
-                            <div
-                                role="status"
-                                style={{
-                                    marginTop: '20px',
-                                    padding: '12px',
-                                    background: saveIsError ? 'rgba(240, 40, 73, 0.2)' : 'rgba(49, 162, 76, 0.2)',
-                                    border: `1px solid ${saveIsError ? 'rgba(240, 40, 73, 0.4)' : 'rgba(49, 162, 76, 0.4)'}`,
-                                    borderRadius: '8px',
-                                    color: saveIsError ? '#f02849' : '#31a24c',
-                                    textAlign: 'center'
-                                }}
-                            >
-                                {saveMessage}
-                            </div>
-                        )}
-                    </div>
+                        </TriviaConsole>
+                    </main>
                 </div>
     </PageTransition>
         </>

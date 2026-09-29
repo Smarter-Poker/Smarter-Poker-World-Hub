@@ -13,12 +13,12 @@
  * credit, returns the prize id) still needs to be added on the DB side.
  */
 
-import React, { useState, useCallback, useRef, useEffect } from 'react';
-import { Gem, Shield, Ticket, Gift, Star, Zap } from 'lucide-react';
-import HexButton from '../ui/HexButton';
-import MetalFrame from '../ui/MetalFrame';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { busEmit } from '../../engine/EventBus';
 import { supabase } from '../../lib/supabase';
+import TriviaConsoleDialog from './console/TriviaConsoleDialog';
+import { formatTriviaDisplayNumber } from '../../lib/trivia/formatTriviaDisplayNumber';
+import styles from './PrizeWheel.module.css';
 
 const SPIN_DURATION_MS = 4000;
 
@@ -28,15 +28,25 @@ const SPIN_DURATION_MS = 4000;
 // reward. Until a box-opening flow exists it pays real diamonds while
 // keeping the "???" surprise reveal.
 const PRIZES = [
-    { id: 'diamond_5', label: '5', icon: Gem, color: '#00d4ff', weight: 30, reward: { type: 'diamonds', amount: 5 } },
-    { id: 'diamond_10', label: '10', icon: Gem, color: '#00d4ff', weight: 25, reward: { type: 'diamonds', amount: 10 } },
-    { id: 'diamond_25', label: '25', icon: Gem, color: '#00d4ff', weight: 15, reward: { type: 'diamonds', amount: 25 } },
-    { id: 'diamond_50', label: '50', icon: Gem, color: '#ffd700', weight: 10, reward: { type: 'diamonds', amount: 50 } },
-    { id: 'diamond_100', label: '100', icon: Gem, color: '#ffd700', weight: 5, reward: { type: 'diamonds', amount: 100 } },
-    { id: 'streak_shield', label: 'Shield', icon: Shield, color: '#a78bfa', weight: 8, reward: { type: 'streak_shield', amount: 1 } },
-    { id: 'free_entry', label: 'Free Play', icon: Ticket, color: '#22c55e', weight: 5, reward: { type: 'arcade_ticket', amount: 1 } },
-    { id: 'mystery', label: '???', icon: Gift, color: '#f472b6', weight: 2, reward: { type: 'diamonds', amount: 15 } },
+    { id: 'diamond_5', label: '5', color: '#45adff', weight: 30, reward: { type: 'diamonds', amount: 5 } },
+    { id: 'diamond_10', label: '10', color: '#45adff', weight: 25, reward: { type: 'diamonds', amount: 10 } },
+    { id: 'diamond_25', label: '25', color: '#45adff', weight: 15, reward: { type: 'diamonds', amount: 25 } },
+    { id: 'diamond_50', label: '50', color: '#ffd700', weight: 10, reward: { type: 'diamonds', amount: 50 } },
+    { id: 'diamond_100', label: '100', color: '#ffd700', weight: 5, reward: { type: 'diamonds', amount: 100 } },
+    { id: 'streak_shield', label: 'Shield', color: '#e4e7ec', weight: 8, reward: { type: 'streak_shield', amount: 1 } },
+    { id: 'free_entry', label: 'Free Play', color: '#c8ffd2', weight: 5, reward: { type: 'arcade_ticket', amount: 1 } },
+    { id: 'mystery', label: 'Mystery', color: '#f02849', weight: 2, reward: { type: 'diamonds', amount: 15 } },
 ];
+
+// Schema ink for each PRIZES colour (the table above stays the source of
+// truth; this only picks the painted-console ink class that prints it).
+const INK_BY_PRIZE_COLOR = Object.freeze({
+    '#45adff': 'blue',
+    '#ffd700': 'gold',
+    '#e4e7ec': 'silver',
+    '#c8ffd2': 'green',
+    '#f02849': 'red',
+});
 
 // Weighted random selection (fallback only - see trust model above)
 function selectPrize() {
@@ -211,7 +221,7 @@ export default function PrizeWheel({
                 if (_persistFailed) {
                     claimingRef.current = false;
                     if (isMountedRef.current) {
-                        setClaimError('Could not save your prize. Tap Claim to retry.');
+                        setClaimError('Could Not Save Your Prize. Tap Claim To Retry.');
                     }
                     onComplete({ ...result.reward, persistFailed: true });
                     return;
@@ -223,30 +233,65 @@ export default function PrizeWheel({
     };
 
     const segmentAngle = 360 / PRIZES.length;
+    const canClose = Boolean(onClose && !isSpinning && !result && !hasSpunRef.current);
+
+    // Footer law: two painted plates only while the surface genuinely has two
+    // actions (Spin and Skip). Skip stays printed but disabled through the
+    // spin so the chassis does not jump under a moving wheel; it can never
+    // fire once a spin has started (canClose is false). After the landing the
+    // one remaining action (Claim) prints as a lit word on the glass.
+    const primaryAction = !result
+        ? {
+            label: isSpinning ? 'Spinning...' : 'Spin The Wheel',
+            onClick: spin,
+            disabled: isSpinning || hasSpunRef.current,
+        }
+        : {
+            label: claimError ? 'Retry Claim' : 'Claim Reward',
+            onClick: handleClaim,
+            ink: claimError ? 'red' : 'gold',
+        };
+    const secondaryAction = onClose && !result
+        ? {
+            label: 'Skip',
+            onClick: canClose ? onClose : undefined,
+            disabled: !canClose,
+            ink: canClose ? 'silver' : 'muted',
+        }
+        : undefined;
+
+    const resultInk = result ? (INK_BY_PRIZE_COLOR[result.prize.color] || 'silver') : 'silver';
 
     return (
-        <div className="prize-wheel-overlay">
-            <MetalFrame padding="32px" showBolts={true} showNeonStrips={true}>
-                <div className="prize-wheel-container">
-                    <h2 className="title">
-                        <Star className="star-icon" />
-                        Daily Spin
-                        <Star className="star-icon" />
-                    </h2>
+        <div className={`prize-wheel-overlay ${styles.overlay}`}>
+            <TriviaConsoleDialog
+                open
+                onClose={canClose ? onClose : undefined}
+                closeOnBackdrop={canClose}
+                eyebrow="Daily Reward"
+                title="Prize Wheel"
+                subtitle={isSpinning ? 'Resolving Your Reward' : result ? 'Reward Ready To Claim' : 'One Spin Per Perfect Game'}
+                pill={streakMultiplier > 1 ? `${streakMultiplier}X Bonus` : 'Perfect Run'}
+                primaryAction={primaryAction}
+                secondaryAction={secondaryAction}
+            >
+                <div className={styles.container}>
+                    <p className={`tc-label ${styles.kicker}`}>Daily Spin</p>
 
                     {streakMultiplier > 1 && (
-                        <div className="multiplier-notice">
-                            <Zap size={14} />
-                            {streakMultiplier}x Streak Bonus Active!
-                        </div>
+                        <p className={`tc-ink--gold ${styles.notice}`}>
+                            {streakMultiplier}X Streak Bonus Active!
+                        </p>
                     )}
 
-                    {/* Wheel */}
-                    <div className="wheel-wrapper">
-                        <div className="wheel-pointer">▼</div>
+                    {/* Wheel: painted face (rotates), painted hub cap and
+                        pointer (static). Only the eight prize labels are live
+                        DOM, printed into each segment's glass and carried
+                        round by the same transform as the face. */}
+                    <div className={styles.stage} role="img" aria-label="Prize Wheel With Eight Reward Slots">
                         <div
                             ref={wheelRef}
-                            className="wheel"
+                            className={styles.wheel}
                             style={{
                                 transform: `rotate(${rotation}deg)`,
                                 willChange: isSpinning ? 'transform' : 'auto',
@@ -256,303 +301,52 @@ export default function PrizeWheel({
                             }}
                         >
                             {PRIZES.map((prize, index) => {
-                                const Icon = prize.icon;
-                                const startAngle = index * segmentAngle;
-
+                                const centreAngle = index * segmentAngle + segmentAngle / 2;
+                                const ink = INK_BY_PRIZE_COLOR[prize.color] || 'silver';
                                 return (
-                                    <div
+                                    <span
                                         key={prize.id}
-                                        className="wheel-segment"
-                                        style={{
-                                            transform: `rotate(${startAngle}deg)`,
-                                            '--segment-color': prize.color
-                                        }}
+                                        className={`${styles.segmentLabel} ${prize.label.length > 3 ? styles.segmentWord : ''} tc-ink--${ink}`}
+                                        style={{ '--segment-angle': `${centreAngle}deg` }}
+                                        aria-hidden="true"
                                     >
-                                        <div className="segment-content" style={{ transform: `rotate(${segmentAngle / 2}deg)` }}>
-                                            <Icon size={20} />
-                                            <span>{prize.label}</span>
-                                        </div>
-                                    </div>
+                                        {prize.label}
+                                    </span>
                                 );
                             })}
                         </div>
-                        <div className="wheel-center">
-                            <Gem size={24} color="#00d4ff" />
-                        </div>
+                        <span className={styles.hub} aria-hidden="true" />
+                        <span className={styles.pointer} aria-hidden="true" />
                     </div>
 
                     {/* Result display */}
                     {result && (
-                        <div className="result-display" style={{ '--prize-color': result.prize.color }}>
-                            <div className="result-icon">
-                                {React.createElement(result.prize.icon, { size: 32 })}
-                            </div>
-                            <div className="result-text">
-                                <span className="result-label">You Won!</span>
-                                <span className="result-amount">
-                                    {result.reward.type === 'diamonds' && `${result.reward.amount} Diamonds`}
+                        <div className={`tc-rows ${styles.result}`} role="status" aria-live="polite">
+                            <div className="tc-row">
+                                <span className="tc-row__label">You Won!</span>
+                                <span className={`tc-row__value tc-ink--${resultInk} ${styles.resultAmount}`}>
+                                    {result.reward.type === 'diamonds' && `${formatTriviaDisplayNumber(result.reward.amount)} Diamonds`}
                                     {result.reward.type === 'streak_shield' && 'Streak Shield'}
                                     {result.reward.type === 'arcade_ticket' && 'Free Arcade Entry'}
                                 </span>
-                                {/* Make the streak multiplier visible - it was
-                                    previously applied silently at claim time,
-                                    hiding the value of the streak system. */}
-                                {result.reward.type === 'diamonds' && result.reward.appliedMultiplier > 1 && (
-                                    <span className="result-breakdown">
-                                        {result.reward.baseAmount} X {result.reward.appliedMultiplier} Streak Bonus
-                                    </span>
-                                )}
                             </div>
+                            {/* Make the streak multiplier visible - it was
+                                previously applied silently at claim time,
+                                hiding the value of the streak system. */}
+                            {result.reward.type === 'diamonds' && result.reward.appliedMultiplier > 1 && (
+                                <div className="tc-row">
+                                    <span className="tc-row__label">Streak Bonus</span>
+                                    <span className="tc-row__value">
+                                        {formatTriviaDisplayNumber(result.reward.baseAmount)} X {formatTriviaDisplayNumber(result.reward.appliedMultiplier)}
+                                    </span>
+                                </div>
+                            )}
                         </div>
                     )}
 
-                    {claimError && <div className="claim-error" role="alert">{claimError}</div>}
-
-                    {/* Action button */}
-                    {!result ? (
-                        <HexButton
-                            onClick={spin}
-                            disabled={isSpinning || hasSpunRef.current}
-                            variant="primary"
-                            size="lg"
-                        >
-                            {isSpinning ? 'Spinning...' : 'Spin The Wheel'}
-                        </HexButton>
-                    ) : (
-                        <HexButton
-                            onClick={handleClaim}
-                            variant="primary"
-                            size="lg"
-                        >
-                            {claimError ? 'Retry Claim' : 'Claim Reward'}
-                        </HexButton>
-                    )}
-
-                    {/* Skip is only an escape hatch BEFORE the spin. Leaving it
-                        up during/after the spin let a player discard a prize
-                        they had already won with one mis-tap - and, combined
-                        with re-opening the wheel, fish for a better roll. */}
-                    {onClose && !isSpinning && !result && !hasSpunRef.current && (
-                        <button className="skip-btn" type="button" onClick={onClose}>
-                            Skip
-                        </button>
-                    )}
+                    {claimError && <p className={`tc-ink--red ${styles.claimError}`} role="alert">{claimError}</p>}
                 </div>
-            </MetalFrame>
-
-            <style dangerouslySetInnerHTML={{ __html: `
-                .prize-wheel-overlay {
-                    position: fixed;
-                    top: 0;
-                    left: 0;
-                    right: 0;
-                    bottom: 0;
-                    background: rgba(0, 0, 0, 0.85);
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    z-index: 1000;
-                    padding: 20px;
-                }
-                
-                .prize-wheel-container {
-                    display: flex;
-                    flex-direction: column;
-                    align-items: center;
-                    gap: 20px;
-                    max-width: 360px;
-                }
-                
-                .title {
-                    font-family: 'Rajdhani', sans-serif;
-                    font-size: 24px;
-                    font-weight: 700;
-                    color: #fff;
-                    display: flex;
-                    align-items: center;
-                    gap: 12px;
-                    text-shadow: 0 0 20px rgba(0, 212, 255, 0.5);
-                }
-                
-                /* :global() is styled-jsx / CSS-Modules syntax and is INVALID
-                   inside a plain <style> element - browsers dropped this rule
-                   entirely, so the title stars rendered unstyled. */
-                .title .star-icon {
-                    color: #ffd700;
-                    animation: twinkle 1.5s ease-in-out infinite;
-                }
-                
-                @keyframes twinkle {
-                    0%, 100% { opacity: 1; transform: scale(1); }
-                    50% { opacity: 0.5; transform: scale(0.8); }
-                }
-                
-                .multiplier-notice {
-                    display: flex;
-                    align-items: center;
-                    gap: 6px;
-                    padding: 6px 14px;
-                    background: linear-gradient(135deg, #ffd700 0%, #ff8c00 100%);
-                    border-radius: 20px;
-                    font-size: 13px;
-                    font-weight: 600;
-                    color: #000;
-                }
-                
-                /* 280px cramped the labels at segment edges on 375px phones */
-                .wheel-wrapper {
-                    position: relative;
-                    width: min(320px, 80vw);
-                    height: min(320px, 80vw);
-                }
-                
-                .wheel-pointer {
-                    position: absolute;
-                    top: -10px;
-                    left: 50%;
-                    transform: translateX(-50%);
-                    font-size: 32px;
-                    color: #fff;
-                    z-index: 10;
-                    text-shadow: 0 0 10px #00d4ff;
-                }
-                
-                .wheel {
-                    width: 100%;
-                    height: 100%;
-                    border-radius: 50%;
-                    background: conic-gradient(
-                        from 0deg,
-                        ${PRIZES.map((p, i) => `${p.color}40 ${i * segmentAngle}deg ${(i + 1) * segmentAngle}deg`).join(', ')}
-                    );
-                    border: 4px solid rgba(255, 255, 255, 0.3);
-                    position: relative;
-                    box-shadow: 0 0 30px rgba(0, 212, 255, 0.3), inset 0 0 30px rgba(0, 0, 0, 0.5);
-                }
-                
-                .wheel-segment {
-                    position: absolute;
-                    width: 50%;
-                    height: 50%;
-                    left: 50%;
-                    top: 0;
-                    transform-origin: 0% 100%;
-                }
-                
-                .segment-content {
-                    position: absolute;
-                    left: 10%;
-                    top: 30%;
-                    display: flex;
-                    flex-direction: column;
-                    align-items: center;
-                    gap: 2px;
-                    color: var(--segment-color);
-                    font-size: 12px;
-                    font-weight: 600;
-                    text-shadow: 0 0 5px var(--segment-color);
-                }
-                
-                .wheel-center {
-                    position: absolute;
-                    top: 50%;
-                    left: 50%;
-                    transform: translate(-50%, -50%);
-                    width: 50px;
-                    height: 50px;
-                    background: radial-gradient(circle, #1a2744 0%, #0a1628 100%);
-                    border: 3px solid rgba(0, 212, 255, 0.5);
-                    border-radius: 50%;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    box-shadow: 0 0 20px rgba(0, 212, 255, 0.3);
-                }
-                
-                .result-display {
-                    display: flex;
-                    align-items: center;
-                    gap: 16px;
-                    padding: 16px 24px;
-                    background: rgba(0, 0, 0, 0.5);
-                    border: 2px solid var(--prize-color);
-                    border-radius: 12px;
-                    animation: resultPop 0.5s ease-out;
-                }
-                
-                @keyframes resultPop {
-                    0% { transform: scale(0.5); opacity: 0; }
-                    100% { transform: scale(1); opacity: 1; }
-                }
-                
-                .result-icon {
-                    color: var(--prize-color);
-                    animation: bounce 0.5s ease-out;
-                }
-                
-                @keyframes bounce {
-                    0%, 100% { transform: translateY(0); }
-                    50% { transform: translateY(-10px); }
-                }
-                
-                .result-text {
-                    display: flex;
-                    flex-direction: column;
-                }
-                
-                .result-label {
-                    font-size: 12px;
-                    color: rgba(255, 255, 255, 0.6);
-                    text-transform: uppercase;
-                }
-                
-                .result-amount {
-                    font-size: 18px;
-                    font-weight: 700;
-                    color: var(--prize-color);
-                    text-shadow: 0 0 10px var(--prize-color);
-                }
-                
-                .result-breakdown {
-                    font-size: 11px;
-                    color: rgba(255, 255, 255, 0.55);
-                    margin-top: 2px;
-                }
-
-                .claim-error {
-                    padding: 10px 14px;
-                    background: rgba(239, 68, 68, 0.12);
-                    border: 1px solid rgba(239, 68, 68, 0.35);
-                    border-radius: 8px;
-                    color: #ef4444;
-                    font-size: 12px;
-                    text-align: center;
-                }
-
-                .skip-btn {
-                    background: none;
-                    border: none;
-                    color: rgba(255, 255, 255, 0.4);
-                    font-size: 13px;
-                    cursor: pointer;
-                    padding: 12px 20px;
-                    min-height: 44px;
-                    transition: color 0.2s;
-                }
-
-                .skip-btn:hover {
-                    color: rgba(255, 255, 255, 0.7);
-                }
-
-                @media (prefers-reduced-motion: reduce) {
-                    .title .star-icon,
-                    .result-display,
-                    .result-icon {
-                        animation: none;
-                    }
-                    .skip-btn { transition: none; }
-                }
-            ` }} />
+            </TriviaConsoleDialog>
         </div>
     );
 }

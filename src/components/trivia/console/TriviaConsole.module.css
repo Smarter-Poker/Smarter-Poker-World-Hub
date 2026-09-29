@@ -1,0 +1,258 @@
+/*
+ * Trivia console chassis - Club Arena spade master (spade-console-v1).
+ * Each slice paints its own box at its own native ratio (#ClubArenaConsole
+ * 3.3a): top.png on the head, mid.png repeating on the body only, and the
+ * closing art on the foot. Colours are the master's inks and nothing else.
+ */
+
+.console {
+    --tc-max: 1000px;
+    position: relative;
+    container-type: inline-size;
+    display: flex;
+    flex-direction: column;
+    width: min(100%, var(--tc-max));
+    min-width: 0;
+    margin-inline: auto;
+    padding: 0;
+    overflow: visible;
+    color: #e4e7ec;
+    background: none;
+    font-family: 'Roboto Condensed', Inter, system-ui, sans-serif;
+    font-variant-numeric: tabular-nums lining-nums;
+}
+
+.head {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1000 / 348;
+    background: url('/images/trivia/console/spade-console-v1/top.webp') top center / 100% auto no-repeat;
+}
+
+.body {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 3cqw;
+    padding: 0 10.5% 3cqw;
+    background: url('/images/trivia/console/spade-console-v1/mid.webp') top center / 100% auto repeat-y;
+}
+
+.foot {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1000 / 72;
+    background: url('/images/trivia/console/spade-console-v1/bottom-foot.webp') bottom center / 100% auto no-repeat;
+}
+
+.withPlates .foot {
+    aspect-ratio: 1000 / 277;
+    background-image: url('/images/trivia/console/spade-console-v1/bottom-plates.webp');
+}
+
+.zone {
+    position: absolute;
+    display: grid;
+    align-items: center;
+    justify-items: start;
+    min-width: 0;
+    margin: 0;
+    overflow: hidden;
+    color: #e4e7ec;
+    white-space: nowrap;
+    text-shadow: 0 -0.18cqw 0 rgb(255 255 255 / 55%), 0 0.25cqw 0 #6d747c, 0 0.45cqw 0 #050607, 0 0.7cqw 0.9cqw rgb(0 0 0 / 90%);
+}
+
+.zone > span {
+    display: inline-block;
+    max-width: 100%;
+    /* The fit may take a string below the 12px base floor: a label that is
+       smaller is legible, a label cut off by the rim is a defect. */
+    font-size: calc(1em * var(--fit, 1));
+}
+
+.eyebrow {
+    color: #45adff;
+    font-size: max(12px, 2.6cqw);
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    text-shadow: 0 0 0.9cqw rgb(69 173 255 / 70%), 0 0 2cqw rgb(69 173 255 / 30%), 0 0.2cqw 0.3cqw rgb(0 0 0 / 85%);
+}
+
+.title {
+    font-size: 7cqw;
+    font-weight: 800;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+}
+
+.subtitle {
+    color: #9aa5b3;
+    font-size: max(12px, 3.2cqw);
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    text-shadow: 0 0.2cqw 0.3cqw rgb(0 0 0 / 80%);
+}
+
+/* One fitted line, like every other zone in the head: a second line cannot
+   fit the painted well at phone width, so it would be cut, never wrapped. */
+.subtitle > span {
+    line-height: 1.1;
+}
+
+.pill {
+    justify-items: center;
+    font-size: max(12px, 3.4cqw);
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-align: center;
+    text-transform: uppercase;
+}
+
+/* The two painted plates. The button paints nothing. */
+.plate {
+    appearance: none;
+    position: absolute;
+    display: grid;
+    place-items: center;
+    min-width: 0;
+    min-height: 44px;
+    margin: 0;
+    padding: 0 4%;
+    border: 0;
+    border-radius: 0;
+    overflow: hidden;
+    color: inherit;
+    background: transparent;
+    box-shadow: none;
+    font: inherit;
+    cursor: pointer;
+    touch-action: manipulation;
+}
+
+/* The face inside the rim: labels fit this, never the rim. */
+.plateWell {
+    display: grid;
+    justify-items: center;
+    width: 70%;
+    min-width: 0;
+    overflow: hidden;
+}
+
+.plateText {
+    display: inline-block;
+    max-width: 100%;
+    font-size: calc(max(12px, 4.2cqw) * var(--fit, 1));
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.plate:active .plateText {
+    filter: brightness(1.25);
+}
+
+.plate:disabled {
+    cursor: not-allowed;
+}
+
+.plate:disabled .plateText {
+    opacity: 0.45;
+}
+
+.plate:focus-visible {
+    outline: 3px solid #45adff;
+    outline-offset: -6px;
+}
+
+/* The single action: a lit word on the glass above the flat foot. */
+.glassActions {
+    display: flex;
+    justify-content: center;
+    padding-top: 2.6cqw;
+    border-top: 1px solid #000;
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 8%);
+}
+
+.word {
+    appearance: none;
+    min-width: 44px;
+    min-height: 44px;
+    margin: 0;
+    padding: 1.4cqw 3cqw;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    font: 800 max(14px, 3.3cqw) / 1 'Roboto Condensed', Inter, system-ui, sans-serif;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    cursor: pointer;
+    touch-action: manipulation;
+}
+
+.word:active {
+    filter: brightness(1.25);
+}
+
+.word:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.word:focus-visible {
+    outline: 3px solid #45adff;
+    outline-offset: 2px;
+}
+
+/* Inks: the master's own colours (#ClubArenaConsole 3.4). */
+.ink_silver {
+    color: #e4e7ec;
+    -webkit-text-fill-color: #e4e7ec;
+    text-shadow: 0 -0.18cqw 0 rgb(255 255 255 / 55%), 0 0.25cqw 0 #6d747c, 0 0.45cqw 0 #050607, 0 0.7cqw 0.9cqw rgb(0 0 0 / 90%);
+}
+
+.ink_white {
+    color: #f4f7fb;
+    -webkit-text-fill-color: #f4f7fb;
+    text-shadow: 0 0 1cqw rgb(69 173 255 / 90%), 0 0.25cqw 0 rgb(0 0 0 / 70%), 0 0.5cqw 1cqw rgb(0 0 0 / 60%);
+}
+
+.ink_blue {
+    color: #45adff;
+    -webkit-text-fill-color: #45adff;
+    text-shadow: 0 0 0.9cqw rgb(69 173 255 / 70%), 0 0 2cqw rgb(69 173 255 / 30%), 0 0.2cqw 0.3cqw rgb(0 0 0 / 85%);
+}
+
+.ink_green {
+    color: #c8ffd2;
+    -webkit-text-fill-color: #c8ffd2;
+    text-shadow: 0 0 1cqw rgb(53 217 90 / 80%), 0 0 2cqw rgb(53 217 90 / 35%), 0 0.25cqw 0 rgb(0 0 0 / 70%);
+}
+
+.ink_red {
+    color: #ff5b6e;
+    -webkit-text-fill-color: #ff5b6e;
+    text-shadow: 0 0 1cqw rgb(240 40 73 / 80%), 0 0 2cqw rgb(240 40 73 / 35%), 0 0.25cqw 0 rgb(0 0 0 / 70%);
+}
+
+.ink_gold {
+    color: #ffd700;
+    -webkit-text-fill-color: #ffd700;
+    text-shadow: 0 0 1cqw rgb(255 215 0 / 70%), 0 0 2cqw rgb(255 215 0 / 30%), 0 0.25cqw 0 rgb(0 0 0 / 70%);
+}
+
+.ink_muted {
+    color: #9aa5b3;
+    -webkit-text-fill-color: #9aa5b3;
+    text-shadow: 0 0.2cqw 0.3cqw rgb(0 0 0 / 80%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .plate:active .plateText,
+    .word:active { filter: none; }
+}

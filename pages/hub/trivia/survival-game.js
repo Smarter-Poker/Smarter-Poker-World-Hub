@@ -19,21 +19,22 @@
 
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { useRouter } from 'next/router';
-import Image from 'next/image';
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../../../src/lib/supabase';
 import { getAuthUser } from '../../../src/lib/authUtils';
 import { useAvatar } from '../../../src/contexts/AvatarContext';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
+import TriviaConsole from '../../../src/components/trivia/console/TriviaConsole';
 import { toTitleCase } from '../../../src/lib/trivia/titleCase';
+import { formatTriviaDisplayNumber } from '../../../src/lib/trivia/formatTriviaDisplayNumber';
 import DiamondEngine from '../../../src/services/DiamondEngine';
 import GameCostPopup from '../../../src/components/gates/GameCostPopup';
 import { busEmit } from '../../../src/engine/EventBus';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { playHeartbeat, closeHeartbeatAudio } from '../../../src/lib/heartbeatAudio';
 import TriviaErrorBoundary from '../../../src/components/trivia/TriviaErrorBoundary';
-import TriviaSkeleton from '../../../src/components/trivia/TriviaSkeleton';
+import TriviaAnswerOption from '../../../src/components/trivia/TriviaAnswerOption';
 import { shareResult } from '../../../src/lib/trivia/shareResult';
 import { DAILY_DIAMOND_CAPS, calculateDiamonds } from '../../../src/lib/trivia/triviaEngine';
 import useServerGradedRun from '../../../src/hooks/useServerGradedRun';
@@ -42,7 +43,6 @@ import ReportQuestionButton from '../../../src/components/trivia/ReportQuestionB
 import useTriviaQuestion from '../../../src/hooks/useTriviaQuestion';
 import useTriviaTimer from '../../../src/hooks/useTriviaTimer';
 import { getAccessToken } from '../../../src/lib/authUtils';
-import { Settings as SettingsIcon, Timer as TimerIcon, Zap as ZapIcon } from 'lucide-react';
 import HubPageSummary from '../../../src/components/seo/HubPageSummary';
 
 const GAME_ENTRY_COST = 10; // restored with server-graded adoption - rewards pay via award_trivia_run now
@@ -406,8 +406,14 @@ export default function SurvivalGamePage() {
             });
         } catch (e) {
             console.warn('[Survival] Server session start failed:', e?.message || e);
-            if (e?.status === 402) setShowOutOfDiamonds(true);
-            setLevelLoadError('We could not load this level. Please check your connection and try again.');
+            // A 402 is the balance gate, not a connection problem: show the
+            // Not Enough Diamonds state alone instead of both messages.
+            if (e?.status === 402) {
+                setShowOutOfDiamonds(true);
+                setGameState('lobby');
+                return;
+            }
+            setLevelLoadError('We Could Not Load This Level. Please Check Your Connection And Try Again.');
             setGameState('lobby');
             return;
         } finally {
@@ -419,7 +425,7 @@ export default function SurvivalGamePage() {
         // NEVER charge for it.
         if (!served || !Array.isArray(served.questions) || served.questions.length < QUESTIONS_PER_LEVEL) {
             serverRun.reset();
-            setLevelLoadError('We could not load a full set of questions for this level. Please check your connection and try again.');
+            setLevelLoadError('We Could Not Load A Full Set Of Questions For This Level. Please Check Your Connection And Try Again.');
             setGameState('lobby');
             return;
         }
@@ -477,7 +483,7 @@ export default function SurvivalGamePage() {
             return true;
         } catch (e) {
             console.warn('[Survival] Lifeline deduction failed:', e);
-            setActionError('Could not purchase that lifeline. Please try again.');
+            setActionError('Could Not Purchase That Lifeline. Please Try Again.');
             setTimeout(() => setActionError(null), 3000);
             return false;
         }
@@ -549,7 +555,7 @@ export default function SurvivalGamePage() {
                 // Unlock and let the player re-tap; give the shot clock back.
                 trivia.setSelectedAnswer(null);
                 answerLockRef.current = false;
-                setActionError('Could not submit that answer. Please tap it again.');
+                setActionError('Could Not Submit That Answer. Please Tap It Again.');
                 setTimeout(() => setActionError(null), 3000);
                 timer.setIsTimerRunning(true);
             }
@@ -756,7 +762,6 @@ export default function SurvivalGamePage() {
     }
 
     const config = LEVEL_CONFIG[currentLevel - 1];
-    const progressPercent = ((currentQuestionIndex + 1) / QUESTIONS_PER_LEVEL) * 100;
 
     // Questions the player got wrong this level, with the right answer, for
     // the post-run review panel on the game-over screen. Built from the
@@ -773,923 +778,577 @@ export default function SurvivalGamePage() {
                 : ''
         }));
 
+    // The pill is a short painted slot (about eight characters at 375px);
+    // longer state, balance and timer copy is printed on the glass below.
+    const balanceLabel = isVip ? 'VIP' : 'Ready';
+    const nextAvailableLevel = Math.min(userProgress.highestLevel + 1, LEVEL_CONFIG.length);
+    const stateLabel = showOutOfDiamonds
+        ? 'Balance'
+        : isPaused
+            ? 'Paused'
+            : {
+                lobby: balanceLabel,
+                loading_level: 'Dealing',
+                playing: `Level ${formatTriviaDisplayNumber(currentLevel)}`,
+                saving_progress: 'Saving',
+                saving_error: 'Retry',
+                levelComplete: 'Cleared',
+                gameOver: 'Failed',
+                victory: 'Victory',
+            }[gameState] || balanceLabel;
+
+    const resumeGame = () => {
+        setIsPaused(false);
+        timer.setIsTimerRunning(true);
+    };
+
+    const primaryAction = showOutOfDiamonds
+        ? { label: 'Get Diamonds', onClick: () => router.push('/hub/diamond-store') }
+        : isPaused
+            ? { label: 'Resume Game', onClick: resumeGame }
+            : gameState === 'lobby'
+                ? {
+                    label: userProgress.highestLevel > 0
+                        ? `Continue From Level ${formatTriviaDisplayNumber(nextAvailableLevel)}`
+                        : 'Start Level 1',
+                    onClick: () => startLevel(nextAvailableLevel),
+                    disabled: isLoading,
+                    'aria-disabled': isLoading,
+                }
+                : gameState === 'saving_error'
+                    ? { label: 'Retry Save', onClick: handleRetrySave }
+                    : gameState === 'levelComplete'
+                        ? {
+                            // Short enough for the painted plate face at 375px.
+                            label: `Play Level ${formatTriviaDisplayNumber(currentLevel + 1)}`,
+                            onClick: continueToNextLevel,
+                        }
+                        : gameState === 'gameOver'
+                            ? {
+                                label: `Retry Level ${formatTriviaDisplayNumber(currentLevel)}`,
+                                onClick: () => restartFromLevel(currentLevel),
+                            }
+                            : gameState === 'victory'
+                                ? { label: 'Return To Trivia Hub', onClick: backToLobby }
+                                : null;
+
+    const secondaryAction = showOutOfDiamonds
+        ? { label: 'Close', onClick: () => setShowOutOfDiamonds(false) }
+        : gameState === 'levelComplete'
+            ? { label: 'Save And Exit', onClick: backToLobby }
+            : gameState === 'gameOver'
+                ? { label: 'Back To Trivia', onClick: backToLobby }
+                : null;
+
     return (
         <TriviaErrorBoundary pageName="Survival Mode">
-            {/* INDEXED LIKE EVERY OTHER TRIVIA MODE (AEO phase 3,
-                2026-09-18). This carried noindex while endless, mixed, time
-                attack, head to head, tournaments and the leaderboard were all
-                indexed, so "poker trivia survival mode" had nothing to land
-                on. The noindex was honest when the page was a bare game
-                screen with nineteen words; it now carries the same
-                server-rendered description as its six siblings. The
-                deprecated shim at /hub/trivia/survival keeps its noindex and
-                stays out of the sitemap, which is correct for a redirect. */}
-            <SEOHead
-                title="Survival Poker Trivia: One Life"
-                description="Survival Poker Trivia On Smarter.Poker: One Run, One Life, And A Wrong Answer Ends It. Knowing You Do Not Know Is Worth As Much As Knowing. Free To Play, And Nothing In It Is A Wager."
-                canonical="/hub/trivia/survival-game"
-            />
+            <>
+                {/* INDEXED LIKE EVERY OTHER TRIVIA MODE (AEO phase 3,
+                    2026-09-18). This carried noindex while endless, mixed, time
+                    attack, head to head, tournaments and the leaderboard were all
+                    indexed, so "poker trivia survival mode" had nothing to land
+                    on. The noindex was honest when the page was a bare game
+                    screen with nineteen words; it now carries the same
+                    server-rendered description as its six siblings. The
+                    deprecated shim at /hub/trivia/survival keeps its noindex and
+                    stays out of the sitemap, which is correct for a redirect. */}
+                <SEOHead
+                    title="Survival Poker Trivia: One Life"
+                    description="Survival Poker Trivia On Smarter.Poker: One Run, One Life, And A Wrong Answer Ends It. Knowing You Do Not Know Is Worth As Much As Knowing. Free To Play, And Nothing In It Is A Wager."
+                    canonical="/hub/trivia/survival-game"
+                />
 
-            <UniversalHeader pageDepth={2} />
+                <div
+                    className="trivia-challenge-page trivia-challenge-page--survival"
+                    data-trivia-family="challenge"
+                    data-trivia-surface="survival-game"
+                    data-game-state={gameState}
+                    data-screen-shake={screenShake ? 'active' : 'idle'}
+                >
+                    <UniversalHeader pageDepth={2} />
 
-            {/* Per-game cost popup (one-time) */}
-            {userId && !isVip && (
-                <GameCostPopup userId={userId} featureKey="trivia_survival_game" isVip={isVip} cost={GAME_ENTRY_COST} />
-            )}
+                    {userId && !isVip && (
+                        <GameCostPopup
+                            userId={userId}
+                            featureKey="trivia_survival_game"
+                            isVip={isVip}
+                            cost={GAME_ENTRY_COST}
+                        />
+                    )}
 
-            {/* Out of diamonds modal */}
-            {showOutOfDiamonds && (
-                <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000 }}>
-                    <div style={{ background: '#1a1a2e', border: '1px solid rgba(0,212,255,0.3)', borderRadius: 16, padding: 32, textAlign: 'center', maxWidth: 360 }}>
-                        <div style={{ fontSize: 48, marginBottom: 16 }}>💎</div>
-                        <h3 style={{ color: '#fff', marginBottom: 8 }}>Not Enough Diamonds</h3>
-                        <p style={{ color: 'rgba(255,255,255,0.6)', marginBottom: 20 }}>Each Game Costs 10💎. Get More Diamonds Or Upgrade To VIP For Unlimited Access!</p>
-                        <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
-                            <button onClick={() => router.push('/hub/diamond-store')} style={{ padding: '10px 20px', background: 'linear-gradient(135deg, #00D4FF, #0088FF)', border: 'none', borderRadius: 20, color: '#fff', fontWeight: 600, cursor: 'pointer' }}>Get Diamonds</button>
-                            <button onClick={() => setShowOutOfDiamonds(false)} style={{ padding: '10px 20px', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 20, color: '#fff', cursor: 'pointer' }}>Close</button>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            <PageTransition>
-                <div style={{
-                    minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
-                    background: "#0a0e1a",
-                    backgroundColor: '#000000',
-                    padding: '20px'
-                }}>
-                    <div style={{ maxWidth: '100%', margin: '0 auto' }}>
-                        {/* In-game HUD (only visible during gameplay) */}
-                        {gameState === 'playing' && (
-                            <div style={{
-                                display: 'flex',
-                                justifyContent: 'space-between',
-                                alignItems: 'center',
-                                padding: '16px 20px',
-                                background: '#242526',
-                                border: '1px solid #4e4f50',
-                                borderRadius: '12px',
-                                marginBottom: '20px',
-                                color: '#e4e6eb'
-                            }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                    <span style={{ color: '#2374e1', fontWeight: 'bold', fontSize: '18px' }}>SURVIVAL MODE</span>
-                                </div>
-                                <div style={{ display: 'flex', gap: '16px', fontSize: '14px' }}>
-                                    <span style={{ color: '#e69500' }}>Level {currentLevel}</span>
-                                    <span style={{ color: '#31a24c' }}>Correct: {correctCount}</span>
-                                    <span style={{ color: '#f02849' }}>Wrong: {incorrectCount}</span>
-                                    <span style={{ color: '#2374e1' }}>Diamonds: {totalDiamondsEarned}</span>
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Lobby State - Level Select */}
-                        {gameState === 'lobby' && (
-                            <div>
-                                {levelLoadError && (
-                                    <div role="alert" style={{
-                                        background: 'rgba(239, 68, 68, 0.12)',
-                                        border: '1px solid rgba(239, 68, 68, 0.4)',
-                                        borderRadius: '12px',
-                                        padding: '14px 16px',
-                                        marginBottom: '16px',
-                                        color: '#fecaca',
-                                        fontSize: '14px',
-                                        textAlign: 'center'
-                                    }}>
-                                        {levelLoadError}
-                                    </div>
-                                )}
-                                {/* Lobby Image */}
-                                <div style={{
-                                    borderRadius: '16px',
-                                    overflow: 'hidden',
-                                    marginBottom: '24px',
-                                    maxHeight: 'calc(100dvh - 60px)',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                }}>
-                                    <Image src="/images/trivia/lobby-survival.jpg" alt="Survival Mode - 10 Levels Progressive Challenge" width={686} height={1024} className="lobby-image" style={{ width: '100%', height: 'auto', display: 'block', maxHeight: 'calc(100dvh - 60px)', objectFit: 'contain' }} />
-                                </div>
-
-                                {/* Accuracy Requirements */}
-                                <div style={{
-                                    background: '#242526',
-                                    border: '1px solid #4e4f50',
-                                    borderRadius: '12px',
-                                    padding: '16px',
-                                    marginBottom: '24px',
-                                    textAlign: 'center'
-                                }}>
-                                    <div style={{ color: '#2374e1', fontSize: '14px', marginBottom: '8px' }}>
-                                        Accuracy Required Per Level
-                                    </div>
-                                    <div style={{ color: '#b0b3b8', fontSize: '13px' }}>
-                                        Lvl 1: 85% → Lvl 5: 93% → Lvl 8: 99% → Lvls 9-10: 100%
-                                    </div>
-                                    {userProgress.highestLevel > 0 && (
-                                        <div style={{ marginTop: '12px', color: '#31a24c' }}>
-                                            Your Best: Level {userProgress.highestLevel}
-                                        </div>
-                                    )}
-                                </div>
-
-                                {/* Level Grid */}
-                                <div style={{
-                                    display: 'grid',
-                                    gridTemplateColumns: 'repeat(5, 1fr)',
-                                    gap: '10px',
-                                    marginBottom: '24px'
-                                }}>
-                                    {LEVEL_CONFIG.map((lvl) => {
-                                        const isUnlocked = lvl.level <= userProgress.highestLevel + 1;
-                                        const isCompleted = lvl.level <= userProgress.highestLevel;
-
-                                        return (
-                                            <button
-                                                key={lvl.level}
-                                                onClick={() => isUnlocked && startLevel(lvl.level)}
-                                                disabled={!isUnlocked}
-                                                style={{
-                                                    padding: '16px 12px',
-                                                    background: isCompleted
-                                                        ? 'rgba(49, 162, 76, 0.2)'
-                                                        : isUnlocked
-                                                            ? 'rgba(35, 116, 225, 0.2)'
-                                                            : '#3a3b3c',
-                                                    border: `2px solid ${isCompleted ? '#31a24c' : isUnlocked ? '#2374e1' : '#4e4f50'}`,
-                                                    borderRadius: '10px',
-                                                    color: isUnlocked ? '#e4e6eb' : '#65676b',
-                                                    cursor: isUnlocked ? 'pointer' : 'not-allowed',
-                                                    transition: 'all 0.2s'
-                                                }}
-                                            >
-                                                <div style={{ fontSize: '20px', fontWeight: 'bold' }}>
-                                                    {isCompleted ? 'Done' : isUnlocked ? lvl.level : 'Locked'}
-                                                </div>
-                                                <div style={{ fontSize: '11px', opacity: 0.7, marginTop: '4px' }}>
-                                                    {lvl.accuracyRequired}%
-                                                </div>
-                                            </button>
-                                        );
-                                    })}
-                                </div>
-
-                                <button
-                                    onClick={() => startLevel(Math.min(userProgress.highestLevel + 1, 10))}
-                                    disabled={isLoading}
-                                    style={{
-                                        width: '100%',
-                                        padding: '16px',
-                                        background: '#2374e1',
-                                        border: 'none',
-                                        borderRadius: '12px',
-                                        color: 'white',
-                                        fontSize: '18px',
-                                        fontWeight: 'bold',
-                                        cursor: 'pointer',
-                                        boxShadow: '0 4px 20px rgba(35, 116, 225, 0.4)'
-                                    }}
-                                >
-                                    {isLoading ? 'Loading...' : userProgress.highestLevel > 0
-                                        ? `CONTINUE FROM LEVEL ${Math.min(userProgress.highestLevel + 1, 10)}`
-                                        : 'START LEVEL 1'}
-                                </button>
-                            </div>
-                        )}
-
-                        {/* Saving State (TriviaSkeleton) */}
-                        {gameState === 'saving_progress' && (
-                            <TriviaSkeleton />
-                        )}
-
-                        {/* Loading the level's question set (shot clock not started yet) */}
-                        {gameState === 'loading_level' && (
-                            <div>
-                                <div style={{ color: 'rgba(255,255,255,0.6)', textAlign: 'center', marginBottom: '16px' }}>
-                                    Dealing Level {currentLevel}...
-                                </div>
-                                <TriviaSkeleton />
-                            </div>
-                        )}
-
-                        {/* Saving Error State (Retry UI) */}
-                        {gameState === 'saving_error' && (
-                            <div style={{
-                                display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60vh'
-                            }}>
-                                <div style={{
-                                    background: 'rgba(30, 41, 59, 0.9)',
-                                    border: '1px solid rgba(239, 68, 68, 0.3)',
-                                    borderRadius: '16px',
-                                    padding: '40px',
-                                    textAlign: 'center',
-                                    maxWidth: '480px'
-                                }}>
-                                    <h2 style={{ color: '#ef4444', marginBottom: '16px', fontSize: '24px' }}>Network Disconnected</h2>
-                                    <p style={{ color: 'rgba(255,255,255,0.7)', marginBottom: '24px' }}>
-                                        We Couldn't Save Your Progress For Level {saveErrorPayload?.level} Because You Lost Connection. Please Check Your Internet And Try Again So This Level's Reward Is Not Lost!
-                                    </p>
-                                    <button
-                                        onClick={handleRetrySave}
-                                        style={{
-                                            padding: '16px 32px',
-                                            background: 'linear-gradient(135deg, #2374e1, #1b5bb8)',
-                                            border: 'none',
-                                            borderRadius: '12px',
-                                            color: 'white',
-                                            fontSize: '16px',
-                                            fontWeight: 'bold',
-                                            cursor: 'pointer'
-                                        }}
+                    <PageTransition>
+                        <main className="trivia-challenge-shell" aria-labelledby="survival-trivia-title">
+                            <TriviaConsole
+                                className="trivia-challenge-console"
+                                eyebrow="Ten Level Challenge"
+                                title="Survival Trivia"
+                                titleId="survival-trivia-title"
+                                subtitle="Clear Every Level"
+                                pill={stateLabel}
+                                aria-labelledby="survival-trivia-title"
+                                primaryAction={primaryAction}
+                                secondaryAction={secondaryAction}
+                            >
+                                {showOutOfDiamonds && (
+                                    <section
+                                        className="trivia-challenge-alert"
+                                        role="alert"
+                                        aria-labelledby="survival-diamonds-title"
                                     >
-                                        Retry Save
-                                    </button>
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Playing State */}
-                        {gameState === 'playing' && currentQuestion && (
-                            <div style={{
-                                animation: screenShake ? 'shake 0.1s infinite' : 'none'
-                            }}>
-                                <style>{`
-                                    @keyframes shake {
-                                        0%, 100% { transform: translateX(0); }
-                                        25% { transform: translateX(-5px); }
-                                        75% { transform: translateX(5px); }
-                                    }
-                                `}</style>
-
-                                {/* Paused Overlay */}
-                                {isPaused && (
-                                    <div style={{
-                                        position: 'fixed',
-                                        top: 0, left: 0, right: 0, bottom: 0,
-                                        background: 'rgba(0,0,0,0.85)',
-                                        display: 'flex',
-                                        flexDirection: 'column',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        zIndex: 1000
-                                    }}>
-                                        <span style={{ fontSize: '48px', marginBottom: '20px' }}>⏸️</span>
-                                        <h2 style={{ color: 'white', marginBottom: '10px' }}>Game Paused</h2>
-                                        <p style={{ color: 'rgba(255,255,255,0.7)', marginBottom: '20px' }}>
-                                            You Left The Screen. Time Remaining: {timer.timeLeft}s
+                                        <h2 id="survival-diamonds-title">Not Enough Diamonds</h2>
+                                        <p>
+                                            A New Run Costs {formatTriviaDisplayNumber(GAME_ENTRY_COST)} Diamonds.
+                                            Get More Diamonds Or Upgrade To VIP For Unlimited Access.
                                         </p>
-                                        <button
-                                            onClick={() => { setIsPaused(false); timer.setIsTimerRunning(true); }}
-                                            style={{
-                                                padding: '16px 48px',
-                                                background: 'linear-gradient(135deg, #22c55e, #16a34a)',
-                                                border: 'none',
-                                                borderRadius: '12px',
-                                                color: 'white',
-                                                fontSize: '18px',
-                                                fontWeight: 'bold',
-                                                cursor: 'pointer'
-                                            }}
-                                        >
-                                            ▶️ Resume Game
-                                        </button>
-                                    </div>
+                                    </section>
                                 )}
 
-                                {/* Lifeline purchase / answer submission failure */}
-                                {actionError && (
-                                    <div role="alert" style={{
-                                        background: 'rgba(239, 68, 68, 0.15)',
-                                        border: '1px solid rgba(239, 68, 68, 0.4)',
-                                        borderRadius: '10px',
-                                        padding: '10px 14px',
-                                        marginBottom: '12px',
-                                        color: '#fecaca',
-                                        fontSize: '13px',
-                                        textAlign: 'center'
-                                    }}>
-                                        {actionError}
-                                    </div>
-                                )}
+                                {gameState === 'lobby' && (
+                                    <section className="trivia-challenge-intro" aria-labelledby="survival-ready-title">
+                                        <img
+                                            className="trivia-challenge-hero"
+                                            src="/images/trivia/modes-console-v1/survival.webp"
+                                            alt=""
+                                            aria-hidden="true"
+                                            width={1000}
+                                            height={563}
+                                            decoding="async"
+                                        />
+                                        <h2 id="survival-ready-title">Choose Your Starting Level</h2>
+                                        <p>
+                                            Clear {formatTriviaDisplayNumber(QUESTIONS_PER_LEVEL)} Questions Per Level
+                                            As The Required Accuracy Climbs From 85% To 100%.
+                                        </p>
 
-                                {/* Shot Clock Timer */}
-                                <div style={{
-                                    display: 'flex',
-                                    justifyContent: 'center',
-                                    alignItems: 'center',
-                                    gap: '12px',
-                                    marginBottom: '12px'
-                                }}>
-                                    {/* Settings Button */}
-                                    <button
-                                        onClick={() => setShowSettingsPanel(prev => !prev)}
-                                        aria-label="Game Settings"
-                                        aria-expanded={showSettingsPanel}
-                                        style={{
-                                            width: '36px',
-                                            height: '36px',
-                                            background: 'rgba(255,255,255,0.1)',
-                                            border: '1px solid rgba(255,255,255,0.2)',
-                                            borderRadius: '50%',
-                                            cursor: 'pointer',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            color: '#fff'
-                                        }}
-                                    >
-                                        <SettingsIcon size={16} />
-                                    </button>
-
-                                    {/* Timer Display.
-                                        Honours the "Timer" preference from /hub/trivia/settings
-                                        (shared 'trivia_settings' store). The shot clock itself
-                                        always runs — hiding it is a display choice, not a way to
-                                        remove the time pressure that the mode is built on. */}
-                                    <div style={{
-                                        visibility: settings.timerEnabled === false ? 'hidden' : 'visible',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: '10px',
-                                        padding: '12px 24px',
-                                        background: timer.timeLeft <= 3 ? 'rgba(239, 68, 68, 0.3)' :
-                                            timer.timeLeft <= 8 ? 'rgba(251, 191, 36, 0.2)' :
-                                                'rgba(0, 212, 255, 0.15)',
-                                        border: `2px solid ${timer.timeLeft <= 3 ? '#ef4444' :
-                                            timer.timeLeft <= 8 ? '#fbbf24' : '#00D4FF'}`,
-                                        borderRadius: '50px'
-                                    }}>
-                                        <TimerIcon size={18} color={timer.timeLeft <= 3 ? '#ef4444' : timer.timeLeft <= 8 ? '#fbbf24' : '#00D4FF'} />
-                                        <span style={{
-                                            fontSize: '28px',
-                                            fontWeight: 'bold',
-                                            fontFamily: 'monospace',
-                                            color: timer.timeLeft <= 3 ? '#ef4444' :
-                                                timer.timeLeft <= 8 ? '#fbbf24' : '#00D4FF',
-                                            minWidth: '40px',
-                                            textAlign: 'center'
-                                        }}>
-                                            {timer.timeLeft}
-                                        </span>
-                                        {lifelinesUsedThisLevel > 0 && (
-                                            <span style={{
-                                                display: 'inline-flex',
-                                                alignItems: 'center',
-                                                gap: '3px',
-                                                fontSize: '11px',
-                                                color: 'rgba(255,255,255,0.6)',
-                                                marginLeft: '8px'
-                                            }}>
-                                                <ZapIcon size={11} />
-                                                {lifelinesUsedThisLevel}/{MAX_LIFELINES_PER_LEVEL}
-                                            </span>
+                                        {levelLoadError && (
+                                            <p className="trivia-challenge-alert" role="alert">{levelLoadError}</p>
                                         )}
-                                    </div>
 
-                                    {/* Spacer for symmetry */}
-                                    <div style={{ width: '36px' }} />
-                                </div>
-
-                                {/* Settings Panel */}
-                                {showSettingsPanel && (
-                                    <div style={{
-                                        background: 'rgba(0,0,0,0.8)',
-                                        border: '1px solid rgba(255,255,255,0.2)',
-                                        borderRadius: '12px',
-                                        padding: '16px',
-                                        marginBottom: '16px'
-                                    }}>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                                            <span style={{ color: 'white' }}>🔊 Sound Effects</span>
-                                            <button
-                                                onClick={() => triviaAudio.setMuted(settings.audio)}
-                                                style={{
-                                                    padding: '4px 12px',
-                                                    background: settings.audio ? '#22c55e' : '#666',
-                                                    border: 'none',
-                                                    borderRadius: '12px',
-                                                    color: 'white',
-                                                    cursor: 'pointer'
-                                                }}
-                                            >
-                                                {settings.audio ? 'ON' : 'OFF'}
-                                            </button>
-                                        </div>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                                            <span style={{ color: 'white' }}>📳 Haptic Vibration</span>
-                                            <button
-                                                onClick={() => setSettings(prev => ({ ...prev, haptics: !prev.haptics }))}
-                                                style={{
-                                                    padding: '4px 12px',
-                                                    background: settings.haptics ? '#22c55e' : '#666',
-                                                    border: 'none',
-                                                    borderRadius: '12px',
-                                                    color: 'white',
-                                                    cursor: 'pointer'
-                                                }}
-                                            >
-                                                {settings.haptics ? 'ON' : 'OFF'}
-                                            </button>
-                                        </div>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                                            <span style={{ color: 'white' }}>📱 Screen Shake</span>
-                                            <button
-                                                onClick={() => setSettings(prev => ({ ...prev, screenShake: !prev.screenShake }))}
-                                                style={{
-                                                    padding: '4px 12px',
-                                                    background: settings.screenShake ? '#22c55e' : '#666',
-                                                    border: 'none',
-                                                    borderRadius: '12px',
-                                                    color: 'white',
-                                                    cursor: 'pointer'
-                                                }}
-                                            >
-                                                {settings.screenShake ? 'ON' : 'OFF'}
-                                            </button>
-                                        </div>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                            <span style={{ color: 'white' }}>⚡ Intensity</span>
-                                            <div style={{ display: 'flex', gap: '4px' }}>
-                                                {['low', 'medium', 'high'].map(level => (
-                                                    <button
-                                                        key={level}
-                                                        onClick={() => setSettings(prev => ({ ...prev, intensity: level }))}
-                                                        style={{
-                                                            padding: '4px 10px',
-                                                            background: settings.intensity === level ? '#8b5cf6' : 'rgba(255,255,255,0.1)',
-                                                            border: 'none',
-                                                            borderRadius: '8px',
-                                                            color: 'white',
-                                                            fontSize: '11px',
-                                                            cursor: 'pointer',
-                                                            textTransform: 'capitalize'
-                                                        }}
-                                                    >
-                                                        {level}
-                                                    </button>
-                                                ))}
+                                        <dl className="trivia-challenge-stats">
+                                            <div className="trivia-challenge-stat">
+                                                <dt>Levels</dt>
+                                                <dd>{formatTriviaDisplayNumber(LEVEL_CONFIG.length)}</dd>
                                             </div>
+                                            <div className="trivia-challenge-stat">
+                                                <dt>Questions Per Level</dt>
+                                                <dd>{formatTriviaDisplayNumber(QUESTIONS_PER_LEVEL)}</dd>
+                                            </div>
+                                            <div className="trivia-challenge-stat">
+                                                <dt>Best Level</dt>
+                                                <dd>{formatTriviaDisplayNumber(userProgress.highestLevel)}</dd>
+                                            </div>
+                                            <div className="trivia-challenge-stat">
+                                                <dt>Daily Reward Cap</dt>
+                                                <dd>{formatTriviaDisplayNumber(DAILY_DIAMOND_CAP)}</dd>
+                                            </div>
+                                        </dl>
+                                        {userId && !isVip && (
+                                            <ul className="tc-rows" aria-label="Your Balance">
+                                                <li className="tc-row">
+                                                    <span className="tc-row__label">Your Balance</span>
+                                                    <span className="tc-row__value tc-ink--gold">{formatTriviaDisplayNumber(userDiamonds)} Diamonds</span>
+                                                </li>
+                                            </ul>
+                                        )}
+
+                                        <div className="trivia-challenge-levels" aria-label="Survival Level Selection">
+                                            {LEVEL_CONFIG.map(level => {
+                                                const isUnlocked = level.level <= userProgress.highestLevel + 1;
+                                                const isCompleted = level.level <= userProgress.highestLevel;
+                                                return (
+                                                    <button
+                                                        key={level.level}
+                                                        type="button"
+                                                        className="trivia-challenge-level"
+                                                        onClick={() => startLevel(level.level)}
+                                                        disabled={!isUnlocked || isLoading}
+                                                        aria-label={`Level ${level.level}, ${level.accuracyRequired}% Required, ${isCompleted ? 'Complete' : isUnlocked ? 'Available' : 'Locked'}`}
+                                                    >
+                                                        <span>Level {formatTriviaDisplayNumber(level.level)}</span>
+                                                        <span>{formatTriviaDisplayNumber(level.accuracyRequired)}% Required</span>
+                                                        <span>{isCompleted ? 'Complete' : isUnlocked ? 'Available' : 'Locked'}</span>
+                                                    </button>
+                                                );
+                                            })}
                                         </div>
+
+                                        <p className="trivia-challenge-note">
+                                            Retries Are Free. The Entry Cost Applies Only When Starting A New Run.
+                                        </p>
+                                    </section>
+                                )}
+
+                                {gameState === 'loading_level' && (
+                                    <div className="trivia-challenge-state" role="status" aria-live="polite">
+                                        <p>Dealing Level {formatTriviaDisplayNumber(currentLevel)}</p>
                                     </div>
                                 )}
 
-                                {/* Progress Bar */}
-                                <div style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '12px',
-                                    padding: '10px 16px',
-                                    background: 'rgba(0, 0, 0, 0.3)',
-                                    borderRadius: '8px',
-                                    marginBottom: '20px'
-                                }}>
-                                    <div style={{ flex: 1, height: '8px', background: 'rgba(255,255,255,0.1)', borderRadius: '4px', overflow: 'hidden' }}>
-                                        <div style={{
-                                            height: '100%',
-                                            width: `${progressPercent}%`,
-                                            background: '#ef4444',
-                                            transition: 'width 0.3s'
-                                        }} />
+                                {gameState === 'saving_progress' && (
+                                    <div className="trivia-challenge-state" role="status" aria-live="polite">
+                                        <p>Securing Your Survival Progress</p>
                                     </div>
-                                    <span style={{ color: 'white', fontWeight: 'bold', fontSize: '14px', minWidth: '60px' }}>
-                                        {currentQuestionIndex + 1} / {QUESTIONS_PER_LEVEL}
-                                    </span>
-                                </div>
+                                )}
 
-                                {/* Accuracy Threshold Indicator */}
-                                <div style={{
-                                    display: 'flex',
-                                    justifyContent: 'center',
-                                    gap: '16px',
-                                    marginBottom: '16px',
-                                    fontSize: '13px'
-                                }}>
-                                    <span style={{ color: 'rgba(255,255,255,0.6)' }}>
-                                        Required: {config.minCorrect}/{QUESTIONS_PER_LEVEL} Correct ({config.accuracyRequired}%)
-                                    </span>
-                                    <span style={{
-                                        color: correctCount >= config.minCorrect ? '#22c55e' :
-                                            incorrectCount > (QUESTIONS_PER_LEVEL - config.minCorrect) ? '#ef4444' : '#fbbf24'
-                                    }}>
-                                        Current: {correctCount}/{currentQuestionIndex + (trivia.showResult ? 1 : 0)}
-                                    </span>
-                                </div>
+                                {gameState === 'saving_error' && (
+                                    <section className="trivia-challenge-state trivia-challenge-state--error" role="alert">
+                                        <h2>Network Disconnected</h2>
+                                        <p>
+                                            We Could Not Save Progress For Level {formatTriviaDisplayNumber(saveErrorPayload?.level)}.
+                                            Check Your Connection And Retry To Protect This Level And Its Reward.
+                                        </p>
+                                    </section>
+                                )}
 
-                                {/* Question Card */}
-                                <div style={{
-                                    background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.8), rgba(15, 23, 42, 0.9))',
-                                    border: '1px solid rgba(255,255,255,0.1)',
-                                    borderRadius: '16px',
-                                    padding: '32px'
-                                }}>
-                                    <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)', marginBottom: '16px', textTransform: 'uppercase' }}>
-                                        Level {currentLevel} • Question {currentQuestionIndex + 1}
-                                    </div>
+                                {gameState === 'playing' && currentQuestion && isPaused && (
+                                    <section className="trivia-challenge-state trivia-challenge-state--paused" role="status">
+                                        <h2>Game Paused</h2>
+                                        <p>
+                                            You Left The Screen With {formatTriviaDisplayNumber(timer.timeLeft)} Seconds Remaining.
+                                        </p>
+                                    </section>
+                                )}
 
-                                    <h2 style={{ fontSize: '20px', fontWeight: 600, color: 'white', lineHeight: 1.4, margin: '0 0 24px 0' }}>
-                                        {toTitleCase(currentQuestion.question)}
-                                    </h2>
+                                {gameState === 'playing' && currentQuestion && !isPaused && (
+                                    <section
+                                        className={`trivia-challenge-stage${screenShake ? ' trivia-challenge-stage--shaking' : ''}`}
+                                        aria-labelledby="survival-question-title"
+                                    >
+                                        {actionError && (
+                                            <p className="trivia-challenge-alert" role="alert">{actionError}</p>
+                                        )}
 
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                                        {/* The reveal keys off the server verdict: the client
-                                            never holds a correct_index of its own. */}
-                                        {currentQuestion.options?.map((option, index) => {
-                                            let bg = 'rgba(255,255,255,0.05)';
-                                            let borderColor = 'rgba(255,255,255,0.1)';
+                                        <dl className="trivia-challenge-stats trivia-challenge-stats--compact">
+                                            <div className="trivia-challenge-stat">
+                                                <dt>Level</dt>
+                                                <dd>{formatTriviaDisplayNumber(currentLevel)}</dd>
+                                            </div>
+                                            <div className="trivia-challenge-stat">
+                                                <dt>Correct</dt>
+                                                <dd>{formatTriviaDisplayNumber(correctCount)}</dd>
+                                            </div>
+                                            <div className="trivia-challenge-stat">
+                                                <dt>Wrong</dt>
+                                                <dd>{formatTriviaDisplayNumber(incorrectCount)}</dd>
+                                            </div>
+                                            <div className="trivia-challenge-stat">
+                                                <dt>Diamonds</dt>
+                                                <dd>{formatTriviaDisplayNumber(totalDiamondsEarned)}</dd>
+                                            </div>
+                                            {settings.timerEnabled !== false && (
+                                                <div className="trivia-challenge-stat">
+                                                    <dt>Time</dt>
+                                                    <dd aria-live="off">{formatTriviaDisplayNumber(timer.timeLeft)} Seconds</dd>
+                                                </div>
+                                            )}
+                                        </dl>
 
-                                            if (trivia.showResult && verdict) {
-                                                if (index === verdict.correctDisplayIndex) {
-                                                    bg = 'rgba(34, 197, 94, 0.2)';
-                                                    borderColor = '#22c55e';
-                                                } else if (index === trivia.selectedAnswer) {
-                                                    bg = 'rgba(239, 68, 68, 0.2)';
-                                                    borderColor = '#ef4444';
-                                                }
-                                            }
-
-                                            return (
-                                                <button
-                                                    key={index}
-                                                    onClick={() => gradeAnswer(index)}
-                                                    disabled={trivia.selectedAnswer !== null || trivia.showResult}
-                                                    style={{
-                                                        display: 'flex',
-                                                        alignItems: 'center',
-                                                        gap: '14px',
-                                                        padding: '14px 18px',
-                                                        background: bg,
-                                                        border: `2px solid ${borderColor}`,
-                                                        borderRadius: '10px',
-                                                        color: 'rgba(255,255,255,0.9)',
-                                                        fontSize: '15px',
-                                                        textAlign: 'left',
-                                                        cursor: (trivia.selectedAnswer !== null || trivia.showResult) ? 'default' : 'pointer',
-                                                        transition: 'all 0.2s'
-                                                    }}
-                                                >
-                                                    <span style={{
-                                                        width: '28px',
-                                                        height: '28px',
-                                                        display: 'flex',
-                                                        alignItems: 'center',
-                                                        justifyContent: 'center',
-                                                        background: 'rgba(255,255,255,0.1)',
-                                                        borderRadius: '6px',
-                                                        fontWeight: 700,
-                                                        fontSize: '13px'
-                                                    }}>
-                                                        {String.fromCharCode(65 + index)}
-                                                    </span>
-                                                    <span style={{ flex: 1 }}>{toTitleCase(option)}</span>
-                                                </button>
-                                            );
-                                        })}
-                                    </div>
-
-                                    {/* Lifeline Buttons Row.
-                                        Skip is the one lifeline that survives server grading: it
-                                        never answers, so it needs no answer key and no second
-                                        attempt. 50/50 and Double Chance are gone - see the note
-                                        at the lifeline state declarations. */}
-                                    {!trivia.showResult && (
-                                        <div style={{
-                                            display: 'flex',
-                                            gap: '10px',
-                                            marginTop: '20px'
-                                        }}>
-                                            {/* Skip Question Button */}
+                                        <div className="trivia-challenge-toolbar">
                                             <button
+                                                type="button"
+                                                className="trivia-challenge-action"
+                                                onClick={() => setShowSettingsPanel(prev => !prev)}
+                                                aria-expanded={showSettingsPanel}
+                                                aria-controls="survival-game-settings"
+                                            >
+                                                {showSettingsPanel ? 'Close Settings' : 'Game Settings'}
+                                            </button>
+                                            {lifelinesUsedThisLevel > 0 && (
+                                                <span className="trivia-challenge-note">
+                                                    Lifelines {formatTriviaDisplayNumber(lifelinesUsedThisLevel)}
+                                                    {' Of '}
+                                                    {formatTriviaDisplayNumber(MAX_LIFELINES_PER_LEVEL)}
+                                                </span>
+                                            )}
+                                        </div>
+
+                                        {showSettingsPanel && (
+                                            <section
+                                                id="survival-game-settings"
+                                                className="trivia-challenge-settings"
+                                                aria-labelledby="survival-settings-title"
+                                            >
+                                                <h3 id="survival-settings-title">Game Settings</h3>
+                                                <div className="trivia-challenge-setting">
+                                                    <span id="survival-audio-label">Sound Effects</span>
+                                                    <button
+                                                        type="button"
+                                                        role="switch"
+                                                        aria-labelledby="survival-audio-label"
+                                                        aria-checked={settings.audio}
+                                                        className="trivia-challenge-switch"
+                                                        onClick={() => triviaAudio.setMuted(settings.audio)}
+                                                    >
+                                                        {settings.audio ? 'On' : 'Off'}
+                                                    </button>
+                                                </div>
+                                                <div className="trivia-challenge-setting">
+                                                    <span id="survival-haptics-label">Haptic Vibration</span>
+                                                    <button
+                                                        type="button"
+                                                        role="switch"
+                                                        aria-labelledby="survival-haptics-label"
+                                                        aria-checked={settings.haptics}
+                                                        className="trivia-challenge-switch"
+                                                        onClick={() => setSettings(prev => ({ ...prev, haptics: !prev.haptics }))}
+                                                    >
+                                                        {settings.haptics ? 'On' : 'Off'}
+                                                    </button>
+                                                </div>
+                                                <div className="trivia-challenge-setting">
+                                                    <span id="survival-shake-label">Screen Shake</span>
+                                                    <button
+                                                        type="button"
+                                                        role="switch"
+                                                        aria-labelledby="survival-shake-label"
+                                                        aria-checked={settings.screenShake}
+                                                        className="trivia-challenge-switch"
+                                                        onClick={() => setSettings(prev => ({ ...prev, screenShake: !prev.screenShake }))}
+                                                    >
+                                                        {settings.screenShake ? 'On' : 'Off'}
+                                                    </button>
+                                                </div>
+                                                <fieldset className="trivia-challenge-setting-group">
+                                                    <legend>Intensity</legend>
+                                                    <div className="trivia-challenge-actions">
+                                                        {['low', 'medium', 'high'].map(level => (
+                                                            <button
+                                                                key={level}
+                                                                type="button"
+                                                                className="trivia-challenge-action"
+                                                                aria-pressed={settings.intensity === level}
+                                                                onClick={() => setSettings(prev => ({ ...prev, intensity: level }))}
+                                                            >
+                                                                {toTitleCase(level)}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                </fieldset>
+                                            </section>
+                                        )}
+
+                                        <progress
+                                            className="trivia-challenge-progress"
+                                            value={currentQuestionIndex + 1}
+                                            max={QUESTIONS_PER_LEVEL}
+                                            aria-label={`Question ${currentQuestionIndex + 1} Of ${QUESTIONS_PER_LEVEL}`}
+                                        />
+                                        <p className="trivia-challenge-progress-label">
+                                            Level {formatTriviaDisplayNumber(currentLevel)}
+                                            {' | Question '}
+                                            {formatTriviaDisplayNumber(currentQuestionIndex + 1)}
+                                            {' Of '}
+                                            {formatTriviaDisplayNumber(QUESTIONS_PER_LEVEL)}
+                                        </p>
+
+                                        <dl className="trivia-challenge-stats trivia-challenge-stats--threshold">
+                                            <div className="trivia-challenge-stat">
+                                                <dt>Required</dt>
+                                                <dd>
+                                                    {formatTriviaDisplayNumber(config.minCorrect)}
+                                                    {' Of '}
+                                                    {formatTriviaDisplayNumber(QUESTIONS_PER_LEVEL)}
+                                                    {' | '}
+                                                    {formatTriviaDisplayNumber(config.accuracyRequired)}%
+                                                </dd>
+                                            </div>
+                                            <div className="trivia-challenge-stat">
+                                                <dt>Current</dt>
+                                                <dd>
+                                                    {formatTriviaDisplayNumber(correctCount)}
+                                                    {' Of '}
+                                                    {formatTriviaDisplayNumber(currentQuestionIndex + (trivia.showResult ? 1 : 0))}
+                                                </dd>
+                                            </div>
+                                        </dl>
+
+                                        <h2 id="survival-question-title" className="trivia-challenge-question">
+                                            {toTitleCase(currentQuestion.question)}
+                                        </h2>
+
+                                        <div className="trivia-challenge-options">
+                                            {currentQuestion.options?.map((option, index) => (
+                                                <TriviaAnswerOption
+                                                    variant="inline"
+                                                    key={index}
+                                                    index={index}
+                                                    option={toTitleCase(option)}
+                                                    selectedAnswer={trivia.selectedAnswer}
+                                                    correctIndex={verdict ? verdict.correctDisplayIndex : null}
+                                                    showResult={trivia.showResult}
+                                                    disabled={trivia.selectedAnswer !== null || trivia.showResult}
+                                                    onSelect={gradeAnswer}
+                                                />
+                                            ))}
+                                        </div>
+
+                                        {!trivia.showResult && (
+                                            <button
+                                                type="button"
+                                                className="trivia-challenge-action trivia-challenge-action--lifeline"
                                                 onClick={useSkipQuestion}
                                                 disabled={lifelineLocked}
-                                                style={{
-                                                    flex: 1,
-                                                    display: 'flex',
-                                                    flexDirection: 'column',
-                                                    alignItems: 'center',
-                                                    justifyContent: 'center',
-                                                    gap: '4px',
-                                                    padding: '12px 8px',
-                                                    background: (lifelineLocked)
-                                                        ? 'rgba(100, 100, 100, 0.2)'
-                                                        : 'linear-gradient(135deg, rgba(251, 191, 36, 0.2), rgba(200, 150, 30, 0.3))',
-                                                    border: `2px solid ${(lifelineLocked) ? '#666' : '#fbbf24'}`,
-                                                    borderRadius: '12px',
-                                                    color: (lifelineLocked) ? '#666' : 'white',
-                                                    fontSize: '13px',
-                                                    fontWeight: 'bold',
-                                                    cursor: (lifelineLocked) ? 'default' : 'pointer',
-                                                    transition: 'all 0.2s'
-                                                }}
                                             >
-                                                <span style={{ fontSize: '20px' }}>⏭️</span>
-                                                <span>Skip</span>
-                                                <span style={{ fontSize: '11px', color: isVip ? '#22c55e' : '#fbbf24' }}>{isVip ? 'FREE' : `${LIFELINE_COST} DIAMONDS`}</span>
+                                                Skip Question | {isVip ? 'VIP Included' : `${formatTriviaDisplayNumber(LIFELINE_COST)} Diamonds`}
                                             </button>
-                                        </div>
-                                    )}
+                                        )}
 
-                                    {/* Report-a-bad-question — the component was imported here but
-                                        never rendered, leaving the 3-strike quality demotion
-                                        pipeline unwired in survival. Shown once the answer is
-                                        revealed so it cannot be used to stall the shot clock. */}
-                                    {trivia.showResult && currentQuestion?.id != null && (
-                                        <div style={{ display: 'flex', justifyContent: 'center', marginTop: '16px' }}>
-                                            <ReportQuestionButton
-                                                questionId={currentQuestion.id}
-                                                userToken={accessToken}
-                                            />
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                        )}
+                                        {trivia.showResult && verdict?.explanation && (
+                                            <section className="trivia-challenge-explanation" aria-labelledby="survival-explanation-title">
+                                                <h3 id="survival-explanation-title">Why This Is Correct</h3>
+                                                <p>{verdict.explanation}</p>
+                                            </section>
+                                        )}
 
-                        {/* Level Complete State */}
-                        {gameState === 'levelComplete' && (
-                            <div style={{
-                                background: 'linear-gradient(135deg, rgba(34, 197, 94, 0.1), rgba(15, 23, 42, 0.9))',
-                                border: '1px solid rgba(34, 197, 94, 0.3)',
-                                borderRadius: '16px',
-                                padding: '48px',
-                                textAlign: 'center'
-                            }}>
-                                <div style={{ fontSize: '64px', marginBottom: '20px' }}>🎉</div>
-                                <h2 style={{ color: '#22c55e', fontSize: '28px', margin: '0 0 16px 0' }}>
-                                    LEVEL {currentLevel} COMPLETE!
-                                </h2>
-                                <div style={{ color: 'rgba(255,255,255,0.7)', marginBottom: '24px' }}>
-                                    Score: {correctCount}/{QUESTIONS_PER_LEVEL} ({Math.round((correctCount / QUESTIONS_PER_LEVEL) * 100)}%)
-                                </div>
-                                <div style={{
-                                    display: 'inline-block',
-                                    padding: '12px 24px',
-                                    background: 'rgba(0, 212, 255, 0.1)',
-                                    border: '1px solid rgba(0, 212, 255, 0.3)',
-                                    borderRadius: '8px',
-                                    color: '#00D4FF',
-                                    marginBottom: '24px'
-                                }}>
-                                    💎 +{lastLevelAwarded ?? 0} Diamonds | Total: {totalDiamondsEarned}
-                                    {/* The number above is what session-submit credited; the
-                                        line below is the formula it pays, so the promise and
-                                        the payout can never disagree. */}
-                                    <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: '12px', marginTop: 6 }}>
-                                        Pays Per Correct Answer With A Streak Multiplier (Max 60 Per Level, {DAILY_DIAMOND_CAP}/Day)
-                                    </div>
-                                </div>
-                                <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
-                                    <button
-                                        onClick={continueToNextLevel}
-                                        style={{
-                                            padding: '16px 32px',
-                                            background: 'linear-gradient(135deg, #22c55e, #16a34a)',
-                                            border: 'none',
-                                            borderRadius: '12px',
-                                            color: 'white',
-                                            fontSize: '16px',
-                                            fontWeight: 'bold',
-                                            cursor: 'pointer'
-                                        }}
-                                    >
-                                        Continue To Level {currentLevel + 1}
-                                    </button>
-                                    <button
-                                        onClick={backToLobby}
-                                        style={{
-                                            padding: '16px 32px',
-                                            background: 'rgba(255,255,255,0.1)',
-                                            border: '1px solid rgba(255,255,255,0.2)',
-                                            borderRadius: '12px',
-                                            color: 'white',
-                                            fontSize: '16px',
-                                            cursor: 'pointer'
-                                        }}
-                                    >
-                                        Save & Exit
-                                    </button>
-                                </div>
-                            </div>
-                        )}
+                                        {trivia.showResult && currentQuestion?.id != null && (
+                                            <div className="trivia-challenge-report">
+                                                <ReportQuestionButton
+                                                    questionId={currentQuestion.id}
+                                                    userToken={accessToken}
+                                                />
+                                            </div>
+                                        )}
+                                    </section>
+                                )}
 
-                        {/* Game Over State */}
-                        {gameState === 'gameOver' && (
-                            <div style={{
-                                position: 'fixed',
-                                inset: 0,
-                                zIndex: 1000,
-                                background: 'rgba(0, 0, 0, 0.88)',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                padding: '20px',
-                                animation: 'resultFadeIn 0.4s ease'
-                            }}>
-                                <div style={{
-                                    background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(15, 23, 42, 0.9))',
-                                    border: '1px solid rgba(239, 68, 68, 0.3)',
-                                    borderRadius: '16px',
-                                    padding: '48px',
-                                    textAlign: 'center',
-                                    maxWidth: '480px',
-                                    width: '100%'
-                                }}>
-                                    <div style={{ fontSize: '64px', marginBottom: '20px' }}>💀</div>
-                                    <h2 style={{ color: '#ef4444', fontSize: '28px', margin: '0 0 16px 0' }}>
-                                        LEVEL {currentLevel} FAILED
-                                    </h2>
-                                    <div style={{ color: 'rgba(255,255,255,0.7)', marginBottom: '8px' }}>
-                                        Score: {correctCount}/{currentQuestionIndex + 1} • Required: {config.minCorrect}/{QUESTIONS_PER_LEVEL}
-                                    </div>
-                                    <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: '14px', marginBottom: '8px' }}>
-                                        You Needed {config.accuracyRequired}% Accuracy To Pass
-                                    </div>
-                                    {/* Economy clarity: the 10-diamond entry fee is charged on
-                                        level 1 only, so retrying a failed level costs nothing. */}
-                                    <div style={{ color: '#22c55e', fontSize: '13px', marginBottom: '20px' }}>
-                                        Retries Are Free - You Only Pay To Start A New Run
-                                    </div>
+                                {gameState === 'levelComplete' && (
+                                    <section className="trivia-challenge-state trivia-challenge-state--results" aria-labelledby="survival-level-complete-title">
+                                        <h2 id="survival-level-complete-title">
+                                            Level {formatTriviaDisplayNumber(currentLevel)} Complete
+                                        </h2>
+                                        <dl className="trivia-challenge-stats">
+                                            <div className="trivia-challenge-stat">
+                                                <dt>Correct Answers</dt>
+                                                <dd>
+                                                    {formatTriviaDisplayNumber(correctCount)}
+                                                    {' Of '}
+                                                    {formatTriviaDisplayNumber(QUESTIONS_PER_LEVEL)}
+                                                </dd>
+                                            </div>
+                                            <div className="trivia-challenge-stat">
+                                                <dt>Accuracy</dt>
+                                                <dd>{formatTriviaDisplayNumber(Math.round((correctCount / QUESTIONS_PER_LEVEL) * 100))}%</dd>
+                                            </div>
+                                            <div className="trivia-challenge-stat">
+                                                <dt>Level Reward</dt>
+                                                <dd>{formatTriviaDisplayNumber(lastLevelAwarded ?? 0)} Diamonds</dd>
+                                            </div>
+                                            <div className="trivia-challenge-stat">
+                                                <dt>Run Total</dt>
+                                                <dd>{formatTriviaDisplayNumber(totalDiamondsEarned)} Diamonds</dd>
+                                            </div>
+                                        </dl>
+                                        <p className="trivia-challenge-note">
+                                            Rewards Scale With Correct Answers And Streaks.
+                                            Each Level Pays Up To 60 Diamonds With An {formatTriviaDisplayNumber(DAILY_DIAMOND_CAP)} Diamond Daily Cap.
+                                        </p>
+                                    </section>
+                                )}
 
-                                    {/* Post-run review: learn from the ones you missed.
-                                        Uses data already in memory (questions + the per-tap
-                                        server verdicts). */}
-                                    {reviewMissed.length > 0 && (
-                                        <div style={{ marginBottom: '20px', textAlign: 'left' }}>
-                                            <button
-                                                onClick={() => setShowReview(prev => !prev)}
-                                                style={{
-                                                    width: '100%',
-                                                    padding: '10px 14px',
-                                                    background: 'rgba(255,255,255,0.08)',
-                                                    border: '1px solid rgba(255,255,255,0.15)',
-                                                    borderRadius: '10px',
-                                                    color: '#e4e6eb',
-                                                    fontSize: '14px',
-                                                    cursor: 'pointer'
-                                                }}
-                                            >
-                                                {showReview ? 'Hide' : 'Review'} {reviewMissed.length} Missed {reviewMissed.length === 1 ? 'Question' : 'Questions'}
-                                            </button>
-                                            {showReview && (
-                                                <div style={{ maxHeight: '220px', overflowY: 'auto', marginTop: '10px' }}>
-                                                    {reviewMissed.map((item) => (
-                                                        <div key={item.id} style={{
-                                                            background: 'rgba(0,0,0,0.35)',
-                                                            border: '1px solid rgba(255,255,255,0.08)',
-                                                            borderRadius: '8px',
-                                                            padding: '10px 12px',
-                                                            marginBottom: '8px'
-                                                        }}>
-                                                            <div style={{ color: 'rgba(255,255,255,0.85)', fontSize: '13px', marginBottom: '6px' }}>
-                                                                {toTitleCase(item.question)}
-                                                            </div>
-                                                            <div style={{ color: '#22c55e', fontSize: '12px' }}>
-                                                                Correct: {toTitleCase(item.correctOption || '')}
-                                                            </div>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            )}
-                                        </div>
-                                    )}
-                                    {totalDiamondsEarned > 0 && (
-                                        <div style={{
-                                            display: 'inline-block',
-                                            padding: '12px 24px',
-                                            background: 'rgba(0, 212, 255, 0.1)',
-                                            border: '1px solid rgba(0, 212, 255, 0.3)',
-                                            borderRadius: '8px',
-                                            color: '#00D4FF',
-                                            marginBottom: '24px'
-                                        }}>
-                                            💎 Diamonds Earned: {totalDiamondsEarned}
-                                            {capReachedThisRun && (
-                                                <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: '12px', marginTop: 6 }}>
-                                                    Daily Earning Cap Reached - The Server Trimmed Some Level Payouts.
-                                                </div>
-                                            )}
-                                        </div>
-                                    )}
-                                    <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+                                {gameState === 'gameOver' && (
+                                    <section className="trivia-challenge-state trivia-challenge-state--results" aria-labelledby="survival-game-over-title">
+                                        <h2 id="survival-game-over-title">
+                                            Level {formatTriviaDisplayNumber(currentLevel)} Failed
+                                        </h2>
+                                        <dl className="trivia-challenge-stats">
+                                            <div className="trivia-challenge-stat">
+                                                <dt>Correct Answers</dt>
+                                                <dd>
+                                                    {formatTriviaDisplayNumber(correctCount)}
+                                                    {' Of '}
+                                                    {formatTriviaDisplayNumber(currentQuestionIndex + 1)}
+                                                </dd>
+                                            </div>
+                                            <div className="trivia-challenge-stat">
+                                                <dt>Required</dt>
+                                                <dd>
+                                                    {formatTriviaDisplayNumber(config.minCorrect)}
+                                                    {' Of '}
+                                                    {formatTriviaDisplayNumber(QUESTIONS_PER_LEVEL)}
+                                                </dd>
+                                            </div>
+                                            <div className="trivia-challenge-stat">
+                                                <dt>Accuracy Target</dt>
+                                                <dd>{formatTriviaDisplayNumber(config.accuracyRequired)}%</dd>
+                                            </div>
+                                            <div className="trivia-challenge-stat">
+                                                <dt>Diamonds Earned</dt>
+                                                <dd>{formatTriviaDisplayNumber(totalDiamondsEarned)}</dd>
+                                            </div>
+                                        </dl>
+                                        <p className="trivia-challenge-note">
+                                            Retries Are Free. You Only Pay To Start A New Run.
+                                        </p>
+                                        {capReachedThisRun && (
+                                            <p className="trivia-challenge-note">
+                                                Daily Earning Cap Reached. The Server Trimmed Some Level Payouts.
+                                            </p>
+                                        )}
+
+                                        {reviewMissed.length > 0 && (
+                                            <section className="trivia-challenge-review" aria-labelledby="survival-review-title">
+                                                <h3 id="survival-review-title">Missed Questions</h3>
+                                                <button
+                                                    type="button"
+                                                    className="trivia-challenge-action"
+                                                    onClick={() => setShowReview(prev => !prev)}
+                                                    aria-expanded={showReview}
+                                                    aria-controls="survival-review-list"
+                                                >
+                                                    {showReview ? 'Hide Review' : `Review ${formatTriviaDisplayNumber(reviewMissed.length)} Missed ${reviewMissed.length === 1 ? 'Question' : 'Questions'}`}
+                                                </button>
+                                                {showReview && (
+                                                    <ol id="survival-review-list" className="trivia-challenge-list">
+                                                        {reviewMissed.map(item => (
+                                                            <li key={item.id}>
+                                                                <p>{toTitleCase(item.question)}</p>
+                                                                <p>Correct Answer: {toTitleCase(item.correctOption || '')}</p>
+                                                            </li>
+                                                        ))}
+                                                    </ol>
+                                                )}
+                                            </section>
+                                        )}
+
                                         <button
-                                            onClick={() => restartFromLevel(currentLevel)}
-                                            style={{
-                                                padding: '16px 32px',
-                                                background: 'linear-gradient(135deg, #ef4444, #dc2626)',
-                                                border: 'none',
-                                                borderRadius: '12px',
-                                                color: 'white',
-                                                fontSize: '16px',
-                                                fontWeight: 'bold',
-                                                cursor: 'pointer'
-                                            }}
-                                        >
-                                            Retry Level {currentLevel}
-                                        </button>
-                                        <button
-                                            onClick={backToLobby}
-                                            style={{
-                                                padding: '16px 32px',
-                                                background: 'rgba(255,255,255,0.1)',
-                                                border: '1px solid rgba(255,255,255,0.2)',
-                                                borderRadius: '12px',
-                                                color: 'white',
-                                                fontSize: '16px',
-                                                cursor: 'pointer'
-                                            }}
-                                        >
-                                            Back To Trivia
-                                        </button>
-                                        <button
+                                            type="button"
+                                            className="trivia-challenge-action"
                                             onClick={async () => {
-                                                const r = await shareResult({ mode: 'Survival', score: correctCount, total: QUESTIONS_PER_LEVEL, diamonds: totalDiamondsEarned });
-                                                if (r === 'copied') alert('Result copied to clipboard!');
-                                            }}
-                                            style={{
-                                                padding: '16px 32px',
-                                                background: 'linear-gradient(135deg, #2374e1, #1b5bb8)',
-                                                border: 'none',
-                                                borderRadius: '12px',
-                                                color: 'white',
-                                                fontSize: '16px',
-                                                cursor: 'pointer'
+                                                const result = await shareResult({
+                                                    mode: 'Survival',
+                                                    score: correctCount,
+                                                    total: QUESTIONS_PER_LEVEL,
+                                                    diamonds: totalDiamondsEarned,
+                                                });
+                                                if (result === 'copied') alert('Result Copied To Clipboard.');
                                             }}
                                         >
                                             Share Result
                                         </button>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
+                                    </section>
+                                )}
 
-                        {/* Victory State */}
-                        {gameState === 'victory' && (
-                            <div style={{
-                                position: 'fixed',
-                                inset: 0,
-                                zIndex: 1000,
-                                background: 'rgba(0, 0, 0, 0.88)',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                padding: '20px',
-                                animation: 'resultFadeIn 0.4s ease'
-                            }}>
-                                <div style={{
-                                    background: 'linear-gradient(135deg, rgba(234, 179, 8, 0.15), rgba(15, 23, 42, 0.9))',
-                                    border: '2px solid rgba(234, 179, 8, 0.5)',
-                                    borderRadius: '16px',
-                                    padding: '48px',
-                                    textAlign: 'center',
-                                    maxWidth: '480px',
-                                    width: '100%'
-                                }}>
-                                    <div style={{ fontSize: '72px', marginBottom: '20px' }}>🏆</div>
-                                    <h2 style={{ color: '#eab308', fontSize: '32px', margin: '0 0 16px 0' }}>
-                                        SURVIVAL MASTER!
-                                    </h2>
-                                    <div style={{ color: 'rgba(255,255,255,0.8)', fontSize: '18px', marginBottom: '24px' }}>
-                                        You Completed All 10 Levels!
-                                    </div>
-                                    <div style={{
-                                        display: 'inline-block',
-                                        padding: '16px 32px',
-                                        background: 'rgba(0, 212, 255, 0.1)',
-                                        border: '2px solid rgba(0, 212, 255, 0.4)',
-                                        borderRadius: '12px',
-                                        color: '#00D4FF',
-                                        fontSize: '20px',
-                                        fontWeight: 'bold',
-                                        marginBottom: '24px'
-                                    }}>
-                                        💎 Total Earned: {totalDiamondsEarned} Diamonds
-                                    </div>
-                                    <div>
-                                        <button
-                                            onClick={backToLobby}
-                                            style={{
-                                                padding: '16px 48px',
-                                                background: 'linear-gradient(135deg, #eab308, #ca8a04)',
-                                                border: 'none',
-                                                borderRadius: '12px',
-                                                color: 'black',
-                                                fontSize: '18px',
-                                                fontWeight: 'bold',
-                                                cursor: 'pointer'
-                                            }}
-                                        >
-                                            Return To Trivia Hub
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-                    </div>
+                                {gameState === 'victory' && (
+                                    <section className="trivia-challenge-state trivia-challenge-state--results" aria-labelledby="survival-victory-title">
+                                        <h2 id="survival-victory-title">Survival Master</h2>
+                                        <p>You Completed All {formatTriviaDisplayNumber(LEVEL_CONFIG.length)} Levels.</p>
+                                        <dl className="trivia-challenge-stats">
+                                            <div className="trivia-challenge-stat">
+                                                <dt>Diamonds Earned</dt>
+                                                <dd>{formatTriviaDisplayNumber(totalDiamondsEarned)}</dd>
+                                            </div>
+                                            <div className="trivia-challenge-stat">
+                                                <dt>Final Accuracy Target</dt>
+                                                <dd>100%</dd>
+                                            </div>
+                                        </dl>
+                                    </section>
+                                )}
+                            </TriviaConsole>
+                        </main>
+                    </PageTransition>
                 </div>
-    </PageTransition>
+            </>
             {/* The only body copy a crawler gets here: the game itself
                 arrives after a data load. */}
             <HubPageSummary page="trivia-survival" as="h1" />

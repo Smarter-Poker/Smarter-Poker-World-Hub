@@ -1,0 +1,22 @@
+.backdrop {
+    position: fixed;
+    z-index: 12000;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    padding: max(12px, env(safe-area-inset-top)) 12px max(12px, env(safe-area-inset-bottom));
+    overflow-y: auto;
+    /* Opaque: the console's glass is the page behind it, so a translucent
+       backdrop let the surface underneath show through the dialog's body. */
+    background: #000;
+}
+
+.dialog {
+    width: min(100%, 620px);
+    outline: none;
+}
+
+.dialog:focus-visible {
+    outline: 3px solid #45adff;
+    outline-offset: -8px;
+}

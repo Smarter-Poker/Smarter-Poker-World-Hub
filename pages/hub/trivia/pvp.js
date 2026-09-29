@@ -6,7 +6,6 @@
 
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { useRouter } from 'next/router';
-import Image from 'next/image';
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../../../src/lib/supabase';
 import { getAuthUser, getAccessToken } from '../../../src/lib/authUtils';
@@ -24,16 +23,16 @@ import { busEmit } from '../../../src/engine/EventBus';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import TriviaErrorBoundary from '../../../src/components/trivia/TriviaErrorBoundary';
 import TriviaAnswerOption from '../../../src/components/trivia/TriviaAnswerOption';
+import TriviaConsole, { TriviaGlassAction } from '../../../src/components/trivia/console/TriviaConsole';
+import TriviaConsoleDialog from '../../../src/components/trivia/console/TriviaConsoleDialog';
 import useTriviaQuestion from '../../../src/hooks/useTriviaQuestion';
 import useTriviaTimer from '../../../src/hooks/useTriviaTimer';
 import useVIPGate from '../../../src/hooks/useVIPGate';
-import VIPGateModal from '../../../src/components/ui/VIPGateModal';
 
-import PageTransition from '../../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
-import MetalFrame from '../../../src/components/ui/MetalFrame';
-import { Trophy, Gem, Clock, XCircle, Loader } from 'lucide-react';
 import { toTitleCase } from '../../../src/lib/trivia/titleCase';
+import { printPlayerName } from '../../../src/lib/trivia/printPlayerName';
+import { formatTriviaDisplayNumber } from '../../../src/lib/trivia/formatTriviaDisplayNumber';
 import { triviaPvpPageReleaseResult } from '../../../src/lib/trivia/pvpReleaseControl.mjs';
 import HubPageSummary from '../../../src/components/seo/HubPageSummary';
 
@@ -106,6 +105,7 @@ export default function PvPPage({ pvpHorsesEnabled = false }) {
     const [pvpError, setPvpError] = useState(null);
     const [refundFailed, setRefundFailed] = useState(false);
     const [accessToken, setAccessToken] = useState(null); // for ReportQuestionButton
+    const [heroMissing, setHeroMissing] = useState(false); // presentation: mode picture failed to load
 
     // Server-graded session adapter (mode 'pvp'): session-start escrows the
     // stake and serves the shared, answer-free roster; session-answer grades
@@ -926,1135 +926,441 @@ export default function PvPPage({ pvpHorsesEnabled = false }) {
 
     const currentQuestion = questions[currentQuestionIndex];
 
+    // ---------------------------------------------------------------------
+    // PRESENTATION ONLY (#ClubArenaConsole). Everything above this line is
+    // the match engine and is untouched by the console redesign: this block
+    // only chooses what the painted chassis prints for the current state.
+    // Counts use formatTriviaDisplayNumber; settlement amounts (stake,
+    // winnings, refunds) print exactly as the server decided them.
+    // ---------------------------------------------------------------------
+    const fmt = formatTriviaDisplayNumber;
+    // Handles print in Title Case like every other string (underscores read
+    // as word breaks), so a player's name never reaches the glass lower case.
+    const displayName = name => printPlayerName(name, 'Player');
+    const recordText = (wins, losses) => `${fmt(wins || 0)} W - ${fmt(losses || 0)} L`;
+    const clockText = seconds => {
+        const safe = Math.max(0, Math.trunc(Number(seconds) || 0));
+        return `${Math.floor(safe / 60)}:${String(safe % 60).padStart(2, '0')}`;
+    };
+    const totalQuestions = questions.length;
+    const vipGateType = featureConfig?.gate || 'VIP';
+    const dayPassCost = featureConfig?.cost || 25;
+
+    let consoleHead;
+    let primaryAction = null;
+    let secondaryAction = null;
+    if (gameState === 'searching') {
+        consoleHead = {
+            eyebrow: 'PvP Battle',
+            title: opponent ? 'Opponent Found' : 'Finding An Opponent',
+            subtitle: opponent ? 'Loading The Questions' : 'Free To Cancel Until Matched',
+            pill: `Stake ${stakeAmount}`,
+            pillInk: 'gold',
+        };
+        primaryAction = { label: 'Cancel Search', onClick: handleCancelSearch, 'aria-label': 'Cancel Search' };
+    } else if (gameState === 'battle') {
+        consoleHead = {
+            eyebrow: 'PvP Battle',
+            title: currentQuestion ? `Question ${currentQuestionIndex + 1} Of ${totalQuestions}` : 'Loading Question',
+            subtitle: `Stake ${stakeAmount} Diamonds`,
+            pill: clockText(timer.timeLeft),
+            pillInk: timer.timeLeft <= 10 ? 'red' : 'gold',
+        };
+    } else if (gameState === 'waiting') {
+        consoleHead = {
+            eyebrow: 'PvP Battle',
+            title: 'Battle Complete',
+            subtitle: waitingExpired ? 'Your Opponent Has Not Finished Yet' : 'Waiting For Opponent To Finish',
+            pill: `Score ${playerScore}`,
+            pillInk: 'blue',
+        };
+        if (waitingExpired) {
+            primaryAction = { label: 'Back To Lobby', onClick: handlePlayAgain };
+        }
+    } else if (gameState === 'result' && result) {
+        consoleHead = {
+            eyebrow: 'Match Result',
+            title: result.won ? 'Victory' : result.tied ? 'Tie Match' : 'Defeat',
+            subtitle: result.won ? 'The Server Paid The Winner' : result.tied ? 'Your Stake Was Returned' : 'Better Luck Next Match',
+            pill: result.won ? `+${result.winnings}` : result.tied ? 'Refund' : `-${result.stake ?? stakeAmount}`,
+            pillInk: result.won ? 'green' : result.tied ? 'silver' : 'red',
+        };
+        secondaryAction = { label: 'Back To Trivia', onClick: () => router.push('/hub/trivia'), 'aria-label': 'Back To Trivia' };
+        primaryAction = { label: 'Play Again', onClick: handlePlayAgain, 'aria-label': 'Play Again' };
+    } else {
+        consoleHead = {
+            eyebrow: 'PvP Battle',
+            title: 'Head To Head',
+            subtitle: 'Same Questions, One Winner',
+            pill: userId ? fmt(userDiamonds) : undefined,
+            pillInk: 'blue',
+        };
+    }
+
     return (
         <TriviaErrorBoundary pageName="PvP Battle">
             <SEOHead
                 title="PvP Trivia - Player vs Player"
                 description="Head To Head Poker Trivia On Smarter.Poker: Two Players, The Same Questions At The Same Time, And The Faster Correct Answer Takes The Point. Free To Play, And Nothing In It Is A Wager."
                 canonical="/hub/trivia/pvp"
+            />
+
+            <div
+                className="trivia-console-standalone trivia-pvp-page"
+                data-trivia-surface="pvp"
+                data-game-state={gameState}
             >
-
-            </SEOHead>
-
-            <div className="pvp-page">
-                <div className="bg-overlay" />
                 <UniversalHeader pageDepth={2} />
 
-                {/* Error / refund-failure banner.
-                    pvpError and refundFailed were set on every refund and payout
-                    failure path but no JSX referenced them — so all the "surface
-                    it to the user" work was dead and players got zero feedback
-                    when their money did not move. */}
-                {pvpError && (
-                    <div role="alert" style={{
-                        position: 'fixed', top: 16, left: 16, right: 16, zIndex: 10000,
-                        background: '#7f1d1d', border: '1px solid #ef4444', borderRadius: 12,
-                        padding: 14, color: '#fff', display: 'flex', alignItems: 'flex-start',
-                        justifyContent: 'space-between', gap: 12, boxShadow: '0 8px 24px rgba(0,0,0,0.4)'
-                    }}>
-                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, minWidth: 0 }}>
-                            <XCircle size={18} style={{ flexShrink: 0, marginTop: 2 }} />
-                            <div style={{ minWidth: 0 }}>
-                                <div style={{ fontSize: 14 }}>{pvpError}</div>
+                <main className="trivia-pvp-shell" aria-labelledby="pvp-title">
+                    <TriviaConsole
+                        className="trivia-pvp-console"
+                        eyebrow={consoleHead.eyebrow}
+                        title={consoleHead.title}
+                        titleAs="h1"
+                        titleId="pvp-title"
+                        subtitle={consoleHead.subtitle}
+                        pill={consoleHead.pill}
+                        pillInk={consoleHead.pillInk}
+                        primaryAction={primaryAction}
+                        secondaryAction={secondaryAction}
+                    >
+                        {/* Error / refund-failure notice. pvpError and
+                            refundFailed were once set on every failure path
+                            with no JSX reading them, so players got zero
+                            feedback when their money did not move. The
+                            message is printed on the glass (Title Case at the
+                            print site), never in a drawn banner. */}
+                        {pvpError && (
+                            <div className="trivia-pvp-alert" role="alert">
+                                <p className="trivia-pvp-alert__text">{toTitleCase(pvpError)}</p>
                                 {refundFailed && (
-                                    <div style={{ fontSize: 12, opacity: 0.85, marginTop: 4 }}>
+                                    <p className="trivia-pvp-alert__note">
                                         Please Double-Check Your Diamond Balance. If It Looks Wrong, Contact Support With The Time Of This Match.
-                                    </div>
+                                    </p>
+                                )}
+                                <button
+                                    type="button"
+                                    className="tc-word trivia-pvp-alert__dismiss"
+                                    onClick={() => { setPvpError(null); setRefundFailed(false); }}
+                                >
+                                    Dismiss
+                                </button>
+                            </div>
+                        )}
+
+                        {/* Lobby */}
+                        {gameState === 'lobby' && (
+                            <div className="trivia-pvp-stage trivia-pvp-stage--lobby">
+                                {!heroMissing && (
+                                    <img
+                                        className="trivia-pvp-hero"
+                                        src="/images/trivia/modes-console-v1/pvp.webp"
+                                        alt=""
+                                        width={1000}
+                                        height={560}
+                                        decoding="async"
+                                        onError={() => setHeroMissing(true)}
+                                    />
+                                )}
+
+                                <p className="trivia-console-copy trivia-pvp-intro">
+                                    Two Players, The Same Questions, The Same Shot Clock. Pick A Stake And The Better Score Takes The Pot.
+                                </p>
+
+                                {!userId ? (
+                                    <p className="trivia-pvp-status" role="status">Loading Your Account</p>
+                                ) : (
+                                    <>
+                                        <ul className="tc-rows trivia-pvp-rows" aria-label="Your PvP Account">
+                                            <li className="tc-row">
+                                                <span className="tc-row__label">Diamonds Available</span>
+                                                <span className="tc-row__value">{fmt(userDiamonds)}</span>
+                                            </li>
+                                            <li className="tc-row">
+                                                <span className="tc-row__label">Record</span>
+                                                <span className="tc-row__value">{recordText(stats.wins, stats.losses)}</span>
+                                            </li>
+                                            {stats.bestStreak > 0 && (
+                                                <li className="tc-row">
+                                                    <span className="tc-row__label">Best Streak</span>
+                                                    <span className="tc-row__value tc-ink--gold">{fmt(stats.bestStreak)}</span>
+                                                </li>
+                                            )}
+                                        </ul>
+
+                                        <section className="trivia-pvp-stakes" aria-labelledby="pvp-stakes-title">
+                                            <h2 id="pvp-stakes-title" className="tc-label trivia-pvp-stakes__title">Select Your Stake</h2>
+                                            <ul className="tc-rows">
+                                                {STAKE_OPTIONS.map(stake => (
+                                                    <li key={stake} className="tc-row trivia-pvp-stake" data-affordable={userDiamonds >= stake ? 'true' : 'false'}>
+                                                        <button
+                                                            type="button"
+                                                            className="tc-word trivia-pvp-stake__pick"
+                                                            onClick={() => userDiamonds >= stake && handleFindMatch(stake)}
+                                                            disabled={userDiamonds < stake}
+                                                            aria-label={`Stake ${stake} Diamonds`}
+                                                        >
+                                                            Stake {stake}
+                                                        </button>
+                                                        {userDiamonds < stake ? (
+                                                            <span className="tc-row__value tc-ink--red">Not Enough Diamonds</span>
+                                                        ) : (
+                                                            <span className="tc-row__value tc-ink--green">Win {Math.floor(stake * 2 * 0.9)}</span>
+                                                        )}
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                            <p className="trivia-pvp-note">10% House Rake On Prize Pool</p>
+                                        </section>
+                                    </>
                                 )}
                             </div>
-                        </div>
-                        <button
-                            onClick={() => { setPvpError(null); setRefundFailed(false); }}
-                            style={{ padding: '6px 12px', background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 8, color: '#fff', cursor: 'pointer', fontSize: 12, flexShrink: 0 }}
-                        >
-                            Dismiss
-                        </button>
-                    </div>
-                )}
+                        )}
 
-                {/* Out of Diamonds Modal */}
-                {showOutOfDiamonds && (
-                    <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.85)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <div style={{ background: '#1a1a2e', borderRadius: 16, padding: 32, maxWidth: 340, textAlign: 'center', border: '1px solid rgba(0,212,255,0.3)' }}>
-                            <div style={{ fontSize: 48, marginBottom: 16 }}>💎</div>
-                            <h3 style={{ color: '#fff', margin: '0 0 12px' }}>Not Enough Diamonds</h3>
-                            <p style={{ color: 'rgba(255,255,255,0.6)', margin: '0 0 20px', fontSize: 14 }}>You Don't Have Enough Diamonds For This Stake. Visit The Diamond Store To Get More!</p>
-                            <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
-                                <button onClick={() => setShowOutOfDiamonds(false)} style={{ padding: '10px 20px', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 20, color: '#fff', cursor: 'pointer' }}>Close</button>
-                                <button onClick={() => router.push('/hub/diamond-store')} style={{ padding: '10px 20px', background: 'linear-gradient(135deg, #00D4FF, #7B2FFF)', border: 'none', borderRadius: 20, color: '#fff', cursor: 'pointer', fontWeight: 600 }}>Get Diamonds</button>
+                        {/* Searching for an opponent, then the short "opponent
+                            found" beat while session-start serves the roster.
+                            Every player in the pool prints the same way. */}
+                        {gameState === 'searching' && (
+                            <div className="trivia-pvp-stage trivia-pvp-stage--searching">
+                                <p className="trivia-pvp-status" role="status">
+                                    {opponent ? 'Match Found' : 'Searching For A Player At Your Stake'}
+                                </p>
+                                <ul className="tc-rows trivia-pvp-rows" aria-label="Match">
+                                    <li className="tc-row">
+                                        <span className="tc-row__label">Stake</span>
+                                        <span className="tc-row__value tc-ink--gold">{stakeAmount} Diamonds</span>
+                                    </li>
+                                    <li className="tc-row">
+                                        <span className="tc-row__label">Your Record</span>
+                                        <span className="tc-row__value">{recordText(stats.wins, stats.losses)}</span>
+                                    </li>
+                                    {opponent && (
+                                        <li className="tc-row trivia-pvp-row--name">
+                                            <span className="tc-row__label">Opponent</span>
+                                            <span className="tc-row__value tc-ink--blue">{displayName(opponent.username)}</span>
+                                        </li>
+                                    )}
+                                    {opponent && (
+                                        <li className="tc-row">
+                                            <span className="tc-row__label">Their Record</span>
+                                            <span className="tc-row__value">{recordText(opponent.wins, opponent.losses)}</span>
+                                        </li>
+                                    )}
+                                    <li className="tc-row">
+                                        <span className="tc-row__label">Balance</span>
+                                        <span className="tc-row__value">{fmt(userDiamonds)}</span>
+                                    </li>
+                                </ul>
                             </div>
-                        </div>
-                    </div>
-                )}
+                        )}
 
-                <div className="content">
-                    {/* Stats Bar - only visible during gameplay */}
-                    {gameState !== 'lobby' && (
-                        <div className="stats-bar">
-                            <div className="stat">
-                                <Trophy size={16} />
-                                <span>{stats.wins}W - {stats.losses}L</span>
-                            </div>
-                            <div className="stat diamonds">
-                                <Gem size={16} />
-                                <span>{userDiamonds}</span>
-                            </div>
-                        </div>
-                    )}
+                        {/* Battle */}
+                        {gameState === 'battle' && !currentQuestion && (
+                            <p className="trivia-pvp-status" role="status">Loading Question</p>
+                        )}
+                        {gameState === 'battle' && currentQuestion && (
+                            <div className="trivia-pvp-stage trivia-pvp-stage--battle">
+                                <ul className="tc-rows trivia-pvp-scoreboard" aria-label="Scoreboard">
+                                    <li className="tc-row">
+                                        <span className="tc-row__label trivia-pvp-name">{displayName(username)}</span>
+                                        <span className="tc-row__value tc-ink--blue">{playerScore}</span>
+                                    </li>
+                                    <li className="tc-row">
+                                        <span className="tc-row__label trivia-pvp-name">{displayName(opponent?.username || 'Opponent')}</span>
+                                        <span className="tc-row__value tc-ink--silver">
+                                            {opponentScore != null ? opponentScore : (
+                                                <span className="trivia-pvp-thinking" aria-hidden="true">Thinking</span>
+                                            )}
+                                        </span>
+                                    </li>
+                                </ul>
 
-                    {/* Lobby */}
-                    {gameState === 'lobby' && (
-                        <div className="lobby">
-                            <div
-                                className="lobby-image-wrapper"
-                                style={{
-                                    borderRadius: '16px',
-                                    overflow: 'hidden',
-                                }}
-                            >
-                                <Image src="/images/trivia/lobby-pvp.jpg" alt="1v1 Battle - Start Challenge" width={686} height={1024} className="lobby-image" style={{ width: '100%', height: 'auto', display: 'block' }} />
-                            </div>
+                                {/* Per-question outcomes: the data lives in
+                                    playerAnswersRef; printed as numerals in
+                                    the verdict's ink, never drawn dots. */}
+                                <p className="trivia-pvp-marks" aria-hidden="true">
+                                    {questions.map((_, i) => {
+                                        const outcome = playerAnswersRef.current[i];
+                                        const mark = outcome === true ? 'correct'
+                                            : outcome === false ? 'wrong'
+                                                : i === currentQuestionIndex ? 'current' : 'open';
+                                        return <span key={i} className="trivia-pvp-mark" data-outcome={mark}>{i + 1}</span>;
+                                    })}
+                                </p>
 
-                            {/* Diamond Balance */}
-                            <div className="lobby-balance">
-                                <Gem size={18} />
-                                <span>{userDiamonds} Diamonds Available</span>
-                            </div>
+                                <h2 className="question-text trivia-pvp-question">{toTitleCase(currentQuestion.question)}</h2>
 
-                            {/* Stake Selection */}
-                            <div className="stake-selection">
-                                <h3>Select Your Stake</h3>
-                                <div className="stake-grid">
-                                    {STAKE_OPTIONS.map(stake => (
-                                        <button
-                                            key={stake}
-                                            className={`stake-btn ${userDiamonds < stake ? 'disabled' : ''}`}
-                                            onClick={() => userDiamonds >= stake && handleFindMatch(stake)}
-                                            disabled={userDiamonds < stake}
-                                        >
-                                            <span className="stake-amount">{stake} 💎</span>
-                                            <span className="stake-win">Win {Math.floor(stake * 2 * 0.9)} 💎</span>
-                                        </button>
+                                <div className="options trivia-pvp-options">
+                                    {/* correctIndex comes from the SERVER verdict -
+                                        session-start never ships an answer key, so
+                                        the reveal cannot happen before the server
+                                        has graded (and bound) the tap. */}
+                                    {/* TRAIN-WIRE-TRIVIA-ANSWER-OPTION-2: shared option primitive */}
+                                    {currentQuestion.options.map((option, idx) => (
+                                        <TriviaAnswerOption
+                                            key={idx}
+                                            index={idx}
+                                            option={toTitleCase(option)}
+                                            selectedAnswer={selectedAnswer}
+                                            correctIndex={verdict ? verdict.correctDisplayIndex : null}
+                                            showResult={showResult}
+                                            onSelect={gradeAnswer}
+                                        />
                                     ))}
                                 </div>
-                                <p className="rake-notice">10% House Rake On Prize Pool</p>
-                            </div>
 
-                            {/* Record */}
-                            <div className="lobby-record">
-                                <Trophy size={16} />
-                                <span>{stats.wins}W - {stats.losses}L</span>
-                                {stats.bestStreak > 0 && (
-                                    <span className="best-streak">Best Streak: {stats.bestStreak} 🔥</span>
-                                )}
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Searching for opponent */}
-                    {gameState === 'searching' && (
-                        <div className="result-panel-overlay">
-                            <button className="panel-back-top" onClick={handleCancelSearch}>← Cancel</button>
-                            <div className="result-panel-container finding-container">
-                                <img
-                                    src="/trivia/panels/panel-finding.jpg"
-                                    alt=""
-                                    className="result-panel-bg"
-                                    loading="lazy" />
-                                {/* Record positioned in upper area */}
-                                <div className="finding-record-zone">
-                                    <span className="finding-record">{stats.wins}W - {stats.losses}L</span>
-                                </div>
-                                {/* Spinner in center */}
-                                <div className="finding-spinner-zone">
-                                    <Loader size={52} className="finding-spinner-icon" />
-                                </div>
-                                {/* Opponent info when found */}
-                                {opponent && (
-                                    <div className="finding-opponent-zone">
-                                        <div className="panel-stats">
-                                            <div className="panel-stat-row">
-                                                <span className="panel-stat-label">PLAYER</span>
-                                                <span className="panel-stat-value cyan">{opponent.username}</span>
-                                            </div>
-                                            <div className="panel-stat-row">
-                                                <span className="panel-stat-label">RECORD</span>
-                                                <span className="panel-stat-value white">{opponent.wins}W - {opponent.losses}L</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
-                                {/* Stake at the bottom, close to CANCEL */}
-                                <div className="finding-stake-zone">
-                                    <span className="finding-stake-label">STAKE</span>
-                                    <span className="finding-stake-value">{stakeAmount} 💎</span>
-                                </div>
-                                {/* Invisible cancel hitbox over baked-in CANCEL button */}
-                                <button className="finding-cancel-hitbox" onClick={handleCancelSearch} aria-label="Cancel Search" />
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Battle */}
-                    {gameState === 'battle' && currentQuestion && (
-                        <div className="battle">
-                            {/* Battle header */}
-                            <div className="battle-header">
-                                <div className="player you">
-                                    <span className="name">{username}</span>
-                                    <span className="score">{playerScore}</span>
-                                </div>
-                                <div className="vs">VS</div>
-                                <div className="player opponent">
-                                    <span className="name">{opponent?.username}</span>
-                                    <span className="score">{opponentScore != null ? opponentScore : '?'}</span>
-                                    {opponentScore == null && (
-                                        <span className="ellipsis-pulse" aria-hidden="true">Thinking</span>
-                                    )}
-                                </div>
-                            </div>
-
-                            {/* Timer */}
-                            <div className={`battle-timer ${timer.timeLeft <= 5 ? 'danger' : ''}`}>
-                                <Clock size={20} />
-                                <span>{timer.timeLeft}s</span>
-                            </div>
-
-                            {/* Progress */}
-                            <div className="battle-progress">
-                                Question {currentQuestionIndex + 1} Of {questions.length}
-                            </div>
-
-                            {/* Per-question result dots — data already lived in
-                                playerAnswersRef but was never shown. */}
-                            <div className="battle-dots" aria-hidden="true">
-                                {questions.map((_, i) => {
-                                    const outcome = playerAnswersRef.current[i];
-                                    const cls = outcome === true ? 'dot correct'
-                                        : outcome === false ? 'dot wrong'
-                                            : 'dot';
-                                    return <span key={i} className={cls} />;
-                                })}
-                            </div>
-
-                            {/* Question */}
-                            <MetalFrame padding="24px" showBolts={false}>
-                                <h2 className="question-text">{toTitleCase(currentQuestion.question)}</h2>
-
-                                <div className="options">
-                                    {/* TRAIN-WIRE-TRIVIA-ANSWER-OPTION-2 — shared option primitive */}
-                                {/* correctIndex comes from the SERVER verdict -
-                                    session-start never ships an answer key, so
-                                    the reveal cannot happen before the server
-                                    has graded (and bound) the tap. */}
-                                {currentQuestion.options.map((option, idx) => (
-                                  <TriviaAnswerOption
-                                    key={idx}
-                                    index={idx}
-                                    option={toTitleCase(option)}
-                                    selectedAnswer={selectedAnswer}
-                                    correctIndex={verdict ? verdict.correctDisplayIndex : null}
-                                    showResult={showResult}
-                                    onSelect={gradeAnswer}
-                                  />
-                                ))}
-                                </div>
-
-                                {/* Report-a-bad-question. The component was imported here
-                                    but never rendered, leaving the 3-strike quality
-                                    demotion pipeline unwired in PvP. Only shown after the
-                                    answer is revealed so it cannot stall the shot clock. */}
+                                {/* Report-a-bad-question, only after the reveal so
+                                    it cannot stall the shot clock. */}
                                 {showResult && currentQuestion?.id != null && (
-                                    <div style={{ display: 'flex', justifyContent: 'center', marginTop: 14 }}>
+                                    <div className="trivia-pvp-report">
                                         <ReportQuestionButton questionId={currentQuestion.id} userToken={accessToken} />
                                     </div>
                                 )}
-                            </MetalFrame>
-                        </div>
-                    )}
 
-                    {/* Waiting for opponent */}
-                    {gameState === 'waiting' && (
-                        <div className="waiting">
-                            <MetalFrame padding="32px" showBolts={true}>
-                                <h2>Battle Complete!</h2>
-                                <p>Your Score: <strong>{playerScore}</strong></p>
+                                <p className="trivia-pvp-meta">
+                                    Record {recordText(stats.wins, stats.losses)} <span aria-hidden="true">|</span> {fmt(userDiamonds)} Diamonds
+                                </p>
+                            </div>
+                        )}
+
+                        {/* Waiting for the opponent to finish */}
+                        {gameState === 'waiting' && (
+                            <div className="trivia-pvp-stage trivia-pvp-stage--waiting">
+                                <ul className="tc-rows trivia-pvp-rows" aria-label="Your Run">
+                                    <li className="tc-row">
+                                        <span className="tc-row__label">Your Score</span>
+                                        <span className="tc-row__value tc-ink--blue">{playerScore} Of {totalQuestions}</span>
+                                    </li>
+                                    <li className="tc-row">
+                                        <span className="tc-row__label trivia-pvp-name">{displayName(opponent?.username || 'Opponent')}</span>
+                                        <span className="tc-row__value">{opponentScore != null ? `${opponentScore} Of ${totalQuestions}` : 'Playing'}</span>
+                                    </li>
+                                    <li className="tc-row">
+                                        <span className="tc-row__label">Stake</span>
+                                        <span className="tc-row__value tc-ink--gold">{stakeAmount} Diamonds</span>
+                                    </li>
+                                    {!waitingExpired && waitingSecondsLeft > 0 && (
+                                        <li className="tc-row">
+                                            <span className="tc-row__label">Time Left</span>
+                                            <span className={`tc-row__value ${waitingSecondsLeft <= 10 ? 'tc-ink--red' : 'tc-ink--gold'}`}>{clockText(waitingSecondsLeft)}</span>
+                                        </li>
+                                    )}
+                                </ul>
                                 {!waitingExpired ? (
-                                    <div className="waiting-spinner">
-                                        <div className="spinner" />
-                                        <span>
-                                            Waiting For Opponent To Finish
-                                            {waitingSecondsLeft > 0 && ` - ${Math.floor(waitingSecondsLeft / 60)}:${String(waitingSecondsLeft % 60).padStart(2, '0')}`}
-                                        </span>
-                                    </div>
+                                    <p className="trivia-pvp-status" role="status">The Match Settles The Moment They Finish</p>
                                 ) : (
                                     /* Escape hatch. Before this, a player whose opponent
                                        disconnected sat here forever with their stake locked
-                                       and no way out — the match row never reached 'complete'
-                                       so handleMatchUpdate never fired. */
-                                    <div style={{ textAlign: 'center', marginTop: 16 }}>
-                                        <p style={{ color: 'rgba(255,255,255,0.75)', fontSize: 14, marginBottom: 6 }}>
-                                            Your Opponent Has Not Finished Yet.
-                                        </p>
-                                        {/* Honest stake status: the pvp-settle sweep now
-                                            force-settles anything still open ~30 minutes
-                                            after the match started (forfeit win, tie
-                                            refund, or full refund), so leaving this
-                                            screen never strands the stake. Still no
-                                            client-side refund here - that could only
-                                            double-pay against the server settlement. */}
-                                        <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12, marginBottom: 16 }}>
+                                       and no way out. The pvp-settle sweep force-settles
+                                       anything still open ~30 minutes after the match
+                                       started, so leaving never strands the stake, and
+                                       there is still no client-side refund here. */
+                                    <div className="trivia-pvp-expired">
+                                        <p className="trivia-pvp-status">Your Opponent Has Not Finished Yet.</p>
+                                        <p className="trivia-pvp-note">
                                             Your Run Is Graded And Locked In On The Server. If Your Opponent Finishes, The Match Settles Instantly And Pays The Winner. If They Never Finish, The Automatic Settlement Sweep Closes The Match Within About 30 Minutes - You Can Leave This Screen Safely And Check Your Balance Later.
                                         </p>
-                                        <button
-                                            onClick={handlePlayAgain}
-                                            style={{ padding: '12px 24px', background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.25)', borderRadius: 10, color: '#fff', cursor: 'pointer', fontWeight: 600 }}
-                                        >
-                                            Back To Lobby
-                                        </button>
                                     </div>
                                 )}
-                            </MetalFrame>
-                        </div>
-                    )}
-
-                    {/* Results — title + buttons are baked into panel image, only overlay stats */}
-                    {gameState === 'result' && result && (
-                        <div className="result-panel-overlay">
-                            <div className="result-panel-container">
-                                <img
-                                    src={result.won || result.tied ? '/trivia/panels/panel-win.jpg' : '/trivia/panels/panel-defeat.jpg'}
-                                    alt=""
-                                    className="result-panel-bg"
-                                    loading="lazy" />
-                                {/* Win/Loss record in the top header bar */}
-                                <div className="result-score-zone">
-                                    <div className="panel-stats">
-                                        <div className="panel-stat-row">
-                                            <span className="panel-stat-label">RECORD</span>
-                                            <span className="panel-stat-value white">{stats.wins}W - {stats.losses}L</span>
-                                        </div>
-                                    </div>
-                                </div>
-                                {/* Game stats inside the main box, below the baked-in title */}
-                                <div className="result-stats-zone">
-                                    <div className="panel-stats">
-                                        <div className="panel-stat-row">
-                                            <span className="panel-stat-label">YOUR SCORE</span>
-                                            <span className="panel-stat-value cyan">{result.playerScore}/{questions.length}</span>
-                                        </div>
-                                        <div className="panel-stat-row">
-                                            <span className="panel-stat-label">{result.opponent?.username || 'OPPONENT'}</span>
-                                            <span className="panel-stat-value red">{result.opponentScore}/{questions.length}</span>
-                                        </div>
-                                        <div className="panel-stat-row">
-                                            <span className="panel-stat-label">WIN STREAK</span>
-                                            <span className="panel-stat-value gold">{stats.winStreak || 0} 🔥</span>
-                                        </div>
-                                        <div className="panel-stat-row">
-                                            {/* A tie is a refund, not winnings — labelling it
-                                                "+N DIAMONDS" read as a payout. */}
-                                            <span className="panel-stat-label">{result.tied ? 'STAKE RETURNED' : 'DIAMONDS'}</span>
-                                            <span className={`panel-stat-value ${result.won ? 'green' : result.tied ? 'white' : 'red'}`}>
-                                                {result.won
-                                                    ? `+${result.winnings} DIAMONDS`
-                                                    : result.tied
-                                                        ? `${result.stake ?? stakeAmount} DIAMONDS`
-                                                        : `-${result.stake ?? stakeAmount} DIAMONDS`}
-                                            </span>
-                                        </div>
-                                        {result.payoutFailed && (
-                                            <div className="panel-stat-row">
-                                                <span className="panel-stat-label">STATUS</span>
-                                                <span className="panel-stat-value red">PAYOUT PENDING</span>
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
-                                {/* Invisible hitboxes over baked-in PLAY AGAIN and BACK TO TRIVIA buttons */}
-                                <button className="result-play-again-hitbox" onClick={handlePlayAgain} aria-label="Play Again" />
-                                <button className="result-back-hitbox" onClick={() => router.push('/hub/trivia')} aria-label="Back To Trivia" />
                             </div>
-                        </div>
-                    )}
-                </div>
-            {/* Modals */}
-            <VIPGateModal 
-                visible={upgradeModalVisible}
-                onClose={hideUpgradeModal}
-                featureName="PvP Battle Mode"
-                featureConfig={featureConfig}
-            />
+                        )}
 
+                        {/* Result: the server-decided outcome */}
+                        {gameState === 'result' && result && (
+                            <div className="trivia-pvp-stage trivia-pvp-stage--result">
+                                <ul className="tc-rows trivia-pvp-rows" aria-label="Match Result">
+                                    <li className="tc-row">
+                                        <span className="tc-row__label">Your Score</span>
+                                        <span className="tc-row__value tc-ink--blue">{result.playerScore} Of {totalQuestions}</span>
+                                    </li>
+                                    <li className="tc-row">
+                                        <span className="tc-row__label trivia-pvp-name">{displayName(result.opponent?.username || 'Opponent')}</span>
+                                        <span className="tc-row__value">{result.opponentScore} Of {totalQuestions}</span>
+                                    </li>
+                                    <li className="tc-row">
+                                        {/* A tie is a refund, not winnings - labelling it
+                                            as a payout read as money won. */}
+                                        <span className="tc-row__label">{result.tied ? 'Stake Returned' : 'Diamonds'}</span>
+                                        <span className={`tc-row__value ${result.won ? 'tc-ink--green' : result.tied ? 'tc-ink--white' : 'tc-ink--red'}`}>
+                                            {result.won
+                                                ? `+${result.winnings} Diamonds`
+                                                : result.tied
+                                                    ? `${result.stake ?? stakeAmount} Diamonds`
+                                                    : `-${result.stake ?? stakeAmount} Diamonds`}
+                                        </span>
+                                    </li>
+                                    {result.payoutFailed && (
+                                        <li className="tc-row">
+                                            <span className="tc-row__label">Status</span>
+                                            <span className="tc-row__value tc-ink--red">Payout Pending</span>
+                                        </li>
+                                    )}
+                                    <li className="tc-row">
+                                        <span className="tc-row__label">Record</span>
+                                        <span className="tc-row__value">{recordText(stats.wins, stats.losses)}</span>
+                                    </li>
+                                    <li className="tc-row">
+                                        <span className="tc-row__label">Win Streak</span>
+                                        <span className="tc-row__value tc-ink--gold">{fmt(stats.winStreak || 0)}</span>
+                                    </li>
+                                    <li className="tc-row">
+                                        <span className="tc-row__label">Balance</span>
+                                        <span className="tc-row__value">{fmt(userDiamonds)}</span>
+                                    </li>
+                                </ul>
+                            </div>
+                        )}
+                    </TriviaConsole>
+                </main>
+
+                {/* Not enough Diamonds for the chosen stake (fresh balance
+                    check, or session-start answered 402). */}
+                <TriviaConsoleDialog
+                    open={showOutOfDiamonds}
+                    onClose={() => setShowOutOfDiamonds(false)}
+                    eyebrow="PvP Battle"
+                    title="Not Enough Diamonds"
+                    pill={fmt(userDiamonds)}
+                    pillInk="gold"
+                    secondaryAction={{ label: 'Close', onClick: () => setShowOutOfDiamonds(false) }}
+                    primaryAction={{ label: 'Get Diamonds', tone: 'gold', onClick: () => router.push('/hub/diamond-store') }}
+                >
+                    <p className="trivia-console-copy">
+                        You Don't Have Enough Diamonds For This Stake. Visit The Diamond Store To Get More!
+                    </p>
+                </TriviaConsoleDialog>
+
+                {/* VIP gate, driven by the same useVIPGate state the legacy
+                    VIPGateModal used. */}
+                <TriviaConsoleDialog
+                    open={upgradeModalVisible}
+                    onClose={hideUpgradeModal}
+                    eyebrow="Premium Feature"
+                    title="PvP Battle Mode"
+                    pill="VIP"
+                    pillInk="gold"
+                    secondaryAction={{ label: 'Maybe Later', onClick: hideUpgradeModal }}
+                    primaryAction={{ label: 'Get VIP', 'aria-label': 'Get VIP Membership', onClick: () => { hideUpgradeModal(); router.push('/hub/diamond-store?tab=vip'); } }}
+                >
+                    <p className="trivia-console-copy">
+                        Upgrade To VIP For Unlimited Access To All Premium Features!
+                    </p>
+                    {(vipGateType === 'DIAMOND' || vipGateType === 'MIXED') && (
+                        <p className="trivia-pvp-dialog-actions">
+                            <TriviaGlassAction
+                                label={`Day Pass For ${dayPassCost} Diamonds`}
+                                ink="blue"
+                                onClick={() => { hideUpgradeModal(); router.push('/hub/diamond-store'); }}
+                            />
+                        </p>
+                    )}
+                </TriviaConsoleDialog>
             </div>
 
-            <style dangerouslySetInnerHTML={{ __html: `
-                .pvp-page {
-                    min-height: 100vh; padding-bottom: 70px;
-                    background: #0a0e1a;
-                    background-color: #000000;
-                    font-family: 'Inter', -apple-system, sans-serif;
-                }
-
-                .bg-overlay {
-                    display: none;
-                }
-
-                .content {
-                    position: relative;
-                    padding: 80px 0 40px;
-                    max-width: 100%;
-                    margin: 0 auto;
-                }
-
-                .stats-bar {
-                    display: flex;
-                    justify-content: space-between;
-                    padding: 12px 16px;
-                    background: rgba(30, 41, 59, 0.6);
-                    border: 1px solid rgba(255, 255, 255, 0.1);
-                    border-radius: 10px;
-                    margin-bottom: 20px;
-                }
-
-                .stat {
-                    display: flex;
-                    align-items: center;
-                    gap: 8px;
-                    font-size: 14px;
-                    font-weight: 600;
-                    color: #fff;
-                }
-
-                .stat.diamonds { color: #00d4ff; }
-
-                /* Lobby */
-                .lobby-header {
-                    text-align: center;
-                    margin-bottom: 24px;
-                }
-
-                .lobby-header h1 {
-                    font-family: 'Orbitron', sans-serif;
-                    font-size: 28px;
-                    color: #ef4444;
-                    margin: 12px 0 8px;
-                    text-shadow: 0 0 20px rgba(239, 68, 68, 0.5);
-                }
-
-                .lobby-header p {
-                    color: rgba(255, 255, 255, 0.6);
-                    margin: 0;
-                }
-
-                .lobby-balance {
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    gap: 8px;
-                    padding: 12px 16px;
-                    color: #00d4ff;
-                    font-weight: 700;
-                    font-size: 16px;
-                    margin: 12px 0;
-                }
-
-                .lobby-record {
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    gap: 10px;
-                    padding: 12px 16px;
-                    color: rgba(255, 255, 255, 0.7);
-                    font-weight: 600;
-                    font-size: 14px;
-                    margin-top: 8px;
-                }
-
-                .best-streak {
-                    color: #ffd700;
-                    margin-left: 8px;
-                }
-
-                .stake-selection h3 {
-                    text-align: center;
-                    color: #fff;
-                    margin: 0 0 16px;
-                }
-
-                .stake-grid {
-                    display: grid;
-                    grid-template-columns: repeat(2, 1fr);
-                    gap: 12px;
-                    margin-bottom: 12px;
-                }
-
-                .stake-btn {
-                    display: flex;
-                    flex-direction: column;
-                    align-items: center;
-                    gap: 4px;
-                    padding: 16px;
-                    background: rgba(30, 41, 59, 0.6);
-                    border: 2px solid rgba(0, 212, 255, 0.3);
-                    border-radius: 12px;
-                    cursor: pointer;
-                    transition: all 0.2s;
-                    color: #fff;
-                }
-
-                .stake-btn:hover:not(.disabled) {
-                    background: rgba(0, 212, 255, 0.1);
-                    border-color: #00d4ff;
-                    transform: translateY(-2px);
-                }
-
-                .stake-btn.disabled {
-                    opacity: 0.5;
-                    cursor: not-allowed;
-                }
-
-                .stake-amount {
-                    font-size: 24px;
-                    font-weight: 700;
-                }
-
-                .stake-win {
-                    font-size: 12px;
-                    color: #22c55e;
-                }
-
-                .rake-notice {
-                    text-align: center;
-                    font-size: 12px;
-                    color: rgba(255, 255, 255, 0.4);
-                    margin: 0;
-                }
-
-                .how-it-works {
-                    margin-top: 24px;
-                    padding-top: 24px;
-                    border-top: 1px solid rgba(255, 255, 255, 0.1);
-                }
-
-                .how-it-works h4 {
-                    color: rgba(255, 255, 255, 0.5);
-                    font-size: 12px;
-                    text-transform: uppercase;
-                    margin: 0 0 12px;
-                }
-
-                .how-it-works ul {
-                    list-style: none;
-                    padding: 0;
-                    margin: 0;
-                }
-
-                .how-it-works li {
-                    color: rgba(255, 255, 255, 0.7);
-                    font-size: 14px;
-                    margin-bottom: 8px;
-                }
-
-                /* Battle */
-                .battle-header {
-                    display: flex;
-                    align-items: center;
-                    justify-content: space-between;
-                    padding: 16px;
-                    background: rgba(30, 41, 59, 0.6);
-                    border-radius: 12px;
-                    margin-bottom: 16px;
-                }
-
-                .player {
-                    display: flex;
-                    flex-direction: column;
-                    align-items: center;
-                }
-
-                .player .name {
-                    font-size: 14px;
-                    color: rgba(255, 255, 255, 0.7);
-                }
-
-                .player .score {
-                    font-size: 28px;
-                    font-weight: 700;
-                    color: #fff;
-                }
-
-                .player.you .score { color: #00d4ff; }
-                .player.opponent .score { color: #ef4444; }
-
-                .vs {
-                    font-size: 20px;
-                    font-weight: 700;
-                    color: rgba(255, 255, 255, 0.3);
-                }
-
-                .battle-timer {
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    gap: 8px;
-                    padding: 12px;
-                    font-size: 24px;
-                    font-weight: 700;
-                    color: #fff;
-                    margin-bottom: 12px;
-                }
-
-                .battle-timer.danger {
-                    color: #ef4444;
-                    animation: pulse 0.5s infinite;
-                }
-
-                @keyframes pulse {
-                    0%, 100% { opacity: 1; transform: scale(1); }
-                    50% { opacity: 0.5; transform: scale(1.1); }
-                }
-
-                .battle-progress {
-                    text-align: center;
-                    font-size: 13px;
-                    color: rgba(255, 255, 255, 0.5);
-                    margin-bottom: 16px;
-                }
-
-                .question-text {
-                    font-size: 18px;
-                    color: #fff;
-                    margin: 0 0 20px;
-                    line-height: 1.5;
-                }
-
-                .options {
-                    display: flex;
-                    flex-direction: column;
-                    gap: 12px;
-                }
-
-                .option {
-                    display: flex;
-                    align-items: center;
-                    gap: 12px;
-                    padding: 16px;
-                    background: rgba(30, 41, 59, 0.6);
-                    border: 2px solid rgba(255, 255, 255, 0.1);
-                    border-radius: 10px;
-                    cursor: pointer;
-                    transition: all 0.2s;
-                    text-align: left;
-                    color: #fff;
-                }
-
-                /* hover removed per user request */
-
-                .option.correct {
-                    background: rgba(34, 197, 94, 0.2);
-                    border-color: #22c55e;
-                }
-
-                .option.wrong {
-                    background: rgba(239, 68, 68, 0.2);
-                    border-color: #ef4444;
-                }
-
-                .option-letter {
-                    width: 28px;
-                    height: 28px;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    background: rgba(255, 255, 255, 0.1);
-                    border-radius: 6px;
-                    font-weight: 600;
-                    flex-shrink: 0;
-                }
-
-                .option-text { flex: 1; }
-                .result-icon { margin-left: auto; }
-                .option.correct .result-icon { color: #22c55e; }
-                .option.wrong .result-icon { color: #ef4444; }
-
-                .spinner {
-                    width: 40px;
-                    height: 40px;
-                    border: 3px solid rgba(255, 255, 255, 0.1);
-                    border-top-color: #00d4ff;
-                    border-radius: 50%;
-                    animation: spin 1s linear infinite;
-                }
-
-                @keyframes spin { to { transform: rotate(360deg); } }
-
-                .waiting-spinner {
-                    display: flex;
-                    flex-direction: column;
-                    align-items: center;
-                    gap: 12px;
-                    margin: 24px 0;
-                }
-
-                /* Waiting */
-                .waiting { text-align: center; }
-                .waiting h2 { color: #fff; margin: 0 0 12px; }
-                .waiting p { color: rgba(255, 255, 255, 0.7); }
-
-                /* ===== PANEL OVERLAY SYSTEM (All 3 Panels) ===== */
-                .result-panel-overlay {
-                    position: fixed;
-                    top: 0;
-                    left: 0;
-                    right: 0;
-                    bottom: 0;
-                    z-index: 1000;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    background: rgba(0, 0, 0, 0.85);
-                    animation: panelFadeIn 0.4s ease;
-                }
-
-                @keyframes panelFadeIn {
-                    from { opacity: 0; transform: scale(0.9); }
-                    to { opacity: 1; transform: scale(1); }
-                }
-
-                .panel-back-top {
-                    position: absolute;
-                    top: 16px;
-                    left: 16px;
-                    z-index: 1010;
-                    font-family: 'Orbitron', 'Exo 2', sans-serif;
-                    font-weight: 700;
-                    font-size: 0.85rem;
-                    letter-spacing: 0.04em;
-                    text-transform: uppercase;
-                    color: rgba(255, 255, 255, 0.7);
-                    background: rgba(0, 0, 0, 0.5);
-                    border: 1px solid rgba(255, 255, 255, 0.15);
-                    border-radius: 6px;
-                    padding: 8px 16px;
-                    cursor: pointer;
-                    transition: all 0.2s ease;
-                }
-
-                .panel-back-top:hover {
-                    color: #00f0ff;
-                    border-color: rgba(0, 240, 255, 0.35);
-                    background: rgba(0, 0, 0, 0.7);
-                    text-shadow: 0 0 8px rgba(0, 240, 255, 0.5);
-                }
-
-                .result-panel-container {
-                    position: relative;
-                    width: 92vw;
-                    max-width: 700px;
-                }
-
-                /* ===== Finding Opponent Panel Zones ===== */
-                .finding-record-zone {
-                    position: absolute;
-                    top: 38%;
-                    left: 50%;
-                    transform: translate(-50%, -50%);
-                    z-index: 2;
-                    text-align: center;
-                }
-
-                .finding-record {
-                    font-family: 'Orbitron', 'Exo 2', sans-serif;
-                    font-weight: 700;
-                    font-size: 2rem;
-                    color: rgba(255, 255, 255, 0.9);
-                    letter-spacing: 0.08em;
-                    text-shadow: 0 0 10px rgba(0, 240, 255, 0.4);
-                }
-
-                .finding-spinner-zone {
-                    position: absolute;
-                    top: 52%;
-                    left: 50%;
-                    transform: translate(-50%, -50%);
-                    z-index: 2;
-                    text-align: center;
-                }
-
-                .finding-spinner-icon {
-                    color: #00f0ff;
-                    animation: spinLoader 1.2s linear infinite;
-                    filter: drop-shadow(0 0 10px rgba(0, 240, 255, 0.6));
-                }
-
-                @keyframes spinLoader {
-                    from { transform: rotate(0deg); }
-                    to { transform: rotate(360deg); }
-                }
-
-                .finding-opponent-zone {
-                    position: absolute;
-                    top: 55%;
-                    left: 50%;
-                    transform: translate(-50%, -50%);
-                    z-index: 2;
-                    width: 75%;
-                }
-
-                .finding-opponent-zone .panel-stats {
-                    width: 100%;
-                    max-width: none;
-                }
-
-                .finding-opponent-zone .panel-stat-label {
-                    font-size: 1.1rem;
-                }
-
-                .finding-opponent-zone .panel-stat-value {
-                    font-size: 1.3rem;
-                }
-
-                .finding-stake-zone {
-                    position: absolute;
-                    bottom: 18%;
-                    left: 50%;
-                    transform: translateX(-50%);
-                    z-index: 2;
-                    display: flex;
-                    align-items: center;
-                    gap: 10px;
-                }
-
-                .finding-stake-label {
-                    font-family: 'Orbitron', 'Exo 2', sans-serif;
-                    font-weight: 700;
-                    font-size: 1.3rem;
-                    color: rgba(255, 255, 255, 0.6);
-                    letter-spacing: 0.06em;
-                    text-transform: uppercase;
-                }
-
-                .finding-stake-value {
-                    font-family: 'Orbitron', 'Exo 2', sans-serif;
-                    font-weight: 800;
-                    font-size: 1.6rem;
-                    color: #ffd700;
-                    text-shadow: 0 0 8px rgba(255, 215, 0, 0.5);
-                }
-
-                .finding-cancel-hitbox {
-                    position: absolute;
-                    bottom: 3%;
-                    left: 50%;
-                    transform: translateX(-50%);
-                    width: 35%;
-                    height: 9%;
-                    background: transparent;
-                    border: none;
-                    cursor: pointer;
-                    z-index: 10;
-                }
-
-                .result-panel-bg {
-                    width: 100%;
-                    height: auto;
-                    display: block;
-                    border-radius: 4px;
-                }
-
-                /* Score zone - positioned in the top header box */
-                .result-score-zone {
-                    position: absolute;
-                    top: 5%;
-                    left: 50%;
-                    transform: translateX(-50%);
-                    z-index: 2;
-                    width: 70%;
-                }
-
-                .result-score-zone .panel-stats {
-                    width: 100%;
-                    max-width: none;
-                    gap: 2px;
-                }
-
-                .result-score-zone .panel-stat-label {
-                    font-size: 0.95rem;
-                }
-
-                .result-score-zone .panel-stat-value {
-                    font-size: 1.1rem;
-                }
-
-                /* Stats zone - positioned below the baked-in title area */
-                .result-stats-zone {
-                    position: absolute;
-                    top: 58%;
-                    left: 50%;
-                    transform: translateX(-50%);
-                    z-index: 2;
-                    width: 75%;
-                }
-
-                .result-stats-zone .panel-stats {
-                    width: 100%;
-                    max-width: none;
-                    gap: 4px;
-                }
-
-                .result-stats-zone .panel-stat-label {
-                    font-size: 1.1rem;
-                }
-
-                .result-stats-zone .panel-stat-value {
-                    font-size: 1.3rem;
-                }
-
-                /* Per-question progress dots (battle screen) */
-                .battle-dots {
-                    display: flex;
-                    flex-wrap: wrap;
-                    justify-content: center;
-                    gap: 6px;
-                    margin: 0 0 14px;
-                }
-
-                .battle-dots .dot {
-                    width: 8px;
-                    height: 8px;
-                    border-radius: 50%;
-                    background: rgba(255, 255, 255, 0.18);
-                    transition: background 0.2s;
-                }
-
-                .battle-dots .dot.correct { background: #22c55e; }
-                .battle-dots .dot.wrong { background: #ef4444; }
-
-                /* Press feedback for the otherwise-invisible image hitboxes —
-                   tapping a baked-in button previously gave zero response. */
-                .result-play-again-hitbox:active,
-                .result-back-hitbox:active,
-                .finding-cancel-hitbox:active {
-                    background: rgba(0, 240, 255, 0.08);
-                    border-radius: 8px;
-                }
-
-                /* Invisible hitboxes over baked-in buttons */
-                .result-play-again-hitbox {
-                    position: absolute;
-                    bottom: 8%;
-                    left: 5%;
-                    width: 45%;
-                    height: 9%;
-                    background: transparent;
-                    border: none;
-                    cursor: pointer;
-                    z-index: 10;
-                }
-
-                .result-back-hitbox {
-                    position: absolute;
-                    bottom: 8%;
-                    right: 5%;
-                    width: 45%;
-                    height: 9%;
-                    background: transparent;
-                    border: none;
-                    cursor: pointer;
-                    z-index: 10;
-                }
-
-                /* ===== PANEL TITLE — User's exact Orbitron spec ===== */
-                .panel-title {
-                    font-family: 'Orbitron', 'Exo 2', 'Rajdhani', sans-serif;
-                    font-weight: 900;
-                    font-size: 5rem;
-                    letter-spacing: 0.06em;
-                    text-transform: uppercase;
-                    color: #ffffff;
-                    text-align: center;
-                    text-shadow:
-                        0 0 12px #00ffff99,
-                        0 0 24px #00ffff44,
-                        3px 3px 6px #000000aa;
-                    background: linear-gradient(to bottom, #ffffff, #d0d0d0);
-                    -webkit-background-clip: text;
-                    background-clip: text;
-                    -webkit-text-fill-color: transparent;
-                    line-height: 1.05;
-                    white-space: pre-line;
-                    margin: 0 0 4% 0;
-                    padding: 0.5rem 0;
-                }
-
-                .panel-title.lose {
-                    text-shadow:
-                        0 0 12px #ff444499,
-                        0 0 24px #ff444444,
-                        3px 3px 6px #000000aa;
-                }
-
-                .panel-title.tie {
-                    text-shadow:
-                        0 0 12px #ffd70099,
-                        0 0 24px #ffd70044,
-                        3px 3px 6px #000000aa;
-                }
-
-                .ellipsis-pulse {
-                    animation: ellipsisPulse 1.5s infinite;
-                    font-size: 10px;
-                    letter-spacing: 0.5px;
-                    text-transform: uppercase;
-                    color: rgba(255, 255, 255, 0.45);
-                }
-
-                @keyframes ellipsisPulse {
-                    0%, 100% { opacity: 1; }
-                    50% { opacity: 0.2; }
-                }
-
-                /* ===== STAT ROWS ===== */
-                .panel-stats {
-                    width: 75%;
-                    max-width: 400px;
-                    display: flex;
-                    flex-direction: column;
-                    gap: 8px;
-                    margin-bottom: 5%;
-                }
-
-                .panel-stat-row {
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                    font-family: 'Orbitron', 'Exo 2', sans-serif;
-                    font-size: 1rem;
-                    letter-spacing: 0.04em;
-                }
-
-                .panel-stat-label {
-                    color: rgba(255, 255, 255, 0.6);
-                    font-weight: 700;
-                    text-transform: uppercase;
-                }
-
-                .panel-stat-value {
-                    font-weight: 900;
-                }
-
-                .panel-stat-value.cyan { color: #00f0ff; }
-                .panel-stat-value.red { color: #ef4444; }
-                .panel-stat-value.green { color: #22c55e; }
-                .panel-stat-value.gold { color: #ffd700; }
-                .panel-stat-value.white { color: #e8e8e8; }
-
-                .panel-stat-divider {
-                    height: 1px;
-                    background: linear-gradient(90deg, transparent, rgba(0, 240, 255, 0.3), transparent);
-                    margin: 4px 0;
-                }
-
-                /* ===== PANEL BUTTONS ===== */
-                .panel-buttons {
-                    display: flex;
-                    gap: 16px;
-                    align-items: center;
-                }
-
-                .panel-btn-primary {
-                    font-family: 'Orbitron', 'Exo 2', sans-serif;
-                    font-weight: 800;
-                    font-size: 1.1rem;
-                    letter-spacing: 0.06em;
-                    text-transform: uppercase;
-                    color: #00f0ff;
-                    background: linear-gradient(to bottom, #3a3e4a, #2a2e3a);
-                    border: 1px solid rgba(0, 240, 255, 0.35);
-                    border-radius: 6px;
-                    padding: 12px 32px;
-                    cursor: pointer;
-                    transition: all 0.2s ease;
-                    text-shadow: 0 0 10px rgba(0, 240, 255, 0.6);
-                }
-
-                .panel-btn-primary:hover {
-                    background: linear-gradient(to bottom, #4a4e5a, #3a3e4a);
-                    box-shadow: 0 0 20px rgba(0, 240, 255, 0.3);
-                    transform: translateY(-1px);
-                }
-
-                .panel-btn-secondary {
-                    font-family: 'Orbitron', 'Exo 2', sans-serif;
-                    font-weight: 700;
-                    font-size: 0.85rem;
-                    letter-spacing: 0.04em;
-                    text-transform: uppercase;
-                    color: rgba(255, 255, 255, 0.5);
-                    background: transparent;
-                    border: 1px solid rgba(255, 255, 255, 0.15);
-                    border-radius: 6px;
-                    padding: 12px 24px;
-                    cursor: pointer;
-                    transition: all 0.2s ease;
-                }
-
-                .panel-btn-secondary:hover {
-                    color: rgba(255, 255, 255, 0.8);
-                    border-color: rgba(255, 255, 255, 0.3);
-                }
-
-                /* ===== RESPONSIVE SCALING ===== */
-                @media (max-width: 600px) {
-                    .panel-title {
-                        font-size: 2.5rem;
-                    }
-                    .panel-stat-row {
-                        font-size: 0.8rem;
-                    }
-                    .panel-btn-primary {
-                        font-size: 0.9rem;
-                        padding: 10px 24px;
-                    }
-                    .panel-btn-secondary {
-                        font-size: 0.75rem;
-                        padding: 10px 18px;
-                    }
-                }
-
-                @media (max-width: 400px) {
-                    .panel-title {
-                        font-size: 1.8rem;
-                    }
-                    .panel-stat-row {
-                        font-size: 0.7rem;
-                    }
-                }
-
-                /* ===== MOBILE OPTIMIZATION ===== */
-                @media (max-width: 768px) {
-                    .content {
-                        padding: 60px 0 20px;
-                    }
-
-                    .lobby-image-wrapper {
-                        max-height: calc(100dvh - 60px);
-                        display: flex;
-                        align-items: center;
-                        justify-content: center;
-                    }
-
-                    .lobby-image {
-                        max-height: calc(100dvh - 60px);
-                        width: 100%;
-                        object-fit: contain;
-                    }
-                }
-            ` }} />
-          {/* Server rendered: measured on production this page returned
-              only chrome to a crawler (AEO phase 3, 2026-09-17). */}
-          <HubPageSummary page="trivia-pvp" />
+            {/* Server rendered: measured on production this page returned
+                only chrome to a crawler (AEO phase 3, 2026-09-17). */}
+            <HubPageSummary page="trivia-pvp" />
         </TriviaErrorBoundary>
     );
 }

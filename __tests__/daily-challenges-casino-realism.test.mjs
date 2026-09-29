@@ -18,6 +18,8 @@ const personalQuiz = read('src/components/training/DailyPersonalQuiz.jsx');
 const personalQuizCss = read('src/styles/training/daily-personal-quiz-casino.module.css');
 const costPopup = read('src/components/gates/GameCostPopup.jsx');
 const prizeWheel = read('src/components/trivia/PrizeWheel.jsx');
+const triviaDialog = read('src/components/trivia/console/TriviaConsoleDialog.jsx');
+const triviaConsoleCss = read('src/components/trivia/console/TriviaConsole.module.css');
 const universalHeader = read('src/components/ui/UniversalHeader.js');
 
 test('every Daily Challenges surface adopts the casino realism visual system', () => {
@@ -33,11 +35,20 @@ test('every Daily Challenges surface adopts the casino realism visual system', (
   assert.match(memoryCss, /body\.world-preflop-charts \.preflop-daily-card/);
   assert.match(personalQuiz, /daily-personal-quiz-casino\.module\.css/);
 
-  for (const css of [trainingCss, goalsCss, personalQuizCss, memoryCss, triviaPage]) {
+  for (const css of [trainingCss, goalsCss, personalQuizCss, memoryCss]) {
     assert.match(css, /#25c8ff/i, 'Electric cyan token is required');
     assert.match(css, /#f2b84b|#f4c44e/i, 'Vault gold token is required');
     assert.match(css, /border-radius:\s*2px/i, 'Physical straight-edged controls are required');
   }
+
+  // Daily Trivia moved from these tokens to the painted Club Arena console
+  // (#ClubArenaConsole). Its inks are the console master inks, pinned in
+  // trivia-console-contract.test.mjs, and its controls are painted plates and
+  // lit words, so the casino tokens and CSS-drawn 2px controls must be absent.
+  assert.match(triviaPage, /from '\.\.\/\.\.\/\.\.\/src\/components\/trivia\/console\/TriviaConsole'/);
+  assert.match(triviaPage, /<TriviaConsole\b/);
+  assert.doesNotMatch(triviaPage, /#25c8ff|#f2b84b|#f4c44e/i, 'Daily Trivia prints console inks, not the casino tokens');
+  assert.doesNotMatch(triviaPage, /border-radius:\s*2px/i, 'Daily Trivia draws no CSS controls over the painted console');
 });
 
 test('Daily Challenges preserve their real data and action wiring', () => {
@@ -96,14 +107,23 @@ test('Daily layouts are mobile first, accessible, and motion safe', () => {
   assert.match(trainingCss, /min-height:\s*44px/);
   assert.match(goalsCss, /min-height:\s*50px/);
   assert.match(personalQuizCss, /min-height:\s*46px/);
-  assert.match(triviaPage, /role="dialog" aria-modal="true"/);
-  assert.match(costPopup, /role="dialog" aria-modal="true"/);
-  assert.match(costPopup, /button:focus-visible/);
+  // Daily Trivia and the entry-cost popup open on the shared console dialog,
+  // which owns the dialog role, aria-modal, the focus trap and the focus rings.
+  assert.match(triviaPage, /<TriviaConsoleDialog\b/);
+  assert.match(costPopup, /<TriviaConsoleDialog\b/);
+  assert.match(triviaDialog, /role="dialog"\s+aria-modal="true"/);
+  assert.match(triviaDialog, /event\.key === 'Escape'/);
+  assert.match(triviaDialog, /event\.key !== 'Tab'/);
+  assert.match(triviaConsoleCss, /\.plate:focus-visible \{/);
+  assert.match(triviaConsoleCss, /\.word:focus-visible \{/);
 });
 
 test('Daily Trivia popups and rewards share the upgraded physical controls', () => {
-  assert.match(triviaPage, /diamond-modal-card/);
-  assert.match(triviaPage, /prize-wheel-overlay/);
+  // The out-of-diamonds card and the prize wheel are console dialogs now; the
+  // wheel keeps its overlay hook and the server-resolved prize hand-off.
+  assert.match(triviaPage, /title="Out Of Diamonds"/);
+  assert.match(triviaPage, /<PrizeWheel[\s\S]*?prizeId=\{wheelPrize\?\.prizeId \|\| null\}/);
+  assert.match(prizeWheel, /prize-wheel-overlay/);
   assert.match(prizeWheel, />\s*Daily Spin\s*</);
   assert.match(prizeWheel, /'Spin The Wheel'/);
   assert.match(prizeWheel, /'Claim Reward'/);

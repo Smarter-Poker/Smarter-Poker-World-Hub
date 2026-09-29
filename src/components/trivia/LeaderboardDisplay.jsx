@@ -4,14 +4,14 @@
  * Props
  *   entries          array of leaderboard rows (trivia_scores shaped)
  *   currentUserId    highlights + anchors the sticky "your rank" row
- *   filter           'today' | 'week' — the ACTIVE range (controlled by parent)
+ *   filter           'today' | 'week' - the ACTIVE range (controlled by parent)
  *   onFilterChange   (filter) => void. REQUIRED for the range tabs to render.
  *                    Without it the tabs are hidden rather than shown as a
  *                    control that silently does nothing.
  *   previousEntries  optional prior snapshot of `entries`; drives up/down rank
  *                    movement arrows.
  *   currentUserEntry optional row for the signed-in user when they are outside
- *                    the visible slice — rendered as a pinned footer row.
+ *                    the visible slice - rendered as a pinned footer row.
  *   currentUserRank  their real rank (1-based) for that pinned row.
  *   loading          renders a skeleton instead of the empty state.
  *
@@ -21,7 +21,14 @@
  */
 
 import { useState, useEffect, useMemo } from 'react';
-import { Trophy, Clock, Gem, User, Crown, ChevronUp, ChevronDown, Minus } from 'lucide-react';
+import { formatTriviaDisplayNumber } from '../../lib/trivia/formatTriviaDisplayNumber';
+import { printPlayerName } from '../../lib/trivia/printPlayerName';
+
+// A player name printed in Title Case without rewriting it ('river_rat22'
+// reads 'River_Rat22'). Shared with every other Trivia surface that prints a
+// handle; re-exported here for the callers that already import it from this
+// component.
+export { printPlayerName };
 
 function readScore(entry) {
     return Number(entry?.score ?? 0) || 0;
@@ -77,11 +84,12 @@ export default function LeaderboardDisplay({
     const currentUserInList = rows.some(e => e?.user_id && e.user_id === currentUserId);
     const showPinnedUserRow = Boolean(currentUserId && currentUserEntry && !currentUserInList);
 
-    const getRankStyle = (rank) => {
-        if (rank === 1) return { color: '#fbbf24', bg: 'rgba(251, 191, 36, 0.1)' };
-        if (rank === 2) return { color: '#94a3b8', bg: 'rgba(148, 163, 184, 0.1)' };
-        if (rank === 3) return { color: '#cd7f32', bg: 'rgba(205, 127, 50, 0.1)' };
-        return { color: 'rgba(255, 255, 255, 0.5)', bg: 'transparent' };
+    // Rank inks are the master's own: gold, silver, lit blue, then muted.
+    const getRankInk = (rank) => {
+        if (rank === 1) return 'tc-ink--gold';
+        if (rank === 2) return 'tc-ink--silver';
+        if (rank === 3) return 'tc-ink--blue';
+        return 'tc-ink--muted';
     };
 
     const handleFilterClick = (next) => {
@@ -91,7 +99,6 @@ export default function LeaderboardDisplay({
     };
 
     const renderRow = (entry, rank, { pinned = false, key = undefined } = {}) => {
-        const style = getRankStyle(rank);
         const isCurrentUser = Boolean(entry?.user_id) && entry.user_id === currentUserId;
         const prevRank = previousRanks.get(entry?.user_id ?? entry?.id);
         const delta = Number.isFinite(prevRank) ? prevRank - rank : null;
@@ -101,53 +108,43 @@ export default function LeaderboardDisplay({
         return (
             <div
                 key={key}
-                className={`leaderboard-entry${isCurrentUser ? ' current-user' : ''}${pinned ? ' pinned' : ''}`}
-                style={{ background: isCurrentUser ? 'rgba(35, 116, 225, 0.1)' : style.bg }}
+                className={`trivia-lb-entry${isCurrentUser ? ' current-user' : ''}${pinned ? ' pinned' : ''}`}
+                role="listitem"
+                aria-current={isCurrentUser ? 'true' : undefined}
             >
-                <div className="rank" style={{ color: style.color }}>
-                    {rank <= 3 && !pinned ? <Crown size={16} /> : rank}
+                <div className={`trivia-lb-rank ${getRankInk(rank)}`}>
+                    {formatTriviaDisplayNumber(rank)}
                 </div>
 
-                {previousRanks.size > 0 && (
-                    <div className="movement" data-dir={delta == null ? 'new' : delta > 0 ? 'up' : delta < 0 ? 'down' : 'flat'}>
-                        {delta == null ? (
-                            <span className="movement-new">NEW</span>
-                        ) : delta > 0 ? (
-                            <>
-                                <ChevronUp size={12} />
-                                {delta}
-                            </>
-                        ) : delta < 0 ? (
-                            <>
-                                <ChevronDown size={12} />
-                                {Math.abs(delta)}
-                            </>
-                        ) : (
-                            <Minus size={12} />
-                        )}
-                    </div>
-                )}
-
-                <div className="user-info">
-                    <div className="avatar">
-                        <User size={16} />
-                    </div>
-                    <span className="username">
-                        {entry?.username || 'Anonymous'}
-                        {isCurrentUser && <span className="you-badge">YOU</span>}
+                <div className="trivia-lb-user">
+                    <span className={`trivia-lb-username ${isCurrentUser ? 'tc-ink--white' : 'tc-ink--silver'}`}>
+                        {printPlayerName(entry?.username)}
                     </span>
+                    {isCurrentUser && <span className="trivia-lb-you tc-ink--blue">You</span>}
+                    {previousRanks.size > 0 && (
+                        <span
+                            className={`trivia-lb-movement ${delta == null ? 'tc-ink--blue' : delta > 0 ? 'tc-ink--green' : delta < 0 ? 'tc-ink--red' : 'tc-ink--muted'}`}
+                            data-dir={delta == null ? 'new' : delta > 0 ? 'up' : delta < 0 ? 'down' : 'flat'}
+                        >
+                            {delta == null ? 'New' : delta > 0 ? `Up ${delta}` : delta < 0 ? `Down ${Math.abs(delta)}` : 'Steady'}
+                        </span>
+                    )}
                 </div>
-                <div className="score">{readScore(entry).toLocaleString()} Pts</div>
-                {time !== null && (
-                    <div className="time">
-                        <Clock size={14} />
-                        {time}s
-                    </div>
-                )}
-                {diamonds > 0 && (
-                    <div className="diamonds">
-                        <Gem size={14} />
-                        {diamonds.toLocaleString()}
+                <div className="trivia-lb-score tc-ink--silver">{formatTriviaDisplayNumber(readScore(entry))} Pts</div>
+                {(time !== null || diamonds > 0) && (
+                    <div className="trivia-lb-meta">
+                        {time !== null && (
+                            <span className="trivia-lb-time">
+                                <span className="trivia-lb-datum-label">Time</span>
+                                <span className="tc-ink--muted">{time >= 60 ? `${Math.floor(time / 60)} Min ${time % 60} Sec` : `${time} Sec`}</span>
+                            </span>
+                        )}
+                        {diamonds > 0 && (
+                            <span className="trivia-lb-diamonds">
+                                <span className="trivia-lb-datum-label">Diamonds</span>
+                                <span className="tc-ink--gold">{formatTriviaDisplayNumber(diamonds)}</span>
+                            </span>
+                        )}
                     </div>
                 )}
             </div>
@@ -155,27 +152,26 @@ export default function LeaderboardDisplay({
     };
 
     return (
-        <div className="leaderboard">
-            <div className="leaderboard-header">
-                <h3>
-                    <Trophy size={20} />
-                    Leaderboard
-                </h3>
+        <div className="trivia-lb">
+            <div className="trivia-lb-header">
+                <h2 className="trivia-lb-title tc-label">Leaderboard</h2>
                 {/* The range tabs only exist when the parent can actually re-query.
                     A tab that highlights but never changes the data is worse than
-                    no tab at all. */}
+                    no tab at all. Printed as lit words on the glass. */}
                 {typeof onFilterChange === 'function' && (
-                    <div className="filter-tabs">
+                    <div className="trivia-lb-filters" role="group" aria-label="Leaderboard Range">
                         <button
                             type="button"
-                            className={`filter-tab ${activeFilter === 'today' ? 'active' : ''}`}
+                            className={`trivia-lb-filter tc-word ${activeFilter === 'today' ? 'active' : ''}`}
+                            aria-pressed={activeFilter === 'today'}
                             onClick={() => handleFilterClick('today')}
                         >
                             Today
                         </button>
                         <button
                             type="button"
-                            className={`filter-tab ${activeFilter === 'week' ? 'active' : ''}`}
+                            className={`trivia-lb-filter tc-word ${activeFilter === 'week' ? 'active' : ''}`}
+                            aria-pressed={activeFilter === 'week'}
                             onClick={() => handleFilterClick('week')}
                         >
                             This Week
@@ -184,14 +180,14 @@ export default function LeaderboardDisplay({
                 )}
             </div>
 
-            <div className="leaderboard-list">
+            <div className="trivia-lb-list" role="list" aria-label="Trivia Rankings">
                 {loading ? (
-                    <div className="empty-state">
-                        <p>Loading Rankings...</p>
+                    <div className="trivia-lb-empty">
+                        <p className="trivia-console-copy tc-ink--muted">Loading Rankings</p>
                     </div>
                 ) : rows.length === 0 ? (
-                    <div className="empty-state">
-                        <p>No Entries Yet. Be The First!</p>
+                    <div className="trivia-lb-empty">
+                        <p className="trivia-console-copy tc-ink--muted">No Entries Yet. Be The First!</p>
                     </div>
                 ) : (
                     rows.map((entry, index) => renderRow(entry, index + 1, { key: entryKey(entry, index) }))
@@ -199,207 +195,13 @@ export default function LeaderboardDisplay({
             </div>
 
             {showPinnedUserRow && (
-                <div className="pinned-wrap">
-                    <div className="pinned-divider" />
+                <div className="trivia-lb-pinned-wrap" role="list" aria-label="Your Rank">
                     {renderRow(currentUserEntry, Number(currentUserRank) || rows.length + 1, {
                         pinned: true,
                         key: 'pinned-current-user'
                     })}
                 </div>
             )}
-
-            <style dangerouslySetInnerHTML={{ __html: `
-                .leaderboard {
-                    background: #18191a;
-                    border: 1px solid #4e4f50;
-                    border-radius: 12px;
-                    overflow: hidden;
-                }
-
-                .leaderboard-header {
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                    padding: 16px 20px;
-                    border-bottom: 1px solid #4e4f50;
-                }
-
-                .leaderboard-header h3 {
-                    display: flex;
-                    align-items: center;
-                    gap: 8px;
-                    margin: 0;
-                    font-size: 16px;
-                    font-weight: 600;
-                    color: #fbbf24;
-                }
-
-                .filter-tabs {
-                    display: flex;
-                    gap: 4px;
-                }
-
-                .filter-tab {
-                    padding: 6px 12px;
-                    background: transparent;
-                    border: none;
-                    border-radius: 6px;
-                    color: #65676b;
-                    font-size: 12px;
-                    font-weight: 500;
-                    cursor: pointer;
-                    transition: all 0.2s;
-                }
-
-                .filter-tab:hover {
-                    color: rgba(255, 255, 255, 0.8);
-                }
-
-                .filter-tab.active {
-                    background: #3a3b3c;
-                    color: #ffffff;
-                }
-
-                .leaderboard-list {
-                    padding: 8px;
-                }
-
-                .empty-state {
-                    padding: 40px 20px;
-                    text-align: center;
-                    color: #65676b;
-                }
-
-                .leaderboard-entry {
-                    display: flex;
-                    align-items: center;
-                    gap: 12px;
-                    padding: 12px 16px;
-                    border-radius: 8px;
-                    margin-bottom: 4px;
-                    transition: background 0.2s;
-                }
-
-                .leaderboard-entry:last-child {
-                    margin-bottom: 0;
-                }
-
-                .leaderboard-entry.current-user {
-                    border: 1px solid rgba(35, 116, 225, 0.3);
-                }
-
-                .pinned-wrap {
-                    padding: 0 8px 8px;
-                    background: rgba(35, 116, 225, 0.04);
-                }
-
-                .pinned-divider {
-                    height: 1px;
-                    margin: 0 8px 8px;
-                    background: repeating-linear-gradient(
-                        90deg,
-                        #4e4f50 0 6px,
-                        transparent 6px 12px
-                    );
-                }
-
-                .leaderboard-entry.pinned {
-                    position: sticky;
-                    bottom: 0;
-                }
-
-                .rank {
-                    width: 28px;
-                    font-weight: 700;
-                    font-size: 14px;
-                    text-align: center;
-                }
-
-                .movement {
-                    display: flex;
-                    align-items: center;
-                    gap: 2px;
-                    min-width: 30px;
-                    font-size: 11px;
-                    font-weight: 700;
-                    color: #65676b;
-                }
-
-                .movement[data-dir="up"] { color: #22c55e; }
-                .movement[data-dir="down"] { color: #ef4444; }
-                .movement[data-dir="flat"] { color: #65676b; }
-                .movement[data-dir="new"] { color: #fbbf24; }
-
-                .movement-new {
-                    font-size: 9px;
-                    letter-spacing: 0.5px;
-                }
-
-                .user-info {
-                    display: flex;
-                    align-items: center;
-                    gap: 10px;
-                    flex: 1;
-                    min-width: 0;
-                }
-
-                .avatar {
-                    width: 32px;
-                    height: 32px;
-                    background: #3a3b3c;
-                    border-radius: 50%;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    color: #65676b;
-                    flex-shrink: 0;
-                }
-
-                .username {
-                    font-size: 14px;
-                    color: rgba(255, 255, 255, 0.9);
-                    display: flex;
-                    align-items: center;
-                    gap: 8px;
-                    min-width: 0;
-                    overflow: hidden;
-                    text-overflow: ellipsis;
-                    white-space: nowrap;
-                }
-
-                .you-badge {
-                    font-size: 10px;
-                    font-weight: 700;
-                    color: #2374e1;
-                    background: rgba(35, 116, 225, 0.2);
-                    padding: 2px 6px;
-                    border-radius: 4px;
-                    flex-shrink: 0;
-                }
-
-                .score {
-                    font-weight: 600;
-                    color: #ffffff;
-                    font-size: 14px;
-                    white-space: nowrap;
-                }
-
-                .time {
-                    display: flex;
-                    align-items: center;
-                    gap: 4px;
-                    font-size: 12px;
-                    color: #65676b;
-                }
-
-                .diamonds {
-                    display: flex;
-                    align-items: center;
-                    gap: 4px;
-                    font-size: 12px;
-                    color: #2374e1;
-                }
-            ` }} />
         </div>
     );
 }

@@ -266,12 +266,13 @@ body.world-trivia,
    explicit .trivia-focus-ring opt-in for components outside a token root.
    ═══════════════════════════════════════════════════════════════════════════ */
 
-body.world-trivia :focus-visible,
-.trivia-page :focus-visible,
+/* :where() keeps this world default at zero weight, so the console
+   primitives (plates, lit words, frame cards) keep their own measured focus
+   rings. The ring is the approved schema blue (#ClubArenaConsole 3.4). */
+:where(body.world-trivia, .trivia-page) :focus-visible,
 .trivia-focus-ring:focus-visible {
-    outline: 2px solid var(--trivia-accent, #00D4FF);
+    outline: 3px solid #45adff;
     outline-offset: 2px;
-    border-radius: var(--trivia-radius-xs, 4px);
 }
 
 /* Older engines that lack :focus-visible still get a ring from :focus. */
@@ -505,28 +506,6 @@ body.world-trivia :focus:not(:focus-visible),
     min-height: var(--trivia-tap-min, 44px);
     padding: var(--trivia-space-3, 8px) var(--trivia-space-5, 16px);
     font-size: var(--trivia-text-sm, 13px);
-}
-
-/* Hover is only honoured on devices that actually hover — this stops the
-   sticky :hover state that mobile Safari leaves behind after a tap. */
-@media (hover: hover) and (pointer: fine) {
-    .trivia-btn-primary:hover:not(:disabled) {
-        box-shadow: var(--trivia-shadow-lg, 0 10px 30px rgba(0, 0, 0, 0.55)),
-            0 0 26px rgba(var(--trivia-accent-rgb, 0, 212, 255), 0.5);
-        transform: translateY(-1px);
-    }
-
-    .trivia-btn-secondary:hover:not(:disabled),
-    .trivia-btn-ghost:hover:not(:disabled) {
-        background: var(--trivia-surface-raised, #16203a);
-        border-color: var(--trivia-accent, #00D4FF);
-    }
-
-    .trivia-btn-danger:hover:not(:disabled) {
-        box-shadow: var(--trivia-shadow-lg, 0 10px 30px rgba(0, 0, 0, 0.55)),
-            var(--trivia-glow-danger, 0 0 18px rgba(239, 68, 68, 0.35));
-        transform: translateY(-1px);
-    }
 }
 
 /* Loading: label stays readable (no color-only signal) and a spinner is

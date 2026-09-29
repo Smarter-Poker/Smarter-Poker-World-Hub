@@ -220,6 +220,11 @@ import './training-production-smoke-contract.test.mjs';
 import './training-route-runtime-inventory.test.mjs';
 import './training-request-deadline.test.mjs';
 import './training-surface-inventory.test.mjs';
+// The Trivia console redesign, 2026-09-21: every Trivia surface stays on the
+// painted Club Arena chassis with the master inks, the footer law, thirteen
+// distinct middle artworks, a black canvas, the schema focus ring and the
+// default-off PvP and Tournament gates.
+import './trivia-console-contract.test.mjs';
 import './trivia-pvp-containment.test.mjs';
 import './trivia-tournament-containment.test.mjs';
 import './trivia-ui-foundation.test.mjs';
@@ -430,6 +435,8 @@ const REQUIRED_TEST_FILES = [
     '__tests__/trivia-ui-foundation.test.mjs',
     '__tests__/trivia-pvp-containment.test.mjs',
     '__tests__/trivia-tournament-containment.test.mjs',
+    // The console contract: chassis, inks, footer law and artwork families.
+    '__tests__/trivia-console-contract.test.mjs',
     // Club shop item rules. shopItemRules.js is the single validator shared by
     // BOTH admin write paths; before it existed the two disagreed and items
     // created from the World Hub granted nothing on redeem, accepted any image

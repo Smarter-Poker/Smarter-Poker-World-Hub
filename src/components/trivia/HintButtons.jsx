@@ -1,44 +1,37 @@
 /**
- * HINTS SYSTEM — Diamond sink for trivia
+ * HINTS SYSTEM - Diamond sink for trivia
  * 50/50: 5 diamonds, Skip: 10 diamonds, Extra Time: 15 diamonds
  *
  * Gating rule (the whole system was dead before this):
  *   Only the "+30s" hint depends on there being a countdown. Every other
  *   hint works in untimed modes. Previously handleUseHint returned early and
- *   isDisabled included `!hasTimeLimit` for ALL three hints — and since every
+ *   isDisabled included `!hasTimeLimit` for ALL three hints - and since every
  *   TRIVIA_MODES entry except arcade has timeLimit:null (and arcade disables
  *   hints entirely), the hint buttons rendered permanently inert everywhere.
  */
 
 import React, { useState, useRef, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { Gem, Percent, SkipForward, Clock, Check } from 'lucide-react';
 import useVIP from '../../hooks/useVIP';
+import { formatTriviaDisplayNumber } from '../../lib/trivia/formatTriviaDisplayNumber';
 
 const HINTS = [
     {
         id: 'fifty_fifty',
         name: '50/50',
         description: 'Remove 2 Wrong Answers',
-        icon: Percent,
         cost: 5,
-        color: '#f97316'
     },
     {
         id: 'skip',
         name: 'Skip',
         description: 'Skip This Question',
-        icon: SkipForward,
         cost: 10,
-        color: '#8b5cf6'
     },
     {
         id: 'extra_time',
         name: '+30s',
         description: 'Add 30 Seconds',
-        icon: Clock,
         cost: 15,
-        color: '#31a24c'
     }
 ];
 
@@ -75,11 +68,11 @@ function HintButtons({
     const handleUseHint = (hint) => {
         if (hint.id === 'extra_time' && !hasTimeLimit) return;
         if (disabledHints.includes(hint.id)) {
-            showNotice(`${hint.name} already used this game`);
+            showNotice(`${hint.name} Already Used This Game`);
             return;
         }
         if (!isVip && userDiamonds < hint.cost) {
-            showNotice(`Need ${hint.cost} diamonds - you have ${Math.max(0, userDiamonds)}`, !onNeedDiamonds);
+            showNotice(`Needs ${hint.cost} Diamonds. You Have ${formatTriviaDisplayNumber(Math.max(0, userDiamonds))}.`, !onNeedDiamonds);
             onNeedDiamonds?.(hint);
             return;
         }
@@ -89,7 +82,6 @@ function HintButtons({
     return (
         <div className={`hint-buttons ${compact ? 'compact' : ''}`}>
             {visibleHints.map((hint) => {
-                const Icon = hint.icon;
                 const isUsed = disabledHints.includes(hint.id);
                 const canAfford = isVip || userDiamonds >= hint.cost;
                 // Unaffordable hints stay clickable so the tap can explain
@@ -98,45 +90,22 @@ function HintButtons({
                 const looksDisabled = isUsed || !canAfford;
 
                 return (
-                    <motion.button
+                    <button
                         key={hint.id}
                         type="button"
                         className={`hint-btn ${looksDisabled ? 'disabled' : ''} ${isUsed ? 'used' : ''}`}
                         onClick={() => handleUseHint(hint)}
                         disabled={isInert}
                         aria-disabled={looksDisabled}
-                        aria-label={`${hint.name} - ${hint.description}${isVip ? ' (free for VIP)' : ` (${hint.cost} diamonds)`}`}
-                        title={isUsed ? `${hint.name} already used` : hint.description}
-                        whileHover={!looksDisabled ? { scale: 1.05 } : {}}
-                        whileTap={!looksDisabled ? { scale: 0.95 } : {}}
-                        style={{
-                            '--hint-color': hint.color
-                        }}
+                        aria-label={`${hint.name}, ${hint.description}${isVip ? ', Free For VIP' : `, ${hint.cost} Diamonds`}`}
+                        title={isUsed ? `${hint.name} Already Used` : hint.description}
                     >
-                        <div className="hint-icon">
-                            <Icon size={compact ? 16 : 20} />
-                        </div>
-                        {!compact && (
-                            <div className="hint-info">
-                                <span className="hint-name">{hint.name}</span>
-                            </div>
-                        )}
-                        {isUsed ? (
-                            <div className="hint-cost used-chip">
-                                <Check size={compact ? 10 : 12} />
-                                <span>USED</span>
-                            </div>
-                        ) : !isVip ? (
-                            <div className="hint-cost">
-                                <Gem size={compact ? 10 : 12} />
-                                <span>{hint.cost}</span>
-                            </div>
-                        ) : (
-                            <div className="hint-cost vip-chip">
-                                <span>FREE</span>
-                            </div>
-                        )}
-                    </motion.button>
+                        <span className="hint-name tc-ink--white">{hint.name}</span>
+                        {!compact ? <span className="hint-description">{hint.description}</span> : null}
+                        <span className={`hint-cost ${isUsed ? 'tc-ink--green' : isVip ? 'tc-ink--gold' : canAfford ? 'tc-ink--blue' : 'tc-ink--red'}`}>
+                            {isUsed ? 'Used' : isVip ? 'VIP' : `${hint.cost} Diamonds`}
+                        </span>
+                    </button>
                 );
             })}
 
@@ -144,141 +113,10 @@ function HintButtons({
                 <div className="hint-notice" role="status">
                     <span>{notice.text}</span>
                     {notice.showStore && (
-                        <a className="hint-notice-link" href="/hub/diamond-store">Get Diamonds</a>
+                        <a className="hint-notice-link tc-word" href="/hub/diamond-store">Get Diamonds</a>
                     )}
                 </div>
             )}
-
-            <style>{`
-                .hint-buttons {
-                    display: flex;
-                    gap: 8px;
-                    justify-content: center;
-                    flex-wrap: wrap;
-                    position: relative;
-                }
-
-                .hint-buttons.compact {
-                    gap: 6px;
-                }
-
-                .hint-btn {
-                    display: flex;
-                    align-items: center;
-                    gap: 8px;
-                    padding: 10px 14px;
-                    /* 44px keeps the tap target above the mobile minimum */
-                    min-height: 44px;
-                    background: rgba(30, 41, 59, 0.8);
-                    border: 2px solid rgba(255, 255, 255, 0.1);
-                    border-radius: 10px;
-                    cursor: pointer;
-                    transition: border-color 0.2s ease, background-color 0.2s ease, opacity 0.2s ease;
-                }
-
-                .hint-buttons.compact .hint-btn {
-                    padding: 8px 10px;
-                    gap: 6px;
-                    min-height: 40px;
-                }
-
-                /* rgba() cannot take a hex custom property, so the old
-                   rgba(var(--hint-color), 0.1) declaration was dropped by
-                   every browser. color-mix() works with the hex value. */
-                .hint-btn:hover:not(.disabled) {
-                    border-color: var(--hint-color);
-                    background: color-mix(in srgb, var(--hint-color) 12%, rgba(30, 41, 59, 0.8));
-                }
-
-                .hint-btn.disabled {
-                    opacity: 0.45;
-                }
-
-                .hint-btn.used {
-                    cursor: not-allowed;
-                }
-
-                .hint-notice {
-                    position: absolute;
-                    bottom: calc(100% + 8px);
-                    left: 50%;
-                    transform: translateX(-50%);
-                    display: flex;
-                    align-items: center;
-                    gap: 8px;
-                    white-space: nowrap;
-                    padding: 8px 12px;
-                    background: rgba(15, 23, 42, 0.97);
-                    border: 1px solid rgba(0, 212, 255, 0.35);
-                    border-radius: 8px;
-                    font-size: 12px;
-                    color: rgba(255, 255, 255, 0.85);
-                    z-index: 5;
-                    pointer-events: auto;
-                }
-
-                .hint-notice-link {
-                    color: #00d4ff;
-                    font-weight: 700;
-                    text-decoration: none;
-                    border-bottom: 1px solid rgba(0, 212, 255, 0.5);
-                }
-
-                .hint-cost.vip-chip {
-                    background: rgba(255, 215, 0, 0.15);
-                    color: #FFD700;
-                }
-
-                .hint-cost.used-chip {
-                    background: rgba(34, 197, 94, 0.15);
-                    color: #22c55e;
-                }
-
-                .hint-icon {
-                    width: 28px;
-                    height: 28px;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    background: rgba(255, 255, 255, 0.1);
-                    border-radius: 6px;
-                    color: var(--hint-color);
-                }
-
-                .hint-buttons.compact .hint-icon {
-                    width: 24px;
-                    height: 24px;
-                }
-
-                .hint-name {
-                    font-size: 13px;
-                    font-weight: 600;
-                    color: #fff;
-                }
-
-                .hint-cost {
-                    display: flex;
-                    align-items: center;
-                    gap: 3px;
-                    padding: 4px 8px;
-                    background: rgba(0, 212, 255, 0.15);
-                    border-radius: 6px;
-                    font-size: 12px;
-                    font-weight: 700;
-                    color: #2374e1;
-                }
-
-                .hint-buttons.compact .hint-cost {
-                    padding: 3px 6px;
-                    font-size: 11px;
-                }
-
-                @media (prefers-reduced-motion: reduce) {
-                    .hint-btn {
-                        transition: none;
-                    }
-                }
-            `}</style>
         </div>
     );
 }

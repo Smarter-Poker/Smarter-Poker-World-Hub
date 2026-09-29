@@ -1,10 +1,10 @@
 /**
- * GAME COST POPUP - Futuristic Metal Card Design
+ * GAME COST POPUP - Club Arena Console Design
  * One-time notification shown to non-VIP users about per-game diamond costs
  * Dismisses permanently via localStorage + Supabase
  *
- * Uses a pre-rendered metal card PNG (/images/diamond-cost-popup.webp)
- * with invisible hit-target overlays on the "Got It!" and "Upgrade To VIP" buttons.
+ * Uses the shared image-backed Trivia console with measured live-copy zones
+ * and painted action plates.
  *
  * 2026-05-07 - VIP-status race fix:
  *   Treat `isVip == null/undefined` as "not yet known, never show".
@@ -22,6 +22,7 @@
 
 import { useState, useEffect } from 'react';
 import { checkPopupDismissed, dismissPopup, GAME_COST } from '../../lib/gates/perGameGate';
+import TriviaConsoleDialog from '../trivia/console/TriviaConsoleDialog';
 
 /**
  * @param {Object} props
@@ -85,136 +86,35 @@ export default function GameCostPopup({ userId, pageKey, featureKey, isVip, cost
     if (isVip !== false || dismissed || !show) return null;
 
     return (
-        <div className="game-cost-popup-overlay" style={s.overlay} onClick={handleDismiss} role="dialog" aria-modal="true" aria-label="Diamond Entry Notice">
-            {/* Metal card container - click inside doesn't dismiss */}
-            <div
-                className="game-cost-popup-card"
-                style={s.cardWrap}
-                onClick={(e) => e.stopPropagation()}
-            >
-                {/* The pre-rendered metal card PNG */}
-                <img
-                    src="/images/diamond-cost-popup.webp"
-                    alt="Diamond Cost - Each game costs diamonds. VIP members play free."
-                    style={s.cardImage}
-                    draggable={false}
-                />
-
-                {/* ── Invisible hit-target overlays ────────────────────────── */}
-
-                {/* Close "X" button - top-right of metal card */}
-                <button
-                    onClick={handleDismiss}
-                    style={s.closeHit}
-                    aria-label="Close"
-                />
-
-                {/* "Got It!" button - bottom-left of metal card */}
-                <button
-                    onClick={handleDismiss}
-                    style={s.gotItHit}
-                    aria-label="Got It"
-                />
-
-                {/* "Upgrade To VIP" button - bottom-right of metal card */}
-                <button
-                    onClick={handleUpgrade}
-                    style={s.upgradeHit}
-                    aria-label="Upgrade To VIP"
-                />
-            </div>
-            <style>{`
-                .game-cost-popup-overlay button:focus-visible {
-                    outline: 3px solid #25c8ff !important;
-                    outline-offset: 3px !important;
-                    box-shadow: 0 0 0 2px #020608, 0 0 22px rgba(37, 200, 255, .7);
-                }
-                @media (prefers-reduced-motion: reduce) {
-                    .game-cost-popup-overlay,
-                    .game-cost-popup-card { animation: none !important; }
-                }
-            `}</style>
-        </div>
+        <TriviaConsoleDialog
+            open={show}
+            onClose={handleDismiss}
+            eyebrow="Diamond Entry Notice"
+            title="Table Entry"
+            subtitle={`Each Game Costs ${cost} Diamonds`}
+            pill="Non-VIP"
+            secondaryAction={{ label: 'Got It', onClick: handleDismiss }}
+            primaryAction={{ label: 'Upgrade To VIP', onClick: handleUpgrade }}
+        >
+            {/* Disclosure only: this notice never charges. The destination
+                page's server route owns the entry charge when a game starts. */}
+            <ul className="tc-rows">
+                <li className="tc-row">
+                    <span className="tc-row__label">Entry Cost</span>
+                    <span className="tc-row__value tc-ink--gold">{cost} Diamonds</span>
+                </li>
+                <li className="tc-row">
+                    <span className="tc-row__label">VIP Entry</span>
+                    <span className="tc-row__value tc-ink--green">Free</span>
+                </li>
+                <li className="tc-row">
+                    <span className="tc-row__label">Charged</span>
+                    <span className="tc-row__value">When A Game Starts</span>
+                </li>
+            </ul>
+            <p className="trivia-console-copy">
+                This Game Costs {cost} Diamonds Per Entry. VIP Members Play Free.
+            </p>
+        </TriviaConsoleDialog>
     );
 }
-
-// ── Hit-target positioning ──────────────────────────────────────
-// All positions are % of the card image dimensions (803 × 888 original).
-// The image is rendered at max 380px width, aspect ratio preserved.
-const s = {
-    overlay: {
-        position: 'fixed', inset: 0,
-        background: 'rgba(0,0,0,0.88)',
-        backdropFilter: 'blur(10px)',
-        WebkitBackdropFilter: 'blur(10px)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        zIndex: 1000, padding: 16,
-        animation: 'fadeIn 0.3s ease-out',
-    },
-    cardWrap: {
-        position: 'relative',
-        width: '100%', maxWidth: 380,
-        // Maintain aspect ratio of 803:888
-        aspectRatio: '803 / 888',
-        animation: 'fadeIn 0.35s ease-out',
-    },
-    cardImage: {
-        position: 'absolute',
-        inset: 0,
-        width: '100%', height: '100%',
-        objectFit: 'contain',
-        pointerEvents: 'none',
-        userSelect: 'none',
-        WebkitUserSelect: 'none',
-        // Subtle glow for premium effect
-        filter: 'drop-shadow(0 8px 40px rgba(35,116,225,0.25)) drop-shadow(0 2px 10px rgba(0,0,0,0.5))',
-    },
-
-    // Shared: kill all hover/focus outlines on invisible hit targets
-    _hitBase: {
-        background: 'transparent',
-        border: 'none', cursor: 'pointer',
-        outline: 'none', WebkitTapHighlightColor: 'transparent',
-        touchAction: 'manipulation',
-        zIndex: 2,
-    },
-
-    // ── Close "X" button hit target ────────────────────────────────
-    closeHit: {
-        position: 'absolute',
-        top: '8.5%', right: '5%',
-        width: '11%', height: '7%',
-        background: 'transparent',
-        border: 'none', cursor: 'pointer',
-        outline: 'none', WebkitTapHighlightColor: 'transparent',
-        touchAction: 'manipulation',
-        zIndex: 2,
-        borderRadius: '50%',
-    },
-
-    // ── "Got It!" button hit target ────────────────────────────────
-    gotItHit: {
-        position: 'absolute',
-        bottom: '9%', left: '8%',
-        width: '38%', height: '8.5%',
-        background: 'transparent',
-        border: 'none', cursor: 'pointer',
-        outline: 'none', WebkitTapHighlightColor: 'transparent',
-        touchAction: 'manipulation',
-        zIndex: 2,
-        borderRadius: 8,
-    },
-
-    // ── "Upgrade To VIP" button hit target ─────────────────────────
-    upgradeHit: {
-        position: 'absolute',
-        bottom: '9%', right: '8%',
-        width: '38%', height: '8.5%',
-        background: 'transparent',
-        border: 'none', cursor: 'pointer',
-        outline: 'none', WebkitTapHighlightColor: 'transparent',
-        touchAction: 'manipulation',
-        zIndex: 2,
-        borderRadius: 8,
-    },
-};
