@@ -41,3 +41,19 @@ with a dash, an emoji, a uuid, a glued unit or an operator word.
 
 Gates run locally: `node --experimental-vm-modules --test` over the wallet
 suites (123 pass, 0 fail); training inventory regenerated.
+
+## CHECK 13 cannot see a computed column (2026-09-29)
+
+`check-phantom-columns` read `.select('*, player_line')` and reported
+`diamond_transactions.player_line` as a phantom, which failed Pre-Deploy
+Safety Checks on this pull request. It is a false positive with a named
+cause: the checker learns the schema from the PostgREST OpenAPI document,
+whose per-table `properties` carry REAL columns only, and `player_line` is
+a computed column (a function over the row type), so it can never appear
+there. The function was re-verified live on 2026-09-29 - one `pg_proc` row,
+`player_line(diamond_transactions) RETURNS text`, and a `SELECT` over the
+newest rows returning player copy - so the select is correct and a 42703 is
+impossible. Recorded in `scripts/ci/supabase-invariants.allowlist.json`
+under `phantom_columns`, with that verification and the condition for
+removing it. Nothing else about the gate was changed, and no other phantom
+was allowlisted.
