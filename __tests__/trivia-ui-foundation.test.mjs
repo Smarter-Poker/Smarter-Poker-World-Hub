@@ -83,7 +83,7 @@ test('all thirteen middle cards keep complete unique artwork', () => {
   assert.equal(new Set(TRIVIA_MIDDLE_MODES.map((mode) => mode.code)).size, 13);
   assert.equal(new Set(TRIVIA_MIDDLE_MODES.map((mode) => mode.image)).size, 13);
   for (const mode of TRIVIA_MIDDLE_MODES) {
-    assert.match(mode.image, /^\/images\/trivia\/modes-v2\/[a-z0-9-]+\.webp$/);
+    assert.match(mode.image, /^\/images\/trivia\/modes-console-v1\/[a-z0-9-]+\.webp$/);
     assert.equal(existsSync(join(ROOT, 'public', mode.image)), true, `${mode.id} artwork is missing`);
     assert.ok(mode.name && mode.description && mode.icon && mode.route, `${mode.id} is incomplete`);
   }

@@ -35983,7 +35983,7 @@
         {
           "element": "link",
           "name": "<dynamic>",
-          "line": 632,
+          "line": 636,
           "handler": null,
           "destination": "link.href",
           "type": null,
@@ -35993,7 +35993,7 @@
         {
           "element": "link",
           "name": "Terms",
-          "line": 641,
+          "line": 645,
           "handler": null,
           "destination": "/terms",
           "type": null,
@@ -36003,7 +36003,7 @@
         {
           "element": "link",
           "name": "Privacy",
-          "line": 644,
+          "line": 648,
           "handler": null,
           "destination": "/privacy",
           "type": null,
@@ -66120,11 +66120,11 @@
       "effectRef": "src/components/poker/QuizAnswer.jsx"
     },
     {
-      "id": "src/components/seo/HubPageSummary.js:632:1",
+      "id": "src/components/seo/HubPageSummary.js:636:1",
       "file": "src/components/seo/HubPageSummary.js",
       "element": "link",
       "name": "<dynamic>",
-      "line": 632,
+      "line": 636,
       "handler": null,
       "destination": "link.href",
       "type": null,
@@ -66133,11 +66133,11 @@
       "effectRef": "src/components/seo/HubPageSummary.js"
     },
     {
-      "id": "src/components/seo/HubPageSummary.js:641:2",
+      "id": "src/components/seo/HubPageSummary.js:645:2",
       "file": "src/components/seo/HubPageSummary.js",
       "element": "link",
       "name": "Terms",
-      "line": 641,
+      "line": 645,
       "handler": null,
       "destination": "/terms",
       "type": null,
@@ -66146,11 +66146,11 @@
       "effectRef": "src/components/seo/HubPageSummary.js"
     },
     {
-      "id": "src/components/seo/HubPageSummary.js:644:3",
+      "id": "src/components/seo/HubPageSummary.js:648:3",
       "file": "src/components/seo/HubPageSummary.js",
       "element": "link",
       "name": "Privacy",
-      "line": 644,
+      "line": 648,
       "handler": null,
       "destination": "/privacy",
       "type": null,
@@ -90523,7 +90523,6 @@
           "pages/hub/trivia/endless.js",
           "pages/hub/trivia/index.js",
           "pages/hub/trivia/leaderboard.js",
-          "pages/hub/trivia/pvp.js",
           "pages/hub/trivia/settings.js",
           "pages/hub/trivia/stats.js",
           "pages/hub/trivia/survival-game.js",
@@ -99526,7 +99525,6 @@
           "pages/hub/trivia/endless.js",
           "pages/hub/trivia/index.js",
           "pages/hub/trivia/leaderboard.js",
-          "pages/hub/trivia/pvp.js",
           "pages/hub/trivia/settings.js",
           "pages/hub/trivia/stats.js",
           "pages/hub/trivia/survival-game.js",

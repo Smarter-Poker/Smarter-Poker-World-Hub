@@ -290,9 +290,24 @@ test('five genuinely different frame families are mapped and every one exists', 
 
 test('the thirteen middle cards carry thirteen distinct new artworks', () => {
     assert.equal(TRIVIA_MIDDLE_MODES.length, 13);
-    const retired = new Set(readdirSync(join(ROOT, 'public/images/trivia')).includes('modes-v2')
-        ? readdirSync(join(ROOT, 'public/images/trivia/modes-v2')).map(n => createHash('sha256').update(readFileSync(join(ROOT, 'public/images/trivia/modes-v2', n))).digest('hex'))
-        : []);
+    // sha256 of the thirteen retired modes-v2 pictures (removed from public/ with
+    // this redesign), so none of them can come back under a new name.
+    const retired = new Set([
+        'abe7a2aa902bb648a882630d3169673ece82e4fe385abedbd969919acbdd7227',
+        'ce27e2ddd23e3efc9af1da4a038bec1b7becc38f70a6a87a313172dff4676d30',
+        '13d40a5517cf7edad14a352f9bbbcfdeb5e2877d39c79032e27e6cf55f487f12',
+        '2ede9da2a9db0c4a0689ed94a92fb04bb6b64383b3849fe7dcb0f1734b70c05f',
+        'b18c238c05b9543d510a471d453b3e92b86fa6527a5223e007182a46ed551254',
+        'd89851eb9ce58e64bc4ceab8eea024cd49b8f8de9eb538812bdc1eb39326fcc6',
+        'ccb147bf6c1c16d42d93323b6e3a705dd8b058b346f7d3b60afd45b1bda2b020',
+        '43fa4489dc30a4221ab9922ef4cefb853aaf4c97b2fd97d563c62c0569bd792e',
+        'b3e5d9b69bfeed1d95ed7cf03b6abb782a94249d0192c7a86a49c4ab41b9d896',
+        'cf263cde839779d3a80c0e1eb81fd8539f5a3a0e626ec94c1a3146bbb688cab5',
+        'a2e52408a5d4d2a22f6ee182890c6ed464f9d9a574730cd098d100f8a8bd3475',
+        '571995b8c80bc08329bf92efd63b8260e1397b9487a737a63f03a6a01c07f71b',
+        '25965322a18fd597e3d0fc4e64f4206d0ef7a34cccc52f65f647efba30ee90ba',
+    ]);
+    assert.ok(!existsSync(join(ROOT, 'public/images/trivia/modes-v2')), 'the retired modes-v2 family is gone from public/');
     const seen = new Set();
     for (const mode of TRIVIA_MIDDLE_MODES) {
         assert.match(mode.image, /^\/images\/trivia\/modes-console-v1\/[a-z-]+\.webp$/, `${mode.id} uses the console artwork family`);

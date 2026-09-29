@@ -45,6 +45,6 @@ test('mode filters support roving keyboard navigation and keep the active choice
 
 test('phase five keeps every game definition, artwork, and destination intact', () => {
     assert.equal(TRIVIA_MIDDLE_MODES.length, 13);
-    assert.ok(TRIVIA_MIDDLE_MODES.every(mode => mode.image.startsWith('/images/trivia/modes-v2/')));
+    assert.ok(TRIVIA_MIDDLE_MODES.every(mode => mode.image.startsWith('/images/trivia/modes-console-v1/')));
     assert.match(LOBBY, /router\.push\(getModeRoute\(modeId\)\)/);
 });

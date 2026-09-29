@@ -54,7 +54,7 @@ export const TRIVIA_MODES = Object.freeze([
     diamondReward: 5,
     perfectBonus: 10,
     route: '/hub/trivia/mtt',
-    image: '/images/trivia/modes-v2/mtt.webp',
+    image: '/images/trivia/modes-console-v1/mtt.webp',
   }),
   defineMode({
     id: 'cash',
@@ -69,7 +69,7 @@ export const TRIVIA_MODES = Object.freeze([
     diamondReward: 5,
     perfectBonus: 10,
     route: '/hub/trivia/cash',
-    image: '/images/trivia/modes-v2/cash.webp',
+    image: '/images/trivia/modes-console-v1/cash.webp',
   }),
   defineMode({
     id: 'icm',
@@ -84,7 +84,7 @@ export const TRIVIA_MODES = Object.freeze([
     diamondReward: 5,
     perfectBonus: 10,
     route: '/hub/trivia/icm',
-    image: '/images/trivia/modes-v2/icm.webp',
+    image: '/images/trivia/modes-console-v1/icm.webp',
   }),
   defineMode({
     id: 'history',
@@ -99,7 +99,7 @@ export const TRIVIA_MODES = Object.freeze([
     diamondReward: 3,
     perfectBonus: 5,
     route: '/hub/trivia/history',
-    image: '/images/trivia/modes-v2/history.webp',
+    image: '/images/trivia/modes-console-v1/history.webp',
   }),
   defineMode({
     id: 'tournaments',
@@ -114,7 +114,7 @@ export const TRIVIA_MODES = Object.freeze([
     diamondReward: 'Prize pool',
     perfectBonus: null,
     route: '/hub/trivia/tournaments',
-    image: '/images/trivia/modes-v2/tournaments.webp',
+    image: '/images/trivia/modes-console-v1/tournaments.webp',
     availability: TRIVIA_MODE_AVAILABILITY.MAINTENANCE,
     enabledByDefault: false,
     maintenanceMessage: 'Nightly Tournament Upgrades Are In Progress. Tournaments Will Return Soon.',
@@ -132,7 +132,7 @@ export const TRIVIA_MODES = Object.freeze([
     diamondReward: 5,
     perfectBonus: 10,
     route: '/hub/trivia/pro',
-    image: '/images/trivia/modes-v2/pro.webp',
+    image: '/images/trivia/modes-console-v1/pro.webp',
   }),
   defineMode({
     id: 'survival',
@@ -147,7 +147,7 @@ export const TRIVIA_MODES = Object.freeze([
     diamondReward: '10+',
     perfectBonus: null,
     route: '/hub/trivia/survival-game',
-    image: '/images/trivia/modes-v2/survival.webp',
+    image: '/images/trivia/modes-console-v1/survival.webp',
   }),
   defineMode({
     id: 'endless',
@@ -162,7 +162,7 @@ export const TRIVIA_MODES = Object.freeze([
     diamondReward: '1+/Q',
     perfectBonus: null,
     route: '/hub/trivia/endless',
-    image: '/images/trivia/modes-v2/endless.webp',
+    image: '/images/trivia/modes-console-v1/endless.webp',
   }),
   defineMode({
     id: 'mixed',
@@ -177,7 +177,7 @@ export const TRIVIA_MODES = Object.freeze([
     diamondReward: '5+ / +10 perfect',
     perfectBonus: null,
     route: '/hub/trivia/mixed',
-    image: '/images/trivia/modes-v2/mixed.webp',
+    image: '/images/trivia/modes-console-v1/mixed.webp',
   }),
   defineMode({
     id: 'time-attack',
@@ -192,7 +192,7 @@ export const TRIVIA_MODES = Object.freeze([
     diamondReward: '1 / correct',
     perfectBonus: null,
     route: '/hub/trivia/time-attack',
-    image: '/images/trivia/modes-v2/time-attack.webp',
+    image: '/images/trivia/modes-console-v1/time-attack.webp',
   }),
   defineMode({
     id: 'pvp',
@@ -207,7 +207,7 @@ export const TRIVIA_MODES = Object.freeze([
     diamondReward: '1.8x stake',
     perfectBonus: null,
     route: '/hub/trivia/pvp',
-    image: '/images/trivia/modes-v2/pvp.webp',
+    image: '/images/trivia/modes-console-v1/pvp.webp',
     availability: TRIVIA_MODE_AVAILABILITY.MAINTENANCE,
     enabledByDefault: false,
     maintenanceMessage: 'Matchmaking Upgrades Are In Progress. 1v1 Battle Will Return Soon.',
@@ -225,7 +225,7 @@ export const TRIVIA_MODES = Object.freeze([
     diamondReward: 3,
     perfectBonus: 5,
     route: '/hub/trivia/rules',
-    image: '/images/trivia/modes-v2/rules.webp',
+    image: '/images/trivia/modes-console-v1/rules.webp',
   }),
   defineMode({
     id: 'gto',
@@ -240,7 +240,7 @@ export const TRIVIA_MODES = Object.freeze([
     diamondReward: 8,
     perfectBonus: 15,
     route: '/hub/trivia/gto',
-    image: '/images/trivia/modes-v2/gto.webp',
+    image: '/images/trivia/modes-console-v1/gto.webp',
   }),
   defineMode({
     id: 'arcade',

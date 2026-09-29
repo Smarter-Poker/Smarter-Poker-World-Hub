@@ -12,7 +12,7 @@ const FRAME_CARD_CSS = readFileSync(join(ROOT, 'src/components/trivia/console/Tr
 
 test('phase five keeps all thirteen modes, artwork files, and the established route handoff', () => {
     assert.equal(TRIVIA_MIDDLE_MODES.length, 13);
-    assert.ok(TRIVIA_MIDDLE_MODES.every(mode => mode.image.startsWith('/images/trivia/modes-v2/')));
+    assert.ok(TRIVIA_MIDDLE_MODES.every(mode => mode.image.startsWith('/images/trivia/modes-console-v1/')));
     assert.match(LOBBY, /router\.push\(getModeRoute\(modeId\)\)/);
 });
 
