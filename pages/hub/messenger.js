@@ -15,7 +15,10 @@ import Image from 'next/image';
 import { supabase } from '../../src/lib/supabase';
 import { getAuthUser, getAccessToken, ensureAuthReady, authedFetch } from '../../src/lib/authUtils';
 import useMessengerConversationLink from '../../src/hooks/useMessengerConversationLink';
-import { broadcastSync } from '../../src/lib/broadcastSync';
+import useMessengerContinuity from '../../src/hooks/useMessengerContinuity';
+import ContinuityStatus from '../../src/components/messenger/ContinuityStatus';
+import { isMessageId, visibleMessageBoundary } from '../../src/lib/messengerContinuity.mjs';
+import { broadcastSync, listenBroadcast } from '../../src/lib/broadcastSync';
 import { HubErrorBoundary } from '../../src/components/ui/HubErrorBoundary';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import { messengerPreferences } from '../../src/services/preferences-service';
@@ -26,6 +29,9 @@ import { eventBus, EventType, busEmit } from '../../src/engine/EventBus';
 import useTrainingBus from '../../src/hooks/useTrainingBus';
 import useMessengerSearch from '../../src/hooks/useMessengerSearch';
 import { resolveMessengerClubEntry } from '../../src/lib/messengerClubEntry.mjs';
+import { createMessengerSendOperation, restoreMessengerSendOperations, messengerOperationMessage,
+    mergeMessengerPendingMessages, reconcileMessengerMessage, acknowledgeMessengerSend,
+    performMessengerSend, saveMessengerSendOperation } from '../../src/lib/messengerSendOperation.mjs';
 
 // Dynamic import for LiveKit (client-side only)
 const LiveKitCall = dynamic(
@@ -43,11 +49,12 @@ import { useMessengerStore } from '../../src/stores/messengerStore';
 import { useOneSignal } from '../../src/contexts/OneSignalContext';
 import { useUnreadCount } from '../../src/hooks/useUnreadCount';
 import { createRingTone } from '../../src/utils/ringTone';
-import { createMultiDeviceAuthListener, isOnline } from '../../src/utils/authGuard';
+import { isOnline } from '../../src/utils/authGuard';
 import { useActiveIdentity } from '../../src/contexts/ActiveIdentityContext';
 // BottomNavBar intentionally removed from messenger — input area was blocked
 
 import ClubArenaWorkspace from '../../src/components/messenger/ClubArenaWorkspace';
+import { requestPushNudge } from '../../src/lib/push/enrollment-nudge.mjs';
 import AccountingInvoiceCard from '../../src/components/messenger/AccountingInvoiceCard';
 import AccountingConversationIntroduction from '../../src/components/messenger/AccountingConversationIntroduction';
 import { getTheme } from '../../src/components/messenger/MessengerTheme';
@@ -98,6 +105,15 @@ function formatDateHeader(timestamp) {
     if (date.toDateString() === today.toDateString()) return 'Today';
     if (date.toDateString() === yesterday.toDateString()) return 'Yesterday';
     return date.toLocaleDateString([], { weekday: 'long', month: 'short', day: 'numeric' });
+}
+
+function compareMessageTimestamps(left, right) {
+    const milliseconds = Date.parse(left) - Date.parse(right);
+    if (milliseconds !== 0) return milliseconds;
+    // Postgres preserves microseconds; Date.parse alone would acknowledge a
+    // later message within the same millisecond as an older read boundary.
+    const fraction = value => Number((String(value).match(/\.(\d+)/)?.[1] || '').padEnd(9, '0'));
+    return fraction(left) - fraction(right);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -295,6 +311,13 @@ function MessengerPage() {
     const [weeklyPreview, setWeeklyPreview] = useState(null);
     const [pendingConversationId, setPendingConversationId] = useState(null);
     const clubDrawerOpen = !!workspaceSelection.clubId;
+    // A meaningful moment for notifications: the person opened their invoices.
+    // The prompt host decides whether an ask is allowed (cool-down, already on,
+    // blocked, and never for the owner's receipts).
+    const invoiceWorkspaceOpen = clubDrawerOpen && workspaceSelection.folder === 'invoices';
+    useEffect(() => {
+        if (invoiceWorkspaceOpen) requestPushNudge('invoice_workspace');
+    }, [invoiceWorkspaceOpen]);
 
 
     const getClubMetadata = () => {
@@ -326,6 +349,8 @@ function MessengerPage() {
         } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
         return null;
     });
+    const authIdentityRef = useRef(user?.id || null);
+    const authGenerationRef = useRef(0);
     // The old global cache could paint another account or club before auth.
     const [loading, setLoading] = useState(true);
     const [conversations, setConversations] = useState([]);
@@ -345,6 +370,11 @@ function MessengerPage() {
     workspaceRef.current = workspaceKey;
     const [activeConversation, setActiveConversation] = useState(null);
     const [messages, setMessages] = useState([]);
+    const messagesRef = useRef(messages);
+    messagesRef.current = messages;
+    const sendOperationsRef = useRef(new Map());
+    const sendOperationRef = useRef(null);
+    const forwardOperationRef = useRef(null);
     const [loadingMessages, setLoadingMessages] = useState(false);
     const [hasMoreMessages, setHasMoreMessages] = useState(true);
     const [loadingOlderMessages, setLoadingOlderMessages] = useState(false);
@@ -388,12 +418,23 @@ function MessengerPage() {
     // Online Presence
     const [otherUserStatus, setOtherUserStatus] = useState('offline'); // 'online' | 'away' | 'offline'
     const [otherUserLastSeen, setOtherUserLastSeen] = useState(null);
-    // Pinned Conversations
-    const [pinnedConvoIds, setPinnedConvoIds] = useState(() => {
-        try {
-            return JSON.parse(localStorage.getItem('sp-pinned-conversations') || '[]');
-        } catch { return []; }
+    const { controller: continuity, edit: editContinuity, flush: flushContinuity } = useMessengerContinuity({
+        actorId: user?.id, scope: workspaceKey, identityRef: authIdentityRef,
+        workspace: { workspace: workspaceSelection.clubId ? 'club' : 'social', clubId: workspaceSelection.clubId, folder: workspaceSelection.folder },
     });
+    const pinnedConvoIds = continuity.pins;
+    const [showSavedMessages, setShowSavedMessages] = useState(false);
+    const [hasNewerMessages, setHasNewerMessages] = useState(false);
+    const [loadingNewerMessages, setLoadingNewerMessages] = useState(false);
+    const [historyError, setHistoryError] = useState(null);
+    const [firstUnreadMessageId, setFirstUnreadMessageId] = useState(null);
+    const historyWindowRef = useRef({ conversationId: null, hasNewer: false });
+    const pendingScrollRef = useRef(null);
+    const explicitAnchorRef = useRef(null);
+    const stickToBottomRef = useRef(true);
+    const visibleReadRef = useRef(null);
+    const lastVisibleReadRef = useRef(null);
+    const restoreSequenceRef = useRef(0);
     // Stable identity for "which conversations exist", independent of order or
     // of the array being rebuilt. See the request-count effect below.
     const conversationIdKey = useMemo(
@@ -506,7 +547,9 @@ function MessengerPage() {
     };
 
     // Global unread count for header badge - refresh after reading messages
-    const { refreshUnread } = useUnreadCount();
+    const { refreshUnread, messengerUnread } = useUnreadCount();
+    const [workspaceUnread, setWorkspaceUnread] = useState(null);
+    const [incomingRead, setIncomingRead] = useState(null);
 
     const messagesEndRef = useRef(null);
     const searchTimeout = useRef(null);
@@ -553,7 +596,7 @@ function MessengerPage() {
                 if (showMessageSearch) { setShowMessageSearch(false); return; }
                 if (forwardingMessage) { setForwardingMessage(null); return; }
                 if (editingMessage) { setEditingMessage(null); setEditText(''); return; }
-                if (replyToMessage) { setReplyToMessage(null); return; }
+                if (replyToMessage) { clearReply(); return; }
                 if (menuOpen) { setMenuOpen(false); return; }
                 // On mobile, Escape navigates back to sidebar
                 if (isMobile && activeConversation) { setActiveConversation(null); setShowSidebar(true); return; }
@@ -570,6 +613,9 @@ function MessengerPage() {
     const goOnlineUserRef = useRef(null);
     const loadConversationsRef = useRef(null);
     const loadMessagesRef = useRef(null);
+    const markConversationReadRef = useRef(null);
+    const inboxRequestSequence = useRef(0);
+    const messagesRequestSequence = useRef(0);
     // PERF 2026-08-24: in-flight de-duplication for loadConversations.
     // Opening the messenger fired the SAME full inbox request 3-4 times
     // concurrently: the init effect, the identity effect (user?.id null->id),
@@ -588,12 +634,21 @@ function MessengerPage() {
         activeConversationRef.current = null;
         setActiveConversation(null);
         setMessages([]);
+        paginationLockRef.current = null;
+        setLoadingOlderMessages(false);
         messageCacheRef.current.clear();
         setConversations([]);
         setSearchQuery('');
         setShowMessageSearch(false);
         setShowUserInfo(false);
         setInboxError(null);
+        setShowSavedMessages(false);
+        setFirstUnreadMessageId(null);
+        setHistoryError(null);
+        historyWindowRef.current = { conversationId: null, hasNewer: false };
+        pendingScrollRef.current = null;
+        lastVisibleReadRef.current = null;
+        setReplyToMessage(null);
         if (user?.id) { setLoading(true); loadConversationsRef.current?.(user.id); }
     }, [workspaceKey]);
     useEffect(() => { goOnlineUserRef.current = user; }, [user]);
@@ -603,18 +658,31 @@ function MessengerPage() {
             // Reload missed messages after reconnect — use refs to avoid stale closures
             const currentUser = goOnlineUserRef.current;
             if (currentUser?.id) {
-                loadConversationsRef.current?.(currentUser.id);
+                loadConversationsRef.current?.(currentUser.id, { invalidate: true });
                 const activeConv = activeConversationRef.current;
                 if (activeConv?.id && !activeConv.isJarvis) {
                     loadMessagesRef.current?.(activeConv.id);
                 }
             }
         };
+        const onVisibility = () => {
+            if (document.visibilityState === 'visible' && isOnline()) goOnline();
+        };
         const goOffline = () => setConnectionStatus('disconnected');
+        const stopUnreadSync = listenBroadcast('smarter_poker_unread_sync', msg => {
+            if (msg !== 'refresh_unread') return;
+            const currentUser = goOnlineUserRef.current;
+            if (currentUser?.id) loadConversationsRef.current?.(currentUser.id, { invalidate: true });
+        });
+        document.addEventListener('visibilitychange', onVisibility);
+        window.addEventListener('focus', onVisibility);
         window.addEventListener('online', goOnline);
         window.addEventListener('offline', goOffline);
         if (!navigator.onLine) setConnectionStatus('disconnected');
         return () => {
+            stopUnreadSync();
+            document.removeEventListener('visibilitychange', onVisibility);
+            window.removeEventListener('focus', onVisibility);
             window.removeEventListener('online', goOnline);
             window.removeEventListener('offline', goOffline);
         };
@@ -623,6 +691,9 @@ function MessengerPage() {
 
     // Load user and conversations — PARALLEL init with cache-first render
     useEffect(() => {
+        let cancelled = false;
+        const authGeneration = authGenerationRef.current;
+        const current = () => !cancelled && authGenerationRef.current === authGeneration;
         async function init() {
             try {
                 // BULLETPROOF: Use authUtils instead of getSafeUser (avoids AbortError)
@@ -636,7 +707,7 @@ function MessengerPage() {
                     } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
                 }
 
-                if (authUser) {
+                if (authUser && current()) {
                     const token = getAccessToken();
                     const headers = { 'Authorization': 'Bearer ' + token };
 
@@ -655,6 +726,8 @@ function MessengerPage() {
                             .then(r => r.json()).catch(() => ({ data: { friends: [] } }))
                     ]);
 
+                    if (!current()) return;
+
                     // Process profile
                     const profileResp = profileResult.status === 'fulfilled' ? profileResult.value : {};
                     const prof = profileResp?.profile || {};
@@ -665,6 +738,7 @@ function MessengerPage() {
                         full_name: prof.full_name,
                         is_vip: prof.is_vip
                     });
+                    authIdentityRef.current = authUser.id;
                     setIsVip(!!prof.is_vip);
 
                     // Process friends
@@ -676,9 +750,10 @@ function MessengerPage() {
             } catch (e) {
                 console.warn('Init error:', e);
             }
-            setLoading(false);
+            if (current()) setLoading(false);
         }
         init();
+        return () => { cancelled = true; };
     }, []);
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -690,7 +765,7 @@ function MessengerPage() {
     // different user in the same session correctly opens THAT conversation.
     const lastHandledUid = useRef(null);
     const [composeFocus, setComposeFocus] = useState(false);
-    const [conversationDraft, setConversationDraft] = useState(''); // pre-filled text from ?draft= param
+    const deepLinkDraftRef = useRef(null);
     useEffect(() => {
         if (!user?.id) return;
         const { compose, uid } = router.query;
@@ -757,7 +832,7 @@ function MessengerPage() {
             setWorkspaceSelection({ clubId: result.clubId, folder: result.folder });
             setConversations(result.conversations);
             setPendingConversationId(result.conversation.id);
-            if (draftText) setConversationDraft(draftText);
+            if (draftText) deepLinkDraftRef.current = { actorId: accountId, conversationId, text: draftText.slice(0, 2000) };
         } catch (error) {
             if (workspaceRef.current === requestScope && controls.isCurrent?.() !== false) setToast({ type: 'error', message: error.message });
         }
@@ -792,21 +867,6 @@ function MessengerPage() {
         url.searchParams.delete('draft');
         window.history.replaceState(null, '', url.pathname + url.search);
     }, [pendingConversationId, conversations, workspaceKey]);
-
-    // BUG-FIX: Clear conversationDraft when the user switches to a different
-    // conversation AFTER the initial deep-link draft has been consumed.
-    // Without this, every subsequent conversation gets the stale draft
-    // pre-filled because conversationDraft state never resets.
-    const lastDraftConvId = useRef(null);
-    useEffect(() => {
-        if (!activeConversation?.id) return;
-        if (lastDraftConvId.current !== null &&
-            lastDraftConvId.current !== activeConversation.id &&
-            conversationDraft) {
-            setConversationDraft('');
-        }
-        lastDraftConvId.current = activeConversation.id;
-    }, [activeConversation?.id]);
 
     // ═══════════════════════════════════════════════════════════════════════════
     // MESSAGE REQUEST COUNT: Fetch pending message requests for sidebar badge
@@ -907,36 +967,59 @@ function MessengerPage() {
     //  MULTI-DEVICE RESILIENCE: Listen for auth changes from ANY device
     // This handles: token refresh, login from another device, session recovery
     useEffect(() => {
-        const cleanup = createMultiDeviceAuthListener(supabase, async (authUser, event) => {
-
-            if (!authUser) {
-                // User signed out - clear state
-                setUser(null);
+        let cancelled = false;
+        let profileSequence = 0;
+        // Keep the auth callback synchronous: a slow profile request must never
+        // hold or discard a later sign-out/account switch.
+        const { data } = supabase.auth.onAuthStateChange((event, session) => {
+            const authUser = event === 'SIGNED_OUT' ? null : session?.user;
+            const nextId = authUser?.id || null;
+            const changed = authIdentityRef.current !== nextId;
+            const sequence = ++profileSequence;
+            if (changed || event === 'SIGNED_OUT') {
+                authIdentityRef.current = nextId;
+                authGenerationRef.current++;
+                // Invalidate pending work before React commits the new actor.
+                workspaceRef.current = `auth:${authGenerationRef.current}`;
+                activeConversationRef.current = null;
                 setConversations([]);
                 setMessages([]);
                 setActiveConversation(null);
+                messageCacheRef.current.clear();
+                sendOperationsRef.current.clear();
+                forwardOperationRef.current = null;
+                sendLockRef.current = null;
+                setFriends([]);
+                setIsVip(false);
+            }
+            if (!authUser) {
+                setUser(null);
+                setLoading(false);
                 return;
             }
 
-            // User is authenticated (from any device) - ensure we have latest data
-            if (authUser.id !== user?.id || event === 'TOKEN_REFRESHED') {
-                // Update user state
-                const { data: profile } = await supabase
-                    .from('profiles')
-                    .select('id, username, avatar_url, is_vip')
-                    .eq('id', authUser.id)
-                    .maybeSingle();
+            setUser(previous => previous?.id === nextId ? { ...previous, ...authUser } : {
+                ...authUser,
+                username: authUser.user_metadata?.poker_alias || authUser.email?.split('@')[0],
+                avatar_url: authUser.user_metadata?.avatar_url || null,
+            });
+            // The workspace effect loads a new actor after its state commits.
+            if (!changed && event === 'TOKEN_REFRESHED') loadConversationsRef.current?.(nextId, { invalidate: true });
+            void (async () => {
+                try {
+                    const { data: profile } = await supabase.from('profiles')
+                        .select('id, username, avatar_url, is_vip').eq('id', nextId).maybeSingle();
+                    if (cancelled || sequence !== profileSequence || authIdentityRef.current !== nextId) return;
+                    setUser(previous => previous?.id === nextId ? { ...previous, ...(profile || {}) } : previous);
+                    setIsVip(!!profile?.is_vip);
+                } catch (error) {
+                    if (!cancelled && sequence === profileSequence) console.warn('[Messenger] Profile refresh failed:', error?.message || error);
+                }
+            })();
+        });
 
-                setUser({ ...authUser, ...(profile || {}) });
-                setIsVip(!!profile?.is_vip);
-
-                // Reload conversations (uses API-first approach, resilient to RLS)
-                await loadConversations(authUser.id);
-            }
-        }, 500); // 500ms debounce to handle rapid token events
-
-        return cleanup;
-    }, [user?.id]); // Re-subscribe if user changes
+        return () => { cancelled = true; profileSequence++; data?.subscription?.unsubscribe(); };
+    }, []);
 
     // Check for pending calls when messenger opens (for users coming from push notification)
     useEffect(() => {
@@ -986,14 +1069,71 @@ function MessengerPage() {
     // The scroll-to-bottom effect must NOT fire in this case — rAF in loadOlderMessages restores position.
     const isPaginatingRef = useRef(false);
 
-    // Scroll to bottom when messages change — but skip during backward pagination
+    // Keep an older reading window stable; scroll only for an explicit target
+    // or when the reader was already at the newest edge.
     useEffect(() => {
-        if (isPaginatingRef.current) {
-            isPaginatingRef.current = false;
-            return;
+        if (isPaginatingRef.current) { isPaginatingRef.current = false; return; }
+        const scope = workspaceRef.current;
+        const conversationId = activeConversationRef.current?.id;
+        let frame;
+        const placeViewport = () => {
+            if (scope !== workspaceRef.current || conversationId !== activeConversationRef.current?.id) return;
+            const container = messagesContainerRef.current;
+            const target = pendingScrollRef.current;
+            if (!container || loadingMessages) return;
+            // Dynamic bubbles initially render zero-height placeholders. Neither
+            // a reading target nor a receipt may be resolved from that geometry.
+            const rows = [...container.querySelectorAll('[data-message-id]')];
+            if (rows.some(row => row.getBoundingClientRect().height <= 0)) return;
+            if (container && target?.conversationId === conversationId && target.scope === scope) {
+                const node = target.messageId && container.querySelector(`[data-message-id="${target.messageId}"]`);
+                if (node) container.scrollTop += node.getBoundingClientRect().top - container.getBoundingClientRect().top - (target.offset || 0);
+                else if (target.bottom) container.scrollTop = container.scrollHeight;
+                pendingScrollRef.current = null;
+                stickToBottomRef.current = !historyWindowRef.current.hasNewer && container.scrollHeight - container.scrollTop - container.clientHeight < 80;
+            } else if (container && stickToBottomRef.current && !historyWindowRef.current.hasNewer) container.scrollTop = container.scrollHeight;
+            visibleReadRef.current?.();
+        };
+        const queuePlacement = () => { cancelAnimationFrame(frame); frame = requestAnimationFrame(placeViewport); };
+        const observer = typeof ResizeObserver === 'function' ? new ResizeObserver(queuePlacement) : null;
+        const container = messagesContainerRef.current;
+        if (container) {
+            observer?.observe(container);
+            container.querySelectorAll('[data-message-id]').forEach(row => observer?.observe(row));
         }
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, [messages]);
+        queuePlacement();
+        return () => { cancelAnimationFrame(frame); observer?.disconnect(); };
+    }, [messages, loadingMessages]);
+
+    const activeDraftReplyId = isMessageId(activeConversation?.id) ? continuity.state(activeConversation.id).draft.replyToId : null;
+    useEffect(() => {
+        if (!activeDraftReplyId) { setReplyToMessage(null); return; }
+        const conversationId = activeConversation?.id;
+        const scope = workspaceRef.current;
+        let cancelled = false;
+        const found = messages.find(message => message.id === activeDraftReplyId && !message.is_deleted);
+        if (found) { setReplyToMessage(found); return; }
+        setReplyToMessage({ id: activeDraftReplyId, content: 'Loading Original Message...' });
+        void (async () => {
+            try {
+                const response = await authedFetch('/api/messenger/get-messages', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getAccessToken()}` },
+                    body: JSON.stringify({ conversationId, anchorMessageId: activeDraftReplyId, limit: 10 }),
+                });
+                const result = await response.json();
+                if (cancelled || scope !== workspaceRef.current || activeConversationRef.current?.id !== conversationId) return;
+                const original = response.ok && result.success ? result.messages?.find(message => message.id === activeDraftReplyId && !message.is_deleted) : null;
+                setReplyToMessage(original || { id: activeDraftReplyId, unavailable: true, content: 'Original Message Is Unavailable' });
+            } catch {
+                if (!cancelled && scope === workspaceRef.current) setReplyToMessage({ id: activeDraftReplyId, unavailable: true, content: 'Original Message Is Unavailable' });
+            }
+        })();
+        return () => { cancelled = true; };
+    }, [activeDraftReplyId, activeConversation?.id, workspaceKey]);
+    const clearReply = () => {
+        setReplyToMessage(null);
+        if (isMessageId(activeConversation?.id)) editContinuity(activeConversation.id, 'draft', { text: continuity.state(activeConversation.id).draft.text, replyToId: null });
+    };
 
     // Refresh the same authorized workspace used for initial loading.
     useEffect(() => {
@@ -1081,6 +1221,7 @@ function MessengerPage() {
     useEffect(() => {
         if (!user || !activeConversation) return;
 
+        const requestScope = workspaceKey;
         const channel = supabase
             .channel(`conversation:${activeConversation.id}`)
             .on('postgres_changes', {
@@ -1095,8 +1236,19 @@ function MessengerPage() {
                     if (activeConversationRef.current?.id === newMsg.conversation_id) loadMessagesRef.current?.(newMsg.conversation_id);
                     return;
                 }
-                // Skip if this is our own message (already added via optimistic update)
-                if (newMsg.sender_id === user.id) return;
+                if (historyWindowRef.current.conversationId === newMsg.conversation_id && historyWindowRef.current.hasNewer) {
+                    // Keep the current history window contiguous. Load Newer or
+                    // Jump To Latest fetches this arrival through the private reader.
+                    loadConversationsRef.current?.(user.id, { invalidate: true });
+                    return;
+                }
+                if (newMsg.sender_id === user.id) {
+                    if (workspaceRef.current !== requestScope || activeConversationRef.current?.id !== newMsg.conversation_id) return;
+                    const operation = sendOperationsRef.current.get(newMsg.request_id);
+                    if (operation) acknowledgeMessengerSend(operation, newMsg, localStorage);
+                    setMessages(previous => reconcileMessengerMessage(previous, { ...newMsg, status: 'sent' }));
+                    return;
+                }
 
                 // Play sound for incoming message (respect preferences — read from ref to avoid stale closure)
                 if (preferencesRef.current.messageSounds !== false) playMessageSound();
@@ -1120,12 +1272,14 @@ function MessengerPage() {
                     }
                 }
 
-                if (activeConversationRef.current?.id !== newMsg.conversation_id) return;
+                if (workspaceRef.current !== requestScope || activeConversationRef.current?.id !== newMsg.conversation_id) return;
                 setMessages(prev => {
                     // Check for duplicates (defensive against null entries)
                     if (prev.some(m => m && m.id === newMsg.id)) return prev;
                     return [...prev, { ...newMsg, profiles: profile || null }];
                 });
+
+                setIncomingRead({ scope: requestScope, conversationId: newMsg.conversation_id, messageId: newMsg.id });
 
                 // FIX #9: Delivery confirmation — broadcast back to sender that we received their message
                 try {
@@ -1181,16 +1335,36 @@ function MessengerPage() {
     // subscription and create a gap window on every incoming message.
     }, [user?.id, activeConversation?.id]);
 
+    // A rendered row outside the viewport is not read. History navigation may
+    // intentionally leave many newer rows unloaded or below the visible edge.
+    visibleReadRef.current = () => {
+        const conversationId = activeConversationRef.current?.id;
+        if (!isMessageId(conversationId) || document.visibilityState !== 'visible' || pendingScrollRef.current) return;
+        const boundary = visibleMessageBoundary(messagesContainerRef.current);
+        if (!boundary || !messages.some(message => message.id === boundary.last && message.conversation_id === conversationId)) return;
+        const key = `${workspaceRef.current}:${conversationId}:${boundary.last}`;
+        if (lastVisibleReadRef.current === key) return;
+        lastVisibleReadRef.current = key;
+        markConversationReadRef.current?.(conversationId, boundary.last);
+    };
+    useEffect(() => {
+        if (!incomingRead || incomingRead.scope !== workspaceRef.current) return;
+        const frame = requestAnimationFrame(() => visibleReadRef.current?.());
+        return () => cancelAnimationFrame(frame);
+    }, [incomingRead]);
+
     // Typing indicator broadcast
     const typingTimerRef = useRef(null);
     useEffect(() => {
         if (!user || !activeConversation) return;
+        const requestScope = workspaceKey;
+        const current = () => workspaceRef.current === requestScope && activeConversationRef.current?.id === activeConversation.id;
 
         const typingChannel = supabase
             .channel(`typing:${activeConversation.id}`)
             .on('broadcast', { event: 'typing' }, (payload) => {
                 // Someone else is typing
-                if (payload.payload.userId !== user.id) {
+                if (current() && payload.payload.userId !== user.id) {
                     setOtherTyping(true);
                     // Clear previous timer to prevent accumulation
                     if (typingTimerRef.current) clearTimeout(typingTimerRef.current);
@@ -1199,15 +1373,16 @@ function MessengerPage() {
             })
             .on('broadcast', { event: 'read_receipt' }, (payload) => {
                 // Other user read our messages — update ✓✓ checkmarks in real-time
-                if (payload.payload.readerId !== user.id) {
+                const readThrough = payload.payload.readThrough;
+                if (current() && payload.payload.readerId !== user.id && payload.payload.conversationId === activeConversation.id && Number.isFinite(Date.parse(readThrough))) {
                     setMessages(prev => prev.map(m =>
-                        m && m.sender_id === user.id ? { ...m, is_read: true, status: 'read' } : m
+                        m && m.sender_id === user.id && compareMessageTimestamps(m.created_at, readThrough) <= 0 ? { ...m, is_read: true, status: 'read' } : m
                     ));
                 }
             })
             // FIX #9: Listen for delivery confirmations from the other user
             .on('broadcast', { event: 'delivered' }, (payload) => {
-                if (payload.payload.receiverId !== user.id) {
+                if (current() && payload.payload.receiverId !== user.id) {
                     const deliveredId = payload.payload.messageId;
                     setMessages(prev => prev.map(m => {
                         if (!m) return m;
@@ -1304,20 +1479,9 @@ function MessengerPage() {
                             duration: 0,
                             status: receiptStatus,
                         });
-                        // Route through authenticated API (not anon supabase.rpc) to bypass RLS
-                        const receiptToken = getAccessToken();
-                        authedFetch('/api/messenger/send-message', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                ...(receiptToken ? { Authorization: `Bearer ${receiptToken}` } : {}),
-                            },
-                            body: JSON.stringify({
-                                conversationId: currentConvo.id,
-                                content: `[CALL_RECEIPT]${receiptPayload}`,
-                                media_metadata: getClubMetadata(),
-                            }),
-                        }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
+                        sendOperationRef.current?.(`[CALL_RECEIPT]${receiptPayload}`, {
+                            conversationId: currentConvo.id, actorId: user.id,
+                        });
                     }
 
                     // ── MISSED CALL NOTIFICATION: Only for timeout (not for active decline) ──
@@ -1541,7 +1705,7 @@ function MessengerPage() {
         }
     };
 
-    const loadConversations = async (userId) => {
+    const loadConversations = async (userId, { invalidate = false } = {}) => {
         // PERF 2026-08-24: collapse concurrent duplicate loads (see
         // loadConvInFlightRef). Keyed on the exact request identity, so a
         // genuine context switch (Personal <-> Club) is never de-duplicated
@@ -1549,7 +1713,7 @@ function MessengerPage() {
         // request settles, so a LATER refresh always issues a fresh fetch.
         const inFlightKey = workspaceKey;
         const pending = loadConvInFlightRef.current;
-        if (pending && pending.key === inFlightKey) return pending.promise;
+        if (!invalidate && pending && pending.key === inFlightKey) return pending.promise;
 
         const run = loadConversationsInner(userId);
         loadConvInFlightRef.current = { key: inFlightKey, promise: run };
@@ -1562,6 +1726,8 @@ function MessengerPage() {
 
     const loadConversationsInner = async (userId) => {
         const requestKey = workspaceKey;
+        const requestSequence = ++inboxRequestSequence.current;
+        const current = () => workspaceRef.current === requestKey && inboxRequestSequence.current === requestSequence;
         if (!isOnline()) {
             setInboxError('You Are Offline. Reconnect To Refresh This Inbox.');
             setLoading(false);
@@ -1575,7 +1741,7 @@ function MessengerPage() {
                 body: JSON.stringify({ workspace: workspaceSelection.clubId ? 'club' : 'social', ...workspaceSelection }),
             });
             const result = await resp.json();
-            if (workspaceRef.current !== requestKey) return;
+            if (!current()) return;
             if (!resp.ok || !result.success || !Array.isArray(result.conversations)) throw new Error(result.error || 'Inbox Unavailable');
             const previous = new Map(conversationsRef.current.map(c => [c.id, c.unreadCount]));
             if (result.conversations.some(c => previous.has(c.id) && c.unreadCount > previous.get(c.id) && c.id !== activeConversationRef.current?.id)) {
@@ -1584,24 +1750,86 @@ function MessengerPage() {
             setConnectionStatus('connected');
             setClubAccess({ userId, clubs: result.clubs });
             setConversations(result.conversations);
+            setWorkspaceUnread({ key: requestKey, counts: result.unreadCounts });
             setWeeklyPreview(result.weeklySummary ? { key: requestKey, report: result.weeklySummary } : null);
             setInboxError(null);
         } catch (error) {
-            if (workspaceRef.current !== requestKey) return;
+            if (!current()) return;
             setConversations([]);
             setInboxError(error.message || 'Inbox Unavailable. Please Retry.');
         } finally {
-            if (workspaceRef.current === requestKey) setLoading(false);
+            if (current()) setLoading(false);
         }
     };
     // Keep ref in sync so the reconnect handler always calls the latest version
     loadConversationsRef.current = loadConversations;
 
-    const loadMessages = async (conversationId) => {
+    const markConversationRead = async (conversationId, throughMessageId) => {
         const requestScope = workspaceKey;
         const current = () => workspaceRef.current === requestScope && activeConversationRef.current?.id === conversationId;
+        try {
+            if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(throughMessageId || '')
+                || !current() || document.visibilityState === 'hidden') return;
+            // Do not clear local/global badges or emit a read receipt on failure.
+            const readResponse = await authedFetch('/api/messenger/mark-read', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getAccessToken()}` },
+                body: JSON.stringify({ conversationId, throughMessageId }),
+            });
+            const readResult = await readResponse.json();
+            if (!readResponse.ok || readResult.success !== true) {
+                if (current()) setToast({ type: 'error', message: 'Read Status Could Not Be Saved. Please Reopen This Conversation.' });
+                return;
+            }
+            if (current()) {
+                loadConversationsRef.current?.(user.id, { invalidate: true });
+            }
+
+            // M2 FIX: Only broadcast read receipt if readReceipts preference is enabled
+            // Read from ref to avoid stale closure in long-lived callback
+            if (preferencesRef.current.readReceipts !== false) {
+                try {
+                    if (current() && typingChannelRef.current) {
+                        typingChannelRef.current.send({
+                            type: 'broadcast',
+                            event: 'read_receipt',
+                            payload: { readerId: user.id, conversationId, readThrough: readResult.readThrough },
+                        }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
+                    }
+                } catch { /* non-critical */ }
+            }
+
+            //  Immediately refresh global unread count to clear header badge
+            if (workspaceRef.current !== requestScope) return;
+            if (refreshUnread) refreshUnread();
+            // DEEP SWEEP FIX: Push native global unread sync event to clear badges on other tabs
+            broadcastSync('smarter_poker_unread_sync', 'refresh_unread');
+
+        } catch (error) {
+            console.warn('[Messenger] Read persistence failed:', error);
+            if (current()) setToast({ type: 'error', message: 'Read Status Could Not Be Saved. Please Reopen This Conversation.' });
+        }
+    };
+    markConversationReadRef.current = markConversationRead;
+
+    const loadMessages = async (conversationId, navigation = {}) => {
+        const requestScope = workspaceKey;
+        const requestSequence = ++messagesRequestSequence.current;
+        // A new bounded window invalidates pages owned by its predecessor,
+        // including navigation within the same conversation.
+        paginationLockRef.current = null;
+        newerPageRef.current = null;
+        isPaginatingRef.current = false;
+        setLoadingOlderMessages(false);
+        setLoadingNewerMessages(false);
+        const current = () => workspaceRef.current === requestScope && activeConversationRef.current?.id === conversationId && messagesRequestSequence.current === requestSequence;
         // Optimistic UI check for instant loading
-        const cachedMessages = messageCacheRef.current.get(conversationId);
+        const currentAnchor = !navigation.firstUnread && !navigation.latest && !navigation.anchorMessageId
+            && historyWindowRef.current.conversationId === conversationId ? visibleMessageBoundary(messagesContainerRef.current) : null;
+        const anchorMessageId = navigation.anchorMessageId || currentAnchor?.first;
+        const cachedMessages = navigation.anchorMessageId || navigation.firstUnread || navigation.latest ? null : messageCacheRef.current.get(conversationId);
+        const messagesAtStart = new Map((messagesRef.current || []).map(message => [message.id, message]));
+        const replacingWindow = !!(navigation.anchorMessageId || navigation.firstUnread || navigation.latest);
         if (cachedMessages) {
             setMessages(cachedMessages);
             setLoadingMessages(false);
@@ -1610,6 +1838,8 @@ function MessengerPage() {
             setLoadingMessages(true);
         }
         setHasMoreMessages(true); // Reset on new conversation
+        setHistoryError(null);
+        lastVisibleReadRef.current = null;
         try {
 
             // Use API route to bypass RLS issues
@@ -1620,7 +1850,8 @@ function MessengerPage() {
                     'Content-Type': 'application/json',
                     ...(msgToken ? { Authorization: `Bearer ${msgToken}` } : {}),
                 },
-                body: JSON.stringify({ conversationId, userId: user.id, limit: 50 }),
+                body: JSON.stringify({ conversationId, userId: user.id, limit: 50,
+                    ...(anchorMessageId ? { anchorMessageId } : { firstUnread: navigation.firstUnread === true }) }),
             });
 
             if (!response.ok) throw new Error(`Request failed (${response.status})`);
@@ -1637,76 +1868,84 @@ function MessengerPage() {
                     catch { return hiddenMessageIds; }
                 })();
                 const filtered = result.messages.filter(m => !freshHiddenIds.has(m.id));
-                setMessages(filtered);
-                setHasMoreMessages(result.messages.length >= 50);
+                continuity.ingestSavedItems(result.savedItems);
+                for (const operation of restoreMessengerSendOperations(localStorage, user.id)) {
+                    if (!sendOperationsRef.current.has(operation.requestId)) sendOperationsRef.current.set(operation.requestId, operation);
+                }
+                for (const message of filtered) {
+                    const operation = sendOperationsRef.current.get(message.request_id);
+                    if (operation) acknowledgeMessengerSend(operation, message, localStorage);
+                }
+                setMessages(previous => {
+                    if (!current()) return previous;
+                    const merged = new Map(filtered.map(message => [message.id, message]));
+                    // Only preserve changes made while this request was pending.
+                    // Older cached rows remain owned by the server snapshot.
+                    for (const message of previous) {
+                        const lastReturned = filtered.at(-1);
+                        const newArrivalAtLatestEdge = !messagesAtStart.has(message?.id) && result.hasNewer !== true
+                            && (!lastReturned || compareMessageTimestamps(message.created_at, lastReturned.created_at) > 0
+                                || (compareMessageTimestamps(message.created_at, lastReturned.created_at) === 0 && String(message.id) > String(lastReturned.id)));
+                        if (replacingWindow && !merged.has(message?.id) && !newArrivalAtLatestEdge) continue;
+                        if (message && !freshHiddenIds.has(message.id) && messagesAtStart.get(message.id) !== message
+                            && (!message.conversation_id || message.conversation_id === conversationId)) {
+                            const initial = messagesAtStart.get(message.id);
+                            const snapshot = merged.get(message.id);
+                            const changedFields = initial && snapshot
+                                ? Object.fromEntries(Object.entries(message).filter(([key, value]) => initial[key] !== value)) : message;
+                            merged.set(message.id, { ...snapshot, ...changedFields });
+                        }
+                    }
+                    const rows = [...merged.values()].reduce((all, message) => reconcileMessengerMessage(all, message), []);
+                    return mergeMessengerPendingMessages(rows, sendOperationsRef.current.values(), user.id, conversationId).sort((a, b) =>
+                        compareMessageTimestamps(a.created_at, b.created_at) || String(a.id).localeCompare(String(b.id)));
+                });
+                setHasMoreMessages(result.hasOlder ?? result.messages.length >= 50);
+                setHasNewerMessages(result.hasNewer === true);
+                historyWindowRef.current = { conversationId, hasNewer: result.hasNewer === true };
+                if (result.firstUnreadMessageId) setFirstUnreadMessageId(previous => previous || result.firstUnreadMessageId);
+                const target = result.anchorMessageId || (navigation.firstUnread ? result.firstUnreadMessageId : null);
+                pendingScrollRef.current = { scope: requestScope, conversationId, messageId: target,
+                    offset: result.anchorUnavailable ? 0 : navigation.offset ?? currentAnchor?.offset ?? 0, bottom: !target };
+                if (result.anchorUnavailable) setToast({ type: 'info', message: 'That Message Is No Longer Available. Showing Recent Messages.' });
+                if (filtered.length) setIncomingRead({ scope: requestScope, conversationId, messageId: filtered[filtered.length - 1].id });
             } else {
                 if (!current()) return;
-                setMessages([]);
-                setHasMoreMessages(false);
+                throw new Error(result.error || 'Messages Unavailable');
             }
-
-            // Mark as read - use API with service role to bypass RLS
-            try {
-                const readToken = getAccessToken();
-                await authedFetch('/api/messenger/mark-read', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        ...(readToken ? { Authorization: `Bearer ${readToken}` } : {}),
-                    },
-                    body: JSON.stringify({ conversationId, userId: user.id }),
-                });
-            } catch (e) {
-                console.warn('Mark read failed:', e);
-            }
-
-            // M2 FIX: Only broadcast read receipt if readReceipts preference is enabled
-            // Read from ref to avoid stale closure in long-lived callback
-            if (preferencesRef.current.readReceipts !== false) {
-                try {
-                    if (typingChannelRef.current) {
-                        typingChannelRef.current.send({
-                            type: 'broadcast',
-                            event: 'read_receipt',
-                            payload: { readerId: user.id, conversationId },
-                        }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
-                    }
-                } catch { /* non-critical */ }
-            }
-
-            //  Immediately refresh global unread count to clear header badge
-            if (refreshUnread) refreshUnread();
-            // DEEP SWEEP FIX: Push native global unread sync event to clear badges on other tabs
-            broadcastSync('smarter_poker_unread_sync', 'refresh_unread');
 
         } catch (e) {
             console.warn('Load messages error:', e);
-            if (current()) setToast({ type: 'error', message: 'Messages Could Not Be Loaded. Please Retry.' });
+            if (current()) { setHistoryError({ direction: 'window', navigation }); setToast({ type: 'error', message: 'Messages Could Not Be Loaded. Please Retry.' }); }
+        } finally {
+            if (current()) setLoadingMessages(false);
         }
-        if (current()) setLoadingMessages(false);
     };
     // Keep ref in sync so the reconnect handler always calls the latest version
     loadMessagesRef.current = loadMessages;
 
-    // Send lock — prevents double-send from rapid Enter spam, thumbs-up taps, or retry button mashing.
-    // Without this, two concurrent authedFetch('/api/messenger/send-message') calls create duplicate DB rows.
-    const sendLockRef = useRef(false);
+    // Own the composer submission until its response; explicit retries use the saved operation.
+    const sendLockRef = useRef(null);
 
     // Load older messages (pagination — triggered when scrolling to top)
     // FIX #3: useRef-based lock prevents duplicate pagination from rapid scroll
-    const paginationLockRef = useRef(false);
+    const paginationLockRef = useRef(null);
     const loadOlderMessages = useCallback(async () => {
-        if (!activeConversation || loadingOlderMessages || !hasMoreMessages || messages.length === 0) return;
+        if (!activeConversation || !hasMoreMessages || messages.length === 0 || historyError?.direction === 'older') return;
         // Double-check with ref lock (state updates are async, ref is synchronous)
-        if (paginationLockRef.current) return;
-        paginationLockRef.current = true;
+        if (paginationLockRef.current?.scope === workspaceKey && paginationLockRef.current?.conversationId === activeConversation.id) return;
+        const operation = { scope: workspaceKey, conversationId: activeConversation.id };
+        paginationLockRef.current = operation;
         setLoadingOlderMessages(true);
         // Capture conversation at pagination start — user may switch before fetch resolves
         const paginationConvId = activeConversation.id;
         const requestScope = workspaceKey;
+        const windowSequence = messagesRequestSequence.current;
+        const currentWindow = () => messagesRequestSequence.current === windowSequence && workspaceRef.current === requestScope && activeConversationRef.current?.id === paginationConvId;
         try {
             const container = messagesContainerRef.current;
             const prevScrollHeight = container?.scrollHeight || 0;
+            const prevScrollTop = container?.scrollTop || 0;
             const oldestMsg = messages[0];
             const msgToken = getAccessToken();
             const response = await authedFetch('/api/messenger/get-messages', {
@@ -1718,6 +1957,7 @@ function MessengerPage() {
                 body: JSON.stringify({
                     conversationId: paginationConvId,
                     userId: user.id,
+                    firstUnread: false,
                     before: oldestMsg.created_at,
                     beforeId: oldestMsg.id,
                     limit: 50,
@@ -1726,7 +1966,7 @@ function MessengerPage() {
             if (!response.ok) throw new Error(`Request failed (${response.status})`);
             const result = await response.json();
             // Staleness guard: discard if user switched conversations while paginating
-            if (workspaceRef.current !== requestScope || activeConversationRef.current?.id !== paginationConvId) return;
+            if (paginationLockRef.current !== operation || !currentWindow()) return;
             if (result.success && result.messages?.length > 0) {
                 // Filter out hidden messages — re-read from localStorage for freshness
                 const freshHiddenIds = (() => {
@@ -1734,16 +1974,19 @@ function MessengerPage() {
                     catch { return new Set(); }
                 })();
                 const filteredOlder = result.messages.filter(m => !freshHiddenIds.has(m.id));
+                continuity.ingestSavedItems(result.savedItems);
                 setMessages(prev => {
+                    if (!currentWindow()) return prev;
                     // Signal scroll effect to skip — rAF below will restore position
                     isPaginatingRef.current = true;
-                    return [...filteredOlder, ...prev];
+                    const existingIds = new Set(prev.map(message => message.id));
+                    return [...filteredOlder.filter(message => !existingIds.has(message.id)), ...prev];
                 });
-                setHasMoreMessages(result.messages.length >= 50);
+                setHasMoreMessages(result.hasOlder ?? result.messages.length >= 50);
                 // Preserve scroll position after prepending older messages
                 requestAnimationFrame(() => {
-                    if (container) {
-                        container.scrollTop = container.scrollHeight - prevScrollHeight;
+                    if (container && currentWindow()) {
+                        container.scrollTop = prevScrollTop + container.scrollHeight - prevScrollHeight;
                     }
                 });
             } else {
@@ -1751,14 +1994,72 @@ function MessengerPage() {
             }
         } catch (e) {
             console.warn('Load older messages error:', e);
+            if (currentWindow()) setHistoryError({ direction: 'older' });
+        } finally {
+            if (paginationLockRef.current === operation) {
+                paginationLockRef.current = null;
+                setLoadingOlderMessages(false);
+            }
         }
-        setLoadingOlderMessages(false);
-        paginationLockRef.current = false;
-    }, [activeConversation, loadingOlderMessages, hasMoreMessages, messages, user, workspaceKey]);
+    }, [activeConversation, loadingOlderMessages, hasMoreMessages, messages, user, workspaceKey, historyError]);
+
+    const newerPageRef = useRef(null);
+    const loadNewerMessages = async () => {
+        const conversationId = activeConversationRef.current?.id;
+        const scope = workspaceRef.current;
+        if (!conversationId || !hasNewerMessages || (newerPageRef.current?.scope === scope && newerPageRef.current?.conversationId === conversationId)) return;
+        const latest = messages.filter(message => isMessageId(message.id)).at(-1);
+        if (!latest) return;
+        const owner = { scope, conversationId };
+        const windowSequence = messagesRequestSequence.current;
+        newerPageRef.current = owner;
+        setLoadingNewerMessages(true);
+        setHistoryError(null);
+        const currentWindow = () => messagesRequestSequence.current === windowSequence && workspaceRef.current === scope && activeConversationRef.current?.id === conversationId;
+        const current = () => newerPageRef.current === owner && currentWindow();
+        try {
+            const response = await authedFetch('/api/messenger/get-messages', {
+                method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getAccessToken()}` },
+                body: JSON.stringify({ conversationId, after: latest.created_at, afterId: latest.id, limit: 50 }),
+            });
+            const result = await response.json();
+            if (!current()) return;
+            if (!response.ok || !result.success || !Array.isArray(result.messages)) throw new Error('Messages Unavailable');
+            continuity.ingestSavedItems(result.savedItems);
+            setMessages(previous => currentWindow() ? result.messages.reduce((rows, message) => reconcileMessengerMessage(rows, message), previous) : previous);
+            setHasNewerMessages(result.hasNewer === true);
+            historyWindowRef.current = { conversationId, hasNewer: result.hasNewer === true };
+        } catch {
+            if (current()) setHistoryError({ direction: 'newer' });
+        } finally {
+            if (newerPageRef.current === owner) { newerPageRef.current = null; setLoadingNewerMessages(false); }
+        }
+    };
+
+    const rememberReadingPosition = () => {
+        const conversationId = activeConversationRef.current?.id;
+        if (!isMessageId(conversationId) || pendingScrollRef.current) return;
+        const boundary = visibleMessageBoundary(messagesContainerRef.current);
+        if (boundary) editContinuity(conversationId, 'position', { messageId: boundary.first, offset: boundary.offset });
+    };
 
     const handleSelectConversation = async (conversation) => {
+        rememberReadingPosition();
+        flushContinuity();
+        const selectionSequence = ++restoreSequenceRef.current;
+        newerPageRef.current = null;
+        setLoadingNewerMessages(false);
         activeConversationRef.current = conversation;
+        paginationLockRef.current = null;
+        setLoadingOlderMessages(false);
         setActiveConversation(conversation);
+        setReplyToMessage(null);
+        setFirstUnreadMessageId(null);
+        setHistoryError(null);
+        setHasNewerMessages(false);
+        historyWindowRef.current = { conversationId: conversation.id, hasNewer: false };
+        pendingScrollRef.current = { scope: workspaceRef.current, conversationId: conversation.id, bottom: true };
+        stickToBottomRef.current = true;
         setMessageSearchQuery('');
         setShowMessageSearch(false);
         setComposeFocus(false); // Reset auto-focus so switching chats doesn't pop the mobile keyboard
@@ -1802,13 +2103,25 @@ function MessengerPage() {
             return;
         }
 
-        // Regular conversation handling
-        await loadMessages(conversation.id);
+        // Read continuity before choosing a bounded history window. Edits made
+        // while this response is pending stay owned by the local draft.
+        const scope = workspaceRef.current;
+        await continuity.read(conversation.id);
+        if (selectionSequence !== restoreSequenceRef.current || scope !== workspaceRef.current || activeConversationRef.current?.id !== conversation.id) return;
+        const linkedDraft = deepLinkDraftRef.current;
+        if (linkedDraft?.actorId === user.id && linkedDraft.conversationId === conversation.id) {
+            if (!continuity.state(conversation.id).draft.text) editContinuity(conversation.id, 'draft', { text: linkedDraft.text, replyToId: null });
+            else setToast({ type: 'info', message: 'Your Existing Draft Was Kept.' });
+            deepLinkDraftRef.current = null;
+        }
+        const position = continuity.state(conversation.id).position;
+        const explicit = explicitAnchorRef.current;
+        explicitAnchorRef.current = null;
+        await loadMessages(conversation.id, explicit?.conversationId === conversation.id
+            ? { anchorMessageId: explicit.messageId }
+            : position.messageId ? { anchorMessageId: position.messageId, offset: position.offset } : { firstUnread: true });
 
-        // Update local unread count
-        setConversations(prev => prev.map(c =>
-            c.id === conversation.id ? { ...c, unreadCount: 0 } : c
-        ));
+        // The persisted read receipt clears the badge after messages load.
 
         // Check online presence of the other user
         // Capture at dispatch time — if user switches conversations before await resolves,
@@ -1847,7 +2160,75 @@ function MessengerPage() {
         }
     };
 
-    const handleSendMessage = async (content) => {
+    const runSendOperation = async (operation) => {
+        if (!operation || authIdentityRef.current !== operation.actorId) return null;
+        const scope = workspaceRef.current;
+        const generation = authGenerationRef.current;
+        const current = () => authGenerationRef.current === generation && authIdentityRef.current === operation.actorId
+            && workspaceRef.current === scope;
+        const changed = updated => {
+            if (!current()) return;
+            const row = updated.receipt || messengerOperationMessage(updated);
+            const cached = messageCacheRef.current.get(updated.conversationId) || [];
+            messageCacheRef.current.set(updated.conversationId, reconcileMessengerMessage(cached, row));
+            if (activeConversationRef.current?.id === updated.conversationId) {
+                setMessages(previous => current() && activeConversationRef.current?.id === updated.conversationId
+                    ? reconcileMessengerMessage(previous, row) : previous);
+            }
+        };
+        try {
+            const receipt = await performMessengerSend(operation, {
+                storage: localStorage, currentActor: () => authGenerationRef.current === generation ? authIdentityRef.current : null,
+                changed,
+                send: body => {
+                    if (authGenerationRef.current !== generation || authIdentityRef.current !== operation.actorId) throw new Error('Account Changed');
+                    return authedFetch('/api/messenger/send-message', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getAccessToken()}` },
+                        body,
+                    });
+                },
+            });
+            if (current()) {
+                if (receipt) {
+                    loadConversationsRef.current?.(operation.actorId, { invalidate: true });
+                    busEmit.dataMutated('messenger');
+                    busEmit.messageSent(operation.conversationId);
+                } else setToast({ type: 'error', message: 'Message Was Not Confirmed. Open This Conversation And Tap Retry.' });
+            }
+            return receipt;
+        } catch (error) {
+            operation.status = 'failed';
+            changed(operation);
+            if (current()) setToast({ type: 'error', message: 'Message Could Not Be Saved For Retry. Please Check Browser Storage.' });
+            return null;
+        }
+    };
+    const queueMessengerSend = async (content, options = {}) => {
+        const actorId = options.actorId || user?.id;
+        if (!actorId || authIdentityRef.current !== actorId) return Promise.resolve(null);
+        let operation;
+        try {
+        operation = createMessengerSendOperation({
+            actorId, conversationId: options.conversationId || activeConversation?.id, content,
+            requestId: options.requestId, metadata: options.metadata === undefined ? getClubMetadata() : options.metadata,
+            messageType: options.messageType || 'text', profile: options.profile || (isClubMode && clubPage
+                ? { id: actorId, username: clubPage.name, avatar_url: clubPage.avatar_url, is_club_identity: true, club_id: clubPage.id }
+                : { id: actorId, username: user.username, avatar_url: user.avatar_url }),
+        });
+        } catch {
+            setToast({ type: 'error', message: 'Message Could Not Be Prepared. Please Check The Message And Try Again.' });
+            return null;
+        }
+        try { saveMessengerSendOperation(localStorage, operation); }
+        catch { setToast({ type: 'error', message: 'Message Could Not Be Saved For Retry. Your Draft Was Kept.' }); return null; }
+        sendOperationsRef.current.set(operation.requestId, operation);
+        options.onRecorded?.();
+        return runSendOperation(operation);
+    };
+    sendOperationRef.current = queueMessengerSend;
+
+    const handleSendMessage = async (content, controls = {}) => {
         if (!user || !activeConversation || !content.trim()) return;
 
         // Special handling for Jarvis AI
@@ -1889,6 +2270,7 @@ function MessengerPage() {
                 saveJarvisHistory(updated);
                 return updated;
             });
+            controls.onRecorded?.();
 
             // Show typing indicator
             const typingMsg = {
@@ -1962,101 +2344,44 @@ function MessengerPage() {
             return;
         }
 
-        // Regular message handling
-        // Prepend reply context if replying to a message
-        let finalContent = content.trim();
-
-        // Send lock: prevent double-send from rapid Enter spam, thumbs-up, or retry mashing
+        if (replyToMessage?.unavailable || replyToMessage?.content === 'Loading Original Message...') {
+            setToast({ type: 'error', message: 'Remove The Unavailable Reply Before Sending.' });
+            return;
+        }
+        // A retry reuses this operation rather than rebuilding from the composer.
         if (sendLockRef.current) return;
-        sendLockRef.current = true;
-
-        // Capture conversation at send time — user may switch before the await resolves
-        const sendConversationId = activeConversation.id;
-
+        const sendOwner = {};
+        sendLockRef.current = sendOwner;
+        let finalContent = content.trim();
         if (replyToMessage) {
             const replyText = (replyToMessage.content || replyToMessage.text || '').replace(/\[REPLY:[^\]]+\]\s*/, '').slice(0, 80);
             finalContent = `[REPLY:${replyText}] ${finalContent}`;
-            setReplyToMessage(null); // Clear reply state after embedding
         }
-
-        // Optimistic update - show message immediately
-        const tempId = `temp-${Date.now()}`;
-        const optimisticMsg = {
-            id: tempId,
-            content: finalContent,
-            created_at: new Date().toISOString(),
-            sender_id: user.id,
-            profiles: isClubMode && clubPage
-                ? { id: user.id, username: clubPage.name, avatar_url: clubPage.avatar_url, is_club_identity: true, club_id: clubPage.id }
-                : { id: user.id, username: user.username, avatar_url: user.avatar_url },
-            status: 'sending',
-        };
-        setMessages(prev => [...prev, optimisticMsg]);
-        // Update conversation preview and re-sort to move to top
-        setConversations(prev => {
-            const updated = prev.map(c =>
-                c.id === sendConversationId
-                    ? { ...c, last_message_preview: finalContent, last_message_at: new Date().toISOString() }
-                    : c
-            );
-            // Re-sort by last_message_at (most recent first)
-            return updated.sort((a, b) => {
-                const timeA = a.last_message_at ? new Date(a.last_message_at).getTime() : 0;
-                const timeB = b.last_message_at ? new Date(b.last_message_at).getTime() : 0;
-                return timeB - timeA;
-            });
-        });
-
+        const conversationId = activeConversation.id;
+        const draftOwner = continuity.state(conversationId).draft;
         try {
-            // Route through API for XSS sanitization, rate limiting, and auth verification
-            const sendToken = getAccessToken();
-            const sendResp = await authedFetch('/api/messenger/send-message', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...(sendToken ? { Authorization: `Bearer ${sendToken}` } : {}),
-                },
-                body: JSON.stringify({
-                    conversationId: sendConversationId,
-                    content: finalContent,
-                    media_metadata: getClubMetadata(),
-                }),
-            });
-            const sendResult = await sendResp.json();
-            if (!sendResp.ok || !sendResult.success) throw new Error(sendResult.error || 'Send failed');
-            const data = sendResult.msgId;
-
-            // Replace optimistic message with real one — only if still in same conversation
-            if (activeConversationRef.current?.id === sendConversationId) {
-                const realId = data || tempId;
-                setMessages(prev => prev.map(m =>
-                    m.id === tempId
-                        ? { ...m, id: realId, content: sendResult.content || m.content, status: 'sent' }
-                        : m
-                ));
-            }
-
-            // Notify header to refresh unread badges
-            busEmit.dataMutated('messenger');
-            // DEEP SWEEP FIX: Push native global Message Sent event
-            busEmit.messageSent(sendConversationId, activeConversation.otherUser?.id);
-        } catch (e) {
-            console.warn('Send message error:', e);
-            // Mark message as failed
-            setMessages(prev => prev.map(m =>
-                m.id === tempId ? { ...m, status: 'failed' } : m
-            ));
-            setToast({ type: 'error', message: 'Failed To Send Message. Tap To Retry.' });
+            await queueMessengerSend(finalContent, { onRecorded: () => {
+                if (controls.consumeDraft) continuity.clearDraftIfUnchanged(conversationId, draftOwner);
+                else if (draftOwner.replyToId) editContinuity(conversationId, 'draft', { text: draftOwner.text, replyToId: null });
+                setReplyToMessage(null);
+                controls.onRecorded?.();
+                if (historyWindowRef.current.hasNewer) void loadMessages(conversationId, { latest: true });
+                stickToBottomRef.current = true;
+            } });
         } finally {
-            sendLockRef.current = false;
+            if (sendLockRef.current === sendOwner) sendLockRef.current = null;
         }
     };
 
-    // Retry handler for failed messages — removes failed msg and re-sends
+    // Only the saved original operation may be retried. A different active
+    // conversation or account must never become its destination or sender.
     const handleRetryMessage = (failedMsg) => {
-        if (!failedMsg?.content) return;
-        setMessages(prev => prev.filter(m => m.id !== failedMsg.id));
-        handleSendMessage(failedMsg.content);
+        if (!failedMsg?.request_id || failedMsg.sender_id !== authIdentityRef.current
+            || activeConversationRef.current?.id !== failedMsg.conversation_id) return;
+        const operation = sendOperationsRef.current.get(failedMsg.request_id);
+        if (!operation || operation.actorId !== failedMsg.sender_id
+            || operation.conversationId !== failedMsg.conversation_id) return;
+        return runSendOperation(operation);
     };
 
     // Handle message reaction
@@ -2259,6 +2584,7 @@ function MessengerPage() {
     // Handle reply — sets the reply state with the message being replied to
     const handleReplyMessage = (message) => {
         setReplyToMessage(message);
+        if (isMessageId(activeConversation?.id) && isMessageId(message?.id)) editContinuity(activeConversation.id, 'draft', { text: continuity.state(activeConversation.id).draft.text, replyToId: message.id });
         setEditingMessage(null); // Cancel any active edit
     };
 
@@ -2306,58 +2632,31 @@ function MessengerPage() {
     };
 
     const handleForwardSend = async (targetConversation) => {
-        if (!forwardingMessage || !targetConversation || !user) return;
+        if (!forwardingMessage || !targetConversation || !user || forwardOperationRef.current) return;
+        const owner = {};
+        forwardOperationRef.current = owner;
+        const actorId = user.id;
+        const scope = workspaceRef.current;
+        const generation = authGenerationRef.current;
+        const current = () => authIdentityRef.current === actorId && authGenerationRef.current === generation && workspaceRef.current === scope;
+        const original = forwardingMessage;
         try {
-            // Strip tokens that don't make sense when forwarded to a different conversation
-            let rawContent = forwardingMessage.content || '';
-
-            // Call receipts — never forward (contain call state for THIS conversation's call)
+            let rawContent = original.content || '';
             if (rawContent.startsWith('[CALL_RECEIPT]')) {
                 setToast({ type: 'info', message: 'Call Receipts Cannot Be Forwarded' });
-                setForwardingMessage(null);
                 return;
             }
-
-            // Strip [REPLY:...] prefix — the reply context is meaningless in a different thread
             rawContent = rawContent.replace(/^\[REPLY:[^\]]+\]\s*/, '');
-
-            // If content is now empty (was reply-only), use placeholder
-            const content = rawContent.trim()
-                ? `[Forwarded] ${rawContent.trim()}`
-                : '[Forwarded Message]';
-
-            const token = getAccessToken();
-            const resp = await authedFetch('/api/messenger/send-message', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-                },
-                body: JSON.stringify({
-                    conversationId: targetConversation.id,
-                    content,
-                    media_metadata: getClubMetadata(),
-                }),
-            });
-            if (!resp.ok) {
-                const errData = await resp.json().catch(() => ({}));
-                throw new Error(errData.error || `Forward failed (${resp.status})`);
+            const content = rawContent.trim() ? `[Forwarded] ${rawContent.trim()}` : '[Forwarded Message]';
+            const receipt = await queueMessengerSend(content, { actorId, conversationId: targetConversation.id });
+            if (receipt && current()) {
+                setToast({ type: 'success', message: `Message Forwarded To ${targetConversation.otherUser?.full_name || targetConversation.otherUser?.display_name || targetConversation.otherUser?.username || 'Conversation'}` });
+                busEmit.messageForwarded(original.conversation_id || activeConversation?.id, targetConversation.id);
             }
-            setToast({ type: 'success', message: `Message Forwarded To ${targetConversation.otherUser?.full_name || targetConversation.otherUser?.display_name || targetConversation.otherUser?.username || 'Conversation'}` });
-            // Update the target conversation's sidebar preview (global listener skips own messages)
-            const forwardedAt = new Date().toISOString();
-            setConversations(prev => prev.map(c =>
-                c.id === targetConversation.id
-                    ? { ...c, last_message_preview: content, last_message_at: forwardedAt }
-                    : c
-            ));
-            // DEEP SWEEP FIX: Push native global Message Forwarded event
-            busEmit.messageForwarded(forwardingMessage.conversation_id || activeConversation?.id, targetConversation.id);
-        } catch (e) {
-            console.warn('Forward error:', e);
-            setToast({ type: 'error', message: 'Failed To Forward Message' });
+        } finally {
+            if (forwardOperationRef.current === owner) forwardOperationRef.current = null;
+            if (current()) setForwardingMessage(previous => previous === original ? null : previous);
         }
-        setForwardingMessage(null);
     };
 
     // Handle GIF send — sends GIF URL as a message
@@ -2366,239 +2665,92 @@ function MessengerPage() {
         handleSendMessage(`[GIF](${gifUrl})`);
     };
 
-    // Pin/Unpin conversation
-    const handleTogglePin = (conversationId) => {
-        setPinnedConvoIds(prev => {
-            const updated = prev.includes(conversationId)
-                ? prev.filter(id => id !== conversationId)
-                : [...prev, conversationId].slice(0, 5); // max 5 pinned
-            localStorage.setItem('sp-pinned-conversations', JSON.stringify(updated));
-            return updated;
-        });
+    const handleTogglePin = (conversationId) => continuity.write(conversationId, 'pin', !pinnedConvoIds.includes(conversationId));
+    const handleSaveMessage = async (message, saved) => {
+        if (isMessageId(message?.id) && isMessageId(message.conversation_id)
+            && await continuity.write(message.conversation_id, 'saved', { messageId: message.id, saved }) && saved) await continuity.read(message.conversation_id);
+    };
+    const openSavedMessage = async item => {
+        explicitAnchorRef.current = { conversationId: item.conversationId, messageId: item.messageId };
+        setShowSavedMessages(false);
+        await resolveConversationRef.current(item.conversationId);
     };
 
-    // Handle media (photo/video) upload
-    const handleMediaUpload = async (file) => {
-        if (!user || !activeConversation || !file) {
-            return;
+    // Uploads retain their original account, destination and club identity. Only
+    // the final URL enters a durable send operation; a blob preview is not retryable.
+    const uploadMessengerAttachment = async (file, { fileName, mimeType, contentForUrl, timeoutMs }) => {
+        if (!user || !activeConversation || !file) return;
+        const actorId = user.id;
+        const conversationId = activeConversation.id;
+        const generation = authGenerationRef.current;
+        const scope = workspaceRef.current;
+        const requestId = crypto.randomUUID();
+        const metadata = getClubMetadata();
+        const profile = isClubMode && clubPage
+            ? { id: actorId, username: clubPage.name, avatar_url: clubPage.avatar_url, is_club_identity: true, club_id: clubPage.id }
+            : { id: actorId, username: user.full_name || user.username || user.user_metadata?.username, avatar_url: user.avatar_url || user.user_metadata?.avatar_url };
+        const sameAccount = () => authIdentityRef.current === actorId && authGenerationRef.current === generation;
+        const current = () => sameAccount() && workspaceRef.current === scope && activeConversationRef.current?.id === conversationId;
+        const blobUrl = URL.createObjectURL(file);
+        const tempId = `temp-${requestId}`;
+        setMessages(previous => [...previous, { id: tempId, request_id: requestId, conversation_id: conversationId,
+            content: contentForUrl(blobUrl), created_at: new Date().toISOString(), sender_id: actorId,
+            profiles: profile, status: 'sending' }]);
+        setToast({ type: 'info', message: 'Uploading...' });
+        try {
+            const token = getAccessToken();
+            const response = await authedFetch('/api/social/upload-url', {
+                method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                body: JSON.stringify({ fileName, fileSize: file.size, mimeType, folder: 'messages', prefix: actorId }),
+            });
+            const upload = await response.json();
+            if (!response.ok || !upload.success || !upload.signedUrl || !upload.publicUrl) throw new Error('Upload Could Not Be Started');
+            if (!sameAccount()) return;
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), timeoutMs);
+            try {
+                const result = await fetch(upload.signedUrl, { method: 'PUT', headers: { 'Content-Type': mimeType }, body: file, signal: controller.signal });
+                if (!result.ok) throw new Error('Upload Did Not Complete');
+            } finally { clearTimeout(timeout); }
+            if (!sameAccount()) return;
+            await queueMessengerSend(contentForUrl(upload.publicUrl), { actorId, conversationId, requestId, metadata, profile });
+        } catch (error) {
+            if (current()) {
+                setMessages(previous => current() ? previous.filter(message => message.id !== tempId) : previous);
+                setToast({ type: 'error', message: 'Upload Failed. Select The File Again To Retry.' });
+            }
+        } finally {
+            URL.revokeObjectURL(blobUrl);
         }
-        // Capture conversationId at start — if user switches conversation during a slow
-        // upload the setMessages update must target the original conversation's messages.
-        const uploadConversationId = activeConversation.id;
+    };
 
-
+    // Handle media (photo/video) upload.
+    const handleMediaUpload = async (file) => {
+        if (!user || !activeConversation || !file) return;
         const isImage = file.type.startsWith('image/');
         const isVideo = file.type.startsWith('video/');
         if (!isImage && !isVideo) {
             setToast({ type: 'error', message: 'Only Images And Videos Are Supported' });
             return;
         }
-
-        // File size limit: 10MB for images, 50MB for videos
         const maxSize = isVideo ? 50 * 1024 * 1024 : 10 * 1024 * 1024;
         if (file.size > maxSize) {
-            setToast({ type: 'error', message: `File too large. Max ${isVideo ? '50MB' : '10MB'}` });
+            setToast({ type: 'error', message: `File Too Large. Max ${isVideo ? '50MB' : '10MB'}` });
             return;
         }
-
-        // Optimistic UI update
-        const tempId = `temp-${Date.now()}`;
-        const mediaPreview = URL.createObjectURL(file);
-        const tempMessage = {
-            id: tempId,
-            content: isImage ? `Photo` : `Video`,
-            media_url: mediaPreview,
-            media_type: isImage ? 'image' : 'video',
-            created_at: new Date().toISOString(),
-            sender_id: user.id,
-            status: 'sending',
-            profiles: { id: user.id, username: user.full_name || user.username || user.user_metadata?.username, avatar_url: user.avatar_url || user.user_metadata?.avatar_url },
-            _blobUrl: mediaPreview, // Track for cleanup
-        };
-        setMessages(prev => [...prev, tempMessage]);
-        setToast({ type: 'success', message: 'Uploading...' });
-        setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
-
-        try {
-            // ── SIGNED-URL UPLOAD (bypasses SDK auth lock, works with social-media bucket) ──
-            // The 'user-media' bucket doesn't exist — use upload-url proxy to social-media bucket.
-            const uploadToken = getAccessToken();
-            const metaRes = await authedFetch('/api/social/upload-url', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${uploadToken}` },
-                body: JSON.stringify({
-                    fileName: file.name || `media_${Date.now()}.${isVideo ? 'mp4' : 'jpg'}`,
-                    fileSize: file.size,
-                    mimeType: file.type || (isVideo ? 'video/mp4' : 'image/jpeg'),
-                    folder: 'messages',
-                    prefix: user.id,
-                }),
-            });
-            if (!metaRes.ok) {
-                const errText = await metaRes.text().catch(() => 'unknown');
-                throw new Error(`Upload URL error: ${metaRes.status} ${errText.slice(0, 100)}`);
-            }
-            const meta = await metaRes.json();
-            if (!meta.success || !meta.signedUrl) throw new Error(meta.error || 'No signed URL returned');
-
-            // PUT the file directly to Supabase Storage via the signed URL
-            const uploadController = new AbortController();
-            const uploadTimeout = setTimeout(() => uploadController.abort(), 5 * 60 * 1000); // 5min for large video
-            const uploadRes = await fetch(meta.signedUrl, {
-                method: 'PUT',
-                headers: { 'Content-Type': file.type || (isVideo ? 'video/mp4' : 'image/jpeg') },
-                body: file,
-                signal: uploadController.signal,
-            });
-            clearTimeout(uploadTimeout);
-            if (!uploadRes.ok) throw new Error(`Storage PUT failed: HTTP ${uploadRes.status}`);
-
-            const publicUrl = meta.publicUrl;
-
-
-            // Send message with media URL — route through API for XSS sanitization + rate limiting
-            const content = isImage
-                ? `[Image](${publicUrl})`
-                : `[Video](${publicUrl})`;
-
-            const mediaToken = getAccessToken();
-            const mediaResp = await authedFetch('/api/messenger/send-message', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...(mediaToken ? { Authorization: `Bearer ${mediaToken}` } : {}),
-                },
-                body: JSON.stringify({
-                    conversationId: uploadConversationId, // use captured id — user may have switched conversations
-                    content: content,
-                    media_metadata: getClubMetadata(),
-                }),
-            });
-            const mediaResult = await mediaResp.json();
-            if (!mediaResp.ok || !mediaResult.success) throw new Error(mediaResult.error || 'Send failed');
-
-            // Update message with real data — only if user hasn't switched conversations
-            if (activeConversationRef.current?.id === uploadConversationId) {
-                setMessages(prev => prev.map(m =>
-                    m.id === tempId
-                        ? { ...m, id: mediaResult.msgId || tempId, content, media_url: publicUrl, status: 'sent' }
-                        : m
-                ));
-            }
-
-            // Revoke blob URL to prevent memory leak
-            URL.revokeObjectURL(mediaPreview);
-
-            // Notify header to refresh unread badges
-            busEmit.dataMutated('messenger');
-
-            setToast({ type: 'success', message: `${isImage ? 'Photo' : 'Video'} sent!` });
-        } catch (e) {
-            console.warn('Media upload error:', e);
-            setMessages(prev => prev.map(m =>
-                m.id === tempId && activeConversationRef.current?.id === uploadConversationId
-                    ? { ...m, status: 'failed' } : m
-            ));
-            // Revoke blob URL on failure too to prevent memory leak
-            URL.revokeObjectURL(mediaPreview);
-            setToast({ type: 'error', message: `Upload failed: ${e.message || 'Unknown error'}` });
-        }
+        return uploadMessengerAttachment(file, {
+            fileName: file.name || `media_${Date.now()}.${isVideo ? 'mp4' : 'jpg'}`,
+            mimeType: file.type || (isVideo ? 'video/mp4' : 'image/jpeg'),
+            contentForUrl: url => isImage ? `[Image](${url})` : `[Video](${url})`, timeoutMs: 5 * 60 * 1000,
+        });
     };
 
-    // ═══════════════════════════════════════════════════════════════════════════
-    // VOICE MESSAGE UPLOAD — Uploads audio blob to Supabase, sends as [Audio](url)
-    // ═══════════════════════════════════════════════════════════════════════════
     const handleVoiceSend = async (audioBlob, durationSeconds) => {
         if (!user || !activeConversation || !audioBlob) return;
-        // Capture conversationId at start — voice uploads can take seconds; user may switch.
-        const voiceConversationId = activeConversation.id;
-
-        // Optimistic UI
-        const tempId = `temp-voice-${Date.now()}`;
-        const blobUrl = URL.createObjectURL(audioBlob);
-        const tempMessage = {
-            id: tempId,
-            content: `[Audio](${blobUrl})|dur:${durationSeconds || 0}`,
-            created_at: new Date().toISOString(),
-            sender_id: user.id,
-            status: 'sending',
-            profiles: { id: user.id, username: user.full_name || user.username || user.user_metadata?.username, avatar_url: user.avatar_url || user.user_metadata?.avatar_url },
-        };
-        setMessages(prev => [...prev, tempMessage]);
-        setToast({ type: 'success', message: 'Sending Voice Message...' });
-        setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
-
-        try {
-            // ── SIGNED-URL UPLOAD for voice (bypasses SDK auth lock, social-media bucket) ──
-            const voiceUploadToken = getAccessToken();
-            const voiceMetaRes = await authedFetch('/api/social/upload-url', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${voiceUploadToken}` },
-                body: JSON.stringify({
-                    fileName: `voice_${Date.now()}.webm`,
-                    fileSize: audioBlob.size,
-                    mimeType: 'audio/webm',
-                    folder: 'messages',
-                    prefix: user.id,
-                }),
-            });
-            if (!voiceMetaRes.ok) throw new Error(`Voice upload URL: HTTP ${voiceMetaRes.status}`);
-            const voiceMeta = await voiceMetaRes.json();
-            if (!voiceMeta.success || !voiceMeta.signedUrl) throw new Error(voiceMeta.error || 'No signed URL');
-
-            const voiceController = new AbortController();
-            const voiceUploadTimeout = setTimeout(() => voiceController.abort(), 60000); // 60s for audio upload
-            const voicePutRes = await fetch(voiceMeta.signedUrl, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'audio/webm' },
-                body: audioBlob,
-                signal: voiceController.signal,
-            });
-            clearTimeout(voiceUploadTimeout);
-            if (!voicePutRes.ok) throw new Error(`Voice PUT failed: HTTP ${voicePutRes.status}`);
-
-            const publicUrl = voiceMeta.publicUrl;
-
-            const content = `[Audio](${publicUrl})|dur:${durationSeconds || 0}`;
-
-            // Send via API
-            const voiceToken = getAccessToken();
-            const resp = await authedFetch('/api/messenger/send-message', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...(voiceToken ? { Authorization: `Bearer ${voiceToken}` } : {}),
-                },
-                body: JSON.stringify({
-                    conversationId: voiceConversationId,
-                    content: content,
-                    media_metadata: getClubMetadata(),
-                }),
-            });
-            const result = await resp.json();
-            if (!resp.ok || !result.success) throw new Error(result.error || 'Send failed');
-
-            // Only update UI if user hasn't switched conversations during the upload
-            if (activeConversationRef.current?.id === voiceConversationId) {
-                setMessages(prev => prev.map(m =>
-                    m.id === tempId
-                        ? { ...m, id: result.msgId || tempId, content, status: 'sent' }
-                        : m
-                ));
-            }
-
-            URL.revokeObjectURL(blobUrl);
-            busEmit.dataMutated('messenger');
-            setToast({ type: 'success', message: 'Voice Message Sent' });
-        } catch (e) {
-            console.warn('Voice upload error:', e);
-            setMessages(prev => prev.map(m =>
-                m.id === tempId && activeConversationRef.current?.id === voiceConversationId
-                    ? { ...m, status: 'failed' } : m
-            ));
-            URL.revokeObjectURL(blobUrl);
-            setToast({ type: 'error', message: `Voice Send Failed: ${e.message}` });
-        }
+        return uploadMessengerAttachment(audioBlob, {
+            fileName: `voice_${Date.now()}.webm`, mimeType: 'audio/webm',
+            contentForUrl: url => `[Audio](${url})|dur:${durationSeconds || 0}`, timeoutMs: 60000,
+        });
     };
 
     const handleSearchUser = useCallback((query) => {
@@ -3042,7 +3194,8 @@ function MessengerPage() {
             return;
         }
 
-        const otherUser = activeConversation?.otherUser;
+        const continuityButtonStyle = { minHeight: 44, border: `1px solid ${C.border}`, borderRadius: 8, background: C.card, color: C.blue, padding: '8px 12px', cursor: 'pointer', fontSize: 13, fontWeight: 600 };
+    const otherUser = activeConversation?.otherUser;
 
         // 🔒 CRITICAL VALIDATION: Ensure we're calling the right person
         if (!otherUser?.id) {
@@ -3261,24 +3414,7 @@ function MessengerPage() {
                 status: receiptStatus,
             });
 
-            try {
-                // Route through authenticated API (not anon supabase.rpc) to bypass RLS
-                const endReceiptToken = getAccessToken();
-                await authedFetch('/api/messenger/send-message', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        ...(endReceiptToken ? { Authorization: `Bearer ${endReceiptToken}` } : {}),
-                    },
-                    body: JSON.stringify({
-                        conversationId: activeConversation.id,
-                        content: `[CALL_RECEIPT]${receiptPayload}`,
-                        media_metadata: getClubMetadata(),
-                    }),
-                });
-            } catch (e) {
-                console.warn('[Messenger] Call receipt save failed (non-blocking):', e?.message || e);
-            }
+            await queueMessengerSend(`[CALL_RECEIPT]${receiptPayload}`, { conversationId: activeConversation.id });
         }
         callStartTimeRef.current = null;
 
@@ -3363,12 +3499,12 @@ function MessengerPage() {
                         <div>Loading Messenger...</div>
                     </div>
                 </div>
-                <style>{`
+                <style dangerouslySetInnerHTML={{ __html: `
                     @keyframes shimmer {
                         0% { background-position: 200% 0; }
                         100% { background-position: -200% 0; }
                     }
-                `}</style>
+                ` }} />
             </div>
         );
     }
@@ -3414,6 +3550,7 @@ function MessengerPage() {
         );
     }
 
+    const continuityButtonStyle = { minHeight: 44, border: `1px solid ${C.border}`, borderRadius: 8, background: C.card, color: C.blue, padding: '8px 12px', cursor: 'pointer', fontSize: 13, fontWeight: 600 };
     const otherUser = activeConversation?.otherUser;
 
     // A group thread has no other user, so every header that read otherUser
@@ -3432,7 +3569,7 @@ function MessengerPage() {
             <Head>
                 <title>Messenger | Smarter.Poker</title>
                 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-                <style>{`
+                <style dangerouslySetInnerHTML={{ __html: `
                     /* MOBILE-FIRST MESSENGER */
                     .messenger-page { 
                         width: 100%; 
@@ -3440,8 +3577,8 @@ function MessengerPage() {
                         margin: 0 auto; 
                         overflow-x: hidden;
                         /* Keep the full-screen composer above the app-shell footer. */
-                        height: ${router.query.hideHeader === 'true' ? 'calc(100vh - 56px - env(safe-area-inset-bottom, 0px))' : 'calc(100vh - 110px - env(safe-area-inset-bottom, 0px))'};
-                        height: ${router.query.hideHeader === 'true' ? 'calc(100dvh - 56px - env(safe-area-inset-bottom, 0px))' : 'calc(100dvh - 110px - env(safe-area-inset-bottom, 0px))'};
+                        height: ${router.query.hideHeader === 'true' ? 'calc(100vh - var(--sp-footer-height, 56px))' : 'calc(100vh - var(--sp-header-height, 54px) - var(--sp-footer-height, 56px))'};
+                        height: ${router.query.hideHeader === 'true' ? 'calc(100dvh - var(--sp-footer-height, 56px))' : 'calc(100dvh - var(--sp-header-height, 54px) - var(--sp-footer-height, 56px))'};
                         padding-bottom: ${router.query.bottomPad ? `${parseInt(router.query.bottomPad, 10)}px` : '0px'};
                         box-sizing: border-box;
                     }
@@ -3449,8 +3586,8 @@ function MessengerPage() {
                     /* Mobile-specific messenger styles */
                     @media (max-width: 768px) {
                         .messenger-page {
-                            height: ${router.query.hideHeader === 'true' ? 'calc(100vh - 56px - env(safe-area-inset-bottom, 0px))' : 'calc(100vh - 110px - env(safe-area-inset-bottom, 0px))'};
-                            height: ${router.query.hideHeader === 'true' ? 'calc(100dvh - 56px - env(safe-area-inset-bottom, 0px))' : 'calc(100dvh - 110px - env(safe-area-inset-bottom, 0px))'};
+                            height: ${router.query.hideHeader === 'true' ? 'calc(100vh - var(--sp-footer-height, 56px))' : 'calc(100vh - var(--sp-header-height, 54px) - var(--sp-footer-height, 56px))'};
+                            height: ${router.query.hideHeader === 'true' ? 'calc(100dvh - var(--sp-footer-height, 56px))' : 'calc(100dvh - var(--sp-header-height, 54px) - var(--sp-footer-height, 56px))'};
                         }
                         
                         /* Smaller avatars on mobile */
@@ -3490,7 +3627,7 @@ function MessengerPage() {
                         0%, 100% { opacity: 1; }
                         50% { opacity: 0.3; }
                     }
-                `}</style>
+                ` }} />
             </Head>
 
             {/* UNIVERSAL HEADER - Mobile responsive with diamond/XP */}
@@ -3801,7 +3938,7 @@ function MessengerPage() {
                     </div>
 
                     {/* Ring Animation Keyframes */}
-                    <style>{`
+                    <style dangerouslySetInnerHTML={{ __html: `
                         @keyframes ring {
                             0%, 100% { box-shadow: 0 0 0 4px rgba(0,132,255,0.3), 0 0 30px rgba(0,132,255,0.4); }
                             50% { box-shadow: 0 0 0 8px rgba(0,132,255,0.2), 0 0 50px rgba(0,132,255,0.6); }
@@ -3810,7 +3947,7 @@ function MessengerPage() {
                             0%, 100% { transform: scale(1); }
                             50% { transform: scale(1.1); }
                         }
-                    `}</style>
+                    ` }} />
                 </div>
             )}
 
@@ -3881,6 +4018,7 @@ function MessengerPage() {
 
             <div className="messenger-page" style={{
                 display: 'flex',
+                height: router.query.hideHeader === 'true' ? 'calc(100dvh - var(--sp-footer-height, 56px))' : 'calc(100dvh - var(--sp-header-height, 54px) - var(--sp-footer-height, 56px))',
                 background: C.bg,
                 fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif',
             }}>
@@ -3894,7 +4032,29 @@ function MessengerPage() {
                     display: (isMobile && !showSidebar) ? 'none' : 'flex',
                     flexDirection: 'column',
                     height: '100%',
+                    minHeight: 0,
+                    flexShrink: 0,
                 }}>
+                    <div data-messenger-inbox-scroll style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
+                    <div style={{ padding: '8px 16px' }}>
+                        <button type="button" aria-label="Saved Messages" onClick={() => { setShowSavedMessages(value => !value); if (!showSavedMessages) void continuity.read(); }}
+                            style={continuityButtonStyle}>
+                            Saved Messages
+                        </button>
+                    </div>
+                    <ContinuityStatus controller={continuity} theme={C} />
+                    {showSavedMessages && <section aria-label="Saved Messages List" style={{ padding: '8px 16px', color: C.text, borderBottom: `1px solid ${C.border}` }}>
+                        {continuity.loading ? <p>Loading Saved Messages...</p> : continuity.errors.has('read') ? <p>Saved Messages Are Unavailable.</p>
+                            : continuity.saved.length === 0 ? <p>No Saved Messages Yet</p> : continuity.saved.map(item => <div key={item.messageId} style={{ marginBottom: 12 }}>
+                                <button type="button" aria-label="Open Saved Message" disabled={!item.message || item.message.is_deleted} onClick={() => openSavedMessage(item)}
+                                    style={{ border: 0, background: 'none', color: C.text, textAlign: 'left', cursor: 'pointer', width: '100%', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                    {item.message && !item.message.is_deleted ? (item.message.content || 'Saved Message').slice(0, 120) : 'Message Is No Longer Available'}
+                                </button>
+                                <button type="button" aria-label="Remove Saved Message" onClick={() => continuity.write(item.conversationId, 'saved', { messageId: item.messageId, saved: false })}
+                                    style={continuityButtonStyle}>Remove</button>
+                            </div>)}
+                        {continuity.hasMoreSaved && !continuity.loading && <button type="button" style={continuityButtonStyle} onClick={() => continuity.read(null, continuity.nextSavedCursor)}>Load More Saved Messages</button>}
+                    </section>}
                     {/* Header - SmarterPoker Messenger Style */}
                     <div style={{
                         padding: '12px 16px',
@@ -3946,6 +4106,8 @@ function MessengerPage() {
 
                     <ClubArenaWorkspace clubs={joinedClubs} open={clubDrawerOpen}
                         clubId={workspaceSelection.clubId} folder={workspaceSelection.folder} theme={C}
+                        unreadCounts={workspaceUnread?.key === workspaceKey ? workspaceUnread.counts : messengerUnread?.clubs?.[workspaceSelection.clubId]}
+                        clubUnread={messengerUnread?.clubs}
                         onEnter={enterClubWorkspace} onExit={leaveClubWorkspace}
                         onFolder={folder => setWorkspaceSelection(prev => ({ ...prev, folder }))} />
                     {loading && <div role="status" style={{ padding: 12, color: C.textSec }}>Loading Inbox...</div>}
@@ -3988,7 +4150,7 @@ function MessengerPage() {
                     )}
 
                     {/* Conversations List - Only show actual conversations with messages */}
-                    <div style={{ flex: 1, overflowY: 'auto' }}>
+                    <div>
                         {!loading && !inboxError && weeklyPreview?.key === workspaceKey && selectedClub?.canManage && workspaceSelection.folder === 'invoices' && <div style={{ padding: 12 }}>
                             <AccountingInvoiceCard theme={C} meta={{ invoice_type: 'club_weekly_accounting', preview: true,
                                 status: weeklyPreview.report.status, lines: weeklyPreview.report }}
@@ -4069,13 +4231,7 @@ function MessengerPage() {
                                         )}
                                         onBlock={handleToggleBlock}
                                         theme={C}
-                                        onPin={(id) => {
-                                            setPinnedConvoIds(prev => {
-                                                const next = prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id];
-                                                try { localStorage.setItem('sp-pinned-conversations', JSON.stringify(next)); } catch (e) { console.warn('[App] Handled exception:', e); }
-                                                return next;
-                                            });
-                                        }}
+                                        onPin={handleTogglePin}
                                         onDelete={async (id) => {
                                             // Optimistic UI: remove immediately
                                             setConversations(prev => prev.filter(c => c.id !== id));
@@ -4193,8 +4349,11 @@ function MessengerPage() {
                         )}
                     </div>
 
-                    {/* Footer */}
-                    <div style={{
+                    {/* Bottom actions share the same anchored layout in every inbox. */}
+                    </div>
+                    <div data-messenger-bottom-actions style={{
+                        flexShrink: 0,
+                        marginTop: 'auto',
                         borderTop: `1px solid ${C.border}`,
                         display: 'flex',
                         flexDirection: 'column',
@@ -4292,18 +4451,6 @@ function MessengerPage() {
                             gap: 12,
                         }}>
                             <ReportBugWidget contextPath="/hub/messenger" theme={isDarkMode ? 'dark' : 'light'} />
-                            
-                            <Link href="/hub/social-media" style={{
-                                color: C.blue, fontSize: 14, fontWeight: 500, textDecoration: 'none',
-                                display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                            }}>
-                                <span style={{
-                                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                                    width: 28, height: 28, borderRadius: '50%', background: C.bg,
-                                    fontSize: 14, color: C.text,
-                                }}>←</span>
-                            Back To Social Hub
-                        </Link>
                     </div>
                 </div>
                 </aside>
@@ -4313,6 +4460,8 @@ function MessengerPage() {
                     ════════════════════════════════════════════════════════ */}
                 <main style={{
                     flex: 1,
+                    minHeight: 0,
+                    minWidth: 0,
                     display: (isMobile && showSidebar) ? 'none' : 'flex',
                     flexDirection: 'column',
                     background: C.card,
@@ -4489,9 +4638,7 @@ function MessengerPage() {
                                                           onKeyDown={spKeyActivate}
                                                             key={result.id}
                                                             onClick={() => {
-                                                                // Scroll to message (future: highlight it)
-                                                                const el = document.getElementById(`msg-${result.id}`);
-                                                                el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                                                void loadMessages(activeConversation.id, { anchorMessageId: result.id });
                                                                 setShowMessageSearch(false);
                                                                 setMessageSearchQuery('');
                                                             }}
@@ -4539,8 +4686,20 @@ function MessengerPage() {
                                     </div>
                                 )}
 
+                                {!activeConversation.isJarvis && <div style={{ display: 'flex', gap: 8, padding: '6px 12px', flexWrap: 'wrap' }}>
+                                    {firstUnreadMessageId && <button type="button" style={continuityButtonStyle} onClick={() => loadMessages(activeConversation.id, { anchorMessageId: firstUnreadMessageId })}>Jump To First Unread</button>}
+                                    {hasNewerMessages && <button type="button" style={continuityButtonStyle} onClick={() => loadMessages(activeConversation.id, { latest: true })}>Jump To Latest</button>}
+                                    {historyError && <button type="button" style={continuityButtonStyle} onClick={() => {
+                                        const retry = historyError; setHistoryError(null);
+                                        if (retry.direction === 'newer') void loadNewerMessages();
+                                        else if (retry.direction === 'older') void loadMessages(activeConversation.id, { anchorMessageId: messages.find(message => isMessageId(message.id))?.id });
+                                        else void loadMessages(activeConversation.id, retry.navigation);
+                                    }}>Retry Loading Messages</button>}
+                                </div>}
                                 <div
                                     ref={messagesContainerRef}
+                                    data-messenger-message-scroll
+                                    data-conversation-id={activeConversation.id}
                                     onScroll={(e) => {
                                         // Infinite scroll — load older messages when near top
                                         if (e.target.scrollTop < 100 && hasMoreMessages && !loadingOlderMessages) {
@@ -4550,11 +4709,15 @@ function MessengerPage() {
                                         // BUGFIX: Only call setState when value actually changes to avoid re-renders on every scroll frame
                                         const el = e.target;
                                         const distFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
-                                        const shouldShow = distFromBottom > 200;
+                                        stickToBottomRef.current = distFromBottom < 80 && !historyWindowRef.current.hasNewer;
+                                        rememberReadingPosition();
+                                        visibleReadRef.current?.();
+                                        const shouldShow = distFromBottom > 200 || historyWindowRef.current.hasNewer;
                                         setShowScrollDown(prev => prev === shouldShow ? prev : shouldShow);
                                     }}
                                     style={{
                                     flex: 1,
+                                    minHeight: 0,
                                     overflowY: 'auto',
                                     padding: '16px 0',
                                     position: 'relative',
@@ -4640,6 +4803,7 @@ function MessengerPage() {
                                                             <div style={{ flex: 1, height: 1, background: C.border }} />
                                                         </div>
                                                     )}
+                                                    <div data-message-id={msg.id} data-client-request-id={msg.request_id || undefined} data-send-status={msg.status || undefined}>
                                                     <MessageBubble
                                                         message={msg}
                                                         isOwn={isOwn}
@@ -4655,22 +4819,36 @@ function MessengerPage() {
                                                         onCallBack={startCall}
                                                         onReply={handleReplyMessage}
                                                         onUnsend={handleUnsendMessage}
+                                                        onSave={activeConversation.isJarvis ? undefined : handleSaveMessage}
+                                                        isSaved={continuity.savedState(msg.id).saved === true}
+                                                        saving={continuity.isSaving(activeConversation.id, 'saved')}
                                                         currentUserId={user.id}
                                                         theme={C}
                                                     />
+                                                    {isOwn && msg.status === 'failed' && msg.request_id && (
+                                                        <button type="button" aria-label="Retry Message" onClick={() => handleRetryMessage(msg)}
+                                                            style={{ display: 'block', margin: '0 8px 8px auto', border: 0, background: 'none', color: C.blue, cursor: 'pointer' }}>
+                                                            Retry Message
+                                                        </button>
+                                                    )}
+                                                    </div>
                                                 </Fragment>
                                             );
                                         })
                                     ); })()}
                                     {/* Typing indicator */}
                                     {otherTyping && <TypingIndicator name={otherUser?.full_name || otherUser?.display_name || otherUser?.username} theme={C} />}
+                                    {hasNewerMessages && <button type="button" disabled={loadingNewerMessages} onClick={loadNewerMessages}
+                                        style={{ ...continuityButtonStyle, display: 'block', margin: '12px auto' }}>
+                                        {loadingNewerMessages ? 'Loading Newer Messages...' : 'Load Newer Messages'}
+                                    </button>}
                                     <div ref={messagesEndRef} />
                                 </div>
 
                                 {/* Phase 3: Scroll-to-bottom FAB */}
                                 {showScrollDown && (
                                     <button
-                                        onClick={() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })}
+                                        onClick={() => { stickToBottomRef.current = true; if (hasNewerMessages) void loadMessages(activeConversation.id, { latest: true }); else messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }}
                                         style={{
                                             position: 'absolute',
                                             bottom: 80,
@@ -4736,7 +4914,7 @@ function MessengerPage() {
                                                 {(replyToMessage.content || '').replace(/\[REPLY:[^\]]+\]\s*/, '').slice(0, 80)}
                                             </div>
                                         </div>
-                                        <button onClick={() => setReplyToMessage(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.textSec, fontSize: 18 }}>×</button>
+                                        <button onClick={clearReply} style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.textSec, fontSize: 18 }}>×</button>
                                     </div>
                                 )}
                                 {/* Edit bar — shows when editing a message */}
@@ -4764,7 +4942,10 @@ function MessengerPage() {
                                     </div>
                                 )}
 
-                                <MessageInput key={activeConversation.id} onSend={handleSendMessage} onTyping={broadcastTyping} onMediaUpload={handleMediaUpload} onGifSend={handleGifSend} onVoiceSend={handleVoiceSend} autoFocus={composeFocus} initialText={conversationDraft} theme={C} />
+                                <ContinuityStatus controller={continuity} conversationId={activeConversation.isJarvis ? null : activeConversation.id} theme={C}
+                                    onUsePosition={position => loadMessages(activeConversation.id, position.messageId ? { anchorMessageId: position.messageId, offset: position.offset } : { latest: true })} />
+                                <MessageInput key={`${user.id}:${activeConversation.id}`} onSend={handleSendMessage} onTyping={broadcastTyping} onMediaUpload={handleMediaUpload} onGifSend={handleGifSend} onVoiceSend={handleVoiceSend} autoFocus={composeFocus} value={activeConversation.isJarvis ? undefined : continuity.state(activeConversation.id).draft.text}
+                                    onDraftChange={activeConversation.isJarvis ? undefined : text => editContinuity(activeConversation.id, 'draft', { text, replyToId: continuity.state(activeConversation.id).draft.replyToId })} theme={C} />
                             </>
                         ) : (
                             /* No conversation selected */

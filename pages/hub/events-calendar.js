@@ -1186,7 +1186,7 @@ export default function EventsCalendarPage({ fallbackData }) {
         currentLocation={userLocation}
       />
 
-      <style suppressHydrationWarning>{`
+      <style suppressHydrationWarning dangerouslySetInnerHTML={{ __html: `
         /* ═══ BASE ═══ */
         .ec-page {
           min-height: 100vh; padding-bottom: 70px;
@@ -1766,7 +1766,7 @@ export default function EventsCalendarPage({ fallbackData }) {
           }
           .ec-hero > div[style*="position: absolute"] .ec-search-wrap { width: 100% !important; }
         }
-      `}</style>
+      ` }} />
     </>
   );
 }

@@ -1,0 +1,6 @@
+# Runtime dependencies for the canonical Open Claw scheduler host.
+# Direct dependencies are pinned so a deploy cannot silently change them.
+APScheduler==3.11.3
+requests==2.32.5
+supabase==2.31.0
+yt-dlp==2026.8.19

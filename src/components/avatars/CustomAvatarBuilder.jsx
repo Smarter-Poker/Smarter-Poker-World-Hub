@@ -386,7 +386,7 @@ function CustomAvatarBuilder({ isVip = false, onClose = null, onAvatarCreated = 
         {onClose && (
           <button onClick={onClose} style={{ position: 'absolute', top: '20px', right: '20px', background: 'transparent', border: 'none', color: '#888', fontSize: '24px', cursor: 'pointer', zIndex: 10 }}>✕</button>
         )}
-        <style>{`
+        <style dangerouslySetInnerHTML={{ __html: `
         .custom-avatar-builder {
           width: 100%;
           max-width: 800px;
@@ -920,7 +920,7 @@ function CustomAvatarBuilder({ isVip = false, onClose = null, onAvatarCreated = 
           font-size: 12px;
           color: #666;
         }
-      `}</style>
+      ` }} />
 
         {/* Matrix Loading Overlay */}
         {generating && (

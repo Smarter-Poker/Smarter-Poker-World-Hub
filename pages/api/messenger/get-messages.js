@@ -4,6 +4,7 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/apiErrorHandler';
 import { verifyAccountingMessage } from '../../../src/lib/accountingMessage.mjs';
+import { readMessengerNavigation } from '../../../src/lib/messengerContinuityServer.mjs';
 
 let _supabase = null;
 function getSupabase() {
@@ -18,6 +19,7 @@ function getSupabase() {
 
 export default async function handler(req, res) {
   try {
+      res.setHeader('Cache-Control', 'private, no-store');
       // get-messages is a read-only operation — apply the read limit (higher allowance)
       if (!applyRateLimit(req, res, LIMITS.read)) return;
 
@@ -38,14 +40,16 @@ export default async function handler(req, res) {
       if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
       const userId = user.id; // From JWT, NOT body
-      const { conversationId, before, beforeId, limit: reqLimit } = req.body;
+      const { conversationId, before, beforeId, limit: reqLimit, anchorMessageId, firstUnread, after, afterId } = req.body || {};
 
       if (!conversationId) {
           return res.status(400).json({ success: false, error: 'Missing conversationId' });
       }
 
-      // Pagination: cap limit at 200
-      const pageLimit = Math.max(1, Math.min(parseInt(reqLimit) || 100, 200));
+      const navigating = anchorMessageId !== undefined || firstUnread !== undefined || after !== undefined || afterId !== undefined;
+      // New navigation validates rather than silently repairing its limit;
+      // existing callers retain the established capped pagination contract.
+      const pageLimit = navigating ? (reqLimit ?? 50) : Math.max(1, Math.min(parseInt(reqLimit) || 100, 200));
       if ((beforeId && !before) || (before && (typeof before !== 'string' || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?(?:Z|[+-]\d{2}:\d{2})$/.test(before) || !Number.isFinite(Date.parse(before)) || (beforeId && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(beforeId))))) {
           return res.status(400).json({ success: false, error: 'Invalid Message Cursor' });
       }
@@ -53,12 +57,41 @@ export default async function handler(req, res) {
       try {
           // The same workspace authority protects links, search and paging;
           // the database also enforces visibility on individual attachments.
-          const messages = await readMessengerMessages(getSupabase(), userId, {
+          const navigation = navigating ? await readMessengerNavigation(getSupabase(), userId, {
+              conversationId, before, beforeId, limit: pageLimit, anchorMessageId, firstUnread, after, afterId,
+          }) : null;
+          const messages = navigation?.messages || await readMessengerMessages(getSupabase(), userId, {
               conversationId, before, beforeId, limit: pageLimit,
           });
 
           // Reverse descending order to chronological ascending for display
           const sorted = [...(messages || [])].reverse();
+          // The finance-owned private reader defines the visible page but has
+          // a fixed projection. Enrich only the caller's already-authorized
+          // rows so send recovery can match a committed request after reload.
+          const ownIds = [...new Set(sorted.filter(m => m.sender_id === userId).map(m => m.id))];
+          const requestIds = new Map();
+          try {
+            for (let start = 0; start < ownIds.length; start += 100) {
+              const batch = ownIds.slice(start, start + 100);
+              const { data: rows, error: requestError } = await getSupabase()
+                  .from('social_messages')
+                  .select('id,request_id')
+                  .eq('conversation_id', conversationId)
+                  .eq('sender_id', userId)
+                  .in('id', batch);
+              if (requestError || !Array.isArray(rows) || rows.length !== batch.length ||
+                  new Set(rows.map(row => row.id)).size !== batch.length ||
+                  rows.some(row => !batch.includes(row.id) || requestIds.has(row.id) ||
+                      (row.request_id !== null && (typeof row.request_id !== 'string' ||
+                          !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(row.request_id))))) {
+                  throw Object.assign(new Error('Message Requests Unavailable'), { status: 503 });
+              }
+              for (const row of rows) requestIds.set(row.id, row.request_id);
+            }
+          } catch {
+              throw Object.assign(new Error('Message Requests Unavailable'), { status: 503 });
+          }
           // Reactions, in ONE query for the whole page.
           //
           // This route never returned reactions, and the get_message_reactions
@@ -126,6 +159,7 @@ export default async function handler(req, res) {
               }
               return {
                   ...m,
+                  ...(m.sender_id === userId ? { request_id: requestIds.get(m.id) } : {}),
                   profiles: prof,
                   text: m.content ?? null, // alias content → text for frontend compatibility
                   reactions: reactionsByMessage[m.id] || [],
@@ -133,6 +167,7 @@ export default async function handler(req, res) {
           });
 
           return res.json({
+              ...(navigation || {}),
               success: true,
               messages: normalized,
               count: normalized.length

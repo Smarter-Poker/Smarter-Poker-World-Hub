@@ -1,5 +1,7 @@
 import './auth-network-deadline.test.mjs';
 import './notification-feed-recovery.test.mjs';
+import './union-leave-read-errors.test.mjs';
+import './delete-account-closes-the-account.test.mjs';
 /**
  * META-GUARD: __tests__/_test-guards-exist.test.mjs
  * ─────────────────────────────────────────────────────────────────────────
@@ -83,6 +85,9 @@ import '../tests/spin-reserve-fund-contract.test.mjs';
 import './api-routes-exist.test.mjs';
 import './bankroll-mobile-upgrades.test.mjs';
 import './club-stats-maintenance-runtime-budget.test.mjs';
+// 2026-09-22: the same route schedules only its periodic steps. Runs the real
+// handler through vm.SourceTextModule (CHECK 8 passes --experimental-vm-modules).
+import './club-stats-maintenance-does-no-repair-work.law.test.mjs';
 import './deployment-version-stamp.test.mjs';
 import './events-calendar-ssr-fallback.test.mjs';
 import './fallback-menu-safety.test.mjs';
@@ -135,6 +140,9 @@ import './horses-phase5-server.test.mjs';
 import './horses-phase5-integrity-is-honest.law.test.mjs';
 import './horses-phase5-reverify.test.mjs';
 import './horses-phase5-release-audit.test.mjs';
+import './operator-console-visual-system.test.mjs';
+import './horses-admin-states-are-honest.law.test.mjs';
+import './horses-operator-console-parses.law.test.mjs';
 import './horses-reverify-client.test.mjs';
 import './horses-reverify-panels.test.mjs';
 import './horses-reverify-routes.test.mjs';
@@ -230,6 +238,53 @@ import './world-copy-policy.test.mjs';
 // executes is the same kind of decoration as a healthcheck that pings an
 // unauthenticated endpoint, which is the very failure it exists to prevent.
 import './openclaw-workers-secret.test.mjs';
+// Required CHECK 8 also enforces the recovered Video worker publication boundary.
+import './openclaw-video-library-routing.test.mjs';
+// The same boundary's shared 7-day availability-freshness contract: SQL,
+// JavaScript readers, Python renewal target and daily verifier capacity.
+import './video-library-freshness-contract.test.mjs';
+import './video-library-official-publisher-migration.test.mjs';
+import './fresh-public-youtube-verification-ids-migration.test.mjs';
+import './yt-worker-release-safety.test.mjs';
+// 2026-09-21, fleet recertification D1: /api/cron/video-library-reels reaches
+// only the gated workers route, and the reels bridge script refuses to write
+// while the fleet switch is off or as anything but a pinned non-horse
+// profile. Same CHECK 8 reasoning as the block above.
+import './video-library-reels-fails-closed.test.mjs';
+// Video Library and Reels Phase 1 (2026-09-23): the suites behind
+// `npm run test:video-reels-phase-1` that need nothing from node_modules, so
+// CHECK 8 (which does not `npm ci`) executes them instead of only naming them.
+// Poker-only canonical feed, fail-closed availability, owner-scoped state and
+// the painted console surfaces. Left out on purpose: video-library-phase-8
+// (imports eslint) and yt-transcode-worker-rights-guard (imports
+// @supabase/supabase-js); both stay in the npm script.
+import './auxiliary-reels-console.test.mjs';
+import './background-video-upload-recovery.test.mjs';
+import './news-live-wire-phase-4.test.mjs';
+import './news-reels-club-arena-console.test.mjs';
+import './profile-reels-console.test.mjs';
+import './reels-carousel-console.test.mjs';
+import './reels-console-dependencies.test.mjs';
+import './reels-embedded-console-visual.test.mjs';
+import './historical-user-reels-recovery-migration.test.mjs';
+import './historical-user-reels-post-rights-followup-migration.test.mjs';
+import './reels-live-check.test.mjs';
+import './reels-mixed-category-contract.test.mjs';
+import './reels-social-endless-continuation.test.mjs';
+import './social-feed-request-sequencing.test.mjs';
+import './user-reel-publication-recovery.test.mjs';
+import './video-clipper-storage-namespace.test.mjs';
+import './video-embed-report-adjudication.test.mjs';
+import './video-library-access-phase-9.test.mjs';
+import './video-library-club-arena-console.test.mjs';
+import './video-library-phase-5.test.mjs';
+import './video-library-phase-6.test.mjs';
+import './video-library-phase-7.test.mjs';
+import './video-reels-api-resilience.test.mjs';
+import './video-reels-collections-integrity.test.mjs';
+import './video-reels-integrity-phase-1.test.mjs';
+import './video-reels-ui-integrity.test.mjs';
+import './video-reels-youtube-sql-security.test.mjs';
 
 // 2026-09-04: a synthetic probe never signs a person out. login-probe was
 // pointed at Dan's own account and called a bare signOut() - global scope -
@@ -245,6 +300,13 @@ import './a-script-never-wears-a-persons-face.law.test.mjs';
 // 2026-09-04: the hub notices a revoked session (it would have looked signed
 // in for seven days; PostgREST checks signatures, not session rows).
 import './the-hub-notices-a-revoked-session.law.test.mjs';
+// 2026-09-27: HubNotificationsFeed painted routed owner-operational rows
+// straight off a raw postgres_changes socket subscription, bypassing the
+// personal_notifications view's own exclusion. Pins the shared classifier
+// (src/lib/notifications/ownerOperationalClassifier.mjs) both the client
+// feed and the server push router now import from, so the three lists
+// CLAUDE.md 10.84 warns about drifting stay one list.
+import './owner-operational-realtime-feed-visibility.test.mjs';
 // 2026-09-04: a probe that cannot run says so where probes speak (recovery-probe
 // had been silent for a day: unconfigured, and exiting before its heartbeat).
 import './a-probe-that-cannot-run-says-so.law.test.mjs';
@@ -280,6 +342,46 @@ import './a-scraper-run-is-judged-on-what-it-produced.test.mjs';
 // the inline restore script in _document, and the urgent `tournament_resumed`
 // push that tells a player their seat is being dealt again after the break.
 import './the-app-reopens-where-you-left-it.test.mjs';
+// 2026-09-22: a club's table count has one writer, the database's
+// trg_tables_sync_club_counts_* triggers. manage-table decremented it again
+// through decrement_club_table_count, dropped on 2026-09-20, and a
+// read-and-write-back of count - 1 when that call failed. Runs the real
+// handler through vm.SourceTextModule, which CHECK 8's
+// --experimental-vm-modules provides for this file.
+import './a-club-table-count-has-one-writer.law.test.mjs';
+// 2026-09-24: the gate that finds the NEXT dead rpc without a person looking.
+// decrement_club_table_count was dropped by a migration in ANOTHER repository,
+// so CHECK 17 (a migration this branch adds must already be applied) could not
+// see it. CHECK 26 reads the live PostgREST catalogue instead. This law pins
+// the scanner's parser and its decision; CI runs the scanner itself.
+import './an-rpc-call-names-a-live-function.law.test.mjs';
+// 2026-09-28: push-health's once-per-window cooldown also reads the owner's
+// routed operational originals (store-only delivery writes no personal row
+// for them), and fails open per recipient. Imported here so CHECK 8 runs it
+// on every pull request.
+import './push-health-alert-cooldown.test.mjs';
+// 2026-09-28: push-health never addresses the owner account personally; what it
+// finds is recorded for the Production Alerts task as store episodes that
+// coalesce while a condition persists (resolved on the same source when
+// push-health can see it clear, otherwise closed by that task), and a notice
+// that reaches him anyway is detected. Runs the real route and gateway.
+// Imported here so CHECK 8 runs it on every pull request (the workflow is too
+// large to edit through the publishing bridge).
+import './push-health-owner-alert-episodes.test.mjs';
+// 2026-09-28, review round 2: those episodes move only on evidence. A device
+// that is merely not pushed, a failed read or a quiet day never resolves one;
+// what a run whose store write was refused observed reaches the store with a
+// later run; every line the admins are told has its own addressed episode.
+// Shares push-health-alert-harness.mjs (not a suite).
+import './push-health-alert-evidence.test.mjs';
+// 2026-09-28, review rounds 3 and 4: a condition that clears only when devices
+// change is closed by the Production Alerts fleet, never by push-health (a
+// replaced, retired or not-yet-pushed device looks like one that recovered); a
+// refused run's observations are kept, with no evidence about the owner account,
+// and replayed by the one run that claims them, never reopening an episode the
+// fleet closed (review r25); a run whose detector could not look does not move
+// its window; every rotation is recorded once.
+import './push-health-alert-positive-evidence.test.mjs';
 
 const REPO = path.resolve(new URL('.', import.meta.url).pathname, '..');
 
@@ -290,6 +392,9 @@ const REQUIRED_TEST_FILES = [
     '__tests__/a-script-never-wears-a-persons-face.law.test.mjs',
     '__tests__/the-hub-notices-a-revoked-session.law.test.mjs',
     '__tests__/a-probe-that-cannot-run-says-so.law.test.mjs',
+    // A call naming a function the database no longer has is PGRST202, a 404
+    // in an `error` object. Deleting this law un-gates CHECK 26.
+    '__tests__/an-rpc-call-names-a-live-function.law.test.mjs',
     // An env var cannot change unseen (2026-09-03 began with exactly one).
     '__tests__/an-env-var-cannot-change-unseen.law.test.mjs',
     // Pins the two-hop cron auth boundary (Vercel 200 / workers 404). Deleting

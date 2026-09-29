@@ -502,7 +502,7 @@ function PlayerRatingDisplay({ avgRating, totalReviews, trustScore }) {
           ({totalReviews} {totalReviews === 1 ? 'Review' : 'Reviews'})
         </a>
       )}
-      <style suppressHydrationWarning>{`
+      <style suppressHydrationWarning dangerouslySetInnerHTML={{ __html: `
         .player-rating-display {
           display: flex;
           align-items: center;
@@ -527,7 +527,7 @@ function PlayerRatingDisplay({ avgRating, totalReviews, trustScore }) {
         .prd-count:hover {
           color: rgba(255,255,255,0.7);
         }
-      `}</style>
+      ` }} />
     </div>
   );
 }
@@ -546,7 +546,7 @@ function VenueTypeBadge({ type }) {
   return (
     <span className="venue-type-badge">
       {label}
-      <style suppressHydrationWarning>{`
+      <style suppressHydrationWarning dangerouslySetInnerHTML={{ __html: `
         .venue-type-badge {
           display: inline-block;
           padding: 4px 14px;
@@ -559,7 +559,7 @@ function VenueTypeBadge({ type }) {
           border: 1px solid ${colors.border};
           color: ${colors.text};
         }
-      `}</style>
+      ` }} />
     </span>
   );
 }
@@ -3699,7 +3699,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
         )}
       </main>
 
-      <style suppressHydrationWarning>{`
+      <style suppressHydrationWarning dangerouslySetInnerHTML={{ __html: `
         /* Metal UI Variables */
         :root {
           --metal-dark: #0a0a15;
@@ -5869,7 +5869,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
             gap: 12px;
           }
         }
-      `}</style>
+      ` }} />
     </>
   );
 }

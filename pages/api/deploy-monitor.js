@@ -18,8 +18,12 @@
  *   3. No secret configured: reject (server misconfiguration).
  *
  * DURABLE ALERT DELIVERY:
- *   Authenticated failures and deployment-ready evidence are written to the
- *   operational inbox before acknowledgment. Rejected requests cannot create
+ *   Authenticated failures are written to the operational inbox before
+ *   acknowledgment. Deployment-ready evidence is scoped to the exact deployment
+ *   and is written only when that deployment has an open firing
+ *   VercelDeploymentFailed row; a healthy deploy with no failure to answer is
+ *   acknowledged without creating an inbox row (it used to add one new row per
+ *   deploy that could never resolve anything). Rejected requests cannot create
  *   incidents, GitHub issues, or email. A fix commit alone is not recovery.
  *
  * CIRCUIT BREAKER (persistent):
@@ -36,7 +40,7 @@
 
 import crypto from 'crypto';
 import { reportApiError } from '../../src/lib/apiErrorHandler';
-import { alertEventKey, recordOperationalAlerts } from '../../src/lib/operationalAlerts.mjs';
+import { alertEventKey, openFiringAlertIds, recordOperationalAlerts } from '../../src/lib/operationalAlerts.mjs';
 
 // Disable Next.js body parsing so we can HMAC-verify the raw request bytes.
 export const config = {
@@ -559,6 +563,19 @@ export default async function handler(req, res) {
   }
 
   try {
+    if (isRecoveryEvent) {
+      let openFailures;
+      try {
+        openFailures = await openFiringAlertIds({ source: 'worldhub.deploy-monitor',
+          alertname: 'VercelDeploymentFailed', field: 'deploymentId', value: deploymentId });
+      } catch (error) {
+        error.operationalInboxDeliveryFailure = true;
+        throw error;
+      }
+      if (!openFailures.length) {
+        return res.status(200).json({ action: 'no_open_failure', status: 'resolved', receipts: [], sent: false, authMethod });
+      }
+    }
     const receipts = await recordDeployEvidence(webhookEvidence, 'VercelDeploymentFailed',
       isRecoveryEvent ? 'resolved' : 'firing', 'deployment-state', {
         summary: isRecoveryEvent ? 'Vercel reports this deployment is ready' : 'Vercel reports this deployment failed',

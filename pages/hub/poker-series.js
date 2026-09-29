@@ -1201,7 +1201,7 @@ export default function PokerSeriesPage({ initialSeries = [], seriesIndex = [], 
                 {/* ═══════════════════════════════════════ */}
                 {/* STYLES — Matching Poker Tours layout   */}
                 {/* ═══════════════════════════════════════ */}
-                <style suppressHydrationWarning>{`
+                <style suppressHydrationWarning dangerouslySetInnerHTML={{ __html: `
                     /* ═══ A TO Z SERIES INDEX ═══ */
                     .series-index {
                         width: min(calc(100% - 32px), 1200px);
@@ -2203,7 +2203,7 @@ export default function PokerSeriesPage({ initialSeries = [], seriesIndex = [], 
                             padding: 14px 16px 12px;
                         }
                     }
-                `}</style>
+                ` }} />
             </div>
         </>
     );

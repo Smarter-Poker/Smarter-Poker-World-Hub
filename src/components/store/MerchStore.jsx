@@ -63,6 +63,7 @@ import {
   normalizeVerifiedCheckoutSession,
 } from '../../lib/store/verifiedCheckoutUrl.mjs';
 import { getVerifiedCheckoutAuthorization } from '../../lib/store/checkoutAuthorization';
+import { leaveForCheckout } from '../../lib/store/leaveForCheckout.mjs';
 import {
   classifyMerchDiamondPurchaseRefusal,
   normalizeVerifiedMerchDiamondPurchase,
@@ -1220,7 +1221,12 @@ export default function MerchStore({
         });
         // Leave the busy state on through the navigation.
         if (!attemptIsCurrent()) return;
-        window.location.assign(checkoutSession.url);
+        // A refusal returns null and navigates nothing. Swallowed, the shopper saw
+        // a redirect toast, a re-enabled button and no redirect, with the durable
+        // request still claimed. It is an error, so it takes the error path.
+        if (!leaveForCheckout(checkoutSession.url)) {
+          throw new Error('The Checkout Page Could Not Be Opened. Please Try Again.');
+        }
       } catch (err) {
         if (err?.name === 'AbortError' || !attemptIsCurrent()) return;
         if (checkoutRequestReplacementRequired(err) && checkoutRequestId) {

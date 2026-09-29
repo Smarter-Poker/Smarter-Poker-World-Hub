@@ -56,7 +56,7 @@ export default function MetalInput({
 
             {error && <span className="metal-input-error">{error}</span>}
 
-            <style>{`
+            <style dangerouslySetInnerHTML={{ __html: `
                 .metal-input-wrapper {
                     display: flex;
                     flex-direction: column;
@@ -155,7 +155,7 @@ export default function MetalInput({
                     color: #ff4d4d;
                     padding-left: 4px;
                 }
-            `}</style>
+            ` }} />
         </div>
     );
 }

@@ -449,7 +449,7 @@ export default function PokerPagesPage() {
                 </div>
             </div>
 
-            <style>{`
+            <style dangerouslySetInnerHTML={{ __html: `
                 .pages-wrapper {
                     min-height: 100vh; padding-bottom: 70px;
                     background: #F0F2F5;
@@ -973,7 +973,7 @@ export default function PokerPagesPage() {
                         flex-direction: column;
                     }
                 }
-            `}</style>
+            ` }} />
           {/* Server rendered: measured on production this page returned
               almost nothing to a crawler (AEO phase 3, 2026-09-17). */}
           <HubPageSummary page="pages" />

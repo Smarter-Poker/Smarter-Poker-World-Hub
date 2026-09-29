@@ -324,7 +324,7 @@ export default function PromotionsPage() {
 
             </div>
 
-            <style>{`
+            <style dangerouslySetInnerHTML={{ __html: `
                 .promos-wrapper {
                     min-height: 100vh;
                     background: ${C.bg};
@@ -681,7 +681,7 @@ export default function PromotionsPage() {
                         padding: 0 14px 12px;
                     }
                 }
-            `}</style>
+            ` }} />
           {/* Server rendered: measured on production this page returned
               almost nothing to a crawler (AEO phase 3, 2026-09-17). */}
           <HubPageSummary page="promotions" />

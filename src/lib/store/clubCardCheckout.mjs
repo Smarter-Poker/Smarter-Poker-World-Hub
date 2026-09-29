@@ -147,7 +147,13 @@ export function normalizeVerifiedClubShopItem(raw, walletBalance) {
   ) {
     return null;
   }
-  if (!Number.isSafeInteger(walletBalance) || walletBalance < 0) return null;
+  // A negative wallet is a supported, deliberate state: a card refund claws
+  // back Diamonds that were already spent and leaves an enforceable debt that
+  // future earnings repay. Rejecting the whole catalog for it bricks the page
+  // for exactly the member who is carrying one. The balance still has to be a
+  // safe integer, and the card-quote arithmetic below plus the storefront's
+  // own guards still refuse to fund a purchase from a negative wallet.
+  if (!Number.isSafeInteger(walletBalance)) return null;
   if (listPrice !== verifiedListPrice || raw.on_sale !== effectivePrice < verifiedListPrice) {
     return null;
   }
@@ -268,8 +274,10 @@ export function normalizeClubPurchaseRpcSuccess(raw, expected) {
   if (
     raw.success !== true ||
     !CLUB_ITEM_UUID.test(String(raw.purchase_id || '')) ||
+    // The reported wallet balance may legitimately be negative after a card
+    // refund clawback. It is a figure on a receipt, not an authorization, so
+    // it only has to be a safe integer.
     !Number.isSafeInteger(raw.new_balance) ||
-    raw.new_balance < 0 ||
     !Number.isSafeInteger(expectedPrice) ||
     expectedPrice < 0 ||
     !Number.isSafeInteger(raw.price_paid) ||
@@ -328,8 +336,8 @@ export function normalizeVerifiedClubPurchaseSuccess(raw, expected) {
     !Number.isSafeInteger(expectedPrice) ||
     expectedPrice < 0 ||
     raw.pricePaid !== expectedPrice ||
+    // Reported, not authorizing: a refund clawback can leave this negative.
     !Number.isSafeInteger(raw.newBalance) ||
-    raw.newBalance < 0 ||
     typeof raw.duplicate !== 'boolean' ||
     !raw.item ||
     typeof raw.item !== 'object' ||
@@ -390,5 +398,63 @@ export function classifyClubPurchaseRefusal(status, body = null, expected = null
     refreshInventory: exactBinding && INVENTORY_REFRESH_REASONS.has(reason),
     exactBinding,
     reason,
+  });
+}
+
+export const UNCERTAIN_CLUB_PURCHASE_MESSAGE =
+  'Purchase Status Is Uncertain. Confirm Again To Verify The Original Purchase.';
+
+// Business outcomes the purchase route decides for this exact request, each
+// one carrying buyer-facing copy that says what happened and what to do next.
+// The route re-reads the immutable purchase ledger by charge reference before
+// it returns any of them, so a sibling call that committed is reported as a
+// success receipt instead of one of these.
+const DEFINITIVE_CLUB_REFUSAL_REASONS = new Set([
+  'already_owned',
+  'fulfillment_unavailable',
+  'inactive',
+  'insufficient_diamonds',
+  'limit_reached',
+  'no_longer_available',
+  'not_found',
+  'not_member',
+  'not_yet_available',
+  'price_changed',
+  'price_confirmation_required',
+  'sold_out',
+]);
+// `reference_conflict` and every 5xx stay out on purpose: they report that the
+// durable key is bound elsewhere or that the verification read itself failed,
+// neither of which proves what happened to the charge.
+const DEFINITIVE_CLUB_REFUSAL_STATUSES = new Set([400, 404, 409]);
+const MAX_SERVER_REFUSAL_MESSAGE_LENGTH = 300;
+
+/**
+ * Decide what to tell the shopper about a rejected Club Shop purchase. The
+ * server sends precise copy for every business refusal it decides; repeating
+ * "confirm again" for a sold-out item leaves the member clicking Buy forever.
+ * Only a refusal bound to this exact account and request, and classified as a
+ * definitive business outcome, is allowed to speak for itself. Unbound bodies,
+ * throttling, timeouts and every 5xx keep the uncertain copy, because they do
+ * not prove that nothing was charged.
+ *
+ * This deliberately does not touch `definitive`, which governs whether the
+ * durable request key may be rotated. What to say and what to retire are
+ * separate questions, and the key is still retained until a success receipt
+ * arrives.
+ */
+export function clubPurchaseRefusalNotice(status, body = null, expected = null) {
+  const refusal = classifyClubPurchaseRefusal(status, body, expected);
+  const serverMessage = typeof body?.error === 'string' ? body.error.trim() : '';
+  const definitiveOutcome =
+    refusal.exactBinding &&
+    DEFINITIVE_CLUB_REFUSAL_STATUSES.has(Number(status)) &&
+    DEFINITIVE_CLUB_REFUSAL_REASONS.has(refusal.reason) &&
+    serverMessage.length > 0 &&
+    serverMessage.length <= MAX_SERVER_REFUSAL_MESSAGE_LENGTH;
+  return Object.freeze({
+    ...refusal,
+    definitiveOutcome,
+    message: definitiveOutcome ? serverMessage : UNCERTAIN_CLUB_PURCHASE_MESSAGE,
   });
 }

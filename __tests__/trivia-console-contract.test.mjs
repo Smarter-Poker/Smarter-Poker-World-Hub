@@ -103,7 +103,11 @@ const TRIVIA_CSS = [
 function cssOf(rel) {
     const source = read(rel);
     if (rel.endsWith('.css')) return source;
-    const blocks = [...source.matchAll(/<style[^>]*>\{`([\s\S]*?)`\}<\/style>/g)].map(m => m[1]);
+    const blocks = [
+        ...source.matchAll(/<style[^>]*>\{`([\s\S]*?)`\}<\/style>/g),
+        // The unescaped form main adopted in #1950: <style dangerouslySetInnerHTML={{ __html: `...` }} />
+        ...source.matchAll(/<style[^>]*dangerouslySetInnerHTML=\{\{\s*__html:\s*`([\s\S]*?)`\s*\}\}\s*\/>/g),
+    ].map(m => m[1]);
     return blocks.join('\n');
 }
 

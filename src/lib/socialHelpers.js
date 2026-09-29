@@ -81,6 +81,59 @@ export function getYouTubeThumbnail(url) {
     return null;
 }
 
+/**
+ * Canonical provenance for a video explicitly submitted by an authenticated
+ * user. A shared YouTube URL remains embed-only; only a file the user uploaded
+ * to our storage is marked as native and user-authorized.
+ */
+export function buildUserVideoProvenance(
+    videoUrl,
+    originType = 'user_upload',
+    confirmedTopic = 'unknown',
+    authorId = null
+) {
+    const normalizedUrl = typeof videoUrl === 'string' ? videoUrl.trim() : '';
+    const youtubeVideoId = getYouTubeVideoId(normalizedUrl);
+    let userStorageVideo = false;
+    if (!youtubeVideoId && authorId) {
+        try {
+            const parsed = new URL(normalizedUrl);
+            const expectedHost = new URL(
+                process.env.NEXT_PUBLIC_SUPABASE_URL
+                || 'https://kuklfnapbkmacvwxktbh.supabase.co'
+            ).hostname;
+            const escapedAuthor = String(authorId).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            userStorageVideo = parsed.protocol === 'https:'
+                && parsed.hostname === expectedHost
+                && new RegExp(
+                    `^/storage/v1/object/public/(?:social-media/(?:reels|videos)|stories/stories)/${escapedAuthor}/`
+                ).test(parsed.pathname);
+        } catch {
+            userStorageVideo = false;
+        }
+    }
+    const topic = ['poker', 'cash', 'tournament'].includes(confirmedTopic)
+        ? confirmedTopic
+        : 'unknown';
+    return {
+        origin_type: originType,
+        playback_type: youtubeVideoId
+            ? 'youtube_embed'
+            : userStorageVideo ? 'native' : 'external_embed',
+        topic,
+        rights_status: youtubeVideoId
+            ? 'embed_only'
+            : userStorageVideo ? 'user_authorized' : 'unknown',
+        canonical_asset_key: youtubeVideoId
+            ? `youtube:${youtubeVideoId}`
+            : `url:${normalizedUrl}`,
+        youtube_video_id: youtubeVideoId,
+        source_type: youtubeVideoId
+            ? 'youtube'
+            : userStorageVideo ? 'native' : 'user',
+    };
+}
+
 export async function validateYouTubeVideo(url) {
     if (typeof window === 'undefined') return { valid: false, error: 'SSR environment' };
     const videoId = getYouTubeVideoId(url);

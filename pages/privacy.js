@@ -66,7 +66,7 @@ export default function PrivacyPolicy() {
                 </main>
             </div>
 
-            <style>{`
+            <style dangerouslySetInnerHTML={{ __html: `
         * {
           box-sizing: border-box;
           margin: 0;
@@ -81,7 +81,7 @@ export default function PrivacyPolicy() {
         a {
           text-decoration: none;
         }
-      `}</style>
+      ` }} />
         </>
     );
 }

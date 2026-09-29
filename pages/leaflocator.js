@@ -102,7 +102,7 @@ export default function LeafLocatorPitchDeck() {
             </Head>
 
             {/* GLOBAL STYLES */}
-            <style>{`
+            <style dangerouslySetInnerHTML={{ __html: `
                 .ll-pitch-container {
                     font-family: 'Inter', sans-serif;
                     user-select: none;
@@ -116,7 +116,7 @@ export default function LeafLocatorPitchDeck() {
                     pointer-events: none;
                     z-index: 0;
                 }
-            `}</style>
+            ` }} />
 
             {/* TOP CONTROLS — Branded Header */}
             <div style={{

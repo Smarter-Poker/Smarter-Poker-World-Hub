@@ -11,9 +11,17 @@ export function MessageInput({
     disabled, 
     autoFocus, 
     initialText,
+    value,
+    onDraftChange,
     theme: C = defaultTheme 
 }) {
-    const [text, setText] = useState(initialText || '');
+    const [localText, setLocalText] = useState(initialText || '');
+    const text = value === undefined ? localText : value;
+    const setText = next => {
+        const resolved = typeof next === 'function' ? next(text) : next;
+        if (onDraftChange) onDraftChange(resolved);
+        else setLocalText(resolved);
+    };
     const [showEmoji, setShowEmoji] = useState(false);
     const [showGifPicker, setShowGifPicker] = useState(false);
     const [gifSearchQuery, setGifSearchQuery] = useState('');
@@ -65,8 +73,8 @@ export function MessageInput({
 
     const handleSend = () => {
         if (!text.trim()) return;
-        onSend(text.trim());
-        setText('');
+        const submitted = text;
+        onSend(text.trim(), { consumeDraft: true, onRecorded: () => { if (!onDraftChange) setLocalText(current => current === submitted ? '' : current); } });
         setShowEmoji(false);
         if (navigator.vibrate) navigator.vibrate(15);
         inputRef.current?.focus();
@@ -390,6 +398,8 @@ export function MessageInput({
                     onChange={handleChange}
                     onKeyDown={handleKeyDown}
                     placeholder="Aa"
+                    aria-label="Message"
+                    maxLength={2000}
                     disabled={disabled}
                     rows={1}
                     style={{

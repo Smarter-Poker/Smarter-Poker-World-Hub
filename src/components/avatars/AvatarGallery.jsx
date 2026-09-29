@@ -430,7 +430,7 @@ export default function AvatarGallery({ onSelect }) {
         />
       )}
 
-      <style>{`
+      <style dangerouslySetInnerHTML={{ __html: `
         .avatar-gallery-container {
           display: flex;
           flex-direction: column;
@@ -789,7 +789,7 @@ export default function AvatarGallery({ onSelect }) {
             font-size: 18px; color: #fff; font-weight: 700; text-shadow: 0 2px 4px rgba(0,0,0,0.8);
         }
 
-      `}</style>
+      ` }} />
 
       
       {/* SVG Filters for Image Cleanup */}

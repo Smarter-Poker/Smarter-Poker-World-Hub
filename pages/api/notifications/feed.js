@@ -74,7 +74,40 @@ const _feedCache = new Map(); // userId → { payload, expiresAt }
 // Called by mark-read / delete APIs to invalidate the cache for a user.
 // (Exported so those handlers can import and call it)
 export function invalidateFeedCache(userId) {
-    _feedCache.delete(userId);
+    for (const key of _feedCache.keys()) {
+        if (key.startsWith(userId + ':')) _feedCache.delete(key);
+    }
+}
+
+// A keyset cursor preserves equal-time rows across the two notification sources.
+// Social rows sort before page rows at the same instant, then by native UUID.
+function compareRows(a, b) {
+    const stamp = row => Date.parse(row.created_at) * 1000 +
+        Number((String(row.created_at).match(/\.(\d+)/)?.[1] || '').padEnd(6, '0').slice(3, 6));
+    return stamp(b) - stamp(a) ||
+        (a._source === b._source ? String(b.id).localeCompare(String(a.id)) : a._source === 'social' ? -1 : 1);
+}
+
+function decodeCursor(raw) {
+    if (!raw) return null;
+    if (typeof raw !== 'string' || raw.length > 512) throw new Error('Invalid Notification Cursor');
+    let cursor;
+    try { cursor = JSON.parse(raw); } catch { throw new Error('Invalid Notification Cursor'); }
+    if (!['social', 'poker'].includes(cursor?.source) ||
+        !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?(?:Z|[+-]\d{2}:\d{2})$/.test(cursor?.at || '') ||
+        !Number.isFinite(Date.parse(cursor.at)) ||
+        !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(cursor?.id || '')) {
+        throw new Error('Invalid Notification Cursor');
+    }
+    return cursor;
+}
+
+function afterCursor(query, source, cursor) {
+    if (!cursor) return query;
+    if (source === cursor.source) {
+        return query.or(`created_at.lt.${cursor.at},and(created_at.eq.${cursor.at},id.lt.${cursor.id})`);
+    }
+    return source === 'poker' ? query.lte('created_at', cursor.at) : query.lt('created_at', cursor.at);
 }
 
 function setCachedFeed(userId, payload) {
@@ -118,12 +151,18 @@ export default async function handler(req, res) {
             return res.status(401).json({ success: false, error: 'Auth required' });
         }
         const userId = serverUser.id;
-        const limit = Math.min(parseInt(req.query.limit || '50', 10), 100);
+        const requestedLimit = Number.parseInt(req.query.limit || '50', 10);
+        const limit = Math.min(Math.max(Number.isFinite(requestedLimit) ? requestedLimit : 50, 1), 100);
+        let cursor;
+        try { cursor = decodeCursor(req.query.cursor); } catch (error) {
+            return res.status(400).json({ success: false, error: error.message });
+        }
         const bustCache = req.query.bust === '1';
+        const cacheKey = `${userId}:${limit}:${req.query.cursor || ''}`;
 
         // ── Serve from in-memory cache if available ───────────────────────────
         if (!bustCache) {
-            const cached = getCachedFeed(userId);
+            const cached = getCachedFeed(cacheKey);
             if (cached) {
                 res.setHeader('Cache-Control', 'private, max-age=15, stale-while-revalidate=60');
                 res.setHeader('X-Cache', 'HIT');
@@ -133,13 +172,14 @@ export default async function handler(req, res) {
 
         // ── Phase 1: Fetch social notifications + page_followers in parallel ──
         const [socialResult, followsResult] = await Promise.all([
-            supabase
+            afterCursor(supabase
                 .from('personal_notifications')
                 .select('id, type, title, message, data, read, is_read, created_at, user_id, actor_id, action_url, link')
                 .eq('user_id', userId)
-                .or('type.is.null,type.neq.accounting_invoice_detail')
+                .or('type.is.null,type.neq.accounting_invoice_detail'), 'social', cursor)
                 .order('created_at', { ascending: false })
-                .limit(limit),
+                .order('id', { ascending: false })
+                .limit(limit + 1),
 
             supabase
                 .from('page_followers')
@@ -169,12 +209,13 @@ export default async function handler(req, res) {
                 .map(f => `and(page_type.eq.${f.page_type},page_id.eq.${f.page_id})`)
                 .join(',');
 
-            const { data: pageNotifRows, error: pageError } = await supabase
+            const { data: pageNotifRows, error: pageError } = await afterCursor(supabase
                 .from('page_notifications')
                 .select('*')
-                .or(orConditions)
+                .or(orConditions), 'poker', cursor)
                 .order('created_at', { ascending: false })
-                .limit(30);
+                .order('id', { ascending: false })
+                .limit(limit + 1);
             if (pageError) throw pageError;
 
             if (pageNotifRows && pageNotifRows.length > 0) {
@@ -184,7 +225,7 @@ export default async function handler(req, res) {
                     .select('notification_id')
                     .eq('user_id', userId)
                     .in('notification_id', allIds)
-                    .limit(100);
+                    .limit(allIds.length);
                 if (readError) throw readError;
 
                 const readSet = new Set((reads || []).map(r => r.notification_id));
@@ -206,9 +247,13 @@ export default async function handler(req, res) {
         }
 
         // ── Phase 3: Merge + sort ──
-        const combined = [...socialNotifs, ...pokerNotifs]
-            .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
-            .slice(0, 60);
+        const candidates = [...socialNotifs, ...pokerNotifs].sort(compareRows);
+        const combined = candidates.slice(0, limit);
+        const last = combined.at(-1);
+        const nextCursor = candidates.length > limit && last ? JSON.stringify({
+            source: last._source, at: last.created_at,
+            id: last._source === 'poker' ? last.id.slice(6) : last.id,
+        }) : null;
 
         // ── Phase 3.5: BUG-28 FIX — Enrich home_group notifications with real group names ──
         // home_group_friend_joined messages were showing raw slugs like 'PHASE40_DM_FEATURE'
@@ -368,6 +413,7 @@ export default async function handler(req, res) {
 
             const row = {
                 ...n,
+                read: n.read === true || n.is_read === true,
                 title: typeof n.title === 'string' ? n.title : '',
                 message,
                 actor_avatar_url: profile?.avatar_url || null,
@@ -395,14 +441,15 @@ export default async function handler(req, res) {
             success: true,
             notifications: enriched,
             totalUnread,
+            nextCursor,
         };
 
         // Store in server-side TTL cache (15s) — future calls on same warm instance return instantly
-        setCachedFeed(userId, payload);
+        if (!bustCache) setCachedFeed(cacheKey, payload);
 
         // Short private cache: browser reuses within 15s, stale for 60s
         // User-specific — never shared via CDN
-        res.setHeader('Cache-Control', 'private, max-age=15, stale-while-revalidate=60');
+        res.setHeader('Cache-Control', bustCache ? 'private, no-store' : 'private, max-age=15, stale-while-revalidate=60');
         res.setHeader('X-Cache', 'MISS');
 
         return res.status(200).json(payload);

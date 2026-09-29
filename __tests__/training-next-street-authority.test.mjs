@@ -28,6 +28,7 @@ import {
   TRAINING_ATTESTATION_CONTINUATION_SELECTION_RULE,
 } from '../src/lib/training/trainingAttestationContinuationContract.mjs';
 import { applyDifficultyToQuestion } from '../src/lib/training/difficultyQuestionContract.mjs';
+import { enforceSolverClaimHonesty } from '../src/lib/training/solverDecisionEvidence.js';
 
 const ROOT = process.cwd();
 const read = (relativePath) => fs.readFileSync(path.join(ROOT, relativePath), 'utf8');
@@ -167,7 +168,10 @@ async function loadEnginePatchHelpers() {
       v2ArtifactEnvelopeIsExact,
       v2ToAppMatrix: bridgeV2Matrix,
     },
-    '../lib/training/solverDecisionEvidence.js': { enforceSolverClaimHonesty: (question) => question },
+    // The real honesty boundary. An identity stub here hid the 2026-09-07
+    // regression in which stampSolverProvenance downgraded every sealed row
+    // before its canonical policy existed.
+    '../lib/training/solverDecisionEvidence.js': { enforceSolverClaimHonesty },
     '../lib/training/solverRowIdentity.mjs': { isSolverRowIdentityValid: () => true },
     '../services/SolverPolicyService.js': {
       normalizeSolvedPolicyRecord: (row) => ({
@@ -233,6 +237,24 @@ function solverProvenance({
     auditedAt: '2026-09-06T00:00:00.000Z',
   };
 }
+
+/** Mirror SolverPolicyService.actionId/actionLabel for a bet increment. */
+function canonicalBetIdentity(bigBlinds, potBb) {
+  const potFraction = bigBlinds / potBb;
+  const pct = Math.round(potFraction * 10000) / 100;
+  return {
+    id: `bet_${String(pct).replace('.', '_')}pct`,
+    label: `Bet ${Math.round(potFraction * 1000) / 10}% Pot`,
+    potFraction,
+  };
+}
+
+// Flop: b412 into the 550-chip pot. Turn after b412 is called: the cumulative
+// b1442 target adds 1030 chips into 1374.
+const FLOP_BET = Object.freeze({ id: 'bet_74_91pct', label: 'Bet 74.9% Pot' });
+const TURN_BET = Object.freeze({
+  id: 'bet_74_96pct', label: 'Bet 75% Pot', sourceCode: 'b1442', chips: 1030, bigBlinds: 10.3,
+});
 
 function derivedCanonicalPolicy({
   scenarioHash,
@@ -301,17 +323,20 @@ function derivedCanonicalPolicy({
         size: { unit: 'none', exact: false },
       },
       {
-        id: 'bet_75pct',
+        // Real canonical geometry: int(round(550 * 0.75)) = 412 chips is
+        // 74.909% of the flop pot, never an exact 75%. The id, label and pot
+        // fraction are derived exactly as SolverPolicyService derives them.
+        id: canonicalBetIdentity(betBigBlinds, potBb).id,
         sourceCode: betSourceCode,
         family: 'bet',
-        label: 'Bet 75% Pot',
+        label: canonicalBetIdentity(betBigBlinds, potBb).label,
         frequency: 0.6,
         legal: true,
         size: {
           unit: 'chips',
           chips: betChips,
           bigBlinds: betBigBlinds,
-          potFraction: 0.75,
+          potFraction: canonicalBetIdentity(betBigBlinds, potBb).potFraction,
           exact: true,
         },
       },
@@ -377,9 +402,9 @@ function derivedParentQuestion(overrides = {}) {
     boardCards: ['As', 'Kd', 'Qc'],
     options: [
       { id: 'check', text: 'Check' },
-      { id: 'bet_75pct', text: 'Bet 75% Pot' },
+      { id: FLOP_BET.id, text: FLOP_BET.label },
     ],
-    correctAnswer: 'bet_75pct',
+    correctAnswer: FLOP_BET.id,
     policyChecksum: 'e'.repeat(64),
     scenario,
     solverProvenance: provenance,
@@ -424,9 +449,9 @@ function derivedChildQuestion(lineage, nextBoard, overrides = {}) {
     boardCards: [...nextBoard],
     options: [
       { id: 'check', text: 'Check' },
-      { id: 'bet_75pct', text: 'Bet 75% Pot' },
+      { id: TURN_BET.id, text: TURN_BET.label },
     ],
-    correctAnswer: 'bet_75pct',
+    correctAnswer: TURN_BET.id,
     policyChecksum: '9'.repeat(64),
     solverProvenance: provenance,
     scenario,
@@ -437,6 +462,9 @@ function derivedChildQuestion(lineage, nextBoard, overrides = {}) {
       boardCards: nextBoard,
       potBb: scenario.pot,
       provenance,
+      betSourceCode: TURN_BET.sourceCode,
+      betChips: TURN_BET.chips,
+      betBigBlinds: TURN_BET.bigBlinds,
     }),
   };
   return { ...question, ...overrides };
@@ -554,7 +582,7 @@ test('an already-answered continuation is refused before a replacement receipt i
       if (table === 'training_answers') {
         answerRead += 1;
         return query(answerRead === 1
-          ? { submission_id: payload.jti, answer_id: 'bet_75pct' }
+          ? { submission_id: payload.jti, answer_id: 'bet_74_91pct' }
           : { submission_id: 'already-scored-child' });
       }
       throw new Error(`unexpected table ${table}`);
@@ -641,7 +669,7 @@ test('a recovered continuation from an older release must still pass the current
       if (table === 'training_answers') {
         answerRead += 1;
         return query(answerRead === 1
-          ? { submission_id: payload.jti, answer_id: 'bet_75pct' }
+          ? { submission_id: payload.jti, answer_id: 'bet_74_91pct' }
           : null);
       }
       throw new Error(`unexpected table ${table}`);
@@ -686,8 +714,8 @@ test('persisted predecessor answer must exactly select the canonical non-termina
   const parent = derivedParentQuestion();
 
   assert.deepEqual(
-    { ...validatePersistedContinuationDecision(parent, 'bet_75pct') },
-    { ok: true, action: 'b412', answerId: 'bet_75pct' },
+    { ...validatePersistedContinuationDecision(parent, 'bet_74_91pct') },
+    { ok: true, action: 'b412', answerId: 'bet_74_91pct' },
   );
   assert.equal(
     validatePersistedContinuationDecision(parent, 'b412').code,
@@ -718,17 +746,17 @@ test('persisted predecessor answer must exactly select the canonical non-termina
   }
 
   const absentFromTree = derivedParentQuestion({
-    options: parent.options.filter(({ id }) => id !== 'bet_75pct'),
+    options: parent.options.filter(({ id }) => id !== 'bet_74_91pct'),
   });
   assert.equal(
-    validatePersistedContinuationDecision(absentFromTree, 'bet_75pct').code,
+    validatePersistedContinuationDecision(absentFromTree, 'bet_74_91pct').code,
     'TRAINING_CONTINUATION_ACTION_INVALID',
   );
 
   const duplicateSourceMapping = structuredClone(parent);
   duplicateSourceMapping.solverPolicy.actions[0].sourceCode = 'b412';
   assert.equal(
-    validatePersistedContinuationDecision(duplicateSourceMapping, 'bet_75pct').code,
+    validatePersistedContinuationDecision(duplicateSourceMapping, 'bet_74_91pct').code,
     'TRAINING_CONTINUATION_ACTION_INVALID',
     'one raw tree token cannot map to multiple semantic actions',
   );
@@ -749,7 +777,7 @@ test('persisted predecessor answer must exactly select the canonical non-termina
     const tampered = structuredClone(parent);
     mutate(tampered);
     assert.equal(
-      validatePersistedContinuationDecision(tampered, 'bet_75pct').code,
+      validatePersistedContinuationDecision(tampered, 'bet_74_91pct').code,
       'TRAINING_CONTINUATION_ACTION_INVALID',
       label,
     );
@@ -766,19 +794,19 @@ test('grouped continuation accepts only the public band containing the one exact
       legal: true, size: { unit: 'none', exact: false },
     },
     {
-      id: 'bet_33pct', sourceCode: 'b200', family: 'bet', label: 'Bet 33% Pot', frequency: 0.2,
+      id: 'bet_33_09pct', sourceCode: 'b182', family: 'bet', label: 'Bet 33.1% Pot', frequency: 0.2,
       legal: true,
-      size: { unit: 'chips', chips: 200, bigBlinds: 2, potFraction: 0.33, exact: true },
+      size: { unit: 'chips', chips: 182, bigBlinds: 1.82, potFraction: 182 / 550, exact: true },
     },
     {
-      id: 'bet_75pct', sourceCode: 'b412', family: 'bet', label: 'Bet 75% Pot', frequency: 0.6,
+      id: 'bet_74_91pct', sourceCode: 'b412', family: 'bet', label: 'Bet 74.9% Pot', frequency: 0.6,
       legal: true,
-      size: { unit: 'chips', chips: 412, bigBlinds: 4.12, potFraction: 0.75, exact: true },
+      size: { unit: 'chips', chips: 412, bigBlinds: 4.12, potFraction: 412 / 550, exact: true },
     },
     {
-      id: 'bet_125pct', sourceCode: 'b700', family: 'bet', label: 'Bet 125% Pot', frequency: 0.1,
+      id: 'bet_125_09pct', sourceCode: 'b688', family: 'bet', label: 'Bet 125.1% Pot', frequency: 0.1,
       legal: true,
-      size: { unit: 'chips', chips: 700, bigBlinds: 7, potFraction: 1.25, exact: true },
+      size: { unit: 'chips', chips: 688, bigBlinds: 6.88, potFraction: 688 / 550, exact: true },
     },
   ];
   parent.options = actions.map(({ id, label }) => ({ id, text: label }));
@@ -800,7 +828,7 @@ test('grouped continuation accepts only the public band containing the one exact
   );
   assert.equal(accepted.ok, true, JSON.stringify(accepted));
   assert.equal(accepted.action, 'b412');
-  assert.equal(accepted.answerId, 'bet_75pct');
+  assert.equal(accepted.answerId, 'bet_74_91pct');
   assert.equal(accepted.publicAnswerId, 'grouped_medium');
   for (const wrongGroup of ['grouped_small', 'grouped_overbet', 'check']) {
     assert.equal(
@@ -810,7 +838,7 @@ test('grouped continuation accepts only the public band containing the one exact
     );
   }
   assert.equal(
-    validatePersistedContinuationDecisionForDifficulty(parent, 'bet_75pct', 'exact').ok,
+    validatePersistedContinuationDecisionForDifficulty(parent, 'bet_74_91pct', 'exact').ok,
     true,
     'ordinary exact-mode continuation changed',
   );
@@ -837,7 +865,7 @@ test('a provenance-complete derived parent qualifies only through its exact line
     precommit,
     'grouped',
   );
-  assert.equal(publicAnswer, 'bet_75pct');
+  assert.equal(publicAnswer, 'bet_74_91pct');
   const resolved = await resolveStrictTrainingContinuation({
     parentQuestion: parent,
     persistedAnswerId: publicAnswer,
@@ -928,10 +956,10 @@ test('child binding preserves exact child pot and stack instead of parent pre-ac
   const bound = bindExactContinuationQuestion(generated, { state, nextBoard, lineage });
   assert.ok(bound, 'a canonical derived child bound to the exact row lineage is eligible');
   assert.equal(bound.dataQuality, 'SOLVER_DERIVED_RESPONSE');
-  assert.equal(bound.correctAnswer, 'bet_75pct');
+  assert.equal(bound.correctAnswer, TURN_BET.id);
   assert.equal(
-    bound.solverPolicy.actions.find(({ id }) => id === 'bet_75pct').sourceCode,
-    'b412',
+    bound.solverPolicy.actions.find(({ id }) => id === TURN_BET.id).sourceCode,
+    TURN_BET.sourceCode,
   );
   assert.equal(bound.scenario.pot, 13.74);
   assert.equal(bound.scenario.stackDepth, 95.88);
@@ -1151,11 +1179,11 @@ test('a deterministic first-card miss still selects a later exact solved runout'
   assert.equal(generated.scenario.pot, 13.74);
   assert.equal(generated.scenario.stackDepth, 97.5);
   assert.equal(generated.dataQuality, 'SOLVER_DERIVED_RESPONSE');
-  assert.deepEqual(generated.options.map(({ id }) => id), ['check', 'bet_75pct']);
-  assert.equal(generated.correctAnswer, 'bet_75pct');
+  assert.deepEqual(generated.options.map(({ id }) => id), ['check', TURN_BET.id]);
+  assert.equal(generated.correctAnswer, TURN_BET.id);
   assert.equal(
-    generated.solverPolicy.actions.find(({ id }) => id === 'bet_75pct').sourceCode,
-    'b1442',
+    generated.solverPolicy.actions.find(({ id }) => id === TURN_BET.id).sourceCode,
+    TURN_BET.sourceCode,
   );
   assert.equal(rpcCalls.length, 2);
   for (const [rpc, args] of rpcCalls) {

@@ -4,6 +4,12 @@ import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { sanitizeMessage } from '../../../src/utils/messageSanitizer';
 import { reportApiError } from '../../../src/lib/apiErrorHandler';
 import { notifyNewMessage } from '../../../src/lib/notify';
+import { randomUUID } from 'node:crypto';
+import { getMessengerWorkspace } from '../../../src/lib/messengerWorkspace.mjs';
+
+const isUUID = value => typeof value === 'string'
+    && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
+const unavailable = () => Object.assign(new Error('Message Could Not Be Confirmed. Please Retry.'), { status: 503 });
 
 let _supabase = null;
 function getSupabase() {
@@ -29,9 +35,16 @@ export default async function handler(req, res) {
           return res.status(500).json({ success: false, error: 'Service key not configured' });
       }
 
-      const { conversationId, content: rawContent, message_type: rawMessageType, media_metadata: rawMetadata } = req.body;
+      const { conversationId, requestId: suppliedRequestId, content: rawContent, message_type: rawMessageType, media_metadata: rawMetadata } = req.body || {};
 
-      if (!conversationId || !rawContent) {
+      if (suppliedRequestId !== undefined && !isUUID(suppliedRequestId)) {
+          return res.status(400).json({ success: false, error: 'Invalid Message Request' });
+      }
+      // Older clients did not send an operation identity. They keep independent
+      // sends; current clients retain this ID through an explicit retry.
+      const requestId = suppliedRequestId?.toLowerCase() || randomUUID();
+
+      if (!isUUID(conversationId) || !rawContent) {
           return res.status(400).json({ success: false, error: 'Missing conversationId or content' });
       }
 
@@ -104,11 +117,12 @@ export default async function handler(req, res) {
 
               let verifiedPage = null;
               if (claimedPageId) {
-                  const { data: page } = await getSupabase()
+                  const { data: page, error: pageError } = await getSupabase()
                       .from('social_pages')
                       .select('id, name, avatar_url, owner_id, linked_entity_id, linked_entity_type')
                       .eq('id', claimedPageId)
                       .maybeSingle();
+                  if (pageError) throw unavailable();
 
                   if (page) {
                       if (page.owner_id === userId) {
@@ -117,12 +131,13 @@ export default async function handler(req, res) {
                           // Club staff may speak as the club. Ordinary members
                           // may not -- a 578-member club where anyone can post
                           // as the club is not an identity, it is a megaphone.
-                          const { data: membership } = await getSupabase()
+                          const { data: membership, error: membershipError } = await getSupabase()
                               .from('club_members')
                               .select('role')
                               .eq('club_id', page.linked_entity_id)
                               .eq('user_id', userId)
                               .maybeSingle();
+                          if (membershipError) throw unavailable();
                           if (membership && ['owner', 'admin'].includes(membership.role)) {
                               verifiedPage = page;
                           }
@@ -162,9 +177,14 @@ export default async function handler(req, res) {
               .eq('user_id', userId)
               .maybeSingle();
 
-          if (partError || !participant) {
+          if (partError) throw unavailable();
+          if (!participant) {
               return res.status(403).json({ success: false, error: 'Not a participant in this conversation' });
           }
+
+          // Sending uses the same private-invoice and active-club boundary as
+          // opening the conversation. Participation alone is not visibility.
+          await getMessengerWorkspace(getSupabase(), userId, { workspace: 'resolve', conversationId });
 
           // Blocking, enforced on the server. messenger_blocked was read and
           // written only by the client (useMessengerService), and no route in
@@ -173,18 +193,20 @@ export default async function handler(req, res) {
           // Checked both directions: blocking is mutual in effect.
           let otherIds = [];
           try {
-              const { data: others } = await getSupabase()
+              const { data: others, error: othersError } = await getSupabase()
                   .from('social_conversation_participants')
                   .select('user_id')
                   .eq('conversation_id', conversationId)
                   .neq('user_id', userId);
-              otherIds = (others || []).map((o) => o.user_id).filter(Boolean);
+              if (othersError || !Array.isArray(others)) throw unavailable();
+              otherIds = [...new Set(others.map((o) => o.user_id).filter(Boolean))];
               if (otherIds.length > 0) {
-                  const { data: blocks } = await getSupabase()
+                  const { data: blocks, error: blocksError } = await getSupabase()
                       .from('messenger_blocked')
                       .select('blocker_id, blocked_id')
                       .or(`blocker_id.eq.${userId},blocked_id.eq.${userId}`);
-                  const blocked = (blocks || []).some(
+                  if (blocksError || !Array.isArray(blocks)) throw unavailable();
+                  const blocked = blocks.some(
                       (b) =>
                           (b.blocker_id === userId && otherIds.includes(b.blocked_id)) ||
                           (b.blocked_id === userId && otherIds.includes(b.blocker_id))
@@ -194,28 +216,32 @@ export default async function handler(req, res) {
                   }
               }
           } catch (blockErr) {
-              // Fail open on a lookup failure -- silently dropping everyone's
-              // messages because one query hiccuped is the worse outcome.
               console.warn('[send-message] block check failed:', blockErr?.message || blockErr);
+              throw unavailable();
           }
 
-          // 5. Secure RPC execution using Service Role
-          const { data: msgId, error } = await getSupabase().rpc('fn_send_message', {
+          // The transaction rechecks access and binds this sender/request pair
+          // to one immutable payload, including when the first reply is lost.
+          const { data: rpcResult, error } = await getSupabase().rpc('fn_send_message_once', {
               p_conversation_id: conversationId,
               p_sender_id: userId,
+              p_request_id: requestId,
               p_content: content,
               p_message_type: messageType,
               p_metadata: safeMetadata,
           });
 
-          if (error) throw error;
-
-          // fn_send_message returns jsonb { success, message_id, conversation_id }
-          // Extract the UUID string — returning the raw object broke client deduplication
-          const rpcResult = msgId;
-          const realMsgId = rpcResult?.message_id || (typeof rpcResult === 'string' ? rpcResult : null);
-
-          if (!rpcResult?.success && !realMsgId) throw new Error('RPC returned failure');
+          if (error) {
+              if (error.code === '23505' && error.message === 'Message Request Conflicts With Previous Send') {
+                  return res.status(409).json({ success: false, error: error.message });
+              }
+              if (error.code === '42501') {
+                  return res.status(403).json({ success: false, error: 'Cannot Send To This Conversation' });
+              }
+              throw unavailable();
+          }
+          const realMsgId = rpcResult?.message_id;
+          if (rpcResult?.success !== true || !isUUID(realMsgId) || typeof rpcResult.replayed !== 'boolean') throw unavailable();
 
           // ── Notify the recipients ────────────────────────────────────────
           // Until now a direct message produced NOTHING: no bell entry, no
@@ -229,11 +255,11 @@ export default async function handler(req, res) {
           // mute_all, push_enabled, per-type prefs, the legacy messenger_alerts
           // column, quiet hours and the daily cap.
           //
-          // Never awaited into the response path: the message is already
-          // committed and the sender must not wait on fan-out. Failures are
-          // swallowed by notify() itself, which never throws.
+          // Only the first committed send owns fan-out. Retrying an acknowledged
+          // or ambiguous send must not insert another bell item or push event.
+          // Notification failures never change the persisted message outcome.
           try {
-              if (otherIds.length > 0) {
+              if (!rpcResult.replayed && otherIds.length > 0) {
                   const { data: senderProfile } = await getSupabase()
                       .from('profiles')
                       .select('username, full_name, avatar_url')
@@ -262,10 +288,12 @@ export default async function handler(req, res) {
               console.warn('[send-message] notify failed:', notifyErr?.message || notifyErr);
           }
 
-          return res.json({ success: true, msgId: realMsgId, content: content });
+          return res.json({ success: true, msgId: realMsgId, content, requestId, replayed: rpcResult.replayed });
       } catch (e) {
           console.warn('[ANTIGRAVITY] Send Message Exception:', e);
-          return res.status(500).json({ success: false, error: 'Internal server error' });
+          const status = [400, 403, 404].includes(e?.status) ? e.status : 503;
+          return res.status(status).json({ success: false, error: status === 503
+              ? 'Message Could Not Be Confirmed. Please Retry.' : 'Cannot Send To This Conversation' });
       }
 
   } catch (err) {

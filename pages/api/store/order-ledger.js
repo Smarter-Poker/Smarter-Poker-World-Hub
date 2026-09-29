@@ -60,7 +60,12 @@ function getSupabase() {
   if (!_supabase) {
     const url =
       process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
-    const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    // Never fall back to the anon key. Under RLS it reads nothing, and this
+    // route would then answer `success: true` with an empty ledger: a shopper
+    // with orders is told they have none. Every other commerce route throws
+    // when the service key is missing, so this one does too.
+    const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!key) throw new Error('Order ledger database is not configured');
     _supabase = createClient(url, key);
   }
   return _supabase;

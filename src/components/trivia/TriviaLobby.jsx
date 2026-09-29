@@ -556,7 +556,7 @@ export default function TriviaLobby({
         </p>
       )}
 
-      <style>{`
+      <style dangerouslySetInnerHTML={{ __html: `
                 .trivia-lobby,
                 .trivia-lobby * {
                     box-sizing: border-box;
@@ -1033,7 +1033,7 @@ export default function TriviaLobby({
                         scroll-behavior: auto;
                     }
                 }
-            `}</style>
+            ` }} />
 
       {/* Diamond entry disclosure (first time only). It moves no diamonds:
           it states the price the destination page will verify and charge,

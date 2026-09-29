@@ -46,6 +46,7 @@ const TEMPLATED_TITLE_PAGES = [
   'pages/hub/poker-near-me/in/[state]/index.js',
   'pages/hub/poker-near-me/in/[state]/[city].js',
   'pages/hub/tours/[code].js',
+  'pages/glossary/[term].js',
 ];
 
 test('the brand suffix and the ampersand are both counted', () => {

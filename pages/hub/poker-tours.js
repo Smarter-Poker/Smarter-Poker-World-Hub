@@ -1052,7 +1052,7 @@ export default function PokerToursPage({ initialTours = [], houseSeries = [] }) 
                 {/* ═══════════════════════════════════════ */}
                 {/* STYLES — Reuses PNM architecture       */}
                 {/* ═══════════════════════════════════════ */}
-                <style suppressHydrationWarning>{`
+                <style suppressHydrationWarning dangerouslySetInnerHTML={{ __html: `
                     /* ═══ HOUSE SERIES INDEX ═══ */
                     .house-series {
                         width: min(calc(100% - 32px), 1200px);
@@ -2047,7 +2047,7 @@ export default function PokerToursPage({ initialTours = [], houseSeries = [] }) 
                             padding: 14px 16px 12px;
                         }
                     }
-                `}</style>
+                ` }} />
             </div>
         </>
     );

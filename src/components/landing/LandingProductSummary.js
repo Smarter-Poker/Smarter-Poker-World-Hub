@@ -65,6 +65,41 @@ export const LANDING_PRODUCTS = [
   },
 ];
 
+/**
+ * THE FREE GUIDES, ONE HOP FROM THE FRONT DOOR (AEO phase 3, 2026-09-22).
+ *
+ * /learn, /glossary and /compare shipped with 128 pages between them. Crawled
+ * from / as a non-JavaScript crawler the day they went live, the glossary was
+ * reachable through the training summaries, and the 41 lessons and 12
+ * comparisons were reachable from nowhere: listed in the sitemap, linked by no
+ * page. That is the defect this programme fixed for the tour and series
+ * directories a week earlier, arriving again with the next thing built.
+ *
+ * Linking each index here puts it one hop from the front page and every page
+ * under it two. __tests__/a-directory-lists-what-it-contains.law.test.mjs
+ * holds this list to the content indexes the sitemap offers.
+ */
+export const LANDING_GUIDES = [
+  {
+    id: 'learn',
+    name: 'Poker Strategy Lessons',
+    href: '/learn',
+    summary: 'Forty Free Lessons On Ranges, Pot Odds, ICM, Bankrolls And Tilt, With The Charts Inline.',
+  },
+  {
+    id: 'glossary',
+    name: 'Poker Glossary',
+    href: '/glossary',
+    summary: 'Plain Definitions For Club, Live Room And GTO Terms, One Page Per Term.',
+  },
+  {
+    id: 'compare',
+    name: 'Poker App Comparisons',
+    href: '/compare',
+    summary: 'Club Apps, Room Software, GTO Trainers And Bankroll Trackers Compared, With Sources.',
+  },
+];
+
 export default function LandingProductSummary() {
   return (
     <section style={styles.section} aria-labelledby="landing-summary-heading">
@@ -86,6 +121,19 @@ export default function LandingProductSummary() {
               </Link>
             </h2>
             <p style={styles.summary}>{product.summary}</p>
+          </article>
+        ))}
+      </div>
+      <h2 style={styles.guidesHeading}>Free Poker Guides</h2>
+      <div style={styles.grid}>
+        {LANDING_GUIDES.map((guide) => (
+          <article key={guide.id} style={styles.card}>
+            <h3 style={styles.h2}>
+              <Link href={guide.href} style={styles.cardLink}>
+                {guide.name}
+              </Link>
+            </h3>
+            <p style={styles.summary}>{guide.summary}</p>
           </article>
         ))}
       </div>
@@ -162,6 +210,14 @@ const styles = {
     lineHeight: 1.55,
     color: '#b8c4d6',
     margin: 0,
+  },
+  guidesHeading: {
+    fontFamily: "var(--font-orbitron), sans-serif",
+    fontSize: 18,
+    fontWeight: 700,
+    color: '#ffffff',
+    margin: '36px 0 14px',
+    letterSpacing: '0.5px',
   },
   compliance: {
     fontSize: 12,

@@ -115,7 +115,7 @@ export default function ConnectionToast() {
         </svg>
       )}
       {isOffline ? 'You are offline - changes may not save' : 'Back online'}
-      <style>{`
+      <style dangerouslySetInnerHTML={{ __html: `
         @keyframes slideUp {
           from { transform: translateX(-50%) translateY(20px); opacity: 0; }
           to { transform: translateX(-50%) translateY(0); opacity: 1; }
@@ -123,7 +123,7 @@ export default function ConnectionToast() {
         @media (prefers-reduced-motion: reduce) {
           [role="status"][aria-live] { animation: none !important; }
         }
-      `}</style>
+      ` }} />
     </div>
   );
 }
