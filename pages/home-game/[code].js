@@ -10,6 +10,7 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import PokerNearMeFamilyNav from '../../src/components/poker-near-me/PokerNearMeFamilyNav';
+import PokerNearMeConsole from '../../src/components/poker-near-me/PokerNearMeConsole';
 import DeepRouteSignalDeck from '../../src/components/poker-near-me/DeepRouteSignalDeck';
 import { supabase } from '../../src/lib/supabase';
 import { getAccessToken, getAuthUser } from '../../src/lib/authUtils';
@@ -340,6 +341,13 @@ export default function HomeGamePage() {
   const [user, setUser] = useState(null);
   const [isMember, setIsMember] = useState(false);
   const [shareStatus, setShareStatus] = useState('');
+  // A failed lookup and a failed REQUEST are different truths. Before this the
+  // catch below only console.warn'd, so a timeout, a 500 or an offline phone
+  // all fell through to the "Home Game Not Found" branch and told the visitor
+  // a real game does not exist. loadError keeps the two apart and gives the
+  // request failure a retry; a genuine 404 still says not found.
+  const [loadError, setLoadError] = useState('');
+  const [reloadToken, setReloadToken] = useState(0);
 
   useEffect(() => {
     const authUser = getAuthUser();
@@ -389,6 +397,7 @@ export default function HomeGamePage() {
       setLoading(true);
       setGroup(null);
       setPosts([]);
+      setLoadError('');
       try {
         const res = await fetch(`/api/public/home-game/${encodeURIComponent(code)}`, {
           signal: controller.signal,
@@ -403,6 +412,11 @@ export default function HomeGamePage() {
       } catch (error) {
         if (error?.name === 'AbortError') return;
         console.warn('Fetch group data failed:', error);
+        // A 404 from the endpoint is "no such game"; anything else is a
+        // request that did not complete, and the visitor gets a retry.
+        if (!cancelled && !/\(404\)/.test(String(error?.message || ''))) {
+          setLoadError('We Could Not Load This Home Game Just Now.');
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -413,7 +427,7 @@ export default function HomeGamePage() {
       cancelled = true;
       controller.abort();
     };
-  }, [code, router.isReady]);
+  }, [code, router.isReady, reloadToken]);
 
   // This endpoint is intentionally public-only: private discussions live in
   // Club Commander even for verified members. Do not send a private-group
@@ -499,14 +513,71 @@ export default function HomeGamePage() {
     event.currentTarget.parentElement?.querySelectorAll('[role="tab"]')?.[nextIndex]?.focus();
   }
 
+  // Every pre-content state is printed into the painted Poker Near Me chassis
+  // so an invite link that does not resolve still looks like the platform it
+  // belongs to. The art is the frame; only the copy and the controls below
+  // are live DOM.
   if (loading) {
     return (
       <div className="home-game-code-page" data-pnm-realism="machined-v2">
+        <SEOHead title="Home Game" description="Loading This Home Game Invite On Smarter.Poker." noindex={true} />
         <UniversalHeader pageDepth={2} />
         <PokerNearMeFamilyNav />
         <main className="home-game-code-page__state" data-pnm-secondary-foundation="interaction-v1">
-          <Loader2 className="w-8 h-8 animate-spin text-[#10B981]" aria-hidden="true" />
-          <p>Loading Home Game…</p>
+          <PokerNearMeConsole
+            crest="locator"
+            eyebrow="Home Game Invite"
+            title="Loading Invite"
+            titleAs="h1"
+            titleId="home-game-code-state-title"
+            pill="Invite"
+            pillInk="blue"
+            foot="foot"
+            aria-busy="true"
+          >
+            <p className="pnc-copy pnc-copy--center" role="status" aria-live="polite">
+              Checking This Invite Code Against The Home Games Directory.
+            </p>
+          </PokerNearMeConsole>
+        </main>
+      </div>
+    );
+  }
+
+  if (!group && loadError) {
+    return (
+      <div className="home-game-code-page" data-pnm-realism="machined-v2">
+        <SEOHead title="Home Game" description="This Home Game Invite Could Not Be Loaded." noindex={true} />
+        <UniversalHeader pageDepth={2} />
+        <PokerNearMeFamilyNav />
+        <main className="home-game-code-page__state" data-pnm-secondary-foundation="interaction-v1">
+          <PokerNearMeConsole
+            crest="locator"
+            eyebrow="Home Game Invite"
+            title="Invite Did Not Load"
+            titleAs="h1"
+            titleId="home-game-code-state-title"
+            pill="Invite"
+            pillInk="blue"
+            plates={{
+              secondary: {
+                label: 'Try Again',
+                ink: 'silver',
+                onClick: () => setReloadToken((n) => n + 1),
+                'aria-label': 'Try loading this home game again',
+              },
+              primary: {
+                label: 'Browse Games',
+                ink: 'blue',
+                onClick: () => router.push('/hub/home-games'),
+                'aria-label': 'Browse home games',
+              },
+            }}
+          >
+            <p className="pnc-copy pnc-copy--center" role="alert">
+              {loadError} The Invite Itself May Still Be Good, So Try Again In A Moment.
+            </p>
+          </PokerNearMeConsole>
         </main>
       </div>
     );
@@ -515,15 +586,37 @@ export default function HomeGamePage() {
   if (!group) {
     return (
       <div className="home-game-code-page" data-pnm-realism="machined-v2">
+        <SEOHead title="Home Game Not Found" description="This Home Game Invite Code Does Not Match A Game On Smarter.Poker." noindex={true} />
         <UniversalHeader pageDepth={2} />
         <PokerNearMeFamilyNav />
         <main className="home-game-code-page__state" data-pnm-secondary-foundation="interaction-v1">
-          <div className="text-center">
-          <p className="text-[#6B7280] mb-4">Home Game Not Found</p>
-          <Link href="/hub/home-games/near-me" className="text-[#10B981] font-medium">
-            Browse Home Games
-          </Link>
-          </div>
+          <PokerNearMeConsole
+            crest="locator"
+            eyebrow="Home Game Invite"
+            title="Home Game Not Found"
+            titleAs="h1"
+            titleId="home-game-code-state-title"
+            pill="Invite"
+            pillInk="blue"
+            plates={{
+              secondary: {
+                label: 'Browse Games',
+                ink: 'silver',
+                onClick: () => router.push('/hub/home-games'),
+                'aria-label': 'Browse home games',
+              },
+              primary: {
+                label: 'Near Me',
+                ink: 'blue',
+                onClick: () => router.push('/hub/home-games/near-me'),
+                'aria-label': 'Find home games near me',
+              },
+            }}
+          >
+            <p className="pnc-copy pnc-copy--center">
+              This Invite Code Does Not Match A Home Game. It May Have Expired, Or The Host May Have Closed The Game.
+            </p>
+          </PokerNearMeConsole>
         </main>
       </div>
     );
@@ -536,6 +629,15 @@ export default function HomeGamePage() {
         description={group.description || `${group.name} - Home game group in ${group.city}, ${group.state}. Join the group on Smarter.Poker.`}
         canonical={`/home-game/${group.club_code || code}`}
         ogImage={group.cover_photo_url || undefined}
+        /*
+          INDEXING (parity with ../hub/home-games/[slug].js, audit finding C-3).
+          A PRIVATE group still renders here: /api/public/home-game/[code]
+          answers 200 with a reduced payload carrying name, city, state, member
+          count and host display name. Without this prop SEOHead emits
+          "index, follow" and every private game reachable from a shared invite
+          link was crawlable. The payload is unchanged; only the robots tag is.
+        */
+        noindex={!!group.is_private}
       />
 
       <div className="home-game-code-page min-h-screen bg-[#F9FAFB]" data-pnm-realism="machined-v2">
@@ -555,14 +657,14 @@ export default function HomeGamePage() {
               { label: 'Home Games', href: '/hub/home-games/near-me' },
               { label: group.name },
             ]}
-            status={group.is_private ? 'Private group · membership required' : 'Public group directory record'}
+            status={group.is_private ? 'Private Group · Membership Required' : 'Public Group Directory Record'}
             statusTone={upcomingGames.length > 0 ? 'live' : 'neutral'}
-            freshness={{ label: 'Published community record' }}
+            freshness={{ label: 'Published Community Record' }}
             metrics={[
-              { label: 'Location', value: group.city ? `${group.city}, ${group.state}` : 'Shared by host' },
+              { label: 'Location', value: group.city ? `${group.city}, ${group.state}` : 'Shared By Host' },
               { label: 'Members', value: group.member_count || 0 },
               { label: 'Upcoming', value: upcomingGames.length },
-              { label: 'Cadence', value: FREQUENCY_LABELS[group.frequency] || group.frequency || 'Host scheduled' },
+              { label: 'Cadence', value: FREQUENCY_LABELS[group.frequency] || group.frequency || 'Host Scheduled' },
             ]}
             actions={(
               <>

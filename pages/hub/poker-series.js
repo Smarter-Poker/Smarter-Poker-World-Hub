@@ -20,6 +20,14 @@ import useVenueRealtime from '../../src/hooks/useVenueRealtime';
 import { resolveEntityCoordinates, haversineDistance } from '../../src/lib/geoUtils';
 import useSWR from 'swr';
 import PokerIdentityMark from '../../src/components/poker-near-me/PokerIdentityMark';
+import { PokerNearMePanelShell, PokerNearMeConsoleIcon } from '../../src/components/poker-near-me/PokerNearMeConsole';
+
+/**
+ * How many series get a full painted panel before the rest become an index.
+ * A panel is about 380px tall; an index row is 48px. The directory carries
+ * 227 series, so the whole list as panels is 86,741px of phone scrolling.
+ */
+const SERIES_PANEL_LIMIT = 12;
 import { buildSeriesDirectorySchema, serializePokerJsonLd } from '../../src/lib/poker-near-me/structuredData';
 
 // ─── Lazy-load components ───
@@ -791,9 +799,7 @@ export default function PokerSeriesPage({ initialSeries = [], seriesIndex = [], 
                     {/* ═══ MAIN SEARCH BAR ═══ */}
                     <form className="tours-search-bar" onSubmit={e => e.preventDefault()}>
                         <div className={`tours-search-wrap${searchFocused ? ' focused' : ''}`}>
-                            <svg className="tours-search-bar-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
-                            </svg>
+                            <PokerNearMeConsoleIcon name="search" className="tours-glyph" />
                             <input
                                 ref={searchInputRef}
                                 type="text"
@@ -814,9 +820,7 @@ export default function PokerSeriesPage({ initialSeries = [], seriesIndex = [], 
                                     onClick={() => { setSearchQuery(''); searchInputRef.current?.focus(); }}
                                     aria-label="Clear search"
                                 >
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                                        <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-                                    </svg>
+                                    <PokerNearMeConsoleIcon name="close" className="tours-glyph" />
                                 </button>
                             )}
                         </div>
@@ -946,9 +950,7 @@ export default function PokerSeriesPage({ initialSeries = [], seriesIndex = [], 
                             </div>
                         ) : filteredSeries.length === 0 ? (
                             <div className="tours-empty">
-                                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ opacity: 0.3 }}>
-                                    <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
-                                </svg>
+                                <PokerNearMeConsoleIcon name="info" className="tours-glyph" />
                                 <h3>No Matching Series</h3>
                                 <p>No Series Match Your Current filters{searchQuery ? ` for "${searchQuery}"` : ''}{dateRange !== 'all' ? ` within ${{'7d':'7 days','14d':'2 weeks','30d':'30 days','60d':'2 months','90d':'3 months','6m':'6 months','1y':'1 year'}[dateRange]}` : ''}.</p>
                                 <button className="tours-empty-reset" onClick={resetFilters}>
@@ -957,7 +959,7 @@ export default function PokerSeriesPage({ initialSeries = [], seriesIndex = [], 
                             </div>
                         ) : (
                             <div className="tours-grid" style={{ margin: '0 auto', maxWidth: '1400px', width: '100%', padding: '0 20px', boxSizing: 'border-box' }}>
-                                {filteredSeries.map((series, idx) => {
+                                {filteredSeries.slice(0, SERIES_PANEL_LIMIT).map((series, idx) => {
                                     const rawTourCode = (series.tour || series.tour_code || series.short_name || '').toUpperCase();
                                     const isKnownTour = rawTourCode && rawTourCode !== 'INDEPENDENT' && TOUR_COLORS[rawTourCode];
                                     const tourCode = isKnownTour ? rawTourCode : '';
@@ -992,25 +994,28 @@ export default function PokerSeriesPage({ initialSeries = [], seriesIndex = [], 
                                     }).slice(0, 5);
 
                                     return (
-                                        <div
+                                        // PAINT WHAT NEVER CHANGES (2026-09-29). The row was a CSS
+                                        // card: a 145deg gradient face, a 2px tinted border, a 14px
+                                        // radius, three stacked shadows and a 3px gradient bar across
+                                        // the top, all of it drawn in the stylesheet and all of it
+                                        // different per tour. The frame is master art now; the row
+                                        // prints its live data on the glass between the rails.
+                                        <PokerNearMePanelShell
                                             key={series.series_uid || series.id || idx}
                                             className="tour-card-premium"
-                                            style={{
-                                                borderColor: colors.border + 'A6',
-                                                '--card-accent': colors.border,
-                                                cursor: detailUrl ? 'pointer' : 'default',
-                                            }}
+                                            bodyClassName="tour-card-premium__body"
+                                            style={{ cursor: detailUrl ? 'pointer' : 'default' }}
                                             onClick={() => { if (detailUrl) router.push(detailUrl); }}
                                         >
                                             {/* Favorite Button */}
                                             <button
+                                                type="button"
                                                 className={'tour-fav-btn' + (isFav ? ' active' : '')}
                                                 onClick={e => toggleFavorite(favKey, e)}
                                                 aria-label="Favorite series"
+                                                aria-pressed={isFav ? 'true' : 'false'}
                                             >
-                                                <svg width="16" height="16" viewBox="0 0 24 24" fill={isFav ? '#ef4444' : 'none'} stroke={isFav ? '#ef4444' : 'rgba(255,255,255,0.4)'} strokeWidth="2">
-                                                    <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" />
-                                                </svg>
+                                                <PokerNearMeConsoleIcon name="saved" />
                                             </button>
 
                                             {/* Card Header — Square Logo + Badge col + Type pill */}
@@ -1020,32 +1025,23 @@ export default function PokerSeriesPage({ initialSeries = [], seriesIndex = [], 
                                                     <PokerIdentityMark src={series.logo_url} name={seriesName} size={58} />
                                                     {/* Tour badge + series name stacked */}
                                                     <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flex: 1, minWidth: 0 }}>
-                                                        <div
-                                                            className="tour-code-badge"
-                                                            style={{ background: colors.bg, border: '1px solid ' + colors.border, alignSelf: 'flex-start' }}
-                                                        >
-                                                            <span style={{ color: colors.text, fontSize: isKnownTour ? 14 : 12, fontWeight: 800, letterSpacing: isKnownTour ? '0.5px' : '0.3px', textTransform: 'uppercase' }}>
-                                                                {badgeLabel}
-                                                            </span>
+                                                        {/* The tour code was a boxed chip filled with a
+                                                            135deg gradient and outlined in a colour
+                                                            chosen per tour. It is a label: it prints as
+                                                            one, in the console's own lit ink. */}
+                                                        <div className="tour-code-badge" data-known={isKnownTour ? 'true' : 'false'}>
+                                                            <span>{badgeLabel}</span>
                                                         </div>
                                                         {/* Series Name lives inside header col when logo present */}
                                                         <h4 className="tour-card-name" style={{ margin: 0 }}>{seriesName}</h4>
                                                     </div>
                                                 </div>
-                                                <span
-                                                    className="tour-type-pill"
-                                                    style={{ color: typeInfo.color, borderColor: typeInfo.color + '40', background: typeInfo.color + '15', flexShrink: 0 }}
-                                                >
-                                                    {typeInfo.label}
-                                                </span>
                                             </div>
 
                                             {/* Venue + Location with LIVE/UPCOMING badge */}
                                             <div className="tour-card-location-live">
                                                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={live ? '#22c55e' : upcoming ? '#60a5fa' : 'currentColor'} strokeWidth="2" style={{ flexShrink: 0 }}>
-                                                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" /><circle cx="12" cy="10" r="3" />
-                                                    </svg>
+                                                    <PokerNearMeConsoleIcon name="location" className="tour-card-glyph" />
                                                     {live && (
                                                         <span style={{ color: '#22c55e', fontWeight: 700, fontSize: 12, letterSpacing: '0.3px' }}>
                                                             LIVE NOW
@@ -1069,9 +1065,7 @@ export default function PokerSeriesPage({ initialSeries = [], seriesIndex = [], 
                                             {/* Date Range */}
                                             {(series.start_date || series.end_date) && (
                                                 <div className="tour-card-buyins">
-                                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ flexShrink: 0 }}>
-                                                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" />
-                                                    </svg>
+                                                    <PokerNearMeConsoleIcon name="calendar" className="tour-card-glyph" />
                                                     <span>
                                                         {formatSeriesDateRange(series.start_date, series.end_date)}
                                                     </span>
@@ -1079,19 +1073,32 @@ export default function PokerSeriesPage({ initialSeries = [], seriesIndex = [], 
                                             )}
 
                                             {/* Buy-In + Guarantee + Event Count Tags */}
+                                            {/* THE LABEL AND THE HEART NO LONGER SHARE A CORNER
+                                                (2026-09-29). The room-type label sat at the header's
+                                                right edge with margin-left:auto while the save control
+                                                was absolutely positioned over that same corner, so
+                                                "Casino" printed under the heart on every row. The
+                                                label belongs with the rest of the row's facts, and
+                                                they are printed as lit values on the glass rather
+                                                than as tinted, rounded pills. */}
                                             <div className="tour-card-tags">
+                                                {typeInfo.label && (
+                                                    <span className="tour-region-tag tour-region-tag--type">
+                                                        {typeInfo.label}
+                                                    </span>
+                                                )}
                                                 {evtCount > 0 && (
-                                                    <span className="tour-region-tag" style={{ background: 'rgba(34,197,94,0.1)', borderColor: 'rgba(34,197,94,0.3)', color: 'rgba(34,197,94,0.85)' }}>
+                                                    <span className="tour-region-tag tour-region-tag--count">
                                                         {evtCount} Events
                                                     </span>
                                                 )}
                                                 {series.main_event_buyin && (
-                                                    <span className="tour-region-tag" style={{ background: 'rgba(255,255,255,0.1)', borderColor: 'rgba(255,255,255,0.3)', color: '#ffffff' }}>
+                                                    <span className="tour-region-tag tour-region-tag--money">
                                                         {formatMoney(series.main_event_buyin)} Main
                                                     </span>
                                                 )}
                                                 {(series.total_guaranteed || series.main_event_guaranteed) && (
-                                                    <span className="tour-region-tag" style={{ background: 'rgba(255,255,255,0.1)', borderColor: 'rgba(255,255,255,0.3)', color: '#ffffff' }}>
+                                                    <span className="tour-region-tag tour-region-tag--money">
                                                         {formatMoney(series.total_guaranteed || series.main_event_guaranteed)} GTD
                                                     </span>
                                                 )}
@@ -1101,9 +1108,7 @@ export default function PokerSeriesPage({ initialSeries = [], seriesIndex = [], 
                                             {upcomingEvents.length > 0 && (
                                                 <div className="tour-card-series">
                                                     <div className="tour-series-header">
-                                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" />
-                                                        </svg>
+                                                        <PokerNearMeConsoleIcon name="event-ticket" className="tour-card-glyph" />
                                                         Events ({events.length})
                                                     </div>
                                                     {upcomingEvents.map((evt, i) => (
@@ -1153,9 +1158,52 @@ export default function PokerSeriesPage({ initialSeries = [], seriesIndex = [], 
                                                     )}
                                                 </div>
                                             </div>
-                                        </div>
+                                        </PokerNearMePanelShell>
                                     );
                                 })}
+
+                                {/* A DIRECTORY MUST STILL BE READABLE (2026-09-29).
+                                    227 painted rows stand 86,741px tall on a phone,
+                                    which is 103 screens to the footer. Past the panel
+                                    limit each series keeps a real, visible, server
+                                    rendered link, printed as a row on the console
+                                    glass. Nothing is hidden behind a toggle and every
+                                    series page is still reachable by following a
+                                    link, which is the contract the "View Schedule"
+                                    link above exists to keep. */}
+                                {filteredSeries.length > SERIES_PANEL_LIMIT && (
+                                    <PokerNearMePanelShell
+                                        as="section"
+                                        className="series-more"
+                                        aria-labelledby="series-more-heading"
+                                    >
+                                        <h3 id="series-more-heading" className="series-more__heading">
+                                            More Series Matching These Filters
+                                        </h3>
+                                        <ul className="series-more__list">
+                                            {filteredSeries.slice(SERIES_PANEL_LIMIT).map((series, idx) => {
+                                                const href = series.id ? '/hub/series/' + series.id : null;
+                                                const label = cleanHtml(series.name || series.series_name || 'Poker Series');
+                                                const where = [series.city, series.state].filter(Boolean).join(', ');
+                                                return (
+                                                    <li key={series.series_uid || series.id || 'idx-' + idx}>
+                                                        {href ? (
+                                                            <Link href={href} className="series-more__link">
+                                                                <span className="series-more__name">{label}</span>
+                                                                {where && <span className="series-more__where">{where}</span>}
+                                                            </Link>
+                                                        ) : (
+                                                            <span className="series-more__link">
+                                                                <span className="series-more__name">{label}</span>
+                                                                {where && <span className="series-more__where">{where}</span>}
+                                                            </span>
+                                                        )}
+                                                    </li>
+                                                );
+                                            })}
+                                        </ul>
+                                    </PokerNearMePanelShell>
+                                )}
                             </div>
                         )}
     
@@ -1760,44 +1808,138 @@ export default function PokerSeriesPage({ initialSeries = [], seriesIndex = [], 
                     }
 
                     /* ═══ SERIES CARDS GRID ═══ */
+                    body.world-poker-near-me .tours-glyph {
+                        width: 20px;
+                        height: 20px;
+                        flex: 0 0 20px;
+                    }
+                    body.world-poker-near-me .tours-empty .tours-glyph {
+                        width: 40px;
+                        height: 40px;
+                        flex: 0 0 40px;
+                        opacity: 0.75;
+                    }
                     .tours-grid {
                         display: grid;
                         grid-template-columns: repeat(2, 1fr);
                         gap: 16px;
                     }
 
+                    /* The overflow index: every remaining series as a row on
+                       the console glass, engraved rule between them, one
+                       column on a phone and as many as the glass holds on a
+                       wide screen. */
+                    body.world-poker-near-me .pnc-panel.series-more {
+                        width: min(100%, 1000px);
+                        margin: 8px auto 0;
+                        padding: 0 !important;
+                        border: 0 !important;
+                        border-radius: 0 !important;
+                        background: none !important;
+                        background-image: none !important;
+                        box-shadow: none !important;
+                        grid-column: 1 / -1;
+                    }
+                    .series-more__heading {
+                        margin: 0;
+                        padding: 0 0 8px;
+                        color: #45adff;
+                        font-size: 13px;
+                        font-weight: 700;
+                        letter-spacing: 0.14em;
+                        text-shadow: 0 0 6px rgba(49,168,255,0.55), 0 1px 2px rgba(0,0,0,0.85);
+                        text-transform: uppercase;
+                    }
+                    .series-more__list {
+                        display: grid;
+                        margin: 0;
+                        padding: 0;
+                        column-gap: 24px;
+                        grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr));
+                        list-style: none;
+                    }
+                    .series-more__link {
+                        display: grid;
+                        min-height: 48px;
+                        align-items: center;
+                        gap: 0 14px;
+                        grid-template-columns: minmax(0, 1fr) auto;
+                        padding: 8px 0;
+                        border: 0;
+                        border-top: 1px solid #000;
+                        border-radius: 0;
+                        background: none;
+                        box-shadow: inset 0 1px 0 rgba(255,255,255,0.08);
+                        text-decoration: none;
+                    }
+                    .series-more__name {
+                        min-width: 0;
+                        color: #e4e7ec;
+                        font-size: 14px;
+                        font-weight: 700;
+                        overflow-wrap: anywhere;
+                        text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+                    }
+                    .series-more__where {
+                        color: #9aa5b3;
+                        font-size: 12px;
+                        font-weight: 600;
+                        letter-spacing: 0.08em;
+                        text-align: right;
+                        text-transform: uppercase;
+                        white-space: nowrap;
+                    }
+                    a.series-more__link:active .series-more__name {
+                        color: #f4f7fb;
+                    }
+                    a.series-more__link:focus-visible {
+                        outline: 2px solid #8fd4ff;
+                        outline-offset: -3px;
+                    }
+
                     /* ═══ PREMIUM SERIES CARD ═══ */
-                    .tour-card-premium {
+                    /* The frame is master art. Nothing here draws one.
+                       FRAMES NEVER SIT ON FRAMES: a shared rule dresses every
+                       class named "card" on this world, this one included, in
+                       a 152deg gradient face, a 1px border, a 5px radius and a
+                       46px drop shadow, all with !important. Switched off
+                       longhand by longhand at higher specificity so the panel
+                       art is the only frame on the row. */
+                    body.world-poker-near-me .pnc-panel.tour-card-premium {
                         position: relative;
-                        background: linear-gradient(145deg, rgba(15,23,42,0.95) 0%, rgba(10,15,28,0.98) 100%);
-                        border: 2px solid var(--card-accent, rgba(100,116,139,0.4));
-                        border-radius: 14px;
-                        padding: 18px 20px 14px;
+                        padding: 0 !important;
+                        border: 0 !important;
+                        border-radius: 0 !important;
+                        background: none !important;
+                        background-color: transparent !important;
+                        background-image: none !important;
+                        box-shadow: none !important;
                         cursor: pointer;
-                        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-                        box-shadow:
-                            0 2px 12px rgba(0,0,0,0.3),
-                            0 0 10px rgba(100,116,139,0.1),
-                            inset 0 1px 0 rgba(255,255,255,0.04);
-                        overflow: hidden;
+                        overflow: visible !important;
+                        transform: none !important;
                     }
-                    .tour-card-premium::before {
-                        content: '';
-                        position: absolute;
-                        top: 0;
-                        left: 0;
-                        right: 0;
-                        height: 3px;
-                        background: linear-gradient(90deg, transparent, var(--card-accent, rgba(100,116,139,0.5)), transparent);
-                        opacity: 1;
-                        transition: opacity 0.3s;
+                    .tour-card-premium__body {
+                        display: flex;
+                        flex-direction: column;
+                        padding-top: 4px;
+                        padding-bottom: 14px;
                     }
-                    .tour-card-premium:hover {
-                        transform: translateY(-2px);
-                        box-shadow:
-                            0 8px 32px rgba(0,0,0,0.4),
-                            0 0 18px rgba(255,255,255,0.15),
-                            inset 0 1px 0 rgba(255,255,255,0.06);
+                    /* The venue block was a second inset card inside the row:
+                       a 25% black fill, a 1px border and an 8px radius. Rows on
+                       the glass, with an engraved rule above them. */
+                    body.world-poker-near-me .tour-card-premium .tour-card-location-live {
+                        padding: 9px 0 !important;
+                        border: 0 !important;
+                        border-top: 1px solid #000 !important;
+                        border-radius: 0 !important;
+                        background: none !important;
+                        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
+                    }
+                    body.world-poker-near-me .tour-card-premium .tour-card-buyins,
+                    body.world-poker-near-me .tour-card-premium .tour-card-series {
+                        border-radius: 0 !important;
+                        background: none !important;
+                        box-shadow: none !important;
                     }
 
                     /* Card Header */
@@ -1806,23 +1948,42 @@ export default function PokerSeriesPage({ initialSeries = [], seriesIndex = [], 
                         align-items: center;
                         gap: 10px;
                         margin-bottom: 12px;
+                        padding-right: 46px;
+                    }
+                    /* Painted pictograms from the console kit, printed at
+                       reading size beside the line they belong to. The row
+                       used to draw its own line-art in inline SVG. */
+                    .tour-card-premium .tour-card-glyph {
+                        width: 18px;
+                        height: 18px;
+                        flex: 0 0 18px;
+                    }
+                    .tour-fav-btn .pnc-icon {
+                        width: 26px;
+                        height: 26px;
+                        flex: 0 0 26px;
                     }
                     .tour-code-badge {
                         display: inline-flex;
+                        align-self: flex-start;
                         align-items: center;
-                        justify-content: center;
-                        padding: 6px 14px;
-                        border-radius: 6px;
-                        min-width: 60px;
+                        padding: 0;
+                        border: 0;
+                        border-radius: 0;
+                        background: none;
                     }
-                    .tour-type-pill {
+                    .tour-code-badge span {
+                        color: #45adff;
                         font-size: 12px;
-                        font-weight: 600;
-                        padding: 3px 10px;
-                        border-radius: 20px;
-                        border: 1px solid;
-                        letter-spacing: 0.3px;
-                        margin-left: auto;
+                        font-weight: 800;
+                        letter-spacing: 0.16em;
+                        text-shadow:
+                            0 0 6px rgba(49,168,255,0.55),
+                            0 1px 2px rgba(0,0,0,0.85);
+                        text-transform: uppercase;
+                    }
+                    .tour-code-badge[data-known='true'] span {
+                        font-size: 14px;
                     }
 
                     .tour-card-name {
@@ -1868,17 +2029,43 @@ export default function PokerSeriesPage({ initialSeries = [], seriesIndex = [], 
                     .tour-card-tags {
                         display: flex;
                         flex-wrap: wrap;
-                        gap: 6px;
+                        gap: 4px 0;
                         margin-bottom: 10px;
+                        padding-top: 9px;
+                        border-top: 1px solid #000;
+                        box-shadow: inset 0 1px 0 rgba(255,255,255,0.08);
                     }
+                    /* Figures print on the glass. An engraved rule separates
+                       them; nothing is a rounded, tinted chip. */
                     .tour-region-tag {
-                        padding: 3px 10px;
-                        border-radius: 6px;
-                        background: rgba(59,130,246,0.1);
-                        border: 1px solid rgba(59,130,246,0.2);
-                        color: #76a9ff;
+                        padding: 0 12px;
+                        border: 0;
+                        border-left: 1px solid #000;
+                        border-radius: 0;
+                        background: none;
+                        box-shadow: inset 1px 0 0 rgba(255,255,255,0.08);
+                        color: #9aa5b3;
                         font-size: 12px;
-                        font-weight: 600;
+                        font-weight: 700;
+                        letter-spacing: 0.08em;
+                        text-transform: uppercase;
+                    }
+                    .tour-card-tags .tour-region-tag:first-child {
+                        padding-left: 0;
+                        border-left: 0;
+                        box-shadow: none;
+                    }
+                    .tour-region-tag--type {
+                        color: #45adff;
+                        text-shadow: 0 0 6px rgba(49,168,255,0.5), 0 1px 2px rgba(0,0,0,0.85);
+                    }
+                    .tour-region-tag--count {
+                        color: #c8ffd2;
+                        text-shadow: 0 0 6px rgba(53,217,90,0.55), 0 1px 2px rgba(0,0,0,0.8);
+                    }
+                    .tour-region-tag--money {
+                        color: #e4e7ec;
+                        text-shadow: 0 1px 0 #050607, 0 2px 4px rgba(0,0,0,0.85);
                     }
 
                     .tour-card-series {
@@ -1950,58 +2137,69 @@ export default function PokerSeriesPage({ initialSeries = [], seriesIndex = [], 
                         gap: 8px;
                         margin-left: auto;
                     }
+                    /* The action plates are painted. "View Schedule" was a
+                       135deg white gradient with a lift on hover; a phone
+                       cannot hover and the plate exists in the art. */
                     .tour-action-btn {
-                        padding: 6px 14px;
-                        border-radius: 6px;
-                        font-size: 12px;
-                        font-weight: 600;
-                        cursor: pointer;
-                        transition: all 0.2s;
-                        text-decoration: none;
-                        background: rgba(255,255,255,0.06);
-                        border: 1px solid rgba(148,163,184,0.12);
-                        color: rgba(255,255,255,0.7);
-                    }
-                    .tour-action-btn:hover {
-                        background: rgba(255,255,255,0.1);
-                        border-color: rgba(148,163,184,0.25);
-                        color: #fff;
-                    }
-                    .tour-action-btn.primary {
-                        background: linear-gradient(135deg, #ffffff, #94a3b8);
-                        border: none;
-                        color: #000;
-                        font-weight: 700;
-                        letter-spacing: 0.3px;
-                    }
-                    .tour-action-btn.primary:hover {
-                        box-shadow: 0 4px 16px rgba(255,255,255,0.3);
-                        transform: translateY(-1px);
-                    }
-
-                    .tour-fav-btn {
-                        position: absolute;
-                        top: 12px;
-                        right: 12px;
-                        background: rgba(0,0,0,0.4);
-                        border: 1px solid rgba(255,255,255,0.12);
-                        border-radius: 50%;
-                        width: 32px;
-                        height: 32px;
-                        display: flex;
+                        display: inline-flex;
+                        min-width: 132px;
+                        min-height: 44px;
                         align-items: center;
                         justify-content: center;
-                        cursor: pointer;
-                        transition: all 0.2s;
-                        z-index: 2;
+                        padding: 0 18px;
+                        border: 0;
+                        border-radius: 0;
+                        background: transparent url('/images/pnm-console/painted-controls-v1/button-secondary.png') center / 100% 100% no-repeat;
+                        box-shadow: none;
+                        color: #e4e7ec;
+                        font-size: 12px;
+                        font-weight: 800;
+                        letter-spacing: 0.1em;
+                        text-decoration: none;
+                        text-shadow: 0 1px 0 #050607, 0 2px 4px rgba(0,0,0,0.85);
+                        text-transform: uppercase;
                     }
-                    .tour-fav-btn:hover {
-                        background: rgba(239,68,68,0.15);
-                        border-color: rgba(239,68,68,0.3);
+                    .tour-action-btn.primary {
+                        background-image: url('/images/pnm-console/painted-controls-v1/button-primary.png');
+                        color: #f4f7fb;
+                        text-shadow: 0 0 8px rgba(140,210,255,0.85), 0 2px 4px rgba(0,0,0,0.7);
+                    }
+                    .tour-action-btn:active {
+                        filter: brightness(1.2);
+                    }
+                    .tour-action-btn:focus-visible {
+                        outline: 2px solid #8fd4ff;
+                        outline-offset: -6px;
+                    }
+
+                    /* 32px on a phone is under the 44px floor, and the ring
+                       sat over the room-type label. It is a painted control
+                       in its own holder now, clear of the header's type. */
+                    .tour-fav-btn {
+                        position: absolute;
+                        top: 10px;
+                        right: 8px;
+                        z-index: 2;
+                        display: flex;
+                        width: 44px;
+                        height: 44px;
+                        align-items: center;
+                        justify-content: center;
+                        padding: 0;
+                        border: 0;
+                        border-radius: 0;
+                        background: transparent;
+                        cursor: pointer;
                     }
                     .tour-fav-btn.active {
-                        background: rgba(239,68,68,0.15);
-                        border-color: rgba(239,68,68,0.4);
+                        filter: brightness(1.25);
+                    }
+                    .tour-fav-btn:active {
+                        filter: brightness(1.3);
+                    }
+                    .tour-fav-btn:focus-visible {
+                        outline: 2px solid #8fd4ff;
+                        outline-offset: -4px;
                     }
 
                     /* Loading & Empty States */
@@ -2199,8 +2397,8 @@ export default function PokerSeriesPage({ initialSeries = [], seriesIndex = [], 
                             gap: 8px;
                             padding: 10px 14px;
                         }
-                        .tour-card-premium {
-                            padding: 14px 16px 12px;
+                        .tour-card-premium__body {
+                            padding-bottom: 12px;
                         }
                     }
                 ` }} />

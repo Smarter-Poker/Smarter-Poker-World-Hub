@@ -417,7 +417,7 @@ test('popup viewport guard keeps dossiers clear of the zoom rail and lets the HU
 test('map headers keep every control on a painted face at every width', async () => {
   const styles = await source('src/styles/worlds/poker-near-me-console-map.css');
   // Desktop/tablet: the fullscreen control is centred in the painted pill slot.
-  assert.match(styles, /@media \(min-width: 601px\) and \(min-height: 501px\) \{[\s\S]*?\.pnm-map-surface__controls \{[^}]*top:\s*62\.36%;[^}]*right:\s*13%;/);
+  assert.match(styles, /@media \(min-width: 601px\) and \(min-height: 501px\) \{[\s\S]*?\.pnm-map-surface__controls \{[^}]*top:\s*62\.36%;[^}]*right:\s*13\.6%;/);
   assert.match(styles, /\.pnm-map-surface__fullscreen-control \{[^}]*width:\s*19\.7cqw;[^}]*min-width:\s*44px;/);
   // Phones: capped panel head with the rail layer clipped below the cap.
   assert.match(styles, /@media \(max-width: 600px\) and \(min-height: 501px\) \{[\s\S]*?panel-head\.png'\),\s*url\('\/images\/pnm-console\/painted-chassis-v1\/mid\.png'\) !important;[\s\S]*?background-clip:\s*border-box, content-box !important;/);
@@ -429,4 +429,69 @@ test('map headers keep every control on a painted face at every width', async ()
   // An open dossier is never hidden under the HUD, and fullscreen escapes panel stacking.
   assert.match(styles, /\[data-pnm-popup-covering='true'\] :is\([\s\S]*?\) \{\s*visibility: hidden;/);
   assert.match(styles, /:is\(\.pnc-panel__body, \.pnc__body\):has\(\.pnm-map-surface--fullscreen\) \{\s*z-index: auto !important;/);
+});
+
+test('a page control never prints across the painted fullscreen plate', async () => {
+  const styles = await source('src/styles/worlds/poker-near-me-console-map.css');
+  // top-flat.png paints the plate at x 642-890 of its 1000-wide canvas (inner
+  // face 651-881). Controls box right edge 13.6% -> 864; the fullscreen control
+  // is 19.7cqw wide, so it opens at 667 and centres on that face. Its 3.7cqw
+  // left margin plus the 1cqw gap stop the run before it at 620, which is 22
+  // canvas px clear of the plate's left rail: no pill on a plate.
+  assert.match(styles, /\.pnm-map-surface__fullscreen-control \{[^}]*flex:\s*0 0 19\.7cqw;[^}]*margin-left:\s*3\.7cqw;/);
+  assert.match(styles, /\.pnm-map-surface__controls \.pnm-map-radius-control \{[^}]*width:\s*clamp\(92px, 12\.2cqw, 122px\);/);
+  // Each page control takes its room from the title band, never from the plate.
+  assert.match(styles, /:has\(\.pnm-map-surface__controls > \* \+ \*\) \.pnm-map-surface__identity \{\s*width:\s*33%;/);
+  assert.match(styles, /:has\(\.pnm-map-surface__controls > \* \+ \* \+ \*\) \.pnm-map-surface__identity \{\s*width:\s*26%;/);
+});
+
+test('the fullscreen head keeps its lines and its control inside the painted well face', async () => {
+  const styles = await source('src/styles/worlds/poker-near-me-console-map.css');
+  const frame = await source('src/components/poker-near-me/MapSurfaceFrame.jsx');
+  // search-well.png is 1829 x 313 and its glass face runs y 43-237 (13.7% to
+  // 75.7%) and x 105-1723 (57 to 942 of 1000). The identity band ends at 75%
+  // and the control run at 910, so no line is cut by the rail and the label
+  // never lands on the chrome.
+  assert.match(styles, /--fullscreen \.pnm-map-surface__identity \{\s*top:\s*15%;[^}]*height:\s*60%;/);
+  assert.match(styles, /--fullscreen \.pnm-map-surface__controls \{\s*top:\s*44\.7%;\s*right:\s*9%;\s*width:\s*38%;/);
+  // Every word a player reads starts with a capital.
+  assert.match(frame, /\{expanded \? 'Exit Full Screen' : 'Full Screen'\}/);
+});
+
+test('short landscape prints its head on the same painted well face as fullscreen', async () => {
+  const styles = await source('src/styles/worlds/poker-near-me-console-map.css');
+  const block = styles.slice(styles.indexOf('@media (max-height: 500px) and (orientation: landscape) {'));
+  assert.match(block, /\.pnm-map-surface__identity \{\s*top:\s*15%;[^}]*height:\s*60%;/);
+  assert.match(block, /\.pnm-map-surface__controls \{\s*top:\s*44\.7%;\s*right:\s*9%;\s*width:\s*40%;/);
+});
+
+test('trip result plates declare a painted width the longest label fits inside', async () => {
+  const styles = await source('src/styles/worlds/poker-near-me-console-map.css');
+  const planner = await source('src/components/poker-near-me/RoadTripPlanner.jsx');
+  // A `contain` plate at a 44px row height can only paint 44 x 348/114 = 134px,
+  // and "Start Full Route (N Stops)" measured 150px at 1440. The plate declares
+  // its own width so the art keeps its ratio and the label lands in the face.
+  assert.match(styles, /\.rtp-result-action \{\s*--rtp-plate-w:\s*min\(100%, 248px\);[\s\S]*?aspect-ratio:\s*348 \/ 114;[\s\S]*?padding: 0 calc\(var\(--rtp-plate-w\) \* 0\.11\) !important;/);
+  assert.match(styles, /\.rtp-result-action--route \{[^}]*button-primary\.png/);
+  assert.match(styles, /\.rtp-well--date \{\s*max-width:\s*240px;/);
+  // Every class the planner prints resolves to a painted rule.
+  for (const hook of ['rtp-result-action--route', 'rtp-well--date']) {
+    assert.ok(planner.includes(hook), `${hook} is still printed`);
+    assert.ok(styles.includes(`.${hook}`), `${hook} resolves to a rule`);
+  }
+});
+
+test('a map given no centre and no radius frames the rows it was handed', async () => {
+  const venueMap = await source('src/components/poker-near-me/VenueMap.jsx');
+  // The global search overlay passes neither centerLocation nor radiusMiles, so
+  // the national opening bounds stayed in force and one city answered with the
+  // whole country. The fit is gated on a geography signature so it runs once per
+  // result set and never fights a pan the viewer made.
+  assert.match(venueMap, /createPokerVenueGeographySignature/);
+  assert.match(venueMap, /const fittedGeographyRef = useRef\(null\);/);
+  assert.match(venueMap, /if \(!centerLocation && !radiusMiles && validVenues\.length > 0\s*\n\s*&& geographySignature !== fittedGeographyRef\.current\) \{/);
+  assert.match(venueMap, /fitBounds\(resultBounds, \{ padding: \[34, 34\], maxZoom: 12 \}\)/);
+  assert.match(venueMap, /fittedGeographyRef\.current = null;/, 'a new map session forgets the frame it set');
+  // A caller that owns its own view keeps it.
+  assert.match(venueMap, /const center = centerLocation \|\| userLocation;/);
 });

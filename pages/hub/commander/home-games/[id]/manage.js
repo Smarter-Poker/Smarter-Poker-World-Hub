@@ -856,7 +856,11 @@ export default function ManageHomeGamePage() {
   if (loading) {
     return (
       <div className="cmd-page flex items-center justify-center" data-pnm-home-games="true" data-pnm-realism="machined-v2" data-pnm-secondary-foundation="interaction-v1">
-        <Loader2 className="w-8 h-8 animate-spin text-[#22D3EE]" />
+        <main className="text-center">
+          <h1 className="text-xl font-semibold text-white mb-2">Loading Management Console</h1>
+          <Loader2 className="w-8 h-8 animate-spin text-[#22D3EE] mx-auto" aria-hidden="true" />
+          <p className="text-sm text-[#9FB3C8] mt-2" role="status" aria-live="polite">Checking Your Staff Access For This Group…</p>
+        </main>
       </div>
     );
   }
@@ -893,7 +897,7 @@ export default function ManageHomeGamePage() {
       <CommanderPageShell>
         <SEOHead title="Not Authorized" description="Smarter.Poker" noindex={true} />
         <div className="cmd-page flex items-center justify-center px-4" data-pnm-home-games="true" data-pnm-realism="machined-v2" data-pnm-secondary-foundation="interaction-v1">
-          <div className="max-w-md w-full text-center py-16">
+          <main className="max-w-md w-full text-center py-16">
             <h1 className="text-xl font-semibold text-white mb-2">You Do Not Manage This Game</h1>
             <p className="text-sm text-[#9FB3C8] mb-6">
               Only The Host And Group Staff Can Open The Management Console.
@@ -907,11 +911,11 @@ export default function ManageHomeGamePage() {
               >
                 View The Group
               </button>
-              <button onClick={() => router.push('/hub/home-games')} className="cmd-btn cmd-btn-primary px-4 h-11">
+              <button type="button" onClick={() => router.push('/hub/home-games')} className="cmd-btn cmd-btn-primary px-4 h-11">
                 Browse Home Games
               </button>
             </div>
-          </div>
+          </main>
         </div>
       </CommanderPageShell>
     );

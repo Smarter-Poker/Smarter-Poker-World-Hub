@@ -17,7 +17,16 @@ import {
   isModeledCashGameData,
 } from '../../lib/poker-near-me/liveCashGameData';
 
-const FALLBACK = '/images/pnm-phase-4/venue-signal-fallback-v1.webp';
+/**
+ * How many rooms get a full card before the rest become an index.
+ *
+ * Measured at 390px before this: /hub/poker-near-me/in/tx rendered 86 full
+ * cards and stood 48,304px tall, which is 57 phone screens of scrolling to
+ * reach the footer. A card is about 450px; an index row is about 52px. The
+ * first rooms keep their cards, every remaining room keeps a real, visible,
+ * server-rendered link, and nothing is hidden behind a toggle.
+ */
+const DIRECTORY_CARD_LIMIT = 12;
 
 const REGION_VISUALS = Object.freeze({
   pacific: '/images/pnm-phase-12/location-pacific-command-v1.webp',
@@ -53,28 +62,51 @@ function formatUtcDate(value) {
   });
 }
 
+/**
+ * A LOGO IS NOT A ROOM (2026-09-29).
+ *
+ * The card's media band is a 16:8.5 photographic well that covers. It used to
+ * be filled with `cover_photo_url || profile_photo_url`, and a profile photo
+ * is the venue's wordmark, not a picture of the room. Measured against the
+ * bundled directory: 398 venues, ZERO with a cover photo and 191 with a
+ * profile photo, so every card that showed anything showed a logo blown up to
+ * the card's width. On /hub/poker-near-me/in/tx/austin that printed "LODGE
+ * CARD CLUB" and "RED STAR CARD ROOM" as billboards, and Shuffle 512's 180px
+ * favicon was scaled past four times its own size.
+ *
+ * Only a real cover photograph goes in the band now. Without one the band is
+ * the approved painted plate the stylesheet already carries, which needs no
+ * request and never lies about what the room looks like. The wordmark is not
+ * redrawn anywhere: a venue's own art belongs at its own size, and the venue
+ * profile is where it has room.
+ */
 function VenueCard({ venue }) {
-  const [image, setImage] = useState(venue.cover_photo_url || venue.profile_photo_url || FALLBACK);
+  const cover = String(venue.cover_photo_url || '').trim();
+  const [image, setImage] = useState(cover);
   const updatedLabel = formatUtcDate(venue.updated_at);
   const cashGameLabel = cashGameCountLabel(venue.live_data);
   const modeled = isModeledCashGameData(venue.live_data);
   const catalog = venue.live_data?.data_mode === 'catalog';
   const unavailable = venue.live_data?.live_count_known === false && !catalog;
   return (
-    <PokerNearMePanelShell className="pnm-location-card">
+    <PokerNearMePanelShell className={`pnm-location-card${image ? '' : ' pnm-location-card--plate'}`}>
       <Link href={`/hub/venues/${venue.id}`} aria-label={`View ${venue.name}`}>
         <div className="pnm-location-card__media">
-          <img
-            src={image}
-            alt=""
-            loading="lazy"
-            onError={() => setImage(FALLBACK)}
-            onLoad={(event) => {
-              if (image === FALLBACK) return;
-              const { naturalWidth, naturalHeight } = event.currentTarget;
-              if (naturalWidth < 480 || naturalHeight < 240) setImage(FALLBACK);
-            }}
-          />
+          {image ? (
+            <img
+              src={image}
+              alt=""
+              loading="lazy"
+              onError={() => setImage('')}
+              onLoad={(event) => {
+                const { naturalWidth, naturalHeight } = event.currentTarget;
+                const photographic = naturalWidth >= 480
+                  && naturalHeight >= 240
+                  && naturalWidth / Math.max(1, naturalHeight) >= 1.2;
+                if (!photographic) setImage('');
+              }}
+            />
+          ) : null}
         </div>
         <div className="pnm-location-card__body">
           <span>{String(venue.venue_type || 'Poker room').replace(/_/g, ' ')}</span>
@@ -94,6 +126,35 @@ function VenueCard({ venue }) {
           </div>
         </div>
       </Link>
+    </PokerNearMePanelShell>
+  );
+}
+
+/**
+ * The overflow of any directory grid, printed as rows on the console glass
+ * with an engraved rule between them. Server rendered, visible without
+ * JavaScript, keyboard operable, and every row is a real link: the grid gets
+ * shorter, the directory loses nothing.
+ */
+function DirectoryIndex({ headingId, heading, items }) {
+  if (!items.length) return null;
+  return (
+    <PokerNearMePanelShell
+      as="section"
+      className="pnm-location-index"
+      aria-labelledby={headingId}
+    >
+      <h3 id={headingId} className="pnm-location-index__heading">{heading}</h3>
+      <ul className="pnm-location-index__list">
+        {items.map((item) => (
+          <li key={item.href}>
+            <Link href={item.href} className="pnm-location-index__link">
+              <span className="pnm-location-index__name">{item.name}</span>
+              {item.meta ? <span className="pnm-location-index__where">{item.meta}</span> : null}
+            </Link>
+          </li>
+        ))}
+      </ul>
     </PokerNearMePanelShell>
   );
 }
@@ -169,6 +230,15 @@ export default function PokerNearMeLocationPage({
     });
   }, [city, currentPath, dataRevision, dataSource, degraded, directoryCount, stateCode, title]);
 
+  const cardVenues = useMemo(
+    () => venuesWithCashGames.slice(0, DIRECTORY_CARD_LIMIT),
+    [venuesWithCashGames],
+  );
+  const indexVenues = useMemo(
+    () => venuesWithCashGames.slice(DIRECTORY_CARD_LIMIT),
+    [venuesWithCashGames],
+  );
+
   const structuredData = useMemo(() => buildLocationDirectorySchema({
     title,
     description,
@@ -201,6 +271,7 @@ export default function PokerNearMeLocationPage({
         kind="location"
         eyebrow="Regional poker network"
         title={title}
+        headTitle={placeLabel}
         description={description}
         image={hero.image}
         imageAlt={stateCode
@@ -239,12 +310,21 @@ export default function PokerNearMeLocationPage({
               <p>Move From The National Network Into Room Profiles, City Indexes, And Live Discovery Tools.</p>
             </header>
             <div className="pnm-location-listing__states">
-              {states.map((state) => (
+              {states.slice(0, DIRECTORY_CARD_LIMIT).map((state) => (
                 <PokerNearMePanelShell as={Link} key={state.code} href={state.href} className="pnm-location-listing__state">
                   <span>{state.name}</span><small>{state.venueCount} Venues · {state.cityCount} Cities</small>
                 </PokerNearMePanelShell>
               ))}
             </div>
+            <DirectoryIndex
+              headingId="pnm-state-index-heading"
+              heading="Every Other State With Poker Rooms"
+              items={states.slice(DIRECTORY_CARD_LIMIT).map((state) => ({
+                href: state.href,
+                name: state.name,
+                meta: `${state.venueCount} Venues · ${state.cityCount} Cities`,
+              }))}
+            />
           </section>
         )}
 
@@ -261,9 +341,9 @@ export default function PokerNearMeLocationPage({
             </header>
             <div className="pnm-location-listing__states">
               {unplacedVenues.map((venue) => (
-                <Link key={venue.href} href={venue.href} className="pnm-location-listing__state">
+                <PokerNearMePanelShell as={Link} key={venue.href} href={venue.href} className="pnm-location-listing__state">
                   <span>{venue.name}</span>{venue.where && <small>{venue.where}</small>}
-                </Link>
+                </PokerNearMePanelShell>
               ))}
             </div>
           </section>
@@ -277,12 +357,21 @@ export default function PokerNearMeLocationPage({
               <p>Open A Focused Local Directory Without Losing The Wider {stateName || stateCode} Network.</p>
             </header>
             <div className="pnm-location-listing__states">
-              {cities.map((entry) => (
+              {cities.slice(0, DIRECTORY_CARD_LIMIT).map((entry) => (
                 <PokerNearMePanelShell as={Link} key={entry.href} href={entry.href} className="pnm-location-listing__state">
                   <span>{entry.name}</span><small>{entry.venueCount} Venues</small>
                 </PokerNearMePanelShell>
               ))}
             </div>
+            <DirectoryIndex
+              headingId="pnm-city-index-heading"
+              heading={`Every Other City With Poker Rooms In ${stateName || stateCode}`}
+              items={cities.slice(DIRECTORY_CARD_LIMIT).map((entry) => ({
+                href: entry.href,
+                name: entry.name,
+                meta: `${entry.venueCount} Venues`,
+              }))}
+            />
           </section>
         )}
 
@@ -294,8 +383,24 @@ export default function PokerNearMeLocationPage({
               <p>Open A Room Profile For Schedules, Games, Venue Details, And Current Discovery Signals.</p>
             </header>
             <div className="pnm-location-listing__grid">
-              {venuesWithCashGames.map((venue) => <VenueCard key={venue.id} venue={venue} />)}
+              {cardVenues.map((venue) => <VenueCard key={venue.id} venue={venue} />)}
             </div>
+
+            {/* EVERY ROOM KEEPS A ROAD IN (2026-09-29). The rooms past the
+                card limit are printed as rows on the console glass, an
+                engraved rule between them, exactly as the standard asks for
+                a list of figures. They are server rendered, visible without
+                JavaScript, and crawlable: nothing is behind a toggle and
+                nothing is dropped. */}
+            <DirectoryIndex
+              headingId="pnm-venue-index-heading"
+              heading={`Every Other Poker Venue In ${placeLabel}`}
+              items={indexVenues.map((venue) => ({
+                href: `/hub/venues/${venue.id}`,
+                name: venue.name,
+                meta: [venue.city, venue.state].filter(Boolean).join(', '),
+              }))}
+            />
           </section>
         )}
 

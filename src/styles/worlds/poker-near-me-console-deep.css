@@ -43,7 +43,7 @@ body.world-poker-near-me .pnm-deep-deck__visual::after {
   content: '';
   position: absolute;
   inset: 0;
-  background: url('/images/pnm-console/painted-chassis-v1/source/crest-locator.png') 94% 12% / min(34%, 260px) auto no-repeat,
+  background: url('/images/pnm-console/painted-chassis-v1/crest-locator-520.png') 94% 12% / min(34%, 260px) auto no-repeat,
     rgb(1 4 7 / 72%) !important;
 }
 
@@ -131,3 +131,221 @@ body.world-poker-near-me .pnm-deep-deck__actions :is(a, button):focus-visible {
     background: rgb(1 4 7 / 74%) !important;
   }
 }
+
+/* ---------------------------------------------------------------------------
+   Painted notice: what a deep route shows when there is nothing true to show.
+   The chassis, crest and rails are PokerNearMeConsole's master art; this file
+   only lays the copy and the recovery links onto the glass between the rails.
+   --------------------------------------------------------------------------- */
+
+body.world-poker-near-me .pnc.pnm-deep-notice {
+  width: min(calc(100% - 24px), 1000px) !important;
+  margin: 18px auto 34px !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: none !important;
+  box-shadow: none !important;
+}
+
+body.world-poker-near-me .pnm-deep-notice__copy {
+  max-width: 62ch;
+  margin: 0;
+  padding-top: 1.5cqw;
+}
+
+body.world-poker-near-me .pnm-deep-notice__detail {
+  max-width: 62ch;
+  margin: 0;
+  color: var(--pnc-muted);
+  font-size: 3.2cqw;
+}
+
+body.world-poker-near-me .pnm-deep-notice__links {
+  display: flex;
+  margin: 0;
+  padding: 2.4cqw 0 0;
+  flex-wrap: wrap;
+  gap: 0 6cqw;
+  list-style: none;
+  border-top: 1px solid #000;
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 8%);
+}
+
+body.world-poker-near-me .pnm-deep-notice__link {
+  display: inline-flex;
+  min-width: 44px;
+  min-height: 44px;
+  align-items: center;
+  color: var(--pnc-blue);
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  font-size: 3.2cqw;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-decoration: none;
+  text-shadow: 0 0 0.9cqw rgb(49 168 255 / 70%), 0 0 2cqw rgb(49 168 255 / 30%),
+    0 0.2cqw 0.3cqw rgb(0 0 0 / 85%);
+  text-transform: uppercase;
+}
+
+body.world-poker-near-me .pnm-deep-notice__link:active {
+  color: var(--pnc-white);
+}
+
+body.world-poker-near-me .pnm-deep-notice__link:focus-visible {
+  outline: 2px solid #8fd4ff;
+  outline-offset: 4px;
+}
+
+@media (max-width: 640px) {
+  body.world-poker-near-me .pnm-deep-notice__copy,
+  body.world-poker-near-me .pnm-deep-notice__detail {
+    font-size: max(14px, 3.7cqw);
+  }
+
+  body.world-poker-near-me .pnm-deep-notice__link {
+    font-size: max(13px, 3.4cqw);
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   THE PAINTED HEAD OWNS ITS OWN LINES (2026-09-29).
+
+   Two pre-console rules in poker-near-me.css and poker-near-me-command-
+   surfaces.css still dress `.pnm-deep-deck h1` as free-flowing display type:
+   a `font:` shorthand, `max-width: 760px`, `max-width: 22ch`, a soft drop
+   shadow, and `text-wrap: balance`. `text-wrap` overrides the text-wrap-mode
+   half of the chassis' own `white-space: nowrap`, so the fitted line was free
+   to wrap inside a band that clips.
+
+   Measured on /hub/poker-near-me/in/tx/austin at 390px: the title band is
+   31.3px tall and "Poker Rooms In Austin, Texas" laid out 71.3px of text in
+   it, so two of its three lines printed through the painted rule below the
+   title and the reader saw "Poker Rooms In" cut through the middle. The fit
+   hook could not see it either: the line had already wrapped, so its scroll
+   width equalled the band and it reported the text as fitting.
+
+   Every line inside the chassis head belongs to its painted zone, at the
+   chassis' own size and in the chassis' own engraved ink.
+   --------------------------------------------------------------------------- */
+
+body.world-poker-near-me .pnc.pnm-deep-deck .pnc-zone,
+body.world-poker-near-me .pnc.pnm-deep-notice .pnc-zone {
+  max-width: none !important;
+  white-space: nowrap !important;
+  text-wrap: nowrap !important;
+}
+
+body.world-poker-near-me .pnc.pnm-deep-deck .pnc-zone.pnc__title,
+body.world-poker-near-me .pnc.pnm-deep-notice .pnc-zone.pnc__title {
+  color: var(--pnc-silver) !important;
+  font: 800 7cqw/1.2 var(--font-rajdhani), var(--font-premium-body), Inter, system-ui, sans-serif !important;
+  letter-spacing: 0.03em !important;
+  text-shadow: 0 -0.18cqw 0 rgb(255 255 255 / 55%), 0 0.25cqw 0 #6d747c,
+    0 0.45cqw 0 #050607, 0 0.7cqw 0.9cqw rgb(0 0 0 / 90%) !important;
+  text-transform: uppercase !important;
+  -webkit-text-fill-color: var(--pnc-silver);
+}
+
+/* ---------------------------------------------------------------------------
+   The stage heading. When a route's heading is a phrase rather than a name,
+   the painted band carries the subject and the phrase prints here, over the
+   photograph, at the deck's own display size.
+   --------------------------------------------------------------------------- */
+
+body.world-poker-near-me .pnm-deep-deck__heading {
+  margin: 0 0 12px !important;
+}
+
+/* ---------------------------------------------------------------------------
+   Directory card with no cover photograph. The stylesheet already paints the
+   approved plate into the media well as a background, so the card needs no
+   image request at all; it only needs the well to keep its height.
+   --------------------------------------------------------------------------- */
+
+body.world-poker-near-me .pnm-location-card--plate .pnm-location-card__media {
+  min-height: clamp(170px, 24vw, 230px);
+}
+
+/* ---------------------------------------------------------------------------
+   The room index: every venue past the card limit, printed as rows on the
+   console glass with an engraved rule between them. Server rendered, visible
+   without JavaScript, and every row is a real link.
+   --------------------------------------------------------------------------- */
+
+body.world-poker-near-me .pnm-location-index {
+  /* The desktop ceiling: a painted surface stops growing at the master's own
+     width and centres, so the rails are never asked for more pixels than the
+     art has and a row of type never runs the width of a wide screen. */
+  width: min(100%, 1000px);
+  margin: 20px auto 0;
+}
+
+body.world-poker-near-me .pnm-location-index__heading {
+  margin: 0;
+  padding: 0 0 1.5cqw;
+  color: var(--pnc-blue);
+  font-size: clamp(12px, 3cqw, 16px);
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-shadow: 0 0 0.9cqw rgb(49 168 255 / 55%), 0 0.2cqw 0.3cqw rgb(0 0 0 / 85%);
+  text-transform: uppercase;
+}
+
+body.world-poker-near-me .pnm-location-index__list {
+  /* One column on a phone, as many as the glass holds on a wide screen. The
+     index exists to stop a directory running to 48,000px on a phone; it must
+     not make a desktop taller than the grid it replaced. */
+  display: grid;
+  margin: 0;
+  padding: 0;
+  column-gap: 5cqw;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr));
+  list-style: none;
+}
+
+body.world-poker-near-me .pnm-location-index__link {
+  display: grid;
+  min-height: 48px;
+  align-items: center;
+  gap: 0 4cqw;
+  grid-template-columns: minmax(0, 1fr) auto;
+  padding: 1.6cqw 0;
+  border: 0;
+  border-top: 1px solid #000;
+  border-radius: 0;
+  background: none;
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 8%);
+  text-decoration: none;
+}
+
+body.world-poker-near-me .pnm-location-index__name {
+  min-width: 0;
+  color: var(--pnc-silver);
+  font-size: clamp(14px, 3.4cqw, 20px);
+  font-weight: 700;
+  overflow-wrap: anywhere;
+  text-shadow: 0 0.2cqw 0.3cqw rgb(0 0 0 / 80%);
+}
+
+body.world-poker-near-me .pnm-location-index__where {
+  color: var(--pnc-muted);
+  font-size: clamp(12px, 2.8cqw, 14px);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-align: right;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+body.world-poker-near-me .pnm-location-index__link:active .pnm-location-index__name {
+  color: var(--pnc-white);
+}
+
+body.world-poker-near-me .pnm-location-index__link:focus-visible {
+  outline: 2px solid #8fd4ff;
+  outline-offset: -3px;
+}
+

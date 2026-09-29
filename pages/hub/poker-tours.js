@@ -11,6 +11,7 @@ import { useRouter } from 'next/router';
 import dynamic from 'next/dynamic';
 import { resolveEntityCoordinates, haversineDistance } from '../../src/lib/geoUtils';
 import TourCard from '../../src/components/poker-series/TourCard';
+import { PokerNearMePanelShell, PokerNearMeConsoleIcon } from '../../src/components/poker-near-me/PokerNearMeConsole';
 import PokerNearMeFamilyNav from '../../src/components/poker-near-me/PokerNearMeFamilyNav';
 import HubPageSummary from '../../src/components/seo/HubPageSummary';
 import { tourCanonical } from '../../src/lib/seo/tourPageSeo';
@@ -816,9 +817,7 @@ export default function PokerToursPage({ initialTours = [], houseSeries = [] }) 
                     {/* ═══ MAIN SEARCH BAR + DATE DROPDOWN ═══ */}
                     <form className="tours-search-bar" onSubmit={e => e.preventDefault()}>
                         <div className={`tours-search-wrap${searchFocused ? ' focused' : ''}`}>
-                            <svg className="tours-search-bar-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
-                            </svg>
+                            <PokerNearMeConsoleIcon name="search" className="tours-glyph" />
                             <input
                                 ref={searchInputRef}
                                 type="text"
@@ -838,9 +837,7 @@ export default function PokerToursPage({ initialTours = [], houseSeries = [] }) 
                                     onClick={() => { setSearchQuery(''); searchInputRef.current?.focus(); }}
                                     aria-label="Clear search"
                                 >
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                                        <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-                                    </svg>
+                                    <PokerNearMeConsoleIcon name="close" className="tours-glyph" />
                                 </button>
                             )}
                             {/* Date Range Dropdown — integrated into search bar */}
@@ -976,9 +973,7 @@ export default function PokerToursPage({ initialTours = [], houseSeries = [] }) 
                             </div>
                         ) : filteredTours.length === 0 ? (
                             <div className="tours-empty">
-                                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ opacity: 0.3 }}>
-                                    <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
-                                </svg>
+                                <PokerNearMeConsoleIcon name="info" className="tours-glyph" />
                                 <h3>No Matching Tours</h3>
                                 <p>No Tours Match Your Current filters{searchQuery ? ` for "${searchQuery}"` : ''}{dateRange !== 'all' ? ` within ${{'7d':'7 days','14d':'2 weeks','30d':'30 days','60d':'2 months','90d':'3 months','6m':'6 months','1y':'1 year'}[dateRange]}` : ''}{distanceFilter !== 'all' ? ` within ${distanceFilter} miles` : ''}.</p>
                                 <button
@@ -1554,6 +1549,17 @@ export default function PokerToursPage({ initialTours = [], houseSeries = [] }) 
                     }
 
                     /* ═══ TOUR CARDS GRID ═══ */
+                    body.world-poker-near-me .tours-glyph {
+                        width: 20px;
+                        height: 20px;
+                        flex: 0 0 20px;
+                    }
+                    body.world-poker-near-me .tours-empty .tours-glyph {
+                        width: 40px;
+                        height: 40px;
+                        flex: 0 0 40px;
+                        opacity: 0.75;
+                    }
                     .tours-grid {
                         display: grid;
                         grid-template-columns: repeat(2, 1fr);
@@ -1562,40 +1568,54 @@ export default function PokerToursPage({ initialTours = [], houseSeries = [] }) 
                     }
 
                     /* ═══ PREMIUM TOUR CARD ═══ */
-                    .tour-card-premium {
+                    /* The frame is master art. Nothing here draws one.
+                       FRAMES NEVER SIT ON FRAMES: a shared world rule dresses
+                       every class named "card", this one included, in a
+                       gradient face, a 1px border, a 5px radius and a 46px
+                       drop shadow with !important. Switched off longhand by
+                       longhand at higher specificity. */
+                    body.world-poker-near-me .pnc-panel.tour-card-premium {
                         position: relative;
-                        background: linear-gradient(145deg, rgba(15,23,42,0.95) 0%, rgba(10,15,28,0.98) 100%);
-                        border: 2px solid rgba(239,68,68,0.65);
-                        border-radius: 14px;
-                        padding: 18px 20px 14px;
+                        padding: 0 !important;
+                        border: 0 !important;
+                        border-radius: 0 !important;
+                        background: none !important;
+                        background-color: transparent !important;
+                        background-image: none !important;
+                        box-shadow: none !important;
                         cursor: pointer;
-                        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-                        box-shadow:
-                            0 2px 12px rgba(0,0,0,0.3),
-                            0 0 10px rgba(239,68,68,0.18),
-                            inset 0 1px 0 rgba(255,255,255,0.04);
-                        overflow: hidden;
+                        overflow: visible !important;
+                        transform: none !important;
                     }
-                    .tour-card-premium::before {
-                        content: '';
-                        position: absolute;
-                        top: 0;
-                        left: 0;
-                        right: 0;
-                        height: 3px;
-                        background: linear-gradient(90deg, transparent, rgba(239,68,68,0.5), transparent);
-                        opacity: 1;
-                        transition: opacity 0.3s;
+                    .tour-card-premium__body {
+                        display: flex;
+                        flex-direction: column;
+                        padding-top: 4px;
+                        padding-bottom: 14px;
                     }
-                    .tour-card-premium:hover {
-                        border-color: rgba(239,68,68,0.9);
-                        transform: translateY(-2px);
-                        box-shadow:
-                            0 8px 32px rgba(0,0,0,0.4),
-                            0 0 18px rgba(239,68,68,0.35),
-                            inset 0 1px 0 rgba(255,255,255,0.06);
+                    body.world-poker-near-me .tour-card-premium .tour-card-location-live {
+                        padding: 9px 0 !important;
+                        border: 0 !important;
+                        border-top: 1px solid #000 !important;
+                        border-radius: 0 !important;
+                        background: none !important;
+                        box-shadow: inset 0 1px 0 rgba(255,255,255,0.08) !important;
                     }
-                    .tour-card-premium:hover::before { opacity: 1; }
+                    body.world-poker-near-me .tour-card-premium .tour-card-series {
+                        border-radius: 0 !important;
+                        background: none !important;
+                        box-shadow: none !important;
+                    }
+                    body.world-poker-near-me .tour-card-premium .tour-fav-btn .pnc-icon {
+                        width: 26px;
+                        height: 26px;
+                        flex: 0 0 26px;
+                    }
+                    body.world-poker-near-me .tour-card-premium .tour-card-glyph {
+                        width: 18px;
+                        height: 18px;
+                        flex: 0 0 18px;
+                    }
 
                     /* Card Header */
                     .tour-card-header {
@@ -1603,14 +1623,24 @@ export default function PokerToursPage({ initialTours = [], houseSeries = [] }) 
                         align-items: center;
                         gap: 10px;
                         margin-bottom: 12px;
+                        padding-right: 96px;
                     }
                     .tour-code-badge {
                         display: inline-flex;
+                        align-self: flex-start;
                         align-items: center;
-                        justify-content: center;
-                        padding: 6px 14px;
-                        border-radius: 6px;
-                        min-width: 60px;
+                        padding: 0;
+                        border: 0 !important;
+                        border-radius: 0 !important;
+                        background: none !important;
+                    }
+                    .tour-code-badge span {
+                        color: #45adff !important;
+                        font-size: 13px;
+                        font-weight: 800;
+                        letter-spacing: 0.16em;
+                        text-shadow: 0 0 6px rgba(49,168,255,0.55), 0 1px 2px rgba(0,0,0,0.85);
+                        text-transform: uppercase;
                     }
                     .tour-logo-container {
                         width: 42px;
@@ -1630,13 +1660,18 @@ export default function PokerToursPage({ initialTours = [], houseSeries = [] }) 
                         object-fit: contain;
                         padding: 2px;
                     }
-                    .tour-type-pill {
+                    body.world-poker-near-me .tour-card-premium .tour-type-pill {
+                        padding: 0 0 0 12px !important;
+                        border: 0 !important;
+                        border-left: 1px solid #000 !important;
+                        border-radius: 0 !important;
+                        background: none !important;
+                        box-shadow: inset 1px 0 0 rgba(255,255,255,0.08) !important;
+                        color: #9aa5b3 !important;
                         font-size: 12px;
-                        font-weight: 600;
-                        padding: 3px 10px;
-                        border-radius: 20px;
-                        border: 1px solid;
-                        letter-spacing: 0.3px;
+                        font-weight: 700;
+                        letter-spacing: 0.12em;
+                        text-transform: uppercase;
                     }
 
                     /* Card Name */
@@ -1697,14 +1732,25 @@ export default function PokerToursPage({ initialTours = [], houseSeries = [] }) 
                         gap: 6px;
                         margin-bottom: 10px;
                     }
+                    /* Figures print on the glass, an engraved rule between
+                       them; nothing is a rounded, tinted chip. */
                     .tour-region-tag {
-                        padding: 3px 10px;
-                        border-radius: 6px;
-                        background: rgba(59,130,246,0.1);
-                        border: 1px solid rgba(59,130,246,0.2);
-                        color: #76a9ff;
+                        padding: 0 12px;
+                        border: 0;
+                        border-left: 1px solid #000;
+                        border-radius: 0;
+                        background: none;
+                        box-shadow: inset 1px 0 0 rgba(255,255,255,0.08);
+                        color: #9aa5b3;
                         font-size: 12px;
-                        font-weight: 600;
+                        font-weight: 700;
+                        letter-spacing: 0.08em;
+                        text-transform: uppercase;
+                    }
+                    .tour-card-tags .tour-region-tag:first-child {
+                        padding-left: 0;
+                        border-left: 0;
+                        box-shadow: none;
                     }
 
                     /* Upcoming Series */
@@ -1800,64 +1846,71 @@ export default function PokerToursPage({ initialTours = [], houseSeries = [] }) 
                         gap: 8px;
                         margin-left: auto;
                     }
+                    /* The action plates are painted. "Details" was a flat
+                       white gradient; the plate exists in the art. */
                     .tour-action-btn {
-                        padding: 6px 14px;
-                        border-radius: 6px;
+                        display: inline-flex;
+                        min-width: 122px;
+                        min-height: 44px;
+                        align-items: center;
+                        justify-content: center;
+                        padding: 0 16px;
+                        border: 0;
+                        border-radius: 0;
+                        background: transparent url('/images/pnm-console/painted-controls-v1/button-secondary.png') center / 100% 100% no-repeat;
+                        box-shadow: none;
+                        color: #e4e7ec;
                         font-size: 12px;
-                        font-weight: 600;
-                        cursor: pointer;
-                        transition: all 0.2s;
+                        font-weight: 800;
+                        letter-spacing: 0.1em;
                         text-decoration: none;
-                        background: rgba(255,255,255,0.06);
-                        border: 1px solid rgba(148,163,184,0.12);
-                        color: rgba(255,255,255,0.7);
+                        text-shadow: 0 1px 0 #050607, 0 2px 4px rgba(0,0,0,0.85);
+                        text-transform: uppercase;
                     }
-                    .tour-action-btn:hover {
-                        background: rgba(255,255,255,0.1);
-                        border-color: rgba(148,163,184,0.25);
-                        color: #fff;
+                    .tour-action-btn:active {
+                        filter: brightness(1.2);
+                    }
+                    .tour-action-btn:focus-visible {
+                        outline: 2px solid #8fd4ff;
+                        outline-offset: -6px;
                     }
                     .tour-action-btn.primary {
-                        background: linear-gradient(135deg, #ffffff, #ffffff);
-                        border: none;
-                        color: #000;
-                        font-weight: 700;
-                        letter-spacing: 0.3px;
-                    }
-                    .tour-action-btn.primary:hover {
-                        box-shadow: 0 4px 16px rgba(255,255,255,0.3);
-                        transform: translateY(-1px);
+                        background-image: url('/images/pnm-console/painted-controls-v1/button-primary.png');
+                        border: 0;
+                        color: #f4f7fb;
+                        font-weight: 800;
+                        text-shadow: 0 0 8px rgba(140,210,255,0.85), 0 2px 4px rgba(0,0,0,0.7);
                     }
 
                     /* Favorite Button */
+                    /* 32px is under the 44px floor. Painted controls in their
+                       own holders, clear of the header's type. */
                     .tour-fav-btn {
                         position: absolute;
-                        top: 12px;
-                        right: 12px;
-                        background: rgba(0,0,0,0.4);
-                        border: 1px solid rgba(255,255,255,0.12);
-                        border-radius: 50%;
-                        width: 32px;
-                        height: 32px;
+                        top: 0;
+                        right: 0;
+                        z-index: 2;
                         display: flex;
+                        width: 44px;
+                        height: 44px;
                         align-items: center;
                         justify-content: center;
+                        padding: 0;
+                        border: 0;
+                        border-radius: 0;
+                        background: transparent;
                         cursor: pointer;
-                        transition: all 0.2s;
-                        z-index: 2;
                     }
-                    .tour-fav-btn:hover {
-                        background: rgba(239,68,68,0.15);
-                        border-color: rgba(239,68,68,0.3);
+                    .tour-fav-btn:active {
+                        filter: brightness(1.3);
+                    }
+                    .tour-fav-btn:focus-visible {
+                        outline: 2px solid #8fd4ff;
+                        outline-offset: -4px;
                     }
                     .tour-fav-btn.active {
                         background: rgba(239,68,68,0.15);
-                        border-color: rgba(239,68,68,0.4);
-                    }
-
-                    /* Loading & Empty States */
-                    .tours-loading {
-                        display: flex;
+             play: flex;
                         flex-direction: column;
                         align-items: center;
                         gap: 16px;
@@ -2043,8 +2096,8 @@ export default function PokerToursPage({ initialTours = [], houseSeries = [] }) 
                             gap: 8px;
                             padding: 10px 14px;
                         }
-                        .tour-card-premium {
-                            padding: 14px 16px 12px;
+                        .tour-card-premium__body {
+                            padding-bottom: 12px;
                         }
                     }
                 ` }} />

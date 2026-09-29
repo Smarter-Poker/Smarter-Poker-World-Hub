@@ -39,6 +39,7 @@ import {
   createPokerTourIcon,
   createPokerUserLocationIcon,
   createPokerVenueContentSignature,
+  createPokerVenueGeographySignature,
   createPokerVenueIcon,
   isPokerTourStop,
   pokerVenueTheme,
@@ -212,6 +213,7 @@ export default function VenueMap({
   const onVenueClickRef = useRef(onVenueClick);
   // Content signature of the markers currently drawn — see the marker effect below.
   const renderedSignatureRef = useRef(null);
+  const fittedGeographyRef = useRef(null);
   const [mapReady, setMapReady] = useState(false);
   const [mapError, setMapError] = useState('');
   const [mapLoadAttempt, setMapLoadAttempt] = useState(0);
@@ -435,6 +437,7 @@ export default function VenueMap({
 
     // Fresh, empty layers — force the marker effect's signature guard to redraw.
     renderedSignatureRef.current = null;
+    fittedGeographyRef.current = null;
 
     function updateCircles() {
       circlesGroup.clearLayers();
@@ -657,6 +660,27 @@ export default function VenueMap({
     addPokerMapLayers(clusterGroup, clusteredMarkers);
     addPokerMapLayers(tourLayer, tourMarkers);
     scheduleKeyboardTargetSync();
+
+    // A caller that supplies neither a centre nor a radius (the global search
+    // overlay) has no view of its own, so the national opening bounds stayed in
+    // force and a search for one city answered with the whole country. Frame the
+    // rows the caller passed, once per result geography, so panning and zooming
+    // afterwards is still the user's. Callers that do pass a centre or a radius
+    // keep the view their own effect sets.
+    const geographySignature = createPokerVenueGeographySignature(validVenues, { userLocation, radiusMiles });
+    if (!centerLocation && !radiusMiles && validVenues.length > 0
+      && geographySignature !== fittedGeographyRef.current) {
+      fittedGeographyRef.current = geographySignature;
+      const framePoints = validVenues.map(function(venue) {
+        return [Number(venue.latitude), Number(venue.longitude)];
+      });
+      if (userLocation) framePoints.push([userLocation.lat, userLocation.lng]);
+      const resultBounds = L.latLngBounds(framePoints);
+      if (resultBounds.isValid()) {
+        mapInstanceRef.current.fitBounds(resultBounds, { padding: [34, 34], maxZoom: 12 });
+      }
+    }
+
     const bounds = mapInstanceRef.current.getBounds();
     setViewportCount(validVenues.filter(function(venue) {
       return bounds.contains([Number(venue.latitude), Number(venue.longitude)]);

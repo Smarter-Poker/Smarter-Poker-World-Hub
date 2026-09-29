@@ -14,6 +14,7 @@ import { useScrimDismiss } from '../../hooks/useScrimDismiss';
 import { requireOnlineNow } from '../../hooks/useOnlineStatus';
 import { triggerHaptic } from '../../hooks/useHaptics';
 import toast from '../../stores/toastStore';
+import { PokerNearMeConsoleIcon } from './PokerNearMeConsole';
 
 // ─── Haversine distance (miles) ───────────────────────────────────────────────
 function haversineMiles(lat1, lon1, lat2, lon2) {
@@ -664,7 +665,7 @@ export default function ReportGameModal({
                 {/* ── Header ── */}
                 <div className="rgm-head" style={{
                     display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                    padding: '18px 20px 14px', borderBottom: '1px solid rgba(255,255,255,0.06)',
+                    padding: '18px 20px 14px', borderBottom: '1px solid #000', boxShadow: 'inset 0 -2px 0 rgba(255,255,255,0.06)',
                 }}>
                     <div>
                         <h2 id="rgm-title" style={{ margin: 0, fontSize: 18, fontWeight: 800, color: '#fff', letterSpacing: '-0.02em' }}>
@@ -675,13 +676,11 @@ export default function ReportGameModal({
                         </p>
                     </div>
                     <button type="button" className="sp-icon-btn" onClick={onClose} aria-label="Close report game dialog" style={{ '--sp-btn-size': '44px',
-                        background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)',
-                        borderRadius: 8, width: 44, height: 44, minWidth: 44, minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        color: 'rgba(255,255,255,0.5)', cursor: 'pointer', touchAction: 'manipulation',
+                        background: 'transparent', border: 0,
+                        borderRadius: 0, width: 44, height: 44, minWidth: 44, minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        color: '#9fb0bf', cursor: 'pointer', touchAction: 'manipulation',
                     }}>
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                            <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-                        </svg>
+                        <PokerNearMeConsoleIcon name="close" />
                     </button>
                 </div>
 
@@ -787,7 +786,7 @@ export default function ReportGameModal({
                                     onChange={e => handleGameChange('notes', e.target.value)}
                                     placeholder="Any additional details about the game..."
                                     rows={2}
-                                    style={{ ...inputStyle, resize: 'vertical' }}
+                                    style={{ ...inputStyle, aspectRatio: 'auto', minHeight: 118, padding: '14px 7%', resize: 'vertical', backgroundImage: "url('/images/pnm-console/painted-panels-v1/panel-mid.png')", backgroundSize: '100% auto', backgroundRepeat: 'repeat-y', backgroundPosition: 'top center', backgroundColor: '#020507' }}
                                 />
                             </div>
 
@@ -836,8 +835,8 @@ export default function ReportGameModal({
 
             {/* ── Scoped CSS ── */}
             <style>{`
-                .rgm-scrim { position: fixed; inset: 0; z-index: 10000; background: rgba(0,0,0,0.85); backdrop-filter: blur(8px); display: flex; align-items: center; justify-content: center; padding: 16px; padding-top: max(env(safe-area-inset-top, 0px), 16px); box-sizing: border-box; }
-                .rgm-panel { position: relative; background: linear-gradient(160deg, #0e1523 0%, #0a0f1a 100%); border: 1px solid rgba(110,231,239,0.2); border-radius: 18px; width: 100%; max-width: 500px; max-height: 92dvh; overflow: auto; outline: none; box-shadow: 0 24px 80px rgba(0,0,0,0.7), 0 0 0 1px rgba(110,231,239,0.06); animation: rgm-slideUp 0.28s cubic-bezier(0.34,1.56,0.64,1); box-sizing: border-box; }
+                .rgm-scrim { position: fixed; inset: 0; z-index: 10000; background: #000308; display: flex; align-items: center; justify-content: center; padding: 16px; padding-top: max(env(safe-area-inset-top, 0px), 16px); box-sizing: border-box; }
+                .rgm-panel { position: relative; background: #020507 url('/images/pnm-console/painted-panels-v1/panel-mid.png') top center / 100% auto repeat-y; border: 0; border-radius: 0; width: 100%; max-width: 500px; max-height: 92dvh; overflow: auto; outline: none; box-shadow: none; animation: rgm-slideUp 0.28s cubic-bezier(0.34,1.56,0.64,1); box-sizing: border-box; }
                 .rgm-handle { display: none; }
                 .rgm-panel input, .rgm-panel select, .rgm-panel textarea { min-height: 44px; }
                 .rgm-panel button { min-height: 44px; touch-action: manipulation; }
@@ -845,7 +844,7 @@ export default function ReportGameModal({
                    the 44px X below the status bar, 16px inputs (no iOS zoom). */
                 @media (max-width: 600px) {
                     .rgm-scrim { align-items: flex-end; padding: 0; padding-top: max(env(safe-area-inset-top, 0px), 12px); }
-                    .rgm-panel { max-width: none; border-radius: 16px 16px 0 0; padding-bottom: env(safe-area-inset-bottom, 0px); }
+                    .rgm-panel { max-width: none; border-radius: 0; padding-bottom: env(safe-area-inset-bottom, 0px); }
                     .rgm-handle { display: block; width: 44px; height: 4px; border-radius: 999px; background: rgba(255,255,255,0.18); margin: 8px auto 0; }
                     .rgm-panel input, .rgm-panel select, .rgm-panel textarea { font-size: 16px !important; }
                 }
@@ -870,10 +869,16 @@ const labelStyle = {
     letterSpacing: '0.07em', marginBottom: 7,
 };
 
+// The field frame is the approved long well; only the value is DOM.
+// The box carries the long well's own ratio, so the painted caps are never
+// stretched and never letterboxed inside a taller field.
 const inputStyle = {
-    width: '100%', padding: '9px 12px', boxSizing: 'border-box',
-    background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)',
-    borderRadius: 9, color: '#fff', fontSize: 14, fontFamily: 'inherit',
+    width: '100%', aspectRatio: '1829 / 313', minHeight: 48,
+    padding: '0 7%', boxSizing: 'border-box',
+    backgroundColor: 'transparent',
+    backgroundImage: "url('/images/pnm-console/painted-controls-v1/search-well.png')",
+    backgroundPosition: 'center', backgroundRepeat: 'no-repeat', backgroundSize: 'contain',
+    border: 0, borderRadius: 0, color: '#eef5fb', fontSize: 16, fontFamily: 'inherit',
 };
 
 const selectStyle = {
@@ -881,9 +886,15 @@ const selectStyle = {
 };
 
 const chipStyle = (active) => ({
-    padding: '6px 12px', borderRadius: 7, fontSize: 12, fontWeight: 700,
-    border: active ? '1px solid rgba(110,231,239,0.5)' : '1px solid rgba(255,255,255,0.12)',
-    background: active ? 'rgba(110,231,239,0.15)' : 'rgba(255,255,255,0.04)',
-    color: active ? '#6ee7ef' : 'rgba(255,255,255,0.6)',
-    cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.15s',
+    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+    minWidth: 96, minHeight: 44, padding: '0 14px', boxSizing: 'border-box',
+    borderRadius: 0, fontSize: 13, fontWeight: 800, letterSpacing: '0.04em',
+    border: 0,
+    backgroundColor: 'transparent',
+    backgroundImage: active
+        ? "url('/images/pnm-console/painted-controls-v1/button-primary.png')"
+        : "url('/images/pnm-console/painted-controls-v1/button-secondary.png')",
+    backgroundPosition: 'center', backgroundRepeat: 'no-repeat', backgroundSize: 'contain',
+    color: active ? '#f5fbff' : '#b7c6d2',
+    cursor: 'pointer', fontFamily: 'inherit',
 });

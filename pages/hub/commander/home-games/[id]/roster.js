@@ -235,7 +235,14 @@ export default function HomeGameRosterPage() {
   }
 
   if (loading || checking) {
-    return <div className="cmd-page flex items-center justify-center p-8" data-pnm-home-games="true" data-pnm-realism="machined-v2" data-pnm-secondary-foundation="interaction-v1"><Loader2 className="w-8 h-8 animate-spin text-[#22D3EE]" /></div>;
+    return (
+      <div className="cmd-page flex items-center justify-center p-8" data-pnm-home-games="true" data-pnm-realism="machined-v2" data-pnm-secondary-foundation="interaction-v1">
+        <main className="text-center">
+          <h1 className="text-xl font-semibold text-white mb-2">Loading Roster</h1>
+          <Loader2 className="w-8 h-8 animate-spin text-[#22D3EE] mx-auto" aria-hidden="true" />
+        </main>
+      </div>
+    );
   }
 
   return (

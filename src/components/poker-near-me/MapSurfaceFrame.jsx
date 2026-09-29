@@ -251,7 +251,7 @@ export default function MapSurfaceFrame({
             data-map-fullscreen-control="true"
           >
             <PokerNearMeConsoleIcon name={expanded ? 'close' : 'fullscreen'} />
-            <span>{expanded ? 'Exit full screen' : 'Full screen'}</span>
+            <span>{expanded ? 'Exit Full Screen' : 'Full Screen'}</span>
           </button>
         )}
         </div>

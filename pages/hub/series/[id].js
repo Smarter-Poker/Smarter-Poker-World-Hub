@@ -7,6 +7,7 @@
 
 import Head from 'next/head';
 import SEOHead from '../../../src/components/seo/SEOHead';
+import { PokerNearMePanelShell, PokerNearMeConsoleIcon } from '../../../src/components/poker-near-me/PokerNearMeConsole';
 import useHasMounted from '../../../src/hooks/useHasMounted';
 import {
   fetchSeries,
@@ -902,7 +903,7 @@ export default function SeriesDetailPage({ seoSeries = null }) {
         </nav>
 
         {/* Header Section */}
-        <div className="series-header">
+        <PokerNearMePanelShell className="series-header" bodyClassName="series-header__body">
 
           {/* Square Venue Logo — top-left of header */}
           <PokerIdentityMark
@@ -915,33 +916,13 @@ export default function SeriesDetailPage({ seoSeries = null }) {
 
           <div className="header-badges">
             {/* Tour Badge */}
-            <span
-              className="tour-badge"
-              style={{
-                background: tourStyle.bg,
-                color: tourStyle.text,
-                borderColor: tourStyle.border,
-              }}
-            >
-              {detailVenueBadge}
-            </span>
+            <span className="tour-badge">{detailVenueBadge}</span>
 
             {/* Series Type Badge */}
-            <span
-              className="type-badge"
-              style={{
-                background: detailCategoryColor + '25',
-                color: detailCategoryColor,
-                border: '1px solid ' + detailCategoryColor + '50',
-              }}
-            >
-              {detailCategory}
-            </span>
+            <span className="type-badge">{detailCategory}</span>
 
             {/* Status Badge */}
-            <span className="status-badge" style={{ color: status.color, borderColor: status.color }}>
-              {status.label}
-            </span>
+            <span className="status-badge" data-tone={status.tone || 'neutral'}>{status.label}</span>
           </div>
 
           <h1 className="series-title">{decodeHtml(series.name)}</h1>
@@ -954,33 +935,27 @@ export default function SeriesDetailPage({ seoSeries = null }) {
             >
               {isFollowing ? (
                 <>
-                  <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-                    <path d="M13.854 3.646a.5.5 0 0 1 0 .708l-7 7a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L6.5 10.293l6.646-6.647a.5.5 0 0 1 .708 0z" />
-                  </svg>
+                  <PokerNearMeConsoleIcon name="saved" className="action-btn__glyph" />
                   Following
                   {followerCount > 0 && <span className="follow-count">{followerCount}</span>}
                 </>
               ) : (
                 <>
-                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M8 3v10M3 8h10" strokeLinecap="round" />
-                  </svg>
+                  <PokerNearMeConsoleIcon name="saved" className="action-btn__glyph" />
                   Follow
                   {followerCount > 0 && <span className="follow-count">{followerCount}</span>}
                 </>
               )}
             </button>
             <button className="action-btn share-btn" onClick={handleShare}>
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
-                <path d="M4 8v5a1 1 0 001 1h6a1 1 0 001-1V8M11 4L8 1M8 1L5 4M8 1v9" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
+              <PokerNearMeConsoleIcon name="share" className="action-btn__glyph" />
               {shareMessage || 'Share'}
             </button>
           </div>
-        </div>
+        </PokerNearMePanelShell>
 
         {/* Key Stats Grid */}
-        <div className="stats-grid">
+        <PokerNearMePanelShell className="stats-grid" bodyClassName="stats-grid__body">
           <div className="stat-card">
             <div className="stat-label">Dates</div>
             <div className="stat-value">{formatDateRange(series.start_date, series.end_date)}</div>
@@ -1027,10 +1002,10 @@ export default function SeriesDetailPage({ seoSeries = null }) {
               {detailCategory}
             </div>
           </div>
-        </div>
+        </PokerNearMePanelShell>
 
         {/* Venue Info */}
-        <div className="section-card">
+        <PokerNearMePanelShell className="section-card" bodyClassName="section-card__body">
           <h2 className="section-title">Venue Information</h2>
           <div className="venue-info">
             {venueName && (
@@ -1057,10 +1032,7 @@ export default function SeriesDetailPage({ seoSeries = null }) {
               {series.venue_id && (
                 <Link href={'/hub/venues/' + series.venue_id} legacyBehavior>
                   <a className="venue-link venue-link-primary">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-                      <polyline points="9 22 9 12 15 12 15 22" />
-                    </svg>
+                    <PokerNearMeConsoleIcon name="location" className="series-glyph" />
                     View Venue Page
                   </a>
                 </Link>
@@ -1071,10 +1043,7 @@ export default function SeriesDetailPage({ seoSeries = null }) {
                   legacyBehavior
                 >
                   <a className="venue-link">
-                    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
-                      <circle cx="7" cy="7" r="5" />
-                      <path d="M14 14l-3.5-3.5" strokeLinecap="round" />
-                    </svg>
+                    <PokerNearMeConsoleIcon name="globe" className="series-glyph" />
                     Find On Poker Near Me
                   </a>
                 </Link>
@@ -1086,18 +1055,16 @@ export default function SeriesDetailPage({ seoSeries = null }) {
                   rel="noopener noreferrer"
                   className="venue-link external"
                 >
-                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
-                    <path d="M12 9v4a1 1 0 01-1 1H3a1 1 0 01-1-1V5a1 1 0 011-1h4M9 2h5v5M6.5 9.5L14 2" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
+                  <PokerNearMeConsoleIcon name="globe" className="series-glyph" />
                   Official Website
                 </a>
               )}
             </div>
           </div>
-        </div>
+        </PokerNearMePanelShell>
 
         {/* Events Section */}
-        <div className="section-card">
+        <PokerNearMePanelShell className="section-card" bodyClassName="section-card__body">
           <h2 className="section-title">
             Event Schedule
             {events.length > 0 && <span className="event-count">{events.length + ' events'}</span>}
@@ -1244,30 +1211,20 @@ export default function SeriesDetailPage({ seoSeries = null }) {
             </div>
           ) : (
             <div className="no-events">
-              <svg width="40" height="40" viewBox="0 0 40 40" fill="none" stroke="#64748b" strokeWidth="1.5">
-                <rect x="5" y="8" width="30" height="24" rx="3" />
-                <path d="M5 16h30M13 5v6M27 5v6" />
-              </svg>
+              <PokerNearMeConsoleIcon name="calendar" className="series-glyph" />
               <p>Event Schedule Not Yet Available</p>
               <p className="no-events-sub">Check Back Closer To The Series Start Date For The Full Schedule.</p>
             </div>
           )}
-        </div>
+        </PokerNearMePanelShell>
 
         {/* Results & Leaderboard Section */}
-        <div className="section-card">
+        <PokerNearMePanelShell className="section-card" bodyClassName="section-card__body">
           <h2 className="section-title">Results &amp; Leaderboard</h2>
 
           {results.length === 0 && leaderboard.length === 0 && (
             <div className="no-events">
-              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M6 9H4.5a2.5 2.5 0 010-5C7 4 7 7 7 7" />
-                <path d="M18 9h1.5a2.5 2.5 0 000-5C17 4 17 7 17 7" />
-                <path d="M4 22h16" />
-                <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22" />
-                <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22" />
-                <path d="M18 2H6v7a6 6 0 0012 0V2Z" />
-              </svg>
+              <PokerNearMeConsoleIcon name="trophy" className="series-glyph" />
               <p>Results Will Be Posted As Events Complete.</p>
             </div>
           )}
@@ -1344,20 +1301,15 @@ export default function SeriesDetailPage({ seoSeries = null }) {
               </div>
             </div>
           )}
-        </div>
+        </PokerNearMePanelShell>
 
         {/* Activity Feed Section */}
-        <div className="section-card">
+        <PokerNearMePanelShell className="section-card" bodyClassName="section-card__body">
           <h2 className="section-title">Updates</h2>
 
           {activities.length === 0 && (
             <div className="no-events">
-              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
-                <polyline points="14 2 14 8 20 8" />
-                <line x1="16" y1="13" x2="8" y2="13" />
-                <line x1="16" y1="17" x2="8" y2="17" />
-              </svg>
+              <PokerNearMeConsoleIcon name="info" className="series-glyph" />
               <p>No Updates Yet.</p>
             </div>
           )}
@@ -1387,7 +1339,7 @@ export default function SeriesDetailPage({ seoSeries = null }) {
               })}
             </div>
           )}
-        </div>
+        </PokerNearMePanelShell>
       </main>
 
       <style suppressHydrationWarning dangerouslySetInnerHTML={{ __html: styles }} />
@@ -1460,14 +1412,24 @@ const styles = `
   }
 
   /* Header */
-  .series-header {
+  body.world-poker-near-me .pnc-panel.series-header {
+    width: min(100%, 900px);
     max-width: 900px;
     margin: 0 auto 28px;
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    border-radius: 16px;
-    padding: 28px 28px 24px;
-    backdrop-filter: blur(12px);
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: none !important;
+    background-color: transparent !important;
+    background-image: none !important;
+    backdrop-filter: none !important;
+    box-shadow: none !important;
+    overflow: visible !important;
+    transform: none !important;
+  }
+  .series-header__body {
+    padding-top: 6px;
+    padding-bottom: 20px;
   }
 
   .header-badges {
@@ -1478,39 +1440,41 @@ const styles = `
     margin-bottom: 16px;
   }
 
-  .tour-badge {
+  /* The three badges were a gradient chip, a tinted pill and an outlined
+     pill, each coloured from its own table. They are labels; they print as
+     labels in the console's own inks, separated by an engraved rule. */
+  body.world-poker-near-me .series-header .tour-badge {
     display: inline-flex;
     align-items: center;
-    justify-content: center;
-    padding: 6px 14px;
-    border-radius: 6px;
-    border: 1px solid;
+    padding: 0 14px 0 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: none !important;
+    color: #45adff !important;
     font-size: 13px;
     font-weight: 800;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.16em;
+    text-shadow: 0 0 6px rgba(49,168,255,0.55), 0 1px 2px rgba(0,0,0,0.85);
+    text-transform: uppercase;
   }
 
-  .type-badge {
+  body.world-poker-near-me .series-header .type-badge,
+  body.world-poker-near-me .series-header .status-badge {
     display: inline-flex;
     align-items: center;
-    padding: 5px 12px;
-    border-radius: 20px;
+    padding: 0 14px !important;
+    border: 0 !important;
+    border-left: 1px solid #000 !important;
+    border-radius: 0 !important;
+    background: none !important;
+    box-shadow: inset 1px 0 0 rgba(255,255,255,0.08) !important;
+    color: #9aa5b3 !important;
     font-size: 12px;
     font-weight: 700;
+    letter-spacing: 0.12em;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
   }
 
-  .status-badge {
-    display: inline-flex;
-    align-items: center;
-    padding: 5px 12px;
-    border-radius: 20px;
-    border: 1px solid;
-    font-size: 12px;
-    font-weight: 600;
-    background: transparent;
-  }
 
   .series-title {
     font-size: 28px;
@@ -1528,17 +1492,60 @@ const styles = `
     flex-wrap: wrap;
   }
 
-  .action-btn {
+  /* The action plates are painted. Nothing here draws a button, and a
+     phone cannot hover, so the lift states below are gone. */
+  body.world-poker-near-me .series-header .action-btn {
     display: inline-flex;
+    min-width: 150px;
+    min-height: 48px;
     align-items: center;
+    justify-content: center;
     gap: 8px;
-    padding: 10px 20px;
-    border-radius: 10px;
-    font-size: 14px;
-    font-weight: 600;
+    padding: 0 20px !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent url('/images/pnm-console/painted-controls-v1/button-secondary.png') center / 100% 100% no-repeat !important;
+    box-shadow: none !important;
+    color: #e4e7ec !important;
     cursor: pointer;
-    transition: all 0.2s;
-    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    text-shadow: 0 1px 0 #050607, 0 2px 4px rgba(0,0,0,0.85);
+    text-transform: uppercase;
+  }
+  body.world-poker-near-me .series-header .action-btn.follow-btn {
+    background-image: url('/images/pnm-console/painted-controls-v1/button-primary.png') !important;
+    color: #f4f7fb !important;
+    text-shadow: 0 0 8px rgba(140,210,255,0.85), 0 2px 4px rgba(0,0,0,0.7);
+  }
+  body.world-poker-near-me .series-header .action-btn:active {
+    filter: brightness(1.2);
+  }
+  body.world-poker-near-me .series-header .action-btn:focus-visible {
+    outline: 2px solid #8fd4ff;
+    outline-offset: -6px;
+  }
+  body.world-poker-near-me .series-glyph {
+    width: 18px;
+    height: 18px;
+    flex: 0 0 18px;
+  }
+  body.world-poker-near-me .no-events .series-glyph {
+    width: 40px;
+    height: 40px;
+    flex: 0 0 40px;
+    opacity: 0.75;
+  }
+  body.world-poker-near-me .series-header .action-btn__glyph {
+    width: 20px;
+    height: 20px;
+    flex: 0 0 20px;
+  }
+  body.world-poker-near-me .series-header .follow-count {
+    border-radius: 0;
+    background: none;
+    color: inherit;
   }
 
   .follow-btn {
@@ -1547,21 +1554,12 @@ const styles = `
     color: #00D4FF;
   }
 
-  .follow-btn:hover {
-    background: rgba(0, 212, 255, 0.22);
-    border-color: #00D4FF;
+
+  body.world-poker-near-me .series-header .action-btn.follow-btn.following {
+    color: #c8ffd2 !important;
+    text-shadow: 0 0 8px rgba(53,217,90,0.7), 0 2px 4px rgba(0,0,0,0.7);
   }
 
-  .follow-btn.following {
-    background: rgba(74, 222, 128, 0.12);
-    border-color: rgba(74, 222, 128, 0.3);
-    color: #4ade80;
-  }
-
-  .follow-btn.following:hover {
-    background: rgba(74, 222, 128, 0.22);
-    border-color: #4ade80;
-  }
 
   .follow-count {
     display: inline-flex;
@@ -1583,27 +1581,22 @@ const styles = `
     color: #94a3b8;
   }
 
-  .share-btn:hover {
-    background: rgba(148, 163, 184, 0.16);
-    border-color: rgba(148, 163, 184, 0.4);
-    color: #e2e8f0;
-  }
 
   /* Stats Grid */
-  .stats-grid {
-    max-width: 900px;
-    margin: 0 auto 28px;
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 14px;
-  }
+  /* The grid moved to the panel body; the panel itself is a column of
+     painted slices and must not be turned into a grid container. */
 
-  .stat-card {
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    border-radius: 12px;
-    padding: 18px 20px;
-    backdrop-filter: blur(8px);
+  body.world-poker-near-me .stats-grid .stat-card {
+    display: grid;
+    min-height: 48px;
+    align-content: center;
+    padding: 10px 0 !important;
+    border: 0 !important;
+    border-top: 1px solid #000 !important;
+    border-radius: 0 !important;
+    background: none !important;
+    backdrop-filter: none !important;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
   }
 
   .stat-label {
@@ -1636,14 +1629,38 @@ const styles = `
   }
 
   /* Section Card */
-  .section-card {
+  /* PAINT WHAT NEVER CHANGES (2026-09-29). Every section was a glass card:
+     a 3% white fill, a 16px radius and a 12px backdrop blur. The frame is
+     master art now, and a shared world rule that dresses anything called a
+     card is switched off longhand by longhand at higher specificity so no
+     frame sits on the painted frame. */
+  body.world-poker-near-me .pnc-panel.section-card,
+  body.world-poker-near-me .pnc-panel.stats-grid {
+    width: min(100%, 900px);
     max-width: 900px;
     margin: 0 auto 28px;
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    border-radius: 16px;
-    padding: 24px 28px;
-    backdrop-filter: blur(12px);
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: none !important;
+    background-color: transparent !important;
+    background-image: none !important;
+    backdrop-filter: none !important;
+    box-shadow: none !important;
+    overflow: visible !important;
+    transform: none !important;
+  }
+  .section-card__body,
+  .stats-grid__body {
+    padding-top: 6px;
+    padding-bottom: 18px;
+  }
+  /* Figures print as rows on the glass: label in lit blue on the left,
+     value in engraved silver on the right, an engraved rule between them. */
+  .stats-grid__body {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
+    column-gap: 28px;
   }
 
   .section-title {
@@ -2299,16 +2316,16 @@ const styles = `
       gap: 10px;
     }
 
-    .stat-card {
-      padding: 14px 16px;
+    .stats-grid__body .stat-card {
+      padding: 9px 0;
     }
 
     .stat-value {
       font-size: 16px;
     }
 
-    .section-card {
-      padding: 18px 16px;
+    .section-card__body {
+      padding-bottom: 14px;
     }
 
     .events-table-wrap {

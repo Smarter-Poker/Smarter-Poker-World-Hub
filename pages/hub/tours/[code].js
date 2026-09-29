@@ -17,6 +17,7 @@ import StopScheduleModal from '../../../src/components/tours/StopScheduleModal';
 import { busEmit, eventBus, EventType } from '../../../src/engine/EventBus';
 import TourPageSummary from '../../../src/components/seo/TourPageSummary';
 import { tourSeo, tourSchema, registryCodeForTour, tourCanonical } from '../../../src/lib/seo/tourPageSeo';
+import { DeepRouteNotice } from '../../../src/components/poker-near-me/DeepRouteSignalDeck';
 import tourSourceRegistry from '../../../data/tour-source-registry.json';
 
 
@@ -174,25 +175,71 @@ export async function getServerSideProps({ params, res }) {
   let dbSite = null;
   let dbRow = null;
 
+  // DOES THIS TOUR EXIST AT ALL (2026-09-29).
+  //
+  // A code the bundled registry does not carry and the catalog has never
+  // heard of used to be answered with a complete tour page assembled out of
+  // the code itself: /hub/tours/NOPE123 served "NOPE123 Poker Tour" with the
+  // line "is a Poker Tour Followed On Smarter.Poker", status 200 and an
+  // indexable canonical. That is a soft 404, and worse than a missing page,
+  // because it states as fact that a tour exists. `identity` carries the
+  // honest answer and the page below refuses to name a tour it cannot find.
+  let identity = registryEntry ? 'known' : 'not-found';
+
   if (!registryEntry) {
     try {
       const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
       const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
       if (url && key) {
         const { createClient } = await import('@supabase/supabase-js');
-        const { data } = await createClient(url, key)
+        const { data, error } = await createClient(url, key)
           .from('tour_source_registry')
           .select('tour_name, tour_type, official_website, headquarters, established_year, notes, regions')
           .eq('tour_code', code)
           .maybeSingle();
+        if (error) {
+          console.warn('[tours] identity lookup failed:', error?.message || error);
+          identity = 'unavailable';
+        } else if (data) {
+          identity = 'known';
+        }
         dbName = data?.tour_name || null;
         dbType = data?.tour_type || null;
         dbSite = data?.official_website || null;
         dbRow = data || null;
+      } else {
+        // The catalog was never asked. Fifteen of the tours in the sitemap
+        // live only in the database, so "no such tour" would be a guess
+        // here; "come back" is the truth.
+        identity = 'unavailable';
       }
     } catch (e) {
       console.warn('[tours] identity lookup failed:', e?.message || e);
+      identity = 'unavailable';
     }
+  }
+
+  if (identity !== 'known') {
+    // A 404 caches briefly, so one bad code costs one lookup and a mistake
+    // clears itself; an unreachable catalog is a 503 that is not cached at
+    // all. Same shape as pages/hub/series/[id].js.
+    if (identity === 'not-found') {
+      res.statusCode = 404;
+      res.setHeader('Cache-Control', 'public, s-maxage=60');
+    } else {
+      res.statusCode = 503;
+      res.setHeader('Cache-Control', 'no-store');
+      res.setHeader('Retry-After', '120');
+    }
+    return {
+      props: {
+        seo: { code, name: null, type: null, website: null, canonical: tourCanonical(code) },
+        stops: [],
+        events: [],
+        facts: null,
+        identity,
+      },
+    };
   }
 
   // ONE URL FOR A TOUR (AEO phase 3, 2026-09-18). ROUGHRIDER and RRPT are
@@ -254,7 +301,7 @@ export async function getServerSideProps({ params, res }) {
   return { props: { seo, stops, events, facts } };
 }
 
-export default function TourDetailPage({ seo, stops = [], events = [], facts = null }) {
+export default function TourDetailPage({ seo, stops = [], events = [], facts = null, identity = 'known' }) {
   const hasMounted = useHasMounted();
   const router = useRouter();
   const { code } = router.query;
@@ -325,7 +372,9 @@ export default function TourDetailPage({ seo, stops = [], events = [], facts = n
   }, [code]);
 
   // SWR — parallel fetch all tour data
-  const swrKey = code ? `/api/poker/tours?tour_code=${encodeURIComponent(code)}&include_series=true` : null;
+  const swrKey = code && identity === 'known'
+    ? `/api/poker/tours?tour_code=${encodeURIComponent(code)}&include_series=true`
+    : null;
   const { data: swrData, isLoading: loading, error } = useSWR(swrKey, async () => {
     const [tourRes, activityRes, resultsRes, followRes] = await Promise.all([
       fetch('/api/poker/tours?tour_code=' + encodeURIComponent(code) + '&include_series=true').catch(() => ({ ok: false })),
@@ -464,6 +513,53 @@ export default function TourDetailPage({ seo, stops = [], events = [], facts = n
 
   const tourColor = TOUR_COLORS[code] || TOUR_COLORS['default'];
   const tourTypeLabel = tour ? (TOUR_TYPE_LABELS[tour.tour_type] || tour.tour_type) : '';
+
+  // NOTHING TRUE TO SHOW (2026-09-29). A code with no tour behind it, or a
+  // catalog that could not be reached, gets a painted answer that names no
+  // tour, carries noindex, and offers the real places to go next. The server
+  // has already answered 404 or 503; this is what a reader sees.
+  if (identity !== 'known') {
+    const missing = identity === 'not-found';
+    return (
+      <>
+        <SEOHead
+          title={missing ? 'Tour Not Found' : 'Tour Directory Unavailable'}
+          description={missing
+            ? 'This poker tour code is not in the Smarter.Poker tour directory. Browse every poker tour and stop schedule on Smarter.Poker instead.'
+            : 'The Smarter.Poker tour directory could not be reached. Browse every poker tour and stop schedule on Smarter.Poker.'}
+          noindex={true}
+        />
+        <UniversalHeader
+          pageDepth={2}
+          onMenuClick={() => setMenuOpen(true)}
+          onBackClick={() => {
+            router.back();
+          }}
+        />
+        <PokerNearMeFamilyNav />
+        <HamburgerMenu isOpen={menuOpen} onClose={() => setMenuOpen(false)} />
+        <main className="tour-page" data-pnm-secondary-foundation="interaction-v1">
+          <DeepRouteNotice
+            eyebrow="Poker Tours"
+            title={missing ? 'Tour Not Found' : 'Directory Unavailable'}
+            titleId="tour-notice-title"
+            pill={missing ? 'Not Found' : 'Retry Soon'}
+            pillInk={missing ? 'red' : 'gold'}
+            crest="locator"
+            body={missing
+              ? `No poker tour is published under the code ${seo?.code || ''}. Smarter.Poker does not invent a tour to fill a page, so there is nothing here to show.`
+              : 'The tour directory could not be reached just now, so this page cannot say whether any tour uses this code. Please try again in a few minutes.'}
+            detail={missing ? 'Every tour Smarter.Poker tracks is listed in the tour directory.' : null}
+            links={[
+              { href: '/hub/poker-tours', label: 'All Poker Tours' },
+              { href: '/hub/poker-series', label: 'All Poker Series' },
+              { href: '/hub/poker-near-me/lobby', label: 'Poker Near Me' },
+            ]}
+          />
+        </main>
+      </>
+    );
+  }
 
   // The head and the summary are built from props alone, not from
   // router.query and not from SWR, so the server HTML, the hydrating render

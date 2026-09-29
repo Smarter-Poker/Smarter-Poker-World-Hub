@@ -79,6 +79,7 @@ export default function HostHomeGameButton({ className }) {
 
   return (
     <button
+      type="button"
       className={className || "hg-host-btn relative overflow-hidden"}
       onClick={handleStart}
       disabled={checking}

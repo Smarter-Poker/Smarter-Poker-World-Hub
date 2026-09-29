@@ -91,6 +91,7 @@ body.world-poker-near-me {
   align-items: center;
   justify-items: start;
   white-space: nowrap;
+  text-wrap: nowrap; /* a global balance rule could otherwise re-wrap a fitted line inside a clipping band */
 }
 
 .pnc-zone > span {

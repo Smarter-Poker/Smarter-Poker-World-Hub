@@ -226,7 +226,7 @@ export default function DailyTournamentsTabPanel({
                             <div className="card-footer">
                                 {t.venueType && t.venueType !== 'Unknown' && <span className="venue-type">{t.venueType.replace(/[_-]/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</span>}
                                 {t.pokerAtlasUrl && (
-                                    <a href={t.pokerAtlasUrl} target="_blank" rel="noopener noreferrer" className="action-btn primary">
+                                    <a href={t.pokerAtlasUrl} target="_blank" rel="noopener noreferrer" className="action-btn primary pnm-console-cta pnm-console-cta--primary">
                                         Info
                                     </a>
                                 )}

@@ -840,14 +840,12 @@ function LiveGamesFeed({
                     );
                 })}
                 {needsCollapse && (
-                    <button 
-                        onClick={() => toggleBreakdown(venueSlug)} 
-                        style={{ 
-                            display: 'block', width: '100%', marginTop: 6, padding: '5px 0', 
-                            background: 'rgba(255,255,255,0.06)', border: '1.5px solid rgba(255,255,255,0.15)', 
-                            borderRadius: 6, color: '#ffffff', fontSize: 12, fontWeight: 600, 
-                            cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.15s' 
-                        }}
+                    <button
+                        type="button"
+                        onClick={() => toggleBreakdown(venueSlug)}
+                        className="pnm-console-cta"
+                        aria-expanded={isExpanded}
+                        style={{ marginTop: 6 }}
                     >
                         {isExpanded ? 'Show Less' : `Show All ${venueGames.length} Games (+${hiddenCount} more)`}
                     </button>
@@ -1144,8 +1142,7 @@ function LiveGamesFeed({
                         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                             {user && detailId && (
                                 <button onClick={(e) => { e.stopPropagation(); setReportVenue({ id: detailId, name: v.name, city: v.city, state: v.state }); setReportModalOpen(true); }}
-                                    style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '7px 12px', borderRadius: 10, fontSize: 12, fontWeight: 700, cursor: 'pointer', background: 'rgba(255,255,255,0.12)', color: '#ffffff', border: '1px solid rgba(255,255,255,0.25)', fontFamily: 'inherit', transition: 'all 0.2s' }}>
-                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
+                                    type="button" className="pnm-console-cta">
                                     Report
                                 </button>
                             )}
@@ -1159,8 +1156,7 @@ function LiveGamesFeed({
                                 panel open onto a 500 — same id test the Details button uses. */}
                             {setSelectedVenueForReview && detailId && (
                                 <button onClick={(e) => { e.stopPropagation(); setSelectedVenueForReview(v); }}
-                                    style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '7px 12px', borderRadius: 10, fontSize: 12, fontWeight: 700, cursor: 'pointer', background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.8)', border: '1px solid rgba(255,255,255,0.18)', fontFamily: 'inherit', transition: 'all 0.2s' }}>
-                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
+                                    type="button" className="pnm-console-cta">
                                     Reviews
                                 </button>
                             )}
@@ -1171,8 +1167,7 @@ function LiveGamesFeed({
                                     e.stopPropagation();
                                     openVenueDetail();
                                 }}
-                                    style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '7px 12px', borderRadius: 10, fontSize: 12, fontWeight: 700, cursor: 'pointer', background: 'rgba(110,231,239,0.12)', color: '#6ee7ef', border: '1px solid rgba(110,231,239,0.25)', fontFamily: 'inherit', transition: 'all 0.2s' }}>
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="9 18 15 12 9 6" /></svg>
+                                    type="button" className="pnm-console-cta pnm-console-cta--primary">
                                     Details
                                 </button>
                             ) : (
@@ -1242,23 +1237,14 @@ function LiveGamesFeed({
                         onBlur={() => { setTimeout(() => setShowSuggestions(false), 150); }}
                         placeholder="Search venues..."
                         aria-label="Search live venues"
-                        style={{
-                            width: '100%', boxSizing: 'border-box',
-                            padding: '9px 34px 9px 12px', borderRadius: 10,
-                            background: 'rgba(22,27,34,0.9)', border: '1px solid rgba(255,255,255,0.12)',
-                            color: '#e0e8f0', fontSize: 13, fontFamily: 'inherit', outline: 'none',
-                        }}
+                        className="lgf-search-input"
                     />
                     {(searchQuery || selectedVenue) && (
                         <button
                             type="button"
                             onClick={handleClearSearch}
                             aria-label="Clear search"
-                            style={{
-                                position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)',
-                                background: 'none', border: 'none', color: 'rgba(255,255,255,0.5)',
-                                fontSize: 16, lineHeight: 1, cursor: 'pointer', padding: 4, fontFamily: 'inherit',
-                            }}
+                            className="lgf-search-clear"
                         >
                             ×
                         </button>
@@ -1430,19 +1416,13 @@ function LiveGamesFeed({
                                     {filterGameType !== 'all' && <span style={{ color: '#3fb950' }}> · {filterGameType.toUpperCase()}</span>}
                                     {filterStakes !== 'any' && <span style={{ color: '#ffffff' }}> · {filterStakes}/+</span>}
                                 </span>
-                                <button 
-                                    onClick={() => fetchGlobalLiveData(true)} 
+                                <button
+                                    type="button"
+                                    onClick={() => fetchGlobalLiveData(true)}
                                     disabled={isRefreshing}
-                                    style={{ 
-                                        background: 'rgba(255,255,255,0.08)', border: '1.5px solid rgba(255,255,255,0.2)', 
-                                        borderRadius: 6, padding: '4px 10px', color: '#ffffff', fontSize: 12, 
-                                        fontWeight: 600, cursor: isRefreshing ? 'wait' : 'pointer', fontFamily: 'inherit',
-                                        display: 'flex', alignItems: 'center', gap: 4,
-                                    }}
+                                    aria-busy={isRefreshing}
+                                    className="pnm-console-cta"
                                 >
-                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={isRefreshing ? { animation: 'lgf-spin 1s linear infinite' } : {}}>
-                                        <path d="M21 2v6h-6" /><path d="M3 12a9 9 0 0115-6.7L21 8" /><path d="M3 22v-6h6" /><path d="M21 12a9 9 0 01-15 6.7L3 16" />
-                                    </svg>
                                     {isRefreshing ? 'Refreshing...' : 'Refresh'}
                                 </button>
                             </div>
@@ -1507,7 +1487,7 @@ function LiveGamesFeed({
                                         type="button"
                                         className="lgf-show-more"
                                         onClick={() => setLiveVisibleCount((n) => n + PAGE_SIZE_LIVE)}
-                                        style={{ width: '100%', minHeight: 44, marginBottom: 16, borderRadius: 10, border: '1.5px solid rgba(148,163,184,0.2)', background: 'rgba(255,255,255,0.05)', color: '#e2e8f0', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', touchAction: 'manipulation' }}
+                                        style={{ marginBottom: 16 }}
                                     >
                                         Show More Venues ({Math.min(200, mergedVenues.length) - liveVisibleCount} More)
                                     </button>

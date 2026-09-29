@@ -22,11 +22,66 @@ function normalizeMetrics(metrics) {
     .slice(0, 5);
 }
 
+/**
+ * The painted answer for a deep route that has nothing true to show: a code,
+ * id or place that does not exist, or a catalog the server could not reach.
+ * It never invents a name. The chassis, crest and rails are the approved
+ * master art; the copy and the recovery links are live DOM.
+ */
+export function DeepRouteNotice({
+  eyebrow = 'Poker Near Me Network',
+  title,
+  titleId = 'pnm-deep-notice-title',
+  pill = 'Not Found',
+  pillInk = 'red',
+  crest = 'locator',
+  body,
+  detail = null,
+  links = [],
+  className = '',
+}) {
+  return (
+    <PokerNearMeConsole
+      as="section"
+      titleAs="h1"
+      titleId={titleId}
+      eyebrow={eyebrow}
+      title={title}
+      pill={pill}
+      pillInk={pillInk}
+      crest={crest}
+      foot="foot"
+      className={`pnm-deep-notice${className ? ` ${className}` : ''}`}
+      aria-labelledby={titleId}
+    >
+      <p className="pnc-copy pnm-deep-notice__copy">{body}</p>
+      {detail ? <p className="pnc-copy pnm-deep-notice__detail">{detail}</p> : null}
+      {links.length > 0 ? (
+        <ul className="pnm-deep-notice__links">
+          {links.map((link) => (
+            <li key={link.href}>
+              <Link href={link.href} className="pnm-deep-notice__link">{link.label}</Link>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </PokerNearMeConsole>
+  );
+}
+
 export default function DeepRouteSignalDeck({
   kind = 'venue',
   eyebrow = 'Poker Near Me Network',
   title,
+  // A PAINTED BAND IS NOT A SENTENCE (2026-09-29). The chassis title zone is
+  // 47% of the master's width, so at 390px it is 171px of glass. "Poker
+  // Rooms In Austin, Texas" fitted to 9.8px in it and was still unreadable.
+  // A route whose heading is a phrase passes the SHORT subject here; the
+  // phrase itself then prints as the page's h1 on the stage below, where it
+  // has room, and nothing is lost to a reader or a crawler.
+  headTitle = null,
   description,
+  subtitle = null,
   image,
   imageAlt = '',
   breadcrumbs = [],
@@ -38,6 +93,7 @@ export default function DeepRouteSignalDeck({
   compact = false,
 }) {
   const fallback = FALLBACKS[kind] || FALLBACKS.venue;
+  const stageHeading = Boolean(headTitle && String(headTitle).trim() && headTitle !== title);
   const [visual, setVisual] = useState(image || fallback);
   const safeMetrics = useMemo(() => normalizeMetrics(metrics), [metrics]);
 
@@ -48,11 +104,11 @@ export default function DeepRouteSignalDeck({
   return (
     <PokerNearMeConsole
       as="section"
-      titleAs="h1"
-      titleId="pnm-deep-route-title"
+      titleAs={stageHeading ? 'p' : 'h1'}
+      titleId={stageHeading ? 'pnm-deep-route-plate' : 'pnm-deep-route-title'}
       eyebrow={eyebrow}
-      title={title}
-      subtitle={description}
+      title={stageHeading ? headTitle : title}
+      subtitle={subtitle}
       pill={statusTone === 'modeled' ? 'Estimated' : statusTone === 'offline' ? 'Offline' : 'Verified'}
       pillInk={statusTone === 'modeled' ? 'gold' : statusTone === 'offline' ? 'red' : 'green'}
       crest={CRESTS[kind] || 'locator'}
@@ -92,6 +148,8 @@ export default function DeepRouteSignalDeck({
             </ol>
           </nav>
         )}
+
+        {stageHeading && <h1 id="pnm-deep-route-title" className="pnm-deep-deck__heading">{title}</h1>}
 
         {description && <p className="pnm-deep-deck__description">{description}</p>}
 

@@ -20,7 +20,7 @@ import Link from 'next/link';
 import { useState, useEffect, useRef, useMemo, memo, useDeferredValue } from 'react';
 // 2026-05-07 — UI-UX-Pro-Max: Lucide icons replace 11 hand-rolled SVG components
 import {
-    Search, MapPin, Calendar as CalendarLuc, Map as MapLuc,
+    MapPin, Calendar as CalendarLuc, Map as MapLuc,
     ChevronLeft as ChevLeft, ChevronRight as ChevRight,
     X as XLuc, Crosshair, Clock, RefreshCw,
 } from 'lucide-react';
@@ -28,6 +28,7 @@ import { useRouter } from 'next/router';
 import useSWR from 'swr';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import PokerNearMeFamilyNav from '../../src/components/poker-near-me/PokerNearMeFamilyNav';
+import { PokerNearMeConsoleIcon } from '../../src/components/poker-near-me/PokerNearMeConsole';
 import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import useVenueRealtime from '../../src/hooks/useVenueRealtime';
@@ -229,7 +230,6 @@ async function fetchCalendarData(url) {
 }
 
 /* ───── SVG icons replaced by Lucide (see imports). Local components removed. ───── */
-const SearchIcon    = (props) => <Search size={18} aria-hidden {...props} />;
 const MapPinIcon    = ({ size = 14, ...rest }) => <MapPin size={size} aria-hidden {...rest} />;
 const CalendarIcon  = ({ size = 16, ...rest }) => <CalendarLuc size={size} aria-hidden {...rest} />;
 const MapIcon       = (props) => <MapLuc size={16} aria-hidden {...props} />;
@@ -875,8 +875,8 @@ export default function EventsCalendarPage({ fallbackData }) {
           </p>
           {/* Search box — absolute right */}
           <div style={{ position: 'absolute', top: 0, right: 0 }}>
-            <form className="ec-search-wrap" role="search" onSubmit={(e) => { e.preventDefault(); setSearchQuery(searchInput); }} style={{ width: '200px', background: 'rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '500px', padding: '8px 16px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <SearchIcon />
+            <form className="ec-search-wrap" role="search" onSubmit={(e) => { e.preventDefault(); setSearchQuery(searchInput); }}>
+              <PokerNearMeConsoleIcon name="search" className="ec-search-icon" />
               <label htmlFor="ec-search-input" className="ec-sr-only">Search Tournaments</label>
               <input
                 type="text"
@@ -885,10 +885,9 @@ export default function EventsCalendarPage({ fallbackData }) {
                 onChange={e => handleSearchInput(e.target.value)}
                 className="ec-search-input"
                 id="ec-search-input"
-                style={{ background: 'transparent', border: 'none', color: '#fff', outline: 'none', width: '100%', fontSize: '13px' }}
               />
               {searchInput && (
-                <button type="button" className="ec-search-clear" aria-label="Clear search" onClick={() => { setSearchInput(''); setSearchQuery(''); }} style={{ background: 'transparent', border: 'none', color: '#8b8d9b', cursor: 'pointer', padding: 4 }}>
+                <button type="button" className="ec-search-clear" aria-label="Clear search" onClick={() => { setSearchInput(''); setSearchQuery(''); }}>
                   <XIcon />
                 </button>
               )}

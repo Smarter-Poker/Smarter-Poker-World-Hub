@@ -9,6 +9,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { getFreshAccessToken } from '../../lib/authUtils';
 import { OFFLINE_TOAST } from '../../hooks/useOnlineStatus';
 import { normalizeGameName } from './normalize-game';
+import { PokerNearMePanelShell } from './PokerNearMeConsole';
 
 // Venue display names differ between poker_venues (alert rows) and the
 // live-tables feed (resolveVenueName(cleanVenueName(...))). Compare on a
@@ -233,54 +234,38 @@ export default function VenueGameAlerts({ userId, venues = [] }) {
   };
 
   return (
-    <div style={{
-      background: 'linear-gradient(135deg, rgba(15,23,42,0.95), rgba(30,41,59,0.9))',
-      borderRadius: 16, padding: 20, border: '1px solid rgba(0,212,255,0.15)',
-    }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-        <h3 style={{ color: '#fff', margin: 0, fontSize: 16 }}>Game Alerts</h3>
+    <PokerNearMePanelShell className="pnm-console-tool vga-panel" bodyClassName="vga-panel__body">
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+        <h3 style={{ color: '#eef5fb', margin: 0, fontSize: 16 }}>Game Alerts</h3>
         <button
+          type="button"
           onClick={() => setShowCreate(!showCreate)}
-          style={{
-            background: showCreate ? 'rgba(239,68,68,0.2)' : 'rgba(0,212,255,0.15)',
-            border: `1px solid ${showCreate ? 'rgba(239,68,68,0.3)' : 'rgba(0,212,255,0.3)'}`,
-            borderRadius: 8, padding: '6px 14px', fontSize: 13,
-            color: showCreate ? '#f87171' : '#00d4ff', cursor: 'pointer',
-            transition: 'all 0.2s ease',
-          }}
+          aria-expanded={showCreate}
+          className={`pnm-console-cta${showCreate ? '' : ' pnm-console-cta--primary'}`}
         >
-          {showCreate ? 'Cancel' : '+ New Alert'}
+          {showCreate ? 'Cancel' : 'New Alert'}
         </button>
       </div>
 
       {/* Feedback toast */}
       {feedback && (
-        <div style={{
-          padding: '8px 12px', borderRadius: 8, marginBottom: 12, fontSize: 13,
-          background: feedback.type === 'success' ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.15)',
-          border: `1px solid ${feedback.type === 'success' ? 'rgba(34,197,94,0.3)' : 'rgba(239,68,68,0.3)'}`,
-          color: feedback.type === 'success' ? '#4ade80' : '#f87171',
+        <p role="status" aria-live="polite" style={{
+          margin: '0 0 12px', fontSize: 13, fontWeight: 700,
+          color: feedback.type === 'success' ? '#c8ffd2' : '#ff5b6e',
         }}>
           {feedback.msg}
-        </div>
+        </p>
       )}
 
       {/* Create form */}
       {showCreate && (
-        <div style={{
-          background: 'rgba(0,0,0,0.3)', borderRadius: 12, padding: 16, marginBottom: 16,
-          border: '1px solid rgba(0,212,255,0.1)',
-        }}>
+        <div style={{ marginBottom: 16 }}>
           <div style={{ marginBottom: 12 }}>
             <label style={{ color: '#94a3b8', fontSize: 12, display: 'block', marginBottom: 4 }}>Venue</label>
             <select
               value={selectedVenue}
               onChange={e => setSelectedVenue(e.target.value)}
-              style={{
-                width: '100%', padding: '10px 12px', borderRadius: 8,
-                background: 'rgba(15,23,42,0.8)', border: '1px solid rgba(0,212,255,0.2)',
-                color: '#fff', fontSize: 14, outline: 'none',
-              }}
+              className="vga-field"
             >
               <option value="">Select Venue...</option>
               {venueOptions.map(v => <option key={v} value={v}>{v}</option>)}
@@ -291,11 +276,7 @@ export default function VenueGameAlerts({ userId, venues = [] }) {
             <select
               value={selectedGame}
               onChange={e => setSelectedGame(e.target.value)}
-              style={{
-                width: '100%', padding: '10px 12px', borderRadius: 8,
-                background: 'rgba(15,23,42,0.8)', border: '1px solid rgba(0,212,255,0.2)',
-                color: '#fff', fontSize: 14, outline: 'none',
-              }}
+              className="vga-field"
             >
               <option value="">Select Game Type...</option>
               {GAME_TYPES.map(g => <option key={g} value={g}>{g}</option>)}
@@ -304,13 +285,9 @@ export default function VenueGameAlerts({ userId, venues = [] }) {
           <button
             onClick={createAlert}
             disabled={!selectedVenue || !selectedGame || creating}
-            style={{
-              width: '100%', padding: '10px 16px', borderRadius: 8,
-              background: selectedVenue && selectedGame ? 'linear-gradient(135deg, #00d4ff, #0099cc)' : 'rgba(100,116,139,0.3)',
-              border: 'none', color: '#fff', fontSize: 14, fontWeight: 600,
-              cursor: selectedVenue && selectedGame ? 'pointer' : 'not-allowed',
-              transition: 'all 0.2s ease',
-            }}
+            type="button"
+            aria-busy={creating}
+            className="pnm-console-cta pnm-console-cta--primary"
           >
             {creating ? 'Creating...' : 'Create Alert'}
           </button>
@@ -413,6 +390,6 @@ export default function VenueGameAlerts({ userId, venues = [] }) {
       )}
 
       <style>{`@keyframes vga-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }`}</style>
-    </div>
+    </PokerNearMePanelShell>
   );
 }
