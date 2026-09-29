@@ -596,6 +596,12 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
      panel then falls back to the balance check and says nothing it does not
      know (10.86). THE DIAMOND ARENA IS DIAMONDS ONLY. */
   const [walletSummary, setWalletSummary] = useState(null);
+  /* Every source and gift bucket, summed over the WHOLE ledger in SQL by
+     `fn_diamond_flow_by_kind` (phase 7). First-page read, like the totals.
+     `null` means the breakdown could not be read, and the panel says exactly
+     that - it never falls back to a sum over the loaded page and presents it
+     as the whole ledger, and it never draws zeros (10.86). */
+  const [flow, setFlow] = useState(null);
   /* The tab the in-flight request belongs to. A ref, not the state value,
        because `fetchTransactions` must keep one identity: it is what the
        balance-event subscriptions and the pull-to-refresh are built from, and
@@ -859,6 +865,9 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
           // Only a first page carries it; never clear it on a Load More.
           if (data.lifetime) setLifetime(data.lifetime);
           if (offset === 0) setWalletSummary(data.summary ?? null);
+          /* Same first-page rule as the summary, and the same honesty: a
+             missing or unreadable breakdown lands as null, never as {}. */
+          if (offset === 0) setFlow(data.flow ?? null);
 
           if (offset === 0) {
             // Merge the fresh first page into any already-loaded pages so
@@ -1486,10 +1495,27 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
    * `lifetime.earned` / `.spent` are summed IN SQL over the whole ledger by
    * /api/store/diamond-transactions (`fn_diamond_lifetime_totals`, the same
    * RPC the Club Arena wallet reads, so one ledger cannot report two
-   * lifetimes); `lifetime.exact` says the SQL sum answered. The week, month
-   * and gift breakdowns still come from the API's 5,000 most recent rows, and
-   * `lifetime.truncated` says when that window was full. `null` means none of
-   * it could be computed, and the panel says so rather than showing zeros.
+   * lifetimes); `lifetime.exact` says the SQL sum answered.
+   *
+   * PHASE 7, 2026-09-29: THE SOURCE AND GIFT BREAKDOWNS ARE SQL TOO.
+   * Until today the headline came from SQL while the bars, the donut and
+   * the gift plates directly beneath it were `Object.entries` over
+   * `lifetime.bySource` / `.recipients` - reductions the API had made over
+   * its 5,000 most recent rows. Two halves of ONE panel, computed from two
+   * different populations: exact above, windowed below, guaranteed to
+   * disagree the moment a ledger outgrew the page. They now read `flow`,
+   * which `fn_diamond_flow_by_kind` sums over the WHOLE ledger per bucket.
+   * The client reduce is GONE, not kept as a second path beside it: a second
+   * path here is precisely the silent partial sum 10.86 forbids.
+   *
+   * What is still windowed, and is labelled as such on screen when the
+   * window did not cover the ledger: "This Week" (the RPC reports lifetime
+   * and last 30 days, never 7 - so `lifetime.weekExact` PROVES whether the
+   * window reached past the week boundary), the calendar month-on-month
+   * comparison, and Top Recipients (no per-recipient SQL exists; the names
+   * are parsed out of the description text).
+   *
+   * `null` means nothing could be computed and the panel says so.
    */
   const stats = useMemo(() => {
     if (!lifetime) return null;
@@ -1498,30 +1524,53 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
     const weekEarned = lifetime.weekEarned || 0;
     const weekSpent = lifetime.weekSpent || 0;
 
-    // Server keys the sources by raw kind; render them by their label.
+    /*
+     * TOP SOURCES, OVER THE WHOLE LEDGER. Earned and spent buckets are
+     * merged by label because this list has always been sign-agnostic -
+     * `bySource` added Math.abs(amount) for every row - so merging keeps
+     * the panel's meaning while changing where the number comes from.
+     * `flow === null` is "could not tell", and the panel renders that
+     * state instead of an empty bar chart.
+     */
     const sourceMap = {};
-    for (const [kind, value] of Object.entries(lifetime.bySource || {})) {
-      const label = txConfigFor(kind).label;
-      sourceMap[label] = (sourceMap[label] || 0) + value;
+    if (flow) {
+      for (const line of [...flow.earned, ...flow.spent]) {
+        sourceMap[line.label] = (sourceMap[line.label] || 0) + line.lifetime;
+      }
     }
 
     // Top 5 sources
-    const topSources = Object.entries(sourceMap || {})
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 5);
+    const topSources = flow
+      ? Object.entries(sourceMap)
+          .filter(([, amount]) => amount > 0)
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 5)
+      : null;
 
-    // P2-2: Transfer analytics: whole ledger, same server pass.
-    const giftsSent = lifetime.giftsSent || 0;
-    const giftsReceived = lifetime.giftsReceived || 0;
-    const giftCount = lifetime.giftCount || 0;
+    /* P2-2: Transfer analytics, now over the whole ledger. The two gift
+       buckets are the RPC's own, so a player who gifted before the window
+       begins is no longer told they have never gifted. `giftCount` keeps
+       its old meaning: gifts SENT, which is what the plate is beside. */
+    const giftLine = (lines, bucket) => lines.find((l) => l.bucket === bucket) || null;
+    const sentLine = flow ? giftLine(flow.spent, 'gifts_sent') : null;
+    const receivedLine = flow ? giftLine(flow.earned, 'gifts_received') : null;
+    const giftsSent = sentLine ? sentLine.lifetime : null;
+    const giftsReceived = receivedLine ? receivedLine.lifetime : null;
+    const giftCount = sentLine ? sentLine.lifetimeCount : null;
+    /* Recipient NAMES have no SQL behind them - they are parsed out of the
+       description - so this one list stays windowed, and says so when the
+       window was short. */
     const topRecipients = Object.entries(lifetime.recipients || {})
       .sort((a, b) => b[1] - a[1])
       .slice(0, 3);
 
-    // R8-I5: Monthly summary: whole ledger, same server pass. Computed on
-    // the browser it compared "this month" against "last month" using only
-    // the rows loaded, so a month that had scrolled off read as zero and
-    // the percentage change was measured against nothing.
+    /* R8-I5: Monthly summary. Computed in the BROWSER it compared "this
+       month" against "last month" using only the rows loaded, so a month
+       that had scrolled off read as zero. It moved to the server's pass and
+       is exact for any ledger inside the window; `lifetime.truncated` is
+       what says the window was full, and the panel prints that. Calendar
+       months are not the RPC's last-30-days, so this cannot simply read
+       `flow`. */
     const thisMonthEarned = lifetime.thisMonthEarned || 0;
     const thisMonthSpent = lifetime.thisMonthSpent || 0;
     const lastMonthEarned = lifetime.lastMonthEarned || 0;
@@ -1537,19 +1586,30 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
         lastMonthSpent > 0 ? ((thisMonthSpent - lastMonthSpent) / lastMonthSpent) * 100 : 0,
     };
 
-    // R8-I6: Donut chart data: category breakdown with colors
-    const donutData = topSources.map(([name, amount], i) => ({
-      label: name,
-      value: amount,
-      color: MARKETPLACE_ANALYTICS_COLORS[i % MARKETPLACE_ANALYTICS_COLORS.length],
-    }));
+    /* R8-I6: Donut chart data. Drawn from the SAME whole-ledger figures as
+       the bars above it, so the two pictures of one ledger agree. `null`
+       when the breakdown could not be read: no donut, not an empty one. */
+    const donutData = topSources
+      ? topSources.map(([name, amount], i) => ({
+          label: name,
+          value: amount,
+          color: MARKETPLACE_ANALYTICS_COLORS[i % MARKETPLACE_ANALYTICS_COLORS.length],
+        }))
+      : null;
 
     return {
       totalEarned,
       totalSpent,
       weekEarned,
       weekSpent,
+      /* false = the week figures could not be proved to cover the whole
+         week, and the plate says so instead of implying they do. */
+      weekExact: lifetime.weekExact !== false,
+      /* null = the whole-ledger breakdown could not be read. Distinct from
+         an empty list, which means a ledger with nothing in it. */
       topSources,
+      /* true when the windowed sections below the SQL ones are short. */
+      windowed: lifetime.truncated === true,
       giftsSent,
       giftsReceived,
       giftCount,
@@ -1557,7 +1617,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
       monthlyTrend,
       donutData,
     };
-  }, [lifetime]);
+  }, [lifetime, flow]);
 
   if (!isOpen) return null;
 
@@ -2121,6 +2181,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                   </div>
                   <div className={styles.statsFoot}>
                     This Week: +{stats.weekEarned.toLocaleString()}
+                    {!stats.weekExact && ' Or More'}
                   </div>
                 </div>
                 <div className={`${styles.statsPlate} ${styles.statsPlateOut}`}>
@@ -2130,29 +2191,43 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                   </div>
                   <div className={styles.statsFoot}>
                     This Week: -{stats.weekSpent.toLocaleString()}
+                    {!stats.weekExact && ' Or More'}
                   </div>
                 </div>
               </div>
               <div className={`${styles.statsHeading} ${styles.statsHeadingTight}`}>
                 Top Sources
               </div>
-              {stats.topSources.map(([name, amount], i) => (
-                <div key={name} className={styles.statsBarRow}>
-                  <div className={styles.statsBarTrack}>
-                    <div
-                      className={styles.statsBarFill}
-                      style={{
-                        '--bar-width': `${(amount / stats.topSources[0][1]) * 100}%`,
-                        '--bar-color':
-                          MARKETPLACE_ANALYTICS_COLORS[i % MARKETPLACE_ANALYTICS_COLORS.length],
-                      }}
-                    />
-                  </div>
-                  <span className={styles.statsBarLabel}>
-                    {marketplaceCopy(name)}: {amount.toLocaleString()}
-                  </span>
+              {/*
+               * COULD NOT TELL IS ITS OWN OUTCOME (10.86). `topSources` is
+               * null only when fn_diamond_flow_by_kind could not be read.
+               * An empty ARRAY is a different thing - a ledger with nothing
+               * in it - and draws no bars and no message. Neither case is
+               * ever filled in from the loaded page.
+               */}
+              {stats.topSources === null ? (
+                <div className={styles.statsFoot}>
+                  Breakdown Unavailable Right Now. Pull Down To Refresh.
                 </div>
-              ))}
+              ) : (
+                stats.topSources.map(([name, amount], i) => (
+                  <div key={name} className={styles.statsBarRow}>
+                    <div className={styles.statsBarTrack}>
+                      <div
+                        className={styles.statsBarFill}
+                        style={{
+                          '--bar-width': `${(amount / stats.topSources[0][1]) * 100}%`,
+                          '--bar-color':
+                            MARKETPLACE_ANALYTICS_COLORS[i % MARKETPLACE_ANALYTICS_COLORS.length],
+                        }}
+                      />
+                    </div>
+                    <span className={styles.statsBarLabel}>
+                      {marketplaceCopy(name)}: {amount.toLocaleString()}
+                    </span>
+                  </div>
+                ))
+              )}
               {/* R8-I6: Donut Chart: Category Breakdown */}
               {stats.donutData?.length > 0 && (
                 <div className={styles.statsSub}>
@@ -2165,6 +2240,15 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
               {stats.monthlyTrend && (
                 <div className={styles.statsSub}>
                   <div className={styles.statsHeading}>Monthly Comparison</div>
+                  {/* Calendar months are not the breakdown RPC's rolling
+                      30 days, so this pair is still summed over the API's
+                      window. It is exact for any ledger that fits; when the
+                      window was full, it says so. */}
+                  {stats.windowed && (
+                    <div className={styles.statsFoot}>
+                      From Your 5,000 Most Recent Entries, Not Your Whole History.
+                    </div>
+                  )}
                   <div className={`${styles.statsGrid2} ${styles.statsGridTight}`}>
                     <div
                       className={`${styles.statsPlate} ${styles.statsPlateIn} ${styles.statsPlateSmall}`}
@@ -2220,6 +2304,13 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
             </div>
           )}
           {/* P2-2: Gift Analytics (shown when stats are open and gifts exist) */}
+          {/*
+           * The gift plates are whole-ledger figures now, so the panel
+           * appears whenever the ledger HAS gift history, not merely
+           * whenever the loaded page does. `null` means the breakdown was
+           * unreadable: the panel stays away rather than reporting zero
+           * gifts to a player who has sent hundreds.
+           */}
           {showStats && stats && (stats.giftsSent > 0 || stats.giftsReceived > 0) && (
             <div className={`${styles.statsPanel} ${styles.statsPanelGifts}`}>
               <div className={styles.statsHeading}>Gift Activity</div>
@@ -2249,7 +2340,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                   <div
                     className={`${styles.statsFigure} ${styles.statsFigureSmall} ${styles.statsFigureIn}`}
                   >
-                    {stats.giftCount}
+                    {stats.giftCount.toLocaleString()}
                   </div>
                 </div>
               </div>
@@ -2258,6 +2349,15 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                   <div className={`${styles.statsHeading} ${styles.statsHeadingTight}`}>
                     Top Recipients
                   </div>
+                  {/* Recipient names are parsed from the description, so
+                      this list has no whole-ledger SQL behind it. When the
+                      window it is built from did not reach the end of the
+                      ledger, it says so rather than reading as complete. */}
+                  {stats.windowed && (
+                    <div className={styles.statsFoot}>
+                      From Your 5,000 Most Recent Entries, Not Your Whole History.
+                    </div>
+                  )}
                   {stats.topRecipients.map(([name, amount], i) => (
                     <div key={name} className={`${styles.statsBarRow} ${styles.statsBarRowTight}`}>
                       <div className={`${styles.statsBarTrack} ${styles.statsBarTrackThin}`}>
