@@ -43,6 +43,8 @@ import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import useVenueRealtime from '../../../src/hooks/useVenueRealtime';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
 import { PodErrorBoundary } from '../../../src/components/poker-near-me/ControllerRecovery';
+import PokerNearMeFamilyNav from '../../../src/components/poker-near-me/PokerNearMeFamilyNav';
+import PokerNearMeConsole, { PokerNearMeConsoleIcon, PokerNearMePanelShell } from '../../../src/components/poker-near-me/PokerNearMeConsole';
 // BottomNavBar removed — Poker Near Me has its own navigation grid
 
 // ─── Extracted Utilities (Bundle Splitting) ───
@@ -86,12 +88,12 @@ const LobbyOverlay = dynamic(
   }),
   {
     ssr: false,
-    // First paint: one .pnm-skel block where the search bar and the grid land.
+    // First paint: the painted search well and the grid's reserved square,
+    // where the overlay lands. No generic shimmering card.
     loading: () => (
       <div className="pnm-lobby-skeleton" aria-hidden="true">
-        <div className="pnm-skel" style={{ height: 52, marginBottom: 12 }} />
-        <div className="pnm-skel" style={{ aspectRatio: '4 / 3', minHeight: 260 }} />
-        <div className="pnm-skel" style={{ height: 76, marginTop: 12 }} />
+        <div className="pnm-lobby-skeleton__well" />
+        <div className="pnm-lobby-skeleton__grid" />
       </div>
     ),
   }
@@ -338,6 +340,11 @@ export default function PokerNearMeLobby() {
   const [liveDataMode, setLiveDataMode] = useState(null);
   const [totalVenueCount, setTotalVenueCount] = useState(0);
   const [todaysTournamentCount, setTodaysTournamentCount] = useState(0);
+  // Stats sources report 'loading' until they answer, then 'ready' or 'error'.
+  // The lobby prints Loading or Unknown for a count it never received instead
+  // of a zero it never observed.
+  const [platformCountsStatus, setPlatformCountsStatus] = useState('loading');
+  const [dailyCountStatus, setDailyCountStatus] = useState('loading');
   const [lastFetchTime, setLastFetchTime] = useState(null);
 
   // ─── Location State ───
@@ -679,9 +686,11 @@ export default function PokerNearMeLobby() {
       if (isTodayRequest && data?.stats?.total != null) {
         setTodaysTournamentCount(data.stats.total);
       }
+      if (isTodayRequest) setDailyCountStatus('ready');
     } catch (err) {
       if (fetchDailySeqRef.current !== currentSeq) return;
       console.warn('Failed to fetch daily tournaments:', err);
+      if (!dayFilter) setDailyCountStatus(prev => (prev === 'ready' ? prev : 'error'));
     }
   }, []); // No userLocation dep — API doesn’t accept lat/lng
 
@@ -912,8 +921,10 @@ export default function PokerNearMeLobby() {
         setLiveDataMode(tables.data_mode || 'none');
         if (Number.isFinite(tables.published)) setLiveGameCount(tables.published);
       }
+      setPlatformCountsStatus('ready');
     } catch (error) {
       console.warn('[PokerNearMeLobby] Platform count contract unavailable:', error?.message || error);
+      setPlatformCountsStatus(prev => (prev === 'ready' ? prev : 'error'));
     }
   }, []);
 
@@ -2429,23 +2440,33 @@ export default function PokerNearMeLobby() {
       return false;
     });
 
+    // Only a live, mixed or estimated feed publishes a table count. Catalog-only
+    // and no-data feeds, and a feed that never answered, are Unknown, not 0;
+    // null (nothing received yet) prints as Loading.
+    const tablesPublished = liveDataMode === 'live' || liveDataMode === 'mixed' || liveDataMode === 'estimated';
     return {
-      liveGameCount: liveDataMode === 'catalog' ? 'Unknown' : liveGameCount,
+      liveGameCount: tablesPublished
+        ? liveGameCount
+        : (liveDataMode == null && platformCountsStatus === 'loading' ? null : 'Unknown'),
       // /api/poker/live-tables publishes data_mode ('live' | 'mixed' | 'estimated'
       // | 'catalog' | 'none'). The lobby used to render the number under a hardcoded "Live
-      // Tables" label even when the value was a MODEL output. Label it honestly.
-      liveGameLabel: (liveDataMode === 'estimated' || liveDataMode === 'mixed')
-        ? 'Est. Tables'
-        : liveDataMode === 'live'
-          ? 'Live Tables'
-          : liveDataMode === 'catalog'
-            ? 'Live Count'
-            : 'Cash Tables',
+      // Tables" label even when the value was a MODEL output. Label it honestly:
+      // modelled is Estimated, observed plus modelled is Live + Estimated.
+      liveGameLabel: liveDataMode === 'estimated'
+        ? 'Estimated Tables'
+        : liveDataMode === 'mixed'
+          ? 'Live + Estimated Tables'
+          : liveDataMode === 'live'
+            ? 'Live Tables'
+            : 'Live Count',
+      liveGameObserved: liveDataMode === 'live',
       // Daily Grind: today's tournaments — authoritative count from API
       // (includes venue daily tournaments + charity events + tour series events)
-      dailyCount: todaysTournamentCount || todaysTournaments.length,
+      dailyCount: dailyCountStatus === 'ready'
+        ? (todaysTournamentCount || todaysTournaments.length)
+        : (dailyCountStatus === 'error' ? 'Unknown' : null),
     };
-  }, [dailyTournaments, liveGameCount, liveDataMode, todaysTournamentCount]);
+  }, [dailyTournaments, liveGameCount, liveDataMode, todaysTournamentCount, platformCountsStatus, dailyCountStatus]);
 
   // Overlays this page owns: the phone back gesture closes them first
   // (useModalHistory), a tap that merely ENDED on the scrim does not
@@ -2505,6 +2526,7 @@ export default function PokerNearMeLobby() {
         }
         onMenuClick={() => setMenuOpen(true)}
       >
+      <PokerNearMeFamilyNav />
       <div className="pnm-lobby-page" data-pnm-realism="machined-v2">
         {/* ═══ SERVER-RENDERED CRAWLABLE LAYER ═══
             LobbyCanvas and LobbyOverlay are both ssr:false, so without this
@@ -2575,7 +2597,9 @@ export default function PokerNearMeLobby() {
                   .catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
               }
             }}
-            venueCount={totalVenueCount || venues.length}
+            // The public directory total from /api/poker/platform-counts. The
+            // loaded page length is not that total, so it is never shown as one.
+            venueCount={totalVenueCount > 0 ? totalVenueCount : (platformCountsStatus === 'loading' ? null : 'Unknown')}
             onSearchBarClick={() => setShowGlobalSearch(true)}
           />
         </section>
@@ -2800,30 +2824,40 @@ export default function PokerNearMeLobby() {
           >
             <div
               ref={voiceDialogRef}
-              className="pnm-sheet"
+              className="pnm-sheet pnm-voice-sheet"
               role="dialog"
               aria-modal="true"
               aria-labelledby="pnm-voice-title"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="pnm-sheet__handle" aria-hidden="true" />
-              <div className="pnm-sheet__head">
-                <span id="pnm-voice-title" style={{ color: '#d4a853', fontSize: 16, fontWeight: 600 }}>Voice Search</span>
-                <button
-                  ref={voiceCloseBtnRef}
-                  type="button"
-                  className="sp-icon-btn pnm-sheet__close"
-                  onClick={() => setShowVoiceSearch(false)}
-                  aria-label="Close voice search"
-                >&times;</button>
-              </div>
-              <div style={{ padding: 20 }}>
+              {/* The sheet is one painted console: its head carries the title and
+                  the recogniser's language in the painted pill slot, and the
+                  close holder and VoiceSearch's live states print on its glass. */}
+              <PokerNearMeConsole
+                as="div"
+                className="pnm-voice-console"
+                title="Voice Search"
+                titleId="pnm-voice-title"
+                pill="English"
+                crest="locator"
+                foot="foot"
+              >
+                <div className="pnm-sheet__head">
+                  <button
+                    ref={voiceCloseBtnRef}
+                    type="button"
+                    className="sp-icon-btn pnm-sheet__close"
+                    onClick={() => setShowVoiceSearch(false)}
+                    aria-label="Close voice search"
+                  ><PokerNearMeConsoleIcon name="close" /></button>
+                </div>
                 {/* [WIRING FIX] variant="embedded" is mandatory here: the default
                     'floating' variant renders a position:fixed FAB + panel that
                     escaped this modal to the viewport corner and started
                     collapsed, so the card body was empty. */}
                 <VoiceSearch variant="embedded" onResult={handleVoiceResult} />
-              </div>
+              </PokerNearMeConsole>
             </div>
           </div>
         )}
@@ -2861,36 +2895,23 @@ export default function PokerNearMeLobby() {
       </div>
 
         {/* ═══ GPS LOCATION SUCCESS TOAST ═══ */}
+        {/* Printed on the painted result panel with the painted location holder:
+            no glass card, glow or vector glyphs. Announced as a status. */}
         {locationToast && (
-          <div style={{
-            position: 'fixed', top: 80, left: '50%', transform: 'translateX(-50%)', zIndex: 200,
-            background: 'linear-gradient(135deg, rgba(16,25,40,0.97), rgba(10,18,32,0.97))',
-            border: '1px solid rgba(63,185,80,0.5)', borderRadius: 16,
-            padding: '16px 28px', boxShadow: '0 12px 40px rgba(0,0,0,0.5), 0 0 20px rgba(63,185,80,0.15)',
-            display: 'flex', alignItems: 'center', gap: 14,
-            animation: 'lobby-toastSlideIn 0.3s ease-out',
-            backdropFilter: 'blur(16px)',
-            minWidth: 260, maxWidth: '90vw',
-          }}>
-            <div style={{
-              width: 42, height: 42, borderRadius: '50%',
-              background: 'rgba(63,185,80,0.15)', border: '2px solid rgba(63,185,80,0.4)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-            }}>
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#3fb950" strokeWidth="2.5">
-                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/>
-              </svg>
-            </div>
-            <div>
-              <div style={{ fontSize: 13, color: '#3fb950', fontWeight: 800, letterSpacing: '0.5px', textTransform: 'uppercase', marginBottom: 2 }}>Location Found</div>
-              <div style={{ fontSize: 17, color: '#e0e8f0', fontWeight: 700 }}>
+          <PokerNearMePanelShell
+            as="div"
+            role="status"
+            className="pnm-lobby-toast pnm-lobby-toast--location"
+            bodyClassName="pnm-lobby-toast__body"
+          >
+            <PokerNearMeConsoleIcon name="location" className="pnm-lobby-toast__icon" />
+            <div className="pnm-lobby-toast__copy">
+              <div className="pnm-lobby-toast__label pnc-ink--green">Location Found</div>
+              <div className="pnm-lobby-toast__value">
                 {locationToast.city}{locationToast.state ? `, ${locationToast.state}` : ''}
               </div>
             </div>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#3fb950" strokeWidth="2" style={{ marginLeft: 'auto', opacity: 0.6 }}>
-              <polyline points="20 6 9 17 4 12" />
-            </svg>
-          </div>
+          </PokerNearMePanelShell>
         )}
 
         {/* ═══ GEOFENCE STATUS NOTICE ═══
@@ -2898,36 +2919,26 @@ export default function PokerNearMeLobby() {
              a user who denied notification permission got no feedback at all, and
              the Geofence Alerts toggle stayed on while never firing. */}
         {preferences?.geofenceAlerts && (geofenceStatus === 'denied' || geofenceStatus === 'error') && (
-          <div
+          <PokerNearMePanelShell
+            as="div"
             role="status"
-            style={{
-              position: 'fixed', bottom: 16, left: '50%', transform: 'translateX(-50%)', zIndex: 190,
-              display: 'flex', alignItems: 'center', gap: 8,
-              maxWidth: 'min(420px, calc(100vw - 24px))',
-              padding: '10px 14px', borderRadius: 12,
-              background: 'rgba(16,25,40,0.96)',
-              border: '1px solid rgba(245,158,11,0.35)',
-              color: 'rgba(200,214,229,0.75)', fontSize: 12, lineHeight: 1.35,
-              boxShadow: '0 8px 28px rgba(0,0,0,0.4)',
-              bottom: 'calc(var(--sp-bottom-nav-height, 56px) + env(safe-area-inset-bottom, 0px) + 12px)',
-            }}
+            className="pnm-lobby-toast pnm-lobby-toast--geofence"
+            bodyClassName="pnm-lobby-toast__body"
           >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2" style={{ flexShrink: 0 }}>
-              <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 01-3.46 0" />
-            </svg>
-            <span>
+            <PokerNearMeConsoleIcon name="alert" className="pnm-lobby-toast__icon" />
+            <span className="pnm-lobby-toast__text">
               {geofenceStatus === 'denied'
-                ? 'Geofence alerts are on, but notifications are blocked for this site. Enable notifications in your browser settings to get venue proximity alerts.'
-                : 'Geofence alerts could not start on this device.'}
+                ? 'Geofence Alerts Are On, But Notifications Are Blocked For This Site. Enable Notifications In Your Browser Settings To Get Venue Proximity Alerts.'
+                : 'Geofence Alerts Could Not Start On This Device.'}
             </span>
             <button
               type="button"
-              className="sp-icon-btn"
+              className="sp-icon-btn pnm-lobby-toast__close"
               onClick={() => setGeofenceStatus(null)}
               aria-label="Dismiss geofence notice"
-              style={{ '--sp-btn-size': '44px', background: 'none', border: 'none', color: 'rgba(200,214,229,0.5)', cursor: 'pointer', fontSize: 20, lineHeight: 1, padding: 0, flexShrink: 0, minWidth: 44, minHeight: 44, width: 44, height: 44 }}
-            >&times;</button>
-          </div>
+              style={{ '--sp-btn-size': '44px' }}
+            ><PokerNearMeConsoleIcon name="close" /></button>
+          </PokerNearMePanelShell>
         )}
 
         {/* ═══ SMART ENABLE LOCATION POPUP ═══ */}

@@ -32,20 +32,14 @@
 import SEOHead from '../../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import PokerNearMeFamilyNav from '../../../src/components/poker-near-me/PokerNearMeFamilyNav';
+import PokerNearMeConsole, {
+  PokerNearMePanelShell,
+  PokerNearMeConsoleIcon,
+} from '../../../src/components/poker-near-me/PokerNearMeConsole';
 import { useEffect, useState, useCallback, useRef } from 'react';
-import {
-  MapPin,
-  Loader2,
-  Users,
-  Calendar,
-  Clock,
-  DollarSign,
-  AlertCircle,
-  Navigation,
-  Search as SearchIcon,
-  Home,
-  ArrowLeft,
-} from 'lucide-react';
+// The flat lucide set this page used to draw its chrome with is gone: every
+// pictogram now comes from the painted Poker Near Me control kit, and anything
+// the kit does not paint is printed as a text label instead.
 import { hubCollectionSchema } from '../../../src/lib/seo/hubPageSchema';
 import { createClient } from '@supabase/supabase-js';
 import {
@@ -339,38 +333,44 @@ export default function HomeGamesNearMePage({ publicCities = [] }) {
       {/* Top bar */}
       <div className="pnm-location-topbar sticky top-0 z-10 border-b border-[#1E293B] bg-[#0A1526]/95 backdrop-blur-sm">
         <div className="max-w-5xl mx-auto px-4 py-3 flex items-center gap-3">
-          <Link href="/hub/home-games/in" className="text-[#94A3B8] hover:text-white flex items-center gap-1">
-            <ArrowLeft className="w-5 h-5" />
+          <Link href="/hub/home-games/in" className="text-[#94A3B8] flex items-center gap-1" style={{ minHeight: 44 }}>
+            <PokerNearMeConsoleIcon name="back" />
             <span className="text-sm">Home Games</span>
           </Link>
           <div className="flex-1" />
-          <Link href="https://commander.smarter.poker/commander/register?tier=home_game&from=poker_near_me&return=%2Fhub%2Fcommander%2Fhome-games%2Fcreate" className="cmd-btn cmd-btn-primary h-9 px-4 text-xs">
+          <Link href="https://commander.smarter.poker/commander/register?tier=home_game&from=poker_near_me&return=%2Fhub%2Fcommander%2Fhome-games%2Fcreate" className="cmd-btn cmd-btn-primary h-11 px-4 text-xs">
             Host A Game
           </Link>
         </div>
       </div>
 
       <main className="max-w-5xl mx-auto px-4 py-6 space-y-6" data-pnm-secondary-foundation="interaction-v1">
-        {/* Header */}
-        <div className="cmd-panel p-6">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-10 h-10 rounded-lg bg-[#22D3EE]/15 flex items-center justify-center">
-              <Home className="w-5 h-5 text-[#22D3EE]" />
-            </div>
-            <div>
-              <h1 className="text-xl font-bold text-white">Home Games Near Me</h1>
-              <p className="text-sm text-[#64748B]">Find Local Home Games And Tournaments Hosted By Players In Your Area</p>
-            </div>
-          </div>
-        </div>
+        {/* Header. This is a public Poker Near Me route, so its chassis is the
+            painted Poker Near Me console, not the Club Commander panel system
+            it used to borrow. The crest, rails and closing cap are master art;
+            the heading and the copy below are the only live DOM here. */}
+        <PokerNearMeConsole
+          crest="locator"
+          eyebrow="Poker Near Me"
+          title="Home Games Near Me"
+          titleAs="h1"
+          titleId="home-games-near-me-title"
+          pill="Near Me"
+          pillInk="blue"
+          foot="foot"
+        >
+          <p className="pnc-copy">
+            Find Local Home Games And Tournaments Hosted By Players In Your Area.
+          </p>
+        </PokerNearMeConsole>
 
         {/* Radius selector (only while browsing near the user's own position) */}
         {isNearbyMode && (
-          <div className="cmd-panel p-5">
-            <div className="flex items-center justify-between gap-3 flex-wrap">
+          <PokerNearMePanelShell>
+            <div className="flex items-center justify-between gap-3 flex-wrap" style={{ paddingBottom: '3cqw' }}>
               <div className="flex items-center gap-2">
-                <Navigation className="w-4 h-4 text-[#22D3EE]" />
-                <span className="text-sm font-medium text-white">Within</span>
+                <PokerNearMeConsoleIcon name="location" />
+                <span className="pnc-label">Within</span>
               </div>
               <div className="flex flex-wrap gap-2">
                 {RADIUS_OPTIONS.map((opt) => (
@@ -392,12 +392,12 @@ export default function HomeGamesNearMePage({ publicCities = [] }) {
               <button
                 type="button"
                 onClick={() => setManualOpen(true)}
-                className="text-xs font-semibold text-[#22D3EE] hover:text-white underline underline-offset-2"
+                className="cmd-btn cmd-btn-secondary h-11 px-4 text-xs"
               >
                 Search Another City
               </button>
             </div>
-          </div>
+          </PokerNearMePanelShell>
         )}
 
         {/* Manual search — the fallback when we have no GPS fix, and an
@@ -405,7 +405,7 @@ export default function HomeGamesNearMePage({ publicCities = [] }) {
             unmount this form permanently, leaving no way to browse another
             city (for a trip, say) short of a full page reload. */}
         {showManualForm && (
-          <div className="cmd-panel p-5">
+          <PokerNearMePanelShell>
             {coords && (
               <div className="flex items-center justify-between gap-3 flex-wrap mb-4">
                 <p className="text-sm font-medium text-white">Search Another City</p>
@@ -415,18 +415,18 @@ export default function HomeGamesNearMePage({ publicCities = [] }) {
                   disabled={isLoading}
                   className="cmd-btn cmd-btn-secondary h-8 px-3 text-xs flex items-center gap-1.5 disabled:opacity-50"
                 >
-                  <Navigation className="w-3.5 h-3.5" />
+                  <PokerNearMeConsoleIcon name="location" />
                   Back To Near Me
                 </button>
               </div>
             )}
             {status === 'denied' && (
               <div className="flex items-start gap-2 mb-4">
-                <AlertCircle className="w-5 h-5 text-[#F59E0B] flex-shrink-0 mt-0.5" />
-                <p className="text-sm text-[#FCD34D]">{error || 'Search by state or city instead.'}</p>
+                <PokerNearMeConsoleIcon name="location" />
+                <p className="pnc-copy pnc-ink--gold" role="status">{error || 'Search By State Or City Instead.'}</p>
               </div>
             )}
-            <form onSubmit={handleManualSearch} className="grid sm:grid-cols-[120px_1fr_auto] gap-3">
+            <form onSubmit={handleManualSearch} className="grid sm:grid-cols-[120px_1fr_auto] gap-3" style={{ paddingBottom: '3cqw' }}>
               <select
                 value={manualState}
                 onChange={(e) => setManualState(e.target.value)}
@@ -445,145 +445,141 @@ export default function HomeGamesNearMePage({ publicCities = [] }) {
               <button
                 type="submit"
                 disabled={!manualState && !manualCity}
-                className="cmd-btn cmd-btn-primary h-10 px-4 text-sm flex items-center gap-2 disabled:opacity-50"
+                className="cmd-btn cmd-btn-primary h-11 px-4 text-sm flex items-center gap-2 disabled:opacity-50"
               >
-                <SearchIcon className="w-4 h-4" />
+                <PokerNearMeConsoleIcon name="search" />
                 Search
               </button>
             </form>
-          </div>
+          </PokerNearMePanelShell>
         )}
 
         {/* Error banner (non-denied) */}
         {status === 'error' && (
-          <div className="cmd-panel p-4 border-l-4 border-[#EF4444]">
-            <div className="flex items-start gap-2">
-              <AlertCircle className="w-5 h-5 text-[#EF4444] flex-shrink-0 mt-0.5" />
+          <PokerNearMePanelShell role="alert">
+            <div className="flex items-start gap-2" style={{ paddingBottom: '3cqw' }}>
+              <PokerNearMeConsoleIcon name="info" />
               <div className="flex-1">
-                <p className="text-sm font-semibold text-white">Search Failed</p>
-                <p className="text-sm text-[#94A3B8] mt-0.5">{error}</p>
+                <p className="pnc-label pnc-ink--red">Search Failed</p>
+                <p className="pnc-copy">{error}</p>
               </div>
               <button
+                type="button"
                 onClick={retryLastSearch}
-                className="cmd-btn cmd-btn-secondary h-8 px-3 text-xs"
+                className="cmd-btn cmd-btn-secondary h-11 px-4 text-xs"
               >
                 Retry
               </button>
             </div>
-          </div>
+          </PokerNearMePanelShell>
         )}
 
         {/* Loading state */}
         {isLoading && (
-          <div className="cmd-panel p-8 flex flex-col items-center text-center">
-            <Loader2 className="w-8 h-8 text-[#22D3EE] animate-spin mb-3" />
-            <p className="text-sm text-white font-medium">
-              {status === 'locating' ? 'Finding your location…' : 'Searching nearby home games…'}
-            </p>
-          </div>
+          <PokerNearMePanelShell aria-busy="true">
+            <div className="flex flex-col items-center text-center" style={{ paddingBottom: '3cqw' }}>
+              <PokerNearMeConsoleIcon name="location" />
+              <p className="pnc-copy pnc-copy--center" role="status" aria-live="polite">
+                {status === 'locating' ? 'Finding Your Location…' : 'Searching Nearby Home Games…'}
+              </p>
+            </div>
+          </PokerNearMePanelShell>
         )}
 
         {/* Results */}
         {status === 'ready' && groups.length === 0 && (
-          <div className="cmd-panel p-8 text-center">
-            <Home className="w-10 h-10 text-[#64748B] mx-auto mb-3" />
-            <h3 className="text-base font-semibold text-white">No Home Games Found Nearby</h3>
-            <p className="text-sm text-[#64748B] mt-1">
-              {isNearbyMode ? 'Try expanding your radius or starting one yourself.' : 'Try a different state or city.'}
-            </p>
-            <Link href="https://commander.smarter.poker/commander/register?tier=home_game&from=poker_near_me&return=%2Fhub%2Fcommander%2Fhome-games%2Fcreate" className="cmd-btn cmd-btn-primary h-10 px-5 text-sm inline-flex items-center gap-2 mt-4">
-              Host A Home Game
-            </Link>
-          </div>
+          <PokerNearMePanelShell>
+            <div className="text-center" style={{ paddingBottom: '3cqw' }}>
+              <PokerNearMeConsoleIcon name="home" />
+              <h2 className="pnc-label">No Home Games Found Nearby</h2>
+              <p className="pnc-copy pnc-copy--center">
+                {isNearbyMode ? 'Try Expanding Your Radius, Or Start A Game Yourself.' : 'Try A Different State Or City.'}
+              </p>
+              <Link href="https://commander.smarter.poker/commander/register?tier=home_game&from=poker_near_me&return=%2Fhub%2Fcommander%2Fhome-games%2Fcreate" className="cmd-btn cmd-btn-primary h-11 px-5 text-sm inline-flex items-center gap-2 mt-4">
+                Host A Home Game
+              </Link>
+            </div>
+          </PokerNearMePanelShell>
         )}
 
         {status === 'ready' && groups.length > 0 && (
           <div className="space-y-3">
-            <p className="text-xs text-[#64748B] font-medium">
-              {groups.length} {groups.length === 1 ? 'game' : 'games'} Found
+            <p className="pnc-label">
+              {groups.length} {groups.length === 1 ? 'Game' : 'Games'} Found
               {isNearbyMode
-                ? ` within ${radius} miles`
+                ? ` Within ${radius} Miles`
                 : (manualCity || manualState
-                  ? ` in ${[manualCity, manualState].filter(Boolean).join(', ')}`
+                  ? ` In ${[manualCity, manualState].filter(Boolean).join(', ')}`
                   : '')}
             </p>
 
             <div className="grid sm:grid-cols-2 gap-4">
               {groups.map((g) => (
-                <Link key={g.id} href={groupHref(g)} className="block cmd-panel p-0 overflow-hidden hover:border-[#22D3EE]/50 transition-colors">
-                  {/* Cover strip */}
-                  <div
-                    className="h-24 relative"
-                    style={{
-                      background: g.cover_url
-                        ? `url(${g.cover_url}) center/cover`
-                        : 'linear-gradient(135deg, #0D192E, #1E293B)',
-                    }}
-                  >
-                    {g.distance_miles != null && (
-                      <div className="absolute top-2 right-2 px-2 py-1 rounded-md bg-black/60 backdrop-blur-sm">
-                        <p className="text-xs font-semibold text-[#22D3EE]">{g.distance_miles} Mi</p>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="p-4">
+                <PokerNearMePanelShell key={g.id} as={Link} href={groupHref(g)} className="block">
+                  <div style={{ paddingBottom: '3cqw' }}>
                     <div className="flex items-start gap-3">
-                      {/* Avatar */}
-                      <div
-                        className="w-12 h-12 rounded-lg flex-shrink-0 bg-[#1E293B] flex items-center justify-center"
-                        style={g.avatar_url ? { background: `url(${g.avatar_url}) center/cover` } : undefined}
-                      >
-                        {!g.avatar_url && <Home className="w-5 h-5 text-[#64748B]" />}
-                      </div>
+                      {/* The host's own photo is real data, so it prints; the
+                          fallback is the kit's painted home holder, never a
+                          drawn glyph. */}
+                      {g.avatar_url ? (
+                        <img
+                          src={g.avatar_url}
+                          alt=""
+                          width={44}
+                          height={44}
+                          loading="lazy"
+                          decoding="async"
+                          style={{ width: 44, height: 44, flex: '0 0 44px', objectFit: 'cover' }}
+                        />
+                      ) : (
+                        <PokerNearMeConsoleIcon name="home" />
+                      )}
 
                       <div className="flex-1 min-w-0">
-                        <h3 className="text-sm font-bold text-white truncate">{g.name}</h3>
-                        <p className="text-xs text-[#94A3B8] mt-0.5 flex items-center gap-1">
-                          <MapPin className="w-3 h-3" />
+                        <h3 className="pnc-data-row__value" style={{ textAlign: 'left' }}>{g.name}</h3>
+                        <p className="pnc-copy">
                           {g.city}{g.state ? `, ${g.state}` : ''}
+                          {g.distance_miles != null ? ` · ${g.distance_miles} Mi` : ''}
                         </p>
                       </div>
                     </div>
 
                     {g.description && (
-                      <p className="text-sm text-[#94A3B8] mt-3 line-clamp-2">{g.description}</p>
+                      <p className="pnc-copy line-clamp-2" style={{ marginTop: '2cqw' }}>{g.description}</p>
                     )}
 
-                    <div className="flex flex-wrap gap-3 mt-3 text-xs text-[#64748B]">
-                      {(g.default_game_type || g.default_stakes) && (
-                        <div className="flex items-center gap-1">
-                          <DollarSign className="w-3.5 h-3.5 text-[#10B981]" />
-                          <span>
-                            {g.default_game_type ? g.default_game_type.toUpperCase() : ''}
-                            {g.default_game_type && g.default_stakes ? ' · ' : ''}
-                            {formatStakes(g.typical_buyin_min, g.typical_buyin_max, g.default_stakes)}
-                          </span>
-                        </div>
-                      )}
-                      {g.typical_day && (
-                        <div className="flex items-center gap-1">
-                          <Calendar className="w-3.5 h-3.5 text-[#8B5CF6]" />
-                          <span>{g.typical_day}{g.typical_time ? ` · ${formatTime(g.typical_time)}` : ''}</span>
-                        </div>
-                      )}
-                      <div className="flex items-center gap-1">
-                        <Users className="w-3.5 h-3.5 text-[#22D3EE]" />
-                        <span>{g.member_count} {g.member_count === 1 ? 'member' : 'members'}</span>
+                    {(g.default_game_type || g.default_stakes) && (
+                      <div className="pnc-data-row">
+                        <span className="pnc-data-row__label">Stakes</span>
+                        <span className="pnc-data-row__value">
+                          {g.default_game_type ? g.default_game_type.toUpperCase() : ''}
+                          {g.default_game_type && g.default_stakes ? ' · ' : ''}
+                          {formatStakes(g.typical_buyin_min, g.typical_buyin_max, g.default_stakes)}
+                        </span>
                       </div>
+                    )}
+                    {g.typical_day && (
+                      <div className="pnc-data-row">
+                        <span className="pnc-data-row__label">Schedule</span>
+                        <span className="pnc-data-row__value">{g.typical_day}{g.typical_time ? ` · ${formatTime(g.typical_time)}` : ''}</span>
+                      </div>
+                    )}
+                    <div className="pnc-data-row">
+                      <span className="pnc-data-row__label">Members</span>
+                      <span className="pnc-data-row__value">{g.member_count} {g.member_count === 1 ? 'Member' : 'Members'}</span>
                     </div>
 
                     {g.next_game_date && (
-                      <div className="mt-3 p-2 rounded-md bg-[#8B5CF6]/10 border border-[#8B5CF6]/25 flex items-center gap-2">
-                        <Clock className="w-3.5 h-3.5 text-[#C4B5FD] flex-shrink-0" />
-                        <span className="text-xs text-[#C4B5FD] truncate">
-                          Next Game: {formatDate(g.next_game_date)}{g.next_game_time ? ` · ${formatTime(g.next_game_time)}` : ''}
-                          {g.next_game_seats_left != null ? ` · ${g.next_game_seats_left} seats left` : ''}
+                      <div className="pnc-data-row">
+                        <span className="pnc-data-row__label">Next Game</span>
+                        <span className="pnc-data-row__value">
+                          {formatDate(g.next_game_date)}{g.next_game_time ? ` · ${formatTime(g.next_game_time)}` : ''}
+                          {g.next_game_seats_left != null ? ` · ${g.next_game_seats_left} Seats Left` : ''}
                         </span>
                       </div>
                     )}
                   </div>
-                </Link>
+                </PokerNearMePanelShell>
               ))}
             </div>
           </div>
@@ -591,23 +587,25 @@ export default function HomeGamesNearMePage({ publicCities = [] }) {
         {/* Where public home games exist today. Server rendered (see
             getServerSideProps): each link is a real city directory page. */}
         {publicCities.length > 0 && (
-          <section className="cmd-panel p-5" aria-labelledby="home-games-by-city">
-            <h2 id="home-games-by-city" className="text-base font-bold text-white mb-3">Browse Home Games By City</h2>
-            <ul className="grid sm:grid-cols-2 gap-2">
-              {publicCities.map((c) => (
-                <li key={c.href}>
-                  <Link href={c.href} className="flex items-center gap-2 text-sm text-[#CBD5E1] hover:text-white">
-                    <MapPin className="w-4 h-4 text-[#22D3EE] flex-shrink-0" />
-                    <span>Poker Home Games In {c.city}, {c.stateName}</span>
-                    <span className="text-xs text-[#64748B]">({c.count} {c.count === 1 ? 'Game' : 'Games'})</span>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-            <Link href="/hub/home-games/in" className="inline-block mt-3 text-xs font-semibold text-[#22D3EE] hover:text-white">
-              All States
-            </Link>
-          </section>
+          <PokerNearMePanelShell as="section" aria-labelledby="home-games-by-city">
+            <div style={{ paddingBottom: '3cqw' }}>
+              <h2 id="home-games-by-city" className="pnc-label">Browse Home Games By City</h2>
+              <ul className="grid sm:grid-cols-2 gap-2" style={{ marginTop: '2cqw' }}>
+                {publicCities.map((c) => (
+                  <li key={c.href}>
+                    <Link href={c.href} className="pnc-copy flex items-center gap-2" style={{ minHeight: 44 }}>
+                      <PokerNearMeConsoleIcon name="location" />
+                      <span>Poker Home Games In {c.city}, {c.stateName}</span>
+                      <span className="pnc-ink--muted">({c.count} {c.count === 1 ? 'Game' : 'Games'})</span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+              <Link href="/hub/home-games/in" className="pnc-label inline-flex items-center" style={{ marginTop: '3cqw', minHeight: 44 }}>
+                All States
+              </Link>
+            </div>
+          </PokerNearMePanelShell>
         )}
       </main>
     </div>

@@ -6,6 +6,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { getFreshAccessToken } from '../../lib/authUtils';
 import { useModalHistory } from '../../hooks/useModalHistory';
 import { useScrimDismiss } from '../../hooks/useScrimDismiss';
+import { PokerNearMeConsoleIcon, PokerNearMePanelShell } from './PokerNearMeConsole';
 
 // Friend check-ins older than this are history, not "at the venue right now".
 const CHECKIN_WINDOW_MS = 24 * 60 * 60 * 1000;
@@ -300,15 +301,15 @@ export default function SocialLayer({ userId, userLocation, venues = [], authTok
     const totalFriendsActive = friendCheckins.reduce((sum, vc) => sum + vc.checkins.length, 0);
 
     return (
-        <div className="social-layer">
+        <PokerNearMePanelShell
+            as="section"
+            className="social-layer pnm-console-tool"
+            bodyClassName="pnm-console-tool__body"
+            aria-labelledby="pnm-social-layer-title"
+        >
             <div className="sl-header">
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
-                    <circle cx="9" cy="7" r="4" />
-                    <path d="M23 21v-2a4 4 0 00-3-3.87" />
-                    <path d="M16 3.13a4 4 0 010 7.75" />
-                </svg>
-                <h2>Friends At Venues</h2>
+                <PokerNearMeConsoleIcon name="home" className="pnm-console-tool__header-icon" />
+                <h2 id="pnm-social-layer-title">Friends At Venues</h2>
                 {totalFriendsActive > 0 && (
                     <span className="sl-badge">{totalFriendsActive} Active</span>
                 )}
@@ -327,10 +328,7 @@ export default function SocialLayer({ userId, userLocation, venues = [], authTok
 
             {!userId && (
                 <div className="sl-login-prompt">
-                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="1.5">
-                        <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
-                        <circle cx="9" cy="7" r="4" />
-                    </svg>
+                    <PokerNearMeConsoleIcon name="home" className="pnm-console-tool__state-icon" />
                     <p>Sign In To See Your Friends At Poker Venues</p>
                 </div>
             )}
@@ -345,28 +343,21 @@ export default function SocialLayer({ userId, userLocation, venues = [], authTok
             {userId && !loading && friendCheckins.length === 0 && (
                 <div className="sl-empty">
                     <div className="sl-empty-icon">
-                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.25)" strokeWidth="1.5">
-                            <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" /><circle cx="9" cy="7" r="4" />
-                            <path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" />
-                        </svg>
+                        <PokerNearMeConsoleIcon name="home" className="pnm-console-tool__state-icon" />
                     </div>
-                    <p style={{ fontWeight: 600, color: '#fff', marginBottom: 4 }}>No Friends Checked In</p>
-                    <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)', marginBottom: 16 }}>
+                    <p className="sl-empty-title">No Friends Checked In</p>
+                    <p className="sl-empty-copy">
                         {friendsList.length === 0
                             ? 'Add friends to see when they visit poker rooms!'
                             : `None of your ${friendsList.length} friends are checked in right now`}
                     </p>
                     <div className="sl-empty-ctas">
-                        <button className="sl-cta-btn sl-cta-checkin" onClick={() => { if (typeof window !== 'undefined') window.location.href = '/hub/poker-near-me/venues'; }}>
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                                <path d="M22 11.08V12a10 10 0 11-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" />
-                            </svg>
+                        <button type="button" className="sl-cta-btn sl-cta-checkin" onClick={() => { if (typeof window !== 'undefined') window.location.href = '/hub/poker-near-me/venues'; }}>
+                            <PokerNearMeConsoleIcon name="location" />
                             Check In At A Venue
                         </button>
-                        <button className="sl-cta-btn sl-cta-invite" onClick={() => { if (typeof navigator !== 'undefined' && navigator.share) navigator.share({ title: 'Join me on Smarter.Poker', url: typeof window !== 'undefined' ? window.location.origin : '' }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e)); }}>
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8" /><polyline points="16 6 12 2 8 6" /><line x1="12" y1="2" x2="12" y2="15" />
-                            </svg>
+                        <button type="button" className="sl-cta-btn sl-cta-invite" onClick={() => { if (typeof navigator !== 'undefined' && navigator.share) navigator.share({ title: 'Join me on Smarter.Poker', url: typeof window !== 'undefined' ? window.location.origin : '' }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e)); }}>
+                            <PokerNearMeConsoleIcon name="share" />
                             Invite Friends
                         </button>
                     </div>
@@ -383,10 +374,7 @@ export default function SocialLayer({ userId, userLocation, venues = [], authTok
                                     <div className="sl-venue-loc">{vc.venue_city}{vc.venue_state ? `, ${vc.venue_state}` : ''}</div>
                                 </div>
                                 <div className="sl-venue-count">
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                        <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
-                                        <circle cx="9" cy="7" r="4" />
-                                    </svg>
+                                    <PokerNearMeConsoleIcon name="home" />
                                     {vc.checkins.length}
                                 </div>
                             </div>
@@ -408,10 +396,11 @@ export default function SocialLayer({ userId, userLocation, venues = [], authTok
                                                 </div>
                                             </div>
                                             <button
+                                                type="button"
                                                 className="sl-invite-btn"
                                                 onClick={() => setInviteModal({ venueId: vc.venue_id, venueName: vc.venue_name, friendName: name })}
                                             >
-                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" /></svg>
+                                                <PokerNearMeConsoleIcon name="share" />
                                                 Invite
                                             </button>
                                         </div>
@@ -426,92 +415,36 @@ export default function SocialLayer({ userId, userLocation, venues = [], authTok
             {/* Invite Modal */}
             {inviteModal && (
                 <div className="sl-modal-overlay" role="presentation" {...inviteScrim}>
-                    <div
-                        className="sl-modal"
+                    <PokerNearMePanelShell
+                        as="div"
+                        className="sl-modal pnm-console-tool-subpanel"
+                        bodyClassName="sl-modal__body"
                         role="dialog"
                         aria-modal="true"
                         aria-label={`Invite a friend to ${inviteModal.venueName}`}
                         tabIndex={-1}
-                        ref={inviteModalRef}
+                        surfaceRef={inviteModalRef}
                         onClick={e => e.stopPropagation()}
                     >
-                        <div className="sl-modal-handle" aria-hidden="true" />
                         <div className="sl-modal-header">
                             <h3>Invite To Table</h3>
-                            <button type="button" className="sl-modal-close sp-icon-btn" aria-label="Close" onClick={closeInvite}>×</button>
+                            <button type="button" className="sl-modal-close" aria-label="Close" onClick={closeInvite}>
+                                <PokerNearMeConsoleIcon name="close" />
+                            </button>
                         </div>
                         <p className="sl-modal-text">
                             Share This Link To Invite Someone To Join You At <strong>{inviteModal.venueName}</strong>:
                         </p>
                         <div className="sl-invite-link-box">
                             <input type="text" value={generateInviteLink(inviteModal.venueId)} readOnly className="sl-invite-link-input" />
-                            <button className="sl-copy-btn" onClick={() => copyInviteLink(inviteModal.venueId)}>
+                            <button type="button" className="sl-copy-btn" onClick={() => copyInviteLink(inviteModal.venueId)}>
                                 {inviteCopied ? '✓ Copied!' : 'Copy'}
                             </button>
                         </div>
-                    </div>
+                    </PokerNearMePanelShell>
                 </div>
             )}
 
-            <style>{`
-        .social-layer { padding: 0 0 20px; }
-        .sl-header { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
-        .sl-header h2 { font-size: 22px; font-weight: 700; color: #e2e8f0; margin: 0; flex: 1; letter-spacing: -0.3px; }
-        .sl-badge { padding: 4px 12px; border-radius: 20px; background: rgba(34,197,94,0.15); border: 1.5px solid rgba(34,197,94,0.3); color: #22c55e; font-size: 12px; font-weight: 600; box-shadow: inset 0 1px 0 rgba(34,197,94,0.1); }
-        .sl-refresh-btn { padding: 4px 12px; border-radius: 8px; background: rgba(255,255,255,0.08); border: 1.5px solid rgba(255,255,255,0.2); color: rgba(226,232,240,0.9); font-size: 12px; font-weight: 600; cursor: pointer; font-family: inherit; transition: all 0.2s; }
-        .sl-refresh-btn:hover:not(:disabled) { border-color: rgba(255,255,255,0.4); color: #ffffff; }
-        .sl-refresh-btn:disabled { opacity: 0.5; cursor: wait; }
-        .sl-modal:focus { outline: none; }
-        .sl-login-prompt, .sl-empty { display: flex; flex-direction: column; align-items: center; padding: 60px 20px; text-align: center; }
-        .sl-login-prompt p, .sl-empty p { color: rgba(148,163,184,0.5); font-size: 14px; margin: 12px 0 0; }
-        .sl-loading { display: flex; flex-direction: column; align-items: center; padding: 60px 20px; gap: 12px; }
-        .sl-spinner { width: 32px; height: 32px; border: 3px solid rgba(148,163,184,0.1); border-top-color: #ffffff; border-radius: 50%; animation: spin 0.8s linear infinite; box-shadow: 0 0 12px rgba(255,255,255,0.15); }
-        .sl-loading span { color: rgba(148,163,184,0.5); font-size: 13px; }
-        .sl-venue-list { display: flex; flex-direction: column; gap: 16px; }
-        .sl-venue-group { background: linear-gradient(160deg, rgba(18,28,45,0.85), rgba(10,16,28,0.92)); border: 1.5px solid rgba(148,163,184,0.12); border-radius: 14px; overflow: hidden; box-shadow: inset 0 1px 0 rgba(255,255,255,0.04), 0 4px 16px rgba(0,0,0,0.35); }
-        .sl-venue-header { display: flex; justify-content: space-between; align-items: center; padding: 16px; border-bottom: 1px solid rgba(148,163,184,0.08); }
-        .sl-venue-info { flex: 1; }
-        .sl-venue-name { font-size: 16px; font-weight: 600; color: #e2e8f0; }
-        .sl-venue-loc { font-size: 12px; color: rgba(148,163,184,0.5); margin-top: 2px; }
-        .sl-venue-count { display: flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 8px; background: linear-gradient(180deg, rgba(255,255,255,0.12), rgba(200,214,229,0.08)); border: 1px solid rgba(255,255,255,0.25); color: #ffffff; font-size: 13px; font-weight: 600; }
-        .sl-friend-list { padding: 8px; }
-        .sl-friend-card { display: flex; align-items: center; gap: 12px; padding: 10px 8px; border-radius: 10px; transition: background 0.2s; }
-        .sl-friend-card:hover { background: rgba(148,163,184,0.04); }
-        .sl-avatar { width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; color: #fff; flex-shrink: 0; }
-        .sl-friend-info { flex: 1; min-width: 0; }
-        .sl-friend-name { font-size: 14px; font-weight: 600; color: #e2e8f0; }
-        .sl-friend-time { font-size: 12px; color: rgba(148,163,184,0.5); display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
-        .sl-online-dot { width: 6px; height: 6px; border-radius: 50%; background: #22c55e; flex-shrink: 0; }
-        .sl-friend-msg { color: rgba(148,163,184,0.35); font-style: italic; }
-        .sl-invite-btn { display: flex; align-items: center; gap: 4px; min-height: 44px; touch-action: manipulation; padding: 6px 12px; border-radius: 8px; background: linear-gradient(180deg, rgba(255,255,255,0.12), rgba(200,214,229,0.08)); border: 1.5px solid rgba(255,255,255,0.35); color: #ffffff; font-size: 12px; font-weight: 600; cursor: pointer; flex-shrink: 0; transition: all 0.25s; box-shadow: inset 0 1px 0 rgba(255,255,255,0.1); }
-        .sl-invite-btn:hover, .sl-invite-btn:active { border-color: rgba(255,255,255,0.5); box-shadow: 0 0 10px rgba(255,255,255,0.12); }
-        .sl-modal-overlay { position: fixed; inset: 0; z-index: 10000; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; padding: 20px; padding-top: max(env(safe-area-inset-top, 0px), 20px); box-sizing: border-box; }
-        .sl-modal { position: relative; background: linear-gradient(160deg, rgba(18,28,45,0.98), rgba(10,16,28,1)); border: 2px solid rgba(148,163,184,0.16); border-radius: 16px; padding: 24px; max-width: 420px; width: 100%; box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 16px 64px rgba(0,0,0,0.6); box-sizing: border-box; }
-        .sl-modal-handle { display: none; }
-        .sl-modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
-        .sl-modal-header h3 { font-size: 18px; font-weight: 600; color: #e2e8f0; margin: 0; }
-        .sl-modal-close { background: none; border: none; color: rgba(148,163,184,0.5); font-size: 24px; cursor: pointer; transition: color 0.2s; min-width: 44px; min-height: 44px; width: 44px; height: 44px; display: inline-flex; align-items: center; justify-content: center; touch-action: manipulation; }
-        .sl-modal-close:hover, .sl-modal-close:active { color: #ffffff; }
-        /* Mobile phase 3: bottom sheet at or below 600px with a drag handle, 16px input. */
-        @media (max-width: 600px) {
-          .sl-modal-overlay { align-items: flex-end; padding: 0; padding-top: max(env(safe-area-inset-top, 0px), 12px); }
-          .sl-modal { max-width: none; border-radius: 16px 16px 0 0; padding: 8px 16px calc(env(safe-area-inset-bottom, 0px) + 16px); }
-          .sl-modal-handle { display: block; width: 44px; height: 4px; border-radius: 999px; background: rgba(255,255,255,0.18); margin: 0 auto 8px; }
-          .sl-invite-link-input { font-size: 16px; }
-        }
-        .sl-modal-text { font-size: 14px; color: rgba(148,163,184,0.6); margin: 0 0 16px; }
-        .sl-invite-link-box { display: flex; gap: 8px; }
-        .sl-invite-link-input { flex: 1; padding: 10px 12px; background: linear-gradient(180deg, rgba(20,30,48,0.95), rgba(12,18,30,0.98)); border: 1.5px solid rgba(148,163,184,0.15); border-radius: 8px; color: #e2e8f0; font-size: 12px; font-family: monospace; box-shadow: inset 0 2px 6px rgba(0,0,0,0.4); }
-        .sl-copy-btn { min-height: 44px; touch-action: manipulation; padding: 10px 16px; background: linear-gradient(135deg, #ffffff, #cbd5e1); border: none; border-radius: 8px; color: #000; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; }
-        .sl-empty-icon { width: 72px; height: 72px; border-radius: 50%; background: rgba(255,255,255,0.06); display: flex; align-items: center; justify-content: center; margin-bottom: 12px; }
-        .sl-empty-ctas { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
-        .sl-cta-btn { display: flex; align-items: center; gap: 6px; padding: 10px 16px; border-radius: 10px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.25s; border: 1.5px solid; font-family: inherit; box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 2px 6px rgba(0,0,0,0.3); }
-        .sl-cta-checkin { background: rgba(34,197,94,0.1); border-color: rgba(34,197,94,0.3); color: #22c55e; }
-        .sl-cta-checkin:hover, .sl-cta-checkin:active { background: rgba(34,197,94,0.2); }
-        .sl-cta-invite { background: linear-gradient(180deg, rgba(255,255,255,0.12), rgba(200,214,229,0.08)); border-color: rgba(255,255,255,0.35); color: #ffffff; }
-        .sl-cta-invite:hover, .sl-cta-invite:active { border-color: rgba(255,255,255,0.5); }
-        @keyframes spin { to { transform: rotate(360deg); } }
-      `}</style>
-        </div>
+        </PokerNearMePanelShell>
     );
 }

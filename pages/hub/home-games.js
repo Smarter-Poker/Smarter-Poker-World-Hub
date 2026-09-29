@@ -250,9 +250,9 @@ function HomeGameCard({ venue, onNavigate, onFavorite, isFavorited }) {
                     cursor: pointer;
                     transition: border-color .15s ease, transform .15s ease, box-shadow .15s ease;
                 }
-                .hgc-card:hover {
+                .hgc-card:hover,
+                .hgc-card:active {
                     border-color: rgba(59,130,246,.5);
-                    transform: translateY(-2px);
                     box-shadow: 0 10px 28px rgba(0,0,0,.5), 0 0 20px rgba(59,130,246,.12);
                 }
                 .hgc-card:focus-visible {
@@ -339,7 +339,11 @@ function HomeGameCard({ venue, onNavigate, onFavorite, isFavorited }) {
                     border-radius: 12px;
                 }
                 .hgc-fav {
-                    width: 30px; height: 30px;
+                    /* The favourite control measured 30x44 on a phone: the
+                       44px floor was met on one axis only, so the hit box was
+                       14px short of the rule on the other. */
+                    width: 44px; height: 44px;
+                    min-width: 44px; min-height: 44px;
                     border-radius: 50%;
                     background: rgba(10,10,21,.65);
                     border: 1px solid rgba(255,255,255,.1);
@@ -980,9 +984,9 @@ export default function HomeGamesPage() {
                                                 userLocation={userLocation}
                                                 hideLegend={true}
                                                 radiusMiles={filters.radius}
-                                                mapEyebrow="Community game map"
-                                                mapTitle="Home games near you"
-                                                mapDetail={`${sortedVenues.length} privacy-safe locations · exact addresses stay private`}
+                                                mapEyebrow="Community Game Map"
+                                                mapTitle="Home Games Near You"
+                                                mapDetail={`${sortedVenues.length} Privacy Safe Locations · Exact Addresses Stay Private`}
                                                 onVenueClick={(venue) => {
                                                     // Unified routing: prefer public slug (canonical URL);
                                                     // fall back to club/invite code share page; last resort
@@ -1204,11 +1208,10 @@ export default function HomeGamesPage() {
                         0%, 100% { box-shadow: 0 0 8px rgba(239,68,68,0.12); border-color: rgba(239,68,68,0.25); }
                         50% { box-shadow: 0 0 20px rgba(239,68,68,0.3), 0 0 40px rgba(239,68,68,0.1); border-color: rgba(239,68,68,0.5); }
                     }
-                    .hg-gps-btn:hover {
-                        background: linear-gradient(135deg, rgba(239,68,68,0.2) 0%, rgba(200,50,50,0.15) 100%);
-                        border-color: rgba(239,68,68,0.5);
-                        color: #ff6b6b;
-                        transform: translateY(-1px);
+                    .hg-gps-btn:hover,
+                    .hg-gps-btn:active {
+                        border-color: rgba(69,173,255,0.6);
+                        color: #45adff;
                     }
 
                     .hg-gps-label {
@@ -1314,22 +1317,26 @@ export default function HomeGamesPage() {
                         justify-content: center;
                         gap: 6px;
                         width: 100%;
+                        min-height: 44px;
                         padding: 10px 12px;
                         margin-top: 14px;
-                        background: linear-gradient(135deg, #ef4444, #dc2626);
-                        border: none;
-                        border-radius: 8px;
-                        color: #fff;
+                        background: #071018;
+                        border: 1px solid rgba(133,153,173,0.3);
+                        border-radius: 2px;
+                        color: #e4e7ec;
                         font-size: 13px;
                         font-weight: 800;
                         letter-spacing: 0.5px;
                         cursor: pointer;
-                        transition: all 0.2s;
-                        box-shadow: 0 2px 12px rgba(239,68,68,0.25);
+                        box-shadow: inset 0 1px 0 rgba(255,255,255,0.05), inset 0 -1px 0 rgba(0,0,0,0.6);
                     }
-                    .hg-host-btn:hover {
-                        transform: translateY(-1px);
-                        box-shadow: 0 4px 18px rgba(239,68,68,0.4);
+                    .hg-host-btn:active {
+                        border-color: rgba(69,173,255,0.6);
+                        color: #f4f7fb;
+                    }
+                    .hg-host-btn:focus-visible {
+                        outline: 2px solid #45adff;
+                        outline-offset: 2px;
                     }
 
                     /* ═══ MAIN CONTENT ═══ */
@@ -1471,7 +1478,8 @@ export default function HomeGamesPage() {
                         background: linear-gradient(90deg, transparent 5%, rgba(148,163,184,0.25) 30%, rgba(148,163,184,0.15) 70%, transparent 95%);
                         pointer-events: none;
                     }
-                    .vc3-card:hover {
+                    .vc3-card:hover,
+                    .vc3-card:active {
                         filter: brightness(1.08);
                         background: linear-gradient(160deg, rgba(18,28,42,0.97) 0%, rgba(12,20,32,0.99) 100%);
                         box-shadow:
@@ -1479,7 +1487,6 @@ export default function HomeGamesPage() {
                             inset 0 0 20px rgba(212,168,83,0.03),
                             0 8px 32px rgba(0,0,0,0.55),
                             0 0 0 1px rgba(255,255,255,0.06);
-                        transform: translateY(-2px);
                     }
                     .vc3-header {
                         display: flex;
@@ -1641,11 +1648,11 @@ export default function HomeGamesPage() {
                             inset 0 1px 0 rgba(255,255,255,0.04),
                             0 2px 4px rgba(0,0,0,0.25);
                     }
-                    .vc3-icon-btn:hover {
+                    .vc3-icon-btn:hover,
+                    .vc3-icon-btn:active {
                         background: linear-gradient(180deg, rgba(30,42,65,0.9) 0%, rgba(20,30,48,0.95) 100%);
                         border-color: rgba(148,163,184,0.25);
                         color: #e2e8f0;
-                        transform: translateY(-1px);
                         box-shadow:
                             inset 0 1px 0 rgba(255,255,255,0.06),
                             0 4px 8px rgba(0,0,0,0.35);
@@ -1696,7 +1703,7 @@ export default function HomeGamesPage() {
                         cursor: pointer;
                         transition: transform 0.2s;
                     }
-                    .vc3-fav:hover { transform: scale(1.15); }
+                    .vc3-fav:active { filter: brightness(1.25); }
                     .vc3-fav.active svg { filter: drop-shadow(0 0 6px rgba(239,68,68,0.5)); }
                     .vc3-distance {
                         display: inline-flex;
@@ -1736,10 +1743,10 @@ export default function HomeGamesPage() {
                         cursor: pointer;
                         transition: all 0.2s;
                     }
-                    .hg-load-more-btn:hover {
-                        background: linear-gradient(135deg, rgba(239,68,68,0.25) 0%, rgba(200,50,50,0.15) 100%);
-                        transform: translateY(-1px);
-                        box-shadow: 0 4px 16px rgba(239,68,68,0.2);
+                    .hg-load-more-btn:hover,
+                    .hg-load-more-btn:active {
+                        border-color: rgba(69,173,255,0.6);
+                        color: #f4f7fb;
                     }
 
                     /* ═══ EMPTY / LOADING ═══ */

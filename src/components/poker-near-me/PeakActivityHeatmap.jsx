@@ -4,6 +4,7 @@
  */
 import React, { useState, useEffect, useMemo } from 'react';
 import { eventBus, EventType } from '../../engine/EventBus';
+import { PokerNearMeConsoleIcon, PokerNearMePanelShell } from './PokerNearMeConsole';
 
 const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const HOUR_LABELS = ['12a','1a','2a','3a','4a','5a','6a','7a','8a','9a','10a','11a',
@@ -79,128 +80,99 @@ export default function PeakActivityHeatmap({ venueFilter, gameType }) {
 
   if (loading) {
     return (
-      <div style={{
-        background: '#080b10',
-        borderRadius: 3, padding: 24, border: '1px solid rgba(170,184,196,0.3)',
-        position: 'relative', overflow: 'hidden',
-        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.05), inset 0 -1px 0 rgba(0,0,0,0.5), 0 8px 32px rgba(0,0,0,0.6)',
-      }}>
-        <div style={{ color: '#64748b', textAlign: 'center', padding: 40, fontFamily: 'Rajdhani, Inter, sans-serif', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
-          Loading Activity Data...
+      <PokerNearMePanelShell
+        as="section"
+        className="peak-activity-heatmap pnm-console-tool"
+        bodyClassName="pnm-console-tool__body"
+        aria-label="Verified activity patterns"
+        aria-busy="true"
+      >
+        <div className="pah-state" role="status">
+          <PokerNearMeConsoleIcon name="globe" className="pnm-console-tool__state-icon" />
+          <span>Loading Activity Data...</span>
         </div>
-      </div>
+      </PokerNearMePanelShell>
     );
   }
 
   if (error || !data?.heatmap?.length) {
     return (
-      <div style={{
-        background: '#080b10',
-        borderRadius: 3, padding: 24, border: '1px solid rgba(170,184,196,0.3)',
-        position: 'relative', overflow: 'hidden',
-        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.05), inset 0 -1px 0 rgba(0,0,0,0.5), 0 8px 32px rgba(0,0,0,0.6)',
-        fontFamily: 'Inter, system-ui, sans-serif',
-      }}>
-        <h3 style={{ color: '#fff', marginBottom: 8, fontSize: 16, fontFamily: 'Rajdhani, sans-serif', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Verified Activity Patterns</h3>
-        <div style={{ color: '#64748b', textAlign: 'center', padding: 24 }}>
+      <PokerNearMePanelShell
+        as="section"
+        className="peak-activity-heatmap pnm-console-tool"
+        bodyClassName="pnm-console-tool__body"
+        aria-labelledby="pnm-peak-activity-title"
+      >
+        <div className="pah-header">
+          <PokerNearMeConsoleIcon name="globe" className="pnm-console-tool__header-icon" />
+          <h3 id="pnm-peak-activity-title">Verified Activity Patterns</h3>
+        </div>
+        <div className="pah-state" role="status">
           {data?.message || 'Not enough data yet. Heatmap populates within 24-48 hours.'}
         </div>
-      </div>
+      </PokerNearMePanelShell>
     );
   }
 
   return (
-    <div style={{
-      background: '#080b10',
-      borderRadius: 3, padding: 20, border: '1px solid rgba(170,184,196,0.36)',
-      position: 'relative', overflow: 'hidden',
-      boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.05), inset 0 -1px 0 rgba(0,0,0,0.5), 0 8px 32px rgba(0,0,0,0.6)',
-      fontFamily: 'Inter, system-ui, sans-serif',
-    }}>
-      {/* Decorative metal corner bolts */}
-      <div style={{ position: 'absolute', top: 8, left: 8, width: 8, height: 8, borderRadius: '50%', background: 'radial-gradient(circle, #5a6a7a 30%, #3a4a5a 70%)', border: '1px solid #1a2a3a', boxShadow: 'inset 0 1px 2px rgba(255,255,255,0.2)' }} />
-      <div style={{ position: 'absolute', top: 8, right: 8, width: 8, height: 8, borderRadius: '50%', background: 'radial-gradient(circle, #5a6a7a 30%, #3a4a5a 70%)', border: '1px solid #1a2a3a', boxShadow: 'inset 0 1px 2px rgba(255,255,255,0.2)' }} />
-      <div style={{ position: 'absolute', bottom: 8, left: 8, width: 8, height: 8, borderRadius: '50%', background: 'radial-gradient(circle, #5a6a7a 30%, #3a4a5a 70%)', border: '1px solid #1a2a3a', boxShadow: 'inset 0 1px 2px rgba(255,255,255,0.2)' }} />
-      <div style={{ position: 'absolute', bottom: 8, right: 8, width: 8, height: 8, borderRadius: '50%', background: 'radial-gradient(circle, #5a6a7a 30%, #3a4a5a 70%)', border: '1px solid #1a2a3a', boxShadow: 'inset 0 1px 2px rgba(255,255,255,0.2)' }} />
-      
-      {/* Neon line accent */}
-      <div style={{ position: 'absolute', top: 0, left: '20%', right: '20%', height: 2, background: 'linear-gradient(90deg, transparent, rgba(0,212,255,0.8), transparent)', boxShadow: '0 2px 10px rgba(0,212,255,0.4)' }} />
-
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-        <div>
-          <h3 style={{ color: '#fff', margin: 0, fontSize: 16, fontFamily: 'Rajdhani, sans-serif', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Verified Activity Patterns</h3>
-          <div style={{ color: '#7f91a3', fontSize: 12, marginTop: 3 }}>
+    <PokerNearMePanelShell
+      as="section"
+      className="peak-activity-heatmap pnm-console-tool"
+      bodyClassName="pnm-console-tool__body"
+      aria-labelledby="pnm-peak-activity-title"
+    >
+      <div className="pah-header">
+        <PokerNearMeConsoleIcon name="globe" className="pnm-console-tool__header-icon" />
+        <div className="pah-heading">
+          <h3 id="pnm-peak-activity-title">Verified Activity Patterns</h3>
+          <div className="pah-observed-days">
             Positive Observed Tables Across {data.observed_days || 0} Days
           </div>
         </div>
         {data.best_time && data.data_mode === 'observed_history' && (
-          <div style={{
-            background: 'rgba(34,197,94,0.15)', border: '1px solid rgba(34,197,94,0.3)',
-            borderRadius: 2, padding: '6px 12px', fontSize: 12, color: '#4ade80',
-          }}>
+          <div className="pah-best-time">
             Historical Peak: {data.best_time}
           </div>
         )}
       </div>
 
-      {/* Heatmap Grid.
-          Mobile phase 3: this used to be a 600px-wide block inside an
-          `overflowX: auto` scroller, so on a phone five of the seven days and
-          most of the hours were only reachable sideways ("slide to see"). It is
-          now a 24-column grid that fits the container at every width. The
-          grid is ONE control (a heat map) with 168 read-only cells, so the
-          cells are gridcells rather than buttons and the grid carries
-          data-allow-small-target, the same sanction the Preflop 13x13 matrix
-          records in e2e/mobile-budget.spec.ts. Labels stay at 12px; the hour
-          axis shows every third hour so it never overlaps. */}
       <div
         role="grid"
         aria-label="Busiest hours by day"
         data-allow-small-target="true"
-        style={{ display: 'grid', gridTemplateColumns: '36px minmax(0, 1fr)', rowGap: 2, columnGap: 4 }}
+        className="pah-grid"
       >
-        {/* Hour labels */}
         <div aria-hidden="true" />
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(8, minmax(0, 1fr))', marginBottom: 2 }}>
+        <div className="pah-hour-axis" aria-hidden="true">
           {HOUR_LABELS.filter((_, i) => i % 3 === 0).map((label, i) => (
-            <div key={i} style={{ color: '#94a3b8', fontSize: 12, textAlign: 'left', whiteSpace: 'nowrap' }}>{label}</div>
+            <div key={i} className="pah-hour-label">{label}</div>
           ))}
         </div>
 
-        {/* Grid rows */}
         {heatmapGrid.map((row, dayIndex) => (
           <React.Fragment key={dayIndex}>
-            <div role="rowheader" style={{ color: '#94a3b8', fontSize: 12, textAlign: 'right', paddingRight: 2, alignSelf: 'center' }}>
+            <div role="rowheader" className="pah-day-label">
               {DAY_LABELS[dayIndex]}
             </div>
-            <div role="row" style={{ display: 'grid', gridTemplateColumns: 'repeat(24, minmax(0, 1fr))', gap: 1 }}>
-              {/* UX/A11Y FIX: each cell used to be a plain <div> with only
-                  onMouseEnter/onMouseLeave, so on touch devices (no hover) the
-                  "Sun at 7p, Avg: N tables" readout never appeared. Tap, focus and
-                  keyboard all set the readout below the grid now. */}
+            <div role="row" className="pah-grid-row">
               {row.map((cell, hourIndex) => (
                 <div
                   key={hourIndex}
                   role="gridcell"
                   tabIndex={0}
                   aria-selected={hoveredCell === cell ? 'true' : 'false'}
-                  aria-label={`${DAY_LABELS[cell.day]} at ${HOUR_LABELS[cell.hour]}: average ${cell.avg_tables} tables`}
-                  title={`${DAY_LABELS[cell.day]} at ${HOUR_LABELS[cell.hour]} - Avg: ${cell.avg_tables} tables`}
+                  aria-label={DAY_LABELS[cell.day] + ' at ' + HOUR_LABELS[cell.hour] + ': average ' + cell.avg_tables + ' tables'}
+                  title={DAY_LABELS[cell.day] + ' at ' + HOUR_LABELS[cell.hour] + ' - Avg: ' + cell.avg_tables + ' tables'}
                   onClick={() => setHoveredCell(cell)}
                   onFocus={() => setHoveredCell(cell)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault();
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                      event.preventDefault();
                       setHoveredCell(cell);
                     }
                   }}
-                  style={{
-                    height: 20, minWidth: 0, borderRadius: 2,
-                    background: intensityColor(cell.intensity),
-                    outline: hoveredCell === cell ? '2px solid #6ee7ef' : 'none',
-                    outlineOffset: -1,
-                    cursor: 'pointer',
-                  }}
+                  className={'pah-cell' + (hoveredCell === cell ? ' is-selected' : '')}
+                  style={{ backgroundColor: intensityColor(cell.intensity) }}
                 />
               ))}
             </div>
@@ -208,29 +180,24 @@ export default function PeakActivityHeatmap({ venueFilter, gameType }) {
         ))}
       </div>
 
-      {/* Tooltip */}
       {hoveredCell && (
-        <div style={{
-          marginTop: 8, padding: '8px 12px',
-          background: 'rgba(0,0,0,0.6)', borderRadius: 2,
-          color: '#fff', fontSize: 13, textAlign: 'center',
-          border: '1px solid rgba(0,212,255,0.2)',
-        }}>
+        <div className="pah-readout" role="status">
           {DAY_LABELS[hoveredCell.day]} At {HOUR_LABELS[hoveredCell.hour]} - Avg: {hoveredCell.avg_tables} Tables
         </div>
       )}
 
-      {/* Legend */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 12, justifyContent: 'center' }}>
-        <span style={{ color: '#94a3b8', fontSize: 12 }}>Less</span>
-        {[0, 20, 40, 60, 80].map(i => (
-          <div key={i} style={{
-            width: 16, height: 16, borderRadius: 3,
-            background: intensityColor(i + 10),
-          }} />
+      <div className="pah-legend" aria-label="Activity intensity from less to more">
+        <span>Less</span>
+        {[0, 20, 40, 60, 80].map((intensity) => (
+          <span
+            key={intensity}
+            className="pah-legend-mark"
+            style={{ backgroundColor: intensityColor(intensity + 10) }}
+            aria-hidden="true"
+          />
         ))}
-        <span style={{ color: '#94a3b8', fontSize: 12 }}>More</span>
+        <span>More</span>
       </div>
-    </div>
+    </PokerNearMePanelShell>
   );
 }

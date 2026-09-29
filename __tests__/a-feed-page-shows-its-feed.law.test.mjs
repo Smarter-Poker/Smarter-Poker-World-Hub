@@ -33,7 +33,10 @@ const SOURCES = 'pages/hub/news/sources.js';
 const SOCIAL = 'pages/hub/social-pages/index.js';
 const NEAR_ME = 'pages/hub/home-games/near-me.js';
 
-const h1Count = (src) => (src.match(/<h1[\s>]/g) || []).length;
+// A painted console prints the page heading through its own titleAs prop, so the
+// rendered h1 can come from `titleAs="h1"` instead of a literal tag. Both count,
+// and the law still refuses a page with none or more than one.
+const h1Count = (src) => (src.match(/<h1[\s>]/g) || []).length + (src.match(/titleAs="h1"/g) || []).length;
 
 test('/hub/news/sources renders its outlet list on the server', () => {
   const src = read(SOURCES);

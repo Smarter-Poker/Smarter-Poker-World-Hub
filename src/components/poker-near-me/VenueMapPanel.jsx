@@ -13,7 +13,9 @@ import { isVenueMapEligible, summarizeVenueIntegrity } from '../../lib/poker-nea
 import MapCoverageReadout from './MapCoverageReadout';
 import MapSurfaceFrame from './MapSurfaceFrame';
 import {
+  attachPokerPopupViewportGuard,
   buildPokerTourPopupHtml,
+  buildPokerUserLocationPopupHtml,
   buildPokerVenuePopupHtml,
   createPokerClusterIcon,
   createPokerPopupClickHandler,
@@ -53,46 +55,10 @@ const LOGO_PIN_CSS = `
 .leaflet-tile-pane {
   touch-action: none !important;
 }
-/* ═══ VENUE LABEL (Google Maps-style) — VenueMapPanel ═══ */
-.vmp-pin-label {
-  position: absolute;
-  left: 50%;
-  top: 100%;
-  transform: translateX(-50%);
-  margin-top: 2px;
-  white-space: nowrap;
-  font-family: 'Inter', -apple-system, sans-serif;
-  font-size: 12px;
-  font-weight: 700;
-  color: #fff;
-  text-shadow: 0 1px 4px rgba(0,0,0,0.9), 0 0 2px rgba(0,0,0,1), 0 0 8px rgba(0,0,0,0.7);
-  letter-spacing: 0.2px;
-  pointer-events: none;
-  max-width: 120px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  text-align: center;
-  line-height: 1.2;
-  transition: opacity 0.3s;
-}
+/* Venue labels are painted by poker-near-me-console-map.css. */
 /* Hide labels at low zoom — managed via JS class toggle */
 .vmp-labels-hidden .vmp-pin-label {
   display: none !important;
-}
-/* ═══ POPUP — Dark theme ═══ */
-.pnm-popup .leaflet-popup-content-wrapper {
-  background: rgba(12,18,28,0.97) !important;
-  color: #e0e8f0 !important;
-  border: 1px solid rgba(255,255,255,0.2) !important;
-  backdrop-filter: blur(12px);
-  border-radius: 10px !important;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.6) !important;
-}
-.pnm-popup .leaflet-popup-tip {
-  background: rgba(12,18,28,0.97) !important;
-}
-.pnm-popup .leaflet-popup-close-button {
-  color: rgba(148,163,184,0.5) !important;
 }
 /* ═══ VENUE PIN — Remove Leaflet default white border from divIcons ═══ */
 .vmp-venue-marker {
@@ -126,6 +92,7 @@ export default function VenueMapPanel({ venues = [], userLocation, onVenueSelect
   const leafletRef = useRef(null);
   const onVenueSelectRef = useRef(onVenueSelect);
   const popupClickHandlerRef = useRef(null);
+  const popupGuardDetachRef = useRef(null);
   const activeVenuesRef = useRef(activeVenues);
   const baseVenuesRef = useRef(venues);
   const viewportAbortRef = useRef(null);
@@ -227,6 +194,8 @@ export default function VenueMapPanel({ venues = [], userLocation, onVenueSelect
       const { map } = session;
       mapSessionRef.current = session;
 
+      popupGuardDetachRef.current?.();
+      popupGuardDetachRef.current = attachPokerPopupViewportGuard(map);
       map.on('moveend zoomend resize', scheduleKeyboardTargetSync);
       keyboardObserverRef.current?.disconnect();
       keyboardObserverRef.current = new MutationObserver(scheduleKeyboardTargetSync);
@@ -296,6 +265,8 @@ export default function VenueMapPanel({ venues = [], userLocation, onVenueSelect
       viewportAbortRef.current?.abort();
       const container = mapRef.current;
       if (container && popupClickHandlerRef.current) container.removeEventListener('click', popupClickHandlerRef.current);
+      popupGuardDetachRef.current?.();
+      popupGuardDetachRef.current = null;
       keyboardObserverRef.current?.disconnect();
       keyboardObserverRef.current = null;
       if (keyboardSyncFrameRef.current) window.cancelAnimationFrame(keyboardSyncFrameRef.current);
@@ -419,7 +390,7 @@ export default function VenueMapPanel({ venues = [], userLocation, onVenueSelect
         alt: 'Your location map marker',
       })
         .addTo(map)
-        .bindPopup('<div style="padding:8px 12px;"><b style="color:#fff;font-size:14px;">Your Location</b></div>');
+        .bindPopup(buildPokerUserLocationPopupHtml({ title: 'Your Location' }), { className: 'pnm-popup', maxWidth: 300, closeButton: true });
       scheduleKeyboardTargetSync();
     }
 
@@ -538,26 +509,20 @@ export default function VenueMapPanel({ venues = [], userLocation, onVenueSelect
         data-map-integrity-held={integritySummary.held}
         tabIndex={0}
         style={{
-          width: '100%', height: '100%', minHeight: 300, borderRadius: 12, overflow: 'hidden',
-          border: '1px solid rgba(255,255,255,0.15)',
-          background: '#060810',
+          width: '100%', height: '100%', minHeight: 300, overflow: 'hidden',
+          background: '#020406',
         }}
       />
       {!mapReady && !mapError && (
-        <div style={{
-          position: 'absolute', inset: 0, display: 'flex', alignItems: 'center',
-          justifyContent: 'center', color: 'rgba(255,255,255,0.6)',
-          fontSize: 14, borderRadius: 12, fontFamily: 'Inter, -apple-system, sans-serif',
-          fontWeight: 600, letterSpacing: '1px',
-        }}>
-          LOADING MAP...
+        <div className="pnm-map-status pnm-map-status--loading" role="status">
+          <span className="pnm-map-status__title">Loading Map...</span>
         </div>
       )}
       {mapError && (
-        <div role="alert" style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12, padding: 24, textAlign: 'center', color: '#e2e8f0', background: '#060810', border: '1px solid rgba(239,68,68,0.35)', borderRadius: 12 }}>
-          <strong>Map Unavailable</strong>
-          <span style={{ color: 'rgba(226,232,240,0.7)', fontSize: 13 }}>{mapError}</span>
-          <button type="button" onClick={() => { resetPokerMapRuntime(); setMapReady(false); setMapLoadAttempt(value => value + 1); }} style={{ minWidth: 120, minHeight: 44, padding: '10px 18px', color: '#fff', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.3)', borderRadius: 8, cursor: 'pointer' }}>Try Map Again</button>
+        <div className="pnm-map-status pnm-map-status--error" role="alert">
+          <strong className="pnm-map-status__title">Map Unavailable</strong>
+          <p>{mapError}</p>
+          <button type="button" className="pnm-map-status__action" onClick={() => { resetPokerMapRuntime(); setMapReady(false); setMapLoadAttempt(value => value + 1); }}>Try Map Again</button>
         </div>
       )}
       <MapCoverageReadout

@@ -10,6 +10,7 @@ import Link from 'next/link';
 import UniversalHeader from '../../../../src/components/ui/UniversalHeader';
 import PokerNearMeFamilyNav from '../../../../src/components/poker-near-me/PokerNearMeFamilyNav';
 import DeepRouteSignalDeck from '../../../../src/components/poker-near-me/DeepRouteSignalDeck';
+import PokerNearMeConsole from '../../../../src/components/poker-near-me/PokerNearMeConsole';
 import { getAccessToken } from '../../../../src/lib/authUtils';
 import { createClient } from '@supabase/supabase-js';
 
@@ -453,7 +454,7 @@ export default function HomeGameDashboard() {
         }
 
         if (!role || !HOST_ROLES.includes(role)) {
-          setErr('You must be a host or co-host to access this dashboard.');
+          setErr('You Must Be A Host Or Co-Host To Open This Dashboard.');
           setLoading(false);
           return;
         }
@@ -467,16 +468,70 @@ export default function HomeGameDashboard() {
     })();
   }, [slug, token, authChecked, router]);
 
+  // Both pre-content states are printed into the painted Poker Near Me chassis
+  // and both carry the route's single <main>. Before this they were bare divs:
+  // the route rendered ZERO <main> elements while it was loading, while the
+  // caller was being bounced to login, and on the host/co-host refusal, which
+  // left the landmark missing on every state a non-host ever reaches.
   if (loading) return (
     <div className="hgd-page hgd-state">
-      Loading Dashboard…
+      <Head>
+        <title>Host Dashboard | Smarter.Poker</title>
+        <meta name="robots" content="noindex, nofollow" />
+      </Head>
+      <main data-pnm-secondary-foundation="interaction-v1">
+        <PokerNearMeConsole
+          crest="locator"
+          eyebrow="Host Operations"
+          title="Loading Dashboard"
+          titleAs="h1"
+          titleId="hgd-state-title"
+          pill="Host"
+          pillInk="blue"
+          foot="foot"
+          aria-busy="true"
+        >
+          <p className="pnc-copy pnc-copy--center" role="status" aria-live="polite">
+            Checking Your Host Access For This Home Game.
+          </p>
+        </PokerNearMeConsole>
+      </main>
     </div>
   );
 
   if (err) return (
     <div className="hgd-page hgd-state">
-      <div style={{ color: '#f87171', fontSize: 15 }}>{err}</div>
-      <Link href="/hub/my-clubs" style={{ color: C.teal, fontSize: 13 }}>← My Clubs</Link>
+      <Head>
+        <title>Host Dashboard | Smarter.Poker</title>
+        <meta name="robots" content="noindex, nofollow" />
+      </Head>
+      <main data-pnm-secondary-foundation="interaction-v1">
+        <PokerNearMeConsole
+          crest="locator"
+          eyebrow="Host Operations"
+          title="Dashboard Unavailable"
+          titleAs="h1"
+          titleId="hgd-state-title"
+          pill="Host"
+          pillInk="blue"
+          plates={{
+            secondary: {
+              label: 'My Clubs',
+              ink: 'silver',
+              onClick: () => router.push('/hub/my-clubs'),
+              'aria-label': 'Go to my clubs',
+            },
+            primary: {
+              label: 'Public Page',
+              ink: 'blue',
+              onClick: () => router.push(`/hub/home-games/${slug}`),
+              'aria-label': 'Open the public page for this home game',
+            },
+          }}
+        >
+          <p className="pnc-copy pnc-copy--center pnc-ink--red" role="alert">{err}</p>
+        </PokerNearMeConsole>
+      </main>
     </div>
   );
 
@@ -493,21 +548,21 @@ export default function HomeGameDashboard() {
         <DeepRouteSignalDeck
           compact
           kind="dashboard"
-          eyebrow="Host operations"
-          title={`${group?.name || 'Home game'} command deck`}
-          description="Manage the room, members, upcoming sessions, moderation, and host settings from one protected surface."
+          eyebrow="Host Operations"
+          title={`${group?.name || 'Home Game'} Command Deck`}
+          description="Manage The Room, Members, Upcoming Sessions, Moderation And Host Settings From One Protected Surface."
           image={group?.cover_photo_url || group?.profile_photo_url}
-          imageAlt="Home game host command deck"
+          imageAlt="Home Game Host Command Deck"
           breadcrumbs={[
             { label: 'Poker Near Me', href: '/hub/poker-near-me/lobby' },
-            { label: group?.name || 'Home game', href: `/hub/home-games/${slug}` },
+            { label: group?.name || 'Home Game', href: `/hub/home-games/${slug}` },
             { label: 'Dashboard' },
           ]}
-          status="Host access verified"
+          status="Host Access Verified"
           statusTone="live"
-          freshness={{ label: 'Protected live workspace' }}
+          freshness={{ label: 'Protected Live Workspace' }}
           metrics={[
-            { label: 'Role', value: group?.userRole || 'host' },
+            { label: 'Role', value: group?.userRole || 'Host' },
             { label: 'Members', value: group?.member_count || 0 },
             { label: 'Location', value: [group?.city, group?.state].filter(Boolean).join(', ') || 'Private' },
           ]}

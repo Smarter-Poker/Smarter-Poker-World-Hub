@@ -581,7 +581,10 @@ export default function HomeGameDetailPage() {
   if (loading) {
     return (
       <div className="cmd-page flex items-center justify-center" data-pnm-home-games="true" data-pnm-realism="machined-v2" data-pnm-secondary-foundation="interaction-v1">
-        <Loader2 className="w-8 h-8 animate-spin text-[#22D3EE]" />
+        <main className="text-center">
+          <h1 className="text-xl font-semibold text-white mb-2">Loading Home Game</h1>
+          <Loader2 className="w-8 h-8 animate-spin text-[#22D3EE] mx-auto" aria-hidden="true" />
+        </main>
       </div>
     );
   }
@@ -589,16 +592,18 @@ export default function HomeGameDetailPage() {
   if (!group) {
     return (
       <div className="cmd-page flex items-center justify-center" data-pnm-home-games="true" data-pnm-realism="machined-v2" data-pnm-secondary-foundation="interaction-v1">
-        <div className="text-center">
-          <Home className="w-12 h-12 text-[#4A5E78] mx-auto mb-3" />
-          <p className="text-[#64748B]">Group Not Found</p>
+        <main className="text-center">
+          <Home className="w-12 h-12 text-[#4A5E78] mx-auto mb-3" aria-hidden="true" />
+          <h1 className="text-xl font-semibold text-white mb-2">Group Not Found</h1>
+          <p className="text-[#64748B]">This Home Game Is No Longer Available, Or You Do Not Have Access To It.</p>
           <button
+            type="button"
             onClick={() => router.push('/hub/commander/home-games')}
             className="mt-4 cmd-btn cmd-btn-primary"
           >
             Back To Home Games
           </button>
-        </div>
+        </main>
       </div>
     );
   }

@@ -8,7 +8,7 @@ import Link from 'next/link';
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 // 2026-05-07 — UI-UX-Pro-Max: Lucide icons replace inline SVG + HTML entities
 import {
-    Search as SearchLuc, Calendar as CalendarLuc,
+    Calendar as CalendarLuc,
     X as XLuc, ChevronLeft as ChevLeft, ChevronRight as ChevRight,
 } from 'lucide-react';
 import { useRouter } from 'next/router';
@@ -16,6 +16,7 @@ import useSWR from 'swr';
 import useVenueRealtime from '../../src/hooks/useVenueRealtime';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import PokerNearMeFamilyNav from '../../src/components/poker-near-me/PokerNearMeFamilyNav';
+import { PokerNearMeConsoleIcon } from '../../src/components/poker-near-me/PokerNearMeConsole';
 import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import PokerIdentityMark from '../../src/components/poker-near-me/PokerIdentityMark';
@@ -425,7 +426,7 @@ export default function DailyTournaments() {
                     <div className="dt-header-right">
                         <form role="search" className="pnm-search-box" style={{ position: 'relative' }} onSubmit={(e) => { e.preventDefault(); setDebouncedSearch(searchQuery); }}>
                             <label htmlFor="venue-search" className="dt-sr-only">Search Tournaments By Venue</label>
-                            <SearchLuc size={16} aria-hidden style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,0.4)', pointerEvents: 'none' }} />
+                            <PokerNearMeConsoleIcon name="search" className="dt-search-icon" />
                             <input
                                 type="text"
                                 id="venue-search"

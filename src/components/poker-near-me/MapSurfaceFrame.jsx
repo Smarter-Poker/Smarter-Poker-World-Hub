@@ -1,16 +1,20 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import useAccessibleDialog from '../../hooks/useAccessibleDialog';
+import { PokerNearMeConsoleIcon, usePnmConsoleFitText } from './PokerNearMeConsole';
 
-function ExpandIcon({ close = false }) {
-  return close ? (
-    <svg aria-hidden="true" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="square">
-      <path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5" />
-    </svg>
-  ) : (
-    <svg aria-hidden="true" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="square">
-      <path d="M9 4H4v5M15 4h5v5M9 20H4v-5M15 20h5v-5" />
-    </svg>
-  );
+// The page may scroll the window or an inner panel (lobby pods scroll their
+// own panel). Restoration must move whichever one actually holds the map.
+function findScrollParent(node) {
+  if (typeof window === 'undefined') return null;
+  let element = node?.parentElement || null;
+  while (element && element !== document.body && element !== document.documentElement) {
+    const { overflowY } = window.getComputedStyle(element);
+    if (/(auto|scroll|overlay)/.test(overflowY) && element.scrollHeight > element.clientHeight + 1) {
+      return element;
+    }
+    element = element.parentElement;
+  }
+  return null;
 }
 
 /**
@@ -32,11 +36,69 @@ export default function MapSurfaceFrame({
   allowFullscreen = true,
 }) {
   const [expanded, setExpanded] = useState(false);
+  const [placeholderHeight, setPlaceholderHeight] = useState(0);
+  // The live title is fitted to the painted face (the kit's measured fit),
+  // so a long map name shrinks before it is ever cut to an ellipsis.
+  const titleFitRef = usePnmConsoleFitText(title, 1.02, 0.7);
+  const scrollRestoreRef = useRef(null);
   const close = useCallback(() => setExpanded(false), []);
   const { dialogRef, initialFocusRef } = useAccessibleDialog({
     open: expanded,
     onClose: close,
   });
+
+  // Entering fullscreen lifts the one mounted map out of the page flow. Hold
+  // its measured height in a placeholder so the page behind the dialog never
+  // reflows (no scroll clamping, no scroll anchoring), and remember the
+  // reader's exact scroll position before anything moves.
+  const toggleFullscreen = useCallback(() => {
+    if (!expanded && typeof window !== 'undefined') {
+      const rect = dialogRef.current?.getBoundingClientRect?.();
+      scrollRestoreRef.current = {
+        left: window.scrollX,
+        top: window.scrollY,
+        surfaceTop: rect ? rect.top : null,
+        scroller: findScrollParent(dialogRef.current),
+      };
+      setPlaceholderHeight(rect ? Math.round(rect.height) : 0);
+    }
+    setExpanded((value) => !value);
+  }, [expanded, dialogRef]);
+
+  // However fullscreen ends (control, Escape, a details hand-off), put the
+  // page back exactly where it was. This runs after the shared dialog hook has
+  // returned focus to the fullscreen control, so the focus call cannot leave
+  // the page scrolled somewhere else, and a marker that scrolled a results
+  // list behind the dialog does not strand the reader there.
+  useEffect(() => {
+    if (expanded || typeof window === 'undefined') return undefined;
+    const saved = scrollRestoreRef.current;
+    if (!saved) return undefined;
+    scrollRestoreRef.current = null;
+    // Restore the map to the same place in the viewport it was opened from.
+    // If content above it changed while fullscreen (a marker selection can
+    // expand a results list), the page offset alone would strand the reader
+    // away from the map and its focused control, so measure the surface.
+    const scroller = saved.scroller?.isConnected ? saved.scroller : null;
+    const restore = () => {
+      const rect = dialogRef.current?.getBoundingClientRect?.();
+      const delta = rect && Number.isFinite(saved.surfaceTop) ? rect.top - saved.surfaceTop : null;
+      if (scroller) {
+        if (delta) scroller.scrollTop += delta;
+        return;
+      }
+      const left = saved.left;
+      const top = delta == null ? saved.top : Math.max(0, window.scrollY + delta);
+      try {
+        window.scrollTo({ left, top, behavior: 'instant' });
+      } catch {
+        window.scrollTo(left, top);
+      }
+    };
+    restore();
+    const frame = window.requestAnimationFrame(restore);
+    return () => window.cancelAnimationFrame(frame);
+  }, [expanded, dialogRef]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return undefined;
@@ -151,6 +213,14 @@ export default function MapSurfaceFrame({
   }, [dialogRef]);
 
   return (
+    <>
+    {expanded && placeholderHeight > 0 ? (
+      <div
+        className="pnm-map-surface__placeholder"
+        aria-hidden="true"
+        style={{ height: placeholderHeight }}
+      />
+    ) : null}
     <section
       ref={dialogRef}
       className={`pnm-map-surface${expanded ? ' pnm-map-surface--fullscreen' : ''}${className ? ` ${className}` : ''}`}
@@ -159,12 +229,13 @@ export default function MapSurfaceFrame({
       aria-label={expanded ? `${title} fullscreen map` : title}
       tabIndex={expanded ? -1 : undefined}
       data-pnm-map-surface="true"
+      data-pnm-map-console="painted-chassis-v1"
       data-map-fullscreen={expanded ? 'true' : 'false'}
     >
       <header className="pnm-map-surface__header">
         <div className="pnm-map-surface__identity">
           <span className="pnm-map-surface__eyebrow">{eyebrow}</span>
-          <strong>{title}</strong>
+          <strong><span ref={titleFitRef} className="pnm-map-surface__title-text">{title}</span></strong>
           {detail ? <small>{detail}</small> : null}
         </div>
         <div className="pnm-map-surface__controls">
@@ -176,11 +247,11 @@ export default function MapSurfaceFrame({
             className="pnm-map-surface__fullscreen-control"
             aria-label={expanded ? `Exit fullscreen ${title}` : `Expand ${title} to fullscreen`}
             aria-expanded={expanded}
-            onClick={() => setExpanded((value) => !value)}
+            onClick={toggleFullscreen}
             data-map-fullscreen-control="true"
           >
-            <ExpandIcon close={expanded} />
-            <span>{expanded ? 'Exit full screen' : 'Full screen'}</span>
+            <PokerNearMeConsoleIcon name={expanded ? 'close' : 'fullscreen'} />
+            <span>{expanded ? 'Exit Full Screen' : 'Full Screen'}</span>
           </button>
         )}
         </div>
@@ -188,11 +259,13 @@ export default function MapSurfaceFrame({
       <div className="pnm-map-surface__viewport">
         {children}
       </div>
+      <span className="pnm-map-surface__foot" aria-hidden="true" />
       {expanded && (
         <p className="pnm-map-surface__escape-hint" aria-hidden="true">
           Esc To Close
         </p>
       )}
     </section>
+    </>
   );
 }

@@ -29,6 +29,7 @@ import HamburgerMenu from '../../../src/components/ui/HamburgerMenu';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { supabase } from '../../../src/lib/supabase';
 import { getAccessToken, getSafeUser } from '../../../src/lib/authUtils';
+import PokerNearMeConsole from '../../../src/components/poker-near-me/PokerNearMeConsole';
 import HomeGamesSeatReservation from '../../../src/components/home-games/HomeGamesSeatReservation';
 import TournamentList from '../../../src/components/home-games/TournamentList';
 import { safeCopyToClipboard } from '../../../src/lib/clipboard';
@@ -802,11 +803,40 @@ export default function PublicHomeGamePage({ data, serverError }) {
           <UniversalHeader onMenuClick={() => setMenuOpen(true)} pageDepth={2} />
           <PokerNearMeFamilyNav />
           <main className="hgs-notfound" data-pnm-secondary-foundation="interaction-v1">
-            <h1>Temporarily Unavailable</h1>
-            <p>We Couldn&apos;T Load This Home Game Right Now. Please Try Again In A Moment.</p>
-            {/* There is no /hub/home-games index route — near-me is the
-                real discovery surface. */}
-            <Link href="/hub/home-games/near-me" className="hgs-primary-btn">Browse Home Games</Link>
+            {/* This line used to contract "could not" with an HTML entity.
+                The Title Case fixer capitalised the letter that followed the
+                entity, and the entity hid the result from review, so the page
+                shipped a capital in the middle of a word. Written without the
+                contraction it cannot happen again. The state itself is now
+                printed into the painted Poker Near Me chassis like every
+                other Home Games state. */}
+            <PokerNearMeConsole
+              crest="locator"
+              eyebrow="Home Game"
+              title="Temporarily Unavailable"
+              titleAs="h1"
+              titleId="hgs-server-error-title"
+              pill="Retry"
+              pillInk="gold"
+              plates={{
+                secondary: {
+                  label: 'Try Again',
+                  ink: 'silver',
+                  onClick: () => router.reload(),
+                  'aria-label': 'Reload this home game page',
+                },
+                primary: {
+                  label: 'Near Me',
+                  ink: 'blue',
+                  onClick: () => router.push('/hub/home-games/near-me'),
+                  'aria-label': 'Find home games near me',
+                },
+              }}
+            >
+              <p className="pnc-copy pnc-copy--center" role="status">
+                We Could Not Load This Home Game Right Now. Please Try Again In A Moment.
+              </p>
+            </PokerNearMeConsole>
           </main>
           <HamburgerMenu isOpen={menuOpen} onClose={() => setMenuOpen(false)} worldKey="hub" />
           <style suppressHydrationWarning dangerouslySetInnerHTML={{ __html: pageStyles }} />
@@ -1775,7 +1805,7 @@ const pageStyles = `
 .hgs-stats strong{color:#fff;font-weight:700;margin-right:4px}
 .hgs-cta-row{display:flex;gap:8px;flex-wrap:wrap}
 .hgs-primary-btn{padding:10px 18px;background:linear-gradient(135deg,#0ea5e9,#0284c7);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:800;letter-spacing:.5px;cursor:pointer;box-shadow:0 4px 14px rgba(14,165,233,.3);display:inline-block;text-decoration:none;transition:transform .15s}
-.hgs-primary-btn:hover{transform:translateY(-1px)}
+.hgs-primary-btn:active{filter:brightness(1.18)}
 .hgs-ghost-btn{padding:10px 18px;background:rgba(255,255,255,.08);color:#fff;border:1px solid rgba(255,255,255,.15);border-radius:8px;font-size:13px;font-weight:700;cursor:pointer}
 .hgs-ghost-btn:hover{background:rgba(255,255,255,.14)}
 .hgs-follow-btn{padding:10px 18px;background:rgba(14,165,233,.12);color:#38bdf8;border:1.5px solid rgba(14,165,233,.4);border-radius:8px;font-size:13px;font-weight:800;letter-spacing:.3px;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:4px}

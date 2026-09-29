@@ -115,11 +115,12 @@ export default function JoinHomeGame() {
     <CommanderPageShell>
       <SEOHead title="Join Home Game" description="Smarter.Poker" noindex={true} />
       <div className="cmd-page flex items-center justify-center px-4" data-pnm-home-games="true" data-pnm-realism="machined-v2" data-pnm-secondary-foundation="interaction-v1">
-        <div className="max-w-md w-full text-center py-16">
+        <main className="max-w-md w-full text-center py-16">
           {(authChecking || state === 'idle' || state === 'joining') && (
             <>
-              <Loader2 className="w-8 h-8 animate-spin text-[#22D3EE] mx-auto mb-4" />
-              <p className="text-sm text-[#9FB3C8]">Joining The Game…</p>
+              <h1 className="text-xl font-semibold text-white mb-2">Joining The Game</h1>
+              <Loader2 className="w-8 h-8 animate-spin text-[#22D3EE] mx-auto mb-4" aria-hidden="true" />
+              <p className="text-sm text-[#9FB3C8]" role="status" aria-live="polite">Redeeming Your Invite Code…</p>
             </>
           )}
 
@@ -127,7 +128,7 @@ export default function JoinHomeGame() {
             <>
               <h1 className="text-xl font-semibold text-white mb-2">Request Sent</h1>
               <p className="text-sm text-[#9FB3C8] mb-6">{message}</p>
-              <button onClick={goToGroup} className="cmd-btn cmd-btn-primary px-4 h-11">
+              <button type="button" onClick={goToGroup} className="cmd-btn cmd-btn-primary px-4 h-11">
                 View The Game
               </button>
             </>
@@ -137,7 +138,7 @@ export default function JoinHomeGame() {
             <>
               <h1 className="text-xl font-semibold text-white mb-2">You Are In</h1>
               <p className="text-sm text-[#9FB3C8] mb-6">{message}</p>
-              <button onClick={goToGroup} className="cmd-btn cmd-btn-primary px-4 h-11">
+              <button type="button" onClick={goToGroup} className="cmd-btn cmd-btn-primary px-4 h-11">
                 Go To The Game
               </button>
             </>
@@ -148,10 +149,11 @@ export default function JoinHomeGame() {
               <h1 className="text-xl font-semibold text-white mb-2">Could Not Join</h1>
               <p className="text-sm text-[#9FB3C8] mb-6">{message}</p>
               <div className="flex items-center justify-center gap-3">
-                <button onClick={() => doJoin()} className="cmd-btn cmd-btn-secondary px-4 h-11">
+                <button type="button" onClick={() => doJoin()} className="cmd-btn cmd-btn-secondary px-4 h-11">
                   Try Again
                 </button>
                 <button
+                  type="button"
                   onClick={() => router.push('/hub/home-games')}
                   className="cmd-btn cmd-btn-primary px-4 h-11"
                 >
@@ -160,7 +162,7 @@ export default function JoinHomeGame() {
               </div>
             </>
           )}
-        </div>
+        </main>
       </div>
     </CommanderPageShell>
   );

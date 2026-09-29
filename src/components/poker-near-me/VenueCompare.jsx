@@ -26,6 +26,18 @@ const COMPARE_FIELDS = [
   { key: 'phone', label: 'Phone' },
 ];
 
+// Provenance of a published cash-game count, in cashGameCountLabel's order.
+// Only an observed live count prints in the green live ink.
+function cashGameMode(live) {
+  if (!live) return 'none';
+  if (live.data_mode === 'catalog') return 'catalog';
+  if (live.live_count_known === false) return 'unavailable';
+  if (isModeledCashGameData(live)) return 'estimated';
+  if (live.data_mode === 'mixed') return 'mixed';
+  if (live.data_mode === 'live') return 'live';
+  return 'reported';
+}
+
 function getFieldValue(venue, field, userLocation, liveDataMap = {}, liveLoading = false) {
   const findLive = (v) => findLiveCashGameEntry(v, liveDataMap);
 
@@ -40,23 +52,22 @@ function getFieldValue(venue, field, userLocation, liveDataMap = {}, liveLoading
       const live = findLive(venue);
       // UX FIX: while the live-tables fetch is in flight this used to render the same
       // em-dash as "this venue has no live data".
-      if (liveLoading) return <span style={{ color: 'rgba(200,214,229,0.35)' }}>Loading...</span>;
-      if (!live || !Array.isArray(live.games) || live.games.length === 0) return <span style={{ color: 'rgba(200,214,229,0.3)' }}>-</span>;
-      const color = live.live_count_known === false || live.data_mode === 'catalog'
-        ? '#d8e4ec'
-        : isModeledCashGameData(live) ? '#c9a85a' : '#52d18b';
-      return <span style={{ color, fontWeight: 700 }}>{cashGameCountLabel(live)}</span>;
+      if (liveLoading) return <span className="pnm-venue-compare__muted">Loading...</span>;
+      if (!live || !Array.isArray(live.games) || live.games.length === 0) return <span className="pnm-venue-compare__muted">-</span>;
+      return <span className="pnm-venue-compare__provenance" data-mode={cashGameMode(live)}>{cashGameCountLabel(live)}</span>;
     }
     case 'waiting_list': {
       const live = findLive(venue);
-      if (liveLoading) return <span style={{ color: 'rgba(200,214,229,0.35)' }}>Loading...</span>;
-      if (!live || !Array.isArray(live.games) || live.games.length === 0) return <span style={{ color: 'rgba(200,214,229,0.3)' }}>-</span>;
+      if (liveLoading) return <span className="pnm-venue-compare__muted">Loading...</span>;
+      if (!live || !Array.isArray(live.games) || live.games.length === 0) return <span className="pnm-venue-compare__muted">-</span>;
       if (live.live_count_known === false || live.data_mode === 'catalog') {
-        return <span style={{ color: 'rgba(200,214,229,0.5)' }}>Unknown</span>;
+        return <span className="pnm-venue-compare__muted">Unknown</span>;
       }
       const wait = Number(live.players_waiting) || 0;
       const suffix = isModeledCashGameData(live) ? ' Estimated' : ' Waiting';
-      return wait > 0 ? <span style={{ color: '#c9a85a', fontWeight: 700 }}>{wait}{suffix}</span> : <span style={{ color: 'rgba(200,214,229,0.5)' }}>0</span>;
+      return wait > 0
+        ? <span className="pnm-venue-compare__provenance" data-mode={isModeledCashGameData(live) ? 'estimated' : 'reported'}>{wait}{suffix}</span>
+        : <span className="pnm-venue-compare__muted">0</span>;
     }
     // BUG FIX: trust_score is recalculate_venue_trust_score()'s AVG(rating) on the
     // 1-5 review scale (LiveGamesFeed/VenueCard both render it as "/5"). Rendering
@@ -138,23 +149,21 @@ export default function VenueCompare({ venues = [], userLocation, onClose }) {
     if (!selectedIds.includes(key) && selectedIds.length + 1 >= 3) setShowPicker(false);
   };
 
+  const atLimit = selectedIds.length >= 3;
+
   return (
-    <div>
+    <div className="pnm-venue-compare">
       {/* STUB FIX: `onClose` was destructured from props and then never used anywhere —
           there was no close control and no Escape handler, so a caller that passed it had
           no way for the user to dismiss the panel. Rendered only when a caller supplies
           it (the current lobby call site does not). */}
       {onClose && (
-        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8 }}>
+        <div className="pnm-venue-compare__bar">
           <button
             type="button"
+            className="pnm-venue-compare__text-action"
             onClick={onClose}
-            aria-label="Close comparison"
-            style={{
-              minHeight: 44, padding: '4px 14px', borderRadius: 8, fontSize: 12, fontWeight: 600,
-              border: '1.5px solid rgba(148,163,184,0.2)', background: 'transparent',
-              color: 'rgba(148,163,184,0.7)', cursor: 'pointer', fontFamily: 'inherit',
-            }}
+            aria-label="Close Comparison"
           >
             Close
           </button>
@@ -163,63 +172,39 @@ export default function VenueCompare({ venues = [], userLocation, onClose }) {
 
       {/* Selection area */}
       {(selectedVenues.length < 2 || showPicker) && (
-        <div style={{ marginBottom: 16 }}>
-          <div style={{ fontSize: 13, color: 'rgba(200,214,229,0.6)', marginBottom: 8, fontWeight: 600 }}>
+        <div className="pnm-venue-compare__picker">
+          <p className="pnm-venue-compare__hint">
             {selectedVenues.length >= 2
-              ? 'Pick a third venue to compare'
-              : `Select ${selectedVenues.length === 0 ? '2-3' : `${2 - selectedVenues.length} more`} venues to compare`}
-          </div>
-          <input
-            type="text"
-            placeholder="Search venues..."
-            value={searchTerm}
-            onChange={e => setSearchTerm(e.target.value)}
-            style={{
-              width: '100%', minHeight: 44, padding: '8px 14px', borderRadius: 8,
-              border: '1.5px solid rgba(148,163,184,0.15)', background: 'linear-gradient(180deg, rgba(20,30,48,0.95), rgba(12,18,30,0.98))',
-              color: '#e2e8f0', fontSize: 16, fontFamily: 'inherit', outline: 'none',
-              marginBottom: 8, boxSizing: 'border-box',
-              boxShadow: 'inset 0 2px 6px rgba(0,0,0,0.4), inset 0 -1px 0 rgba(148,163,184,0.08)',
-            }}
-          />
-          <div style={{ display: 'grid', gap: 6, maxHeight: 200, overflowY: 'auto' }}>
+              ? 'Pick A Third Venue To Compare'
+              : `Select ${selectedVenues.length === 0 ? '2-3' : `${2 - selectedVenues.length} More`} Venues To Compare`}
+          </p>
+          {/* The field prints into the painted search well at its own ratio. */}
+          <label className="pnm-venue-compare__search">
+            <span className="pnm-venue-compare__sr">Search Venues</span>
+            <input
+              type="text"
+              placeholder="Search Venues..."
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+            />
+          </label>
+          <div className="pnm-venue-compare__list" role="group" aria-label="Venues">
             {filteredVenues.map(v => {
               const isSelected = selectedIds.includes(String(v.id));
+              const blocked = atLimit && !isSelected;
               return (
                 <button
                   key={v.id}
                   onClick={() => toggleVenue(v.id)}
                   type="button"
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: 8, minHeight: 44,
-                    padding: '8px 12px', borderRadius: 8,
-                    border: isSelected ? '1.5px solid rgba(255,255,255,0.5)' : '1.5px solid rgba(148,163,184,0.12)',
-                    background: isSelected ? 'rgba(255,255,255,0.1)' : 'linear-gradient(160deg, rgba(18,28,45,0.7), rgba(10,16,28,0.85))',
-                    color: isSelected ? '#ffffff' : '#e2e8f0',
-                    fontSize: 12, fontWeight: isSelected ? 700 : 400,
-                    cursor: selectedIds.length >= 3 && !isSelected ? 'not-allowed' : 'pointer',
-                    fontFamily: 'inherit', textAlign: 'left', width: '100%',
-                    transition: 'all 0.2s',
-                    opacity: selectedIds.length >= 3 && !isSelected ? 0.4 : 1,
-                  }}
+                  className="pnm-venue-compare__option"
+                  aria-pressed={isSelected}
+                  aria-disabled={blocked || undefined}
+                  data-selected={isSelected ? 'true' : 'false'}
                 >
-                  <div style={{
-                    width: 18, height: 18, borderRadius: 4, flexShrink: 0,
-                    border: isSelected ? '2px solid #ffffff' : '2px solid rgba(148,163,184,0.2)',
-                    background: isSelected ? 'rgba(255,255,255,0.2)' : 'transparent',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  }}>
-                    {isSelected && (
-                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="3">
-                        <polyline points="20 6 9 17 4 12" />
-                      </svg>
-                    )}
-                  </div>
-                  <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {v.name}
-                  </span>
-                  <span style={{ fontSize: 12, color: 'rgba(200,214,229,0.35)', flexShrink: 0 }}>
-                    {v.city}{v.state ? `, ${v.state}` : ''}
+                  <span className="pnm-venue-compare__option-name">{v.name}</span>
+                  <span className="pnm-venue-compare__option-meta">
+                    {isSelected ? 'Selected' : `${v.city || ''}${v.state ? `, ${v.state}` : ''}`}
                   </span>
                 </button>
               );
@@ -228,29 +213,26 @@ export default function VenueCompare({ venues = [], userLocation, onClose }) {
         </div>
       )}
 
-      {/* Selected chips */}
+      {/* Selected venues, printed as rows with their own remove control */}
       {selectedVenues.length > 0 && (
-        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
+        <div className="pnm-venue-compare__selected">
           {selectedVenues.map(v => (
-            <span key={v.id} style={{
-              display: 'inline-flex', alignItems: 'center', gap: 6,
-              padding: '4px 10px', borderRadius: 8,
-              background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.3)',
-              color: '#ffffff', fontSize: 12, fontWeight: 600,
-            }}>
-              {v.name}
-              <button type="button" className="sp-icon-btn" aria-label={`Remove ${v.name}`} onClick={() => toggleVenue(v.id)} style={{ '--sp-btn-size': '44px',
-                background: 'none', border: 'none', color: '#ffffff', cursor: 'pointer',
-                padding: 0, fontSize: 18, lineHeight: 1, fontFamily: 'inherit', minWidth: 44, minHeight: 44, width: 44, height: 44,
-              }}>×</button>
-            </span>
+            <div key={v.id} className="pnm-venue-compare__selected-row">
+              <span className="pnm-venue-compare__selected-name">{v.name}</span>
+              <button
+                type="button"
+                className="pnm-venue-compare__text-action pnm-venue-compare__text-action--remove"
+                aria-label={`Remove ${v.name}`}
+                onClick={() => toggleVenue(v.id)}
+              >
+                Remove
+              </button>
+            </div>
           ))}
           {selectedVenues.length < 3 && (
-            <button type="button" onClick={() => setShowPicker(v => !v)} style={{
-              minHeight: 44, padding: '4px 10px', borderRadius: 8, fontSize: 12, fontWeight: 600,
-              border: '1.5px dashed rgba(148,163,184,0.2)', background: 'transparent',
-              color: 'rgba(148,163,184,0.5)', cursor: 'pointer', fontFamily: 'inherit',
-            }}>{showPicker && selectedVenues.length >= 2 ? 'Done' : '+ Add Venue'}</button>
+            <button type="button" className="pnm-venue-compare__text-action" onClick={() => setShowPicker(v => !v)}>
+              {showPicker && selectedVenues.length >= 2 ? 'Done' : 'Add Venue'}
+            </button>
           )}
         </div>
       )}
@@ -258,11 +240,12 @@ export default function VenueCompare({ venues = [], userLocation, onClose }) {
       {/* Comparison table.
           Mobile phase 3: a ResponsiveTable (a real table above 768px, one
           labelled card per metric at or below it) replaces the sideways
-          `overflowX: auto` table, which was "slide to see" on every phone. */}
+          `overflowX: auto` table, which was "slide to see" on every phone.
+          Printed straight onto the host panel's glass: no second frame. */}
       {selectedVenues.length >= 2 && (
-        <div style={{ borderRadius: 12, border: '1.5px solid rgba(148,163,184,0.12)', background: 'linear-gradient(160deg, rgba(18,28,45,0.7), rgba(10,16,28,0.85))', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04), 0 4px 16px rgba(0,0,0,0.35)', padding: 4 }}>
+        <div className="pnm-venue-compare__table">
           <ResponsiveTable
-            caption="Venue comparison"
+            caption="Venue Comparison"
             keyField="key"
             columns={[
               { key: 'label', label: 'Metric', align: 'left' },
@@ -280,9 +263,9 @@ export default function VenueCompare({ venues = [], userLocation, onClose }) {
 
       {/* Empty state */}
       {selectedVenues.length === 0 && filteredVenues.length === 0 && (
-        <div style={{ textAlign: 'center', padding: 30, color: 'rgba(200,214,229,0.4)' }}>
-          <p style={{ fontSize: 14, fontWeight: 600 }}>No Venues Found</p>
-          <p style={{ fontSize: 12 }}>Try A Different Search Term.</p>
+        <div className="pnm-venue-compare__empty" role="status">
+          <p className="pnm-venue-compare__empty-title">No Venues Found</p>
+          <p className="pnm-venue-compare__empty-copy">Try A Different Search Term.</p>
         </div>
       )}
     </div>

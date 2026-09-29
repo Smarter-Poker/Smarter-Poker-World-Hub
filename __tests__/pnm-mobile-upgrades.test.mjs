@@ -129,12 +129,21 @@ test('every mutation is guarded by the online check and the primary taps have a 
 
 test('every overlay the pages open is a back-gesture sheet with a 44px close', () => {
   const sheets = {
-    'src/components/poker-near-me/VenueReviews.jsx': [/useModalHistory\(!!isOpen, onClose\)/, /useScrimDismiss\(onClose\)/, /@media \(max-width: 600px\)/, /\.vr-handle \{ display: block; width: 44px; height: 4px;/, /\.vr-textarea \{ font-size: 16px; \}/],
-    'src/components/poker-near-me/VenueCard.js': [/useModalHistory\(checkinModal, closeCheckin\)/, /useScrimDismiss\(closeCheckin\)/, /@media \(max-width: 600px\)/, /\.vc3-checkin-handle \{ display: block; width: 44px; height: 4px;/, /\.vc3-checkin-textarea \{ font-size: 16px; \}/],
+    // 2026-09-21 #ClubArenaConsole: both sheets are painted PokerNearMeConsole dialogs.
+    // The drawn grab handle is retired; the phone bottom anchoring and the 16px
+    // (no iOS zoom) field moved into poker-near-me-console-cards.css, pinned below,
+    // and the 44px close is the console's own printed Close control.
+    'src/components/poker-near-me/VenueReviews.jsx': [/useModalHistory\(!!isOpen, onClose\)/, /useScrimDismiss\(onClose\)/, /<PokerNearMeConsole[\s\S]*?titleId="pnm-venue-reviews-title"/, /className="pnm-console-dialog__close"/],
+    'src/components/poker-near-me/VenueCard.js': [/useModalHistory\(checkinModal, closeCheckin\)/, /useScrimDismiss\(closeCheckin\)/, /<PokerNearMeConsole[\s\S]*?titleId="pnm-venue-checkin-title"/, /className="pnm-console-dialog__close"/],
     'src/components/poker-near-me/ReportGameModal.jsx': [/useModalHistory\(!!isOpen, onClose\)/, /useScrimDismiss\(onClose\)/, /@media \(max-width: 600px\)/, /\.rgm-handle \{ display: block; width: 44px; height: 4px;/, /width: 44, height: 44, minWidth: 44, minHeight: 44/],
-    'src/components/poker-near-me/SocialLayer.jsx': [/useModalHistory\(!!inviteModal, closeInvite\)/, /useScrimDismiss\(closeInvite\)/, /@media \(max-width: 600px\)/, /\.sl-modal-handle \{ display: block; width: 44px; height: 4px;/, /\.sl-modal-close \{[^}]*min-width: 44px; min-height: 44px;/],
+    'src/components/poker-near-me/SocialLayer.jsx': [/useModalHistory\(!!inviteModal, closeInvite\)/, /useScrimDismiss\(closeInvite\)/, /<PokerNearMePanelShell[\s\S]*?role="dialog"[\s\S]*?aria-modal="true"/, /<PokerNearMeConsoleIcon name="close" \/>/],
     'src/components/poker-near-me/GlobalSearchOverlay.jsx': [/useModalHistory\(!!isOpen, onClose\)/, /safe-area-inset-top/],
   };
+  const consoleCardsCss = read('src/styles/worlds/poker-near-me-console-cards.css');
+  assert.match(consoleCardsCss, /@media \(max-width: 600px\)[\s\S]*?\.pnm-checkin-dialog-overlay \{\s*align-items: end;/, 'the painted check-in dialog is still a phone bottom sheet');
+  assert.match(consoleCardsCss, /@media \(max-width: 600px\)[\s\S]*?\.pnm-reviews-dialog-overlay \{\s*align-items: end;/, 'the painted reviews dialog is still a phone bottom sheet');
+  assert.match(consoleCardsCss, /\.pnm-checkin-dialog[\s\S]{0,400}?textarea \{[^}]*font-size: max\(16px/, 'the check-in field avoids browser zoom');
+  assert.match(consoleCardsCss, /\.pnm-reviews-dialog[\s\S]{0,400}?textarea \{[^}]*font-size: max\(16px/, 'the review field avoids browser zoom');
   for (const [file, pins] of Object.entries(sheets)) {
     const src = read(file);
     for (const pin of pins) assert.match(src, pin, `${file} ${pin}`);
@@ -155,6 +164,10 @@ test('every overlay the pages open is a back-gesture sheet with a 44px close', (
   const css = read('styles/poker-near-me.css');
   assert.match(css, /\.pnm-sheet__close \{[^}]*min-width: 44px;[^}]*min-height: 44px;/s);
   assert.match(css, /@media \(max-width: 600px\) \{\s*\.pnm-sheet-scrim \{ align-items: flex-end;/);
+  const consoleToolsCss = read('src/styles/worlds/poker-near-me-console-tools.css');
+  assert.match(consoleToolsCss, /\.sl-modal-close[\s\S]*?width: 44px;[\s\S]*?height: 44px;/, 'the painted close control keeps its 44px target');
+  assert.match(consoleToolsCss, /@media \(max-width: 600px\) \{[\s\S]*?\.social-layer \.sl-modal-overlay \{[\s\S]*?align-items: end;/, 'the painted invite dialog remains a mobile bottom sheet');
+  assert.match(consoleToolsCss, /@media \(max-width: 600px\) \{[\s\S]*?\.social-layer \.sl-invite-link-input \{[\s\S]*?font-size: 16px;/, 'the mobile invite field avoids browser zoom');
 });
 
 test('no rail, no snap, no hidden scrollbar, no label cull: everything wraps', () => {

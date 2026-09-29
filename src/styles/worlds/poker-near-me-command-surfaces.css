@@ -834,6 +834,7 @@ body.world-poker-near-me :is(
   .view-toggle .view-btn,
   .sc-filters .sc-filter-chip,
   .pnm-source-state--error > button,
+  .pnm-source-state button,
   .ec-today-btn
 ) {
   min-height: 44px !important;
@@ -932,7 +933,7 @@ body.world-poker-near-me .pnm-home-geo-page header {
   background: #050a0f !important;
 }
 
-body.world-poker-near-me .pnm-home-geo-page header::before {
+body.world-poker-near-me .pnm-home-geo-page header::after {
   content: '';
   position: absolute;
   top: -1px;

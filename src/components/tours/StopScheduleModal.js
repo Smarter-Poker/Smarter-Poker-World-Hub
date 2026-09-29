@@ -16,6 +16,7 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
+import { PokerNearMeConsoleIcon } from '../poker-near-me/PokerNearMeConsole';
 import useSWR from 'swr';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -289,10 +290,7 @@ export default function StopScheduleModal({ stop, tourCode, tourName, tourColor,
                 </div>
               )}
               <button className="ssm-close-btn sp-icon-btn" onClick={onClose} aria-label="Close">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                  <line x1="18" y1="6" x2="6" y2="18" />
-                  <line x1="6" y1="6" x2="18" y2="18" />
-                </svg>
+                <PokerNearMeConsoleIcon name="close" className="ssm-glyph ssm-glyph--close" />
               </button>
             </div>
           </div>
@@ -316,9 +314,7 @@ export default function StopScheduleModal({ stop, tourCode, tourName, tourColor,
         <div className="ssm-filter-bar">
           <div className="ssm-filter-left">
             <div className="ssm-search-wrap">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2">
-                <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
-              </svg>
+              <PokerNearMeConsoleIcon name="search" className="ssm-glyph ssm-glyph--search" />
               <input
                 className="ssm-search"
                 placeholder="Search events..."
@@ -359,12 +355,7 @@ export default function StopScheduleModal({ stop, tourCode, tourName, tourColor,
           <div className="ssm-rows">
             {filtered.length === 0 && (
               <div className="ssm-empty">
-                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#4b5563" strokeWidth="1.5">
-                  <rect x="3" y="4" width="18" height="18" rx="2" />
-                  <line x1="16" y1="2" x2="16" y2="6" />
-                  <line x1="8" y1="2" x2="8" y2="6" />
-                  <line x1="3" y1="10" x2="21" y2="10" />
-                </svg>
+                <PokerNearMeConsoleIcon name="calendar" className="ssm-glyph ssm-glyph--calendar" />
                 <p>No Events Match Your Filter.</p>
               </div>
             )}
@@ -384,8 +375,7 @@ export default function StopScheduleModal({ stop, tourCode, tourName, tourColor,
       <style dangerouslySetInnerHTML={{ __html: `
         .ssm-backdrop {
           position: fixed; inset: 0; z-index: 9999;
-          background: rgba(0, 0, 0, 0.85);
-          backdrop-filter: blur(4px);
+          background: rgba(0, 0, 0, 0.92);
           display: flex; align-items: stretch; justify-content: center;
           animation: ssm-fade-in 0.18s ease;
         }
@@ -434,16 +424,21 @@ export default function StopScheduleModal({ stop, tourCode, tourName, tourColor,
           background: rgba(0,0,0,0.3); border-radius: 10px;
           padding: 8px 16px; text-align: center;
         }
-        .ssm-gtd-label { font-size: 9px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: rgba(255,255,255,0.7); }
+        .ssm-gtd-label { font-size: 12px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: rgba(255,255,255,0.7); }
         .ssm-gtd-amount { font-size: 22px; font-weight: 900; color: #fbbf24; line-height: 1.1; }
+        /* The close control is a painted pictogram in its own holder: no
+           drawn ring, no hover state a phone can never reach. */
         .ssm-close-btn {
-          background: rgba(0,0,0,0.3); border: none; border-radius: 50%;
+          background: transparent; border: none; border-radius: 0;
           width: 44px; height: 44px; min-width: 44px; min-height: 44px; cursor: pointer; color: rgba(255,255,255,0.8);
-          display: flex; align-items: center; justify-content: center;
+          display: flex; align-items: center; justify-content: center; padding: 0;
           touch-action: manipulation; -webkit-tap-highlight-color: transparent;
-          transition: background 0.15s;
         }
-        .ssm-close-btn:hover { background: rgba(255,255,255,0.15); color: #fff; }
+        .ssm-close-btn:active { filter: brightness(1.3); }
+        .ssm-close-btn:focus-visible { outline: 2px solid #8fd4ff; outline-offset: -4px; }
+        .ssm-glyph { width: 18px; height: 18px; flex: 0 0 18px; }
+        .ssm-glyph--close { width: 28px; height: 28px; flex: 0 0 28px; }
+        .ssm-empty .ssm-glyph { width: 36px; height: 36px; flex: 0 0 36px; opacity: 0.7; }
 
         .ssm-main-event-banner {
           background: rgba(0,0,0,0.25); border-top: 1px solid rgba(255,255,255,0.1);
@@ -506,7 +501,7 @@ export default function StopScheduleModal({ stop, tourCode, tourName, tourColor,
           padding: 0 12px; border-bottom: 1px solid rgba(255,255,255,0.04);
           transition: background 0.12s;
         }
-        .ssm-row:hover { background: rgba(255,255,255,0.03); }
+        .ssm-row:active { background: rgba(255,255,255,0.05); }
         .ssm-col { padding: 10px 8px; }
 
         /* Column-specific text styles */
@@ -576,7 +571,8 @@ export default function StopScheduleModal({ stop, tourCode, tourName, tourColor,
           color: #94a3b8; font-size: 13px; padding: 6px 16px;
           border-radius: 8px; cursor: pointer; transition: all 0.15s;
         }
-        .ssm-footer-close:hover { border-color: rgba(255,255,255,0.2); color: #e2e8f0; }
+        .ssm-footer-close:active { color: #e2e8f0; }
+        .ssm-footer-close:focus-visible { outline: 2px solid #8fd4ff; outline-offset: 2px; }
 
         /* ── Mobile ── */
         @media (max-width: 768px) {

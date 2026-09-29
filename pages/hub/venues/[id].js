@@ -13,10 +13,14 @@ import useSWR from 'swr';
 import { useRouter } from 'next/router';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PokerNearMeFamilyNav from '../../../src/components/poker-near-me/PokerNearMeFamilyNav';
-import DeepRouteSignalDeck from '../../../src/components/poker-near-me/DeepRouteSignalDeck';
+import DeepRouteSignalDeck, { DeepRouteNotice } from '../../../src/components/poker-near-me/DeepRouteSignalDeck';
 import PokerNearMeRecentRail from '../../../src/components/poker-near-me/PokerNearMeRecentRail';
 import PokerIdentityMark from '../../../src/components/poker-near-me/PokerIdentityMark';
 import MapSurfaceFrame from '../../../src/components/poker-near-me/MapSurfaceFrame';
+import {
+  createPokerVenueIcon,
+  buildPokerVenueLocationPopupHtml,
+} from '../../../src/components/poker-near-me/mapPresentation';
 import HamburgerMenu from '../../../src/components/ui/HamburgerMenu';
 import { claimReward } from '../../../src/lib/claimReward';
 import { getAuthUser } from '../../../src/lib/authUtils';
@@ -1276,28 +1280,16 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
     var map = session.map;
     mapSessionRef.current = session;
 
-    var goldIcon = L.divIcon({
-      className: 'venue-detail-marker',
-      html: '<div aria-hidden="true" style="width:44px;height:44px;display:grid;place-items:center;"><span style="display:block;width:20px;height:20px;border-radius:50%;background:#ffffff;border:3px solid #fff;box-shadow:0 0 12px rgba(255,255,255,0.8);"></span></div>',
-      iconSize: [44, 44],
-      iconAnchor: [22, 22],
-    });
-
-    var popup = document.createElement('div');
-    popup.className = 'venue-detail-map-popup';
-    var popupName = document.createElement('strong');
-    popupName.textContent = venue.name || 'Poker venue';
-    var popupLocation = document.createElement('span');
-    popupLocation.textContent = [venue.city, venue.state].filter(Boolean).join(', ');
-    popup.appendChild(popupName);
-    if (popupLocation.textContent) popup.appendChild(popupLocation);
-
     var venueMarker = L.marker([venue.latitude, venue.longitude], {
-      icon: goldIcon,
+      icon: createPokerVenueIcon(L, venue),
       keyboard: true,
       title: venue.name || 'Poker venue',
       alt: `${venue.name || 'Poker venue'} location marker`,
-    }).addTo(map).bindPopup(popup);
+    }).addTo(map).bindPopup(buildPokerVenueLocationPopupHtml(venue), {
+      className: 'pnm-popup',
+      maxWidth: 300,
+      closeButton: true,
+    });
     var venueMarkerElement = venueMarker.getElement && venueMarker.getElement();
     if (venueMarkerElement) {
       venueMarkerElement.setAttribute(
@@ -1936,22 +1928,49 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
       />
 
       <main className="venue-page" data-pnm-realism="machined-v2" data-pnm-secondary-foundation="interaction-v1">
+        {/* Waiting and failing are states a reader meets, so they are painted
+            on the same chassis as the page itself rather than on a bare
+            spinner and a red exclamation mark. The live region still
+            announces the wait; the console carries the picture. */}
         {loading && !venue && (
-          <div className="loading-state">
-            <div className="spinner" />
-            <p>Loading Venue...</p>
+          <div className="loading-state" role="status" aria-live="polite">
+            <DeepRouteNotice
+              eyebrow="Venue Intelligence"
+              title="Loading Venue"
+              titleId="venue-loading-title"
+              pill="Working"
+              pillInk="blue"
+              crest="locator"
+              body="Reading this room's profile, schedules and current player signals."
+              links={[
+                { href: '/hub/poker-near-me/venues', label: 'All Poker Venues' },
+                { href: '/hub/poker-near-me/map', label: 'Live Map' },
+              ]}
+            />
           </div>
         )}
 
         {error && !loading && !venue && (
           <div className="error-state">
-            <div className="error-icon">!</div>
-            <h2>Venue Not Found</h2>
             {/* `error` is an Error instance — rendering the object itself
                 throws. Also gated on !venue: with the server-rendered venue
                 seeded into SWR, a failed background revalidation must not
                 stack a "not found" banner on top of a populated page. */}
-            <p>{error?.message || 'Something went wrong loading this venue.'}</p>
+            <DeepRouteNotice
+              eyebrow="Venue Intelligence"
+              title="Venue Not Found"
+              titleId="venue-error-title"
+              pill="Not Found"
+              pillInk="red"
+              crest="locator"
+              body="This venue profile could not be opened."
+              detail={error?.message || 'Something went wrong loading this venue.'}
+              links={[
+                { href: '/hub/poker-near-me/venues', label: 'All Poker Venues' },
+                { href: '/hub/poker-near-me/in', label: 'Browse By State' },
+                { href: '/hub/poker-near-me/map', label: 'Live Map' },
+              ]}
+            />
           </div>
         )}
 
@@ -1962,7 +1981,17 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
               eyebrow="Venue intelligence"
               title={venue.name}
               description={venue.about || venue.description || venue.tagline || ('Live poker details, schedules, player signals, and room information for ' + venue.name + '.')}
-              image={venue.cover_photo_url || venue.profile_photo_url}
+              /* A LOGO IS NOT A ROOM (2026-09-29). The hero is a full bleed
+                 photographic stage that crops to fill. A profile photo is
+                 the venue's wordmark, and the bundled directory holds 398
+                 venues with ZERO cover photos and 191 profile photos, so the
+                 hero was almost always a wordmark blown past the stage and
+                 cropped: venue 1828 printed "LODGE CARD CLUB" at four times
+                 its own size behind the breadcrumbs and the summary, with
+                 the logo's own brown band showing through the copy. Only a
+                 real photograph goes on the stage; without one the deck
+                 falls back to the approved painted venue plate. */
+              image={venue.cover_photo_url || null}
               imageAlt={venue.name + ' poker venue'}
               kind="venue"
               breadcrumbs={[

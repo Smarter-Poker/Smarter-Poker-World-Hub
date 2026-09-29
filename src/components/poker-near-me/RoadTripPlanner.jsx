@@ -4,10 +4,30 @@
  */
 import { useState, useCallback, useRef, useEffect, useId } from 'react';
 import { getVenueLogoUrl, getVenueLogoFallback } from './pnm-utils';
-import { haversineMiles, escapeHtml } from './pnm-utils';
+import { haversineMiles } from './pnm-utils';
 import { openNativeMaps, openMultiStopRoute } from '../../utils/openNativeMaps';
-import { createPokerMapSession, loadPokerMapRuntime, resetPokerMapRuntime } from '../../lib/poker-near-me/mapRuntime';
+import {
+    addPokerMapLayers,
+    createPokerMapSession,
+    createPokerMarkerLayer,
+    loadPokerMapRuntime,
+    resetPokerMapRuntime,
+} from '../../lib/poker-near-me/mapRuntime';
 import MapSurfaceFrame from './MapSurfaceFrame';
+import { PokerNearMeConsoleIcon, PokerNearMePanelShell } from './PokerNearMeConsole';
+import {
+    attachPokerPopupViewportGuard,
+    buildPokerRouteStopPopupHtml,
+    buildPokerTourPopupHtml,
+    buildPokerVenuePopupHtml,
+    createPokerClusterIcon,
+    createPokerPopupClickHandler,
+    createPokerRouteStopIcon,
+    createPokerTourIcon,
+    createPokerVenueIcon,
+    isPokerTourStop,
+    syncPokerMapKeyboardTargets,
+} from './mapPresentation';
 import {
     filterSeriesForRoute,
     interpolateRouteLeg,
@@ -22,8 +42,8 @@ const TRIP_DRAFT_KEY = 'pnm_trip_draft_v1';
 // SECURITY: Leaflet's bindPopup/divIcon take raw HTML strings. Venue and stop names
 // come from scraped external sources (Bravo/PokerAtlas), so a name such as
 // `<img src=x onerror=...>` used to execute in every planner user's browser.
-// Always run interpolated values through this before building those strings.
-const esc = (value) => escapeHtml(String(value == null ? '' : value));
+// Every marker and popup string is now built by the shared mapPresentation
+// module, which escapes each interpolated value before it reaches Leaflet.
 
 // haversineMiles is now imported from ./pnm-utils
 
@@ -313,11 +333,25 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
         if (!routeResult || typeof window === 'undefined') return undefined;
 
         let cancelled = false;
+        let mapContainer = null;
+        let popupClickHandler = null;
+        let keyboardObserver = null;
+        let keyboardFrame = 0;
+        let detachPopupGuard = () => {};
         setMapStatus('loading');
+
+        const scheduleKeyboardTargetSync = () => {
+            if (keyboardFrame) return;
+            keyboardFrame = window.requestAnimationFrame(() => {
+                keyboardFrame = 0;
+                syncPokerMapKeyboardTargets(mapContainer);
+            });
+        };
 
         const buildMap = async () => {
             try {
-                const { L } = await loadPokerMapRuntime();
+                const runtime = await loadPokerMapRuntime();
+                const { L } = runtime;
                 if (cancelled || !mapRef.current) return;
 
                 mapSessionRef.current?.destroy();
@@ -328,38 +362,78 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
                 });
                 const { map } = mapSessionRef.current;
                 mapInstanceRef.current = map;
+                mapContainer = mapRef.current;
+
+                // Popup actions (View Details, Directions, Call) are delegated
+                // from the map node exactly as on every other discovery map.
+                popupClickHandler = createPokerPopupClickHandler();
+                mapContainer.addEventListener('click', popupClickHandler);
+                detachPopupGuard = attachPokerPopupViewportGuard(map);
+
+                // Keep keyboard targets aligned with the visible pins, including
+                // inside the fullscreen focus trap.
+                map.on('moveend zoomend resize', scheduleKeyboardTargetSync);
+                keyboardObserver = new MutationObserver(scheduleKeyboardTargetSync);
+                keyboardObserver.observe(mapContainer, { childList: true, subtree: true });
+
+                // Venue names stay legible: labels print only once the route is
+                // zoomed close enough for them not to collide.
+                const updateLabelVisibility = () => {
+                    mapContainer?.classList.toggle('vmp-labels-hidden', map.getZoom() < 9);
+                };
+                map.on('zoomend', updateLabelVisibility);
 
                 // Draw route polyline
                 const latlngs = routeResult.routePoints.map(p => [p.lat, p.lng]);
                 L.polyline(latlngs, { color: '#ffffff', weight: 3, opacity: 0.8, dashArray: '8, 6' }).addTo(map);
 
-                // Stop markers
-                routeResult.stops.forEach((stop, i) => {
-                    const color = i === 0 ? '#22c55e' : i === routeResult.stops.length - 1 ? '#ef4444' : '#3b82f6';
-                    const icon = L.divIcon({
-                        className: 'trip-stop-marker',
-                        html: `<div style="width:20px;height:20px;border-radius:50%;background:${esc(color)};border:3px solid #fff;box-shadow:0 0 10px ${esc(color)}80;display:flex;align-items:center;justify-content:center;font-size: 12px;font-weight:700;color:#fff;">${Number(i) + 1}</div>`,
-                        iconSize: [20, 20], iconAnchor: [10, 10],
-                    });
-                    L.marker([stop.lat, stop.lng], { icon }).addTo(map).bindPopup(`<b style="color:#0f172a">${esc(stop.name)}</b>`);
+                // Venue markers along route: the shared painted venue and tour
+                // machines, clustered by the shared density rules.
+                const { layer: venueLayer } = createPokerMarkerLayer({
+                    L,
+                    map,
+                    clusteringAvailable: runtime.clusteringAvailable,
+                    iconCreateFunction: (cluster) => createPokerClusterIcon(L, cluster, { variant: 'compact' }),
+                    disableClusteringAtZoom: 9,
                 });
-
-                // Venue markers along route
-                routeResult.venues.forEach(v => {
-                    const icon = L.divIcon({
-                        className: 'route-venue-marker',
-                        html: '<div style="width:10px;height:10px;border-radius:50%;background:#ffffff;border:2px solid #fff;box-shadow:0 0 6px rgba(255,255,255,0.6);"></div>',
-                        iconSize: [14, 14], iconAnchor: [7, 7],
+                const venueMarkers = routeResult.venues
+                    .filter(v => Number.isFinite(parseFloat(v.latitude)) && Number.isFinite(parseFloat(v.longitude)))
+                    .map(v => {
+                        const tourStop = isPokerTourStop(v);
+                        const icon = tourStop
+                            ? createPokerTourIcon(L, v, { variant: 'compact' })
+                            : createPokerVenueIcon(L, v, { variant: 'compact' });
+                        const popupHtml = tourStop
+                            ? buildPokerTourPopupHtml(v, { variant: 'compact' })
+                            : buildPokerVenuePopupHtml(v, { variant: 'compact' });
+                        return L.marker([parseFloat(v.latitude), parseFloat(v.longitude)], {
+                            icon,
+                            keyboard: true,
+                            title: v.name || 'Poker venue',
+                            alt: `${v.name || 'Poker venue'} map marker`,
+                        }).bindPopup(popupHtml, { className: 'pnm-popup', maxWidth: 300, closeButton: true });
                     });
-                    L.marker([parseFloat(v.latitude), parseFloat(v.longitude)], { icon })
+                addPokerMapLayers(venueLayer, venueMarkers);
+
+                // Stop markers: numbered painted machines above every venue pin.
+                routeResult.stops.forEach((stop, i) => {
+                    L.marker([stop.lat, stop.lng], {
+                        icon: createPokerRouteStopIcon(L, stop, i, routeResult.stops.length),
+                        keyboard: true,
+                        zIndexOffset: 1000,
+                        title: stop.name,
+                        alt: `${stop.name} route stop marker`,
+                    })
                         .addTo(map)
-                        .bindPopup(`<div style="font-family:Inter,sans-serif;color:#0f172a;"><b>${esc(v.name)}</b><br/>${esc(v.city)}, ${esc(v.state)}</div>`);
+                        .bindPopup(buildPokerRouteStopPopupHtml(stop, i, routeResult.stops.length), { className: 'pnm-popup', maxWidth: 300, closeButton: true });
                 });
 
                 // Fit bounds
                 if (latlngs.length > 0) {
                     map.fitBounds(L.latLngBounds(latlngs), { padding: [30, 30] });
                 }
+                updateLabelVisibility();
+                scheduleKeyboardTargetSync();
 
                 setMapStatus('ready');
             } catch (err) {
@@ -372,6 +446,10 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
 
         return () => {
             cancelled = true;
+            if (mapContainer && popupClickHandler) mapContainer.removeEventListener('click', popupClickHandler);
+            detachPopupGuard();
+            keyboardObserver?.disconnect();
+            if (keyboardFrame) window.cancelAnimationFrame(keyboardFrame);
             mapSessionRef.current?.destroy();
             mapSessionRef.current = null;
             mapInstanceRef.current = null;
@@ -393,65 +471,74 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
     }, [mapExpanded, routeResult]);
 
     return (
-        <div className="road-trip-planner">
+        <PokerNearMePanelShell
+            as="section"
+            className="road-trip-planner pnm-console-tool"
+            bodyClassName="pnm-console-tool__body"
+            aria-labelledby="pnm-road-trip-title"
+        >
             <div className="rtp-header">
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M3 17h2l2-8h4l-1 4h3l5-6" />
-                    <circle cx="6.5" cy="17.5" r="2.5" fill="none" />
-                    <circle cx="16.5" cy="17.5" r="2.5" fill="none" />
-                    <path d="M9 17h5" />
-                </svg>
-                <h2>Poker Road Trip Planner</h2>
+                <PokerNearMeConsoleIcon name="directions" className="pnm-console-tool__header-icon" />
+                <h2 id="pnm-road-trip-title">Poker Road Trip Planner</h2>
             </div>
 
             <div className="rtp-form">
-                <div className="rtp-input-row">
-                    <div className="rtp-dot origin" />
-                    <input
-                        type="text"
-                        aria-label="Trip origin"
-                        placeholder="Origin (e.g., Dallas, TX)"
-                        value={origin}
-                        onChange={e => setOrigin(e.target.value)}
-                        className="rtp-input"
-                    />
+                {/* Every field sits in the painted search well at its native
+                    ratio; the route role prints as live lit-blue type. */}
+                <div className="rtp-input-row rtp-input-row--origin">
+                    <span className="rtp-role" aria-hidden="true">From</span>
+                    <span className="rtp-well">
+                        <input
+                            type="text"
+                            aria-label="Trip origin"
+                            placeholder="Origin (e.g., Dallas, TX)"
+                            value={origin}
+                            onChange={e => setOrigin(e.target.value)}
+                            className="rtp-input"
+                        />
+                    </span>
                 </div>
 
                 {waypoints.map((wp, i) => (
-                    <div key={i} className="rtp-input-row">
-                        <div className="rtp-dot waypoint" />
-                        <input
-                            type="text"
-                            aria-label={`Trip waypoint ${i + 1}`}
-                            placeholder={`Waypoint ${i + 1}`}
-                            value={wp}
-                            onChange={e => updateWaypoint(i, e.target.value)}
-                            className="rtp-input"
-                        />
-                        <button type="button" className="rtp-remove-btn" aria-label={`Remove waypoint ${i + 1}`} onClick={() => removeWaypoint(i)}>×</button>
+                    <div key={i} className="rtp-input-row rtp-input-row--waypoint">
+                        <span className="rtp-role" aria-hidden="true">Via</span>
+                        <span className="rtp-well">
+                            <input
+                                type="text"
+                                aria-label={`Trip waypoint ${i + 1}`}
+                                placeholder={`Waypoint ${i + 1}`}
+                                value={wp}
+                                onChange={e => updateWaypoint(i, e.target.value)}
+                                className="rtp-input"
+                            />
+                        </span>
+                        <button type="button" className="rtp-remove-btn" aria-label={`Remove waypoint ${i + 1}`} onClick={() => removeWaypoint(i)}>
+                            <PokerNearMeConsoleIcon name="close" />
+                        </button>
                     </div>
                 ))}
 
-                <div className="rtp-input-row">
-                    <div className="rtp-dot destination" />
-                    <input
-                        type="text"
-                        aria-label="Trip destination"
-                        placeholder="Destination (e.g., Las Vegas, NV)"
-                        value={destination}
-                        onChange={e => setDestination(e.target.value)}
-                        className="rtp-input"
-                    />
+                <div className="rtp-input-row rtp-input-row--destination">
+                    <span className="rtp-role" aria-hidden="true">To</span>
+                    <span className="rtp-well">
+                        <input
+                            type="text"
+                            aria-label="Trip destination"
+                            placeholder="Destination (e.g., Las Vegas, NV)"
+                            value={destination}
+                            onChange={e => setDestination(e.target.value)}
+                            className="rtp-input"
+                        />
+                    </span>
                 </div>
 
                 <button type="button" className="rtp-add-waypoint" onClick={addWaypoint}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
                     Add Stop
                 </button>
 
                 <div className="rtp-options">
                     <div className="rtp-option-group">
-                        <label>Search Corridor</label>
+                        <span className="rtp-option-label">Search Corridor</span>
                         <div className="rtp-chips" role="radiogroup" aria-label="Search corridor">
                             {CORRIDOR_OPTIONS.map(mi => (
                                 <button type="button" role="radio" aria-checked={corridorMi === mi} key={mi} className={'rtp-chip' + (corridorMi === mi ? ' active' : '')} onClick={() => setCorridorMi(mi)}>{mi} Mi</button>
@@ -460,24 +547,23 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
                     </div>
 
                     <div className="rtp-option-group">
-                        <label>Travel Dates (Optional)</label>
+                        <span className="rtp-option-label">Travel Dates (Optional)</span>
                         <div className="rtp-date-row">
-                            <input type="date" aria-label="Trip start date" value={dateRange.start} onChange={e => setDateRange(p => ({ ...p, start: e.target.value }))} className="rtp-date" />
-                            <span className="rtp-date-sep">→</span>
-                            <input type="date" aria-label="Trip end date" value={dateRange.end} onChange={e => setDateRange(p => ({ ...p, end: e.target.value }))} className="rtp-date" />
+                            <span className="rtp-well rtp-well--date">
+                                <input type="date" aria-label="Trip start date" value={dateRange.start} onChange={e => setDateRange(p => ({ ...p, start: e.target.value }))} className="rtp-date" />
+                            </span>
+                            <span className="rtp-date-sep" aria-hidden="true">To</span>
+                            <span className="rtp-well rtp-well--date">
+                                <input type="date" aria-label="Trip end date" value={dateRange.end} onChange={e => setDateRange(p => ({ ...p, end: e.target.value }))} className="rtp-date" />
+                            </span>
                         </div>
                     </div>
                 </div>
 
-                <button type="button" className="rtp-calculate-btn" onClick={calculateRoute} disabled={calculating}>
-                    {calculating ? (
-                        <><span className="rtp-spinner" /> Calculating...</>
-                    ) : (
-                        <>
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="3 11 22 2 13 21 11 13 3 11" /></svg>
-                            Plan My Trip
-                        </>
-                    )}
+                {/* The primary plate carries its label only: a painted icon
+                    holder on a painted plate would be a frame on a frame. */}
+                <button type="button" className="rtp-calculate-btn" onClick={calculateRoute} disabled={calculating} aria-busy={calculating}>
+                    {calculating ? 'Calculating...' : 'Plan My Trip'}
                 </button>
 
                 {error && <div className="rtp-error" role="alert">{error}</div>}
@@ -492,9 +578,7 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
                             aria-expanded={savedTripsOpen}
                             aria-controls={savedTripsId}
                         >
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-                            Saved Trips ({savedTrips.length})
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginLeft: 'auto', transform: savedTripsOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}><polyline points="6 9 12 15 18 9" /></svg>
+                            {savedTripsOpen ? 'Hide' : 'Show'} Saved Trips ({savedTrips.length})
                         </button>
                         {savedTripsOpen && (
                             <div className="rtp-saved-trips-list" id={savedTripsId}>
@@ -502,12 +586,12 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
                                     <div key={i} className="rtp-saved-trip-item">
                                         <div className="rtp-saved-trip-route">
                                             <span className="rtp-saved-trip-from">{trip.origin || '?'}</span>
-                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(148,163,184,0.5)" strokeWidth="2"><line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" /></svg>
+                                            <span className="rtp-saved-trip-separator">To</span>
                                             <span className="rtp-saved-trip-to">{trip.destination || '?'}</span>
                                         </div>
                                         <div className="rtp-saved-trip-meta">
                                             {trip.corridorMi && <span>{trip.corridorMi} Mi Corridor</span>}
-                                            {trip.waypoints?.length > 0 && <span>{trip.waypoints.length} stop{trip.waypoints.length > 1 ? 's' : ''}</span>}
+                                            {trip.waypoints?.length > 0 && <span>{trip.waypoints.length} {trip.waypoints.length > 1 ? 'stops' : 'stop'}</span>}
                                             <span>{new Date(trip.savedAt).toLocaleDateString()}</span>
                                         </div>
                                         <div className="rtp-saved-trip-actions">
@@ -592,9 +676,8 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
                                 }
                                 setTimeout(() => setShareStatus(null), 4000);
                             }}
-                            style={{ flex: 1, padding: '8px 12px', background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.25)', borderRadius: 8, color: '#22c55e', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
+                            className="rtp-result-action rtp-result-action--save"
                         >
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
                             Save Trip
                         </button>
                         <button
@@ -622,9 +705,8 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
                                 }
                                 setTimeout(() => setShareStatus(null), 4000);
                             }}
-                            style={{ flex: 1, padding: '8px 12px', background: 'rgba(59,130,246,0.08)', border: '1px solid rgba(59,130,246,0.25)', borderRadius: 8, color: '#3b82f6', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
+                            className="rtp-result-action rtp-result-action--share"
                         >
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
                             Share Trip
                         </button>
                         <button
@@ -633,9 +715,8 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
                                 if (!routeResult?.stops?.length || routeResult.stops.length < 2) return;
                                 openMultiStopRoute(routeResult.stops);
                             }}
-                            style={{ flex: 1, padding: '8px 12px', background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.25)', borderRadius: 8, color: '#ffffff', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
+                            className="rtp-result-action rtp-result-action--route"
                         >
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="3 11 22 2 13 21 11 13 3 11" /></svg>
                             Start Full Route ({routeResult?.stops?.length || 0} Stops)
                         </button>
                     </div>
@@ -649,15 +730,9 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
                     {/* Map — collapsible on mobile */}
                     <div className="rtp-map-wrapper">
                         <button type="button" className="rtp-map-toggle" onClick={() => setMapExpanded(e => !e)} aria-expanded={mapExpanded} aria-controls={mapPanelId}>
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6" /><line x1="8" y1="2" x2="8" y2="18" /><line x1="16" y1="6" x2="16" y2="22" />
-                            </svg>
                             {mapExpanded ? 'Hide Map' : 'Show Map'}
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ transform: mapExpanded ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}>
-                                <polyline points="6 9 12 15 18 9" />
-                            </svg>
                         </button>
-                        <div className="rtp-map-shell" id={mapPanelId} style={{ display: mapExpanded ? 'block' : 'none' }}>
+                        <div className="rtp-map-shell" id={mapPanelId} hidden={!mapExpanded}>
                             <MapSurfaceFrame
                                 className="pnm-map-surface--road-trip"
                                 eyebrow="Route intelligence"
@@ -668,13 +743,13 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
                                 <div className="pnm-map-stage">
                                     <div ref={mapRef} className="rtp-map pnm-leaflet-map" role="region" aria-label="Poker road trip route map" data-map-foundation="shared-v3" data-map-ready={mapStatus === 'ready' ? 'true' : 'false'} />
                                     {mapStatus !== 'ready' && (
-                                        <div className={'rtp-map-overlay' + (mapStatus === 'error' ? ' error' : '')}>
+                                        <div className={'rtp-map-overlay pnm-map-status' + (mapStatus === 'error' ? ' error pnm-map-status--error' : ' pnm-map-status--loading')} role={mapStatus === 'error' ? 'alert' : 'status'}>
                                             {mapStatus === 'error' ? (
-                                                <div>
+                                                <div className="pnm-map-status__copy">
                                                     <p>Route Map Could Not Be Loaded. The Stop And Venue Lists Below Are Unaffected.</p>
-                                                    <button type="button" onClick={() => { resetPokerMapRuntime(); setMapLoadAttempt(value => value + 1); }}>Retry Route Map</button>
+                                                    <button type="button" className="pnm-map-status__action" onClick={() => { resetPokerMapRuntime(); setMapLoadAttempt(value => value + 1); }}>Retry Route Map</button>
                                                 </div>
-                                            ) : 'Loading route map...'}
+                                            ) : 'Loading Route Map...'}
                                         </div>
                                     )}
                                 </div>
@@ -767,106 +842,6 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
                 </div>
             )}
 
-            <style dangerouslySetInnerHTML={{ __html: `
-        .road-trip-planner { padding: 0 0 20px; }
-        .rtp-header { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
-        .rtp-header h2 { font-size: 22px; font-weight: 700; color: #e2e8f0; margin: 0; letter-spacing: -0.3px; }
-        .rtp-form { background: linear-gradient(160deg, rgba(18,28,45,0.85), rgba(10,16,28,0.92)); border: 1.5px solid rgba(148,163,184,0.12); border-radius: 16px; padding: 20px; box-shadow: inset 0 1px 0 rgba(255,255,255,0.04), 0 4px 16px rgba(0,0,0,0.35); }
-        .rtp-input-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
-        .rtp-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
-        .rtp-dot.origin { background: #22c55e; box-shadow: 0 0 8px rgba(34,197,94,0.5); }
-        .rtp-dot.waypoint { background: #ffffff; box-shadow: 0 0 8px rgba(255,255,255,0.5); }
-        .rtp-dot.destination { background: #ef4444; box-shadow: 0 0 8px rgba(239,68,68,0.5); }
-        .rtp-input { flex: 1; min-width: 0; min-height: 44px; padding: 12px 16px; background: linear-gradient(180deg, rgba(20,30,48,0.95), rgba(12,18,30,0.98)); border: 1.5px solid rgba(148,163,184,0.15); border-radius: 10px; color: #e2e8f0; font-size: 14px; font-family: inherit; transition: border-color 0.25s; box-shadow: inset 0 2px 6px rgba(0,0,0,0.4), inset 0 -1px 0 rgba(148,163,184,0.08); }
-        .rtp-input:focus { outline: none; border-color: rgba(255,255,255,0.5); }
-        .rtp-input::placeholder { color: rgba(148,163,184,0.35); }
-        .rtp-remove-btn { background: rgba(239,68,68,0.1); border: 1.5px solid rgba(239,68,68,0.3); color: #ef4444; width: 44px; height: 44px; border-radius: 8px; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.2s; }
-        .rtp-remove-btn:hover { background: rgba(239,68,68,0.2); }
-        .rtp-add-waypoint { display: flex; align-items: center; gap: 6px; padding: 8px 14px; background: linear-gradient(180deg, rgba(255,255,255,0.12), rgba(200,214,229,0.08)); border: 1.5px solid rgba(255,255,255,0.35); border-radius: 8px; color: #ffffff; font-size: 13px; font-weight: 600; cursor: pointer; margin-bottom: 16px; transition: all 0.25s; box-shadow: inset 0 1px 0 rgba(255,255,255,0.1); }
-        .rtp-add-waypoint:hover { border-color: rgba(255,255,255,0.5); }
-        .rtp-options { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
-        @media (max-width: 600px) { .rtp-options { grid-template-columns: 1fr; } }
-        .rtp-option-group label { display: block; font-size: 12px; font-weight: 600; color: rgba(148,163,184,0.6); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
-        .rtp-chips { display: flex; gap: 6px; }
-        .rtp-chip { padding: 8px 14px; border-radius: 8px; background: linear-gradient(180deg, rgba(25,35,55,0.9), rgba(15,23,42,0.95)); border: 1.5px solid rgba(148,163,184,0.15); color: rgba(148,163,184,0.7); font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.25s; box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 2px 4px rgba(0,0,0,0.3); }
-        .rtp-chip.active { background: linear-gradient(180deg, rgba(255,255,255,0.15), rgba(200,214,229,0.08)); border-color: rgba(255,255,255,0.45); color: #ffffff; box-shadow: inset 0 1px 0 rgba(255,255,255,0.15), 0 0 10px rgba(255,255,255,0.1); }
-        .rtp-date-row { display: flex; align-items: center; gap: 8px; }
-        .rtp-date { padding: 8px 12px; background: linear-gradient(180deg, rgba(20,30,48,0.95), rgba(12,18,30,0.98)); border: 1.5px solid rgba(148,163,184,0.15); border-radius: 8px; color: #e2e8f0; font-size: 13px; font-family: inherit; color-scheme: dark; box-shadow: inset 0 2px 6px rgba(0,0,0,0.4); }
-        .rtp-date-sep { color: rgba(148,163,184,0.4); font-size: 16px; }
-        .rtp-calculate-btn { width: 100%; padding: 14px; background: linear-gradient(135deg, #ffffff, #cbd5e1); border: none; border-radius: 12px; color: #000; font-size: 15px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: filter 0.2s; }
-        .rtp-calculate-btn:hover { filter: brightness(1.1); }
-        .rtp-calculate-btn:disabled { opacity: 0.6; cursor: not-allowed; }
-        .rtp-spinner { width: 16px; height: 16px; border: 2px solid rgba(0,0,0,0.2); border-top-color: #000; border-radius: 50%; animation: spin 0.8s linear infinite; }
-        .rtp-error { margin-top: 12px; padding: 10px 14px; background: rgba(239,68,68,0.1); border: 1.5px solid rgba(239,68,68,0.3); border-radius: 8px; color: #ef4444; font-size: 13px; }
-        .rtp-results { margin-top: 20px; }
-        .rtp-stats-bar { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 16px; }
-        @media (max-width: 500px) { .rtp-stats-bar { grid-template-columns: repeat(2, 1fr); } }
-        .rtp-stat { background: linear-gradient(160deg, rgba(18,28,45,0.85), rgba(10,16,28,0.92)); border: 1.5px solid rgba(148,163,184,0.12); border-radius: 12px; padding: 16px; text-align: center; box-shadow: inset 0 1px 0 rgba(255,255,255,0.04), 0 2px 8px rgba(0,0,0,0.3); }
-        .rtp-stat-value { display: block; font-size: 22px; font-weight: 700; color: #ffffff; }
-        .rtp-stat-label { font-size: 12px; color: rgba(148,163,184,0.5); text-transform: uppercase; letter-spacing: 0.5px; }
-        .rtp-map-wrapper { margin-bottom: 20px; }
-        .rtp-map-toggle { display: none; width: 100%; padding: 10px; background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(200,214,229,0.04)); border: 1.5px solid rgba(255,255,255,0.2); border-radius: 10px; color: #ffffff; font-size: 13px; font-weight: 600; cursor: pointer; align-items: center; justify-content: center; gap: 6px; font-family: inherit; margin-bottom: 8px; }
-        @media (max-width: 600px) { .rtp-map-toggle { display: flex; } }
-        .rtp-map-shell { position: relative; }
-        .rtp-map { width: 100%; height: 400px; border-radius: 12px; overflow: hidden; border: 1.5px solid rgba(148,163,184,0.12); background: #0d1117; }
-        @media (max-width: 600px) { .rtp-map { height: 250px; } }
-        .rtp-map-overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; text-align: center; padding: 20px; border-radius: 12px; background: rgba(13,17,23,0.92); color: rgba(148,163,184,0.75); font-size: 13px; pointer-events: none; }
-        .rtp-map-overlay.error { pointer-events: auto; }
-        .rtp-map-overlay p { margin: 0 0 12px; }
-        .rtp-map-overlay button { min-width: 44px; min-height: 44px; padding: 10px 16px; border: 1px solid rgba(59,130,246,0.55); border-radius: 6px; background: rgba(59,130,246,0.14); color: #fff; font: inherit; font-weight: 700; cursor: pointer; }
-        .rtp-estimate-note { margin: -6px 0 14px; font-size: 12px; color: rgba(148,163,184,0.55); line-height: 1.5; }
-        .rtp-share-status { margin-bottom: 12px; padding: 8px 12px; border-radius: 8px; font-size: 12px; }
-        .rtp-share-status.ok { background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.3); color: #22c55e; }
-        .rtp-share-status.fail { background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); color: #ef4444; }
-        .rtp-venue-card-row { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
-        .rtp-venue-logo { width: 28px; height: 28px; border-radius: 6px; object-fit: cover; flex-shrink: 0; border: 1px solid rgba(255,255,255,0.08); }
-        .rtp-venues-section h3, .rtp-series-section h3 { font-size: 18px; font-weight: 600; color: #e2e8f0; margin: 0 0 12px; }
-        .rtp-venue-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; }
-        .rtp-venue-card { background: linear-gradient(160deg, rgba(18,28,45,0.7), rgba(10,16,28,0.85)); border: 1.5px solid rgba(148,163,184,0.12); border-radius: 10px; padding: 14px; transition: all 0.25s; box-shadow: inset 0 1px 0 rgba(255,255,255,0.04), 0 2px 8px rgba(0,0,0,0.3); cursor: pointer; }
-        .rtp-venue-card:hover { border-color: rgba(255,255,255,0.35); transform: translateY(-1px); box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 4px 16px rgba(0,0,0,0.4); }
-        .rtp-venue-name { font-size: 14px; font-weight: 600; color: #e2e8f0; margin-bottom: 2px; }
-        .rtp-venue-loc { font-size: 12px; color: rgba(148,163,184,0.5); margin-bottom: 6px; }
-        .rtp-venue-tags { display: flex; gap: 6px; flex-wrap: wrap; }
-        .rtp-tag { padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: 500; }
-        .rtp-tag.type { background: rgba(99,102,241,0.2); color: #818cf8; }
-        .rtp-tag.trust { background: rgba(255,255,255,0.12); color: #ffffff; }
-        .rtp-nav-btn { background: rgba(255,255,255,0.15); color: #ffffff; border: 1px solid rgba(255,255,255,0.3); cursor: pointer; font-family: inherit; font-weight: 600; transition: all 0.2s; -webkit-appearance: none; appearance: none; }
-        .rtp-nav-btn:hover { background: rgba(255,255,255,0.3); border-color: rgba(255,255,255,0.5); }
-        .rtp-more { padding: 14px; text-align: center; color: rgba(148,163,184,0.5); font-size: 13px; }
-        .rtp-series-section { margin-top: 20px; }
-        .rtp-series-card { background: linear-gradient(160deg, rgba(18,28,45,0.7), rgba(10,16,28,0.85)); border: 1.5px solid rgba(148,163,184,0.12); border-radius: 10px; padding: 14px; margin-bottom: 8px; box-shadow: inset 0 1px 0 rgba(255,255,255,0.04), 0 2px 8px rgba(0,0,0,0.3); }
-        .rtp-series-name { font-size: 14px; font-weight: 600; color: #e2e8f0; }
-        .rtp-series-dates { font-size: 12px; color: rgba(148,163,184,0.5); }
-        .rtp-series-venue { font-size: 12px; color: #ffffff; margin-top: 2px; }
-        .rtp-saved-trips { margin-top: 14px; border: 1.5px solid rgba(148,163,184,0.1); border-radius: 10px; overflow: hidden; }
-        .rtp-saved-trips-toggle { display: flex; align-items: center; gap: 8px; width: 100%; padding: 10px 14px; background: linear-gradient(180deg, rgba(18,28,45,0.5), rgba(10,16,28,0.6)); border: none; color: rgba(148,163,184,0.6); font-size: 12px; font-weight: 600; font-family: inherit; cursor: pointer; transition: all 0.2s; -webkit-appearance: none; appearance: none; }
-        .rtp-saved-trips-toggle:hover { color: #ffffff; background: rgba(255,255,255,0.05); }
-        .rtp-saved-trips-list { padding: 6px; }
-        .rtp-saved-trip-item { display: flex; flex-direction: column; gap: 4px; padding: 10px 12px; border-bottom: 1px solid rgba(148,163,184,0.06); }
-        .rtp-saved-trip-item:last-child { border-bottom: none; }
-        .rtp-saved-trip-route { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: #e2e8f0; }
-        .rtp-saved-trip-meta { display: flex; gap: 12px; font-size: 12px; color: rgba(148,163,184,0.4); }
-        .rtp-saved-trip-actions { display: flex; gap: 6px; margin-top: 4px; }
-        .rtp-saved-trip-load { padding: 4px 12px; border-radius: 6px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #ffffff; font-size: 12px; font-weight: 600; cursor: pointer; font-family: inherit; transition: all 0.15s; -webkit-appearance: none; appearance: none; }
-        .rtp-saved-trip-load:hover { background: rgba(255,255,255,0.2); }
-        .rtp-saved-trip-delete { padding: 4px 12px; border-radius: 6px; background: rgba(239,68,68,0.06); border: 1px solid rgba(239,68,68,0.15); color: rgba(239,68,68,0.6); font-size: 12px; font-weight: 600; cursor: pointer; font-family: inherit; transition: all 0.15s; -webkit-appearance: none; appearance: none; }
-        .rtp-saved-trip-delete:hover { background: rgba(239,68,68,0.15); color: #ef4444; }
-        .rtp-add-waypoint, .rtp-chip, .rtp-date, .rtp-map-toggle, .rtp-nav-btn, .rtp-saved-trips-toggle, .rtp-saved-trip-load, .rtp-saved-trip-delete { min-height: 44px; }
-        .rtp-date { min-width: 0; flex: 1; }
-        .rtp-result-actions { display: flex; gap: 8px; margin-bottom: 12px; }
-        .rtp-result-actions > button { min-height: 44px; }
-        .rtp-empty { grid-column: 1 / -1; padding: 20px; border: 1px dashed rgba(148,163,184,0.2); border-radius: 10px; color: rgba(226,232,240,0.7); text-align: center; font-size: 13px; }
-        .road-trip-planner button:focus-visible, .road-trip-planner input:focus-visible { outline: 2px solid #6ee7ef; outline-offset: 2px; }
-        @media (max-width: 600px) {
-          .rtp-form { padding: 16px; }
-          .rtp-result-actions { flex-direction: column; }
-          .rtp-result-actions > button { width: 100%; flex: none !important; }
-        }
-        @media (prefers-reduced-motion: reduce) {
-          .road-trip-planner *, .road-trip-planner *::before, .road-trip-planner *::after { animation: none !important; transition: none !important; }
-        }
-        @keyframes spin { to { transform: rotate(360deg); } }
-      ` }} />
-        </div>
+        </PokerNearMePanelShell>
     );
 }
