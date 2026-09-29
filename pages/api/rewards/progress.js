@@ -37,6 +37,7 @@ import {
     CATALOG_VERSION,
     REWARD_TIMEZONE,
 } from '../../../src/config/diamondRewards';
+import { streakFromRows, nextLoginReward } from '../../../src/lib/rewards/loginStreak.mjs';
 
 // ── Service-role client — diamond_transactions is GRANTed to service_role only ──
 let _supabase = null;
@@ -181,6 +182,12 @@ async function loadCapCountingRows(supabase, userId, monthStart, monthEnd) {
  * If today is already claimed the run ends today; otherwise the run ending
  * yesterday is still alive and is what the next claim will extend.
  * Returns null on failure (caller degrades).
+ *
+ * 2026-09-13: returns `{ streak, claimedToday }`. This function always knew
+ * whether today was claimed (`days.has(today)` below) and threw the answer
+ * away, so the Club Arena wallet's Earn pane offered an enabled "Claim Daily
+ * Diamonds" button to a player who had already claimed, and only the click
+ * told them. A read-only endpoint that knows the answer reports it.
  */
 async function loadLoginStreak(supabase, userId, now) {
     const since = new Date(now.getTime() - 400 * 86400000).toISOString();
@@ -199,23 +206,9 @@ async function loadLoginStreak(supabase, userId, now) {
         return null;
     }
 
-    const days = new Set();
-    for (const row of data || []) {
-        if (row && row.created_at) days.add(chicagoDate(new Date(row.created_at)));
-    }
-    if (days.size === 0) return 0;
-
-    const today = chicagoDate(now);
-    let cursor = days.has(today) ? today : shiftDay(today, -1);
-    if (!days.has(cursor)) return 0;   // streak broken — nothing yesterday either
-
-    let streak = 0;
-    while (days.has(cursor) && streak < 400) {
-        streak++;
-        cursor = shiftDay(cursor, -1);
-    }
-    return streak;
+    return streakFromRows(data, now);
 }
+
 
 /* ──────────────────────────────── The handler ─────────────────────────────── */
 
@@ -301,10 +294,15 @@ export default async function handler(req, res) {
 
     // ── Login streak ──
     let loginStreak = 0;
+    // null = could not tell (10.86): never coerced into "not claimed".
+    let loginClaimedToday = null;
     try {
-        const streak = await loadLoginStreak(supabase, userId, now);
-        if (streak === null) partial = true;
-        else loginStreak = streak;
+        const login = await loadLoginStreak(supabase, userId, now);
+        if (login === null) partial = true;
+        else {
+            loginStreak = login.streak;
+            loginClaimedToday = login.claimedToday;
+        }
     } catch (streakErr) {
         console.warn('[RewardsProgress] Streak threw:', streakErr?.message || streakErr);
         partial = true;
@@ -323,6 +321,8 @@ export default async function handler(req, res) {
         monthlyCap,
         monthlyRemaining: Math.max(0, monthlyCap - earnedThisMonth),
         loginStreak,
+        loginClaimedToday,
+        nextLoginReward: nextLoginReward(loginStreak),
         multiplier,
         isVip,
         catalogVersion: CATALOG_VERSION,
@@ -347,6 +347,8 @@ export default async function handler(req, res) {
               monthlyCap: Number(MONTHLY_CAP?.free || 0),
               monthlyRemaining: Number(MONTHLY_CAP?.free || 0),
               loginStreak: 0,
+              loginClaimedToday: null,
+              nextLoginReward: nextLoginReward(0),
               multiplier: 1.0,
               isVip: false,
               catalogVersion: CATALOG_VERSION,
