@@ -51,6 +51,7 @@ import { useModalHistory } from '../../../src/hooks/useModalHistory';
 import toast from '../../../src/stores/toastStore';
 import { TUTORIAL_WILL_OPEN_EVENT } from '../../../src/tutorials';
 import DiscoveryStatusRail from '../../../src/components/poker-near-me/DiscoveryStatusRail';
+import PokerNearMeFamilyNav from '../../../src/components/poker-near-me/PokerNearMeFamilyNav';
 import { FavLiveToast, TabErrorBoundary } from '../../../src/components/poker-near-me/ControllerRecovery';
 import LazyPanel from '../../../src/components/poker-near-me/LazyPanel';
 import {
@@ -3750,6 +3751,7 @@ export default function PokerNearMePage({ initialDirectory = null }) {
         }
         onMenuClick={() => setMenuOpen(true)}
       >
+        <PokerNearMeFamilyNav />
         {/* Hamburger Menu */}
         <HamburgerMenu
           isOpen={menuOpen}

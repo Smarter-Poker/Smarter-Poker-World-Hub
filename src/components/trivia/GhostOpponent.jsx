@@ -1,12 +1,11 @@
 /**
- * GHOST OPPONENT — Simulated "live" opponent for trivia games
+ * GHOST OPPONENT - Simulated "live" opponent for trivia games
  * Shows an avatar + name + running score alongside the player.
  * Opponent "answers" with realistic delays and ~55% accuracy
- * (so the player wins ~60% of the time — positive dopamine loop).
+ * (so the player wins ~60% of the time - positive dopamine loop).
  */
 
 import { useState, useEffect, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 
 // ══ Realistic poker player names ══
 const OPPONENT_NAMES = [
@@ -18,26 +17,15 @@ const OPPONENT_NAMES = [
     'WSOP_Dreamer', 'GTO_Grinder', 'TripleBrrl', 'FishHunter',
 ];
 
-// ══ Avatar colors (gradient pairs) ══
-const AVATAR_COLORS = [
-    ['#f97316', '#ea580c'], ['#06b6d4', '#0891b2'],
-    ['#8b5cf6', '#7c3aed'], ['#ef4444', '#dc2626'],
-    ['#22c55e', '#16a34a'], ['#ec4899', '#db2777'],
-    ['#fbbf24', '#f59e0b'], ['#14b8a6', '#0d9488'],
-];
-
 function getOpponent(seed) {
     const nameIdx = Math.abs(seed) % OPPONENT_NAMES.length;
-    const colorIdx = Math.abs(seed * 7) % AVATAR_COLORS.length;
     return {
         name: OPPONENT_NAMES[nameIdx],
-        colors: AVATAR_COLORS[colorIdx],
-        initial: OPPONENT_NAMES[nameIdx][0].toUpperCase(),
     };
 }
 
 // Difficulty-scaled "thinking" time. A believable opponent hesitates longer on
-// a hard question than on an easy one — the old flat 1-4s felt mechanical.
+// a hard question than on an easy one - the old flat 1-4s felt mechanical.
 function answerDelayFor(difficulty) {
     switch (String(difficulty || '').toLowerCase()) {
         case 'easy': return 800 + Math.random() * 1400; // 0.8-2.2s
@@ -107,7 +95,7 @@ export default function GhostOpponent({
             setOpponentAnswered(true);
             setShowReaction(true);
 
-            // Hide reaction after 1.5s — tracked in ref so cleanup can clear.
+            // Hide reaction after 1.5s - tracked in ref so cleanup can clear.
             if (reactionHideTimerRef.current) clearTimeout(reactionHideTimerRef.current);
             reactionHideTimerRef.current = setTimeout(() => setShowReaction(false), 1500);
         }, delay);
@@ -137,261 +125,37 @@ export default function GhostOpponent({
 
     const playerLeading = playerCorrectCount > opponentScore;
     const tied = playerCorrectCount === opponentScore;
-    const progressTotal = Math.max(1, totalQuestions);
-    const playerProgress = Math.min(100, (Math.min(currentQuestionIndex, progressTotal) / progressTotal) * 100);
-    const oppProgress = Math.min(100, (answeredQuestionsRef.current.size / progressTotal) * 100);
+    const opponentLeading = !playerLeading && !tied;
+    const opponentStatus = !isGameActive
+        ? 'Finished'
+        : showReaction
+            ? (opponentCorrect ? 'Correct' : 'Wrong')
+            : opponentAnswered
+                ? 'Answered'
+                : 'Thinking';
+    const statusInk = showReaction && isGameActive
+        ? (opponentCorrect ? 'tc-ink--green' : 'tc-ink--red')
+        : 'tc-ink--muted';
 
+    // Printed on the console glass as two label / value rows with an
+    // engraved rule between them. No avatar, badge or bar is drawn.
     return (
-        <div className="ghost-opponent">
-            <div className="opponent-bar">
-                {/* Player side */}
-                <div className={`score-side player ${playerLeading ? 'leading' : ''}`}>
-                    <div className="score-avatar you">YOU</div>
-                    <span className="score-num">{playerCorrectCount}</span>
-                </div>
-
-                {/* VS badge */}
-                <div className="vs-badge">
-                    <span>VS</span>
-                </div>
-
-                {/* Opponent side */}
-                <div className={`score-side opponent ${!playerLeading && !tied ? 'leading' : ''}`}>
-                    <span className="score-num">{opponentScore}</span>
-                    <div
-                        className={`score-avatar opp ${showReaction ? (opponentCorrect ? 'ring-correct' : 'ring-wrong') : ''}`}
-                        style={{
-                            background: `linear-gradient(135deg, ${opponent.colors[0]}, ${opponent.colors[1]})`
-                        }}
-                    >
-                        {opponent.initial}
-                    </div>
-                </div>
-            </div>
-
-            {/* Dual race progress — the core mechanic is racing someone, so
-                show it rather than leaving it implied by two numbers. */}
-            <div className="race-bars" aria-hidden="true">
-                <div className="race-track">
-                    <div className="race-fill you" style={{ width: `${playerProgress}%` }} />
-                </div>
-                <div className="race-track">
-                    <div className="race-fill opp" style={{ width: `${oppProgress}%` }} />
-                </div>
-            </div>
-
-            {/* Opponent name + status */}
-            <div className="opponent-info">
-                <span className="opp-name">{opponent.name}</span>
-                {opponentAnswered && isGameActive && !showReaction && (
-                    <span className="opp-answered">Answered!</span>
-                )}
-                <AnimatePresence>
-                    {showReaction && (
-                        <motion.span
-                            className={`opp-reaction ${opponentCorrect ? 'correct' : 'wrong'}`}
-                            initial={{ opacity: 0, y: 5 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0 }}
-                        >
-                            {opponentCorrect ? 'Correct' : 'Wrong'}
-                        </motion.span>
-                    )}
-                    {!opponentAnswered && isGameActive && (
-                        <motion.span
-                            className="opp-thinking"
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                        >
-                            Thinking...
-                        </motion.span>
-                    )}
-                </AnimatePresence>
-            </div>
-
-            <style dangerouslySetInnerHTML={{ __html: `
-                .ghost-opponent {
-                    margin-bottom: 16px;
-                }
-
-                .opponent-bar {
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    gap: 0;
-                    background: linear-gradient(135deg, rgba(15, 23, 42, 0.9), rgba(30, 41, 59, 0.8));
-                    border: 1px solid rgba(255, 255, 255, 0.1);
-                    border-radius: 16px;
-                    padding: 10px 16px;
-                    position: relative;
-                }
-
-                .score-side {
-                    display: flex;
-                    align-items: center;
-                    gap: 10px;
-                    flex: 1;
-                    transition: all 0.3s ease;
-                }
-
-                .score-side.player {
-                    justify-content: flex-end;
-                }
-
-                .score-side.opponent {
-                    justify-content: flex-start;
-                }
-
-                .score-side.leading .score-num {
-                    color: #31a24c;
-                    text-shadow: 0 0 10px rgba(34, 197, 94, 0.5);
-                }
-
-                .score-num {
-                    font-size: 28px;
-                    font-weight: 900;
-                    color: rgba(255, 255, 255, 0.9);
-                    font-family: 'Rajdhani', monospace;
-                    min-width: 30px;
-                    text-align: center;
-                    transition: color 0.3s, text-shadow 0.3s;
-                }
-
-                .score-avatar {
-                    width: 36px;
-                    height: 36px;
-                    border-radius: 50%;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    font-weight: 800;
-                    font-size: 13px;
-                    flex-shrink: 0;
-                }
-
-                .score-avatar.you {
-                    background: linear-gradient(135deg, #2374e1, #1a5cc4);
-                    color: #fff;
-                    font-size: 10px;
-                    letter-spacing: 0.5px;
-                }
-
-                .score-avatar.opp {
-                    color: #fff;
-                    font-size: 16px;
-                    box-shadow: 0 0 0 0 rgba(0, 0, 0, 0);
-                    transition: box-shadow 0.2s ease;
-                }
-
-                .score-avatar.opp.ring-correct {
-                    box-shadow: 0 0 0 3px rgba(49, 162, 76, 0.9), 0 0 12px rgba(49, 162, 76, 0.6);
-                }
-
-                .score-avatar.opp.ring-wrong {
-                    box-shadow: 0 0 0 3px rgba(240, 40, 73, 0.9), 0 0 12px rgba(240, 40, 73, 0.6);
-                }
-
-                .race-bars {
-                    display: flex;
-                    flex-direction: column;
-                    gap: 3px;
-                    margin-top: 6px;
-                }
-
-                .race-track {
-                    height: 4px;
-                    background: rgba(255, 255, 255, 0.08);
-                    border-radius: 2px;
-                    overflow: hidden;
-                }
-
-                .race-fill {
-                    height: 100%;
-                    border-radius: 2px;
-                    transition: width 0.35s ease;
-                }
-
-                .race-fill.you {
-                    background: linear-gradient(90deg, #2374e1, #00d4ff);
-                }
-
-                .race-fill.opp {
-                    background: linear-gradient(90deg, rgba(255, 255, 255, 0.25), rgba(255, 255, 255, 0.5));
-                }
-
-                .opp-answered {
-                    font-size: 11px;
-                    font-weight: 700;
-                    color: #fbbf24;
-                }
-
-                .vs-badge {
-                    width: 36px;
-                    height: 36px;
-                    border-radius: 50%;
-                    background: rgba(255, 255, 255, 0.08);
-                    border: 1px solid rgba(255, 255, 255, 0.15);
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    flex-shrink: 0;
-                    margin: 0 8px;
-                }
-
-                .vs-badge span {
-                    font-size: 11px;
-                    font-weight: 800;
-                    color: rgba(255, 255, 255, 0.5);
-                    letter-spacing: 1px;
-                }
-
-                .opponent-info {
-                    display: flex;
-                    align-items: center;
-                    justify-content: flex-end;
-                    gap: 8px;
-                    margin-top: 6px;
-                    padding-right: 4px;
-                }
-
-                .opp-name {
-                    font-size: 12px;
-                    color: rgba(255, 255, 255, 0.4);
-                    font-style: italic;
-                }
-
-                .opp-reaction {
-                    font-size: 14px;
-                    font-weight: 700;
-                }
-
-                .opp-reaction.correct {
-                    color: #31a24c;
-                }
-
-                .opp-reaction.wrong {
-                    color: #f02849;
-                }
-
-                .opp-thinking {
-                    font-size: 11px;
-                    color: rgba(255, 255, 255, 0.3);
-                    animation: blink 1s ease-in-out infinite;
-                }
-
-                @keyframes blink {
-                    0%, 100% { opacity: 0.3; }
-                    50% { opacity: 0.8; }
-                }
-
-                @media (prefers-reduced-motion: reduce) {
-                    .opp-thinking { animation: none; opacity: 0.6; }
-                    .race-fill,
-                    .score-side,
-                    .score-num,
-                    .score-avatar.opp { transition: none; }
-                }
-            ` }} />
+        <div className="ghost-opponent" role="group" aria-label={`Head To Head Over ${Math.max(1, totalQuestions)} Questions`}>
+            <ul className="tc-rows ghost-opponent__rows">
+                <li className="tc-row ghost-opponent__row">
+                    <span className="tc-row__label">You</span>
+                    <span className={`tc-row__value ${playerLeading ? 'tc-ink--green' : 'tc-ink--silver'}`}>
+                        {playerCorrectCount} Correct
+                    </span>
+                </li>
+                <li className="tc-row ghost-opponent__row">
+                    <span className="tc-row__label ghost-opponent__name">{opponent.name}</span>
+                    <span className="tc-row__value ghost-opponent__value">
+                        <span className={`ghost-opponent__status ${statusInk}`} aria-live="polite">{opponentStatus}</span>
+                        <span className={opponentLeading ? 'tc-ink--green' : 'tc-ink--silver'}>{opponentScore} Correct</span>
+                    </span>
+                </li>
+            </ul>
         </div>
     );
 }

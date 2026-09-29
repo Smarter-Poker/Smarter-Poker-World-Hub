@@ -3,6 +3,7 @@
  * Daily tournament listing with day selector, game type chips, and filters.
  */
 import React from 'react';
+import { PokerNearMePanelShell } from './PokerNearMeConsole';
 
 const DAYS_OF_WEEK = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const PAGE_SIZE = 50;
@@ -146,27 +147,29 @@ export default function DailyTournamentsTabPanel({
             </div>
 
             {/* Game type chips */}
-            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 10 }}>
+            <div className="daily-filter-rail">
                 {[{ key: 'all', label: 'All Games' }, { key: 'nlh', label: 'NLH' }, { key: 'plo', label: 'PLO' }, { key: 'mixed', label: 'Mixed' }, { key: 'omaha', label: 'Omaha' }].map(g => (
                     <button key={g.key}
+                        type="button"
+                        className={'daily-filter-chip' + (dtGameType === g.key ? ' active' : '')}
+                        aria-pressed={dtGameType === g.key}
                         onClick={() => setFilters(f => ({ ...f, hubDailyGameType: g.key }))}
-                        style={{ padding: '5px 14px', borderRadius: 20, fontSize: 12, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer', border: dtGameType === g.key ? '1px solid #ffffff' : '1px solid rgba(255,255,255,0.15)', background: dtGameType === g.key ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.05)', color: dtGameType === g.key ? '#ffffff' : 'rgba(255,255,255,0.6)' }}
                     >{g.label}</button>
                 ))}
             </div>
 
             {/* Buy-in range + GTD + Sort */}
-            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12, alignItems: 'center' }}>
+            <div className="daily-filter-fields">
                 <input type="number" placeholder="Min $" value={dtMinBuyin}
                     onChange={(e) => setFilters(f => ({ ...f, hubDailyMinBuyin: e.target.value }))}
-                    style={{ width: 70, padding: '5px 8px', borderRadius: 6, border: '1px solid rgba(255,255,255,0.15)', background: 'rgba(0,0,0,0.3)', color: '#e0e8f0', fontSize: 12, fontFamily: 'inherit' }} />
-                <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 12 }}>To</span>
+                    className="daily-filter-input" />
+                <span className="daily-filter-separator">To</span>
                 <input type="number" placeholder="Max $" value={dtMaxBuyin}
                     onChange={(e) => setFilters(f => ({ ...f, hubDailyMaxBuyin: e.target.value }))}
-                    style={{ width: 70, padding: '5px 8px', borderRadius: 6, border: '1px solid rgba(255,255,255,0.15)', background: 'rgba(0,0,0,0.3)', color: '#e0e8f0', fontSize: 12, fontFamily: 'inherit' }} />
+                    className="daily-filter-input" />
                 <input type="number" placeholder="Min GTD" value={dtMinGtd}
                     onChange={(e) => setFilters(f => ({ ...f, hubDailyMinGtd: e.target.value }))}
-                    style={{ width: 80, padding: '5px 8px', borderRadius: 6, border: '1px solid rgba(255,255,255,0.15)', background: 'rgba(0,0,0,0.3)', color: '#e0e8f0', fontSize: 12, fontFamily: 'inherit' }} />
+                    className="daily-filter-input daily-filter-input--gtd" />
                 <select value={dtSort}
                     onChange={(e) => setFilters(f => ({ ...f, hubDailySort: e.target.value }))}
                     className="sort-select" style={{ fontSize: 12 }}>
@@ -178,7 +181,7 @@ export default function DailyTournamentsTabPanel({
 
             {/* Result count */}
             <div className="results-bar" style={{ marginBottom: 8 }}>
-                <span className="results-count"><span style={{ color: '#ffffff', fontWeight: 800 }}>{filtered.length}</span> tournament{filtered.length !== 1 ? 's' : ''}</span>
+                <span className="results-count"><span style={{ color: '#ffffff', fontWeight: 800 }}>{filtered.length}</span> {filtered.length !== 1 ? 'tournaments' : 'tournament'}</span>
                 {!pendingDay && filtered.length > shown.length && (
                     <span className="results-showing">Showing {shown.length} Of {filtered.length}</span>
                 )}
@@ -187,13 +190,13 @@ export default function DailyTournamentsTabPanel({
             {pendingDay ? (
                 <div className="card-grid daily-grid">
                     {Array.from({ length: 6 }).map((_, i) => (
-                        <div key={'skel-' + i} className="entity-card skeleton-card">
+                        <PokerNearMePanelShell key={'skel-' + i} className="entity-card skeleton-card">
                             <div className="skel skel-header"></div>
                             <div className="skel skel-title"></div>
                             <div className="skel skel-text"></div>
                             <div className="skel skel-tags"></div>
                             <div className="skel skel-footer"></div>
-                        </div>
+                        </PokerNearMePanelShell>
                     ))}
                 </div>
             ) : filtered.length === 0 ? (
@@ -205,7 +208,7 @@ export default function DailyTournamentsTabPanel({
                 <>
                 <div className="card-grid daily-grid">
                     {shown.map((t, i) => (
-                        <div key={t.id || i} className="entity-card daily-card">
+                        <PokerNearMePanelShell key={t.id || i} className="entity-card daily-card">
                             <div className="card-header">
                                 <span className="time-badge">{t.start_time}</span>
                                 <span className="badge game-type">{formatGameType(t.game_type)}</span>
@@ -223,12 +226,12 @@ export default function DailyTournamentsTabPanel({
                             <div className="card-footer">
                                 {t.venueType && t.venueType !== 'Unknown' && <span className="venue-type">{t.venueType.replace(/[_-]/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</span>}
                                 {t.pokerAtlasUrl && (
-                                    <a href={t.pokerAtlasUrl} target="_blank" rel="noopener noreferrer" className="action-btn primary">
+                                    <a href={t.pokerAtlasUrl} target="_blank" rel="noopener noreferrer" className="action-btn primary pnm-console-cta pnm-console-cta--primary">
                                         Info
                                     </a>
                                 )}
                             </div>
-                        </div>
+                        </PokerNearMePanelShell>
                     ))}
                 </div>
                 {filtered.length > shown.length && (

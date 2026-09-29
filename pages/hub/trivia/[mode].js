@@ -7,7 +7,7 @@ import SEOHead from '../../../src/components/seo/SEOHead';
 import { useRouter } from 'next/router';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '../../../src/lib/supabase';
-import { authedFetch, getAuthUser } from '../../../src/lib/authUtils';
+import { authedFetch, getAuthUser, getAccessToken } from '../../../src/lib/authUtils';
 import { useAvatar } from '../../../src/contexts/AvatarContext';
 import DiamondEngine from '../../../src/services/DiamondEngine';
 import GameCostPopup from '../../../src/components/gates/GameCostPopup';
@@ -19,13 +19,17 @@ import PageTransition from '../../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import TriviaGame from '../../../src/components/trivia/TriviaGame';
 import TriviaResult from '../../../src/components/trivia/TriviaResult';
-import LeaderboardDisplay from '../../../src/components/trivia/LeaderboardDisplay';
+import LeaderboardDisplay, { printPlayerName } from '../../../src/components/trivia/LeaderboardDisplay';
 import { TRIVIA_MODES, calculateDiamonds, CATEGORY_MAPPINGS, DAILY_DIAMOND_CAPS } from '../../../src/lib/trivia/triviaEngine';
 import { getTodayCST } from '../../../src/lib/trivia/getTodayCST';
+import { toTitleCase } from '../../../src/lib/trivia/titleCase';
+import { formatTriviaDisplayNumber } from '../../../src/lib/trivia/formatTriviaDisplayNumber';
 import { getDailyDiamondsEarned, clampToCap } from '../../../src/lib/trivia/diamondCap';
 import { checkNewUnlocks, computeTriviaStats } from '../../../src/config/triviaAchievements';
 
 import TriviaSkeleton from '../../../src/components/trivia/TriviaSkeleton';
+import TriviaConsole from '../../../src/components/trivia/console/TriviaConsole';
+import TriviaConsoleDialog from '../../../src/components/trivia/console/TriviaConsoleDialog';
 import { getRecentlySeenIds, fetchRandomQuestionPool } from '../../../src/lib/triviaQuestionLoader';
 import useServerGradedRun from '../../../src/hooks/useServerGradedRun';
 
@@ -40,7 +44,6 @@ import { useCelebrations } from '../../../src/components/trivia/CelebrationEffec
 import { getStreakTier, calculateRewardWithMultiplier } from '../../../src/config/triviaStreakSystem';
 
 // Phase 2 Enhancement Imports
-import { Gem } from 'lucide-react';
 import { shuffleOptions } from '../../../src/lib/trivia/shuffleOptions';
 
 // Category source of truth is triviaEngine's CATEGORY_MAPPINGS - do not
@@ -64,14 +67,21 @@ const CATEGORY_MAP = {
     gto: [...CATEGORY_MAPPINGS.gto],
 };
 
-// Lobby image mapping - modes with full-bleed lobby images
-const LOBBY_IMAGES = {
-    history: '/images/trivia/lobby-history.jpg',
-    rules: '/images/trivia/lobby-rules.jpg',
-    pro: '/images/trivia/lobby-pro.jpg',
-    daily: '/images/trivia/lobby-daily.jpg',
-    arcade: '/images/trivia/lobby-arcade.jpg',
-};
+// Mode scene art for the lobby picture on the console glass. The art is a
+// text-free scene (modes-console-v1); every figure, rule and the Start action
+// are printed live around it. The old lobby-*.jpg art baked in text, numbers
+// and a Start button and is no longer referenced.
+// Literal paths, so the art audit can see every file this page uses.
+const MODE_ART = Object.freeze({
+    daily: '/images/trivia/modes-console-v1/daily.webp',
+    history: '/images/trivia/modes-console-v1/history.webp',
+    rules: '/images/trivia/modes-console-v1/rules.webp',
+    pro: '/images/trivia/modes-console-v1/pro.webp',
+    arcade: '/images/trivia/modes-console-v1/arcade.webp',
+});
+function getModeArt(mode) {
+    return Object.prototype.hasOwnProperty.call(MODE_ART, mode) ? MODE_ART[mode] : null;
+}
 
 // Every mode rendered by this dynamic page must use the server-authoritative
 // session flow. Keeping a mode out of this set is not a safe fallback: answer
@@ -143,6 +153,9 @@ export default function TriviaModePage() {
     // Personal best (per-mode) for the ready screen / results delta
     const [personalBest, setPersonalBest] = useState(null);
     const [isStarting, setIsStarting] = useState(false);
+    // The lobby's scene art is optional: until (or unless) it loads, the lobby
+    // prints its live rows alone rather than a broken picture.
+    const [artFailed, setArtFailed] = useState(false);
 
     // Phase 1: Prize wheel and celebration states
     const [showPrizeWheel, setShowPrizeWheel] = useState(false);
@@ -261,7 +274,7 @@ export default function TriviaModePage() {
                         if (arcadeCost > 0) {
                             const diamonds = profile?.diamonds ?? (await getUserDiamonds(currentUserId));
                             if (diamonds < arcadeCost) {
-                                setError(`Not enough diamonds. You need ${arcadeCost} diamonds to play Arcade mode.`);
+                                setError(`Not Enough Diamonds. You Need ${arcadeCost} Diamonds To Play ${toTitleCase(modeConfig?.name || 'This Mode')}.`);
                                 setGameState('error');
                                 return;
                             }
@@ -297,7 +310,7 @@ export default function TriviaModePage() {
                 } else {
                     const loadedQuestions = await loadQuestions(mode, modeConfig.questionsCount, currentUserId);
                     if (loadedQuestions.length === 0) {
-                        setError('No questions available. Please try again later.');
+                        setError('No Questions Available. Please Try Again Later.');
                         setGameState('error');
                         return;
                     }
@@ -326,7 +339,7 @@ export default function TriviaModePage() {
                 setGameState('ready');
             } catch (err) {
                 console.warn('Error initializing trivia:', err);
-                setError('Failed to load trivia. Please try again.');
+                setError('Failed To Load Trivia. Please Try Again.');
                 setGameState('error');
             }
         }
@@ -661,7 +674,7 @@ export default function TriviaModePage() {
         // signed-out visitor slipped past it and played PAID modes for free.
         // Mirror StrategyTrivia: paid entry requires a signed-in account.
         if (!isFreeMode && !userId && !isVIP) {
-            setError('Please sign in to play this mode.');
+            setError('Please Sign In To Play This Mode.');
             setGameState('error');
             return;
         }
@@ -684,7 +697,7 @@ export default function TriviaModePage() {
                     setShowOutOfDiamonds(true);
                     return;
                 }
-                setError('Could not start the game. Please try again.');
+                setError('Could Not Start The Game. Please Try Again.');
                 setGameState('error');
                 return;
             }
@@ -749,8 +762,8 @@ export default function TriviaModePage() {
         const baseDiamonds = isStakesMode ? 0 : calculateDiamonds(mode, correctCount, totalQuestions, timeRemaining);
         const streakTier = getStreakTier(userStreak);
         // AUDIT FIX (H1, partial): the client-computed stake pot could reach
-        // ~698💎 on a perfect 20-question run (STAKE_VALUES × up to 5x streak
-        // multiplier) for a 10💎 entry, and the daily-cap clamp below used to
+        // ~698 diamonds on a perfect 20-question run (STAKE_VALUES × up to 5x streak
+        // multiplier) for a 10 diamonds entry, and the daily-cap clamp below used to
         // exempt arcade entirely - DAILY_DIAMOND_CAPS.arcade (40, documented
         // as "max single run 50") was never enforced on the only arcade
         // payout path. Clamp a single run to 50 here, and let the daily cap
@@ -984,8 +997,17 @@ export default function TriviaModePage() {
             cashedOut,
             opponentScore,
             opponentName,
-            // Review mode data
-            questions,
+            // Review mode data. Server-graded questions never carry
+            // correct_index; once the server has graded the run, its
+            // perQuestion verdicts are the answer key for the review.
+            questions: useServerPayout && Array.isArray(serverResult?.perQuestion)
+                ? questions.map(q => {
+                    const verdict = serverResult.perQuestion.find(v => v?.questionId === q?.id);
+                    return Number.isInteger(verdict?.correctDisplayIndex)
+                        ? { ...q, correct_index: verdict.correctDisplayIndex }
+                        : q;
+                })
+                : questions,
             answers: gameResult.answers || [],
         });
 
@@ -1027,7 +1049,7 @@ export default function TriviaModePage() {
             // No verifiable token (guest play, or the score insert failed).
             // Refuse rather than fall back to a client-rolled, client-credited
             // prize - that path is exactly the mint the RPC exists to close.
-            setWheelError('The prize wheel is unavailable for this run.');
+            setWheelError('The Prize Wheel Is Unavailable For This Run.');
             return;
         }
         try {
@@ -1046,8 +1068,8 @@ export default function TriviaModePage() {
             if (!data || data.success === false) {
                 setWheelError(
                     data?.error === 'spin_window_expired'
-                        ? 'This spin has expired.'
-                        : 'Could not start the prize wheel. Please try again.'
+                        ? 'This Spin Has Expired.'
+                        : 'Could Not Start The Prize Wheel. Please Try Again.'
                 );
                 return;
             }
@@ -1059,8 +1081,8 @@ export default function TriviaModePage() {
         } catch (e) {
             console.warn('[PrizeWheel] spin request failed:', e?.message || e);
             setWheelError(e?.code === 'spin_window_expired'
-                ? 'This spin has expired.'
-                : 'Could not start the prize wheel. Please try again.');
+                ? 'This Spin Has Expired.'
+                : 'Could Not Start The Prize Wheel. Please Try Again.');
         }
     };
 
@@ -1116,8 +1138,10 @@ export default function TriviaModePage() {
     // While the router hydrates, show a skeleton instead of a blank flash
     if (!router.isReady) {
         return (
-            <div style={{ minHeight: '100vh', background: '#0a0e1a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <TriviaSkeleton />
+            <div className="trivia-console-standalone">
+                <TriviaConsole title="Poker Trivia" eyebrow="Preparing Table" pill="Loading" titleAs="h1">
+                    <TriviaSkeleton />
+                </TriviaConsole>
             </div>
         );
     }
@@ -1126,27 +1150,63 @@ export default function TriviaModePage() {
     // a permanent blank page
     if (!mode || !modeConfig) {
         return (
-            <div style={{
-                minHeight: '100vh', background: '#0a0e1a', display: 'flex', flexDirection: 'column',
-                alignItems: 'center', justifyContent: 'center', gap: 12, textAlign: 'center',
-                fontFamily: "'Inter', -apple-system, sans-serif", padding: 24
-            }}>
-                <h1 style={{ color: '#ffffff', fontSize: 28, margin: 0 }}>Mode Not Found</h1>
-                <p style={{ color: 'rgba(255,255,255,0.6)', margin: '0 0 12px', fontSize: 15 }}>
-                    That Trivia Mode Doesn't Exist. It May Have Been Renamed Or Retired.
-                </p>
-                <button
-                    onClick={() => router.replace('/hub/trivia')}
-                    style={{
-                        padding: '12px 28px', background: 'linear-gradient(135deg, #0ea5e9, #0284c7)',
-                        border: 'none', borderRadius: 10, color: '#ffffff', fontSize: 16,
-                        fontWeight: 600, cursor: 'pointer'
-                    }}
+            <div className="trivia-console-standalone">
+                <TriviaConsole
+                    title="Mode Not Found"
+                    eyebrow="Trivia Directory"
+                    subtitle="The Requested Table Is Unavailable"
+                    pill="Closed"
+                    titleAs="h1"
+                    primaryAction={{ label: 'Back To Trivia', onClick: () => router.replace('/hub/trivia') }}
                 >
-                    Back To Trivia
-                </button>
+                    <p className="trivia-console-copy">
+                        That Trivia Mode Doesn't Exist. It May Have Been Renamed Or Retired.
+                    </p>
+                </TriviaConsole>
             </div>
         );
+    }
+
+    const modeName = toTitleCase(modeConfig.name || String(mode));
+    const modeArt = getModeArt(mode);
+    // The engine's description reads '20 Questions \u2022 Iconic moments, ...'.
+    // The head's subtitle zone takes the short tag; a long one prints on the
+    // glass instead of being fitted down to an unreadable size.
+    const descriptionParts = String(modeConfig.description || '').split('\u2022').map(part => part.trim()).filter(Boolean);
+    const modeTag = toTitleCase(descriptionParts.length > 1 ? descriptionParts.slice(1).join(', ') : (descriptionParts[0] || ''));
+    const modeTagFitsHead = modeTag.length > 0 && modeTag.length <= 28;
+    const isPaidMode = (modeConfig.diamondCost || 0) > 0;
+    const dailyCap = DAILY_DIAMOND_CAPS?.[mode];
+    const needsDiamonds = typeof error === 'string' && /Diamonds/.test(error);
+    const backToTrivia = { label: 'Back To Trivia', onClick: () => router.push('/hub/trivia') };
+    const showPlayAgain = gameState === 'results' && result && (mode === 'arcade' || mode !== 'daily');
+    const startLabel = isStarting
+        ? 'Starting'
+        : mode === 'arcade'
+            ? `Play ${modeConfig.diamondCost} Diamonds`
+            : mode === 'daily'
+                ? 'Start Daily'
+                : 'Start Quiz';
+
+    // Footer law: two painted plates only when the surface genuinely has two
+    // actions, otherwise one lit word on the glass (the primitive decides).
+    let consolePrimary;
+    let consoleSecondary;
+    if (gameState === 'ready') {
+        consoleSecondary = backToTrivia;
+        consolePrimary = { label: startLabel, onClick: startGame, disabled: isStarting };
+    } else if (gameState === 'results' && result) {
+        consoleSecondary = showPlayAgain ? backToTrivia : undefined;
+        consolePrimary = showPlayAgain
+            ? { label: mode === 'arcade' ? `Play Again ${modeConfig.diamondCost || 10} Diamonds` : 'Play Again', onClick: handlePlayAgain }
+            : backToTrivia;
+    } else if (gameState === 'saving_error') {
+        consolePrimary = { label: 'Retry Save', onClick: handleRetrySave };
+    } else if (gameState === 'error') {
+        consoleSecondary = backToTrivia;
+        consolePrimary = needsDiamonds
+            ? { label: 'Get Diamonds', onClick: () => router.push('/hub/diamond-store'), tone: 'gold' }
+            : { label: 'Try Again', onClick: () => window.location.reload() };
     }
 
     return (
@@ -1158,179 +1218,169 @@ export default function TriviaModePage() {
                 noindex={true}
             />
 
-            <div className={`trivia-mode-page ${mode === 'daily' ? 'trivia-daily-casino' : ''}`}>
-                <div className="bg-overlay" />
-
+            <div className={`trivia-mode-page ${mode === 'daily' ? 'trivia-daily-casino' : ''}`} data-mode={mode}>
                 <UniversalHeader pageDepth={2} />
                 {modeConfig && modeConfig.diamondCost > 0 && (
                     <GameCostPopup userId={userId} featureKey={`trivia_${mode}`} isVip={isVIP} cost={modeConfig.diamondCost} />
                 )}
 
-                {/* Out of Diamonds Modal */}
-                {showOutOfDiamonds && (
-                    <div className="diamond-modal" role="dialog" aria-modal="true" aria-labelledby="diamond-modal-title">
-                        <div className="diamond-modal-card">
-                            <div className="diamond-modal-icon"><Gem size={48} aria-hidden="true" /></div>
-                            <span className="diamond-modal-kicker">Vault Access Required</span>
-                            <h3 id="diamond-modal-title">Out Of Diamonds</h3>
-                            <p>You Need {modeConfig?.diamondCost || 10} Diamonds To Play This Mode. Visit The Diamond Store To Get More.</p>
-                            <div className="diamond-modal-actions">
-                                <button type="button" onClick={() => setShowOutOfDiamonds(false)}>Close</button>
-                                <button type="button" className="is-primary" onClick={() => router.push('/hub/diamond-store')}>Get Diamonds</button>
-                            </div>
-                        </div>
-                    </div>
-                )}
+                <TriviaConsoleDialog
+                    open={showOutOfDiamonds}
+                    onClose={() => setShowOutOfDiamonds(false)}
+                    eyebrow="Vault Access Required"
+                    title="Out Of Diamonds"
+                    subtitle="Add Diamonds To Enter This Table"
+                    pill="Balance"
+                    secondaryAction={{ label: 'Close', onClick: () => setShowOutOfDiamonds(false) }}
+                    primaryAction={{ label: 'Get Diamonds', onClick: () => router.push('/hub/diamond-store') }}
+                >
+                    <p className="trivia-console-copy">
+                        You Need {modeConfig?.diamondCost || 10} Diamonds To Play This Mode. Visit The Diamond Store To Get More.
+                    </p>
+                </TriviaConsoleDialog>
 
-                <div className="content" style={{ padding: '80px 0 40px' }}>
+                <main className="content">
+                    <TriviaConsole
+                        eyebrow="Smarter Poker Trivia"
+                        title={modeName}
+                        subtitle={modeTagFitsHead ? modeTag : undefined}
+                        pill={gameState === 'ready' ? 'Ready' : gameState === 'playing' ? 'Live' : gameState === 'results' ? 'Results' : gameState === 'saving' ? 'Saving' : gameState === 'saving_error' || gameState === 'error' ? 'Attention' : 'Loading'}
+                        pillInk={gameState === 'saving_error' || gameState === 'error' ? 'red' : gameState === 'playing' ? 'green' : 'blue'}
+                        titleAs="h1"
+                        secondaryAction={consoleSecondary}
+                        primaryAction={consolePrimary}
+                    >
                     {gameState === 'loading' && (
-                        <div className="loading" style={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <div className="loading">
                             <TriviaSkeleton />
                         </div>
                     )}
 
                     {gameState === 'saving' && (
-                        <div className="saving" style={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                            <TriviaSkeleton />
+                        <div className="saving">
+                            <TriviaSkeleton label="Saving Your Results" />
                         </div>
                     )}
 
                     {/* Saving Error State (Retry UI) */}
                     {gameState === 'saving_error' && (
-                        <div style={{
-                            display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60vh'
-                        }}>
-                            <div style={{
-                                background: 'rgba(30, 41, 59, 0.9)',
-                                border: '1px solid rgba(239, 68, 68, 0.3)',
-                                borderRadius: '16px',
-                                padding: '40px',
-                                textAlign: 'center',
-                                maxWidth: '480px'
-                            }}>
-                                <h2 style={{ color: '#ef4444', marginBottom: '16px', fontSize: '24px' }}>Network Disconnected</h2>
-                                <p style={{ color: 'rgba(255,255,255,0.7)', marginBottom: '24px' }}>
-                                    We Couldn't Save Your Trivia Results Because You Lost Connection. Please Check Your Internet And Try Again So You Don't Lose Your Progress!
-                                </p>
-                                <button
-                                    onClick={handleRetrySave}
-                                    style={{
-                                        padding: '16px 32px',
-                                        background: 'linear-gradient(135deg, #2374e1, #1b5bb8)',
-                                        border: 'none',
-                                        borderRadius: '12px',
-                                        color: 'white',
-                                        fontSize: '16px',
-                                        fontWeight: 'bold',
-                                        cursor: 'pointer'
-                                    }}
-                                >
-                                    Retry Save
-                                </button>
-                            </div>
+                        <div className="trivia-console-state" role="alert">
+                            <h2>Network Disconnected</h2>
+                            <p>
+                                We Couldn't Save Your Trivia Results Because You Lost Connection. Please Check Your Internet And Try Again So You Don't Lose Your Progress!
+                            </p>
                         </div>
                     )}
 
                     {gameState === 'error' && (
-                        <div className="error-state">
+                        <div className="error-state trivia-console-state" role="alert">
+                            {needsDiamonds
+                                ? <h2 className="tc-ink--gold">Diamonds Needed</h2>
+                                : <h2 className="tc-ink--red">Something Went Wrong</h2>}
                             <p>{error}</p>
-                            <button onClick={() => router.push('/hub/trivia')}>
-                                Back To Trivia
-                            </button>
                         </div>
                     )}
 
                     {gameState === 'ready' && (
-                        LOBBY_IMAGES[mode] ? (
-                            /* Full-bleed image lobby.
-                               AUDIT FIX (H3): was a click-only <div> - the sole
-                               start control for every image-lobby mode was
-                               unreachable by keyboard and invisible to screen
-                               readers. A real <button> restores focus, Enter/
-                               Space activation and a proper accessible name
-                               (button-reset CSS keeps the old visual). */
-                            <button
-                                type="button"
-                                className="lobby-image-wrapper"
-                                onClick={startGame}
-                                disabled={isStarting}
-                                aria-label={`${modeConfig.name} - start challenge${modeConfig.diamondCost > 0 ? `, entry ${modeConfig.diamondCost} diamonds` : ''}`}
-                                style={{ borderRadius: 0 }}
-                            >
-                                <img
-                                    src={LOBBY_IMAGES[mode]}
-                                    alt=""
-                                    aria-hidden="true"
-                                    className="lobby-image"
-                                    style={{ borderRadius: 0, width: '100%' }}
-                                    loading="lazy" />
+                        <div className="ready-screen">
+                            {/* The mode's scene art, printed on the glass. It is
+                                also a start control (AUDIT FIX H3: a real
+                                <button>, keyboard and screen-reader reachable),
+                                guarded by the same in-flight ref as the plate. */}
+                            {modeArt && !artFailed && (
+                                <button
+                                    type="button"
+                                    className="mode-art-button"
+                                    onClick={startGame}
+                                    disabled={isStarting}
+                                    aria-label={`Start ${modeName}${isPaidMode ? `, Entry ${modeConfig.diamondCost} Diamonds` : ''}`}
+                                >
+                                    <img
+                                        src={modeArt}
+                                        alt=""
+                                        aria-hidden="true"
+                                        className="mode-art"
+                                        width="1600"
+                                        height="900"
+                                        decoding="async"
+                                        onError={() => setArtFailed(true)}
+                                    />
+                                </button>
+                            )}
+
+                            {!modeTagFitsHead && modeTag ? (
+                                <p className="trivia-console-copy mode-tagline">{modeTag}</p>
+                            ) : null}
+
+                            <ul className="tc-rows mode-details">
+                                <li className="tc-row">
+                                    <span className="tc-row__label">Questions</span>
+                                    <span className="tc-row__value">{modeConfig.questionsCount}</span>
+                                </li>
+                                <li className="tc-row">
+                                    <span className="tc-row__label">Clock</span>
+                                    <span className="tc-row__value">
+                                        {modeConfig.timeLimit
+                                            ? (modeConfig.timeLimit % 60 === 0 ? `${modeConfig.timeLimit / 60} Minutes` : `${modeConfig.timeLimit} Seconds`)
+                                            : 'Untimed'}
+                                    </span>
+                                </li>
+                                <li className="tc-row">
+                                    <span className="tc-row__label">Entry Cost</span>
+                                    <span className={`tc-row__value ${isPaidMode ? 'tc-ink--gold' : 'tc-ink--green'}`}>
+                                        {isPaidMode ? (isVIP ? 'Free For VIP' : `${modeConfig.diamondCost} Diamonds`) : 'Free'}
+                                    </span>
+                                </li>
+                                {Number.isFinite(dailyCap) && (
+                                    <li className="tc-row">
+                                        <span className="tc-row__label">Daily Earning Cap</span>
+                                        <span className="tc-row__value">{formatTriviaDisplayNumber(dailyCap)} Diamonds</span>
+                                    </li>
+                                )}
+                                {userId && (
+                                    <li className="tc-row">
+                                        <span className="tc-row__label">Your Diamonds</span>
+                                        <span className="tc-row__value tc-ink--gold">{formatTriviaDisplayNumber(userDiamonds)}</span>
+                                    </li>
+                                )}
+                                {mode === 'daily' && userId && (
+                                    <li className="tc-row">
+                                        <span className="tc-row__label">Daily Streak</span>
+                                        <span className="tc-row__value">{formatTriviaDisplayNumber(userStreak)} Days</span>
+                                    </li>
+                                )}
                                 {personalBest != null && (
-                                    <div className="personal-best-badge">Your Best: {personalBest}</div>
+                                    <li className="tc-row">
+                                        <span className="tc-row__label">Your Best</span>
+                                        <span className="tc-row__value">{formatTriviaDisplayNumber(personalBest)}</span>
+                                    </li>
                                 )}
-                                {mode === 'daily' && (
-                                    <div className="daily-lobby-console" aria-hidden="true">
-                                        <span>Daily Knowledge Table</span>
-                                        <strong>Take Your Seat</strong>
-                                        <small>{modeConfig.questionsCount} Questions · {modeConfig.diamondCost || 0} Diamond Entry · One Daily Run</small>
-                                    </div>
-                                )}
-                                {isStarting && (
-                                    <div className="starting-overlay">
-                                        <div className="spinner" />
-                                    </div>
-                                )}
-                            </button>
-                        ) : (
-                            /* Fallback text lobby */
-                            <div className="ready-screen">
-                                <div className="mode-info">
-                                    <h1>{modeConfig.name}</h1>
-                                    <p>{modeConfig.description}</p>
+                            </ul>
 
-                                    <div className="mode-details">
-                                        <div className="detail">
-                                            <span className="label">Questions</span>
-                                            <span className="value">{modeConfig.questionsCount}</span>
-                                        </div>
-                                        {modeConfig.timeLimit && (
-                                            <div className="detail">
-                                                <span className="label">Time Limit</span>
-                                                <span className="value">{modeConfig.timeLimit}s</span>
-                                            </div>
-                                        )}
-                                        {modeConfig.diamondCost > 0 && (
-                                            <div className="detail">
-                                                <span className="label">Entry Cost</span>
-                                                <span className="value">{modeConfig.diamondCost} Diamonds</span>
-                                            </div>
-                                        )}
-                                        {personalBest != null && (
-                                            <div className="detail">
-                                                <span className="label">Your Best</span>
-                                                <span className="value">{personalBest}</span>
-                                            </div>
-                                        )}
-                                    </div>
+                            <p className="trivia-console-copy mode-disclosure">
+                                {isPaidMode
+                                    ? `Entry Is ${modeConfig.diamondCost} Diamonds, Charged Only When The Game Starts. VIP Members Play Free.`
+                                    : mode === 'daily'
+                                        ? (dailyDiamondsClaimed
+                                            ? "Today's Completion Bonus Is Already Claimed. You Can Still Play For Practice."
+                                            : "Free To Play. Finish All Questions For Today's Completion Bonus.")
+                                        : 'Free To Play. Answers Are Graded By The Server As You Go.'}
+                            </p>
+                            {isStarting && (
+                                <p className="trivia-console-copy tc-ink--blue" role="status">Dealing In</p>
+                            )}
 
-                                    <button className="start-btn" onClick={startGame} disabled={isStarting}>
-                                        {isStarting
-                                            ? 'Starting...'
-                                            : mode === 'arcade' ? `Play (${modeConfig.diamondCost} Diamonds)` : 'Start Quiz'}
-                                    </button>
+                            {mode === 'arcade' && (
+                                <div className="leaderboard-section">
+                                    <LeaderboardDisplay
+                                        entries={leaderboard}
+                                        currentUserId={userId}
+                                        filter={leaderboardFilter}
+                                        onFilterChange={(f) => loadLeaderboard(f)}
+                                    />
                                 </div>
-
-                                {mode === 'arcade' && (
-                                    <div className="leaderboard-section">
-                                        <LeaderboardDisplay
-                                            entries={leaderboard}
-                                            currentUserId={userId}
-                                            filter={leaderboardFilter}
-                                            onFilterChange={(f) => loadLeaderboard(f)}
-                                        />
-                                    </div>
-                                )}
-                            </div>
-                        )
+                            )}
+                        </div>
                     )}
 
                     {gameState === 'playing' && mode !== 'survival' && (
@@ -1351,6 +1401,9 @@ export default function TriviaModePage() {
                             // is unaffordable - HintButtons otherwise only shows a
                             // transient inline notice with no route to the store.
                             onNeedDiamonds={() => setShowOutOfDiamonds(true)}
+                            // Report Question needs a signed-in bearer token.
+                            enableReport={Boolean(userId)}
+                            reportToken={userId ? getAccessToken() : null}
                             // onDiamondsChange is deliberately NOT passed. It
                             // existed to settle hint purchases and stake
                             // deltas by crediting/debiting from the browser,
@@ -1368,20 +1421,22 @@ export default function TriviaModePage() {
                     {gameState === 'results' && result && (
                         <div className="results-section">
                             {result.beatPersonalBest && (
-                                <div className="new-best-callout">New Personal Best!</div>
+                                <p className="trivia-console-copy tc-ink--gold new-best-callout">New Personal Best!</p>
                             )}
                             {result.capReached && (
-                                <div className="cap-callout">
-                                    Daily Earning Cap Reached For This Mode - {result.diamondsEarned} Of {result.rawDiamonds} Diamonds Awarded. Come Back Tomorrow For Full Rewards!
-                                </div>
+                                <p className="trivia-console-copy tc-ink--muted cap-callout">
+                                    Daily Earning Cap Reached For This Mode. {formatTriviaDisplayNumber(result.diamondsEarned)} Of {formatTriviaDisplayNumber(result.rawDiamonds)} Diamonds Awarded. Come Back Tomorrow For Full Rewards!
+                                </p>
                             )}
                             {result.skippedCount > 0 && (
-                                <div className="cap-callout">
-                                    {result.skippedCount} question{result.skippedCount === 1 ? ' was' : 's were'} Skipped And Scored Neutral - They Are Not Counted In Your Accuracy.
-                                </div>
+                                <p className="trivia-console-copy tc-ink--muted cap-callout">
+                                    {result.skippedCount === 1
+                                        ? '1 Question Was Skipped And Scored Neutral. It Is Not Counted In Your Accuracy.'
+                                        : `${result.skippedCount} Questions Were Skipped And Scored Neutral. They Are Not Counted In Your Accuracy.`}
+                                </p>
                             )}
                             {wheelError && (
-                                <div className="cap-callout">{wheelError}</div>
+                                <p className="trivia-console-copy tc-ink--red cap-callout" role="alert">{wheelError}</p>
                             )}
                             <TriviaResult
                                 {...result}
@@ -1390,6 +1445,9 @@ export default function TriviaModePage() {
                                 showDailyBonusRow={mode === 'daily'}
                                 onSpinWheel={openPrizeWheel}
                                 showSpinButton={isPerfectScore && !showPrizeWheel && !wheelSpun}
+                                // Back To Trivia and Play Again print on the
+                                // console's own painted plates (footer law).
+                                actionsInFooter
                                 // onDoubleOrNothing / showDoubleButton are gone
                                 // with the wager itself - see the removal note
                                 // further down. They were held off with a
@@ -1417,26 +1475,26 @@ export default function TriviaModePage() {
                                         showed the same diamonds twice. */}
                                     {dailyLeaderboard.length > 0 && (
                                         <div className="daily-leaderboard">
-                                            <h3>Daily Trivia Leaderboard</h3>
-                                            <div className="daily-lb-header">
-                                                <span className="lb-col rank">#</span>
-                                                <span className="lb-col name">Player</span>
-                                                <span className="lb-col streak">Streak</span>
-                                                <span className="lb-col accuracy">Acc%</span>
-                                                <span className="lb-col games">Games</span>
-                                            </div>
-                                            {dailyLeaderboard.map((entry, idx) => (
-                                                <div
-                                                    key={entry.userId}
-                                                    className={`daily-lb-row ${entry.userId === userId ? 'you' : ''}`}
-                                                >
-                                                    <span className="lb-col rank">{idx + 1}</span>
-                                                    <span className="lb-col name">{entry.username}</span>
-                                                    <span className="lb-col streak">{entry.streak}d</span>
-                                                    <span className="lb-col accuracy">{entry.accuracy}%</span>
-                                                    <span className="lb-col games">{entry.gamesPlayed}</span>
-                                                </div>
-                                            ))}
+                                            <h2 className="tc-label">Daily Trivia Leaderboard</h2>
+                                            <ol className="tc-rows daily-lb-list" aria-label="Daily Trivia Streaks">
+                                                {dailyLeaderboard.map((entry, idx) => (
+                                                    <li
+                                                        key={entry.userId}
+                                                        className={`tc-row daily-lb-row ${entry.userId === userId ? 'you' : ''}`}
+                                                        aria-current={entry.userId === userId ? 'true' : undefined}
+                                                    >
+                                                        <span className="daily-lb-who">
+                                                            <span className={`daily-lb-rank ${idx === 0 ? 'tc-ink--gold' : idx === 1 ? 'tc-ink--silver' : idx === 2 ? 'tc-ink--blue' : 'tc-ink--muted'}`}>{idx + 1}</span>
+                                                            <span className={`daily-lb-name ${entry.userId === userId ? 'tc-ink--white' : 'tc-ink--silver'}`}>{printPlayerName(entry.username, 'Player')}</span>
+                                                            {entry.userId === userId && <span className="tc-label">You</span>}
+                                                        </span>
+                                                        <span className="daily-lb-stats">
+                                                            <span className="tc-ink--gold">{formatTriviaDisplayNumber(entry.streak)} Day Streak</span>
+                                                            <span className="tc-ink--muted">{entry.accuracy}% Accuracy, {formatTriviaDisplayNumber(entry.gamesPlayed)} {entry.gamesPlayed === 1 ? 'Game' : 'Games'}</span>
+                                                        </span>
+                                                    </li>
+                                                ))}
+                                            </ol>
                                         </div>
                                     )}
                                 </div>
@@ -1457,8 +1515,9 @@ export default function TriviaModePage() {
                         the double-or-nothing question through
                         /api/trivia/session-answer and pay from a route that
                         owns the amount, the way award_trivia_run does for a
-                        run), then re-add the modal wired to that route. The
-                        DoubleOrNothing component itself is untouched. */}
+                        run), then build a console dialog wired to that route.
+                        The old DoubleOrNothing component had no importer left
+                        and was removed with the console redesign. */}
 
                     {/* Prize Wheel - only shows on 100% perfect score */}
                     {showPrizeWheel && (
@@ -1498,521 +1557,9 @@ export default function TriviaModePage() {
                         so React doesn't see a new component type each render and
                         unmount/remount the confetti mid-celebration */}
                     {celebrations.CelebrationComponents()}
-                </div>
+                    </TriviaConsole>
+                </main>
             </div>
-
-            <style dangerouslySetInnerHTML={{ __html: `
-                .trivia-mode-page {
-                    min-height: 100vh; padding-bottom: 70px;
-                    background: #0a0e1a;
-                    background-color: #000000;
-                    font-family: 'Inter', -apple-system, sans-serif;
-                    position: relative;
-                    width: 100%;
-                    max-width: 100%;
-                    margin: 0 auto;
-                }
-
-                
-                
-                
-                
-                
-
-                .bg-overlay {
-                    display: none;
-                }
-
-                .content {
-                    position: relative;
-                    padding: 80px 0 40px;
-                }
-
-                .loading,
-                .error-state {
-                    display: flex;
-                    flex-direction: column;
-                    align-items: center;
-                    justify-content: center;
-                    min-height: 60vh;
-                    color: rgba(255, 255, 255, 0.6);
-                    text-align: center;
-                }
-
-                .spinner {
-                    width: 40px;
-                    height: 40px;
-                    border: 3px solid rgba(255, 255, 255, 0.1);
-                    border-top-color: #0ea5e9;
-                    border-radius: 50%;
-                    animation: spin 1s linear infinite;
-                    margin-bottom: 16px;
-                }
-
-                @keyframes spin {
-                    to { transform: rotate(360deg); }
-                }
-
-                .error-state button {
-                    margin-top: 20px;
-                    padding: 12px 24px;
-                    background: rgba(255, 255, 255, 0.1);
-                    border: 1px solid rgba(255, 255, 255, 0.2);
-                    border-radius: 8px;
-                    color: #ffffff;
-                    cursor: pointer;
-                }
-
-                .ready-screen {
-                    max-width: 100%;
-                    margin: 0 auto;
-                }
-
-                .lobby-image-wrapper {
-                    position: relative;
-                    cursor: pointer;
-                    overflow: hidden;
-                    transition: transform 0.3s ease, box-shadow 0.3s ease;
-                    max-width: 100%;
-                    margin: 0 auto;
-                    /* AUDIT FIX (H3): now a <button> - reset browser button
-                       chrome back to the old full-bleed div look. */
-                    display: block;
-                    width: 100%;
-                    padding: 0;
-                    background: none;
-                    border: none;
-                    font: inherit;
-                    color: inherit;
-                    text-align: left;
-                }
-
-                .lobby-image-wrapper:disabled {
-                    cursor: wait;
-                }
-
-                .lobby-image-wrapper:focus-visible {
-                    outline: 2px solid #00D4FF;
-                    outline-offset: 3px;
-                }
-
-                .lobby-image-wrapper:hover {
-                    transform: scale(1.02);
-                    box-shadow: 0 0 40px rgba(14, 165, 233, 0.3);
-                }
-
-                .lobby-image-wrapper:active {
-                    transform: scale(0.98);
-                }
-
-                .lobby-image {
-                    width: 100%;
-                    height: auto;
-                    display: block;
-                }
-
-                .personal-best-badge {
-                    position: absolute;
-                    top: 12px;
-                    right: 12px;
-                    padding: 6px 14px;
-                    background: rgba(10, 14, 26, 0.85);
-                    border: 1px solid rgba(255, 215, 0, 0.5);
-                    border-radius: 20px;
-                    color: #FFD700;
-                    font-size: 13px;
-                    font-weight: 700;
-                    letter-spacing: 0.5px;
-                    pointer-events: none;
-                }
-
-                .starting-overlay {
-                    position: absolute;
-                    inset: 0;
-                    background: rgba(0, 0, 0, 0.55);
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                }
-
-                .new-best-callout {
-                    padding: 12px 20px;
-                    background: linear-gradient(135deg, rgba(255, 215, 0, 0.18), rgba(249, 115, 22, 0.12));
-                    border: 1px solid rgba(255, 215, 0, 0.45);
-                    border-radius: 12px;
-                    color: #FFD700;
-                    font-size: 16px;
-                    font-weight: 700;
-                    text-align: center;
-                    margin-bottom: 16px;
-                    animation: bonusPulse 2s ease-in-out;
-                }
-
-                .cap-callout {
-                    padding: 12px 16px;
-                    background: rgba(251, 191, 36, 0.1);
-                    border: 1px solid rgba(251, 191, 36, 0.35);
-                    border-radius: 12px;
-                    color: #fbbf24;
-                    font-size: 13px;
-                    text-align: center;
-                    margin-bottom: 16px;
-                }
-
-                .mode-info {
-                    background: linear-gradient(135deg, rgba(30, 41, 59, 0.8), rgba(15, 23, 42, 0.9));
-                    border: 1px solid rgba(255, 255, 255, 0.1);
-                    border-radius: 16px;
-                    padding: 40px;
-                    text-align: center;
-                    margin-bottom: 24px;
-                }
-
-                .mode-info h1 {
-                    font-size: 32px;
-                    font-weight: 700;
-                    color: #ffffff;
-                    margin: 0 0 12px 0;
-                }
-
-                .mode-info p {
-                    font-size: 16px;
-                    color: rgba(255, 255, 255, 0.6);
-                    margin: 0 0 32px 0;
-                }
-
-                .mode-details {
-                    display: flex;
-                    justify-content: center;
-                    gap: 32px;
-                    margin-bottom: 32px;
-                }
-
-                .detail {
-                    display: flex;
-                    flex-direction: column;
-                    align-items: center;
-                }
-
-                .detail .label {
-                    font-size: 12px;
-                    color: rgba(255, 255, 255, 0.5);
-                    text-transform: uppercase;
-                    letter-spacing: 1px;
-                    margin-bottom: 4px;
-                }
-
-                .detail .value {
-                    font-size: 24px;
-                    font-weight: 700;
-                    color: #ffffff;
-                }
-
-                .start-btn {
-                    padding: 16px 48px;
-                    background: linear-gradient(135deg, #0ea5e9, #0284c7);
-                    border: none;
-                    border-radius: 10px;
-                    color: #ffffff;
-                    font-size: 18px;
-                    font-weight: 600;
-                    cursor: pointer;
-                    transition: all 0.2s ease;
-                }
-
-                .start-btn:hover {
-                    transform: translateY(-2px);
-                    box-shadow: 0 4px 20px rgba(14, 165, 233, 0.4);
-                }
-
-                .start-btn:disabled {
-                    opacity: 0.6;
-                    cursor: wait;
-                    transform: none;
-                    box-shadow: none;
-                }
-
-                .leaderboard-section {
-                    margin-top: 24px;
-                }
-
-                .results-section {
-                    max-width: 600px;
-                    margin: 0 auto;
-                }
-
-                /* Daily Trivia Leaderboard */
-                .daily-results-section {
-                    margin-top: 24px;
-                }
-
-                .daily-bonus-callout {
-                    display: flex;
-                    align-items: center;
-                    gap: 10px;
-                    padding: 14px 20px;
-                    background: linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(16, 185, 129, 0.15));
-                    border: 1px solid rgba(34, 197, 94, 0.4);
-                    border-radius: 12px;
-                    color: #22c55e;
-                    font-size: 16px;
-                    font-weight: 700;
-                    margin-bottom: 20px;
-                    animation: bonusPulse 2s ease-in-out;
-                }
-
-                .bonus-icon {
-                    font-size: 24px;
-                }
-
-                @keyframes bonusPulse {
-                    0% { transform: scale(0.95); opacity: 0; }
-                    50% { transform: scale(1.02); }
-                    100% { transform: scale(1); opacity: 1; }
-                }
-
-                .daily-leaderboard {
-                    background: linear-gradient(135deg, rgba(30, 41, 59, 0.8), rgba(15, 23, 42, 0.9));
-                    border: 1px solid rgba(255, 255, 255, 0.1);
-                    border-radius: 12px;
-                    padding: 20px;
-                }
-
-                .daily-leaderboard h3 {
-                    font-family: 'Orbitron', sans-serif;
-                    font-size: 14px;
-                    color: rgba(255, 255, 255, 0.6);
-                    text-transform: uppercase;
-                    letter-spacing: 1px;
-                    margin: 0 0 16px;
-                }
-
-                .daily-lb-header,
-                .daily-lb-row {
-                    display: flex;
-                    align-items: center;
-                    padding: 8px 0;
-                }
-
-                .daily-lb-header {
-                    border-bottom: 1px solid rgba(255, 255, 255, 0.15);
-                    font-size: 11px;
-                    color: rgba(255, 255, 255, 0.4);
-                    text-transform: uppercase;
-                    letter-spacing: 0.5px;
-                }
-
-                .daily-lb-row {
-                    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-                    font-size: 14px;
-                    color: rgba(255, 255, 255, 0.8);
-                }
-
-                .daily-lb-row.you {
-                    background: rgba(0, 212, 255, 0.1);
-                    margin: 0 -12px;
-                    padding: 8px 12px;
-                    border-radius: 6px;
-                    color: #00D4FF;
-                    font-weight: 600;
-                }
-
-                .lb-col.rank { width: 30px; font-weight: 700; color: #FFD700; }
-                .lb-col.name { flex: 1; }
-                .lb-col.streak { width: 55px; text-align: center; color: #f97316; }
-                .lb-col.accuracy { width: 50px; text-align: center; color: #22c55e; }
-                .lb-col.games { width: 50px; text-align: center; color: rgba(255,255,255,0.5); }
-
-                .diamond-modal {
-                    position: fixed;
-                    inset: 0;
-                    z-index: 9999;
-                    display: grid;
-                    place-items: center;
-                    padding: 18px;
-                    background: rgba(0, 3, 6, 0.9);
-                    backdrop-filter: blur(12px);
-                }
-
-                .diamond-modal-card {
-                    position: relative;
-                    width: min(100%, 390px);
-                    overflow: hidden;
-                    padding: 30px 22px 22px;
-                    border: 1px solid #678598;
-                    border-radius: 2px;
-                    background:
-                        linear-gradient(135deg, rgba(255, 255, 255, 0.07), transparent 28%),
-                        repeating-linear-gradient(90deg, transparent 0 74px, rgba(37, 200, 255, 0.04) 75px),
-                        linear-gradient(180deg, #111d25, #03080c 72%);
-                    box-shadow: inset 0 0 0 4px #020608, inset 0 0 0 5px rgba(117, 151, 171, 0.34), 0 24px 80px #000;
-                    text-align: center;
-                }
-
-                .diamond-modal-card::before {
-                    content: '';
-                    position: absolute;
-                    inset: 0 0 auto;
-                    height: 3px;
-                    background: linear-gradient(90deg, transparent, #25c8ff, #f2b84b, transparent);
-                }
-
-                .diamond-modal-icon {
-                    width: 76px;
-                    height: 76px;
-                    display: grid;
-                    place-items: center;
-                    margin: 0 auto 14px;
-                    border: 1px solid rgba(37, 200, 255, 0.7);
-                    transform: rotate(45deg);
-                    color: #25c8ff;
-                    background: #06131b;
-                    box-shadow: 0 0 30px rgba(37, 200, 255, 0.22);
-                }
-
-                .diamond-modal-icon svg { transform: rotate(-45deg); }
-                .diamond-modal-kicker { color: #f2b84b; font: 700 11px/1.2 'Orbitron', sans-serif; letter-spacing: 0.16em; text-transform: uppercase; }
-                .diamond-modal-card h3 { margin: 10px 0; color: #edf7fb; font: 700 28px/1.05 'Rajdhani', sans-serif; text-transform: capitalize; }
-                .diamond-modal-card p { margin: 0 auto 22px; color: #a9bac4; font-size: 14px; line-height: 1.55; }
-                .diamond-modal-actions { display: grid; grid-template-columns: 1fr 1.35fr; gap: 8px; }
-                .diamond-modal-actions button {
-                    min-height: 48px;
-                    border: 1px solid #607b8c;
-                    border-radius: 2px;
-                    background: linear-gradient(180deg, #182832, #071016);
-                    color: #dce8ee;
-                    font: 700 12px/1 'Orbitron', sans-serif;
-                    letter-spacing: 0.05em;
-                    cursor: pointer;
-                }
-                .diamond-modal-actions button.is-primary { border-color: #25c8ff; color: #fff; background: linear-gradient(180deg, #0b4865, #041721); box-shadow: inset 0 1px rgba(255,255,255,.2), 0 0 20px rgba(37,200,255,.14); }
-
-                /* Daily Trivia Casino Floor */
-                .trivia-daily-casino {
-                    --daily-cyan: #25c8ff;
-                    --daily-gold: #f2b84b;
-                    --daily-chrome: #c8d3da;
-                    background:
-                        radial-gradient(circle at 50% 9%, rgba(17, 99, 145, 0.2), transparent 30rem),
-                        repeating-linear-gradient(90deg, transparent 0 119px, rgba(37, 200, 255, 0.018) 120px),
-                        #020608;
-                }
-                .trivia-daily-casino :is(h1, h2, h3, p, button, small, span) { text-transform: capitalize; }
-
-                .trivia-daily-casino .content { width: min(100%, 1320px); margin: 0 auto; padding-inline: clamp(10px, 2.5vw, 32px) !important; }
-                .trivia-daily-casino .lobby-image-wrapper {
-                    min-height: min(780px, calc(100dvh - 96px));
-                    border: 1px solid #66869a !important;
-                    background: #020608;
-                    box-shadow: inset 0 0 0 5px #020608, inset 0 0 0 6px rgba(101, 136, 157, 0.45), 0 18px 60px #000;
-                }
-                .trivia-daily-casino .lobby-image { min-height: inherit; object-fit: cover; filter: saturate(.9) contrast(1.06); }
-                .trivia-daily-casino .lobby-image-wrapper::after {
-                    content: '';
-                    position: absolute;
-                    inset: 0;
-                    pointer-events: none;
-                    background: linear-gradient(180deg, rgba(0,0,0,.08), transparent 48%, rgba(0,4,7,.88));
-                    box-shadow: inset 0 0 70px #000;
-                }
-                .trivia-daily-casino .personal-best-badge {
-                    z-index: 2;
-                    top: 18px;
-                    right: 18px;
-                    border: 1px solid rgba(242,184,75,.75);
-                    border-radius: 2px;
-                    background: linear-gradient(180deg, #1f1a0d, #090806);
-                    color: #f2d38a;
-                    font: 700 11px/1 'Orbitron', sans-serif;
-                    letter-spacing: .08em;
-                    box-shadow: inset 0 1px rgba(255,255,255,.14);
-                }
-                .daily-lobby-console {
-                    position: absolute;
-                    z-index: 2;
-                    right: clamp(15px, 4vw, 56px);
-                    bottom: clamp(15px, 4vw, 52px);
-                    left: clamp(15px, 4vw, 56px);
-                    display: grid;
-                    gap: 5px;
-                    padding: 18px 20px;
-                    border: 1px solid #7390a1;
-                    border-left: 4px solid #25c8ff;
-                    border-radius: 2px;
-                    background: linear-gradient(90deg, rgba(2,8,12,.96), rgba(6,20,28,.88));
-                    box-shadow: inset 0 1px rgba(255,255,255,.12), 0 10px 30px #000;
-                    text-align: left;
-                }
-                .daily-lobby-console span { color: #f2b84b; font: 700 10px/1.2 'Orbitron', sans-serif; letter-spacing: .16em; text-transform: uppercase; }
-                .daily-lobby-console strong { color: #f3f7f9; font: 700 clamp(25px, 5vw, 46px)/1 'Rajdhani', sans-serif; text-transform: capitalize; }
-                .daily-lobby-console small { color: #a9bac4; font: 600 12px/1.4 'Inter', sans-serif; }
-
-                .trivia-daily-casino .trivia-game,
-                .trivia-daily-casino .trivia-result,
-                .trivia-daily-casino .daily-leaderboard {
-                    border: 1px solid #607b8c;
-                    border-radius: 2px;
-                    background: linear-gradient(180deg, rgba(12,27,36,.98), rgba(2,8,12,.99));
-                    box-shadow: inset 0 0 0 4px #020608, inset 0 0 0 5px rgba(74,107,126,.35), 0 20px 55px #000;
-                }
-                .trivia-daily-casino .question-card,
-                .trivia-daily-casino .result-card,
-                .trivia-daily-casino .daily-leaderboard { border-radius: 2px !important; }
-                .trivia-daily-casino .question-card { background: radial-gradient(ellipse at center, #092f27, #03120f 75%) !important; border-color: rgba(200,211,218,.38) !important; }
-                .trivia-daily-casino .option,
-                .trivia-daily-casino .next-button,
-                .trivia-daily-casino .action-btn,
-                .trivia-daily-casino .explanation-toggle { min-height: 48px; border-radius: 2px !important; }
-                .trivia-daily-casino .option { border-color: #4e6878 !important; background: linear-gradient(180deg, #14232c, #071016) !important; box-shadow: inset 0 1px rgba(255,255,255,.09); }
-                .trivia-daily-casino .option:hover,
-                .trivia-daily-casino .option:focus-visible { border-color: #25c8ff !important; box-shadow: 0 0 18px rgba(37,200,255,.14), inset 0 1px rgba(255,255,255,.13); }
-                .trivia-daily-casino .progress-fill,
-                .trivia-daily-casino .next-button,
-                .trivia-daily-casino .action-btn.primary { background: linear-gradient(180deg, #1477a2, #073149) !important; }
-                .trivia-daily-casino .daily-leaderboard { padding: 20px; }
-                .trivia-daily-casino .daily-leaderboard h3 { color: #dce7ec; }
-                .trivia-daily-casino .daily-lb-header { border-color: #425865; color: #8299a6; }
-                .trivia-daily-casino .daily-lb-row.you { margin-inline: 0; border-radius: 2px; background: rgba(37,200,255,.1); color: #62d8ff; }
-
-                .trivia-daily-casino .prize-wheel-overlay { background: rgba(0,3,6,.92); backdrop-filter: blur(10px); }
-                .trivia-daily-casino .prize-wheel-container { border-radius: 2px; }
-
-                /* ===== MOBILE OPTIMIZATION ===== */
-                @media (max-width: 768px) {
-                    .content {
-                        padding: 60px 0 20px;
-                    }
-
-                    .lobby-image-wrapper {
-                        max-height: calc(100dvh - 60px);
-                        display: flex;
-                        align-items: center;
-                        justify-content: center;
-                    }
-
-                    .lobby-image {
-                        max-height: calc(100dvh - 60px);
-                        width: 100%;
-                        object-fit: contain;
-                    }
-
-                    .trivia-daily-casino .content { padding-top: 64px !important; padding-inline: 8px !important; }
-                    .trivia-daily-casino .lobby-image-wrapper { min-height: calc(100dvh - 78px); max-height: none; }
-                    .trivia-daily-casino .lobby-image { min-height: calc(100dvh - 78px); max-height: none; object-fit: cover; }
-                    .daily-lobby-console { right: 10px; bottom: 78px; left: 10px; padding: 14px; }
-                    .daily-lobby-console small { font-size: 11px; }
-                    .diamond-modal-actions { grid-template-columns: 1fr; }
-                    .trivia-daily-casino .trivia-game,
-                    .trivia-daily-casino .trivia-result { border-inline: 1px solid #607b8c; }
-                }
-
-                @media (prefers-reduced-motion: reduce) {
-                    .trivia-daily-casino *, .diamond-modal * { scroll-behavior: auto !important; }
-                    .trivia-daily-casino .lobby-image-wrapper,
-                    .trivia-daily-casino .lobby-image-wrapper:hover { transition: none; transform: none; }
-                }
-            ` }} />
         </TriviaErrorBoundary>
     );
 }
-/* Cache bust: lobby-images-mobile-v3 */

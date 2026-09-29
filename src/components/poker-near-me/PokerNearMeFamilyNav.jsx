@@ -14,6 +14,18 @@ const FAMILY_LINKS = [
   { label: 'Saved', href: '/hub/poker-near-me/saved', matches: ['/hub/poker-near-me/saved'] },
 ];
 
+function consoleNavClassName(className) {
+  const consumerClasses = String(className || '')
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((token) => (
+      token === 'pnm-family-nav--standalone'
+        ? 'pnm-console-family-nav--standalone'
+        : token
+    ));
+  return ['pnm-console-family-nav', ...consumerClasses].join(' ');
+}
+
 /**
  * Low-profile shared navigation for every Poker Near Me discovery surface.
  * It deliberately owns no data or page state; it only provides stable routes
@@ -23,25 +35,28 @@ export default function PokerNearMeFamilyNav({ className = '' }) {
   const router = useRouter();
   const path = (router.asPath || router.pathname || '').split('?')[0];
 
-  // Mobile phase 3: the rail WRAPS (src/styles/worlds/poker-near-me.css), so
-  // every family link is visible at every width and nothing needs to be
-  // scrolled into view. The old effect that centred the active link inside
-  // a sideways scroller is gone with the scroller.
+  // Painted blank plates carry the permanent material and lighting. Route
+  // labels and active/live state remain real DOM content so navigation stays
+  // accessible, indexable, and driven by the existing route contract.
   return (
-    <nav className={`pnm-family-nav ${className}`.trim()} aria-label="Poker Near Me">
-      <div className="pnm-family-nav__rail">
-        <span className="pnm-family-nav__label" aria-hidden="true">Discovery Deck</span>
+    <nav
+      className={consoleNavClassName(className)}
+      aria-label="Poker Near Me"
+      data-pnm-console-surface="family-navigation-v1"
+    >
+      <span className="pnm-console-family-nav__label" aria-hidden="true">Discovery Deck</span>
+      <div className="pnm-console-family-nav__rail">
         {FAMILY_LINKS.map((item) => {
           const active = item.matches.some((prefix) => path === prefix || path.startsWith(`${prefix}/`));
           return (
             <Link
               key={item.href}
               href={item.href}
-              className={`pnm-family-nav__link${active ? ' is-active' : ''}${item.live ? ' is-live' : ''}`}
+              className={`pnm-console-family-nav__link${active ? ' is-active' : ''}${item.live ? ' is-live' : ''}`}
               aria-current={active ? 'page' : undefined}
             >
-              {item.live && <span className="pnm-family-nav__live-dot" aria-hidden="true" />}
-              {item.label}
+              {item.live && <span className="pnm-console-family-nav__live-signal" aria-hidden="true" />}
+              <span className="pnm-console-family-nav__text">{item.label}</span>
             </Link>
           );
         })}

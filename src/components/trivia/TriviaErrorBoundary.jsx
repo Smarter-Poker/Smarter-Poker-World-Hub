@@ -1,5 +1,5 @@
 /**
- * TriviaErrorBoundary — Crash-proof wrapper for trivia game pages
+ * TriviaErrorBoundary - Crash-proof wrapper for trivia game pages
  *
  * Prevents white-screen crashes when components throw during render
  * (e.g. bad question data, null access). Shows friendly error UI with
@@ -13,7 +13,8 @@
  */
 
 import React from 'react';
-import Link from 'next/link';
+import TriviaConsole from './console/TriviaConsole';
+import { toTitleCase } from '../../lib/trivia/titleCase';
 
 /** After this many failed retries the retry button is hidden. */
 const MAX_RETRIES = 2;
@@ -68,139 +69,52 @@ class TriviaErrorBoundary extends React.Component {
         this.setState(prev => ({ hasError: false, error: null, retryCount: prev.retryCount + 1 }));
     };
 
+    handleBackToLobby = () => {
+        // A full navigation, not a client transition: the React tree under
+        // this boundary is the thing that crashed, so load it from scratch.
+        if (typeof window !== 'undefined') window.location.assign('/hub/trivia');
+    };
+
     render() {
         if (this.state.hasError) {
             const pageName = this.props.pageName || 'Trivia';
             const canRetry = this.state.retryCount < MAX_RETRIES;
+            // The boundary replaces the whole page (HubPageSummary included),
+            // so its console title is the page heading unless told otherwise.
+            const titleAs = this.props.titleAs || 'h1';
+            const backToLobby = {
+                label: 'Back To Lobby',
+                onClick: this.handleBackToLobby,
+            };
 
             return (
-                <div style={{
-                    minHeight: '100vh',
-                    background: '#0a1628',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontFamily: "'Inter', -apple-system, sans-serif",
-                    padding: 20,
-                }}>
-                    <div style={{
-                        textAlign: 'center',
-                        maxWidth: 420,
-                        padding: '40px 32px',
-                        borderRadius: 16,
-                        background: '#1a1a2e',
-                        border: '1px solid rgba(0, 212, 255, 0.15)',
-                        boxShadow: '0 8px 32px rgba(0,0,0,0.5), 0 0 60px rgba(0, 212, 255, 0.05)',
-                    }}>
-                        {/* Error icon */}
-                        <div style={{
-                            width: 72, height: 72,
-                            borderRadius: '50%',
-                            background: 'rgba(239, 68, 68, 0.12)',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            margin: '0 auto 20px',
-                        }}>
-                            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <circle cx="12" cy="12" r="10" />
-                                <line x1="12" y1="8" x2="12" y2="12" />
-                                <line x1="12" y1="16" x2="12.01" y2="16" />
-                            </svg>
-                        </div>
-
-                        <h2 style={{
-                            color: '#ffffff',
-                            fontSize: 20,
-                            fontWeight: 700,
-                            margin: '0 0 8px',
-                        }}>
-                            {pageName} Hit A Snag
-                        </h2>
-
-                        <p style={{
-                            color: 'rgba(255,255,255,0.5)',
-                            fontSize: 14,
-                            lineHeight: 1.6,
-                            margin: '0 0 24px',
-                        }}>
+                <div className="trivia-console-standalone trivia-error-boundary" role="alert">
+                    <TriviaConsole
+                        eyebrow={toTitleCase(String(pageName).replace(/^Trivia\s+-\s+/, '').replace(/\s+-\s+/g, ' '))}
+                        title="Hit A Snag"
+                        titleAs={titleAs}
+                        subtitle={canRetry ? 'Your Progress Is Safe' : 'Your Diamonds And Progress Are Safe'}
+                        pill="Error"
+                        pillInk="red"
+                        secondaryAction={canRetry ? backToLobby : undefined}
+                        primaryAction={canRetry
+                            ? { label: 'Try Again', onClick: this.handleRetry }
+                            : backToLobby}
+                    >
+                        <p className="trivia-console-copy">
                             {canRetry
-                                ? 'Something went wrong. Your progress up to this point is safe. Try again or return to the lobby.'
-                                : 'This keeps failing, so retrying will not help. Head back to the lobby and pick another mode - your diamonds and progress are safe.'}
+                                ? 'Something Went Wrong. Your Progress Up To This Point Is Safe. Try Again Or Return To The Lobby.'
+                                : 'This Keeps Failing, So Retrying Will Not Help. Head Back To The Lobby And Pick Another Mode. Your Diamonds And Progress Are Safe.'}
                         </p>
-
-                        {/* Action buttons */}
-                        <div style={{
-                            display: 'flex',
-                            gap: 12,
-                            justifyContent: 'center',
-                            flexWrap: 'wrap',
-                        }}>
-                            {canRetry && (
-                                <button
-                                    onClick={this.handleRetry}
-                                    style={{
-                                        padding: '12px 28px',
-                                        borderRadius: 10,
-                                        border: 'none',
-                                        background: 'linear-gradient(135deg, #0ea5e9, #2563eb)',
-                                        color: '#ffffff',
-                                        fontSize: 14,
-                                        fontWeight: 600,
-                                        cursor: 'pointer',
-                                        transition: 'opacity 0.2s',
-                                        minHeight: 44,
-                                    }}
-                                >
-                                    Try Again
-                                </button>
-                            )}
-                            <Link
-                                href="/hub/trivia"
-                                style={{
-                                    padding: '12px 28px',
-                                    borderRadius: 10,
-                                    border: '1px solid rgba(0, 212, 255, 0.2)',
-                                    background: 'rgba(255,255,255,0.05)',
-                                    color: 'rgba(255,255,255,0.7)',
-                                    fontSize: 14,
-                                    fontWeight: 600,
-                                    textDecoration: 'none',
-                                    transition: 'background 0.2s',
-                                }}
-                            >
-                                Back To Lobby
-                            </Link>
-                        </div>
 
                         {/* Error details in dev mode */}
                         {process.env.NODE_ENV === 'development' && this.state.error && (
-                            <details style={{
-                                marginTop: 20,
-                                textAlign: 'left',
-                                background: 'rgba(0,0,0,0.3)',
-                                borderRadius: 8,
-                                padding: '8px 12px',
-                            }}>
-                                <summary style={{
-                                    color: 'rgba(255,255,255,0.4)',
-                                    fontSize: 12,
-                                    cursor: 'pointer',
-                                }}>
-                                    Error Details
-                                </summary>
-                                <pre style={{
-                                    color: '#ef4444',
-                                    fontSize: 11,
-                                    margin: '8px 0 0',
-                                    whiteSpace: 'pre-wrap',
-                                    wordBreak: 'break-word',
-                                }}>
-                                    {this.state.error.toString()}
-                                </pre>
+                            <details className="trivia-error-boundary__details">
+                                <summary className="tc-label">Error Details</summary>
+                                <pre className="tc-ink--red">{this.state.error.toString()}</pre>
                             </details>
                         )}
-                    </div>
+                    </TriviaConsole>
                 </div>
             );
         }

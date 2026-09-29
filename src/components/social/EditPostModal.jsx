@@ -11,6 +11,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { busEmit } from '../../engine/EventBus';
 import { broadcastSync, BROADCAST_TAB_ID } from '../../lib/broadcastSync';
+import { normalizePokerPostContent } from '../../lib/pokerCardMarkup';
 
 const MAX_CHARS = 2000;
 
@@ -64,7 +65,7 @@ export default function EditPostModal({ post, onClose, onSaved, supabase }) {
     }, [saving, handleClose]);
 
     const handleSave = async () => {
-        const trimmed = content.trim();
+        const trimmed = normalizePokerPostContent(content.trim());
         if (!trimmed) {
             setError('Post content cannot be empty');
             return;

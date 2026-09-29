@@ -313,6 +313,7 @@ export default function PlayerHomeGamesHub() {
           </div>
         </header>
 
+        <main data-pnm-secondary-foundation="interaction-v1">
         {/* Search */}
         <div className="border-b-2 border-[#4A5E78] bg-[#0F1C32]">
           <div className="max-w-6xl mx-auto px-4 py-3">
@@ -447,12 +448,12 @@ export default function PlayerHomeGamesHub() {
                 <Home className="w-8 h-8" />
               </div>
               <h3 className="text-lg font-bold text-white">
-                {searchQuery || filters.gameType !== 'all' ? 'No matching games found' : 'No home games found'}
+                {searchQuery || filters.gameType !== 'all' ? 'No Matching Games Found' : 'No Home Games Found'}
               </h3>
               <p className="text-[#64748B] mt-1">
                 {searchQuery || filters.gameType !== 'all'
-                  ? 'Try adjusting your search or filters'
-                  : 'Be the first to host a game in your area!'
+                  ? 'Try Adjusting Your Search Or Filters'
+                  : 'Be The First To Host A Game In Your Area'
                 }
               </p>
               {searchQuery || filters.gameType !== 'all' ? (
@@ -493,6 +494,7 @@ export default function PlayerHomeGamesHub() {
             </div>
           )}
         </div>
+        </main>
 
         {/* Join by Code Modal */}
         {showJoinModal && (

@@ -30,9 +30,11 @@ import {
 import useServerGradedRun from '../../../src/hooks/useServerGradedRun';
 import useTriviaTimer from '../../../src/hooks/useTriviaTimer';
 import { toTitleCase } from '../../../src/lib/trivia/titleCase';
-import { Clock, CheckCircle, XCircle, ArrowRight, Trophy, Gem, Target, DollarSign, BarChart3, Brain, AlertTriangle } from 'lucide-react';
+import { formatTriviaDisplayNumber } from '../../lib/trivia/formatTriviaDisplayNumber';
 import GTOScenarioDisplay from './GTOScenarioDisplay';
 import TriviaSkeleton from './TriviaSkeleton';
+import TriviaConsole from './console/TriviaConsole';
+import TriviaConsoleDialog from './console/TriviaConsoleDialog';
 
 /** Format poker text: enforce BB/SB spacing and capitalization rules */
 function formatPokerText(text) {
@@ -84,36 +86,31 @@ const SECONDS_PER_QUESTION = 60;
 const STRATEGY_MODES = {
     mtt: {
         title: 'MTT Scenarios',
-        subtitle: 'Multi-Table Tournament Situations',
-        color: '#f97316',
-        icon: 'target'
+        subtitle: 'Tournament Situations'
     },
     cash: {
         title: 'Cash Game',
-        subtitle: 'Deep Stack Scenarios & Implied Odds',
-        color: '#22c55e',
-        icon: 'dollar'
+        subtitle: 'Deep Stack Scenarios'
     },
     icm: {
         title: 'ICM & Chip EV',
-        subtitle: 'Tournament Equity Decisions',
-        color: '#06b6d4',
-        icon: 'chart'
+        subtitle: 'Equity Decisions'
     },
     gto: {
         title: 'GTO Master',
-        subtitle: 'Solver-Based Strategy Scenarios',
-        color: '#a855f7',
-        icon: 'brain'
+        subtitle: 'Solver-Based Spots'
     }
 };
 
-// Lobby image mapping — modes with full-bleed lobby images
-const LOBBY_IMAGES = {
-    mtt: '/images/trivia/lobby-mtt.jpg',
-    cash: '/images/trivia/lobby-cash.jpg',
-    icm: '/images/trivia/lobby-icm.jpg',
-    gto: '/images/trivia/lobby-gto.jpg',
+// Text-free scene art for each table (modes-console-v1). The old
+// lobby JPEGs carried baked-in titles, numbers and a baked button, so
+// they are no longer referenced: the art is a picture on the glass and every
+// changing value is printed live beside it.
+const MODE_ART = {
+    mtt: '/images/trivia/modes-console-v1/mtt.webp',
+    cash: '/images/trivia/modes-console-v1/cash.webp',
+    icm: '/images/trivia/modes-console-v1/icm.webp',
+    gto: '/images/trivia/modes-console-v1/gto.webp',
 };
 
 // Helper functions for GTO analysis generation.
@@ -165,7 +162,7 @@ function readSolverMetadata(question) {
             value: Math.round(evValue * 100) / 100,
             description: typeof ev?.description === 'string'
                 ? ev.description
-                : 'Expected value of the solver-preferred line for this spot, in big blinds.',
+                : 'Expected Value Of The Solver-Preferred Line For This Spot, In Big Blinds.',
         };
     }
 
@@ -186,7 +183,7 @@ function readSolverMetadata(question) {
         out.confidence = Math.max(0, Math.min(100, rows[0].frequency));
         out.alternateLines = rows.slice(1, 3).map(r => ({
             ...r,
-            description: r.description || 'Mixed-strategy branch reported by the solver for this node.',
+            description: r.description || 'Mixed-Strategy Branch Reported By The Solver For This Node.',
         }));
     }
 
@@ -202,41 +199,32 @@ function PlayingCard({ card, size = 'inline' }) {
     const suit = card[card.length - 1]?.toLowerCase();
     const rank = card.slice(0, -1)?.toUpperCase();
     const SUIT_CONFIG = {
-        s: { symbol: '♠', color: '#1a1a1a' },
-        h: { symbol: '♥', color: '#ef4444' },
-        d: { symbol: '♦', color: '#3b82f6' },
-        c: { symbol: '♣', color: '#22c55e' }
+        s: { file: 'spades', label: 'Spades' },
+        h: { file: 'hearts', label: 'Hearts' },
+        d: { file: 'diamonds', label: 'Diamonds' },
+        c: { file: 'clubs', label: 'Clubs' },
     };
     const config = SUIT_CONFIG[suit] || SUIT_CONFIG.s;
 
     const sizes = {
-        inline: { width: 16, height: 24, fontSize: 11 },
-        small: { width: 36, height: 50, fontSize: 12 },
-        medium: { width: 52, height: 72, fontSize: 16 },
-        large: { width: 68, height: 94, fontSize: 20 },
+        inline: { width: 18, height: 26 },
+        small: { width: 36, height: 50 },
+        medium: { width: 52, height: 72 },
+        large: { width: 68, height: 94 },
     };
     const s = sizes[size] || sizes.inline;
+    const fileRank = rank === 'T' ? '10' : rank.toLowerCase();
 
     return (
-        <span style={{
-            width: s.width,
-            height: s.height,
-            background: 'linear-gradient(135deg, #fff, #f5f5f5)',
-            borderRadius: 3,
-            display: 'inline-flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            boxShadow: '0 2px 4px rgba(0,0,0,0.3)',
-            fontWeight: 'bold',
-            fontSize: s.fontSize,
-            color: config.color,
-            margin: '0 2px',
-            verticalAlign: 'text-bottom',
-        }}>
-            <span style={{ lineHeight: 1 }}>{rank}</span>
-            <span style={{ fontSize: s.fontSize * 1.1, lineHeight: 1 }}>{config.symbol}</span>
-        </span>
+        <img
+            className="strategy-playing-card"
+            src={`/cards/optimized/${config.file}_${fileRank}.png`}
+            alt={`${rank} Of ${config.label}`}
+            width={s.width}
+            height={s.height}
+            loading="lazy"
+            decoding="async"
+        />
     );
 }
 
@@ -451,7 +439,7 @@ export default function StrategyTrivia({ mode }) {
             // Session-start needs an authenticated caller; fail with a clear
             // message instead of a generic start error.
             if (!userId) {
-                setEntryError('Please sign in to play this mode.');
+                setEntryError('Please Sign In To Play This Mode.');
                 return;
             }
 
@@ -465,13 +453,13 @@ export default function StrategyTrivia({ mode }) {
                     setShowOutOfDiamonds(true);
                     return;
                 }
-                setEntryError('Could not start the game. Please try again in a moment. You have not been charged.');
+                setEntryError('Could Not Start The Game. Please Try Again In A Moment. You Have Not Been Charged.');
                 return;
             }
             if (!served || !Array.isArray(served.questions) || served.questions.length === 0) {
                 // NEVER charge for an empty game.
                 serverRun.reset();
-                setEntryError('No questions are available right now. Please try again in a moment. You have not been charged.');
+                setEntryError('No Questions Are Available Right Now. Please Try Again In A Moment. You Have Not Been Charged.');
                 return;
             }
 
@@ -713,12 +701,16 @@ export default function StrategyTrivia({ mode }) {
         // entry point shows.
         return (
             <PageTransition>
-                <div style={{ minHeight: '100vh', background: '#0a1628', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <TriviaSkeleton label={`Loading ${config.title}`} />
+                <div className="trivia-console-standalone">
+                    <TriviaConsole title={config.title} eyebrow="Strategy Table" pill="Loading" titleAs="h1">
+                        <TriviaSkeleton label={`Loading ${config.title}`} />
+                    </TriviaConsole>
                 </div>
             </PageTransition>
         );
     }
+
+    const timerInk = timeLeft <= 10 ? 'red' : 'gold';
 
     return (
         <PageTransition>
@@ -726,30 +718,36 @@ export default function StrategyTrivia({ mode }) {
                 <title>{config.title} - Smarter.Poker Trivia</title>
             </Head>
 
-            <div className="strategy-trivia">
+            <div className="strategy-trivia" data-strategy-mode={mode} data-game-state={gameState}>
                 <UniversalHeader pageDepth={2} />
 
-                {/* Out of Diamonds Modal */}
-                {showOutOfDiamonds && (
-                    <div
-                        style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.85)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                        role="dialog"
-                        aria-modal="true"
-                        aria-label="Not enough diamonds"
-                    >
-                        <div style={{ background: '#1a1a2e', borderRadius: 16, padding: 32, maxWidth: 340, textAlign: 'center', border: '1px solid rgba(0,212,255,0.3)' }}>
-                            {/* Was the literal word 'diamonds' rendered at 48px as
-                                the modal's hero icon — left over from an emoji strip. */}
-                            <div style={{ marginBottom: 16, color: '#00D4FF' }}><Gem size={48} aria-hidden /></div>
-                            <h3 style={{ color: '#fff', margin: '0 0 12px' }}>Not Enough Diamonds</h3>
-                            <p style={{ color: 'rgba(255,255,255,0.6)', margin: '0 0 20px', fontSize: 14 }}>You Need {entryCost} Diamonds To Play. Visit The Diamond Store To Get More!</p>
-                            <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
-                                <button type="button" onClick={() => setShowOutOfDiamonds(false)} style={{ padding: '12px 20px', minHeight: 44, background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 8, color: '#fff', cursor: 'pointer' }}>Close</button>
-                                <button type="button" onClick={() => router.push('/hub/diamond-store')} style={{ padding: '12px 20px', minHeight: 44, background: 'linear-gradient(135deg, #00D4FF, #7B2FFF)', border: 'none', borderRadius: 8, color: '#fff', cursor: 'pointer', fontWeight: 600 }}>Get Diamonds</button>
-                            </div>
-                        </div>
-                    </div>
-                )}
+                <TriviaConsoleDialog
+                    open={showOutOfDiamonds}
+                    onClose={() => setShowOutOfDiamonds(false)}
+                    eyebrow="Vault Access Required"
+                    title="Not Enough Diamonds"
+                    subtitle={`This Table Requires ${entryCost} Diamonds`}
+                    pill="Balance"
+                    pillInk="gold"
+                    secondaryAction={{ label: 'Close', onClick: () => setShowOutOfDiamonds(false) }}
+                    primaryAction={{ label: 'Get Diamonds', onClick: () => router.push('/hub/diamond-store') }}
+                >
+                    <p className="trivia-console-copy">
+                        You Need {entryCost} Diamonds To Play. Visit The Diamond Store To Get More.
+                    </p>
+                    {userId ? (
+                        <ul className="tc-rows">
+                            <li className="tc-row">
+                                <span className="tc-row__label">Your Balance</span>
+                                <span className="tc-row__value tc-ink--red">{formatTriviaDisplayNumber(userDiamonds)} Diamonds</span>
+                            </li>
+                            <li className="tc-row">
+                                <span className="tc-row__label">Entry</span>
+                                <span className="tc-row__value">{entryCost} Diamonds</span>
+                            </li>
+                        </ul>
+                    ) : null}
+                </TriviaConsoleDialog>
 
                 {/* One-time diamond cost popup for non-VIP users.
                     featureKey, not pageKey: every other call site in the repo
@@ -763,324 +761,274 @@ export default function StrategyTrivia({ mode }) {
                 />
 
                 <div className="content">
+                    <TriviaConsole
+                        className="strategy-console"
+                        eyebrow="Strategy Table"
+                        title={config.title}
+                        subtitle={config.subtitle}
+                        pill={gameState === 'lobby' ? (isPreparing ? 'Dealing' : 'Ready') : gameState === 'playing' ? 'Live' : 'Results'}
+                        pillInk={gameState === 'playing' ? 'green' : 'blue'}
+                        titleAs="h1"
+                        secondaryAction={gameState === 'results'
+                            ? { label: 'Back To Lobby', onClick: () => router.push('/hub/trivia') }
+                            : undefined}
+                        primaryAction={gameState === 'lobby'
+                            ? { label: isPreparing ? 'Dealing In' : 'Start Challenge', onClick: startGame, disabled: isPreparing || vipInitializing }
+                            : gameState === 'playing' && showResult
+                                ? { label: currentQuestionIndex + 1 >= questions.length ? 'See Results' : 'Next Question', onClick: nextQuestion }
+                            : gameState === 'results'
+                                ? resultAwardError
+                                    ? { label: 'Retry Settlement', onClick: finishGame }
+                                    : { label: isPreparing ? 'Dealing In' : 'Play Again', onClick: startGame, disabled: isPreparing || vipInitializing }
+                                : undefined}
+                    >
                     {entryError && (
-                        <div className="entry-error" role="alert">
-                            <AlertTriangle size={16} aria-hidden />
-                            <span>{entryError}</span>
-                        </div>
+                        <p className="strategy-alert tc-ink--red" role="alert">
+                            {entryError}
+                        </p>
                     )}
 
-                    {/* LOBBY STATE */}
+                    {/* LOBBY STATE: the mode's text-free scene on the glass,
+                        then the live table terms as engraved rows. The
+                        console's own action starts the run. */}
                     {gameState === 'lobby' && (
-                        LOBBY_IMAGES[mode] ? (
-                            /* Full-bleed image lobby. A real <button>, not a
-                               click-only div: this is the primary entry point
-                               for the mode and was unreachable by keyboard. */
-                            <button
-                                type="button"
-                                className="lobby-image-wrapper"
-                                onClick={startGame}
-                                disabled={isPreparing || vipInitializing}
-                                aria-label={`${config.title} - start challenge. ${QUESTIONS_PER_GAME} questions${isVip ? ', free for VIP' : `, entry ${entryCost} diamonds`}.`}
-                            >
-                                <img
-                                    src={LOBBY_IMAGES[mode]}
-                                    alt={`${config.title} - Start Challenge`}
-                                    className="lobby-image"
-                                />
-                                {/* Questions are dealt by the server when the game
-                                    starts, so the only wait worth showing is the
-                                    session-start + charge round-trip itself. */}
-                                {isPreparing && (
-                                    <div className="lobby-loading-overlay">
-                                        <div className="lobby-spinner" />
-                                        <span>Dealing In...</span>
-                                    </div>
+                        <div className="strategy-lobby">
+                            <img
+                                className="strategy-hero"
+                                src={MODE_ART[mode] || MODE_ART.mtt}
+                                alt=""
+                                aria-hidden="true"
+                                width={1000}
+                                height={563}
+                                decoding="async"
+                            />
+                            {/* Questions are dealt by the server when the game
+                                starts, so the only wait worth showing is the
+                                session-start + charge round-trip itself. */}
+                            {isPreparing && (
+                                <p className="strategy-status tc-label" role="status">Dealing In</p>
+                            )}
+                            <ul className="tc-rows strategy-terms" aria-label={`${config.title} Table Terms`}>
+                                <li className="tc-row">
+                                    <span className="tc-row__label">Questions</span>
+                                    <span className="tc-row__value">{QUESTIONS_PER_GAME}</span>
+                                </li>
+                                <li className="tc-row">
+                                    <span className="tc-row__label">Time Per Question</span>
+                                    <span className="tc-row__value">{SECONDS_PER_QUESTION} Seconds</span>
+                                </li>
+                                <li className="tc-row">
+                                    <span className="tc-row__label">Entry</span>
+                                    <span className="tc-row__value">{isVip ? 'Free With VIP' : <>{entryCost} Diamonds</>}</span>
+                                </li>
+                                {/* Reward copy mirrors what session-submit
+                                    actually pays: the base reward needs 70%+
+                                    accuracy, the bonus needs a perfect run,
+                                    and the mode's daily cap bounds the total. */}
+                                <li className="tc-row">
+                                    <span className="tc-row__label">Reward At 70% Accuracy</span>
+                                    <span className="tc-row__value tc-ink--green">{TRIVIA_MODES[mode]?.diamondReward || 5} Diamonds</span>
+                                </li>
+                                <li className="tc-row">
+                                    <span className="tc-row__label">Perfect Score Bonus</span>
+                                    <span className="tc-row__value tc-ink--green">+{TRIVIA_MODES[mode]?.perfectBonus || 10} Diamonds</span>
+                                </li>
+                                <li className="tc-row">
+                                    <span className="tc-row__label">Daily Reward Cap</span>
+                                    <span className="tc-row__value">{DAILY_DIAMOND_CAPS[mode] || 40} Diamonds</span>
+                                </li>
+                                {userId && (
+                                    <li className="tc-row">
+                                        <span className="tc-row__label">Your Balance</span>
+                                        <span className="tc-row__value tc-ink--gold">{formatTriviaDisplayNumber(userDiamonds)} Diamonds</span>
+                                    </li>
                                 )}
-                                <div className="lobby-cost-strip">
-                                    <span>{QUESTIONS_PER_GAME} Questions</span>
-                                    <span className="lobby-cost-chip">
-                                        {isVip ? 'VIP: Free Entry' : <>Entry {entryCost} <Gem size={12} aria-hidden /></>}
-                                    </span>
-                                </div>
-                            </button>
-                        ) : (
-                            /* Fallback text lobby for modes without images */
-                            <div className="lobby">
-                                <div className="mode-icon">{config.icon === 'target' ? <Target size={48} /> : config.icon === 'dollar' ? <DollarSign size={48} /> : config.icon === 'chart' ? <BarChart3 size={48} /> : <Brain size={48} />}</div>
-                                <h1 style={{ color: config.color }}>{config.title}</h1>
-                                <p className="subtitle">{config.subtitle}</p>
-
-                                <div className="info-card">
-                                    <div className="info-row">
-                                        <span>Questions</span>
-                                        <span>{QUESTIONS_PER_GAME}</span>
-                                    </div>
-                                    <div className="info-row">
-                                        <span>Time Per Question</span>
-                                        <span>{SECONDS_PER_QUESTION} Seconds</span>
-                                    </div>
-                                    <div className="info-row">
-                                        <span>Entry</span>
-                                        <span>{isVip ? 'Free (VIP)' : <>{entryCost} <Gem size={14} aria-hidden /></>}</span>
-                                    </div>
-                                    {/* Reward copy mirrors what session-submit
-                                        actually pays: the base reward needs 70%+
-                                        accuracy, the bonus needs a perfect run,
-                                        and the mode's daily cap bounds the total. */}
-                                    <div className="info-row">
-                                        <span>Reward (70%+ Accuracy)</span>
-                                        <span>{TRIVIA_MODES[mode]?.diamondReward || 5} <Gem size={14} aria-hidden /></span>
-                                    </div>
-                                    <div className="info-row">
-                                        <span>Perfect Score Bonus</span>
-                                        <span>+{TRIVIA_MODES[mode]?.perfectBonus || 10} <Gem size={14} aria-hidden /></span>
-                                    </div>
-                                    <div className="info-row">
-                                        <span>Daily Reward Cap</span>
-                                        <span>{DAILY_DIAMOND_CAPS[mode] || 40} <Gem size={14} aria-hidden /></span>
-                                    </div>
-                                </div>
-
-                                <button
-                                    type="button"
-                                    className="start-btn"
-                                    onClick={startGame}
-                                    disabled={isPreparing || vipInitializing}
-                                    style={{ background: config.color }}
-                                >
-                                    {isPreparing ? 'Dealing In...' : 'Start Challenge'}
-                                </button>
-                            </div>
-                        )
+                            </ul>
+                        </div>
                     )}
 
                     {/* PLAYING STATE */}
                     {gameState === 'playing' && currentQuestion && (
                         <div className="game-area">
-                            <div className="game-frame">
-                                {/* Header */}
-                                <div className="game-header">
-                                    <div className="progress" role="status" aria-live="polite">
-                                        Question {currentQuestionIndex + 1} Of {questions.length}
-                                    </div>
-                                    <div className="timer-ring-container">
-                                        <svg className="timer-ring" width="48" height="48" viewBox="0 0 48 48" aria-hidden>
-                                            <circle className="timer-ring-bg" cx="24" cy="24" r="20" />
-                                            <circle
-                                                className="timer-ring-progress"
-                                                cx="24" cy="24" r="20"
-                                                style={{
-                                                    strokeDasharray: `${2 * Math.PI * 20}`,
-                                                    strokeDashoffset: `${2 * Math.PI * 20 * (1 - timeLeft / SECONDS_PER_QUESTION)}`,
-                                                    stroke: timeLeft <= 10 ? '#ef4444' : timeLeft <= 25 ? '#ffc107' : '#00ff88',
-                                                }}
-                                            />
-                                        </svg>
-                                        <span className="timer-text" style={{ color: timeLeft <= 10 ? '#ef4444' : timeLeft <= 25 ? '#ffc107' : '#00ff88' }}>
-                                            {timeLeft}
-                                        </span>
-                                        {/* Announce at the 30/10/5s marks only — a
-                                            per-second live region is unusable. */}
-                                        <span className="sr-only" role="timer" aria-live="assertive">
-                                            {timeLeft === 30 || timeLeft === 10 || timeLeft === 5
-                                                ? `${timeLeft} seconds remaining`
-                                                : ''}
-                                        </span>
-                                    </div>
+                            {/* Header: progress on the left, the shot clock
+                                printed on the glass on the right (gold, red
+                                at ten seconds and under). */}
+                            <div className="game-header">
+                                <div className="progress tc-label" role="status" aria-live="polite">
+                                    Question {currentQuestionIndex + 1} Of {questions.length}
                                 </div>
-
-                                {/* Question Content - Scrollable */}
-                                <div className="question-content-area" style={{ flex: 1, overflowY: 'auto', paddingBottom: '16px', display: 'flex', flexDirection: 'column' }}>
-                                    <div>
-                                        <div className="category-badge" style={{ borderColor: config.color }}>
-                                            {getCategoryName(currentQuestion.category)}
-                                        </div>
-                                    </div>
-
-                                    <h2 className="question-text">
-                                        {/* Card detection runs on the RAW text and the
-                                            title-caser is applied to the remaining
-                                            fragments — title-casing first turned every
-                                            mid-sentence "as" into the ace of spades. */}
-                                        {renderTextWithCards(
-                                            currentQuestion.question,
-                                            s => formatPokerText(toTitleCase(s))
-                                        )}
-                                    </h2>
-
-                                    {/* Analysis panel — real solver metadata only.
-                                        Everything here is driven by the SERVER
-                                        verdict: the question object carries no
-                                        correct_index and no explanation, so the
-                                        reveal (badge, best line, coaching text)
-                                        reads correctDisplayIndex / wasCorrect /
-                                        explanation from session-answer. */}
-                                    {showResult && verdict && (() => {
-                                        const solver = readSolverMetadata(
-                                            verdict.solverMetadata
-                                                ? { engine_metadata: verdict.solverMetadata }
-                                                : currentQuestion
-                                        );
-                                        const hasSolverData = solver.confidence != null;
-                                        const wasCorrect = verdict.wasCorrect === true;
-                                        const correctText = verdict.correctDisplayIndex >= 0
-                                            ? (currentQuestion.options[verdict.correctDisplayIndex] || '')
-                                            : '';
-
-                                        return (
-                                            <div style={{ marginTop: '16px', marginBottom: '8px', width: '100%' }}>
-                                                {/* Result badge */}
-                                                <div style={{
-                                                    display: 'flex',
-                                                    alignItems: 'center',
-                                                    gap: '8px',
-                                                    marginBottom: '12px',
-                                                    padding: '10px 16px',
-                                                    borderRadius: '8px',
-                                                    background: wasCorrect
-                                                        ? 'rgba(34, 197, 94, 0.15)'
-                                                        : 'rgba(239, 68, 68, 0.15)',
-                                                    border: `1px solid ${wasCorrect ? '#22c55e' : '#ef4444'}`,
-                                                    color: wasCorrect ? '#22c55e' : '#ef4444',
-                                                    fontWeight: 700,
-                                                    fontSize: '15px',
-                                                }}>
-                                                    {wasCorrect ? 'CORRECT' : 'INCORRECT'}
-                                                </div>
-
-                                                {hasSolverData ? (
-                                                    <GTOScenarioDisplay
-                                                        action={correctText.split(' ')[0]?.replace(/[^a-zA-Z-]/g, '').toUpperCase() || 'OPTIMAL'}
-                                                        confidence={solver.confidence}
-                                                        explanation={verdict.explanation}
-                                                        gtoApproach={generateGTOApproach(currentQuestion.category, correctText)}
-                                                        evAnalysis={solver.evAnalysis}
-                                                        alternateLines={solver.alternateLines}
-                                                        isCorrectAnswer={wasCorrect}
-                                                        showDetails={true}
-                                                        // Enables the opt-in "Generate visual card"
-                                                        // button. Without a questionId the panel
-                                                        // hides it by design, which kept the whole
-                                                        // visual-analysis feature dark. The category
-                                                        // lets the panel hide the button up front for
-                                                        // questions /api/trivia/render-gto-panel
-                                                        // would reject anyway. Auth falls back to the
-                                                        // live supabase session inside the panel.
-                                                        questionId={currentQuestion.id}
-                                                        sessionId={serverRun.sessionId}
-                                                        category={currentQuestion.category}
-                                                    />
-                                                ) : (
-                                                    /* No solver metadata on this question: show the
-                                                       question's own coaching notes rather than an
-                                                       invented EV number and confidence circle. */
-                                                    <div className="coaching-notes">
-                                                        <div className="coaching-notes__head">Coaching Notes</div>
-                                                        <div className="coaching-notes__answer">
-                                                            Best Line:{' '}
-                                                            <strong>
-                                                                {renderTextWithCards(
-                                                                    correctText,
-                                                                    s => formatPokerText(toTitleCase(s))
-                                                                )}
-                                                            </strong>
-                                                        </div>
-                                                        {verdict.explanation && (
-                                                            <p className="coaching-notes__body">
-                                                                {renderTextWithCards(
-                                                                    verdict.explanation,
-                                                                    s => formatPokerText(s)
-                                                                )}
-                                                            </p>
-                                                        )}
-                                                        <p className="coaching-notes__body">
-                                                            {generateGTOApproach(currentQuestion.category, correctText)}
-                                                        </p>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        );
-                                    })()}
+                                <div className="strategy-clock" data-warning={timeLeft <= 10 ? 'true' : 'false'}>
+                                    <span className="strategy-clock__label">Time</span>
+                                    <span className={`strategy-clock__value tc-ink--${timerInk}`} aria-hidden="true">
+                                        {timeLeft}
+                                    </span>
+                                    {/* Announce at the 30/10/5s marks only — a
+                                        per-second live region is unusable. */}
+                                    <span className="sr-only" role="timer" aria-live="assertive">
+                                        {timeLeft === 30 || timeLeft === 10 || timeLeft === 5
+                                            ? `${timeLeft} seconds remaining`
+                                            : ''}
+                                    </span>
                                 </div>
-
-                                {/* Fixed Bottom Actions */}
-                                <div className="bottom-actions-area" style={{ flexShrink: 0, marginTop: 'auto', paddingTop: '16px', borderTop: showResult ? '1px solid rgba(255,255,255,0.1)' : 'none' }}>
-                                    <div className="options">
-                                        {/* Options are rendered in the server's display
-                                            order, verbatim - reshuffling them would break
-                                            the display-index mapping the grader uses. The
-                                            reveal highlights come from the verdict's
-                                            correctDisplayIndex; before it resolves there
-                                            is nothing to leak. */}
-                                        {currentQuestion.options.map((option, index) => {
-                                            const revealCorrectIndex = (showResult && verdict) ? verdict.correctDisplayIndex : null;
-                                            let optionClass = 'option';
-                                            if (revealCorrectIndex != null) {
-                                                if (index === revealCorrectIndex) {
-                                                    optionClass += ' correct';
-                                                } else if (index === selectedAnswer) {
-                                                    optionClass += ' incorrect';
-                                                }
-                                            }
-
-                                            const letter = String.fromCharCode(65 + index);
-                                            return (
-                                                <button
-                                                    key={index}
-                                                    type="button"
-                                                    className={optionClass}
-                                                    onClick={() => gradeAnswer(index)}
-                                                    disabled={showResult || selectedAnswer !== null}
-                                                    data-trivia-answer
-                                                    aria-pressed={selectedAnswer === index}
-                                                    aria-label={`Answer ${letter}: ${option}`}
-                                                >
-                                                    <span className="option-letter" aria-hidden>
-                                                        {letter}
-                                                    </span>
-                                                    <span className="option-text">
-                                                        {renderTextWithCards(option, s => formatPokerText(toTitleCase(s)))}
-                                                    </span>
-                                                    {revealCorrectIndex != null && index === revealCorrectIndex && (
-                                                        <>
-                                                            <CheckCircle size={20} className="icon correct" style={{ color: 'white' }} aria-hidden />
-                                                            <span className="sr-only">Correct Answer</span>
-                                                        </>
-                                                    )}
-                                                    {revealCorrectIndex != null && index === selectedAnswer && index !== revealCorrectIndex && (
-                                                        <>
-                                                            <XCircle size={20} className="icon incorrect" style={{ color: 'white' }} aria-hidden />
-                                                            <span className="sr-only">Your Answer, Incorrect</span>
-                                                        </>
-                                                    )}
-                                                </button>
-                                            );
-                                        })}
-                                    </div>
-
-                                    {/* The 50/50 and Skip lifeline buttons that lived
-                                        here are gone with the move to server grading -
-                                        see the note by the serverRun declaration. */}
-
-                                    {/* Next Button */}
-                                    {showResult && (
-                                        <button
-                                            type="button"
-                                            className="next-btn"
-                                            onClick={nextQuestion}
-                                            style={{
-                                                marginTop: '16px',
-                                                width: '100%',
-                                            }}
-                                        >
-                                            {currentQuestionIndex + 1 >= questions.length ? 'See Results' : 'Next Question'}
-                                            <ArrowRight size={18} />
-                                        </button>
-                                    )}
-                                </div>
-
                             </div>
+
+                            <div className="question-content-area">
+                                <p className="category-badge tc-label">
+                                    {toTitleCase(getCategoryName(currentQuestion.category))}
+                                </p>
+
+                                <h2 className="question-text">
+                                    {/* Card detection runs on the RAW text and the
+                                        title-caser is applied to the remaining
+                                        fragments — title-casing first turned every
+                                        mid-sentence "as" into the ace of spades. */}
+                                    {renderTextWithCards(
+                                        currentQuestion.question,
+                                        s => formatPokerText(toTitleCase(s))
+                                    )}
+                                </h2>
+                            </div>
+
+                            <div className="bottom-actions-area" data-revealed={showResult ? 'true' : 'false'}>
+                                <div className="options">
+                                    {/* Options are rendered in the server's display
+                                        order, verbatim - reshuffling them would break
+                                        the display-index mapping the grader uses. The
+                                        reveal highlights come from the verdict's
+                                        correctDisplayIndex; before it resolves there
+                                        is nothing to leak. */}
+                                    {currentQuestion.options.map((option, index) => {
+                                        const revealCorrectIndex = (showResult && verdict) ? verdict.correctDisplayIndex : null;
+                                        let optionClass = 'option';
+                                        if (revealCorrectIndex != null) {
+                                            if (index === revealCorrectIndex) {
+                                                optionClass += ' correct';
+                                            } else if (index === selectedAnswer) {
+                                                optionClass += ' incorrect';
+                                            }
+                                        }
+
+                                        const letter = String.fromCharCode(65 + index);
+                                        return (
+                                            <button
+                                                key={index}
+                                                type="button"
+                                                className={optionClass}
+                                                onClick={() => gradeAnswer(index)}
+                                                disabled={showResult || selectedAnswer !== null}
+                                                data-trivia-answer
+                                                aria-pressed={selectedAnswer === index}
+                                                aria-label={`Answer ${letter}: ${option}`}
+                                            >
+                                                <span className="option-letter" aria-hidden>
+                                                    {letter}
+                                                </span>
+                                                <span className="option-text">
+                                                    {renderTextWithCards(option, s => formatPokerText(toTitleCase(s)))}
+                                                </span>
+                                                {revealCorrectIndex != null && index === revealCorrectIndex && (
+                                                    <span className="sr-only">Correct Answer</span>
+                                                )}
+                                                {revealCorrectIndex != null && index === selectedAnswer && index !== revealCorrectIndex && (
+                                                    <span className="sr-only">Your Answer, Incorrect</span>
+                                                )}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+
+                                {/* The 50/50 and Skip lifeline buttons that lived
+                                    here are gone with the move to server grading -
+                                    see the note by the serverRun declaration. */}
+                            </div>
+
+                            {/* Analysis panel — real solver metadata only.
+                                Everything here is driven by the SERVER
+                                verdict: the question object carries no
+                                correct_index and no explanation, so the
+                                reveal (badge, best line, coaching text)
+                                reads correctDisplayIndex / wasCorrect /
+                                explanation from session-answer. */}
+                            {showResult && verdict && (() => {
+                                const solver = readSolverMetadata(
+                                    verdict.solverMetadata
+                                        ? { engine_metadata: verdict.solverMetadata }
+                                        : currentQuestion
+                                );
+                                const hasSolverData = solver.confidence != null;
+                                const wasCorrect = verdict.wasCorrect === true;
+                                const correctText = verdict.correctDisplayIndex >= 0
+                                    ? (currentQuestion.options[verdict.correctDisplayIndex] || '')
+                                    : '';
+
+                                return (
+                                    <div className="answer-analysis">
+                                        {/* Result verdict */}
+                                        <p
+                                            className={`answer-verdict tc-ink--${wasCorrect ? 'green' : 'red'}`}
+                                            data-correct={wasCorrect ? 'true' : 'false'}
+                                            role="status"
+                                        >
+                                            {wasCorrect ? 'Correct' : 'Incorrect'}
+                                        </p>
+
+                                        {hasSolverData ? (
+                                            <GTOScenarioDisplay
+                                                action={correctText.split(' ')[0]?.replace(/[^a-zA-Z0-9-]/g, '').toUpperCase() || 'OPTIMAL'}
+                                                confidence={solver.confidence}
+                                                explanation={verdict.explanation}
+                                                gtoApproach={toTitleCase(generateGTOApproach(currentQuestion.category, correctText))}
+                                                evAnalysis={solver.evAnalysis}
+                                                alternateLines={solver.alternateLines}
+                                                isCorrectAnswer={wasCorrect}
+                                                showDetails={true}
+                                                // Enables the opt-in "Generate visual card"
+                                                // button. Without a questionId the panel
+                                                // hides it by design, which kept the whole
+                                                // visual-analysis feature dark. The category
+                                                // lets the panel hide the button up front for
+                                                // questions /api/trivia/render-gto-panel
+                                                // would reject anyway. Auth falls back to the
+                                                // live supabase session inside the panel.
+                                                questionId={currentQuestion.id}
+                                                sessionId={serverRun.sessionId}
+                                                category={currentQuestion.category}
+                                            />
+                                        ) : (
+                                            /* No solver metadata on this question: show the
+                                               question's own coaching notes rather than an
+                                               invented EV number and confidence figure. */
+                                            <div className="coaching-notes">
+                                                <p className="coaching-notes__head tc-label">Coaching Notes</p>
+                                                <ul className="tc-rows">
+                                                    <li className="tc-row">
+                                                        <span className="tc-row__label">Best Line</span>
+                                                        <span className="tc-row__value coaching-notes__answer">
+                                                            {renderTextWithCards(
+                                                                correctText,
+                                                                s => formatPokerText(toTitleCase(s))
+                                                            )}
+                                                        </span>
+                                                    </li>
+                                                </ul>
+                                                {verdict.explanation && (
+                                                    <p className="coaching-notes__body">
+                                                        {renderTextWithCards(
+                                                            verdict.explanation,
+                                                            s => formatPokerText(s)
+                                                        )}
+                                                    </p>
+                                                )}
+                                                <p className="coaching-notes__body">
+                                                    {toTitleCase(generateGTOApproach(currentQuestion.category, correctText))}
+                                                </p>
+                                            </div>
+                                        )}
+                                    </div>
+                                );
+                            })()}
+
+                            {/* The next action lives in the console foot. */}
                         </div>
                     )}
 
@@ -1093,681 +1041,60 @@ export default function StrategyTrivia({ mode }) {
                         const awarded = resultActualAwarded != null ? resultActualAwarded : 0;
                         return (
                             <div className="results">
-                                <div className="result-icon">
-                                    {pct >= 0.8 ? <Trophy size={48} color="#fbbf24" /> : pct >= 0.5 ? <CheckCircle size={48} color="#22c55e" /> : <Clock size={48} color="#3b82f6" />}
-                                </div>
-                                <h1>Challenge Complete!</h1>
+                                <p className="result-status tc-label">{pct >= 0.8 ? 'Expert Result' : pct >= 0.5 ? 'Strong Result' : 'Session Complete'}</p>
+                                <h2>Challenge Complete!</h2>
 
-                                <div className="score-card">
-                                    <div className="score-main">
-                                        <span className="score-num">{summary.correct}</span>
-                                        <span className="score-total">/ {summary.total}</span>
-                                    </div>
-                                    <div className="score-label">
-                                        Correct Answers
-                                    </div>
-                                </div>
+                                <p className="score-main" aria-label={`${summary.correct} Of ${summary.total} Correct`}>
+                                    <span className={`score-num tc-ink--${pct >= 0.7 ? 'green' : 'silver'}`}>{summary.correct}</span>
+                                    <span className="score-total tc-ink--muted">/ {summary.total}</span>
+                                </p>
 
-                                <div className="reward-card">
-                                    <Gem size={24} aria-hidden />
-                                    <span className="diamonds-earned">
+                                <ul className="tc-rows">
+                                    <li className="tc-row">
+                                        <span className="tc-row__label">Correct Answers</span>
+                                        <span className="tc-row__value">{summary.correct} Of {summary.total}</span>
+                                    </li>
+                                    <li className="tc-row">
+                                        <span className="tc-row__label">Diamonds Awarded</span>
                                         {/* Phase 68: shows what was ACTUALLY credited, never
                                             the calculated-but-failed amount. */}
-                                        +{awarded} Diamonds
-                                    </span>
-                                </div>
+                                        <span className={`tc-row__value diamonds-earned tc-ink--${awarded > 0 ? 'gold' : 'muted'}`}>
+                                            +{formatTriviaDisplayNumber(awarded)} Diamonds
+                                        </span>
+                                    </li>
+                                    {userId && (
+                                        <li className="tc-row">
+                                            <span className="tc-row__label">Your Balance</span>
+                                            <span className="tc-row__value">{formatTriviaDisplayNumber(userDiamonds)} Diamonds</span>
+                                        </li>
+                                    )}
+                                    {/* The Play Again plate is too narrow for the
+                                        price, so the next entry is printed here. */}
+                                    <li className="tc-row">
+                                        <span className="tc-row__label">Next Entry</span>
+                                        <span className="tc-row__value">{isVip ? 'Free With VIP' : <>{entryCost} Diamonds</>}</span>
+                                    </li>
+                                </ul>
 
                                 {resultCapped && (
-                                    <div className="results-note">
-                                        Daily Reward Cap Reached For {config.title} - Play For The Score, Come Back Tomorrow For More Diamonds.
-                                    </div>
+                                    <p className="results-note tc-ink--gold">
+                                        Daily Reward Cap Reached For {config.title}. Play For The Score, Come Back Tomorrow For More Diamonds.
+                                    </p>
                                 )}
 
                                 {resultAwardError && (
-                                    <div style={{
-                                        padding: '10px 14px',
-                                        background: 'rgba(239, 68, 68, 0.12)',
-                                        border: '1px solid rgba(239, 68, 68, 0.4)',
-                                        borderRadius: 8,
-                                        color: '#fca5a5',
-                                        fontSize: 13,
-                                        textAlign: 'center',
-                                        maxWidth: 400,
-                                        margin: '12px auto 0',
-                                    }} role="alert">
-                                        <div>
-                                            The Run Could Not Be Settled ({resultAwardError}). Your Reward Has Not Been Paid Yet.
-                                        </div>
-                                        {/* finishGame reopened finishedRef on the failure
-                                            and kept the session, so retrying settles and
-                                            pays the SAME run — it cannot double-pay. */}
-                                        <button
-                                            type="button"
-                                            onClick={finishGame}
-                                            style={{ marginTop: 10, padding: '10px 18px', minHeight: 44, background: 'rgba(239, 68, 68, 0.25)', border: '1px solid rgba(239, 68, 68, 0.6)', borderRadius: 8, color: '#fff', cursor: 'pointer', fontWeight: 600 }}
-                                        >
-                                            Retry Settlement
-                                        </button>
-                                    </div>
+                                    <p className="strategy-alert tc-ink--red" role="alert">
+                                        The Run Could Not Be Settled ({toTitleCase(String(resultAwardError).replace(/_/g, ' '))}). Your Reward Has Not Been Paid Yet.
+                                        {/* finishGame reopened finishedRef on failure and
+                                            the console action retries the same run. */}
+                                    </p>
                                 )}
-
-                                <div className="action-buttons">
-                                    <button
-                                        type="button"
-                                        className="play-again"
-                                        onClick={startGame}
-                                        disabled={isPreparing || vipInitializing}
-                                        style={{ background: config.color }}
-                                    >
-                                        {isPreparing
-                                            ? 'Dealing In...'
-                                            : (isVip ? 'Play Again (New Questions)' : `Play Again (${entryCost} Diamonds)`)}
-                                    </button>
-                                    <button type="button" className="back-btn" onClick={() => router.push('/hub/trivia')}>
-                                        Back To Lobby
-                                    </button>
-                                </div>
                             </div>
                         );
                     })()}
+                    </TriviaConsole>
                 </div>
             </div>
-
-            <style dangerouslySetInnerHTML={{ __html: `
-                .strategy-trivia {
-                    height: 100vh;
-                    height: 100dvh;
-                    overflow: hidden;
-                    background: linear-gradient(135deg, #0a0e1a 0%, #0d1525 40%, #0a1628 70%, #060b14 100%);
-                    font-family: 'Inter', -apple-system, sans-serif;
-                    display: flex;
-                    flex-direction: column;
-                }
-
-                .content {
-                    padding: 12px;
-                    flex: 1;
-                    display: flex;
-                    flex-direction: column;
-                    max-width: 800px;
-                    width: 100%;
-                    margin: 0 auto;
-                    overflow: hidden;
-                }
-
-                .sr-only {
-                    position: absolute;
-                    width: 1px;
-                    height: 1px;
-                    padding: 0;
-                    margin: -1px;
-                    overflow: hidden;
-                    clip: rect(0 0 0 0);
-                    white-space: nowrap;
-                    border: 0;
-                }
-
-                .entry-error {
-                    display: flex;
-                    align-items: center;
-                    gap: 8px;
-                    margin: 0 auto 12px;
-                    padding: 10px 14px;
-                    max-width: 520px;
-                    background: rgba(239, 68, 68, 0.12);
-                    border: 1px solid rgba(239, 68, 68, 0.4);
-                    border-radius: 8px;
-                    color: #fca5a5;
-                    font-size: 13px;
-                }
-
-                /* LOBBY — Full-bleed image (a <button>, so the browser
-                   defaults have to be reset back to the old div look) */
-                .lobby-image-wrapper {
-                    position: relative;
-                    display: block;
-                    width: 100%;
-                    padding: 0;
-                    background: none;
-                    border: none;
-                    font: inherit;
-                    color: inherit;
-                    text-align: left;
-                    cursor: pointer;
-                    overflow: hidden;
-                    transition: transform 0.3s ease, box-shadow 0.3s ease;
-                    max-width: 100%;
-                    margin: 0 auto;
-                }
-
-                .lobby-image-wrapper:disabled {
-                    cursor: wait;
-                }
-
-                .lobby-image-wrapper:focus-visible {
-                    outline: 2px solid #00D4FF;
-                    outline-offset: 3px;
-                }
-
-                .lobby-cost-strip {
-                    position: absolute;
-                    top: 0;
-                    left: 0;
-                    right: 0;
-                    display: flex;
-                    align-items: center;
-                    justify-content: space-between;
-                    gap: 8px;
-                    padding: 10px 14px;
-                    background: linear-gradient(180deg, rgba(0,0,0,0.75), rgba(0,0,0,0));
-                    color: rgba(255,255,255,0.9);
-                    font-size: 12px;
-                    letter-spacing: 0.5px;
-                    text-transform: uppercase;
-                    pointer-events: none;
-                }
-
-                .lobby-cost-chip {
-                    display: inline-flex;
-                    align-items: center;
-                    gap: 4px;
-                    padding: 4px 10px;
-                    border-radius: 999px;
-                    background: rgba(0, 212, 255, 0.15);
-                    border: 1px solid rgba(0, 212, 255, 0.35);
-                    color: #7ce7ff;
-                    font-weight: 700;
-                }
-
-                .lobby-image-wrapper:hover {
-                    transform: scale(1.02);
-                    box-shadow: 0 0 40px rgba(14, 165, 233, 0.3);
-                }
-
-                .lobby-image-wrapper:active {
-                    transform: scale(0.98);
-                }
-
-                .lobby-image {
-                    width: 100%;
-                    height: auto;
-                    display: block;
-                }
-
-                .lobby-loading-overlay {
-                    position: absolute;
-                    bottom: 0;
-                    left: 0;
-                    right: 0;
-                    background: rgba(0, 0, 0, 0.7);
-                    backdrop-filter: blur(4px);
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    gap: 12px;
-                    padding: 16px;
-                    color: rgba(255, 255, 255, 0.8);
-                    font-size: 14px;
-                }
-
-                .lobby-spinner {
-                    width: 20px;
-                    height: 20px;
-                    border: 2px solid rgba(255, 255, 255, 0.2);
-                    border-top-color: #0ea5e9;
-                    border-radius: 50%;
-                    animation: spin 1s linear infinite;
-                }
-
-                @keyframes spin {
-                    to { transform: rotate(360deg); }
-                }
-
-                /* LOBBY — Text fallback */
-                .lobby {
-                    text-align: center;
-                    padding: 40px 0;
-                }
-
-                .mode-icon {
-                    font-size: 64px;
-                    margin-bottom: 20px;
-                }
-
-                .lobby h1 {
-                    font-size: 32px;
-                    font-weight: 700;
-                    margin: 0 0 8px 0;
-                }
-
-                .subtitle {
-                    color: rgba(255,255,255,0.6);
-                    font-size: 16px;
-                    margin: 0 0 32px 0;
-                }
-
-                .info-card {
-                    background: rgba(255,255,255,0.05);
-                    border: 1px solid rgba(255,255,255,0.1);
-                    border-radius: 12px;
-                    padding: 20px;
-                    margin-bottom: 32px;
-                }
-
-                .info-row {
-                    display: flex;
-                    justify-content: space-between;
-                    padding: 12px 0;
-                    border-bottom: 1px solid rgba(255,255,255,0.05);
-                    color: rgba(255,255,255,0.8);
-                }
-
-                .info-row:last-child {
-                    border-bottom: none;
-                }
-
-                .start-btn {
-                    padding: 16px 48px;
-                    border: none;
-                    border-radius: 12px;
-                    color: white;
-                    font-size: 18px;
-                    font-weight: 600;
-                    cursor: pointer;
-                    transition: transform 0.2s, box-shadow 0.2s;
-                }
-
-                .start-btn:hover {
-                    transform: translateY(-2px);
-                    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
-                }
-
-                /* GAME AREA — FULL SCREEN FRAME */
-                .game-area {
-                    flex: 1;
-                    display: flex;
-                    flex-direction: column;
-                    overflow: hidden;
-                }
-
-                .game-frame {
-                    flex: 1;
-                    background: linear-gradient(145deg, rgba(15, 23, 42, 0.95), rgba(10, 17, 35, 0.98));
-                    border: 1px solid rgba(0, 212, 255, 0.15);
-                    border-radius: 20px;
-                    padding: 16px;
-                    box-shadow:
-                        0 0 30px rgba(0, 212, 255, 0.05),
-                        inset 0 1px 0 rgba(255, 255, 255, 0.05);
-                    display: flex;
-                    flex-direction: column;
-                    overflow: hidden;
-                }
-
-                .game-header {
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                    margin-bottom: 20px;
-                    padding: 14px 20px;
-                    background: linear-gradient(135deg, rgba(0, 212, 255, 0.06), rgba(0, 150, 200, 0.03));
-                    border: 1px solid rgba(0, 212, 255, 0.1);
-                    border-radius: 14px;
-                    backdrop-filter: blur(8px);
-                    flex-shrink: 0;
-                }
-
-                .progress {
-                    color: rgba(255, 255, 255, 0.85);
-                    font-weight: 600;
-                    font-size: 14px;
-                    letter-spacing: 0.5px;
-                }
-
-                .timer-ring-container {
-                    position: relative;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    width: 48px;
-                    height: 48px;
-                }
-
-                .timer-ring {
-                    transform: rotate(-90deg);
-                    position: absolute;
-                }
-
-                .timer-ring-bg {
-                    fill: none;
-                    stroke: rgba(255, 255, 255, 0.08);
-                    stroke-width: 3;
-                }
-
-                .timer-ring-progress {
-                    fill: none;
-                    stroke-width: 3;
-                    stroke-linecap: round;
-                    transition: stroke-dashoffset 1s linear, stroke 0.5s ease;
-                }
-
-                .timer-text {
-                    font-size: 14px;
-                    font-weight: 700;
-                    font-variant-numeric: tabular-nums;
-                    position: relative;
-                    z-index: 1;
-                }
-
-                .diamonds {
-                    display: flex;
-                    align-items: center;
-                    gap: 6px;
-                    color: #00D4FF;
-                    font-weight: 600;
-                }
-
-                /* Scrollbar styling for question content area */
-                .question-content-area::-webkit-scrollbar {
-                    width: 6px;
-                }
-                .question-content-area::-webkit-scrollbar-track {
-                    background: rgba(255, 255, 255, 0.02);
-                }
-                .question-content-area::-webkit-scrollbar-thumb {
-                    background: rgba(255, 255, 255, 0.1);
-                    border-radius: 3px;
-                }
-                .question-content-area::-webkit-scrollbar-thumb:hover {
-                    background: rgba(255, 255, 255, 0.2);
-                }
-
-                .category-badge {
-                    display: inline-block;
-                    font-size: 11px;
-                    color: rgba(255, 255, 255, 0.7);
-                    text-transform: uppercase;
-                    letter-spacing: 1.5px;
-                    padding: 5px 14px;
-                    border: 1px solid;
-                    border-radius: 20px;
-                    margin-bottom: 16px;
-                    font-weight: 500;
-                }
-
-                .question-text {
-                    font-size: 19px;
-                    font-weight: 600;
-                    color: white;
-                    line-height: 1.55;
-                    margin: 0 0 24px 0;
-                    letter-spacing: 0.2px;
-                }
-
-                .options {
-                    display: flex;
-                    flex-direction: column;
-                    gap: 12px;
-                }
-
-                .option {
-                    display: flex;
-                    align-items: center;
-                    gap: 14px;
-                    padding: 14px 18px;
-                    background: rgba(255,255,255,0.05);
-                    border: 2px solid rgba(255,255,255,0.1);
-                    border-radius: 12px;
-                    color: rgba(255,255,255,0.9);
-                    font-size: 15px;
-                    text-align: left;
-                    cursor: pointer;
-                    transition: all 0.2s;
-                }
-
-                .option:hover:not(:disabled) {
-                    background: rgba(255,255,255,0.1);
-                    border-color: rgba(255,255,255,0.3);
-                }
-
-                .option:disabled {
-                    cursor: default;
-                }
-
-                .option.correct {
-                    background: linear-gradient(135deg, rgba(34, 197, 94, 0.9), rgba(21, 128, 61, 0.9));
-                    border-color: #4ade80;
-                    color: white;
-                    box-shadow: 0 4px 15px rgba(34, 197, 94, 0.4);
-                }
-
-                .option.incorrect {
-                    background: linear-gradient(135deg, rgba(239, 68, 68, 0.9), rgba(185, 28, 28, 0.9));
-                    border-color: #f87171;
-                    color: white;
-                    box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4);
-                }
-
-                .option-letter {
-                    width: 28px;
-                    height: 28px;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    background: rgba(255,255,255,0.1);
-                    border-radius: 6px;
-                    font-weight: 700;
-                    font-size: 13px;
-                }
-
-                .option-text {
-                    flex: 1;
-                }
-
-                .icon.correct { color: #4ade80; }
-                .icon.incorrect { color: #f87171; }
-
-                .next-btn {
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    gap: 8px;
-                    width: 100%;
-                    padding: 16px;
-                    background: linear-gradient(145deg, rgba(20, 30, 48, 0.95), rgba(36, 59, 85, 0.9));
-                    border: 1px solid rgba(6, 182, 212, 0.3);
-                    border-radius: 12px;
-                    color: white;
-                    font-size: 16px;
-                    font-weight: 600;
-                    cursor: pointer;
-                    transition: all 0.2s;
-                    box-shadow:
-                        0 0 20px rgba(0, 0, 0, 0.3),
-                        inset 0 1px 0 rgba(255, 255, 255, 0.05);
-                }
-
-                .next-btn:hover {
-                    transform: translateY(-2px);
-                    border-color: rgba(6, 182, 212, 0.5);
-                    box-shadow:
-                        0 4px 20px rgba(6, 182, 212, 0.15),
-                        inset 0 1px 0 rgba(255, 255, 255, 0.08);
-                }
-
-                /* RESULTS */
-                .results {
-                    text-align: center;
-                    padding: 40px 0;
-                }
-
-                .result-icon {
-                    font-size: 80px;
-                    margin-bottom: 20px;
-                }
-
-                .results h1 {
-                    color: white;
-                    font-size: 28px;
-                    margin: 0 0 32px 0;
-                }
-
-                .score-card {
-                    background: rgba(255,255,255,0.05);
-                    border: 1px solid rgba(255,255,255,0.1);
-                    border-radius: 16px;
-                    padding: 32px;
-                    margin-bottom: 24px;
-                }
-
-                .score-main {
-                    display: flex;
-                    align-items: baseline;
-                    justify-content: center;
-                    gap: 8px;
-                }
-
-                .score-num {
-                    font-size: 64px;
-                    font-weight: 700;
-                    color: #22c55e;
-                }
-
-                .score-total {
-                    font-size: 32px;
-                    color: rgba(255,255,255,0.5);
-                }
-
-                .score-label {
-                    color: rgba(255,255,255,0.6);
-                    margin-top: 8px;
-                }
-
-                .results-note {
-                    max-width: 420px;
-                    margin: 0 auto 16px;
-                    padding: 10px 14px;
-                    background: rgba(251, 191, 36, 0.1);
-                    border: 1px solid rgba(251, 191, 36, 0.3);
-                    border-radius: 8px;
-                    color: #fbbf24;
-                    font-size: 13px;
-                    line-height: 1.5;
-                }
-
-                /* Coaching notes — shown instead of the solver panel when the
-                   question carries no real EV/frequency metadata. */
-                .coaching-notes {
-                    padding: 16px;
-                    background: rgba(255, 255, 255, 0.04);
-                    border: 1px solid rgba(255, 255, 255, 0.1);
-                    border-left: 3px solid rgba(0, 212, 255, 0.5);
-                    border-radius: 10px;
-                }
-                .coaching-notes__head {
-                    font-size: 11px;
-                    letter-spacing: 1.5px;
-                    text-transform: uppercase;
-                    color: rgba(255, 255, 255, 0.5);
-                    margin-bottom: 10px;
-                }
-                .coaching-notes__answer {
-                    color: #fff;
-                    font-size: 15px;
-                    margin-bottom: 10px;
-                }
-                .coaching-notes__body {
-                    margin: 0 0 8px;
-                    color: rgba(255, 255, 255, 0.72);
-                    font-size: 14px;
-                    line-height: 1.6;
-                }
-
-                .reward-card {
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    gap: 12px;
-                    background: linear-gradient(135deg, rgba(0, 212, 255, 0.1), rgba(0, 150, 200, 0.1));
-                    border: 1px solid rgba(0, 212, 255, 0.3);
-                    border-radius: 12px;
-                    padding: 20px;
-                    margin-bottom: 32px;
-                    color: #00D4FF;
-                }
-
-                .diamonds-earned {
-                    font-size: 24px;
-                    font-weight: 700;
-                }
-
-                .action-buttons {
-                    display: flex;
-                    flex-direction: column;
-                    gap: 12px;
-                }
-
-                .play-again {
-                    padding: 16px;
-                    border: none;
-                    border-radius: 12px;
-                    color: white;
-                    font-size: 16px;
-                    font-weight: 600;
-                    cursor: pointer;
-                }
-
-                .back-btn {
-                    padding: 16px;
-                    background: transparent;
-                    border: 1px solid rgba(255,255,255,0.2);
-                    border-radius: 12px;
-                    color: rgba(255,255,255,0.7);
-                    font-size: 16px;
-                    cursor: pointer;
-                }
-
-                .play-again:disabled,
-                .start-btn:disabled {
-                    opacity: 0.6;
-                    cursor: wait;
-                }
-
-                /* Keyboard focus + tap targets */
-                .option,
-                .next-btn,
-                .start-btn,
-                .play-again,
-                .back-btn {
-                    min-height: 48px;
-                }
-                .option:focus-visible,
-                .next-btn:focus-visible,
-                .start-btn:focus-visible,
-                .play-again:focus-visible,
-                .back-btn:focus-visible {
-                    outline: 2px solid #00D4FF;
-                    outline-offset: 2px;
-                }
-
-                @media (prefers-reduced-motion: reduce) {
-                    .lobby-spinner { animation-duration: 3s; }
-                    .lobby-image-wrapper:hover,
-                    .next-btn:hover,
-                    .start-btn:hover {
-                        transform: none;
-                    }
-                    .timer-ring-progress { transition: none; }
-                }
-
-                @media (max-width: 480px) {
-                    .game-frame { padding: 12px; border-radius: 14px; }
-                    .game-header { padding: 10px 14px; margin-bottom: 14px; }
-                    .question-text { font-size: 17px; margin-bottom: 18px; }
-                    .option { padding: 12px 14px; font-size: 14px; gap: 10px; }
-                    .lobby-cost-strip { font-size: 11px; padding: 8px 10px; }
-                }
-            ` }} />
-        </PageTransition >
+        </PageTransition>
     );
 }

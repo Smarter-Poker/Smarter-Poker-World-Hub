@@ -1,0 +1,2110 @@
+/*
+ * Poker Near Me / shared painted map console.
+ *
+ * Static chassis, controls, markers, clusters and popup rails use complete
+ * #ClubArenaConsole raster masters at their native aspect ratios. Map state,
+ * labels, counts, status, actions and attribution remain live DOM.
+ */
+
+body.world-poker-near-me .pnm-map-surface {
+  --pnm-map-rail-inset: 5.4%;
+  position: relative;
+  isolation: isolate;
+  container-type: inline-size;
+  display: flex;
+  width: min(100%, 1000px);
+  min-width: 0;
+  max-width: 1000px;
+  min-height: 0;
+  flex-direction: column;
+  margin-inline: auto;
+  overflow: visible;
+  color: #eef5fb;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+body.world-poker-near-me .pnm-map-surface::before {
+  content: none !important;
+}
+
+body.world-poker-near-me .pnm-map-surface__header {
+  position: relative;
+  z-index: 1100;
+  display: block;
+  width: 100%;
+  min-height: 0;
+  aspect-ratio: 1000 / 348;
+  flex: none;
+  padding: 0;
+  overflow: visible;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent url('/images/pnm-console/painted-chassis-v1/top-flat.webp') top center / 100% auto no-repeat !important;
+  box-shadow: none !important;
+}
+
+body.world-poker-near-me .pnm-map-surface__identity {
+  position: absolute;
+  top: 35.5%;
+  left: 10%;
+  display: grid;
+  width: 42%;
+  min-width: 0;
+  height: 50%;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: center;
+  align-items: center;
+  gap: 1.2cqw;
+}
+
+body.world-poker-near-me .pnm-map-surface__eyebrow {
+  grid-column: auto;
+  overflow: hidden;
+  color: #45adff;
+  font: 750 clamp(9px, 1.3cqw, 13px)/1 var(--font-rajdhani), var(--font-premium-body), sans-serif;
+  letter-spacing: 0.17em;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+body.world-poker-near-me .pnm-map-surface__identity strong {
+  overflow: hidden;
+  color: #e4e7ec;
+  font: 800 clamp(17px, 3.2cqw, 32px)/0.95 var(--font-rajdhani), var(--font-premium-display), sans-serif;
+  letter-spacing: 0.035em;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+  -webkit-text-fill-color: #e4e7ec;
+}
+
+body.world-poker-near-me .pnm-map-surface__identity small {
+  display: block;
+  overflow: hidden;
+  color: #9aa5b3;
+  font: 650 clamp(10px, 1.45cqw, 14px)/1.15 var(--font-rajdhani), var(--font-premium-body), sans-serif;
+  letter-spacing: 0.065em;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+body.world-poker-near-me .pnm-map-surface__controls {
+  position: absolute;
+  top: 52%;
+  right: 9.2%;
+  display: flex;
+  width: 38%;
+  min-width: 0;
+  min-height: 44px;
+  align-items: center;
+  justify-content: flex-end;
+  gap: clamp(4px, 0.8cqw, 8px);
+}
+
+body.world-poker-near-me .pnm-map-surface__controls > * {
+  flex: 0 1 auto;
+}
+
+body.world-poker-near-me .pnm-map-surface__fullscreen-control {
+  appearance: none;
+  display: inline-flex;
+  min-width: 44px;
+  min-height: 44px;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  margin: 0;
+  padding: 0;
+  color: #eef7fd;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  font: 750 12px/1 var(--font-rajdhani), var(--font-premium-body), sans-serif;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+body.world-poker-near-me .pnm-map-surface__fullscreen-control .pnc-icon {
+  width: 44px;
+  height: 44px;
+  flex-basis: 44px;
+}
+
+body.world-poker-near-me .pnm-map-surface__fullscreen-control:focus-visible,
+body.world-poker-near-me .pnm-map-surface__controls :is(button, select):focus-visible,
+body.world-poker-near-me .pnm-map-surface .leaflet-control-zoom a:focus-visible,
+body.world-poker-near-me .pnm-map-dossier__action:focus-visible {
+  outline: 3px solid #8fd4ff;
+  outline-offset: 2px;
+}
+
+body.world-poker-near-me .pnm-map-surface__controls .pnm-map-radius-control {
+  position: static !important;
+  display: inline-flex !important;
+  width: clamp(116px, 16cqw, 160px);
+  min-width: 116px;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  margin: 0;
+  padding: 0 13px !important;
+  color: #dceaf2;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent url('/images/pnm-console/painted-controls-v1/search-well.webp') center / 100% auto no-repeat !important;
+  box-shadow: none !important;
+  font: 750 12px/1 var(--font-rajdhani), var(--font-premium-body), sans-serif;
+  letter-spacing: 0.055em;
+  text-transform: uppercase;
+}
+
+body.world-poker-near-me .pnm-map-surface__controls .pnm-map-radius-control select {
+  appearance: none;
+  width: auto;
+  min-width: 50px;
+  min-height: 44px !important;
+  padding: 0 !important;
+  color: #f0f7fb !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  font: inherit;
+  text-align: center;
+  cursor: pointer;
+}
+
+body.world-poker-near-me .pnm-map-surface__controls .pnm-map-recenter-control {
+  position: static !important;
+  display: inline-grid !important;
+  width: 44px;
+  min-width: 44px;
+  height: 44px;
+  min-height: 44px;
+  margin: 0;
+  padding: 0 !important;
+  place-items: center;
+  overflow: hidden;
+  color: transparent !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+body.world-poker-near-me .pnm-map-surface__controls .pnm-map-recenter-control > :not(.pnc-icon) {
+  visibility: hidden;
+}
+
+body.world-poker-near-me .pnm-map-surface__viewport {
+  position: relative;
+  z-index: 1;
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  min-height: clamp(460px, 62vh, 760px);
+  flex: 1 1 auto;
+  padding-inline: var(--pnm-map-rail-inset);
+  overflow: hidden;
+  background-color: #020406 !important;
+  background-image: url('/images/pnm-console/painted-chassis-v1/mid.png') !important;
+  background-position: top center !important;
+  background-repeat: repeat-y !important;
+  background-size: 100% auto !important;
+}
+
+body.world-poker-near-me .pnm-map-surface--fill .pnm-map-surface__viewport,
+body.world-poker-near-me .pnm-map-surface--primary .pnm-map-surface__viewport {
+  min-height: clamp(560px, 72vh, 860px);
+}
+
+body.world-poker-near-me .pnm-map-surface__viewport > .pnm-map-stage {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: inherit;
+  overflow: hidden;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+body.world-poker-near-me .pnm-map-surface .pnm-leaflet-map {
+  width: 100% !important;
+  height: 100% !important;
+  min-height: inherit !important;
+  max-height: none !important;
+  aspect-ratio: auto !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+body.world-poker-near-me .pnm-map-surface__foot {
+  position: relative;
+  z-index: 2;
+  display: block;
+  width: 100%;
+  aspect-ratio: 1000 / 72;
+  flex: 0 0 auto;
+  background: transparent url('/images/pnm-console/painted-chassis-v1/bottom-foot.png') bottom center / 100% auto no-repeat;
+  pointer-events: none;
+}
+
+/* Complete painted square controls replace Leaflet's default boxed rail. */
+body.world-poker-near-me .pnm-map-surface .leaflet-control-zoom {
+  margin: 10px !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+body.world-poker-near-me .pnm-map-surface .leaflet-control-zoom a {
+  display: grid !important;
+  width: 44px !important;
+  height: 44px !important;
+  min-width: 44px !important;
+  min-height: 44px !important;
+  padding: 0 !important;
+  place-items: center;
+  color: #eef7fd !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background-color: transparent !important;
+  background-image: url('/images/pnm-console/painted-controls-v1/utility-well.webp') !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
+  background-size: contain !important;
+  box-shadow: none !important;
+  font: 800 18px/1 var(--font-rajdhani), sans-serif !important;
+}
+
+body.world-poker-near-me .pnm-map-surface .leaflet-control-attribution {
+  min-height: 24px;
+  margin-bottom: env(safe-area-inset-bottom, 0px) !important;
+  padding: 4px 8px !important;
+  color: #b9c6cf !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: rgb(2 5 7 / 88%) !important;
+  box-shadow: none !important;
+  font: 650 12px/1.25 var(--font-rajdhani), sans-serif !important;
+}
+
+body.world-poker-near-me .pnm-map-surface .map-pref-trigger {
+  display: grid !important;
+  width: 44px !important;
+  height: 44px !important;
+  min-width: 44px !important;
+  min-height: 44px !important;
+  padding: 0 !important;
+  place-items: center;
+  overflow: hidden;
+  color: transparent !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  transform: none !important;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+body.world-poker-near-me .pnm-map-surface .map-pref-trigger .pnc-icon {
+  width: 44px;
+  height: 44px;
+  flex-basis: 44px;
+}
+
+body.world-poker-near-me .pnm-map-surface .map-pref-wrapper {
+  position: absolute;
+  z-index: 1000;
+}
+
+body.world-poker-near-me .pnm-map-surface .map-pref-panel {
+  position: absolute;
+  right: 0;
+  z-index: 1;
+  width: min(250px, calc(100vw - 32px));
+  overflow: visible;
+  color: #e6e9ee;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: none !important;
+  box-shadow: none !important;
+}
+
+body.world-poker-near-me .pnm-map-surface .map-pref-panel.down {
+  top: 50px;
+}
+
+body.world-poker-near-me .pnm-map-surface .map-pref-panel.up {
+  bottom: 50px;
+}
+
+body.world-poker-near-me .pnm-map-surface .map-pref-panel .pnc-panel__body {
+  gap: 6px;
+  padding: 0 8% 2px;
+  background-color: #020507;
+}
+
+body.world-poker-near-me .pnm-map-surface .map-pref-title {
+  padding: 0 0 4px;
+  color: #45adff;
+  font: 800 12px/1.2 var(--font-rajdhani), sans-serif;
+  letter-spacing: 0.16em;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+body.world-poker-near-me .pnm-map-surface .map-pref-option {
+  appearance: none;
+  display: grid;
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 44px;
+  aspect-ratio: 348 / 114;
+  margin: 0;
+  padding: 0 calc(min(100%, 190px) * 0.12);
+  place-items: center;
+  color: #d8e4ec;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background-color: transparent !important;
+  background-image: url('/images/pnm-console/painted-controls-v1/button-secondary.png') !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
+  background-size: contain !important;
+  box-shadow: none !important;
+  font: inherit;
+  text-align: center;
+  cursor: pointer;
+  touch-action: manipulation;
+  transform: none !important;
+}
+
+body.world-poker-near-me .pnm-map-surface .map-pref-text {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+
+body.world-poker-near-me .pnm-map-surface .map-pref-label {
+  overflow: hidden;
+  color: #f4f7fb;
+  font: 800 14px/1.1 var(--font-rajdhani), sans-serif;
+  letter-spacing: 0.05em;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+body.world-poker-near-me .pnm-map-surface .map-pref-desc {
+  overflow: hidden;
+  color: #9aa5b3;
+  font: 600 12px/1.1 var(--font-rajdhani), sans-serif;
+  letter-spacing: 0.04em;
+  /* Brand names (iOS, iPad) keep their own casing. */
+  text-transform: none;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+body.world-poker-near-me .pnm-map-surface .map-pref-option[aria-checked='true'] .map-pref-desc {
+  color: #8fd4ff;
+}
+
+body.world-poker-near-me .pnm-map-surface :is(.map-pref-option, .map-pref-trigger):active {
+  filter: brightness(1.18);
+}
+
+body.world-poker-near-me .pnm-map-surface :is(.map-pref-option, .map-pref-trigger):focus-visible {
+  outline: 3px solid #8fd4ff;
+  outline-offset: -6px;
+}
+
+body.world-poker-near-me .pnm-map-surface .map-pref-option[aria-checked='true'] {
+  background-image: url('/images/pnm-console/painted-controls-v1/button-primary.png') !important;
+}
+
+/* Painted marker machines. Logos and counts remain live DOM above the art. */
+body.world-poker-near-me .pnm-map-surface .pnm-painted-marker {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  overflow: visible;
+}
+
+body.world-poker-near-me .pnm-map-surface .pnm-painted-tour-marker {
+  width: 100%;
+  height: 100%;
+}
+
+body.world-poker-near-me .pnm-map-surface .pnm-painted-marker__machine {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  display: grid;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  overflow: visible;
+  transform: translateX(-50%);
+  background-color: transparent !important;
+  background-image: url('/images/pnm-console/painted-controls-v1/utility-well.webp') !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
+  background-size: contain !important;
+}
+
+body.world-poker-near-me .pnm-map-surface .pnm-painted-marker__image {
+  position: absolute;
+  top: 22%;
+  left: 22%;
+  display: block;
+  width: 56%;
+  height: 56%;
+  object-fit: cover;
+  background: #f4f7fb;
+}
+
+body.world-poker-near-me .pnm-map-surface .pnm-painted-tour-marker__code {
+  display: grid;
+  width: 58%;
+  height: 58%;
+  place-items: center;
+  overflow: hidden;
+  color: var(--pnm-map-accent, #ffd700);
+  font: 900 12px/1 var(--font-rajdhani), sans-serif;
+  letter-spacing: 0.02em;
+  text-align: center;
+}
+
+body.world-poker-near-me .pnm-map-surface .pnm-painted-tour-marker__code--fallback {
+  display: none;
+}
+
+body.world-poker-near-me .pnm-map-surface .pnm-map-marker-label {
+  position: absolute !important;
+  top: 45px !important;
+  left: 50% !important;
+  z-index: 999;
+  display: grid;
+  width: var(--pnm-marker-label-width, 140px) !important;
+  max-width: var(--pnm-marker-label-width, 140px) !important;
+  aspect-ratio: 1829 / 313;
+  margin: 0 !important;
+  /* The label is positioned inside the 44px marker, so a percentage inset
+     would resolve against the marker; derive it from the label's own width. */
+  padding: 0 calc(var(--pnm-marker-label-width, 140px) * 0.08) !important;
+  box-sizing: border-box;
+  place-items: center;
+  overflow: hidden;
+  transform: translateX(-50%) !important;
+  color: #eef5fb !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background-color: transparent !important;
+  background-image: url('/images/pnm-console/painted-controls-v1/search-well.webp') !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
+  background-size: 100% auto !important;
+  box-shadow: none !important;
+  font: 800 12px/1 var(--font-rajdhani), sans-serif !important;
+  letter-spacing: 0.025em !important;
+  text-align: center;
+  text-overflow: clip;
+  white-space: nowrap !important;
+  pointer-events: none;
+}
+
+body.world-poker-near-me .pnm-map-surface .pnm-map-marker-label > span {
+  display: block;
+  width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+body.world-poker-near-me .pnm-map-surface .pnm-map-marker-label--tour {
+  color: var(--pnm-map-accent, #ffd700) !important;
+}
+
+body.world-poker-near-me .pnm-map-surface .pnm-painted-cluster {
+  display: grid;
+  width: var(--pnm-cluster-size, 44px) !important;
+  height: var(--pnm-cluster-size, 44px) !important;
+  place-items: center;
+  color: #eef5fb;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background-color: transparent !important;
+  background-image: url('/images/pnm-console/painted-controls-v1/utility-well.webp') !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
+  background-size: contain !important;
+  box-shadow: none !important;
+  font: 900 var(--pnm-cluster-font, 12px)/1 var(--font-rajdhani), sans-serif;
+}
+
+body.world-poker-near-me .pnm-map-surface .pnm-painted-cluster--dense {
+  color: #ffd700;
+}
+
+body.world-poker-near-me .pnm-map-surface .pnm-painted-user-location {
+  display: block;
+  width: 40px;
+  height: 40px;
+  background: transparent url('/images/pnm-console/painted-controls-v1/icon-location.png') center / contain no-repeat !important;
+}
+
+/* Leaflet contributes positioning only; the dossier supplies all visible art. */
+body.world-poker-near-me .pnm-map-surface .leaflet-popup-content-wrapper,
+body.world-poker-near-me .pnm-map-surface .pnm-popup .leaflet-popup-content-wrapper {
+  overflow: visible;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+body.world-poker-near-me .pnm-map-surface .leaflet-popup-content,
+body.world-poker-near-me .pnm-map-surface .pnm-popup .leaflet-popup-content {
+  width: auto !important;
+  margin: 0 !important;
+}
+
+body.world-poker-near-me .pnm-map-surface .leaflet-popup-tip-container {
+  display: none;
+}
+
+body.world-poker-near-me .pnm-map-surface .leaflet-popup-close-button,
+body.world-poker-near-me .pnm-map-surface .pnm-popup .leaflet-popup-close-button {
+  z-index: 9999 !important;
+  width: 44px !important;
+  height: 44px !important;
+  padding: 0 !important;
+  overflow: hidden;
+  color: transparent !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background-color: transparent !important;
+  background-image: url('/images/pnm-console/painted-controls-v1/icon-close.png') !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
+  background-size: contain !important;
+  box-shadow: none !important;
+  font-size: 0 !important;
+}
+
+body.world-poker-near-me .pnm-map-dossier {
+  container-type: inline-size;
+  display: flex;
+  width: min(300px, calc(100vw - 44px));
+  min-width: min(240px, calc(100vw - 44px));
+  max-width: 300px;
+  flex-direction: column;
+  color: #e6e9ee;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent;
+  box-shadow: none !important;
+  font-family: var(--font-rajdhani), var(--font-premium-body), sans-serif;
+}
+
+body.world-poker-near-me .pnm-map-dossier--compact {
+  min-width: min(220px, calc(100vw - 44px));
+}
+
+body.world-poker-near-me .pnm-map-dossier__head {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1000 / 112;
+  flex: 0 0 auto;
+  background: transparent url('/images/pnm-console/painted-panels-v1/panel-head.png') top center / 100% auto no-repeat;
+  pointer-events: none;
+}
+
+body.world-poker-near-me .pnm-map-dossier__body {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 8px;
+  padding: 0 8%;
+  background-color: #020507;
+  background-image: url('/images/pnm-console/painted-panels-v1/panel-mid.png');
+  background-position: top center;
+  background-repeat: repeat-y;
+  background-size: 100% auto;
+}
+
+body.world-poker-near-me .pnm-map-dossier__foot {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1000 / 72;
+  flex: 0 0 auto;
+  background: transparent url('/images/pnm-console/painted-panels-v1/panel-foot.png') bottom center / 100% auto no-repeat;
+  pointer-events: none;
+}
+
+body.world-poker-near-me .pnm-map-dossier__identity {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: 44px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+}
+
+body.world-poker-near-me .pnm-map-dossier__logo-machine {
+  position: relative;
+  display: block;
+  width: 44px;
+  height: 44px;
+  background: transparent url('/images/pnm-console/painted-controls-v1/utility-well.webp') center / contain no-repeat;
+}
+
+body.world-poker-near-me .pnm-map-dossier__logo-machine img {
+  position: absolute;
+  top: 22%;
+  left: 22%;
+  width: 56%;
+  height: 56%;
+  object-fit: cover;
+  background: #f4f7fb;
+}
+
+body.world-poker-near-me .pnm-map-dossier__identity-copy {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+
+body.world-poker-near-me .pnm-map-dossier__identity-copy strong {
+  overflow: hidden;
+  color: #f3f7fa;
+  font-size: 15px;
+  line-height: 1.05;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+body.world-poker-near-me .pnm-map-dossier__identity-copy > span {
+  display: flex;
+  min-width: 0;
+  gap: 5px;
+  color: #9aa8b5;
+  font-size: 12px;
+  line-height: 1.15;
+}
+
+body.world-poker-near-me .pnm-map-dossier__distance {
+  margin-left: auto;
+  white-space: nowrap;
+}
+
+body.world-poker-near-me .pnm-map-dossier__signals {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px 9px;
+  font-size: 12px;
+  line-height: 1;
+}
+
+body.world-poker-near-me .pnm-map-dossier__signal {
+  color: #d8e4ec;
+  font-weight: 850;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+body.world-poker-near-me .pnm-map-dossier__signal--type {
+  color: var(--pnm-map-accent, #48c7ff);
+}
+
+body.world-poker-near-me .pnm-map-dossier__signal--open {
+  color: #c8ffd2;
+}
+
+body.world-poker-near-me .pnm-map-dossier__signal--closed {
+  color: #ff7b8a;
+}
+
+body.world-poker-near-me .pnm-map-dossier__signal--upcoming {
+  color: #8fd4ff;
+}
+
+body.world-poker-near-me .pnm-map-dossier__cash {
+  color: #c8ffd2;
+  font-weight: 750;
+}
+
+body.world-poker-near-me .pnm-map-dossier__cash[data-cash-truth='modeled'] {
+  color: #d6ad52;
+}
+
+body.world-poker-near-me .pnm-map-dossier__cash[data-cash-truth='unavailable'] {
+  color: #d8e4ec;
+}
+
+body.world-poker-near-me .pnm-map-dossier :is(
+  .pnm-map-dossier__games,
+  .pnm-map-dossier__trust,
+  .pnm-map-dossier__stop,
+  .pnm-map-dossier__dates
+) {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.3;
+}
+
+body.world-poker-near-me .pnm-map-dossier__games {
+  color: #9aa8b5;
+}
+
+body.world-poker-near-me .pnm-map-dossier__trust {
+  color: var(--pnm-trust-color, #9aa8b5);
+}
+
+body.world-poker-near-me .pnm-map-dossier__stop {
+  color: #f3f7fa;
+  font-weight: 700;
+}
+
+body.world-poker-near-me .pnm-map-dossier__dates {
+  color: #c8ffd2;
+}
+
+body.world-poker-near-me .pnm-map-dossier__actions {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: repeat(auto-fit, minmax(70px, 1fr));
+  gap: 4px;
+}
+
+body.world-poker-near-me .pnm-map-dossier__action {
+  appearance: none;
+  display: grid;
+  min-width: 0;
+  min-height: 44px;
+  margin: 0;
+  padding: 0 10px;
+  place-items: center;
+  overflow: hidden;
+  color: #eef7fd !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background-color: transparent !important;
+  background-image: url('/images/pnm-console/painted-controls-v1/button-secondary.png') !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
+  background-size: 100% auto !important;
+  box-shadow: none !important;
+  font: 800 12px/1 var(--font-rajdhani), sans-serif !important;
+  letter-spacing: 0.045em;
+  text-align: center;
+  text-decoration: none !important;
+  text-transform: uppercase;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+body.world-poker-near-me .pnm-map-dossier__action--primary {
+  background-image: url('/images/pnm-console/painted-controls-v1/button-primary.png') !important;
+}
+
+body.world-poker-near-me .pnm-map-surface__escape-hint {
+  position: absolute;
+  right: max(12px, env(safe-area-inset-right, 0px));
+  bottom: calc(12px + var(--pnm-map-attribution-clearance, 58px));
+  z-index: 1300;
+  display: grid;
+  min-width: 120px;
+  min-height: 44px;
+  margin: 0;
+  padding: 0 14px;
+  place-items: center;
+  color: #b9c6cf;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent url('/images/pnm-console/painted-controls-v1/search-well.webp') center / 100% auto no-repeat !important;
+  box-shadow: none !important;
+  font: 750 12px/1 var(--font-rajdhani), sans-serif;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+body.world-poker-near-me .pnm-map-error-state {
+  border: 0 !important;
+  border-radius: 0 !important;
+  background-color: #03070b !important;
+  background-image: url('/images/pnm-redesign/map-command-render-v2.webp') !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
+  background-size: cover !important;
+  box-shadow: none !important;
+}
+
+body.world-poker-near-me .pnm-map-error-state button {
+  min-width: 160px;
+  min-height: 52px;
+  padding: 0 20px;
+  color: #eef7fd;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent url('/images/pnm-console/painted-controls-v1/button-primary.png') center / 100% auto no-repeat !important;
+  box-shadow: none !important;
+}
+
+/* Fullscreen keeps the one mounted Leaflet node and lets the map own the
+   viewport. The compact header remains a complete, native-ratio master. */
+body.world-poker-near-me .pnm-map-surface--fullscreen {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 2147483001 !important;
+  width: 100vw !important;
+  max-width: none !important;
+  height: 100dvh !important;
+  max-height: none !important;
+  margin: 0 !important;
+  overflow: hidden !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: #020406 !important;
+  box-shadow: none !important;
+}
+
+body.world-poker-near-me .pnm-map-surface--fullscreen .pnm-map-surface__header {
+  width: min(100%, 1000px);
+  min-height: 0;
+  max-width: 1000px;
+  aspect-ratio: 1829 / 313;
+  margin-inline: auto;
+  padding: 0;
+  background-image: url('/images/pnm-console/painted-controls-v1/search-well.webp') !important;
+  background-position: top center !important;
+  background-repeat: no-repeat !important;
+  background-size: 100% auto !important;
+}
+
+body.world-poker-near-me .pnm-map-surface--fullscreen .pnm-map-surface__identity {
+  top: 15%;
+  left: 6%;
+  width: 45%;
+  height: 60%;
+  gap: 3px;
+}
+
+body.world-poker-near-me .pnm-map-surface--fullscreen .pnm-map-surface__controls {
+  top: 44.7%;
+  right: 9%;
+  width: 38%;
+  transform: translateY(-50%);
+}
+
+body.world-poker-near-me .pnm-map-surface--fullscreen .pnm-map-surface__viewport {
+  width: 100%;
+  min-height: 0;
+  height: auto;
+  flex: 1 1 auto;
+  padding: 0;
+  background: #020406 !important;
+}
+
+body.world-poker-near-me .pnm-map-surface--fullscreen .pnm-map-surface__foot {
+  display: none;
+}
+
+body.world-poker-near-me .pnm-map-surface--fullscreen :is(
+  .pnm-map-stage, .pnm-leaflet-map, .venue-map-wrapper, .venue-map-container,
+  .pnm-location-picker
+) {
+  height: 100% !important;
+  min-height: 0 !important;
+  max-height: none !important;
+}
+
+body.world-poker-near-me .pnm-map-surface--fullscreen .pnm-location-picker__map {
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+}
+
+@media (max-width: 600px) {
+  body.world-poker-near-me .pnm-map-surface {
+    --pnm-map-rail-inset: 5.7%;
+  }
+
+  body.world-poker-near-me .pnm-map-surface__identity {
+    top: 34%;
+    left: 10%;
+    width: 42%;
+    height: 52%;
+    gap: 2px;
+  }
+
+  body.world-poker-near-me .pnm-map-surface__identity small {
+    display: none;
+  }
+
+  body.world-poker-near-me .pnm-map-surface__controls {
+    top: 48%;
+    right: 8.7%;
+    width: 43%;
+    display: flex;
+    grid-template-columns: none;
+    flex-wrap: nowrap;
+    gap: 3px;
+  }
+
+  body.world-poker-near-me .pnm-map-surface__controls > * {
+    width: auto;
+    min-width: 44px !important;
+  }
+
+  body.world-poker-near-me .pnm-map-surface__controls .pnm-map-radius-control {
+    width: 50px;
+    min-width: 50px !important;
+    padding: 0 !important;
+    background-image: url('/images/pnm-console/painted-controls-v1/utility-well.webp') !important;
+    background-size: contain !important;
+  }
+
+  body.world-poker-near-me .pnm-map-surface__controls .pnm-map-radius-control > span {
+    display: none;
+  }
+
+  body.world-poker-near-me .pnm-map-surface__controls .pnm-map-radius-control select {
+    width: auto;
+    min-width: 44px;
+    font-size: 16px; /* under 16px iOS zooms the page when the control takes focus */
+  }
+
+  body.world-poker-near-me .pnm-map-surface__fullscreen-control > span:last-child {
+    display: none;
+  }
+
+  body.world-poker-near-me .pnm-map-surface__viewport,
+  body.world-poker-near-me .pnm-map-surface--fill .pnm-map-surface__viewport,
+  body.world-poker-near-me .pnm-map-surface--primary .pnm-map-surface__viewport {
+    min-height: clamp(420px, 64dvh, 620px);
+  }
+
+  body.world-poker-near-me .pnm-map-surface--fullscreen .pnm-map-surface__identity {
+    top: 18%;
+    left: 6%;
+    width: 43%;
+    height: 64%;
+  }
+
+  body.world-poker-near-me .pnm-map-surface--fullscreen .pnm-map-surface__identity .pnm-map-surface__eyebrow,
+  body.world-poker-near-me .pnm-map-surface--fullscreen .pnm-map-surface__identity small {
+    display: none;
+  }
+
+  body.world-poker-near-me .pnm-map-surface--fullscreen .pnm-map-surface__identity strong {
+    font-size: clamp(13px, 4.1cqw, 17px);
+  }
+
+  body.world-poker-near-me .pnm-map-surface--fullscreen .pnm-map-surface__controls {
+    top: 50%;
+    right: 6%;
+    width: 45%;
+  }
+
+  body.world-poker-near-me .pnm-map-dossier {
+    width: min(278px, calc(100vw - 44px));
+    max-width: 278px;
+  }
+
+  body.world-poker-near-me .pnm-map-surface__escape-hint {
+    display: none;
+  }
+}
+
+/* Short landscape viewports use the compact complete command well so the map,
+   controls and provider credit all remain visible without a cropped chassis. */
+@media (max-height: 500px) and (orientation: landscape) {
+  body.world-poker-near-me .pnm-map-surface__header {
+    width: min(100%, 720px);
+    max-width: 720px;
+    aspect-ratio: 1829 / 313;
+    margin-inline: auto;
+    background-image: url('/images/pnm-console/painted-controls-v1/search-well.webp') !important;
+    background-position: top center !important;
+    background-repeat: no-repeat !important;
+    background-size: 100% auto !important;
+  }
+
+  /* Short landscape prints on the same painted well as fullscreen, so the
+     title band and the control run keep to that well's glass face: y 13.7% to
+     75.7% and x 57 to 942 of its 1829 x 313 master. */
+  body.world-poker-near-me .pnm-map-surface__identity {
+    top: 15%;
+    left: 6%;
+    width: 45%;
+    height: 60%;
+    gap: 2px;
+  }
+
+  body.world-poker-near-me .pnm-map-surface__identity .pnm-map-surface__eyebrow,
+  body.world-poker-near-me .pnm-map-surface__identity small {
+    display: none;
+  }
+
+  body.world-poker-near-me .pnm-map-surface__identity strong {
+    font-size: clamp(14px, 2.5cqw, 21px);
+  }
+
+  body.world-poker-near-me .pnm-map-surface__controls {
+    top: 44.7%;
+    right: 9%;
+    width: 40%;
+    transform: translateY(-50%);
+  }
+
+  body.world-poker-near-me .pnm-map-surface__viewport,
+  body.world-poker-near-me .pnm-map-surface--fill .pnm-map-surface__viewport,
+  body.world-poker-near-me .pnm-map-surface--primary .pnm-map-surface__viewport {
+    min-height: 280px;
+  }
+
+  body.world-poker-near-me .pnm-map-surface--fullscreen .pnm-map-surface__header {
+    width: min(100%, 720px);
+  }
+
+  body.world-poker-near-me .pnm-map-surface--fullscreen .pnm-map-surface__viewport {
+    min-height: 0;
+  }
+
+  body.world-poker-near-me .pnm-map-surface__escape-hint {
+    display: none;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+ * Shared map presentation: markers, legend, HUD, status, planner and picker.
+ * Every frame, well and plate below is a complete painted master at its
+ * native ratio; every name, count, date and status is live DOM text.
+ * ------------------------------------------------------------------------- */
+
+/* Venue labels print in the venue-type ink the legend keys. */
+body.world-poker-near-me .pnm-map-surface .pnm-painted-marker--venue .pnm-map-marker-label {
+  color: var(--pnm-map-accent, #eef5fb) !important;
+}
+
+/* Label density: zoomed-out maps hide venue labels; route stops stay named. */
+body.world-poker-near-me .pnm-map-surface :is(.venue-labels-hidden, .vmp-labels-hidden) .pnm-map-marker-label:not(.pnm-map-marker-label--route) {
+  display: none !important;
+}
+
+/* Saved rooms: the painted saved holder prints beside the marker machine. */
+body.world-poker-near-me .pnm-map-surface .pnm-painted-marker__saved {
+  position: absolute;
+  top: -8px;
+  left: calc(50% + 20px);
+  z-index: 2;
+  display: block;
+  width: 26px;
+  height: 26px;
+  background: transparent url('/images/pnm-console/painted-controls-v1/icon-saved.png') center / contain no-repeat;
+  pointer-events: none;
+}
+
+body.world-poker-near-me .pnm-map-surface .pnm-painted-marker--saved .pnm-map-marker-label {
+  color: #ffd700 !important;
+}
+
+/* Road-trip stops: the stop number is live type inside the painted machine. */
+body.world-poker-near-me .pnm-painted-route-stop__number {
+  position: relative;
+  display: grid;
+  width: 58%;
+  height: 58%;
+  place-items: center;
+  color: #45adff;
+  font: 900 17px/1 var(--font-rajdhani), sans-serif;
+}
+
+body.world-poker-near-me :is(
+  .pnm-painted-route-stop--origin .pnm-painted-route-stop__number,
+  .pnm-painted-route-stop__number.pnm-painted-route-stop--origin
+) {
+  color: #c8ffd2;
+}
+
+body.world-poker-near-me :is(
+  .pnm-painted-route-stop--destination .pnm-painted-route-stop__number,
+  .pnm-painted-route-stop__number.pnm-painted-route-stop--destination
+) {
+  color: #ff5b6e;
+}
+
+body.world-poker-near-me .pnm-map-surface .pnm-map-marker-label--route {
+  color: #e4e7ec !important;
+}
+
+body.world-poker-near-me .pnm-map-dossier__logo-machine--route {
+  display: grid;
+  place-items: center;
+}
+
+body.world-poker-near-me .pnm-map-dossier__location-machine {
+  display: block;
+  width: 44px;
+  height: 44px;
+  background: transparent url('/images/pnm-console/painted-controls-v1/icon-location.png') center / contain no-repeat;
+}
+
+/* Leaflet's default divIcon box never shows through a painted marker. */
+body.world-poker-near-me .pnm-map-surface :is(
+  .trip-stop-marker, .route-venue-marker, .venue-detail-marker,
+  .pnm-location-picker__marker, .user-location-pin
+) {
+  border: 0 !important;
+  background: transparent !important;
+}
+
+body.world-poker-near-me .pnm-painted-picker-pin {
+  display: block;
+  width: 44px;
+  height: 44px;
+  background: transparent url('/images/pnm-console/painted-controls-v1/icon-location.png') center bottom / contain no-repeat;
+}
+
+/* Legend: a compact painted panel; each type prints in its own map ink. */
+body.world-poker-near-me .pnm-map-surface .venue-map-legend.pnc-panel {
+  width: 150px;
+  min-width: 0;
+  max-width: 150px;
+  min-height: 44px;
+  max-height: none !important;
+  padding: 0 !important;
+  overflow: visible !important;
+  color: #e6e9ee;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: none !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+body.world-poker-near-me .pnm-map-surface .venue-map-legend .pnc-panel__body {
+  gap: 3px;
+  padding: 0 12% 2px;
+  background-color: #020507;
+}
+
+body.world-poker-near-me .pnm-map-surface .venue-map-legend-title {
+  margin: 0;
+  color: #45adff;
+  font: 800 12px/1.3 var(--font-rajdhani), sans-serif;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+body.world-poker-near-me .pnm-map-surface .venue-map-legend-item {
+  display: flex;
+  min-height: 17px;
+  align-items: center;
+  padding: 0;
+}
+
+body.world-poker-near-me .pnm-map-surface .venue-map-legend-label {
+  font: 750 12px/1.2 var(--font-rajdhani), sans-serif;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+body.world-poker-near-me .pnm-map-surface .venue-map-legend:active {
+  filter: brightness(1.15);
+}
+
+/* Coverage HUD: a painted three-slice panel; counts and status are live. */
+body.world-poker-near-me .pnm-map-surface .pnm-map-coverage.pnc-panel {
+  display: flex !important;
+  width: min(400px, 100%) !important;
+  max-width: 100% !important;
+  min-height: 0 !important;
+  flex-direction: column !important;
+  gap: 0 !important;
+  padding: 0 !important;
+  color: #e6e9ee !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: none !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+}
+
+/* A HUD printed straight onto the stage (not inside the shared overlay
+   stack) stays a floating instrument above the mandatory map credit. The
+   panel chassis is position: relative by default, which would drop it below
+   the map. */
+body.world-poker-near-me .pnm-map-surface .pnm-map-stage > .pnm-map-coverage--overlay.pnc-panel {
+  position: absolute !important;
+  bottom: calc(8px + var(--pnm-map-attribution-clearance, 58px)) !important;
+  left: 14px !important;
+  z-index: 800;
+  width: min(400px, calc(100% - 28px)) !important;
+}
+
+body.world-poker-near-me .pnm-map-surface .pnm-map-coverage .pnc-panel__body {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  padding: 0 7% 2px;
+  background-color: #020507;
+}
+
+body.world-poker-near-me .pnm-map-surface .pnm-map-coverage__emblem {
+  width: 40px;
+  height: 40px;
+  flex: 0 0 40px;
+}
+
+body.world-poker-near-me .pnm-map-surface .pnm-map-coverage__copy {
+  min-width: 0;
+  flex: 1 1 160px;
+}
+
+body.world-poker-near-me .pnm-map-surface .pnm-map-coverage__copy > span {
+  color: #45adff !important;
+  font: 800 12px/1.2 var(--font-rajdhani), sans-serif !important;
+  letter-spacing: 0.16em;
+}
+
+body.world-poker-near-me .pnm-map-surface .pnm-map-coverage__copy strong {
+  color: #e4e7ec !important;
+}
+
+body.world-poker-near-me .pnm-map-surface .pnm-map-coverage__copy small,
+body.world-poker-near-me .pnm-map-surface .pnm-map-coverage__copy p {
+  color: #9aa5b3 !important;
+}
+
+body.world-poker-near-me .pnm-map-surface .pnm-map-coverage__integrity span + span::before {
+  content: '·';
+  color: #9aa5b3;
+}
+
+body.world-poker-near-me .pnm-map-surface .pnm-map-coverage__actions {
+  display: flex;
+  flex: 1 1 100%;
+  flex-direction: row !important;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  gap: 6px;
+}
+
+body.world-poker-near-me .pnm-map-surface .pnm-map-coverage__actions button {
+  appearance: none;
+  display: grid;
+  box-sizing: border-box;
+  width: 150px;
+  min-width: 0 !important;
+  min-height: 44px !important;
+  aspect-ratio: 348 / 114;
+  margin: 0;
+  padding: 0 18px !important;
+  place-items: center;
+  color: #eef7fd !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent url('/images/pnm-console/painted-controls-v1/button-primary.png') center / contain no-repeat !important;
+  box-shadow: none !important;
+  font: 800 12px/1 var(--font-rajdhani), sans-serif !important;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+body.world-poker-near-me .pnm-map-surface .pnm-map-coverage__actions button + button {
+  background-image: url('/images/pnm-console/painted-controls-v1/button-secondary.png') !important;
+}
+
+body.world-poker-near-me .pnm-map-surface .pnm-map-coverage__actions button:active {
+  filter: brightness(1.18);
+}
+
+body.world-poker-near-me .pnm-map-surface .pnm-map-coverage__actions button:disabled {
+  cursor: wait;
+  opacity: 0.55;
+}
+
+/* Status overlays: honest loading and failure copy on black glass, with the
+   retry on the painted primary plate. */
+body.world-poker-near-me .pnm-map-status {
+  position: absolute;
+  inset: 0;
+  z-index: 900;
+  display: grid;
+  padding: 20px;
+  place-content: center;
+  place-items: center;
+  gap: 12px;
+  color: #45adff;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: #020406 !important;
+  box-shadow: none !important;
+  font: 800 13px/1.35 var(--font-rajdhani), sans-serif;
+  letter-spacing: 0.14em;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+body.world-poker-near-me .pnm-map-status--loading {
+  pointer-events: none;
+}
+
+body.world-poker-near-me .pnm-map-status--error {
+  color: #ff5b6e;
+  pointer-events: auto;
+}
+
+body.world-poker-near-me .pnm-map-status__detail {
+  color: #9aa5b3;
+  font-size: 12px;
+  letter-spacing: 0.1em;
+}
+
+body.world-poker-near-me .pnm-map-status p,
+body.world-poker-near-me .pnm-map-status__copy p {
+  max-width: 36ch;
+  margin: 0;
+  color: #d8e4ec;
+  font: 600 13px/1.45 var(--font-inter), Inter, system-ui, sans-serif;
+  letter-spacing: 0.01em;
+  text-transform: none;
+}
+
+body.world-poker-near-me .pnm-map-status__copy {
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+}
+
+body.world-poker-near-me .pnm-map-status__action,
+body.world-poker-near-me .pnm-map-surface .pnm-map-status button {
+  appearance: none;
+  display: grid;
+  box-sizing: border-box;
+  width: 200px;
+  min-width: 0;
+  min-height: 44px;
+  aspect-ratio: 348 / 114;
+  margin: 0 auto;
+  padding: 0 24px !important;
+  place-items: center;
+  color: #f4f7fb !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent url('/images/pnm-console/painted-controls-v1/button-primary.png') center / contain no-repeat !important;
+  box-shadow: none !important;
+  font: 800 13px/1 var(--font-rajdhani), sans-serif !important;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  cursor: pointer;
+  pointer-events: auto;
+  touch-action: manipulation;
+}
+
+body.world-poker-near-me :is(.pnm-map-status__action, .pnm-map-status button):active {
+  filter: brightness(1.2);
+}
+
+body.world-poker-near-me :is(.pnm-map-status__action, .pnm-map-status button):focus-visible {
+  outline: 3px solid #8fd4ff;
+  outline-offset: -8px;
+}
+
+/* Error boundary fallback (outside any mounted map). */
+body.world-poker-near-me .pnm-map-boundary {
+  width: min(100%, 520px);
+  margin: 0 auto;
+}
+
+body.world-poker-near-me .pnm-map-boundary .pnc-panel__body {
+  align-items: center;
+  gap: 10px;
+  padding: 0 9% 6px;
+  background-color: #020507;
+  text-align: center;
+}
+
+body.world-poker-near-me .pnm-map-boundary__title {
+  margin: 0;
+  color: #ff5b6e;
+  font: 800 16px/1.2 var(--font-rajdhani), sans-serif;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+body.world-poker-near-me .pnm-map-boundary__copy {
+  margin: 0;
+  color: #d8e4ec;
+  font: 500 13px/1.5 var(--font-inter), Inter, system-ui, sans-serif;
+}
+
+body.world-poker-near-me .pnm-map-boundary__debug {
+  max-width: 100%;
+  margin: 0;
+  overflow: auto;
+  color: #ff5b6e;
+  font: 12px/1.4 ui-monospace, monospace;
+  text-align: left;
+  white-space: pre-wrap;
+}
+
+/* Painted wells for every map-adjacent text field. The complete search well
+   keeps its native ratio; the field fills it and prints inside the face. */
+body.world-poker-near-me :is(.road-trip-planner .rtp-well, .pnm-map-well) {
+  position: relative;
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  max-width: 520px;
+  min-height: 44px;
+  aspect-ratio: 1829 / 313;
+  background: transparent url('/images/pnm-console/painted-controls-v1/search-well.webp') center / contain no-repeat;
+}
+
+body.world-poker-near-me :is(.road-trip-planner .rtp-well, .pnm-map-well) > input {
+  position: absolute !important;
+  inset: 0 !important;
+  display: block !important;
+  box-sizing: border-box !important;
+  width: 100% !important;
+  height: 100% !important;
+  min-width: 0 !important;
+  min-height: 44px !important;
+  margin: 0 !important;
+  padding: 0 7.5% 2% !important;
+  color: #f4f7fb !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  outline: 0;
+  background: transparent !important;
+  box-shadow: none !important;
+  font: 600 16px/1.2 var(--font-inter), Inter, system-ui, sans-serif !important;
+  letter-spacing: 0.01em;
+  caret-color: #45adff;
+  color-scheme: dark;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+body.world-poker-near-me :is(.road-trip-planner .rtp-well, .pnm-map-well) > input::placeholder {
+  color: #7f8b99;
+  opacity: 1;
+}
+
+body.world-poker-near-me :is(.road-trip-planner .rtp-well, .pnm-map-well) > input:focus-visible {
+  outline: 3px solid #8fd4ff !important;
+  outline-offset: -7px !important;
+}
+
+/* Native date pickers stay native; their indicator becomes the painted
+   calendar holder and the field prints inside the well face. */
+body.world-poker-near-me .road-trip-planner .rtp-well > input[type='date'] {
+  padding: 0 5.5% 2% 7.5% !important;
+}
+
+body.world-poker-near-me .road-trip-planner .rtp-well > input[type='date']::-webkit-calendar-picker-indicator {
+  width: 30px;
+  height: 30px;
+  margin: 0;
+  padding: 0;
+  opacity: 1;
+  background: transparent url('/images/pnm-console/painted-controls-v1/icon-calendar.png') center / contain no-repeat;
+  cursor: pointer;
+}
+
+/* Road-trip planner form on the painted system. */
+body.world-poker-near-me .road-trip-planner.pnm-console-tool .rtp-form {
+  gap: 14px;
+  padding: 4px 0 8px !important;
+  background: none !important;
+}
+
+body.world-poker-near-me .road-trip-planner .rtp-input-row {
+  display: grid !important;
+  grid-template-columns: 64px minmax(0, 520px) 44px;
+  grid-template-areas: 'role well action';
+  align-items: center;
+  justify-content: start;
+  gap: 10px;
+}
+
+body.world-poker-near-me .road-trip-planner .rtp-input-row > .rtp-well {
+  grid-area: well;
+}
+
+body.world-poker-near-me .road-trip-planner .rtp-input-row > .rtp-remove-btn {
+  grid-area: action;
+}
+
+body.world-poker-near-me .road-trip-planner .rtp-role {
+  grid-area: role;
+  color: #45adff;
+  font: 800 13px/1 var(--font-rajdhani), Rajdhani, sans-serif;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+body.world-poker-near-me .road-trip-planner .rtp-input-row--origin .rtp-role {
+  color: #c8ffd2;
+}
+
+body.world-poker-near-me .road-trip-planner .rtp-input-row--destination .rtp-role {
+  color: #ff5b6e;
+}
+
+body.world-poker-near-me .road-trip-planner .rtp-options {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) !important;
+  gap: 16px !important;
+}
+
+body.world-poker-near-me .road-trip-planner .rtp-option-label {
+  display: block;
+  margin: 0 0 8px;
+  color: #45adff;
+  font: 800 12px/1.2 var(--font-rajdhani), Rajdhani, sans-serif;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+body.world-poker-near-me .road-trip-planner .rtp-date-row {
+  display: grid !important;
+  grid-template-columns: minmax(0, 300px) auto minmax(0, 300px);
+  align-items: center;
+  justify-content: start;
+  gap: 10px;
+}
+
+body.world-poker-near-me .road-trip-planner .rtp-date-sep {
+  color: #9aa5b3;
+  font: 800 12px/1 var(--font-rajdhani), Rajdhani, sans-serif;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+/* Painted plates at native ratio; labels print in the face, never the rim. */
+body.world-poker-near-me .road-trip-planner.pnm-console-tool :is(.rtp-add-waypoint, .rtp-chip, .rtp-calculate-btn) {
+  --rtp-plate-w: 176px;
+  position: relative;
+  display: inline-grid !important;
+  box-sizing: border-box;
+  width: var(--rtp-plate-w);
+  min-width: 0 !important;
+  min-height: 44px !important;
+  aspect-ratio: 348 / 114;
+  margin: 0;
+  /* Percentage padding would resolve against the row, not the plate, and
+     inflate the plate on wide screens; derive the face inset from the
+     plate's own width instead. */
+  padding: 0 calc(var(--rtp-plate-w) * 0.11) !important;
+  place-items: center;
+  overflow: hidden;
+  color: #cbd5df;
+  background: transparent url('/images/pnm-console/painted-controls-v1/button-secondary.png') center / contain no-repeat !important;
+  font: 800 14px/1 var(--font-rajdhani), Rajdhani, Inter, system-ui, sans-serif !important;
+  letter-spacing: 0.06em;
+  text-align: center;
+  text-transform: uppercase;
+  white-space: nowrap;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+body.world-poker-near-me .road-trip-planner.pnm-console-tool .rtp-add-waypoint {
+  --rtp-plate-w: 176px;
+  align-self: flex-start;
+}
+
+body.world-poker-near-me .road-trip-planner.pnm-console-tool .rtp-chip {
+  --rtp-plate-w: 136px;
+}
+
+body.world-poker-near-me .road-trip-planner.pnm-console-tool :is(.rtp-chip.active, .rtp-calculate-btn) {
+  color: #8fd4ff;
+  background-image: url('/images/pnm-console/painted-controls-v1/button-primary.png') !important;
+}
+
+body.world-poker-near-me .road-trip-planner.pnm-console-tool .rtp-calculate-btn {
+  --rtp-plate-w: min(100%, 264px);
+  align-self: center;
+  margin-inline: auto;
+  color: #f4f7fb;
+  font-size: 16px !important;
+}
+
+body.world-poker-near-me .road-trip-planner.pnm-console-tool :is(.rtp-add-waypoint, .rtp-chip, .rtp-calculate-btn):active {
+  filter: brightness(1.2);
+}
+
+/* Trip result plates. Measured at 1440 before this rule: "Start Full Route
+   (2 Stops)" printed a 150px label on a plate the art only painted 134px wide,
+   because a `contain` background at a 44px row height cannot be wider than
+   44 x 348/114. Each plate now declares its own painted width, so the art keeps
+   its native ratio and the longest label still lands inside the face. */
+body.world-poker-near-me .road-trip-planner.pnm-console-tool .rtp-result-action {
+  --rtp-plate-w: min(100%, 248px);
+  box-sizing: border-box;
+  width: var(--rtp-plate-w);
+  min-width: 0 !important;
+  min-height: 44px !important;
+  aspect-ratio: 348 / 114;
+  padding: 0 calc(var(--rtp-plate-w) * 0.11) !important;
+  background-size: contain !important;
+}
+
+body.world-poker-near-me .road-trip-planner.pnm-console-tool .rtp-result-action--route {
+  color: #f4f7fb;
+  background-image: url('/images/pnm-console/painted-controls-v1/button-primary.png') !important;
+}
+
+body.world-poker-near-me .road-trip-planner.pnm-console-tool .rtp-result-action:active {
+  filter: brightness(1.2);
+}
+
+/* A date field needs a fraction of a destination field's well. */
+body.world-poker-near-me .road-trip-planner .rtp-well--date {
+  max-width: 240px;
+}
+
+body.world-poker-near-me .road-trip-planner.pnm-console-tool :is(.rtp-add-waypoint, .rtp-chip, .rtp-calculate-btn):focus-visible {
+  outline: 3px solid #8fd4ff;
+  outline-offset: -8px;
+}
+
+body.world-poker-near-me .road-trip-planner.pnm-console-tool .rtp-calculate-btn:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+body.world-poker-near-me .road-trip-planner .rtp-error {
+  padding: 0 !important;
+  color: #ff5b6e !important;
+  background: none !important;
+  font: 700 13px/1.45 var(--font-inter), Inter, system-ui, sans-serif;
+  text-align: center;
+}
+
+/* Location picker: search well, painted results panel, live status. */
+body.world-poker-near-me .pnm-location-picker__search {
+  position: relative;
+  z-index: 1001;
+  display: grid;
+  padding: 10px 0 8px;
+  justify-items: center;
+}
+
+body.world-poker-near-me .pnm-location-picker__search .pnm-map-well {
+  max-width: 560px;
+}
+
+body.world-poker-near-me .pnm-location-picker__searching {
+  margin-top: 4px;
+  color: #45adff;
+  font: 800 12px/1.2 var(--font-rajdhani), sans-serif;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+body.world-poker-near-me .pnm-location-picker__results {
+  position: absolute;
+  top: calc(100% - 4px);
+  left: 50%;
+  width: min(100%, 520px);
+  transform: translateX(-50%);
+}
+
+body.world-poker-near-me .pnm-location-picker__results .pnc-panel__body {
+  max-height: 240px;
+  overflow-y: auto;
+  padding: 0 7% 2px;
+  background-color: #020507;
+}
+
+body.world-poker-near-me .pnm-location-picker__result {
+  appearance: none;
+  display: block;
+  width: 100%;
+  min-height: 44px;
+  margin: 0;
+  padding: 10px 4px;
+  color: #d8e4ec;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  font: 600 13px/1.4 var(--font-inter), Inter, system-ui, sans-serif;
+  text-align: left;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+body.world-poker-near-me .pnm-location-picker__result + .pnm-location-picker__result {
+  border-top: 1px solid #050607;
+}
+
+body.world-poker-near-me .pnm-location-picker__result:active {
+  color: #f4f7fb;
+  background-color: #07121c;
+}
+
+body.world-poker-near-me .pnm-location-picker__result:focus-visible {
+  outline: 3px solid #8fd4ff;
+  outline-offset: -3px;
+}
+
+body.world-poker-near-me .pnm-location-picker__map {
+  position: relative;
+}
+
+body.world-poker-near-me .pnm-location-picker-fallback .pnc-panel__body {
+  display: grid;
+  gap: 12px;
+  padding: 0 8% 4px;
+  background-color: #020507;
+}
+
+body.world-poker-near-me .pnm-location-picker-fallback__copy {
+  margin: 0;
+  color: #d8e4ec;
+  font: 500 14px/1.5 var(--font-inter), Inter, system-ui, sans-serif;
+  text-align: center;
+}
+
+body.world-poker-near-me .pnm-location-picker-fallback__fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+  gap: 8px;
+}
+
+/* The (currently unused) map-app toast prints on the painted search well. */
+body.world-poker-near-me .pnm-map-toast {
+  display: flex;
+  width: min(420px, calc(100vw - 32px));
+  min-height: 44px;
+  aspect-ratio: 1829 / 313;
+  box-sizing: border-box;
+  padding: 0 calc(min(420px, 100vw - 32px) * 0.07) calc(min(420px, 100vw - 32px) * 0.015);
+  align-items: center;
+  gap: 8px;
+  color: #e6e9ee;
+  background: transparent url('/images/pnm-console/painted-controls-v1/search-well.webp') center / contain no-repeat;
+  font: 700 13px/1.2 var(--font-inter), Inter, system-ui, sans-serif;
+}
+
+body.world-poker-near-me .pnm-map-toast__icon {
+  width: 32px;
+  height: 32px;
+  flex: 0 0 32px;
+}
+
+/* Fullscreen keeps the page geometry behind the dialog intact. */
+body.world-poker-near-me .pnm-map-surface__placeholder {
+  display: block;
+  width: 100%;
+  pointer-events: none;
+}
+
+/* The popup close holder prints inside the dossier face, clear of the
+   painted rails, instead of sitting on the frame's corner. */
+body.world-poker-near-me .pnm-map-surface .leaflet-popup-close-button {
+  top: 26px !important;
+  right: 17px !important;
+}
+
+body.world-poker-near-me .pnm-map-dossier__identity {
+  padding-right: 42px;
+}
+
+/* While an open dossier would sit under the coverage HUD or legend, those
+   instruments step aside so every popup action stays reachable. */
+body.world-poker-near-me .pnm-map-surface[data-pnm-popup-covering='true'] :is(
+  .pnm-map-overlay-stack,
+  .pnm-map-stage > .pnm-map-coverage--overlay
+) {
+  visibility: hidden;
+}
+
+/* A fullscreen map is never trapped under its host panel's stacking layer:
+   painted panels lift their head and foot rails above a z-index 0 body, which
+   otherwise caps every descendant, including a fixed fullscreen map. */
+body.world-poker-near-me :is(.pnc-panel__body, .pnc__body):has(.pnm-map-surface--fullscreen) {
+  z-index: auto !important;
+}
+
+/* The frame title shrinks to fit its painted face before it truncates. */
+body.world-poker-near-me .pnm-map-surface__identity strong > .pnm-map-surface__title-text {
+  display: inline-block;
+  max-width: 100%;
+  font-size: calc(1em * var(--pnc-fit, 1));
+  white-space: nowrap;
+}
+
+/* Preference menu stays inside short map viewports. */
+body.world-poker-near-me .pnm-map-surface .map-pref-panel .pnc-panel__body {
+  max-height: min(300px, 40vh);
+  overflow-y: auto;
+}
+
+body.world-poker-near-me .pnm-map-surface .map-pref-option {
+  width: min(100%, 190px);
+  margin-inline: auto;
+}
+
+@media (max-width: 600px) {
+  body.world-poker-near-me .road-trip-planner .rtp-input-row {
+    grid-template-columns: minmax(0, 1fr) 44px;
+    grid-template-areas:
+      'role role'
+      'well action';
+    row-gap: 6px;
+    column-gap: 8px;
+  }
+
+  body.world-poker-near-me .road-trip-planner .rtp-input-row:not(.rtp-input-row--waypoint) {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      'role'
+      'well';
+  }
+
+  body.world-poker-near-me .road-trip-planner .rtp-date-row {
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: stretch;
+    gap: 6px;
+  }
+
+  body.world-poker-near-me .road-trip-planner .rtp-date-sep {
+    justify-self: center;
+  }
+
+  body.world-poker-near-me .road-trip-planner.pnm-console-tool .rtp-chip {
+    --rtp-plate-w: 134px;
+  }
+
+  body.world-poker-near-me .pnm-map-surface .pnm-map-coverage.pnc-panel {
+    width: 100% !important;
+  }
+
+  /* Live status and integrity counts wrap rather than truncate. */
+  body.world-poker-near-me .pnm-map-surface .pnm-map-coverage__copy p {
+    max-width: none !important;
+    white-space: normal !important;
+  }
+
+  body.world-poker-near-me .pnm-map-surface .pnm-map-coverage__integrity {
+    flex-wrap: wrap;
+    row-gap: 2px;
+  }
+
+  body.world-poker-near-me .pnm-map-surface .pnm-map-coverage__integrity span {
+    white-space: nowrap;
+  }
+}
+
+/* Short landscape: the HUD keeps its live counts and actions on one line,
+   and moves right of the 44px zoom rail so no two instruments overlap. The
+   title and status line stay in the accessibility tree (the status is the
+   live region) but yield their visual space to the map. */
+@media (max-height: 500px) and (orientation: landscape) {
+  body.world-poker-near-me .pnm-map-surface .pnm-map-overlay-stack {
+    left: 64px !important;
+    width: min(420px, calc(100% - 78px)) !important;
+  }
+
+  body.world-poker-near-me .pnm-map-surface .pnm-map-coverage.pnc-panel {
+    width: min(420px, 100%) !important;
+  }
+
+  body.world-poker-near-me .pnm-map-surface .pnm-map-stage > .pnm-map-coverage--overlay.pnc-panel {
+    left: 64px !important;
+    width: min(420px, calc(100% - 78px)) !important;
+  }
+
+  body.world-poker-near-me .pnm-map-surface .pnm-map-coverage .pnc-panel__body {
+    flex-wrap: nowrap;
+  }
+
+  body.world-poker-near-me .pnm-map-surface :is(
+    .pnm-map-coverage__integrity,
+    .pnm-map-coverage__copy > span,
+    .pnm-map-coverage__copy > p
+  ) {
+    position: absolute !important;
+    width: 1px !important;
+    height: 1px !important;
+    margin: -1px !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    clip: rect(0 0 0 0) !important;
+    clip-path: inset(50%) !important;
+    white-space: nowrap !important;
+  }
+
+  body.world-poker-near-me .pnm-map-surface .pnm-map-coverage__emblem {
+    width: 32px;
+    height: 32px;
+    flex-basis: 32px;
+  }
+
+  body.world-poker-near-me .pnm-map-surface .pnm-map-coverage__actions {
+    flex: 0 0 auto;
+    flex-wrap: nowrap;
+  }
+
+  body.world-poker-near-me .pnm-map-surface .pnm-map-coverage__actions button {
+    width: 136px;
+    padding: 0 16px !important;
+  }
+
+  body.world-poker-near-me .pnm-location-picker__search .pnm-map-well {
+    max-width: 320px;
+  }
+
+  body.world-poker-near-me .pnm-location-picker__search {
+    padding: 6px 0 4px;
+  }
+}
+
+/* Normal-state header controls print on painted faces only.
+   Desktop and tablet: the fullscreen control is centred in the painted pill
+   slot of the top-flat master (x 673-870, y 190-244 of 1000 x 348) and page
+   controls sit on the header glass beside it, never across the pill or rim. */
+@media (min-width: 601px) and (min-height: 501px) {
+  body.world-poker-near-me .pnm-map-surface:not(.pnm-map-surface--fullscreen) .pnm-map-surface__identity {
+    width: 38.5%;
+  }
+
+  body.world-poker-near-me .pnm-map-surface:not(.pnm-map-surface--fullscreen) .pnm-map-surface__controls {
+    top: 62.36%;
+    right: 13.6%;
+    width: 44%;
+    gap: 1cqw;
+    transform: translateY(-50%);
+  }
+
+  body.world-poker-near-me .pnm-map-surface:not(.pnm-map-surface--fullscreen) .pnm-map-surface__fullscreen-control {
+    width: 19.7cqw;
+    min-width: 44px;
+    flex: 0 0 19.7cqw;
+    gap: 0.5cqw;
+    margin-left: 3.7cqw;
+  }
+
+  /* The top-flat master paints the fullscreen plate at x 642-890 of its
+     1000-wide canvas. A page control that reached into that run printed its own
+     painted pill across the plate's left rail, which is a frame on a frame, so
+     the run stops 22 canvas px clear of it and the title band gives up the room
+     each page control needs instead. */
+  body.world-poker-near-me .pnm-map-surface:not(.pnm-map-surface--fullscreen) .pnm-map-surface__controls .pnm-map-radius-control {
+    width: clamp(92px, 12.2cqw, 122px);
+    min-width: 92px;
+    padding: 0 8px !important;
+  }
+
+  body.world-poker-near-me .pnm-map-surface:not(.pnm-map-surface--fullscreen):has(.pnm-map-surface__controls > * + *) .pnm-map-surface__identity {
+    width: 33%;
+  }
+
+  body.world-poker-near-me .pnm-map-surface:not(.pnm-map-surface--fullscreen):has(.pnm-map-surface__controls > * + *) .pnm-map-surface__identity small {
+    font-size: clamp(9px, 1.3cqw, 13px);
+  }
+
+  body.world-poker-near-me .pnm-map-surface:not(.pnm-map-surface--fullscreen):has(.pnm-map-surface__controls > * + * + *) .pnm-map-surface__identity {
+    width: 26%;
+  }
+
+  body.world-poker-near-me .pnm-map-surface:not(.pnm-map-surface--fullscreen) .pnm-map-surface__fullscreen-control .pnc-icon {
+    width: clamp(28px, 4.4cqw, 44px);
+    height: clamp(28px, 4.4cqw, 44px);
+    flex-basis: clamp(28px, 4.4cqw, 44px);
+  }
+
+  @container (max-width: 680px) {
+    body.world-poker-near-me .pnm-map-surface:not(.pnm-map-surface--fullscreen) .pnm-map-surface__fullscreen-control > span:last-child {
+      display: none;
+    }
+  }
+}
+
+/* Phones: the pill slot is too small to hold a 44px control, so the header
+   becomes the capped panel head (rails and corners only) with the live title
+   and controls printed on the glass between the continuing rails. The rail
+   layer is clipped to the content box, which starts at the head's own rail,
+   so no rail paints above the cap. */
+@media (max-width: 600px) and (min-height: 501px) {
+  body.world-poker-near-me .pnm-map-surface:not(.pnm-map-surface--fullscreen) .pnm-map-surface__header {
+    display: flex;
+    min-height: calc(100cqw * 0.112 + 8px);
+    aspect-ratio: auto;
+    flex-wrap: nowrap !important;
+    align-items: center;
+    gap: 8px;
+    padding: calc(100cqw * 0.036) 0 4px;
+    box-sizing: border-box;
+    background-color: transparent !important;
+    background-image:
+      url('/images/pnm-console/painted-panels-v1/panel-head.png'),
+      url('/images/pnm-console/painted-chassis-v1/mid.png') !important;
+    background-position: top center, top center !important;
+    background-repeat: no-repeat, repeat-y !important;
+    background-size: 100% auto, 100% auto !important;
+    background-clip: border-box, content-box !important;
+  }
+
+  body.world-poker-near-me .pnm-map-surface:not(.pnm-map-surface--fullscreen) .pnm-map-surface__identity {
+    position: static;
+    width: auto;
+    min-width: 0;
+    height: auto;
+    min-height: 52px;
+    flex: 1 1 0;
+    margin: calc(100cqw * 0.07) 0 0 7%;
+  }
+
+  body.world-poker-near-me .pnm-map-surface:not(.pnm-map-surface--fullscreen) .pnm-map-surface__controls {
+    position: static;
+    width: auto;
+    flex: 0 0 auto;
+    margin: calc(100cqw * 0.07) 7% 0 0;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body.world-poker-near-me .pnm-map-surface *,
+  body.world-poker-near-me .pnm-map-surface *::before,
+  body.world-poker-near-me .pnm-map-surface *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+  }
+}

@@ -1,13 +1,19 @@
 /**
- * CELEBRATION EFFECTS — Visual feedback and animations for trivia
- * Confetti, sounds, and dramatic popups
+ * CELEBRATION EFFECTS - Visual feedback for trivia
+ * Confetti, the perfect-score moment and the achievement unlock.
+ *
+ * #ClubArenaConsole: celebrations print as lit ink. The modal moments
+ * (achievement unlocked, perfect score) open on the painted TriviaConsoleDialog
+ * chassis; nothing here draws a card, gradient, rounded toast, icon glyph or
+ * hover state. Every trigger, timing and dismissal is unchanged.
  */
 
 import React, { useEffect, useState, useCallback, useRef, useMemo } from 'react';
-import { Trophy, Star, Crown, Target, Award } from 'lucide-react';
+import TriviaConsoleDialog from './console/TriviaConsoleDialog';
+import { toTitleCase } from '../../lib/trivia/titleCase';
 
-// Confetti configuration
-const CONFETTI_COLORS = ['#00d4ff', '#ffd700', '#ff6b6b', '#22c55e', '#a78bfa', '#f472b6'];
+// Confetti uses the master's own inks only (#ClubArenaConsole 3.4).
+const CONFETTI_COLORS = ['#ffd700', '#45adff', '#c8ffd2', '#e4e7ec', '#f4f7fb', '#1877f2'];
 const CONFETTI_COUNT = 100;
 const CONFETTI_COUNT_MOBILE = 60;
 
@@ -24,7 +30,8 @@ function isSmallScreen() {
 }
 
 /**
- * Confetti explosion effect
+ * Confetti explosion effect. Transform/opacity only; skipped entirely for
+ * reduced motion. Styles live in trivia-console-play.css.
  */
 export function ConfettiExplosion({ duration = 3000, onComplete }) {
     const [particles, setParticles] = useState([]);
@@ -53,7 +60,6 @@ export function ConfettiExplosion({ duration = 3000, onComplete }) {
             rotationSpeed: (Math.random() - 0.5) * 20,
             color: CONFETTI_COLORS[Math.floor(Math.random() * CONFETTI_COLORS.length)],
             size: Math.random() * 8 + 4,
-            shape: Math.random() > 0.5 ? 'rect' : 'circle'
         }));
 
         setParticles(newParticles);
@@ -67,11 +73,11 @@ export function ConfettiExplosion({ duration = 3000, onComplete }) {
     }, [duration]);
 
     return (
-        <div className="confetti-container">
+        <div className="trivia-confetti" aria-hidden="true">
             {particles.map(p => (
                 <div
                     key={p.id}
-                    className={`confetti ${p.shape}`}
+                    className="trivia-confetti__piece"
                     style={{
                         '--x': `${p.x}%`,
                         '--y': `${p.y}%`,
@@ -85,60 +91,16 @@ export function ConfettiExplosion({ duration = 3000, onComplete }) {
                     }}
                 />
             ))}
-            <style dangerouslySetInnerHTML={{ __html: `
-                .confetti-container {
-                    position: fixed;
-                    top: 0;
-                    left: 0;
-                    right: 0;
-                    bottom: 0;
-                    pointer-events: none;
-                    z-index: 9999;
-                    overflow: hidden;
-                }
-                
-                .confetti {
-                    position: absolute;
-                    left: var(--x);
-                    top: var(--y);
-                    width: var(--size);
-                    height: var(--size);
-                    background: var(--color);
-                    /* transform/opacity only, promoted to its own layer */
-                    will-change: transform, opacity;
-                    animation: confettiFall linear forwards;
-                }
-
-                @media (prefers-reduced-motion: reduce) {
-                    .confetti { display: none; }
-                }
-                
-                .confetti.rect {
-                    border-radius: 2px;
-                }
-                
-                .confetti.circle {
-                    border-radius: 50%;
-                }
-                
-                @keyframes confettiFall {
-                    0% {
-                        transform: translate(0, 0) rotate(var(--rotation));
-                        opacity: 1;
-                    }
-                    100% {
-                        transform: translate(calc(var(--vx) * 10px), calc(100vh + var(--vy) * -30px)) 
-                                   rotate(calc(var(--rotation) + var(--rotation-speed) * 360deg));
-                        opacity: 0;
-                    }
-                }
-            ` }} />
         </div>
     );
 }
 
+const RARITY_INK = Object.freeze({ legendary: 'gold', epic: 'gold', rare: 'blue', common: 'silver' });
+
 /**
- * Achievement unlock popup
+ * Achievement unlock, printed on the painted console dialog. Auto-closes
+ * after `autoClose` ms exactly as the old toast did; Close, Escape and the
+ * backdrop dismiss it early.
  */
 export function AchievementToast({
     achievement,
@@ -152,221 +114,36 @@ export function AchievementToast({
         }
     }, [autoClose, onClose]);
 
-    const getIcon = () => {
-        switch (achievement.rarity) {
-            case 'legendary': return Crown;
-            case 'epic': return Star;
-            case 'rare': return Award;
-            default: return Trophy;
-        }
-    };
-
-    const Icon = getIcon();
+    const rarity = String(achievement?.rarity || 'common').toLowerCase();
+    const ink = RARITY_INK[rarity] || 'silver';
 
     return (
-        <div className={`achievement-toast ${achievement.rarity || 'common'}`}>
-            <div className="toast-glow" />
-            <div className="toast-icon">
-                <Icon size={28} />
+        <TriviaConsoleDialog
+            open
+            onClose={onClose}
+            eyebrow="Achievement Unlocked"
+            title={toTitleCase(String(achievement?.name || 'Achievement'))}
+            pill={toTitleCase(rarity)}
+            secondaryAction={{ label: 'Close', onClick: onClose }}
+        >
+            <div className="trivia-achievement" data-rarity={rarity}>
+                {achievement?.description ? (
+                    <p className={`trivia-console-copy tc-ink--${ink}`}>
+                        {toTitleCase(String(achievement.description))}
+                    </p>
+                ) : null}
             </div>
-            <div className="toast-content">
-                <div className="toast-label">ACHIEVEMENT UNLOCKED</div>
-                <div className="toast-name">{achievement.name}</div>
-                <div className="toast-description">{achievement.description}</div>
-            </div>
-            <button className="toast-close" onClick={onClose}>×</button>
-
-            <style dangerouslySetInnerHTML={{ __html: `
-                .achievement-toast {
-                    position: fixed;
-                    top: 100px;
-                    left: 50%;
-                    transform: translateX(-50%);
-                    display: flex;
-                    align-items: center;
-                    gap: 16px;
-                    padding: 16px 24px;
-                    background: linear-gradient(135deg, rgba(26, 39, 68, 0.95) 0%, rgba(10, 22, 40, 0.98) 100%);
-                    border: 2px solid;
-                    border-radius: 12px;
-                    z-index: 10000;
-                    animation: toastSlideIn 0.5s ease-out, toastGlow 2s ease-in-out infinite;
-                    min-width: 300px;
-                    max-width: 400px;
-                }
-                
-                .achievement-toast.common {
-                    border-color: #60a5fa;
-                    --glow-color: rgba(96, 165, 250, 0.4);
-                }
-                
-                .achievement-toast.rare {
-                    border-color: #a78bfa;
-                    --glow-color: rgba(167, 139, 250, 0.4);
-                }
-                
-                .achievement-toast.epic {
-                    border-color: #fbbf24;
-                    --glow-color: rgba(251, 191, 36, 0.4);
-                }
-                
-                .achievement-toast.legendary {
-                    border-color: #ffd700;
-                    --glow-color: rgba(255, 215, 0, 0.5);
-                    animation: toastSlideIn 0.5s ease-out, legendaryPulse 1.5s ease-in-out infinite;
-                }
-                
-                @keyframes toastSlideIn {
-                    from { 
-                        transform: translateX(-50%) translateY(-100px);
-                        opacity: 0;
-                    }
-                    to {
-                        transform: translateX(-50%) translateY(0);
-                        opacity: 1;
-                    }
-                }
-                
-                @keyframes toastGlow {
-                    0%, 100% { box-shadow: 0 0 20px var(--glow-color); }
-                    50% { box-shadow: 0 0 40px var(--glow-color); }
-                }
-                
-                @keyframes legendaryPulse {
-                    0%, 100% { 
-                        box-shadow: 0 0 30px rgba(255, 215, 0, 0.5), 0 0 60px rgba(255, 215, 0, 0.3);
-                        transform: translateX(-50%) scale(1);
-                    }
-                    50% { 
-                        box-shadow: 0 0 50px rgba(255, 215, 0, 0.7), 0 0 100px rgba(255, 215, 0, 0.4);
-                        transform: translateX(-50%) scale(1.02);
-                    }
-                }
-                
-                .toast-glow {
-                    position: absolute;
-                    inset: -2px;
-                    border-radius: 14px;
-                    background: linear-gradient(45deg, transparent 40%, var(--glow-color) 50%, transparent 60%);
-                    background-size: 200% 200%;
-                    animation: shimmer 2s linear infinite;
-                    z-index: -1;
-                }
-                
-                @keyframes shimmer {
-                    0% { background-position: 200% 0; }
-                    100% { background-position: -200% 0; }
-                }
-                
-                .toast-icon {
-                    width: 48px;
-                    height: 48px;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    background: rgba(255, 255, 255, 0.1);
-                    border-radius: 12px;
-                    color: currentColor;
-                }
-                
-                .achievement-toast.common .toast-icon { color: #60a5fa; }
-                .achievement-toast.rare .toast-icon { color: #a78bfa; }
-                .achievement-toast.epic .toast-icon { color: #fbbf24; }
-                .achievement-toast.legendary .toast-icon { color: #ffd700; }
-                
-                .toast-content {
-                    flex: 1;
-                }
-                
-                .toast-label {
-                    font-size: 10px;
-                    text-transform: uppercase;
-                    letter-spacing: 0.1em;
-                    color: rgba(255, 255, 255, 0.5);
-                    margin-bottom: 2px;
-                }
-                
-                .toast-name {
-                    font-size: 16px;
-                    font-weight: 700;
-                    color: #fff;
-                    margin-bottom: 2px;
-                }
-                
-                .toast-description {
-                    font-size: 12px;
-                    color: rgba(255, 255, 255, 0.6);
-                }
-                
-                .toast-close {
-                    background: none;
-                    border: none;
-                    color: rgba(255, 255, 255, 0.4);
-                    font-size: 24px;
-                    cursor: pointer;
-                    padding: 0 8px;
-                    transition: color 0.2s;
-                }
-                
-                .toast-close:hover {
-                    color: #fff;
-                }
-            ` }} />
-        </div>
+        </TriviaConsoleDialog>
     );
 }
 
 /**
- * Correct answer flash effect
+ * Correct answer flash: one lit word, gone in half a second.
  */
 export function CorrectAnswerFlash() {
     return (
-        <div className="correct-flash">
-            <div className="flash-overlay" />
-            <div className="flash-icon">
-                <Target size={64} />
-            </div>
-            <style dangerouslySetInnerHTML={{ __html: `
-                .correct-flash {
-                    position: fixed;
-                    inset: 0;
-                    pointer-events: none;
-                    z-index: 9998;
-                    animation: flashIn 0.5s ease-out forwards;
-                }
-                
-                .flash-overlay {
-                    position: absolute;
-                    inset: 0;
-                    background: radial-gradient(circle at center, rgba(34, 197, 94, 0.3) 0%, transparent 70%);
-                    animation: pulseOut 0.5s ease-out forwards;
-                }
-                
-                .flash-icon {
-                    position: absolute;
-                    top: 50%;
-                    left: 50%;
-                    transform: translate(-50%, -50%);
-                    color: #22c55e;
-                    animation: iconPop 0.5s ease-out forwards;
-                }
-                
-                @keyframes flashIn {
-                    from { opacity: 0; }
-                    to { opacity: 1; }
-                }
-                
-                @keyframes pulseOut {
-                    0% { transform: scale(0.5); opacity: 1; }
-                    100% { transform: scale(2); opacity: 0; }
-                }
-                
-                @keyframes iconPop {
-                    0% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
-                    50% { transform: translate(-50%, -50%) scale(1.2); opacity: 1; }
-                    100% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
-                }
-            ` }} />
+        <div className="trivia-correct-flash" aria-hidden="true">
+            <span className="tc-ink--green">Correct</span>
         </div>
     );
 }
@@ -374,12 +151,12 @@ export function CorrectAnswerFlash() {
 /**
  * Wrong answer shake effect.
  *
- * The original implementation styled `.wrong-shake ~ *` — the subsequent-
+ * The original implementation styled `.wrong-shake ~ *` - the subsequent-
  * sibling combinator. This component renders LAST inside the celebration
  * fragment, so it has no following siblings and nothing ever shook. It now
  * toggles a class on a real ancestor (document.body by default) for the
  * duration of the animation, which is how the rest of the app does screen
- * shake.
+ * shake. The keyframes live in trivia-console-play.css.
  */
 const SHAKE_CLASS = 'trivia-screen-shake';
 const SHAKE_MS = 400;
@@ -405,133 +182,28 @@ export function WrongAnswerShake({ target = null, duration = SHAKE_MS }) {
         };
     }, [target, duration]);
 
-    return (
-        <style dangerouslySetInnerHTML={{ __html: `
-            .${SHAKE_CLASS} {
-                animation: triviaScreenShake ${duration}ms ease-in-out;
-            }
-
-            @keyframes triviaScreenShake {
-                0%, 100% { transform: translate3d(0, 0, 0); }
-                20% { transform: translate3d(-10px, 0, 0); }
-                40% { transform: translate3d(10px, 0, 0); }
-                60% { transform: translate3d(-5px, 0, 0); }
-                80% { transform: translate3d(5px, 0, 0); }
-            }
-
-            @media (prefers-reduced-motion: reduce) {
-                .${SHAKE_CLASS} { animation: none; }
-            }
-        ` }} />
-    );
+    return null;
 }
 
 /**
- * Perfect score celebration
+ * Perfect score celebration: confetti plus the moment itself, printed in gold
+ * ink on the painted console dialog. The hook closes it after 4 seconds.
  */
-export function PerfectScoreCelebration({ onComplete }) {
+export function PerfectScoreCelebration({ onClose }) {
     return (
-        <div className="perfect-celebration">
+        <>
             <ConfettiExplosion duration={4000} />
-            <div className="perfect-content">
-                <div className="perfect-stars">
-                    <Star className="star s1" />
-                    <Star className="star s2" />
-                    <Star className="star s3" />
-                </div>
-                <h2 className="perfect-title">PERFECT!</h2>
-                <p className="perfect-subtitle">Flawless Victory</p>
-            </div>
-
-            <style dangerouslySetInnerHTML={{ __html: `
-                .perfect-celebration {
-                    position: fixed;
-                    inset: 0;
-                    background: rgba(0, 0, 0, 0.8);
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    z-index: 9997;
-                    animation: fadeIn 0.3s ease-out;
-                }
-                
-                @keyframes fadeIn {
-                    from { opacity: 0; }
-                    to { opacity: 1; }
-                }
-                
-                .perfect-content {
-                    text-align: center;
-                    animation: contentPop 0.5s ease-out;
-                }
-                
-                @keyframes contentPop {
-                    0% { transform: scale(0.5); opacity: 0; }
-                    70% { transform: scale(1.1); }
-                    100% { transform: scale(1); opacity: 1; }
-                }
-                
-                .perfect-stars {
-                    display: flex;
-                    justify-content: center;
-                    gap: 16px;
-                    margin-bottom: 20px;
-                }
-                
-                /* :global() is styled-jsx / CSS-Modules syntax and is INVALID
-                   in a plain <style> element — browsers dropped these rules,
-                   so the three stars rendered unsized, uncoloured and
-                   unanimated. The classNames are already on the elements. */
-                .perfect-stars .star {
-                    width: 48px;
-                    height: 48px;
-                    color: #ffd700;
-                    filter: drop-shadow(0 0 10px rgba(255, 215, 0, 0.8));
-                }
-
-                .perfect-stars .s1 { animation: starPop 0.5s ease-out 0.1s backwards; }
-                .perfect-stars .s2 { animation: starPop 0.5s ease-out 0.2s backwards; }
-                .perfect-stars .s3 { animation: starPop 0.5s ease-out 0.3s backwards; }
-                
-                @keyframes starPop {
-                    0% { transform: scale(0) rotate(-180deg); opacity: 0; }
-                    100% { transform: scale(1) rotate(0); opacity: 1; }
-                }
-                
-                .perfect-title {
-                    font-family: 'Rajdhani', sans-serif;
-                    font-size: 48px;
-                    font-weight: 900;
-                    color: #ffd700;
-                    margin: 0 0 8px 0;
-                    text-shadow: 0 0 30px rgba(255, 215, 0, 0.8), 0 0 60px rgba(255, 215, 0, 0.4);
-                    animation: textGlow 1s ease-in-out infinite;
-                }
-                
-                @keyframes textGlow {
-                    0%, 100% { text-shadow: 0 0 30px rgba(255, 215, 0, 0.8), 0 0 60px rgba(255, 215, 0, 0.4); }
-                    50% { text-shadow: 0 0 50px rgba(255, 215, 0, 1), 0 0 100px rgba(255, 215, 0, 0.6); }
-                }
-                
-                .perfect-subtitle {
-                    font-size: 18px;
-                    color: rgba(255, 255, 255, 0.7);
-                    margin: 0;
-                }
-
-                @media (prefers-reduced-motion: reduce) {
-                    .perfect-celebration,
-                    .perfect-content,
-                    .perfect-stars .star,
-                    .perfect-stars .s1,
-                    .perfect-stars .s2,
-                    .perfect-stars .s3,
-                    .perfect-title {
-                        animation: none;
-                    }
-                }
-            ` }} />
-        </div>
+            <TriviaConsoleDialog
+                open
+                onClose={onClose}
+                eyebrow="Every Answer Correct"
+                title="Perfect"
+                pill="Flawless"
+                secondaryAction={onClose ? { label: 'Continue', onClick: onClose } : undefined}
+            >
+                <p className="trivia-perfect__line tc-ink--gold">Flawless Victory</p>
+            </TriviaConsoleDialog>
+        </>
     );
 }
 
@@ -551,15 +223,18 @@ const Celebrations = React.memo(function Celebrations({
     showWrong,
     achievement,
     onConfettiDone,
-    onAchievementClose
+    onAchievementClose,
+    onPerfectClose
 }) {
     return (
         <>
             {showConfetti && <ConfettiExplosion onComplete={onConfettiDone} />}
-            {showPerfect && <PerfectScoreCelebration />}
+            {showPerfect && <PerfectScoreCelebration onClose={onPerfectClose} />}
             {showCorrect && <CorrectAnswerFlash />}
             {showWrong && <WrongAnswerShake />}
-            {achievement && (
+            {/* One console dialog at a time: an achievement earned on a
+                perfect run opens once the perfect moment has closed. */}
+            {achievement && !showPerfect && (
                 <AchievementToast
                     achievement={achievement}
                     onClose={onAchievementClose}
@@ -573,8 +248,8 @@ const Celebrations = React.memo(function Celebrations({
  * Hook to manage celebration effects.
  *
  * Returns both:
- *   celebrationElements   — render directly: {celebrations.celebrationElements}
- *   CelebrationComponents — stable-identity component, safe either as
+ *   celebrationElements   - render directly: {celebrations.celebrationElements}
+ *   CelebrationComponents - stable-identity component, safe either as
  *                           {celebrations.CelebrationComponents()} or
  *                           <celebrations.CelebrationComponents />
  */
@@ -632,6 +307,7 @@ export function useCelebrations() {
 
     const handleConfettiDone = useCallback(() => setShowConfetti(false), []);
     const handleAchievementClose = useCallback(() => setAchievement(null), []);
+    const handlePerfectClose = useCallback(() => setShowPerfect(false), []);
 
     const celebrationElements = useMemo(() => (
         <Celebrations
@@ -642,8 +318,9 @@ export function useCelebrations() {
             achievement={achievement}
             onConfettiDone={handleConfettiDone}
             onAchievementClose={handleAchievementClose}
+            onPerfectClose={handlePerfectClose}
         />
-    ), [showConfetti, showPerfect, showCorrect, showWrong, achievement, handleConfettiDone, handleAchievementClose]);
+    ), [showConfetti, showPerfect, showCorrect, showWrong, achievement, handleConfettiDone, handleAchievementClose, handlePerfectClose]);
 
     // Stable function identity for the whole lifetime of the hook. It reads
     // the latest element from a ref, so calling it OR rendering it as a

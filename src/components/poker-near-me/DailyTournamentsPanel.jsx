@@ -620,7 +620,7 @@ export default function DailyTournamentsPanel({ tournaments = [], onDayChange, o
 
       {/* Results count */}
       <div style={{ fontSize: 12, color: 'rgba(148,163,184,0.5)', marginBottom: 10 }}>
-        <span style={{ color: '#ffffff', fontWeight: 700 }}>{filtered.length}</span> tournament{filtered.length !== 1 ? 's' : ''}
+        <span style={{ color: '#ffffff', fontWeight: 700 }}>{filtered.length}</span> {filtered.length !== 1 ? 'tournaments' : 'tournament'}
         {gameType !== 'all' && <span> ({gameType})</span>}
         {selectedState && selectedState !== 'all' && <span> In <span style={{ color: '#ffffff' }}>{selectedState}</span></span>}
       </div>

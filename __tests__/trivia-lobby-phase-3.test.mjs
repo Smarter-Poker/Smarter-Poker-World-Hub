@@ -12,13 +12,15 @@ const LOBBY = read('src/components/trivia/TriviaLobby.jsx');
 const HUB_PAGE = read('pages/hub/trivia/index.js');
 const HUB_CSS = read('src/styles/trivia/TriviaHub.module.css');
 
-test('the trivia loading state uses scoped CSS instead of hydration-sensitive style text', () => {
+test('the trivia loading state uses scoped Console status instead of a nested frame', () => {
     assert.match(SKELETON, /import styles from '\.\/TriviaSkeleton\.module\.css'/);
     assert.doesNotMatch(SKELETON, /<style>/);
     assert.doesNotMatch(SKELETON, /<style jsx/);
+    assert.doesNotMatch(SKELETON, /MetalFrame|lucide-react|framer-motion/);
     assert.match(SKELETON, /className=\{styles\.container\}/);
-    assert.match(SKELETON_CSS, /@media \(prefers-reduced-motion: no-preference\)/);
-    assert.match(SKELETON_CSS, /\.shimmerBlock::after/);
+    assert.match(SKELETON_CSS, /@media \(prefers-reduced-motion: reduce\)/);
+    assert.match(SKELETON_CSS, /\.pulseRail span/);
+    assert.doesNotMatch(SKELETON_CSS, /gradient|border-radius|box-shadow/i);
 });
 
 test('the trivia page shell also keeps CSS out of server-rendered style text', () => {
@@ -43,6 +45,6 @@ test('mode filters support roving keyboard navigation and keep the active choice
 
 test('phase five keeps every game definition, artwork, and destination intact', () => {
     assert.equal(TRIVIA_MIDDLE_MODES.length, 13);
-    assert.ok(TRIVIA_MIDDLE_MODES.every(mode => mode.image.startsWith('/images/trivia/modes-v2/')));
+    assert.ok(TRIVIA_MIDDLE_MODES.every(mode => mode.image.startsWith('/images/trivia/modes-console-v1/')));
     assert.match(LOBBY, /router\.push\(getModeRoute\(modeId\)\)/);
 });

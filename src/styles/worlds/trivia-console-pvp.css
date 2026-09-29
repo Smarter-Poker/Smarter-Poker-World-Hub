@@ -1,0 +1,239 @@
+/*
+ * Trivia PvP (/hub/trivia/pvp). Owned by the pvp surface; the colour law and
+ * the shared inks, rows and lit words live in trivia-console.css.
+ *
+ * The chassis (crest, header well, pill slot, rails, plates, flat foot) is
+ * the painted spade-console master. This file only lays live copy, rows and
+ * the question onto its black glass: no cards, no gradients, no drawn
+ * borders, no box-shadow depth, no hover states.
+ */
+
+.trivia-pvp-page {
+    color: var(--tc-ink-silver);
+    background: var(--tc-black);
+}
+
+.trivia-pvp-shell {
+    width: 100%;
+    min-width: 0;
+}
+
+.trivia-pvp-console {
+    --tc-max: 1000px;
+}
+
+.trivia-pvp-console :is(h2, p, ul) {
+    margin: 0;
+}
+
+.trivia-pvp-stage {
+    display: grid;
+    gap: clamp(14px, 3cqw, 26px);
+    min-width: 0;
+}
+
+/* The mode picture: approved scene art, shown as a plain image on the glass. */
+.trivia-pvp-hero {
+    display: block;
+    width: 100%;
+    height: auto;
+}
+
+.trivia-pvp-intro {
+    color: var(--tc-ink-silver);
+}
+
+.trivia-pvp-rows,
+.trivia-pvp-scoreboard {
+    min-width: 0;
+}
+
+/* A player's name printed as a row label: long handles wrap, never overflow. */
+.trivia-pvp-page .tc-row__label,
+.trivia-pvp-name {
+    overflow-wrap: anywhere;
+}
+
+.trivia-pvp-page .tc-row {
+    align-items: center;
+}
+
+.trivia-pvp-page .tc-row__label {
+    flex: 1 1 auto;
+}
+
+/* Values are short (a score, a count, a price): they never break mid-word. */
+.trivia-pvp-page .tc-row__value {
+    flex: 0 0 auto;
+    white-space: nowrap;
+    overflow-wrap: normal;
+}
+
+/* A row whose VALUE is a player's name: the label holds, the name wraps. */
+.trivia-pvp-page .trivia-pvp-row--name .tc-row__label {
+    flex: 0 0 auto;
+}
+
+.trivia-pvp-page .trivia-pvp-row--name .tc-row__value {
+    flex: 1 1 auto;
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+
+/* Stake choice: a lit word per stake, the payout printed beside it. */
+.trivia-pvp-stakes {
+    display: grid;
+    gap: clamp(6px, 1.4cqw, 12px);
+    min-width: 0;
+}
+
+.trivia-pvp-stakes__title {
+    font-size: max(13px, 3cqw);
+    text-align: center;
+}
+
+.trivia-pvp-stake {
+    padding-top: 0.4cqw;
+    padding-bottom: 0.4cqw;
+}
+
+.trivia-pvp-stake__pick {
+    min-width: 44px;
+    padding-left: 0;
+    font-size: max(15px, 3.6cqw);
+    text-align: left;
+}
+
+.trivia-pvp-stake[data-affordable='false'] .tc-row__value {
+    font-size: max(12px, 2.8cqw);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.trivia-pvp-note {
+    color: var(--tc-ink-muted);
+    font: 500 max(12px, 2.8cqw) / 1.5 Inter, system-ui, sans-serif;
+    text-align: center;
+    text-shadow: 0 0.2cqw 0.3cqw rgb(0 0 0 / 80%);
+}
+
+.trivia-pvp-status {
+    color: var(--tc-ink-white);
+    font-size: max(15px, 3.6cqw);
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    line-height: 1.35;
+    text-align: center;
+    text-transform: uppercase;
+    text-shadow: 0 0 1cqw rgb(69 173 255 / 90%), 0 0.25cqw 0 rgb(0 0 0 / 70%);
+}
+
+.trivia-pvp-expired {
+    display: grid;
+    gap: clamp(8px, 1.8cqw, 16px);
+}
+
+/* Error / refund notice printed on the glass in the refusal ink. */
+.trivia-pvp-alert {
+    display: grid;
+    justify-items: center;
+    gap: clamp(4px, 1cqw, 10px);
+    margin-bottom: clamp(12px, 2.6cqw, 22px);
+    padding-bottom: clamp(8px, 1.6cqw, 14px);
+    border-bottom: var(--tc-rule);
+    box-shadow: 0 1px 0 rgb(244 247 251 / 8%);
+    text-align: center;
+}
+
+.trivia-pvp-alert__text {
+    color: var(--tc-ink-red);
+    font-size: max(14px, 3.4cqw);
+    font-weight: 800;
+    line-height: 1.4;
+    text-shadow: 0 0 1cqw rgb(240 40 73 / 80%), 0 0.25cqw 0 rgb(0 0 0 / 70%);
+}
+
+.trivia-pvp-alert__note {
+    color: var(--tc-ink-muted);
+    font: 500 max(12px, 2.8cqw) / 1.5 Inter, system-ui, sans-serif;
+}
+
+/* Battle */
+.trivia-pvp-scoreboard .tc-row__label {
+    flex: 1 1 auto;
+}
+
+.trivia-pvp-scoreboard .tc-row__value {
+    flex: 0 0 auto;
+    font-size: max(20px, 5.4cqw);
+    white-space: nowrap;
+    overflow-wrap: normal;
+}
+
+.trivia-pvp-thinking {
+    color: var(--tc-ink-muted);
+    font-size: max(12px, 2.8cqw);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    animation: trivia-pvp-thinking 1.4s ease-in-out infinite;
+}
+
+@keyframes trivia-pvp-thinking {
+    0%, 100% { opacity: 0.45; }
+    50% { opacity: 1; }
+}
+
+.trivia-pvp-marks {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: clamp(10px, 2.4cqw, 22px);
+    font-size: max(14px, 3.2cqw);
+    font-weight: 800;
+    font-variant-numeric: tabular-nums lining-nums;
+}
+
+.trivia-pvp-mark { color: var(--tc-ink-muted); }
+.trivia-pvp-mark[data-outcome='current'] { color: var(--tc-ink-white); text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 0.8cqw; }
+.trivia-pvp-mark[data-outcome='correct'] { color: var(--tc-ink-green); text-shadow: 0 0 1cqw rgb(53 217 90 / 80%); }
+.trivia-pvp-mark[data-outcome='wrong'] { color: var(--tc-ink-red); text-shadow: 0 0 1cqw rgb(240 40 73 / 80%); }
+
+.trivia-pvp-question {
+    color: var(--tc-ink-white);
+    font: 700 clamp(18px, 4.4cqw, 32px) / 1.35 Inter, system-ui, sans-serif;
+    text-align: center;
+    overflow-wrap: anywhere;
+    text-shadow: 0 0.25cqw 0.4cqw rgb(0 0 0 / 85%);
+}
+
+.trivia-pvp-options {
+    display: grid;
+    gap: clamp(8px, 1.8cqw, 14px);
+    min-width: 0;
+}
+
+.trivia-pvp-report {
+    display: flex;
+    justify-content: center;
+}
+
+.trivia-pvp-meta {
+    color: var(--tc-ink-muted);
+    font-size: max(12px, 2.6cqw);
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-align: center;
+    text-transform: uppercase;
+    overflow-wrap: anywhere;
+}
+
+/* The one extra action inside the VIP dialog: a lit word on its glass. */
+.trivia-pvp-dialog-actions {
+    display: flex;
+    justify-content: center;
+    margin: clamp(8px, 2cqw, 16px) 0 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .trivia-pvp-thinking { animation: none; opacity: 1; }
+}

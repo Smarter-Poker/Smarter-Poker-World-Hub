@@ -28,12 +28,29 @@ import '../src/styles/worlds/personal-assistant.css';
 import '../src/styles/worlds/bankroll.css';
 import '../src/styles/tutorial.css';
 import '../src/styles/worlds/trivia.css';
+import '../src/styles/worlds/trivia-console.css';
+import '../src/styles/worlds/trivia-console-progress.css';
+import '../src/styles/worlds/trivia-console-play.css';
+import '../src/styles/worlds/trivia-console-challenge.css';
+import '../src/styles/worlds/trivia-console-strategy.css';
+import '../src/styles/worlds/trivia-console-pvp.css';
+import '../src/styles/worlds/trivia-console-tournaments.css';
 import '../src/styles/commander-futuristic.css';
 import '../styles/landing.css';
 import '../styles/avatar-shimmer.css';
 import '../styles/poker-near-me.css';
 import '../src/styles/worlds/poker-near-me-machined.css';
 import '../src/styles/worlds/poker-near-me-command-surfaces.css';
+import '../src/styles/worlds/poker-near-me-console.css';
+import '../src/styles/worlds/poker-near-me-console-deep.css';
+import '../src/styles/worlds/poker-near-me-console-search.css';
+import '../src/styles/worlds/poker-near-me-console-nav.css';
+import '../src/styles/worlds/poker-near-me-console-dialogs.css';
+import '../src/styles/worlds/poker-near-me-console-surfaces.css';
+import '../src/styles/worlds/poker-near-me-console-map.css';
+import '../src/styles/worlds/poker-near-me-console-cards.css';
+import '../src/styles/worlds/poker-near-me-console-tools.css';
+import '../src/styles/worlds/poker-near-me-console-menu.css';
 import {
   Orbitron,
   Inter,

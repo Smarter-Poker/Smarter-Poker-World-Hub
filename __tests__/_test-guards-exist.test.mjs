@@ -184,6 +184,10 @@ import './safe-profile-columns-are-granted.test.mjs';
 // PublicGameBoard - the exact shape section 10.8 names: a check nobody can see
 // is not a check. Fixed and wired in here so it runs in CHECK 8.
 import './social-poker-card-picker.test.mjs';
+// 2026-09-21: the picker and the composer card controls rendered and driven
+// for real - spoken card names, 44px targets, whole streets only, focus,
+// long press, and the drafts of a video post that uploads in the background.
+import './social-poker-card-picker-interaction.test.mjs';
 import './store-commerce-hardening.test.mjs';
 // 2026-09-05, the diamond wallet audit. Caught by this file's own meta-guard
 // before it could become another guard nobody runs: the law was written, passed
@@ -221,6 +225,11 @@ import './training-production-smoke-contract.test.mjs';
 import './training-route-runtime-inventory.test.mjs';
 import './training-request-deadline.test.mjs';
 import './training-surface-inventory.test.mjs';
+// The Trivia console redesign, 2026-09-21: every Trivia surface stays on the
+// painted Club Arena chassis with the master inks, the footer law, thirteen
+// distinct middle artworks, a black canvas, the schema focus ring and the
+// default-off PvP and Tournament gates.
+import './trivia-console-contract.test.mjs';
 import './trivia-pvp-containment.test.mjs';
 import './trivia-tournament-containment.test.mjs';
 import './trivia-ui-foundation.test.mjs';
@@ -360,6 +369,28 @@ import './an-rpc-call-names-a-live-function.law.test.mjs';
 // for them), and fails open per recipient. Imported here so CHECK 8 runs it
 // on every pull request.
 import './push-health-alert-cooldown.test.mjs';
+// 2026-09-28: push-health never addresses the owner account personally; what it
+// finds is recorded for the Production Alerts task as store episodes that
+// coalesce while a condition persists (resolved on the same source when
+// push-health can see it clear, otherwise closed by that task), and a notice
+// that reaches him anyway is detected. Runs the real route and gateway.
+// Imported here so CHECK 8 runs it on every pull request (the workflow is too
+// large to edit through the publishing bridge).
+import './push-health-owner-alert-episodes.test.mjs';
+// 2026-09-28, review round 2: those episodes move only on evidence. A device
+// that is merely not pushed, a failed read or a quiet day never resolves one;
+// what a run whose store write was refused observed reaches the store with a
+// later run; every line the admins are told has its own addressed episode.
+// Shares push-health-alert-harness.mjs (not a suite).
+import './push-health-alert-evidence.test.mjs';
+// 2026-09-28, review rounds 3 and 4: a condition that clears only when devices
+// change is closed by the Production Alerts fleet, never by push-health (a
+// replaced, retired or not-yet-pushed device looks like one that recovered); a
+// refused run's observations are kept, with no evidence about the owner account,
+// and replayed by the one run that claims them, never reopening an episode the
+// fleet closed (review r25); a run whose detector could not look does not move
+// its window; every rotation is recorded once.
+import './push-health-alert-positive-evidence.test.mjs';
 
 const REPO = path.resolve(new URL('.', import.meta.url).pathname, '..');
 
@@ -409,6 +440,8 @@ const REQUIRED_TEST_FILES = [
     '__tests__/trivia-ui-foundation.test.mjs',
     '__tests__/trivia-pvp-containment.test.mjs',
     '__tests__/trivia-tournament-containment.test.mjs',
+    // The console contract: chassis, inks, footer law and artwork families.
+    '__tests__/trivia-console-contract.test.mjs',
     // Club shop item rules. shopItemRules.js is the single validator shared by
     // BOTH admin write paths; before it existed the two disagreed and items
     // created from the World Hub granted nothing on redeem, accepted any image

@@ -14,14 +14,10 @@ import { useAvatar } from '../../../src/contexts/AvatarContext';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import TriviaErrorBoundary from '../../../src/components/trivia/TriviaErrorBoundary';
-import {
-    Target, BookOpen, Award, Trophy, Flame, Zap, Crown, CheckCircle, Gem, Star,
-    Brain, GraduationCap, Library, BadgeCheck, Crosshair, Eye, Scroll, Scale,
-    Wand2, Dumbbell, Shield, Sparkles, Gauge, Wind, Coins, TrendingUp, Waves,
-    Moon, Sunrise, RefreshCw, Footprints
-} from 'lucide-react';
+import TriviaConsole from '../../../src/components/trivia/console/TriviaConsole';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { busEmit } from '../../../src/engine/EventBus';
+import { formatTriviaDisplayNumber } from '../../../src/lib/trivia/formatTriviaDisplayNumber';
 import {
     TRIVIA_ACHIEVEMENTS,
     ACHIEVEMENT_CATEGORIES,
@@ -41,18 +37,6 @@ import {
 // exist, no rewards at all), so a player could be told they had unlocked
 // something the game never granted — and vice versa. Everything below is
 // rendering metadata for the shared list, never a second source of truth.
-
-/** icon name (string, from the config) -> lucide component. */
-const ICONS = {
-    Target, BookOpen, Brain, Star, GraduationCap, Library,
-    BadgeCheck, Crosshair, Eye, Scroll, Scale, Wand2,
-    Flame, Dumbbell, Trophy, Shield, Crown, Sparkles,
-    Zap, Gauge, Wind,
-    Gem, Coins, TrendingUp, Waves,
-    Moon, Sunrise, RefreshCw, Footprints,
-    Award, CheckCircle
-};
-const iconFor = (name) => ICONS[name] || Award;
 
 /**
  * Progress bars for the countable achievements: achievement id -> the stats
@@ -83,6 +67,28 @@ const PROGRESS = {
     arcade_whale: ['arcadeDiamondsEarned', 2000],
     comeback_kid: ['comebackWins', 1],
     marathon: ['maxGamesInDay', 10]
+};
+
+/**
+ * Title Case for strings that reach the screen from data (the copy gates only
+ * read literals). Raises the first letter of every word and never lowers the
+ * rest, so acronyms and names survive ('8 PM', 'MTT', '1v1', 'GTO'), and
+ * writes clock times as '2 AM'. The shared toTitleCase lowers everything
+ * after the first letter ('PM' -> 'Pm', '2am' -> '2Am'), so it is not used
+ * for these strings.
+ */
+function printTitle(text) {
+    return String(text ?? '')
+      .replace(/(\d)\s?(am|pm)\b/gi, (match, digit, meridiem) => `${digit} ${meridiem.toUpperCase()}`)
+      .replace(/(^|[\s_\-/(])(\p{Ll})/gu, (match, lead, letter) => lead + letter.toUpperCase());
+}
+
+/** Rarity is printed in a schema ink, never the config's own off-schema colour. */
+const RARITY_INK = {
+    common: 'tc-ink--muted',
+    rare: 'tc-ink--blue',
+    epic: 'tc-ink--white',
+    legendary: 'tc-ink--gold'
 };
 
 /** Mastery achievements count a categoryCorrect bucket rather than a top-level field. */
@@ -126,13 +132,15 @@ function readSeenUnlocks(uid) {
 }
 
 function writeSeenUnlocks(uid, ids) {
-    if (typeof window === 'undefined' || !uid) return;
+    if (typeof window === 'undefined' || !uid) return false;
     try {
         const raw = JSON.parse(localStorage.getItem(SEEN_UNLOCKS_KEY) || '{}') || {};
         raw[uid] = ids;
         localStorage.setItem(SEEN_UNLOCKS_KEY, JSON.stringify(raw));
+        return true;
     } catch (e) {
         console.warn('[Achievements] Could not persist seen unlocks:', e);
+        return false;
     }
 }
 
@@ -163,6 +171,9 @@ async function fetchAllScores(supabase, uid) {
             .range(from, from + PAGE - 1);
         if (error) {
             console.warn('[Achievements] Score page fetch failed:', error.message);
+            // No history at all is an error the player must see, not an
+            // empty record; a later page failing keeps what was read.
+            if (page === 0) throw error;
             break;
         }
         if (!data || data.length === 0) break;
@@ -186,6 +197,13 @@ export default function TriviaAchievements() {
     const [unlockedCount, setUnlockedCount] = useState(0);
     const [newlyUnlocked, setNewlyUnlocked] = useState([]);
     const [loadError, setLoadError] = useState(null);
+    // Bumped by Retry so a failed load can be run again in place.
+    const [reloadKey, setReloadKey] = useState(0);
+    const retryLoad = () => {
+        setLoadError(null);
+        setIsLoading(true);
+        setReloadKey(key => key + 1);
+    };
     // Diamonds attached to the achievements the player has unlocked. The
     // rewards exist in the shared config but were invisible here.
     const [rewardTotal, setRewardTotal] = useState(0);
@@ -205,11 +223,14 @@ export default function TriviaAchievements() {
                 setUserId(user.id);
 
                 // Get user's trivia stats
-                const { data: streakData } = await supabase
+                const { data: streakData, error: streakError } = await supabase
                     .from('trivia_streaks')
                     .select('*')
                     .eq('user_id', user.id)
                     .maybeSingle();
+                // A failed streak read leaves the streak achievements locked
+                // rather than failing the page; the score history still counts.
+                if (streakError) console.warn('[Achievements] Streak read failed:', streakError.message);
 
                 const scores = await fetchAllScores(supabase, user.id);
 
@@ -248,7 +269,7 @@ export default function TriviaAchievements() {
             } catch (error) {
                 console.warn('Error loading achievements:', error);
                 setAchievements(TRIVIA_ACHIEVEMENTS.map(a => ({ ...a, unlocked: false, prog: null })));
-                setLoadError('We could not load your achievements right now. Please try again.');
+                setLoadError('We Could Not Load Your Achievements Right Now. Please Try Again.');
             }
             setIsLoading(false);
         }
@@ -263,7 +284,12 @@ export default function TriviaAchievements() {
             .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'trivia_scores', filter: `user_id=eq.${user.id}` }, () => { loadAchievements(); })
             .subscribe();
         return () => { supabase.removeChannel(_ch); };
-    }, [avatarUser?.id, avatarLoading]);
+    }, [avatarUser?.id, avatarLoading, reloadKey]);
+
+    const overallProgress = TRIVIA_ACHIEVEMENTS.length > 0
+        ? Math.round((unlockedCount / TRIVIA_ACHIEVEMENTS.length) * 100)
+        : 0;
+    const signedOut = !isLoading && !userId;
 
     return (
         <TriviaErrorBoundary pageName="Achievements">
@@ -275,222 +301,171 @@ export default function TriviaAchievements() {
             />
 
             <PageTransition>
-                <div style={{ minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box', background: '#18191a' }}>
+                <div
+                    className="trivia-progress-page trivia-progress-page--achievements"
+                    data-trivia-family="progress"
+                    data-trivia-surface="achievements"
+                >
                     <UniversalHeader pageDepth={2} />
 
-                    <div style={{ padding: '120px 20px 40px', maxWidth: '1200px', margin: '0 auto' }}>
-                        <button
-                            onClick={() => router.push('/hub/trivia')}
-                            style={{
-                                background: 'rgba(35, 116, 225, 0.1)',
-                                border: '1px solid rgba(35, 116, 225, 0.3)',
-                                color: '#2374e1',
-                                padding: '8px 16px',
-                                borderRadius: '8px',
-                                cursor: 'pointer',
-                                marginBottom: '20px'
+                    <main className="trivia-progress-shell" aria-labelledby="trivia-achievements-title">
+                        <TriviaConsole
+                            as="section"
+                            eyebrow="Player Progress"
+                            title="Achievements"
+                            titleAs="h1"
+                            titleId="trivia-achievements-title"
+                            pill={isLoading
+                                ? 'Loading'
+                                : loadError
+                                    ? 'Error'
+                                    : `${formatTriviaDisplayNumber(unlockedCount)} Of ${formatTriviaDisplayNumber(TRIVIA_ACHIEVEMENTS.length)}`}
+                            pillInk={loadError ? 'red' : !isLoading && unlockedCount > 0 ? 'green' : 'blue'}
+                            className="trivia-progress-console"
+                            aria-labelledby="trivia-achievements-title"
+                            secondaryAction={{
+                                label: 'Back To Trivia',
+                                onClick: () => router.push('/hub/trivia'),
                             }}
+                            // A failed load has two real actions, so both print
+                            // on the painted plates (footer law).
+                            primaryAction={!isLoading && loadError ? {
+                                label: 'Retry',
+                                onClick: retryLoad,
+                            } : undefined}
                         >
-                            Back To Trivia
-                        </button>
-
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
-                            <h1 style={{ fontSize: '32px', fontWeight: 'bold', color: '#e4e6eb', margin: 0 }}>
-                                Achievements
-                            </h1>
-                            {!isLoading && (
-                                <div style={{
-                                    background: 'rgba(35, 116, 225, 0.2)',
-                                    border: '1px solid rgba(35, 116, 225, 0.4)',
-                                    padding: '8px 16px',
-                                    borderRadius: '8px',
-                                    color: '#2374e1',
-                                    fontWeight: 'bold'
-                                }}>
-                                    {unlockedCount} / {TRIVIA_ACHIEVEMENTS.length} Unlocked
-                                </div>
-                            )}
-                        </div>
-
-                        {/* Reward total — the shared config attaches diamonds to
-                            every achievement; the page never showed them. */}
-                        {!isLoading && rewardTotal > 0 && (
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#00d4ff', marginBottom: '18px', fontWeight: 'bold' }}>
-                                <Gem size={18} />
-                                <span>{rewardTotal.toLocaleString()} Diamonds Earned From Achievements</span>
-                            </div>
-                        )}
-
-                        {/* Overall progress */}
-                        {!isLoading && (
-                            <div style={{ marginBottom: '24px' }}>
-                                <div style={{ height: '8px', background: '#3a3b3c', borderRadius: '4px', overflow: 'hidden' }}>
-                                    <div style={{
-                                        height: '100%',
-                                        width: `${TRIVIA_ACHIEVEMENTS.length > 0 ? Math.round((unlockedCount / TRIVIA_ACHIEVEMENTS.length) * 100) : 0}%`,
-                                        background: 'linear-gradient(90deg, #2374e1, #00d4ff)',
-                                        borderRadius: '4px',
-                                        transition: 'width 0.8s ease-out'
-                                    }} />
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Newly-unlocked banner */}
+                        {/* Newly-unlocked notice */}
                         {newlyUnlocked.length > 0 && (
-                            <div role="status" style={{
-                                marginBottom: '24px',
-                                padding: '16px 20px',
-                                background: 'rgba(49, 162, 76, 0.12)',
-                                border: '1px solid rgba(49, 162, 76, 0.4)',
-                                borderRadius: '12px',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'space-between',
-                                gap: '12px',
-                                flexWrap: 'wrap'
-                            }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#31a24c', fontWeight: 'bold' }}>
-                                    <Trophy size={20} />
-                                    <span>
-                                        {newlyUnlocked.length} New {newlyUnlocked.length === 1 ? 'Achievement' : 'Achievements'} Unlocked!
-                                    </span>
-                                </div>
+                            <section className="trivia-progress-notice" role="status">
+                                <p className="tc-ink--green">
+                                    {formatTriviaDisplayNumber(newlyUnlocked.length)} New {newlyUnlocked.length === 1 ? 'Achievement' : 'Achievements'} Unlocked
+                                </p>
                                 <button
+                                    type="button"
+                                    className="tc-word"
                                     onClick={() => setNewlyUnlocked([])}
-                                    style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: '#e4e6eb', padding: '6px 14px', borderRadius: '8px', cursor: 'pointer', fontSize: '13px' }}
                                 >
                                     Dismiss
                                 </button>
-                            </div>
+                            </section>
                         )}
 
                         {isLoading ? (
-                            <div style={{ color: '#65676b', textAlign: 'center', padding: '40px' }}>
-                                Loading Achievements...
-                            </div>
+                            <p className="trivia-progress-state trivia-progress-state--loading" role="status">
+                                Loading Achievements
+                            </p>
                         ) : loadError ? (
-                            <div role="alert" style={{
-                                padding: '40px',
-                                textAlign: 'center',
-                                background: 'rgba(240, 40, 73, 0.1)',
-                                border: '1px solid rgba(240, 40, 73, 0.35)',
-                                borderRadius: '12px',
-                                color: '#f02849'
-                            }}>
-                                {loadError}
-                            </div>
+                            <section className="trivia-progress-state trivia-progress-state--error" role="alert">
+                                <p>{loadError}</p>
+                            </section>
                         ) : (
-                            <div style={{ display: 'grid', gap: '16px' }}>
-                                {/* Per-category progress strip — 30 achievements
-                                    is a long flat list without it. */}
-                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '10px' }}>
-                                    {ACHIEVEMENT_CATEGORIES.map(cat => {
-                                        const inCat = achievements.filter(a => a.category === cat.id);
-                                        if (inCat.length === 0) return null;
-                                        const done = inCat.filter(a => a.unlocked).length;
-                                        return (
-                                            <div key={`cat-${cat.id}`} style={{ background: '#242526', border: '1px solid #4e4f50', borderRadius: '10px', padding: '10px 12px' }}>
-                                                <div style={{ color: cat.color, fontWeight: 'bold', fontSize: '12px', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
-                                                    {cat.name}
-                                                </div>
-                                                <div style={{ color: '#65676b', fontSize: '12px', marginTop: '2px' }}>{done} / {inCat.length}</div>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                                {achievements.map(achievement => {
-                                    const IconComponent = iconFor(achievement.icon);
-                                    const rarity = RARITY_CONFIG[achievement.rarity] || null;
-                                    return (
-                                        <div
-                                            key={achievement.id}
-                                            style={{
-                                                background: achievement.unlocked ? 'rgba(35, 116, 225, 0.1)' : '#242526',
-                                                border: `1px solid ${achievement.unlocked ? 'rgba(35, 116, 225, 0.3)' : '#4e4f50'}`,
-                                                borderRadius: '12px',
-                                                padding: '20px',
-                                                display: 'flex',
-                                                gap: '16px',
-                                                alignItems: 'center',
-                                                opacity: achievement.unlocked ? 1 : 0.5,
-                                                transition: 'all 0.2s'
-                                            }}
-                                        >
-                                            <div style={{
-                                                width: '48px',
-                                                height: '48px',
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                justifyContent: 'center',
-                                                background: achievement.unlocked ? 'rgba(35, 116, 225, 0.15)' : '#3a3b3c',
-                                                borderRadius: '12px'
-                                            }}>
-                                                <IconComponent
-                                                    size={24}
-                                                    color={achievement.unlocked ? '#2374e1' : '#65676b'}
-                                                />
-                                            </div>
-                                            <div style={{ flex: 1, minWidth: 0 }}>
-                                                <div style={{ color: '#e4e6eb', fontWeight: 'bold', marginBottom: '4px' }}>
-                                                    {achievement.name}
-                                                    {newlyUnlocked.includes(achievement.id) && (
-                                                        <span style={{ marginLeft: '8px', color: '#31a24c', fontSize: '12px' }}>NEW</span>
-                                                    )}
-                                                </div>
-                                                <div style={{ color: '#65676b', fontSize: '14px' }}>
-                                                    {achievement.description}
-                                                </div>
-                                                <div style={{ display: 'flex', gap: '10px', alignItems: 'center', marginTop: '6px', flexWrap: 'wrap' }}>
-                                                    {rarity && (
-                                                        <span style={{ color: rarity.color, fontSize: '11px', fontWeight: 'bold', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
-                                                            {rarity.label}
-                                                        </span>
-                                                    )}
-                                                    {achievement.reward?.diamonds > 0 && (
-                                                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: '#00d4ff', fontSize: '11px' }}>
-                                                            <Gem size={12} />{achievement.reward.diamonds}
-                                                        </span>
-                                                    )}
-                                                </div>
-                                                {/* Progress toward a locked achievement — the page
-                                                    was previously a flat locked/unlocked checklist
-                                                    with no sense of how close anything was. */}
-                                                {!achievement.unlocked && achievement.prog && achievement.prog.target > 1 && (
-                                                    <div style={{ marginTop: '10px' }}>
-                                                        <div style={{ height: '5px', background: '#3a3b3c', borderRadius: '3px', overflow: 'hidden' }}>
-                                                            <div style={{
-                                                                height: '100%',
-                                                                width: `${Math.min(100, Math.round((achievement.prog.current / achievement.prog.target) * 100))}%`,
-                                                                background: '#2374e1',
-                                                                borderRadius: '3px',
-                                                                transition: 'width 0.6s ease-out'
-                                                            }} />
-                                                        </div>
-                                                        <div style={{ color: '#65676b', fontSize: '11px', marginTop: '4px' }}>
-                                                            {achievement.prog.current.toLocaleString()} / {achievement.prog.target.toLocaleString()}
-                                                        </div>
-                                                    </div>
-                                                )}
-                                            </div>
-                                            {achievement.unlocked && (
-                                                <div style={{
-                                                    color: '#31a24c',
-                                                    fontWeight: 'bold',
-                                                    display: 'flex',
-                                                    alignItems: 'center',
-                                                    gap: '6px'
-                                                }}>
-                                                    <CheckCircle size={20} />
-                                                    Unlocked
-                                                </div>
-                                            )}
-                                        </div>
-                                    );
-                                })}
+                            <div className="trivia-progress-content">
+                                {signedOut && (
+                                    <p className="trivia-progress-intro">
+                                        Sign In To Track Your Achievements. Every Achievement Is Shown Locked Until Then.
+                                    </p>
+                                )}
+
+                                {/* Overall progress and the diamonds attached to what
+                                    the player has unlocked, printed as rows. */}
+                                <ul className="tc-rows trivia-progress-rows" aria-label="Achievement Summary">
+                                    <li className="tc-row">
+                                        <span className="tc-row__label">Unlocked</span>
+                                        <span className="tc-row__value">
+                                            {formatTriviaDisplayNumber(unlockedCount)} Of {formatTriviaDisplayNumber(TRIVIA_ACHIEVEMENTS.length)}
+                                        </span>
+                                    </li>
+                                    <li className="tc-row">
+                                        <span className="tc-row__label">Completion</span>
+                                        <span className="tc-row__value tc-ink--blue">{overallProgress}%</span>
+                                    </li>
+                                    <li className="tc-row">
+                                        <span className="tc-row__label">Diamonds Earned</span>
+                                        <span className="tc-row__value tc-ink--gold">{formatTriviaDisplayNumber(rewardTotal)}</span>
+                                    </li>
+                                </ul>
+
+                                {/* Per-category progress: 30 achievements is a long
+                                    flat list without it. */}
+                                <section className="trivia-progress-section" aria-labelledby="trivia-achievements-categories">
+                                    <h2 id="trivia-achievements-categories" className="trivia-progress-heading">By Category</h2>
+                                    <ul className="tc-rows trivia-progress-rows trivia-progress-rows--split">
+                                        {ACHIEVEMENT_CATEGORIES.map(cat => {
+                                            const inCat = achievements.filter(a => a.category === cat.id);
+                                            if (inCat.length === 0) return null;
+                                            const done = inCat.filter(a => a.unlocked).length;
+                                            return (
+                                                <li
+                                                    key={`cat-${cat.id}`}
+                                                    className="tc-row"
+                                                    data-category={cat.id}
+                                                >
+                                                    <span className="tc-row__label">{printTitle(cat.name)}</span>
+                                                    <span className={`tc-row__value${done === inCat.length ? ' tc-ink--green' : ''}`}>
+                                                        {formatTriviaDisplayNumber(done)} / {formatTriviaDisplayNumber(inCat.length)}
+                                                    </span>
+                                                </li>
+                                            );
+                                        })}
+                                    </ul>
+                                </section>
+
+                                <section className="trivia-progress-section" aria-labelledby="trivia-achievements-list">
+                                    <h2 id="trivia-achievements-list" className="trivia-progress-heading">All Achievements</h2>
+                                    <ul className="trivia-progress-list">
+                                        {achievements.map(achievement => {
+                                            const rarity = RARITY_CONFIG[achievement.rarity] || null;
+                                            const rarityInk = RARITY_INK[achievement.rarity] || 'tc-ink--muted';
+                                            const showProgress = !achievement.unlocked && achievement.prog && achievement.prog.target > 1;
+                                            return (
+                                                <li
+                                                    key={achievement.id}
+                                                    className="trivia-progress-item"
+                                                    data-achievement-id={achievement.id}
+                                                    data-category={achievement.category}
+                                                    data-rarity={achievement.rarity}
+                                                    data-state={achievement.unlocked ? 'unlocked' : 'locked'}
+                                                >
+                                                    <h3 className="trivia-progress-item__title">
+                                                        <span>{printTitle(achievement.name)}</span>
+                                                        {newlyUnlocked.includes(achievement.id) && (
+                                                            <span className="trivia-progress-item__new tc-ink--green">New</span>
+                                                        )}
+                                                    </h3>
+                                                    <p className="trivia-progress-item__description">
+                                                        {printTitle(achievement.description)}
+                                                    </p>
+                                                    <p className="trivia-progress-item__meta">
+                                                        {rarity && (
+                                                            <span className={rarityInk}>{printTitle(rarity.label)}</span>
+                                                        )}
+                                                        {achievement.reward?.diamonds > 0 && (
+                                                            <span className="tc-ink--gold">
+                                                                {formatTriviaDisplayNumber(achievement.reward.diamonds)} Diamonds
+                                                            </span>
+                                                        )}
+                                                        {achievement.unlocked ? (
+                                                            <span className="tc-ink--green">Unlocked</span>
+                                                        ) : showProgress ? (
+                                                            <span
+                                                                className="tc-ink--blue"
+                                                                aria-label={`${printTitle(achievement.name)} Progress ${achievement.prog.current} Of ${achievement.prog.target}`}
+                                                            >
+                                                                {formatTriviaDisplayNumber(achievement.prog.current)} / {formatTriviaDisplayNumber(achievement.prog.target)}
+                                                            </span>
+                                                        ) : (
+                                                            <span className="tc-ink--muted">Locked</span>
+                                                        )}
+                                                    </p>
+                                                </li>
+                                            );
+                                        })}
+                                    </ul>
+                                </section>
                             </div>
                         )}
-                    </div>
+                        </TriviaConsole>
+                    </main>
                 </div>
     </PageTransition>
         </>

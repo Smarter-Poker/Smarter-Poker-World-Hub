@@ -1,0 +1,220 @@
+/*
+ * Trivia Console shared live-content layer (root-owned).
+ *
+ * The surrounding surfaces and action wells are painted in the approved
+ * Club Arena raster masters. This file only places live copy, live state and
+ * data inside those measured zones. It deliberately draws no substitute
+ * cards, frames, pills, gradients, glows or hover states.
+ *
+ * Surface-specific rules live in trivia-console-progress, -play, -challenge,
+ * -strategy, -pvp and -tournaments so each surface has exactly one owner.
+ *
+ * COLOUR LAW (#ClubArenaConsole 3.4): every colour on a Trivia surface is one
+ * of the tokens below or an alpha of one of them. Never a derived tone.
+ */
+
+:root {
+    --tc-ink-silver: #e4e7ec;
+    --tc-ink-white: #f4f7fb;
+    --tc-ink-blue: #45adff;
+    --tc-ink-green: #c8ffd2;
+    --tc-glow-green: #35d95a;
+    --tc-ink-red: #ff5b6e;
+    --tc-accent-red: #f02849;
+    --tc-ink-gold: #ffd700;
+    --tc-ink-muted: #9aa5b3;
+    --tc-black: #000;
+    --tc-chassis-black: #050607;
+    --tc-bevel: #6d747c;
+    --tc-brand-blue: #1877f2;
+    --tc-rule: 1px solid #000;
+    --tc-rule-lit: inset 0 1px 0 rgb(255 255 255 / 8%);
+}
+
+/* ── Page shell: black first, console centred, never wider than 1000px ─── */
+
+.trivia-console-standalone {
+    display: grid;
+    align-content: start;
+    min-height: 100vh;
+    min-height: 100dvh;
+    overflow-x: clip;
+    padding: max(76px, env(safe-area-inset-top)) max(8px, env(safe-area-inset-right)) max(24px, env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left));
+    color: var(--tc-ink-silver);
+    background: var(--tc-black);
+    font-family: 'Roboto Condensed', Inter, system-ui, sans-serif;
+}
+
+/* The canvas behind every Trivia route is black too, so the band the bottom
+   navigation clearance leaves below the last console never shows the site
+   navy. body.world-trivia arrives after hydration; the console hook covers the
+   first server paint. */
+html:has(> body.world-trivia),
+html:has([data-master-art="spade-console-v1"]) {
+    background: var(--tc-black);
+}
+
+/* Focus law on every Trivia surface. The site sheets remove button outlines
+   with !important (index.css) and draw a cyan box-shadow ring (premium.css),
+   so a keyboard player would see no schema ring at all. Here the ring is the
+   approved blue outline; each primitive keeps its own measured offset, and
+   the site chrome (header, nav, footer) keeps its own ring. */
+body.world-trivia :focus-visible:not(:is(header, nav, footer) *) {
+    outline: 3px solid var(--tc-ink-blue) !important;
+    box-shadow: none;
+}
+
+/* ── Copy on the glass ─────────────────────────────────────────────────── */
+
+.trivia-console-copy,
+.trivia-console-state {
+    margin: 0;
+    color: var(--tc-ink-silver);
+    font-size: clamp(15px, 3.8cqw, 20px);
+    line-height: 1.55;
+    text-align: center;
+    text-shadow: 0 0.2cqw 0.3cqw rgb(0 0 0 / 80%);
+}
+
+.trivia-console-state {
+    display: grid;
+    gap: 10px;
+    min-height: 160px;
+    place-content: center;
+}
+
+.trivia-console-state h2,
+.trivia-console-state p {
+    margin: 0;
+}
+
+.trivia-console-state h2 {
+    color: var(--tc-ink-white);
+    font-size: clamp(22px, 5.6cqw, 36px);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+/* Inks as utilities, for live values printed on the glass. */
+.tc-ink--silver { color: var(--tc-ink-silver); text-shadow: 0 -0.18cqw 0 rgb(255 255 255 / 55%), 0 0.25cqw 0 var(--tc-bevel), 0 0.45cqw 0 var(--tc-chassis-black), 0 0.7cqw 0.9cqw rgb(0 0 0 / 90%); }
+.tc-ink--white { color: var(--tc-ink-white); text-shadow: 0 0 1cqw rgb(69 173 255 / 90%), 0 0.25cqw 0 rgb(0 0 0 / 70%), 0 0.5cqw 1cqw rgb(0 0 0 / 60%); }
+.tc-ink--blue { color: var(--tc-ink-blue); text-shadow: 0 0 0.9cqw rgb(69 173 255 / 70%), 0 0 2cqw rgb(69 173 255 / 30%), 0 0.2cqw 0.3cqw rgb(0 0 0 / 85%); }
+.tc-ink--green { color: var(--tc-ink-green); text-shadow: 0 0 1cqw rgb(53 217 90 / 80%), 0 0 2cqw rgb(53 217 90 / 35%), 0 0.25cqw 0 rgb(0 0 0 / 70%); }
+.tc-ink--red { color: var(--tc-ink-red); text-shadow: 0 0 1cqw rgb(240 40 73 / 80%), 0 0 2cqw rgb(240 40 73 / 35%), 0 0.25cqw 0 rgb(0 0 0 / 70%); }
+.tc-ink--gold { color: var(--tc-ink-gold); text-shadow: 0 0 1cqw rgb(255 215 0 / 70%), 0 0 2cqw rgb(255 215 0 / 30%), 0 0.25cqw 0 rgb(0 0 0 / 70%); }
+.tc-ink--muted { color: var(--tc-ink-muted); text-shadow: 0 0.2cqw 0.3cqw rgb(0 0 0 / 80%); }
+
+/* Small caps label in the master's lit blue. */
+.tc-label {
+    margin: 0;
+    color: var(--tc-ink-blue);
+    font-size: max(12px, 2.7cqw);
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+/* Label / value rows printed on the glass, an engraved rule between them
+   (#ClubArenaConsole step 5: never a drawn card or divider). */
+.tc-rows {
+    display: grid;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.tc-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 3cqw;
+    min-width: 0;
+    min-height: 44px;
+    padding: 1.6cqw 0;
+    border-top: var(--tc-rule);
+    box-shadow: var(--tc-rule-lit);
+}
+
+.tc-row:first-child {
+    border-top: 0;
+    box-shadow: none;
+}
+
+.tc-row__label {
+    min-width: 0;
+    color: var(--tc-ink-blue);
+    font-size: max(12px, 2.8cqw);
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+}
+
+.tc-row__value {
+    min-width: 0;
+    color: var(--tc-ink-silver);
+    font-size: max(14px, 3.6cqw);
+    font-weight: 800;
+    font-variant-numeric: tabular-nums lining-nums;
+    text-align: right;
+    overflow-wrap: anywhere;
+}
+
+/* An engraved rule, the only divider the glass allows. */
+.tc-rule {
+    height: 0;
+    margin: 0;
+    border: 0;
+    border-top: var(--tc-rule);
+    box-shadow: var(--tc-rule-lit);
+}
+
+/* A lit word on the glass: every body-level action that is not one of the
+   console's two painted plates (Report, Share, Retry, a filter choice). */
+.tc-word {
+    appearance: none;
+    min-width: 44px;
+    min-height: 44px;
+    margin: 0;
+    padding: 1.2cqw 2.4cqw;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    color: var(--tc-ink-white);
+    font: 800 max(13px, 3cqw) / 1 'Roboto Condensed', Inter, system-ui, sans-serif;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    cursor: pointer;
+    touch-action: manipulation;
+    text-shadow: 0 0 1cqw rgb(69 173 255 / 90%), 0 0.25cqw 0 rgb(0 0 0 / 70%);
+}
+
+.tc-word:active { filter: brightness(1.25); }
+.tc-word:disabled { opacity: 0.45; cursor: not-allowed; }
+.tc-word:focus-visible { outline: 3px solid var(--tc-ink-blue); outline-offset: 2px; }
+.tc-word[aria-pressed='true'],
+.tc-word[aria-current='true'],
+.tc-word[aria-selected='true'] {
+    color: var(--tc-ink-blue);
+    text-decoration: underline;
+    text-decoration-thickness: 2px;
+    text-underline-offset: 0.9cqw;
+}
+
+.trivia-sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .tc-word:active { filter: none; }
+}

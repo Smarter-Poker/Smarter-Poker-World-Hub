@@ -4,6 +4,7 @@
  */
 import React from 'react';
 import dynamic from 'next/dynamic';
+import { PokerNearMePanelShell, PokerNearMeConsoleIcon } from './PokerNearMeConsole';
 
 const VenueCard = dynamic(() => import('./VenueCard'), { ssr: false });
 
@@ -111,31 +112,35 @@ export default function FavoritesTabPanel({
     const hydratePending = missingIds.some(id => !attemptedRef.current.has(String(id)));
     if (favVenues.length === 0 && favIds.length > 0 && (hydrating || hydratePending)) {
         return (
-            <div className="empty-state" style={{ padding: '60px 20px' }}>
-                <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.6)' }}>Loading Your Saved Venues...</p>
-            </div>
+            <PokerNearMePanelShell className="pnm-state-panel" bodyClassName="pnm-state-panel__body" aria-busy="true" role="status" aria-live="polite">
+                <PokerNearMeConsoleIcon name="saved" className="pnm-state-panel__icon" />
+                <p className="pnm-state-panel__title">Loading Your Saved Venues</p>
+                <p className="pnm-state-panel__copy">Reading The Venues You Saved On This Device.</p>
+            </PokerNearMePanelShell>
         );
     }
 
     if (favVenues.length === 0) {
         return (
-            <div className="empty-state" style={{ padding: '60px 20px', background: 'radial-gradient(circle at center, rgba(239,68,68,0.05) 0%, transparent 70%)' }}>
-                <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'rgba(239,68,68,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
-                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2">
-                        <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" />
-                    </svg>
-                </div>
-                <h3 style={{ fontSize: 20, fontWeight: 700, color: '#fff', marginBottom: 8 }}>Your Saved Venues</h3>
-                <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.6)', maxWidth: 320, lineHeight: 1.5, margin: '0 auto 24px' }}>Keep Track Of Your Favorite Card Rooms, Local Games, And Regular Stops. Tap The Heart Icon On Any Venue Card To Save It Here.</p>
-                <button onClick={() => setActiveTab('venues')} className="primary-btn" style={{ background: '#ef4444', color: '#fff', border: 'none', padding: '12px 24px', borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: 'pointer', boxShadow: '0 4px 14px rgba(239,68,68,0.3)' }}>Explore Venues</button>
-            </div>
+            <PokerNearMePanelShell className="pnm-state-panel" bodyClassName="pnm-state-panel__body">
+                <PokerNearMeConsoleIcon name="saved" className="pnm-state-panel__icon" />
+                <h3 className="pnm-state-panel__title">Your Saved Venues</h3>
+                <p className="pnm-state-panel__copy">Keep Track Of Your Favorite Card Rooms, Local Games, And Regular Stops. Tap The Heart Icon On Any Venue Card To Save It Here.</p>
+                <button
+                    type="button"
+                    onClick={() => setActiveTab('venues')}
+                    className="pnm-console-cta pnm-console-cta--primary"
+                >
+                    Explore Venues
+                </button>
+            </PokerNearMePanelShell>
         );
     }
 
     return (
         <>
             <div className="results-bar">
-                <span className="results-count">{favVenues.length} Saved venue{favVenues.length !== 1 ? 's' : ''}</span>
+                <span className="results-count">{favVenues.length} Saved {favVenues.length !== 1 ? 'venues' : 'venue'}</span>
             </div>
             <div className="card-grid">
                 {favVenues.map((venue, i) => {

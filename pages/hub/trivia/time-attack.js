@@ -20,19 +20,18 @@ import { useAvatar } from '../../../src/contexts/AvatarContext';
 
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import TimeAttackGame from '../../../src/components/trivia/TimeAttackGame';
-import MetalFrame from '../../../src/components/ui/MetalFrame';
-import HexButton from '../../../src/components/ui/HexButton';
-import { Timer, Trophy, Gem, Zap, Play } from 'lucide-react';
 import DiamondEngine from '../../../src/services/DiamondEngine';
 import GameCostPopup from '../../../src/components/gates/GameCostPopup';
 import TriviaErrorBoundary from '../../../src/components/trivia/TriviaErrorBoundary';
-import TriviaSkeleton from '../../../src/components/trivia/TriviaSkeleton';
+import TriviaConsole from '../../../src/components/trivia/console/TriviaConsole';
 import { busEmit } from '../../../src/engine/EventBus';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import useServerGradedRun from '../../../src/hooks/useServerGradedRun';
 import { getTodayStartCST } from '../../../src/lib/trivia/getTodayCST';
 import { DAILY_DIAMOND_CAPS } from '../../../src/lib/trivia/triviaEngine';
+import { formatTriviaDisplayNumber } from '../../../src/lib/trivia/formatTriviaDisplayNumber';
 import HubPageSummary from '../../../src/components/seo/HubPageSummary';
+import { printPlayerName } from '../../../src/lib/trivia/printPlayerName';
 
 // Roster size requested from /api/trivia/session-start. The 30-second clock
 // realistically allows well under 30 answers, so 60 is generous headroom;
@@ -205,14 +204,19 @@ export default function TimeAttackPage() {
             served = await serverRun.start({ count: QUESTIONS_PER_SESSION });
         } catch (e) {
             console.warn('[TimeAttack] Server session start failed:', e?.message || e);
-            if (e?.status === 402) setShowOutOfDiamonds(true);
-            setStartError('We could not load any questions right now. Please check your connection and try again.');
+            // A 402 is the balance gate, not a connection problem: show the
+            // Not Enough Diamonds state alone instead of both messages.
+            if (e?.status === 402) {
+                setShowOutOfDiamonds(true);
+                return;
+            }
+            setStartError('We Could Not Load Any Questions Right Now. Please Check Your Connection And Try Again.');
             return;
         }
         if (!served || !Array.isArray(served.questions) || served.questions.length === 0) {
             // NEVER charge for an empty game.
             serverRun.reset();
-            setStartError('We could not load any questions right now. Please check your connection and try again.');
+            setStartError('We Could Not Load Any Questions Right Now. Please Check Your Connection And Try Again.');
             return;
         }
 
@@ -322,436 +326,217 @@ export default function TimeAttackPage() {
     };
 
 
-    // THE HEAD AND THE WORDS RENDER IN BOTH BRANCHES (AEO phase 3,
-    // 2026-09-17). Measured on production this page returned no <title> at
-    // all and two words of body, because a crawler always arrives while
-    // pageLoading is true and everything below sat under the early return.
-    const head = (
-        <SEOHead
-            title="Time Attack Trivia: Beat The Clock"
-            description="Race Against The Clock In Time Attack Poker Trivia On Smarter.Poker. Answer As Many Questions As You Can Before Time Runs Out. Free To Play, And Nothing In It Is A Wager."
-            canonical="/hub/trivia/time-attack"
-        />
-    );
+    const primaryAction = showOutOfDiamonds
+        ? { label: 'Get Diamonds', onClick: () => router.push('/hub/diamond-store') }
+        : pageLoading || gameState === 'playing' || gameState === 'saving'
+            ? undefined
+            : gameState === 'saving_error'
+                ? { label: 'Retry Save', onClick: handleRetrySave }
+                : gameState === 'complete'
+                    ? { label: 'Play Again', onClick: handleStart }
+                    : { label: 'Start Time Attack', onClick: handleStart };
 
-    if (pageLoading) return (
-        <>
-            {head}
-            <div className="min-h-screen bg-gray-950 flex items-center justify-center pt-24 pb-12">
-                <TriviaSkeleton />
-            </div>
-            <HubPageSummary page="trivia-time-attack" as="h1" />
-        </>
-    );
+    const secondaryAction = showOutOfDiamonds
+        ? { label: 'Close', onClick: () => setShowOutOfDiamonds(false) }
+        : gameState === 'complete'
+            ? { label: 'Back To Trivia', onClick: () => router.push('/hub/trivia') }
+            : undefined;
+
+    // The pill is a short painted slot (about eight characters at 375px).
+    const stateLabel = showOutOfDiamonds
+        ? 'Balance'
+        : pageLoading
+        ? 'Loading'
+        : gameState === 'playing'
+            ? 'Live'
+            : gameState === 'complete'
+                ? 'Complete'
+                : gameState === 'saving_error'
+                    ? 'Retry'
+                    : gameState === 'saving'
+                        ? 'Saving'
+                        : '30 Sec';
 
     return (
         <TriviaErrorBoundary pageName="Time Attack">
-            {head}
+            <>
+                <SEOHead
+                    title="Time Attack Trivia: Beat The Clock"
+                    description="Race Against The Clock In Time Attack Poker Trivia On Smarter.Poker. Answer As Many Questions As You Can Before Time Runs Out. Free To Play, And Nothing In It Is A Wager."
+                    canonical="/hub/trivia/time-attack"
+                />
 
-            <div className="time-attack-page">
-                <div className="bg-overlay" />
-                <UniversalHeader pageDepth={2} />
+                <div
+                    className="trivia-challenge-page trivia-challenge-page--time-attack"
+                    data-trivia-family="challenge"
+                    data-trivia-surface="time-attack"
+                    data-game-state={pageLoading ? 'loading' : gameState}
+                >
+                    <UniversalHeader pageDepth={2} />
 
-                {/* Per-game cost popup (one-time) */}
-                {userId && !isVip && (
-                    <GameCostPopup userId={userId} featureKey="trivia_timeattack" isVip={isVip} cost={10} />
-                )}
-
-                {/* Out of diamonds modal */}
-                {showOutOfDiamonds && (
-                    <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000 }}>
-                        <div style={{ background: '#1a1a2e', border: '1px solid rgba(0,212,255,0.3)', borderRadius: 16, padding: 32, textAlign: 'center', maxWidth: 360 }}>
-                            <div style={{ fontSize: 48, marginBottom: 16 }}>💎</div>
-                            <h3 style={{ color: '#fff', marginBottom: 8 }}>Not Enough Diamonds</h3>
-                            <p style={{ color: 'rgba(255,255,255,0.6)', marginBottom: 20 }}>Each Game Costs 10💎. Get More Diamonds Or Upgrade To VIP For Unlimited Access!</p>
-                            <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
-                                <button onClick={() => router.push('/hub/diamond-store')} style={{ padding: '10px 20px', background: 'linear-gradient(135deg, #00D4FF, #0088FF)', border: 'none', borderRadius: 20, color: '#fff', fontWeight: 600, cursor: 'pointer' }}>Get Diamonds</button>
-                                <button onClick={() => setShowOutOfDiamonds(false)} style={{ padding: '10px 20px', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 20, color: '#fff', cursor: 'pointer' }}>Close</button>
-                            </div>
-                        </div>
-                    </div>
-                )}
-
-                <div className="content">
-                    {gameState === 'lobby' && (
-                        <div className="lobby">
-                            {startError && (
-                                <div role="alert" style={{
-                                    background: 'rgba(239, 68, 68, 0.12)',
-                                    border: '1px solid rgba(239, 68, 68, 0.4)',
-                                    borderRadius: '12px',
-                                    padding: '14px 16px',
-                                    margin: '0 16px 16px',
-                                    color: '#fecaca',
-                                    fontSize: '14px',
-                                    textAlign: 'center'
-                                }}>
-                                    {startError}
-                                </div>
-                            )}
-                            <MetalFrame padding="32px" showBolts={true} showNeonStrips={true}>
-                                <div className="lobby-header">
-                                    <Timer size={48} className="mode-icon" />
-                                    <h1>TIME ATTACK</h1>
-                                    <p>30 Seconds. How Many Can You Answer?</p>
-                                </div>
-
-                                <div className="stats-row">
-                                    <div className="stat-box">
-                                        <Trophy size={24} />
-                                        <span className="stat-value">{personalBest}</span>
-                                        <span className="stat-label">Personal Best</span>
-                                    </div>
-                                    <div className="stat-box">
-                                        <Gem size={24} />
-                                        <span className="stat-value">{dailyDiamondsEarned}/{DAILY_DIAMOND_CAP}</span>
-                                        <span className="stat-label">Today's Diamonds</span>
-                                    </div>
-                                </div>
-
-                                <div className="rewards-info">
-                                    <h3>Rewards</h3>
-                                    <ul>
-                                        <li>+1 Diamond Per Correct Answer</li>
-                                        <li>Max {DAILY_DIAMOND_CAP} Diamonds Per Day</li>
-                                        <li>Speed Is Everything!</li>
-                                    </ul>
-                                </div>
-
-                                <HexButton
-                                    label="Start Time Attack"
-                                    icon={Play}
-                                    onClick={handleStart}
-                                    variant="primary"
-                                    size="lg"
-                                    fullWidth
-                                />
-                            </MetalFrame>
-
-                            {leaderboard.length > 0 && (
-                                <div className="leaderboard-section">
-                                    <h2>⚡ Fastest Minds</h2>
-                                    <div className="leaderboard">
-                                        {leaderboard.map((entry) => (
-                                            <div key={entry.rank} className="lb-row" data-rank={entry.rank}>
-                                                <span className="lb-rank">#{entry.rank}</span>
-                                                <span className="lb-name">{entry.username}</span>
-                                                <span className="lb-score">{entry.score}</span>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    )}
-
-                    {gameState === 'playing' && (
-                        <TimeAttackGame
-                            questions={questions}
-                            onComplete={handleComplete}
-                            dailyDiamondsEarned={dailyDiamondsEarned}
-                            serverGrader={gradeAnswer}
+                    {userId && !isVip && (
+                        <GameCostPopup
+                            userId={userId}
+                            featureKey="trivia_timeattack"
+                            isVip={isVip}
+                            cost={10}
                         />
                     )}
 
-                    {/* Saving state */}
-                    {gameState === 'saving' && (
-                        <TriviaSkeleton />
-                    )}
-
-                    {/* Saving Error State (Retry UI) */}
-                    {gameState === 'saving_error' && (
-                        <div style={{
-                            display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60vh'
-                        }}>
-                            <div style={{
-                                background: 'rgba(30, 41, 59, 0.9)',
-                                border: '1px solid rgba(239, 68, 68, 0.3)',
-                                borderRadius: '16px',
-                                padding: '40px',
-                                textAlign: 'center',
-                                maxWidth: '480px'
-                            }}>
-                                <h2 style={{ color: '#ef4444', marginBottom: '16px', fontSize: '24px' }}>Network Disconnected</h2>
-                                <p style={{ color: 'rgba(255,255,255,0.7)', marginBottom: '24px' }}>
-                                    We Couldn't Save Your Time Attack Run Because You Lost Connection. Please Check Your Internet And Try Again So You Don't Lose {saveErrorPayload?.diamondsEarned}💎!
-                                </p>
-                                <button
-                                    onClick={handleRetrySave}
-                                    style={{
-                                        padding: '16px 32px',
-                                        background: 'linear-gradient(135deg, #2374e1, #1b5bb8)',
-                                        border: 'none',
-                                        borderRadius: '12px',
-                                        color: 'white',
-                                        fontSize: '16px',
-                                        fontWeight: 'bold',
-                                        cursor: 'pointer'
-                                    }}
+                    <main className="trivia-challenge-shell" aria-labelledby="time-attack-title">
+                        <TriviaConsole
+                            className="trivia-challenge-console"
+                            eyebrow="Timed Challenge"
+                            title="Time Attack"
+                            titleId="time-attack-title"
+                            subtitle="Beat The Clock"
+                            pill={stateLabel}
+                            aria-labelledby="time-attack-title"
+                            primaryAction={primaryAction}
+                            secondaryAction={secondaryAction}
+                        >
+                            {showOutOfDiamonds && (
+                                <section
+                                    className="trivia-challenge-alert trivia-challenge-alert--diamonds"
+                                    role="alert"
+                                    aria-labelledby="time-attack-diamonds-title"
                                 >
-                                    Retry Save
-                                </button>
-                            </div>
-                        </div>
-                    )}
+                                    <h2 id="time-attack-diamonds-title">Not Enough Diamonds</h2>
+                                    <p>
+                                        Each Game Costs 10 Diamonds. Get More Diamonds Or Upgrade To VIP For Unlimited Access.
+                                    </p>
+                                </section>
+                            )}
 
-                    {gameState === 'complete' && result && (
-                        <div className="complete-screen">
-                            <MetalFrame padding="32px" showBolts={true}>
-                                <h1>TIME'S UP!</h1>
-
-                                <div className="result-stats">
-                                    <div className="result-stat">
-                                        <Zap size={32} />
-                                        <span className="result-value">{result.correctCount}</span>
-                                        <span className="result-label">Correct</span>
-                                    </div>
-                                    <div className="result-stat highlight">
-                                        <Gem size={32} />
-                                        <span className="result-value">+{result.diamondsEarned}</span>
-                                        <span className="result-label">Diamonds</span>
-                                    </div>
+                            {pageLoading && (
+                                <div className="trivia-challenge-state trivia-challenge-state--loading" role="status">
+                                    <p>Loading Time Attack</p>
                                 </div>
+                            )}
 
-                                {result.fastAnswers > 0 && (
-                                    <div className="fast-badge">
-                                        ⚡ {result.fastAnswers} Lightning-Fast Answers!
+                            {!pageLoading && gameState === 'lobby' && (
+                                <section className="trivia-challenge-stage trivia-challenge-stage--lobby">
+                                    <img
+                                        className="trivia-challenge-hero"
+                                        src="/images/trivia/modes-console-v1/time-attack.webp"
+                                        alt=""
+                                        aria-hidden="true"
+                                        width={1000}
+                                        height={563}
+                                        decoding="async"
+                                    />
+                                    {startError && (
+                                        <p className="trivia-challenge-state trivia-challenge-state--error" role="alert">
+                                            {startError}
+                                        </p>
+                                    )}
+
+                                    <div className="trivia-challenge-intro">
+                                        <p>30 Seconds. How Many Can You Answer?</p>
                                     </div>
-                                )}
 
-                                <div className="complete-actions">
-                                    <HexButton
-                                        label="Play Again"
-                                        onClick={handleStart}
-                                        variant="primary"
+                                    <dl className="trivia-challenge-stats">
+                                        <div className="trivia-challenge-stat">
+                                            <dt>Personal Best</dt>
+                                            <dd>{formatTriviaDisplayNumber(personalBest)}</dd>
+                                        </div>
+                                        <div className="trivia-challenge-stat">
+                                            <dt>Today's Diamonds</dt>
+                                            <dd>
+                                                {formatTriviaDisplayNumber(dailyDiamondsEarned)}
+                                                <span aria-hidden="true"> / </span>
+                                                {formatTriviaDisplayNumber(DAILY_DIAMOND_CAP)}
+                                            </dd>
+                                        </div>
+                                    </dl>
+
+                                    <section className="trivia-challenge-rules" aria-labelledby="time-attack-rewards-title">
+                                        <h2 id="time-attack-rewards-title">Rewards</h2>
+                                        <ul>
+                                            <li>1 Diamond Per Correct Answer</li>
+                                            <li>Maximum {formatTriviaDisplayNumber(DAILY_DIAMOND_CAP)} Diamonds Per Day</li>
+                                            <li>Speed Is Everything</li>
+                                        </ul>
+                                    </section>
+
+                                    {leaderboard.length > 0 && (
+                                        <section className="trivia-challenge-leaderboard" aria-labelledby="time-attack-leaderboard-title">
+                                            <h2 id="time-attack-leaderboard-title">Fastest Minds</h2>
+                                            <ol className="trivia-challenge-ranking">
+                                                {leaderboard.map((entry) => (
+                                                    <li
+                                                        key={entry.rank}
+                                                        className="trivia-challenge-ranking-row"
+                                                        data-rank={entry.rank}
+                                                    >
+                                                        <span className="trivia-challenge-ranking-rank">
+                                                            #{formatTriviaDisplayNumber(entry.rank)}
+                                                        </span>
+                                                        <span className="trivia-challenge-ranking-name">{printPlayerName(entry.username)}</span>
+                                                        <span className="trivia-challenge-ranking-score">
+                                                            {formatTriviaDisplayNumber(entry.score)}
+                                                        </span>
+                                                    </li>
+                                                ))}
+                                            </ol>
+                                        </section>
+                                    )}
+                                </section>
+                            )}
+
+                            {!pageLoading && gameState === 'playing' && (
+                                <section className="trivia-challenge-stage trivia-challenge-stage--playing" aria-label="Time Attack Questions">
+                                    <TimeAttackGame
+                                        questions={questions}
+                                        onComplete={handleComplete}
+                                        dailyDiamondsEarned={dailyDiamondsEarned}
+                                        serverGrader={gradeAnswer}
                                     />
-                                    <HexButton
-                                        label="Back To Trivia"
-                                        onClick={() => router.push('/hub/trivia')}
-                                        variant="secondary"
-                                    />
+                                </section>
+                            )}
+
+                            {!pageLoading && gameState === 'saving' && (
+                                <div className="trivia-challenge-state trivia-challenge-state--saving" role="status">
+                                    <p>Securing Your Time Attack Run</p>
                                 </div>
-                            </MetalFrame>
-                        </div>
-                    )}
+                            )}
+
+                            {!pageLoading && gameState === 'saving_error' && (
+                                <section className="trivia-challenge-state trivia-challenge-state--error" role="alert">
+                                    <h2>Network Disconnected</h2>
+                                    <p>
+                                        We Could Not Save Your Time Attack Run Because You Lost Connection. Check Your Connection And Retry To Protect {formatTriviaDisplayNumber(saveErrorPayload?.diamondsEarned)} {saveErrorPayload?.diamondsEarned === 1 ? 'Diamond' : 'Diamonds'}.
+                                    </p>
+                                </section>
+                            )}
+
+                            {!pageLoading && gameState === 'complete' && result && (
+                                <section className="trivia-challenge-stage trivia-challenge-stage--results" aria-labelledby="time-attack-results-title">
+                                    <h2 id="time-attack-results-title">Time Is Up</h2>
+                                    <dl className="trivia-challenge-stats trivia-challenge-stats--results">
+                                        <div className="trivia-challenge-stat">
+                                            <dt>Correct</dt>
+                                            <dd>{formatTriviaDisplayNumber(result.correctCount)}</dd>
+                                        </div>
+                                        <div className="trivia-challenge-stat" data-tone="accent">
+                                            <dt>Diamonds</dt>
+                                            <dd>+{formatTriviaDisplayNumber(result.diamondsEarned)}</dd>
+                                        </div>
+                                    </dl>
+                                    {result.fastAnswers > 0 && (
+                                        <p className="trivia-challenge-notice">
+                                            {formatTriviaDisplayNumber(result.fastAnswers)} Lightning-Fast {result.fastAnswers === 1 ? 'Answer' : 'Answers'}
+                                        </p>
+                                    )}
+                                </section>
+                            )}
+                        </TriviaConsole>
+                    </main>
                 </div>
-            </div>
-
-            <style dangerouslySetInnerHTML={{ __html: `
-                .time-attack-page {
-                    min-height: 100vh; padding-bottom: 70px;
-                    background: #0a0e1a;
-                    background-color: #000000;
-                    font-family: 'Inter', -apple-system, sans-serif;
-                }
-
-                .bg-overlay {
-                    display: none;
-                }
-
-                .content {
-                    position: relative;
-                    padding: 80px 0 40px;
-                    max-width: 100%;
-                    margin: 0 auto;
-                }
-
-                .lobby-header {
-                    text-align: center;
-                    margin-bottom: 24px;
-                }
-
-                .mode-icon {
-                    color: #22c55e;
-                    margin-bottom: 12px;
-                }
-
-                .lobby-header h1 {
-                    font-size: 28px;
-                    font-weight: 700;
-                    color: #fff;
-                    margin: 0 0 8px 0;
-                }
-
-                .lobby-header p {
-                    color: rgba(255, 255, 255, 0.6);
-                    margin: 0;
-                }
-
-                .stats-row {
-                    display: grid;
-                    grid-template-columns: 1fr 1fr;
-                    gap: 12px;
-                    margin-bottom: 24px;
-                }
-
-                .stat-box {
-                    display: flex;
-                    flex-direction: column;
-                    align-items: center;
-                    padding: 16px;
-                    background: rgba(0, 0, 0, 0.2);
-                    border-radius: 12px;
-                    gap: 8px;
-                }
-
-                .stat-box svg {
-                    color: #22c55e;
-                }
-
-                .stat-value {
-                    font-size: 24px;
-                    font-weight: 700;
-                    color: #fff;
-                }
-
-                .stat-label {
-                    font-size: 12px;
-                    color: rgba(255, 255, 255, 0.5);
-                }
-
-                .rewards-info {
-                    background: rgba(34, 197, 94, 0.1);
-                    border: 1px solid rgba(34, 197, 94, 0.2);
-                    border-radius: 12px;
-                    padding: 16px;
-                    margin-bottom: 24px;
-                }
-
-                .rewards-info h3 {
-                    font-size: 14px;
-                    color: #22c55e;
-                    margin: 0 0 8px 0;
-                }
-
-                .rewards-info ul {
-                    margin: 0;
-                    padding: 0 0 0 16px;
-                    font-size: 13px;
-                    color: rgba(255, 255, 255, 0.7);
-                }
-
-                .leaderboard-section {
-                    margin-top: 24px;
-                }
-
-                .leaderboard-section h2 {
-                    font-size: 18px;
-                    color: #fff;
-                    margin: 0 0 12px 0;
-                }
-
-                .leaderboard {
-                    background: rgba(30, 41, 59, 0.6);
-                    border: 1px solid rgba(255, 255, 255, 0.1);
-                    border-radius: 12px;
-                    overflow: hidden;
-                }
-
-                .lb-row {
-                    display: flex;
-                    align-items: center;
-                    padding: 12px 16px;
-                    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-                }
-
-                .lb-row:last-child { border-bottom: none; }
-                .lb-row[data-rank="1"] { background: rgba(255, 215, 0, 0.1); }
-                .lb-row[data-rank="2"] { background: rgba(192, 192, 192, 0.08); }
-                .lb-row[data-rank="3"] { background: rgba(205, 127, 50, 0.08); }
-
-                .lb-rank {
-                    width: 40px;
-                    font-weight: 700;
-                    color: #22c55e;
-                }
-
-                .lb-name {
-                    flex: 1;
-                    color: #fff;
-                }
-
-                .lb-score {
-                    font-weight: 700;
-                    color: #00d4ff;
-                }
-
-                .complete-screen {
-                    position: fixed;
-                    inset: 0;
-                    z-index: 1000;
-                    background: rgba(0, 0, 0, 0.88);
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    padding: 20px;
-                    text-align: center;
-                    animation: resultFadeIn 0.4s ease;
-                }
-
-                @keyframes resultFadeIn {
-                    from { opacity: 0; transform: scale(0.92); }
-                    to { opacity: 1; transform: scale(1); }
-                }
-
-                .complete-screen h1 {
-                    font-size: 28px;
-                    color: #fff;
-                    margin: 0 0 24px 0;
-                }
-
-                .result-stats {
-                    display: grid;
-                    grid-template-columns: 1fr 1fr;
-                    gap: 16px;
-                    margin-bottom: 24px;
-                }
-
-                .result-stat {
-                    display: flex;
-                    flex-direction: column;
-                    align-items: center;
-                    gap: 8px;
-                    padding: 20px;
-                    background: rgba(0, 0, 0, 0.2);
-                    border-radius: 12px;
-                }
-
-                .result-stat.highlight {
-                    background: rgba(0, 212, 255, 0.1);
-                    border: 1px solid rgba(0, 212, 255, 0.3);
-                }
-
-                .result-value {
-                    font-size: 32px;
-                    font-weight: 700;
-                    color: #fff;
-                }
-
-                .result-label {
-                    font-size: 12px;
-                    color: rgba(255, 255, 255, 0.5);
-                }
-
-                .fast-badge {
-                    background: linear-gradient(90deg, #fbbf24, #f97316);
-                    color: #000;
-                    font-weight: 600;
-                    padding: 10px;
-                    border-radius: 8px;
-                    margin-bottom: 24px;
-                    font-size: 14px;
-                }
-
-                .complete-actions {
-                    display: flex;
-                    gap: 12px;
-                    justify-content: center;
-                }
-            ` }} />
-          {/* Server rendered: measured on production this page returned
-              only chrome to a crawler (AEO phase 3, 2026-09-17). */}
-          <HubPageSummary page="trivia-time-attack" />
+            </>
+          {/* Server rendered in every state (AEO phase 3, 2026-09-17): a
+              crawler always arrives while the roster is still loading. */}
+          <HubPageSummary page="trivia-time-attack" as="h1" />
         </TriviaErrorBoundary>
     );
 }

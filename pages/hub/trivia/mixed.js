@@ -6,20 +6,17 @@
 
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { useRouter } from 'next/router';
-import Image from 'next/image';
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../../../src/lib/supabase';
 import { getAuthUser, getSessionToken } from '../../../src/lib/authUtils';
 import { useAvatar } from '../../../src/contexts/AvatarContext';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
-import MetalFrame from '../../../src/components/ui/MetalFrame';
-import HexButton from '../../../src/components/ui/HexButton';
-import { Trophy, BookOpen, GraduationCap, Gem, Lightbulb, ArrowRight, Target, Banknote, Calculator, Brain } from 'lucide-react';
+import TriviaConsole from '../../../src/components/trivia/console/TriviaConsole';
 import { toTitleCase } from '../../../src/lib/trivia/titleCase';
+import { formatTriviaDisplayNumber } from '../../../src/lib/trivia/formatTriviaDisplayNumber';
 import DiamondEngine from '../../../src/services/DiamondEngine';
 import GameCostPopup from '../../../src/components/gates/GameCostPopup';
 import TriviaErrorBoundary from '../../../src/components/trivia/TriviaErrorBoundary';
-import TriviaSkeleton from '../../../src/components/trivia/TriviaSkeleton';
 import TriviaAnswerOption from '../../../src/components/trivia/TriviaAnswerOption';
 import useTriviaQuestion from '../../../src/hooks/useTriviaQuestion';
 import useTriviaTimer from '../../../src/hooks/useTriviaTimer';
@@ -39,14 +36,14 @@ const GAME_ENTRY_COST = 10; // restored with server-graded adoption - rewards pa
 const DAILY_DIAMOND_CAP = Number.isFinite(DAILY_DIAMOND_CAPS.mixed) ? DAILY_DIAMOND_CAPS.mixed : 40;
 
 const CATEGORIES = [
-    { id: 'poker_history', name: 'History', icon: Trophy, color: '#FFD700', dbCategories: ['poker_history', 'famous_hands', 'player_profiles', 'tournament_facts'] },
-    { id: 'rule_knowledge', name: 'Rules', icon: BookOpen, color: '#4a90d9', dbCategories: ['rule_knowledge'] },
-    { id: 'gto_theory', name: 'Pro', icon: GraduationCap, color: '#9D4EDD', dbCategories: ['gto_theory'] },
+    { id: 'poker_history', name: 'History', dbCategories: ['poker_history', 'famous_hands', 'player_profiles', 'tournament_facts'] },
+    { id: 'rule_knowledge', name: 'Rules', dbCategories: ['rule_knowledge'] },
+    { id: 'gto_theory', name: 'Pro', dbCategories: ['gto_theory'] },
     // NEW STRATEGY CATEGORIES
-    { id: 'mtt_situations', name: 'MTT', icon: Target, color: '#f97316', dbCategories: ['mtt_situations'] },
-    { id: 'cash_game_situations', name: 'Cash', icon: Banknote, color: '#22c55e', dbCategories: ['cash_game_situations'] },
-    { id: 'icm_chip_ev', name: 'ICM', icon: Calculator, color: '#06b6d4', dbCategories: ['icm_chip_ev'] },
-    { id: 'gto_scenarios', name: 'GTO', icon: Brain, color: '#a855f7', dbCategories: ['gto_scenarios'] }
+    { id: 'mtt_situations', name: 'MTT', dbCategories: ['mtt_situations'] },
+    { id: 'cash_game_situations', name: 'Cash', dbCategories: ['cash_game_situations'] },
+    { id: 'icm_chip_ev', name: 'ICM', dbCategories: ['icm_chip_ev'] },
+    { id: 'gto_scenarios', name: 'GTO', dbCategories: ['gto_scenarios'] }
 ];
 
 // Server-dealt sessions draw across the mode's categories - the old exact
@@ -295,15 +292,21 @@ export default function MixedModePage() {
             served = await serverRun.start({ count: QUESTIONS_PER_SESSION });
         } catch (e) {
             console.warn('[Mixed] Server session start failed:', e?.message || e);
-            if (e?.status === 402) setShowOutOfDiamonds(true);
-            setLoadError('Could not start the game. Please try again in a moment.');
+            // A 402 is the balance gate, not a connection problem: show the
+            // Not Enough Diamonds state alone instead of both messages.
+            if (e?.status === 402) {
+                setShowOutOfDiamonds(true);
+                setGameState('ready');
+                return;
+            }
+            setLoadError('Could Not Start The Game. Please Try Again In A Moment.');
             setGameState('error');
             return;
         }
         if (!served || !Array.isArray(served.questions) || served.questions.length === 0) {
             // NEVER charge for an empty game.
             serverRun.reset();
-            setLoadError('No questions are available right now. Please try again in a moment.');
+            setLoadError('No Questions Are Available Right Now. Please Try Again In A Moment.');
             setGameState('error');
             return;
         }
@@ -449,647 +452,315 @@ export default function MixedModePage() {
 
     const currentQuestion = questions[currentQuestionIndex];
     const currentCategory = CATEGORIES.find(c => c.id === currentQuestion?.displayCategory) || CATEGORIES[0];
-    const CategoryIcon = currentCategory.icon;
+    // The pill is a short painted slot (about eight characters at 375px);
+    // longer state, balance and timer copy is printed on the glass below.
+    const balanceLabel = isVip ? 'VIP' : 'Ready';
+    const stateLabel = showOutOfDiamonds ? 'Balance' : ({
+        loading: 'Loading',
+        ready: balanceLabel,
+        playing: `${formatTriviaDisplayNumber(timer.timeLeft)} Sec`,
+        saving: 'Saving',
+        saving_error: 'Retry',
+        error: 'Error',
+        results: `${formatTriviaDisplayNumber(totalCorrect)} Of ${formatTriviaDisplayNumber(questions.length)}`,
+    }[gameState] || balanceLabel);
+
+    const primaryAction = showOutOfDiamonds
+        ? { label: 'Get Diamonds', onClick: () => router.push('/hub/diamond-store') }
+        : gameState === 'ready'
+            ? { label: 'Start Mixed Trivia', onClick: startGame }
+            : gameState === 'error'
+                ? { label: 'Try Again', onClick: startGame }
+                : gameState === 'saving_error'
+                    ? { label: 'Retry Save', onClick: handleRetrySave }
+                    : gameState === 'results'
+                        ? { label: 'Play Again', onClick: playAgain }
+                        : null;
+
+    const secondaryAction = showOutOfDiamonds
+        ? { label: 'Close', onClick: () => setShowOutOfDiamonds(false) }
+        : (gameState === 'error' || gameState === 'results')
+            ? { label: 'Back To Trivia', onClick: () => router.push('/hub/trivia') }
+            : null;
 
     return (
         <TriviaErrorBoundary pageName="Mixed Mode">
-            <SEOHead
-                title="Mixed Trivia - All Categories"
-                description="Mixed Poker Trivia On Smarter.Poker: Every Category At Once And In Random Order, So You Cannot Prepare For What Is Coming. Free To Play, No Account Needed, And Nothing In It Is A Wager."
-                canonical="/hub/trivia/mixed"
-            />
+            <>
+                <SEOHead
+                    title="Mixed Trivia - All Categories"
+                    description="Mixed Poker Trivia On Smarter.Poker: Every Category At Once And In Random Order, So You Cannot Prepare For What Is Coming. Free To Play, No Account Needed, And Nothing In It Is A Wager."
+                    canonical="/hub/trivia/mixed"
+                />
 
-            <div className="mixed-page">
-                <div className="bg-overlay" />
-                <UniversalHeader pageDepth={2} />
+                <div
+                    className="trivia-challenge-page trivia-challenge-page--mixed"
+                    data-trivia-family="challenge"
+                    data-trivia-surface="mixed"
+                    data-game-state={gameState}
+                >
+                    <UniversalHeader pageDepth={2} />
 
-                {/* Per-game cost popup (one-time) */}
-                {userId && !isVip && (
-                    <GameCostPopup userId={userId} featureKey="trivia_mixed" isVip={isVip} cost={GAME_ENTRY_COST} />
-                )}
-
-                {/* Out of diamonds modal */}
-                {showOutOfDiamonds && (
-                    <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000 }}>
-                        <div style={{ background: '#1a1a2e', border: '1px solid rgba(0,212,255,0.3)', borderRadius: 16, padding: 32, textAlign: 'center', maxWidth: 360 }}>
-                            <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'center' }}><Gem size={48} color="#00D4FF" /></div>
-                            <h3 style={{ color: '#fff', marginBottom: 8 }}>Not Enough Diamonds</h3>
-                            <p style={{ color: 'rgba(255,255,255,0.6)', marginBottom: 20 }}>Each Game Costs {GAME_ENTRY_COST} Diamonds. Get More Diamonds Or Upgrade To VIP For Unlimited Access!</p>
-                            <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
-                                <button onClick={() => router.push('/hub/diamond-store')} style={{ padding: '10px 20px', background: 'linear-gradient(135deg, #00D4FF, #0088FF)', border: 'none', borderRadius: 20, color: '#fff', fontWeight: 600, cursor: 'pointer' }}>Get Diamonds</button>
-                                <button onClick={() => setShowOutOfDiamonds(false)} style={{ padding: '10px 20px', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 20, color: '#fff', cursor: 'pointer' }}>Close</button>
-                            </div>
-                        </div>
-                    </div>
-                )}
-
-                <div className="content">
-                    {/* Combine loading and saving states to use the beautiful new Skeleton */}
-                    {(gameState === 'loading' || gameState === 'saving') && (
-                        <TriviaSkeleton />
+                    {userId && !isVip && (
+                        <GameCostPopup userId={userId} featureKey="trivia_mixed" isVip={isVip} cost={GAME_ENTRY_COST} />
                     )}
 
-                    {/* Saving Error State (Retry UI) */}
-                    {gameState === 'saving_error' && (
-                        <div style={{
-                            display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60vh'
-                        }}>
-                            <div style={{
-                                background: 'rgba(30, 41, 59, 0.9)',
-                                border: '1px solid rgba(239, 68, 68, 0.3)',
-                                borderRadius: '16px',
-                                padding: '40px',
-                                textAlign: 'center',
-                                maxWidth: '480px'
-                            }}>
-                                <h2 style={{ color: '#ef4444', marginBottom: '16px', fontSize: '24px' }}>Network Disconnected</h2>
-                                <p style={{ color: 'rgba(255,255,255,0.7)', marginBottom: '24px' }}>
-                                    We Couldn't Save Your Score Of {saveErrorPayload?.actualCorrect} Correct Answers Because You Lost Connection. Please Check Your Internet And Try Again So You Don't Lose {saveErrorPayload?.actualDiamonds} Diamonds!
-                                </p>
-                                <button
-                                    onClick={handleRetrySave}
-                                    style={{
-                                        padding: '16px 32px',
-                                        background: 'linear-gradient(135deg, #2374e1, #1b5bb8)',
-                                        border: 'none',
-                                        borderRadius: '12px',
-                                        color: 'white',
-                                        fontSize: '16px',
-                                        fontWeight: 'bold',
-                                        cursor: 'pointer'
-                                    }}
-                                >
-                                    Retry Save
-                                </button>
-                            </div>
-                        </div>
-                    )}
-
-                    {gameState === 'error' && (
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '60vh', gap: 16, textAlign: 'center', color: 'rgba(255,255,255,0.7)', padding: 24 }}>
-                            <p style={{ margin: 0 }}>{loadError || 'Something went wrong loading the game.'}</p>
-                            <div style={{ display: 'flex', gap: 12 }}>
-                                <button
-                                    onClick={() => {
-                                        // Retries the whole start; the entry fee
-                                        // is only charged after a session opens.
-                                        startGame();
-                                    }}
-                                    style={{ padding: '12px 24px', background: 'linear-gradient(135deg, #00D4FF, #0088FF)', border: 'none', borderRadius: 8, color: '#fff', fontWeight: 600, cursor: 'pointer' }}
-                                >
-                                    Try Again
-                                </button>
-                                <button
-                                    onClick={() => router.push('/hub/trivia')}
-                                    style={{ padding: '12px 24px', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 8, color: '#fff', cursor: 'pointer' }}
-                                >
-                                    Back To Trivia
-                                </button>
-                            </div>
-                        </div>
-                    )}
-
-                    {gameState === 'ready' && (
-                        <div
-                            className="lobby-image-wrapper"
-                            onClick={startGame}
-                            style={{
-                                cursor: 'pointer',
-                                borderRadius: '16px',
-                                overflow: 'hidden',
-                                transition: 'transform 0.2s, box-shadow 0.2s',
-                            }}
-                            onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.02)'; e.currentTarget.style.boxShadow = '0 0 40px rgba(0, 212, 255, 0.4)'; }}
-                            onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = 'none'; }}
+                    <main className="trivia-challenge-shell" aria-labelledby="mixed-trivia-title">
+                        <TriviaConsole
+                            className="trivia-challenge-console"
+                            eyebrow="Seven Category Challenge"
+                            title="Mixed Trivia"
+                            titleId="mixed-trivia-title"
+                            subtitle="Every Poker Discipline"
+                            pill={stateLabel}
+                            aria-labelledby="mixed-trivia-title"
+                            primaryAction={primaryAction}
+                            secondaryAction={secondaryAction}
                         >
-                            <Image src="/images/trivia/lobby-mixed.jpg" alt="Mixed Mode - Start Challenge" width={686} height={1024} className="lobby-image" style={{ width: '100%', height: 'auto', display: 'block' }} />
-                        </div>
-                    )}
+                            {showOutOfDiamonds && (
+                                <section
+                                    className="trivia-challenge-alert"
+                                    role="alert"
+                                    aria-labelledby="mixed-diamonds-title"
+                                >
+                                    <h2 id="mixed-diamonds-title">Not Enough Diamonds</h2>
+                                    <p>
+                                        Each Game Costs {formatTriviaDisplayNumber(GAME_ENTRY_COST)} Diamonds.
+                                        Get More Diamonds Or Upgrade To VIP For Unlimited Access.
+                                    </p>
+                                </section>
+                            )}
 
-                    {gameState === 'playing' && currentQuestion && (
-                        <div className="playing-screen">
-                            {/* Category indicator + Timer */}
-                            <div className="top-bar">
-                                <div className="category-badge" style={{ borderColor: currentCategory.color }}>
-                                    <CategoryIcon size={18} color={currentCategory.color} />
-                                    <span style={{ color: currentCategory.color }}>{currentCategory.name}</span>
+                            {(gameState === 'loading' || gameState === 'saving') && (
+                                <div className="trivia-challenge-state" role="status" aria-live="polite">
+                                    <p>{gameState === 'saving' ? 'Securing Your Result' : 'Preparing Mixed Trivia'}</p>
                                 </div>
-                                <div className="cap-chip" title="Daily bonus diamonds earned">
-                                    <Gem size={14} color="#00D4FF" />
-                                    <span>{Math.min(DAILY_DIAMOND_CAP, earnedTodayCap + diamondsEarned)}/{DAILY_DIAMOND_CAP} Today</span>
-                                </div>
-                                <div className={`timer ${timer.timeLeft <= 8 ? 'warning' : ''} ${timer.timeLeft <= 3 ? 'danger' : ''}`}>
-                                    {timer.timeLeft}s
-                                </div>
-                            </div>
+                            )}
 
-                            {/* Progress */}
-                            <div className="progress-bar">
-                                <div
-                                    className="progress-fill"
-                                    style={{ width: `${((currentQuestionIndex + 1) / questions.length) * 100}%` }}
-                                />
-                            </div>
-                            <div className="progress-text">
-                                Question {currentQuestionIndex + 1} Of {questions.length}
-                            </div>
+                            {gameState === 'saving_error' && (
+                                <section className="trivia-challenge-state trivia-challenge-state--error" role="alert">
+                                    <h2>Network Disconnected</h2>
+                                    <p>
+                                        We Could Not Save Your Score Of {formatTriviaDisplayNumber(saveErrorPayload?.actualCorrect)} Correct Answers.
+                                        Check Your Connection And Retry To Protect {formatTriviaDisplayNumber(saveErrorPayload?.actualDiamonds)} Diamonds.
+                                    </p>
+                                </section>
+                            )}
 
-                            {/* Question */}
-                            <MetalFrame padding="24px" showBolts={false}>
-                                <h2 className="question-text">{toTitleCase(currentQuestion.question)}</h2>
+                            {gameState === 'error' && (
+                                <section className="trivia-challenge-state trivia-challenge-state--error" role="alert">
+                                    <h2>Mixed Trivia Could Not Start</h2>
+                                    <p>{loadError || 'Something Went Wrong While Preparing The Game.'}</p>
+                                </section>
+                            )}
 
-                                <div className="options">
-                                    {/* TRAIN-WIRE-TRIVIA-ANSWER-OPTION-1 — shared option primitive */}
-                                {currentQuestion.options.map((option, idx) => (
-                                  <TriviaAnswerOption
-                                    key={idx}
-                                    index={idx}
-                                    option={toTitleCase(option)}
-                                    selectedAnswer={selectedAnswer}
-                                    correctIndex={verdict ? verdict.correctDisplayIndex : null}
-                                    showResult={showResult}
-                                    onSelect={gradeAnswer}
-                                  />
-                                ))}
-                                </div>
-
-                                {showResult && verdict?.explanation && (
-                                    <div className="explanation">
-                                        <Lightbulb size={16} color="#00D4FF" style={{ flexShrink: 0, verticalAlign: 'text-bottom', marginRight: 6 }} />
-                                        {verdict.explanation}
-                                    </div>
-                                )}
-                                {showResult && (
-                                    <div style={{ marginTop: 10, display: 'flex', justifyContent: 'flex-end' }}>
-                                        <ReportQuestionButton key={currentQuestion.id} questionId={currentQuestion.id} userToken={accessToken} />
-                                    </div>
-                                )}
-                            </MetalFrame>
-
-                            {/* Per-category mini stats */}
-                            <div className="category-stats">
-                                {CATEGORIES.map(cat => {
-                                    const stats = categoryStats[cat.id];
-                                    return (
-                                        <div key={cat.id} className="cat-stat" style={{ borderColor: cat.color }}>
-                                            <span style={{ color: cat.color }}>{cat.name}</span>
-                                            <span>{stats.correct}/{stats.answered}</span>
+                            {gameState === 'ready' && (
+                                <section className="trivia-challenge-intro" aria-labelledby="mixed-ready-title">
+                                    <img
+                                        className="trivia-challenge-hero"
+                                        src="/images/trivia/modes-console-v1/mixed.webp"
+                                        alt=""
+                                        aria-hidden="true"
+                                        width={1000}
+                                        height={563}
+                                        decoding="async"
+                                    />
+                                    <h2 id="mixed-ready-title">One Run Through Every Discipline</h2>
+                                    <p>
+                                        Answer {formatTriviaDisplayNumber(QUESTIONS_PER_SESSION)} Server-Dealt Questions
+                                        Across History, Rules, Pro, Tournament, Cash, ICM, And GTO Play.
+                                    </p>
+                                    <dl className="trivia-challenge-stats">
+                                        <div className="trivia-challenge-stat">
+                                            <dt>Questions</dt>
+                                            <dd>{formatTriviaDisplayNumber(QUESTIONS_PER_SESSION)}</dd>
                                         </div>
-                                    );
-                                })}
-                            </div>
-                        </div>
-                    )}
+                                        <div className="trivia-challenge-stat">
+                                            <dt>Categories</dt>
+                                            <dd>{formatTriviaDisplayNumber(CATEGORIES.length)}</dd>
+                                        </div>
+                                        <div className="trivia-challenge-stat">
+                                            <dt>Entry</dt>
+                                            <dd>{isVip ? 'VIP Included' : `${formatTriviaDisplayNumber(GAME_ENTRY_COST)} Diamonds`}</dd>
+                                        </div>
+                                        <div className="trivia-challenge-stat">
+                                            <dt>Daily Reward Cap</dt>
+                                            <dd>{formatTriviaDisplayNumber(DAILY_DIAMOND_CAP)}</dd>
+                                        </div>
+                                    </dl>
+                                    {userId && !isVip && (
+                                        <ul className="tc-rows" aria-label="Your Balance">
+                                            <li className="tc-row">
+                                                <span className="tc-row__label">Your Balance</span>
+                                                <span className="tc-row__value tc-ink--gold">{formatTriviaDisplayNumber(userDiamonds)} Diamonds</span>
+                                            </li>
+                                        </ul>
+                                    )}
+                                    <ul className="trivia-challenge-list" aria-label="Mixed Trivia Categories">
+                                        {CATEGORIES.map(category => (
+                                            <li key={category.id}>{category.name}</li>
+                                        ))}
+                                    </ul>
+                                </section>
+                            )}
 
-                    {gameState === 'results' && (
-                        <div className="results-screen">
-                            <MetalFrame padding="32px" showBolts={true}>
-                                <h1 className="results-title">MIXED MODE COMPLETE!</h1>
+                            {gameState === 'playing' && currentQuestion && (
+                                <section className="trivia-challenge-stage" aria-labelledby="mixed-question-title">
+                                    <dl className="trivia-challenge-stats trivia-challenge-stats--compact">
+                                        <div className="trivia-challenge-stat">
+                                            <dt>Category</dt>
+                                            <dd>{currentCategory.name}</dd>
+                                        </div>
+                                        <div className="trivia-challenge-stat">
+                                            <dt>Time</dt>
+                                            <dd aria-live="off">{formatTriviaDisplayNumber(timer.timeLeft)} Seconds</dd>
+                                        </div>
+                                        <div className="trivia-challenge-stat">
+                                            <dt>Daily Rewards</dt>
+                                            <dd>
+                                                {formatTriviaDisplayNumber(Math.min(DAILY_DIAMOND_CAP, earnedTodayCap + diamondsEarned))}
+                                                {' Of '}
+                                                {formatTriviaDisplayNumber(DAILY_DIAMOND_CAP)}
+                                            </dd>
+                                        </div>
+                                    </dl>
 
-                                <div className="score-display">
-                                    <div className="big-score">{totalCorrect}/{questions.length}</div>
-                                    <div className="score-label">Correct</div>
-                                </div>
+                                    <progress
+                                        className="trivia-challenge-progress"
+                                        value={currentQuestionIndex + 1}
+                                        max={Math.max(questions.length, 1)}
+                                        aria-label={`Question ${currentQuestionIndex + 1} Of ${questions.length}`}
+                                    />
+                                    <p className="trivia-challenge-progress-label">
+                                        Question {formatTriviaDisplayNumber(currentQuestionIndex + 1)} Of {formatTriviaDisplayNumber(questions.length)}
+                                    </p>
 
-                                <div className="diamonds-earned">
-                                    <Gem size={24} color="#00D4FF" />
-                                    <span>+{diamondsEarned} Diamonds</span>
-                                </div>
+                                    <h2 id="mixed-question-title" className="trivia-challenge-question">
+                                        {toTitleCase(currentQuestion.question)}
+                                    </h2>
 
-                                {capReached && (
-                                    <div className="cap-note">
-                                        Daily Diamond Cap Reached ({DAILY_DIAMOND_CAP}/Day) - Correct Answers Still Count Toward Your Category Mastery!
+                                    <div className="trivia-challenge-options">
+                                        {/* TRAIN-WIRE-TRIVIA-ANSWER-OPTION-1: shared option primitive */}
+                                        {currentQuestion.options.map((option, idx) => (
+                                            <TriviaAnswerOption
+                                                key={idx}
+                                                index={idx}
+                                                option={toTitleCase(option)}
+                                                selectedAnswer={selectedAnswer}
+                                                correctIndex={verdict ? verdict.correctDisplayIndex : null}
+                                                showResult={showResult}
+                                                onSelect={gradeAnswer}
+                                            />
+                                        ))}
                                     </div>
-                                )}
 
-                                <div className="category-breakdown">
-                                    <h3>Category Breakdown</h3>
-                                    {CATEGORIES.map(cat => {
-                                        const stats = categoryStats[cat.id];
-                                        const accuracy = stats.answered > 0 ? Math.round((stats.correct / stats.answered) * 100) : 0;
-                                        const masteryLevel = categoryMastery[cat.id]?.mastery_level;
-                                        return (
-                                            <div key={cat.id} className="cat-result">
-                                                <cat.icon size={20} color={cat.color} />
-                                                <span className="cat-name" style={{ color: cat.color }}>{cat.name}</span>
-                                                {masteryLevel != null && (
-                                                    <span className="cat-mastery" title="Cumulative mastery level">Lv {masteryLevel}</span>
-                                                )}
-                                                <span className="cat-score">{stats.correct}/{stats.answered}</span>
-                                                <span className="cat-accuracy">{accuracy}%</span>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
+                                    {showResult && verdict?.explanation && (
+                                        <section className="trivia-challenge-explanation" aria-labelledby="mixed-explanation-title">
+                                            <h3 id="mixed-explanation-title">Why This Is Correct</h3>
+                                            <p>{verdict.explanation}</p>
+                                        </section>
+                                    )}
+                                    {showResult && (
+                                        <div className="trivia-challenge-report">
+                                            <ReportQuestionButton
+                                                key={currentQuestion.id}
+                                                questionId={currentQuestion.id}
+                                                userToken={accessToken}
+                                            />
+                                        </div>
+                                    )}
 
-                                <div className="result-actions">
-                                    <HexButton onClick={playAgain} variant="primary" size="md">
-                                        <ArrowRight size={16} /> Play Again
-                                    </HexButton>
-                                    <HexButton onClick={async () => {
-                                        const r = await shareResult({ mode: 'Mixed', score: totalCorrect, total: questions.length, diamonds: diamondsEarned });
-                                        if (r === 'copied') alert('Result copied to clipboard!');
-                                    }} variant="secondary" size="md">
+                                    <dl className="trivia-challenge-stats trivia-challenge-stats--categories">
+                                        {CATEGORIES.map(category => {
+                                            const stats = categoryStats[category.id];
+                                            return (
+                                                <div key={category.id} className="trivia-challenge-stat">
+                                                    <dt>{category.name}</dt>
+                                                    <dd>
+                                                        {formatTriviaDisplayNumber(stats.correct)}
+                                                        {' Of '}
+                                                        {formatTriviaDisplayNumber(stats.answered)}
+                                                    </dd>
+                                                </div>
+                                            );
+                                        })}
+                                    </dl>
+                                </section>
+                            )}
+
+                            {gameState === 'results' && (
+                                <section className="trivia-challenge-state trivia-challenge-state--results" aria-labelledby="mixed-results-title">
+                                    <h2 id="mixed-results-title">Mixed Trivia Complete</h2>
+                                    <dl className="trivia-challenge-stats">
+                                        <div className="trivia-challenge-stat">
+                                            <dt>Correct Answers</dt>
+                                            <dd>
+                                                {formatTriviaDisplayNumber(totalCorrect)}
+                                                {' Of '}
+                                                {formatTriviaDisplayNumber(questions.length)}
+                                            </dd>
+                                        </div>
+                                        <div className="trivia-challenge-stat">
+                                            <dt>Diamonds Earned</dt>
+                                            <dd>{formatTriviaDisplayNumber(diamondsEarned)}</dd>
+                                        </div>
+                                    </dl>
+
+                                    {capReached && (
+                                        <p className="trivia-challenge-note">
+                                            Daily Diamond Cap Reached At {formatTriviaDisplayNumber(DAILY_DIAMOND_CAP)}.
+                                            Correct Answers Still Count Toward Category Mastery.
+                                        </p>
+                                    )}
+
+                                    <section className="trivia-challenge-breakdown" aria-labelledby="mixed-breakdown-title">
+                                        <h3 id="mixed-breakdown-title">Category Breakdown</h3>
+                                        <dl className="trivia-challenge-stats trivia-challenge-stats--categories">
+                                            {CATEGORIES.map(category => {
+                                                const stats = categoryStats[category.id];
+                                                const accuracy = stats.answered > 0
+                                                    ? Math.round((stats.correct / stats.answered) * 100)
+                                                    : 0;
+                                                const masteryLevel = categoryMastery[category.id]?.mastery_level;
+                                                return (
+                                                    <div key={category.id} className="trivia-challenge-stat">
+                                                        <dt>{category.name}</dt>
+                                                        <dd>
+                                                            {formatTriviaDisplayNumber(stats.correct)}
+                                                            {' Of '}
+                                                            {formatTriviaDisplayNumber(stats.answered)}
+                                                            {' | '}
+                                                            {formatTriviaDisplayNumber(accuracy)}%
+                                                            {masteryLevel != null
+                                                                ? ` | Level ${formatTriviaDisplayNumber(masteryLevel)}`
+                                                                : ''}
+                                                        </dd>
+                                                    </div>
+                                                );
+                                            })}
+                                        </dl>
+                                    </section>
+
+                                    <button
+                                        type="button"
+                                        className="trivia-challenge-action"
+                                        onClick={async () => {
+                                            const result = await shareResult({
+                                                mode: 'Mixed',
+                                                score: totalCorrect,
+                                                total: questions.length,
+                                                diamonds: diamondsEarned,
+                                            });
+                                            if (result === 'copied') alert('Result Copied To Clipboard.');
+                                        }}
+                                    >
                                         Share Result
-                                    </HexButton>
-                                    <HexButton onClick={() => router.push('/hub/trivia')} variant="secondary" size="md">
-                                        Back To Trivia
-                                    </HexButton>
-                                </div>
-                            </MetalFrame>
-                        </div>
-                    )}
+                                    </button>
+                                </section>
+                            )}
+                        </TriviaConsole>
+                    </main>
                 </div>
-            </div>
-
-            <style dangerouslySetInnerHTML={{ __html: `
-                .mixed-page {
-                    min-height: 100vh; padding-bottom: 70px;
-                    background: #0a0e1a;
-                    background-color: #000000;
-                    font-family: 'Inter', -apple-system, sans-serif;
-                }
-
-                .bg-overlay {
-                    display: none;
-                }
-
-                .content {
-                    position: relative;
-                    padding: 80px 0 40px;
-                    max-width: 100%;
-                    margin: 0 auto;
-                }
-
-                .loading {
-                    display: flex;
-                    flex-direction: column;
-                    align-items: center;
-                    justify-content: center;
-                    min-height: 60vh;
-                    color: rgba(255, 255, 255, 0.6);
-                }
-
-                .spinner {
-                    width: 40px;
-                    height: 40px;
-                    border: 3px solid rgba(255, 255, 255, 0.1);
-                    border-top-color: #00D4FF;
-                    border-radius: 50%;
-                    animation: spin 1s linear infinite;
-                    margin-bottom: 16px;
-                }
-
-                @keyframes spin { to { transform: rotate(360deg); } }
-
-                .mode-header {
-                    text-align: center;
-                    margin-bottom: 24px;
-                }
-
-                .mode-header h1 {
-                    font-family: 'Orbitron', sans-serif;
-                    font-size: 28px;
-                    color: #fff;
-                    margin: 12px 0 8px;
-                    text-shadow: 0 0 20px rgba(0, 212, 255, 0.5);
-                }
-
-                .mode-header p {
-                    color: rgba(255, 255, 255, 0.6);
-                    margin: 0;
-                }
-
-                .mode-info {
-                    display: flex;
-                    justify-content: center;
-                    gap: 24px;
-                    margin-bottom: 32px;
-                }
-
-                .info-item {
-                    display: flex;
-                    flex-direction: column;
-                    align-items: center;
-                }
-
-                .info-item .label {
-                    font-size: 12px;
-                    color: rgba(255, 255, 255, 0.5);
-                    text-transform: uppercase;
-                    margin-bottom: 4px;
-                }
-
-                .info-item .value {
-                    font-size: 18px;
-                    font-weight: 600;
-                    color: #fff;
-                }
-
-                /* Playing screen */
-                .top-bar {
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                    margin-bottom: 12px;
-                }
-
-                .category-badge {
-                    display: flex;
-                    align-items: center;
-                    gap: 8px;
-                    padding: 8px 16px;
-                    background: rgba(30, 41, 59, 0.6);
-                    border: 2px solid;
-                    border-radius: 8px;
-                    font-weight: 600;
-                }
-
-                .timer {
-                    font-size: 24px;
-                    font-weight: 700;
-                    color: #fff;
-                    padding: 8px 16px;
-                    background: rgba(30, 41, 59, 0.6);
-                    border-radius: 8px;
-                }
-
-                .timer.warning { color: #fbbf24; }
-                .timer.danger { color: #ef4444; animation: pulse 0.5s infinite; }
-
-                .cap-chip {
-                    display: flex;
-                    align-items: center;
-                    gap: 6px;
-                    padding: 8px 12px;
-                    background: rgba(30, 41, 59, 0.6);
-                    border: 1px solid rgba(0, 212, 255, 0.25);
-                    border-radius: 8px;
-                    font-size: 12px;
-                    font-weight: 600;
-                    color: rgba(255, 255, 255, 0.8);
-                }
-
-                .cap-note {
-                    padding: 10px 14px;
-                    background: rgba(251, 191, 36, 0.1);
-                    border: 1px solid rgba(251, 191, 36, 0.35);
-                    border-radius: 10px;
-                    color: #fbbf24;
-                    font-size: 12px;
-                    margin-bottom: 20px;
-                }
-
-                .cat-mastery {
-                    padding: 2px 8px;
-                    background: rgba(0, 212, 255, 0.12);
-                    border: 1px solid rgba(0, 212, 255, 0.3);
-                    border-radius: 10px;
-                    font-size: 11px;
-                    font-weight: 600;
-                    color: #00D4FF;
-                }
-
-                @keyframes pulse {
-                    0%, 100% { opacity: 1; }
-                    50% { opacity: 0.5; }
-                }
-
-                .progress-bar {
-                    height: 6px;
-                    background: rgba(255, 255, 255, 0.1);
-                    border-radius: 3px;
-                    margin-bottom: 8px;
-                    overflow: hidden;
-                }
-
-                .progress-fill {
-                    height: 100%;
-                    background: linear-gradient(90deg, #00D4FF, #8b5cf6);
-                    border-radius: 3px;
-                    transition: width 0.3s;
-                }
-
-                .progress-text {
-                    text-align: center;
-                    font-size: 13px;
-                    color: rgba(255, 255, 255, 0.5);
-                    margin-bottom: 16px;
-                }
-
-                .question-text {
-                    font-size: 18px;
-                    color: #fff;
-                    margin: 0 0 20px;
-                    line-height: 1.5;
-                }
-
-                .options {
-                    display: flex;
-                    flex-direction: column;
-                    gap: 12px;
-                }
-
-                .option {
-                    display: flex;
-                    align-items: center;
-                    gap: 12px;
-                    padding: 16px;
-                    background: rgba(30, 41, 59, 0.6);
-                    border: 2px solid rgba(255, 255, 255, 0.1);
-                    border-radius: 10px;
-                    cursor: pointer;
-                    transition: all 0.2s;
-                    text-align: left;
-                    color: #fff;
-                }
-
-                /* hover removed per user request */
-
-                .option.selected {
-                    border-color: #00D4FF;
-                }
-
-                .option.correct {
-                    background: rgba(34, 197, 94, 0.2);
-                    border-color: #22c55e;
-                }
-
-                .option.wrong {
-                    background: rgba(239, 68, 68, 0.2);
-                    border-color: #ef4444;
-                }
-
-                .option-letter {
-                    width: 28px;
-                    height: 28px;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    background: rgba(255, 255, 255, 0.1);
-                    border-radius: 6px;
-                    font-weight: 600;
-                    flex-shrink: 0;
-                }
-
-                .option-text {
-                    flex: 1;
-                }
-
-                .result-icon {
-                    margin-left: auto;
-                }
-
-                .option.correct .result-icon { color: #22c55e; }
-                .option.wrong .result-icon { color: #ef4444; }
-
-                .explanation {
-                    margin-top: 16px;
-                    padding: 12px 16px;
-                    background: rgba(0, 212, 255, 0.1);
-                    border-left: 3px solid #00D4FF;
-                    border-radius: 0 8px 8px 0;
-                    font-size: 14px;
-                    color: rgba(255, 255, 255, 0.8);
-                }
-
-                .category-stats {
-                    display: flex;
-                    justify-content: center;
-                    gap: 12px;
-                    margin-top: 16px;
-                }
-
-                .cat-stat {
-                    padding: 8px 12px;
-                    background: rgba(30, 41, 59, 0.6);
-                    border: 1px solid;
-                    border-radius: 6px;
-                    font-size: 13px;
-                    display: flex;
-                    gap: 8px;
-                }
-
-                /* Results */
-                .results-screen {
-                    position: fixed;
-                    inset: 0;
-                    z-index: 1000;
-                    background: rgba(0, 0, 0, 0.88);
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    padding: 20px;
-                    text-align: center;
-                    animation: resultFadeIn 0.4s ease;
-                }
-
-                @keyframes resultFadeIn {
-                    from { opacity: 0; transform: scale(0.92); }
-                    to { opacity: 1; transform: scale(1); }
-                }
-
-                .results-title {
-                    font-family: 'Orbitron', sans-serif;
-                    font-size: 24px;
-                    color: #00D4FF;
-                    margin: 0 0 24px;
-                    text-shadow: 0 0 20px rgba(0, 212, 255, 0.5);
-                }
-
-                .score-display {
-                    margin-bottom: 16px;
-                }
-
-                .big-score {
-                    font-size: 48px;
-                    font-weight: 700;
-                    color: #fff;
-                }
-
-                .score-label {
-                    font-size: 14px;
-                    color: rgba(255, 255, 255, 0.5);
-                }
-
-                .diamonds-earned {
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    gap: 8px;
-                    font-size: 24px;
-                    font-weight: 600;
-                    color: #00D4FF;
-                    margin-bottom: 24px;
-                }
-
-                .category-breakdown {
-                    background: rgba(30, 41, 59, 0.4);
-                    border-radius: 12px;
-                    padding: 16px;
-                    margin-bottom: 24px;
-                }
-
-                .category-breakdown h3 {
-                    font-size: 14px;
-                    color: rgba(255, 255, 255, 0.5);
-                    margin: 0 0 12px;
-                    text-transform: uppercase;
-                }
-
-                .cat-result {
-                    display: flex;
-                    align-items: center;
-                    gap: 12px;
-                    padding: 10px 0;
-                    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-                }
-
-                .cat-result:last-child { border-bottom: none; }
-
-                .cat-name {
-                    flex: 1;
-                    text-align: left;
-                    font-weight: 600;
-                }
-
-                .cat-score {
-                    color: #fff;
-                    font-weight: 600;
-                }
-
-                .cat-accuracy {
-                    width: 50px;
-                    text-align: right;
-                    color: rgba(255, 255, 255, 0.5);
-                }
-
-                .result-actions {
-                    display: flex;
-                    gap: 12px;
-                    justify-content: center;
-                }
-
-                /* ===== MOBILE OPTIMIZATION ===== */
-                @media (max-width: 768px) {
-                    .content {
-                        padding: 60px 0 20px;
-                    }
-
-                    .lobby-image-wrapper {
-                        max-height: calc(100dvh - 60px);
-                        display: flex;
-                        align-items: center;
-                        justify-content: center;
-                    }
-
-                    .lobby-image {
-                        max-height: calc(100dvh - 60px);
-                        width: 100%;
-                        object-fit: contain;
-                    }
-                }
-            ` }} />
+            </>
           {/* Server rendered: measured on production this page returned
               only chrome to a crawler (AEO phase 3, 2026-09-17). */}
           <HubPageSummary page="trivia-mixed" as="h1" />

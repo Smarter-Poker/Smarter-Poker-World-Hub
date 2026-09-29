@@ -22,7 +22,7 @@ const replaySettlement = read('supabase/migrations/20260827231000_trivia_phase6_
 
 test('lobby exposes every public game and uses recoverable, prefetched routes', () => {
     assert.ok(TRIVIA_MIDDLE_MODES.some(mode => mode.id === 'time-attack'));
-    assert.ok(existsSync(join(ROOT, 'public/images/trivia/modes-v2/time-attack.webp')));
+    assert.ok(existsSync(join(ROOT, 'public/images/trivia/modes-console-v1/time-attack.webp')));
     assert.match(lobby, /await router\.push\(getModeRoute\(modeId\)\)/);
     assert.match(lobby, /setRouteError\('That game could not be opened/);
     assert.match(lobby, /router\.prefetch\(route\)/);

@@ -130,7 +130,7 @@ export default function ToursTabPanel({
                 </select>
             </div>
             <div className="results-bar">
-                <span className="results-count"><span style={{ color: '#ffffff', fontWeight: 800 }}>{filteredTours.length}</span> tour{filteredTours.length !== 1 ? 's' : ''}</span>
+                <span className="results-count"><span style={{ color: '#ffffff', fontWeight: 800 }}>{filteredTours.length}</span> {filteredTours.length !== 1 ? 'tours' : 'tour'}</span>
             </div>
             {filteredTours.length === 0 ? (
                 <div className="empty-state">

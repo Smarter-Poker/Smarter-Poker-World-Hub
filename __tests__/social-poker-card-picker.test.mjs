@@ -1,8 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
 import { readFileSync, existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { React, cardImages, elements, inert, loadSurface, render, textOf } from './social-poker-card-harness.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const read = (file) => readFileSync(join(ROOT, file), 'utf8');
@@ -33,7 +35,10 @@ test('a hold-em hand and flop round-trip without exposing storage markup', () =>
     hand: [{ rank: 'A', suit: 's' }, { rank: 'K', suit: 'h' }],
     board: [{ rank: 'Q', suit: 'd' }, { rank: 'J', suit: 'c' }, { rank: '2', suit: 's' }],
   });
-  assert.equal(markup.readablePokerText(text), 'Hand A\u2660K\u2665 | Board Q\u2666J\u26632\u2660');
+  assert.equal(
+    markup.readablePokerText(text),
+    'Hand: Ace of spades, King of hearts | Board: Queen of diamonds, Jack of clubs, 2 of spades'
+  );
 });
 
 test('invalid card notation remains harmless text', () => {
@@ -90,12 +95,23 @@ test('the shared composer persists cards through every publishing path', () => {
 });
 
 // Surfaces that render a user's post body, so a raw card token like "Ah" must
-// go through PokerCardText rather than reach the DOM as text.
+// go through PokerCardText rather than reach the DOM as text. The ones fixed on
+// 2026-09-21 are also rendered for real further down this file.
+//
+// SmarterPokerStyleCard.jsx left this list the same day. Only its SPAvatar and
+// SP_COLORS exports are imported (ClubArenaMessenger); its default export, the
+// card that renders a post, is mounted nowhere, so the entry asserted a surface
+// no reader can see. A test below fails if anything mounts it again, which is
+// when it belongs back here.
 const CARD_RENDERING_SURFACES = [
-  'src/components/social/SmarterPokerStyleCard.jsx',
   'src/components/social/ClubPageDashboard.jsx',
   'src/components/social/HashtagRenderer.jsx',
   'src/components/social/Stories.jsx',
+  'pages/hub/social-media/index.js',
+  'pages/hub/social-pages/[pageId].js',
+  'pages/club/[id].js',
+  'src/components/social/SharePostModal.jsx',
+  'src/components/social/SharedPostCard.jsx',
 ];
 
 // These three were in the list above until 2026-09-08 and no longer belong in
@@ -174,4 +190,352 @@ test('picker forbids duplicates and respects hand and board limits', () => {
   assert.match(source, /if \(choose\(card\)\) setQuickRank\(null\)/);
   assert.match(source, /repeat\(auto-fit, minmax\(44px, 1fr\)\)/);
   assert.doesNotMatch(source, /<span[\s\S]{0,160}role="button"/);
+});
+
+test('SmarterPokerStyleCard stays off the card list only while nothing mounts it', () => {
+  const found = spawnSync('git', ['grep', '--untracked', '-l', 'SmarterPokerStyleCard', '--', 'pages', 'src'], { cwd: ROOT, encoding: 'utf8' });
+  assert.equal(found.error, undefined);
+  assert.ok(found.status === 0 || found.status === 1, found.stderr);
+  // A default import or a dynamic import() of the file mounts the post card.
+  const MOUNTS = /import\s+[\w$]+\s*(?:,\s*\{[^}]*\})?\s*from\s*['"][^'"]*\/SmarterPokerStyleCard(?:\.jsx)?['"]|import\(\s*['"][^'"]*\/SmarterPokerStyleCard(?:\.jsx)?['"]\s*\)/;
+  const mounts = found.stdout.split('\n').filter(Boolean).filter((file) => MOUNTS.test(read(file)));
+  assert.deepEqual(mounts, [], 'SmarterPokerStyleCard is mounted again: put it back in CARD_RENDERING_SURFACES');
+});
+
+// ─────────────────────────────────────────────────────────────────────────
+// RENDERED SURFACES (2026-09-21)
+//
+// The composer stored cards correctly, but eleven places that print post text
+// printed the storage markup instead: comments and replies on the feed and on
+// social pages, the social page post body, pinned strip, Top Post card and
+// check-in badge, the public club page, the feed search results, the share
+// sheet preview, the Club Arena messenger card, and the text sent to X,
+// WhatsApp and SMS. Each is rendered here from its real source file (see
+// social-poker-card-harness.mjs) and must show Club Arena artwork, never
+// "[[sp-card:", and never half a token where a snippet is cut.
+// ─────────────────────────────────────────────────────────────────────────
+const HAND = 'Hand [[sp-card:As]][[sp-card:Td]] | Board [[sp-card:Kh]][[sp-card:7c]][[sp-card:2s]]';
+const HAND_ART = ['spades_a', 'diamonds_10', 'hearts_k', 'clubs_7', 'spades_2'];
+const HAND_WORDS = 'Hand: Ace of spades, 10 of diamonds | Board: King of hearts, 7 of clubs, 2 of spades';
+// Text whose plain slice(0, limit) ends inside the card token, at "[[sp-card".
+const cutInside = (limit, card) => `${'x'.repeat(limit - 10)} ${card} and more words after the card`;
+// An edit that repeated a card and deleted into the last token.
+const BROKEN_EDIT = 'nice hand\nHand [[sp-card:As]][[sp-card:As]][[sp-card:Kd]] | Board [[sp-card:Kd]][[sp-card:Q';
+const EDIT_SAVED = 'nice hand\nHand [[sp-card:As]][[sp-card:Kd]]';
+const noMarkup = (text, where) => assert.doesNotMatch(text, /sp-card/, `${where} shows card storage markup`);
+const noop = () => {};
+
+test('text that leaves the app reads the cards as words', () => {
+  assert.equal(markup.readablePokerText(`nice pot\n${HAND}`), `nice pot\n${HAND_WORDS}`);
+  assert.equal(
+    markup.readablePokerText('I had [[sp-card:As]] [[sp-card:Kd]] and won'),
+    'I had Ace of spades, King of diamonds and won'
+  );
+  assert.equal(markup.readablePokerText('Board [[sp-card:Tc]]'), 'Board: 10 of clubs');
+  assert.equal(markup.readablePokerText('Bluff? [[sp-card:1s]] [[sp-card:AZ]]'), 'Bluff? [[sp-card:1s]] [[sp-card:AZ]]');
+  assert.equal(markup.readablePokerText(null), '');
+  // With a limit the cut falls in the text or between whole cards: the result is
+  // always the longest such prefix, never "[[sp-card:" and never "Ace of sp".
+  const full = markup.readablePokerText(`gg ${HAND}`);
+  assert.equal(full, `gg ${HAND_WORDS}`);
+  const cardEnds = [...full.matchAll(/(?:Ace|King|Queen|Jack|10|[2-9]) of (?:spades|hearts|diamonds|clubs)/g)]
+    .map((match) => match.index + match[0].length);
+  const cuts = [0, 1, 2, 3, ...cardEnds];
+  for (let limit = 0; limit <= full.length + 1; limit += 1) {
+    const expected = full.slice(0, Math.max(...cuts.filter((cut) => cut <= limit)));
+    assert.equal(markup.readablePokerText(`gg ${HAND}`, limit), expected, `cut at ${limit}`);
+  }
+});
+
+test('a card whose WebP and PNG both fail still reads 10, not T', () => {
+  const { module } = loadSurface('src/components/social/PokerCardText.jsx', { state: { fallback: 2 } });
+  const ten = render(module.PokerCardImage({ rank: 'T', suit: 'h' }));
+  assert.match(ten, /role="img" aria-label="Ten of hearts"/);
+  assert.match(ten, />10h<\/span>$/);
+  assert.match(render(module.PokerCardImage({ rank: 'A', suit: 's' })), />As<\/span>$/);
+});
+
+test('a snippet is cut between whole cards and still shows them as art', () => {
+  const { module } = loadSurface('src/components/social/PokerCardText.jsx');
+  const text = 'ab [[sp-card:As]]c[[sp-card:Td]][[sp-card:Kh]] de';
+  for (let maxLength = 1; maxLength <= 11; maxLength += 1) {
+    const cut = markup.truncatePokerText(text, maxLength);
+    const html = render(React.createElement(module.PokerCardSnippet, { text, maxLength }));
+    noMarkup(html, `snippet of ${maxLength}`);
+    assert.equal(cardImages(html).length, (cut.text.match(/\[\[sp-card:/g) || []).length, `cards at ${maxLength}`);
+    assert.equal(html.endsWith('...'), cut.truncated, `ellipsis at ${maxLength}`);
+  }
+});
+
+test('an edit is normalized before it is stored', () => {
+  const normalize = markup.normalizePokerPostContent;
+  assert.equal(normalize(`nice pot\n${HAND}`), `nice pot\n${HAND}`);
+  assert.equal(normalize(BROKEN_EDIT), EDIT_SAVED);
+  assert.equal(normalize('Hand [[sp-card:As]] | Board [[sp-card:As]][[sp-card:Kd]]'), 'Hand [[sp-card:As]] | Board [[sp-card:Kd]]');
+  assert.equal(
+    normalize('gg\nHand[[sp-card:As]] [[sp-card:Kd]]|Board [[sp-card:Qh]]'),
+    'gg\nHand [[sp-card:As]][[sp-card:Kd]] | Board [[sp-card:Qh]]'
+  );
+  const sevenHoleCards = '2345678'.split('').map((rank) => `[[sp-card:${rank}h]]`).join('');
+  assert.equal(normalize(`Hand ${sevenHoleCards}`), `Hand ${sevenHoleCards.slice(0, -'[[sp-card:8h]]'.length)}`);
+  assert.equal(normalize('Checked in at Hard Rock Tampa - Hand [[sp-card:A'), 'Checked in at Hard Rock Tampa');
+  // Only the composer's own card line is rebuilt: "Hand" in the middle of a sentence is words.
+  assert.equal(normalize('Great Hand [[sp-card:A'), 'Great Hand');
+  assert.equal(normalize('great [[sp-card:1s]] hand [[sp-card:As]] ok'), 'great hand [[sp-card:As]] ok');
+  assert.equal(normalize('Hand of the night - Board meeting at 5'), 'Hand of the night - Board meeting at 5');
+  assert.equal(normalize('Hand [[sp-card:A'), '');
+  for (const text of [BROKEN_EDIT, `nice pot\n${HAND}`, 'gg\nHand [[sp-card:As][[sp-card:Kd]]']) {
+    assert.equal(normalize(normalize(text)), normalize(text), `idempotent for ${JSON.stringify(text)}`);
+  }
+});
+
+test('the check-in badge reads the words of a post, not its card markup', () => {
+  const strip = markup.stripPokerCardMarkup;
+  assert.equal(strip(`Checked in at Hard Rock Tampa - ${HAND}`), 'Checked in at Hard Rock Tampa');
+  assert.equal(strip(`Checked in at Hard Rock Tampa - fun night\n${HAND}`), 'Checked in at Hard Rock Tampa - fun night');
+  assert.equal(strip('Checked in at Hard Rock Tampa - Tampa, FL'), 'Checked in at Hard Rock Tampa - Tampa, FL');
+  assert.equal(strip('Checked in at Hard Rock Tampa - won with [[sp-card:As]] again'), 'Checked in at Hard Rock Tampa - won with again');
+});
+
+// ── Social pages (pages/hub/social-pages/[pageId].js), which host the composer ──
+const PAGE_FILE = 'pages/hub/social-pages/[pageId].js';
+const PAGE_EXPOSE = ['PostCard', 'SocialPageDetail'];
+const pagePost = (content) => ({
+  id: 'p1', content, author_id: 'u2', author: { full_name: 'Dan' },
+  like_count: 0, comment_count: 2, created_at: '2026-09-21T12:00:00Z', media_urls: [],
+});
+const pageCardProps = (post, overrides = {}) => ({
+  post, user: { id: 'u1', user_metadata: {} }, page: { id: 'pg', name: 'Hard Rock', slug: 'hard-rock' },
+  isPageOwner: false, onLike: noop, onComment: noop, onDelete: noop, onPin: noop, onEdit: noop, onDeleteComment: noop,
+  ...overrides,
+});
+
+test('social pages: a post, its comments and their replies show the Club Arena cards', () => {
+  const comments = [
+    { id: 'c1', content: `top ${HAND} @amy`, parent_id: null, user_id: 'u3', author: { full_name: 'Amy' } },
+    { id: 'c2', content: 'reply [[sp-card:Qh]] @dan.b', parent_id: 'c1', user_id: 'u4', author: { full_name: 'Bo' } },
+  ];
+  const { exposed } = loadSurface(PAGE_FILE, { expose: PAGE_EXPOSE, state: { showComments: true, comments } });
+  const html = render(exposed.PostCard(pageCardProps(pagePost(`nice pot @dan.b\n${HAND}`))));
+  noMarkup(html, 'social page post card');
+  assert.deepEqual(cardImages(html), [...HAND_ART, ...HAND_ART, 'hearts_q']);
+  assert.match(html, /href="\/hub\/user\/amy"/, 'a comment @mention still links');
+  assert.match(html, /href="\/hub\/user\/dan\.b"/, 'a reply @mention still links');
+});
+
+test('social pages: See More never cuts a card in half', () => {
+  const { exposed } = loadSurface(PAGE_FILE, { expose: PAGE_EXPOSE });
+  const html = render(exposed.PostCard(pageCardProps(pagePost(cutInside(300, '[[sp-card:As]]')))));
+  noMarkup(html, 'social page See More');
+  assert.deepEqual(cardImages(html), ['spades_a']);
+  assert.match(html, /See More/);
+});
+
+test('social pages: a cards-only check-in badge names the venue and leaves the cards to the post', () => {
+  const { exposed } = loadSurface(PAGE_FILE, { expose: PAGE_EXPOSE });
+  const html = render(exposed.PostCard(pageCardProps(pagePost(`Checked in at Hard Rock Tampa - ${HAND}`))));
+  noMarkup(html, 'social page check-in badge');
+  assert.match(html, />Hard Rock Tampa<\/div>/);
+  assert.deepEqual(cardImages(html), HAND_ART);
+});
+
+test('social pages: the X, WhatsApp and SMS links carry the cards as words', () => {
+  const sheet = loadSurface(PAGE_FILE, { expose: PAGE_EXPOSE, state: { showShareModal: true } });
+  const links = elements(sheet.exposed.PostCard(pageCardProps(pagePost(`nice pot\n${HAND}`))))
+    .filter((element) => element.type === 'a')
+    .map((element) => decodeURIComponent(element.props.href));
+  const x = links.find((link) => link.startsWith('https://twitter.com/'));
+  const whatsapp = links.find((link) => link.startsWith('https://wa.me/'));
+  const sms = links.find((link) => link.startsWith('sms:'));
+  for (const link of [x, whatsapp, sms]) noMarkup(link, link.split('?')[0]);
+  assert.ok(x.endsWith(`&text=nice pot\n${HAND_WORDS}`), x);
+  assert.ok(whatsapp.startsWith(`https://wa.me/?text=nice pot\n${HAND_WORDS} `), whatsapp);
+  // SMS keeps 80 characters: it stops before a card that would not fit whole.
+  assert.equal(sms, 'sms:?body=nice pot\nHand: Ace of spades, 10 of diamonds | Board: King of hearts, 7 of clubs ');
+});
+
+test('social pages: Share To My Feed stores the post text without cutting a card in half', async () => {
+  const feed = loadSurface(PAGE_FILE, { expose: PAGE_EXPOSE, state: { showShareModal: true } });
+  const tree = feed.exposed.PostCard(pageCardProps(pagePost(cutInside(200, '[[sp-card:Qd]]'))));
+  await elements(tree).find((element) => element.type === 'button' && textOf(element).includes('Share To My Feed')).props.onClick();
+  const shared = feed.fetchCalls.find((call) => call.init.method === 'POST' && call.url === '/api/social/pages/posts');
+  assert.equal(shared.body.content, `Shared from Hard Rock: ${'x'.repeat(190)} [[sp-card:Qd]] and mor\n\n`);
+});
+
+test('social pages: an edited post is saved with its card line rebuilt, never a broken token', async () => {
+  const saved = [];
+  const surface = loadSurface(PAGE_FILE, { expose: PAGE_EXPOSE, state: { editing: true, editContent: BROKEN_EDIT } });
+  const tree = surface.exposed.PostCard(pageCardProps(pagePost('nice hand'), { onEdit: (id, content) => saved.push(content) }));
+  await elements(tree).find((element) => element.type === 'button' && textOf(element) === 'Save').props.onClick();
+  const put = surface.fetchCalls.find((call) => call.init.method === 'PUT');
+  assert.equal(put.body.content, EDIT_SAVED);
+  assert.deepEqual(saved, [EDIT_SAVED]);
+});
+
+// The whole page, loaded and past its skeleton, as its owner sees it.
+const socialPageTree = () => {
+  const posts = [{
+    id: 'pp1', content: `pinned ${HAND}`, is_pinned: true, like_count: 3, comment_count: 1,
+    created_at: '2026-09-21T12:00:00Z', media_urls: [], author: { full_name: 'Dan' },
+  }];
+  const page = { id: 'pg', name: 'Hard Rock', slug: 'hard-rock', follower_count: 3, page_type: 'venue' };
+  const { exposed } = loadSurface(PAGE_FILE, {
+    expose: PAGE_EXPOSE,
+    state: { loading: false, userRole: 'owner', activeTab: 'posts', posts, page },
+  });
+  return exposed.SocialPageDetail();
+};
+
+test('social pages: the pinned strip shows cards, not markup', () => {
+  const pinned = render(elements(socialPageTree()).find((element) => element.key === 'pp1' && element.props.role === 'button'));
+  noMarkup(pinned, 'pinned strip');
+  assert.deepEqual(cardImages(pinned), HAND_ART);
+});
+
+test('social pages: the owner Top Post card shows cards, not markup', () => {
+  const topPost = render(elements(socialPageTree()).find((element) => element.type === 'div' && /^Top Post/.test(textOf(element))));
+  noMarkup(topPost, 'Top Post card');
+  assert.deepEqual(cardImages(topPost), HAND_ART);
+});
+
+test('public club page: a venue post shows the Club Arena cards', () => {
+  const { exposed } = loadSurface('pages/club/[id].js', { expose: ['PostCard'] });
+  const post = { id: 'v1', content: `High hand tonight\n${HAND}`, author_name: 'Hard Rock', created_at: '2026-09-21T12:00:00Z', image_urls: [] };
+  const html = render(exposed.PostCard({ post, onLike: noop, onComment: noop, isLiked: false, onShare: noop }));
+  noMarkup(html, 'public club page');
+  assert.deepEqual(cardImages(html), HAND_ART);
+});
+
+// ── Main feed (pages/hub/social-media/index.js) ──
+const FEED_FILE = 'pages/hub/social-media/index.js';
+const FEED_EXPOSE = ['PostCard', 'SocialMediaPage'];
+const feedPost = (content, authorId = 'u2') => ({
+  id: 'f1', content, authorId, author: { name: 'Dan', username: 'dan' },
+  likeCount: 0, commentCount: 2, contentType: 'text', mediaUrls: [],
+});
+const feedCardProps = (post) => ({ post, currentUserId: 'u1', onLike: noop, onDelete: noop, onComment: noop });
+
+test('main feed: comments and replies show cards and keep their @mentions', () => {
+  const comments = [
+    { id: 'c1', text: `top ${HAND} @amy`, parentId: null, authorName: 'Amy' },
+    { id: 'c2', text: 'reply [[sp-card:Qh]] @dan.b', parentId: 'c1', authorName: 'Bo' },
+  ];
+  const { exposed } = loadSurface(FEED_FILE, { expose: FEED_EXPOSE, state: { showComments: true, comments } });
+  const html = render(exposed.PostCard(feedCardProps(feedPost('plain post'))));
+  noMarkup(html, 'main feed comments');
+  assert.deepEqual(cardImages(html), [...HAND_ART, 'hearts_q']);
+  assert.match(html, /href="\/hub\/user\/amy"/, 'a comment @mention still links');
+  assert.match(html, /href="\/hub\/user\/dan\.b"/, 'a reply @mention still links');
+});
+
+test('main feed: a cards-only check-in badge names the venue and leaves the cards to the post', () => {
+  const { exposed } = loadSurface(FEED_FILE, { expose: FEED_EXPOSE });
+  const html = render(exposed.PostCard(feedCardProps(feedPost(`Checked in at Hard Rock Tampa - ${HAND}`))));
+  noMarkup(html, 'main feed check-in badge');
+  assert.match(html, />Hard Rock Tampa<\/div>/);
+  assert.deepEqual(cardImages(html), HAND_ART);
+});
+
+test('main feed: an inline edit is saved with its card line rebuilt, never a broken token', async () => {
+  const updates = [];
+  const query = { eq: () => query, error: null };
+  const supabase = { from: () => ({ update: (row) => { updates.push(row); return query; } }) };
+  const surface = loadSurface(FEED_FILE, {
+    expose: FEED_EXPOSE,
+    mocks: { '../../../src/lib/supabase': { supabase } },
+    state: { editing: true, editContent: BROKEN_EDIT },
+  });
+  const tree = surface.exposed.PostCard(feedCardProps(feedPost('nice hand', 'u1')));
+  await elements(tree).find((element) => element.type === 'button' && textOf(element) === 'Save').props.onClick();
+  assert.deepEqual(updates, [{ content: EDIT_SAVED }]);
+  assert.equal(surface.state.get('displayContent'), EDIT_SAVED);
+});
+
+test('main feed: a search result snippet shows cards and never cuts one in half', () => {
+  const store = new Proxy({ showGlobalSearch: true }, { get: (target, key) => (key in target ? target[key] : inert()) });
+  const hit = { id: 's1', content: cutInside(100, '[[sp-card:Kh]]'), author: { username: 'dan' } };
+  const { exposed } = loadSurface(FEED_FILE, {
+    expose: FEED_EXPOSE,
+    mocks: { '../../../src/stores/socialStore': { useSocialStore: (select) => select(store) } },
+    state: { loading: false, globalSearchQuery: 'pot', globalSearchResults: { users: [], posts: [hit] } },
+  });
+  const html = render(elements(exposed.SocialMediaPage()).find((element) => element.key === 's1'));
+  noMarkup(html, 'main feed search result');
+  assert.deepEqual(cardImages(html), ['hearts_k']);
+  assert.match(html, /\.\.\.<\/div><\/div>$/);
+});
+
+// ── Share sheet, messenger card and the edit modal ──
+const SHARE_FILE = 'src/components/social/SharePostModal.jsx';
+const sharedPost = (content) => ({ id: 'p1', content, author: { name: 'Dan', username: 'dan' }, mediaUrls: [] });
+const shareProps = (post) => ({ post, authorUsername: 'dan', currentUser: { id: 'u1' }, onClose: noop, onShared: noop });
+
+test('share sheet: the post preview shows cards and never cuts one in half', () => {
+  const { module } = loadSurface(SHARE_FILE);
+  const html = render(module.default(shareProps(sharedPost(cutInside(200, '[[sp-card:Qd]]')))));
+  noMarkup(html, 'share sheet preview');
+  assert.deepEqual(cardImages(html), ['diamonds_q']);
+});
+
+test('share sheet: X and WhatsApp carry the cards as words', async () => {
+  const opened = [];
+  const window = { open: (url) => opened.push(decodeURIComponent(url)), location: { origin: 'https://smarter.poker' } };
+  const surface = loadSurface(SHARE_FILE, { state: { tab: 'external' }, globals: { window } });
+  const tree = surface.module.default(shareProps(sharedPost(`nice pot\n${HAND}`)));
+  for (const id of ['twitter', 'whatsapp']) {
+    await elements(tree).find((element) => element.type === 'button' && element.key === id).props.onClick();
+  }
+  assert.deepEqual(opened, [
+    `https://twitter.com/intent/tweet?url=https://smarter.poker/hub/post/p1&text=nice pot\n${HAND_WORDS}`,
+    `https://wa.me/?text=nice pot\n${HAND_WORDS} https://smarter.poker/hub/post/p1`,
+  ]);
+});
+
+test('share sheet: the chat preview description carries the cards as words', () => {
+  const { exposed } = loadSurface(SHARE_FILE, { expose: ['buildRichSharePayload'] });
+  const url = 'https://smarter.poker/hub/post/p1';
+  const preview = (content) => exposed.buildRichSharePayload(sharedPost(content), url, '').media_metadata.preview_description;
+  assert.equal(preview(`nice pot\n${HAND}`), `nice pot\n${HAND_WORDS}`);
+  // 280 characters: the words stop before a card that would not fit whole.
+  assert.equal(preview(`${'x'.repeat(265)} ${HAND}`), `${'x'.repeat(265)} `);
+});
+
+const MESSENGER_CARD = 'src/components/social/SharedPostCard.jsx';
+
+test('messenger shared post card: the snippet shows cards and never cuts one in half', () => {
+  const fetched = loadSurface(MESSENGER_CARD, {
+    state: { loading: false, post: { id: 'p1', content: cutInside(160, '[[sp-card:Jc]]'), media_urls: [] } },
+  });
+  const html = render(fetched.module.default({ postId: 'p1', isOwn: false }));
+  noMarkup(html, 'messenger shared post card');
+  assert.deepEqual(cardImages(html), ['clubs_j']);
+  assert.ok(html.includes(`${String.fromCharCode(0x2026)}</div>`), 'a cut snippet ends in an ellipsis');
+});
+
+test('messenger shared post card: a stored preview description still becomes art, not markup', () => {
+  const rich = render(loadSurface(MESSENGER_CARD).module.default({
+    postId: 'p1', isOwn: false,
+    mediaMetadata: { preview_title: 'Dan on Smarter.Poker', preview_description: `nice pot ${HAND}` },
+  }));
+  noMarkup(rich, 'messenger rich preview');
+  assert.deepEqual(cardImages(rich), HAND_ART);
+});
+
+test('edit post modal: a save rebuilds the card line and never stores a broken token', async () => {
+  const updates = [];
+  const saved = [];
+  const supabase = {
+    from: () => ({
+      update: (row) => {
+        updates.push(row);
+        return { eq: () => ({ select: () => ({ maybeSingle: async () => ({ data: { id: 'p1' }, error: null }) }) }) };
+      },
+    }),
+  };
+  const { module } = loadSurface('src/components/social/EditPostModal.jsx', { state: { content: BROKEN_EDIT } });
+  const tree = module.default({ post: { id: 'p1', content: 'nice hand' }, onClose: noop, onSaved: (post) => saved.push(post.content), supabase });
+  await elements(tree).find((element) => element.type === 'button' && textOf(element) === 'Save').props.onClick();
+  assert.equal(updates.length, 1);
+  assert.equal(updates[0].content, EDIT_SAVED);
+  assert.deepEqual(saved, [EDIT_SAVED]);
 });

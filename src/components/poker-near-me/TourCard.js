@@ -1,17 +1,18 @@
 import React from 'react';
+import { PokerNearMeConsoleIcon, PokerNearMePanelShell, usePnmConsoleFitText } from './PokerNearMeConsole';
 
 /**
  * TourCard - Poker tour card for Poker Near Me page
  */
 
 const TOUR_COLORS = {
-    'WSOP': { bg: 'linear-gradient(135deg, #c9a227, #8b6914)', text: '#000', border: '#c9a227' },
-    'WPT': { bg: 'linear-gradient(135deg, #dc2626, #991b1b)', text: '#fff', border: '#dc2626' },
-    'WSOPC': { bg: 'linear-gradient(135deg, #c9a227, #8b6914)', text: '#000', border: '#c9a227' },
-    'MSPT': { bg: 'linear-gradient(135deg, #1e40af, #1e3a8a)', text: '#fff', border: '#3b82f6' },
-    'RGPS': { bg: 'linear-gradient(135deg, #059669, #047857)', text: '#fff', border: '#10b981' },
-    'PGT': { bg: 'linear-gradient(135deg, #7c3aed, #5b21b6)', text: '#fff', border: '#8b5cf6' },
-    'default': { bg: 'linear-gradient(135deg, #374151, #1f2937)', text: '#fff', border: '#4b5563' }
+    'WSOP': { tone: 'gold' },
+    'WPT': { tone: 'red' },
+    'WSOPC': { tone: 'gold' },
+    'MSPT': { tone: 'blue' },
+    'RGPS': { tone: 'green' },
+    'PGT': { tone: 'blue' },
+    'default': { tone: 'silver' }
 };
 
 const TOUR_TYPE_LABELS = {
@@ -23,6 +24,12 @@ const TOUR_TYPE_LABELS = {
     charity: 'Charity',
     cruise: 'Cruise'
 };
+
+// Raw enum values (tour_stop, high_roller) reach the card as data; print them
+// in Title Case at the print site.
+function labelize(value) {
+    return String(value || '').replace(/_/g, ' ').replace(/\s+/g, ' ').trim().replace(/\b\w/g, (c) => c.toUpperCase());
+}
 
 function formatDate(dateStr) {
     if (!dateStr) return '';
@@ -46,25 +53,27 @@ function formatMoney(amount) {
     return '$' + num.toLocaleString();
 }
 
+/**
+ * The live label printed on a painted card plate (button-primary.png /
+ * button-secondary.png at their native 348:114 ratio). The label is fitted to
+ * the plate's FACE with the console's own measuring hook, so a long word
+ * shrinks before it can touch the chrome rim.
+ */
+function PnmPlateLabel({ label }) {
+    const fitRef = usePnmConsoleFitText(label, 1.04, 0.6);
+    return (
+        <span className="pnm-card-plate__face">
+            <span ref={fitRef} className="pnm-card-plate__text">{label}</span>
+        </span>
+    );
+}
+
 function TourBadge({ tourCode, size = 'normal' }) {
     const style = TOUR_COLORS[tourCode] || TOUR_COLORS.default;
-    const padding = size === 'small' ? '4px 10px' : '8px 16px';
-    const fontSize = size === 'small' ? '11px' : '14px';
 
     return (
-        <div style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding,
-            borderRadius: '6px',
-            background: style.bg,
-            border: '1px solid ' + style.border,
-            minWidth: size === 'small' ? '50px' : '70px'
-        }}>
-            <span style={{ color: style.text, fontSize, fontWeight: 800, letterSpacing: '0.5px' }}>
-                {tourCode || 'TOUR'}
-            </span>
+        <div className="pnm-console-card__brand" data-tone={style.tone} data-size={size}>
+            <span>{tourCode || 'TOUR'}</span>
         </div>
     );
 }
@@ -86,7 +95,11 @@ export default function TourCard({ tour, isFavorited, onFavorite, onNavigate }) 
     }, [logoUrl]);
 
     return (
-        <div className="entity-card tour-card" onClick={() => onNavigate && onNavigate(detailUrl)} style={{ cursor: 'pointer' }}>
+        <PokerNearMePanelShell
+            className="pnm-console-card pnm-console-card--tour"
+            bodyClassName="pnm-console-card__body"
+            onClick={() => onNavigate && onNavigate(detailUrl)}
+        >
             <button
                 type="button"
                 className={'fav-btn' + (isFavorited ? ' active' : '')}
@@ -94,9 +107,7 @@ export default function TourCard({ tour, isFavorited, onFavorite, onNavigate }) 
                 aria-label={isFavorited ? `Remove ${displayName} from saved tours` : `Save ${displayName}`}
                 aria-pressed={!!isFavorited}
             >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill={isFavorited ? '#ef4444' : 'none'} stroke={isFavorited ? '#ef4444' : 'rgba(255,255,255,0.4)'} strokeWidth="2">
-                    <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" />
-                </svg>
+                <PokerNearMeConsoleIcon name="saved" />
             </button>
             <div className="card-header">
                 {logoUrl && !logoFailed ? (
@@ -104,12 +115,12 @@ export default function TourCard({ tour, isFavorited, onFavorite, onNavigate }) 
                         src={logoUrl}
                         alt={`${displayName} logo`}
                         onError={() => setLogoFailed(true)}
-                        style={{ width: 44, height: 44, borderRadius: 6, objectFit: 'contain', background: 'rgba(255,255,255,0.9)', padding: 2, border: '1px solid rgba(255,255,255,0.1)' }}
+                        className="pnm-console-card__logo"
                     />
                 ) : (
                     <TourBadge tourCode={shortCode} />
                 )}
-                <span className="badge tour-type">{TOUR_TYPE_LABELS[tour.tour_type] || (isVenueEntry ? 'Tour' : tour.venue_type || tour.tour_type)}</span>
+                <span className="badge tour-type">{TOUR_TYPE_LABELS[tour.tour_type] || (isVenueEntry ? 'Tour' : labelize(tour.venue_type || tour.tour_type))}</span>
             </div>
             <h4 className="tour-name">{displayName}</h4>
             {displayLocation && <p className="card-location">{displayLocation}</p>}
@@ -121,7 +132,7 @@ export default function TourCard({ tour, isFavorited, onFavorite, onNavigate }) 
             )}
             {/* Stakes — from poker_venues data */}
             {!tour.typical_buyins && Array.isArray(tour.stakes_cash) && tour.stakes_cash.length > 0 && (
-                <p className="card-detail" style={{ color: 'rgba(255,255,255,0.85)' }}>
+                <p className="card-detail">
                     Stakes: {tour.stakes_cash.slice(0, 3).join(', ')}
                 </p>
             )}
@@ -154,7 +165,7 @@ export default function TourCard({ tour, isFavorited, onFavorite, onNavigate }) 
                             onNavigate?.(detailUrl);
                         }}
                     >
-                        Details
+                        <PnmPlateLabel label="Details" />
                     </button>
                     {(tour.official_website || tour.website) && (() => {
                         // BUG FIX: Sanitize URL — block javascript: protocol XSS
@@ -162,12 +173,12 @@ export default function TourCard({ tour, isFavorited, onFavorite, onNavigate }) 
                         const trimmed = (raw || '').trim().toLowerCase();
                         if (trimmed.startsWith('javascript:') || trimmed.startsWith('data:') || trimmed.startsWith('vbscript:')) return null;
                         const href = raw.startsWith('http') ? raw : 'https://' + raw;
-                        return <a href={href} target="_blank" rel="noopener noreferrer" className="action-btn" onClick={e => e.stopPropagation()}>Website</a>;
+                        return <a href={href} target="_blank" rel="noopener noreferrer" className="action-btn" onClick={e => e.stopPropagation()}><PnmPlateLabel label="Website" /></a>;
                     })()}
                 </div>
             </div>
-        </div>
+        </PokerNearMePanelShell>
     );
 }
 
-export { TourBadge, TOUR_COLORS, TOUR_TYPE_LABELS, formatDate, formatMoney };
+export { TourBadge, PnmPlateLabel, TOUR_COLORS, TOUR_TYPE_LABELS, formatDate, formatMoney, labelize };

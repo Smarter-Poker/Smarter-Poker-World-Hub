@@ -13,6 +13,12 @@ function initialsFor(name) {
 /**
  * Compact venue/series identity artwork with a deterministic rendered fallback.
  * Remote logos fail independently; identity and layout remain intact.
+ *
+ * #ClubArenaConsole: remote artwork prints bare at its own ratio and is never
+ * enlarged past its own pixels; without artwork the initials are printed in
+ * the painted utility well (the __halo layer). The drawn border, radius,
+ * gradients and shadows are retired; the styles live in
+ * src/styles/worlds/poker-near-me-console-cards.css.
  */
 export default function PokerIdentityMark({
   src,
@@ -29,7 +35,7 @@ export default function PokerIdentityMark({
     <span
       className={`pnm-identity-mark ${className}`.trim()}
       data-media-state={showImage ? 'image' : 'fallback'}
-      style={{ width: size, height: size }}
+      style={{ width: size, height: size, '--pnm-identity-size': `${size}px` }}
       aria-hidden="true"
     >
       {showImage ? (
@@ -46,69 +52,6 @@ export default function PokerIdentityMark({
           <span className="pnm-identity-mark__initials">{initialsFor(name)}</span>
         </span>
       )}
-
-      <style jsx>{`
-        .pnm-identity-mark {
-          position: relative;
-          display: inline-flex;
-          flex: 0 0 auto;
-          align-items: center;
-          justify-content: center;
-          overflow: hidden;
-          box-sizing: border-box;
-          border: 1px solid rgba(178, 202, 224, 0.28);
-          border-radius: 7px;
-          background: #05080d;
-          box-shadow:
-            inset 0 0 0 1px rgba(255, 255, 255, 0.035),
-            0 10px 26px rgba(0, 0, 0, 0.38);
-          isolation: isolate;
-        }
-        .pnm-identity-mark::after {
-          content: '';
-          position: absolute;
-          inset: 0;
-          pointer-events: none;
-          border-top: 1px solid rgba(225, 239, 249, 0.18);
-          box-shadow: inset 0 -1px 0 rgba(0, 190, 255, 0.13);
-        }
-        .pnm-identity-mark img {
-          display: block;
-          width: 100%;
-          height: 100%;
-          padding: 5px;
-          box-sizing: border-box;
-          object-fit: contain;
-          background: rgba(0, 0, 0, 0.24);
-        }
-        .pnm-identity-mark__fallback {
-          position: absolute;
-          inset: 0;
-          display: grid;
-          place-items: center;
-          overflow: hidden;
-          background:
-            radial-gradient(circle at 52% 42%, rgba(0, 190, 255, 0.15), transparent 42%),
-            linear-gradient(145deg, #111923, #030508 72%);
-        }
-        .pnm-identity-mark__halo {
-          position: absolute;
-          width: 54%;
-          height: 54%;
-          border: 1px solid rgba(105, 216, 255, 0.44);
-          transform: rotate(45deg);
-          box-shadow: 0 0 18px rgba(0, 190, 255, 0.2);
-        }
-        .pnm-identity-mark__initials {
-          position: relative;
-          z-index: 1;
-          color: #eaf8ff;
-          font-size: max(11px, calc(${size}px * 0.24));
-          font-weight: 800;
-          letter-spacing: 0.08em;
-          text-shadow: 0 0 10px rgba(0, 190, 255, 0.45);
-        }
-      `}</style>
     </span>
   );
 }
