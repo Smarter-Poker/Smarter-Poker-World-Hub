@@ -715,6 +715,16 @@ const nextConfig = {
   //   livekit.smarter.poker, *.livekit.cloud  — LiveKit voice/video
   //   *.smarter.poker                          — Platform sub-domains
   async headers() {
+    // Where a violation of either policy is sent. Until this existed the
+    // Report-Only policy below wrote to the visitor's own console and nowhere
+    // else, which is why it stayed staged: "confirmed zero" was not observable
+    // from here. The post-deploy sweep narrowed that to eight routes; this
+    // narrows it to none, because every route a real visitor loads now reports.
+    // Both spellings ship: report-uri is what has support today, report-to is
+    // what replaces it and needs the Reporting-Endpoints header further down.
+    const CSP_REPORT_PATH = '/api/security/csp-report';
+    const reportingDirectives = [`report-uri ${CSP_REPORT_PATH}`, 'report-to csp'].join('; ');
+
     const csp = [
       "default-src 'self'",
       // Scripts: self + OneSignal SDK + Google Maps + jsDelivr + unpkg (Leaflet/jsQR)
@@ -812,6 +822,7 @@ const nextConfig = {
       "form-action 'self'",
       "frame-ancestors 'self'",
       ...(process.env.VERCEL ? ['upgrade-insecure-requests'] : []),
+      reportingDirectives,
     ].join('; ');
 
     return [
@@ -885,11 +896,18 @@ const nextConfig = {
             ].join(', '),
           },
           {
+            // Names the group that `report-to csp` refers to in both policies.
+            // Without this header the report-to directive resolves to nothing
+            // and only the legacy report-uri delivers.
+            key: 'Reporting-Endpoints',
+            value: `csp="${CSP_REPORT_PATH}"`,
+          },
+          {
             // Report-Only: logs violations without blocking — safe to enable immediately.
             // Monitor browser console for violations, then graduate to
             // Content-Security-Policy once the violation list is clean.
             key: 'Content-Security-Policy-Report-Only',
-            value: csp,
+            value: `${csp}; ${reportingDirectives}`,
           },
           {
             /**
