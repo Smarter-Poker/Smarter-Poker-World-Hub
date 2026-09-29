@@ -639,6 +639,7 @@ export default function MixedModePage() {
                                     </h2>
 
                                     <div className="trivia-challenge-options">
+                                        {/* TRAIN-WIRE-TRIVIA-ANSWER-OPTION-1: shared option primitive */}
                                         {currentQuestion.options.map((option, idx) => (
                                             <TriviaAnswerOption
                                                 key={idx}

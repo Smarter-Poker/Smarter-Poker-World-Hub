@@ -1032,6 +1032,7 @@ export default function EndlessModePage() {
                                         </h2>
 
                                         <div className="trivia-challenge-options">
+                                            {/* TRAIN-WIRE-TRIVIA-ANSWER-OPTION-4: shared option primitive (inline variant) */}
                                             {currentQuestion.options?.map((option, index) => (
                                                 <TriviaAnswerOption
                                                     variant="inline"

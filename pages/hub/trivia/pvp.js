@@ -1196,6 +1196,7 @@ export default function PvPPage({ pvpHorsesEnabled = false }) {
                                         session-start never ships an answer key, so
                                         the reveal cannot happen before the server
                                         has graded (and bound) the tap. */}
+                                    {/* TRAIN-WIRE-TRIVIA-ANSWER-OPTION-2: shared option primitive */}
                                     {currentQuestion.options.map((option, idx) => (
                                         <TriviaAnswerOption
                                             key={idx}
