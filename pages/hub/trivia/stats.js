@@ -44,6 +44,13 @@ export default function TriviaStats() {
     // merely 0% — it is unknown, and rendering "0%" would be a lie.
     const [accuracyUnknown, setAccuracyUnknown] = useState(false);
     const [loadError, setLoadError] = useState(null);
+    // Bumped by Retry so a failed load can be run again in place.
+    const [reloadKey, setReloadKey] = useState(0);
+    const retryLoad = () => {
+        setLoadError(null);
+        setIsLoading(true);
+        setReloadKey(key => key + 1);
+    };
 
     const MODE_LABELS = {
         endless: 'Endless',
@@ -75,6 +82,9 @@ export default function TriviaStats() {
                 .range(from, from + PAGE - 1);
             if (error) {
                 console.warn('[Stats] Score page fetch failed:', error.message);
+                // No history at all is an error the player must see, not an
+                // empty record; a later page failing keeps what was read.
+                if (page === 0) throw error;
                 break;
             }
             if (!data || data.length === 0) break;
@@ -131,11 +141,14 @@ export default function TriviaStats() {
                 setUserId(user.id);
 
                 // Get streak data
-                const { data: streakData } = await supabase
+                const { data: streakData, error: streakError } = await supabase
                     .from('trivia_streaks')
                     .select('*')
                     .eq('user_id', user.id)
                     .maybeSingle();
+                // Streaks are one figure among many; a failed read prints them
+                // as zero rather than failing the whole page.
+                if (streakError) console.warn('[Stats] Streak read failed:', streakError.message);
 
                 // Get ALL user scores for aggregation.
                 // A bare .select() is silently capped by PostgREST's server
@@ -201,11 +214,12 @@ export default function TriviaStats() {
                 }
 
                 // Fetch category mastery data
-                const { data: mastery } = await supabase
+                const { data: mastery, error: masteryError } = await supabase
                     .from('trivia_category_mastery')
                     .select('category, total_answered, correct_count, mastery_level')
                     .eq('user_id', user.id)
                     .order('total_answered', { ascending: false });
+                if (masteryError) console.warn('[Stats] Category mastery read failed:', masteryError.message);
 
                 if (mastery && mastery.length > 0) {
                     setCategoryMastery(mastery);
@@ -227,53 +241,42 @@ export default function TriviaStats() {
             .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'trivia_scores', filter: `user_id=eq.${user.id}` }, () => { loadStats(); })
             .subscribe();
         return () => { supabase.removeChannel(_ch); };
-    }, [avatarUser?.id, avatarLoading]);
+    }, [avatarUser?.id, avatarLoading, reloadKey]);
 
-    const StatCard = ({ label, value, tone = 'default' }) => (
-        <div className="trivia-progress-stat-card" data-tone={tone}>
-            <div className="trivia-progress-stat-label">{label}</div>
-            <div className="trivia-progress-stat-value">{value}</div>
-        </div>
+    const StatRow = ({ label, value, ink = '' }) => (
+        <li className="tc-row">
+            <span className="tc-row__label">{label}</span>
+            <span className={`tc-row__value${ink ? ` ${ink}` : ''}`}>{value}</span>
+        </li>
     );
 
-    const CategoryBar = ({ category, totalAnswered, correctCount, masteryLevel }) => {
+    const CategoryRow = ({ category, totalAnswered, correctCount, masteryLevel }) => {
         const meta = CATEGORY_META[category] || {
             label: toTitleCase(String(category || 'Unknown').replaceAll('_', ' ')),
         };
         const accuracy = totalAnswered > 0 ? Math.round((correctCount / totalAnswered) * 100) : 0;
-        const barWidth = Math.max(accuracy, 2); // Minimum 2% width for visibility
         return (
-            <div className="trivia-progress-category" data-category={category}>
-                <div className="trivia-progress-category-header">
-                    <span className="trivia-progress-category-name">{meta.label}</span>
-                    <div className="trivia-progress-category-values">
-                        <span className="trivia-progress-category-count">
-                            {formatTriviaDisplayNumber(correctCount)}/{formatTriviaDisplayNumber(totalAnswered)}
-                        </span>
-                        <span className="trivia-progress-category-accuracy">{accuracy}%</span>
-                    </div>
-                </div>
-                <div
-                    className="trivia-progress-meter"
-                    role="progressbar"
-                    aria-label={`${meta.label} Accuracy`}
-                    aria-valuemin={0}
-                    aria-valuemax={100}
-                    aria-valuenow={accuracy}
-                >
-                    <div
-                        className="trivia-progress-meter-fill"
-                        style={{ '--trivia-progress-meter-value': `${barWidth}%` }}
-                    />
-                </div>
-                {masteryLevel > 1 && (
-                    <div className="trivia-progress-category-level">
-                        Mastery Level {masteryLevel}
-                    </div>
-                )}
-            </div>
+            <li
+                className="tc-row trivia-progress-category"
+                data-category={category}
+                aria-label={`${meta.label}: ${correctCount} Of ${totalAnswered} Correct, ${accuracy}% Accuracy${masteryLevel > 1 ? `, Mastery Level ${masteryLevel}` : ''}`}
+            >
+                <span className="tc-row__label">{meta.label}</span>
+                <span className="tc-row__value">
+                    <span className="tc-ink--green">{accuracy}%</span>
+                    <small>
+                        {formatTriviaDisplayNumber(correctCount)} / {formatTriviaDisplayNumber(totalAnswered)}
+                        {masteryLevel > 1 ? ` / Level ${masteryLevel}` : ''}
+                    </small>
+                </span>
+            </li>
         );
     };
+
+    const signedOut = !isLoading && !userId;
+    const noGames = !isLoading && !loadError && stats.gamesPlayed === 0;
+    const trendTotal = recentTrend.reduce((sum, d) => sum + d.games, 0);
+    const trendMax = Math.max(1, ...recentTrend.map(d => d.games));
 
     return (
         <TriviaErrorBoundary pageName="Stats">
@@ -301,64 +304,89 @@ export default function TriviaStats() {
                             titleAs="h1"
                             titleId="trivia-stats-title"
                             subtitle="Performance Overview"
+                            pill={isLoading
+                                ? 'Loading'
+                                : loadError
+                                    ? 'Error'
+                                    : signedOut
+                                    ? 'Guest'
+                                    : `${formatTriviaDisplayNumber(stats.gamesPlayed)} ${stats.gamesPlayed === 1 ? 'Game' : 'Games'}`}
+                            pillInk={loadError ? 'red' : !isLoading && !signedOut && stats.gamesPlayed > 0 ? 'green' : 'blue'}
                             aria-labelledby="trivia-stats-title"
                             secondaryAction={{
                                 label: 'Back To Trivia',
                                 onClick: () => router.push('/hub/trivia'),
                             }}
-                            primaryAction={!isLoading && stats.gamesPlayed === 0 ? {
+                            // A failed load has two real actions (Retry, Back To
+                            // Trivia), so both print on the painted plates.
+                            primaryAction={!isLoading && loadError ? {
+                                label: 'Retry',
+                                onClick: retryLoad,
+                            } : !isLoading && !loadError && stats.gamesPlayed === 0 ? {
                                 label: 'Start Playing',
                                 onClick: () => router.push('/hub/trivia'),
                             } : undefined}
                         >
                         {isLoading ? (
-                            <div className="trivia-progress-state trivia-progress-state--loading" role="status">
-                                Loading Stats...
-                            </div>
+                            <p className="trivia-progress-state trivia-progress-state--loading" role="status">
+                                Loading Stats
+                            </p>
                         ) : loadError ? (
-                            <div className="trivia-progress-state trivia-progress-state--error" role="alert">
-                                {loadError}
-                            </div>
+                            <section className="trivia-progress-state trivia-progress-state--error" role="alert">
+                                <p>{loadError}</p>
+                            </section>
+                        ) : signedOut ? (
+                            <section className="trivia-progress-empty">
+                                <p className="trivia-progress-empty-copy">
+                                    Sign In To See Your Trivia Stats. Every Game You Finish Is Counted Here.
+                                </p>
+                            </section>
+                        ) : noGames ? (
+                            <section className="trivia-progress-empty">
+                                <p className="trivia-progress-empty-copy">
+                                    No Trivia Games Played Yet!
+                                </p>
+                            </section>
                         ) : (
-                            <>
-                                <section className="trivia-progress-stat-grid" aria-label="Trivia Stats Summary">
-                                    <StatCard label="Games Played" value={formatTriviaDisplayNumber(stats.gamesPlayed)} />
-                                    <StatCard label="Total Questions" value={formatTriviaDisplayNumber(stats.totalQuestions)} />
-                                    <StatCard label="Accuracy" value={accuracyUnknown ? '-' : `${stats.accuracy}%`} tone="success" />
-                                    <StatCard label="Current Streak" value={formatTriviaDisplayNumber(stats.currentStreak)} tone="accent" />
-                                    <StatCard label="Best Streak" value={formatTriviaDisplayNumber(stats.bestStreak)} tone="accent" />
-                                    <StatCard label="Diamonds Earned" value={formatTriviaDisplayNumber(stats.diamondsEarned)} tone="accent" />
-                                </section>
+                            <div className="trivia-progress-content">
+                                <ul className="tc-rows trivia-progress-rows trivia-progress-rows--split" aria-label="Trivia Stats Summary">
+                                    <StatRow label="Games Played" value={formatTriviaDisplayNumber(stats.gamesPlayed)} />
+                                    <StatRow label="Total Questions" value={formatTriviaDisplayNumber(stats.totalQuestions)} />
+                                    <StatRow label="Accuracy" value={accuracyUnknown ? '-' : `${stats.accuracy}%`} ink="tc-ink--green" />
+                                    <StatRow label="Current Streak" value={formatTriviaDisplayNumber(stats.currentStreak)} ink="tc-ink--blue" />
+                                    <StatRow label="Best Streak" value={formatTriviaDisplayNumber(stats.bestStreak)} ink="tc-ink--blue" />
+                                    <StatRow label="Diamonds Earned" value={formatTriviaDisplayNumber(stats.diamondsEarned)} ink="tc-ink--gold" />
+                                </ul>
 
                                 {/* Per-Mode Breakdown */}
                                 {modeBreakdown.length > 0 && (
-                                    <section className="trivia-progress-panel trivia-progress-panel--modes">
-                                        <h2 className="trivia-progress-panel-title">
+                                    <section className="trivia-progress-section" aria-labelledby="trivia-stats-modes">
+                                        <h2 id="trivia-stats-modes" className="trivia-progress-heading">
                                             By Mode
                                         </h2>
                                         <div className="trivia-progress-table-wrap">
-                                        <table className="trivia-progress-table">
+                                        <table className="trivia-progress-table trivia-progress-table--modes">
                                             <thead>
                                                 <tr>
                                                     <th scope="col">Mode</th>
-                                                    <th scope="col">Games</th>
-                                                    <th scope="col">Best Score</th>
-                                                    <th scope="col">Accuracy</th>
-                                                    <th scope="col">Diamonds</th>
+                                                    <th scope="col" className="trivia-progress-table__num">Games</th>
+                                                    <th scope="col" className="trivia-progress-table__num">Best Score</th>
+                                                    <th scope="col" className="trivia-progress-table__num">Accuracy</th>
+                                                    <th scope="col" className="trivia-progress-table__num">Diamonds</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
                                                 {modeBreakdown.map(m => (
                                                     <tr key={m.mode}>
-                                                        <th scope="row" data-label="Mode">
-                                                            {MODE_LABELS[m.mode] || toTitleCase(String(m.mode || 'Unknown').replaceAll('_', ' '))}
+                                                        <th scope="row" className="trivia-progress-table__mode" data-label="Mode">
+                                                            {MODE_LABELS[m.mode] || toTitleCase(String(m.mode || 'Unknown').replaceAll('_', ' ').replaceAll('-', ' '))}
                                                         </th>
-                                                        <td data-label="Games">{formatTriviaDisplayNumber(m.games)}</td>
-                                                        <td data-label="Best Score">{formatTriviaDisplayNumber(m.best)}</td>
-                                                        <td data-label="Accuracy" data-tone="success">
+                                                        <td className="trivia-progress-table__num trivia-progress-table__games" data-label="Games">{formatTriviaDisplayNumber(m.games)}</td>
+                                                        <td className="trivia-progress-table__num trivia-progress-table__best" data-label="Best Score">{formatTriviaDisplayNumber(m.best)}</td>
+                                                        <td className="trivia-progress-table__num trivia-progress-table__acc" data-label="Accuracy" data-tone="success">
                                                             {m.questions > 0 ? `${m.accuracy}%` : '-'}
                                                         </td>
-                                                        <td data-label="Diamonds" data-tone="accent">{formatTriviaDisplayNumber(m.diamonds)}</td>
+                                                        <td className="trivia-progress-table__num trivia-progress-table__dia" data-label="Diamonds" data-tone="accent">{formatTriviaDisplayNumber(m.diamonds)}</td>
                                                     </tr>
                                                 ))}
                                             </tbody>
@@ -367,24 +395,25 @@ export default function TriviaStats() {
                                     </section>
                                 )}
 
-                                {/* 30-Day Activity — derived from play_date, already stored */}
+                                {/* 30-Day Activity, derived from play_date. The values
+                                    are printed; the bars are a minimal mark for a
+                                    genuine daily series, never chrome. */}
                                 {recentTrend.some(d => d.games > 0) && (
-                                    <section className="trivia-progress-panel trivia-progress-panel--activity">
-                                        <h2 className="trivia-progress-panel-title">
+                                    <section className="trivia-progress-section" aria-labelledby="trivia-stats-activity">
+                                        <h2 id="trivia-stats-activity" className="trivia-progress-heading">
                                             Last 30 Days
                                         </h2>
-                                        <div className="trivia-progress-panel-summary">
-                                            {formatTriviaDisplayNumber(recentTrend.reduce((sum, d) => sum + d.games, 0))} Games ·{' '}
-                                            {formatTriviaDisplayNumber(recentTrend.filter(d => d.games > 0).length)} Active Days
-                                        </div>
+                                        <ul className="tc-rows trivia-progress-rows trivia-progress-rows--split">
+                                            <StatRow label="Games" value={formatTriviaDisplayNumber(trendTotal)} />
+                                            <StatRow label="Active Days" value={formatTriviaDisplayNumber(recentTrend.filter(d => d.games > 0).length)} />
+                                        </ul>
                                         <div
                                             className="trivia-progress-activity"
                                             role="list"
                                             aria-label="Games Played During The Last 30 Days"
                                         >
                                             {recentTrend.map(d => {
-                                                const max = Math.max(1, ...recentTrend.map(x => x.games));
-                                                const pct = d.games > 0 ? Math.max(8, Math.round((d.games / max) * 100)) : 3;
+                                                const pct = d.games > 0 ? Math.max(8, Math.round((d.games / trendMax) * 100)) : 3;
                                                 return (
                                                     <div
                                                         key={d.date}
@@ -397,35 +426,33 @@ export default function TriviaStats() {
                                                 );
                                             })}
                                         </div>
+                                        <div className="trivia-progress-activity-axis" aria-hidden="true">
+                                            <span>30 Days Ago</span>
+                                            <span>Today</span>
+                                        </div>
                                     </section>
                                 )}
 
                                 {/* Category Mastery Breakdown */}
                                 {categoryMastery.length > 0 && (
-                                    <section className="trivia-progress-panel trivia-progress-panel--categories">
-                                        <h2 className="trivia-progress-panel-title">
+                                    <section className="trivia-progress-section" aria-labelledby="trivia-stats-categories">
+                                        <h2 id="trivia-stats-categories" className="trivia-progress-heading">
                                             Category Breakdown
                                         </h2>
-                                        {categoryMastery.map((cat) => (
-                                            <CategoryBar
-                                                key={cat.category}
-                                                category={cat.category}
-                                                totalAnswered={cat.total_answered || 0}
-                                                correctCount={cat.correct_count || 0}
-                                                masteryLevel={cat.mastery_level || 1}
-                                            />
-                                        ))}
+                                        <ul className="tc-rows trivia-progress-rows">
+                                            {categoryMastery.map((cat) => (
+                                                <CategoryRow
+                                                    key={cat.category}
+                                                    category={cat.category}
+                                                    totalAnswered={cat.total_answered || 0}
+                                                    correctCount={cat.correct_count || 0}
+                                                    masteryLevel={cat.mastery_level || 1}
+                                                />
+                                            ))}
+                                        </ul>
                                     </section>
                                 )}
-                            </>
-                        )}
-
-                        {!isLoading && stats.gamesPlayed === 0 && (
-                            <section className="trivia-progress-empty">
-                                <p className="trivia-progress-empty-copy">
-                                    No Trivia Games Played Yet!
-                                </p>
-                            </section>
+                            </div>
                         )}
                         </TriviaConsole>
                     </main>

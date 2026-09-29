@@ -1,17 +1,18 @@
 /**
- * HINTS SYSTEM — Diamond sink for trivia
+ * HINTS SYSTEM - Diamond sink for trivia
  * 50/50: 5 diamonds, Skip: 10 diamonds, Extra Time: 15 diamonds
  *
  * Gating rule (the whole system was dead before this):
  *   Only the "+30s" hint depends on there being a countdown. Every other
  *   hint works in untimed modes. Previously handleUseHint returned early and
- *   isDisabled included `!hasTimeLimit` for ALL three hints — and since every
+ *   isDisabled included `!hasTimeLimit` for ALL three hints - and since every
  *   TRIVIA_MODES entry except arcade has timeLimit:null (and arcade disables
  *   hints entirely), the hint buttons rendered permanently inert everywhere.
  */
 
 import React, { useState, useRef, useEffect } from 'react';
 import useVIP from '../../hooks/useVIP';
+import { formatTriviaDisplayNumber } from '../../lib/trivia/formatTriviaDisplayNumber';
 
 const HINTS = [
     {
@@ -67,11 +68,11 @@ function HintButtons({
     const handleUseHint = (hint) => {
         if (hint.id === 'extra_time' && !hasTimeLimit) return;
         if (disabledHints.includes(hint.id)) {
-            showNotice(`${hint.name} already used this game`);
+            showNotice(`${hint.name} Already Used This Game`);
             return;
         }
         if (!isVip && userDiamonds < hint.cost) {
-            showNotice(`Need ${hint.cost} diamonds - you have ${Math.max(0, userDiamonds)}`, !onNeedDiamonds);
+            showNotice(`Needs ${hint.cost} Diamonds. You Have ${formatTriviaDisplayNumber(Math.max(0, userDiamonds))}.`, !onNeedDiamonds);
             onNeedDiamonds?.(hint);
             return;
         }
@@ -96,12 +97,12 @@ function HintButtons({
                         onClick={() => handleUseHint(hint)}
                         disabled={isInert}
                         aria-disabled={looksDisabled}
-                        aria-label={`${hint.name} - ${hint.description}${isVip ? ' (free for VIP)' : ` (${hint.cost} diamonds)`}`}
-                        title={isUsed ? `${hint.name} already used` : hint.description}
+                        aria-label={`${hint.name}, ${hint.description}${isVip ? ', Free For VIP' : `, ${hint.cost} Diamonds`}`}
+                        title={isUsed ? `${hint.name} Already Used` : hint.description}
                     >
-                        <span className="hint-name">{hint.name}</span>
+                        <span className="hint-name tc-ink--white">{hint.name}</span>
                         {!compact ? <span className="hint-description">{hint.description}</span> : null}
-                        <span className="hint-cost">
+                        <span className={`hint-cost ${isUsed ? 'tc-ink--green' : isVip ? 'tc-ink--gold' : canAfford ? 'tc-ink--blue' : 'tc-ink--red'}`}>
                             {isUsed ? 'Used' : isVip ? 'VIP' : `${hint.cost} Diamonds`}
                         </span>
                     </button>
@@ -112,7 +113,7 @@ function HintButtons({
                 <div className="hint-notice" role="status">
                     <span>{notice.text}</span>
                     {notice.showStore && (
-                        <a className="hint-notice-link" href="/hub/diamond-store">Get Diamonds</a>
+                        <a className="hint-notice-link tc-word" href="/hub/diamond-store">Get Diamonds</a>
                     )}
                 </div>
             )}

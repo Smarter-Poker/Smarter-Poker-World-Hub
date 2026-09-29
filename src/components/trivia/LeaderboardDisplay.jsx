@@ -22,6 +22,13 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { formatTriviaDisplayNumber } from '../../lib/trivia/formatTriviaDisplayNumber';
+import { printPlayerName } from '../../lib/trivia/printPlayerName';
+
+// A player name printed in Title Case without rewriting it ('river_rat22'
+// reads 'River_Rat22'). Shared with every other Trivia surface that prints a
+// handle; re-exported here for the callers that already import it from this
+// component.
+export { printPlayerName };
 
 function readScore(entry) {
     return Number(entry?.score ?? 0) || 0;
@@ -77,11 +84,12 @@ export default function LeaderboardDisplay({
     const currentUserInList = rows.some(e => e?.user_id && e.user_id === currentUserId);
     const showPinnedUserRow = Boolean(currentUserId && currentUserEntry && !currentUserInList);
 
-    const getRankStyle = (rank) => {
-        if (rank === 1) return { color: '#ffd700' };
-        if (rank === 2) return { color: '#e4e7ec' };
-        if (rank === 3) return { color: '#45adff' };
-        return { color: '#9aa5b3' };
+    // Rank inks are the master's own: gold, silver, lit blue, then muted.
+    const getRankInk = (rank) => {
+        if (rank === 1) return 'tc-ink--gold';
+        if (rank === 2) return 'tc-ink--silver';
+        if (rank === 3) return 'tc-ink--blue';
+        return 'tc-ink--muted';
     };
 
     const handleFilterClick = (next) => {
@@ -91,7 +99,6 @@ export default function LeaderboardDisplay({
     };
 
     const renderRow = (entry, rank, { pinned = false, key = undefined } = {}) => {
-        const style = getRankStyle(rank);
         const isCurrentUser = Boolean(entry?.user_id) && entry.user_id === currentUserId;
         const prevRank = previousRanks.get(entry?.user_id ?? entry?.id);
         const delta = Number.isFinite(prevRank) ? prevRank - rank : null;
@@ -105,41 +112,39 @@ export default function LeaderboardDisplay({
                 role="listitem"
                 aria-current={isCurrentUser ? 'true' : undefined}
             >
-                <div className="trivia-lb-rank" style={{ color: style.color }}>
-                    {rank}
+                <div className={`trivia-lb-rank ${getRankInk(rank)}`}>
+                    {formatTriviaDisplayNumber(rank)}
                 </div>
-
-                {previousRanks.size > 0 && (
-                    <div className="trivia-lb-movement" data-dir={delta == null ? 'new' : delta > 0 ? 'up' : delta < 0 ? 'down' : 'flat'}>
-                        {delta == null ? (
-                            <span className="trivia-lb-movement-new">New</span>
-                        ) : delta > 0 ? (
-                            <span>Up {delta}</span>
-                        ) : delta < 0 ? (
-                            <span>Down {Math.abs(delta)}</span>
-                        ) : (
-                            <span>Steady</span>
-                        )}
-                    </div>
-                )}
 
                 <div className="trivia-lb-user">
-                    <span className="trivia-lb-username">
-                        {entry?.username || 'Anonymous'}
-                        {isCurrentUser && <span className="trivia-lb-you">You</span>}
+                    <span className={`trivia-lb-username ${isCurrentUser ? 'tc-ink--white' : 'tc-ink--silver'}`}>
+                        {printPlayerName(entry?.username)}
                     </span>
+                    {isCurrentUser && <span className="trivia-lb-you tc-ink--blue">You</span>}
+                    {previousRanks.size > 0 && (
+                        <span
+                            className={`trivia-lb-movement ${delta == null ? 'tc-ink--blue' : delta > 0 ? 'tc-ink--green' : delta < 0 ? 'tc-ink--red' : 'tc-ink--muted'}`}
+                            data-dir={delta == null ? 'new' : delta > 0 ? 'up' : delta < 0 ? 'down' : 'flat'}
+                        >
+                            {delta == null ? 'New' : delta > 0 ? `Up ${delta}` : delta < 0 ? `Down ${Math.abs(delta)}` : 'Steady'}
+                        </span>
+                    )}
                 </div>
-                <div className="trivia-lb-score">{formatTriviaDisplayNumber(readScore(entry))} Pts</div>
-                {time !== null && (
-                    <div className="trivia-lb-time">
-                        <span className="trivia-lb-datum-label">Time</span>
-                        {formatTriviaDisplayNumber(time)}s
-                    </div>
-                )}
-                {diamonds > 0 && (
-                    <div className="trivia-lb-diamonds">
-                        <span className="trivia-lb-datum-label">Diamonds</span>
-                        {formatTriviaDisplayNumber(diamonds)}
+                <div className="trivia-lb-score tc-ink--silver">{formatTriviaDisplayNumber(readScore(entry))} Pts</div>
+                {(time !== null || diamonds > 0) && (
+                    <div className="trivia-lb-meta">
+                        {time !== null && (
+                            <span className="trivia-lb-time">
+                                <span className="trivia-lb-datum-label">Time</span>
+                                <span className="tc-ink--muted">{time >= 60 ? `${Math.floor(time / 60)} Min ${time % 60} Sec` : `${time} Sec`}</span>
+                            </span>
+                        )}
+                        {diamonds > 0 && (
+                            <span className="trivia-lb-diamonds">
+                                <span className="trivia-lb-datum-label">Diamonds</span>
+                                <span className="tc-ink--gold">{formatTriviaDisplayNumber(diamonds)}</span>
+                            </span>
+                        )}
                     </div>
                 )}
             </div>
@@ -149,22 +154,24 @@ export default function LeaderboardDisplay({
     return (
         <div className="trivia-lb">
             <div className="trivia-lb-header">
-                <h3>Leaderboard</h3>
+                <h2 className="trivia-lb-title tc-label">Leaderboard</h2>
                 {/* The range tabs only exist when the parent can actually re-query.
                     A tab that highlights but never changes the data is worse than
-                    no tab at all. */}
+                    no tab at all. Printed as lit words on the glass. */}
                 {typeof onFilterChange === 'function' && (
-                    <div className="trivia-lb-filters">
+                    <div className="trivia-lb-filters" role="group" aria-label="Leaderboard Range">
                         <button
                             type="button"
-                            className={`trivia-lb-filter ${activeFilter === 'today' ? 'active' : ''}`}
+                            className={`trivia-lb-filter tc-word ${activeFilter === 'today' ? 'active' : ''}`}
+                            aria-pressed={activeFilter === 'today'}
                             onClick={() => handleFilterClick('today')}
                         >
                             Today
                         </button>
                         <button
                             type="button"
-                            className={`trivia-lb-filter ${activeFilter === 'week' ? 'active' : ''}`}
+                            className={`trivia-lb-filter tc-word ${activeFilter === 'week' ? 'active' : ''}`}
+                            aria-pressed={activeFilter === 'week'}
                             onClick={() => handleFilterClick('week')}
                         >
                             This Week
@@ -176,11 +183,11 @@ export default function LeaderboardDisplay({
             <div className="trivia-lb-list" role="list" aria-label="Trivia Rankings">
                 {loading ? (
                     <div className="trivia-lb-empty">
-                        <p>Loading Rankings...</p>
+                        <p className="trivia-console-copy tc-ink--muted">Loading Rankings</p>
                     </div>
                 ) : rows.length === 0 ? (
                     <div className="trivia-lb-empty">
-                        <p>No Entries Yet. Be The First!</p>
+                        <p className="trivia-console-copy tc-ink--muted">No Entries Yet. Be The First!</p>
                     </div>
                 ) : (
                     rows.map((entry, index) => renderRow(entry, index + 1, { key: entryKey(entry, index) }))
@@ -189,232 +196,12 @@ export default function LeaderboardDisplay({
 
             {showPinnedUserRow && (
                 <div className="trivia-lb-pinned-wrap" role="list" aria-label="Your Rank">
-                    <div className="trivia-lb-pinned-divider" />
                     {renderRow(currentUserEntry, Number(currentUserRank) || rows.length + 1, {
                         pinned: true,
                         key: 'pinned-current-user'
                     })}
                 </div>
             )}
-
-            <style>{`
-                .trivia-lb {
-                    width: 100%;
-                    min-width: 0;
-                    color: #e4e7ec;
-                    background: transparent;
-                    font-family: Inter, system-ui, sans-serif;
-                }
-
-                .trivia-lb-header {
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                    gap: 16px;
-                    padding: 14px 0;
-                    border-bottom: 1px solid #050607;
-                }
-
-                .trivia-lb-header h3 {
-                    display: flex;
-                    align-items: center;
-                    margin: 0;
-                    color: #45adff;
-                    font-family: 'Roboto Condensed', Inter, system-ui, sans-serif;
-                    font-size: 18px;
-                    font-weight: 800;
-                    letter-spacing: 0.08em;
-                    text-transform: uppercase;
-                }
-
-                .trivia-lb-filters {
-                    display: flex;
-                    gap: 12px;
-                }
-
-                .trivia-lb-filter {
-                    min-height: 44px;
-                    padding: 8px 2px;
-                    background: transparent;
-                    border: 0;
-                    border-bottom: 2px solid transparent;
-                    color: #9aa5b3;
-                    font-size: 12px;
-                    font-weight: 700;
-                    letter-spacing: 0.04em;
-                    cursor: pointer;
-                    touch-action: manipulation;
-                }
-
-                .trivia-lb-filter:active {
-                    color: #f4f7fb;
-                }
-
-                .trivia-lb-filter.active {
-                    border-bottom-color: #45adff;
-                    color: #f4f7fb;
-                }
-
-                .trivia-lb-list {
-                    padding: 0;
-                }
-
-                .trivia-lb-empty {
-                    padding: 40px 20px;
-                    text-align: center;
-                    color: #9aa5b3;
-                    font-size: 14px;
-                }
-
-                .trivia-lb-entry {
-                    display: flex;
-                    align-items: center;
-                    gap: 12px;
-                    min-height: 56px;
-                    padding: 10px 0;
-                    border-bottom: 1px solid #050607;
-                }
-
-                .trivia-lb-entry:last-child {
-                    border-bottom: 0;
-                }
-
-                .trivia-lb-entry.current-user {
-                    border-inline-start: 3px solid #45adff;
-                    padding-inline-start: 9px;
-                }
-
-                .trivia-lb-pinned-wrap {
-                    padding: 0;
-                    background: transparent;
-                }
-
-                .trivia-lb-pinned-divider {
-                    height: 0;
-                    border-top: 2px solid #45adff;
-                }
-
-                .trivia-lb-entry.pinned {
-                    position: sticky;
-                    bottom: 0;
-                }
-
-                .trivia-lb-rank {
-                    width: 28px;
-                    font-weight: 700;
-                    font-size: 14px;
-                    text-align: center;
-                }
-
-                .trivia-lb-movement {
-                    display: flex;
-                    align-items: center;
-                    gap: 2px;
-                    min-width: 54px;
-                    font-size: 12px;
-                    font-weight: 700;
-                    color: #9aa5b3;
-                }
-
-                .trivia-lb-movement[data-dir="up"] { color: #c8ffd2; }
-                .trivia-lb-movement[data-dir="down"] { color: #ff5b6e; }
-                .trivia-lb-movement[data-dir="flat"] { color: #9aa5b3; }
-                .trivia-lb-movement[data-dir="new"] { color: #fbbf24; }
-
-                .trivia-lb-movement-new {
-                    font-size: 12px;
-                    letter-spacing: 0.5px;
-                }
-
-                .trivia-lb-user {
-                    display: flex;
-                    align-items: center;
-                    gap: 10px;
-                    flex: 1;
-                    min-width: 0;
-                }
-
-                .trivia-lb-username {
-                    font-size: 14px;
-                    color: #e4e7ec;
-                    display: flex;
-                    align-items: center;
-                    gap: 8px;
-                    min-width: 0;
-                    overflow: hidden;
-                    text-overflow: ellipsis;
-                    white-space: nowrap;
-                }
-
-                .trivia-lb-you {
-                    font-size: 12px;
-                    font-weight: 700;
-                    color: #45adff;
-                    flex-shrink: 0;
-                }
-
-                .trivia-lb-score {
-                    font-weight: 600;
-                    color: #f4f7fb;
-                    font-size: 14px;
-                    white-space: nowrap;
-                }
-
-                .trivia-lb-time {
-                    display: flex;
-                    align-items: center;
-                    gap: 4px;
-                    font-size: 12px;
-                    color: #9aa5b3;
-                }
-
-                .trivia-lb-diamonds {
-                    display: flex;
-                    align-items: center;
-                    gap: 4px;
-                    font-size: 12px;
-                    color: #45adff;
-                }
-
-                .trivia-lb-datum-label {
-                    position: absolute;
-                    width: 1px;
-                    height: 1px;
-                    overflow: hidden;
-                    clip: rect(0 0 0 0);
-                    white-space: nowrap;
-                }
-
-                .trivia-lb-filter:focus-visible {
-                    outline: 2px solid #8fd4ff;
-                    outline-offset: 2px;
-                }
-
-                @media (max-width: 520px) {
-                    .trivia-lb-header {
-                        align-items: flex-start;
-                        flex-direction: column;
-                    }
-
-                    .trivia-lb-filters,
-                    .trivia-lb-filter {
-                        width: 100%;
-                    }
-
-                    .trivia-lb-movement,
-                    .trivia-lb-time {
-                        display: none;
-                    }
-
-                    .trivia-lb-entry {
-                        gap: 8px;
-                    }
-
-                    .trivia-lb-rank {
-                        width: 24px;
-                    }
-                }
-            `}</style>
         </div>
     );
 }

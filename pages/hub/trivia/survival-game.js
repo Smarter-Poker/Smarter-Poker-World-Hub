@@ -406,7 +406,13 @@ export default function SurvivalGamePage() {
             });
         } catch (e) {
             console.warn('[Survival] Server session start failed:', e?.message || e);
-            if (e?.status === 402) setShowOutOfDiamonds(true);
+            // A 402 is the balance gate, not a connection problem: show the
+            // Not Enough Diamonds state alone instead of both messages.
+            if (e?.status === 402) {
+                setShowOutOfDiamonds(true);
+                setGameState('lobby');
+                return;
+            }
             setLevelLoadError('We Could Not Load This Level. Please Check Your Connection And Try Again.');
             setGameState('lobby');
             return;
@@ -772,21 +778,23 @@ export default function SurvivalGamePage() {
                 : ''
         }));
 
-    const balanceLabel = isVip ? 'VIP Access' : `${formatTriviaDisplayNumber(userDiamonds)} Diamonds`;
+    // The pill is a short painted slot (about eight characters at 375px);
+    // longer state, balance and timer copy is printed on the glass below.
+    const balanceLabel = isVip ? 'VIP' : 'Ready';
     const nextAvailableLevel = Math.min(userProgress.highestLevel + 1, LEVEL_CONFIG.length);
     const stateLabel = showOutOfDiamonds
-        ? 'Balance Required'
+        ? 'Balance'
         : isPaused
-            ? 'Game Paused'
+            ? 'Paused'
             : {
                 lobby: balanceLabel,
-                loading_level: `Dealing Level ${formatTriviaDisplayNumber(currentLevel)}`,
-                playing: `Level ${formatTriviaDisplayNumber(currentLevel)} | ${formatTriviaDisplayNumber(timer.timeLeft)} Seconds`,
-                saving_progress: 'Securing Progress',
-                saving_error: 'Save Paused',
-                levelComplete: `Level ${formatTriviaDisplayNumber(currentLevel)} Complete`,
-                gameOver: `Level ${formatTriviaDisplayNumber(currentLevel)} Failed`,
-                victory: 'Ten Levels Complete',
+                loading_level: 'Dealing',
+                playing: `Level ${formatTriviaDisplayNumber(currentLevel)}`,
+                saving_progress: 'Saving',
+                saving_error: 'Retry',
+                levelComplete: 'Cleared',
+                gameOver: 'Failed',
+                victory: 'Victory',
             }[gameState] || balanceLabel;
 
     const resumeGame = () => {
@@ -811,7 +819,8 @@ export default function SurvivalGamePage() {
                     ? { label: 'Retry Save', onClick: handleRetrySave }
                     : gameState === 'levelComplete'
                         ? {
-                            label: `Continue To Level ${formatTriviaDisplayNumber(currentLevel + 1)}`,
+                            // Short enough for the painted plate face at 375px.
+                            label: `Play Level ${formatTriviaDisplayNumber(currentLevel + 1)}`,
                             onClick: continueToNextLevel,
                         }
                         : gameState === 'gameOver'
@@ -873,9 +882,8 @@ export default function SurvivalGamePage() {
                                 className="trivia-challenge-console"
                                 eyebrow="Ten Level Challenge"
                                 title="Survival Trivia"
-                                titleAs="h1"
                                 titleId="survival-trivia-title"
-                                subtitle="Advance By Hitting Every Accuracy Target"
+                                subtitle="Clear Every Level"
                                 pill={stateLabel}
                                 aria-labelledby="survival-trivia-title"
                                 primaryAction={primaryAction}
@@ -897,6 +905,15 @@ export default function SurvivalGamePage() {
 
                                 {gameState === 'lobby' && (
                                     <section className="trivia-challenge-intro" aria-labelledby="survival-ready-title">
+                                        <img
+                                            className="trivia-challenge-hero"
+                                            src="/images/trivia/modes-console-v1/survival.webp"
+                                            alt=""
+                                            aria-hidden="true"
+                                            width={1000}
+                                            height={563}
+                                            decoding="async"
+                                        />
                                         <h2 id="survival-ready-title">Choose Your Starting Level</h2>
                                         <p>
                                             Clear {formatTriviaDisplayNumber(QUESTIONS_PER_LEVEL)} Questions Per Level
@@ -925,6 +942,14 @@ export default function SurvivalGamePage() {
                                                 <dd>{formatTriviaDisplayNumber(DAILY_DIAMOND_CAP)}</dd>
                                             </div>
                                         </dl>
+                                        {userId && !isVip && (
+                                            <ul className="tc-rows" aria-label="Your Balance">
+                                                <li className="tc-row">
+                                                    <span className="tc-row__label">Your Balance</span>
+                                                    <span className="tc-row__value tc-ink--gold">{formatTriviaDisplayNumber(userDiamonds)} Diamonds</span>
+                                                </li>
+                                            </ul>
+                                        )}
 
                                         <div className="trivia-challenge-levels" aria-label="Survival Level Selection">
                                             {LEVEL_CONFIG.map(level => {
@@ -938,7 +963,6 @@ export default function SurvivalGamePage() {
                                                         onClick={() => startLevel(level.level)}
                                                         disabled={!isUnlocked || isLoading}
                                                         aria-label={`Level ${level.level}, ${level.accuracyRequired}% Required, ${isCompleted ? 'Complete' : isUnlocked ? 'Available' : 'Locked'}`}
-                                                        style={{ minWidth: 44, minHeight: 44 }}
                                                     >
                                                         <span>Level {formatTriviaDisplayNumber(level.level)}</span>
                                                         <span>{formatTriviaDisplayNumber(level.accuracyRequired)}% Required</span>
@@ -1026,7 +1050,6 @@ export default function SurvivalGamePage() {
                                                 onClick={() => setShowSettingsPanel(prev => !prev)}
                                                 aria-expanded={showSettingsPanel}
                                                 aria-controls="survival-game-settings"
-                                                style={{ minWidth: 44, minHeight: 44 }}
                                             >
                                                 {showSettingsPanel ? 'Close Settings' : 'Game Settings'}
                                             </button>
@@ -1055,7 +1078,6 @@ export default function SurvivalGamePage() {
                                                         aria-checked={settings.audio}
                                                         className="trivia-challenge-switch"
                                                         onClick={() => triviaAudio.setMuted(settings.audio)}
-                                                        style={{ minWidth: 44, minHeight: 44 }}
                                                     >
                                                         {settings.audio ? 'On' : 'Off'}
                                                     </button>
@@ -1069,7 +1091,6 @@ export default function SurvivalGamePage() {
                                                         aria-checked={settings.haptics}
                                                         className="trivia-challenge-switch"
                                                         onClick={() => setSettings(prev => ({ ...prev, haptics: !prev.haptics }))}
-                                                        style={{ minWidth: 44, minHeight: 44 }}
                                                     >
                                                         {settings.haptics ? 'On' : 'Off'}
                                                     </button>
@@ -1083,7 +1104,6 @@ export default function SurvivalGamePage() {
                                                         aria-checked={settings.screenShake}
                                                         className="trivia-challenge-switch"
                                                         onClick={() => setSettings(prev => ({ ...prev, screenShake: !prev.screenShake }))}
-                                                        style={{ minWidth: 44, minHeight: 44 }}
                                                     >
                                                         {settings.screenShake ? 'On' : 'Off'}
                                                     </button>
@@ -1098,7 +1118,6 @@ export default function SurvivalGamePage() {
                                                                 className="trivia-challenge-action"
                                                                 aria-pressed={settings.intensity === level}
                                                                 onClick={() => setSettings(prev => ({ ...prev, intensity: level }))}
-                                                                style={{ minWidth: 44, minHeight: 44 }}
                                                             >
                                                                 {toTitleCase(level)}
                                                             </button>
@@ -1169,7 +1188,6 @@ export default function SurvivalGamePage() {
                                                 className="trivia-challenge-action trivia-challenge-action--lifeline"
                                                 onClick={useSkipQuestion}
                                                 disabled={lifelineLocked}
-                                                style={{ minWidth: 44, minHeight: 44 }}
                                             >
                                                 Skip Question | {isVip ? 'VIP Included' : `${formatTriviaDisplayNumber(LIFELINE_COST)} Diamonds`}
                                             </button>
@@ -1276,7 +1294,6 @@ export default function SurvivalGamePage() {
                                                     onClick={() => setShowReview(prev => !prev)}
                                                     aria-expanded={showReview}
                                                     aria-controls="survival-review-list"
-                                                    style={{ minWidth: 44, minHeight: 44 }}
                                                 >
                                                     {showReview ? 'Hide Review' : `Review ${formatTriviaDisplayNumber(reviewMissed.length)} Missed ${reviewMissed.length === 1 ? 'Question' : 'Questions'}`}
                                                 </button>
@@ -1305,7 +1322,6 @@ export default function SurvivalGamePage() {
                                                 });
                                                 if (result === 'copied') alert('Result Copied To Clipboard.');
                                             }}
-                                            style={{ minWidth: 44, minHeight: 44 }}
                                         >
                                             Share Result
                                         </button>

@@ -22,7 +22,6 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../src/components/seo/SEOHead';
-import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import TriviaConsole from '../../../src/components/trivia/console/TriviaConsole';
 
 const LIVE_SURVIVAL_ROUTE = '/hub/trivia/survival-game';
@@ -49,7 +48,9 @@ export default function SurvivalModeRedirectPage() {
                 data-trivia-surface="survival-redirect"
                 data-game-state="redirecting"
             >
-                <UniversalHeader pageDepth={2} />
+                {/* The global header comes from pages/_app.js: this route is in
+                    HUB_ROUTES_WITHOUT_SHARED_HEADER, so mounting it here too drew
+                    two headers. */}
                 <main className="trivia-challenge-shell" aria-labelledby="survival-redirect-title">
                     <TriviaConsole
                         className="trivia-challenge-console"
@@ -57,8 +58,8 @@ export default function SurvivalModeRedirectPage() {
                         title="Survival Mode"
                         titleAs="h1"
                         titleId="survival-redirect-title"
-                        subtitle="Opening The Live Challenge"
-                        pill="Redirecting"
+                        subtitle="Opening The Live Game"
+                        pill="Opening"
                         aria-labelledby="survival-redirect-title"
                     >
                         <div className="trivia-challenge-state trivia-challenge-state--loading" role="status">
@@ -67,7 +68,6 @@ export default function SurvivalModeRedirectPage() {
                         <a
                             className="trivia-challenge-action trivia-challenge-action--link"
                             href={LIVE_SURVIVAL_ROUTE}
-                            style={{ minWidth: 44, minHeight: 44, display: 'inline-flex', alignItems: 'center' }}
                         >
                             Continue To Survival Mode
                         </a>

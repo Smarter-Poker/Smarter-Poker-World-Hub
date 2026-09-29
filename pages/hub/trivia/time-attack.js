@@ -31,6 +31,7 @@ import { getTodayStartCST } from '../../../src/lib/trivia/getTodayCST';
 import { DAILY_DIAMOND_CAPS } from '../../../src/lib/trivia/triviaEngine';
 import { formatTriviaDisplayNumber } from '../../../src/lib/trivia/formatTriviaDisplayNumber';
 import HubPageSummary from '../../../src/components/seo/HubPageSummary';
+import { printPlayerName } from '../../../src/lib/trivia/printPlayerName';
 
 // Roster size requested from /api/trivia/session-start. The 30-second clock
 // realistically allows well under 30 answers, so 60 is generous headroom;
@@ -203,7 +204,12 @@ export default function TimeAttackPage() {
             served = await serverRun.start({ count: QUESTIONS_PER_SESSION });
         } catch (e) {
             console.warn('[TimeAttack] Server session start failed:', e?.message || e);
-            if (e?.status === 402) setShowOutOfDiamonds(true);
+            // A 402 is the balance gate, not a connection problem: show the
+            // Not Enough Diamonds state alone instead of both messages.
+            if (e?.status === 402) {
+                setShowOutOfDiamonds(true);
+                return;
+            }
             setStartError('We Could Not Load Any Questions Right Now. Please Check Your Connection And Try Again.');
             return;
         }
@@ -336,17 +342,20 @@ export default function TimeAttackPage() {
             ? { label: 'Back To Trivia', onClick: () => router.push('/hub/trivia') }
             : undefined;
 
+    // The pill is a short painted slot (about eight characters at 375px).
     const stateLabel = showOutOfDiamonds
-        ? 'Balance Required'
+        ? 'Balance'
         : pageLoading
         ? 'Loading'
         : gameState === 'playing'
             ? 'Live'
             : gameState === 'complete'
                 ? 'Complete'
-                : gameState === 'saving' || gameState === 'saving_error'
-                    ? 'Saving'
-                    : '30 Seconds';
+                : gameState === 'saving_error'
+                    ? 'Retry'
+                    : gameState === 'saving'
+                        ? 'Saving'
+                        : '30 Sec';
 
     return (
         <TriviaErrorBoundary pageName="Time Attack">
@@ -379,9 +388,8 @@ export default function TimeAttackPage() {
                             className="trivia-challenge-console"
                             eyebrow="Timed Challenge"
                             title="Time Attack"
-                            titleAs="h1"
                             titleId="time-attack-title"
-                            subtitle="Answer As Many Questions As You Can"
+                            subtitle="Beat The Clock"
                             pill={stateLabel}
                             aria-labelledby="time-attack-title"
                             primaryAction={primaryAction}
@@ -408,15 +416,24 @@ export default function TimeAttackPage() {
 
                             {!pageLoading && gameState === 'lobby' && (
                                 <section className="trivia-challenge-stage trivia-challenge-stage--lobby">
+                                    <img
+                                        className="trivia-challenge-hero"
+                                        src="/images/trivia/modes-console-v1/time-attack.webp"
+                                        alt=""
+                                        aria-hidden="true"
+                                        width={1000}
+                                        height={563}
+                                        decoding="async"
+                                    />
                                     {startError && (
                                         <p className="trivia-challenge-state trivia-challenge-state--error" role="alert">
                                             {startError}
                                         </p>
                                     )}
 
-                                    <p className="trivia-challenge-intro">
-                                        30 Seconds. How Many Can You Answer?
-                                    </p>
+                                    <div className="trivia-challenge-intro">
+                                        <p>30 Seconds. How Many Can You Answer?</p>
+                                    </div>
 
                                     <dl className="trivia-challenge-stats">
                                         <div className="trivia-challenge-stat">
@@ -455,7 +472,7 @@ export default function TimeAttackPage() {
                                                         <span className="trivia-challenge-ranking-rank">
                                                             #{formatTriviaDisplayNumber(entry.rank)}
                                                         </span>
-                                                        <span className="trivia-challenge-ranking-name">{entry.username}</span>
+                                                        <span className="trivia-challenge-ranking-name">{printPlayerName(entry.username)}</span>
                                                         <span className="trivia-challenge-ranking-score">
                                                             {formatTriviaDisplayNumber(entry.score)}
                                                         </span>
@@ -488,7 +505,7 @@ export default function TimeAttackPage() {
                                 <section className="trivia-challenge-state trivia-challenge-state--error" role="alert">
                                     <h2>Network Disconnected</h2>
                                     <p>
-                                        We Could Not Save Your Time Attack Run Because You Lost Connection. Check Your Connection And Retry To Protect {formatTriviaDisplayNumber(saveErrorPayload?.diamondsEarned)} Diamonds.
+                                        We Could Not Save Your Time Attack Run Because You Lost Connection. Check Your Connection And Retry To Protect {formatTriviaDisplayNumber(saveErrorPayload?.diamondsEarned)} {saveErrorPayload?.diamondsEarned === 1 ? 'Diamond' : 'Diamonds'}.
                                     </p>
                                 </section>
                             )}

@@ -20,7 +20,7 @@
  * SmarterPoker Dark color schema
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { useRouter } from 'next/router';
 import { getAuthUser } from '../../../src/lib/authUtils';
@@ -31,6 +31,7 @@ import PageTransition from '../../../src/components/transitions/PageTransition';
 import TriviaConsole from '../../../src/components/trivia/console/TriviaConsole';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import * as triviaAudio from '../../../src/lib/trivia/triviaAudio';
+import { toTitleCase } from '../../../src/lib/trivia/titleCase';
 
 const GAME_SETTINGS_KEY = 'trivia_settings';
 
@@ -107,6 +108,63 @@ function writeGameSettings(prefs) {
     }
 }
 
+/**
+ * A two-state control printed as a lit word on the glass: "On" in green,
+ * "Off" in muted ink. Native button semantics provide Enter and Space; the
+ * switch role and aria-checked carry the state. Defined at module scope so a
+ * re-render never remounts it (and never drops keyboard focus).
+ */
+function ToggleSwitch({ checked, onChange, label }) {
+    return (
+        <button
+            type="button"
+            className="tc-word trivia-progress-switch"
+            role="switch"
+            aria-checked={!!checked}
+            aria-label={label}
+            data-checked={checked ? 'true' : 'false'}
+            onClick={onChange}
+        >
+            {checked ? 'On' : 'Off'}
+        </button>
+    );
+}
+
+function SettingRow({ title, description, status, stacked = false, children }) {
+    return (
+        <li className="trivia-progress-setting" data-layout={stacked ? 'stacked' : 'inline'}>
+            <div className="trivia-progress-setting__row">
+                <div className="trivia-progress-setting__copy">
+                    <h2 className="trivia-progress-setting__title">{title}</h2>
+                    <p className="trivia-progress-setting__description">{description}</p>
+                </div>
+                {!stacked && <div className="trivia-progress-setting__control">{children}</div>}
+            </div>
+            {stacked && children}
+            {status}
+        </li>
+    );
+}
+
+function ChoiceRow({ label, options, value, onSelect }) {
+    return (
+        <div className="trivia-progress-choice-group" role="group" aria-label={label}>
+            {options.map(option => (
+                <button
+                    type="button"
+                    key={option}
+                    className="tc-word trivia-progress-choice"
+                    onClick={() => onSelect(option)}
+                    aria-pressed={value === option}
+                    data-selected={value === option ? 'true' : 'false'}
+                >
+                    {toTitleCase(option)}
+                </button>
+            ))}
+        </div>
+    );
+}
+
 export default function TriviaSettings() {
     useTrainingBus('trivia-settings');
     const router = useRouter();
@@ -117,6 +175,7 @@ export default function TriviaSettings() {
     const [isLoading, setIsLoading] = useState(true);
     const [saveMessage, setSaveMessage] = useState('');
     const [saveIsError, setSaveIsError] = useState(false);
+    const [saveKey, setSaveKey] = useState('');
 
     const [preferences, setPreferences] = useState(DEFAULT_PREFERENCES);
 
@@ -162,22 +221,28 @@ export default function TriviaSettings() {
         setPreferences(prev => (prev.soundEffects === !m ? prev : { ...prev, soundEffects: !m }));
     }), []);
 
-    const flash = (message, isError = false) => {
+    // One pending clear at a time, and none after unmount.
+    const flashTimerRef = useRef(null);
+    useEffect(() => () => window.clearTimeout(flashTimerRef.current), []);
+
+    const flash = (message, isError = false, key = '') => {
         setSaveMessage(message);
         setSaveIsError(isError);
-        setTimeout(() => setSaveMessage(''), 2500);
+        setSaveKey(key);
+        window.clearTimeout(flashTimerRef.current);
+        flashTimerRef.current = window.setTimeout(() => setSaveMessage(''), 2500);
     };
 
     /**
-     * Autosave every change (toggles AND difficulty — difficulty used to require
+     * Autosave every change (toggles AND difficulty - difficulty used to require
      * a manual Save button that then navigated away from the page after 1s).
      * Game-side settings are written first because they are local and cannot
      * fail; the account-level write rolls back the UI if it errors.
      */
-    const persist = async (newPrefs, onRollback) => {
+    const persist = async (key, newPrefs, onRollback) => {
         writeGameSettings(newPrefs);
         if (!userId) {
-            flash('Saved On This Device. Sign In To Sync Across Devices.');
+            flash('Saved On This Device. Sign In To Sync Across Devices.', false, key);
             return;
         }
         try {
@@ -187,10 +252,10 @@ export default function TriviaSettings() {
                 hintsEnabled: newPrefs.hintsEnabled,
                 difficulty: newPrefs.difficulty
             });
-            flash('Settings Saved');
+            flash('Settings Saved', false, key);
         } catch (error) {
             console.warn('Error auto-saving:', error);
-            flash('Failed To Save. Please Try Again.', true);
+            flash('Failed To Save. Please Try Again.', true, key);
             if (onRollback) onRollback();
         }
     };
@@ -199,7 +264,7 @@ export default function TriviaSettings() {
         const oldValue = preferences[key];
         const newPrefs = { ...preferences, [key]: !oldValue };
         setPreferences(newPrefs);
-        persist(newPrefs, () => {
+        persist(key, newPrefs, () => {
             setPreferences(prev => ({ ...prev, [key]: oldValue }));
             writeGameSettings({ ...newPrefs, [key]: oldValue });
         });
@@ -210,60 +275,30 @@ export default function TriviaSettings() {
         if (oldValue === value) return;
         const newPrefs = { ...preferences, [key]: value };
         setPreferences(newPrefs);
-        persist(newPrefs, () => {
+        persist(key, newPrefs, () => {
             setPreferences(prev => ({ ...prev, [key]: oldValue }));
             writeGameSettings({ ...newPrefs, [key]: oldValue });
         });
     };
 
-    /** Native button semantics provide Enter and Space activation. The shared
-     * progress chassis owns the visible two-state switch treatment. */
-    const ToggleSwitch = ({ checked, onChange, label }) => (
-        <button
-            type="button"
-            className="trivia-progress-switch"
-            role="switch"
-            aria-checked={!!checked}
-            aria-label={label}
-            data-checked={checked ? 'true' : 'false'}
-            onClick={onChange}
-            style={{ minWidth: 50, minHeight: 44 }}
+    // Save feedback prints in the row that changed, where the player is looking.
+    const statusFor = (key) => (saveMessage && saveKey === key ? (
+        <p
+            className={`trivia-progress-status ${saveIsError ? 'tc-ink--red' : 'tc-ink--green'}`}
+            role={saveIsError ? 'alert' : 'status'}
+            data-tone={saveIsError ? 'error' : 'success'}
         >
-            <span className="trivia-progress-switch-track" aria-hidden="true">
-                <span className="trivia-progress-switch-knob" />
-            </span>
-        </button>
-    );
+            {saveMessage}
+        </p>
+    ) : null);
 
-    const SettingRow = ({ title, description, children }) => (
-        <section className="trivia-progress-setting-panel">
-            <div className="trivia-progress-setting-row">
-                <div className="trivia-progress-setting-copy">
-                    <h2 className="trivia-progress-setting-title">{title}</h2>
-                    <p className="trivia-progress-setting-description">{description}</p>
-                </div>
-                <div className="trivia-progress-setting-control">{children}</div>
-            </div>
-        </section>
-    );
-
-    const ChoiceRow = ({ label, options, value, onSelect }) => (
-        <div className="trivia-progress-choice-group" role="group" aria-label={label}>
-            {options.map(option => (
-                <button
-                    type="button"
-                    key={option}
-                    className="trivia-progress-choice"
-                    onClick={() => onSelect(option)}
-                    aria-pressed={value === option}
-                    data-selected={value === option ? 'true' : 'false'}
-                    style={{ minWidth: 76, minHeight: 44 }}
-                >
-                    {option.charAt(0).toUpperCase() + option.slice(1)}
-                </button>
-            ))}
-        </div>
-    );
+    const toggles = [
+        { key: 'soundEffects', title: 'Sound Effects', description: 'Countdown Heartbeat And Answer Feedback Sounds' },
+        { key: 'haptics', title: 'Haptic Vibration', description: 'Vibrate As The Shot Clock Runs Down (Mobile Only)' },
+        { key: 'screenShake', title: 'Screen Shake', description: 'Shake The Board In The Final Seconds Of A Question' },
+        { key: 'timerEnabled', title: 'Timer', description: 'Show The Countdown Timer During Questions' },
+        { key: 'hintsEnabled', title: 'Show Hints', description: 'Display Hints For Difficult Questions Where Available' },
+    ];
 
     return (
         <>
@@ -290,113 +325,69 @@ export default function TriviaSettings() {
                             titleAs="h1"
                             titleId="trivia-settings-title"
                             subtitle="Changes Save Automatically"
+                            pill={isLoading ? 'Loading' : userId ? 'Synced' : 'Local'}
+                            pillInk={!isLoading && userId ? 'green' : 'blue'}
                             aria-labelledby="trivia-settings-title"
                             secondaryAction={{
                                 label: 'Back To Trivia',
                                 onClick: () => router.push('/hub/trivia'),
                             }}
                         >
-                        <p className="trivia-progress-subtitle">
-                            Customize Your Trivia Experience. Changes Save Automatically.
+                        <p className="trivia-progress-intro">
+                            {userId
+                                ? 'Customize Your Trivia Experience. Every Change Saves To Your Account.'
+                                : 'Customize Your Trivia Experience. Signed Out, Changes Save On This Device Only.'}
                         </p>
 
                         {isLoading ? (
-                            <div className="trivia-progress-state trivia-progress-state--loading" role="status">
-                                Loading Settings...
-                            </div>
+                            <p className="trivia-progress-state trivia-progress-state--loading" role="status">
+                                Loading Settings
+                            </p>
                         ) : (
-                            <section className="trivia-progress-settings-list" aria-label="Trivia Preferences">
-                                <SettingRow
-                                    title="Sound Effects"
-                                    description="Countdown Heartbeat And Answer Feedback Sounds"
-                                >
-                                    <ToggleSwitch
-                                        label="Sound Effects"
-                                        checked={preferences.soundEffects}
-                                        onChange={() => handleToggle('soundEffects')}
-                                    />
-                                </SettingRow>
+                            <ul className="trivia-progress-settings-list" aria-label="Trivia Preferences">
+                                {toggles.map(toggle => (
+                                    <SettingRow
+                                        key={toggle.key}
+                                        title={toggle.title}
+                                        description={toggle.description}
+                                        status={statusFor(toggle.key)}
+                                    >
+                                        <ToggleSwitch
+                                            label={toggle.title}
+                                            checked={preferences[toggle.key]}
+                                            onChange={() => handleToggle(toggle.key)}
+                                        />
+                                    </SettingRow>
+                                ))}
 
                                 <SettingRow
-                                    title="Haptic Vibration"
-                                    description="Vibrate As The Shot Clock Runs Down (Mobile Only)"
+                                    title="Feedback Intensity"
+                                    description="How Strong The Vibration, Shake And Audio Cues Feel"
+                                    status={statusFor('intensity')}
+                                    stacked
                                 >
-                                    <ToggleSwitch
-                                        label="Haptic Vibration"
-                                        checked={preferences.haptics}
-                                        onChange={() => handleToggle('haptics')}
-                                    />
-                                </SettingRow>
-
-                                <SettingRow
-                                    title="Screen Shake"
-                                    description="Shake The Board In The Final Seconds Of A Question"
-                                >
-                                    <ToggleSwitch
-                                        label="Screen Shake"
-                                        checked={preferences.screenShake}
-                                        onChange={() => handleToggle('screenShake')}
-                                    />
-                                </SettingRow>
-
-                                <SettingRow
-                                    title="Timer"
-                                    description="Show The Countdown Timer During Questions"
-                                >
-                                    <ToggleSwitch
-                                        label="Timer"
-                                        checked={preferences.timerEnabled}
-                                        onChange={() => handleToggle('timerEnabled')}
-                                    />
-                                </SettingRow>
-
-                                <SettingRow
-                                    title="Show Hints"
-                                    description="Display Hints For Difficult Questions Where Available"
-                                >
-                                    <ToggleSwitch
-                                        label="Show Hints"
-                                        checked={preferences.hintsEnabled}
-                                        onChange={() => handleToggle('hintsEnabled')}
-                                    />
-                                </SettingRow>
-
-                                <section className="trivia-progress-setting-panel">
-                                    <h2 className="trivia-progress-setting-title">Feedback Intensity</h2>
-                                    <p className="trivia-progress-setting-description">
-                                        How Strong The Vibration, Shake And Audio Cues Feel
-                                    </p>
                                     <ChoiceRow
                                         label="Feedback Intensity"
                                         options={['low', 'medium', 'high']}
                                         value={preferences.intensity}
                                         onSelect={(value) => handleChoice('intensity', value)}
                                     />
-                                </section>
+                                </SettingRow>
 
-                                <section className="trivia-progress-setting-panel">
-                                    <h2 className="trivia-progress-setting-title">Difficulty Level</h2>
-                                    <p className="trivia-progress-setting-description">
-                                        Preferred Question Difficulty In Endless Mode
-                                    </p>
+                                <SettingRow
+                                    title="Difficulty Level"
+                                    description="Preferred Question Difficulty In Endless Mode"
+                                    status={statusFor('difficulty')}
+                                    stacked
+                                >
                                     <ChoiceRow
                                         label="Difficulty Level"
                                         options={DIFFICULTY_OPTIONS}
                                         value={preferences.difficulty}
                                         onSelect={(value) => handleChoice('difficulty', value)}
                                     />
-                                </section>
-                            </section>
-                        )}
-
-                        {saveMessage && (
-                            <div
-                                className="trivia-progress-status"
-                                role={saveIsError ? 'alert' : 'status'}
-                                data-tone={saveIsError ? 'error' : 'success'}
-                            >
-                                {saveMessage}
-                            </div>
+                                </SettingRow>
+                            </ul>
                         )}
                         </TriviaConsole>
                     </main>

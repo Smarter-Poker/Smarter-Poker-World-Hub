@@ -45,6 +45,25 @@
     font-family: 'Roboto Condensed', Inter, system-ui, sans-serif;
 }
 
+/* The canvas behind every Trivia route is black too, so the band the bottom
+   navigation clearance leaves below the last console never shows the site
+   navy. body.world-trivia arrives after hydration; the console hook covers the
+   first server paint. */
+html:has(> body.world-trivia),
+html:has([data-master-art="spade-console-v1"]) {
+    background: var(--tc-black);
+}
+
+/* Focus law on every Trivia surface. The site sheets remove button outlines
+   with !important (index.css) and draw a cyan box-shadow ring (premium.css),
+   so a keyboard player would see no schema ring at all. Here the ring is the
+   approved blue outline; each primitive keeps its own measured offset, and
+   the site chrome (header, nav, footer) keeps its own ring. */
+body.world-trivia :focus-visible:not(:is(header, nav, footer) *) {
+    outline: 3px solid var(--tc-ink-blue) !important;
+    box-shadow: none;
+}
+
 /* ── Copy on the glass ─────────────────────────────────────────────────── */
 
 .trivia-console-copy,

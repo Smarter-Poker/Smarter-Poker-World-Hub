@@ -1,5 +1,5 @@
 /**
- * Phase 54 #6 — small "report this question" overlay used in all trivia modes.
+ * Phase 54 #6 - small "report this question" overlay used in all trivia modes.
  *
  * Drop into any question screen:
  *   <ReportQuestionButton questionId={q.id} userToken={accessToken} />
@@ -10,6 +10,7 @@
  */
 import { useState } from 'react';
 import TriviaConsoleDialog from './console/TriviaConsoleDialog';
+import { toTitleCase } from '../../lib/trivia/titleCase';
 
 const REASONS = [
     { id: 'wrong_answer', label: 'Wrong Answer' },
@@ -47,7 +48,9 @@ export default function ReportQuestionButton({ questionId, userToken, onDone }) 
             setOpen(false);
             if (typeof onDone === 'function') onDone(json);
         } catch (e) {
-            setError(e.message || 'Could not submit report');
+            // Server errors arrive as raw strings ('Authentication required',
+            // 'rate_limited'); print them in Title Case on the glass.
+            setError(toTitleCase(String(e?.message || 'Could Not Submit Report').replace(/_/g, ' ')));
         } finally {
             setSubmitting(false);
         }
@@ -61,42 +64,43 @@ export default function ReportQuestionButton({ questionId, userToken, onDone }) 
         );
     }
 
-    if (!open) {
-        return (
+    // The trigger stays mounted while the dialog is open so the dialog can
+    // hand focus back to it on close.
+    return (
+        <>
             <button
                 type="button"
                 onClick={() => setOpen(true)}
-                className="trivia-question-report-trigger"
+                className="trivia-question-report-trigger tc-word"
+                aria-haspopup="dialog"
+                aria-expanded={open}
             >
                 Report Question
             </button>
-        );
-    }
-
-    return (
-        <TriviaConsoleDialog
-            open={open}
-            onClose={() => setOpen(false)}
-            eyebrow="Question Quality"
-            title="Report Question"
-            subtitle="Tell Us What Needs Review"
-            pill={submitting ? 'Sending' : 'Review'}
-            secondaryAction={{ label: 'Cancel', onClick: () => setOpen(false), disabled: submitting }}
-        >
-            <div className="trivia-question-report-reasons">
-                {REASONS.map(reason => (
-                    <button
-                        key={reason.id}
-                        type="button"
-                        onClick={() => submit(reason.id)}
-                        disabled={submitting}
-                        className="trivia-question-report-reason"
-                    >
-                        {reason.label}
-                    </button>
-                ))}
-            </div>
-            {error ? <p className="trivia-question-report-error" role="alert">{error}</p> : null}
-        </TriviaConsoleDialog>
+            <TriviaConsoleDialog
+                open={open}
+                onClose={() => setOpen(false)}
+                eyebrow="Question Quality"
+                title="Report Question"
+                subtitle="Tell Us What Needs Review"
+                pill={submitting ? 'Sending' : 'Review'}
+                secondaryAction={{ label: 'Cancel', onClick: () => setOpen(false), disabled: submitting }}
+            >
+                <div className="trivia-question-report-reasons">
+                    {REASONS.map(reason => (
+                        <button
+                            key={reason.id}
+                            type="button"
+                            onClick={() => submit(reason.id)}
+                            disabled={submitting}
+                            className="trivia-question-report-reason tc-word"
+                        >
+                            {reason.label}
+                        </button>
+                    ))}
+                </div>
+                {error ? <p className="trivia-question-report-error" role="alert">{error}</p> : null}
+            </TriviaConsoleDialog>
+        </>
     );
 }

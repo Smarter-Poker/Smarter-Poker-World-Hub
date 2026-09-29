@@ -1,0 +1,136 @@
+/*
+ * Prize Wheel, painted (#ClubArenaConsole: paint what never changes, print
+ * what does). The face, hub cap and pointer are rendered raster art in
+ * public/images/trivia/console/prize-wheel-v1/; the eight prize labels are
+ * the only live text on the wheel. Geometry is in master pixels of the
+ * 1024 x 1024 face: rim radius 508, spokes exactly at k x 45 deg with one at
+ * 12 o'clock, hub cap radius 83 centred at 511.5.
+ *
+ * Colours: schema inks only, via the global .tc-ink--* classes.
+ */
+
+.overlay {
+    display: contents;
+}
+
+.container {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 3cqw;
+    width: 100%;
+    min-width: 0;
+}
+
+.kicker {
+    margin: 0;
+    text-align: center;
+}
+
+.notice {
+    margin: 0;
+    font: 800 3.4cqw/1.2 'Roboto Condensed', Inter, system-ui, sans-serif;
+    letter-spacing: 0.06em;
+    text-align: center;
+}
+
+/*
+ * The stage is width-capped, so its own width lives in a custom property and
+ * every inset is derived from it (percentage padding/margin would resolve
+ * against the containing block, not the stage). The pointer stands 10.1% of
+ * the wheel width above the rim, so that much room is reserved above it.
+ */
+.stage {
+    /* 40svh keeps the whole dialog (head, wheel, result, foot) inside a
+       900px desktop viewport; phones are width-bound long before this. */
+    --stage-w: min(100%, 440px, 40svh);
+    position: relative;
+    container-type: inline-size;
+    width: var(--stage-w);
+    aspect-ratio: 1;
+    margin: calc(var(--stage-w) * 0.105) auto 0;
+}
+
+.wheel {
+    position: absolute;
+    inset: 0;
+    background: url('/images/trivia/console/prize-wheel-v1/wheel-face.webp') center / 100% 100% no-repeat;
+    transform-origin: 50% 50%;
+}
+
+/*
+ * One label per segment, centred on the segment's bisector at 62% of the rim
+ * radius, printed tangentially so the winning label reads upright under the
+ * pointer. The face box is the glass between two spokes at that radius
+ * (chord 2 x 0.62R x sin 22.5 deg, less the spoke rods).
+ */
+.segmentLabel {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    display: grid;
+    place-items: center;
+    width: 21cqw;
+    height: 8cqw;
+    margin: -4cqw 0 0 -10.5cqw;
+    overflow: hidden;
+    font: 800 7cqw/1 'Roboto Condensed', Inter, system-ui, sans-serif;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+    transform: rotate(var(--segment-angle)) translateY(-30.8cqw);
+    pointer-events: none;
+    user-select: none;
+}
+
+.segmentWord {
+    font-size: 4.2cqw;
+    letter-spacing: 0.04em;
+}
+
+.hub {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 16.6016cqw;
+    aspect-ratio: 1;
+    transform: translate(-50%, -50%);
+    background: url('/images/trivia/console/prize-wheel-v1/hub-cap.webp') center / 100% 100% no-repeat;
+    pointer-events: none;
+}
+
+/* Painted flapper at 12 o'clock; its tip sits just inside the rim's glass. */
+.pointer {
+    position: absolute;
+    left: 50%;
+    top: -10.1cqw;
+    width: 9cqw;
+    aspect-ratio: 128 / 300;
+    transform: translateX(-50%);
+    background: url('/images/trivia/console/prize-wheel-v1/wheel-pointer.webp') center / 100% 100% no-repeat;
+    pointer-events: none;
+}
+
+.result {
+    animation: prizeReveal 0.5s ease-out;
+}
+
+.resultAmount {
+    font-size: 4.6cqw;
+}
+
+@keyframes prizeReveal {
+    0% { opacity: 0; transform: translateY(1.5cqw); }
+    100% { opacity: 1; transform: none; }
+}
+
+.claimError {
+    margin: 0;
+    font: 600 3.2cqw/1.35 Inter, system-ui, sans-serif;
+    text-align: center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .result {
+        animation: none;
+    }
+}

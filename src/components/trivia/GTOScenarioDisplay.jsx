@@ -1,12 +1,13 @@
 /**
- * GTOScenarioDisplay - Premium Futuristic GTO Analysis Panel
+ * GTOScenarioDisplay - the solver reveal, printed on the console glass.
  *
- * Features:
- * - Jarvis AI avatar with glowing effect
- * - Primary action with confidence percentage
- * - Collapsible sections (Explanation, GTO Approach, EV Analysis, Alternate Lines)
- * - Highlighted GTO terminology
- * - Futuristic metal/glassmorphism design
+ * Every solver field keeps its meaning and is printed as a label / value row
+ * or a labelled block on the black glass of the Trivia console
+ * (#ClubArenaConsole): the solver line, its confidence, the EV in big blinds,
+ * the explanation, the GTO approach and each alternate line with its
+ * frequency. Sections still collapse. No icon glyphs, gradients, rounded
+ * panels, shadows or hover states: the console master is the only frame.
+ *
  * - Optional AI-rendered "visual card" via /api/trivia/render-gto-panel
  *
  * VISUAL CARD CONTRACT (fixed in this pass)
@@ -24,12 +25,9 @@
  */
 
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
-import { ChevronDown, Info, Target, DollarSign, GitBranch, Sparkles, RotateCcw } from 'lucide-react';
 import { getAccessToken } from '../../lib/authUtils';
+import { toTitleCase } from '../../lib/trivia/titleCase';
 import styles from './GTOScenarioDisplay.module.css';
-
-// Jarvis avatar - using the official persona
-const JARVIS_AVATAR = '/images/jarvis-avatar.webp';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -98,53 +96,58 @@ const highlightKeywords = (text) => {
 };
 
 /**
- * Action color mapping.
- * Each entry carries a solid color AND a pre-mixed glow rgba, because the CSS
- * used color-mix(in srgb, ...) which Safari < 16.2 drops entirely (taking the
- * whole box-shadow declaration with it, so the buttons lost their glow).
- * FOLD and ALL-IN were lightened: #ef4444 (4.4:1) and #a855f7 (4.3:1) both
- * failed WCAG AA against the panel surface at these text sizes.
+ * Action ink mapping, schema colours only (#ClubArenaConsole 3.4).
+ * Each entry carries the solid ink AND a pre-mixed glow, kept for anything
+ * that imported the old { color, glow } shape. The ink name drives the class.
  */
-const ACTION_COLORS = {
-    'RAISE': { color: '#00ff88', glow: 'rgba(0, 255, 136, 0.30)' },
-    'BET': { color: '#00ff88', glow: 'rgba(0, 255, 136, 0.30)' },
-    '3-BET': { color: '#00ff88', glow: 'rgba(0, 255, 136, 0.30)' },
-    '4-BET': { color: '#c084fc', glow: 'rgba(192, 132, 252, 0.30)' },
-    'CALL': { color: '#ffc107', glow: 'rgba(255, 193, 7, 0.30)' },
-    'CHECK': { color: '#00d4ff', glow: 'rgba(0, 212, 255, 0.30)' },
-    'FOLD': { color: '#f87171', glow: 'rgba(248, 113, 113, 0.30)' },
-    'ALL-IN': { color: '#c084fc', glow: 'rgba(192, 132, 252, 0.30)' },
-    'SHOVE': { color: '#c084fc', glow: 'rgba(192, 132, 252, 0.30)' },
+const ACTION_INKS = {
+    'RAISE': 'green',
+    'BET': 'green',
+    '3-BET': 'green',
+    '4-BET': 'gold',
+    'CALL': 'blue',
+    'CHECK': 'silver',
+    'FOLD': 'red',
+    'ALL-IN': 'gold',
+    'SHOVE': 'gold',
 };
 
-const DEFAULT_ACTION_COLOR = { color: '#00ff88', glow: 'rgba(0, 255, 136, 0.30)' };
+const INK_COLORS = {
+    green: { color: '#c8ffd2', glow: 'rgb(53 217 90 / 30%)' },
+    gold: { color: '#ffd700', glow: 'rgb(255 215 0 / 30%)' },
+    blue: { color: '#45adff', glow: 'rgb(69 173 255 / 30%)' },
+    silver: { color: '#e4e7ec', glow: 'rgb(228 231 236 / 30%)' },
+    red: { color: '#ff5b6e', glow: 'rgb(240 40 73 / 30%)' },
+};
 
-const getActionColors = (action) =>
-    ACTION_COLORS[String(action ?? '').toUpperCase()] || DEFAULT_ACTION_COLOR;
+const getActionInk = (action) => ACTION_INKS[String(action ?? '').toUpperCase()] || 'green';
+
+const getActionColors = (action) => INK_COLORS[getActionInk(action)];
 
 /** Back-compat helper for anything that imported the old single-color idea. */
 export const getActionColor = (action) => getActionColors(action).color;
 
 /** Human-readable failure text for the visual-card endpoint. */
 const describePanelError = (status, apiError) => {
-    if (status === 401) return 'Your session expired. Sign in again to generate the visual card.';
-    if (status === 403) return 'This account cannot generate visual cards.';
-    if (status === 404) return 'This hand is not in the question library yet.';
-    if (status === 400) return 'A visual card is not available for this question type.';
-    if (status === 429) return 'Too many requests right now. Try again in a moment.';
-    if (status >= 500) return 'The panel renderer is unavailable. Try again shortly.';
-    return apiError || 'Could not generate the visual card. Please try again.';
+    if (status === 401) return 'Your Session Expired. Sign In Again To Generate The Visual Card.';
+    if (status === 403) return 'This Account Cannot Generate Visual Cards.';
+    if (status === 404) return 'This Hand Is Not In The Question Library Yet.';
+    if (status === 400) return 'A Visual Card Is Not Available For This Question Type.';
+    if (status === 429) return 'Too Many Requests Right Now. Try Again In A Moment.';
+    if (status >= 500) return 'The Panel Renderer Is Unavailable. Try Again Shortly.';
+    return apiError ? toTitleCase(String(apiError).replace(/_/g, ' ')) : 'Could Not Generate The Visual Card. Please Try Again.';
 };
 
-// Collapsible Section Component
-const CollapsibleSection = ({ icon: Icon, title, children, defaultOpen = true, accentColor = '#06b6d4' }) => {
+// Collapsible section: a lit label on the glass that opens and closes the
+// block beneath it. No icon, no chevron glyph: the state is printed as a word.
+const CollapsibleSection = ({ title, children, defaultOpen = true }) => {
     const [isOpen, setIsOpen] = useState(defaultOpen);
     const reactId = useId();
     const contentId = `gto-section-${reactId}`;
     const headerId = `gto-header-${reactId}`;
 
     return (
-        <div className={styles.section} style={{ '--accent-color': accentColor }}>
+        <div className={styles.section}>
             <button
                 type="button"
                 id={headerId}
@@ -153,33 +156,19 @@ const CollapsibleSection = ({ icon: Icon, title, children, defaultOpen = true, a
                 aria-expanded={isOpen}
                 aria-controls={contentId}
             >
-                <span className={styles.sectionTitle}>
-                    <Icon size={18} className={styles.sectionIcon} aria-hidden="true" />
-                    <span>{title}</span>
-                </span>
-                <ChevronDown
-                    size={18}
-                    aria-hidden="true"
-                    className={`${styles.sectionChevron} ${isOpen ? styles.sectionChevronOpen : ''}`}
-                />
+                <span className={styles.sectionTitle}>{title}</span>
+                <span className={styles.sectionState} aria-hidden="true">{isOpen ? 'Hide' : 'Show'}</span>
             </button>
-            {/*
-              Content stays mounted so the collapse animates in BOTH directions
-              (grid-template-rows 0fr <-> 1fr). The closed state sets
-              visibility:hidden in CSS, which also removes it from the tab order
-              and the accessibility tree.
-            */}
+            {/* hidden removes the closed body from the tab order and the
+                accessibility tree. */}
             <div
                 id={contentId}
                 role="region"
                 aria-labelledby={headerId}
-                className={`${styles.sectionBody} ${isOpen ? styles.sectionBodyOpen : ''}`}
+                className={styles.sectionBody}
+                hidden={!isOpen}
             >
-                <div className={styles.sectionBodyInner}>
-                    <div className={styles.sectionContent}>
-                        {children}
-                    </div>
-                </div>
+                {children}
             </div>
         </div>
     );
@@ -192,6 +181,7 @@ export default function GTOScenarioDisplay({
     gtoApproach,
     evAnalysis,
     alternateLines = [],
+    // Kept for API compatibility; the verdict line above the panel says it.
     isCorrectAnswer,
     showDetails = true,
     // Optional: AI-generated image URL (already rendered elsewhere)
@@ -202,6 +192,7 @@ export default function GTOScenarioDisplay({
     sessionId,
     question,
     category,
+    // Accepted for API compatibility (callers may pass the whole row).
     difficulty,
     options,
     correctIndex,
@@ -227,7 +218,7 @@ export default function GTOScenarioDisplay({
         setPanelError(null);
     }, [imageUrl]);
 
-    const { color: actionColor, glow: actionGlow } = getActionColors(action);
+    const actionInk = getActionInk(action);
 
     // Accept a uuid directly, or a question row/object carrying one.
     const resolvedQuestionId = useMemo(() => {
@@ -251,7 +242,7 @@ export default function GTOScenarioDisplay({
             try { token = getAccessToken(); } catch (_e) { token = null; }
         }
         if (!token) {
-            setPanelError('Sign in to generate the visual card.');
+            setPanelError('Sign In To Generate The Visual Card.');
             return;
         }
 
@@ -279,7 +270,7 @@ export default function GTOScenarioDisplay({
             }
             if (!data?.imageUrl) {
                 // Empty state: the call succeeded but produced nothing to show.
-                throw new Error('No visual card is available for this hand yet.');
+                throw new Error('No Visual Card Is Available For This Hand Yet.');
             }
 
             if (!isMounted.current) return;
@@ -288,17 +279,17 @@ export default function GTOScenarioDisplay({
         } catch (error) {
             console.warn('[GTOScenarioDisplay] visual card failed:', error?.message || error);
             if (!isMounted.current) return;
-            setPanelError(error?.message || 'Could not generate the visual card.');
+            setPanelError(error?.message || 'Could Not Generate The Visual Card.');
             setShowCard(false);
         } finally {
             if (isMounted.current) setIsLoadingImage(false);
         }
-    }, [resolvedQuestionId, isLoadingImage, accessToken]);
+    }, [resolvedQuestionId, isLoadingImage, accessToken, sessionId]);
 
     const handleImageError = useCallback(() => {
         setAiImageUrl(null);
         setShowCard(false);
-        setPanelError('The visual card could not be loaded. Showing the text analysis.');
+        setPanelError('The Visual Card Could Not Be Loaded. Showing The Text Analysis.');
     }, []);
 
     // ── Normalised, defensive view data ──────────────────────────────────
@@ -325,25 +316,21 @@ export default function GTOScenarioDisplay({
     // ── Visual-card view (loading + image share one reserved box) ─────────
     if (showCard && (isLoadingImage || aiImageUrl)) {
         return (
-            <div className={styles.aiPanelBlock}>
+            <div className={styles.panel}>
+                <p className={`${styles.kicker} ${isIllustrative ? styles.kickerWarn : ''}`}>
+                    {isIllustrative ? 'Illustrative Numbers' : 'Jarvis Panel'}
+                </p>
                 <div className={styles.aiPanelContainer} aria-busy={isLoadingImage ? 'true' : 'false'}>
-                    <span
-                        className={`${styles.cornerBadge} ${isIllustrative ? styles.cornerBadgeWarn : ''}`}
-                    >
-                        {isIllustrative ? 'Illustrative numbers' : 'Jarvis panel'}
-                    </span>
-
                     {isLoadingImage ? (
-                        <div className={styles.loadingPanel} role="status" aria-live="polite">
-                            <span className={styles.loadingSpinner} aria-hidden="true" />
-                            <p className={styles.loadingLabel}>Rendering The Jarvis GTO Panel...</p>
-                        </div>
+                        <p className={styles.loadingLabel} role="status" aria-live="polite">
+                            Rendering The Jarvis GTO Panel
+                        </p>
                     ) : (
                         <img
                             src={aiImageUrl}
                             alt={action
-                                ? `GTO analysis panel for the ${action} line`
-                                : 'GTO analysis panel'}
+                                ? `GTO Analysis Panel For The ${action} Line`
+                                : 'GTO Analysis Panel'}
                             className={styles.aiPanelImage}
                             loading="lazy"
                             decoding="async"
@@ -353,14 +340,13 @@ export default function GTOScenarioDisplay({
                 </div>
 
                 {hasAnyContent && (
-                    <div className={styles.aiPanelFooter}>
+                    <div className={styles.panelActions}>
                         <button
                             type="button"
-                            className={`${styles.panelButton} ${styles.panelButtonGhost}`}
+                            className="tc-word"
                             onClick={() => setShowCard(false)}
                         >
-                            <RotateCcw size={14} aria-hidden="true" />
-                            <span>Show Text Analysis</span>
+                            Show Text Analysis
                         </button>
                     </div>
                 )}
@@ -369,68 +355,46 @@ export default function GTOScenarioDisplay({
     }
 
     return (
-        <div className={styles.container}>
+        <div className={styles.panel}>
+            <p className={styles.kicker}>Jarvis Solver Analysis</p>
 
-            {/* Header Section */}
-            <div className={styles.header}>
-                {/* Jarvis Avatar */}
-                <div className={styles.avatarContainer}>
-                    <div className={styles.avatarGlow} aria-hidden="true"></div>
-                    <img
-                        src={JARVIS_AVATAR}
-                        alt=""
-                        aria-hidden="true"
-                        width={56}
-                        height={56}
-                        className={styles.avatar}
-                        onError={(e) => {
-                            // Guard against an infinite onError loop if the
-                            // fallback is missing too.
-                            if (e.currentTarget.dataset.fallback === '1') return;
-                            e.currentTarget.dataset.fallback = '1';
-                            e.currentTarget.src = '/images/default-avatar.png';
-                        }}
-                    />
-                    <span className={styles.avatarLabel}>JARVIS</span>
-                </div>
-
-                {/* Primary Action */}
-                {action && (
-                    <div className={styles.actionContainer}>
-                        <div
-                            className={styles.actionBox}
-                            style={{ '--action-color': actionColor, '--action-glow': actionGlow }}
-                        >
-                            <span className={styles.actionText}>{action}</span>
-                        </div>
-                    </div>
-                )}
-
-                {/* Confidence Percentage — omitted entirely when unknown, so the
-                    panel never renders "undefined%" or an invented number. */}
-                {confidencePct !== null && (
-                    <div
-                        className={styles.confidenceContainer}
-                        style={{ '--confidence-color': actionColor, '--confidence-glow': actionGlow }}
-                    >
-                        <div className={styles.confidenceCircle}>
-                            <span className={styles.confidenceValue} aria-hidden="true">{confidencePct}%</span>
-                            <span className={styles.srOnly}>{`Solver confidence ${confidencePct} percent`}</span>
-                        </div>
-                    </div>
-                )}
-            </div>
+            {/* Headline figures as label / value rows on the glass. Each row
+                is omitted when its value is unknown, so the panel never prints
+                "undefined%" or an invented number. */}
+            {(action || confidencePct !== null || hasEvValue) && (
+                <ul className="tc-rows">
+                    {action && (
+                        <li className="tc-row">
+                            <span className="tc-row__label">Solver Line</span>
+                            <span className={`tc-row__value ${styles.actionText} tc-ink--${actionInk}`}>{action}</span>
+                        </li>
+                    )}
+                    {confidencePct !== null && (
+                        <li className="tc-row">
+                            <span className="tc-row__label">Solver Confidence</span>
+                            <span className={`tc-row__value tc-ink--${actionInk}`}>
+                                <span aria-hidden="true">{confidencePct}%</span>
+                                <span className={styles.srOnly}>{`Solver Confidence ${confidencePct} Percent`}</span>
+                            </span>
+                        </li>
+                    )}
+                    {hasEvValue && (
+                        <li className="tc-row">
+                            <span className="tc-row__label">Expected Value</span>
+                            <span className={`tc-row__value tc-ink--${evValueNumber >= 0 ? 'green' : 'red'}`}>
+                                {`${evValueNumber >= 0 ? '+' : ''}${evValueNumber} BB`}
+                            </span>
+                        </li>
+                    )}
+                </ul>
+            )}
 
             {/* Content Sections */}
             {showDetails && (
                 <div className={styles.sectionsContainer}>
                     {/* Explanation */}
                     {explanation && (
-                        <CollapsibleSection
-                            icon={Info}
-                            title="Explanation"
-                            accentColor="#06b6d4"
-                        >
+                        <CollapsibleSection title="Explanation">
                             <p
                                 className={styles.explanationText}
                                 dangerouslySetInnerHTML={{
@@ -442,11 +406,7 @@ export default function GTOScenarioDisplay({
 
                     {/* GTO Approach */}
                     {gtoApproach && (
-                        <CollapsibleSection
-                            icon={Target}
-                            title="GTO Approach"
-                            accentColor="#00ff88"
-                        >
+                        <CollapsibleSection title="GTO Approach">
                             <p
                                 className={styles.explanationText}
                                 dangerouslySetInnerHTML={{
@@ -458,65 +418,51 @@ export default function GTOScenarioDisplay({
 
                     {/* EV Analysis */}
                     {hasEvSection && (
-                        <CollapsibleSection
-                            icon={DollarSign}
-                            title="EV Analysis"
-                            accentColor="#ffc107"
-                        >
-                            <div className={styles.evContainer}>
-                                {hasEvValue && (
-                                    <div className={styles.evValue}>
-                                        {`${evValueNumber >= 0 ? '+' : ''}${evValueNumber} BB`}
-                                    </div>
-                                )}
-                                {evAnalysis?.description && (
-                                    <p
-                                        className={styles.evDescription}
-                                        dangerouslySetInnerHTML={{
-                                            __html: highlightKeywords(evAnalysis.description)
-                                        }}
-                                    />
-                                )}
-                            </div>
+                        <CollapsibleSection title="EV Analysis">
+                            {hasEvValue && (
+                                <p className={`${styles.evValue} tc-ink--${evValueNumber >= 0 ? 'green' : 'red'}`}>
+                                    {`${evValueNumber >= 0 ? '+' : ''}${evValueNumber} BB`}
+                                </p>
+                            )}
+                            {evAnalysis?.description && (
+                                <p
+                                    className={styles.explanationText}
+                                    dangerouslySetInnerHTML={{
+                                        __html: highlightKeywords(evAnalysis.description)
+                                    }}
+                                />
+                            )}
                         </CollapsibleSection>
                     )}
 
                     {/* Alternate Lines */}
                     {lines.length > 0 && (
                         <CollapsibleSection
-                            icon={GitBranch}
                             title={`${lines.length} Alternate ${lines.length === 1 ? 'Line' : 'Lines'}`}
-                            accentColor="#a855f7"
                             defaultOpen={true}
                         >
-                            <div className={styles.alternateLines}>
+                            <ul className="tc-rows">
                                 {lines.map((line, idx) => {
                                     const freq = Number(line?.frequency);
                                     return (
-                                        <div key={`${line?.action || 'line'}-${idx}`} className={styles.alternateLine}>
-                                            <div className={styles.lineAction}>
-                                                {/* Decorative: the action is always spelled out beside it. */}
-                                                <span
-                                                    className={styles.lineIndicator}
-                                                    aria-hidden="true"
-                                                    style={{ backgroundColor: getActionColors(line?.action).color }}
-                                                />
-                                                <span className={styles.lineActionText}>
+                                        <li key={`${line?.action || 'line'}-${idx}`} className={`tc-row ${styles.alternateLine}`}>
+                                            <span className={styles.lineHead}>
+                                                <span className={`${styles.lineActionText} tc-ink--${getActionInk(line?.action)}`}>
                                                     {line?.action || 'ALTERNATE'}
                                                 </span>
                                                 {Number.isFinite(freq) && (
                                                     <span className={styles.lineFrequency}>
-                                                        {`${Math.round(freq)}% frequency`}
+                                                        {`${Math.round(freq)}% Frequency`}
                                                     </span>
                                                 )}
-                                            </div>
+                                            </span>
                                             {line?.description && (
-                                                <p className={styles.lineDescription}>{line.description}</p>
+                                                <span className={styles.lineDescription}>{toTitleCase(line.description)}</span>
                                             )}
-                                        </div>
+                                        </li>
                                     );
                                 })}
-                            </div>
+                            </ul>
                         </CollapsibleSection>
                     )}
                 </div>
@@ -526,20 +472,17 @@ export default function GTOScenarioDisplay({
             {(canGenerateCard || panelError) && (
                 <div className={styles.panelActions}>
                     {panelError && (
-                        <p className={styles.panelError} role="alert">{panelError}</p>
+                        <p className={`${styles.panelError} tc-ink--red`} role="alert">{panelError}</p>
                     )}
                     {canGenerateCard && (
                         <>
                             <button
                                 type="button"
-                                className={styles.panelButton}
+                                className="tc-word"
                                 onClick={fetchAiPanel}
                                 disabled={isLoadingImage}
                             >
-                                <Sparkles size={14} aria-hidden="true" />
-                                <span>
-                                    {panelError ? 'Try visual card again' : 'Generate visual card'}
-                                </span>
+                                {panelError ? 'Try Visual Card Again' : 'Generate Visual Card'}
                             </button>
                             <p className={styles.panelHint}>
                                 Renders This Hand As A Jarvis-Styled Analysis Card.
@@ -548,9 +491,6 @@ export default function GTOScenarioDisplay({
                     )}
                 </div>
             )}
-
-            {/* Bottom Accent Line */}
-            <div className={styles.bottomAccent} aria-hidden="true" />
         </div>
     );
 }
@@ -559,46 +499,35 @@ export default function GTOScenarioDisplay({
 // Kept exported: the local tree is only a subset of the repo, so this may be
 // imported by a file outside this worklist.
 export function GTOScenarioCompact({ action, confidence, explanation }) {
-    const { color: actionColor, glow: actionGlow } = getActionColors(action);
+    const actionInk = getActionInk(action);
     const confidenceNumber = Number(confidence);
     const hasConfidence = Number.isFinite(confidenceNumber);
 
     if (!action && !explanation) return null;
 
     return (
-        <div className={styles.compactContainer}>
-            <div className={styles.compactHeader}>
-                <img
-                    src={JARVIS_AVATAR}
-                    alt=""
-                    aria-hidden="true"
-                    width={36}
-                    height={36}
-                    className={styles.compactAvatar}
-                    onError={(e) => {
-                        if (e.currentTarget.dataset.fallback === '1') return;
-                        e.currentTarget.dataset.fallback = '1';
-                        e.currentTarget.src = '/images/default-avatar.png';
-                    }}
-                />
-                <div
-                    className={styles.compactAction}
-                    style={{ '--action-color': actionColor, '--action-glow': actionGlow }}
-                >
-                    {action}
-                </div>
-                {hasConfidence && (
-                    <div
-                        className={styles.compactConfidence}
-                        style={{ '--action-color': actionColor }}
-                    >
-                        {`${Math.max(0, Math.min(100, Math.round(confidenceNumber)))}%`}
-                    </div>
-                )}
-            </div>
+        <div className={styles.panel}>
+            {(action || hasConfidence) && (
+                <ul className="tc-rows">
+                    {action && (
+                        <li className="tc-row">
+                            <span className="tc-row__label">Solver Line</span>
+                            <span className={`tc-row__value ${styles.actionText} tc-ink--${actionInk}`}>{action}</span>
+                        </li>
+                    )}
+                    {hasConfidence && (
+                        <li className="tc-row">
+                            <span className="tc-row__label">Solver Confidence</span>
+                            <span className={`tc-row__value tc-ink--${actionInk}`}>
+                                {`${Math.max(0, Math.min(100, Math.round(confidenceNumber)))}%`}
+                            </span>
+                        </li>
+                    )}
+                </ul>
+            )}
             {explanation && (
                 <p
-                    className={styles.compactExplanation}
+                    className={styles.explanationText}
                     dangerouslySetInnerHTML={{
                         __html: highlightKeywords(explanation)
                     }}

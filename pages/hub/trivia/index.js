@@ -178,7 +178,7 @@ export default function TriviaHubPage({ modeAvailability }) {
         loadUserData();
     }, [loadUserData]);
 
-    // 🚌 BUS LISTENER: Keep diamond balance in sync with other pages via EventBus
+    // BUS LISTENER: Keep diamond balance in sync with other pages via EventBus
     useEffect(() => {
         const handleBalanceRefresh = () => { loadUserData(); };
         const unsubEarned = eventBus.on(EventType.DIAMONDS_EARNED, handleBalanceRefresh);
@@ -186,7 +186,7 @@ export default function TriviaHubPage({ modeAvailability }) {
         return () => { unsubEarned(); unsubSpent(); };
     }, [loadUserData]);
 
-    // Realtime subscription — live updates
+    // Realtime subscription - live updates
     useEffect(() => {
         if (!user?.id) return;
         const _ch = supabase
@@ -207,9 +207,9 @@ export default function TriviaHubPage({ modeAvailability }) {
 
             </SEOHead>
 
-            <div className={styles.page}>
-                <div className={styles.backgroundOverlay} />
-
+            {/* Black-first page (Trivia console standard); the shared hub
+                module still owns layout and the overflow clip. */}
+            <div className={styles.page} style={{ background: 'var(--tc-black)' }}>
                 <UniversalHeader
                     pageDepth={1}
                     commandMenuOpen={menuOpen}
@@ -233,7 +233,7 @@ export default function TriviaHubPage({ modeAvailability }) {
                     <h1 className="sr-only">Smarter Poker Trivia</h1>
                     {isLoading ? (
                         <div className={styles.loading}>
-                            <TriviaSkeleton label="Daily Trivia and Quick Stakes loading; competitive modes are in Maintenance" />
+                            <TriviaSkeleton label="Loading Trivia Modes" />
                         </div>
                     ) : (
                         <TriviaLobby

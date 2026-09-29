@@ -320,7 +320,12 @@ export default function EndlessModePage() {
             served = await serverRun.start({ count: QUESTIONS_PER_SESSION });
         } catch (e) {
             console.warn('[Endless] Server session start failed:', e?.message || e);
-            if (e?.status === 402) setShowOutOfDiamonds(true);
+            // A 402 is the balance gate, not a connection problem: show the
+            // Not Enough Diamonds state alone instead of both messages.
+            if (e?.status === 402) {
+                setShowOutOfDiamonds(true);
+                return;
+            }
             setLoadError('We Could Not Load Any Questions Right Now. Please Check Your Connection And Try Again.');
             return;
         } finally {
@@ -713,19 +718,21 @@ export default function EndlessModePage() {
 
 
     const creditedDiamonds = awardedDiamonds != null ? awardedDiamonds : diamondsEarned;
-    const balanceLabel = isVip ? 'VIP Access' : `${formatTriviaDisplayNumber(userDiamonds)} Diamonds`;
+    // The pill is a short painted slot (about eight characters at 375px);
+    // longer state, balance and timer copy is printed on the glass below.
+    const balanceLabel = isVip ? 'VIP' : 'Ready';
     const stateLabel = showOutOfDiamonds
-        ? 'Balance Required'
+        ? 'Balance'
         : isPaused
-            ? 'Game Paused'
+            ? 'Paused'
             : isLoading
-                ? 'Preparing Table'
+                ? 'Loading'
                 : {
                     ready: balanceLabel,
-                    playing: `${formatTriviaDisplayNumber(timer.timeLeft)} Seconds`,
-                    saving: 'Securing Result',
-                    saving_error: 'Save Paused',
-                    gameover: `${formatTriviaDisplayNumber(streak)} Correct`,
+                    playing: `${formatTriviaDisplayNumber(timer.timeLeft)} Sec`,
+                    saving: 'Saving',
+                    saving_error: 'Retry',
+                    gameover: 'Final',
                 }[gameState] || balanceLabel;
 
     const primaryAction = showOutOfDiamonds
@@ -782,7 +789,6 @@ export default function EndlessModePage() {
                                 className="trivia-challenge-console"
                                 eyebrow="Three Miss Challenge"
                                 title="Endless Trivia"
-                                titleAs="h1"
                                 titleId="endless-trivia-title"
                                 subtitle="Keep The Streak Alive"
                                 pill={stateLabel}
@@ -812,6 +818,15 @@ export default function EndlessModePage() {
 
                                 {gameState === 'ready' && !isLoading && (
                                     <section className="trivia-challenge-intro" aria-labelledby="endless-ready-title">
+                                        <img
+                                            className="trivia-challenge-hero"
+                                            src="/images/trivia/modes-console-v1/endless.webp"
+                                            alt=""
+                                            aria-hidden="true"
+                                            width={1000}
+                                            height={563}
+                                            decoding="async"
+                                        />
                                         <h2 id="endless-ready-title">Answer Until The Third Miss</h2>
                                         <p>
                                             Build The Longest Streak You Can Across A Server-Dealt
@@ -838,6 +853,14 @@ export default function EndlessModePage() {
                                                 <dd>{formatTriviaDisplayNumber(DAILY_DIAMOND_CAP)}</dd>
                                             </div>
                                         </dl>
+                                        {userId && !isVip && (
+                                            <ul className="tc-rows" aria-label="Your Balance">
+                                                <li className="tc-row">
+                                                    <span className="tc-row__label">Your Balance</span>
+                                                    <span className="tc-row__value tc-ink--gold">{formatTriviaDisplayNumber(userDiamonds)} Diamonds</span>
+                                                </li>
+                                            </ul>
+                                        )}
                                         <p className="trivia-challenge-note">
                                             Each Correct Answer Earns One Diamond. Skips Do Not Count As Misses.
                                         </p>
@@ -875,7 +898,6 @@ export default function EndlessModePage() {
                                                 setIsPaused(false);
                                                 timer.setIsTimerRunning(true);
                                             }}
-                                            style={{ minWidth: 44, minHeight: 44 }}
                                         >
                                             Resume Game
                                         </button>
@@ -923,7 +945,6 @@ export default function EndlessModePage() {
                                                 onClick={() => setShowSettingsPanel(prev => !prev)}
                                                 aria-expanded={showSettingsPanel}
                                                 aria-controls="endless-game-settings"
-                                                style={{ minWidth: 44, minHeight: 44 }}
                                             >
                                                 {showSettingsPanel ? 'Close Settings' : 'Game Settings'}
                                             </button>
@@ -952,7 +973,6 @@ export default function EndlessModePage() {
                                                         aria-checked={settings.audio}
                                                         className="trivia-challenge-switch"
                                                         onClick={() => triviaAudio.setMuted(settings.audio)}
-                                                        style={{ minWidth: 44, minHeight: 44 }}
                                                     >
                                                         {settings.audio ? 'On' : 'Off'}
                                                     </button>
@@ -966,7 +986,6 @@ export default function EndlessModePage() {
                                                         aria-checked={settings.haptics}
                                                         className="trivia-challenge-switch"
                                                         onClick={() => setSettings(prev => ({ ...prev, haptics: !prev.haptics }))}
-                                                        style={{ minWidth: 44, minHeight: 44 }}
                                                     >
                                                         {settings.haptics ? 'On' : 'Off'}
                                                     </button>
@@ -980,7 +999,6 @@ export default function EndlessModePage() {
                                                         aria-checked={settings.screenShake}
                                                         className="trivia-challenge-switch"
                                                         onClick={() => setSettings(prev => ({ ...prev, screenShake: !prev.screenShake }))}
-                                                        style={{ minWidth: 44, minHeight: 44 }}
                                                     >
                                                         {settings.screenShake ? 'On' : 'Off'}
                                                     </button>
@@ -995,7 +1013,6 @@ export default function EndlessModePage() {
                                                                 className="trivia-challenge-action"
                                                                 aria-pressed={settings.intensity === level}
                                                                 onClick={() => setSettings(prev => ({ ...prev, intensity: level }))}
-                                                                style={{ minWidth: 44, minHeight: 44 }}
                                                             >
                                                                 {toTitleCase(level)}
                                                             </button>
@@ -1036,7 +1053,6 @@ export default function EndlessModePage() {
                                                 className="trivia-challenge-action trivia-challenge-action--lifeline"
                                                 onClick={useSkipQuestion}
                                                 disabled={lifelineLocked}
-                                                style={{ minWidth: 44, minHeight: 44 }}
                                             >
                                                 Skip Question | {isVip ? 'VIP Included' : `${formatTriviaDisplayNumber(LIFELINE_COST)} Diamonds`}
                                             </button>
@@ -1115,7 +1131,6 @@ export default function EndlessModePage() {
                                                 });
                                                 if (result === 'copied') alert('Result Copied To Clipboard.');
                                             }}
-                                            style={{ minWidth: 44, minHeight: 44 }}
                                         >
                                             Share Result
                                         </button>

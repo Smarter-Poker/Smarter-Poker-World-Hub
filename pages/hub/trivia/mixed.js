@@ -292,7 +292,13 @@ export default function MixedModePage() {
             served = await serverRun.start({ count: QUESTIONS_PER_SESSION });
         } catch (e) {
             console.warn('[Mixed] Server session start failed:', e?.message || e);
-            if (e?.status === 402) setShowOutOfDiamonds(true);
+            // A 402 is the balance gate, not a connection problem: show the
+            // Not Enough Diamonds state alone instead of both messages.
+            if (e?.status === 402) {
+                setShowOutOfDiamonds(true);
+                setGameState('ready');
+                return;
+            }
             setLoadError('Could Not Start The Game. Please Try Again In A Moment.');
             setGameState('error');
             return;
@@ -446,15 +452,17 @@ export default function MixedModePage() {
 
     const currentQuestion = questions[currentQuestionIndex];
     const currentCategory = CATEGORIES.find(c => c.id === currentQuestion?.displayCategory) || CATEGORIES[0];
-    const balanceLabel = isVip ? 'VIP Access' : `${formatTriviaDisplayNumber(userDiamonds)} Diamonds`;
-    const stateLabel = showOutOfDiamonds ? 'Balance Required' : ({
-        loading: 'Preparing Table',
+    // The pill is a short painted slot (about eight characters at 375px);
+    // longer state, balance and timer copy is printed on the glass below.
+    const balanceLabel = isVip ? 'VIP' : 'Ready';
+    const stateLabel = showOutOfDiamonds ? 'Balance' : ({
+        loading: 'Loading',
         ready: balanceLabel,
-        playing: `${currentCategory.name} | ${formatTriviaDisplayNumber(timer.timeLeft)} Seconds`,
-        saving: 'Securing Result',
-        saving_error: 'Save Paused',
-        error: 'Needs Attention',
-        results: `${formatTriviaDisplayNumber(totalCorrect)} Of ${formatTriviaDisplayNumber(questions.length)} Correct`,
+        playing: `${formatTriviaDisplayNumber(timer.timeLeft)} Sec`,
+        saving: 'Saving',
+        saving_error: 'Retry',
+        error: 'Error',
+        results: `${formatTriviaDisplayNumber(totalCorrect)} Of ${formatTriviaDisplayNumber(questions.length)}`,
     }[gameState] || balanceLabel);
 
     const primaryAction = showOutOfDiamonds
@@ -501,9 +509,8 @@ export default function MixedModePage() {
                             className="trivia-challenge-console"
                             eyebrow="Seven Category Challenge"
                             title="Mixed Trivia"
-                            titleAs="h1"
                             titleId="mixed-trivia-title"
-                            subtitle="Rotate Through Every Poker Discipline"
+                            subtitle="Every Poker Discipline"
                             pill={stateLabel}
                             aria-labelledby="mixed-trivia-title"
                             primaryAction={primaryAction}
@@ -548,6 +555,15 @@ export default function MixedModePage() {
 
                             {gameState === 'ready' && (
                                 <section className="trivia-challenge-intro" aria-labelledby="mixed-ready-title">
+                                    <img
+                                        className="trivia-challenge-hero"
+                                        src="/images/trivia/modes-console-v1/mixed.webp"
+                                        alt=""
+                                        aria-hidden="true"
+                                        width={1000}
+                                        height={563}
+                                        decoding="async"
+                                    />
                                     <h2 id="mixed-ready-title">One Run Through Every Discipline</h2>
                                     <p>
                                         Answer {formatTriviaDisplayNumber(QUESTIONS_PER_SESSION)} Server-Dealt Questions
@@ -571,6 +587,14 @@ export default function MixedModePage() {
                                             <dd>{formatTriviaDisplayNumber(DAILY_DIAMOND_CAP)}</dd>
                                         </div>
                                     </dl>
+                                    {userId && !isVip && (
+                                        <ul className="tc-rows" aria-label="Your Balance">
+                                            <li className="tc-row">
+                                                <span className="tc-row__label">Your Balance</span>
+                                                <span className="tc-row__value tc-ink--gold">{formatTriviaDisplayNumber(userDiamonds)} Diamonds</span>
+                                            </li>
+                                        </ul>
+                                    )}
                                     <ul className="trivia-challenge-list" aria-label="Mixed Trivia Categories">
                                         {CATEGORIES.map(category => (
                                             <li key={category.id}>{category.name}</li>
@@ -727,7 +751,6 @@ export default function MixedModePage() {
                                             });
                                             if (result === 'copied') alert('Result Copied To Clipboard.');
                                         }}
-                                        style={{ minWidth: 44, minHeight: 44 }}
                                     >
                                         Share Result
                                     </button>

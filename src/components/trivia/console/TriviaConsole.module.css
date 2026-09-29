@@ -26,7 +26,7 @@
     position: relative;
     width: 100%;
     aspect-ratio: 1000 / 348;
-    background: url('/images/trivia/console/spade-console-v1/top.png') top center / 100% auto no-repeat;
+    background: url('/images/trivia/console/spade-console-v1/top.webp') top center / 100% auto no-repeat;
 }
 
 .body {
@@ -35,19 +35,19 @@
     flex-direction: column;
     gap: 3cqw;
     padding: 0 10.5% 3cqw;
-    background: url('/images/trivia/console/spade-console-v1/mid.png') top center / 100% auto repeat-y;
+    background: url('/images/trivia/console/spade-console-v1/mid.webp') top center / 100% auto repeat-y;
 }
 
 .foot {
     position: relative;
     width: 100%;
     aspect-ratio: 1000 / 72;
-    background: url('/images/trivia/console/spade-console-v1/bottom-foot.png') bottom center / 100% auto no-repeat;
+    background: url('/images/trivia/console/spade-console-v1/bottom-foot.webp') bottom center / 100% auto no-repeat;
 }
 
 .withPlates .foot {
     aspect-ratio: 1000 / 277;
-    background-image: url('/images/trivia/console/spade-console-v1/bottom-plates.png');
+    background-image: url('/images/trivia/console/spade-console-v1/bottom-plates.webp');
 }
 
 .zone {
@@ -66,7 +66,9 @@
 .zone > span {
     display: inline-block;
     max-width: 100%;
-    font-size: max(12px, calc(1em * var(--fit, 1)));
+    /* The fit may take a string below the 12px base floor: a label that is
+       smaller is legible, a label cut off by the rim is a defect. */
+    font-size: calc(1em * var(--fit, 1));
 }
 
 .eyebrow {
@@ -92,17 +94,12 @@
     letter-spacing: 0.08em;
     text-transform: uppercase;
     text-shadow: 0 0.2cqw 0.3cqw rgb(0 0 0 / 80%);
-    white-space: normal;
 }
 
+/* One fitted line, like every other zone in the head: a second line cannot
+   fit the painted well at phone width, so it would be cut, never wrapped. */
 .subtitle > span {
-    display: -webkit-box;
-    width: 100%;
-    overflow: hidden;
-    line-height: 1.12;
-    white-space: normal;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 2;
+    line-height: 1.1;
 }
 
 .pill {
@@ -147,7 +144,7 @@
 .plateText {
     display: inline-block;
     max-width: 100%;
-    font-size: max(12px, calc(4.2cqw * var(--fit, 1)));
+    font-size: calc(max(12px, 4.2cqw) * var(--fit, 1));
     font-weight: 800;
     letter-spacing: 0.04em;
     text-transform: uppercase;

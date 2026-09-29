@@ -6,7 +6,9 @@
     place-items: center;
     padding: max(12px, env(safe-area-inset-top)) 12px max(12px, env(safe-area-inset-bottom));
     overflow-y: auto;
-    background: rgb(0 0 0 / 88%);
+    /* Opaque: the console's glass is the page behind it, so a translucent
+       backdrop let the surface underneath show through the dialog's body. */
+    background: #000;
 }
 
 .dialog {

@@ -6,26 +6,26 @@
  * text; its visual treatment is owned once by the Console content layer.
  *
  * Props
- *   index           number  — 0-based option index
- *   option          string  — answer label (caller is responsible for
+ *   index           number  - 0-based option index
+ *   option          string  - answer label (caller is responsible for
  *                              toTitleCase; the primitive stays formatter-
  *                              agnostic)
- *   selectedAnswer  number|null — index of the user's current pick
- *   correctIndex    number  — solver-correct index
- *   showResult      boolean — has the answer been revealed
- *   disabled        boolean — explicit disable (defaults to
+ *   selectedAnswer  number|null - index of the user's current pick
+ *   correctIndex    number  - solver-correct index
+ *   showResult      boolean - has the answer been revealed
+ *   disabled        boolean - explicit disable (defaults to
  *                              showResult || eliminated)
- *   eliminated      boolean — was this option struck by a 50/50 lifeline
+ *   eliminated      boolean - was this option struck by a 50/50 lifeline
  *   onSelect        (index) => void
- *   className       string  — extra wrapper className
- *   variant         'css' | 'inline'  — retained as a compatibility marker
- *   announceResult  boolean — render a visually-hidden 'Correct answer' /
+ *   className       string  - extra wrapper className
+ *   variant         'css' | 'inline'  - retained as a compatibility marker
+ *   announceResult  boolean - render a visually-hidden 'Correct answer' /
  *                              'Your answer, incorrect' string on reveal so
  *                              screen-reader users get the outcome
  *
  * Build-safety: no decorative icon dependency and no runtime style injection.
  */
-// TRAIN-TRIVIA-ANSWER-OPTION-1 — audit-marker registry token
+// TRAIN-TRIVIA-ANSWER-OPTION-1 - audit-marker registry token
 
 import React from 'react';
 
@@ -60,7 +60,7 @@ const TriviaAnswerOption = React.memo(function TriviaAnswerOption({
   // Optional screen-reader announcement of the reveal. Rendered inside the
   // button (which is in the tab order) so it is read when the result flips.
   const srResult = announceResult && showResult && (index === correctIndex || index === selectedAnswer)
-    ? (index === correctIndex ? 'Correct answer' : 'Your answer, incorrect')
+    ? (index === correctIndex ? 'Correct Answer' : 'Your Answer, Incorrect')
     : null;
 
   const handleClick = React.useCallback(() => {
@@ -74,7 +74,7 @@ const TriviaAnswerOption = React.memo(function TriviaAnswerOption({
     disabled: isDisabled,
     type: 'button',
     'aria-label': eliminated
-      ? `Answer ${letter}: ${option} - eliminated`
+      ? `Answer ${letter}: ${option}, Removed By 50/50`
       : `Answer ${letter}: ${option}`,
     // Always a boolean: toggling the ATTRIBUTE's presence (undefined when
     // unselected) makes screen readers announce only the selected option as a
@@ -95,8 +95,8 @@ const TriviaAnswerOption = React.memo(function TriviaAnswerOption({
 
   return (
     <button {...commonProps} className={className}>
-      <span className="option-letter">{letter}</span>
-      <span className="option-text">{option}</span>
+      <span className="option-letter" aria-hidden="true">{letter}</span>
+      <span className="option-text" aria-hidden={eliminated || undefined}>{option}</span>
       {visibleStatus ? <span className="trivia-answer-option__status" aria-hidden="true">{visibleStatus}</span> : null}
       {srResult ? <span className="trivia-sr-only">{srResult}</span> : null}
     </button>

@@ -1,12 +1,26 @@
-/* Trivia strategy tables: MTT, cash, ICM, GTO (StrategyTrivia). */
+/*
+ * Trivia strategy tables: MTT, Cash, ICM, GTO (StrategyTrivia).
+ *
+ * The chassis, frame and plates are the painted spade master (TriviaConsole).
+ * This file only lays live copy, rows and the scene picture on its black
+ * glass. It draws no card, border-as-control, gradient, glow panel or hover
+ * state, and every colour is a schema token (trivia-console.css).
+ */
 
-/* Dynamic and strategy tables share the same painted outer chassis. */
+.strategy-trivia-page {
+    min-height: 100vh;
+    min-height: 100dvh;
+    /* Room for the fixed BottomNavBar, so the console foot is never under it. */
+    padding-bottom: 70px;
+    background: var(--tc-black);
+}
+
 .strategy-trivia {
     min-height: 100vh;
     min-height: 100dvh;
     overflow-x: clip;
-    color: #e4e7ec;
-    background: #000;
+    color: var(--tc-ink-silver);
+    background: var(--tc-black);
     font-family: 'Roboto Condensed', Inter, system-ui, sans-serif;
 }
 
@@ -14,272 +28,105 @@
     position: relative;
     width: 100%;
     margin: 0 auto;
-    padding: max(76px, env(safe-area-inset-top)) max(8px, env(safe-area-inset-right)) max(28px, env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left)) !important;
+    padding: max(76px, env(safe-area-inset-top)) max(8px, env(safe-area-inset-right)) max(28px, env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left));
 }
 
-.strategy-trivia :is(.loading, .saving, .error-state) {
+/* ── Lobby: the scene on the glass, then the table terms as rows ──────── */
+
+.strategy-trivia .strategy-lobby {
     display: grid;
-    min-height: 220px !important;
-    place-content: center;
-    color: #aab5c0;
-    font-size: 15px;
-    text-align: center;
+    gap: 2.4cqw;
+    min-width: 0;
 }
 
-.strategy-trivia .lobby-image-wrapper {
-    appearance: none;
-    position: relative;
-    display: block;
-    width: 100%;
-    min-height: 44px;
-    margin: 0;
-    padding: 0;
-    overflow: hidden;
-    border: 0;
-    border-radius: 0;
-    color: inherit;
-    background: transparent;
-    box-shadow: none;
-    font: inherit;
-    text-align: left;
-    cursor: pointer;
-    touch-action: manipulation;
-}
-
-.strategy-trivia .lobby-image-wrapper:focus-visible {
-    outline: 3px solid #8fd4ff;
-    outline-offset: 2px;
-}
-
-.strategy-trivia .lobby-image-wrapper:active {
-    filter: brightness(1.08);
-}
-
-.strategy-trivia .lobby-image {
+.strategy-trivia .strategy-hero {
     display: block;
     width: 100%;
     height: auto;
-    max-height: min(70vh, 720px);
-    border-radius: 0;
-    object-fit: contain;
+    aspect-ratio: 16 / 9;
+    object-fit: cover;
+    background: var(--tc-black);
 }
 
-.strategy-trivia .lobby-cost-strip {
-    position: absolute;
-    z-index: 2;
-    top: 10px;
-    color: #f1f4f7;
-    background: rgb(0 0 0 / 88%);
-    font-size: 12px;
-    font-weight: 800;
-    letter-spacing: 0.06em;
-    line-height: 1.25;
-    text-transform: uppercase;
-}
-
-.strategy-trivia .lobby-cost-strip {
-    right: 0;
-    left: 0;
-    display: flex;
-    justify-content: space-between;
-    gap: 12px;
-    padding: 10px 14px;
-}
-
-.strategy-trivia .lobby-cost-chip {
-    color: #55bdff;
-    font-weight: 800;
-}
-
-.strategy-trivia .lobby-loading-overlay {
-    position: absolute;
-    z-index: 3;
-    inset: 0;
-    display: grid;
-    place-content: center;
-    color: #fff;
-    background: rgb(0 0 0 / 78%);
-    font-size: 15px;
-    font-weight: 800;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-}
-
-.strategy-trivia .lobby-spinner {
-    display: none;
-}
-
-.strategy-trivia .lobby,
-.strategy-trivia .info-card {
-    display: grid;
-    gap: 16px;
-    width: 100%;
-    margin: 0;
-    padding: 0;
-    border: 0;
-    border-radius: 0;
-    background: none;
-    box-shadow: none;
-}
-
-.strategy-trivia .lobby {
+.strategy-trivia .strategy-status {
     text-align: center;
 }
 
-.strategy-trivia .lobby :is(h2, p) {
+.strategy-trivia .strategy-alert,
+.strategy-trivia .results-note {
     margin: 0;
-}
-
-.strategy-trivia .lobby h2 {
-    color: #f1f4f7;
-    font-size: clamp(22px, 5cqw, 38px);
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-}
-
-.strategy-trivia .subtitle {
-    color: #aab5c0;
-    font-size: 15px;
-    line-height: 1.55;
-}
-
-.strategy-trivia .info-card {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 0 18px;
-}
-
-.strategy-trivia .info-row {
-    display: flex;
-    min-width: 0;
-    padding: 13px 0;
-    border-bottom: 1px solid #24333f;
-}
-
-.strategy-trivia .info-row {
-    align-items: baseline;
-    justify-content: space-between;
-    gap: 12px;
-    color: #dce3ea;
-    font-size: 14px;
-    text-align: left;
-}
-
-.strategy-trivia :is(.entry-error, .results-note) {
-    margin: 0 0 14px;
-    padding: 4px 0 10px 12px;
-    border: 0;
-    border-bottom: 1px solid #5e4a24;
-    border-left: 3px solid #e3b04c;
-    border-radius: 0;
-    color: #e7c986;
-    background: none;
-    box-shadow: none;
-    font-size: 13px;
+    font-size: max(14px, 3.4cqw);
+    font-weight: 600;
     line-height: 1.5;
-    text-align: left;
+    text-align: center;
 }
 
-.strategy-trivia .entry-error {
-    border-color: #a14747;
-    color: #ffabab;
-}
+/* ── Playing ──────────────────────────────────────────────────────────── */
 
-.strategy-trivia .game-area,
-.strategy-trivia .game-frame,
-.strategy-trivia .question-content-area {
-    display: flex;
-    flex: 1 1 auto;
-    flex-direction: column;
+.strategy-trivia .game-area {
+    display: grid;
+    gap: 2.6cqw;
     min-width: 0;
-}
-
-.strategy-trivia .game-frame {
-    gap: 16px;
-    padding: 0;
-    overflow: visible;
-    border: 0;
-    border-radius: 0;
-    background: none;
-    box-shadow: none;
 }
 
 .strategy-trivia .game-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 12px;
-    padding: 0 0 12px;
-    border: 0;
-    border-bottom: 1px solid #314555;
-    border-radius: 0;
-    background: none;
-    box-shadow: none;
+    gap: 3cqw;
+    min-width: 0;
+    padding-bottom: 1.6cqw;
+    border-bottom: var(--tc-rule);
+    box-shadow: 0 1px 0 rgb(255 255 255 / 8%);
 }
 
-.strategy-trivia .progress,
-.strategy-trivia .category-badge,
-.strategy-trivia .coaching-notes__head,
-.strategy-trivia .result-status {
-    color: #7fc8f6;
-    font-size: 12px;
-    font-weight: 800;
-    letter-spacing: 0.08em;
+.strategy-trivia .strategy-clock {
+    display: flex;
+    align-items: baseline;
+    gap: 1.6cqw;
+}
+
+.strategy-trivia .strategy-clock__label {
+    color: var(--tc-ink-muted);
+    font-size: max(12px, 2.6cqw);
+    font-weight: 700;
+    letter-spacing: 0.16em;
     text-transform: uppercase;
 }
 
-.strategy-trivia .timer-ring-container {
-    position: relative;
-    display: grid;
-    flex: 0 0 48px;
-    width: 48px;
-    height: 48px;
-    place-items: center;
-}
-
-.strategy-trivia .timer-ring {
-    position: absolute;
-    inset: 0;
-    transform: rotate(-90deg);
-}
-
-.strategy-trivia .timer-ring-bg,
-.strategy-trivia .timer-ring-progress {
-    fill: none;
-    stroke-width: 3;
-}
-
-.strategy-trivia .timer-ring-bg { stroke: #263743; }
-.strategy-trivia .timer-text {
-    position: relative;
-    z-index: 1;
-    font-size: 14px;
+.strategy-trivia .strategy-clock__value {
+    min-width: 2ch;
+    font-size: max(22px, 6cqw);
     font-weight: 800;
-    font-variant-numeric: tabular-nums;
+    font-variant-numeric: tabular-nums lining-nums;
+    line-height: 1;
+    text-align: right;
 }
 
 .strategy-trivia .question-content-area {
-    gap: 14px;
-    padding: 0 0 10px;
-    overflow-y: auto;
+    display: grid;
+    gap: 1.8cqw;
+    min-width: 0;
 }
 
 .strategy-trivia .category-badge {
-    display: inline-block;
-    padding: 0;
-    border: 0;
-    border-radius: 0;
+    white-space: normal;
 }
 
 .strategy-trivia .question-text {
     margin: 0;
-    color: #f4f6f8;
-    font-size: clamp(18px, 3.4cqw, 26px);
+    color: var(--tc-ink-white);
+    font-family: Inter, system-ui, sans-serif;
+    /* !important: a global mobile h2 rule sets font-size with !important. */
+    font-size: max(17px, 3.9cqw) !important;
     font-weight: 700;
     line-height: 1.45;
+    overflow-wrap: anywhere;
 }
 
-.strategy-trivia .strategy-playing-card {
+/* Doubled class + element: outranks the global img:not(...):not(...) reset
+   (0,3,1) that otherwise lets the card render at its natural 150 x 210. */
+.strategy-trivia .content img.strategy-playing-card.strategy-playing-card {
     display: inline-block;
     width: auto;
     max-width: none;
@@ -289,177 +136,153 @@
     vertical-align: -0.38em;
 }
 
-.strategy-trivia .answer-analysis {
-    display: grid;
-    gap: 12px;
-    width: 100%;
-    margin: 4px 0 8px;
-}
-
-.strategy-trivia .answer-verdict {
-    padding: 0 0 8px 10px;
-    border-bottom: 1px solid #55725e;
-    border-left: 3px solid #67d596;
-    color: #8eddb6;
-    font-size: 14px;
-    font-weight: 800;
-    letter-spacing: 0.08em;
-}
-
-.strategy-trivia .answer-verdict[data-correct='false'] {
-    border-color: #a14747;
-    color: #ffabab;
-}
-
-.strategy-trivia .coaching-notes {
-    display: grid;
-    gap: 9px;
-    padding: 0 0 0 12px;
-    border: 0;
-    border-left: 3px solid #2d73a0;
-    border-radius: 0;
-    background: none;
-    box-shadow: none;
-}
-
-.strategy-trivia .coaching-notes__answer,
-.strategy-trivia .coaching-notes__body {
-    margin: 0;
-    color: #bcc6cf;
-    font-size: 14px;
-    line-height: 1.55;
-}
-
-.strategy-trivia .coaching-notes__answer {
-    color: #f1f4f7;
-}
-
-.strategy-trivia .bottom-actions-area {
-    flex: 0 0 auto;
-    margin-top: auto;
-    padding-top: 8px;
-}
-
-.strategy-trivia .bottom-actions-area[data-revealed='true'] {
-    border-top: 1px solid #24333f;
-}
-
 .strategy-trivia .options {
     display: grid;
-    gap: 7px;
 }
 
 .strategy-trivia .option {
     appearance: none;
     display: grid;
-    grid-template-columns: 28px minmax(0, 1fr);
+    grid-template-columns: 4ch minmax(0, 1fr);
     align-items: center;
-    gap: 12px;
+    gap: 2.4cqw;
     width: 100%;
     min-height: 48px;
     margin: 0;
-    padding: 11px 8px 11px 12px;
+    padding: 1.8cqw 0;
     border: 0;
-    border-bottom: 1px solid #24333f;
-    border-left: 3px solid #314555;
+    border-top: var(--tc-rule);
     border-radius: 0;
-    color: #e1e6eb;
-    background: none;
-    box-shadow: none;
+    color: var(--tc-ink-silver);
+    background: transparent;
+    box-shadow: var(--tc-rule-lit);
     font: inherit;
-    font-size: 15px;
+    font-family: Inter, system-ui, sans-serif;
+    font-size: max(15px, 3.5cqw);
     line-height: 1.4;
     text-align: left;
     cursor: pointer;
     touch-action: manipulation;
 }
 
+.strategy-trivia .option:first-child {
+    border-top: 0;
+    box-shadow: none;
+}
+
 .strategy-trivia .option:active:not(:disabled) {
-    color: #fff;
-    border-left-color: #55bdff;
-}
-
-.strategy-trivia .option.correct {
-    color: #a9e7c4;
-    border-left-color: #67d596;
-}
-
-.strategy-trivia .option.incorrect {
-    color: #ffb0b0;
-    border-left-color: #d56363;
+    color: var(--tc-ink-white);
 }
 
 .strategy-trivia .option:focus-visible {
-    outline: 3px solid #8fd4ff;
-    outline-offset: 1px;
+    outline: 3px solid var(--tc-ink-blue);
+    outline-offset: 2px;
 }
 
 .strategy-trivia .option:disabled {
     cursor: default;
 }
 
+.strategy-trivia .option[aria-pressed='true'] {
+    color: var(--tc-ink-white);
+}
+
 .strategy-trivia .option-letter {
-    color: #55bdff;
-    font-size: 13px;
+    color: var(--tc-ink-blue);
+    font-family: 'Roboto Condensed', Inter, system-ui, sans-serif;
+    font-size: max(14px, 3.4cqw);
     font-weight: 800;
     text-align: center;
 }
 
+.strategy-trivia .option.correct,
+.strategy-trivia .option.correct .option-letter {
+    color: var(--tc-ink-green);
+    text-shadow: 0 0 1cqw rgb(53 217 90 / 55%);
+}
+
+.strategy-trivia .option.incorrect,
+.strategy-trivia .option.incorrect .option-letter {
+    color: var(--tc-ink-red);
+    text-shadow: 0 0 1cqw rgb(240 40 73 / 55%);
+}
+
+/* ── Reveal ───────────────────────────────────────────────────────────── */
+
+.strategy-trivia .answer-analysis {
+    display: grid;
+    gap: 2cqw;
+    min-width: 0;
+    padding-top: 2cqw;
+    border-top: var(--tc-rule);
+    box-shadow: var(--tc-rule-lit);
+}
+
+.strategy-trivia .answer-verdict {
+    margin: 0;
+    font-size: max(20px, 5.4cqw);
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-align: center;
+    text-transform: uppercase;
+}
+
+.strategy-trivia .coaching-notes {
+    display: grid;
+    gap: 1.6cqw;
+    min-width: 0;
+}
+
+.strategy-trivia .coaching-notes__answer {
+    color: var(--tc-ink-green);
+}
+
+.strategy-trivia .coaching-notes__body {
+    margin: 0;
+    color: var(--tc-ink-silver);
+    font-family: Inter, system-ui, sans-serif;
+    font-size: max(14px, 3.3cqw);
+    line-height: 1.6;
+}
+
+/* ── Results ──────────────────────────────────────────────────────────── */
+
 .strategy-trivia .results {
     display: grid;
-    gap: 14px;
-    padding: 4px 0;
+    gap: 2.4cqw;
+    min-width: 0;
     text-align: center;
 }
 
 .strategy-trivia .results h2 {
     margin: 0;
-    color: #f1f4f7;
-    font-size: clamp(24px, 5cqw, 40px);
+    color: var(--tc-ink-white);
+    font-size: max(22px, 5.6cqw) !important;
     letter-spacing: 0.04em;
     text-transform: uppercase;
-}
-
-.strategy-trivia :is(.score-card, .reward-card) {
-    margin: 0;
-    padding: 12px 0;
-    border: 0;
-    border-bottom: 1px solid #24333f;
-    border-radius: 0;
-    background: none;
-    box-shadow: none;
 }
 
 .strategy-trivia .score-main {
     display: flex;
     align-items: baseline;
     justify-content: center;
-    gap: 8px;
+    gap: 2cqw;
+    margin: 0;
 }
 
 .strategy-trivia .score-num {
-    color: #8eddb6;
-    font-size: clamp(54px, 14cqw, 92px);
+    font-size: max(54px, 14cqw);
     font-weight: 800;
     line-height: 1;
 }
 
 .strategy-trivia .score-total {
-    color: #8f9ca8;
-    font-size: clamp(24px, 6cqw, 42px);
+    font-size: max(24px, 6cqw);
+    font-weight: 700;
 }
 
-.strategy-trivia .score-label {
-    margin-top: 6px;
-    color: #aab5c0;
-    font-size: 14px;
-    text-transform: uppercase;
-}
-
-.strategy-trivia .diamonds-earned {
-    color: #55bdff;
-    font-size: clamp(22px, 5cqw, 36px);
-    font-weight: 800;
+.strategy-trivia .results .tc-rows {
+    text-align: left;
 }
 
 .strategy-trivia .sr-only {
@@ -476,10 +299,6 @@
 
 @media (min-width: 720px) {
     .strategy-trivia > .content {
-        padding-inline: 20px !important;
-    }
-
-    .strategy-trivia .info-card {
-        grid-template-columns: repeat(4, minmax(0, 1fr));
+        padding-inline: 20px;
     }
 }

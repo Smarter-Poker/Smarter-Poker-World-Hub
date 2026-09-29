@@ -18,17 +18,11 @@ export default function MTTPage() {
                 canonical="/hub/trivia/mtt"
                 noindex={true}
             />
-            <div style={{ paddingBottom: 70 }}>
+            {/* Reserves room for the fixed BottomNavBar (was an inline
+                height override on .strategy-trivia that clipped the console
+                foot under the nav bar on mobile). */}
+            <div className="strategy-trivia-page">
                 <StrategyTrivia mode="mtt" />
-                {/* Reserve room for the fixed BottomNavBar — StrategyTrivia's
-                    100dvh + overflow:hidden root otherwise puts the game's
-                    bottom action row underneath the nav bar on mobile. */}
-                <style>{`
-                    .strategy-trivia {
-                        height: calc(100vh - 70px);
-                        height: calc(100dvh - 70px);
-                    }
-                `}</style>
             </div>
         </TriviaErrorBoundary>
     );

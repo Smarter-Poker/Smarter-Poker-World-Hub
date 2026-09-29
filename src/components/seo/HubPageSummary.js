@@ -604,6 +604,10 @@ export default function HubPageSummary({ page, as = 'h2' }) {
   const entry = HUB_PAGE_SUMMARIES[page];
   if (!entry) return null;
   const Heading = as === 'h1' ? 'h1' : 'h2';
+  // The Trivia pages are printed on the #ClubArenaConsole chassis: black glass,
+  // the master's inks and engraved rules, never rounded boxes (2026-09-20).
+  // The words, links and schema are identical; only the dress follows the page.
+  const styles = page === 'trivia' || page.startsWith('trivia-') ? consoleStyles : defaultStyles;
   const headingId = `hub-summary-${page}`;
   const schema = summarySchema(page, entry);
 
@@ -647,7 +651,7 @@ export default function HubPageSummary({ page, as = 'h2' }) {
   );
 }
 
-const styles = {
+const defaultStyles = {
   section: {
     maxWidth: 1100,
     margin: '0 auto',
@@ -708,6 +712,84 @@ const styles = {
   },
   inlineLink: {
     color: '#9fd8ff',
+    textDecoration: 'underline',
+    marginRight: 10,
+  },
+};
+
+// Trivia dress: the same content printed the way the console prints copy.
+// Colours are the master's inks only (#ClubArenaConsole 3.4); every link is a
+// 44px target; a row is separated by an engraved rule, never a drawn card.
+const consoleStyles = {
+  section: {
+    maxWidth: 1000,
+    margin: '0 auto',
+    padding: '32px 16px 40px',
+    color: '#e4e7ec',
+    background: '#000',
+    fontFamily: "Inter, -apple-system, BlinkMacSystemFont, sans-serif",
+  },
+  heading: {
+    fontFamily: "'Roboto Condensed', Inter, system-ui, sans-serif",
+    fontSize: 'clamp(20px, 3vw, 26px)',
+    fontWeight: 800,
+    lineHeight: 1.2,
+    color: '#e4e7ec',
+    margin: '0 0 12px',
+    letterSpacing: '0.04em',
+    textShadow: '0 -1px 0 rgb(255 255 255 / 55%), 0 1px 0 #6d747c, 0 2px 0 #050607',
+  },
+  lead: {
+    fontSize: 15,
+    lineHeight: 1.65,
+    color: '#9aa5b3',
+    margin: '0 0 20px',
+    maxWidth: 860,
+  },
+  list: {
+    listStyle: 'none',
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
+    columnGap: 24,
+    rowGap: 0,
+    margin: 0,
+    padding: 0,
+  },
+  item: {
+    borderTop: '1px solid #000',
+    boxShadow: 'inset 0 1px 0 rgb(255 255 255 / 8%)',
+    padding: '6px 0 12px',
+  },
+  link: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    minHeight: 44,
+    minWidth: 44,
+    fontFamily: "'Roboto Condensed', Inter, system-ui, sans-serif",
+    fontSize: 16,
+    fontWeight: 800,
+    color: '#45adff',
+    textDecoration: 'none',
+    letterSpacing: '0.06em',
+  },
+  itemText: {
+    display: 'block',
+    fontSize: 14,
+    lineHeight: 1.55,
+    color: '#9aa5b3',
+  },
+  compliance: {
+    fontSize: 12,
+    lineHeight: 1.6,
+    color: '#9aa5b3',
+    margin: '20px 0 0',
+  },
+  inlineLink: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    minHeight: 44,
+    minWidth: 44,
+    color: '#45adff',
     textDecoration: 'underline',
     marginRight: 10,
   },

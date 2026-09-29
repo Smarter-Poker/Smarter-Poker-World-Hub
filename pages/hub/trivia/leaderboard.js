@@ -17,6 +17,7 @@ import TriviaConsole from '../../../src/components/trivia/console/TriviaConsole'
 import { usePersistedState } from '../../../src/hooks/usePersistedState';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { formatTriviaDisplayNumber } from '../../../src/lib/trivia/formatTriviaDisplayNumber';
+import { toTitleCase } from '../../../src/lib/trivia/titleCase';
 // Single source of truth for the CST day boundary (Phase 73). This page used to
 // re-implement getTodayCST/getDateDaysAgo locally, via the
 // `new Date(now.toLocaleString(...))` round-trip that the shared lib explicitly
@@ -47,6 +48,16 @@ const PERIOD_FILTERS = [
 // player. The previous code fetched only the top 50 ROWS and sliced 20 — a
 // single grinder's 50 high-scoring endless rows could fill the entire window and
 // push every other player off the visible board.
+/**
+ * Player names are data, so they are printed in Title Case, but a name is
+ * identity: only a lower-case first letter of each word is raised (after a
+ * space, underscore, hyphen or dot) and the rest is kept exactly as chosen,
+ * so 'ChipLeader99' stays 'ChipLeader99' and 'river_rat' reads 'River_Rat'.
+ */
+function titleName(name) {
+    return String(name || '').replace(/(^|[\s_.-])(\p{Ll})/gu, (match, lead, letter) => lead + letter.toUpperCase());
+}
+
 const FETCH_WINDOW = 500;
 const DISPLAY_LIMIT = 20;
 
@@ -62,6 +73,9 @@ export default function TriviaLeaderboard() {
     const [isLoading, setIsLoading] = useState(true);
     const [loadError, setLoadError] = useState(null);
     const [currentUserId, setCurrentUserId] = useState(null);
+    // Bumped by Retry: re-runs the load for the same period and mode (setting
+    // the period to its own value was a no-op, so Retry never retried).
+    const [reloadKey, setReloadKey] = useState(0);
 
     // Auth-reactive: react to auth state changes, not just mount.
     // Was empty-deps ([]) → if getAuthUser() returned null on first render,
@@ -167,7 +181,7 @@ export default function TriviaLeaderboard() {
             .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'trivia_scores' }, () => { loadLeaderboard(); })
             .subscribe();
         return () => { cancelled = true; supabase.removeChannel(_ch); };
-    }, [period, modeFilter]);
+    }, [period, modeFilter, reloadKey]);
 
     /** 'YYYY-MM-DD' for N days before today, anchored to the CST day. */
     function getDateDaysAgoCST(days) {
@@ -194,9 +208,7 @@ export default function TriviaLeaderboard() {
     function getModeLabel(mode) {
         const knownMode = MODE_FILTERS.find(filter => filter.id === mode);
         if (knownMode) return knownMode.label;
-        return String(mode || 'Not Available')
-            .replace(/[-_]+/g, ' ')
-            .replace(/\b\w/g, letter => letter.toUpperCase());
+        return toTitleCase(String(mode || 'Not Available').replace(/[-_]+/g, ' '));
     }
 
     return (
@@ -230,118 +242,116 @@ export default function TriviaLeaderboard() {
                                 label: 'Back To Trivia',
                                 onClick: () => router.push('/hub/trivia'),
                             }}
+                            // A failed load has two real actions, so both print
+                            // on the painted plates (footer law).
+                            primaryAction={!(hasMounted && isLoading) && loadError ? {
+                                label: 'Retry',
+                                onClick: () => setReloadKey(key => key + 1),
+                            } : undefined}
                         >
-                        <div className="trivia-progress-header">
+                        <div className="trivia-progress-content">
                             <fieldset className="trivia-progress-filter trivia-progress-filter--period">
-                                <legend>Ranking Period</legend>
+                                <legend className="tc-label">Ranking Period</legend>
                                 <div className="trivia-progress-filter__options">
                                 {PERIOD_FILTERS.map(option => (
                                     <button
                                         type="button"
-                                        className="trivia-progress-filter__option"
+                                        className="tc-word trivia-progress-filter__option"
                                         key={option.id}
                                         onClick={() => setPeriod(option.id)}
                                         aria-pressed={period === option.id}
-                                        style={{ minWidth: 44, minHeight: 44 }}
                                     >
                                         {option.label}
                                     </button>
                                 ))}
                                 </div>
                             </fieldset>
-                        </div>
 
-                        {/* Mode filter — endless (streak * 100, unbounded) otherwise
-                            structurally dominates every 10-question mode on raw score. */}
-                        <fieldset className="trivia-progress-filter trivia-progress-filter--mode">
-                            <legend>Game Mode</legend>
-                            <div className="trivia-progress-filter__options">
-                            {MODE_FILTERS.map(m => (
-                                <button
-                                    type="button"
-                                    className="trivia-progress-filter__option"
-                                    key={m.id}
-                                    onClick={() => setModeFilter(m.id)}
-                                    aria-pressed={modeFilter === m.id}
-                                    style={{ minWidth: 44, minHeight: 44 }}
-                                >
-                                    {m.label}
-                                </button>
-                            ))}
-                            </div>
-                        </fieldset>
+                            {/* Mode filter: endless (streak * 100, unbounded) otherwise
+                                structurally dominates every 10-question mode on raw score. */}
+                            <fieldset className="trivia-progress-filter trivia-progress-filter--mode">
+                                <legend className="tc-label">Game Mode</legend>
+                                <div className="trivia-progress-filter__options">
+                                {MODE_FILTERS.map(m => (
+                                    <button
+                                        type="button"
+                                        className="tc-word trivia-progress-filter__option"
+                                        key={m.id}
+                                        onClick={() => setModeFilter(m.id)}
+                                        aria-pressed={modeFilter === m.id}
+                                    >
+                                        {m.label}
+                                    </button>
+                                ))}
+                                </div>
+                            </fieldset>
 
-                        {hasMounted && isLoading ? (
-                            <p className="trivia-progress-state" role="status">
-                                Loading Leaderboard...
-                            </p>
-                        ) : loadError ? (
-                            <section className="trivia-progress-state trivia-progress-state--error" role="alert">
-                                <p>{loadError}</p>
-                                <button
-                                    type="button"
-                                    className="trivia-progress-action trivia-progress-action--primary"
-                                    onClick={() => setPeriod(period)}
-                                    style={{ minWidth: 44, minHeight: 44 }}
-                                >
-                                    Retry
-                                </button>
-                            </section>
-                        ) : leaderboard.length === 0 ? (
-                            <section className="trivia-progress-state trivia-progress-state--empty">
-                                <p>
-                                    No Scores Yet For {modeFilter === 'all' ? 'This Period' : `${getModeLabel(modeFilter)} In This Period`}. Be The First!
+                            {hasMounted && isLoading ? (
+                                <p className="trivia-progress-state trivia-progress-state--loading" role="status">
+                                    Loading Leaderboard
                                 </p>
-                            </section>
-                        ) : (
-                            <div className="trivia-progress-table-wrap">
-                                <table className="trivia-progress-table">
-                                    <caption>Top Trivia Players</caption>
-                                    <thead>
-                                        <tr>
-                                            <th scope="col">Rank</th>
-                                            <th scope="col">Player</th>
-                                            {modeFilter === 'all' && (
-                                                <th scope="col">Mode</th>
-                                            )}
-                                            <th scope="col">Score</th>
-                                            <th scope="col">Accuracy</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {leaderboard.map(player => (
-                                            <tr
-                                                key={player.user_id || player.rank}
-                                                data-player="leaderboard-entry"
-                                                data-rank-tier={getRankTier(player.rank)}
-                                                data-current-player={player.user_id === currentUserId ? 'true' : 'false'}
-                                            >
-                                                <td className="trivia-progress-table__rank" data-label="Rank">
-                                                    {getRankLabel(player.rank)}
-                                                </td>
-                                                <th className="trivia-progress-table__player" scope="row" data-label="Player">
-                                                    {player.displayName}
-                                                    {player.user_id === currentUserId && (
-                                                        <span className="trivia-progress-table__you">(You)</span>
-                                                    )}
-                                                </th>
+                            ) : loadError ? (
+                                <section className="trivia-progress-state trivia-progress-state--error" role="alert">
+                                    <p>{loadError}</p>
+                                </section>
+                            ) : leaderboard.length === 0 ? (
+                                <section className="trivia-progress-state trivia-progress-state--empty">
+                                    <p>
+                                        No Scores Yet For {modeFilter === 'all' ? 'This Period' : `${getModeLabel(modeFilter)} In This Period`}. Be The First!
+                                    </p>
+                                </section>
+                            ) : (
+                                <div className="trivia-progress-table-wrap">
+                                    <table className="trivia-progress-table trivia-progress-table--board">
+                                        <caption>Top Trivia Players</caption>
+                                        <thead>
+                                            <tr>
+                                                <th scope="col">Rank</th>
+                                                <th scope="col">Player</th>
                                                 {modeFilter === 'all' && (
-                                                    <td className="trivia-progress-table__mode" data-label="Mode">
-                                                        {getModeLabel(player.mode)}
-                                                    </td>
+                                                    <th scope="col">Mode</th>
                                                 )}
-                                                <td className="trivia-progress-table__score" data-label="Score">
-                                                    {formatTriviaDisplayNumber(player.score || 0)}
-                                                </td>
-                                                <td className="trivia-progress-table__accuracy" data-label="Accuracy">
-                                                    {player.accuracy}%
-                                                </td>
+                                                <th scope="col" className="trivia-progress-table__num">Score</th>
+                                                <th scope="col" className="trivia-progress-table__num">Accuracy</th>
                                             </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                        )}
+                                        </thead>
+                                        <tbody>
+                                            {leaderboard.map(player => (
+                                                <tr
+                                                    key={player.user_id || player.rank}
+                                                    data-player="leaderboard-entry"
+                                                    data-rank-tier={getRankTier(player.rank)}
+                                                    data-current-player={player.user_id === currentUserId ? 'true' : 'false'}
+                                                >
+                                                    <td className="trivia-progress-table__rank" data-label="Rank">
+                                                        {getRankLabel(player.rank)}
+                                                    </td>
+                                                    <th className="trivia-progress-table__player" scope="row" data-label="Player">
+                                                        <span>
+                                                            {titleName(player.displayName)}
+                                                            {player.user_id === currentUserId && (
+                                                                <span className="trivia-progress-table__you">You</span>
+                                                            )}
+                                                        </span>
+                                                    </th>
+                                                    {modeFilter === 'all' && (
+                                                        <td className="trivia-progress-table__mode" data-label="Mode">
+                                                            {getModeLabel(player.mode)}
+                                                        </td>
+                                                    )}
+                                                    <td className="trivia-progress-table__score trivia-progress-table__num" data-label="Score">
+                                                        {formatTriviaDisplayNumber(player.score || 0)}
+                                                    </td>
+                                                    <td className="trivia-progress-table__accuracy trivia-progress-table__num" data-label="Accuracy">
+                                                        {player.accuracy}%
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            )}
+                        </div>
                         </TriviaConsole>
                     </main>
                 </div>

@@ -19,6 +19,7 @@ export default function TriviaConsoleDialog({
     title,
     subtitle,
     pill,
+    pillInk = 'blue',
     children,
     primaryAction,
     secondaryAction,
@@ -96,6 +97,7 @@ export default function TriviaConsoleDialog({
                     titleId={titleId}
                     subtitle={subtitle}
                     pill={pill}
+                    pillInk={pillInk}
                     primaryAction={primaryAction}
                     secondaryAction={secondaryAction}
                 >

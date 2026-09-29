@@ -18,6 +18,7 @@ import { busEmit } from '../../engine/EventBus';
 import { supabase } from '../../lib/supabase';
 import TriviaConsoleDialog from './console/TriviaConsoleDialog';
 import { formatTriviaDisplayNumber } from '../../lib/trivia/formatTriviaDisplayNumber';
+import styles from './PrizeWheel.module.css';
 
 const SPIN_DURATION_MS = 4000;
 
@@ -36,6 +37,16 @@ const PRIZES = [
     { id: 'free_entry', label: 'Free Play', color: '#c8ffd2', weight: 5, reward: { type: 'arcade_ticket', amount: 1 } },
     { id: 'mystery', label: 'Mystery', color: '#f02849', weight: 2, reward: { type: 'diamonds', amount: 15 } },
 ];
+
+// Schema ink for each PRIZES colour (the table above stays the source of
+// truth; this only picks the painted-console ink class that prints it).
+const INK_BY_PRIZE_COLOR = Object.freeze({
+    '#45adff': 'blue',
+    '#ffd700': 'gold',
+    '#e4e7ec': 'silver',
+    '#c8ffd2': 'green',
+    '#f02849': 'red',
+});
 
 // Weighted random selection (fallback only - see trust model above)
 function selectPrize() {
@@ -224,8 +235,35 @@ export default function PrizeWheel({
     const segmentAngle = 360 / PRIZES.length;
     const canClose = Boolean(onClose && !isSpinning && !result && !hasSpunRef.current);
 
+    // Footer law: two painted plates only while the surface genuinely has two
+    // actions (Spin and Skip). Skip stays printed but disabled through the
+    // spin so the chassis does not jump under a moving wheel; it can never
+    // fire once a spin has started (canClose is false). After the landing the
+    // one remaining action (Claim) prints as a lit word on the glass.
+    const primaryAction = !result
+        ? {
+            label: isSpinning ? 'Spinning...' : 'Spin The Wheel',
+            onClick: spin,
+            disabled: isSpinning || hasSpunRef.current,
+        }
+        : {
+            label: claimError ? 'Retry Claim' : 'Claim Reward',
+            onClick: handleClaim,
+            ink: claimError ? 'red' : 'gold',
+        };
+    const secondaryAction = onClose && !result
+        ? {
+            label: 'Skip',
+            onClick: canClose ? onClose : undefined,
+            disabled: !canClose,
+            ink: canClose ? 'silver' : 'muted',
+        }
+        : undefined;
+
+    const resultInk = result ? (INK_BY_PRIZE_COLOR[result.prize.color] || 'silver') : 'silver';
+
     return (
-        <div className="prize-wheel-overlay">
+        <div className={`prize-wheel-overlay ${styles.overlay}`}>
             <TriviaConsoleDialog
                 open
                 onClose={canClose ? onClose : undefined}
@@ -233,23 +271,27 @@ export default function PrizeWheel({
                 eyebrow="Daily Reward"
                 title="Prize Wheel"
                 subtitle={isSpinning ? 'Resolving Your Reward' : result ? 'Reward Ready To Claim' : 'One Spin Per Perfect Game'}
-                pill={streakMultiplier > 1 ? `${streakMultiplier}x Bonus` : 'Perfect Run'}
+                pill={streakMultiplier > 1 ? `${streakMultiplier}X Bonus` : 'Perfect Run'}
+                primaryAction={primaryAction}
+                secondaryAction={secondaryAction}
             >
-                <div className="prize-wheel-container">
-                    <p className="title">Daily Spin</p>
+                <div className={styles.container}>
+                    <p className={`tc-label ${styles.kicker}`}>Daily Spin</p>
 
                     {streakMultiplier > 1 && (
-                        <div className="multiplier-notice">
-                            {streakMultiplier}x Streak Bonus Active!
-                        </div>
+                        <p className={`tc-ink--gold ${styles.notice}`}>
+                            {streakMultiplier}X Streak Bonus Active!
+                        </p>
                     )}
 
-                    {/* Wheel */}
-                    <div className="wheel-wrapper" role="img" aria-label="Prize Wheel With Eight Reward Slots">
-                        <div className="wheel-pointer">Winning Slot</div>
+                    {/* Wheel: painted face (rotates), painted hub cap and
+                        pointer (static). Only the eight prize labels are live
+                        DOM, printed into each segment's glass and carried
+                        round by the same transform as the face. */}
+                    <div className={styles.stage} role="img" aria-label="Prize Wheel With Eight Reward Slots">
                         <div
                             ref={wheelRef}
-                            className="wheel"
+                            className={styles.wheel}
                             style={{
                                 transform: `rotate(${rotation}deg)`,
                                 willChange: isSpinning ? 'transform' : 'auto',
@@ -259,285 +301,52 @@ export default function PrizeWheel({
                             }}
                         >
                             {PRIZES.map((prize, index) => {
-                                const startAngle = index * segmentAngle;
-
+                                const centreAngle = index * segmentAngle + segmentAngle / 2;
+                                const ink = INK_BY_PRIZE_COLOR[prize.color] || 'silver';
                                 return (
-                                    <div
+                                    <span
                                         key={prize.id}
-                                        className="wheel-segment"
-                                        style={{
-                                            transform: `rotate(${startAngle}deg)`,
-                                            '--segment-color': prize.color
-                                        }}
+                                        className={`${styles.segmentLabel} ${prize.label.length > 3 ? styles.segmentWord : ''} tc-ink--${ink}`}
+                                        style={{ '--segment-angle': `${centreAngle}deg` }}
+                                        aria-hidden="true"
                                     >
-                                        <div className="segment-content" style={{ transform: `rotate(${segmentAngle / 2}deg)` }}>
-                                            <span>{prize.label}</span>
-                                        </div>
-                                    </div>
+                                        {prize.label}
+                                    </span>
                                 );
                             })}
                         </div>
-                        <div className="wheel-center">
-                            <span>Daily Spin</span>
-                        </div>
+                        <span className={styles.hub} aria-hidden="true" />
+                        <span className={styles.pointer} aria-hidden="true" />
                     </div>
 
                     {/* Result display */}
                     {result && (
-                        <div className="result-display" style={{ '--prize-color': result.prize.color }} role="status" aria-live="polite">
-                            <div className="result-text">
-                                <span className="result-label">You Won!</span>
-                                <span className="result-amount">
+                        <div className={`tc-rows ${styles.result}`} role="status" aria-live="polite">
+                            <div className="tc-row">
+                                <span className="tc-row__label">You Won!</span>
+                                <span className={`tc-row__value tc-ink--${resultInk} ${styles.resultAmount}`}>
                                     {result.reward.type === 'diamonds' && `${formatTriviaDisplayNumber(result.reward.amount)} Diamonds`}
                                     {result.reward.type === 'streak_shield' && 'Streak Shield'}
                                     {result.reward.type === 'arcade_ticket' && 'Free Arcade Entry'}
                                 </span>
-                                {/* Make the streak multiplier visible - it was
-                                    previously applied silently at claim time,
-                                    hiding the value of the streak system. */}
-                                {result.reward.type === 'diamonds' && result.reward.appliedMultiplier > 1 && (
-                                    <span className="result-breakdown">
-                                        {formatTriviaDisplayNumber(result.reward.baseAmount)} X {formatTriviaDisplayNumber(result.reward.appliedMultiplier)} Streak Bonus
-                                    </span>
-                                )}
                             </div>
+                            {/* Make the streak multiplier visible - it was
+                                previously applied silently at claim time,
+                                hiding the value of the streak system. */}
+                            {result.reward.type === 'diamonds' && result.reward.appliedMultiplier > 1 && (
+                                <div className="tc-row">
+                                    <span className="tc-row__label">Streak Bonus</span>
+                                    <span className="tc-row__value">
+                                        {formatTriviaDisplayNumber(result.reward.baseAmount)} X {formatTriviaDisplayNumber(result.reward.appliedMultiplier)}
+                                    </span>
+                                </div>
+                            )}
                         </div>
                     )}
 
-                    {claimError && <div className="claim-error" role="alert">{claimError}</div>}
-
-                    {/* Action button */}
-                    {!result ? (
-                        <button
-                            type="button"
-                            className="wheel-action"
-                            onClick={spin}
-                            disabled={isSpinning || hasSpunRef.current}
-                        >
-                            {isSpinning ? 'Spinning...' : 'Spin The Wheel'}
-                        </button>
-                    ) : (
-                        <button
-                            type="button"
-                            className="wheel-action"
-                            onClick={handleClaim}
-                        >
-                            {claimError ? 'Retry Claim' : 'Claim Reward'}
-                        </button>
-                    )}
-
-                    {/* Skip is only an escape hatch BEFORE the spin. Leaving it
-                        up during/after the spin let a player discard a prize
-                        they had already won with one mis-tap - and, combined
-                        with re-opening the wheel, fish for a better roll. */}
-                    {onClose && !isSpinning && !result && !hasSpunRef.current && (
-                        <button className="skip-btn" type="button" onClick={onClose}>
-                            Skip
-                        </button>
-                    )}
+                    {claimError && <p className={`tc-ink--red ${styles.claimError}`} role="alert">{claimError}</p>}
                 </div>
             </TriviaConsoleDialog>
-
-            <style>{`
-                .prize-wheel-overlay {
-                    display: contents;
-                }
-                
-                .prize-wheel-overlay .prize-wheel-container {
-                    display: flex;
-                    flex-direction: column;
-                    align-items: center;
-                    gap: 18px;
-                    width: 100%;
-                    min-width: 0;
-                    color: #e4e7ec;
-                    font-family: Inter, system-ui, sans-serif;
-                }
-                
-                .prize-wheel-overlay .title {
-                    margin: 0;
-                    color: #45adff;
-                    font-family: 'Roboto Condensed', Inter, system-ui, sans-serif;
-                    font-size: 18px;
-                    font-weight: 800;
-                    letter-spacing: 0.12em;
-                    text-transform: uppercase;
-                }
-                
-                .prize-wheel-overlay .multiplier-notice {
-                    width: 100%;
-                    padding: 10px 0;
-                    border-top: 1px solid #050607;
-                    border-bottom: 1px solid #050607;
-                    color: #ffd700;
-                    font-size: 14px;
-                    font-weight: 700;
-                    text-align: center;
-                }
-                
-                /* 280px cramped the labels at segment edges on 375px phones */
-                .prize-wheel-overlay .wheel-wrapper {
-                    position: relative;
-                    width: min(310px, 76vw);
-                    height: min(310px, 76vw);
-                    margin-top: 18px;
-                }
-                
-                .prize-wheel-overlay .wheel-pointer {
-                    position: absolute;
-                    top: -28px;
-                    left: 50%;
-                    transform: translateX(-50%);
-                    color: #45adff;
-                    font-size: 12px;
-                    font-weight: 800;
-                    letter-spacing: 0.1em;
-                    text-transform: uppercase;
-                    white-space: nowrap;
-                    z-index: 10;
-                }
-                
-                .prize-wheel-overlay .wheel {
-                    width: 100%;
-                    height: 100%;
-                    position: relative;
-                }
-                
-                .prize-wheel-overlay .wheel-segment {
-                    position: absolute;
-                    width: 50%;
-                    height: 50%;
-                    left: 50%;
-                    top: 0;
-                    transform-origin: 0% 100%;
-                }
-                
-                .prize-wheel-overlay .segment-content {
-                    position: absolute;
-                    left: 10%;
-                    top: 30%;
-                    display: flex;
-                    flex-direction: column;
-                    align-items: center;
-                    gap: 2px;
-                    color: var(--segment-color);
-                    font-size: 12px;
-                    font-weight: 800;
-                    letter-spacing: 0.04em;
-                }
-                
-                .prize-wheel-overlay .wheel-center {
-                    position: absolute;
-                    top: 50%;
-                    left: 50%;
-                    transform: translate(-50%, -50%);
-                    width: 96px;
-                    min-height: 44px;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    border-top: 1px solid #45adff;
-                    border-bottom: 1px solid #45adff;
-                    color: #f4f7fb;
-                    font-family: 'Roboto Condensed', Inter, system-ui, sans-serif;
-                    font-size: 12px;
-                    font-weight: 800;
-                    letter-spacing: 0.08em;
-                    text-align: center;
-                    text-transform: uppercase;
-                }
-                
-                .prize-wheel-overlay .result-display {
-                    width: 100%;
-                    padding: 14px 0;
-                    border-top: 1px solid var(--prize-color);
-                    border-bottom: 1px solid var(--prize-color);
-                    animation: resultPop 0.5s ease-out;
-                }
-                
-                @keyframes resultPop {
-                    0% { transform: scale(0.5); opacity: 0; }
-                    100% { transform: scale(1); opacity: 1; }
-                }
-                
-                .prize-wheel-overlay .result-text {
-                    display: flex;
-                    flex-direction: column;
-                    align-items: center;
-                    text-align: center;
-                }
-                
-                .prize-wheel-overlay .result-label {
-                    font-size: 12px;
-                    color: #9aa5b3;
-                    text-transform: uppercase;
-                }
-                
-                .prize-wheel-overlay .result-amount {
-                    font-size: 18px;
-                    font-weight: 700;
-                    color: var(--prize-color);
-                }
-                
-                .prize-wheel-overlay .result-breakdown {
-                    font-size: 12px;
-                    color: #9aa5b3;
-                    margin-top: 2px;
-                }
-
-                .prize-wheel-overlay .claim-error {
-                    width: 100%;
-                    padding: 10px 0;
-                    border-top: 1px solid #f02849;
-                    border-bottom: 1px solid #f02849;
-                    color: #ff5b6e;
-                    font-size: 12px;
-                    text-align: center;
-                }
-
-                .prize-wheel-overlay .wheel-action,
-                .prize-wheel-overlay .skip-btn {
-                    width: 100%;
-                    min-height: 44px;
-                    padding: 12px 8px;
-                    border: 0;
-                    border-top: 1px solid #050607;
-                    border-bottom: 1px solid #050607;
-                    color: #9aa5b3;
-                    background: transparent;
-                    font: 800 14px/1.2 'Roboto Condensed', Inter, system-ui, sans-serif;
-                    letter-spacing: 0.06em;
-                    text-transform: uppercase;
-                    cursor: pointer;
-                    touch-action: manipulation;
-                }
-
-                .prize-wheel-overlay .wheel-action {
-                    color: #45adff;
-                }
-
-                .prize-wheel-overlay .wheel-action:active,
-                .prize-wheel-overlay .skip-btn:active {
-                    color: #f4f7fb;
-                }
-
-                .prize-wheel-overlay .wheel-action:disabled {
-                    color: #657180;
-                    cursor: wait;
-                }
-
-                .prize-wheel-overlay .wheel-action:focus-visible,
-                .prize-wheel-overlay .skip-btn:focus-visible {
-                    outline: 2px solid #8fd4ff;
-                    outline-offset: 2px;
-                }
-
-                @media (prefers-reduced-motion: reduce) {
-                    .prize-wheel-overlay .result-display {
-                        animation: none;
-                    }
-                }
-            `}</style>
         </div>
     );
 }

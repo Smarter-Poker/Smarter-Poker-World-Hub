@@ -1,3 +1,5 @@
+/* Live loading status printed on the console glass. The parent TriviaConsole
+   owns the painted chassis; nothing here draws a card, frame or chrome. */
 .container {
     display: grid;
     place-content: center;
@@ -6,20 +8,22 @@
     min-height: 220px;
     margin: 0 auto;
     padding: 24px 0;
-    color: #dce3ea;
+    color: var(--tc-ink-silver, #e4e7ec);
     text-align: center;
 }
 
 .label {
     margin: 0;
-    color: #dce3ea;
-    font-size: 15px;
+    color: var(--tc-ink-silver, #e4e7ec);
+    font-size: max(15px, 3.4cqw);
     font-weight: 800;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.12em;
     line-height: 1.35;
     text-transform: uppercase;
+    text-shadow: 0 -0.18cqw 0 rgb(255 255 255 / 55%), 0 0.25cqw 0 #6d747c, 0 0.45cqw 0 #050607, 0 0.7cqw 0.9cqw rgb(0 0 0 / 90%);
 }
 
+/* Three lit-blue ticks: meaningful motion that says work is in flight. */
 .pulseRail {
     display: grid;
     grid-template-columns: repeat(3, minmax(32px, 72px));
@@ -30,7 +34,7 @@
 .pulseRail span {
     display: block;
     height: 3px;
-    background: #2d73a0;
+    background: #45adff;
     animation: consolePulse 1.1s ease-in-out infinite alternate;
 }
 

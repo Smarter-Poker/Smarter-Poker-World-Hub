@@ -96,6 +96,22 @@ export default function GameCostPopup({ userId, pageKey, featureKey, isVip, cost
             secondaryAction={{ label: 'Got It', onClick: handleDismiss }}
             primaryAction={{ label: 'Upgrade To VIP', onClick: handleUpgrade }}
         >
+            {/* Disclosure only: this notice never charges. The destination
+                page's server route owns the entry charge when a game starts. */}
+            <ul className="tc-rows">
+                <li className="tc-row">
+                    <span className="tc-row__label">Entry Cost</span>
+                    <span className="tc-row__value tc-ink--gold">{cost} Diamonds</span>
+                </li>
+                <li className="tc-row">
+                    <span className="tc-row__label">VIP Entry</span>
+                    <span className="tc-row__value tc-ink--green">Free</span>
+                </li>
+                <li className="tc-row">
+                    <span className="tc-row__label">Charged</span>
+                    <span className="tc-row__value">When A Game Starts</span>
+                </li>
+            </ul>
             <p className="trivia-console-copy">
                 This Game Costs {cost} Diamonds Per Entry. VIP Members Play Free.
             </p>

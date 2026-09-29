@@ -1,12 +1,17 @@
 import { useFitText } from './useFitText';
 import styles from './TriviaFrameCard.module.css';
 
+// WebP renders of the approved frame masters (same 1254 x 1254 pixels with
+// alpha, about a fifth of the PNG weight).
 const FRAME_ASSETS = Object.freeze({
-    knowledge: '/images/trivia/console/card-frames/knowledge-v1.png',
-    strategy: '/images/trivia/console/card-frames/strategy-v1.png',
-    challenge: '/images/trivia/console/card-frames/endurance-v1.png',
-    competitive: '/images/trivia/console/card-frames/competitive-v1.png',
-    progress: '/images/trivia/console/card-frames/progress-v1.png',
+    knowledge: '/images/trivia/console/card-frames/knowledge-v1.webp',
+    strategy: '/images/trivia/console/card-frames/strategy-v1.webp',
+    challenge: '/images/trivia/console/card-frames/endurance-v1.webp',
+    competitive: '/images/trivia/console/card-frames/competitive-v1.webp',
+    // The progress master turned over (#ClubArenaConsole 5.7 flat-cap technique):
+    // its compass crest now sits at the top and the caption slot at the bottom,
+    // which is Dan's 'icon at the top, flat bottom' law.
+    progress: '/images/trivia/console/card-frames/progress-v2.webp',
 });
 
 /**

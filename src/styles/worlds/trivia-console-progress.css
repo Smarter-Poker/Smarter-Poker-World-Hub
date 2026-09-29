@@ -1,20 +1,21 @@
-/* Trivia progress pages: achievements, leaderboard, stats, settings. */
-
 /*
- * Trivia Console live-content layer.
+ * Trivia progress pages: achievements, leaderboard, stats, settings.
  *
- * The surrounding surfaces and action wells are painted in the approved
- * Club Arena raster masters. This file only places live copy, live state and
- * data inside those measured zones. It deliberately draws no substitute
- * cards, frames, pills, gradients, glows or hover states.
+ * Each page is ONE painted TriviaConsole master (spade-console-v1). This file
+ * only lays live copy, labels, values and lit-word controls onto the black
+ * glass between the console's painted rails. It draws no cards, frames,
+ * pills, gradients, drop shadows or hover states; the only divider is the
+ * engraved rule from trivia-console.css (--tc-rule + --tc-rule-lit).
+ *
+ * COLOUR LAW: every colour is a --tc-* token or an rgb() alpha of one.
  */
 
 .trivia-progress-page {
     min-height: 100vh;
     min-height: 100dvh;
     overflow-x: clip;
-    color: #e4e7ec;
-    background: #000;
+    color: var(--tc-ink-silver);
+    background: var(--tc-black);
     font-family: 'Roboto Condensed', Inter, system-ui, sans-serif;
 }
 
@@ -29,444 +30,445 @@
 
 .trivia-progress-console :is(h2, h3, p, ul, ol, figure, fieldset) {
     margin-top: 0;
+    margin-bottom: 0;
 }
 
 .trivia-progress-console :is(button, input, select, textarea) {
-    font: inherit;
+    font-family: inherit;
 }
 
-.trivia-progress-subtitle,
+/* ── Copy and states ──────────────────────────────────────────────────── */
+
+.trivia-progress-intro,
 .trivia-progress-state,
 .trivia-progress-empty-copy {
     margin: 0;
-    color: #aab5c0;
-    font-size: clamp(15px, 2.1vw, 18px);
-    line-height: 1.55;
+    color: var(--tc-ink-muted);
+    font-family: Inter, system-ui, sans-serif;
+    font-size: max(14px, 3.4cqw);
+    line-height: 1.5;
+    text-align: center;
+    text-shadow: 0 1px 2px rgb(0 0 0 / 80%);
 }
 
 .trivia-progress-state,
 .trivia-progress-empty {
     display: grid;
-    min-height: 144px;
+    gap: 6px;
+    min-height: 120px;
     place-content: center;
+    justify-items: center;
     text-align: center;
+}
+
+.trivia-progress-state--loading {
+    color: var(--tc-ink-blue);
+    font-family: 'Roboto Condensed', Inter, system-ui, sans-serif;
+    font-weight: 800;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
 }
 
 .trivia-progress-state--error,
-.trivia-progress-status[data-tone='error'] {
-    color: #ff9d9d;
+.trivia-progress-state--error p {
+    color: var(--tc-ink-red);
 }
 
-.trivia-progress-reward {
-    display: flex;
-    align-items: baseline;
-    justify-content: center;
-    gap: 10px;
+.trivia-progress-state p {
     margin: 0;
-    color: #aab5c0;
-    font-size: 15px;
-    line-height: 1.4;
-    text-align: center;
 }
 
-.trivia-progress-reward strong {
-    color: #4abaff;
-    font-size: clamp(28px, 7cqw, 52px);
-    font-variant-numeric: tabular-nums;
-}
+/* ── Sections printed on the glass ───────────────────────────────────── */
 
-.trivia-progress-content,
-.trivia-progress-card-list,
-.trivia-progress-settings-list {
+.trivia-progress-content {
     display: grid;
-    gap: clamp(16px, 3cqw, 26px);
-}
-
-.trivia-progress-categories {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 0 18px;
-    margin: 0;
-    padding: 0;
-    list-style: none;
-}
-
-.trivia-progress-category,
-.trivia-progress-card,
-.trivia-progress-setting-panel,
-.trivia-progress-panel,
-.trivia-progress-notice {
-    min-width: 0;
-    background: none;
-    border: 0;
-    border-radius: 0;
-    box-shadow: none;
-}
-
-.trivia-progress-category {
-    display: grid;
-    gap: 8px;
-    padding: 14px 0;
-    border-bottom: 1px solid #24333f;
-}
-
-.trivia-progress-category__name,
-.trivia-progress-category-name {
-    color: #dce3ea;
-    font-size: 13px;
-    font-weight: 700;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-}
-
-.trivia-progress-category__count,
-.trivia-progress-category-count,
-.trivia-progress-category-accuracy,
-.trivia-progress-category-level {
-    color: #4abaff;
-    font-size: 13px;
-    font-variant-numeric: tabular-nums;
-}
-
-.trivia-progress-card {
-    position: relative;
-    display: grid;
-    grid-template-columns: 10px minmax(0, 1fr);
-    gap: 14px;
-    padding: 2px 0 18px;
-    border-bottom: 1px solid #24333f;
-}
-
-.trivia-progress-card__crest {
-    display: block;
-    width: 3px;
-    min-height: 100%;
-    background: #314555;
-}
-
-.trivia-progress-card[data-state='unlocked'] .trivia-progress-card__crest,
-.trivia-progress-card[data-rarity='legendary'] .trivia-progress-card__crest {
-    background: #2ea9f5;
-}
-
-.trivia-progress-card__body {
+    gap: max(18px, 4cqw);
     min-width: 0;
 }
 
-.trivia-progress-card__title,
-.trivia-progress-panel-title,
-.trivia-progress-setting-title {
+.trivia-progress-section {
+    display: grid;
+    gap: 4px;
+    min-width: 0;
+}
+
+.trivia-progress-heading {
     margin: 0;
-    color: #f1f4f7;
-    font-size: clamp(18px, 2.8vw, 24px);
+    padding-bottom: 6px;
+    border-bottom: var(--tc-rule);
+    box-shadow: 0 1px 0 rgb(255 255 255 / 8%);
+    color: var(--tc-ink-silver);
+    font-size: max(16px, 3.6cqw);
     font-weight: 800;
-    letter-spacing: 0.025em;
+    letter-spacing: 0.08em;
     line-height: 1.2;
     text-transform: uppercase;
+    text-shadow: 0 -1px 0 rgb(255 255 255 / 55%), 0 1px 0 var(--tc-bevel), 0 2px 0 var(--tc-chassis-black), 0 3px 4px rgb(0 0 0 / 90%);
 }
 
-.trivia-progress-card__description,
-.trivia-progress-setting-description {
-    margin: 7px 0 0;
-    color: #aab5c0;
-    font-size: 15px;
-    line-height: 1.5;
+.trivia-progress-summary {
+    font-size: max(13px, 2.8cqw);
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    text-align: center;
+    text-transform: uppercase;
 }
 
-.trivia-progress-card__meta,
-.trivia-progress-card__progress,
-.trivia-progress-card__status,
-.trivia-progress-panel-summary {
+.trivia-progress-rows .tc-row__value {
+    font-size: max(15px, 3.8cqw);
+}
+
+.trivia-progress-rows .tc-row__value small {
+    margin-left: 0.4em;
+    color: var(--tc-ink-muted);
+    font-size: 0.72em;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+}
+
+/* ── Newly unlocked notice ───────────────────────────────────────────── */
+
+.trivia-progress-notice {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 8px 16px;
-    margin: 10px 0 0;
-    color: #7fc8f6;
-    font-size: 13px;
-    font-weight: 700;
-    letter-spacing: 0.04em;
-    line-height: 1.35;
-    text-transform: uppercase;
-}
-
-.trivia-progress-card__new,
-.trivia-progress-table__you {
-    margin-left: 8px;
-    color: #55bdff;
-    font-size: 12px;
-}
-
-.trivia-progress-meter {
-    width: 100%;
-    height: 8px;
-    overflow: hidden;
-    border: 0;
-    border-radius: 0;
-    background: #18232c;
-    accent-color: #2ea9f5;
-}
-
-.trivia-progress-meter::-webkit-progress-bar { background: #18232c; }
-.trivia-progress-meter::-webkit-progress-value { background: #2ea9f5; }
-.trivia-progress-meter::-moz-progress-bar { background: #2ea9f5; }
-
-.trivia-progress-meter--overall {
-    height: 12px;
-}
-
-.trivia-progress-card__progress .trivia-progress-meter {
-    flex: 1 1 160px;
-}
-
-.trivia-progress-notice {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 16px;
-    padding: 6px 0 16px;
-    border-bottom: 1px solid #2d73a0;
-    color: #ddecf5;
+    justify-content: center;
+    gap: 4px 12px;
+    text-align: center;
 }
 
 .trivia-progress-notice p {
     margin: 0;
-}
-
-.trivia-progress-action,
-.trivia-progress-filter__option,
-.trivia-progress-choice,
-.trivia-progress-switch {
-    appearance: none;
-    min-height: 44px;
-    margin: 0;
-    padding: 8px 6px;
-    border: 0;
-    border-bottom: 3px solid transparent;
-    border-radius: 0;
-    color: #aab5c0;
-    background: transparent;
-    box-shadow: none;
-    font-size: 13px;
+    font-size: max(14px, 3.2cqw);
     font-weight: 800;
-    letter-spacing: 0.05em;
-    line-height: 1.15;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
-    cursor: pointer;
-    touch-action: manipulation;
 }
 
-.trivia-progress-action,
-.trivia-progress-filter__option[aria-pressed='true'],
-.trivia-progress-choice[data-selected='true'],
-.trivia-progress-switch[data-checked='true'] {
-    color: #55bdff;
-    border-bottom-color: #2ea9f5;
-}
-
-.trivia-progress-action:active,
-.trivia-progress-filter__option:active,
-.trivia-progress-choice:active,
-.trivia-progress-switch:active {
-    color: #fff;
-}
-
-.trivia-progress-action:focus-visible,
-.trivia-progress-filter__option:focus-visible,
-.trivia-progress-choice:focus-visible,
-.trivia-progress-switch:focus-visible {
-    outline: 3px solid #8fd4ff;
-    outline-offset: 2px;
-}
-
-.trivia-progress-header,
-.trivia-progress-filter,
-.trivia-progress-filter__options,
-.trivia-progress-choice-group {
-    min-width: 0;
-}
+/* ── Lit-word filters (leaderboard) and choices (settings) ───────────── */
 
 .trivia-progress-filter {
+    display: grid;
+    gap: 2px;
+    min-width: 0;
     margin: 0;
     padding: 0;
     border: 0;
 }
 
 .trivia-progress-filter legend {
+    float: left;
+    width: 100%;
+    margin: 0 0 2px;
     padding: 0;
-    color: #dce3ea;
-    font-size: 13px;
-    font-weight: 800;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
+    text-align: center;
 }
 
 .trivia-progress-filter__options,
 .trivia-progress-choice-group {
     display: flex;
     flex-wrap: wrap;
-    gap: 4px 12px;
+    justify-content: center;
+    gap: 0 2px;
+    min-width: 0;
 }
+
+.trivia-progress-filter__option.tc-word,
+.trivia-progress-choice.tc-word {
+    padding: 0 10px;
+    color: var(--tc-ink-muted);
+    font-size: max(13px, 3cqw);
+    text-shadow: 0 1px 2px rgb(0 0 0 / 80%);
+}
+
+.trivia-progress-filter__option.tc-word[aria-pressed='true'],
+.trivia-progress-choice.tc-word[aria-pressed='true'] {
+    color: var(--tc-ink-blue);
+    text-shadow: 0 0 6px rgb(69 173 255 / 70%), 0 1px 2px rgb(0 0 0 / 85%);
+}
+
+/* ── Achievements ────────────────────────────────────────────────────── */
+
+.trivia-progress-list {
+    display: grid;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.trivia-progress-item {
+    display: grid;
+    gap: 4px;
+    min-width: 0;
+    padding: 12px 0;
+    border-top: var(--tc-rule);
+    box-shadow: var(--tc-rule-lit);
+}
+
+.trivia-progress-item:first-child {
+    border-top: 0;
+    box-shadow: none;
+}
+
+.trivia-progress-item__title {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 2px 10px;
+    margin: 0;
+    color: var(--tc-ink-silver);
+    font-size: max(16px, 3.6cqw);
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    line-height: 1.2;
+    text-transform: uppercase;
+}
+
+.trivia-progress-item[data-state='locked'] .trivia-progress-item__title {
+    color: var(--tc-ink-muted);
+}
+
+.trivia-progress-item__description {
+    margin: 0;
+    color: var(--tc-ink-muted);
+    font-family: Inter, system-ui, sans-serif;
+    font-size: max(13px, 3cqw);
+    line-height: 1.45;
+}
+
+.trivia-progress-item__meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 2px 14px;
+    margin: 2px 0 0;
+    font-size: max(12px, 2.7cqw);
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    line-height: 1.35;
+    text-transform: uppercase;
+}
+
+.trivia-progress-item__new {
+    font-size: 0.72em;
+    letter-spacing: 0.14em;
+}
+
+/* ── Tables (leaderboard, stats by mode) ─────────────────────────────── */
 
 .trivia-progress-table-wrap {
     width: 100%;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
+    min-width: 0;
 }
 
 .trivia-progress-table {
     width: 100%;
     border: 0;
     border-collapse: collapse;
-    color: #dce3ea;
-    font-size: 14px;
-    font-variant-numeric: tabular-nums;
+    color: var(--tc-ink-silver);
+    font-size: max(13px, 2.9cqw);
+    font-variant-numeric: tabular-nums lining-nums;
+    table-layout: auto;
+}
+
+.trivia-progress-table caption {
+    padding-bottom: 6px;
+    color: var(--tc-ink-blue);
+    font-size: max(12px, 2.7cqw);
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-align: center;
+    text-transform: uppercase;
 }
 
 .trivia-progress-table :is(th, td) {
-    padding: 13px 8px;
+    padding: 10px 6px;
     border: 0;
-    border-bottom: 1px solid #24333f;
+    border-top: var(--tc-rule);
+    box-shadow: var(--tc-rule-lit);
     text-align: left;
+    vertical-align: baseline;
+    overflow-wrap: anywhere;
 }
 
 .trivia-progress-table thead th {
-    color: #7fc8f6;
-    font-size: 12px;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-}
-
-.trivia-progress-table [data-tone='success'],
-.trivia-progress-table__accuracy {
-    color: #8eddb6;
-}
-
-.trivia-progress-table [data-tone='accent'],
-.trivia-progress-table__score,
-.trivia-progress-table__rank {
-    color: #55bdff;
-}
-
-.trivia-progress-table tr[data-current-player='true'] :is(th, td) {
-    color: #fff;
-    border-bottom-color: #2ea9f5;
-}
-
-.trivia-progress-stat-grid {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 0 18px;
-}
-
-.trivia-progress-stat-card {
-    min-width: 0;
-    padding: 14px 0;
-    border-bottom: 1px solid #24333f;
-}
-
-.trivia-progress-stat-label {
-    color: #8f9ca8;
-    font-size: 12px;
+    overflow-wrap: normal;
+    white-space: nowrap;
+    border-top: 0;
+    box-shadow: none;
+    color: var(--tc-ink-blue);
+    font-size: max(12px, 2.5cqw);
     font-weight: 700;
-    letter-spacing: 0.07em;
+    letter-spacing: 0.14em;
     text-transform: uppercase;
 }
 
-.trivia-progress-stat-value {
-    margin-top: 4px;
-    overflow-wrap: anywhere;
-    color: #eef2f6;
-    font-size: clamp(28px, 7cqw, 54px);
+.trivia-progress-table tbody th {
     font-weight: 800;
-    font-variant-numeric: tabular-nums;
-    line-height: 1;
 }
 
-.trivia-progress-stat-card[data-tone='success'] .trivia-progress-stat-value { color: #8eddb6; }
-.trivia-progress-stat-card[data-tone='accent'] .trivia-progress-stat-value { color: #55bdff; }
-
-.trivia-progress-panel {
-    display: grid;
-    gap: 14px;
-    padding-top: clamp(10px, 2cqw, 18px);
+.trivia-progress-table :is(th, td).trivia-progress-table__num {
+    text-align: right;
+    white-space: nowrap;
 }
 
-.trivia-progress-category-header,
-.trivia-progress-category-values,
-.trivia-progress-setting-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 14px;
+.trivia-progress-table__rank {
+    color: var(--tc-ink-blue);
+    font-weight: 800;
+    white-space: nowrap;
 }
 
-.trivia-progress-meter-fill {
-    width: var(--trivia-progress-meter-value, 0%);
-    height: 100%;
-    background: #2ea9f5;
+.trivia-progress-table tr[data-rank-tier='first'] .trivia-progress-table__rank,
+.trivia-progress-table tr[data-rank-tier='second'] .trivia-progress-table__rank,
+.trivia-progress-table tr[data-rank-tier='third'] .trivia-progress-table__rank {
+    color: var(--tc-ink-gold);
 }
+
+.trivia-progress-table td.trivia-progress-table__mode {
+    overflow-wrap: normal;
+    white-space: nowrap;
+}
+
+.trivia-progress-table__score {
+    color: var(--tc-ink-silver);
+    font-weight: 800;
+}
+
+.trivia-progress-table__accuracy,
+.trivia-progress-table [data-tone='success'] {
+    color: var(--tc-ink-green);
+}
+
+.trivia-progress-table [data-tone='accent'] {
+    color: var(--tc-ink-blue);
+}
+
+.trivia-progress-table__you {
+    margin-left: 8px;
+    color: var(--tc-ink-blue);
+    font-size: 0.8em;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.trivia-progress-table tr[data-current-player='true'] .trivia-progress-table__player {
+    color: var(--tc-ink-white);
+}
+
+/* ── Stats: 30-day activity, a genuine series ───────────────────────── */
 
 .trivia-progress-activity {
     display: grid;
     grid-template-columns: repeat(30, minmax(2px, 1fr));
     align-items: end;
     gap: 2px;
-    height: 112px;
-    padding-top: 10px;
-    border-bottom: 1px solid #314555;
+    height: max(72px, 16cqw);
+    padding-top: 8px;
+    border-bottom: var(--tc-rule);
+    box-shadow: 0 1px 0 rgb(255 255 255 / 8%);
 }
 
 .trivia-progress-activity-bar {
     height: var(--trivia-progress-bar-height, 3%);
-    min-height: 3px;
-    background: #263743;
+    min-height: 2px;
+    background: rgb(154 165 179 / 25%);
 }
 
 .trivia-progress-activity-bar[data-active='true'] {
-    background: #2ea9f5;
+    background: var(--tc-ink-blue);
 }
+
+.trivia-progress-activity-axis {
+    display: flex;
+    justify-content: space-between;
+    color: var(--tc-ink-muted);
+    font-size: max(12px, 2.4cqw);
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+/* ── Settings ────────────────────────────────────────────────────────── */
 
 .trivia-progress-settings-list {
-    gap: 0;
+    display: grid;
+    margin: 0;
+    padding: 0;
+    list-style: none;
 }
 
-.trivia-progress-setting-panel {
-    padding: 18px 0;
-    border-bottom: 1px solid #24333f;
+.trivia-progress-setting {
+    display: grid;
+    gap: 6px;
+    min-width: 0;
+    padding: 14px 0;
+    border-top: var(--tc-rule);
+    box-shadow: var(--tc-rule-lit);
 }
 
-.trivia-progress-setting-copy {
+.trivia-progress-setting:first-child {
+    border-top: 0;
+    box-shadow: none;
+}
+
+.trivia-progress-setting__row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
     min-width: 0;
 }
 
-.trivia-progress-setting-control {
+.trivia-progress-setting__copy {
+    display: grid;
+    gap: 4px;
+    min-width: 0;
+}
+
+.trivia-progress-setting__title {
+    margin: 0;
+    color: var(--tc-ink-silver);
+    font-size: max(16px, 3.6cqw);
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    line-height: 1.2;
+    text-transform: uppercase;
+}
+
+.trivia-progress-setting__description {
+    margin: 0;
+    color: var(--tc-ink-muted);
+    font-family: Inter, system-ui, sans-serif;
+    font-size: max(13px, 3cqw);
+    line-height: 1.45;
+}
+
+.trivia-progress-setting__control {
     flex: 0 0 auto;
 }
 
-.trivia-progress-switch {
-    min-width: 74px;
-    color: #8f9ca8;
+.trivia-progress-switch.tc-word {
+    min-width: 76px;
+    color: var(--tc-ink-muted);
+    font-size: max(14px, 3.4cqw);
+    text-shadow: 0 1px 2px rgb(0 0 0 / 80%);
 }
 
-.trivia-progress-switch::before {
-    content: 'Off';
-}
-
-.trivia-progress-switch[data-checked='true']::before {
-    content: 'On';
-}
-
-.trivia-progress-switch-track,
-.trivia-progress-switch-knob {
-    display: none;
+.trivia-progress-switch.tc-word[aria-checked='true'] {
+    color: var(--tc-ink-green);
+    text-shadow: 0 0 6px rgb(53 217 90 / 80%), 0 1px 2px rgb(0 0 0 / 80%);
 }
 
 .trivia-progress-status {
-    margin: 12px 0 0;
-    color: #8eddb6;
-    font-size: 14px;
-    text-align: center;
+    margin: 0;
+    font-size: max(13px, 2.9cqw);
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}
+
+.trivia-progress-setting .trivia-progress-status {
+    text-align: right;
 }
 
 @media (min-width: 720px) {
@@ -474,35 +476,21 @@
         padding-inline: 20px;
     }
 
-    .trivia-progress-categories,
-    .trivia-progress-stat-grid {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
+    .trivia-progress-rows--split {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        column-gap: 5cqw;
     }
 
-    .trivia-progress-card {
-        grid-template-columns: 12px minmax(0, 1fr) auto;
+    .trivia-progress-rows--split .tc-row:nth-child(2) {
+        border-top: 0;
+        box-shadow: none;
     }
 }
 
 @media (max-width: 560px) {
-    .trivia-progress-category-header,
-    .trivia-progress-setting-row {
-        align-items: flex-start;
-    }
-
-    .trivia-progress-setting-row {
-        flex-direction: column;
-    }
-
-    .trivia-progress-setting-control {
-        align-self: stretch;
-    }
-
-    .trivia-progress-switch {
-        width: 100%;
-    }
-
-    .trivia-progress-table thead {
+    /* Phone tables print as compact engraved rows: the column headers move
+       to the accessible layer and each row lays its cells out on a grid. */
+    :is(.trivia-progress-table--board, .trivia-progress-table--modes) thead {
         position: absolute;
         width: 1px;
         height: 1px;
@@ -511,40 +499,84 @@
         white-space: nowrap;
     }
 
-    .trivia-progress-table,
-    .trivia-progress-table tbody,
-    .trivia-progress-table tr,
-    .trivia-progress-table :is(th, td) {
+    :is(.trivia-progress-table--board, .trivia-progress-table--modes),
+    :is(.trivia-progress-table--board, .trivia-progress-table--modes) :is(tbody, caption) {
         display: block;
         width: 100%;
     }
 
-    .trivia-progress-table tr {
+    :is(.trivia-progress-table--board, .trivia-progress-table--modes) tr {
+        display: grid;
+        align-items: baseline;
+        gap: 2px 12px;
         padding: 10px 0;
-        border-bottom: 1px solid #24333f;
+        border-top: var(--tc-rule);
+        box-shadow: var(--tc-rule-lit);
     }
 
-    .trivia-progress-table :is(th, td) {
-        display: flex;
-        justify-content: space-between;
-        gap: 14px;
-        padding: 5px 0;
+    :is(.trivia-progress-table--board, .trivia-progress-table--modes) tbody tr:first-child {
+        border-top: 0;
+        box-shadow: none;
+    }
+
+    :is(.trivia-progress-table--board, .trivia-progress-table--modes) :is(th, td),
+    :is(.trivia-progress-table--board, .trivia-progress-table--modes) :is(th, td).trivia-progress-table__num {
+        display: block;
+        min-width: 0;
+        padding: 0;
         border: 0;
-        text-align: right;
+        box-shadow: none;
     }
 
-    .trivia-progress-table :is(th, td)::before {
+    .trivia-progress-table--board tr {
+        grid-template-columns: auto minmax(0, 1fr) auto;
+        grid-template-areas:
+            'rank player score'
+            'rank mode accuracy';
+    }
+
+    .trivia-progress-table--board .trivia-progress-table__rank {
+        grid-area: rank;
+        align-self: center;
+        min-width: 3ch;
+        font-size: max(18px, 4.6cqw);
+    }
+
+    .trivia-progress-table--board .trivia-progress-table__player { grid-area: player; }
+    .trivia-progress-table--board .trivia-progress-table__score { grid-area: score; }
+
+    .trivia-progress-table--board .trivia-progress-table__mode {
+        grid-area: mode;
+        color: var(--tc-ink-muted);
+        font-size: 0.86em;
+    }
+
+    .trivia-progress-table--board .trivia-progress-table__accuracy {
+        grid-area: accuracy;
+        font-size: 0.86em;
+    }
+
+    .trivia-progress-table--modes tr {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        grid-template-areas:
+            'mode mode games'
+            'best acc dia';
+    }
+
+    .trivia-progress-table--modes :is(th, td).trivia-progress-table__mode { grid-area: mode; align-self: end; }
+    .trivia-progress-table--modes :is(th, td).trivia-progress-table__games { grid-area: games; text-align: right; }
+    .trivia-progress-table--modes :is(th, td).trivia-progress-table__best { grid-area: best; text-align: left; }
+    .trivia-progress-table--modes :is(th, td).trivia-progress-table__acc { grid-area: acc; text-align: center; }
+    .trivia-progress-table--modes :is(th, td).trivia-progress-table__dia { grid-area: dia; text-align: right; }
+
+    .trivia-progress-table--modes :is(.trivia-progress-table__games, .trivia-progress-table__best, .trivia-progress-table__acc, .trivia-progress-table__dia)::before {
         content: attr(data-label);
-        color: #8f9ca8;
+        display: block;
+        color: var(--tc-ink-blue);
         font-size: 12px;
         font-weight: 700;
-        letter-spacing: 0.06em;
-        text-align: left;
+        letter-spacing: 0.12em;
         text-transform: uppercase;
-    }
-
-    .trivia-progress-table :is(th, td):not([data-label])::before {
-        content: none;
     }
 }
 

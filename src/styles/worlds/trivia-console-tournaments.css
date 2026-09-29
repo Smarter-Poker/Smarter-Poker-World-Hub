@@ -1,1 +1,425 @@
 /* Trivia tournaments surfaces. Owned by the tournaments surface; see trivia-console.css for the colour law. */
+
+/*
+ * /hub/trivia/tournaments prints every state on the one Trivia console
+ * (TriviaConsole, spade-console-v1). This file only lays live copy, rows and
+ * lit words onto the black glass between the rails. It draws no card, pill,
+ * gradient, glow box, rounded corner or hover state; the only divider is the
+ * engraved rule (--tc-rule + --tc-rule-lit).
+ */
+
+.trivia-tournaments-page .tt-shell {
+    display: grid;
+    width: 100%;
+    min-width: 0;
+    margin: 0 auto;
+}
+
+/* Scene art (no baked text), printed on the glass at its own ratio. */
+.tt-hero {
+    display: block;
+    width: 100%;
+    height: auto;
+    margin: 0;
+}
+
+/* Art that failed to load is removed rather than left as a broken box. */
+.tt-hero[hidden] {
+    display: none;
+}
+
+.tt-section {
+    display: grid;
+    gap: 2cqw;
+    min-width: 0;
+    margin: 0;
+}
+
+.tt-list {
+    display: grid;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.tt-muted {
+    color: var(--tc-ink-muted);
+    text-shadow: none;
+}
+
+/* Scheduled / Active / Past: lit words centred on the glass. */
+.tt-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0 2cqw;
+    padding: 1cqw 0;
+    border-top: var(--tc-rule);
+    border-bottom: var(--tc-rule);
+    box-shadow: var(--tc-rule-lit);
+}
+
+/* Lit words that may carry a long live label wrap instead of leaving the glass. */
+.tt-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 1cqw 3cqw;
+}
+
+.tt-actions--stacked {
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+}
+
+.tt-actions > button {
+    max-width: 100%;
+    white-space: normal;
+    text-align: center;
+    line-height: 1.2;
+}
+
+/*
+ * Headings printed on the glass. A global mobile h2/h3 rule sets font-size
+ * with !important and premium.css swaps the family, so the console type is
+ * restated here (the same fix trivia-console-strategy.css makes).
+ */
+.trivia-tournaments-page :is(h2, h3).tc-label {
+    font-family: 'Roboto Condensed', Inter, system-ui, sans-serif;
+    font-size: max(12px, 2.7cqw) !important;
+    line-height: 1.3;
+    letter-spacing: 0.16em;
+    white-space: normal;
+}
+
+.trivia-tournaments-page :is(h2, h3).tt-event__name {
+    font-family: 'Roboto Condensed', Inter, system-ui, sans-serif;
+    font-size: max(17px, 4.6cqw) !important;
+}
+
+.trivia-tournaments-page h2.tt-question {
+    font-family: Inter, system-ui, sans-serif;
+    font-size: max(17px, 4.4cqw) !important;
+}
+
+/* Rows: the label (often a player's name) wraps, the figure holds. */
+.trivia-tournaments-page .tc-row {
+    align-items: center;
+}
+
+.trivia-tournaments-page .tc-row__label {
+    flex: 1 1 auto;
+    overflow-wrap: anywhere;
+}
+
+.trivia-tournaments-page .tc-row__value {
+    flex: 0 0 auto;
+    white-space: nowrap;
+    overflow-wrap: normal;
+}
+
+.trivia-tournaments-page .tt-row--wrap .tc-row__label {
+    flex: 0 0 auto;
+}
+
+.trivia-tournaments-page .tt-row--wrap .tc-row__value {
+    flex: 1 1 auto;
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+
+/* Alerts */
+.tt-alert {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 2cqw;
+    min-width: 0;
+    padding: 1.2cqw 0;
+    border-top: var(--tc-rule);
+    box-shadow: var(--tc-rule-lit);
+}
+
+.tt-alert:first-child {
+    border-top: 0;
+    box-shadow: none;
+}
+
+.tt-alert > button {
+    flex-shrink: 0;
+}
+
+.tt-alert__text {
+    min-width: 0;
+    margin: 0;
+    font-family: Inter, system-ui, sans-serif;
+    font-size: max(14px, 3.3cqw);
+    line-height: 1.4;
+    overflow-wrap: anywhere;
+}
+
+/* Event rows: one tournament per block, engraved rule between them. */
+.tt-event {
+    display: grid;
+    gap: 1.2cqw;
+    min-width: 0;
+    padding: 2.4cqw 0;
+    border-top: var(--tc-rule);
+    box-shadow: var(--tc-rule-lit);
+}
+
+.tt-event:first-child {
+    border-top: 0;
+    box-shadow: none;
+}
+
+.tt-event__name {
+    margin: 0;
+    color: var(--tc-ink-silver);
+    font-size: max(17px, 4.6cqw);
+    font-weight: 800;
+    line-height: 1.15;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    overflow-wrap: anywhere;
+    text-shadow: 0 -0.18cqw 0 rgb(244 247 251 / 55%), 0 0.25cqw 0 var(--tc-bevel), 0 0.45cqw 0 var(--tc-chassis-black), 0 0.7cqw 0.9cqw rgb(0 0 0 / 90%);
+}
+
+.tt-event__meta {
+    margin: 0;
+    font-size: max(13px, 3cqw);
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.tt-event__foot {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1.6cqw 3cqw;
+    min-width: 0;
+}
+
+.tt-event__figures {
+    display: grid;
+    gap: 0.6cqw;
+    min-width: 0;
+}
+
+.tt-event__countdown {
+    font-size: max(16px, 4.2cqw);
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    font-variant-numeric: tabular-nums lining-nums;
+}
+
+.tt-event__fee {
+    font-size: max(13px, 3.1cqw);
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.tt-event__status {
+    display: inline-grid;
+    place-items: center;
+    min-height: 44px;
+    font-size: max(13px, 3cqw);
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+/* Your match */
+.tt-match {
+    display: grid;
+    gap: 2cqw;
+    padding: 2.4cqw 0;
+    border-top: var(--tc-rule);
+    border-bottom: var(--tc-rule);
+    box-shadow: var(--tc-rule-lit);
+}
+
+.tt-vs {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    align-items: center;
+    gap: 3cqw;
+}
+
+.tt-vs__word {
+    font-size: max(14px, 3.4cqw);
+    font-weight: 800;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+}
+
+.tt-seat {
+    display: grid;
+    justify-items: center;
+    gap: 0.4cqw;
+    min-width: 0;
+    text-align: center;
+}
+
+.tt-seat__name {
+    max-width: 100%;
+    font-size: max(15px, 4cqw);
+    font-weight: 800;
+    line-height: 1.15;
+    overflow-wrap: anywhere;
+}
+
+.tt-seat__score {
+    font-size: max(22px, 6cqw);
+    font-weight: 800;
+    line-height: 1;
+    font-variant-numeric: tabular-nums lining-nums;
+}
+
+.tt-seat__record {
+    font-size: max(12px, 2.8cqw);
+    font-weight: 700;
+    letter-spacing: 0.1em;
+}
+
+.tt-status {
+    margin: 0;
+    font-size: max(15px, 3.8cqw);
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-align: center;
+    text-transform: uppercase;
+}
+
+/* Bracket: rounds stacked, each matchup on one engraved row. */
+.tt-round {
+    display: grid;
+    gap: 1cqw;
+    min-width: 0;
+}
+
+.tt-round__name {
+    display: flex;
+    align-items: baseline;
+    gap: 2cqw;
+    margin: 1.2cqw 0 0;
+    font-size: max(14px, 3.4cqw);
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.tt-round__live {
+    font-size: max(12px, 2.7cqw);
+    letter-spacing: 0.16em;
+}
+
+.tt-matchup {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    align-items: center;
+    gap: 2cqw;
+    min-height: 44px;
+    padding: 1.2cqw 0;
+    border-top: var(--tc-rule);
+    box-shadow: var(--tc-rule-lit);
+}
+
+.tt-matchup:first-child {
+    border-top: 0;
+    box-shadow: none;
+}
+
+.tt-matchup .tt-seat {
+    grid-auto-flow: column;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 1.6cqw;
+    text-align: left;
+}
+
+.tt-matchup .tt-seat:last-child {
+    justify-content: space-between;
+}
+
+.tt-matchup .tt-seat__name {
+    font-size: max(13px, 3.2cqw);
+    font-weight: 700;
+    text-align: left;
+}
+
+.tt-matchup .tt-seat__score {
+    font-size: max(14px, 3.6cqw);
+}
+
+.tt-matchup__vs {
+    font-size: max(11px, 2.5cqw);
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+}
+
+.tt-note {
+    margin: 0;
+    font-size: max(13px, 3cqw);
+}
+
+/* The field */
+.tt-names {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.8cqw 3cqw;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    font-size: max(13px, 3.1cqw);
+    font-weight: 700;
+    overflow-wrap: anywhere;
+}
+
+.tt-names > li {
+    min-width: 0;
+    max-width: 100%;
+}
+
+.tt-winner {
+    color: var(--tc-ink-silver);
+    letter-spacing: 0.06em;
+    overflow-wrap: anywhere;
+    text-shadow: none;
+}
+
+/* Round play */
+.tt-question {
+    margin: 0;
+    color: var(--tc-ink-white);
+    font-family: Inter, system-ui, sans-serif;
+    font-size: max(17px, 4.4cqw);
+    font-weight: 700;
+    line-height: 1.4;
+    overflow-wrap: anywhere;
+}
+
+.tt-options {
+    display: grid;
+    gap: 2cqw;
+}
+
+/* Meaningful motion only: the loading line breathes; reduced motion holds it still. */
+.tt-pulse {
+    animation: tt-breathe 1.6s ease-in-out infinite;
+}
+
+@keyframes tt-breathe {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.55; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .tt-pulse { animation: none; }
+}

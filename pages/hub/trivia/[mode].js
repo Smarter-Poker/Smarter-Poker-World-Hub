@@ -7,7 +7,7 @@ import SEOHead from '../../../src/components/seo/SEOHead';
 import { useRouter } from 'next/router';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '../../../src/lib/supabase';
-import { authedFetch, getAuthUser } from '../../../src/lib/authUtils';
+import { authedFetch, getAuthUser, getAccessToken } from '../../../src/lib/authUtils';
 import { useAvatar } from '../../../src/contexts/AvatarContext';
 import DiamondEngine from '../../../src/services/DiamondEngine';
 import GameCostPopup from '../../../src/components/gates/GameCostPopup';
@@ -19,9 +19,11 @@ import PageTransition from '../../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import TriviaGame from '../../../src/components/trivia/TriviaGame';
 import TriviaResult from '../../../src/components/trivia/TriviaResult';
-import LeaderboardDisplay from '../../../src/components/trivia/LeaderboardDisplay';
+import LeaderboardDisplay, { printPlayerName } from '../../../src/components/trivia/LeaderboardDisplay';
 import { TRIVIA_MODES, calculateDiamonds, CATEGORY_MAPPINGS, DAILY_DIAMOND_CAPS } from '../../../src/lib/trivia/triviaEngine';
 import { getTodayCST } from '../../../src/lib/trivia/getTodayCST';
+import { toTitleCase } from '../../../src/lib/trivia/titleCase';
+import { formatTriviaDisplayNumber } from '../../../src/lib/trivia/formatTriviaDisplayNumber';
 import { getDailyDiamondsEarned, clampToCap } from '../../../src/lib/trivia/diamondCap';
 import { checkNewUnlocks, computeTriviaStats } from '../../../src/config/triviaAchievements';
 
@@ -65,14 +67,21 @@ const CATEGORY_MAP = {
     gto: [...CATEGORY_MAPPINGS.gto],
 };
 
-// Lobby image mapping - modes with full-bleed lobby images
-const LOBBY_IMAGES = {
-    history: '/images/trivia/lobby-history.jpg',
-    rules: '/images/trivia/lobby-rules.jpg',
-    pro: '/images/trivia/lobby-pro.jpg',
-    daily: '/images/trivia/lobby-daily.jpg',
-    arcade: '/images/trivia/lobby-arcade.jpg',
-};
+// Mode scene art for the lobby picture on the console glass. The art is a
+// text-free scene (modes-console-v1); every figure, rule and the Start action
+// are printed live around it. The old lobby-*.jpg art baked in text, numbers
+// and a Start button and is no longer referenced.
+// Literal paths, so the art audit can see every file this page uses.
+const MODE_ART = Object.freeze({
+    daily: '/images/trivia/modes-console-v1/daily.webp',
+    history: '/images/trivia/modes-console-v1/history.webp',
+    rules: '/images/trivia/modes-console-v1/rules.webp',
+    pro: '/images/trivia/modes-console-v1/pro.webp',
+    arcade: '/images/trivia/modes-console-v1/arcade.webp',
+});
+function getModeArt(mode) {
+    return Object.prototype.hasOwnProperty.call(MODE_ART, mode) ? MODE_ART[mode] : null;
+}
 
 // Every mode rendered by this dynamic page must use the server-authoritative
 // session flow. Keeping a mode out of this set is not a safe fallback: answer
@@ -144,6 +153,9 @@ export default function TriviaModePage() {
     // Personal best (per-mode) for the ready screen / results delta
     const [personalBest, setPersonalBest] = useState(null);
     const [isStarting, setIsStarting] = useState(false);
+    // The lobby's scene art is optional: until (or unless) it loads, the lobby
+    // prints its live rows alone rather than a broken picture.
+    const [artFailed, setArtFailed] = useState(false);
 
     // Phase 1: Prize wheel and celebration states
     const [showPrizeWheel, setShowPrizeWheel] = useState(false);
@@ -262,7 +274,7 @@ export default function TriviaModePage() {
                         if (arcadeCost > 0) {
                             const diamonds = profile?.diamonds ?? (await getUserDiamonds(currentUserId));
                             if (diamonds < arcadeCost) {
-                                setError(`Not enough diamonds. You need ${arcadeCost} diamonds to play Arcade mode.`);
+                                setError(`Not Enough Diamonds. You Need ${arcadeCost} Diamonds To Play ${toTitleCase(modeConfig?.name || 'This Mode')}.`);
                                 setGameState('error');
                                 return;
                             }
@@ -298,7 +310,7 @@ export default function TriviaModePage() {
                 } else {
                     const loadedQuestions = await loadQuestions(mode, modeConfig.questionsCount, currentUserId);
                     if (loadedQuestions.length === 0) {
-                        setError('No questions available. Please try again later.');
+                        setError('No Questions Available. Please Try Again Later.');
                         setGameState('error');
                         return;
                     }
@@ -327,7 +339,7 @@ export default function TriviaModePage() {
                 setGameState('ready');
             } catch (err) {
                 console.warn('Error initializing trivia:', err);
-                setError('Failed to load trivia. Please try again.');
+                setError('Failed To Load Trivia. Please Try Again.');
                 setGameState('error');
             }
         }
@@ -662,7 +674,7 @@ export default function TriviaModePage() {
         // signed-out visitor slipped past it and played PAID modes for free.
         // Mirror StrategyTrivia: paid entry requires a signed-in account.
         if (!isFreeMode && !userId && !isVIP) {
-            setError('Please sign in to play this mode.');
+            setError('Please Sign In To Play This Mode.');
             setGameState('error');
             return;
         }
@@ -685,7 +697,7 @@ export default function TriviaModePage() {
                     setShowOutOfDiamonds(true);
                     return;
                 }
-                setError('Could not start the game. Please try again.');
+                setError('Could Not Start The Game. Please Try Again.');
                 setGameState('error');
                 return;
             }
@@ -750,8 +762,8 @@ export default function TriviaModePage() {
         const baseDiamonds = isStakesMode ? 0 : calculateDiamonds(mode, correctCount, totalQuestions, timeRemaining);
         const streakTier = getStreakTier(userStreak);
         // AUDIT FIX (H1, partial): the client-computed stake pot could reach
-        // ~698💎 on a perfect 20-question run (STAKE_VALUES × up to 5x streak
-        // multiplier) for a 10💎 entry, and the daily-cap clamp below used to
+        // ~698 diamonds on a perfect 20-question run (STAKE_VALUES × up to 5x streak
+        // multiplier) for a 10 diamonds entry, and the daily-cap clamp below used to
         // exempt arcade entirely - DAILY_DIAMOND_CAPS.arcade (40, documented
         // as "max single run 50") was never enforced on the only arcade
         // payout path. Clamp a single run to 50 here, and let the daily cap
@@ -985,8 +997,17 @@ export default function TriviaModePage() {
             cashedOut,
             opponentScore,
             opponentName,
-            // Review mode data
-            questions,
+            // Review mode data. Server-graded questions never carry
+            // correct_index; once the server has graded the run, its
+            // perQuestion verdicts are the answer key for the review.
+            questions: useServerPayout && Array.isArray(serverResult?.perQuestion)
+                ? questions.map(q => {
+                    const verdict = serverResult.perQuestion.find(v => v?.questionId === q?.id);
+                    return Number.isInteger(verdict?.correctDisplayIndex)
+                        ? { ...q, correct_index: verdict.correctDisplayIndex }
+                        : q;
+                })
+                : questions,
             answers: gameResult.answers || [],
         });
 
@@ -1028,7 +1049,7 @@ export default function TriviaModePage() {
             // No verifiable token (guest play, or the score insert failed).
             // Refuse rather than fall back to a client-rolled, client-credited
             // prize - that path is exactly the mint the RPC exists to close.
-            setWheelError('The prize wheel is unavailable for this run.');
+            setWheelError('The Prize Wheel Is Unavailable For This Run.');
             return;
         }
         try {
@@ -1047,8 +1068,8 @@ export default function TriviaModePage() {
             if (!data || data.success === false) {
                 setWheelError(
                     data?.error === 'spin_window_expired'
-                        ? 'This spin has expired.'
-                        : 'Could not start the prize wheel. Please try again.'
+                        ? 'This Spin Has Expired.'
+                        : 'Could Not Start The Prize Wheel. Please Try Again.'
                 );
                 return;
             }
@@ -1060,8 +1081,8 @@ export default function TriviaModePage() {
         } catch (e) {
             console.warn('[PrizeWheel] spin request failed:', e?.message || e);
             setWheelError(e?.code === 'spin_window_expired'
-                ? 'This spin has expired.'
-                : 'Could not start the prize wheel. Please try again.');
+                ? 'This Spin Has Expired.'
+                : 'Could Not Start The Prize Wheel. Please Try Again.');
         }
     };
 
@@ -1146,6 +1167,48 @@ export default function TriviaModePage() {
         );
     }
 
+    const modeName = toTitleCase(modeConfig.name || String(mode));
+    const modeArt = getModeArt(mode);
+    // The engine's description reads '20 Questions \u2022 Iconic moments, ...'.
+    // The head's subtitle zone takes the short tag; a long one prints on the
+    // glass instead of being fitted down to an unreadable size.
+    const descriptionParts = String(modeConfig.description || '').split('\u2022').map(part => part.trim()).filter(Boolean);
+    const modeTag = toTitleCase(descriptionParts.length > 1 ? descriptionParts.slice(1).join(', ') : (descriptionParts[0] || ''));
+    const modeTagFitsHead = modeTag.length > 0 && modeTag.length <= 28;
+    const isPaidMode = (modeConfig.diamondCost || 0) > 0;
+    const dailyCap = DAILY_DIAMOND_CAPS?.[mode];
+    const needsDiamonds = typeof error === 'string' && /Diamonds/.test(error);
+    const backToTrivia = { label: 'Back To Trivia', onClick: () => router.push('/hub/trivia') };
+    const showPlayAgain = gameState === 'results' && result && (mode === 'arcade' || mode !== 'daily');
+    const startLabel = isStarting
+        ? 'Starting'
+        : mode === 'arcade'
+            ? `Play ${modeConfig.diamondCost} Diamonds`
+            : mode === 'daily'
+                ? 'Start Daily'
+                : 'Start Quiz';
+
+    // Footer law: two painted plates only when the surface genuinely has two
+    // actions, otherwise one lit word on the glass (the primitive decides).
+    let consolePrimary;
+    let consoleSecondary;
+    if (gameState === 'ready') {
+        consoleSecondary = backToTrivia;
+        consolePrimary = { label: startLabel, onClick: startGame, disabled: isStarting };
+    } else if (gameState === 'results' && result) {
+        consoleSecondary = showPlayAgain ? backToTrivia : undefined;
+        consolePrimary = showPlayAgain
+            ? { label: mode === 'arcade' ? `Play Again ${modeConfig.diamondCost || 10} Diamonds` : 'Play Again', onClick: handlePlayAgain }
+            : backToTrivia;
+    } else if (gameState === 'saving_error') {
+        consolePrimary = { label: 'Retry Save', onClick: handleRetrySave };
+    } else if (gameState === 'error') {
+        consoleSecondary = backToTrivia;
+        consolePrimary = needsDiamonds
+            ? { label: 'Get Diamonds', onClick: () => router.push('/hub/diamond-store'), tone: 'gold' }
+            : { label: 'Try Again', onClick: () => window.location.reload() };
+    }
+
     return (
         <TriviaErrorBoundary pageName={`Trivia - ${modeConfig?.name || mode}`}>
             <SEOHead
@@ -1155,9 +1218,7 @@ export default function TriviaModePage() {
                 noindex={true}
             />
 
-            <div className={`trivia-mode-page ${mode === 'daily' ? 'trivia-daily-casino' : ''}`}>
-                <div className="bg-overlay" />
-
+            <div className={`trivia-mode-page ${mode === 'daily' ? 'trivia-daily-casino' : ''}`} data-mode={mode}>
                 <UniversalHeader pageDepth={2} />
                 {modeConfig && modeConfig.diamondCost > 0 && (
                     <GameCostPopup userId={userId} featureKey={`trivia_${mode}`} isVip={isVIP} cost={modeConfig.diamondCost} />
@@ -1178,20 +1239,16 @@ export default function TriviaModePage() {
                     </p>
                 </TriviaConsoleDialog>
 
-                <div className="content">
+                <main className="content">
                     <TriviaConsole
                         eyebrow="Smarter Poker Trivia"
-                        title={modeConfig.name}
-                        subtitle={modeConfig.description}
-                        pill={gameState === 'ready' ? 'Ready' : gameState === 'playing' ? 'Live' : gameState === 'results' ? 'Results' : gameState === 'saving_error' || gameState === 'error' ? 'Attention' : 'Loading'}
+                        title={modeName}
+                        subtitle={modeTagFitsHead ? modeTag : undefined}
+                        pill={gameState === 'ready' ? 'Ready' : gameState === 'playing' ? 'Live' : gameState === 'results' ? 'Results' : gameState === 'saving' ? 'Saving' : gameState === 'saving_error' || gameState === 'error' ? 'Attention' : 'Loading'}
+                        pillInk={gameState === 'saving_error' || gameState === 'error' ? 'red' : gameState === 'playing' ? 'green' : 'blue'}
                         titleAs="h1"
-                        primaryAction={gameState === 'saving_error'
-                            ? { label: 'Retry Save', onClick: handleRetrySave }
-                            : gameState === 'error'
-                                ? { label: 'Back To Trivia', onClick: () => router.push('/hub/trivia') }
-                                : gameState === 'ready'
-                                    ? { label: isStarting ? 'Starting' : mode === 'arcade' ? `Play ${modeConfig.diamondCost} Diamonds` : 'Start Quiz', onClick: startGame, disabled: isStarting }
-                                    : undefined}
+                        secondaryAction={consoleSecondary}
+                        primaryAction={consolePrimary}
                     >
                     {gameState === 'loading' && (
                         <div className="loading">
@@ -1201,7 +1258,7 @@ export default function TriviaModePage() {
 
                     {gameState === 'saving' && (
                         <div className="saving">
-                            <TriviaSkeleton />
+                            <TriviaSkeleton label="Saving Your Results" />
                         </div>
                     )}
 
@@ -1216,95 +1273,114 @@ export default function TriviaModePage() {
                     )}
 
                     {gameState === 'error' && (
-                        <div className="error-state">
+                        <div className="error-state trivia-console-state" role="alert">
+                            {needsDiamonds
+                                ? <h2 className="tc-ink--gold">Diamonds Needed</h2>
+                                : <h2 className="tc-ink--red">Something Went Wrong</h2>}
                             <p>{error}</p>
                         </div>
                     )}
 
                     {gameState === 'ready' && (
-                        LOBBY_IMAGES[mode] ? (
-                            /* Full-bleed image lobby.
-                               AUDIT FIX (H3): was a click-only <div> - the sole
-                               start control for every image-lobby mode was
-                               unreachable by keyboard and invisible to screen
-                               readers. A real <button> restores focus, Enter/
-                               Space activation and a proper accessible name
-                               (button-reset CSS keeps the old visual). */
-                            <button
-                                type="button"
-                                className="lobby-image-wrapper"
-                                onClick={startGame}
-                                disabled={isStarting}
-                                aria-label={`${modeConfig.name} - start challenge${modeConfig.diamondCost > 0 ? `, entry ${modeConfig.diamondCost} diamonds` : ''}`}
-                            >
-                                <img
-                                    src={LOBBY_IMAGES[mode]}
-                                    alt=""
-                                    aria-hidden="true"
-                                    className="lobby-image"
-                                    loading="lazy" />
+                        <div className="ready-screen">
+                            {/* The mode's scene art, printed on the glass. It is
+                                also a start control (AUDIT FIX H3: a real
+                                <button>, keyboard and screen-reader reachable),
+                                guarded by the same in-flight ref as the plate. */}
+                            {modeArt && !artFailed && (
+                                <button
+                                    type="button"
+                                    className="mode-art-button"
+                                    onClick={startGame}
+                                    disabled={isStarting}
+                                    aria-label={`Start ${modeName}${isPaidMode ? `, Entry ${modeConfig.diamondCost} Diamonds` : ''}`}
+                                >
+                                    <img
+                                        src={modeArt}
+                                        alt=""
+                                        aria-hidden="true"
+                                        className="mode-art"
+                                        width="1600"
+                                        height="900"
+                                        decoding="async"
+                                        onError={() => setArtFailed(true)}
+                                    />
+                                </button>
+                            )}
+
+                            {!modeTagFitsHead && modeTag ? (
+                                <p className="trivia-console-copy mode-tagline">{modeTag}</p>
+                            ) : null}
+
+                            <ul className="tc-rows mode-details">
+                                <li className="tc-row">
+                                    <span className="tc-row__label">Questions</span>
+                                    <span className="tc-row__value">{modeConfig.questionsCount}</span>
+                                </li>
+                                <li className="tc-row">
+                                    <span className="tc-row__label">Clock</span>
+                                    <span className="tc-row__value">
+                                        {modeConfig.timeLimit
+                                            ? (modeConfig.timeLimit % 60 === 0 ? `${modeConfig.timeLimit / 60} Minutes` : `${modeConfig.timeLimit} Seconds`)
+                                            : 'Untimed'}
+                                    </span>
+                                </li>
+                                <li className="tc-row">
+                                    <span className="tc-row__label">Entry Cost</span>
+                                    <span className={`tc-row__value ${isPaidMode ? 'tc-ink--gold' : 'tc-ink--green'}`}>
+                                        {isPaidMode ? (isVIP ? 'Free For VIP' : `${modeConfig.diamondCost} Diamonds`) : 'Free'}
+                                    </span>
+                                </li>
+                                {Number.isFinite(dailyCap) && (
+                                    <li className="tc-row">
+                                        <span className="tc-row__label">Daily Earning Cap</span>
+                                        <span className="tc-row__value">{formatTriviaDisplayNumber(dailyCap)} Diamonds</span>
+                                    </li>
+                                )}
+                                {userId && (
+                                    <li className="tc-row">
+                                        <span className="tc-row__label">Your Diamonds</span>
+                                        <span className="tc-row__value tc-ink--gold">{formatTriviaDisplayNumber(userDiamonds)}</span>
+                                    </li>
+                                )}
+                                {mode === 'daily' && userId && (
+                                    <li className="tc-row">
+                                        <span className="tc-row__label">Daily Streak</span>
+                                        <span className="tc-row__value">{formatTriviaDisplayNumber(userStreak)} Days</span>
+                                    </li>
+                                )}
                                 {personalBest != null && (
-                                    <div className="personal-best-badge">Your Best: {personalBest}</div>
+                                    <li className="tc-row">
+                                        <span className="tc-row__label">Your Best</span>
+                                        <span className="tc-row__value">{formatTriviaDisplayNumber(personalBest)}</span>
+                                    </li>
                                 )}
-                                {mode === 'daily' && (
-                                    <div className="daily-lobby-console" aria-hidden="true">
-                                        <span>Daily Knowledge Table</span>
-                                        <strong>Take Your Seat</strong>
-                                        <small>{modeConfig.questionsCount} Questions · {modeConfig.diamondCost || 0} Diamond Entry · One Daily Run</small>
-                                    </div>
-                                )}
-                                {isStarting && (
-                                    <div className="starting-overlay">
-                                        <span>Dealing In...</span>
-                                    </div>
-                                )}
-                            </button>
-                        ) : (
-                            /* Fallback text lobby */
-                            <div className="ready-screen">
-                                <div className="mode-info">
-                                    <h2>{modeConfig.name}</h2>
-                                    <p>{modeConfig.description}</p>
+                            </ul>
 
-                                    <div className="mode-details">
-                                        <div className="detail">
-                                            <span className="label">Questions</span>
-                                            <span className="value">{modeConfig.questionsCount}</span>
-                                        </div>
-                                        {modeConfig.timeLimit && (
-                                            <div className="detail">
-                                                <span className="label">Time Limit</span>
-                                                <span className="value">{modeConfig.timeLimit}s</span>
-                                            </div>
-                                        )}
-                                        {modeConfig.diamondCost > 0 && (
-                                            <div className="detail">
-                                                <span className="label">Entry Cost</span>
-                                                <span className="value">{modeConfig.diamondCost} Diamonds</span>
-                                            </div>
-                                        )}
-                                        {personalBest != null && (
-                                            <div className="detail">
-                                                <span className="label">Your Best</span>
-                                                <span className="value">{personalBest}</span>
-                                            </div>
-                                        )}
-                                    </div>
+                            <p className="trivia-console-copy mode-disclosure">
+                                {isPaidMode
+                                    ? `Entry Is ${modeConfig.diamondCost} Diamonds, Charged Only When The Game Starts. VIP Members Play Free.`
+                                    : mode === 'daily'
+                                        ? (dailyDiamondsClaimed
+                                            ? "Today's Completion Bonus Is Already Claimed. You Can Still Play For Practice."
+                                            : "Free To Play. Finish All Questions For Today's Completion Bonus.")
+                                        : 'Free To Play. Answers Are Graded By The Server As You Go.'}
+                            </p>
+                            {isStarting && (
+                                <p className="trivia-console-copy tc-ink--blue" role="status">Dealing In</p>
+                            )}
 
+                            {mode === 'arcade' && (
+                                <div className="leaderboard-section">
+                                    <LeaderboardDisplay
+                                        entries={leaderboard}
+                                        currentUserId={userId}
+                                        filter={leaderboardFilter}
+                                        onFilterChange={(f) => loadLeaderboard(f)}
+                                    />
                                 </div>
-
-                                {mode === 'arcade' && (
-                                    <div className="leaderboard-section">
-                                        <LeaderboardDisplay
-                                            entries={leaderboard}
-                                            currentUserId={userId}
-                                            filter={leaderboardFilter}
-                                            onFilterChange={(f) => loadLeaderboard(f)}
-                                        />
-                                    </div>
-                                )}
-                            </div>
-                        )
+                            )}
+                        </div>
                     )}
 
                     {gameState === 'playing' && mode !== 'survival' && (
@@ -1325,6 +1401,9 @@ export default function TriviaModePage() {
                             // is unaffordable - HintButtons otherwise only shows a
                             // transient inline notice with no route to the store.
                             onNeedDiamonds={() => setShowOutOfDiamonds(true)}
+                            // Report Question needs a signed-in bearer token.
+                            enableReport={Boolean(userId)}
+                            reportToken={userId ? getAccessToken() : null}
                             // onDiamondsChange is deliberately NOT passed. It
                             // existed to settle hint purchases and stake
                             // deltas by crediting/debiting from the browser,
@@ -1342,20 +1421,22 @@ export default function TriviaModePage() {
                     {gameState === 'results' && result && (
                         <div className="results-section">
                             {result.beatPersonalBest && (
-                                <div className="new-best-callout">New Personal Best!</div>
+                                <p className="trivia-console-copy tc-ink--gold new-best-callout">New Personal Best!</p>
                             )}
                             {result.capReached && (
-                                <div className="cap-callout">
-                                    Daily Earning Cap Reached For This Mode - {result.diamondsEarned} Of {result.rawDiamonds} Diamonds Awarded. Come Back Tomorrow For Full Rewards!
-                                </div>
+                                <p className="trivia-console-copy tc-ink--muted cap-callout">
+                                    Daily Earning Cap Reached For This Mode. {formatTriviaDisplayNumber(result.diamondsEarned)} Of {formatTriviaDisplayNumber(result.rawDiamonds)} Diamonds Awarded. Come Back Tomorrow For Full Rewards!
+                                </p>
                             )}
                             {result.skippedCount > 0 && (
-                                <div className="cap-callout">
-                                    {result.skippedCount} question{result.skippedCount === 1 ? ' was' : 's were'} Skipped And Scored Neutral - They Are Not Counted In Your Accuracy.
-                                </div>
+                                <p className="trivia-console-copy tc-ink--muted cap-callout">
+                                    {result.skippedCount === 1
+                                        ? '1 Question Was Skipped And Scored Neutral. It Is Not Counted In Your Accuracy.'
+                                        : `${result.skippedCount} Questions Were Skipped And Scored Neutral. They Are Not Counted In Your Accuracy.`}
+                                </p>
                             )}
                             {wheelError && (
-                                <div className="cap-callout">{wheelError}</div>
+                                <p className="trivia-console-copy tc-ink--red cap-callout" role="alert">{wheelError}</p>
                             )}
                             <TriviaResult
                                 {...result}
@@ -1364,6 +1445,9 @@ export default function TriviaModePage() {
                                 showDailyBonusRow={mode === 'daily'}
                                 onSpinWheel={openPrizeWheel}
                                 showSpinButton={isPerfectScore && !showPrizeWheel && !wheelSpun}
+                                // Back To Trivia and Play Again print on the
+                                // console's own painted plates (footer law).
+                                actionsInFooter
                                 // onDoubleOrNothing / showDoubleButton are gone
                                 // with the wager itself - see the removal note
                                 // further down. They were held off with a
@@ -1391,26 +1475,26 @@ export default function TriviaModePage() {
                                         showed the same diamonds twice. */}
                                     {dailyLeaderboard.length > 0 && (
                                         <div className="daily-leaderboard">
-                                            <h3>Daily Trivia Leaderboard</h3>
-                                            <div className="daily-lb-header">
-                                                <span className="lb-col rank">#</span>
-                                                <span className="lb-col name">Player</span>
-                                                <span className="lb-col streak">Streak</span>
-                                                <span className="lb-col accuracy">Acc%</span>
-                                                <span className="lb-col games">Games</span>
-                                            </div>
-                                            {dailyLeaderboard.map((entry, idx) => (
-                                                <div
-                                                    key={entry.userId}
-                                                    className={`daily-lb-row ${entry.userId === userId ? 'you' : ''}`}
-                                                >
-                                                    <span className="lb-col rank">{idx + 1}</span>
-                                                    <span className="lb-col name">{entry.username}</span>
-                                                    <span className="lb-col streak">{entry.streak}d</span>
-                                                    <span className="lb-col accuracy">{entry.accuracy}%</span>
-                                                    <span className="lb-col games">{entry.gamesPlayed}</span>
-                                                </div>
-                                            ))}
+                                            <h2 className="tc-label">Daily Trivia Leaderboard</h2>
+                                            <ol className="tc-rows daily-lb-list" aria-label="Daily Trivia Streaks">
+                                                {dailyLeaderboard.map((entry, idx) => (
+                                                    <li
+                                                        key={entry.userId}
+                                                        className={`tc-row daily-lb-row ${entry.userId === userId ? 'you' : ''}`}
+                                                        aria-current={entry.userId === userId ? 'true' : undefined}
+                                                    >
+                                                        <span className="daily-lb-who">
+                                                            <span className={`daily-lb-rank ${idx === 0 ? 'tc-ink--gold' : idx === 1 ? 'tc-ink--silver' : idx === 2 ? 'tc-ink--blue' : 'tc-ink--muted'}`}>{idx + 1}</span>
+                                                            <span className={`daily-lb-name ${entry.userId === userId ? 'tc-ink--white' : 'tc-ink--silver'}`}>{printPlayerName(entry.username, 'Player')}</span>
+                                                            {entry.userId === userId && <span className="tc-label">You</span>}
+                                                        </span>
+                                                        <span className="daily-lb-stats">
+                                                            <span className="tc-ink--gold">{formatTriviaDisplayNumber(entry.streak)} Day Streak</span>
+                                                            <span className="tc-ink--muted">{entry.accuracy}% Accuracy, {formatTriviaDisplayNumber(entry.gamesPlayed)} {entry.gamesPlayed === 1 ? 'Game' : 'Games'}</span>
+                                                        </span>
+                                                    </li>
+                                                ))}
+                                            </ol>
                                         </div>
                                     )}
                                 </div>
@@ -1431,8 +1515,9 @@ export default function TriviaModePage() {
                         the double-or-nothing question through
                         /api/trivia/session-answer and pay from a route that
                         owns the amount, the way award_trivia_run does for a
-                        run), then re-add the modal wired to that route. The
-                        DoubleOrNothing component itself is untouched. */}
+                        run), then build a console dialog wired to that route.
+                        The old DoubleOrNothing component had no importer left
+                        and was removed with the console redesign. */}
 
                     {/* Prize Wheel - only shows on 100% perfect score */}
                     {showPrizeWheel && (
@@ -1473,9 +1558,8 @@ export default function TriviaModePage() {
                         unmount/remount the confetti mid-celebration */}
                     {celebrations.CelebrationComponents()}
                     </TriviaConsole>
-                </div>
+                </main>
             </div>
         </TriviaErrorBoundary>
     );
 }
-/* Cache bust: lobby-images-mobile-v3 */

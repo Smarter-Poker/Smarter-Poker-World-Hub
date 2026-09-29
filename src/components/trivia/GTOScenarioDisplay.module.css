@@ -1,816 +1,211 @@
-/**
- * GTOScenarioDisplay.module.css
- * Premium futuristic GTO analysis panel.
- *
- * Design notes
- * ------------
- * - Colors/space/motion come from the trivia design system
- *   (src/styles/worlds/trivia.css). Every var() carries a literal fallback so
- *   the panel renders correctly even when it is mounted outside a
- *   .trivia-page / body.world-trivia token root.
- * - The action/confidence accent colors are passed in as TWO custom properties
- *   from the component: --action-color (solid) and --action-glow (pre-mixed
- *   rgba). That replaces color-mix(), which Safari < 16.2 does not support and
- *   which caused the whole box-shadow declaration to be dropped there.
- * - Only transform/opacity are animated. The collapse uses grid-template-rows
- *   so it animates in BOTH directions without magic max-height numbers.
- * - Text colors are AA on this panel's surface: #94a3b8 on ~#0c1221 is 6.5:1.
+/*
+ * GTOScenarioDisplay: the solver reveal printed on the Trivia console glass.
+ * No card, border-as-control, gradient, shadow depth, rounded panel or hover.
+ * Rows use the shared .tc-rows / .tc-row engraved rules; colours are schema
+ * tokens only (#ClubArenaConsole 3.4).
  */
 
-/* Local z-index ladder — nothing here escapes the panel. */
-.container {
-    --gto-z-glow: 0;
-    --gto-z-avatar: 1;
-    --gto-z-badge: 2;
-
-    position: relative;
-    width: 100%;
-    max-width: 500px;
-    margin: 0 auto;
-    background: linear-gradient(145deg,
-            rgba(20, 30, 48, 0.95) 0%,
-            rgba(36, 59, 85, 0.9) 50%,
-            rgba(20, 30, 48, 0.95) 100%);
-    border-radius: var(--trivia-radius-lg, 16px);
-    padding: var(--trivia-space-6, 20px);
-    box-shadow:
-        0 0 40px rgba(0, 0, 0, 0.5),
-        inset 0 1px 0 rgba(255, 255, 255, 0.1),
-        inset 0 -1px 0 rgba(0, 0, 0, 0.3);
-    border: 1px solid var(--trivia-border-strong, rgba(6, 182, 212, 0.3));
-    overflow: hidden;
-    /* Isolate so the panel's stacking never collides with page overlays. */
-    isolation: isolate;
-}
-
-/* Metallic edge effects */
-.container::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 3px;
-    background: linear-gradient(90deg,
-            transparent 0%,
-            rgba(6, 182, 212, 0.5) 20%,
-            rgba(6, 182, 212, 0.8) 50%,
-            rgba(6, 182, 212, 0.5) 80%,
-            transparent 100%);
-}
-
-.container::after {
-    content: '';
-    position: absolute;
-    bottom: 0;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 60%;
-    height: 4px;
-    background: linear-gradient(90deg,
-            transparent 0%,
-            rgba(6, 182, 212, 0.6) 50%,
-            transparent 100%);
-    border-radius: 2px;
-}
-
-/* Corner Badge — used for the "illustrative numbers" disclosure and for the
-   AI-panel source label. */
-.cornerBadge {
-    position: absolute;
-    top: 12px;
-    right: 12px;
-    z-index: var(--gto-z-badge, 2);
-    background: linear-gradient(135deg, rgba(6, 182, 212, 0.22) 0%, rgba(6, 182, 212, 0.12) 100%);
-    border: 1px solid rgba(6, 182, 212, 0.45);
-    border-radius: 6px;
-    padding: 4px 10px;
-    font-size: 11px;
-    font-weight: 700;
-    color: #67e8f9;
-    /* 9.6:1 on this surface (the old #06b6d4 was 4.3:1 at 10px) */
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    max-width: 60%;
-    text-align: right;
-}
-
-.cornerBadgeWarn {
-    background: linear-gradient(135deg, rgba(245, 158, 11, 0.22) 0%, rgba(245, 158, 11, 0.12) 100%);
-    border-color: rgba(245, 158, 11, 0.5);
-    color: var(--trivia-warning-text, #fbbf24);
-}
-
-/* Header Section */
-.header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 16px;
-    margin-bottom: 20px;
-    padding-bottom: 16px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-/* Avatar Container */
-.avatarContainer {
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 6px;
-    flex: 0 0 auto;
-}
-
-.avatarGlow {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    z-index: var(--gto-z-glow, 0);
-    /* Fixed box + transform-only animation: no layout work per frame. */
-    width: 70px;
-    height: 70px;
-    margin: -35px 0 0 -35px;
-    background: radial-gradient(circle, rgba(6, 182, 212, 0.3) 0%, transparent 70%);
-    border-radius: 50%;
-    opacity: 0.6;
-    pointer-events: none;
-    will-change: transform, opacity;
-}
-
-/* Motion is opt-in rather than opt-out, so motion-sensitive users never get
-   the pulse even if the global reduced-motion block is not in scope. */
-@media (prefers-reduced-motion: no-preference) {
-    .avatarGlow {
-        animation: avatarPulse 2.4s ease-in-out infinite;
-    }
-}
-
-@keyframes avatarPulse {
-
-    0%,
-    100% {
-        opacity: 0.5;
-        transform: scale(1);
-    }
-
-    50% {
-        opacity: 1;
-        transform: scale(1.1);
-    }
-}
-
-.avatar {
-    width: 56px;
-    height: 56px;
-    border-radius: 50%;
-    border: 2px solid rgba(6, 182, 212, 0.6);
-    object-fit: cover;
-    position: relative;
-    z-index: var(--gto-z-avatar, 1);
-    box-shadow: 0 0 20px rgba(6, 182, 212, 0.4);
-    /* Reserve the box before the image decodes — no layout shift. */
-    background: rgba(6, 182, 212, 0.08);
-    flex: 0 0 auto;
-}
-
-.avatarLabel {
-    font-size: 11px;
-    font-weight: 700;
-    color: var(--trivia-text-dim, #94a3b8);
-    text-transform: uppercase;
-    letter-spacing: 1px;
-}
-
-/* Action Container */
-.actionContainer {
-    flex: 1 1 auto;
-    display: flex;
-    justify-content: center;
+.panel {
+    display: grid;
+    gap: 2cqw;
     min-width: 0;
+    color: #e4e7ec;
 }
 
-.actionBox {
-    background: linear-gradient(180deg,
-            rgba(0, 0, 0, 0.4) 0%,
-            rgba(0, 0, 0, 0.6) 100%);
-    border: 2px solid var(--action-color, #00ff88);
-    border-radius: 8px;
-    padding: 10px 24px;
-    max-width: 100%;
-    box-shadow:
-        0 0 20px var(--action-glow, rgba(0, 255, 136, 0.3)),
-        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+.kicker {
+    margin: 0;
+    color: #45adff;
+    font-size: max(12px, 2.7cqw);
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-align: center;
+    text-transform: uppercase;
+    text-shadow: 0 0 0.9cqw rgb(69 173 255 / 70%), 0 0.2cqw 0.3cqw rgb(0 0 0 / 85%);
+}
+
+.kickerWarn {
+    color: #ffd700;
+    text-shadow: 0 0 0.9cqw rgb(255 215 0 / 60%), 0 0.2cqw 0.3cqw rgb(0 0 0 / 85%);
 }
 
 .actionText {
-    display: block;
-    font-size: 28px;
-    font-weight: 800;
-    color: var(--action-color, #00ff88);
+    letter-spacing: 0.06em;
     text-transform: uppercase;
-    letter-spacing: 2px;
-    text-shadow: 0 0 20px var(--action-glow, rgba(0, 255, 136, 0.3));
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
 }
 
-/* Confidence Container */
-.confidenceContainer {
-    position: relative;
-    flex: 0 0 auto;
-}
-
-.confidenceCircle {
-    width: 60px;
-    height: 60px;
-    border-radius: 50%;
-    background: linear-gradient(145deg,
-            rgba(0, 0, 0, 0.5) 0%,
-            rgba(20, 30, 48, 0.8) 100%);
-    border: 2px solid var(--confidence-color, #00ff88);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow:
-        0 0 15px var(--confidence-glow, rgba(0, 255, 136, 0.3)),
-        inset 0 0 10px rgba(0, 0, 0, 0.5);
-}
-
-.confidenceValue {
-    font-size: 18px;
-    font-weight: 700;
-    color: var(--confidence-color, #00ff88);
-    font-variant-numeric: tabular-nums;
-    /* tabular figures: 8% -> 88% never resizes the circle's contents */
-}
-
-/* Sections Container */
 .sectionsContainer {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
+    display: grid;
+    min-width: 0;
 }
 
-/* Section Styles */
 .section {
-    background: linear-gradient(180deg,
-            rgba(15, 23, 42, 0.6) 0%,
-            rgba(15, 23, 42, 0.8) 100%);
-    border: 1px solid rgba(6, 182, 212, 0.25);
-    border-radius: 10px;
-    overflow: hidden;
-    /* Explicit properties — `transition: all` also animated layout props. */
-    transition:
-        border-color var(--trivia-dur-base, 200ms) var(--trivia-ease-standard, ease),
-        box-shadow var(--trivia-dur-base, 200ms) var(--trivia-ease-standard, ease);
-    box-shadow:
-        0 2px 12px rgba(0, 0, 0, 0.3),
-        inset 0 1px 0 rgba(255, 255, 255, 0.04);
-}
-
-@media (hover: hover) and (pointer: fine) {
-    .section:hover {
-        border-color: rgba(6, 182, 212, 0.4);
-        box-shadow:
-            0 4px 20px rgba(6, 182, 212, 0.1),
-            0 2px 12px rgba(0, 0, 0, 0.3),
-            inset 0 1px 0 rgba(255, 255, 255, 0.06);
-    }
+    min-width: 0;
+    border-top: 1px solid #000;
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 8%);
 }
 
 .sectionHeader {
-    width: 100%;
+    appearance: none;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 10px;
-    /* 44px minimum touch target (WCAG 2.5.5 / Apple HIG). */
-    min-height: var(--trivia-tap-min, 44px);
-    padding: 10px 14px;
+    gap: 3cqw;
+    width: 100%;
+    min-height: 44px;
+    margin: 0;
+    padding: 1.4cqw 0;
+    border: 0;
+    border-radius: 0;
+    color: inherit;
     background: transparent;
-    border: none;
-    cursor: pointer;
-    color: #e2e8f0;
-    font-family: inherit;
+    box-shadow: none;
+    font: inherit;
     text-align: left;
-    -webkit-tap-highlight-color: transparent;
+    cursor: pointer;
     touch-action: manipulation;
-    transition: background-color var(--trivia-dur-fast, 150ms) var(--trivia-ease-standard, ease);
 }
 
-@media (hover: hover) and (pointer: fine) {
-    .sectionHeader:hover {
-        background: rgba(255, 255, 255, 0.03);
-    }
+.sectionHeader:active {
+    filter: brightness(1.25);
 }
 
-/* Outline-based focus: visible for keyboard users, no layout shift. */
 .sectionHeader:focus-visible {
-    outline: 2px solid var(--trivia-accent, #00D4FF);
-    outline-offset: -3px;
-    background: rgba(255, 255, 255, 0.04);
+    outline: 3px solid #45adff;
+    outline-offset: 2px;
 }
 
 .sectionTitle {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    font-size: 14px;
-    font-weight: 600;
     min-width: 0;
+    color: #45adff;
+    font-size: max(12px, 2.8cqw);
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    text-shadow: 0 0 0.9cqw rgb(69 173 255 / 60%), 0 0.2cqw 0.3cqw rgb(0 0 0 / 85%);
 }
 
-.sectionIcon {
-    color: var(--accent-color, #06b6d4);
+.sectionState {
     flex: 0 0 auto;
+    color: #9aa5b3;
+    font-size: max(12px, 2.5cqw);
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
 }
 
-.sectionChevron {
-    flex: 0 0 auto;
-    color: var(--trivia-text-dim, #94a3b8);
-    transition: transform var(--trivia-dur-base, 200ms) var(--trivia-ease-standard, ease);
-}
-
-.sectionChevronOpen {
-    transform: rotate(180deg);
-}
-
-/*
- * Two-way collapse.
- * grid-template-rows 0fr -> 1fr animates open AND closed with no magic
- * numbers, and `visibility` (delayed until the animation finishes) keeps the
- * collapsed content out of the tab order and out of the accessibility tree.
- */
 .sectionBody {
     display: grid;
-    grid-template-rows: 0fr;
-    transition: grid-template-rows var(--trivia-dur-base, 200ms) var(--trivia-ease-standard, ease);
+    gap: 1.4cqw;
+    min-width: 0;
+    padding: 0 0 2cqw;
 }
 
-.sectionBodyOpen {
-    grid-template-rows: 1fr;
+.sectionBody[hidden] {
+    display: none;
 }
 
-.sectionBodyInner {
-    overflow: hidden;
-    min-height: 0;
-    opacity: 0;
-    visibility: hidden;
-    transition:
-        opacity var(--trivia-dur-fast, 150ms) var(--trivia-ease-standard, ease),
-        visibility 0s linear var(--trivia-dur-base, 200ms);
-}
-
-.sectionBodyOpen>.sectionBodyInner {
-    opacity: 1;
-    visibility: visible;
-    transition:
-        opacity var(--trivia-dur-base, 200ms) var(--trivia-ease-decelerate, ease) 60ms,
-        visibility 0s linear 0s;
-}
-
-.sectionContent {
-    padding: 0 14px 14px;
-}
-
-/* Explanation Text */
 .explanationText {
-    font-size: 13px;
-    line-height: 1.6;
-    color: var(--trivia-text-dim, #94a3b8);
     margin: 0;
+    color: #e4e7ec;
+    font-family: Inter, system-ui, sans-serif;
+    font-size: max(14px, 3.3cqw);
+    line-height: 1.6;
     overflow-wrap: anywhere;
 }
 
-/* GTO Highlight */
 .explanationText :global(.gto-highlight) {
-    color: #67e8f9;
-    font-weight: 600;
-}
-
-/* EV Container */
-.evContainer {
-    display: flex;
-    align-items: flex-start;
-    gap: 16px;
-    flex-wrap: wrap;
+    color: #45adff;
+    font-weight: 700;
 }
 
 .evValue {
-    font-size: 32px;
-    font-weight: 800;
-    color: #00ff88;
-    text-shadow: 0 0 20px rgba(0, 255, 136, 0.4);
-    white-space: nowrap;
-    font-variant-numeric: tabular-nums;
-}
-
-.evDescription {
-    font-size: 13px;
-    line-height: 1.5;
-    color: var(--trivia-text-dim, #94a3b8);
     margin: 0;
-    flex: 1 1 180px;
-    min-width: 0;
-    overflow-wrap: anywhere;
-}
-
-.evDescription :global(.gto-highlight) {
-    color: #4ade80;
-    font-weight: 600;
-}
-
-/* Alternate Lines */
-.alternateLines {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
+    font-size: max(24px, 6.4cqw);
+    font-weight: 800;
+    font-variant-numeric: tabular-nums lining-nums;
+    line-height: 1.1;
 }
 
 .alternateLine {
-    padding: 10px 12px;
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 8px;
-    background: rgba(0, 0, 0, 0.2);
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+    gap: 0.8cqw;
 }
 
-.lineAction {
+.lineHead {
     display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 4px;
-    flex-wrap: wrap;
-}
-
-/* Decorative only — the action name is always spelled out next to it, so the
-   dot never carries meaning on its own. */
-.lineIndicator {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    flex: 0 0 auto;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 3cqw;
+    min-width: 0;
 }
 
 .lineActionText {
-    font-size: 14px;
-    font-weight: 700;
-    color: #e2e8f0;
+    font-size: max(14px, 3.4cqw);
+    font-weight: 800;
+    letter-spacing: 0.06em;
     text-transform: uppercase;
 }
 
 .lineFrequency {
-    font-size: 12px;
-    /* was #64748b = 3.9:1 on this surface — below AA for 12px text */
-    color: var(--trivia-text-dim, #94a3b8);
-    margin-left: auto;
-    font-variant-numeric: tabular-nums;
-}
-
-.lineDescription {
-    font-size: 12px;
-    color: var(--trivia-text-dim, #94a3b8);
-    margin: 0;
-    line-height: 1.4;
-    overflow-wrap: anywhere;
-}
-
-/* Bottom Accent */
-.bottomAccent {
-    position: absolute;
-    bottom: 8px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 40%;
-    height: 2px;
-    background: linear-gradient(90deg,
-            transparent 0%,
-            rgba(6, 182, 212, 0.6) 50%,
-            transparent 100%);
-    pointer-events: none;
-}
-
-/* ───────────────────────────────────────────────────────────────────────────
-   Visual-card (AI panel) controls
-   ─────────────────────────────────────────────────────────────────────────── */
-
-.panelActions {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
-    flex-wrap: wrap;
-    margin-top: 14px;
-    padding-top: 14px;
-    border-top: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-.panelButton {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    min-height: var(--trivia-tap-min, 44px);
-    padding: 10px 18px;
-    border-radius: 10px;
-    border: 1px solid rgba(6, 182, 212, 0.45);
-    background: linear-gradient(180deg, rgba(6, 182, 212, 0.18) 0%, rgba(6, 182, 212, 0.08) 100%);
-    color: #a5f3fc;
-    font-family: inherit;
-    font-size: 13px;
+    color: #e4e7ec;
+    font-size: max(13px, 3cqw);
     font-weight: 700;
-    letter-spacing: 0.04em;
-    cursor: pointer;
-    -webkit-tap-highlight-color: transparent;
-    touch-action: manipulation;
-    transition:
-        transform var(--trivia-dur-fast, 150ms) var(--trivia-ease-standard, ease),
-        border-color var(--trivia-dur-base, 200ms) var(--trivia-ease-standard, ease),
-        box-shadow var(--trivia-dur-base, 200ms) var(--trivia-ease-standard, ease);
-}
-
-@media (hover: hover) and (pointer: fine) {
-    .panelButton:hover:not(:disabled) {
-        border-color: var(--trivia-accent, #00D4FF);
-        box-shadow: 0 0 18px rgba(0, 212, 255, 0.28);
-        transform: translateY(-1px);
-    }
-}
-
-.panelButton:active:not(:disabled) {
-    transform: scale(0.97);
-}
-
-.panelButton:focus-visible {
-    outline: 2px solid var(--trivia-accent, #00D4FF);
-    outline-offset: 2px;
-}
-
-.panelButton:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-    transform: none;
-}
-
-.panelButtonGhost {
-    background: rgba(255, 255, 255, 0.03);
-    border-color: rgba(255, 255, 255, 0.14);
-    color: var(--trivia-text-muted, #cbd5e1);
-}
-
-.panelHint {
-    width: 100%;
-    margin: 0;
-    text-align: center;
-    font-size: 11px;
-    line-height: 1.5;
-    color: var(--trivia-text-dim, #94a3b8);
-}
-
-.panelError {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    width: 100%;
-    margin: 0;
-    padding: 8px 12px;
-    border-radius: 8px;
-    border: 1px solid rgba(239, 68, 68, 0.45);
-    background: rgba(239, 68, 68, 0.12);
-    color: var(--trivia-danger-text, #f87171);
-    font-size: 12px;
-    line-height: 1.45;
-    text-align: center;
-}
-
-/* Non-color cue so the error is not signalled by red alone. */
-.panelError::before {
-    content: "\0021";
-    font-weight: 900;
-    flex: 0 0 auto;
-}
-
-/* Compact Version */
-.compactContainer {
-    background: linear-gradient(145deg,
-            rgba(20, 30, 48, 0.9) 0%,
-            rgba(36, 59, 85, 0.85) 100%);
-    border-radius: 12px;
-    padding: 14px;
-    border: 1px solid rgba(6, 182, 212, 0.25);
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-}
-
-.compactHeader {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-bottom: 10px;
-}
-
-.compactAvatar {
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    border: 2px solid rgba(6, 182, 212, 0.5);
-    object-fit: cover;
-    flex: 0 0 auto;
-    background: rgba(6, 182, 212, 0.08);
-}
-
-.compactAction {
-    flex: 1 1 auto;
-    min-width: 0;
-    font-size: 18px;
-    font-weight: 800;
-    color: var(--action-color, #00ff88);
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    font-variant-numeric: tabular-nums lining-nums;
     white-space: nowrap;
 }
 
-.compactConfidence {
-    flex: 0 0 auto;
-    font-size: 16px;
-    font-weight: 700;
-    color: var(--action-color, #00ff88);
-    background: rgba(0, 0, 0, 0.3);
-    padding: 4px 10px;
-    border-radius: 20px;
-    border: 1px solid var(--action-color, #00ff88);
-    font-variant-numeric: tabular-nums;
-}
-
-.compactExplanation {
-    font-size: 12px;
+.lineDescription {
+    color: #9aa5b3;
+    font-family: Inter, system-ui, sans-serif;
+    font-size: max(13px, 3cqw);
     line-height: 1.5;
-    color: var(--trivia-text-dim, #94a3b8);
+}
+
+.panelActions {
+    display: grid;
+    justify-items: center;
+    gap: 0.8cqw;
+    padding-top: 1.6cqw;
+    border-top: 1px solid #000;
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 8%);
+    text-align: center;
+}
+
+.panelError,
+.panelHint {
     margin: 0;
-    overflow-wrap: anywhere;
+    font-size: max(13px, 3cqw);
+    line-height: 1.5;
 }
 
-.compactExplanation :global(.gto-highlight) {
-    color: #67e8f9;
-    font-weight: 600;
-}
-
-/* Responsive adjustments */
-@media (max-width: 480px) {
-    .container {
-        padding: 16px;
-    }
-
-    .header {
-        gap: 10px;
-    }
-
-    .actionText {
-        font-size: 22px;
-    }
-
-    .actionBox {
-        padding: 8px 14px;
-    }
-
-    .avatar {
-        width: 48px;
-        height: 48px;
-    }
-
-    .avatarGlow {
-        width: 60px;
-        height: 60px;
-        margin: -30px 0 0 -30px;
-    }
-
-    .confidenceCircle {
-        width: 50px;
-        height: 50px;
-    }
-
-    .confidenceValue {
-        font-size: 15px;
-    }
-
-    .evValue {
-        font-size: 26px;
-    }
-
-    .panelButton {
-        flex: 1 1 140px;
-    }
-}
-
-/* ───────────────────────────────────────────────────────────────────────────
-   AI-generated panel image + loading / empty states
-   ─────────────────────────────────────────────────────────────────────────── */
-
-/* Wrapper for the card view: the image and the loading placeholder occupy the
-   exact same reserved box, so swapping one for the other shifts nothing. */
-.aiPanelBlock {
-    width: 100%;
-    max-width: 420px;
-    margin: 20px auto;
-}
-
-.aiPanelBlock .aiPanelContainer,
-.aiPanelBlock .loadingPanel {
-    margin: 0;
-    max-width: none;
+.panelHint {
+    color: #9aa5b3;
 }
 
 .aiPanelContainer {
-    position: relative;
-    width: 100%;
-    max-width: 420px;
-    margin: 20px auto;
-    border-radius: 16px;
-    overflow: hidden;
-    background: rgba(10, 15, 28, 0.9);
-    box-shadow:
-        0 0 40px rgba(0, 0, 0, 0.5),
-        0 0 20px rgba(6, 182, 212, 0.2);
+    display: grid;
+    min-width: 0;
+    min-height: 160px;
+    place-items: center;
 }
 
 .aiPanelImage {
+    display: block;
     width: 100%;
     height: auto;
-    /* Reserve the box before the bitmap arrives so the page does not jump. */
-    aspect-ratio: 1 / 1;
-    object-fit: contain;
-    display: block;
-    border-radius: 16px;
-    background: rgba(10, 15, 28, 0.9);
-}
-
-.aiPanelFooter {
-    display: flex;
-    justify-content: center;
-    padding: 10px 12px 12px;
-}
-
-/* Loading State */
-.loadingPanel {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 14px;
-    width: 100%;
-    max-width: 420px;
-    /* Matches .aiPanelContainer's reserved box, so swapping the spinner for
-       the finished image does not shift anything below it. */
-    aspect-ratio: 1 / 1;
-    margin: 20px auto;
-    background: linear-gradient(145deg,
-            rgba(20, 30, 48, 0.95) 0%,
-            rgba(36, 59, 85, 0.9) 100%);
-    border-radius: 16px;
-    border: 1px solid rgba(6, 182, 212, 0.3);
-}
-
-.loadingSpinner {
-    display: block;
-    box-sizing: border-box;
-    width: 40px;
-    height: 40px;
-    border: 3px solid rgba(6, 182, 212, 0.2);
-    border-top-color: #06b6d4;
-    border-radius: 50%;
-}
-
-@media (prefers-reduced-motion: no-preference) {
-    .loadingSpinner {
-        animation: spin 1s linear infinite;
-    }
-}
-
-@media (prefers-reduced-motion: reduce) {
-    .loadingSpinner {
-        border-top-color: rgba(6, 182, 212, 0.7);
-    }
 }
 
 .loadingLabel {
-    font-size: 13px;
-    font-weight: 600;
-    letter-spacing: 0.04em;
-    color: var(--trivia-text-muted, #cbd5e1);
-    text-align: center;
-    padding: 0 20px;
+    margin: 0;
+    color: #45adff;
+    font-size: max(13px, 3cqw);
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
 }
 
-@keyframes spin {
-    to {
-        transform: rotate(360deg);
-    }
-}
-
-/* Screen-reader-only helper for the panel's live regions. */
 .srOnly {
     position: absolute;
     width: 1px;
@@ -818,29 +213,7 @@
     padding: 0;
     margin: -1px;
     overflow: hidden;
-    clip: rect(0, 0, 0, 0);
-    clip-path: inset(50%);
+    clip: rect(0 0 0 0);
     white-space: nowrap;
     border: 0;
-}
-
-/* Panel-scoped reduced-motion: the collapse and hover transitions are
-   neutralised even when this component is rendered outside the trivia world
-   root (so the global block in trivia.css would not reach it). */
-@media (prefers-reduced-motion: reduce) {
-
-    .section,
-    .sectionHeader,
-    .sectionChevron,
-    .sectionBody,
-    .sectionBodyInner,
-    .sectionBodyOpen>.sectionBodyInner,
-    .panelButton {
-        transition-duration: 0.01ms !important;
-    }
-
-    .avatarGlow {
-        animation: none !important;
-        opacity: 0.6;
-    }
 }

@@ -25,7 +25,8 @@ test('mobile cards stay stacked with full artwork before descriptions', () => {
     assert.match(cardMarkup, /frameLabel=\{mode\.name\}/);
     assert.ok(FRAME_CARD.indexOf('className={styles.visual}') < FRAME_CARD.indexOf('className={styles.copy}'));
     assert.match(FRAME_CARD_CSS, /\.card \{[\s\S]*?flex-direction: column;/);
-    assert.match(FRAME_CARD_CSS, /\.art \{[\s\S]*?object-fit: contain;/);
+    // Scoped to the .art block itself so a later rule cannot satisfy it.
+    assert.match(FRAME_CARD_CSS, /\.art \{[^}]*object-fit: contain;/);
     assert.match(LOBBY, /@media \(max-width: 700px\)[\s\S]*?\.mode-image-card \{[\s\S]*?flex-direction: column;/);
 });
 

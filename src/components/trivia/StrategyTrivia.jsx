@@ -30,6 +30,7 @@ import {
 import useServerGradedRun from '../../../src/hooks/useServerGradedRun';
 import useTriviaTimer from '../../../src/hooks/useTriviaTimer';
 import { toTitleCase } from '../../../src/lib/trivia/titleCase';
+import { formatTriviaDisplayNumber } from '../../lib/trivia/formatTriviaDisplayNumber';
 import GTOScenarioDisplay from './GTOScenarioDisplay';
 import TriviaSkeleton from './TriviaSkeleton';
 import TriviaConsole from './console/TriviaConsole';
@@ -85,36 +86,31 @@ const SECONDS_PER_QUESTION = 60;
 const STRATEGY_MODES = {
     mtt: {
         title: 'MTT Scenarios',
-        subtitle: 'Multi-Table Tournament Situations',
-        color: '#f97316',
-        icon: 'target'
+        subtitle: 'Tournament Situations'
     },
     cash: {
         title: 'Cash Game',
-        subtitle: 'Deep Stack Scenarios & Implied Odds',
-        color: '#22c55e',
-        icon: 'dollar'
+        subtitle: 'Deep Stack Scenarios'
     },
     icm: {
         title: 'ICM & Chip EV',
-        subtitle: 'Tournament Equity Decisions',
-        color: '#06b6d4',
-        icon: 'chart'
+        subtitle: 'Equity Decisions'
     },
     gto: {
         title: 'GTO Master',
-        subtitle: 'Solver-Based Strategy Scenarios',
-        color: '#a855f7',
-        icon: 'brain'
+        subtitle: 'Solver-Based Spots'
     }
 };
 
-// Lobby image mapping — modes with full-bleed lobby images
-const LOBBY_IMAGES = {
-    mtt: '/images/trivia/lobby-mtt.jpg',
-    cash: '/images/trivia/lobby-cash.jpg',
-    icm: '/images/trivia/lobby-icm.jpg',
-    gto: '/images/trivia/lobby-gto.jpg',
+// Text-free scene art for each table (modes-console-v1). The old
+// lobby JPEGs carried baked-in titles, numbers and a baked button, so
+// they are no longer referenced: the art is a picture on the glass and every
+// changing value is printed live beside it.
+const MODE_ART = {
+    mtt: '/images/trivia/modes-console-v1/mtt.webp',
+    cash: '/images/trivia/modes-console-v1/cash.webp',
+    icm: '/images/trivia/modes-console-v1/icm.webp',
+    gto: '/images/trivia/modes-console-v1/gto.webp',
 };
 
 // Helper functions for GTO analysis generation.
@@ -166,7 +162,7 @@ function readSolverMetadata(question) {
             value: Math.round(evValue * 100) / 100,
             description: typeof ev?.description === 'string'
                 ? ev.description
-                : 'Expected value of the solver-preferred line for this spot, in big blinds.',
+                : 'Expected Value Of The Solver-Preferred Line For This Spot, In Big Blinds.',
         };
     }
 
@@ -187,7 +183,7 @@ function readSolverMetadata(question) {
         out.confidence = Math.max(0, Math.min(100, rows[0].frequency));
         out.alternateLines = rows.slice(1, 3).map(r => ({
             ...r,
-            description: r.description || 'Mixed-strategy branch reported by the solver for this node.',
+            description: r.description || 'Mixed-Strategy Branch Reported By The Solver For This Node.',
         }));
     }
 
@@ -443,7 +439,7 @@ export default function StrategyTrivia({ mode }) {
             // Session-start needs an authenticated caller; fail with a clear
             // message instead of a generic start error.
             if (!userId) {
-                setEntryError('Please sign in to play this mode.');
+                setEntryError('Please Sign In To Play This Mode.');
                 return;
             }
 
@@ -457,13 +453,13 @@ export default function StrategyTrivia({ mode }) {
                     setShowOutOfDiamonds(true);
                     return;
                 }
-                setEntryError('Could not start the game. Please try again in a moment. You have not been charged.');
+                setEntryError('Could Not Start The Game. Please Try Again In A Moment. You Have Not Been Charged.');
                 return;
             }
             if (!served || !Array.isArray(served.questions) || served.questions.length === 0) {
                 // NEVER charge for an empty game.
                 serverRun.reset();
-                setEntryError('No questions are available right now. Please try again in a moment. You have not been charged.');
+                setEntryError('No Questions Are Available Right Now. Please Try Again In A Moment. You Have Not Been Charged.');
                 return;
             }
 
@@ -714,13 +710,15 @@ export default function StrategyTrivia({ mode }) {
         );
     }
 
+    const timerInk = timeLeft <= 10 ? 'red' : 'gold';
+
     return (
         <PageTransition>
             <Head>
                 <title>{config.title} - Smarter.Poker Trivia</title>
             </Head>
 
-            <div className="strategy-trivia">
+            <div className="strategy-trivia" data-strategy-mode={mode} data-game-state={gameState}>
                 <UniversalHeader pageDepth={2} />
 
                 <TriviaConsoleDialog
@@ -730,12 +728,25 @@ export default function StrategyTrivia({ mode }) {
                     title="Not Enough Diamonds"
                     subtitle={`This Table Requires ${entryCost} Diamonds`}
                     pill="Balance"
+                    pillInk="gold"
                     secondaryAction={{ label: 'Close', onClick: () => setShowOutOfDiamonds(false) }}
                     primaryAction={{ label: 'Get Diamonds', onClick: () => router.push('/hub/diamond-store') }}
                 >
                     <p className="trivia-console-copy">
                         You Need {entryCost} Diamonds To Play. Visit The Diamond Store To Get More.
                     </p>
+                    {userId ? (
+                        <ul className="tc-rows">
+                            <li className="tc-row">
+                                <span className="tc-row__label">Your Balance</span>
+                                <span className="tc-row__value tc-ink--red">{formatTriviaDisplayNumber(userDiamonds)} Diamonds</span>
+                            </li>
+                            <li className="tc-row">
+                                <span className="tc-row__label">Entry</span>
+                                <span className="tc-row__value">{entryCost} Diamonds</span>
+                            </li>
+                        </ul>
+                    ) : null}
                 </TriviaConsoleDialog>
 
                 {/* One-time diamond cost popup for non-VIP users.
@@ -751,10 +762,12 @@ export default function StrategyTrivia({ mode }) {
 
                 <div className="content">
                     <TriviaConsole
+                        className="strategy-console"
                         eyebrow="Strategy Table"
                         title={config.title}
                         subtitle={config.subtitle}
-                        pill={gameState === 'lobby' ? 'Ready' : gameState === 'playing' ? 'Live' : 'Results'}
+                        pill={gameState === 'lobby' ? (isPreparing ? 'Dealing' : 'Ready') : gameState === 'playing' ? 'Live' : 'Results'}
+                        pillInk={gameState === 'playing' ? 'green' : 'blue'}
                         titleAs="h1"
                         secondaryAction={gameState === 'results'
                             ? { label: 'Back To Lobby', onClick: () => router.push('/hub/trivia') }
@@ -766,282 +779,256 @@ export default function StrategyTrivia({ mode }) {
                             : gameState === 'results'
                                 ? resultAwardError
                                     ? { label: 'Retry Settlement', onClick: finishGame }
-                                    : { label: isPreparing ? 'Dealing In' : isVip ? 'Play Again' : `Play Again ${entryCost} Diamonds`, onClick: startGame, disabled: isPreparing || vipInitializing }
+                                    : { label: isPreparing ? 'Dealing In' : 'Play Again', onClick: startGame, disabled: isPreparing || vipInitializing }
                                 : undefined}
                     >
                     {entryError && (
-                        <div className="entry-error" role="alert">
-                            <span>{entryError}</span>
-                        </div>
+                        <p className="strategy-alert tc-ink--red" role="alert">
+                            {entryError}
+                        </p>
                     )}
 
-                    {/* LOBBY STATE */}
+                    {/* LOBBY STATE: the mode's text-free scene on the glass,
+                        then the live table terms as engraved rows. The
+                        console's own action starts the run. */}
                     {gameState === 'lobby' && (
-                        LOBBY_IMAGES[mode] ? (
-                            /* Full-bleed image lobby. A real <button>, not a
-                               click-only div: this is the primary entry point
-                               for the mode and was unreachable by keyboard. */
-                            <button
-                                type="button"
-                                className="lobby-image-wrapper"
-                                onClick={startGame}
-                                disabled={isPreparing || vipInitializing}
-                                aria-label={`${config.title} - start challenge. ${QUESTIONS_PER_GAME} questions${isVip ? ', free for VIP' : `, entry ${entryCost} diamonds`}.`}
-                            >
-                                <img
-                                    src={LOBBY_IMAGES[mode]}
-                                    alt={`${config.title} - Start Challenge`}
-                                    className="lobby-image"
-                                />
-                                {/* Questions are dealt by the server when the game
-                                    starts, so the only wait worth showing is the
-                                    session-start + charge round-trip itself. */}
-                                {isPreparing && (
-                                    <div className="lobby-loading-overlay">
-                                        <div className="lobby-spinner" />
-                                        <span>Dealing In...</span>
-                                    </div>
+                        <div className="strategy-lobby">
+                            <img
+                                className="strategy-hero"
+                                src={MODE_ART[mode] || MODE_ART.mtt}
+                                alt=""
+                                aria-hidden="true"
+                                width={1000}
+                                height={563}
+                                decoding="async"
+                            />
+                            {/* Questions are dealt by the server when the game
+                                starts, so the only wait worth showing is the
+                                session-start + charge round-trip itself. */}
+                            {isPreparing && (
+                                <p className="strategy-status tc-label" role="status">Dealing In</p>
+                            )}
+                            <ul className="tc-rows strategy-terms" aria-label={`${config.title} Table Terms`}>
+                                <li className="tc-row">
+                                    <span className="tc-row__label">Questions</span>
+                                    <span className="tc-row__value">{QUESTIONS_PER_GAME}</span>
+                                </li>
+                                <li className="tc-row">
+                                    <span className="tc-row__label">Time Per Question</span>
+                                    <span className="tc-row__value">{SECONDS_PER_QUESTION} Seconds</span>
+                                </li>
+                                <li className="tc-row">
+                                    <span className="tc-row__label">Entry</span>
+                                    <span className="tc-row__value">{isVip ? 'Free With VIP' : <>{entryCost} Diamonds</>}</span>
+                                </li>
+                                {/* Reward copy mirrors what session-submit
+                                    actually pays: the base reward needs 70%+
+                                    accuracy, the bonus needs a perfect run,
+                                    and the mode's daily cap bounds the total. */}
+                                <li className="tc-row">
+                                    <span className="tc-row__label">Reward At 70% Accuracy</span>
+                                    <span className="tc-row__value tc-ink--green">{TRIVIA_MODES[mode]?.diamondReward || 5} Diamonds</span>
+                                </li>
+                                <li className="tc-row">
+                                    <span className="tc-row__label">Perfect Score Bonus</span>
+                                    <span className="tc-row__value tc-ink--green">+{TRIVIA_MODES[mode]?.perfectBonus || 10} Diamonds</span>
+                                </li>
+                                <li className="tc-row">
+                                    <span className="tc-row__label">Daily Reward Cap</span>
+                                    <span className="tc-row__value">{DAILY_DIAMOND_CAPS[mode] || 40} Diamonds</span>
+                                </li>
+                                {userId && (
+                                    <li className="tc-row">
+                                        <span className="tc-row__label">Your Balance</span>
+                                        <span className="tc-row__value tc-ink--gold">{formatTriviaDisplayNumber(userDiamonds)} Diamonds</span>
+                                    </li>
                                 )}
-                                <div className="lobby-cost-strip">
-                                    <span>{QUESTIONS_PER_GAME} Questions</span>
-                                    <span className="lobby-cost-chip">
-                                        {isVip ? 'VIP: Free Entry' : <>Entry {entryCost} Diamonds</>}
-                                    </span>
-                                </div>
-                            </button>
-                        ) : (
-                            /* Fallback text lobby for modes without images */
-                            <div className="lobby">
-                                <h2>{config.title}</h2>
-                                <p className="subtitle">{config.subtitle}</p>
-
-                                <div className="info-card">
-                                    <div className="info-row">
-                                        <span>Questions</span>
-                                        <span>{QUESTIONS_PER_GAME}</span>
-                                    </div>
-                                    <div className="info-row">
-                                        <span>Time Per Question</span>
-                                        <span>{SECONDS_PER_QUESTION} Seconds</span>
-                                    </div>
-                                    <div className="info-row">
-                                        <span>Entry</span>
-                                        <span>{isVip ? 'Free (VIP)' : <>{entryCost} Diamonds</>}</span>
-                                    </div>
-                                    {/* Reward copy mirrors what session-submit
-                                        actually pays: the base reward needs 70%+
-                                        accuracy, the bonus needs a perfect run,
-                                        and the mode's daily cap bounds the total. */}
-                                    <div className="info-row">
-                                        <span>Reward (70%+ Accuracy)</span>
-                                        <span>{TRIVIA_MODES[mode]?.diamondReward || 5} Diamonds</span>
-                                    </div>
-                                    <div className="info-row">
-                                        <span>Perfect Score Bonus</span>
-                                        <span>+{TRIVIA_MODES[mode]?.perfectBonus || 10} Diamonds</span>
-                                    </div>
-                                    <div className="info-row">
-                                        <span>Daily Reward Cap</span>
-                                        <span>{DAILY_DIAMOND_CAPS[mode] || 40} Diamonds</span>
-                                    </div>
-                                </div>
-
-                            </div>
-                        )
+                            </ul>
+                        </div>
                     )}
 
                     {/* PLAYING STATE */}
                     {gameState === 'playing' && currentQuestion && (
                         <div className="game-area">
-                            <div className="game-frame">
-                                {/* Header */}
-                                <div className="game-header">
-                                    <div className="progress" role="status" aria-live="polite">
-                                        Question {currentQuestionIndex + 1} Of {questions.length}
-                                    </div>
-                                    <div className="timer-ring-container">
-                                        <svg className="timer-ring" width="48" height="48" viewBox="0 0 48 48" aria-hidden>
-                                            <circle className="timer-ring-bg" cx="24" cy="24" r="20" />
-                                            <circle
-                                                className="timer-ring-progress"
-                                                cx="24" cy="24" r="20"
-                                                style={{
-                                                    strokeDasharray: `${2 * Math.PI * 20}`,
-                                                    strokeDashoffset: `${2 * Math.PI * 20 * (1 - timeLeft / SECONDS_PER_QUESTION)}`,
-                                                    stroke: timeLeft <= 10 ? '#ef4444' : timeLeft <= 25 ? '#ffc107' : '#00ff88',
-                                                }}
-                                            />
-                                        </svg>
-                                        <span className="timer-text" style={{ color: timeLeft <= 10 ? '#ef4444' : timeLeft <= 25 ? '#ffc107' : '#00ff88' }}>
-                                            {timeLeft}
-                                        </span>
-                                        {/* Announce at the 30/10/5s marks only — a
-                                            per-second live region is unusable. */}
-                                        <span className="sr-only" role="timer" aria-live="assertive">
-                                            {timeLeft === 30 || timeLeft === 10 || timeLeft === 5
-                                                ? `${timeLeft} seconds remaining`
-                                                : ''}
-                                        </span>
-                                    </div>
+                            {/* Header: progress on the left, the shot clock
+                                printed on the glass on the right (gold, red
+                                at ten seconds and under). */}
+                            <div className="game-header">
+                                <div className="progress tc-label" role="status" aria-live="polite">
+                                    Question {currentQuestionIndex + 1} Of {questions.length}
                                 </div>
-
-                                {/* Question Content - Scrollable */}
-                                <div className="question-content-area">
-                                    <div>
-                                        <div className="category-badge">
-                                            {getCategoryName(currentQuestion.category)}
-                                        </div>
-                                    </div>
-
-                                    <h2 className="question-text">
-                                        {/* Card detection runs on the RAW text and the
-                                            title-caser is applied to the remaining
-                                            fragments — title-casing first turned every
-                                            mid-sentence "as" into the ace of spades. */}
-                                        {renderTextWithCards(
-                                            currentQuestion.question,
-                                            s => formatPokerText(toTitleCase(s))
-                                        )}
-                                    </h2>
-
-                                    {/* Analysis panel — real solver metadata only.
-                                        Everything here is driven by the SERVER
-                                        verdict: the question object carries no
-                                        correct_index and no explanation, so the
-                                        reveal (badge, best line, coaching text)
-                                        reads correctDisplayIndex / wasCorrect /
-                                        explanation from session-answer. */}
-                                    {showResult && verdict && (() => {
-                                        const solver = readSolverMetadata(
-                                            verdict.solverMetadata
-                                                ? { engine_metadata: verdict.solverMetadata }
-                                                : currentQuestion
-                                        );
-                                        const hasSolverData = solver.confidence != null;
-                                        const wasCorrect = verdict.wasCorrect === true;
-                                        const correctText = verdict.correctDisplayIndex >= 0
-                                            ? (currentQuestion.options[verdict.correctDisplayIndex] || '')
-                                            : '';
-
-                                        return (
-                                            <div className="answer-analysis">
-                                                {/* Result badge */}
-                                                <div className="answer-verdict" data-correct={wasCorrect ? 'true' : 'false'}>
-                                                    {wasCorrect ? 'CORRECT' : 'INCORRECT'}
-                                                </div>
-
-                                                {hasSolverData ? (
-                                                    <GTOScenarioDisplay
-                                                        action={correctText.split(' ')[0]?.replace(/[^a-zA-Z-]/g, '').toUpperCase() || 'OPTIMAL'}
-                                                        confidence={solver.confidence}
-                                                        explanation={verdict.explanation}
-                                                        gtoApproach={generateGTOApproach(currentQuestion.category, correctText)}
-                                                        evAnalysis={solver.evAnalysis}
-                                                        alternateLines={solver.alternateLines}
-                                                        isCorrectAnswer={wasCorrect}
-                                                        showDetails={true}
-                                                        // Enables the opt-in "Generate visual card"
-                                                        // button. Without a questionId the panel
-                                                        // hides it by design, which kept the whole
-                                                        // visual-analysis feature dark. The category
-                                                        // lets the panel hide the button up front for
-                                                        // questions /api/trivia/render-gto-panel
-                                                        // would reject anyway. Auth falls back to the
-                                                        // live supabase session inside the panel.
-                                                        questionId={currentQuestion.id}
-                                                        sessionId={serverRun.sessionId}
-                                                        category={currentQuestion.category}
-                                                    />
-                                                ) : (
-                                                    /* No solver metadata on this question: show the
-                                                       question's own coaching notes rather than an
-                                                       invented EV number and confidence circle. */
-                                                    <div className="coaching-notes">
-                                                        <div className="coaching-notes__head">Coaching Notes</div>
-                                                        <div className="coaching-notes__answer">
-                                                            Best Line:{' '}
-                                                            <strong>
-                                                                {renderTextWithCards(
-                                                                    correctText,
-                                                                    s => formatPokerText(toTitleCase(s))
-                                                                )}
-                                                            </strong>
-                                                        </div>
-                                                        {verdict.explanation && (
-                                                            <p className="coaching-notes__body">
-                                                                {renderTextWithCards(
-                                                                    verdict.explanation,
-                                                                    s => formatPokerText(s)
-                                                                )}
-                                                            </p>
-                                                        )}
-                                                        <p className="coaching-notes__body">
-                                                            {generateGTOApproach(currentQuestion.category, correctText)}
-                                                        </p>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        );
-                                    })()}
+                                <div className="strategy-clock" data-warning={timeLeft <= 10 ? 'true' : 'false'}>
+                                    <span className="strategy-clock__label">Time</span>
+                                    <span className={`strategy-clock__value tc-ink--${timerInk}`} aria-hidden="true">
+                                        {timeLeft}
+                                    </span>
+                                    {/* Announce at the 30/10/5s marks only — a
+                                        per-second live region is unusable. */}
+                                    <span className="sr-only" role="timer" aria-live="assertive">
+                                        {timeLeft === 30 || timeLeft === 10 || timeLeft === 5
+                                            ? `${timeLeft} seconds remaining`
+                                            : ''}
+                                    </span>
                                 </div>
-
-                                {/* Fixed Bottom Actions */}
-                                <div className="bottom-actions-area" data-revealed={showResult ? 'true' : 'false'}>
-                                    <div className="options">
-                                        {/* Options are rendered in the server's display
-                                            order, verbatim - reshuffling them would break
-                                            the display-index mapping the grader uses. The
-                                            reveal highlights come from the verdict's
-                                            correctDisplayIndex; before it resolves there
-                                            is nothing to leak. */}
-                                        {currentQuestion.options.map((option, index) => {
-                                            const revealCorrectIndex = (showResult && verdict) ? verdict.correctDisplayIndex : null;
-                                            let optionClass = 'option';
-                                            if (revealCorrectIndex != null) {
-                                                if (index === revealCorrectIndex) {
-                                                    optionClass += ' correct';
-                                                } else if (index === selectedAnswer) {
-                                                    optionClass += ' incorrect';
-                                                }
-                                            }
-
-                                            const letter = String.fromCharCode(65 + index);
-                                            return (
-                                                <button
-                                                    key={index}
-                                                    type="button"
-                                                    className={optionClass}
-                                                    onClick={() => gradeAnswer(index)}
-                                                    disabled={showResult || selectedAnswer !== null}
-                                                    data-trivia-answer
-                                                    aria-pressed={selectedAnswer === index}
-                                                    aria-label={`Answer ${letter}: ${option}`}
-                                                >
-                                                    <span className="option-letter" aria-hidden>
-                                                        {letter}
-                                                    </span>
-                                                    <span className="option-text">
-                                                        {renderTextWithCards(option, s => formatPokerText(toTitleCase(s)))}
-                                                    </span>
-                                                    {revealCorrectIndex != null && index === revealCorrectIndex && (
-                                                        <span className="sr-only">Correct Answer</span>
-                                                    )}
-                                                    {revealCorrectIndex != null && index === selectedAnswer && index !== revealCorrectIndex && (
-                                                        <span className="sr-only">Your Answer, Incorrect</span>
-                                                    )}
-                                                </button>
-                                            );
-                                        })}
-                                    </div>
-
-                                    {/* The 50/50 and Skip lifeline buttons that lived
-                                        here are gone with the move to server grading -
-                                        see the note by the serverRun declaration. */}
-
-                                    {/* The next action lives in the painted console plate. */}
-                                </div>
-
                             </div>
+
+                            <div className="question-content-area">
+                                <p className="category-badge tc-label">
+                                    {toTitleCase(getCategoryName(currentQuestion.category))}
+                                </p>
+
+                                <h2 className="question-text">
+                                    {/* Card detection runs on the RAW text and the
+                                        title-caser is applied to the remaining
+                                        fragments — title-casing first turned every
+                                        mid-sentence "as" into the ace of spades. */}
+                                    {renderTextWithCards(
+                                        currentQuestion.question,
+                                        s => formatPokerText(toTitleCase(s))
+                                    )}
+                                </h2>
+                            </div>
+
+                            <div className="bottom-actions-area" data-revealed={showResult ? 'true' : 'false'}>
+                                <div className="options">
+                                    {/* Options are rendered in the server's display
+                                        order, verbatim - reshuffling them would break
+                                        the display-index mapping the grader uses. The
+                                        reveal highlights come from the verdict's
+                                        correctDisplayIndex; before it resolves there
+                                        is nothing to leak. */}
+                                    {currentQuestion.options.map((option, index) => {
+                                        const revealCorrectIndex = (showResult && verdict) ? verdict.correctDisplayIndex : null;
+                                        let optionClass = 'option';
+                                        if (revealCorrectIndex != null) {
+                                            if (index === revealCorrectIndex) {
+                                                optionClass += ' correct';
+                                            } else if (index === selectedAnswer) {
+                                                optionClass += ' incorrect';
+                                            }
+                                        }
+
+                                        const letter = String.fromCharCode(65 + index);
+                                        return (
+                                            <button
+                                                key={index}
+                                                type="button"
+                                                className={optionClass}
+                                                onClick={() => gradeAnswer(index)}
+                                                disabled={showResult || selectedAnswer !== null}
+                                                data-trivia-answer
+                                                aria-pressed={selectedAnswer === index}
+                                                aria-label={`Answer ${letter}: ${option}`}
+                                            >
+                                                <span className="option-letter" aria-hidden>
+                                                    {letter}
+                                                </span>
+                                                <span className="option-text">
+                                                    {renderTextWithCards(option, s => formatPokerText(toTitleCase(s)))}
+                                                </span>
+                                                {revealCorrectIndex != null && index === revealCorrectIndex && (
+                                                    <span className="sr-only">Correct Answer</span>
+                                                )}
+                                                {revealCorrectIndex != null && index === selectedAnswer && index !== revealCorrectIndex && (
+                                                    <span className="sr-only">Your Answer, Incorrect</span>
+                                                )}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+
+                                {/* The 50/50 and Skip lifeline buttons that lived
+                                    here are gone with the move to server grading -
+                                    see the note by the serverRun declaration. */}
+                            </div>
+
+                            {/* Analysis panel — real solver metadata only.
+                                Everything here is driven by the SERVER
+                                verdict: the question object carries no
+                                correct_index and no explanation, so the
+                                reveal (badge, best line, coaching text)
+                                reads correctDisplayIndex / wasCorrect /
+                                explanation from session-answer. */}
+                            {showResult && verdict && (() => {
+                                const solver = readSolverMetadata(
+                                    verdict.solverMetadata
+                                        ? { engine_metadata: verdict.solverMetadata }
+                                        : currentQuestion
+                                );
+                                const hasSolverData = solver.confidence != null;
+                                const wasCorrect = verdict.wasCorrect === true;
+                                const correctText = verdict.correctDisplayIndex >= 0
+                                    ? (currentQuestion.options[verdict.correctDisplayIndex] || '')
+                                    : '';
+
+                                return (
+                                    <div className="answer-analysis">
+                                        {/* Result verdict */}
+                                        <p
+                                            className={`answer-verdict tc-ink--${wasCorrect ? 'green' : 'red'}`}
+                                            data-correct={wasCorrect ? 'true' : 'false'}
+                                            role="status"
+                                        >
+                                            {wasCorrect ? 'Correct' : 'Incorrect'}
+                                        </p>
+
+                                        {hasSolverData ? (
+                                            <GTOScenarioDisplay
+                                                action={correctText.split(' ')[0]?.replace(/[^a-zA-Z0-9-]/g, '').toUpperCase() || 'OPTIMAL'}
+                                                confidence={solver.confidence}
+                                                explanation={verdict.explanation}
+                                                gtoApproach={toTitleCase(generateGTOApproach(currentQuestion.category, correctText))}
+                                                evAnalysis={solver.evAnalysis}
+                                                alternateLines={solver.alternateLines}
+                                                isCorrectAnswer={wasCorrect}
+                                                showDetails={true}
+                                                // Enables the opt-in "Generate visual card"
+                                                // button. Without a questionId the panel
+                                                // hides it by design, which kept the whole
+                                                // visual-analysis feature dark. The category
+                                                // lets the panel hide the button up front for
+                                                // questions /api/trivia/render-gto-panel
+                                                // would reject anyway. Auth falls back to the
+                                                // live supabase session inside the panel.
+                                                questionId={currentQuestion.id}
+                                                sessionId={serverRun.sessionId}
+                                                category={currentQuestion.category}
+                                            />
+                                        ) : (
+                                            /* No solver metadata on this question: show the
+                                               question's own coaching notes rather than an
+                                               invented EV number and confidence figure. */
+                                            <div className="coaching-notes">
+                                                <p className="coaching-notes__head tc-label">Coaching Notes</p>
+                                                <ul className="tc-rows">
+                                                    <li className="tc-row">
+                                                        <span className="tc-row__label">Best Line</span>
+                                                        <span className="tc-row__value coaching-notes__answer">
+                                                            {renderTextWithCards(
+                                                                correctText,
+                                                                s => formatPokerText(toTitleCase(s))
+                                                            )}
+                                                        </span>
+                                                    </li>
+                                                </ul>
+                                                {verdict.explanation && (
+                                                    <p className="coaching-notes__body">
+                                                        {renderTextWithCards(
+                                                            verdict.explanation,
+                                                            s => formatPokerText(s)
+                                                        )}
+                                                    </p>
+                                                )}
+                                                <p className="coaching-notes__body">
+                                                    {toTitleCase(generateGTOApproach(currentQuestion.category, correctText))}
+                                                </p>
+                                            </div>
+                                        )}
+                                    </div>
+                                );
+                            })()}
+
+                            {/* The next action lives in the console foot. */}
                         </div>
                     )}
 
@@ -1054,41 +1041,53 @@ export default function StrategyTrivia({ mode }) {
                         const awarded = resultActualAwarded != null ? resultActualAwarded : 0;
                         return (
                             <div className="results">
-                                <p className="result-status">{pct >= 0.8 ? 'Expert Result' : pct >= 0.5 ? 'Strong Result' : 'Session Complete'}</p>
+                                <p className="result-status tc-label">{pct >= 0.8 ? 'Expert Result' : pct >= 0.5 ? 'Strong Result' : 'Session Complete'}</p>
                                 <h2>Challenge Complete!</h2>
 
-                                <div className="score-card">
-                                    <div className="score-main">
-                                        <span className="score-num">{summary.correct}</span>
-                                        <span className="score-total">/ {summary.total}</span>
-                                    </div>
-                                    <div className="score-label">
-                                        Correct Answers
-                                    </div>
-                                </div>
+                                <p className="score-main" aria-label={`${summary.correct} Of ${summary.total} Correct`}>
+                                    <span className={`score-num tc-ink--${pct >= 0.7 ? 'green' : 'silver'}`}>{summary.correct}</span>
+                                    <span className="score-total tc-ink--muted">/ {summary.total}</span>
+                                </p>
 
-                                <div className="reward-card">
-                                    <span className="diamonds-earned">
+                                <ul className="tc-rows">
+                                    <li className="tc-row">
+                                        <span className="tc-row__label">Correct Answers</span>
+                                        <span className="tc-row__value">{summary.correct} Of {summary.total}</span>
+                                    </li>
+                                    <li className="tc-row">
+                                        <span className="tc-row__label">Diamonds Awarded</span>
                                         {/* Phase 68: shows what was ACTUALLY credited, never
                                             the calculated-but-failed amount. */}
-                                        +{awarded} Diamonds
-                                    </span>
-                                </div>
+                                        <span className={`tc-row__value diamonds-earned tc-ink--${awarded > 0 ? 'gold' : 'muted'}`}>
+                                            +{formatTriviaDisplayNumber(awarded)} Diamonds
+                                        </span>
+                                    </li>
+                                    {userId && (
+                                        <li className="tc-row">
+                                            <span className="tc-row__label">Your Balance</span>
+                                            <span className="tc-row__value">{formatTriviaDisplayNumber(userDiamonds)} Diamonds</span>
+                                        </li>
+                                    )}
+                                    {/* The Play Again plate is too narrow for the
+                                        price, so the next entry is printed here. */}
+                                    <li className="tc-row">
+                                        <span className="tc-row__label">Next Entry</span>
+                                        <span className="tc-row__value">{isVip ? 'Free With VIP' : <>{entryCost} Diamonds</>}</span>
+                                    </li>
+                                </ul>
 
                                 {resultCapped && (
-                                    <div className="results-note">
-                                        Daily Reward Cap Reached For {config.title} - Play For The Score, Come Back Tomorrow For More Diamonds.
-                                    </div>
+                                    <p className="results-note tc-ink--gold">
+                                        Daily Reward Cap Reached For {config.title}. Play For The Score, Come Back Tomorrow For More Diamonds.
+                                    </p>
                                 )}
 
                                 {resultAwardError && (
-                                    <div className="trivia-console-state trivia-console-state--error" role="alert">
-                                        <div>
-                                            The Run Could Not Be Settled ({resultAwardError}). Your Reward Has Not Been Paid Yet.
-                                        </div>
+                                    <p className="strategy-alert tc-ink--red" role="alert">
+                                        The Run Could Not Be Settled ({toTitleCase(String(resultAwardError).replace(/_/g, ' '))}). Your Reward Has Not Been Paid Yet.
                                         {/* finishGame reopened finishedRef on failure and
                                             the console action retries the same run. */}
-                                    </div>
+                                    </p>
                                 )}
                             </div>
                         );
@@ -1096,6 +1095,6 @@ export default function StrategyTrivia({ mode }) {
                     </TriviaConsole>
                 </div>
             </div>
-        </PageTransition >
+        </PageTransition>
     );
 }

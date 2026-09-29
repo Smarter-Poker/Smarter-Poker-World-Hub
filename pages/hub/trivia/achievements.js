@@ -69,6 +69,28 @@ const PROGRESS = {
     marathon: ['maxGamesInDay', 10]
 };
 
+/**
+ * Title Case for strings that reach the screen from data (the copy gates only
+ * read literals). Raises the first letter of every word and never lowers the
+ * rest, so acronyms and names survive ('8 PM', 'MTT', '1v1', 'GTO'), and
+ * writes clock times as '2 AM'. The shared toTitleCase lowers everything
+ * after the first letter ('PM' -> 'Pm', '2am' -> '2Am'), so it is not used
+ * for these strings.
+ */
+function printTitle(text) {
+    return String(text ?? '')
+      .replace(/(\d)\s?(am|pm)\b/gi, (match, digit, meridiem) => `${digit} ${meridiem.toUpperCase()}`)
+      .replace(/(^|[\s_\-/(])(\p{Ll})/gu, (match, lead, letter) => lead + letter.toUpperCase());
+}
+
+/** Rarity is printed in a schema ink, never the config's own off-schema colour. */
+const RARITY_INK = {
+    common: 'tc-ink--muted',
+    rare: 'tc-ink--blue',
+    epic: 'tc-ink--white',
+    legendary: 'tc-ink--gold'
+};
+
 /** Mastery achievements count a categoryCorrect bucket rather than a top-level field. */
 const CATEGORY_PROGRESS = {
     history_master: ['history', 50],
@@ -149,6 +171,9 @@ async function fetchAllScores(supabase, uid) {
             .range(from, from + PAGE - 1);
         if (error) {
             console.warn('[Achievements] Score page fetch failed:', error.message);
+            // No history at all is an error the player must see, not an
+            // empty record; a later page failing keeps what was read.
+            if (page === 0) throw error;
             break;
         }
         if (!data || data.length === 0) break;
@@ -172,6 +197,13 @@ export default function TriviaAchievements() {
     const [unlockedCount, setUnlockedCount] = useState(0);
     const [newlyUnlocked, setNewlyUnlocked] = useState([]);
     const [loadError, setLoadError] = useState(null);
+    // Bumped by Retry so a failed load can be run again in place.
+    const [reloadKey, setReloadKey] = useState(0);
+    const retryLoad = () => {
+        setLoadError(null);
+        setIsLoading(true);
+        setReloadKey(key => key + 1);
+    };
     // Diamonds attached to the achievements the player has unlocked. The
     // rewards exist in the shared config but were invisible here.
     const [rewardTotal, setRewardTotal] = useState(0);
@@ -191,11 +223,14 @@ export default function TriviaAchievements() {
                 setUserId(user.id);
 
                 // Get user's trivia stats
-                const { data: streakData } = await supabase
+                const { data: streakData, error: streakError } = await supabase
                     .from('trivia_streaks')
                     .select('*')
                     .eq('user_id', user.id)
                     .maybeSingle();
+                // A failed streak read leaves the streak achievements locked
+                // rather than failing the page; the score history still counts.
+                if (streakError) console.warn('[Achievements] Streak read failed:', streakError.message);
 
                 const scores = await fetchAllScores(supabase, user.id);
 
@@ -249,11 +284,12 @@ export default function TriviaAchievements() {
             .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'trivia_scores', filter: `user_id=eq.${user.id}` }, () => { loadAchievements(); })
             .subscribe();
         return () => { supabase.removeChannel(_ch); };
-    }, [avatarUser?.id, avatarLoading]);
+    }, [avatarUser?.id, avatarLoading, reloadKey]);
 
     const overallProgress = TRIVIA_ACHIEVEMENTS.length > 0
         ? Math.round((unlockedCount / TRIVIA_ACHIEVEMENTS.length) * 100)
         : 0;
+    const signedOut = !isLoading && !userId;
 
     return (
         <TriviaErrorBoundary pageName="Achievements">
@@ -279,46 +315,35 @@ export default function TriviaAchievements() {
                             title="Achievements"
                             titleAs="h1"
                             titleId="trivia-achievements-title"
-                            pill={!isLoading
-                                ? `${formatTriviaDisplayNumber(unlockedCount)} Of ${formatTriviaDisplayNumber(TRIVIA_ACHIEVEMENTS.length)}`
-                                : 'Loading'}
+                            pill={isLoading
+                                ? 'Loading'
+                                : loadError
+                                    ? 'Error'
+                                    : `${formatTriviaDisplayNumber(unlockedCount)} Of ${formatTriviaDisplayNumber(TRIVIA_ACHIEVEMENTS.length)}`}
+                            pillInk={loadError ? 'red' : !isLoading && unlockedCount > 0 ? 'green' : 'blue'}
                             className="trivia-progress-console"
                             aria-labelledby="trivia-achievements-title"
                             secondaryAction={{
                                 label: 'Back To Trivia',
                                 onClick: () => router.push('/hub/trivia'),
                             }}
+                            // A failed load has two real actions, so both print
+                            // on the painted plates (footer law).
+                            primaryAction={!isLoading && loadError ? {
+                                label: 'Retry',
+                                onClick: retryLoad,
+                            } : undefined}
                         >
-                        {/* Reward total — the shared config attaches diamonds to
-                            every achievement; the page never showed them. */}
-                        {!isLoading && rewardTotal > 0 && (
-                            <p className="trivia-progress-reward">
-                                <strong>{formatTriviaDisplayNumber(rewardTotal)}</strong>
-                                <span>Diamonds Earned From Achievements</span>
-                            </p>
-                        )}
-
-                        {/* Overall progress */}
-                        {!isLoading && (
-                            <progress
-                                className="trivia-progress-meter trivia-progress-meter--overall"
-                                aria-label="Achievements Unlocked"
-                                max="100"
-                                value={overallProgress}
-                            />
-                        )}
-
-                        {/* Newly-unlocked banner */}
+                        {/* Newly-unlocked notice */}
                         {newlyUnlocked.length > 0 && (
                             <section className="trivia-progress-notice" role="status">
-                                <p>
-                                    {formatTriviaDisplayNumber(newlyUnlocked.length)} New {newlyUnlocked.length === 1 ? 'Achievement' : 'Achievements'} Unlocked!
+                                <p className="tc-ink--green">
+                                    {formatTriviaDisplayNumber(newlyUnlocked.length)} New {newlyUnlocked.length === 1 ? 'Achievement' : 'Achievements'} Unlocked
                                 </p>
                                 <button
                                     type="button"
-                                    className="trivia-progress-action trivia-progress-action--secondary"
+                                    className="tc-word"
                                     onClick={() => setNewlyUnlocked([])}
-                                    style={{ minWidth: 44, minHeight: 44 }}
                                 >
                                     Dismiss
                                 </button>
@@ -326,97 +351,117 @@ export default function TriviaAchievements() {
                         )}
 
                         {isLoading ? (
-                            <p className="trivia-progress-state" role="status">
-                                Loading Achievements...
+                            <p className="trivia-progress-state trivia-progress-state--loading" role="status">
+                                Loading Achievements
                             </p>
                         ) : loadError ? (
-                            <p className="trivia-progress-state trivia-progress-state--error" role="alert">
-                                {loadError}
-                            </p>
+                            <section className="trivia-progress-state trivia-progress-state--error" role="alert">
+                                <p>{loadError}</p>
+                            </section>
                         ) : (
                             <div className="trivia-progress-content">
-                                {/* Per-category progress strip — 30 achievements
-                                    is a long flat list without it. */}
-                                <ul className="trivia-progress-categories" aria-label="Achievement Category Progress">
-                                    {ACHIEVEMENT_CATEGORIES.map(cat => {
-                                        const inCat = achievements.filter(a => a.category === cat.id);
-                                        if (inCat.length === 0) return null;
-                                        const done = inCat.filter(a => a.unlocked).length;
-                                        return (
-                                            <li
-                                                key={`cat-${cat.id}`}
-                                                className="trivia-progress-category"
-                                                data-category={cat.id}
-                                            >
-                                                <span className="trivia-progress-category__name">{cat.name}</span>
-                                                <span className="trivia-progress-category__count">
-                                                    {formatTriviaDisplayNumber(done)} / {formatTriviaDisplayNumber(inCat.length)}
-                                                </span>
-                                            </li>
-                                        );
-                                    })}
+                                {signedOut && (
+                                    <p className="trivia-progress-intro">
+                                        Sign In To Track Your Achievements. Every Achievement Is Shown Locked Until Then.
+                                    </p>
+                                )}
+
+                                {/* Overall progress and the diamonds attached to what
+                                    the player has unlocked, printed as rows. */}
+                                <ul className="tc-rows trivia-progress-rows" aria-label="Achievement Summary">
+                                    <li className="tc-row">
+                                        <span className="tc-row__label">Unlocked</span>
+                                        <span className="tc-row__value">
+                                            {formatTriviaDisplayNumber(unlockedCount)} Of {formatTriviaDisplayNumber(TRIVIA_ACHIEVEMENTS.length)}
+                                        </span>
+                                    </li>
+                                    <li className="tc-row">
+                                        <span className="tc-row__label">Completion</span>
+                                        <span className="tc-row__value tc-ink--blue">{overallProgress}%</span>
+                                    </li>
+                                    <li className="tc-row">
+                                        <span className="tc-row__label">Diamonds Earned</span>
+                                        <span className="tc-row__value tc-ink--gold">{formatTriviaDisplayNumber(rewardTotal)}</span>
+                                    </li>
                                 </ul>
-                                <div className="trivia-progress-card-list">
-                                {achievements.map(achievement => {
-                                    const rarity = RARITY_CONFIG[achievement.rarity] || null;
-                                    return (
-                                        <article
-                                            key={achievement.id}
-                                            className="trivia-progress-card"
-                                            data-achievement-id={achievement.id}
-                                            data-category={achievement.category}
-                                            data-rarity={achievement.rarity}
-                                            data-state={achievement.unlocked ? 'unlocked' : 'locked'}
-                                        >
-                                            <span className="trivia-progress-card__crest" aria-hidden="true" />
-                                            <div className="trivia-progress-card__body">
-                                                <h2 className="trivia-progress-card__title">
-                                                    {achievement.name}
-                                                    {newlyUnlocked.includes(achievement.id) && (
-                                                        <span className="trivia-progress-card__new">New</span>
-                                                    )}
-                                                </h2>
-                                                <p className="trivia-progress-card__description">
-                                                    {achievement.description}
-                                                </p>
-                                                <p className="trivia-progress-card__meta">
-                                                    {rarity && (
-                                                        <span className="trivia-progress-card__rarity">
-                                                            {rarity.label}
-                                                        </span>
-                                                    )}
-                                                    {achievement.reward?.diamonds > 0 && (
-                                                        <span className="trivia-progress-card__reward">
-                                                            {formatTriviaDisplayNumber(achievement.reward.diamonds)} Diamonds
-                                                        </span>
-                                                    )}
-                                                </p>
-                                                {/* Progress toward a locked achievement — the page
-                                                    was previously a flat locked/unlocked checklist
-                                                    with no sense of how close anything was. */}
-                                                {!achievement.unlocked && achievement.prog && achievement.prog.target > 1 && (
-                                                    <div className="trivia-progress-card__progress">
-                                                        <progress
-                                                            className="trivia-progress-meter"
-                                                            aria-label={`${achievement.name} Progress`}
-                                                            max={achievement.prog.target}
-                                                            value={achievement.prog.current}
-                                                        />
-                                                        <span className="trivia-progress-card__progress-label">
-                                                            {formatTriviaDisplayNumber(achievement.prog.current)} / {formatTriviaDisplayNumber(achievement.prog.target)}
-                                                        </span>
-                                                    </div>
-                                                )}
-                                            </div>
-                                            {achievement.unlocked && (
-                                                <p className="trivia-progress-card__status">
-                                                    Unlocked
-                                                </p>
-                                            )}
-                                        </article>
-                                    );
-                                })}
-                                </div>
+
+                                {/* Per-category progress: 30 achievements is a long
+                                    flat list without it. */}
+                                <section className="trivia-progress-section" aria-labelledby="trivia-achievements-categories">
+                                    <h2 id="trivia-achievements-categories" className="trivia-progress-heading">By Category</h2>
+                                    <ul className="tc-rows trivia-progress-rows trivia-progress-rows--split">
+                                        {ACHIEVEMENT_CATEGORIES.map(cat => {
+                                            const inCat = achievements.filter(a => a.category === cat.id);
+                                            if (inCat.length === 0) return null;
+                                            const done = inCat.filter(a => a.unlocked).length;
+                                            return (
+                                                <li
+                                                    key={`cat-${cat.id}`}
+                                                    className="tc-row"
+                                                    data-category={cat.id}
+                                                >
+                                                    <span className="tc-row__label">{printTitle(cat.name)}</span>
+                                                    <span className={`tc-row__value${done === inCat.length ? ' tc-ink--green' : ''}`}>
+                                                        {formatTriviaDisplayNumber(done)} / {formatTriviaDisplayNumber(inCat.length)}
+                                                    </span>
+                                                </li>
+                                            );
+                                        })}
+                                    </ul>
+                                </section>
+
+                                <section className="trivia-progress-section" aria-labelledby="trivia-achievements-list">
+                                    <h2 id="trivia-achievements-list" className="trivia-progress-heading">All Achievements</h2>
+                                    <ul className="trivia-progress-list">
+                                        {achievements.map(achievement => {
+                                            const rarity = RARITY_CONFIG[achievement.rarity] || null;
+                                            const rarityInk = RARITY_INK[achievement.rarity] || 'tc-ink--muted';
+                                            const showProgress = !achievement.unlocked && achievement.prog && achievement.prog.target > 1;
+                                            return (
+                                                <li
+                                                    key={achievement.id}
+                                                    className="trivia-progress-item"
+                                                    data-achievement-id={achievement.id}
+                                                    data-category={achievement.category}
+                                                    data-rarity={achievement.rarity}
+                                                    data-state={achievement.unlocked ? 'unlocked' : 'locked'}
+                                                >
+                                                    <h3 className="trivia-progress-item__title">
+                                                        <span>{printTitle(achievement.name)}</span>
+                                                        {newlyUnlocked.includes(achievement.id) && (
+                                                            <span className="trivia-progress-item__new tc-ink--green">New</span>
+                                                        )}
+                                                    </h3>
+                                                    <p className="trivia-progress-item__description">
+                                                        {printTitle(achievement.description)}
+                                                    </p>
+                                                    <p className="trivia-progress-item__meta">
+                                                        {rarity && (
+                                                            <span className={rarityInk}>{printTitle(rarity.label)}</span>
+                                                        )}
+                                                        {achievement.reward?.diamonds > 0 && (
+                                                            <span className="tc-ink--gold">
+                                                                {formatTriviaDisplayNumber(achievement.reward.diamonds)} Diamonds
+                                                            </span>
+                                                        )}
+                                                        {achievement.unlocked ? (
+                                                            <span className="tc-ink--green">Unlocked</span>
+                                                        ) : showProgress ? (
+                                                            <span
+                                                                className="tc-ink--blue"
+                                                                aria-label={`${printTitle(achievement.name)} Progress ${achievement.prog.current} Of ${achievement.prog.target}`}
+                                                            >
+                                                                {formatTriviaDisplayNumber(achievement.prog.current)} / {formatTriviaDisplayNumber(achievement.prog.target)}
+                                                            </span>
+                                                        ) : (
+                                                            <span className="tc-ink--muted">Locked</span>
+                                                        )}
+                                                    </p>
+                                                </li>
+                                            );
+                                        })}
+                                    </ul>
+                                </section>
                             </div>
                         )}
                         </TriviaConsole>
