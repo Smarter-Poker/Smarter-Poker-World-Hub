@@ -392,6 +392,10 @@ import './push-health-alert-evidence.test.mjs';
 // its window; every rotation is recorded once.
 import './push-health-alert-positive-evidence.test.mjs';
 
+// The Report-Only CSP can only graduate if its violations reach us, so the
+// reporting wiring and the endpoint that receives it are guarded here.
+import './csp-violations-reach-us.test.mjs';
+
 const REPO = path.resolve(new URL('.', import.meta.url).pathname, '..');
 
 const REQUIRED_TEST_FILES = [
