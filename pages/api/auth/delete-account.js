@@ -23,11 +23,19 @@ import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
  * (public.fn_close_account, Club Arena migration 20260929051751: refuses
  * while money or authority remains, leaves every club the way the club's own
  * departure path does, deletes personal non-financial rows, scrubs the person
- * from the profile, records gdpr_deletion_requests), then the Auth user is
+ * from the profile, records gdpr_deletion_requests), then the person's
+ * picture files are removed through the Storage API, then the Auth user is
  * SOFT-deleted (email and phone obfuscated, identities and sessions removed,
  * the row kept so nothing cascades into the journals), then the erasure
  * request is marked completed. Financial journals stay, keyed by an id that
  * no longer points at anyone. There is no grace window and no recovery.
+ *
+ * [2026-09-29] THE PICTURES STAYED. Closing cleared the links to the person's
+ * pictures but left the files, and anyone can list social-media avatars/%
+ * (the preset gallery's policy), so a closed account's uploaded photo stayed
+ * findable by its id. fn_close_account now also deletes the rows that point
+ * at pictures (Club Arena migration 20260929065410), and this handler removes
+ * the files: see theirPictures below.
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { rateLimit } from '../../../src/lib/apiRateLimit';
@@ -65,6 +73,93 @@ export const REFUSALS = {
     union_owner: 'You own a union. Transfer it, then close your account.',
     financial: 'Something in a club still holds value for you, such as a rakeback payout or unclaimed commission. Settle it with your club, then close your account.',
 };
+
+/**
+ * Where the Hub keeps a person's pictures. fn_close_account clears the links
+ * and deletes the rows that point at them (user_avatars, user_media,
+ * user_albums); a stored file can only be removed through the Storage API, so
+ * this handler removes the files once the database has answered ok.
+ *   - social-media avatars/<id>/ and covers/<id>/: the profile photo and the
+ *     cover they uploaded (pages/api/social/upload-url.js, upload.js).
+ *   - user-media <id>/photos/ and <id>/videos/: the profile editor's media
+ *     library (src/components/social/MediaLibrary.js). Not <id>/messages/ or
+ *     <id>/bankroll/: those belong to conversations and records that stay.
+ *   - avatars <id>/: an avatar generated for the account.
+ *   - custom-avatars generated/: avatars made from their photo, their words
+ *     or an edit (pages/api/avatar/*), each named with their id.
+ * `prefix` is a file-name prefix inside `folder`. The Storage search matches
+ * it loosely (case-insensitive, `_` is a wildcard), so every name is checked
+ * against it exactly before anything is removed.
+ */
+export function theirPictures(userId) {
+    return [
+        { bucket: 'social-media', folder: `avatars/${userId}` },
+        { bucket: 'social-media', folder: `covers/${userId}` },
+        { bucket: 'user-media', folder: `${userId}/photos` },
+        { bucket: 'user-media', folder: `${userId}/videos` },
+        { bucket: 'avatars', folder: userId },
+        { bucket: 'custom-avatars', folder: 'generated', prefix: `likeness_${userId}_` },
+        { bucket: 'custom-avatars', folder: 'generated', prefix: `${userId}_` },
+        { bucket: 'custom-avatars', folder: 'generated', prefix: `edited_${userId}_` },
+    ];
+}
+
+const PICTURE_PAGE = 100;
+const PICTURE_PAGES_MAX = 50;
+
+/**
+ * Removes every file in each place in theirPictures(userId). Answers how many
+ * went and, per place, what could not be listed or removed. Never throws.
+ */
+async function removeTheirPictures(storage, userId) {
+    let removed = 0;
+    const failures = [];
+    for (const place of theirPictures(userId)) {
+        const where = `${place.bucket}:${place.folder}/${place.prefix ? `${place.prefix}*` : ''}`;
+        try {
+            const bucket = storage.from(place.bucket);
+            let offset = 0;
+            let finished = false;
+            for (let page = 0; page < PICTURE_PAGES_MAX; page += 1) {
+                const { data, error } = await bucket.list(place.folder, {
+                    limit: PICTURE_PAGE,
+                    offset,
+                    ...(place.prefix ? { search: place.prefix } : {}),
+                });
+                if (error) {
+                    failures.push(`${where} could not be listed: ${error.message || error}`);
+                    finished = true;
+                    break;
+                }
+                const entries = Array.isArray(data) ? data : [];
+                // A file has an id; a sub-folder does not and is left alone.
+                const names = entries
+                    .filter((entry) => entry && entry.id && typeof entry.name === 'string' && entry.name !== '')
+                    .filter((entry) => !place.prefix || entry.name.startsWith(place.prefix))
+                    .map((entry) => `${place.folder}/${entry.name}`);
+                if (names.length > 0) {
+                    const { error: removeError } = await bucket.remove(names);
+                    if (removeError) {
+                        failures.push(`${where} could not be removed: ${removeError.message || removeError}`);
+                        finished = true;
+                        break;
+                    }
+                    removed += names.length;
+                }
+                if (entries.length < PICTURE_PAGE) {
+                    finished = true;
+                    break;
+                }
+                // Removed files leave the listing; what was kept moves the page on.
+                offset += entries.length - names.length;
+            }
+            if (!finished) failures.push(`${where} holds more than ${PICTURE_PAGE * PICTURE_PAGES_MAX} entries`);
+        } catch (err) {
+            failures.push(`${where} failed: ${err?.message || err}`);
+        }
+    }
+    return { removed, failures };
+}
 
 export default async function handler(req, res) {
   const rl = rateLimit(req, { max: 3, windowMs: 3600000 }); // 3 per hour
@@ -144,7 +239,23 @@ export default async function handler(req, res) {
           });
       }
 
-      // ── 2. Soft-delete the Auth user ──
+      // ── 2. Their pictures leave with them ──
+      // The database has cleared the links and deleted the rows that point at
+      // the files; the files go through the Storage API. Also on a retry
+      // (already_closed), so a retry finishes this step too. A file that
+      // cannot be removed does not keep the account open: the closure goes
+      // on, the failure is reported, and the erasure request stays
+      // 'anonymized' so support can see it and finish.
+      const pictures = await removeTheirPictures(getSupabase().storage, userId);
+      const picturesRemoved = pictures.failures.length === 0;
+      if (!picturesRemoved) {
+          console.error('[delete-account] pictures not all removed; request stays anonymized:', closed.request_id, pictures.failures.join(' | '));
+          try {
+              reportApiError(new Error(`delete-account: ${pictures.failures.length} picture place(s) not cleared for erasure request ${closed.request_id}`), req);
+          } catch (_reportError) { console.warn('[App] Handled exception:', _reportError?.message || _reportError); }
+      }
+
+      // ── 3. Soft-delete the Auth user ──
       // Soft, on purpose: a hard delete removes the auth.users row, which
       // cascades into the append-only financial journals and is refused.
       // Soft-delete obfuscates the email and phone, removes the identities
@@ -160,10 +271,11 @@ export default async function handler(req, res) {
           });
       }
 
-      // ── 3. The erasure record says it finished ──
+      // ── 4. The erasure record says it finished ──
       // Best effort: the account IS closed either way. A request left at
-      // 'anonymized' is visible to support in gdpr_deletion_requests.
-      if (closed.request_id) {
+      // 'anonymized' is visible to support in gdpr_deletion_requests - and is
+      // left there on purpose while a picture could not be removed.
+      if (closed.request_id && picturesRemoved) {
           try {
               const { error: markErr } = await getSupabase().rpc('fn_mark_gdpr_completed', {
                   p_request_id: closed.request_id,
@@ -180,6 +292,7 @@ export default async function handler(req, res) {
       return res.status(200).json({
           success: true,
           message: 'Your account has been closed and your personal data removed.',
+          picturesRemoved,
       });
   } catch (err) {
       try { reportApiError(err, req); } catch (_reportError) { console.warn('[App] Handled exception:', _reportError?.message || _reportError); }

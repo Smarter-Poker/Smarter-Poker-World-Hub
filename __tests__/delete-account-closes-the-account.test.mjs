@@ -18,6 +18,13 @@
  *     into the journals and is refused;
  *   - a refusal closes nothing and says, in `error`, exactly what to settle,
  *     because both callers show `error` as it is.
+ * And, added the same day, the person's pictures leave with them: closing had
+ * cleared the links but left the files, and anyone can list social-media
+ * avatars/%, so a closed account's photo stayed findable by id. The handler
+ * removes the files in theirPictures() through the Storage API - the
+ * person's, and nothing else - after the database answers ok and before the
+ * login goes; a file it cannot remove is reported and keeps the erasure
+ * request open, but does not keep the account open.
  */
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
@@ -28,6 +35,67 @@ const ROOT = new URL('../', import.meta.url);
 const ROUTE = 'pages/api/auth/delete-account.js';
 const ACTOR = '11111111-1111-4111-8111-111111111111';
 const REQUEST = '33333333-3333-4333-8333-333333333333';
+const OTHER = '22222222-2222-4222-8222-222222222222';
+
+// A Storage holding the person's pictures in every place the Hub keeps them,
+// beside files that must stay: someone else's, and the person's own message
+// attachments and bankroll records.
+const THEIR_PICTURES = {
+  'social-media': [`avatars/${ACTOR}/1770000000000_a1b2c3_me.jpg`, `covers/${ACTOR}/1770000000001_d4e5f6_cover.jpg`],
+  'user-media': [`${ACTOR}/photos/aaaaaaaa-0000-4000-8000-000000000001.jpg`, `${ACTOR}/videos/aaaaaaaa-0000-4000-8000-000000000002.mp4`],
+  avatars: [`${ACTOR}/avatar.jpg`],
+  'custom-avatars': [
+    `generated/likeness_${ACTOR}_1770000000002.png`,
+    `generated/${ACTOR}_1770000000003.png`,
+    `generated/edited_${ACTOR}_1770000000004.png`,
+  ],
+};
+const MUST_STAY = {
+  'social-media': [
+    `avatars/${OTHER}/1770000000005_g7h8i9_them.jpg`,
+    `avatars/${OTHER}.png`,
+    `covers/${OTHER}/1770000000006_j1k2l3_cover.jpg`,
+    `photos/${ACTOR}/1770000000007_m4n5o6_posted.jpg`,
+  ],
+  'user-media': [`${ACTOR}/messages/1770000000008.png`, `${ACTOR}/bankroll/1770000000009_p7q8r9.jpg`],
+  avatars: [`${OTHER}/avatar.jpg`],
+  'custom-avatars': [
+    `generated/likeness_${OTHER}_1770000000010.png`,
+    `generated/${OTHER}_1770000000011.png`,
+    // The Storage search treats _ as a wildcard: this answers the search for
+    // "<ACTOR>_" but is not named that, so it stays.
+    `generated/${ACTOR}X1770000000012.png`,
+  ],
+};
+
+function storageOf(...sets) {
+  const store = {};
+  for (const set of sets) {
+    for (const [bucket, names] of Object.entries(set)) store[bucket] = [...(store[bucket] ?? []), ...names];
+  }
+  return store;
+}
+
+/** The Storage list semantics the handler relies on: a folder listing, the
+ *  search appended to the folder as a case-insensitive prefix in which _ is
+ *  a wildcard, files with an id, sub-folders without one, name order. */
+function listLikeStorage(names, folder, { limit = 100, offset = 0, search = '' } = {}) {
+  const base = folder ? `${folder}/` : '';
+  const loose = new RegExp(
+    `^${(base + search).replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/_/g, '.')}`,
+    'i'
+  );
+  const entries = new Map();
+  for (const name of names) {
+    if (!loose.test(name)) continue;
+    const rest = name.slice(base.length);
+    const slash = rest.indexOf('/');
+    if (slash >= 0) entries.set(rest.slice(0, slash), { name: rest.slice(0, slash), id: null });
+    else entries.set(rest, { name: rest, id: `id:${name}` });
+  }
+  // Byte order, as Storage lists (COLLATE "C").
+  return [...entries.values()].sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0)).slice(offset, offset + limit);
+}
 
 // Every reason public.fn_close_account refuses with. When the function learns
 // a new one, add it here AND to REFUSALS; until then the new reason answers 500
@@ -41,7 +109,8 @@ const REASONS = [
 const plain = (value) => JSON.parse(JSON.stringify(value));
 
 async function invoke(options = {}) {
-  const calls = { rpc: [], provider: [], tables: [], logs: [], unexpected: [] };
+  const calls = { rpc: [], provider: [], tables: [], logs: [], unexpected: [], storage: [], reports: [], sequence: [] };
+  const store = options.store ?? storageOf(THEIR_PICTURES, MUST_STAY);
   function unexpected(message) {
     calls.unexpected.push(message);
     throw new Error(message);
@@ -53,8 +122,28 @@ async function invoke(options = {}) {
       admin: {
         async deleteUser(...args) {
           calls.provider.push(args);
+          calls.sequence.push('auth.deleteUser');
           return { error: options.providerError ? { message: 'provider refused' } : null };
         },
+      },
+    },
+    storage: {
+      from(bucket) {
+        return {
+          async list(folder, listOptions) {
+            calls.storage.push(['list', bucket, folder, plain(listOptions ?? {})]);
+            calls.sequence.push('storage');
+            if (options.storageListError === bucket) return { data: null, error: { message: 'list refused' } };
+            return { data: listLikeStorage(store[bucket] ?? [], folder, listOptions), error: null };
+          },
+          async remove(paths) {
+            calls.storage.push(['remove', bucket, [...paths]]);
+            calls.sequence.push('storage');
+            if (options.storageRemoveError === bucket) return { data: null, error: { message: 'remove refused' } };
+            store[bucket] = (store[bucket] ?? []).filter((name) => !paths.includes(name));
+            return { data: paths.map((name) => ({ name })), error: null };
+          },
+        };
       },
     },
     from(table) {
@@ -75,6 +164,7 @@ async function invoke(options = {}) {
     },
     async rpc(name, args) {
       calls.rpc.push({ name, args: plain(args) });
+      calls.sequence.push(`rpc.${name}`);
       if (name === 'fn_close_account') {
         if (options.rpcError) return { data: null, error: { message: 'RPC refused' } };
         return { data: options.closed ?? { ok: true, already_closed: false, request_id: REQUEST }, error: null };
@@ -94,7 +184,12 @@ async function invoke(options = {}) {
       requireRecentMfa: async () =>
         options.mfaDenied ? { ok: false, status: 403, requiresStepUp: true, maxAgeSec: 300 } : { ok: true },
     },
-    apiErrorHandler: { reportApiError: (error) => unexpected(`Unexpected handler error: ${error.message}`) },
+    apiErrorHandler: {
+      reportApiError: (error) => {
+        if (!options.expectReport) return unexpected(`Unexpected handler error: ${error.message}`);
+        calls.reports.push(error.message);
+      },
+    },
   };
   const log = (level) => (...args) => calls.logs.push([level, ...args]);
   const context = vm.createContext({
@@ -129,11 +224,12 @@ async function invoke(options = {}) {
   };
   await module.namespace.default(req, res);
   assert.deepEqual(calls.unexpected, [], 'No unstubbed dependency or unexpected handler failure');
-  return { calls, res, refusals: module.namespace.REFUSALS };
+  return { calls, res, store, refusals: module.namespace.REFUSALS, theirPictures: module.namespace.theirPictures };
 }
 
 function assertNothingClosed(calls) {
   assert.equal(calls.provider.length, 0, 'A refusal must not touch the Auth user');
+  assert.deepEqual(calls.storage, [], 'A refusal must not touch a picture');
   assert.equal(calls.rpc.filter((c) => c.name === 'fn_mark_gdpr_completed').length, 0);
 }
 
@@ -236,3 +332,67 @@ test('a fresh second factor lets the close through', async () => {
   assert.deepEqual(calls.provider, [[ACTOR, true]]);
   assert.equal(res.statusCode, 200);
 });
+
+const sorted = (set) => Object.fromEntries(Object.entries(set).map(([bucket, names]) => [bucket, [...names].sort()]));
+
+test("the person's pictures are removed, and nothing else", async () => {
+  const { store, res } = await invoke();
+  assert.equal(res.statusCode, 200);
+  assert.equal(res.body.picturesRemoved, true);
+  assert.deepEqual(sorted(store), sorted(MUST_STAY), 'every picture of theirs is gone; every other file is where it was');
+});
+
+test('pictures go after the database says ok and before the login goes', async () => {
+  const { calls } = await invoke();
+  const first = (step) => calls.sequence.indexOf(step);
+  const last = (step) => calls.sequence.lastIndexOf(step);
+  assert.ok(first('rpc.fn_close_account') < first('storage'), 'nothing is removed before the database has closed the account');
+  assert.ok(last('storage') < first('auth.deleteUser'), 'the pictures are gone before the login is');
+  assert.ok(first('auth.deleteUser') < first('rpc.fn_mark_gdpr_completed'));
+});
+
+test('theirPictures names only places keyed by the person', async () => {
+  const { theirPictures } = await invoke();
+  const places = theirPictures(ACTOR);
+  assert.ok(places.length >= 8);
+  for (const place of places) {
+    assert.ok(`${place.folder}/${place.prefix ?? ''}`.includes(ACTOR), `${place.bucket}:${place.folder} is not keyed by the person`);
+  }
+});
+
+test('a retry after the database already closed it removes the pictures too', async () => {
+  const { store, calls } = await invoke({ closed: { ok: true, already_closed: true, request_id: REQUEST } });
+  assert.deepEqual(sorted(store), sorted(MUST_STAY));
+  assert.deepEqual(calls.provider, [[ACTOR, true]]);
+});
+
+test('more than a page of pictures in one place: all of them go', async () => {
+  const covers = Array.from({ length: 237 }, (_, i) => `covers/${ACTOR}/${String(i).padStart(4, '0')}_cover.jpg`);
+  const { store, res } = await invoke({ store: storageOf(MUST_STAY, { 'social-media': covers }) });
+  assert.equal(res.body.picturesRemoved, true);
+  assert.deepEqual(sorted(store), sorted(MUST_STAY));
+});
+
+test('a page of files that must stay does not hide the pictures after it', async () => {
+  // 150 of someone else's likenesses answer the loose search first (a wildcard
+  // match sorts before them), then the person's own: the kept ones move the
+  // page on instead of ending the search.
+  const decoys = Array.from({ length: 150 }, (_, i) => `generated/${ACTOR}-${String(i).padStart(4, '0')}.png`);
+  const own = Array.from({ length: 3 }, (_, i) => `generated/${ACTOR}_${i}.png`);
+  const { store } = await invoke({ store: { 'custom-avatars': [...decoys, ...own] } });
+  assert.deepEqual([...store['custom-avatars']].sort(), [...decoys].sort());
+});
+
+for (const [name, option] of [['listed', 'storageListError'], ['removed', 'storageRemoveError']]) {
+  test(`a picture that cannot be ${name} is reported and keeps the request open, not the account`, async () => {
+    const { calls, res } = await invoke({ [option]: 'social-media', expectReport: true });
+    assert.equal(res.statusCode, 200);
+    assert.equal(res.body.success, true);
+    assert.equal(res.body.picturesRemoved, false);
+    assert.deepEqual(calls.provider, [[ACTOR, true]], 'the login still goes');
+    assert.equal(calls.rpc.filter((c) => c.name === 'fn_mark_gdpr_completed').length, 0, 'the request stays anonymized for support');
+    assert.equal(calls.reports.length, 1);
+    assert.ok(calls.logs.some(([level, message]) => level === 'error' && /pictures not all removed/.test(message)));
+  });
+}
+
