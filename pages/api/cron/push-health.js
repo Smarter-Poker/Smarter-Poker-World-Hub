@@ -19,6 +19,22 @@
  *    4. DISPATCH LIVENESS     push-dispatch has not run in over 30 minutes
  *
  *  Findings go to the affected user in-app, and a summary to every admin.
+ *
+ *  EXCEPT THE OWNER ACCOUNT (2026-09-28). What this job finds is an
+ *  operational alert, and for the owner account operational alerts belong to
+ *  the Production Alerts task, never his personal inbox or phone. Every notice
+ *  goes through pushHealthNotices, which cannot address him; each condition is
+ *  recorded instead as a store episode that coalesces while it persists. A
+ *  condition that clears only when devices change (zombies, staff or the owner
+ *  account without a device, duplicates, no device at all) and a key rotation
+ *  (nothing push-health reads shows one is over) are closed by the Production
+ *  Alerts fleet, never here; one that push-health observes directly with a
+ *  complete read (dispatcher, backlog, delivery, keys, the detector's window,
+ *  a check that completes) is resolved on the same source by a later run that
+ *  sees it cleared. Every line the admins are told has its own addressed store
+ *  copy, kept for the next run if the store refuses it. Every other recipient
+ *  gets exactly the notice it always did.
+ *  See src/lib/push/pushHealthOperationalAlerts.mjs.
  * ===========================================================================
  */
 import { createHash } from 'crypto';
@@ -32,9 +48,13 @@ import { withCronHealth } from '../../../src/lib/cronHealth';
 import { vapidConfig, isPushConfigured } from '../../../src/lib/push/web-push';
 import { notify, notifyAdmins } from '../../../src/lib/notify';
 // The cooldown lookup: which recipients were already told within the window.
-// It also reads the owner account's routed operational originals, which have
-// no personal inbox row.
+// The owner account is never in the lists this route passes it (see below), so
+// its once-per-window rule is the store episode, not the cooldown.
 import { filterRecentlyAlerted } from '../../../src/lib/push/alertCooldown.mjs';
+// The owner account's copy of everything this job finds: store episodes (with
+// recoveries where push-health sees the condition clear itself), plus the only
+// way this job may address a person.
+import { CHECK, CONDITION, includesOwnerAccount, isOwnerAccount, observeOwnerAddressedNotices, personalRecipients, pushHealthNotices, pushHealthObservations, recordPushHealthAlerts, settledVapidRotations, vapidRotation } from '../../../src/lib/push/pushHealthOperationalAlerts.mjs';
 
 const ZOMBIE_RECEIPT_DAYS = 3;
 // Ceiling on per-user alerts in one run. Each alert is a notifications insert
@@ -42,6 +62,8 @@ const ZOMBIE_RECEIPT_DAYS = 3;
 // timeout and the run would report nothing at all.
 const MAX_ALERTS_PER_RUN = 100;
 const DISPATCH_STALE_MINUTES = 30;
+// Fingerprint log entries read: a week of rotations is re-derived from them.
+const FINGERPRINT_LOG_READ = 30;
 // A daily watchdog that re-nags the same person every single day trains them to
 // ignore it, which defeats the whole point. Each person hears about a given
 // problem at most once per this window.
@@ -53,6 +75,10 @@ function getSupabase() {
     return _supabase;
 }
 
+// The only way this route addresses a person. It refuses the owner account
+// and skips him in the admin fan-out; nobody else sees any difference.
+const notices = pushHealthNotices({ notify, notifyAdmins });
+
 async function handler(req, res) {
     let authed;
     try {
@@ -63,7 +89,11 @@ async function handler(req, res) {
     if (!authed) return res.status(401).json({ error: 'Unauthorized' });
 
     const supabase = getSupabase();
-    const problems = [];
+    // `problems` is what every other admin is told, in the order it always
+    // was. `health` also keeps what each check observed - present, absent or
+    // not observable - which is what the owner account's store copy is made of.
+    const health = pushHealthObservations();
+    const problems = health.problems;
     const report = { zombies: 0, staffUnreachable: 0, configOk: true, dispatchOk: true };
 
     const now = Date.now();
@@ -96,10 +126,13 @@ async function handler(req, res) {
 
            The grace period now applies where it belongs - to `matured`, below -
            and evidence is read from every active row. */
-        const { data: subs, error: subsErr } = await supabase
+        // The count says whether every row came back. A cut-off read is not
+        // evidence that the rest are healthy (it only affects the store copy).
+        const { data: subs, error: subsErr, count: subsCount } = await supabase
             .from('push_subscriptions')
             .select(
-                'id, user_id, device_label, endpoint, user_agent, last_used_at, last_receipt_at, created_at'
+                'id, user_id, device_label, endpoint, user_agent, last_used_at, last_receipt_at, created_at',
+                { count: 'exact' }
             )
             .eq('is_active', true)
             .gte('last_used_at', usedSince);
@@ -115,6 +148,10 @@ async function handler(req, res) {
         // breaks outright if PostgREST ever returns a non-UTC offset.
         const zombieCutoffMs = Date.parse(zombieCutoff);
         const all = subs || [];
+        // A cut-off read is not evidence that the rows it missed are healthy
+        // (store copy only: it is recorded as a failed observation).
+        const zombieUnread = Number.isSafeInteger(subsCount) && all.length >= subsCount ? null
+            : `read ${all.length} of ${subsCount ?? 'an unknown number of'} recently pushed subscriptions`;
 
         // GRACE PERIOD, applied here rather than in the query. A device that
         // enrolled ten minutes ago and was pushed once has last_receipt_at =
@@ -253,8 +290,15 @@ async function handler(req, res) {
         const seen = new Set();
         const ZOMBIE_TITLE = 'Notifications May Not Be Reaching This Device';
         const zombieUserIds = Array.from(new Set(zombies.map((z) => z.user_id)));
+        // The owner account's own silent device is recorded for the Production
+        // Alerts task, never sent to him as this notice. Like the zombies, it
+        // is closed by that task on evidence, never here: a replaced, retired
+        // or not-yet-pushed device looks exactly like one that recovered.
+        health.owner(CONDITION.OWNER_DEVICE_NOT_CONFIRMING, includesOwnerAccount(zombieUserIds), {
+            ownerZombieSubscriptions: zombies.filter((z) => isOwnerAccount(z.user_id)).length,
+        });
         const zombieToAlert = new Set(
-            await filterRecentlyAlerted(supabase, zombieUserIds, ZOMBIE_TITLE, cooldownSince)
+            await filterRecentlyAlerted(supabase, personalRecipients(zombieUserIds), ZOMBIE_TITLE, cooldownSince)
         );
 
         for (const z of zombies.slice(0, MAX_ALERTS_PER_RUN)) {
@@ -262,7 +306,7 @@ async function handler(req, res) {
             if (!zombieToAlert.has(z.user_id)) continue; // told them within the cooldown
             seen.add(z.user_id);
             // No push on this one -- the whole point is that push is not reaching them.
-            await notify(supabase, {
+            await notices.toRecipient(supabase, {
                 userId: z.user_id,
                 type: 'system',
                 withPush: false,
@@ -272,29 +316,47 @@ async function handler(req, res) {
             });
         }
         if (zombies.length > 0) {
-            problems.push(`${zombies.length} zombie subscription(s) across ${zombieUserIds.length} user(s)`);
+            health.fault(CONDITION.ZOMBIES,
+                `${zombies.length} zombie subscription(s) across ${zombieUserIds.length} user(s)`,
+                { zombies: zombies.length, users: zombieUserIds.length });
+        } else if (zombieUnread) {
+            health.unobserved(CONDITION.ZOMBIES, zombieUnread);
+        } else {
+            health.clear(CONDITION.ZOMBIES, { zombies: 0 });
         }
+        // A cut-off read is a failed observation whatever it found (review
+        // r25): the faults it returned stand, and nothing is resolved on it.
+        if (zombieUnread) health.readFailed(CONDITION.ZOMBIES, zombieUnread);
+        else health.passed(CHECK.ZOMBIE);
     } catch (e) {
-        problems.push(`zombie check failed: ${e?.message || e}`);
+        health.checkFailed(CHECK.ZOMBIE, `zombie check failed: ${e?.message || e}`, e);
     }
 
     // ---- CHECK 2: staff with no reachable device --------------------------
     try {
-        const { data: staff, error: staffErr } = await supabase
+        const { data: staff, error: staffErr, count: staffCount } = await supabase
             .from('profiles')
-            .select('id, username, role')
+            .select('id, username, role', { count: 'exact' })
             .in('role', ['admin', 'god']);
         if (staffErr) throw new Error(staffErr.message);
+        // A cut-off staff list is not evidence that the staff it missed can
+        // receive push (store copy only; the admins are told as before).
+        const staffUnread = Number.isSafeInteger(staffCount) && (staff || []).length >= staffCount ? null
+            : `read ${(staff || []).length} of ${staffCount ?? 'an unknown number of'} staff accounts`;
 
         const staffIds = (staff || []).map((p) => p.id);
 
-        // One query instead of one per admin (the old N+1 loop).
-        const { data: activeSubs, error: activeErr } = await supabase
+        // One query instead of one per admin (the old N+1 loop). Counted: in a
+        // cut-off answer a staff account can look unreachable only because its
+        // rows did not fit (store copy only; the admins are told as before).
+        const { data: activeSubs, error: activeErr, count: activeCount } = await supabase
             .from('push_subscriptions')
-            .select('user_id')
+            .select('user_id', { count: 'exact' })
             .in('user_id', staffIds.length ? staffIds : ['00000000-0000-0000-0000-000000000000'])
             .eq('is_active', true);
         if (activeErr) throw new Error(activeErr.message);
+        const reachUnread = Number.isSafeInteger(activeCount) && (activeSubs || []).length >= activeCount ? null
+            : `read ${(activeSubs || []).length} of ${activeCount ?? 'an unknown number of'} staff subscriptions`;
 
         const reachable = new Set((activeSubs || []).map((s) => s.user_id));
         const unreachable = (staff || []).filter((p) => !reachable.has(p.id));
@@ -303,7 +365,7 @@ async function handler(req, res) {
         // NOBODY has enrolled a device yet -- that is a rollout state, not a
         // fault. Alerting every admin every day about it just trains them to
         // ignore the alert before the first real one arrives.
-        const { count: globalActive } = await supabase
+        const { count: globalActive, error: globalErr } = await supabase
             .from('push_subscriptions')
             .select('id', { count: 'exact', head: true })
             .eq('is_active', true);
@@ -313,10 +375,10 @@ async function handler(req, res) {
         const staffToAlert = nobodyEnrolled
             ? new Set()
             : new Set(await filterRecentlyAlerted(
-                supabase, unreachable.map((p) => p.id), STAFF_TITLE, cooldownSince));
+                supabase, personalRecipients(unreachable.map((p) => p.id)), STAFF_TITLE, cooldownSince));
 
         for (const p of unreachable.filter((x) => staffToAlert.has(x.id))) {
-            await notify(supabase, {
+            await notices.toRecipient(supabase, {
                 userId: p.id,
                 type: 'system',
                 withPush: false,
@@ -325,12 +387,46 @@ async function handler(req, res) {
                 url: '/hub/settings/notifications',
             });
         }
-        if (unreachable.length > 0 && !nobodyEnrolled) {
-            problems.push(`${unreachable.length} staff account(s) cannot receive push`);
+        // A failed or missing count read as "nobody enrolled" has always
+        // suppressed these notices; it is kept for the admins, but it is not
+        // evidence that the condition cleared, so neither condition is judged
+        // on it. Nor is the rollout state, which this check deliberately does
+        // not call a fault.
+        const globalUnread = globalErr
+            || (Number.isSafeInteger(globalActive) ? null : 'the active subscription count was not returned');
+        const ownerOff = unreachable.some((p) => isOwnerAccount(p.id));
+        if (globalUnread || nobodyEnrolled || reachUnread) {
+            health.unobserved(CONDITION.OWNER_PUSH_OFF);
+        } else if (ownerOff || !staffUnread || (staff || []).some((p) => isOwnerAccount(p.id))) {
+            health.owner(CONDITION.OWNER_PUSH_OFF, ownerOff, { staffAccountsWithoutPush: unreachable.length });
+        } else {
+            health.unobserved(CONDITION.OWNER_PUSH_OFF);
         }
+        if (unreachable.length > 0 && !nobodyEnrolled) {
+            const line = `${unreachable.length} staff account(s) cannot receive push`;
+            // With the device read cut off, who is unreachable is not known.
+            if (reachUnread) health.unverified(CONDITION.STAFF_UNREACHABLE, line, reachUnread);
+            else health.fault(CONDITION.STAFF_UNREACHABLE, line, { staffAccounts: unreachable.length });
+        } else if (globalUnread || nobodyEnrolled) {
+            // Not judged, and the store copy says so (review r27): its silence
+            // must never read as a recovery while nobody can receive a push.
+            health.unobserved(CONDITION.STAFF_UNREACHABLE,
+                globalUnread || 'nobody is enrolled, so no staff account is judged (see PushNoActiveSubscriptions)');
+        } else if (staffUnread || reachUnread) {
+            health.unobserved(CONDITION.STAFF_UNREACHABLE, staffUnread || reachUnread);
+        } else {
+            health.clear(CONDITION.STAFF_UNREACHABLE, { staffAccounts: 0 });
+        }
+        // A cut-off read is a failed observation whatever it found (review
+        // r25), and nothing is resolved on it. What a cut-off staff list
+        // returned stands; a cut-off device read judges nobody (above).
+        const staffCut = staffUnread || reachUnread;
+        if (staffCut) health.readFailed(CONDITION.STAFF_UNREACHABLE, staffCut);
         report.nobodyEnrolled = nobodyEnrolled;
+        // The check passes only when every read it made came back whole.
+        if (!staffCut && !globalUnread) health.passed(CHECK.STAFF);
     } catch (e) {
-        problems.push(`staff check failed: ${e?.message || e}`);
+        health.checkFailed(CHECK.STAFF, `staff check failed: ${e?.message || e}`, e);
     }
 
     // ---- CHECK 2b: one live subscription per device ------------------------
@@ -352,9 +448,9 @@ async function handler(req, res) {
     // both fixes in place a new one means a NEW bug, and silently healing it
     // would hide exactly the kind of failure this file exists to surface.
     try {
-        const { data: liveRows, error: liveErr } = await supabase
+        const { data: liveRows, error: liveErr, count: liveCount } = await supabase
             .from('push_subscriptions')
-            .select('user_id, device_label, device_id')
+            .select('user_id, device_label, device_id', { count: 'exact' })
             .eq('is_active', true);
 
         // A failed query must not read as "no duplicates, all healthy".
@@ -380,27 +476,49 @@ async function handler(req, res) {
         report.activeWithoutDeviceId = withoutDeviceId;
         report.devicesWithDuplicateSubs = duplicated.length;
 
+        // A cut-off read is not evidence that the rows it missed hold one
+        // subscription per device (store copy only; admins as before).
+        const liveUnread = Number.isSafeInteger(liveCount) && (liveRows || []).length >= liveCount ? null
+            : `read ${(liveRows || []).length} of ${liveCount ?? 'an unknown number of'} live subscriptions`;
         if (duplicated.length > 0) {
             const extraBanners = duplicated.reduce((sum, n) => sum + (n - 1), 0);
-            problems.push(
+            health.fault(CONDITION.DUPLICATE_DEVICES,
                 `${duplicated.length} device(s) hold more than one live subscription -- ` +
-                    `${extraBanners} duplicate banner(s) on every notification`
-            );
+                    `${extraBanners} duplicate banner(s) on every notification`,
+                { devices: duplicated.length, extraBanners });
+        } else if (liveUnread) {
+            health.unobserved(CONDITION.DUPLICATE_DEVICES, liveUnread);
+        } else {
+            health.clear(CONDITION.DUPLICATE_DEVICES, { devices: 0 });
         }
+        // A cut-off read is a failed observation whatever it found (review
+        // r25): the duplicates it returned stand, and nothing is resolved on it.
+        if (liveUnread) health.readFailed(CONDITION.DUPLICATE_DEVICES, liveUnread);
+        else health.passed(CHECK.DUPLICATE_DEVICE);
     } catch (e) {
-        problems.push(`duplicate-device check failed: ${e?.message || e}`);
+        health.checkFailed(CHECK.DUPLICATE_DEVICE, `duplicate-device check failed: ${e?.message || e}`, e);
     }
 
     // ---- CHECK 3: configuration -------------------------------------------
     if (!isPushConfigured()) {
         report.configOk = false;
-        problems.push('VAPID keys are missing -- no push can be sent at all');
+        health.fault(CONDITION.VAPID_MISSING, 'VAPID keys are missing -- no push can be sent at all');
+        // Neither can be judged without keys: not a fault, not a recovery.
+        health.unobserved(CONDITION.VAPID_MISMATCH);
+        health.unobserved(CONDITION.VAPID_ROTATED);
     } else {
+        health.clear(CONDITION.VAPID_MISSING);
         const { publicKey } = vapidConfig();
         const clientKey = (process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || '').trim();
         if (clientKey && clientKey !== publicKey) {
             report.configOk = false;
-            problems.push('VAPID_PUBLIC_KEY and NEXT_PUBLIC_VAPID_PUBLIC_KEY do not match -- every send will 403');
+            health.fault(CONDITION.VAPID_MISMATCH,
+                'VAPID_PUBLIC_KEY and NEXT_PUBLIC_VAPID_PUBLIC_KEY do not match -- every send will 403');
+        } else if (clientKey) {
+            health.clear(CONDITION.VAPID_MISMATCH);
+        } else {
+            // No client key to compare: not evidence either way.
+            health.unobserved(CONDITION.VAPID_MISMATCH);
         }
 
         // ---- VAPID ROTATION DETECTOR --------------------------------------
@@ -418,30 +536,65 @@ async function handler(req, res) {
             const fingerprint = createHash('sha256').update(publicKey).digest('hex').slice(0, 16);
             report.vapidFingerprint = fingerprint;
 
-            const { data: seen } = await supabase
+            // The newest entry is the fingerprint in force; every pair of
+            // entries from the last week is a rotation a later run re-derives
+            // (below).
+            const { data: seen, error: seenErr } = await supabase
                 .from('push_dispatch_runs')
-                .select('note')
+                .select('note, slot')
                 .eq('job', 'vapid-fingerprint')
                 .order('started_at', { ascending: false })
-                .limit(1);
+                .limit(FINGERPRINT_LOG_READ);
 
             const previous = seen?.[0]?.note || null;
+            // The rotation alarm is one-shot: the admins hear it once, from
+            // the run that logs the new fingerprint below. That run's store
+            // write can fail, so for a week every later run re-derives every
+            // rotation the log holds - two during one outage are two - and
+            // records each the store does not hold, once. push-health never
+            // resolves one (nothing it reads shows a rotation is over): the
+            // Production Alerts fleet closes it. The dead subscriptions a
+            // rotation caused stay visible in the zombie and delivery
+            // conditions.
+            const logged = seenErr ? [] : settledVapidRotations(seen, now);
 
             if (previous && previous !== fingerprint) {
-                const { count: activeSubs } = await supabase
+                const { count: activeSubs, error: rotatedCountErr } = await supabase
                     .from('push_subscriptions')
                     .select('id', { count: 'exact', head: true })
                     .eq('is_active', true);
 
                 report.vapidRotated = true;
+                // One rotation is one event: the log entry it replaces and the
+                // new key. Its store episode is keyed by exactly that.
+                const rotation = { identity: vapidRotation(seen[0], fingerprint) };
                 if (activeSubs && activeSubs > 0) {
                     report.configOk = false;
-                    problems.push(
-                        `VAPID KEY ROTATED with ${activeSubs} active subscription(s) -- every one of them is now permanently dead and each user must re-enable notifications on their device`
-                    );
+                    health.fault(CONDITION.VAPID_ROTATED,
+                        `VAPID KEY ROTATED with ${activeSubs} active subscription(s) -- every one of them is now permanently dead and each user must re-enable notifications on their device`,
+                        { activeSubscriptions: activeSubs }, rotation);
+                } else if (rotatedCountErr || !Number.isSafeInteger(activeSubs)) {
+                    // The admins are told what they always were. The rotation
+                    // itself was observed, so it is recorded as one; only how
+                    // many devices it killed is unknown.
+                    health.fault(CONDITION.VAPID_ROTATED, 'VAPID key rotated (no active subscriptions were affected)',
+                        { activeSubscriptions: null,
+                            activeSubscriptionsError: String(rotatedCountErr?.message || 'the count was not returned').slice(0, 300) },
+                        { ...rotation, severity: 'critical',
+                            note: 'the active subscription count could not be read, so how many devices it killed is unknown' });
                 } else {
-                    problems.push('VAPID key rotated (no active subscriptions were affected)');
+                    health.fault(CONDITION.VAPID_ROTATED, 'VAPID key rotated (no active subscriptions were affected)',
+                        { activeSubscriptions: 0 }, { ...rotation, severity: 'warning' });
                 }
+            } else if (seenErr) {
+                // An unreadable fingerprint is not "unchanged".
+                health.unobserved(CONDITION.VAPID_ROTATED, seenErr);
+            } else if (logged.length === 0) {
+                health.clear(CONDITION.VAPID_ROTATED);
+            }
+            for (const settled of logged) {
+                health.reported(CONDITION.VAPID_ROTATED, settled.identity,
+                    `VAPID key rotated at ${settled.rotatedAt}`, { rotatedAt: settled.rotatedAt });
             }
 
             if (previous !== fingerprint) {
@@ -460,12 +613,13 @@ async function handler(req, res) {
         } catch (e) {
             // Never let the detector break the watchdog.
             console.warn('[push-health] vapid fingerprint check failed:', e?.message || e);
+            health.unobserved(CONDITION.VAPID_ROTATED, e);
         }
     }
 
     // ---- CHECK 4: dispatch liveness ---------------------------------------
     try {
-        const { data: lastRun } = await supabase
+        const { data: lastRun, error: lastRunErr } = await supabase
             .from('push_dispatch_runs')
             .select('started_at')
             .eq('job', 'push-dispatch')
@@ -476,26 +630,41 @@ async function handler(req, res) {
         const minutesSince = lastAt ? Math.round((now - lastAt) / 60000) : null;
         if (!lastAt || minutesSince > DISPATCH_STALE_MINUTES) {
             report.dispatchOk = false;
-            problems.push(
-                lastAt
-                    ? `push-dispatch has not run in ${minutesSince} minutes -- check the Open Claw dispatcher`
-                    : 'push-dispatch has never run -- it is not registered on Open Claw'
-            );
+            const summary = lastAt
+                ? `push-dispatch has not run in ${minutesSince} minutes -- check the Open Claw dispatcher`
+                : 'push-dispatch has never run -- it is not registered on Open Claw';
+            // A failed read has always been reported as "never run"; the
+            // admins keep that line, the store is told the read failed.
+            if (lastRunErr) health.unverified(CONDITION.DISPATCH_STALE, summary, lastRunErr);
+            else health.fault(CONDITION.DISPATCH_STALE, summary, { minutesSince });
+        } else {
+            health.clear(CONDITION.DISPATCH_STALE, { minutesSince });
         }
         report.dispatchMinutesSince = minutesSince;
+        // A failed read is not a check that worked (review r27).
+        if (!lastRunErr) health.passed(CHECK.DISPATCH_LIVENESS);
     } catch (e) {
-        problems.push(`dispatch liveness check failed: ${e?.message || e}`);
+        health.checkFailed(CHECK.DISPATCH_LIVENESS, `dispatch liveness check failed: ${e?.message || e}`, e);
     }
 
     // ---- Backlog signal ----------------------------------------------------
     try {
-        const { count } = await supabase
+        const { count, error: backlogErr } = await supabase
             .from('push_outbox')
             .select('id', { count: 'exact', head: true })
             .eq('status', 'pending');
         report.pendingBacklog = count || 0;
-        if ((count || 0) > 250) problems.push(`${count} pushes are backed up in the outbox`);
-    } catch { /* ignore */ }
+        if ((count || 0) > 250) {
+            health.fault(CONDITION.OUTBOX_BACKLOG, `${count} pushes are backed up in the outbox`, { pending: count });
+        } else if (backlogErr || !Number.isSafeInteger(count)) {
+            health.unobserved(CONDITION.OUTBOX_BACKLOG, backlogErr || 'the pending count was not returned');
+        } else {
+            health.clear(CONDITION.OUTBOX_BACKLOG, { pending: count });
+        }
+    } catch (e) {
+        // Still never fails the run, but an unread backlog is not an empty one.
+        health.unobserved(CONDITION.OUTBOX_BACKLOG, e);
+    }
 
     // ---- Platform-level delivery signal -------------------------------------
     //
@@ -509,7 +678,7 @@ async function handler(req, res) {
     // These two ask about the PLATFORM instead: is anyone reachable, and are
     // we throwing notifications away because nobody is?
     try {
-        const [{ count: activeSubs }, { count: skipped24h }] = await Promise.all([
+        const [{ count: activeSubs, error: activeErr }, { count: skipped24h, error: skippedErr }] = await Promise.all([
             supabase
                 .from('push_subscriptions')
                 .select('id', { count: 'exact', head: true })
@@ -528,8 +697,15 @@ async function handler(req, res) {
         // Nobody on the whole platform can receive a push. This is the exact
         // state that persisted unnoticed, and it is never normal once a single
         // user has enrolled.
+        // A count that did not come back is as unknown as one that failed.
+        const unreturned = (n) => (Number.isSafeInteger(n) ? null : 'a delivery count was not returned');
         if ((activeSubs || 0) === 0) {
-            problems.push('no active push subscriptions exist platform-wide - nobody can receive a notification');
+            const summary = 'no active push subscriptions exist platform-wide - nobody can receive a notification';
+            const unread = activeErr || unreturned(activeSubs);
+            if (unread) health.unverified(CONDITION.NO_ACTIVE_SUBSCRIPTIONS, summary, unread);
+            else health.fault(CONDITION.NO_ACTIVE_SUBSCRIPTIONS, summary, { activeSubscriptions: 0 });
+        } else {
+            health.clear(CONDITION.NO_ACTIVE_SUBSCRIPTIONS, { activeSubscriptions: activeSubs });
         }
 
         // NOT a raw skipped count. I nearly shipped `skipped24h > 200`, then
@@ -542,24 +718,38 @@ async function handler(req, res) {
         // The precise signal is: we HAVE subscribers and still delivered
         // nothing. That is a delivery failure. High skipped counts alongside
         // healthy sends are just low adoption.
-        const { count: sent24h } = await supabase
+        const { count: sent24h, error: sentErr } = await supabase
             .from('push_outbox')
             .select('id', { count: 'exact', head: true })
             .eq('status', 'sent')
             .gte('sent_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString());
         report.sent24h = sent24h || 0;
 
+        const deliveryErr = activeErr || skippedErr || sentErr
+            || unreturned(activeSubs) || unreturned(skipped24h) || unreturned(sent24h);
         if ((activeSubs || 0) > 0 && (sent24h || 0) === 0 && (skipped24h || 0) > 0) {
-            problems.push(
-                `${activeSubs} device(s) are subscribed but nothing was delivered in 24h ` +
-                `(${skipped24h} discarded) - delivery is failing, not adoption`
-            );
+            const summary = `${activeSubs} device(s) are subscribed but nothing was delivered in 24h ` +
+                `(${skipped24h} discarded) - delivery is failing, not adoption`;
+            if (deliveryErr) health.unverified(CONDITION.DELIVERY_FAILING, summary, deliveryErr);
+            else health.fault(CONDITION.DELIVERY_FAILING, summary, { activeSubscriptions: activeSubs, sent24h: 0, skipped24h });
+        } else if (deliveryErr) {
+            health.unobserved(CONDITION.DELIVERY_FAILING, deliveryErr);
+        } else if (sent24h > 0) {
+            health.clear(CONDITION.DELIVERY_FAILING, { activeSubscriptions: activeSubs, sent24h });
+        } else {
+            // Nothing delivered and nothing discarded, or nobody subscribed:
+            // delivery was not exercised, so this is no evidence that it works.
+            health.unobserved(CONDITION.DELIVERY_FAILING);
         }
-    } catch { /* a failed diagnostic must never fail the cron */ }
+    } catch (e) {
+        // A failed diagnostic must never fail the cron - nor read as healthy.
+        health.unobserved(CONDITION.DELIVERY_FAILING, e);
+        health.unobserved(CONDITION.NO_ACTIVE_SUBSCRIPTIONS);
+    }
 
     // ---- Report ------------------------------------------------------------
     if (problems.length > 0) {
-        await notifyAdmins(supabase, {
+        await notices.toAdmins(supabase, {
             type: 'system',
             title: 'Push Health Alert',
             body: problems.slice(0, 3).join(' | '),
@@ -567,7 +757,17 @@ async function handler(req, res) {
         });
     }
 
-    return res.status(200).json({ ok: problems.length === 0, problems, report });
+    // ---- The owner account's copy: Production Alerts store episodes ---------
+    // After every notice above is sent, so a notice this very run addressed to
+    // the owner account is found too. A store that does not acknowledge the
+    // episodes fails the run (cron_health_log records it); there is never a
+    // personal fallback.
+    await observeOwnerAddressedNotices(supabase, health);
+    const operationalAlerts = await recordPushHealthAlerts(supabase, health.conditions());
+
+    return res.status(operationalAlerts.ok ? 200 : 500).json({
+        ok: problems.length === 0 && operationalAlerts.ok, problems, report, operationalAlerts,
+    });
 }
 
 export default withCronHealth('push-health', handler);
