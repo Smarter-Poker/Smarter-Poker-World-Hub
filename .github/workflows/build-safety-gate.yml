@@ -131,6 +131,16 @@ jobs:
           node docs/agent-policy/agent-policy.mjs check
           node --test docs/agent-policy/agent-policy.test.mjs
 
+      # The ref guard is the only thing that fires before `git reset --hard`
+      # lands, and until 2026-09-21 it printed "They are NOT on origin" about
+      # commits it had never compared against a single origin ref. A guard
+      # nobody runs is a guard that can quietly go back to lying, so it is
+      # named here: this step is its reader (CLAUDE.md 10.86, rule 3). Pure
+      # git and bash in a throwaway repo under $TMPDIR; no network, no
+      # node_modules, so it sits above the install steps on purpose.
+      - name: The ref guard tells the truth about origin
+        run: node --test __tests__/ref-guard-tells-the-truth-about-origin.test.mjs
+
       - name: Restore node_modules For Training Authority
         id: training-authority-nm-cache
         uses: actions/cache@v4
@@ -153,8 +163,18 @@ jobs:
 
       - name: Messenger Club And Invoice Separation
         run: >-
-          node --test
+          node --experimental-vm-modules --test
           __tests__/messenger-workspace.test.mjs
+          __tests__/messenger-send-reliability.test.mjs
+          __tests__/messenger-send-operation.test.mjs
+          __tests__/messenger-send-live-safety.test.mjs
+          __tests__/messenger-continuity-client.test.mjs
+          __tests__/messenger-continuity-server.test.mjs
+          __tests__/messenger-continuity-live-safety.test.mjs
+          __tests__/messenger-read-state.test.mjs
+          __tests__/messenger-sync-lifecycle.test.mjs
+          __tests__/messenger-completion-lifecycle.test.mjs
+          __tests__/notifications-completion.test.mjs
           __tests__/messenger-accounting-ui.test.mjs
           __tests__/messenger-conversation-link.test.mjs
           __tests__/messenger-search-lifecycle.test.mjs
@@ -162,6 +182,9 @@ jobs:
           __tests__/cashout-v2-bridge.test.mjs
           __tests__/correction-accounting-display.test.mjs
           __tests__/credit-change-accounting-display.test.mjs
+
+      - name: Messenger Live Probe Safety
+        run: node scripts/ci/messenger-live-check.mjs --self-test
 
       - name: Accounting Push Receipt And Ownership Contracts
         run: >-
@@ -173,6 +196,8 @@ jobs:
           __tests__/push-rotation-ownership.test.mjs
           __tests__/push-health-snapshot.test.mjs
           __tests__/zombie-endpoint-retirement.test.mjs
+          __tests__/push-worker-delivery-receipt.test.mjs
+          __tests__/push-enrollment-nudge.test.mjs
 
       - name: "CHECK 24: Training server-authority contracts"
         run: npm run test:training:phase6-authority
@@ -239,8 +264,21 @@ jobs:
 
       - name: Engine Alert Receipt PostgreSQL Contracts
         run: node --test __tests__/engine-alert-receipts-postgres.test.mjs
+
+      - name: Historical User Reels Rights PostgreSQL Contracts
+        run: npm run audit:video-reels:post-rights-db
+
       - name: One Reaction Invokes One Notification Handler
         run: PG_BIN="$PHASE6_POSTGRES_BIN" python3 scripts/ci/test-reaction-notification-postgres.py
+
+      - name: Messenger Sends Preserve Request Identity
+        run: PG_BIN="$PHASE6_POSTGRES_BIN" python3 scripts/ci/test-messenger-send-postgres.py
+
+      - name: Messenger Account Continuity And History Navigation
+        run: PG_BIN="$PHASE6_POSTGRES_BIN" python3 scripts/ci/test-messenger-continuity-postgres.py
+
+      - name: Messenger Reads Stop At The Displayed Message
+        run: PG_BIN="$PHASE6_POSTGRES_BIN" python3 scripts/ci/test-messenger-bounded-read-postgres.py
 
       - name: Owner Operational Notification PostgreSQL Contracts
         id: owner_notification_postgres
@@ -617,6 +655,42 @@ jobs:
           # of bug survives review. Pure static analysis; no DB access needed.
           node --test __tests__/stranded-writers.test.mjs
           node scripts/ci/check-stranded-writers.mjs
+
+      - name: "CHECK 26: No phantom Supabase RPCs"
+        env:
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          NEXT_PUBLIC_SUPABASE_URL: https://kuklfnapbkmacvwxktbh.supabase.co
+        run: |
+          # The function-level member of the phantom family. CHECK 11 covers
+          # tables, CHECK 13 covers columns, this covers supabase.rpc('name').
+          # PostgREST answers an unresolvable call with PGRST202, a 404 that
+          # arrives in the `error` object rather than as a throw, so the call
+          # site logs it and continues and the feature silently never works.
+          #
+          # WHY IT READS THE LIVE CATALOGUE RATHER THAN THIS REPO'S MIGRATIONS
+          # The break it was written for was a DROP in ANOTHER repository.
+          # Club Arena's three_watchers_whose_defects_were_fixed_stop_running
+          # dropped increment_club_table_count and decrement_club_table_count
+          # on 2026-09-20 (correctly: the trg_tables_sync_club_counts_*
+          # triggers recompute clubs.table_count from fn_live_table_count(),
+          # and those two wrote it blind). manage-table.js was still calling
+          # the decrement, and CHECK 17 could not see it, because CHECK 17
+          # reads the migrations THIS branch adds. A cross-repository drop is
+          # invisible to every gate that reads only this repository. This one
+          # asks the database instead, so it does not care who moved it.
+          #
+          # Clean on the first run: 309 distinct rpc names, 3,010 live
+          # functions, 6 findings, all 6 allowlisted with evidence (one
+          # deliberate Stripe fallback whose primary IS live, and five calls
+          # in src/content-engine, a separate deployment unit this project's
+          # runtime cannot reach). No burndown was needed, so it goes in
+          # BLOCKING rather than warn-only.
+          node --test __tests__/an-rpc-call-names-a-live-function.law.test.mjs
+          if [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then
+            echo "::warning::SUPABASE_SERVICE_ROLE_KEY secret not set - phantom-rpc check is NOT enforced."
+            exit 0
+          fi
+          node scripts/ci/check-phantom-rpcs.mjs
 
       - name: "CHECK 14: Vendor drift guard (CJS-under-ESM + override bypass)"
         run: |
@@ -1106,6 +1180,7 @@ jobs:
             __tests__/the-commander-pages-say-what-they-are.law.test.mjs \
             __tests__/the-entity-graph-is-connected.law.test.mjs \
             __tests__/llms-txt-states-the-entity.law.test.mjs \
+            __tests__/every-glossary-term-has-a-page.law.test.mjs \
             __tests__/the-summary-carries-the-schema.law.test.mjs \
             __tests__/a-page-head-is-never-behind-a-client-only-wrapper.law.test.mjs \
             __tests__/a-page-never-returns-nothing-before-its-head.law.test.mjs \
@@ -1113,10 +1188,13 @@ jobs:
             __tests__/no-public-page-is-nameless.law.test.mjs \
             __tests__/a-venue-title-survives-a-result.law.test.mjs \
             __tests__/one-place-decides-if-a-title-fits.law.test.mjs \
+            __tests__/every-lesson-answers-first.law.test.mjs \
+            __tests__/inline-css-is-never-escaped.law.test.mjs \
             __tests__/a-series-page-carries-its-schema.law.test.mjs \
             __tests__/one-page-per-real-thing.law.test.mjs \
             __tests__/two-pages-never-share-a-title.law.test.mjs \
             __tests__/a-link-in-the-copy-goes-somewhere.law.test.mjs \
+            __tests__/a-leaderboard-shows-its-leaders.law.test.mjs \
             __tests__/a-directory-lists-what-it-contains.law.test.mjs \
             __tests__/a-tour-page-serves-its-schedule.law.test.mjs \
             __tests__/a-series-page-lists-its-events.law.test.mjs \
@@ -1124,16 +1202,20 @@ jobs:
             __tests__/a-city-is-a-city.law.test.mjs \
             __tests__/a-page-with-its-content-is-not-loading.law.test.mjs \
             __tests__/the-charts-are-on-the-chart-page.law.test.mjs \
+            __tests__/a-range-comment-states-its-data.law.test.mjs \
             __tests__/poker-near-me-phase-3.test.mjs \
             __tests__/the-site-has-one-page-that-says-what-it-is.law.test.mjs \
             __tests__/schema-never-publishes-a-placeholder-address.law.test.mjs \
+            __tests__/a-feed-page-shows-its-feed.law.test.mjs \
             __tests__/every-hub-product-page-carries-its-schema.law.test.mjs \
             __tests__/the-glossary-is-readable-by-an-engine.law.test.mjs \
+            __tests__/a-comparison-cites-what-it-claims.law.test.mjs \
             __tests__/search-engines-can-verify-ownership.law.test.mjs \
             __tests__/every-public-asset-path-resolves.test.mjs \
             __tests__/an-oversized-raster-is-served-as-webp.law.test.mjs \
             __tests__/the-faq-answers-its-own-questions.law.test.mjs \
             __tests__/a-hub-page-renders-on-the-server.law.test.mjs \
+            __tests__/the-feeds-say-what-they-hold.law.test.mjs \
             tests/club-arena-public-routes-are-prerendered.test.mjs
 
       # ═══════════════════════════════════════════════════════════════

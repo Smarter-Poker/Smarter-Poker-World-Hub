@@ -100,7 +100,7 @@ export default function LevelCompleteModal({
                 </div>
             </div>
 
-            <style>{`
+            <style dangerouslySetInnerHTML={{ __html: `
                 .level-modal-overlay {
                     position: fixed;
                     inset: 0;
@@ -317,7 +317,7 @@ export default function LevelCompleteModal({
                     background: rgba(255,255,255,0.15);
                     border-color: rgba(255,255,255,0.3);
                 }
-            `}</style>
+            ` }} />
         </div>
     );
 }

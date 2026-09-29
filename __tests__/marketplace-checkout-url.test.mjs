@@ -39,7 +39,13 @@ test('Marketplace payment navigation accepts only hosted HTTPS Stripe Checkout U
   );
 });
 
-test('Marketplace checkout callers remain in the current browser surface', async () => {
+// Club Arena shows a World Hub page in a sanctioned same-origin frame beside a
+// running table. Stripe Checkout sends X-Frame-Options: DENY and vercel.json
+// sends Permissions-Policy: payment=(), so a checkout followed INSIDE that frame
+// goes blank with Apple Pay and Google Pay already disabled. Every caller hands
+// the URL to leaveForCheckout, which breaks out to the top window. A popup is
+// still forbidden: window.open is not the answer to this.
+test('Marketplace checkout callers break out of a frame and never open a popup', async () => {
   const files = await Promise.all([
     read('pages/hub/diamond-store.js'),
     read('pages/hub/diamond-store/cart.js'),
@@ -49,7 +55,9 @@ test('Marketplace checkout callers remain in the current browser surface', async
   ]);
   for (const source of files) {
     assert.match(source, /normalizeVerifiedCheckoutSession/);
-    assert.match(source, /window\.location\.assign\(checkoutSession\.url\)/);
+    assert.match(source, /leaveForCheckout\(checkoutSession\.url\)/);
+    assert.match(source, /from '[^']*lib\/store\/leaveForCheckout\.mjs'/);
+    assert.doesNotMatch(source, /window\.location\.assign\(checkoutSession\.url\)/);
     assert.doesNotMatch(source, /window\.open\s*\(/);
   }
 });

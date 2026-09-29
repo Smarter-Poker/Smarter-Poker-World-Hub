@@ -675,7 +675,7 @@ export default function DailyTournamentsPanel({ tournaments = [], onDayChange, o
         </div>
       )}
 
-      <style>{`
+      <style dangerouslySetInnerHTML={{ __html: `
         /* ───── Event Card CSS (Identical to Events Calendar) ───── */
         .ev-card {
           display: flex; align-items: stretch; gap: 0;
@@ -714,7 +714,7 @@ export default function DailyTournamentsPanel({ tournaments = [], onDayChange, o
           .ev-data-top { flex-direction: column; gap: 4px; align-items: flex-start !important; }
           .ev-data-numbers { flex-direction: row; flex-wrap: wrap; align-items: center; gap: 8px; }
         }
-      `}</style>
+      ` }} />
     </div>
   );
 }

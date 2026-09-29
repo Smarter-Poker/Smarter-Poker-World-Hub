@@ -14,6 +14,8 @@ import PageTransition from '../../../src/components/transitions/PageTransition';
 import { getAuthUser } from '../../../src/lib/authUtils';
 import { getNewsPreferences, updateNewsPreferences } from '../../../src/services/newsPreferences';
 import HubPageSummary from '../../../src/components/seo/HubPageSummary';
+import { swrFallback, catalogueCacheHeaders } from '../../../src/lib/seo/swrFallback.mjs';
+import { originFrom } from '../../../src/lib/poker-near-me/seriesSeo.mjs';
 
 const MUTED_SOURCES_KEY = 'news_muted_sources';
 
@@ -42,12 +44,37 @@ function formatDate(dateStr) {
     if (!dateStr) return '';
     const d = new Date(dateStr);
     if (Number.isNaN(d.getTime())) return '';
-    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    // UTC so the server-rendered date and the hydrated one always agree.
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
 }
 
-export default function NewsSources() {
-    const [sources, setSources] = useState([]);
-    const [loading, setLoading] = useState(true);
+const SOURCE_BOXES_PATH = '/api/news/source-boxes';
+
+// One shape for the server and the browser: the outlet's name and its latest
+// public headline. Nothing else from the API row reaches the page.
+function toSources(json) {
+    const boxes = Array.isArray(json?.data) ? json.data : [];
+    return boxes.map((box) => ({
+        id: box._boxNumber ?? box.id,
+        name: box._sourceName || box.source_name || 'Unknown Source',
+        latestTitle: box._isEmpty || box._isError ? null : box.title || null,
+        latestAt: box._isEmpty || box._isError ? null : box.published_at || null,
+    }));
+}
+
+// A FEED PAGE SHOWS ITS FEED (2026-09-22). A Googlebot crawl measured this
+// page at about 120 words: the outlet list was fetched in the browser, so the
+// server sent a skeleton. The first list now arrives in the HTML; the browser
+// still refreshes it and owns the per-reader enable/disable toggles.
+export async function getServerSideProps({ req, res }) {
+    catalogueCacheHeaders(res);
+    const fallback = await swrFallback(originFrom(req), SOURCE_BOXES_PATH);
+    return { props: { initialSources: toSources(fallback[SOURCE_BOXES_PATH]) } };
+}
+
+export default function NewsSources({ initialSources = [] }) {
+    const [sources, setSources] = useState(initialSources);
+    const [loading, setLoading] = useState(initialSources.length === 0);
     const [error, setError] = useState(null);
     const [muted, setMuted] = useState(() => new Set());
     const [userId, setUserId] = useState(null);
@@ -63,31 +90,27 @@ export default function NewsSources() {
     }, []);
 
     // Fetch the real aggregated sources
-    const fetchSources = useCallback(async () => {
-        setLoading(true);
-        setError(null);
+    // `background` refreshes a server-rendered list without swapping it for
+    // the skeleton, and keeps it on screen if the refresh fails.
+    const fetchSources = useCallback(async ({ background = false } = {}) => {
+        if (!background) setLoading(true);
+        if (!background) setError(null);
         try {
-            const res = await fetch('/api/news/source-boxes');
+            const res = await fetch(SOURCE_BOXES_PATH);
             if (!res.ok) throw new Error(`Request failed (${res.status})`);
             const json = await res.json();
-            const boxes = Array.isArray(json?.data) ? json.data : [];
-            setSources(
-                boxes.map((box) => ({
-                    id: box._boxNumber ?? box.id,
-                    name: box._sourceName || box.source_name || 'Unknown Source',
-                    latestTitle: box._isEmpty || box._isError ? null : box.title || null,
-                    latestAt: box._isEmpty || box._isError ? null : box.published_at || null,
-                }))
-            );
+            setSources(toSources(json));
         } catch (e) {
-            setError(e?.message || 'Failed to load sources');
+            if (!background) setError(e?.message || 'Failed to load sources');
         } finally {
             setLoading(false);
         }
     }, []);
 
     useEffect(() => {
-        fetchSources();
+        fetchSources({ background: initialSources.length > 0 });
+        // Mount only: the server list is the starting point, not a dependency.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [fetchSources]);
 
     // Load persisted muted-source preferences (account first, local fallback)
@@ -146,7 +169,7 @@ export default function NewsSources() {
                 canonical="/hub/news/sources"
             />
 
-            <PageTransition>
+            <PageTransition disableInitialAnimation>
                 <div style={{ minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box', background: '#000407' }}>
                     <UniversalHeader pageDepth={2} />
 
@@ -193,7 +216,7 @@ export default function NewsSources() {
                                 <div style={{ color: '#9ca3af', fontSize: '14px', marginBottom: '16px' }}>{error}</div>
                                 <button
                                     type="button"
-                                    onClick={fetchSources}
+                                    onClick={() => fetchSources()}
                                     style={{
                                         background: 'rgba(0,212,255,0.12)',
                                         border: '1px solid rgba(0,212,255,0.4)',

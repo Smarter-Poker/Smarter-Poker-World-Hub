@@ -1173,7 +1173,7 @@ export default function StrategyTrivia({ mode }) {
                 </div>
             </div>
 
-            <style>{`
+            <style dangerouslySetInnerHTML={{ __html: `
                 .strategy-trivia {
                     height: 100vh;
                     height: 100dvh;
@@ -1767,7 +1767,7 @@ export default function StrategyTrivia({ mode }) {
                     .option { padding: 12px 14px; font-size: 14px; gap: 10px; }
                     .lobby-cost-strip { font-size: 11px; padding: 8px 10px; }
                 }
-            `}</style>
+            ` }} />
         </PageTransition >
     );
 }

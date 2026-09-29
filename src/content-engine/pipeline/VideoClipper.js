@@ -1,21 +1,14 @@
 /**
  * 🎬 VIRAL POKER VIDEO CLIPPER
  * ═══════════════════════════════════════════════════════════════════════════
- * Downloads viral poker content from YouTube/Twitch and clips it into
- * short-form vertical videos for TikTok/Reels style content.
- * 
- * SOURCES (Best for clipping):
- * - Hustler Casino Live (YouTube) - Most permissive
- * - HCL Poker Clips (YouTube) - Pre-clipped content
- * - Twitch poker streamers
- * - Poker compilation channels
- * 
- * AVOID:
- * - PokerGO (strict DMCA enforcement)
+ * Produces short-form vertical videos only from assets for which
+ * Smarter.Poker has explicit owned or licensed processing rights.
+ * Third-party channels remain discovery/embed sources; their inclusion in
+ * this registry is never permission to download, transform, or republish.
  * 
  * PIPELINE:
  * 1. Discover viral videos from curated channels
- * 2. Download via yt-dlp
+ * 2. Verify owned/licensed rights before acquiring the source media
  * 3. Extract clips via FFmpeg (specific timestamps)
  * 4. Convert to 9:16 vertical format
  * 5. Add captions (Whisper AI)
@@ -57,12 +50,22 @@ const CONFIG = {
 
     // Supabase storage bucket
     STORAGE_BUCKET: 'social-media',
-    STORAGE_PATH: 'reels/clips'
+    // Native Reel playback is intentionally author-scoped. The canonical feed
+    // rejects broad `reels/clips/...` objects because it cannot prove that the
+    // object belongs to the reel author.
+    STORAGE_PATH: 'reels'
 };
 
+// Keep this in lockstep with the canonical Reel feed's author identity gate.
+// A storage object is public, so accepting an arbitrary string here would let
+// a caller write outside the namespace the feed treats as trusted.
+const AUTHOR_ID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const POKER_TOPICS = new Set(['poker', 'cash', 'tournament']);
+const NATIVE_CLIPPING_QUARANTINE_REASON = 'rights_registry_not_implemented';
+
 // ═══════════════════════════════════════════════════════════════════════════
-// CURATED POKER VIDEO SOURCES
-// These are channels known for permissive content policies
+// POKER DISCOVERY SOURCES
+// Discovery metadata is not evidence of processing or republication rights.
 // ═══════════════════════════════════════════════════════════════════════════
 const POKER_SOURCES = {
     youtube_channels: [
@@ -70,25 +73,29 @@ const POKER_SOURCES = {
             id: 'UCNJhx0JD6HoT1fz0Z3tZpSw', // Hustler Casino Live
             name: 'Hustler Casino Live',
             type: 'livestream_highlights',
-            safe_to_clip: true
+            safe_to_clip: false,
+            requires_rights_clearance: true
         },
         {
             id: 'UC_lVPKHbLDIkdI5H84VRwxQ', // HCL Poker Clips
             name: 'HCL Poker Clips',
             type: 'pre_clipped',
-            safe_to_clip: true
+            safe_to_clip: false,
+            requires_rights_clearance: true
         },
         {
             id: 'UCrM5f8qg7mPwDzFXaeLYG4g', // PokerStars
             name: 'PokerStars',
             type: 'tournament_highlights',
-            safe_to_clip: true
+            safe_to_clip: false,
+            requires_rights_clearance: true
         },
         {
             id: 'UCB_sfU5NC1dlIVj7pz7Y5NQ', // Doug Polk Poker
             name: 'Doug Polk Poker',
             type: 'analysis_clips',
-            safe_to_clip: true
+            safe_to_clip: false,
+            requires_rights_clearance: true
         }
     ],
 
@@ -132,10 +139,11 @@ class VideoClipper {
     getSupabase() {
         if (!this.supabase) {
             const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
-            const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-            if (supabaseUrl && supabaseKey) {
-                this.supabase = createClient(supabaseUrl, supabaseKey);
+            const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+            if (!supabaseUrl || !supabaseKey) {
+                throw new Error('VideoClipper requires service-role Supabase configuration');
             }
+            this.supabase = createClient(supabaseUrl, supabaseKey);
         }
         return this.supabase;
     }
@@ -148,6 +156,22 @@ class VideoClipper {
         });
     }
 
+    /**
+     * Phase 1 quarantine boundary.
+     *
+     * A caller-supplied `rightsStatus` string is not rights evidence. Native
+     * acquisition stays disabled until Phase 6 replaces this method with a
+     * database-backed grant lookup (asset, owner/license, permitted uses,
+     * territory, dates and revocation) plus a durable job claim. Keeping the
+     * result explicit also makes accidental reactivation visible in tests.
+     */
+    async getNativeClippingGate() {
+        return {
+            enabled: false,
+            reason: NATIVE_CLIPPING_QUARANTINE_REASON,
+        };
+    }
+
     // ═══════════════════════════════════════════════════════════════════════
     // DOWNLOAD METHODS
     // ═══════════════════════════════════════════════════════════════════════
@@ -157,6 +181,22 @@ class VideoClipper {
      * Supports: YouTube, Twitch clips, Twitter, TikTok
      */
     async downloadVideo(url, options = {}) {
+        const clippingGate = await this.getNativeClippingGate();
+        if (!clippingGate.enabled) {
+            return {
+                success: false,
+                error: clippingGate.reason,
+                sourceUrl: url,
+            };
+        }
+        const rightsStatus = options.rightsStatus || 'unknown';
+        if (!['owned', 'licensed'].includes(rightsStatus)) {
+            return {
+                success: false,
+                error: 'rights_clearance_required',
+                sourceUrl: url
+            };
+        }
         const videoId = `dl_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
         const outputPath = path.join(CONFIG.DOWNLOAD_DIR, `${videoId}.mp4`);
 
@@ -449,17 +489,48 @@ class VideoClipper {
      * Upload clip to Supabase storage and create reel record
      */
     async uploadAndCreateReel(clipPath, metadata = {}) {
+        const clippingGate = await this.getNativeClippingGate();
+        if (!clippingGate.enabled) {
+            return {
+                success: false,
+                publicationSkipped: true,
+                reason: clippingGate.reason,
+            };
+        }
+        const rightsStatus = metadata.rightsStatus || 'unknown';
+        if (!['owned', 'licensed'].includes(rightsStatus)) {
+            console.warn('Upload blocked: an explicit owned/licensed rightsStatus is required');
+            return {
+                success: false,
+                publicationSkipped: true,
+                reason: 'rights_clearance_required'
+            };
+        }
+        const authorId = String(metadata.authorId || '').trim();
+        if (!AUTHOR_ID_RE.test(authorId)) {
+            console.warn('Upload blocked: an author UUID is required for a trusted native Reel namespace');
+            return {
+                success: false,
+                publicationSkipped: true,
+                reason: 'author_id_required'
+            };
+        }
+        const topic = String(metadata.topic || '').trim().toLowerCase();
+        if (!POKER_TOPICS.has(topic)) {
+            console.warn('Upload blocked: an explicit poker topic is required');
+            return {
+                success: false,
+                publicationSkipped: true,
+                reason: 'poker_topic_required'
+            };
+        }
         const fileName = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}.mp4`;
-        const storagePath = `${CONFIG.STORAGE_PATH}/${fileName}`;
+        const storagePath = `${CONFIG.STORAGE_PATH}/${authorId}/${fileName}`;
 
         console.debug(`☁️ Uploading clip to storage...`);
 
-        const supabase = this.getSupabase();
-        if (!supabase) {
-            return { success: false, error: 'Supabase client not configured' };
-        }
-
         try {
+            const supabase = this.getSupabase();
             // Read file
             const fileBuffer = fs.readFileSync(clipPath);
 
@@ -481,34 +552,47 @@ class VideoClipper {
             const publicUrl = urlData.publicUrl;
             console.debug(`✅ Uploaded: ${publicUrl}`);
 
-            // Create reel record if author provided
-            if (metadata.authorId) {
-                const { data: reel, error: reelError } = await supabase
-                    .from('social_reels')
-                    .insert({
+            // The author is validated above before a public object is written.
+            const { data: reel, error: reelError } = await supabase
+                .from('social_reels')
+                .insert({
                         // 2026-08-15 CHECK 13 fix: source_url/duration_seconds/
                         // visibility are not columns on social_reels (real:
                         // original_youtube_url / is_public; no duration column) —
                         // the insert 42703'd, so clipped reels were never created.
-                        author_id: metadata.authorId,
+                        author_id: authorId,
                         video_url: publicUrl,
                         caption: metadata.caption || '',
                         original_youtube_url: metadata.sourceUrl || null,
-                        source_type: metadata.sourceType || 'clipped',
+                        // source_type remains the legacy transport enum. New
+                        // orthogonal fields carry origin, playback, topic and rights.
+                        source_type: 'native',
+                        origin_type: 'generated',
+                        playback_type: 'native',
+                        topic,
+                        rights_status: rightsStatus,
+                        source_asset_id: null,
+                        canonical_asset_key: metadata.canonicalAssetKey || `native:${storagePath}`,
+                        media_status: 'ready',
                         is_public: true
-                    })
-                    .select()
-                    .maybeSingle();
+                })
+                .select()
+                .maybeSingle();
 
-                if (reelError || !reel) {
-                    console.warn(`Reel record creation failed: ${reelError?.message || 'No data returned'}`);
-                } else {
-                    console.debug(`✅ Reel created: ${reel.id}`);
-                    return { success: true, publicUrl, reel };
+            if (reelError || !reel) {
+                const reason = reelError?.message || 'No data returned';
+                console.warn(`Reel creation failed: ${reason}; removing uploaded object`);
+                const { error: cleanupError } = await supabase.storage
+                    .from(CONFIG.STORAGE_BUCKET)
+                    .remove([storagePath]);
+                if (cleanupError) {
+                    throw new Error(`Reel creation failed (${reason}); orphan cleanup failed (${cleanupError.message})`);
                 }
+                throw new Error(`Reel creation failed: ${reason}`);
             }
 
-            return { success: true, publicUrl };
+            console.debug(`✅ Reel created: ${reel.id}`);
+            return { success: true, publicUrl, reel };
 
         } catch (error) {
             console.warn(`❌ Upload failed: ${error.message}`);
@@ -530,10 +614,15 @@ class VideoClipper {
         console.debug('═'.repeat(60));
 
         try {
+            const rightsStatus = clipConfig.rightsStatus || 'unknown';
+            if (!['owned', 'licensed'].includes(rightsStatus)) {
+                throw new Error('rights_clearance_required');
+            }
             // Step 1: Download video (or specific section)
             const download = await this.downloadVideo(videoUrl, {
                 startTime: this.formatTimestamp(clipConfig.startTime),
-                endTime: this.formatTimestamp(clipConfig.startTime + clipConfig.duration)
+                endTime: this.formatTimestamp(clipConfig.startTime + clipConfig.duration),
+                rightsStatus
             });
 
             if (!download.success) {
@@ -568,8 +657,10 @@ class VideoClipper {
                 authorId: clipConfig.authorId,
                 caption: clipConfig.caption || '',
                 sourceUrl: videoUrl,
-                sourceType: 'clipped',
-                duration: clipConfig.duration
+                duration: clipConfig.duration,
+                rightsStatus,
+                topic: clipConfig.topic,
+                canonicalAssetKey: clipConfig.canonicalAssetKey
             });
 
             // Clean up local file
@@ -590,8 +681,14 @@ class VideoClipper {
      * Process multiple clips from a single source video
      */
     async processMultipleClips(videoUrl, clips) {
+        if (!Array.isArray(clips) || clips.length === 0 || clips.some(
+            clip => !['owned', 'licensed'].includes(clip.rightsStatus || 'unknown')
+        )) {
+            return { success: false, error: 'rights_clearance_required', results: [], processed: 0, total: clips?.length || 0 };
+        }
         // Download full video once
-        const download = await this.downloadVideo(videoUrl);
+        const rightsStatus = clips.every(clip => clip.rightsStatus === 'owned') ? 'owned' : 'licensed';
+        const download = await this.downloadVideo(videoUrl, { rightsStatus });
         if (!download.success) {
             return { success: false, error: download.error };
         }
@@ -621,7 +718,10 @@ class VideoClipper {
                             authorId: clip.authorId,
                             caption: clip.caption,
                             sourceUrl: videoUrl,
-                            duration: clip.duration
+                            duration: clip.duration,
+                            rightsStatus: clip.rightsStatus,
+                            topic: clip.topic,
+                            canonicalAssetKey: clip.canonicalAssetKey
                         }
                     );
 
@@ -631,7 +731,11 @@ class VideoClipper {
                     if (fs.existsSync(verticalResult.path)) {
                         fs.unlinkSync(verticalResult.path);
                     }
+                } else {
+                    results.push({ success: false, error: verticalResult.error || 'vertical_conversion_failed' });
                 }
+            } else {
+                results.push({ success: false, error: extractResult.error || 'clip_extraction_failed' });
             }
         }
 
@@ -641,10 +745,11 @@ class VideoClipper {
         }
 
         return {
-            success: true,
+            success: results.length === clips.length && results.every(result => result.success),
             results,
             processed: results.filter(r => r.success).length,
-            total: clips.length
+            total: clips.length,
+            error: results.some(result => !result.success) ? 'one_or_more_clips_failed' : null,
         };
     }
 

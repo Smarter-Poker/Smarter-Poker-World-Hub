@@ -8,7 +8,7 @@ import { createRequire } from 'node:module';
 import { randomUUID } from 'node:crypto';
 import test from 'node:test';
 const { Client }=createRequire(import.meta.url)('pg');
-const migration=readFileSync(new URL('../supabase/migrations/20260913170000_engine_alert_delivery_receipts.sql',import.meta.url),'utf8');
+const migration=readFileSync(new URL('../supabase/migrations/20260913170312_engine_alert_delivery_receipts.sql',import.meta.url),'utf8');
 const pgBin=[process.env.PHASE6_POSTGRES_BIN,process.env.PG17_BINDIR,'/opt/homebrew/opt/postgresql@17/bin','/usr/lib/postgresql/17/bin'].filter(Boolean).find(p=>existsSync(join(p,'postgres')));
 const event=(id=randomUUID())=>({status:'firing',fingerprint:'Fault:table',labels:{alertname:'Fault',severity:'critical',component:'table',engine_alert_event_id:id},annotations:{summary:'failed'},startsAt:'2026-09-13T00:00:00Z'});
 test('PostgreSQL17 receipts enforce replay, collision, rollback, concurrency and service-only authority',async()=>{

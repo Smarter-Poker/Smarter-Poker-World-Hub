@@ -372,7 +372,7 @@ export default function TimeAttackGame({
                 </motion.div>
             )}
 
-            <style>{`
+            <style dangerouslySetInnerHTML={{ __html: `
                 .time-attack-game {
                     padding: 20px;
                     max-width: 600px;
@@ -592,7 +592,7 @@ export default function TimeAttackGame({
                     .answer-btn:hover:not(:disabled) { transform: none; }
                     .spinner { animation-duration: 2s; }
                 }
-            `}</style>
+            ` }} />
         </div>
     );
 }

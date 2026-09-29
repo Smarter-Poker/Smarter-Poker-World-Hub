@@ -1,34 +1,37 @@
 /**
- * 🎞️ GIPHY PICKER — Shared Component (v2.0)
- * Reusable GIF/Sticker search/browse panel powered by /api/messenger/gif-search (GIPHY proxy).
- * 
- * Features:
- *   - Shimmer loading skeleton
- *   - Infinite scroll (load more on scroll)
- *   - GIF/Sticker tab toggle
- *   - Compact mode for inline use
- *   - Paste-to-upload image support (Ctrl+V / Cmd+V)
+ * Shared GIF and sticker browser powered by the authenticated GIPHY proxy.
  *
- * Props:
- *   onSelect(gifUrl: string) — callback when user picks a GIF/sticker
- *   onClose() — callback to dismiss the picker
- *   compact — if true, uses smaller height (for inline comment usage)
- *   onPaste(file: File) — callback when user pastes an image from clipboard
+ * The picker is deliberately unframed. Reel comment composers print it onto
+ * the surrounding painted console glass, while the actual GIFs remain the
+ * only imagery inside the picker.
  */
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useCallback, useEffect, useId, useRef, useState } from 'react';
+import styles from './GiphyPicker.module.css';
 
-// Shimmer skeleton placeholder for loading state
-const ShimmerCard = ({ height }) => (
-    <div style={{
-        width: '100%',
-        height: height || 120,
-        borderRadius: 8,
-        background: 'linear-gradient(110deg, #E4E6EB 8%, #F0F2F5 18%, #E4E6EB 33%)',
-        backgroundSize: '200% 100%',
-        animation: 'sp-shimmer 1.5s linear infinite',
-    }} />
-);
+const RESULT_LIMIT = 20;
+
+function getTabLabel(tab) {
+    return tab === 'sticker' ? 'Stickers' : 'GIFs';
+}
+
+function PickerStatus({ title, detail, actionLabel, onAction, alert = false }) {
+    return (
+        <div
+            className={styles.status}
+            role={alert ? 'alert' : 'status'}
+            aria-live={alert ? 'assertive' : 'polite'}
+        >
+            <strong className={styles.statusTitle}>{title}</strong>
+            {detail ? <span className={styles.statusDetail}>{detail}</span> : null}
+            {actionLabel && onAction ? (
+                <button className={styles.textAction} type="button" onClick={onAction}>
+                    {actionLabel}
+                </button>
+            ) : null}
+        </div>
+    );
+}
 
 const GiphyPicker = ({ onSelect, onClose, compact = false, onPaste }) => {
     const [query, setQuery] = useState('');
@@ -36,269 +39,326 @@ const GiphyPicker = ({ onSelect, onClose, compact = false, onPaste }) => {
     const [loading, setLoading] = useState(false);
     const [loadingMore, setLoadingMore] = useState(false);
     const [error, setError] = useState('');
-    const [tab, setTab] = useState('gif'); // 'gif' | 'sticker'
+    const [tab, setTab] = useState('gif');
     const [hasMore, setHasMore] = useState(true);
     const searchTimerRef = useRef(null);
+    const focusTimerRef = useRef(null);
     const inputRef = useRef(null);
     const gridRef = useRef(null);
     const offsetRef = useRef(0);
-    const LIMIT = 20;
+    const requestSequenceRef = useRef(0);
+    const loadingMoreRef = useRef(false);
+    const mountedRef = useRef(true);
+    const searchInputId = useId();
+    const resultsId = `${searchInputId}-results`;
 
-    // Load trending on mount and tab change
     useEffect(() => {
-        loadTrending();
-        setTimeout(() => inputRef.current?.focus(), 100);
-    }, [tab]);
+        mountedRef.current = true;
+        return () => {
+            mountedRef.current = false;
+            requestSequenceRef.current += 1;
+            loadingMoreRef.current = false;
+            if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+            if (focusTimerRef.current) clearTimeout(focusTimerRef.current);
+        };
+    }, []);
 
-    const loadTrending = async () => {
+    const loadTrending = useCallback(async () => {
+        const requestSequence = requestSequenceRef.current + 1;
+        requestSequenceRef.current = requestSequence;
+        loadingMoreRef.current = false;
         setLoading(true);
+        setLoadingMore(false);
         setError('');
         setGifs([]);
         offsetRef.current = 0;
+
         try {
-            const resp = await fetch(`/api/messenger/gif-search?limit=${LIMIT}&type=${tab}`);
-            const data = await resp.json();
-            if (data.success) {
+            const response = await fetch(
+                `/api/messenger/gif-search?limit=${RESULT_LIMIT}&type=${tab}`
+            );
+            const data = await response.json();
+            if (!mountedRef.current || requestSequence !== requestSequenceRef.current) return;
+
+            if (data.success && Array.isArray(data.gifs)) {
                 setGifs(data.gifs);
-                setHasMore(data.gifs.length >= LIMIT);
+                setHasMore(data.gifs.length >= RESULT_LIMIT);
                 offsetRef.current = data.gifs.length;
             } else {
-                setError(data.error || 'Failed to load GIFs');
+                setHasMore(false);
+                setError('GIF Service Is Unavailable');
             }
-        } catch (e) {
-            console.warn('[GiphyPicker] Load error:', e);
-            setError('Unable to connect to GIF service');
+        } catch (loadError) {
+            console.warn('[GiphyPicker] Load error:', loadError);
+            if (!mountedRef.current || requestSequence !== requestSequenceRef.current) return;
+            setHasMore(false);
+            setError('GIF Service Is Unavailable');
+        } finally {
+            if (mountedRef.current && requestSequence === requestSequenceRef.current) {
+                setLoading(false);
+            }
         }
-        setLoading(false);
-    };
+    }, [tab]);
 
-    const handleSearch = (q) => {
-        setQuery(q);
+    useEffect(() => {
+        void loadTrending();
+        if (focusTimerRef.current) clearTimeout(focusTimerRef.current);
+        focusTimerRef.current = setTimeout(() => inputRef.current?.focus(), 100);
+    }, [loadTrending]);
+
+    const handleSearch = (nextQuery) => {
+        setQuery(nextQuery);
         if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
-        if (!q || q.length < 2) {
-            loadTrending();
+        requestSequenceRef.current += 1;
+        loadingMoreRef.current = false;
+        setLoadingMore(false);
+
+        if (!nextQuery || nextQuery.length < 2) {
+            void loadTrending();
             return;
         }
+
         searchTimerRef.current = setTimeout(async () => {
+            const requestSequence = requestSequenceRef.current + 1;
+            requestSequenceRef.current = requestSequence;
             setLoading(true);
             setError('');
             setGifs([]);
             offsetRef.current = 0;
+
             try {
-                const resp = await fetch(`/api/messenger/gif-search?q=${encodeURIComponent(q)}&limit=${LIMIT}&type=${tab}`);
-                const data = await resp.json();
-                if (data.success) {
+                const response = await fetch(
+                    `/api/messenger/gif-search?q=${encodeURIComponent(nextQuery)}`
+                    + `&limit=${RESULT_LIMIT}&type=${tab}`
+                );
+                const data = await response.json();
+                if (!mountedRef.current || requestSequence !== requestSequenceRef.current) return;
+
+                if (data.success && Array.isArray(data.gifs)) {
                     setGifs(data.gifs);
-                    setHasMore(data.gifs.length >= LIMIT);
+                    setHasMore(data.gifs.length >= RESULT_LIMIT);
                     offsetRef.current = data.gifs.length;
                 } else {
-                    setError(data.error || 'Search failed');
+                    setHasMore(false);
+                    setError('GIF Search Is Unavailable');
                 }
-            } catch (e) {
-                console.warn('[GiphyPicker] Search error:', e);
-                setError('Unable to search GIFs');
+            } catch (searchError) {
+                console.warn('[GiphyPicker] Search error:', searchError);
+                if (!mountedRef.current || requestSequence !== requestSequenceRef.current) return;
+                setHasMore(false);
+                setError('GIF Search Is Unavailable');
+            } finally {
+                if (mountedRef.current && requestSequence === requestSequenceRef.current) {
+                    setLoading(false);
+                }
             }
-            setLoading(false);
         }, 300);
     };
 
-    // Infinite scroll — load more
     const loadMore = useCallback(async () => {
-        if (loadingMore || !hasMore) return;
+        if (loading || loadingMore || loadingMoreRef.current || !hasMore) return;
+        loadingMoreRef.current = true;
         setLoadingMore(true);
+        const requestSequence = requestSequenceRef.current;
+
         try {
-            const qParam = query && query.length >= 2 ? `&q=${encodeURIComponent(query)}` : '';
-            const resp = await fetch(`/api/messenger/gif-search?limit=${LIMIT}&offset=${offsetRef.current}&type=${tab}${qParam}`);
-            const data = await resp.json();
-            if (data.success && data.gifs.length > 0) {
-                setGifs(prev => [...prev, ...data.gifs]);
+            const queryParameter = query && query.length >= 2
+                ? `&q=${encodeURIComponent(query)}`
+                : '';
+            const response = await fetch(
+                `/api/messenger/gif-search?limit=${RESULT_LIMIT}`
+                + `&offset=${offsetRef.current}&type=${tab}${queryParameter}`
+            );
+            const data = await response.json();
+            if (!mountedRef.current || requestSequence !== requestSequenceRef.current) return;
+
+            if (data.success && Array.isArray(data.gifs) && data.gifs.length > 0) {
+                setGifs(previous => [...previous, ...data.gifs]);
                 offsetRef.current += data.gifs.length;
-                setHasMore(data.gifs.length >= LIMIT);
+                setHasMore(data.gifs.length >= RESULT_LIMIT);
             } else {
                 setHasMore(false);
             }
-        } catch (e) {
-            console.warn('[GiphyPicker] Load more error:', e);
+        } catch (loadMoreError) {
+            console.warn('[GiphyPicker] Load more error:', loadMoreError);
+            if (mountedRef.current && requestSequence === requestSequenceRef.current) {
+                setHasMore(false);
+            }
+        } finally {
+            if (mountedRef.current && requestSequence === requestSequenceRef.current) {
+                loadingMoreRef.current = false;
+                setLoadingMore(false);
+            } else if (!mountedRef.current) {
+                loadingMoreRef.current = false;
+            }
         }
-        setLoadingMore(false);
-    }, [loadingMore, hasMore, query, tab]);
+    }, [hasMore, loading, loadingMore, query, tab]);
 
-    // Scroll event handler for infinite scroll
     useEffect(() => {
         const grid = gridRef.current;
-        if (!grid) return;
+        if (!grid) return undefined;
+
         const handleScroll = () => {
             const { scrollTop, scrollHeight, clientHeight } = grid;
             if (scrollHeight - scrollTop - clientHeight < 100) {
-                loadMore();
+                void loadMore();
             }
         };
+
         grid.addEventListener('scroll', handleScroll, { passive: true });
         return () => grid.removeEventListener('scroll', handleScroll);
     }, [loadMore]);
 
-    // Cleanup
-    useEffect(() => {
-        return () => {
-            if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
-        };
-    }, []);
+    const handlePaste = (event) => {
+        if (!onPaste) return;
+        const imageItem = Array.from(event.clipboardData?.items || []).find(item => (
+            item.kind === 'file' && item.type.startsWith('image/')
+        ));
+        const imageFile = imageItem?.getAsFile();
+        if (!imageFile) return;
+        event.preventDefault();
+        onPaste(imageFile);
+    };
 
-    const maxH = compact ? 280 : 380;
+    const selectTab = (nextTab) => {
+        if (nextTab === tab) return;
+        if (searchTimerRef.current) {
+            clearTimeout(searchTimerRef.current);
+            searchTimerRef.current = null;
+        }
+        requestSequenceRef.current += 1;
+        loadingMoreRef.current = false;
+        setLoadingMore(false);
+        setTab(nextTab);
+        setQuery('');
+    };
+
+    const tabLabel = getTabLabel(tab);
 
     return (
-        <div style={{
-            background: '#FFFFFF',
-            borderRadius: 12,
-            boxShadow: '0 -4px 16px rgba(0,0,0,0.15)',
-            maxHeight: maxH,
-            display: 'flex',
-            flexDirection: 'column',
-            overflow: 'hidden',
-            border: '1px solid #E4E6EB',
-        }}>
-            {/* Shimmer animation CSS */}
-            <style>{`
-                @keyframes sp-shimmer {
-                    0% { background-position: 200% 0; }
-                    100% { background-position: -200% 0; }
-                }
-            `}</style>
+        <section
+            className={`${styles.picker} ${compact ? styles.compact : ''}`}
+            aria-label="GIF And Sticker Archive"
+            onPaste={handlePaste}
+        >
+            <header className={styles.header}>
+                <span className={styles.eyebrow}>Poker Media Command</span>
+                <span className={styles.title}>{tabLabel} Archive</span>
+                {onClose ? (
+                    <button
+                        className={styles.closeAction}
+                        type="button"
+                        onClick={onClose}
+                        aria-label="Close GIF And Sticker Archive"
+                    >
+                        Close
+                    </button>
+                ) : null}
+            </header>
 
-            {/* Tab bar: GIFs | Stickers */}
-            <div style={{
-                display: 'flex',
-                borderBottom: '1px solid #E4E6EB',
-            }}>
+            <div className={styles.commandRail} role="tablist" aria-label="Media Type">
                 <button
-                    onClick={() => { setTab('gif'); setQuery(''); }}
-                    style={{
-                        flex: 1, padding: '8px 0', border: 'none', cursor: 'pointer',
-                        background: tab === 'gif' ? '#E7F3FF' : 'transparent',
-                        color: tab === 'gif' ? '#1877F2' : '#65676B',
-                        fontWeight: 600, fontSize: 13,
-                        borderBottom: tab === 'gif' ? '2px solid #1877F2' : '2px solid transparent',
-                    }}
-                >GIFs</button>
+                    className={styles.command}
+                    type="button"
+                    role="tab"
+                    aria-selected={tab === 'gif'}
+                    aria-controls={resultsId}
+                    tabIndex={tab === 'gif' ? 0 : -1}
+                    data-active={tab === 'gif'}
+                    onClick={() => selectTab('gif')}
+                >
+                    GIFs
+                </button>
                 <button
-                    onClick={() => { setTab('sticker'); setQuery(''); }}
-                    style={{
-                        flex: 1, padding: '8px 0', border: 'none', cursor: 'pointer',
-                        background: tab === 'sticker' ? '#E7F3FF' : 'transparent',
-                        color: tab === 'sticker' ? '#1877F2' : '#65676B',
-                        fontWeight: 600, fontSize: 13,
-                        borderBottom: tab === 'sticker' ? '2px solid #1877F2' : '2px solid transparent',
-                    }}
-                >Stickers</button>
+                    className={styles.command}
+                    type="button"
+                    role="tab"
+                    aria-selected={tab === 'sticker'}
+                    aria-controls={resultsId}
+                    tabIndex={tab === 'sticker' ? 0 : -1}
+                    data-active={tab === 'sticker'}
+                    onClick={() => selectTab('sticker')}
+                >
+                    Stickers
+                </button>
             </div>
 
-            {/* Header with search */}
-            <div style={{
-                padding: '8px 12px',
-                borderBottom: '1px solid #E4E6EB',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 8,
-            }}>
+            <div className={styles.searchRow}>
+                <label className={styles.searchLabel} htmlFor={searchInputId}>
+                    Search Archive
+                </label>
                 <input
                     ref={inputRef}
-                    type="text"
+                    id={searchInputId}
+                    className={styles.searchInput}
+                    type="search"
                     value={query}
-                    onChange={e => handleSearch(e.target.value)}
-                    placeholder={tab === 'gif' ? 'Search GIFs...' : 'Search Stickers...'}
-                    style={{
-                        flex: 1,
-                        border: 'none',
-                        background: '#F0F2F5',
-                        borderRadius: 20,
-                        padding: '8px 12px',
-                        fontSize: 14,
-                        outline: 'none',
-                        color: '#050505',
-                    }}
+                    onChange={event => handleSearch(event.target.value)}
+                    placeholder={`Search ${tabLabel}`}
+                    autoComplete="off"
                 />
-                {onClose && (
-                    <button
-                        onClick={onClose}
-                        style={{
-                            background: 'none', border: 'none', cursor: 'pointer',
-                            color: '#65676B', fontSize: 18, padding: '0 4px',
-                            lineHeight: 1,
-                        }}
-                        title="Close"
-                    >×</button>
-                )}
             </div>
 
-            {/* GIF/Sticker Grid */}
-            <div ref={gridRef} style={{
-                flex: 1,
-                overflowY: 'auto',
-                padding: 8,
-                display: 'grid',
-                gridTemplateColumns: 'repeat(2, 1fr)',
-                gap: 8,
-                maxHeight: maxH - 120,
-            }}>
+            <div
+                ref={gridRef}
+                id={resultsId}
+                className={styles.results}
+                aria-label={`${tabLabel} Results`}
+                role="tabpanel"
+            >
                 {loading ? (
-                    // Shimmer skeleton — 6 cards
-                    <>
-                        {[1, 2, 3, 4, 5, 6].map(i => (
-                            <ShimmerCard key={i} height={compact ? 90 : 120} />
-                        ))}
-                    </>
+                    <PickerStatus
+                        title={`Loading ${tabLabel}`}
+                        detail="Scanning The Poker Media Archive"
+                    />
                 ) : error ? (
-                    <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: 20, color: '#65676B' }}>
-                        <div style={{ fontSize: 24, marginBottom: 8 }}>🎞️</div>
-                        <div style={{ fontSize: 13 }}>{error}</div>
-                        <div style={{ fontSize: 11, marginTop: 4, opacity: 0.7 }}>Set GIPHY_API_KEY In Vercel To Enable</div>
-                    </div>
+                    <PickerStatus
+                        title={error}
+                        detail="The Media Service Did Not Respond"
+                        actionLabel="Retry"
+                        onAction={() => void loadTrending()}
+                        alert
+                    />
                 ) : gifs.length === 0 ? (
-                    <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: 20, color: '#65676B' }}>
-                        No {tab === 'gif' ? 'GIFs' : 'stickers'} Found
-                    </div>
+                    <PickerStatus
+                        title={`No ${tabLabel} Found`}
+                        detail="Try Another Search"
+                    />
                 ) : (
-                    <>
-                        {gifs.map(gif => (
-                            <img
-                                key={gif.id}
-                                src={gif.preview || gif.url}
-                                alt={gif.title}
-                                onClick={() => onSelect?.(gif.url)}
-                                style={{
-                                    width: '100%',
-                                    height: compact ? 90 : 120,
-                                    objectFit: 'cover',
-                                    borderRadius: 8,
-                                    cursor: 'pointer',
-                                    background: tab === 'sticker' ? 'transparent' : '#F0F2F5',
-                                    border: tab === 'sticker' ? 'none' : '1px solid #E4E6EB',
-                                    transition: 'transform 0.15s, box-shadow 0.15s',
-                                }}
-                                onMouseEnter={e => { e.target.style.transform = 'scale(1.03)'; e.target.style.boxShadow = '0 2px 8px rgba(0,0,0,0.15)'; }}
-                                onMouseLeave={e => { e.target.style.transform = 'scale(1)'; e.target.style.boxShadow = 'none'; }}
-                                loading="lazy"
-                            />
-                        ))}
-                        {/* Load more shimmer */}
-                        {loadingMore && [1, 2].map(i => (
-                            <ShimmerCard key={`more-${i}`} height={compact ? 90 : 120} />
-                        ))}
-                    </>
+                    <ul className={styles.mediaGrid}>
+                        {gifs.map((gif, index) => {
+                            const mediaTitle = String(gif.title || `${tabLabel} Result ${index + 1}`);
+                            return (
+                                <li className={styles.mediaItem} key={gif.id || `${gif.url}-${index}`}>
+                                    <button
+                                        className={styles.mediaAction}
+                                        type="button"
+                                        onClick={() => onSelect?.(gif.url)}
+                                        aria-label={`Select ${mediaTitle}`}
+                                    >
+                                        <img
+                                            className={styles.media}
+                                            src={gif.preview || gif.url}
+                                            alt=""
+                                            loading="lazy"
+                                            draggable="false"
+                                        />
+                                    </button>
+                                </li>
+                            );
+                        })}
+                    </ul>
                 )}
+
+                {loadingMore ? (
+                    <span className={styles.loadingMore} role="status" aria-live="polite">
+                        Loading More
+                    </span>
+                ) : null}
             </div>
 
-            {/* Footer */}
-            <div style={{
-                padding: '4px 12px',
-                textAlign: 'center',
-                fontSize: 10,
-                color: '#65676B',
-                borderTop: '1px solid #E4E6EB',
-            }}>
-                Powered By GIPHY
-            </div>
-        </div>
+            <footer className={styles.footer}>Powered By GIPHY</footer>
+        </section>
     );
 };
 

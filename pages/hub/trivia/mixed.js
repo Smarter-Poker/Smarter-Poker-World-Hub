@@ -702,7 +702,7 @@ export default function MixedModePage() {
                 </div>
             </div>
 
-            <style>{`
+            <style dangerouslySetInnerHTML={{ __html: `
                 .mixed-page {
                     min-height: 100vh; padding-bottom: 70px;
                     background: #0a0e1a;
@@ -1089,7 +1089,7 @@ export default function MixedModePage() {
                         object-fit: contain;
                     }
                 }
-            `}</style>
+            ` }} />
           {/* Server rendered: measured on production this page returned
               only chrome to a crawler (AEO phase 3, 2026-09-17). */}
           <HubPageSummary page="trivia-mixed" as="h1" />

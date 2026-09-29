@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { alertEventKey, alertmanagerEvents, recordOperationalAlerts } from '../src/lib/operationalAlerts.mjs';
+import { ALERT_TASK_ID, alertEventKey, alertmanagerEpisodeKey, alertmanagerEvents, recordOperationalAlerts, withDestination } from '../src/lib/operationalAlerts.mjs';
 import pager from '../pages/api/internal/alertmanager-page.js';
 import intake from '../pages/api/internal/operational-alert.js';
 import engine from '../pages/api/alerts/engine.js';
@@ -63,4 +63,96 @@ test('engine receiver preserves legacy history and refuses to acknowledge failed
     globalThis.fetch=async(url,init)=>{assert.match(url,/\/rest\/v1\/rpc\/fn_record_engine_alerts$/);assert.equal(JSON.parse(init.body).p_alerts[0].labels.alertname,'HorseFleetHeartbeatStale');return {ok:true,json:async()=>[{id:17,event_id:null}]};};
     const r=response();await engine(req,r);assert.equal(r.code,200);assert.equal(r.body.recorded,1);
   } finally {globalThis.fetch=original;}
+});
+
+// Regression, 2026-09-20 (A2 board: alertmanager rows stored without a destination).
+// Fails on the pre-fix writer: payload.target_task_id was undefined and the direct
+// route stored whatever payload it was given.
+test('every alertmanager event names its destination task without changing its event key', () => {
+  const a = alert();
+  const [event] = alertmanagerEvents({ alerts: [a], receiver: 'codex', externalURL: 'https://am.example' });
+  assert.equal(event.payload.target_task_id, ALERT_TASK_ID);
+  assert.deepEqual(event.payload.alert, a);
+  // The destination is stored beside the evidence and never enters the key.
+  const { target_task_id, ...evidence } = event.payload;
+  assert.equal(event.event_key, alertmanagerEpisodeKey(evidence));
+  assert.equal(alertmanagerEvents({ alerts: [a], receiver: 'codex', externalURL: 'https://am.example' })[0].event_key, event.event_key);
+  assert.equal(target_task_id, ALERT_TASK_ID);
+});
+
+// Regression, 2026-09-27: OpenClawFleetLongSilence's summary prints its live
+// value, so hashing the whole evidence opened a new inbox row on every
+// four-hourly repeat (57 rows for the one episode that started 2026-09-17
+// 19:01 UTC). Fails on the evidence-hash key: the two deliveries differed.
+test('a repeat delivery of one alert episode keeps one identity when its annotations carry a live value', () => {
+  const first = { status: 'firing', fingerprint: '75619586bd3b2224', startsAt: '2026-09-17T19:01:00.848Z',
+    endsAt: '0001-01-01T00:00:00Z', labels: { alertname: 'OpenClawFleetLongSilence', severity: 'critical' },
+    annotations: { summary: 'An Open Claw job has been silent for 19.25k minutes' } };
+  const repeat = { ...first, annotations: { summary: 'An Open Claw job has been silent for 20.47k minutes' } };
+  const [a] = alertmanagerEvents({ alerts: [first], receiver: 'inbox' });
+  const [b] = alertmanagerEvents({ alerts: [repeat], receiver: 'inbox' });
+  assert.equal(b.event_key, a.event_key);
+  assert.deepEqual(b.payload.alert, repeat, 'each delivery still carries its full evidence');
+  // A new episode, a different label set or a resolution is a different row.
+  for (const other of [{ ...first, startsAt: '2026-09-18T00:00:00Z' },
+    { ...first, labels: { ...first.labels, severity: 'warning' } }, { ...first, status: 'resolved' }]) {
+    assert.notEqual(alertmanagerEvents({ alerts: [other], receiver: 'inbox' })[0].event_key, a.event_key);
+  }
+});
+
+test('the writer fills a missing destination, keeps the fleet and refuses any other destination', async () => {
+  assert.equal(withDestination({ note: 'x' }).target_task_id, ALERT_TASK_ID);
+  assert.equal(withDestination({ target_task_id: '  ' }).target_task_id, ALERT_TASK_ID);
+  assert.equal(withDestination({ target_task_id: null }).target_task_id, ALERT_TASK_ID);
+  assert.equal(withDestination({ target_task_id: ALERT_TASK_ID }).target_task_id, ALERT_TASK_ID);
+  assert.equal(withDestination(null), null);
+  // Regression: a supplied destination other than the fleet used to be kept, so
+  // the writer recorded a row the fleet never triages and the hourly addressing
+  // check calls unaddressed. Fails on the pre-fix writer, which returned it.
+  for (const foreign of ['other-task', ALERT_TASK_ID.toUpperCase(), ` ${ALERT_TASK_ID}`, 42, {}]) {
+    assert.throws(() => withDestination({ target_task_id: foreign }), { name: 'AlertDestinationError' });
+  }
+  const env = { url: process.env.NEXT_PUBLIC_SUPABASE_URL, key: process.env.SUPABASE_SERVICE_ROLE_KEY };
+  const realFetch = globalThis.fetch;
+  let body = null;
+  let calls = 0;
+  process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://inbox.example';
+  process.env.SUPABASE_SERVICE_ROLE_KEY = 'test-key';
+  globalThis.fetch = async (_url, init) => { calls += 1; body = JSON.parse(init.body); return { ok: true, json: async () => [101, 102] }; };
+  try {
+    const ids = await recordOperationalAlerts([
+      { source: 'worker', event_key: 'k1', alertname: 'fault', status: 'firing', severity: 'critical', payload: { detail: 1 } },
+      { source: 'worker', event_key: 'k2', alertname: 'fault', status: 'firing', severity: 'critical', payload: { detail: 2, target_task_id: ALERT_TASK_ID } },
+    ]);
+    assert.deepEqual(ids, [101, 102]);
+    assert.equal(body.p_events[0].payload.target_task_id, ALERT_TASK_ID);
+    assert.equal(body.p_events[0].payload.detail, 1);
+    assert.equal(body.p_events[1].payload.target_task_id, ALERT_TASK_ID);
+    // One foreign destination refuses the whole batch before anything is sent.
+    await assert.rejects(recordOperationalAlerts([
+      { source: 'worker', event_key: 'k3', alertname: 'fault', status: 'firing', severity: 'critical', payload: { detail: 3 } },
+      { source: 'worker', event_key: 'k4', alertname: 'fault', status: 'firing', severity: 'critical', payload: { detail: 4, target_task_id: 'other-task' } },
+    ]), { name: 'AlertDestinationError' });
+    assert.equal(calls, 1);
+  } finally {
+    globalThis.fetch = realFetch;
+    process.env.NEXT_PUBLIC_SUPABASE_URL = env.url; process.env.SUPABASE_SERVICE_ROLE_KEY = env.key;
+    if (env.url === undefined) delete process.env.NEXT_PUBLIC_SUPABASE_URL;
+    if (env.key === undefined) delete process.env.SUPABASE_SERVICE_ROLE_KEY;
+  }
+});
+
+// Fails on the pre-fix intake, which stored the foreign destination (or, with
+// the store down, answered 503 and so invited a retry that can never succeed).
+test('the intake answers a foreign destination with a permanent 400 and records nothing', async () => {
+  const original = globalThis.fetch;
+  globalThis.fetch = async () => { throw new Error('must not call'); };
+  try {
+    const r = response();
+    await intake(request({ source: 'worker', alertname: 'fault', status: 'firing', payload: { detail: 1, target_task_id: 'other-task' } }), r);
+    assert.equal(r.code, 400);
+    assert.equal(r.body.recorded, false);
+  } finally {
+    globalThis.fetch = original;
+  }
 });

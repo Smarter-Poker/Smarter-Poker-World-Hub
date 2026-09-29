@@ -63,6 +63,20 @@ test('all 13 World Hub families share one canonical command identity with the fo
       assert.ok(isTitleCased(item.title), `${world.id}/${item.title} is not Title Cased`);
     }
   }
+
+  const reelsCommand = registry.worlds
+    .find((world) => world.id === 'social-media')
+    ?.items.find((item) => item.href === '/hub/reels');
+  assert.deepEqual(reelsCommand, {
+    href: '/hub/reels',
+    label: 'Reels',
+    title: 'Reels',
+    icon: 'film',
+  });
+  const auditedReelsCommand = auditInventory.worlds
+    .find((world) => world.id === 'social-media')
+    ?.primaryDestinations.find((item) => item.href === '/hub/reels');
+  assert.equal(auditedReelsCommand?.description, 'Reels');
 });
 
 test('every family has a real adaptive menu configuration', () => {
@@ -181,7 +195,13 @@ test('the approved hamburger trigger covers routes without duplicating the heade
   }
   assert.match(friendsSource, /commandMenuItems=\{menuConfig\.menuItems\}/);
   assert.match(messengerSource, /commandMenuItems=\{menuConfig\.menuItems\}/);
-  assert.match(reelsSource, /showOverlay && \([\s\S]*?<UniversalHeader/);
+  assert.match(reelsSource, /const reelsNavigationHeader = \([\s\S]*?<UniversalHeader/);
+  assert.match(reelsSource, /\{showOverlay && reelsNavigationHeader\}/);
+  assert.equal(
+    (reelsSource.match(/<UniversalHeader\b/g) || []).length,
+    1,
+    'Reels must reuse one UniversalHeader across loading, recovery, empty, and viewer states'
+  );
   assert.match(reelsSource, /if \(menuOpenRef\.current\) return;/);
   assert.match(reelsSource, /getComputedStyle\(commandMenu\)\.visibility === 'visible'/);
   assert.match(drawerSource, /data-world-menu-trigger="route-fallback"/);

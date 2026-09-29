@@ -64,7 +64,9 @@ test('a reader can get anywhere else from it', () => {
     'https://smarter.poker/privacy',
     'https://smarter.poker/sitemap.xml',
     'https://smarter.poker/hub/club-arena/sitemap.xml',
-    'https://smarter.poker/hub/training/glossary',
+    // The glossary reference moved to /glossary (AEO section 3.4); the
+    // study tool at /hub/training/glossary canonicals there.
+    'https://smarter.poker/glossary',
   ]) {
     assert.ok(llms.includes(url), `llms.txt links ${url}`);
   }

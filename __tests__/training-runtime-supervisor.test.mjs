@@ -90,12 +90,16 @@ test('package exposes the supervised runtime audit as a permanent entrypoint', (
     'training-arena-auxiliary-mode-authority',
     'training-arena-client-answer-authority',
     'training-arena-review-gateway-authority',
+    'training-attestation-continuation-real-geometry',
+    'training-audit-session-browser-custody',
+    'training-audit-session-refresh',
     'training-authored-model-honesty',
     'training-authored-surface-authority',
     'training-auxiliary-launch-wiring',
     'training-batch-canonical-replacement',
     'training-blind-grading-boundary',
     'training-bookmark-authority',
+    'training-campaign-batch-game-matrix',
     'training-client-endpoint-wiring',
     'training-coach-local-practice-authority',
     'training-coaching-summary-authority',
@@ -164,6 +168,7 @@ test('package exposes the supervised runtime audit as a permanent entrypoint', (
     'training-solutions-v2-authority',
     'training-solver-contract',
     'training-solver-row-identity',
+    'training-solver-scoped-protocol-custody',
     'training-solver-worker-ingestion',
     'training-spot-study-authority',
     'training-spot-trainer-launcher-authority',
@@ -210,6 +215,7 @@ test('package exposes the supervised runtime audit as a permanent entrypoint', (
     '/__tests__/solver-matrix-trust-runtime-probe.cjs',
     '/e2e/03-training-gto.spec.ts',
     '/tests/helpers/canonicalTrainingPolicyFixture.mjs',
+    '/tests/helpers/trainingBatchPreloadHarness.mjs',
   ];
   const deploymentReincludes = vercelIgnore
     .split(/\r?\n/)

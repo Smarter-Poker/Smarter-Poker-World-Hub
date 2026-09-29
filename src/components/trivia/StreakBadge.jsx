@@ -96,7 +96,7 @@ export default function StreakBadge({
                 </div>
             )}
 
-            <style>{`
+            <style dangerouslySetInnerHTML={{ __html: `
                 .streak-badge {
                     font-family: 'Inter', sans-serif;
                     ${sizeConfig.container};
@@ -193,7 +193,7 @@ export default function StreakBadge({
                     .streak-badge.milestone { animation: none; }
                     .progress-fill { transition: none; }
                 }
-            `}</style>
+            ` }} />
         </div>
     );
 }

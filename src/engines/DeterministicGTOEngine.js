@@ -37,6 +37,7 @@ import { calculateActionEVs } from './EVCalculator';
 import { heroActsFirstPostflop as actsFirstPostflop, heroIsInPosition } from './positionOrder';
 import { generateCuratedPokerConceptBatch } from '../lib/training/curatedPokerConcepts';
 import { selectTrustedSolverMatrix } from '../lib/training/solverMatrixTrust';
+import { selectUniqueTrainingContinuationCandidate } from '../lib/training/continuationSizingContract.mjs';
 import { SolverPolicyService } from '../services/SolverPolicyService';
 
 // ═══ SCENARIO/PSYCHOLOGY ENGINE (psy-001..psy-020, cash-020) ═══
@@ -103,8 +104,9 @@ const POT_BY_STREET = {
 };
 
 /**
- * Select the one solver source token that represents the certified 75%-pot
- * continuation branch. Pio's postflop bNNN amounts are cumulative contribution
+ * Select the one solver source token that represents the certified
+ * three-quarter-pot continuation branch (target and tolerance live in
+ * continuationSizingContract.mjs). Pio's postflop bNNN amounts are cumulative contribution
  * targets, not increments at the current node. A Turn token such as b1442 can
  * therefore mean adding 10.30 BB after the actor already invested 4.12 BB.
  *
@@ -145,15 +147,21 @@ export function selectExactContinuationBetSourceAction(strategyMatrix, validActi
             if (!Number.isFinite(incrementChips) || incrementChips <= 0) return null;
             return {
                 action: String(action),
-                distance: Math.abs((incrementChips / solverPotChips) - 0.75),
+                potFraction: incrementChips / solverPotChips,
             };
         })
-        .filter((candidate) => candidate && candidate.distance <= 0.03)
-        .sort((left, right) => left.distance - right.distance);
+        .filter(Boolean);
     // A lineage token must identify one exact branch. Two nearby tree sizes
-    // straddling 75% are not interchangeable, and choosing whichever happened
-    // to be exported first makes the next street depend on JSON key order.
-    return candidates.length === 1 ? candidates[0].action : null;
+    // straddling the target are not interchangeable, and choosing whichever
+    // happened to be exported first makes the next street depend on JSON key
+    // order. The band itself is shared with the public selection rule so the
+    // harness can never accept a size the canonical side rejects, or vice
+    // versa (the real b412 flop bet is 74.909% of the 550-chip pot).
+    const selected = selectUniqueTrainingContinuationCandidate(
+        candidates,
+        (candidate) => candidate.potFraction,
+    );
+    return selected ? selected.action : null;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -1213,8 +1221,28 @@ export class DeterministicGTOEngine {
      * Generate a batch of N questions from solver data
      * IMP-6 FIX: Strengthened dedup — rejects same heroHand+scenarioHash combos
      */
-    async generateBatch({ gameId, level, count = 25, gameConfig, targetPositions, targetStreet, difficulty = 'standard', scenarioLevels, spotTypes, stackDepths, seenIds = [] }) {
+    async generateBatch({ gameId, level, count = 25, gameConfig, targetPositions, targetStreet, difficulty = 'standard', scenarioLevels, spotTypes, stackDepths, seenIds = [], admissibleForCaller = null }) {
         if (!gameConfig) return [];
+
+        // The authored concept bank is the honest fallback for a solver family
+        // with no admitted solver rows. It labels itself CURATED with an
+        // explicit no-solver-claim disclosure and never impersonates a solve.
+        const curatedFallback = () => generateCuratedPokerConceptBatch({
+            gameId,
+            level,
+            count,
+            gameConfig,
+            spotTypes,
+            // A game config is one exact solver contract. Scenario-map stack
+            // hints may describe a wider family, but serving one of those
+            // depths under this game id makes the grader correctly reject it.
+            stackDepths: Number.isFinite(Number(gameConfig?.pioStackDepth))
+                ? [Number(gameConfig.pioStackDepth)]
+                : stackDepths,
+            positions: targetPositions,
+            targetStreet,
+            seenIds,
+        });
 
         // ═══ SCENARIO (psychology + table selection): deterministic question bank ═══
         if (gameConfig.sourceOfTruth === 'SCENARIO' || gameConfig.engine === 'SCENARIO') {
@@ -1249,6 +1277,20 @@ export class DeterministicGTOEngine {
                 q.id = `${q.id}_${preflopQuestions.length}`;
                 preflopQuestions.push(q);
             }
+            // The local static range corpus is practice-only under the Phase 6
+            // authority contract (trainingAttemptDelivery.mjs,
+            // `local_range_provenance_missing`). A progress-bearing caller
+            // passes its own admissibility predicate; when NONE of the range
+            // spots pass it, the game takes the same authored-concept fallback
+            // every other solver family already takes with an empty catalog,
+            // instead of handing the route forty rows it must refuse and then
+            // answering "no questions". The rule itself is not duplicated
+            // here: admit local ranges in the contract and they serve again.
+            if (typeof admissibleForCaller === 'function'
+                && preflopQuestions.length > 0
+                && !preflopQuestions.some((q) => admissibleForCaller(q) === true)) {
+                return curatedFallback();
+            }
             return preflopQuestions;
         }
 
@@ -1275,23 +1317,6 @@ export class DeterministicGTOEngine {
         const poolMultiplier = difficulty === 'standard' ? 3 : 5;
         const poolSize = Math.min(count * poolMultiplier, 125);
         const scenarios = await this.fetchSolverPool(gameConfig, level, poolSize, targetStreet, { stackDepths, spotTypes });
-
-        const curatedFallback = () => generateCuratedPokerConceptBatch({
-            gameId,
-            level,
-            count,
-            gameConfig,
-            spotTypes,
-            // A game config is one exact solver contract. Scenario-map stack
-            // hints may describe a wider family, but serving one of those
-            // depths under this game id makes the grader correctly reject it.
-            stackDepths: Number.isFinite(Number(gameConfig?.pioStackDepth))
-                ? [Number(gameConfig.pioStackDepth)]
-                : stackDepths,
-            positions: targetPositions,
-            targetStreet,
-            seenIds,
-        });
 
         if (!scenarios || scenarios.length === 0) return curatedFallback();
 

@@ -636,7 +636,7 @@ export default function DailyTournaments() {
                     
                 </div>
 
-                <style suppressHydrationWarning>{`
+                <style suppressHydrationWarning dangerouslySetInnerHTML={{ __html: `
                     /* Metal UI Variables */
                     :root {
                         --metal-dark: #0a0a15;
@@ -1256,7 +1256,7 @@ export default function DailyTournaments() {
                         /* Slow the spinner rather than halt — needed to convey loading state */
                         .spinner { animation-duration: 2s !important; }
                     }
-                `}</style>
+                ` }} />
             </div>
         </>
     );
@@ -1313,7 +1313,7 @@ function TournamentCard({ tournament }) {
                 )}
             </div>
 
-            <style suppressHydrationWarning>{`
+            <style suppressHydrationWarning dangerouslySetInnerHTML={{ __html: `
                 .tournament-card {
                     display: flex;
                     flex-direction: column;
@@ -1452,7 +1452,7 @@ function TournamentCard({ tournament }) {
                     background: rgba(0, 212, 255, 0.15);
                     border-color: rgba(0, 212, 255, 0.5);
                 }
-            `}</style>
+            ` }} />
         </div>
     );
 }

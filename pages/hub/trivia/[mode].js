@@ -1501,7 +1501,7 @@ export default function TriviaModePage() {
                 </div>
             </div>
 
-            <style>{`
+            <style dangerouslySetInnerHTML={{ __html: `
                 .trivia-mode-page {
                     min-height: 100vh; padding-bottom: 70px;
                     background: #0a0e1a;
@@ -2011,7 +2011,7 @@ export default function TriviaModePage() {
                     .trivia-daily-casino .lobby-image-wrapper,
                     .trivia-daily-casino .lobby-image-wrapper:hover { transition: none; transform: none; }
                 }
-            `}</style>
+            ` }} />
         </TriviaErrorBoundary>
     );
 }

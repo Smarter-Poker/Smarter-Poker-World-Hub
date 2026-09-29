@@ -966,7 +966,7 @@ export default function TriviaGame({
                 ))}
             </AnimatePresence>
 
-            <style>{`
+            <style dangerouslySetInnerHTML={{ __html: `
                 .trivia-game {
                     max-width: 700px;
                     margin: 0 auto;
@@ -1552,7 +1552,7 @@ export default function TriviaGame({
                     .combo-popup { font-size: 17px; padding: 10px 18px; }
                     .next-button { padding: 16px 20px; }
                 }
-            `}</style>
+            ` }} />
         </div>
     );
 }

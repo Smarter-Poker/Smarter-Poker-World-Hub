@@ -86,8 +86,8 @@ export function selectWorkspaceConversations(conversations, accounting, userId, 
     }).map(c => ({ ...c, isAccounting: accounting.has(c.id), clubId: club?.id || null }));
 }
 
-export async function getMessengerWorkspace(db, userId, request) {
-    const clubs = await getMessengerClubs(db, userId);
+export async function getMessengerWorkspace(db, userId, request, internal = {}) {
+    const clubs = internal.clubs || await getMessengerClubs(db, userId);
     const workspace = request.workspace || 'social';
     if (!['social', 'club', 'resolve'].includes(workspace)) fail(400, 'Invalid Messenger Workspace');
     let club = null;
@@ -129,7 +129,7 @@ export async function getMessengerWorkspace(db, userId, request) {
     ]);
     const metadata = new Map(meta.map(c => [c.id, c]));
     const clubBrands = new Map();
-    if (ids.length) {
+    if (ids.length && !internal.countsOnly) {
         const branded = await rows(db.from('social_messages').select('conversation_id,media_metadata')
             .in('conversation_id', ids).neq('sender_id', userId).contains('media_metadata', { is_club_identity: true })
             .order('created_at', { ascending: false }).limit(500));
@@ -159,10 +159,15 @@ export async function getMessengerWorkspace(db, userId, request) {
     }).filter(c => !c.isRequest || c.requestSenderId === userId);
     const selected = club && !club.pageId && folder === 'messages' ? []
         : selectWorkspaceConversations(conversations, accounting, userId, club, folder);
+    const countUnread = list => list.reduce((sum, c) => sum + c.unreadCount, 0);
+    const unreadCounts = {
+        messages: club && !club.pageId ? 0 : countUnread(selectWorkspaceConversations(conversations, accounting, userId, club, 'messages')),
+        invoices: club ? countUnread(selectWorkspaceConversations(conversations, accounting, userId, club, 'invoices')) : 0,
+    };
     const conversation = resolvedId ? selected.find(c => c.id === resolvedId) : null;
     if (resolvedId && !conversation) fail(404, 'Conversation Unavailable');
     let weeklySummary = null;
-    if (club?.canManage && folder === 'invoices') {
+    if (club?.canManage && folder === 'invoices' && !internal.countsOnly) {
         // The period's recorded book decides union versus standalone scope.
         // Current membership does not decide where historical rake was earned.
         const periods = await rows(db.from('settlement_periods').select('id,club_id,union_id,start_at,end_at')
@@ -196,8 +201,27 @@ export async function getMessengerWorkspace(db, userId, request) {
             }
         }
     }
-    return { success: true, clubs, conversations: selected, conversation, weeklySummary,
+    return { success: true, clubs, conversations: selected, conversation, weeklySummary, unreadCounts,
         workspace: club ? 'club' : 'social', clubId: club?.id || null, folder };
+}
+
+// Use the exact inbox visibility rules, including private invoices and active
+// membership. Raw participant/message counts include threads nobody can open.
+export async function getMessengerUnreadSummary(db, userId) {
+    const clubs = await getMessengerClubs(db, userId);
+    const options = { clubs, countsOnly: true };
+    const social = await getMessengerWorkspace(db, userId, { workspace: 'social' }, options);
+    const summary = { social: social.unreadCounts.messages, clubs: {}, total: social.unreadCounts.messages };
+    // Bound query concurrency for accounts that belong to many clubs.
+    for (let start = 0; start < clubs.length; start += 4) {
+        const batch = await Promise.all(clubs.slice(start, start + 4).map(club =>
+            getMessengerWorkspace(db, userId, { workspace: 'club', clubId: club.id }, options)));
+        for (const workspace of batch) {
+            summary.clubs[workspace.clubId] = workspace.unreadCounts;
+            summary.total += workspace.unreadCounts.messages + workspace.unreadCounts.invoices;
+        }
+    }
+    return summary;
 }
 
 

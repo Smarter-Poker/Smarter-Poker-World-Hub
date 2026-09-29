@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "sourceRepository": "Smarter-Poker/Smarter-Poker-Club-Arena",
+  "sourcePath": "public/assets/club-buttons/console/spade-console-v1",
+  "copiedWithoutModification": true,
+  "assets": {
+    "top.png": {
+      "width": 1000,
+      "height": 348,
+      "sha256": "9593ef2a932c64595dfd920628e27eee70e0f1b88cc2b09788026796a263b564"
+    },
+    "mid.png": {
+      "width": 1000,
+      "height": 8,
+      "sha256": "3643e1688ff20e0383d8c14acf17e848731765b8fd38f69af5afa4d57e4fa6e3"
+    },
+    "bottom-foot.png": {
+      "width": 1000,
+      "height": 72,
+      "sha256": "9e68d4067af5b1caaa69d73de2dd14d28c9301d41ee17f56b83af686e7d4e138"
+    },
+    "bottom-plates.png": {
+      "width": 1000,
+      "height": 277,
+      "sha256": "ef5934068adbb2327351f9cf21c192106af83d9252a8c0a0f3f77fbd4d547fa7"
+    }
+  },
+  "webpSiblings": {
+    "note": "Lossless WebP (sharp 0.34.5, lossless+exact) of the master PNG, served first through CSS image-set with the unmodified PNG as fallback. Every visible pixel (alpha > 0) is identical to the master; only fully transparent pixels may differ in colour value. Required by an-oversized-raster-is-served-as-webp.law.",
+    "top.webp": {
+      "from": "top.png",
+      "width": 1000,
+      "height": 348,
+      "sha256": "60950dc2615c1c4019d1ec81728cb965f05a123a2271622977d045dcc49728a2"
+    },
+    "bottom-plates.webp": {
+      "from": "bottom-plates.png",
+      "width": 1000,
+      "height": 277,
+      "sha256": "8108d9f35e5dc5d61f308b308959b0a166ffb629b47c76457d89ccad06cf9703"
+    }
+  }
+}

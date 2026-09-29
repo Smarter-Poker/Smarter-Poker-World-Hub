@@ -604,7 +604,7 @@ test('cart and merchandise operations cannot complete into a replacement account
   assert.match(cardCart, /getAuthUser\(\)\?\.id === expectedAccountId/);
   assert.match(cardCart, /signal: controller\.signal/);
   assert.match(cardCart, /err\?\.name === 'AbortError' \|\| !attemptIsCurrent\(\)/);
-  const cartRedirect = cardCart.indexOf('window.location.assign(checkoutSession.url)');
+  const cartRedirect = cardCart.indexOf('leaveForCheckout(checkoutSession.url)');
   assert.ok(cartRedirect > -1);
   assert.ok(cardCart.lastIndexOf('if (!attemptIsCurrent()) return', cartRedirect) > -1);
 
@@ -620,7 +620,7 @@ test('cart and merchandise operations cannot complete into a replacement account
   assert.match(cardMerch, /getAuthUser\(\)\?\.id === expectedAccountId/);
   assert.match(cardMerch, /signal: controller\.signal/);
   assert.match(cardMerch, /err\?\.name === 'AbortError' \|\| !attemptIsCurrent\(\)/);
-  const merchRedirect = cardMerch.indexOf('window.location.assign(checkoutSession.url)');
+  const merchRedirect = cardMerch.indexOf('leaveForCheckout(checkoutSession.url)');
   assert.ok(merchRedirect > -1);
   assert.ok(cardMerch.lastIndexOf('if (!attemptIsCurrent()) return', merchRedirect) > -1);
 
@@ -829,7 +829,7 @@ test('marketplace Diamond requests prove durable identity before every financial
     clubCardPurchase,
     /if \(!attemptIsCurrent\(\) \|\| error\?\.name === 'AbortError'\) return/
   );
-  const clubCardRedirect = clubCardPurchase.indexOf('window.location.assign(checkoutSession.url)');
+  const clubCardRedirect = clubCardPurchase.indexOf('leaveForCheckout(checkoutSession.url)');
   const clubCardFinalOwnerCheck = clubCardPurchase.lastIndexOf(
     'if (!attemptIsCurrent()) return',
     clubCardRedirect
@@ -856,7 +856,7 @@ test('marketplace Diamond requests prove durable identity before every financial
         `if \\(${abortRef}\\.current === controller\\) \\{[\\s\\S]{0,160}setStoreProcessing\\(false\\)`
       )
     );
-    const redirect = checkout.indexOf('window.location.assign(checkoutSession.url)');
+    const redirect = checkout.indexOf('leaveForCheckout(checkoutSession.url)');
     const finalOwnerCheck = checkout.lastIndexOf('if (!attemptIsCurrent()) return', redirect);
     assert.ok(redirect > -1);
     assert.ok(finalOwnerCheck > -1 && finalOwnerCheck < redirect);
@@ -1039,7 +1039,7 @@ test('marketplace Diamond requests prove durable identity before every financial
     /if \(cardCheckoutAbortRef\.current === controller\) \{[\s\S]{0,160}processingRef\.current = false/
   );
   const detailCardRedirect = clubDetailCardCheckout.indexOf(
-    'window.location.assign(checkoutSession.url)'
+    'leaveForCheckout(checkoutSession.url)'
   );
   const detailCardFinalOwnerCheck = clubDetailCardCheckout.lastIndexOf(
     'if (!attemptIsCurrent()) return',

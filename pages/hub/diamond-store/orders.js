@@ -80,7 +80,11 @@ export default function OrderHistory() {
   }, [committedAccountId]);
 
   const loadOrders = useCallback(
-    async ({ append = false, cursor = null } = {}) => {
+    // `refresh` re-reads the first page and folds it into what is already on
+    // screen instead of replacing it. A focus or interval refresh used to drop
+    // a shopper who had loaded three pages back to one, and reset the cursor
+    // with it, so their own history disappeared every time they changed tabs.
+    async ({ append = false, cursor = null, refresh = false } = {}) => {
       const expectedAccountId = committedAccountId;
       if (
         !expectedAccountId ||
@@ -137,7 +141,7 @@ export default function OrderHistory() {
         setPartialError((current) => (commitIsCurrent() ? nextPartialError : current));
         setOrders((current) => {
           if (!commitIsCurrent()) return current;
-          if (!append) return nextOrders;
+          if (!append && !refresh) return nextOrders;
           const byKey = new Map(current.map((order) => [order.key, order]));
           nextOrders.forEach((order) => byKey.set(order.key, order));
           return Array.from(byKey.values()).sort(
@@ -146,9 +150,11 @@ export default function OrderHistory() {
               String(b?.key || '').localeCompare(String(a?.key || ''))
           );
         });
-        setHasMore((current) => (commitIsCurrent() ? Boolean(data.hasMore) : current));
+        // A refresh only revisits page one, so its cursor points back into
+        // pages the shopper has already loaded. Keep the deeper position.
+        setHasMore((current) => (commitIsCurrent() && !refresh ? Boolean(data.hasMore) : current));
         setNextCursor((current) =>
-          commitIsCurrent()
+          commitIsCurrent() && !refresh
             ? typeof data.nextCursor === 'string'
               ? data.nextCursor
               : null
@@ -209,7 +215,7 @@ export default function OrderHistory() {
   useEffect(() => {
     if (!committedAccountId || authInitializing) return;
     const refreshWhenVisible = () => {
-      if (document.visibilityState === 'visible') void loadOrders();
+      if (document.visibilityState === 'visible') void loadOrders({ refresh: true });
     };
     const timer = window.setInterval(refreshWhenVisible, 60000);
     window.addEventListener('focus', refreshWhenVisible);

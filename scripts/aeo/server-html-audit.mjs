@@ -99,6 +99,12 @@ async function main() {
   console.log(`routes still saying they are loading: ${loadingRows.length}`);
   console.log(`routes not answering 200: ${notOk.length}`);
   if (failures.length) console.log(`routes that could not be read: ${failures.length}`);
+  // A count without the routes and the reason hid which pages failed and why
+  // the first time this ran against the new content families (2026-09-22).
+  if (failures.length) {
+    console.log('\ncould not be read:');
+    for (const [route, reason] of failures) console.log(`   ${route}  ${reason}`);
+  }
 
   if (notOk.length) {
     console.log('\nnot 200:');

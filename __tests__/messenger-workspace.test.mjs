@@ -2,6 +2,43 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { getMessengerWorkspace, searchMessengerWorkspace, readMessengerMessages } from '../src/lib/messengerWorkspace.mjs';
 
+test('header unread total includes only reachable social, club and private invoice inboxes', async () => {
+    const { getMessengerUnreadSummary } = await import('../src/lib/messengerWorkspace.mjs');
+    const { db } = fixture({ role: 'owner' });
+    const summary = await getMessengerUnreadSummary(db, ids.user);
+    assert.equal(summary.total, 3);
+    assert.equal(summary.social, 1);
+    assert.deepEqual(summary.clubs[ids.club], { messages: 1, invoices: 1 });
+});
+
+test('both club tabs have counts even when only Messages is open', async () => {
+    const { db } = fixture();
+    const result = await getMessengerWorkspace(db, ids.user, { workspace: 'club', clubId: ids.club });
+    assert.deepEqual(result.unreadCounts, { messages: 1, invoices: 1 });
+});
+
+test('hidden payee documents never become phantom header or invoice badges', async () => {
+    const { getMessengerUnreadSummary } = await import('../src/lib/messengerWorkspace.mjs');
+    const { db, tables } = fixture();
+    tables.accounting_conversations[0].recipient_visible = false;
+    const summary = await getMessengerUnreadSummary(db, ids.user);
+    assert.equal(summary.total, 2);
+    assert.equal(summary.clubs[ids.club].invoices, 0);
+});
+
+test('page-less club invoices are counted once and revoked clubs disappear', async () => {
+    const { getMessengerUnreadSummary } = await import('../src/lib/messengerWorkspace.mjs');
+    const pageLess = fixture({ page: false });
+    assert.equal((await getMessengerUnreadSummary(pageLess.db, ids.user)).total, 2);
+    const revoked = fixture({ member: false });
+    assert.equal((await getMessengerUnreadSummary(revoked.db, ids.user)).total, 1);
+});
+
+test('failed unread authority stays unavailable rather than returning a false zero', async () => {
+    const { getMessengerUnreadSummary } = await import('../src/lib/messengerWorkspace.mjs');
+    await assert.rejects(() => getMessengerUnreadSummary(fixture({ broken: 'visibility' }).db, ids.user));
+});
+
 const ids = { user:'00000000-0000-4000-8000-000000000001', other:'00000000-0000-4000-8000-000000000002', club:'10000000-0000-4000-8000-000000000001', second:'10000000-0000-4000-8000-000000000002', page:'20000000-0000-4000-8000-000000000001', social:'30000000-0000-4000-8000-000000000001', chat:'30000000-0000-4000-8000-000000000002', invoice:'30000000-0000-4000-8000-000000000003', agentInvoice:'30000000-0000-4000-8000-000000000004' };
 function fixture({ member=true, role='player', broken=null, cap=200, page=true }={}) {
     const tables={

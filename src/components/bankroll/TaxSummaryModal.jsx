@@ -125,7 +125,7 @@ export default function TaxSummaryModal({ completedGigs = [], onClose }) {
     return (
         <>
             {/* Print styles injected globally */}
-            <style>{`
+            <style dangerouslySetInnerHTML={{ __html: `
                 @media print {
                     body > *:not(#tax-summary-print-root) { display: none !important; }
                     #tax-summary-print-root {
@@ -138,7 +138,7 @@ export default function TaxSummaryModal({ completedGigs = [], onClose }) {
                     .print-section { page-break-inside: avoid; }
                     .print-footer-row { display: block !important; }
                 }
-            `}</style>
+            ` }} />
 
             {/* Overlay backdrop */}
             <div style={s.backdrop} onClick={onClose} aria-hidden="true" />

@@ -20,7 +20,8 @@ test('connects all five store destinations to the shared showcase', () => {
     assert.match(component, new RegExp(`['\"]${id}['\"]`));
   }
   assert.match(page, /<SmarterStoreShowcase/);
-  assert.match(component, /href=\{TAB_ROUTES\[id\]\}/);
+  assert.match(component, /href=\{storeTabHref\(id, clubId\)\}/);
+  assert.match(component, /const route = TAB_ROUTES\[tabId\]/);
   assert.doesNotMatch(component, /target=["']_blank["']|window\.open/);
 });
 

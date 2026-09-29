@@ -809,7 +809,7 @@ export default function PublicHomeGamePage({ data, serverError }) {
             <Link href="/hub/home-games/near-me" className="hgs-primary-btn">Browse Home Games</Link>
           </main>
           <HamburgerMenu isOpen={menuOpen} onClose={() => setMenuOpen(false)} worldKey="hub" />
-          <style suppressHydrationWarning>{pageStyles}</style>
+          <style suppressHydrationWarning dangerouslySetInnerHTML={{ __html: pageStyles }} />
         </div>
       </>
     );
@@ -1749,7 +1749,7 @@ export default function PublicHomeGamePage({ data, serverError }) {
 
         </main>
 
-        <style suppressHydrationWarning>{pageStyles}</style>
+        <style suppressHydrationWarning dangerouslySetInnerHTML={{ __html: pageStyles }} />
       </div>
     </>
   );

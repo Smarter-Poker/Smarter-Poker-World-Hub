@@ -85,11 +85,18 @@ export default function StoreToast() {
     return () => window.removeEventListener('store-toast', handler);
   }, [addToast]);
 
-  if (toasts.length === 0) return null;
-
+  // The stack stays mounted even when it is empty. Unmounting the whole live
+  // region and remounting it with a message inside is the one pattern screen
+  // readers announce unreliably: the region has to already exist for an
+  // insertion into it to be read out.
   return (
     <>
-      <div className={styles.stack}>
+      <div
+        className={styles.stack}
+        role="status"
+        aria-live="polite"
+        aria-relevant="additions text"
+      >
         {toasts.map((toast) => {
           const typeClass = styles[toast.type] || styles.info;
           const label = TOAST_LABELS[toast.type] || TOAST_LABELS.info;

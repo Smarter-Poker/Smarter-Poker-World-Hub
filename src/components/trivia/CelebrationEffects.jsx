@@ -85,7 +85,7 @@ export function ConfettiExplosion({ duration = 3000, onComplete }) {
                     }}
                 />
             ))}
-            <style>{`
+            <style dangerouslySetInnerHTML={{ __html: `
                 .confetti-container {
                     position: fixed;
                     top: 0;
@@ -132,7 +132,7 @@ export function ConfettiExplosion({ duration = 3000, onComplete }) {
                         opacity: 0;
                     }
                 }
-            `}</style>
+            ` }} />
         </div>
     );
 }
@@ -176,7 +176,7 @@ export function AchievementToast({
             </div>
             <button className="toast-close" onClick={onClose}>×</button>
 
-            <style>{`
+            <style dangerouslySetInnerHTML={{ __html: `
                 .achievement-toast {
                     position: fixed;
                     top: 100px;
@@ -311,7 +311,7 @@ export function AchievementToast({
                 .toast-close:hover {
                     color: #fff;
                 }
-            `}</style>
+            ` }} />
         </div>
     );
 }
@@ -326,7 +326,7 @@ export function CorrectAnswerFlash() {
             <div className="flash-icon">
                 <Target size={64} />
             </div>
-            <style>{`
+            <style dangerouslySetInnerHTML={{ __html: `
                 .correct-flash {
                     position: fixed;
                     inset: 0;
@@ -366,7 +366,7 @@ export function CorrectAnswerFlash() {
                     50% { transform: translate(-50%, -50%) scale(1.2); opacity: 1; }
                     100% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
                 }
-            `}</style>
+            ` }} />
         </div>
     );
 }
@@ -406,7 +406,7 @@ export function WrongAnswerShake({ target = null, duration = SHAKE_MS }) {
     }, [target, duration]);
 
     return (
-        <style>{`
+        <style dangerouslySetInnerHTML={{ __html: `
             .${SHAKE_CLASS} {
                 animation: triviaScreenShake ${duration}ms ease-in-out;
             }
@@ -422,7 +422,7 @@ export function WrongAnswerShake({ target = null, duration = SHAKE_MS }) {
             @media (prefers-reduced-motion: reduce) {
                 .${SHAKE_CLASS} { animation: none; }
             }
-        `}</style>
+        ` }} />
     );
 }
 
@@ -443,7 +443,7 @@ export function PerfectScoreCelebration({ onComplete }) {
                 <p className="perfect-subtitle">Flawless Victory</p>
             </div>
 
-            <style>{`
+            <style dangerouslySetInnerHTML={{ __html: `
                 .perfect-celebration {
                     position: fixed;
                     inset: 0;
@@ -530,7 +530,7 @@ export function PerfectScoreCelebration({ onComplete }) {
                         animation: none;
                     }
                 }
-            `}</style>
+            ` }} />
         </div>
     );
 }

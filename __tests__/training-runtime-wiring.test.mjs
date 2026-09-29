@@ -162,6 +162,7 @@ function loadTrainingDeliveryHandler(relativePath, { recoveredDelivery = null } 
     '../../../src/lib/training/trainingAttemptDelivery.mjs': {
       isTrainingAttemptContractError: () => false,
       isTrainingQuestionCampaignEligible: () => true,
+      trainingQuestionCampaignEligibility: () => ({ eligible: true, reason: 'stubbed_eligible' }),
       recordTrainingQuestionsServedForAttempt: async () => ({ questionCount: 1 }),
       recoverTrainingAttemptHand: async (input) => {
         captured.recoveryInputs.push(input);
@@ -191,6 +192,14 @@ function loadTrainingDeliveryHandler(relativePath, { recoveredDelivery = null } 
     '../../../src/lib/training/trainingAttestationContinuationContract.mjs': {
       validateTrainingAttestationContinuationPrecommit: () => {
         throw new Error('ordinary delivery must not validate an attestation continuation precommit');
+      },
+    },
+    '../../../src/lib/training/trainingAttestationCohortDiagnostics.mjs': {
+      createTrainingAttestationCohortCollector: () => {
+        throw new Error('ordinary delivery must not collect attestation cohort diagnostics');
+      },
+      logTrainingAttestationCohortStage: () => {
+        throw new Error('ordinary delivery must not log an attestation cohort stage');
       },
     },
     '../../../src/lib/training/trainingPersistence.mjs': {

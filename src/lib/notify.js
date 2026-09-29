@@ -22,6 +22,7 @@
  *     insert or the header badge serves stale data for up to its TTL.
  */
 
+import { randomUUID } from 'node:crypto';
 import { enqueuePush } from './push/push-enqueue';
 import { isOwnerOperationalNotification, retryOwnerNotificationDestination, ROUTED_REASON } from './push/operational-push-routing.mjs';
 import { ALERT_TASK_ID } from './operationalAlerts.mjs';
@@ -85,6 +86,13 @@ export async function notify(supabase, args = {}) {
     const operational = isOwnerOperationalNotification(args.userId, {
         type: args.type, title, data: args.data,
     });
+    // Store-only delivery (Club Arena migration 20260927235053): the database
+    // captures an owner-operational original into its operational destination
+    // and writes NO personal row, so INSERT ... RETURNING returns nothing for
+    // it (before that migration is installed, the row comes back carrying the
+    // id sent). The gateway therefore names the row itself and confirms the
+    // destination by that exact id. Ordinary rows keep the database default.
+    const routedId = operational ? randomUUID() : null;
 
     // Stamp how push was handled for this row. The DB trigger
     // fn_mirror_notification_to_push_outbox mirrors every UNMARKED notification
@@ -96,10 +104,12 @@ export async function notify(supabase, args = {}) {
     const notifData = { ...(args.data || {}), _push: wantsPush ? 'inline' : 'none' };
 
     // -- Branch A: in-app bell ------------------------------------------------
+    let inserted = false;
     try {
         const { data, error } = await supabase
             .from('notifications')
             .insert({
+                ...(routedId ? { id: routedId } : {}),
                 user_id: args.userId,
                 type: args.type,
                 title,
@@ -115,13 +125,27 @@ export async function notify(supabase, args = {}) {
                 read: false,
                 is_read: false,
             })
-            .select('id')
-            .maybeSingle();
+            // PLURAL ON PURPOSE: awaited without .single() or .maybeSingle().
+            // A routed original comes back as no row at all. A singular
+            // request is one sent with Accept: application/vnd.pgrst.object+json,
+            // which .single() always sends and .maybeSingle() sends for an
+            // insert in @supabase/postgrest-js 1.x; PostgREST rolls that
+            // transaction back when it returns zero rows (406, PGRST116),
+            // erasing the captured destination and its receipt. The locked
+            // 2.112.4 maybeSingle() only counts rows in the client, so it
+            // would not - but a plural request keeps this gateway correct
+            // whichever client is installed.
+            .select('id');
         if (error) {
             console.warn('[notify] notifications insert failed:', error.message);
         } else {
-            out.notificationId = data?.id || null;
+            // The row the database returned; a routed original under
+            // store-only delivery returns none. The owner-operational branch
+            // below names its original by the confirmed destination instead.
+            const row = Array.isArray(data) ? data[0] : data;
+            out.notificationId = row?.id || null;
             out.ok = true;
+            inserted = true;
             invalidateCaches(args.userId);
         }
     } catch (e) {
@@ -130,46 +154,51 @@ export async function notify(supabase, args = {}) {
 
     // The DB destination outbox handles both in-app-only and pushed operational
     // originals. Do not emit a second inline push after that transaction. Read
-    // its actual receipt: a notification INSERT alone is not queue acceptance.
+    // its actual receipt: a notification INSERT alone is not queue acceptance,
+    // and a failed or thrown INSERT is not proof that nothing was stored - the
+    // transaction can commit and its response still be lost in transit. So the
+    // destination is read by the id the gateway chose whatever the INSERT
+    // answered, and that read alone decides: ok means the destination and its
+    // receipt are confirmed, and notificationId is set only once the
+    // destination is. There is never a personal push fallback.
     if (operational) {
         out.destination = 'operational_task';
         out.operationalEventId = null;
-        if (typeof out.notificationId !== 'string'
-            || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(out.notificationId)) {
-            out.ok = false;
-            console.warn('[notify] operational original was not acknowledged');
-            return out;
+        out.ok = false;
+        if (inserted && out.notificationId !== null && out.notificationId !== routedId) {
+            console.warn('[notify] operational insert answered with an id the gateway did not send');
         }
-        if (out.notificationId) {
-            try {
-                const { data: destination, error } = await supabase
-                    .from('operational_notification_destinations')
-                    .select('notification_id,target_task_id,inbox_event_id')
-                    .eq('notification_id', out.notificationId)
-                    .eq('target_task_id', ALERT_TASK_ID)
-                    .abortSignal(AbortSignal.timeout(9000))
-                    .maybeSingle();
-                if (error || destination?.notification_id !== out.notificationId
-                    || destination.target_task_id !== ALERT_TASK_ID
-                    || (destination.inbox_event_id !== null
-                        && (!Number.isSafeInteger(destination.inbox_event_id) || destination.inbox_event_id <= 0))) {
-                    throw new Error('Operational destination was not acknowledged');
-                }
-                out.operationalEventId = destination.inbox_event_id || null;
-                if (out.operationalEventId === null) {
-                    const retry = await retryOwnerNotificationDestination(supabase, out.notificationId);
-                    out.operationalEventId = retry.eventId;
-                    if (retry.error) console.warn('[notify] operational original remains pending:', retry.error);
-                }
-                // A stored pending original is not a completed route to the
-                // investigation queue. Retain it but tell the caller the truth.
-                if (out.operationalEventId === null) out.ok = false;
-                if (wantsPush) out.push = { sent: false, skipped: true,
-                    reason: out.operationalEventId ? ROUTED_REASON : 'operational_inbox_pending' };
-            } catch (error) {
-                out.ok = false;
-                console.warn('[notify] operational destination confirmation failed:', error?.message || error);
+        out.notificationId = null;
+        try {
+            const { data: destination, error } = await supabase
+                .from('operational_notification_destinations')
+                .select('notification_id,target_task_id,inbox_event_id')
+                .eq('notification_id', routedId)
+                .eq('target_task_id', ALERT_TASK_ID)
+                .abortSignal(AbortSignal.timeout(9000))
+                .maybeSingle();
+            if (error || destination?.notification_id !== routedId
+                || destination.target_task_id !== ALERT_TASK_ID
+                || (destination.inbox_event_id !== null
+                    && (!Number.isSafeInteger(destination.inbox_event_id) || destination.inbox_event_id <= 0))) {
+                throw new Error('Operational destination was not acknowledged');
             }
+            if (!inserted) console.warn('[notify] operational original is durable despite the failed insert');
+            out.notificationId = routedId;
+            out.operationalEventId = destination.inbox_event_id || null;
+            if (out.operationalEventId === null) {
+                const retry = await retryOwnerNotificationDestination(supabase, routedId);
+                out.operationalEventId = retry.eventId;
+                if (retry.error) console.warn('[notify] operational original remains pending:', retry.error);
+            }
+            // A stored pending original is not a completed route to the
+            // investigation queue. Retain it but tell the caller the truth.
+            out.ok = out.operationalEventId !== null;
+            if (wantsPush) out.push = { sent: false, skipped: true,
+                reason: out.operationalEventId ? ROUTED_REASON : 'operational_inbox_pending' };
+        } catch (error) {
+            out.ok = false;
+            console.warn('[notify] operational destination confirmation failed:', error?.message || error);
         }
         return out;
     }

@@ -289,7 +289,7 @@ export default function OfficialRules() {
                 </main>
             </div>
 
-            <style>{`
+            <style dangerouslySetInnerHTML={{ __html: `
                 * {
                     box-sizing: border-box;
                     margin: 0;
@@ -307,7 +307,7 @@ export default function OfficialRules() {
                 ::selection {
                     background: rgba(0, 212, 255, 0.3);
                 }
-            `}</style>
+            ` }} />
         </>
     );
 }

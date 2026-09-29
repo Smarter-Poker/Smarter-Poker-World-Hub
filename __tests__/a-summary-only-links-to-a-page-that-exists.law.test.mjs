@@ -58,6 +58,28 @@ const ROUTE_SOURCES = [
   'src/lib/poker-near-me/sitemapRoutes.js',
 ];
 
+/**
+ * The content families are generated, not typed. The sitemap builds /compare
+ * from compareRoutes(), /learn from the lessons module and /glossary from the
+ * terms module, so none of those URLs appears as a `path: '...'` literal. The
+ * modules are read here the same way the sitemap reads them, so a summary may
+ * link a comparison or a lesson the moment the sitemap offers it, and not
+ * before (AEO phase 3, 2026-09-22).
+ */
+async function generatedRoutes() {
+  const out = new Set();
+  const { compareRoutes } = await import('../src/content/compare/pages.js');
+  for (const route of compareRoutes()) out.add(route);
+  const { LESSONS } = await import('../src/content/learn/lessons.js');
+  const { LEARN_PATH, lessonPath } = await import('../src/lib/learn/learnSite.js');
+  out.add(LEARN_PATH);
+  for (const lesson of LESSONS) out.add(lessonPath(lesson.slug));
+  const { GLOSSARY_TERMS, GLOSSARY_PATH, glossaryTermPath } = await import('../src/content/glossary/terms.js');
+  out.add(GLOSSARY_PATH);
+  for (const term of GLOSSARY_TERMS) out.add(glossaryTermPath(term.slug));
+  return out;
+}
+
 function sitemapRoutes() {
   const out = new Set();
   for (const file of ROUTE_SOURCES) {
@@ -106,8 +128,8 @@ function summaryLinks() {
   return out;
 }
 
-test('every summary link points at a page the sitemap is willing to list', () => {
-  const listed = sitemapRoutes();
+test('every summary link points at a page the sitemap is willing to list', async () => {
+  const listed = new Set([...sitemapRoutes(), ...(await generatedRoutes())]);
   const elsewhere = prefixesOwnedByAnotherSitemap();
   const ownedElsewhere = (href) => elsewhere.some((p) => href === p || href.startsWith(`${p}/`));
   const dangling = summaryLinks()

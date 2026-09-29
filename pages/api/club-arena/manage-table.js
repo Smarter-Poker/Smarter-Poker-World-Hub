@@ -185,16 +185,16 @@ export default async function handler(req, res) {
             await controller.closeTable(tableId);
           } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
 
-          // Decrement club table count (C-02 wrapper — atomic JS fallback if RPC fails)
-          const { error: rpcErr } = await getSupabase().rpc('decrement_club_table_count', { p_club_id: clubId });
-          if (rpcErr) {
-            // Atomic decrement update
-            const { data: club } = await getSupabase().from('clubs').select('table_count').eq('id', clubId).maybeSingle();
-            if (club) {
-              const { error: err_clubs_yqump } = await getSupabase().from('clubs').update({ table_count: Math.max(0, (club.table_count || 1) - 1) }).eq('id', clubId);
-              if (err_clubs_yqump) console.warn('[Supabase] Silent mutation failed in clubs:', err_clubs_yqump.message);
-            }
-          }
+          // The club's table count is not written here. The database owns it:
+          // trg_tables_sync_club_counts_upd recomputes clubs.table_count from
+          // fn_live_table_count() inside the UPDATE above whenever a table's
+          // status, is_deleted, club_id, union_id or tournament_id changes.
+          // Decrementing it again here counted a deleted table twice, first
+          // through decrement_club_table_count and, when that call failed,
+          // through a read-and-write-back of count - 1. The Club Arena
+          // migration three_watchers_whose_defects_were_fixed_stop_running
+          // dropped that function on 2026-09-20. Pinned by
+          // __tests__/a-club-table-count-has-one-writer.law.test.mjs.
 
           emitUnionEvent('union:table-closed', {});
 
