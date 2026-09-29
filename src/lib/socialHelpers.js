@@ -24,6 +24,33 @@ export const timeAgo = (d) => {
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
+// Page post identity
+// ═══════════════════════════════════════════════════════════════════════════
+/**
+ * The identity a club page post is shown under: the page, never the person
+ * who posted it. Automated club digests must appear as the club (owner
+ * decision, 2026-09-29), and a member's post on a page reads the same way.
+ *
+ * `post.page` is what /api/social/pages/posts attaches from social_pages;
+ * `page` is the surface's own page (or an identity already built from it),
+ * used when the post carries none. When neither is readable the result is
+ * null and the caller shows no identity: the poster's profile is never a
+ * stand-in.
+ */
+export function pagePostIdentity(post, page) {
+    const source = (post && post.page && typeof post.page === 'object') ? post.page : page;
+    if (!source || typeof source !== 'object') return null;
+    const name = typeof source.name === 'string' ? source.name.trim() : '';
+    const key = source.slug || source.id;
+    return {
+        id: source.id || null,
+        name: name || null,
+        avatar_url: (typeof source.avatar_url === 'string' && source.avatar_url) ? source.avatar_url : null,
+        href: source.href || (key ? `/hub/social-pages/${encodeURIComponent(String(key))}` : null),
+    };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // HTML Entity Decoding (for link preview titles/descriptions)
 // ═══════════════════════════════════════════════════════════════════════════
 export const decodeHtmlEntities = (text) => {

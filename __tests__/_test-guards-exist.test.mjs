@@ -188,6 +188,11 @@ import './social-poker-card-picker.test.mjs';
 // for real - spoken card names, 44px targets, whole streets only, focus,
 // long press, and the drafts of a video post that uploads in the background.
 import './social-poker-card-picker-interaction.test.mjs';
+// 2026-09-29: club page posts are shown as the page (name, avatar, link), never
+// as the person who posted them, on the feed card, the pinned strip, the media
+// lightbox, the public club page and both APIs. Owner decision: automated club
+// digests must appear as the club, not as a person.
+import './page-posts-show-the-page.test.mjs';
 import './store-commerce-hardening.test.mjs';
 // 2026-09-05, the diamond wallet audit. Caught by this file's own meta-guard
 // before it could become another guard nobody runs: the law was written, passed
