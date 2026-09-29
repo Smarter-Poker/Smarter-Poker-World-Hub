@@ -113,7 +113,7 @@ test('the tools stylesheet uses complete painted controls without CSS-built chro
   assert.match(consoleCss, /panel-foot\.png/);
   assert.match(css, /button-secondary\.png'\) center \/ contain no-repeat/);
   assert.match(css, /button-primary\.png/);
-  assert.match(css, /search-well\.png'\) center \/ contain no-repeat/);
+  assert.match(css, /search-well\.webp'\) center \/ contain no-repeat/);
   assert.match(css, /min-height:\s*44px/);
   assert.match(css, /@media \(max-width: 600px\)/);
   assert.match(css, /@media \(max-height: 500px\) and \(orientation: landscape\)/);

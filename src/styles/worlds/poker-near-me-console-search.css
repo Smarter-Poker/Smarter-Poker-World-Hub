@@ -116,7 +116,7 @@ body.world-poker-near-me .gso-console-overlay[role='dialog'] .gso-console-search
   align-items: center;
   gap: 1.6cqw;
   padding: 2.41cqw 6.73cqw 4.98cqw 6.78cqw;
-  background: transparent url('/images/pnm-console/painted-controls-v1/search-well.png') center / contain no-repeat !important;
+  background: transparent url('/images/pnm-console/painted-controls-v1/search-well.webp') center / contain no-repeat !important;
 }
 
 body.world-poker-near-me .gso-console-overlay[role='dialog'] .gso-console-search-well::after {
@@ -317,7 +317,7 @@ body.world-poker-near-me .gso-console-overlay[role='dialog'] :is(.gso-city-btn, 
   color: #e4e7ec !important;
   border: 0 !important;
   border-radius: 0 !important;
-  background: transparent url('/images/pnm-console/painted-controls-v1/search-well.png') center / contain no-repeat !important;
+  background: transparent url('/images/pnm-console/painted-controls-v1/search-well.webp') center / contain no-repeat !important;
   box-shadow: none !important;
   font: 600 15px/1.2 var(--font-inter), Inter, system-ui, sans-serif;
   text-align: left;
@@ -447,7 +447,7 @@ body.world-poker-near-me .gso-console-overlay[role='dialog'] .gso-holder {
 }
 
 body.world-poker-near-me .gso-console-overlay[role='dialog'] .gso-holder:not(.pnc-icon) {
-  background: transparent url('/images/pnm-console/painted-controls-v1/utility-well.png') center / contain no-repeat;
+  background: transparent url('/images/pnm-console/painted-controls-v1/utility-well.webp') center / contain no-repeat;
 }
 
 body.world-poker-near-me .gso-console-overlay[role='dialog'] .gso-holder img {
@@ -585,7 +585,7 @@ body.world-poker-near-me .gso-console-overlay[role='dialog'] .gso-console-skelet
   width: min(100%, 620px);
   aspect-ratio: 1829 / 313;
   margin-inline: auto;
-  background: transparent url('/images/pnm-console/painted-controls-v1/search-well.png') center / contain no-repeat;
+  background: transparent url('/images/pnm-console/painted-controls-v1/search-well.webp') center / contain no-repeat;
   animation: gso-console-pulse 1.4s ease-in-out infinite;
 }
 

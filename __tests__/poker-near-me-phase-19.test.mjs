@@ -222,10 +222,10 @@ test('painted map artwork and control geometry stay optimized and continuous', a
   assert.match(style, /map-command-render-v2\.webp/);
   assert.match(style, /\.sp-drawer[\s\S]*?clip-path: none !important/);
   assert.match(style, /\[style\*='border-radius'\]/);
-  assert.match(paintedStyle, /painted-chassis-v1\/top-flat\.png/);
+  assert.match(paintedStyle, /painted-chassis-v1\/top-flat\.webp/);
   assert.match(paintedStyle, /painted-chassis-v1\/mid\.png/);
   assert.match(paintedStyle, /painted-chassis-v1\/bottom-foot\.png/);
-  assert.match(paintedStyle, /painted-controls-v1\/utility-well\.png/);
+  assert.match(paintedStyle, /painted-controls-v1\/utility-well\.webp/);
   assert.match(paintedStyle, /min-height:\s*44px/);
   assert.match(map, /pnm-painted-marker/);
   assert.match(map, /pnm-painted-cluster/);

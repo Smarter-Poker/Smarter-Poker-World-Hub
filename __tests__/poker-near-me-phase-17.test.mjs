@@ -205,7 +205,7 @@ test('mobile command controls use continuous contained frames', async () => {
   const row = rule(`${scope} .sp-menu-row`);
   assert.match(row, /aspect-ratio:\s*1829 \/ 271;/);
   assert.match(row, /min-height:\s*0 !important;/);
-  assert.match(row, /search-well\.png/);
+  assert.match(row, /search-well\.webp/);
   assert.match(row, /background-position:\s*center top !important;/);
   assert.match(row, /background-size:\s*100% auto !important;/);
   const tile = rule(`${scope} .sp-grid-tile`);

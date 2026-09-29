@@ -127,7 +127,7 @@ test('search stylesheet is scoped, painted, hover-free and beats the legacy comm
   const css = read(SEARCH_CSS);
   assert.doesNotMatch(css, /(?:linear|radial|conic)-gradient\(|:hover|backdrop-filter:\s*blur/);
   assert.doesNotMatch(css, /border-radius:\s*[1-9]/);
-  for (const art of ['search-well.png', 'button-primary.png', 'button-secondary.png', 'utility-well.png']) {
+  for (const art of ['search-well.webp', 'button-primary.png', 'button-secondary.png', 'utility-well.webp']) {
     assert.match(css, new RegExp(art.replace('.', '\\.')));
   }
   // Every rule targets the overlay through its dialog scope (0,3,1 or more).
@@ -211,7 +211,7 @@ test('VoiceSearch prints on painted plates and keeps speech behaviour', () => {
   const src = stripComments(read(VOICE));
   assert.doesNotMatch(src, /<svg\b|(?:linear|radial|conic)-gradient\(|:hover|border-radius:\s*[1-9]|hsl\(/);
   assert.match(src, /button-primary\.png/);
-  assert.match(src, /search-well\.png/);
+  assert.match(src, /search-well\.webp/);
   assert.match(src, /<PokerNearMePanelShell as="div" className="voice-popover"/);
   assert.match(src, /aria-label=\{listening \? 'Stop Listening' : \(embedded \? 'Start Listening' : 'Voice Search'\)\}/);
   for (const pin of [

@@ -313,7 +313,7 @@ export default function VoiceSearch({ onResult, variant = 'floating' }) {
 
             {/* Painted controls only: the plates, wells and holders are console
                 art (painted-controls-v1); no gradients, pills or hover states. */}
-            <style>{`
+            <style dangerouslySetInnerHTML={{ __html: `
         /* Above the app footer (mobile standard: never hardcode 56). The plate
            is 348 x 114; 100 x 44 keeps a 44px target around it. */
         .voice-fab { position: fixed; bottom: calc(var(--sp-bottom-nav-height, 56px) + env(safe-area-inset-bottom, 0px) + 16px); left: 16px; z-index: 900; display: grid; place-items: center; width: 112px; height: 44px; min-width: 44px; min-height: 44px; padding: 0; border: 0; border-radius: 0; background: transparent url('/images/pnm-console/painted-controls-v1/button-primary.png') center / contain no-repeat; box-shadow: none; color: #f4f7fb; font: 800 12px/1 var(--font-rajdhani), Rajdhani, Inter, sans-serif; font-size: 12px !important; letter-spacing: 0.1em; text-transform: uppercase; cursor: pointer; touch-action: manipulation; }
@@ -345,14 +345,14 @@ export default function VoiceSearch({ onResult, variant = 'floating' }) {
         .voice-unsupported p { margin: 0 0 4px; color: #9aa5b3; font: 500 13px/1.5 var(--font-inter), Inter, sans-serif; }
         .voice-examples { margin-top: 12px; }
         .voice-example-list { display: flex; flex-direction: column; gap: 4px; margin-top: 6px; }
-        .voice-example { --voice-row-w: 100%; display: flex; align-items: center; width: 100%; min-width: 0; box-sizing: border-box; aspect-ratio: 1829 / 313; margin: 0; padding: calc(var(--voice-row-w) * 0.0241) calc(var(--voice-row-w) * 0.08) calc(var(--voice-row-w) * 0.0498) calc(var(--voice-row-w) * 0.085); border: 0; border-radius: 0; background: transparent url('/images/pnm-console/painted-controls-v1/search-well.png') center / contain no-repeat; box-shadow: none; color: #d7dee7; font: 600 13px/1.2 var(--font-inter), Inter, sans-serif; font-size: 13px !important; text-align: left; cursor: pointer; touch-action: manipulation; }
+        .voice-example { --voice-row-w: 100%; display: flex; align-items: center; width: 100%; min-width: 0; box-sizing: border-box; aspect-ratio: 1829 / 313; margin: 0; padding: calc(var(--voice-row-w) * 0.0241) calc(var(--voice-row-w) * 0.08) calc(var(--voice-row-w) * 0.0498) calc(var(--voice-row-w) * 0.085); border: 0; border-radius: 0; background: transparent url('/images/pnm-console/painted-controls-v1/search-well.webp') center / contain no-repeat; box-shadow: none; color: #d7dee7; font: 600 13px/1.2 var(--font-inter), Inter, sans-serif; font-size: 13px !important; text-align: left; cursor: pointer; touch-action: manipulation; }
         .voice-example__text { display: -webkit-box; min-width: 0; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
         .voice-example:active .voice-example__text { filter: brightness(1.3); }
         .voice-example:focus-visible { outline: 2px solid #8fd4ff; outline-offset: -4px; box-shadow: none; }
         .voice-search-root.embedded { display: block; width: 100%; }
         .voice-search-root.embedded .voice-fab { position: static; width: 174px; height: 57px; margin: 0 auto 14px; font-size: 13px !important; }
         .voice-search-root.embedded .voice-panel-body { width: 100%; }
-      `}</style>
+      ` }} />
         </div>
     );
 }

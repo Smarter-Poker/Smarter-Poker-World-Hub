@@ -834,7 +834,7 @@ export default function ReportGameModal({
             </div>
 
             {/* ── Scoped CSS ── */}
-            <style>{`
+            <style dangerouslySetInnerHTML={{ __html: `
                 .rgm-scrim { position: fixed; inset: 0; z-index: 10000; background: #000308; display: flex; align-items: center; justify-content: center; padding: 16px; padding-top: max(env(safe-area-inset-top, 0px), 16px); box-sizing: border-box; }
                 .rgm-panel { position: relative; background: #020507 url('/images/pnm-console/painted-panels-v1/panel-mid.png') top center / 100% auto repeat-y; border: 0; border-radius: 0; width: 100%; max-width: 500px; max-height: 92dvh; overflow: auto; outline: none; box-shadow: none; animation: rgm-slideUp 0.28s cubic-bezier(0.34,1.56,0.64,1); box-sizing: border-box; }
                 .rgm-handle { display: none; }
@@ -857,7 +857,7 @@ export default function ReportGameModal({
                     50% { opacity: 0.45; }
                 }
                 textarea:focus, input:focus, select:focus { outline: none !important; }
-            `}</style>
+            ` }} />
         </div>
     );
 }
@@ -876,7 +876,7 @@ const inputStyle = {
     width: '100%', aspectRatio: '1829 / 313', minHeight: 48,
     padding: '0 7%', boxSizing: 'border-box',
     backgroundColor: 'transparent',
-    backgroundImage: "url('/images/pnm-console/painted-controls-v1/search-well.png')",
+    backgroundImage: "url('/images/pnm-console/painted-controls-v1/search-well.webp')",
     backgroundPosition: 'center', backgroundRepeat: 'no-repeat', backgroundSize: 'contain',
     border: 0, borderRadius: 0, color: '#eef5fb', fontSize: 16, fontFamily: 'inherit',
 };

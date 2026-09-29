@@ -82,7 +82,7 @@ body.world-poker-near-me .lobby-search-wrap {
   overflow: hidden;
   border: 0 !important;
   border-radius: 0 !important;
-  background: transparent url('/images/pnm-console/painted-controls-v1/search-well.png') center / contain no-repeat !important;
+  background: transparent url('/images/pnm-console/painted-controls-v1/search-well.webp') center / contain no-repeat !important;
   box-shadow: none !important;
   backdrop-filter: none !important;
 }
@@ -94,7 +94,7 @@ body.world-poker-near-me .lobby-search-wrap::after {
 
 body.world-poker-near-me .lobby-search-wrap:focus-within {
   border: 0 !important;
-  background: transparent url('/images/pnm-console/painted-controls-v1/search-well.png') center / contain no-repeat !important;
+  background: transparent url('/images/pnm-console/painted-controls-v1/search-well.webp') center / contain no-repeat !important;
   box-shadow: none !important;
 }
 
@@ -191,7 +191,7 @@ body.world-poker-near-me .lobby-location-prompt {
   color: #eef5fb;
   border: 0 !important;
   border-radius: 0 !important;
-  background: transparent url('/images/pnm-console/painted-controls-v1/search-well.png') center / contain no-repeat !important;
+  background: transparent url('/images/pnm-console/painted-controls-v1/search-well.webp') center / contain no-repeat !important;
   box-shadow: none !important;
   font-family: var(--font-inter), Inter, sans-serif;
   text-align: left;
@@ -710,7 +710,7 @@ body.world-poker-near-me .dt-search-input.dt-search-input,
 body.world-poker-near-me .lgf-search-input.lgf-search-input {
   min-width: 0;
   aspect-ratio: 1829 / 313;
-  background-image: url('/images/pnm-console/painted-controls-v1/search-well.png') !important;
+  background-image: url('/images/pnm-console/painted-controls-v1/search-well.webp') !important;
 }
 
 body.world-poker-near-me .dt-search-input.dt-search-input,
@@ -907,7 +907,7 @@ body.world-poker-near-me .ec-search-wrap.ec-search-wrap {
   padding: 0 clamp(12px, 3.6%, 22px) !important;
   border: 0 !important;
   border-radius: 0 !important;
-  background: transparent url('/images/pnm-console/painted-controls-v1/search-well.png') center / contain no-repeat !important;
+  background: transparent url('/images/pnm-console/painted-controls-v1/search-well.webp') center / contain no-repeat !important;
   box-shadow: none !important;
 }
 
@@ -1204,7 +1204,7 @@ body.world-poker-near-me .vga-field.vga-field {
   border: 0 !important;
   border-radius: 0 !important;
   background-color: transparent !important;
-  background-image: url('/images/pnm-console/painted-controls-v1/search-well.png') !important;
+  background-image: url('/images/pnm-console/painted-controls-v1/search-well.webp') !important;
   background-position: center !important;
   background-repeat: no-repeat !important;
   background-size: contain !important;

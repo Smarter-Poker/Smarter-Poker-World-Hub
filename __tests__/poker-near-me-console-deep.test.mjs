@@ -54,7 +54,7 @@ test('the painted head keeps its own lines against the pre-console stylesheets',
 test('the deep stylesheet loads a runtime-size crest, never the source master', () => {
   const css = read('src/styles/worlds/poker-near-me-console-deep.css');
   assert.doesNotMatch(css, /painted-chassis-v1\/source\//);
-  assert.match(css, /painted-chassis-v1\/crest-locator-520\.png/);
+  assert.match(css, /painted-chassis-v1\/crest-locator-520\.webp/);
 
   const copy = 'public/images/pnm-console/painted-chassis-v1/crest-locator-520.png';
   const master = 'public/images/pnm-console/painted-chassis-v1/source/crest-locator.png';

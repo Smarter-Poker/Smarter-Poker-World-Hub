@@ -43,7 +43,7 @@ body.world-poker-near-me .pnm-deep-deck__visual::after {
   content: '';
   position: absolute;
   inset: 0;
-  background: url('/images/pnm-console/painted-chassis-v1/crest-locator-520.png') 94% 12% / min(34%, 260px) auto no-repeat,
+  background: url('/images/pnm-console/painted-chassis-v1/crest-locator-520.webp') 94% 12% / min(34%, 260px) auto no-repeat,
     rgb(1 4 7 / 72%) !important;
 }
 

@@ -42,7 +42,7 @@ body.world-poker-near-me .pnm-map-surface__header {
   overflow: visible;
   border: 0 !important;
   border-radius: 0 !important;
-  background: transparent url('/images/pnm-console/painted-chassis-v1/top-flat.png') top center / 100% auto no-repeat !important;
+  background: transparent url('/images/pnm-console/painted-chassis-v1/top-flat.webp') top center / 100% auto no-repeat !important;
   box-shadow: none !important;
 }
 
@@ -161,7 +161,7 @@ body.world-poker-near-me .pnm-map-surface__controls .pnm-map-radius-control {
   color: #dceaf2;
   border: 0 !important;
   border-radius: 0 !important;
-  background: transparent url('/images/pnm-console/painted-controls-v1/search-well.png') center / 100% auto no-repeat !important;
+  background: transparent url('/images/pnm-console/painted-controls-v1/search-well.webp') center / 100% auto no-repeat !important;
   box-shadow: none !important;
   font: 750 12px/1 var(--font-rajdhani), var(--font-premium-body), sans-serif;
   letter-spacing: 0.055em;
@@ -284,7 +284,7 @@ body.world-poker-near-me .pnm-map-surface .leaflet-control-zoom a {
   border: 0 !important;
   border-radius: 0 !important;
   background-color: transparent !important;
-  background-image: url('/images/pnm-console/painted-controls-v1/utility-well.png') !important;
+  background-image: url('/images/pnm-console/painted-controls-v1/utility-well.webp') !important;
   background-position: center !important;
   background-repeat: no-repeat !important;
   background-size: contain !important;
@@ -464,7 +464,7 @@ body.world-poker-near-me .pnm-map-surface .pnm-painted-marker__machine {
   overflow: visible;
   transform: translateX(-50%);
   background-color: transparent !important;
-  background-image: url('/images/pnm-console/painted-controls-v1/utility-well.png') !important;
+  background-image: url('/images/pnm-console/painted-controls-v1/utility-well.webp') !important;
   background-position: center !important;
   background-repeat: no-repeat !important;
   background-size: contain !important;
@@ -518,7 +518,7 @@ body.world-poker-near-me .pnm-map-surface .pnm-map-marker-label {
   border: 0 !important;
   border-radius: 0 !important;
   background-color: transparent !important;
-  background-image: url('/images/pnm-console/painted-controls-v1/search-well.png') !important;
+  background-image: url('/images/pnm-console/painted-controls-v1/search-well.webp') !important;
   background-position: center !important;
   background-repeat: no-repeat !important;
   background-size: 100% auto !important;
@@ -551,7 +551,7 @@ body.world-poker-near-me .pnm-map-surface .pnm-painted-cluster {
   border: 0 !important;
   border-radius: 0 !important;
   background-color: transparent !important;
-  background-image: url('/images/pnm-console/painted-controls-v1/utility-well.png') !important;
+  background-image: url('/images/pnm-console/painted-controls-v1/utility-well.webp') !important;
   background-position: center !important;
   background-repeat: no-repeat !important;
   background-size: contain !important;
@@ -672,7 +672,7 @@ body.world-poker-near-me .pnm-map-dossier__logo-machine {
   display: block;
   width: 44px;
   height: 44px;
-  background: transparent url('/images/pnm-console/painted-controls-v1/utility-well.png') center / contain no-repeat;
+  background: transparent url('/images/pnm-console/painted-controls-v1/utility-well.webp') center / contain no-repeat;
 }
 
 body.world-poker-near-me .pnm-map-dossier__logo-machine img {
@@ -840,7 +840,7 @@ body.world-poker-near-me .pnm-map-surface__escape-hint {
   color: #b9c6cf;
   border: 0 !important;
   border-radius: 0 !important;
-  background: transparent url('/images/pnm-console/painted-controls-v1/search-well.png') center / 100% auto no-repeat !important;
+  background: transparent url('/images/pnm-console/painted-controls-v1/search-well.webp') center / 100% auto no-repeat !important;
   box-shadow: none !important;
   font: 750 12px/1 var(--font-rajdhani), sans-serif;
   letter-spacing: 0.08em;
@@ -894,7 +894,7 @@ body.world-poker-near-me .pnm-map-surface--fullscreen .pnm-map-surface__header {
   aspect-ratio: 1829 / 313;
   margin-inline: auto;
   padding: 0;
-  background-image: url('/images/pnm-console/painted-controls-v1/search-well.png') !important;
+  background-image: url('/images/pnm-console/painted-controls-v1/search-well.webp') !important;
   background-position: top center !important;
   background-repeat: no-repeat !important;
   background-size: 100% auto !important;
@@ -979,7 +979,7 @@ body.world-poker-near-me .pnm-map-surface--fullscreen .pnm-location-picker__map 
     width: 50px;
     min-width: 50px !important;
     padding: 0 !important;
-    background-image: url('/images/pnm-console/painted-controls-v1/utility-well.png') !important;
+    background-image: url('/images/pnm-console/painted-controls-v1/utility-well.webp') !important;
     background-size: contain !important;
   }
 
@@ -1043,7 +1043,7 @@ body.world-poker-near-me .pnm-map-surface--fullscreen .pnm-location-picker__map 
     max-width: 720px;
     aspect-ratio: 1829 / 313;
     margin-inline: auto;
-    background-image: url('/images/pnm-console/painted-controls-v1/search-well.png') !important;
+    background-image: url('/images/pnm-console/painted-controls-v1/search-well.webp') !important;
     background-position: top center !important;
     background-repeat: no-repeat !important;
     background-size: 100% auto !important;
@@ -1487,7 +1487,7 @@ body.world-poker-near-me :is(.road-trip-planner .rtp-well, .pnm-map-well) {
   max-width: 520px;
   min-height: 44px;
   aspect-ratio: 1829 / 313;
-  background: transparent url('/images/pnm-console/painted-controls-v1/search-well.png') center / contain no-repeat;
+  background: transparent url('/images/pnm-console/painted-controls-v1/search-well.webp') center / contain no-repeat;
 }
 
 body.world-poker-near-me :is(.road-trip-planner .rtp-well, .pnm-map-well) > input {
@@ -1816,7 +1816,7 @@ body.world-poker-near-me .pnm-map-toast {
   align-items: center;
   gap: 8px;
   color: #e6e9ee;
-  background: transparent url('/images/pnm-console/painted-controls-v1/search-well.png') center / contain no-repeat;
+  background: transparent url('/images/pnm-console/painted-controls-v1/search-well.webp') center / contain no-repeat;
   font: 700 13px/1.2 var(--font-inter), Inter, system-ui, sans-serif;
 }
 

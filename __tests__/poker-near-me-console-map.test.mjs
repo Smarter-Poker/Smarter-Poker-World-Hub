@@ -137,11 +137,11 @@ test('painted map stylesheet is globally wired, native-ratio, responsive and fre
   ]);
 
   assert.match(app, /poker-near-me-console-map\.css/);
-  assert.match(styles, /painted-chassis-v1\/top-flat\.png/);
+  assert.match(styles, /painted-chassis-v1\/top-flat\.webp/);
   assert.match(styles, /painted-chassis-v1\/mid\.png/);
   assert.match(styles, /painted-chassis-v1\/bottom-foot\.png/);
-  assert.match(styles, /painted-controls-v1\/utility-well\.png/);
-  assert.match(styles, /painted-controls-v1\/search-well\.png/);
+  assert.match(styles, /painted-controls-v1\/utility-well\.webp/);
+  assert.match(styles, /painted-controls-v1\/search-well\.webp/);
   assert.match(styles, /painted-panels-v1\/panel-head\.png/);
   assert.match(styles, /aspect-ratio:\s*1000\s*\/\s*348/);
   assert.match(styles, /aspect-ratio:\s*1829\s*\/\s*313/);
@@ -212,7 +212,7 @@ test('road-trip form controls sit in painted wells and plates without frames on 
     assert.doesNotMatch(block, /PokerNearMeConsoleIcon/, `${plate} prints its label only`);
   }
 
-  assert.match(styles, /\.road-trip-planner \.rtp-well, \.pnm-map-well\) \{[^}]*aspect-ratio:\s*1829 \/ 313;[^}]*search-well\.png'\) center \/ contain no-repeat/s);
+  assert.match(styles, /\.road-trip-planner \.rtp-well, \.pnm-map-well\) \{[^}]*aspect-ratio:\s*1829 \/ 313;[^}]*search-well\.webp'\) center \/ contain no-repeat/s);
   assert.match(styles, /input\[type='date'\]::-webkit-calendar-picker-indicator \{[^}]*icon-calendar\.png/s);
   assert.match(styles, /:is\(\.rtp-add-waypoint, \.rtp-chip, \.rtp-calculate-btn\) \{[^}]*min-height:\s*44px !important;[^}]*aspect-ratio:\s*348 \/ 114;[^}]*button-secondary\.png/s);
   assert.match(styles, /:is\(\.rtp-chip\.active, \.rtp-calculate-btn\) \{[^}]*button-primary\.png/s);

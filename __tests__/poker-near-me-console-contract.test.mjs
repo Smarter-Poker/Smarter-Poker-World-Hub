@@ -263,7 +263,7 @@ test('Poker Near Me hamburger drawer uses complete painted controls without gene
   assert.match(menu, /data-pnm-console=.*painted-command-drawer-v1/);
   assert.match(menu, /sp-command-item-icon--\$\{pokerNearMeCommandIcon/);
   assert.doesNotMatch(menu, /data-world-command-menu='poker-near-me'[\s\S]{0,240}(?:linear|radial|conic)-gradient/i);
-  for (const asset of ['icon-menu.png', 'icon-edit.png', 'icon-close.png', 'button-primary.png', 'button-secondary.png', 'search-well.png']) {
+  for (const asset of ['icon-menu.png', 'icon-edit.png', 'icon-close.png', 'button-primary.png', 'button-secondary.png', 'search-well.webp']) {
     assert.match(css, new RegExp(asset.replace('.', '\\.')));
   }
   assert.match(css, /min-height:\s*44px/);
@@ -286,7 +286,7 @@ test('lobby, daily listings, discovery tools and location indexes use painted co
   assert.match(daily, /PokerNearMePanelShell/);
   assert.match(more, /PokerNearMePanelShell/);
   assert.match(locations, /PokerNearMePanelShell/);
-  assert.match(css, /search-well\.png/);
+  assert.match(css, /search-well\.webp/);
   assert.match(css, /button-primary\.png/);
   assert.match(css, /button-secondary\.png/);
   assert.match(css, /min-height:\s*44px/);

@@ -208,7 +208,7 @@
   width: 56px;
   aspect-ratio: 1105 / 1133;
   justify-content: center;
-  background: url('/images/pnm-console/painted-controls-v1/utility-well.png') center / contain no-repeat;
+  background: url('/images/pnm-console/painted-controls-v1/utility-well.webp') center / contain no-repeat;
 }
 
 .pnm-console-card .vc3-logo-initials {
@@ -1462,7 +1462,7 @@
   flex: 0 0 44px;
   place-items: center;
   color: #9aa5b3;
-  background: url('/images/pnm-console/painted-controls-v1/utility-well.png') center / contain no-repeat;
+  background: url('/images/pnm-console/painted-controls-v1/utility-well.webp') center / contain no-repeat;
   font: 800 16px / 1 var(--font-rajdhani), Rajdhani, Inter, system-ui, sans-serif;
   cursor: pointer;
   touch-action: manipulation;
@@ -1524,7 +1524,7 @@
   display: grid;
   place-items: center;
   color: #e4e7ec;
-  background: url('/images/pnm-console/painted-controls-v1/utility-well.png') center / contain no-repeat;
+  background: url('/images/pnm-console/painted-controls-v1/utility-well.webp') center / contain no-repeat;
   font-size: 14px;
   font-weight: 800;
 }
@@ -1658,7 +1658,7 @@
   aspect-ratio: 1829 / 313;
   align-items: center;
   padding: 0 calc(var(--pnm-compare-well-w) * 0.075);
-  background: url('/images/pnm-console/painted-controls-v1/search-well.png') center / contain no-repeat;
+  background: url('/images/pnm-console/painted-controls-v1/search-well.webp') center / contain no-repeat;
 }
 
 body.world-poker-near-me .pnm-venue-compare__search input,
@@ -1857,7 +1857,7 @@ body.world-poker-near-me .pnm-venue-compare__search input,
 .pnm-identity-mark__halo {
   position: absolute;
   inset: 0;
-  background: url('/images/pnm-console/painted-controls-v1/utility-well.png') center / contain no-repeat;
+  background: url('/images/pnm-console/painted-controls-v1/utility-well.webp') center / contain no-repeat;
 }
 
 .pnm-identity-mark__initials {

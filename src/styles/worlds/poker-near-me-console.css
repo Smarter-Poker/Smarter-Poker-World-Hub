@@ -37,27 +37,27 @@ body.world-poker-near-me {
   position: relative;
   width: 100%;
   aspect-ratio: 1000 / 348;
-  background: url('/images/pnm-console/painted-chassis-v1/top.png') top center / 100% auto no-repeat;
+  background: url('/images/pnm-console/painted-chassis-v1/top.webp') top center / 100% auto no-repeat;
 }
 
 .pnc--crest-flat .pnc__head {
-  background-image: url('/images/pnm-console/painted-chassis-v1/top-flat.png');
+  background-image: url('/images/pnm-console/painted-chassis-v1/top-flat.webp');
 }
 
 .pnc--crest-locator .pnc__head {
-  background-image: url('/images/pnm-console/painted-chassis-v1/top-locator.png');
+  background-image: url('/images/pnm-console/painted-chassis-v1/top-locator.webp');
 }
 
 .pnc--crest-club .pnc__head {
-  background-image: url('/images/pnm-console/painted-chassis-v1/top-club.png');
+  background-image: url('/images/pnm-console/painted-chassis-v1/top-club.webp');
 }
 
 .pnc--crest-diamond .pnc__head {
-  background-image: url('/images/pnm-console/painted-chassis-v1/top-diamond.png');
+  background-image: url('/images/pnm-console/painted-chassis-v1/top-diamond.webp');
 }
 
 .pnc--crest-vip .pnc__head {
-  background-image: url('/images/pnm-console/painted-chassis-v1/top-vip.png');
+  background-image: url('/images/pnm-console/painted-chassis-v1/top-vip.webp');
 }
 
 .pnc__body {
@@ -79,7 +79,7 @@ body.world-poker-near-me {
 
 .pnc--plates .pnc__foot {
   aspect-ratio: 1000 / 277;
-  background-image: url('/images/pnm-console/painted-chassis-v1/bottom-plates.png');
+  background-image: url('/images/pnm-console/painted-chassis-v1/bottom-plates.webp');
 }
 
 .pnc-zone {

@@ -276,6 +276,6 @@ test('PokerIdentityMark prints artwork bare and initials in the painted well', (
   assert.match(src, /onError=\{\(\) => setImageFailed\(true\)\}/);
   assert.match(src, /pnm-identity-mark__halo/);
   const css = read(CSS_PATH);
-  assert.match(css, /\.pnm-identity-mark__halo \{[^}]*utility-well\.png/);
+  assert.match(css, /\.pnm-identity-mark__halo \{[^}]*utility-well\.webp/);
   assert.match(css, /\.pnm-identity-mark\[data-media-state\] img \{[^}]*object-fit: scale-down;/);
 });

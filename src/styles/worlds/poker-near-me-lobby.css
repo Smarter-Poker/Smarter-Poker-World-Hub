@@ -121,7 +121,7 @@
 .pnm-lobby-skeleton__well {
   width: min(100%, 520px);
   aspect-ratio: 1829 / 313;
-  background: transparent url('/images/pnm-console/painted-controls-v1/search-well.png') center / contain no-repeat;
+  background: transparent url('/images/pnm-console/painted-controls-v1/search-well.webp') center / contain no-repeat;
 }
 
 .pnm-lobby-skeleton__grid {

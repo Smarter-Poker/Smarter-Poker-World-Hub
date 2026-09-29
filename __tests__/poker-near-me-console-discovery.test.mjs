@@ -41,7 +41,7 @@ test('every discovery filter control is seated on approved painted art', () => {
 
   const wellBlock = surfaces.slice(surfaces.indexOf('.ec-filter-select.ec-filter-select'));
   assert.match(wellBlock, /painted-controls-v1\/button-secondary\.png/);
-  assert.match(wellBlock, /painted-controls-v1\/search-well\.png/);
+  assert.match(wellBlock, /painted-controls-v1\/search-well\.webp/);
   assert.match(wellBlock, /painted-controls-v1\/button-primary\.png/);
 });
 

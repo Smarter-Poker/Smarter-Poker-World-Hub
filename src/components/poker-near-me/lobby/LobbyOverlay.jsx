@@ -348,7 +348,7 @@ export default function LobbyOverlay({
       </div>
     </div>
 
-    <style>{`
+    <style dangerouslySetInnerHTML={{ __html: `
       /* Bitmap labels are static painted art; this DOM copy remains available
          to assistive technology and becomes visible only in the image fallback. */
       .lobby-hotspot-label {
@@ -385,7 +385,7 @@ export default function LobbyOverlay({
         font: 700 12px/1.1 var(--font-rajdhani), Rajdhani, Inter, sans-serif;
         text-align: center;
       }
-    `}</style>
+    ` }} />
     </>
   );
 }
