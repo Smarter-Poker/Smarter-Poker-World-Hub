@@ -2,7 +2,7 @@
  * SeriesCard - Tournament series card for Poker Near Me page
  * Handles both poker_series objects and poker_venues entries with venue_type='series'
  */
-import { TourBadge, formatDate, formatMoney } from './TourCard';
+import { TourBadge, PnmPlateLabel, formatDate, formatMoney, labelize } from './TourCard';
 import { PokerNearMeConsoleIcon, PokerNearMePanelShell } from './PokerNearMeConsole';
 
 // BUG FIX: Sanitize scraped URLs — block javascript:/data:/vbscript: XSS vectors.
@@ -44,7 +44,7 @@ export default function SeriesCard({ series: s, index, isFavorited, onFavorite, 
             </button>
             <div className="card-header">
                 <TourBadge tourCode={shortCode} size="small" />
-                {s.series_type && <span className="badge series-type">{s.series_type}</span>}
+                {s.series_type && <span className="badge series-type">{labelize(s.series_type)}</span>}
                 {isVenueEntry && <span className="badge series-type pnm-console-card__tag--blue">Series</span>}
             </div>
             <h4>{s.name}</h4>
@@ -54,8 +54,10 @@ export default function SeriesCard({ series: s, index, isFavorited, onFavorite, 
                 <p className="card-dates">{formatDate(s.start_date)} - {formatDate(s.end_date)}</p>
             )}
             <div className="card-tags">
-                {s.total_events && <span className="tag events">{s.total_events} Events</span>}
-                {s.main_event_buyin && <span className="tag buyin">{formatMoney(s.main_event_buyin)} Main</span>}
+                {/* BUG FIX: `{count && ...}` printed a bare "0" into the card for a
+                    zero count; gate on real values instead. */}
+                {Number(s.total_events) > 0 && <span className="tag events">{s.total_events} Events</span>}
+                {s.main_event_buyin != null && s.main_event_buyin !== '' && <span className="tag buyin">{formatMoney(s.main_event_buyin)} Main</span>}
                 {/* Games offered — from poker_venues data */}
                 {!s.total_events && Array.isArray(s.games_offered) && s.games_offered.slice(0, 4).map((g, i) => (
                     <span key={g || i} className="tag game">{g}</span>
@@ -67,7 +69,7 @@ export default function SeriesCard({ series: s, index, isFavorited, onFavorite, 
                     Stakes: {s.stakes_cash.slice(0, 3).join(', ')}
                 </p>
             )}
-            {s.main_event_guaranteed && (
+            {Number(s.main_event_guaranteed) > 0 && (
                 <p className="card-detail guaranteed">{formatMoney(s.main_event_guaranteed)}+ GTD</p>
             )}
             <div className="card-footer">
@@ -80,13 +82,12 @@ export default function SeriesCard({ series: s, index, isFavorited, onFavorite, 
                             onNavigate?.(detailUrl);
                         }}
                     >
-                        <PokerNearMeConsoleIcon name="calendar" className="pnm-console-card__action-icon" />
-                        Details
+                        <PnmPlateLabel label="Details" />
                     </button>
                     {(() => {
                         const href = safeHref(s.source_url || s.website);
                         if (!href) return null;
-                        return <a href={href} target="_blank" rel="noopener noreferrer" className="action-btn" onClick={e => e.stopPropagation()}><PokerNearMeConsoleIcon name="globe" className="pnm-console-card__action-icon" />{s.source_url ? 'Source' : 'Website'}</a>;
+                        return <a href={href} target="_blank" rel="noopener noreferrer" className="action-btn" onClick={e => e.stopPropagation()}><PnmPlateLabel label={s.source_url ? 'Source' : 'Website'} /></a>;
                     })()}
                 </div>
             </div>

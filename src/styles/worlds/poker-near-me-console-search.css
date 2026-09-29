@@ -1,168 +1,587 @@
-/* Poker Near Me search uses painted wells and icon holders. All interaction,
-   map state, result data, and focus management remain live DOM behavior. */
+/*
+ * Poker Near Me global search on the painted #ClubArenaConsole system.
+ *
+ * Paint what never changes; print what does. The search well, the icon
+ * holders, the action plates and the result-panel slices are approved raster
+ * art from the console kit. Queries, results, counts and states are live DOM.
+ *
+ * The legacy command layer (poker-near-me-command-surfaces.css) still targets
+ * this dialog by its aria-label at specificity 0,3,1 to 0,3,3 and paints a
+ * CSS frame around the well and flat boxes over the rows. Every competing rule
+ * here carries `.gso-console-overlay[role='dialog']`, so it is at least as
+ * specific and later in the cascade.
+ *
+ * Search-well master (1829 x 313): the black face spans x 124-1706 and
+ * y 44-222. As fractions of the drawn width W: top 0.0241W, right 0.0673W,
+ * bottom 0.0498W, left 0.0678W; the face is 0.0973W tall and centred at 42.5%
+ * of the art height, not 50%.
+ */
 
-body.world-poker-near-me .gso-console-overlay {
-  background-color: #010306 !important;
-  background-image: url('/images/pnm-redesign/casino-command-map-v1.webp') !important;
-  background-position: center !important;
-  background-repeat: no-repeat !important;
-  background-size: cover !important;
-  background-blend-mode: multiply;
+body.world-poker-near-me .gso-console-overlay[role='dialog'] {
+  z-index: 10120 !important;
+  color: #e4e7ec !important;
+  background: #010306 !important;
   backdrop-filter: none !important;
 }
 
-body.world-poker-near-me .gso-console-header,
-body.world-poker-near-me .gso-detail-console__header {
-  min-height: 72px;
+body.world-poker-near-me .gso-console-overlay[role='dialog'] .gso-search-surface {
+  display: flex;
+  min-height: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
   border: 0 !important;
-  background: #020508 !important;
+  background: transparent !important;
+  box-shadow: none !important;
 }
 
-body.world-poker-near-me :is(.gso-back, .gso-clear, .gso-painted-icon-button) {
+.gso-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* ---- Header: back holder, search well, Search plate ---- */
+
+body.world-poker-near-me .gso-console-overlay[role='dialog'] .gso-console-header {
+  display: grid;
+  flex: none;
+  grid-template-columns: 52px minmax(0, 460px) auto;
+  justify-content: center;
+  align-items: center;
+  gap: 8px 12px;
+  padding: 12px clamp(8px, 2.4vw, 24px) 10px;
+  border: 0;
+  background: #020508;
+}
+
+body.world-poker-near-me .gso-console-overlay[role='dialog'] :is(.gso-back, .gso-clear, .gso-painted-icon-button) {
   display: grid !important;
   width: 52px !important;
   height: 52px !important;
   min-width: 52px !important;
   min-height: 52px !important;
+  margin: 0;
   padding: 0 !important;
   place-items: center;
+  color: inherit;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: none !important;
+  box-shadow: none !important;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body.world-poker-near-me .gso-console-overlay[role='dialog'] :is(.gso-back, .gso-painted-icon-button) .pnc-icon {
+  width: 52px;
+  height: 52px;
+  flex-basis: 52px;
+}
+
+body.world-poker-near-me .gso-console-overlay[role='dialog'] :is(.gso-back, .gso-clear, .gso-painted-icon-button):focus-visible {
+  outline: 2px solid #8fd4ff;
+  outline-offset: 0;
+}
+
+body.world-poker-near-me .gso-console-overlay[role='dialog'] :is(.gso-back, .gso-clear, .gso-painted-icon-button):active .pnc-icon {
+  transform: translateY(1px);
+}
+
+body.world-poker-near-me .gso-console-overlay[role='dialog'] .gso-console-form {
+  container-type: inline-size;
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+  padding: 0 !important;
   border: 0 !important;
   border-radius: 0 !important;
   background: none !important;
   box-shadow: none !important;
 }
 
-body.world-poker-near-me :is(.gso-back, .gso-clear, .gso-painted-icon-button) .pnc-icon {
-  width: 52px !important;
-  height: 52px !important;
-  flex-basis: 52px !important;
-}
-
-body.world-poker-near-me .gso-console-form {
-  width: min(100%, 820px);
-  min-width: 0;
-}
-
-body.world-poker-near-me .gso-console-search-well {
+/* The well keeps the art's own ratio; the padding is the painted face, so
+   everything printed inside is centred on the glass, not on the chrome. */
+body.world-poker-near-me .gso-console-overlay[role='dialog'] .gso-console-search-well {
+  position: relative;
+  display: flex;
   width: 100%;
-  min-height: 64px;
+  min-width: 0;
+  min-height: 0;
+  box-sizing: border-box;
+  aspect-ratio: 1829 / 313;
+  align-items: center;
+  gap: 1.6cqw;
+  padding: 2.41cqw 6.73cqw 4.98cqw 6.78cqw;
   background: transparent url('/images/pnm-console/painted-controls-v1/search-well.png') center / contain no-repeat !important;
 }
 
-body.world-poker-near-me .gso-console-search-icon {
+body.world-poker-near-me .gso-console-overlay[role='dialog'] .gso-console-search-well::after {
+  content: '';
   position: absolute;
-  top: 50%;
-  left: 5.5%;
-  z-index: 2;
-  width: 42px;
-  height: 42px;
-  transform: translateY(-50%);
+  inset: 2.41cqw 6.73cqw 4.98cqw 6.78cqw;
+  pointer-events: none;
+  outline: 2px solid transparent;
 }
 
-body.world-poker-near-me .gso-console-input {
-  min-height: 64px;
-  padding: 0 10% 0 13% !important;
-  color: #f4f7fb !important;
-  background: none !important;
+body.world-poker-near-me .gso-console-overlay[role='dialog'] .gso-console-search-well:has(.gso-console-input:focus-visible)::after {
+  outline-color: #8fd4ff;
 }
 
-body.world-poker-near-me .gso-console-input:focus-visible {
-  outline: 2px solid #8fd4ff !important;
-  outline-offset: -10px;
+body.world-poker-near-me .gso-console-overlay[role='dialog'] .gso-console-search-icon {
+  position: static;
+  width: 9cqw;
+  height: 9cqw;
+  flex: none;
+  transform: none;
 }
 
-body.world-poker-near-me .gso-console-submit {
-  width: 134px;
-  min-width: 134px;
+body.world-poker-near-me .gso-console-overlay[role='dialog'] .gso-console-form .gso-console-input {
+  width: auto;
+  min-width: 0;
   height: 44px;
+  min-height: 44px !important;
+  flex: 1 1 auto;
+  margin: 0;
+  padding: 0 1cqw !important;
+  color: #f4f7fb !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  outline: none !important;
+  caret-color: #45adff;
+  font: 500 clamp(16px, 3.6cqw, 19px)/1.2 var(--font-inter), Inter, system-ui, sans-serif;
+  letter-spacing: 0;
+}
+
+body.world-poker-near-me .gso-console-overlay[role='dialog'] .gso-console-input::placeholder {
+  color: #9aa5b3;
+  opacity: 1;
+}
+
+/* Clear: a 44px target printed on the glass, its painted holder sized to the
+   face so it never sits on the well's chrome. */
+body.world-poker-near-me .gso-console-overlay[role='dialog'] .gso-console-form .gso-clear {
+  position: static !important;
+  width: 44px !important;
+  height: 44px !important;
+  min-width: 44px !important;
+  min-height: 44px !important;
+  flex: none;
+  transform: none !important;
+}
+
+body.world-poker-near-me .gso-console-overlay[role='dialog'] .gso-console-form .gso-clear .pnc-icon {
+  width: min(44px, 9cqw);
+  height: min(44px, 9cqw);
+  flex-basis: auto;
+}
+
+/* Search: the blue plate when there is a query, the steel plate (disabled)
+   when there is not. The plate is 348 x 114; 134 x 44 is its own ratio. */
+body.world-poker-near-me .gso-console-overlay[role='dialog'] .gso-console-submit {
+  display: grid;
+  width: 134px;
+  height: 44px;
+  min-width: 134px;
   min-height: 44px;
-  padding: 0 22px !important;
-  color: #effaff !important;
+  margin: 0;
+  padding: 0 !important;
+  place-items: center;
+  color: #f4f7fb !important;
   border: 0 !important;
   border-radius: 0 !important;
   background: transparent url('/images/pnm-console/painted-controls-v1/button-primary.png') center / contain no-repeat !important;
   box-shadow: none !important;
+  font: 800 14px/1 var(--font-rajdhani), Rajdhani, Inter, sans-serif;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+  touch-action: manipulation;
 }
 
-body.world-poker-near-me :is(.gso-city-btn, .gso-hist-btn, .gso-result-card) {
+body.world-poker-near-me .gso-console-overlay[role='dialog'] .gso-console-submit:disabled {
+  color: #9aa5b3 !important;
+  background-image: url('/images/pnm-console/painted-controls-v1/button-secondary.png') !important;
+  cursor: default;
+}
+
+body.world-poker-near-me .gso-console-overlay[role='dialog'] .gso-console-submit:not(:disabled):active .gso-console-submit__label {
+  filter: brightness(1.3);
+}
+
+body.world-poker-near-me .gso-console-overlay[role='dialog'] .gso-console-submit:focus-visible {
+  outline: 2px solid #8fd4ff;
+  outline-offset: 2px;
+}
+
+/* ---- Map ----
+   The map scrolls with the results. The legacy 360-520px floor and inner
+   scroller (poker-near-me-machined.css) cut its painted frame off and, pinned
+   above the list, left a landscape phone no room for results. */
+
+body.world-poker-near-me .gso-console-overlay[role='dialog'] .gso-map {
   position: relative;
-  width: min(100%, 620px) !important;
-  min-height: 62px;
+  width: min(100%, 620px);
+  min-height: 0;
+  max-height: none;
+  margin: 0 auto 16px;
+  overflow: visible;
+  border: 0;
+  background: #010306;
+}
+
+body.world-poker-near-me .gso-console-overlay[role='dialog'] .gso-map__hint {
+  margin: 0;
+  padding: 6px 16px 8px;
+  color: #9aa5b3;
+  font: 600 12px/1.3 var(--font-inter), Inter, sans-serif;
+  text-align: center;
+}
+
+/* ---- Scrolling list ---- */
+
+body.world-poker-near-me .gso-console-overlay[role='dialog'] .gso-console-body {
+  min-height: 0;
+  flex: 1 1 auto;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+body.world-poker-near-me .gso-console-overlay[role='dialog'] .gso-console-list {
+  width: min(100%, 720px);
+  margin: 0 auto;
+  padding: 14px clamp(10px, 3vw, 16px) 80px;
+  box-sizing: border-box;
+}
+
+body.world-poker-near-me .gso-console-overlay[role='dialog'] .gso-section {
+  margin: 0 0 18px;
+}
+
+body.world-poker-near-me .gso-console-overlay[role='dialog'] .gso-section-head {
+  display: flex;
+  width: min(100%, 620px);
+  min-height: 40px;
+  align-items: center;
+  gap: 8px;
+  margin: 0 auto 6px;
+}
+
+body.world-poker-near-me .gso-console-overlay[role='dialog'] .gso-section-head__icon {
+  width: 36px;
+  height: 36px;
+  flex: none;
+}
+
+body.world-poker-near-me .gso-console-overlay[role='dialog'] .gso-section-head__label {
+  color: #45adff;
+  font: 700 13px/1.1 var(--font-rajdhani), Rajdhani, Inter, sans-serif;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+body.world-poker-near-me .gso-console-overlay[role='dialog'] .gso-section-head__count {
+  margin-left: auto;
+  color: #e4e7ec;
+  font: 700 14px/1 var(--font-rajdhani), Rajdhani, Inter, sans-serif;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Recent searches, cities and account history: one line of text printed on
+   the painted search well at the art's own ratio. */
+body.world-poker-near-me .gso-console-overlay[role='dialog'] .gso-well-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+body.world-poker-near-me .gso-console-overlay[role='dialog'] :is(.gso-city-btn, .gso-hist-btn) {
+  --gso-row-w: min(100%, 460px);
+  position: relative;
+  display: flex;
+  width: var(--gso-row-w) !important;
+  min-width: 0;
+  min-height: 0 !important;
+  box-sizing: border-box;
   aspect-ratio: 1829 / 313;
-  margin-inline: auto;
-  padding: 4% 8% !important;
-  color: #d9e4ee !important;
+  align-items: center;
+  margin: 0 auto;
+  padding: calc(var(--gso-row-w) * 0.0241) calc(var(--gso-row-w) * 0.08) calc(var(--gso-row-w) * 0.0498) calc(var(--gso-row-w) * 0.085) !important;
+  color: #e4e7ec !important;
   border: 0 !important;
   border-radius: 0 !important;
   background: transparent url('/images/pnm-console/painted-controls-v1/search-well.png') center / contain no-repeat !important;
   box-shadow: none !important;
+  font: 600 15px/1.2 var(--font-inter), Inter, system-ui, sans-serif;
+  text-align: left;
+  cursor: pointer;
+  touch-action: manipulation;
 }
 
-body.world-poker-near-me :is(.gso-city-btn, .gso-hist-btn, .gso-result-card):active {
-  filter: brightness(1.14);
+body.world-poker-near-me .gso-console-overlay[role='dialog'] :is(.gso-city-btn, .gso-hist-btn)::after {
+  content: '';
+  position: absolute;
+  inset: 14.06% 6.73% 29.07% 6.78%;
+  pointer-events: none;
+  outline: 2px solid transparent;
 }
 
-body.world-poker-near-me :is(.gso-city-btn, .gso-hist-btn, .gso-result-card):focus-visible {
-  outline: 2px solid #8fd4ff !important;
-  outline-offset: -8px;
+body.world-poker-near-me .gso-console-overlay[role='dialog'] :is(.gso-city-btn, .gso-hist-btn):focus-visible {
+  outline: none;
 }
 
-body.world-poker-near-me .gso-result-card > div:first-of-type {
-  width: 48px !important;
-  height: 48px !important;
-  flex: 0 0 48px !important;
+body.world-poker-near-me .gso-console-overlay[role='dialog'] :is(.gso-city-btn, .gso-hist-btn):is(:focus-visible, .is-selected)::after {
+  outline-color: #8fd4ff;
+}
+
+body.world-poker-near-me .gso-console-overlay[role='dialog'] :is(.gso-city-btn, .gso-hist-btn):active .gso-well-row__text {
+  filter: brightness(1.3);
+}
+
+body.world-poker-near-me .gso-console-overlay[role='dialog'] .gso-well-row__text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Venue, tour and series results: the compact three-slice result panel. */
+body.world-poker-near-me .gso-console-overlay[role='dialog'] .gso-result-list {
+  display: flex;
+  width: min(100%, 620px);
+  flex-direction: column;
+  gap: 4px;
+  margin: 0 auto;
+}
+
+body.world-poker-near-me .gso-console-overlay[role='dialog'] .gso-result-card {
+  display: flex;
+  width: 100% !important;
+  min-width: 0;
+  min-height: 56px !important;
+  box-sizing: border-box;
+  aspect-ratio: auto !important;
+  align-items: center;
+  gap: 12px;
+  margin: 0;
+  padding: 2px 0 !important;
+  color: #e4e7ec !important;
   border: 0 !important;
   border-radius: 0 !important;
-  background: transparent url('/images/pnm-console/painted-controls-v1/utility-well.png') center / contain no-repeat !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  touch-action: manipulation;
 }
 
-body.world-poker-near-me .gso-result-card > div:first-of-type img {
-  width: 54% !important;
-  height: 54% !important;
-  object-fit: contain !important;
+body.world-poker-near-me .gso-console-overlay[role='dialog'] .gso-result-card:focus-visible,
+body.world-poker-near-me .gso-console-overlay[role='dialog'] .gso-result.is-selected .gso-result-card {
+  outline: 2px solid #8fd4ff;
+  outline-offset: 2px;
 }
 
-body.world-poker-near-me .gso-result-card > div:first-of-type .pnc-icon {
+body.world-poker-near-me .gso-console-overlay[role='dialog'] .gso-result-card:active .gso-result__name {
+  filter: brightness(1.25);
+}
+
+body.world-poker-near-me .gso-console-overlay[role='dialog'] .gso-result__copy {
+  display: flex;
+  min-width: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 4px;
+}
+
+body.world-poker-near-me .gso-console-overlay[role='dialog'] .gso-result__name {
+  overflow: hidden;
+  color: #eef2f6;
+  font: 700 15px/1.2 var(--font-inter), Inter, system-ui, sans-serif;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+body.world-poker-near-me .gso-console-overlay[role='dialog'] .gso-result__meta {
+  display: flex;
+  min-width: 0;
+  align-items: baseline;
+  gap: 8px;
+  overflow: hidden;
+  color: #9aa5b3;
+  font: 600 12px/1.25 var(--font-inter), Inter, system-ui, sans-serif;
+  white-space: nowrap;
+}
+
+body.world-poker-near-me .gso-console-overlay[role='dialog'] .gso-result__kind {
+  flex: none;
+  font: 700 12px/1.25 var(--font-rajdhani), Rajdhani, Inter, sans-serif;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+body.world-poker-near-me .gso-console-overlay[role='dialog'] .gso-result__place {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Logo holders: a logo or a short code sits in the painted utility well; a
+   missing logo is replaced by one complete painted pictogram, never a holder
+   inside a holder. The utility well's face is centred at 47.5% of its height. */
+body.world-poker-near-me .gso-console-overlay[role='dialog'] .gso-holder {
+  position: relative;
+  display: grid;
   width: 48px;
   height: 48px;
+  flex: none;
+  place-items: center;
+  overflow: hidden;
 }
 
-body.world-poker-near-me .gso-console-info-row,
-body.world-poker-near-me .gso-detail-console__hero {
-  width: 100%;
-  min-height: 64px;
-  aspect-ratio: 1829 / 313;
-  border: 0 !important;
-  border-radius: 0 !important;
-  background-color: transparent !important;
-  background-image: url('/images/pnm-console/painted-controls-v1/search-well.png') !important;
-  background-position: center !important;
-  background-repeat: no-repeat !important;
-  background-size: contain !important;
-  box-shadow: none !important;
+body.world-poker-near-me .gso-console-overlay[role='dialog'] .gso-holder:not(.pnc-icon) {
+  background: transparent url('/images/pnm-console/painted-controls-v1/utility-well.png') center / contain no-repeat;
 }
 
-body.world-poker-near-me .gso-detail-console__hero {
-  min-height: 108px;
+body.world-poker-near-me .gso-console-overlay[role='dialog'] .gso-holder img {
+  width: 58%;
+  height: 58%;
+  object-fit: contain;
+  transform: translateY(-2.5%);
 }
 
-body.world-poker-near-me .gso-detail-console {
-  background: #010306 url('/images/pnm-phase-4/location-command-grid-v1.webp') center / cover no-repeat !important;
+body.world-poker-near-me .gso-console-overlay[role='dialog'] .gso-holder__text {
+  max-width: 68%;
+  overflow: hidden;
+  color: #e4e7ec;
+  font: 800 12px/1 var(--font-rajdhani), Rajdhani, Inter, sans-serif;
+  letter-spacing: 0;
+  text-align: center;
+  transform: translateY(-2.5%);
+  white-space: nowrap;
 }
 
-body.world-poker-near-me .gso-detail-console__actions :is(button, a) {
-  width: 174px !important;
-  min-width: 174px !important;
-  min-height: 57px !important;
-  padding: 0 24px !important;
-  color: #effaff !important;
-  border: 0 !important;
-  border-radius: 0 !important;
-  background: transparent url('/images/pnm-console/painted-controls-v1/button-primary.png') center / contain no-repeat !important;
-  box-shadow: none !important;
+body.world-poker-near-me .gso-console-overlay[role='dialog'] .gso-holder--detail {
+  width: 76px;
+  height: 76px;
 }
 
-body.world-poker-near-me .gso-console-skeleton {
+body.world-poker-near-me .gso-console-overlay[role='dialog'] .gso-holder--detail .gso-holder__text {
+  font-size: 18px;
+}
+
+/* ---- Results summary, empty, error and loading states ---- */
+
+body.world-poker-near-me .gso-console-overlay[role='dialog'] .gso-summary {
+  display: grid;
+  width: min(100%, 620px);
+  gap: 4px;
+  margin: 0 auto 16px;
+}
+
+body.world-poker-near-me .gso-console-overlay[role='dialog'] .gso-summary__line {
+  margin: 0;
+  overflow-wrap: anywhere;
+  color: #e4e7ec;
+  font: 600 14px/1.35 var(--font-inter), Inter, system-ui, sans-serif;
+}
+
+body.world-poker-near-me .gso-console-overlay[role='dialog'] .gso-summary__count {
+  color: #45adff;
+  font-weight: 800;
+}
+
+body.world-poker-near-me .gso-console-overlay[role='dialog'] .gso-summary__scope {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin: 0;
+  color: #9aa5b3;
+  font: 700 12px/1.3 var(--font-rajdhani), Rajdhani, Inter, sans-serif;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+body.world-poker-near-me .gso-console-overlay[role='dialog'] .gso-summary__intent {
+  color: #45adff;
+}
+
+body.world-poker-near-me .gso-console-overlay[role='dialog'] .gso-empty {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  padding: 44px 16px 24px;
+  text-align: center;
+}
+
+body.world-poker-near-me .gso-console-overlay[role='dialog'] .gso-empty__icon {
+  width: 72px;
+  height: 72px;
+  flex: none;
+}
+
+body.world-poker-near-me .gso-console-overlay[role='dialog'] .gso-empty__title {
+  margin: 4px 0 0;
+  color: #e4e7ec;
+  font: 800 18px/1.2 var(--font-rajdhani), Rajdhani, Inter, sans-serif;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+body.world-poker-near-me .gso-console-overlay[role='dialog'] .gso-empty--error .gso-empty__title {
+  color: #ff5b6e;
+}
+
+body.world-poker-near-me .gso-console-overlay[role='dialog'] .gso-empty__copy {
+  max-width: 36ch;
+  margin: 0;
+  color: #9aa5b3;
+  font: 500 14px/1.5 var(--font-inter), Inter, system-ui, sans-serif;
+}
+
+body.world-poker-near-me .gso-console-overlay[role='dialog'] .gso-retry {
+  display: grid;
+  width: 174px;
+  height: 57px;
+  margin-top: 8px;
+  padding: 0;
+  place-items: center;
+  color: #f4f7fb;
+  border: 0;
+  border-radius: 0;
+  background: transparent url('/images/pnm-console/painted-controls-v1/button-primary.png') center / contain no-repeat;
+  box-shadow: none;
+  font: 800 14px/1 var(--font-rajdhani), Rajdhani, Inter, sans-serif;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+body.world-poker-near-me .gso-console-overlay[role='dialog'] .gso-retry:active .gso-retry__label {
+  filter: brightness(1.3);
+}
+
+body.world-poker-near-me .gso-console-overlay[role='dialog'] .gso-retry:focus-visible {
+  outline: 2px solid #8fd4ff;
+  outline-offset: 2px;
+  box-shadow: none;
+}
+
+body.world-poker-near-me .gso-console-overlay[role='dialog'] .gso-skeletons {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+body.world-poker-near-me .gso-console-overlay[role='dialog'] .gso-console-skeleton {
   width: min(100%, 620px);
   aspect-ratio: 1829 / 313;
   margin-inline: auto;
@@ -175,40 +594,187 @@ body.world-poker-near-me .gso-console-skeleton {
   50% { opacity: 0.76; }
 }
 
-@media (max-width: 620px) {
-  body.world-poker-near-me .gso-console-header {
-    gap: 4px !important;
-    padding-inline: 6px !important;
-  }
+/* ---- Nested detail: one painted console on black ---- */
 
-  body.world-poker-near-me .gso-console-search-icon {
-    left: 4%;
-    width: 34px;
-    height: 34px;
-  }
-
-  body.world-poker-near-me .gso-console-input {
-    min-height: 58px;
-    padding-left: 15% !important;
-    font-size: 16px !important;
-  }
-
-  body.world-poker-near-me .gso-console-submit {
-    width: 112px;
-    min-width: 112px;
-  }
-
-  body.world-poker-near-me :is(.gso-city-btn, .gso-hist-btn, .gso-result-card) {
-    min-height: 60px;
-    padding: 3% 8% !important;
-  }
+body.world-poker-near-me .gso-console-overlay[role='dialog'] .gso-detail-console {
+  color: #e4e7ec;
+  background: #010306 !important;
 }
 
-@media (max-width: 430px) {
-  body.world-poker-near-me .gso-console-submit {
-    position: absolute;
-    right: 8px;
-    bottom: -52px;
-    z-index: 3;
+body.world-poker-near-me .gso-console-overlay[role='dialog'] .gso-detail-console__header {
+  display: flex;
+  flex: none;
+  min-height: 64px;
+  align-items: center;
+  padding: 12px clamp(8px, 2.4vw, 24px) 8px;
+  border: 0 !important;
+  background: #020508 !important;
+}
+
+body.world-poker-near-me .gso-console-overlay[role='dialog'] .gso-detail-console__scroll {
+  min-height: 0;
+  flex: 1 1 auto;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 4px clamp(8px, 3vw, 24px) 40px;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* 560px keeps the painted head (1000 x 348) to about 195px on a landscape
+   phone, so the live fields start on the first screen. */
+body.world-poker-near-me .gso-console-overlay[role='dialog'] .gso-detail-console__card {
+  width: min(100%, 560px);
+}
+
+body.world-poker-near-me .gso-console-overlay[role='dialog'] .gso-detail__identity {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 6px;
+}
+
+body.world-poker-near-me .gso-console-overlay[role='dialog'] .gso-detail__identity-copy {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+body.world-poker-near-me .gso-console-overlay[role='dialog'] .gso-detail__name {
+  margin: 0;
+  overflow-wrap: anywhere;
+  font: 800 clamp(20px, 5.2cqw, 30px)/1.15 var(--font-rajdhani), Rajdhani, Inter, sans-serif;
+  letter-spacing: 0.02em;
+}
+
+body.world-poker-near-me .gso-console-overlay[role='dialog'] .gso-detail__city {
+  margin: 4px 0 0;
+  color: #9aa5b3;
+  font: 600 14px/1.3 var(--font-inter), Inter, system-ui, sans-serif;
+}
+
+body.world-poker-near-me .gso-console-overlay[role='dialog'] .gso-detail__rows {
+  display: grid;
+  margin: 0;
+}
+
+body.world-poker-near-me .gso-console-overlay[role='dialog'] .gso-detail-row {
+  display: grid;
+  min-width: 0;
+  min-height: 44px;
+  grid-template-columns: minmax(84px, 32%) minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  padding: 4px 0;
+}
+
+body.world-poker-near-me .gso-console-overlay[role='dialog'] .gso-detail-row__label {
+  margin: 0;
+  color: #45adff;
+  font: 700 12px/1.25 var(--font-rajdhani), Rajdhani, Inter, sans-serif;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+body.world-poker-near-me .gso-console-overlay[role='dialog'] .gso-detail-row__value {
+  min-width: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+  color: #e4e7ec;
+  font: 600 14px/1.4 var(--font-inter), Inter, system-ui, sans-serif;
+}
+
+body.world-poker-near-me .gso-console-overlay[role='dialog'] .gso-detail-row__link {
+  display: inline-flex;
+  min-height: 44px;
+  font-size: inherit;
+  align-items: center;
+  color: #8fd4ff;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+body.world-poker-near-me .gso-console-overlay[role='dialog'] .gso-detail-row__link:focus-visible {
+  outline: 2px solid #8fd4ff;
+  outline-offset: 2px;
+  box-shadow: none;
+}
+
+body.world-poker-near-me .gso-console-overlay[role='dialog'] .gso-detail__stops-title {
+  margin: 16px 0 2px;
+  color: #45adff;
+  font: 700 13px/1.2 var(--font-rajdhani), Rajdhani, Inter, sans-serif;
+  font-size: 13px !important;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+body.world-poker-near-me .gso-console-overlay[role='dialog'] .gso-detail__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px 28px;
+  padding-top: 6px;
+}
+
+body.world-poker-near-me .gso-console-overlay[role='dialog'] .gso-lit-action {
+  display: inline-grid;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 12px;
+  place-items: center;
+  border: 0;
+  background: none;
+  font: 800 15px/1 var(--font-rajdhani), Rajdhani, Inter, sans-serif;
+  letter-spacing: 0.12em;
+  text-decoration: none;
+  text-transform: uppercase;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+body.world-poker-near-me .gso-console-overlay[role='dialog'] .gso-lit-action:active {
+  filter: brightness(1.3);
+}
+
+body.world-poker-near-me .gso-console-overlay[role='dialog'] .gso-lit-action:focus-visible {
+  outline: 2px solid #8fd4ff;
+  outline-offset: 2px;
+  box-shadow: none;
+}
+
+/* ---- Phones ---- */
+
+@media (max-width: 600px) {
+  /* The Search plate takes its own row under the well, in flow and in DOM
+     order after the field, so it can never cover a result. */
+  body.world-poker-near-me .gso-console-overlay[role='dialog'] .gso-console-header {
+    grid-template-columns: 48px minmax(0, 1fr);
+    justify-content: stretch;
+    gap: 6px 8px;
+    padding-inline: 8px;
+  }
+
+  body.world-poker-near-me .gso-console-overlay[role='dialog'] .gso-console-submit {
+    grid-column: 2;
+    justify-self: end;
+  }
+
+  body.world-poker-near-me .gso-console-overlay[role='dialog'] :is(.gso-back, .gso-painted-icon-button) {
+    width: 48px !important;
+    height: 48px !important;
+    min-width: 48px !important;
+    min-height: 48px !important;
+  }
+
+  body.world-poker-near-me .gso-console-overlay[role='dialog'] :is(.gso-back, .gso-painted-icon-button) .pnc-icon {
+    width: 48px;
+    height: 48px;
+    flex-basis: 48px;
+  }
+
+  body.world-poker-near-me .gso-console-overlay[role='dialog'] .gso-holder--detail {
+    width: 64px;
+    height: 64px;
   }
 }

@@ -31,16 +31,16 @@
  */
 import { useState, useEffect, useRef, useCallback } from 'react';
 import MapSurfaceFrame from '../poker-near-me/MapSurfaceFrame';
+import { PokerNearMePanelShell } from '../poker-near-me/PokerNearMeConsole';
 import {
   createPokerMapSession,
   loadPokerMapRuntime,
   resetPokerMapRuntime,
 } from '../../lib/poker-near-me/mapRuntime';
 
-const C = {
-  bg: '#0D192E', card: '#0F1C32', text: '#FFFFFF', textSec: '#94A3B8',
-  border: '#4A5E78', accent: '#22D3EE',
-};
+// The privacy circle is map data, so it keeps a data colour (the schema's
+// electric blue). Every other surface is painted by the shared console CSS.
+const PRIVACY_AREA_COLOR = '#45adff';
 
 // Privacy approximation: round lat/lng to ~1.1 km precision so the host's
 // exact address can never be reconstructed from the persisted value.
@@ -182,24 +182,19 @@ export default function LeafletLocationPicker({ value, onChange, approximateOnly
     if (approximateOnly) {
       circleRef.current = L.circle([approx.lat, approx.lng], {
         radius: 800, // ~0.5 mile
-        fillColor: '#22D3EE',
+        fillColor: PRIVACY_AREA_COLOR,
         fillOpacity: 0.15,
-        color: '#22D3EE',
+        color: PRIVACY_AREA_COLOR,
         opacity: 0.6,
         weight: 2,
       }).addTo(map);
     }
 
-    // Pin (draggable). Lucide-style MapPin SVG embedded as a divIcon so we
-    // don't need to ship a separate PNG asset.
-    const pinHtml =
-      '<div aria-hidden="true" style="width:44px;height:44px;display:flex;align-items:flex-end;justify-content:center;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.6));">'
-      + '<svg width="28" height="28" viewBox="0 0 24 24" fill="#EF4444" stroke="#fff" stroke-width="1.5">'
-      + '<path d="M20 10c0 7-8 12-8 12s-8-5-8-12a8 8 0 1 1 16 0Z"/>'
-      + '<circle cx="12" cy="10" r="3" fill="#fff" stroke="none"/>'
-      + '</svg></div>';
+    // Pin (draggable): the painted location holder (class-only markup, all
+    // art in poker-near-me-console-map.css) with a 44px hit box anchored at
+    // its bottom centre.
     const pinIcon = L.divIcon({
-      html: pinHtml,
+      html: '<span class="pnm-painted-picker-pin" aria-hidden="true"></span>',
       className: 'pnm-location-picker__marker',
       iconSize: [44, 44],
       iconAnchor: [22, 44],
@@ -328,28 +323,28 @@ export default function LeafletLocationPicker({ value, onChange, approximateOnly
   // Fallback if Leaflet itself failed to load — manual city/state inputs.
   if (error) {
     return (
-      <div style={{ background: C.card, borderRadius: 12, border: `1px solid ${C.border}`, padding: 16 }}>
-        <p style={{ fontSize: 14, color: C.textSec, margin: '0 0 12px' }}>
+      <PokerNearMePanelShell as="div" className="pnm-location-picker-fallback" bodyClassName="pnm-location-picker-fallback__body">
+        <p className="pnm-location-picker-fallback__copy" role="alert">
           Map Could Not Load. Enter Your City And State Manually Below - Your Home Game Will Save Normally.
         </p>
         <button
           type="button"
+          className="pnm-map-status__action"
           onClick={retryMap}
-          style={{ minHeight: 44, margin: '0 0 12px', padding: '10px 14px', border: `1px solid ${C.accent}`, borderRadius: 3, background: C.bg, color: C.text, font: 'inherit', cursor: 'pointer' }}
         >
           Try Map Again
         </button>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-          <input type="text" aria-label="City" autoComplete="address-level2" placeholder="City" value={value?.city || ''}
-            onChange={e => onChangeRef.current?.({ ...value, city: e.target.value })}
-            style={{ padding: '10px 12px', borderRadius: 8, border: `1px solid ${C.border}`,
-              fontSize: 14, fontFamily: 'inherit', outline: 'none', background: C.bg, color: C.text }} />
-          <input type="text" aria-label="State" autoComplete="address-level1" placeholder="State" value={value?.state || ''}
-            onChange={e => onChangeRef.current?.({ ...value, state: e.target.value })}
-            style={{ padding: '10px 12px', borderRadius: 8, border: `1px solid ${C.border}`,
-              fontSize: 14, fontFamily: 'inherit', outline: 'none', background: C.bg, color: C.text }} />
+        <div className="pnm-location-picker-fallback__fields">
+          <span className="pnm-map-well">
+            <input type="text" aria-label="City" autoComplete="address-level2" placeholder="City" value={value?.city || ''}
+              onChange={e => onChangeRef.current?.({ ...value, city: e.target.value })} />
+          </span>
+          <span className="pnm-map-well">
+            <input type="text" aria-label="State" autoComplete="address-level1" placeholder="State" value={value?.state || ''}
+              onChange={e => onChangeRef.current?.({ ...value, state: e.target.value })} />
+          </span>
         </div>
-      </div>
+      </PokerNearMePanelShell>
     );
   }
 
@@ -361,61 +356,43 @@ export default function LeafletLocationPicker({ value, onChange, approximateOnly
       detail="Only the approximate one-kilometre area is published"
       onLayoutChange={handleMapLayoutChange}
     >
-    <div className="pnm-location-picker pnm-map-stage" style={{ background: C.card, borderRadius: 12, border: `1px solid ${C.border}`, overflow: 'hidden' }}>
-      {/* Search */}
-      <div style={{ padding: '12px 12px 8px', position: 'relative' }}>
-        <input
-          type="text"
-          aria-label="Search for a home game location"
-          placeholder="Search for a city, address, or landmark..."
-          value={searchInput}
-          onChange={e => setSearchInput(e.target.value)}
-          style={{
-            width: '100%', padding: '10px 12px', borderRadius: 8,
-            border: `1px solid ${C.border}`, fontSize: 14, fontFamily: 'inherit',
-            outline: 'none', background: C.bg, color: C.text, boxSizing: 'border-box',
-          }}
-        />
+    <div className="pnm-location-picker pnm-map-stage">
+      {/* Search: live text printed inside the painted search well */}
+      <div className="pnm-location-picker__search">
+        <span className="pnm-map-well">
+          <input
+            type="text"
+            aria-label="Search for a home game location"
+            placeholder="Search for a city, address, or landmark..."
+            value={searchInput}
+            onChange={e => setSearchInput(e.target.value)}
+          />
+        </span>
         {searching && (
-          <div style={{ position: 'absolute', right: 22, top: 22, fontSize: 11, color: C.textSec }}>
+          <span className="pnm-location-picker__searching" role="status">
             Searching…
-          </div>
+          </span>
         )}
         {searchResults.length > 0 && (
-          <div style={{
-            position: 'absolute', top: '100%', left: 12, right: 12,
-            background: C.card, border: `1px solid ${C.border}`,
-            borderRadius: 8, zIndex: 1000, maxHeight: 240, overflow: 'auto',
-            boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
-          }}>
+          <PokerNearMePanelShell as="div" className="pnm-location-picker__results" bodyClassName="pnm-location-picker__results-body">
             {searchResults.map((r) => (
               <button
                 key={r.place_id}
                 type="button"
+                className="pnm-location-picker__result"
                 onClick={() => pickResult(r)}
-                style={{
-                  display: 'block', width: '100%', textAlign: 'left',
-                  padding: '10px 12px', background: 'transparent',
-                  border: 'none', borderBottom: `1px solid ${C.border}`,
-                  color: C.text, fontSize: 13, cursor: 'pointer', lineHeight: 1.4,
-                }}
-                onMouseEnter={(e) => { e.currentTarget.style.background = C.bg; }}
-                onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
               >
                 {r.display_name}
               </button>
             ))}
-          </div>
+          </PokerNearMePanelShell>
         )}
       </div>
 
       {/* Map container */}
       <div ref={mapRef} className="pnm-location-picker__map pnm-leaflet-map" style={{ height, width: '100%' }} role="region" aria-label="Approximate home game location map" tabIndex={0} data-map-foundation="shared-v3" data-map-style-source="local" data-map-ready={loaded ? 'true' : 'false'}>
         {!loaded && (
-          <div style={{
-            height: '100%', display: 'flex', alignItems: 'center',
-            justifyContent: 'center', background: C.bg, color: C.textSec, fontSize: 14,
-          }}>
+          <div className="pnm-map-status pnm-map-status--loading" role="status">
             Loading Map…
           </div>
         )}

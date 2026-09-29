@@ -18,7 +18,7 @@ import { fuzzyMatchScore } from './pnm-utils';
 import { openNativeMaps } from '../../utils/openNativeMaps';
 import { acquireScrollLock } from '../../lib/scrollLock';
 import useAccessibleDialog from '../../hooks/useAccessibleDialog';
-import { PokerNearMeConsoleIcon } from './PokerNearMeConsole';
+import PokerNearMeConsole, { PokerNearMeConsoleIcon, PokerNearMePanelShell } from './PokerNearMeConsole';
 
 const VenueMap = dynamic(
   () => import('./VenueMap').catch(() => () => null),
@@ -38,18 +38,18 @@ const POPULAR_CITIES = [
   'Shreveport, LA', 'Laughlin, NV', 'Henderson, NV',
 ];
 
-const VENUE_TYPE_STYLES = {
-  casino:     { bg: 'rgba(212,168,83,0.15)',   color: '#d4a853', label: 'Casino' },
-  card_room:  { bg: 'rgba(110,231,239,0.12)',  color: '#6ee7ef', label: 'Poker Club' },
-  poker_club: { bg: 'rgba(110,231,239,0.12)',  color: '#6ee7ef', label: 'Poker Club' },
-  charity:    { bg: 'rgba(167,139,250,0.12)',  color: '#a78bfa', label: 'Charity' },
-  tour_stop:  { bg: 'rgba(251,113,133,0.12)',  color: '#fb7185', label: 'Tour Stop' },
-  series:     { bg: 'rgba(52,211,153,0.12)',   color: '#34d399', label: 'Series' },
+// Venue kinds print in lit-blue console ink. The old per-kind tinted pills
+// (gold, cyan, violet, pink, green) are gone: the console separates kinds with
+// words, not colour, and pink is outside the Smarter.Poker schema.
+const VENUE_TYPE_LABELS = {
+  casino: 'Casino',
+  card_room: 'Poker Club',
+  poker_club: 'Poker Club',
+  charity: 'Charity',
+  tour_stop: 'Tour Stop',
+  series: 'Series',
 };
-const TOUR_COLORS = {
-  WSOP: '#c9a227', WPT: '#dc2626', WSOPC: '#c9a227', MSPT: '#3b82f6',
-  RGPS: '#10b981', PGT: '#8b5cf6', NAPT: '#f87171', FPN: '#818cf8',
-};
+const venueTypeLabel = (venueType) => VENUE_TYPE_LABELS[venueType] || VENUE_TYPE_LABELS.card_room;
 
 // ─── Natural Language Query Parser ───────────────────────────────────────────
 // Parses queries like "tournaments next month in Illinois" into structured intents
@@ -199,37 +199,29 @@ function parseNaturalLanguageQuery(raw) {
   return result;
 }
 
-// ─── Inline SVG icons (no emoji — bare emoji have broken SWC/Vercel builds) ───
-const PaintedIcon = ({ name, size = 28 }) => (
-  <PokerNearMeConsoleIcon
-    name={name}
-    style={{ width: size, height: size, flexBasis: size }}
-  />
-);
-const CalendarIcon = (props) => <PaintedIcon name="calendar" size={props?.size || 28} />;
-const MapPinIcon = (props) => <PaintedIcon name="location" size={props?.size || 28} />;
-const PhoneIcon = (props) => <PaintedIcon name="phone" size={props?.size || 28} />;
-const GlobeIcon = (props) => <PaintedIcon name="globe" size={props?.size || 28} />;
-const ClockIcon = (props) => (
-  <svg width={props?.size || 14} height={props?.size || 14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ flexShrink: 0 }}>
-    <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
-  </svg>
-);
-const CardsIcon = (props) => (
-  <svg width={props?.size || 14} height={props?.size || 14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ flexShrink: 0 }}>
-    <rect x="3" y="5" width="12" height="16" rx="2" /><path d="M9 3h8a2 2 0 012 2v12" />
-  </svg>
-);
-const MapIcon = (props) => (
-  <svg width={props?.size || 14} height={props?.size || 14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ flexShrink: 0 }}>
-    <polygon points="1 6 8 3 16 6 23 3 23 18 16 21 8 18 1 21" /><line x1="8" y1="3" x2="8" y2="18" /><line x1="16" y1="6" x2="16" y2="21" />
-  </svg>
-);
-const TrophyIcon = (props) => (
-  <svg width={props?.size || 14} height={props?.size || 14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ flexShrink: 0 }}>
-    <path d="M8 21h8M12 17v4M6 4h12v5a6 6 0 01-12 0z" /><path d="M6 6H3v2a4 4 0 004 4M18 6h3v2a4 4 0 01-4 4" />
-  </svg>
-);
+// ─── Painted system ───
+// Every well, holder, plate and panel slice below comes from the approved
+// console kit (PokerNearMeConsole). No vector glyphs, tinted pills or CSS
+// gradients: only live DOM text is printed, in the console inks.
+// Stored recent searches are lower-case keys. They print in Title Case with
+// poker and tour acronyms kept whole: "wsop" prints WSOP, not Wsop.
+const QUERY_ACRONYMS = new Set(['wsop', 'wsopc', 'wpt', 'mspt', 'rgps', 'pgt', 'napt', 'fpn', 'nlh', 'plo', 'ept', 'hpt']);
+function formatStoredQuery(value) {
+  return String(value || '').replace(/[A-Za-z][A-Za-z'.]*/g, (word) => {
+    const lower = word.toLowerCase();
+    if (QUERY_ACRONYMS.has(lower)) return lower.toUpperCase();
+    return word.charAt(0).toUpperCase() + word.slice(1);
+  });
+}
+
+const TIME_WINDOW_LABELS = {
+  today: 'Today',
+  tomorrow: 'Tomorrow',
+  this_week: 'This Week',
+  next_week: 'Next Week',
+  this_weekend: 'This Weekend',
+  next_month: 'Next Month',
+};
 
 // Series date range, built on the file's existing local-date parser.
 function formatDateRange(startValue, endValue) {
@@ -249,26 +241,6 @@ function formatMoney(value) {
   if (!Number.isFinite(num) || num <= 0) return String(value);
   return '$' + num.toLocaleString('en-US');
 }
-
-function TimeWindowLabel({ timeWindow }) {
-  const labels = {
-    today: 'Today',
-    tomorrow: 'Tomorrow',
-    this_week: 'This Week',
-    next_week: 'Next Week',
-    this_weekend: 'This Weekend',
-    next_month: 'Next Month',
-  };
-  const label = labels[timeWindow];
-  if (!label) return null;
-  return (
-    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 8px', borderRadius: 6, background: 'rgba(167,139,250,0.15)', color: '#a78bfa', fontSize: 12, fontWeight: 700, marginLeft: 6 }}>
-      <CalendarIcon />
-      {label}
-    </span>
-  );
-}
-
 
 // ═══════════════════════════════════════════════════════════
 // DETAIL MODAL
@@ -296,16 +268,45 @@ function DetailModal({ item, type, onClose, onNavigate }) {
     : isTour
     ? (item.tour_code ? `/hub/tours/${encodeURIComponent(item.tour_code)}` : '')
     : (item.id != null ? `/hub/venues/${encodeURIComponent(item.id)}` : '');
-  const typeStyle = VENUE_TYPE_STYLES[item.venue_type] || VENUE_TYPE_STYLES.card_room;
-  const tourColor = isTour ? (TOUR_COLORS[item.tour_code] || '#6ee7ef') : '#6ee7ef';
+  const kindLabel = isVenue ? venueTypeLabel(item.venue_type) : isTour ? (item.tour_code || 'Tour') : 'Series';
   const logo = item.logo_url || item.profile_photo_url || item.cover_photo_url || '';
   const city = [item.city, item.state].filter(Boolean).join(', ');
   const phone = item.phone || item.phone_number || '';
   const address = item.address || '';
   const website = item.website || item.website_url || '';
+  const name = item.name || item.tour_name || item.series_name || '';
   const initials = (item.name || item.tour_name || item.series_name || 'V')
     .split(/\s+/).slice(0, 2).map(w => w[0] || '').join('').toUpperCase();
-  const accentColor = isVenue ? typeStyle.color : isTour ? tourColor : '#34d399';
+  const trustScore = isVenue ? parseFloat(item.trust_score) : NaN;
+  // Directions routes through the shared device-aware helper — the
+  // hardcoded maps.apple.com link sent Android and desktop users
+  // through Apple Maps regardless of platform or saved preference.
+  const openDirections = address ? () => {
+    const latNum = parseFloat(item.latitude ?? item.lat);
+    const lngNum = parseFloat(item.longitude ?? item.lng);
+    openNativeMaps({
+      address: [item.name, address, city].filter(Boolean).join(' '),
+      lat: Number.isFinite(latNum) ? latNum : undefined,
+      lng: Number.isFinite(lngNum) ? lngNum : undefined,
+      mode: 'directions',
+    });
+  } : null;
+  const openFullDetails = detailPath && onNavigate ? () => onNavigate(detailPath) : null;
+  // The console foot paints both action plates or neither. With both actions
+  // available they take the plates; a lone action prints as a lit word.
+  const plates = openDirections && openFullDetails
+    ? {
+      secondary: { label: 'Directions', onClick: openDirections },
+      primary: { label: 'View Full Details', onClick: openFullDetails, ink: 'white' },
+    }
+    : undefined;
+  const loneAction = plates
+    ? null
+    : openFullDetails
+      ? { label: 'View Full Details', onClick: openFullDetails }
+      : openDirections
+        ? { label: 'Directions', onClick: openDirections }
+        : null;
 
   return (
     <div
@@ -315,198 +316,188 @@ function DetailModal({ item, type, onClose, onNavigate }) {
       aria-modal="true"
       aria-labelledby="gso-detail-title"
       tabIndex={-1}
-      style={{ position: 'absolute', inset: 0, zIndex: 10010, background: 'rgba(4,10,20,0.99)', display: 'flex', flexDirection: 'column', animation: 'gso-modal-in 0.22s ease' }}
+      style={{ position: 'absolute', inset: 0, zIndex: 10010, display: 'flex', flexDirection: 'column', animation: 'gso-modal-in 0.22s ease' }}
     >
       {/* Header */}
-      <div className="gso-detail-console__header" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)', borderBottom: '1px solid rgba(110,231,239,0.08)', flexShrink: 0 }}>
-        <button ref={initialFocusRef} onClick={onClose} className="gso-painted-icon-button sp-icon-btn" style={{ '--sp-btn-size': '44px', flexShrink: 0, width: 44, height: 44, minWidth: 44, minHeight: 44, borderRadius: '50%', border: 'none', background: 'rgba(255,255,255,0.04)', color: 'rgba(200,214,229,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }} aria-label="Close details">
+      <div className="gso-detail-console__header" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)' }}>
+        <button ref={initialFocusRef} type="button" onClick={onClose} className="gso-painted-icon-button sp-icon-btn" style={{ '--sp-btn-size': '44px' }} aria-label="Close details">
           <PokerNearMeConsoleIcon name="back" />
         </button>
-        <span id="gso-detail-title" style={{ fontSize: 14, fontWeight: 700, color: 'rgba(200,214,229,0.8)' }}>
-          {isVenue ? 'Venue Details' : isTour ? 'Tour Details' : 'Series Details'}
-        </span>
       </div>
-      {/* Body */}
-      <div style={{ flex: 1, overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
-        <div style={{ maxWidth: 640, margin: '0 auto', padding: '24px 20px 80px' }}>
-          {/* Hero */}
-          <div className="gso-detail-console__hero" style={{ display: 'flex', alignItems: 'flex-start', gap: 16, padding: 20, marginBottom: 20, background: 'linear-gradient(135deg,rgba(255,255,255,0.04),rgba(255,255,255,0.01))', border: `1px solid ${accentColor}30`, borderRadius: 16 }}>
-            <div style={{ width: 72, height: 72, borderRadius: 14, flexShrink: 0, background: isVenue ? typeStyle.bg : `${accentColor}18`, border: `2px solid ${accentColor}40`, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-              {logo ? <img src={logo} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain', padding: 4 }} onError={e => { e.target.style.display = 'none'; }} /> : <span style={{ fontSize: 18, fontWeight: 900, color: accentColor }}>{initials}</span>}
-            </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 20, fontWeight: 800, color: '#e0e8f0', letterSpacing: '-0.4px', lineHeight: 1.2, marginBottom: 6 }}>{item.name || item.tour_name || item.series_name}</div>
-              {city && <div style={{ fontSize: 13, color: 'rgba(200,214,229,0.55)', marginBottom: 8 }}>{city}</div>}
-              <span style={{ padding: '3px 10px', borderRadius: 6, background: isVenue ? typeStyle.bg : `${accentColor}20`, color: accentColor, fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{isVenue ? typeStyle.label : isTour ? (item.tour_code || 'Tour') : 'Series'}</span>
+      {/* Body: one painted console. Its head names the kind of record, the
+          body prints the live fields, the foot carries the two actions. */}
+      <div className="gso-detail-console__scroll">
+        <PokerNearMeConsole
+          as="article"
+          className="gso-detail-console__card"
+          title={isVenue ? 'Venue Details' : isTour ? 'Tour Details' : 'Series Details'}
+          titleId="gso-detail-title"
+          pill={kindLabel}
+          pillInk="blue"
+          crest="locator"
+          foot={plates ? 'plates' : 'foot'}
+          plates={plates}
+        >
+          <div className="gso-detail__identity">
+            <LogoHolder key={logo || initials} src={logo} text={initials} size="detail" />
+            <div className="gso-detail__identity-copy">
+              <p className="gso-detail__name pnc-ink--silver">{name}</p>
+              {city ? <p className="gso-detail__city">{city}</p> : null}
             </div>
           </div>
-          {/* Info rows */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 24 }}>
-            {address && <InfoRow icon={<MapPinIcon size={14} />} label={address} />}
-            {phone && <InfoRow icon={<PhoneIcon />} label={phone} href={`tel:${phone}`} />}
-            {website && <InfoRow icon={<GlobeIcon />} label={website.replace(/^https?:\/\//, '')} href={website} />}
-            {isVenue && venueHours && <InfoRow icon={<ClockIcon />} label={venueHours} />}
-            {isVenue && item.games_offered?.length > 0 && <InfoRow icon={<CardsIcon />} label={item.games_offered.slice(0, 6).join(' · ')} />}
-            {isTour && item.regions?.length > 0 && <InfoRow icon={<MapIcon />} label={item.regions.join(' · ')} />}
+          <dl className="gso-detail__rows">
+            {address && <DetailRow label="Address" value={address} />}
+            {phone && <DetailRow label="Phone" value={phone} href={`tel:${phone}`} />}
+            {website && <DetailRow label="Website" value={website.replace(/^https?:\/\//, '')} href={website} />}
+            {isVenue && venueHours && <DetailRow label="Hours" value={venueHours} />}
+            {isVenue && item.games_offered?.length > 0 && <DetailRow label="Games" value={item.games_offered.slice(0, 6).join(' · ')} />}
+            {isTour && item.regions?.length > 0 && <DetailRow label="Regions" value={item.regions.join(' · ')} />}
             {/* GAP FIX: a Series result used to open a panel with a title, a city and a
                 badge — every field /api/poker/series returns was ignored. */}
-            {isSeries && seriesDates && <InfoRow icon={<CalendarIcon />} label={seriesDates} />}
-            {isSeries && item.venue && <InfoRow icon={<MapPinIcon size={14} />} label={item.venue} />}
-            {isSeries && item.total_events > 0 && <InfoRow icon={<CardsIcon />} label={`${item.total_events} Event${item.total_events === 1 ? '' : 's'}`} />}
-            {isSeries && item.main_event_buyin && <InfoRow icon={<TrophyIcon />} label={`Main Event Buy-In: ${formatMoney(item.main_event_buyin)}`} />}
-            {isSeries && item.main_event_guaranteed && <InfoRow icon={<TrophyIcon />} label={`Main Event Guarantee: ${formatMoney(item.main_event_guaranteed)}`} />}
-          </div>
-          {/* Trust score */}
-          {isVenue && item.trust_score > 0 && (
-            <div style={{ padding: '14px 16px', marginBottom: 20, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 12, display: 'flex', alignItems: 'center', gap: 12 }}>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 12, color: 'rgba(200,214,229,0.4)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>Trust Score</div>
-                <div style={{ display: 'flex', gap: 4 }}>
-                  {[1,2,3,4,5].map(n => <div key={n} style={{ flex: 1, height: 6, borderRadius: 3, background: n <= Math.round(item.trust_score) ? '#d4a853' : 'rgba(255,255,255,0.08)' }} />)}
-                </div>
-              </div>
-              <div style={{ fontSize: 28, fontWeight: 800, color: '#d4a853' }}>{parseFloat(item.trust_score).toFixed(1)}</div>
-            </div>
-          )}
+            {isSeries && seriesDates && <DetailRow label="Dates" value={seriesDates} />}
+            {isSeries && item.venue && <DetailRow label="Venue" value={item.venue} />}
+            {isSeries && item.total_events > 0 && <DetailRow label="Events" value={`${item.total_events} Event${item.total_events === 1 ? '' : 's'}`} />}
+            {isSeries && item.main_event_buyin && <DetailRow label="Main Event Buy-In" value={formatMoney(item.main_event_buyin)} />}
+            {isSeries && item.main_event_guaranteed && <DetailRow label="Main Event Guarantee" value={formatMoney(item.main_event_guaranteed)} />}
+            {Number.isFinite(trustScore) && trustScore > 0 && <DetailRow label="Trust Score" value={`${trustScore.toFixed(1)} Of 5`} />}
+          </dl>
           {/* Tour stops */}
           {isTour && Array.isArray(item.stops_2026) && item.stops_2026.length > 0 && (
-            <div style={{ marginBottom: 20 }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: 'rgba(200,214,229,0.4)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12 }}>2026 Stops</div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <section className="gso-detail__stops" aria-labelledby="gso-detail-stops-title">
+              <h3 id="gso-detail-stops-title" className="gso-detail__stops-title">2026 Stops</h3>
+              <dl className="gso-detail__rows">
                 {item.stops_2026.slice(0, 15).map((stop, i) => (
-                  <div key={i} style={{ padding: '10px 14px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 10, display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <div style={{ width: 6, height: 6, borderRadius: '50%', background: tourColor, flexShrink: 0 }} />
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 13, fontWeight: 700, color: '#e0e8f0' }}>{stop.name || stop.location}</div>
-                      {stop.dates && <div style={{ fontSize: 12, color: 'rgba(200,214,229,0.5)', marginTop: 2 }}>{stop.dates}</div>}
-                    </div>
-                  </div>
+                  <DetailRow key={i} label={stop.name || stop.location} value={stop.dates || 'Dates Not Listed'} />
                 ))}
-              </div>
-            </div>
+              </dl>
+            </section>
           )}
-          {/* Actions */}
-          <div className="gso-detail-console__actions" style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-            {detailPath && onNavigate && (
-              <button onClick={() => onNavigate(detailPath)}
-                style={{ flex: '1 1 100%', padding: '12px 16px', background: 'linear-gradient(135deg,#ffffff,#cbd5e1)', border: 'none', borderRadius: 10, color: '#000', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
-                View Full Details
-              </button>
-            )}
-            {/* Directions routes through the shared device-aware helper — the
-                hardcoded maps.apple.com link sent Android and desktop users
-                through Apple Maps regardless of platform or saved preference. */}
-            {address && (
-              <button onClick={() => {
-                  const latNum = parseFloat(item.latitude ?? item.lat);
-                  const lngNum = parseFloat(item.longitude ?? item.lng);
-                  openNativeMaps({
-                    address: [item.name, address, city].filter(Boolean).join(' '),
-                    lat: Number.isFinite(latNum) ? latNum : undefined,
-                    lng: Number.isFinite(lngNum) ? lngNum : undefined,
-                    mode: 'directions',
-                  });
-                }}
-                style={{ flex: 1, minWidth: 120, padding: '12px 16px', background: 'linear-gradient(135deg,#d4a853,#b8860b)', border: 'none', borderRadius: 10, color: '#000', fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-                Directions
-              </button>
-            )}
-            {phone && (
-              <a href={`tel:${phone}`} style={{ padding: '12px 16px', background: 'rgba(34,197,94,0.12)', border: '1px solid rgba(34,197,94,0.25)', borderRadius: 10, color: '#22c55e', fontSize: 13, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6, textDecoration: 'none' }}>
-                Call
-              </a>
-            )}
-          </div>
-        </div>
+          {loneAction || phone ? (
+            <div className="gso-detail__actions">
+              {loneAction ? (
+                <button type="button" className="gso-lit-action pnc-ink--white" onClick={loneAction.onClick}>{loneAction.label}</button>
+              ) : null}
+              {phone ? <a className="gso-lit-action pnc-ink--green" href={`tel:${phone}`}>Call</a> : null}
+            </div>
+          ) : null}
+        </PokerNearMeConsole>
       </div>
     </div>
   );
 }
 
-function InfoRow({ icon, label, href }) {
-  const inner = (
-    <div className="gso-console-info-row" style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: '10px 14px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 10 }}>
-      <span style={{ fontSize: 15, flexShrink: 0, display: 'flex', alignItems: 'center', color: 'rgba(110,231,239,0.7)', marginTop: 1 }}>{icon}</span>
-      <span style={{ fontSize: 13, color: href ? '#6ee7ef' : 'rgba(200,214,229,0.8)', flex: 1, wordBreak: 'break-word' }}>{label}</span>
+// One label and one value per row on the glass: lit blue label, silver value.
+function DetailRow({ label, value, href }) {
+  const external = Boolean(href) && !href.startsWith('tel');
+  return (
+    <div className="gso-detail-row">
+      <dt className="gso-detail-row__label">{label}</dt>
+      <dd className="gso-detail-row__value">
+        {href ? (
+          <a className="gso-detail-row__link" href={href} target={external ? '_blank' : undefined} rel="noopener noreferrer">{value}</a>
+        ) : value}
+      </dd>
     </div>
   );
-  if (href) return <a href={href} target={href.startsWith('tel') ? undefined : '_blank'} rel="noopener noreferrer" style={{ textDecoration: 'none', display: 'block' }}>{inner}</a>;
-  return inner;
+}
+
+// A logo sits in the painted utility well. With no logo (or a broken one) a
+// complete painted pictogram stands alone, so a holder never nests a holder.
+function LogoHolder({ src, icon, text, size = 'result' }) {
+  const [failed, setFailed] = useState(false);
+  if ((!src || failed) && icon) {
+    return <PokerNearMeConsoleIcon name={icon} className={`gso-holder gso-holder--${size} gso-holder--icon`} />;
+  }
+  return (
+    <span className={`gso-holder gso-holder--${size}`} aria-hidden="true">
+      {src && !failed
+        ? <img src={src} alt="" loading="lazy" decoding="async" onError={() => setFailed(true)} />
+        : <span className="gso-holder__text">{text}</span>}
+    </span>
+  );
 }
 
 // ─── Result Cards ───
-function VenueResultCard({ venue, onClick, isSelected = false }) {
-  const typeStyle = VENUE_TYPE_STYLES[venue.venue_type] || VENUE_TYPE_STYLES.card_room;
-  const city = [venue.city, venue.state].filter(Boolean).join(', ');
+// Each result is the compact three-slice panel from the console kit (head,
+// repeating rail, foot) with one full-width button printed on its glass.
+function ResultPanel({ className, isSelected, onActivate, holder, name, kind, place }) {
   return (
-    <button className="gso-result-card gso-result-card--venue" onClick={() => onClick?.(venue)}
-      style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', padding: '12px 16px', background: isSelected ? 'rgba(110,231,239,0.12)' : 'rgba(255,255,255,0.03)', border: isSelected ? '1px solid rgba(110,231,239,0.45)' : '1px solid rgba(110,231,239,0.08)', borderRadius: 12, cursor: 'pointer', textAlign: 'left', transition: 'all 0.18s', fontFamily: 'Inter,system-ui,sans-serif' }}
-    >
-      <div style={{ width: 44, height: 44, borderRadius: 10, flexShrink: 0, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-        {venue.logo_url || venue.profile_photo_url
-          ? <img src={venue.logo_url || venue.profile_photo_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={e => { e.target.style.display = 'none'; }} />
-          : <PokerNearMeConsoleIcon name="home" />}
-      </div>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 14, fontWeight: 700, color: '#e0e8f0', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{venue.name}</div>
-        {city && <div style={{ fontSize: 12, color: 'rgba(200,214,229,0.5)', marginTop: 2 }}>{city}</div>}
-      </div>
-      <div style={{ flexShrink: 0, padding: '3px 8px', borderRadius: 6, background: typeStyle.bg, fontSize: 12, fontWeight: 700, color: typeStyle.color, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{typeStyle.label}</div>
-    </button>
+    <PokerNearMePanelShell as="div" className={isSelected ? 'gso-result is-selected' : 'gso-result'} bodyClassName="gso-result__body">
+      <button type="button" className={className} onClick={onActivate}>
+        {holder}
+        <span className="gso-result__copy">
+          <span className="gso-result__name">{name}</span>
+          <span className="gso-result__meta">
+            <span className="gso-result__kind pnc-ink--blue">{kind}</span>
+            {place ? <span className="gso-result__place">{place}</span> : null}
+          </span>
+        </span>
+      </button>
+    </PokerNearMePanelShell>
+  );
+}
+
+function VenueResultCard({ venue, onClick, isSelected = false }) {
+  const city = [venue.city, venue.state].filter(Boolean).join(', ');
+  const logo = venue.logo_url || venue.profile_photo_url || '';
+  return (
+    <ResultPanel
+      className="gso-result-card gso-result-card--venue"
+      isSelected={isSelected}
+      onActivate={(e) => onClick?.(venue, e)}
+      holder={<LogoHolder key={logo || 'home'} src={logo} icon="home" />}
+      name={venue.name}
+      kind={venueTypeLabel(venue.venue_type)}
+      place={city}
+    />
   );
 }
 
 function TourResultCard({ tour, onClick, isSelected = false }) {
-  const color = TOUR_COLORS[tour.tour_code] || '#6ee7ef';
   return (
-    <button className="gso-result-card gso-result-card--tour" onClick={() => onClick?.(tour)}
-      style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', padding: '12px 16px', background: isSelected ? 'rgba(110,231,239,0.12)' : 'rgba(255,255,255,0.03)', border: isSelected ? '1px solid rgba(110,231,239,0.45)' : '1px solid rgba(110,231,239,0.08)', borderRadius: 12, cursor: 'pointer', textAlign: 'left', transition: 'all 0.18s', fontFamily: 'Inter,system-ui,sans-serif' }}
-    >
-      <div style={{ width: 44, height: 44, borderRadius: 10, flexShrink: 0, background: `${color}18`, border: `1.5px solid ${color}40`, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-        {tour.logo_url ? <img src={tour.logo_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain', padding: 4 }} onError={e => { e.target.style.display = 'none'; }} /> : <span style={{ fontSize: 12, fontWeight: 900, color }}>{tour.tour_code || '?'}</span>}
-      </div>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 14, fontWeight: 700, color: '#e0e8f0', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{tour.tour_name || tour.tour_code}</div>
-        <div style={{ fontSize: 12, color: 'rgba(200,214,229,0.5)', marginTop: 2 }}>{tour.regions?.slice(0,2).join(' • ') || 'Traveling Tour'}</div>
-      </div>
-      <div style={{ flexShrink: 0, padding: '3px 8px', borderRadius: 6, background: `${color}20`, fontSize: 12, fontWeight: 700, color, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Tour</div>
-    </button>
+    <ResultPanel
+      className="gso-result-card gso-result-card--tour"
+      isSelected={isSelected}
+      onActivate={(e) => onClick?.(tour, e)}
+      holder={<LogoHolder key={tour.logo_url || tour.tour_code || 'tour'} src={tour.logo_url} text={tour.tour_code || 'Tour'} />}
+      name={tour.tour_name || tour.tour_code}
+      kind="Tour"
+      place={tour.regions?.slice(0, 2).join(' · ') || 'Traveling Tour'}
+    />
   );
 }
 
 function SeriesResultCard({ series, onClick, isSelected = false }) {
   const city = [series.city, series.state].filter(Boolean).join(', ');
   return (
-    <button className="gso-result-card gso-result-card--series" onClick={() => onClick?.(series)}
-      style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', padding: '12px 16px', background: isSelected ? 'rgba(52,211,153,0.12)' : 'rgba(255,255,255,0.03)', border: isSelected ? '1px solid rgba(52,211,153,0.45)' : '1px solid rgba(110,231,239,0.08)', borderRadius: 12, cursor: 'pointer', textAlign: 'left', transition: 'all 0.18s', fontFamily: 'Inter,system-ui,sans-serif' }}
-    >
-      <div style={{ width: 44, height: 44, borderRadius: 10, flexShrink: 0, background: 'rgba(52,211,153,0.1)', border: '1.5px solid rgba(52,211,153,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <PokerNearMeConsoleIcon name="calendar" />
-      </div>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 14, fontWeight: 700, color: '#e0e8f0', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{series.name || series.series_name}</div>
-        {city && <div style={{ fontSize: 12, color: 'rgba(200,214,229,0.5)', marginTop: 2 }}>{city}</div>}
-      </div>
-      <div style={{ flexShrink: 0, padding: '3px 8px', borderRadius: 6, background: 'rgba(52,211,153,0.12)', fontSize: 12, fontWeight: 700, color: '#34d399', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Series</div>
-    </button>
+    <ResultPanel
+      className="gso-result-card gso-result-card--series"
+      isSelected={isSelected}
+      onActivate={(e) => onClick?.(series, e)}
+      holder={<LogoHolder icon="calendar" />}
+      name={series.name || series.series_name}
+      kind="Series"
+      place={city}
+    />
   );
 }
 
 function SectionHeader({ icon, label, count }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0 4px 8px', borderBottom: '1px solid rgba(110,231,239,0.08)', marginBottom: 10 }}>
-      {icon}
-      <span style={{ fontSize: 12, fontWeight: 800, color: 'rgba(200,214,229,0.5)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>{label}</span>
-      {count > 0 && <span style={{ marginLeft: 'auto', fontSize: 12, fontWeight: 700, color: 'rgba(110,231,239,0.6)', background: 'rgba(110,231,239,0.08)', padding: '1px 7px', borderRadius: 10 }}>{count}</span>}
+    <div className="gso-section-head">
+      {icon ? <PokerNearMeConsoleIcon name={icon} className="gso-section-head__icon" /> : null}
+      <span className="gso-section-head__label">{label}</span>
+      {count > 0 ? <span className="gso-section-head__count">{count}</span> : null}
     </div>
   );
 }
 
 function SearchSkeletons() {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-      {[1,2,3,4,5].map(i => (
-        <div className="gso-console-skeleton" key={i} style={{ animationDelay: `${i * 0.1}s` }} />
+    <div className="gso-skeletons" role="status" aria-live="polite">
+      <span className="gso-visually-hidden">Searching</span>
+      {[1, 2, 3, 4, 5].map(i => (
+        <div className="gso-console-skeleton" key={i} aria-hidden="true" style={{ animationDelay: `${i * 0.1}s` }} />
       ))}
     </div>
   );
@@ -536,6 +527,8 @@ export default function GlobalSearchOverlay({
   const [detailItem, setDetailItem] = useState(null);
   const [nlIntent, setNlIntent] = useState(null); // parsed natural language intent
   const [userLocation, setUserLocation] = useState(null);
+  // A failed venue request is an error state, never an empty result set.
+  const [searchError, setSearchError] = useState(false);
   const debounceRef = useRef(null);
   // [BUG FIX] AbortController ref — cancels stale in-flight venue suggestion fetches
   const abortControllerRef = useRef(null);
@@ -544,6 +537,13 @@ export default function GlobalSearchOverlay({
   // A11Y: dialog element (focus trap) + the control that had focus before opening
   const dialogRef = useRef(null);
   const restoreFocusRef = useRef(null);
+  // The search surface (made inert under the nested detail) and the control
+  // that opened the detail, which takes focus back when the detail closes.
+  const surfaceRef = useRef(null);
+  const detailReturnFocusRef = useRef(null);
+  // The one scrolling list. Switching between suggestions and results starts
+  // it at the top instead of keeping the previous phase's scroll offset.
+  const bodyRef = useRef(null);
 
   // Load recent searches and GPS from localStorage on mount
   useEffect(() => {
@@ -595,6 +595,7 @@ export default function GlobalSearchOverlay({
         setCitySuggestions([]);
       }
       setDetailItem(null);
+      setSearchError(false);
       setTimeout(() => inputRef.current?.focus(), 120);
     } else {
       // [BUG FIX] Cancel any pending debounce + in-flight fetch when overlay closes
@@ -649,8 +650,12 @@ export default function GlobalSearchOverlay({
       if (e.key !== 'Tab') return;
       const root = dialogRef.current;
       if (!root) return;
+      // A nested detail makes the search surface inert and aria-hidden. Those
+      // controls cannot take focus, so they can never be the wrap target:
+      // counting them stranded Tab on the detail's last control.
       const items = Array.from(root.querySelectorAll(FOCUSABLE)).filter(
-        el => el.offsetParent !== null || el === document.activeElement
+        el => (el.offsetParent !== null || el === document.activeElement)
+          && !el.closest('[inert], [aria-hidden="true"]')
       );
       if (items.length === 0) return;
       const first = items[0];
@@ -724,6 +729,7 @@ export default function GlobalSearchOverlay({
     onSearchChange?.(val);
     // Typing invalidates any arrowed-to row — Enter must not fire a stale selection
     setSelectedIndex(-1);
+    setSearchError(false);
 
     if (!val.trim()) {
       setPhase('input');
@@ -782,6 +788,7 @@ export default function GlobalSearchOverlay({
     inputRef.current?.blur();
     setPhase('results');
     setIsLoading(true);
+    setSearchError(false);
     // BUG FIX: an aborted search used to `return` from inside the try block, skipping
     // setIsLoading(false) — the skeleton loaders then spun forever (typing one more
     // character after submitting aborts the submit's controller via the input debounce).
@@ -846,6 +853,7 @@ export default function GlobalSearchOverlay({
       if (err?.name !== 'AbortError') {
         console.warn('[GlobalSearch] Venue search failed:', err);
         setVenueResults([]);
+        setSearchError(true);
       } else {
         // Aborted mid-flight — same rule as above: clear the spinner, keep the results.
         if (isCurrentSubmit()) setIsLoading(false);
@@ -888,15 +896,41 @@ export default function GlobalSearchOverlay({
     setLocalQuery(q); onSearchChange?.(q); handleSubmit(null, q); onHistorySelect?.(q);
   }, [onSearchChange, handleSubmit, onHistorySelect]);
 
-  const openDetail = useCallback((item, type) => {
+  const openDetail = useCallback((item, type, opener) => {
     // A search-result map can be fullscreen. Close that nested surface before
     // mounting the detail layer so the detail dialog is never trapped behind
     // the map's fixed stacking context and only one focus trap owns the page.
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new Event('pnm:close-map-fullscreen'));
     }
+    // Remember what opened the detail (the result button, or the input for an
+    // arrowed-to row) before the surface under it goes inert.
+    detailReturnFocusRef.current = opener
+      || (typeof document !== 'undefined' ? document.activeElement : null);
     setDetailItem({ item, type });
   }, []);
+
+  useEffect(() => {
+    if (bodyRef.current) bodyRef.current.scrollTop = 0;
+  }, [phase]);
+
+  // Closing the nested detail returns focus to the result that opened it.
+  // useAccessibleDialog restores the aria-hidden value it recorded when the
+  // detail mounted, which was the surface's own hidden state, so the surface
+  // is re-exposed here as well: it must not stay hidden from assistive tech.
+  useEffect(() => {
+    if (detailItem) return;
+    const surface = surfaceRef.current;
+    if (surface) {
+      surface.removeAttribute('aria-hidden');
+      surface.removeAttribute('inert');
+    }
+    const opener = detailReturnFocusRef.current;
+    detailReturnFocusRef.current = null;
+    if (opener && opener.isConnected && dialogRef.current?.contains(opener) && typeof opener.focus === 'function') {
+      opener.focus();
+    }
+  }, [detailItem]);
 
   const getSelectableItems = useCallback(() => {
     if (phase === 'results') return [];
@@ -975,6 +1009,16 @@ export default function GlobalSearchOverlay({
 
   if (!isOpen) return null;
 
+  // Only intents that were actually applied are printed.
+  const appliedIntentLabels = nlIntent
+    ? [
+      nlIntent.applied?.gameType && (GAME_TYPE_LABELS[nlIntent.gameType] || nlIntent.gameType),
+      nlIntent.applied?.timeWindow && (TIME_WINDOW_LABELS[nlIntent.timeWindow] || nlIntent.timeWindow),
+      nlIntent.applied?.stateCode && `In ${nlIntent.stateCode}`,
+    ].filter(Boolean)
+    : [];
+  const venueWord = venueResults.length === 1 ? 'Venue' : 'Venues';
+
   return (
     <>
       <style>{`
@@ -986,40 +1030,36 @@ export default function GlobalSearchOverlay({
           from { opacity: 0; transform: translateY(30px); }
           to   { opacity: 1; transform: translateY(0); }
         }
-        @keyframes gso-shimmer {
-          0%   { background-position: -200% 0; }
-          100% { background-position: 200% 0; }
-        }
-        @keyframes gso-underline {
-          from { width: 0; } to { width: 100%; }
-        }
       `}</style>
 
       {/* ───── OVERLAY SHELL ───── */}
       <div
         ref={dialogRef}
         className="gso-console-overlay"
-        style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(4,10,20,0.98)', backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)', display: 'flex', flexDirection: 'column', fontFamily: 'Inter,system-ui,-apple-system,sans-serif', animation: 'gso-in 0.22s ease', overflow: 'hidden' }}
+        style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', flexDirection: 'column', fontFamily: 'Inter,system-ui,-apple-system,sans-serif', animation: 'gso-in 0.22s ease', overflow: 'hidden' }}
         role="dialog" aria-modal="true" aria-label="Search Poker Venues, Tours, and Series"
       >
 
         <div
+          ref={surfaceRef}
           className="gso-search-surface"
           aria-hidden={detailItem ? 'true' : undefined}
           inert={detailItem ? '' : undefined}
-          style={{ display: 'flex', flexDirection: 'column', flex: '1 1 auto', minHeight: 0 }}
         >
 
         {/* ───── HEADER ───── */}
-        {/* Header sits below the status bar so the close control is reachable on a phone (mobile phase 0b). */}
-        <div className="gso-console-header" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)', borderBottom: '1px solid rgba(110,231,239,0.08)', flexShrink: 0 }}>
-          <button type="button" className="gso-back sp-icon-btn" onClick={onClose} aria-label="Close"
-            style={{ '--sp-btn-size': '44px', flexShrink: 0, width: 44, height: 44, minWidth: 44, minHeight: 44, touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent', borderRadius: '50%', border: 'none', background: 'rgba(255,255,255,0.04)', color: 'rgba(200,214,229,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'background 0.15s' }}>
+        {/* Header sits below the status bar so the close control is reachable on a phone (mobile phase 0b).
+            On a phone the Search plate wraps onto its own row in normal flow. It
+            used to be absolutely positioned 52px under the header: at 390px that
+            put it below the bottom of the viewport, and on wider phones over the
+            first suggestion. */}
+        <div className="gso-console-header" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)' }}>
+          <button type="button" className="gso-back sp-icon-btn" onClick={onClose} aria-label="Close" style={{ '--sp-btn-size': '44px' }}>
             <PokerNearMeConsoleIcon name="back" />
           </button>
 
-          <form className="gso-console-form" onSubmit={handleSubmit} style={{ flex: 1, position: 'relative' }}>
-            <div className="gso-console-search-well" style={{ position: 'relative' }}>
+          <form className="gso-console-form" onSubmit={handleSubmit}>
+            <div className="gso-console-search-well">
               <PokerNearMeConsoleIcon name="search" className="gso-console-search-icon" />
               <input
                 ref={inputRef} type="text" value={localQuery} onChange={handleInputChange} onKeyDown={handleKeyDown}
@@ -1027,84 +1067,42 @@ export default function GlobalSearchOverlay({
                 autoComplete="off" autoCorrect="off" autoCapitalize="off" spellCheck={false}
                 role="combobox" aria-expanded={phase === 'input'} aria-autocomplete="list"
                 aria-controls="gso-suggestions" aria-activedescendant={activeDescendantId}
+                aria-label="Search City, Venue, Tour, Series, Or Tournament"
+                enterKeyHint="search"
                 className="gso-console-input"
-                style={{ width: '100%', paddingLeft: 30, paddingRight: localQuery ? 36 : 0, paddingTop: 8, paddingBottom: 8, background: 'transparent', border: 'none', outline: 'none', fontSize: 18, fontWeight: 500, color: '#e0e8f0', letterSpacing: '-0.3px', fontFamily: 'inherit', caretColor: '#6ee7ef' }}
               />
               {localQuery && (
                 <button type="button" className="gso-clear"
-                  onClick={() => { setLocalQuery(''); onSearchChange?.(''); setPhase('input'); setVenueResults([]); setTourResults([]); setSeriesResults([]); setCitySuggestions([]); inputRef.current?.focus(); }}
-                  style={{ position: 'absolute', right: 0, top: '50%', transform: 'translateY(-50%)', width: 28, height: 28, borderRadius: '50%', border: 'none', background: 'rgba(255,255,255,0.06)', color: 'rgba(200,214,229,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: 16, transition: 'background 0.15s' }}
+                  onClick={() => { setLocalQuery(''); onSearchChange?.(''); setPhase('input'); setVenueResults([]); setTourResults([]); setSeriesResults([]); setCitySuggestions([]); setSearchError(false); inputRef.current?.focus(); }}
                   aria-label="Clear"><PokerNearMeConsoleIcon name="close" /></button>
               )}
             </div>
           </form>
 
-          {localQuery.trim() && (
-            <button type="button" className="gso-console-submit" onClick={handleSubmit}
-              style={{ flexShrink: 0, minHeight: 44, padding: '0 16px', borderRadius: 8, touchAction: 'manipulation', border: 'none', background: 'linear-gradient(135deg,rgba(110,231,239,0.2),rgba(167,139,250,0.15))', color: '#6ee7ef', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
-              Search
-            </button>
-          )}
+          {/* Always present so the header never jumps on the first keystroke;
+              an empty query leaves it disabled on the steel plate. */}
+          <button type="button" className="gso-console-submit" onClick={handleSubmit} disabled={!localQuery.trim()}>
+            <span className="gso-console-submit__label">Search</span>
+          </button>
         </div>
 
-        {/* ───── MAP — between header and scrollable body, OUTSIDE scroll ───── */}
-        {phase === 'results' && !isLoading && venueResults.length > 0 && (
-          <div className="pnm-global-search-map" style={{ flexShrink: 0, position: 'relative', borderBottom: '1px solid rgba(110,231,239,0.08)' }}>
-            <VenueMap
-              // WIRING FIX: `disableClustering` is only read inside VenueMap's
-              // initialise-map effect (deps: [mapReady]), so the value in force on the
-              // FIRST search governed every later one — a 200-result search kept the
-              // unclustered layer. Keying on the mode remounts the map when it flips.
-              key={venueResults.length < 20 ? 'gso-map-nocluster' : 'gso-map-cluster'}
-              venues={venueResults}
-              // GAP FIX: the overlay reads GPS from localStorage and already sends it to
-              // the venue API — passing null here suppressed the "you are here" pin AND
-              // VenueMap's distance map, so no result popup could show its distance.
-              userLocation={userLocation}
-              mapEyebrow="Search result map"
-              mapTitle="Matching poker rooms"
-              mapDetail={`${venueResults.length} locations from this search`}
-              onVenueClick={v => openDetail(v, 'venue')}
-              onOpenIframeModal={(url, title) => {
-                const match = url.match(/\/hub\/venues\/([^?#]+)/);
-                if (match) {
-                  const found = venueResults.find(v => String(v.id) === match[1]);
-                  if (found) { openDetail(found, 'venue'); return; }
-                }
-                const found = venueResults.find(v => v.name === title);
-                if (found) openDetail(found, 'venue');
-              }}
-              fullHeight={false}
-              hideLegend={true}
-              disableClustering={venueResults.length < 20}
-            />
-            <div style={{ position: 'absolute', top: 10, left: '50%', transform: 'translateX(-50%)', zIndex: 1001, padding: '4px 14px', background: 'rgba(4,10,20,0.88)', backdropFilter: 'blur(8px)', border: '1px solid rgba(110,231,239,0.12)', borderRadius: 20, fontSize: 12, color: 'rgba(200,214,229,0.65)', fontWeight: 600, pointerEvents: 'none', whiteSpace: 'nowrap' }}>
-              {venueResults.length} {venueResults.length === 1 ? 'venue' : 'venues'} - Tap A Pin For Details
-            </div>
-          </div>
-        )}
-
         {/* ───── SCROLLABLE BODY ───── */}
-        <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', WebkitOverflowScrolling: 'touch' }}>
+        <div ref={bodyRef} className="gso-console-body">
 
           {/* INPUT phase — suggestions */}
           {phase === 'input' && (
-            <div id="gso-suggestions" style={{ maxWidth: 720, margin: '0 auto', padding: '16px 16px 80px' }}>
+            <div id="gso-suggestions" className="gso-console-list">
 
               {/* Recent searches */}
               {!localQuery.trim() && recentSearches.length > 0 && (
-                <div style={{ marginBottom: 20 }}>
-                  <SectionHeader
-                    icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(200,214,229,0.4)" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>}
-                    label="Recent Searches" count={recentSearches.length}
-                  />
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }} role="listbox" aria-label="Recent Searches">
+                <div className="gso-section">
+                  <SectionHeader icon="search" label="Recent Searches" count={recentSearches.length} />
+                  <div className="gso-well-list" role="listbox" aria-label="Recent Searches">
                     {recentSearches.map((rec, i) => (
                       <button key={`${rec}-${i}`} id={`gso-opt-${i}`} role="option" aria-selected={selectedIndex === i}
-                        className="gso-city-btn" onClick={() => handleHistoryClick(rec)}
-                        style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', background: selectedIndex === i ? 'rgba(110,231,239,0.12)' : 'transparent', border: selectedIndex === i ? '1px solid rgba(110,231,239,0.45)' : '1px solid rgba(110,231,239,0.06)', borderRadius: 10, color: '#c8d6e5', fontSize: 14, cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit', transition: 'background 0.15s' }}>
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(110,231,239,0.4)" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                        <span style={{ textTransform: 'capitalize' }}>{rec}</span>
+                        type="button"
+                        className={selectedIndex === i ? 'gso-city-btn is-selected' : 'gso-city-btn'} onClick={() => handleHistoryClick(rec)}>
+                        <span className="gso-well-row__text">{formatStoredQuery(rec)}</span>
                       </button>
                     ))}
                   </div>
@@ -1113,18 +1111,14 @@ export default function GlobalSearchOverlay({
 
               {/* City suggestions */}
               {localQuery.trim().length > 0 && citySuggestions.length > 0 && (
-                <div style={{ marginBottom: 20 }}>
-                  <SectionHeader
-                    icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(200,214,229,0.4)" strokeWidth="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>}
-                    label="Cities" count={citySuggestions.length}
-                  />
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }} role="listbox" aria-label="City Suggestions">
+                <div className="gso-section">
+                  <SectionHeader icon="location" label="Cities" count={citySuggestions.length} />
+                  <div className="gso-well-list" role="listbox" aria-label="City Suggestions">
                     {citySuggestions.map((city, ci) => (
                       <button key={city} id={`gso-opt-${cityOffset + ci}`} role="option" aria-selected={selectedIndex === cityOffset + ci}
-                        className="gso-city-btn" onClick={() => handleSuggestionClick(city)}
-                        style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', background: selectedIndex === cityOffset + ci ? 'rgba(110,231,239,0.12)' : 'transparent', border: selectedIndex === cityOffset + ci ? '1px solid rgba(110,231,239,0.45)' : '1px solid rgba(110,231,239,0.06)', borderRadius: 10, color: '#c8d6e5', fontSize: 14, cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit', transition: 'background 0.15s' }}>
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(110,231,239,0.4)" strokeWidth="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
-                        {city}
+                        type="button"
+                        className={selectedIndex === cityOffset + ci ? 'gso-city-btn is-selected' : 'gso-city-btn'} onClick={() => handleSuggestionClick(city)}>
+                        <span className="gso-well-row__text">{city}</span>
                       </button>
                     ))}
                   </div>
@@ -1133,56 +1127,42 @@ export default function GlobalSearchOverlay({
 
               {/* Live venue suggestions (API-backed) */}
               {localQuery.trim().length >= 2 && venueResults.length > 0 && (
-                <div style={{ marginBottom: 20 }}>
-                  <SectionHeader
-                    icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(200,214,229,0.4)" strokeWidth="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>}
-                    label="Venues" count={venueResults.length}
-                  />
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                    {venueResults.map((v, vi) => <VenueResultCard key={v.id} venue={v} isSelected={selectedIndex === venueOffset + vi} onClick={v => openDetail(v, 'venue')} />)}
+                <div className="gso-section">
+                  <SectionHeader icon="home" label="Venues" count={venueResults.length} />
+                  <div className="gso-result-list">
+                    {venueResults.map((v, vi) => <VenueResultCard key={v.id} venue={v} isSelected={selectedIndex === venueOffset + vi} onClick={(venue, e) => openDetail(venue, 'venue', e?.currentTarget)} />)}
                   </div>
                 </div>
               )}
 
               {/* Live tour suggestions */}
               {tourResults.length > 0 && (
-                <div style={{ marginBottom: 20 }}>
-                  <SectionHeader
-                    icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(200,214,229,0.4)" strokeWidth="2"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/></svg>}
-                    label="Tours" count={tourResults.length}
-                  />
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                    {tourResults.map((t, ti) => <TourResultCard key={t.id || t.tour_code} tour={t} isSelected={selectedIndex === tourOffset + ti} onClick={t => openDetail(t, 'tour')} />)}
+                <div className="gso-section">
+                  <SectionHeader icon="trophy" label="Tours" count={tourResults.length} />
+                  <div className="gso-result-list">
+                    {tourResults.map((t, ti) => <TourResultCard key={t.id || t.tour_code} tour={t} isSelected={selectedIndex === tourOffset + ti} onClick={(tour, e) => openDetail(tour, 'tour', e?.currentTarget)} />)}
                   </div>
                 </div>
               )}
 
               {/* Live series suggestions */}
               {seriesResults.length > 0 && (
-                <div style={{ marginBottom: 20 }}>
-                  <SectionHeader
-                    icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(200,214,229,0.4)" strokeWidth="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>}
-                    label="Series" count={seriesResults.length}
-                  />
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                    {seriesResults.map((s, sei) => <SeriesResultCard key={s.id || s.name} series={s} isSelected={selectedIndex === seriesOffset + sei} onClick={s => openDetail(s, 'series')} />)}
+                <div className="gso-section">
+                  <SectionHeader icon="calendar" label="Series" count={seriesResults.length} />
+                  <div className="gso-result-list">
+                    {seriesResults.map((s, sei) => <SeriesResultCard key={s.id || s.name} series={s} isSelected={selectedIndex === seriesOffset + sei} onClick={(series, e) => openDetail(series, 'series', e?.currentTarget)} />)}
                   </div>
                 </div>
               )}
 
               {/* Account-backed history (deduped against the local recents above) */}
               {accountHistory.length > 0 && !localQuery && (
-                <div style={{ marginBottom: 20 }}>
-                  <SectionHeader
-                    icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(200,214,229,0.4)" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>}
-                    label="Saved To Your Account"
-                  />
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                <div className="gso-section">
+                  <SectionHeader icon="saved" label="Saved To Your Account" />
+                  <div className="gso-well-list">
                     {accountHistory.map((item, i) => (
-                      <button key={item.id || i} className="gso-hist-btn" onClick={() => handleHistoryClick(item.search_query || item)}
-                        style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', background: 'transparent', border: 'none', borderRadius: 8, color: 'rgba(200,214,229,0.65)', fontSize: 14, cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit', transition: 'background 0.15s' }}>
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(200,214,229,0.25)" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                        {item.search_query || item}
+                      <button key={item.id || i} type="button" className="gso-hist-btn" onClick={() => handleHistoryClick(item.search_query || item)}>
+                        <span className="gso-well-row__text">{formatStoredQuery(item.search_query || item)}</span>
                       </button>
                     ))}
                   </div>
@@ -1191,10 +1171,10 @@ export default function GlobalSearchOverlay({
 
               {/* Empty state */}
               {!localQuery && accountHistory.length === 0 && recentSearches.length === 0 && (
-                <div style={{ textAlign: 'center', paddingTop: 60, color: 'rgba(200,214,229,0.25)' }}>
-                  <PokerNearMeConsoleIcon name="search" style={{ width: 72, height: 72, margin: '0 auto 16px' }} />
-                  <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 8 }}>Search Anything</div>
-                  <div style={{ fontSize: 13, lineHeight: 1.6, color: 'rgba(200,214,229,0.35)' }}>City, State, Venue, Casino,<br />Tournament, Series, Or Tour Name</div>
+                <div className="gso-empty">
+                  <PokerNearMeConsoleIcon name="search" className="gso-empty__icon" />
+                  <p className="gso-empty__title">Search Anything</p>
+                  <p className="gso-empty__copy">City, State, Venue, Casino, Tournament, Series, Or Tour Name</p>
                 </div>
               )}
             </div>
@@ -1202,91 +1182,117 @@ export default function GlobalSearchOverlay({
 
           {/* RESULTS phase — full list below the map */}
           {phase === 'results' && (
-            <div style={{ maxWidth: 720, margin: '0 auto', padding: '16px 16px 80px' }}>
+            <div className="gso-console-list">
 
               {isLoading && <SearchSkeletons />}
 
-              {!isLoading && !hasResults && (
-                <div style={{ textAlign: 'center', paddingTop: 60, color: 'rgba(200,214,229,0.35)' }}>
-                  <PokerNearMeConsoleIcon name="search" style={{ width: 72, height: 72, margin: '0 auto 16px' }} />
-                  <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 8 }}>No Results Found</div>
-                  <div style={{ fontSize: 13 }}>Try A Different City, Venue Name, Or Tour</div>
+              {/* A failed venue request is not an empty directory: say so, and
+                  offer the same search again instead of "No Results Found". */}
+              {!isLoading && searchError && (
+                <div className="gso-empty gso-empty--error" role="alert">
+                  <PokerNearMeConsoleIcon name="alert" className="gso-empty__icon" />
+                  <p className="gso-empty__title">Venue Search Unavailable</p>
+                  <p className="gso-empty__copy">
+                    {hasResults
+                      ? 'Venues Could Not Be Loaded. The Tours And Series Below Still Match.'
+                      : 'The Venue Directory Could Not Be Reached. Check Your Connection And Try Again.'}
+                  </p>
+                  <button type="button" className="gso-retry" onClick={() => handleSubmit(null, localQuery)}>
+                    <span className="gso-retry__label">Try Again</span>
+                  </button>
+                </div>
+              )}
+
+              {!isLoading && !searchError && !hasResults && (
+                <div className="gso-empty" role="status">
+                  <PokerNearMeConsoleIcon name="search" className="gso-empty__icon" />
+                  <p className="gso-empty__title">No Results Found</p>
+                  <p className="gso-empty__copy">Try A Different City, Venue Name, Or Tour</p>
                 </div>
               )}
 
               {!isLoading && hasResults && (
-                <div style={{ marginBottom: 20 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 8, padding: '10px 14px', background: 'rgba(110,231,239,0.05)', border: '1px solid rgba(110,231,239,0.1)', borderRadius: 10 }}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6ee7ef" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                    <span style={{ fontSize: 13, color: '#6ee7ef', fontWeight: 600 }}>{totalResults} result{totalResults !== 1 ? 's' : ''} For "{localQuery}"</span>
-                    {nlIntent ? (
-                      <>
-                        {/* Only intents that were actually applied get a chip */}
-                        {nlIntent.applied?.stateCode && (
-                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 8px', borderRadius: 6, background: 'rgba(110,231,239,0.15)', color: '#6ee7ef', fontSize: 12, fontWeight: 700 }}>
-                            <MapPinIcon />
-                            {nlIntent.stateCode}
-                          </span>
-                        )}
-                        {nlIntent.applied?.timeWindow && <TimeWindowLabel timeWindow={nlIntent.timeWindow} />}
-                        {nlIntent.applied?.gameType && (
-                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 8px', borderRadius: 6, background: 'rgba(52,211,153,0.15)', color: '#34d399', fontSize: 12, fontWeight: 700 }}>
-                            <CardsIcon size={12} />
-                            {GAME_TYPE_LABELS[nlIntent.gameType] || nlIntent.gameType}
-                          </span>
-                        )}
-                      </>
-                    ) : (
-                      <span style={{ fontSize: 12, color: 'rgba(200,214,229,0.35)', marginLeft: 4 }}>- Global Search</span>
-                    )}
-                  </div>
-                  {nlIntent?.isNaturalLanguage && (
-                    <div style={{ marginTop: 8, padding: '8px 14px', background: 'rgba(167,139,250,0.06)', border: '1px solid rgba(167,139,250,0.15)', borderRadius: 8, fontSize: 12, color: 'rgba(200,214,229,0.5)', lineHeight: 1.5 }}>
-                      <span style={{ color: '#a78bfa', fontWeight: 700 }}>Smart Search</span> - Applied Filters: {[
-                        nlIntent.applied?.gameType && (GAME_TYPE_LABELS[nlIntent.gameType] || nlIntent.gameType),
-                        nlIntent.applied?.timeWindow && nlIntent.timeWindow?.replace(/_/g, ' '),
-                        nlIntent.applied?.stateCode && `in ${nlIntent.stateCode}`,
-                      ].filter(Boolean).join(' · ')}
-                    </div>
+                <div className="gso-summary" role="status">
+                  <p className="gso-summary__line">
+                    <span className="gso-summary__count">{totalResults} {totalResults === 1 ? 'Result' : 'Results'}</span>
+                    {' For '}
+                    <span className="gso-summary__query">{`"${localQuery}"`}</span>
+                  </p>
+                  {appliedIntentLabels.length > 0 ? (
+                    <p className="gso-summary__scope">
+                      <span>Smart Search</span>
+                      {appliedIntentLabels.map(label => <span key={label} className="gso-summary__intent">{label}</span>)}
+                    </p>
+                  ) : (
+                    <p className="gso-summary__scope"><span>Global Search</span></p>
                   )}
+                </div>
+              )}
+
+              {/* ───── MAP — under the summary, inside the one scroller. Pinned
+                   above the list it took 360-520px with its own inner scroll, so its
+                   frame was cut off and, on a 390px-tall landscape phone, the header and
+                   map left the results no height at all. Result cards still render below it. ───── */}
+              {phase === 'results' && !isLoading && venueResults.length > 0 && (
+                <div className="pnm-global-search-map gso-map">
+                  <VenueMap
+                    // WIRING FIX: `disableClustering` is only read inside VenueMap's
+                    // initialise-map effect (deps: [mapReady]), so the value in force on the
+                    // FIRST search governed every later one — a 200-result search kept the
+                    // unclustered layer. Keying on the mode remounts the map when it flips.
+                    key={venueResults.length < 20 ? 'gso-map-nocluster' : 'gso-map-cluster'}
+                    venues={venueResults}
+                    // GAP FIX: the overlay reads GPS from localStorage and already sends it to
+                    // the venue API — passing null here suppressed the "you are here" pin AND
+                    // VenueMap's distance map, so no result popup could show its distance.
+                    userLocation={userLocation}
+                    mapEyebrow="Search Result Map"
+                    mapTitle="Matching Poker Rooms"
+                    mapDetail={`${venueResults.length} ${venueResults.length === 1 ? 'Location' : 'Locations'} From This Search`}
+                    onVenueClick={v => openDetail(v, 'venue')}
+                    onOpenIframeModal={(url, title) => {
+                      const match = url.match(/\/hub\/venues\/([^?#]+)/);
+                      if (match) {
+                        const found = venueResults.find(v => String(v.id) === match[1]);
+                        if (found) { openDetail(found, 'venue'); return; }
+                      }
+                      const found = venueResults.find(v => v.name === title);
+                      if (found) openDetail(found, 'venue');
+                    }}
+                    fullHeight={false}
+                    hideLegend={true}
+                    disableClustering={venueResults.length < 20}
+                  />
+                  <p className="gso-map__hint">{venueResults.length} {venueWord}. Tap A Pin For Details.</p>
                 </div>
               )}
 
               {/* Venues */}
               {!isLoading && venueResults.length > 0 && (
-                <div style={{ marginBottom: 28 }}>
-                  <SectionHeader
-                    icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(200,214,229,0.4)" strokeWidth="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>}
-                    label="Venues" count={venueResults.length}
-                  />
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    {venueResults.map(v => <VenueResultCard key={v.id} venue={v} onClick={v => openDetail(v, 'venue')} />)}
+                <div className="gso-section">
+                  <SectionHeader icon="home" label="Venues" count={venueResults.length} />
+                  <div className="gso-result-list">
+                    {venueResults.map(v => <VenueResultCard key={v.id} venue={v} onClick={(venue, e) => openDetail(venue, 'venue', e?.currentTarget)} />)}
                   </div>
                 </div>
               )}
 
               {/* Tours */}
               {!isLoading && tourResults.length > 0 && (
-                <div style={{ marginBottom: 28 }}>
-                  <SectionHeader
-                    icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(200,214,229,0.4)" strokeWidth="2"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/></svg>}
-                    label="Poker Tours" count={tourResults.length}
-                  />
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    {tourResults.map(t => <TourResultCard key={t.id || t.tour_code} tour={t} onClick={t => openDetail(t, 'tour')} />)}
+                <div className="gso-section">
+                  <SectionHeader icon="trophy" label="Poker Tours" count={tourResults.length} />
+                  <div className="gso-result-list">
+                    {tourResults.map(t => <TourResultCard key={t.id || t.tour_code} tour={t} onClick={(tour, e) => openDetail(tour, 'tour', e?.currentTarget)} />)}
                   </div>
                 </div>
               )}
 
               {/* Series */}
               {!isLoading && seriesResults.length > 0 && (
-                <div style={{ marginBottom: 28 }}>
-                  <SectionHeader
-                    icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(200,214,229,0.4)" strokeWidth="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>}
-                    label="Poker Series" count={seriesResults.length}
-                  />
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    {seriesResults.map(s => <SeriesResultCard key={s.id || s.name} series={s} onClick={s => openDetail(s, 'series')} />)}
+                <div className="gso-section">
+                  <SectionHeader icon="calendar" label="Poker Series" count={seriesResults.length} />
+                  <div className="gso-result-list">
+                    {seriesResults.map(s => <SeriesResultCard key={s.id || s.name} series={s} onClick={(series, e) => openDetail(series, 'series', e?.currentTarget)} />)}
                   </div>
                 </div>
               )}

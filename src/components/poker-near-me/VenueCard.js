@@ -16,11 +16,13 @@ import { triggerHaptic } from '../../hooks/useHaptics';
 import { requireOnlineNow } from '../../hooks/useOnlineStatus';
 import toast from '../../stores/toastStore';
 import { getAccessToken, getAuthUser } from '../../lib/authUtils';
-import { getVenueLogoUrl, getVenueLogoFallback, getOpenStatus, getCrowdLevel, estimateWaitTime, getInitialsColor, isStaleData, getZonedNow, resolveVenueTimeZone } from './pnm-utils';
+import { getVenueLogoUrl, getVenueLogoFallback, getOpenStatus, getCrowdLevel, estimateWaitTime, isStaleData, getZonedNow, resolveVenueTimeZone } from './pnm-utils';
 import { openNativeMaps } from '../../utils/openNativeMaps';
 import { homeGameUrl } from '../../lib/home-games/urls';
 import { cashGameCountLabel, isModeledCashGameData } from '../../lib/poker-near-me/liveCashGameData';
-import { PokerNearMeConsoleIcon, PokerNearMePanelShell } from './PokerNearMeConsole';
+import PokerNearMeConsole, { PokerNearMeConsoleIcon, PokerNearMePanelShell } from './PokerNearMeConsole';
+import { PnmPlateLabel } from './TourCard';
+import { acquireScrollLock } from '../../lib/scrollLock';
 
 const formatMoney = (amount) => {
     if (!amount) return '$0';
@@ -66,61 +68,42 @@ const VENUE_TYPE_LABELS = {
     poker_tour: 'Poker Tour',
 };
 
-const VENUE_TYPE_COLORS = {
-    casino: { bg: 'rgba(255,255,255,0.10)', color: '#ffffff', border: 'rgba(255,255,255,0.28)', accent: '#ffffff' },
-    card_room: { bg: 'rgba(34,197,94,0.10)', color: '#4ade80', border: 'rgba(34,197,94,0.28)', accent: '#4ade80' },
-    poker_club: { bg: 'rgba(34,197,94,0.10)', color: '#4ade80', border: 'rgba(34,197,94,0.28)', accent: '#4ade80' },
-    home_game: { bg: 'rgba(148,163,184,0.10)', color: '#94a3b8', border: 'rgba(148,163,184,0.28)', accent: '#94a3b8' },
-    charity: { bg: 'rgba(59,130,246,0.10)', color: '#60a5fa', border: 'rgba(59,130,246,0.28)', accent: '#60a5fa' },
-    tour: { bg: 'rgba(239,68,68,0.10)', color: '#f87171', border: 'rgba(239,68,68,0.28)', accent: '#ef4444' },
-    tour_stop: { bg: 'rgba(239,68,68,0.10)', color: '#f87171', border: 'rgba(239,68,68,0.28)', accent: '#ef4444' },
-    poker_tour: { bg: 'rgba(239,68,68,0.10)', color: '#f87171', border: 'rgba(239,68,68,0.28)', accent: '#ef4444' },
-    series: { bg: 'rgba(6,182,212,0.10)', color: '#06b6d4', border: 'rgba(6,182,212,0.28)', accent: '#06b6d4' },
+// Venue type -> ink. Every tone is a console ink (poker-near-me-console.css);
+// the old per-type rgba palette drew colours outside the schema.
+const VENUE_TYPE_TONES = {
+    casino: 'silver',
+    card_room: 'green',
+    poker_club: 'green',
+    home_game: 'muted',
+    charity: 'blue',
+    tour: 'red',
+    tour_stop: 'red',
+    poker_tour: 'red',
+    series: 'blue',
 };
 
-// Game type color mapping for enhanced chips
-const GAME_TYPE_COLORS = {
-    'NLH': { bg: 'rgba(255,255,255,0.12)', color: '#ffffff', border: 'rgba(255,255,255,0.22)' },
-    'PLO': { bg: 'rgba(59,130,246,0.12)', color: '#60a5fa', border: 'rgba(59,130,246,0.22)' },
-    'Limit': { bg: 'rgba(59,130,246,0.12)', color: '#60a5fa', border: 'rgba(59,130,246,0.22)' },
-    'Mixed': { bg: 'rgba(6,182,212,0.12)', color: '#22d3ee', border: 'rgba(6,182,212,0.22)' },
-    'Stud': { bg: 'rgba(239,68,68,0.12)', color: '#f87171', border: 'rgba(239,68,68,0.22)' },
-    'Big O': { bg: 'rgba(245,158,11,0.12)', color: '#fbbf24', border: 'rgba(245,158,11,0.22)' },
-};
-
-function getGameChipStyle(gameName) {
-    if (!gameName) return {};
+// Game family -> ink for the offered-games line.
+function getGameTone(gameName) {
+    if (!gameName) return 'silver';
     const upper = gameName.toUpperCase();
-    if (upper.includes('PLO') || upper.includes('OMAHA')) {
-        const key = upper.includes('BIG') ? 'Big O' : 'PLO';
-        return GAME_TYPE_COLORS[key] || {};
-    }
-    if (upper.includes('NLH') || upper.includes('NO LIMIT') || upper.includes('HOLDEM') || upper.includes("HOLD'EM")) return GAME_TYPE_COLORS['NLH'];
-    if (upper.includes('LIMIT') && !upper.includes('NO LIMIT')) return GAME_TYPE_COLORS['Limit'];
-    if (upper.includes('MIXED') || upper.includes('HORSE') || upper.includes('8-GAME')) return GAME_TYPE_COLORS['Mixed'];
-    if (upper.includes('STUD')) return GAME_TYPE_COLORS['Stud'];
-    return {};
+    if (upper.includes('NLH') || upper.includes('NO LIMIT') || ((upper.includes('HOLDEM') || upper.includes("HOLD'EM")) && !upper.includes('LIMIT'))) return 'silver';
+    return 'blue';
 }
 
 function getTrustLevel(score) {
     // A score of 0 means "no rating yet" — treat as New, not Low
-    if (!score || score <= 0) return { label: 'New', color: '#64748b', pct: 0 };
+    if (!score || score <= 0) return { label: 'New', tone: 'muted', pct: 0 };
     const pct = Math.round((score / 5) * 100);
-    if (score >= 4.5) return { label: 'Excellent', color: '#22c55e', pct };
-    if (score >= 4.0) return { label: 'Good', color: '#3b82f6', pct };
-    if (score >= 3.0) return { label: 'Moderate', color: '#f59e0b', pct };
-    return { label: 'Low', color: '#ef4444', pct };
+    if (score >= 4.5) return { label: 'Excellent', tone: 'green', pct };
+    if (score >= 4.0) return { label: 'Good', tone: 'blue', pct };
+    if (score >= 3.0) return { label: 'Moderate', tone: 'silver', pct };
+    return { label: 'Low', tone: 'red', pct };
 }
 
 // Generate venue initials for logo placeholder
 function getVenueInitials(name) {
     if (!name) return '?';
     return name.split(/[\s\-]+/).filter(w => w.length > 0).map(w => w[0]).join('').toUpperCase().slice(0, 2);
-}
-
-// Deterministic color from venue ID using curated palette
-function getVenueColor(venue) {
-    return getInitialsColor(venue?.id || 0);
 }
 
 // Get the correct detail URL for a venue or social page
@@ -209,470 +192,6 @@ function buildCharityEventBlock(venue) {
 }
 
 
-const VC3_STYLE_ID = 'vc3-venue-card-styles';
-// Module-scope so all cards share ONE copy; injected into <head> once on first mount.
-const VC3_CARD_STYLES = `
-                .vc3-header-left { display: flex; align-items: flex-start; gap: 10px; flex: 1; min-width: 0; }
-                .vc3-identity { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
-                .vc3-identity .vc3-name { font-size: 16px; font-weight: 700; color: #fff; margin: 0; padding: 0; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-transform: capitalize; }
-                .vc3-type-label { font-size: 12px; font-weight: 500; letter-spacing: 0.2px; }
-                .vc3-city-type-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin: 1px 0; }
-                .vc3-city-state { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: rgba(255,255,255,0.7); text-decoration: none; text-transform: capitalize; }
-                .vc3-city-state:hover,
-                .vc3-city-state:active { color: #ffffff; }
-                .vc3-next-event-header { display: flex; align-items: center; gap: 6px; margin-top: 3px; flex-wrap: wrap; }
-                .vc3-next-event-label { font-size: 12px; font-weight: 800; color: #60a5fa; text-transform: uppercase; letter-spacing: 0.5px; }
-                .vc3-next-event-detail { font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.7); }
-                .vc3-next-event-today .vc3-next-event-label { color: #4ade80; }
-                .vc3-logo { width: 54px; height: 54px; border-radius: 10px; overflow: hidden; flex-shrink: 0; display: flex; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.9); }
-                .vc3-logo-img { width: 100%; height: 100%; object-fit: cover; }
-                .vc3-logo-initials { font-size: 16px; font-weight: 700; letter-spacing: 0.5px; }
-                .vc3-right-stack { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; flex-shrink: 0; min-width: 60px; }
-                .vc3-fav { position: relative; background: none; border: none; padding: 4px; cursor: pointer; transition: transform 0.2s; }
-                .vc3-fav:hover,
-                .vc3-fav:active { transform: scale(1.15); }
-                .vc3-fav.active svg { filter: drop-shadow(0 0 6px rgba(239,68,68,0.5)); }
-                .vc3-distance { display: inline-flex; align-items: center; gap: 3px; font-size: 12px; color: rgba(255,255,255,0.5); font-weight: 500; white-space: nowrap; }
-                .vc3-hours-compact { font-size: 12px; color: rgba(255,255,255,0.4); font-weight: 500; white-space: nowrap; display: block; text-align: right; width: 100%; }
-                .vc3-open-pill { display: inline-flex; align-items: center; gap: 5px; padding: 2px 8px; border-radius: 6px; background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.3); color: #4ade80; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.3px; white-space: nowrap; }
-                .vc3-open-dot { width: 6px; height: 6px; border-radius: 50%; background: #4ade80; flex-shrink: 0; animation: livePulse 1.5s ease-in-out infinite; }
-                .vc3-open-pill.closed { background: rgba(239,68,68,0.1); border-color: rgba(239,68,68,0.3); color: #ef4444; }
-                .vc3-open-dot.closed { background: #ef4444; animation: none; }
-                .vc3-hours-next { color: rgba(255,255,255,0.3); font-size: 12px; }
-                .vc3-crowd-meter { margin: 8px 0; padding: 8px 10px; background: rgba(0,0,0,0.15); border-radius: 8px; border: 1px solid rgba(255,255,255,0.04); }
-                .vc3-crowd-header { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
-                .vc3-crowd-label { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.3px; }
-                .vc3-wait-estimate { margin-left: auto; font-size: 13px; color: #ffffff; display: flex; align-items: center; gap: 4px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
-                .vc3-crowd-track { height: 4px; background: rgba(255,255,255,0.06); border-radius: 2px; overflow: hidden; }
-                .vc3-crowd-fill { height: 100%; border-radius: 2px; transition: width 0.8s ease-out 0.3s; }
-                .vc3-rating-row { display: flex; align-items: center; gap: 6px; margin: 4px 0 2px; padding: 0 2px; cursor: pointer; transition: opacity 0.2s; }
-                .vc3-rating-row:hover,
-                .vc3-rating-row:active { opacity: 0.85; }
-                .vc3-rating-stars { display: flex; gap: 1px; }
-                .vc3-rating-score { font-size: 13px; font-weight: 700; color: #ffffff; }
-                .vc3-rating-count { font-size: 12px; color: rgba(255,255,255,0.4); }
-
-                @keyframes livePulse { 0% { opacity: 1; transform: scale(1); } 50% { opacity: 0.5; transform: scale(1.1); } 100% { opacity: 1; transform: scale(1); } }
-                
-                .vc3-host { display: flex; align-items: center; gap: 8px; margin: 6px 0; padding: 8px 10px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.15); border-radius: 8px; }
-                .vc3-host-avatar { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; flex-shrink: 0; border: 1.5px solid rgba(255,255,255,0.4); }
-                .vc3-host-avatar-fallback { display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.12); }
-                .vc3-host-info { display: flex; flex-direction: column; gap: 1px; flex: 1; min-width: 0; }
-                .vc3-host-name { font-size: 12px; color: #ffffff; font-weight: 600; }
-                .vc3-host-profile-link { font-size: 12px; color: rgba(255,255,255,0.7); text-decoration: none; }
-                .vc3-host-profile-link:hover,
-                .vc3-host-profile-link:active { color: #ffffff; text-decoration: underline; }
-                .vc3-host-link { font-size: 12px; color: #ffffff; text-decoration: none; margin-left: auto; padding: 3px 8px; border: 1px solid rgba(255,255,255,0.3); border-radius: 6px; font-weight: 600; white-space: nowrap; letter-spacing: 0.3px; text-transform: uppercase; }
-                .vc3-host-link:hover,
-                .vc3-host-link:active { background: rgba(255,255,255,0.15); }
-                .vc3-schedule { display: flex; align-items: center; gap: 6px; font-size: 12px; color: rgba(255,255,255,0.85); font-weight: 600; margin: 4px 0 6px; }
-                .vc3-follow-row { display: flex; align-items: center; gap: 8px; margin: 4px 0 8px; }
-                .vc3-saves-count { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: rgba(255,255,255,0.5); font-weight: 500; }
-                .vc3-description { font-size: 13px; color: rgba(255,255,255,0.5); margin: 0 0 8px; font-style: italic; }
-                .vc3-pill-message { background: rgba(255,255,255,0.12); color: #ffffff; border-color: rgba(255,255,255,0.25); }
-                .vc3-pill-message:hover,
-                .vc3-pill-message:active { background: rgba(255,255,255,0.22); box-shadow: 0 0 12px rgba(255,255,255,0.15); }
-                .vc3-badges { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
-                .vc3-badge { padding: 3px 9px; border-radius: 5px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; }
-                .vc3-badge-featured { background: rgba(255,255,255,0.2); color: #ffffff; border: 1px solid rgba(255,255,255,0.35); }
-                .vc3-badge-newcomer { background: rgba(34,197,94,0.15); color: #4ade80; border: 1px solid rgba(34,197,94,0.3); }
-                .vc3-badge-promo { background: rgba(139,92,246,0.15); color: #a78bfa; border: 1px solid rgba(139,92,246,0.3); }
-                .vc3-badge-tourney { background: rgba(239,68,68,0.12); color: #f87171; border: 1px solid rgba(239,68,68,0.25); }
-                .vc3-badge-live {
-                    background: rgba(34,197,94,0.15); color: #4ade80; border: 1px solid rgba(34,197,94,0.35);
-                    box-shadow: 0 0 12px rgba(34,197,94,0.2);
-                    display: inline-flex; align-items: center; gap: 5px; cursor: pointer; transition: all 0.2s;
-                }
-                .vc3-badge-live:hover,
-                .vc3-badge-live:active { background: rgba(34,197,94,0.25); box-shadow: 0 0 16px rgba(34,197,94,0.4); }
-                .vc3-live-dot {
-                    width: 6px; height: 6px; border-radius: 50%; background: #4ade80;
-                    box-shadow: 0 0 8px #4ade80; animation: livePulse 1.5s ease-in-out infinite;
-                }
-                .vc3-badge-checkin { background: rgba(230,81,0,0.15); color: #E65100; border: 1px solid rgba(230,81,0,0.3); cursor: pointer; }
-                .vc3-badge-checkin:hover,
-                .vc3-badge-checkin:active { background: rgba(230,81,0,0.25); }
-                .vc3-data-zone { margin-top: 2px; flex: 1; display: flex; flex-direction: column; min-height: 0; }
-                .vc3-live-info {
-                    display: flex; gap: 16px; margin-bottom: 8px; padding: 8px 10px;
-                    background: rgba(0,0,0,0.15); border-radius: 8px; border: 1px solid rgba(255,255,255,0.04);
-                }
-                .vc3-live-stat { display: flex; align-items: center; gap: 6px; }
-                .vc3-live-stat-val { font-size: 16px; font-weight: 800; color: #fff; }
-                .vc3-live-stat-label { font-size: 12px; color: rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: 0.3px; }
-                .vc3-hours { display: flex; align-items: center; gap: 5px; font-size: 12.5px; color: rgba(255,255,255,0.55); margin: 0 0 6px; font-style: italic; }
-                .vc3-games { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
-                .vc3-game-chip { padding: 4px 10px; border-radius: 5px; font-size: 12px; font-weight: 600; border: 1px solid; }
-                .vc3-stakes { display: flex; align-items: center; gap: 5px; font-size: 13px; color: rgba(255,255,255,0.9); margin: 0 0 8px; font-weight: 600; }
-                .vc3-trust { padding: 10px 0 8px; border-top: 1px solid rgba(255,255,255,0.07); margin-top: 4px; }
-                .vc3-trust-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
-                .vc3-trust-label { font-size: 12px; font-weight: 700; }
-                .vc3-trust-val { font-size: 12px; font-weight: 800; }
-                .vc3-trust-track { height: 6px; background: rgba(255,255,255,0.08); border-radius: 3px; overflow: hidden; }
-                .vc3-trust-fill { height: 100%; border-radius: 3px; transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1); }
-                .vc3-actions { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.07); margin-top: 6px; }
-                .vc3-actions-secondary { display: flex; gap: 6px; }
-                .vc3-icon-btn { display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.6); cursor: pointer; transition: all 0.2s; }
-                .vc3-icon-btn:hover,
-                .vc3-icon-btn:active { background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.25); color: #fff; transform: translateY(-1px); box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
-                .vc3-actions-primary { display: flex; gap: 6px; flex: 1; justify-content: flex-end; }
-                .vc3-pill { display: inline-flex; align-items: center; gap: 4px; padding: 7px 12px; border-radius: 10px; font-size: 12px; font-weight: 700; cursor: pointer; border: 1px solid transparent; transition: all 0.2s; background: none; }
-                .vc3-pill-checkin { background: rgba(34,197,94,0.12); color: #4ade80; border-color: rgba(34,197,94,0.25); }
-                .vc3-pill-checkin:hover,
-                .vc3-pill-checkin:active { background: rgba(34,197,94,0.22); box-shadow: 0 0 12px rgba(34,197,94,0.15); }
-                .vc3-pill-schedule { background: rgba(59,130,246,0.12); color: #60a5fa; border-color: rgba(59,130,246,0.25); }
-                .vc3-pill-schedule:hover,
-                .vc3-pill-schedule:active { background: rgba(59,130,246,0.22); box-shadow: 0 0 12px rgba(59,130,246,0.15); }
-                .vc3-pill-details { background: rgba(255,255,255,0.12); color: #ffffff; border-color: rgba(255,255,255,0.25); }
-                .vc3-pill-details:hover,
-                .vc3-pill-details:active { background: rgba(255,255,255,0.22); box-shadow: 0 0 12px rgba(255,255,255,0.15); }
-
-                /* ── Tournament Calendar Button ─────────────────────────── */
-                .vc3-calendar-btn {
-                    display: inline-flex; align-items: center; gap: 5px;
-                    background: rgba(74,222,128,0.12);
-                    border: 1px solid rgba(74,222,128,0.3);
-                    border-radius: 6px; padding: 5px 10px;
-                    font-size: 12px; color: #4ade80; font-weight: 700;
-                    cursor: pointer; text-transform: uppercase; letter-spacing: 0.4px;
-                    margin-top: 2px; transition: all 0.2s; width: fit-content;
-                    box-shadow: 0 2px 6px rgba(74,222,128,0.08);
-                }
-                .vc3-calendar-btn:hover,
-                .vc3-calendar-btn:active {
-                    background: rgba(74,222,128,0.22);
-                    box-shadow: 0 0 14px rgba(74,222,128,0.2);
-                    border-color: rgba(74,222,128,0.5);
-                }
-                .vc3-calendar-btn.active {
-                    background: rgba(74,222,128,0.18);
-                    border-color: rgba(74,222,128,0.5);
-                    box-shadow: 0 0 16px rgba(74,222,128,0.25);
-                }                /* ── Two Column Redesign ─────────────────────────── */
-                .vc3-columns-grid {
-                    display: grid;
-                    grid-template-columns: 1fr 1fr;
-                    gap: 12px;
-                    margin-top: 2px;
-                    background: rgba(0,0,0,0.15);
-                    border: 1px solid rgba(255,255,255,0.04);
-                    border-radius: 8px;
-                    padding: 10px;
-                    position: relative;
-                    flex: 1;
-                    min-height: 140px;
-                }
-                .vc3-columns-grid::after {
-                    content: '';
-                    position: absolute;
-                    top: 10%;
-                    bottom: 10%;
-                    left: 50%;
-                    width: 1px;
-                    background: rgba(255,255,255,0.08);
-                }
-                .vc3-col {
-                    display: flex;
-                    flex-direction: column;
-                    min-width: 0;
-                    height: 100%;
-                }
-                .vc3-col-left { padding-right: 4px; }
-                /* More badge — click-to-expand tournament count pill */
-                .vc3-more-badge {
-                    display: inline-flex; align-items: center; justify-content: center;
-                    margin-top: 5px; padding: 3px 10px; border-radius: 5px;
-                    background: rgba(96,165,250,0.12); border: 1px solid rgba(96,165,250,0.28);
-                    color: #60a5fa; font-size: 12px; font-weight: 700;
-                    text-transform: uppercase; letter-spacing: 0.4px;
-                    cursor: pointer; transition: all 0.2s; width: fit-content;
-                }
-                .vc3-more-badge:hover,
-                .vc3-more-badge:active { background: rgba(96,165,250,0.22); box-shadow: 0 0 10px rgba(96,165,250,0.2); }
-                /* Blind levels display in tournament row */
-                .vc3-tourney-blinds {
-                    font-size: 12px; color: rgba(255,255,255,0.35); margin-top: 1px;
-                    font-style: italic;
-                }
-                .vc3-col-right { padding-left: 4px; }
-                .vc3-col-title {
-                    font-size: 13px;
-                    font-weight: 700;
-                    text-transform: uppercase;
-                    letter-spacing: 0.5px;
-                    color: rgba(255,255,255,0.6);
-                    margin-bottom: 6px;
-                    padding-bottom: 4px;
-                    border-bottom: 1px dashed rgba(255,255,255,0.1);
-                }
-                .vc3-list-scrollable {
-                    display: flex;
-                    flex-direction: column;
-                    gap: 4px;
-                    overflow-y: auto;
-                    padding-right: 4px;
-                    flex: 1;
-                }
-                /* Cash games: show 4 rows (~28px each) before scrolling */
-                .vc3-list-scrollable-games { max-height: 112px; }
-                /* Tournaments: show 3 rows (~40px each — 2-line items) before scrolling */
-                .vc3-list-scrollable-tourneys { max-height: 180px; }
-                .vc3-list-scrollable::-webkit-scrollbar { width: 3px; }
-                .vc3-list-scrollable::-webkit-scrollbar-track { background: transparent; }
-                .vc3-list-scrollable::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 3px; }
-                
-                .vc3-list-item {
-                    font-size: 13px;
-                    color: #ffffff;
-                    display: flex;
-                    align-items: center;
-                    background: rgba(255,255,255,0.03);
-                    padding: 4px 6px;
-                    border-radius: 4px;
-                    border: 1px solid rgba(255,255,255,0.02);
-                }
-                .vc3-game-item { justify-content: space-between; }
-                .vc3-game-name { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 4px; text-transform: capitalize; }
-                .vc3-game-tables { font-weight: 700; color: #4ade80; font-size: 12px; flex-shrink: 0; letter-spacing: 0.2px; text-transform: uppercase; }
-                
-                .vc3-stakes-list { display: flex; flex-direction: column; gap: 4px; align-items: center; }
-                .vc3-stake-item { color: rgba(255,255,255,0.85); font-weight: 600; padding: 4px 8px; border-radius: 4px; background: rgba(255,255,255,0.04); justify-content: center; text-align: center; width: 100%; }
-                
-                .vc3-tourney-item, .vc3-tourney-item-special {
-                    flex-direction: column;
-                    align-items: flex-start;
-                    gap: 2px;
-                }
-                .vc3-tourney-item-special { background: rgba(59,130,246,0.1); border: 1px solid rgba(59,130,246,0.2); }
-                .vc3-tourney-name {
-                    font-weight: 700;
-                    font-size: 12px;
-                    white-space: nowrap;
-                    overflow: hidden;
-                    text-overflow: ellipsis;
-                    width: 100%;
-                    color: #ffffff;
-                    margin-bottom: 2px;
-                    text-transform: capitalize;
-                }
-                .vc3-tourney-details {
-                    display: flex;
-                    flex-wrap: wrap;
-                    gap: 6px;
-                    align-items: center;
-                    width: 100%;
-                }
-                .vc3-tourney-time {
-                    font-size: 13px;
-                    font-weight: 700;
-                    color: #ffffff;
-                }
-                .vc3-tourney-buyin {
-                    font-size: 13px;
-                    font-weight: 700;
-                    color: #4ade80;
-                }
-                .vc3-tourney-gtd {
-                    font-size: 12px;
-                    font-weight: 700;
-                    color: #fbbf24;
-                }
-                .vc3-tourney-stack {
-                    font-size: 12px;
-                    font-weight: 600;
-                    color: rgba(255,255,255,0.5);
-                    margin-top: 1px;
-                }
-                .vc3-tourney-meta {
-                    font-size: 12px;
-                    color: rgba(255,255,255,0.5);
-                    display: flex;
-                    white-space: nowrap;
-                    overflow: hidden;
-                    text-overflow: ellipsis;
-                    width: 100%;
-                    font-weight: 500;
-                }
-                
-                .vc3-empty-state {
-                    font-size: 12px;
-                    color: rgba(255,255,255,0.3);
-                    font-style: italic;
-                    padding: 10px 0;
-                    text-align: center;
-                    flex: 1;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                }
-                .vc3-col-footer {
-                    display: flex;
-                    align-items: center;
-                    justify-content: space-between;
-                    margin-top: auto;
-                    padding-top: 8px;
-                    border-top: 1px dashed rgba(255,255,255,0.1);
-                }
-                .vc3-hours-small {
-                    font-size: 12px;
-                    color: rgba(255,255,255,0.4);
-                    font-weight: 500;
-                    white-space: nowrap;
-                }
-                
-                @media (max-width: 480px) {
-                    .vc3-columns-grid {
-                        grid-template-columns: 1fr;
-                        gap: 16px;
-                    }
-                    .vc3-columns-grid::after {
-                        top: 50%; left: 10%; right: 10%;
-                        width: auto; height: 1px;
-                    }
-                    .vc3-col-left { padding-right: 0; padding-bottom: 8px; }
-                    .vc3-col-right { padding-left: 0; padding-top: 8px; }
-                }
-
-
-                /* ── Charity Event Big Date Block ──────────────────────── */
-                .vc3-charity-event {
-                    margin: 2px 0 8px;
-                    padding: 10px 12px 10px;
-                    background: rgba(59,130,246,0.10);
-                    border: 1px solid rgba(59,130,246,0.28);
-                    border-radius: 10px;
-                    display: flex;
-                    flex-direction: column;
-                    gap: 4px;
-                }
-                .vc3-charity-today {
-                    background: rgba(34,197,94,0.12);
-                    border-color: rgba(34,197,94,0.35);
-                    box-shadow: 0 0 16px rgba(34,197,94,0.12);
-                }
-                .vc3-charity-event-label {
-                    display: flex;
-                    align-items: center;
-                    gap: 5px;
-                    font-size: 12px;
-                    font-weight: 800;
-                    text-transform: uppercase;
-                    letter-spacing: 0.8px;
-                    color: rgba(255,255,255,0.45);
-                }
-                .vc3-charity-today .vc3-charity-event-label { color: #4ade80; }
-                .vc3-charity-dot {
-                    width: 7px; height: 7px; border-radius: 50%;
-                    background: #4ade80;
-                    box-shadow: 0 0 8px #4ade80;
-                    animation: livePulse 1.5s ease-in-out infinite;
-                    flex-shrink: 0;
-                }
-                .vc3-charity-date-big {
-                    font-size: 22px;
-                    font-weight: 800;
-                    color: #ffffff;
-                    letter-spacing: -0.3px;
-                    line-height: 1.1;
-                    display: flex;
-                    align-items: baseline;
-                    gap: 8px;
-                    flex-wrap: wrap;
-                }
-                .vc3-charity-today .vc3-charity-date-big { color: #4ade80; }
-                .vc3-charity-date-cal {
-                    font-size: 13px;
-                    font-weight: 600;
-                    color: rgba(255,255,255,0.55);
-                    background: rgba(255,255,255,0.08);
-                    border: 1px solid rgba(255,255,255,0.12);
-                    border-radius: 5px;
-                    padding: 2px 7px;
-                    white-space: nowrap;
-                }
-                .vc3-charity-addr {
-                    font-size: 12px;
-                    color: rgba(255,255,255,0.6);
-                    font-weight: 500;
-                    margin-top: 1px;
-                    display: flex;
-                    align-items: center;
-                    gap: 4px;
-                }
-                .vc3-charity-addr::before {
-                    content: '';
-                    display: inline-block;
-                    width: 3px; height: 3px;
-                    border-radius: 50%;
-                    background: rgba(255,255,255,0.3);
-                    flex-shrink: 0;
-                }
-                .vc3-charity-meta {
-                    display: flex;
-                    align-items: center;
-                    gap: 5px;
-                    font-size: 13px;
-                    font-weight: 700;
-                    color: rgba(255,255,255,0.85);
-                    margin-top: 2px;
-                }
-                .vc3-charity-sep { color: rgba(255,255,255,0.3); margin: 0 1px; }
-                .vc3-charity-date-badge {
-                    display: inline-flex; align-items: center; gap: 5px;
-                    margin-top: 4px;
-                    background: rgba(59,130,246,0.15);
-                    border: 1px solid rgba(59,130,246,0.35);
-                    border-radius: 6px;
-                    padding: 3px 8px;
-                    font-size: 12px; font-weight: 700;
-                    color: #60a5fa;
-                    letter-spacing: 0.2px;
-                    align-self: flex-start;
-                }
-                .vc3-tourney-item-upcoming { background: rgba(59,130,246,0.06); border-color: rgba(59,130,246,0.15); }
-                .vc3-tourney-location {
-                    display: flex; align-items: center; gap: 4px;
-                    font-size: 12px; color: rgba(255,255,255,0.45);
-                    margin-top: 2px; font-weight: 500;
-                    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%;
-                }
-
-                @media (max-width: 480px) {
-                    .vc3-actions { flex-direction: column; gap: 8px; }
-                    .vc3-actions-secondary { width: 100%; justify-content: flex-start; }
-                    .vc3-actions-primary { width: 100%; justify-content: stretch; }
-                    .vc3-pill { flex: 1; justify-content: center; }
-                    .vc3-name { font-size: 15px; }
-                    .vc3-header { flex-wrap: nowrap; gap: 6px; }
-                    .vc3-right-stack { gap: 2px; }
-                }
-                .vc3-checkin-backdrop { position: fixed; inset: 0; background: rgba(5,8,16,0.75); backdrop-filter: blur(6px); z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 20px; padding-top: max(env(safe-area-inset-top, 0px), 20px); padding-bottom: max(env(safe-area-inset-bottom, 0px), 20px); box-sizing: border-box; animation: vc3-fade-in 0.15s ease; }
-                @keyframes vc3-fade-in { from { opacity: 0; } to { opacity: 1; } }
-                .vc3-checkin-modal { background: #0d1626; border: 1px solid rgba(34,211,238,0.2); border-radius: 14px; padding: 20px; width: 100%; max-width: 420px; color: #fff; box-shadow: 0 20px 60px rgba(0,0,0,0.6); }
-                .vc3-checkin-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; font-size: 15px; font-weight: 700; color: #22d3ee; }
-                .vc3-checkin-close { --sp-btn-size: 44px; background: transparent; border: none; color: #64748b; font-size: 24px; cursor: pointer; line-height: 1; padding: 0; min-width: 44px; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
-                .vc3-checkin-close:hover, .vc3-checkin-close:active { color: #fff; }
-                .vc3-checkin-handle { display: none; }
-                /* Mobile phase 3: bottom sheet at or below 600px with a drag handle,
-                   16px textarea (no iOS zoom), 44px actions. */
-                @media (max-width: 600px) {
-                    .vc3-checkin-backdrop { align-items: flex-end; padding: 0; padding-top: max(env(safe-area-inset-top, 0px), 12px); }
-                    .vc3-checkin-modal { max-width: none; border-radius: 16px 16px 0 0; padding: 8px 16px calc(env(safe-area-inset-bottom, 0px) + 16px); max-height: 92dvh; overflow-y: auto; }
-                    .vc3-checkin-handle { display: block; width: 44px; height: 4px; border-radius: 999px; background: rgba(255,255,255,0.18); margin: 0 auto 8px; }
-                    .vc3-checkin-textarea { font-size: 16px; }
-                    .vc3-checkin-actions { flex-wrap: wrap; }
-                }
-                .vc3-checkin-textarea { width: 100%; box-sizing: border-box; background: rgba(0,0,0,0.3); border: 1px solid rgba(34,211,238,0.2); border-radius: 8px; color: #fff; font-size: 14px; font-family: inherit; padding: 10px 12px; resize: vertical; min-height: 80px; line-height: 1.5; }
-                .vc3-checkin-textarea:focus { outline: none; border-color: rgba(34,211,238,0.5); }
-                .vc3-checkin-actions { display: flex; align-items: center; gap: 8px; margin-top: 12px; }
-                .vc3-checkin-count { font-size: 12px; color: rgba(255,255,255,0.35); margin-right: auto; }
-                .vc3-checkin-cancel { background: transparent; border: 1px solid rgba(255,255,255,0.15); color: rgba(255,255,255,0.6); border-radius: 8px; min-height: 44px; padding: 8px 14px; font-size: 13px; font-weight: 600; cursor: pointer; touch-action: manipulation; }
-                .vc3-checkin-submit { background: #0284c7; border: none; color: #fff; border-radius: 8px; min-height: 44px; padding: 8px 16px; font-size: 13px; font-weight: 700; cursor: pointer; touch-action: manipulation; }
-                .vc3-checkin-submit:disabled { opacity: 0.5; cursor: not-allowed; }
-                .vc3-checkin-done { text-align: center; padding: 20px; font-size: 18px; font-weight: 700; color: #22d3ee; }
-                .vc3-checkin-error { margin: 8px 0 0; padding: 8px 10px; border-radius: 8px; background: rgba(248,81,73,0.1); border: 1px solid rgba(248,81,73,0.3); color: #f85149; font-size: 12px; font-weight: 600; }
-`;
-
 export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, onFavorite, onNavigate, checkinCount, reviewStats, index = 0 }) {
     // === ALL HOOKS MUST BE UNCONDITIONAL — before any early return ===
     // Animated trust bar + staggered card entrance
@@ -700,23 +219,17 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
         return () => clearTimeout(timer);
     }, [index]);
 
-    // PERFORMANCE FIX: the card's 440-line <style> block used to live inside the
-    // returned JSX, so a grid of 50-200 cards inserted 50-200 identical <style>
-    // elements — several hundred KB of duplicated CSS to parse and re-match on every
-    // card mount/unmount. Inject it into <head> exactly once instead.
-    useEffect(() => {
-        if (typeof document === 'undefined') return;
-        if (document.getElementById(VC3_STYLE_ID)) return;
-        const el = document.createElement('style');
-        el.id = VC3_STYLE_ID;
-        el.textContent = VC3_CARD_STYLES;
-        document.head.appendChild(el);
-    }, []);
+    // The card and its check-in dialog are painted by the shared console layers
+    // (poker-near-me-console-cards.css + PokerNearMeConsole). The generic
+    // VC3_CARD_STYLES sheet this effect used to inject into <head> is retired.
 
     // A11Y: the check-in modal had no dialog role, no Escape handler and no focus
     // management, so keyboard and screen-reader users tabbed straight past it.
     const checkinModalRef = useRef(null);
     const checkinOpenerRef = useRef(null);
+    // Read inside the keydown listener, which is bound once per open.
+    const checkinBusyRef = useRef(false);
+    checkinBusyRef.current = checkinBusy;
     // Mobile phase 3: the back gesture closes the check-in sheet; a drag that
     // merely ends on the scrim does not.
     const closeCheckin = useCallback(() => setCheckinModal(false), []);
@@ -732,7 +245,8 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
         const onKeyDown = (e) => {
             if (e.key === 'Escape') {
                 e.stopPropagation();
-                setCheckinModal(false);
+                // A post in flight keeps its outcome on screen: Escape waits for it.
+                if (!checkinBusyRef.current) setCheckinModal(false);
                 return;
             }
             // A11Y FIX: trap Tab inside the panel. The modal is portalled to document.body
@@ -756,17 +270,29 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
             }
         };
         document.addEventListener('keydown', onKeyDown, true);
-        const prevOverflow = document.body.style.overflow;
-        document.body.style.overflow = 'hidden';
+        // The shared registry lock (src/lib/scrollLock.js) instead of a captured
+        // body.style.overflow, so a nested dialog or a route change cannot strand
+        // the page unscrollable.
+        const releaseScrollLock = acquireScrollLock('VenueCardCheckinDialog');
         return () => {
             document.removeEventListener('keydown', onKeyDown, true);
-            document.body.style.overflow = prevOverflow;
+            releaseScrollLock();
             const opener = checkinOpenerRef.current;
             if (opener && typeof opener.focus === 'function') {
                 try { opener.focus(); } catch { /* element gone */ }
             }
         };
     }, [checkinModal]);
+    // While a post is in flight its plates and Close are disabled. A disabled
+    // control drops focus to <body>, outside the trap; hold it on the dialog.
+    useEffect(() => {
+        if (!checkinModal || !checkinBusy || typeof document === 'undefined') return;
+        const root = checkinModalRef.current;
+        const active = document.activeElement;
+        if (root && (!active || active.disabled || !root.contains(active))) {
+            try { root.focus(); } catch { /* focus not supported */ }
+        }
+    }, [checkinModal, checkinBusy]);
 
     // Memoize wait estimate BEFORE the guard (React hooks must be unconditional)
     const hasLiveData = venue && venue.live_data && venue.live_data.tables_running > 0;
@@ -775,6 +301,18 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
     const catalogCashGames = venue?.live_data?.data_mode === 'catalog';
     const unavailableCashGames = venue?.live_data?.live_count_known === false && !catalogCashGames;
     const publishedCashGameLabel = cashGameCountLabel(venue?.live_data);
+    // Provenance of the published count, in cashGameCountLabel's own precedence.
+    // Only an observed live count earns the green signal; modeled, mixed,
+    // catalog-only and unavailable counts print in their own honest inks.
+    const cashGameMode = catalogCashGames
+        ? 'catalog'
+        : unavailableCashGames
+            ? 'unavailable'
+            : modeledCashGames
+                ? 'estimated'
+                : venue?.live_data?.data_mode === 'mixed'
+                    ? 'mixed'
+                    : venue?.live_data?.data_mode === 'live' ? 'live' : 'reported';
     // BUG FIX: the meter renders when `hasLiveData || checkinCount > 0`, but the level was
     // only computed when hasLiveData was true — so a venue with no live table data and N
     // users checked in showed a hardcoded "Empty" / 0% bar, discarding the only signal
@@ -803,7 +341,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
 
     const trust = getTrustLevel(venue.trust_score || 0);
     const detailUrl = getVenueUrl(venue);
-    const typeColor = VENUE_TYPE_COLORS[venue.venue_type] || VENUE_TYPE_COLORS.casino;
+    const typeTone = VENUE_TYPE_TONES[venue.venue_type] || 'silver';
     const openStatus = getOpenStatus(venue);
     const logoUrl = getVenueLogoUrl(venue);
 
@@ -927,7 +465,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                 {/* Left: Logo + Name */}
                 <div className="vc3-header-left">
                     {/* Venue Logo — 1.5x size */}
-                    <div className="vc3-logo" style={!logoUrl || logoError ? { background: getVenueColor(venue).bg } : {}}>
+                    <div className="vc3-logo" data-media-state={logoUrl && !logoError ? 'image' : 'fallback'}>
                         {logoUrl && !logoError ? (
                             <img
                                 src={logoUrl}
@@ -947,7 +485,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                                 loading="lazy"
                             />
                         ) : (
-                            <span className="vc3-logo-initials" style={{ color: getVenueColor(venue).text }}>{getVenueInitials(venue.name)}</span>
+                            <span className="vc3-logo-initials">{getVenueInitials(venue.name)}</span>
                         )}
                     </div>
                     {/* Name + Type — stacked beside logo */}
@@ -991,7 +529,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                                         <PokerNearMeConsoleIcon name="location" className="pnm-console-card__meta-icon" />
                                         <span>{displayCity}{displayCity && displayState ? ', ' : ''}{displayState}</span>
                                     </a>
-                                    <span className="vc3-type-label" style={{ color: typeColor.color }}>
+                                    <span className="vc3-type-label" data-tone={typeTone}>
                                         {VENUE_TYPE_LABELS[venue.venue_type] || venue.venue_type}
                                     </span>
                                 </div>
@@ -1011,81 +549,83 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                             }
                             return (
                                 <div className="vc3-next-event-header">
-                                    <span className="vc3-next-event-label">NEXT EVENT: {dateStr}</span>
+                                    <span className="vc3-next-event-label">Next Event: {dateStr}</span>
                                 </div>
                             );
                         })()}
                         {/* Bold TODAY label for charity venues running today */}
                         {venue.venue_type === 'charity' && venue.is_today && (
                             <div className="vc3-next-event-header vc3-next-event-today">
-                                <span className="vc3-next-event-label">EVENT TODAY</span>
+                                <span className="vc3-next-event-label">Event Today</span>
                             </div>
                         )}
                     </div>
                 </div>
 
-                {/* Right: Heart, Distance below, then Hours */}
-                <div className="vc3-right-stack">
-                    {/* Heart button */}
-                    <button
-                        type="button"
-                        className={'vc3-fav' + (isFavorited ? ' active' : '')}
-                        onClick={(e) => { e.stopPropagation(); triggerHaptic('light'); onFavorite && onFavorite(e); }}
-                        title={isFavorited ? 'Remove from favorites' : 'Add to favorites'}
-                        aria-label={isFavorited ? `Remove ${venue.name || 'venue'} from saved venues` : `Save ${venue.name || 'venue'}`}
-                        aria-pressed={!!isFavorited}
-                    >
-                        <PokerNearMeConsoleIcon name="saved" />
-                    </button>
-                    {/* Distance pill below heart */}
-                    {venue.distance_mi != null && (
-                        <span className="vc3-distance">
-                            <PokerNearMeConsoleIcon name="directions" className="pnm-console-card__meta-icon" />
-                            {typeof venue.distance_mi === 'number' ? venue.distance_mi.toFixed(1) : venue.distance_mi} Mi
+                {/* Save control: the painted saved-icon holder is the whole button. */}
+                <button
+                    type="button"
+                    className={'vc3-fav' + (isFavorited ? ' active' : '')}
+                    onClick={(e) => { e.stopPropagation(); triggerHaptic('light'); onFavorite && onFavorite(e); }}
+                    title={isFavorited ? 'Remove from favorites' : 'Add to favorites'}
+                    aria-label={isFavorited ? `Remove ${venue.name || 'venue'} from saved venues` : `Save ${venue.name || 'venue'}`}
+                    aria-pressed={!!isFavorited}
+                >
+                    <PokerNearMeConsoleIcon name="saved" />
+                </button>
+            </div>
+
+            {/* Status line: distance, open/closed and posted hours print on the glass
+                under the identity, so they can never squeeze the venue name. */}
+            <div className="pnm-console-card__status-line">
+                {/* Distance */}
+                {venue.distance_mi != null && (
+                    <span className="vc3-distance">
+                        <PokerNearMeConsoleIcon name="directions" className="pnm-console-card__meta-icon" />
+                        {typeof venue.distance_mi === 'number' ? venue.distance_mi.toFixed(1) : venue.distance_mi} Mi
+                    </span>
+                )}
+                {/* GAP FIX: getOpenStatus(venue) was computed on every render but its
+                    result only ever reached the left column's empty state, so the
+                    timezone-aware Open/Closed badge the .vc3-open-pill / .vc3-open-dot /
+                    .vc3-hours-next rules were written for never rendered — the card
+                    advertised "Real-time Open/Closed status" and showed a raw hours
+                    string instead. Rendered here, and suppressed entirely when the
+                    status is null or `unknown` (the deliberate NULL-timezone case). */}
+                {openStatus && !openStatus.unknown && openStatus.label && (
+                    <span className={'vc3-open-pill' + (openStatus.open ? '' : ' closed')}>
+                        <span className={'vc3-open-dot' + (openStatus.open ? '' : ' closed')} />
+                        {openStatus.label}
+                    </span>
+                )}
+                {openStatus && !openStatus.unknown && openStatus.nextChange && (
+                    <span className="vc3-hours-next">{openStatus.nextChange}</span>
+                )}
+                {/* Hours below */}
+                {(() => {
+                    const is247 = (venue.hours === '24/7' || venue.hours_weekday === '24/7');
+                    const isCharityOrHome = ['charity', 'home_game'].includes(venue.venue_type);
+                    const effective247 = is247 && !isCharityOrHome;
+
+                    if (effective247 || !(venue.hours || venue.hours_weekday || venue.hours_weekend)) return null;
+
+                    // BUG FIX: this always printed hours_weekday || hours, so the posted
+                    // weekend string was never shown — not even on Saturday or Sunday.
+                    // Pick from the same zoned day getOpenStatus resolves; fall back to
+                    // the previous order when the venue timezone is unknown.
+                    const zonedNow = getZonedNow(resolveVenueTimeZone(venue));
+                    const isWeekend = zonedNow ? (zonedNow.dayOfWeek === 0 || zonedNow.dayOfWeek === 6) : false;
+                    const hoursText = isWeekend
+                        ? (venue.hours_weekend || venue.hours_weekday || venue.hours)
+                        : (venue.hours_weekday || venue.hours || venue.hours_weekend);
+                    if (!hoursText) return null;
+
+                    return (
+                        <span className="vc3-hours-compact">
+                            {hoursText}
                         </span>
-                    )}
-                    {/* GAP FIX: getOpenStatus(venue) was computed on every render but its
-                        result only ever reached the left column's empty state, so the
-                        timezone-aware Open/Closed badge the .vc3-open-pill / .vc3-open-dot /
-                        .vc3-hours-next rules were written for never rendered — the card
-                        advertised "Real-time Open/Closed status" and showed a raw hours
-                        string instead. Rendered here, and suppressed entirely when the
-                        status is null or `unknown` (the deliberate NULL-timezone case). */}
-                    {openStatus && !openStatus.unknown && openStatus.label && (
-                        <span className={'vc3-open-pill' + (openStatus.open ? '' : ' closed')}>
-                            <span className={'vc3-open-dot' + (openStatus.open ? '' : ' closed')} />
-                            {openStatus.label}
-                        </span>
-                    )}
-                    {openStatus && !openStatus.unknown && openStatus.nextChange && (
-                        <span className="vc3-hours-next">{openStatus.nextChange}</span>
-                    )}
-                    {/* Hours below */}
-                    {(() => {
-                        const is247 = (venue.hours === '24/7' || venue.hours_weekday === '24/7');
-                        const isCharityOrHome = ['charity', 'home_game'].includes(venue.venue_type);
-                        const effective247 = is247 && !isCharityOrHome;
-
-                        if (effective247 || !(venue.hours || venue.hours_weekday || venue.hours_weekend)) return null;
-
-                        // BUG FIX: this always printed hours_weekday || hours, so the posted
-                        // weekend string was never shown — not even on Saturday or Sunday.
-                        // Pick from the same zoned day getOpenStatus resolves; fall back to
-                        // the previous order when the venue timezone is unknown.
-                        const zonedNow = getZonedNow(resolveVenueTimeZone(venue));
-                        const isWeekend = zonedNow ? (zonedNow.dayOfWeek === 0 || zonedNow.dayOfWeek === 6) : false;
-                        const hoursText = isWeekend
-                            ? (venue.hours_weekend || venue.hours_weekday || venue.hours)
-                            : (venue.hours_weekday || venue.hours || venue.hours_weekend);
-                        if (!hoursText) return null;
-
-                        return (
-                            <span className="vc3-hours-compact">
-                                {hoursText}
-                            </span>
-                        );
-                    })()}
-                </div>
+                    );
+                })()}
             </div>
 
             {/* Address removed from here, now in header */}
@@ -1130,39 +670,41 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
 
             {/* === REVIEW RATING === */}
             {reviewStats && reviewStats.total_reviews > 0 && (
-                <div className="vc3-rating-row" onClick={e => { e.stopPropagation(); onNavigate && onNavigate(detailUrl + '?action=review'); }}>
+                <button type="button" className="vc3-rating-row pnm-console-card__text-action" onClick={e => { e.stopPropagation(); onNavigate && onNavigate(detailUrl + '?action=review'); }}>
                     <span className="vc3-rating-score">{(Number(reviewStats.avg_rating) || 0).toFixed(1)}</span>
-                    <span className="vc3-rating-count">({reviewStats.total_reviews} Review{reviewStats.total_reviews !== 1 ? 's' : ''})</span>
-                </div>
+                    <span className="vc3-rating-count">{`(${reviewStats.total_reviews} Review${reviewStats.total_reviews !== 1 ? 's' : ''})`}</span>
+                </button>
             )}
 
             {/* === QUICK TAGS (auto-generated intelligence) === */}
             <div className="vc3-badges">
-                {venue.is_featured && <span className="vc3-badge vc3-badge-featured">Featured</span>}
-                {hasPromo && <span className="vc3-badge vc3-badge-promo">Active Promo</span>}
-                {isNewcomer && <span className="vc3-badge vc3-badge-new">New Addition</span>}
-                {hasCashGameSignal && publishedCashGameLabel && (
-                    <span className={'vc3-badge vc3-badge-live' + (modeledCashGames ? ' vc3-badge-modeled' : '')}>
-                        <span className="vc3-live-dot" />
-                        {publishedCashGameLabel}
-                    </span>
-                )}
-                {venue.has_tournaments && <></>}
+                {venue.is_featured && <span className="pnm-console-card__tag" data-tone="gold">Featured</span>}
+                {hasPromo && <span className="pnm-console-card__tag" data-tone="blue">Active Promo</span>}
+                {isNewcomer && <span className="pnm-console-card__tag" data-tone="blue">New Addition</span>}
                 {venue.max_gtd > 0 && (
-                    <span className="vc3-badge vc3-badge-gtd">
+                    <span className="pnm-console-card__tag" data-tone="silver">
                         {formatMoney(venue.max_gtd)}+ GTD
                     </span>
                 )}
 
                 {/* SCHEMA FIX: `total_tables` is not a poker_venues column (it is `poker_tables`),
                     so this badge could never render. */}
-                {(venue.poker_tables ?? venue.total_tables) > 20 && <span className="vc3-badge">Large Room</span>}
+                {(venue.poker_tables ?? venue.total_tables) > 20 && <span className="pnm-console-card__tag">Large Room</span>}
                 {checkinCount > 0 && (
-                    <span className="vc3-badge vc3-badge-checkin" onClick={e => { e.stopPropagation(); onNavigate && onNavigate(detailUrl + '#checkins'); }}>
+                    <button type="button" className="pnm-console-card__text-action vc3-checkin-count" onClick={e => { e.stopPropagation(); onNavigate && onNavigate(detailUrl + '#checkins'); }}>
                         {checkinCount} Here Today
-                    </span>
+                    </button>
                 )}
             </div>
+
+            {/* Published cash-game count with its provenance (Live Now / Approx. /
+                Live + Estimated / Games Listed, Live Count Unknown) as live text. */}
+            {hasCashGameSignal && publishedCashGameLabel && (
+                <div className="pnm-console-card__provenance" data-mode={cashGameMode}>
+                    {cashGameMode === 'live' && <span className="pnm-console-card__signal" aria-hidden="true" />}
+                    <span>{publishedCashGameLabel}</span>
+                </div>
+            )}
 
             {/* Best Time To Go data lives on the venue detail page only */}
 
@@ -1170,7 +712,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
             {(hasLiveData || checkinCount > 0) && (
                 <div className="vc3-crowd-meter">
                     <div className="vc3-crowd-header">
-                        <span className="vc3-crowd-label" style={{ color: crowd.color }}>{crowd.label}</span>
+                        <span className="vc3-crowd-label">{modeledCashGames && hasLiveData ? `Estimated: ${crowd.label}` : crowd.label}</span>
                         {waitEstimate && (
                             <span className="vc3-wait-estimate">
                                 Est. Wait: {waitEstimate.label}
@@ -1180,7 +722,6 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                     <div className="vc3-crowd-track">
                         <div className="vc3-crowd-fill" style={{
                             width: mounted ? `${crowd.score}%` : '0%',
-                            background: crowd.color,
                         }} />
                     </div>
                 </div>
@@ -1194,33 +735,39 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                     <div className="vc3-col vc3-col-left">
                         {hasCashGameSignal ? (
                             <>
-                                <div className="vc3-col-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <div className="vc3-col-title">
+                                    {/* The published count and its provenance print once, in the
+                                        summary line above the data zone. */}
                                     <span>{catalogCashGames ? 'Catalog Cash Games' : modeledCashGames ? 'Estimated Cash Games' : 'Cash Games'}</span>
-                                    <span className="vc3-cash-count" data-modeled={modeledCashGames ? 'true' : 'false'} data-catalog={catalogCashGames ? 'true' : 'false'} data-unavailable={unavailableCashGames ? 'true' : 'false'}>
-                                        {publishedCashGameLabel}
-                                    </span>
                                 </div>
                                 {Array.isArray(venue.live_data.games) && venue.live_data.games.length > 0 ? (
-                                    <div className="vc3-list-scrollable vc3-list-scrollable-games" style={{ maxHeight: '160px' }}>
+                                    <div className="vc3-list-scrollable vc3-list-scrollable-games" role="region" aria-label={`Cash games at ${venue.name || 'this venue'}`} tabIndex={0}>
                                         {venue.live_data.games.map((g, idx) => {
                                             const gameName = g?.game || 'Unknown Game';
                                             const buyin = g?.buyin ? ` · ${g.buyin}` : '';
                                             const displayName = `${gameName}${buyin}`;
+                                            const rowCountUnknown = g?.observation_kind === 'catalog' || g?.live_count_known === false;
+                                            // A catalog-only room already says "Live Count Unknown" once, in
+                                            // the summary line; the rows do not repeat it. A mixed room keeps
+                                            // the per-row provenance, where rows really differ.
+                                            const repeatsSummary = rowCountUnknown && (cashGameMode === 'catalog' || cashGameMode === 'unavailable');
                                             return (
                                                 <div key={`live-game-${gameName.replace(/\\s+/g,'-')}-${buyin.replace(/\\s+/g,'-')}-${idx}`} className="vc3-list-item vc3-game-item">
-                                                    <span className="vc3-game-name" title={displayName}>{displayName.length > 28 ? displayName.substring(0, 25) + '...' : displayName}</span>
-                                                    <span className="vc3-game-tables">
-                                                        {g?.observation_kind === 'catalog' || g?.live_count_known === false
-                                                            ? 'Live Count Unknown'
-                                                            : <>{g?.is_simulated ? 'Approx. ' : ''}{Number(g?.tables_running) || 0} {Number(g?.tables_running) === 1 ? 'Table' : 'Tables'}</>}
-                                                    </span>
+                                                    <span className="vc3-game-name" title={displayName}>{displayName}</span>
+                                                    {!repeatsSummary && (
+                                                        <span className="vc3-game-tables" data-mode={rowCountUnknown ? 'catalog' : g?.is_simulated ? 'estimated' : 'reported'}>
+                                                            {rowCountUnknown
+                                                                ? 'Live Count Unknown'
+                                                                : <>{g?.is_simulated ? 'Approx. ' : ''}{Number(g?.tables_running) || 0} {Number(g?.tables_running) === 1 ? 'Table' : 'Tables'}</>}
+                                                        </span>
+                                                    )}
                                                 </div>
                                             );
                                         })}
                                     </div>
                                 ) : (
-                                    <div className="vc3-live-info-wrapper" style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '6px' }}>
-                                        <div className="vc3-live-info" style={{ marginBottom: 0, padding: '4px 8px' }}>
+                                    <div className="vc3-live-info-wrapper">
+                                        <div className="vc3-live-info">
                                             <div className="vc3-live-stat">
                                                 <span className="vc3-live-stat-val">{venue.live_data.tables_running}</span>
                                                 <span className="vc3-live-stat-label">Tables</span>
@@ -1236,7 +783,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                                 )}
                                 
                                 {venue.live_data.last_updated && (
-                                    <div style={{ fontSize: 12, color: staleInfo.stale ? 'rgba(245,158,11,0.8)' : 'rgba(255,255,255,0.3)', display: 'flex', alignItems: 'center', gap: 3, marginTop: 4 }}>
+                                    <div className="pnm-console-card__freshness" data-stale={staleInfo.stale ? 'true' : 'false'}>
                                         {catalogCashGames
                                             ? `Catalog Updated ${staleInfo.age || 'Recently'}`
                                             : modeledCashGames
@@ -1249,7 +796,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                             <>
                                 {Array.isArray(venue.stakes_cash) && venue.stakes_cash.length > 0 && !['tour_stop', 'poker_tour', 'tour', 'series'].includes(venue.venue_type) ? (
                                     <>
-                                        <div className="vc3-col-title" style={{ textAlign: 'center' }}>Stakes Played</div>
+                                        <div className="vc3-col-title">Stakes Played</div>
                                         <div className="vc3-stakes-list">
                                             {venue.stakes_cash.slice(0, 5).map((stake, idx) => (
                                                 <div key={`stake-${String(stake).replace(/\\s+/g,'-')}-${idx}`} className="vc3-list-item vc3-stake-item">
@@ -1268,10 +815,9 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                                             // claim at all rather than defaulting to one — a wrong badge
                                             // is worse than no badge.
                                             if (!os || os.unknown) return 'No Live Data';
-                                            if (os.open && !os.always) return `Open Now`;
-                                            if (!os.open && os.nextChange) return os.nextChange;
-                                            if (os.always) return 'Open 24/7';
-                                            return 'No Live Data';
+                                            // A known open/closed state already prints on the status
+                                            // line under the name; this column speaks for cash games.
+                                            return 'No Cash Games Listed';
                                         })()}
                                     </div>
                                 )}
@@ -1281,9 +827,8 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                         <div className="vc3-col-footer">
                             {/* Game Tags with stakes range — only shown when no live data */}
                             {!hasLiveData && Array.isArray(venue.games_offered) && venue.games_offered.length > 0 && (
-                                <div className="vc3-games" style={{ marginBottom: 0 }}>
+                                <div className="vc3-games">
                                     {venue.games_offered.slice(0, 4).map((g, idx) => {
-                                        const chipStyle = getGameChipStyle(g);
                                         // Find matching stakes for this game type
                                         const gLower = (g || '').toLowerCase();
                                         const matchedStakes = Array.isArray(venue.stakes_cash) ? venue.stakes_cash.filter(s => {
@@ -1294,12 +839,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                                         }) : [];
                                         const stakeSuffix = matchedStakes.length > 0 ? ` (${matchedStakes.length})` : '';
                                         return (
-                                            <span key={g || idx} className="vc3-game-chip" style={{
-                                                background: chipStyle.bg || 'rgba(255,255,255,0.06)',
-                                                color: chipStyle.color || 'rgba(255,255,255,0.65)',
-                                                padding: '2px 6px',
-                                                fontSize: '12px'
-                                            }}>
+                                            <span key={g || idx} className="vc3-game-chip" data-tone={getGameTone(g)}>
                                                 {g}{stakeSuffix}
                                             </span>
                                         );
@@ -1376,17 +916,17 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                                                                 <div className="vc3-tourney-stack">{evt.starting_stack} Starting Stack</div>
                                                             )}
                                                             {tIdx === 0 && (
-                                                                <div className="vc3-tourney-date" style={{ display: 'flex', alignItems: 'center', gap: '5px', margin: '3px 0 2px 0' }}>
+                                                                <div className="vc3-tourney-date">
                                                                     <PokerNearMeConsoleIcon name="calendar" className="pnm-console-card__meta-icon" />
-                                                                    <span style={{ color: '#4ade80', fontWeight: 800, fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.4px' }}>Today</span>
+                                                                    <span className="pnm-console-card__when" data-tone="green">Today</span>
                                                                 </div>
                                                             )}
                                                         </div>
                                                     ))}
                                                     {extraCount > 0 && (
-                                                        <div className="vc3-more-badge" onClick={e => { e.stopPropagation(); onNavigate && onNavigate(detailUrl + '?tab=tournaments'); }}>
+                                                        <button type="button" className="vc3-more-badge pnm-console-card__text-action" onClick={e => { e.stopPropagation(); onNavigate && onNavigate(detailUrl + '?tab=tournaments'); }}>
                                                             +{extraCount} More Today
-                                                        </div>
+                                                        </button>
                                                     )}
                                                 </>
                                             );
@@ -1424,18 +964,18 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                                                                     dateStr = d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
                                                                 }
                                                                 return (
-                                                                    <div className="vc3-tourney-date" style={{ display: 'flex', alignItems: 'center', gap: '5px', margin: '3px 0 2px 0' }}>
+                                                                    <div className="vc3-tourney-date">
                                                                         <PokerNearMeConsoleIcon name="calendar" className="pnm-console-card__meta-icon" />
-                                                                        <span style={{ color: '#60a5fa', fontWeight: 800, fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.4px' }}>NEXT EVENT: {dateStr}</span>
+                                                                        <span className="pnm-console-card__when" data-tone="blue">Next Event: {dateStr}</span>
                                                                     </div>
                                                                 );
                                                             })()}
                                                         </div>
                                                     ))}
                                                     {extraCount > 0 && (
-                                                        <div className="vc3-more-badge" onClick={e => { e.stopPropagation(); onNavigate && onNavigate(detailUrl + '?tab=tournaments'); }}>
+                                                        <button type="button" className="vc3-more-badge pnm-console-card__text-action" onClick={e => { e.stopPropagation(); onNavigate && onNavigate(detailUrl + '?tab=tournaments'); }}>
                                                             +{extraCount} More
-                                                        </div>
+                                                        </button>
                                                     )}
                                                 </>
                                             );
@@ -1456,7 +996,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                                                     daysBadgeLabel = d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
                                                 }
                                             }
-                                            const daysBadgeColor = t._is_today ? '#4ade80' : '#60a5fa';
+                                            const daysBadgeTone = t._is_today ? 'green' : 'blue';
                                             return (
                                                 <div key={`daily-tourney-${t?.id || tName.replace(/\s+/g,'-')}-${idx}`} className="vc3-list-item vc3-tourney-item">
                                                     <div className="vc3-tourney-name" title={tName}>{tName}</div>
@@ -1474,18 +1014,18 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                                                         <div className="vc3-tourney-blinds">{t.blind_levels} Levels</div>
                                                     )}
                                                     {daysBadgeLabel && (
-                                                        <div className="vc3-tourney-date" style={{ display: 'flex', alignItems: 'center', gap: '5px', margin: '3px 0 2px 0' }}>
+                                                        <div className="vc3-tourney-date">
                                                             <PokerNearMeConsoleIcon name="calendar" className="pnm-console-card__meta-icon" />
-                                                            <span style={{ color: daysBadgeColor, fontWeight: 800, fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.4px' }}>{daysBadgeLabel}</span>
+                                                            <span className="pnm-console-card__when" data-tone={daysBadgeTone}>{daysBadgeLabel}</span>
                                                         </div>
                                                     )}
                                                 </div>
                                             );
                                         })}
                                         {visibleTourneys.length > 3 && (
-                                            <div className="vc3-more-badge" onClick={e => { e.stopPropagation(); onNavigate && onNavigate(detailUrl + '?tab=tournaments'); }}>
+                                            <button type="button" className="vc3-more-badge pnm-console-card__text-action" onClick={e => { e.stopPropagation(); onNavigate && onNavigate(detailUrl + '?tab=tournaments'); }}>
                                                 +{visibleTourneys.length - 3} More Today
-                                            </div>
+                                            </button>
                                         )}
                                     </div>
                                 ) : venue.next_tournament_preview ? (
@@ -1513,14 +1053,14 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                                                         <span className="vc3-tourney-buyin">{buyInStr}</span>
                                                         {ntp.guaranteed > 0 ? <span className="vc3-tourney-gtd">{formatMoney(ntp.guaranteed)} GTD</span> : null}
                                                     </div>
-                                                    <div className="vc3-tourney-date" style={{ display: 'flex', alignItems: 'center', gap: '5px', margin: '3px 0 2px 0' }}>
+                                                    <div className="vc3-tourney-date">
                                                         <PokerNearMeConsoleIcon name="calendar" className="pnm-console-card__meta-icon" />
-                                                        <span style={{ color: '#60a5fa', fontWeight: 800, fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.4px' }}>Next: {dayLabel}</span>
+                                                        <span className="pnm-console-card__when" data-tone="blue">Next: {dayLabel}</span>
                                                     </div>
                                                     {ntp.total_that_day > 1 && (
-                                                        <div className="vc3-more-badge" style={{ marginTop: '4px' }} onClick={e => { e.stopPropagation(); onNavigate && onNavigate(detailUrl + '?tab=tournaments'); }}>
+                                                        <button type="button" className="vc3-more-badge pnm-console-card__text-action" onClick={e => { e.stopPropagation(); onNavigate && onNavigate(detailUrl + '?tab=tournaments'); }}>
                                                             +{ntp.total_that_day - 1} More That Day
-                                                        </div>
+                                                        </button>
                                                     )}
                                                 </div>
                                             );
@@ -1540,10 +1080,11 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
             </div>
 
             {/* === LOCKED FOOTER === */}
-            <div style={{ marginTop: 'auto' }}>
-                {/* === ACTION BAR === */}
+            <div className="pnm-console-card__foot-zone">
+                {/* === ACTION BAR ===
+                    Painted icon holders (website / call / directions), one lit
+                    secondary action on the glass, and exactly two painted plates. */}
                 <div className="vc3-actions">
-                {/* Secondary actions (Web/Call/Map) */}
                 <div className="vc3-actions-secondary">
                     {venue.website && (
                         <a href={venue.website.toLowerCase().startsWith('http') ? safeHref(venue.website) : safeHref('https://' + venue.website)}
@@ -1565,61 +1106,56 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                     </button>
                 </div>
 
-                {/* Primary actions */}
-                <div className="vc3-actions-primary">
-                    <button className="vc3-pill vc3-pill-checkin" onClick={handleCheckinOpen} title="Check In">
-                        <PokerNearMeConsoleIcon name="location" className="pnm-console-card__action-icon" />
-                        <span>Check In</span>
+                {/* Message Host button for home games replaces Review */}
+                {venue.venue_type === 'home_game' && venue.host_id ? (
+                    <button type="button" className="vc3-pill-message pnm-console-card__text-action" onClick={e => { e.stopPropagation(); onNavigate && onNavigate('/hub/messenger?to=' + venue.host_id + '&game=' + venue.id + '&gameName=' + encodeURIComponent(venue.name || '')); }} title="Message Host">
+                        Message Host
                     </button>
-                    {/* Message Host button for home games replaces Review */}
-                    {venue.venue_type === 'home_game' && venue.host_id ? (
-                        <button className="vc3-pill vc3-pill-message" onClick={e => { e.stopPropagation(); onNavigate && onNavigate('/hub/messenger?to=' + venue.host_id + '&game=' + venue.id + '&gameName=' + encodeURIComponent(venue.name || '')); }} title="Message Host">
-                            <PokerNearMeConsoleIcon name="share" className="pnm-console-card__action-icon" />
-                            <span>Message Host</span>
+                ) : (
+                    venue.has_tournaments ? (
+                        <button type="button" className="vc3-pill-schedule pnm-console-card__text-action" onClick={e => { e.stopPropagation(); onNavigate && onNavigate(detailUrl + '?tab=tournaments'); }} title="Tournament Schedule">
+                            Tournament Schedule
                         </button>
-                    ) : (
-                        venue.has_tournaments ? (
-                            <button className="vc3-pill vc3-pill-schedule" onClick={e => { e.stopPropagation(); onNavigate && onNavigate(detailUrl + '?tab=tournaments'); }} title="Tournament Schedule">
-                                <PokerNearMeConsoleIcon name="calendar" className="pnm-console-card__action-icon" />
-                                <span>Schedule</span>
-                            </button>
-                        ) : null
-                    )}
-                    <button className="vc3-pill vc3-pill-details" onClick={e => { e.stopPropagation(); onNavigate && onNavigate(detailUrl); }} title="Details">
-                        <PokerNearMeConsoleIcon name="directions" className="pnm-console-card__action-icon" />
-                        <span>Details</span>
+                    ) : null
+                )}
+
+                {/* Primary actions: two plates, steel then blue glass */}
+                <div className="vc3-actions-primary">
+                    <button type="button" className="pnm-card-plate pnm-card-plate--secondary pnm-console-card__checkin-plate" onClick={handleCheckinOpen} title="Check In">
+                        <PnmPlateLabel label="Check In" />
+                    </button>
+                    <button type="button" className="pnm-card-plate pnm-card-plate--primary pnm-console-card__details-plate" onClick={e => { e.stopPropagation(); onNavigate && onNavigate(detailUrl); }} title="Details">
+                        <PnmPlateLabel label="Details" />
                     </button>
                 </div>
             </div>
 
             {/* === TRUST SCORE / PLAYER RATING — not shown for tour cards === */}
             {!['tour_stop', 'poker_tour', 'tour', 'series'].includes(venue.venue_type) && (
-            <div className="vc3-trust">
+            <div className="vc3-trust" data-tone={reviewStats && reviewStats.total_reviews > 0 ? (reviewStats.avg_rating >= 4 ? 'green' : reviewStats.avg_rating >= 3 ? 'silver' : 'muted') : trust.tone}>
                 {reviewStats && reviewStats.total_reviews > 0 ? (
                     <>
                         <div className="vc3-trust-header">
-                            <span className="vc3-trust-label" style={{ color: reviewStats.avg_rating >= 4 ? '#22c55e' : reviewStats.avg_rating >= 3 ? '#ffffff' : '#f59e0b' }}>Player Rating</span>
-                            <span className="vc3-trust-val" style={{ color: reviewStats.avg_rating >= 4 ? '#22c55e' : reviewStats.avg_rating >= 3 ? '#ffffff' : '#f59e0b' }}>
+                            <span className="vc3-trust-label">Player Rating</span>
+                            <span className="vc3-trust-val">
                                 {(Number(reviewStats.avg_rating) || 0).toFixed(1)}/5 ({reviewStats.total_reviews})
                             </span>
                         </div>
                         <div className="vc3-trust-track">
                             <div className="vc3-trust-fill" style={{
                                 width: mounted ? Math.round((Number(reviewStats.avg_rating) / 5) * 100) + '%' : '0%',
-                                background: reviewStats.avg_rating >= 4 ? '#22c55e' : reviewStats.avg_rating >= 3 ? '#ffffff' : '#f59e0b',
                             }} />
                         </div>
                     </>
                 ) : (
                     <>
                         <div className="vc3-trust-header">
-                            <span className="vc3-trust-label" style={{ color: trust.color }}>Trust: {trust.label}</span>
-                            <span className="vc3-trust-val" style={{ color: trust.color }}>{(venue.trust_score && venue.trust_score > 0) ? venue.trust_score + '/5' : '-'}</span>
+                            <span className="vc3-trust-label">Trust: {trust.label}</span>
+                            <span className="vc3-trust-val">{(venue.trust_score && venue.trust_score > 0) ? venue.trust_score + '/5' : '-'}</span>
                         </div>
                         <div className="vc3-trust-track">
                             <div className="vc3-trust-fill" style={{
                                 width: mounted ? trust.pct + '%' : '0%',
-                                background: trust.color,
                             }} />
                         </div>
                     </>
@@ -1631,57 +1167,101 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
             {/* === CHECK-IN MODAL ===
                 BUG FIX: this used to render inside the card, whose root always carries an
                 inline `transform`. Any transform other than `none` makes the element a
-                containing block for position:fixed descendants, so `.vc3-checkin-backdrop`
+                containing block for position:fixed descendants, so the old backdrop
                 (position: fixed; inset: 0) covered only the CARD — on a grid of venue cards
                 the modal appeared as a tiny clipped overlay with the 420px-wide panel
                 overflowing it. Portalled to document.body so it escapes the transform. */}
             {checkinModal && typeof document !== 'undefined' && createPortal((
-                <div className="vc3-checkin-backdrop" role="presentation" {...checkinScrim}>
-                    <div
-                        className="vc3-checkin-modal"
+                <div
+                    className="pnm-console-dialog-overlay pnm-checkin-dialog-overlay"
+                    role="presentation"
+                    onPointerDown={checkinScrim.onPointerDown}
+                    onClick={(e) => {
+                        // React bubbles portal events through the card's own onClick;
+                        // a scrim tap closes the dialog and must not also open the venue.
+                        e.stopPropagation();
+                        if (!checkinBusy) checkinScrim.onClick(e);
+                    }}
+                    style={{ paddingTop: 'max(12px, env(safe-area-inset-top, 0px))' }}
+                >
+                    <section
+                        ref={checkinModalRef}
+                        className="pnm-console-dialog-shell pnm-checkin-dialog"
                         role="dialog"
                         aria-modal="true"
-                        aria-label={`Check in at ${venue.name || 'this venue'}`}
+                        aria-labelledby="pnm-venue-checkin-title"
+                        aria-describedby="pnm-venue-checkin-description"
+                        aria-busy={checkinBusy}
                         tabIndex={-1}
-                        ref={checkinModalRef}
                         onClick={e => e.stopPropagation()}
                     >
-                        <div className="vc3-checkin-handle" aria-hidden="true" />
-                        <div className="vc3-checkin-header">
-                            <span>Check In At {venue.name}</span>
-                            <button type="button" className="vc3-checkin-close sp-icon-btn" aria-label="Close" onClick={closeCheckin}><PokerNearMeConsoleIcon name="close" /></button>
-                        </div>
-                        {checkinDone ? (
-                            <div className="vc3-checkin-done">✓ Checked In!</div>
-                        ) : (
-                            <>
-                                <textarea
-                                    className="vc3-checkin-textarea"
-                                    value={checkinMsg}
-                                    onChange={e => setCheckinMsg(e.target.value)}
-                                    rows={3}
-                                    maxLength={280}
-                                    placeholder="What's happening at the table?"
-                                />
-                                {checkinError && (
-                                    <div className="vc3-checkin-error">{checkinError}</div>
+                        <PokerNearMeConsole
+                            as="div"
+                            className="pnm-console-dialog"
+                            crest="locator"
+                            eyebrow="Venue Check-In"
+                            title="Check In"
+                            titleId="pnm-venue-checkin-title"
+                            foot={checkinDone ? 'foot' : 'plates'}
+                            plates={checkinDone ? undefined : {
+                                secondary: {
+                                    label: 'Cancel',
+                                    onClick: closeCheckin,
+                                    disabled: checkinBusy,
+                                    'aria-label': 'Cancel Check-In',
+                                },
+                                primary: {
+                                    // A short verb fits the plate face at full size; the
+                                    // accessible name keeps the whole action.
+                                    label: checkinBusy ? 'Posting...' : 'Post',
+                                    ink: 'white',
+                                    onClick: handleCheckinSubmit,
+                                    disabled: checkinBusy || !checkinMsg.trim(),
+                                    'aria-label': checkinBusy ? 'Posting Check-In' : 'Post Check-In',
+                                },
+                            }}
+                        >
+                            <div className="pnm-console-dialog__body">
+                                <p id="pnm-venue-checkin-description" className="pnm-console-dialog__copy pnm-checkin-dialog__venue">
+                                    Check In At {venue.name || 'This Venue'}
+                                </p>
+                                {checkinDone ? (
+                                    <p className="pnm-console-dialog__copy pnm-checkin-dialog__done" role="status">Checked In</p>
+                                ) : (
+                                    <div className="pnm-console-dialog__content">
+                                        <label className="pnm-console-dialog__field">
+                                            <span className="pnm-console-dialog__label">Your Message</span>
+                                            <textarea
+                                                className="pnm-checkin-dialog__textarea"
+                                                value={checkinMsg}
+                                                onChange={e => setCheckinMsg(e.target.value)}
+                                                rows={3}
+                                                maxLength={280}
+                                                disabled={checkinBusy}
+                                                placeholder="What's Happening At The Table?"
+                                            />
+                                        </label>
+                                        <span className="pnm-checkin-dialog__count" aria-live="polite">{checkinMsg.length}/280</span>
+                                        {checkinError && (
+                                            <p className="pnm-console-dialog__error" role="alert">{checkinError}</p>
+                                        )}
+                                    </div>
                                 )}
-                                <div className="vc3-checkin-actions">
-                                    <span className="vc3-checkin-count">{checkinMsg.length}/280</span>
-                                    <button type="button" className="vc3-checkin-cancel" onClick={closeCheckin}>Cancel</button>
-                                    <button type="button" className="vc3-checkin-submit" onClick={handleCheckinSubmit} disabled={checkinBusy || !checkinMsg.trim()}>
-                                        {checkinBusy ? 'Posting...' : 'Post Check-In'}
-                                    </button>
-                                </div>
-                            </>
-                        )}
-                    </div>
+                            </div>
+                        </PokerNearMeConsole>
+                        <button
+                            type="button"
+                            className="pnm-console-dialog__close"
+                            onClick={closeCheckin}
+                            disabled={checkinBusy}
+                            aria-label="Close Check-In Dialog"
+                        >
+                            Close
+                        </button>
+                    </section>
                 </div>
             ), document.body)}
 
-            {/* Old Calendar display successfully abstracted */}
-            {/* Card CSS is injected into <head> exactly once (see VC3_CARD_STYLES
-                below) instead of being duplicated per card instance. */}
         </PokerNearMePanelShell>
     );
 }

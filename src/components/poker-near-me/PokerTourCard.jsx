@@ -8,6 +8,7 @@ import { useRouter } from 'next/router';
 import Link from 'next/link';
 import { tourCanonical } from '../../lib/seo/tourPageSeo';
 import { PokerNearMeConsoleIcon, PokerNearMePanelShell } from './PokerNearMeConsole';
+import { PnmPlateLabel } from './TourCard';
 
 // BUG FIX: `colors` and `typeInfo` were hardcoded literals despite the comment
 // "Default to circuit styling as fallback", so every tour rendered in identical
@@ -16,7 +17,7 @@ const TOUR_TYPE_STYLES = {
     major:       { label: 'Major Tour', tone: 'gold' },
     circuit:     { label: 'Circuit', tone: 'blue' },
     regional:    { label: 'Regional', tone: 'green' },
-    high_roller: { label: 'High Roller', tone: 'violet' },
+    high_roller: { label: 'High Roller', tone: 'gold' },
     grassroots:  { label: 'Grassroots', tone: 'silver' },
     charity:     { label: 'Charity', tone: 'blue' },
 };
@@ -46,7 +47,9 @@ export default function PokerTourCard({ tourPin = {} }) {
     const router = useRouter();
     const style = TOUR_TYPE_STYLES[tourPin.tour_type] || DEFAULT_TOUR_STYLE;
     // BUG FIX: the green "LIVE NOW" badge was unconditional, with no date check —
-    // every tour claimed to be running right now.
+    // every tour claimed to be running right now. It is now date-gated, and it
+    // says what it is: the stop's published dates include today (Current Stop),
+    // which is a schedule fact, not observed live activity.
     const liveNow = isStopLiveNow(tourPin);
     // BUG FIX: `tourPin.city + ', ' + tourPin.state` printed the literal
     // "undefined, undefined" whenever those fields were absent.
@@ -68,7 +71,7 @@ export default function PokerTourCard({ tourPin = {} }) {
                 <div className="pnm-console-card__brand-row">
                     {tourPin.logo_url && (
                         <div className="tour-logo-container pnm-console-card__logo-frame">
-                            <img src={tourPin.logo_url} alt="Logo" className="tour-logo-img" />
+                            <img src={tourPin.logo_url} alt={`${tourPin.tour_name || tourPin.name || 'Tour'} logo`} className="tour-logo-img" />
                         </div>
                     )}
                     <div className="tour-code-badge pnm-console-card__brand" data-tone={style.tone}>
@@ -91,7 +94,7 @@ export default function PokerTourCard({ tourPin = {} }) {
                     <div className="pnm-console-card__live-line">
                         <PokerNearMeConsoleIcon name="location" className="pnm-console-card__meta-icon" />
                         <span>
-                            LIVE NOW
+                            Current Stop
                         </span>
                     </div>
                 )}
@@ -104,17 +107,13 @@ export default function PokerTourCard({ tourPin = {} }) {
             {/* Card Footer */}
             <div className="tour-card-footer">
                 <div className="tour-card-actions">
+                    {/* No tour code means no detail page: no control is printed rather
+                        than a Details label that does nothing. */}
                     {detailHref ? (
                         <Link href={detailHref} className="tour-action-btn primary" onClick={e => e.stopPropagation()}>
-                            <PokerNearMeConsoleIcon name="directions" className="pnm-console-card__action-icon" />
-                            Details
+                            <PnmPlateLabel label="Details" />
                         </Link>
-                    ) : (
-                        <span className="tour-action-btn primary">
-                            <PokerNearMeConsoleIcon name="directions" className="pnm-console-card__action-icon" />
-                            Details
-                        </span>
-                    )}
+                    ) : null}
                 </div>
             </div>
         </PokerNearMePanelShell>

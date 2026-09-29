@@ -82,10 +82,11 @@ export default function LobbyOverlay({
   // ─── Global Search Overlay trigger ───
   onSearchBarClick,
 }) {
-  // Format venue count
-  const formattedVenueCount = useMemo(() => {
-    if (venueCount <= 0) return '0';
-    return venueCount.toLocaleString();
+  // Public venue count. Null while the page is still asking, a word
+  // ('Unknown') when it could not find out: a missing count never prints as 0.
+  const venueStatValue = useMemo(() => {
+    if (typeof venueCount === 'number') return venueCount > 0 ? venueCount : null;
+    return venueCount ?? null;
   }, [venueCount]);
 
   // If the grid bitmap 404s or is blocked, the twelve hotspots would otherwise
@@ -139,7 +140,8 @@ export default function LobbyOverlay({
                   onClick={onVoiceClick}
                   aria-label="Voice search"
                 >
-                  <span>Voice</span>
+                  {/* Printed on the painted steel plate inside the well's glass. */}
+                  <span className="lobby-voice-btn__label">Voice</span>
                 </button>
               )}
 
@@ -218,8 +220,10 @@ export default function LobbyOverlay({
                   <div className="lobby-location-prompt__title">
                     Enable Location
                   </div>
+                  {/* Short enough for one 12px line on the well's face at 390px;
+                      the aria-label carries the full sentence. */}
                   <div className="lobby-location-prompt__detail">
-                    Find Poker Rooms, Live Games, And Events Near You
+                    Rooms, Games And Events Near You
                   </div>
                 </div>
                 <PokerNearMeConsoleIcon name="directions" />
@@ -248,7 +252,9 @@ export default function LobbyOverlay({
               src="/images/lobby-pods/poker-near-me-grid.webp"
               alt="Poker Near Me Feature Grid"
               loading="eager"
-              fetchPriority="high"
+              // Lower-case on purpose: React 18 does not know fetchPriority and
+              // warned on every lobby load; the DOM attribute is fetchpriority.
+              fetchpriority="high"
               // THE GRID RESERVES ITS OWN SPACE (2026-09-17). With width:100%
               // and height:auto but no intrinsic size, the browser gave this a
               // zero-height box until the bytes arrived, and the hotspot grid
@@ -313,23 +319,29 @@ export default function LobbyOverlay({
           </div>
         </div>
 
-        {/* ═══ LIVE STATS BAR — below the grid ═══ */}
+        {/* ═══ LIVE STATS BAR — below the grid ═══
+            A value the page has not received yet prints Loading and one it could
+            not get prints Unknown, both in muted ink. Neither is ever a zero. */}
         <PokerNearMePanelShell as="section" className="lobby-stats-panel" aria-label="Poker Near Me directory status">
           {[
-            { value: formattedVenueCount, label: 'Public Venues', color: '#6ee7ef' },
+            { key: 'venues', value: venueStatValue, label: 'Public Venues', ink: 'blue' },
             // Label comes from /api/poker/live-tables metadata.data_mode via the
-            // page: 'Est. Tables' when the published number is modelled rather
-            // than observed. Never present an estimate as live data.
-            { value: liveData?.liveGameCount || 0, label: liveData?.liveGameLabel || 'Cash Tables', color: '#3fb950' },
-            { value: liveData?.dailyCount || 0, label: "Today's Tournaments", color: '#ffffff' },
-          ].map((stat, i) => (
-            <div key={i} className="lobby-stat">
-              <div className="lobby-stat__value" style={{ color: stat.color }}>
-                <span>{typeof stat.value === 'number' ? stat.value.toLocaleString() : stat.value}</span>
+            // page: 'Estimated Tables' when the published number is modelled
+            // rather than observed. Never present an estimate as live data, and
+            // only an observed count takes the green live ink.
+            { key: 'tables', value: liveData?.liveGameCount, label: liveData?.liveGameLabel || 'Live Count', ink: liveData?.liveGameObserved ? 'green' : 'silver' },
+            { key: 'daily', value: liveData?.dailyCount, label: "Today's Tournaments", ink: 'silver' },
+          ].map((stat) => {
+            const isCount = typeof stat.value === 'number' && Number.isFinite(stat.value);
+            return (
+              <div key={stat.key} className="lobby-stat" aria-busy={stat.value == null ? 'true' : undefined}>
+                <div className={`lobby-stat__value pnc-ink--${isCount ? stat.ink : 'muted'}`}>
+                  <span>{isCount ? stat.value.toLocaleString() : (stat.value == null ? 'Loading' : String(stat.value))}</span>
+                </div>
+                <div className="lobby-stat__label">{stat.label}</div>
               </div>
-              <div className="lobby-stat__label">{stat.label}</div>
-            </div>
-          ))}
+            );
+          })}
         </PokerNearMePanelShell>
 
 
@@ -350,8 +362,8 @@ export default function LobbyOverlay({
          users tabbing through twelve transparent buttons got no indication of
          where they were. */
       .lobby-hotspot:focus-visible {
-        outline: 2px solid #6ee7ef;
-        outline-offset: -2px;
+        outline: 2px solid #8fd4ff;
+        outline-offset: -3px;
       }
       /* Image-failure fallback: show real tiles instead of invisible buttons. */
       .lobby-hotspots-fallback .lobby-hotspot {
@@ -372,7 +384,6 @@ export default function LobbyOverlay({
         color: #eef5fb;
         font: 700 12px/1.1 var(--font-rajdhani), Rajdhani, Inter, sans-serif;
         text-align: center;
-        text-transform: uppercase;
       }
     `}</style>
     </>

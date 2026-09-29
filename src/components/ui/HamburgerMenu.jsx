@@ -97,24 +97,62 @@ const labelOf = (item) => (typeof item?.label === 'string' ? item.label : '');
 const matchesId = (item, id) => item?.id === id;
 const looksLikeSignOut = (item) => /sign\s*out|log\s*out|logout/i.test(labelOf(item));
 
-/** Presentation-only mapping to Poker Near Me's painted command controls. */
+/**
+ * Presentation-only mapping to Poker Near Me's painted command controls
+ * (the PokerNearMeConsoleIcon names). Known destinations map by route, so a
+ * reworded label cannot change the pictogram; anything else maps only on an
+ * unambiguous word. When no painted pictogram means the same thing the row is
+ * printed as text: returning null is deliberate, never a generic stand-in.
+ */
+const PNM_COMMAND_ICON_BY_ROUTE = Object.freeze({
+  '/hub/poker-near-me/lobby': 'location',
+  '/hub/poker-near-me/venues': 'directions',
+  '/hub/poker-near-me/series': 'event-ticket',
+  '/hub/poker-near-me/events': 'event-ticket',
+  '/hub/poker-near-me/live-games': 'live-games',
+  '/hub/poker-near-me/map': 'globe',
+  '/hub/poker-near-me/saved': 'saved',
+  '/hub/poker-near-me/roadtrip': 'roadtrip',
+  '/hub/poker-near-me/alerts': 'alert',
+  '/hub/poker-near-me/more': 'more',
+  '/hub/poker-near-me/lobby?pod=gametrends': 'live-games',
+  '/hub/poker-near-me/lobby?pod=peakheatmap': 'calendar',
+  '/hub/poker-near-me/lobby?pod=compare': 'filter',
+  '/hub/events-calendar': 'calendar',
+  '/hub/daily-tournaments': 'trophy',
+  '/hub/poker-tours': 'trophy',
+  '/hub/poker-series': 'trophy',
+  '/hub/series': 'trophy',
+  '/hub/tours': 'trophy',
+  '/hub/leaderboards': 'trophy',
+  '/hub/home-games': 'home',
+  '/hub/promotions': 'event-ticket',
+});
+
 function pokerNearMeCommandIcon(item) {
-  const signal = `${item?.href || ''} ${labelOf(item)} ${item?.description || ''}`.toLowerCase();
-  if (/search/.test(signal)) return 'search';
-  if (/saved|favourite|favorite|bookmark/.test(signal)) return 'saved';
-  if (/alert|notification/.test(signal)) return 'alert';
-  if (/review|rating/.test(signal)) return 'review';
-  if (/friend|community|social|player/.test(signal)) return 'community';
-  if (/road|trip|route|directions/.test(signal)) return 'roadtrip';
-  if (/event|calendar|schedule/.test(signal)) return 'event-ticket';
-  if (/tour|tournament|series|daily grind/.test(signal)) return 'trophy';
-  if (/live|cash|game/.test(signal)) return 'live-games';
-  if (/venue|casino|club|room/.test(signal)) return 'globe';
-  if (/map|nearby|location/.test(signal)) return 'location';
-  if (/filter|setting|preference/.test(signal)) return 'filter';
-  if (/help|about|info|guide/.test(signal)) return 'info';
-  if (/home/.test(signal)) return 'home';
-  return 'more';
+  const href = typeof item?.href === 'string' ? item.href.split('#')[0] : '';
+  if (href) {
+    const [path, query = ''] = href.split('?');
+    const pod = /(?:^|&)pod=([^&]+)/.exec(query)?.[1];
+    const routeIcon = (pod && PNM_COMMAND_ICON_BY_ROUTE[`${path}?pod=${pod}`])
+      || PNM_COMMAND_ICON_BY_ROUTE[path.replace(/\/+$/, '')];
+    if (routeIcon) return routeIcon;
+  }
+  const words = `${labelOf(item)} ${item?.description || ''}`.toLowerCase();
+  if (/\bsearch\b/.test(words)) return 'search';
+  if (/\b(?:saved|favou?rites?|bookmarks?)\b/.test(words)) return 'saved';
+  if (/\b(?:alerts?|notifications?|geofence)\b/.test(words)) return 'alert';
+  if (/\b(?:location|nearby|near me)\b/.test(words)) return 'location';
+  if (/\b(?:newcomer|community|friends|players?)\b/.test(words)) return 'community';
+  if (/\b(?:calendar|schedule|upcoming)\b/.test(words)) return 'calendar';
+  if (/\bevents?\b/.test(words)) return 'event-ticket';
+  if (/\b(?:tournaments?|series|tours?|leaderboards?)\b/.test(words)) return 'trophy';
+  if (/\b(?:road ?trip|trip cost)\b/.test(words)) return 'roadtrip';
+  if (/\b(?:live|cash) games?\b/.test(words)) return 'live-games';
+  if (/\bhome games?\b/.test(words)) return 'home';
+  if (/\bmaps?\b/.test(words)) return 'globe';
+  if (/\breviews?\b/.test(words)) return 'review';
+  return null;
 }
 
 /** Split a flat menu array into [{ label, items:[{item,index}] }] groups. */
@@ -172,6 +210,12 @@ function HamburgerMenuContent({
   );
   const commandMenuId = `sp-world-command-menu-${activeWorld?.id || 'global'}`;
   const isPokerNearMeMenu = activeWorld?.id === 'poker-near-me';
+  // Poker Near Me prints its drawer on painted console art. Each icon slot is
+  // a painted holder whose pictogram means what the row means, or the slot is
+  // removed and the row is printed as text. Other worlds get no class at all.
+  const pokerNearMeIconClass = (item) => (isPokerNearMeMenu
+    ? `sp-command-item-icon sp-command-item-icon--${pokerNearMeCommandIcon(item) || 'text-only'}`
+    : undefined);
   const worldAccent = activeWorld?.menuPalette?.accent || activeWorld?.accent || '#2e9bff';
   const isFacebookMenu = activeWorld?.menuPalette?.scheme === 'facebook';
   const worldMenuStyle = useMemo(
@@ -193,6 +237,7 @@ function HamburgerMenuContent({
 
   const drawerRef = useRef(null);
   const closeBtnRef = useRef(null);
+  const searchInputRef = useRef(null);
   const restoreFocusRef = useRef(null);
   const wasOpenRef = useRef(false);
   const navigationLockRef = useRef(null);
@@ -708,7 +753,7 @@ function HamburgerMenuContent({
         {/* Reserve the icon slot so every label shares one left edge */}
         <span
           aria-hidden="true"
-          className={isPokerNearMeMenu ? `sp-command-item-icon sp-command-item-icon--${pokerNearMeCommandIcon(item)}` : undefined}
+          className={pokerNearMeIconClass(item)}
           style={{ width: 24, height: 24, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: item.danger ? colors.danger : 'inherit' }}
         >
           {item.icon || null}
@@ -793,6 +838,7 @@ function HamburgerMenuContent({
       'aria-disabled': disabled ? 'true' : undefined,
       'aria-busy': pendingHref === item.href ? 'true' : undefined,
       'data-command-pending': pendingHref === item.href ? 'true' : undefined,
+      'data-command-pinned': isPokerNearMeMenu && editFavs ? (pinned ? 'true' : 'false') : undefined,
       'aria-label': editFavs
         ? `${pinned ? 'Unpin' : 'Pin'} ${item.label}`
         : (item.badge ? `${item.label}, ${item.badge} new` : undefined),
@@ -843,7 +889,7 @@ function HamburgerMenuContent({
           >
             <span
               aria-hidden="true"
-              className={isPokerNearMeMenu ? `sp-command-item-icon sp-command-item-icon--${pokerNearMeCommandIcon(item)}` : undefined}
+              className={pokerNearMeIconClass(item)}
               style={{ width: 24, height: 24, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
             >
               {item.icon || null}
@@ -856,6 +902,11 @@ function HamburgerMenuContent({
                 </span>
               ) : null}
             </span>
+            {isPokerNearMeMenu ? (
+              <span className="sp-command-switch-state" data-state={item.checked ? 'on' : 'off'} aria-hidden="true">
+                {item.checked ? 'On' : 'Off'}
+              </span>
+            ) : (
             <span
               aria-hidden="true"
               style={{
@@ -874,6 +925,7 @@ function HamburgerMenuContent({
                 }}
               />
             </span>
+            )}
           </button>
         );
       }
@@ -908,7 +960,7 @@ function HamburgerMenuContent({
           >
             <span
               aria-hidden="true"
-              className={isPokerNearMeMenu ? `sp-command-item-icon sp-command-item-icon--${pokerNearMeCommandIcon(item)}` : undefined}
+              className={pokerNearMeIconClass(item)}
               style={{ width: 24, height: 24, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
             >
               {item.icon || null}
@@ -947,13 +999,13 @@ function HamburgerMenuContent({
                 fontSize: 14, fontWeight: 600, textAlign: 'left', cursor: 'pointer',
                 boxSizing: 'border-box', fontFamily: 'inherit',
               };
-              const iconSlot = gridItem.icon ? (
+              const iconSlot = (gridItem.icon || isPokerNearMeMenu) ? (
                 <span
                   aria-hidden="true"
-                  className={isPokerNearMeMenu ? `sp-command-item-icon sp-command-item-icon--${pokerNearMeCommandIcon(gridItem)}` : undefined}
+                  className={pokerNearMeIconClass(gridItem)}
                   style={{ width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                 >
-                  {gridItem.icon}
+                  {gridItem.icon || null}
                 </span>
               ) : null;
               const labelSlot = (
@@ -1286,6 +1338,7 @@ function HamburgerMenuContent({
             <div className="sp-command-search__well" style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
               <Search size={18} aria-hidden="true" color={colors.textSec} style={{ position: 'absolute', left: 12 }} />
               <input
+                ref={searchInputRef}
                 type="search"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
@@ -1301,7 +1354,10 @@ function HamburgerMenuContent({
               {query ? (
                 <button
                   type="button"
-                  onClick={() => setQuery('')}
+                  onClick={() => {
+                    setQuery('');
+                    if (isPokerNearMeMenu) searchInputRef.current?.focus();
+                  }}
                   aria-label="Clear search"
                   className="sp-icon-btn"
                   style={{ '--sp-btn-size': '44px',
@@ -1690,9 +1746,9 @@ function HamburgerMenuContent({
         {/* Geeves AI Help + Report Bug — mounted only after the first open, and
             kept mounted (hidden) during search so they never refetch. */}
         {everOpened && (
-          <div style={{ display: searching ? 'none' : 'block' }}>
+          <div className={isPokerNearMeMenu ? 'sp-command-assist' : undefined} style={{ display: searching ? 'none' : 'block' }}>
             <GeevesMenuWidget />
-            <div style={{ padding: '8px 16px' }}>
+            <div className={isPokerNearMeMenu ? 'sp-command-report-bug' : undefined} style={{ padding: '8px 16px' }}>
               <ReportBugWidget onOpenChange={setChildDialogOpen} />
             </div>
           </div>
@@ -1700,7 +1756,7 @@ function HamburgerMenuContent({
 
         {/* Bottom Links */}
         {finalLinks.length > 0 && !searching && (
-          <div style={{ padding: '12px 16px 16px', borderTop: `1px solid ${colors.border}` }}>
+          <div className={isPokerNearMeMenu ? 'sp-command-utility-links' : undefined} style={{ padding: '12px 16px 16px', borderTop: `1px solid ${colors.border}` }}>
             {finalLinks.map((link, index) => {
               const commonStyle = {
                 display: 'flex', alignItems: 'center', gap: 12, width: '100%',
@@ -1710,7 +1766,11 @@ function HamburgerMenuContent({
                 fontSize: 15, fontFamily: 'inherit', textAlign: 'left',
               };
               const iconSlot = (
-                <span aria-hidden="true" style={{ width: 24, height: 24, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <span
+                  aria-hidden="true"
+                  className={isPokerNearMeMenu ? 'sp-command-item-icon sp-command-item-icon--text-only' : undefined}
+                  style={{ width: 24, height: 24, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                >
                   {link.icon || null}
                 </span>
               );
@@ -2066,8 +2126,8 @@ function HamburgerMenuContent({
           border-radius: 3px;
         }
         @media (hover: hover) {
-          .sp-drawer:not([data-world-command-menu='poker-near-me']) .sp-menu-row:hover { background: var(--world-tile-active, rgba(127, 148, 190, 0.14)) !important; }
-          .sp-drawer:not([data-world-command-menu='poker-near-me']) .sp-grid-tile:hover { transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0, 0, 0, 0.18); }
+          :where(.sp-drawer:not([data-world-command-menu='poker-near-me'])) .sp-menu-row:hover { background: var(--world-tile-active, rgba(127, 148, 190, 0.14)) !important; }
+          :where(.sp-drawer:not([data-world-command-menu='poker-near-me'])) .sp-grid-tile:hover { transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0, 0, 0, 0.18); }
         }
         @media (max-width: 420px) {
           .sp-command-backdrop[data-responsive-composition='adaptive'] {

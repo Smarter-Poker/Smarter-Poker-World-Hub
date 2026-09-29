@@ -1,7 +1,10 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
+import { join, resolve } from 'node:path';
 import test from 'node:test';
+import { fileURLToPath } from 'node:url';
+import { inflateSync } from 'node:zlib';
 
 const root = new URL('../', import.meta.url);
 const read = (path) => readFileSync(new URL(path, root), 'utf8');
@@ -39,6 +42,114 @@ test('painted console masters retain exact native geometry and immutable hashes'
   assert.deepEqual([plates.width, plates.height], [1000, 277]);
 });
 
+// The runtime icon folder; PNM_ICON_DIR points the pictogram test at another
+// copy (for example the pre-2026-09-21 fixed-cell crops, which must fail it).
+const ICON_DIR = process.env.PNM_ICON_DIR
+  ? resolve(process.env.PNM_ICON_DIR)
+  : fileURLToPath(new URL('public/images/pnm-console/painted-controls-v1/', root));
+
+// A minimal PNG decoder: 8-bit, non-interlaced, gray+alpha (4) or RGBA (6),
+// scanline filters 0-4. It returns the alpha plane and Rec. 601 luma.
+function decodePng(data) {
+  assert.equal(data.subarray(0, 8).toString('hex'), '89504e470d0a1a0a', 'not a PNG file');
+  let header = null;
+  const idat = [];
+  for (let at = 8; at + 8 <= data.length; ) {
+    const length = data.readUInt32BE(at);
+    const type = data.toString('ascii', at + 4, at + 8);
+    const body = data.subarray(at + 8, at + 8 + length);
+    if (type === 'IHDR') {
+      header = {
+        width: body.readUInt32BE(0),
+        height: body.readUInt32BE(4),
+        depth: body[8],
+        colorType: body[9],
+        interlace: body[12],
+      };
+    } else if (type === 'IDAT') {
+      idat.push(body);
+    } else if (type === 'IEND') {
+      break;
+    }
+    at += length + 12;
+  }
+  assert.ok(header, 'PNG has no IHDR chunk');
+  const { width, height, depth, colorType, interlace } = header;
+  const channels = { 4: 2, 6: 4 }[colorType];
+  assert.ok(channels, `colour type ${colorType} has no true alpha channel`);
+  assert.equal(depth, 8, 'only 8-bit samples are decoded');
+  assert.equal(interlace, 0, 'interlaced PNGs are not decoded');
+  const raw = inflateSync(Buffer.concat(idat));
+  const stride = width * channels;
+  assert.equal(raw.length, height * (stride + 1), 'PNG image data is truncated');
+  const pixels = new Uint8Array(height * stride);
+  for (let y = 0; y < height; y += 1) {
+    const filter = raw[y * (stride + 1)];
+    const line = y * (stride + 1) + 1;
+    const out = y * stride;
+    for (let x = 0; x < stride; x += 1) {
+      const left = x >= channels ? pixels[out + x - channels] : 0;
+      const up = y > 0 ? pixels[out + x - stride] : 0;
+      const corner = x >= channels && y > 0 ? pixels[out + x - stride - channels] : 0;
+      let predictor = 0;
+      if (filter === 1) predictor = left;
+      else if (filter === 2) predictor = up;
+      else if (filter === 3) predictor = (left + up) >> 1;
+      else if (filter === 4) {
+        const estimate = left + up - corner;
+        const toLeft = Math.abs(estimate - left);
+        const toUp = Math.abs(estimate - up);
+        const toCorner = Math.abs(estimate - corner);
+        predictor = toLeft <= toUp && toLeft <= toCorner ? left : toUp <= toCorner ? up : corner;
+      } else if (filter !== 0) {
+        throw new Error(`unknown PNG filter type ${filter} on row ${y}`);
+      }
+      pixels[out + x] = (raw[line + x] + predictor) & 0xff;
+    }
+  }
+  const alpha = new Uint8Array(width * height);
+  const luma = new Float64Array(width * height);
+  for (let index = 0; index < width * height; index += 1) {
+    const at = index * channels;
+    alpha[index] = pixels[at + channels - 1];
+    luma[index] = channels === 4
+      ? 0.299 * pixels[at] + 0.587 * pixels[at + 1] + 0.114 * pixels[at + 2]
+      : pixels[at];
+  }
+  return { width, height, colorType, alpha, luma };
+}
+
+// Sizes of the 8-connected components of a 0/1 mask.
+function componentSizes(mask, width, height) {
+  const seen = new Uint8Array(mask.length);
+  const stack = new Int32Array(mask.length);
+  const sizes = [];
+  for (let start = 0; start < mask.length; start += 1) {
+    if (!mask[start] || seen[start]) continue;
+    let top = 0;
+    let size = 0;
+    stack[top++] = start;
+    seen[start] = 1;
+    while (top) {
+      const index = stack[--top];
+      size += 1;
+      const x = index % width;
+      const y = (index - x) / width;
+      for (let ny = Math.max(0, y - 1); ny <= Math.min(height - 1, y + 1); ny += 1) {
+        for (let nx = Math.max(0, x - 1); nx <= Math.min(width - 1, x + 1); nx += 1) {
+          const next = ny * width + nx;
+          if (mask[next] && !seen[next]) {
+            seen[next] = 1;
+            stack[top++] = next;
+          }
+        }
+      }
+    }
+    sizes.push(size);
+  }
+  return sizes;
+}
+
 test('every reusable pictogram is a substantial transparent painted object', () => {
   const icons = [
     'search', 'location', 'fullscreen', 'back', 'close', 'saved',
@@ -46,14 +157,63 @@ test('every reusable pictogram is a substantial transparent painted object', () 
     'menu', 'edit', 'event-ticket', 'live-games', 'roadtrip', 'trophy',
     'alert', 'filter', 'community', 'info', 'review', 'more',
   ];
+  const PAINTED = 32; // alpha above this is part of a painted object
+  const SOLID = 200; // alpha above this is the holder's solid body
+  const failures = [];
   for (const icon of icons) {
-    const path = `public/images/pnm-console/painted-controls-v1/icon-${icon}.png`;
-    assert.equal(existsSync(new URL(path, root)), true, `${icon} holder is missing`);
-    const info = pngInfo(path);
-    assert.ok(info.width >= 280 && info.height >= 280, `${icon} holder is too small`);
-    assert.ok([4, 6].includes(info.colorType), `${icon} holder must have true alpha`);
-    assert.ok(bytes(path).length > 150_000, `${icon} holder lost painted detail`);
+    const file = join(ICON_DIR, `icon-${icon}.png`);
+    if (!existsSync(file)) {
+      failures.push(`${icon}: holder is missing`);
+      continue;
+    }
+    let png;
+    try {
+      png = decodePng(readFileSync(file));
+    } catch (error) {
+      failures.push(`${icon}: ${error.message}`);
+      continue;
+    }
+    const { width, height, alpha, luma } = png;
+    if (width < 280 || height < 280) failures.push(`${icon}: ${width}x${height} holder is too small`);
+
+    const edges = { top: 0, bottom: 0, left: 0, right: 0 };
+    for (let x = 0; x < width; x += 1) {
+      if (alpha[x]) edges.top += 1;
+      if (alpha[(height - 1) * width + x]) edges.bottom += 1;
+    }
+    for (let y = 0; y < height; y += 1) {
+      if (alpha[y * width]) edges.left += 1;
+      if (alpha[y * width + width - 1]) edges.right += 1;
+    }
+    const clipped = Object.entries(edges).filter(([, count]) => count > 0);
+    if (clipped.length) {
+      const sides = clipped.map(([side, count]) => `${side} ${count}px`).join(', ');
+      failures.push(`${icon}: non-transparent pixels on the outer edge (${sides}): the holder is clipped`);
+    }
+
+    const painted = alpha.map((value) => (value > PAINTED ? 1 : 0));
+    const objects = componentSizes(painted, width, height).filter((size) => size > 30);
+    if (objects.length !== 1) {
+      failures.push(`${icon}: ${objects.length} painted objects (${objects.join(', ')} px); expected one holder and no neighbour fragments`);
+    }
+    const coverage = painted.reduce((sum, value) => sum + value, 0) / (width * height);
+    if (!(coverage >= 0.45 && coverage <= 0.95)) {
+      failures.push(`${icon}: painted coverage ${coverage.toFixed(3)} is outside 0.45-0.95`);
+    }
+
+    let count = 0;
+    let sum = 0;
+    let sumSquares = 0;
+    for (let index = 0; index < alpha.length; index += 1) {
+      if (alpha[index] <= SOLID) continue;
+      count += 1;
+      sum += luma[index];
+      sumSquares += luma[index] * luma[index];
+    }
+    const deviation = count ? Math.sqrt(Math.max(0, sumSquares / count - (sum / count) ** 2)) : 0;
+    if (deviation < 40) failures.push(`${icon}: luminance deviation ${deviation.toFixed(1)} < 40, painted detail lost`);
   }
+  assert.deepEqual(failures, [], `pictograms read from ${ICON_DIR}`);
 });
 
 test('console components keep master slices separate and live values in DOM zones', () => {

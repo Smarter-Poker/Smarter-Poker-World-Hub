@@ -1,5 +1,5 @@
 import React from 'react';
-import { formatDate } from './TourCard';
+import { formatDate, PnmPlateLabel } from './TourCard';
 import { PokerNearMeConsoleIcon, PokerNearMePanelShell } from './PokerNearMeConsole';
 
 // Local formatMoney so freerolls (amount=0) show 'Free'.
@@ -54,6 +54,9 @@ const TOUR_LOGO_MAP = {
  * Uses the Skeuomorphic Sci-Fi UI System
  */
 export default function NewSeriesVenueCard({ series: s, index, isFavorited, onFavorite, onNavigate }) {
+    // The URL whose artwork failed, so a new URL gets its own attempt. This used
+    // to hide the frame by writing style.display onto the DOM behind React.
+    const [failedLogoUrl, setFailedLogoUrl] = React.useState(null);
     if (!s) return null;
     
     const isVenueEntry = s.venue_type === 'series'; // Legacy compat
@@ -97,20 +100,23 @@ export default function NewSeriesVenueCard({ series: s, index, isFavorited, onFa
 
     return (
         <PokerNearMePanelShell
-            className="metal-series-card pnm-console-card pnm-console-card--series pnm-console-card--series-featured"
+            className="pnm-console-card pnm-console-card--series pnm-console-card--series-featured"
             bodyClassName="pnm-console-card__body"
             onClick={() => onNavigate && onNavigate(detailUrl)}
         >
-            <div className="series-header">
+            {/* Not `series-header`: that name belongs to the series DETAIL page
+                header, which the command layer frames; a card header must not
+                inherit a second frame inside its painted panel. */}
+            <div className="pnm-console-card__header pnm-console-card__header--featured">
                 {/* Square logo — left side */}
-                {resolvedLogoUrl && (
+                {resolvedLogoUrl && failedLogoUrl !== resolvedLogoUrl && (
                     <div className="pnm-console-card__logo-frame pnm-console-card__logo-frame--large">
                         <img
                             src={resolvedLogoUrl}
                             alt={s.name || s.series_name || 'Series'}
                             className="pnm-console-card__logo pnm-console-card__logo--large"
                             loading="lazy"
-                            onError={e => { e.target.parentElement.style.display = 'none'; }}
+                            onError={() => setFailedLogoUrl(resolvedLogoUrl)}
                         />
                     </div>
                 )}
@@ -149,15 +155,14 @@ export default function NewSeriesVenueCard({ series: s, index, isFavorited, onFa
                     {(s.events_count || s.total_events) > 0 && <span className="series-tag">{s.events_count || s.total_events} Events</span>}
                     {s.main_event_buyin != null && <span className="series-tag">{formatMoney(s.main_event_buyin)} Main</span>}
                     {gtd > 0 && <span className="series-tag pnm-console-card__tag--premium">{formatMoney(gtd)} GTD</span>}
-                    {isNew && <span className="series-tag pnm-console-card__tag--blue">NEW ADDITION</span>}
+                    {isNew && <span className="series-tag pnm-console-card__tag--blue">New Addition</span>}
                 </div>
             </div>
             
             <div className="series-footer">
                 <div className="card-actions">
-                    <button className="hex-btn-small" onClick={(e) => { e.stopPropagation(); onNavigate && onNavigate(detailUrl); }}>
-                        <PokerNearMeConsoleIcon name="calendar" className="pnm-console-card__action-icon" />
-                        View Events
+                    <button type="button" className="hex-btn-small pnm-card-plate--primary" onClick={(e) => { e.stopPropagation(); onNavigate && onNavigate(detailUrl); }}>
+                        <PnmPlateLabel label="View Events" />
                     </button>
                     {externalUrl && (
                         <a 
@@ -167,8 +172,7 @@ export default function NewSeriesVenueCard({ series: s, index, isFavorited, onFa
                             className="hex-btn-small" 
                             onClick={e => e.stopPropagation()}
                         >
-                            <PokerNearMeConsoleIcon name="globe" className="pnm-console-card__action-icon" />
-                            Source
+                            <PnmPlateLabel label="Source" />
                         </a>
                     )}
                 </div>

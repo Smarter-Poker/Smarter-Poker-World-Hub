@@ -1,15 +1,39 @@
-/* Poker Near Me command drawer: painted controls, live DOM labels and state. */
+/*
+ * Poker Near Me command drawer: painted controls, live DOM labels and state.
+ *
+ * Paint what never changes, print what does. Every frame below is approved
+ * raster art from painted-controls-v1, laid at its native ratio:
+ *   search-well.png   1829 x 313. The painted well is the top 271 rows; the
+ *                     rest is a transparent shadow margin that is never shown.
+ *                     A control carrying the well is exactly 271/1829 of its
+ *                     own width tall, with the art anchored to its top edge,
+ *                     so the chrome is never stretched, never cut and the label
+ *                     is centred in the well itself.
+ *   button-*.png      348 x 114 deck plates. A deck tile is exactly the plate.
+ * The drawer is black glass: no rail runs behind the controls, so no frame
+ * sits on, or crosses, another frame. Labels, counts and state stay live DOM.
+ */
 
 body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] {
+  --pnm-menu-inset: 8px;
+  --pnm-row-width: calc(100cqw - 2 * var(--pnm-menu-inset));
+  --pnm-row-height: calc(var(--pnm-row-width) * 271 / 1829);
+  --pnm-face-inline: clamp(22px, calc(var(--pnm-row-width) * 0.075), 30px);
+  /* The well's face sits a little above the middle of its band (the lower
+     rim carries the LED), so copy is lifted onto the face's own centre. */
+  --pnm-face-lift: calc(var(--pnm-row-height) * 0.107);
+  --pnm-icon-size: 34px;
+
+  container: pnm-command-drawer / inline-size;
+  /* Keyboard focus scrolls a row clear of the two sticky wells above it. */
+  scroll-padding-top: calc(env(safe-area-inset-top, 0px) + 2 * (min(400px, 100vw) - 16px) * 271 / 1829 + 16px);
   border: 0 !important;
-  background-color: #010305 !important;
-  background-image: url('/images/pnm-console/painted-panels-v1/panel-mid.png') !important;
-  background-position: top center !important;
-  background-repeat: repeat-y !important;
-  background-size: 100% auto !important;
+  background: #010305 !important;
   box-shadow: none !important;
 }
 
+/* One frame per control: the painted art. No CSS border, radius, shadow or
+   blur is drawn over it, and the generic decorative fragments are removed. */
 body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] :is(
   .sp-command-utility-rail,
   .sp-command-grid-mark,
@@ -39,40 +63,60 @@ body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'
   content: none !important;
 }
 
-body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-command-utility-rail {
-  position: sticky;
-  top: 0;
-  z-index: 8;
-  min-height: 68px;
-  box-sizing: border-box;
-  padding: 10px 16px !important;
-  background: transparent url('/images/pnm-console/painted-controls-v1/search-well.png') center / 100% auto no-repeat !important;
-}
-
-body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-command-grid-mark {
-  width: 46px !important;
-  height: 46px !important;
-  flex: 0 0 46px;
-  background: transparent url('/images/pnm-console/painted-controls-v1/icon-menu.png') center / contain no-repeat !important;
-}
-
+/* Generic vector glyphs never reach the painted drawer. Each one is replaced
+   by a painted holder, a painted arrow, or printed text. */
 body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-command-grid-mark svg,
 body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-command-utility-button svg,
 body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-command-item-icon svg,
 body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-command-search__well > svg,
 body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-menu-row > svg,
-body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-icon-btn svg {
+body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-icon-btn svg,
+body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-command-offline > svg,
+body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-command-report-bug > button > svg {
   display: none !important;
 }
 
+/* Title well. Sticky, so its box is an opaque black band (the same black as
+   the drawer) with the well printed on its content box. */
+body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-command-utility-rail {
+  position: sticky;
+  top: env(safe-area-inset-top, 0px) !important;
+  z-index: 8;
+  flex: 0 0 auto !important;
+  box-sizing: content-box !important;
+  height: var(--pnm-row-height) !important;
+  min-height: 0 !important;
+  padding: 6px var(--pnm-menu-inset) 4px !important;
+  background: url('/images/pnm-console/painted-controls-v1/search-well.png') center top / 100% auto no-repeat content-box, #010305 !important;
+}
+
+body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-command-brand {
+  margin-bottom: var(--pnm-face-lift);
+  padding-left: calc(var(--pnm-face-inline) - 8px);
+}
+
+body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-command-utility-rail > div:last-child {
+  margin-bottom: var(--pnm-face-lift);
+  padding-right: calc(var(--pnm-face-inline) - 10px);
+}
+
+body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-command-grid-mark {
+  width: min(40px, calc(var(--pnm-row-height) * 0.72)) !important;
+  height: min(40px, calc(var(--pnm-row-height) * 0.72)) !important;
+  flex: 0 0 auto;
+  background: transparent url('/images/pnm-console/painted-controls-v1/icon-menu.png') center / contain no-repeat !important;
+}
+
 body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-command-utility-button {
+  box-sizing: border-box !important;
   width: 44px !important;
   height: 44px !important;
   min-width: 44px;
   min-height: 44px;
-  padding: 0 !important;
+  padding: 2px !important;
   color: transparent !important;
   background-color: transparent !important;
+  background-origin: content-box !important;
   background-position: center !important;
   background-repeat: no-repeat !important;
   background-size: contain !important;
@@ -81,6 +125,13 @@ body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'
 
 body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-command-utility-button--edit {
   background-image: url('/images/pnm-console/painted-controls-v1/icon-edit.png') !important;
+}
+
+/* Pressed: editing favourites swaps the pencil for the painted star, the same
+   change of symbol every other world shows, on painted art. */
+body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-command-utility-button--edit[aria-pressed='true'] {
+  background-image: url('/images/pnm-console/painted-controls-v1/icon-review.png') !important;
+  filter: brightness(1.12);
 }
 
 body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-command-utility-button--close {
@@ -96,50 +147,70 @@ body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'
   white-space: nowrap !important;
 }
 
+/* Status and purpose are live copy printed on the glass. Two lines of purpose
+   cannot fit a fixed-ratio well at phone widths, so no well is forced round it. */
 body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-command-context,
 body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-command-offline {
-  min-height: 62px;
+  flex: 0 0 auto !important;
+  min-height: 0 !important;
   box-sizing: border-box;
-  margin: 2px 12px 10px !important;
-  padding: 12px clamp(20px, 6vw, 28px) !important;
-  background: transparent url('/images/pnm-console/painted-controls-v1/search-well.png') center / 100% auto no-repeat !important;
+  margin: 2px var(--pnm-menu-inset) 8px !important;
+  padding: 2px var(--pnm-face-inline) !important;
+  background: transparent !important;
+}
+
+body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-command-status {
+  color: #45adff !important;
+}
+
+body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-command-status i {
+  display: none !important;
 }
 
 body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-command-context p {
   margin-top: 4px;
   color: #aeb9c4;
   font-size: 12px;
+  line-height: 1.35;
 }
 
+body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-command-offline {
+  color: #ff5b6e !important;
+}
+
+/* Search well. Sticky directly under the title band. */
 body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-command-search {
-  top: 68px !important;
+  top: calc(env(safe-area-inset-top, 0px) + var(--pnm-row-height) + 10px) !important;
   z-index: 7;
-  padding: 0 12px 8px !important;
+  padding: 0 var(--pnm-menu-inset) 6px !important;
   background: #010305 !important;
 }
 
 body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-command-search__well {
-  min-height: 64px;
+  min-height: 0;
 }
 
 body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-command-search__well::before {
   content: '';
   position: absolute;
-  left: 14px;
+  left: calc(var(--pnm-face-inline) - 6px);
   z-index: 2;
-  width: 38px;
-  height: 38px;
+  width: min(34px, calc(var(--pnm-row-height) * 0.62));
+  height: min(34px, calc(var(--pnm-row-height) * 0.62));
+  margin-bottom: var(--pnm-face-lift);
   pointer-events: none;
   background: transparent url('/images/pnm-console/painted-controls-v1/icon-search.png') center / contain no-repeat;
 }
 
 body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-command-search input {
-  min-height: 64px !important;
-  padding: 0 52px 0 58px !important;
+  box-sizing: border-box !important;
+  height: var(--pnm-row-height) !important;
+  min-height: 0 !important;
+  padding: 0 calc(var(--pnm-face-inline) + 36px) var(--pnm-face-lift) calc(var(--pnm-face-inline) + 36px) !important;
   color: #e9f1f7 !important;
   background-color: transparent !important;
   background-image: url('/images/pnm-console/painted-controls-v1/search-well.png') !important;
-  background-position: center !important;
+  background-position: center top !important;
   background-repeat: no-repeat !important;
   background-size: 100% auto !important;
 }
@@ -150,27 +221,68 @@ body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'
 }
 
 body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-icon-btn {
+  box-sizing: border-box !important;
+  right: calc(var(--pnm-face-inline) - 14px) !important;
   width: 44px !important;
+  margin-bottom: var(--pnm-face-lift) !important;
   height: 44px !important;
+  padding: 3px !important;
   color: transparent !important;
-  background: transparent url('/images/pnm-console/painted-controls-v1/icon-close.png') center / contain no-repeat !important;
+  background: transparent url('/images/pnm-console/painted-controls-v1/icon-close.png') center / contain no-repeat content-box !important;
   transition: none !important;
 }
 
+/* Rows: one well each, exactly the well's ratio, text centred in the well. */
+body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-menu-row {
+  position: relative;
+  box-sizing: border-box !important;
+  width: calc(100% - 2 * var(--pnm-menu-inset)) !important;
+  height: auto !important;
+  min-height: 0 !important;
+  aspect-ratio: 1829 / 271;
+  margin: 0 var(--pnm-menu-inset) 4px !important;
+  padding: 0 var(--pnm-face-inline) var(--pnm-face-lift) !important;
+  gap: 10px !important;
+  color: #dfe8ef !important;
+  line-height: 1.2;
+  background-color: transparent !important;
+  background-image: url('/images/pnm-console/painted-controls-v1/search-well.png') !important;
+  background-position: center top !important;
+  background-repeat: no-repeat !important;
+  background-size: 100% auto !important;
+  transition: none !important;
+}
+
+body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-menu-row[aria-current='page'] {
+  color: #45adff !important;
+  filter: brightness(1.12) saturate(1.08);
+}
+
+body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-menu-row :is(.sp-menu-description, [id^='sp-hint-']) {
+  margin-top: 0 !important;
+  font-size: 12px !important;
+  line-height: 1.25 !important;
+}
+
+/* Deck: two plates per row, each tile exactly the plate, copy inside its face. */
 body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] [data-world-primary-commands] {
   gap: 6px !important;
-  padding: 0 12px !important;
+  padding: 0 var(--pnm-menu-inset) !important;
   margin-bottom: 10px !important;
 }
 
 body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-grid-tile {
-  min-height: 62px !important;
-  padding: 5px 12px !important;
+  box-sizing: border-box !important;
+  height: auto !important;
+  min-height: 0 !important;
+  aspect-ratio: 348 / 114;
+  padding: 0 4% 0 6.5% !important;
   flex-direction: row !important;
   align-items: center !important;
   justify-content: flex-start !important;
-  gap: 7px !important;
-  color: #dfe8ef !important;
+  gap: 6px !important;
+  overflow: hidden !important;
+  color: #eef4fa !important;
   background-color: transparent !important;
   background-image: url('/images/pnm-console/painted-controls-v1/button-secondary.png') !important;
   background-position: center !important;
@@ -185,36 +297,53 @@ body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'
   filter: brightness(1.08);
 }
 
-body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-menu-row {
-  position: relative;
-  width: calc(100% - 16px) !important;
-  min-height: 62px !important;
-  margin: 0 8px 2px !important;
-  padding: 7px 24px !important;
-  color: #dfe8ef !important;
-  background-color: transparent !important;
-  background-image: url('/images/pnm-console/painted-controls-v1/search-well.png') !important;
-  background-position: center !important;
-  background-repeat: no-repeat !important;
-  background-size: 100% auto !important;
-  transition: none !important;
+body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-grid-tile > span:last-child {
+  min-width: 0;
 }
 
-body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-menu-row[aria-current='page'] {
-  background-color: transparent !important;
-  background-image: url('/images/pnm-console/painted-controls-v1/search-well.png') !important;
-  filter: brightness(1.12) saturate(1.08);
+body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-grid-tile > span:last-child > span:first-child {
+  color: #eef4fa !important;
+  font-size: 14px !important;
+  line-height: 1.1 !important;
+  overflow-wrap: normal !important;
+  white-space: nowrap;
 }
 
+body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-grid-tile .sp-command-item-icon {
+  --pnm-icon-size: 30px;
+}
+
+body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-grid-tile .sp-grid-description {
+  margin-top: 3px !important;
+  color: #a9b8c6 !important;
+  font-size: 12px !important;
+  line-height: 1.15 !important;
+  white-space: nowrap;
+}
+
+body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-grid-tile[aria-current='page'] > span:last-child > span:first-child {
+  color: #ffffff !important;
+}
+
+body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-grid-tile[aria-current='page'] .sp-grid-description {
+  color: #d6ebff !important;
+}
+
+/* Painted icon holders. A row with no painted pictogram of the same meaning
+   is printed as text: its slot is removed, never left as an empty holder. */
 body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-command-item-icon {
-  width: 38px !important;
-  height: 38px !important;
-  flex: 0 0 38px !important;
+  width: var(--pnm-icon-size) !important;
+  height: var(--pnm-icon-size) !important;
+  flex: 0 0 var(--pnm-icon-size) !important;
   color: transparent !important;
   background-color: transparent !important;
   background-position: center !important;
   background-repeat: no-repeat !important;
   background-size: contain !important;
+}
+
+body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-command-item-icon--text-only {
+  display: none !important;
 }
 
 body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-command-item-icon--search { background-image: url('/images/pnm-console/painted-controls-v1/icon-search.png') !important; }
@@ -228,16 +357,21 @@ body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'
 body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-command-item-icon--live-games { background-image: url('/images/pnm-console/painted-controls-v1/icon-live-games.png') !important; }
 body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-command-item-icon--globe { background-image: url('/images/pnm-console/painted-controls-v1/icon-globe.png') !important; }
 body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-command-item-icon--location { background-image: url('/images/pnm-console/painted-controls-v1/icon-location.png') !important; }
+body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-command-item-icon--directions { background-image: url('/images/pnm-console/painted-controls-v1/icon-directions.png') !important; }
+body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-command-item-icon--calendar { background-image: url('/images/pnm-console/painted-controls-v1/icon-calendar.png') !important; }
 body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-command-item-icon--filter { background-image: url('/images/pnm-console/painted-controls-v1/icon-filter.png') !important; }
 body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-command-item-icon--info { background-image: url('/images/pnm-console/painted-controls-v1/icon-info.png') !important; }
 body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-command-item-icon--home { background-image: url('/images/pnm-console/painted-controls-v1/icon-home.png') !important; }
 body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-command-item-icon--more { background-image: url('/images/pnm-console/painted-controls-v1/icon-more.png') !important; }
 
+/* One painted arrow per link or disclosure row. The generic chevron glyph is
+   hidden above, so the arrow never doubles, and its empty content is never
+   announced. A disclosure arrow turns down while its section is open. */
 body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-menu-row:is(a, [aria-expanded])::after {
   content: '';
-  width: 30px;
-  height: 30px;
-  flex: 0 0 30px;
+  width: 28px;
+  height: 28px;
+  flex: 0 0 28px;
   margin-left: auto;
   background: transparent url('/images/pnm-console/painted-controls-v1/icon-back.png') center / contain no-repeat;
   transform: rotate(180deg);
@@ -247,8 +381,111 @@ body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'
   transform: rotate(-90deg);
 }
 
+/* Editing favourites: the painted star is lit on a pinned row and dimmed on
+   an unpinned one; the row's own label says Pin or Unpin to assistive tech. */
+body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-menu-row[data-command-pinned]::after {
+  content: '';
+  width: 28px;
+  height: 28px;
+  flex: 0 0 28px;
+  margin-left: auto;
+  background: transparent url('/images/pnm-console/painted-controls-v1/icon-review.png') center / contain no-repeat;
+}
+
+body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-menu-row[data-command-pinned='false']::after {
+  opacity: 0.38;
+  filter: grayscale(1);
+}
+
+/* A switch prints its state instead of drawing a pill. */
+body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-command-switch-state {
+  flex: 0 0 auto;
+  min-width: 3.4em;
+  margin-left: auto;
+  font: 800 12px/1 var(--font-rajdhani), Rajdhani, Inter, system-ui, sans-serif;
+  letter-spacing: 0.14em;
+  text-align: right;
+  text-transform: uppercase;
+}
+
+body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-command-switch-state[data-state='on'] {
+  color: #c8ffd2;
+  text-shadow: 0 0 6px rgb(53 217 90 / 75%);
+}
+
+body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-command-switch-state[data-state='off'] {
+  color: #9aa5b3;
+}
+
+/* Page Tutorial, Help and Log Out are a deliberately text-only group: no
+   painted pictogram means Log Out, and two identical info holders would say
+   nothing. They share the rows' width and wells. */
+body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-command-utility-links {
+  padding: 10px 0 16px !important;
+}
+
+/* Shared assist widgets, dressed on the same wells inside this drawer only. */
+body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-command-assist > div:first-child {
+  margin: 8px var(--pnm-menu-inset) 4px !important;
+  overflow: visible !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+}
+
+body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-command-assist > div:first-child > button[aria-expanded] {
+  box-sizing: border-box !important;
+  height: auto !important;
+  min-height: 0 !important;
+  aspect-ratio: 1829 / 271;
+  padding: 0 var(--pnm-face-inline) var(--pnm-face-lift) !important;
+  background: transparent url('/images/pnm-console/painted-controls-v1/search-well.png') center top / 100% auto no-repeat !important;
+}
+
+body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-command-assist > div:first-child > button[aria-expanded] img {
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-command-assist > div:first-child > button[aria-expanded] > :is(span:last-child, div[aria-hidden='true']) {
+  display: none !important;
+}
+
+body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-command-assist > div:first-child > button[aria-expanded]::after {
+  content: '';
+  width: 28px;
+  height: 28px;
+  flex: 0 0 28px;
+  margin-left: auto;
+  background: transparent url('/images/pnm-console/painted-controls-v1/icon-back.png') center / contain no-repeat;
+  transform: rotate(180deg);
+}
+
+body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-command-assist > div:first-child > button[aria-expanded='true']::after {
+  transform: rotate(-90deg);
+}
+
+body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-command-report-bug {
+  padding: 0 0 4px !important;
+}
+
+body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-command-report-bug > button {
+  box-sizing: border-box !important;
+  width: calc(100% - 2 * var(--pnm-menu-inset)) !important;
+  height: auto !important;
+  min-height: 0 !important;
+  aspect-ratio: 1829 / 271;
+  margin: 0 var(--pnm-menu-inset) !important;
+  padding: 0 var(--pnm-face-inline) var(--pnm-face-lift) !important;
+  color: #dfe8ef !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent url('/images/pnm-console/painted-controls-v1/search-well.png') center top / 100% auto no-repeat !important;
+  transition: none !important;
+}
+
 body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-command-identity {
-  margin: 0 8px 12px !important;
+  margin: 0 0 12px !important;
   overflow: visible !important;
   background: transparent !important;
 }
@@ -270,16 +507,24 @@ body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'
   height: calc(100% - 14px) !important;
 }
 
+/* Focus follows the painted silhouette instead of drawing a rectangle over
+   the chamfered chrome; Windows High Contrast still gets a system outline. */
 body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] :is(
   .sp-menu-row,
   .sp-grid-tile,
   .sp-icon-btn,
   .sp-command-utility-button,
-  .sp-sc-tile
+  .sp-sc-tile,
+  .sp-command-report-bug > button,
+  .sp-command-assist > div:first-child > button[aria-expanded]
 ):focus-visible {
-  border-radius: 0 !important;
-  outline: 2px solid #d8f4ff !important;
-  outline-offset: -3px !important;
+  outline: 0 !important;
+  filter: brightness(1.2) drop-shadow(0 0 1px #d8f4ff) drop-shadow(0 0 6px rgb(69 173 255 / 90%));
+}
+
+body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-command-search input:focus {
+  outline: 0 !important;
+  filter: brightness(1.12) drop-shadow(0 0 5px rgb(69 173 255 / 80%));
 }
 
 body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] :is(
@@ -287,53 +532,53 @@ body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'
   .sp-grid-tile,
   .sp-icon-btn,
   .sp-command-utility-button,
-  .sp-sc-tile
+  .sp-sc-tile,
+  .sp-command-report-bug > button
 ):active {
   transform: scale(0.985);
   filter: brightness(1.1);
 }
 
-@media (max-width: 420px) {
-  body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-command-utility-rail {
-    min-height: 62px;
-    padding: 7px 12px !important;
+/* Narrow phones: a second line of copy only prints where it fits the face. */
+@container pnm-command-drawer (max-width: 389px) {
+  body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-grid-tile .sp-grid-description {
+    font-size: 11px !important;
   }
+}
 
-  body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-command-context {
-    min-height: 58px;
-    padding-top: 9px !important;
-    padding-bottom: 9px !important;
+@container pnm-command-drawer (max-width: 374px) {
+  body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-menu-row :is(.sp-menu-description, [id^='sp-hint-']) {
+    font-size: 11px !important;
   }
+}
 
-  body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-command-search {
-    top: 62px !important;
-  }
-
-  body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-grid-tile {
-    min-height: 58px !important;
-    padding-right: 9px !important;
-    padding-left: 9px !important;
+@container pnm-command-drawer (max-width: 359px) {
+  body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] :is(.sp-grid-description, .sp-menu-description, .sp-menu-row [id^='sp-hint-']) {
+    position: absolute !important;
+    width: 1px !important;
+    height: 1px !important;
+    overflow: hidden !important;
+    clip: rect(0 0 0 0) !important;
+    white-space: nowrap !important;
   }
 
   body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-command-item-icon {
-    width: 34px !important;
-    height: 34px !important;
-    flex-basis: 34px !important;
+    --pnm-icon-size: 30px;
+  }
+
+  body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-menu-row span[style*='font-size: 15px'] {
+    font-size: 14px !important;
   }
 }
 
 @media (orientation: landscape) and (max-height: 520px) {
   body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-command-utility-rail {
     position: relative;
-    min-height: 54px;
-    padding: 5px 12px !important;
+    top: auto !important;
   }
 
   body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-command-context {
-    min-height: 54px;
-    margin-bottom: 5px !important;
-    padding-top: 7px !important;
-    padding-bottom: 7px !important;
+    margin-bottom: 4px !important;
   }
 
   body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-command-search {
@@ -342,8 +587,64 @@ body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'
   }
 }
 
+@media (forced-colors: active) {
+  body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] :is(
+    .sp-menu-row,
+    .sp-grid-tile,
+    .sp-icon-btn,
+    .sp-command-utility-button,
+    .sp-sc-tile
+  ):focus-visible {
+    outline: 2px solid Highlight !important;
+    outline-offset: -3px !important;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] * {
     transition-duration: 0.01ms !important;
   }
+}
+
+/*
+ * Poker Near Me global header: touch targets.
+ *
+ * The header icons are baked into the approved artwork and the buttons are
+ * transparent regions over it. On a phone the artwork is only about 40px tall,
+ * so the regions are 24 to 50 by 27 to 29px. Each button that can take one
+ * gets a transparent extension, painted nowhere: it reaches from the top of the
+ * header row to at least 44px, and never over an earlier neighbour (a later
+ * button already sits on top of it). Profile and VIP clip their own content
+ * (paint containment and overflow), so they cannot take an extension without
+ * changing the artwork they carry. The header stops clipping here so the last
+ * few pixels of an extension can be touched; nothing it contains paints
+ * outside it.
+ */
+body.world-poker-near-me .approved-global-header {
+  overflow: visible;
+}
+
+body.world-poker-near-me .approved-global-header :is(
+  .approved-global-header__menu,
+  .approved-global-header__back,
+  .approved-global-header__hub,
+  .approved-global-header__wallet,
+  .approved-global-header__messenger,
+  .approved-global-header__notifications
+)::before {
+  content: '';
+  position: absolute;
+  top: calc(-13% / 0.74);
+  right: 0;
+  left: 0;
+  height: max(44px, calc(100% / 0.74));
+  pointer-events: auto;
+}
+
+body.world-poker-near-me .approved-global-header .approved-global-header__menu::before {
+  left: -12px;
+}
+
+body.world-poker-near-me .approved-global-header .approved-global-header__notifications::before {
+  right: -12px;
 }

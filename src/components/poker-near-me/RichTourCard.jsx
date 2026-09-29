@@ -1,16 +1,19 @@
 /**
  * RichTourCard — Matches the EXACT card format shown on /hub/tours/[code].js
- * Fetches live data via SWR so it shows real-time LIVE NOW / NEXT STOP / upcoming stops.
+ * Fetches live data via SWR so it shows the CURRENT / NEXT stop and upcoming stops.
+ * A stop is 'current' because its published dates include today; that is a
+ * schedule fact, not observed activity, so it never prints as Live Now.
  * Used in VenuesTabPanel and wherever tour stops appear in the PNM page.
  */
 import React from 'react';
 import useSWR from 'swr';
 import { PokerNearMeConsoleIcon, PokerNearMePanelShell } from './PokerNearMeConsole';
+import { PnmPlateLabel } from './TourCard';
 
 const TOUR_TONES = {
     'WSOP': 'gold', 'WPT': 'red', 'WSOPC': 'gold', 'MSPT': 'blue',
-    'RGPS': 'green', 'PGT': 'violet', 'TRITON': 'blue', 'NAPT': 'red',
-    'CPPT': 'green', 'FPN': 'violet', 'LIPS': 'red', 'ROUGHRIDER': 'gold',
+    'RGPS': 'green', 'PGT': 'blue', 'TRITON': 'blue', 'NAPT': 'red',
+    'CPPT': 'green', 'FPN': 'blue', 'LIPS': 'red', 'ROUGHRIDER': 'gold',
     'default': 'silver',
 };
 
@@ -25,6 +28,16 @@ function formatMoney(amount) {
     if (amount >= 1000000) return '$' + (amount / 1000000).toFixed(1) + 'M';
     if (amount >= 1000) return '$' + (amount / 1000).toFixed(0) + 'K';
     return '$' + amount.toLocaleString();
+}
+
+// Scraped websites: block script/data schemes and give a bare host a scheme.
+function safeExternalHref(url) {
+    if (!url || typeof url !== 'string') return null;
+    const clean = url.replace(/[\x00-\x20]/g, '');
+    if (!clean) return null;
+    const lower = clean.toLowerCase();
+    if (lower.startsWith('javascript:') || lower.startsWith('data:') || lower.startsWith('vbscript:')) return null;
+    return lower.startsWith('http://') || lower.startsWith('https://') ? clean : 'https://' + clean;
 }
 
 function formatDateRange(startDate, endDate) {
@@ -162,7 +175,8 @@ export default function RichTourCard({ venue, isFavorited, onFavorite, onNavigat
                     </div>
                 )}
                 <div className="pnm-console-card__tag-row">
-                    <span className="pnm-console-card__tag" data-tone={tourTone}>{tourCode || 'TOUR'}</span>
+                    {/* The code prints once: beside the artwork, or as the brand itself. */}
+                    {logoUrl && !logoFailed && <span className="pnm-console-card__tag" data-tone={tourTone}>{tourCode || 'TOUR'}</span>}
                     {tourTypeLabel && <span className="pnm-console-card__tag">{tourTypeLabel}</span>}
                 </div>
             </div>
@@ -174,8 +188,7 @@ export default function RichTourCard({ venue, isFavorited, onFavorite, onNavigat
             {currentStop && (
                 <div className={`rich-tour-card__signal ${currentStopType === 'current' ? 'is-live' : 'is-next'}`}>
                     <div className="rich-tour-card__signal-label">
-                        <span className="pnm-console-card__signal" aria-hidden="true" />
-                        <span>{currentStopType === 'current' ? 'LIVE NOW' : 'NEXT STOP'}</span>
+                        <span>{currentStopType === 'current' ? 'Current Stop' : 'Next Stop'}</span>
                     </div>
                     {currentStop.stop_name && <div className="rich-tour-card__stop-name">{currentStop.stop_name}</div>}
                     {currentStop.stop_venue && <div className="rich-tour-card__stop-venue">{currentStop.stop_venue}</div>}
@@ -229,19 +242,28 @@ export default function RichTourCard({ venue, isFavorited, onFavorite, onNavigat
             <div className="card-footer">
                 {displayTour.established && <span className="established">Est. {displayTour.established}</span>}
                 <div className="card-actions">
-                    <span className="action-btn primary">
-                        <PokerNearMeConsoleIcon name="directions" className="pnm-console-card__action-icon" />
-                        Details
-                    </span>
-                    {displayTour.official_website && (
+                    {/* BUG FIX: Details was a <span> styled as a button: the card's own
+                        onClick worked for a pointer, but keyboard users had no control. */}
+                    <button
+                        type="button"
+                        className="action-btn primary"
+                        onClick={(event) => {
+                            event.stopPropagation();
+                            onNavigate?.(detailUrl);
+                        }}
+                    >
+                        <PnmPlateLabel label="Details" />
+                    </button>
+                    {/* BUG FIX: the scraped website went straight into href, so a
+                        javascript: or data: value was a live link. */}
+                    {safeExternalHref(displayTour.official_website) && (
                         <a
-                            href={displayTour.official_website.startsWith('http') ? displayTour.official_website : 'https://' + displayTour.official_website}
+                            href={safeExternalHref(displayTour.official_website)}
                             target="_blank" rel="noopener noreferrer"
                             className="action-btn"
                             onClick={e => e.stopPropagation()}
                         >
-                            <PokerNearMeConsoleIcon name="globe" className="pnm-console-card__action-icon" />
-                            Website
+                            <PnmPlateLabel label="Website" />
                         </a>
                     )}
                 </div>

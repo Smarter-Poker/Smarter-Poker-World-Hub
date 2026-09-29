@@ -7,24 +7,10 @@ import { useModalHistory } from '../../hooks/useModalHistory';
 import { useScrimDismiss } from '../../hooks/useScrimDismiss';
 import { requireOnlineNow } from '../../hooks/useOnlineStatus';
 import toast from '../../stores/toastStore';
+import { acquireScrollLock } from '../../lib/scrollLock';
+import PokerNearMeConsole, { PokerNearMeConsoleIcon } from './PokerNearMeConsole';
 
-const CATEGORY_ICONS = {
-    dealers: (
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="7" width="20" height="15" rx="2" ry="2" /><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16" /></svg>
-    ),
-    game_selection: (
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
-    ),
-    waitlist_speed: (
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
-    ),
-    food_drinks: (
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 8h1a4 4 0 010 8h-1" /><path d="M2 8h16v9a4 4 0 01-4 4H6a4 4 0 01-4-4V8z" /><line x1="6" y1="1" x2="6" y2="4" /><line x1="10" y1="1" x2="10" y2="4" /><line x1="14" y1="1" x2="14" y2="4" /></svg>
-    ),
-    atmosphere: (
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 3a6 6 0 00-6 6c0 7 6 13 6 13s6-6 6-13a6 6 0 00-6-6z" /><circle cx="12" cy="9" r="2" /></svg>
-    ),
-};
+const FOCUSABLE = 'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
 // WIRING FIX: these keys must match CATEGORY_KEYS in pages/api/poker/reviews.js
 // ('dealers', 'atmosphere', 'food_drinks', 'waitlist_speed', 'game_selection').
@@ -58,35 +44,24 @@ function timeAgo(dateStr) {
 /**
  * A11Y FIX: the interactive stars used to be bare <svg onClick> elements with no role,
  * no tabIndex and no key handler, so the rating input could not be set without a mouse.
- * Interactive mode now renders real radio buttons inside a radiogroup; the read-only
- * mode stays a plain decorative row.
+ * Interactive mode renders real radio buttons inside a radiogroup; the read-only
+ * mode prints the rating as text.
+ *
+ * #ClubArenaConsole: the flat SVG star family is retired. Each choice is a 44px
+ * numeral printed in the painted utility well; the choices up to the current
+ * rating are lit.
  */
-function StarRating({ rating, size = 16, interactive = false, onChange, label = 'Rating' }) {
-    const starSvg = (star) => (
-        <svg
-            width={size}
-            height={size}
-            viewBox="0 0 24 24"
-            fill={star <= rating ? '#ffffff' : 'rgba(255,255,255,0.1)'}
-            stroke={star <= rating ? '#ffffff' : 'rgba(255,255,255,0.2)'}
-            strokeWidth="1"
-            aria-hidden="true"
-            style={{ display: 'block', transition: 'all 0.15s' }}
-        >
-            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-        </svg>
-    );
-
+function StarRating({ rating, interactive = false, onChange, label = 'Rating' }) {
     if (!interactive) {
         return (
-            <div style={{ display: 'flex', gap: 2 }} role="img" aria-label={`${label}: ${rating || 0} out of 5`}>
-                {[1, 2, 3, 4, 5].map(star => <span key={star}>{starSvg(star)}</span>)}
-            </div>
+            <span className="pnm-reviews__rating" role="img" aria-label={`${label}: ${rating || 0} out of 5`}>
+                {rating || 0}/5
+            </span>
         );
     }
 
     return (
-        <div style={{ display: 'flex', gap: 2 }} role="radiogroup" aria-label={label}>
+        <div className="pnm-reviews__rating-input" role="radiogroup" aria-label={label}>
             {[1, 2, 3, 4, 5].map(star => (
                 <button
                     key={star}
@@ -94,13 +69,11 @@ function StarRating({ rating, size = 16, interactive = false, onChange, label = 
                     role="radio"
                     aria-checked={star === rating}
                     aria-label={`${star} star${star !== 1 ? 's' : ''}`}
+                    className="pnm-reviews__rating-choice"
+                    data-lit={star <= (rating || 0) ? 'true' : 'false'}
                     onClick={() => onChange && onChange(star)}
-                    style={{
-                        background: 'none', border: 'none', padding: 0, margin: 0,
-                        cursor: 'pointer', lineHeight: 0, fontFamily: 'inherit',
-                    }}
                 >
-                    {starSvg(star)}
+                    {star}
                 </button>
             ))}
         </div>
@@ -110,12 +83,12 @@ function StarRating({ rating, size = 16, interactive = false, onChange, label = 
 function RatingBar({ count, total, stars }) {
     const pct = total > 0 ? (count / total) * 100 : 0;
     return (
-        <div className="vr-rating-bar-row">
-            <span className="vr-bar-label">{stars}★</span>
-            <div className="vr-bar-track">
-                <div className="vr-bar-fill" style={{ width: `${pct}%` }} />
+        <div className="vr-rating-bar-row pnm-reviews__bar-row">
+            <span className="vr-bar-label pnm-reviews__bar-label">{stars} Star</span>
+            <div className="vr-bar-track pnm-reviews__bar-track">
+                <div className="vr-bar-fill pnm-reviews__bar-fill" style={{ width: `${pct}%` }} />
             </div>
-            <span className="vr-bar-count">{count}</span>
+            <span className="vr-bar-count pnm-reviews__bar-count">{count}</span>
         </div>
     );
 }
@@ -207,14 +180,31 @@ export default function VenueReviews({ venueId, venueName, userId, userName, aut
             if (e.key === 'Escape') {
                 e.stopPropagation();
                 if (onClose) onClose();
+                return;
+            }
+            // A11Y FIX: Tab now stays inside the dialog instead of walking out
+            // into the page behind the scrim.
+            if (e.key !== 'Tab') return;
+            const root = panelRef.current;
+            if (!root) return;
+            const focusables = root.querySelectorAll(FOCUSABLE);
+            if (focusables.length === 0) return;
+            const first = focusables[0];
+            const last = focusables[focusables.length - 1];
+            if (e.shiftKey && (document.activeElement === first || document.activeElement === root)) {
+                e.preventDefault();
+                last.focus();
+            } else if (!e.shiftKey && document.activeElement === last) {
+                e.preventDefault();
+                first.focus();
             }
         };
         document.addEventListener('keydown', onKeyDown);
-        const prevOverflow = document.body.style.overflow;
-        document.body.style.overflow = 'hidden';
+        // The shared registry lock instead of a captured body.style.overflow.
+        const releaseScrollLock = acquireScrollLock('VenueReviewsDialog');
         return () => {
             document.removeEventListener('keydown', onKeyDown);
-            document.body.style.overflow = prevOverflow;
+            releaseScrollLock();
             const opener = openerRef.current;
             if (opener && typeof opener.focus === 'function') {
                 try { opener.focus(); } catch { /* element gone */ }
@@ -327,292 +317,249 @@ export default function VenueReviews({ venueId, venueName, userId, userName, aut
 
     if (!isOpen) return null;
 
+    const writeFormOpen = !!(userId && showWriteReview);
+    const canSubmit = !!newRating && !!newText.trim() && !submitting;
+
     return (
-        <div className="vr-overlay" role="presentation" {...scrim}>
-            <div
-                className="vr-panel"
+        <div
+            className="pnm-console-dialog-overlay pnm-reviews-dialog-overlay"
+            role="presentation"
+            onPointerDown={scrim.onPointerDown}
+            onClick={(e) => { e.stopPropagation(); scrim.onClick(e); }}
+            style={{ paddingTop: 'max(12px, env(safe-area-inset-top, 0px))' }}
+        >
+            <section
+                className="pnm-console-dialog-shell pnm-reviews-dialog"
                 role="dialog"
                 aria-modal="true"
-                aria-label={`Reviews for ${venueName || 'this venue'}`}
+                aria-labelledby="pnm-venue-reviews-title"
+                aria-describedby={venueName ? 'pnm-venue-reviews-venue' : undefined}
+                aria-busy={loading || submitting}
                 tabIndex={-1}
                 ref={panelRef}
                 onClick={e => e.stopPropagation()}
             >
-                <div className="vr-handle" aria-hidden="true" />
-                <div className="vr-header">
-                    <div>
-                        <h2>Reviews</h2>
-                        <p className="vr-venue-name">{venueName}</p>
-                    </div>
-                    <button className="vr-close sp-icon-btn" aria-label="Close" onClick={onClose}>×</button>
-                </div>
+                <PokerNearMeConsole
+                    as="div"
+                    className="pnm-console-dialog"
+                    crest="flat"
+                    eyebrow="Player Reviews"
+                    title="Reviews"
+                    titleId="pnm-venue-reviews-title"
+                    foot={writeFormOpen ? 'plates' : 'foot'}
+                    plates={writeFormOpen ? {
+                        secondary: {
+                            label: 'Cancel',
+                            onClick: () => { setSubmitError(''); setShowWriteReview(false); },
+                            disabled: submitting,
+                            'aria-label': 'Cancel Review',
+                        },
+                        primary: {
+                            label: submitting ? 'Submitting...' : 'Submit',
+                            ink: 'white',
+                            onClick: submitReview,
+                            disabled: !canSubmit,
+                            'aria-label': submitting ? 'Submitting Review' : 'Submit Review',
+                        },
+                    } : undefined}
+                >
+                    <div className="pnm-console-dialog__body pnm-reviews">
+                        {venueName ? <p id="pnm-venue-reviews-venue" className="pnm-console-dialog__copy pnm-reviews__venue">{venueName}</p> : null}
 
-                {/* Rating summary */}
-                <div className="vr-summary">
-                    <div className="vr-score-box">
-                        <div className="vr-score">{avgRating.toFixed(1)}</div>
-                        <StarRating rating={Math.round(avgRating)} size={14} />
-                        <div className="vr-total">{totalReviews} review{totalReviews !== 1 ? 's' : ''}</div>
-                    </div>
-                    <div className="vr-distribution">
-                        {[5, 4, 3, 2, 1].map(s => (
-                            <RatingBar key={s} stars={s} count={distribution[s] || 0} total={totalReviews} />
-                        ))}
-                    </div>
-                </div>
-
-                {/* GAP FIX: the form asks every reviewer to fill in five category ratings
-                    and the API returns them as `category_averages`, but nothing rendered
-                    them — the ratings were write-only from the user's point of view.
-                    `verified_count` was likewise never surfaced. */}
-                {categoryAverages && Object.keys(CATEGORY_AVG_LABELS).some(k => categoryAverages[k] != null) && (
-                    <div className="vr-cat-averages">
-                        <div className="vr-cat-averages-head">
-                            <span>Category Ratings</span>
-                            {verifiedCount > 0 && (
-                                <span className="vr-verified-count">{verifiedCount} Verified player{verifiedCount !== 1 ? 's' : ''}</span>
-                            )}
-                        </div>
-                        {Object.entries(CATEGORY_AVG_LABELS).map(([key, label]) => {
-                            const val = categoryAverages[key];
-                            if (val == null) return null;
-                            return (
-                                <div key={key} className="vr-rating-bar-row">
-                                    <span className="vr-cat-avg-label">{label}</span>
-                                    <div className="vr-bar-track">
-                                        <div className="vr-bar-fill" style={{ width: `${(Number(val) / 5) * 100}%` }} />
-                                    </div>
-                                    <span className="vr-cat-avg-val">{Number(val).toFixed(1)}</span>
-                                </div>
-                            );
-                        })}
-                    </div>
-                )}
-
-                {/* Write review button */}
-                {userId && (
-                    <button className="vr-write-btn" onClick={() => { setSubmitError(''); setShowWriteReview(!showWriteReview); }}>
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
-                            <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
-                        </svg>
-                        Write A Review
-                    </button>
-                )}
-
-                {/* Write review form */}
-                {showWriteReview && (
-                    <div className="vr-write-form">
-                        <div className="vr-form-group">
-                            <label>Overall Rating *</label>
-                            <StarRating rating={newRating} size={28} interactive label="Overall rating" onChange={setNewRating} />
-                        </div>
-
-                        <div className="vr-form-group">
-                            <label>Category Ratings (Optional)</label>
-                            <div className="vr-category-ratings">
-                                {CATEGORIES.map(cat => (
-                                    <div key={cat.key} className="vr-cat-row">
-                                        <span className="vr-cat-label">{CATEGORY_ICONS[cat.key]} {cat.label}</span>
-                                        <StarRating
-                                            rating={categoryRatings[cat.key] || 0}
-                                            size={16}
-                                            interactive
-                                            label={cat.label}
-                                            onChange={val => setCategoryRatings(prev => ({ ...prev, [cat.key]: val }))}
-                                        />
-                                    </div>
+                        {/* Rating summary, printed as rows on the glass */}
+                        <div className="pnm-reviews__summary">
+                            <div className="pnm-reviews__score">
+                                <span className="pnm-reviews__score-value">{avgRating.toFixed(1)}</span>
+                                <StarRating rating={Math.round(avgRating)} label="Average rating" />
+                                <span className="pnm-reviews__total">{`${totalReviews} Review${totalReviews !== 1 ? 's' : ''}`}</span>
+                            </div>
+                            <div className="pnm-reviews__distribution">
+                                {[5, 4, 3, 2, 1].map(s => (
+                                    <RatingBar key={s} stars={s} count={distribution[s] || 0} total={totalReviews} />
                                 ))}
                             </div>
                         </div>
 
-                        <div className="vr-form-group">
-                            <label>Your Review *</label>
-                            <textarea
-                                value={newText}
-                                onChange={e => setNewText(e.target.value)}
-                                placeholder="Tell other players about your experience..."
-                                className="vr-textarea"
-                                rows={4}
-                            />
-                        </div>
+                        {/* GAP FIX: the form asks every reviewer to fill in five category ratings
+                            and the API returns them as `category_averages`, but nothing rendered
+                            them — the ratings were write-only from the user's point of view.
+                            `verified_count` was likewise never surfaced. */}
+                        {categoryAverages && Object.keys(CATEGORY_AVG_LABELS).some(k => categoryAverages[k] != null) && (
+                            <div className="pnm-reviews__categories">
+                                <div className="pnm-reviews__section-head">
+                                    <span>Category Ratings</span>
+                                    {verifiedCount > 0 && (
+                                        <span className="pnm-reviews__verified-count">{`${verifiedCount} Verified Player${verifiedCount !== 1 ? 's' : ''}`}</span>
+                                    )}
+                                </div>
+                                {Object.entries(CATEGORY_AVG_LABELS).map(([key, label]) => {
+                                    const val = categoryAverages[key];
+                                    if (val == null) return null;
+                                    return (
+                                        <div key={key} className="vr-rating-bar-row pnm-reviews__bar-row">
+                                            <span className="pnm-reviews__bar-label pnm-reviews__bar-label--wide">{label}</span>
+                                            <div className="pnm-reviews__bar-track">
+                                                <div className="pnm-reviews__bar-fill" style={{ width: `${(Number(val) / 5) * 100}%` }} />
+                                            </div>
+                                            <span className="pnm-reviews__bar-count">{Number(val).toFixed(1)}</span>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
 
-                        {submitError && <div className="vr-submit-error">{submitError}</div>}
+                        {/* Write review toggle: a lit word on the glass */}
+                        {userId && (
+                            <button
+                                type="button"
+                                className="pnm-reviews__text-action vr-write-btn"
+                                aria-expanded={showWriteReview}
+                                onClick={() => { setSubmitError(''); setShowWriteReview(!showWriteReview); }}
+                            >
+                                <PokerNearMeConsoleIcon name="edit" className="pnm-reviews__action-icon" />
+                                {showWriteReview ? 'Close Review Form' : 'Write A Review'}
+                            </button>
+                        )}
 
-                        <button className="vr-submit-btn" onClick={submitReview} disabled={!newRating || !newText.trim() || submitting}>
-                            {submitting ? 'Submitting...' : 'Submit Review'}
-                        </button>
-                    </div>
-                )}
+                        {/* Write review form: its Cancel / Submit are the console's two plates */}
+                        {showWriteReview && (
+                            <div className="pnm-reviews__form">
+                                <div className="pnm-reviews__field">
+                                    <span className="pnm-console-dialog__label">Overall Rating (Required)</span>
+                                    <StarRating rating={newRating} interactive label="Overall rating" onChange={setNewRating} />
+                                </div>
 
-                {/* Sort */}
-                <div className="vr-sort-row">
-                    {SORT_OPTIONS.map(opt => (
-                        <button key={opt.key} className={'vr-sort-chip' + (sortBy === opt.key ? ' active' : '')} onClick={() => setSortBy(opt.key)}>
-                            {opt.label}
-                        </button>
-                    ))}
-                </div>
-
-                {/* Reviews list */}
-                <div className="vr-list">
-                    {loading && <div className="vr-loading"><div className="vr-spinner" /><span>Loading Reviews...</span></div>}
-                    {!loading && reviews.length === 0 && (
-                        <div className="vr-empty">
-                            <p>No Reviews Yet. Be The First!</p>
-                        </div>
-                    )}
-                    {reviews.map((r, i) => (
-                        <div key={r.id || i} className="vr-review-card">
-                            <div className="vr-review-header">
-                                {/* WIRING FIX: the API enriches each review with
-                                    profile.avatar_url; it was ignored in favour of a letter
-                                    monogram for everyone. */}
-                                {r.profile?.avatar_url ? (
-                                    <img src={r.profile.avatar_url} alt="" className="vr-reviewer-avatar vr-reviewer-avatar-img" loading="lazy" />
-                                ) : (
-                                    <div className="vr-reviewer-avatar" style={{ background: `hsl(${Math.abs(((r.reviewer_name || '?').charCodeAt(0) || 63) * 37) % 360}, 55%, 50%)` }}>
-                                        {(r.reviewer_name || '?')[0].toUpperCase()}
+                                <div className="pnm-reviews__field">
+                                    <span className="pnm-console-dialog__label">Category Ratings (Optional)</span>
+                                    <div className="pnm-reviews__category-inputs">
+                                        {CATEGORIES.map(cat => (
+                                            <div key={cat.key} className="pnm-reviews__category-row">
+                                                <span className="pnm-reviews__category-label">{cat.label}</span>
+                                                <StarRating
+                                                    rating={categoryRatings[cat.key] || 0}
+                                                    interactive
+                                                    label={cat.label}
+                                                    onChange={val => setCategoryRatings(prev => ({ ...prev, [cat.key]: val }))}
+                                                />
+                                            </div>
+                                        ))}
                                     </div>
-                                )}
-                                <div className="vr-reviewer-info">
-                                    <span className="vr-reviewer-name">
-                                        {r.reviewer_name}
-                                        {/* WIRING FIX: the canonical field is the top-level
-                                            boolean is_verified_player — what the GET selects,
-                                            what verified_count counts and what the `verified`
-                                            sort filters on. metadata.verified_player is only a
-                                            best-effort copy written on NEW inserts, so imported
-                                            and older rows never showed the badge. */}
-                                        {(r.is_verified_player ?? r.metadata?.verified_player) && (
-                                            <span className="vr-verified-badge" title="Verified Player - has played at this venue">
-                                                <svg width="12" height="12" viewBox="0 0 24 24" fill="#22c55e" stroke="#22c55e" strokeWidth="2">
-                                                    <path d="M22 11.08V12a10 10 0 11-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" />
-                                                </svg>
+                                </div>
+
+                                <div className="pnm-console-dialog__content">
+                                    <label className="pnm-console-dialog__field">
+                                        <span className="pnm-console-dialog__label">Your Review (Required)</span>
+                                        <textarea
+                                            value={newText}
+                                            onChange={e => setNewText(e.target.value)}
+                                            placeholder="Tell Other Players About Your Experience..."
+                                            className="pnm-reviews__textarea"
+                                            rows={4}
+                                            disabled={submitting}
+                                        />
+                                    </label>
+                                </div>
+
+                                {submitError && <p className="pnm-console-dialog__error" role="alert">{submitError}</p>}
+                            </div>
+                        )}
+
+                        {/* Sort: four lit toggles, the active one pressed */}
+                        <div className="pnm-reviews__sort" role="group" aria-label="Sort Reviews">
+                            {SORT_OPTIONS.map(opt => (
+                                <button
+                                    key={opt.key}
+                                    type="button"
+                                    className="pnm-reviews__text-action pnm-reviews__sort-option"
+                                    aria-pressed={sortBy === opt.key}
+                                    onClick={() => setSortBy(opt.key)}
+                                >
+                                    {opt.label}
+                                </button>
+                            ))}
+                        </div>
+
+                        {/* Reviews list */}
+                        <div className="pnm-reviews__list">
+                            {loading && <p className="pnm-reviews__status" role="status">Loading Reviews...</p>}
+                            {!loading && reviews.length === 0 && (
+                                <p className="pnm-reviews__status">No Reviews Yet. Be The First!</p>
+                            )}
+                            {reviews.map((r, i) => (
+                                <article key={r.id || i} className="pnm-reviews__review">
+                                    <div className="pnm-reviews__review-head">
+                                        {/* WIRING FIX: the API enriches each review with
+                                            profile.avatar_url; it was ignored in favour of a letter
+                                            monogram for everyone. */}
+                                        {r.profile?.avatar_url ? (
+                                            <img src={r.profile.avatar_url} alt="" className="pnm-reviews__avatar" loading="lazy" />
+                                        ) : (
+                                            <span className="pnm-reviews__avatar pnm-reviews__avatar--initial" aria-hidden="true">
+                                                {(r.reviewer_name || '?')[0].toUpperCase()}
                                             </span>
                                         )}
-                                    </span>
-                                    <span className="vr-review-date">{timeAgo(r.created_at)}</span>
-                                </div>
-                                <StarRating rating={r.rating} size={12} />
-                            </div>
-                            <p className="vr-review-text">{r.review_text}</p>
-                            {/* STUB FIX: the review photo strip that used to render here was dead
-                                code — venue_reviews has no photos column, /api/poker/reviews never
-                                selects or stores one (the upload picker was already removed from the
-                                submit path above), so `r.photos` was always undefined. Removed along
-                                with the orphaned .vr-photo-* / .vr-review-photo* style rules. */}
-                            <div className="vr-review-actions">
-                                <button className={'vr-helpful-btn' + (r.voted_helpful ? ' voted' : '')} onClick={() => !r.voted_helpful && voteReview(r.id, 'helpful')}>
-                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight: 4 }}>
-                                        <path d="M14 9V5a3 3 0 00-3-3l-4 9v11h11.28a2 2 0 002-1.7l1.38-9a2 2 0 00-2-2.3H14z" />
-                                        <path d="M7 22H4a2 2 0 01-2-2v-7a2 2 0 012-2h3" />
-                                    </svg>
-                                    Helpful {r.helpful_count > 0 ? `(${r.helpful_count})` : ''}
+                                        <div className="pnm-reviews__reviewer">
+                                            <span className="pnm-reviews__reviewer-name">
+                                                {r.reviewer_name}
+                                                {/* WIRING FIX: the canonical field is the top-level
+                                                    boolean is_verified_player — what the GET selects,
+                                                    what verified_count counts and what the `verified`
+                                                    sort filters on. metadata.verified_player is only a
+                                                    best-effort copy written on NEW inserts, so imported
+                                                    and older rows never showed the badge. */}
+                                                {(r.is_verified_player ?? r.metadata?.verified_player) && (
+                                                    <span className="pnm-reviews__verified" title="Verified Player - Has Played At This Venue">Verified Player</span>
+                                                )}
+                                            </span>
+                                            <span className="pnm-reviews__date">{timeAgo(r.created_at)}</span>
+                                        </div>
+                                        <StarRating rating={r.rating} label="Rating" />
+                                    </div>
+                                    <p className="pnm-reviews__text">{r.review_text}</p>
+                                    {/* STUB FIX: the review photo strip that used to render here was dead
+                                        code — venue_reviews has no photos column, /api/poker/reviews never
+                                        selects or stores one (the upload picker was already removed from the
+                                        submit path above), so `r.photos` was always undefined. Removed along
+                                        with the orphaned .vr-photo-* / .vr-review-photo* style rules. */}
+                                    <div className="pnm-reviews__review-actions">
+                                        <button
+                                            type="button"
+                                            className="pnm-reviews__text-action"
+                                            aria-pressed={!!r.voted_helpful}
+                                            onClick={() => !r.voted_helpful && voteReview(r.id, 'helpful')}
+                                        >
+                                            Helpful {r.helpful_count > 0 ? `(${r.helpful_count})` : ''}
+                                        </button>
+                                        <button
+                                            type="button"
+                                            className="pnm-reviews__text-action pnm-reviews__text-action--quiet"
+                                            aria-pressed={!!r.voted_unhelpful}
+                                            onClick={() => !r.voted_unhelpful && voteReview(r.id, 'unhelpful')}
+                                        >
+                                            Not Helpful {r.unhelpful_count > 0 ? `(${r.unhelpful_count})` : ''}
+                                        </button>
+                                    </div>
+                                </article>
+                            ))}
+                            {/* GAP FIX: there was no pagination at all, so reviews past the first
+                                page were unreachable while the header advertised the full total. */}
+                            {!loading && hasMore && (
+                                <button type="button" className="pnm-reviews__text-action pnm-reviews__load-more" onClick={loadMoreReviews} disabled={loadingMore}>
+                                    {loadingMore ? 'Loading...' : 'Load More Reviews'}
                                 </button>
-                                <button className={'vr-unhelpful-btn' + (r.voted_unhelpful ? ' voted' : '')} onClick={() => !r.voted_unhelpful && voteReview(r.id, 'unhelpful')}>
-                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight: 4, transform: 'rotate(180deg)' }}>
-                                        <path d="M14 9V5a3 3 0 00-3-3l-4 9v11h11.28a2 2 0 002-1.7l1.38-9a2 2 0 00-2-2.3H14z" />
-                                        <path d="M7 22H4a2 2 0 01-2-2v-7a2 2 0 012-2h3" />
-                                    </svg>
-                                    {r.unhelpful_count > 0 ? `(${r.unhelpful_count})` : ''}
-                                </button>
-                            </div>
+                            )}
                         </div>
-                    ))}
-                    {/* GAP FIX: there was no pagination at all, so reviews past the first
-                        page were unreachable while the header advertised the full total. */}
-                    {!loading && hasMore && (
-                        <button className="vr-load-more" onClick={loadMoreReviews} disabled={loadingMore}>
-                            {loadingMore ? 'Loading...' : 'Load more reviews'}
-                        </button>
-                    )}
-                </div>
-
-            </div>
-
-            <style>{`
-        .vr-overlay { position: fixed; inset: 0; z-index: 10000; background: rgba(0,0,0,0.75); display: flex; justify-content: flex-end; }
-        /* padding-top clears the status bar so the X is reachable (mobile phase 0b). */
-        .vr-panel { position: relative; width: 100%; max-width: 500px; background: #0f172a; border-left: 1px solid rgba(255,255,255,0.1); overflow-y: auto; padding: 24px; padding-top: calc(env(safe-area-inset-top, 0px) + 12px); padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 24px); animation: slideInRight 0.3s ease-out; box-sizing: border-box; }
-        .vr-handle { display: none; }
-        @keyframes slideInRight { from { transform: translateX(100%); } to { transform: translateX(0); } }
-        @keyframes vrSlideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
-        /* Mobile phase 3: a bottom sheet at or below 600px with a drag handle,
-           the 44px X below the status bar, 16px inputs (no iOS zoom). */
-        @media (max-width: 600px) {
-          .vr-overlay { align-items: flex-end; justify-content: stretch; }
-          .vr-panel { max-width: none; max-height: 92dvh; border-left: 0; border-top: 1px solid rgba(255,255,255,0.12); border-radius: 16px 16px 0 0; padding: 8px 16px 0; padding-top: max(env(safe-area-inset-top, 0px), 8px); padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 16px); animation: vrSlideUp 0.3s ease-out; }
-          .vr-handle { display: block; width: 44px; height: 4px; border-radius: 999px; background: rgba(255,255,255,0.18); margin: 0 auto 8px; }
-          .vr-textarea { font-size: 16px; }
-          .vr-submit-btn, .vr-write-btn, .vr-load-more { min-height: 44px; }
-        }
-        .vr-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; }
-        .vr-header h2 { font-size: 22px; font-weight: 700; color: #fff; margin: 0; }
-        .vr-venue-name { font-size: 13px; color: rgba(255,255,255,0.4); margin: 4px 0 0; }
-        .vr-close { background: none; border: none; color: rgba(255,255,255,0.4); font-size: 28px; cursor: pointer; padding: 0; line-height: 1; min-width: 44px; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
-        .vr-summary { display: flex; gap: 20px; margin-bottom: 20px; padding: 16px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; }
-        .vr-score-box { text-align: center; min-width: 80px; }
-        .vr-score { font-size: 36px; font-weight: 700; color: #ffffff; line-height: 1; }
-        .vr-total { font-size: 12px; color: rgba(255,255,255,0.4); margin-top: 4px; }
-        .vr-distribution { flex: 1; display: flex; flex-direction: column; gap: 4px; justify-content: center; }
-        .vr-rating-bar-row { display: flex; align-items: center; gap: 6px; }
-        .vr-bar-label { font-size: 12px; color: rgba(255,255,255,0.5); width: 20px; text-align: right; }
-        .vr-bar-track { flex: 1; height: 6px; background: rgba(255,255,255,0.06); border-radius: 3px; overflow: hidden; }
-        .vr-bar-fill { height: 100%; background: #ffffff; border-radius: 3px; transition: width 0.3s; }
-        .vr-bar-count { font-size: 12px; color: rgba(255,255,255,0.4); width: 20px; }
-        .vr-write-btn { display: flex; align-items: center; gap: 8px; width: 100%; padding: 12px; background: linear-gradient(135deg, #ffffff, #cbd5e1); border: none; border-radius: 10px; color: #000; font-size: 14px; font-weight: 600; cursor: pointer; justify-content: center; margin-bottom: 16px; }
-        .vr-write-form { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); border-radius: 14px; padding: 20px; margin-bottom: 16px; }
-        .vr-form-group { margin-bottom: 16px; }
-        .vr-form-group:last-child { margin-bottom: 0; }
-        .vr-form-group label { display: block; font-size: 12px; font-weight: 500; color: rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
-        .vr-category-ratings { display: flex; flex-direction: column; gap: 8px; }
-        .vr-submit-error { margin-bottom: 10px; padding: 8px 10px; border-radius: 8px; background: rgba(248,81,73,0.1); border: 1px solid rgba(248,81,73,0.3); color: #f85149; font-size: 12px; font-weight: 600; }
-        .vr-cat-row { display: flex; align-items: center; justify-content: space-between; padding: 6px 0; }
-        .vr-cat-label { font-size: 13px; color: rgba(255,255,255,0.7); }
-        .vr-textarea { width: 100%; padding: 12px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.12); border-radius: 10px; color: #fff; font-size: 14px; font-family: inherit; resize: vertical; min-height: 100px; }
-        .vr-textarea:focus { outline: none; border-color: rgba(255,255,255,0.4); }
-        .vr-textarea::placeholder { color: rgba(255,255,255,0.25); }
-        .vr-submit-btn { width: 100%; padding: 12px; background: linear-gradient(135deg, #ffffff, #cbd5e1); border: none; border-radius: 10px; color: #000; font-size: 14px; font-weight: 600; cursor: pointer; margin-top: 8px; }
-        .vr-submit-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-        /* Mobile phase 3: the sort chips wrap; they used to be a sideways strip. */
-        .vr-sort-row { display: flex; flex-wrap: wrap; gap: 6px; padding-bottom: 4px; margin-bottom: 16px; }
-        .vr-sort-chip { min-height: 44px; padding: 6px 12px; border-radius: 8px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); color: rgba(255,255,255,0.6); font-size: 12px; cursor: pointer; white-space: nowrap; transition: all 0.2s; touch-action: manipulation; }
-        .vr-sort-chip:active { background: rgba(255,255,255,0.12); }
-        .vr-sort-chip.active { background: rgba(255,255,255,0.15); border-color: rgba(255,255,255,0.4); color: #ffffff; }
-        .vr-list { display: flex; flex-direction: column; gap: 12px; }
-        .vr-loading { display: flex; flex-direction: column; align-items: center; padding: 40px 20px; gap: 10px; }
-        .vr-spinner { width: 28px; height: 28px; border: 3px solid rgba(255,255,255,0.1); border-top-color: #ffffff; border-radius: 50%; animation: spin 0.8s linear infinite; }
-        .vr-loading span { color: rgba(255,255,255,0.4); font-size: 13px; }
-        .vr-empty { text-align: center; padding: 40px 20px; }
-        .vr-empty p { color: rgba(255,255,255,0.4); }
-        .vr-review-card { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 16px; }
-        .vr-review-header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
-        .vr-reviewer-avatar { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; color: #fff; flex-shrink: 0; }
-        .vr-reviewer-info { flex: 1; }
-        .vr-reviewer-name { font-size: 14px; font-weight: 600; color: #fff; display: block; }
-        .vr-review-date { font-size: 12px; color: rgba(255,255,255,0.3); }
-        .vr-review-text { font-size: 14px; color: rgba(255,255,255,0.7); line-height: 1.5; margin: 0; }
-        .vr-review-actions { margin-top: 10px; display: flex; gap: 6px; }
-        .vr-helpful-btn { min-height: 44px; padding: 6px 12px; border-radius: 6px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); color: rgba(255,255,255,0.5); font-size: 12px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; }
-        .vr-helpful-btn:hover, .vr-helpful-btn:active { background: rgba(255,255,255,0.08); }
-        .vr-helpful-btn.voted { background: rgba(59,130,246,0.1); border-color: rgba(59,130,246,0.3); color: #3b82f6; }
-        .vr-unhelpful-btn { min-height: 44px; padding: 6px 10px; border-radius: 6px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); color: rgba(255,255,255,0.35); font-size: 12px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; }
-        .vr-unhelpful-btn:hover, .vr-unhelpful-btn:active { background: rgba(239,68,68,0.06); }
-        .vr-unhelpful-btn.voted { background: rgba(239,68,68,0.1); border-color: rgba(239,68,68,0.3); color: #ef4444; }
-        .vr-verified-badge { display: inline-flex; align-items: center; margin-left: 4px; vertical-align: middle; }
-        .vr-panel:focus { outline: none; }
-        .vr-reviewer-avatar-img { object-fit: cover; }
-        .vr-cat-averages { margin-bottom: 16px; padding: 14px 16px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07); border-radius: 12px; display: flex; flex-direction: column; gap: 5px; }
-        .vr-cat-averages-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
-        .vr-verified-count { text-transform: none; letter-spacing: 0; color: #22c55e; font-weight: 600; }
-        .vr-cat-avg-label { font-size: 12px; color: rgba(255,255,255,0.6); width: 96px; flex-shrink: 0; }
-        .vr-cat-avg-val { font-size: 12px; color: rgba(255,255,255,0.75); width: 26px; text-align: right; flex-shrink: 0; }
-        .vr-load-more { width: 100%; padding: 10px; margin-top: 4px; border-radius: 10px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); color: rgba(255,255,255,0.75); font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit; }
-        .vr-load-more:hover:not(:disabled), .vr-load-more:active:not(:disabled) { background: rgba(255,255,255,0.1); color: #ffffff; }
-        .vr-load-more:disabled { opacity: 0.5; cursor: wait; }
-        @keyframes spin { to { transform: rotate(360deg); } }
-      `}</style>
+                    </div>
+                </PokerNearMeConsole>
+                <button
+                    type="button"
+                    className="pnm-console-dialog__close"
+                    onClick={onClose}
+                    aria-label="Close Reviews"
+                >
+                    Close
+                </button>
+            </section>
         </div>
     );
 }

@@ -19,6 +19,7 @@ import { radiusToZoom } from './pnm-utils';
 import MapPreferenceChooser from './MapPreferenceChooser';
 import MapCoverageReadout from './MapCoverageReadout';
 import MapSurfaceFrame from './MapSurfaceFrame';
+import { PokerNearMeConsoleIcon, PokerNearMePanelShell } from './PokerNearMeConsole';
 import {
   addPokerMapLayers,
   createPokerMapSession,
@@ -29,7 +30,9 @@ import {
 import { capturePokerNearMeEvent } from '../../lib/poker-near-me/activity';
 import { isVenueMapEligible, summarizeVenueIntegrity } from '../../lib/poker-near-me/venueIntegrity';
 import {
+  attachPokerPopupViewportGuard,
   buildPokerTourPopupHtml,
+  buildPokerUserLocationPopupHtml,
   buildPokerVenuePopupHtml,
   createPokerClusterIcon,
   createPokerPopupClickHandler,
@@ -39,6 +42,7 @@ import {
   createPokerVenueIcon,
   isPokerTourStop,
   pokerVenueTheme,
+  POKER_MAP_LEGEND_ITEMS,
   syncPokerMapKeyboardTargets,
 } from './mapPresentation';
 
@@ -75,64 +79,8 @@ const LEAFLET_CUSTOM_CSS = `
 .leaflet-tile-pane {
   touch-action: none !important;
 }
-/* ═══ ATTRIBUTION — Smarter.Poker Branding ═══ */
-.leaflet-control-attribution {
-  background: linear-gradient(90deg, rgba(10,10,21,0.85), rgba(10,10,21,0.7)) !important;
-  color: rgba(255,255,255,0.7) !important;
-  font-size: 12px !important;
-  padding: 3px 10px !important;
-  border-radius: 6px 0 0 0 !important;
-  font-weight: 600 !important;
-  letter-spacing: 0.3px !important;
-  font-family: 'Inter', -apple-system, sans-serif !important;
-}
-.leaflet-control-attribution a {
-  color: #ffffff !important;
-  text-decoration: none !important;
-}
-
-/* ═══ PREMIUM POPUP ═══ */
-.leaflet-popup-content-wrapper {
-  background: linear-gradient(145deg, rgba(15,23,42,0.98) 0%, rgba(10,10,21,0.99) 100%) !important;
-  border-radius: 14px !important;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.6), 0 0 1px rgba(255,255,255,0.4), inset 0 1px 0 rgba(255,255,255,0.05) !important;
-  border: 1px solid rgba(255,255,255,0.2) !important;
-  padding: 0 !important;
-}
-.leaflet-popup-content {
-  margin: 0 !important;
-  font-family: 'Inter', -apple-system, sans-serif !important;
-}
-.leaflet-popup-tip {
-  background: rgba(15,23,42,0.98) !important;
-  border: 1px solid rgba(255,255,255,0.15) !important;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.4) !important;
-}
-.leaflet-popup-close-button {
-  color: rgba(148,163,184,0.5) !important;
-  font-size: 20px !important;
-  padding: 6px 10px 0 0 !important;
-  transition: color 0.2s !important;
-  z-index: 9999 !important;
-  pointer-events: auto !important;
-}
-.leaflet-popup-close-button:hover {
-  color: #ffffff !important;
-}
-
-/* ═══ MARKER PULSE ANIMATION ═══ */
-@keyframes markerPulse {
-  0%, 100% { transform: scale(1); opacity: 0.6; }
-  50% { transform: scale(1.8); opacity: 0; }
-}
-@keyframes markerGlow {
-  0%, 100% { box-shadow: 0 0 6px var(--marker-glow); }
-  50% { box-shadow: 0 0 14px var(--marker-glow), 0 0 24px var(--marker-glow); }
-}
-@keyframes userPulse {
-  0%, 100% { transform: scale(1); opacity: 0.4; }
-  50% { transform: scale(2.2); opacity: 0; }
-}
+/* Attribution, popups, legend and HUD chrome are painted by the shared
+   poker-near-me-console-map.css; this block keeps Leaflet behaviour only. */
 
 /* ═══ VENUE PIN — Remove Leaflet default white border from divIcons ═══ */
 .venue-map-marker {
@@ -157,75 +105,6 @@ const LEAFLET_CUSTOM_CSS = `
   background: transparent !important;
 }
 
-/* ═══ MAP LEGEND ═══ */
-.venue-map-legend {
-  position: absolute;
-  bottom: 10px;
-  left: 10px;
-  z-index: 1000;
-  background: rgba(10,10,21,0.92);
-  backdrop-filter: blur(8px);
-  border: 1px solid rgba(255,255,255,0.2);
-  border-radius: 10px;
-  padding: 10px 14px;
-  font-family: 'Inter', -apple-system, sans-serif;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.5);
-  transition: opacity 0.3s;
-  max-height: 180px;
-  overflow: visible;
-}
-.venue-map-legend--coverage { bottom: 92px; }
-.venue-map-legend-title {
-  font-size: 12px;
-  font-weight: 700;
-  color: rgba(255,255,255,0.7);
-  letter-spacing: 1px;
-  text-transform: uppercase;
-  margin-bottom: 6px;
-}
-.venue-map-legend-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 2px 0;
-}
-.venue-map-legend-dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  flex-shrink: 0;
-  border: 1.5px solid rgba(255,255,255,0.5);
-}
-.venue-map-legend-label {
-  font-size: 12px;
-  color: rgba(255,255,255,0.7);
-  font-weight: 500;
-}
-
-/* (The .navigate-nearest-* rules were removed with the never-rendered
-   "Navigate to Nearest" button they styled.) */
-
-/* ═══ VENUE COUNT BADGE ═══ */
-.map-venue-count-badge {
-  position: absolute;
-  top: 10px;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 1000;
-  padding: 5px 14px;
-  background: rgba(10,14,25,0.85);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  border: 1px solid rgba(255,255,255,0.15);
-  border-radius: 20px;
-  color: rgba(255,255,255,0.8);
-  font-size: 12px;
-  font-weight: 700;
-  font-family: 'Inter', -apple-system, sans-serif;
-  letter-spacing: 0.5px;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.4);
-  pointer-events: none;
-}
 @media (prefers-reduced-motion: reduce) {
   .pnm-leaflet-map *, .pnm-leaflet-map *::before, .pnm-leaflet-map *::after {
     animation: none !important;
@@ -249,26 +128,24 @@ export class MapErrorBoundary extends React.Component {
   render() {
     if (this.state.hasError) {
       return (
-        <div style={{ padding: 40, textAlign: 'center', color: 'rgba(255,255,255,0.5)' }}>
-          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ marginBottom: 12 }}>
-            <path d="M1 6v16l7-4 8 4 7-4V2l-7 4-8-4-7 4z" />
-            <line x1="8" y1="2" x2="8" y2="18" />
-            <line x1="16" y1="6" x2="16" y2="22" />
-          </svg>
-          <p style={{ fontSize: 16, fontWeight: 600, color: '#fff', marginBottom: 8 }}>Map Unavailable</p>
-          <p style={{ fontSize: 13 }}>Unable To Load The Map. This May Be Caused By An Ad Blocker Or Network Issue.</p>
+        <PokerNearMePanelShell as="div" className="pnm-map-boundary" role="alert">
+          <PokerNearMeConsoleIcon name="alert" className="pnm-map-boundary__icon" />
+          <p className="pnm-map-boundary__title">Map Unavailable</p>
+          <p className="pnm-map-boundary__copy">Unable To Load The Map. This May Be Caused By An Ad Blocker Or Network Issue.</p>
           {/* [VM8 FIX] Stack trace hidden in production — was leaking internal file paths and source structure to end users. */}
           {process.env.NODE_ENV === 'development' && (
-            <div style={{ fontSize: 12, color: 'red', marginTop: 10, textAlign: 'left', background: '#222', padding: 8 }}>
-              <strong>Error:</strong> {this.state.error?.message}<br />
+            <pre className="pnm-map-boundary__debug">
+              {this.state.error?.message}
+              {'\n'}
               {this.state.error?.stack}
-            </div>
+            </pre>
           )}
           <button
+            type="button"
+            className="pnm-map-status__action"
             onClick={() => this.setState({ hasError: false, error: null })}
-            style={{ marginTop: 16, padding: '10px 20px', background: 'rgba(255,255,255,0.2)', border: '1px solid rgba(255,255,255,0.4)', borderRadius: 8, color: '#ffffff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
           >Try Again</button>
-        </div>
+        </PokerNearMePanelShell>
       );
     }
     return this.props.children;
@@ -464,6 +341,10 @@ export default function VenueMap({
 
     mapInstanceRef.current = map;
 
+    // maxBounds can refuse Leaflet's autoPan near the national border; keep
+    // every dossier fully inside the visible map instead of under its edge.
+    const detachPopupGuard = attachPokerPopupViewportGuard(map);
+
     // MarkerCluster may keep nodes just beyond the clipped pane and creates
     // cluster icons asynchronously while chunking a large national dataset.
     // Reconcile focus targets after every viewport change and DOM insertion.
@@ -611,13 +492,14 @@ export default function VenueMap({
         alt: 'Your location map marker',
       })
         .addTo(map)
-        .bindPopup('<div style="padding:10px 14px;"><b style="color:#fff;font-size:14px;">You Are Here</b><br/><span style="font-size: 12px;color:rgba(148,163,184,0.7);">Your Current Location</span></div>');
+        .bindPopup(buildPokerUserLocationPopupHtml({ title: 'You Are Here', detail: 'Your Current Location' }), { className: 'venue-popup', maxWidth: 300, closeButton: true });
 
       // Do NOT auto-zoom to user location — keep full US overview so users can explore all venues
     }
 
     return () => {
       container.removeEventListener('click', handlePopupClicks);
+      detachPopupGuard();
       keyboardObserverRef.current?.disconnect();
       keyboardObserverRef.current = null;
       if (keyboardSyncFrameRef.current) window.cancelAnimationFrame(keyboardSyncFrameRef.current);
@@ -689,29 +571,13 @@ export default function VenueMap({
         ? createPokerTourIcon(L, venue)
         : createPokerVenueIcon(L, venue, { overrideColor: normalizedUniformColor });
 
-      // Favorited venue pins get a gold pulse ring wrapped around the icon
+      // Saved (favourited) venue pins print the painted saved holder beside
+      // the same marker machine. Geometry, hit box and anchor are unchanged,
+      // so a saved pin still sits exactly on its coordinates and geofence.
       const isFav = !isTourStop && isFavorited && isFavorited('venue', venue.id);
-      const finalIcon = isFav ? (() => {
-        const base = createPokerVenueIcon(L, venue, { overrideColor: normalizedUniformColor });
-        const size = base.options?.iconSize?.[0] || 36;
-        const favHtml = `<div style="position:relative;width:${size + 10}px;height:${size + 10}px;">
-          <div style="position:absolute;top:-1px;left:-1px;width:${size + 2}px;height:${size + 2}px;border-radius:50%;border:2.5px solid #ffffff;opacity:0.85;animation:markerPulse 1.8s ease-in-out infinite;"></div>
-          ${base.options.html}
-        </div>`;
-        // ANCHOR NOTE: the wrapper grows to size+10 but its CONTENT does not move —
-        // the pulse ring is absolutely positioned at (-1,-1) and the base icon markup
-        // sits in normal flow at (0,0), so the visible circle's centre stays at
-        // (size/2, size/2) inside the larger box. base.options.iconAnchor is exactly
-        // that point, so it must be carried through unchanged; recentring the anchor
-        // on the padded box would draw every favourited pin 5px up-left of its real
-        // coordinates (detached from its own geofence circle).
-        const favSize = size + 10;
-        return L.divIcon({
-          ...base.options,
-          html: favHtml,
-          iconSize: [favSize, favSize],
-        });
-      })() : venueIcon;
+      const finalIcon = isFav
+        ? createPokerVenueIcon(L, venue, { overrideColor: normalizedUniformColor, saved: true })
+        : venueIcon;
       // Pass distance via local data attr — do NOT mutate venue object
       const distMi = distanceMap.get(venue.id) ?? null;
       const venueWithDist = distMi != null ? { ...venue, _distanceMi: distMi } : venue;
@@ -840,7 +706,7 @@ export default function VenueMap({
         alt: 'Your location map marker',
       })
         .addTo(map)
-        .bindPopup('<div style="padding:8px 12px;"><b style="color:#fff;font-size:14px;">Your Location</b></div>');
+        .bindPopup(buildPokerUserLocationPopupHtml({ title: 'Your Location' }), { className: 'venue-popup', maxWidth: 300, closeButton: true });
       scheduleKeyboardTargetSync();
 
       // Do NOT auto-zoom — user explores the full map freely
@@ -891,13 +757,15 @@ export default function VenueMap({
     }).addTo(map);
   }, [radiusMiles, centerLocation, userLocation, mapReady]);
 
-  const legendItems = [
-    { type: 'casino', label: 'Casino', color: '#ffffff' },
-    { type: 'poker_club', label: 'Poker Club', color: '#22c55e' },
-    { type: 'tour_stop', label: 'Poker Tour', color: '#ef4444' },
-    { type: 'charity', label: 'Charity', color: '#3b82f6' },
-    { type: 'home_game', label: 'Home Game', color: '#94a3b8' },
-  ];
+  // The key prints each type name in the exact ink its map labels and
+  // dossiers use. A page that forces one uniform venue colour gets that
+  // colour in its key too, so the legend never describes colours the map
+  // is not showing.
+  const legendItems = POKER_MAP_LEGEND_ITEMS.map((item) => (
+    normalizedUniformColor && item.type !== 'tour_stop'
+      ? { ...item, color: normalizedUniformColor }
+      : item
+  ));
 
   return (
     <MapSurfaceFrame
@@ -917,44 +785,17 @@ export default function VenueMap({
       // Text inside the map stays at 12px or more.
       data-allow-small-target="true"
     >
-      {/* Premium loading skeleton */}
       {!mapReady && !mapError && (
-        <div style={{
-          width: '100%',
-          ...(fullHeight ? { height: '100%', minHeight: 400 } : { aspectRatio: '16 / 9', maxHeight: '50vh' }),
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          flexDirection: 'column', gap: 12,
-          color: 'rgba(255,255,255,0.6)',
-          background: 'linear-gradient(180deg, rgba(10,10,21,0.95) 0%, rgba(6,8,13,1) 100%)',
-          borderRadius: fullHeight ? 0 : 12,
-          position: 'relative',
-          overflow: 'hidden',
-        }}>
-          {/* Animated gradient sweep */}
-          <div style={{
-            position: 'absolute', inset: 0,
-            background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.04) 50%, transparent 100%)',
-            animation: 'shimmer 2s ease-in-out infinite',
-          }} />
-          <div style={{
-            width: 48, height: 48, border: '3px solid rgba(255,255,255,0.15)',
-            borderTopColor: '#ffffff', borderRadius: '50%',
-            animation: 'spin 1s linear infinite',
-          }} />
-          <span style={{ fontFamily: 'Inter, -apple-system, sans-serif', fontSize: 14, fontWeight: 600, letterSpacing: '1px' }}>
-            LOADING MAP...
-          </span>
-          <span style={{ fontSize: 12, color: 'rgba(148,163,184,0.4)' }}>
-            {(venues || []).length} Venues Ready
-          </span>
-          <style>{`@keyframes shimmer { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }`}</style>
+        <div className="pnm-map-status pnm-map-status--loading" role="status">
+          <span className="pnm-map-status__title">Loading Map...</span>
+          <span className="pnm-map-status__detail">{(venues || []).length} Venues Ready</span>
         </div>
       )}
       {mapError && (
-        <div role="alert" style={{ minHeight: 260, padding: 32, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12, textAlign: 'center', color: '#e2e8f0', background: '#060810', border: '1px solid rgba(239,68,68,0.35)', borderRadius: fullHeight ? 0 : 12 }}>
-          <strong>Map Unavailable</strong>
-          <span style={{ color: 'rgba(226,232,240,0.7)', fontSize: 13 }}>{mapError}</span>
-          <button type="button" onClick={() => { resetPokerMapRuntime(); setMapReady(false); setMapLoadAttempt(value => value + 1); }} style={{ minWidth: 120, minHeight: 44, padding: '10px 18px', color: '#fff', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.3)', borderRadius: 8, cursor: 'pointer' }}>Try Map Again</button>
+        <div className="pnm-map-status pnm-map-status--error" role="alert">
+          <strong className="pnm-map-status__title">Map Unavailable</strong>
+          <p>{mapError}</p>
+          <button type="button" className="pnm-map-status__action" onClick={() => { resetPokerMapRuntime(); setMapReady(false); setMapLoadAttempt(value => value + 1); }}>Try Map Again</button>
         </div>
       )}
       <div
@@ -979,11 +820,8 @@ export default function VenueMap({
           ...(fullHeight
             ? { height: '100%', minHeight: 400 }
             : { aspectRatio: '16 / 9', maxHeight: '50vh', minHeight: 260 }),
-          borderRadius: fullHeight ? 0 : 12,
           overflow: 'hidden',
-          border: fullHeight ? 'none' : '1px solid rgba(255,255,255,0.15)',
           display: mapReady && !mapError ? 'block' : 'none',
-          boxShadow: fullHeight ? 'none' : '0 4px 24px rgba(0,0,0,0.4)',
         }}
       />
       <p id={mapInstructionsId} className="sr-only">
@@ -998,7 +836,11 @@ export default function VenueMap({
           // A11Y: the legend is the collapse/expand control, so it needs a role, a tab
           // stop and keyboard activation. Kept as a div (not a button) so the existing
           // .venue-map-legend layout and its block-level children stay valid.
-          <div className="venue-map-legend venue-map-legend--coverage" style={{ opacity: legendCollapsed ? 0.5 : 1, cursor: 'pointer' }}
+          <PokerNearMePanelShell
+            as="div"
+            className="venue-map-legend venue-map-legend--coverage"
+            bodyClassName="venue-map-legend__body"
+            data-legend-collapsed={legendCollapsed ? 'true' : 'false'}
             role="button"
             tabIndex={0}
             aria-expanded={!legendCollapsed}
@@ -1011,14 +853,13 @@ export default function VenueMap({
               }
             }}
             onClick={(e) => { e.stopPropagation(); setLegendCollapsed(!legendCollapsed); }}>
-            <div className="venue-map-legend-title">{legendCollapsed ? '◆ Legend' : 'Venue Types'}</div>
+            <div className="venue-map-legend-title">{legendCollapsed ? 'Legend' : 'Venue Types'}</div>
             {!legendCollapsed && legendItems.map(item => (
               <div key={item.type} className="venue-map-legend-item">
-                <div className="venue-map-legend-dot" style={{ background: item.color, boxShadow: `0 0 6px ${item.color}55` }} />
-                <span className="venue-map-legend-label">{item.label}</span>
+                <span className="venue-map-legend-label" style={{ color: item.color }}>{item.label}</span>
               </div>
             ))}
-          </div>
+          </PokerNearMePanelShell>
         )}
 
         <MapCoverageReadout

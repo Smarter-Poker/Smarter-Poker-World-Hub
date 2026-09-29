@@ -1,4 +1,20 @@
-/* Shared Poker Near Me result cards: one painted chassis, live DOM content. */
+/*
+ * Poker Near Me result cards, the venue check-in dialog, the venue comparison
+ * panel, the venue reviews dialog and the shared identity mark.
+ *
+ * Paint what never changes; print what does. The card frame is the three
+ * native-ratio panel slices (panel-head / panel-mid / panel-foot); action
+ * plates are button-primary.png / button-secondary.png at their own 348:114
+ * ratio; icon holders are the painted pictograms. Everything else is live DOM
+ * text printed on the black glass between the rails, in the console's inks:
+ * silver #e4e7ec, white #f4f7fb, blue #45adff, green #c8ffd2, red #ff5b6e,
+ * gold #ffd700, muted #9aa5b3. No fill, rounded box or cast shadow is drawn to
+ * imitate chrome: a row is separated from the next by an engraved rule only.
+ *
+ * panel-mid.png's rails end at 8.8% of the slice width on each side, so the
+ * glass content starts at 10.5cqw of the card (the same inset the main
+ * console body uses) and never paints over a rail.
+ */
 
 [data-pnm-console='painted-panel-v1'].pnc-panel.pnm-console-card {
   all: unset;
@@ -11,17 +27,23 @@
   max-width: 100%;
   box-sizing: border-box;
   flex-direction: column;
-  color: #e8edf3;
+  color: #e4e7ec;
   background: transparent;
   font-family: var(--font-rajdhani), var(--font-premium-body), Inter, system-ui, sans-serif;
   font-variant-numeric: tabular-nums lining-nums;
   cursor: pointer;
   overflow: visible;
+
+  /* The command layer gives every .action-btn an inset shadow and the machined
+     layer insets focused controls. A painted plate carries its own depth, so
+     those shared insets resolve to nothing inside a card. */
+  --pnm-command-inset: 0 0 transparent;
+  --pnm-v2-inset: 0 0 transparent;
+  --pnm-card-inset: 10.5cqw;
 }
 
 .pnm-console-card::before,
-.pnm-console-card::after,
-.pnm-console-card .vc3-columns-grid::after {
+.pnm-console-card::after {
   content: none;
 }
 
@@ -49,8 +71,8 @@
   box-sizing: border-box;
   flex: 1 1 auto;
   flex-direction: column;
-  gap: 10px;
-  padding: 0 clamp(18px, 7.5cqw, 42px);
+  gap: 12px;
+  padding: 2px var(--pnm-card-inset) 6px;
   background: url('/images/pnm-console/painted-panels-v1/panel-mid.png') top center / 100% auto repeat-y;
 }
 
@@ -59,17 +81,21 @@
   background: url('/images/pnm-console/painted-panels-v1/panel-foot.png') bottom center / 100% auto no-repeat;
 }
 
+.pnm-console-card:focus-visible {
+  outline: 3px solid #8fd4ff;
+  outline-offset: -7px;
+}
+
+/* ---------- Header: identity, brand, save control ---------- */
+
 .pnm-console-card :is(.card-header, .pnm-console-card__header, .series-header, .tour-card-header, .vc3-header) {
   all: unset;
   display: flex;
   min-width: 0;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 10px;
+  gap: 8px 12px;
   padding-right: 48px;
-}
-
-.pnm-console-card .vc3-header-left {
-  align-items: center;
 }
 
 .pnm-console-card :is(.pnm-console-card__identity, .vc3-identity) {
@@ -77,146 +103,163 @@
   min-width: 0;
   flex: 1 1 auto;
   flex-direction: column;
-  gap: 3px;
+  gap: 4px;
 }
 
 .pnm-console-card__brand-row {
   display: flex;
   min-width: 0;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 10px;
+  gap: 8px 12px;
 }
 
 .pnm-console-card :is(h4, .pnm-console-card__title, .series-title, .tour-card-name, .tour-name, .vc3-name) {
   min-width: 0;
   margin: 0;
+  padding: 0;
+  overflow: visible;
   color: #f4f7fb;
-  font-size: clamp(17px, 4.6cqw, 22px);
+  font-size: clamp(17px, 5.6cqw, 22px);
   font-weight: 750;
-  line-height: 1.15;
+  line-height: 1.16;
   letter-spacing: 0.015em;
+  text-overflow: clip;
+  text-shadow: 0 1px 0 #050607, 0 2px 4px rgb(0 0 0 / 80%);
   text-transform: none;
+  white-space: normal;
   overflow-wrap: anywhere;
 }
 
 .pnm-console-card :is(p, .card-detail, .card-location, .card-dates) {
   min-width: 0;
   margin: 0;
-  color: #b4c0cc;
-  font-size: 13px;
-  line-height: 1.45;
+  color: #b9c4cf;
+  font-size: 14px;
+  line-height: 1.4;
   overflow-wrap: anywhere;
 }
 
 .pnm-console-card__title-link {
+  display: flex;
   min-width: 0;
+  min-height: 44px;
+  align-items: center;
   color: inherit;
   text-decoration: none;
 }
 
+/* A tour or series code with no artwork prints as lit type, never a chip. */
 .pnm-console-card__brand,
 .pnm-console-card :is(.series-tour, .tour-code-badge) {
   all: unset;
   display: inline-flex;
-  min-width: 64px;
-  min-height: 32px;
-  box-sizing: border-box;
+  min-width: 0;
+  min-height: 28px;
   align-items: center;
-  justify-content: center;
-  padding: 4px 12px;
-  color: #dfe8f0;
-  background: #121922;
-  font-size: 14px;
+  color: #e4e7ec;
+  font-size: 16px;
   font-weight: 800;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.1em;
+  line-height: 1;
+  text-shadow: 0 1px 0 #050607;
   white-space: nowrap;
 }
 
 .pnm-console-card__brand[data-size='small'] {
-  min-width: 52px;
-  min-height: 28px;
-  padding: 3px 9px;
-  font-size: 12px;
+  min-height: 24px;
+  font-size: 14px;
 }
 
-.pnm-console-card :is([data-tone='gold'], .pnm-console-card__tag--premium) { color: #f1d58b; }
-.pnm-console-card [data-tone='red'] { color: #ff8d98; }
-.pnm-console-card :is([data-tone='blue'], .pnm-console-card__tag--blue) { color: #78c6ff; }
-.pnm-console-card [data-tone='green'] { color: #8ceca5; }
-.pnm-console-card [data-tone='violet'] { color: #c9b7ff; }
-.pnm-console-card [data-tone='silver'] { color: #dfe8f0; }
-
-.pnm-console-card__logo,
-.pnm-console-card :is(.tour-logo-img, .vc3-logo-img) {
+/* Remote identity artwork keeps its own ratio and is never enlarged past its
+   own pixels (scale-down), so a 32px favicon stays a 32px favicon. The global
+   img:not(...) reset carries 0,3,1, so this selector is written to outrank it. */
+:is(.pnm-console-card).pnm-console-card[data-pnm-console] img:is(.pnm-console-card__logo, .tour-logo-img, .vc3-logo-img) {
   display: block;
-  width: 48px;
-  height: 48px;
-  max-width: 100%;
-  box-sizing: border-box;
-  flex: 0 0 48px;
-  padding: 3px;
-  object-fit: contain;
-  background: #edf1f5;
+  width: auto;
+  height: auto;
+  max-width: 96px;
+  max-height: 52px;
+  min-width: 0;
+  flex: 0 0 auto;
+  margin: 0;
+  padding: 0;
+  object-fit: scale-down;
+  background: transparent;
 }
 
 .pnm-console-card__logo-frame,
 .pnm-console-card .vc3-logo {
   all: unset;
   display: flex;
-  width: 54px;
-  height: 54px;
   min-width: 0;
-  box-sizing: border-box;
-  flex: 0 0 54px;
+  flex: 0 0 auto;
   align-items: center;
+  justify-content: flex-start;
+}
+
+:is(.pnm-console-card).pnm-console-card[data-pnm-console] .pnm-console-card__logo-frame--large img.pnm-console-card__logo {
+  max-width: min(132px, 42cqw);
+  max-height: 88px;
+}
+
+/* No artwork: the initials sit in the painted utility well, at its own ratio. */
+.pnm-console-card .vc3-logo[data-media-state='fallback'] {
+  width: 56px;
+  aspect-ratio: 1105 / 1133;
   justify-content: center;
-  overflow: hidden;
-  background: #edf1f5;
-}
-
-.pnm-console-card__logo-frame--large {
-  width: clamp(76px, 22cqw, 116px);
-  height: clamp(76px, 22cqw, 116px);
-  flex-basis: clamp(76px, 22cqw, 116px);
-}
-
-.pnm-console-card__logo--large {
-  width: 100%;
-  height: 100%;
-  flex-basis: auto;
-  padding: 8px;
+  background: url('/images/pnm-console/painted-controls-v1/utility-well.png') center / contain no-repeat;
 }
 
 .pnm-console-card .vc3-logo-initials {
-  font-size: 17px;
+  color: #e4e7ec;
+  font-size: 16px;
   font-weight: 800;
   letter-spacing: 0.08em;
+  text-shadow: 0 1px 0 #050607, 0 0 6px rgb(69 173 255 / 35%);
 }
 
+/* The save control IS the painted saved-icon holder. Unsaved reads dimmed,
+   saved reads lit; aria-pressed carries the state for assistive tech. */
 .pnm-console-card :is(.fav-btn, .vc3-fav) {
   all: unset;
-  position: absolute;
-  top: 0;
-  right: clamp(18px, 7.5cqw, 42px);
-  z-index: 5;
+  box-sizing: border-box;
   display: grid;
   width: 44px;
   height: 44px;
   min-width: 44px;
   min-height: 44px;
+  flex: 0 0 44px;
   place-items: center;
   cursor: pointer;
   touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
-.pnm-console-card :is(.fav-btn, .vc3-fav).active {
-  filter: brightness(1.25) saturate(1.25);
+.pnm-console-card > .pnc-panel__body > .fav-btn {
+  position: absolute;
+  top: 0;
+  right: var(--pnm-card-inset);
+  z-index: 5;
 }
 
-.pnm-console-card :is(.fav-btn, .vc3-fav):focus-visible,
-.pnm-console-card :is(.action-btn, .hex-btn-small, .tour-action-btn, .vc3-pill, .vc3-icon-btn):focus-visible {
-  outline: 2px solid #dff7ff;
-  outline-offset: -4px;
+.pnm-console-card :is(.fav-btn, .vc3-fav):not(.active) .pnc-icon {
+  opacity: 0.6;
+  filter: grayscale(0.6);
+}
+
+.pnm-console-card :is(.fav-btn, .vc3-fav).active .pnc-icon {
+  opacity: 1;
+  filter: none;
+}
+
+.pnm-console-card :is(.fav-btn, .vc3-fav):active .pnc-icon {
+  filter: brightness(1.3);
+}
+
+.pnm-console-card :is(.fav-btn, .vc3-fav, .vc3-icon-btn, .pnm-console-card__text-action, .vc3-city-state, .vc3-host-link, .vc3-host-profile-link, .vc3-list-scrollable):focus-visible {
+  outline: 2px solid #8fd4ff;
+  outline-offset: 1px;
 }
 
 .pnm-console-card__meta-icon {
@@ -237,13 +280,25 @@
   flex: 0 0 32px;
 }
 
-.pnm-console-card :is(.pnm-console-card__meta-line, .series-location, .series-dates, .tour-card-location-live, .vc3-city-state, .vc3-distance, .vc3-schedule, .vc3-saves-count) {
+/* ---------- Inks by tone (schema colours only) ----------
+   Written at 0,3,0 so a tone survives the later all:unset resets below. */
+
+.pnm-console-card.pnm-console-card [data-tone='silver'] { color: #e4e7ec; }
+.pnm-console-card.pnm-console-card [data-tone='blue'] { color: #45adff; text-shadow: 0 0 6px rgb(49 168 255 / 40%); }
+.pnm-console-card.pnm-console-card [data-tone='green'] { color: #c8ffd2; text-shadow: 0 0 6px rgb(53 217 90 / 60%); }
+.pnm-console-card.pnm-console-card [data-tone='red'] { color: #ff5b6e; text-shadow: 0 0 6px rgb(240 40 73 / 45%); }
+.pnm-console-card.pnm-console-card [data-tone='gold'] { color: #ffd700; text-shadow: 0 0 6px rgb(255 215 0 / 35%); }
+.pnm-console-card.pnm-console-card [data-tone='muted'] { color: #9aa5b3; }
+
+/* ---------- Meta lines and printed tags ---------- */
+
+.pnm-console-card :is(.pnm-console-card__meta-line, .series-location, .series-dates, .tour-card-location-live, .vc3-schedule, .vc3-saves-count) {
   display: flex;
   min-width: 0;
   align-items: center;
-  gap: 6px;
-  color: #aebbc7;
-  font-size: 13px;
+  gap: 8px;
+  color: #b9c4cf;
+  font-size: 14px;
   line-height: 1.35;
   text-decoration: none;
   overflow-wrap: anywhere;
@@ -253,131 +308,476 @@
   display: flex;
   min-width: 0;
   flex-wrap: wrap;
-  gap: 6px;
+  align-items: center;
+  gap: 4px 14px;
 }
 
-.pnm-console-card :is(.pnm-console-card__tag, .tag, .badge, .series-tag, .tour-type-pill, .vc3-badge, .vc3-game-chip, .vc3-open-pill, .vc3-more-badge, .vc3-charity-date-badge) {
+.pnm-console-card :is(.vc3-badges, .vc3-games):empty {
+  display: none;
+}
+
+.pnm-console-card :is(.pnm-console-card__tag, .tag, .badge, .series-tag, .tour-type-pill, .vc3-game-chip) {
   all: unset;
   display: inline-flex;
   min-width: 0;
-  min-height: 26px;
-  box-sizing: border-box;
   align-items: center;
-  gap: 4px;
-  padding: 3px 9px;
-  color: #c8d2dc;
-  background: #111820;
+  gap: 6px;
+  color: #45adff;
   font-size: 12px;
-  font-weight: 700;
-  line-height: 1.2;
-  letter-spacing: 0.035em;
+  font-weight: 800;
+  line-height: 1.35;
+  letter-spacing: 0.09em;
   overflow-wrap: anywhere;
 }
 
-.pnm-console-card :is(.vc3-badge-live, .vc3-open-pill:not(.closed), .rich-tour-card__signal.is-live) { color: #88efa2; }
-.pnm-console-card :is(.vc3-open-pill.closed, .vc3-badge-checkin) { color: #ff8994; }
-.pnm-console-card :is(.vc3-badge-gtd, .guaranteed, .pnm-console-card__buyin) { color: #f1d58b; }
+.pnm-console-card :is(.guaranteed, .pnm-console-card__tag--premium) {
+  color: #ffd700;
+}
+
+.pnm-console-card .pnm-console-card__tag--blue {
+  color: #45adff;
+}
+
+/* Cash-game provenance, as printed text. Only an OBSERVED live count is green
+   and carries the signal; modeled, catalog-only and unavailable counts print
+   muted, a mixed count prints blue. */
+.pnm-console-card__provenance {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
+  color: #e4e7ec;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.3;
+  letter-spacing: 0.08em;
+  overflow-wrap: anywhere;
+}
+
+.pnm-console-card__provenance[data-mode='live'] { color: #c8ffd2; }
+.pnm-console-card__provenance[data-mode='mixed'] { color: #45adff; }
+.pnm-console-card__provenance:is([data-mode='estimated'], [data-mode='catalog'], [data-mode='unavailable']) { color: #9aa5b3; }
 
 .pnm-console-card__signal,
-.pnm-console-card .vc3-live-dot,
 .pnm-console-card .vc3-open-dot {
+  all: unset;
   display: inline-block;
-  width: 6px;
-  height: 6px;
-  flex: 0 0 6px;
+  width: 7px;
+  height: 7px;
+  flex: 0 0 7px;
   background: currentColor;
 }
 
-.pnm-console-card :is(.card-footer, .series-footer, .tour-card-footer, .vc3-actions) {
+/* A lit word on the glass: the console's own secondary control. */
+.pnm-console-card.pnm-console-card .pnm-console-card__text-action {
+  all: unset;
+  box-sizing: border-box;
+  display: inline-flex;
+  min-width: 44px;
+  min-height: 44px;
+  align-items: center;
+  gap: 6px;
+  color: #45adff;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.2;
+  letter-spacing: 0.07em;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.pnm-console-card.pnm-console-card .pnm-console-card__text-action:active {
+  color: #8fd4ff;
+}
+
+.pnm-console-card__when {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+/* ---------- Printed rows ---------- */
+
+.pnm-console-card :is(.upcoming-series, .rich-tour-card__signal, .rich-tour-card__upcoming, .vc3-charity-event) {
+  all: unset;
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 0;
+  border-top: 1px solid rgb(154 165 179 / 16%);
+  border-bottom: 1px solid rgb(154 165 179 / 16%);
+}
+
+.pnm-console-card .upcoming-series {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px 12px;
+}
+
+.pnm-console-card .upcoming-label {
+  min-width: 0;
+  color: #e4e7ec;
+  font-size: 14px;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.pnm-console-card .upcoming-date {
+  color: #45adff;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+}
+
+.pnm-console-card :is(.rich-tour-card__signal-label, .rich-tour-card__upcoming-title, .pnm-console-card__live-line) {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
+  color: #45adff;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+}
+
+.pnm-console-card .rich-tour-card__stop-name {
+  color: #f4f7fb;
+  font-size: 15px;
+  font-weight: 750;
+  overflow-wrap: anywhere;
+}
+
+.pnm-console-card :is(.rich-tour-card__stop-venue, .rich-tour-card__stop-location, .rich-tour-card__stop-date, .pnm-console-card__muted, .pnm-console-card__loading-copy) {
+  color: #9aa5b3;
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.pnm-console-card :is(.pnm-console-card__buyin, .card-detail.guaranteed) {
+  font-size: 14px;
+  font-weight: 750;
+}
+
+.pnm-console-card .pnm-console-card__buyin {
+  color: #e4e7ec;
+}
+
+.pnm-console-card .rich-tour-card__upcoming-row {
+  display: flex;
+  min-width: 0;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 5px 0;
+  border-top: 1px solid rgb(154 165 179 / 12%);
+}
+
+.pnm-console-card .rich-tour-card__upcoming-name {
+  min-width: 0;
+  flex: 1 1 auto;
+  color: #d7dee7;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+.pnm-console-card .rich-tour-card__upcoming-date {
+  flex: 0 0 auto;
+  color: #9aa5b3;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.pnm-console-card :is(.tour-stop-venue, .tour-stop-location) {
+  display: block;
+  margin-top: 2px;
+}
+
+.pnm-console-card .tour-stop-venue {
+  color: #e4e7ec;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.pnm-console-card .tour-stop-location {
+  color: #9aa5b3;
+  font-size: 13px;
+}
+
+.pnm-console-card .tour-card-location-live {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+
+.pnm-console-card .established {
+  color: #9aa5b3;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+/* ---------- Painted action plates ---------- */
+
+/* button-primary.png / button-secondary.png are complete 348x114 plates.
+   The control box keeps that ratio (never stretched), is at least 44px tall,
+   and the live label is fitted to the plate's face (PnmPlateLabel). */
+.pnm-console-card.pnm-console-card :is(.action-btn, .hex-btn-small, .tour-action-btn, .pnm-card-plate) {
+  all: unset;
+  position: relative;
+  box-sizing: border-box;
+  display: inline-grid;
+  width: auto;
+  min-width: 0;
+  max-width: 200px;
+  min-height: 44px;
+  flex: 1 1 0;
+  aspect-ratio: 348 / 114;
+  place-items: center;
+  color: #e4e7ec;
+  background: transparent url('/images/pnm-console/painted-controls-v1/button-secondary.png') center / contain no-repeat;
+  font: 800 clamp(12px, 4.2cqw, 15px) / 1 var(--font-rajdhani), Rajdhani, Inter, system-ui, sans-serif;
+  letter-spacing: 0.06em;
+  text-align: center;
+  text-decoration: none;
+  text-shadow: 0 1px 0 #050607;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.pnm-console-card.pnm-console-card :is(.action-btn.primary, .tour-action-btn.primary, .pnm-card-plate--primary) {
+  color: #f4f7fb;
+  background-image: url('/images/pnm-console/painted-controls-v1/button-primary.png');
+}
+
+.pnm-card-plate__face {
+  display: grid;
+  width: 70%;
+  min-width: 0;
+  overflow: hidden;
+  justify-items: center;
+}
+
+.pnm-card-plate__text {
+  display: inline-block;
+  max-width: 100%;
+  font-size: calc(1em * var(--pnc-fit, 1));
+  white-space: nowrap;
+}
+
+.pnm-console-card :is(.action-btn, .hex-btn-small, .tour-action-btn, .pnm-card-plate):active {
+  filter: brightness(1.22);
+}
+
+.pnm-console-card :is(.action-btn, .hex-btn-small, .tour-action-btn, .pnm-card-plate):focus-visible {
+  outline: 2px solid #dff7ff;
+  outline-offset: -3px;
+}
+
+.pnm-console-card :is(.action-btn, .hex-btn-small, .tour-action-btn, .pnm-card-plate):disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.pnm-console-card .vc3-icon-btn {
+  all: unset;
+  box-sizing: border-box;
+  display: grid;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  flex: 0 0 44px;
+  place-items: center;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.pnm-console-card .vc3-icon-btn:active .pnc-icon {
+  filter: brightness(1.3);
+}
+
+/* ---------- Card footers ---------- */
+
+.pnm-console-card :is(.card-footer, .series-footer, .tour-card-footer) {
   all: unset;
   display: flex;
   min-width: 0;
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: 10px;
   margin-top: auto;
-  padding-top: 8px;
+  padding-top: 10px;
+  border-top: 1px solid rgb(154 165 179 / 16%);
 }
 
-.pnm-console-card :is(.card-actions, .tour-card-actions, .vc3-actions-primary, .vc3-actions-secondary) {
+.pnm-console-card :is(.card-actions, .tour-card-actions) {
+  display: flex;
+  min-width: 0;
+  flex: 1 1 100%;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+/* ---------- Venue card ---------- */
+
+.pnm-console-card--venue .vc3-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 44px;
+  grid-template-areas:
+    'logo save'
+    'identity identity';
+  align-items: center;
+  gap: 8px 12px;
+  padding-right: 0;
+}
+
+.pnm-console-card--venue .vc3-header-left {
+  display: contents;
+}
+
+.pnm-console-card--venue .vc3-logo { grid-area: logo; }
+.pnm-console-card--venue .vc3-identity { grid-area: identity; }
+.pnm-console-card--venue .vc3-fav { grid-area: save; justify-self: end; }
+
+.pnm-console-card--venue .vc3-city-type-row {
   display: flex;
   min-width: 0;
   flex-wrap: wrap;
   align-items: center;
+  gap: 0 14px;
+}
+
+.pnm-console-card .vc3-city-state {
+  display: inline-flex;
+  min-width: 0;
+  min-height: 44px;
+  align-items: center;
+  gap: 8px;
+  color: #d7dee7;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  text-transform: none;
+}
+
+.pnm-console-card .vc3-city-state:active {
+  color: #f4f7fb;
+}
+
+.pnm-console-card .vc3-type-label {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+}
+
+.pnm-console-card .vc3-next-event-header {
+  display: flex;
+  flex-wrap: wrap;
   gap: 6px;
 }
 
-.pnm-console-card :is(.card-actions, .tour-card-actions, .vc3-actions-primary) {
-  margin-left: auto;
-}
-
-.pnm-console-card :is(.action-btn, .hex-btn-small, .tour-action-btn, .vc3-pill) {
-  all: unset;
-  display: inline-flex;
-  min-width: 92px;
-  min-height: 44px;
-  box-sizing: border-box;
-  align-items: center;
-  justify-content: center;
-  gap: 5px;
-  padding: 0 12px;
-  color: #cbd6e0;
-  background-color: transparent;
-  background-image: url('/images/pnm-console/painted-controls-v1/button-secondary.png');
-  background-position: center;
-  background-repeat: no-repeat;
-  background-size: contain;
+.pnm-console-card .vc3-next-event-label {
+  color: #45adff;
   font-size: 12px;
   font-weight: 800;
-  line-height: 1;
-  letter-spacing: 0.035em;
-  text-align: center;
-  text-decoration: none;
-  cursor: pointer;
-  touch-action: manipulation;
+  letter-spacing: 0.1em;
 }
 
-.pnm-console-card :is(.action-btn.primary, .tour-action-btn.primary, .vc3-pill-details, .vc3-pill-checkin) {
-  color: #f4f9fd;
-  background-image: url('/images/pnm-console/painted-controls-v1/button-primary.png');
+.pnm-console-card .vc3-next-event-today .vc3-next-event-label {
+  color: #c8ffd2;
 }
 
-.pnm-console-card .vc3-icon-btn {
+.pnm-console-card__status-line {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 16px;
+}
+
+.pnm-console-card__status-line:empty {
+  display: none;
+}
+
+.pnm-console-card :is(.vc3-distance, .vc3-hours-compact, .vc3-hours-next) {
   all: unset;
-  display: grid;
-  width: 44px;
-  height: 44px;
-  min-width: 44px;
-  min-height: 44px;
-  place-items: center;
-  cursor: pointer;
-  touch-action: manipulation;
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  gap: 6px;
+  color: #b9c4cf;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.3;
+  white-space: nowrap;
 }
 
-.pnm-console-card :is(.vc3-host, .vc3-crowd-meter, .vc3-live-info, .vc3-columns-grid, .vc3-charity-event, .rich-tour-card__signal, .rich-tour-card__upcoming) {
+.pnm-console-card .vc3-open-pill {
+  all: unset;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: #c8ffd2;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  white-space: nowrap;
+}
+
+.pnm-console-card .vc3-open-pill.closed {
+  color: #ff5b6e;
+}
+
+.pnm-console-card .vc3-rating-row {
+  gap: 8px;
+  align-self: flex-start;
+}
+
+.pnm-console-card .vc3-rating-score {
+  color: #f4f7fb;
+  font-size: 15px;
+}
+
+.pnm-console-card .vc3-rating-count {
+  color: #9aa5b3;
+  font-size: 12px;
+}
+
+.pnm-console-card.pnm-console-card .vc3-checkin-count {
+  color: #c8ffd2;
+  text-shadow: 0 0 6px rgb(53 217 90 / 60%);
+}
+
+.pnm-console-card :is(.vc3-host, .vc3-crowd-meter, .vc3-live-info, .vc3-live-info-wrapper, .vc3-columns-grid, .vc3-data-zone, .vc3-trust, .vc3-actions) {
   all: unset;
   display: flex;
   min-width: 0;
   box-sizing: border-box;
-  background: #070c12;
-}
-
-.pnm-console-card :is(.vc3-host, .vc3-crowd-meter, .vc3-live-info, .vc3-charity-event, .rich-tour-card__signal, .rich-tour-card__upcoming) {
-  flex-direction: column;
-  gap: 5px;
-  padding: 9px 11px;
 }
 
 .pnm-console-card .vc3-host {
-  flex-direction: row;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
+  padding: 6px 0;
+  border-top: 1px solid rgb(154 165 179 / 16%);
+  border-bottom: 1px solid rgb(154 165 179 / 16%);
 }
 
+:is(.pnm-console-card).pnm-console-card[data-pnm-console] img.vc3-host-avatar,
 .pnm-console-card .vc3-host-avatar {
   width: 32px;
   height: 32px;
+  max-width: none;
   flex: 0 0 32px;
   object-fit: cover;
 }
@@ -394,24 +794,107 @@
   flex-direction: column;
 }
 
+.pnm-console-card .vc3-host-name {
+  color: #e4e7ec;
+  font-size: 13px;
+  font-weight: 700;
+}
+
 .pnm-console-card :is(.vc3-host-profile-link, .vc3-host-link) {
-  color: #9fc7e2;
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  color: #45adff;
   font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
   text-decoration: none;
+}
+
+.pnm-console-card .vc3-host-link {
+  flex: 0 0 auto;
+}
+
+.pnm-console-card .vc3-follow-row {
+  display: flex;
+  align-items: center;
+}
+
+.pnm-console-card .vc3-crowd-meter {
+  flex-direction: column;
+  gap: 6px;
+}
+
+.pnm-console-card :is(.vc3-crowd-header, .vc3-trust-header) {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px 12px;
+}
+
+.pnm-console-card .vc3-crowd-label {
+  color: #45adff;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+}
+
+.pnm-console-card .vc3-wait-estimate {
+  color: #e4e7ec;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+/* Meters are data, not chrome: a hairline track and a flat fill. */
+.pnm-console-card :is(.vc3-crowd-track, .vc3-trust-track) {
+  all: unset;
+  display: block;
+  width: 100%;
+  height: 4px;
+  overflow: hidden;
+  background: rgb(154 165 179 / 18%);
+}
+
+.pnm-console-card :is(.vc3-crowd-fill, .vc3-trust-fill) {
+  all: unset;
+  display: block;
+  height: 100%;
+  background: currentColor;
+  transition: width 0.8s ease-out 0.2s;
+}
+
+.pnm-console-card .vc3-crowd-track {
+  color: #45adff;
+}
+
+.pnm-console-card .vc3-trust[data-tone='green'] .vc3-trust-fill { background: #35d95a; }
+.pnm-console-card .vc3-trust[data-tone='red'] .vc3-trust-fill { background: #f02849; }
+
+.pnm-console-card .vc3-data-zone {
+  flex-direction: column;
 }
 
 .pnm-console-card .vc3-columns-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-  padding: 12px;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+}
+
+@container (min-width: 520px) {
+  .pnm-console-card .vc3-columns-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 22px;
+  }
 }
 
 .pnm-console-card .vc3-col {
   display: flex;
   min-width: 0;
   flex-direction: column;
-  gap: 5px;
+  gap: 0;
   padding: 0;
 }
 
@@ -419,23 +902,29 @@
   all: unset;
   display: flex;
   min-width: 0;
-  align-items: center;
+  flex-wrap: wrap;
+  align-items: baseline;
   justify-content: space-between;
-  gap: 8px;
-  color: #9ed7ff;
+  gap: 4px 12px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgb(69 173 255 / 30%);
+  color: #45adff;
   font-size: 12px;
   font-weight: 800;
-  line-height: 1.25;
-  letter-spacing: 0.07em;
+  line-height: 1.3;
+  letter-spacing: 0.12em;
 }
 
 .pnm-console-card .vc3-list-scrollable {
   display: flex;
   min-width: 0;
-  flex: 1 1 auto;
+  max-height: 216px;
   flex-direction: column;
-  gap: 4px;
+  overflow-x: hidden;
   overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-color: rgb(69 173 255 / 60%) transparent;
+  scrollbar-width: thin;
 }
 
 .pnm-console-card .vc3-list-item {
@@ -443,165 +932,940 @@
   display: flex;
   min-width: 0;
   box-sizing: border-box;
-  align-items: center;
-  padding: 5px 7px;
-  color: #e4e9ef;
-  background: #0e151d;
-  font-size: 12px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 7px 0;
+  border-bottom: 1px solid rgb(154 165 179 / 14%);
+  color: #e4e7ec;
+  font-size: 13px;
   line-height: 1.3;
 }
 
-.pnm-console-card :is(.vc3-tourney-item, .vc3-tourney-item-special) {
-  flex-direction: column;
-  align-items: flex-start;
-}
-
-.pnm-console-card :is(.vc3-crowd-track, .vc3-trust-track) {
-  all: unset;
-  display: block;
-  width: 100%;
-  height: 6px;
-  overflow: hidden;
-  background: #202b35;
-}
-
-.pnm-console-card :is(.vc3-crowd-fill, .vc3-trust-fill) {
-  all: unset;
-  display: block;
-  height: 100%;
-}
-
-.pnm-console-card :is(.vc3-crowd-header, .vc3-trust-header, .vc3-live-stat, .vc3-tourney-details, .vc3-tourney-date) {
-  display: flex;
+.pnm-console-card .vc3-game-name {
   min-width: 0;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px;
+  font-weight: 650;
+  overflow-wrap: anywhere;
 }
 
-.pnm-console-card .vc3-wait-estimate {
-  margin-left: auto;
-  font-size: 12px;
-}
-
-.pnm-console-card :is(.rich-tour-card__signal-label, .rich-tour-card__upcoming-title, .pnm-console-card__live-line) {
-  display: flex;
-  min-width: 0;
-  align-items: center;
-  gap: 6px;
-  color: #79c8ff;
-  font-size: 12px;
+.pnm-console-card .vc3-game-tables {
+  color: #c8ffd2;
+  font-size: 11px;
   font-weight: 800;
   letter-spacing: 0.07em;
 }
 
-.pnm-console-card .rich-tour-card__signal.is-live .rich-tour-card__signal-label,
-.pnm-console-card .pnm-console-card__live-line {
-  color: #88efa2;
+.pnm-console-card .vc3-game-tables:is([data-mode='catalog'], [data-mode='estimated']) {
+  color: #9aa5b3;
 }
 
-.pnm-console-card .rich-tour-card__stop-name {
+.pnm-console-card .vc3-stakes-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.pnm-console-card .vc3-live-info-wrapper {
+  flex-direction: column;
+  gap: 4px;
+  padding-top: 6px;
+}
+
+.pnm-console-card .vc3-live-info {
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.pnm-console-card .vc3-live-stat {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.pnm-console-card .vc3-live-stat-val {
   color: #f4f7fb;
-  font-size: 14px;
-  font-weight: 750;
+  font-size: 16px;
+  font-weight: 800;
 }
 
-.pnm-console-card :is(.rich-tour-card__stop-venue, .rich-tour-card__stop-location, .rich-tour-card__stop-date, .pnm-console-card__muted, .pnm-console-card__loading-copy) {
-  color: #9ba9b6;
+.pnm-console-card .vc3-live-stat-label {
+  color: #45adff;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+}
+
+.pnm-console-card__freshness {
+  padding-top: 6px;
+  color: #9aa5b3;
   font-size: 12px;
-  line-height: 1.35;
+  font-weight: 600;
 }
 
-.pnm-console-card__buyin {
-  font-size: 13px;
-  font-weight: 750;
+.pnm-console-card__freshness[data-stale='true'] {
+  color: #ff5b6e;
 }
 
-.pnm-console-card .rich-tour-card__upcoming-row {
+.pnm-console-card .vc3-col-footer {
   display: flex;
   min-width: 0;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  padding: 4px 0;
+  padding-top: 8px;
 }
 
-.pnm-console-card .rich-tour-card__upcoming-name {
+.pnm-console-card .vc3-col-footer:empty {
+  display: none;
+}
+
+.pnm-console-card .vc3-tourney-name {
+  width: 100%;
+  color: #f4f7fb;
+  font-size: 13px;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.pnm-console-card :is(.vc3-tourney-details, .vc3-tourney-date) {
+  display: flex;
   min-width: 0;
-  flex: 1 1 auto;
-  color: #cbd4de;
-  font-size: 12px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
 }
 
-.pnm-console-card .rich-tour-card__upcoming-date {
-  flex: 0 0 auto;
-  color: #919eaa;
-  font-size: 12px;
-}
-
-.pnm-console-card :is(.tour-stop-venue, .tour-stop-location) {
-  display: block;
-  margin-top: 3px;
-}
-
-.pnm-console-card .tour-stop-venue {
-  color: #e8edf3;
-  font-size: 15px;
+.pnm-console-card :is(.vc3-tourney-time, .vc3-tourney-time-buyin) {
+  color: #e4e7ec;
+  font-size: 13px;
   font-weight: 700;
 }
 
-.pnm-console-card .tour-stop-location {
-  color: #9ba8b5;
+.pnm-console-card .vc3-tourney-buyin {
+  color: #c8ffd2;
   font-size: 13px;
+  font-weight: 700;
 }
 
-.pnm-console-card .established {
-  color: #929fab;
+.pnm-console-card .vc3-tourney-gtd {
+  color: #ffd700;
   font-size: 12px;
+  font-weight: 800;
 }
+
+.pnm-console-card :is(.vc3-tourney-stack, .vc3-tourney-blinds, .vc3-tourney-meta, .vc3-tourney-location) {
+  color: #9aa5b3;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.pnm-console-card .vc3-empty-state {
+  padding: 10px 0;
+  color: #9aa5b3;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.pnm-console-card--venue .pnm-console-card__foot-zone {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: auto;
+}
+
+.pnm-console-card .vc3-actions {
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+  padding-top: 10px;
+  border-top: 1px solid rgb(154 165 179 / 16%);
+}
+
+.pnm-console-card .vc3-actions-secondary {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
+}
+
+.pnm-console-card .vc3-actions-primary {
+  display: flex;
+  min-width: 0;
+  flex: 1 1 100%;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.pnm-console-card .vc3-trust {
+  flex-direction: column;
+  gap: 6px;
+}
+
+.pnm-console-card .vc3-trust-header {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+/* ---------- Tour / series card specifics ---------- */
+
+.pnm-console-card--series-featured .pnm-console-card__header--featured {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 44px;
+  grid-template-areas:
+    'logo save'
+    'identity identity';
+  align-items: center;
+  padding-right: 0;
+}
+
+.pnm-console-card--series-featured .pnm-console-card__header--featured > .pnm-console-card__logo-frame { grid-area: logo; }
+.pnm-console-card--series-featured .pnm-console-card__header--featured > .pnm-console-card__identity { grid-area: identity; }
+.pnm-console-card--series-featured .pnm-console-card__header--featured > .fav-btn { grid-area: save; justify-self: end; }
+
+.pnm-console-card .series-body {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pnm-console-card.is-loading .pnm-console-card__loading-copy {
+  letter-spacing: 0.08em;
+}
+
+/* ---------- Venue check-in dialog (PokerNearMeConsole chassis) ---------- */
+
+/* The console's glass is transparent between its rails; over a translucent
+   scrim the page behind ghosts through the copy. This dialog's scrim is
+   opaque so the glass reads as one black. */
+.pnm-console-dialog-overlay.pnm-checkin-dialog-overlay {
+  background: #000308;
+}
+
+/* Focus lands on the dialog itself when it opens (a container, not a
+   control); its ring would draw a rectangle around the painted frame. */
+.pnm-console-dialog-shell.pnm-checkin-dialog:focus-visible {
+  outline: none;
+}
+
+.pnm-checkin-dialog .pnm-checkin-dialog__venue {
+  color: #e4e7ec;
+}
+
+/* The field itself wears the world's shared input treatment
+   (poker-near-me world layer, !important); this layer only sizes it and keeps
+   16px type so iOS does not zoom the page on focus. */
+.pnm-checkin-dialog .pnm-console-dialog__content textarea {
+  min-height: 112px;
+  font-size: max(16px, 3.4cqw);
+}
+
+.pnm-checkin-dialog .pnm-console-dialog__content textarea:disabled {
+  opacity: 0.6;
+}
+
+.pnm-checkin-dialog__count {
+  align-self: flex-end;
+  color: #9aa5b3;
+  font: 700 max(12px, 2.6cqw) / 1 var(--font-rajdhani), Rajdhani, Inter, system-ui, sans-serif;
+  letter-spacing: 0.08em;
+}
+
+.pnm-checkin-dialog .pnm-checkin-dialog__done {
+  color: #c8ffd2;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-align: center;
+}
+
+/* ---------- Responsive ---------- */
 
 @media (max-width: 600px) {
-  .pnm-console-card > .pnc-panel__body {
-    padding-right: max(16px, 6cqw);
-    padding-left: max(16px, 6cqw);
-  }
-
-  .pnm-console-card :is(.card-header, .pnm-console-card__header, .series-header, .tour-card-header, .vc3-header) {
-    align-items: flex-start;
-    gap: 8px;
-  }
-
   .pnm-console-card .vc3-columns-grid {
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .pnm-console-card :is(.card-footer, .series-footer, .tour-card-footer, .vc3-actions) {
-    align-items: stretch;
-    flex-direction: column;
+  /* On a phone the check-in console rises from the bottom edge, where the
+     thumb already is, like the sheet it replaced. The shared shell centres
+     itself with margin:auto, so the top margin alone takes the free space. */
+  .pnm-checkin-dialog-overlay {
+    align-items: end;
   }
 
-  .pnm-console-card :is(.card-actions, .tour-card-actions, .vc3-actions-primary, .vc3-actions-secondary) {
-    width: 100%;
-    margin-left: 0;
+  .pnm-checkin-dialog-overlay > .pnm-console-dialog-shell.pnm-checkin-dialog {
+    margin: auto auto 0;
   }
+}
 
-  .pnm-console-card :is(.action-btn, .hex-btn-small, .tour-action-btn, .vc3-pill) {
-    min-width: min(100%, 112px);
-    flex: 1 1 92px;
+@container (min-width: 460px) {
+  .pnm-console-card--venue .vc3-header,
+  .pnm-console-card--series-featured .pnm-console-card__header--featured {
+    grid-template-columns: auto minmax(0, 1fr) 44px;
+    grid-template-areas: 'logo identity save';
   }
 }
 
 @media (orientation: landscape) and (max-height: 520px) {
   .pnm-console-card > .pnc-panel__body {
-    gap: 7px;
+    gap: 9px;
   }
 
-  .pnm-console-card__logo-frame--large {
-    width: 76px;
-    height: 76px;
-    flex-basis: 76px;
+  /* A landscape phone is ~390px tall: a narrower console keeps head, glass
+     and both plates on screen without scrolling the scrim. */
+  .pnm-console-dialog-shell:is(.pnm-checkin-dialog, .pnm-reviews-dialog) {
+    width: min(100%, 360px);
   }
+
+  :is(.pnm-checkin-dialog, .pnm-reviews-dialog) .pnm-console-dialog .pnc__body {
+    max-height: 130px;
+  }
+
+  :is(.pnm-console-card).pnm-console-card[data-pnm-console] .pnm-console-card__logo-frame--large img.pnm-console-card__logo {
+    max-height: 64px;
+  }
+
+  .pnm-console-card .vc3-list-scrollable {
+    max-height: 168px;
+  }
+}
+
+/* ---------- Venue reviews dialog (PokerNearMeConsole chassis) ---------- */
+
+.pnm-console-dialog-overlay.pnm-reviews-dialog-overlay {
+  background: #000308;
+}
+
+.pnm-console-dialog-shell.pnm-reviews-dialog:focus-visible {
+  outline: none;
+}
+
+.pnm-reviews-dialog .pnm-reviews {
+  gap: 14px;
+}
+
+.pnm-reviews-dialog .pnm-reviews__venue {
+  color: #e4e7ec;
+  font-weight: 700;
+}
+
+.pnm-reviews__summary {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 16px;
+  padding: 10px 0;
+  border-top: 1px solid rgb(154 165 179 / 16%);
+  border-bottom: 1px solid rgb(154 165 179 / 16%);
+}
+
+.pnm-reviews__score {
+  display: flex;
+  min-width: 72px;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.pnm-reviews__score-value {
+  color: #f4f7fb;
+  font: 800 max(30px, 7cqw) / 1 var(--font-rajdhani), Rajdhani, Inter, system-ui, sans-serif;
+  text-shadow: 0 1px 0 #050607, 0 2px 4px rgb(0 0 0 / 80%);
+}
+
+.pnm-reviews__rating {
+  color: #45adff;
+  font: 800 max(12px, 2.8cqw) / 1.2 var(--font-rajdhani), Rajdhani, Inter, system-ui, sans-serif;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+}
+
+.pnm-reviews__total,
+.pnm-reviews__date {
+  color: #9aa5b3;
+  font-size: 12px;
+}
+
+.pnm-reviews__distribution,
+.pnm-reviews__categories {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.pnm-reviews__categories {
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgb(154 165 179 / 16%);
+}
+
+.pnm-reviews__bar-row {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
+}
+
+.pnm-reviews__bar-label {
+  width: 3.6em;
+  flex: 0 0 auto;
+  color: #9aa5b3;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.pnm-reviews__bar-label--wide {
+  width: 8.6em;
+}
+
+.pnm-reviews__bar-track {
+  height: 4px;
+  min-width: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
+  background: rgb(154 165 179 / 18%);
+}
+
+.pnm-reviews__bar-fill {
+  height: 100%;
+  background: #45adff;
+  transition: width 0.3s;
+}
+
+.pnm-reviews__bar-count {
+  min-width: 2.2em;
+  flex: 0 0 auto;
+  color: #e4e7ec;
+  font-size: 12px;
+  font-weight: 700;
+  text-align: right;
+}
+
+.pnm-reviews__section-head {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 4px 10px;
+  color: #45adff;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+.pnm-reviews__verified-count,
+.pnm-reviews__verified {
+  color: #c8ffd2;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-shadow: 0 0 6px rgb(53 217 90 / 55%);
+}
+
+/* A lit word on the glass (the console's secondary control). The global
+   button font rule carries 0,2,1, so this is written at 0,3,0. */
+.pnm-reviews-dialog.pnm-reviews-dialog .pnm-reviews__text-action {
+  all: unset;
+  box-sizing: border-box;
+  display: inline-flex;
+  min-width: 44px;
+  min-height: 44px;
+  align-items: center;
+  gap: 8px;
+  color: #45adff;
+  font: 800 max(13px, 3cqw) / 1.2 var(--font-rajdhani), Rajdhani, Inter, system-ui, sans-serif;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.pnm-reviews-dialog.pnm-reviews-dialog .pnm-reviews__text-action--quiet {
+  color: #9aa5b3;
+}
+
+.pnm-reviews-dialog.pnm-reviews-dialog .pnm-reviews__text-action[aria-pressed='true'] {
+  color: #f4f7fb;
+  text-shadow: 0 0 8px rgb(49 168 255 / 70%);
+}
+
+.pnm-reviews-dialog.pnm-reviews-dialog .pnm-reviews__text-action:active {
+  filter: brightness(1.25);
+}
+
+.pnm-reviews-dialog.pnm-reviews-dialog .pnm-reviews__text-action:disabled {
+  cursor: wait;
+  opacity: 0.5;
+}
+
+.pnm-reviews-dialog .pnm-reviews__text-action:focus-visible,
+.pnm-reviews-dialog .pnm-reviews__rating-choice:focus-visible {
+  outline: 2px solid #8fd4ff;
+  outline-offset: 1px;
+}
+
+.pnm-reviews__action-icon {
+  width: 32px;
+  height: 32px;
+  flex: 0 0 32px;
+}
+
+.pnm-reviews__form,
+.pnm-reviews__field,
+.pnm-reviews__category-inputs,
+.pnm-reviews__category-row,
+.pnm-reviews__list {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+}
+
+.pnm-reviews__form {
+  gap: 14px;
+  padding: 10px 0;
+  border-top: 1px solid rgb(154 165 179 / 16%);
+  border-bottom: 1px solid rgb(154 165 179 / 16%);
+}
+
+.pnm-reviews__field {
+  gap: 8px;
+}
+
+.pnm-reviews__category-inputs {
+  gap: 10px;
+}
+
+.pnm-reviews__category-row {
+  gap: 4px;
+}
+
+.pnm-reviews__category-label {
+  color: #e4e7ec;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.pnm-reviews__rating-input {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+/* Each rating choice is a numeral printed in the painted utility well. */
+.pnm-reviews-dialog.pnm-reviews-dialog .pnm-reviews__rating-choice {
+  all: unset;
+  box-sizing: border-box;
+  display: grid;
+  width: 44px;
+  height: 44px;
+  flex: 0 0 44px;
+  place-items: center;
+  color: #9aa5b3;
+  background: url('/images/pnm-console/painted-controls-v1/utility-well.png') center / contain no-repeat;
+  font: 800 16px / 1 var(--font-rajdhani), Rajdhani, Inter, system-ui, sans-serif;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.pnm-reviews-dialog.pnm-reviews-dialog .pnm-reviews__rating-choice[data-lit='true'] {
+  color: #f4f7fb;
+  text-shadow: 0 0 8px rgb(49 168 255 / 80%);
+}
+
+.pnm-reviews-dialog .pnm-console-dialog__content textarea {
+  min-height: 112px;
+  font-size: max(16px, 3.4cqw);
+}
+
+.pnm-reviews__sort {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  gap: 0 16px;
+  padding-top: 4px;
+  border-top: 1px solid rgb(154 165 179 / 16%);
+}
+
+.pnm-reviews__status {
+  margin: 0;
+  padding: 18px 0;
+  color: #9aa5b3;
+  font-size: 13px;
+  text-align: center;
+}
+
+.pnm-reviews__review {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 0;
+  border-bottom: 1px solid rgb(154 165 179 / 14%);
+}
+
+.pnm-reviews__review-head {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 10px;
+}
+
+:is(.pnm-reviews-dialog).pnm-reviews-dialog[role] img.pnm-reviews__avatar,
+.pnm-reviews__avatar {
+  width: 36px;
+  height: 36px;
+  max-width: none;
+  flex: 0 0 36px;
+  object-fit: cover;
+}
+
+.pnm-reviews__avatar--initial {
+  display: grid;
+  place-items: center;
+  color: #e4e7ec;
+  background: url('/images/pnm-console/painted-controls-v1/utility-well.png') center / contain no-repeat;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.pnm-reviews__reviewer {
+  display: flex;
+  min-width: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+}
+
+.pnm-reviews__reviewer-name {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 8px;
+  color: #f4f7fb;
+  font-size: 14px;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.pnm-reviews__text {
+  margin: 0;
+  color: #d7dee7;
+  font: 500 max(14px, 3.4cqw) / 1.5 var(--font-inter), Inter, system-ui, sans-serif;
+  overflow-wrap: anywhere;
+}
+
+.pnm-reviews__review-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 18px;
+}
+
+.pnm-reviews-dialog.pnm-reviews-dialog .pnm-reviews__load-more {
+  align-self: center;
+}
+
+@media (max-width: 600px) {
+  /* The reviews and check-in consoles rise from the bottom edge on a phone,
+     like the sheets they replaced. */
+  .pnm-reviews-dialog-overlay {
+    align-items: end;
+  }
+
+  .pnm-reviews-dialog-overlay > .pnm-console-dialog-shell.pnm-reviews-dialog {
+    margin: auto auto 0;
+  }
+}
+
+/* ---------- Venue comparison (printed on its host panel's glass) ---------- */
+
+.pnm-venue-compare {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 14px;
+  color: #e4e7ec;
+  font-family: var(--font-rajdhani), var(--font-premium-body), Inter, system-ui, sans-serif;
+}
+
+.pnm-venue-compare__bar {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.pnm-venue-compare.pnm-venue-compare .pnm-venue-compare__text-action {
+  all: unset;
+  box-sizing: border-box;
+  display: inline-flex;
+  min-width: 44px;
+  min-height: 44px;
+  align-items: center;
+  color: #45adff;
+  font: 800 14px / 1.2 var(--font-rajdhani), Rajdhani, Inter, system-ui, sans-serif;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.pnm-venue-compare.pnm-venue-compare .pnm-venue-compare__text-action--remove {
+  color: #ff5b6e;
+}
+
+.pnm-venue-compare.pnm-venue-compare .pnm-venue-compare__text-action:active {
+  filter: brightness(1.25);
+}
+
+.pnm-venue-compare :is(.pnm-venue-compare__text-action, .pnm-venue-compare__option):focus-visible {
+  outline: 2px solid #8fd4ff;
+  outline-offset: 1px;
+}
+
+.pnm-venue-compare__picker {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.pnm-venue-compare__hint {
+  margin: 0;
+  color: #45adff;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+.pnm-venue-compare__sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* The field prints into the painted search well (1829x313) at its own ratio;
+   the insets are fractions of the well's own width, never of the host. */
+.pnm-venue-compare__search {
+  --pnm-compare-well-w: min(100%, 560px);
+
+  position: relative;
+  display: flex;
+  width: var(--pnm-compare-well-w);
+  min-width: 0;
+  box-sizing: border-box;
+  aspect-ratio: 1829 / 313;
+  align-items: center;
+  padding: 0 calc(var(--pnm-compare-well-w) * 0.075);
+  background: url('/images/pnm-console/painted-controls-v1/search-well.png') center / contain no-repeat;
+}
+
+body.world-poker-near-me .pnm-venue-compare__search input,
+.pnm-venue-compare__search input {
+  all: unset;
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  box-sizing: border-box;
+  color: #f4f7fb;
+  border-width: 0 !important;
+  background-color: transparent !important;
+  caret-color: #45adff;
+  font: 500 16px / 1.2 var(--font-inter), Inter, system-ui, sans-serif;
+}
+
+.pnm-venue-compare__search input::placeholder {
+  color: #9aa5b3;
+  opacity: 1;
+}
+
+.pnm-venue-compare__list {
+  display: flex;
+  min-width: 0;
+  max-height: 264px;
+  flex-direction: column;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-color: rgb(69 173 255 / 60%) transparent;
+  scrollbar-width: thin;
+}
+
+.pnm-venue-compare.pnm-venue-compare .pnm-venue-compare__option {
+  all: unset;
+  box-sizing: border-box;
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 6px 0;
+  border-bottom: 1px solid rgb(154 165 179 / 14%);
+  color: #d7dee7;
+  font: 600 14px / 1.3 var(--font-inter), Inter, system-ui, sans-serif;
+  cursor: pointer;
+}
+
+.pnm-venue-compare.pnm-venue-compare .pnm-venue-compare__option[aria-pressed='true'] {
+  color: #f4f7fb;
+}
+
+.pnm-venue-compare.pnm-venue-compare .pnm-venue-compare__option[aria-disabled='true'] {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.pnm-venue-compare__option-name {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.pnm-venue-compare__option-meta {
+  flex: 0 0 auto;
+  color: #9aa5b3;
+  font-size: 12px;
+}
+
+.pnm-venue-compare__option[aria-pressed='true'] .pnm-venue-compare__option-meta {
+  color: #45adff;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+}
+
+.pnm-venue-compare__selected {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+}
+
+.pnm-venue-compare__selected-row {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border-bottom: 1px solid rgb(154 165 179 / 14%);
+}
+
+.pnm-venue-compare__selected-name {
+  min-width: 0;
+  color: #f4f7fb;
+  font-size: 15px;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.pnm-venue-compare__table .sp-rtable th,
+.pnm-venue-compare__table .sp-rtable td {
+  color: #d7dee7;
+  border-bottom-color: rgb(154 165 179 / 16%);
+}
+
+.pnm-venue-compare__table .sp-rtable :is(th, .sp-rtable-label) {
+  color: #45adff;
+  opacity: 1;
+}
+
+.pnm-venue-compare__table .sp-rtable-card {
+  padding: 8px 0;
+  border-width: 0;
+  background: transparent;
+}
+
+.pnm-venue-compare__table .sp-rtable-card .sp-rtable-cell:first-child {
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgb(69 173 255 / 26%);
+}
+
+.pnm-venue-compare__muted {
+  color: #9aa5b3;
+}
+
+.pnm-venue-compare__provenance {
+  color: #e4e7ec;
+  font-weight: 700;
+}
+
+.pnm-venue-compare__provenance[data-mode='live'] {
+  color: #c8ffd2;
+  text-shadow: 0 0 6px rgb(53 217 90 / 55%);
+}
+
+.pnm-venue-compare__provenance[data-mode='mixed'] {
+  color: #45adff;
+}
+
+.pnm-venue-compare__provenance:is([data-mode='estimated'], [data-mode='catalog'], [data-mode='unavailable']) {
+  color: #9aa5b3;
+}
+
+.pnm-venue-compare__empty {
+  padding: 24px 0;
+  text-align: center;
+}
+
+.pnm-venue-compare__empty-title {
+  margin: 0;
+  color: #e4e7ec;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.pnm-venue-compare__empty-copy {
+  margin: 4px 0 0;
+  color: #9aa5b3;
+  font-size: 13px;
+}
+
+/* ---------- Shared identity mark (series, tournaments, venue profiles) ---------- */
+
+/* Remote artwork prints bare at its own ratio and is never enlarged past its
+   own pixels. Without artwork, the initials sit in the painted utility well
+   (the __halo layer). No drawn border, fill, gradient or shadow. */
+.pnm-identity-mark {
+  position: relative;
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  overflow: hidden;
+  background: transparent;
+}
+
+:is(.pnm-identity-mark).pnm-identity-mark.pnm-identity-mark[data-media-state] img {
+  display: block;
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  max-height: 100%;
+  margin: 0;
+  padding: 0;
+  object-fit: scale-down;
+  background: transparent;
+}
+
+.pnm-identity-mark__fallback {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+}
+
+.pnm-identity-mark__halo {
+  position: absolute;
+  inset: 0;
+  background: url('/images/pnm-console/painted-controls-v1/utility-well.png') center / contain no-repeat;
+}
+
+.pnm-identity-mark__initials {
+  position: relative;
+  z-index: 1;
+  color: #e4e7ec;
+  font-size: max(11px, calc(var(--pnm-identity-size, 58px) * 0.24));
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-shadow: 0 1px 0 #050607, 0 0 6px rgb(69 173 255 / 35%);
 }

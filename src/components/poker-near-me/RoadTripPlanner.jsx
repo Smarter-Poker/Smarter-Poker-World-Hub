@@ -4,11 +4,30 @@
  */
 import { useState, useCallback, useRef, useEffect, useId } from 'react';
 import { getVenueLogoUrl, getVenueLogoFallback } from './pnm-utils';
-import { haversineMiles, escapeHtml } from './pnm-utils';
+import { haversineMiles } from './pnm-utils';
 import { openNativeMaps, openMultiStopRoute } from '../../utils/openNativeMaps';
-import { createPokerMapSession, loadPokerMapRuntime, resetPokerMapRuntime } from '../../lib/poker-near-me/mapRuntime';
+import {
+    addPokerMapLayers,
+    createPokerMapSession,
+    createPokerMarkerLayer,
+    loadPokerMapRuntime,
+    resetPokerMapRuntime,
+} from '../../lib/poker-near-me/mapRuntime';
 import MapSurfaceFrame from './MapSurfaceFrame';
 import { PokerNearMeConsoleIcon, PokerNearMePanelShell } from './PokerNearMeConsole';
+import {
+    attachPokerPopupViewportGuard,
+    buildPokerRouteStopPopupHtml,
+    buildPokerTourPopupHtml,
+    buildPokerVenuePopupHtml,
+    createPokerClusterIcon,
+    createPokerPopupClickHandler,
+    createPokerRouteStopIcon,
+    createPokerTourIcon,
+    createPokerVenueIcon,
+    isPokerTourStop,
+    syncPokerMapKeyboardTargets,
+} from './mapPresentation';
 import {
     filterSeriesForRoute,
     interpolateRouteLeg,
@@ -23,8 +42,8 @@ const TRIP_DRAFT_KEY = 'pnm_trip_draft_v1';
 // SECURITY: Leaflet's bindPopup/divIcon take raw HTML strings. Venue and stop names
 // come from scraped external sources (Bravo/PokerAtlas), so a name such as
 // `<img src=x onerror=...>` used to execute in every planner user's browser.
-// Always run interpolated values through this before building those strings.
-const esc = (value) => escapeHtml(String(value == null ? '' : value));
+// Every marker and popup string is now built by the shared mapPresentation
+// module, which escapes each interpolated value before it reaches Leaflet.
 
 // haversineMiles is now imported from ./pnm-utils
 
@@ -314,11 +333,25 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
         if (!routeResult || typeof window === 'undefined') return undefined;
 
         let cancelled = false;
+        let mapContainer = null;
+        let popupClickHandler = null;
+        let keyboardObserver = null;
+        let keyboardFrame = 0;
+        let detachPopupGuard = () => {};
         setMapStatus('loading');
+
+        const scheduleKeyboardTargetSync = () => {
+            if (keyboardFrame) return;
+            keyboardFrame = window.requestAnimationFrame(() => {
+                keyboardFrame = 0;
+                syncPokerMapKeyboardTargets(mapContainer);
+            });
+        };
 
         const buildMap = async () => {
             try {
-                const { L } = await loadPokerMapRuntime();
+                const runtime = await loadPokerMapRuntime();
+                const { L } = runtime;
                 if (cancelled || !mapRef.current) return;
 
                 mapSessionRef.current?.destroy();
@@ -329,38 +362,78 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
                 });
                 const { map } = mapSessionRef.current;
                 mapInstanceRef.current = map;
+                mapContainer = mapRef.current;
+
+                // Popup actions (View Details, Directions, Call) are delegated
+                // from the map node exactly as on every other discovery map.
+                popupClickHandler = createPokerPopupClickHandler();
+                mapContainer.addEventListener('click', popupClickHandler);
+                detachPopupGuard = attachPokerPopupViewportGuard(map);
+
+                // Keep keyboard targets aligned with the visible pins, including
+                // inside the fullscreen focus trap.
+                map.on('moveend zoomend resize', scheduleKeyboardTargetSync);
+                keyboardObserver = new MutationObserver(scheduleKeyboardTargetSync);
+                keyboardObserver.observe(mapContainer, { childList: true, subtree: true });
+
+                // Venue names stay legible: labels print only once the route is
+                // zoomed close enough for them not to collide.
+                const updateLabelVisibility = () => {
+                    mapContainer?.classList.toggle('vmp-labels-hidden', map.getZoom() < 9);
+                };
+                map.on('zoomend', updateLabelVisibility);
 
                 // Draw route polyline
                 const latlngs = routeResult.routePoints.map(p => [p.lat, p.lng]);
                 L.polyline(latlngs, { color: '#ffffff', weight: 3, opacity: 0.8, dashArray: '8, 6' }).addTo(map);
 
-                // Stop markers
-                routeResult.stops.forEach((stop, i) => {
-                    const color = i === 0 ? '#22c55e' : i === routeResult.stops.length - 1 ? '#ef4444' : '#3b82f6';
-                    const icon = L.divIcon({
-                        className: 'trip-stop-marker',
-                        html: `<div style="width:20px;height:20px;border-radius:50%;background:${esc(color)};border:3px solid #fff;box-shadow:0 0 10px ${esc(color)}80;display:flex;align-items:center;justify-content:center;font-size: 12px;font-weight:700;color:#fff;">${Number(i) + 1}</div>`,
-                        iconSize: [20, 20], iconAnchor: [10, 10],
-                    });
-                    L.marker([stop.lat, stop.lng], { icon }).addTo(map).bindPopup(`<b style="color:#0f172a">${esc(stop.name)}</b>`);
+                // Venue markers along route: the shared painted venue and tour
+                // machines, clustered by the shared density rules.
+                const { layer: venueLayer } = createPokerMarkerLayer({
+                    L,
+                    map,
+                    clusteringAvailable: runtime.clusteringAvailable,
+                    iconCreateFunction: (cluster) => createPokerClusterIcon(L, cluster, { variant: 'compact' }),
+                    disableClusteringAtZoom: 9,
                 });
-
-                // Venue markers along route
-                routeResult.venues.forEach(v => {
-                    const icon = L.divIcon({
-                        className: 'route-venue-marker',
-                        html: '<div style="width:10px;height:10px;border-radius:50%;background:#ffffff;border:2px solid #fff;box-shadow:0 0 6px rgba(255,255,255,0.6);"></div>',
-                        iconSize: [14, 14], iconAnchor: [7, 7],
+                const venueMarkers = routeResult.venues
+                    .filter(v => Number.isFinite(parseFloat(v.latitude)) && Number.isFinite(parseFloat(v.longitude)))
+                    .map(v => {
+                        const tourStop = isPokerTourStop(v);
+                        const icon = tourStop
+                            ? createPokerTourIcon(L, v, { variant: 'compact' })
+                            : createPokerVenueIcon(L, v, { variant: 'compact' });
+                        const popupHtml = tourStop
+                            ? buildPokerTourPopupHtml(v, { variant: 'compact' })
+                            : buildPokerVenuePopupHtml(v, { variant: 'compact' });
+                        return L.marker([parseFloat(v.latitude), parseFloat(v.longitude)], {
+                            icon,
+                            keyboard: true,
+                            title: v.name || 'Poker venue',
+                            alt: `${v.name || 'Poker venue'} map marker`,
+                        }).bindPopup(popupHtml, { className: 'pnm-popup', maxWidth: 300, closeButton: true });
                     });
-                    L.marker([parseFloat(v.latitude), parseFloat(v.longitude)], { icon })
+                addPokerMapLayers(venueLayer, venueMarkers);
+
+                // Stop markers: numbered painted machines above every venue pin.
+                routeResult.stops.forEach((stop, i) => {
+                    L.marker([stop.lat, stop.lng], {
+                        icon: createPokerRouteStopIcon(L, stop, i, routeResult.stops.length),
+                        keyboard: true,
+                        zIndexOffset: 1000,
+                        title: stop.name,
+                        alt: `${stop.name} route stop marker`,
+                    })
                         .addTo(map)
-                        .bindPopup(`<div style="font-family:Inter,sans-serif;color:#0f172a;"><b>${esc(v.name)}</b><br/>${esc(v.city)}, ${esc(v.state)}</div>`);
+                        .bindPopup(buildPokerRouteStopPopupHtml(stop, i, routeResult.stops.length), { className: 'pnm-popup', maxWidth: 300, closeButton: true });
                 });
 
                 // Fit bounds
                 if (latlngs.length > 0) {
                     map.fitBounds(L.latLngBounds(latlngs), { padding: [30, 30] });
                 }
+                updateLabelVisibility();
+                scheduleKeyboardTargetSync();
 
                 setMapStatus('ready');
             } catch (err) {
@@ -373,6 +446,10 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
 
         return () => {
             cancelled = true;
+            if (mapContainer && popupClickHandler) mapContainer.removeEventListener('click', popupClickHandler);
+            detachPopupGuard();
+            keyboardObserver?.disconnect();
+            if (keyboardFrame) window.cancelAnimationFrame(keyboardFrame);
             mapSessionRef.current?.destroy();
             mapSessionRef.current = null;
             mapInstanceRef.current = null;
@@ -406,45 +483,53 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
             </div>
 
             <div className="rtp-form">
-                <div className="rtp-input-row">
-                    <div className="rtp-dot origin" />
-                    <input
-                        type="text"
-                        aria-label="Trip origin"
-                        placeholder="Origin (e.g., Dallas, TX)"
-                        value={origin}
-                        onChange={e => setOrigin(e.target.value)}
-                        className="rtp-input"
-                    />
+                {/* Every field sits in the painted search well at its native
+                    ratio; the route role prints as live lit-blue type. */}
+                <div className="rtp-input-row rtp-input-row--origin">
+                    <span className="rtp-role" aria-hidden="true">From</span>
+                    <span className="rtp-well">
+                        <input
+                            type="text"
+                            aria-label="Trip origin"
+                            placeholder="Origin (e.g., Dallas, TX)"
+                            value={origin}
+                            onChange={e => setOrigin(e.target.value)}
+                            className="rtp-input"
+                        />
+                    </span>
                 </div>
 
                 {waypoints.map((wp, i) => (
-                    <div key={i} className="rtp-input-row">
-                        <div className="rtp-dot waypoint" />
-                        <input
-                            type="text"
-                            aria-label={`Trip waypoint ${i + 1}`}
-                            placeholder={`Waypoint ${i + 1}`}
-                            value={wp}
-                            onChange={e => updateWaypoint(i, e.target.value)}
-                            className="rtp-input"
-                        />
+                    <div key={i} className="rtp-input-row rtp-input-row--waypoint">
+                        <span className="rtp-role" aria-hidden="true">Via</span>
+                        <span className="rtp-well">
+                            <input
+                                type="text"
+                                aria-label={`Trip waypoint ${i + 1}`}
+                                placeholder={`Waypoint ${i + 1}`}
+                                value={wp}
+                                onChange={e => updateWaypoint(i, e.target.value)}
+                                className="rtp-input"
+                            />
+                        </span>
                         <button type="button" className="rtp-remove-btn" aria-label={`Remove waypoint ${i + 1}`} onClick={() => removeWaypoint(i)}>
                             <PokerNearMeConsoleIcon name="close" />
                         </button>
                     </div>
                 ))}
 
-                <div className="rtp-input-row">
-                    <div className="rtp-dot destination" />
-                    <input
-                        type="text"
-                        aria-label="Trip destination"
-                        placeholder="Destination (e.g., Las Vegas, NV)"
-                        value={destination}
-                        onChange={e => setDestination(e.target.value)}
-                        className="rtp-input"
-                    />
+                <div className="rtp-input-row rtp-input-row--destination">
+                    <span className="rtp-role" aria-hidden="true">To</span>
+                    <span className="rtp-well">
+                        <input
+                            type="text"
+                            aria-label="Trip destination"
+                            placeholder="Destination (e.g., Las Vegas, NV)"
+                            value={destination}
+                            onChange={e => setDestination(e.target.value)}
+                            className="rtp-input"
+                        />
+                    </span>
                 </div>
 
                 <button type="button" className="rtp-add-waypoint" onClick={addWaypoint}>
@@ -453,7 +538,7 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
 
                 <div className="rtp-options">
                     <div className="rtp-option-group">
-                        <label>Search Corridor</label>
+                        <span className="rtp-option-label">Search Corridor</span>
                         <div className="rtp-chips" role="radiogroup" aria-label="Search corridor">
                             {CORRIDOR_OPTIONS.map(mi => (
                                 <button type="button" role="radio" aria-checked={corridorMi === mi} key={mi} className={'rtp-chip' + (corridorMi === mi ? ' active' : '')} onClick={() => setCorridorMi(mi)}>{mi} Mi</button>
@@ -462,24 +547,23 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
                     </div>
 
                     <div className="rtp-option-group">
-                        <label>Travel Dates (Optional)</label>
+                        <span className="rtp-option-label">Travel Dates (Optional)</span>
                         <div className="rtp-date-row">
-                            <input type="date" aria-label="Trip start date" value={dateRange.start} onChange={e => setDateRange(p => ({ ...p, start: e.target.value }))} className="rtp-date" />
-                            <span className="rtp-date-sep">→</span>
-                            <input type="date" aria-label="Trip end date" value={dateRange.end} onChange={e => setDateRange(p => ({ ...p, end: e.target.value }))} className="rtp-date" />
+                            <span className="rtp-well rtp-well--date">
+                                <input type="date" aria-label="Trip start date" value={dateRange.start} onChange={e => setDateRange(p => ({ ...p, start: e.target.value }))} className="rtp-date" />
+                            </span>
+                            <span className="rtp-date-sep" aria-hidden="true">To</span>
+                            <span className="rtp-well rtp-well--date">
+                                <input type="date" aria-label="Trip end date" value={dateRange.end} onChange={e => setDateRange(p => ({ ...p, end: e.target.value }))} className="rtp-date" />
+                            </span>
                         </div>
                     </div>
                 </div>
 
-                <button type="button" className="rtp-calculate-btn" onClick={calculateRoute} disabled={calculating}>
-                    {calculating ? (
-                        <><span className="rtp-spinner" /> Calculating...</>
-                    ) : (
-                        <>
-                            <PokerNearMeConsoleIcon name="directions" />
-                            Plan My Trip
-                        </>
-                    )}
+                {/* The primary plate carries its label only: a painted icon
+                    holder on a painted plate would be a frame on a frame. */}
+                <button type="button" className="rtp-calculate-btn" onClick={calculateRoute} disabled={calculating} aria-busy={calculating}>
+                    {calculating ? 'Calculating...' : 'Plan My Trip'}
                 </button>
 
                 {error && <div className="rtp-error" role="alert">{error}</div>}
@@ -494,12 +578,7 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
                             aria-expanded={savedTripsOpen}
                             aria-controls={savedTripsId}
                         >
-                            <PokerNearMeConsoleIcon name="saved" />
-                            Saved Trips ({savedTrips.length})
-                            <PokerNearMeConsoleIcon
-                                name="back"
-                                className={'pnm-console-tool__disclosure' + (savedTripsOpen ? ' is-open' : '')}
-                            />
+                            {savedTripsOpen ? 'Hide' : 'Show'} Saved Trips ({savedTrips.length})
                         </button>
                         {savedTripsOpen && (
                             <div className="rtp-saved-trips-list" id={savedTripsId}>
@@ -599,7 +678,6 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
                             }}
                             className="rtp-result-action rtp-result-action--save"
                         >
-                            <PokerNearMeConsoleIcon name="saved" />
                             Save Trip
                         </button>
                         <button
@@ -629,7 +707,6 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
                             }}
                             className="rtp-result-action rtp-result-action--share"
                         >
-                            <PokerNearMeConsoleIcon name="share" />
                             Share Trip
                         </button>
                         <button
@@ -640,7 +717,6 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
                             }}
                             className="rtp-result-action rtp-result-action--route"
                         >
-                            <PokerNearMeConsoleIcon name="directions" />
                             Start Full Route ({routeResult?.stops?.length || 0} Stops)
                         </button>
                     </div>
@@ -654,12 +730,7 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
                     {/* Map — collapsible on mobile */}
                     <div className="rtp-map-wrapper">
                         <button type="button" className="rtp-map-toggle" onClick={() => setMapExpanded(e => !e)} aria-expanded={mapExpanded} aria-controls={mapPanelId}>
-                            <PokerNearMeConsoleIcon name="location" />
                             {mapExpanded ? 'Hide Map' : 'Show Map'}
-                            <PokerNearMeConsoleIcon
-                                name="back"
-                                className={'pnm-console-tool__disclosure' + (mapExpanded ? ' is-open' : '')}
-                            />
                         </button>
                         <div className="rtp-map-shell" id={mapPanelId} hidden={!mapExpanded}>
                             <MapSurfaceFrame
@@ -672,13 +743,13 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
                                 <div className="pnm-map-stage">
                                     <div ref={mapRef} className="rtp-map pnm-leaflet-map" role="region" aria-label="Poker road trip route map" data-map-foundation="shared-v3" data-map-ready={mapStatus === 'ready' ? 'true' : 'false'} />
                                     {mapStatus !== 'ready' && (
-                                        <div className={'rtp-map-overlay' + (mapStatus === 'error' ? ' error' : '')}>
+                                        <div className={'rtp-map-overlay pnm-map-status' + (mapStatus === 'error' ? ' error pnm-map-status--error' : ' pnm-map-status--loading')} role={mapStatus === 'error' ? 'alert' : 'status'}>
                                             {mapStatus === 'error' ? (
-                                                <div>
+                                                <div className="pnm-map-status__copy">
                                                     <p>Route Map Could Not Be Loaded. The Stop And Venue Lists Below Are Unaffected.</p>
-                                                    <button type="button" onClick={() => { resetPokerMapRuntime(); setMapLoadAttempt(value => value + 1); }}>Retry Route Map</button>
+                                                    <button type="button" className="pnm-map-status__action" onClick={() => { resetPokerMapRuntime(); setMapLoadAttempt(value => value + 1); }}>Retry Route Map</button>
                                                 </div>
-                                            ) : 'Loading route map...'}
+                                            ) : 'Loading Route Map...'}
                                         </div>
                                     )}
                                 </div>
