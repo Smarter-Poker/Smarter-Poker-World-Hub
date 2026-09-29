@@ -8,6 +8,7 @@
  */
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
+import { PokerCardSnippet } from './PokerCardText';
 
 // FIX (2026-08-24): this used to createClient() its own browser client with
 // DEFAULT auth options - a second GoTrue instance on the default storageKey,
@@ -99,7 +100,7 @@ export default function SharedPostCard({ postId, mediaMetadata, isOwn }) {
     const authorName  = richAuthor  || post?.author?.display_name || post?.author?.username || 'Player';
     const authorAvatar = richAvatar || post?.author?.avatar_url || null;
     const initials    = authorName.charAt(0).toUpperCase();
-    const snippet     = richDesc    || (post?.content || '').slice(0, 160);
+    const snippet     = richDesc    || post?.content || '';
     const thumb       = richImage   || (post?.media_urls || [])[0];
     const postUrl     = richUrl     || (post?.id ? `/hub/post/${post.id}` : null);
 
@@ -148,7 +149,7 @@ export default function SharedPostCard({ postId, mediaMetadata, isOwn }) {
                 {/* Snippet */}
                 {snippet && (
                     <div style={{ padding: '6px 10px 4px', fontSize: 12, color: textColor, lineHeight: 1.4 }}>
-                        {snippet}{snippet.length >= 160 ? '…' : ''}
+                        <PokerCardSnippet text={snippet} maxLength={160} ellipsis="…" />
                     </div>
                 )}
 

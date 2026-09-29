@@ -18,6 +18,8 @@ import { supabase } from '../../../src/lib/supabase';
 import { SOCIAL_COLORS, timeAgo as sharedTimeAgo, isYouTubeUrl, getYouTubeVideoId, getYouTubeEmbedUrl } from '../../../src/lib/socialHelpers';
 import { SharedAvatar } from '../../../src/components/social/SharedAvatar';
 import { SharedLinkPreviewCard } from '../../../src/components/social/SharedLinkPreviewCard';
+import PokerCardText from '../../../src/components/social/PokerCardText';
+import { normalizePokerPostContent, readablePokerText, stripPokerCardMarkup, truncatePokerText } from '../../../src/lib/pokerCardMarkup';
 import { VideoThumbnail, VideoPostWrapper, FullScreenVideoViewer } from '../../../src/components/social/SharedVideoComponents';
 import toast from '../../../src/stores/toastStore';
 // Phase 9: Shared components for full feature parity with social-media
@@ -133,7 +135,7 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, onDe
                     onClick={(e) => { e.preventDefault(); router.push(`/hub/user/${username}`); }}
                 >{part}</a>;
             }
-            return part;
+            return <PokerCardText key={i} text={part} />;
         });
     };
 
@@ -215,20 +217,24 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, onDe
 
 
     const handleEdit = async () => {
-        if (!editContent.trim()) return;
+        const content = normalizePokerPostContent(editContent.trim());
+        if (!content) return;
         try {
             const token = getAccessToken();
             const res = await fetch('/api/social/pages/posts', {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                body: JSON.stringify({ id: post.id, content: editContent.trim() }),
+                body: JSON.stringify({ id: post.id, content }),
             });
             if (res.ok) {
-                onEdit(post.id, editContent.trim());
+                onEdit(post.id, content);
                 setEditing(false);
             }
         } catch (e) { console.warn(e); }
     };
+
+    // See More cuts at 300 characters with a card counting as one, never inside a card.
+    const contentPreview = truncatePokerText(post.content || '', 300);
 
     const shareUrl = typeof window !== 'undefined' ? `${window.location.origin}/hub/social-pages/${page?.slug || page?.id}` : '';
 
@@ -334,10 +340,10 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, onDe
                     if (doubleTapTimer.current) clearTimeout(doubleTapTimer.current);
                     doubleTapTimer.current = setTimeout(() => setDoubleTapHeart(false), 800);
                 }} style={{ padding: '0 16px 12px', fontSize: 14, color: C.text, lineHeight: 1.5, whiteSpace: 'pre-wrap', position: 'relative', cursor: 'default' }}>
-                    {post.content.length > 300 && !expanded ? (
-                        <>{renderMentions(post.content.slice(0, 300))}... <button onClick={() => setExpanded(true)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, fontWeight: 600, color: C.textSec, padding: 0, fontFamily: 'inherit' }}>See More</button></>
+                    {contentPreview.truncated && !expanded ? (
+                        <>{renderMentions(contentPreview.text)}... <button onClick={() => setExpanded(true)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, fontWeight: 600, color: C.textSec, padding: 0, fontFamily: 'inherit' }}>See More</button></>
                     ) : renderMentions(post.content)}
-                    {expanded && post.content.length > 300 && (
+                    {expanded && contentPreview.truncated && (
                         <button onClick={() => setExpanded(false)} style={{ display: 'block', background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600, color: C.textSec, padding: '4px 0 0', fontFamily: 'inherit' }}>See Less</button>
                     )}
                     {/* P9-4: Double-tap heart animation */}
@@ -454,8 +460,9 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, onDe
 
             {/* Check-in venue badge (feature parity with social-media) */}
             {post.content && /^Checked in at /i.test(post.content) && (() => {
-                const match = post.content.match(/^Checked in at (.+?)(?:\s*[--]\s*(.+))?$/i);
-                const venueName = match?.[1] || post.content.replace(/^Checked in at /i, '').split('-')[0].trim();
+                const checkIn = stripPokerCardMarkup(post.content);
+                const match = checkIn.match(/^Checked in at (.+?)(?:\s*[--]\s*(.+))?$/i);
+                const venueName = match?.[1] || checkIn.replace(/^Checked in at /i, '').split('-')[0].trim();
                 const locationText = match?.[2]?.trim() || '';
                 return (
                     <div style={{
@@ -614,7 +621,7 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, onDe
                                         const shareRes = await fetch('/api/social/pages/posts', {
                                             method: 'POST',
                                             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                                            body: JSON.stringify({ content: `Shared from ${page?.name}: ${post.content?.slice(0, 200) || ''}\n\n${shareUrl}`, content_type: 'text' }),
+                                            body: JSON.stringify({ content: `Shared from ${page?.name}: ${truncatePokerText(post.content || '', 200).text}\n\n${shareUrl}`, content_type: 'text' }),
                                         });
                                         if (!shareRes.ok) throw new Error('Share failed');
                                         setShowShareModal(false);
@@ -635,7 +642,7 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, onDe
                                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
                                 Copy Link
                             </button>
-                            <a href={`https://twitter.com/intent/tweet?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(post.content?.slice(0, 100) || '')}`}
+                            <a href={`https://twitter.com/intent/tweet?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(readablePokerText(post.content, 100))}`}
                                 target="_blank" rel="noopener noreferrer" style={{
                                 display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderRadius: 8,
                                 border: `1px solid ${C.border}`, background: C.bg, cursor: 'pointer', fontSize: 14, fontWeight: 500, color: C.text, textDecoration: 'none',
@@ -651,7 +658,7 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, onDe
                                 <svg width="18" height="18" viewBox="0 0 24 24" fill="#1877F2"><path d="M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h3z"/></svg>
                                 Share On Facebook
                             </a>
-                            <a href={`https://wa.me/?text=${encodeURIComponent((post.content?.slice(0, 100) || 'Check this out') + ' ' + shareUrl)}`}
+                            <a href={`https://wa.me/?text=${encodeURIComponent((readablePokerText(post.content, 100) || 'Check this out') + ' ' + shareUrl)}`}
                                 target="_blank" rel="noopener noreferrer" style={{
                                 display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderRadius: 8,
                                 border: `1px solid ${C.border}`, background: C.bg, cursor: 'pointer', fontSize: 14, fontWeight: 500, color: C.text, textDecoration: 'none',
@@ -668,7 +675,7 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, onDe
                                 Share Via Email
                             </a>
                             {/* P10-4: SMS share */}
-                            <a href={`sms:?body=${encodeURIComponent((post.content?.slice(0, 80) || 'Check this out') + ' ' + shareUrl)}`}
+                            <a href={`sms:?body=${encodeURIComponent((readablePokerText(post.content, 80) || 'Check this out') + ' ' + shareUrl)}`}
                                 style={{
                                 display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderRadius: 8,
                                 border: `1px solid ${C.border}`, background: C.bg, cursor: 'pointer', fontSize: 14, fontWeight: 500, color: C.text, textDecoration: 'none',
@@ -2303,7 +2310,7 @@ export default function SocialPageDetail() {
                                                         onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}
                                                         >
                                                             <div style={{ fontSize: 12, fontWeight: 600, color: C.text, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', lineHeight: 1.4 }}>
-                                                                {pp.content || 'Pinned post'}
+                                                                {pp.content ? <PokerCardText text={pp.content} /> : 'Pinned post'}
                                                             </div>
                                                             <div style={{ display: 'flex', gap: 10, marginTop: 6, fontSize: 11, color: C.textSec }}>
                                                                 <span>{pp.like_count || 0} Likes</span>
@@ -3353,7 +3360,7 @@ export default function SocialPageDetail() {
                                                 <div style={{ marginTop: 6, padding: '8px 10px', background: C.bg, borderRadius: 8 }}>
                                                     <div style={{ fontSize: 10, fontWeight: 700, color: C.textSec, marginBottom: 4, textTransform: 'uppercase' }}>Top Post</div>
                                                     <div style={{ fontSize: 12, color: C.text, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                                                        {topPost.content || 'Media post'}
+                                                        {topPost.content ? <PokerCardText text={topPost.content} /> : 'Media post'}
                                                     </div>
                                                     <div style={{ fontSize: 11, color: C.textSec, marginTop: 4 }}>
                                                         {topPost.like_count || 0} Likes · {topPost.comment_count || 0} Comments

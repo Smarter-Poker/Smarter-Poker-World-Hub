@@ -184,6 +184,10 @@ import './safe-profile-columns-are-granted.test.mjs';
 // PublicGameBoard - the exact shape section 10.8 names: a check nobody can see
 // is not a check. Fixed and wired in here so it runs in CHECK 8.
 import './social-poker-card-picker.test.mjs';
+// 2026-09-21: the picker and the composer card controls rendered and driven
+// for real - spoken card names, 44px targets, whole streets only, focus,
+// long press, and the drafts of a video post that uploads in the background.
+import './social-poker-card-picker-interaction.test.mjs';
 import './store-commerce-hardening.test.mjs';
 // 2026-09-05, the diamond wallet audit. Caught by this file's own meta-guard
 // before it could become another guard nobody runs: the law was written, passed

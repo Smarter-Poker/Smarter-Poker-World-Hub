@@ -224,9 +224,31 @@ export function SharedPostCreator({
   // Restore draft from localStorage on mount
   useEffect(() => {
     try {
-      const draft = localStorage.getItem('sp-post-draft');
+      let draft = localStorage.getItem('sp-post-draft');
+      let cardDraft = localStorage.getItem('sp-post-card-draft');
+      // A video post that moved to the background keeps its text and cards in
+      // sp-post-pending-draft until it is created (see handlePost). If it never
+      // was - the upload failed or the page reloaded mid-upload - they come back
+      // here, unless newer drafts have taken their place. While that upload is
+      // still running they belong to it and are left alone.
+      const pendingDraft = bgUpload.isActive ? null : localStorage.getItem('sp-post-pending-draft');
+      if (pendingDraft) {
+        localStorage.removeItem('sp-post-pending-draft');
+        if (!draft && !cardDraft) {
+          try {
+            const pending = JSON.parse(pendingDraft);
+            if (typeof pending?.content === 'string' && pending.content.trim()) {
+              draft = pending.content;
+              localStorage.setItem('sp-post-draft', draft);
+            }
+            if (typeof pending?.pokerCardsMarkup === 'string' && pending.pokerCardsMarkup) {
+              cardDraft = pending.pokerCardsMarkup;
+              localStorage.setItem('sp-post-card-draft', cardDraft);
+            }
+          } catch (_) {}
+        }
+      }
       if (draft && !content) setContent(draft);
-      const cardDraft = localStorage.getItem('sp-post-card-draft');
       if (cardDraft) {
         const safeCardDraft = normalizePokerCardMarkup(cardDraft);
         if (safeCardDraft) {
@@ -260,6 +282,10 @@ export function SharedPostCreator({
   // Track media via ref for cleanup (avoids stale closure in useEffect)
   const mediaRef = useRef(media);
   mediaRef.current = media;
+  // Same for the text and cards, so a background post that fails can see
+  // whether the composer has been used for something new since it cleared.
+  const draftRef = useRef({ content, pokerCardsMarkup });
+  draftRef.current = { content, pokerCardsMarkup };
 
   // Cleanup pending timeouts + blob URLs on unmount
   useEffect(() => {
@@ -878,6 +904,24 @@ export function SharedPostCreator({
   const handlePost = async () => {
     if (isPosting || _submittingRef.current) return; // Double-submit guard
     _submittingRef.current = true;
+    // A long video upload moves to the background and empties the composer
+    // (onBackground below), but the post does not exist until onPost says so.
+    // Its text and cards wait in sp-post-pending-draft meanwhile, and if the
+    // post fails they go back into the composer and the drafts, the same as a
+    // failure on the main path, which never took them out.
+    let movedToBackground = false;
+    const restorePostDraft = () => {
+      if (!movedToBackground || !mountedRef.current) return;
+      // Never overwrite a new post the user has started since.
+      if (draftRef.current.content.trim() || draftRef.current.pokerCardsMarkup) return;
+      setContent(content);
+      setPokerCardsMarkup(pokerCardsMarkup);
+      try {
+        localStorage.removeItem('sp-post-pending-draft');
+        if (content.trim()) localStorage.setItem('sp-post-draft', content);
+        if (pokerCardsMarkup) localStorage.setItem('sp-post-card-draft', pokerCardsMarkup);
+      } catch (_) {}
+    };
     // BUG-10 FIX (2026-04-29): wrap entire body in try/finally so that any
     // uncaught throw (network error in onPost, validateYouTubeVideo,
     // /api/social/pages/posts, etc.) doesn't leave _submittingRef stuck at
@@ -1109,7 +1153,19 @@ export function SharedPostCreator({
                   onError: ({ error }) => reject(error),
                   onBackground: () => {
                     // Upload moved to background — reset the composer.
-                    // GhostPostCard in the feed shows progress.
+                    // GhostPostCard in the feed shows progress. The post does
+                    // not exist yet, so its text and cards move to
+                    // sp-post-pending-draft instead of being thrown away, even
+                    // when the composer has already unmounted.
+                    movedToBackground = true;
+                    try {
+                      localStorage.setItem(
+                        'sp-post-pending-draft',
+                        JSON.stringify({ content, pokerCardsMarkup })
+                      );
+                      localStorage.removeItem('sp-post-draft');
+                      localStorage.removeItem('sp-post-card-draft');
+                    } catch (_) {}
                     if (mountedRef.current) {
                       setUploadProgress(null);
                       setUploading(false);
@@ -1118,10 +1174,6 @@ export function SharedPostCreator({
                       setMedia([]);
                       setLinkPreview(null);
                       setShareToPokerReels(false);
-                      try {
-                        localStorage.removeItem('sp-post-draft');
-                        localStorage.removeItem('sp-post-card-draft');
-                      } catch (_) {}
                     }
                   },
                 });
@@ -1248,6 +1300,7 @@ export function SharedPostCreator({
                 setUploadProgress(null);
                 setUploading(false);
               }
+              restorePostDraft();
               _submittingRef.current = false;
               return;
             }
@@ -1306,6 +1359,7 @@ export function SharedPostCreator({
               setUploadProgress(null);
               setUploading(false);
             }
+            restorePostDraft();
             try {
               toast.error(friendlyMsg, 7000);
             } catch (_) {}
@@ -1490,11 +1544,14 @@ export function SharedPostCreator({
         try {
           localStorage.removeItem('sp-post-draft');
           localStorage.removeItem('sp-post-card-draft');
+          localStorage.removeItem('sp-post-pending-draft');
         } catch (e) {
           console.warn('[App] Handled exception:', e);
         }
-      } else if (mountedRef.current)
-        setError('Unable to post at this time. Please try again later.');
+      } else {
+        if (mountedRef.current) setError('Unable to post at this time. Please try again later.');
+        restorePostDraft();
+      }
     } catch (postErr) {
       console.warn('[SharedPostCreator] Post creation error:', postErr);
       if (mountedRef.current) {
@@ -1502,6 +1559,7 @@ export function SharedPostCreator({
         setUploading(false);
         setUploadProgress(null);
       }
+      restorePostDraft();
     } finally {
       // ALWAYS reset the submit guard, even on uncaught throw, so user
       // isn't permanently locked out of posting.
@@ -1997,7 +2055,8 @@ export function SharedPostCreator({
             <button
               type="button"
               onClick={() => setShowPokerCardPicker(true)}
-              style={{ border: '1px solid #d6b15c', background: '#fff', color: '#8a5a00', borderRadius: 7, padding: '6px 9px', fontWeight: 700, cursor: 'pointer' }}
+              aria-label="Edit Poker Cards"
+              style={{ minWidth: 44, minHeight: 44, border: '1px solid #d6b15c', background: '#fff', color: '#8a5a00', borderRadius: 7, padding: '6px 9px', fontWeight: 700, cursor: 'pointer' }}
             >
               Edit
             </button>
@@ -2005,7 +2064,7 @@ export function SharedPostCreator({
               type="button"
               onClick={clearPokerCards}
               aria-label="Remove Poker Cards"
-              style={{ border: 0, background: 'transparent', color: '#7c5a12', fontSize: 20, cursor: 'pointer', padding: 3 }}
+              style={{ minWidth: 44, minHeight: 44, border: 0, background: 'transparent', color: '#7c5a12', fontSize: 20, cursor: 'pointer', padding: 3 }}
             >
               &times;
             </button>
@@ -2856,6 +2915,8 @@ export function SharedPostCreator({
             onClick={() => setShowPokerCardPicker(true)}
             disabled={uploading}
             style={{
+              minWidth: 44,
+              minHeight: 44,
               padding: '6px 8px',
               borderRadius: 6,
               border: 'none',

@@ -105,8 +105,8 @@ import GiphyPicker from '../../../src/components/shared/GiphyPicker';
 import TrendingVenues from '../../../src/components/social/TrendingVenues';
 import { SharedPostCreator } from '../../../src/components/social/SharedPostCreator';
 import GhostPostCard from '../../../src/components/social/GhostPostCard';
-import PokerCardText from '../../../src/components/social/PokerCardText';
-import { truncatePokerText } from '../../../src/lib/pokerCardMarkup';
+import PokerCardText, { PokerCardSnippet } from '../../../src/components/social/PokerCardText';
+import { normalizePokerPostContent, stripPokerCardMarkup, truncatePokerText } from '../../../src/lib/pokerCardMarkup';
 import dynamic from 'next/dynamic';
 const SharePostModal = dynamic(() => import('../../../src/components/social/SharePostModal'), {
   ssr: false,
@@ -229,7 +229,7 @@ const PostCard = React.memo(
             part
           );
         }
-        return part;
+        return React.createElement(PokerCardText, { key: i, text: part });
       });
     }
     const [bookmarked, setBookmarked] = useState(post.isBookmarked || false);
@@ -1056,14 +1056,19 @@ const PostCard = React.memo(
               </button>
               <button
                 onClick={async () => {
+                  const content = normalizePokerPostContent(editContent.trim());
+                  if (!content) {
+                    toast.error('Post content cannot be empty');
+                    return;
+                  }
                   try {
                     const { error } = await supabase
                       .from('social_posts')
-                      .update({ content: editContent.trim() })
+                      .update({ content })
                       .eq('id', post.id)
                       .eq('author_id', currentUserId);
                     if (error) throw error;
-                    setDisplayContent(editContent.trim());
+                    setDisplayContent(content);
                     setEditing(false);
                     toast.success('Post updated');
                     // Notify other tabs/components of the edit
@@ -1178,10 +1183,11 @@ const PostCard = React.memo(
         {post.content &&
           /^Checked in at /i.test(post.content) &&
           (() => {
-            const match = post.content.match(/^Checked in at (.+?)(?:\s*[--]\s*(.+))?$/i);
+            const checkIn = stripPokerCardMarkup(post.content);
+            const match = checkIn.match(/^Checked in at (.+?)(?:\s*[--]\s*(.+))?$/i);
             const venueName =
               match?.[1] ||
-              post.content
+              checkIn
                 .replace(/^Checked in at /i, '')
                 .split('-')[0]
                 .trim();
@@ -7169,8 +7175,7 @@ function SocialMediaPage() {
                           {p.author?.username || 'Player'}
                         </div>
                         <div style={{ fontSize: 14, color: C.text }}>
-                          {p.content?.slice(0, 100)}
-                          {p.content?.length > 100 ? '...' : ''}
+                          <PokerCardSnippet text={p.content} maxLength={100} />
                         </div>
                       </div>
                     ))}
