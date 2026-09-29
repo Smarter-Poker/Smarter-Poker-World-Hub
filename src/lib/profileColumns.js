@@ -70,7 +70,7 @@ export const SAFE_PROFILE_COLUMNS =
     'sounds_enabled, vibrations_enabled, show_stack_bb, birth_year, ' +
     'favorite_hand_type, card_back_preference, country, website, twitter, instagram, hendon_url, ' +
     'favorite_game, favorite_hand, home_casino, cover_photo_url, favorite_hand_plo, ' +
-    'app_settings, display_name_preference, cover_photo_position, tiktok, telegram, birthday, ' +
+    'app_settings, display_name_preference, cover_photo_position, tiktok, telegram, ' +
     'hendon_biggest_cash, use_real_name, streak_count, access_tier, vip_tier, vip_expires_at, ' +
     'last_active, poker_near_me_preferences, can_review, deleted_reviews_count, hub_preferences, ' +
     'friend_preferences, store_preferences, messenger_preferences, reels_preferences, ' +
@@ -102,4 +102,12 @@ export const SENSITIVE_PROFILE_COLUMNS = [
     'jurisdiction_acknowledged_at',
     'mfa_required',
     'notification_token',
+    // 2026-09-29 - the full date of birth. This list is how a STRANGER's
+    // profile is read, so every viewer of /hub/user/<name> was served the
+    // subject's exact birthday, and any signed-in account could filter all
+    // profiles by it. Nothing shows it to anyone but its owner: the profile
+    // editor reads it through get_my_full_profile() (own row only) and the
+    // birthday reward reads it server-side. `birth_year` stays public - the
+    // profile page shows "Born In <year>" on purpose.
+    'birthday',
 ];
