@@ -20,6 +20,8 @@ import { supabase } from '../../lib/supabase';
 import { getAccessToken, getAuthUser } from '../../lib/authUtils';
 import toast from '../../stores/toastStore';
 import { SharedAvatar as Avatar } from './SharedAvatar';
+import { PokerCardSnippet } from './PokerCardText';
+import { readablePokerText } from '../../lib/pokerCardMarkup';
 import confetti from 'canvas-confetti';
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -72,7 +74,8 @@ function buildRichSharePayload(post, postUrl, senderMessage) {
     const authorName = author.name || author.full_name || author.username || 'Player';
     const mediaUrls = post?.mediaUrls || post?.media_urls || [];
     const previewImage = mediaUrls[0] || post?.link_image || post?.thumbnail_url || null;
-    const snippet = (post?.content || '').slice(0, 280);
+    // The preview travels as plain text, so cards go as words, never storage tokens.
+    const snippet = readablePokerText(post?.content, 280);
 
     return {
         // The plain-text message body shown in the thread
@@ -106,7 +109,7 @@ function buildRichSharePayload(post, postUrl, senderMessage) {
 function OriginalPostPreview({ post, authorUsername }) {
     const authorName = post?.author?.name || post?.author?.username || authorUsername || 'Player';
     const authorAvatar = post?.author?.avatar || post?.author?.avatar_url || null;
-    const snippet = (post?.content || '').slice(0, 200);
+    const snippet = post?.content || '';
     const hasMedia = post?.mediaUrls?.length > 0 || post?.media_urls?.length > 0;
     const firstMedia = (post?.mediaUrls || post?.media_urls || [])[0];
 
@@ -123,7 +126,7 @@ function OriginalPostPreview({ post, authorUsername }) {
             {/* Content snippet */}
             {snippet && (
                 <div style={{ padding: '0 12px 8px', fontSize: 13, color: C.textSec, lineHeight: 1.4 }}>
-                    {snippet}{snippet.length >= 200 ? '...' : ''}
+                    <PokerCardSnippet text={snippet} maxLength={200} />
                 </div>
             )}
             {/* Media thumbnail */}
@@ -795,7 +798,8 @@ export default function SharePostModal({ post, authorUsername, currentUser, onCl
     const postUrl = typeof window !== 'undefined'
         ? `${window.location.origin}/hub/post/${post?.id || ''}`
         : '';
-    const shareText = post?.content?.slice(0, 120) || 'Check out this post on Smarter.Poker';
+    // X and WhatsApp read the cards as words ("Ace of spades"), cut between whole cards.
+    const shareText = readablePokerText(post?.content, 120) || 'Check out this post on Smarter.Poker';
 
     // Swipe-to-dismiss gesture state
     const [touchY, setTouchY] = useState(null);

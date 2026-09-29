@@ -9,6 +9,7 @@ import { useRouter } from 'next/router';
 import { supabase } from '../../src/lib/supabase';
 import { getSafeUser } from '../../src/lib/authUtils';
 import SEOHead from '../../src/components/seo/SEOHead';
+import PokerCardText from '../../src/components/social/PokerCardText';
 import Link from 'next/link';
 import { isPublishableStreetAddress } from '../../src/lib/poker-near-me/structuredData';
 import {
@@ -134,7 +135,7 @@ function PostCard({ post, onLike, onComment, isLiked, onShare }) {
 
       {/* Post Content */}
       <div className="px-4 pb-3">
-        <p className="text-[#1F2937] whitespace-pre-wrap">{post.content}</p>
+        <p className="text-[#1F2937] whitespace-pre-wrap"><PokerCardText text={post.content} /></p>
       </div>
 
       {/* Post Media (images + videos) */}
