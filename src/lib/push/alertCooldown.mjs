@@ -27,6 +27,15 @@ import { ALERT_OWNER_ID } from './operational-push-routing.mjs';
  *
  * Needs the service-role client push-health uses (the destinations table is
  * readable by service_role only).
+ *
+ * The owner branch is not reached from push-health any more (2026-09-28).
+ * push-health, the only caller, removes the owner account from both lists
+ * first (personalRecipients in src/lib/push/pushHealthOperationalAlerts.mjs):
+ * what it finds is recorded for the Production Alerts task as store episodes,
+ * and those episodes are his once-per-window rule. The branch is kept on
+ * purpose: it is still correct for any caller that does pass him, and
+ * push-health-alert-cooldown.test.mjs pins it, so removing it would mean
+ * deleting those tests.
  */
 export async function filterRecentlyAlerted(supabase, userIds, title, sinceIso) {
     if (!userIds.length) return [];
