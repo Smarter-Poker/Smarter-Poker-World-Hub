@@ -34,7 +34,7 @@ import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
  * pictures but left the files, and anyone can list social-media avatars/%
  * (the preset gallery's policy), so a closed account's uploaded photo stayed
  * findable by its id. fn_close_account now also deletes the rows that point
- * at pictures (Club Arena migration 20260929065410), and this handler removes
+ * at pictures (Club Arena migration 20260929070440), and this handler removes
  * the files: see theirPictures below.
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';

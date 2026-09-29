@@ -19,7 +19,7 @@ pictures. Measured on production:
 
 ## This change
 
-- Club Arena migration `20260929065410_closing_an_account_takes_their_pictures`:
+- Club Arena migration `20260929070440_closing_an_account_takes_their_pictures`:
   `fn_close_account` also deletes the person's `user_avatars`, `user_media`
   and `user_albums` rows, in the same transaction.
 - This endpoint removes the files through the Storage API once
