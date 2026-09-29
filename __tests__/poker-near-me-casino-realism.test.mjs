@@ -351,8 +351,13 @@ test('map fullscreen and location dialogs transfer one accessible interaction ow
   assert.match(homeGames, /localStorage\.getItem\('pnm_location_prompt_dismissed'\) === '1'/);
   assert.doesNotMatch(homeGames, /setTimeout\(\(\) => requestGpsLocation\(\),\s*600\)/);
 
-  assert.match(venueDetail, /iconSize: \[44, 44\]/);
-  assert.match(venueDetail, /keyboard: true,[\s\S]*?title: venue\.name[\s\S]*?bindPopup\(popup\)/);
+  // 2026-09-29: the venue profile marker and popup moved onto the shared painted
+  // presentation, so the 44px pointer target is pinned where it now lives.
+  const mapPresentation = read('src/components/poker-near-me/mapPresentation.js');
+  assert.match(mapPresentation, /export function createPokerVenueIcon[\s\S]*?const size = 44;/);
+  assert.match(mapPresentation, /export function createPokerVenueIcon[\s\S]*?iconSize: \[size, size\]/);
+  assert.match(venueDetail, /icon: createPokerVenueIcon\(L, venue\)/);
+  assert.match(venueDetail, /keyboard: true,[\s\S]*?title: venue\.name[\s\S]*?bindPopup\(buildPokerVenueLocationPopupHtml\(venue\)/);
   assert.match(venueDetail, /venueMarkerElement\.setAttribute\([\s\S]*?'aria-label',[\s\S]*?Press Enter to show map details/);
 });
 

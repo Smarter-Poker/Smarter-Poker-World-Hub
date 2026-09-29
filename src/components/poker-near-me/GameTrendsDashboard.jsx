@@ -182,7 +182,7 @@ export default function GameTrendsDashboard() {
                 {trend.game}
               </div>
               <div style={{ color: '#64748b', fontSize: 12 }}>
-                {tableCount(trend)} table{tableCount(trend) !== 1 ? 's' : ''}{' '}
+                {tableCount(trend)} {tableCount(trend) !== 1 ? 'tables' : 'table'}{' '}
                 {trend.basis === 'estimated' ? 'estimated' : trend.basis === 'mixed' ? 'observed + estimated' : 'observed'}
               </div>
             </div>

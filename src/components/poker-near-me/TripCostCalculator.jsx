@@ -228,7 +228,7 @@ export default function TripCostCalculator({ venues = [], userLocation }) {
                         <div className="tc-total-label">Estimated Total</div>
                         <div className="tc-total-amount">${costs.total.toLocaleString()}</div>
                         <div className="tc-total-subtitle">
-                            {days} day{days > 1 ? 's' : ''} · {isPremium ? 'Premium' : 'Budget'} · {stakes}
+                            {days} {days > 1 ? 'days' : 'day'} · {isPremium ? 'Premium' : 'Budget'} · {stakes}
                         </div>
                     </div>
 

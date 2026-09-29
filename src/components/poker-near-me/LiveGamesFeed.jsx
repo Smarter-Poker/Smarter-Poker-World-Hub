@@ -1048,7 +1048,7 @@ function LiveGamesFeed({
                             /* Modelled counts: no pulsing "live" dot, no "Running" claim. */
                             <span style={{ padding: '3px 9px', borderRadius: 5, fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px', background: 'rgba(245,158,11,0.12)', color: '#f59e0b', border: '1px solid rgba(245,158,11,0.3)', display: 'inline-flex', alignItems: 'center', gap: 5 }}
                                 title="Modeled from qualified saved observations, not a current live report">
-                                {v.totalTables} Table{v.totalTables !== 1 ? 's' : ''} Estimated
+                                {v.totalTables} {v.totalTables !== 1 ? 'Tables' : 'Table'} Estimated
                             </span>
                         ) : v._hasPublishedActivity && isMixed ? (
                             <span style={{ padding: '3px 9px', borderRadius: 5, fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px', background: 'rgba(245,158,11,0.12)', color: '#fbbf24', border: '1px solid rgba(245,158,11,0.3)', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
@@ -1057,12 +1057,12 @@ function LiveGamesFeed({
                         ) : v._isLive ? (
                             <span style={{ padding: '3px 9px', borderRadius: 5, fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px', background: 'rgba(34,197,94,0.15)', color: '#4ade80', border: '1px solid rgba(34,197,94,0.35)', boxShadow: '0 0 12px rgba(34,197,94,0.2)', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
                                 <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#4ade80', boxShadow: '0 0 8px #4ade80', animation: 'lgf-pulse 1.5s ease-in-out infinite' }} />
-                                {v.totalTables} Table{v.totalTables !== 1 ? 's' : ''} Running
+                                {v.totalTables} {v.totalTables !== 1 ? 'Tables' : 'Table'} Running
                             </span>
                         ) : (
                             v.totalTables > 0 && (
                                 <span style={{ padding: '3px 9px', borderRadius: 5, fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px', background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.7)', border: '1px solid rgba(255,255,255,0.18)', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-                                    {v.totalTables} Table{v.totalTables !== 1 ? 's' : ''}
+                                    {v.totalTables} {v.totalTables !== 1 ? 'Tables' : 'Table'}
                                 </span>
                             )
                         )}

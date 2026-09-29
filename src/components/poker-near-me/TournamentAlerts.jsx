@@ -305,7 +305,7 @@ export default function TournamentAlerts({ dailyTournaments = EMPTY_LIST, userId
                 <div className="ta-matches-banner">
                     <div className="ta-matches-pulse" />
                     <PokerNearMeConsoleIcon name="calendar" />
-                    <span><strong>{matches.length}</strong> tournament{matches.length > 1 ? 's' : ''} Match Your Alerts!</span>
+                    <span><strong>{matches.length}</strong> {matches.length > 1 ? 'tournaments' : 'tournament'} Match Your Alerts!</span>
                 </div>
             )}
 

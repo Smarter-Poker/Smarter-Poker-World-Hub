@@ -1121,7 +1121,7 @@ export default function PokerSeriesPage({ initialSeries = [], seriesIndex = [], 
                                                     ))}
                                                     {events.length > 5 && (
                                                         <div className="tour-series-more">
-                                                            +{events.length - 5} More event{events.length - 5 > 1 ? 's' : ''}
+                                                            +{events.length - 5} More {events.length - 5 > 1 ? 'events' : 'event'}
                                                         </div>
                                                     )}
                                                 </div>

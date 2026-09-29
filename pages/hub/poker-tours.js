@@ -912,7 +912,7 @@ export default function PokerToursPage({ initialTours = [], houseSeries = [] }) 
                         <div className="tours-results-bar">
                             <div className="tours-results-count">
                                 <strong>{filteredTours.length}</strong> {filteredTours.length === 1 ? 'Tour' : 'Tours'}
-                                {totalMatchingStops > 0 && <span className="tours-stops-count"> &bull; {totalMatchingStops} Upcoming Stop{totalMatchingStops !== 1 ? 's' : ''}</span>}
+                                {totalMatchingStops > 0 && <span className="tours-stops-count"> &bull; {totalMatchingStops} Upcoming {totalMatchingStops !== 1 ? 'Stops' : 'Stop'}</span>}
                                 {searchQuery && <span className="tours-results-query"> &mdash; "{searchQuery}"</span>}
                                 {dateRange !== 'all' && <span className="tours-results-query"> &bull; {{
                                     '7d': 'Next 7 Days', '14d': 'Next 2 Weeks', '30d': 'Next 30 Days',

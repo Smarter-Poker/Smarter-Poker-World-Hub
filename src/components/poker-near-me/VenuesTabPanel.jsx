@@ -156,7 +156,7 @@ export default function VenuesTabPanel({
 
             {/* Results bar */}
             <div className="results-bar">
-                <span className="results-count">{sorted.length} Result{sorted.length !== 1 ? 's' : ''} Found</span>
+                <span className="results-count">{sorted.length} {sorted.length !== 1 ? 'Results' : 'Result'} Found</span>
                 
                 <div className="sort-results-wrapper">
                     <label className="sort-results-label">Sort:</label>

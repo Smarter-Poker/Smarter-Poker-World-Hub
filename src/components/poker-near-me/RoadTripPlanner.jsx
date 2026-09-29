@@ -591,7 +591,7 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
                                         </div>
                                         <div className="rtp-saved-trip-meta">
                                             {trip.corridorMi && <span>{trip.corridorMi} Mi Corridor</span>}
-                                            {trip.waypoints?.length > 0 && <span>{trip.waypoints.length} stop{trip.waypoints.length > 1 ? 's' : ''}</span>}
+                                            {trip.waypoints?.length > 0 && <span>{trip.waypoints.length} {trip.waypoints.length > 1 ? 'stops' : 'stop'}</span>}
                                             <span>{new Date(trip.savedAt).toLocaleDateString()}</span>
                                         </div>
                                         <div className="rtp-saved-trip-actions">

@@ -181,7 +181,7 @@ export default function DailyTournamentsTabPanel({
 
             {/* Result count */}
             <div className="results-bar" style={{ marginBottom: 8 }}>
-                <span className="results-count"><span style={{ color: '#ffffff', fontWeight: 800 }}>{filtered.length}</span> tournament{filtered.length !== 1 ? 's' : ''}</span>
+                <span className="results-count"><span style={{ color: '#ffffff', fontWeight: 800 }}>{filtered.length}</span> {filtered.length !== 1 ? 'tournaments' : 'tournament'}</span>
                 {!pendingDay && filtered.length > shown.length && (
                     <span className="results-showing">Showing {shown.length} Of {filtered.length}</span>
                 )}
