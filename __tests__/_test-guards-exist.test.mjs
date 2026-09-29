@@ -198,6 +198,7 @@ import './the-wallet-badges-count-the-whole-ledger.law.test.mjs';
 // whether today's login is claimed and what the next claim pays, from the
 // catalog's own rule; the wallet's Escape backs out one layer, not all of them.
 import './the-earn-pane-knows-what-it-cannot-tell.test.mjs';
+import './the-stats-panel-is-summed-in-sql.test.mjs';
 import './the-ledger-speaks-to-the-player.law.test.mjs';
 // Trivia lifeline charges are client-requested but server-priced. This guard
 // pins the database replay envelope so a cheaper or differently typed debit
