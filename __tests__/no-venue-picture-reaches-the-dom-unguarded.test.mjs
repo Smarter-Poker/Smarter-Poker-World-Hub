@@ -118,3 +118,55 @@ test('the guard actually refuses a casino host and keeps the mirror', async () =
     assert.ok(safeImageUrl('https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/1828.png'));
     assert.equal(safeImageUrl('/images/venues/1828.png'), '/images/venues/1828.png');
 });
+
+// ── The news thumbnails, which were the last thing blocking img-src ─────────
+//
+// The seven publishers the scraper reads are fixed in code, but the thumbnail
+// host is not: it is whatever each article's og:image points at. /hub/news
+// reported 225 img-src violations a load from five publisher CDNs, and
+// cardplayer.com was conspicuously absent because that one host was already
+// proxied. These pin the other five onto the same route.
+
+const NEWS_RENDERERS = [
+    'pages/hub/news.js',
+    'src/components/news/NewsBox.js',
+    'src/components/news/MSPTBox.js',
+    'src/components/news/VideoCard.js',
+    'src/components/news/ReelCard.js',
+];
+
+for (const file of NEWS_RENDERERS) {
+    test(`${file} asks this origin for a thumbnail, never a publisher`, () => {
+        const src = read(file);
+        assert.match(src, /newsImageUrl/, 'must resolve thumbnails through the helper');
+        // No raw article/video/reel picture column may reach src= directly.
+        const raw = /src=\{\s*(article\.image_url|video\.thumbnail_url|reel\.thumbnail_url|featured\.image_url|rawImageUrl)\b/;
+        assert.ok(!raw.test(src), 'a raw remote thumbnail must not be rendered directly');
+    });
+}
+
+test('no news renderer keeps a cardplayer-only special case', () => {
+    for (const file of NEWS_RENDERERS) {
+        const src = read(file);
+        assert.ok(!/includes\('cardplayer\.com'\)/.test(src),
+            `${file}: one host was proxied and the rest were not; that is the bug`);
+    }
+});
+
+test('the helper proxies a publisher and leaves an allowed host alone', async () => {
+    const { newsImageUrl } = await import('../src/lib/security/imageHosts.js');
+    assert.equal(newsImageUrl('https://pnimg.net/w/a.png'),
+        '/api/proxy?url=' + encodeURIComponent('https://pnimg.net/w/a.png'),
+        'a publisher CDN is fetched by us, not by the browser');
+    assert.equal(newsImageUrl('//pokerfuse.com/a.png'),
+        '/api/proxy?url=' + encodeURIComponent('https://pokerfuse.com/a.png'),
+        'protocol-relative is a remote host, not same-origin');
+    assert.equal(newsImageUrl('/images/news/fallback.png'), '/images/news/fallback.png',
+        'our own paths cost no proxy hop');
+    assert.equal(newsImageUrl('https://i.ytimg.com/vi/x/hq.jpg'), 'https://i.ytimg.com/vi/x/hq.jpg',
+        'a host the policy already allows is asked for directly');
+    assert.equal(newsImageUrl('javascript:alert(1)'), null, 'only http(s) is ever proxied');
+    assert.equal(newsImageUrl(''), null);
+    assert.equal(newsImageUrl(null), null);
+});
+

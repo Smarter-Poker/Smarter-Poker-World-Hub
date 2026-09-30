@@ -1,6 +1,7 @@
 // UNREFERENCED: nothing in the repo imports this component today (verified repo-wide) — kept pending a decision on its future.
 import React from 'react';
 import { timeAgo, safeText, CardErrorBoundary } from './NewsBox';
+import { newsImageUrl } from '../../lib/security/imageHosts.js';
 
 const MSPT_ACCENT = '#dc2626';
 const MSPT_FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1606167668584-78701c57f13d?w=400&q=80';
@@ -11,9 +12,7 @@ function MSPTBoxBody({ msptNews = [], onOpenMSPT }) {
 
     const featuredTitle = safeText(featured?.title);
     const prizePool = safeText(featured?.prize_pool);
-    const imageUrl = (typeof featured?.image_url === 'string' && featured.image_url)
-        ? featured.image_url
-        : MSPT_FALLBACK_IMAGE;
+    const imageUrl = newsImageUrl(featured?.image_url) || MSPT_FALLBACK_IMAGE;
 
     const openFeatured = () => {
         // Handler errors are outside the error boundary's reach — contain them.
