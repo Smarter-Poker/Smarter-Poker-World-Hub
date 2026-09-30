@@ -16,6 +16,7 @@ import PokerNearMeFamilyNav from '../../../src/components/poker-near-me/PokerNea
 import DeepRouteSignalDeck, { DeepRouteNotice } from '../../../src/components/poker-near-me/DeepRouteSignalDeck';
 import PokerNearMeRecentRail from '../../../src/components/poker-near-me/PokerNearMeRecentRail';
 import PokerIdentityMark from '../../../src/components/poker-near-me/PokerIdentityMark';
+import { getVenueLogoUrl } from '../../../src/components/poker-near-me/pnm-utils';
 import MapSurfaceFrame from '../../../src/components/poker-near-me/MapSurfaceFrame';
 import {
   createPokerVenueIcon,
@@ -650,6 +651,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
     notes: '',
   });
   const [reportSubmitting, setReportSubmitting] = useState(false);
+  const [reportError, setReportError] = useState('');
 
   // Check-In state
   const [checkins, setCheckins] = useState([]);
@@ -699,6 +701,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
     verification_notes: '',
   });
   const [claimSubmitting, setClaimSubmitting] = useState(false);
+  const [claimError, setClaimError] = useState('');
 
   // Map state
   const mapContainerRef = useRef(null);
@@ -1563,10 +1566,16 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
       var json = await res.json();
       if (json.success) {
         setShowReportGame(false);
+        setReportError('');
         setReportForm({ game_type: 'NL Holdem', stakes: '', table_count: 1, wait_time: '', notes: '' });
         await fetchLiveGames();
+      } else {
+        setReportError(json?.error || 'That game could not be reported. Please try again.');
       }
-    } catch (err) { console.warn('[App] Handled exception:', err?.message || err); }
+    } catch (err) {
+      console.warn('[App] Handled exception:', err?.message || err);
+      setReportError('That game could not be reported. Check your connection and try again.');
+    }
     finally { setReportSubmitting(false); }
   };
 
@@ -1785,9 +1794,17 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
       if (json.success) {
         setClaimStatus('pending');
         setShowClaimForm(false);
+        setClaimError('');
         setClaimForm({ contact_name: '', contact_email: '', contact_phone: '', role: 'Manager', verification_notes: '' });
+      } else {
+        // A 200 that answers success:false used to do nothing at all: the form
+        // stayed open with every field still filled and no word to the person.
+        setClaimError(json?.error || 'That claim could not be submitted. Please try again.');
       }
-    } catch (err) { console.warn('[App] Handled exception:', err?.message || err); }
+    } catch (err) {
+      console.warn('[App] Handled exception:', err?.message || err);
+      setClaimError('That claim could not be submitted. Check your connection and try again.');
+    }
     finally { setClaimSubmitting(false); }
   };
 
@@ -2074,7 +2091,10 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
                 <div className="venue-name-group" style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
                   {/* Venue Logo */}
                   <PokerIdentityMark
-                    src={venue.profile_photo_url || venue.cover_photo_url}
+                    /* getVenueLogoUrl prefers the mirrored venue-logos bucket copy.
+                       Reading profile_photo_url first, as this did, hotlinked the
+                       casino's own server even for venues we had already mirrored. */
+                    src={getVenueLogoUrl(venue)}
                     name={venue.name}
                     size={56}
                     className="venue-profile-identity"
@@ -3040,6 +3060,15 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
                       onChange={function (e) { setReportForm(Object.assign({}, reportForm, { notes: e.target.value })); }}
                     />
                   </div>
+                  {reportError && (
+                    <div role="alert" style={{
+                      background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.4)',
+                      borderRadius: 8, padding: '10px 14px', marginBottom: 12,
+                      color: '#ef4444', fontSize: 13, fontWeight: 600,
+                    }}>
+                      {reportError}
+                    </div>
+                  )}
                   <button type="submit" className="form-submit-btn" disabled={reportSubmitting || !reportForm.stakes.trim()}>
                     {reportSubmitting ? 'Submitting...' : 'Submit Report'}
                   </button>
@@ -3386,7 +3415,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
             {/* REVIEWS & RATINGS SECTION (REPLACED WITH VenueReviews) */}
             {/* ============================================ */}
             <section id="reviews-section" className="reviews-section">
-              <VenueReviews venueId={id} venueName={venue?.name} />
+              <VenueReviews venueId={id} venueName={venue?.name} defaultOpen={showReviewForm} />
             </section>
 
             {/* ============================================ */}
@@ -3711,6 +3740,15 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
                           onChange={function (e) { setClaimForm(Object.assign({}, claimForm, { verification_notes: e.target.value })); }}
                         />
                       </div>
+                      {claimError && (
+                        <div role="alert" style={{
+                          background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.4)',
+                          borderRadius: 8, padding: '10px 14px', marginBottom: 12,
+                          color: '#ef4444', fontSize: 13, fontWeight: 600,
+                        }}>
+                          {claimError}
+                        </div>
+                      )}
                       <div className="form-actions">
                         <button type="submit" className="form-submit-btn" disabled={claimSubmitting || !claimForm.contact_name.trim() || !claimForm.contact_email.trim()}>
                           {claimSubmitting ? 'Submitting...' : 'Submit Claim'}

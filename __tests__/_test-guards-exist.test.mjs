@@ -404,6 +404,10 @@ import './push-health-alert-evidence.test.mjs';
 // its window; every rotation is recorded once.
 import './push-health-alert-positive-evidence.test.mjs';
 
+// Four venue page actions that were wired to nothing: the review deep link, the
+// two forms that failed silently, and the hero that hotlinked a casino.
+import './venue-page-actions-reach-the-person.test.mjs';
+
 // The Report-Only CSP can only graduate if its violations reach us, so the
 // reporting wiring and the endpoint that receives it are guarded here.
 import './csp-violations-reach-us.test.mjs';

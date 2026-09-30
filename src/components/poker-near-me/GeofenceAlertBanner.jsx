@@ -91,11 +91,20 @@ export default function GeofenceAlertBanner({ venue, onCheckin, onReview, onDism
             border: '1px solid rgba(255,255,255,0.2)',
             color: '#fff', fontSize: 13, fontWeight: 500, cursor: 'pointer',
           }}>Review</button>
-          <button onClick={() => { setVisible(false); if (onDismiss) onDismiss(); }} style={{
-            padding: '6px', borderRadius: 6,
-            background: 'transparent', border: 'none', color: 'rgba(255,255,255,0.4)',
-            cursor: 'pointer', display: 'flex', alignItems: 'center',
-          }}>
+          <button
+            type="button"
+            aria-label="Dismiss"
+            title="Dismiss"
+            onClick={() => { setVisible(false); if (onDismiss) onDismiss(); }}
+            style={{
+              /* 18px glyph in 13px padding clears the 44px floor the rest of the
+                 console holds to. It was 6px, which made a 30px target with no
+                 accessible name at all. */
+              padding: '13px', borderRadius: 6, minWidth: 44, minHeight: 44,
+              background: 'transparent', border: 'none', color: 'rgba(255,255,255,0.4)',
+              cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}
+          >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
             </svg>
