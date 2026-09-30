@@ -1,0 +1,497 @@
+{
+ "phase": 3,
+ "owner": "p3-questions",
+ "date": "2026-09-30",
+ "project": "kuklfnapbkmacvwxktbh",
+ "flags_turned_on": [],
+ "replica": {
+  "runs": [
+   {
+    "run": "replica-run1",
+    "ranAt": "2026-09-30T05:33:06.365Z",
+    "passed": 74,
+    "failed": 0,
+    "seconds": 73,
+    "goldenAggregate": "a3b572a95c1cfc02be3a6394d2f7a9f10fd9358e7a78a51c1a478118dde156dc"
+   },
+   {
+    "run": "replica-run2",
+    "ranAt": "2026-09-30T05:42:13.888Z",
+    "passed": 74,
+    "failed": 0,
+    "seconds": 75,
+    "goldenAggregate": "a3b572a95c1cfc02be3a6394d2f7a9f10fd9358e7a78a51c1a478118dde156dc"
+   },
+   {
+    "run": "replica-run3-with-p2",
+    "ranAt": "2026-09-30T05:50:29.890Z",
+    "passed": 74,
+    "failed": 0,
+    "seconds": 77,
+    "goldenAggregate": "a3b572a95c1cfc02be3a6394d2f7a9f10fd9358e7a78a51c1a478118dde156dc"
+   }
+  ],
+  "note": "run3 applies Phase 2 migrations first, then both Phase 3 migrations, on a copy of the production-data replica",
+  "results": {
+   "golden_1000_identical_across_databases": {
+    "mismatchDb": 0
+   },
+   "golden_1000_identical_across_connections": {
+    "mismatchConn": 0
+   },
+   "golden_1000_identical_to_js_reference": {
+    "mismatchJs": 0
+   },
+   "golden_roster_sizes": {
+    "badSize": 0
+   },
+   "pool_has_only_verified_quality_canonical_unquarantined": {
+    "n": 14816,
+    "bad": 0
+   },
+   "inventory_every_mode_category_difficulty_nonempty": {
+    "cells": 282
+   },
+   "quarantine_removes_from_pool": true,
+   "quarantine_release_restores_and_row_untouched": true,
+   "quarantine_record_undeletable": true,
+   "report_unserved_is_invalid_and_harmless": {
+    "valid": false,
+    "success": true,
+    "duplicate": false,
+    "report_id": "b9baf5ce-5d5a-448e-a608-f3e32fbef314",
+    "quarantined": false,
+    "excluded_from_paid_pools": false
+   },
+   "report_new_account_is_invalid": {
+    "valid": false,
+    "success": true,
+    "duplicate": false,
+    "report_id": "d14aa7fa-404e-4b00-b70e-38f4263e86ac",
+    "quarantined": false,
+    "excluded_from_paid_pools": false
+   },
+   "report_same_user_question_deduped": {
+    "success": true,
+    "duplicate": true,
+    "report_id": "b9baf5ce-5d5a-448e-a608-f3e32fbef314"
+   },
+   "report_valid_excludes_from_paid_pool": {
+    "valid": true,
+    "success": true,
+    "duplicate": false,
+    "report_id": "e4c6ce33-612d-4a55-bf10-14b547b1d41c",
+    "quarantined": false,
+    "excluded_from_paid_pools": true
+   },
+   "report_below_threshold_not_quarantined": {
+    "valid": true,
+    "success": true,
+    "duplicate": false,
+    "report_id": "1181a1f7-2a9b-4243-a431-3775c5f85ba5",
+    "quarantined": false,
+    "excluded_from_paid_pools": true
+   },
+   "report_threshold_quarantines": {
+    "valid": true,
+    "success": true,
+    "duplicate": false,
+    "report_id": "7536d9d0-7871-4195-a2c1-61152de33244",
+    "quarantined": true,
+    "excluded_from_paid_pools": true
+   },
+   "triage_dismissed_restores_pool": true,
+   "triage_terminal_state_immutable": {
+    "error": "report_closed",
+    "state": "dismissed",
+    "success": false
+   },
+   "report_spam_daily_limit": {
+    "error": "daily_report_limit",
+    "success": false
+   },
+   "review_batches_deterministic_disjoint_resumable": true,
+   "review_batch_hides_key": true,
+   "review_verified_applies_and_can_join_pool": true,
+   "review_failed_demotes": true,
+   "review_record_idempotent": true,
+   "review_stale_revision_not_applied": {
+    "effect": "stale_revision_not_applied",
+    "applied": false,
+    "success": true,
+    "verdict": "verified",
+    "duplicate": false,
+    "review_id": "aa638021-a738-41a8-bbb3-5a8ba0a223f3"
+   },
+   "review_inconclusive_three_times_demotes": true,
+   "revision_captured_on_edit_and_reused_on_revert": true,
+   "revisions_immutable": true,
+   "duplicate_insert_becomes_alias": {
+    "canonical_question_id": "009ec4d6-e30e-4881-824f-241d718446cd",
+    "canonical_reason": "alias"
+   },
+   "alias_exclusion_maps_to_canonical": true,
+   "pvp_roster_20_eligible_distinct": true,
+   "roster_idempotent_and_scope_conflict": true,
+   "pvp_roster_balanced_difficulty_20_50_30": {
+    "medium": 10,
+    "hard": 6,
+    "easy": 4
+   },
+   "pvp_roster_balanced_categories": true,
+   "tournament_256_eight_rounds_80_unique": {
+    "n": 80,
+    "q": 80,
+    "k": 80,
+    "r": 8,
+    "minr": 10,
+    "maxr": 10,
+    "bad": 0
+   },
+   "tournament_512_nine_rounds_90_unique": {
+    "n": 90,
+    "q": 90,
+    "k": 90,
+    "r": 9,
+    "minr": 10,
+    "maxr": 10,
+    "bad": 0
+   },
+   "tournament_preflight_idempotent": true,
+   "tournament_insufficient_pool_fails_closed_no_writes": {
+    "error": "insufficient_eligible_pool",
+    "round": 1,
+    "success": false,
+    "required": 80,
+    "available": 0
+   },
+   "capacity_supports_max_nightly_bracket": {
+    "required": 80,
+    "avail": 13218
+   },
+   "dto_no_key:open_session_pvp": [],
+   "pvp_seats_share_roster_distinct_permutations": true,
+   "seat_reconnect_resumes_second_session_refused": true,
+   "dto_no_key:answer_hidden": [],
+   "competitive_answer_hides_verdict": {
+    "outcome": "recorded",
+    "success": true,
+    "position": 1,
+    "recorded": true,
+    "sequence": 1,
+    "duplicate": false,
+    "storedDisplayIndex": 0
+   },
+   "duplicate_answer_first_wins": {
+    "outcome": "recorded",
+    "success": true,
+    "position": 1,
+    "recorded": true,
+    "sequence": 1,
+    "duplicate": true,
+    "storedDisplayIndex": 0
+   },
+   "foreign_question_rejected": {
+    "error": "question_not_in_session",
+    "success": false
+   },
+   "invalid_display_index_rejected": {
+    "error": "invalid_display_index",
+    "success": false
+   },
+   "other_players_session_rejected": {
+    "error": "not_your_session",
+    "success": false
+   },
+   "no_grading_oracle_while_competitive_open": {
+    "error": "not_available_while_open",
+    "success": false
+   },
+   "submit_retry_safe_identical": true,
+   "stats_recorded_exactly_once": {
+    "ev": {
+     "n": 20
+    },
+    "hist": {
+     "n": 20
+    }
+   },
+   "replay_grade_uses_immutable_revision": {
+    "regrade": 3,
+    "stored": 3
+   },
+   "reveal_only_after_scope_close": true,
+   "dto_no_key:open_session_tournament": [],
+   "shot_clock_questions_locked_until_opened": true,
+   "shot_clock_order_and_cross_round_rejected": true,
+   "late_answer_rejected_and_recorded": true,
+   "horse_actor_events_only": {
+    "ev": 20,
+    "hist": 0,
+    "mastery": 0
+   },
+   "dto_no_key:start_solo": [],
+   "solo_start_charges_once_and_resumes": {
+    "entry": 1,
+    "bal": 490,
+    "b0": 500
+   },
+   "solo_answer_reveals_after_binding": true,
+   "solo_settle_awards_once_retry_safe_stats_once": {
+    "set1": {
+     "s": true,
+     "d": 12
+    },
+    "soloEv": {
+     "n": 20
+    },
+    "g": 4
+   },
+   "process_failure_rolls_back_then_retry_settles": {
+    "midCrash": {
+     "status": "open",
+     "stats_recorded_at": null
+    }
+   },
+   "stale_diamond_basis_refused": {
+    "error": "grade_changed",
+    "success": false,
+    "answered": 0
+   },
+   "daily_roster_shared_permutation_private": true,
+   "invalid_content_voided_not_penalized": {
+    "voided": 1,
+    "gt": 20,
+    "t": 21
+   },
+   "concurrent_start_one_session_one_charge": {
+    "okStarts": 2,
+    "entry": 1
+   },
+   "concurrent_answers_one_wins": [
+    [
+     true,
+     3
+    ],
+    [
+     false,
+     3
+    ]
+   ],
+   "concurrent_settles_one_award": true,
+   "held_evidence_fixture": "skipped: new PvP match must start pending/active and unsettled",
+   "stale_sessions_expired_evidence_held": {
+    "sw": {
+     "held": 0,
+     "expired": 2,
+     "success": true
+    },
+    "st3": {
+     "a": "expired",
+     "b": "expired"
+    }
+   },
+   "backfill_verified_once_and_refuses_unverifiable": true,
+   "health_metrics_and_stable_episode_keys": {
+    "conditions": [
+     "TriviaSubmittedWithoutStats"
+    ]
+   },
+   "acl_browser_and_service_denials": [],
+   "acl_player_reads_own_rows": {
+    "ownReport": 2,
+    "ownSession": 6
+   }
+  }
+ },
+ "golden": {
+  "fixture": "docs/trivia/evidence/phase3-golden-seeds.json",
+  "seeds": 1000,
+  "aggregate": "a3b572a95c1cfc02be3a6394d2f7a9f10fd9358e7a78a51c1a478118dde156dc",
+  "independent_runs_equal": true,
+  "checks": [
+   "identical across two databases built in opposite physical order",
+   "identical across connections",
+   "identical to the JavaScript reference engine (node test)"
+  ]
+ },
+ "production": {
+  "readback": {
+   "at": "2026-09-30T06:16Z",
+   "project": "kuklfnapbkmacvwxktbh",
+   "migrations": [
+    {
+     "version": "20260930060554",
+     "name": "trivia_p3_question_curation"
+    },
+    {
+     "version": "20260930061357",
+     "name": "trivia_p3_roster_session_engine"
+    }
+   ],
+   "catalog_digest": {
+    "functions": {
+     "n": 54,
+     "md5": "fbc164d8492fb63f8de750613fb55a6b",
+     "replica_equal": true
+    },
+    "views": {
+     "n": 7,
+     "md5": "c789566278d16f77da9599de24a113fb",
+     "replica_equal": true
+    }
+   },
+   "acl": {
+    "objects_present": 27,
+    "browser_table_privs": [],
+    "rls_off": [],
+    "browser_exec_funcs": [],
+    "definer_without_search_path": []
+   },
+   "counts": {
+    "questions": 25354,
+    "eligible": 14829,
+    "review_queue": 1187,
+    "quarantine_active": 4106,
+    "profiles": 15,
+    "secrets": 2,
+    "achievements": 30,
+    "achievement_reward_display_true": 0
+   },
+   "capacity": {
+    "256": {
+     "rounds": 8,
+     "required": 80,
+     "supports": true,
+     "eligible_available_20s_clock": 13229
+    },
+    "512": {
+     "rounds": 9,
+     "required": 90,
+     "supports": true
+    },
+    "by_difficulty": {
+     "easy": 3127,
+     "medium": 6827,
+     "hard": 3275
+    },
+    "min_category": {
+     "player_profiles": 967
+    }
+   }
+  },
+  "operations": {
+   "at": "2026-09-30T06:18Z",
+   "pre_open_sessions": {
+    "daily": {
+     "n": 2,
+     "past_expiry": 2
+    },
+    "pro": {
+     "n": 1,
+     "past_expiry": 1
+    },
+    "mtt": {
+     "n": 8,
+     "no_expiry": 8,
+     "created": "2026-08-12"
+    },
+    "pvp": {
+     "n": 2,
+     "no_expiry": 2,
+     "created": "2026-08-13"
+    }
+   },
+   "expire_stale_sessions": {
+    "expired": 11,
+    "held": 2,
+    "success": true
+   },
+   "backfill_submitted_without_stats": [
+    {
+     "mode": "arcade",
+     "success": true,
+     "regradable": false
+    },
+    {
+     "mode": "arcade",
+     "success": true,
+     "regradable": false
+    },
+    {
+     "mode": "mtt",
+     "success": true,
+     "regradable": false
+    },
+    {
+     "mode": "mtt",
+     "success": true,
+     "regradable": false
+    },
+    {
+     "mode": "pvp",
+     "success": false,
+     "reason": "quarantined_evidence"
+    }
+   ],
+   "reconciliation_rows": 18,
+   "open_sessions_after": 2,
+   "selector_coverage": {
+    "all_15_profiles_fill": true,
+    "excluded_by_eligibility": {
+     "daily/arcade/mixed/pvp/survival/endless/time-attack": 1218,
+     "pro": 221,
+     "rules": 281,
+     "history": 716,
+     "tournament(20s clock)": 2818
+    },
+    "min_days_no_repeat_supply": {
+     "rules": 80,
+     "mtt": 84,
+     "cash": 84,
+     "icm": 85
+    }
+   },
+   "health": {
+    "healthy": true,
+    "conditions": [],
+    "eligible_pool": 14829,
+    "review_queue": 1187,
+    "sessions_stale_open": 0,
+    "submitted_without_stats": 0,
+    "sessions_held_evidence": 2,
+    "revision_integrity_mismatches": 0,
+    "reports_open_valid": 0,
+    "rejection_reasons": {
+     "audit_unset": 9238,
+     "low_quality": 9330,
+     "quarantined": 4106,
+     "audit_failed": 1256,
+     "duplicate_alias": 3930
+    }
+   }
+  },
+  "pool_independent_check": {
+   "at": "2026-09-30T06:25Z",
+   "source": "trivia_eligible_questions_serving_v1 joined to trivia_questions",
+   "serving": 14829,
+   "not_verified": 0,
+   "low_quality_below_7": 0,
+   "quarantined": 0,
+   "duplicate_fingerprints": 0,
+   "malformed": 0,
+   "no_modes": 0,
+   "fits_20s_clock": 13229
+  },
+  "browser_roles_on_trivia_questions": {
+   "anon": {
+    "select": false,
+    "correct_index": false
+   },
+   "authenticated": {
+    "select": false,
+    "correct_index": false
+   }
+  }
+ }
+}

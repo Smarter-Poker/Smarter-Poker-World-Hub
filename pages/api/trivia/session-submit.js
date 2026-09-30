@@ -62,6 +62,99 @@ import {
     rejectUnavailableTriviaTournament,
 } from '../../../src/lib/trivia/tournamentReleaseControl.mjs';
 import { validateTriviaAwardResponse } from '../../../src/lib/trivia/awardResponsePolicy.mjs';
+import {
+    CLIENT_TIMING_FIELDS,
+    SELF_GRADED_FIELDS,
+    findForbiddenFields,
+    v3ErrorStatus,
+} from '../../../src/lib/trivia/phase3Engine.mjs';
+
+/**
+ * Engine v3 reward: today's formulas (calculateDiamonds / arcade stake pot / daily
+ * caps) applied to the DATABASE grade. The database re-grades inside
+ * trivia_session_settle_solo_v3 and refuses a stale basis ('grade_changed').
+ */
+async function v3RewardDiamonds(sb, userId, mode, grade, ageMs, cashedOut) {
+    const cfg = getModeConfig(mode);
+    const limit = Number(cfg?.timeLimit);
+    const elapsedSec = Number.isFinite(ageMs) ? Math.floor(ageMs / 1000) : 0;
+    const timeRemaining = Number.isFinite(limit) && limit > 0 ? Math.max(0, limit - elapsedSec) : 0;
+    const seq = Array.isArray(grade.sequence) ? grade.sequence : [];
+    let raw;
+    if (mode === 'arcade' && seq.length > 0) {
+        const { pot, answered } = computeStakePot(seq);
+        const runComplete = seq.length >= Number(grade.graded_total || 0);
+        const legitimateCashOut = cashedOut === true && answered >= CASH_OUT_MIN_ANSWERED;
+        raw = (runComplete || legitimateCashOut) ? Math.min(ARCADE_MAX_RUN_PAYOUT, Math.max(0, Math.floor(pot))) : 0;
+    } else {
+        raw = Math.max(0, Math.floor(calculateDiamonds(mode, Number(grade.correct) || 0, Number(grade.graded_total) || 0, timeRemaining) || 0));
+    }
+    const cap = DAILY_DIAMOND_CAPS[mode];
+    if (!Number.isFinite(cap)) return 0;
+    const [fromScores, fromSessions] = await Promise.all([
+        getDailyDiamondsEarned(sb, userId, mode),
+        sessionDiamondsToday(sb, userId, mode),
+    ]);
+    return Math.max(0, Math.floor(clampToCap(Math.max(fromScores || 0, fromSessions || 0), raw, cap)));
+}
+
+async function submitV3(req, res, sb, userId, session) {
+    const sig = req.body?.contractSignature;
+    const competitive = session.mode === 'pvp' || session.mode === 'tournaments';
+    if ((sig != null || competitive) && sig !== session.contract_signature) {
+        return res.status(409).json({ success: false, error: 'contract_mismatch' });
+    }
+    const requestId = typeof req.body?.requestId === 'string' && UUID_RE.test(req.body.requestId) ? req.body.requestId : null;
+    res.setHeader('Cache-Control', 'private, no-cache, no-store, must-revalidate');
+    if (competitive) {
+        const { data, error } = await sb.rpc('trivia_session_submit_v3', {
+            p_session_id: session.id, p_user_id: userId, p_request_id: requestId,
+        });
+        if (error) return res.status(500).json({ success: false, error: 'grading_failed' });
+        if (!data || data.success !== true) {
+            return res.status(v3ErrorStatus(data?.error)).json({ success: false, error: data?.error || 'grading_failed' });
+        }
+        return res.status(200).json({
+            success: true, sessionId: session.id, mode: session.mode, engine: 'trivia-engine/3',
+            correct: data.correct, total: data.graded_total, score: data.score, voided: data.voided,
+            replayed: data.replayed === true, diamondsAwarded: 0, resultHash: data.result_hash,
+        });
+    }
+    const createdMs = session.created_at ? new Date(session.created_at).getTime() : NaN;
+    const ageMs = Number.isFinite(createdMs) ? Date.now() - createdMs : Number.POSITIVE_INFINITY;
+    let settled = null;
+    for (let attempt = 0; attempt < 2; attempt++) {
+        const { data: grade, error: gradeErr } = await sb.rpc('trivia_session_grade_v3', { p_session_id: session.id });
+        if (gradeErr || !grade || grade.success !== true) {
+            return res.status(500).json({ success: false, error: 'grading_failed' });
+        }
+        const diamonds = session.status === 'open'
+            ? await v3RewardDiamonds(sb, userId, session.mode, grade, ageMs, req.body?.cashedOut === true)
+            : 0;
+        const { data, error } = await sb.rpc('trivia_session_settle_solo_v3', {
+            p_session_id: session.id, p_user_id: userId, p_diamonds: diamonds,
+            p_answered_basis: Number(grade.answered) || 0, p_request_id: requestId,
+        });
+        if (error) return res.status(500).json({ success: false, error: 'award_failed' });
+        settled = data;
+        if (data?.error !== 'grade_changed') break;
+    }
+    if (!settled || settled.success !== true) {
+        return res.status(v3ErrorStatus(settled?.error)).json({ success: false, error: settled?.error || 'award_failed' });
+    }
+    return res.status(200).json({
+        success: true, sessionId: session.id, mode: session.mode, engine: 'trivia-engine/3',
+        correct: settled.correct, total: settled.graded_total, score: settled.score, voided: settled.voided,
+        scoreId: settled.score_id ?? null, diamondsAwarded: Number(settled.diamonds_awarded) || 0,
+        dailyBonusAwarded: Number(settled.daily_bonus_awarded) || 0,
+        newBalance: settled.new_balance == null ? null : Number(settled.new_balance),
+        replayed: settled.replayed === true, deadlinePassed: false,
+        perQuestion: Array.isArray(settled.per_question) ? settled.per_question.map(p => ({
+            questionId: p.questionId, wasCorrect: p.wasCorrect === true,
+            correctDisplayIndex: Number.isInteger(p.correctDisplayIndex) ? p.correctDisplayIndex : -1,
+        })) : [],
+    });
+}
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -139,11 +232,20 @@ export default async function handler(req, res) {
         if (!Array.isArray(answers)) {
             return res.status(400).json({ success: false, error: 'invalid_answers' });
         }
+        // The retired self-graded protocol and client clocks are refused outright.
+        const selfGraded = findForbiddenFields(req.body, SELF_GRADED_FIELDS);
+        if (selfGraded.length > 0) {
+            return res.status(400).json({ success: false, error: 'legacy_submission_shape', fields: selfGraded });
+        }
+        const forgedTiming = findForbiddenFields(req.body, CLIENT_TIMING_FIELDS);
+        if (forgedTiming.length > 0) {
+            return res.status(400).json({ success: false, error: 'client_timing_not_accepted', fields: forgedTiming });
+        }
 
         // --- LOAD THE SESSION (service role; RLS blocks client writes) ----
         const { data: session, error: loadErr } = await sb
             .from('trivia_sessions')
-            .select('id, user_id, mode, question_ids, permutations, status, created_at, expires_at, answers, settlement_result, score, correct_count, diamonds_awarded')
+            .select('id, user_id, mode, question_ids, permutations, status, created_at, expires_at, answers, settlement_result, score, correct_count, diamonds_awarded, engine_version, contract_signature')
             .eq('id', sessionId)
             .maybeSingle();
         if (loadErr) {
@@ -163,6 +265,9 @@ export default async function handler(req, res) {
         }
         if (session.mode === 'tournaments' && !areTriviaTournamentsReleased(process.env)) {
             return rejectUnavailableTriviaTournament(res);
+        }
+        if (session.engine_version) {
+            return await submitV3(req, res, sb, userId, session);
         }
         const replaying = session.status === 'submitted';
         if (session.status !== 'open' && !replaying) {

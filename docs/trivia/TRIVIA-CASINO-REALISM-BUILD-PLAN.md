@@ -22,7 +22,7 @@ the tests and telemetry needed to prove its own behavior.
 |---:|---|---|
 | 1 | Complete | Competitive containment, production baseline, final smoke, and release evidence are recorded in `PHASE-1-RELEASE-REPORT.md`. |
 | 2 | Complete (dormant) | Rules registry, balanced journal linked to the platform wallet journal, atomic ledger operations, treasury ceilings, settlement foundation and reconciliation are installed (2026-09-30) and recorded in `PHASE-2-RELEASE-REPORT.md`. The solo journal switch stays off and the treasury stays unfunded until the owner approves the canary run and funding. |
-| 3 | Planned | Question-bank and deterministic-engine defects found during Phase 1 are explicit entry blockers. |
+| 3 | Complete (new engine dormant) | One database definition of an eligible question now serves every paid and competitive read. Curation, review, report and duplicate records, the deterministic roster and session engine, the tournament preflight, session cleanup and question and session health alerts are installed (2026-09-30) and recorded in `PHASE-3-RELEASE-REPORT.md`. Solo play on the new engine and the free-mode legacy fallback stay off until the owner enables them. |
 | 4–12 | Planned | Start only when the dependency graph and prior phase exit gates permit it. |
 
 The release controls for PvP, PvP horses, tournaments, and tournament horses remain

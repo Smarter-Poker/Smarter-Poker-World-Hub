@@ -774,8 +774,9 @@ async function tagRosterForDay(supabase, day, deadline) {
             continue;
         }
 
+        // Phase 3: only questions inside the eligibility definition count or get tagged.
         const { count: alreadyTagged, error: countErr } = await supabase
-            .from('trivia_questions')
+            .from('trivia_eligible_questions_serving_v1')
             .select('id', { count: 'exact', head: true })
             .eq('category', category.id)
             .eq('daily_date', day)
@@ -805,7 +806,7 @@ async function tagRosterForDay(supabase, day, deadline) {
         // out the null branch explicitly. Chained `.or()` calls are ANDed.
         const selectCandidates = async (minQuality, respectWindow) => {
             let q = supabase
-                .from('trivia_questions')
+                .from('trivia_eligible_questions_serving_v1')
                 .select('id')
                 .eq('category', category.id)
                 .gte('quality_score', minQuality);
@@ -1104,7 +1105,9 @@ async function coldAnswerQuestion(grok, q) {
 }
 
 /**
- * PHASE D — rolling self-audit of the servable pool.
+ * PHASE D — rolling self-audit of the servable pool, drained since Phase 3 through the
+ * deterministic review queue; the outcome rules below are applied in SQL by
+ * trivia_record_question_review_v1 (prompt 'cold-answer/1'), which also writes the review record.
  *
  * Picks up to AUDIT_PER_RUN oldest never-audited servable questions (ANY
  * source — the external "Phase 52" audit does not exist in this repo's
@@ -1125,6 +1128,10 @@ async function coldAnswerQuestion(grok, q) {
  * a question with <5s left.
  */
 async function selfAuditQuestions(supabase, grok, deadline) {
+    // Phase 3: the pool drains through the deterministic review-batch queue
+    // (trivia_claim_review_batch_v1). The model answers COLD; the database compares
+    // with the stored key, applies the verdict and keeps an immutable review record
+    // (reviewer, model, prompt version, evidence, timestamp). No key is read here.
     const out = {
         attempted: 0,
         verified: 0,
@@ -1132,6 +1139,7 @@ async function selfAuditQuestions(supabase, grok, deadline) {
         inconclusive: 0,
         apiErrors: 0,
         skipped: null,
+        batchNo: null,
     };
     if (!grok) {
         out.skipped = 'grok client unavailable';
@@ -1141,126 +1149,51 @@ async function selfAuditQuestions(supabase, grok, deadline) {
         out.skipped = 'budget exhausted before audit';
         return out;
     }
-
-    const { data, error } = await supabase
-        .from('trivia_questions')
-        .select('id, question, options, correct_index, quality_score, engine_metadata')
-        .is('last_audited_at', null)
-        .gte('quality_score', ROSTER_MIN_QUALITY)
-        .order('created_at', { ascending: true })
-        .limit(AUDIT_PER_RUN);
-    if (error) {
-        out.skipped = `candidate query failed: ${error.message}`;
+    const { data: batch, error } = await supabase.rpc('trivia_claim_review_batch_v1', {
+        p_reviewer: 'generate-trivia/phase-d',
+        p_size: AUDIT_PER_RUN,
+        p_lease_seconds: 900,
+    });
+    if (error || !batch || batch.success !== true) {
+        out.skipped = `review queue claim failed: ${error?.message || batch?.error || 'unknown'}`;
         return out;
     }
-
-    for (const q of data || []) {
+    out.batchNo = batch.batch_no ?? null;
+    for (const item of batch.items || []) {
         if (Date.now() > deadline - 5000) {
-            out.skipped = 'budget exhausted mid-audit';
+            out.skipped = 'budget exhausted mid-audit (batch lease resumes next run)';
             break;
         }
-        const nowIso = new Date().toISOString();
-
-        const priorMeta = q.engine_metadata && typeof q.engine_metadata === 'object'
-            ? q.engine_metadata
-            : {};
-        const auditAttempts = Math.max(0, Number(priorMeta.audit_attempts) || 0) + 1;
-
-        // Structurally unauditable rows are removed from service immediately
-        // rather than stamped as though they had passed an audit.
-        if (
-            typeof q.question !== 'string'
-            || !Array.isArray(q.options) || q.options.length !== 4
-            || !Number.isInteger(q.correct_index) || q.correct_index < 0 || q.correct_index > 3
-        ) {
-            await supabase.from('trivia_questions')
-                .update({
-                    quality_score: AUDIT_DEMOTED_QUALITY,
-                    daily_date: null,
-                    last_audited_at: nowIso,
-                    engine_metadata: {
-                        ...priorMeta,
-                        audit_attempts: auditAttempts,
-                        audit: { result: 'invalid_structure', at: nowIso },
-                    },
-                })
-                .eq('id', q.id);
-            out.demoted += 1;
+        out.attempted += 1;
+        const options = Array.isArray(item.options) ? item.options : [];
+        const { answers, error: coldErr } = await coldAnswerQuestion(grok, { question: item.question, options });
+        if (coldErr) out.apiErrors += 1;
+        const { data: rec, error: recErr } = await supabase.rpc('trivia_record_question_review_v1', {
+            p_batch_id: batch.batch_id,
+            p_question_id: item.question_id,
+            p_revision_id: item.revision_id,
+            p_reviewer: 'generate-trivia/phase-d',
+            p_reviewer_kind: 'model',
+            p_model: MODEL,
+            p_model_version: null,
+            p_prompt_version: 'cold-answer/1',
+            p_evidence: { answers, api_error: coldErr || null, min_confidence: AUDIT_MIN_CONFIDENCE },
+        });
+        if (recErr || !rec || rec.success !== true) {
+            console.warn(`[GenerateTrivia] review record failed (${item.question_id}):`, recErr?.message || rec?.error);
             continue;
         }
-
-        out.attempted += 1;
-        const { answers, error: coldErr } = await coldAnswerQuestion(grok, q);
-        if (coldErr) out.apiErrors += 1;
-
-        const bothParsed = answers.length === 2;
-        const bothMatchStored = bothParsed
-            && answers[0].index === q.correct_index
-            && answers[1].index === q.correct_index;
-        const bothAgreeWrong = bothParsed
-            && answers[0].index === answers[1].index
-            && answers[0].index !== q.correct_index
-            && (answers[0].confidence ?? 0) >= AUDIT_MIN_CONFIDENCE
-            && (answers[1].confidence ?? 0) >= AUDIT_MIN_CONFIDENCE;
-
-        let update;
-        if (bothMatchStored) {
-            update = {
-                audit_verified: true,
-                last_audited_at: nowIso,
-                engine_metadata: { ...priorMeta, audit_attempts: 0, audit_last_attempt_at: nowIso },
-            };
-            out.verified += 1;
-        } else if (bothAgreeWrong) {
-            update = {
-                quality_score: AUDIT_DEMOTED_QUALITY,
-                last_audited_at: nowIso,
-                // Pull it off any tagged roster immediately, mirroring
-                // report-question's demotion semantics.
-                daily_date: null,
-                engine_metadata: {
-                    ...priorMeta,
-                    audit_attempts: auditAttempts,
-                    audit: {
-                        cold_answers: answers,
-                        stored_correct_index: q.correct_index,
-                        model: MODEL,
-                        at: nowIso,
-                    },
-                },
-            };
+        if (rec.verdict === 'verified') out.verified += 1;
+        else if (rec.verdict === 'inconclusive') out.inconclusive += 1;
+        if (rec.effect === 'failed_demoted' || rec.effect === 'inconclusive_limit_demoted' || rec.effect === 'quarantined_structure') {
             out.demoted += 1;
-        } else {
-            // A transient model/API failure is not an audit result. Retry it
-            // on later cron runs; after three inconclusive attempts, fail
-            // closed and remove the row from gameplay for human review.
-            update = auditAttempts >= 3 ? {
-                quality_score: AUDIT_DEMOTED_QUALITY,
-                daily_date: null,
-                last_audited_at: nowIso,
-                engine_metadata: {
-                    ...priorMeta,
-                    audit_attempts: auditAttempts,
-                    audit: { result: 'inconclusive_after_retries', cold_answers: answers, at: nowIso },
-                },
-            } : {
-                engine_metadata: {
-                    ...priorMeta,
-                    audit_attempts: auditAttempts,
-                    audit_last_attempt_at: nowIso,
-                },
-            };
-            out.inconclusive += 1;
-            if (auditAttempts >= 3) out.demoted += 1;
         }
-
-        const { error: updErr } = await supabase
-            .from('trivia_questions')
-            .update(update)
-            .eq('id', q.id);
-        if (updErr) console.warn(`[GenerateTrivia] audit update failed (${q.id}):`, updErr.message);
+        // Same fail-closed rule as before Phase 3: the third inconclusive attempt on a
+        // revision removes it from gameplay for human review (inconclusive_after_retries).
+        if (rec.effect === 'inconclusive_limit_demoted') {
+            out.lastDemotionReason = 'inconclusive_after_retries';
+        }
     }
-
     return out;
 }
 

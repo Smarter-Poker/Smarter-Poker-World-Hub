@@ -248,6 +248,8 @@ import './training-surface-inventory.test.mjs';
 import './trivia-console-contract.test.mjs';
 import './trivia-pvp-containment.test.mjs';
 import './trivia-tournament-containment.test.mjs';
+// Trivia Phase 3: eligibility-only paid/competitive pools, engine v3 golden seeds.
+import './trivia-phase-3-engine.test.mjs';
 import './trivia-ui-foundation.test.mjs';
 // Trivia Phase 2: versioned rules seed parity, conserving money helpers,
 // ledger migration ACLs with every switch OFF, and the lifeline/audit wiring.
@@ -473,6 +475,8 @@ const REQUIRED_TEST_FILES = [
     '__tests__/trivia-ui-foundation.test.mjs',
     '__tests__/trivia-pvp-containment.test.mjs',
     '__tests__/trivia-tournament-containment.test.mjs',
+    // Phase 3 question eligibility + deterministic engine v3 (1,000 golden seeds).
+    '__tests__/trivia-phase-3-engine.test.mjs',
     // The console contract: chassis, inks, footer law and artwork families.
     '__tests__/trivia-console-contract.test.mjs',
     // Trivia Phase 2 ledger: the rules registry seed is generated from the one
