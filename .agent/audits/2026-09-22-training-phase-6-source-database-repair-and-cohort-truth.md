@@ -587,3 +587,51 @@ uniqueness, and the runnable M1-only manifest remain deliberately unresolved
 until they are encoded through the separate protected bounded-canary contract
 stage. This candidate therefore remains a source repair, not Phase 6 closure,
 and Phase 7 remains unstarted.
+
+### 2026-09-30 Protected Source Publication
+
+PR #2043 (`fix(training): close Phase 6 geometry, contention, and scenario
+gaps`) passed every required protected check at stable head
+`38ae338a2930731f2937837506ad6c4611644673` and stable base
+`a49d52135d903c6b8458dad2bed3e26bb6d46960`. The first CI pass correctly
+refused a stale generated Training surface ledger; the ledger was regenerated
+from the actual tree and the complete second pass was green without a bypass,
+rerun, or weakened assertion. Smarter Poker Autopilot squash-merged the PR as
+`51cdcdfefb5dd2c7e5e5a2acc00fbf067cef4a23` at 2026-09-30T17:47:38Z.
+
+Vercel reported the exact merge deployment complete. Production
+`https://smarter.poker/api/health` then returned healthy build
+`51cdcdfefb5dd2c7e5e5a2acc00fbf067cef4a23`, deployment
+`dpl_AVcpPgr54XwtWBoADZp4g9XkYnv5`, with healthy database and Training grading
+receipt checks. `/auth/login`, the Training Hub, and the play/arena routes for
+both `psy-001` and `cash-002` returned HTTP 200 on that exact live build.
+
+This completes publication of the source-repair stage only. It does not admit
+a solver artifact or close Phase 6. The M1 bounded-canary artifact builder,
+literal authority contract, one signed parent/child canary, and 6F-6I remain
+separate protected stages. Phase 7 remains unstarted.
+
+### 2026-09-30 M1 Bounded-Canary Artifact Builder Candidate
+
+The next source stage adds a controller-only builder for one reviewed M1
+bounded-canary packet. It emits only an inert manifest, literal activation
+migration, and receipt into a new local directory. It does not connect to a
+database, call the solver, activate a manifest, or modify the checked-in held
+manifest. The builder binds every pipeline byte to immutable protected Git
+blobs, validates M1 partition `2/0`, requires exactly 107 Training game
+contracts and the v3 geometry, uses atomic no-replace artifact publication,
+and records zero database writes.
+
+Closing review found and fixed two fail-open edges before publication. Manifest
+version is now the exact integer 5 rather than a lower bound; 4, 6, string
+`"5"`, float `5.0`, boolean `true`, and null all fail before output creation.
+Git subprocesses now receive only an absolute trusted Git executable and an
+exact allowlisted locale/Git safety environment; Supabase, database, worker
+HMAC, GitHub, and other controller credentials are never inherited. Permanent
+sentinel tests pin that isolation. The focused builder suite passes 9/9.
+
+This builder still grants no solver authority by itself. The exact rake,
+canonical range names and checksums, Pio identity, target identities, and
+protected-main commit must all be supplied in a separate reviewed packet, and
+the emitted migration must pass protected review and the database's own
+literal uniqueness/held-scope assertions before any M1 canary can run.
