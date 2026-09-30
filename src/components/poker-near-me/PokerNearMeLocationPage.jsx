@@ -10,6 +10,7 @@ import PokerNearMeRecentRail from './PokerNearMeRecentRail';
 import { PokerNearMePanelShell } from './PokerNearMeConsole';
 import { rememberPokerPlace, capturePokerNearMeEvent } from '../../lib/poker-near-me/activity';
 import { buildLocationDirectorySchema, serializePokerJsonLd } from '../../lib/poker-near-me/structuredData';
+import { venueMarkUrl } from './venueMarks';
 import {
   buildLiveCashGameIndex,
   cashGameCountLabel,
@@ -93,7 +94,10 @@ function VenueCard({ venue }) {
   // stretched across the photographic band - that is the billboard the note
   // above this function describes. They are printed as a seal on the plate at
   // their own 54px, which is what tells one card from another.
-  const [mark, setMark] = useState(`/images/venues/${venue.id}.png`);
+  // Only the marks that exist are asked for: venueMarkUrl returns '' for a
+  // venue with no checked-in file, so the <img> is never rendered and the
+  // browser never spends a 404 that onError would only hide afterwards.
+  const [mark, setMark] = useState(venueMarkUrl(venue.id));
   const updatedLabel = formatUtcDate(venue.updated_at);
   const cashGameLabel = cashGameCountLabel(venue.live_data);
   const modeled = isModeledCashGameData(venue.live_data);
