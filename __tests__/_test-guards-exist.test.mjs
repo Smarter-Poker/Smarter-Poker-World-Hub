@@ -411,6 +411,10 @@ import './push-health-alert-positive-evidence.test.mjs';
 // two forms that failed silently, and the hero that hotlinked a casino.
 import './venue-page-actions-reach-the-person.test.mjs';
 
+// The article reader proxy checked the caller's URL and then followed redirects
+// blindly, which let a 302 reach the cloud metadata address.
+import './the-proxy-checks-every-redirect-hop.test.mjs';
+
 // The Report-Only CSP can only graduate if its violations reach us, so the
 // reporting wiring and the endpoint that receives it are guarded here.
 import './csp-violations-reach-us.test.mjs';

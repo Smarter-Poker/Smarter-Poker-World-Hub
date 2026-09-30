@@ -54,6 +54,59 @@ const CONFIG = {
  * Check if a hostname resolves to a private/reserved IP range (SSRF prevention).
  * Blocks: loopback, link-local, private ranges, cloud metadata endpoints.
  */
+/**
+ * Whether this URL may be fetched. Shared by the up-front check on the caller's
+ * URL and by every redirect hop, which is the part that was missing.
+ */
+function isFetchableUrl(parsed) {
+    if (!CONFIG.ALLOWED_PROTOCOLS.includes(parsed.protocol)) return false;
+    if (CONFIG.BLOCKED_HOSTS.some((h) => parsed.hostname === h)) return false;
+    if (isPrivateOrReservedHost(parsed.hostname)) return false;
+    return true;
+}
+
+/**
+ * fetch(), following redirects ourselves so the host check runs on EVERY hop.
+ *
+ * This used to let the platform follow redirects for us, which made the SSRF
+ * check above decorative: it ran once, on the URL the caller supplied, and the
+ * platform then followed wherever that host pointed. A page on an allowed domain
+ * answering `302 Location: http://169.254.169.254/latest/meta-data/...` walked
+ * straight past every blocked host and metadata address in this file, and the
+ * response came back to the caller. Same for any address inside the private
+ * network the function is running in.
+ *
+ * Each hop is re-parsed, re-checked, and refused if it points somewhere the
+ * caller could not have asked for directly.
+ */
+async function fetchGuarded(startUrl, options, maxHops = 5) {
+    let current = startUrl;
+    for (let hop = 0; hop <= maxHops; hop++) {
+        const response = await fetch(current, { ...options, redirect: 'manual' });
+        const status = response.status;
+        const location = response.headers.get('location');
+        if (status < 300 || status > 399 || !location) return response;
+
+        let next;
+        try {
+            next = new URL(location, current); // Location may be relative
+        } catch {
+            const err = new Error('Redirect target could not be parsed');
+            err.code = 'BAD_REDIRECT';
+            throw err;
+        }
+        if (!isFetchableUrl(next)) {
+            const err = new Error('Redirect pointed at a host that is not allowed');
+            err.code = 'BLOCKED_REDIRECT';
+            throw err;
+        }
+        current = next.toString();
+    }
+    const err = new Error('Too many redirects');
+    err.code = 'TOO_MANY_REDIRECTS';
+    throw err;
+}
+
 function isPrivateOrReservedHost(hostname) {
     // Block known metadata endpoints
     const metadataHosts = [
@@ -195,8 +248,9 @@ export default async function handler(req, res) {
               });
           }
 
-          // Block internal addresses (SSRF prevention)
-          if (CONFIG.BLOCKED_HOSTS.some(h => parsed.hostname === h) || isPrivateOrReservedHost(parsed.hostname)) {
+          // Block internal addresses (SSRF prevention). Redirect hops are
+          // checked with the same predicate inside fetchGuarded below.
+          if (!isFetchableUrl(parsed)) {
               return res.status(403).json({
                   error: 'BLOCKED_HOST',
                   message: 'This host is not allowed'
@@ -223,9 +277,8 @@ export default async function handler(req, res) {
               const controller = new AbortController();
               const timeout = setTimeout(() => controller.abort(), CONFIG.TIMEOUT_MS);
 
-              response = await fetch(targetUrl, {
+              response = await fetchGuarded(targetUrl, {
                   signal: controller.signal,
-                  redirect: 'follow',
                   headers: {
                       'User-Agent': USER_AGENTS[attempt % USER_AGENTS.length],
                       'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
@@ -291,6 +344,16 @@ export default async function handler(req, res) {
 
           } catch (error) {
               lastError = error;
+
+              // A refused redirect is a decision, not a transient failure.
+              // Retrying it would dial the blocked host twice more and turn one
+              // refusal into three outbound requests.
+              if (error.code === 'BLOCKED_REDIRECT' || error.code === 'BAD_REDIRECT' || error.code === 'TOO_MANY_REDIRECTS') {
+                  return res.status(403).json({
+                      error: 'BLOCKED_HOST',
+                      message: 'This host is not allowed',
+                  });
+              }
 
               // Don't retry on abort (timeout)
               if (error.name === 'AbortError') {
