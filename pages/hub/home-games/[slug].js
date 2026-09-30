@@ -37,6 +37,7 @@ import { toast } from '../../../src/stores/toastStore';
 import { rememberPokerPlace, capturePokerNearMeEvent } from '../../../src/lib/poker-near-me/activity';
 
 import { firstThatFits } from '../../../src/lib/seo/titleFit';
+import { safeImageUrl } from '../../../src/lib/security/imageHosts.js';
 const GAME_TYPE_LABELS = {
   nlh: "No-Limit Hold'em",
   nlhe: "No-Limit Hold'em",
@@ -1181,8 +1182,8 @@ export default function PublicHomeGamePage({ data, serverError }) {
 
         <div className="hgs-header">
           <div className="hgs-avatar">
-            {page.avatar_url ? (
-              <img src={page.avatar_url} alt="" loading="eager" />
+            {safeImageUrl(page.avatar_url) ? (
+              <img src={safeImageUrl(page.avatar_url)} alt="" loading="eager" />
             ) : (
               <div className="hgs-avatar-fallback">{(page.name || 'H')[0]}</div>
             )}
@@ -1542,8 +1543,8 @@ export default function PublicHomeGamePage({ data, serverError }) {
                   {vouchers.map((v) => (
                     <div key={v.user_id} className="hgs-voucher-row">
                       <div className="hgs-voucher-avatar">
-                        {v.avatar_url
-                          ? <img src={v.avatar_url} alt="" loading="lazy" />
+                        {safeImageUrl(v.avatar_url)
+                          ? <img src={safeImageUrl(v.avatar_url)} alt="" loading="lazy" />
                           : <span>{(v.display_name || 'P')[0].toUpperCase()}</span>
                         }
                       </div>

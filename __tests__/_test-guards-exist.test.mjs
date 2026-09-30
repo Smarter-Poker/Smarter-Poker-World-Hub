@@ -441,6 +441,11 @@ import './venue-art-comes-from-the-mirror.test.mjs';
 // that replaced the guess, and the card that must consult it.
 import './a-venue-mark-is-only-asked-for-when-it-exists.test.mjs';
 
+// The guard was half-applied: four map readers used it and the tour pin did
+// not, and the tournaments API put an unmirrored URL in a field called
+// logo_url. This pins the shared components so a new caller is covered.
+import './no-venue-picture-reaches-the-dom-unguarded.test.mjs';
+
 // The Report-Only CSP can only graduate if its violations reach us, so the
 // reporting wiring and the endpoint that receives it are guarded here.
 import './csp-violations-reach-us.test.mjs';

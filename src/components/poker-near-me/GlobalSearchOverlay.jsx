@@ -406,6 +406,9 @@ function DetailRow({ label, value, href }) {
 // complete painted pictogram stands alone, so a holder never nests a holder.
 function LogoHolder({ src, icon, text, size = 'result' }) {
   const [failed, setFailed] = useState(false);
+  // Guarded here so a caller cannot forget: the tour result used to hand this
+  // tour.logo_url raw while its two siblings in this file guarded theirs.
+  src = safeImageUrl(src) || '';
   if ((!src || failed) && icon) {
     return <PokerNearMeConsoleIcon name={icon} className={`gso-holder gso-holder--${size} gso-holder--icon`} />;
   }

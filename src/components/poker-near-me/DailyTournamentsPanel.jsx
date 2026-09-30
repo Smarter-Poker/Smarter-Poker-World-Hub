@@ -6,6 +6,7 @@
 import React, { useState, useEffect, useMemo, useTransition, useRef } from 'react';
 import { getInitialsColor, US_STATE_TIMEZONES } from './pnm-utils';
 import { homeGameUrl } from '../../lib/home-games/urls';
+import { safeImageUrl } from '../../lib/security/imageHosts.js';
 
 // ─── Game type normalization ───
 function formatGameType(raw) {
@@ -397,9 +398,9 @@ export default function DailyTournamentsPanel({ tournaments = [], onDayChange, o
       <div key={cardId} className="ev-card" data-today={isTodayTab ? '1' : ''} onClick={handleCardClick} style={{ cursor: 'pointer' }}>
         {/* -- LEFT: Full-height logo (appears ONCE) -- */}
         <div className="ev-card-logo">
-          {t.logo_url ? (
+          {safeImageUrl(t.logo_url) ? (
             <img
-              src={t.logo_url}
+              src={safeImageUrl(t.logo_url)}
               alt={t.venue_name || ''}
               className="ev-logo-img"
               loading="lazy"
