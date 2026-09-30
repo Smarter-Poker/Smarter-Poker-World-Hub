@@ -12,6 +12,32 @@ const DEDICATED_SCENARIO_GAMES = [
   'cash-020',
 ];
 
+const AUDITED_COMPOUND_ANSWERS = {
+  'psych_psy-001_6': 'Desperation tilt; restore standard ranges immediately or quit',
+  'psych_psy-003_4': 'Recency bias; recalibrate with actual frequencies',
+  'psych_psy-004_0': 'Cash-value thinking; refocus on big blinds and decision quality',
+  'psych_psy-005_7': 'Fatigue is eroding standards; use written ranges or end the session',
+  'psych_psy-006_0': 'Put the phone away and block distracting sites',
+  'psych_psy-006_4': 'A 10-15 minute warm-up with review, visualization, and settling',
+  'psych_psy-008_1': 'Earned confidence rests on skill; false confidence rests on recent results',
+  'psych_psy-008_2': 'Keep acting on strong reads; demand better evidence for thin ones',
+  'psych_psy-009_1': 'Fear of embarrassment; judge the bluff by decision quality, not outcome',
+  'psych_psy-009_6': 'He cedes range EV and rehearses the belief that he cannot compete',
+  'psych_psy-010_2': 'Fixed mindset defends identity; growth mindset uses the leak to improve',
+  'psych_psy-010_6': 'It shields mistakes from review, so real leaks remain uncorrected',
+  'psych_psy-010_7': 'Keep seeking outside feedback because winning does not reveal blind spots',
+  'psych_psy-011_2': 'Plan sleep, meals, water, movement, breaks, and late-stage caffeine',
+  'psych_psy-012_1': 'Instinct is trained pattern recognition; impulse is emotion bypassing analysis',
+  'psych_psy-012_7': 'Pre-built ranges, rehearsed rules, and study of similar spots',
+  'psych_psy-013_4': 'A staged signal; discount it and trust hard-to-fake betting patterns',
+  'psych_psy-013_7': 'Use baseline strategy and population data; resist stereotypes and one-hand reads',
+  'psych_psy-014_3': 'A bounded experiment with fixed buy-ins, stop-loss, and preplanned retreat',
+  'psych_psy-014_6': 'Top-heavy payouts mean long droughts; deep rolls fund and steady them',
+  'psych_psy-015_2': 'Hot-hand fallacy; obeying it loosens standards and creates worse decisions',
+  'psych_psy-015_5': 'Bank the score, keep proven stakes and routines, and move up only on evidence',
+  'psych_psy-017_6': 'Expose blind spots, test reasoning aloud, and provide accountability',
+};
+
 test('every dedicated SCENARIO bank delivers 30 unique, valid Level-12 questions without padding', () => {
   assert.deepEqual([...getPsychologyGameIds()].sort(), [...DEDICATED_SCENARIO_GAMES].sort());
 
@@ -88,8 +114,9 @@ test('the canonical mapping for psych_psy-001_0 remains pinned', () => {
   });
 });
 
-test('no dedicated bank reveals the answer through a uniquely long correct choice', () => {
+test('no dedicated bank reveals the answer through an extreme length outlier', () => {
   const maxCorrectToLongestDistractorRatio = 1.35;
+  const minCorrectToMedianDistractorRatio = 0.45;
   for (const gameId of DEDICATED_SCENARIO_GAMES) {
     for (const question of getPsychologyQuestions(gameId, 12, 30, [])) {
       const correctLength = question.options
@@ -97,10 +124,44 @@ test('no dedicated bank reveals the answer through a uniquely long correct choic
       const longestDistractor = Math.max(...question.options
         .filter(({ id }) => id !== question.correctAnswer)
         .map(({ text }) => text.trim().length));
+      const sortedDistractorLengths = question.options
+        .filter(({ id }) => id !== question.correctAnswer)
+        .map(({ text }) => text.trim().length)
+        .sort((left, right) => left - right);
+      const medianDistractor = sortedDistractorLengths[1];
       assert.ok(
         correctLength <= longestDistractor * maxCorrectToLongestDistractorRatio,
-        `${gameId}/${question.id}: correct=${correctLength}, longest distractor=${longestDistractor}`,
+        `${gameId}/${question.id}: correct=${correctLength}, longest=${longestDistractor}`,
       );
+      assert.ok(
+        correctLength >= medianDistractor * minCorrectToMedianDistractorRatio,
+        `${gameId}/${question.id}: correct=${correctLength}, median=${medianDistractor}`,
+      );
+    }
+  }
+});
+test('audited compound answers preserve the complete action or contrast', () => {
+  const allQuestions = new Map(DEDICATED_SCENARIO_GAMES.flatMap((gameId) =>
+    getPsychologyQuestions(gameId, 12, 30, []).map((question) => [question.id, question])));
+
+  for (const [questionId, expectedAnswer] of Object.entries(AUDITED_COMPOUND_ANSWERS)) {
+    const question = allQuestions.get(questionId);
+    assert.ok(question, `${questionId}: missing audited question`);
+    assert.equal(
+      question.options.find(({ id }) => id === question.correctAnswer)?.text,
+      expectedAnswer,
+      `${questionId}: audited compound answer was shortened or changed`,
+    );
+  }
+});
+
+test('WH questions use direct answers rather than yes-or-no fragments', () => {
+  for (const gameId of DEDICATED_SCENARIO_GAMES) {
+    for (const question of getPsychologyQuestions(gameId, 12, 30, [])) {
+      if (!/^(what|which|how|why|when|where)\b/i.test(question.question.trim())) continue;
+      const correctText = question.options
+        .find(({ id }) => id === question.correctAnswer)?.text.trim() || '';
+      assert.doesNotMatch(correctText, /^(yes|no)\b[,;:]?/i, `${gameId}/${question.id}`);
     }
   }
 });

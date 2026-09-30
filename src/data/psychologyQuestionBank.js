@@ -130,7 +130,7 @@ const BANK = {
             s: 'You are down two buy-ins with 40 minutes left in your planned session and your VPIP has crept from 24 to 38.',
             o: [
                 'This is a creative adjustment; keep the wider range since your image is loose anyway',
-                'This is desperation tilt (trying to win it back fast)',
+                'Desperation tilt; restore standard ranges immediately or quit',
                 'This is table-image leveraging; it is fine if you win the next pot',
                 'This is standard variance; changing ranges is irrelevant to results',
             ],
@@ -911,7 +911,7 @@ const BANK = {
             s: 'After a brutal week, he feels dread as each river peels off, even in small pots.',
             o: [
                 'Nothing is wrong; vigilance prevents beats',
-                'Recency bias has inflated his felt probability of disaster',
+                'Recency bias; recalibrate with actual frequencies',
                 'He should bet smaller so beats cost less, solving the emotion with sizing',
                 'He should stop looking at rivers until showdown',
             ],
@@ -938,7 +938,7 @@ const BANK = {
             s: 'Tracking software shows you were a 70 percent-plus favorite in five stacks and lost all five.',
             o: [
                 'The probability of that is so low that something must be rigged',
-                'Painful but unremarkable',
+                'Treat it as painful but normal variance within the reported all-in equities',
                 'Proof that all-in equity numbers do not apply to you',
                 'A sign to start getting money in as the underdog, since favorites lose anyway',
             ],
@@ -1258,7 +1258,7 @@ const BANK = {
             s: 'You moved from 1/2 to 5/10 with a proper shot-taking bankroll, but your hands shake when you bet.',
             o: [
                 'The stakes are objectively too high for anyone; move down permanently',
-                'You are thinking in cash value instead of big blinds',
+                'Cash-value thinking; refocus on big blinds and decision quality',
                 'Play only premium hands so the money rarely goes in',
                 'Drink something calming before sessions',
             ],
@@ -1726,7 +1726,7 @@ const BANK = {
             s: 'The table wildman has run 74o and J3s into two stacks tonight while you fold and wait.',
             o: [
                 'Loosen up to his level, since the game is obviously rewarding junk tonight',
-                'Recommit to your ranges',
+                'Recommit to your ranges and let his short-term runout remain irrelevant',
                 'Leave the table; maniacs make games unbeatable',
                 'Start limping more hands to see cheap flops and out-gamble him',
             ],
@@ -1753,7 +1753,7 @@ const BANK = {
             s: 'Hands like QTo in early position have started feeling "basically the same" as hands in your range.',
             o: [
                 'Your ranges were too tight before and fatigue is revealing the truth',
-                'Standards erode as mental fatigue rises',
+                'Fatigue is eroding standards; use written ranges or end the session',
                 'This is fine as long as you win the next few pots',
                 'Switch to playing every suited hand to simplify decisions',
             ],
@@ -2060,7 +2060,7 @@ const BANK = {
             s: 'An online grinder checks messages during every hand he folds, then feels "out of the loop" in big pots.',
             o: [
                 'Willpower: promise himself he will simply try harder to ignore the phone',
-                'Environment design',
+                'Put the phone away and block distracting sites',
                 'Play more tables so there is no idle time to be distracted',
                 'Keep the phone but only check it after winning pots',
             ],
@@ -2111,7 +2111,7 @@ const BANK = {
             q: 'Which pre-session routine element most improves in-game concentration?',
             s: 'A player wants a repeatable warm-up that gets him focused from hand one instead of hand fifty.',
             o: [
-                'A consistent 10-15 minute ritual',
+                'A 10-15 minute warm-up with review, visualization, and settling',
                 'Jumping in cold to save energy for the session itself',
                 'An hour of intense theory study immediately before playing',
                 'Watching entertainment until the moment the session starts',
@@ -2869,7 +2869,7 @@ const BANK = {
             s: 'Two players both feel sure of themselves: one after months of study and honest review, one after a hot week of running above EV.',
             o: [
                 'There is no difference; confidence is confidence',
-                'Earned confidence rests on demonstrated skill and survives downswings',
+                'Earned confidence rests on skill; false confidence rests on recent results',
                 'False confidence is better because it is more optimistic',
                 'Earned confidence is impossible in a luck-based game',
             ],
@@ -2882,7 +2882,7 @@ const BANK = {
             s: 'Both calls were built on thin one-hand samples; tonight you refuse to trust even well-founded patterns.',
             o: [
                 'Continue avoiding reads; two failures prove your reading skill is broken',
-                'Calibrate rather than swing',
+                'Keep acting on strong reads; demand better evidence for thin ones',
                 'Double down on every hunch to rebuild confidence through volume',
                 'Only trust reads on players you have watched for years',
             ],
@@ -3269,7 +3269,7 @@ const BANK = {
             s: 'Villain\'s line caps his range on a scare-card river and your hand blocks his few calls.',
             o: [
                 'Fear of losing money; counter by betting smaller',
-                'Fear of embarrassment (ego protection)',
+                'Fear of embarrassment; judge the bluff by decision quality, not outcome',
                 'Fear of variance; counter by never bluffing',
                 'Fear of success; counter with visualization of winning',
             ],
@@ -3296,7 +3296,7 @@ const BANK = {
             s: 'In review he instantly identifies the check-raise bluffs he should have made live.',
             o: [
                 'More theory study until freezing stops on its own',
-                'Graduated exposure',
+                'Use graduated exposure through progressively larger approved bluffs',
                 'Force the biggest possible bluff at his highest stake immediately',
                 'Accept a passive style as his natural personality',
             ],
@@ -3336,7 +3336,7 @@ const BANK = {
             s: 'He folds playable hands whenever the big stack has position, admitting he "does not want that battle."',
             o: [
                 'None; avoiding the strongest player is pure prudence',
-                'He has granted one opponent a permanent tax on his ranges',
+                'He cedes range EV and rehearses the belief that he cannot compete',
                 'The cost is only social, not monetary',
                 'It is correct as long as he wins pots elsewhere',
             ],
@@ -3438,16 +3438,16 @@ const BANK = {
             d: 3,
         },
         {
-            q: 'What is the value of tracking how often your bluffs are called?',
-            s: 'Your tracker shows that your river bluffs have been called only 20 percent of the time this month.',
+            q: 'What does the combined opportunity-and-result review support?',
+            s: 'Across 200 range-reviewed river opportunities with comparable sizings, you bluff only 20 percent of approved candidates, mostly the strongest blockers, and those bets are rarely called.',
             o: [
-                'It shows that you should stop bluffing, because any bluff that gets called is a mistake',
-                'It shows that you are almost certainly not bluffing enough',
-                'It shows nothing, because bluff success rates cannot be measured accurately in a single month',
-                'It shows that opponents are afraid of you, which means you should stop bluffing and value bet only',
+                'Every called bluff is a mistake, so remove bluffs from those reviewed spots',
+                'You are underbluffing those reviewed spots; add missed range-approved bluffs',
+                'Opponents will never call, so bluff every river regardless of ranges or sizing',
+                'The call rate alone proves fear is gone, so no opportunity review is needed',
             ],
             c: 1,
-            e: 'A bluff that almost always works is being made in only the safest spots. Fear selects for those spots, and the low call rate is evidence that many profitable but less comfortable bluffs are being left on the table.',
+            e: 'The reviewed opportunities supply the missing denominator: the player skips four out of five approved candidates and chooses only the safest blockers. The low call rate supports the same diagnosis, so the correction is to add the missed, range-supported bluffs rather than generalize from results alone.',
             d: 3,
         },
         {
@@ -3624,7 +3624,7 @@ const BANK = {
             s: 'A student asks whether the goal is to stop feeling fear entirely.',
             o: [
                 'Yes; a fully developed player feels no fear because he has accepted variance completely',
-                'No; courage is acting correctly while afraid, and the fear itself is not the problem',
+                'Courage means acting correctly while fear is present; eliminating fear is not the goal',
                 'Yes; fear is a sign of insufficient study, and enough study removes it permanently',
                 'No; fear should be amplified, because frightened players are more careful and careful players win',
             ],
@@ -3682,7 +3682,7 @@ const BANK = {
             s: 'A coach demonstrates that a player\'s cherished river overbet strategy has been burning money for a year.',
             o: [
                 'Fixed mindset accepts the evidence; growth mindset defends the strategy',
-                'Fixed mindset hears "you are flawed" and defends',
+                'Fixed mindset defends identity; growth mindset uses the leak to improve',
                 'Mindset research does not apply to gambling games',
                 'Both mindsets respond identically to concrete evidence',
             ],
@@ -3735,7 +3735,7 @@ const BANK = {
             s: 'A player\'s post-session summary is "ran bad again" for the tenth straight losing week.',
             o: [
                 'None; attributing losses to variance protects confidence, which is paramount',
-                'Blanket variance-blame is self-serving attribution bias',
+                'It shields mistakes from review, so real leaks remain uncorrected',
                 'The cost is only reputational among peers',
                 'Variance-blame is always accurate after any losing week',
             ],
@@ -3748,7 +3748,7 @@ const BANK = {
             s: 'A solid mid-stakes winner wonders whether outside input still matters.',
             o: [
                 'Winners have graduated from feedback; self-review suffices forever',
-                'Blind spots are invisible by definition at every level',
+                'Keep seeking outside feedback because winning does not reveal blind spots',
                 'Feedback is useful only during downswings',
                 'Only coaches at least two stakes higher can say anything useful',
             ],
@@ -4081,7 +4081,7 @@ const BANK = {
             s: 'A player preparing for a major event asks how to still be sharp at the midnight bubble.',
             o: [
                 'Maximum caffeine early to bank alertness for later',
-                'Treat it as an endurance event',
+                'Plan sleep, meals, water, movement, breaks, and late-stage caffeine',
                 'Skip meals to avoid post-food drowsiness',
                 'Play every hand early while fresh, then coast tight later',
             ],
@@ -4466,7 +4466,7 @@ const BANK = {
             s: 'Two fast decisions: one snap-call from a pro who has studied this exact spot for years, one snap-call from a frustrated player who "just wanted to see it."',
             o: [
                 'Nothing; both are fast decisions and speed is what defines them',
-                'Trained instinct is pattern recognition emerging from deliberate practice',
+                'Instinct is trained pattern recognition; impulse is emotion bypassing analysis',
                 'Impulses are always wrong and instincts are always right',
                 'Instincts occur only in live poker, impulses only online',
             ],
@@ -4506,7 +4506,7 @@ const BANK = {
             s: 'The bet is sized normally, but the whole sequence produced a strong wrongness feeling in an experienced player.',
             o: [
                 'Ignore it entirely; unarticulated means unreliable',
-                'Weight it as one input',
+                'Weight it as one input, then test it against range evidence',
                 'Treat it as certainty and make a huge hero play',
                 'Announce the feeling to the table to gauge reactions',
             ],
@@ -4546,7 +4546,7 @@ const BANK = {
             s: 'Online, the time bank is nearly gone and you face an unexpected check-raise all-in.',
             o: [
                 'Nothing; time-pressured decisions are pure luck',
-                'The work done before the moment',
+                'Pre-built ranges, rehearsed rules, and study of similar spots',
                 'Typing speed and mouse accuracy',
                 'Having the largest possible stack so the decision matters less',
             ],
@@ -4833,7 +4833,7 @@ const BANK = {
             s: 'A student asks whether the goal is to play entirely by feel eventually.',
             o: [
                 'Yes; analysis is a crutch for players whose instincts are not yet developed',
-                'No; instinct handles the familiar, analysis handles the novel, and both stay sharp',
+                'Instinct handles familiar patterns; analysis handles novel spots, and both need upkeep',
                 'Yes, but only in cash games; tournaments always require full analysis',
                 'No; instinct should be abandoned entirely once a player can analyse every spot',
             ],
@@ -4904,7 +4904,7 @@ const BANK = {
             s: 'A tricky regular has noticed you watching him and begins acting weak with monsters.',
             o: [
                 'False tells are a myth; behavior cannot be faked',
-                'Deliberately performed behavior meant to trigger your read',
+                'A staged signal; discount it and trust hard-to-fake betting patterns',
                 'The defense is to stop looking at opponents forever',
                 'The defense is to always do the opposite of every read',
             ],
@@ -4943,7 +4943,7 @@ const BANK = {
             s: 'First orbit at a new casino, and you feel pressure to "figure everyone out" immediately.',
             o: [
                 'Lean on invented reads from appearance and age; resist boring default play',
-                'Lean on solid baseline strategy and population tendencies while quietly building baselines',
+                'Use baseline strategy and population data; resist stereotypes and one-hand reads',
                 'Refuse to play any significant pot until reads exist',
                 'Copy the table\'s loosest player until information arrives',
             ],
@@ -5204,7 +5204,7 @@ const BANK = {
             s: 'A student asks whether a good tell means he can skip thinking about the opponent\'s range.',
             o: [
                 'Yes; a reliable tell tells you the hand, which makes range analysis unnecessary',
-                'No; a tell shifts weights within a range that still drives the decision',
+                'A tell shifts hand weights within the range that still drives the decision',
                 'Yes, but only against weak players whose ranges are too wide to analyse',
                 'No; tells and ranges are unrelated and should be considered separately',
             ],
@@ -5289,7 +5289,7 @@ const BANK = {
             s: 'A 2/5 winner wants to try 5/10 without endangering his mental game or roll.',
             o: [
                 'Sitting in the bigger game whenever it looks juicy, with no plan',
-                'A pre-defined experiment',
+                'A bounded experiment with fixed buy-ins, stop-loss, and preplanned retreat',
                 'Selling action secretly so losses do not count emotionally',
                 'Waiting until he can afford to lose without noticing',
             ],
@@ -5329,7 +5329,7 @@ const BANK = {
             s: 'An MTT player wonders why 100 buy-ins is considered thin for his format.',
             o: [
                 'Tournament rake is higher, which is the whole story',
-                'MTT payout concentration creates longer droughts',
+                'Top-heavy payouts mean long droughts; deep rolls fund and steady them',
                 'They do not; the requirements are actually identical',
                 'Because tournament players tilt more by nature',
             ],
@@ -5676,7 +5676,7 @@ const BANK = {
             s: 'Everything has held for three hours and invincibility has set in.',
             o: [
                 'Accurate pattern detection; hot streaks are real and predictive',
-                'The hot-hand fallacy applied to cards',
+                'Hot-hand fallacy; obeying it loosens standards and creates worse decisions',
                 'Healthy confidence that should be ridden as far as it goes',
                 'Gambler\'s fallacy, meaning you are actually due to lose',
             ],
@@ -5716,7 +5716,7 @@ const BANK = {
             s: 'His biggest career cash is 40 times his normal weekly earnings, and offers, opinions, and confidence are flooding in.',
             o: [
                 'Immediately jump permanently to nosebleed stakes; results earned the promotion',
-                'Deliberate stabilization',
+                'Bank the score, keep proven stakes and routines, and move up only on evidence',
                 'Quit poker at the peak forever',
                 'Spend heavily to celebrate, since confidence is now the roll',
             ],
@@ -6473,7 +6473,7 @@ const BANK = {
             s: 'He owns three courses, two solvers, and a coaching library, and jumps randomly between topics.',
             o: [
                 'Study whatever is newest, since the game evolves',
-                'Let his own data lead',
+                'Let his own leak data set the next study priority',
                 'Study the most advanced topic available to stay ahead',
                 'Rotate topics alphabetically for balanced coverage',
             ],
@@ -6526,7 +6526,7 @@ const BANK = {
             s: 'A self-studier wonders whether joining a hand-history discussion group is worth the schedule cost.',
             o: [
                 'None; groups leak your strategies to future opponents',
-                'A well-run group supplies what solo study cannot',
+                'Expose blind spots, test reasoning aloud, and provide accountability',
                 'Groups are useful only for absolute beginners',
                 'Groups matter only for networking toward staking deals',
             ],
@@ -6827,7 +6827,7 @@ const BANK = {
             s: 'A student asks whether professionals still study after years of winning.',
             o: [
                 'No, because at some point the game is understood and study becomes unnecessary',
-                'Yes, continuously, because the game and the opponents keep changing',
+                'Continuous, structured learning as the game and opponents change',
                 'Only during downswings, when something has clearly gone wrong',
                 'Only when moving up in stakes, when new opponents demand new approaches',
             ],
@@ -8375,16 +8375,16 @@ const BANK = {
             d: 4,
         },
         {
-            q: 'What is the correct response when the floor offers you a seat at a table where you have a well-documented losing history?',
-            s: 'Your notes show you have lost in eleven of thirteen sessions against this exact lineup of regulars.',
+            q: 'What is the correct response when the floor offers a seat in a lineup your hand review rates as negative EV?',
+            s: 'Your tracked hands against these regulars show recurring leaks that this lineup exploits, and independent review estimates your current strategy is negative EV here.',
             o: [
-                'Take the seat because variance owes you a winning session there after so many losses against the same group of players',
-                'Take the seat but play twice as many hands to recover',
-                'Decline, because a large documented sample against a specific lineup is real evidence about your edge there',
-                'Take the seat only if you are currently on a winning streak elsewhere',
+                'Take the seat because raw losses should always be ignored once variance exists',
+                'Take the seat but tighten globally so the lineup cannot exploit the reviewed leaks',
+                'Decline for now because reviewed hand and EV evidence shows no current edge',
+                'Take the seat for one session to see whether the reviewed EV estimate reverses',
             ],
             c: 2,
-            e: 'Thirteen sessions against the same players is meaningful evidence, and it says this lineup is not where your edge lives. Variance does not owe anyone a result, and the disciplined choice is to spend your hours where the evidence says you win.',
+            e: 'The decision rests on reviewed strategy and expected value, not a short run of wins or losses. Until study or lineup changes create a credible edge, the disciplined choice is to spend those hours in a game where the evidence supports playing.',
             d: 3,
         },
         {
@@ -8401,16 +8401,16 @@ const BANK = {
             d: 2,
         },
         {
-            q: 'What is the best way to handle a soft game that only runs at a stake slightly above your bankroll rules?',
-            s: 'The best game in the room is one stake higher than your bankroll comfortably allows, and it is very soft tonight.',
+            q: 'How should you handle a soft game one stake above your usual level when your written bankroll policy includes a qualifying shot?',
+            s: 'Your written bankroll policy preauthorizes one two-buy-in shot a stake higher when explicit lineup conditions are met, and tonight\'s game qualifies.',
             o: [
-                'Sit down with your full bankroll because the game is too good to miss, and a soft game justifies breaking a rule that was written for tough games',
-                'Sit with a defined short buy-in and a strict stop-loss you decided before sitting, treating it as a planned shot',
-                'Never consider the game because bankroll rules have no exceptions',
-                'Borrow money from another player to sit with a full stack',
+                'Expand the preapproved allocation because a softer lineup automatically reduces bankroll risk',
+                'Use only the preapproved shot allocation and stop-loss; otherwise decline the game',
+                'Decline despite the preapproval because written shot provisions should never be used',
+                'Take the shot but remove the stop-loss if the game remains soft after early losses',
             ],
             c: 1,
-            e: 'A planned shot with a pre-set buy-in and stop-loss captures the soft game while keeping risk bounded and the decision unemotional. Ignoring the rules entirely risks the roll, and refusing forever leaves real value on the table; the middle path is the professional one.',
+            e: 'The written policy made this bounded exception while calm, before the attractive game appeared. Following its exact allocation and stop-loss obeys the bankroll rules; exceeding either limit, or improvising an unapproved shot, means declining the game.',
             d: 4,
         },
         {
