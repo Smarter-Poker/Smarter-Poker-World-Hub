@@ -83,13 +83,27 @@ function formatUtcDate(value) {
 function VenueCard({ venue }) {
   const cover = String(venue.cover_photo_url || '').trim();
   const [image, setImage] = useState(cover);
+  // THE ROOM'S OWN MARK, AT ITS OWN SIZE (2026-09-30).
+  //
+  // Measured before this: /hub/poker-near-me/in/il printed ten cards and all
+  // ten showed the same painted plate, because no venue in the directory
+  // carries a cover photograph. public/images/venues/ holds 134 venue marks
+  // keyed by the same id the card already links to, every one of them 54px
+  // square with a cut-out edge. They are marks, not rooms, so they are not
+  // stretched across the photographic band - that is the billboard the note
+  // above this function describes. They are printed as a seal on the plate at
+  // their own 54px, which is what tells one card from another.
+  const [mark, setMark] = useState(`/images/venues/${venue.id}.png`);
   const updatedLabel = formatUtcDate(venue.updated_at);
   const cashGameLabel = cashGameCountLabel(venue.live_data);
   const modeled = isModeledCashGameData(venue.live_data);
   const catalog = venue.live_data?.data_mode === 'catalog';
   const unavailable = venue.live_data?.live_count_known === false && !catalog;
   return (
-    <PokerNearMePanelShell className={`pnm-location-card${image ? '' : ' pnm-location-card--plate'}`}>
+    <PokerNearMePanelShell
+      className={`pnm-location-card${image ? '' : ' pnm-location-card--plate'}`}
+      data-venue-type={String(venue.venue_type || 'poker_room')}
+    >
       <Link href={`/hub/venues/${venue.id}`} aria-label={`View ${venue.name}`}>
         <div className="pnm-location-card__media">
           {image ? (
@@ -105,6 +119,17 @@ function VenueCard({ venue }) {
                   && naturalWidth / Math.max(1, naturalHeight) >= 1.2;
                 if (!photographic) setImage('');
               }}
+            />
+          ) : null}
+          {mark ? (
+            <img
+              className="pnm-location-card__mark"
+              src={mark}
+              alt=""
+              loading="lazy"
+              width="54"
+              height="54"
+              onError={() => setMark('')}
             />
           ) : null}
         </div>
@@ -217,7 +242,7 @@ export default function PokerNearMeLocationPage({
   useEffect(() => {
     if (trackedRef.current) return;
     trackedRef.current = true;
-    rememberPokerPlace({ href: currentPath, title, subtitle: `${directoryCount} poker venues`, kind: 'location' });
+    rememberPokerPlace({ href: currentPath, title, subtitle: `${directoryCount} poker ${directoryCount === 1 ? 'venue' : 'venues'}`, kind: 'location' });
     capturePokerNearMeEvent('location_page_viewed', {
       route_family: city ? 'city' : stateCode ? 'state' : 'country',
       route: currentPath,
@@ -267,32 +292,41 @@ export default function PokerNearMeLocationPage({
       <PokerNearMeFamilyNav />
       <HamburgerMenu isOpen={menuOpen} onClose={() => setMenuOpen(false)} />
 
-      <DeepRouteSignalDeck
-        kind="location"
-        eyebrow="Regional poker network"
-        title={title}
-        headTitle={placeLabel}
-        description={description}
-        image={hero.image}
-        imageAlt={stateCode
-          ? `Fictional ${hero.region} poker discovery console artwork for ${placeLabel}`
-          : `Fictional national poker discovery console artwork for ${placeLabel}`}
-        breadcrumbs={[
-          { label: 'Poker Near Me', href: '/hub/poker-near-me/lobby' },
-          ...(stateCode ? [{ label: 'United States', href: '/hub/poker-near-me/in' }] : []),
-          ...(city ? [{ label: stateName || stateCode, href: stateCanonical.replace('https://smarter.poker', '') }] : []),
-          { label: city || stateName || stateCode || 'Locations' },
-        ]}
-        status={degraded ? 'Published snapshot mode' : 'Live directory synchronized'}
-        statusTone={degraded ? 'modeled' : 'live'}
-        freshness={{ label: sourceLabel, dateTime: sourceTimestamp || undefined }}
-        metrics={[
-          { label: 'Poker venues', value: directoryCount },
-          { label: stateCode ? 'Cities represented' : 'States represented', value: stateCode ? new Set(venues.map((venue) => venue.city).filter(Boolean)).size : states.length },
-          { label: degraded ? 'Snapshot date' : 'Directory check', value: sourceDateLabel || 'Current request' },
-        ]}
-        actions={<Link href="/hub/poker-near-me/map">Open Live Map</Link>}
-      />
+      {/* ONE FRAME, AND IT FITS WHAT IS IN IT (2026-09-30).
+          The painted chassis is the hero's frame. A shared command-surface
+          rule was drawing a second plain rectangle around it, and the stage
+          inside carried a fixed floor height that owed nothing to the copy.
+          This wrapper is a styling anchor only - `display: contents`, so it
+          adds no box - and it keeps the corrections on the location routes
+          instead of every deep route that shares the deck. */}
+      <div className="pnm-location-hero">
+        <DeepRouteSignalDeck
+          kind="location"
+          eyebrow="Regional poker network"
+          title={title}
+          headTitle={placeLabel}
+          description={description}
+          image={hero.image}
+          imageAlt={stateCode
+            ? `Fictional ${hero.region} poker discovery console artwork for ${placeLabel}`
+            : `Fictional national poker discovery console artwork for ${placeLabel}`}
+          breadcrumbs={[
+            { label: 'Poker Near Me', href: '/hub/poker-near-me/lobby' },
+            ...(stateCode ? [{ label: 'United States', href: '/hub/poker-near-me/in' }] : []),
+            ...(city ? [{ label: stateName || stateCode, href: stateCanonical.replace('https://smarter.poker', '') }] : []),
+            { label: city || stateName || stateCode || 'Locations' },
+          ]}
+          status={degraded ? 'Published snapshot mode' : 'Live directory synchronized'}
+          statusTone={degraded ? 'modeled' : 'live'}
+          freshness={{ label: sourceLabel, dateTime: sourceTimestamp || undefined }}
+          metrics={[
+            { label: 'Poker venues', value: directoryCount },
+            { label: stateCode ? 'Cities represented' : 'States represented', value: stateCode ? new Set(venues.map((venue) => venue.city).filter(Boolean)).size : states.length },
+            { label: degraded ? 'Snapshot date' : 'Directory check', value: sourceDateLabel || 'Current request' },
+          ]}
+          actions={<Link href="/hub/poker-near-me/map">Open Live Map</Link>}
+        />
+      </div>
 
       <PokerNearMeRecentRail currentHref={currentPath} />
 
@@ -304,15 +338,15 @@ export default function PokerNearMeLocationPage({
 
         {states.length > 0 && (
           <section aria-labelledby="pnm-states-heading">
-            <header className="pnm-location-listing__section-head">
+            <PokerNearMePanelShell as="header" className="pnm-location-listing__section-head">
               <span>Regional Index</span>
               <h2 id="pnm-states-heading">Browse Poker Venues By State</h2>
               <p>Move From The National Network Into Room Profiles, City Indexes, And Live Discovery Tools.</p>
-            </header>
+            </PokerNearMePanelShell>
             <div className="pnm-location-listing__states">
               {states.slice(0, DIRECTORY_CARD_LIMIT).map((state) => (
                 <PokerNearMePanelShell as={Link} key={state.code} href={state.href} className="pnm-location-listing__state">
-                  <span>{state.name}</span><small>{state.venueCount} Venues · {state.cityCount} Cities</small>
+                  <span>{state.name}</span><small>{state.venueCount} {state.venueCount === 1 ? 'Venue' : 'Venues'} · {state.cityCount} {state.cityCount === 1 ? 'City' : 'Cities'}</small>
                 </PokerNearMePanelShell>
               ))}
             </div>
@@ -322,7 +356,7 @@ export default function PokerNearMeLocationPage({
               items={states.slice(DIRECTORY_CARD_LIMIT).map((state) => ({
                 href: state.href,
                 name: state.name,
-                meta: `${state.venueCount} Venues · ${state.cityCount} Cities`,
+                meta: `${state.venueCount} ${state.venueCount === 1 ? 'Venue' : 'Venues'} · ${state.cityCount} ${state.cityCount === 1 ? 'City' : 'Cities'}`,
               }))}
             />
           </section>
@@ -334,11 +368,11 @@ export default function PokerNearMeLocationPage({
             (AEO phase 3, 2026-09-19). */}
         {unplacedVenues.length > 0 && (
           <section aria-labelledby="pnm-unplaced-heading">
-            <header className="pnm-location-listing__section-head">
+            <PokerNearMePanelShell as="header" className="pnm-location-listing__section-head">
               <span>National Programmes</span>
               <h2 id="pnm-unplaced-heading">Poker Series That Run In More Than One State</h2>
               <p>These Run Across Several States Rather Than From One Room, So They Sit Outside The State Index.</p>
-            </header>
+            </PokerNearMePanelShell>
             <div className="pnm-location-listing__states">
               {unplacedVenues.map((venue) => (
                 <PokerNearMePanelShell as={Link} key={venue.href} href={venue.href} className="pnm-location-listing__state">
@@ -351,15 +385,15 @@ export default function PokerNearMeLocationPage({
 
         {cities.length > 0 && (
           <section aria-labelledby="pnm-cities-heading">
-            <header className="pnm-location-listing__section-head">
+            <PokerNearMePanelShell as="header" className="pnm-location-listing__section-head">
               <span>City Circuits</span>
               <h2 id="pnm-cities-heading">Browse Poker Venues By City</h2>
               <p>Open A Focused Local Directory Without Losing The Wider {stateName || stateCode} Network.</p>
-            </header>
+            </PokerNearMePanelShell>
             <div className="pnm-location-listing__states">
               {cities.slice(0, DIRECTORY_CARD_LIMIT).map((entry) => (
                 <PokerNearMePanelShell as={Link} key={entry.href} href={entry.href} className="pnm-location-listing__state">
-                  <span>{entry.name}</span><small>{entry.venueCount} Venues</small>
+                  <span>{entry.name}</span><small>{entry.venueCount} {entry.venueCount === 1 ? 'Venue' : 'Venues'}</small>
                 </PokerNearMePanelShell>
               ))}
             </div>
@@ -369,7 +403,7 @@ export default function PokerNearMeLocationPage({
               items={cities.slice(DIRECTORY_CARD_LIMIT).map((entry) => ({
                 href: entry.href,
                 name: entry.name,
-                meta: `${entry.venueCount} Venues`,
+                meta: `${entry.venueCount} ${entry.venueCount === 1 ? 'Venue' : 'Venues'}`,
               }))}
             />
           </section>
@@ -377,11 +411,11 @@ export default function PokerNearMeLocationPage({
 
         {venues.length > 0 && (
           <section aria-labelledby="pnm-venues-heading">
-            <header className="pnm-location-listing__section-head">
+            <PokerNearMePanelShell as="header" className="pnm-location-listing__section-head">
               <span>Directory Room Signals</span>
               <h2 id="pnm-venues-heading">Poker Venues In {placeLabel}</h2>
               <p>Open A Room Profile For Schedules, Games, Venue Details, And Current Discovery Signals.</p>
-            </header>
+            </PokerNearMePanelShell>
             <div className="pnm-location-listing__grid">
               {cardVenues.map((venue) => <VenueCard key={venue.id} venue={venue} />)}
             </div>

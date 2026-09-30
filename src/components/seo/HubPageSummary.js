@@ -602,14 +602,28 @@ export const HUB_PAGE_SUMMARIES = {
   },
 };
 
+// The page keys printed on the #ClubArenaConsole chassis instead of the
+// default rounded-card dress. Trivia joined on 2026-09-20. Poker Near Me
+// joined on 2026-09-30: its lobby and its fifteen stacked discovery sections
+// are painted console art, and this block was the last rounded card left on
+// the route. This list is additive by design, so a route that is not named
+// here keeps exactly the dress it had.
+const CONSOLE_DRESS_PAGES = new Set(['trivia', 'poker-near-me']);
+const CONSOLE_DRESS_PREFIXES = ['trivia-', 'pnm-'];
+
+export function usesConsoleDress(page) {
+  const key = String(page || '');
+  return CONSOLE_DRESS_PAGES.has(key) || CONSOLE_DRESS_PREFIXES.some((prefix) => key.startsWith(prefix));
+}
+
 export default function HubPageSummary({ page, as = 'h2' }) {
   const entry = HUB_PAGE_SUMMARIES[page];
   if (!entry) return null;
   const Heading = as === 'h1' ? 'h1' : 'h2';
-  // The Trivia pages are printed on the #ClubArenaConsole chassis: black glass,
-  // the master's inks and engraved rules, never rounded boxes (2026-09-20).
+  // The console pages are printed on the #ClubArenaConsole chassis: black
+  // glass, the master's inks and engraved rules, never rounded boxes.
   // The words, links and schema are identical; only the dress follows the page.
-  const styles = page === 'trivia' || page.startsWith('trivia-') ? consoleStyles : defaultStyles;
+  const styles = usesConsoleDress(page) ? consoleStyles : defaultStyles;
   const headingId = `hub-summary-${page}`;
   const schema = summarySchema(page, entry);
 
@@ -719,7 +733,7 @@ const defaultStyles = {
   },
 };
 
-// Trivia dress: the same content printed the way the console prints copy.
+// Console dress: the same content printed the way the console prints copy.
 // Colours are the master's inks only (#ClubArenaConsole 3.4); every link is a
 // 44px target; a row is separated by an engraved rule, never a drawn card.
 const consoleStyles = {

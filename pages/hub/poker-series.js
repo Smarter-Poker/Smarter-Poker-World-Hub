@@ -58,7 +58,7 @@ const TOUR_LOGO_MAP = {
     'MSPT':       '/images/tours/mspt.png',
     'RGPS':       '/images/tours/rgps.png',
     'PGT':        '/images/tours/pgt.png',
-    'CPPT':       '/images/tours/cppt.png',
+    'CPPT':       '/images/tours/cppt.jpg',
     'NAPT':       '/images/tours/napt.png',
     'FPN':        '/images/tours/fpn.png',
     'LIPS':       '/images/tours/lips.png',

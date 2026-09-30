@@ -55,6 +55,7 @@ import DiscoveryStatusRail from '../../../src/components/poker-near-me/Discovery
 import PokerNearMeFamilyNav from '../../../src/components/poker-near-me/PokerNearMeFamilyNav';
 import { FavLiveToast, TabErrorBoundary } from '../../../src/components/poker-near-me/ControllerRecovery';
 import LazyPanel from '../../../src/components/poker-near-me/LazyPanel';
+import { PokerNearMePanelShell } from '../../../src/components/poker-near-me/PokerNearMeConsole';
 import {
   EVENT_SECTIONS,
   PRIMARY_SECTIONS,
@@ -3307,7 +3308,7 @@ export default function PokerNearMePage({ initialDirectory = null }) {
       aria-labelledby="pnm-section-live-title"
       data-tutorial="live"
     >
-      <div className="pnm-section__head">
+      <PokerNearMePanelShell as="header" className="pnm-section__frame" bodyClassName="pnm-section__head">
         <span className="pnm-live-dot pnm-section__live-dot" aria-hidden="true" />
         <h2 id="pnm-section-live-title" className="pnm-section__title">Cash Games Near Me</h2>
         <p className="pnm-section__hint">
@@ -3317,7 +3318,7 @@ export default function PokerNearMePage({ initialDirectory = null }) {
               ? 'Listed Games Are Available, But Current Table Counts Are Unknown.'
             : 'Table Counts Come From The Live Games Feed.'}
         </p>
-      </div>
+      </PokerNearMePanelShell>
       <LazyPanel minHeight={320}>
         <TabErrorBoundary>
           {/* WIRING FIX: LiveGamesFeed declares `checkinCounts = {}` and the page
@@ -3351,10 +3352,10 @@ export default function PokerNearMePage({ initialDirectory = null }) {
       aria-labelledby="pnm-section-map-title"
       data-tutorial="map"
     >
-      <div className="pnm-section__head">
+      <PokerNearMePanelShell as="header" className="pnm-section__frame" bodyClassName="pnm-section__head">
         <h2 id="pnm-section-map-title" className="pnm-section__title">Poker Room Map</h2>
         <p className="pnm-section__hint">Every Pin Is A Room. Tap One For Details, Or Use My Location To Centre The Map.</p>
-      </div>
+      </PokerNearMePanelShell>
       <LazyPanel minHeight={360}>
         <TabErrorBoundary>
           <MapTabPanel
@@ -3382,10 +3383,10 @@ export default function PokerNearMePage({ initialDirectory = null }) {
       aria-labelledby="pnm-section-saved-title"
       data-tutorial="saved"
     >
-      <div className="pnm-section__head">
+      <PokerNearMePanelShell as="header" className="pnm-section__frame" bodyClassName="pnm-section__head">
         <h2 id="pnm-section-saved-title" className="pnm-section__title">Saved Poker Places</h2>
         <p className="pnm-section__hint">Rooms, Tours And Series You Have Favourited, In One Place.</p>
-      </div>
+      </PokerNearMePanelShell>
       <TabErrorBoundary>
         <FavoritesTabPanel
           allVenuesForMap={allVenuesForMap}
@@ -3411,10 +3412,10 @@ export default function PokerNearMePage({ initialDirectory = null }) {
       aria-labelledby="pnm-section-venues-title"
       data-tutorial="venues"
     >
-      <div className="pnm-section__head">
+      <PokerNearMePanelShell as="header" className="pnm-section__frame" bodyClassName="pnm-section__head">
         <h2 id="pnm-section-venues-title" className="pnm-section__title">Rooms And Venues</h2>
         <p className="pnm-section__hint">Casinos, Card Rooms, Clubs And Home Games Sorted By Distance. Tap The Heart To Save One.</p>
-      </div>
+      </PokerNearMePanelShell>
       <TabErrorBoundary>
         {hasSearched && (venueLoading || firstPaintSkeleton) ? renderSkeletons(8) : venuesTabJsx}
       </TabErrorBoundary>
@@ -3428,10 +3429,11 @@ export default function PokerNearMePage({ initialDirectory = null }) {
       aria-labelledby="pnm-section-events-title"
       data-tutorial="events"
     >
-      <div className="pnm-section__head">
+      <PokerNearMePanelShell as="header" className="pnm-section__frame" bodyClassName="pnm-section__head">
         <h2 id="pnm-section-events-title" className="pnm-section__title">Events And Tournaments</h2>
         <p className="pnm-section__hint">The Daily List, Travelling Tours, Festival Series And The Calendar.</p>
-      </div>
+      </PokerNearMePanelShell>
+      <PokerNearMePanelShell as="div" className="pnm-section__frame" bodyClassName="pnm-anchor-well">
       <nav className="pnm-sub-tabs" aria-label="Events sections">
         {EVENT_SECTIONS.map((sub) => {
           const selected = activeTab === 'events' && !showLiveTab && activeEventTab === sub.key;
@@ -3451,8 +3453,11 @@ export default function PokerNearMePage({ initialDirectory = null }) {
           );
         })}
       </nav>
+      </PokerNearMePanelShell>
       <div id={sectionId('daily')} className="pnm-subsection">
-        <h3 className="pnm-subsection__title">Daily Tournaments</h3>
+        <PokerNearMePanelShell as="header" className="pnm-section__frame" bodyClassName="pnm-subsection__head">
+          <h3 className="pnm-subsection__title">Daily Tournaments</h3>
+        </PokerNearMePanelShell>
         <TabErrorBoundary>
           {firstPaintSkeleton ? (
             renderSkeletons(4)
@@ -3469,7 +3474,9 @@ export default function PokerNearMePage({ initialDirectory = null }) {
         </TabErrorBoundary>
       </div>
       <div id={sectionId('tours')} className="pnm-subsection">
-        <h3 className="pnm-subsection__title">Poker Tours</h3>
+        <PokerNearMePanelShell as="header" className="pnm-section__frame" bodyClassName="pnm-subsection__head">
+          <h3 className="pnm-subsection__title">Poker Tours</h3>
+        </PokerNearMePanelShell>
         <TabErrorBoundary>
           <LazyPanel>
             <ToursTabPanel
@@ -3487,7 +3494,9 @@ export default function PokerNearMePage({ initialDirectory = null }) {
         </TabErrorBoundary>
       </div>
       <div id={sectionId('series')} className="pnm-subsection">
-        <h3 className="pnm-subsection__title">Poker Series</h3>
+        <PokerNearMePanelShell as="header" className="pnm-section__frame" bodyClassName="pnm-subsection__head">
+          <h3 className="pnm-subsection__title">Poker Series</h3>
+        </PokerNearMePanelShell>
         <TabErrorBoundary>
           <LazyPanel>
             <SeriesTabPanel
@@ -3507,7 +3516,9 @@ export default function PokerNearMePage({ initialDirectory = null }) {
         </TabErrorBoundary>
       </div>
       <div id={sectionId('calendar')} className="pnm-subsection">
-        <h3 className="pnm-subsection__title">Events Calendar</h3>
+        <PokerNearMePanelShell as="header" className="pnm-section__frame" bodyClassName="pnm-subsection__head">
+          <h3 className="pnm-subsection__title">Events Calendar</h3>
+        </PokerNearMePanelShell>
         <TabErrorBoundary>
           <LazyPanel>
             {/* WIRING FIX: SeasonalCalendar's signature is ({ series, tours }) —
@@ -3529,10 +3540,10 @@ export default function PokerNearMePage({ initialDirectory = null }) {
       aria-labelledby="pnm-section-more-title"
       data-tutorial="more"
     >
-      <div className="pnm-section__head">
+      <PokerNearMePanelShell as="header" className="pnm-section__frame" bodyClassName="pnm-section__head">
         <h2 id="pnm-section-more-title" className="pnm-section__title">Discovery Tools</h2>
         <p className="pnm-section__hint">Best Time To Go, Road Trips, The Social Feed, Game Alerts, Near Me Now And Trip Costs.</p>
-      </div>
+      </PokerNearMePanelShell>
       <TabErrorBoundary>
         <MoreTabPanel
           activeMoreTab={activeMoreTab}
