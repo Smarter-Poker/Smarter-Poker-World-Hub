@@ -432,6 +432,10 @@ import './venue-page-actions-reach-the-person.test.mjs';
 // blindly, which let a 302 reach the cloud metadata address.
 import './the-proxy-checks-every-redirect-hop.test.mjs';
 
+// Venue art is hotlinked from 104 casino domains that img-src can never list.
+// The mirror holds it; these pin the guard and the readers that prefer it.
+import './venue-art-comes-from-the-mirror.test.mjs';
+
 // The Report-Only CSP can only graduate if its violations reach us, so the
 // reporting wiring and the endpoint that receives it are guarded here.
 import './csp-violations-reach-us.test.mjs';
