@@ -77,6 +77,8 @@ test('launcher resolves a sealed machine target before any Pio process spawn', (
   assert.match(ORCHESTRATOR, /len\(contracts\) not in \(1, 2\)/);
   assert.match(ORCHESTRATOR, /bounded canary contracts require M1 first/);
   assert.match(ORCHESTRATOR, /"tree_geometry"/);
+  assert.match(ORCHESTRATOR, /PHASE_CONTRACT_SCHEMA = "training-solver-phase-contracts\.v2"/);
+  assert.match(ORCHESTRATOR, /legacy v1 producers must rebuild their phase contracts/);
   assert.match(ORCHESTRATOR, /"partition_count", "partition_index"/);
   assert.match(ORCHESTRATOR, /CLI partition does not match its sealed machine partition/);
   assert.match(ORCHESTRATOR, /foreign, stale, or ambiguously certified/);

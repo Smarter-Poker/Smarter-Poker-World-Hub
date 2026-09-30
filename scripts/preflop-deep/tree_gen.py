@@ -17,17 +17,42 @@ POT = 550
 EFF = 9750
 GEOMETRY_TAG = "srp_parameterized_four_action_v3"
 OPEN_BET_FRACTIONS = (0.33, 0.75, 1.25)
+CHIPS_PER_BIG_BLIND = 100
+MIN_NON_ALL_IN_RESIDUAL_CHIPS = CHIPS_PER_BIG_BLIND
+
+
+def aggressive_target_or_jam(requested_target, eff):
+    """Return a strategically distinct non-all-in target or the all-in target.
+
+    The canonical solver scale is 100 chips per big blind. A non-all-in action
+    is retained only when it leaves at least one full big blind behind. This
+    deterministic separation keeps strategically distinct deep-stack sizes,
+    while a nominal ``eff - 1`` or any other sub-1-BB residual collapses to the
+    single jam.
+    """
+    values = (requested_target, eff)
+    if any(not isinstance(value, int) or isinstance(value, bool) for value in values):
+        raise ValueError("aggressive geometry requires integer chip contributions")
+    if not (0 < requested_target and eff > 0):
+        raise ValueError("aggressive geometry requires a positive wager target")
+    if requested_target >= eff:
+        return eff
+
+    residual_to_jam = eff - requested_target
+    if residual_to_jam < MIN_NON_ALL_IN_RESIDUAL_CHIPS:
+        return eff
+    return requested_target
 
 
 def raise_targets(actor_contribution, opponent_contribution, eff):
     """Return deterministic legal raise-to targets for a facing decision.
 
     The first target is a full standard raise (three times the amount faced,
-    never below the legal minimum); the second is the all-in target. Near the
-    stack cap the standard target is capped at one chip below all-in so it stays
-    distinct. If no non-all-in full raise exists, only the legal all-in raise is
-    returned. Facing an all-in returns no raises, leaving Pio's implicit Fold
-    plus the explicit Call as the required binary decision.
+    never below the legal minimum); the second is the all-in target. A standard
+    target is retained only when it leaves at least one big blind behind.
+    Near the stack cap only the jam is emitted.
+    Facing an all-in returns no raises, leaving Pio's implicit Fold plus the
+    explicit Call as the required binary decision.
     """
     values = (actor_contribution, opponent_contribution, eff)
     if any(not isinstance(value, int) or isinstance(value, bool) for value in values):
@@ -39,14 +64,14 @@ def raise_targets(actor_contribution, opponent_contribution, eff):
 
     amount_faced = opponent_contribution - actor_contribution
     minimum_full_raise = opponent_contribution + amount_faced
-    if minimum_full_raise >= eff:
-        return [eff]
-
     preferred_standard = actor_contribution + 3 * amount_faced
-    standard = min(eff - 1, max(minimum_full_raise, preferred_standard))
-    # Keep this dedupe even though the integer/cap guards above already make
-    # the two targets distinct. It is a fail-safe against future sizing edits.
-    return list(dict.fromkeys((standard, eff)))
+    standard = aggressive_target_or_jam(
+        max(minimum_full_raise, preferred_standard),
+        eff,
+    )
+    if standard == eff:
+        return [eff]
+    return [standard, eff]
 
 
 def build_lines(pot=POT, eff=EFF):
@@ -79,12 +104,17 @@ def build_lines(pot=POT, eff=EFF):
                 action(street, oop, ip, pot, sofar + [me], False, 0)
             else:
                 action(street + 1, oop, ip, pot, sofar + [me], True, 0)
-            # Every street uses the same four-way no-facing action contract:
-            # Check plus 33%, 75%, and 125% pot, capped only by effective stack.
+            # Every street starts from the same four-way no-facing sizing
+            # contract: Check plus 33%, 75%, and 125% pot. A near-cap size is
+            # normalized to the single jam by the same one-big-blind residual
+            # contract used at facing nodes.
             seen = set()
             for b in OPEN_BET_FRACTIONS:
-                amt = int(round(pot * b)); new = me + amt
-                if new >= eff: new = eff; amt = eff - me
+                amt = int(round(pot * b)); requested = me + amt
+                if requested <= me:
+                    continue
+                new = aggressive_target_or_jam(requested, eff)
+                amt = new - me
                 if new <= me or new in seen: continue
                 seen.add(new)
                 if is_oop:

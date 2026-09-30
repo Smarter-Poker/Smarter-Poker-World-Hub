@@ -235,9 +235,13 @@ class FourActionGeometryTests(unittest.TestCase):
     def test_facing_nodes_have_two_distinct_raises_and_all_in_is_binary(self):
         geometry = worker.h.tree_gen
         self.assertEqual(geometry.raise_targets(0, 412, 9750), [1236, 9750])
-        self.assertEqual(geometry.raise_targets(8500, 9000, 9750), [9749, 9750])
+        self.assertEqual(geometry.raise_targets(8500, 9000, 9750), [9750])
+        self.assertEqual(geometry.raise_targets(0, 3000, 9750), [9000, 9750])
         self.assertEqual(geometry.raise_targets(9000, 9400, 9750), [9750])
         self.assertEqual(geometry.raise_targets(0, 9750, 9750), [])
+        self.assertEqual(geometry.aggressive_target_or_jam(9650, 9750), 9650)
+        self.assertEqual(geometry.aggressive_target_or_jam(9651, 9750), 9750)
+        self.assertEqual(geometry.aggressive_target_or_jam(1, 50), 50)
 
         lines = geometry.build_lines(550, 9750)
         # Pio adds Fold implicitly. These explicit children are Call plus the
@@ -252,6 +256,63 @@ class FourActionGeometryTests(unittest.TestCase):
             self.children_after(lines, [0, 412, 9750]),
             [9750],
         )
+
+    def test_every_short_and_deep_facing_raise_has_meaningful_jam_separation(self):
+        geometry = worker.h.tree_gen
+        for eff in range(2, 151):
+            for actor in range(eff):
+                for opponent in range(actor + 1, eff + 1):
+                    targets = geometry.raise_targets(actor, opponent, eff)
+                    if opponent == eff:
+                        self.assertEqual(targets, [])
+                        continue
+                    self.assertEqual(targets[-1], eff)
+                    self.assertEqual(len(targets), len(set(targets)))
+                    self.assertNotIn(eff - 1, targets[:-1])
+                    if len(targets) == 2:
+                        standard = targets[0]
+                        amount_faced = opponent - actor
+                        self.assertGreaterEqual(
+                            standard,
+                            opponent + amount_faced,
+                        )
+                        self.assertGreaterEqual(
+                            eff - standard,
+                            geometry.MIN_NON_ALL_IN_RESIDUAL_CHIPS,
+                        )
+
+        for eff in (750, 1000, 9750, 25000, 100000):
+            probes = sorted({
+                1, max(1, eff // 100), max(1, eff // 20),
+                max(1, eff // 4), max(1, eff // 2), eff - 1,
+            })
+            for opponent in probes:
+                if opponent >= eff:
+                    continue
+                for actor in sorted({0, max(0, opponent // 2), opponent - 1}):
+                    targets = geometry.raise_targets(actor, opponent, eff)
+                    self.assertEqual(targets[-1], eff)
+                    self.assertNotIn(eff - 1, targets[:-1])
+                    if len(targets) == 2:
+                        self.assertGreaterEqual(
+                            eff - targets[0],
+                            geometry.MIN_NON_ALL_IN_RESIDUAL_CHIPS,
+                        )
+
+    def test_generated_short_and_deep_trees_never_offer_eff_minus_one_and_jam(self):
+        geometry = worker.h.tree_gen
+        for pot, eff in ((25, 50), (100, 250), (550, 750),
+                         (550, 1000), (550, 9750), (5000, 25000)):
+            lines = geometry.build_lines(pot, eff)
+            children = {}
+            for line in lines:
+                for index, child in enumerate(line):
+                    children.setdefault(tuple(line[:index]), set()).add(child)
+            for prefix, choices in children.items():
+                self.assertFalse(
+                    eff - 1 in choices and eff in choices,
+                    "%s/%s prefix %s exposes eff-1 and jam" % (pot, eff, prefix),
+                )
 
     def test_new_geometry_identity_is_phase_checksum_bound(self):
         self.assertEqual(
@@ -283,6 +344,14 @@ class FourActionGeometryTests(unittest.TestCase):
             )
         )
         with self.assertRaisesRegex(SystemExit, "current protected tree geometry"):
+            validate_manifest(manifest)
+
+    def test_legacy_phase_contract_schema_fails_before_phase_shape_is_read(self):
+        manifest = make_manifest()
+        manifest["phase_contracts_schema"] = "training-solver-phase-contracts.v1"
+        del manifest["phases"][0]["tree_geometry"]
+        with self.assertRaisesRegex(
+                SystemExit, "legacy v1 producers must rebuild"):
             validate_manifest(manifest)
 
 

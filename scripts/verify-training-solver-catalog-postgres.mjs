@@ -430,7 +430,7 @@ AS $$
     'oop_player', p_oop,
     'ip_player', p_ip,
     'rake', '0.05 10',
-    'tree_geometry', 'srp_parameterized_v2',
+    'tree_geometry', 'srp_parameterized_four_action_v3',
     'solver', 'PioSOLVER',
     'ev_oop_bb', 0.75,
     'ev_ip_bb', 1.25,
@@ -470,7 +470,7 @@ INSERT INTO public.training_solver_provenance_authority (
     'ip_range_checksum', repeat('3', 64),
     'range_combo_order', 'card=rank*4+suit; combo=b*(b-1)/2+a; 2c2d=0..AhAs=1325',
     'source_combo_order_sha256', repeat('1', 64),
-    'tree_geometry', 'srp_parameterized_v2', 'streets', jsonb_build_array('flop', 'turn', 'river')
+    'tree_geometry', 'srp_parameterized_four_action_v3', 'streets', jsonb_build_array('flop', 'turn', 'river')
   ), jsonb_build_object(
     'game_type', 'hu_cash', 'stack_depth', 100,
     'oop_player', 'BB', 'ip_player', 'BTN',
@@ -480,7 +480,7 @@ INSERT INTO public.training_solver_provenance_authority (
     'ip_range_checksum', repeat('3', 64),
     'range_combo_order', 'card=rank*4+suit; combo=b*(b-1)/2+a; 2c2d=0..AhAs=1325',
     'source_combo_order_sha256', repeat('1', 64),
-    'tree_geometry', 'srp_parameterized_v2', 'streets', jsonb_build_array('flop', 'turn', 'river')
+    'tree_geometry', 'srp_parameterized_four_action_v3', 'streets', jsonb_build_array('flop', 'turn', 'river')
   )), 'phase6-disposable-postgres-verifier'
 );
 UPDATE public.training_solver_ingest_scopes

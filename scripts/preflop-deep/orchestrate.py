@@ -258,7 +258,7 @@ def contract_scope_checksum(contract_pairs):
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 
-PHASE_CONTRACT_SCHEMA = "training-solver-phase-contracts.v1"
+PHASE_CONTRACT_SCHEMA = "training-solver-phase-contracts.v2"
 PHASE_CONTRACT_FIELDS = (
     "id", "game_type", "stack", "street", "streets", "objective",
     "pot_chips", "eff_chips", "tree_geometry", "rake", "accuracy_fraction", "ip_range",
@@ -716,6 +716,13 @@ def validate_manifest(manifest_text, run_mode="backlog"):
     bundle_checksum = str(manifest.get("pipeline_bundle_checksum") or "").lower()
     if len(bundle_checksum) != 64 or any(c not in "0123456789abcdef" for c in bundle_checksum):
         raise SystemExit("manifest must pin the approved pipeline bundle checksum")
+    observed_phase_schema = manifest.get("phase_contracts_schema")
+    if observed_phase_schema != PHASE_CONTRACT_SCHEMA:
+        raise SystemExit(
+            "manifest phase contract schema %r is unsupported; %s is required "
+            "and legacy v1 producers must rebuild their phase contracts"
+            % (observed_phase_schema, PHASE_CONTRACT_SCHEMA)
+        )
     phase_ids = set()
     for ph in manifest["phases"]:
         required = ("id", "game_type", "stack", "street", "streets", "objective",
@@ -817,8 +824,7 @@ def validate_manifest(manifest_text, run_mode="backlog"):
     declared_phase_digest = str(
         manifest.get("phase_contracts_sha256") or ""
     ).lower()
-    if (manifest.get("phase_contracts_schema") != PHASE_CONTRACT_SCHEMA
-            or declared_phase_specs != expected_phase_specs
+    if (declared_phase_specs != expected_phase_specs
             or not re.fullmatch(r"[0-9a-f]{64}", declared_phase_digest)
             or declared_phase_digest == "0" * 64
             or declared_phase_digest != phase_contracts_checksum(expected_phase_specs)):

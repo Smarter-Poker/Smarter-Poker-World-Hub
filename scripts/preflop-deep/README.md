@@ -20,6 +20,15 @@ until `phases.json.release_gate.solver_ready` is true in a protected commit, the
 operator supplies that exact manifest checksum, and every range artifact passes
 its per-phase SHA-256 check. The current gate is intentionally closed.
 
+Every protected phase manifest must use
+`phase_contracts_schema: training-solver-phase-contracts.v2`. Version 2 binds
+the mandatory `tree_geometry` field into each canonical phase contract and its
+digest; legacy v1 producers are rejected explicitly instead of being inferred.
+Within v3 geometry, a non-all-in aggressive target is retained only when the
+canonical 100-chips-per-BB stack leaves at least one big blind behind. Any
+near-cap candidate, including a nominal effective-stack-minus-one action,
+collapses to the single jam.
+
 A separately protected bounded canary may run while the backlog gate remains
 closed, but only when `release_gate.bounded_canary_ready` is true and the same
 checksum-pinned manifest contains exactly M1, or M1 plus M2; it may never

@@ -63,6 +63,12 @@ path. Use one literal row per independently verified worker/build/manifest
 tuple; do not use wildcards, `ON CONFLICT`, or an update that can reactivate a
 retired tuple.
 
+The reviewed manifest must declare
+`phase_contracts_schema: training-solver-phase-contracts.v2`. The v2 shape
+requires `tree_geometry` in every phase and canonical phase-contract row before
+the digest is computed. A v1 producer is a breaking-schema mismatch and must be
+rebuilt; it cannot be admitted as a partial or backward-compatible approval.
+
 ```sql
 BEGIN;
 

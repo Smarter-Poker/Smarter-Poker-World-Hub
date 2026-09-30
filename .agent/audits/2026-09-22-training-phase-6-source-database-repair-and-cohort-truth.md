@@ -521,8 +521,11 @@ the solver release gate:
 - `srp_parameterized_four_action_v3` provides Check plus 33/75/125 percent pot
   bets at no-facing nodes on every postflop street, legal standard plus all-in
   raises where the effective stack permits both, and binary Fold/Call when
-  facing all-in. `tree_geometry` is now part of the immutable phase-contract
-  checksum; legacy v2 artifacts cannot be relabelled.
+  facing all-in. Near-cap non-all-in actions collapse to jam unless at least
+  one big blind remains in the canonical 100-chips-per-BB scale. `tree_geometry`
+  is mandatory in `training-solver-phase-contracts.v2` and its immutable
+  checksum; legacy v1 phase producers and legacy v2 geometry artifacts cannot
+  be relabelled.
 - A bounded-canary manifest may contain M1 alone at fixed partition `2/0`, or
   M1 plus M2 with M2 fixed at `2/1`; M2-only authority and an M2 invocation
   against an M1-only manifest fail before Pio starts. The checked-in manifest
