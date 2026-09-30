@@ -22,6 +22,7 @@ import HubPageSummary, { HUB_PAGE_SUMMARIES } from '../../../src/components/seo/
 import { useRouter } from 'next/router';
 import Image from 'next/image';
 import dynamic from 'next/dynamic';
+import { getVenueLogoUrl } from '../../../src/components/poker-near-me/pnm-utils.js';
 import { useAvatar } from '../../../src/contexts/AvatarContext';
 import HamburgerMenu from '../../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../../src/config/hamburgerMenus';
@@ -3904,8 +3905,14 @@ export default function PokerNearMePage({ initialDirectory = null }) {
                       <a className="pnm-ssr-venue" href={`/hub/venues/${encodeURIComponent(String(venue.id))}`} key={venue.id}>
                         <span
                           className="pnm-ssr-venue-art"
-                          style={venue.cover_photo_url || venue.profile_photo_url
-                            ? { backgroundImage: `url(${JSON.stringify(venue.cover_photo_url || venue.profile_photo_url).slice(1, -1)})` }
+                          /* getVenueLogoUrl, not the raw fields. This was the last
+                             reader that skipped logo_url, so it drew the casino's own
+                             server for venues whose art we already mirror, and it is
+                             a CSS background, which img-src governs but next/image
+                             cannot reach. Every img-src violation left on this route
+                             came from this one span. */
+                          style={getVenueLogoUrl(venue)
+                            ? { backgroundImage: `url(${JSON.stringify(getVenueLogoUrl(venue)).slice(1, -1)})` }
                             : undefined}
                           aria-hidden="true"
                         />
