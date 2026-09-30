@@ -102,7 +102,7 @@ INSERT INTO public.training_solver_provenance_authority (
         'card=rank*4+suit; combo=b*(b-1)/2+a; 2c2d=0..AhAs=1325',
       'source_combo_order_sha256',
         '<64-lowercase-hex-show-hand-order-sha256>',
-      'tree_geometry', 'srp_parameterized_v2',
+      'tree_geometry', 'srp_parameterized_four_action_v3',
       'streets', jsonb_build_array('flop', 'turn')
     )
     -- Add one independently verified jsonb_build_object per approved manifest
@@ -220,11 +220,21 @@ target set is immutable after activation, and M1/M2 are fixed to `2/0` and
 transition and is valid only with zero canary targets. Never reuse or widen a
 bounded-canary tuple for backlog work; retire it and approve a new tuple.
 
+The first supervised manifest may intentionally contain only the sealed M1
+contract. That is a fail-closed staged release, not permission to renumber the
+fleet: M1 remains `2/0`, and a later M2 contract remains `2/1`. A manifest may
+therefore contain exactly M1, or M1 plus M2; it may never contain M2 alone.
+When M2 is absent, `run_machine.py M2 2 1 --canary` must stop before any Pio
+process starts with `approved manifest has no unique bounded canary target for
+M2`. Keep M2 stopped until a separately checksum-sealed manifest explicitly
+contains its contract.
+
 The protected manifest also seals an explicit execution scope. A supervised
 canary uses `execution_scope: bounded_canary`, keeps `solver_ready` false, and
-contains only phases referenced by the exact M1 and M2 canary contracts. Its
-107-game ledger remains complete, but games outside those canary phase pairs
-truthfully carry no runnable phase. A production backlog uses
+contains only phases referenced by the exact canary contracts present (M1 is
+required; M2 is optional). Its 107-game ledger remains complete, but games
+outside those canary phase pairs truthfully carry no runnable phase. A
+production backlog uses
 `execution_scope: training_backlog` and must contain all 18 approved chip-EV
 family/stack contracts. Changing a release-gate boolean can never convert the
 partial canary manifest into backlog authority.

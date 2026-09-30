@@ -544,13 +544,14 @@ test('both question endpoints persist the exact post-contract envelope used for 
   assert.match(batch, /selectedCanonicalPairs\.length !== questionCount/);
   assert.match(batch, /TRAINING_ATTEMPT_QUESTION_SHORTFALL/);
   assert.match(batch, /buildTrainingCacheRow\(\{/);
-  assert.match(batch, /\.upsert\(canonicalRows, \{[\s\S]*defaultToNull: false/);
+  assert.match(batch, /const canonicalRowsForWrite = orderRowsForConcurrentWrite\(canonicalRows, 'question_id'\)/);
+  assert.match(batch, /\.upsert\(canonicalRowsForWrite, \{[\s\S]*defaultToNull: false/);
   assert.match(batch, /withPersistedCacheReceipt/);
   assert.match(batch, /servedBatch = selectedCanonicalPairs\.map/);
   assert.match(batch, /recordTrainingQuestionsServed/);
   assert.match(batch, /Refusing to serve uncanonicalized questions/);
   assert.match(batch, /status\(503\)\.json\(trainingPersistenceUnavailableBody\(\)\)/);
-  assert.doesNotMatch(batch, /\.upsert\(canonicalRows, \{[^}]*ignoreDuplicates: true/);
+  assert.doesNotMatch(batch, /\.upsert\(canonicalRowsForWrite, \{[^}]*ignoreDuplicates: true/);
   const recorder = fs.readFileSync('pages/api/training/record-question.js', 'utf8');
   assert.match(single, /prepareTrainingAttemptDelivery/);
   assert.match(batch, /prepareTrainingAttemptDelivery/);

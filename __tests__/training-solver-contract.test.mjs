@@ -519,12 +519,19 @@ test('canonical solver exports carry complete machine and artifact provenance', 
 
 test('solver hosts fail closed on unapproved manifests, ranges, and ICM objectives', () => {
   const launcher = fs.readFileSync('scripts/preflop-deep/run_machine.py', 'utf8');
+  const pipelineReadme = fs.readFileSync('scripts/preflop-deep/README.md', 'utf8');
   const orchestrator = fs.readFileSync('scripts/preflop-deep/orchestrate.py', 'utf8');
   const migration = fs.readFileSync('supabase/migrations/20260831141500_training_solver_provenance.sql', 'utf8');
   const manifest = JSON.parse(fs.readFileSync('scripts/preflop-deep/phases.json', 'utf8'));
   assert.equal(manifest.version, 4);
   assert.equal(manifest.execution_scope, 'training_backlog');
   assert.equal(manifest.release_gate.solver_ready, false);
+  assert.match(
+    pipelineReadme,
+    /manifest contains exactly M1, or M1 plus M2; it may never\s+contain M2 alone/,
+  );
+  assert.match(pipelineReadme, /M1 is always fixed to partition `2\/0`/);
+  assert.match(pipelineReadme, /optional M2\s+contract is always fixed to partition `2\/1`/);
   assert.match(launcher, /PIPELINE_COMMIT is required; solver hosts may not follow a moving main branch/);
   assert.doesNotMatch(launcher, /repos\/%s\/commits\/main/);
   assert.match(launcher, /APPROVED_MANIFEST_CHECKSUM is required before any pipeline code is installed/);
