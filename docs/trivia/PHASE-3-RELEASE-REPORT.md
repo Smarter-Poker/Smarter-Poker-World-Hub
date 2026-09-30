@@ -66,6 +66,11 @@ untouched because they are evidence for quarantined matches. Of the 5 old sessio
 submitted without stats, 4 were verified and backfilled at session level. The fifth is a PvP
 session and was refused for the same held-evidence reason.
 
+**Stray entry charge closed.** `/api/diamonds/spend` used to accept a `trivia_entry` charge,
+which could take diamonds without opening a session. Nothing in the app sent it and no such charge
+has ever been recorded, so the route now refuses it by name (`trivia_entry_charged_at_session_start`).
+The only Trivia entry charge left is the one the database makes inside the session start.
+
 **Achievements.** The 30 achievement criteria now live in the database, and the engine records
 achievement events. No diamond reward is displayed for any achievement.
 
@@ -87,6 +92,16 @@ records a health run each time.
 
 Replica suite: 74 of 74 checks passed in three runs. The third run installed Phase 2 first on a
 copy of the production-data replica (`replica.runs`).
+
+## Live verification (2026-09-30)
+
+- Production serves the release: `/api/health` reports the merge commit on `hub-vanguard`.
+- Today's daily roster has 10 questions, all in the eligible pool and allowed for daily. The response
+  carries only id, question, options, category and difficulty, so no answer key.
+- Without sign-in, session answer, session submit, question reports and the admin triage queue all
+  refuse (401).
+- No Trivia session had started since the release by 11:20 UTC, so the shadow comparison has no
+  production rows yet. It records on the next session a player starts.
 
 ## Installed migrations
 

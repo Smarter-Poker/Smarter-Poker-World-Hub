@@ -42,22 +42,10 @@ import {
     fixedSpendAmount,
     validateDiamondSpendReceipt,
 } from '../../../src/lib/diamonds/spendReceiptPolicy.mjs';
+import { checkSpendSource } from '../../../src/lib/diamonds/spendSources.mjs';
 
 /** Upper bound on a single charge. Nothing in the app costs more than this. */
 const MAX_CHARGE = 1000;
-
-/**
- * Permitted spend sources. Anything not on this list is rejected rather than
- * silently written, so `transaction_type` stays a closed vocabulary.
- */
-const ALLOWED_SOURCES = new Set([
-    'game_cost',
-    'memory_game',
-    'trivia_entry',
-    'trivia_lifeline',
-    'training_entry',
-    'video_unlock',
-]);
 
 let _supabase = null;
 function getSupabase() {
@@ -103,10 +91,17 @@ export default async function handler(req, res) {
             });
         }
 
-        const source = typeof body.source === 'string' ? body.source.trim() : '';
-        if (!ALLOWED_SOURCES.has(source)) {
-            return res.status(400).json({ success: false, error: 'Unrecognised spend source' });
+        // A closed vocabulary (src/lib/diamonds/spendSources.mjs). A retired source,
+        // such as trivia_entry, is refused by name before anything is charged.
+        const sourceCheck = checkSpendSource(body.source);
+        if (!sourceCheck.ok) {
+            return res.status(sourceCheck.status).json({
+                success: false,
+                error: sourceCheck.error,
+                ...(sourceCheck.code ? { code: sourceCheck.code } : {}),
+            });
         }
+        const source = sourceCheck.source;
 
         // Known products are priced here, never by the browser. In particular,
         // a Trivia client cannot pre-seed a lifeline reference with a one-

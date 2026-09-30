@@ -493,5 +493,43 @@
     "correct_index": false
    }
   }
+ },
+ "live_verification": {
+  "at": "2026-09-30T11:20Z",
+  "health": {
+   "status": "ok",
+   "commit_is_release_merge": true,
+   "project": "hub-vanguard",
+   "db": "ok"
+  },
+  "daily": {
+   "success": true,
+   "questions": 10,
+   "rosterSource": "daily_date",
+   "degraded": false,
+   "fields": [
+    "category",
+    "difficulty",
+    "id",
+    "options",
+    "question"
+   ],
+   "key_like_fields": [],
+   "in_eligible_pool": 10,
+   "in_serving_view_with_daily_mode": 10
+  },
+  "unauthenticated_probes": {
+   "GET /api/admin/trivia-question-reports": 401,
+   "POST /api/trivia/session-answer": 401,
+   "POST /api/trivia/session-submit": 401,
+   "POST /api/trivia/report-question": 401
+  },
+  "sessions_since_release": 0,
+  "shadow_selector_runs": 0
+ },
+ "spend_route": {
+  "trivia_entry": "refused (400, code trivia_entry_charged_at_session_start)",
+  "app_callers": 0,
+  "diamond_transactions_with_type_trivia_entry_ever": 0
  }
 }
