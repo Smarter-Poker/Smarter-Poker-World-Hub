@@ -504,13 +504,13 @@ ls __tests__/training-campaign-batch-game-matrix.test.mjs __tests__/training-aud
 This resumption used Policy 2.9. The canonical policy reader emitted manifest
 receipt `a659f31c5c1c2b0864889508079a635dd5fe2fc98decfbfc9d3f9c80dd45ec3b`
 with owner-policy hash
-`b9478d1570575b410945fcfbe1ce5ac08669b80189f532e0282040dad9306349`,
+`b9478d0331314413d8e12c41210b63479cdcabc1f86ed3fdcb3251efa36e6349`,
 operating-law hash
-`a8bc3cb38fac03bf9ef9109b2def34fe54772d13a3a0f57936d9246d896461d5`,
+`a8bc3c04dce3354ebdd51a89c0b7d715af3344edcc794d33f6b3ad64506961d5`,
 hardening-standard hash
-`d5fc45b83a16dc9cfaf3936ed57f60be21bab98c6a6c9208d94207789bf6993e`,
+`d5fc451ce5caf6d6b5e64597a13883e1246581678fe53c962339d0a66136993e`,
 and reference-index hash
-`adce89e9f9261637224e240a0f7ca90aa40b1b0cc7ff1ab7311a96dc0eb25555`.
+`adce89c3f838f2f373cd504a00329d53906404d1dd42a647f672af6c16f95555`.
 Work was recovered into the owned external-SSD worktree
 `/Volumes/SmarterWork/agent-work/training-phase6-closeout-20260930/world-hub`;
 no internal-drive worktree was created.
