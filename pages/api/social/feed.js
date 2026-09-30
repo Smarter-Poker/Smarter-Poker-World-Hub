@@ -12,7 +12,18 @@
  * Query params:
  *   offset   - pagination offset (default: 0)
  *   limit    - page size (default: 20, max: 50)
+ *   tab      - all | hands (default: all); hands keeps posts that carry a hand
+ *   topic    - one FEED_TOPICS value; narrows the page to that topic
+ *   exclude  - comma-separated post ids the client already holds (max 50)
  * Viewer identity is resolved only from the Authorization bearer token.
+ *
+ * Phase 8 (discovery and the feed): every row the scan consumes but does not
+ * return (private, unsafe video, not-ready native video, excluded by the
+ * client, over the per-author cap) is consumed by raw position, so
+ * nextOffset stays the raw position of the first row the scan did not
+ * inspect. The played-with ranking is a permutation of the returned page
+ * applied AFTER nextOffset is computed. Horses are players: who wrote a post
+ * or how it was produced never decides a band, a cap or a filter here.
  */
 
 // NOTE: This handler uses Node.js Pages Router API (req.query, res.setHeader, res.status)
@@ -22,10 +33,25 @@ import {
     VIDEO_LIBRARY_MAX_FUTURE_SKEW_MS,
     VIDEO_LIBRARY_VERIFICATION_MAX_AGE_MS,
 } from '../../../src/lib/videoLibraryAvailability';
+import { FEED_TOPICS } from '../../../src/lib/socialTopics';
+import { rankFeedPage } from '../../../src/lib/feedRanking';
 
 const POST_SCAN_SIZE = 100;
 const MAX_POST_SCAN_ROWS = 5_000;
 const MAX_FEED_OFFSET = 100_000;
+// Phase 8 feed contract. Exported so the tests and the client contract pin
+// the same numbers this handler enforces.
+export const FEED_AUTHOR_CAP = 2;
+export const FEED_EXCLUDE_MAX = 50;
+export const FEED_TABS = ['all', 'hands'];
+// A native upload plays in the feed only once its transcode finished. A null
+// status is a row that predates transcoding and already plays.
+export const READY_TRANSCODE_STATUSES = new Set([null, 'done']);
+export { FEED_TOPICS };
+const PLAYED_WITH_HANDS = 200;
+const PLAYED_WITH_CAP = 100;
+const PLAYED_WITH_TIMEOUT_MS = 1_500;
+const EMPTY_ID_SET = new Set();
 // Verification age and future skew come from the one shared freshness contract
 // (src/lib/videoLibraryAvailability.js), which mirrors the installed SQL
 // predicates. Do not redeclare them here. The legacy-transition window below
@@ -47,6 +73,7 @@ const POST_SELECT = [
     'playback_type', 'topic', 'rights_status', 'source_asset_id',
     'youtube_video_id', 'canonical_asset_key', 'publication_key',
     'legacy_transition_eligible', 'legacy_transition_expires_at',
+    'topics', 'cover_frames', 'cover_frame_index', 'transcode_status',
 ].join(',');
 
 const getSupaConfig = () => ({
@@ -363,10 +390,89 @@ function managedVideoPostIsEligible(post, context, nowMs = Date.now()) {
         && checkedAt <= nowMs + MAX_FUTURE_SKEW_MS;
 }
 
-async function readSafePostWindow(offset, limit) {
+function nativeVideoIsReady(post) {
+    if (post?.content_type !== 'video' || post?.playback_type !== 'native') return true;
+    return READY_TRANSCODE_STATUSES.has(post?.transcode_status ?? null);
+}
+
+function coverFrameUrlFor(post) {
+    const frames = Array.isArray(post?.cover_frames) ? post.cover_frames : [];
+    if (frames.length === 0) return null;
+    const picked = post?.cover_frame_index;
+    const index = Number.isInteger(picked) && picked >= 0 && picked < frames.length ? picked : 0;
+    const frame = frames[index];
+    return typeof frame === 'string' && frame ? frame : null;
+}
+
+/**
+ * Validate the Phase 8 query parameters. Returns { tab, topic, excludeIds }
+ * or { error } with the exact 400 message the client contract names.
+ */
+export function parseFeedQuery(query = {}) {
+    const rawTab = query.tab;
+    const tab = rawTab === undefined || rawTab === '' ? 'all' : rawTab;
+    if (typeof tab !== 'string' || !FEED_TABS.includes(tab)) {
+        return { error: 'Unsupported feed tab' };
+    }
+    const rawTopic = query.topic;
+    const topic = rawTopic === undefined || rawTopic === '' ? null : rawTopic;
+    if (topic !== null && (typeof topic !== 'string' || !FEED_TOPICS.includes(topic))) {
+        return { error: 'Unsupported feed topic' };
+    }
+    const excludeIds = new Set();
+    const rawExclude = query.exclude;
+    if (rawExclude !== undefined && rawExclude !== '') {
+        if (typeof rawExclude !== 'string') return { error: 'Unsupported exclude list' };
+        const ids = rawExclude.split(',').map(id => id.trim()).filter(Boolean);
+        if (ids.length > FEED_EXCLUDE_MAX) return { error: 'Unsupported exclude list' };
+        for (const id of ids) {
+            if (!UUID_RE.test(id)) return { error: 'Unsupported exclude list' };
+            excludeIds.add(id.toLowerCase());
+        }
+    }
+    return { tab, topic, excludeIds };
+}
+
+// Tablemates: the viewer's own recent hands decide band A of the page order.
+// Anonymous viewers make no call. A failure or a timeout degrades to the
+// chronological order (ranked: false), never to an error response.
+async function readPlayedWith(userId) {
+    if (!userId) return { playedWith: new Set(), ranked: false };
+    try {
+        const options = {
+            method: 'POST',
+            body: JSON.stringify({ p_viewer: userId, p_hands: PLAYED_WITH_HANDS, p_cap: PLAYED_WITH_CAP }),
+        };
+        if (typeof AbortSignal !== 'undefined' && typeof AbortSignal.timeout === 'function') {
+            options.signal = AbortSignal.timeout(PLAYED_WITH_TIMEOUT_MS);
+        }
+        const rows = await supaFetch('/rpc/fn_feed_played_with', options);
+        const playedWith = new Set((Array.isArray(rows) ? rows : [])
+            .map(row => String(row?.user_id || '').toLowerCase())
+            .filter(id => UUID_RE.test(id)));
+        return { playedWith, ranked: true };
+    } catch (err) {
+        console.warn('[API/feed] played-with unavailable:', err?.message);
+        return { playedWith: new Set(), ranked: false };
+    }
+}
+
+export async function readSafePostWindow(offset, limit, options = {}) {
+    const tab = FEED_TABS.includes(options.tab) ? options.tab : 'all';
+    const topic = typeof options.topic === 'string' && options.topic ? options.topic : null;
+    const excludeIds = options.excludeIds instanceof Set ? options.excludeIds : EMPTY_ID_SET;
+    const authorCap = Number.isInteger(options.authorCap) && options.authorCap > 0
+        ? options.authorCap
+        : FEED_AUTHOR_CAP;
     const posts = [];
+    const countByAuthor = new Map();
     let rawOffset = offset;
     let scanned = 0;
+    // The tab and topic predicates live INSIDE the PostgREST query so the raw
+    // offset counts only matching rows and a sparse tab never burns the scan.
+    const facetFilters = [];
+    if (tab === 'hands') facetFilters.push('hand');
+    if (topic && !facetFilters.includes(topic)) facetFilters.push(topic);
 
     while (scanned < MAX_POST_SCAN_ROWS) {
         const scanLimit = Math.min(POST_SCAN_SIZE, MAX_POST_SCAN_ROWS - scanned);
@@ -378,6 +484,7 @@ async function readSafePostWindow(offset, limit) {
             offset: String(rawOffset),
             limit: String(scanLimit),
         });
+        for (const facet of facetFilters) params.append('topics', `cs.{${facet}}`);
         const page = await supaFetch(`/social_posts?${params}`);
         if (!Array.isArray(page) || page.length === 0) {
             return { posts, hasMore: false, nextOffset: rawOffset, partial: false };
@@ -391,12 +498,22 @@ async function readSafePostWindow(offset, limit) {
             // friends/specific/only-me post through this public feed.
             if (!isPublicAudiencePost(post)) continue;
             if (!managedVideoPostIsEligible(post, context)) continue;
+            // A native upload whose transcode has not finished, a row the
+            // client already holds and a row past the per-author cap are
+            // consumed exactly like an unsafe row: the continuation stays
+            // exact and consumed means consumed. The cap keys on author_id
+            // only; every author, horse or human, gets the same cap.
+            if (!nativeVideoIsReady(post)) continue;
+            if (excludeIds.has(String(post.id || '').toLowerCase())) continue;
+            const authorKey = String(post.author_id || '');
+            if ((countByAuthor.get(authorKey) || 0) >= authorCap) continue;
             if (posts.length === limit) {
                 // This row was inspected but not consumed. Returning its raw
                 // position prevents filtered rows from creating skips/loops.
                 return { posts, hasMore: true, nextOffset: rawOffset + index, partial: false };
             }
             posts.push(post);
+            countByAuthor.set(authorKey, (countByAuthor.get(authorKey) || 0) + 1);
         }
         rawOffset += page.length;
         if (page.length < scanLimit) {
@@ -429,6 +546,11 @@ export default async function handler(req, res) {
         const limit = Number.isFinite(parsedLimit)
             ? Math.min(50, Math.max(1, parsedLimit))
             : 20;
+        const feedQuery = parseFeedQuery(req.query || {});
+        if (feedQuery.error) {
+            return res.status(400).json({ error: feedQuery.error });
+        }
+        const { tab, topic, excludeIds } = feedQuery;
         // 2026-08-15 audit: identity comes from the JWT, never from
         // ?user_id — the service-role enrichment below would otherwise leak
         // any user's like/bookmark state to any caller who passed their uuid.
@@ -468,19 +590,21 @@ export default async function handler(req, res) {
         // Keep authentication concurrent with the canonical filtered window.
         // Raw continuation consumes hidden/deleted rows without skipping valid posts.
         const [{ posts, hasMore, nextOffset, partial }, userId] = await Promise.all([
-            readSafePostWindow(offset, limit),
+            readSafePostWindow(offset, limit, { tab, topic, excludeIds, authorCap: FEED_AUTHOR_CAP }),
             userIdPromise,
         ]);
 
         if (!posts || posts.length === 0) {
-            return res.status(200).json({ posts: [], hasMore, nextOffset, partial, offset, limit });
+            return res.status(200).json({
+                posts: [], hasMore, nextOffset, partial, offset, limit, tab, ranked: false, carry: [],
+            });
         }
 
         // ── 2. Parallel: profiles + likes for this page + bookmarks ──────────
         const postIds = posts.map(p => p.id);
         const authorIds = [...new Set(posts.map(p => p.author_id).filter(Boolean))];
 
-        const [profilesData, likesData, ownLikesData, bookmarksData] = await Promise.all([
+        const [profilesData, likesData, ownLikesData, bookmarksData, playedWithResult] = await Promise.all([
             // Profiles for all authors on this page
             authorIds.length > 0
                 ? supaFetch(`/profiles?id=in.(${authorIds.join(',')})&select=id,username,full_name,display_name,avatar_url`)
@@ -504,7 +628,11 @@ export default async function handler(req, res) {
                 ? supaFetch(`/social_interactions?user_id=eq.${userId}&interaction_type=eq.bookmark&post_id=in.(${postIds.join(',')})&select=post_id`)
                     .catch(() => []) // Non-critical — don't fail if this errors
                 : Promise.resolve([]),
+
+            // Tablemates for the page order (signed-in viewers only; never throws)
+            readPlayedWith(userId),
         ]);
+        const { playedWith, ranked } = playedWithResult;
 
         // ── 3. Build lookup maps ─────────────────────────────────────────────
         const profileMap = {};
@@ -520,8 +648,11 @@ export default async function handler(req, res) {
         const bookmarkedIds = new Set((bookmarksData || []).map(b => b.post_id));
         const ownLikedIds = new Set((ownLikesData || []).map(l => l.post_id));
 
-        // ── 4. Enrich posts ──────────────────────────────────────────────────
-        const enrichedPosts = posts.map(p => {
+        // ── 4. Rank, then enrich posts ───────────────────────────────────────
+        // The band merge permutes THIS page only. nextOffset was fixed by the
+        // raw scan above, so nothing moves across pages.
+        const pagePosts = ranked ? rankFeedPage(posts, { playedWith }) : posts;
+        const enrichedPosts = pagePosts.map(p => {
             const likesArray = likesByPost[p.id] || [];
             const reactions = likesArray.map(l => l.reaction_type || 'like');
             const profile = profileMap[p.author_id];
@@ -557,6 +688,10 @@ export default async function handler(req, res) {
                 origin_type: p.origin_type,
                 playback_type: p.playback_type,
                 topic: p.topic,
+                topics: Array.isArray(p.topics) ? p.topics : [],
+                playedWith: playedWith.has(String(p.author_id || '').toLowerCase()),
+                coverFrameUrl: coverFrameUrlFor(p),
+                transcodeStatus: p.transcode_status ?? null,
                 rights_status: p.rights_status,
                 source_asset_id: p.source_asset_id,
                 youtube_video_id: p.youtube_video_id,
@@ -579,6 +714,9 @@ export default async function handler(req, res) {
             partial,
             offset,
             limit,
+            tab,
+            ranked,
+            carry: enrichedPosts.map(post => post.id),
         });
 
     } catch (err) {
