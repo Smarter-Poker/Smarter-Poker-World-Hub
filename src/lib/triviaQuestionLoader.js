@@ -272,8 +272,10 @@ export async function recordQuestionsSeen(supabase, userId, questions, mode = nu
 // POOL FETCHING
 // ═══════════════════════════════════════════════════════════════════════════
 
-function applyPoolFilters(query, { category, difficulty, minQuality }) {
+function applyPoolFilters(query, { category, difficulty, minQuality, mode }) {
     let q = query;
+    // Phase 3: serving views carry explicit per-question mode eligibility.
+    if (typeof mode === 'string' && mode) q = q.contains('modes', [mode]);
     if (Array.isArray(category) && category.length > 0) q = q.in('category', category);
     else if (category && !Array.isArray(category)) q = q.eq('category', category);
     if (Array.isArray(difficulty) && difficulty.length > 0) q = q.in('difficulty', difficulty);
@@ -316,18 +318,22 @@ export async function fetchRandomQuestionPool(supabase, opts = {}) {
         attempts = 1,
         want = 0,
         withoutAnswers = false,
+        // Phase 3: paid/competitive selection reads ONLY the eligible serving view
+        // (trivia_eligible_questions_serving_v1); the raw table is legacy/free only.
+        source = 'trivia_questions',
+        mode,
     } = opts;
 
     const excludeSet = toIdSet(opts.excludeIds);
     const dbExclude = safeUuids(excludeSet.size > 0 ? Array.from(excludeSet) : []);
-    const filters = { category, difficulty, minQuality };
+    const filters = { category, difficulty, minQuality, mode: source === 'trivia_questions' ? undefined : mode };
 
     // Count first so the random offset lands inside the pool.
     // The exclusion filter MUST match the data query below — computing the
     // offset from the unfiltered count let the random offset land past the
     // end of the filtered set, returning empty pages to exactly the heavy
     // players who had the most excluded ids.
-    let countQ = supabase.from('trivia_questions').select('id', { count: 'exact', head: true });
+    let countQ = supabase.from(source).select('id', { count: 'exact', head: true });
     countQ = applyPoolFilters(countQ, filters);
     if (dbExclude.length > 0) countQ = countQ.not('id', 'in', `(${dbExclude.join(',')})`);
 
@@ -350,7 +356,7 @@ export async function fetchRandomQuestionPool(supabase, opts = {}) {
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
         const offset = Math.floor(Math.random() * (maxOffset + 1));
 
-        let dataQ = supabase.from('trivia_questions').select(columns);
+        let dataQ = supabase.from(source).select(columns);
         dataQ = applyPoolFilters(dataQ, filters);
         if (dbExclude.length > 0) dataQ = dataQ.not('id', 'in', `(${dbExclude.join(',')})`);
         // Stable ORDER BY — without it Postgres page boundaries are undefined

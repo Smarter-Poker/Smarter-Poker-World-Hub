@@ -399,8 +399,9 @@ async function buildRosterFromPool(supabase, today) {
     cutoff.setDate(cutoff.getDate() - NO_REPEAT_WINDOW_DAYS);
 
     const select = async (onlyUnused) => {
+        // Phase 3: the public daily roster draws only from the eligibility definition.
         let q = supabase
-            .from('trivia_questions')
+            .from('trivia_eligible_questions_serving_v1')
             .select(`${PUBLIC_QUESTION_COLUMNS}, last_used_at`)
             .gte('quality_score', QUALITY_FLOOR)
             .is('daily_date', null);
@@ -474,7 +475,7 @@ export default async function handler(req, res) {
           // (qs=2 via 3-strike auto-demote) and unclear-English (qs=4 via Flesch
           // check in audit cron) questions never land on the public daily roster.
           const { data: rosterRows, error } = await supabase
-              .from('trivia_questions')
+              .from('trivia_eligible_questions_serving_v1')
               .select(PUBLIC_QUESTION_COLUMNS)
               .eq('daily_date', today)
               .gte('quality_score', QUALITY_FLOOR)

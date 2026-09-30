@@ -44,6 +44,12 @@ import {
     rejectUnavailableTriviaTournament,
 } from '../../../src/lib/trivia/tournamentReleaseControl.mjs';
 import { validateTriviaSessionAnswerReceipt } from '../../../src/lib/trivia/awardResponsePolicy.mjs';
+import {
+    CLIENT_TIMING_FIELDS,
+    SELF_GRADED_FIELDS,
+    findForbiddenFields,
+    v3ErrorStatus,
+} from '../../../src/lib/trivia/phase3Engine.mjs';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -74,13 +80,23 @@ export default async function handler(req, res) {
             return res.status(400).json({ success: false, error: 'invalid_question_id' });
         }
         const idx = Number.isInteger(displayIndex) ? displayIndex : -1;
+        // The server clock is the only clock and the server is the only grader:
+        // client timing or a client verdict is refused, never silently ignored.
+        const forgedTiming = findForbiddenFields(req.body, CLIENT_TIMING_FIELDS);
+        if (forgedTiming.length > 0) {
+            return res.status(400).json({ success: false, error: 'client_timing_not_accepted', fields: forgedTiming });
+        }
+        const selfGraded = findForbiddenFields(req.body, SELF_GRADED_FIELDS);
+        if (selfGraded.length > 0) {
+            return res.status(400).json({ success: false, error: 'legacy_submission_shape', fields: selfGraded });
+        }
 
         // Resolve the server-owned mode before the first mutation. Competitive
         // controls apply to the generic grading route as well as their named
         // entry routes; a guessed session id cannot bypass containment.
         const { data: session, error: sessionErr } = await sb
             .from('trivia_sessions')
-            .select('id, user_id, mode, status, question_ids, permutations, created_at')
+            .select('id, user_id, mode, status, question_ids, permutations, created_at, engine_version')
             .eq('id', sessionId)
             .maybeSingle();
         if (sessionErr) {
@@ -96,6 +112,43 @@ export default async function handler(req, res) {
         }
         if (session.mode === 'tournaments' && !areTriviaTournamentsReleased(process.env)) {
             return rejectUnavailableTriviaTournament(res);
+        }
+
+        // --- ENGINE V3: the database records, times and grades the answer ---
+        if (session.engine_version) {
+            const nonce = typeof req.body?.clientNonce === 'string' && UUID_RE.test(req.body.clientNonce)
+                ? req.body.clientNonce : null;
+            const { data: v3, error: v3Err } = await sb.rpc('trivia_session_answer_v3', {
+                p_session_id: sessionId,
+                p_user_id: userId,
+                p_question_id: questionId,
+                p_display_index: idx,
+                p_client_nonce: nonce,
+            });
+            if (v3Err) {
+                console.warn('[trivia session-answer] v3 record failed:', v3Err.message || v3Err);
+                return res.status(500).json({ success: false, error: 'record_failed' });
+            }
+            res.setHeader('Cache-Control', 'private, no-cache, no-store, must-revalidate');
+            if (!v3 || v3.success !== true) {
+                return res.status(v3ErrorStatus(v3?.error)).json({ success: false, error: v3?.error || 'record_rejected' });
+            }
+            const body = {
+                success: true,
+                sessionId,
+                questionId,
+                recorded: v3.recorded === true,
+                fresh: v3.duplicate !== true,
+                storedDisplayIndex: Number.isInteger(v3.storedDisplayIndex) ? v3.storedDisplayIndex : idx,
+                outcome: v3.outcome,
+            };
+            // Verdicts exist only when the roster profile's reveal policy allows them.
+            if (typeof v3.wasCorrect === 'boolean') {
+                body.wasCorrect = v3.wasCorrect;
+                body.correctDisplayIndex = Number.isInteger(v3.correctDisplayIndex) ? v3.correctDisplayIndex : -1;
+                body.explanation = typeof v3.explanation === 'string' ? v3.explanation : null;
+            }
+            return res.status(200).json(body);
         }
 
         // --- RECORD (atomic, first answer wins) ---------------------------

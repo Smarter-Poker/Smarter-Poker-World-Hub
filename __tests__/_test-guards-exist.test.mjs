@@ -232,6 +232,8 @@ import './training-surface-inventory.test.mjs';
 import './trivia-console-contract.test.mjs';
 import './trivia-pvp-containment.test.mjs';
 import './trivia-tournament-containment.test.mjs';
+// Trivia Phase 3: eligibility-only paid/competitive pools, engine v3 golden seeds.
+import './trivia-phase-3-engine.test.mjs';
 import './trivia-ui-foundation.test.mjs';
 import './world-command-destinations.test.mjs';
 import './world-command-menu-law.test.mjs';
@@ -440,6 +442,8 @@ const REQUIRED_TEST_FILES = [
     '__tests__/trivia-ui-foundation.test.mjs',
     '__tests__/trivia-pvp-containment.test.mjs',
     '__tests__/trivia-tournament-containment.test.mjs',
+    // Phase 3 question eligibility + deterministic engine v3 (1,000 golden seeds).
+    '__tests__/trivia-phase-3-engine.test.mjs',
     // The console contract: chassis, inks, footer law and artwork families.
     '__tests__/trivia-console-contract.test.mjs',
     // Club shop item rules. shopItemRules.js is the single validator shared by
