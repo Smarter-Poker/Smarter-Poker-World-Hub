@@ -41,6 +41,28 @@ test('claiming a venue and reporting a game say when they fail', () => {
     assert.equal((VENUE.match(/role="alert"/g) || []).length >= 2, true, 'both messages are alerts');
 });
 
+test('a failed attempt does not haunt the next one', () => {
+    // The messages were cleared on success only, so failing, cancelling and
+    // reopening left the old error sitting there, describing a failure that had
+    // not happened yet. VenueReviews already clears its own error on toggle;
+    // these two now match it.
+    assert.match(
+        VENUE,
+        /setClaimError\(''\); setShowClaimForm\(true\)/,
+        'opening the claim form starts clean',
+    );
+    assert.match(
+        VENUE,
+        /setClaimError\(''\); setShowClaimForm\(false\)/,
+        'cancelling drops the message with the form',
+    );
+    assert.match(
+        VENUE,
+        /setReportError\(''\); setShowReportGame\(!showReportGame\)/,
+        'and the report form clears on either toggle direction',
+    );
+});
+
 test('the venue hero uses the mirrored logo, not the casino server', () => {
     // Reading profile_photo_url first hotlinked the casino even for venues
     // already mirrored into the venue-logos bucket, which is also what trips

@@ -2989,7 +2989,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
                 </h2>
                 <button
                   className="section-action-btn"
-                  onClick={function () { setShowReportGame(!showReportGame); }}
+                  onClick={function () { setReportError(''); setShowReportGame(!showReportGame); }}
                 >
                   {showReportGame ? 'Cancel' : 'Report a Game'}
                 </button>
@@ -3667,7 +3667,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
                       {!showClaimForm && (
                         <button
                           className="claim-cta-btn"
-                          onClick={function () { setShowClaimForm(true); }}
+                          onClick={function () { setClaimError(''); setShowClaimForm(true); }}
                         >
                           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                             <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
@@ -3753,7 +3753,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
                         <button type="submit" className="form-submit-btn" disabled={claimSubmitting || !claimForm.contact_name.trim() || !claimForm.contact_email.trim()}>
                           {claimSubmitting ? 'Submitting...' : 'Submit Claim'}
                         </button>
-                        <button type="button" className="form-cancel-btn" onClick={function () { setShowClaimForm(false); }}>
+                        <button type="button" className="form-cancel-btn" onClick={function () { setClaimError(''); setShowClaimForm(false); }}>
                           Cancel
                         </button>
                       </div>
