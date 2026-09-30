@@ -88,6 +88,25 @@ export default async function handler(req, res) {
               (profileData || []).forEach(p => { profiles[p.id] = p; });
           }
 
+          // Enrich with the page each post belongs to. A page post is shown
+          // under the page's identity (name, avatar, link), not the poster's,
+          // so every reader gets it from here. The author fields stay for the
+          // callers that still read them. A page that cannot be read leaves
+          // `page` null; nothing stands in for it.
+          const pageIds = [...new Set((data || []).map(p => p.page_id).filter(Boolean))];
+          const pages = {};
+          if (pageIds.length > 0) {
+              const { data: pageData, error: pageError } = await getSupabase()
+                  .from('social_pages')
+                  .select('id, name, slug, avatar_url')
+                  .in('id', pageIds)
+                  .limit(100);
+              if (pageError) console.warn('[PagePosts] Page identity lookup failed:', pageError.message);
+              (pageData || []).forEach(pg => {
+                  pages[pg.id] = { id: pg.id, name: pg.name || null, slug: pg.slug || null, avatar_url: pg.avatar_url || null };
+              });
+          }
+
           // Check user likes — derive identity from JWT, never from client query params
           let userLikes = new Set();
           if (data && data.length > 0) {
@@ -116,6 +135,7 @@ export default async function handler(req, res) {
           const enriched = (data || []).map(p => ({
               ...p,
               author: profiles[p.author_id] || null,
+              page: pages[p.page_id] || null,
               user_liked: userLikes.has(p.id)
           }));
 

@@ -113,10 +113,28 @@ export default async function handler(req, res) {
 
       if (spError) throw spError;
 
+      // A page post is credited to the page itself: its name is the author
+      // name the club page prints and `page` carries the avatar and link.
+      // If the page cannot be read the placeholder stays; a person's name
+      // is never used in its place.
+      let page = null;
+      if ((socialPosts || []).length > 0) {
+        const { data: pageRow, error: pageError } = await getSupabase()
+          .from('social_pages')
+          .select('id, name, slug, avatar_url')
+          .eq('id', id)
+          .maybeSingle();
+        if (pageError) console.warn('[venue-posts] Page identity lookup failed:', pageError.message);
+        if (pageRow && typeof pageRow.name === 'string' && pageRow.name.trim()) {
+          page = { id: pageRow.id, name: pageRow.name.trim(), slug: pageRow.slug || null, avatar_url: pageRow.avatar_url || null };
+        }
+      }
+
       // Map social_page_posts to the expected response shape
       const mappedPosts = (socialPosts || []).map(p => ({
         id: p.id,
-        author_name: 'Venue',
+        author_name: page ? page.name : 'Venue',
+        page,
         content: p.content,
         post_type: p.content_type || 'text',
         image_urls: Array.isArray(p.media_urls) ? p.media_urls.filter(u => typeof u === 'string') : [],
