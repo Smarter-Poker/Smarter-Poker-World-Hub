@@ -93620,7 +93620,6 @@
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
           "pages/api/cron/generate-trivia.js",
-          "pages/api/trivia/report-question.js",
           "pages/api/trivia/session-submit.js",
           "pages/hub/trivia/time-attack.js",
           "src/lib/trivia/diamondCap.js"
@@ -102625,7 +102624,6 @@
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
           "pages/api/cron/generate-trivia.js",
-          "pages/api/trivia/report-question.js",
           "pages/api/trivia/session-submit.js",
           "pages/hub/trivia/time-attack.js",
           "src/lib/trivia/diamondCap.js"
