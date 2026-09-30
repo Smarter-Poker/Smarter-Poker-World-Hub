@@ -77,7 +77,8 @@ achievement events. No diamond reward is displayed for any achievement.
 **Monitoring.** The existing daily pool guard (13:30 UTC) now expires stale sessions and runs nine
 question and session health checks. It raises alerts through the platform alert pattern
 (`operational_alert_events`, source `worldhub.trivia-questions`) with stable episode keys, and
-records a health run each time.
+records a health run each time. A health run that cannot finish raises its own alert
+(`TriviaQuestionHealthCheckFailed`, one per day), so the checks cannot go quiet unnoticed.
 
 ## Exit gate
 
@@ -88,7 +89,7 @@ records a health run each time.
 | No public DTO or browser request exposes an answer key or grading oracle | Every browser-facing response of the new engine is checked to be key-free. Competitive verdicts stay hidden until the scope closes, and the grader refuses open PvP and tournament sessions. Browser roles have no read or write on any Phase 3 table or view, no execute on any Phase 3 function, and no read of `trivia_questions` | `replica.results.dto_no_key:*`, `no_grading_oracle_while_competitive_open`, `acl_*`; `production.readback.acl`; `production.browser_roles_on_trivia_questions` |
 | Session start/resume/submit survives refresh, two tabs, retry, and process failure without double charge, lost score, or missing stats | On the replica: a start charges once and resumes; parallel starts give one session and one charge; parallel answers, submits and settlements give one result and one award; a failure mid-settlement rolls back and the retry settles once; stats are recorded exactly once. In production after the cleanup: 0 stale open sessions and 0 submitted without stats | `replica.results`: `solo_start_charges_once_and_resumes`, `concurrent_*`, `submit_retry_safe_identical`, `process_failure_rolls_back_then_retry_settles`, `stats_recorded_exactly_once`, `seat_reconnect_resumes_second_session_refused`; `production.operations` |
 | The eligible inventory supports the maximum nightly bracket with no question reuse | 256 players: 8 rounds and 80 unique questions needed, 13,229 available, and at least 967 in every category. 512 players: 9 rounds, 90 needed. The replica built both brackets with no repeat | `production.readback.capacity`, `replica.results.tournament_256_eight_rounds_80_unique`, `tournament_512_nine_rounds_90_unique` |
-| Question and session domain alerts are active | The nine health conditions compute cleanly in production: healthy, no open condition. The daily pool guard runs them and raises alerts from this release on | `production.operations.health`, `replica.results.health_metrics_and_stable_episode_keys`, `pages/api/cron/trivia-pool-guard.js` |
+| Question and session domain alerts are active | The nine health conditions compute cleanly in production: healthy, no open condition. The first scheduled run (13:30 UTC on release day) timed out before recording anything; this was fixed the same day (see below). The health check now takes 1.6–4.3 s under the 8 s service limit, and a run that cannot finish raises its own alert. The next scheduled run is the live proof | `production.operations.health`, `post_release`, `replica.results.health_metrics_and_stable_episode_keys`, `pages/api/cron/trivia-pool-guard.js` |
 
 Replica suite: 74 of 74 checks passed in three runs. The third run installed Phase 2 first on a
 copy of the production-data replica (`replica.runs`).
@@ -109,12 +110,46 @@ copy of the production-data replica (`replica.runs`).
 |---|---|
 | 20260930060554 | `trivia_p3_question_curation` |
 | 20260930061357 | `trivia_p3_roster_session_engine` |
+| 20260930141736 | `trivia_p3_engine_speed` |
+| 20260930142146 | `trivia_p3_health_speed` |
 
 Both files were proven on copies of the production-data replica before install, and both were
 installed outside the DDL break window. The first migration's data statements were also rehearsed
 on production inside a rolled-back transaction. Each migration asserts its own postconditions, and
 all of them passed on install. After install, production's Phase 3 catalog equals the replica's: 54
 functions and 7 views with identical definition digests.
+
+## After release: the first scheduled health run
+
+The first scheduled pool-guard run (13:30 UTC) reached the new health check, but the check ran past
+the 8-second limit the service account has, so no health run or alert was recorded. Measuring it
+showed two slow paths.
+
+- **The health check** read the eligible pool nine times and hashed every question through a
+  helper the database cannot inline. It took 4–6 seconds.
+- **The tournament preflight** was worse. With entrants who have play history it took 15–16
+  seconds for 256- and 512-player brackets, so it could never have run through the service account.
+  The database misjudges the size of the eligible pool and so matched it row by row against the
+  players' seen questions.
+
+Two forward migrations fixed both the same day (`trivia_p3_engine_speed`, `trivia_p3_health_speed`).
+Nothing a caller sees changed: no signature, grant, key or output. Before install, the old and new
+versions were run side by side on production data inside rolled-back transactions:
+
+- 60 of 60 rosters were identical, across all 15 profiles, with players' seen questions, scarcity,
+  exclusions and oversized counts.
+- The 256- and 512-player tournament plans were identical.
+- Capacity was identical for every bracket size, and so were the health metrics.
+
+The replica suite then passed 74 of 74 again with the same golden-seed result. Measured through the
+service account afterwards:
+
+- the preflight takes about 2.5 seconds;
+- a roster takes 0.2–0.3 seconds;
+- the health check takes 1.6–4.3 seconds, depending on load.
+
+A health run that cannot finish now also raises its own alert. Evidence: `post_release` in the
+evidence file.
 
 ## Rollout
 
@@ -153,6 +188,8 @@ functions and 7 views with identical definition digests.
   (`award_trivia_run_v2`, same formulas and caps). The new engine feeds it the database's own grade.
 - **Held evidence.** 2 open PvP sessions and 1 submitted PvP session stay untouched as evidence for
   quarantined matches until the PvP phase resolves them.
+- **Live proof of the alerts.** The next scheduled pool-guard run (13:30 UTC) should record the
+  first health run. If it cannot finish, it raises `TriviaQuestionHealthCheckFailed` instead.
 - **Backfill depth.** The 4 backfilled sessions predate the 2026-08-16 answer reshuffle, so their
   per-question verdicts cannot be rebuilt. They were verified and recorded at session level: score
   formula, roster, and reward and entry references.

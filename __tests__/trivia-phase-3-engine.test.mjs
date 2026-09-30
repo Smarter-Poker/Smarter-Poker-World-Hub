@@ -19,7 +19,7 @@ import test from 'node:test';
 import { gradeRun, optionPermutation, selectRoster, sha256Hex } from '../src/lib/trivia/deterministicEngine.mjs';
 import {
     CLIENT_TIMING_FIELDS, SELF_GRADED_FIELDS, findForbiddenFields, isFreeLegacyFallbackEnabled,
-    isShadowSelectorEnabled, isSoloEngineV3Enabled, stripKeyBearing, toSoloStartResponse,
+    isShadowSelectorEnabled, isSoloEngineV3Enabled, phase3HealthFailureEvent, stripKeyBearing, toSoloStartResponse,
 } from '../src/lib/trivia/phase3Engine.mjs';
 
 const ROOT = process.cwd();
@@ -159,4 +159,55 @@ test('migrations: additive, postconditions inside, browser roles locked out, sec
     assert.deepEqual(authGrants, ['GRANT SELECT (id, question_id, user_id, reason, note, created_at, state, resolved_at, resolution)\n    ON public.trivia_question_reports TO authenticated']);
     assert.match(files[1], /REVOKE ALL ON TABLE public\.trivia_engine_secrets FROM PUBLIC, anon, authenticated, service_role/);
     assert.match(files[1], /'public\.trivia_engine_secret_v1\(text\)'/);
+});
+
+test('engine speed migrations: same keys and passes, no temporary tables, pool read once, inline hash', () => {
+    const m3 = read('supabase/migrations/20260930141736_trivia_p3_engine_speed.sql');
+    const m4 = read('supabase/migrations/20260930142146_trivia_p3_health_speed.sql');
+    for (const sql of [m3, m4]) {
+        assert.doesNotMatch(sql, /GRANT [^;]* TO (anon|authenticated|PUBLIC)\b/i);
+        assert.doesNotMatch(sql, /\bDROP (TABLE|FUNCTION|VIEW)\b|\bDELETE FROM\b|\bTRUNCATE public\./i);
+        assert.match(sql, /DO \$post\$/);
+        const headers = sql.match(/CREATE OR REPLACE FUNCTION[\s\S]*?AS \$\$/g) || [];
+        assert.ok(headers.length > 0 && headers.every(h => /SECURITY DEFINER/.test(h) && /SET search_path/.test(h)),
+            'every function is a definer with a pinned search_path');
+    }
+    const between = (sql, from, to) => sql.slice(sql.indexOf(from), sql.indexOf(to, sql.indexOf(from) + from.length));
+    const passes = between(m3, 'FUNCTION public.trivia_p3_select_passes_v1', 'CREATE OR REPLACE FUNCTION');
+    assert.doesNotMatch(passes, /CREATE TEMP TABLE/);
+    for (const label of [':c:', ':q:', ':t:', ':o:']) {
+        assert.ok(passes.includes(`'trivia-select/1:' || p_label || '${label}'`), `trivia-select/1 key ${label}`);
+    }
+    const candidates = between(m3, 'FUNCTION public.trivia_p3_candidates_v1', 'CREATE OR REPLACE FUNCTION');
+    assert.match(candidates, /v_seen \? p\.question_id::text/);
+    assert.match(candidates, /v_cool \? p\.question_id::text/);
+    const preflight = between(m3, 'FUNCTION public.trivia_preflight_tournament_v1', 'CREATE OR REPLACE FUNCTION');
+    assert.equal((preflight.match(/trivia_p3_candidates_v1\(/g) || []).length, 1, 'the preflight reads the pool once');
+    assert.match(m3, /REVOKE ALL ON FUNCTION public\.trivia_p3_candidates_v1\([^)]*\) FROM PUBLIC, anon, authenticated, service_role/);
+    assert.match(m3, /REVOKE ALL ON FUNCTION public\.trivia_p3_select_passes_v1\([^)]*\) FROM PUBLIC, anon, authenticated, service_role/);
+    assert.doesNotMatch(m4.slice(0, m4.indexOf('DO $post$')), /trivia_question_content_hash_v1\(q\./);
+    assert.match(m4, /IS DISTINCT FROM public\.trivia_question_content_hash_v1/);
+    const runner = read('scripts/trivia/phase3-replica-tests.cjs');
+    for (const f of ['20260930141736_trivia_p3_engine_speed.sql', '20260930142146_trivia_p3_health_speed.sql']) {
+        assert.ok(runner.includes(f), `replica suite installs ${f}`);
+    }
+});
+
+test('a health run that cannot finish raises its own alert, one episode per UTC day', () => {
+    const now = new Date('2026-09-30T13:30:14Z');
+    const event = phase3HealthFailureEvent({ source: 'worldhub.trivia-questions', error: 'canceling statement due to statement timeout', now });
+    assert.equal(event.alertname, 'TriviaQuestionHealthCheckFailed');
+    assert.equal(event.status, 'firing');
+    assert.equal(event.severity, 'warning');
+    assert.equal(event.source, 'worldhub.trivia-questions');
+    assert.match(event.event_key, /^[0-9a-f]{64}$/);
+    assert.match(event.payload.summary, /statement timeout/);
+    const later = phase3HealthFailureEvent({ source: event.source, error: 'other', now: new Date('2026-09-30T23:59:59Z') });
+    const nextDay = phase3HealthFailureEvent({ source: event.source, error: 'other', now: new Date('2026-10-01T00:00:00Z') });
+    assert.equal(later.event_key, event.event_key);
+    assert.notEqual(nextDay.event_key, event.event_key);
+    const guard = read('pages/api/cron/trivia-pool-guard.js');
+    const body = guard.slice(guard.indexOf('export async function runPhase3Health'));
+    const deliver = body.indexOf('await record([phase3HealthFailureEvent({ source: TRIVIA_QUESTIONS_ALERT_SOURCE, error: reason })]);');
+    assert.ok(deliver > 0 && deliver < body.indexOf('throw new Error(reason);'), 'the failure is delivered before the pass gives up');
 });

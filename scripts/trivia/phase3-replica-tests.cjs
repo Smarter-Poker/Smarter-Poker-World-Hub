@@ -21,7 +21,8 @@ if (!(host.startsWith('/') || host === 'localhost' || host === '127.0.0.1')) {
 }
 const [BASE_DB, OUT, FIXTURE] = process.argv.slice(2);
 const ROOT = process.cwd();
-const MIGRATIONS = ['20260930060554_trivia_p3_question_curation.sql', '20260930061357_trivia_p3_roster_session_engine.sql']
+const MIGRATIONS = ['20260930060554_trivia_p3_question_curation.sql', '20260930061357_trivia_p3_roster_session_engine.sql',
+    '20260930141736_trivia_p3_engine_speed.sql', '20260930142146_trivia_p3_health_speed.sql']
     .map(f => fs.readFileSync(path.join(ROOT, 'supabase/migrations', f), 'utf8'));
 const SECRET = 'p3-golden-test-secret-0001';
 const AS_OF = '2026-09-30T00:00:00Z';
