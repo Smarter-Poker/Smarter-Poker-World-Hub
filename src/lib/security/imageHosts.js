@@ -29,6 +29,11 @@ const IMAGE_SOURCES = [
     'https://server.arcgisonline.com', // Poker Near Me dark basemap tiles
     'https://api.qrserver.com',
     'https://img.youtube.com',
+    // i.ytimg.com is the host YouTube ACTUALLY serves thumbnails from. Measured
+    // on /hub/news: img.youtube.com was listed and never used, i.ytimg.com was
+    // used and never listed, so five thumbnails per load reported a violation
+    // that the allow-list plainly meant to permit.
+    'https://i.ytimg.com',
     'https://media.giphy.com',
     'https://*.giphy.com',
     'https://images.unsplash.com',
