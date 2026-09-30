@@ -200,6 +200,12 @@ import './the-wallet-badges-count-the-whole-ledger.law.test.mjs';
 import './the-earn-pane-knows-what-it-cannot-tell.test.mjs';
 import './the-stats-panel-is-summed-in-sql.test.mjs';
 import './the-ledger-speaks-to-the-player.law.test.mjs';
+// Phase 8 of 8, 2026-09-29. Phases 1 to 7 each pinned ONE side of the
+// route/client boundary, so the two could drift while both stayed green: a
+// renamed field, a bucket key nothing renders, a column dropped from the
+// route's select. This one pins the JOIN, against a snapshot of what
+// production actually declares (scripts/ci/lib/diamond-wallet-contract.mjs).
+import './the-route-and-the-client-agree.test.mjs';
 // Trivia lifeline charges are client-requested but server-priced. This guard
 // pins the database replay envelope so a cheaper or differently typed debit
 // can never masquerade as the paid skip.
