@@ -76,10 +76,15 @@
 -- ═══════════════════════════════════════════════════════════════════════
 
 -- The foreign keys below take a share-row-exclusive lock on profiles, social_posts
--- and social_comments, which live tables the engine writes every second. The first
--- installation attempt (2026-09-30 04:43Z) was chosen as the deadlock victim behind
--- a concurrent access-exclusive lock on auth.users. A bounded lock wait turns a
--- busy moment into a clean, retryable failure instead of a deadlock.
+-- and social_comments, live tables the engine writes every second. Two installation
+-- attempts (2026-09-30 04:43Z and 05:07Z) were chosen as deadlock victims at the first
+-- CREATE POLICY: in this database CREATE POLICY acquires an access-exclusive lock on
+-- auth.users (probed: CREATE TABLE and ENABLE ROW LEVEL SECURITY do not), and every
+-- profiles writer holds a share lock on auth.users for its foreign-key check, so a
+-- transaction that holds the profiles lock and then asks for auth.users closes a cycle.
+-- The policies therefore live in the companion file 20260930030001, applied as its own
+-- transaction, and this file never touches auth.users. A bounded lock wait turns a busy
+-- moment into a clean, retryable failure instead of a deadlock.
 SET lock_timeout = '10s';
 
 BEGIN;
@@ -255,23 +260,11 @@ GRANT SELECT ON TABLE public.social_puzzle_answers TO anon;
 GRANT SELECT, INSERT ON TABLE public.social_puzzle_answers TO authenticated;
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.social_puzzle_answers TO service_role;
 
-CREATE POLICY "Public read access" ON public.social_puzzles
-  FOR SELECT TO anon, authenticated USING (true);
-CREATE POLICY "Service role full access" ON public.social_puzzles
-  FOR ALL TO service_role USING (true) WITH CHECK (true);
-
-CREATE POLICY "Service role full access" ON public.social_puzzle_solutions
-  FOR ALL TO service_role USING (true) WITH CHECK (true);
-
-CREATE POLICY "Users can insert their own answers" ON public.social_puzzle_answers
-  FOR INSERT TO authenticated WITH CHECK (user_id = (SELECT auth.uid()));
-CREATE POLICY "Answers are readable by their author and after the reveal" ON public.social_puzzle_answers
-  FOR SELECT TO anon, authenticated USING (
-    user_id = (SELECT auth.uid())
-    OR EXISTS (SELECT 1 FROM public.social_puzzles p
-                WHERE p.id = social_puzzle_answers.puzzle_id AND p.revealed_at IS NOT NULL));
-CREATE POLICY "Service role full access" ON public.social_puzzle_answers
-  FOR ALL TO service_role USING (true) WITH CHECK (true);
+-- The policies live in the companion file 20260930030001 (see its header for why:
+-- CREATE POLICY takes an access-exclusive lock on auth.users in this database, and
+-- holding the foreign-key locks on profiles while waiting for it deadlocked twice).
+-- Until that file runs, RLS is on with no policy, so anon and authenticated can
+-- neither read nor write these tables: fail closed.
 
 -- ---------------------------------------------------------------------------
 -- 4. ANSWER GUARD: what RLS cannot say is refused in the database.
@@ -961,10 +954,7 @@ BEGIN
     RAISE EXCEPTION 'post-apply: anon or authenticated can select social_puzzle_solutions';
   END IF;
 
-  SELECT count(*) INTO n FROM pg_policy WHERE polrelid = 'public.social_puzzles'::regclass;
-  IF n <> 2 THEN RAISE EXCEPTION 'post-apply: expected 2 policies on social_puzzles, found %', n; END IF;
-  SELECT count(*) INTO n FROM pg_policy WHERE polrelid = 'public.social_puzzle_answers'::regclass;
-  IF n <> 3 THEN RAISE EXCEPTION 'post-apply: expected 3 policies on social_puzzle_answers, found %', n; END IF;
+  -- Policy counts are asserted by 20260930030001, which creates them.
   IF has_table_privilege('anon', 'public.social_puzzle_answers', 'INSERT')
      OR has_table_privilege('authenticated', 'public.social_puzzle_answers', 'UPDATE')
      OR has_table_privilege('authenticated', 'public.social_puzzle_answers', 'DELETE')
