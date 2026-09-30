@@ -1,0 +1,45 @@
+/*
+ * A family's destination art on the console glass (ResponsiveModeArt.jsx).
+ * The box is reserved before a byte arrives: 16:10 on phones, a 12:5 band
+ * from 768px (the same width as the <source media> switch). Until the picture
+ * decodes, and if it never does, the box shows the art's own blurred preview,
+ * never an empty panel. Schema inks only; no hover.
+ */
+.art {
+    position: relative;
+    display: block;
+    width: 100%;
+    min-width: 0;
+    aspect-ratio: 16 / 10;
+    overflow: hidden;
+    background-color: #000;
+    background-image: var(--trivia-art-preview, none);
+    background-position: 50% 50%;
+    background-repeat: no-repeat;
+    background-size: cover;
+}
+
+.picture {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+.image {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: 50% 50%;
+}
+
+/* A file that could not load: hide the broken image, keep the preview. */
+.art[data-art-state='error'] .image {
+    visibility: hidden;
+}
+
+@media (min-width: 768px) {
+    .art {
+        aspect-ratio: 12 / 5;
+    }
+}

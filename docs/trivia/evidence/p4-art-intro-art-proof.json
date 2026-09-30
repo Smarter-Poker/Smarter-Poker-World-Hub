@@ -1,0 +1,497 @@
+{
+ "threshold_bits": 12,
+ "hash_bits": 64,
+ "normalised_luminance": true,
+ "pairs": 1056,
+ "pass": true,
+ "criterion": "pHash64 >= threshold and dHash256 >= 4*threshold; dHash64 informational",
+ "min_dhash": 4,
+ "min_phash": 18,
+ "min_dhash256": 51,
+ "closest_dhash": [
+  [
+   "daily:mobile",
+   "endless:wide",
+   4,
+   28,
+   62
+  ],
+  [
+   "daily:wide",
+   "endless:wide",
+   5,
+   30,
+   74
+  ],
+  [
+   "endless:wide",
+   "survival:mobile",
+   5,
+   40,
+   55
+  ],
+  [
+   "endless:wide",
+   "survival:wide",
+   6,
+   20,
+   60
+  ],
+  [
+   "daily:mobile",
+   "endless:mobile",
+   7,
+   28,
+   65
+  ],
+  [
+   "daily:mobile",
+   "survival:mobile",
+   7,
+   24,
+   51
+  ],
+  [
+   "daily:mobile",
+   "survival:wide",
+   8,
+   24,
+   62
+  ],
+  [
+   "daily:wide",
+   "endless:mobile",
+   8,
+   28,
+   83
+  ]
+ ],
+ "closest_phash": [
+  [
+   "endless:mobile",
+   "thumb:cash",
+   20,
+   18,
+   108
+  ],
+  [
+   "mixed:wide",
+   "thumb:icm",
+   22,
+   18,
+   114
+  ],
+  [
+   "arcade:mobile",
+   "rules:mobile",
+   26,
+   18,
+   107
+  ],
+  [
+   "history:wide",
+   "mtt:mobile",
+   27,
+   18,
+   118
+  ],
+  [
+   "endless:wide",
+   "time-attack:mobile",
+   16,
+   18,
+   125
+  ],
+  [
+   "survival:wide",
+   "time-attack:mobile",
+   18,
+   18,
+   105
+  ],
+  [
+   "lobby:mobile",
+   "thumb:pvp",
+   23,
+   20,
+   102
+  ],
+  [
+   "lobby:wide",
+   "thumb:pvp",
+   29,
+   20,
+   112
+  ]
+ ],
+ "closest_dhash256": [
+  [
+   "daily:mobile",
+   "survival:mobile",
+   7,
+   24,
+   51
+  ],
+  [
+   "endless:wide",
+   "survival:mobile",
+   5,
+   40,
+   55
+  ],
+  [
+   "endless:wide",
+   "survival:wide",
+   6,
+   20,
+   60
+  ],
+  [
+   "daily:mobile",
+   "endless:wide",
+   4,
+   28,
+   62
+  ],
+  [
+   "daily:mobile",
+   "survival:wide",
+   8,
+   24,
+   62
+  ],
+  [
+   "endless:mobile",
+   "survival:mobile",
+   8,
+   38,
+   62
+  ],
+  [
+   "daily:wide",
+   "survival:mobile",
+   8,
+   26,
+   63
+  ],
+  [
+   "icm:mobile",
+   "survival:mobile",
+   18,
+   30,
+   64
+  ]
+ ],
+ "own_thumbnail": [
+  [
+   "daily:wide",
+   "thumb:daily",
+   29,
+   26,
+   124
+  ],
+  [
+   "mtt:mobile",
+   "thumb:mtt",
+   20,
+   26,
+   110
+  ],
+  [
+   "cash:wide",
+   "thumb:cash",
+   27,
+   26,
+   118
+  ],
+  [
+   "gto:mobile",
+   "thumb:gto",
+   24,
+   26,
+   93
+  ],
+  [
+   "gto:wide",
+   "thumb:gto",
+   30,
+   26,
+   95
+  ],
+  [
+   "daily:mobile",
+   "thumb:daily",
+   30,
+   28,
+   116
+  ],
+  [
+   "history:wide",
+   "thumb:history",
+   29,
+   28,
+   119
+  ],
+  [
+   "rules:wide",
+   "thumb:rules",
+   30,
+   28,
+   120
+  ],
+  [
+   "mixed:mobile",
+   "thumb:mixed",
+   27,
+   28,
+   109
+  ],
+  [
+   "survival:mobile",
+   "thumb:survival",
+   24,
+   28,
+   93
+  ],
+  [
+   "time-attack:wide",
+   "thumb:time-attack",
+   31,
+   28,
+   128
+  ],
+  [
+   "tournaments:wide",
+   "thumb:tournaments",
+   18,
+   28,
+   113
+  ],
+  [
+   "arcade:mobile",
+   "thumb:arcade",
+   33,
+   30,
+   123
+  ],
+  [
+   "history:mobile",
+   "thumb:history",
+   26,
+   30,
+   119
+  ],
+  [
+   "rules:mobile",
+   "thumb:rules",
+   32,
+   30,
+   125
+  ],
+  [
+   "pro:mobile",
+   "thumb:pro",
+   32,
+   30,
+   124
+  ],
+  [
+   "pro:wide",
+   "thumb:pro",
+   28,
+   30,
+   125
+  ],
+  [
+   "time-attack:mobile",
+   "thumb:time-attack",
+   28,
+   30,
+   134
+  ],
+  [
+   "lobby:wide",
+   "thumb:lobby",
+   34,
+   32,
+   134
+  ],
+  [
+   "arcade:wide",
+   "thumb:arcade",
+   33,
+   32,
+   120
+  ],
+  [
+   "icm:mobile",
+   "thumb:icm",
+   36,
+   32,
+   124
+  ],
+  [
+   "survival:wide",
+   "thumb:survival",
+   23,
+   32,
+   98
+  ],
+  [
+   "pvp:mobile",
+   "thumb:pvp",
+   23,
+   32,
+   103
+  ],
+  [
+   "pvp:wide",
+   "thumb:pvp",
+   24,
+   32,
+   119
+  ],
+  [
+   "lobby:mobile",
+   "thumb:lobby",
+   36,
+   34,
+   120
+  ],
+  [
+   "mtt:wide",
+   "thumb:mtt",
+   16,
+   34,
+   101
+  ],
+  [
+   "endless:wide",
+   "thumb:endless",
+   33,
+   34,
+   121
+  ],
+  [
+   "mixed:wide",
+   "thumb:mixed",
+   26,
+   34,
+   114
+  ],
+  [
+   "tournaments:mobile",
+   "thumb:tournaments",
+   21,
+   34,
+   107
+  ],
+  [
+   "cash:mobile",
+   "thumb:cash",
+   25,
+   36,
+   111
+  ],
+  [
+   "icm:wide",
+   "thumb:icm",
+   30,
+   36,
+   110
+  ],
+  [
+   "endless:mobile",
+   "thumb:endless",
+   36,
+   36,
+   126
+  ]
+ ],
+ "references": {
+  "thumb:lobby": "public/cards/trivia.webp",
+  "thumb:daily": "public/images/trivia/daily-trivia-header-final.webp",
+  "thumb:arcade": "public/images/trivia/quick-stakes.webp",
+  "thumb:mtt": "public/images/trivia/modes-console-v1/mtt.webp",
+  "thumb:cash": "public/images/trivia/modes-console-v1/cash.webp",
+  "thumb:icm": "public/images/trivia/modes-console-v1/icm.webp",
+  "thumb:history": "public/images/trivia/modes-console-v1/history.webp",
+  "thumb:tournaments": "public/images/trivia/modes-console-v1/tournaments.webp",
+  "thumb:pro": "public/images/trivia/modes-console-v1/pro.webp",
+  "thumb:survival": "public/images/trivia/modes-console-v1/survival.webp",
+  "thumb:endless": "public/images/trivia/modes-console-v1/endless.webp",
+  "thumb:mixed": "public/images/trivia/modes-console-v1/mixed.webp",
+  "thumb:time-attack": "public/images/trivia/modes-console-v1/time-attack.webp",
+  "thumb:pvp": "public/images/trivia/modes-console-v1/pvp.webp",
+  "thumb:rules": "public/images/trivia/modes-console-v1/rules.webp",
+  "thumb:gto": "public/images/trivia/modes-console-v1/gto.webp",
+  "retired:daily-scene": "../../evidence/p4-art/art/refs/daily-scene.webp",
+  "retired:arcade-scene": "../../evidence/p4-art/art/refs/arcade-scene.webp"
+ },
+ "shipped": {
+  "lobby": {
+   "mobile": "47ad46b16fd0d271b186ee54b667dfe6c4b1ceb597e2d796c56ffc5a4604bfbd",
+   "wide": "7f250e3bf13e09f3a0f57b8337c466043e25c310e1cd0a00ee07c77a079044b0"
+  },
+  "daily": {
+   "mobile": "d3f49c3396db114849be1a51ad00d20617bfea63cea2522c1bf4625c987e67cb",
+   "wide": "c92e08d6e6d641f5abe25c2648cb7505fd075567021a28a84928a364b9c6c584"
+  },
+  "arcade": {
+   "mobile": "707a7a4ab2ce421ff8135c83a77ff5d3d188feff1b1bd583d1de2419ff1a02ff",
+   "wide": "9dd7f77fc0ea244578936d1690c4d0c7f3b343dcd3c6948ad61c1336989cad7b"
+  },
+  "history": {
+   "mobile": "111dd064be022399cf1e52d72b9ad402e3799e588906cd10a497bfa68b11b9c2",
+   "wide": "82eca45e6b0e9f288a4528ae753bf708588875b29c0c0f7b67eb2c5d05bf962e"
+  },
+  "rules": {
+   "mobile": "8a4890a694cbe689e0b12fd32d4557c537ea96158ab200a6c8aa24db01590a1d",
+   "wide": "953847b04689aa357ad2a93ba8e40d93256c08fa16e8bc01f1d88d6feb4558b4"
+  },
+  "pro": {
+   "mobile": "bd3a35a61879ddcce055d2b7fb5f5552b016c2478c92550aaf4ae549b0ee9379",
+   "wide": "3f10e881732f6c9bc84a9a4c932d033e56cbfdb77515a46a6cca2c2e324b04f0"
+  },
+  "mtt": {
+   "mobile": "432d1ce995133cffa6357132bde1edab02e77f8996704800f9468bc646f973eb",
+   "wide": "7ee518fe7808e5e597305bf5a79346195e861fde7b9fdf51e56138a5961d5e00"
+  },
+  "cash": {
+   "mobile": "ec8457f2c17c818b8f7809408c78085314e646088d16ca49788d6c2a5da54991",
+   "wide": "f51b462b6a1282f57e4e5a1f8f941de8d165eac4f15c0221d2652d70eb12d77b"
+  },
+  "icm": {
+   "mobile": "255faa0bcb9287154fc74684c4081e3f70ce8b1b005d0595e6503d12847f90b9",
+   "wide": "5653947024a83743e15873249a3a61479ff124b81bc75bfee38c831ecf03e4b6"
+  },
+  "gto": {
+   "mobile": "ccdf607f1427544e1ee6be051bb4e741089e79cde7901750b99b5c3a6a9b8bf3",
+   "wide": "9ba2f08066f726dc8a142044e00cb6816a6770aac0d8ad1d5911bd6bdb4c0948"
+  },
+  "endless": {
+   "mobile": "0bf4247d343b2cf4c270e99a604800e17748a849c7aa7b1faa40457fd7f45934",
+   "wide": "d02a5cd4c16dd2e74affd48a03c59d737d97206c6642e3f9cf6b7b953c4ab695"
+  },
+  "mixed": {
+   "mobile": "80e435362cbe1df644eb869be0a5c3451196e71fe687ee7d98185ba9ce39720d",
+   "wide": "7698d0692aea62f209610fc108317f8fd9514fa456a7fe242ecfd1eccaed3c57"
+  },
+  "survival": {
+   "mobile": "91e26070587fead3560d689137b41161444bce393661aa169306452c9f1cb7f3",
+   "wide": "b473f94a858f6113a0394e196fd63a10cdcc88aed6d8e060b974c361ca449ad5"
+  },
+  "time-attack": {
+   "mobile": "cf90d3ea8d328969415ebefe04915ce062b72ae3942079d960a634e6a77579a4",
+   "wide": "5b790d3b769dc6e2a9dcac11046b068cdcdfa69f0d9d579fdf34fb22ac2a16b9"
+  },
+  "pvp": {
+   "mobile": "7cafb3b517e1922516cc66acb0b3075914c47ced79138da40dbc2999e69a0bba",
+   "wide": "d498ba4d0a380b9aa35019d6026fb7971107e1a78ab81e694fa8f90059beb200"
+  },
+  "tournaments": {
+   "mobile": "546b83700410be1652c4410b88a1411f1fb8557273b1ce5d1688b8cbd1e37257",
+   "wide": "baf0144f9f01f0543729332a46c17be24ea2d17e8c6b71b1230d500cf35e72ce"
+  }
+ }
+}

@@ -26,6 +26,8 @@ import { useAvatar } from '../../../src/contexts/AvatarContext';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import TriviaConsole from '../../../src/components/trivia/console/TriviaConsole';
+import ResponsiveModeArt from '../../../src/components/trivia/console/ResponsiveModeArt';
+import { TRIVIA_INTRO_ART_SURVIVAL } from '../../../src/config/triviaIntroArt.mjs';
 import { toTitleCase } from '../../../src/lib/trivia/titleCase';
 import { formatTriviaDisplayNumber } from '../../../src/lib/trivia/formatTriviaDisplayNumber';
 import DiamondEngine from '../../../src/services/DiamondEngine';
@@ -905,15 +907,7 @@ export default function SurvivalGamePage() {
 
                                 {gameState === 'lobby' && (
                                     <section className="trivia-challenge-intro" aria-labelledby="survival-ready-title">
-                                        <img
-                                            className="trivia-challenge-hero"
-                                            src="/images/trivia/modes-console-v1/survival.webp"
-                                            alt=""
-                                            aria-hidden="true"
-                                            width={1000}
-                                            height={563}
-                                            decoding="async"
-                                        />
+                                        <ResponsiveModeArt art={TRIVIA_INTRO_ART_SURVIVAL} priority />
                                         <h2 id="survival-ready-title">Choose Your Starting Level</h2>
                                         <p>
                                             Clear {formatTriviaDisplayNumber(QUESTIONS_PER_LEVEL)} Questions Per Level

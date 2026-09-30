@@ -1,0 +1,112 @@
+{
+ "purpose": "Rollback record: the intro image every Trivia destination showed before intro-v1 (Phase 4, p4-art). Restore by reverting the intro-v1 PR; the files below live at this commit.",
+ "commit": "62ad967243604178e85eba12d5329cb73284283a",
+ "service_worker_cache_before": "static-assets (generic CacheFirst, 30 days)",
+ "lobby": null,
+ "families": {
+  "daily": {
+   "url": "/images/trivia/modes-console-v1/daily.webp",
+   "sha256": "0b3845acf7655db84203632d11da729a447df624410d2d670bbce25e6eebb576",
+   "bytes": 54124,
+   "was_lobby_thumbnail": false
+  },
+  "arcade": {
+   "url": "/images/trivia/modes-console-v1/arcade.webp",
+   "sha256": "e46d298b280ec166a758a8dcd9c6d3cd42158911183e9feff5acd5de4f8c1975",
+   "bytes": 55964,
+   "was_lobby_thumbnail": false
+  },
+  "history": {
+   "url": "/images/trivia/modes-console-v1/history.webp",
+   "sha256": "a08b674af6a5da5bb512a36f818f342bd5a53b401ee00c6a23300ef6b836b74b",
+   "bytes": 54478,
+   "was_lobby_thumbnail": true
+  },
+  "rules": {
+   "url": "/images/trivia/modes-console-v1/rules.webp",
+   "sha256": "46686cf898bb7b72196233774b87ca3a6fc7490032ded10278fbda7fbbbfd614",
+   "bytes": 46822,
+   "was_lobby_thumbnail": true
+  },
+  "pro": {
+   "url": "/images/trivia/modes-console-v1/pro.webp",
+   "sha256": "5da0e125342d151e9d6d33c778a52576339b8c390d2cd4651d51af1b7c4f7ebe",
+   "bytes": 44980,
+   "was_lobby_thumbnail": true
+  },
+  "mtt": {
+   "url": "/images/trivia/modes-console-v1/mtt.webp",
+   "sha256": "a2e4134136a3c71bea19fe2d3d1ff77c811efdceec2d14eaec73e8504c645899",
+   "bytes": 58380,
+   "was_lobby_thumbnail": true
+  },
+  "cash": {
+   "url": "/images/trivia/modes-console-v1/cash.webp",
+   "sha256": "312e23930664026f22bf76c888701546f4fd37ae5072be8fc91876937074e378",
+   "bytes": 51110,
+   "was_lobby_thumbnail": true
+  },
+  "icm": {
+   "url": "/images/trivia/modes-console-v1/icm.webp",
+   "sha256": "89a9f99a33a8aa7eae5e5b5224b0ec231f6a1f72c5f45289f529f4b8c60ecdcd",
+   "bytes": 51654,
+   "was_lobby_thumbnail": true
+  },
+  "gto": {
+   "url": "/images/trivia/modes-console-v1/gto.webp",
+   "sha256": "23c7d2f3fabe2d379249060fe8d132bb0e651c26b2c68831765ff53e2392dff9",
+   "bytes": 77614,
+   "was_lobby_thumbnail": true
+  },
+  "endless": {
+   "url": "/images/trivia/modes-console-v1/endless.webp",
+   "sha256": "404ccf2f2915bd34b0029ba2a144f80eceec52f203404b7f4b0bb4f91e7252df",
+   "bytes": 137540,
+   "was_lobby_thumbnail": true
+  },
+  "mixed": {
+   "url": "/images/trivia/modes-console-v1/mixed.webp",
+   "sha256": "f4dc4ce29de02e20c2c028c87c2d885426e7cbb526a5a3697e1f3583ef1ba8cc",
+   "bytes": 70624,
+   "was_lobby_thumbnail": true
+  },
+  "survival": {
+   "url": "/images/trivia/modes-console-v1/survival.webp",
+   "sha256": "14a7028b6cce14a97c9a57836f9dfa40cac06a11660b8ae97f5f934ac5ddb306",
+   "bytes": 23002,
+   "was_lobby_thumbnail": true
+  },
+  "time-attack": {
+   "url": "/images/trivia/modes-console-v1/time-attack.webp",
+   "sha256": "4fedad075d5c421d5bcc77104616813c34a56f7c09f0557b5b6f71610ff23f63",
+   "bytes": 68822,
+   "was_lobby_thumbnail": true
+  },
+  "pvp": {
+   "url": "/images/trivia/modes-console-v1/pvp.webp",
+   "sha256": "57fd945d379fedcade0e72fcef6043aa3d636de959e599cd9f30dff28444b20f",
+   "bytes": 43756,
+   "was_lobby_thumbnail": true
+  },
+  "tournaments": {
+   "url": "/images/trivia/modes-console-v1/tournaments.webp",
+   "sha256": "63606863cb0047a494fddce77b8c143f2f26e856da2097f8deee3ab816b116ac",
+   "bytes": 75754,
+   "was_lobby_thumbnail": true
+  }
+ },
+ "retired_orphans": {
+  "public/trivia/panels/panel-defeat.jpg": {
+   "sha256": "241c588d2bec9103ecd71288ae0c0a822c7a5f195aaedd1d8c71c23d644906f1",
+   "bytes": 162797
+  },
+  "public/trivia/panels/panel-finding.jpg": {
+   "sha256": "c8b21131d7d6c9c73fb60491323b5ce3c190cf5583914453622557cdeae0ac3e",
+   "bytes": 157912
+  },
+  "public/trivia/panels/panel-win.jpg": {
+   "sha256": "ef00801502b633391e911736bfec11daed3286e4109116545d36272005fbddd5",
+   "bytes": 162230
+  }
+ }
+}

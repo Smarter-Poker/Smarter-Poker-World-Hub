@@ -72,6 +72,7 @@ const COMPONENTS = [
     'src/components/trivia/console/TriviaConsole.jsx',
     'src/components/trivia/console/TriviaConsoleDialog.jsx',
     'src/components/trivia/console/TriviaFrameCard.jsx',
+    'src/components/trivia/console/ResponsiveModeArt.jsx',
 ];
 
 // Presentational files a surface agent created for PvP and Tournaments.
@@ -169,6 +170,8 @@ test('dynamic copy is fitted on both axes and the fit is verified, not guessed',
     assert.match(fit, /availableHeight/);
     assert.match(fit, /for \(let pass = 0; pass < 6; pass \+= 1\)/, 'the hook re-measures after applying a ratio');
     assert.match(fit, /document\.fonts\?\.ready/, 'labels re-fit once the real fonts load');
+    assert.match(fit, /element\.style\.setProperty\('transition', 'none', 'important'\);/, 'a fitted label never animates its size: under reduced motion a 0.01ms transition made the fit measure a stale font-size');
+    assert.match(fit, /addEventListener\?\.\('loadingdone', fit\)/, 'a face that loads after ready still re-fits the label');
 });
 
 const APPROVED = new Set([

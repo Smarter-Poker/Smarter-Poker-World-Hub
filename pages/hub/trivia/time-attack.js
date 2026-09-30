@@ -24,6 +24,8 @@ import DiamondEngine from '../../../src/services/DiamondEngine';
 import GameCostPopup from '../../../src/components/gates/GameCostPopup';
 import TriviaErrorBoundary from '../../../src/components/trivia/TriviaErrorBoundary';
 import TriviaConsole from '../../../src/components/trivia/console/TriviaConsole';
+import ResponsiveModeArt from '../../../src/components/trivia/console/ResponsiveModeArt';
+import { TRIVIA_INTRO_ART_TIME_ATTACK } from '../../../src/config/triviaIntroArt.mjs';
 import { busEmit } from '../../../src/engine/EventBus';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import useServerGradedRun from '../../../src/hooks/useServerGradedRun';
@@ -416,15 +418,7 @@ export default function TimeAttackPage() {
 
                             {!pageLoading && gameState === 'lobby' && (
                                 <section className="trivia-challenge-stage trivia-challenge-stage--lobby">
-                                    <img
-                                        className="trivia-challenge-hero"
-                                        src="/images/trivia/modes-console-v1/time-attack.webp"
-                                        alt=""
-                                        aria-hidden="true"
-                                        width={1000}
-                                        height={563}
-                                        decoding="async"
-                                    />
+                                    <ResponsiveModeArt art={TRIVIA_INTRO_ART_TIME_ATTACK} priority />
                                     {startError && (
                                         <p className="trivia-challenge-state trivia-challenge-state--error" role="alert">
                                             {startError}

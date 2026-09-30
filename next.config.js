@@ -351,6 +351,21 @@ const withPWA = require('@ducanh2912/next-pwa').default({
           cacheName: 'pages-html',
         },
       },
+      // Trivia art has its OWN cache, named for the exact art set that shipped
+      // (scripts/trivia-art/art-cache-name.mjs). CacheFirst never revalidates,
+      // so when any file under /images/trivia/ changes the name changes, and
+      // worker/index.js deletes the older trivia-art-* caches and any Trivia
+      // picture left in static-assets on activate: an installed client cannot
+      // keep art that was replaced or rejected. It must stay ABOVE the generic
+      // image rule, which would otherwise match first.
+      {
+        urlPattern: ({ url, sameOrigin }) => sameOrigin && url.pathname.startsWith('/images/trivia/'),
+        handler: 'CacheFirst',
+        options: {
+          cacheName: 'trivia-art-32d8d51ff2',
+          expiration: { maxEntries: 160, maxAgeSeconds: 60 * 60 * 24 * 30 }, // 30 days
+        },
+      },
       // Cache static assets (images, fonts) - cache first (content-hashed, safe)
       {
         urlPattern: /^https:\/\/.*\.(?:png|jpg|jpeg|svg|gif|webp|avif|ico|woff|woff2|ttf|eot)$/i,
