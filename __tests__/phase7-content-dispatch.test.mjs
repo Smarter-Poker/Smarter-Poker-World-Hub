@@ -13,6 +13,11 @@ const REPO = path.resolve(new URL('.', import.meta.url).pathname, '..');
 const dispatcher = fs.readFileSync(path.join(REPO, 'scripts', 'openclaw-cron-dispatcher.py'), 'utf8');
 const MIGRATION = 'supabase/migrations/20260930030000_phase7_puzzles_answer_once_and_reveal_once.sql';
 const migration = fs.readFileSync(path.join(REPO, MIGRATION), 'utf8');
+// The six policies are their own transaction (20260930030001): in this database
+// CREATE POLICY takes an access-exclusive lock on auth.users, and holding the new
+// foreign keys' lock on profiles while asking for it deadlocked the install twice.
+const POLICIES = 'supabase/migrations/20260930030001_phase7_puzzle_policies_answer_once_and_reveal_once.sql';
+const policies = fs.readFileSync(path.join(REPO, POLICIES), 'utf8');
 
 const PHASE7_MODES = [
   'puzzle_nuts',
@@ -99,9 +104,15 @@ test('the answer never reaches a public row before the reveal', () => {
   // The solution table has no anon or authenticated policy and no privilege.
   assert.match(migration, /ALTER TABLE public\.social_puzzle_solutions ENABLE ROW LEVEL SECURITY;/);
   assert.match(migration, /REVOKE ALL ON TABLE public\.social_puzzle_solutions FROM PUBLIC, anon, authenticated;/);
-  const solutionPolicies = [...migration.matchAll(/CREATE POLICY "[^"]+" ON public\.social_puzzle_solutions\s+FOR (\w+) TO ([\w, ]+?) (?:USING|WITH)/g)];
+  assert.doesNotMatch(migration, /^CREATE POLICY/m, 'the table migration creates no policy (it holds the profiles lock)');
+  const solutionPolicies = [...policies.matchAll(/CREATE POLICY "[^"]+" ON public\.social_puzzle_solutions\s+FOR (\w+) TO ([\w, ]+?) (?:USING|WITH)/g)];
   assert.equal(solutionPolicies.length, 1, 'exactly one policy on the solution table');
   assert.equal(solutionPolicies[0][2].trim(), 'service_role');
+  assert.equal([...policies.matchAll(/^CREATE POLICY /gm)].length, 6, 'six policies in the companion file');
+  assert.match(policies, /SET lock_timeout = '2s';/, 'the policy file bounds its wait for the auth.users lock');
+  assert.match(policies, /\nBEGIN;\n/);
+  assert.match(policies, /\nCOMMIT;\n/);
+  assert.match(policies, /-- ROLLBACK/);
 
   // Both RPCs are service-role only, SECURITY DEFINER, with a pinned search_path.
   for (const fn of ['fn_p7_publish_puzzle', 'fn_p7_reveal_puzzle']) {
