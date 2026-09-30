@@ -1,7 +1,7 @@
 {
-  "version": 4,
+  "version": 5,
   "execution_scope": "training_backlog",
-  "pipeline_bundle_checksum": "456df42293a35a940fe275b9374e223842d5f2b258649f117413181cbc6ebfb4",
+  "pipeline_bundle_checksum": "cb319d1fcd6ef2c945c7e0443fc5299d5c0deea8627851e998bd6b529a8bcc82",
   "range_combo_order": "card=rank*4+suit; combo=b*(b-1)/2+a; 2c2d=0..AhAs=1325",
   "artifact_combo_order": "card=rank*4+suit; combo=b*(b-1)/2+a; 2c2d=0..AhAs=1325",
   "source_combo_order_schema": "piosolver.show_hand_order.v1",
@@ -278,6 +278,6 @@
     "run_machine.py": "650ffd00161e0013d6942720fa7c3c0318734b1b8707c02ead35cad46a26d2c2",
     "tree_gen.py": "e1a7e3923c5f0507f5aced0c05d88d9ad548fce38a641f639bfebe7de83c0138",
     "pio_harvest.py": "f1bcc9f3b81774a8e138bea402b804e6c92ae656c483172a4b1a410e13223717",
-    "orchestrate.py": "3c0b35eadfaecd2165109a6f2150225dbc0a10223bd9a997bf31e1e1ee55751e"
+    "orchestrate.py": "f76ed635e472f69c58941aad36fae48b8fb26aa54abae495b6727e49f68c5b4d"
   }
 }

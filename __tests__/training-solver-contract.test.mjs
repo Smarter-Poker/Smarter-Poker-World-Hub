@@ -523,7 +523,7 @@ test('solver hosts fail closed on unapproved manifests, ranges, and ICM objectiv
   const orchestrator = fs.readFileSync('scripts/preflop-deep/orchestrate.py', 'utf8');
   const migration = fs.readFileSync('supabase/migrations/20260831141500_training_solver_provenance.sql', 'utf8');
   const manifest = JSON.parse(fs.readFileSync('scripts/preflop-deep/phases.json', 'utf8'));
-  assert.equal(manifest.version, 4);
+  assert.equal(manifest.version, 5);
   assert.equal(manifest.execution_scope, 'training_backlog');
   assert.equal(manifest.release_gate.solver_ready, false);
   assert.match(
@@ -721,7 +721,7 @@ class GatewayUnavailable:
     def __init__(self):
         self.requests = []
     def validate_manifest(self, _text):
-        return {'version': 4}, 'wrong-shadowed-value'
+        return {'version': 5}, 'wrong-shadowed-value'
     def _worker_request(self, operation, payload, version, checksum):
         self.requests.append((operation, payload, version, checksum))
         raise RuntimeError('signed gateway unavailable')
@@ -736,12 +736,12 @@ except RuntimeError as error:
 assert NoLaunchSubprocess.calls == 0
 assert len(gateway.requests) == 1
 assert gateway.requests[0][0] == 'heartbeat'
-assert gateway.requests[0][2] == 4
+assert gateway.requests[0][2] == 5
 assert gateway.requests[0][3] == 'a' * 64
 
 class GatewayAvailable:
     def validate_manifest(self, _text):
-        return {'version': 4}, 'validated-checksum'
+        return {'version': 5}, 'validated-checksum'
     def _worker_request(self, *_args):
         return {'ok': True}
 

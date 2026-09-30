@@ -356,6 +356,15 @@ class FourActionGeometryTests(unittest.TestCase):
 
 
 class BoundedCanaryManifestTests(unittest.TestCase):
+    def test_manifest_requires_exact_integer_version_five(self):
+        for invalid_version in (4, 6, "5", 5.0, True, None):
+            manifest = make_manifest()
+            manifest["version"] = invalid_version
+            with self.subTest(version=invalid_version):
+                with self.assertRaisesRegex(
+                        SystemExit, "manifest must be exact version 5"):
+                    validate_manifest(manifest)
+
     def test_valid_canary_does_not_open_default_backlog(self):
         manifest = make_manifest()
         (validated, _), _ = validate_manifest(manifest, "canary")

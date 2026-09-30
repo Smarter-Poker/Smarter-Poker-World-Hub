@@ -1,6 +1,13 @@
 #!/usr/bin/env node
 
-import { existsSync, mkdtempSync, rmSync } from 'node:fs';
+import {
+  accessSync,
+  constants as fsConstants,
+  existsSync,
+  mkdtempSync,
+  realpathSync,
+  rmSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { spawn, spawnSync } from 'node:child_process';
@@ -16,6 +23,42 @@ const DECISION_AUTHORITY_MIGRATION = path.join(
   ROOT,
   'supabase/migrations/20260907203000_training_attempt_decision_delivery_authority.sql',
 );
+
+function pathIsStrictlyWithin(parent, candidate) {
+  const relative = path.relative(parent, candidate);
+  return relative !== ''
+    && relative !== '..'
+    && !relative.startsWith(`..${path.sep}`)
+    && !path.isAbsolute(relative);
+}
+
+function resolveScratchRoot({
+  platform = process.platform,
+  environment = process.env,
+  systemTemp = tmpdir(),
+} = {}) {
+  const configured = String(environment.TRAINING_POSTGRES_SCRATCH_ROOT || '').trim();
+  if (platform === 'darwin' && !configured) {
+    throw new Error(
+      'TRAINING_POSTGRES_SCRATCH_ROOT is required on macOS; internal-drive temp is refused.',
+    );
+  }
+  const candidate = path.resolve(
+    configured || environment.RUNNER_TEMP || systemTemp,
+  );
+  if (!existsSync(candidate)) {
+    throw new Error(`Phase 6 PostgreSQL scratch root does not exist: ${candidate}`);
+  }
+  const resolved = realpathSync(candidate);
+  if (platform === 'darwin') {
+    const externalRoot = realpathSync('/Volumes/SmarterWork/agent-work');
+    if (!pathIsStrictlyWithin(externalRoot, resolved)) {
+      throw new Error(`Phase 6 PostgreSQL scratch resolved off SmarterWork: ${resolved}`);
+    }
+  }
+  accessSync(resolved, fsConstants.W_OK | fsConstants.X_OK);
+  return resolved;
+}
 
 function command(binary, args, { input, quiet = false } = {}) {
   const result = spawnSync(binary, args, {
@@ -1586,7 +1629,8 @@ SELECT jsonb_build_object(
 `;
 
 const postgresBin = resolvePostgresBin();
-const tempRoot = mkdtempSync(path.join(tmpdir(), 'sp-training-cache-replay-'));
+const scratchRoot = resolveScratchRoot();
+const tempRoot = mkdtempSync(path.join(scratchRoot, 'sp-training-cache-replay-'));
 const dataDir = path.join(tempRoot, 'data');
 const port = await reservePort();
 let started = false;
@@ -1912,7 +1956,8 @@ try {
       encoding: 'utf8',
     });
   }
-  if (tempRoot.startsWith(`${tmpdir()}${path.sep}sp-training-cache-replay-`)) {
+  if (path.dirname(tempRoot) === scratchRoot
+      && path.basename(tempRoot).startsWith('sp-training-cache-replay-')) {
     rmSync(tempRoot, { recursive: true, force: true });
   }
 }

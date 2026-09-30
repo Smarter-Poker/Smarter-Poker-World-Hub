@@ -258,6 +258,7 @@ def contract_scope_checksum(contract_pairs):
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 
+MANIFEST_VERSION = 5
 PHASE_CONTRACT_SCHEMA = "training-solver-phase-contracts.v2"
 PHASE_CONTRACT_FIELDS = (
     "id", "game_type", "stack", "street", "streets", "objective",
@@ -687,8 +688,10 @@ def validate_manifest(manifest_text, run_mode="backlog"):
             "manifest execution scope %r does not authorize %s mode"
             % (manifest.get("execution_scope"), run_mode)
         )
-    if int(manifest.get("version", 0)) < 4 or not manifest.get("phases"):
-        raise SystemExit("manifest must be version 4+ with at least one approved phase")
+    if (type(manifest.get("version")) is not int
+            or manifest["version"] != MANIFEST_VERSION
+            or not manifest.get("phases")):
+        raise SystemExit("manifest must be exact version 5 with at least one approved phase")
     expected_chip_ev = canonical_contract_pairs(TRAINING_SOLVER_CONTRACTS)
     expected_icm = canonical_contract_pairs(TRAINING_ICM_CONTRACTS)
     if (manifest.get("range_combo_order") != h.COMBO_ORDER

@@ -310,6 +310,18 @@ test('every Phase 6 database verifier requires exact PostgreSQL 17 binaries', ()
     assert.match(source, /server_version_num/, `${file} must assert the running server major`);
     assert.match(source, /server_encoding/, `${file} must assert UTF8`);
     assert.match(source, /datcollate/, `${file} must assert production-like collation`);
+    if (file === 'scripts/verify-training-cache-replay-postgres.mjs') {
+      assert.match(source, /function resolveScratchRoot\(/);
+      assert.match(source, /TRAINING_POSTGRES_SCRATCH_ROOT/);
+      assert.match(source, /\/Volumes\/SmarterWork\/agent-work/);
+      assert.match(source, /internal-drive temp is refused/);
+      assert.match(source, /realpathSync\(candidate\)/);
+      assert.match(source, /environment\.RUNNER_TEMP \|\| systemTemp/);
+      assert.match(source, /accessSync\(resolved, fsConstants\.W_OK \| fsConstants\.X_OK\)/);
+      assert.match(source, /path\.dirname\(tempRoot\) === scratchRoot/);
+      assert.doesNotMatch(source, /mkdirSync/);
+      assert.doesNotMatch(source, /mkdtempSync\(path\.join\(tmpdir\(\)/);
+    }
   }
 });
 

@@ -538,10 +538,10 @@ the solver release gate:
   30 four-option questions with varied correct positions and a regression
   ceiling preventing the correct choice from being uniquely long.
 
-Focused evidence on the candidate: 126/126 changed-path Node/Python assertions
+Focused evidence on the candidate: 130/130 changed-path Node/Python assertions
 passed; the named 21-game SCENARIO route matrix passed with HTTP 200, 20 unique
 four-option questions, signed grading receipts, and 20 persisted CURATED rows
-per game; the solver geometry/canary suites passed 17/17 Python and 7/7 Node;
+per game; the solver geometry/canary suites passed 21/21 Python and 7/7 Node;
 the closed-manifest solver contract passed 33/33. The real PostgreSQL 17
 contention verifier also passed: the intentionally opposite write order proved
 one deadlock, both production-ordered writers completed, and the cache replay
