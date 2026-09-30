@@ -15,17 +15,21 @@ test('the write a review deep link opens the form', () => {
     // ?action=review set showReviewForm, and nothing read it. The rating row on
     // every venue card, the geofence banner and the lobby all link here, so the
     // person landed on a collapsed form every time.
-    assert.match(VENUE, /setShowReviewForm\(true\)/, 'the deep link must still set the flag');
+    // This line predates the fix, so on its own it proves nothing. What matters
+    // is that the flag it sets now reaches the component below.
+    assert.match(VENUE, /action === 'review'[\s\S]{0,200}setShowReviewForm\(true\)/, 'the deep link still sets the flag');
     assert.match(
         VENUE,
         /<VenueReviews[^>]*defaultOpen=\{showReviewForm\}/,
         'and the flag must reach VenueReviews',
     );
     assert.match(REVIEWS, /defaultOpen = false/, 'VenueReviews must accept it');
+    // The dependency array is the whole point: the flag arrives after mount, so
+    // an effect that never re-runs would reintroduce exactly the bug this fixes.
     assert.match(
         REVIEWS,
-        /useEffect\(\(\) => \{\s*if \(defaultOpen\) setShowForm\(true\);/,
-        'it arrives after mount, so an initial useState value is not enough',
+        /useEffect\(\(\) => \{\s*if \(defaultOpen\) setShowForm\(true\);\s*\}, \[defaultOpen\]\);/,
+        'the effect must depend on defaultOpen, not run once',
     );
 });
 
@@ -38,7 +42,15 @@ test('claiming a venue and reporting a game say when they fail', () => {
         assert.match(VENUE, new RegExp(`\\{${state} && \\(`), `${state} must be rendered, not just held`);
         assert.match(VENUE, new RegExp(`\\{${state}\\}`), `${state} must print its message`);
     }
-    assert.equal((VENUE.match(/role="alert"/g) || []).length >= 2, true, 'both messages are alerts');
+    for (const state of ['claimError', 'reportError']) {
+        // the alert element and the state must be in the same block, not merely
+        // both present somewhere in a 3,900 line file
+        assert.match(
+            VENUE,
+            new RegExp(`\\{${state} && \\([\\s\\S]{0,400}role="alert"[\\s\\S]{0,400}\\{${state}\\}`),
+            `${state} must render its own alert`,
+        );
+    }
 });
 
 test('a failed attempt does not haunt the next one', () => {
@@ -77,10 +89,24 @@ test('the venue hero uses the mirrored logo, not the casino server', () => {
 });
 
 test('a failed home games search does not show the person a parser error', () => {
+    // A 5xx HTML body parsed as JSON put "Unexpected token <" on screen. Only
+    // the non-JSON case is swallowed: guarding on !res.ok alone also discarded
+    // the 400 this endpoint sends for a search that is too long, which is the
+    // one failure the person can actually act on.
     assert.match(
         HOME_GAMES,
-        /if \(!res\.ok\) throw new Error\('Home games could not be loaded/,
-        'a 5xx HTML body parsed as JSON put "Unexpected token <" on screen',
+        /const isJson = \(res\.headers\.get\('content-type'\) \|\| ''\)\.includes\('application\/json'\)/,
+        'the guard must key on the content type',
+    );
+    assert.match(
+        HOME_GAMES,
+        /if \(!isJson\) throw new Error\('Home games could not be loaded/,
+        'and only swallow the non-JSON case',
+    );
+    assert.match(
+        HOME_GAMES,
+        /if \(!json\.success\) throw new Error\(json\.error/,
+        'the actionable server message must still reach the person',
     );
 });
 
