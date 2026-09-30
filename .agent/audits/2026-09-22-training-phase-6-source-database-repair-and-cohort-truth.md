@@ -635,3 +635,71 @@ canonical range names and checksums, Pio identity, target identities, and
 protected-main commit must all be supplied in a separate reviewed packet, and
 the emitted migration must pass protected review and the database's own
 literal uniqueness/held-scope assertions before any M1 canary can run.
+
+### 2026-09-30 Builder Publication And M1 Contract Candidate
+
+The Policy 2.9 reader was rerun after the context resumption at
+2026-09-30T18:14:06Z. It emitted manifest
+`a659f31c5c1c2b0864889508079a635dd5fe2fc98decfbfc9d3f9c80dd45ec3b`
+with owner, operating, hardening, and reference hashes respectively
+`b9478d0331314413d8e12c41210b63479cdcabc1f86ed3fdcb3251efa36e6349`,
+`a8bc3c04dce3354ebdd51a89c0b7d715af3344edcc794d33f6b3ad64506961d5`,
+`d5fc451ce5caf6d6b5e64597a13883e1246581678fe53c962339d0a66136993e`,
+and `adce89c3f838f2f373cd504a00329d53906404d1dd42a647f672af6c16f95555`.
+
+Builder PR #2047 passed every required protected check and squash-merged as
+`1ccf3907cf3298e24609eb6fbd903023d91dbddf`. Vercel production deployment
+`dpl_7Usm5CwjwbczAm4ii6YYMjhZmdXE` completed successfully, and production
+`/api/health` returned that exact commit and deployment with healthy database
+and Training grading checks. Login, Training Hub, and cash-002 Level 8 play
+and arena routes returned HTTP 200; the solver gateway remained fail closed
+with GET 405 and unsigned POST 401. This completes publication of the inert
+builder stage only.
+
+The reviewed candidate now names one exact M1 partition `2/0` canary for the
+reserved `cash-002` continuation identities: parent
+`2d7b403c-e4d3-4c20-bff8-ed5db7ecb50a` at `r:0:c` and child
+`21d75135-faa8-4c0d-acbe-91b55c98daf0` at
+`r:0:c:b412:c:2d:c`. It binds Pio 3.8.0, binary and hand-order hashes, the
+canonical `RFI_BTN_100.txt` and `BBflat_vs_BTN_100.txt` range hashes, v3
+geometry, 550/9750 chip geometry, accuracy `0.005`, and the explicit normalized
+canary rake `0.05 10`. The checked-in manifest remains `solver_ready=false`
+and opens only `bounded_canary_ready` for that exact pair. The complete
+107-game family/stack compatibility ledger remains descriptive coverage, not
+permission to write anything beyond those two UUID/scenario/node identities.
+
+Independent review caught a release-binding defect before any database write:
+the old bundle builder read the manifest and unchanged runtime files from one
+commit, so a newly merged manifest would make the receipt disagree with the
+authority's runtime commit. The candidate repairs that at the source owner:
+the controller builder now takes and verifies distinct protected ancestors for
+`pipeline_commit` and `manifest_commit`, reads each exact Git blob from its
+named commit, and emits a v2 receipt binding both. Its Git subprocess uses the
+fixed `/usr/bin/git` executable and an exact minimal child environment, so
+Supabase, database, HMAC, GitHub, and provider credentials cannot be inherited.
+The migration generator also
+now emits the mandatory Tier 2 safety header and retains exact preflight and
+post-activation assertions.
+
+Focused local evidence on the current candidate:
+
+- 28/28 controller bundle and M1 artifact-builder Python tests pass.
+- 66/66 solver contract, bounded-canary, scoped-custody, and transaction-
+  control Node assertions pass.
+- The SQL runner dry-run accepts the exact generated migration SHA-256
+  `60b187a7b0779640e522f2feb9f0ddd1fc5fa3cc572542dcea77cbcbcba1f9df`
+  without loading credentials or connecting to a database.
+- A disposable PostgreSQL 17 verifier, with every temporary file on the
+  external SSD, executed the new migration after all five prerequisite solver
+  migrations. It proved the one exact authority, exactly two targets, only M1
+  bounded-canary partition `2/0`, and a wrong-child-node transaction rollback
+  with no authority, targets, or active scope left behind.
+- `git diff --check` is clean. The Training inventory remained current at 107
+  games before the final verifier addition and will be rechecked on the exact
+  pre-push candidate.
+
+No production database write, solver invocation, HMAC provisioning, range
+distribution, credential restoration, or global-header change has occurred in
+this contract stage. It remains a candidate until protected checks, merge,
+Vercel proof, migration installation/readback, exact bundle construction, and
+one signed M1 canary complete. Phase 6 remains open and Phase 7 has not started.

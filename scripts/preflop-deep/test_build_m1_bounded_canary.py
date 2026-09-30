@@ -192,6 +192,10 @@ class M1BoundedCanaryBuilderTests(unittest.TestCase):
             self.assertIn("INSERT INTO public.training_solver_provenance_authority", sql)
             self.assertIn("INSERT INTO public.training_solver_bounded_canary_targets", sql)
             self.assertIn("admission_mode = 'bounded_canary'", sql)
+            self.assertIn("-- TIER:        2", sql)
+            self.assertIn("-- IRREVERSIBLE: no", sql)
+            self.assertIn("-- WHY:", sql)
+            self.assertIn("-- HOW (high level):", sql)
             self.assertIn("partition_index = 0", sql)
             self.assertIn("'turn', 'r:0:c:b412:c:2d:c', 'BTN'", sql)
             self.assertIn(

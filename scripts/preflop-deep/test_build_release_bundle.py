@@ -76,12 +76,13 @@ class ControllerBundleBuilderTests(unittest.TestCase):
 
     def build(self, name="bundle", commit=None,
               protected_ref=CANONICAL_PROTECTED_REF,
-              protected_main_commit=None):
+              protected_main_commit=None, manifest_commit=None):
         output = self.root / name
         receipt = build_release_bundle(
             self.repo, commit or self.commit, protected_ref, output,
             PIO_VERSION, PIO_SHA256,
             protected_main_commit or self.protected_main,
+            manifest_commit or commit or self.commit,
         )
         return output, receipt
 
@@ -95,6 +96,10 @@ class ControllerBundleBuilderTests(unittest.TestCase):
         )
         self.assertEqual((output / "tree_gen.py").read_bytes(), self.payloads["tree_gen.py"])
         self.assertEqual(receipt["pipeline_commit"], self.commit)
+        self.assertEqual(receipt["manifest_commit"], self.commit)
+        self.assertEqual(
+            receipt["schema"], "training-solver-controller-bundle-receipt.v2",
+        )
         self.assertEqual(receipt["pio_identity"]["binary_sha256"], PIO_SHA256)
         self.assertNotIn("HMAC", json.dumps(receipt).upper())
         self.assertNotIn("SUPABASE", json.dumps(receipt).upper())
@@ -122,8 +127,44 @@ class ControllerBundleBuilderTests(unittest.TestCase):
         with self.assertRaisesRegex(BundleBuildError, "not an ancestor"):
             self.build(commit=foreign)
 
+        with self.assertRaisesRegex(BundleBuildError, "manifest commit is not an ancestor"):
+            self.build(
+                name="foreign-manifest",
+                commit=self.commit,
+                manifest_commit=foreign,
+            )
+
         with self.assertRaisesRegex(BundleBuildError, "canonical"):
             self.build(commit=foreign, protected_ref="foreign")
+
+    def test_reads_manifest_and_pipeline_from_distinct_protected_commits(self):
+        manifest_path = self.repo / "scripts" / "preflop-deep" / "phases.json"
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        manifest["controller_release_note"] = "manifest-only protected revision"
+        manifest_path.write_text(
+            json.dumps(manifest, sort_keys=True) + "\n", encoding="utf-8",
+        )
+        self.git("add", "scripts/preflop-deep/phases.json")
+        self.git("commit", "-m", "publish manifest separately")
+        manifest_commit = self.git("rev-parse", "HEAD").stdout.decode().strip()
+        self.protected_main = manifest_commit
+        self.git("update-ref", CANONICAL_PROTECTED_REF, manifest_commit)
+
+        output, receipt = self.build(
+            name="split-source-bundle",
+            commit=self.commit,
+            manifest_commit=manifest_commit,
+        )
+
+        self.assertEqual(receipt["pipeline_commit"], self.commit)
+        self.assertEqual(receipt["manifest_commit"], manifest_commit)
+        self.assertEqual(
+            (output / "phases.json").read_bytes(), manifest_path.read_bytes(),
+        )
+        self.assertEqual(
+            (output / "orchestrate.py").read_bytes(),
+            self.payloads["orchestrate.py"],
+        )
 
     def test_rejects_legacy_graft_ancestry_substitution(self):
         self.git("checkout", "--orphan", "grafted-foreign")
@@ -194,6 +235,7 @@ class ControllerBundleBuilderTests(unittest.TestCase):
             sys.executable, str(script),
             "--repo", str(self.repo),
             "--commit", self.commit,
+            "--manifest-commit", self.commit,
             "--protected-main-commit", self.commit,
             "--output", str(output),
             "--pio-version", PIO_VERSION,
@@ -242,6 +284,47 @@ class ControllerBundleBuilderTests(unittest.TestCase):
         self.assertEqual(receipt["pipeline_commit"], self.commit)
         self.assertEqual((output / "orchestrate.py").read_bytes(),
                          self.payloads["orchestrate.py"])
+
+    def test_git_subprocess_receives_no_controller_credentials(self):
+        captured = {}
+
+        def run(command, **kwargs):
+            captured["command"] = command
+            captured["environment"] = kwargs["env"]
+            return subprocess.CompletedProcess(
+                command, 0, stdout=b"", stderr=b"",
+            )
+
+        sentinels = {
+            "SUPABASE_SERVICE_ROLE_KEY": "must-not-reach-git",
+            "DATABASE_URL": "must-not-reach-git",
+            "SOLVER_WORKER_HMAC_SECRET": "must-not-reach-git",
+            "GH_TOKEN": "must-not-reach-git",
+            "GITHUB_TOKEN": "must-not-reach-git",
+        }
+        with mock.patch.dict(os.environ, sentinels, clear=False), mock.patch.object(
+                bundle_builder.subprocess, "run", side_effect=run):
+            bundle_builder._git(self.repo, "status")
+
+        self.assertEqual(
+            captured["command"][0], bundle_builder.GIT_EXECUTABLE,
+        )
+        self.assertEqual(
+            captured["environment"],
+            {
+                "PATH": bundle_builder.GIT_CHILD_PATH,
+                "LANG": "C",
+                "LC_ALL": "C",
+                "GIT_NO_REPLACE_OBJECTS": "1",
+                "GIT_GRAFT_FILE": os.devnull,
+                "GIT_NO_LAZY_FETCH": "1",
+                "GIT_TERMINAL_PROMPT": "0",
+                "GIT_CONFIG_NOSYSTEM": "1",
+                "GIT_CONFIG_GLOBAL": os.devnull,
+            },
+        )
+        for name in sentinels:
+            self.assertNotIn(name, captured["environment"])
 
     def test_aligns_pio_version_and_file_size_limits_with_worker(self):
         with self.assertRaisesRegex(BundleBuildError, "Pio version"):
