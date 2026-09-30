@@ -1,0 +1,37 @@
+{
+  "phase": 2,
+  "title": "Versioned rules, atomic diamond ledger and settlement foundation",
+  "personal_data": "none (synthetic replica fixtures; production figures are aggregates only)",
+  "migrations": [
+    {"version": "20260930043221", "name": "trivia_p2_ledger_foundation", "file_sha256_prefix": "f68ce0e420ab9d1e", "build_fingerprint": "78d533e87fa28555da02a91dd49abac3"},
+    {"version": "20260930043426", "name": "trivia_p2_solo_paths_switch", "file_sha256_prefix": "4418714326e6bab5", "build_fingerprint": "be29a30df69ad267978c2c452f0f288d"},
+    {"version": "20260930043447", "name": "trivia_p2_legacy_backfill", "file_sha256_prefix": "25f725d48978f5f6"}
+  ],
+  "replica_tests": {
+    "database": "fresh copies of the production-schema replica (Postgres 17), synthetic players and horses",
+    "t01_smoke": {"passed": 33, "failed": 0},
+    "t02_solo_shadow": {"rows_compared": 112, "legacy_equals_switch_off": true, "legacy_equals_switch_on": true, "switch_on_wallet_rows_linked": "12/12", "call_results": "identical except the switch statement itself"},
+    "t03_property": {"settlements": 190, "pvp": 160, "pvp_with_horse_seat": 44, "tournaments": 30, "journals": 699, "global_sum_zero": true, "every_journal_balances": true, "wallet_legs_equal_balance_movement": true, "account_drift": 0, "terminal_escrow_nonzero": 0, "unexplained_variance": 0, "wallet_legs_linked_1_to_1": true, "mint_register_vs_supply_unchanged": true, "health_exceptions": 0},
+    "t04_faults": {"fault_points": 20, "passed": 20, "clean_retry_settles_once": true},
+    "t05_races": {"passed": 21, "failed": 0},
+    "t06_acl_probes": {"passed": 358, "failed": 0},
+    "t07_legacy_backfill": {"passed": 12, "failed": 0}
+  },
+  "production_rehearsal": {
+    "method": "one execute_sql call: begin; all three migrations; read-back; raise; rollback",
+    "first_attempt": "refused at 03:50 UTC by the maintenance break-window guard; nothing applied",
+    "result": {"postconditions": "all passed", "legacy_rows_linked": 514, "by_family": {"pvp": 496, "tournament": 16, "solo": 2}, "suspense_balance": -4610, "global_line_sum": 0, "wallet_lines_not_reconciled": 0, "platform_rows_unlinked": 0, "health_exceptions": 0, "switch_on": false}
+  },
+  "production_readback_after_install": {
+    "functions": 57, "function_definitions_md5": "09f31eef3ea251acb0de260cf5e46d93", "function_definitions_md5_replica": "09f31eef3ea251acb0de260cf5e46d93",
+    "tables": 15, "views": 8, "constraints": 97, "tables_without_rls": 0, "browser_access_tables": 0, "browser_executable_ledger_functions": 0,
+    "service_role_write_access_tables": 0, "deferred_balance_triggers": 2, "rules_snapshot_triggers": 3, "rules_versions": 15,
+    "switch_solo_journal": false, "treasury_balance": 0,
+    "config": {"treasury_floor": 0, "treasury_daily_subsidy_ceiling": 3000, "treasury_exposure_ceiling": 3000, "treasury_warning_level": 6000, "pvp_settlement_slo_seconds": 300, "tournament_settlement_slo_seconds": 1800},
+    "journals": {"backfill": 514}
+  },
+  "production": {
+    "health_after_install": {"healthy": true, "exceptions": 0, "unjournaled_unexplained": 0, "wallet_reference_variance": 0, "legacy_rows_pending_backfill": 0},
+    "diamonds_moved_by_install": 0
+  }
+}

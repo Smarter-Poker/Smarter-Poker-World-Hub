@@ -245,6 +245,9 @@ import './trivia-console-contract.test.mjs';
 import './trivia-pvp-containment.test.mjs';
 import './trivia-tournament-containment.test.mjs';
 import './trivia-ui-foundation.test.mjs';
+// Trivia Phase 2: versioned rules seed parity, conserving money helpers,
+// ledger migration ACLs with every switch OFF, and the lifeline/audit wiring.
+import './trivia-ledger-phase-2.test.mjs';
 import './world-command-destinations.test.mjs';
 import './world-command-menu-law.test.mjs';
 import './world-menu-presentation.test.mjs';
@@ -462,6 +465,9 @@ const REQUIRED_TEST_FILES = [
     '__tests__/trivia-tournament-containment.test.mjs',
     // The console contract: chassis, inks, footer law and artwork families.
     '__tests__/trivia-console-contract.test.mjs',
+    // Trivia Phase 2 ledger: the rules registry seed is generated from the one
+    // JS module and every paid solo mode is seeded exactly as it runs today.
+    '__tests__/trivia-ledger-phase-2.test.mjs',
     // Club shop item rules. shopItemRules.js is the single validator shared by
     // BOTH admin write paths; before it existed the two disagreed and items
     // created from the World Hub granted nothing on redeem, accepted any image
