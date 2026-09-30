@@ -49,18 +49,48 @@ test('every dedicated SCENARIO bank delivers 30 unique, valid Level-12 questions
   }
 });
 
-test('the three repaired banks do not teach a correct-option position pattern', () => {
-  for (const gameId of ['psy-018', 'psy-019', 'psy-020']) {
-    const correctPositions = new Set(
-      getPsychologyQuestions(gameId, 12, 30, []).map(({ correctAnswer }) => correctAnswer),
-    );
-    assert.deepEqual([...correctPositions].sort(), ['a', 'b', 'c', 'd'], gameId);
+test('every dedicated bank balances deterministic correct slots and remaps grading frequencies', () => {
+  for (const gameId of DEDICATED_SCENARIO_GAMES) {
+    const questions = getPsychologyQuestions(gameId, 12, 30, []);
+    const counts = Object.fromEntries(['a', 'b', 'c', 'd'].map((id) => [id, 0]));
+    for (const question of questions) {
+      counts[question.correctAnswer] += 1;
+      assert.deepEqual(Object.keys(question.gtoFrequencies).sort(), ['a', 'b', 'c', 'd']);
+      assert.equal(question.gtoFrequencies[question.correctAnswer], 100, `${gameId}/${question.id}`);
+      assert.equal(Object.values(question.gtoFrequencies).filter((value) => value === 0).length, 3,
+        `${gameId}/${question.id}`);
+    }
+    assert.deepEqual(Object.keys(counts).filter((id) => counts[id] > 0).sort(), ['a', 'b', 'c', 'd'], gameId);
+    assert.ok(Math.max(...Object.values(counts)) - Math.min(...Object.values(counts)) <= 1,
+      `${gameId}: ${JSON.stringify(counts)}`);
   }
 });
 
-test('the repaired banks do not reveal the answer through uniquely long correct choices', () => {
+test('the canonical mapping for psych_psy-001_0 remains pinned', () => {
+  const question = getPsychologyQuestions('psy-001', 12, 30, [])
+    .find(({ id }) => id === 'psych_psy-001_0');
+
+  assert.deepEqual({
+    id: question.id,
+    options: question.options,
+    correctAnswer: question.correctAnswer,
+    gtoFrequencies: question.gtoFrequencies,
+  }, {
+    id: 'psych_psy-001_0',
+    options: [
+      { id: 'a', text: 'Tighten up to only premium hands until the feeling passes on its own' },
+      { id: 'b', text: 'Take a deep breath, name the emotion' },
+      { id: 'c', text: 'Play the next few hands faster to get past the bad memory quickly' },
+      { id: 'd', text: 'Immediately move up a stake where players respect your raises more' },
+    ],
+    correctAnswer: 'b',
+    gtoFrequencies: { a: 0, b: 100, c: 0, d: 0 },
+  });
+});
+
+test('no dedicated bank reveals the answer through a uniquely long correct choice', () => {
   const maxCorrectToLongestDistractorRatio = 1.35;
-  for (const gameId of ['psy-018', 'psy-019', 'psy-020']) {
+  for (const gameId of DEDICATED_SCENARIO_GAMES) {
     for (const question of getPsychologyQuestions(gameId, 12, 30, [])) {
       const correctLength = question.options
         .find(({ id }) => id === question.correctAnswer).text.trim().length;
@@ -72,5 +102,27 @@ test('the repaired banks do not reveal the answer through uniquely long correct 
         `${gameId}/${question.id}: correct=${correctLength}, longest distractor=${longestDistractor}`,
       );
     }
+  }
+});
+
+test('option text, ids and grading stay stable across level, repetition and seen-id filtering', () => {
+  const mapping = (questions) => questions
+    .map(({ id, options, correctAnswer, gtoFrequencies }) => ({
+      id,
+      options,
+      correctAnswer,
+      gtoFrequencies,
+    }))
+    .sort((left, right) => left.id.localeCompare(right.id));
+
+  for (const gameId of DEDICATED_SCENARIO_GAMES) {
+    const baseline = getPsychologyQuestions(gameId, 12, 30, []);
+    const seenIds = baseline.slice(0, 11).map(({ id }) => id);
+    assert.deepEqual(mapping(getPsychologyQuestions(gameId, 12, 30, [])), mapping(baseline),
+      `${gameId}: repeat drift`);
+    assert.deepEqual(mapping(getPsychologyQuestions(gameId, 1, 30, [])), mapping(baseline),
+      `${gameId}: level drift`);
+    assert.deepEqual(mapping(getPsychologyQuestions(gameId, 12, 30, seenIds)), mapping(baseline),
+      `${gameId}: seen-id drift`);
   }
 });
