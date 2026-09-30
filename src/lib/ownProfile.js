@@ -41,7 +41,8 @@ export async function readOwnProfile(supabase, columns, options = {}) {
   const hasExpectation = Object.prototype.hasOwnProperty.call(options, 'expectId');
   if (hasExpectation && !options.expectId) return { data: null, error: null };
 
-  const { data, error } = await supabase.rpc(OWNER_PROFILE_RPC);
+  // Named literally (not via OWNER_PROFILE_RPC) so the live-RPC gate can see it.
+  const { data, error } = await supabase.rpc('get_my_full_profile');
   if (error) return { data: null, error };
   const row = Array.isArray(data) ? data[0] || null : data || null;
   if (!row) return { data: null, error: null };

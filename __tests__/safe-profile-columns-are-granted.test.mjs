@@ -40,7 +40,10 @@ const SRC = readFileSync(new URL('../src/lib/profileColumns.js', import.meta.url
 
 /** Columns `authenticated` has NO SELECT grant on (production, 2026-09-03;
     `birthday` from 2026-09-29, Club Arena migration
-    the_full_birthday_is_its_owners_alone). */
+    the_full_birthday_is_its_owners_alone; the owner-only money, legal-name,
+    birth-year, whereabouts, last-seen and referred-by columns from
+    2026-09-30, Club Arena migration
+    a_profile_shows_strangers_only_what_the_table_needs). */
 const REVOKED_FROM_AUTHENTICATED = [
   'age_verified', 'age_verified_at', 'birthday', 'email', 'horse_profile', 'horse_status',
   'is_farming_flagged', 'is_horse', 'jurisdiction_acknowledged_at',
@@ -48,6 +51,10 @@ const REVOKED_FROM_AUTHENTICATED = [
   'kyc_inquiry_id', 'kyc_provider', 'kyc_rejection_reason', 'kyc_status',
   'mfa_required', 'notification_token', 'over_18_attested_at', 'phone',
   'status_text', 'stripe_customer_id',
+  // 2026-09-30 - owner-only
+  'diamonds', 'diamond_balance', 'diamond_multiplier', 'full_name', 'first_name',
+  'last_name', 'birth_year', 'city', 'state', 'country', 'last_seen', 'last_login',
+  'last_login_date', 'last_active', 'referred_by',
 ];
 
 function safeColumns() {
