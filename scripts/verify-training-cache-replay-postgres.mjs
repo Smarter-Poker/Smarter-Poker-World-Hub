@@ -151,6 +151,55 @@ function spawnPsql(binary, args, input, { readyMarker } = {}) {
   return { ready, completed };
 }
 
+/**
+ * An interactive psql session for lock-order choreography: statements are
+ * written one step at a time and each step's marker is awaited before the
+ * next writer moves, so the verifier controls exactly which row each session
+ * holds when the other arrives. ON_ERROR_STOP stays off because a deadlock
+ * victim must be observed, not aborted out of the harness.
+ */
+function interactivePsql(binary, args) {
+  const child = spawn(binary, args, { cwd: ROOT, env: process.env, stdio: ['pipe', 'pipe', 'pipe'] });
+  let stdout = '';
+  let stderr = '';
+  const waiters = [];
+  const settle = () => {
+    for (const waiter of [...waiters]) {
+      if (stdout.includes(waiter.marker)) {
+        waiters.splice(waiters.indexOf(waiter), 1);
+        clearTimeout(waiter.timer);
+        waiter.resolve();
+      }
+    }
+  };
+  child.stdout.setEncoding('utf8');
+  child.stderr.setEncoding('utf8');
+  child.stdout.on('data', (chunk) => { stdout += chunk; settle(); });
+  child.stderr.on('data', (chunk) => { stderr += chunk; });
+  const closed = new Promise((resolve) => {
+    child.once('close', (status, signal) => resolve({ status, signal, stdout, stderr }));
+  });
+  return {
+    send(sql) { child.stdin.write(`${sql}\n`); },
+    waitFor(marker, timeoutMs = 10_000) {
+      if (stdout.includes(marker)) return Promise.resolve();
+      return new Promise((resolve, reject) => {
+        const timer = setTimeout(() => {
+          waiters.splice(waiters.findIndex((waiter) => waiter.marker === marker), 1);
+          reject(new Error(`Timed out waiting for ${marker}.\n${stdout}\n${stderr}`));
+        }, timeoutMs);
+        waiters.push({ marker, resolve, timer });
+      });
+    },
+    async finish() {
+      child.stdin.write('\\q\n');
+      child.stdin.end();
+      return closed;
+    },
+    output: () => ({ stdout, stderr }),
+  };
+}
+
 const BASELINE_SQL = String.raw`
 CREATE ROLE anon NOLOGIN;
 CREATE ROLE authenticated NOLOGIN;
@@ -1780,6 +1829,72 @@ try {
     `,
     quiet: true,
   });
+  // Two concurrent batch-preloads of one game/level upsert the same
+  // deterministic question ids. Prove on real PostgreSQL 17 that (1) two
+  // writers touching the overlapping rows in OPPOSITE orders deadlock, which
+  // is the 503 TRAINING_PERSISTENCE_UNAVAILABLE production saw, and (2) the
+  // route's fix, one stable question_id order for every writer, lets both
+  // finish. The row shape is the same minimal canonical row BEHAVIOR_SQL uses.
+  const contentionUpsert = (questionId) => String.raw`
+    INSERT INTO public.training_question_cache (question_id, quality_status, policy_checksum)
+    VALUES ('${questionId}', 'active', repeat('a', 64))
+    ON CONFLICT (question_id) DO UPDATE SET policy_checksum = EXCLUDED.policy_checksum;`;
+  const contentionSession = () => interactivePsql(tool('psql'), ['-X', '-q', ...connection]);
+
+  const oppositeA = contentionSession();
+  const oppositeB = contentionSession();
+  oppositeA.send(`BEGIN;${contentionUpsert('contention-row-a')} SELECT 'A_HOLDS_A';`);
+  oppositeB.send(`BEGIN;${contentionUpsert('contention-row-b')} SELECT 'B_HOLDS_B';`);
+  await Promise.all([oppositeA.waitFor('A_HOLDS_A'), oppositeB.waitFor('B_HOLDS_B')]);
+  oppositeA.send(`${contentionUpsert('contention-row-b')} SELECT 'A_FINISHED'; COMMIT;`);
+  oppositeB.send(`${contentionUpsert('contention-row-a')} SELECT 'B_FINISHED'; COMMIT;`);
+  const [oppositeAResult, oppositeBResult] = await Promise.all([oppositeA.finish(), oppositeB.finish()]);
+  const deadlocks = [oppositeAResult, oppositeBResult]
+    .filter((result) => /deadlock detected/.test(result.stderr)).length;
+  if (deadlocks !== 1) {
+    throw new Error([
+      'Opposite-order overlapping upserts did not reproduce exactly one deadlock (40P01).',
+      `deadlocks=${deadlocks}`,
+      oppositeAResult.stdout, oppositeAResult.stderr, oppositeBResult.stdout, oppositeBResult.stderr,
+    ].join('\n'));
+  }
+
+  const orderedA = contentionSession();
+  const orderedB = contentionSession();
+  orderedA.send(`BEGIN;${contentionUpsert('contention-row-a')} SELECT 'ORDERED_A_HOLDS_A';`);
+  await orderedA.waitFor('ORDERED_A_HOLDS_A');
+  // B takes the same first key and must queue behind A rather than cross it.
+  orderedB.send(`BEGIN;${contentionUpsert('contention-row-a')} SELECT 'ORDERED_B_HOLDS_A';`);
+  await new Promise((resolve) => { setTimeout(resolve, 400); });
+  if (orderedB.output().stdout.includes('ORDERED_B_HOLDS_A')) {
+    throw new Error('Ordered writer B acquired row a while A still held it; row locks did not serialize.');
+  }
+  orderedA.send(`${contentionUpsert('contention-row-b')} SELECT 'ORDERED_A_FINISHED'; COMMIT;`);
+  await orderedA.waitFor('ORDERED_A_FINISHED');
+  await orderedB.waitFor('ORDERED_B_HOLDS_A');
+  orderedB.send(`${contentionUpsert('contention-row-b')} SELECT 'ORDERED_B_FINISHED'; COMMIT;`);
+  const [orderedAResult, orderedBResult] = await Promise.all([orderedA.finish(), orderedB.finish()]);
+  for (const [name, result] of [['A', orderedAResult], ['B', orderedBResult]]) {
+    if (result.status !== 0 || /ERROR/.test(result.stderr) || !result.stdout.includes(`ORDERED_${name}_FINISHED`)) {
+      throw new Error(`Ordered writer ${name} did not complete cleanly.\n${result.stdout}\n${result.stderr}`);
+    }
+  }
+  command(tool('psql'), ['-X', '-v', 'ON_ERROR_STOP=1', ...connection], {
+    input: String.raw`
+      DO $$
+      BEGIN
+        IF (SELECT count(*) FROM public.training_question_cache
+            WHERE question_id IN ('contention-row-a', 'contention-row-b')) <> 2 THEN
+          RAISE EXCEPTION 'ordered concurrent writers did not leave both rows persisted';
+        END IF;
+        DELETE FROM public.training_question_cache
+        WHERE question_id IN ('contention-row-a', 'contention-row-b');
+      END $$;
+    `,
+    quiet: true,
+  });
+  console.log('Concurrent canonicalize contention proved on PostgreSQL 17: oppositeOrderDeadlocks=1 orderedWritersCompleted=2');
+
   const evidence = command(tool('psql'), ['-X', '-v', 'ON_ERROR_STOP=1', ...connection], {
     input: BEHAVIOR_SQL,
     quiet: true,

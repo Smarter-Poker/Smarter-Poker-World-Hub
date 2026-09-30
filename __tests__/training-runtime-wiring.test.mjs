@@ -18,6 +18,7 @@ import { isRetryable } from '../src/lib/supabaseRetry.js';
 import { SolverPolicyService } from '../src/services/SolverPolicyService.js';
 import {
   isTrainingPersistenceUnavailable,
+  orderRowsForConcurrentWrite,
   runTrainingPersistenceQuery,
   trainingPersistenceUnavailableBody,
 } from '../src/lib/training/trainingPersistence.mjs';
@@ -204,6 +205,7 @@ function loadTrainingDeliveryHandler(relativePath, { recoveredDelivery = null } 
     },
     '../../../src/lib/training/trainingPersistence.mjs': {
       isTrainingPersistenceUnavailable,
+      orderRowsForConcurrentWrite,
       runTrainingPersistenceQuery: (queryFactory, options = {}) => runTrainingPersistenceQuery(
         queryFactory,
         { ...options, timeoutMs: 5, maxRetries: 0, baseDelay: 0 },
