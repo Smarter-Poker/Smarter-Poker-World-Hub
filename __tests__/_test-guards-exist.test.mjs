@@ -208,6 +208,13 @@ import './the-wallet-badges-count-the-whole-ledger.law.test.mjs';
 // catalog's own rule; the wallet's Escape backs out one layer, not all of them.
 import './the-earn-pane-knows-what-it-cannot-tell.test.mjs';
 import './the-stats-panel-is-summed-in-sql.test.mjs';
+// 2026-09-30. The same panel, one level up: phase 7 gave the BREAKDOWN a
+// could-not-tell state and left the panel itself with two - `!stats` drew an
+// animated skeleton with no loading gate, and the route answers 200 with a
+// bare `lifetime: null` when its stats read throws, so Stats loaded for ever
+// and said nothing. This pins the third outcome at both ends, and pins the
+// live smoke's by-hand invocation to an npm script rather than to a claim.
+import './the-stats-panel-says-when-it-cannot-tell.test.mjs';
 import './the-ledger-speaks-to-the-player.law.test.mjs';
 // Phase 8 of 8, 2026-09-29. Phases 1 to 7 each pinned ONE side of the
 // route/client boundary, so the two could drift while both stayed green: a
@@ -250,6 +257,8 @@ import './trivia-pvp-containment.test.mjs';
 import './trivia-tournament-containment.test.mjs';
 // Trivia Phase 3: eligibility-only paid/competitive pools, engine v3 golden seeds.
 import './trivia-phase-3-engine.test.mjs';
+// Trivia Phase 3: the spend route refuses a stray trivia_entry charge.
+import './trivia-entry-spend-retired.test.mjs';
 import './trivia-ui-foundation.test.mjs';
 // Trivia Phase 2: versioned rules seed parity, conserving money helpers,
 // ledger migration ACLs with every switch OFF, and the lifeline/audit wiring.
@@ -423,6 +432,15 @@ import './venue-page-actions-reach-the-person.test.mjs';
 // blindly, which let a 302 reach the cloud metadata address.
 import './the-proxy-checks-every-redirect-hop.test.mjs';
 
+// Venue art is hotlinked from 104 casino domains that img-src can never list.
+// The mirror holds it; these pin the guard and the readers that prefer it.
+import './venue-art-comes-from-the-mirror.test.mjs';
+
+// The card asked for /images/venues/<id>.png for every venue and hid the 404
+// in onError. 405 of 478 venues have no such file. This pins the manifest
+// that replaced the guess, and the card that must consult it.
+import './a-venue-mark-is-only-asked-for-when-it-exists.test.mjs';
+
 // The Report-Only CSP can only graduate if its violations reach us, so the
 // reporting wiring and the endpoint that receives it are guarded here.
 import './csp-violations-reach-us.test.mjs';
@@ -477,6 +495,8 @@ const REQUIRED_TEST_FILES = [
     '__tests__/trivia-tournament-containment.test.mjs',
     // Phase 3 question eligibility + deterministic engine v3 (1,000 golden seeds).
     '__tests__/trivia-phase-3-engine.test.mjs',
+    // The spend route refuses a trivia_entry charge; entry is charged at session start.
+    '__tests__/trivia-entry-spend-retired.test.mjs',
     // The console contract: chassis, inks, footer law and artwork families.
     '__tests__/trivia-console-contract.test.mjs',
     // Trivia Phase 2 ledger: the rules registry seed is generated from the one

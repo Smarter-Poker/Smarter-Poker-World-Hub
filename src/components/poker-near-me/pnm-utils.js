@@ -1,3 +1,4 @@
+import { safeImageUrl } from '../../lib/security/imageHosts.js';
 /**
  * pnm-utils.js — Shared utilities for Poker Near Me components
  * 
@@ -80,12 +81,17 @@ export function parseMinStake(gameName) {
 
 export function getVenueLogoUrl(venue) {
     if (!venue) return null;
+    // Every candidate goes through safeImageUrl. profile_photo_url in
+    // particular still carries a casino's own domain for many venues (192 of
+    // 478 across 104 hosts, measured 2026-09-30), and img-src can never list
+    // them. An unmirrored one returns null here and the caller draws its
+    // monogram, which is a missing photo rather than a blocked request.
     // Priority 1: Supabase venue-logos bucket (hand-curated, verified logos)
-    if (venue.logo_url) return venue.logo_url;
+    if (safeImageUrl(venue.logo_url)) return safeImageUrl(venue.logo_url);
     // Priority 2: Profile photo from social page (scraped/external)
-    if (venue.profile_photo_url) return venue.profile_photo_url;
+    if (safeImageUrl(venue.profile_photo_url)) return safeImageUrl(venue.profile_photo_url);
     // Priority 3: Cover photo
-    if (venue.cover_photo_url) return venue.cover_photo_url;
+    if (safeImageUrl(venue.cover_photo_url)) return safeImageUrl(venue.cover_photo_url);
     
     // We intentionally removed the dynamic s2/favicons fallback here because it generates 
     // generic blue globes without byte-size validation. The backend daemon already tests 

@@ -1,3 +1,4 @@
+import { safeImageUrl } from '../../lib/security/imageHosts.js';
 import { escapeHtml, getOpenStatus } from './pnm-utils.js';
 import { openNativeMaps } from '../../utils/openNativeMaps.js';
 import { cashGameCountLabel, isModeledCashGameData } from '../../lib/poker-near-me/liveCashGameData.js';
@@ -103,8 +104,11 @@ export function truncatePokerMapLabel(name, maxLength = 22) {
 }
 
 function venueLogo(venue) {
-  return venue?.avatar_url || venue?.logo_url || venue?.profile_photo_url
-    || venue?.cover_photo_url || venue?.image_url || DEFAULT_LOGO;
+  // These end up inside raw HTML strings for Leaflet divIcons and popups, so
+  // they never pass through next/image and are governed by img-src directly.
+  return safeImageUrl(venue?.avatar_url) || safeImageUrl(venue?.logo_url)
+    || safeImageUrl(venue?.profile_photo_url) || safeImageUrl(venue?.cover_photo_url)
+    || safeImageUrl(venue?.image_url) || DEFAULT_LOGO;
 }
 
 export function createPokerVenueIcon(L, venue, options = {}) {

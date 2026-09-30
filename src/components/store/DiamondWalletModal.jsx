@@ -591,6 +591,23 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
        by the API. Sent only with a first page, so it is not overwritten with
        `null` by a Load More. */
   const [lifetime, setLifetime] = useState(null);
+  /*
+   * WHICH KIND OF "NO STATS" THIS IS (2026-09-30, 10.86 rule 1).
+   *
+   * 'pending'     the first-page read has not answered yet - the skeleton.
+   * 'ok'          the figures arrived and `lifetime` holds them.
+   * 'unavailable' the read SETTLED and could not be told. Terminal: the panel
+   *               says so and stops animating, in the same voice the
+   *               breakdown already uses one level down.
+   *
+   * Before this existed the panel had two states, `!stats` and `stats`, and
+   * `!stats` drew a skeleton with no loading gate behind it. The route
+   * answers 200 with a bare `lifetime: null` when its stats read throws, so
+   * the transactions rendered, no error was set, and a player who opened
+   * Stats watched that skeleton for ever, told nothing. UNKNOWN was folded
+   * into PENDING; it now has its own name, sent as `lifetimeStatus`.
+   */
+  const [statsRead, setStatsRead] = useState('pending');
   /* on_hand / sendable / collateral / in_arena from the same first-page read.
      null until read, and null when the API could not read it - the Send
      panel then falls back to the balance check and says nothing it does not
@@ -820,6 +837,11 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
         setLoadingMore(true);
       }
       if (offset === 0) setError(null);
+      /* A retry (pull to refresh, a balance event, the Retry key) puts the
+         panel back into PENDING so the skeleton means "asking again" rather
+         than leaving a stale refusal on screen. Figures already read stay
+         read: 'ok' is never downgraded to a skeleton mid-refresh. */
+      if (offset === 0) setStatsRead((prev) => (prev === 'ok' ? prev : 'pending'));
       try {
         const user = getAuthUser();
         if (!user) {
@@ -864,6 +886,19 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
           if (data.counts) setServerCounts(data.counts);
           // Only a first page carries it; never clear it on a Load More.
           if (data.lifetime) setLifetime(data.lifetime);
+          /*
+           * THE THIRD OUTCOME, NAMED BY THE ROUTE.
+           *
+           * `lifetimeStatus` is 'ok', 'unavailable' or 'paged'; only a first
+           * page is ever allowed to decide, because 'paged' is not a verdict
+           * about anything. A route that predates the field (a rollout in
+           * flight) sends neither, and then the presence of `lifetime` is the
+           * only evidence there is - absent, on a first page, it is UNKNOWN,
+           * which is what the panel will say. Never a silent skeleton.
+           */
+          if (offset === 0) {
+            setStatsRead(data.lifetimeStatus === 'ok' || data.lifetime ? 'ok' : 'unavailable');
+          }
           if (offset === 0) setWalletSummary(data.summary ?? null);
           /* Same first-page rule as the summary, and the same honesty: a
              missing or unreadable breakdown lands as null, never as {}. */
@@ -930,6 +965,25 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
         fetchInFlightRef.current = false;
         setLoading(false);
         setLoadingMore(false);
+        /*
+         * THE SKELETON TERMINATES ON EVERY PATH, NOT JUST THE HAPPY ONE.
+         *
+         * A first-page read can end without an answer in more ways than a
+         * failed stats query: no signed-in user, no session, a thrown fetch,
+         * a non-ok response. Every one of those returns or throws before the
+         * success branch above sets a verdict, and each of them used to leave
+         * the Stats panel animating for ever because `!stats` was the only
+         * gate it had. Here the read has demonstrably SETTLED, so a still
+         * 'pending' panel is an outcome nobody could tell - which is its own
+         * state and says so (10.86 rule 1).
+         *
+         * A response dropped because the tab changed is NOT settled: the
+         * block below re-runs the fetch, so it stays pending rather than
+         * flashing a refusal the player never had a reason to see.
+         */
+        if (offset === 0 && !pendingRefetchRef.current) {
+          setStatsRead((prev) => (prev === 'pending' ? 'unavailable' : prev));
+        }
         // A balance-changing event arrived while this fetch was in flight :
         // run one more first-page fetch so the newest mutation isn't missed.
         if (pendingRefetchRef.current) {
@@ -2161,12 +2215,35 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
             </div>
           )}
 
-          {/* H5: Stats skeleton when loading */}
-          {showStats && !stats && (
+          {/*
+            * H5: THREE STATES, NOT TWO (2026-09-30, 10.86 rule 1).
+            *
+            * This skeleton used to be the ONLY non-success branch, written as
+            * `showStats && !stats` with no loading gate and no terminal state
+            * behind it. `stats` is null whenever `lifetime` is null, and the
+            * route answers HTTP 200 with a bare `lifetime: null` when its
+            * stats read throws - so the ledger rendered, no error was set,
+            * and a player who opened Stats watched an animated skeleton for
+            * ever, told nothing. PENDING was standing in for UNKNOWN.
+            *
+            * The skeleton now means only "still asking". A read that has
+            * settled without an answer gets the sentence below, in the same
+            * voice the breakdown one level down has used since phase 7.
+            * Never a permanent skeleton, and never a zero: a figure nobody
+            * could compute is not the figure 0.
+            */}
+          {showStats && !stats && statsRead === 'pending' && (
             <div className={styles.statsPanel} aria-busy="true">
               <div className={`${styles.statsGrid2} ${styles.statsGridTight}`}>
                 <div className={styles.statsSkeletonPlate} />
                 <div className={`${styles.statsSkeletonPlate} ${styles.statsSkeletonPlateLate}`} />
+              </div>
+            </div>
+          )}
+          {showStats && !stats && statsRead !== 'pending' && (
+            <div className={styles.statsPanel} aria-busy="false">
+              <div className={styles.statsFoot}>
+                Stats Unavailable Right Now. Pull Down To Refresh.
               </div>
             </div>
           )}

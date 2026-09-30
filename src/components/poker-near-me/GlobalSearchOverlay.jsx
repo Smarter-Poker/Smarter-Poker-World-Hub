@@ -1,3 +1,4 @@
+import { safeImageUrl } from '../../lib/security/imageHosts.js';
 /**
  * GlobalSearchOverlay.jsx — v3
  *
@@ -269,7 +270,7 @@ function DetailModal({ item, type, onClose, onNavigate }) {
     ? (item.tour_code ? `/hub/tours/${encodeURIComponent(item.tour_code)}` : '')
     : (item.id != null ? `/hub/venues/${encodeURIComponent(item.id)}` : '');
   const kindLabel = isVenue ? venueTypeLabel(item.venue_type) : isTour ? (item.tour_code || 'Tour') : 'Series';
-  const logo = item.logo_url || item.profile_photo_url || item.cover_photo_url || '';
+  const logo = safeImageUrl(item.logo_url) || safeImageUrl(item.profile_photo_url) || safeImageUrl(item.cover_photo_url) || '';
   const city = [item.city, item.state].filter(Boolean).join(', ');
   const phone = item.phone || item.phone_number || '';
   const address = item.address || '';
@@ -439,7 +440,7 @@ function ResultPanel({ className, isSelected, onActivate, holder, name, kind, pl
 
 function VenueResultCard({ venue, onClick, isSelected = false }) {
   const city = [venue.city, venue.state].filter(Boolean).join(', ');
-  const logo = venue.logo_url || venue.profile_photo_url || '';
+  const logo = safeImageUrl(venue.logo_url) || safeImageUrl(venue.profile_photo_url) || '';
   return (
     <ResultPanel
       className="gso-result-card gso-result-card--venue"
