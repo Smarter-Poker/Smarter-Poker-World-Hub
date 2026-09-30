@@ -14,6 +14,7 @@ import { reportApiError } from '../../../src/lib/apiErrorHandler';
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import tournamentVenues from '../../../data/tournament-venues.json';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
+import { safeImageUrl } from '../../../src/lib/security/imageHosts.js';
 import {
   combineDailyTournamentQueryResults,
   decodeScrapedTournamentText,
@@ -847,12 +848,23 @@ async function handler(req, res) {
                   if (venueLogoError) throw venueLogoError;
                   if (venueLogos && venueLogos.length > 0) {
                       const logoMap = new Map();
-                      venueLogos.forEach(v => logoMap.set(v.id, v.logo_url || v.profile_photo_url || null));
+                      // A FIELD NAMED logo_url MUST HOLD A LOGO WE CAN SERVE (2026-09-30).
+                      //
+                      // This fell back to profile_photo_url, which is a casino's own
+                      // domain for 185 of the 194 venues that carry one, and then
+                      // emitted it under the logo_url key. Every reader downstream
+                      // trusted that name, so an unmirrored URL travelled as though
+                      // it were mirrored art. Unservable candidates are dropped here
+                      // and the card draws its monogram instead.
+                      venueLogos.forEach(v => logoMap.set(
+                          v.id,
+                          safeImageUrl(v.logo_url) || safeImageUrl(v.profile_photo_url) || null,
+                      ));
                       tournaments = tournaments.map(t => ({
                           ...t,
                           // Keep any logo already set (home games carry the group's photo);
                           // Number('home_game_<uuid>') is NaN, which used to null them out.
-                          logo_url: logoMap.get(Number(t.venue_id)) || t.logo_url || null,
+                          logo_url: logoMap.get(Number(t.venue_id)) || safeImageUrl(t.logo_url) || null,
                       }));
                   }
               } catch (logoErr) {

@@ -1,6 +1,7 @@
 import React from 'react';
 import { formatDate, PnmPlateLabel } from './TourCard';
 import { PokerNearMeConsoleIcon, PokerNearMePanelShell } from './PokerNearMeConsole';
+import { safeImageUrl } from '../../lib/security/imageHosts.js';
 
 // Local formatMoney so freerolls (amount=0) show 'Free'.
 // (The note that used to sit here claiming TourCard's formatMoney(0) returns '$0' is
@@ -96,7 +97,7 @@ export default function NewSeriesVenueCard({ series: s, index, isFavorited, onFa
     }
 
     // Logo cascade: series own logo → tour brand logo → nothing
-    const resolvedLogoUrl = s.logo_url || (matchedTourCode ? TOUR_LOGO_MAP[matchedTourCode] : null) || null;
+    const resolvedLogoUrl = safeImageUrl(s.logo_url) || (matchedTourCode ? TOUR_LOGO_MAP[matchedTourCode] : null) || null;
 
     return (
         <PokerNearMePanelShell
