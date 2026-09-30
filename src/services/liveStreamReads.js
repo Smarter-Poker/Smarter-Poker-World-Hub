@@ -43,7 +43,8 @@ import { supabase } from '../lib/supabase';
 export const LIVE_STREAM_SAFE_COLS =
   'id, broadcaster_id, title, description, thumbnail_url, status, viewer_count, started_at, ended_at, created_at, video_url, is_posted, is_draft, mime_type, livekit_room, slow_mode, peak_viewers, reaction_count, category, feed_post_id, preview_clip_url, preview_updated_at';
 
-const BROADCASTER_JOIN = ', broadcaster:profiles(id, username, full_name, avatar_url)';
+// A broadcaster's legal name is readable only by them and staff (2026-09-30).
+const BROADCASTER_JOIN = ', broadcaster:profiles(id, username, avatar_url)';
 
 /**
  * Every live stream the caller is allowed to see.
@@ -58,7 +59,9 @@ export async function getLiveStreams() {
 
   if (!rpcErr && rpcData) {
     // Reshape RPC rows into the shape the rest of the app expects:
-    // { ...stream_columns, broadcaster: { id, username, full_name, avatar_url } }
+    // { ...stream_columns, broadcaster: { id, username, avatar_url } }
+    // broadcaster_full_name is deliberately not read: it is the broadcaster's
+    // legal name, which only they and staff may see.
     return rpcData.map((r) => ({
       id: r.id,
       broadcaster_id: r.broadcaster_id,
@@ -77,7 +80,6 @@ export async function getLiveStreams() {
       broadcaster: {
         id: r.broadcaster_id,
         username: r.broadcaster_username,
-        full_name: r.broadcaster_full_name,
         avatar_url: r.broadcaster_avatar,
       },
     }));

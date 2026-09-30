@@ -729,7 +729,7 @@ export function useMessengerService({ conversationId, currentUser, messengerType
             if (uniqueUserIds.length > 0) {
                 const { data: profiles } = await supabase
                     .from('profiles')
-                    .select('id, username, avatar_url, full_name, is_vip')
+                    .select('id, username, avatar_url, is_vip')
                     .in('id', uniqueUserIds);
                 (profiles || []).forEach(p => { profileMap[p.id] = p; });
             }

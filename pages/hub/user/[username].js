@@ -273,7 +273,7 @@ function FriendsModal({ isOpen, onClose, profileId, profileName, currentUserId, 
         const chunk = profileFriendArray.slice(i, i + 50);
         const { data } = await supabase
           .from('profiles')
-          .select('id, username, full_name, avatar_url')
+          .select('id, username, avatar_url')
           .in('id', chunk);
         if (data) allProfiles.push(...data);
       }
@@ -2271,7 +2271,7 @@ export default function UserProfilePage() {
       // Avatar changed in another tab — refresh avatar columns
       supabase
         .from('profiles')
-        .select('avatar_url, arena_avatar_url, use_avatar_as_profile_pic, full_name, bio, username')
+        .select('avatar_url, arena_avatar_url, use_avatar_as_profile_pic, bio, username')
         .ilike('username', username)
         .maybeSingle()
         .then(({ data }) => {
@@ -2728,7 +2728,7 @@ export default function UserProfilePage() {
           const friendIds = allFriendIdArray.slice(0, 20); // Limit to 20 for display
           const { data: friendProfiles } = await supabase
             .from('profiles')
-            .select('id, username, full_name, avatar_url')
+            .select('id, username, avatar_url')
             .in('id', friendIds);
 
           if (friendProfiles) {

@@ -358,7 +358,7 @@ const PostCard = React.memo(
                 try {
                   const { data: author } = await supabase
                     .from('profiles')
-                    .select('id, username, full_name, avatar_url')
+                    .select('id, username, avatar_url')
                     .eq('id', payload.authorId)
                     .maybeSingle();
                   setComments((prev) => {
@@ -557,7 +557,7 @@ const PostCard = React.memo(
         if (authorIds.length > 0) {
           const { data: profilesData } = await supabase
             .from('profiles')
-            .select('id, username, full_name, avatar_url')
+            .select('id, username, avatar_url')
             .in('id', authorIds);
 
           if (profilesData) {
@@ -4220,7 +4220,7 @@ function SocialMediaPage() {
             try {
               const { data: prof } = await supabase
                 .from('profiles')
-                .select('id, username, full_name, avatar_url')
+                .select('id, username, avatar_url')
                 .eq('id', actorId)
                 .maybeSingle();
               actorProfile = prof;
@@ -4596,15 +4596,12 @@ function SocialMediaPage() {
                     actorIds.length > 0
                       ? supabase
                           .from('profiles')
-                          .select('id, username, full_name, avatar_url')
+                          .select('id, username, avatar_url')
                           .in('id', actorIds)
                       : Promise.resolve({ data: [] }),
-                    actorNames.length > 0
-                      ? supabase
-                          .from('profiles')
-                          .select('id, username, full_name, avatar_url')
-                          .in('full_name', actorNames)
-                      : Promise.resolve({ data: [] }),
+                    // No lookup by legal name: full_name is readable only by its
+                    // owner and staff (2026-09-30), so a stranger cannot be found by it.
+                    Promise.resolve({ data: [] }),
                   ]);
 
                   const profileById = {};
@@ -4811,7 +4808,7 @@ function SocialMediaPage() {
           try {
             const { data: p } = await supabase
               .from('social_posts')
-              .select('*, author:profiles!author_id(id, username, full_name, display_name, avatar_url)')
+              .select('*, author:profiles!author_id(id, username, display_name, avatar_url)')
               .eq('id', postId)
               .eq('is_deleted', false)
               .maybeSingle();
@@ -4923,7 +4920,7 @@ function SocialMediaPage() {
         if (actorIds.length > 0) {
           const { data: profiles } = await supabase
             .from('profiles')
-            .select('id, username, full_name, avatar_url')
+            .select('id, username, avatar_url')
             .in('id', actorIds);
           (profiles || []).forEach((p) => {
             profileById[p.id] = p;
@@ -6110,8 +6107,8 @@ function SocialMediaPage() {
         // Search users (search both username and full_name)
         const { data: users } = await supabase
           .from('profiles')
-          .select('id, username, full_name, avatar_url')
-          .or(`username.ilike.%${query}%,full_name.ilike.%${query}%`)
+          .select('id, username, avatar_url')
+          .or(`username.ilike.%${query}%,display_name.ilike.%${query}%`)
           .limit(8);
 
         // Search posts

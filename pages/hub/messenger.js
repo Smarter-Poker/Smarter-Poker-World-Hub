@@ -780,7 +780,7 @@ function MessengerPage() {
             try {
                 const { data: targetProfile } = await supabase
                     .from('profiles')
-                    .select('id, username, full_name, avatar_url')
+                    .select('id, username, avatar_url')
                     .eq('id', uid)
                     .maybeSingle();
 
@@ -850,7 +850,7 @@ function MessengerPage() {
         lastHandledConvLink.current = key;
         if (recipientId) {
             (async () => {
-                const { data } = await supabase.from('profiles').select('id,username,full_name,avatar_url').eq('id', recipientId).maybeSingle();
+                const { data } = await supabase.from('profiles').select('id,username,avatar_url').eq('id', recipientId).maybeSingle();
                 if (data) await handleStartConversation(data);
             })();
         }
@@ -2765,8 +2765,8 @@ function MessengerPage() {
                 const escaped = query.replace(/[%_\\]/g, '\\$&');
                 const { data } = await supabase
                     .from('profiles')
-                    .select('id, username, full_name, avatar_url')
-                    .or(`username.ilike.%${escaped}%,full_name.ilike.%${escaped}%`)
+                    .select('id, username, avatar_url')
+                    .or(`username.ilike.%${escaped}%,display_name.ilike.%${escaped}%`)
                     .neq('id', user?.id)
                     .limit(10);
 
