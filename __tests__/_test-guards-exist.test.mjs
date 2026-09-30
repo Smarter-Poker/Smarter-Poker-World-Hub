@@ -188,6 +188,15 @@ import './social-poker-card-picker.test.mjs';
 // for real - spoken card names, 44px targets, whole streets only, focus,
 // long press, and the drafts of a video post that uploads in the background.
 import './social-poker-card-picker-interaction.test.mjs';
+// 2026-09-30, Phase 8.1 (discovery and the feed): the All / Hands tab row,
+// the exclude= paging contract with the feed API (last two carry lists, 40
+// ids, ranked pages keep the server order, appends never repeat an id, no
+// recycling) and the feed video player (muted autoplay, one Unmute control
+// that shares sp:reels:muted with Reels, the caption under the media). All
+// three drive the real page through the poker-card harness.
+import './social-feed-tabs.test.mjs';
+import './social-feed-paging-contract.test.mjs';
+import './social-feed-video-player.test.mjs';
 // 2026-09-29: club page posts are shown as the page (name, avatar, link), never
 // as the person who posted them, on the feed card, the pinned strip, the media
 // lightbox, the public club page and both APIs. Owner decision: automated club
@@ -470,6 +479,15 @@ import './profile-hand-stats-rpc.test.mjs';
 import './profile-hand-stats-api.test.mjs';
 import './profile-hand-stats-card.test.mjs';
 import './profile-reels-tab-ready-only.test.mjs';
+
+// Phase 8 discovery: social_posts.topics is derived by one SQL rule for every
+// writer (the trigger runs after the video contract), the backfill runs the
+// same rule over the existing rows and creates the GIN index the Hands tab
+// reads, and the played-with helper the ranked feed calls is service role only.
+// Horses are players: none of the three reads is_horse or origin_type.
+import './social-post-topics-rule-migration.test.mjs';
+import './social-post-topics-backfill-migration.test.mjs';
+import './feed-played-with-migration.test.mjs';
 
 const REPO = path.resolve(new URL('.', import.meta.url).pathname, '..');
 
