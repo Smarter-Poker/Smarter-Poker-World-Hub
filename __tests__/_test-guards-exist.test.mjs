@@ -208,6 +208,13 @@ import './the-wallet-badges-count-the-whole-ledger.law.test.mjs';
 // catalog's own rule; the wallet's Escape backs out one layer, not all of them.
 import './the-earn-pane-knows-what-it-cannot-tell.test.mjs';
 import './the-stats-panel-is-summed-in-sql.test.mjs';
+// 2026-09-30. The same panel, one level up: phase 7 gave the BREAKDOWN a
+// could-not-tell state and left the panel itself with two - `!stats` drew an
+// animated skeleton with no loading gate, and the route answers 200 with a
+// bare `lifetime: null` when its stats read throws, so Stats loaded for ever
+// and said nothing. This pins the third outcome at both ends, and pins the
+// live smoke's by-hand invocation to an npm script rather than to a claim.
+import './the-stats-panel-says-when-it-cannot-tell.test.mjs';
 import './the-ledger-speaks-to-the-player.law.test.mjs';
 // Phase 8 of 8, 2026-09-29. Phases 1 to 7 each pinned ONE side of the
 // route/client boundary, so the two could drift while both stayed green: a
