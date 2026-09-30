@@ -34,45 +34,74 @@ const paintedMarketplaceScope = [
   'src/components/diamond-store/diamondStoreStyles.js',
 ];
 
-test('transaction notices use the native-ratio painted status family', () => {
+test('transaction notices use content-driven image-free status surfaces', () => {
   const checkout = read(files.checkout);
   const toast = read(files.toast);
   const toastComponent = read(files.toastComponent);
 
-  for (const source of [checkout, toast]) {
-    assert.match(source, /status\/wallet-row-shell\.webp/);
-    assert.match(source, /aspect-ratio:\s*1800\s*\/\s*386/);
+  const checkoutPanel = checkout.match(/\.panel\s*\{[\s\S]*?\n\}/)?.[0] || '';
+  const toastPanel = toast.match(/\.toast\s*\{[\s\S]*?\n\}/)?.[0] || '';
+  for (const [label, rule] of [
+    ['checkout status', checkoutPanel],
+    ['toast status', toastPanel],
+  ]) {
+    assert.ok(rule, `expected ${label} rule`);
+    assert.match(rule, /min-height:\s*\d+px/);
+    assert.match(rule, /border:\s*1px solid/);
+    assert.match(rule, /background:\s*#/);
+    assert.doesNotMatch(rule, /url\(|aspect-ratio|padding:\s*calc\(|(?:linear|radial)-gradient/);
   }
-  assert.match(checkout, /utility\/utility-shell\.webp/);
-  assert.match(toast, /\.dismiss\s*\{[\s\S]*?shark-panel\/button-secondary\.png/);
+
+  const checkoutControls =
+    checkout.match(/\.primaryAction,\n\.secondaryAction,\n\.dismiss\s*\{[\s\S]*?\n\}/)?.[0] ||
+    '';
+  const toastDismiss = toast.match(/\.dismiss\s*\{[\s\S]*?\n\}/)?.[0] || '';
+  assert.match(checkoutControls, /min-height:\s*44px/);
+  assert.match(checkoutControls, /border:\s*1px solid/);
+  assert.match(toastDismiss, /min-height:\s*44px/);
+  assert.match(toastDismiss, /border:\s*1px solid/);
+  assert.match(toastDismiss, /background:\s*#/);
+  assert.doesNotMatch(
+    `${checkout}\n${toastDismiss}`,
+    /marketplace-console-v1|url\(|aspect-ratio|(?:linear|radial|conic)-gradient/
+  );
   assert.doesNotMatch(toastComponent, /TOAST_STYLES|--toast-bg|linear-gradient/);
 });
 
-test('merchandise confirmation uses one coherent sliced spade console', () => {
+test('merchandise confirmation uses one readable restrained purchase card', () => {
   const component = read(files.dialogComponent);
   const styles = read(files.dialog);
 
   assert.doesNotMatch(component, /styles\.(?:rail|seal)/);
-  assert.match(styles, /\.header\s*\{[\s\S]*?spade-console\/top\.webp/);
-  assert.match(styles, /\.panelBody\s*\{[\s\S]*?spade-console\/mid\.png/);
-  assert.match(styles, /background-repeat:\s*repeat-y/);
-  assert.match(styles, /\.actions\s*\{[\s\S]*?spade-console\/bottom-plates\.webp/);
+  assert.doesNotMatch(styles, /spade-console|marketplace-console-v1|aspect-ratio/);
+  const panel = styles.match(/\.panel\s*\{[\s\S]*?\n\}/)?.[0] || '';
+  assert.match(panel, /border:\s*1px solid #496979/);
+  assert.doesNotMatch(panel, /padding:\s*\d+(?:\.\d+)?%/);
+  assert.match(styles, /\.actions\s*\{[\s\S]*?grid-template-columns:[\s\S]*?background:\s*#08131b/);
+  assert.match(styles, /\.close\s*\{[\s\S]*?min-height:\s*44px/);
 });
 
-test('reward and VIP live data use painted rows without duplicate outer consoles', () => {
+test('reward and VIP live data use content-driven rows without duplicate outer consoles', () => {
   const telemetry = read(files.telemetry);
   const vip = read(files.vip);
 
-  assert.match(telemetry, /\.circuit\s*\{[\s\S]*?status\/wallet-row-shell\.webp/);
-  assert.match(telemetry, /\.statePanel\s*\{[\s\S]*?utility\/utility-shell\.webp/);
-  assert.match(telemetry, /\.console\s*\{[\s\S]*?background:\s*#000/);
-  assert.doesNotMatch(
-    telemetry.match(/\.console\s*\{[\s\S]*?\n\}/)?.[0] || '',
-    /linear-gradient|radial-gradient|box-shadow/
-  );
-
-  assert.match(vip, /\.statusLine div\s*\{[\s\S]*?status\/wallet-row-shell\.webp/);
-  assert.match(vip, /\.plan\s*\{[\s\S]*?utility\/utility-shell\.webp/);
+  const contentRules = [
+    ['reward console', telemetry.match(/\.console\s*\{[\s\S]*?\n\}/)?.[0] || ''],
+    ['reward circuit', telemetry.match(/\.circuit\s*\{[\s\S]*?\n\}/)?.[0] || ''],
+    ['reward state', telemetry.match(/\.statePanel\s*\{[\s\S]*?\n\}/)?.[0] || ''],
+    ['VIP status', vip.match(/\.statusLine div\s*\{[\s\S]*?\n\}/)?.[0] || ''],
+    ['VIP plan', vip.match(/\.plan\s*\{[\s\S]*?\n\}/)?.[0] || ''],
+  ];
+  for (const [label, rule] of contentRules) {
+    assert.ok(rule, `expected ${label} rule`);
+    assert.match(rule, /border:\s*1px solid/);
+    assert.match(rule, /background:\s*#/);
+    assert.doesNotMatch(
+      rule,
+      /url\(|aspect-ratio|padding:\s*\d+(?:\.\d+)?%|(?:linear|radial|conic)-gradient/,
+      label
+    );
+  }
 
   // The confirmation dialog is the one place that housing could not stay. Its
   // `padding: 17%` resolved against the fixed backdrop, not the 520px dialog:
@@ -91,7 +120,9 @@ test('reward and VIP live data use painted rows without duplicate outer consoles
   assert.match(dialog, /overflow-y:\s*auto/);
   const dialogActions = vip.match(/\.dialogActions \{[\s\S]*?\n\}/)?.[0] || '';
   assert.match(dialogActions, /margin-top:\s*auto/, 'the actions must stay at the end of the flow');
-  assert.match(vip, /\.panel\s*\{[\s\S]*?background:\s*transparent/);
+  const vipPanel = vip.match(/\.panel\s*\{[\s\S]*?\n\}/)?.[0] || '';
+  assert.match(vipPanel, /background:\s*#07131b/);
+  assert.doesNotMatch(vipPanel, /url\(|(?:linear|radial|conic)-gradient/);
 });
 
 test('VIP benefit rows are readable cards, and FAQ rows keep their painted hardware', () => {
@@ -171,17 +202,13 @@ test('merch and fulfillment keep variable-height cards honest while upgrading co
   const merch = read(files.merch);
   const fulfillment = read(files.fulfillment);
 
-  // Both keep their painted plate. What changed is that the padding the
-  // artwork asks for is now measured against the plate instead of the page
-  // column: .balanceReadout had 293px + 82px of horizontal padding on a 360px
-  // box, so its content box was exactly zero.
-  assert.match(merch, /\.balanceReadout\s*\{[\s\S]*?status\/wallet-row-shell\.webp/);
-  assert.match(merch, /\.catalogAlert\s*\{[\s\S]*?status\/wallet-row-shell\.webp/);
+  // Status surfaces are content-sized and keep chrome as a restrained accent.
   for (const plate of ['balanceReadout', 'catalogAlert']) {
     const rule = merch.match(new RegExp(`\\.${plate} \\{[\\s\\S]*?\\n\\}`))?.[0] || '';
     assert.ok(rule, `${plate} rule is gone`);
-    assert.match(rule, /--[a-z-]+-plate-width:/, `${plate} must name its own plate width`);
-    assert.match(rule, /padding:\s*calc\(/, `${plate} must measure padding against that width`);
+    assert.doesNotMatch(rule, /url\(|aspect-ratio|padding:\s*calc\(/);
+    assert.match(rule, /border:\s*1px solid/);
+    assert.match(rule, /background:\s*#/);
   }
   // .emptyState used to be the same 1105/1133 housing with `padding: 18%`
   // resolving against the page column: an 18px content box inside a 440px
@@ -195,7 +222,10 @@ test('merch and fulfillment keep variable-height cards honest while upgrading co
     /navigation\/nav-shell|shark-panel\/bay|utility\/utility-shell/
   );
 
-  assert.match(fulfillment, /\.status\s*\{[\s\S]*?status\/wallet-row-shell\.webp/);
+  const fulfillmentStatus = fulfillment.match(/\.status\s*\{[\s\S]*?\n\}/)?.[0] || '';
+  assert.ok(fulfillmentStatus, 'the fulfillment status rule is gone');
+  assert.doesNotMatch(fulfillmentStatus, /url\(|aspect-ratio|padding:\s*calc\(/);
+  assert.match(fulfillmentStatus, /min-height:\s*44px/);
   // The fulfillment dialog carried the VIP dialog's fault: `padding: 16%`
   // against the fixed backdrop rather than the 620px dialog, which is 223px a
   // side at 1440, 300px at 1920, and a content box that reaches zero at about
@@ -331,33 +361,19 @@ test('no commerce surface renders text below 12px', () => {
   assert.deepEqual(offenders, []);
 });
 
-test('the fulfillment status plate sizes its padding from the plate, not the page', () => {
+test('the fulfillment status is content-sized without an ornamental plate', () => {
   const fulfillmentCss = read(commerceFiles.fulfillmentCss);
   const statusRule = fulfillmentCss.match(/\.status \{[\s\S]*?\n\}/)?.[0] || '';
   assert.ok(statusRule, 'expected the .status rule');
-  // The rule's own comment names the trap, so the bans read declarations only.
   const statusDeclarations = withoutComments(statusRule);
-
-  // The approved artwork and its native ratio are unchanged.
-  assert.match(statusRule, /aspect-ratio: 1800 \/ 386;/);
-  assert.match(statusRule, /status\/wallet-row-shell\.webp/);
-
-  // Percentage padding resolves against the CONTAINING BLOCK's inline size.
-  // `padding: 4.3% 7% 4.3% 26%` on a plate capped at min(720px, 100%) inside a
-  // 1396px page measured 60.02 / 97.72 / 60.02 / 362.95, leaving a
-  // 259.33x37.37 content box: 91.5% of the plate was dead. Past ~2226px the
-  // content box reached zero (measured 0x93.56 at a 2200px page).
-  assert.match(statusRule, /--status-plate-width: min\(720px, 100%\);/);
-  assert.match(statusRule, /width: var\(--status-plate-width\);/);
-  assert.match(statusRule, /padding: calc\(var\(--status-plate-width\) \* 0\.043\)/);
-  assert.match(statusRule, /calc\(var\(--status-plate-width\) \* 0\.26\)/);
+  assert.doesNotMatch(statusRule, /url\(|aspect-ratio|wallet-row-shell/);
+  assert.doesNotMatch(statusDeclarations, /padding:\s*calc\(|padding:[^;]*\d+(?:\.\d+)?%/);
+  assert.match(statusRule, /width: min\(1180px, 100%\);/);
+  assert.match(statusRule, /min-height: 44px;/);
+  assert.match(statusRule, /padding: 12px 16px;/);
+  assert.match(statusRule, /border: 1px solid #314957;/);
+  assert.match(statusRule, /background: #071017;/);
   assert.doesNotMatch(statusDeclarations, /padding:[^;]*\d+(?:\.\d+)?%/);
-
-  // `container-type: inline-size` on this element is NOT the fix and must not
-  // be reintroduced as one: container query units resolve against the nearest
-  // ANCESTOR container, so with no container above it they fall back to the
-  // small viewport. Measured at 1440: 26cqw = 374.4px, worse than the 362.95px
-  // it was meant to replace.
   assert.doesNotMatch(statusDeclarations, /container-type|cqw/);
 });
 

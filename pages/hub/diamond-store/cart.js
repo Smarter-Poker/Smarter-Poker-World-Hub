@@ -19,11 +19,8 @@ import { busEmit } from '../../../src/engine/EventBus';
 import useCartStore from '../../../src/stores/cartStore';
 import MerchPurchaseDialog from '../../../src/components/store/MerchPurchaseDialog';
 import MarketplaceSubpageShell from '../../../src/components/store/MarketplaceSubpageShell';
-import {
-  MarketplaceConsolePanel,
-  MarketplaceConsoleStatusRow,
-} from '../../../src/components/marketplace-console/MarketplaceConsole';
 import cartStyles from './cart.module.css';
+import accountControls from './marketplace-account-controls.module.css';
 import {
   clearCommerceRequestId,
   getOrCreateCommerceRequestId,
@@ -48,6 +45,54 @@ import {
   classifyMerchDiamondPurchaseRefusal,
   normalizeVerifiedMerchDiamondPurchase,
 } from '../../../src/lib/store/verifiedCommerceResponse.mjs';
+
+function AccountPanel({ title, primaryAction = null, children }) {
+  return (
+    <section className={accountControls.panel}>
+      <header className={accountControls.panelHeader}>
+        <h2 className={accountControls.panelTitle}>{marketplaceCopy(title)}</h2>
+        {primaryAction &&
+          (primaryAction.href ? (
+            <Link
+              href={primaryAction.href}
+              className={`${accountControls.action} ${accountControls.actionPrimary} ${accountControls.panelAction}`}
+            >
+              {marketplaceCopy(primaryAction.label)}
+            </Link>
+          ) : (
+            <button
+              type="button"
+              onClick={primaryAction.onClick}
+              className={`${accountControls.action} ${accountControls.actionPrimary} ${accountControls.panelAction}`}
+            >
+              {marketplaceCopy(primaryAction.label)}
+            </button>
+          ))}
+      </header>
+      {children}
+    </section>
+  );
+}
+
+function AccountStatusRow({ label, value, detail, valueInk = 'white', live = false }) {
+  const tone =
+    valueInk === 'red'
+      ? 'danger'
+      : valueInk === 'blue'
+        ? 'accent'
+        : valueInk === 'muted'
+          ? 'muted'
+          : 'default';
+  return (
+    <div className={accountControls.statusRow} aria-live={live ? 'polite' : undefined}>
+      <span className={accountControls.statusLabel}>{marketplaceCopy(label)}</span>
+      <strong className={accountControls.statusValue} data-tone={tone}>
+        {marketplaceCopy(value)}
+      </strong>
+      {detail && <p className={accountControls.statusDetail}>{marketplaceCopy(detail)}</p>}
+    </div>
+  );
+}
 
 // Legacy standalone key used by earlier versions of this page. It is folded
 // into the shared zustand cart once and then removed.
@@ -1240,14 +1285,14 @@ export default function ShoppingCart() {
           data-marketplace-route="/hub/diamond-store/cart"
         >
           <div role="status" aria-live="polite" className={cartStyles.loadingPanel}>
-            <MarketplaceConsolePanel title="Preparing Your Cart">
-              <MarketplaceConsoleStatusRow
+            <AccountPanel title="Preparing Your Cart">
+              <AccountStatusRow
                 label="Secure Cart"
                 value="Loading Cart"
                 detail="Binding Cart Contents To Your Active Account"
                 live
               />
-            </MarketplaceConsolePanel>
+            </AccountPanel>
           </div>
         </main>
       </>
@@ -1278,7 +1323,7 @@ export default function ShoppingCart() {
         >
           {checkoutRecovery && (
             <div role="alert">
-              <MarketplaceConsolePanel
+              <AccountPanel
                 title="An Earlier Checkout Is Still Protected"
                 primaryAction={
                   checkoutRecovery.resumable
@@ -1289,7 +1334,7 @@ export default function ShoppingCart() {
                     : undefined
                 }
               >
-                <MarketplaceConsoleStatusRow
+                <AccountStatusRow
                   label={`${checkoutRecovery.groupLabel} Paid By ${checkoutRecovery.paymentLabel}`}
                   value="Held For Verification"
                   detail={
@@ -1300,7 +1345,7 @@ export default function ShoppingCart() {
                   valueInk="red"
                 />
                 {checkoutRecovery.lines.map((line, index) => (
-                  <MarketplaceConsoleStatusRow
+                  <AccountStatusRow
                     key={line.identity}
                     label={`Protected Item ${index + 1}`}
                     value={marketplaceCopy(line.name || 'Item No Longer In This Cart')}
@@ -1312,26 +1357,26 @@ export default function ShoppingCart() {
                     valueInk={line.inCart ? 'white' : 'red'}
                   />
                 ))}
-              </MarketplaceConsolePanel>
+              </AccountPanel>
             </div>
           )}
           {projectedCartLoadError ? (
             <div role="alert">
-              <MarketplaceConsolePanel
+              <AccountPanel
                 title="Could Not Verify Your Cart"
                 primaryAction={{ label: 'Retry Secure Read', onClick: retryCartLoad }}
               >
-                <MarketplaceConsoleStatusRow
+                <AccountStatusRow
                   label="Owner-Scoped Cart"
                   value="Secure Read Failed"
                   detail={marketplaceCopy(projectedCartLoadError)}
                   valueInk="red"
                 />
-              </MarketplaceConsolePanel>
+              </AccountPanel>
             </div>
           ) : visibleCart.length === 0 ? (
-            <MarketplaceConsolePanel title="Your Cart Is Empty">
-              <MarketplaceConsoleStatusRow
+            <AccountPanel title="Your Cart Is Empty">
+              <AccountStatusRow
                 label="Cart Status"
                 value="No Items Reserved"
                 detail="Add Marketplace Gear To Begin A Secure Checkout"
@@ -1339,7 +1384,7 @@ export default function ShoppingCart() {
               <Link href="/hub/diamond-store" className={cartStyles.emptyBrowseButton}>
                 Browse Store
               </Link>
-            </MarketplaceConsolePanel>
+            </AccountPanel>
           ) : (
             <div
               style={{ ...styles.cartLayout, gridTemplateColumns: isMobile ? '1fr' : '1fr 400px' }}

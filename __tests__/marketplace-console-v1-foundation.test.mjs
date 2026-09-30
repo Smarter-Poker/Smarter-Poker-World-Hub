@@ -142,39 +142,24 @@ test('the new system cannot fall back to drawn generic chrome', async () => {
     readFile(readmePath, 'utf8'),
   ]);
   const source = [component, styles, hook, index, manifest, readme].join('\n');
+  const overrideMarker = '/* Content-first Marketplace surface.';
+  const overrideStart = styles.indexOf(overrideMarker);
+  assert.ok(overrideStart >= 0, 'the effective Marketplace compatibility override is missing');
+  const effectiveStyles = styles.slice(overrideStart);
 
   assert.doesNotMatch(source, /\u2014/);
   assert.doesNotMatch(component, /lucide|heroicons|fontawesome/i);
-  assert.doesNotMatch(styles, /(?:linear|radial|conic)-gradient/i);
-  assert.doesNotMatch(styles, /(?:box|text)-shadow/i);
-  assert.doesNotMatch(styles, /border-radius|border-image/i);
-  assert.doesNotMatch(styles, /:hover\b/i);
-  assert.doesNotMatch(styles, /text-transform\s*:/i);
-
-  const borderDeclarations = [...styles.matchAll(/\bborder\s*:\s*([^;]+);/gi)].map(
-    (match) => match[1].trim()
+  assert.doesNotMatch(
+    effectiveStyles,
+    /url\([^)]*(?:marketplace-console-v1|spade-console|shark-panel)/i
   );
-  assert.ok(borderDeclarations.length > 0);
-  assert.ok(borderDeclarations.every((value) => value === '0'));
-
-  assert.match(styles, /container-type:\s*inline-size/);
-  assert.match(styles, /cqw/);
-  assert.match(styles, /aspect-ratio:\s*1000\s*\/\s*348/);
-  assert.match(styles, /aspect-ratio:\s*1772\s*\/\s*436/);
-  assert.match(styles, /aspect-ratio:\s*1829\s*\/\s*313/);
-  assert.match(styles, /aspect-ratio:\s*1105\s*\/\s*1133/);
-  assert.match(styles, /aspect-ratio:\s*1800\s*\/\s*386/);
-
-  const allowedColors = new Set([
-    '#000',
-    '#45adff',
-    '#9aa5b3',
-    '#e4e7ec',
-    '#f4f7fb',
-    '#ff5b6e',
-  ]);
-  const usedColors = new Set(styles.match(/#[0-9a-f]{3,8}\b/gi));
-  assert.deepEqual([...usedColors].sort(), [...allowedColors].sort());
+  assert.doesNotMatch(effectiveStyles, /(?:linear|radial|conic)-gradient/i);
+  assert.doesNotMatch(effectiveStyles, /:hover\b/i);
+  assert.doesNotMatch(effectiveStyles, /text-transform\s*:/i);
+  assert.match(effectiveStyles, /min-height:\s*(?:4[4-9]|[5-9]\d|\d{3,})px/);
+  assert.match(effectiveStyles, /border:\s*1px solid/);
+  assert.match(effectiveStyles, /background:\s*#[0-9a-f]{3,8}\b/i);
+  assert.match(effectiveStyles, /aspect-ratio:\s*auto/);
 });
 
 test('the page chassis cannot expose one empty painted footer plate', async () => {
@@ -187,7 +172,7 @@ test('the foundation upgrades existing layouts without adding destination object
   const readme = await readFile(readmePath, 'utf8');
   assert.match(readme, /Do not repeat `MarketplaceConsoleUtilityCard`/);
   assert.match(readme, /Preserve each Marketplace page's existing layout/);
-  assert.match(readme, /instead\s+of adding standalone destination objects/);
+  assert.match(readme, /Do not add empty ornamental slots,[\s\S]*decorative destination objects/);
   assert.match(readme, /without making\s+every page a one-to-one clone/);
   assert.match(readme, /Supply live labels in Title Case/);
   assert.doesNotMatch(readme, /MarketplaceConsoleSelectorGrid|five selector objects/i);

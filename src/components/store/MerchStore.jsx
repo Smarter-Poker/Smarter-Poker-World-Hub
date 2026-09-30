@@ -18,9 +18,8 @@
  *   slugs too; the checkout API resolves each id against the live catalog and
  *   rejects an unknown row instead of trusting browser-supplied pricing.
  *
- * Layout stays compatible with src/components/diamond-store/diamondStoreStyles.js.
- * MerchStore.module.css upgrades the existing controls and cards with shared
- * Marketplace console artwork while all product and commerce behavior remains here.
+ * MerchStore.module.css owns the restrained retail presentation while all
+ * product and commerce behavior remains here.
  */
 
 import React, {
@@ -34,7 +33,6 @@ import React, {
 } from 'react';
 import Link from 'next/link';
 
-import styles from '../diamond-store/diamondStoreStyles';
 import merchStyles from './MerchStore.module.css';
 import { MERCHANDISE } from '../../data/diamondStoreData';
 import { getAccessToken, getAuthUser } from '../../lib/authUtils';
@@ -458,11 +456,6 @@ function MerchProductCard({
       data-merch-product-card="true"
       aria-labelledby={titleId}
       className={`${merchStyles.productCard} ${soldOut ? merchStyles.productCardUnavailable : ''}`}
-      style={{
-        scrollMarginTop: 96,
-        display: 'flex',
-        flexDirection: 'column',
-      }}
     >
       {/* Only reviewed product photography may represent a sellable item. */}
       <div className={merchStyles.mediaBay}>
@@ -544,7 +537,7 @@ function MerchProductCard({
             <div
               role="group"
               aria-label={`Choose ${product.name} Size Or Option`}
-              style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}
+              className={merchStyles.optionGroup}
             >
               {product.variants.map((v) => {
                 const active = v.key === variant?.key;
@@ -1579,12 +1572,12 @@ export default function MerchStore({
       <div
         id={detailMode ? 'purchase-console' : undefined}
         role={detailMode ? 'region' : undefined}
-        aria-label={detailMode ? 'Live Product Purchase Console' : undefined}
-        className={merchStyles.storefront}
+        aria-label={detailMode ? 'Purchase Options' : undefined}
+        className={`${merchStyles.storefront} ${detailMode ? merchStyles.storefrontDetail : ''}`}
         style={detailMode ? { scrollMarginTop: 96 } : undefined}
       >
         {!detailMode && (
-          <div style={styles.intro} className={merchStyles.intro}>
+          <div className={merchStyles.intro}>
             <h2 className={merchStyles.storeTitle}>Official Merch</h2>
             <p className={merchStyles.storeIntro}>
               Neural Steel Apparel, Headwear, Table Gear, And Lifestyle Products Are Created After
@@ -1598,9 +1591,9 @@ export default function MerchStore({
               </div>
             )}
             {isOperator && (
-              <div style={{ marginTop: 12 }}>
+              <div className={merchStyles.operatorRow}>
                 <Link href="/hub/merch-store/fulfillment" className={merchStyles.operatorLink}>
-                  Open Protected Fulfillment Command Vault
+                  Open Protected Fulfillment Queue
                 </Link>
               </div>
             )}
@@ -1610,8 +1603,7 @@ export default function MerchStore({
         {detailMode && (
           <div role="status" aria-live="polite" className={merchStyles.detailStatus}>
             <span>
-              Live Price, Option, Stock, Wishlist, Cart, Card, And Diamond Controls Are Verified
-              Below.
+              Choose An Available Option, Quantity, And Payment Method Below.
             </span>
             <span className={merchStyles.detailWallet}>
               {user?.id ? `Wallet: ${fmt(balance)} Diamonds` : 'Sign In To Purchase'}
@@ -1654,7 +1646,7 @@ export default function MerchStore({
             <div
               role="group"
               aria-label="All Categories"
-              style={{ gridColumn: '1 / -1', display: 'flex', gap: 7, flexWrap: 'wrap' }}
+              className={merchStyles.categoryGroup}
             >
               {['all', ...categories].map((category) => (
                 <button
@@ -1676,7 +1668,7 @@ export default function MerchStore({
 
         {usingFallback && loadError && (
           <div role="alert" className={merchStyles.catalogAlert}>
-            <span style={{ flex: 1 }}>
+            <span className={merchStyles.catalogAlertCopy}>
               {marketplaceCopy(loadError)}: Showing The Standard Lineup. Live Fulfillment Options
               Are Required Before Checkout.
             </span>
@@ -1700,7 +1692,9 @@ export default function MerchStore({
         {!loading && products.length === 0 && (
           <div role="status" className={merchStyles.emptyState}>
             <div className={merchStyles.emptyStateTitle}>No Merch Available Right Now</div>
-            <div style={{ marginTop: 6 }}>New Gear Drops Regularly: Check Back Soon.</div>
+            <div className={merchStyles.emptyStateCopy}>
+              New Gear Drops Regularly: Check Back Soon.
+            </div>
           </div>
         )}
 
@@ -1711,9 +1705,9 @@ export default function MerchStore({
         )}
 
         {sections.map((section) => (
-          <div key={section.key} style={styles.merchSection}>
+          <section key={section.key} className={merchStyles.categorySection}>
             {!detailMode && <h3 className={merchStyles.categoryTitle}>{section.label}</h3>}
-            <div style={styles.merchGrid}>
+            <div className={merchStyles.productGrid}>
               {section.items.map((product, productIndex) => (
                 <MerchProductCard
                   key={product.key}
@@ -1733,7 +1727,7 @@ export default function MerchStore({
                 />
               ))}
             </div>
-          </div>
+          </section>
         ))}
 
         {!detailMode && products.length > 0 && (

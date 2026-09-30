@@ -57,7 +57,7 @@ test('deferred providers remain buyable and enter an audited manual queue', asyn
   assert.match(operations, /is_admin/);
   assert.match(operations, /transition_merchandise_fulfillment/);
   assert.match(operations, /refund_diamond_merch_order_atomic/);
-  assert.match(consolePage, /Fulfillment Command Vault/);
+  assert.match(consolePage, /Merchandise Fulfillment/);
   assert.match(consolePage, /const isManual = metadata\.fulfillment_mode === 'manual'/);
   assert.match(consolePage, /Automatic Fulfillment Quarantined/);
   assert.match(consolePage, /Manual Shipping And Refunds Are Locked/);
@@ -145,7 +145,7 @@ test('lifetime VIP and operator fulfillment remain fail-closed', async () => {
   assert.match(migration, /<> 'manual'/);
   assert.match(migration, /shipping_address_required/);
   assert.match(operations, /nextCursor/);
-  assert.match(merchStore, /Open Protected Fulfillment Command Vault/);
+  assert.match(merchStore, /Open Protected Fulfillment Queue/);
 });
 
 test('automatic provider orders cannot be manually shipped or refunded', async () => {

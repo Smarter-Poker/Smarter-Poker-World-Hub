@@ -4,7 +4,6 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 
 import MarketplaceDetailExperience from '../../../../src/components/store/MarketplaceDetailExperience';
 import detailStyles from '../../../../src/components/store/MarketplaceDetailExperience.module.css';
-import { MarketplaceConsoleStatusRow } from '../../../../src/components/marketplace-console/MarketplaceConsole';
 import { marketplaceCarrierName, marketplaceCopy } from '../../../../src/lib/store/marketplaceCopy';
 import { authedFetch, getAuthUser, useRequireAuth } from '../../../../src/lib/authUtils';
 import { useAvatar } from '../../../../src/contexts/AvatarContext';
@@ -368,11 +367,19 @@ export default function MarketplaceReceiptPage({ routeOrderId = null }) {
               <ol style={receiptStyles.timeline}>
                 {timeline.map(([label, date]) => (
                   <li key={label} style={receiptStyles.timelineItem}>
-                    <MarketplaceConsoleStatusRow
-                      label={marketplaceCopy(label)}
-                      value={formatDate(date)}
-                      detail={date ? 'Verified Commerce Event' : 'Awaiting Carrier Update'}
-                    />
+                    <div className={accountControls.statusRow}>
+                      <span className={accountControls.statusLabel}>{marketplaceCopy(label)}</span>
+                      <time
+                        className={accountControls.statusValue}
+                        data-tone="accent"
+                        dateTime={date || undefined}
+                      >
+                        {formatDate(date)}
+                      </time>
+                      <p className={accountControls.statusDetail}>
+                        {date ? 'Verified Commerce Event' : 'Awaiting Carrier Update'}
+                      </p>
+                    </div>
                   </li>
                 ))}
               </ol>

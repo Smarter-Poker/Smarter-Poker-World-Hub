@@ -20,6 +20,7 @@ const shellCss = read('src/components/diamond-store/DiamondStoreShell.module.css
 const merchCss = read('src/components/store/MerchStore.module.css');
 const vipCss = read('src/components/store/VipMembershipConsole.module.css');
 const detailCssFocus = read('src/components/store/MarketplaceDetailExperience.module.css');
+const vipCards = read('src/components/store/StoreCards.js');
 const globalCss = read('src/index.css');
 
 test('the merch product card takes its heading level from its surroundings', () => {
@@ -64,7 +65,7 @@ test('the detail page closes the gap the category heading used to fill', () => {
 test('every accessible name the Marketplace sets lands on an element that can carry it', () => {
   assert.match(
     merch,
-    /role=\{detailMode \? 'region' : undefined\}\n\s*aria-label=\{detailMode \? 'Live Product Purchase Console' : undefined\}/,
+    /role=\{detailMode \? 'region' : undefined\}\n\s*aria-label=\{detailMode \? 'Purchase Options' : undefined\}/,
     'the named purchase console must declare a role before it is named'
   );
   assert.match(
@@ -159,8 +160,17 @@ test('the VIP surfaces are sized by their content, not by a painted plate', () =
     assert.doesNotMatch(rule[0], /aspect-ratio/, `${name} must be sized by its content`);
     assert.doesNotMatch(rule[0], /utility-shell\.webp/, `${name} must not carry the console housing`);
   }
-  // The approved gold plan artwork stays exactly as it is.
-  assert.match(vipCss, /\.plan \{[^}]*utility-shell\.webp/s, 'the VIP plan artwork is approved and stays');
+  // The approved gold plan artwork remains the product image, not a CSS shell.
+  assert.match(
+    vipCards,
+    /src="\/images\/vip-card\.webp"/,
+    'the approved gold VIP artwork must remain the plan image'
+  );
+  const plan = /\.plan \{[^}]*\}/.exec(vipCss)?.[0] || '';
+  assert.ok(plan, 'the VIP plan rule is gone');
+  assert.match(plan, /border:\s*1px solid/, 'the VIP plan keeps a restrained frame');
+  assert.match(plan, /background:\s*#/, 'the VIP plan keeps a readable surface');
+  assert.doesNotMatch(plan, /url\(/, 'the VIP plan layout must not carry an image asset');
 });
 
 test('the rewards stats readout wraps instead of running off the side', () => {

@@ -1,8 +1,12 @@
 .console {
   position: relative;
   margin-bottom: 14px;
-  padding: 18px 0 8px;
-  background: #000;
+  padding: clamp(20px, 3vw, 30px);
+  border: 1px solid #365468;
+  background: #07131b;
+  box-shadow:
+    inset 0 1px 0 rgba(155, 179, 192, .14),
+    0 16px 34px rgba(0, 0, 0, .26);
   color: #c4d6df;
   font-family: var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif;
 }
@@ -38,8 +42,11 @@
   align-items: center;
   justify-content: center;
   padding: 7px 18px;
-  background: transparent url('/images/marketplace-console-v1/shark-panel/button-secondary.png')
-    center / 100% 100% no-repeat;
+  border: 1px solid #365468;
+  background: #0a151d;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, .16),
+    inset 0 -1px 0 rgba(69, 173, 255, .2);
   color: #dffaff;
   font:
     800 12px/1 var(--font-roboto-condensed),
@@ -68,10 +75,12 @@
   grid-template-columns: 22% minmax(0, 1fr);
   align-items: center;
   width: 100%;
-  aspect-ratio: 1800 / 386;
-  padding: 4.2% 5.2% 4.2% 2.5%;
-  background: transparent url('/images/marketplace-console-v1/status/wallet-row-shell.webp') center /
-    100% 100% no-repeat;
+  min-height: 112px;
+  padding: 18px;
+  border: 1px solid #294757;
+  background: #081116;
+  box-shadow:
+    inset 0 1px 0 rgba(155, 179, 192, .12);
 }
 
 .circuitGauge {
@@ -158,10 +167,10 @@
   display: grid;
   align-content: center;
   min-height: 76px;
-  aspect-ratio: 348 / 114;
   padding: 12px 14px;
-  background: transparent url('/images/marketplace-console-v1/shark-panel/button-secondary.png')
-    center / 100% 100% no-repeat;
+  border: 1px solid #294757;
+  background: #07131b;
+  box-shadow: inset 0 1px 0 rgba(155, 179, 192, .12);
 }
 
 .signalGrid strong {
@@ -186,11 +195,12 @@
   grid-template-columns: 22% minmax(0, 1fr) minmax(130px, 20%);
   align-items: center;
   width: 100%;
-  aspect-ratio: 1800 / 386;
   margin-top: 12px;
-  padding: 4.2% 5.2% 4.2% 2.5%;
-  background: transparent url('/images/marketplace-console-v1/status/wallet-row-shell.webp') center /
-    100% 100% no-repeat;
+  padding: 18px;
+  border: 1px solid #294757;
+  background: #081116;
+  box-shadow:
+    inset 0 1px 0 rgba(155, 179, 192, .12);
 }
 
 .rewardSignal > div {
@@ -201,7 +211,7 @@
 .rewardSignal strong {
   display: block;
   margin-top: 7px;
-  color: #ffe45e;
+  color: #58d9ff;
   font:
     800 clamp(13px, 1.6vw, 18px) / 1 var(--font-roboto-condensed),
     'Roboto Condensed',
@@ -223,12 +233,11 @@
   align-items: center;
   justify-content: center;
   padding: 10px 20px;
-  border: 0;
-  background-color: transparent;
-  background-image: url('/images/marketplace-console-v1/shark-panel/button-primary.png');
-  background-position: center;
-  background-repeat: no-repeat;
-  background-size: 100% 100%;
+  border: 1px solid #58d9ff;
+  background: #063446;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, .18),
+    inset 0 -1px 0 rgba(69, 173, 255, .22);
   color: #eafaff;
   font:
     800 13px/1 var(--font-roboto-condensed),
@@ -244,7 +253,8 @@
 }
 
 .statePanel :is(button, a) {
-  background-image: url('/images/marketplace-console-v1/shark-panel/button-secondary.png');
+  border-color: #627f8f;
+  background: #0a151d;
 }
 
 /* Percentage padding resolves against the CONTAINING BLOCK's inline size, not
@@ -258,9 +268,8 @@
    This is the sign-in prompt shown to every signed-out visitor on all 100
    reward detail pages, so it is the most-seen surface in the family. It is
    now sized by its content in the same restrained chrome as the rest of the
-   Marketplace restoration. The utility-shell artwork it used to sit on also
-   baked in a wordmark and two diamond ornaments, which is decoration inside
-   what is only a request to sign in. */
+   Marketplace restoration. The former decorative housing added visual noise
+   to what is only a request to sign in. */
 .statePanel {
   display: grid;
   place-items: center;
@@ -270,7 +279,7 @@
   padding: 28px 24px;
   border: 1px solid #23394a;
   background: #070e15;
-  box-shadow: inset 0 1px 0 rgb(238 250 255 / 8%);
+  box-shadow: inset 0 1px 0 rgba(155, 179, 192, .14);
   color: #b8d0da;
   text-align: center;
 }
@@ -314,14 +323,10 @@
   }
 
   .rewardSignal {
-    --signal-plate-width: min(440px, 100%);
-
     grid-template-columns: minmax(0, 1fr);
-    width: var(--signal-plate-width);
-    aspect-ratio: 1105 / 1133;
+    width: 100%;
     margin-inline: auto;
-    padding: calc(var(--signal-plate-width) * 0.17);
-    background-image: url('/images/marketplace-console-v1/utility/utility-shell.webp');
+    padding: 18px;
     text-align: center;
   }
 

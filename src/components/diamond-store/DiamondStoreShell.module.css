@@ -87,14 +87,12 @@
   width: calc(100% - 52px) !important;
   max-width: 1240px !important;
   margin: 34px auto 46px !important;
-  padding: 34px 34px 46px !important;
-  border: 1px solid #526e80;
-  background: #010306;
+  padding: 34px !important;
+  border: 1px solid #324b5b;
+  background: #03080d;
   box-shadow:
-    inset 0 1px 0 rgba(238, 252, 255, 0.48),
-    inset 0 0 0 7px #02070b,
-    inset 0 0 0 8px rgba(75, 112, 135, 0.48),
-    0 24px 60px #000;
+    inset 0 1px 0 rgba(238, 252, 255, 0.12),
+    0 18px 44px rgba(0, 0, 0, 0.48);
 }
 
 .contentShell::before {
@@ -109,7 +107,7 @@
 }
 
 .contentShell::after {
-  position: absolute;
+  display: none;
   z-index: -1;
   inset: 8px 8px auto;
   height: 3px;
@@ -125,12 +123,11 @@
 
 .contentShell[data-store-section='vip'] {
   background: #080805;
-  border-color: #85743e;
+  border-color: #6c5b2d;
 }
 
 .contentShell[data-store-section='vip']::after {
-  background: #c99720;
-  box-shadow: 0 0 14px rgba(215, 170, 49, 0.52);
+  display: none;
 }
 
 .contentShell :is(h2, h3) {
@@ -150,11 +147,10 @@
   min-height: 82px;
   padding: 17px 26px !important;
   border: 1px solid #79671d !important;
-  background: #020403 !important;
+  background: #171304 !important;
   box-shadow:
     inset 0 1px 0 rgba(255, 241, 165, 0.34),
-    inset 0 0 0 5px #050704,
-    0 15px 30px rgba(0, 0, 0, 0.55) !important;
+    0 12px 24px rgba(0, 0, 0, 0.4) !important;
 }
 
 .vipStatusBar > div:first-child {
@@ -165,13 +161,12 @@
 .vipToolLink,
 .vipDiamondAction,
 .vipPrimaryFallback {
-  border: 0 !important;
-  background-color: transparent !important;
-  background-image: url('/images/marketplace-console-v1/shark-panel/button-secondary.png') !important;
-  background-position: center !important;
-  background-repeat: no-repeat !important;
-  background-size: 100% 100% !important;
-  box-shadow: none !important;
+  min-height: 44px;
+  border: 1px solid #4a687a !important;
+  background: #0a151d !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.18),
+    0 8px 18px rgba(0, 0, 0, 0.3) !important;
   color: #e9faff !important;
   font-family:
     var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif !important;
@@ -203,7 +198,8 @@
 
 .vipDiamondAction,
 .vipPrimaryFallback {
-  background-image: url('/images/marketplace-console-v1/shark-panel/button-primary.png') !important;
+  border-color: #0bc5ec !important;
+  background: #063446 !important;
 }
 
 .vipDiamondAction {
@@ -356,33 +352,20 @@
 
 .merchSurface::before,
 .rewardsSurface::before {
-  display: block;
-  margin: -4px 0 28px;
-  color: #8fa9b9;
-  font:
-    700 12px var(--font-roboto-condensed),
-    'Roboto Condensed',
-    'Arial Narrow',
-    Arial,
-    sans-serif;
-  letter-spacing: 0.2em;
-  text-align: center;
-  text-transform: capitalize;
-  content: 'Authenticated Commerce Deck  /  Live Pricing  /  Secure Fulfillment';
+  display: none;
+  content: none;
 }
 
 .rewardsSurface::before {
-  content: 'Rewards Intelligence Deck  /  Live Caps  /  Verified Progress';
+  content: none;
 }
 
 .merchSurface :global(article) {
   border-color: #607a8b !important;
   background: #050a0f !important;
   box-shadow:
-    inset 0 1px 0 rgba(236, 251, 255, 0.46),
-    inset 0 0 0 5px #03080c,
-    inset 0 0 0 6px rgba(64, 94, 113, 0.72),
-    0 20px 44px rgba(0, 0, 0, 0.62) !important;
+    inset 0 1px 0 rgba(236, 251, 255, 0.16),
+    0 14px 30px rgba(0, 0, 0, 0.45) !important;
 }
 
 .merchSurface :global(article) > div:first-child {
@@ -413,11 +396,10 @@
 
 .rewardsSurface [role='tab'] {
   min-height: 46px;
-  border: 0 !important;
+  border: 1px solid #314b5c !important;
   border-radius: 0 !important;
-  background: transparent url('/images/marketplace-console-v1/shark-panel/button-secondary.png')
-    center / 100% 100% no-repeat !important;
-  box-shadow: none !important;
+  background: #09131b !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
   color: #9bb0bc !important;
   font-family:
     var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif !important;
@@ -426,8 +408,9 @@
 }
 
 .rewardsSurface [role='tab'][aria-selected='true'] {
-  filter: brightness(1.22) saturate(1.3);
-  box-shadow: 0 0 18px rgba(0, 190, 255, 0.26) !important;
+  border-color: #25cff4 !important;
+  background: #082837 !important;
+  box-shadow: inset 0 -2px 0 #25cff4 !important;
   color: #9bf4ff !important;
 }
 
@@ -437,8 +420,7 @@
   border: 1px solid #526d7e;
   background: #010406;
   box-shadow:
-    inset 0 1px 0 rgba(231, 250, 255, 0.26),
-    inset 0 0 0 6px #04090d;
+    inset 0 1px 0 rgba(231, 250, 255, 0.12);
 }
 
 .rewardsSurface [role='tabpanel'] > :is(div, section) {
@@ -481,9 +463,8 @@
   min-height: 46px;
   place-items: center;
   padding: 8px 14px;
-  border: 0;
-  background: transparent url('/images/marketplace-console-v1/shark-panel/button-secondary.png')
-    center / 100% 100% no-repeat;
+  border: 1px solid #2e657b;
+  background: #071923;
   color: #8feaff;
   font:
     800 12px var(--font-roboto-condensed),
@@ -498,10 +479,9 @@
 .rewardsBoostLayout {
   min-height: 88px;
   padding: 18px 28px !important;
-  border: 0 !important;
-  background: #02070b url('/images/marketplace-console-v1/shark-panel/bay.png') center / 100% 100%
-    no-repeat !important;
-  box-shadow: none !important;
+  border: 1px solid #274555 !important;
+  background: #07131b !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
 }
 
 /* Four stat tiles at a 148px floor plus gaps measure 646px across. The row is
@@ -519,9 +499,8 @@
   min-height: 82px;
   justify-content: center;
   padding: 16px 26px !important;
-  border: 0 !important;
-  background: transparent url('/images/marketplace-console-v1/shark-panel/button-secondary.png')
-    center / 100% 100% no-repeat !important;
+  border: 1px solid #274555 !important;
+  background: #07131b !important;
 }
 
 @media (max-width: 700px) {
@@ -534,19 +513,17 @@
 .rewardsCapBanner {
   min-height: 118px;
   padding: 25px 38px !important;
-  border: 0 !important;
-  background: #02070b url('/images/marketplace-console-v1/shark-panel/bay.png') center / 100% 100%
-    no-repeat !important;
-  box-shadow: none !important;
+  border: 1px solid #6d5d18 !important;
+  background: #171304 !important;
+  box-shadow: inset 0 1px 0 rgba(255, 232, 112, 0.1) !important;
 }
 
 .rewardRow {
   min-height: 82px;
   padding: 16px 22px !important;
-  border: 0 !important;
-  background: #02070b url('/images/marketplace-console-v1/shark-panel/bay.png') center / 100% 100%
-    no-repeat !important;
-  box-shadow: none !important;
+  border: 1px solid #263944 !important;
+  background: #081116 !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06) !important;
 }
 
 /* These anchors are the only route into the 100 reward detail pages and
@@ -578,11 +555,10 @@
 
 .clubShopSurface :is(input, select, textarea) {
   min-height: 44px;
-  border: 0 !important;
+  border: 1px solid #324f60 !important;
   border-radius: 0 !important;
-  background: #02070b url('/images/marketplace-console-v1/shark-panel/button-secondary.png')
-    center / 100% 100% no-repeat !important;
-  box-shadow: none !important;
+  background: #061019 !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07) !important;
   color: #e9f7fb !important;
 }
 
@@ -597,12 +573,8 @@
 .clubShopSurface [role='group'] button {
   min-width: 44px;
   min-height: 44px;
-  border: 0 !important;
-  background-color: transparent !important;
-  background-image: url('/images/marketplace-console-v1/shark-panel/button-secondary.png') !important;
-  background-position: center !important;
-  background-repeat: no-repeat !important;
-  background-size: 100% 100% !important;
+  border: 1px solid #304b5c !important;
+  background: #09131b !important;
 }
 
 .clubShopSurface [aria-pressed='true'] {
@@ -615,15 +587,13 @@
 
 .clubRecoveryNotice {
   display: grid;
-  min-height: 118px;
   gap: 8px;
   align-content: center;
   margin-bottom: 20px;
-  padding: 24px 34px;
-  border: 0;
-  background: #02070b url('/images/marketplace-console-v1/shark-panel/bay.png') center / 100% 100%
-    no-repeat;
-  box-shadow: none;
+  padding: 18px 20px;
+  border: 1px solid #294757;
+  background: #07131b;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07);
   color: #b8cbd5;
   font:
     600 13px var(--font-inter),
@@ -657,9 +627,8 @@
   align-items: center;
   justify-content: center;
   padding: 9px 20px;
-  border: 0;
-  background: transparent url('/images/marketplace-console-v1/shark-panel/button-secondary.png')
-    center / 100% 100% no-repeat;
+  border: 1px solid #304b5c;
+  background: #09131b;
   color: #e7f9ff;
   font:
     800 12px var(--font-roboto-condensed),
@@ -679,13 +648,11 @@
 .clubItemCard {
   min-width: 0;
   overflow: hidden;
-  border: 1px solid #607a8b !important;
+  border: 1px solid #3e596a !important;
   background: #04090d !important;
   box-shadow:
-    inset 0 1px 0 rgba(236, 251, 255, 0.48),
-    inset 0 0 0 5px #02070b,
-    inset 0 0 0 6px rgba(59, 87, 105, 0.76),
-    0 18px 42px #000;
+    inset 0 1px 0 rgba(236, 251, 255, 0.12),
+    0 14px 30px rgba(0, 0, 0, 0.46);
   transition:
     border-color 180ms ease,
     box-shadow 180ms ease;
@@ -772,8 +739,8 @@
   min-height: 44px;
   place-items: center;
   padding: 8px 18px;
-  background: transparent url('/images/marketplace-console-v1/shark-panel/button-secondary.png')
-    center / 100% 100% no-repeat;
+  border: 1px solid #304b5c;
+  background: #09131b;
   color: #b8eefa;
   font:
     800 12px var(--font-roboto-condensed),
@@ -830,10 +797,9 @@
   justify-content: center;
   gap: 6px;
   padding: 8px 12px;
-  border: 0;
-  background: transparent url('/images/marketplace-console-v1/shark-panel/button-primary.png')
-    center / 100% 100% no-repeat;
-  box-shadow: none;
+  border: 1px solid #18c9ee;
+  background: #063446;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14);
   color: #edfaff;
   font:
     800 12px var(--font-roboto-condensed),
@@ -847,9 +813,8 @@
 }
 
 .clubItemActions button:last-child {
-  border: 0;
-  background: transparent url('/images/marketplace-console-v1/shark-panel/button-secondary.png')
-    center / 100% 100% no-repeat;
+  border-color: #456174;
+  background: #0a151d;
   color: #eafaff;
 }
 
@@ -925,9 +890,10 @@
 .clubAdminCreateAction {
   width: 174px;
   max-width: 100%;
-  aspect-ratio: 348 / 114;
+  min-height: 44px;
   padding: 10px 22px;
-  background-image: url('/images/marketplace-console-v1/shark-panel/button-primary.png');
+  border: 1px solid #18c9ee;
+  background: #063446;
   cursor: pointer;
 }
 
@@ -947,15 +913,17 @@
 
 .clubAdminActions button {
   width: 142px;
-  aspect-ratio: 348 / 114;
+  min-height: 44px;
   padding: 8px 16px;
-  background-image: url('/images/marketplace-console-v1/shark-panel/button-primary.png');
+  border: 1px solid #18c9ee;
+  background: #063446;
   cursor: pointer;
 }
 
 .clubAdminActions button:last-child,
 .clubAdminManagedStatus {
-  background-image: url('/images/marketplace-console-v1/shark-panel/button-secondary.png');
+  border: 1px solid #456174;
+  background: #0a151d;
 }
 
 .clubAdminManagedStatus {
@@ -1052,17 +1020,18 @@
 
 .dialogActions > button {
   min-height: 48px;
-  border: 0 !important;
+  border: 1px solid #456174 !important;
   color: #e9f8fc !important;
-  background: transparent center / 100% 100% no-repeat !important;
+  background: #0a151d !important;
 }
 
 .dialogSecondaryAction {
-  background-image: url('/images/marketplace-console-v1/shark-panel/button-secondary.png') !important;
+  background: #0a151d !important;
 }
 
 .dialogPrimaryAction {
-  background-image: url('/images/marketplace-console-v1/shark-panel/button-primary.png') !important;
+  border-color: #18c9ee !important;
+  background: #063446 !important;
 }
 
 .dialogActions > button:disabled {
@@ -1073,10 +1042,10 @@
 .vipMarketplaceLink {
   min-height: 50px;
   padding-inline: 34px !important;
-  border: 0 !important;
+  border: 1px solid #927824 !important;
   color: #f6df7a !important;
-  background: transparent url('/images/marketplace-console-v1/shark-panel/button-primary.png')
-    center / 100% 100% no-repeat !important;
+  background: #171304 !important;
+  box-shadow: inset 0 1px 0 rgba(255, 232, 112, 0.12) !important;
   text-shadow: 0 2px 3px #000;
 }
 

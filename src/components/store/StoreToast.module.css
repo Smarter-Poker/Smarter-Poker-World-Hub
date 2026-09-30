@@ -14,15 +14,15 @@
 
 .toast {
   display: grid;
-  grid-template-columns: 22% minmax(0, 1fr) minmax(112px, 22%);
+  grid-template-columns: minmax(84px, auto) minmax(0, 1fr) minmax(96px, auto);
   align-items: center;
   width: 100%;
-  aspect-ratio: 1800 / 386;
-  padding: 4.2% 4.5% 4.2% 2.4%;
-  border: 0;
+  min-height: 72px;
+  padding: 12px 14px;
+  border: 1px solid #38576a;
   border-radius: 0;
-  background: transparent url('/images/marketplace-console-v1/status/wallet-row-shell.webp') center /
-    100% 100% no-repeat;
+  background: #07131b;
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.58);
   color: #f3fbff;
   pointer-events: auto;
   animation: storeToastIn 0.28s ease-out;
@@ -73,12 +73,10 @@
   width: 100%;
   min-width: 0;
   min-height: 44px;
-  aspect-ratio: 348 / 114;
   padding: 0 12px;
-  border: 0;
+  border: 1px solid #456174;
   border-radius: 0;
-  background: transparent url('/images/marketplace-console-v1/shark-panel/button-secondary.png')
-    center / 100% 100% no-repeat;
+  background: #0a151d;
   color: #eaf9ff;
   font:
     800 11px/1 var(--font-roboto-condensed),
@@ -114,13 +112,9 @@
   }
 
   .toast {
-    --toast-plate-width: min(360px, 100%);
-
     grid-template-columns: minmax(0, 1fr);
-    width: var(--toast-plate-width);
-    aspect-ratio: 1105 / 1133;
-    padding: calc(var(--toast-plate-width) * 0.18);
-    background-image: url('/images/marketplace-console-v1/utility/utility-shell.webp');
+    width: min(360px, 100%);
+    padding: 16px;
     text-align: center;
   }
 
