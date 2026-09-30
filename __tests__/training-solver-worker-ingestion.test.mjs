@@ -888,7 +888,7 @@ separate_icm_contracts = worker.canonical_contract_pairs(worker.TRAINING_ICM_CON
 phase_contracts = worker.canonical_phase_contracts(phases)
 game_contracts = worker.canonical_training_game_contracts(phases)
 manifest = {
-    'version': 4, 'pipeline_bundle_checksum': 'f' * 64,
+    'version': 5, 'pipeline_bundle_checksum': 'f' * 64,
     'range_combo_order': worker.h.COMBO_ORDER,
     'artifact_combo_order': worker.h.COMBO_ORDER,
     'source_combo_order_schema': worker.h.SOURCE_COMBO_ORDER_SCHEMA,
