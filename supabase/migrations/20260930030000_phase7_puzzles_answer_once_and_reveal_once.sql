@@ -538,8 +538,12 @@ BEGIN
       MESSAGE = 'puzzle salt must be 16 to 64 random bytes as lowercase hex';
   END IF;
 
-  -- The answer never reaches a public row before the reveal.
-  IF position(lower(v_correct_label) IN lower(v_prompt)) > 0 THEN
+  -- The answer never reaches a public row before the reveal. The label test
+  -- applies to the puzzles with a deterministic, rewarded answer (nuts, pot
+  -- odds), whose labels name a hand or a price; a "what would you do" puzzle
+  -- has ordinary poker verbs for options (Fold, Call, Bet) that a prompt can
+  -- legitimately contain ("it is 2007 to call"), and it pays nothing.
+  IF p_rewardable AND position(lower(v_correct_label) IN lower(v_prompt)) > 0 THEN
     RAISE EXCEPTION USING
       ERRCODE = '22023',
       MESSAGE = 'puzzle prompt must not contain the correct option label';
@@ -552,7 +556,7 @@ BEGIN
   END IF;
 
   IF v_metadata ?| ARRAY['correct_option', 'explanation', 'salt', 'solution', 'answer', 'answer_commitment', 'proof']
-     OR position(lower(v_correct_label) IN lower(v_metadata::text)) > 0 THEN
+     OR (p_rewardable AND position(lower(v_correct_label) IN lower(v_metadata::text)) > 0) THEN
     RAISE EXCEPTION USING
       ERRCODE = '22023',
       MESSAGE = 'puzzle metadata must not carry the solution';
