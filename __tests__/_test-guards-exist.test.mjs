@@ -450,6 +450,27 @@ import './no-venue-picture-reaches-the-dom-unguarded.test.mjs';
 // reporting wiring and the endpoint that receives it are guarded here.
 import './csp-violations-reach-us.test.mjs';
 
+// Phase 8, discovery and the feed: topics are derived by one rule (mirrored
+// in src/lib/socialTopics.js), the feed API gains the Hands tab, the
+// per-author cap, the exclude list with carry, played-with ordering and the
+// native-video ready check. Each behaviour has its own test; every one runs
+// the real handler against an in-memory PostgREST.
+import './social-topics-derivation.test.mjs';
+import './social-feed-hands-tab.test.mjs';
+import './social-feed-author-cap.test.mjs';
+import './social-feed-exclude-and-carry.test.mjs';
+import './social-feed-played-with.test.mjs';
+import './social-feed-video-ready.test.mjs';
+
+// Phase 8 profile stats (p8-profile): the hand-stats RPC migration text, the
+// public route behind it, the rendered "At The Tables" card (identical for a
+// horse and a human profile) and the ready-only predicates on the profile
+// Reels tab. New files run nowhere unless they are imported here.
+import './profile-hand-stats-rpc.test.mjs';
+import './profile-hand-stats-api.test.mjs';
+import './profile-hand-stats-card.test.mjs';
+import './profile-reels-tab-ready-only.test.mjs';
+
 const REPO = path.resolve(new URL('.', import.meta.url).pathname, '..');
 
 const REQUIRED_TEST_FILES = [
