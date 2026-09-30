@@ -193,6 +193,10 @@ import './social-poker-card-picker-interaction.test.mjs';
 // lightbox, the public club page and both APIs. Owner decision: automated club
 // digests must appear as the club, not as a person.
 import './page-posts-show-the-page.test.mjs';
+// 2026-09-29, Phase 7: a puzzle post shows its choices under the board, the
+// clock before the reveal and the answer only after social_puzzles.revealed_at;
+// a post without a puzzle renders byte for byte as before.
+import './social-puzzle-answer-card.test.mjs';
 import './store-commerce-hardening.test.mjs';
 // 2026-09-05, the diamond wallet audit. Caught by this file's own meta-guard
 // before it could become another guard nobody runs: the law was written, passed

@@ -105,6 +105,7 @@ import GiphyPicker from '../../../src/components/shared/GiphyPicker';
 import TrendingVenues from '../../../src/components/social/TrendingVenues';
 import { SharedPostCreator } from '../../../src/components/social/SharedPostCreator';
 import GhostPostCard from '../../../src/components/social/GhostPostCard';
+import PuzzleAnswerCard from '../../../src/components/social/PuzzleAnswerCard';
 import PokerCardText, { PokerCardSnippet } from '../../../src/components/social/PokerCardText';
 import { normalizePokerPostContent, stripPokerCardMarkup, truncatePokerText } from '../../../src/lib/pokerCardMarkup';
 import dynamic from 'next/dynamic';
@@ -1178,6 +1179,18 @@ const PostCard = React.memo(
               })()}
             </div>
           )
+        )}
+        {/* Phase 7: a puzzle post carries its options in metadata.puzzle. The
+            board is already drawn by the text body above through PokerCardText;
+            the card adds the choices, the clock and, after the reveal, the
+            answer. See src/components/social/PuzzleAnswerCard.jsx. */}
+        {post.metadata?.puzzle && (
+          <PuzzleAnswerCard
+            puzzle={post.metadata.puzzle}
+            postId={post.id}
+            authorId={post.authorId}
+            viewerId={currentUserId}
+          />
         )}
         {/* 📍 Check-in venue badge — shown on posts with "Checked in at" content */}
         {post.content &&
