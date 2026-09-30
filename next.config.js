@@ -279,6 +279,24 @@ const withPWA = require('@ducanh2912/next-pwa').default({
           // NetworkOnly by policy — see (2) above.
           if (/\/chunks\/pages\//.test(url)) return false;
 
+          // Fonts are already CacheFirst at runtime (the static-assets rule
+          // below covers woff2), so they land in the cache the first time a
+          // glyph is actually wanted. Precaching them only moves that cost onto
+          // install(), where every visitor pays it up front on whatever page
+          // they landed on.
+          //
+          // next-pwa MEANS to exclude these already: its default exclude
+          // carries /\/_next\/static\/.*(?<!\.p)\.woff2/. That regex never
+          // matches, because workbox filters on the webpack ASSET NAME
+          // ("static/media/xxx-s.woff2") while the /_next/ prefix is only added
+          // afterwards by next-pwa's own transform. Measured on the live worker
+          // 2026-09-30: 54 woff2 files, 0.82MB, on the install path.
+          //
+          // Filtered here rather than via `exclude` for the reason given above:
+          // supplying `exclude` REPLACES the library default array and would
+          // silently lose its .map and manifest*.js exclusions.
+          if (/\.woff2?$/.test(url)) return false;
+
           return true;
         };
 
