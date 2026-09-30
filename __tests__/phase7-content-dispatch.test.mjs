@@ -11,12 +11,12 @@ import test from 'node:test';
 
 const REPO = path.resolve(new URL('.', import.meta.url).pathname, '..');
 const dispatcher = fs.readFileSync(path.join(REPO, 'scripts', 'openclaw-cron-dispatcher.py'), 'utf8');
-const MIGRATION = 'supabase/migrations/20260930030000_phase7_puzzles_answer_once_and_reveal_once.sql';
+const MIGRATION = 'supabase/migrations/20260930052057_phase7_puzzles_answer_once_and_reveal_once.sql';
 const migration = fs.readFileSync(path.join(REPO, MIGRATION), 'utf8');
 // The six policies are their own transaction (20260930030001): in this database
 // CREATE POLICY takes an access-exclusive lock on auth.users, and holding the new
 // foreign keys' lock on profiles while asking for it deadlocked the install twice.
-const POLICIES = 'supabase/migrations/20260930030001_phase7_puzzle_policies_answer_once_and_reveal_once.sql';
+const POLICIES = 'supabase/migrations/20260930052132_phase7_puzzle_policies_answer_once_and_reveal_once.sql';
 const policies = fs.readFileSync(path.join(REPO, POLICIES), 'utf8');
 
 const PHASE7_MODES = [
