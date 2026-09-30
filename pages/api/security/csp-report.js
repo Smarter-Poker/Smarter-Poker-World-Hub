@@ -55,6 +55,9 @@ const DEDUPE_WINDOW_MS = 5 * 60 * 1000;
 /** Most distinct violation shapes held at once, so the map cannot grow forever. */
 const MAX_TRACKED_SHAPES = 500;
 
+/** Most log lines one request may produce, however many reports it carries. */
+const MAX_LOGGED_PER_REQUEST = 5;
+
 /** shape key -> { count, firstSeen, lastLogged } for this serverless instance. */
 const seen = new Map();
 
@@ -63,11 +66,17 @@ const seen = new Map();
  * path for our own documents, because "which page" is the useful half of a
  * report and our own paths do not carry secrets in the path segment.
  */
+/** Anything heading for the log, with control characters removed. A report that
+ *  carries a newline could otherwise write its own `[csp-report] ...` lines. */
+function flat(value, max) {
+    return String(value == null ? '' : value).replace(/[\u0000-\u001f\u007f-\u009f]+/g, ' ').trim().slice(0, max);
+}
+
 export function safeUri(value, { keepPath = false } = {}) {
-    const raw = String(value || '').trim();
+    const raw = flat(value, 2048);
     if (!raw) return '';
     // CSP keywords arrive verbatim and are not URLs: inline, eval, data, blob.
-    if (!/^[a-z][a-z0-9+.-]*:\/\//i.test(raw)) return raw.slice(0, 60);
+    if (!/^[a-z][a-z0-9+.-]*:\/\//i.test(raw)) return flat(raw, 60);
     try {
         const u = new URL(raw);
         return keepPath ? `${u.origin}${u.pathname}` : u.origin;
@@ -81,14 +90,15 @@ export function normalize(payload) {
     const out = [];
     const push = (r) => {
         if (!r || typeof r !== 'object') return;
-        const directive = String(
+        const directive = flat(
             r['effective-directive'] || r.effectiveDirective || r['violated-directive'] || r.violatedDirective || 'unknown',
-        ).split(' ')[0].slice(0, 40);
+            40,
+        ).split(' ')[0];
         out.push({
             directive,
             blocked: safeUri(r['blocked-uri'] ?? r.blockedURL),
             document: safeUri(r['document-uri'] ?? r.documentURL, { keepPath: true }),
-            disposition: String(r.disposition || 'report').slice(0, 10),
+            disposition: flat(r.disposition || 'report', 10),
         });
     };
     if (Array.isArray(payload)) {
@@ -106,17 +116,22 @@ export function normalize(payload) {
 function readBody(req) {
     return new Promise((resolve, reject) => {
         let size = 0;
+        let oversize = false;
         const chunks = [];
         req.on('data', (c) => {
+            if (oversize) return;
             size += c.length;
             if (size > MAX_BODY_BYTES) {
-                reject(new Error('too large'));
-                req.destroy();
+                // Stop reading, but do not destroy the request: the handler
+                // still has to answer 204 on this socket, and destroying it
+                // gave the browser a connection reset, which is the retry the
+                // always-204 contract exists to avoid.
+                oversize = true;
                 return;
             }
             chunks.push(c);
         });
-        req.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')));
+        req.on('end', () => resolve(oversize ? '' : Buffer.concat(chunks).toString('utf8')));
         req.on('error', reject);
     });
 }
@@ -137,18 +152,34 @@ export default async function handler(req, res) {
     }
 
     const now = Date.now();
+    // Whatever a single body claims, it cannot write more than a handful of
+    // lines. The per-shape window below handles repeats; this handles a caller
+    // sending fifty distinct shapes at once.
+    let written = 0;
     for (const r of reports) {
-        const key = `${r.directive}|${r.blocked}`;
+        if (written >= MAX_LOGGED_PER_REQUEST) break;
+        // disposition is part of the shape: an enforced block and a report-only
+        // violation of the same directive and origin are different facts, and
+        // keying without it printed whichever arrived first for both.
+        const key = `${r.disposition}|${r.directive}|${r.blocked}`;
         const prior = seen.get(key);
         if (prior && now - prior.lastLogged < DEDUPE_WINDOW_MS) {
             prior.count += 1;
             continue;
         }
         const count = prior ? prior.count + 1 : 1;
-        if (seen.size >= MAX_TRACKED_SHAPES && !prior) seen.clear();
+        // Evict the oldest rather than clearing everything. A wholesale clear
+        // let anyone with a fresh key per request keep the map at its cap and
+        // switch the deduplication off, which is the flood this file exists to
+        // prevent. Map preserves insertion order, so the first key is the oldest.
+        if (seen.size >= MAX_TRACKED_SHAPES && !prior) {
+            const oldest = seen.keys().next().value;
+            if (oldest !== undefined) seen.delete(oldest);
+        }
         seen.set(key, { count, lastLogged: now });
         // One line per unique violation shape. This is the list that has to
         // reach zero before the staged policy can move to enforcement.
+        written += 1;
         console.warn(
             `[csp-report] ${r.disposition} ${r.directive} blocked=${r.blocked || 'none'} doc=${r.document || 'none'} seen=${count}`,
         );
