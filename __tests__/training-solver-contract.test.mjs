@@ -524,8 +524,9 @@ test('solver hosts fail closed on unapproved manifests, ranges, and ICM objectiv
   const migration = fs.readFileSync('supabase/migrations/20260831141500_training_solver_provenance.sql', 'utf8');
   const manifest = JSON.parse(fs.readFileSync('scripts/preflop-deep/phases.json', 'utf8'));
   assert.equal(manifest.version, 5);
-  assert.equal(manifest.execution_scope, 'training_backlog');
+  assert.equal(manifest.execution_scope, 'bounded_canary');
   assert.equal(manifest.release_gate.solver_ready, false);
+  assert.equal(manifest.release_gate.bounded_canary_ready, true);
   assert.match(
     pipelineReadme,
     /manifest contains exactly M1, or M1 plus M2; it may never\s+contain M2 alone/,

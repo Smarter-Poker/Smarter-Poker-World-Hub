@@ -1,9 +1,10 @@
 """Build one controller-local solver bundle from immutable Git object bytes.
 
 This controller-only utility never reads a dirty working tree and never accepts
-or writes worker HMAC or database credentials. It packages the exact five
-files already checksum-sealed by a protected manifest, then emits a sanitized
-receipt for independent delivery verification.
+or writes worker HMAC or database credentials. It packages four runtime files
+from one explicit protected pipeline commit plus the checksum-sealing manifest
+from one explicit protected manifest commit, then emits a sanitized receipt
+that binds both Git objects for independent delivery verification.
 
 Bundle creation is intentionally limited to a trusted POSIX controller running
 macOS or Linux. Windows solver workers consume the resulting exact bytes; they
@@ -31,6 +32,8 @@ PIPELINE_PATHS = (
 )
 MANIFEST_PATH = "scripts/preflop-deep/phases.json"
 CANONICAL_PROTECTED_REF = "refs/remotes/origin/main"
+GIT_EXECUTABLE = "/usr/bin/git"
+GIT_CHILD_PATH = "/usr/bin:/bin"
 MAX_BUNDLE_FILE_BYTES = 16 * 1024 * 1024
 LOWER_HEX_40 = re.compile(r"^[0-9a-f]{40}$")
 LOWER_HEX_64 = re.compile(r"^[0-9a-f]{64}$")
@@ -49,21 +52,30 @@ def _require_posix_controller():
 
 
 def _git(repo, *arguments, check=True):
+    try:
+        executable = os.lstat(GIT_EXECUTABLE)
+    except OSError:
+        raise BundleBuildError("trusted Git executable is unavailable") from None
+    if (not stat.S_ISREG(executable.st_mode)
+            or stat.S_ISLNK(executable.st_mode)
+            or not os.access(GIT_EXECUTABLE, os.X_OK)):
+        raise BundleBuildError("trusted Git executable is not a regular executable")
     environment = {
-        key: value for key, value in os.environ.items()
-        if not key.upper().startswith("GIT_")
+        "PATH": GIT_CHILD_PATH,
+        "LANG": "C",
+        "LC_ALL": "C",
+        "GIT_NO_REPLACE_OBJECTS": "1",
+        "GIT_GRAFT_FILE": os.devnull,
+        "GIT_NO_LAZY_FETCH": "1",
+        "GIT_TERMINAL_PROMPT": "0",
+        "GIT_CONFIG_NOSYSTEM": "1",
+        "GIT_CONFIG_GLOBAL": os.devnull,
     }
     # A controller checkout is not itself release authority.  In particular,
     # local refs/replace entries must never be able to substitute a different
     # commit/tree while the receipt continues to name the requested commit.
-    environment["GIT_NO_REPLACE_OBJECTS"] = "1"
-    environment["GIT_GRAFT_FILE"] = os.devnull
-    environment["GIT_NO_LAZY_FETCH"] = "1"
-    environment["GIT_TERMINAL_PROMPT"] = "0"
-    environment["GIT_CONFIG_NOSYSTEM"] = "1"
-    environment["GIT_CONFIG_GLOBAL"] = os.devnull
     result = subprocess.run(
-        ["git", "--no-replace-objects", "-C", str(repo), *arguments],
+        [GIT_EXECUTABLE, "--no-replace-objects", "-C", str(repo), *arguments],
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         env=environment,
@@ -310,7 +322,8 @@ def _verify_bundle_descriptor(directory_descriptor, expected_payloads):
 
 
 def build_release_bundle(repo, commit, protected_ref, output, pio_version,
-                         pio_binary_sha256, protected_main_commit=None):
+                         pio_binary_sha256, protected_main_commit=None,
+                         manifest_commit=None):
     _require_posix_controller()
     repo = Path(repo).resolve()
     if not repo.is_dir():
@@ -318,6 +331,11 @@ def build_release_bundle(repo, commit, protected_ref, output, pio_version,
     commit = str(commit).strip().lower()
     if not LOWER_HEX_40.fullmatch(commit):
         raise BundleBuildError("commit must be an exact lowercase 40-character SHA")
+    manifest_commit = str(manifest_commit or commit).strip().lower()
+    if not LOWER_HEX_40.fullmatch(manifest_commit):
+        raise BundleBuildError(
+            "manifest commit must be an exact lowercase 40-character SHA"
+        )
     if protected_ref != CANONICAL_PROTECTED_REF:
         raise BundleBuildError(
             "protected ref must be the canonical refs/remotes/origin/main"
@@ -339,6 +357,13 @@ def build_release_bundle(repo, commit, protected_ref, output, pio_version,
     resolved = _git(repo, "rev-parse", "--verify", "%s^{commit}" % commit).stdout.decode().strip()
     if resolved != commit:
         raise BundleBuildError("commit did not resolve to the exact requested object")
+    resolved_manifest = _git(
+        repo, "rev-parse", "--verify", "%s^{commit}" % manifest_commit
+    ).stdout.decode().strip()
+    if resolved_manifest != manifest_commit:
+        raise BundleBuildError(
+            "manifest commit did not resolve to the exact requested object"
+        )
     protected_commit = _git(
         repo, "rev-parse", "--verify", "%s^{commit}" % CANONICAL_PROTECTED_REF
     ).stdout.decode().strip()
@@ -351,15 +376,25 @@ def build_release_bundle(repo, commit, protected_ref, output, pio_version,
     )
     if ancestry.returncode != 0:
         raise BundleBuildError("commit is not an ancestor of the protected ref")
+    manifest_ancestry = _git(
+        repo, "merge-base", "--is-ancestor", manifest_commit, protected_commit,
+        check=False,
+    )
+    if manifest_ancestry.returncode != 0:
+        raise BundleBuildError(
+            "manifest commit is not an ancestor of the protected ref"
+        )
     _git(
         repo, "fsck", "--strict", "--no-reflogs", "--no-dangling",
-        commit, protected_commit,
+        commit, manifest_commit, protected_commit,
     )
     object_format = _git(repo, "rev-parse", "--show-object-format").stdout.decode().strip()
     if object_format not in ("sha1", "sha256"):
         raise BundleBuildError("Git repository uses an unsupported object format")
 
-    manifest_bytes = _read_blob(repo, commit, MANIFEST_PATH, object_format)
+    manifest_bytes = _read_blob(
+        repo, manifest_commit, MANIFEST_PATH, object_format,
+    )
     try:
         manifest = json.loads(manifest_bytes.decode("utf-8"))
     except (UnicodeError, ValueError):
@@ -547,8 +582,9 @@ def build_release_bundle(repo, commit, protected_ref, output, pio_version,
             os.close(parent_descriptor)
 
     return {
-        "schema": "training-solver-controller-bundle-receipt.v1",
+        "schema": "training-solver-controller-bundle-receipt.v2",
         "pipeline_commit": commit,
+        "manifest_commit": manifest_commit,
         "protected_ref_commit": protected_commit,
         "controller_attested_protected_main_commit": protected_main_commit,
         "manifest_sha256": hashlib.sha256(manifest_bytes).hexdigest(),
@@ -566,6 +602,7 @@ def main(argv=None):
     parser = argparse.ArgumentParser()
     parser.add_argument("--repo", required=True)
     parser.add_argument("--commit", required=True)
+    parser.add_argument("--manifest-commit", required=True)
     parser.add_argument(
         "--protected-ref",
         default=CANONICAL_PROTECTED_REF,
@@ -581,6 +618,7 @@ def main(argv=None):
             arguments.repo, arguments.commit, arguments.protected_ref,
             arguments.output, arguments.pio_version,
             arguments.pio_binary_sha256, arguments.protected_main_commit,
+            arguments.manifest_commit,
         )
     except BundleBuildError as error:
         print("HOLD: %s" % error, file=sys.stderr)

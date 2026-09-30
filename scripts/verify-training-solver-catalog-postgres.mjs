@@ -28,6 +28,10 @@ const OPERATION_SCOPE_MIGRATION = path.join(
   ROOT,
   'supabase/migrations/20260913170000_training_solver_operation_scope_binding.sql',
 );
+const M1_BOUNDED_ACTIVATION_MIGRATION = path.join(
+  ROOT,
+  'supabase/migrations/20260930182000_activate_training_solver_m1_bounded_canary.sql',
+);
 
 const PRODUCTION_DEFAULT_ACL_SQL = String.raw`
 ALTER DEFAULT PRIVILEGES IN SCHEMA public
@@ -4197,6 +4201,162 @@ try {
   if (finalOperationScopeClosed !== 't') {
     throw new Error('Final operation-scope migration state reopened a legacy or direct-write path.');
   }
+
+  const m1ActivationSeed = (childNode) => String.raw`
+    INSERT INTO public.solved_spots_gold (
+      id, scenario_hash, game_type, stack_depth, street, strategy_matrix_v2
+    ) VALUES (
+      '2d7b403c-e4d3-4c20-bff8-ed5db7ecb50a',
+      'hu_cash_BTN_100bb_2c4c7c', 'hu_cash', 100, 'flop',
+      jsonb_build_object('node', 'r:0:c', 'position', 'BTN')
+    ), (
+      '21d75135-faa8-4c0d-acbe-91b55c98daf0',
+      'turn_hu_cash_BTN_100bb_2c4c7c2d', 'hu_cash', 100, 'turn',
+      jsonb_build_object('node', '${childNode}', 'position', 'BTN')
+    );
+  `;
+  const prepareM1ActivationDatabase = (databaseName, childNode) => {
+    command(tool('createdb'), [
+      '-h', tempRoot, '-p', String(port), databaseName,
+    ], { quiet: true });
+    const activationConnection = [
+      '-h', tempRoot, '-p', String(port), '-d', databaseName,
+    ];
+    command(tool('psql'), [
+      '-X', '-v', 'ON_ERROR_STOP=1', ...activationConnection,
+    ], { input: baselineWithoutClusterRoles, quiet: true });
+    command(tool('psql'), [
+      '-X', '-v', 'ON_ERROR_STOP=1', ...activationConnection,
+    ], { input: PRODUCTION_DEFAULT_ACL_SQL, quiet: true });
+    command(tool('psql'), [
+      '-X', '-v', 'ON_ERROR_STOP=1', ...activationConnection,
+    ], { input: m1ActivationSeed(childNode), quiet: true });
+    for (const migration of [
+      MIGRATION, HARDENING_MIGRATION, WORKER_INGEST_MIGRATION,
+      BOUNDED_CANARY_MIGRATION, OPERATION_SCOPE_MIGRATION,
+    ]) {
+      command(tool('psql'), [
+        '-X', '-v', 'ON_ERROR_STOP=1', ...activationConnection,
+        '-f', migration,
+      ], { quiet: true });
+    }
+    return activationConnection;
+  };
+
+  const exactActivationConnection = prepareM1ActivationDatabase(
+    'phase6_m1_bounded_activation',
+    'r:0:c:b412:c:2d:c',
+  );
+  command(tool('psql'), [
+    '-X', '-v', 'ON_ERROR_STOP=1', ...exactActivationConnection,
+    '-f', M1_BOUNDED_ACTIVATION_MIGRATION,
+  ], { quiet: true });
+  const exactM1Activation = command(tool('psql'), [
+    '-X', '-v', 'ON_ERROR_STOP=1', '-tA', ...exactActivationConnection,
+  ], {
+    input: String.raw`
+      SELECT
+        (SELECT count(*) = 1
+         FROM public.training_solver_provenance_authority authority
+         WHERE authority.machine_id = 'M1'
+           AND authority.solver_version =
+             'PioSOLVER-pro 3.8.0 (Sep 22 2025, 11:05:45)'
+           AND authority.solver_binary_checksum =
+             'e21ea7ad1dbc2a9d826c25ac264688f632dd461b92de2bc35a53f6b78bcf5ceb'
+           AND authority.pipeline_commit =
+             '1ccf3907cf3298e24609eb6fbd903023d91dbddf'
+           AND authority.manifest_version = '5'
+           AND authority.manifest_checksum =
+             'b27ad1f3575e106d7d7f73bb4655e94398955a1275ae1fea9b3af7f574dbece8'
+           AND authority.retired_at IS NULL)
+        AND
+        (SELECT count(*) = 2
+         FROM public.training_solver_bounded_canary_targets target
+         WHERE target.machine_id = 'M1'
+           AND target.pipeline_commit =
+             '1ccf3907cf3298e24609eb6fbd903023d91dbddf'
+           AND target.manifest_version = '5'
+           AND target.manifest_checksum =
+             'b27ad1f3575e106d7d7f73bb4655e94398955a1275ae1fea9b3af7f574dbece8'
+           AND (target.target_role, target.artifact_id, target.node) IN (
+             ('parent', '2d7b403c-e4d3-4c20-bff8-ed5db7ecb50a'::uuid, 'r:0:c'),
+             ('child', '21d75135-faa8-4c0d-acbe-91b55c98daf0'::uuid,
+              'r:0:c:b412:c:2d:c')
+           ))
+        AND
+        (SELECT count(*) = 1
+         FROM public.training_solver_ingest_scopes scope
+         WHERE scope.machine_id = 'M1'
+           AND scope.pipeline_commit =
+             '1ccf3907cf3298e24609eb6fbd903023d91dbddf'
+           AND scope.manifest_version = '5'
+           AND scope.manifest_checksum =
+             'b27ad1f3575e106d7d7f73bb4655e94398955a1275ae1fea9b3af7f574dbece8'
+           AND scope.admission_mode = 'bounded_canary'
+           AND scope.partition_count = 2
+           AND scope.partition_index = 0)
+        AND NOT EXISTS (
+          SELECT 1
+          FROM public.training_solver_ingest_scopes scope
+          JOIN public.training_solver_provenance_authority authority
+            USING (
+              machine_id, solver_version, solver_binary_checksum,
+              pipeline_commit, manifest_version, manifest_checksum
+            )
+          WHERE scope.machine_id = 'M1'
+            AND scope.admission_mode IN ('backlog', 'bounded_canary')
+            AND authority.retired_at IS NULL
+            AND scope.pipeline_commit IS DISTINCT FROM
+              '1ccf3907cf3298e24609eb6fbd903023d91dbddf'
+        );
+    `,
+    quiet: true,
+  }).stdout.trim();
+  if (exactM1Activation !== 't') {
+    throw new Error('M1 bounded activation did not install only the exact reviewed tuple.');
+  }
+
+  const wrongIdentityConnection = prepareM1ActivationDatabase(
+    'phase6_m1_bounded_wrong_identity',
+    'r:0:c:b412:c:3d:c',
+  );
+  commandExpectFailure(
+    tool('psql'),
+    ['-X', '-v', 'ON_ERROR_STOP=1', ...wrongIdentityConnection,
+      '-f', M1_BOUNDED_ACTIVATION_MIGRATION],
+    { expected: 'TRAINING_SOLVER_M1_CANARY_CHILD_IDENTITY_MISMATCH' },
+  );
+  const wrongIdentityRolledBack = command(tool('psql'), [
+    '-X', '-v', 'ON_ERROR_STOP=1', '-tA', ...wrongIdentityConnection,
+  ], {
+    input: String.raw`
+      SELECT
+        NOT EXISTS (
+          SELECT 1 FROM public.training_solver_provenance_authority
+          WHERE pipeline_commit =
+            '1ccf3907cf3298e24609eb6fbd903023d91dbddf'
+            AND manifest_checksum =
+              'b27ad1f3575e106d7d7f73bb4655e94398955a1275ae1fea9b3af7f574dbece8'
+        )
+        AND NOT EXISTS (
+          SELECT 1 FROM public.training_solver_bounded_canary_targets
+          WHERE pipeline_commit =
+            '1ccf3907cf3298e24609eb6fbd903023d91dbddf'
+            AND manifest_checksum =
+              'b27ad1f3575e106d7d7f73bb4655e94398955a1275ae1fea9b3af7f574dbece8'
+        )
+        AND NOT EXISTS (
+          SELECT 1 FROM public.training_solver_ingest_scopes
+          WHERE machine_id = 'M1'
+            AND admission_mode IN ('backlog', 'bounded_canary')
+        );
+    `,
+    quiet: true,
+  }).stdout.trim();
+  if (wrongIdentityRolledBack !== 't') {
+    throw new Error('Wrong M1 target identity did not leave activation state untouched.');
+  }
+
   const evidenceLine = evidence.stdout
     .split('\n')
     .map((line) => line.trim())
@@ -4212,6 +4372,8 @@ try {
   const combinedEvidence = {
     ...JSON.parse(evidenceLine),
     ...JSON.parse(operationScopeEvidenceLine),
+    m1BoundedActivationExact: true,
+    m1WrongIdentityRollback: true,
   };
   console.log(`Phase 6 Training solver catalog verification passed: ${JSON.stringify(combinedEvidence)}`);
 } finally {
