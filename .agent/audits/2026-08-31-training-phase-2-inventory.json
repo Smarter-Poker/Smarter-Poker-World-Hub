@@ -18,9 +18,9 @@
     "dialogs": 12,
     "persistenceFiles": 77,
     "realtimeFiles": 6,
-    "tests": 149,
-    "markerCandidates": 331,
-    "possibleUnwiredFunctions": 378,
+    "tests": 151,
+    "markerCandidates": 333,
+    "possibleUnwiredFunctions": 379,
     "routeStateCells": 752,
     "routeStateCoverageGaps": 277,
     "routeStateUnassignedGaps": 0,
@@ -18714,7 +18714,7 @@
       "functions": [
         {
           "name": "getSupabase",
-          "line": 68,
+          "line": 69,
           "references": 11,
           "exported": false,
           "defaultExport": false,
@@ -18722,7 +18722,7 @@
         },
         {
           "name": "normalizeCampaignQuestionWithoutFabrication",
-          "line": 89,
+          "line": 90,
           "references": 5,
           "exported": false,
           "defaultExport": false,
@@ -18730,7 +18730,7 @@
         },
         {
           "name": "reportRejectedEngineCandidates",
-          "line": 128,
+          "line": 129,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -18738,7 +18738,7 @@
         },
         {
           "name": "handler",
-          "line": 136,
+          "line": 137,
           "references": 2,
           "exported": true,
           "defaultExport": true,
@@ -18746,7 +18746,7 @@
         },
         {
           "name": "reject",
-          "line": 90,
+          "line": 91,
           "references": 4,
           "exported": false,
           "defaultExport": false,
@@ -18754,7 +18754,7 @@
         },
         {
           "name": "refuseUnavailableAttestationContinuationCohort",
-          "line": 256,
+          "line": 257,
           "references": 7,
           "exported": false,
           "defaultExport": false,
@@ -18762,7 +18762,7 @@
         },
         {
           "name": "isAggressiveAnswer",
-          "line": 594,
+          "line": 595,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -18773,7 +18773,7 @@
       "markers": [
         {
           "kind": "FALLBACK",
-          "line": 382,
+          "line": 383,
           "excerpt": "// SOLVER ENGINE FALLBACK: If cache is empty or insufficient,",
           "disposition": "training-data-provenance-fallback",
           "review": "documented-follow-up",
@@ -18782,7 +18782,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 498,
+          "line": 499,
           "excerpt": "// honest fallback instead of rows this route",
           "disposition": "historical-or-prohibition-comment",
           "review": "accepted",
@@ -18790,7 +18790,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 531,
+          "line": 532,
           "excerpt": "// No AI fallback — engines handle all question generation",
           "disposition": "historical-or-prohibition-comment",
           "review": "accepted",
@@ -18798,7 +18798,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 570,
+          "line": 571,
           "excerpt": "// ●●● Engine-only — no AI fallback. Return 404 if no solver data exists. ●●●",
           "disposition": "historical-or-prohibition-comment",
           "review": "accepted",
@@ -18806,7 +18806,7 @@
         },
         {
           "kind": "SIMULATED",
-          "line": 683,
+          "line": 684,
           "excerpt": "// heuristic, simulated, and incomplete rows were already rejected",
           "disposition": "domain-simulation",
           "review": "accepted",
@@ -18814,7 +18814,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 695,
+          "line": 696,
           "excerpt": "* \"fallback\" called this same route (see the note in",
           "disposition": "runtime-resilience-fallback",
           "review": "documented-follow-up",
@@ -43589,7 +43589,7 @@
         "offline": true,
         "stale": true,
         "success": true,
-        "authExpiry": false
+        "authExpiry": true
       },
       "persistenceWrites": {
         "localStorage": 0,
@@ -43608,7 +43608,7 @@
       "functions": [
         {
           "name": "buildGeneralPool",
-          "line": 2410,
+          "line": 8437,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -43616,7 +43616,15 @@
         },
         {
           "name": "difficultyBandForLevel",
-          "line": 2424,
+          "line": 8451,
+          "references": 2,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "stableGameSeed",
+          "line": 8459,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -43624,7 +43632,7 @@
         },
         {
           "name": "formatQuestion",
-          "line": 2432,
+          "line": 8468,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -43632,15 +43640,23 @@
         },
         {
           "name": "getPsychologyQuestions",
-          "line": 2466,
+          "line": 8518,
           "references": 3,
           "exported": true,
           "defaultExport": false,
           "namedFunctionExpression": false
         },
         {
+          "name": "getPsychologyBankSize",
+          "line": 8560,
+          "references": 2,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
           "name": "getPsychologyGameIds",
-          "line": 2513,
+          "line": 8566,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -43648,7 +43664,7 @@
         },
         {
           "name": "qid",
-          "line": 2489,
+          "line": 8541,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -43658,8 +43674,24 @@
       "possibleUnwiredFunctions": [],
       "markers": [
         {
+          "kind": "SIMULATION",
+          "line": 6298,
+          "excerpt": "s: 'A simulation shows your current losing stretch happens to a player with your win rate about once a year.',",
+          "disposition": "domain-simulation",
+          "review": "accepted",
+          "rationale": "Poker/training simulation is an intentional product capability; solver provenance is audited separately."
+        },
+        {
+          "kind": "SIMULATION",
+          "line": 6303,
+          "excerpt": "'Denial, because the simulation cannot account for the specific opponents you face',",
+          "disposition": "domain-simulation",
+          "review": "accepted",
+          "rationale": "Poker/training simulation is an intentional product capability; solver provenance is audited separately."
+        },
+        {
           "kind": "FALLBACK",
-          "line": 2406,
+          "line": 8433,
           "excerpt": "// GENERAL POOL — fallback for unknown SCENARIO gameIds",
           "disposition": "training-data-provenance-fallback",
           "review": "documented-follow-up",
@@ -55666,7 +55698,7 @@
         },
         {
           "name": "isTrainingAttemptContractError",
-          "line": 1043,
+          "line": 1046,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -56125,8 +56157,32 @@
       },
       "functions": [
         {
+          "name": "isTrainingPersistenceContention",
+          "line": 17,
+          "references": 2,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "orderRowsForConcurrentWrite",
+          "line": 28,
+          "references": 1,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "sleep",
+          "line": 37,
+          "references": 2,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
           "name": "isTrainingPersistenceUnavailable",
-          "line": 16,
+          "line": 51,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -56134,7 +56190,7 @@
         },
         {
           "name": "runBoundedQuery",
-          "line": 21,
+          "line": 56,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -56142,7 +56198,7 @@
         },
         {
           "name": "runTrainingPersistenceQuery",
-          "line": 56,
+          "line": 91,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -56150,7 +56206,7 @@
         },
         {
           "name": "trainingPersistenceUnavailableBody",
-          "line": 77,
+          "line": 130,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -56158,6 +56214,7 @@
         }
       ],
       "possibleUnwiredFunctions": [
+        "orderRowsForConcurrentWrite",
         "runTrainingPersistenceQuery",
         "trainingPersistenceUnavailableBody"
       ],
@@ -62394,12 +62451,14 @@
     "__tests__/training-practice-session-boundary.test.mjs",
     "__tests__/training-preflop-chart-authority.test.mjs",
     "__tests__/training-preflop-daily-practice-authority.test.mjs",
+    "__tests__/training-preload-persistence-contention.test.mjs",
     "__tests__/training-preloader-eligibility.test.mjs",
     "__tests__/training-production-delivery-attestation.test.mjs",
     "__tests__/training-production-smoke-auth.test.mjs",
     "__tests__/training-production-smoke-contract.test.mjs",
     "__tests__/training-progress-authority-read.test.mjs",
     "__tests__/training-projection-authority-package-c.test.mjs",
+    "__tests__/training-psychology-bank-contract.test.mjs",
     "__tests__/training-question-delivery-authority.test.mjs",
     "__tests__/training-question-integrity.test.mjs",
     "__tests__/training-question-order-contract.test.mjs",
@@ -82275,7 +82334,9 @@
       "apiReferences": [],
       "persistence": [],
       "realtime": [],
-      "tests": []
+      "tests": [
+        "__tests__/training-psychology-bank-contract.test.mjs"
+      ]
     },
     {
       "file": "src/engine/EventBus.js",
@@ -84679,6 +84740,7 @@
         "__tests__/training-daily-challenge-authority.test.mjs",
         "__tests__/training-legacy-consumer-authority.test.mjs",
         "__tests__/training-next-street-authority.test.mjs",
+        "__tests__/training-preload-persistence-contention.test.mjs",
         "__tests__/training-projection-authority-package-c.test.mjs",
         "__tests__/training-reissue-authority.test.mjs",
         "__tests__/training-runtime-wiring.test.mjs",
@@ -85066,7 +85128,7 @@
       {
         "file": "pages/api/training/batch-preload.js",
         "kind": "FALLBACK",
-        "line": 382,
+        "line": 383,
         "excerpt": "// SOLVER ENGINE FALLBACK: If cache is empty or insufficient,",
         "disposition": "training-data-provenance-fallback",
         "review": "documented-follow-up",
@@ -85076,7 +85138,7 @@
       {
         "file": "pages/api/training/batch-preload.js",
         "kind": "FALLBACK",
-        "line": 498,
+        "line": 499,
         "excerpt": "// honest fallback instead of rows this route",
         "disposition": "historical-or-prohibition-comment",
         "review": "accepted",
@@ -85085,7 +85147,7 @@
       {
         "file": "pages/api/training/batch-preload.js",
         "kind": "FALLBACK",
-        "line": 531,
+        "line": 532,
         "excerpt": "// No AI fallback — engines handle all question generation",
         "disposition": "historical-or-prohibition-comment",
         "review": "accepted",
@@ -85094,7 +85156,7 @@
       {
         "file": "pages/api/training/batch-preload.js",
         "kind": "FALLBACK",
-        "line": 570,
+        "line": 571,
         "excerpt": "// ●●● Engine-only — no AI fallback. Return 404 if no solver data exists. ●●●",
         "disposition": "historical-or-prohibition-comment",
         "review": "accepted",
@@ -85103,7 +85165,7 @@
       {
         "file": "pages/api/training/batch-preload.js",
         "kind": "SIMULATED",
-        "line": 683,
+        "line": 684,
         "excerpt": "// heuristic, simulated, and incomplete rows were already rejected",
         "disposition": "domain-simulation",
         "review": "accepted",
@@ -85112,7 +85174,7 @@
       {
         "file": "pages/api/training/batch-preload.js",
         "kind": "FALLBACK",
-        "line": 695,
+        "line": 696,
         "excerpt": "* \"fallback\" called this same route (see the note in",
         "disposition": "runtime-resilience-fallback",
         "review": "documented-follow-up",
@@ -86662,8 +86724,26 @@
       },
       {
         "file": "src/data/psychologyQuestionBank.js",
+        "kind": "SIMULATION",
+        "line": 6298,
+        "excerpt": "s: 'A simulation shows your current losing stretch happens to a player with your win rate about once a year.',",
+        "disposition": "domain-simulation",
+        "review": "accepted",
+        "rationale": "Poker/training simulation is an intentional product capability; solver provenance is audited separately."
+      },
+      {
+        "file": "src/data/psychologyQuestionBank.js",
+        "kind": "SIMULATION",
+        "line": 6303,
+        "excerpt": "'Denial, because the simulation cannot account for the specific opponents you face',",
+        "disposition": "domain-simulation",
+        "review": "accepted",
+        "rationale": "Poker/training simulation is an intentional product capability; solver provenance is audited separately."
+      },
+      {
+        "file": "src/data/psychologyQuestionBank.js",
         "kind": "FALLBACK",
-        "line": 2406,
+        "line": 8433,
         "excerpt": "// GENERAL POOL — fallback for unknown SCENARIO gameIds",
         "disposition": "training-data-provenance-fallback",
         "review": "documented-follow-up",
@@ -93413,7 +93493,7 @@
       {
         "file": "src/lib/training/trainingAttemptDelivery.mjs",
         "name": "isTrainingAttemptContractError",
-        "line": 1043,
+        "line": 1046,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -93545,8 +93625,25 @@
       },
       {
         "file": "src/lib/training/trainingPersistence.mjs",
+        "name": "orderRowsForConcurrentWrite",
+        "line": 28,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "__tests__/training-runtime-wiring.test.mjs",
+          "pages/api/training/batch-preload.js",
+          "src/lib/training/trainingAttemptDelivery.mjs"
+        ]
+      },
+      {
+        "file": "src/lib/training/trainingPersistence.mjs",
         "name": "runTrainingPersistenceQuery",
-        "line": 56,
+        "line": 91,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -93576,7 +93673,7 @@
       {
         "file": "src/lib/training/trainingPersistence.mjs",
         "name": "trainingPersistenceUnavailableBody",
-        "line": 77,
+        "line": 130,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -94070,7 +94167,7 @@
       {
         "file": "pages/api/training/batch-preload.js",
         "kind": "FALLBACK",
-        "line": 382,
+        "line": 383,
         "excerpt": "// SOLVER ENGINE FALLBACK: If cache is empty or insufficient,",
         "disposition": "training-data-provenance-fallback",
         "review": "documented-follow-up",
@@ -94080,7 +94177,7 @@
       {
         "file": "pages/api/training/batch-preload.js",
         "kind": "FALLBACK",
-        "line": 498,
+        "line": 499,
         "excerpt": "// honest fallback instead of rows this route",
         "disposition": "historical-or-prohibition-comment",
         "review": "accepted",
@@ -94089,7 +94186,7 @@
       {
         "file": "pages/api/training/batch-preload.js",
         "kind": "FALLBACK",
-        "line": 531,
+        "line": 532,
         "excerpt": "// No AI fallback — engines handle all question generation",
         "disposition": "historical-or-prohibition-comment",
         "review": "accepted",
@@ -94098,7 +94195,7 @@
       {
         "file": "pages/api/training/batch-preload.js",
         "kind": "FALLBACK",
-        "line": 570,
+        "line": 571,
         "excerpt": "// ●●● Engine-only — no AI fallback. Return 404 if no solver data exists. ●●●",
         "disposition": "historical-or-prohibition-comment",
         "review": "accepted",
@@ -94107,7 +94204,7 @@
       {
         "file": "pages/api/training/batch-preload.js",
         "kind": "SIMULATED",
-        "line": 683,
+        "line": 684,
         "excerpt": "// heuristic, simulated, and incomplete rows were already rejected",
         "disposition": "domain-simulation",
         "review": "accepted",
@@ -94116,7 +94213,7 @@
       {
         "file": "pages/api/training/batch-preload.js",
         "kind": "FALLBACK",
-        "line": 695,
+        "line": 696,
         "excerpt": "* \"fallback\" called this same route (see the note in",
         "disposition": "runtime-resilience-fallback",
         "review": "documented-follow-up",
@@ -95666,8 +95763,26 @@
       },
       {
         "file": "src/data/psychologyQuestionBank.js",
+        "kind": "SIMULATION",
+        "line": 6298,
+        "excerpt": "s: 'A simulation shows your current losing stretch happens to a player with your win rate about once a year.',",
+        "disposition": "domain-simulation",
+        "review": "accepted",
+        "rationale": "Poker/training simulation is an intentional product capability; solver provenance is audited separately."
+      },
+      {
+        "file": "src/data/psychologyQuestionBank.js",
+        "kind": "SIMULATION",
+        "line": 6303,
+        "excerpt": "'Denial, because the simulation cannot account for the specific opponents you face',",
+        "disposition": "domain-simulation",
+        "review": "accepted",
+        "rationale": "Poker/training simulation is an intentional product capability; solver provenance is audited separately."
+      },
+      {
+        "file": "src/data/psychologyQuestionBank.js",
         "kind": "FALLBACK",
-        "line": 2406,
+        "line": 8433,
         "excerpt": "// GENERAL POOL — fallback for unknown SCENARIO gameIds",
         "disposition": "training-data-provenance-fallback",
         "review": "documented-follow-up",
@@ -102417,7 +102532,7 @@
       {
         "file": "src/lib/training/trainingAttemptDelivery.mjs",
         "name": "isTrainingAttemptContractError",
-        "line": 1043,
+        "line": 1046,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -102549,8 +102664,25 @@
       },
       {
         "file": "src/lib/training/trainingPersistence.mjs",
+        "name": "orderRowsForConcurrentWrite",
+        "line": 28,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "__tests__/training-runtime-wiring.test.mjs",
+          "pages/api/training/batch-preload.js",
+          "src/lib/training/trainingAttemptDelivery.mjs"
+        ]
+      },
+      {
+        "file": "src/lib/training/trainingPersistence.mjs",
         "name": "runTrainingPersistenceQuery",
-        "line": 56,
+        "line": 91,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -102580,7 +102712,7 @@
       {
         "file": "src/lib/training/trainingPersistence.mjs",
         "name": "trainingPersistenceUnavailableBody",
-        "line": 77,
+        "line": 130,
         "references": 1,
         "exported": true,
         "defaultExport": false,

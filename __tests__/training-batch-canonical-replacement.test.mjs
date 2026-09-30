@@ -212,6 +212,9 @@ function createHarness({
     },
     '../../../src/lib/apiErrorHandler': { reportApiError() {} },
     '../../../src/lib/training/trainingPersistence.mjs': {
+      orderRowsForConcurrentWrite: (rows, keyColumn) => [...rows].sort((left, right) => (
+        String(left?.[keyColumn]) < String(right?.[keyColumn]) ? -1 : 1
+      )),
       runTrainingPersistenceQuery: async (factory) => factory(),
       trainingPersistenceUnavailableBody: () => ({
         success: false,

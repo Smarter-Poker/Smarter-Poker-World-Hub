@@ -20,13 +20,24 @@ until `phases.json.release_gate.solver_ready` is true in a protected commit, the
 operator supplies that exact manifest checksum, and every range artifact passes
 its per-phase SHA-256 check. The current gate is intentionally closed.
 
+Every protected phase manifest must use
+`phase_contracts_schema: training-solver-phase-contracts.v2`. Version 2 binds
+the mandatory `tree_geometry` field into each canonical phase contract and its
+digest; legacy v1 producers are rejected explicitly instead of being inferred.
+Within v3 geometry, a non-all-in aggressive target is retained only when the
+canonical 100-chips-per-BB stack leaves at least one big blind behind. Any
+near-cap candidate, including a nominal effective-stack-minus-one action,
+collapses to the single jam.
+
 A separately protected bounded canary may run while the backlog gate remains
 closed, but only when `release_gate.bounded_canary_ready` is true and the same
-checksum-pinned manifest seals exactly one Flop parent UUID plus its exact Turn
-child UUID and the canonical `2/0` or `2/1` partition for that machine. Launch
-it explicitly with `--canary`. The launcher resolves both pre-existing warehouse
-identities and requires the caller-bound server allowlist to match their exact
-machine, manifest, partition, role, UUID, scenario, street, node, and position
+checksum-pinned manifest contains exactly M1, or M1 plus M2; it may never
+contain M2 alone. M1 is always fixed to partition `2/0`, and the optional M2
+contract is always fixed to partition `2/1`. Each machine contract seals
+exactly one Flop parent UUID plus its exact Turn child UUID. Launch it explicitly
+with `--canary`. The launcher resolves both pre-existing warehouse identities
+and requires the caller-bound server allowlist to match their exact machine,
+manifest, partition, role, UUID, scenario, street, node, and position
 before Pio starts, solves one tree, validates every pending artifact,
 re-reads both active catalog admissions, writes a final heartbeat, and exits. A
 retry may skip an artifact only when it is already certified under the exact
@@ -36,9 +47,10 @@ complete. Missing, duplicate, foreign, stale, cross-machine, or geometrically
 mismatched targets are hard stops; they never fall through to the backlog
 scanner.
 
-The protected manifest owns this exact additional shape (the partition values
-show M1; M2 uses index `1`; all other values below are descriptive placeholders,
-not runnable inputs):
+The protected manifest owns this exact additional shape. The second M2 object
+is optional, but the first M1 object is mandatory; every value below except the
+fixed machine and partition identities is a descriptive placeholder, not a
+runnable input:
 
 ```json
 {
@@ -47,9 +59,20 @@ not runnable inputs):
   "bounded_canary_contracts_schema": "training-solver-bounded-canary-contracts.v1",
   "bounded_canary_contracts_sha256": "<sha256-of-canonical-contract-array>",
   "bounded_canary_contracts": [{
-    "machine_id": "<M1-or-M2>",
+    "machine_id": "M1",
     "partition_count": 2,
     "partition_index": 0,
+    "phase_id": "<exact-sealed-phase-id>",
+    "parent_artifact_id": "<pre-existing-flop-uuid-v4>",
+    "parent_scenario_hash": "<exact-flop-scenario-hash>",
+    "parent_node": "<exact-sealed-flop-node>",
+    "child_artifact_id": "<pre-existing-turn-uuid-v4>",
+    "child_scenario_hash": "<exact-turn-scenario-hash>",
+    "child_node": "<exact-derived-turn-node>"
+  }, {
+    "machine_id": "M2",
+    "partition_count": 2,
+    "partition_index": 1,
     "phase_id": "<exact-sealed-phase-id>",
     "parent_artifact_id": "<pre-existing-flop-uuid-v4>",
     "parent_scenario_hash": "<exact-flop-scenario-hash>",
@@ -62,8 +85,9 @@ not runnable inputs):
 ```
 
 `execution_scope` is sealed by the manifest checksum. A bounded release must
-use `bounded_canary` and contain only the phases referenced by the exact M1 and
-M2 canary contracts. A backlog release must use `training_backlog` and still
+use `bounded_canary` and contain only the phases referenced by its mandatory M1
+contract and optional M2 contract. A backlog release must use
+`training_backlog` and still
 cover all 18 approved chip-EV family/stack contracts. Flipping
 `solver_ready` on a partial canary manifest can therefore never authorize
 backlog work.

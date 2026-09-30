@@ -72,9 +72,14 @@ export function createInMemorySupabase({
   catalogRows = [],
   failCatalogRpc = false,
   tables: seededTables = {},
+  // Per-table queue of PostgREST-shaped errors ({ code, message }) that the
+  // next write attempts return, in order, before writes succeed again. Used to
+  // replay a deadlock (40P01) or a hard constraint failure at the boundary.
+  writeFaults = {},
 } = {}) {
   const tables = new Map(Object.entries(seededTables).map(([name, rows]) => [name, structuredClone(rows)]));
-  const calls = { rpc: [], catalogRequests: [], catalogPages: 0 };
+  const pendingWriteFaults = new Map(Object.entries(writeFaults).map(([name, faults]) => [name, [...faults]]));
+  const calls = { rpc: [], catalogRequests: [], catalogPages: 0, writes: [] };
   const tableRows = (name) => {
     if (!tables.has(name)) tables.set(name, []);
     return tables.get(name);
@@ -139,6 +144,13 @@ export function createInMemorySupabase({
       if (state.write) {
         const conflictColumns = String(state.write.options?.onConflict || '')
           .split(',').map((column) => column.trim()).filter(Boolean);
+        calls.writes.push({
+          table: tableName,
+          onConflict: conflictColumns,
+          keys: state.write.rows.map((row) => (conflictColumns.length === 1 ? row?.[conflictColumns[0]] : null)),
+        });
+        const fault = pendingWriteFaults.get(tableName)?.shift();
+        if (fault) return { data: null, error: { ...fault } };
         const written = [];
         for (const candidate of state.write.rows) {
           const row = structuredClone(candidate);

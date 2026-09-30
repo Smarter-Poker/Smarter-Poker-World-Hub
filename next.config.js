@@ -783,9 +783,18 @@ const nextConfig = {
       // session until that day, ten days after the vendor was retired). Three
       // allowances that would otherwise have been carried into an enforced
       // policy for a script nothing loads.
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://maps.googleapis.com https://cdn.jsdelivr.net https://unpkg.com",
+      // https://commander.smarter.poker is OUR OWN app, rewritten onto this
+      // origin by vercel.json (/commander/:path* and /api/commander/:path*).
+      // Its Next build sets an absolute assetPrefix, because without one the
+      // proxied HTML asks THIS origin for Commander's chunks and every one
+      // 404s. So the page legitimately loads nine cross-origin scripts and a
+      // stylesheet, 'self' never matches a subdomain, and script-src had no
+      // wildcard: measured live, /commander/login reported 13 violations per
+      // load. The exact host, not https://*.smarter.poker, because a wildcard
+      // in script-src would authorise execution from every subdomain we own.
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://maps.googleapis.com https://cdn.jsdelivr.net https://unpkg.com https://commander.smarter.poker",
       // Styles: self + inline + Google Fonts
-      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://unpkg.com https://cdn.jsdelivr.net",
+      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://unpkg.com https://cdn.jsdelivr.net https://commander.smarter.poker",
       // Fonts: Google Fonts CDN
       "font-src 'self' https://fonts.gstatic.com data:",
       // Images: self + Supabase + Google Storage + Maps static + QR + YouTube thumbs + Giphy + data URIs
@@ -840,6 +849,28 @@ const nextConfig = {
     // script-src, style-src, connect-src, img-src, font-src, media-src,
     // frame-src, worker-src - break a page the moment one is wrong. They stay
     // report-only until the sweep has watched them for a while.
+    //
+    // WHY img-src HAS NOT GRADUATED YET, measured 2026-09-30 (read this before
+    // moving it). Poker Near Me is clean: 34 routes swept anonymously, including
+    // nine venue pages chosen BECAUSE they carry a third-party profile_photo_url,
+    // reported ZERO img-src violations. The venue mirror work holds.
+    //
+    // /hub/news does not. One load reports 225 img-src violations across 29
+    // distinct URLs and 34 third-party <img> elements, from five poker news
+    // publishers:
+    //
+    //     pnimg.net 129   media.poker.org 53   msptpoker.com 19
+    //     pokerfuse.com 17   assets.wsopcdn.com 2
+    //
+    // Those are article thumbnails taken straight from the feeds. It is the
+    // venue problem again - an unbounded host set that an allow-list can never
+    // cover - and it wants the same answer, a mirror plus safeImageUrl, not a
+    // longer list. Enforcing img-src before that is done blanks the news page.
+    //
+    // A sixth host was NOT that problem and is fixed in this change:
+    // i.ytimg.com, which is where YouTube actually serves thumbnails from.
+    // img.youtube.com was on the list and never used; i.ytimg.com was used and
+    // never listed. That was an allow-list gap, not a hotlink.
     //
     // What graduates here is the other kind: the four directives that govern
     // INJECTION rather than loading. None of them names a resource this site

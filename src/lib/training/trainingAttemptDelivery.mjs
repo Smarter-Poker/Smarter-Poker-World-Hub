@@ -15,7 +15,7 @@ import { isTrainingQuestionValid } from './questionContract.mjs';
 import { sourceClassificationForQuestion } from './cacheTruthContract.mjs';
 import { isVerifiedSolverQuestion } from './solverDecisionEvidence.js';
 import { normalizeBoard, normalizeHolding } from './solverPolicyContract.js';
-import { runTrainingPersistenceQuery } from './trainingPersistence.mjs';
+import { orderRowsForConcurrentWrite, runTrainingPersistenceQuery } from './trainingPersistence.mjs';
 import { trainingQuestionMatchesSelection } from './questionSelectionContract.mjs';
 
 const CARD_RE = /^[2-9TJQKA][cdhs]$/i;
@@ -970,8 +970,11 @@ export async function prepareTrainingAttemptDelivery({
     level: safeLevel,
   }));
 
+  // Concurrent attempts on the same game/level insert the same immutable
+  // snapshots; a stable key order keeps their row locks in one sequence.
+  const snapshotsForWrite = orderRowsForConcurrentWrite(candidateSnapshots, 'snapshot_key');
   await runTrainingPersistenceQuery(
-    () => supabase.from('training_question_snapshots').upsert(candidateSnapshots, {
+    () => supabase.from('training_question_snapshots').upsert(snapshotsForWrite, {
       onConflict: 'snapshot_key',
       ignoreDuplicates: true,
       defaultToNull: false,
