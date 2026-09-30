@@ -850,27 +850,42 @@ const nextConfig = {
     // frame-src, worker-src - break a page the moment one is wrong. They stay
     // report-only until the sweep has watched them for a while.
     //
-    // WHY img-src HAS NOT GRADUATED YET, measured 2026-09-30 (read this before
-    // moving it). Poker Near Me is clean: 34 routes swept anonymously, including
-    // nine venue pages chosen BECAUSE they carry a third-party profile_photo_url,
-    // reported ZERO img-src violations. The venue mirror work holds.
+    // img-src GRADUATES HERE, and this is the evidence, measured 2026-09-30.
     //
-    // /hub/news does not. One load reports 225 img-src violations across 29
-    // distinct URLs and 34 third-party <img> elements, from five poker news
-    // publishers:
+    // It was the last loading directive still reporting, and it reported for
+    // exactly one reason: venue and news photography was fetched from other
+    // people's servers. Both are now fetched from ours, so an image request
+    // never names a remote host.
     //
-    //     pnimg.net 129   media.poker.org 53   msptpoker.com 19
-    //     pokerfuse.com 17   assets.wsopcdn.com 2
+    // Venue art: 192 of 478 venues carried a third-party URL across 104 hosts.
+    // Every one of those venues already had a mirrored logo_url that nothing
+    // read. The readers prefer the mirror now and safeImageUrl drops anything
+    // it cannot serve, so a gap in the data is a missing picture rather than a
+    // blocked request. Swept anonymously across 34 routes INCLUDING nine venue
+    // pages chosen because they still carry a third-party profile_photo_url:
+    // zero violations.
     //
-    // Those are article thumbnails taken straight from the feeds. It is the
-    // venue problem again - an unbounded host set that an allow-list can never
-    // cover - and it wants the same answer, a mirror plus safeImageUrl, not a
-    // longer list. Enforcing img-src before that is done blanks the news page.
+    // News thumbnails: five publisher CDNs, 225 violations on a single load of
+    // /hub/news. A sixth publisher, cardplayer.com, fired none, because that
+    // one host was already routed through /api/proxy. Every thumbnail takes
+    // that route now. Verified live after deploy: 225 to ZERO, with 30 of 30
+    // proxied pictures loading and no broken requests, so the pictures are
+    // still there.
     //
-    // A sixth host was NOT that problem and is fixed in this change:
-    // i.ytimg.com, which is where YouTube actually serves thumbnails from.
-    // img.youtube.com was on the list and never used; i.ytimg.com was used and
-    // never listed. That was an allow-list gap, not a hotlink.
+    // Two hosts the list simply never named were fixed first: i.ytimg.com,
+    // where YouTube actually serves thumbnails, and commander.smarter.poker,
+    // our own app rewritten onto this origin (13 violations a load, now zero).
+    //
+    // WHAT BREAKS IF THIS IS WRONG, and how you would know: an image from a
+    // host not on IMAGE_SOURCES stops loading and the page shows whatever
+    // fallback that component already draws. report-uri stays on this header,
+    // so a mistake reports itself rather than hiding. Revert is this one line.
+    //
+    // STILL UNPROVEN, stated rather than buried: every sweep was anonymous.
+    // Signed-in surfaces were never loaded. The avatars they draw go through
+    // PokerIdentityMark, LogoHolder, DeepRouteSignalDeck or an explicit
+    // safeImageUrl call, all guarded, but that is an argument from the code
+    // and not a measurement.
     //
     // What graduates here is the other kind: the four directives that govern
     // INJECTION rather than loading. None of them names a resource this site
@@ -902,6 +917,7 @@ const nextConfig = {
     // chunk, leaving the page blank. The four above are unaffected by scheme,
     // so they apply everywhere and localhost is protected too.
     const enforcedCsp = [
+      imgSrcDirective(),
       "object-src 'none'",
       "base-uri 'self'",
       "form-action 'self'",
