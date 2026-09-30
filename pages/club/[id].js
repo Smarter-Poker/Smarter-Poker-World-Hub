@@ -12,6 +12,7 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import PokerCardText from '../../src/components/social/PokerCardText';
 import Link from 'next/link';
 import { isPublishableStreetAddress } from '../../src/lib/poker-near-me/structuredData';
+import { pagePostIdentity } from '../../src/lib/socialHelpers';
 import {
   MapPin,
   Phone,
@@ -85,10 +86,16 @@ function LiveGameCard({ game }) {
   );
 }
 
-function PostCard({ post, onLike, onComment, isLiked, onShare }) {
+function PostCard({ post, page, onLike, onComment, isLiked, onShare }) {
   const [showComments, setShowComments] = useState(false);
   const [commentText, setCommentText] = useState('');
   const [submittingComment, setSubmittingComment] = useState(false);
+
+  // A club post is shown as the club, never as the person who posted it. With
+  // no readable page identity the placeholder stays; an author name (a person)
+  // is never used in its place.
+  const shownAs = pagePostIdentity(post, page);
+  const shownName = shownAs?.name || 'Venue';
 
   const isVideoUrl = (url) => {
     if (!url) return false;
@@ -110,13 +117,19 @@ function PostCard({ post, onLike, onComment, isLiked, onShare }) {
 
   return (
     <div className="bg-white rounded-xl border border-[#E5E7EB] overflow-hidden">
-      {/* Post Header */}
+      {/* Post Header: the page's avatar and name, linked to the page */}
       <div className="p-4 flex items-center gap-3">
-        <div className="w-10 h-10 bg-[#1877F2]/10 rounded-full flex items-center justify-center">
-          <Users className="w-5 h-5 text-[#1877F2]" />
-        </div>
+        {shownAs?.avatar_url ? (
+          <img src={shownAs.avatar_url} alt="" width={40} height={40} loading="lazy" decoding="async" className="w-10 h-10 rounded-full object-cover" />
+        ) : (
+          <div className="w-10 h-10 bg-[#1877F2]/10 rounded-full flex items-center justify-center">
+            <Users className="w-5 h-5 text-[#1877F2]" />
+          </div>
+        )}
         <div className="flex-1">
-          <p className="font-semibold text-[#1F2937]">{post.author_name || 'Venue'}</p>
+          <p className="font-semibold text-[#1F2937]">
+            {shownAs?.href ? <a href={shownAs.href} className="hover:underline">{shownName}</a> : shownName}
+          </p>
           <p className="text-xs text-[#6B7280]">
             {new Date(post.created_at).toLocaleDateString('en-US', {
               month: 'short',
@@ -741,6 +754,16 @@ export default function ClubPage() {
     if (postMediaRef.current) postMediaRef.current.value = '';
   };
 
+  // The identity every post on this page is shown under. The hub page link
+  // exists only for a venue that is (or is linked to) a social page.
+  const venuePage = venue ? pagePostIdentity(null, {
+    id: venue.social_page_id || venue.id,
+    name: venue.name,
+    slug: venue.slug,
+    avatar_url: venue.profile_photo_url,
+    href: venue.social_page_id ? `/hub/social-pages/${encodeURIComponent(String(venue.slug || venue.social_page_id))}` : null,
+  }) : null;
+
   // Create post handler
   const handleCreatePost = async () => {
     if (!postContent.trim() && postMedia.length === 0) return;
@@ -764,10 +787,12 @@ export default function ClubPage() {
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (json.success && json.data) {
-        // Add to posts list with mapped shape for PostCard
+        // Add to posts list with mapped shape for PostCard. The post is the
+        // club's, so it is queued under the club's name, not the poster's.
         setPosts(prev => [{
           ...json.data,
-          author_name: user.display_name || 'Venue',
+          author_name: venuePage?.name || 'Venue',
+          page: venuePage,
           image_urls: mediaUrls,
           likes_count: 0,
           comments_count: 0,
@@ -1399,7 +1424,7 @@ export default function ClubPage() {
                     </div>
                   ) : (
                     posts.map((post) => (
-                      <PostCard key={post.id} post={post} onLike={handleLike} onComment={handleComment} onShare={handleShare} isLiked={likedPosts.has(post.id)} />
+                      <PostCard key={post.id} post={post} page={venuePage} onLike={handleLike} onComment={handleComment} onShare={handleShare} isLiked={likedPosts.has(post.id)} />
                     ))
                   )}
                 </>

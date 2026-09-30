@@ -188,6 +188,11 @@ import './social-poker-card-picker.test.mjs';
 // for real - spoken card names, 44px targets, whole streets only, focus,
 // long press, and the drafts of a video post that uploads in the background.
 import './social-poker-card-picker-interaction.test.mjs';
+// 2026-09-29: club page posts are shown as the page (name, avatar, link), never
+// as the person who posted them, on the feed card, the pinned strip, the media
+// lightbox, the public club page and both APIs. Owner decision: automated club
+// digests must appear as the club, not as a person.
+import './page-posts-show-the-page.test.mjs';
 import './store-commerce-hardening.test.mjs';
 // 2026-09-05, the diamond wallet audit. Caught by this file's own meta-guard
 // before it could become another guard nobody runs: the law was written, passed
@@ -198,7 +203,14 @@ import './the-wallet-badges-count-the-whole-ledger.law.test.mjs';
 // whether today's login is claimed and what the next claim pays, from the
 // catalog's own rule; the wallet's Escape backs out one layer, not all of them.
 import './the-earn-pane-knows-what-it-cannot-tell.test.mjs';
+import './the-stats-panel-is-summed-in-sql.test.mjs';
 import './the-ledger-speaks-to-the-player.law.test.mjs';
+// Phase 8 of 8, 2026-09-29. Phases 1 to 7 each pinned ONE side of the
+// route/client boundary, so the two could drift while both stayed green: a
+// renamed field, a bucket key nothing renders, a column dropped from the
+// route's select. This one pins the JOIN, against a snapshot of what
+// production actually declares (scripts/ci/lib/diamond-wallet-contract.mjs).
+import './the-route-and-the-client-agree.test.mjs';
 // Trivia lifeline charges are client-requested but server-priced. This guard
 // pins the database replay envelope so a cheaper or differently typed debit
 // can never masquerade as the paid skip.
@@ -394,6 +406,10 @@ import './push-health-alert-evidence.test.mjs';
 // fleet closed (review r25); a run whose detector could not look does not move
 // its window; every rotation is recorded once.
 import './push-health-alert-positive-evidence.test.mjs';
+
+// The Report-Only CSP can only graduate if its violations reach us, so the
+// reporting wiring and the endpoint that receives it are guarded here.
+import './csp-violations-reach-us.test.mjs';
 
 const REPO = path.resolve(new URL('.', import.meta.url).pathname, '..');
 

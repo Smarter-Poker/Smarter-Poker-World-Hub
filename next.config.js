@@ -715,6 +715,31 @@ const nextConfig = {
   //   livekit.smarter.poker, *.livekit.cloud  — LiveKit voice/video
   //   *.smarter.poker                          — Platform sub-domains
   async headers() {
+    // Where a violation of either policy is sent. Until this existed the
+    // Report-Only policy below wrote to the visitor's own console and nowhere
+    // else, which is why it stayed staged: "confirmed zero" was not observable
+    // from here. The post-deploy sweep narrowed that to eight routes; this
+    // narrows it to none, because every route a real visitor loads now reports.
+    //
+    // report-uri ONLY, deliberately, and this is the opposite of what the first
+    // attempt shipped. `report-to` is the modern spelling and the obvious thing
+    // to ship alongside the legacy one, but measured against production on
+    // 2026-09-30 with headless Chromium on /hub/poker-near-me/venues, a page
+    // that trips eight img-src violations:
+    //
+    //   report-uri + report-to            0 of 8 delivered
+    //   report-to, absolute endpoint URL  0 of 8 delivered
+    //   report-uri alone                  8 of 8 delivered
+    //
+    // Chromium stops honouring report-uri the moment report-to is present, and
+    // then its Reporting API delivers nothing here, so shipping both is strictly
+    // worse than shipping the old one alone: it collects zero. Adding report-to
+    // back needs a measurement like the one above showing it actually delivers,
+    // not a spec reference saying it should. __tests__/csp-violations-reach-us
+    // pins the absence.
+    const CSP_REPORT_PATH = '/api/security/csp-report';
+    const reportingDirectives = `report-uri ${CSP_REPORT_PATH}`;
+
     const csp = [
       "default-src 'self'",
       // Scripts: self + OneSignal SDK + Google Maps + jsDelivr + unpkg (Leaflet/jsQR)
@@ -759,10 +784,12 @@ const nextConfig = {
     //
     // The comment at the top of this block has said since Phase 6.1.14 that
     // the policy graduates to enforcing "once violations have been monitored
-    // and confirmed zero". Nothing has ever monitored it: there is no
-    // `report-uri` and no `report-to` in the policy above, so a violation
-    // writes one line to one browser console and is forgotten. A missing
-    // network allowance can otherwise go unnoticed.
+    // and confirmed zero". For most of that time nothing monitored it: the
+    // policy above carried no reporting directive at all, so a violation wrote
+    // one line to one browser console and was forgotten, and a missing network
+    // allowance could go unnoticed. The `report-uri` added on 2026-09-30 is
+    // what closed that, and the first thing it will quantify is venue
+    // photography, which trips img-src on every venue surface today.
     //
     // Club Arena's tests/e2e/production-csp-violations.spec.ts now collects
     // `securitypolicyviolation` events (they fire for a report-only policy too,
@@ -812,6 +839,7 @@ const nextConfig = {
       "form-action 'self'",
       "frame-ancestors 'self'",
       ...(process.env.VERCEL ? ['upgrade-insecure-requests'] : []),
+      reportingDirectives,
     ].join('; ');
 
     return [
@@ -889,7 +917,7 @@ const nextConfig = {
             // Monitor browser console for violations, then graduate to
             // Content-Security-Policy once the violation list is clean.
             key: 'Content-Security-Policy-Report-Only',
-            value: csp,
+            value: `${csp}; ${reportingDirectives}`,
           },
           {
             /**
