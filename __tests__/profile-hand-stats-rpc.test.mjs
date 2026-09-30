@@ -1,7 +1,7 @@
 /**
  * The profile hand-stats migration: what the database is asked to hold.
  *
- * supabase/migrations/20260930170300_profile_hand_stats_rpc.sql creates one
+ * supabase/migrations/20260930182719_profile_hand_stats_rpc.sql creates one
  * index and one read-only RPC. The RPC is the only reader of
  * club_member_daily_stats that a profile can reach, so this pins what it may
  * read (hands_played, table_id, stat_date, biggest_pot_won), what it must
@@ -19,7 +19,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
-const FILE = 'supabase/migrations/20260930170300_profile_hand_stats_rpc.sql';
+const FILE = 'supabase/migrations/20260930182719_profile_hand_stats_rpc.sql';
 const SQL = readFileSync(join(ROOT, FILE), 'utf8');
 const FN = 'public.fn_profile_hand_stats(uuid)';
 

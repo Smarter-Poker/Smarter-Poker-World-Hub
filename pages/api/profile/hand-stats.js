@@ -5,7 +5,7 @@
  * card on every public profile (src/components/profile/HandStatsCard.jsx).
  *
  * One call to public.fn_profile_hand_stats(uuid) (migration
- * 20260930170300_profile_hand_stats_rpc.sql): hands, sessions, active days,
+ * 20260930182719_profile_hand_stats_rpc.sql): hands, sessions, active days,
  * biggest pot won and month-to-date hands over the last 30 days of
  * club_member_daily_stats. The function is service_role only, so this route
  * is the only way the numbers reach a browser, and it is the same path for

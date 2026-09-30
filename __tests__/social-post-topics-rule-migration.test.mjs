@@ -7,7 +7,7 @@ import assert from 'node:assert/strict';
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import test from 'node:test';
 
-const MIGRATION_NAME = '20260930170100_social_post_topics_rule.sql';
+const MIGRATION_NAME = '20260930182441_social_post_topics_rule.sql';
 const PUZZLE_MIGRATION_NAME = '20260930052057_phase7_puzzles_answer_once_and_reveal_once.sql';
 const migrationsDir = new URL('../supabase/migrations/', import.meta.url);
 const migrationUrl = new URL(MIGRATION_NAME, migrationsDir);
@@ -30,7 +30,7 @@ test('the migration exists once, after the puzzle RPC it replaces, in one transa
   assert.ok(MIGRATION_NAME > PUZZLE_MIGRATION_NAME, 'the rule must sort after the puzzle RPC it replaces');
   assert.ok(existsSync(new URL(PUZZLE_MIGRATION_NAME, migrationsDir)), 'the puzzle RPC migration must remain the prerequisite');
   assert.deepEqual(
-    readdirSync(migrationsDir).filter(name => name.startsWith('20260930170100_')),
+    readdirSync(migrationsDir).filter(name => name.startsWith('20260930182441_')),
     [MIGRATION_NAME],
     'the migration ledger version must be unique',
   );

@@ -6,8 +6,8 @@ import assert from 'node:assert/strict';
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import test from 'node:test';
 
-const MIGRATION_NAME = '20260930170200_social_post_topics_backfill.sql';
-const RULE_MIGRATION_NAME = '20260930170100_social_post_topics_rule.sql';
+const MIGRATION_NAME = '20260930182606_social_post_topics_backfill.sql';
+const RULE_MIGRATION_NAME = '20260930182441_social_post_topics_rule.sql';
 const migrationsDir = new URL('../supabase/migrations/', import.meta.url);
 const migrationUrl = new URL(MIGRATION_NAME, migrationsDir);
 const source = existsSync(migrationUrl) ? readFileSync(migrationUrl, 'utf8') : '';
@@ -21,7 +21,7 @@ test('the backfill exists once, after the rule it applies, in one transaction', 
   assert.ok(MIGRATION_NAME > RULE_MIGRATION_NAME, 'the backfill must sort after the rule');
   assert.ok(existsSync(new URL(RULE_MIGRATION_NAME, migrationsDir)), 'the rule migration must remain the prerequisite');
   assert.deepEqual(
-    readdirSync(migrationsDir).filter(name => name.startsWith('20260930170200_')),
+    readdirSync(migrationsDir).filter(name => name.startsWith('20260930182606_')),
     [MIGRATION_NAME],
     'the migration ledger version must be unique',
   );
