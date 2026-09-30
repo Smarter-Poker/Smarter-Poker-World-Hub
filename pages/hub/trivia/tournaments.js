@@ -24,6 +24,8 @@ import PageTransition from '../../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import TriviaConsole, { TriviaGlassAction } from '../../../src/components/trivia/console/TriviaConsole';
 import TriviaConsoleDialog from '../../../src/components/trivia/console/TriviaConsoleDialog';
+import ResponsiveModeArt from '../../../src/components/trivia/console/ResponsiveModeArt';
+import { TRIVIA_INTRO_ART_TOURNAMENTS } from '../../../src/config/triviaIntroArt.mjs';
 import { toTitleCase } from '../../../src/lib/trivia/titleCase';
 import { printPlayerName } from '../../../src/lib/trivia/printPlayerName';
 import { formatTriviaDisplayNumber } from '../../../src/lib/trivia/formatTriviaDisplayNumber';
@@ -886,15 +888,7 @@ export default function TournamentsPage() {
                             pill={activeTournament ? 'Live' : 'Nightly'}
                             pillInk={activeTournament ? 'green' : 'blue'}
                         >
-                            <img
-                                className="tt-hero"
-                                src={TOURNAMENTS_ART}
-                                alt="Trivia Tournaments, Nightly Bracket Competitions"
-                                width={1000}
-                                height={560}
-                                decoding="async"
-                                onError={(event) => { event.currentTarget.hidden = true; }}
-                            />
+                            <ResponsiveModeArt art={TRIVIA_INTRO_ART_TOURNAMENTS} priority />
 
                             <TournamentRows
                                 label="Your Balance"

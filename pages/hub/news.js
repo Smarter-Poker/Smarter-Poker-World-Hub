@@ -80,6 +80,7 @@ import {
 // naming the cause. PageTransition is a framer-motion div with no window
 // access during render, so it server-renders correctly.
 import PageTransition from '../../src/components/transitions/PageTransition';
+import { newsImageUrl } from '../../src/lib/security/imageHosts.js';
 const UniversalHeader = dynamic(() => import('../../src/components/ui/UniversalHeader'), { ssr: false });
 const HamburgerMenu = dynamic(() => import('../../src/components/ui/HamburgerMenu'), { ssr: false });
 const ArticleReaderModal = dynamic(() => import('../../src/components/social/ArticleReaderModal'), { ssr: false });
@@ -1902,7 +1903,7 @@ function NewsHub() {
                                                                         config. The onError category fallback also needs the plain
                                                                         <img> src swap. */}
                                                                     <img
-                                                                        src={article.image_url ? (article.image_url.includes('cardplayer.com') ? `/api/proxy?url=${encodeURIComponent(article.image_url)}` : article.image_url) : (FALLBACK_IMAGES[article.category] || FALLBACK_IMAGES.news)}
+                                                                        src={newsImageUrl(article.image_url) || FALLBACK_IMAGES[article.category] || FALLBACK_IMAGES.news}
                                                                         alt=""
                                                                         className="list-thumb"
                                                                         width={60}
@@ -2290,7 +2291,7 @@ function NewsHub() {
                                                 next.config.js images config, and next/image throws at
                                                 runtime for an unconfigured domain. */}
                                             <img
-                                                src={article.image_url || FALLBACK_IMAGES[article.category] || FALLBACK_IMAGES.news}
+                                                src={newsImageUrl(article.image_url) || FALLBACK_IMAGES[article.category] || FALLBACK_IMAGES.news}
                                                 alt=""
                                                 className="trend-thumb"
                                                 width={40}

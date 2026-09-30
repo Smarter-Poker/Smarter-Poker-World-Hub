@@ -1,3 +1,4 @@
+import { safeImageUrl } from '../../lib/security/imageHosts.js';
 /**
  * GlobalSearchOverlay.jsx — v3
  *
@@ -269,7 +270,7 @@ function DetailModal({ item, type, onClose, onNavigate }) {
     ? (item.tour_code ? `/hub/tours/${encodeURIComponent(item.tour_code)}` : '')
     : (item.id != null ? `/hub/venues/${encodeURIComponent(item.id)}` : '');
   const kindLabel = isVenue ? venueTypeLabel(item.venue_type) : isTour ? (item.tour_code || 'Tour') : 'Series';
-  const logo = item.logo_url || item.profile_photo_url || item.cover_photo_url || '';
+  const logo = safeImageUrl(item.logo_url) || safeImageUrl(item.profile_photo_url) || safeImageUrl(item.cover_photo_url) || '';
   const city = [item.city, item.state].filter(Boolean).join(', ');
   const phone = item.phone || item.phone_number || '';
   const address = item.address || '';
@@ -405,6 +406,9 @@ function DetailRow({ label, value, href }) {
 // complete painted pictogram stands alone, so a holder never nests a holder.
 function LogoHolder({ src, icon, text, size = 'result' }) {
   const [failed, setFailed] = useState(false);
+  // Guarded here so a caller cannot forget: the tour result used to hand this
+  // tour.logo_url raw while its two siblings in this file guarded theirs.
+  src = safeImageUrl(src) || '';
   if ((!src || failed) && icon) {
     return <PokerNearMeConsoleIcon name={icon} className={`gso-holder gso-holder--${size} gso-holder--icon`} />;
   }
@@ -439,7 +443,7 @@ function ResultPanel({ className, isSelected, onActivate, holder, name, kind, pl
 
 function VenueResultCard({ venue, onClick, isSelected = false }) {
   const city = [venue.city, venue.state].filter(Boolean).join(', ');
-  const logo = venue.logo_url || venue.profile_photo_url || '';
+  const logo = safeImageUrl(venue.logo_url) || safeImageUrl(venue.profile_photo_url) || '';
   return (
     <ResultPanel
       className="gso-result-card gso-result-card--venue"

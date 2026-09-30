@@ -19,6 +19,7 @@ import {
 import SEOHead from '../../../../../src/components/seo/SEOHead';
 import PokerNearMeFamilyNav from '../../../../../src/components/poker-near-me/PokerNearMeFamilyNav';
 import { firstThatFits } from '../../../../../src/lib/seo/titleFit';
+import { safeImageUrl } from '../../../../../src/lib/security/imageHosts.js';
 import {
   fetchAllHomeGameDirectoryRows,
   fetchHomeGameGroupsInChunks,
@@ -210,8 +211,8 @@ function GameCard({ game }) {
     <article className="rounded-xl bg-[#132240] border border-[#1E293B] hover:border-[#334155] transition-colors overflow-hidden">
       <Link href={`/hub/home-games/${game.slug}`} className="block">
         <div className="relative aspect-[16/9] bg-gradient-to-br from-[#1E293B] to-[#0D192E] overflow-hidden">
-          {game.cover_url ? (
-            <img src={game.cover_url} alt="" className="absolute inset-0 w-full h-full object-cover" loading="lazy" />
+          {safeImageUrl(game.cover_url) ? (
+            <img src={safeImageUrl(game.cover_url)} alt="" className="absolute inset-0 w-full h-full object-cover" loading="lazy" />
           ) : (
             <div className="absolute inset-0 flex items-center justify-center">
               <span className="text-5xl opacity-20">♠</span>

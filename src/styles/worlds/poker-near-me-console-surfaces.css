@@ -1223,3 +1223,144 @@ body.world-poker-near-me .vga-field option {
   color: #eef5fb;
   background: #050a0f;
 }
+
+
+/* ===========================================================================
+   POKER NEAR ME LOCATION ROUTES - CARDS AND HERO
+   /hub/poker-near-me/in, /in/[state], /in/[state]/[city]
+
+   Everything below is scoped to `.pnm-location-card*` or `.pnm-location-hero`,
+   so it reaches the three location routes and nothing else that shares the
+   deep-route deck or the painted panel.
+   =========================================================================== */
+
+/* ---------------------------------------------------------------------------
+   ONE PLATE PER KIND OF ROOM (2026-09-30).
+
+   No venue in the bundled directory carries a cover photograph, so the well
+   above fell to a single painted plate and a page of rooms read as one
+   picture repeated: ten cards on /hub/poker-near-me/in/il, one image. The
+   plate now follows `venue_type`, using master art that already ships. A
+   casino gets the floor-and-skyline plate, a card club gets the club table
+   bay, and the table bay above stays the plate for a plain poker room.
+
+   The four regional plates are deliberately NOT used here: each one is
+   already the hero photograph on its own region's page, and a card must not
+   repeat the picture at the top of the same screen.
+   --------------------------------------------------------------------------- */
+
+body.world-poker-near-me .pnm-location-card[data-venue-type='casino'] .pnm-location-card__media {
+  background-image: url('/images/pnm-phase-4/location-command-grid-v1.webp') !important;
+}
+
+body.world-poker-near-me .pnm-location-card[data-venue-type='poker_club'] .pnm-location-card__media {
+  background-image: url('/images/pnm-redesign/casino-command-map-v1.webp') !important;
+}
+
+/* ---------------------------------------------------------------------------
+   THE ROOM'S OWN MARK, AT ITS OWN SIZE (2026-09-30).
+
+   public/images/venues/<id>.png is a 54px cut-out mark, not a photograph of a
+   room, so it is sealed onto the plate near its own size instead of being
+   stretched across the 16:8.5 band. The holder is the console's own painted
+   utility well - approved master art, so the seal draws no chrome of its own
+   - and its glass keeps both a dark mark and an opaque white one readable.
+   --------------------------------------------------------------------------- */
+
+body.world-poker-near-me .pnm-location-card__media {
+  position: relative;
+}
+
+body.world-poker-near-me .pnm-location-card__media img.pnm-location-card__mark {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  box-sizing: border-box;
+  width: 76px;
+  height: 78px;
+  padding: 19px;
+  border: 0;
+  background: transparent url('/images/pnm-console/painted-controls-v1/utility-well.webp') center / contain no-repeat;
+  object-fit: contain;
+}
+
+@media (max-width: 420px) {
+  body.world-poker-near-me .pnm-location-card__media img.pnm-location-card__mark {
+    right: 8px;
+    bottom: 8px;
+    width: 64px;
+    height: 66px;
+    padding: 16px;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   THE HERO WEARS ONE FRAME (2026-09-30).
+
+   The painted chassis is the frame. A shared deep-route rule in
+   poker-near-me-command-surfaces.css was also drawing a 1px rectangle, a 3px
+   radius and a 58px drop shadow on the same element - specificity (0,3,2)
+   against console-deep's (0,3,1), so console-deep's `border: 0 !important`
+   lost. Measured at 375px: a plain grey rectangle 19px outside the chrome on
+   every side. The chassis keeps its own art; the rectangle goes.
+   --------------------------------------------------------------------------- */
+
+body.world-poker-near-me .pnm-location-hero {
+  display: contents;
+}
+
+body.world-poker-near-me .pnm-location-hero .pnc.pnm-deep-deck {
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: none !important;
+  box-shadow: none !important;
+}
+
+/* ---------------------------------------------------------------------------
+   AND IT IS AS TALL AS WHAT IS IN IT (2026-09-30).
+
+   Two floors were set on the hero regardless of its copy - 430-650px on the
+   deck and 390-620px (520px under 640px wide) on the stage - so a city page
+   with little to say was padded out to a state page's height. Neither floor
+   is load bearing: with both set to 0 the six measured views keep the exact
+   same height, because their copy already exceeds the floor. They are removed
+   so that a shorter hero can actually be shorter. The closing pad under
+   "Open Live Map" comes down with them.
+   --------------------------------------------------------------------------- */
+
+body.world-poker-near-me .pnm-location-hero .pnc.pnm-deep-deck {
+  min-height: 0 !important;
+}
+
+body.world-poker-near-me .pnm-location-hero .pnm-deep-deck__stage {
+  min-height: 0 !important;
+}
+
+body.world-poker-near-me .pnm-location-hero .pnm-deep-deck__content {
+  padding-block-end: clamp(16px, 2.4cqw, 26px) !important;
+}
+
+/* ---------------------------------------------------------------------------
+   THE CREST GIVES THE HEADLINE ROOM (2026-09-30).
+
+   The spade-pin crest sat at 94% across the stage at min(34%, 260px), and the
+   page heading ran the full 76% content column into it. Measured on
+   /hub/poker-near-me/in/il/chicago: the headline overlapped the crest by
+   17.6px at 1280px and cleared it by 17.9px at 1440px. The crest is approved
+   art and stays; it moves out to the corner, comes down to min(23%, 186px),
+   and the copy column keeps a corridor clear of it. The corridor is narrower
+   than the crest it clears, so the line of type is wider than it was and the
+   place name does not gain a line to pay for the room. Below 641px the crest
+   is not painted at all, so nothing there needs a corridor.
+   --------------------------------------------------------------------------- */
+
+@media (min-width: 641px) {
+  body.world-poker-near-me .pnm-location-hero .pnm-deep-deck__visual::after {
+    background: url('/images/pnm-console/painted-chassis-v1/crest-locator-520.webp') 98% 6% / min(23%, 186px) auto no-repeat,
+      rgb(1 4 7 / 72%) !important;
+  }
+
+  body.world-poker-near-me .pnm-location-hero .pnm-deep-deck__content {
+    padding-inline-end: clamp(30px, 4cqw, 46px) !important;
+  }
+}

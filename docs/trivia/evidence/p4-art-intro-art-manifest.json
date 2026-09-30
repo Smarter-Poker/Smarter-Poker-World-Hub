@@ -1,0 +1,2586 @@
+{
+ "version": "intro-v1",
+ "generated_by": "scripts/trivia-art (p4-art, Trivia Phase 4)",
+ "model": "Tongyi-MAI/Z-Image-Turbo",
+ "model_licence": "Apache-2.0",
+ "runner": "mflux 0.19.2 (MIT) on mlx 0.32.3, Apple M3 Ultra, 1536x1024, default turbo settings",
+ "rules": "text-free, no logos, no real people, no brand marks; essential copy is live HTML",
+ "families": {
+  "lobby": {
+   "seed": 4202,
+   "prompt_sha256": "189e054ae7d598d652ca8d3fec7000f512be0aee6b03ccc6a6a73a5a28bba4a2",
+   "prompt": "Subject: wide establishing photograph of a dark circular private game atrium seen from a low angle at floor level. A ring of eight identical machined brushed steel pedestals stands on a glossy black stone floor, each pedestal crowned with a softly glowing electric blue disc of light. Thin concentric rings of electric blue light are inlaid in the floor and connect the pedestals. In the centre a tall polished chrome column rises into the darkness, catching cool silver reflections. The far walls dissolve into deep black with faint vertical chrome ribs, and the floor mirrors every light.\n\nStyle: photoreal cinematic photograph, premium high-stakes casino realism, shot on a full-frame cinema camera with a prime lens, black-first composition set in a deep true-black environment. The whole palette is monochrome black, charcoal, graphite, brushed steel, polished chrome and cool silver-white, accented only by restrained electric blue light (#45adff). Materials: machined brushed steel, polished chrome, padded matte black leather with thin chrome trim, plain charcoal felt. Poker chips are only solid black, pure white-silver, or electric blue, each with white edge spots. Lighting: cool silver-white key light, restrained electric blue accents, deep shadows, high dynamic range, subtle film grain, sharp focus on the subject. Every surface is blank and unmarked. Wide cinematic composition with real depth; the essential subject sits in the middle band of the frame, inside the central 60 percent of the width and the central 55 percent of the height, with calm dark environment around it on every side.\n",
+   "source_sha256": "b55b874620dee86abcc6f993976b755b28c84097bf5553a645ae44b1a48c25a2",
+   "generation": {
+    "steps": 9,
+    "guidance": null,
+    "quantize": null,
+    "width": 1536,
+    "height": 1024,
+    "seed": 4202,
+    "mflux_version": "0.19.2",
+    "generation_time_seconds": 86.85
+   },
+   "grade": {
+    "method": "HSV hue-selective desaturation toward Rec.709 luma, 6 degree feather, hue untouched",
+    "spec": "0-186:0,255-359:0"
+   },
+   "dissolve_edges": true,
+   "shift": {
+    "dx": 0,
+    "mobile_dy": 0,
+    "wide_dy": 0
+   },
+   "encoders": {
+    "avif": "avifenc -q 52 -s 4 -y 420",
+    "webp": "cwebp -q 76 -m 6 -sharp_yuv"
+   },
+   "preview_sha256": "79cb6480c73eea5d7f93aab7d610dbe165d45bd3fe1e4d6ebe86f033210a74c4",
+   "crops": {
+    "mobile": {
+     "box": [
+      0,
+      32,
+      1536,
+      960
+     ],
+     "ratio": [
+      16,
+      10
+     ],
+     "files": [
+      {
+       "file": "lobby-mobile-1440.2b613985de.avif",
+       "format": "avif",
+       "width": 1440,
+       "height": 900,
+       "bytes": 34423,
+       "sha256": "2b613985de87dcc93d854723e0efae9cdb7f5f4eda968cb89345047e5b53515a"
+      },
+      {
+       "file": "lobby-mobile-1440.47ad46b16f.webp",
+       "format": "webp",
+       "width": 1440,
+       "height": 900,
+       "bytes": 43858,
+       "sha256": "47ad46b16fd0d271b186ee54b667dfe6c4b1ceb597e2d796c56ffc5a4604bfbd"
+      },
+      {
+       "file": "lobby-mobile-960.e93f3a9e36.avif",
+       "format": "avif",
+       "width": 960,
+       "height": 600,
+       "bytes": 19128,
+       "sha256": "e93f3a9e36d641c8aa11679a76571ea4a3049db3e05026e1815af63b6b3490fd"
+      },
+      {
+       "file": "lobby-mobile-960.268b7127f3.webp",
+       "format": "webp",
+       "width": 960,
+       "height": 600,
+       "bytes": 25406,
+       "sha256": "268b7127f3de89e768b0bca605fea0bf71f712ff51bbe918a28a30c64ffca372"
+      },
+      {
+       "file": "lobby-mobile-640.488b645ad4.avif",
+       "format": "avif",
+       "width": 640,
+       "height": 400,
+       "bytes": 10507,
+       "sha256": "488b645ad47d6bb94d2ade8fd47feb8b809aec9db00f5ec5c62f15bf7ee10adc"
+      },
+      {
+       "file": "lobby-mobile-640.236fc8cb68.webp",
+       "format": "webp",
+       "width": 640,
+       "height": 400,
+       "bytes": 14032,
+       "sha256": "236fc8cb68c757d112f167df3ea26fe672d447439a16a02c894df1aed077bb1a"
+      }
+     ]
+    },
+    "wide": {
+     "box": [
+      0,
+      192,
+      1536,
+      640
+     ],
+     "ratio": [
+      12,
+      5
+     ],
+     "files": [
+      {
+       "file": "lobby-wide-1440.83ee7c8d68.avif",
+       "format": "avif",
+       "width": 1440,
+       "height": 600,
+       "bytes": 25592,
+       "sha256": "83ee7c8d68dd9e8fa81dfef74900a087f7d7a86eb895f2fa1be21440cb9d0491"
+      },
+      {
+       "file": "lobby-wide-1440.7f250e3bf1.webp",
+       "format": "webp",
+       "width": 1440,
+       "height": 600,
+       "bytes": 33328,
+       "sha256": "7f250e3bf13e09f3a0f57b8337c466043e25c310e1cd0a00ee07c77a079044b0"
+      },
+      {
+       "file": "lobby-wide-960.448d84f3a7.avif",
+       "format": "avif",
+       "width": 960,
+       "height": 400,
+       "bytes": 14716,
+       "sha256": "448d84f3a786d1c4e7fe6a0b8c74c46e4366f68a8738ecfab260b82519c0e2a4"
+      },
+      {
+       "file": "lobby-wide-960.d7731bad62.webp",
+       "format": "webp",
+       "width": 960,
+       "height": 400,
+       "bytes": 19680,
+       "sha256": "d7731bad62302669482eef76cf589f468ff9d4d05dbaa68c458b1427a24708d6"
+      },
+      {
+       "file": "lobby-wide-640.eafaaaabea.avif",
+       "format": "avif",
+       "width": 640,
+       "height": 267,
+       "bytes": 8236,
+       "sha256": "eafaaaabea52203bffbf9e5337cf90a4a4f3bcabdfb776fb330759e26f2f9018"
+      },
+      {
+       "file": "lobby-wide-640.f7c20a0c85.webp",
+       "format": "webp",
+       "width": 640,
+       "height": 267,
+       "bytes": 10924,
+       "sha256": "f7c20a0c85f11d0e922d0d012b351f431e938ae43832cf2a2ba3c350c06a37cb"
+      }
+     ]
+    }
+   },
+   "quiet_background": {
+    "method": "gaussian blur 22px, 30% exposure, edge dissolve to black",
+    "shipped": false
+   }
+  },
+  "daily": {
+   "seed": 4202,
+   "prompt_sha256": "b2b9401e89741719aa45c889d3a0e74b2e779998cb6b0289b72ae11dc16beee3",
+   "prompt": "Subject: photograph at felt level of ten electric blue poker chips standing in a gentle curved row across plain black felt, evenly spaced, each lit from above by its own narrow shaft of cool silver-white light. The nearest chip, left of centre, is in sharp focus and the row curves away into soft focus. Behind them sits a small polished chrome box with its lid slightly raised, a soft electric blue glow spilling from the opening onto the felt. Far behind, a thin horizontal line of electric blue light glows at the edge of the darkness like the start of a new day.\n\nStyle: photoreal cinematic photograph, premium high-stakes casino realism, shot on a full-frame cinema camera with a prime lens, black-first composition set in a deep true-black environment. The whole palette is monochrome black, charcoal, graphite, brushed steel, polished chrome and cool silver-white, accented only by restrained electric blue light (#45adff). Materials: machined brushed steel, polished chrome, padded matte black leather with thin chrome trim, plain charcoal felt. Poker chips are only solid black, pure white-silver, or electric blue, each with white edge spots. Lighting: cool silver-white key light, restrained electric blue accents, deep shadows, high dynamic range, subtle film grain, sharp focus on the subject. Every surface is blank and unmarked. Wide cinematic composition with real depth; the essential subject sits in the middle band of the frame, inside the central 60 percent of the width and the central 55 percent of the height, with calm dark environment around it on every side.\n",
+   "source_sha256": "93917029066f14d3cca8cde6f5018ec1a4d79635d8e06f766776511cc8c2d225",
+   "generation": {
+    "steps": 9,
+    "guidance": null,
+    "quantize": null,
+    "width": 1536,
+    "height": 1024,
+    "seed": 4202,
+    "mflux_version": "0.19.2",
+    "generation_time_seconds": 85.16
+   },
+   "grade": {
+    "method": "HSV hue-selective desaturation toward Rec.709 luma, 6 degree feather, hue untouched",
+    "spec": "0-186:0,255-359:0"
+   },
+   "dissolve_edges": false,
+   "shift": {
+    "dx": 0,
+    "mobile_dy": 0,
+    "wide_dy": 0
+   },
+   "encoders": {
+    "avif": "avifenc -q 52 -s 4 -y 420",
+    "webp": "cwebp -q 76 -m 6 -sharp_yuv"
+   },
+   "preview_sha256": "5f8f75e57eeacb88879d021d2bda186fe3061fc447323d281c82bc8864199cb7",
+   "crops": {
+    "mobile": {
+     "box": [
+      0,
+      32,
+      1536,
+      960
+     ],
+     "ratio": [
+      16,
+      10
+     ],
+     "files": [
+      {
+       "file": "daily-mobile-1440.df1d364fba.avif",
+       "format": "avif",
+       "width": 1440,
+       "height": 900,
+       "bytes": 30380,
+       "sha256": "df1d364fba3fd6dde8342a8300f37f54852d3237de8117f7168c51717fa87be2"
+      },
+      {
+       "file": "daily-mobile-1440.d3f49c3396.webp",
+       "format": "webp",
+       "width": 1440,
+       "height": 900,
+       "bytes": 41230,
+       "sha256": "d3f49c3396db114849be1a51ad00d20617bfea63cea2522c1bf4625c987e67cb"
+      },
+      {
+       "file": "daily-mobile-960.56afd1e952.avif",
+       "format": "avif",
+       "width": 960,
+       "height": 600,
+       "bytes": 16839,
+       "sha256": "56afd1e952c4f861f89345c9dd42e83237f728efa3810d2a1dbff14fa4b6010a"
+      },
+      {
+       "file": "daily-mobile-960.cce9c874be.webp",
+       "format": "webp",
+       "width": 960,
+       "height": 600,
+       "bytes": 23956,
+       "sha256": "cce9c874bebdb557f4d8a20582991a089ac86cc5f77917bf01cb9463cc51adbc"
+      },
+      {
+       "file": "daily-mobile-640.c4ee73ab21.avif",
+       "format": "avif",
+       "width": 640,
+       "height": 400,
+       "bytes": 9577,
+       "sha256": "c4ee73ab21e5b10b124328d3ec8325fde8fa70b7e9bd9caa060e265fc9209c4e"
+      },
+      {
+       "file": "daily-mobile-640.a09cb33b05.webp",
+       "format": "webp",
+       "width": 640,
+       "height": 400,
+       "bytes": 13652,
+       "sha256": "a09cb33b05eeb64e8d923024ac507a01da115c7772ed71c7760b913e9f9b2c83"
+      }
+     ]
+    },
+    "wide": {
+     "box": [
+      0,
+      192,
+      1536,
+      640
+     ],
+     "ratio": [
+      12,
+      5
+     ],
+     "files": [
+      {
+       "file": "daily-wide-1440.45e881cbd1.avif",
+       "format": "avif",
+       "width": 1440,
+       "height": 600,
+       "bytes": 28175,
+       "sha256": "45e881cbd11d8ffd8afc793cfc25bcb8efc5ee442db78544ef810e556493abc0"
+      },
+      {
+       "file": "daily-wide-1440.c92e08d6e6.webp",
+       "format": "webp",
+       "width": 1440,
+       "height": 600,
+       "bytes": 39304,
+       "sha256": "c92e08d6e6d641f5abe25c2648cb7505fd075567021a28a84928a364b9c6c584"
+      },
+      {
+       "file": "daily-wide-960.cbf8653a71.avif",
+       "format": "avif",
+       "width": 960,
+       "height": 400,
+       "bytes": 15834,
+       "sha256": "cbf8653a719b37b237110936cd53a573b525a7a9a4aed662b5ea39f1caf8498e"
+      },
+      {
+       "file": "daily-wide-960.373488a69a.webp",
+       "format": "webp",
+       "width": 960,
+       "height": 400,
+       "bytes": 22964,
+       "sha256": "373488a69abe979bc5deb59f6ad837552e57a3388a8e65ab5cf49a7106a0f081"
+      },
+      {
+       "file": "daily-wide-640.e49add7794.avif",
+       "format": "avif",
+       "width": 640,
+       "height": 267,
+       "bytes": 8816,
+       "sha256": "e49add77944278a0bb4743aba296e21af1ad88f8400768ad08027ad7f862d66e"
+      },
+      {
+       "file": "daily-wide-640.38725e30d9.webp",
+       "format": "webp",
+       "width": 640,
+       "height": 267,
+       "bytes": 13060,
+       "sha256": "38725e30d9aa1d6f3a483766c9d3126a802f4930c9bc21233c85442817013a11"
+      }
+     ]
+    }
+   },
+   "quiet_background": {
+    "method": "gaussian blur 22px, 30% exposure, edge dissolve to black",
+    "shipped": false
+   }
+  },
+  "arcade": {
+   "seed": 4303,
+   "prompt_sha256": "914cd8c4aecf7ba1ab0fbb8d37b15f0ebfb1984e6fc425d086b239d99ab93ee8",
+   "prompt": "Subject: close three-quarter photograph of a sleek matte black console panel with a row of five large round polished chrome push buttons, each ringed by a thin chrome bezel. The middle button is pressed down and glows bright electric blue from within, casting blue light across the panel, while the other four are dark with cool silver highlights. A short stack of electric blue poker chips and a short stack of white-silver chips sit at the panel's front edge, softly out of focus. Faint streaks of blue light race across the black background, fast and electric.\n\nStyle: photoreal cinematic photograph, premium high-stakes casino realism, shot on a full-frame cinema camera with a prime lens, black-first composition set in a deep true-black environment. The whole palette is monochrome black, charcoal, graphite, brushed steel, polished chrome and cool silver-white, accented only by restrained electric blue light (#45adff). Materials: machined brushed steel, polished chrome, padded matte black leather with thin chrome trim, plain charcoal felt. Poker chips are only solid black, pure white-silver, or electric blue, each with white edge spots. Lighting: cool silver-white key light, restrained electric blue accents, deep shadows, high dynamic range, subtle film grain, sharp focus on the subject. Every surface is blank and unmarked. Wide cinematic composition with real depth; the essential subject sits in the middle band of the frame, inside the central 60 percent of the width and the central 55 percent of the height, with calm dark environment around it on every side.\n",
+   "source_sha256": "14b006158dfe59c718759bf9277eaa278c83ff79b0ea030175c199e09355d7da",
+   "generation": {
+    "steps": 9,
+    "guidance": null,
+    "quantize": null,
+    "width": 1536,
+    "height": 1024,
+    "seed": 4303,
+    "mflux_version": "0.19.2",
+    "generation_time_seconds": 93.9
+   },
+   "grade": {
+    "method": "HSV hue-selective desaturation toward Rec.709 luma, 6 degree feather, hue untouched",
+    "spec": "0-186:0,255-359:0"
+   },
+   "dissolve_edges": false,
+   "shift": {
+    "dx": 0,
+    "mobile_dy": 0,
+    "wide_dy": 130.0
+   },
+   "encoders": {
+    "avif": "avifenc -q 52 -s 4 -y 420",
+    "webp": "cwebp -q 76 -m 6 -sharp_yuv"
+   },
+   "preview_sha256": "05c871e4a2e1c3fdcd78f3ef21bcd95e14b7211cb2771c7dec5aa5ddc677974d",
+   "crops": {
+    "mobile": {
+     "box": [
+      0,
+      32,
+      1536,
+      960
+     ],
+     "ratio": [
+      16,
+      10
+     ],
+     "files": [
+      {
+       "file": "arcade-mobile-1440.5af904f282.avif",
+       "format": "avif",
+       "width": 1440,
+       "height": 900,
+       "bytes": 40207,
+       "sha256": "5af904f282ad436d325eb6a53e55707a3b0b33a9f43c49b37c4415380e089919"
+      },
+      {
+       "file": "arcade-mobile-1440.707a7a4ab2.webp",
+       "format": "webp",
+       "width": 1440,
+       "height": 900,
+       "bytes": 55726,
+       "sha256": "707a7a4ab2ce421ff8135c83a77ff5d3d188feff1b1bd583d1de2419ff1a02ff"
+      },
+      {
+       "file": "arcade-mobile-960.c46e8e0509.avif",
+       "format": "avif",
+       "width": 960,
+       "height": 600,
+       "bytes": 19630,
+       "sha256": "c46e8e0509b6e12e705a8141634276c3c4d6189a29297585857fa95669b964b9"
+      },
+      {
+       "file": "arcade-mobile-960.3d3e9a2423.webp",
+       "format": "webp",
+       "width": 960,
+       "height": 600,
+       "bytes": 28562,
+       "sha256": "3d3e9a242332aee702c1a98492c187945d2721b01b502c57df5c241a22d9def9"
+      },
+      {
+       "file": "arcade-mobile-640.cf2b05bda8.avif",
+       "format": "avif",
+       "width": 640,
+       "height": 400,
+       "bytes": 9712,
+       "sha256": "cf2b05bda87afa9316d5c5aa7c75b3591f87faab619c46e1174552e13823aa32"
+      },
+      {
+       "file": "arcade-mobile-640.a93f692b9f.webp",
+       "format": "webp",
+       "width": 640,
+       "height": 400,
+       "bytes": 14478,
+       "sha256": "a93f692b9f66eceff20f4cc0b5f66527c30bb7f65d9e1604afe8170cf28b8e29"
+      }
+     ]
+    },
+    "wide": {
+     "box": [
+      0,
+      322,
+      1536,
+      640
+     ],
+     "ratio": [
+      12,
+      5
+     ],
+     "files": [
+      {
+       "file": "arcade-wide-1440.2c399612f0.avif",
+       "format": "avif",
+       "width": 1440,
+       "height": 600,
+       "bytes": 39287,
+       "sha256": "2c399612f05526ac4bed1ea42ed8f8e78d9dc1bfb77c11fd5f548d20a7e12c0d"
+      },
+      {
+       "file": "arcade-wide-1440.9dd7f77fc0.webp",
+       "format": "webp",
+       "width": 1440,
+       "height": 600,
+       "bytes": 54850,
+       "sha256": "9dd7f77fc0ea244578936d1690c4d0c7f3b343dcd3c6948ad61c1336989cad7b"
+      },
+      {
+       "file": "arcade-wide-960.60c56e4021.avif",
+       "format": "avif",
+       "width": 960,
+       "height": 400,
+       "bytes": 18558,
+       "sha256": "60c56e4021b6bc938ee7e21ca13e03c26b50fc9ad3721c61b64cb52f025d6e4b"
+      },
+      {
+       "file": "arcade-wide-960.dffdf0fcc2.webp",
+       "format": "webp",
+       "width": 960,
+       "height": 400,
+       "bytes": 27632,
+       "sha256": "dffdf0fcc2935fc22b063804e05d9cbd63ace801f8b3116afd71795dbf385362"
+      },
+      {
+       "file": "arcade-wide-640.fa7020e527.avif",
+       "format": "avif",
+       "width": 640,
+       "height": 267,
+       "bytes": 9079,
+       "sha256": "fa7020e527726bb93e59ac27815c42aefb43e7c112c4154bddc0fb3d4f915932"
+      },
+      {
+       "file": "arcade-wide-640.4b6e8bf300.webp",
+       "format": "webp",
+       "width": 640,
+       "height": 267,
+       "bytes": 14042,
+       "sha256": "4b6e8bf30052dba6dc941c09e7412e7663374629fb30c3af387d230a080f568b"
+      }
+     ]
+    }
+   },
+   "quiet_background": {
+    "method": "gaussian blur 22px, 30% exposure, edge dissolve to black",
+    "shipped": false
+   }
+  },
+  "history": {
+   "seed": 4202,
+   "prompt_sha256": "7ac76057c4f235219455d6a9a98db19bceae80e7babeaa288a584504174def20",
+   "prompt": "Subject: museum photograph of a single heirloom poker chip of polished chrome and black enamel resting on a small black velvet stand under a tall clear glass dome, lit by one narrow cool spotlight from above, the dome catching crisp silver highlights. Behind it, rows of empty glass vitrines on slim chrome legs recede into darkness down a long gallery, each vitrine base traced by a thin electric blue light line. Quiet, reverent atmosphere, very shallow depth of field.\n\nStyle: photoreal cinematic photograph, premium high-stakes casino realism, shot on a full-frame cinema camera with a prime lens, black-first composition set in a deep true-black environment. The whole palette is monochrome black, charcoal, graphite, brushed steel, polished chrome and cool silver-white, accented only by restrained electric blue light (#45adff). Materials: machined brushed steel, polished chrome, padded matte black leather with thin chrome trim, plain charcoal felt. Poker chips are only solid black, pure white-silver, or electric blue, each with white edge spots. Lighting: cool silver-white key light, restrained electric blue accents, deep shadows, high dynamic range, subtle film grain, sharp focus on the subject. Every surface is blank and unmarked. Wide cinematic composition with real depth; the essential subject sits in the middle band of the frame, inside the central 60 percent of the width and the central 55 percent of the height, with calm dark environment around it on every side.\n",
+   "source_sha256": "f8616063b19b20fa7afb4e6d2f82ebf43d8a10ab692ac4d734f5aa15c859c524",
+   "generation": {
+    "steps": 9,
+    "guidance": null,
+    "quantize": null,
+    "width": 1536,
+    "height": 1024,
+    "seed": 4202,
+    "mflux_version": "0.19.2",
+    "generation_time_seconds": 85.95
+   },
+   "grade": {
+    "method": "HSV hue-selective desaturation toward Rec.709 luma, 6 degree feather, hue untouched",
+    "spec": "0-186:0,255-359:0"
+   },
+   "dissolve_edges": false,
+   "shift": {
+    "dx": 0,
+    "mobile_dy": 0,
+    "wide_dy": 80.0
+   },
+   "encoders": {
+    "avif": "avifenc -q 52 -s 4 -y 420",
+    "webp": "cwebp -q 76 -m 6 -sharp_yuv"
+   },
+   "preview_sha256": "22761f59f4edd3d3c7b4e910d5dea09f09695117f31e02f4048ceba04bd8e936",
+   "crops": {
+    "mobile": {
+     "box": [
+      0,
+      32,
+      1536,
+      960
+     ],
+     "ratio": [
+      16,
+      10
+     ],
+     "files": [
+      {
+       "file": "history-mobile-1440.67b1ea7119.avif",
+       "format": "avif",
+       "width": 1440,
+       "height": 900,
+       "bytes": 34831,
+       "sha256": "67b1ea7119e57fa8c14373b6ba72e7f58c14e0ae52f99e00438b6ae08622ccd2"
+      },
+      {
+       "file": "history-mobile-1440.111dd064be.webp",
+       "format": "webp",
+       "width": 1440,
+       "height": 900,
+       "bytes": 47728,
+       "sha256": "111dd064be022399cf1e52d72b9ad402e3799e588906cd10a497bfa68b11b9c2"
+      },
+      {
+       "file": "history-mobile-960.74fe6e5e94.avif",
+       "format": "avif",
+       "width": 960,
+       "height": 600,
+       "bytes": 20400,
+       "sha256": "74fe6e5e941bf093141f94356af7fcd3bc3ebbc3dffc3764c052e67c473d720b"
+      },
+      {
+       "file": "history-mobile-960.82a9cbd8a0.webp",
+       "format": "webp",
+       "width": 960,
+       "height": 600,
+       "bytes": 27900,
+       "sha256": "82a9cbd8a08f24573ceabe3be9a4b86226c051af8e3097c4dd677d191f2d4575"
+      },
+      {
+       "file": "history-mobile-640.93eb77d3d5.avif",
+       "format": "avif",
+       "width": 640,
+       "height": 400,
+       "bytes": 11773,
+       "sha256": "93eb77d3d5f04556fc1bb5ce646c4ae33092da3a6aca604c7a466c8b0a642c8a"
+      },
+      {
+       "file": "history-mobile-640.e63243e723.webp",
+       "format": "webp",
+       "width": 640,
+       "height": 400,
+       "bytes": 16376,
+       "sha256": "e63243e7238c2f57ae657d5f408cf9b7a5e561e7f300c2071b91e9392dbae959"
+      }
+     ]
+    },
+    "wide": {
+     "box": [
+      0,
+      272,
+      1536,
+      640
+     ],
+     "ratio": [
+      12,
+      5
+     ],
+     "files": [
+      {
+       "file": "history-wide-1440.dcababcda6.avif",
+       "format": "avif",
+       "width": 1440,
+       "height": 600,
+       "bytes": 24125,
+       "sha256": "dcababcda659615b71ca26f7bd1e661e9b7365807c647ab11c8ca945f129daa4"
+      },
+      {
+       "file": "history-wide-1440.82eca45e6b.webp",
+       "format": "webp",
+       "width": 1440,
+       "height": 600,
+       "bytes": 34598,
+       "sha256": "82eca45e6b0e9f288a4528ae753bf708588875b29c0c0f7b67eb2c5d05bf962e"
+      },
+      {
+       "file": "history-wide-960.459d87a128.avif",
+       "format": "avif",
+       "width": 960,
+       "height": 400,
+       "bytes": 14045,
+       "sha256": "459d87a1288785d61b7aa884db793593cde994b7e5a1b5b89e2415df20bfef72"
+      },
+      {
+       "file": "history-wide-960.32a23bd73e.webp",
+       "format": "webp",
+       "width": 960,
+       "height": 400,
+       "bytes": 20338,
+       "sha256": "32a23bd73ef837a9bcbc89a17ad1079ecc6e6543b1a5130ade250f033843aa75"
+      },
+      {
+       "file": "history-wide-640.a6f82205c9.avif",
+       "format": "avif",
+       "width": 640,
+       "height": 267,
+       "bytes": 8528,
+       "sha256": "a6f82205c944f46c2fb65358e8e348ef8fa8a5fc64408a6352b571b25b7802ec"
+      },
+      {
+       "file": "history-wide-640.0b9d6e68c3.webp",
+       "format": "webp",
+       "width": 640,
+       "height": 267,
+       "bytes": 12240,
+       "sha256": "0b9d6e68c32cdf00571f86e20d2be403fbd5c818a08291381f07e92d5dc8d066"
+      }
+     ]
+    }
+   },
+   "quiet_background": {
+    "method": "gaussian blur 22px, 30% exposure, edge dissolve to black",
+    "shipped": false
+   }
+  },
+  "rules": {
+   "seed": 4202,
+   "prompt_sha256": "01901af17562cc0777c4ec4a44c05922b873223c5eb0075be79362e2f9c6b304",
+   "prompt": "Subject: precise macro photograph at felt level of a thick polished chrome puck, a blank smooth disc the size of a large coin, resting exactly on a thin straight line of electric blue light that runs across plain black felt from the left edge toward the right. Beside the puck a short stack of black poker chips is squared perfectly, every edge aligned. In the foreground a padded matte black leather table rail with thin chrome trim curves across the lower corner, softly out of focus. Order and precision, clean geometry, deep black background.\n\nStyle: photoreal cinematic photograph, premium high-stakes casino realism, shot on a full-frame cinema camera with a prime lens, black-first composition set in a deep true-black environment. The whole palette is monochrome black, charcoal, graphite, brushed steel, polished chrome and cool silver-white, accented only by restrained electric blue light (#45adff). Materials: machined brushed steel, polished chrome, padded matte black leather with thin chrome trim, plain charcoal felt. Poker chips are only solid black, pure white-silver, or electric blue, each with white edge spots. Lighting: cool silver-white key light, restrained electric blue accents, deep shadows, high dynamic range, subtle film grain, sharp focus on the subject. Every surface is blank and unmarked. Wide cinematic composition with real depth; the essential subject sits in the middle band of the frame, inside the central 60 percent of the width and the central 55 percent of the height, with calm dark environment around it on every side.\n",
+   "source_sha256": "0a80514614c5b3bec8f45b287bbf882cda3a22f899d80fecfaf6f156a9cee74f",
+   "generation": {
+    "steps": 9,
+    "guidance": null,
+    "quantize": null,
+    "width": 1536,
+    "height": 1024,
+    "seed": 4202,
+    "mflux_version": "0.19.2",
+    "generation_time_seconds": 88.5
+   },
+   "grade": {
+    "method": "HSV hue-selective desaturation toward Rec.709 luma, 6 degree feather, hue untouched",
+    "spec": "0-186:0,255-359:0"
+   },
+   "dissolve_edges": false,
+   "shift": {
+    "dx": 0,
+    "mobile_dy": 0,
+    "wide_dy": 0
+   },
+   "encoders": {
+    "avif": "avifenc -q 52 -s 4 -y 420",
+    "webp": "cwebp -q 76 -m 6 -sharp_yuv"
+   },
+   "preview_sha256": "0df254852f603941ddcd8e492301da2eb90e131c121aecd4045e71e0520554e3",
+   "crops": {
+    "mobile": {
+     "box": [
+      0,
+      32,
+      1536,
+      960
+     ],
+     "ratio": [
+      16,
+      10
+     ],
+     "files": [
+      {
+       "file": "rules-mobile-1440.19b4522c0f.avif",
+       "format": "avif",
+       "width": 1440,
+       "height": 900,
+       "bytes": 32629,
+       "sha256": "19b4522c0f60c978e85d3b2fd1516bad2c8b40ab540eb9905ce544c763eaf5aa"
+      },
+      {
+       "file": "rules-mobile-1440.8a4890a694.webp",
+       "format": "webp",
+       "width": 1440,
+       "height": 900,
+       "bytes": 47930,
+       "sha256": "8a4890a694cbe689e0b12fd32d4557c537ea96158ab200a6c8aa24db01590a1d"
+      },
+      {
+       "file": "rules-mobile-960.0859d6ded6.avif",
+       "format": "avif",
+       "width": 960,
+       "height": 600,
+       "bytes": 19209,
+       "sha256": "0859d6ded648e0240fb92332ca0f03be8b061ee988187e0090c4157cf21af3e4"
+      },
+      {
+       "file": "rules-mobile-960.aba03e69a6.webp",
+       "format": "webp",
+       "width": 960,
+       "height": 600,
+       "bytes": 27116,
+       "sha256": "aba03e69a62b580fa19ac644ffb204a91d6921ae5719e04c5f49f75f59d80a1c"
+      },
+      {
+       "file": "rules-mobile-640.9cbf4700cd.avif",
+       "format": "avif",
+       "width": 640,
+       "height": 400,
+       "bytes": 10661,
+       "sha256": "9cbf4700cd10fa33e677cc98751f9d66cce6e583d9cfb68f23808ba64b2f269e"
+      },
+      {
+       "file": "rules-mobile-640.8c9b05e336.webp",
+       "format": "webp",
+       "width": 640,
+       "height": 400,
+       "bytes": 15186,
+       "sha256": "8c9b05e3362d28066a56391a31c806bca0fcf1725ab480fd688d5ed95ba8705a"
+      }
+     ]
+    },
+    "wide": {
+     "box": [
+      0,
+      192,
+      1536,
+      640
+     ],
+     "ratio": [
+      12,
+      5
+     ],
+     "files": [
+      {
+       "file": "rules-wide-1440.81f7ccc587.avif",
+       "format": "avif",
+       "width": 1440,
+       "height": 600,
+       "bytes": 30456,
+       "sha256": "81f7ccc58720ebf785e26b620c325acb06adf7a60b4e74acdb6f546b8ceb099b"
+      },
+      {
+       "file": "rules-wide-1440.953847b046.webp",
+       "format": "webp",
+       "width": 1440,
+       "height": 600,
+       "bytes": 43018,
+       "sha256": "953847b04689aa357ad2a93ba8e40d93256c08fa16e8bc01f1d88d6feb4558b4"
+      },
+      {
+       "file": "rules-wide-960.6ad076e6db.avif",
+       "format": "avif",
+       "width": 960,
+       "height": 400,
+       "bytes": 17447,
+       "sha256": "6ad076e6db599f87cc40221f45b099c6dfd8baf2c37094997ce067c68da5fc73"
+      },
+      {
+       "file": "rules-wide-960.6a748a789e.webp",
+       "format": "webp",
+       "width": 960,
+       "height": 400,
+       "bytes": 25006,
+       "sha256": "6a748a789e6cad23995e9ddcef555540c01f647949771222707eb934a0f9886e"
+      },
+      {
+       "file": "rules-wide-640.d683fe3d43.avif",
+       "format": "avif",
+       "width": 640,
+       "height": 267,
+       "bytes": 9933,
+       "sha256": "d683fe3d431614ed1b0a4f2a991f0b71da817ed323882f294ce870c889849628"
+      },
+      {
+       "file": "rules-wide-640.0b1c2e2bea.webp",
+       "format": "webp",
+       "width": 640,
+       "height": 267,
+       "bytes": 13854,
+       "sha256": "0b1c2e2bea04472ded5200a2ac7d95723782d80a6c6e934d83d2e5dbae11db2e"
+      }
+     ]
+    }
+   },
+   "quiet_background": {
+    "method": "gaussian blur 22px, 30% exposure, edge dissolve to black",
+    "shipped": false
+   }
+  },
+  "pro": {
+   "seed": 4101,
+   "prompt_sha256": "5c31b9f36617d2f3b33b81bae9d4d90d01f2ec110667c70e9350fa3fb34f1637",
+   "prompt": "Subject: macro photograph of a polished chrome jeweler's loupe lying on plain black felt, its round glass lens magnifying the white edge spots of a single electric blue poker chip beneath it, the lens rim catching a bright silver highlight. Behind, a soft out-of-focus bokeh of cool silver and electric blue points of light floats in the darkness. Focused, analytical mood, very shallow depth of field.\n\nStyle: photoreal cinematic photograph, premium high-stakes casino realism, shot on a full-frame cinema camera with a prime lens, black-first composition set in a deep true-black environment. The whole palette is monochrome black, charcoal, graphite, brushed steel, polished chrome and cool silver-white, accented only by restrained electric blue light (#45adff). Materials: machined brushed steel, polished chrome, padded matte black leather with thin chrome trim, plain charcoal felt. Poker chips are only solid black, pure white-silver, or electric blue, each with white edge spots. Lighting: cool silver-white key light, restrained electric blue accents, deep shadows, high dynamic range, subtle film grain, sharp focus on the subject. Every surface is blank and unmarked. Wide cinematic composition with real depth; the essential subject sits in the middle band of the frame, inside the central 60 percent of the width and the central 55 percent of the height, with calm dark environment around it on every side.\n",
+   "source_sha256": "915fa8a5d42cae142ec2258da956f6ba66a4356709e4d5b7abdbb77b0fdda3aa",
+   "generation": {
+    "steps": 9,
+    "guidance": null,
+    "quantize": null,
+    "width": 1536,
+    "height": 1024,
+    "seed": 4101,
+    "mflux_version": "0.19.2",
+    "generation_time_seconds": 86.37
+   },
+   "grade": {
+    "method": "HSV hue-selective desaturation toward Rec.709 luma, 6 degree feather, hue untouched",
+    "spec": "0-186:0,255-359:0"
+   },
+   "dissolve_edges": false,
+   "shift": {
+    "dx": 0,
+    "mobile_dy": 0,
+    "wide_dy": 0
+   },
+   "encoders": {
+    "avif": "avifenc -q 52 -s 4 -y 420",
+    "webp": "cwebp -q 76 -m 6 -sharp_yuv"
+   },
+   "preview_sha256": "2e090b202fa34a982ee84c94fdf1ea81186c9d67c49e7456285951081c9f683c",
+   "crops": {
+    "mobile": {
+     "box": [
+      0,
+      32,
+      1536,
+      960
+     ],
+     "ratio": [
+      16,
+      10
+     ],
+     "files": [
+      {
+       "file": "pro-mobile-1440.0e54e6f715.avif",
+       "format": "avif",
+       "width": 1440,
+       "height": 900,
+       "bytes": 31840,
+       "sha256": "0e54e6f715fdef4127aebe70b1ecfc75ef6330cda5a3941260b5e5e8ab13f0a5"
+      },
+      {
+       "file": "pro-mobile-1440.bd3a35a618.webp",
+       "format": "webp",
+       "width": 1440,
+       "height": 900,
+       "bytes": 44656,
+       "sha256": "bd3a35a61879ddcce055d2b7fb5f5552b016c2478c92550aaf4ae549b0ee9379"
+      },
+      {
+       "file": "pro-mobile-960.c0de3088b2.avif",
+       "format": "avif",
+       "width": 960,
+       "height": 600,
+       "bytes": 19177,
+       "sha256": "c0de3088b2dc8ad133ae7362f1c29343c0936a530375dd6f48fd6d0e7a8ab0d2"
+      },
+      {
+       "file": "pro-mobile-960.59cf90e26f.webp",
+       "format": "webp",
+       "width": 960,
+       "height": 600,
+       "bytes": 26448,
+       "sha256": "59cf90e26fb9122c7f336a7b05cd7c3e19972e86f09ab2d758cfa6940992b75c"
+      },
+      {
+       "file": "pro-mobile-640.effabf1dd1.avif",
+       "format": "avif",
+       "width": 640,
+       "height": 400,
+       "bytes": 11230,
+       "sha256": "effabf1dd102cd7ffe469ebd25838eea5bec379d81bba60a0faae0257f487708"
+      },
+      {
+       "file": "pro-mobile-640.ab0b318b9c.webp",
+       "format": "webp",
+       "width": 640,
+       "height": 400,
+       "bytes": 15814,
+       "sha256": "ab0b318b9cb42d0318f97bee001f382d4a1d59280db393914a9d8875cd215c9f"
+      }
+     ]
+    },
+    "wide": {
+     "box": [
+      0,
+      192,
+      1536,
+      640
+     ],
+     "ratio": [
+      12,
+      5
+     ],
+     "files": [
+      {
+       "file": "pro-wide-1440.37560de9dd.avif",
+       "format": "avif",
+       "width": 1440,
+       "height": 600,
+       "bytes": 26651,
+       "sha256": "37560de9ddabb5184285ff1828e5096098274c7c8f915d23529660df69ebae08"
+      },
+      {
+       "file": "pro-wide-1440.3f10e88173.webp",
+       "format": "webp",
+       "width": 1440,
+       "height": 600,
+       "bytes": 36350,
+       "sha256": "3f10e881732f6c9bc84a9a4c932d033e56cbfdb77515a46a6cca2c2e324b04f0"
+      },
+      {
+       "file": "pro-wide-960.e8e66b2360.avif",
+       "format": "avif",
+       "width": 960,
+       "height": 400,
+       "bytes": 15576,
+       "sha256": "e8e66b236016e07165ee487ea77065accf824c09d729dcd03bf26d16bc3750d0"
+      },
+      {
+       "file": "pro-wide-960.0b71942201.webp",
+       "format": "webp",
+       "width": 960,
+       "height": 400,
+       "bytes": 21442,
+       "sha256": "0b7194220163db88d359a2dafc07d0e5c4bb0235fd49e0e2fa8f6eb093c4efb5"
+      },
+      {
+       "file": "pro-wide-640.a489b0ad3d.avif",
+       "format": "avif",
+       "width": 640,
+       "height": 267,
+       "bytes": 9048,
+       "sha256": "a489b0ad3dde7d7c8e0613bb15172311242dbb94bc29465b563446af4901996b"
+      },
+      {
+       "file": "pro-wide-640.accf0c4df4.webp",
+       "format": "webp",
+       "width": 640,
+       "height": 267,
+       "bytes": 12666,
+       "sha256": "accf0c4df42d9408ad9457924f220299ba651e22bc271c38cf789833ff5899d4"
+      }
+     ]
+    }
+   },
+   "quiet_background": {
+    "method": "gaussian blur 22px, 30% exposure, edge dissolve to black",
+    "shipped": false
+   }
+  },
+  "mtt": {
+   "seed": 4101,
+   "prompt_sha256": "efb3002a12fd6c9ddf1b4c3acde896464a08cc68114e52794539ad4ddf511195",
+   "prompt": "Subject: low-angle macro photograph of a skyline of poker chip towers rising from plain black felt: columns of black, white-silver and electric blue chips of increasing height climb from left to right like skyscrapers, the tallest column in sharp focus just right of centre with a small polished chrome trophy cup standing on its top, catching a cool spotlight. Soft blue haze and bokeh fill the deep black background.\n\nStyle: photoreal cinematic photograph, premium high-stakes casino realism, shot on a full-frame cinema camera with a prime lens, black-first composition set in a deep true-black environment. The whole palette is monochrome black, charcoal, graphite, brushed steel, polished chrome and cool silver-white, accented only by restrained electric blue light (#45adff). Materials: machined brushed steel, polished chrome, padded matte black leather with thin chrome trim, plain charcoal felt. Poker chips are only solid black, pure white-silver, or electric blue, each with white edge spots. Lighting: cool silver-white key light, restrained electric blue accents, deep shadows, high dynamic range, subtle film grain, sharp focus on the subject. Every surface is blank and unmarked. Wide cinematic composition with real depth; the essential subject sits in the middle band of the frame, inside the central 60 percent of the width and the central 55 percent of the height, with calm dark environment around it on every side.\n",
+   "source_sha256": "4001ea4f89ed0e3a5dfd06699f6d5b6d2e1253f644f5b51c068ff21b74802e1d",
+   "generation": {
+    "steps": 9,
+    "guidance": null,
+    "quantize": null,
+    "width": 1536,
+    "height": 1024,
+    "seed": 4101,
+    "mflux_version": "0.19.2",
+    "generation_time_seconds": 83.78
+   },
+   "grade": {
+    "method": "HSV hue-selective desaturation toward Rec.709 luma, 6 degree feather, hue untouched",
+    "spec": "0-186:0,255-359:0"
+   },
+   "dissolve_edges": false,
+   "shift": {
+    "dx": 0,
+    "mobile_dy": 0,
+    "wide_dy": -150.0
+   },
+   "encoders": {
+    "avif": "avifenc -q 52 -s 4 -y 420",
+    "webp": "cwebp -q 76 -m 6 -sharp_yuv"
+   },
+   "preview_sha256": "a2f6ae939356d9989382a539d5fac54c0bf306b0fcb91ded751962e41db3d6d6",
+   "crops": {
+    "mobile": {
+     "box": [
+      0,
+      32,
+      1536,
+      960
+     ],
+     "ratio": [
+      16,
+      10
+     ],
+     "files": [
+      {
+       "file": "mtt-mobile-1440.76f29b7609.avif",
+       "format": "avif",
+       "width": 1440,
+       "height": 900,
+       "bytes": 35649,
+       "sha256": "76f29b76094e3c5ef04a9f738a7c28bfdba67043c008191c17114f2df8def693"
+      },
+      {
+       "file": "mtt-mobile-1440.432d1ce995.webp",
+       "format": "webp",
+       "width": 1440,
+       "height": 900,
+       "bytes": 53324,
+       "sha256": "432d1ce995133cffa6357132bde1edab02e77f8996704800f9468bc646f973eb"
+      },
+      {
+       "file": "mtt-mobile-960.0e63ecbbbe.avif",
+       "format": "avif",
+       "width": 960,
+       "height": 600,
+       "bytes": 21359,
+       "sha256": "0e63ecbbbe28b9714dd16f80d5ef95e68143fe6e856546a0c9e94a00c5faf02f"
+      },
+      {
+       "file": "mtt-mobile-960.75655303ea.webp",
+       "format": "webp",
+       "width": 960,
+       "height": 600,
+       "bytes": 32336,
+       "sha256": "75655303ea906820074a1872b1438b29bd181ccfeb023fa49aceb157723a4ab3"
+      },
+      {
+       "file": "mtt-mobile-640.a06cc15a96.avif",
+       "format": "avif",
+       "width": 640,
+       "height": 400,
+       "bytes": 12579,
+       "sha256": "a06cc15a960aacda244a94b1d3b5055bab425ccef2ab980d93b4c85703c55d23"
+      },
+      {
+       "file": "mtt-mobile-640.93e314ab15.webp",
+       "format": "webp",
+       "width": 640,
+       "height": 400,
+       "bytes": 19206,
+       "sha256": "93e314ab1571f6c1fdf364abd459eb06c50141337bc01ed2b14a0d9881770cf9"
+      }
+     ]
+    },
+    "wide": {
+     "box": [
+      0,
+      42,
+      1536,
+      640
+     ],
+     "ratio": [
+      12,
+      5
+     ],
+     "files": [
+      {
+       "file": "mtt-wide-1440.d1ac9f1c6e.avif",
+       "format": "avif",
+       "width": 1440,
+       "height": 600,
+       "bytes": 15204,
+       "sha256": "d1ac9f1c6e9409c6d260c02ebae65b773aa1450c8619d6cb176c984afd08e736"
+      },
+      {
+       "file": "mtt-wide-1440.7ee518fe78.webp",
+       "format": "webp",
+       "width": 1440,
+       "height": 600,
+       "bytes": 22680,
+       "sha256": "7ee518fe7808e5e597305bf5a79346195e861fde7b9fdf51e56138a5961d5e00"
+      },
+      {
+       "file": "mtt-wide-960.17a6d0ea1b.avif",
+       "format": "avif",
+       "width": 960,
+       "height": 400,
+       "bytes": 9289,
+       "sha256": "17a6d0ea1b3a5aab3837711c2515a21b16ae64bfe07966e39d2ee1974eaeda3d"
+      },
+      {
+       "file": "mtt-wide-960.7d78a6d03d.webp",
+       "format": "webp",
+       "width": 960,
+       "height": 400,
+       "bytes": 13376,
+       "sha256": "7d78a6d03d8ccfc9f1bd82b2500ea9197e1611484099f79afabe53db806303da"
+      },
+      {
+       "file": "mtt-wide-640.317e69e3f5.avif",
+       "format": "avif",
+       "width": 640,
+       "height": 267,
+       "bytes": 5534,
+       "sha256": "317e69e3f5b2a34392fda8b722cbb88e2ab92c9f6de7939fa4b3e9b5c055ca64"
+      },
+      {
+       "file": "mtt-wide-640.5cd11d02ec.webp",
+       "format": "webp",
+       "width": 640,
+       "height": 267,
+       "bytes": 8294,
+       "sha256": "5cd11d02ecbbe564e31c3beefbf0abc1208fd5d95fef68322a09973803baefe3"
+      }
+     ]
+    }
+   },
+   "quiet_background": {
+    "method": "gaussian blur 22px, 30% exposure, edge dissolve to black",
+    "shipped": false
+   }
+  },
+  "cash": {
+   "seed": 4303,
+   "prompt_sha256": "fcb2922d1866a789bc4240a180550129bacf5cc3068cbf628957f37abae3961e",
+   "prompt": "Subject: three-quarter photograph of a polished chrome chip rack tray resting on plain black felt, its long rounded slots filled with neat rows of black, white-silver and electric blue poker chips, one slot empty. In front of the rack a single electric blue chip stands upright on its edge in sharp focus. Cool silver key light glides along the chrome with electric blue reflections, deep black background.\n\nStyle: photoreal cinematic photograph, premium high-stakes casino realism, shot on a full-frame cinema camera with a prime lens, black-first composition set in a deep true-black environment. The whole palette is monochrome black, charcoal, graphite, brushed steel, polished chrome and cool silver-white, accented only by restrained electric blue light (#45adff). Materials: machined brushed steel, polished chrome, padded matte black leather with thin chrome trim, plain charcoal felt. Poker chips are only solid black, pure white-silver, or electric blue, each with white edge spots. Lighting: cool silver-white key light, restrained electric blue accents, deep shadows, high dynamic range, subtle film grain, sharp focus on the subject. Every surface is blank and unmarked. Wide cinematic composition with real depth; the essential subject sits in the middle band of the frame, inside the central 60 percent of the width and the central 55 percent of the height, with calm dark environment around it on every side.\n",
+   "source_sha256": "70564aa98e2507745a8d6444aba9b986d68268c104d5adbafc2e410229d18e15",
+   "generation": {
+    "steps": 9,
+    "guidance": null,
+    "quantize": null,
+    "width": 1536,
+    "height": 1024,
+    "seed": 4303,
+    "mflux_version": "0.19.2",
+    "generation_time_seconds": 88.59
+   },
+   "grade": {
+    "method": "HSV hue-selective desaturation toward Rec.709 luma, 6 degree feather, hue untouched",
+    "spec": "0-186:0,255-359:0"
+   },
+   "dissolve_edges": false,
+   "shift": {
+    "dx": 0,
+    "mobile_dy": 0,
+    "wide_dy": 0
+   },
+   "encoders": {
+    "avif": "avifenc -q 52 -s 4 -y 420",
+    "webp": "cwebp -q 76 -m 6 -sharp_yuv"
+   },
+   "preview_sha256": "b1b3f6c434ca80ae9489cac1d4807e4aaca960d87615844c0cd3ccbc67c606c6",
+   "crops": {
+    "mobile": {
+     "box": [
+      0,
+      32,
+      1536,
+      960
+     ],
+     "ratio": [
+      16,
+      10
+     ],
+     "files": [
+      {
+       "file": "cash-mobile-1440.91db97b35e.avif",
+       "format": "avif",
+       "width": 1440,
+       "height": 900,
+       "bytes": 47577,
+       "sha256": "91db97b35ecf2cf7375128bfda0a80ffeeeefe5345a917e1bfa916f00113847d"
+      },
+      {
+       "file": "cash-mobile-1440.ec8457f2c1.webp",
+       "format": "webp",
+       "width": 1440,
+       "height": 900,
+       "bytes": 68948,
+       "sha256": "ec8457f2c17c818b8f7809408c78085314e646088d16ca49788d6c2a5da54991"
+      },
+      {
+       "file": "cash-mobile-960.ea88db320f.avif",
+       "format": "avif",
+       "width": 960,
+       "height": 600,
+       "bytes": 26813,
+       "sha256": "ea88db320f842a89d111304593ca729b7298e055a747f94965338ed607a4c4f1"
+      },
+      {
+       "file": "cash-mobile-960.ebda3ecd93.webp",
+       "format": "webp",
+       "width": 960,
+       "height": 600,
+       "bytes": 39780,
+       "sha256": "ebda3ecd93b9d0d81768036b4924e0b59281b0873ad1a2f0ffa3c0c6b5a44f6a"
+      },
+      {
+       "file": "cash-mobile-640.b095a146a7.avif",
+       "format": "avif",
+       "width": 640,
+       "height": 400,
+       "bytes": 14722,
+       "sha256": "b095a146a7fbb847714e01a50f8c58c26d9a8acafaabcc0038cfbc3deb52952c"
+      },
+      {
+       "file": "cash-mobile-640.6df3ad16da.webp",
+       "format": "webp",
+       "width": 640,
+       "height": 400,
+       "bytes": 21722,
+       "sha256": "6df3ad16da8b83bb0e920ffc97108463e3235a3b4dfefc3fc4e368670842d53f"
+      }
+     ]
+    },
+    "wide": {
+     "box": [
+      0,
+      192,
+      1536,
+      640
+     ],
+     "ratio": [
+      12,
+      5
+     ],
+     "files": [
+      {
+       "file": "cash-wide-1440.d019ebfe1e.avif",
+       "format": "avif",
+       "width": 1440,
+       "height": 600,
+       "bytes": 40644,
+       "sha256": "d019ebfe1ec82baf052569b17bb8b0ab1bcfb5bc7c703298afd34882945ac265"
+      },
+      {
+       "file": "cash-wide-1440.f51b462b6a.webp",
+       "format": "webp",
+       "width": 1440,
+       "height": 600,
+       "bytes": 59104,
+       "sha256": "f51b462b6a1282f57e4e5a1f8f941de8d165eac4f15c0221d2652d70eb12d77b"
+      },
+      {
+       "file": "cash-wide-960.69636fce16.avif",
+       "format": "avif",
+       "width": 960,
+       "height": 400,
+       "bytes": 22036,
+       "sha256": "69636fce16f4541644a1fb533d43d96dff891b4c0c0afca087c365d49360ac89"
+      },
+      {
+       "file": "cash-wide-960.fb10d9f1fe.webp",
+       "format": "webp",
+       "width": 960,
+       "height": 400,
+       "bytes": 33524,
+       "sha256": "fb10d9f1fee63b3a535a425f0c8a74da76c1313455fbaddc4b5208bd971c5402"
+      },
+      {
+       "file": "cash-wide-640.7b2650ba29.avif",
+       "format": "avif",
+       "width": 640,
+       "height": 267,
+       "bytes": 12406,
+       "sha256": "7b2650ba29bf8ec1b1a1fd736bcf59fc597cf37f98135a5da8870840aedff53c"
+      },
+      {
+       "file": "cash-wide-640.2972993959.webp",
+       "format": "webp",
+       "width": 640,
+       "height": 267,
+       "bytes": 19270,
+       "sha256": "2972993959068e84de666066f46d98e375ca419e1a2f0f91426a634fe0ac9ea6"
+      }
+     ]
+    }
+   },
+   "quiet_background": {
+    "method": "gaussian blur 22px, 30% exposure, edge dissolve to black",
+    "shipped": false
+   }
+  },
+  "icm": {
+   "seed": 4303,
+   "prompt_sha256": "686864d81b9ab04e85df806a0b9633ecc802b24822fabea878c22240ae948868",
+   "prompt": "Subject: photograph of three polished chrome cylinders of descending height standing side by side on plain black felt, the tallest one left of centre, the next one middle height, the last one short. Each cylinder carries a neat stack of poker chips on its flat top, the tallest cylinder the tallest stack, the others progressively smaller. A thin electric blue light line traces the top rim of every cylinder. Cool silver spotlight from above, deep black background with soft blue haze.\n\nStyle: photoreal cinematic photograph, premium high-stakes casino realism, shot on a full-frame cinema camera with a prime lens, black-first composition set in a deep true-black environment. The whole palette is monochrome black, charcoal, graphite, brushed steel, polished chrome and cool silver-white, accented only by restrained electric blue light (#45adff). Materials: machined brushed steel, polished chrome, padded matte black leather with thin chrome trim, plain charcoal felt. Poker chips are only solid black, pure white-silver, or electric blue, each with white edge spots. Lighting: cool silver-white key light, restrained electric blue accents, deep shadows, high dynamic range, subtle film grain, sharp focus on the subject. Every surface is blank and unmarked. Wide cinematic composition with real depth; the essential subject sits in the middle band of the frame, inside the central 60 percent of the width and the central 55 percent of the height, with calm dark environment around it on every side.\n",
+   "source_sha256": "017caf8895ae1fc5aa0e28ac96e984e7d100f60775e83f9a961881681f50598a",
+   "generation": {
+    "steps": 9,
+    "guidance": null,
+    "quantize": null,
+    "width": 1536,
+    "height": 1024,
+    "seed": 4303,
+    "mflux_version": "0.19.2",
+    "generation_time_seconds": 87.95
+   },
+   "grade": {
+    "method": "HSV hue-selective desaturation toward Rec.709 luma, 6 degree feather, hue untouched",
+    "spec": "0-186:0,255-359:0"
+   },
+   "dissolve_edges": false,
+   "shift": {
+    "dx": 0,
+    "mobile_dy": 0,
+    "wide_dy": -110.0
+   },
+   "encoders": {
+    "avif": "avifenc -q 52 -s 4 -y 420",
+    "webp": "cwebp -q 76 -m 6 -sharp_yuv"
+   },
+   "preview_sha256": "40c2dc0c58f109463dcc10790cbdf7897ebbe39e1ed114f9a3d37e49b6f289c1",
+   "crops": {
+    "mobile": {
+     "box": [
+      0,
+      32,
+      1536,
+      960
+     ],
+     "ratio": [
+      16,
+      10
+     ],
+     "files": [
+      {
+       "file": "icm-mobile-1440.fa9911e1a9.avif",
+       "format": "avif",
+       "width": 1440,
+       "height": 900,
+       "bytes": 33032,
+       "sha256": "fa9911e1a99abf91628c932cc02636ce04c235c297606e2c5140bb6b0ac62f93"
+      },
+      {
+       "file": "icm-mobile-1440.255faa0bcb.webp",
+       "format": "webp",
+       "width": 1440,
+       "height": 900,
+       "bytes": 46716,
+       "sha256": "255faa0bcb9287154fc74684c4081e3f70ce8b1b005d0595e6503d12847f90b9"
+      },
+      {
+       "file": "icm-mobile-960.1bf1eb9b26.avif",
+       "format": "avif",
+       "width": 960,
+       "height": 600,
+       "bytes": 17954,
+       "sha256": "1bf1eb9b269b26dd8c51e98abe9f33e553c0c3943b31e4aed3db5a0ec77f20ee"
+      },
+      {
+       "file": "icm-mobile-960.99bdcbe587.webp",
+       "format": "webp",
+       "width": 960,
+       "height": 600,
+       "bytes": 25162,
+       "sha256": "99bdcbe587f5d3c940e8dbe31f4c37792bf3eb768a28ac649eb8766cd3a1b999"
+      },
+      {
+       "file": "icm-mobile-640.068c4f8714.avif",
+       "format": "avif",
+       "width": 640,
+       "height": 400,
+       "bytes": 9493,
+       "sha256": "068c4f871476eb6e2b00b3fb1477c4808800f67bdf6df29eafdc1d1c9c6e5b41"
+      },
+      {
+       "file": "icm-mobile-640.ebf4d56f31.webp",
+       "format": "webp",
+       "width": 640,
+       "height": 400,
+       "bytes": 13552,
+       "sha256": "ebf4d56f31a2cbd605eae2a88c228d4c3e9847708ac9583a9465d2b62f061fab"
+      }
+     ]
+    },
+    "wide": {
+     "box": [
+      0,
+      82,
+      1536,
+      640
+     ],
+     "ratio": [
+      12,
+      5
+     ],
+     "files": [
+      {
+       "file": "icm-wide-1440.4fe17f5388.avif",
+       "format": "avif",
+       "width": 1440,
+       "height": 600,
+       "bytes": 12937,
+       "sha256": "4fe17f5388526664256e63fa7bfc608a99534ad362921da03c72af8dbce2f71f"
+      },
+      {
+       "file": "icm-wide-1440.5653947024.webp",
+       "format": "webp",
+       "width": 1440,
+       "height": 600,
+       "bytes": 20136,
+       "sha256": "5653947024a83743e15873249a3a61479ff124b81bc75bfee38c831ecf03e4b6"
+      },
+      {
+       "file": "icm-wide-960.695fcf9417.avif",
+       "format": "avif",
+       "width": 960,
+       "height": 400,
+       "bytes": 7748,
+       "sha256": "695fcf94178832c70315ab1c8289077a7d6cf9a3f7360ba04e9f6cb022d5c6b9"
+      },
+      {
+       "file": "icm-wide-960.345c570392.webp",
+       "format": "webp",
+       "width": 960,
+       "height": 400,
+       "bytes": 11540,
+       "sha256": "345c570392be5db23baebcf6db60c557f4e4af05090dd4b1c9bc6e4031446378"
+      },
+      {
+       "file": "icm-wide-640.c8d88fec18.avif",
+       "format": "avif",
+       "width": 640,
+       "height": 267,
+       "bytes": 4619,
+       "sha256": "c8d88fec18512a4e89b6630f50b81dd11c83eb2b2fdd2ebdfacc7e380b55a038"
+      },
+      {
+       "file": "icm-wide-640.b7bdd7057a.webp",
+       "format": "webp",
+       "width": 640,
+       "height": 267,
+       "bytes": 6916,
+       "sha256": "b7bdd7057afb2bfc14e65cf4fa7e02c923c14f4bd90dcaefb3ade373b2f3631c"
+      }
+     ]
+    }
+   },
+   "quiet_background": {
+    "method": "gaussian blur 22px, 30% exposure, edge dissolve to black",
+    "shipped": false
+   }
+  },
+  "gto": {
+   "seed": 4202,
+   "prompt_sha256": "e67c9974565f1c648386c40c6f112f8b83b621a69455948d534eaf6d55b2a8d0",
+   "prompt": "Subject: photograph of perfect mirror symmetry on a glossy black glass table: two identical towers of black, white-silver and electric blue poker chips stand at equal distance on either side of a thin vertical beam of electric blue light that rises from the table surface, and a small polished chrome sphere floats exactly on the beam line between them. Every element is doubled by a crisp reflection in the black glass. Balanced, mathematical calm, deep black background.\n\nStyle: photoreal cinematic photograph, premium high-stakes casino realism, shot on a full-frame cinema camera with a prime lens, black-first composition set in a deep true-black environment. The whole palette is monochrome black, charcoal, graphite, brushed steel, polished chrome and cool silver-white, accented only by restrained electric blue light (#45adff). Materials: machined brushed steel, polished chrome, padded matte black leather with thin chrome trim, plain charcoal felt. Poker chips are only solid black, pure white-silver, or electric blue, each with white edge spots. Lighting: cool silver-white key light, restrained electric blue accents, deep shadows, high dynamic range, subtle film grain, sharp focus on the subject. Every surface is blank and unmarked. Wide cinematic composition with real depth; the essential subject sits in the middle band of the frame, inside the central 60 percent of the width and the central 55 percent of the height, with calm dark environment around it on every side.\n",
+   "source_sha256": "ce3989e30aa3276704d77da141cb1c3ee7d7011cb2acacff795ed0c26c5b7dcb",
+   "generation": {
+    "steps": 9,
+    "guidance": null,
+    "quantize": null,
+    "width": 1536,
+    "height": 1024,
+    "seed": 4202,
+    "mflux_version": "0.19.2",
+    "generation_time_seconds": 85.33
+   },
+   "grade": {
+    "method": "HSV hue-selective desaturation toward Rec.709 luma, 6 degree feather, hue untouched",
+    "spec": "0-186:0,255-359:0"
+   },
+   "dissolve_edges": false,
+   "shift": {
+    "dx": 0,
+    "mobile_dy": 0,
+    "wide_dy": 0
+   },
+   "encoders": {
+    "avif": "avifenc -q 52 -s 4 -y 420",
+    "webp": "cwebp -q 76 -m 6 -sharp_yuv"
+   },
+   "preview_sha256": "470dd9f886acc7445f9f87c7fd5d9478c7f3e19879d3e3ddf54e89ca57087ea7",
+   "crops": {
+    "mobile": {
+     "box": [
+      0,
+      32,
+      1536,
+      960
+     ],
+     "ratio": [
+      16,
+      10
+     ],
+     "files": [
+      {
+       "file": "gto-mobile-1440.c1d6607169.avif",
+       "format": "avif",
+       "width": 1440,
+       "height": 900,
+       "bytes": 24386,
+       "sha256": "c1d6607169d523e63d48ede64327df46157ba4a07c71aab17fd14a7302e6faff"
+      },
+      {
+       "file": "gto-mobile-1440.ccdf607f14.webp",
+       "format": "webp",
+       "width": 1440,
+       "height": 900,
+       "bytes": 33498,
+       "sha256": "ccdf607f1427544e1ee6be051bb4e741089e79cde7901750b99b5c3a6a9b8bf3"
+      },
+      {
+       "file": "gto-mobile-960.cca31499e0.avif",
+       "format": "avif",
+       "width": 960,
+       "height": 600,
+       "bytes": 13838,
+       "sha256": "cca31499e04636c4a41805bebc589dfcbfdb699e6c1da700bf7334c06567b7ec"
+      },
+      {
+       "file": "gto-mobile-960.7e3b9a55da.webp",
+       "format": "webp",
+       "width": 960,
+       "height": 600,
+       "bytes": 20234,
+       "sha256": "7e3b9a55daf19f76c24ab22d4e41a4ed5786cd3fa2816941dc4f51697fa3fe25"
+      },
+      {
+       "file": "gto-mobile-640.6610c4102e.avif",
+       "format": "avif",
+       "width": 640,
+       "height": 400,
+       "bytes": 8179,
+       "sha256": "6610c4102e38940acf284a8bc1e0614bda612a85307f03fa60f79192e82f8c31"
+      },
+      {
+       "file": "gto-mobile-640.c7136df5cd.webp",
+       "format": "webp",
+       "width": 640,
+       "height": 400,
+       "bytes": 12018,
+       "sha256": "c7136df5cd2fbdc226c026ac0f1a7ef9c1721fff4170f536b8033bf7eee90f99"
+      }
+     ]
+    },
+    "wide": {
+     "box": [
+      0,
+      192,
+      1536,
+      640
+     ],
+     "ratio": [
+      12,
+      5
+     ],
+     "files": [
+      {
+       "file": "gto-wide-1440.a58374646d.avif",
+       "format": "avif",
+       "width": 1440,
+       "height": 600,
+       "bytes": 22707,
+       "sha256": "a58374646d842293660543df2a6d1986cca5fe7d7a1c94ecab027151fcd4e559"
+      },
+      {
+       "file": "gto-wide-1440.9ba2f08066.webp",
+       "format": "webp",
+       "width": 1440,
+       "height": 600,
+       "bytes": 31144,
+       "sha256": "9ba2f08066f726dc8a142044e00cb6816a6770aac0d8ad1d5911bd6bdb4c0948"
+      },
+      {
+       "file": "gto-wide-960.c254d187ac.avif",
+       "format": "avif",
+       "width": 960,
+       "height": 400,
+       "bytes": 13019,
+       "sha256": "c254d187ac3c085a6c560dc9b50318c88705e8b491d275e31cae9bd60cacccc7"
+      },
+      {
+       "file": "gto-wide-960.2f6419da94.webp",
+       "format": "webp",
+       "width": 960,
+       "height": 400,
+       "bytes": 18652,
+       "sha256": "2f6419da948a5f5d6c61c305b3488fba4c4ec3c5ff03f94fe9cf85bcbe936221"
+      },
+      {
+       "file": "gto-wide-640.a51d4d5e38.avif",
+       "format": "avif",
+       "width": 640,
+       "height": 267,
+       "bytes": 7481,
+       "sha256": "a51d4d5e38fe6ad157eaa463db0c9190b228607b0b92c7560daaf7450c249b3d"
+      },
+      {
+       "file": "gto-wide-640.8d702d1aea.webp",
+       "format": "webp",
+       "width": 640,
+       "height": 267,
+       "bytes": 11086,
+       "sha256": "8d702d1aea6d412d166a63a4394a4fcc66ede8f40340a7378e0a7a9e6aa1168b"
+      }
+     ]
+    }
+   },
+   "quiet_background": {
+    "method": "gaussian blur 22px, 30% exposure, edge dissolve to black",
+    "shipped": false
+   }
+  },
+  "endless": {
+   "seed": 4101,
+   "prompt_sha256": "490e0268170721339080802948b8384b563c83f002803d1ac03852dd03c8355c",
+   "prompt": "Subject: photograph at felt level of a perfectly straight row of electric blue poker chips standing upright on their edges like dominoes, evenly spaced, running from a sharp foreground chip near the camera toward a distant vanishing point across an endless plain of black felt. A faint cool horizon glow of electric blue light sits at the vanishing point. Long perspective, very shallow depth of field in the foreground.\n\nStyle: photoreal cinematic photograph, premium high-stakes casino realism, shot on a full-frame cinema camera with a prime lens, black-first composition set in a deep true-black environment. The whole palette is monochrome black, charcoal, graphite, brushed steel, polished chrome and cool silver-white, accented only by restrained electric blue light (#45adff). Materials: machined brushed steel, polished chrome, padded matte black leather with thin chrome trim, plain charcoal felt. Poker chips are only solid black, pure white-silver, or electric blue, each with white edge spots. Lighting: cool silver-white key light, restrained electric blue accents, deep shadows, high dynamic range, subtle film grain, sharp focus on the subject. Every surface is blank and unmarked. Wide cinematic composition with real depth; the essential subject sits in the middle band of the frame, inside the central 60 percent of the width and the central 55 percent of the height, with calm dark environment around it on every side.\n",
+   "source_sha256": "80a90f76ee3f0f5a2343c9c9dd3dfd6d9dd5d58b9b262f2e0aa33beecc8bd952",
+   "generation": {
+    "steps": 9,
+    "guidance": null,
+    "quantize": null,
+    "width": 1536,
+    "height": 1024,
+    "seed": 4101,
+    "mflux_version": "0.19.2",
+    "generation_time_seconds": 77.74
+   },
+   "grade": {
+    "method": "HSV hue-selective desaturation toward Rec.709 luma, 6 degree feather, hue untouched",
+    "spec": "0-186:0,255-359:0"
+   },
+   "dissolve_edges": false,
+   "shift": {
+    "dx": 0,
+    "mobile_dy": 0,
+    "wide_dy": -100.0
+   },
+   "encoders": {
+    "avif": "avifenc -q 52 -s 4 -y 420",
+    "webp": "cwebp -q 76 -m 6 -sharp_yuv"
+   },
+   "preview_sha256": "d17a675d39bd665e072f41a176506675c5dd27cbb67efa87be205a657add4b85",
+   "crops": {
+    "mobile": {
+     "box": [
+      0,
+      32,
+      1536,
+      960
+     ],
+     "ratio": [
+      16,
+      10
+     ],
+     "files": [
+      {
+       "file": "endless-mobile-1440.efa1a0b647.avif",
+       "format": "avif",
+       "width": 1440,
+       "height": 900,
+       "bytes": 26619,
+       "sha256": "efa1a0b6478fb04d34267e0039fc2b3b2b85108dcc5642b2d4cb30dcbb468126"
+      },
+      {
+       "file": "endless-mobile-1440.0bf4247d34.webp",
+       "format": "webp",
+       "width": 1440,
+       "height": 900,
+       "bytes": 34276,
+       "sha256": "0bf4247d343b2cf4c270e99a604800e17748a849c7aa7b1faa40457fd7f45934"
+      },
+      {
+       "file": "endless-mobile-960.5175682168.avif",
+       "format": "avif",
+       "width": 960,
+       "height": 600,
+       "bytes": 14496,
+       "sha256": "5175682168dbdb0257826e246ee7fa8c43f78b75d0f769842bdf0c1e79c0b655"
+      },
+      {
+       "file": "endless-mobile-960.3783177349.webp",
+       "format": "webp",
+       "width": 960,
+       "height": 600,
+       "bytes": 19518,
+       "sha256": "3783177349dddd1890f64d039d79ad89a0820c3c866313a0a428df3bfa88b110"
+      },
+      {
+       "file": "endless-mobile-640.d596a525c6.avif",
+       "format": "avif",
+       "width": 640,
+       "height": 400,
+       "bytes": 8134,
+       "sha256": "d596a525c6b28eecac32cc51ad7ae1191d68d9346b80b8aee118f3be17c484db"
+      },
+      {
+       "file": "endless-mobile-640.0ce9d4d4e4.webp",
+       "format": "webp",
+       "width": 640,
+       "height": 400,
+       "bytes": 10140,
+       "sha256": "0ce9d4d4e48d2789bd1ee3ac117b10223ef9dfaa7142c9fa158c6af3b7375a49"
+      }
+     ]
+    },
+    "wide": {
+     "box": [
+      0,
+      92,
+      1536,
+      640
+     ],
+     "ratio": [
+      12,
+      5
+     ],
+     "files": [
+      {
+       "file": "endless-wide-1440.4aed1bfb03.avif",
+       "format": "avif",
+       "width": 1440,
+       "height": 600,
+       "bytes": 22368,
+       "sha256": "4aed1bfb03125f997bb949fbdbb4021620d485fd3576e68a8a74773b482df97f"
+      },
+      {
+       "file": "endless-wide-1440.d02a5cd4c1.webp",
+       "format": "webp",
+       "width": 1440,
+       "height": 600,
+       "bytes": 27672,
+       "sha256": "d02a5cd4c16dd2e74affd48a03c59d737d97206c6642e3f9cf6b7b953c4ab695"
+      },
+      {
+       "file": "endless-wide-960.a1e2d3b6ce.avif",
+       "format": "avif",
+       "width": 960,
+       "height": 400,
+       "bytes": 12790,
+       "sha256": "a1e2d3b6cee0cd83d3fce3589ddef81f860b4f7cd458e902f5b3a4d42eebe666"
+      },
+      {
+       "file": "endless-wide-960.f297d4b121.webp",
+       "format": "webp",
+       "width": 960,
+       "height": 400,
+       "bytes": 14790,
+       "sha256": "f297d4b1217b4b26101eb4289aace30eaaedc3f7a99f4e79faa8ff279e8ec105"
+      },
+      {
+       "file": "endless-wide-640.990b7bb3b8.avif",
+       "format": "avif",
+       "width": 640,
+       "height": 267,
+       "bytes": 6580,
+       "sha256": "990b7bb3b805edabd147f9cee2ed1984fb4985dd50f6770a60b9b2ba5c525b44"
+      },
+      {
+       "file": "endless-wide-640.8e0aa1be1c.webp",
+       "format": "webp",
+       "width": 640,
+       "height": 267,
+       "bytes": 7998,
+       "sha256": "8e0aa1be1c57002df2634fd82a9b243214f3f255fdf0e65ef447b05deb44215b"
+      }
+     ]
+    }
+   },
+   "quiet_background": {
+    "method": "gaussian blur 22px, 30% exposure, edge dissolve to black",
+    "shipped": false
+   }
+  },
+  "mixed": {
+   "seed": 4202,
+   "prompt_sha256": "46fa71fb7ce1527fb11d7cfabd100de7e0a446c3579cf6555e6904703416e106",
+   "prompt": "Subject: photograph of seven clear glass cylinders with polished chrome caps standing in a gentle arc on plain black felt, each cylinder holding a neat stack of poker chips in a different pattern of black, white-silver and electric blue, each lit softly from below by an electric blue glow. The middle cylinder is in sharp focus and the others fall away into soft focus on both sides. Deep black background.\n\nStyle: photoreal cinematic photograph, premium high-stakes casino realism, shot on a full-frame cinema camera with a prime lens, black-first composition set in a deep true-black environment. The whole palette is monochrome black, charcoal, graphite, brushed steel, polished chrome and cool silver-white, accented only by restrained electric blue light (#45adff). Materials: machined brushed steel, polished chrome, padded matte black leather with thin chrome trim, plain charcoal felt. Poker chips are only solid black, pure white-silver, or electric blue, each with white edge spots. Lighting: cool silver-white key light, restrained electric blue accents, deep shadows, high dynamic range, subtle film grain, sharp focus on the subject. Every surface is blank and unmarked. Wide cinematic composition with real depth; the essential subject sits in the middle band of the frame, inside the central 60 percent of the width and the central 55 percent of the height, with calm dark environment around it on every side.\n",
+   "source_sha256": "0e11dac206fc9cc777f10fd6c2707d445ec705e57dbc5c189240c2bea0964c67",
+   "generation": {
+    "steps": 9,
+    "guidance": null,
+    "quantize": null,
+    "width": 1536,
+    "height": 1024,
+    "seed": 4202,
+    "mflux_version": "0.19.2",
+    "generation_time_seconds": 89.51
+   },
+   "grade": {
+    "method": "HSV hue-selective desaturation toward Rec.709 luma, 6 degree feather, hue untouched",
+    "spec": "0-186:0,255-359:0"
+   },
+   "dissolve_edges": false,
+   "shift": {
+    "dx": 0,
+    "mobile_dy": 0,
+    "wide_dy": -80.0
+   },
+   "encoders": {
+    "avif": "avifenc -q 52 -s 4 -y 420",
+    "webp": "cwebp -q 76 -m 6 -sharp_yuv"
+   },
+   "preview_sha256": "687b80fe6508a624b33292c694ee6fd313b5d4fc1681f03858aaa36586062606",
+   "crops": {
+    "mobile": {
+     "box": [
+      0,
+      32,
+      1536,
+      960
+     ],
+     "ratio": [
+      16,
+      10
+     ],
+     "files": [
+      {
+       "file": "mixed-mobile-1440.84a9fd9476.avif",
+       "format": "avif",
+       "width": 1440,
+       "height": 900,
+       "bytes": 44790,
+       "sha256": "84a9fd947690b66241f02a84c254263518f5273f9642ad2cdd5f9daa90509800"
+      },
+      {
+       "file": "mixed-mobile-1440.80e435362c.webp",
+       "format": "webp",
+       "width": 1440,
+       "height": 900,
+       "bytes": 68006,
+       "sha256": "80e435362cbe1df644eb869be0a5c3451196e71fe687ee7d98185ba9ce39720d"
+      },
+      {
+       "file": "mixed-mobile-960.b9ab227db3.avif",
+       "format": "avif",
+       "width": 960,
+       "height": 600,
+       "bytes": 26320,
+       "sha256": "b9ab227db3a1fc6546675af591b26ea51f1533d8177a80ef49b5579b8b1a98bc"
+      },
+      {
+       "file": "mixed-mobile-960.ca7f7b5859.webp",
+       "format": "webp",
+       "width": 960,
+       "height": 600,
+       "bytes": 40762,
+       "sha256": "ca7f7b58594b2251fc1fe495a0c4652e3f10fb7febda67a5b1dc2367f7397b2e"
+      },
+      {
+       "file": "mixed-mobile-640.8bf57e0c62.avif",
+       "format": "avif",
+       "width": 640,
+       "height": 400,
+       "bytes": 14935,
+       "sha256": "8bf57e0c622b1b2f510beab7638c18c3c9c133f753da38fd8dae0164e3ed3058"
+      },
+      {
+       "file": "mixed-mobile-640.168b40a408.webp",
+       "format": "webp",
+       "width": 640,
+       "height": 400,
+       "bytes": 24606,
+       "sha256": "168b40a4088801ea6cb6baa6d8470104e165e540d5d08e3b68270fe41e9bf225"
+      }
+     ]
+    },
+    "wide": {
+     "box": [
+      0,
+      112,
+      1536,
+      640
+     ],
+     "ratio": [
+      12,
+      5
+     ],
+     "files": [
+      {
+       "file": "mixed-wide-1440.3182e7f6d3.avif",
+       "format": "avif",
+       "width": 1440,
+       "height": 600,
+       "bytes": 28949,
+       "sha256": "3182e7f6d3b09bd8075d3911869f3b09dfb57064ec81daea96257b300059c706"
+      },
+      {
+       "file": "mixed-wide-1440.7698d0692a.webp",
+       "format": "webp",
+       "width": 1440,
+       "height": 600,
+       "bytes": 43840,
+       "sha256": "7698d0692aea62f209610fc108317f8fd9514fa456a7fe242ecfd1eccaed3c57"
+      },
+      {
+       "file": "mixed-wide-960.821b74c86f.avif",
+       "format": "avif",
+       "width": 960,
+       "height": 400,
+       "bytes": 17089,
+       "sha256": "821b74c86f39df7952caf5e612121041a4f6e32562f80e04c1f008aaf4470aff"
+      },
+      {
+       "file": "mixed-wide-960.21fa55cc40.webp",
+       "format": "webp",
+       "width": 960,
+       "height": 400,
+       "bytes": 27328,
+       "sha256": "21fa55cc407ab1f71d3ebbb4014d09ac318b3fb076c219983dc72f179fbbcaa9"
+      },
+      {
+       "file": "mixed-wide-640.b9e4d8cb69.avif",
+       "format": "avif",
+       "width": 640,
+       "height": 267,
+       "bytes": 10406,
+       "sha256": "b9e4d8cb691606d1ec8d76817ebac16e93bf5cbf480606eeeab02abc532c30cb"
+      },
+      {
+       "file": "mixed-wide-640.7da969748c.webp",
+       "format": "webp",
+       "width": 640,
+       "height": 267,
+       "bytes": 17294,
+       "sha256": "7da969748c1df7e88d87b7d5be8322c087538e510d5d6c24252b78da830e3a25"
+      }
+     ]
+    }
+   },
+   "quiet_background": {
+    "method": "gaussian blur 22px, 30% exposure, edge dissolve to black",
+    "shipped": false
+   }
+  },
+  "survival": {
+   "seed": 4202,
+   "prompt_sha256": "a8c6e394e0f3625bea914ea89c3606fa49f6e30bf73289879184a5de1704deaf",
+   "prompt": "Subject: dramatic photograph of a single tall narrow brushed steel pillar rising from a still, glossy black floor, one electric blue poker chip balanced upright on its edge at the very top, lit by one hard cool spotlight from above. Around the base of the pillar lie scattered fallen black chips, half in shadow. The surrounding space is vast and dark with a faint blue haze. Last one standing, tense and quiet.\n\nStyle: photoreal cinematic photograph, premium high-stakes casino realism, shot on a full-frame cinema camera with a prime lens, black-first composition set in a deep true-black environment. The whole palette is monochrome black, charcoal, graphite, brushed steel, polished chrome and cool silver-white, accented only by restrained electric blue light (#45adff). Materials: machined brushed steel, polished chrome, padded matte black leather with thin chrome trim, plain charcoal felt. Poker chips are only solid black, pure white-silver, or electric blue, each with white edge spots. Lighting: cool silver-white key light, restrained electric blue accents, deep shadows, high dynamic range, subtle film grain, sharp focus on the subject. Every surface is blank and unmarked. Wide cinematic composition with real depth; the essential subject sits in the middle band of the frame, inside the central 60 percent of the width and the central 55 percent of the height, with calm dark environment around it on every side.\n",
+   "source_sha256": "1c49a7bd327ffe868e925b5e23ea12c2deec7641ebc52f6563e17c49c8072ec8",
+   "generation": {
+    "steps": 9,
+    "guidance": null,
+    "quantize": null,
+    "width": 1536,
+    "height": 1024,
+    "seed": 4202,
+    "mflux_version": "0.19.2",
+    "generation_time_seconds": 91.05
+   },
+   "grade": {
+    "method": "HSV hue-selective desaturation toward Rec.709 luma, 6 degree feather, hue untouched",
+    "spec": "0-186:0,255-359:0"
+   },
+   "dissolve_edges": false,
+   "shift": {
+    "dx": 0,
+    "mobile_dy": 0,
+    "wide_dy": 0
+   },
+   "encoders": {
+    "avif": "avifenc -q 52 -s 4 -y 420",
+    "webp": "cwebp -q 76 -m 6 -sharp_yuv"
+   },
+   "preview_sha256": "2c17470c9056958162c03f1293b3057adf3ca43b9165f7073842c5c723dc8aa1",
+   "crops": {
+    "mobile": {
+     "box": [
+      0,
+      32,
+      1536,
+      960
+     ],
+     "ratio": [
+      16,
+      10
+     ],
+     "files": [
+      {
+       "file": "survival-mobile-1440.6cc931f98a.avif",
+       "format": "avif",
+       "width": 1440,
+       "height": 900,
+       "bytes": 26435,
+       "sha256": "6cc931f98a709fd8d78a39f07aa7bf4ef2987c11ab8f291ea755517acca34831"
+      },
+      {
+       "file": "survival-mobile-1440.91e2607058.webp",
+       "format": "webp",
+       "width": 1440,
+       "height": 900,
+       "bytes": 36642,
+       "sha256": "91e26070587fead3560d689137b41161444bce393661aa169306452c9f1cb7f3"
+      },
+      {
+       "file": "survival-mobile-960.3cb248744e.avif",
+       "format": "avif",
+       "width": 960,
+       "height": 600,
+       "bytes": 15507,
+       "sha256": "3cb248744ee2adea0763ebeb725eab5f21a1df7cb658833bba482afb6ea834a0"
+      },
+      {
+       "file": "survival-mobile-960.2c219d3db8.webp",
+       "format": "webp",
+       "width": 960,
+       "height": 600,
+       "bytes": 20782,
+       "sha256": "2c219d3db881ef51cfa30ba133c533660167f4a84225fc99042dec78bf4e9628"
+      },
+      {
+       "file": "survival-mobile-640.d10fd6d6e4.avif",
+       "format": "avif",
+       "width": 640,
+       "height": 400,
+       "bytes": 8649,
+       "sha256": "d10fd6d6e4e078f678ed97d12d3ca1d1653e586b790e307e246a852f5f931315"
+      },
+      {
+       "file": "survival-mobile-640.97a41c4199.webp",
+       "format": "webp",
+       "width": 640,
+       "height": 400,
+       "bytes": 11668,
+       "sha256": "97a41c4199fc5858f5b9185769e92004e8cd58f2f414484c2e136d14feb665c7"
+      }
+     ]
+    },
+    "wide": {
+     "box": [
+      0,
+      192,
+      1536,
+      640
+     ],
+     "ratio": [
+      12,
+      5
+     ],
+     "files": [
+      {
+       "file": "survival-wide-1440.2e2ba69f68.avif",
+       "format": "avif",
+       "width": 1440,
+       "height": 600,
+       "bytes": 18038,
+       "sha256": "2e2ba69f687b147fb92ccce607adefc4c8769c4d84f7c0fdc1cb86b5e9fa5ef4"
+      },
+      {
+       "file": "survival-wide-1440.b473f94a85.webp",
+       "format": "webp",
+       "width": 1440,
+       "height": 600,
+       "bytes": 24882,
+       "sha256": "b473f94a858f6113a0394e196fd63a10cdcc88aed6d8e060b974c361ca449ad5"
+      },
+      {
+       "file": "survival-wide-960.6443edd1a0.avif",
+       "format": "avif",
+       "width": 960,
+       "height": 400,
+       "bytes": 9968,
+       "sha256": "6443edd1a096fc21bfb86fa4431e300e43bf33de605374d51f03f3b05a8ff112"
+      },
+      {
+       "file": "survival-wide-960.10960a8810.webp",
+       "format": "webp",
+       "width": 960,
+       "height": 400,
+       "bytes": 13950,
+       "sha256": "10960a881098fd8a496fab0a19133154a2912860ba2464b95e86657743f1d4e5"
+      },
+      {
+       "file": "survival-wide-640.536683cdbe.avif",
+       "format": "avif",
+       "width": 640,
+       "height": 267,
+       "bytes": 6078,
+       "sha256": "536683cdbe52d5a1a45dc8d3be14e8bd2c7d08d9531d833dbd111ab44eba800a"
+      },
+      {
+       "file": "survival-wide-640.3114e2fa37.webp",
+       "format": "webp",
+       "width": 640,
+       "height": 267,
+       "bytes": 8152,
+       "sha256": "3114e2fa371a39cd5e24b08804a6b40cc4141463d0e5b41778a13d951db15eef"
+      }
+     ]
+    }
+   },
+   "quiet_background": {
+    "method": "gaussian blur 22px, 30% exposure, edge dissolve to black",
+    "shipped": false
+   }
+  },
+  "time-attack": {
+   "seed": 4202,
+   "prompt_sha256": "6385c2f5eafe864bf736fb4d4d117806b2171988b6a68255c524311cc4d1ab1b",
+   "prompt": "Subject: photograph of a polished chrome and clear glass hourglass standing on plain black felt, its falling sand made of fine glowing electric blue particles, the upper bulb almost empty and the lower bulb nearly full. Thin streaks of electric blue light race around the hourglass in a fast arc, motion blurred, and a few small black and white-silver poker chips lie scattered at its base. Urgent and fast, deep black background.\n\nStyle: photoreal cinematic photograph, premium high-stakes casino realism, shot on a full-frame cinema camera with a prime lens, black-first composition set in a deep true-black environment. The whole palette is monochrome black, charcoal, graphite, brushed steel, polished chrome and cool silver-white, accented only by restrained electric blue light (#45adff). Materials: machined brushed steel, polished chrome, padded matte black leather with thin chrome trim, plain charcoal felt. Poker chips are only solid black, pure white-silver, or electric blue, each with white edge spots. Lighting: cool silver-white key light, restrained electric blue accents, deep shadows, high dynamic range, subtle film grain, sharp focus on the subject. Every surface is blank and unmarked. Wide cinematic composition with real depth; the essential subject sits in the middle band of the frame, inside the central 60 percent of the width and the central 55 percent of the height, with calm dark environment around it on every side.\n",
+   "source_sha256": "66311de96998113e3d265dc703241a6d35a575a185e480ac1c72789caee286ff",
+   "generation": {
+    "steps": 9,
+    "guidance": null,
+    "quantize": null,
+    "width": 1536,
+    "height": 1024,
+    "seed": 4202,
+    "mflux_version": "0.19.2",
+    "generation_time_seconds": 86.18
+   },
+   "grade": {
+    "method": "HSV hue-selective desaturation toward Rec.709 luma, 6 degree feather, hue untouched",
+    "spec": "0-186:0,255-359:0"
+   },
+   "dissolve_edges": false,
+   "shift": {
+    "dx": 0,
+    "mobile_dy": 0,
+    "wide_dy": 0
+   },
+   "encoders": {
+    "avif": "avifenc -q 52 -s 4 -y 420",
+    "webp": "cwebp -q 76 -m 6 -sharp_yuv"
+   },
+   "preview_sha256": "fc8ea1ab2bb1dfd09d52187136a25c32a37eb09457c98351d842367e83dce9b9",
+   "crops": {
+    "mobile": {
+     "box": [
+      0,
+      32,
+      1536,
+      960
+     ],
+     "ratio": [
+      16,
+      10
+     ],
+     "files": [
+      {
+       "file": "time-attack-mobile-1440.7cccd2eef2.avif",
+       "format": "avif",
+       "width": 1440,
+       "height": 900,
+       "bytes": 28944,
+       "sha256": "7cccd2eef2be872b6abd0bbc7b071fd94c2eb0724c36b2033b403928a1fa4161"
+      },
+      {
+       "file": "time-attack-mobile-1440.cf90d3ea8d.webp",
+       "format": "webp",
+       "width": 1440,
+       "height": 900,
+       "bytes": 38796,
+       "sha256": "cf90d3ea8d328969415ebefe04915ce062b72ae3942079d960a634e6a77579a4"
+      },
+      {
+       "file": "time-attack-mobile-960.e331461f77.avif",
+       "format": "avif",
+       "width": 960,
+       "height": 600,
+       "bytes": 15678,
+       "sha256": "e331461f77182c59512939b80c747c0d70b1eb5fae6fed11f328afeb0ba131f1"
+      },
+      {
+       "file": "time-attack-mobile-960.d72f1554d0.webp",
+       "format": "webp",
+       "width": 960,
+       "height": 600,
+       "bytes": 22648,
+       "sha256": "d72f1554d0abb98e9c44de3716faf1b0ef3d7997802fd00e6b30c3cd4d836e22"
+      },
+      {
+       "file": "time-attack-mobile-640.2953700651.avif",
+       "format": "avif",
+       "width": 640,
+       "height": 400,
+       "bytes": 8622,
+       "sha256": "2953700651215c67aceaa884841888dee2cd8b6e9c7759504d94d4d4460395ce"
+      },
+      {
+       "file": "time-attack-mobile-640.cbd510ee75.webp",
+       "format": "webp",
+       "width": 640,
+       "height": 400,
+       "bytes": 12864,
+       "sha256": "cbd510ee7537760a7d44df1c586241dc068f8670abbb6966520faaa3a429f2c0"
+      }
+     ]
+    },
+    "wide": {
+     "box": [
+      0,
+      192,
+      1536,
+      640
+     ],
+     "ratio": [
+      12,
+      5
+     ],
+     "files": [
+      {
+       "file": "time-attack-wide-1440.fc488d1885.avif",
+       "format": "avif",
+       "width": 1440,
+       "height": 600,
+       "bytes": 15443,
+       "sha256": "fc488d1885a363e42c2bfbe938ed21a91e8ac30e8c181b04ed0d21f32cf7ac03"
+      },
+      {
+       "file": "time-attack-wide-1440.5b790d3b76.webp",
+       "format": "webp",
+       "width": 1440,
+       "height": 600,
+       "bytes": 21536,
+       "sha256": "5b790d3b769dc6e2a9dcac11046b068cdcdfa69f0d9d579fdf34fb22ac2a16b9"
+      },
+      {
+       "file": "time-attack-wide-960.c5c7f54f92.avif",
+       "format": "avif",
+       "width": 960,
+       "height": 400,
+       "bytes": 8252,
+       "sha256": "c5c7f54f921f4081b9373072ac276127745e8b9333d307f58d3dcf1d731fb344"
+      },
+      {
+       "file": "time-attack-wide-960.9aeab94f8f.webp",
+       "format": "webp",
+       "width": 960,
+       "height": 400,
+       "bytes": 12096,
+       "sha256": "9aeab94f8fc28963f7e2e5e06206132f74b61ebb0392efc451486df39b098665"
+      },
+      {
+       "file": "time-attack-wide-640.010bce7d38.avif",
+       "format": "avif",
+       "width": 640,
+       "height": 267,
+       "bytes": 4767,
+       "sha256": "010bce7d38609e519c8d86b4b8c90cd10bf560ff8a00b18dfb3d3e6f5779be4f"
+      },
+      {
+       "file": "time-attack-wide-640.d51db0400f.webp",
+       "format": "webp",
+       "width": 640,
+       "height": 267,
+       "bytes": 7026,
+       "sha256": "d51db0400f6d6d459f94a6a67675dd05525fbb940fee0686fa250eb78381adc4"
+      }
+     ]
+    }
+   },
+   "quiet_background": {
+    "method": "gaussian blur 22px, 30% exposure, edge dissolve to black",
+    "shipped": false
+   }
+  },
+  "pvp": {
+   "seed": 4202,
+   "prompt_sha256": "afbbfd7bf7f6c1f4ed1441bb04292cce34d2c52f643ed2dbbf57e6f7471a6ecb",
+   "prompt": "Subject: high-speed macro photograph of two poker chips colliding edge to edge in mid-air above plain black felt, one electric blue and one solid black, frozen at the instant of impact, a burst of fine blue-white sparks and light fragments exploding outward from the contact point. The left side of the frame is lit with electric blue rim light and the right side with a crimson red rim light (#ff5b6e). Head-to-head duel energy, deep black background.\n\nStyle: photoreal cinematic photograph, premium high-stakes casino realism, shot on a full-frame cinema camera with a prime lens, black-first composition set in a deep true-black environment. The whole palette is monochrome black, charcoal, graphite, brushed steel, polished chrome and cool silver-white, accented only by restrained electric blue light (#45adff). Materials: machined brushed steel, polished chrome, padded matte black leather with thin chrome trim, plain charcoal felt. Poker chips are only solid black, pure white-silver, or electric blue, each with white edge spots. Lighting: cool silver-white key light, restrained electric blue accents, deep shadows, high dynamic range, subtle film grain, sharp focus on the subject. Every surface is blank and unmarked. Wide cinematic composition with real depth; the essential subject sits in the middle band of the frame, inside the central 60 percent of the width and the central 55 percent of the height, with calm dark environment around it on every side. The right-hand rim light is crimson red (#ff5b6e) by design.\n",
+   "source_sha256": "7c2de6b68cea7232812aeca654a8011621f9dd6684e36089286bb107cdd6ebd9",
+   "generation": {
+    "steps": 9,
+    "guidance": null,
+    "quantize": null,
+    "width": 1536,
+    "height": 1024,
+    "seed": 4202,
+    "mflux_version": "0.19.2",
+    "generation_time_seconds": 89.53
+   },
+   "grade": {
+    "method": "HSV hue-selective desaturation toward Rec.709 luma, 6 degree feather, hue untouched",
+    "spec": "56-186:0,255-335:0"
+   },
+   "dissolve_edges": false,
+   "shift": {
+    "dx": 0,
+    "mobile_dy": 0,
+    "wide_dy": 0
+   },
+   "encoders": {
+    "avif": "avifenc -q 52 -s 4 -y 420",
+    "webp": "cwebp -q 76 -m 6 -sharp_yuv"
+   },
+   "preview_sha256": "d1b41b7664268c51309a14660bcd63e61788c718c2ce0cb59b550d3aead0ecf7",
+   "crops": {
+    "mobile": {
+     "box": [
+      0,
+      32,
+      1536,
+      960
+     ],
+     "ratio": [
+      16,
+      10
+     ],
+     "files": [
+      {
+       "file": "pvp-mobile-1440.feadc91a16.avif",
+       "format": "avif",
+       "width": 1440,
+       "height": 900,
+       "bytes": 39955,
+       "sha256": "feadc91a16668948f514d673827049d284381fe108c13b93947816600e272a7c"
+      },
+      {
+       "file": "pvp-mobile-1440.7cafb3b517.webp",
+       "format": "webp",
+       "width": 1440,
+       "height": 900,
+       "bytes": 55862,
+       "sha256": "7cafb3b517e1922516cc66acb0b3075914c47ced79138da40dbc2999e69a0bba"
+      },
+      {
+       "file": "pvp-mobile-960.94185651e0.avif",
+       "format": "avif",
+       "width": 960,
+       "height": 600,
+       "bytes": 21527,
+       "sha256": "94185651e0511ee34e9b978d31dc5732221958c172323033badfef9c6c56099c"
+      },
+      {
+       "file": "pvp-mobile-960.50d703dd72.webp",
+       "format": "webp",
+       "width": 960,
+       "height": 600,
+       "bytes": 31358,
+       "sha256": "50d703dd72cb95bef22a4abe3287f6a7135ed7f3fac3f04b4aa30637c90c5066"
+      },
+      {
+       "file": "pvp-mobile-640.79b0cf3472.avif",
+       "format": "avif",
+       "width": 640,
+       "height": 400,
+       "bytes": 11691,
+       "sha256": "79b0cf3472cffbef0b24cee62a9f70a7314b7534b70e89e3b483456230d42e59"
+      },
+      {
+       "file": "pvp-mobile-640.a2c1a912a9.webp",
+       "format": "webp",
+       "width": 640,
+       "height": 400,
+       "bytes": 17588,
+       "sha256": "a2c1a912a9ade8192448496ffd8365f1700d946d2699382b44567a178c9cb82c"
+      }
+     ]
+    },
+    "wide": {
+     "box": [
+      0,
+      192,
+      1536,
+      640
+     ],
+     "ratio": [
+      12,
+      5
+     ],
+     "files": [
+      {
+       "file": "pvp-wide-1440.cc01b2d209.avif",
+       "format": "avif",
+       "width": 1440,
+       "height": 600,
+       "bytes": 36347,
+       "sha256": "cc01b2d209a1f61e5846e4a04719bd56719f6559a0fde5b3ad6767e6777310f2"
+      },
+      {
+       "file": "pvp-wide-1440.d498ba4d0a.webp",
+       "format": "webp",
+       "width": 1440,
+       "height": 600,
+       "bytes": 50028,
+       "sha256": "d498ba4d0a380b9aa35019d6026fb7971107e1a78ab81e694fa8f90059beb200"
+      },
+      {
+       "file": "pvp-wide-960.bb8bff3660.avif",
+       "format": "avif",
+       "width": 960,
+       "height": 400,
+       "bytes": 18820,
+       "sha256": "bb8bff366082b12164291b6b35c09e127d27d83e4bc6c0c882275c83cda72622"
+      },
+      {
+       "file": "pvp-wide-960.189e51d004.webp",
+       "format": "webp",
+       "width": 960,
+       "height": 400,
+       "bytes": 27108,
+       "sha256": "189e51d0046930548e394fee092507bb01a494f02095e784a9b59cbae033e8ed"
+      },
+      {
+       "file": "pvp-wide-640.fc3c950397.avif",
+       "format": "avif",
+       "width": 640,
+       "height": 267,
+       "bytes": 10209,
+       "sha256": "fc3c950397b982dc8eebdfadf7449960a274481c1342bc6cd859b2798e753efb"
+      },
+      {
+       "file": "pvp-wide-640.db8329fbc5.webp",
+       "format": "webp",
+       "width": 640,
+       "height": 267,
+       "bytes": 15356,
+       "sha256": "db8329fbc5a250e1063d61d0a564cfa2b2449011e3121e1aca1654c675cd8a66"
+      }
+     ]
+    }
+   },
+   "quiet_background": {
+    "method": "gaussian blur 22px, 30% exposure, edge dissolve to black",
+    "shipped": false
+   }
+  },
+  "tournaments": {
+   "seed": 4101,
+   "prompt_sha256": "e91018421d4f3612328e8fc9897df9e5c74b5d27678346a3a9f9b8ed7e38373f",
+   "prompt": "Subject: photograph of a vast black wall in a dark arena on which thin lines of electric blue light form a large symmetric knockout bracket tree, branching lines converging from the far left and far right toward one bright point at the top centre. Below the meeting point a tall polished chrome trophy cup stands on a black pedestal on a glossy black stage floor that reflects the glowing lines. Epic nightly championship atmosphere.\n\nStyle: photoreal cinematic photograph, premium high-stakes casino realism, shot on a full-frame cinema camera with a prime lens, black-first composition set in a deep true-black environment. The whole palette is monochrome black, charcoal, graphite, brushed steel, polished chrome and cool silver-white, accented only by restrained electric blue light (#45adff). Materials: machined brushed steel, polished chrome, padded matte black leather with thin chrome trim, plain charcoal felt. Poker chips are only solid black, pure white-silver, or electric blue, each with white edge spots. Lighting: cool silver-white key light, restrained electric blue accents, deep shadows, high dynamic range, subtle film grain, sharp focus on the subject. Every surface is blank and unmarked. Wide cinematic composition with real depth; the essential subject sits in the middle band of the frame, inside the central 60 percent of the width and the central 55 percent of the height, with calm dark environment around it on every side. Gold (#ffd700) appears only on a genuinely gold object.\n",
+   "source_sha256": "196e5b4166cce219e52b82644e18550e92332c0d518cfa8e74b605c53661e661",
+   "generation": {
+    "steps": 9,
+    "guidance": null,
+    "quantize": null,
+    "width": 1536,
+    "height": 1024,
+    "seed": 4101,
+    "mflux_version": "0.19.2",
+    "generation_time_seconds": 83.08
+   },
+   "grade": {
+    "method": "HSV hue-selective desaturation toward Rec.709 luma, 6 degree feather, hue untouched",
+    "spec": "0-186:0,255-359:0"
+   },
+   "dissolve_edges": false,
+   "shift": {
+    "dx": 0,
+    "mobile_dy": 0,
+    "wide_dy": -100.0
+   },
+   "encoders": {
+    "avif": "avifenc -q 52 -s 4 -y 420",
+    "webp": "cwebp -q 76 -m 6 -sharp_yuv"
+   },
+   "preview_sha256": "653b7e958814e4988d4d39054b93d2ff295a61aa067c8483cdf6d6a87b275d7c",
+   "crops": {
+    "mobile": {
+     "box": [
+      0,
+      32,
+      1536,
+      960
+     ],
+     "ratio": [
+      16,
+      10
+     ],
+     "files": [
+      {
+       "file": "tournaments-mobile-1440.eb61215464.avif",
+       "format": "avif",
+       "width": 1440,
+       "height": 900,
+       "bytes": 33486,
+       "sha256": "eb612154642a72cdb754eaa5ce8a39d438f334c9c8d24091a29a03615b255490"
+      },
+      {
+       "file": "tournaments-mobile-1440.546b837004.webp",
+       "format": "webp",
+       "width": 1440,
+       "height": 900,
+       "bytes": 46498,
+       "sha256": "546b83700410be1652c4410b88a1411f1fb8557273b1ce5d1688b8cbd1e37257"
+      },
+      {
+       "file": "tournaments-mobile-960.328c6d1e34.avif",
+       "format": "avif",
+       "width": 960,
+       "height": 600,
+       "bytes": 19669,
+       "sha256": "328c6d1e346b0a5b24b3f892b4a619fff7bacea8f505f702f4283e84a8c6b19c"
+      },
+      {
+       "file": "tournaments-mobile-960.2aca9899ec.webp",
+       "format": "webp",
+       "width": 960,
+       "height": 600,
+       "bytes": 27298,
+       "sha256": "2aca9899ece68bacbfdf841815ff1816fbff96717096241bfd7119352a0f0047"
+      },
+      {
+       "file": "tournaments-mobile-640.4b38067c35.avif",
+       "format": "avif",
+       "width": 640,
+       "height": 400,
+       "bytes": 11096,
+       "sha256": "4b38067c35fd1107c9fa3e4596d6b05e3286bef2509a8994de06356e25ce8ed7"
+      },
+      {
+       "file": "tournaments-mobile-640.18e260a6f5.webp",
+       "format": "webp",
+       "width": 640,
+       "height": 400,
+       "bytes": 15954,
+       "sha256": "18e260a6f5a4cd760545e975096049b54f761844b792ec125ce77e3c37928ada"
+      }
+     ]
+    },
+    "wide": {
+     "box": [
+      0,
+      92,
+      1536,
+      640
+     ],
+     "ratio": [
+      12,
+      5
+     ],
+     "files": [
+      {
+       "file": "tournaments-wide-1440.7f1101a101.avif",
+       "format": "avif",
+       "width": 1440,
+       "height": 600,
+       "bytes": 24496,
+       "sha256": "7f1101a1013b1cc9305397ff0c0b6cc0db7f209dad07b58e7d3319d6e1e7975a"
+      },
+      {
+       "file": "tournaments-wide-1440.baf0144f9f.webp",
+       "format": "webp",
+       "width": 1440,
+       "height": 600,
+       "bytes": 33550,
+       "sha256": "baf0144f9f01f0543729332a46c17be24ea2d17e8c6b71b1230d500cf35e72ce"
+      },
+      {
+       "file": "tournaments-wide-960.484873ac3c.avif",
+       "format": "avif",
+       "width": 960,
+       "height": 400,
+       "bytes": 14226,
+       "sha256": "484873ac3c3b6e5a81ba83a2dda4b7773a9a39e7125e27a122fedff9d91ad2b1"
+      },
+      {
+       "file": "tournaments-wide-960.8f0d0b3a1b.webp",
+       "format": "webp",
+       "width": 960,
+       "height": 400,
+       "bytes": 19560,
+       "sha256": "8f0d0b3a1b0a5740ff94b394ba7174eceb0e285107f4327fc74b303cca560410"
+      },
+      {
+       "file": "tournaments-wide-640.bb471ae789.avif",
+       "format": "avif",
+       "width": 640,
+       "height": 267,
+       "bytes": 8690,
+       "sha256": "bb471ae789effbf75e02baf1ea649c50246331a8712493d69578fae156593953"
+      },
+      {
+       "file": "tournaments-wide-640.68fbc865d9.webp",
+       "format": "webp",
+       "width": 640,
+       "height": 267,
+       "bytes": 11518,
+       "sha256": "68fbc865d9eef86f30deda9e25dcfa7d7fdf25a96bbcae35567476c22289675f"
+      }
+     ]
+    }
+   },
+   "quiet_background": {
+    "method": "gaussian blur 22px, 30% exposure, edge dissolve to black",
+    "shipped": false
+   }
+  }
+ }
+}

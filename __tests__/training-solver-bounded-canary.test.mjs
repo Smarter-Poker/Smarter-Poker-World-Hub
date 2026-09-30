@@ -13,6 +13,10 @@ const RUNBOOK = fs.readFileSync(
 const WINDOWS_SETUP = fs.readFileSync('scripts/windows-setup.bat', 'utf8');
 const WINDOWS_DEPLOYMENT = fs.readFileSync('scripts/WINDOWS_DEPLOYMENT.txt', 'utf8');
 const VERCEL_IGNORE = fs.readFileSync('.vercelignore', 'utf8');
+const POSTGRES_CATALOG_VERIFIER = fs.readFileSync(
+  'scripts/verify-training-solver-catalog-postgres.mjs',
+  'utf8',
+);
 
 test('controller-delivered solver release rejects tampering without network or Pio', () => {
   execFileSync(process.platform === 'win32' ? 'python' : 'python3', ['test_release_bundle.py'], {
@@ -74,6 +78,14 @@ test('launcher resolves a sealed machine target before any Pio process spawn', (
   assert.ok(heartbeat < spawn);
   assert.match(ORCHESTRATOR, /bounded_canary_ready/);
   assert.match(ORCHESTRATOR, /bounded_canary_contracts_sha256/);
+  assert.match(ORCHESTRATOR, /MANIFEST_VERSION = 5/);
+  assert.match(ORCHESTRATOR, /manifest\["version"\] != MANIFEST_VERSION/);
+  assert.match(ORCHESTRATOR, /manifest must be exact version 5/);
+  assert.match(ORCHESTRATOR, /len\(contracts\) not in \(1, 2\)/);
+  assert.match(ORCHESTRATOR, /bounded canary contracts require M1 first/);
+  assert.match(ORCHESTRATOR, /"tree_geometry"/);
+  assert.match(ORCHESTRATOR, /PHASE_CONTRACT_SCHEMA = "training-solver-phase-contracts\.v2"/);
+  assert.match(ORCHESTRATOR, /legacy v1 producers must rebuild their phase contracts/);
   assert.match(ORCHESTRATOR, /"partition_count", "partition_index"/);
   assert.match(ORCHESTRATOR, /CLI partition does not match its sealed machine partition/);
   assert.match(ORCHESTRATOR, /foreign, stale, or ambiguously certified/);
@@ -216,10 +228,25 @@ test('catalog authority runbook includes the complete live schema contract', () 
   assert.match(approval, /admission_mode = 'bounded_canary'/);
   assert.match(approval, /AND admission_mode = 'held'/);
   assert.match(RUNBOOK, /A backlog approval is a separate explicit `held` to `backlog`/);
+  assert.match(RUNBOOK, /contain exactly M1, or M1 plus M2; it may never contain M2 alone/);
+  assert.match(RUNBOOK,
+    /run_machine\.py M2 2 1 --canary` must stop before any Pio[\s\S]*process starts/);
+  assert.match(RUNBOOK, /'tree_geometry', 'srp_parameterized_four_action_v3'/);
   assert.match(RUNBOOK, /One Active Ingest Scope Per Physical Machine/);
   assert.match(RUNBOOK, /M1 may have at most one such tuple and M2 may have at most/);
   assert.match(RUNBOOK, /TRAINING_SOLVER_MACHINE_INGEST_SCOPE_ALREADY_ACTIVE/);
   assert.match(RUNBOOK, /An UPDATE may not move a target's machine, provenance tuple/);
+  assert.match(
+    POSTGRES_CATALOG_VERIFIER,
+    /return 'r:0:c r:0:b231 r:0:b525 r:0:b875'/,
+  );
+  assert.match(
+    POSTGRES_CATALOG_VERIFIER,
+    /'tree_geometry', 'srp_parameterized_four_action_v3'/,
+  );
+  assert.match(POSTGRES_CATALOG_VERIFIER, /'manifest_version', '5'/);
+  assert.match(POSTGRES_CATALOG_VERIFIER, /AND manifest_version = '5'/);
+  assert.doesNotMatch(POSTGRES_CATALOG_VERIFIER, /training-v2/);
   assert.match(WINDOWS_DEPLOYMENT,
     /backlog gate may remain false while a deliberately bounded canary is[\s\S]*bounded_canary_ready=true/);
 });

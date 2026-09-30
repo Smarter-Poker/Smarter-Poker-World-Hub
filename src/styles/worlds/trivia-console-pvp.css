@@ -32,13 +32,6 @@
     min-width: 0;
 }
 
-/* The mode picture: approved scene art, shown as a plain image on the glass. */
-.trivia-pvp-hero {
-    display: block;
-    width: 100%;
-    height: auto;
-}
-
 .trivia-pvp-intro {
     color: var(--tc-ink-silver);
 }

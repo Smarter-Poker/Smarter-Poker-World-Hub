@@ -42,6 +42,7 @@ import {
 import { normalizeVenueName } from '../../../src/lib/poker-near-me/venueMatching';
 import { isPublishableStreetAddress } from '../../../src/lib/poker-near-me/structuredData';
 import { venueTitle } from '../../../src/lib/seo/venueTitle';
+import { safeImageUrl } from '../../../src/lib/security/imageHosts.js';
 import {
   createPokerMapSession,
   loadPokerMapRuntime,
@@ -143,7 +144,14 @@ function buildVenueSeo(venue, routeId, scheduleCount) {
     title,
     description: clampText(description, 300),
     canonical,
-    image: toAbsoluteImageUrl(venue.profile_photo_url) || toAbsoluteImageUrl(venue.cover_photo_url),
+    // THE SHARE CARD POINTS AT OUR MIRROR, NOT A CASINO (2026-09-30).
+    //
+    // This read profile_photo_url first, which is third party for 185 of the
+    // 194 venues that carry one, so every share of those venues sent the
+    // reader's scraper to the casino's own server. The mirrored logo comes
+    // first now and unmirrored values are dropped rather than published.
+    image: toAbsoluteImageUrl(getVenueLogoUrl(venue))
+      || toAbsoluteImageUrl(safeImageUrl(venue.cover_photo_url)),
   };
 }
 
@@ -2881,8 +2889,15 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
                   {venue.venue_news.map(function (article, idx) {
                     return (
                       <div key={article.id || idx} className="venue-news-card">
-                        {article.image_url && (
-                          <div className="news-card-image" style={{ backgroundImage: 'url(' + article.image_url + ')' }} />
+                        {safeImageUrl(article.image_url) && (
+                          /* The scraper stores a publisher's own image URL verbatim, so it
+                             is guarded like any other remote picture. It is also quoted
+                             rather than concatenated: a ')' in the URL used to end the
+                             CSS token early and break the rule. */
+                          <div
+                            className="news-card-image"
+                            style={{ backgroundImage: `url(${JSON.stringify(safeImageUrl(article.image_url)).slice(1, -1)})` }}
+                          />
                         )}
                         <div className="news-card-content">
                           <h3 className="news-card-title">{article.title}</h3>

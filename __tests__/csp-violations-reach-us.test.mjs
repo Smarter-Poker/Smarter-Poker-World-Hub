@@ -162,3 +162,55 @@ test('a GET writes nothing', async () => {
     assert.equal(status, 204);
     assert.equal(lines.length, 0);
 });
+
+// ── The two allow-list gaps measured on production, 2026-09-30 ──────────────
+//
+// Both were found by sweeping live routes for securitypolicyviolation events
+// while the policy is still Report-Only, which is the whole reason it is
+// staged. Neither is a hotlink: each is a host the policy plainly meant to
+// permit and did not name.
+
+test('img-src names the host YouTube actually serves thumbnails from', async () => {
+    const { IMAGE_SOURCES, imgSrcDirective } = await import('../src/lib/security/imageHosts.js');
+    assert.ok(IMAGE_SOURCES.includes('https://i.ytimg.com'),
+        'i.ytimg.com is where the thumbnails come from; /hub/news reported five a load without it');
+    assert.ok(imgSrcDirective().includes('https://i.ytimg.com'),
+        'the directive is built from that list, so it must carry the host too');
+});
+
+test('script-src and style-src name the commander app proxied onto this origin', () => {
+    const script = CONFIG.match(/"script-src [^"]+"/);
+    const style = CONFIG.match(/"style-src [^"]+"/);
+    assert.ok(script && style, 'both directives must exist');
+    // vercel.json rewrites /commander/* to this app and its Next build uses an
+    // absolute assetPrefix, so the proxied page loads nine cross-origin scripts
+    // and a stylesheet. 'self' never matches a subdomain.
+    assert.ok(script[0].includes('https://commander.smarter.poker'),
+        'the proxied commander page reported 13 violations a load without this');
+    assert.ok(style[0].includes('https://commander.smarter.poker'),
+        'the same page loads its stylesheet from that host');
+    // A wildcard here would authorise script execution from every subdomain.
+    assert.ok(!script[0].includes('https://*.smarter.poker'),
+        'script-src must name the exact host, never a wildcard over our subdomains');
+});
+
+// ── img-src is ENFORCED, not merely reported ───────────────────────────────
+
+test('img-src is in the enforced policy, built from the one host list', () => {
+    const enforced = CONFIG.match(/const enforcedCsp = \[([\s\S]*?)\]\.join/);
+    assert.ok(enforced, 'the enforced policy must exist');
+    assert.match(enforced[1], /imgSrcDirective\(\)/,
+        'img-src graduated on 2026-09-30 after venue art and news thumbnails stopped '
+        + 'being fetched from other people\u2019s servers');
+    // It must be the SAME list the guard uses, or the header and the runtime
+    // check drift and a picture the guard allows gets blocked anyway.
+    assert.ok(!/["']img-src [^"']+["']/.test(enforced[1]),
+        'the enforced directive must be composed, never a second hand-written copy');
+});
+
+test('the enforced policy still says where to report, so a mistake is visible', () => {
+    const enforced = CONFIG.match(/const enforcedCsp = \[([\s\S]*?)\]\.join/);
+    assert.match(enforced[1], /reportingDirectives/,
+        'enforcing without reporting means a blocked picture fails silently');
+});
+

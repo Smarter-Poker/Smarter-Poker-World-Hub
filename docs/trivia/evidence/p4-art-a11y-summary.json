@@ -1,0 +1,245 @@
+{
+ "tool": "scripts/trivia-ui/a11y-pass.mjs + scripts/trivia-ui/state-pass.mjs (system Chrome, Playwright 1.62.1, axe-core 4.13.0, reduced motion emulated, signed out, Supabase answered locally)",
+ "routes": 21,
+ "viewports": [
+  "320x640",
+  "375x812",
+  "390x844",
+  "430x932",
+  "768x1024",
+  "1024x768",
+  "1280x800",
+  "1440x900",
+  "landscape 844x390",
+  "200% zoom 640x450",
+  "400% reflow 320x256"
+ ],
+ "before_production_62ad967": {
+  "label": "production before #2050",
+  "counts_are_pages_with_the_issue": true,
+  "loads": 231,
+  "http_200": 231,
+  "horizontal_overflow": 0,
+  "h1_not_one": 0,
+  "broken_images": 0,
+  "trivia_controls_under_44px": 0,
+  "site_chrome_controls_under_44px": 126,
+  "controls_hidden_by_header_footer": 4,
+  "axe_serious_or_critical_trivia": 11,
+  "axe_serious_or_critical_site_chrome": 0,
+  "keyboard_focus_problems": 0,
+  "labels_cut_by_rim": 0,
+  "page_errors": 0,
+  "intro_art_present": 0
+ },
+ "after_local_final_candidate_49311e0": {
+  "label": "local next start of the merged candidate",
+  "counts_are_pages_with_the_issue": true,
+  "loads": 231,
+  "http_200": 231,
+  "horizontal_overflow": 0,
+  "h1_not_one": 0,
+  "broken_images": 0,
+  "trivia_controls_under_44px": 0,
+  "site_chrome_controls_under_44px": 126,
+  "controls_hidden_by_header_footer": 0,
+  "axe_serious_or_critical_trivia": 0,
+  "axe_serious_or_critical_site_chrome": 0,
+  "keyboard_focus_problems": 0,
+  "labels_cut_by_rim": 0,
+  "page_errors": 0,
+  "intro_art_present": 187
+ },
+ "notes": [
+  "labels_cut_by_rim was added after the baseline run; production re-checks at 320/390 found intermittent cuts (a11y-clip-prod), local final candidate 0 in 3 runs of 63 loads",
+  "reduced-motion animation metric counts only animations over 50ms or infinite; the baseline 52 were 0.01ms no-ops"
+ ],
+ "states": {
+  "dialog": {
+   "pass": true,
+   "opened": 1,
+   "trapped": true,
+   "closed": true,
+   "restored": true
+  },
+  "art-error": {
+   "pass": true,
+   "boxes": [
+    {
+     "key": "endless",
+     "state": "error",
+     "w": 295,
+     "h": 185,
+     "inView": true,
+     "preview": true,
+     "decoded": false,
+     "imgVisible": "hidden"
+    }
+   ]
+  },
+  "art-error-desktop": {
+   "pass": true,
+   "boxes": [
+    {
+     "key": "endless",
+     "state": "error",
+     "w": 790,
+     "h": 329,
+     "inView": true,
+     "preview": true,
+     "decoded": false,
+     "imgVisible": "hidden"
+    }
+   ]
+  },
+  "art-slow": {
+   "pass": true,
+   "early": [
+    {
+     "key": "lobby",
+     "state": "ready",
+     "w": 378,
+     "h": 236,
+     "inView": true,
+     "preview": true,
+     "decoded": false,
+     "imgVisible": "visible"
+    }
+   ],
+   "late": [
+    {
+     "key": "lobby",
+     "state": "ready",
+     "w": 378,
+     "h": 236,
+     "inView": true,
+     "preview": true,
+     "decoded": true,
+     "imgVisible": "visible"
+    }
+   ]
+  },
+  "fast-scroll": {
+   "pass": true,
+   "empties": []
+  },
+  "forced-colors /hub/trivia": {
+   "pass": true,
+   "bare": []
+  },
+  "forced-colors /hub/trivia/survival-game": {
+   "pass": true,
+   "bare": []
+  },
+  "long-copy 390": {
+   "pass": true,
+   "sw": 390,
+   "vw": 390,
+   "rows": 11,
+   "clipped": 0
+  },
+  "long-copy 320": {
+   "pass": true,
+   "sw": 320,
+   "vw": 320,
+   "rows": 11,
+   "clipped": 0
+  },
+  "signed-in /hub/trivia/mixed 390": {
+   "pass": true,
+   "at": "/hub/trivia/mixed",
+   "boxes": [
+    {
+     "key": "mixed",
+     "state": "ready",
+     "w": 295,
+     "h": 185,
+     "inView": true,
+     "preview": true,
+     "decoded": true,
+     "imgVisible": "visible"
+    }
+   ]
+  },
+  "signed-in /hub/trivia/pvp 390": {
+   "pass": true,
+   "at": "/hub/trivia/pvp",
+   "boxes": [
+    {
+     "key": "pvp",
+     "state": "ready",
+     "w": 295,
+     "h": 185,
+     "inView": true,
+     "preview": true,
+     "decoded": true,
+     "imgVisible": "visible"
+    }
+   ]
+  },
+  "signed-in /hub/trivia/tournaments 390": {
+   "pass": true,
+   "at": "/hub/trivia/tournaments",
+   "boxes": [
+    {
+     "key": "tournaments",
+     "state": "ready",
+     "w": 295,
+     "h": 185,
+     "inView": true,
+     "preview": true,
+     "decoded": true,
+     "imgVisible": "visible"
+    }
+   ]
+  },
+  "signed-in /hub/trivia/mixed 1440": {
+   "pass": true,
+   "at": "/hub/trivia/mixed",
+   "boxes": [
+    {
+     "key": "mixed",
+     "state": "ready",
+     "w": 790,
+     "h": 329,
+     "inView": true,
+     "preview": true,
+     "decoded": true,
+     "imgVisible": "visible"
+    }
+   ]
+  },
+  "signed-in /hub/trivia/pvp 1440": {
+   "pass": true,
+   "at": "/hub/trivia/pvp",
+   "boxes": [
+    {
+     "key": "pvp",
+     "state": "ready",
+     "w": 790,
+     "h": 329,
+     "inView": true,
+     "preview": true,
+     "decoded": true,
+     "imgVisible": "visible"
+    }
+   ]
+  },
+  "signed-in /hub/trivia/tournaments 1440": {
+   "pass": true,
+   "at": "/hub/trivia/tournaments",
+   "boxes": [
+    {
+     "key": "tournaments",
+     "state": "ready",
+     "w": 790,
+     "h": 329,
+     "inView": true,
+     "preview": true,
+     "decoded": true,
+     "imgVisible": "visible"
+    }
+   ]
+  }
+ }
+}

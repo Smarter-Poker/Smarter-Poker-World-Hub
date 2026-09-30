@@ -498,3 +498,208 @@ curl -o /dev/null -w '%{http_code} %{redirect_url}' https://hub-vanguard-47lpiw3
 python3 (read-only) over the p6-smoke-results-*.json and runtime-recert-*.json evidence files
 ls __tests__/training-campaign-batch-game-matrix.test.mjs __tests__/training-audit-session-browser-custody.test.mjs
 ```
+
+## 2026-09-30 Resumption: V3 Geometry And Runtime Integrity Candidate
+
+This resumption used Policy 2.9. The canonical policy reader emitted manifest
+receipt `a659f31c5c1c2b0864889508079a635dd5fe2fc98decfbfc9d3f9c80dd45ec3b`
+with owner-policy hash
+`b9478d0331314413d8e12c41210b63479cdcabc1f86ed3fdcb3251efa36e6349`,
+operating-law hash
+`a8bc3c04dce3354ebdd51a89c0b7d715af3344edcc794d33f6b3ad64506961d5`,
+hardening-standard hash
+`d5fc451ce5caf6d6b5e64597a13883e1246581678fe53c962339d0a66136993e`,
+and reference-index hash
+`adce89c3f838f2f373cd504a00329d53906404d1dd42a647f672af6c16f95555`.
+Work was recovered into the owned external-SSD worktree
+`/Volumes/SmarterWork/agent-work/training-phase6-closeout-20260930/world-hub`;
+no internal-drive worktree was created.
+
+The source candidate closes three previously recorded code gaps without opening
+the solver release gate:
+
+- `srp_parameterized_four_action_v3` provides Check plus 33/75/125 percent pot
+  bets at no-facing nodes on every postflop street, legal standard plus all-in
+  raises where the effective stack permits both, and binary Fold/Call when
+  facing all-in. Near-cap non-all-in actions collapse to jam unless at least
+  one big blind remains in the canonical 100-chips-per-BB scale. `tree_geometry`
+  is mandatory in `training-solver-phase-contracts.v2` and its immutable
+  checksum; legacy v1 phase producers and legacy v2 geometry artifacts cannot
+  be relabelled.
+- A bounded-canary manifest may contain M1 alone at fixed partition `2/0`, or
+  M1 plus M2 with M2 fixed at `2/1`; M2-only authority and an M2 invocation
+  against an M1-only manifest fail before Pio starts. The checked-in manifest
+  remains `training_backlog`, `solver_ready: false`, and contains no runnable
+  canary contract or invented range hash.
+- Canonical Training cache/snapshot writes are stably ordered and retry only
+  PostgreSQL deadlock/serialization SQLSTATEs (`40P01`, `40001`) for at most
+  three attempts. All 21 dedicated psychology/scenario games now provide at
+  least 30 authored questions; `psy-018`, `psy-019`, and `psy-020` each have
+  30 four-option questions with varied correct positions and a regression
+  ceiling preventing the correct choice from being uniquely long.
+
+Focused evidence on the candidate: 130/130 changed-path Node/Python assertions
+passed; the named 21-game SCENARIO route matrix passed with HTTP 200, 20 unique
+four-option questions, signed grading receipts, and 20 persisted CURATED rows
+per game; the solver geometry/canary suites passed 21/21 Python and 7/7 Node;
+the closed-manifest solver contract passed 33/33. The real PostgreSQL 17
+contention verifier also passed: the intentionally opposite write order proved
+one deadlock, both production-ordered writers completed, and the cache replay
+contract remained intact. No production database write, Pio invocation, HMAC
+provisioning, solver credential restoration, or global-header change occurred.
+
+This entry records a source candidate, not Phase 6 completion. One protected
+merge and exact production verification are still required for these bytes.
+After that, Phase 6 still requires a real checksum-sealed M1-only manifest from
+approved range artifacts, one admitted M1 parent/child canary, passing 6F public
+attestation, 6G administrator correlation, 6H strict enforcement, and 6I exact-
+build 107-game desktop/mobile certification. Phase 7 has not started.
+
+### 2026-09-30 Final Candidate Verification Before Protected Publication
+
+The final local candidate at `16e1cd96003a453859245f9552264e7bde011d98`
+keeps the release gate closed and adds two repairs found during the closing
+review: the solver-worker ingestion fixture now uses exact manifest version 5,
+and five genuinely ambiguous psychology distractors are repaired while IDs,
+correct indices, prompts, scenarios, explanations, metadata, sources, bank
+sizes, and option IDs remain unchanged. The permanent psychology contract pins
+those five distinctions and rejects answer-giveaway language.
+
+The exact final focused suite passed 76/76 Node assertions and 21/21 Python
+bounded-canary/geometry assertions. The manifest seals exact integer version 5,
+the four pipeline file digests, and aggregate bundle SHA-256
+`cb319d1fcd6ef2c945c7e0443fc5299d5c0deea8627851e998bd6b529a8bcc82`;
+an independent byte-level checksum check passed and `git diff --check` was
+clean. The PostgreSQL 17 solver-catalog verifier and ordered cache-replay
+contention verifier had already passed on the same source paths; the latter
+observed its expected opposite-order deadlock and both production-ordered
+writers completed.
+
+The M1 contract audit did not manufacture authority. Source establishes
+`cash-002` as the `hu_cash` 100bb BTN/IP continuation contract, M1 partition
+`2/0`, geometry `srp_parameterized_four_action_v3`, and the exact compatible
+parent/child candidates `2d7b403c-e4d3-4c20-bff8-ed5db7ecb50a` and
+`21d75135-faa8-4c0d-acbe-91b55c98daf0`. The canonical range filenames are
+`RFI_BTN_100.txt` and `BBflat_vs_BTN_100.txt`; host evidence proves their
+legacy `_9m_` aliases are byte-identical, but that fact alone does not grant
+semantic authority. Exact rake, range semantic approval, current target
+uniqueness, and the runnable M1-only manifest remain deliberately unresolved
+until they are encoded through the separate protected bounded-canary contract
+stage. This candidate therefore remains a source repair, not Phase 6 closure,
+and Phase 7 remains unstarted.
+
+### 2026-09-30 Protected Source Publication
+
+PR #2043 (`fix(training): close Phase 6 geometry, contention, and scenario
+gaps`) passed every required protected check at stable head
+`38ae338a2930731f2937837506ad6c4611644673` and stable base
+`a49d52135d903c6b8458dad2bed3e26bb6d46960`. The first CI pass correctly
+refused a stale generated Training surface ledger; the ledger was regenerated
+from the actual tree and the complete second pass was green without a bypass,
+rerun, or weakened assertion. Smarter Poker Autopilot squash-merged the PR as
+`51cdcdfefb5dd2c7e5e5a2acc00fbf067cef4a23` at 2026-09-30T17:47:38Z.
+
+Vercel reported the exact merge deployment complete. Production
+`https://smarter.poker/api/health` then returned healthy build
+`51cdcdfefb5dd2c7e5e5a2acc00fbf067cef4a23`, deployment
+`dpl_AVcpPgr54XwtWBoADZp4g9XkYnv5`, with healthy database and Training grading
+receipt checks. `/auth/login`, the Training Hub, and the play/arena routes for
+both `psy-001` and `cash-002` returned HTTP 200 on that exact live build.
+
+This completes publication of the source-repair stage only. It does not admit
+a solver artifact or close Phase 6. The M1 bounded-canary artifact builder,
+literal authority contract, one signed parent/child canary, and 6F-6I remain
+separate protected stages. Phase 7 remains unstarted.
+
+### 2026-09-30 M1 Bounded-Canary Artifact Builder Candidate
+
+The next source stage adds a controller-only builder for one reviewed M1
+bounded-canary packet. It emits only an inert manifest, literal activation
+migration, and receipt into a new local directory. It does not connect to a
+database, call the solver, activate a manifest, or modify the checked-in held
+manifest. The builder binds every pipeline byte to immutable protected Git
+blobs, validates M1 partition `2/0`, requires exactly 107 Training game
+contracts and the v3 geometry, uses atomic no-replace artifact publication,
+and records zero database writes.
+
+Closing review found and fixed two fail-open edges before publication. Manifest
+version is now the exact integer 5 rather than a lower bound; 4, 6, string
+`"5"`, float `5.0`, boolean `true`, and null all fail before output creation.
+Git subprocesses now receive only an absolute trusted Git executable and an
+exact allowlisted locale/Git safety environment; Supabase, database, worker
+HMAC, GitHub, and other controller credentials are never inherited. Permanent
+sentinel tests pin that isolation. The focused builder suite passes 9/9.
+
+This builder still grants no solver authority by itself. The exact rake,
+canonical range names and checksums, Pio identity, target identities, and
+protected-main commit must all be supplied in a separate reviewed packet, and
+the emitted migration must pass protected review and the database's own
+literal uniqueness/held-scope assertions before any M1 canary can run.
+
+### 2026-09-30 Builder Publication And M1 Contract Candidate
+
+The Policy 2.9 reader was rerun after the context resumption at
+2026-09-30T18:14:06Z. It emitted manifest
+`a659f31c5c1c2b0864889508079a635dd5fe2fc98decfbfc9d3f9c80dd45ec3b`
+with owner, operating, hardening, and reference hashes respectively
+`b9478d0331314413d8e12c41210b63479cdcabc1f86ed3fdcb3251efa36e6349`,
+`a8bc3c04dce3354ebdd51a89c0b7d715af3344edcc794d33f6b3ad64506961d5`,
+`d5fc451ce5caf6d6b5e64597a13883e1246581678fe53c962339d0a66136993e`,
+and `adce89c3f838f2f373cd504a00329d53906404d1dd42a647f672af6c16f95555`.
+
+Builder PR #2047 passed every required protected check and squash-merged as
+`1ccf3907cf3298e24609eb6fbd903023d91dbddf`. Vercel production deployment
+`dpl_7Usm5CwjwbczAm4ii6YYMjhZmdXE` completed successfully, and production
+`/api/health` returned that exact commit and deployment with healthy database
+and Training grading checks. Login, Training Hub, and cash-002 Level 8 play
+and arena routes returned HTTP 200; the solver gateway remained fail closed
+with GET 405 and unsigned POST 401. This completes publication of the inert
+builder stage only.
+
+The reviewed candidate now names one exact M1 partition `2/0` canary for the
+reserved `cash-002` continuation identities: parent
+`2d7b403c-e4d3-4c20-bff8-ed5db7ecb50a` at `r:0:c` and child
+`21d75135-faa8-4c0d-acbe-91b55c98daf0` at
+`r:0:c:b412:c:2d:c`. It binds Pio 3.8.0, binary and hand-order hashes, the
+canonical `RFI_BTN_100.txt` and `BBflat_vs_BTN_100.txt` range hashes, v3
+geometry, 550/9750 chip geometry, accuracy `0.005`, and the explicit normalized
+canary rake `0.05 10`. The checked-in manifest remains `solver_ready=false`
+and opens only `bounded_canary_ready` for that exact pair. The complete
+107-game family/stack compatibility ledger remains descriptive coverage, not
+permission to write anything beyond those two UUID/scenario/node identities.
+
+Independent review caught a release-binding defect before any database write:
+the old bundle builder read the manifest and unchanged runtime files from one
+commit, so a newly merged manifest would make the receipt disagree with the
+authority's runtime commit. The candidate repairs that at the source owner:
+the controller builder now takes and verifies distinct protected ancestors for
+`pipeline_commit` and `manifest_commit`, reads each exact Git blob from its
+named commit, and emits a v2 receipt binding both. Its Git subprocess uses the
+fixed `/usr/bin/git` executable and an exact minimal child environment, so
+Supabase, database, HMAC, GitHub, and provider credentials cannot be inherited.
+The migration generator also
+now emits the mandatory Tier 2 safety header and retains exact preflight and
+post-activation assertions.
+
+Focused local evidence on the current candidate:
+
+- 28/28 controller bundle and M1 artifact-builder Python tests pass.
+- 66/66 solver contract, bounded-canary, scoped-custody, and transaction-
+  control Node assertions pass.
+- The SQL runner dry-run accepts the exact generated migration SHA-256
+  `60b187a7b0779640e522f2feb9f0ddd1fc5fa3cc572542dcea77cbcbcba1f9df`
+  without loading credentials or connecting to a database.
+- A disposable PostgreSQL 17 verifier, with every temporary file on the
+  external SSD, executed the new migration after all five prerequisite solver
+  migrations. It proved the one exact authority, exactly two targets, only M1
+  bounded-canary partition `2/0`, and a wrong-child-node transaction rollback
+  with no authority, targets, or active scope left behind.
+- `git diff --check` is clean. The Training inventory remained current at 107
+  games before the final verifier addition and will be rechecked on the exact
+  pre-push candidate.
+
+No production database write, solver invocation, HMAC provisioning, range
+distribution, credential restoration, or global-header change has occurred in
+this contract stage. It remains a candidate until protected checks, merge,
+Vercel proof, migration installation/readback, exact bundle construction, and
+one signed M1 canary complete. Phase 6 remains open and Phase 7 has not started.

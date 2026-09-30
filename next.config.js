@@ -1,3 +1,5 @@
+const { imgSrcDirective } = require('./src/lib/security/imageHosts');
+
 /* ═══════════════════════════════════════════════════════════════════════════
    AUTH-CRITICAL FILES — BUILD-TIME EXISTENCE GUARD
    ───────────────────────────────────────────────────────────────────────────
@@ -347,6 +349,21 @@ const withPWA = require('@ducanh2912/next-pwa').default({
         handler: 'NetworkOnly',
         options: {
           cacheName: 'pages-html',
+        },
+      },
+      // Trivia art has its OWN cache, named for the exact art set that shipped
+      // (scripts/trivia-art/art-cache-name.mjs). CacheFirst never revalidates,
+      // so when any file under /images/trivia/ changes the name changes, and
+      // worker/index.js deletes the older trivia-art-* caches and any Trivia
+      // picture left in static-assets on activate: an installed client cannot
+      // keep art that was replaced or rejected. It must stay ABOVE the generic
+      // image rule, which would otherwise match first.
+      {
+        urlPattern: ({ url, sameOrigin }) => sameOrigin && url.pathname.startsWith('/images/trivia/'),
+        handler: 'CacheFirst',
+        options: {
+          cacheName: 'trivia-art-32d8d51ff2',
+          expiration: { maxEntries: 160, maxAgeSeconds: 60 * 60 * 24 * 30 }, // 30 days
         },
       },
       // Cache static assets (images, fonts) - cache first (content-hashed, safe)
@@ -766,13 +783,24 @@ const nextConfig = {
       // session until that day, ten days after the vendor was retired). Three
       // allowances that would otherwise have been carried into an enforced
       // policy for a script nothing loads.
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://maps.googleapis.com https://cdn.jsdelivr.net https://unpkg.com",
+      // https://commander.smarter.poker is OUR OWN app, rewritten onto this
+      // origin by vercel.json (/commander/:path* and /api/commander/:path*).
+      // Its Next build sets an absolute assetPrefix, because without one the
+      // proxied HTML asks THIS origin for Commander's chunks and every one
+      // 404s. So the page legitimately loads nine cross-origin scripts and a
+      // stylesheet, 'self' never matches a subdomain, and script-src had no
+      // wildcard: measured live, /commander/login reported 13 violations per
+      // load. The exact host, not https://*.smarter.poker, because a wildcard
+      // in script-src would authorise execution from every subdomain we own.
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://maps.googleapis.com https://cdn.jsdelivr.net https://unpkg.com https://commander.smarter.poker",
       // Styles: self + inline + Google Fonts
-      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://unpkg.com https://cdn.jsdelivr.net",
+      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://unpkg.com https://cdn.jsdelivr.net https://commander.smarter.poker",
       // Fonts: Google Fonts CDN
       "font-src 'self' https://fonts.gstatic.com data:",
       // Images: self + Supabase + Google Storage + Maps static + QR + YouTube thumbs + Giphy + data URIs
-      "img-src 'self' data: blob: https://*.supabase.co https://*.smarter.poker https://storage.googleapis.com https://maps.googleapis.com https://maps.gstatic.com https://server.arcgisonline.com https://api.qrserver.com https://img.youtube.com https://media.giphy.com https://*.giphy.com https://images.unsplash.com",
+      // Composed from src/lib/security/imageHosts.js, which the runtime guard
+      // reads too, so the policy and what the components will render cannot drift.
+      imgSrcDirective(),
       // Connections: API calls to Supabase, OneSignal, Google Maps (geocode), Giphy, LiveKit
       //
       "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://maps.googleapis.com https://api.giphy.com https://*.livekit.cloud wss://*.livekit.cloud https://smarter.poker https://*.smarter.poker wss://*.smarter.poker",
@@ -822,6 +850,43 @@ const nextConfig = {
     // frame-src, worker-src - break a page the moment one is wrong. They stay
     // report-only until the sweep has watched them for a while.
     //
+    // img-src GRADUATES HERE, and this is the evidence, measured 2026-09-30.
+    //
+    // It was the last loading directive still reporting, and it reported for
+    // exactly one reason: venue and news photography was fetched from other
+    // people's servers. Both are now fetched from ours, so an image request
+    // never names a remote host.
+    //
+    // Venue art: 192 of 478 venues carried a third-party URL across 104 hosts.
+    // Every one of those venues already had a mirrored logo_url that nothing
+    // read. The readers prefer the mirror now and safeImageUrl drops anything
+    // it cannot serve, so a gap in the data is a missing picture rather than a
+    // blocked request. Swept anonymously across 34 routes INCLUDING nine venue
+    // pages chosen because they still carry a third-party profile_photo_url:
+    // zero violations.
+    //
+    // News thumbnails: five publisher CDNs, 225 violations on a single load of
+    // /hub/news. A sixth publisher, cardplayer.com, fired none, because that
+    // one host was already routed through /api/proxy. Every thumbnail takes
+    // that route now. Verified live after deploy: 225 to ZERO, with 30 of 30
+    // proxied pictures loading and no broken requests, so the pictures are
+    // still there.
+    //
+    // Two hosts the list simply never named were fixed first: i.ytimg.com,
+    // where YouTube actually serves thumbnails, and commander.smarter.poker,
+    // our own app rewritten onto this origin (13 violations a load, now zero).
+    //
+    // WHAT BREAKS IF THIS IS WRONG, and how you would know: an image from a
+    // host not on IMAGE_SOURCES stops loading and the page shows whatever
+    // fallback that component already draws. report-uri stays on this header,
+    // so a mistake reports itself rather than hiding. Revert is this one line.
+    //
+    // STILL UNPROVEN, stated rather than buried: every sweep was anonymous.
+    // Signed-in surfaces were never loaded. The avatars they draw go through
+    // PokerIdentityMark, LogoHolder, DeepRouteSignalDeck or an explicit
+    // safeImageUrl call, all guarded, but that is an argument from the code
+    // and not a measurement.
+    //
     // What graduates here is the other kind: the four directives that govern
     // INJECTION rather than loading. None of them names a resource this site
     // fetches, so none of them can break a page by being slightly incomplete,
@@ -852,6 +917,7 @@ const nextConfig = {
     // chunk, leaving the page blank. The four above are unaffected by scheme,
     // so they apply everywhere and localhost is protected too.
     const enforcedCsp = [
+      imgSrcDirective(),
       "object-src 'none'",
       "base-uri 'self'",
       "form-action 'self'",

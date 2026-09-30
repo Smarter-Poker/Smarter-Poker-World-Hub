@@ -20,6 +20,8 @@ import { useAvatar } from '../../../src/contexts/AvatarContext';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import TriviaConsole from '../../../src/components/trivia/console/TriviaConsole';
+import ResponsiveModeArt from '../../../src/components/trivia/console/ResponsiveModeArt';
+import { TRIVIA_INTRO_ART_ENDLESS } from '../../../src/config/triviaIntroArt.mjs';
 import { toTitleCase } from '../../../src/lib/trivia/titleCase';
 import { formatTriviaDisplayNumber } from '../../../src/lib/trivia/formatTriviaDisplayNumber';
 import DiamondEngine from '../../../src/services/DiamondEngine';
@@ -818,15 +820,7 @@ export default function EndlessModePage() {
 
                                 {gameState === 'ready' && !isLoading && (
                                     <section className="trivia-challenge-intro" aria-labelledby="endless-ready-title">
-                                        <img
-                                            className="trivia-challenge-hero"
-                                            src="/images/trivia/modes-console-v1/endless.webp"
-                                            alt=""
-                                            aria-hidden="true"
-                                            width={1000}
-                                            height={563}
-                                            decoding="async"
-                                        />
+                                        <ResponsiveModeArt art={TRIVIA_INTRO_ART_ENDLESS} priority />
                                         <h2 id="endless-ready-title">Answer Until The Third Miss</h2>
                                         <p>
                                             Build The Longest Streak You Can Across A Server-Dealt

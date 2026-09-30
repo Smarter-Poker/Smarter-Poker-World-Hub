@@ -23,6 +23,7 @@ import { enforceTrainingQuestionContract, isTrainingQuestionValid } from '../../
 import { enforceSolverClaimHonesty, normalizeAuditedChartQuestion } from '../../../src/lib/training/solverDecisionEvidence';
 import { reportApiError } from '../../../src/lib/apiErrorHandler';
 import {
+    orderRowsForConcurrentWrite,
     runTrainingPersistenceQuery,
     trainingPersistenceUnavailableBody,
 } from '../../../src/lib/training/trainingPersistence.mjs';
@@ -799,12 +800,18 @@ export default async function handler(req, res) {
               });
           }
           const canonicalRows = selectedCanonicalPairs.map(({ row }) => row);
+          // Two players preloading the same game/level upsert the same
+          // deterministic question ids. Submitting them in one stable
+          // question_id order means both writers lock rows in the same
+          // sequence; the served order below still follows
+          // selectedCanonicalPairs and is unaffected.
+          const canonicalRowsForWrite = orderRowsForConcurrentWrite(canonicalRows, 'question_id');
 
           let servedBatch;
           try {
               const persisted = await runTrainingPersistenceQuery(
                   () => getSupabase().from('training_question_cache')
-                      .upsert(canonicalRows, {
+                      .upsert(canonicalRowsForWrite, {
                           onConflict: 'question_id',
                           defaultToNull: false,
                       })

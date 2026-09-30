@@ -39,15 +39,6 @@
     min-width: 0;
 }
 
-.strategy-trivia .strategy-hero {
-    display: block;
-    width: 100%;
-    height: auto;
-    aspect-ratio: 16 / 9;
-    object-fit: cover;
-    background: var(--tc-black);
-}
-
 .strategy-trivia .strategy-status {
     text-align: center;
 }

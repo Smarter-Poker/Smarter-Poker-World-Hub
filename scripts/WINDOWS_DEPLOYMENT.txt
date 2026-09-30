@@ -57,27 +57,34 @@ not supported on Windows, and M1/M2 must never execute it. Windows solver
 workers consume the controller-delivered exact five-file directory only.
 
 On that trusted controller, build the five-file directory from immutable Git
-object bytes with `scripts/preflop-deep/build_release_bundle.py`. Supply an
-exact protected-main ancestor commit, the independently observed 40-character
-protected-main commit through `--protected-main-commit`, a new absolute output
-directory, and the independently verified Pio version/binary checksum. The
-builder requires its canonical `refs/remotes/origin/main` to equal that separate
-controller attestation; refresh and verify the canonical remote before running
-it. The builder rejects dirty
+object bytes with `scripts/preflop-deep/build_release_bundle.py`. Supply the
+exact runtime-file commit through `--commit`, the exact manifest commit through
+`--manifest-commit`, the independently observed 40-character protected-main
+commit through `--protected-main-commit`, a new absolute output directory, and
+the independently verified Pio version/binary checksum. Both source commits
+must be ancestors of the exact canonical `refs/remotes/origin/main`, and the
+manifest checksum-seals the four runtime files from the named pipeline commit.
+This split is required when a reviewed manifest is published after unchanged
+runtime files; it prevents the receipt from falsely relabeling those runtime
+bytes as coming from the later manifest commit. The builder requires its
+canonical `refs/remotes/origin/main` to equal the separate controller
+attestation; refresh and verify the canonical remote before running it. The
+builder rejects dirty
 working-tree substitution, non-ancestor commits, symlinks/reparse points,
 pre-existing output, Git replacement/graft/environment substitution, corrupt object
 bytes, missing payloads, oversized files, and checksum drift. Its JSON receipt
-records the controller-attested protected-main commit and contains no HMAC or
-database credential.
+records the distinct pipeline and manifest commits plus the controller-attested
+protected-main commit and contains no HMAC or database credential.
 
 The worker must not fetch source from private GitHub raw URLs. It has no
 GitHub credential and no network fallback for pipeline distribution.
 
-On the controller, independently verify a protected 40-character commit and
-all required framework ancestors. Read the five exact Git blob byte streams
-from that commit: phases.json, run_machine.py, tree_gen.py, pio_harvest.py and
-orchestrate.py from scripts/preflop-deep. Preserve LF bytes on Windows; do not
-package checkout files that Git has converted to CRLF.
+On the controller, independently verify both protected 40-character source
+commits and all required framework ancestors. Read phases.json from the exact
+manifest commit and read run_machine.py, tree_gen.py, pio_harvest.py and
+orchestrate.py from the exact pipeline commit under scripts/preflop-deep.
+Preserve LF bytes on Windows; do not package checkout files that Git has
+converted to CRLF.
 
 The protected phases.json must declare
 pipeline_distribution="controller-local-bundle.v1", pipeline_files_sha256

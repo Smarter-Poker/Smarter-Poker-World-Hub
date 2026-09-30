@@ -528,3 +528,181 @@ body.world-poker-near-me .pnm-lobby-toast .pnm-lobby-toast__close:focus-visible 
     opacity: 1;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   LOBBY: FULL-BLEED CINEMATIC BACKDROP (desktop)
+   ═══════════════════════════════════════════════════════════════════════════
+   HubPageShell clamps `.pnm-feed-column` to `maxWidth` (1080 for this route)
+   and clips its overflow. The cinematic plate is a child of that column, so
+   above 1080px the backdrop stopped at the column edge and the page painted
+   flat `#020406` bars beside it: 180px each side at 1440, 420px each side at
+   1920. It read as a letterboxed image, not as a room the console sits in.
+   (The release rides the house 901px boundary; below 1080 the column is
+   already the viewport width, so nothing changes until it matters.)
+
+   The column releases its clamp on this route only, so the plate reaches the
+   viewport edge. Everything the reader aims at - the console overlay, the
+   pod deck, the search well - is clamped straight back to the same 1080px
+   measure, so nothing moves and the deck bitmap is untouched.
+
+   The plate keeps `background-size: cover` (LobbyCanvas sets it inline), so
+   the art is never stretched. casino-command-map-v1.webp is 1915x821 and the
+   holographic map table sits between 28% and 72% of its width; covering a
+   wider box widens the visible crop window (about 34%-66% of the source at
+   1080, 29%-71% at 1440, 22%-78% at 1920), so the table comes further into
+   frame at every step rather than being cut.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+@media (min-width: 901px) {
+  .pnm-feed-column:has(> .pnm-lobby-page) {
+    max-width: none;
+    overflow-x: visible;
+  }
+
+  .pnm-feed-column:has(> .pnm-lobby-page) > .pnm-lobby-page,
+  .pnm-lobby-page > .pnm-lobby-stage,
+  .pnm-lobby-page > div > .pnm-lobby-stage {
+    width: 100%;
+    max-width: none;
+  }
+
+  /* The reading measure the console kept before the plate was released.
+     The command row is left-aligned and the pod deck is right-aligned inside
+     it on purpose, so the overlay keeps the 1080px column rather than
+     spreading those two apart across a 1920px screen. Every child of the
+     overlay therefore lands on exactly the pixel it did before. */
+  .pnm-lobby-page .pnm-lobby-stage > .lobby-overlay,
+  .pnm-lobby-page .pnm-lobby-stage > div > .lobby-overlay {
+    width: min(1080px, 100%);
+    margin-inline: auto;
+  }
+
+  /* The command band's scrim reads as part of the plate, not as a panel.
+     At 1080 it was the full stage width and invisible; released, it became a
+     1080px slab of rgba(2, 5, 8, .92) sitting in the middle of the room. The
+     same scrim now spans the stage while its instruments keep the column.
+     Nothing new is drawn here: the fill, the rule and the drop are the
+     command layer's own, moved onto the element that spans. */
+  .pnm-lobby-page .pnm-lobby-stage .lobby-overlay > .lobby-topbar {
+    position: relative;
+    border-bottom-color: transparent;
+    background: transparent !important;
+    box-shadow: none;
+  }
+
+  .pnm-lobby-page .pnm-lobby-stage .lobby-overlay > .lobby-topbar::after {
+    content: '';
+    position: absolute;
+    z-index: -1;
+    top: 0;
+    bottom: 0;
+    left: 50%;
+    width: 100vw;
+    border-bottom: 1px solid rgba(151, 174, 195, 0.18);
+    background: rgba(2, 5, 8, 0.92);
+    box-shadow: 0 18px 42px rgba(0, 0, 0, 0.38);
+    pointer-events: none;
+    transform: translateX(-50%);
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   LOBBY: ABOUT POKER NEAR ME
+   ═══════════════════════════════════════════════════════════════════════════
+   HubPageSummary is shared by about thirty hub routes and dresses itself with
+   inline styles, so this block arrived on the lobby as bare copy over three
+   1px rounded rectangles - the only unframed thing under a heavily framed
+   console. lobby.js now prints it inside PokerNearMePanelShell, the painted
+   three-slice chassis (painted-panels-v1 head / mid / foot) every other Poker
+   Near Me panel already uses. These rules only stand the shared inline dress
+   down so the painted art is what the reader sees; no frame is built here.
+
+   A row is separated from the next by an engraved rule, never a drawn card -
+   the same answer the approved Trivia console dress gives this component.
+   Scoped to `.pnm-lobby-summary`, which exists on this route alone.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.pnm-lobby-summary {
+  width: min(1120px, 100%);
+  margin: 0 auto;
+  padding: 8px 12px 40px;
+  box-sizing: border-box;
+}
+
+/* panel-mid.png's rails end at 8.8% of the slice width on each side, so the
+   glass content starts at the same 10.5% inset the console's own cards use
+   and never prints over a rail. */
+.pnm-lobby-summary .pnc-panel__body.pnm-lobby-summary__body {
+  padding: 14px 10.5% 16px;
+  gap: 0;
+}
+
+/* The painted body owns the inset, the ground and the measure. */
+.pnm-lobby-summary .pnm-lobby-summary__body > section {
+  max-width: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  background: none !important;
+  color: #e4e7ec !important;
+}
+
+.pnm-lobby-summary .pnm-lobby-summary__body > section > :is(h1, h2) {
+  color: #e4e7ec !important;
+  font-family: var(--font-rajdhani), 'Roboto Condensed', Inter, system-ui, sans-serif !important;
+  letter-spacing: 0.04em !important;
+}
+
+.pnm-lobby-summary .pnm-lobby-summary__body > section > p {
+  color: #9aa5b3 !important;
+}
+
+.pnm-lobby-summary .pnm-lobby-summary__body ul {
+  column-gap: 24px !important;
+  row-gap: 0 !important;
+}
+
+/* The shared list asks for `auto-fit, minmax(280px, 1fr)`. Inside the painted
+   rails the glass is narrower than the bare page was, and three 280px tracks
+   no longer fit, so the third row dropped to its own line and left a hole.
+   The three routes are a fixed set: name the three tracks once there is room
+   for them, and leave the phone stack to auto-fit. */
+@media (min-width: 901px) {
+  .pnm-lobby-summary .pnm-lobby-summary__body ul {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+}
+
+/* The three drawn cards become rows on the painted glass. */
+.pnm-lobby-summary .pnm-lobby-summary__body li {
+  padding: 10px 0 14px !important;
+  border: 0 !important;
+  border-top: 1px solid rgb(154 165 179 / 16%) !important;
+  border-radius: 0 !important;
+  background: none !important;
+  box-shadow: none !important;
+}
+
+.pnm-lobby-summary .pnm-lobby-summary__body li > a {
+  display: inline-flex !important;
+  min-height: 44px;
+  align-items: center;
+  color: #45adff !important;
+  font-family: var(--font-rajdhani), 'Roboto Condensed', Inter, system-ui, sans-serif !important;
+  letter-spacing: 0.06em !important;
+}
+
+.pnm-lobby-summary .pnm-lobby-summary__body li > span {
+  display: block;
+  color: #9aa5b3 !important;
+}
+
+.pnm-lobby-summary .pnm-lobby-summary__body > section > p:last-of-type {
+  color: #9aa5b3 !important;
+}
+
+.pnm-lobby-summary .pnm-lobby-summary__body > section > p:last-of-type a {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  color: #45adff !important;
+}

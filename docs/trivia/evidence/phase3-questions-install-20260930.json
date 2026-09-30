@@ -531,5 +531,92 @@
   "trivia_entry": "refused (400, code trivia_entry_charged_at_session_start)",
   "app_callers": 0,
   "diamond_transactions_with_type_trivia_entry_ever": 0
+ },
+ "post_release": {
+  "first_scheduled_run": {
+   "at": "2026-09-30T13:30:03Z",
+   "route": "GET /api/cron/trivia-pool-guard 200",
+   "cron_health": "success",
+   "phase3": "health failed: canceling statement due to statement timeout (service_role statement_timeout 8s)",
+   "health_runs_recorded": 0,
+   "alert_events": 0
+  },
+  "measured_before_fix": {
+   "health_secs": "4.1-6.1",
+   "preflight_256_secs": {
+    "no_history": 6.1,
+    "entrants_with_history": 15.1
+   },
+   "preflight_512_secs": {
+    "no_history": 8.2,
+    "entrants_with_history": 16.3
+   },
+   "select_core_secs_per_roster": "0.6-4.6",
+   "cause": "the eligible pool view is estimated at 1 row, so the planner joined it row by row against players seen questions (10.7M comparisons for one roster); the preflight rebuilt the pool every round; the revision hash wrapper cannot be inlined"
+  },
+  "validation_on_production_before_install": {
+   "method": "old and new in the same transaction; new versions as session-temporary functions; every write rolled back",
+   "select_core_rosters": {
+    "cases": 60,
+    "identical": 60,
+    "covers": "15 profiles, players seen questions (tier 2), scarcity, exclusions, oversized counts"
+   },
+   "tournament_plans": {
+    "brackets": [
+     256,
+     512
+    ],
+    "identical": true,
+    "rows": [
+     80,
+     90
+    ]
+   },
+   "capacity": {
+    "bracket_sizes": [
+     1,
+     2,
+     3,
+     64,
+     256,
+     512,
+     1024,
+     4096,
+     5000
+    ],
+    "identical": true
+   },
+   "health_metrics_identical": true,
+   "rehearsal": "full migration applied and rolled back; postconditions passed"
+  },
+  "installed": [
+   {
+    "version": "20260930141736",
+    "name": "trivia_p3_engine_speed"
+   },
+   {
+    "version": "20260930142146",
+    "name": "trivia_p3_health_speed"
+   }
+  ],
+  "measured_after_fix_as_service_role": {
+   "health_secs": "1.6-4.3 (load dependent)",
+   "preflight_256_secs": 2.6,
+   "preflight_512_secs": 2.5,
+   "select_core_secs_per_roster": "0.2-0.3"
+  },
+  "replica_run4": {
+   "ranAt": "2026-09-30T16:20:58.579Z",
+   "passed": 74,
+   "failed": 0,
+   "seconds": 59,
+   "goldenAggregate": "a3b572a95c1cfc02be3a6394d2f7a9f10fd9358e7a78a51c1a478118dde156dc",
+   "golden_unchanged": true
+  },
+  "catalog_after": {
+   "functions": 56,
+   "md5": "fcfa90e4dfb0ebac5da34ab57bad8c2b"
+  },
+  "new_alert": "TriviaQuestionHealthCheckFailed: a health run that cannot finish now raises its own alert (one episode per UTC day)"
  }
 }

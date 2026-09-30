@@ -104,6 +104,7 @@ export default function MoreTabPanel({
     return (
         <div className="more-tools-stack" style={{ display: 'flex', flexDirection: 'column', gap: 24, padding: '8px 0 20px', width: '100%' }}>
             <div className="more-tools-overview">
+                <PokerNearMePanelShell as="div" className="pnm-section__frame" bodyClassName="pnm-anchor-well">
                 <nav className="pnm-sub-tabs" aria-label="Discovery tools">
                     {SUB_ANCHORS.map((sub) => {
                         const selected = activeMoreTab === sub.key;
@@ -120,6 +121,7 @@ export default function MoreTabPanel({
                         );
                     })}
                 </nav>
+                </PokerNearMePanelShell>
                 <div className="more-tools-grid">
                     {TOOL_CARDS.map(tool => (
                         <PokerNearMePanelShell
@@ -143,14 +145,18 @@ export default function MoreTabPanel({
             {/* BEST TIME TO GO publishes only when qualified observed history is
                 available. Catalog/schedule rows never become activity counts. */}
             <div id={sectionId('besttime')} className="pnm-subsection" data-tutorial="best-time">
-                <h3 className="pnm-subsection__title">Best Time To Go</h3>
+                <PokerNearMePanelShell as="header" className="pnm-section__frame" bodyClassName="pnm-subsection__head">
+                    <h3 className="pnm-subsection__title">Best Time To Go</h3>
+                </PokerNearMePanelShell>
                 <LazyPanel minHeight={260}>
                     <PeakActivityHeatmap />
                 </LazyPanel>
             </div>
 
             <div id={sectionId('roadtrip')} className="pnm-subsection">
-                <h3 className="pnm-subsection__title">Road Trip Planner</h3>
+                <PokerNearMePanelShell as="header" className="pnm-section__frame" bodyClassName="pnm-subsection__head">
+                    <h3 className="pnm-subsection__title">Road Trip Planner</h3>
+                </PokerNearMePanelShell>
                 <LazyPanel minHeight={320}>
                     <div onClickCapture={gate}>
                         <RoadTripPlanner venues={effectiveVenues} userLocation={userLocation} dailyTournaments={dailyTournaments} series={series} locationCity={gpsLocationLabel ? gpsLocationLabel.split(',')[0]?.trim() : ''} locationState={gpsLocationLabel ? gpsLocationLabel.split(',')[1]?.trim() : ''} />
@@ -159,14 +165,18 @@ export default function MoreTabPanel({
             </div>
 
             <div id={sectionId('social')} className="pnm-subsection" data-tutorial="social">
-                <h3 className="pnm-subsection__title">Social Feed</h3>
+                <PokerNearMePanelShell as="header" className="pnm-section__frame" bodyClassName="pnm-subsection__head">
+                    <h3 className="pnm-subsection__title">Social Feed</h3>
+                </PokerNearMePanelShell>
                 <LazyPanel minHeight={320}>
                     <SocialLayer userId={userId} userLocation={userLocation} venues={effectiveVenues} authToken={authToken} requireOnline={requireOnline} />
                 </LazyPanel>
             </div>
 
             <div id={sectionId('alerts')} className="pnm-subsection">
-                <h3 className="pnm-subsection__title">Game Alerts</h3>
+                <PokerNearMePanelShell as="header" className="pnm-section__frame" bodyClassName="pnm-subsection__head">
+                    <h3 className="pnm-subsection__title">Game Alerts</h3>
+                </PokerNearMePanelShell>
                 <LazyPanel minHeight={260}>
                     {geofenceStatus === 'denied' && (
                         <div className="geofence-notice denied" style={{ marginBottom: 12 }}>
@@ -193,14 +203,18 @@ export default function MoreTabPanel({
             </div>
 
             <div id={sectionId('nearmenow')} className="pnm-subsection">
-                <h3 className="pnm-subsection__title">Near Me Now</h3>
+                <PokerNearMePanelShell as="header" className="pnm-section__frame" bodyClassName="pnm-subsection__head">
+                    <h3 className="pnm-subsection__title">Near Me Now</h3>
+                </PokerNearMePanelShell>
                 <LazyPanel minHeight={260}>
                     <NearMeNowFeed userLocation={userLocation} venues={effectiveVenues} onRequestGPS={requestGpsLocation} onSwitchTab={setActiveTab} onNavigateVenue={(venueId) => { if (openVenueModal) openVenueModal(`/hub/venues/${venueId}`); else if (typeof window !== 'undefined') window.location.href = `/hub/venues/${venueId}`; }} />
                 </LazyPanel>
             </div>
 
             <div id={sectionId('tripcost')} className="pnm-subsection">
-                <h3 className="pnm-subsection__title">Trip Cost Calculator</h3>
+                <PokerNearMePanelShell as="header" className="pnm-section__frame" bodyClassName="pnm-subsection__head">
+                    <h3 className="pnm-subsection__title">Trip Cost Calculator</h3>
+                </PokerNearMePanelShell>
                 <LazyPanel minHeight={260}>
                     <div onClickCapture={gate}>
                         <TripCostCalculator venues={effectiveVenues} userLocation={userLocation} />

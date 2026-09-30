@@ -8,6 +8,8 @@
  * API boundary in either direction.
  */
 
+import { createHash } from 'node:crypto';
+
 /** Only the exact lowercase string `true` enables a control (Phase 1 convention). */
 const enabled = (value) => value === 'true';
 
@@ -126,4 +128,23 @@ export function v3ErrorStatus(code) {
         case 'survival_level_not_passed': case 'invalid_survival_continuation': return 409;
         default: return 500;
     }
+}
+
+/**
+ * The alert for a question health run that could not finish (a statement timeout, say).
+ * Without it the question and session checks would go quiet exactly when the database
+ * struggles. One episode per UTC day, because the pool guard runs once a day.
+ */
+export const HEALTH_CHECK_FAILED_ALERT = 'TriviaQuestionHealthCheckFailed';
+
+export function phase3HealthFailureEvent({ source, error, now = new Date() }) {
+    const day = new Date(now).toISOString().slice(0, 10);
+    return {
+        source,
+        event_key: createHash('sha256').update(`trivia-ops/1:${HEALTH_CHECK_FAILED_ALERT}:${day}`).digest('hex'),
+        alertname: HEALTH_CHECK_FAILED_ALERT,
+        status: 'firing',
+        severity: 'warning',
+        payload: { summary: `Trivia question health check did not finish: ${String(error || 'unknown').slice(0, 200)}`, day },
+    };
 }

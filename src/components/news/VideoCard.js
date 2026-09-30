@@ -2,6 +2,7 @@ import React from 'react';
 import { Play } from 'lucide-react';
 import SPImage from '../common/SPImage';
 import { formatViews, FALLBACK_IMAGES, safeText, CardErrorBoundary } from './NewsBox';
+import { newsImageUrl } from '../../lib/security/imageHosts.js';
 
 function VideoCardBody({ video, onClick }) {
     if (!video) return null;
@@ -18,9 +19,7 @@ function VideoCardBody({ video, onClick }) {
     const title = safeText(video.title);
     const channel = safeText(video.channel) || 'Smarter.Poker';
     const duration = safeText(video.duration);
-    const thumbnailUrl = (typeof video.thumbnail_url === 'string' && video.thumbnail_url)
-        ? video.thumbnail_url
-        : FALLBACK_IMAGES.news;
+    const thumbnailUrl = newsImageUrl(video.thumbnail_url) || FALLBACK_IMAGES.news;
 
     // ACCESSIBILITY NOTE: this card contains NO nested interactive elements —
     // the play button is a decorative aria-hidden div. A div with role="button"

@@ -18,9 +18,9 @@
     "dialogs": 12,
     "persistenceFiles": 77,
     "realtimeFiles": 6,
-    "tests": 149,
-    "markerCandidates": 331,
-    "possibleUnwiredFunctions": 378,
+    "tests": 151,
+    "markerCandidates": 333,
+    "possibleUnwiredFunctions": 379,
     "routeStateCells": 752,
     "routeStateCoverageGaps": 277,
     "routeStateUnassignedGaps": 0,
@@ -18714,7 +18714,7 @@
       "functions": [
         {
           "name": "getSupabase",
-          "line": 68,
+          "line": 69,
           "references": 11,
           "exported": false,
           "defaultExport": false,
@@ -18722,7 +18722,7 @@
         },
         {
           "name": "normalizeCampaignQuestionWithoutFabrication",
-          "line": 89,
+          "line": 90,
           "references": 5,
           "exported": false,
           "defaultExport": false,
@@ -18730,7 +18730,7 @@
         },
         {
           "name": "reportRejectedEngineCandidates",
-          "line": 128,
+          "line": 129,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -18738,7 +18738,7 @@
         },
         {
           "name": "handler",
-          "line": 136,
+          "line": 137,
           "references": 2,
           "exported": true,
           "defaultExport": true,
@@ -18746,7 +18746,7 @@
         },
         {
           "name": "reject",
-          "line": 90,
+          "line": 91,
           "references": 4,
           "exported": false,
           "defaultExport": false,
@@ -18754,7 +18754,7 @@
         },
         {
           "name": "refuseUnavailableAttestationContinuationCohort",
-          "line": 256,
+          "line": 257,
           "references": 7,
           "exported": false,
           "defaultExport": false,
@@ -18762,7 +18762,7 @@
         },
         {
           "name": "isAggressiveAnswer",
-          "line": 594,
+          "line": 595,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -18773,7 +18773,7 @@
       "markers": [
         {
           "kind": "FALLBACK",
-          "line": 382,
+          "line": 383,
           "excerpt": "// SOLVER ENGINE FALLBACK: If cache is empty or insufficient,",
           "disposition": "training-data-provenance-fallback",
           "review": "documented-follow-up",
@@ -18782,7 +18782,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 498,
+          "line": 499,
           "excerpt": "// honest fallback instead of rows this route",
           "disposition": "historical-or-prohibition-comment",
           "review": "accepted",
@@ -18790,7 +18790,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 531,
+          "line": 532,
           "excerpt": "// No AI fallback — engines handle all question generation",
           "disposition": "historical-or-prohibition-comment",
           "review": "accepted",
@@ -18798,7 +18798,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 570,
+          "line": 571,
           "excerpt": "// ●●● Engine-only — no AI fallback. Return 404 if no solver data exists. ●●●",
           "disposition": "historical-or-prohibition-comment",
           "review": "accepted",
@@ -18806,7 +18806,7 @@
         },
         {
           "kind": "SIMULATED",
-          "line": 683,
+          "line": 684,
           "excerpt": "// heuristic, simulated, and incomplete rows were already rejected",
           "disposition": "domain-simulation",
           "review": "accepted",
@@ -18814,7 +18814,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 695,
+          "line": 696,
           "excerpt": "* \"fallback\" called this same route (see the note in",
           "disposition": "runtime-resilience-fallback",
           "review": "documented-follow-up",
@@ -35983,7 +35983,7 @@
         {
           "element": "link",
           "name": "<dynamic>",
-          "line": 636,
+          "line": 650,
           "handler": null,
           "destination": "link.href",
           "type": null,
@@ -35993,7 +35993,7 @@
         {
           "element": "link",
           "name": "Terms",
-          "line": 645,
+          "line": 659,
           "handler": null,
           "destination": "/terms",
           "type": null,
@@ -36003,7 +36003,7 @@
         {
           "element": "link",
           "name": "Privacy",
-          "line": 648,
+          "line": 662,
           "handler": null,
           "destination": "/privacy",
           "type": null,
@@ -36042,8 +36042,16 @@
       },
       "functions": [
         {
+          "name": "usesConsoleDress",
+          "line": 614,
+          "references": 2,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
           "name": "HubPageSummary",
-          "line": 605,
+          "line": 619,
           "references": 1,
           "exported": true,
           "defaultExport": true,
@@ -36220,7 +36228,7 @@
         {
           "element": "button",
           "name": "Close",
-          "line": 1640,
+          "line": 1694,
           "handler": "onClose",
           "destination": null,
           "type": null,
@@ -36230,7 +36238,7 @@
         {
           "element": "button",
           "name": "Buy Diamonds",
-          "line": 1729,
+          "line": 1783,
           "handler": "() => {\n                onClose();\n                onBuyClick?.();\n              }",
           "destination": null,
           "type": "button",
@@ -36240,7 +36248,7 @@
         {
           "element": "button",
           "name": "Send Diamonds To A Friend",
-          "line": 1740,
+          "line": 1794,
           "handler": "() => {\n                setShowTransfer((value) => !value);\n                fetchFriends();\n              }",
           "destination": null,
           "type": "button",
@@ -36250,7 +36258,7 @@
         {
           "element": "button",
           "name": "Clear",
-          "line": 1782,
+          "line": 1836,
           "handler": "() => setSearchQuery('')",
           "destination": null,
           "type": "button",
@@ -36260,7 +36268,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 1817,
+          "line": 1871,
           "handler": "() => handleFilterChange(opt.value)",
           "destination": null,
           "type": "button",
@@ -36270,7 +36278,7 @@
         {
           "element": "button",
           "name": "Stats",
-          "line": 1839,
+          "line": 1893,
           "handler": "() => setShowStats((v) => !v)",
           "destination": null,
           "type": "button",
@@ -36280,7 +36288,7 @@
         {
           "element": "button",
           "name": "Choose A Different Friend",
-          "line": 1916,
+          "line": 1970,
           "handler": "() => {\n                          setTransferRecipient(null);\n                          setFriendSearch('');\n                          setTransferAmount('');\n                          setConfirmTransfer(null);\n                        }",
           "destination": null,
           "type": "button",
@@ -36290,7 +36298,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 1937,
+          "line": 1991,
           "handler": "() => {\n                                setTransferRecipient(r);\n                                setFriendSearch('');\n                              }",
           "destination": null,
           "type": "button",
@@ -36300,7 +36308,7 @@
         {
           "element": "button",
           "name": "Clear Search",
-          "line": 1968,
+          "line": 2022,
           "handler": "() => setFriendSearch('')",
           "destination": null,
           "type": "button",
@@ -36310,7 +36318,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 1999,
+          "line": 2053,
           "handler": "() => {\n                                    setTransferRecipient(f);\n                                    setFriendSearch('');\n                                  }",
           "destination": null,
           "type": "button",
@@ -36320,7 +36328,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 2080,
+          "line": 2134,
           "handler": "handleTransfer",
           "destination": null,
           "type": "button",
@@ -36330,7 +36338,7 @@
         {
           "element": "button",
           "name": "Cancel",
-          "line": 2141,
+          "line": 2195,
           "handler": "() => setConfirmTransfer(null)",
           "destination": null,
           "type": "button",
@@ -36340,7 +36348,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 2148,
+          "line": 2202,
           "handler": "handleTransfer",
           "destination": null,
           "type": "button",
@@ -36350,7 +36358,7 @@
         {
           "element": "button",
           "name": "Retry",
-          "line": 2412,
+          "line": 2489,
           "handler": "() => fetchTransactions()",
           "destination": null,
           "type": "button",
@@ -36360,7 +36368,7 @@
         {
           "element": "button",
           "name": "Show Everything",
-          "line": 2459,
+          "line": 2536,
           "handler": "() => {\n                      setSearchQuery('');\n                      setDateRange('all');\n                      try {\n                        localStorage.setItem(DATE_RANGE_CACHE_KEY, 'all');\n                      } catch (_) {\n                        console.warn('[App] Handled exception:', _?.message || _);\n                      }\n                    }",
           "destination": null,
           "type": "button",
@@ -36370,7 +36378,7 @@
         {
           "element": "button",
           "name": "Get Your First Diamonds",
-          "line": 2482,
+          "line": 2559,
           "handler": "() => {\n                          onClose();\n                          onBuyClick?.();\n                        }",
           "destination": null,
           "type": "button",
@@ -36380,7 +36388,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 2616,
+          "line": 2693,
           "handler": "async (e) => {\n                              e.stopPropagation();\n                              if (await copyReceiptToClipboard(tx)) {\n                                setCopiedTxId(tx.id);\n                                clearTimeout(copyTimerRef.current);\n                                copyTimerRef.current = setTimeout(() => setCopiedTxId(null), 2000);\n                              }\n                            }",
           "destination": null,
           "type": "button",
@@ -36390,7 +36398,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 2639,
+          "line": 2716,
           "handler": "() => fetchTransactions(transactions.length)",
           "destination": null,
           "type": "button",
@@ -36566,7 +36574,7 @@
         },
         {
           "name": "handleBalanceRefresh",
-          "line": 685,
+          "line": 702,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -36574,7 +36582,7 @@
         },
         {
           "name": "handleBusEvent",
-          "line": 717,
+          "line": 734,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -36582,7 +36590,7 @@
         },
         {
           "name": "handleKeyDown",
-          "line": 992,
+          "line": 1046,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -36590,7 +36598,7 @@
         },
         {
           "name": "giftLine",
-          "line": 1554,
+          "line": 1608,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -36601,7 +36609,7 @@
       "markers": [
         {
           "kind": "PLACEHOLDER",
-          "line": 1368,
+          "line": 1422,
           "excerpt": "// BALANCE-AUTHORITY: only as a placeholder when we have nothing :",
           "disposition": "frozen-global-header-dependency",
           "review": "accepted",
@@ -36609,7 +36617,7 @@
         },
         {
           "kind": "PLACEHOLDER",
-          "line": 1777,
+          "line": 1831,
           "excerpt": "placeholder=\"Search Transactions...\"",
           "disposition": "frozen-global-header-dependency",
           "review": "accepted",
@@ -36617,7 +36625,7 @@
         },
         {
           "kind": "PLACEHOLDER",
-          "line": 1962,
+          "line": 2016,
           "excerpt": "placeholder=\"Type A Friend's Name...\"",
           "disposition": "frozen-global-header-dependency",
           "review": "accepted",
@@ -36625,7 +36633,7 @@
         },
         {
           "kind": "PLACEHOLDER",
-          "line": 2074,
+          "line": 2128,
           "excerpt": "placeholder=\"Enter Diamond Amount...\"",
           "disposition": "frozen-global-header-dependency",
           "review": "accepted",
@@ -43581,7 +43589,7 @@
         "offline": true,
         "stale": true,
         "success": true,
-        "authExpiry": false
+        "authExpiry": true
       },
       "persistenceWrites": {
         "localStorage": 0,
@@ -43600,7 +43608,7 @@
       "functions": [
         {
           "name": "buildGeneralPool",
-          "line": 2410,
+          "line": 8437,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -43608,7 +43616,15 @@
         },
         {
           "name": "difficultyBandForLevel",
-          "line": 2424,
+          "line": 8451,
+          "references": 2,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "stableGameSeed",
+          "line": 8459,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -43616,7 +43632,7 @@
         },
         {
           "name": "formatQuestion",
-          "line": 2432,
+          "line": 8468,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -43624,15 +43640,23 @@
         },
         {
           "name": "getPsychologyQuestions",
-          "line": 2466,
+          "line": 8518,
           "references": 3,
           "exported": true,
           "defaultExport": false,
           "namedFunctionExpression": false
         },
         {
+          "name": "getPsychologyBankSize",
+          "line": 8560,
+          "references": 2,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
           "name": "getPsychologyGameIds",
-          "line": 2513,
+          "line": 8566,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -43640,7 +43664,7 @@
         },
         {
           "name": "qid",
-          "line": 2489,
+          "line": 8541,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -43650,8 +43674,24 @@
       "possibleUnwiredFunctions": [],
       "markers": [
         {
+          "kind": "SIMULATION",
+          "line": 6298,
+          "excerpt": "s: 'A simulation shows your current losing stretch happens to a player with your win rate about once a year.',",
+          "disposition": "domain-simulation",
+          "review": "accepted",
+          "rationale": "Poker/training simulation is an intentional product capability; solver provenance is audited separately."
+        },
+        {
+          "kind": "SIMULATION",
+          "line": 6303,
+          "excerpt": "'Denial, because the simulation cannot account for the specific opponents you face',",
+          "disposition": "domain-simulation",
+          "review": "accepted",
+          "rationale": "Poker/training simulation is an intentional product capability; solver provenance is audited separately."
+        },
+        {
           "kind": "FALLBACK",
-          "line": 2406,
+          "line": 8433,
           "excerpt": "// GENERAL POOL — fallback for unknown SCENARIO gameIds",
           "disposition": "training-data-provenance-fallback",
           "review": "documented-follow-up",
@@ -55658,7 +55698,7 @@
         },
         {
           "name": "isTrainingAttemptContractError",
-          "line": 1043,
+          "line": 1046,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -56117,8 +56157,32 @@
       },
       "functions": [
         {
+          "name": "isTrainingPersistenceContention",
+          "line": 17,
+          "references": 2,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "orderRowsForConcurrentWrite",
+          "line": 28,
+          "references": 1,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "sleep",
+          "line": 37,
+          "references": 2,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
           "name": "isTrainingPersistenceUnavailable",
-          "line": 16,
+          "line": 51,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -56126,7 +56190,7 @@
         },
         {
           "name": "runBoundedQuery",
-          "line": 21,
+          "line": 56,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -56134,7 +56198,7 @@
         },
         {
           "name": "runTrainingPersistenceQuery",
-          "line": 56,
+          "line": 91,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -56142,7 +56206,7 @@
         },
         {
           "name": "trainingPersistenceUnavailableBody",
-          "line": 77,
+          "line": 130,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -56150,6 +56214,7 @@
         }
       ],
       "possibleUnwiredFunctions": [
+        "orderRowsForConcurrentWrite",
         "runTrainingPersistenceQuery",
         "trainingPersistenceUnavailableBody"
       ],
@@ -62386,12 +62451,14 @@
     "__tests__/training-practice-session-boundary.test.mjs",
     "__tests__/training-preflop-chart-authority.test.mjs",
     "__tests__/training-preflop-daily-practice-authority.test.mjs",
+    "__tests__/training-preload-persistence-contention.test.mjs",
     "__tests__/training-preloader-eligibility.test.mjs",
     "__tests__/training-production-delivery-attestation.test.mjs",
     "__tests__/training-production-smoke-auth.test.mjs",
     "__tests__/training-production-smoke-contract.test.mjs",
     "__tests__/training-progress-authority-read.test.mjs",
     "__tests__/training-projection-authority-package-c.test.mjs",
+    "__tests__/training-psychology-bank-contract.test.mjs",
     "__tests__/training-question-delivery-authority.test.mjs",
     "__tests__/training-question-integrity.test.mjs",
     "__tests__/training-question-order-contract.test.mjs",
@@ -66144,11 +66211,11 @@
       "effectRef": "src/components/poker/QuizAnswer.jsx"
     },
     {
-      "id": "src/components/seo/HubPageSummary.js:636:1",
+      "id": "src/components/seo/HubPageSummary.js:650:1",
       "file": "src/components/seo/HubPageSummary.js",
       "element": "link",
       "name": "<dynamic>",
-      "line": 636,
+      "line": 650,
       "handler": null,
       "destination": "link.href",
       "type": null,
@@ -66157,11 +66224,11 @@
       "effectRef": "src/components/seo/HubPageSummary.js"
     },
     {
-      "id": "src/components/seo/HubPageSummary.js:645:2",
+      "id": "src/components/seo/HubPageSummary.js:659:2",
       "file": "src/components/seo/HubPageSummary.js",
       "element": "link",
       "name": "Terms",
-      "line": 645,
+      "line": 659,
       "handler": null,
       "destination": "/terms",
       "type": null,
@@ -66170,11 +66237,11 @@
       "effectRef": "src/components/seo/HubPageSummary.js"
     },
     {
-      "id": "src/components/seo/HubPageSummary.js:648:3",
+      "id": "src/components/seo/HubPageSummary.js:662:3",
       "file": "src/components/seo/HubPageSummary.js",
       "element": "link",
       "name": "Privacy",
-      "line": 648,
+      "line": 662,
       "handler": null,
       "destination": "/privacy",
       "type": null,
@@ -66196,11 +66263,11 @@
       "effectRef": "src/components/store/DiamondInPlayBalance.jsx"
     },
     {
-      "id": "src/components/store/DiamondWalletModal.jsx:1640:1",
+      "id": "src/components/store/DiamondWalletModal.jsx:1694:1",
       "file": "src/components/store/DiamondWalletModal.jsx",
       "element": "button",
       "name": "Close",
-      "line": 1640,
+      "line": 1694,
       "handler": "onClose",
       "destination": null,
       "type": null,
@@ -66209,11 +66276,11 @@
       "effectRef": "src/components/store/DiamondWalletModal.jsx"
     },
     {
-      "id": "src/components/store/DiamondWalletModal.jsx:1729:2",
+      "id": "src/components/store/DiamondWalletModal.jsx:1783:2",
       "file": "src/components/store/DiamondWalletModal.jsx",
       "element": "button",
       "name": "Buy Diamonds",
-      "line": 1729,
+      "line": 1783,
       "handler": "() => {\n                onClose();\n                onBuyClick?.();\n              }",
       "destination": null,
       "type": "button",
@@ -66222,11 +66289,11 @@
       "effectRef": "src/components/store/DiamondWalletModal.jsx"
     },
     {
-      "id": "src/components/store/DiamondWalletModal.jsx:1740:3",
+      "id": "src/components/store/DiamondWalletModal.jsx:1794:3",
       "file": "src/components/store/DiamondWalletModal.jsx",
       "element": "button",
       "name": "Send Diamonds To A Friend",
-      "line": 1740,
+      "line": 1794,
       "handler": "() => {\n                setShowTransfer((value) => !value);\n                fetchFriends();\n              }",
       "destination": null,
       "type": "button",
@@ -66235,11 +66302,11 @@
       "effectRef": "src/components/store/DiamondWalletModal.jsx"
     },
     {
-      "id": "src/components/store/DiamondWalletModal.jsx:1782:4",
+      "id": "src/components/store/DiamondWalletModal.jsx:1836:4",
       "file": "src/components/store/DiamondWalletModal.jsx",
       "element": "button",
       "name": "Clear",
-      "line": 1782,
+      "line": 1836,
       "handler": "() => setSearchQuery('')",
       "destination": null,
       "type": "button",
@@ -66248,11 +66315,11 @@
       "effectRef": "src/components/store/DiamondWalletModal.jsx"
     },
     {
-      "id": "src/components/store/DiamondWalletModal.jsx:1817:5",
+      "id": "src/components/store/DiamondWalletModal.jsx:1871:5",
       "file": "src/components/store/DiamondWalletModal.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 1817,
+      "line": 1871,
       "handler": "() => handleFilterChange(opt.value)",
       "destination": null,
       "type": "button",
@@ -66261,11 +66328,11 @@
       "effectRef": "src/components/store/DiamondWalletModal.jsx"
     },
     {
-      "id": "src/components/store/DiamondWalletModal.jsx:1839:6",
+      "id": "src/components/store/DiamondWalletModal.jsx:1893:6",
       "file": "src/components/store/DiamondWalletModal.jsx",
       "element": "button",
       "name": "Stats",
-      "line": 1839,
+      "line": 1893,
       "handler": "() => setShowStats((v) => !v)",
       "destination": null,
       "type": "button",
@@ -66274,11 +66341,11 @@
       "effectRef": "src/components/store/DiamondWalletModal.jsx"
     },
     {
-      "id": "src/components/store/DiamondWalletModal.jsx:1916:7",
+      "id": "src/components/store/DiamondWalletModal.jsx:1970:7",
       "file": "src/components/store/DiamondWalletModal.jsx",
       "element": "button",
       "name": "Choose A Different Friend",
-      "line": 1916,
+      "line": 1970,
       "handler": "() => {\n                          setTransferRecipient(null);\n                          setFriendSearch('');\n                          setTransferAmount('');\n                          setConfirmTransfer(null);\n                        }",
       "destination": null,
       "type": "button",
@@ -66287,11 +66354,11 @@
       "effectRef": "src/components/store/DiamondWalletModal.jsx"
     },
     {
-      "id": "src/components/store/DiamondWalletModal.jsx:1937:8",
+      "id": "src/components/store/DiamondWalletModal.jsx:1991:8",
       "file": "src/components/store/DiamondWalletModal.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 1937,
+      "line": 1991,
       "handler": "() => {\n                                setTransferRecipient(r);\n                                setFriendSearch('');\n                              }",
       "destination": null,
       "type": "button",
@@ -66300,11 +66367,11 @@
       "effectRef": "src/components/store/DiamondWalletModal.jsx"
     },
     {
-      "id": "src/components/store/DiamondWalletModal.jsx:1968:9",
+      "id": "src/components/store/DiamondWalletModal.jsx:2022:9",
       "file": "src/components/store/DiamondWalletModal.jsx",
       "element": "button",
       "name": "Clear Search",
-      "line": 1968,
+      "line": 2022,
       "handler": "() => setFriendSearch('')",
       "destination": null,
       "type": "button",
@@ -66313,11 +66380,11 @@
       "effectRef": "src/components/store/DiamondWalletModal.jsx"
     },
     {
-      "id": "src/components/store/DiamondWalletModal.jsx:1999:10",
+      "id": "src/components/store/DiamondWalletModal.jsx:2053:10",
       "file": "src/components/store/DiamondWalletModal.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 1999,
+      "line": 2053,
       "handler": "() => {\n                                    setTransferRecipient(f);\n                                    setFriendSearch('');\n                                  }",
       "destination": null,
       "type": "button",
@@ -66326,11 +66393,11 @@
       "effectRef": "src/components/store/DiamondWalletModal.jsx"
     },
     {
-      "id": "src/components/store/DiamondWalletModal.jsx:2080:11",
+      "id": "src/components/store/DiamondWalletModal.jsx:2134:11",
       "file": "src/components/store/DiamondWalletModal.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 2080,
+      "line": 2134,
       "handler": "handleTransfer",
       "destination": null,
       "type": "button",
@@ -66339,11 +66406,11 @@
       "effectRef": "src/components/store/DiamondWalletModal.jsx"
     },
     {
-      "id": "src/components/store/DiamondWalletModal.jsx:2141:12",
+      "id": "src/components/store/DiamondWalletModal.jsx:2195:12",
       "file": "src/components/store/DiamondWalletModal.jsx",
       "element": "button",
       "name": "Cancel",
-      "line": 2141,
+      "line": 2195,
       "handler": "() => setConfirmTransfer(null)",
       "destination": null,
       "type": "button",
@@ -66352,11 +66419,11 @@
       "effectRef": "src/components/store/DiamondWalletModal.jsx"
     },
     {
-      "id": "src/components/store/DiamondWalletModal.jsx:2148:13",
+      "id": "src/components/store/DiamondWalletModal.jsx:2202:13",
       "file": "src/components/store/DiamondWalletModal.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 2148,
+      "line": 2202,
       "handler": "handleTransfer",
       "destination": null,
       "type": "button",
@@ -66365,11 +66432,11 @@
       "effectRef": "src/components/store/DiamondWalletModal.jsx"
     },
     {
-      "id": "src/components/store/DiamondWalletModal.jsx:2412:14",
+      "id": "src/components/store/DiamondWalletModal.jsx:2489:14",
       "file": "src/components/store/DiamondWalletModal.jsx",
       "element": "button",
       "name": "Retry",
-      "line": 2412,
+      "line": 2489,
       "handler": "() => fetchTransactions()",
       "destination": null,
       "type": "button",
@@ -66378,11 +66445,11 @@
       "effectRef": "src/components/store/DiamondWalletModal.jsx"
     },
     {
-      "id": "src/components/store/DiamondWalletModal.jsx:2459:15",
+      "id": "src/components/store/DiamondWalletModal.jsx:2536:15",
       "file": "src/components/store/DiamondWalletModal.jsx",
       "element": "button",
       "name": "Show Everything",
-      "line": 2459,
+      "line": 2536,
       "handler": "() => {\n                      setSearchQuery('');\n                      setDateRange('all');\n                      try {\n                        localStorage.setItem(DATE_RANGE_CACHE_KEY, 'all');\n                      } catch (_) {\n                        console.warn('[App] Handled exception:', _?.message || _);\n                      }\n                    }",
       "destination": null,
       "type": "button",
@@ -66391,11 +66458,11 @@
       "effectRef": "src/components/store/DiamondWalletModal.jsx"
     },
     {
-      "id": "src/components/store/DiamondWalletModal.jsx:2482:16",
+      "id": "src/components/store/DiamondWalletModal.jsx:2559:16",
       "file": "src/components/store/DiamondWalletModal.jsx",
       "element": "button",
       "name": "Get Your First Diamonds",
-      "line": 2482,
+      "line": 2559,
       "handler": "() => {\n                          onClose();\n                          onBuyClick?.();\n                        }",
       "destination": null,
       "type": "button",
@@ -66404,11 +66471,11 @@
       "effectRef": "src/components/store/DiamondWalletModal.jsx"
     },
     {
-      "id": "src/components/store/DiamondWalletModal.jsx:2616:17",
+      "id": "src/components/store/DiamondWalletModal.jsx:2693:17",
       "file": "src/components/store/DiamondWalletModal.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 2616,
+      "line": 2693,
       "handler": "async (e) => {\n                              e.stopPropagation();\n                              if (await copyReceiptToClipboard(tx)) {\n                                setCopiedTxId(tx.id);\n                                clearTimeout(copyTimerRef.current);\n                                copyTimerRef.current = setTimeout(() => setCopiedTxId(null), 2000);\n                              }\n                            }",
       "destination": null,
       "type": "button",
@@ -66417,11 +66484,11 @@
       "effectRef": "src/components/store/DiamondWalletModal.jsx"
     },
     {
-      "id": "src/components/store/DiamondWalletModal.jsx:2639:18",
+      "id": "src/components/store/DiamondWalletModal.jsx:2716:18",
       "file": "src/components/store/DiamondWalletModal.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 2639,
+      "line": 2716,
       "handler": "() => fetchTransactions(transactions.length)",
       "destination": null,
       "type": "button",
@@ -82267,7 +82334,9 @@
       "apiReferences": [],
       "persistence": [],
       "realtime": [],
-      "tests": []
+      "tests": [
+        "__tests__/training-psychology-bank-contract.test.mjs"
+      ]
     },
     {
       "file": "src/engine/EventBus.js",
@@ -84671,6 +84740,7 @@
         "__tests__/training-daily-challenge-authority.test.mjs",
         "__tests__/training-legacy-consumer-authority.test.mjs",
         "__tests__/training-next-street-authority.test.mjs",
+        "__tests__/training-preload-persistence-contention.test.mjs",
         "__tests__/training-projection-authority-package-c.test.mjs",
         "__tests__/training-reissue-authority.test.mjs",
         "__tests__/training-runtime-wiring.test.mjs",
@@ -85058,7 +85128,7 @@
       {
         "file": "pages/api/training/batch-preload.js",
         "kind": "FALLBACK",
-        "line": 382,
+        "line": 383,
         "excerpt": "// SOLVER ENGINE FALLBACK: If cache is empty or insufficient,",
         "disposition": "training-data-provenance-fallback",
         "review": "documented-follow-up",
@@ -85068,7 +85138,7 @@
       {
         "file": "pages/api/training/batch-preload.js",
         "kind": "FALLBACK",
-        "line": 498,
+        "line": 499,
         "excerpt": "// honest fallback instead of rows this route",
         "disposition": "historical-or-prohibition-comment",
         "review": "accepted",
@@ -85077,7 +85147,7 @@
       {
         "file": "pages/api/training/batch-preload.js",
         "kind": "FALLBACK",
-        "line": 531,
+        "line": 532,
         "excerpt": "// No AI fallback — engines handle all question generation",
         "disposition": "historical-or-prohibition-comment",
         "review": "accepted",
@@ -85086,7 +85156,7 @@
       {
         "file": "pages/api/training/batch-preload.js",
         "kind": "FALLBACK",
-        "line": 570,
+        "line": 571,
         "excerpt": "// ●●● Engine-only — no AI fallback. Return 404 if no solver data exists. ●●●",
         "disposition": "historical-or-prohibition-comment",
         "review": "accepted",
@@ -85095,7 +85165,7 @@
       {
         "file": "pages/api/training/batch-preload.js",
         "kind": "SIMULATED",
-        "line": 683,
+        "line": 684,
         "excerpt": "// heuristic, simulated, and incomplete rows were already rejected",
         "disposition": "domain-simulation",
         "review": "accepted",
@@ -85104,7 +85174,7 @@
       {
         "file": "pages/api/training/batch-preload.js",
         "kind": "FALLBACK",
-        "line": 695,
+        "line": 696,
         "excerpt": "* \"fallback\" called this same route (see the note in",
         "disposition": "runtime-resilience-fallback",
         "review": "documented-follow-up",
@@ -85866,7 +85936,7 @@
       {
         "file": "src/components/store/DiamondWalletModal.jsx",
         "kind": "PLACEHOLDER",
-        "line": 1368,
+        "line": 1422,
         "excerpt": "// BALANCE-AUTHORITY: only as a placeholder when we have nothing :",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -85875,7 +85945,7 @@
       {
         "file": "src/components/store/DiamondWalletModal.jsx",
         "kind": "PLACEHOLDER",
-        "line": 1777,
+        "line": 1831,
         "excerpt": "placeholder=\"Search Transactions...\"",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -85884,7 +85954,7 @@
       {
         "file": "src/components/store/DiamondWalletModal.jsx",
         "kind": "PLACEHOLDER",
-        "line": 1962,
+        "line": 2016,
         "excerpt": "placeholder=\"Type A Friend's Name...\"",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -85893,7 +85963,7 @@
       {
         "file": "src/components/store/DiamondWalletModal.jsx",
         "kind": "PLACEHOLDER",
-        "line": 2074,
+        "line": 2128,
         "excerpt": "placeholder=\"Enter Diamond Amount...\"",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -86654,8 +86724,26 @@
       },
       {
         "file": "src/data/psychologyQuestionBank.js",
+        "kind": "SIMULATION",
+        "line": 6298,
+        "excerpt": "s: 'A simulation shows your current losing stretch happens to a player with your win rate about once a year.',",
+        "disposition": "domain-simulation",
+        "review": "accepted",
+        "rationale": "Poker/training simulation is an intentional product capability; solver provenance is audited separately."
+      },
+      {
+        "file": "src/data/psychologyQuestionBank.js",
+        "kind": "SIMULATION",
+        "line": 6303,
+        "excerpt": "'Denial, because the simulation cannot account for the specific opponents you face',",
+        "disposition": "domain-simulation",
+        "review": "accepted",
+        "rationale": "Poker/training simulation is an intentional product capability; solver provenance is audited separately."
+      },
+      {
+        "file": "src/data/psychologyQuestionBank.js",
         "kind": "FALLBACK",
-        "line": 2406,
+        "line": 8433,
         "excerpt": "// GENERAL POOL — fallback for unknown SCENARIO gameIds",
         "disposition": "training-data-provenance-fallback",
         "review": "documented-follow-up",
@@ -90082,7 +90170,7 @@
       {
         "file": "src/components/seo/HubPageSummary.js",
         "name": "HubPageSummary",
-        "line": 605,
+        "line": 619,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -93405,7 +93493,7 @@
       {
         "file": "src/lib/training/trainingAttemptDelivery.mjs",
         "name": "isTrainingAttemptContractError",
-        "line": 1043,
+        "line": 1046,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -93537,8 +93625,25 @@
       },
       {
         "file": "src/lib/training/trainingPersistence.mjs",
+        "name": "orderRowsForConcurrentWrite",
+        "line": 28,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "__tests__/training-runtime-wiring.test.mjs",
+          "pages/api/training/batch-preload.js",
+          "src/lib/training/trainingAttemptDelivery.mjs"
+        ]
+      },
+      {
+        "file": "src/lib/training/trainingPersistence.mjs",
         "name": "runTrainingPersistenceQuery",
-        "line": 56,
+        "line": 91,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -93568,7 +93673,7 @@
       {
         "file": "src/lib/training/trainingPersistence.mjs",
         "name": "trainingPersistenceUnavailableBody",
-        "line": 77,
+        "line": 130,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -94062,7 +94167,7 @@
       {
         "file": "pages/api/training/batch-preload.js",
         "kind": "FALLBACK",
-        "line": 382,
+        "line": 383,
         "excerpt": "// SOLVER ENGINE FALLBACK: If cache is empty or insufficient,",
         "disposition": "training-data-provenance-fallback",
         "review": "documented-follow-up",
@@ -94072,7 +94177,7 @@
       {
         "file": "pages/api/training/batch-preload.js",
         "kind": "FALLBACK",
-        "line": 498,
+        "line": 499,
         "excerpt": "// honest fallback instead of rows this route",
         "disposition": "historical-or-prohibition-comment",
         "review": "accepted",
@@ -94081,7 +94186,7 @@
       {
         "file": "pages/api/training/batch-preload.js",
         "kind": "FALLBACK",
-        "line": 531,
+        "line": 532,
         "excerpt": "// No AI fallback — engines handle all question generation",
         "disposition": "historical-or-prohibition-comment",
         "review": "accepted",
@@ -94090,7 +94195,7 @@
       {
         "file": "pages/api/training/batch-preload.js",
         "kind": "FALLBACK",
-        "line": 570,
+        "line": 571,
         "excerpt": "// ●●● Engine-only — no AI fallback. Return 404 if no solver data exists. ●●●",
         "disposition": "historical-or-prohibition-comment",
         "review": "accepted",
@@ -94099,7 +94204,7 @@
       {
         "file": "pages/api/training/batch-preload.js",
         "kind": "SIMULATED",
-        "line": 683,
+        "line": 684,
         "excerpt": "// heuristic, simulated, and incomplete rows were already rejected",
         "disposition": "domain-simulation",
         "review": "accepted",
@@ -94108,7 +94213,7 @@
       {
         "file": "pages/api/training/batch-preload.js",
         "kind": "FALLBACK",
-        "line": 695,
+        "line": 696,
         "excerpt": "* \"fallback\" called this same route (see the note in",
         "disposition": "runtime-resilience-fallback",
         "review": "documented-follow-up",
@@ -94870,7 +94975,7 @@
       {
         "file": "src/components/store/DiamondWalletModal.jsx",
         "kind": "PLACEHOLDER",
-        "line": 1368,
+        "line": 1422,
         "excerpt": "// BALANCE-AUTHORITY: only as a placeholder when we have nothing :",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -94879,7 +94984,7 @@
       {
         "file": "src/components/store/DiamondWalletModal.jsx",
         "kind": "PLACEHOLDER",
-        "line": 1777,
+        "line": 1831,
         "excerpt": "placeholder=\"Search Transactions...\"",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -94888,7 +94993,7 @@
       {
         "file": "src/components/store/DiamondWalletModal.jsx",
         "kind": "PLACEHOLDER",
-        "line": 1962,
+        "line": 2016,
         "excerpt": "placeholder=\"Type A Friend's Name...\"",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -94897,7 +95002,7 @@
       {
         "file": "src/components/store/DiamondWalletModal.jsx",
         "kind": "PLACEHOLDER",
-        "line": 2074,
+        "line": 2128,
         "excerpt": "placeholder=\"Enter Diamond Amount...\"",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -95658,8 +95763,26 @@
       },
       {
         "file": "src/data/psychologyQuestionBank.js",
+        "kind": "SIMULATION",
+        "line": 6298,
+        "excerpt": "s: 'A simulation shows your current losing stretch happens to a player with your win rate about once a year.',",
+        "disposition": "domain-simulation",
+        "review": "accepted",
+        "rationale": "Poker/training simulation is an intentional product capability; solver provenance is audited separately."
+      },
+      {
+        "file": "src/data/psychologyQuestionBank.js",
+        "kind": "SIMULATION",
+        "line": 6303,
+        "excerpt": "'Denial, because the simulation cannot account for the specific opponents you face',",
+        "disposition": "domain-simulation",
+        "review": "accepted",
+        "rationale": "Poker/training simulation is an intentional product capability; solver provenance is audited separately."
+      },
+      {
+        "file": "src/data/psychologyQuestionBank.js",
         "kind": "FALLBACK",
-        "line": 2406,
+        "line": 8433,
         "excerpt": "// GENERAL POOL — fallback for unknown SCENARIO gameIds",
         "disposition": "training-data-provenance-fallback",
         "review": "documented-follow-up",
@@ -99086,7 +99209,7 @@
       {
         "file": "src/components/seo/HubPageSummary.js",
         "name": "HubPageSummary",
-        "line": 605,
+        "line": 619,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -102409,7 +102532,7 @@
       {
         "file": "src/lib/training/trainingAttemptDelivery.mjs",
         "name": "isTrainingAttemptContractError",
-        "line": 1043,
+        "line": 1046,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -102541,8 +102664,25 @@
       },
       {
         "file": "src/lib/training/trainingPersistence.mjs",
+        "name": "orderRowsForConcurrentWrite",
+        "line": 28,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "__tests__/training-runtime-wiring.test.mjs",
+          "pages/api/training/batch-preload.js",
+          "src/lib/training/trainingAttemptDelivery.mjs"
+        ]
+      },
+      {
+        "file": "src/lib/training/trainingPersistence.mjs",
         "name": "runTrainingPersistenceQuery",
-        "line": 56,
+        "line": 91,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -102572,7 +102712,7 @@
       {
         "file": "src/lib/training/trainingPersistence.mjs",
         "name": "trainingPersistenceUnavailableBody",
-        "line": 77,
+        "line": 130,
         "references": 1,
         "exported": true,
         "defaultExport": false,
