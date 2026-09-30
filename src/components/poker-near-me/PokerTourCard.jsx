@@ -9,6 +9,7 @@ import Link from 'next/link';
 import { tourCanonical } from '../../lib/seo/tourPageSeo';
 import { PokerNearMeConsoleIcon, PokerNearMePanelShell } from './PokerNearMeConsole';
 import { PnmPlateLabel } from './TourCard';
+import { safeImageUrl } from '../../lib/security/imageHosts.js';
 
 // BUG FIX: `colors` and `typeInfo` were hardcoded literals despite the comment
 // "Default to circuit styling as fallback", so every tour rendered in identical
@@ -69,9 +70,9 @@ export default function PokerTourCard({ tourPin = {} }) {
             {/* Card Header */}
             <div className="tour-card-header">
                 <div className="pnm-console-card__brand-row">
-                    {tourPin.logo_url && (
+                    {safeImageUrl(tourPin.logo_url) && (
                         <div className="tour-logo-container pnm-console-card__logo-frame">
-                            <img src={tourPin.logo_url} alt={`${tourPin.tour_name || tourPin.name || 'Tour'} logo`} className="tour-logo-img" />
+                            <img src={safeImageUrl(tourPin.logo_url)} alt={`${tourPin.tour_name || tourPin.name || 'Tour'} logo`} className="tour-logo-img" />
                         </div>
                     )}
                     <div className="tour-code-badge pnm-console-card__brand" data-tone={style.tone}>

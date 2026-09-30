@@ -42,6 +42,7 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 // the kit does not paint is printed as a text label instead.
 import { hubCollectionSchema } from '../../../src/lib/seo/hubPageSchema';
 import { createClient } from '@supabase/supabase-js';
+import { safeImageUrl } from '../../../src/lib/security/imageHosts.js';
 import {
   US_STATES_BY_CODE,
   stateCodeToName,
@@ -531,9 +532,9 @@ export default function HomeGamesNearMePage({ publicCities = [] }) {
                       {/* The host's own photo is real data, so it prints; the
                           fallback is the kit's painted home holder, never a
                           drawn glyph. */}
-                      {g.avatar_url ? (
+                      {safeImageUrl(g.avatar_url) ? (
                         <img
-                          src={g.avatar_url}
+                          src={safeImageUrl(g.avatar_url)}
                           alt=""
                           width={44}
                           height={44}

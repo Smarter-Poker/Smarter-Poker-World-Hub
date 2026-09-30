@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { safeImageUrl } from '../../lib/security/imageHosts.js';
 
 function initialsFor(name) {
   const words = String(name || 'Poker')
@@ -29,7 +30,15 @@ export default function PokerIdentityMark({
   priority = false,
 }) {
   const [imageFailed, setImageFailed] = useState(false);
-  const showImage = Boolean(src) && !imageFailed;
+  // THE MARK IS GUARDED HERE, NOT AT EACH CALLER (2026-09-30).
+  //
+  // Every caller handed this whatever URL its feed carried, and one of those
+  // feeds launders an unmirrored casino URL into a field named logo_url, so
+  // "the caller guards it" was never true. A host img-src cannot allow now
+  // draws the initials this component already paints, which is a missing
+  // picture rather than a blocked request.
+  const safeSrc = safeImageUrl(src) || '';
+  const showImage = Boolean(safeSrc) && !imageFailed;
 
   return (
     <span
@@ -40,7 +49,7 @@ export default function PokerIdentityMark({
     >
       {showImage ? (
         <img
-          src={src}
+          src={safeSrc}
           alt=""
           loading={priority ? 'eager' : loading}
           fetchPriority={priority ? 'high' : 'auto'}

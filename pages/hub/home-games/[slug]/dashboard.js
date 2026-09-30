@@ -13,6 +13,7 @@ import DeepRouteSignalDeck from '../../../../src/components/poker-near-me/DeepRo
 import PokerNearMeConsole from '../../../../src/components/poker-near-me/PokerNearMeConsole';
 import { getAccessToken } from '../../../../src/lib/authUtils';
 import { createClient } from '@supabase/supabase-js';
+import { safeImageUrl } from '../../../../src/lib/security/imageHosts.js';
 
 let _sb = null;
 let _sbToken = null;
@@ -224,8 +225,8 @@ function MembersTab({ group, token }) {
       <div style={{ fontSize: 13, color: C.textMuted, marginBottom: 12 }}>{members.length} member{members.length !== 1 ? 's' : ''}</div>
       {members.map(m => (
         <div key={m.user_id || m.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 0', borderBottom: `1px solid ${C.border}` }}>
-          {m.avatar_url ? (
-            <img src={m.avatar_url} alt="" loading="lazy" style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover' }} />
+          {safeImageUrl(m.avatar_url) ? (
+            <img src={safeImageUrl(m.avatar_url)} alt="" loading="lazy" style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover' }} />
           ) : (
             <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'linear-gradient(135deg,#8b5cf6,#06b6d4)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700, fontSize: 16 }}>
               {(m.display_name || m.username || '?')[0].toUpperCase()}
@@ -576,8 +577,8 @@ export default function HomeGameDashboard() {
         >
           {/* Header */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 24 }}>
-            {group?.profile_photo_url ? (
-              <img src={group.profile_photo_url} alt="" style={{ width: 56, height: 56, borderRadius: 3, objectFit: 'cover', border: `2px solid ${C.tealBorder}` }} />
+            {safeImageUrl(group?.profile_photo_url) ? (
+              <img src={safeImageUrl(group.profile_photo_url)} alt="" style={{ width: 56, height: 56, borderRadius: 3, objectFit: 'cover', border: `2px solid ${C.tealBorder}` }} />
             ) : (
               <div style={{ width: 56, height: 56, borderRadius: 3, background: '#0b2630', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 24, fontWeight: 700, border: `2px solid ${C.tealBorder}` }}>
                 {(group?.name || 'H')[0].toUpperCase()}

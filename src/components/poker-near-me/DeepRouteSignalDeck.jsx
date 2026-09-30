@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import PokerNearMeConsole from './PokerNearMeConsole';
+import { safeImageUrl } from '../../lib/security/imageHosts.js';
 
 const FALLBACKS = {
   location: '/images/pnm-phase-4/location-command-grid-v1.webp',
@@ -93,13 +94,17 @@ export default function DeepRouteSignalDeck({
   compact = false,
 }) {
   const fallback = FALLBACKS[kind] || FALLBACKS.venue;
+  // The stage image arrives from venue and club rows whose photo columns hold
+  // whatever a scraper or a page owner put there. An unmirrored host falls
+  // through to the approved painted plate below rather than being requested.
   const stageHeading = Boolean(headTitle && String(headTitle).trim() && headTitle !== title);
-  const [visual, setVisual] = useState(image || fallback);
+  const safeImage = safeImageUrl(image) || '';
+  const [visual, setVisual] = useState(safeImage || fallback);
   const safeMetrics = useMemo(() => normalizeMetrics(metrics), [metrics]);
 
   useEffect(() => {
-    setVisual(image || fallback);
-  }, [fallback, image]);
+    setVisual(safeImage || fallback);
+  }, [fallback, safeImage]);
 
   return (
     <PokerNearMeConsole
