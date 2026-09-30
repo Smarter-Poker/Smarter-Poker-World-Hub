@@ -36,6 +36,7 @@ import {
 import { reportApiError } from '../../../src/lib/apiErrorHandler';
 import { withCronHealth } from '../../../src/lib/cronHealth';
 import { recordOperationalAlerts } from '../../../src/lib/operationalAlerts.mjs';
+import { phase3HealthFailureEvent } from '../../../src/lib/trivia/phase3Engine.mjs';
 
 /** Operational inbox source for Trivia question/session domain alerts (Phase 3). */
 export const TRIVIA_QUESTIONS_ALERT_SOURCE = 'worldhub.trivia-questions';
@@ -47,12 +48,25 @@ export const TRIVIA_QUESTIONS_ALERT_SOURCE = 'worldhub.trivia-questions';
  * the depth report above must still be returned.
  */
 export async function runPhase3Health(supabase, record = recordOperationalAlerts) {
-    const out = { sweep: null, healthy: null, conditions: [], metrics: null, delivered: 0, error: null };
+    const out = { sweep: null, healthy: null, conditions: [], metrics: null, delivered: 0, error: null, alert_error: null };
     try {
         const { data: sweep, error: sweepErr } = await supabase.rpc('trivia_expire_stale_sessions_v1', { p_limit: 500 });
         out.sweep = sweepErr ? { error: sweepErr.message } : sweep;
         const { data: health, error: healthErr } = await supabase.rpc('trivia_question_health_v1', { p_record: true });
-        if (healthErr || !health || health.success !== true) throw new Error(healthErr?.message || 'health_failed');
+        if (healthErr || !health || health.success !== true) {
+            const reason = String(healthErr?.message || 'health_failed').slice(0, 200);
+            // A health run that cannot finish is an alert in its own right: without it the
+            // question and session checks go quiet exactly when the database struggles.
+            try {
+                await record([phase3HealthFailureEvent({ source: TRIVIA_QUESTIONS_ALERT_SOURCE, error: reason })]);
+                out.delivered += 1;
+            } catch (alertErr) {
+                // Kept in the pool guard's response (phase3.alert_error) as well as the log.
+                out.alert_error = String(alertErr?.message || alertErr).slice(0, 200);
+                console.warn('[TriviaPoolGuard] could not deliver the health failure alert:', out.alert_error);
+            }
+            throw new Error(reason);
+        }
         out.healthy = health.healthy === true;
         out.conditions = (health.conditions || []).map(c => c.alertname);
         out.metrics = health.metrics;
