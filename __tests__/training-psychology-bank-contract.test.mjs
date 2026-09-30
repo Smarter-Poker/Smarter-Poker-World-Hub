@@ -38,6 +38,66 @@ const AUDITED_COMPOUND_ANSWERS = {
   'psych_psy-017_6': 'Expose blind spots, test reasoning aloud, and provide accountability',
 };
 
+const GIVEAWAY_OPTION_PATTERNS = [
+  ['always', /\balways\b/i],
+  ['never', /\bnever\b/i],
+  ['guarantee', /\bguarantee(?:s|d)?\b/i],
+  ['impossible', /\bimpossible\b/i],
+  ['genetic', /\bgenetic\b/i],
+  ['exclusively', /\bexclusively\b/i],
+  ['instantly', /\binstantly\b/i],
+  ['permanently', /\bpermanently\b/i],
+  ['universally', /\buniversally\b/i],
+  ['forever', /\bforever\b/i],
+  ['perfectly', /\bperfectly\b/i],
+  ['completely', /\bcompletely\b/i],
+  ['entirely', /\bentirely\b/i],
+  ['under any circumstances', /\bunder any circumstances\b/i],
+  ['cannot ever', /\bcannot ever\b/i],
+  ['the only ...', /\bthe only (?:way|solution|reliable|real|thing|cost|goal|path)\b/i],
+  ['move up for respect', /\bmove up\b.*\brespect(?:s|ed|ing)?\b/i],
+  ['perfect next hand', /\bperfect(?:ly)?\b.*\bnext hand\b/i],
+  ['irrelevant perk', /\b(?:free food|newer chairs|only for taxes|tax authorities|casinos secretly)\b/i],
+];
+
+const AUDITED_NON_HINT_DISTRACTORS = {
+  'psych_psy-001_0': 'Move up one stake to rebuild confidence against a more predictable player pool',
+  'psych_psy-001_1': 'Because emotional control depends more on temperament than on rehearsed responses',
+  'psych_psy-001_4': 'It keeps the player from feeling the loss because the maximum amount is known in advance',
+  'psych_psy-001_7': 'It shifts attention away from the lost pot long enough for the next hand to begin',
+  'psych_psy-004_10': 'It lets you memorize an emotional script that can replace live analysis under pressure',
+  'psych_psy-006_29': 'Extending each uninterrupted focus block until breaks in attention become rare',
+  'psych_psy-008_25': 'By avoiding that opponent until a winning session against softer players restores the feeling',
+  'psych_psy-013_20': 'Online reads are too noisy to justify deviations, so stay near baseline strategy',
+  'psych_psy-019_24': 'Treat the existing notes as expired at the start of a session and rebuild from the opening orbit',
+  'psych_psy-020_0': 'Unconscious competence depends mostly on natural pattern-recognition speed',
+  'psych_psy-020_22': 'Seasoned players should manage visible emotion rather than the feeling itself',
+  'psych_cash-020_29': 'Match more of his aggression across marginal spots to deny him table control before his growing stack pressures the lineup',
+};
+
+const AUDITED_SEMANTIC_REPAIRS = {
+  'psych_psy-002_23': {
+    correct: 'Because the performance is a pattern, and observant opponents learn it faster than it earns',
+    distractor: 'Because the delay costs enough hands per hour to outweigh any extra value calls',
+  },
+  'psych_psy-013_4': {
+    correct: 'A staged signal; discount it and trust hard-to-fake betting patterns',
+    distractor: 'Mirror the performance on a later hand so the opponent cannot tell whether the signal worked',
+  },
+  'psych_psy-014_22': {
+    correct: 'Reassess the effective roll and adjust the stake if the money is no longer free',
+    distractor: 'Use a tighter, lower-variance style at the same stake until the obligation is funded',
+  },
+  'psych_psy-016_16': {
+    correct: 'That results converge toward expectation, with no date attached',
+    distractor: 'That after enough hands, the current win rate predicts the next month\'s result within a narrow range',
+  },
+  'psych_psy-018_17': {
+    correct: 'Keep opening based on his real defense rate, not your assumed image',
+    distractor: 'Reduce steals for an orbit to preserve the tight image for a later, larger pot',
+  },
+};
+
 test('every dedicated SCENARIO bank delivers 30 unique, valid Level-12 questions without padding', () => {
   assert.deepEqual([...getPsychologyGameIds()].sort(), [...DEDICATED_SCENARIO_GAMES].sort());
 
@@ -107,7 +167,7 @@ test('the canonical mapping for psych_psy-001_0 remains pinned', () => {
       { id: 'a', text: 'Tighten up to only premium hands until the feeling passes on its own' },
       { id: 'b', text: 'Take a deep breath, name the emotion' },
       { id: 'c', text: 'Play the next few hands faster to get past the bad memory quickly' },
-      { id: 'd', text: 'Immediately move up a stake where players respect your raises more' },
+      { id: 'd', text: 'Move up one stake to rebuild confidence against a more predictable player pool' },
     ],
     correctAnswer: 'b',
     gtoFrequencies: { a: 0, b: 100, c: 0, d: 0 },
@@ -163,6 +223,48 @@ test('WH questions use direct answers rather than yes-or-no fragments', () => {
         .find(({ id }) => id === question.correctAnswer)?.text.trim() || '';
       assert.doesNotMatch(correctText, /^(yes|no)\b[,;:]?/i, `${gameId}/${question.id}`);
     }
+  }
+});
+
+test('answer options do not use giveaway absolute cues or cartoon phrases', () => {
+  for (const gameId of DEDICATED_SCENARIO_GAMES) {
+    for (const question of getPsychologyQuestions(gameId, 12, 30, [])) {
+      for (const option of question.options) {
+        for (const [label, pattern] of GIVEAWAY_OPTION_PATTERNS) {
+          assert.doesNotMatch(option.text, pattern, `${gameId}/${question.id}/${option.id}: ${label}`);
+        }
+      }
+    }
+  }
+});
+
+test('representative repaired distractors remain contextual and non-hinting', () => {
+  const allQuestions = new Map(DEDICATED_SCENARIO_GAMES.flatMap((gameId) =>
+    getPsychologyQuestions(gameId, 12, 30, []).map((question) => [question.id, question])));
+
+  for (const [questionId, expectedDistractor] of Object.entries(AUDITED_NON_HINT_DISTRACTORS)) {
+    const question = allQuestions.get(questionId);
+    assert.ok(question, `${questionId}: missing audited question`);
+    const distractors = question.options
+      .filter(({ id }) => id !== question.correctAnswer)
+      .map(({ text }) => text);
+    assert.ok(distractors.includes(expectedDistractor), `${questionId}: repaired distractor drifted`);
+  }
+});
+
+test('semantic ambiguity repairs keep the intended answer and repaired distractor in distinct slots', () => {
+  const allQuestions = new Map(DEDICATED_SCENARIO_GAMES.flatMap((gameId) =>
+    getPsychologyQuestions(gameId, 12, 30, []).map((question) => [question.id, question])));
+
+  for (const [questionId, expected] of Object.entries(AUDITED_SEMANTIC_REPAIRS)) {
+    const question = allQuestions.get(questionId);
+    assert.ok(question, `${questionId}: missing semantic repair`);
+    const correctOption = question.options.find(({ id }) => id === question.correctAnswer);
+    assert.equal(correctOption?.text, expected.correct, `${questionId}: intended answer drifted`);
+    const repairedOption = question.options.find(({ text }) => text === expected.distractor);
+    assert.ok(repairedOption, `${questionId}: repaired distractor drifted`);
+    assert.notEqual(repairedOption.id, question.correctAnswer,
+      `${questionId}: repaired distractor became the keyed answer`);
   }
 });
 
