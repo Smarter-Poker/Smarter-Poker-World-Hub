@@ -188,6 +188,15 @@ import './social-poker-card-picker.test.mjs';
 // for real - spoken card names, 44px targets, whole streets only, focus,
 // long press, and the drafts of a video post that uploads in the background.
 import './social-poker-card-picker-interaction.test.mjs';
+// 2026-09-30, Phase 8.1 (discovery and the feed): the All / Hands tab row,
+// the exclude= paging contract with the feed API (last two carry lists, 40
+// ids, ranked pages keep the server order, appends never repeat an id, no
+// recycling) and the feed video player (muted autoplay, one Unmute control
+// that shares sp:reels:muted with Reels, the caption under the media). All
+// three drive the real page through the poker-card harness.
+import './social-feed-tabs.test.mjs';
+import './social-feed-paging-contract.test.mjs';
+import './social-feed-video-player.test.mjs';
 // 2026-09-29: club page posts are shown as the page (name, avatar, link), never
 // as the person who posted them, on the feed card, the pinned strip, the media
 // lightbox, the public club page and both APIs. Owner decision: automated club
@@ -449,6 +458,36 @@ import './no-venue-picture-reaches-the-dom-unguarded.test.mjs';
 // The Report-Only CSP can only graduate if its violations reach us, so the
 // reporting wiring and the endpoint that receives it are guarded here.
 import './csp-violations-reach-us.test.mjs';
+
+// Phase 8, discovery and the feed: topics are derived by one rule (mirrored
+// in src/lib/socialTopics.js), the feed API gains the Hands tab, the
+// per-author cap, the exclude list with carry, played-with ordering and the
+// native-video ready check. Each behaviour has its own test; every one runs
+// the real handler against an in-memory PostgREST.
+import './social-topics-derivation.test.mjs';
+import './social-feed-hands-tab.test.mjs';
+import './social-feed-author-cap.test.mjs';
+import './social-feed-exclude-and-carry.test.mjs';
+import './social-feed-played-with.test.mjs';
+import './social-feed-video-ready.test.mjs';
+
+// Phase 8 profile stats (p8-profile): the hand-stats RPC migration text, the
+// public route behind it, the rendered "At The Tables" card (identical for a
+// horse and a human profile) and the ready-only predicates on the profile
+// Reels tab. New files run nowhere unless they are imported here.
+import './profile-hand-stats-rpc.test.mjs';
+import './profile-hand-stats-api.test.mjs';
+import './profile-hand-stats-card.test.mjs';
+import './profile-reels-tab-ready-only.test.mjs';
+
+// Phase 8 discovery: social_posts.topics is derived by one SQL rule for every
+// writer (the trigger runs after the video contract), the backfill runs the
+// same rule over the existing rows and creates the GIN index the Hands tab
+// reads, and the played-with helper the ranked feed calls is service role only.
+// Horses are players: none of the three reads is_horse or origin_type.
+import './social-post-topics-rule-migration.test.mjs';
+import './social-post-topics-backfill-migration.test.mjs';
+import './feed-played-with-migration.test.mjs';
 
 const REPO = path.resolve(new URL('.', import.meta.url).pathname, '..');
 

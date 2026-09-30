@@ -50,6 +50,7 @@ import VideoLibraryConsole, {
   ConsoleCopy,
 } from '../../../src/components/video-library/console/VideoLibraryConsole';
 import auxiliaryReelsStyles from '../../../src/components/reels/AuxiliaryReelsSurfaces.module.css';
+import HandStatsCard from '../../../src/components/profile/HandStatsCard';
 const PlayerNotes = dynamic(() => import('../../../src/components/poker/PlayerNotes'), {
   ssr: false,
 });
@@ -2802,13 +2803,21 @@ export default function UserProfilePage() {
             .or('content_type.eq.video,content_type.eq.live')
             .order('created_at', { ascending: false })
             .limit(30),
-          // Reels
-          supabase
-            .from('social_reels')
-            .select('id, video_url, caption, thumbnail_url, view_count, created_at')
-            .eq('author_id', socialId)
-            .order('created_at', { ascending: false })
-            .limit(30),
+          // Reels: only ready, undeleted rows, and only public ones unless the
+          // viewer owns this profile (the same test as isOwnProfile below).
+          // Phase 8: the permissive social_reels read policy returns every row,
+          // so the predicates the Reels surface applies live here too.
+          (() => {
+            const viewerOwnsProfile = user?.id === data.id;
+            let reelsQuery = supabase
+              .from('social_reels')
+              .select('id, video_url, caption, thumbnail_url, view_count, created_at')
+              .eq('author_id', socialId)
+              .eq('media_status', 'ready')
+              .eq('is_deleted', false);
+            if (!viewerOwnsProfile) reelsQuery = reelsQuery.eq('is_public', true);
+            return reelsQuery.order('created_at', { ascending: false }).limit(30);
+          })(),
           // Past Lives (posted recordings only)
           // BUG FIX (2026-05-11 audit): added feed_post_id so handleDeleteLive can
           // explicitly clean up the linked "X went live" social_posts entry on delete.
@@ -5209,6 +5218,9 @@ export default function UserProfilePage() {
                   setArticleReader({ open: true, url, title: 'HendonMob Poker Resume' })
                 }
               />
+
+              {/* At The Tables: real hand numbers, the same block for every profile (Phase 8) */}
+              <HandStatsCard userId={profile.id} isOwnProfile={isOwnProfile} />
 
               {/* Player Notes Component */}
               {!isOwnProfile && currentUser && profile && (

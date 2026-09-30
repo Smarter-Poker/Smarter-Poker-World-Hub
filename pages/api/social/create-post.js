@@ -9,6 +9,7 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { requireAuth } from '../../../src/lib/auth-middleware';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/apiErrorHandler';
+import { deriveSocialPostTopics } from '../../../src/lib/socialTopics';
 
 let _supabase = null;
 function getSupabase() {
@@ -33,7 +34,10 @@ export default async function handler(req, res) {
       if (!applyRateLimit(req, res, LIMITS.write)) return;
 
       try {
-          const { content, content_type = 'text', visibility = 'public', metadata, media_urls, thumbnail_url } = req.body;
+          const {
+              content, content_type = 'text', visibility = 'public', metadata, media_urls, thumbnail_url,
+              topic, topics,
+          } = req.body;
 
           const hasContent = content && content.trim().length > 0;
           const hasMedia = Array.isArray(media_urls) && media_urls.length > 0;
@@ -51,6 +55,18 @@ export default async function handler(req, res) {
           if (hasMedia && media_urls.length > 10) {
               return res.status(400).json({ success: false, error: 'Maximum 10 media attachments allowed' });
           }
+
+          // Topics are derived, never authored: the caller may say what it
+          // knows (topic, topics) and the one shared rule computes the pair
+          // the database trigger would compute, so a card post is
+          // { poker, [poker, hand] } from its first write.
+          const derivedTopics = deriveSocialPostTopics({
+              topic,
+              topics,
+              content: contentText,
+              contentType: content_type,
+              metadata: metadata || null,
+          });
 
           // Try RPC first (handles RLS), fallback to direct insert
           let post = null;
@@ -89,6 +105,8 @@ export default async function handler(req, res) {
                       visibility,
                       metadata: metadata || null,
                       thumbnail_url: thumbnail_url || null,
+                      topic: derivedTopics.topic,
+                      topics: derivedTopics.topics,
                       created_at: new Date().toISOString()
                   })
                   .select('id')
@@ -101,16 +119,17 @@ export default async function handler(req, res) {
               post = directPost;
           } else {
               post = { id: rpcResult.id };
-              // fn_create_social_post has no metadata parameter — persist it
-              // directly so page-attributed posts render correctly in the feed
-              // (the feed reads metadata.page_name / metadata.page_avatar_url).
-              if (metadata) {
-                  const { error: metaErr } = await getSupabase()
-                      .from('social_posts')
-                      .update({ metadata })
-                      .eq('id', rpcResult.id);
-                  if (metaErr) console.warn('Create post: metadata persist failed:', metaErr.message);
-              }
+              // fn_create_social_post has no metadata, topic or topics
+              // parameter — persist them directly so page-attributed posts
+              // render correctly in the feed (it reads metadata.page_name /
+              // metadata.page_avatar_url) and the Hands tab sees the post.
+              const patch = { topic: derivedTopics.topic, topics: derivedTopics.topics };
+              if (metadata) patch.metadata = metadata;
+              const { error: metaErr } = await getSupabase()
+                  .from('social_posts')
+                  .update(patch)
+                  .eq('id', rpcResult.id);
+              if (metaErr) console.warn('Create post: metadata/topics persist failed:', metaErr.message);
           }
 
           return res.status(200).json({
