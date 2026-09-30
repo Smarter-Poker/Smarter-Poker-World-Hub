@@ -51,14 +51,16 @@ def shot_pages(before, after, vp):
         x = 40
         for i in fams[k:k + per]:
             name = ROUTE.get(i, i)
-            b = os.path.join(before, f'{name}-{vp}.png'); a = os.path.join(after, f'{name}-{vp}.png')
+            b = os.path.join(before, f'{name}-{vp}.png'); a = os.path.join(after, 'shots', f'{name}-{vp}.png')
+            if i in ('pvp', 'tournaments'):  # flag-gated in production: show the hero it used to print
+                b = os.path.join(WT, 'public', THUMB[i])
             d.text((x, 110), i.replace('-', ' ').title(), font=font(28), fill=BLUE)
             cw = (2400 - 80) // per - 20
             for j, pth in enumerate((b, a)):
                 if not os.path.exists(pth): continue
                 im = fit(Image.open(pth), cw // 2 - 10, 1420)
                 p.paste(im, (x + j * (cw // 2), 150))
-                d.text((x + j * (cw // 2), 1575 - 22), 'Before' if j == 0 else 'After', font=font(20), fill=MUTED)
+                d.text((x + j * (cw // 2), 1575 - 22), ('Before (Former Hero Art)' if i in ('pvp', 'tournaments') else 'Before') if j == 0 else 'After', font=font(20), fill=MUTED)
             x += cw + 20
         pages.append(p)
     return pages
@@ -87,6 +89,7 @@ def state_pages(after):
 
 if __name__ == '__main__':
     wt, before, after, out = sys.argv[1:5]
+    WT = wt
     pages = art_pages(wt) + shot_pages(before, after, '390') + shot_pages(before, after, '1440') + [quiet_page()] + state_pages(after)
     pages[0].save(out, save_all=True, append_images=pages[1:], resolution=150, quality=80)
     print(out, len(pages), os.path.getsize(out))
