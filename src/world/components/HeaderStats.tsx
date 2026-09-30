@@ -6,6 +6,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 import { getAuthUser } from '../../lib/authUtils';
+import { readOwnProfile } from '../../lib/ownProfile';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 📊 DEFAULT NEW USER STATS
@@ -56,11 +57,7 @@ function useUserProfile() {
                 }
 
                 // Fetch user profile from Supabase
-                const { data: profileData, error: profileError } = await supabase
-                    .from('profiles')
-                    .select('diamonds, streak_days, diamond_multiplier')
-                    .eq('id', user.id)
-                    .maybeSingle();
+                const { data: profileData, error: profileError } = await readOwnProfile(supabase, 'diamonds, streak_days, diamond_multiplier', { expectId: user.id });
 
                 if (profileError) {
                     console.log('Profile fetch error:', profileError);

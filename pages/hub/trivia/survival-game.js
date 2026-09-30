@@ -46,6 +46,7 @@ import useTriviaQuestion from '../../../src/hooks/useTriviaQuestion';
 import useTriviaTimer from '../../../src/hooks/useTriviaTimer';
 import { getAccessToken } from '../../../src/lib/authUtils';
 import HubPageSummary from '../../../src/components/seo/HubPageSummary';
+import { readOwnProfile } from '../../../src/lib/ownProfile';
 
 const GAME_ENTRY_COST = 10; // restored with server-graded adoption - rewards pay via award_trivia_run now
 // Daily cap comes from triviaEngine so the lobby and the payout agree.
@@ -250,7 +251,7 @@ export default function SurvivalGamePage() {
             .channel(`trivia-survival:${userId}`)
             .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles', filter: `id=eq.${userId}` }, async () => {
                 try {
-                    const { data } = await supabase.from('profiles').select('diamonds').eq('id', userId).maybeSingle();
+                    const { data } = await readOwnProfile(supabase, 'diamonds', { expectId: userId });
                     if (data) setUserDiamonds(data.diamonds || 0);
                 } catch (e) {
                     console.warn('[Survival] Realtime diamond refresh failed:', e);
@@ -348,11 +349,7 @@ export default function SurvivalGamePage() {
 
     async function loadUserDiamonds(uid) {
         try {
-            const { data } = await supabase
-                .from('profiles')
-                .select('diamonds')
-                .eq('id', uid)
-                .maybeSingle();
+            const { data } = await readOwnProfile(supabase, 'diamonds', { expectId: uid });
             if (data) setUserDiamonds(data.diamonds || 0);
         } catch (e) {
             console.warn('[Survival] Diamond balance load failed:', e);
@@ -660,7 +657,7 @@ export default function SurvivalGamePage() {
                 if (Number.isFinite(submitted?.newBalance)) {
                     setUserDiamonds(submitted.newBalance);
                 } else if (userId) {
-                    const { data: profile } = await supabase.from('profiles').select('diamonds').eq('id', userId).maybeSingle();
+                    const { data: profile } = await readOwnProfile(supabase, 'diamonds', { expectId: userId });
                     if (profile) setUserDiamonds(profile.diamonds || 0);
                 }
 

@@ -8,6 +8,20 @@ import { supabase } from '../supabase';
 import { busEmit } from '../../engine/EventBus';
 import { writeVipProof, readVipProof, clearVipProof } from './vipCache';
 
+// A person's Diamond balance is readable only by them and platform staff
+// (decided 2026-09-30): `authenticated` has no SELECT grant on
+// profiles.diamonds for any row, so the owner reads it through the owner path,
+// which only ever returns the caller's own row. Same contract as World Hub's
+// src/lib/ownProfile.js: somebody else's id reads nothing.
+async function readOwnVipAndDiamonds(userId) {
+    if (!userId) return { data: null, error: null };
+    const { data, error } = await supabase.rpc('get_my_full_profile');
+    if (error) return { data: null, error };
+    const row = Array.isArray(data) ? data[0] || null : data || null;
+    if (!row || String(row.id) !== String(userId)) return { data: null, error: null };
+    return { data: { is_vip: row.is_vip, diamonds: row.diamonds }, error: null };
+}
+
 /**
  * Check if user has access to a premium feature
  *
@@ -50,11 +64,7 @@ export async function checkFeatureAccess(userId, featureKey) {
     let fetchError = null;
 
     const fetchProfile = async () => {
-        const { data, error } = await supabase
-            .from('profiles')
-            .select('is_vip, diamonds')
-            .eq('id', userId)
-            .maybeSingle();
+        const { data, error } = await readOwnVipAndDiamonds(userId);
         if (error) {
             console.warn('[FeatureGate] Profile fetch error:', error.message, '| userId:', userId);
             return { data: null, error };
@@ -213,11 +223,7 @@ export async function checkFeatureAccess(userId, featureKey) {
  */
 export async function purchaseFeatureAccess(userId, featureKey, cost, durationHours = 24, description = '') {
     // Get current balance + VIP check
-    const { data: profile } = await supabase
-        .from('profiles')
-        .select('diamonds, is_vip')
-        .eq('id', userId)
-        .maybeSingle();
+    const { data: profile } = await readOwnVipAndDiamonds(userId);
 
     // VIP users don't need to purchase
     if (profile?.is_vip) {
@@ -343,11 +349,7 @@ export async function purchaseVipWithDiamonds(userId) {
     if (!userId) return { success: false, error: 'Not logged in' };
 
     // Check current status + balance
-    const { data: profile } = await supabase
-        .from('profiles')
-        .select('diamonds, is_vip')
-        .eq('id', userId)
-        .maybeSingle();
+    const { data: profile } = await readOwnVipAndDiamonds(userId);
 
     if (!profile) return { success: false, error: 'Profile not found' };
     if (profile.is_vip) return { success: false, error: 'Already a VIP member' };

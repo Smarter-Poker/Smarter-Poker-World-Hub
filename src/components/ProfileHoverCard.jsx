@@ -40,7 +40,8 @@ export function ProfileHoverCard({ userId, username, children, position = 'botto
         try {
             let query = supabase
                 .from('profiles')
-                .select('id, username, avatar_url, bio, city, country, diamonds, skill_tier, is_online')
+                // A stranger's balance and whereabouts are theirs alone (2026-09-30).
+                .select('id, username, avatar_url, bio, skill_tier, is_online')
                 .limit(1);
 
             if (userId) {
@@ -155,12 +156,6 @@ export function ProfileHoverCard({ userId, username, children, position = 'botto
                                     {profile.username}
                                 </Link>
 
-                                {profile.city && (
-                                    <div style={{ fontSize: 13, color: C.textSec, marginTop: 4 }}>
-                                        📍 {profile.city}{profile.country ? `, ${profile.country}` : ''}
-                                    </div>
-                                )}
-
                                 {profile.bio && (
                                     <div style={{
                                         fontSize: 13,
@@ -183,12 +178,6 @@ export function ProfileHoverCard({ userId, username, children, position = 'botto
                                     padding: '12px 0',
                                     borderTop: `1px solid ${C.border}`,
                                 }}>
-                                    <div style={{ textAlign: 'center' }}>
-                                        <div style={{ fontSize: 18, fontWeight: 700, color: C.blue }}>
-                                            {profile.diamonds?.toLocaleString() || 0}
-                                        </div>
-                                        <div style={{ fontSize: 11, color: C.textSec }}>Diamonds</div>
-                                    </div>
                                     <div style={{ textAlign: 'center' }}>
                                         <div style={{ fontSize: 18, fontWeight: 700, color: '#FFD700' }}>
                                             {profile.skill_tier || 'Newcomer'}

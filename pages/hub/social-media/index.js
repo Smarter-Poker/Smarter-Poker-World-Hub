@@ -139,6 +139,7 @@ import { retryUserReelPublication } from '../../../src/lib/userReelPublicationRe
 import { createLatestRequestGuard } from '../../../src/lib/latestRequestGuard.mjs';
 import HubPageSummary from '../../../src/components/seo/HubPageSummary';
 import { hubProductSchema } from '../../../src/lib/seo/hubPageSchema';
+import { readOwnProfile } from '../../../src/lib/ownProfile';
 
 // AEO phase 3 (2026-09-17).
 const SOCIAL_SCHEMA = hubProductSchema({
@@ -4326,11 +4327,7 @@ function SocialMediaPage() {
         try {
           const authUser = getAuthUser();
           if (!authUser) return;
-          const { data, error } = await supabase
-            .from('profiles')
-            .select('id,username,full_name,avatar_url,role')
-            .eq('id', authUser.id)
-            .maybeSingle();
+          const { data, error } = await readOwnProfile(supabase, 'id,username,full_name,avatar_url,role', { expectId: authUser.id });
 
           if (!error && data) {
             const p = data;
@@ -4454,11 +4451,7 @@ function SocialMediaPage() {
             )
               console.log('[Social] Fetching profile for user:', authUser.id);
 
-            const { data, error } = await supabase
-              .from('profiles')
-              .select('id,username,full_name,display_name,skill_tier,avatar_url,role')
-              .eq('id', authUser.id)
-              .maybeSingle();
+            const { data, error } = await readOwnProfile(supabase, 'id,username,full_name,display_name,skill_tier,avatar_url,role', { expectId: authUser.id });
 
             if (!error) {
               p = data || null;
