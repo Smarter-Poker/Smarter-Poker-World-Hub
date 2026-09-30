@@ -220,8 +220,29 @@ export default async function handler(req, res) {
        * as `null` so the client can say nothing, never as 0 - which would
        * tell a player who has earned 740,908 diamonds that they have
        * earned none.
+       *
+       * A NULL `lifetime` HAD TWO MEANINGS AND THE PANEL COULD NOT TELL
+       * THEM APART (2026-09-30, 10.86 rule 1).
+       *
+       * `lifetime` is null on a Load More, where nothing was asked for and
+       * nothing is wrong, AND when the 5,000-row window select below threw,
+       * where the read genuinely failed. Both left a 200 carrying a bare
+       * `lifetime: null`, so the browser set no error, rendered the ledger
+       * normally, and a player who opened Stats watched an animated skeleton
+       * for ever - a PENDING state standing in for an outcome that had
+       * already settled and was unreadable. `lifetimeStatus` names the three
+       * outcomes so the client can render three, not two:
+       *
+       *   'ok'          the figures were computed and are in `lifetime`
+       *   'unavailable' the read was attempted on this request and failed
+       *   'paged'       not asked for; this is not a first page
+       *
+       * A failed stats read still must not fail the whole request: the rows
+       * are what the player came for and they render either way, which is
+       * why this stays a 200 with a named outcome rather than becoming a 500.
        */
       let lifetime = null;
+      let lifetimeStatus = offset === 0 ? 'unavailable' : 'paged';
       try {
         const { data: allRows, error: statsErr } = await statsPromise;
         if (statsErr) throw statsErr;
@@ -338,7 +359,12 @@ export default async function handler(req, res) {
             truncated: allRows.length >= 5000,
             recipients,
           };
+          lifetimeStatus = 'ok';
         }
+        /* `allRows` falsy with no error is only reachable off the first page,
+           where the promise resolves `{ data: null }` on purpose. On a first
+           page it would be an unreadable answer, and the initial value above
+           already says so - it is never quietly upgraded to 'ok'. */
       } catch (statsErr) {
         console.warn(
           '[diamond-transactions] lifetime stats unavailable:',
@@ -456,6 +482,12 @@ export default async function handler(req, res) {
         // Lifetime earned/spent over the whole ledger; null on the
         // paged requests that do not recompute it, and on failure.
         lifetime,
+        // WHICH of those two a null `lifetime` is: 'ok' (it is above),
+        // 'unavailable' (this request tried to read it and could not), or
+        // 'paged' (a Load More never asks). Without this the wallet cannot
+        // tell a settled-unreadable panel from one still loading, and it
+        // showed a skeleton for ever. 10.86 rule 1.
+        lifetimeStatus,
         // Every source and gift bucket summed over the WHOLE ledger, spent
         // and earned; first page only. null means the breakdown could not be
         // read, and the panel must say so rather than draw empty bars.

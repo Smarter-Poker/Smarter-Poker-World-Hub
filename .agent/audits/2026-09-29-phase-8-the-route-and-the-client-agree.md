@@ -88,7 +88,36 @@ empty set and pass.
 
 ### 3. `scripts/ci/diamond-wallet-live-smoke.mjs` (new)
 
-`node scripts/ci/diamond-wallet-live-smoke.mjs [--json]`
+```
+npm run smoke:diamond-wallet          # node scripts/ci/diamond-wallet-live-smoke.mjs
+node scripts/ci/diamond-wallet-live-smoke.mjs --json
+```
+
+**CORRECTED 2026-09-30. This section used to end "A drift on either side has a
+reader (10.83)", and for the live half that was not true.** Nothing invoked
+this file: no workflow, no npm script, no import, and it is not one of the
+guards `__tests__/_test-guards-exist.test.mjs` imports. Its only references
+were two source comments and this note. So the offline test had a reader and
+the live smoke had none, while the note said both did. A record that overstates
+a check is worse than no record, because the next agent reads it and stops
+looking (10.83, and 10.86 on dated claims about the world).
+
+**WHO RUNS IT, AND WHEN.** It is a command a person runs, and that is the
+design rather than a gap to be closed with machinery. The agent delivering a
+change to the diamond wallet - `pages/api/store/diamond-transactions.js`,
+`src/components/store/DiamondWalletModal.jsx`, or any of the three RPCs behind
+them - runs `npm run smoke:diamond-wallet` TWICE: once BEFORE the release, on
+current `main`, to establish the baseline, and once AFTER the live `commitSha`
+is verified, to prove the wallet still answers. The exit code is the verdict
+(0 / 1 / 3 below). UNKNOWN is not a pass, and section 3 is UNKNOWN unless
+`SUPABASE_SERVICE_ROLE_KEY` is already in the environment.
+
+**It must NOT become scheduled to fix that**, and the npm script is the whole
+of the change: World Hub CLAUDE.md 10.9 and Club Arena 10.85 forbid an agent
+creating a Claude scheduled task; section 11.3 forbids a new `vercel.json`
+cron, a new `pages/api/cron/` handler and a new GitHub `schedule:` trigger, and
+CHECK 6 fails the build on the net-new counts. A discoverable command with an
+honest record beats a watcher nobody asked for.
 
 Read-only, on demand, three outcomes:
 
@@ -105,20 +134,18 @@ It asks three questions: the two `build-info.json` documents agree on `ca_sha`;
 `smarter.poker/api/health` is ok; and every diamond object exists and answers
 the shape the wallet reads, matched field by field against the same snapshot
 the offline test uses. Offline the code matches the snapshot; here the snapshot
-matches the database. A drift on either side has a reader (10.83).
+matches the database. The offline half runs on every pull request; the live
+half runs when somebody runs it, which is what the correction above records.
 
 Section 3 reads `SUPABASE_SERVICE_ROLE_KEY` (or `SUPABASE_KEY`) from the
 **environment**. It never reads a `.env` file, never prints a key, never guesses
 an identity, and never prints the player id it discovered. With no key present,
 section 3 is UNKNOWN with that as its stated reason - not skipped, not green.
 
-**It is not scheduled and must never become scheduled.** World Hub CLAUDE.md
-10.9 and Club Arena 10.85 forbid an agent creating a Claude scheduled task;
-section 11.3 forbids a new `vercel.json` cron, a new `pages/api/cron/` handler
-and a new GitHub `schedule:` trigger, and CHECK 6 fails on the net-new counts.
-This is a command a person runs. **It is not a repair** (10.11, 10.12): it
-writes nothing, retries nothing and reconciles nothing. Every request is a GET
-or a POST to a read-only PostgREST rpc.
+**It is not a repair** (10.11, 10.12): it writes nothing, retries nothing and
+reconciles nothing. Every request is a GET or a POST to a read-only PostgREST
+rpc. The scheduling refusal is stated once, above, rather than twice here: two
+copies of one rule is how a record starts disagreeing with itself.
 
 ## Discrimination proof
 

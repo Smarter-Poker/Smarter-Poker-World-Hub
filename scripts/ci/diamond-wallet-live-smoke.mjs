@@ -4,7 +4,17 @@
  * =========================================================================
  * IS THE DIAMOND WALLET ACTUALLY SERVING? A read-only answer, on demand.
  *
+ *   npm run smoke:diamond-wallet
  *   node scripts/ci/diamond-wallet-live-smoke.mjs [--json]
+ *
+ * WHO RUNS IT, AND WHEN (recorded 2026-09-30). By hand, by the agent
+ * delivering a change to the diamond wallet - the route, the modal, or any
+ * of the three RPCs behind them - twice: once BEFORE the release on current
+ * `main` for a baseline, and once AFTER the live commitSha is verified. Until
+ * today it had no npm script, no workflow and no import, so the only way to
+ * find it was to already know it existed, while the phase 8 audit note called
+ * it a reader. It is discoverable now and the note says what is true; see
+ * .agent/audits/2026-09-29-phase-8-the-route-and-the-client-agree.md.
  *
  * WHAT IT ASKS
  *   1. ca-static.smarter.poker/build-info.json and
@@ -17,7 +27,9 @@
  *      scripts/ci/lib/diamond-wallet-contract.mjs - the SAME snapshot
  *      __tests__/the-route-and-the-client-agree.test.mjs pins the code
  *      against. Offline the code matches the snapshot; here the snapshot
- *      matches the database. A drift on either side has a reader.
+ *      matches the database. The offline half runs on every pull request;
+ *      this half runs when a person runs it, which is stated above rather
+ *      than implied.
  *
  * THREE OUTCOMES, NEVER TWO (10.86)
  *   exit 0  PASS     every question was asked and answered correctly

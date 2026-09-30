@@ -36220,7 +36220,7 @@
         {
           "element": "button",
           "name": "Close",
-          "line": 1640,
+          "line": 1694,
           "handler": "onClose",
           "destination": null,
           "type": null,
@@ -36230,7 +36230,7 @@
         {
           "element": "button",
           "name": "Buy Diamonds",
-          "line": 1729,
+          "line": 1783,
           "handler": "() => {\n                onClose();\n                onBuyClick?.();\n              }",
           "destination": null,
           "type": "button",
@@ -36240,7 +36240,7 @@
         {
           "element": "button",
           "name": "Send Diamonds To A Friend",
-          "line": 1740,
+          "line": 1794,
           "handler": "() => {\n                setShowTransfer((value) => !value);\n                fetchFriends();\n              }",
           "destination": null,
           "type": "button",
@@ -36250,7 +36250,7 @@
         {
           "element": "button",
           "name": "Clear",
-          "line": 1782,
+          "line": 1836,
           "handler": "() => setSearchQuery('')",
           "destination": null,
           "type": "button",
@@ -36260,7 +36260,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 1817,
+          "line": 1871,
           "handler": "() => handleFilterChange(opt.value)",
           "destination": null,
           "type": "button",
@@ -36270,7 +36270,7 @@
         {
           "element": "button",
           "name": "Stats",
-          "line": 1839,
+          "line": 1893,
           "handler": "() => setShowStats((v) => !v)",
           "destination": null,
           "type": "button",
@@ -36280,7 +36280,7 @@
         {
           "element": "button",
           "name": "Choose A Different Friend",
-          "line": 1916,
+          "line": 1970,
           "handler": "() => {\n                          setTransferRecipient(null);\n                          setFriendSearch('');\n                          setTransferAmount('');\n                          setConfirmTransfer(null);\n                        }",
           "destination": null,
           "type": "button",
@@ -36290,7 +36290,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 1937,
+          "line": 1991,
           "handler": "() => {\n                                setTransferRecipient(r);\n                                setFriendSearch('');\n                              }",
           "destination": null,
           "type": "button",
@@ -36300,7 +36300,7 @@
         {
           "element": "button",
           "name": "Clear Search",
-          "line": 1968,
+          "line": 2022,
           "handler": "() => setFriendSearch('')",
           "destination": null,
           "type": "button",
@@ -36310,7 +36310,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 1999,
+          "line": 2053,
           "handler": "() => {\n                                    setTransferRecipient(f);\n                                    setFriendSearch('');\n                                  }",
           "destination": null,
           "type": "button",
@@ -36320,7 +36320,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 2080,
+          "line": 2134,
           "handler": "handleTransfer",
           "destination": null,
           "type": "button",
@@ -36330,7 +36330,7 @@
         {
           "element": "button",
           "name": "Cancel",
-          "line": 2141,
+          "line": 2195,
           "handler": "() => setConfirmTransfer(null)",
           "destination": null,
           "type": "button",
@@ -36340,7 +36340,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 2148,
+          "line": 2202,
           "handler": "handleTransfer",
           "destination": null,
           "type": "button",
@@ -36350,7 +36350,7 @@
         {
           "element": "button",
           "name": "Retry",
-          "line": 2412,
+          "line": 2489,
           "handler": "() => fetchTransactions()",
           "destination": null,
           "type": "button",
@@ -36360,7 +36360,7 @@
         {
           "element": "button",
           "name": "Show Everything",
-          "line": 2459,
+          "line": 2536,
           "handler": "() => {\n                      setSearchQuery('');\n                      setDateRange('all');\n                      try {\n                        localStorage.setItem(DATE_RANGE_CACHE_KEY, 'all');\n                      } catch (_) {\n                        console.warn('[App] Handled exception:', _?.message || _);\n                      }\n                    }",
           "destination": null,
           "type": "button",
@@ -36370,7 +36370,7 @@
         {
           "element": "button",
           "name": "Get Your First Diamonds",
-          "line": 2482,
+          "line": 2559,
           "handler": "() => {\n                          onClose();\n                          onBuyClick?.();\n                        }",
           "destination": null,
           "type": "button",
@@ -36380,7 +36380,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 2616,
+          "line": 2693,
           "handler": "async (e) => {\n                              e.stopPropagation();\n                              if (await copyReceiptToClipboard(tx)) {\n                                setCopiedTxId(tx.id);\n                                clearTimeout(copyTimerRef.current);\n                                copyTimerRef.current = setTimeout(() => setCopiedTxId(null), 2000);\n                              }\n                            }",
           "destination": null,
           "type": "button",
@@ -36390,7 +36390,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 2639,
+          "line": 2716,
           "handler": "() => fetchTransactions(transactions.length)",
           "destination": null,
           "type": "button",
@@ -36566,7 +36566,7 @@
         },
         {
           "name": "handleBalanceRefresh",
-          "line": 685,
+          "line": 702,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -36574,7 +36574,7 @@
         },
         {
           "name": "handleBusEvent",
-          "line": 717,
+          "line": 734,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -36582,7 +36582,7 @@
         },
         {
           "name": "handleKeyDown",
-          "line": 992,
+          "line": 1046,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -36590,7 +36590,7 @@
         },
         {
           "name": "giftLine",
-          "line": 1554,
+          "line": 1608,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -36601,7 +36601,7 @@
       "markers": [
         {
           "kind": "PLACEHOLDER",
-          "line": 1368,
+          "line": 1422,
           "excerpt": "// BALANCE-AUTHORITY: only as a placeholder when we have nothing :",
           "disposition": "frozen-global-header-dependency",
           "review": "accepted",
@@ -36609,7 +36609,7 @@
         },
         {
           "kind": "PLACEHOLDER",
-          "line": 1777,
+          "line": 1831,
           "excerpt": "placeholder=\"Search Transactions...\"",
           "disposition": "frozen-global-header-dependency",
           "review": "accepted",
@@ -36617,7 +36617,7 @@
         },
         {
           "kind": "PLACEHOLDER",
-          "line": 1962,
+          "line": 2016,
           "excerpt": "placeholder=\"Type A Friend's Name...\"",
           "disposition": "frozen-global-header-dependency",
           "review": "accepted",
@@ -36625,7 +36625,7 @@
         },
         {
           "kind": "PLACEHOLDER",
-          "line": 2074,
+          "line": 2128,
           "excerpt": "placeholder=\"Enter Diamond Amount...\"",
           "disposition": "frozen-global-header-dependency",
           "review": "accepted",
@@ -66196,11 +66196,11 @@
       "effectRef": "src/components/store/DiamondInPlayBalance.jsx"
     },
     {
-      "id": "src/components/store/DiamondWalletModal.jsx:1640:1",
+      "id": "src/components/store/DiamondWalletModal.jsx:1694:1",
       "file": "src/components/store/DiamondWalletModal.jsx",
       "element": "button",
       "name": "Close",
-      "line": 1640,
+      "line": 1694,
       "handler": "onClose",
       "destination": null,
       "type": null,
@@ -66209,11 +66209,11 @@
       "effectRef": "src/components/store/DiamondWalletModal.jsx"
     },
     {
-      "id": "src/components/store/DiamondWalletModal.jsx:1729:2",
+      "id": "src/components/store/DiamondWalletModal.jsx:1783:2",
       "file": "src/components/store/DiamondWalletModal.jsx",
       "element": "button",
       "name": "Buy Diamonds",
-      "line": 1729,
+      "line": 1783,
       "handler": "() => {\n                onClose();\n                onBuyClick?.();\n              }",
       "destination": null,
       "type": "button",
@@ -66222,11 +66222,11 @@
       "effectRef": "src/components/store/DiamondWalletModal.jsx"
     },
     {
-      "id": "src/components/store/DiamondWalletModal.jsx:1740:3",
+      "id": "src/components/store/DiamondWalletModal.jsx:1794:3",
       "file": "src/components/store/DiamondWalletModal.jsx",
       "element": "button",
       "name": "Send Diamonds To A Friend",
-      "line": 1740,
+      "line": 1794,
       "handler": "() => {\n                setShowTransfer((value) => !value);\n                fetchFriends();\n              }",
       "destination": null,
       "type": "button",
@@ -66235,11 +66235,11 @@
       "effectRef": "src/components/store/DiamondWalletModal.jsx"
     },
     {
-      "id": "src/components/store/DiamondWalletModal.jsx:1782:4",
+      "id": "src/components/store/DiamondWalletModal.jsx:1836:4",
       "file": "src/components/store/DiamondWalletModal.jsx",
       "element": "button",
       "name": "Clear",
-      "line": 1782,
+      "line": 1836,
       "handler": "() => setSearchQuery('')",
       "destination": null,
       "type": "button",
@@ -66248,11 +66248,11 @@
       "effectRef": "src/components/store/DiamondWalletModal.jsx"
     },
     {
-      "id": "src/components/store/DiamondWalletModal.jsx:1817:5",
+      "id": "src/components/store/DiamondWalletModal.jsx:1871:5",
       "file": "src/components/store/DiamondWalletModal.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 1817,
+      "line": 1871,
       "handler": "() => handleFilterChange(opt.value)",
       "destination": null,
       "type": "button",
@@ -66261,11 +66261,11 @@
       "effectRef": "src/components/store/DiamondWalletModal.jsx"
     },
     {
-      "id": "src/components/store/DiamondWalletModal.jsx:1839:6",
+      "id": "src/components/store/DiamondWalletModal.jsx:1893:6",
       "file": "src/components/store/DiamondWalletModal.jsx",
       "element": "button",
       "name": "Stats",
-      "line": 1839,
+      "line": 1893,
       "handler": "() => setShowStats((v) => !v)",
       "destination": null,
       "type": "button",
@@ -66274,11 +66274,11 @@
       "effectRef": "src/components/store/DiamondWalletModal.jsx"
     },
     {
-      "id": "src/components/store/DiamondWalletModal.jsx:1916:7",
+      "id": "src/components/store/DiamondWalletModal.jsx:1970:7",
       "file": "src/components/store/DiamondWalletModal.jsx",
       "element": "button",
       "name": "Choose A Different Friend",
-      "line": 1916,
+      "line": 1970,
       "handler": "() => {\n                          setTransferRecipient(null);\n                          setFriendSearch('');\n                          setTransferAmount('');\n                          setConfirmTransfer(null);\n                        }",
       "destination": null,
       "type": "button",
@@ -66287,11 +66287,11 @@
       "effectRef": "src/components/store/DiamondWalletModal.jsx"
     },
     {
-      "id": "src/components/store/DiamondWalletModal.jsx:1937:8",
+      "id": "src/components/store/DiamondWalletModal.jsx:1991:8",
       "file": "src/components/store/DiamondWalletModal.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 1937,
+      "line": 1991,
       "handler": "() => {\n                                setTransferRecipient(r);\n                                setFriendSearch('');\n                              }",
       "destination": null,
       "type": "button",
@@ -66300,11 +66300,11 @@
       "effectRef": "src/components/store/DiamondWalletModal.jsx"
     },
     {
-      "id": "src/components/store/DiamondWalletModal.jsx:1968:9",
+      "id": "src/components/store/DiamondWalletModal.jsx:2022:9",
       "file": "src/components/store/DiamondWalletModal.jsx",
       "element": "button",
       "name": "Clear Search",
-      "line": 1968,
+      "line": 2022,
       "handler": "() => setFriendSearch('')",
       "destination": null,
       "type": "button",
@@ -66313,11 +66313,11 @@
       "effectRef": "src/components/store/DiamondWalletModal.jsx"
     },
     {
-      "id": "src/components/store/DiamondWalletModal.jsx:1999:10",
+      "id": "src/components/store/DiamondWalletModal.jsx:2053:10",
       "file": "src/components/store/DiamondWalletModal.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 1999,
+      "line": 2053,
       "handler": "() => {\n                                    setTransferRecipient(f);\n                                    setFriendSearch('');\n                                  }",
       "destination": null,
       "type": "button",
@@ -66326,11 +66326,11 @@
       "effectRef": "src/components/store/DiamondWalletModal.jsx"
     },
     {
-      "id": "src/components/store/DiamondWalletModal.jsx:2080:11",
+      "id": "src/components/store/DiamondWalletModal.jsx:2134:11",
       "file": "src/components/store/DiamondWalletModal.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 2080,
+      "line": 2134,
       "handler": "handleTransfer",
       "destination": null,
       "type": "button",
@@ -66339,11 +66339,11 @@
       "effectRef": "src/components/store/DiamondWalletModal.jsx"
     },
     {
-      "id": "src/components/store/DiamondWalletModal.jsx:2141:12",
+      "id": "src/components/store/DiamondWalletModal.jsx:2195:12",
       "file": "src/components/store/DiamondWalletModal.jsx",
       "element": "button",
       "name": "Cancel",
-      "line": 2141,
+      "line": 2195,
       "handler": "() => setConfirmTransfer(null)",
       "destination": null,
       "type": "button",
@@ -66352,11 +66352,11 @@
       "effectRef": "src/components/store/DiamondWalletModal.jsx"
     },
     {
-      "id": "src/components/store/DiamondWalletModal.jsx:2148:13",
+      "id": "src/components/store/DiamondWalletModal.jsx:2202:13",
       "file": "src/components/store/DiamondWalletModal.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 2148,
+      "line": 2202,
       "handler": "handleTransfer",
       "destination": null,
       "type": "button",
@@ -66365,11 +66365,11 @@
       "effectRef": "src/components/store/DiamondWalletModal.jsx"
     },
     {
-      "id": "src/components/store/DiamondWalletModal.jsx:2412:14",
+      "id": "src/components/store/DiamondWalletModal.jsx:2489:14",
       "file": "src/components/store/DiamondWalletModal.jsx",
       "element": "button",
       "name": "Retry",
-      "line": 2412,
+      "line": 2489,
       "handler": "() => fetchTransactions()",
       "destination": null,
       "type": "button",
@@ -66378,11 +66378,11 @@
       "effectRef": "src/components/store/DiamondWalletModal.jsx"
     },
     {
-      "id": "src/components/store/DiamondWalletModal.jsx:2459:15",
+      "id": "src/components/store/DiamondWalletModal.jsx:2536:15",
       "file": "src/components/store/DiamondWalletModal.jsx",
       "element": "button",
       "name": "Show Everything",
-      "line": 2459,
+      "line": 2536,
       "handler": "() => {\n                      setSearchQuery('');\n                      setDateRange('all');\n                      try {\n                        localStorage.setItem(DATE_RANGE_CACHE_KEY, 'all');\n                      } catch (_) {\n                        console.warn('[App] Handled exception:', _?.message || _);\n                      }\n                    }",
       "destination": null,
       "type": "button",
@@ -66391,11 +66391,11 @@
       "effectRef": "src/components/store/DiamondWalletModal.jsx"
     },
     {
-      "id": "src/components/store/DiamondWalletModal.jsx:2482:16",
+      "id": "src/components/store/DiamondWalletModal.jsx:2559:16",
       "file": "src/components/store/DiamondWalletModal.jsx",
       "element": "button",
       "name": "Get Your First Diamonds",
-      "line": 2482,
+      "line": 2559,
       "handler": "() => {\n                          onClose();\n                          onBuyClick?.();\n                        }",
       "destination": null,
       "type": "button",
@@ -66404,11 +66404,11 @@
       "effectRef": "src/components/store/DiamondWalletModal.jsx"
     },
     {
-      "id": "src/components/store/DiamondWalletModal.jsx:2616:17",
+      "id": "src/components/store/DiamondWalletModal.jsx:2693:17",
       "file": "src/components/store/DiamondWalletModal.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 2616,
+      "line": 2693,
       "handler": "async (e) => {\n                              e.stopPropagation();\n                              if (await copyReceiptToClipboard(tx)) {\n                                setCopiedTxId(tx.id);\n                                clearTimeout(copyTimerRef.current);\n                                copyTimerRef.current = setTimeout(() => setCopiedTxId(null), 2000);\n                              }\n                            }",
       "destination": null,
       "type": "button",
@@ -66417,11 +66417,11 @@
       "effectRef": "src/components/store/DiamondWalletModal.jsx"
     },
     {
-      "id": "src/components/store/DiamondWalletModal.jsx:2639:18",
+      "id": "src/components/store/DiamondWalletModal.jsx:2716:18",
       "file": "src/components/store/DiamondWalletModal.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 2639,
+      "line": 2716,
       "handler": "() => fetchTransactions(transactions.length)",
       "destination": null,
       "type": "button",
@@ -85866,7 +85866,7 @@
       {
         "file": "src/components/store/DiamondWalletModal.jsx",
         "kind": "PLACEHOLDER",
-        "line": 1368,
+        "line": 1422,
         "excerpt": "// BALANCE-AUTHORITY: only as a placeholder when we have nothing :",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -85875,7 +85875,7 @@
       {
         "file": "src/components/store/DiamondWalletModal.jsx",
         "kind": "PLACEHOLDER",
-        "line": 1777,
+        "line": 1831,
         "excerpt": "placeholder=\"Search Transactions...\"",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -85884,7 +85884,7 @@
       {
         "file": "src/components/store/DiamondWalletModal.jsx",
         "kind": "PLACEHOLDER",
-        "line": 1962,
+        "line": 2016,
         "excerpt": "placeholder=\"Type A Friend's Name...\"",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -85893,7 +85893,7 @@
       {
         "file": "src/components/store/DiamondWalletModal.jsx",
         "kind": "PLACEHOLDER",
-        "line": 2074,
+        "line": 2128,
         "excerpt": "placeholder=\"Enter Diamond Amount...\"",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -94871,7 +94871,7 @@
       {
         "file": "src/components/store/DiamondWalletModal.jsx",
         "kind": "PLACEHOLDER",
-        "line": 1368,
+        "line": 1422,
         "excerpt": "// BALANCE-AUTHORITY: only as a placeholder when we have nothing :",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -94880,7 +94880,7 @@
       {
         "file": "src/components/store/DiamondWalletModal.jsx",
         "kind": "PLACEHOLDER",
-        "line": 1777,
+        "line": 1831,
         "excerpt": "placeholder=\"Search Transactions...\"",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -94889,7 +94889,7 @@
       {
         "file": "src/components/store/DiamondWalletModal.jsx",
         "kind": "PLACEHOLDER",
-        "line": 1962,
+        "line": 2016,
         "excerpt": "placeholder=\"Type A Friend's Name...\"",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -94898,7 +94898,7 @@
       {
         "file": "src/components/store/DiamondWalletModal.jsx",
         "kind": "PLACEHOLDER",
-        "line": 2074,
+        "line": 2128,
         "excerpt": "placeholder=\"Enter Diamond Amount...\"",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",

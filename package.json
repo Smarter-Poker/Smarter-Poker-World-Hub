@@ -33,6 +33,7 @@
     "verify:trivia-phase-1-migration": "node scripts/trivia/phase1-migration-rehearsal.cjs",
     "verify:trivia-phase-1-production": "node scripts/verify-tournament-system.js",
     "smoke:trivia-phase-1-production": "node scripts/trivia/phase1-production-smoke.cjs",
+    "smoke:diamond-wallet": "node scripts/ci/diamond-wallet-live-smoke.mjs",
     "test:trivia-pvp-containment": "node --test __tests__/trivia-pvp-containment.test.mjs",
     "test:trivia-tournament-containment": "node --test __tests__/trivia-tournament-containment.test.mjs",
     "pretest:pnm": "node --test __tests__/poker-near-me-console-tools.test.mjs",
