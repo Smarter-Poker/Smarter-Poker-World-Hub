@@ -864,6 +864,7 @@ except SystemExit as error:
 phase = {
     'id': 'training_hu_cash_100bb', 'game_type': 'hu_cash', 'stack': 100,
     'street': 'flop', 'streets': ['flop'], 'objective': 'chip_ev',
+    'tree_geometry': 'srp_parameterized_four_action_v3',
     'pot_chips': 550, 'eff_chips': 9750, 'rake': '0.05 10',
     'accuracy_fraction': 0.005,
     'ip_range': 'ip.txt', 'ip_range_checksum': 'd' * 64,
