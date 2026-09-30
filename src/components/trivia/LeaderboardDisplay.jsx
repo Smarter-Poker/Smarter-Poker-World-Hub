@@ -182,11 +182,11 @@ export default function LeaderboardDisplay({
 
             <div className="trivia-lb-list" role="list" aria-label="Trivia Rankings">
                 {loading ? (
-                    <div className="trivia-lb-empty">
+                    <div className="trivia-lb-empty" role="listitem">
                         <p className="trivia-console-copy tc-ink--muted">Loading Rankings</p>
                     </div>
                 ) : rows.length === 0 ? (
-                    <div className="trivia-lb-empty">
+                    <div className="trivia-lb-empty" role="listitem">
                         <p className="trivia-console-copy tc-ink--muted">No Entries Yet. Be The First!</p>
                     </div>
                 ) : (

@@ -16,18 +16,7 @@
 }
 
 /* Scene art (no baked text), printed on the glass at its own ratio. */
-.tt-hero {
-    display: block;
-    width: 100%;
-    height: auto;
-    margin: 0;
-}
-
 /* Art that failed to load is removed rather than left as a broken box. */
-.tt-hero[hidden] {
-    display: none;
-}
-
 .tt-section {
     display: grid;
     gap: 2cqw;

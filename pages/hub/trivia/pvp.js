@@ -25,6 +25,8 @@ import TriviaErrorBoundary from '../../../src/components/trivia/TriviaErrorBound
 import TriviaAnswerOption from '../../../src/components/trivia/TriviaAnswerOption';
 import TriviaConsole, { TriviaGlassAction } from '../../../src/components/trivia/console/TriviaConsole';
 import TriviaConsoleDialog from '../../../src/components/trivia/console/TriviaConsoleDialog';
+import ResponsiveModeArt from '../../../src/components/trivia/console/ResponsiveModeArt';
+import { TRIVIA_INTRO_ART_PVP } from '../../../src/config/triviaIntroArt.mjs';
 import useTriviaQuestion from '../../../src/hooks/useTriviaQuestion';
 import useTriviaTimer from '../../../src/hooks/useTriviaTimer';
 import useVIPGate from '../../../src/hooks/useVIPGate';
@@ -105,7 +107,6 @@ export default function PvPPage({ pvpHorsesEnabled = false }) {
     const [pvpError, setPvpError] = useState(null);
     const [refundFailed, setRefundFailed] = useState(false);
     const [accessToken, setAccessToken] = useState(null); // for ReportQuestionButton
-    const [heroMissing, setHeroMissing] = useState(false); // presentation: mode picture failed to load
 
     // Server-graded session adapter (mode 'pvp'): session-start escrows the
     // stake and serves the shared, answer-free roster; session-answer grades
@@ -1052,17 +1053,7 @@ export default function PvPPage({ pvpHorsesEnabled = false }) {
                         {/* Lobby */}
                         {gameState === 'lobby' && (
                             <div className="trivia-pvp-stage trivia-pvp-stage--lobby">
-                                {!heroMissing && (
-                                    <img
-                                        className="trivia-pvp-hero"
-                                        src="/images/trivia/modes-console-v1/pvp.webp"
-                                        alt=""
-                                        width={1000}
-                                        height={560}
-                                        decoding="async"
-                                        onError={() => setHeroMissing(true)}
-                                    />
-                                )}
+                                <ResponsiveModeArt art={TRIVIA_INTRO_ART_PVP} priority />
 
                                 <p className="trivia-console-copy trivia-pvp-intro">
                                     Two Players, The Same Questions, The Same Shot Clock. Pick A Stake And The Better Score Takes The Pot.

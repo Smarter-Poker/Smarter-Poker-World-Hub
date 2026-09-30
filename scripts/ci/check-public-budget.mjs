@@ -76,12 +76,22 @@ import process from 'node:process';
  * a ratchet - and both times this script's own LOWER THE PUBLIC BUDGET notice
  * is what said to do it.
  *
+ * RAISED ONCE MORE, ON 2026-09-30, BY EXACTLY ONE CHANGE'S NET: 272.0 ->
+ * 275.75 MB and 1,850 -> 2,037 files. Trivia Phase 4 (the unique art
+ * program): every Trivia destination used to print its own lobby thumbnail,
+ * which the Casino Realism plan forbids, so sixteen families got their own
+ * art, delivered as 640/960/1440 AVIF + WebP per crop (192 files, 4.34 MB,
+ * public/images/trivia/intro-v1). Five superseded Trivia files were deleted
+ * in the same commit (0.59 MB). Net +3.75 MB, +187 files. main was ALREADY
+ * over this budget before that change (297.9 MB across 1,961 files against
+ * 272.0 / 1,850); that excess belongs to other areas and is not absorbed here.
+ *
  * THE NUMBER GOES DOWN. If you lower it, say in the commit what you removed.
  */
-const BUDGET_BYTES = 272_000_000;
+const BUDGET_BYTES = 275_750_000;
 
 /** Also a ratchet: a thousand new files is a problem a size cap can miss. */
-const BUDGET_FILES = 1_850;
+const BUDGET_FILES = 2_037;
 
 function walk(dir) {
   let bytes = 0;
