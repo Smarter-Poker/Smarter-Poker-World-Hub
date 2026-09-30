@@ -436,6 +436,11 @@ import './the-proxy-checks-every-redirect-hop.test.mjs';
 // The mirror holds it; these pin the guard and the readers that prefer it.
 import './venue-art-comes-from-the-mirror.test.mjs';
 
+// The card asked for /images/venues/<id>.png for every venue and hid the 404
+// in onError. 405 of 478 venues have no such file. This pins the manifest
+// that replaced the guess, and the card that must consult it.
+import './a-venue-mark-is-only-asked-for-when-it-exists.test.mjs';
+
 // The Report-Only CSP can only graduate if its violations reach us, so the
 // reporting wiring and the endpoint that receives it are guarded here.
 import './csp-violations-reach-us.test.mjs';
