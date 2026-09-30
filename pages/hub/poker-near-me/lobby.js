@@ -3806,7 +3806,22 @@ export default function PokerNearMeLobby() {
         }
       }
     `}</style>
-    <HubPageSummary page="poker-near-me" />
+    {/* ABOUT POKER NEAR ME.
+        The summary used to sit under the console as bare copy over three
+        1px rounded rectangles, the one unframed block on the surface. It
+        now prints on the same painted three-slice chassis every other
+        Poker Near Me panel uses (PokerNearMePanelShell -> painted-panels-v1
+        head / mid / foot). The words, the links and the schema are
+        untouched; only the dress follows the page. */}
+    <div className="pnm-lobby-summary">
+      <PokerNearMePanelShell
+        as="div"
+        className="pnm-lobby-summary__panel"
+        bodyClassName="pnm-lobby-summary__body"
+      >
+        <HubPageSummary page="poker-near-me" />
+      </PokerNearMePanelShell>
+    </div>
     </>
   );
 }
