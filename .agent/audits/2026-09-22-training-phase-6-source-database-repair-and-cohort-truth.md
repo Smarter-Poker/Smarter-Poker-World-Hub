@@ -498,3 +498,92 @@ curl -o /dev/null -w '%{http_code} %{redirect_url}' https://hub-vanguard-47lpiw3
 python3 (read-only) over the p6-smoke-results-*.json and runtime-recert-*.json evidence files
 ls __tests__/training-campaign-batch-game-matrix.test.mjs __tests__/training-audit-session-browser-custody.test.mjs
 ```
+
+## 2026-09-30 Resumption: V3 Geometry And Runtime Integrity Candidate
+
+This resumption used Policy 2.9. The canonical policy reader emitted manifest
+receipt `a659f31c5c1c2b0864889508079a635dd5fe2fc98decfbfc9d3f9c80dd45ec3b`
+with owner-policy hash
+`b9478d0331314413d8e12c41210b63479cdcabc1f86ed3fdcb3251efa36e6349`,
+operating-law hash
+`a8bc3c04dce3354ebdd51a89c0b7d715af3344edcc794d33f6b3ad64506961d5`,
+hardening-standard hash
+`d5fc451ce5caf6d6b5e64597a13883e1246581678fe53c962339d0a66136993e`,
+and reference-index hash
+`adce89c3f838f2f373cd504a00329d53906404d1dd42a647f672af6c16f95555`.
+Work was recovered into the owned external-SSD worktree
+`/Volumes/SmarterWork/agent-work/training-phase6-closeout-20260930/world-hub`;
+no internal-drive worktree was created.
+
+The source candidate closes three previously recorded code gaps without opening
+the solver release gate:
+
+- `srp_parameterized_four_action_v3` provides Check plus 33/75/125 percent pot
+  bets at no-facing nodes on every postflop street, legal standard plus all-in
+  raises where the effective stack permits both, and binary Fold/Call when
+  facing all-in. Near-cap non-all-in actions collapse to jam unless at least
+  one big blind remains in the canonical 100-chips-per-BB scale. `tree_geometry`
+  is mandatory in `training-solver-phase-contracts.v2` and its immutable
+  checksum; legacy v1 phase producers and legacy v2 geometry artifacts cannot
+  be relabelled.
+- A bounded-canary manifest may contain M1 alone at fixed partition `2/0`, or
+  M1 plus M2 with M2 fixed at `2/1`; M2-only authority and an M2 invocation
+  against an M1-only manifest fail before Pio starts. The checked-in manifest
+  remains `training_backlog`, `solver_ready: false`, and contains no runnable
+  canary contract or invented range hash.
+- Canonical Training cache/snapshot writes are stably ordered and retry only
+  PostgreSQL deadlock/serialization SQLSTATEs (`40P01`, `40001`) for at most
+  three attempts. All 21 dedicated psychology/scenario games now provide at
+  least 30 authored questions; `psy-018`, `psy-019`, and `psy-020` each have
+  30 four-option questions with varied correct positions and a regression
+  ceiling preventing the correct choice from being uniquely long.
+
+Focused evidence on the candidate: 130/130 changed-path Node/Python assertions
+passed; the named 21-game SCENARIO route matrix passed with HTTP 200, 20 unique
+four-option questions, signed grading receipts, and 20 persisted CURATED rows
+per game; the solver geometry/canary suites passed 21/21 Python and 7/7 Node;
+the closed-manifest solver contract passed 33/33. The real PostgreSQL 17
+contention verifier also passed: the intentionally opposite write order proved
+one deadlock, both production-ordered writers completed, and the cache replay
+contract remained intact. No production database write, Pio invocation, HMAC
+provisioning, solver credential restoration, or global-header change occurred.
+
+This entry records a source candidate, not Phase 6 completion. One protected
+merge and exact production verification are still required for these bytes.
+After that, Phase 6 still requires a real checksum-sealed M1-only manifest from
+approved range artifacts, one admitted M1 parent/child canary, passing 6F public
+attestation, 6G administrator correlation, 6H strict enforcement, and 6I exact-
+build 107-game desktop/mobile certification. Phase 7 has not started.
+
+### 2026-09-30 Final Candidate Verification Before Protected Publication
+
+The final local candidate at `16e1cd96003a453859245f9552264e7bde011d98`
+keeps the release gate closed and adds two repairs found during the closing
+review: the solver-worker ingestion fixture now uses exact manifest version 5,
+and five genuinely ambiguous psychology distractors are repaired while IDs,
+correct indices, prompts, scenarios, explanations, metadata, sources, bank
+sizes, and option IDs remain unchanged. The permanent psychology contract pins
+those five distinctions and rejects answer-giveaway language.
+
+The exact final focused suite passed 76/76 Node assertions and 21/21 Python
+bounded-canary/geometry assertions. The manifest seals exact integer version 5,
+the four pipeline file digests, and aggregate bundle SHA-256
+`cb319d1fcd6ef2c945c7e0443fc5299d5c0deea8627851e998bd6b529a8bcc82`;
+an independent byte-level checksum check passed and `git diff --check` was
+clean. The PostgreSQL 17 solver-catalog verifier and ordered cache-replay
+contention verifier had already passed on the same source paths; the latter
+observed its expected opposite-order deadlock and both production-ordered
+writers completed.
+
+The M1 contract audit did not manufacture authority. Source establishes
+`cash-002` as the `hu_cash` 100bb BTN/IP continuation contract, M1 partition
+`2/0`, geometry `srp_parameterized_four_action_v3`, and the exact compatible
+parent/child candidates `2d7b403c-e4d3-4c20-bff8-ed5db7ecb50a` and
+`21d75135-faa8-4c0d-acbe-91b55c98daf0`. The canonical range filenames are
+`RFI_BTN_100.txt` and `BBflat_vs_BTN_100.txt`; host evidence proves their
+legacy `_9m_` aliases are byte-identical, but that fact alone does not grant
+semantic authority. Exact rake, range semantic approval, current target
+uniqueness, and the runnable M1-only manifest remain deliberately unresolved
+until they are encoded through the separate protected bounded-canary contract
+stage. This candidate therefore remains a source repair, not Phase 6 closure,
+and Phase 7 remains unstarted.
