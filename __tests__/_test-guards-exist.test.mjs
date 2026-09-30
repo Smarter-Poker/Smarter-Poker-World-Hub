@@ -193,6 +193,10 @@ import './social-poker-card-picker-interaction.test.mjs';
 // lightbox, the public club page and both APIs. Owner decision: automated club
 // digests must appear as the club, not as a person.
 import './page-posts-show-the-page.test.mjs';
+// 2026-09-29, Phase 7: a puzzle post shows its choices under the board, the
+// clock before the reveal and the answer only after social_puzzles.revealed_at;
+// a post without a puzzle renders byte for byte as before.
+import './social-puzzle-answer-card.test.mjs';
 import './store-commerce-hardening.test.mjs';
 // 2026-09-05, the diamond wallet audit. Caught by this file's own meta-guard
 // before it could become another guard nobody runs: the law was written, passed
@@ -262,6 +266,8 @@ import './world-copy-policy.test.mjs';
 // executes is the same kind of decoration as a healthcheck that pings an
 // unauthenticated endpoint, which is the very failure it exists to prevent.
 import './openclaw-workers-secret.test.mjs';
+// Phase 7 dispatcher entry and the puzzle migration invariants (2026-09-30).
+import './phase7-content-dispatch.test.mjs';
 // Required CHECK 8 also enforces the recovered Video worker publication boundary.
 import './openclaw-video-library-routing.test.mjs';
 // The same boundary's shared 7-day availability-freshness contract: SQL,
