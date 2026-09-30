@@ -175,7 +175,14 @@ export default async function handler(req, res) {
         // the ledger row atomically. It also owns the insufficient-balance
         // decision: an exact idempotent retry must still be able to recover its
         // committed receipt after the player's balance changes.
-        const { data, error } = await supabase.rpc('deduct_diamonds', {
+        //
+        // A Trivia lifeline goes through trivia_solo_spend (Trivia Phase 2). It
+        // takes the same arguments and returns the same receipt: while the
+        // server-side solo_journal switch is OFF (the default) it simply calls
+        // deduct_diamonds; when root turns the switch ON it posts the same
+        // debit through the balanced Trivia journal.
+        const spendRpc = source === 'trivia_lifeline' ? 'trivia_solo_spend' : 'deduct_diamonds';
+        const { data, error } = await supabase.rpc(spendRpc, {
             p_user_id: userId,
             p_amount: amount,
             p_description: description,
@@ -184,7 +191,7 @@ export default async function handler(req, res) {
         });
 
         if (error) {
-            console.error('[Spend] deduct_diamonds failed:', error.message);
+            console.error(`[Spend] ${spendRpc} failed:`, error.message);
             try { reportApiError(error, req); } catch { /* noop */ }
             return res.status(500).json({ success: false, error: 'Charge failed' });
         }

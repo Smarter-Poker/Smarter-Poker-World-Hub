@@ -21,7 +21,7 @@ the tests and telemetry needed to prove its own behavior.
 | Phase | State | Release boundary |
 |---:|---|---|
 | 1 | Complete | Competitive containment, production baseline, final smoke, and release evidence are recorded in `PHASE-1-RELEASE-REPORT.md`. |
-| 2 | Ready next | Versioned rules, balanced journal/ledger, atomic economic operations, and settlement foundation. |
+| 2 | Complete (dormant) | Rules registry, balanced journal linked to the platform wallet journal, atomic ledger operations, treasury ceilings, settlement foundation and reconciliation are installed (2026-09-30) and recorded in `PHASE-2-RELEASE-REPORT.md`. The solo journal switch stays off and the treasury stays unfunded until the owner approves the canary run and funding. |
 | 3 | Planned | Question-bank and deterministic-engine defects found during Phase 1 are explicit entry blockers. |
 | 4–12 | Planned | Start only when the dependency graph and prior phase exit gates permit it. |
 
