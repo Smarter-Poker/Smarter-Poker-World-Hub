@@ -4,7 +4,7 @@
  * next.config.js has carried `Content-Security-Policy-Report-Only` since Phase
  * 6.1.14 with a comment saying it graduates to enforcing "once violations have
  * been monitored and confirmed zero". Nothing ever monitored it: the policy has
- * no `report-uri` and no `report-to`, so a violation writes one line to one
+ * no reporting directive at all (a `report-uri` was added 2026-09-30), so a violation writes one line to one
  * browser console and is forgotten. The file says so itself, about the retired error provider
  * allowance that was missing for ten days.
  *

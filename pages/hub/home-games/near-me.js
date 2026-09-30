@@ -223,6 +223,16 @@ export default function HomeGamesNearMePage({ publicCities = [] }) {
       params.set('limit', '50');
 
       const res = await fetch(`/api/public/home-games/discover?${params.toString()}`);
+      // A 5xx answers with an HTML error page, and parsing that as JSON threw a
+      // SyntaxError whose raw text ("Unexpected token '<'") was rendered to the
+      // person as the failure message.
+      //
+      // Only the HTML case is swallowed. Guarding on !res.ok alone also threw
+      // away the 400 this endpoint sends for a search that is too long, which is
+      // the one failure the person can actually act on, and replaced it with
+      // "please try again" for a condition retrying never fixes.
+      const isJson = (res.headers.get('content-type') || '').includes('application/json');
+      if (!isJson) throw new Error('Home games could not be loaded right now. Please try again.');
       const json = await res.json();
       if (!json.success) throw new Error(json.error || 'discover failed');
       if (seq !== searchSeqRef.current) return; // superseded by a newer search

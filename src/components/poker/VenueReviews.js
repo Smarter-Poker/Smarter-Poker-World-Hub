@@ -207,7 +207,7 @@ function DistributionRow({ starCount, count, total }) {
 // ════════════════════════════════════════════
 // MAIN COMPONENT
 // ════════════════════════════════════════════
-export default function VenueReviews({ venueId, venueName }) {
+export default function VenueReviews({ venueId, venueName, defaultOpen = false }) {
     const [reviews, setReviews] = useState([]);
     const [summary, setSummary] = useState({
         avg_rating: 0, total_reviews: 0,
@@ -217,7 +217,14 @@ export default function VenueReviews({ venueId, venueName }) {
     });
     const [loading, setLoading] = useState(true);
     const [sortBy, setSortBy] = useState('newest');
-    const [showForm, setShowForm] = useState(false);
+    const [showForm, setShowForm] = useState(!!defaultOpen);
+
+    // The venue page links here with ?action=review from the rating row, the
+    // geofence banner and the lobby. That flag is read from the router after
+    // mount, so it arrives as a prop change rather than an initial value.
+    useEffect(() => {
+        if (defaultOpen) setShowForm(true);
+    }, [defaultOpen]);
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState('');
     const [successMsg, setSuccessMsg] = useState('');

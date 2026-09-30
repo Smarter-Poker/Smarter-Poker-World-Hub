@@ -188,6 +188,15 @@ import './social-poker-card-picker.test.mjs';
 // for real - spoken card names, 44px targets, whole streets only, focus,
 // long press, and the drafts of a video post that uploads in the background.
 import './social-poker-card-picker-interaction.test.mjs';
+// 2026-09-29: club page posts are shown as the page (name, avatar, link), never
+// as the person who posted them, on the feed card, the pinned strip, the media
+// lightbox, the public club page and both APIs. Owner decision: automated club
+// digests must appear as the club, not as a person.
+import './page-posts-show-the-page.test.mjs';
+// 2026-09-29, Phase 7: a puzzle post shows its choices under the board, the
+// clock before the reveal and the answer only after social_puzzles.revealed_at;
+// a post without a puzzle renders byte for byte as before.
+import './social-puzzle-answer-card.test.mjs';
 import './store-commerce-hardening.test.mjs';
 // 2026-09-05, the diamond wallet audit. Caught by this file's own meta-guard
 // before it could become another guard nobody runs: the law was written, passed
@@ -198,7 +207,14 @@ import './the-wallet-badges-count-the-whole-ledger.law.test.mjs';
 // whether today's login is claimed and what the next claim pays, from the
 // catalog's own rule; the wallet's Escape backs out one layer, not all of them.
 import './the-earn-pane-knows-what-it-cannot-tell.test.mjs';
+import './the-stats-panel-is-summed-in-sql.test.mjs';
 import './the-ledger-speaks-to-the-player.law.test.mjs';
+// Phase 8 of 8, 2026-09-29. Phases 1 to 7 each pinned ONE side of the
+// route/client boundary, so the two could drift while both stayed green: a
+// renamed field, a bucket key nothing renders, a column dropped from the
+// route's select. This one pins the JOIN, against a snapshot of what
+// production actually declares (scripts/ci/lib/diamond-wallet-contract.mjs).
+import './the-route-and-the-client-agree.test.mjs';
 // Trivia lifeline charges are client-requested but server-priced. This guard
 // pins the database replay envelope so a cheaper or differently typed debit
 // can never masquerade as the paid skip.
@@ -235,6 +251,9 @@ import './trivia-tournament-containment.test.mjs';
 // Trivia Phase 3: eligibility-only paid/competitive pools, engine v3 golden seeds.
 import './trivia-phase-3-engine.test.mjs';
 import './trivia-ui-foundation.test.mjs';
+// Trivia Phase 2: versioned rules seed parity, conserving money helpers,
+// ledger migration ACLs with every switch OFF, and the lifeline/audit wiring.
+import './trivia-ledger-phase-2.test.mjs';
 import './world-command-destinations.test.mjs';
 import './world-command-menu-law.test.mjs';
 import './world-menu-presentation.test.mjs';
@@ -249,6 +268,8 @@ import './world-copy-policy.test.mjs';
 // executes is the same kind of decoration as a healthcheck that pings an
 // unauthenticated endpoint, which is the very failure it exists to prevent.
 import './openclaw-workers-secret.test.mjs';
+// Phase 7 dispatcher entry and the puzzle migration invariants (2026-09-30).
+import './phase7-content-dispatch.test.mjs';
 // Required CHECK 8 also enforces the recovered Video worker publication boundary.
 import './openclaw-video-library-routing.test.mjs';
 // The same boundary's shared 7-day availability-freshness contract: SQL,
@@ -394,6 +415,18 @@ import './push-health-alert-evidence.test.mjs';
 // its window; every rotation is recorded once.
 import './push-health-alert-positive-evidence.test.mjs';
 
+// Four venue page actions that were wired to nothing: the review deep link, the
+// two forms that failed silently, and the hero that hotlinked a casino.
+import './venue-page-actions-reach-the-person.test.mjs';
+
+// The article reader proxy checked the caller's URL and then followed redirects
+// blindly, which let a 302 reach the cloud metadata address.
+import './the-proxy-checks-every-redirect-hop.test.mjs';
+
+// The Report-Only CSP can only graduate if its violations reach us, so the
+// reporting wiring and the endpoint that receives it are guarded here.
+import './csp-violations-reach-us.test.mjs';
+
 const REPO = path.resolve(new URL('.', import.meta.url).pathname, '..');
 
 const REQUIRED_TEST_FILES = [
@@ -446,6 +479,9 @@ const REQUIRED_TEST_FILES = [
     '__tests__/trivia-phase-3-engine.test.mjs',
     // The console contract: chassis, inks, footer law and artwork families.
     '__tests__/trivia-console-contract.test.mjs',
+    // Trivia Phase 2 ledger: the rules registry seed is generated from the one
+    // JS module and every paid solo mode is seeded exactly as it runs today.
+    '__tests__/trivia-ledger-phase-2.test.mjs',
     // Club shop item rules. shopItemRules.js is the single validator shared by
     // BOTH admin write paths; before it existed the two disagreed and items
     // created from the World Hub granted nothing on redeem, accepted any image
