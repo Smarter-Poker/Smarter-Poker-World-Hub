@@ -15,12 +15,13 @@
   width: min(620px, 100%);
   max-height: calc(100dvh - 36px);
   overflow: auto;
-  border: 0;
+  border: 1px solid #496979;
   border-radius: 0;
   outline: none;
-  background: #010407;
+  background: #03080d;
   color: #eef9ff;
   scrollbar-color: #6a8497 #02070b;
+  box-shadow: 0 24px 64px rgb(0 0 0 / 68%);
 }
 
 .panel:focus-visible {
@@ -33,10 +34,9 @@
   grid-template-columns: minmax(0, 1fr) 31%;
   align-items: center;
   width: 100%;
-  aspect-ratio: 1000 / 348;
-  padding: 12% 8.5% 4.5% 9%;
-  background: transparent url('/images/marketplace-console-v1/spade-console/top.webp') center / 100%
-    100% no-repeat;
+  padding: 20px;
+  border-bottom: 1px solid #385568;
+  background: #08131b;
 }
 
 .header > div {
@@ -75,9 +75,9 @@
   min-width: 0;
   min-height: 44px;
   padding: 0 12px;
-  border: 0;
+  border: 1px solid #3a596b;
   border-radius: 0;
-  background: transparent;
+  background: #071017;
   color: #e7f7ff;
   font:
     800 12px var(--font-roboto-condensed),
@@ -91,12 +91,8 @@
 }
 
 .panelBody {
-  padding: 6px 9% 18px;
-  background-color: #010407;
-  background-image: url('/images/marketplace-console-v1/spade-console/mid.png');
-  background-position: top center;
-  background-size: 100% 8px;
-  background-repeat: repeat-y;
+  padding: 20px;
+  background: #03080d;
 }
 
 .description {
@@ -214,20 +210,19 @@
   grid-template-columns: repeat(2, minmax(0, 1fr));
   align-items: center;
   width: 100%;
-  aspect-ratio: 1000 / 277;
-  gap: 4%;
-  padding: 5.5% 9% 8%;
-  background: transparent url('/images/marketplace-console-v1/spade-console/bottom-plates.webp')
-    center / 100% 100% no-repeat;
+  gap: 10px;
+  padding: 18px 20px 20px;
+  border-top: 1px solid #385568;
+  background: #08131b;
 }
 
 .actions button {
   width: 100%;
   min-height: 44px;
   padding: 0 14px;
-  border: 0;
+  border: 1px solid #3a596b;
   border-radius: 0;
-  background: transparent;
+  background: #071017;
   color: #eaf9ff;
   font:
     800 12px var(--font-roboto-condensed),
@@ -241,11 +236,15 @@
 }
 
 .cancel {
+  border-color: #3a596b;
   color: #dbe8ef;
+  background: #071017;
 }
 
 .confirm {
+  border-color: #42d9ff;
   color: #ffffff;
+  background: #0a4f69;
 }
 
 .actions button:focus-visible,
@@ -271,7 +270,7 @@
   }
 
   .header {
-    padding-inline: 8%;
+    padding-inline: 18px;
   }
 
   .header h2 {
@@ -279,12 +278,12 @@
   }
 
   .close {
-    min-height: 40px;
+    min-height: 44px;
     font-size: 11px;
   }
 
   .panelBody {
-    padding-inline: 8%;
+    padding-inline: 18px;
   }
 
   .ledger,
@@ -307,8 +306,9 @@
   }
 
   .actions {
-    gap: 3%;
-    padding-inline: 8%;
+    grid-template-columns: 1fr;
+    gap: 10px;
+    padding-inline: 18px;
   }
 
   .actions button {

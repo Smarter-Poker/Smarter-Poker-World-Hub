@@ -111,7 +111,9 @@ test('Marketplace keeps its existing route navigation instead of standalone obje
   assert.match(commerceNav, /data-footer-layout=/);
   assert.match(commerceNavStyles, /\.pageFooter\s*\{/);
   assert.match(commerceNavStyles, /\.pageFooter \.link\s*\{/);
-  assert.match(cssRule(commerceNavStyles, '.link {'), /shark-panel\/button-secondary\.png/);
+  assert.match(cssRule(commerceNavStyles, '.link {'), /border:/);
+  assert.match(cssRule(commerceNavStyles, '.link {'), /background:/);
+  assert.doesNotMatch(cssRule(commerceNavStyles, '.link {'), /url\(|\.png|\.webp/);
   assert.doesNotMatch(cssRule(commerceNavStyles, '.pageFooter .link {'), /url\(|\.png|\.webp/);
   assert.doesNotMatch(commerceNavStyles, /navigation\/nav-shell|shark-panel\/bay/);
   assert.doesNotMatch(commerceNavStyles, /:hover/);
@@ -146,7 +148,7 @@ test('rejected selector and VIP replacement assets are absent', async () => {
 test('the written contract requires in-place upgrades without cloned page layouts', async () => {
   const readme = await read(paths.readme);
   assert.match(readme, /Preserve each Marketplace page's existing layout/);
-  assert.match(readme, /instead\s+of adding standalone destination objects/);
+  assert.match(readme, /Do not add empty ornamental slots,[\s\S]*decorative destination objects/);
   assert.match(readme, /without making\s+every page a one-to-one clone/);
 });
 
@@ -278,25 +280,33 @@ test('standard rewards preserve catalog taxonomy without floating icon overlays'
   assert.doesNotMatch(liveRewardCopy.join('\n'), /◆/);
 });
 
-test('live Marketplace frames use painted masters and retain no hover-only treatment', async () => {
-  const [shellCss, legacyStyles, cart, cartCss, navCss, accountCss] = await Promise.all([
+test('live Marketplace frames are content-driven and retain no hover-only treatment', async () => {
+  const [shellCss, cart, cartCss, navCss, accountCss] = await Promise.all([
     read(paths.diamondStoreCss),
-    read('src/components/diamond-store/diamondStoreStyles.js'),
     read(paths.cart),
     read(paths.cartCss),
     read(paths.commerceNavCss),
     read('pages/hub/diamond-store/marketplace-account-controls.module.css'),
   ]);
 
-  assert.match(shellCss, /\.rewardRow\s*\{[\s\S]*?shark-panel\/bay\.png/);
-  assert.match(shellCss, /\.rewardsBoostLayout\s*\{[\s\S]*?shark-panel\/bay\.png/);
-  assert.match(
-    shellCss,
-    /\.clubShopSurface :is\(input, select, textarea\)\s*\{[\s\S]*?button-secondary\.png/
-  );
-  assert.match(legacyStyles, /const ANGULAR_METAL_PLATE = \{[\s\S]*?shark-panel\/bay\.png/);
-  assert.match(legacyStyles, /multiplierItem:\s*\{[\s\S]*?button-secondary\.png/);
-  assert.match(legacyStyles, /rarityBadge:\s*\{[\s\S]*?button-secondary\.png/);
+  const cssBlock = (source, selector) => {
+    const start = source.indexOf(selector);
+    const end = source.indexOf('}', start + selector.length);
+    assert.ok(start >= 0 && end > start, `Missing CSS Rule: ${selector}`);
+    return source.slice(start, end + 1);
+  };
+  for (const selector of [
+    '.rewardRow {',
+    '.rewardsBoostLayout {',
+    '.clubShopSurface :is(input, select, textarea) {',
+  ]) {
+    const block = cssBlock(shellCss, selector);
+    assert.match(block, /border:/);
+    assert.match(block, /background:/);
+    assert.doesNotMatch(block, /url\(|\.png|\.webp/);
+  }
+  // diamondStoreStyles.js remains locked Page 1 compatibility and is
+  // intentionally outside this assertion.
   assert.match(cart, /className=\{cartStyles\.cartItemFrame\}/);
   assert.match(cart, /className=\{cartStyles\.summaryFrame\}/);
   // Phase 7 (2026-09-19): the cart line and the summary are restrained chrome,
@@ -311,7 +321,7 @@ test('live Marketplace frames use painted masters and retain no hover-only treat
   assert.doesNotMatch(`${cartCss}\n${navCss}\n${accountCss}`, /:hover/);
 });
 
-test('diamond calls to action use restrained machined controls while toast dismissal keeps its shared art', async () => {
+test('diamond calls to action and toast dismissal use restrained content-driven controls', async () => {
   const [showcaseStyles, toastStyles] = await Promise.all([
     read(paths.showcaseCss),
     read(paths.toastCss),
@@ -331,7 +341,11 @@ test('diamond calls to action use restrained machined controls while toast dismi
   assert.match(packageButton, /border:/);
   assert.match(packageButton, /background:/);
   assert.doesNotMatch(`${starterButton}\n${packageButton}`, /url\(|\.png|\.webp/);
-  assert.match(toastStyles, /\.dismiss\s*\{[\s\S]*?shark-panel\/button-secondary\.png/);
+  const dismiss = /\.dismiss\s*\{[\s\S]*?\}/.exec(toastStyles)?.[0] || '';
+  assert.match(dismiss, /min-height:\s*44px/);
+  assert.match(dismiss, /border:/);
+  assert.match(dismiss, /background:/);
+  assert.doesNotMatch(dismiss, /url\(|\.png|\.webp/);
 });
 
 test('Diamond package cards expose a readable commerce hierarchy without ornamental housings', async () => {
@@ -373,10 +387,7 @@ test('Diamond package cards expose a readable commerce hierarchy without ornamen
   ]) {
     assert.match(showcase, new RegExp(hook));
   }
-  assert.match(
-    showcase,
-    /className=\{styles\.packageBreakdown\}[\s\S]{0,80}?data-package-bonus/
-  );
+  assert.match(showcase, /className=\{styles\.packageBreakdown\}[\s\S]{0,80}?data-package-bonus/);
   assert.match(showcase, /<dt>Base Amount<\/dt>/);
   assert.match(showcase, /<dt>Bonus<\/dt>/);
   assert.match(showcase, /<span>Price<\/span>[\s\S]*?\$\{Number\(pkg\.price/);
@@ -385,7 +396,10 @@ test('Diamond package cards expose a readable commerce hierarchy without ornamen
   assert.match(showcase, /`Pricing Unavailable For \$\{marketplaceCopy\(pkg\.name\)\}`/);
   assert.match(showcase, /onClick=\{\(\) => onBuy\(pkg\)\}/);
   assert.doesNotMatch(showcase, /decorativeSlot|ornamentalSlot|emptyPlate/);
-  assert.match(showcase, /const starterPackages = packages\.slice\(0, Math\.min\(2, packages\.length\)\)/);
+  assert.match(
+    showcase,
+    /const starterPackages = packages\.slice\(0, Math\.min\(2, packages\.length\)\)/
+  );
   assert.match(showcase, /const primaryPackages = packages\.slice\(starterPackages\.length\)/);
   assert.match(showcase, /PACKAGE_ART_CLASS_BY_ID\[pkg\.id\] \|\| 'packageFallback'/);
   assert.doesNotMatch(showcase, /packages\.slice\(-6\)/);
@@ -435,20 +449,18 @@ test('Diamond package cards expose a readable commerce hierarchy without ornamen
   assert.match(app, /showBottomNav && \(/);
   assert.doesNotMatch(styles, /\.packageCard\s*\{[^}]*padding:\s*270px/s);
   assert.doesNotMatch(styles, /\.sectionBar\s*\{[^}]*padding:[^;}]*22%/s);
-  assert.match(styles, /@media \(max-width: 700px\)[\s\S]*?\.starterRail\s*\{[\s\S]*?grid-template-columns:\s*1fr/);
+  assert.match(
+    styles,
+    /@media \(max-width: 700px\)[\s\S]*?\.starterRail\s*\{[\s\S]*?grid-template-columns:\s*1fr/
+  );
 });
 
-test('cart controls keep their accessible commerce wiring inside painted console plates', async () => {
+test('cart controls keep accessible commerce wiring in restrained readable controls', async () => {
   const [cart, styles] = await Promise.all([read(paths.cart), read(paths.cartCss)]);
-  const controlAssets = [
-    'public/images/marketplace-console-v1/shark-panel/button-primary.png',
-    'public/images/marketplace-console-v1/shark-panel/button-secondary.png',
-  ];
   const paymentStart = cart.indexOf('Payment Method Selection');
   const paymentEnd = cart.indexOf('{/* Checkout Button */}', paymentStart);
   const paymentSource = cart.slice(paymentStart, paymentEnd);
 
-  await Promise.all(controlAssets.map((asset) => access(path.join(root, asset))));
   assert.ok(paymentStart >= 0 && paymentEnd > paymentStart);
   assert.match(cart, /import cartStyles from ['"]\.\/cart\.module\.css['"]/);
   const referencedClasses = new Set(
@@ -516,24 +528,26 @@ test('cart controls keep their accessible commerce wiring inside painted console
     assert.match(cart, new RegExp(checkoutLabel.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
   }
 
-  assert.match(styles, /\.paymentChoice\s*\{[\s\S]*?shark-panel\/button-secondary\.png/);
+  assert.doesNotMatch(styles, /marketplace-console-v1|shark-panel|spade-console/);
+  assert.match(styles, /\.paymentChoice\s*\{[\s\S]*?min-height:\s*76px/);
   assert.match(
     styles,
-    /\.paymentChoice\[aria-checked='true'\]\s*\{[\s\S]*?shark-panel\/button-primary\.png/
+    /\.paymentChoice\[aria-checked='true'\]\s*\{[\s\S]*?border-color:\s*#9bedfb/
   );
-  assert.match(styles, /\.checkoutButton\s*\{[\s\S]*?shark-panel\/button-primary\.png/);
-  assert.match(styles, /\.continueShoppingLink\s*\{[\s\S]*?shark-panel\/button-secondary\.png/);
-  assert.match(styles, /\.emptyBrowseButton\s*\{[\s\S]*?shark-panel\/button-primary\.png/);
+  assert.match(styles, /\.checkoutButton\s*\{[\s\S]*?min-height:\s*52px/);
   assert.match(
     styles,
-    /\.quantityButton,\s*\.removeButton,\s*\.clearCartButton\s*\{[\s\S]*?shark-panel\/button-secondary\.png/
+    /\.continueShoppingLink,[\s\S]*?\.emptyBrowseButton\s*\{[\s\S]*?min-height:\s*46px/
   );
+  assert.match(styles, /\.quantityButton\s*\{[\s\S]*?min-height:\s*45px/);
+  assert.match(styles, /\.removeButton\s*\{[\s\S]*?min-height:\s*44px/);
+  assert.match(styles, /\.clearCartButton\s*\{[\s\S]*?min-height:\s*46px/);
   assert.match(styles, /\.checkoutButton:disabled\s*\{/);
   assert.match(styles, /:focus-visible/);
   assert.doesNotMatch(styles, /:hover/);
-  assert.doesNotMatch(cart, /linear-gradient|radial-gradient|borderRadius:\s*['"]50%/);
-  assert.doesNotMatch(styles, /linear-gradient|radial-gradient|border-radius:\s*50%/);
-  assert.doesNotMatch(styles, /navigation\/nav-shell|shark-panel\/bay|wallet-row/);
+  assert.doesNotMatch(cart, /borderRadius:\s*['"]50%/);
+  assert.doesNotMatch(styles, /border-radius:\s*50%/);
+  assert.doesNotMatch(styles, /navigation\/nav-shell|wallet-row/);
   assert.doesNotMatch(styles, /\b(?:green|purple|violet|lime|magenta)\b/i);
   assert.doesNotMatch(`${cart}\n${styles}`, /[✓✔☑→←↑↓↗↘➜➡]/);
   assert.doesNotMatch(`${cart}\n${styles}`, /[–—]/);

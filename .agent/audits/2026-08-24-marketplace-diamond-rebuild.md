@@ -177,3 +177,85 @@ catalog verification, enabled checkout-action verification, protected PR/CI,
 merge, Vercel READY identity and final production screenshots remain pending
 until the final integrated candidate is delivered. This checkpoint must be
 updated with those actual results before completion is claimed.
+
+## 2026-09-30 Marketplace Route Restoration
+
+### Policy Receipt And Candidate Boundary
+
+The current canonical policy set was emitted and read at
+`2026-09-30T23:24:14.375Z`. Policy version 2.9 receipt:
+
+- manifest `a659f31c5c1c2b0864889508079a635dd5fe2fc98decfbfc9d3f9c80dd45ec3b`
+- owner `b9478d0331314413d8e12c41210b63479cdcabc1f86ed3fdcb3251efa36e6349`
+- operating `a8bc3c04dce3354ebdd51a89c0b7d715af3344edcc794d33f6b3ad64506961d5`
+- hardening `d5fc451ce5caf6d6b5e64597a13883e1246581678fe53c962339d0a66136993e`
+- index `adce89c3f838f2f373cd504a00329d53906404d1dd42a647f672af6c16f95555`
+- reader `d5e6189878846064ac60269a41dfc4e6d9a7bda54610110ddc5813230198f36e`
+- reader test `6fa4010b3e02e35fca064cb6fb945861a69869a25fad32e4e773951431fc05ef`
+
+The restoration candidate is in
+`/Volumes/SmarterWork/agent-work/marketplace-restoration-20260930-1120/world-hub`
+on branch `agent/codex/marketplace-restoration-20260930-1120`, based on
+`028669e901c3a6b5d6bedaaf040ad6b1043a557b`. This section records the
+local candidate and its verification only.
+
+### Locked Page 1 And Restored Routes
+
+Page 1 remains the locked reference. `/hub/marketplace` and
+`/hub/diamond-store`, plus `pages/hub/diamond-store.js`,
+`SmarterStoreShowcase.jsx`, `SmarterStoreShowcase.module.css` and
+`diamondStoreStyles.js`, were not changed by this route restoration.
+
+The restrained content hierarchy was restored across:
+
+- `/hub/vip-membership`, `/hub/vip-membership/compare` and
+  `/hub/vip-membership/manage`;
+- `/hub/merch-store`, `/hub/merch-store/[productId]` and
+  `/hub/merch-store/fulfillment`;
+- `/hub/smarter-rewards` and `/hub/smarter-rewards/[rewardId]`;
+- `/hub/club-shop` and `/hub/club-shop/[itemId]`;
+- `/hub/diamond-store/cart`, `/hub/diamond-store/orders`,
+  `/hub/diamond-store/orders/[orderId]` and
+  `/hub/diamond-store/wishlist`;
+- the shared Marketplace navigation, detail, checkout-status, purchase
+  dialog, cart, toast and account presentation used by those routes.
+
+### Source Constraints Preserved
+
+- Existing route data, catalog authority, prices, checkout handlers,
+  same-tab navigation and signed-in account ownership remain authoritative.
+- No commerce API, database, engine, settlement, authentication,
+  idempotency, payment, refund, order or entitlement behavior was changed.
+- Major sections keep restrained chrome and blue depth while compact cards,
+  readable typography and content-driven panels replace empty ornamental
+  slots and oversized painted console housings.
+- The approved gold VIP card artwork remains in place without floating icon
+  overlays. Throwables remain the single All Throwables Pack with composite
+  gameplay artwork rather than separate tomato, egg or other item purchases.
+- Controls retain accessible focus, disabled and reduced-motion states,
+  minimum touch targets, Title Case copy, the no-long-bar contract and no
+  green Marketplace accent treatment.
+- Each restored surface keeps one non-obstructive in-flow commerce footer.
+  The tested layouts do not add fixed footer overlays or horizontal page
+  overflow.
+- Printful connectivity and the proposed Lifetime VIP monthly 2,000-Diamond
+  grant with 90-day expiry are not part of this visual restoration.
+
+### Final Local Verification
+
+- Marketplace pretest gate: **69/69 passed**.
+- Canonical Marketplace suite: **609/609 passed**.
+- Local after screenshots are retained at
+  `/Volumes/SmarterArchives/agent-evidence/marketplace-restoration-20260930/after-screenshots`.
+- The evidence set covers VIP, Merch, Smarter Rewards and Club Shop main
+  routes at desktop and mobile sizes, plus the tested detail, fulfillment,
+  cart, wishlist, order history and receipt surfaces.
+- No horizontal document overflow was found on the tested main desktop and
+  mobile routes.
+
+### Delivery State
+
+At documentation time this candidate has not been protected-merged or
+published to production. Vercel READY identity, `/api/health` identity and
+live affected-route proof therefore remain pending. Local tests and
+screenshots must not be represented as merge or live-publication evidence.
