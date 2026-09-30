@@ -54,7 +54,7 @@ const REVOKED_FROM_AUTHENTICATED = [
   // 2026-09-30 - owner-only
   'diamonds', 'diamond_balance', 'diamond_multiplier', 'full_name', 'first_name',
   'last_name', 'birth_year', 'city', 'state', 'country', 'last_seen', 'last_login',
-  'last_login_date', 'last_active', 'referred_by',
+  'last_login_date', 'last_active', 'updated_at', 'referred_by', 'poker_near_me_preferences',
 ];
 
 function safeColumns() {

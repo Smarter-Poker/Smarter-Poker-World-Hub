@@ -14,7 +14,9 @@
  *   1. readOwnProfile() returns the caller's own columns and nobody else's.
  *   2. No browser-side read of profiles (a file that imports the browser
  *      client) names an owner-only column - in a select, a filter, an
- *      embedded `profiles(...)` or a /rest/v1/profiles URL.
+ *      upsert (ON CONFLICT reads the column back), an embedded
+ *      `profiles(...)` or a /rest/v1/profiles URL. A plain update that sets
+ *      one is fine: UPDATE needs no SELECT on the column it writes.
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -117,7 +119,7 @@ test('no browser read of profiles names an owner-only column', () => {
     const rel = relative(ROOT, file);
     // a .from('profiles') chain: every select/filter argument up to the chain's end
     const chainRe =
-      /\.from\(\s*['"`]profiles['"`]\s*\)((?:\s*\.\s*(?:select|eq|neq|in|ilike|like|or|order|gt|gte|lt|lte|is|not|filter|match)\s*\((?:[^()]|\([^()]*\))*\))+)/g;
+      /\.from\(\s*['"`]profiles['"`]\s*\)((?:\s*\.\s*(?:select|upsert|eq|neq|in|ilike|like|or|order|gt|gte|lt|lte|is|not|filter|match)\s*\((?:[^()]|\([^()]*\))*\))+)/g;
     for (const m of src.matchAll(chainRe)) {
       const names = ownerOnlyNamesIn(m[1].replace(/\$\{[^}]*\}/g, ''));
       if (names.length) offenders.push(`${rel}: .from('profiles')${m[1].slice(0, 80)} -> ${names}`);

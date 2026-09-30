@@ -64,9 +64,12 @@
  * OF THESE"). Anything that reveals a person's money, real identity or
  * whereabouts is readable only by that person and platform staff: the
  * Diamond balance and multiplier, the legal name, the birth year, the
- * city/state/country, last seen and referred-by. `authenticated` holds no
- * SELECT grant on these for ANY row - the owner's included - so they are
- * not in SAFE_PROFILE_COLUMNS, and the owner reads their own through
+ * city/state/country, last seen and referred-by - with updated_at, which
+ * every presence heartbeat moves (so it is a last-seen), and
+ * poker_near_me_preferences, which keeps the last known location.
+ * `authenticated` holds no SELECT grant on these for ANY row - the owner's
+ * included - so they are not in SAFE_PROFILE_COLUMNS, and the owner reads
+ * their own through
  * readOwnProfile() (src/lib/ownProfile.js). A stranger's profile shows the
  * display name, username, avatar, player number and public stats.
  */
@@ -85,7 +88,9 @@ export const OWNER_ONLY_PROFILE_COLUMNS = [
     'last_login',
     'last_login_date',
     'last_active',
+    'updated_at',
     'referred_by',
+    'poker_near_me_preferences',
 ];
 
 export const SAFE_PROFILE_COLUMNS =
@@ -94,15 +99,15 @@ export const SAFE_PROFILE_COLUMNS =
     'level, tier, skill_tier, login_streak, streak_days, settings, preferences, ' +
     'social_page_id, favorite_venue, home_poker_club, friends_count, hendon_total_cashes, ' +
     'hendon_total_earnings, email_verified, phone_verified, onboarding_complete, created_at, ' +
-    'updated_at, training_view_mode, last_trivia_date, trivia_streak, trivia_high_score, ' +
+    'training_view_mode, last_trivia_date, trivia_streak, trivia_high_score, ' +
     'total_hands_played, referral_code, sounds_enabled, vibrations_enabled, show_stack_bb, ' +
     'favorite_hand_type, card_back_preference, website, twitter, instagram, hendon_url, ' +
     'favorite_game, favorite_hand, home_casino, cover_photo_url, favorite_hand_plo, ' +
     'app_settings, display_name_preference, cover_photo_position, tiktok, telegram, ' +
     'hendon_biggest_cash, use_real_name, streak_count, access_tier, vip_tier, ' +
-    'vip_expires_at, poker_near_me_preferences, can_review, deleted_reviews_count, ' +
-    'hub_preferences, friend_preferences, store_preferences, messenger_preferences, ' +
-    'reels_preferences, home_games_onboarded_at, social_profile_completed';
+    'vip_expires_at, can_review, deleted_reviews_count, hub_preferences, friend_preferences, ' +
+    'store_preferences, messenger_preferences, reels_preferences, home_games_onboarded_at, ' +
+    'social_profile_completed';
 
 // Columns that are blocked at the DB layer for non-service-role callers.
 // These can ONLY be read via:
