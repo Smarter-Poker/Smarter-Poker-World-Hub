@@ -44,24 +44,29 @@ def art_pages(wt):
 
 def shot_pages(before, after, vp):
     pages = []
-    fams = ORDER
-    per = 4 if vp == '390' else 2
-    for k in range(0, len(fams), per):
-        p, d = page(f'Destinations at {vp}px: Before (Lobby Thumbnail Reused) | After (Own Art)', 'Viewport screenshots, signed out, top of page.')
-        x = 40
-        for i in fams[k:k + per]:
+    phone = vp == '390'
+    per_row, rows = (4, 2) if phone else (1, 2)
+    per = per_row * rows
+    for k in range(0, len(ORDER), per):
+        p, d = page(f'Destinations at {vp}px: Before | After', 'Before: production today (the lobby thumbnail reused as the hero). After: the new destination art. Viewport screenshots, top of page.')
+        cell_w = (2400 - 80) // per_row
+        img_w = cell_w // 2 - 16
+        img_h = 640 if phone else 690
+        for n, i in enumerate(ORDER[k:k + per]):
             name = ROUTE.get(i, i)
+            x0 = 40 + (n % per_row) * cell_w; y0 = 120 + (n // per_row) * (img_h + 80)
+            d.text((x0, y0), i.replace('-', ' ').title(), font=font(26), fill=BLUE)
             b = os.path.join(before, f'{name}-{vp}.png'); a = os.path.join(after, 'shots', f'{name}-{vp}.png')
-            if i in ('pvp', 'tournaments'):  # flag-gated in production: show the hero it used to print
+            flagged = i in ('pvp', 'tournaments')
+            if flagged:
                 b = os.path.join(WT, 'public', THUMB[i])
-            d.text((x, 110), i.replace('-', ' ').title(), font=font(28), fill=BLUE)
-            cw = (2400 - 80) // per - 20
+                a = os.path.join(LOCAL, 'shots', f'{name}-{vp}.png')
             for j, pth in enumerate((b, a)):
                 if not os.path.exists(pth): continue
-                im = fit(Image.open(pth), cw // 2 - 10, 1420)
-                p.paste(im, (x + j * (cw // 2), 150))
-                d.text((x + j * (cw // 2), 1575 - 22), ('Before (Former Hero Art)' if i in ('pvp', 'tournaments') else 'Before') if j == 0 else 'After', font=font(20), fill=MUTED)
-            x += cw + 20
+                im = fit(Image.open(pth), img_w, img_h)
+                x = x0 + j * (img_w + 16); p.paste(im, (x, y0 + 36))
+                label = ('Before: Former Hero Art (Flag Off In Production)' if flagged else 'Before: Production') if j == 0 else ('After: Local Build, Flag On' if flagged else 'After: Production (Live)')
+                d.text((x, y0 + 40 + im.height), label, font=font(18), fill=MUTED)
         pages.append(p)
     return pages
 
@@ -90,6 +95,7 @@ def state_pages(after):
 if __name__ == '__main__':
     wt, before, after, out = sys.argv[1:5]
     WT = wt
-    pages = art_pages(wt) + shot_pages(before, after, '390') + shot_pages(before, after, '1440') + [quiet_page()] + state_pages(after)
+    LOCAL = sys.argv[5] if len(sys.argv) > 5 else after
+    pages = art_pages(wt) + shot_pages(before, after, '390') + shot_pages(before, after, '1440') + [quiet_page()] + state_pages(LOCAL)
     pages[0].save(out, save_all=True, append_images=pages[1:], resolution=150, quality=80)
     print(out, len(pages), os.path.getsize(out))
