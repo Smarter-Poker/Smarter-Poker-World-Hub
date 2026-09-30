@@ -75,6 +75,13 @@
 --   sections 1, 2, 4, 5.
 -- ═══════════════════════════════════════════════════════════════════════
 
+-- The foreign keys below take a share-row-exclusive lock on profiles, social_posts
+-- and social_comments, which live tables the engine writes every second. The first
+-- installation attempt (2026-09-30 04:43Z) was chosen as the deadlock victim behind
+-- a concurrent access-exclusive lock on auth.users. A bounded lock wait turns a
+-- busy moment into a clean, retryable failure instead of a deadlock.
+SET lock_timeout = '10s';
+
 BEGIN;
 
 -- ---------------------------------------------------------------------------
