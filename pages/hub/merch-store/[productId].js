@@ -272,8 +272,8 @@ export default function MerchProductDetail({ product }) {
       presentation="product"
       actions={
         <>
-          <Link href="#purchase-console">Open Purchase Console</Link>
-          <Link href="/hub/diamond-store/cart">Open Shared Cart</Link>
+          <Link href="#purchase-console">Choose Purchase Options</Link>
+          <Link href="/hub/diamond-store/cart">View Shared Cart</Link>
         </>
       }
       structuredData={[productSchema, breadcrumbSchema]}
@@ -321,15 +321,7 @@ export default function MerchProductDetail({ product }) {
           </span>
         </div>
       </div>
-      <section aria-labelledby="purchase-console-title">
-        <div className={detailStyles.detailCard}>
-          <h2 id="purchase-console-title">Live Purchase Console</h2>
-          <p>
-            Choose The Current Option, Save The Item, Add It To The Shared Cart, Or Use Either
-            Settlement Path From This Page. Orders Enter Automatic Fulfillment When Connected;
-            Otherwise They Enter The Audited Manual Fulfillment Queue.
-          </p>
-        </div>
+      <section aria-label="Purchase Options">
         <MerchStore
           user={user}
           authResolved={!authLoading}

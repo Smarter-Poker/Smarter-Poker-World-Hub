@@ -20,7 +20,6 @@ const RECEIPT = read('pages/hub/diamond-store/orders/[orderId].js');
 const WISHLIST = read('pages/hub/diamond-store/wishlist.js');
 const ACCOUNT_CONTROLS = read('pages/hub/diamond-store/marketplace-account-controls.module.css');
 const DETAIL_CSS = read('src/components/store/MarketplaceDetailExperience.module.css');
-const CONSOLE_CSS = read('src/components/marketplace-console/MarketplaceConsole.module.css');
 const VERIFIER = read('scripts/verify-marketplace-deployment.mjs');
 
 function createResponse() {
@@ -226,14 +225,18 @@ test('refund progress and marketplace-wide purchase categories stay visible', ()
   assert.match(RECEIPT, /Net Settled/);
 });
 
-test('marketplace account actions use the approved console shells without changing navigation', () => {
-  assert.match(ACCOUNT_CONTROLS, /marketplace-console-v1\/shark-panel\/button-primary\.png/);
-  assert.match(ACCOUNT_CONTROLS, /marketplace-console-v1\/shark-panel\/button-secondary\.png/);
+test('marketplace account actions use restrained readable controls without changing navigation', () => {
+  assert.doesNotMatch(ACCOUNT_CONTROLS, /marketplace-console-v1|shark-panel|spade-console/);
+  assert.match(ACCOUNT_CONTROLS, /\.action\s*\{[\s\S]*?min-height:\s*46px/);
+  assert.match(ACCOUNT_CONTROLS, /\.action\.actionPrimary\s*\{/);
+  assert.match(ACCOUNT_CONTROLS, /\.action\.actionSecondary\s*\{/);
+  assert.match(ACCOUNT_CONTROLS, /\.action\.actionDanger\s*\{/);
+  assert.match(ACCOUNT_CONTROLS, /\.panel,[\s\S]*?\.recordCard\s*\{/);
+  assert.match(ACCOUNT_CONTROLS, /\.statusRow\s*\{/);
   assert.match(ACCOUNT_CONTROLS, /\.action:focus-visible,[\s\S]*\.field:focus-visible/);
   assert.match(ACCOUNT_CONTROLS, /\.action:disabled/);
   assert.match(ACCOUNT_CONTROLS, /@media \(prefers-reduced-motion: reduce\)/);
   assert.match(ACCOUNT_CONTROLS, /border-radius:\s*0/);
-  assert.doesNotMatch(ACCOUNT_CONTROLS, /(?:linear|radial)-gradient/);
 
   for (const source of [ORDERS, WISHLIST, RECEIPT]) {
     assert.match(source, /marketplace-account-controls\.module\.css/);
@@ -253,30 +256,22 @@ test('marketplace account actions use the approved console shells without changi
   assert.match(RECEIPT, /Track Package On Carrier Site/);
 });
 
-test('account records and informational details use native painted frame slices', () => {
+test('account records and informational details use restrained readable frames', () => {
+  for (const source of [ORDERS, WISHLIST, RECEIPT]) {
+    assert.doesNotMatch(source, /src\/components\/marketplace-console/);
+    assert.doesNotMatch(source, /MarketplaceConsole(?:Panel|StatusRow|PageConsole)/);
+  }
   assert.match(
     ORDERS,
-    /import \{[\s\S]*?MarketplacePageConsole,[\s\S]*?\} from ['"]\.\.\/\.\.\/\.\.\/src\/components\/marketplace-console\/MarketplaceConsole['"]/
+    /visibleOrders\.map\(\(order\) => \{[\s\S]*?<article key=\{order\.key\} className=\{accountControls\.recordCard\}>[\s\S]*?accountControls\.recordHeader[\s\S]*?accountControls\.recordStatus[\s\S]*?accountControls\.recordBody/
   );
-  assert.match(
-    ORDERS,
-    /visibleOrders\.map\(\(order\) => \{[\s\S]*?<MarketplacePageConsole[\s\S]*?as="article"[\s\S]*?eyebrow=\{`Order #\$\{orderLabel\}`\}[\s\S]*?status=\{statusBadge\.label\}[\s\S]*?statusInk=\{statusBadge\.ink\}/
-  );
+  assert.match(ACCOUNT_CONTROLS, /\.recordCard\s*\{/);
+  assert.match(ACCOUNT_CONTROLS, /\.recordHeader\s*\{/);
+  assert.match(ACCOUNT_CONTROLS, /\.recordBody\s*\{/);
   assert.doesNotMatch(ORDERS, /styles\.orderCard|orderCard\s*:/);
-  assert.match(CONSOLE_CSS, /\.pageHead\s*\{[\s\S]*?spade-console\/top\.webp/);
-  assert.match(
-    CONSOLE_CSS,
-    /\.pageBody\s*\{[\s\S]*?spade-console\/mid\.png[\s\S]*?background-repeat:\s*repeat-y/
-  );
-  assert.match(CONSOLE_CSS, /\.pageFoot,[\s\S]*?spade-console\/bottom-foot\.png/);
 
-  // Phase 7 (2026-09-19): the saved-gear card was a three-slice shark-panel
-  // housing whose top and bottom slices were empty aria-hidden divs. Measured
-  // at 1440, a 550px card spent 172.32px (28.2%) on that ornament, and a 370px
-  // card 115.92px (21.0%), around a body that also reserved 14.4% of its own
-  // width horizontally. It is now the restrained chrome the cart and .vipFaq
-  // already use. The shark-panel PNGs remain in public/ (asserted below) and
-  // remain referenced by the console kit.
+  // Saved gear and account receipts reserve their space for product, status,
+  // ownership, and the next available action.
   assert.match(
     WISHLIST,
     /<article key=\{item\.id \?\? item\.product_id\} style=\{styles\.wishlistItem\}>[\s\S]*?styles\.wishlistFrameBody[\s\S]*?styles\.productMedia[\s\S]*?styles\.productBody/
@@ -306,16 +301,13 @@ test('account records and informational details use native painted frame slices'
     DETAIL_CSS.indexOf('.mediaFrame')
   );
   assert.match(detailHeroStyles, /width:\s*min\(100%, 1000px\)/);
-  assert.match(detailHeroStyles, /container-type:\s*inline-size/);
-  assert.match(detailHeroStyles, /\.heroReward::before,[\s\S]*?spade-console\/mid\.png/);
-  assert.match(detailHeroStyles, /top:\s*34\.8cqw/);
-  assert.match(detailHeroStyles, /bottom:\s*7\.2cqw/);
-  assert.match(detailHeroStyles, /background-repeat:\s*repeat-y/);
-  assert.match(detailHeroStyles, /\.heroReward::after,[\s\S]*?spade-console\/top\.webp/);
-  assert.match(detailHeroStyles, /spade-console\/bottom-foot\.png/);
+  assert.match(detailHeroStyles, /border:\s*1px solid #365468/);
+  assert.match(detailHeroStyles, /background:\s*#07131b;/);
+  assert.match(detailHeroStyles, /box-shadow:/);
+  assert.match(detailHeroStyles, /\.heroReward::before,[\s\S]*?background:\s*#58d9ff/);
   assert.doesNotMatch(
     detailHeroStyles,
-    /(?:linear|radial|repeating-linear)-gradient|box-shadow:\s*(?!none)|border-left|border-color/
+    /(?:linear|radial|repeating-linear)-gradient|spade-console|shark-panel|repeat-y|container-type|url\(/
   );
 
   for (const asset of [

@@ -38,8 +38,9 @@ test('marketplace account pages share same-surface navigation and accessible cas
   assert.match(SHELL, /aria-label="Marketplace Account Pages"/);
   assert.doesNotMatch(
     SHELL_CSS,
-    /border-radius|(?:linear|radial|conic)-gradient|box-shadow|:hover/
+    /border-radius|(?:linear|radial|conic)-gradient|:hover/
   );
+  assert.match(SHELL_CSS, /box-shadow/);
   assert.match(SHELL_CSS, /:focus-visible/);
   assert.match(SHELL_CSS, /@media \(prefers-reduced-motion: reduce\)/);
 });

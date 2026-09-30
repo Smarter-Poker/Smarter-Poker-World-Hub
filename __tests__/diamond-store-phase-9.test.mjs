@@ -28,9 +28,14 @@ test('lower marketplace suites preserve their own layouts without duplicate disp
     /marketplace-lower-suites-atlas\.webp|sectionThreshold|thresholdReadout/
   );
   const rewardRowRule = STORE_CSS.match(/\.rewardRow\s*\{([\s\S]*?)\}/)?.[1] || '';
-  assert.doesNotMatch(rewardRowRule, /wallet-row-shell|clamp\(78px|padding[^;]*72px/);
-  assert.match(rewardRowRule, /shark-panel\/bay\.png/);
-  assert.doesNotMatch(rewardRowRule, /(?:linear|radial|conic)-gradient|border-left/);
+  assert.match(rewardRowRule, /border:\s*1px solid/);
+  assert.match(rewardRowRule, /background:\s*#[0-9a-f]{3,8}/i);
+  assert.match(rewardRowRule, /box-shadow:/);
+  assert.doesNotMatch(
+    rewardRowRule,
+    /url\(|marketplace-console-v1|wallet-row-shell|shark-panel|(?:linear|radial|conic)-gradient|border-left/,
+    'reward rows must use restrained solid chrome instead of painted assets or edge bars'
+  );
   assert.match(STORE_CSS, /\.casinoDataCard/);
   assert.match(STORE_CSS, /\.casinoProductCard/);
   assert.match(STORE_CSS, /\.rewardsSurface \[role='tab'\]\[aria-selected='true'\]/);
@@ -76,8 +81,15 @@ test('cart, orders, and wishlist keep same-surface navigation without a shared d
     SUBPAGE_CSS,
     /commerce-operations-atlas|operationsVisual|visualReadout|bayCode/
   );
-  assert.match(SUBPAGE_CSS, /marketplace-console-v1\/shark-panel\/button-secondary\.png/);
-  assert.doesNotMatch(SUBPAGE_CSS, /marketplace-console-v1\/navigation\/nav-shell\.(?:png|webp)/);
+  const routeLinkRule = SUBPAGE_CSS.match(/\.routeLink\s*\{([\s\S]*?)\}/)?.[1] || '';
+  assert.match(routeLinkRule, /border:\s*1px solid/);
+  assert.match(routeLinkRule, /background:\s*#[0-9a-f]{3,8}/i);
+  assert.match(routeLinkRule, /min-height:\s*(?:4[4-9]|[5-9]\d|\d{3,})px/);
+  assert.doesNotMatch(
+    SUBPAGE_CSS,
+    /marketplace-console-v1\/(?:shark-panel|navigation)\//,
+    'same-surface route controls must not use painted shark or navigation assets'
+  );
   assert.doesNotMatch(SUBPAGE_SHELL, /marketplace-console-v1\/selectors\//);
   assert.doesNotMatch(SUBPAGE_SHELL, /<img src=\{bay\.image\}/);
   assert.doesNotMatch(SUBPAGE_SHELL, /target=|window\.open/);

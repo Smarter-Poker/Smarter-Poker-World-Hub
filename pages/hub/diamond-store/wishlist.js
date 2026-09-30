@@ -16,14 +16,57 @@ import { getAuthUser, useRequireAuth } from '../../../src/lib/authUtils';
 import { useAvatar } from '../../../src/contexts/AvatarContext';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import MarketplaceSubpageShell from '../../../src/components/store/MarketplaceSubpageShell';
-import {
-  MarketplaceConsolePanel,
-  MarketplaceConsoleStatusRow,
-} from '../../../src/components/marketplace-console/MarketplaceConsole';
 import { marketplaceCopy } from '../../../src/lib/store/marketplaceCopy';
 import { resolveReviewedMerchArt } from '../../../src/lib/store/merchProductArt';
 import accountControls from './marketplace-account-controls.module.css';
 
+function AccountPanel({ title, primaryAction = null, children }) {
+  return (
+    <section className={accountControls.panel}>
+      <header className={accountControls.panelHeader}>
+        <h2 className={accountControls.panelTitle}>{marketplaceCopy(title)}</h2>
+        {primaryAction &&
+          (primaryAction.href ? (
+            <Link
+              href={primaryAction.href}
+              className={`${accountControls.action} ${accountControls.actionPrimary} ${accountControls.panelAction}`}
+            >
+              {marketplaceCopy(primaryAction.label)}
+            </Link>
+          ) : (
+            <button
+              type="button"
+              onClick={primaryAction.onClick}
+              className={`${accountControls.action} ${accountControls.actionPrimary} ${accountControls.panelAction}`}
+            >
+              {marketplaceCopy(primaryAction.label)}
+            </button>
+          ))}
+      </header>
+      {children}
+    </section>
+  );
+}
+
+function AccountStatusRow({ label, value, detail, valueInk = 'white', live = false }) {
+  const tone =
+    valueInk === 'red'
+      ? 'danger'
+      : valueInk === 'blue'
+        ? 'accent'
+        : valueInk === 'muted'
+          ? 'muted'
+          : 'default';
+  return (
+    <div className={accountControls.statusRow} aria-live={live ? 'polite' : undefined}>
+      <span className={accountControls.statusLabel}>{marketplaceCopy(label)}</span>
+      <strong className={accountControls.statusValue} data-tone={tone}>
+        {marketplaceCopy(value)}
+      </strong>
+      {detail && <p className={accountControls.statusDetail}>{marketplaceCopy(detail)}</p>}
+    </div>
+  );
+}
 const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 
 export default function Wishlist() {
@@ -256,45 +299,45 @@ export default function Wishlist() {
         >
           {loading || changingOwner || !committedAccountId ? (
             <div role="status" aria-live="polite">
-              <MarketplaceConsolePanel title="Verifying Wishlist">
-                <MarketplaceConsoleStatusRow
+              <AccountPanel title="Verifying Wishlist">
+                <AccountStatusRow
                   label="Private Wishlist"
                   value="Loading Saved Gear"
                   detail="Binding Saved Items To Your Active Account"
                   live
                 />
-              </MarketplaceConsolePanel>
+              </AccountPanel>
             </div>
           ) : projectedLoadError ? (
             <div role="alert">
-              <MarketplaceConsolePanel
+              <AccountPanel
                 title="Could Not Load Wishlist"
                 primaryAction={{ label: 'Retry Wishlist', onClick: loadWishlist }}
               >
-                <MarketplaceConsoleStatusRow
+                <AccountStatusRow
                   label="Wishlist Status"
                   value="Secure Read Failed"
                   detail={marketplaceCopy(projectedLoadError)}
                   valueInk="red"
                 />
-              </MarketplaceConsolePanel>
+              </AccountPanel>
             </div>
           ) : wishlist.length === 0 ? (
-            <MarketplaceConsolePanel
+            <AccountPanel
               title="Your Wishlist Is Empty"
               primaryAction={{ label: 'Browse Merch', href: '/hub/merch-store' }}
             >
-              <MarketplaceConsoleStatusRow
+              <AccountStatusRow
                 label="Private Wishlist"
                 value="No Saved Items"
                 detail="Save Marketplace Gear To Build A Shortlist Here"
               />
-            </MarketplaceConsolePanel>
+            </AccountPanel>
           ) : (
             <div style={styles.wishlistGrid}>
               {projectedRemoveError && (
                 <div role="alert" style={styles.gridNotice}>
-                  <MarketplaceConsoleStatusRow
+                  <AccountStatusRow
                     label="Wishlist Update"
                     value="Item Was Not Removed"
                     detail={marketplaceCopy(projectedRemoveError)}
@@ -402,11 +445,8 @@ const styles = {
     gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))',
     gap: '20px',
   },
-  // The three-slice shark-panel housing is gone: a 550px saved-gear card
-  // carried an 87.38px empty top slice and an 84.94px empty bottom slice
-  // (172.32px of ornament, 28.2% of the card) around a body already reserving
-  // 14.4cqw horizontally. This is the same restrained chrome the cart now
-  // uses. The PNGs stay in the repo and stay referenced elsewhere.
+  // Saved gear keeps its information-first layout inside a restrained chrome
+  // frame with space reserved for product art, ownership, and the next action.
   wishlistItem: {
     display: 'flex',
     width: '100%',
