@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import { Eye, Bookmark, BookmarkCheck, Share2, CheckCircle, Clock, Trophy, BookOpen, Briefcase, Newspaper, Monitor } from 'lucide-react';
+import { newsImageUrl } from '../../lib/security/imageHosts.js';
 
 // Fallback images for different categories
 const FALLBACK_IMAGES = {
@@ -203,16 +204,14 @@ function NewsBoxCard({ article, index, onOpen, isBookmarked, onBookmark, onShare
 
     const CategoryIcon = pickOwn(CATEGORY_ICONS, article.category, CATEGORY_ICONS.news) || CATEGORY_ICONS.news;
 
-    // Get image with fallback — proxy cardplayer.com images through our server (they block direct browser access)
+    // Every remote thumbnail now takes the route cardplayer.com already took.
+    // It was proxied here because that host blocks direct browser access; the
+    // other publishers do not block it, they just cost an img-src violation
+    // apiece, which is the same problem with a quieter symptom.
     const rawImageUrl = typeof article.image_url === 'string' ? article.image_url : '';
-    const isCardPlayerImage = rawImageUrl && (
-        rawImageUrl.includes('cardplayer.com')
-    );
     const categoryFallback = pickOwn(FALLBACK_IMAGES, article.category, FALLBACK_IMAGES.news);
     const fallbackUrl = typeof categoryFallback === 'string' ? categoryFallback : FALLBACK_IMAGES.news;
-    const imageUrl = isCardPlayerImage
-        ? `/api/proxy?url=${encodeURIComponent(rawImageUrl)}`
-        : (rawImageUrl || fallbackUrl);
+    const imageUrl = newsImageUrl(rawImageUrl) || fallbackUrl;
 
     const srcAccent = pickOwn(SOURCE_COLORS_LOCAL, article.source_name, '#5ef5f0');
     const srcColor = typeof srcAccent === 'string' ? srcAccent : '#5ef5f0';

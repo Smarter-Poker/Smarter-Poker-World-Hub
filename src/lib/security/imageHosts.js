@@ -87,4 +87,40 @@ function matchesAllowedHost(u) {
     return ALLOWED_HOST_PATTERNS.some((re) => re.test(host));
 }
 
-module.exports = { IMAGE_SOURCES, imgSrcDirective, ALLOWED_HOST_PATTERNS, safeImageUrl, matchesAllowedHost };
+/* A NEWS THUMBNAIL THE BROWSER IS ALLOWED TO ASK FOR.
+ *
+ * The seven poker publishers the news scraper reads are a fixed list in code,
+ * but the thumbnail URL is not: it is whatever each article's og:image points
+ * at, so the HOST is data, not configuration. Measured on /hub/news, one load
+ * asked five publisher CDNs for 34 pictures and reported 225 img-src
+ * violations, which is the single thing keeping img-src out of the enforced
+ * policy.
+ *
+ * An allow-list cannot fix that, because a publisher moving CDN would silently
+ * blank its thumbnails. Mirroring every article image would, but the feed
+ * refreshes every two hours and the pictures are the publisher's, not ours.
+ *
+ * So the browser asks THIS origin instead. /api/proxy already fetches these
+ * exact images server side - /hub/news has routed cardplayer.com through it
+ * for months, which is precisely why cardplayer.com never appears in the
+ * violation list while the other five do. Sending the rest the same way costs
+ * no new infrastructure and no new attack surface: the endpoint already takes
+ * any url, and its host check judges resolved addresses, so a private address
+ * is refused whatever spelling it arrives in.
+ *
+ * The result is that no remote host is ever named in an image request, which
+ * is what makes img-src safe to enforce. */
+function newsImageUrl(url) {
+    const raw = typeof url === 'string' ? url.trim() : '';
+    if (!raw) return null;
+    // Anything the policy already allows is asked for directly: our own paths,
+    // the Supabase mirror, YouTube thumbnails. No proxy hop for those.
+    const direct = safeImageUrl(raw);
+    if (direct) return direct;
+    // `//host/path` is protocol-relative, not same-origin.
+    const absolute = raw.startsWith('//') ? `https:${raw}` : raw;
+    if (!/^https?:\/\//i.test(absolute)) return null;
+    return `/api/proxy?url=${encodeURIComponent(absolute)}`;
+}
+
+module.exports = { IMAGE_SOURCES, imgSrcDirective, ALLOWED_HOST_PATTERNS, safeImageUrl, matchesAllowedHost, newsImageUrl };
