@@ -2909,7 +2909,7 @@ export default function ReelsPage({ reelsListing = null }) {
   const followingSignInRequired = categoryForReelsRoute(router.query) === 'following'
     && (!user?.id || followingReauthRequired);
   const reelsNavigationHeader = (
-    <div style={{ position: 'relative', zIndex: 10001 }}>
+    <div key="reels-navigation-header" style={{ position: 'relative', zIndex: 10001 }}>
       <UniversalHeader
         pageDepth={1}
         commandMenuOpen={menuOpen}
@@ -3112,7 +3112,7 @@ export default function ReelsPage({ reelsListing = null }) {
       {/* Upload Modal */}
       {uploadModal}
 
-      <main className={styles.viewerShell}>
+      <main key="reels-viewer" className={styles.viewerShell}>
         <VideoLibraryConsole
           eyebrow="Video Library"
           title="Reels"

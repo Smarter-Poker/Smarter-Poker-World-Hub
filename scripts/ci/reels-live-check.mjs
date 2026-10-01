@@ -103,6 +103,19 @@ export const SUP07_ALIASES = Object.freeze(SUP07_GROUPS.flatMap((group) => [
   { reference: group.post, kind: 'post', ...group },
 ].map(Object.freeze)));
 
+export function selectStableHostileDropReel(rows, excludedId = null, nowMs = Date.now()) {
+  if (!Array.isArray(rows)) return null;
+  return rows.find((row) => {
+    if (row?.id === excludedId || row?.playback_type !== 'youtube_embed') return false;
+    try {
+      validateReelRow(row, 'for-you', { nowMs });
+      return true;
+    } catch {
+      return false;
+    }
+  }) || null;
+}
+
 export const REQUIRED_RECEIPT_CHECKS = Object.freeze([
   'Four public categories enforce topic, readiness, rights, attribution, and canonical identity',
   'For You is crawled to a terminal cursor with more than 2,000 unique canonical Reels',
@@ -857,7 +870,7 @@ async function installReadOnlyNetworkGuard(context, state) {
   });
 }
 
-async function verifyPublicBrowser(browser, bookmarkAlias, report) {
+async function verifyPublicBrowser(browser, bookmarkAlias, validatedForYouRows, report) {
   const context = await browser.newContext({ viewport: { width: 390, height: 844 }, serviceWorkers: 'block' });
   const state = createReadOnlyBrowserState();
   await context.addInitScript(({ staleKey }) => {
@@ -882,6 +895,8 @@ async function verifyPublicBrowser(browser, bookmarkAlias, report) {
     const bookmarkPayload = await bookmarkResponse.json();
     assert.equal(bookmarkPayload?.data?.[0]?.id, bookmarkAlias.winner, 'Old Reel alias did not render its canonical winner');
     assert.equal(bookmarkPayload?.data?.[0]?.canonical_asset_key, bookmarkAlias.key, 'Old Reel alias rendered the wrong canonical asset');
+    const hostileDropReel = selectStableHostileDropReel(validatedForYouRows, bookmarkAlias.winner);
+    assert.ok(hostileDropReel, 'The validated canonical crawl did not provide a fresh embeddable Reel for the hostile-drop proof');
     await page.getByLabel(/Reels Viewer$/).waitFor();
     await page.waitForFunction(({ id }) => {
       const params = new URL(location.href).searchParams;
@@ -892,12 +907,34 @@ async function verifyPublicBrowser(browser, bookmarkAlias, report) {
     assert.equal(await page.evaluate((key) => localStorage.getItem(key), RETIRED_CACHE_KEY), null, 'Retired Reel cache survived page startup');
     const players = page.locator('iframe[src*="youtube-nocookie.com/embed/"], video');
     assert.equal(await players.count(), 1, 'Published Reel page mounted more than one media player');
-    await players.first().evaluate((element) => { element.dataset.liveProofPlayer = 'mounted'; });
     if (bookmarkPayload.data[0].source_attribution_url) {
       await page.getByRole('link', { name: /^View Original On / }).waitFor();
     } else {
       assert.equal(await page.getByRole('link', { name: /^View Original On / }).count(), 0, 'Native Reel rendered forged external attribution');
     }
+
+    // SUP-07 aliases intentionally point at user-uploaded native media. A
+    // Chromium runner can reject a valid HEVC upload and the product correctly
+    // advances away from that browser-incompatible player. Prove bookmark
+    // canonicalization above, then isolate route-failure preservation on a
+    // freshly verified YouTube embed from the same authoritative feed so an
+    // independent codec fallback cannot create a false hostile-drop failure.
+    const stableResponse = page.waitForResponse((response) => {
+      const url = new URL(response.url());
+      return url.pathname === '/api/reels/feed'
+        && url.searchParams.get('category') === 'for-you'
+        && url.searchParams.get('id') === hostileDropReel.id
+        && response.status() === 200;
+    });
+    await page.goto(
+      `${APP_ORIGIN}/hub/reels?category=for-you&feed=trending&id=${hostileDropReel.id}`,
+      { waitUntil: 'domcontentloaded' },
+    );
+    await stableResponse;
+    await page.getByLabel(/Reels Viewer$/).waitFor();
+    assert.equal(await players.count(), 1, 'Stable hostile-drop setup mounted more than one media player');
+    assert.equal(await players.first().evaluate((element) => element.tagName), 'IFRAME', 'Hostile-drop setup did not mount the verified embed');
+    await players.first().evaluate((element) => { element.dataset.liveProofPlayer = 'mounted'; });
 
     state.failNextSports = true;
     await page.getByRole('button', { name: 'Menu', exact: true }).click({ force: true });
@@ -932,6 +969,7 @@ async function verifyPublicBrowser(browser, bookmarkAlias, report) {
       oldBookmarkCanonicalized: true,
       loserAliasRenderedCanonicalWinner: true,
       staleStorageRetired: true,
+      hostileDropUsedStableEmbed: true,
       midFlightDropRetainedPlayer: true,
       retryRecoveredSports: true,
       activePlayers: 1,
@@ -1296,6 +1334,7 @@ export function validateReceipt(report) {
   assert.equal(report.coverage?.publicMobile?.oldBookmarkCanonicalized, true, 'Old bookmark query was not canonicalized');
   assert.equal(report.coverage?.publicMobile?.loserAliasRenderedCanonicalWinner, true, 'Old loser bookmark did not render its canonical winner');
   assert.equal(report.coverage?.publicMobile?.staleStorageRetired, true, 'Hostile stale storage was not retired');
+  assert.equal(report.coverage?.publicMobile?.hostileDropUsedStableEmbed, true, 'Hostile drop was not isolated on a verified embed');
   assert.equal(report.coverage?.publicMobile?.midFlightDropRetainedPlayer, true, 'Mid-flight drop did not retain the active player');
   assert.equal(report.coverage?.publicMobile?.retryRecoveredSports, true, 'Sports retry did not recover');
   assert.equal(report.coverage?.publicMobile?.activePlayers, 1, 'Public mobile proof did not retain exactly one active player');
@@ -1427,7 +1466,12 @@ async function run() {
     const article = await findOrdinaryArticle(session.access_token);
     const { chromium } = await import('playwright');
     browser = await chromium.launch({ headless: true });
-    await verifyPublicBrowser(browser, SUP07_ALIASES.find(alias => alias.kind === 'loser'), report);
+    await verifyPublicBrowser(
+      browser,
+      SUP07_ALIASES.find(alias => alias.kind === 'loser'),
+      collections['for-you'].rows,
+      report,
+    );
     await verifySlotsBrowser(browser, report);
     await verifyStaleAuthBrowser(browser, report);
     await verifySignedInBrowser(browser, session, article, report);
