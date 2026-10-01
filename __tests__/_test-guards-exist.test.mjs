@@ -263,6 +263,8 @@ import './training-surface-inventory.test.mjs';
 // default-off PvP and Tournament gates.
 import './trivia-console-contract.test.mjs';
 import './trivia-pvp-containment.test.mjs';
+// Trivia Phase 5: server-owned PvP engine v2 (stable 20-45 s horse deadline, human first, ledger settlement).
+import './trivia-pvp-engine-v2.test.mjs';
 import './trivia-tournament-containment.test.mjs';
 // Trivia Phase 3: eligibility-only paid/competitive pools, engine v3 golden seeds.
 import './trivia-phase-3-engine.test.mjs';
@@ -547,6 +549,8 @@ const REQUIRED_TEST_FILES = [
     // competitive modes that must fail closed until their audits land.
     '__tests__/trivia-ui-foundation.test.mjs',
     '__tests__/trivia-pvp-containment.test.mjs',
+    // Phase 5 server-owned PvP engine v2 source contracts and transport policy.
+    '__tests__/trivia-pvp-engine-v2.test.mjs',
     '__tests__/trivia-tournament-containment.test.mjs',
     // Phase 3 question eligibility + deterministic engine v3 (1,000 golden seeds).
     '__tests__/trivia-phase-3-engine.test.mjs',
