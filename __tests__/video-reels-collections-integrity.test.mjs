@@ -565,6 +565,18 @@ test('Following scans sparse global pages and keeps only followed canonical winn
     video_url: `https://test-project.supabase.co/storage/v1/object/public/social-media/reels/${author_id}/${id}.mp4`,
     created_at,
   });
+  const unfollowedDecoyA = row(
+    'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa6',
+    unfollowedAuthor,
+    'native:unfollowed-decoy-a',
+    '2026-09-06T17:00:00.000Z',
+  );
+  const unfollowedDecoyB = row(
+    'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa7',
+    unfollowedAuthor,
+    'native:unfollowed-decoy-b',
+    '2026-09-06T16:00:00.000Z',
+  );
   const followedLoser = row(
     'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1',
     followedAuthor,
@@ -597,6 +609,8 @@ test('Following scans sparse global pages and keeps only followed canonical winn
   );
   const client = createMemoryClient({
     social_reels: [
+      unfollowedDecoyA,
+      unfollowedDecoyB,
       followedLoser,
       unfollowedWinner,
       unfollowedLoser,
@@ -630,6 +644,11 @@ test('Following scans sparse global pages and keeps only followed canonical winn
   );
   assert.equal(following.hasMore, false);
   assert.equal(following.nextCursor, null);
+  assert.deepEqual(
+    client.queryLog.slice(0, 3),
+    ['social_reels', 'social_follows', 'social_reels'],
+    'an unrelated-only chunk must advance the global cursor without starting expensive eligibility hydration',
+  );
   assert.ok(
     client.queryLog.filter(table => table === 'social_follows').length >= 3,
     'the proof must cross multiple bounded global keyset chunks',
