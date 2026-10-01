@@ -37,6 +37,7 @@ import { printPlayerName } from '../../../src/lib/trivia/printPlayerName';
 import { formatTriviaDisplayNumber } from '../../../src/lib/trivia/formatTriviaDisplayNumber';
 import { triviaPvpPageReleaseResult } from '../../../src/lib/trivia/pvpReleaseControl.mjs';
 import HubPageSummary from '../../../src/components/seo/HubPageSummary';
+import { readOwnProfile } from '../../../src/lib/ownProfile';
 
 const STAKE_OPTIONS = [10, 25, 50, 100];
 // How long a finished player waits for their opponent before being offered an
@@ -225,7 +226,7 @@ export default function PvPPage({ pvpHorsesEnabled = false }) {
             .channel(`trivia-pvp-bal:${userId}`)
             .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles', filter: `id=eq.${userId}` }, async () => {
                 try {
-                    const { data } = await supabase.from('profiles').select('diamonds').eq('id', userId).maybeSingle();
+                    const { data } = await readOwnProfile(supabase, 'diamonds', { expectId: userId });
                     if (data) setUserDiamonds(data.diamonds || 0);
                 } catch (e) {
                     console.warn('[PvP] Realtime diamond refresh failed:', e);
@@ -248,11 +249,7 @@ export default function PvPPage({ pvpHorsesEnabled = false }) {
 
         try {
             // Get diamond balance and username
-            const { data: profile } = await supabase
-                .from('profiles')
-                .select('diamonds, username')
-                .eq('id', user.id)
-                .maybeSingle();
+            const { data: profile } = await readOwnProfile(supabase, 'diamonds, username', { expectId: user.id });
 
             if (profile) {
                 setUserDiamonds(profile.diamonds || 0);
@@ -296,11 +293,7 @@ export default function PvPPage({ pvpHorsesEnabled = false }) {
         // Fresh balance check from DB to avoid stale-state false negatives
         let freshBalance = userDiamonds;
         try {
-            const { data: profile } = await supabase
-                .from('profiles')
-                .select('diamonds')
-                .eq('id', userId)
-                .maybeSingle();
+            const { data: profile } = await readOwnProfile(supabase, 'diamonds', { expectId: userId });
             if (profile) {
                 freshBalance = profile.diamonds || 0;
                 setUserDiamonds(freshBalance);
@@ -841,11 +834,7 @@ export default function PvPPage({ pvpHorsesEnabled = false }) {
 
         // Balance changed server-side - mirror it from the DB.
         try {
-            const { data: profile } = await supabase
-                .from('profiles')
-                .select('diamonds')
-                .eq('id', userId)
-                .maybeSingle();
+            const { data: profile } = await readOwnProfile(supabase, 'diamonds', { expectId: userId });
             if (profile) setUserDiamonds(profile.diamonds || 0);
         } catch (e) {
             console.warn('[PVP] balance refresh failed:', e);

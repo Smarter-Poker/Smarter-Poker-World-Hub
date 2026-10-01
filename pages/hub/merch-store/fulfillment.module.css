@@ -59,32 +59,21 @@
 }
 
 .status {
-  /* Percentage padding resolves against the CONTAINING BLOCK's inline size,
-     not this element, so 26% of the 1396px page inflated a 720px plate's
-     left inset to 362.95px and left a 259x37 content box (92% dead). Past
-     ~2226px the content box reached zero. This is the same fraction of the
-     same painted artwork, expressed against the plate's own used width, so
-     it is identical at 390px and correct at every width above it.
-     `container-type: inline-size` here would NOT work: container units
-     resolve against the nearest ANCESTOR container, so they fall back to the
-     small viewport (measured 374.4px at 1440). */
-  --status-plate-width: min(720px, 100%);
-
   display: flex;
-  width: var(--status-plate-width);
-  aspect-ratio: 1800 / 386;
+  width: min(1180px, 100%);
+  min-height: 44px;
   align-items: center;
   justify-content: flex-start;
   margin: 0 auto 16px;
-  padding: calc(var(--status-plate-width) * 0.043) calc(var(--status-plate-width) * 0.07)
-    calc(var(--status-plate-width) * 0.043) calc(var(--status-plate-width) * 0.26);
-  background: transparent url('/images/marketplace-console-v1/status/wallet-row-shell.webp') center /
-    100% 100% no-repeat;
+  padding: 12px 16px;
+  border: 1px solid #314957;
+  background: #071017;
   color: #c9d2da;
   font-family: var(--font-inter), Inter, Arial, sans-serif;
   font-size: 0.75rem;
   font-weight: 700;
   letter-spacing: 0.035em;
+  box-shadow: inset 0 1px 0 rgb(238 250 255 / 8%);
 }
 
 /* Signed out, the page used to render full chrome, a hero and two enabled
@@ -114,18 +103,17 @@
   max-width: 1180px;
   margin: 0 auto;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(310px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 310px), 1fr));
   gap: 16px;
 }
 
 .order {
+  min-width: 0;
   padding: 24px;
   color: #e4e7ec;
   border: 1px solid #526f80;
   background: #02070b;
-  box-shadow:
-    inset 0 1px 0 rgba(232, 251, 255, 0.26),
-    inset 0 0 0 4px #02070b;
+  box-shadow: inset 0 1px 0 rgb(232 251 255 / 18%);
 }
 
 .orderTop {
@@ -216,13 +204,9 @@
   align-items: center;
   justify-content: center;
   padding: 8px 24px;
-  border: 0;
+  border: 1px solid #385568;
   color: #e4e7ec;
-  background-color: transparent;
-  background-image: url('/images/marketplace-console-v1/shark-panel/button-secondary.png');
-  background-position: center;
-  background-repeat: no-repeat;
-  background-size: 100% 100%;
+  background: #071017;
   font-family: var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif;
   font-size: 0.9rem;
   font-weight: 800;
@@ -234,7 +218,8 @@
 
 .actions button:first-child,
 .dialogActions button:last-child {
-  background-image: url('/images/marketplace-console-v1/shark-panel/button-primary.png');
+  border-color: #42d9ff;
+  background: #0a4f69;
 }
 .actions button:disabled,
 .dialogActions button:disabled,
@@ -244,8 +229,9 @@
 }
 .actions .danger,
 .dialogActions .danger {
+  border-color: #8d3041;
   color: #ff5b6e;
-  background-image: url('/images/marketplace-console-v1/shark-panel/button-secondary.png');
+  background: #1b090d;
 }
 
 .actions button:focus-visible,
@@ -288,8 +274,8 @@
 }
 .dialogClose {
   position: absolute;
-  top: 16%;
-  right: 16%;
+  top: 18px;
+  right: 18px;
   min-width: 76px;
   padding-inline: 14px;
 }
@@ -317,13 +303,9 @@
   min-height: 46px;
   width: 100%;
   padding: 10px 14px;
-  border: 0;
+  border: 1px solid #385568;
   color: #eef9fd;
-  background-color: #02070b;
-  background-image: url('/images/marketplace-console-v1/shark-panel/button-secondary.png');
-  background-position: center;
-  background-repeat: no-repeat;
-  background-size: 100% 100%;
+  background: #02070b;
   font:
     600 0.9rem/1 var(--font-inter),
     Inter,
@@ -360,7 +342,7 @@
   }
   .dialog {
     max-height: calc(100vh - 20px);
-    padding: 15%;
+    padding: 18px;
   }
   .dialogActions button {
     flex: 1 1 100%;

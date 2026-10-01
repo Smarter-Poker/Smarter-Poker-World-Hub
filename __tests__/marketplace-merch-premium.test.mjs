@@ -8,6 +8,10 @@ const read = (file) => readFileSync(join(ROOT, file), 'utf8');
 const MERCH = read('src/components/store/MerchStore.jsx');
 const CSS = read('src/components/store/MerchStore.module.css');
 const ART = read('src/lib/store/merchProductArt.js');
+const DETAIL = read('pages/hub/merch-store/[productId].js');
+const FULFILLMENT = read('pages/hub/merch-store/fulfillment.js');
+const FULFILLMENT_CSS = read('pages/hub/merch-store/fulfillment.module.css');
+const DIALOG_CSS = read('src/components/store/MerchPurchaseDialog.module.css');
 
 test('merch keeps its existing catalog layout, photography, and purchase wiring', () => {
   for (const productImage of [
@@ -32,7 +36,7 @@ test('merch keeps its existing catalog layout, photography, and purchase wiring'
   assert.doesNotMatch(MERCH, /target=["']_blank|window\.open|MarketplaceConsoleSelector/);
 });
 
-test('merch replaces floating generic icons with integrated console controls', () => {
+test('merch replaces floating generic icons with restrained retail controls', () => {
   assert.doesNotMatch(MERCH, /lucide-react|<Heart|<ShoppingCart|<CreditCard|<Gem|<Search/);
   assert.match(MERCH, /isWishlisted \? 'Saved' : 'Save'/);
   assert.match(
@@ -43,11 +47,9 @@ test('merch replaces floating generic icons with integrated console controls', (
     MERCH,
     /className=\{`\$\{merchStyles\.actionControl\} \$\{merchStyles\.actionDiamond\}`\}/
   );
-  assert.match(CSS, /marketplace-console-v1\/shark-panel\/button-primary\.png/);
-  assert.match(CSS, /marketplace-console-v1\/shark-panel\/button-secondary\.png/);
   assert.doesNotMatch(
-    CSS,
-    /marketplace-console-v1\/(?:navigation\/nav-shell|shark-panel\/bay)\.(?:png|webp)/
+    `${CSS}\n${DIALOG_CSS}\n${FULFILLMENT_CSS}`,
+    /marketplace-console-v1|spade-console|wallet-row-shell|button-(?:primary|secondary)/
   );
   assert.match(CSS, /linear-gradient|box-shadow/);
   assert.doesNotMatch(CSS, /:hover|border-radius/);
@@ -90,19 +92,15 @@ test('a merch card offers one primary action, not four equal ones', () => {
   assert.ok(diamond > gold, 'the Diamond action must outrank Add To Cart');
   assert.ok(gold >= secondary, 'Add To Cart must not rank below View Details');
 
-  // Only one action wears the primary painted plate.
-  const primaryPlate = CSS.match(
-    /[^}]*button-primary\.png[^}]*/g
-  ) || [];
-  assert.equal(primaryPlate.length, 1, 'exactly one rule may use the primary plate');
-  assert.doesNotMatch(
-    primaryPlate[0],
-    /\.actionDiamond/,
-    'the Diamond action must not share the primary plate'
-  );
-
-  // View Details is navigation, so it carries no painted commerce plate.
+  const primaryBlock = rule('actionPrimary')[0] || '';
+  const diamondBlock = rule('actionDiamond')[0] || '';
+  const goldBlock = rule('actionGold')[0] || '';
   const secondaryBlock = rule('actionSecondary')[0] || '';
+  assert.match(primaryBlock, /background:\s*#0a4f69/);
+  assert.match(diamondBlock, /background:\s*#061a23/);
+  assert.match(goldBlock, /background:\s*#181506/);
+  assert.match(secondaryBlock, /background:\s*#071017/);
+  assert.doesNotMatch(`${CSS}\n${DIALOG_CSS}\n${FULFILLMENT_CSS}`, /button-primary\.png/);
   assert.match(secondaryBlock, /background-image:\s*none/);
 
   // The favorite control sits beside the product name, not over the photo.
@@ -123,7 +121,26 @@ test('merch typography and controls meet the console accessibility floor', () =>
   assert.match(CSS, /font-family: var\(--font-inter\), Inter/);
   assert.doesNotMatch(CSS, /IBM Plex Mono|ui-monospace|\bmonospace\b/);
   assert.match(CSS, /min-height: 44px/);
+  assert.match(DIALOG_CSS, /min-height: 44px/);
+  assert.match(FULFILLMENT_CSS, /min-height: 44px/);
   assert.match(CSS, /:focus-visible/);
+  assert.match(DIALOG_CSS, /:focus-visible/);
+  assert.match(FULFILLMENT_CSS, /:focus-visible/);
   assert.match(CSS, /@media \(prefers-reduced-motion: reduce\)/);
-  assert.doesNotMatch(MERCH, /[\u2013\u2014]/u);
+  assert.doesNotMatch(`${MERCH}\n${DETAIL}\n${FULFILLMENT}`, /[\u2013\u2014]/u);
+  assert.doesNotMatch(`${CSS}\n${DIALOG_CSS}\n${FULFILLMENT_CSS}`, /\bgreen\b/i);
+});
+
+test('merch detail keeps one same-page purchase area and fulfillment stays readable', () => {
+  assert.match(DETAIL, /Choose Purchase Options/);
+  assert.match(DETAIL, /href="#purchase-console"/);
+  assert.doesNotMatch(DETAIL, /Open Purchase Console|Live Purchase Console/);
+  assert.match(MERCH, /id=\{detailMode \? 'purchase-console' : undefined\}/);
+  assert.match(MERCH, /aria-label=\{detailMode \? 'Purchase Options' : undefined\}/);
+  assert.match(FULFILLMENT, /<h1>Merchandise Fulfillment<\/h1>/);
+  assert.doesNotMatch(FULFILLMENT, /Fulfillment Command Vault/);
+  assert.doesNotMatch(
+    `${MERCH}\n${DETAIL}\n${FULFILLMENT}`,
+    /target=["']_blank|window\.open/
+  );
 });

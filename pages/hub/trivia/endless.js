@@ -40,6 +40,7 @@ import ReportQuestionButton from '../../../src/components/trivia/ReportQuestionB
 import { getAccessToken } from '../../../src/lib/authUtils';
 import * as triviaAudio from '../../../src/lib/trivia/triviaAudio';
 import HubPageSummary from '../../../src/components/seo/HubPageSummary';
+import { readOwnProfile } from '../../../src/lib/ownProfile';
 
 const GAME_ENTRY_COST = 10; // restored with server-graded adoption - rewards pay via award_trivia_run now
 
@@ -209,11 +210,7 @@ export default function EndlessModePage() {
                 } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
                 // Load user diamonds
                 try {
-                    const { data: profile } = await supabase
-                        .from('profiles')
-                        .select('diamonds')
-                        .eq('id', user.id)
-                        .maybeSingle();
+                    const { data: profile } = await readOwnProfile(supabase, 'diamonds', { expectId: user.id });
                     if (profile) setUserDiamonds(profile.diamonds || 0);
                 } catch (e) {
                     console.warn('Failed to load diamonds:', e);
@@ -251,7 +248,7 @@ export default function EndlessModePage() {
                 try {
                     const { data } = await supabase.from('endless_high_scores').select('high_score').eq('user_id', userId).eq('mode', 'random').maybeSingle();
                     if (data) setHighScore(data.high_score || 0);
-                    const { data: profile } = await supabase.from('profiles').select('diamonds').eq('id', userId).maybeSingle();
+                    const { data: profile } = await readOwnProfile(supabase, 'diamonds', { expectId: userId });
                     if (profile) setUserDiamonds(profile.diamonds || 0);
                 } catch (e) {
                     console.warn('[Endless] Realtime refresh failed:', e);
@@ -637,7 +634,7 @@ export default function EndlessModePage() {
                 if (Number.isFinite(submitted?.newBalance)) {
                     setUserDiamonds(submitted.newBalance);
                 } else {
-                    const { data: profile } = await supabase.from('profiles').select('diamonds').eq('id', userId).maybeSingle();
+                    const { data: profile } = await readOwnProfile(supabase, 'diamonds', { expectId: userId });
                     if (profile) setUserDiamonds(profile.diamonds || 0);
                 }
                 if ((submitted?.diamondsAwarded || 0) > 0) {

@@ -80,7 +80,7 @@ test('fulfillment pagination preserves the current queue and uses an in-page ope
   assert.match(css, /\.formGrid/);
 });
 
-test('fulfillment keeps semantic text controls inside the approved marketplace console art', async () => {
+test('fulfillment keeps semantic text controls in a restrained retail surface', async () => {
   const [source, css] = await Promise.all([
     read('pages/hub/merch-store/fulfillment.js'),
     read('pages/hub/merch-store/fulfillment.module.css'),
@@ -97,12 +97,11 @@ test('fulfillment keeps semantic text controls inside the approved marketplace c
   assert.match(css, /font-family: var\(--font-roboto-condensed\), 'Roboto Condensed'/);
   assert.match(css, /font-family: var\(--font-inter\), Inter/);
   assert.doesNotMatch(css, /IBM Plex Mono|ui-monospace|\bmonospace\b/);
-  assert.match(css, /marketplace-console-v1\/shark-panel\/button-primary\.png/);
-  assert.match(css, /marketplace-console-v1\/shark-panel\/button-secondary\.png/);
-  assert.doesNotMatch(
-    css,
-    /marketplace-console-v1\/(?:navigation\/nav-shell|shark-panel\/bay)\.(?:png|webp)/
-  );
+  assert.doesNotMatch(css, /marketplace-console-v1|wallet-row-shell|button-(?:primary|secondary)/);
+  assert.match(css, /border:\s*1px solid #385568/);
+  assert.match(css, /background:\s*#071017/);
+  assert.match(css, /min-height:\s*44px/);
+  assert.match(css, /\.dialogClose\s*\{[\s\S]*?top:\s*18px;[\s\S]*?right:\s*18px/);
   assert.match(css, /linear-gradient|box-shadow/);
   assert.doesNotMatch(css, /:hover|border-radius/);
 });

@@ -95,7 +95,7 @@ const fetchUser = async () => {
                         if (friendsData.length > 0) {
                             const friendIds = friendsData.map(f => f.user_id === authUser.id ? f.friend_id : f.user_id);
                             const profilesRes = await fetch(
-                                `${supabaseUrl}/rest/v1/profiles?id=in.(${friendIds.join(',')})&select=id,full_name,username,avatar_url`,
+                                `${supabaseUrl}/rest/v1/profiles?id=in.(${friendIds.join(',')})&select=id,username,avatar_url`,
                                 { headers }
                             );
                             const friendProfiles = profilesRes.ok ? await profilesRes.json() : [];

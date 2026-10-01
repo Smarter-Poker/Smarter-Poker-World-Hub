@@ -13,7 +13,7 @@ const RECEIPT = read('pages/hub/diamond-store/orders/[orderId].js');
 const WISHLIST = read('pages/hub/diamond-store/wishlist.js');
 const FULFILLMENT = read('pages/hub/merch-store/fulfillment.js');
 const CHECKOUT_AUTHORIZATION = read('src/lib/store/checkoutAuthorization.js');
-const CONSOLE_CSS = read('src/components/marketplace-console/MarketplaceConsole.module.css');
+const ACCOUNT_CONTROLS = read('pages/hub/diamond-store/marketplace-account-controls.module.css');
 
 test('cart empty and error states require an owner-matched authoritative read', () => {
   assert.match(CART, /const synchronousAccountId = getAuthUser\(\)\?\.id \|\| null/);
@@ -40,17 +40,20 @@ test('receipt responses remain bound to the active account through every await',
   assert.doesNotMatch(RECEIPT, /_ownerId:\s*user\.id/);
 });
 
-test('account states and cart framing use native painted assets at their native families', () => {
+test('account states and cart framing use restrained image-free CSS surfaces', () => {
   for (const source of [CART, ORDERS, RECEIPT, WISHLIST]) {
-    assert.match(source, /MarketplaceConsole(?:Panel|StatusRow)/);
+    assert.match(source, /marketplace-account-controls\.module\.css/);
+    assert.doesNotMatch(source, /src\/components\/marketplace-console/);
+    assert.doesNotMatch(source, /MarketplaceConsole(?:Panel|StatusRow|PageConsole)/);
   }
+  for (const source of [CART, ORDERS, WISHLIST]) {
+    assert.match(source, /function AccountPanel/);
+    assert.match(source, /function AccountStatusRow/);
+  }
+  assert.match(RECEIPT, /accountControls\.statusRow/);
 
-  // Phase 7 (2026-09-19) replaces the three-slice shark-panel housing with the
-  // restrained chrome this programme already accepted for .vipFaq. The old
-  // assertions pinned the ornament this commit removes: a 688px cart line
-  // carried 215.56px of empty painted slice (61.6% of the line) and the
-  // wishlist card 172.32px (28.2%). The PNGs stay in public/ and stay
-  // referenced by the manifest and the console kit, so nothing 404s.
+  // Account and cart records reserve their space for product, status,
+  // ownership, and the next available action.
   const CART_CSS_RULES = CART_CSS.replace(/\/\*[\s\S]*?\*\//g, '');
   assert.match(
     CART_CSS_RULES,
@@ -62,19 +65,28 @@ test('account states and cart framing use native painted assets at their native 
   );
   assert.doesNotMatch(CART_CSS_RULES, /cartItemFrameTop|cartItemFrameBottom/);
   assert.doesNotMatch(CART_CSS_RULES, /summaryFrameTop|summaryFrameBottom/);
-  assert.doesNotMatch(CART_CSS_RULES, /shark-panel\/(?:top|mid|bottom)\.png|repeat-y|aspect-ratio|cqw/);
+  assert.doesNotMatch(
+    CART_CSS_RULES,
+    /shark-panel\/(?:top|mid|bottom)\.png|repeat-y|aspect-ratio|cqw/
+  );
   assert.doesNotMatch(CART, /FrameTop|FrameBottom/);
   assert.doesNotMatch(CART, /shark-panel\/bay\.png|spade-console\/mid\.png/);
-  assert.match(CONSOLE_CSS, /\.statusRow\s*\{[\s\S]*?status\/wallet-row-shell\.webp/);
-  assert.match(CONSOLE_CSS, /\.sharkPanelTop\s*\{[\s\S]*?shark-panel\/top\.png/);
+  assert.doesNotMatch(ACCOUNT_CONTROLS, /url\(|marketplace-console-v1|shark-panel|spade-console/);
+  assert.match(ACCOUNT_CONTROLS, /\.action\s*\{[\s\S]*?min-height:\s*46px/);
+  assert.match(ACCOUNT_CONTROLS, /\.panel,[\s\S]*?\.recordCard\s*\{/);
+  assert.match(ACCOUNT_CONTROLS, /\.statusRow\s*\{/);
 });
 
 test('account surfaces preserve same-tab navigation and banned-style contract', () => {
-  const source = [CART, CART_CSS, ORDERS, RECEIPT, WISHLIST].join('\n');
+  const source = [CART, CART_CSS, ACCOUNT_CONTROLS, ORDERS, RECEIPT, WISHLIST].join('\n');
   assert.doesNotMatch(source, /target\s*=\s*['"]_blank['"]|window\.open\s*\(/);
   assert.doesNotMatch(source, /[\u2013\u2014]/u);
   assert.doesNotMatch(source, /:hover/);
-  assert.doesNotMatch(source, /(?:linear|radial|repeating-linear)-gradient/);
+  assert.match(CART, /useRequireAuth\('\/hub\/diamond-store\/cart'\)/);
+  assert.match(CART, /getVerifiedCheckoutAuthorization/);
+  assert.match(CART, /getOrCreateCommerceRequestId/);
+  assert.match(CART, /onClick=\{usingDiamonds \? beginDiamondCheckout : handleCheckout\}/);
+  assert.match(RECEIPT, /useRequireAuth/);
   assert.doesNotMatch(source, /\b(?:green|lime|purple|violet|magenta)\b/i);
 });
 

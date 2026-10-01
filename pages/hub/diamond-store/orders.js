@@ -15,11 +15,6 @@ import { useAvatar } from '../../../src/contexts/AvatarContext';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import MarketplaceSubpageShell from '../../../src/components/store/MarketplaceSubpageShell';
 import {
-  MarketplaceConsolePanel,
-  MarketplaceConsoleStatusRow,
-  MarketplacePageConsole,
-} from '../../../src/components/marketplace-console/MarketplaceConsole';
-import {
   marketplaceCarrierName,
   marketplaceCopy,
   marketplaceFulfillmentStatus,
@@ -28,6 +23,54 @@ import accountControls from './marketplace-account-controls.module.css';
 
 const MARKETPLACE_LEDGER_TIMEOUT_MS = 20000;
 const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
+
+function AccountPanel({ title, primaryAction = null, children }) {
+  return (
+    <section className={accountControls.panel}>
+      <header className={accountControls.panelHeader}>
+        <h2 className={accountControls.panelTitle}>{marketplaceCopy(title)}</h2>
+        {primaryAction &&
+          (primaryAction.href ? (
+            <Link
+              href={primaryAction.href}
+              className={`${accountControls.action} ${accountControls.actionPrimary} ${accountControls.panelAction}`}
+            >
+              {marketplaceCopy(primaryAction.label)}
+            </Link>
+          ) : (
+            <button
+              type="button"
+              onClick={primaryAction.onClick}
+              className={`${accountControls.action} ${accountControls.actionPrimary} ${accountControls.panelAction}`}
+            >
+              {marketplaceCopy(primaryAction.label)}
+            </button>
+          ))}
+      </header>
+      {children}
+    </section>
+  );
+}
+
+function AccountStatusRow({ label, value, detail, valueInk = 'white', live = false }) {
+  const tone =
+    valueInk === 'red'
+      ? 'danger'
+      : valueInk === 'blue'
+        ? 'accent'
+        : valueInk === 'muted'
+          ? 'muted'
+          : 'default';
+  return (
+    <div className={accountControls.statusRow} aria-live={live ? 'polite' : undefined}>
+      <span className={accountControls.statusLabel}>{marketplaceCopy(label)}</span>
+      <strong className={accountControls.statusValue} data-tone={tone}>
+        {marketplaceCopy(value)}
+      </strong>
+      {detail && <p className={accountControls.statusDetail}>{marketplaceCopy(detail)}</p>}
+    </div>
+  );
+}
 
 export default function OrderHistory() {
   const { user, checking: authChecking } = useRequireAuth('/hub/diamond-store/orders');
@@ -380,18 +423,18 @@ export default function OrderHistory() {
         >
           {loading || changingOwner || !committedAccountId ? (
             <div role="status" aria-live="polite">
-              <MarketplaceConsolePanel title="Verifying Order History">
-                <MarketplaceConsoleStatusRow
+              <AccountPanel title="Verifying Order History">
+                <AccountStatusRow
                   label="Private Marketplace Ledger"
                   value="Loading Orders"
                   detail="Binding Records To Your Active Account"
                   live
                 />
-              </MarketplaceConsolePanel>
+              </AccountPanel>
             </div>
           ) : projectedLoadError ? (
             <div role="alert">
-              <MarketplaceConsolePanel
+              <AccountPanel
                 title="Could Not Load Orders"
                 primaryAction={{
                   label: 'Retry Secure Read',
@@ -403,22 +446,22 @@ export default function OrderHistory() {
                   },
                 }}
               >
-                <MarketplaceConsoleStatusRow
+                <AccountStatusRow
                   label="Order Ledger"
                   value="Secure Read Failed"
                   detail={marketplaceCopy(projectedLoadError)}
                   valueInk="red"
                 />
-              </MarketplaceConsolePanel>
+              </AccountPanel>
             </div>
           ) : orders.length === 0 ? (
-            <MarketplaceConsolePanel
+            <AccountPanel
               title={
                 projectedPartialError ? 'Order History Is Temporarily Incomplete' : 'No Orders Yet'
               }
               primaryAction={{ label: 'Visit Diamond Store', href: '/hub/diamond-store' }}
             >
-              <MarketplaceConsoleStatusRow
+              <AccountStatusRow
                 label="Private Marketplace Ledger"
                 value={projectedPartialError ? 'Source Verification Pending' : 'No Verified Orders'}
                 detail={
@@ -429,11 +472,11 @@ export default function OrderHistory() {
                 valueInk={projectedPartialError ? 'red' : 'white'}
                 live={Boolean(projectedPartialError)}
               />
-            </MarketplaceConsolePanel>
+            </AccountPanel>
           ) : (
             <div style={styles.ordersList}>
               {projectedPartialError && (
-                <MarketplaceConsoleStatusRow
+                <AccountStatusRow
                   label="Ledger Coverage"
                   value="History Is Temporarily Incomplete"
                   detail={marketplaceCopy(projectedPartialError)}
@@ -441,7 +484,7 @@ export default function OrderHistory() {
                   live
                 />
               )}
-              <MarketplaceConsolePanel title="Verified Marketplace Ledger">
+              <AccountPanel title="Verified Marketplace Ledger">
                 <section aria-label="Marketplace Ledger Summary" style={styles.ledgerSummary}>
                   {[
                     ['Verified Records', ledgerSummary.records],
@@ -449,7 +492,7 @@ export default function OrderHistory() {
                     ['VIP Records', ledgerSummary.vip],
                     ['Club Orders', ledgerSummary.club],
                   ].map(([label, value]) => (
-                    <MarketplaceConsoleStatusRow
+                    <AccountStatusRow
                       key={label}
                       label={label}
                       value={String(value)}
@@ -457,9 +500,9 @@ export default function OrderHistory() {
                     />
                   ))}
                 </section>
-              </MarketplaceConsolePanel>
+              </AccountPanel>
 
-              <MarketplaceConsolePanel title="Filter Marketplace Orders">
+              <AccountPanel title="Filter Marketplace Orders">
                 <div style={styles.filterControls}>
                   <label style={styles.searchControl}>
                     <span style={styles.controlLabel}>Search Orders</span>
@@ -516,20 +559,20 @@ export default function OrderHistory() {
                     Showing {visibleOrders.length} Of {orders.length} Loaded Orders
                   </div>
                 </div>
-              </MarketplaceConsolePanel>
+              </AccountPanel>
 
               {visibleOrders.length === 0 && (
                 <div role="status">
-                  <MarketplaceConsolePanel
+                  <AccountPanel
                     title="No Orders Match Those Filters"
                     primaryAction={{ label: 'Clear Filters', onClick: clearFilters }}
                   >
-                    <MarketplaceConsoleStatusRow
+                    <AccountStatusRow
                       label="Ledger Filter"
                       value="No Matching Records"
                       detail="Clear The Search Or Choose A Different Ledger Signal"
                     />
-                  </MarketplaceConsolePanel>
+                  </AccountPanel>
                 </div>
               )}
 
@@ -537,124 +580,143 @@ export default function OrderHistory() {
                 const statusBadge = getStatusBadge(order.status);
                 const orderLabel = String(order.id ?? '').slice(0, 8) || 'Not Available';
                 return (
-                  <MarketplacePageConsole
-                    as="article"
-                    key={order.key}
-                    eyebrow={`Order #${orderLabel}`}
-                    title={marketplaceCopy(order.title)}
-                    summary={formatDate(order.created_at)}
-                    status={statusBadge.label}
-                    statusInk={statusBadge.ink}
-                  >
-                    <div style={styles.orderItems}>
-                      {(order.items || []).map((item, idx) => (
-                        <div key={idx} style={styles.orderItem}>
-                          <span style={styles.itemName}>{marketplaceCopy(item.name)}</span>
-                          <span style={styles.itemQty}>x{item.quantity ?? 1}</span>
-                          <span style={styles.itemPrice}>
-                            {formatAmount(item.amount, item.currency)}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-
-                    {order.source === 'merchandise' && (
-                      <section aria-label="Order Fulfillment" style={styles.fulfillmentPanel}>
-                        <div style={styles.fulfillmentHeadingRow}>
-                          <div>
-                            <div style={styles.fulfillmentEyebrow}>Fulfillment Telemetry</div>
-                            <div style={styles.fulfillmentTitle}>
-                              {order.deliveredAt || order.status === 'delivered'
-                                ? 'Delivery Complete'
-                                : order.shippedAt || order.status === 'shipped'
-                                  ? 'Package In Transit'
-                                  : order.fulfillmentStatus === 'submission_failed'
-                                    ? 'Order Needs Fulfillment Review'
-                                    : order.fulfillmentStatus
-                                      ? marketplaceFulfillmentStatus(order.fulfillmentStatus)
-                                      : 'Order Is Being Prepared'}
-                            </div>
+                  <article key={order.key} className={accountControls.recordCard}>
+                    <header className={accountControls.recordHeader}>
+                      <div className={accountControls.recordIdentity}>
+                        <span className={accountControls.recordEyebrow} data-preserve-case="true">
+                          Order #{orderLabel}
+                        </span>
+                        <h2 className={accountControls.recordTitle}>
+                          {marketplaceCopy(order.title)}
+                        </h2>
+                        <time className={accountControls.recordSummary} dateTime={order.created_at}>
+                          {formatDate(order.created_at)}
+                        </time>
+                      </div>
+                      <span
+                        className={accountControls.recordStatus}
+                        data-tone={
+                          statusBadge.ink === 'red'
+                            ? 'danger'
+                            : statusBadge.ink === 'muted'
+                              ? 'muted'
+                              : 'accent'
+                        }
+                      >
+                        {statusBadge.label}
+                      </span>
+                    </header>
+                    <div className={accountControls.recordBody}>
+                      <div style={styles.orderItems}>
+                        {(order.items || []).map((item, idx) => (
+                          <div key={idx} style={styles.orderItem}>
+                            <span style={styles.itemName}>{marketplaceCopy(item.name)}</span>
+                            <span style={styles.itemQty}>x{item.quantity ?? 1}</span>
+                            <span style={styles.itemPrice}>
+                              {formatAmount(item.amount, item.currency)}
+                            </span>
                           </div>
-                          {order.trackingUrl && (
-                            <a
-                              href={order.trackingUrl}
-                              className={`${accountControls.action} ${accountControls.actionSecondary}`}
-                            >
-                              Track Package
-                            </a>
+                        ))}
+                      </div>
+
+                      {order.source === 'merchandise' && (
+                        <section aria-label="Order Fulfillment" style={styles.fulfillmentPanel}>
+                          <div style={styles.fulfillmentHeadingRow}>
+                            <div>
+                              <div style={styles.fulfillmentEyebrow}>Fulfillment Telemetry</div>
+                              <div style={styles.fulfillmentTitle}>
+                                {order.deliveredAt || order.status === 'delivered'
+                                  ? 'Delivery Complete'
+                                  : order.shippedAt || order.status === 'shipped'
+                                    ? 'Package In Transit'
+                                    : order.fulfillmentStatus === 'submission_failed'
+                                      ? 'Order Needs Fulfillment Review'
+                                      : order.fulfillmentStatus
+                                        ? marketplaceFulfillmentStatus(order.fulfillmentStatus)
+                                        : 'Order Is Being Prepared'}
+                              </div>
+                            </div>
+                            {order.trackingUrl && (
+                              <a
+                                href={order.trackingUrl}
+                                className={`${accountControls.action} ${accountControls.actionSecondary}`}
+                              >
+                                Track Package
+                              </a>
+                            )}
+                          </div>
+
+                          <ol style={styles.fulfillmentRail}>
+                            {fulfillmentSteps(order).map((step) => (
+                              <li
+                                key={step.label}
+                                aria-current={step.current ? 'step' : undefined}
+                                style={{
+                                  ...styles.fulfillmentStep,
+                                  ...(step.complete ? styles.fulfillmentStepComplete : {}),
+                                }}
+                              >
+                                <span aria-hidden="true" style={styles.fulfillmentNode} />
+                                <span style={styles.fulfillmentStepLabel}>{step.label}</span>
+                                {step.date && (
+                                  <time dateTime={step.date} style={styles.fulfillmentDate}>
+                                    {formatDate(step.date)}
+                                  </time>
+                                )}
+                              </li>
+                            ))}
+                          </ol>
+
+                          {(order.carrier || order.trackingNumber) && (
+                            <div style={styles.trackingMeta}>
+                              {order.carrier && (
+                                <span>
+                                  Carrier:{' '}
+                                  <span data-preserve-case="true">
+                                    {marketplaceCarrierName(order.carrier)}
+                                  </span>
+                                </span>
+                              )}
+                              {order.trackingNumber && (
+                                <span>
+                                  Tracking:{' '}
+                                  <span data-preserve-case="true">{order.trackingNumber}</span>
+                                </span>
+                              )}
+                            </div>
+                          )}
+                        </section>
+                      )}
+
+                      <div style={styles.orderFooter}>
+                        <div>
+                          <div style={styles.totalLabel}>Total</div>
+                          <div style={styles.totalAmount}>
+                            {formatAmount(order.amount, order.currency)}
+                          </div>
+                          {Number(order.refundAmount) > 0 && (
+                            <div style={styles.refundAmount}>
+                              Refunded {formatAmount(order.refundAmount, order.currency)}; Net{' '}
+                              {formatAmount(order.netAmount, order.currency)}
+                            </div>
+                          )}
+                          {Number(order.refundedDiamonds) > 0 && (
+                            <div style={styles.refundAmount}>
+                              {Number(order.refundedDiamonds).toLocaleString()} Diamonds Reconciled
+                            </div>
                           )}
                         </div>
-
-                        <ol style={styles.fulfillmentRail}>
-                          {fulfillmentSteps(order).map((step) => (
-                            <li
-                              key={step.label}
-                              aria-current={step.current ? 'step' : undefined}
-                              style={{
-                                ...styles.fulfillmentStep,
-                                ...(step.complete ? styles.fulfillmentStepComplete : {}),
-                              }}
-                            >
-                              <span aria-hidden="true" style={styles.fulfillmentNode} />
-                              <span style={styles.fulfillmentStepLabel}>{step.label}</span>
-                              {step.date && (
-                                <time dateTime={step.date} style={styles.fulfillmentDate}>
-                                  {formatDate(step.date)}
-                                </time>
-                              )}
-                            </li>
-                          ))}
-                        </ol>
-
-                        {(order.carrier || order.trackingNumber) && (
-                          <div style={styles.trackingMeta}>
-                            {order.carrier && (
-                              <span>
-                                Carrier:{' '}
-                                <span data-preserve-case="true">
-                                  {marketplaceCarrierName(order.carrier)}
-                                </span>
-                              </span>
-                            )}
-                            {order.trackingNumber && (
-                              <span>
-                                Tracking:{' '}
-                                <span data-preserve-case="true">{order.trackingNumber}</span>
-                              </span>
-                            )}
-                          </div>
-                        )}
-                      </section>
-                    )}
-
-                    <div style={styles.orderFooter}>
-                      <div>
-                        <div style={styles.totalLabel}>Total</div>
-                        <div style={styles.totalAmount}>
-                          {formatAmount(order.amount, order.currency)}
-                        </div>
-                        {Number(order.refundAmount) > 0 && (
-                          <div style={styles.refundAmount}>
-                            Refunded {formatAmount(order.refundAmount, order.currency)}; Net{' '}
-                            {formatAmount(order.netAmount, order.currency)}
-                          </div>
-                        )}
-                        {Number(order.refundedDiamonds) > 0 && (
-                          <div style={styles.refundAmount}>
-                            {Number(order.refundedDiamonds).toLocaleString()} Diamonds Reconciled
-                          </div>
-                        )}
+                        <Link
+                          href={`/hub/diamond-store/orders/${encodeURIComponent(order.id)}?source=${encodeURIComponent(order.source)}`}
+                          className={`${accountControls.action} ${accountControls.actionPrimary}`}
+                        >
+                          {order.recordType === 'membership_status'
+                            ? 'View Membership Record'
+                            : 'View Receipt'}
+                        </Link>
                       </div>
-                      <Link
-                        href={`/hub/diamond-store/orders/${encodeURIComponent(order.id)}?source=${encodeURIComponent(order.source)}`}
-                        className={`${accountControls.action} ${accountControls.actionPrimary}`}
-                      >
-                        {order.recordType === 'membership_status'
-                          ? 'View Membership Record'
-                          : 'View Receipt'}
-                      </Link>
                     </div>
-                  </MarketplacePageConsole>
+                  </article>
                 );
               })}
               {hasMore && (
