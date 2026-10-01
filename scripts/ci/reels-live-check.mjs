@@ -1234,14 +1234,19 @@ async function verifySignedInBrowser(browser, session, article, report) {
 
     report.signedInBrowserStage = 'ordinary-article';
     await page.goto(`${APP_ORIGIN}/hub/social-media?post=${article.id}`, { waitUntil: 'domcontentloaded' });
+    report.signedInBrowserStage = 'ordinary-article-card';
     const articleLabel = page.getByText(/Click To Read Full Article/i).filter({ visible: true }).first();
     await articleLabel.waitFor();
+    report.signedInBrowserStage = 'ordinary-article-click';
     await articleLabel.click();
+    report.signedInBrowserStage = 'ordinary-article-reader';
     const readerDialog = page.getByRole('dialog', { name: 'Article Reader' });
     const reader = readerDialog.locator('iframe[src*="/api/proxy?url="]');
     await reader.waitFor();
     assert.equal(new URL(page.url()).pathname, '/hub/social-media', 'Ordinary article was rewritten into a Reel route');
+    report.signedInBrowserStage = 'ordinary-article-close';
     await readerDialog.getByRole('button', { name: 'Close' }).click();
+    report.signedInBrowserStage = 'ordinary-article-detached';
     await reader.waitFor({ state: 'detached' });
 
     const verifyCollectionPage = async ({ path, apiPath, emptyText }) => {
