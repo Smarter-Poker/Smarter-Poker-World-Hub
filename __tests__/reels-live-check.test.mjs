@@ -549,6 +549,7 @@ test('workflow retains and independently asserts the complete sanitized receipt'
       staleAuthMobile: {
         revoked: {
           apiStatuses: [401],
+          apiOutcome: 'server-rejected',
           reauthPrompt: true,
           activePlayers: 0,
           browserErrors: 0,
@@ -561,6 +562,7 @@ test('workflow retains and independently asserts the complete sanitized receipt'
         },
         expired: {
           apiStatuses: [],
+          apiOutcome: 'client-rejected-before-request',
           reauthPrompt: true,
           activePlayers: 0,
           browserErrors: 0,
@@ -660,8 +662,22 @@ test('workflow retains and independently asserts the complete sanitized receipt'
       ...receipt,
       coverage: { ...receipt.coverage, staleAuthMobile: undefined },
     }),
-    /Revoked stale auth did not fail closed/,
+    /Revoked stale auth omitted its API status proof/,
   );
+  assert.equal(validateReceipt({
+    ...receipt,
+    coverage: {
+      ...receipt.coverage,
+      staleAuthMobile: {
+        ...receipt.coverage.staleAuthMobile,
+        revoked: {
+          ...receipt.coverage.staleAuthMobile.revoked,
+          apiStatuses: [],
+          apiOutcome: 'client-rejected-before-request',
+        },
+      },
+    },
+  }).status, 'passed');
   assert.throws(
     () => validateReceipt({
       ...receipt,
