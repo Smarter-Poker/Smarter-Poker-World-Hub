@@ -171,7 +171,9 @@ CREATE INDEX IF NOT EXISTS trivia_tournament_scheduler_runs_started_idx
 -- 4. Tournament horse skill personas (trivia skill bands; poker tiers unused).
 -- ----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.trivia_tournament_horse_personas (
-    horse_id uuid PRIMARY KEY REFERENCES public.profiles(id) ON DELETE CASCADE,
+    -- No FK into the hot shared profiles table (its lock would contend with live
+    -- writers at install); personas are created only from is_horse profiles.
+    horse_id uuid PRIMARY KEY,
     skill_band text NOT NULL CHECK (skill_band IN ('rookie', 'club', 'sharp', 'elite')),
     accuracy numeric(4,3) NOT NULL CHECK (accuracy > 0 AND accuracy < 1),
     median_response_ms integer NOT NULL CHECK (median_response_ms BETWEEN 2000 AND 18000),
@@ -232,7 +234,7 @@ CREATE INDEX IF NOT EXISTS trivia_tournament_entrants_name_idx
 -- Non-public (canary/test) instances accept human entries only from listed accounts.
 CREATE TABLE IF NOT EXISTS public.trivia_tournament_canary_access (
     tournament_id uuid NOT NULL REFERENCES public.trivia_tournaments(id) ON DELETE RESTRICT,
-    user_id uuid NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+    user_id uuid NOT NULL,
     approved_by text NOT NULL CHECK (length(approved_by) BETWEEN 2 AND 120),
     created_at timestamptz NOT NULL DEFAULT now(),
     PRIMARY KEY (tournament_id, user_id)
@@ -1514,6 +1516,11 @@ BEGIN
           JOIN public.trivia_tournament_horse_personas AS hp ON hp.horse_id = p.id
          WHERE p.is_horse IS TRUE AND p.horse_status = 'available'
            AND NOT EXISTS (SELECT 1 FROM public.trivia_pvp_active_seats s WHERE s.user_id = p.id)
+           AND NOT EXISTS (SELECT 1 FROM public.trivia_tournament_entrants oe
+                             JOIN public.trivia_tournaments ot ON ot.id = oe.tournament_id
+                            WHERE oe.participant_id = p.id AND oe.entry_state = 'entered' AND ot.id <> t.id
+                              AND ot.lifecycle_state IN ('scheduled', 'registration', 'held', 'live', 'settling')
+                              AND ot.start_time BETWEEN t.start_time - interval '3 hours' AND t.start_time + interval '3 hours')
     ), ranked AS (
         SELECT c.*, row_number() OVER (PARTITION BY c.skill_band ORDER BY c.last_planned NULLS FIRST, c.tie) AS band_rank,
                row_number() OVER (ORDER BY c.last_planned NULLS FIRST, c.tie) AS global_rank
@@ -1687,6 +1694,11 @@ BEGIN
                AND NOT EXISTS (SELECT 1 FROM public.trivia_tournament_horse_schedule hs
                                 WHERE hs.tournament_id = t.id AND hs.horse_id = p.id)
                AND NOT EXISTS (SELECT 1 FROM public.trivia_pvp_active_seats s WHERE s.user_id = p.id)
+               AND NOT EXISTS (SELECT 1 FROM public.trivia_tournament_entrants oe
+                                 JOIN public.trivia_tournaments ot ON ot.id = oe.tournament_id
+                                WHERE oe.participant_id = p.id AND oe.entry_state = 'entered' AND ot.id <> t.id
+                                  AND ot.lifecycle_state IN ('scheduled', 'registration', 'held', 'live', 'settling')
+                                  AND ot.start_time BETWEEN t.start_time - interval '3 hours' AND t.start_time + interval '3 hours')
              ORDER BY (SELECT max(hs.planned_at) FROM public.trivia_tournament_horse_schedule hs
                         WHERE hs.horse_id = p.id) NULLS FIRST,
                       public.trivia_tournament_keyed_unit(v_key, 'rot:' || p.id::text)

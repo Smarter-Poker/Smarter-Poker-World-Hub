@@ -66,9 +66,10 @@ SELECT public.trivia_tournament_ensure_horse_personas() AS personas_created;
 -- Scheduler helpers: one owner per call, mirroring the worker.
 CREATE OR REPLACE FUNCTION p6test.owner(p_holder text DEFAULT 'p6-test-owner') RETURNS jsonb LANGUAGE sql AS
 $$ SELECT public.trivia_tournament_scheduler_acquire(p_holder, 300) $$;
-CREATE OR REPLACE FUNCTION p6test.tick(p_horses boolean DEFAULT true, p_steps integer DEFAULT 2000) RETURNS jsonb LANGUAGE plpgsql AS
+CREATE OR REPLACE FUNCTION p6test.tick(p_horses boolean DEFAULT true, p_steps integer DEFAULT 2000, p_holder text DEFAULT 'p6-test-owner') RETURNS jsonb LANGUAGE plpgsql AS
 $$ DECLARE o jsonb; r jsonb; BEGIN
-     o := p6test.owner();
+     o := p6test.owner(p_holder);
+     IF NOT (o->>'owner')::boolean THEN RETURN jsonb_build_object('standby', true); END IF;
      r := public.trivia_tournament_scheduler_tick((o->>'run_id')::uuid, (o->>'fencing_token')::bigint, p_horses, p_steps);
      RETURN r;
    END $$;
@@ -93,6 +94,54 @@ $$ DECLARE s record; q record; n integer := 0; r jsonb; BEGIN
        PERFORM public.trivia_tournament_play_answer(p_tournament, s.participant_id, q.question_id,
            (abs(hashtext(s.participant_id::text || q.question_id::text)) % 4), gen_random_uuid());
      END LOOP;
+     n := n + 1;
+   END LOOP;
+   RETURN n;
+ END $$;
+
+-- Disconnect simulator: answer only the next k questions of each live human seat (no finish).
+CREATE OR REPLACE FUNCTION p6test.play_partial(p_tournament uuid, p_k integer, p_skip_mod integer DEFAULT 0) RETURNS integer LANGUAGE plpgsql AS
+$$ DECLARE s record; q record; n integer := 0; r jsonb; BEGIN
+   FOR s IN SELECT st.* FROM public.trivia_tournament_seats st
+             JOIN public.trivia_tournament_matchups m ON m.id = st.matchup_id
+             JOIN public.trivia_tournament_bracket_rounds rd ON rd.tournament_id = st.tournament_id AND rd.round_number = st.round_number
+            WHERE st.tournament_id = p_tournament AND st.participant_kind = 'human' AND st.status IN ('waiting', 'playing')
+              AND m.status = 'ready' AND rd.status = 'open' AND rd.opens_at <= public.trivia_tournament_clock()
+   LOOP
+     IF p_skip_mod > 0 AND (abs(hashtext(s.entrant_id::text)) % p_skip_mod) = 0 THEN CONTINUE; END IF;
+     r := public.trivia_tournament_play_open(p_tournament, s.participant_id);
+     IF COALESCE((r->>'success')::boolean, false) IS NOT TRUE THEN CONTINUE; END IF;
+     FOR q IN SELECT a.position, a.question_id FROM public.trivia_session_answers a
+               JOIN public.trivia_tournament_seats st2 ON st2.session_id = a.session_id
+              WHERE st2.matchup_id = s.matchup_id AND st2.seat_no = s.seat_no AND a.outcome IS NULL ORDER BY a.position LIMIT p_k LOOP
+       PERFORM public.trivia_tournament_play_question(p_tournament, s.participant_id, q.position);
+       PERFORM public.trivia_tournament_play_answer(p_tournament, s.participant_id, q.question_id,
+           (abs(hashtext(s.participant_id::text || q.question_id::text)) % 4), gen_random_uuid());
+     END LOOP;
+     n := n + 1;
+   END LOOP;
+   RETURN n;
+ END $$;
+
+-- Skill simulator: one human answers every question right (or wrong) via the server's own key.
+CREATE OR REPLACE FUNCTION p6test.play_scripted(p_tournament uuid, p_user uuid, p_right boolean) RETURNS integer LANGUAGE plpgsql AS
+$$ DECLARE r jsonb; q record; v_sess uuid; v_correct integer; v_display integer; n integer := 0; BEGIN
+   r := public.trivia_tournament_play_open(p_tournament, p_user);
+   IF COALESCE((r->>'success')::boolean, false) IS NOT TRUE THEN RETURN 0; END IF;
+   SELECT session_id INTO v_sess FROM public.trivia_tournament_seats WHERE tournament_id = p_tournament AND participant_id = p_user
+    ORDER BY round_number DESC LIMIT 1;
+   FOR q IN SELECT a.position, a.question_id FROM public.trivia_session_answers a WHERE a.session_id = v_sess AND a.outcome IS NULL ORDER BY a.position LOOP
+     SELECT rv.correct_index INTO v_correct FROM public.trivia_sessions ss
+       JOIN public.trivia_roster_snapshot_items i ON i.snapshot_id = (SELECT roster_snapshot_id FROM public.trivia_tournaments WHERE id = p_tournament)
+            AND i.question_id = q.question_id
+       JOIN public.trivia_question_revisions rv ON rv.id = i.revision_id
+      WHERE ss.id = v_sess LIMIT 1;
+     SELECT (e.ord - 1)::integer INTO v_display FROM public.trivia_sessions ss,
+            jsonb_array_elements_text(ss.permutations -> q.question_id::text) WITH ORDINALITY e(v, ord)
+      WHERE ss.id = v_sess AND e.v::integer = v_correct;
+     IF NOT p_right THEN v_display := (v_display + 1) % 4; END IF;
+     PERFORM public.trivia_tournament_play_question(p_tournament, p_user, q.position);
+     PERFORM public.trivia_tournament_play_answer(p_tournament, p_user, q.question_id, v_display, gen_random_uuid());
      n := n + 1;
    END LOOP;
    RETURN n;
