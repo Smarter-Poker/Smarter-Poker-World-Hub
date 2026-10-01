@@ -47,6 +47,7 @@ import { getStreakTier, calculateRewardWithMultiplier } from '../../../src/confi
 
 // Phase 2 Enhancement Imports
 import { shuffleOptions } from '../../../src/lib/trivia/shuffleOptions';
+import { readOwnProfile } from '../../../src/lib/ownProfile';
 
 // Category source of truth is triviaEngine's CATEGORY_MAPPINGS - do not
 // re-declare category arrays here (three parallel maps had silently drifted).
@@ -224,11 +225,7 @@ export default function TriviaModePage() {
                     setIsVIP(vipStatus);
 
                     // Get diamonds
-                    const { data: profile } = await supabase
-                        .from('profiles')
-                        .select('diamonds')
-                        .eq('id', currentUserId)
-                        .maybeSingle();
+                    const { data: profile } = await readOwnProfile(supabase, 'diamonds', { expectId: currentUserId });
 
                     if (profile) {
                         setUserDiamonds(profile.diamonds || 0);
@@ -358,11 +355,7 @@ export default function TriviaModePage() {
 
     async function getUserDiamonds(userId) {
         if (!userId) return 0;
-        const { data } = await supabase
-            .from('profiles')
-            .select('diamonds')
-            .eq('id', userId)
-            .maybeSingle();
+        const { data } = await readOwnProfile(supabase, 'diamonds', { expectId: userId });
         return data?.diamonds || 0;
     }
 
@@ -890,11 +883,7 @@ export default function TriviaModePage() {
                         } else {
                             // newBalance missing from the response - fall back
                             // to a fresh profiles read for the header display.
-                            const { data: profile } = await supabase
-                                .from('profiles')
-                                .select('diamonds')
-                                .eq('id', userId)
-                                .maybeSingle();
+                            const { data: profile } = await readOwnProfile(supabase, 'diamonds', { expectId: userId });
                             if (profile && isMountedRef.current) setUserDiamonds(profile.diamonds || 0);
                         }
                     }
@@ -1525,11 +1514,7 @@ export default function TriviaModePage() {
                                 // tampered client name its own amount.
                                 try {
                                     if (userId) {
-                                        const { data: profile } = await supabase
-                                            .from('profiles')
-                                            .select('diamonds')
-                                            .eq('id', userId)
-                                            .maybeSingle();
+                                        const { data: profile } = await readOwnProfile(supabase, 'diamonds', { expectId: userId });
                                         if (profile && isMountedRef.current) setUserDiamonds(profile.diamonds || 0);
                                     }
                                 } catch (e) {

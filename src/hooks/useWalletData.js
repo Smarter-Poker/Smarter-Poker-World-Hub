@@ -31,6 +31,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useProfileRealtime } from './useProfileRealtime';
+import { readOwnProfile } from '../lib/ownProfile';
 
 export default function useWalletData({ supabase, userId, clubId }) {
   const [diamondBalance, setDiamondBalance] = useState(0);
@@ -58,7 +59,7 @@ export default function useWalletData({ supabase, userId, clubId }) {
       setLoading(true);
       // Parallel fetch: profile, membership, BBJ, agent, club treasury
       const [profileRes, memberRes, bbjRes, agentRes, clubRes] = await Promise.allSettled([
-        supabase.from('profiles').select('diamonds').eq('id', userId).maybeSingle(),
+        readOwnProfile(supabase, 'diamonds', { expectId: userId }),
         supabase.from('club_members').select('chip_balance, promo_balance, role').eq('club_id', clubId).eq('user_id', userId).maybeSingle(),
         supabase.rpc('fn_bbj_pool_for_club', { p_club_id: clubId }),
         supabase.from('agents').select('business_balance, status').eq('club_id', clubId).eq('user_id', userId).eq('status', 'active').maybeSingle(),

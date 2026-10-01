@@ -166,6 +166,7 @@ import {
   sweepStaleScrollLocks,
   clearBodyScrollLockIfUnheld,
 } from '../src/lib/scrollLock';
+import { readOwnProfile } from '../src/lib/ownProfile';
 
 /*
  * ITEM 2 (2026-09-08): these two were STATIC imports, so every page on the site
@@ -827,11 +828,7 @@ function PhoneVerifyGate() {
       // Don't show popup for returning users who already verified
       try {
         const { supabase } = await import('../src/lib/supabase');
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('phone_verified, phone')
-          .eq('id', userId)
-          .maybeSingle();
+        const { data: profile } = await readOwnProfile(supabase, 'phone_verified, phone', { expectId: userId });
 
         if (profile?.phone_verified && profile?.phone) {
           // Already verified — don't show popup, clean up flag

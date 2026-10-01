@@ -210,7 +210,7 @@ export default function SavedPostsPage() {
             if (authorIds.length > 0) {
                 const { data: profiles } = await supabase
                     .from('profiles')
-                    .select('id, username, full_name, avatar_url')
+                    .select('id, username, avatar_url')
                     .in('id', authorIds);
 
                 if (profiles) {

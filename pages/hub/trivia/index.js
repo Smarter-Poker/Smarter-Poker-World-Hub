@@ -23,6 +23,7 @@ import * as triviaAudio from '../../../src/lib/trivia/triviaAudio';
 import { isTriviaPvpReleased } from '../../../src/lib/trivia/pvpReleaseControl.mjs';
 import { areTriviaTournamentsReleased } from '../../../src/lib/trivia/tournamentReleaseControl.mjs';
 import HubPageSummary from '../../../src/components/seo/HubPageSummary';
+import { readOwnProfile } from '../../../src/lib/ownProfile';
 
 const GAME_SETTINGS_KEY = 'trivia_settings';
 
@@ -128,11 +129,7 @@ export default function TriviaHubPage({ modeAvailability }) {
             // Run the three independent reads in parallel — was three
             // sequential awaits, ~2 extra round trips before the lobby showed.
             const [profileRes, dailyPlayRes, streakRes] = await Promise.all([
-                supabase
-                    .from('profiles')
-                    .select('diamonds, is_vip')
-                    .eq('id', userId)
-                    .maybeSingle(),
+                readOwnProfile(supabase, 'diamonds, is_vip', { expectId: userId }),
                 // NOTE: multiple daily_trivia_plays rows per (user, date) are
                 // possible (replays), so .maybeSingle() errored with 2+ rows
                 // and the lobby re-offered an already-completed daily. Use

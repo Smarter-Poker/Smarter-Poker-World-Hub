@@ -62,6 +62,7 @@ function formatPokerText(text) {
 import GameCostPopup from '../gates/GameCostPopup';
 import DiamondEngine from '../../services/DiamondEngine';
 import useVIP from '../../hooks/useVIP';
+import { readOwnProfile } from '../../lib/ownProfile';
 
 /**
  * Entry price for the strategy modes.
@@ -385,11 +386,7 @@ export default function StrategyTrivia({ mode }) {
 
     async function loadUserDiamonds(uid) {
         try {
-            const { data: profile } = await supabase
-                .from('profiles')
-                .select('diamonds')
-                .eq('id', uid)
-                .maybeSingle();
+            const { data: profile } = await readOwnProfile(supabase, 'diamonds', { expectId: uid });
             if (profile) {
                 setUserDiamonds(profile.diamonds || 0);
             }
@@ -641,7 +638,7 @@ export default function StrategyTrivia({ mode }) {
             setUserDiamonds(settled.newBalance);
         } else if (userId) {
             try {
-                const { data: freshProfile } = await supabase.from('profiles').select('diamonds').eq('id', userId).maybeSingle();
+                const { data: freshProfile } = await readOwnProfile(supabase, 'diamonds', { expectId: userId });
                 if (freshProfile) setUserDiamonds(freshProfile.diamonds || 0);
             } catch (e) {
                 console.warn('[StrategyTrivia] Balance refresh failed:', e?.message || e);

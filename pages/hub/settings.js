@@ -35,6 +35,7 @@ import { broadcastSyncDebounced, listenBroadcast, BROADCAST_TAB_ID } from '../..
 import { getBlockedUsers, unblockUser } from '../../src/services/privacy-service';
 import styles from '../../src/components/settings/settingsStyles';
 import PushNotificationToggle from '../../src/components/notifications/PushNotificationToggle';
+import { readOwnProfile } from '../../src/lib/ownProfile';
 
 // Phase 2: Hoisted to module scope — static array, no need to re-create on every render
 const SETTINGS_SECTIONS = [
@@ -462,11 +463,7 @@ export default function SettingsPage() {
             }).catch(() => setLoadingAvatars(false));
 
             // Also fetch user profile for display name
-            supabase
-                .from('profiles')
-                .select('full_name, first_name, last_name, username, avatar_url, player_number')
-                .eq('id', user.id)
-                .maybeSingle()
+            readOwnProfile(supabase, 'full_name, first_name, last_name, username, avatar_url, player_number', { expectId: user.id })
                 .then(({ data: profile }) => {
                     if (profile) {
                         setUserProfile(profile);
@@ -733,7 +730,7 @@ export default function SettingsPage() {
                 supabase.from('orders').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(5),
                 fetch(`/api/store/diamond-transactions?limit=10`, { headers }).then(r => r.json()),
                 fetch('/api/store/vip-membership-status', { headers }).then(r => r.json()),
-                supabase.from('profiles').select('diamonds').eq('id', user.id).maybeSingle(),
+                readOwnProfile(supabase, 'diamonds', { expectId: user.id }),
             ]);
 
             if (ordersRes.status === 'fulfilled' && ordersRes.value.data) {

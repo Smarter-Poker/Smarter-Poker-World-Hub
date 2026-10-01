@@ -58,23 +58,56 @@
  *
  * A name missing from that result takes every profile read down with it.
  */
+/*
+ * OWNER-ONLY since 2026-09-30 (decided by Claude on Dan's delegation of
+ * 2026-09-30: "these are all for you to decide not me ... FIX AND FINISH ALL
+ * OF THESE"). Anything that reveals a person's money, real identity or
+ * whereabouts is readable only by that person and platform staff: the
+ * Diamond balance and multiplier, the legal name, the birth year, the
+ * city/state/country, last seen and referred-by - with updated_at, which
+ * every presence heartbeat moves (so it is a last-seen), and
+ * poker_near_me_preferences, which keeps the last known location.
+ * `authenticated` holds no SELECT grant on these for ANY row - the owner's
+ * included - so they are not in SAFE_PROFILE_COLUMNS, and the owner reads
+ * their own through
+ * readOwnProfile() (src/lib/ownProfile.js). A stranger's profile shows the
+ * display name, username, avatar, player number and public stats.
+ */
+export const OWNER_ONLY_PROFILE_COLUMNS = [
+    'diamonds',
+    'diamond_balance',
+    'diamond_multiplier',
+    'full_name',
+    'first_name',
+    'last_name',
+    'birth_year',
+    'city',
+    'state',
+    'country',
+    'last_seen',
+    'last_login',
+    'last_login_date',
+    'last_active',
+    'updated_at',
+    'referred_by',
+    'poker_near_me_preferences',
+];
+
 export const SAFE_PROFILE_COLUMNS =
-    'id, full_name, display_name, first_name, last_name, username, bio, city, state, alias, ' +
-    'avatar_url, arena_avatar_url, use_avatar_as_profile_pic, role, status, is_vip, ' +
-    'is_admin, is_online, player_number, diamonds, diamond_balance, diamond_multiplier, level, ' +
-    'tier, skill_tier, login_streak, streak_days, settings, preferences, social_page_id, ' +
-    'favorite_venue, home_poker_club, referred_by, friends_count, hendon_total_cashes, ' +
-    'hendon_total_earnings, email_verified, phone_verified, onboarding_complete, last_login, ' +
-    'last_login_date, last_seen, created_at, updated_at, training_view_mode, last_trivia_date, ' +
-    'trivia_streak, trivia_high_score, total_hands_played, referral_code, ' +
-    'sounds_enabled, vibrations_enabled, show_stack_bb, birth_year, ' +
-    'favorite_hand_type, card_back_preference, country, website, twitter, instagram, hendon_url, ' +
+    'id, display_name, username, bio, alias, avatar_url, arena_avatar_url, ' +
+    'use_avatar_as_profile_pic, role, status, is_vip, is_admin, is_online, player_number, ' +
+    'level, tier, skill_tier, login_streak, streak_days, settings, preferences, ' +
+    'social_page_id, favorite_venue, home_poker_club, friends_count, hendon_total_cashes, ' +
+    'hendon_total_earnings, email_verified, phone_verified, onboarding_complete, created_at, ' +
+    'training_view_mode, last_trivia_date, trivia_streak, trivia_high_score, ' +
+    'total_hands_played, referral_code, sounds_enabled, vibrations_enabled, show_stack_bb, ' +
+    'favorite_hand_type, card_back_preference, website, twitter, instagram, hendon_url, ' +
     'favorite_game, favorite_hand, home_casino, cover_photo_url, favorite_hand_plo, ' +
     'app_settings, display_name_preference, cover_photo_position, tiktok, telegram, ' +
-    'hendon_biggest_cash, use_real_name, streak_count, access_tier, vip_tier, vip_expires_at, ' +
-    'last_active, poker_near_me_preferences, can_review, deleted_reviews_count, hub_preferences, ' +
-    'friend_preferences, store_preferences, messenger_preferences, reels_preferences, ' +
-    'home_games_onboarded_at, social_profile_completed';
+    'hendon_biggest_cash, use_real_name, streak_count, access_tier, vip_tier, ' +
+    'vip_expires_at, can_review, deleted_reviews_count, hub_preferences, friend_preferences, ' +
+    'store_preferences, messenger_preferences, reels_preferences, home_games_onboarded_at, ' +
+    'social_profile_completed';
 
 // Columns that are blocked at the DB layer for non-service-role callers.
 // These can ONLY be read via:
@@ -107,7 +140,9 @@ export const SENSITIVE_PROFILE_COLUMNS = [
     // subject's exact birthday, and any signed-in account could filter all
     // profiles by it. Nothing shows it to anyone but its owner: the profile
     // editor reads it through get_my_full_profile() (own row only) and the
-    // birthday reward reads it server-side. `birth_year` stays public - the
-    // profile page shows "Born In <year>" on purpose.
+    // birthday reward reads it server-side. (`birth_year` was left public
+    // then; since 2026-09-30 it is owner-only too.)
     'birthday',
+    // 2026-09-30 - owner-only (see OWNER_ONLY_PROFILE_COLUMNS above).
+    ...OWNER_ONLY_PROFILE_COLUMNS,
 ];

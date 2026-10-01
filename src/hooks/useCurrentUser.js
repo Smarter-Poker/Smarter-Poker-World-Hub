@@ -29,6 +29,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAvatar } from '../contexts/AvatarContext';
 import supabase from '../lib/supabase';
+import { readOwnProfile } from '../lib/ownProfile';
 
 const CACHE_KEY = 'sp-social-user';
 
@@ -120,11 +121,7 @@ export default function useCurrentUser() {
 
         setLoading(true);
         try {
-            const { data, error } = await supabase
-                .from('profiles')
-                .select('id, username, full_name, display_name, avatar_url, role, is_vip')
-                .eq('id', userId)
-                .maybeSingle();
+            const { data, error } = await readOwnProfile(supabase, 'id, username, full_name, display_name, avatar_url, role, is_vip', { expectId: userId });
 
             if (error) {
                 console.warn('[useCurrentUser] profiles fetch error:', error.message);
