@@ -331,7 +331,12 @@ SSD is mounted separately with 117 GiB available.
 ### Early Access Check
 
 - Git fetch through the configured SSH transport succeeds.
-- The configured GitHub CLI credentials currently fail authentication.
+- GitHub CLI authentication is available and the protected pull request was
+  created with automatic squash merge enabled.
+- Supabase CLI and the hardened direct PostgreSQL runner are authenticated to
+  the linked production project. The runner attests PostgreSQL 17, UTF8, the
+  exact database owner, pinned Supabase Root 2021 CA, and authorized TLS before
+  every status or apply operation.
 - The Vercel CLI currently has no authenticated session and therefore cannot
   inspect or edit provider environment metadata from this checkout.
 - No secret value was read or printed. These access gaps do not block source,
@@ -390,29 +395,44 @@ SSD is mounted separately with 117 GiB available.
 
 These are delivery or external-account steps, not unfinished source behavior:
 
-1. Install the exact three qualified migrations through the authorized
-   Supabase migration route and read back both installed history and the new
-   functions/tables. A committed migration file is not an installation.
-2. In Printful, connect the production store, create or obtain its private API
+1. In Printful, connect the production store, create or obtain its private API
    token, map every active made-to-order variant to a Printful sync variant,
    and register the production V2 webhook URL
    `https://smarter.poker/api/store/webhooks/printful` for shipment, return,
    cancellation, and failure events.
-3. Store `PRINTFUL_API_TOKEN`, `PRINTFUL_STORE_ID`,
+2. Store `PRINTFUL_API_TOKEN`, `PRINTFUL_STORE_ID`,
    `PRINTFUL_AUTO_CONFIRM=true`, `PRINTFUL_WEBHOOK_SECRET`, and
    `PRINTFUL_WEBHOOK_PUBLIC_KEY` in the existing Vercel project. Do not put
    these values in Git or this checkpoint.
-4. Complete protected PR checks and squash merge. Confirm the Vercel Git
+3. Complete protected PR checks and squash merge. Confirm the Vercel Git
    deployment is READY, its selected revision contains this candidate, and
    `/api/health` reports that deployed revision.
-5. Run the authorized low-cost production launch matrix with owned fixtures:
+4. Run the authorized low-cost production launch matrix with owned fixtures:
    Monthly VIP Card and Diamonds, Lifetime VIP Card and Diamonds, Merch Card
    and Diamonds, Club Shop Card and Diamonds, multi-item cart, receipt and
    fulfillment, retry/idempotency, refund/dispute, and Printful shipment
    tracking. Independently clean up every created fixture and record the
    readback evidence.
 
-The GitHub CLI, Vercel CLI, and Supabase CLI were unauthenticated at local
-qualification time. Source is locally complete, but protected merge, migration
-installation, Vercel publication, provider activation, and live commerce proof
-must not be reported as complete until their actual evidence is recorded here.
+### Production Migration Installation
+
+- Production initially rejected DDL during the active engine-maintenance thaw,
+  then admitted it after durable release. The Lifetime Card migration hit one
+  live lock-order deadlock. Its exact in-progress claim was cleared only after
+  an auditable recovery migration proved its canonical ledger and every new
+  postcondition were absent.
+- The monthly Lifetime Diamond migration exposed a deterministic lock-order
+  inversion between `auth.users` and `public.profiles`. The runner now rolls
+  back failed authored transactions before recording their durable failed
+  claim, and the migration explicitly takes the live authentication order:
+  `auth.users` before `public.profiles`. Two exact-checksum recovery migrations
+  proved both failed attempts left zero postconditions before retry.
+- Production status readback reports **Applied** for the three product
+  migrations and all three recovery records. The final monthly-Diamond source
+  checksum is `ac298a596af62f47f75493acd9dbb281697878576b436229cc9466917273d0cd`.
+- The real PostgreSQL 17 behavior test passed again after the lock-order fix.
+
+Source and production database installation are complete. Protected merge,
+Vercel publication, live route/SHA proof, and external Printful provider
+activation must remain separate evidence states and must not be reported as
+complete until their actual evidence is recorded here.

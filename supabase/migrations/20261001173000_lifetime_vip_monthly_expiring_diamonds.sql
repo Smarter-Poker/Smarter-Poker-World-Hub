@@ -31,6 +31,13 @@ BEGIN
 END
 $preflight$;
 
+-- Match the live authentication write order. Auth account creation locks
+-- auth.users before its profile trigger touches public.profiles; taking these
+-- locks in the reverse order causes a deterministic deadlock under sign-up
+-- traffic when the lot tables add their auth.users foreign keys.
+LOCK TABLE auth.users IN SHARE ROW EXCLUSIVE MODE;
+LOCK TABLE public.profiles IN ACCESS EXCLUSIVE MODE;
+
 ALTER TABLE public.profiles
   ADD COLUMN IF NOT EXISTS lifetime_vip_since timestamptz;
 
