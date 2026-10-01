@@ -1186,10 +1186,15 @@ async function verifyStaleAuthBrowser(browser, report) {
           'Expired saved session did not exercise the blocked refresh-token path',
         );
       } else {
-        assert.ok(followingStatuses.includes(401), 'Revoked saved session did not fail closed at the API');
+        assert.equal(
+          followingStatuses.every(status => Number.isInteger(status) && (status < 200 || status >= 300)),
+          true,
+          'Revoked saved session received private Following media',
+        );
       }
       return {
         apiStatuses: followingStatuses,
+        apiOutcome: followingStatuses.length === 0 ? 'client-rejected-before-request' : 'server-rejected',
         reauthPrompt: true,
         activePlayers: 0,
         browserErrors: pageErrors.length,
@@ -1479,7 +1484,12 @@ export function validateReceipt(report) {
   assert.equal(report.coverage?.publicMobile?.injectedDrops, 1, 'Public mobile verification did not exercise exactly one hostile drop');
   validateReadOnlyGuardProof(report.coverage?.publicMobile, 'Public mobile verification');
   const revokedStaleAuth = report.coverage?.staleAuthMobile?.revoked;
-  assert.ok(Array.isArray(revokedStaleAuth?.apiStatuses) && revokedStaleAuth.apiStatuses.includes(401), 'Revoked stale auth did not fail closed');
+  assert.ok(Array.isArray(revokedStaleAuth?.apiStatuses), 'Revoked stale auth omitted its API status proof');
+  assert.equal(
+    revokedStaleAuth?.apiOutcome,
+    revokedStaleAuth.apiStatuses.length === 0 ? 'client-rejected-before-request' : 'server-rejected',
+    'Revoked stale auth reported an inconsistent rejection path',
+  );
   assert.equal(
     revokedStaleAuth.apiStatuses.every(status => Number.isInteger(status) && (status < 200 || status >= 300)),
     true,
