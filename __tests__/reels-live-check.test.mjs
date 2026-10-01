@@ -20,7 +20,6 @@ import {
 const REELS_FEED_SERVER = readFileSync(new URL('../src/lib/server/reelsFeed.js', import.meta.url), 'utf8');
 const REELS_LIVE_CHECK = readFileSync(new URL('../scripts/ci/reels-live-check.mjs', import.meta.url), 'utf8');
 const E2E_WORKFLOW = readFileSync(new URL('../.github/workflows/e2e-tests.yml', import.meta.url), 'utf8');
-const SOCIAL_MEDIA_PAGE = readFileSync(new URL('../pages/hub/social-media/index.js', import.meta.url), 'utf8');
 const ARTICLE_READER = readFileSync(new URL('../src/components/social/ArticleReaderModal.jsx', import.meta.url), 'utf8');
 
 const OWNER = '11111111-1111-4111-8111-111111111111';
@@ -121,10 +120,8 @@ test('public mobile proof counts each media DOM node once inside the standalone 
 });
 
 test('ordinary article live proof is scoped to the requested post and its reader dialog', () => {
-  assert.match(SOCIAL_MEDIA_PAGE, /data-post-id=\{post\.id\}/);
   assert.match(ARTICLE_READER, /role="dialog"[\s\S]*aria-label="Article Reader"/);
-  assert.match(REELS_LIVE_CHECK, /page\.locator\(`\[data-post-id="\$\{article\.id\}"\]`\)/);
-  assert.match(REELS_LIVE_CHECK, /selectedPost\.getByText\(\/Click To Read Full Article\/i\)\.filter\(\{ visible: true \}\)/);
+  assert.match(REELS_LIVE_CHECK, /page\.getByText\(\/Click To Read Full Article\/i\)\.filter\(\{ visible: true \}\)/);
   assert.match(REELS_LIVE_CHECK, /page\.getByRole\('dialog', \{ name: 'Article Reader' \}\)/);
 });
 

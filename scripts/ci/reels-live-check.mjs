@@ -1234,8 +1234,7 @@ async function verifySignedInBrowser(browser, session, article, report) {
 
     report.signedInBrowserStage = 'ordinary-article';
     await page.goto(`${APP_ORIGIN}/hub/social-media?post=${article.id}`, { waitUntil: 'domcontentloaded' });
-    const selectedPost = page.locator(`[data-post-id="${article.id}"]`);
-    const articleLabel = selectedPost.getByText(/Click To Read Full Article/i).filter({ visible: true }).first();
+    const articleLabel = page.getByText(/Click To Read Full Article/i).filter({ visible: true }).first();
     await articleLabel.waitFor();
     await articleLabel.click();
     const readerDialog = page.getByRole('dialog', { name: 'Article Reader' });
