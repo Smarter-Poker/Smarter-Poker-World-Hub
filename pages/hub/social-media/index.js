@@ -1032,6 +1032,7 @@ const PostCard = React.memo(
         className="no-capitalize"
         data-preserve-case="true"
         data-post-card="true"
+        data-post-id={post.id}
         data-user-content="true"
         style={{
           background: C.card,
