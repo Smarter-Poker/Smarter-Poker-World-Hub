@@ -1053,6 +1053,9 @@ async function verifyPublicBrowser(browser, bookmarkAlias, validatedForYouRows, 
     await dropped;
     await page.getByRole('alert').filter({ hasText: 'New Reels Could Not Be Loaded. Showing Your Current Reel.' }).waitFor();
     assert.equal(await page.locator('[data-live-proof-player="mounted"]').count(), 1, 'Mid-flight category drop replaced the mounted player');
+    await page.waitForFunction(() => (
+      document.querySelectorAll('main iframe[src*="youtube-nocookie.com/embed/"], main video').length === 1
+    ));
     assert.equal(await players.count(), 1, 'Mid-flight category drop created a second media player');
     assert.equal(state.injectedDrops, 1, 'The hostile mid-flight failure was not exercised exactly once');
 
