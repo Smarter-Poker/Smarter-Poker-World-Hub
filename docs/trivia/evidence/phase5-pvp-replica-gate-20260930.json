@@ -3,10 +3,11 @@
  "owner": "p5-pvp",
  "kind": "replica exit gate (zero-diamond synthetic fixtures; production untouched)",
  "harness": "scripts/trivia/phase5-pvp-replica-gate.mjs",
- "database": "local replica of production schema + Phase 2/3 installs + trivia_p5_pvp_engine (p5_pvp_t)",
+ "database": "local replica of production schema + Phase 2/3 installs + the installed trivia_p5_pvp_engine build (fingerprint 265d0aaa1c81ddd58bd213efe09c7ec5 / 312 objects, identical to production after install) (p5_pvp_t)",
  "fixtures": "400 synthetic humans, 1,000 synthetic horses in the production tier mix, synthetic treasury funding, DR7 earning cap armed in refuse mode",
- "started_at": "2026-09-30T23:53:08.890Z",
- "finished_at": "2026-09-30T23:53:41.369Z",
+ "source_run": "$T/evidence/p5-pvp/gate-final-2.json (full per-check detail)",
+ "started_at": "2026-10-01T00:23:28.104Z",
+ "finished_at": "2026-10-01T00:24:55.010Z",
  "failures": 0,
  "sections": {
   "fallback_20_45_fake_clock": {
@@ -215,10 +216,7 @@
      "name": "40 concurrent fallbacks: 40 distinct horses, none double-seated, all treasury funded",
      "ok": true
     }
-   ],
-   "cancel_outcomes": {
-    "too_late_matched": 28
-   }
+   ]
   },
   "refresh_resume_states": {
    "passed": 7,
@@ -557,70 +555,88 @@
      "ok": true
     }
    ]
+  },
+  "metrics": {
+   "passed": 3,
+   "failed": 0,
+   "checks": [
+    {
+     "name": "ghost prevention: no match with lapsed presence",
+     "ok": true
+    },
+    {
+     "name": "no horse before the stored deadline",
+     "ok": true
+    },
+    {
+     "name": "ledger variance zero on terminal matches",
+     "ok": true
+    }
+   ]
   }
  },
  "metrics": {
-  "since": "2026-09-29T18:53:41.366152-05:00",
+  "since": "2026-09-29T19:24:55.006676-05:00",
   "matches": {
-   "ties": 16,
-   "wins": 165,
+   "ties": 13,
+   "wins": 168,
    "active": 66,
    "created": 251,
    "refunds": 2,
    "forfeits": 2,
    "completed": 185,
-   "human_horse": 124,
-   "human_human": 127,
+   "human_horse": 125,
+   "human_human": 126,
    "create_failures": 0,
    "settlement_failures": 12
   },
   "tickets": {
    "joined": 431,
    "waiting": 0,
-   "cancelled": 53,
+   "cancelled": 54,
    "lease_expired": 0,
-   "matched_horse": 124,
-   "matched_human": 254,
+   "matched_horse": 125,
+   "matched_human": 252,
    "search_expired": 0,
    "insufficient_funds": 0
   },
   "fallback": {
-   "late_ms_max": 5002.822,
-   "late_ms_p50": 20.743499999999997,
-   "late_ms_p95": 5002.1847,
+   "late_ms_max": 5002.804,
+   "late_ms_p50": 17.691,
+   "late_ms_p95": 5002.3458,
    "horse_before_deadline": 0,
    "wait_seconds_histogram": {
-    "20": 152,
-    "21": 15,
-    "22": 2,
-    "23": 13,
-    "24": 10,
-    "25": 18,
-    "26": 13,
-    "27": 13,
-    "28": 12,
-    "29": 9,
+    "20": 160,
+    "21": 11,
+    "22": 10,
+    "23": 8,
+    "24": 17,
+    "25": 15,
+    "26": 11,
+    "27": 12,
+    "28": 13,
+    "29": 15,
     "30": 12,
-    "31": 11,
-    "32": 12,
-    "33": 10,
-    "34": 9,
-    "35": 12,
-    "36": 10,
-    "37": 7,
-    "38": 13,
-    "39": 8,
-    "40": 13,
-    "41": 12,
-    "42": 8,
-    "43": 14,
+    "31": 8,
+    "32": 10,
+    "33": 9,
+    "34": 11,
+    "35": 8,
+    "36": 8,
+    "37": 11,
+    "38": 11,
+    "39": 14,
+    "40": 12,
+    "41": 8,
+    "42": 5,
+    "43": 9,
     "44": 11,
     "45": 12
    },
    "horse_unavailable_events": 0
   },
   "cancel_races": {
-   "cancelled": 53,
+   "cancelled": 54,
    "lost_to_match": 28
   },
   "ledger_variance": {
@@ -631,22 +647,22 @@
    "dead_tickets_expired": 0,
    "matched_with_lapsed_presence": 0
   },
-  "human_match_rate": 0.672,
+  "human_match_rate": 0.6684,
   "join_to_match_ms": {
-   "p50": 5.5125,
-   "p95": 26149.99999999998,
-   "horse_p50": 23500,
-   "horse_p95": 38849.99999999999,
-   "human_p50": 2.098
+   "p50": 6.037,
+   "p95": 26199.99999999998,
+   "horse_p50": 23000,
+   "horse_p95": 38799.99999999999,
+   "human_p50": 2.0925000000000002
   },
   "settlement_latency_ms": {
-   "p50": 6,
-   "p95": 284.8
+   "p50": 5,
+   "p95": 265.79999999999995
   }
  },
- "metrics_note": "wait_seconds_histogram counts 20 s heavily because scenario tests pin the wait to 20 s through the fake-clock core; the real CSPRNG draw is tested separately (fallback_draw_distribution: 2,600 draws, all 26 values, chi-square). late_ms is the gap between the stored deadline and the first poll that claimed the horse; the harness polled on the 5 s heartbeat, while the API aligns a status poll to land just after the deadline.",
+ "metrics_note": "wait_seconds_histogram counts 20 s heavily because scenario tests pin the wait to 20 s through the fake-clock core; the real CSPRNG draw is tested separately (fallback_draw_distribution: 2,600 draws, all 26 values, chi-square). late_ms is the gap between the stored deadline and the first poll that claimed the horse; the harness polled on the 5 s heartbeat, while the API aligns a status poll to land just after the deadline. settlement_failures (12) are all deliberately injected faults from fault_injection_atomicity and the settling-state resume test (event payloads: \"injected fault at decision/complete/stats/reveal\"); every faulted match later settled exactly once. active (66) are matches the state, race and resume scenarios intentionally leave mid-play when the run ends; their stakes stay in escrow by design, and ledger variance on every terminal match is 0.",
  "earning_cap_exemption_test": {
-  "script": "replica cap.sql (winner pre-loaded with 1,900 trivia diamonds today; stake 100)",
+  "script": "replica cap.sql on a copy carrying the live production fn_ca_diamond_engine_of (md5 247d01bac63a1c273019cce221ea168f); winner pre-loaded with 1,900 trivia diamonds today; stake 100",
   "output": [
    "join2|searching",
    "join3|dealing|human_human",
@@ -660,6 +676,7 @@
    "daily_awards|trivia|1900",
    "daily_awards|trivia_pvp|180"
   ],
-  "reading": "Without the exemption DR7 refuses the payout (2,080 > 2,000): the whole settlement rolls back, the match shows settling, only the two holds exist. After trivia_p5_pvp_settlement_cap_exemption the same match settles: win, payout 180, rake 20, deltas +80/-100/+20, conservation 0; solo trivia award stays 1,900 and the PvP award is journaled under trivia_pvp."
+  "reading": "Without the exemption DR7 refuses the payout (2,080 > 2,000): the whole settlement rolls back, the match shows settling, only the two holds exist. After trivia_p5_pvp_settlement_cap_exemption the same match settles: win, payout 180, rake 20, deltas +80/-100/+20, conservation 0; solo trivia award stays 1,900 and the PvP award is journaled under trivia_pvp.",
+  "post_image_md5": "753401a7ab747be1309b1b3fe52caa87 (same as production after install)"
  }
 }

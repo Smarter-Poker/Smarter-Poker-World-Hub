@@ -1,0 +1,208 @@
+{
+ "phase": 5,
+ "project": "kuklfnapbkmacvwxktbh",
+ "captured_at_utc": "2026-10-01T01:14Z",
+ "migrations_installed": [
+  {
+   "version": "20261001011044",
+   "name": "trivia_p5_pvp_engine",
+   "stored_statement_md5": "ad9b70527beecaf197f0ddc6b5b520cb",
+   "repo_file_md5": "ad9b70527beecaf197f0ddc6b5b520cb",
+   "in_migration_postconditions": "passed (build fingerprint asserted inside the migration)"
+  },
+  {
+   "version": "20261001011352",
+   "name": "trivia_p5_pvp_settlement_cap_exemption",
+   "stored_statement_md5": "9514394ae402b3d00cd50c4c8d751a48",
+   "repo_file_md5": "9514394ae402b3d00cd50c4c8d751a48",
+   "in_migration_postconditions": "passed"
+  }
+ ],
+ "install_notes": [
+  "First engine apply attempt at 00:55:43 UTC was refused by the platform DDL break-window guard (:50-:03); nothing was written. Applied once after :03.",
+  "Break-window function returned NULL immediately before each apply."
+ ],
+ "engine_build_fingerprint": {
+  "expected": "265d0aaa1c81ddd58bd213efe09c7ec5/312",
+  "live": "265d0aaa1c81ddd58bd213efe09c7ec5/312",
+  "match": true
+ },
+ "cap_exemption": {
+  "engine_of_md5_pre": "247d01bac63a1c273019cce221ea168f",
+  "engine_of_md5_post": "753401a7ab747be1309b1b3fe52caa87",
+  "volatility": "immutable",
+  "attribution_probes": {
+   "pvp_win": "trivia_pvp",
+   "pvp_refund": "trivia",
+   "pvp_tie_refund": "trivia",
+   "trivia_run": "trivia",
+   "trivia_daily_bonus": "trivia",
+   "tournament_prize": "trivia_tournaments",
+   "wheel_prize": "wheel"
+  },
+  "caps_rows": [
+   {
+    "engine": "trivia",
+    "cap": 2000,
+    "vip": 2000
+   },
+   {
+    "engine": "trivia_pvp",
+    "cap": null,
+    "vip": null
+   },
+   {
+    "engine": "trivia_tournaments",
+    "cap": null,
+    "vip": null
+   }
+  ],
+  "note": "pvp_refund / pvp_tie_refund are issuance class 'refund' and are never counted by the cap; attribution label unchanged."
+ },
+ "access_control": {
+  "service_rpcs_executable_by_service_role": [
+   "trivia_pvp_join_v2(uuid,integer,uuid,boolean)",
+   "trivia_pvp_status_v2(uuid,uuid,boolean)",
+   "trivia_pvp_cancel_v2(uuid,uuid)",
+   "trivia_pvp_settle_v2(uuid,uuid)",
+   "trivia_pvp_recover_v2(integer)",
+   "trivia_pvp_metrics_v2(timestamp with time zone)"
+  ],
+  "functions_total": 41,
+  "functions_executable_by_anon_authenticated_or_public": 0,
+  "all_functions_security_definer_search_path_pinned": true,
+  "browser_write_privileges_on_trivia_pvp_tables": [],
+  "browser_select_privileges": [
+   "trivia_pvp_matches:authenticated (pre-existing participant policies)",
+   "trivia_pvp_queue:authenticated (pre-existing own-row policies)",
+   "trivia_pvp_stats:anon+authenticated (pre-existing public stats)"
+  ],
+  "rls_enabled_on_all_trivia_pvp_tables": true,
+  "service_only_tables_no_policy": [
+   "trivia_pvp_engine_secrets",
+   "trivia_pvp_horse_plans"
+  ]
+ },
+ "triggers_on_trivia_pvp_tables": [
+  "trivia_pvp_engine_secrets:trg_trivia_pvp_engine_secrets_immutable",
+  "trivia_pvp_horse_plans:trg_trivia_pvp_horse_plan_guard",
+  "trivia_pvp_match_events:trg_trivia_pvp_match_events_append_only",
+  "trivia_pvp_matches:trg_00_guard_quarantined_pvp_match",
+  "trivia_pvp_matches:trg_prevent_linked_trivia_pvp_identity_change",
+  "trivia_pvp_matches:trg_sync_trivia_pvp_active_seats",
+  "trivia_pvp_matches:trg_trivia_p2_rules_snapshot",
+  "trivia_pvp_matches:trg_trivia_pvp_match_sync",
+  "trivia_pvp_matches:trg_trivia_pvp_match_v2_guard",
+  "trivia_pvp_queue:trg_trivia_pvp_queue_v2_guard",
+  "trivia_pvp_session_links:trg_trivia_pvp_session_link_v2_delete",
+  "trivia_pvp_session_links:trg_trivia_pvp_session_link_v2_insert",
+  "trivia_pvp_session_links:trg_trivia_pvp_session_link_v2_update",
+  "trivia_pvp_session_links:trg_validate_trivia_pvp_session_link",
+  "trivia_pvp_settlement_decisions:trg_00_freeze_pvp_settlement_decision",
+  "trivia_pvp_settlement_decisions:trg_trivia_pvp_decision_v2_guard"
+ ],
+ "state_after_install": {
+  "engine_config": {
+   "joins_enabled": true,
+   "horses_enabled": true,
+   "lease_seconds": 15,
+   "heartbeat_seconds": 5,
+   "dead_ticket_grace_seconds": 60,
+   "max_search_seconds": 300,
+   "horse_concurrency_ceiling": 250,
+   "horse_cooldown_seconds": 900,
+   "horse_repeat_window_seconds": 3600,
+   "dealing_seconds": 8,
+   "result_visible_seconds": 900,
+   "horse_tier_weights": {
+    "Newcomer": 0.35,
+    "Regular": 0.25,
+    "Intermediate": 0.15,
+    "Grinder": 0.15,
+    "Shark": 0.1
+   }
+  },
+  "engine_config_note": "Server-side rollback lever (defaults on). Public access is gated by the app flags TRIVIA_PVP_ENABLED / TRIVIA_PVP_HORSES_ENABLED (both off) and by service-role-only RPCs.",
+  "horse_personas": {
+   "n": 1000,
+   "active": 1000,
+   "persona_version": "pvp-horse-persona/1",
+   "appearances": 0
+  },
+  "engine_secrets": {
+   "n": 1,
+   "active": 1,
+   "min_secret_bytes": 32,
+   "note": "secret material never read or printed"
+  },
+  "horse_plans": 0,
+  "settlement_decisions": 0,
+  "match_events": 0,
+  "active_seats": 0,
+  "session_links": 0,
+  "legacy_rows_untouched": {
+   "trivia_pvp_matches": {
+    "abandoned": 4
+   },
+   "trivia_pvp_queue": {
+    "cancelled": 8,
+    "expired": 3
+   }
+  }
+ },
+ "metrics_baseline_24h": "all counters 0; human_match_rate null; latency percentiles null (no traffic, flags off)",
+ "fallback_draw_sanity": {
+  "draws": 2000,
+  "min": 20,
+  "max": 45,
+  "distinct_values": 26
+ },
+ "advisors": {
+  "security": {
+   "pre_total": 1512,
+   "post_total": 1516,
+   "by_name_pre": {
+    "rls_enabled_no_policy": 606,
+    "function_search_path_mutable": 18,
+    "extension_in_public": 4,
+    "anon_security_definer_function_executable": 24,
+    "authenticated_security_definer_function_executable": 860
+   },
+   "by_name_post": {
+    "rls_enabled_no_policy": 609,
+    "function_search_path_mutable": 18,
+    "extension_in_public": 4,
+    "anon_security_definer_function_executable": 24,
+    "authenticated_security_definer_function_executable": 861
+   },
+   "phase5_new": [
+    "rls_enabled_no_policy: trivia_pvp_engine_secrets (intentional: service-only, deny-all to browser roles)",
+    "rls_enabled_no_policy: trivia_pvp_horse_plans (intentional: server-secret plans)"
+   ],
+   "not_phase5": "the other +1 rls_enabled_no_policy and +1 authenticated_security_definer_function_executable are not trivia_pvp objects (concurrent work elsewhere); no trivia_pvp function is flagged"
+  },
+  "performance": {
+   "pre_total": 1192,
+   "post_total": 1202,
+   "by_name_pre": {
+    "unindexed_foreign_keys": 646,
+    "auth_rls_initplan": 3,
+    "no_primary_key": 2,
+    "unused_index": 491,
+    "multiple_permissive_policies": 50
+   },
+   "by_name_post": {
+    "unindexed_foreign_keys": 647,
+    "auth_rls_initplan": 3,
+    "no_primary_key": 2,
+    "unused_index": 500,
+    "multiple_permissive_policies": 50
+   },
+   "phase5_new": [
+    "unindexed_foreign_keys: trivia_pvp_horse_plans_secret_fkey (references a 1-row key table)",
+    "unused_index x7: trivia_pvp_horse_personas_rotation_idx, trivia_pvp_queue_v2_bucket_idx, trivia_pvp_queue_v2_user_idx, trivia_pvp_matches_v2_open_idx, trivia_pvp_matches_v2_horse_idx, trivia_pvp_match_events_match_idx, trivia_pvp_match_events_ticket_idx (new; no traffic while flags are off)"
+   ],
+   "not_phase5": "the other +2 unused_index findings are not trivia_pvp objects"
+  }
+ }
+}

@@ -93,20 +93,43 @@ same match pays 180, with a rake of 20 and exact conservation. The solo award st
 
 | Version | Name | What it does |
 |---|---|---|
-| __ENGINE_VER__ | `trivia_p5_pvp_engine` | Engine tables, guards, matching, horse model, settlement, recovery, metrics and the six service RPCs |
-| __CAP_VER__ | `trivia_p5_pvp_settlement_cap_exemption` | Attributes PvP winner payouts to the uncapped `trivia_pvp` engine |
+| 20261001011044 | `trivia_p5_pvp_engine` | Engine tables, guards, matching, horse model, settlement, recovery, metrics and the six service RPCs |
+| 20261001011352 | `trivia_p5_pvp_settlement_cap_exemption` | Attributes PvP winner payouts to the uncapped `trivia_pvp` engine |
 
-Both run in the installer's transaction and assert their own postconditions: RLS on every new
+Both ran in the installer's transaction and asserted their own postconditions: RLS on every new
 table, no browser grant on any `trivia_pvp_*` object, six service RPCs only, definer functions
 with a pinned `search_path`, the exact trigger set, the config, secret and horse persona seed, and
-200 in-range deadline draws. The engine migration ends with a build fingerprint. The installed PvP
+200 in-range deadline draws. The engine migration ends with a build fingerprint: the installed PvP
 catalog (every function body, trigger, constraint, index, column and policy) must equal the tested
-replica build (`4a3dd43f283292dfee597030be632543`, 316 objects), or the install aborts. The cap
+replica build (`265d0aaa1c81ddd58bd213efe09c7ec5`, 312 objects), or the install aborts. The cap
 migration is one statement: it checks the exact pre-image of `fn_ca_diamond_engine_of`, makes the
-one-line change, and proves the result and an unchanged solo cap.
+one-line change, and proves the result, the exact post-image and an unchanged solo cap. The text
+stored in production for both migrations matches the repository files byte for byte.
 
-Foreign keys into the busy shared tables (profiles, sessions and roster snapshots) are added last,
-so their brief lock is held for milliseconds before commit, not for the whole migration.
+**Built for a busy database.** The engine adds no foreign key into the busy shared tables
+(profiles, sessions, roster snapshots). Each would have duplicated an existing RESTRICT key (for
+example `trivia_pvp_matches.player2_id` to `profiles`, and session links to sessions), and adding
+one locks the shared table against its writers. The engine's own table locks are taken first with
+a NOWAIT retry loop (up to 60 tries, 250 ms apart), so the install never queues ahead of live
+traffic; if it cannot get them it aborts cleanly.
+
+**How the install went.**
+- Rehearsal 1 (rolled back) could not take a lock within 2 seconds while an unrelated cron job held
+  locks on `profiles` (see findings). Nothing changed. The hot-table keys were removed in response.
+- Rehearsal 2 (rolled back) hit a brief lock wait. The NOWAIT retry loop was added.
+- Rehearsal 3 ran the whole engine migration on production, then stopped in the cap block on
+  purpose: another program migration had changed `fn_ca_diamond_engine_of` shortly before, and the
+  pre-image check refused. The change was re-derived from the live definition and retested on a
+  replica carrying that exact definition. Nothing committed.
+- The first real apply, just before 01:00 UTC, was refused by the platform's DDL break window (:50
+  to :03). Nothing was written. Each migration was then applied once, at 01:10 and 01:13 UTC.
+
+**Advisors after install.** Security: two expected notices, `rls_enabled_no_policy` on
+`trivia_pvp_engine_secrets` and `trivia_pvp_horse_plans`. Both are service-only tables, so RLS with
+no policy denies every browser role, which is the intent. No `trivia_pvp` function is flagged as
+browser-executable. Performance: one unindexed foreign key (horse plans to the one-row secrets
+table) and seven new indexes reported unused, because nothing uses PvP while it is off. The other
+advisor changes in the same window are not Phase 5 objects.
 
 ## Exit gate
 
@@ -123,7 +146,7 @@ so their brief lock is held for milliseconds before commit, not for the whole mi
 | Horses from the whole fleet, plan committed by hash, no stake input, kept out of human analytics | Pass: 8 checks | `horse_fleet_and_plan` |
 | The legacy v1 settle path cannot move money on a v2 match | Pass | `settlement_outcomes_conservation` |
 | PvP settlement is not refused by the daily earning cap | Pass | `earning_cap_exemption_test` |
-| Flags off; routes answer a private 503 in production | __LIVE_ROUTES__ | Live verification below |
+| Flags off; routes answer a private 503 in production | Flags confirmed off in production before merge; the five routes are probed after the deploy | Live verification below |
 
 All gate evidence: `docs/trivia/evidence/phase5-pvp-replica-gate-20260930.json` (0 failures).
 Install read-backs: `docs/trivia/evidence/phase5-pvp-install-20260930.json`.
@@ -132,33 +155,69 @@ Install read-backs: `docs/trivia/evidence/phase5-pvp-install-20260930.json`.
 
 | Metric | Value |
 |---|---|
-| Join to match | p50 5.5 ms (human pairs 2.1 ms); p95 26.2 s |
-| Horse fallback join to match | p50 23.5 s; p95 38.9 s |
-| Human match rate | 67.2% of matches (the gate forces many fallbacks on purpose) |
+| Join to match | p50 6.0 ms (human pairs 2.1 ms); p95 26.2 s |
+| Horse fallback join to match | p50 23.0 s; p95 38.8 s |
+| Human match rate | 66.8% of matches (the gate forces many fallbacks on purpose) |
 | Ghost prevention | 0 matches with lapsed presence |
 | Horse before the stored deadline | 0 |
-| Cancel races | 53 cancels; 28 lost cleanly to a committed match |
-| Completion | 185 of 251 matches completed in the run; 165 wins, 16 ties, 2 forfeits, 2 refunds |
+| Cancel races | 54 cancels; 28 lost cleanly to a committed match |
+| Completion | 185 of 251 matches completed: 168 wins, 13 ties, 2 forfeits, 2 refunds. The other 66 were left mid-play on purpose by the state, race and resume scenarios when the run ended; their stakes stay in escrow by design |
 | Settlement failures | 12, all injected by the fault tests, all retried to exactly one settlement |
-| Settlement latency | p50 6 ms; p95 285 ms |
-| Ledger variance | 0 open settlements on finished matches; 0 diamonds left in escrow |
+| Settlement latency | p50 5 ms; p95 266 ms |
+| Ledger variance | 0 open settlements on finished matches; 0 diamonds left in escrow on finished matches |
 
-Production reads the same numbers from `trivia_pvp_metrics_v2` (service role).
+Production reads the same numbers from `trivia_pvp_metrics_v2` (service role). Right after the
+install every production counter was 0, and 2,000 production deadline draws covered all 26 values
+from 20 to 45.
 
 ## Live verification
 
-__LIVE__
+Database (2026-10-01 01:14 UTC, read-only queries; full read-backs in
+`docs/trivia/evidence/phase5-pvp-install-20260930.json`):
+
+- Both migrations are recorded with the versions above, and the stored text matches the
+  repository files.
+- The installed PvP catalog equals the gated build: fingerprint `265d0aaa1c81ddd58bd213efe09c7ec5`,
+  312 objects.
+- Exactly six RPCs are executable by the service role. No `trivia_pvp_*` function is executable by
+  anon, authenticated or public, no browser role holds a write privilege on any `trivia_pvp_*`
+  table, and RLS is on for all eleven tables.
+- 1,000 active horse personas, one active plan secret (32 bytes; its value was never read) and the
+  config row exist. No v2 ticket, match, plan, decision, event, seat or session link exists. The
+  legacy rows (4 abandoned matches, 11 ended queue rows) are untouched.
+- Earning-cap attribution: `pvp_win` goes to `trivia_pvp` (uncapped). `pvp_refund`,
+  `pvp_tie_refund`, `trivia_run` and `trivia_daily_bonus` stay on `trivia`, `tournament_prize` on
+  `trivia_tournaments`, `wheel_prize` on `wheel`. The solo Trivia cap is still 2,000 (VIP 2,000).
+- Metrics return the full shape with every counter at 0. 2,000 production deadline draws produced
+  every value from 20 to 45 and nothing outside it.
+
+Before merge (production, flags off): the legacy `/hub/trivia/pvp` page redirects to `/hub/trivia`
+(307), and `/api/trivia/pvp-settle-match` answers `503 pvp_temporarily_unavailable` with
+`private, no-store`. The new routes use the same release control.
+
+Routes after the deploy: recorded below once the merge deploy is live.
 
 ## Rollout
 
-- **Stage A (this release).** Engine installed dormant, flags off, routes closed. Nothing in
-  production can create a v2 ticket.
+- **Stage A (this release).** Engine installed dormant, flags off, routes closed. No route can
+  create a v2 ticket while `TRIVIA_PVP_ENABLED` is off, and the engine's functions are callable
+  only by the service role.
 - **Stage B (root, then Dan).** Treasury funding for horse seats needs Dan's approval of a
   funding journal; until then the horse fallback fails closed (`treasury_unavailable`) and players
   keep searching. Production money canaries need root-approved canary wallets.
 - **Stage C (Phase 7 and Phase 12).** Phase 7 builds the PvP interface on `pvp-api.md` and the
   release decision turns on `TRIVIA_PVP_ENABLED`, then `TRIVIA_PVP_HORSES_ENABLED`. Phase 12
   schedules `trivia_pvp_recover_v2` at least once a minute.
+
+## Rollback
+
+- Fastest: leave the flags off, or turn them off. Every PvP route answers `503`.
+- Database lever: `UPDATE public.trivia_pvp_engine_config SET joins_enabled = false,
+  horses_enabled = false, updated_at = now() WHERE id = 1;` stops new joins and new horse seats.
+  Recovery still settles or refunds anything already in play.
+- Cap exemption: the paste-able revert block at the end of the cap migration restores the previous
+  attribution, so PvP wins would count toward the 2,000 cap again.
+- Nothing is dropped. Tickets, matches, events and settlement journals are history.
 
 ## Pending, and why
 
