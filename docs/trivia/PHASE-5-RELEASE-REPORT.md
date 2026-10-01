@@ -146,10 +146,11 @@ advisor changes in the same window are not Phase 5 objects.
 | Horses from the whole fleet, plan committed by hash, no stake input, kept out of human analytics | Pass: 8 checks | `horse_fleet_and_plan` |
 | The legacy v1 settle path cannot move money on a v2 match | Pass | `settlement_outcomes_conservation` |
 | PvP settlement is not refused by the daily earning cap | Pass | `earning_cap_exemption_test` |
-| Flags off; routes answer a private 503 in production | Flags confirmed off in production before merge; the five routes are probed after the deploy | Live verification below |
+| Flags off; routes answer a private 503 in production | Pass: after the deploy all five routes answer `503 pvp_temporarily_unavailable` with `private, no-store`; the legacy page redirects | `docs/trivia/evidence/phase5-pvp-live-20261001.json` |
 
 All gate evidence: `docs/trivia/evidence/phase5-pvp-replica-gate-20260930.json` (0 failures).
 Install read-backs: `docs/trivia/evidence/phase5-pvp-install-20260930.json`.
+Live checks after the deploy: `docs/trivia/evidence/phase5-pvp-live-20261001.json`.
 
 ## Metrics (replica gate run)
 
@@ -195,7 +196,17 @@ Before merge (production, flags off): the legacy `/hub/trivia/pvp` page redirect
 (307), and `/api/trivia/pvp-settle-match` answers `503 pvp_temporarily_unavailable` with
 `private, no-store`. The new routes use the same release control.
 
-Routes after the deploy: recorded below once the merge deploy is live.
+After the merge (2026-10-01): PR #2063 merged at 01:31 UTC. Its production deployment on
+`hub-vanguard` (`dpl_4VXubgh1fyEoiAgbrbnXTNo2yg7g`) was READY at 01:36 UTC and serves smarter.poker,
+and `/api/health` reports the merge commit (`70a90ec408e`). At 11:21 UTC, signed out:
+
+- `POST join`, `GET status`, `POST heartbeat`, `GET resume` and `POST cancel` under
+  `/api/trivia/pvp/` each answered `503 pvp_temporarily_unavailable` with
+  `Cache-Control: private, no-store, max-age=0` and `Retry-After: 300`.
+- The legacy settle route answered the same, and `/hub/trivia/pvp` redirected (307) to
+  `/hub/trivia`.
+- The database was still dormant: no v2 row of any kind, the legacy rows unchanged, the build
+  fingerprint and the cap post-image unchanged, and no scheduled job calls PvP.
 
 ## Rollout
 

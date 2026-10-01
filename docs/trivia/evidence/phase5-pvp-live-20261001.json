@@ -1,0 +1,123 @@
+{
+ "phase": 5,
+ "kind": "live production verification after the merge deploy (read-only probes, signed out)",
+ "release": {
+  "pr": 2063,
+  "merged_at_utc": "2026-10-01T01:31:12Z",
+  "merge_commit": "70a90ec408eda4ed548395f3829197cc48114fcc"
+ },
+ "deployment": {
+  "project": "hub-vanguard",
+  "id": "dpl_4VXubgh1fyEoiAgbrbnXTNo2yg7g",
+  "target": "production",
+  "state": "READY",
+  "source": "git main",
+  "commit": "70a90ec408eda4ed548395f3829197cc48114fcc",
+  "created_utc": "2026-10-01T01:31:15Z",
+  "ready_utc": "2026-10-01T01:35:58Z",
+  "aliases_include": [
+   "smarter.poker",
+   "www.smarter.poker"
+  ]
+ },
+ "health": {
+  "url": "https://smarter.poker/api/health",
+  "checked_utc": "2026-10-01T11:20:58Z",
+  "status": "ok",
+  "commitSha": "70a90ec408eda4ed548395f3829197cc48114fcc",
+  "deploymentId": "dpl_4VXubgh1fyEoiAgbrbnXTNo2yg7g"
+ },
+ "routes_checked_utc": "2026-10-01T11:21:09Z",
+ "routes_flags_off": [
+  {
+   "method": "POST",
+   "path": "/api/trivia/pvp/join",
+   "status": 503,
+   "cache_control": "private, no-store, max-age=0",
+   "retry_after": "300",
+   "body": {
+    "success": false,
+    "error": "pvp_temporarily_unavailable"
+   }
+  },
+  {
+   "method": "GET",
+   "path": "/api/trivia/pvp/status",
+   "status": 503,
+   "cache_control": "private, no-store, max-age=0",
+   "retry_after": "300",
+   "body": {
+    "success": false,
+    "error": "pvp_temporarily_unavailable"
+   }
+  },
+  {
+   "method": "POST",
+   "path": "/api/trivia/pvp/heartbeat",
+   "status": 503,
+   "cache_control": "private, no-store, max-age=0",
+   "retry_after": "300",
+   "body": {
+    "success": false,
+    "error": "pvp_temporarily_unavailable"
+   }
+  },
+  {
+   "method": "GET",
+   "path": "/api/trivia/pvp/resume",
+   "status": 503,
+   "cache_control": "private, no-store, max-age=0",
+   "retry_after": "300",
+   "body": {
+    "success": false,
+    "error": "pvp_temporarily_unavailable"
+   }
+  },
+  {
+   "method": "POST",
+   "path": "/api/trivia/pvp/cancel",
+   "status": 503,
+   "cache_control": "private, no-store, max-age=0",
+   "retry_after": "300",
+   "body": {
+    "success": false,
+    "error": "pvp_temporarily_unavailable"
+   }
+  }
+ ],
+ "legacy_contained": [
+  {
+   "method": "POST",
+   "path": "/api/trivia/pvp-settle-match",
+   "status": 503,
+   "cache_control": "private, no-store, max-age=0",
+   "retry_after": "300",
+   "body": {
+    "success": false,
+    "error": "pvp_temporarily_unavailable"
+   }
+  },
+  {
+   "method": "GET",
+   "path": "/hub/trivia/pvp",
+   "status": 307,
+   "location": "https://smarter.poker/hub/trivia"
+  }
+ ],
+ "pre_merge_flag_check_utc": "2026-10-01T01:23Z (same 307 redirect and legacy 503 before the merge)",
+ "database_dormant_checked_utc": "2026-10-01T11:21:28Z",
+ "database_dormant": {
+  "v2_horse_plans": 0,
+  "v2_settlement_decisions": 0,
+  "v2_match_events": 0,
+  "v2_active_seats": 0,
+  "v2_session_links": 0,
+  "trivia_pvp_matches_rows": 4,
+  "trivia_pvp_queue_rows": 11,
+  "note_rows": "legacy rows only, unchanged since install (4 abandoned matches, 8 cancelled + 3 expired queue rows)",
+  "engine_fingerprint": "265d0aaa1c81ddd58bd213efe09c7ec5|312 (unchanged)",
+  "fn_ca_diamond_engine_of_md5": "753401a7ab747be1309b1b3fe52caa87 (unchanged)",
+  "pg_cron_jobs_referencing_pvp": 0,
+  "engine_config": "joins_enabled=true, horses_enabled=true (server-side rollback lever; public access gated by the app flags, both off)"
+ }
+}
