@@ -1219,7 +1219,12 @@ async function verifySignedInBrowser(browser, session, article, report) {
   await installReadOnlyNetworkGuard(context, state);
   const page = await context.newPage();
   const pageErrors = [];
-  page.on('pageerror', () => pageErrors.push('browser-page-error'));
+  page.on('pageerror', (error) => {
+    const kind = error instanceof Error && error.name ? error.name : 'Error';
+    const message = error instanceof Error && error.message ? error.message.split('\n')[0].slice(0, 160) : 'browser-page-error';
+    pageErrors.push(`${kind}: ${message}`);
+    report.signedInBrowserErrors = [...pageErrors];
+  });
   page.setDefaultTimeout(45000);
   try {
     report.signedInBrowserStage = 'following';
@@ -1231,18 +1236,29 @@ async function verifySignedInBrowser(browser, session, article, report) {
     await page.goto(`${APP_ORIGIN}/hub/reels?category=following`, { waitUntil: 'domcontentloaded' });
     assert.equal((await followingResponse).status(), 200, 'Signed-in Following browser request was rejected');
     assert.equal(await page.getByText(/Sign In (Again )?For Following/).count(), 0, 'Signed-in Following rendered an authentication prompt');
+    assert.equal(pageErrors.length, 0, 'Signed-in Following raised a browser error');
 
     report.signedInBrowserStage = 'ordinary-article';
     await page.goto(`${APP_ORIGIN}/hub/social-media?post=${article.id}`, { waitUntil: 'domcontentloaded' });
+    report.signedInBrowserStage = 'ordinary-article-card';
     const articleLabel = page.getByText(/Click To Read Full Article/i).filter({ visible: true }).first();
     await articleLabel.waitFor();
+    report.signedInBrowserStage = 'ordinary-article-click';
     await articleLabel.click();
+    report.signedInBrowserStage = 'ordinary-article-reader';
     const readerDialog = page.getByRole('dialog', { name: 'Article Reader' });
     const reader = readerDialog.locator('iframe[src*="/api/proxy?url="]');
     await reader.waitFor();
     assert.equal(new URL(page.url()).pathname, '/hub/social-media', 'Ordinary article was rewritten into a Reel route');
+    report.signedInBrowserStage = 'ordinary-article-close';
     await readerDialog.getByRole('button', { name: 'Close' }).click();
+    report.signedInBrowserStage = 'ordinary-article-detached';
     await reader.waitFor({ state: 'detached' });
+    const unexpectedReaderErrors = pageErrors.filter((message) => !/sandboxed|service worker is disabled|origin "null"/i.test(message));
+    assert.deepEqual(unexpectedReaderErrors, [], 'Ordinary article reader raised an unexpected browser error');
+    report.articleReaderSandboxErrors = pageErrors.length;
+    pageErrors.length = 0;
+    report.signedInBrowserErrors = [];
 
     const verifyCollectionPage = async ({ path, apiPath, emptyText }) => {
       const apiResponse = page.waitForResponse((response) => {
@@ -1256,7 +1272,11 @@ async function verifySignedInBrowser(browser, session, article, report) {
         Boolean(document.querySelector('.vlc-reel-grid'))
         || document.body.innerText.includes(expectedEmptyText)
       ), { expectedEmptyText: emptyText });
-      assert.equal(await page.locator('[role="alert"]:visible').count(), 0, `${path} rendered an account collection alert`);
+      assert.equal(
+        await page.locator('.vlc-collection-alert:visible, .vlc-collection-pager [role="alert"]:visible').count(),
+        0,
+        `${path} rendered an account collection alert`,
+      );
       return {
         synchronized: true,
         state: await page.locator('.vlc-reel-grid').count() > 0 ? 'populated' : 'empty',
