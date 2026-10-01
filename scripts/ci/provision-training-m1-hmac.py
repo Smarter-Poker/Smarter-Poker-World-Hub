@@ -244,7 +244,7 @@ def select_target(entries: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
     target = matches[0]
     if target["target"] != ["production"]:
         raise ProvisionError("M1 HMAC environment entry must target production only")
-    if target["gitBranch"] not in (None, ""):
+    if target["gitBranch"] is not None:
         raise ProvisionError("M1 HMAC environment entry must not be branch-scoped")
     if target["type"].lower() != "sensitive":
         raise ProvisionError("M1 HMAC environment entry must be Vercel Sensitive")

@@ -737,3 +737,26 @@ canary is permitted.
 
 This remains a provisioning candidate, not a key rotation, deployment, solver
 admission, or Phase 6 completion. Phase 7 remains unstarted.
+
+### 2026-09-30 M1 Provisioning Security Follow-Up
+
+PR #2057 passed every required protected check, squash-merged as
+`98f8d88bff026736a86bf4c15bf5585c39d96613`, and production serves that
+exact revision on Vercel deployment `dpl_FWRDKhd5G4MZyHLBE53fLM5fKjr1`
+with healthy database and Training grading checks. No provisioning workflow
+was dispatched and no HMAC value was rotated.
+
+An independent pre-dispatch review found that the dedicated GitHub environment
+`Production – hub-vanguard` had no branch policy. It was immediately restricted
+to protected branches only and read back with
+`protected_branches=true`, `custom_branch_policies=false`; repository `main`
+was independently read back as protected. No other workflow uses this exact
+environment, so the change blocks branch-modified workflow copies without
+changing another production route.
+
+The same review found that the provider-metadata gate accepted an empty-string
+`gitBranch` as equivalent to literal null. The follow-up candidate now requires
+literal null and adds the empty-string case to the pre-secret fail-closed
+regression matrix. Provisioning and the one bounded M1 canary remain held until
+that correction passes protected review, merges, and is live. Phase 6 remains
+open and Phase 7 has not started.
