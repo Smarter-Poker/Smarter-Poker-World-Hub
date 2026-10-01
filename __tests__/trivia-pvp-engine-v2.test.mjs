@@ -95,7 +95,7 @@ test('no browser write path and exact function ACLs are asserted inside the migr
 });
 
 test('the earning-cap exemption is tight: only pvp_win moves to an uncapped engine', () => {
-    assert.match(capSql, /md5\(v_def\) <> '44a39c35cc96801b5aa22a6ac930ee17'/);
+    assert.match(capSql, /md5\(v_def\) <> '247d01bac63a1c273019cce221ea168f'/);
     assert.match(capSql, /WHEN COALESCE\(p_transaction_type, p_type\) = 'pvp_win' THEN 'trivia_pvp'/);
     assert.match(capSql, /fn_ca_diamond_engine_of\('trivia_run'[\s\S]{0,80}<> 'trivia'/);
     assert.match(capSql, /VALUES \('trivia_pvp', NULL, NULL,/);

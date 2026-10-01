@@ -1,0 +1,665 @@
+{
+ "phase": 5,
+ "owner": "p5-pvp",
+ "kind": "replica exit gate (zero-diamond synthetic fixtures; production untouched)",
+ "harness": "scripts/trivia/phase5-pvp-replica-gate.mjs",
+ "database": "local replica of production schema + Phase 2/3 installs + trivia_p5_pvp_engine (p5_pvp_t)",
+ "fixtures": "400 synthetic humans, 1,000 synthetic horses in the production tier mix, synthetic treasury funding, DR7 earning cap armed in refuse mode",
+ "started_at": "2026-09-30T23:53:08.890Z",
+ "finished_at": "2026-09-30T23:53:41.369Z",
+ "failures": 0,
+ "sections": {
+  "fallback_20_45_fake_clock": {
+   "passed": 26,
+   "failed": 0,
+   "checks": [
+    {
+     "name": "W=20: deadline = joined + 20s, no horse at -1ms, stable across retry/second tab, horse at deadline",
+     "ok": true
+    },
+    {
+     "name": "W=21: deadline = joined + 21s, no horse at -1ms, stable across retry/second tab, horse at deadline",
+     "ok": true
+    },
+    {
+     "name": "W=22: deadline = joined + 22s, no horse at -1ms, stable across retry/second tab, horse at deadline",
+     "ok": true
+    },
+    {
+     "name": "W=23: deadline = joined + 23s, no horse at -1ms, stable across retry/second tab, horse at deadline",
+     "ok": true
+    },
+    {
+     "name": "W=24: deadline = joined + 24s, no horse at -1ms, stable across retry/second tab, horse at deadline",
+     "ok": true
+    },
+    {
+     "name": "W=25: deadline = joined + 25s, no horse at -1ms, stable across retry/second tab, horse at deadline",
+     "ok": true
+    },
+    {
+     "name": "W=26: deadline = joined + 26s, no horse at -1ms, stable across retry/second tab, horse at deadline",
+     "ok": true
+    },
+    {
+     "name": "W=27: deadline = joined + 27s, no horse at -1ms, stable across retry/second tab, horse at deadline",
+     "ok": true
+    },
+    {
+     "name": "W=28: deadline = joined + 28s, no horse at -1ms, stable across retry/second tab, horse at deadline",
+     "ok": true
+    },
+    {
+     "name": "W=29: deadline = joined + 29s, no horse at -1ms, stable across retry/second tab, horse at deadline",
+     "ok": true
+    },
+    {
+     "name": "W=30: deadline = joined + 30s, no horse at -1ms, stable across retry/second tab, horse at deadline",
+     "ok": true
+    },
+    {
+     "name": "W=31: deadline = joined + 31s, no horse at -1ms, stable across retry/second tab, horse at deadline",
+     "ok": true
+    },
+    {
+     "name": "W=32: deadline = joined + 32s, no horse at -1ms, stable across retry/second tab, horse at deadline",
+     "ok": true
+    },
+    {
+     "name": "W=33: deadline = joined + 33s, no horse at -1ms, stable across retry/second tab, horse at deadline",
+     "ok": true
+    },
+    {
+     "name": "W=34: deadline = joined + 34s, no horse at -1ms, stable across retry/second tab, horse at deadline",
+     "ok": true
+    },
+    {
+     "name": "W=35: deadline = joined + 35s, no horse at -1ms, stable across retry/second tab, horse at deadline",
+     "ok": true
+    },
+    {
+     "name": "W=36: deadline = joined + 36s, no horse at -1ms, stable across retry/second tab, horse at deadline",
+     "ok": true
+    },
+    {
+     "name": "W=37: deadline = joined + 37s, no horse at -1ms, stable across retry/second tab, horse at deadline",
+     "ok": true
+    },
+    {
+     "name": "W=38: deadline = joined + 38s, no horse at -1ms, stable across retry/second tab, horse at deadline",
+     "ok": true
+    },
+    {
+     "name": "W=39: deadline = joined + 39s, no horse at -1ms, stable across retry/second tab, horse at deadline",
+     "ok": true
+    },
+    {
+     "name": "W=40: deadline = joined + 40s, no horse at -1ms, stable across retry/second tab, horse at deadline",
+     "ok": true
+    },
+    {
+     "name": "W=41: deadline = joined + 41s, no horse at -1ms, stable across retry/second tab, horse at deadline",
+     "ok": true
+    },
+    {
+     "name": "W=42: deadline = joined + 42s, no horse at -1ms, stable across retry/second tab, horse at deadline",
+     "ok": true
+    },
+    {
+     "name": "W=43: deadline = joined + 43s, no horse at -1ms, stable across retry/second tab, horse at deadline",
+     "ok": true
+    },
+    {
+     "name": "W=44: deadline = joined + 44s, no horse at -1ms, stable across retry/second tab, horse at deadline",
+     "ok": true
+    },
+    {
+     "name": "W=45: deadline = joined + 45s, no horse at -1ms, stable across retry/second tab, horse at deadline",
+     "ok": true
+    }
+   ]
+  },
+  "fallback_draw_distribution": {
+   "passed": 2,
+   "failed": 0,
+   "checks": [
+    {
+     "name": "every draw is an integer in 20..45 and all 26 values occur",
+     "ok": true
+    },
+    {
+     "name": "chi-square (25 dof) below 52.6 (p=0.001)",
+     "ok": true
+    }
+   ]
+  },
+  "boundary_human_priority": {
+   "passed": 2,
+   "failed": 0,
+   "checks": [
+    {
+     "name": "no horse was claimed while a compatible human had committed before the claim; never before the deadline",
+     "ok": true
+    },
+    {
+     "name": "both race orders were exercised",
+     "ok": true
+    }
+   ]
+  },
+  "concurrency_join_cancel_two_tab": {
+   "passed": 16,
+   "failed": 0,
+   "checks": [
+    {
+     "name": "dup_waiting = 0",
+     "ok": true
+    },
+    {
+     "name": "dup_nonce = 0",
+     "ok": true
+    },
+    {
+     "name": "dup_active = 0",
+     "ok": true
+    },
+    {
+     "name": "bad_matches = 0",
+     "ok": true
+    },
+    {
+     "name": "orphan_tickets = 0",
+     "ok": true
+    },
+    {
+     "name": "matches_without_two_tickets = 0",
+     "ok": true
+    },
+    {
+     "name": "matches_without_two_sessions = 0",
+     "ok": true
+    },
+    {
+     "name": "matches_without_two_holds = 0",
+     "ok": true
+    },
+    {
+     "name": "matches_without_two_debits = 0",
+     "ok": true
+    },
+    {
+     "name": "cancelled_with_match = 0",
+     "ok": true
+    },
+    {
+     "name": "ghost_matches = 0",
+     "ok": true
+    },
+    {
+     "name": "clients paired into matches",
+     "ok": true
+    },
+    {
+     "name": "no duplicate or missing charge: wallet delta = one stake per match",
+     "ok": true
+    },
+    {
+     "name": "all concurrent matches settled once with zero escrow",
+     "ok": true
+    },
+    {
+     "name": "exact conservation: players + rake = 0",
+     "ok": true
+    },
+    {
+     "name": "40 concurrent fallbacks: 40 distinct horses, none double-seated, all treasury funded",
+     "ok": true
+    }
+   ],
+   "cancel_outcomes": {
+    "too_late_matched": 28
+   }
+  },
+  "refresh_resume_states": {
+   "passed": 7,
+   "failed": 0,
+   "checks": [
+    {
+     "name": "searching: state stable across retry, second tab and resume",
+     "ok": true
+    },
+    {
+     "name": "dealing: state stable across retry, second tab and resume",
+     "ok": true
+    },
+    {
+     "name": "playing: state stable across retry, second tab and resume",
+     "ok": true
+    },
+    {
+     "name": "waiting: state stable across retry, second tab and resume",
+     "ok": true
+    },
+    {
+     "name": "settling: state stable across retry, second tab and resume",
+     "ok": true
+    },
+    {
+     "name": "result: state stable across retry, second tab and resume",
+     "ok": true
+    },
+    {
+     "name": "result DTO: win 20 vs 9... exact payout and receipts",
+     "ok": true
+    }
+   ]
+  },
+  "settlement_outcomes_conservation": {
+   "passed": 20,
+   "failed": 0,
+   "checks": [
+    {
+     "name": "human-human win: match complete, one decision, one settlement, escrow 0, roster revealed",
+     "ok": true
+    },
+    {
+     "name": "human-human win: deltas human 40/-50 treasury 0 rake 10; sum 0",
+     "ok": true
+    },
+    {
+     "name": "human-human tie: match complete, one decision, one settlement, escrow 0, roster revealed",
+     "ok": true
+    },
+    {
+     "name": "human-human tie: deltas human 0/0 treasury 0 rake 0; sum 0",
+     "ok": true
+    },
+    {
+     "name": "human-human forfeit (opponent abandons): match complete, one decision, one settlement, escrow 0, roster revealed",
+     "ok": true
+    },
+    {
+     "name": "human-human forfeit (opponent abandons): deltas human 40/-50 treasury 0 rake 10; sum 0",
+     "ok": true
+    },
+    {
+     "name": "human-human refund (both abandon): match complete, one decision, one settlement, escrow 0, roster revealed",
+     "ok": true
+    },
+    {
+     "name": "human-human refund (both abandon): deltas human 0/0 treasury 0 rake 0; sum 0",
+     "ok": true
+    },
+    {
+     "name": "human beats horse: match complete, one decision, one settlement, escrow 0, roster revealed",
+     "ok": true
+    },
+    {
+     "name": "human beats horse: deltas human 40/- treasury -50 rake 10; sum 0",
+     "ok": true
+    },
+    {
+     "name": "horse beats human: match complete, one decision, one settlement, escrow 0, roster revealed",
+     "ok": true
+    },
+    {
+     "name": "horse beats human: deltas human -50/- treasury 40 rake 10; sum 0",
+     "ok": true
+    },
+    {
+     "name": "human-horse tie: match complete, one decision, one settlement, escrow 0, roster revealed",
+     "ok": true
+    },
+    {
+     "name": "human-horse tie: deltas human 0/- treasury 0 rake 0; sum 0",
+     "ok": true
+    },
+    {
+     "name": "human abandons vs horse (horse wins by forfeit): match complete, one decision, one settlement, escrow 0, roster revealed",
+     "ok": true
+    },
+    {
+     "name": "human abandons vs horse (horse wins by forfeit): deltas human -50/- treasury 40 rake 10; sum 0",
+     "ok": true
+    },
+    {
+     "name": "no driver before deadline (both seats expire: refund): match complete, one decision, one settlement, escrow 0, roster revealed",
+     "ok": true
+    },
+    {
+     "name": "no driver before deadline (both seats expire: refund): deltas human 0/- treasury 0 rake 0; sum 0",
+     "ok": true
+    },
+    {
+     "name": "legacy v1 decide is refused on a v2 match and moves nothing",
+     "ok": true
+    },
+    {
+     "name": "v2 settlement after the refused legacy attempt: match complete, one decision, one settlement, escrow 0, roster revealed",
+     "ok": true
+    }
+   ]
+  },
+  "fault_injection_atomicity": {
+   "passed": 8,
+   "failed": 0,
+   "checks": [
+    {
+     "name": "fault at decision: nothing committed (no decision/credit/stats, escrow intact, match active, DTO settling)",
+     "ok": true
+    },
+    {
+     "name": "fault at decision: retry settles exactly once",
+     "ok": true
+    },
+    {
+     "name": "fault at complete: nothing committed (no decision/credit/stats, escrow intact, match active, DTO settling)",
+     "ok": true
+    },
+    {
+     "name": "fault at complete: retry settles exactly once",
+     "ok": true
+    },
+    {
+     "name": "fault at stats: nothing committed (no decision/credit/stats, escrow intact, match active, DTO settling)",
+     "ok": true
+    },
+    {
+     "name": "fault at stats: retry settles exactly once",
+     "ok": true
+    },
+    {
+     "name": "fault at reveal: nothing committed (no decision/credit/stats, escrow intact, match active, DTO settling)",
+     "ok": true
+    },
+    {
+     "name": "fault at reveal: retry settles exactly once",
+     "ok": true
+    }
+   ]
+  },
+  "acl_no_browser_write_path": {
+   "passed": 34,
+   "failed": 0,
+   "checks": [
+    {
+     "name": "anon cannot select trivia_pvp_engine_config",
+     "ok": true
+    },
+    {
+     "name": "anon cannot select trivia_pvp_engine_secrets",
+     "ok": true
+    },
+    {
+     "name": "anon cannot select trivia_pvp_horse_plans",
+     "ok": true
+    },
+    {
+     "name": "anon cannot select trivia_pvp_match_events",
+     "ok": true
+    },
+    {
+     "name": "anon cannot insert queue ticket",
+     "ok": true
+    },
+    {
+     "name": "anon cannot update queue deadline",
+     "ok": true
+    },
+    {
+     "name": "anon cannot update match",
+     "ok": true
+    },
+    {
+     "name": "anon cannot insert session link",
+     "ok": true
+    },
+    {
+     "name": "anon cannot execute join_v2",
+     "ok": true
+    },
+    {
+     "name": "anon cannot execute status_v2",
+     "ok": true
+    },
+    {
+     "name": "anon cannot execute settle_v2",
+     "ok": true
+    },
+    {
+     "name": "anon cannot execute recover_v2",
+     "ok": true
+    },
+    {
+     "name": "anon cannot execute join_core",
+     "ok": true
+    },
+    {
+     "name": "anon cannot execute settle_core",
+     "ok": true
+    },
+    {
+     "name": "authenticated cannot select trivia_pvp_engine_config",
+     "ok": true
+    },
+    {
+     "name": "authenticated cannot select trivia_pvp_engine_secrets",
+     "ok": true
+    },
+    {
+     "name": "authenticated cannot select trivia_pvp_horse_plans",
+     "ok": true
+    },
+    {
+     "name": "authenticated cannot select trivia_pvp_match_events",
+     "ok": true
+    },
+    {
+     "name": "authenticated cannot insert queue ticket",
+     "ok": true
+    },
+    {
+     "name": "authenticated cannot update queue deadline",
+     "ok": true
+    },
+    {
+     "name": "authenticated cannot update match",
+     "ok": true
+    },
+    {
+     "name": "authenticated cannot insert session link",
+     "ok": true
+    },
+    {
+     "name": "authenticated cannot execute join_v2",
+     "ok": true
+    },
+    {
+     "name": "authenticated cannot execute status_v2",
+     "ok": true
+    },
+    {
+     "name": "authenticated cannot execute settle_v2",
+     "ok": true
+    },
+    {
+     "name": "authenticated cannot execute recover_v2",
+     "ok": true
+    },
+    {
+     "name": "authenticated cannot execute join_core",
+     "ok": true
+    },
+    {
+     "name": "authenticated cannot execute settle_core",
+     "ok": true
+    },
+    {
+     "name": "service_role cannot forge v2 ticket without join authority",
+     "ok": true
+    },
+    {
+     "name": "service_role cannot reroll a stored horse deadline",
+     "ok": true
+    },
+    {
+     "name": "service_role cannot close a v2 match directly",
+     "ok": true
+    },
+    {
+     "name": "service_role cannot rewrite a committed horse plan",
+     "ok": true
+    },
+    {
+     "name": "service_role can call the status RPC",
+     "ok": true
+    },
+    {
+     "name": "authenticated keeps only its RLS-scoped own-row SELECT on the queue",
+     "ok": true
+    }
+   ]
+  },
+  "horse_fleet_and_plan": {
+   "passed": 8,
+   "failed": 0,
+   "checks": [
+    {
+     "name": "selection draws from the complete eligible fleet (not the first 50): >=90% beyond rank 50, tail of the fleet reached",
+     "ok": true
+    },
+    {
+     "name": "tier mix follows the configured weights renormalized over tiers with eligible horses (+-5pp)",
+     "ok": true
+    },
+    {
+     "name": "seated and cooling-down horses are never selected",
+     "ok": true
+    },
+    {
+     "name": "fleet concurrency ceiling is enforced",
+     "ok": true
+    },
+    {
+     "name": "every committed plan re-derives to its stored hash (server-secret seeded, deterministic)",
+     "ok": true
+    },
+    {
+     "name": "every planned response time is within [1.8 s, 38.5 s]",
+     "ok": true
+    },
+    {
+     "name": "the plan generator takes no stake input",
+     "ok": true
+    },
+    {
+     "name": "horse answer events carry actor_type horse and stay out of human learning analytics",
+     "ok": true
+    }
+   ]
+  }
+ },
+ "metrics": {
+  "since": "2026-09-29T18:53:41.366152-05:00",
+  "matches": {
+   "ties": 16,
+   "wins": 165,
+   "active": 66,
+   "created": 251,
+   "refunds": 2,
+   "forfeits": 2,
+   "completed": 185,
+   "human_horse": 124,
+   "human_human": 127,
+   "create_failures": 0,
+   "settlement_failures": 12
+  },
+  "tickets": {
+   "joined": 431,
+   "waiting": 0,
+   "cancelled": 53,
+   "lease_expired": 0,
+   "matched_horse": 124,
+   "matched_human": 254,
+   "search_expired": 0,
+   "insufficient_funds": 0
+  },
+  "fallback": {
+   "late_ms_max": 5002.822,
+   "late_ms_p50": 20.743499999999997,
+   "late_ms_p95": 5002.1847,
+   "horse_before_deadline": 0,
+   "wait_seconds_histogram": {
+    "20": 152,
+    "21": 15,
+    "22": 2,
+    "23": 13,
+    "24": 10,
+    "25": 18,
+    "26": 13,
+    "27": 13,
+    "28": 12,
+    "29": 9,
+    "30": 12,
+    "31": 11,
+    "32": 12,
+    "33": 10,
+    "34": 9,
+    "35": 12,
+    "36": 10,
+    "37": 7,
+    "38": 13,
+    "39": 8,
+    "40": 13,
+    "41": 12,
+    "42": 8,
+    "43": 14,
+    "44": 11,
+    "45": 12
+   },
+   "horse_unavailable_events": 0
+  },
+  "cancel_races": {
+   "cancelled": 53,
+   "lost_to_match": 28
+  },
+  "ledger_variance": {
+   "terminal_escrow_abs_total": 0,
+   "terminal_matches_with_open_settlement": 0
+  },
+  "ghost_prevention": {
+   "dead_tickets_expired": 0,
+   "matched_with_lapsed_presence": 0
+  },
+  "human_match_rate": 0.672,
+  "join_to_match_ms": {
+   "p50": 5.5125,
+   "p95": 26149.99999999998,
+   "horse_p50": 23500,
+   "horse_p95": 38849.99999999999,
+   "human_p50": 2.098
+  },
+  "settlement_latency_ms": {
+   "p50": 6,
+   "p95": 284.8
+  }
+ },
+ "metrics_note": "wait_seconds_histogram counts 20 s heavily because scenario tests pin the wait to 20 s through the fake-clock core; the real CSPRNG draw is tested separately (fallback_draw_distribution: 2,600 draws, all 26 values, chi-square). late_ms is the gap between the stored deadline and the first poll that claimed the horse; the harness polled on the 5 s heartbeat, while the API aligns a status poll to land just after the deadline.",
+ "earning_cap_exemption_test": {
+  "script": "replica cap.sql (winner pre-loaded with 1,900 trivia diamonds today; stake 100)",
+  "output": [
+   "join2|searching",
+   "join3|dealing|human_human",
+   "answers|20",
+   "answers|20",
+   "status_no_exemption|settling",
+   "failure_event|settle|DR7:user_over_daily_cap: promotional issuance refused (engine trivia day 2026-09-30 cap 2000 awarded 2080)",
+   "unchanged_while_refused|-100|-100",
+   "status_with_exemption|result|win|180|20",
+   "deltas|80|-100|20|0",
+   "daily_awards|trivia|1900",
+   "daily_awards|trivia_pvp|180"
+  ],
+  "reading": "Without the exemption DR7 refuses the payout (2,080 > 2,000): the whole settlement rolls back, the match shows settling, only the two holds exist. After trivia_p5_pvp_settlement_cap_exemption the same match settles: win, payout 180, rake 20, deltas +80/-100/+20, conservation 0; solo trivia award stays 1,900 and the PvP award is journaled under trivia_pvp."
+ }
+}
