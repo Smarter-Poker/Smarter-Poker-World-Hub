@@ -123,10 +123,11 @@ function emptyContext() {
   };
 }
 
-function loadCollectionReaderHarness(client) {
+function loadCollectionReaderHarness(client, { scanChunkSize = 240 } = {}) {
   const transformed = SERVER
     .replace(/import \{ createClient \} from '[^']+';\n/, '')
     .replace(/import \{[\s\S]*?\} from '\.\.\/videoLibraryAvailability';\n/, '')
+    .replace('const SCAN_CHUNK_SIZE = 240;', `const SCAN_CHUNK_SIZE = ${scanChunkSize};`)
     .replace(/export class /g, 'class ')
     .replace(/export async function /g, 'async function ')
     .replace(/export const /g, 'const ');
@@ -549,6 +550,89 @@ test('collection readers keep slots and sports across My Reels, Saved, and saved
   assert.ok(
     followQueriesAfter - followQueriesBefore <= 2,
     'one candidate page must use at most two bounded follow-membership queries',
+  );
+});
+
+test('Following scans sparse global pages and keeps only followed canonical winners', async () => {
+  const viewerId = '11111111-1111-4111-8111-111111111111';
+  const followedAuthor = '22222222-2222-4222-8222-222222222222';
+  const unfollowedAuthor = '33333333-3333-4333-8333-333333333333';
+  const row = (id, author_id, canonical_asset_key, created_at) => nativeRow({
+    id,
+    author_id,
+    canonical_asset_key,
+    publication_key: `user-reel:${id}`,
+    video_url: `https://test-project.supabase.co/storage/v1/object/public/social-media/reels/${author_id}/${id}.mp4`,
+    created_at,
+  });
+  const followedLoser = row(
+    'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1',
+    followedAuthor,
+    'native:unfollowed-winner',
+    '2026-09-06T15:00:00.000Z',
+  );
+  const unfollowedWinner = row(
+    'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa2',
+    unfollowedAuthor,
+    'native:unfollowed-winner',
+    '2026-09-06T14:00:00.000Z',
+  );
+  const unfollowedLoser = row(
+    'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa3',
+    unfollowedAuthor,
+    'native:followed-winner',
+    '2026-09-06T13:00:00.000Z',
+  );
+  const followedWinner = row(
+    'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa4',
+    followedAuthor,
+    'native:followed-winner',
+    '2026-09-06T12:00:00.000Z',
+  );
+  const sparseFollowed = row(
+    'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa5',
+    followedAuthor,
+    'native:sparse-followed',
+    '2026-09-06T11:00:00.000Z',
+  );
+  const client = createMemoryClient({
+    social_reels: [
+      followedLoser,
+      unfollowedWinner,
+      unfollowedLoser,
+      followedWinner,
+      sparseFollowed,
+    ],
+    social_posts: [],
+    saved_reels: [],
+    profiles: [
+      { id: followedAuthor, username: 'followed', full_name: 'Followed', avatar_url: null },
+      { id: unfollowedAuthor, username: 'unfollowed', full_name: 'Unfollowed', avatar_url: null },
+    ],
+    social_follows: [{ follower_id: viewerId, following_id: followedAuthor }],
+    video_library_videos: [],
+    youtube_embed_failures: [],
+  });
+  const { readFeed } = loadCollectionReaderHarness(client, { scanChunkSize: 2 });
+  const following = await readFeed({
+    client,
+    category: 'following',
+    viewerId,
+    scope: 'following',
+    sort: 'recent',
+    limit: 10,
+  });
+
+  assert.deepEqual(
+    [...following.data].map(item => item.id),
+    [followedWinner.id, sparseFollowed.id],
+    'a followed loser must not replace an unfollowed canonical winner, while sparse followed winners remain reachable',
+  );
+  assert.equal(following.hasMore, false);
+  assert.equal(following.nextCursor, null);
+  assert.ok(
+    client.queryLog.filter(table => table === 'social_follows').length >= 3,
+    'the proof must cross multiple bounded global keyset chunks',
   );
 });
 
