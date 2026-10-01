@@ -11,8 +11,9 @@ q "SELECT count(*) FROM generate_series(1, 60) g WHERE (public.trivia_tournament
 q "DO \$\$ BEGIN FOR i IN 1..70 LOOP PERFORM p6test.advance('1 minute'); PERFORM p6test.tick(); END LOOP; END \$\$" >/dev/null
 echo "state after start: $(q "SELECT lifecycle_state FROM public.trivia_tournaments WHERE id = '$TID'")"
 ERR=$T/tmp/p6/conc_err.log; : > $ERR
-( for i in $(seq 1 120); do q "SELECT p6test.play_partial('$TID', 1)" >/dev/null 2>>$ERR; done ) &
-( for i in $(seq 1 120); do q "SELECT p6test.play_humans('$TID', 0)" >/dev/null 2>>$ERR; done ) &
+# Players: every request is its own transaction (one API call = one seat).
+( for sweep in $(seq 1 12); do for u in $(seq 1 30); do q "SELECT p6test.play_user('$TID', p6test.human($u), 2)" >/dev/null 2>>$ERR; done; done ) &
+( for sweep in $(seq 1 12); do for u in $(seq 31 60); do q "SELECT p6test.play_user('$TID', p6test.human($u), 3)" >/dev/null 2>>$ERR; done; done ) &
 ( for i in $(seq 1 120); do q "SELECT p6test.tick()" >/dev/null 2>>$ERR; q "SELECT p6test.advance('2 seconds')" >/dev/null 2>>$ERR; done ) &
 ( for i in $(seq 1 120); do q "SELECT p6test.tick(true, 2000, 'standby-dispatcher')" >/dev/null 2>>$ERR; done ) &
 wait

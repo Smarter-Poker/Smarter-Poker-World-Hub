@@ -146,3 +146,20 @@ $$ DECLARE r jsonb; q record; v_sess uuid; v_correct integer; v_display integer;
    END LOOP;
    RETURN n;
  END $$;
+
+-- One player's request: answer up to k questions of their live seat (one transaction, like one API call).
+CREATE OR REPLACE FUNCTION p6test.play_user(p_tournament uuid, p_user uuid, p_k integer) RETURNS integer LANGUAGE plpgsql AS
+$$ DECLARE r jsonb; q record; n integer := 0; v_sess uuid; BEGIN
+   r := public.trivia_tournament_play_open(p_tournament, p_user);
+   IF COALESCE((r->>'success')::boolean, false) IS NOT TRUE THEN RETURN 0; END IF;
+   SELECT session_id INTO v_sess FROM public.trivia_tournament_seats
+    WHERE tournament_id = p_tournament AND participant_id = p_user ORDER BY round_number DESC LIMIT 1;
+   FOR q IN SELECT a.position, a.question_id FROM public.trivia_session_answers a
+             WHERE a.session_id = v_sess AND a.outcome IS NULL ORDER BY a.position LIMIT p_k LOOP
+     PERFORM public.trivia_tournament_play_question(p_tournament, p_user, q.position);
+     PERFORM public.trivia_tournament_play_answer(p_tournament, p_user, q.question_id,
+         (abs(hashtext(p_user::text || q.question_id::text)) % 4), gen_random_uuid());
+     n := n + 1;
+   END LOOP;
+   RETURN n;
+ END $$;

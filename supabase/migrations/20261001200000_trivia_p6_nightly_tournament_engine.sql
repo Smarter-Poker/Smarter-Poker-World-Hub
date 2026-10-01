@@ -536,8 +536,8 @@ SELECT jsonb_build_object(
     'horse_answer_gap_ms', jsonb_build_array(600, 1400),
     'horse_response_clamp_ms', jsonb_build_array(1800, 18000),
     'difficulty_accuracy_adjust', jsonb_build_object('easy', 0.10, 'medium', 0.0, 'hard', -0.12, 'expert', -0.18),
-    'tie_break', jsonb_build_array('correct_desc', 'response_ms_asc', 'seeded_coin'),
-    'no_show', 'present_opponent_advances; double_no_show_seeded_coin',
+    'tie_break', jsonb_build_array('more_correct', 'lower_total_answer_ms', 'earlier_completion', 'better_seed'),
+    'no_show', 'zero_correct_max_time; both_no_show_better_seed_advances',
     'horse_payout_destination', 'house_treasury'
 )
 $$;
@@ -2111,6 +2111,11 @@ DECLARE
     v_shot_ms integer;
     v_plan text;
 BEGIN
+    -- Lock order matchup -> seat; never wait on a player's transaction.
+    PERFORM 1 FROM public.trivia_tournament_matchups WHERE id = p_matchup_id FOR UPDATE SKIP LOCKED;
+    IF NOT FOUND THEN
+        RETURN false;
+    END IF;
     SELECT * INTO s FROM public.trivia_tournament_seats
      WHERE matchup_id = p_matchup_id AND seat_no = p_seat_no FOR UPDATE;
     IF NOT FOUND OR s.participant_kind <> 'horse' OR s.status <> 'waiting' OR s.session_id IS NOT NULL THEN
@@ -2207,6 +2212,11 @@ DECLARE
     v_display integer;
     v_steps integer := 0;
 BEGIN
+    -- Lock order matchup -> seat; a matchup a player is acting on waits a tick.
+    PERFORM 1 FROM public.trivia_tournament_matchups WHERE id = p_matchup_id FOR UPDATE SKIP LOCKED;
+    IF NOT FOUND THEN
+        RETURN 0;
+    END IF;
     SELECT * INTO s FROM public.trivia_tournament_seats
      WHERE matchup_id = p_matchup_id AND seat_no = p_seat_no FOR UPDATE;
     IF NOT FOUND OR s.participant_kind <> 'horse' OR s.status <> 'playing' THEN
@@ -2275,14 +2285,18 @@ DECLARE
     t public.trivia_tournaments%ROWTYPE;
     v_now timestamptz := public.trivia_tournament_clock();
 BEGIN
-    UPDATE public.trivia_tournament_bracket_rounds
-       SET status = 'closed', closed_at = v_now
-     WHERE tournament_id = p_tournament_id AND round_number = p_round
-       AND status = 'open' AND resolved_count = matchup_count
-    RETURNING * INTO rd;
-    IF rd.tournament_id IS NULL THEN
+    SELECT * INTO rd FROM public.trivia_tournament_bracket_rounds
+     WHERE tournament_id = p_tournament_id AND round_number = p_round AND status = 'open'
+       FOR UPDATE SKIP LOCKED;
+    IF NOT FOUND OR EXISTS (SELECT 1 FROM public.trivia_tournament_matchups
+                             WHERE tournament_id = p_tournament_id AND round_number = p_round
+                               AND status <> 'resolved') THEN
         RETURN;
     END IF;
+    UPDATE public.trivia_tournament_bracket_rounds
+       SET status = 'closed', closed_at = v_now, resolved_count = matchup_count
+     WHERE tournament_id = p_tournament_id AND round_number = p_round
+    RETURNING * INTO rd;
     SELECT * INTO t FROM public.trivia_tournaments WHERE id = p_tournament_id;
     PERFORM public.trivia_close_roster_scope_v1(t.roster_snapshot_id, p_round);
     PERFORM public.trivia_tournament_event(p_tournament_id, 'round_closed',
@@ -2323,8 +2337,6 @@ DECLARE
     v_winner smallint;
     v_reason text;
     v_status text;
-    v_resolved integer;
-    v_total integer;
 BEGIN
     SELECT * INTO m FROM public.trivia_tournament_matchups WHERE id = p_matchup_id FOR UPDATE;
     IF NOT FOUND OR m.status <> 'ready' THEN
@@ -2399,13 +2411,11 @@ BEGIN
             'seat1', jsonb_build_object('correct', s1.correct_count, 'tiebreak_ms', s1.tiebreak_ms, 'state', s1.status),
             'seat2', jsonb_build_object('correct', s2.correct_count, 'tiebreak_ms', s2.tiebreak_ms, 'state', s2.status)),
         CASE WHEN v_winner = 1 THEN s2.entrant_id ELSE s1.entrant_id END, m.round_number, p_matchup_id, p_fencing_token);
-    UPDATE public.trivia_tournament_bracket_rounds
-       SET resolved_count = resolved_count + 1
-     WHERE tournament_id = m.tournament_id AND round_number = m.round_number
-    RETURNING resolved_count, matchup_count INTO v_resolved, v_total;
-    IF v_resolved = v_total THEN
-        PERFORM public.trivia_tournament_close_round(m.tournament_id, m.round_number, p_fencing_token);
-    END IF;
+    -- Never wait on the shared round row (lock order: matchup -> seat -> next
+    -- matchup -> round, round last and non-blocking). If another transaction is
+    -- closing the round, or a concurrent last resolution is not yet visible, the
+    -- scheduler closes the fully resolved round on its next pass.
+    PERFORM public.trivia_tournament_close_round(m.tournament_id, m.round_number, p_fencing_token);
     RETURN true;
 END;
 $$;
@@ -3009,6 +3019,12 @@ BEGIN
                             to_jsonb(COALESCE((v_actions->>'resolved')::integer, 0) + 1));
                     END IF;
                 END LOOP;
+                -- Close every fully resolved round (concurrent last resolutions may
+                -- each have skipped the close; this pass is the backstop).
+                FOR m IN SELECT r.round_number AS id FROM public.trivia_tournament_bracket_rounds r
+                          WHERE r.tournament_id = t.id AND r.status = 'open' AND r.opens_at <= v_now LOOP
+                    PERFORM public.trivia_tournament_close_round(t.id, m.id::integer, p_fencing_token);
+                END LOOP;
             EXCEPTION WHEN OTHERS THEN
                 v_errors := v_errors || jsonb_build_object('tournament_id', t.id, 'step', 'resolve',
                                                            'error', left(SQLERRM, 300));
@@ -3248,7 +3264,10 @@ BEGIN
         v := v || jsonb_build_object('rounds', COALESCE((
             SELECT jsonb_agg(jsonb_build_object('roundNumber', r.round_number, 'status', r.status,
                        'opensAt', r.opens_at, 'deadlineAt', r.deadline_at, 'closedAt', r.closed_at,
-                       'matchups', r.matchup_count, 'resolved', r.resolved_count) ORDER BY r.round_number)
+                       'matchups', r.matchup_count,
+                       'resolved', (SELECT count(*) FROM public.trivia_tournament_matchups mm
+                                     WHERE mm.tournament_id = r.tournament_id AND mm.round_number = r.round_number
+                                       AND mm.status = 'resolved')) ORDER BY r.round_number)
               FROM public.trivia_tournament_bracket_rounds r WHERE r.tournament_id = t.id), '[]'::jsonb),
             'currentRound', t.current_round);
     END IF;
@@ -3536,6 +3555,35 @@ $$;
 
 SELECT public.trivia_tournament_ensure_horse_personas();
 
+-- The functions this migration owns (Phase 3's trivia_tournament_capacity_v1 is not ours).
+CREATE OR REPLACE FUNCTION public.trivia_tournament_owned_functions()
+RETURNS text[]
+LANGUAGE sql
+IMMUTABLE
+SET search_path = ''
+AS $$ SELECT ARRAY['trivia_tournament_owned_functions',
+        
+        'trivia_tournament_admit', 'trivia_tournament_append_only', 'trivia_tournament_assert_fence',
+        'trivia_tournament_bracket_order', 'trivia_tournament_bracket_v1', 'trivia_tournament_cancel_core',
+        'trivia_tournament_clock', 'trivia_tournament_close_round', 'trivia_tournament_create_instance',
+        'trivia_tournament_create_test_instance', 'trivia_tournament_drive_horse_seat', 'trivia_tournament_engine_begin',
+        'trivia_tournament_engine_format', 'trivia_tournament_ensure_horse_personas', 'trivia_tournament_enter',
+        'trivia_tournament_entrant_contract', 'trivia_tournament_event', 'trivia_tournament_events_feed_v1',
+        'trivia_tournament_field_v1', 'trivia_tournament_health_v1', 'trivia_tournament_history_v1',
+        'trivia_tournament_instance_dto', 'trivia_tournament_keyed_unit', 'trivia_tournament_live_seat',
+        'trivia_tournament_local_start_utc', 'trivia_tournament_match_v1', 'trivia_tournament_matchup_dto',
+        'trivia_tournament_my_run_v1', 'trivia_tournament_open_round', 'trivia_tournament_operator_cancel',
+        'trivia_tournament_place_winner', 'trivia_tournament_play_answer', 'trivia_tournament_play_finish',
+        'trivia_tournament_play_open', 'trivia_tournament_play_question', 'trivia_tournament_play_view',
+        'trivia_tournament_population_finalize', 'trivia_tournament_population_join_due', 'trivia_tournament_population_plan',
+        'trivia_tournament_prepare_horse_seat', 'trivia_tournament_random_int', 'trivia_tournament_receipt_v1',
+        'trivia_tournament_reconcile_schedule', 'trivia_tournament_resolve_matchup', 'trivia_tournament_results_v1',
+        'trivia_tournament_rules_load', 'trivia_tournament_schedule_v1', 'trivia_tournament_scheduler_acquire',
+        'trivia_tournament_scheduler_job', 'trivia_tournament_scheduler_release', 'trivia_tournament_scheduler_renew',
+        'trivia_tournament_scheduler_tick', 'trivia_tournament_seat_dto', 'trivia_tournament_seat_sync',
+        'trivia_tournament_settle', 'trivia_tournament_start', 'trivia_tournament_summary_v1',
+        'trivia_tournament_v2_owner_fence', 'trivia_tournament_v2_row_contract']::text[] $$;
+
 DO $acl$
 DECLARE
     r record;
@@ -3559,10 +3607,11 @@ BEGIN
     GRANT SELECT ON TABLE public.trivia_tournament_metrics_v1 TO service_role;
     REVOKE ALL ON SEQUENCE public.trivia_tournament_events_id_seq FROM PUBLIC, anon, authenticated, service_role;
 
+    -- Explicit list: Phase 3 owns trivia_tournament_capacity_v1 and is never touched.
     FOR r IN
         SELECT p.oid::regprocedure AS sig
           FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
-         WHERE n.nspname = 'public' AND p.proname LIKE 'trivia\_tournament\_%'
+         WHERE n.nspname = 'public' AND p.proname = ANY (public.trivia_tournament_owned_functions())
     LOOP
         EXECUTE format('REVOKE ALL ON FUNCTION %s FROM PUBLIC, anon, authenticated, service_role', r.sig);
     END LOOP;
@@ -3635,7 +3684,7 @@ BEGIN
     END IF;
     SELECT string_agg(p.oid::regprocedure::text, ', ') INTO v_bad
       FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
-     WHERE n.nspname = 'public' AND p.proname LIKE 'trivia\_tournament\_%'
+     WHERE n.nspname = 'public' AND p.proname = ANY (public.trivia_tournament_owned_functions())
        AND (has_function_privilege('anon', p.oid, 'EXECUTE') OR has_function_privilege('authenticated', p.oid, 'EXECUTE')
             OR (has_function_privilege('service_role', p.oid, 'EXECUTE')
                 AND NOT replace(p.oid::regprocedure::text, 'public.', '') = ANY (v_granted))
@@ -3647,7 +3696,13 @@ BEGIN
     END IF;
     IF (SELECT count(*) FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
          WHERE n.nspname = 'public' AND replace(p.oid::regprocedure::text, 'public.', '') = ANY (v_granted))
-       <> array_length(v_granted, 1) THEN
+       <> array_length(v_granted, 1)
+       OR (SELECT count(*) FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+            WHERE n.nspname = 'public' AND p.proname LIKE 'trivia\_tournament\_%'
+              AND NOT p.proname = ANY (public.trivia_tournament_owned_functions())
+              AND p.proname <> 'trivia_tournament_capacity_v1') > 0
+       OR (to_regprocedure('public.trivia_tournament_capacity_v1(integer,text)') IS NOT NULL
+           AND NOT has_function_privilege('service_role', 'public.trivia_tournament_capacity_v1(integer,text)', 'EXECUTE')) THEN
         RAISE EXCEPTION 'trivia_p6 postcondition: published RPC set is incomplete';
     END IF;
     -- Ownership fence and row contract are installed on the shared tables.
