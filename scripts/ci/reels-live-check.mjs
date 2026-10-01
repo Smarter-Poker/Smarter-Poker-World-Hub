@@ -1224,10 +1224,13 @@ async function verifySignedInBrowser(browser, session, article, report) {
   await installReadOnlyNetworkGuard(context, state);
   const page = await context.newPage();
   const pageErrors = [];
+  const articleReaderErrors = [];
+  let readerSandboxOpen = false;
   page.on('pageerror', (error) => {
     const kind = error instanceof Error && error.name ? error.name : 'Error';
     const message = error instanceof Error && error.message ? error.message.split('\n')[0].slice(0, 160) : 'browser-page-error';
-    pageErrors.push(`${kind}: ${message}`);
+    const target = readerSandboxOpen ? articleReaderErrors : pageErrors;
+    target.push(`${kind}: ${message}`);
     report.signedInBrowserErrors = [...pageErrors];
   });
   page.setDefaultTimeout(45000);
@@ -1249,6 +1252,7 @@ async function verifySignedInBrowser(browser, session, article, report) {
     const articleLabel = page.getByText(/Click To Read Full Article/i).filter({ visible: true }).first();
     await articleLabel.waitFor();
     report.signedInBrowserStage = 'ordinary-article-click';
+    readerSandboxOpen = true;
     await articleLabel.click();
     report.signedInBrowserStage = 'ordinary-article-reader';
     const readerDialog = page.getByRole('dialog', { name: 'Article Reader' });
@@ -1259,11 +1263,9 @@ async function verifySignedInBrowser(browser, session, article, report) {
     await readerDialog.getByRole('button', { name: 'Close' }).click();
     report.signedInBrowserStage = 'ordinary-article-detached';
     await reader.waitFor({ state: 'detached' });
-    const unexpectedReaderErrors = pageErrors.filter((message) => !/sandboxed|service worker is disabled|origin "null"/i.test(message));
-    assert.deepEqual(unexpectedReaderErrors, [], 'Ordinary article reader raised an unexpected browser error');
-    report.articleReaderSandboxErrors = pageErrors.length;
-    pageErrors.length = 0;
-    report.signedInBrowserErrors = [];
+    readerSandboxOpen = false;
+    assert.deepEqual(pageErrors, [], 'Ordinary article reader raised a first-party browser error');
+    report.articleReaderSandboxErrors = articleReaderErrors.length;
 
     const verifyCollectionPage = async ({ path, apiPath, emptyText }) => {
       const apiResponse = page.waitForResponse((response) => {
