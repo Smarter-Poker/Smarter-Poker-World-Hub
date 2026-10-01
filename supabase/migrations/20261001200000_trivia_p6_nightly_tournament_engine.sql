@@ -51,6 +51,30 @@ BEGIN
 END
 $pre$;
 
+-- Take the three shared legacy tables up front without joining a lock queue:
+-- a NOWAIT attempt never makes live readers wait behind this migration.
+-- Retry briefly, then give up cleanly (nothing is changed).
+DO $locks$
+DECLARE
+    v_try integer := 0;
+BEGIN
+    LOOP
+        BEGIN
+            LOCK TABLE public.trivia_tournaments IN ACCESS EXCLUSIVE MODE NOWAIT;
+            LOCK TABLE public.trivia_tournament_entries, public.trivia_tournament_rounds
+                IN SHARE ROW EXCLUSIVE MODE NOWAIT;
+            EXIT;
+        EXCEPTION WHEN lock_not_available THEN
+            v_try := v_try + 1;
+            IF v_try >= 60 THEN
+                RAISE EXCEPTION 'trivia_p6: tournament tables stayed busy for 15 seconds; nothing was changed, retry later';
+            END IF;
+            PERFORM pg_sleep(0.25);
+        END;
+    END LOOP;
+END
+$locks$;
+
 -- ----------------------------------------------------------------------------
 -- 1. Nightly instance columns on the one tournament identity table
 --    (legacy rows keep engine_version NULL and are untouched).
@@ -3562,7 +3586,6 @@ LANGUAGE sql
 IMMUTABLE
 SET search_path = ''
 AS $$ SELECT ARRAY['trivia_tournament_owned_functions',
-        
         'trivia_tournament_admit', 'trivia_tournament_append_only', 'trivia_tournament_assert_fence',
         'trivia_tournament_bracket_order', 'trivia_tournament_bracket_v1', 'trivia_tournament_cancel_core',
         'trivia_tournament_clock', 'trivia_tournament_close_round', 'trivia_tournament_create_instance',
