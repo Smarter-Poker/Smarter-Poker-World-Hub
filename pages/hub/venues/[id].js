@@ -959,6 +959,12 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
         if (_token) headers['Authorization'] = 'Bearer ' + _token;
       } catch (_e) { console.warn('[App] Handled exception:', _e?.message || _e); }
     }
+    // Who's Here needs a session: the route answers 401 without one. This
+    // used to run for everybody, so every signed-out visit to a venue page
+    // spent a round trip on a call that could only fail, and printed two
+    // console errors doing it. Venue pages are the largest route family on
+    // the site (478 of them) and most of their traffic is signed out.
+    if (!authUser) { setWhosHere({ total: 0, people: [], friends: [] }); return; }
     fetch(whUrl, { headers: headers })
       .then(function(r) { return r.json(); })
       .then(function(j) { if (j.success) setWhosHere({ total: j.total || 0, people: j.people || [], friends: j.friends || [] }); })
@@ -1330,10 +1336,15 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'venue_checkins', filter: `venue_id=eq.${id}` }, () => {
         // Refresh check-in list, Who's Here, and enhancement data when someone new checks in
         fetchCheckins();
-        fetch('/api/poker/checkins/whos-here?venue_id=' + id)
-          .then(function(r) { return r.json(); })
-          .then(function(j) { if (j.success) setWhosHere({ total: j.total || 0, people: j.people || [], friends: j.friends || [] }); })
-          .catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
+        // Same rule as the mount effect: a signed-out viewer watching this
+        // page when somebody checks in would otherwise fire the authenticated
+        // route and collect a 401 for it.
+        if (getAuthUser()) {
+          fetch('/api/poker/checkins/whos-here?venue_id=' + id)
+            .then(function(r) { return r.json(); })
+            .then(function(j) { if (j.success) setWhosHere({ total: j.total || 0, people: j.people || [], friends: j.friends || [] }); })
+            .catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
+        }
         // Delayed refresh — let DB write settle
         setTimeout(function () {
           fetch('/api/poker/checkins/leaderboard?venue_id=' + id + '&period=month')
@@ -1903,23 +1914,36 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
 
   return (
     <>
+      {/* A SHARE CARD IS A PROP, NEVER A SIBLING META (2026-09-30).
+          This page used to pass its own og: and twitter: tags as children.
+          next/head deduplicates meta by `key`, and by name/httpEquiv/charSet/
+          itemProp - NOT by `property`. SEOHead keys its tags `og-image`,
+          `twitter-card` and so on; this page keyed the same tags `og:image`
+          and `twitter:card`. Different keys never collide, so BOTH rendered,
+          SEOHead's first because children are emitted after it. Every scraper
+          reads the first one.
+          Measured on production: all 478 venue pages served two og:image tags
+          and the generic site card won every time, so every venue shared the
+          same picture. Two twitter:card tags, and two different site names
+          (`Smarter.Poker` and `Smarter Poker`) shipped the same way.
+          Every tag this page was passing is already emitted by SEOHead from
+          these same values, so they are gone and the two that differ are
+          props. This is the convention seven other pages already follow, and
+          the remedy home-games/[slug].js wrote down after the identical bug
+          hit `noindex` in August: pass it as a prop, never as a sibling.
+          twitterCard is `summary`, not `summary_large_image`: the mirrored
+          art is a wordmark, measured between 154x173 and 371x136, and a wide
+          short logo in a 1200x630 banner is mostly empty bars. A summary card
+          prints it as a thumbnail beside the name, which is what a logo is
+          for. */}
       <SEOHead
         title={seo.title}
         description={seo.description}
         canonical={seo.canonical}
+        ogImage={seo.image || undefined}
+        twitterCard="summary"
         noindex={!isIndexable}
-      >
-        <meta key="og:type" property="og:type" content="website" />
-        <meta key="og:site_name" property="og:site_name" content="Smarter Poker" />
-        <meta key="og:title" property="og:title" content={seo.title} />
-        <meta key="og:description" property="og:description" content={seo.description} />
-        <meta key="og:url" property="og:url" content={seo.canonical} />
-        {seo.image ? <meta key="og:image" property="og:image" content={seo.image} /> : null}
-        <meta key="twitter:card" name="twitter:card" content={seo.image ? 'summary_large_image' : 'summary'} />
-        <meta key="twitter:title" name="twitter:title" content={seo.title} />
-        <meta key="twitter:description" name="twitter:description" content={seo.description} />
-        {seo.image ? <meta key="twitter:image" name="twitter:image" content={seo.image} /> : null}
-      </SEOHead>
+      />
 
       {venueJsonLd && (
         <Head>
