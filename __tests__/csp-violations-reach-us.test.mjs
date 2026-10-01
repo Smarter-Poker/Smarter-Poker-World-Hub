@@ -196,16 +196,24 @@ test('script-src and style-src name the commander app proxied onto this origin',
 
 // ── img-src is ENFORCED, not merely reported ───────────────────────────────
 
-test('img-src is in the enforced policy, built from the one host list', () => {
+test('img-src stays out of the enforced policy until the signed-in surface is guarded', () => {
     const enforced = CONFIG.match(/const enforcedCsp = \[([\s\S]*?)\]\.join/);
     assert.ok(enforced, 'the enforced policy must exist');
-    assert.match(enforced[1], /imgSrcDirective\(\)/,
-        'img-src graduated on 2026-09-30 after venue art and news thumbnails stopped '
-        + 'being fetched from other people\u2019s servers');
-    // It must be the SAME list the guard uses, or the header and the runtime
-    // check drift and a picture the guard allows gets blocked anyway.
+    assert.ok(!/imgSrcDirective\(\)/.test(enforced[1]),
+        'img-src was enforced on a sweep that never signed in. Measured afterwards: '
+        + '16 profiles carry an lh3.googleusercontent.com avatar from Google sign-in, '
+        + '187 of 187 social posts with a link_image were blocked, and the bankroll '
+        + 'map lost its Leaflet pins. It goes back when the signed-in surface is '
+        + 'guarded AND measured.');
     assert.ok(!/["']img-src [^"']+["']/.test(enforced[1]),
-        'the enforced directive must be composed, never a second hand-written copy');
+        'and never as a hand-written copy either');
+});
+
+test('img-src is still reported, so the evidence keeps accumulating', () => {
+    const reportOnly = CONFIG.match(/const csp = \[([\s\S]*?)\]\.join/);
+    assert.ok(reportOnly, 'the report-only policy must exist');
+    assert.match(reportOnly[1], /imgSrcDirective\(\)/,
+        'un-enforcing must not mean un-watching');
 });
 
 test('the enforced policy still says where to report, so a mistake is visible', () => {

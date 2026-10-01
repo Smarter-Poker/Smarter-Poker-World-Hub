@@ -916,8 +916,29 @@ const nextConfig = {
     // `next start` serves HTTP locally and WebKit upgrades every same-origin
     // chunk, leaving the page blank. The four above are unaffected by scheme,
     // so they apply everywhere and localhost is protected too.
+    // img-src WAS enforced here on 2026-09-30 and is BACK IN REPORT-ONLY.
+    //
+    // It went in on a 34-route sweep that reported zero violations, and the
+    // commit said plainly that every route in it was loaded signed out and
+    // that signed-in surfaces were an argument from the code rather than a
+    // measurement. That gap is exactly where the breakage was:
+    //
+    //   16 rows in profiles.avatar_url are lh3.googleusercontent.com, from
+    //   Google sign-in, written by the OAuth callback. Those people's photos
+    //   were blocked. 19 more reach the same URL through session metadata.
+    //
+    //   187 of the 187 social posts that carry a link_image were blocked.
+    //   Every link preview in the feed, saved posts, profile feeds, the
+    //   composer and messenger renders a publisher's own image raw.
+    //
+    //   The bankroll venue picker loads Leaflet's marker pins from
+    //   unpkg.com, which style-src allows and img-src does not, so the pin
+    //   silently disappeared.
+    //
+    // None of that is reachable without signing in, which is why a sweep
+    // that never signed in reported zero. The directive goes back only when
+    // the signed-in surface is guarded AND measured, not before.
     const enforcedCsp = [
-      imgSrcDirective(),
       "object-src 'none'",
       "base-uri 'self'",
       "form-action 'self'",
