@@ -4,6 +4,7 @@
  */
 import React from 'react';
 import dynamic from 'next/dynamic';
+import { PokerNearMePanelShell } from './PokerNearMeConsole';
 
 const TourCard = dynamic(() => import('./TourCard'), { ssr: false });
 
@@ -114,11 +115,15 @@ export default function ToursTabPanel({
 
     return (
         <>
+            {/* The state filter and the result count are one filter bank, so they
+                sit in one painted well rather than floating as two loose rows on
+                black, the same way the Daily Tournaments bank above them does. */}
+            <PokerNearMePanelShell as="div" className="pnm-section__frame" bodyClassName="pnm-filter-well">
             {/* State Filter */}
-            <div style={{ display: 'flex', gap: 8, marginBottom: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+            <div className="pnm-filter-row">
                 <select value={tourStateVal}
                     onChange={(e) => setFilters(f => ({ ...f, hubTourState: e.target.value }))}
-                    className="sort-select" style={{ minWidth: 100 }}>
+                    className="sort-select pnm-state-select">
                     <option value="all">All States</option>
                     {/* Keep a persisted selection selectable even before tours load */}
                     {tourStateVal !== 'all' && !stateOptions.includes(tourStateVal) && (
@@ -132,6 +137,7 @@ export default function ToursTabPanel({
             <div className="results-bar">
                 <span className="results-count"><span style={{ color: '#ffffff', fontWeight: 800 }}>{filteredTours.length}</span> {filteredTours.length !== 1 ? 'tours' : 'tour'}</span>
             </div>
+            </PokerNearMePanelShell>
             {filteredTours.length === 0 ? (
                 <div className="empty-state">
                     <p>No Matching Tours</p>

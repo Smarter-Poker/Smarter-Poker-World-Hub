@@ -10,14 +10,20 @@
 import React, { useState, useMemo } from 'react';
 import { PokerNearMeConsoleIcon, PokerNearMePanelShell } from './PokerNearMeConsole';
 
+// The house schema is black, blue, teal, silver and white; yellow and orange
+// are not used. RGPS was orange and HPT was pink, so both move into the
+// schema: RGPS takes the house teal and HPT the house silver. The seven
+// swatches stay apart from one another at the 9px the legend draws them,
+// because each sits in a different band: white, red, blue, green, violet,
+// teal, silver.
 const TOUR_COLORS_MAP = {
     wsop: { bg: '#ffffff', text: '#000' },
     wpt: { bg: '#ef4444', text: '#fff' },
     mspt: { bg: '#3b82f6', text: '#fff' },
     bestbet: { bg: '#22c55e', text: '#000' },
     ept: { bg: '#8b5cf6', text: '#fff' },
-    rgps: { bg: '#f59e0b', text: '#000' },
-    hpt: { bg: '#ec4899', text: '#fff' },
+    rgps: { bg: '#22d3ee', text: '#000' },
+    hpt: { bg: '#94a3b8', text: '#000' },
     default: { bg: '#6b7280', text: '#fff' },
 };
 

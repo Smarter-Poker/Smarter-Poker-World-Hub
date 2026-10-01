@@ -41,6 +41,38 @@ const LIVE_REFRESH_MS = 2 * 60 * 1000; // 2 minutes
 const COLLAPSE_THRESHOLD = 5; // Show first N games, collapse rest
 const STALE_THRESHOLD_MS = 3 * 60 * 60 * 1000;
 
+/* Degraded-state palette.
+
+   The house schema is black, blue, teal, silver and white; yellow and orange
+   are not used. Every banner below used to be amber. They are rebuilt inside
+   the schema and stay apart from each other, and from the normal surface, by
+   weight and brightness rather than by hue:
+
+     CAUTION   loudest. Frost ink at full weight on an ion-lit well with a
+               bright edge, beside the warning glyph. Nothing else on the feed
+               is this bright, so it still reads as a warning.
+     ADVISORY  one step quieter, in teal: the data is usable but qualified.
+     (catalog) the quietest note on the feed keeps its muted silver inline.
+*/
+const LGF_CAUTION = {
+    ink: '#eaf6ff',
+    inkSoft: 'rgba(234,246,255,0.75)',
+    glyph: '#8fd4ff',
+    glyphSoft: 'rgba(143,212,255,0.6)',
+    well: 'rgba(53,189,244,0.1)',
+    wellSoft: 'rgba(53,189,244,0.08)',
+    edge: 'rgba(53,189,244,0.5)',
+    edgeSoft: 'rgba(53,189,244,0.24)',
+    glow: '0 2px 8px rgba(53,189,244,0.12)',
+    glowLift: '0 4px 12px rgba(53,189,244,0.14)',
+};
+const LGF_ADVISORY = {
+    ink: '#7fd9e6',
+    inkSoft: 'rgba(127,217,230,0.78)',
+    well: 'rgba(127,217,230,0.07)',
+    edge: 'rgba(127,217,230,0.26)',
+};
+
 // Skeleton loading
 const renderSkeletons = (count = 4) => (
     <div style={{ display: 'grid', gap: '12px', marginTop: '16px' }}>
@@ -107,9 +139,9 @@ function SourceBadge({ source, dataMode }) {
         return (
             <span style={{
                 fontSize: 12, letterSpacing: '0.3px',
-                color: 'rgba(245,158,11,0.95)',
-                background: 'rgba(245,158,11,0.12)',
-                border: '1px solid rgba(245,158,11,0.3)',
+                color: LGF_ADVISORY.ink,
+                background: LGF_ADVISORY.well,
+                border: `1px solid ${LGF_ADVISORY.edge}`,
                 padding: '2px 6px',
                 borderRadius: 4,
                 fontWeight: 800,
@@ -122,8 +154,8 @@ function SourceBadge({ source, dataMode }) {
     if (dataMode === 'mixed') {
         return (
             <span style={{
-                fontSize: 12, letterSpacing: '0.3px', color: '#fbbf24',
-                background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.3)',
+                fontSize: 12, letterSpacing: '0.3px', color: LGF_ADVISORY.inkSoft,
+                background: LGF_ADVISORY.well, border: `1px solid ${LGF_ADVISORY.edge}`,
                 padding: '2px 6px', borderRadius: 4, fontWeight: 800, textTransform: 'uppercase',
             }} title="Observed and modeled rows are shown together">
                 OBSERVED + ESTIMATED
@@ -863,7 +895,7 @@ function LiveGamesFeed({
         if (upper.includes('LIMIT') && !upper.includes('NO LIMIT')) return { bg: 'rgba(59,130,246,0.12)', color: '#60a5fa', border: 'rgba(59,130,246,0.22)' };
         if (upper.includes('MIXED') || upper.includes('HORSE') || upper.includes('8-GAME')) return { bg: 'rgba(6,182,212,0.12)', color: '#22d3ee', border: 'rgba(6,182,212,0.22)' };
         if (upper.includes('STUD')) return { bg: 'rgba(248,113,113,0.12)', color: '#f87171', border: 'rgba(248,113,113,0.22)' }; // Red for 7-Stud
-        if (upper.includes('BIG O')) return { bg: 'rgba(245,158,11,0.12)', color: '#fbbf24', border: 'rgba(245,158,11,0.22)' };
+        if (upper.includes('BIG O')) return { bg: 'rgba(148,163,184,0.12)', color: '#cbd5e1', border: 'rgba(148,163,184,0.22)' };
         return {};
     };
 
@@ -894,7 +926,7 @@ function LiveGamesFeed({
         const venueInitials = (v.name || '?').split(/[\s-]+/).map(w => w[0]).join('').toUpperCase().slice(0, 2);
         const trustScore = v.trust_score || 0;
         const trustPct = Math.round((trustScore / 5) * 100);
-        const trustColor = trustScore >= 4.5 ? '#22c55e' : trustScore >= 4.0 ? '#3b82f6' : trustScore >= 3.0 ? '#f59e0b' : '#ef4444';
+        const trustColor = trustScore >= 4.5 ? '#22c55e' : trustScore >= 4.0 ? '#3b82f6' : trustScore >= 3.0 ? '#94a3b8' : '#ef4444';
         const trustLabel = trustScore >= 4.5 ? 'Excellent' : trustScore >= 4.0 ? 'Good' : trustScore >= 3.0 ? 'Moderate' : 'Low';
         // Venue type border — full color frames per mockup
         const vType = (v.venue_type || '').toLowerCase();
@@ -902,7 +934,7 @@ function LiveGamesFeed({
         if (vType === 'casino') venueAccentColor = '#ffffff';
         else if (vType === 'poker_club' || vType === 'card_room') venueAccentColor = '#4ade80';
         else if (vType === 'charity') venueAccentColor = '#3b82f6';
-        else if (vType === 'home_game') venueAccentColor = '#f59e0b';
+        else if (vType === 'home_game') venueAccentColor = '#94a3b8';
         else if (['poker_tour', 'tour', 'tour_stop', 'series'].includes(vType)) venueAccentColor = '#ef4444';
         
         const venueBorder = `2px solid ${venueAccentColor}`;
@@ -1046,12 +1078,12 @@ function LiveGamesFeed({
                             </span>
                         ) : v._hasPublishedActivity && isModelled ? (
                             /* Modelled counts: no pulsing "live" dot, no "Running" claim. */
-                            <span style={{ padding: '3px 9px', borderRadius: 5, fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px', background: 'rgba(245,158,11,0.12)', color: '#f59e0b', border: '1px solid rgba(245,158,11,0.3)', display: 'inline-flex', alignItems: 'center', gap: 5 }}
+                            <span style={{ padding: '3px 9px', borderRadius: 5, fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px', background: LGF_ADVISORY.well, color: LGF_ADVISORY.ink, border: `1px solid ${LGF_ADVISORY.edge}`, display: 'inline-flex', alignItems: 'center', gap: 5 }}
                                 title="Modeled from qualified saved observations, not a current live report">
                                 {v.totalTables} {v.totalTables !== 1 ? 'Tables' : 'Table'} Estimated
                             </span>
                         ) : v._hasPublishedActivity && isMixed ? (
-                            <span style={{ padding: '3px 9px', borderRadius: 5, fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px', background: 'rgba(245,158,11,0.12)', color: '#fbbf24', border: '1px solid rgba(245,158,11,0.3)', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                            <span style={{ padding: '3px 9px', borderRadius: 5, fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px', background: LGF_ADVISORY.well, color: LGF_ADVISORY.inkSoft, border: `1px solid ${LGF_ADVISORY.edge}`, display: 'inline-flex', alignItems: 'center', gap: 5 }}>
                                 {v.totalTables} Tables Observed + Estimated
                             </span>
                         ) : v._isLive ? (
@@ -1071,7 +1103,7 @@ function LiveGamesFeed({
                             computed for every live venue in mergedVenues and then never rendered —
                             players_waiting only surfaced inside the collapsed per-game breakdown. */}
                         {v._isLive && v.totalWait > 0 && (
-                            <span style={{ padding: '3px 9px', borderRadius: 5, fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px', background: 'rgba(245,158,11,0.12)', color: '#f59e0b', border: '1px solid rgba(245,158,11,0.3)' }}>
+                            <span style={{ padding: '3px 9px', borderRadius: 5, fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px', background: 'rgba(255,255,255,0.1)', color: '#ffffff', border: '1px solid rgba(255,255,255,0.3)' }}>
                                 {v.totalWait} Waiting{v.waitEstimate && v.waitEstimate.label ? ` - ${v.waitEstimate.label}` : ''}
                             </span>
                         )}
@@ -1085,7 +1117,7 @@ function LiveGamesFeed({
                         )}
 
                         {!v._hasPublishedActivity && !isCatalog && (
-                            <span style={{ padding: '3px 9px', borderRadius: 5, fontSize: 12, fontWeight: 700, background: 'rgba(245,158,11,0.1)', color: '#f59e0b', border: '1px solid rgba(245,158,11,0.2)', textTransform: 'uppercase' }}>
+                            <span style={{ padding: '3px 9px', borderRadius: 5, fontSize: 12, fontWeight: 700, background: LGF_ADVISORY.well, color: LGF_ADVISORY.ink, border: `1px solid ${LGF_ADVISORY.edge}`, textTransform: 'uppercase' }}>
                                 {v.is_stale
                                     ? 'No Current Data'
                                     : v.data_mode === 'live'
@@ -1198,9 +1230,9 @@ function LiveGamesFeed({
                     {v.last_updated && (() => {
                         const staleInfo = isStaleData(v.last_updated);
                         return (
-                            <div style={{ marginTop: 6, fontSize: 12, color: staleInfo.stale ? 'rgba(245,158,11,0.6)' : 'rgba(200,214,229,0.25)', textAlign: 'right', display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 6 }}
+                            <div style={{ marginTop: 6, fontSize: 12, color: staleInfo.stale ? LGF_CAUTION.inkSoft : 'rgba(200,214,229,0.25)', textAlign: 'right', display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 6 }}
                                 title={new Date(v.last_updated).toLocaleString()}>
-                                {staleInfo.stale && (<span style={{ fontSize: 12, padding: '1px 5px', borderRadius: 3, background: 'rgba(245,158,11,0.1)', color: '#f59e0b', border: '1px solid rgba(245,158,11,0.2)', fontWeight: 700, textTransform: 'uppercase' }}>STALE</span>)}
+                                {staleInfo.stale && (<span style={{ fontSize: 12, padding: '1px 5px', borderRadius: 3, background: LGF_CAUTION.well, color: LGF_CAUTION.ink, border: `1px solid ${LGF_CAUTION.edge}`, fontWeight: 700, textTransform: 'uppercase' }}>STALE</span>)}
                                 Updated {staleInfo.age}
                             </div>
                         );
@@ -1285,24 +1317,24 @@ function LiveGamesFeed({
             {isScraperDead && !selectedVenue && (
                 <div style={{
                     margin: '0 16px 12px', padding: '10px 16px', borderRadius: 10,
-                    background: 'rgba(245,158,11,0.07)', border: '1px solid rgba(245,158,11,0.25)',
+                    background: LGF_CAUTION.well, border: `1px solid ${LGF_CAUTION.edge}`,
                     display: 'flex', alignItems: 'center', gap: 12,
-                    boxShadow: '0 2px 8px rgba(245,158,11,0.08)'
+                    boxShadow: LGF_CAUTION.glow
                 }}>
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2.5" style={{ flexShrink: 0 }}>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={LGF_CAUTION.glyph} strokeWidth="2.5" style={{ flexShrink: 0 }}>
                         <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
                         <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
                     </svg>
                     <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: 12, fontWeight: 700, color: '#f59e0b' }}>Using Cached Data - Intelligence Engines Are Syncing</div>
-                        <div style={{ fontSize: 12, color: 'rgba(245,158,11,0.7)', marginTop: 1 }}>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: LGF_CAUTION.ink }}>Using Cached Data - Intelligence Engines Are Syncing</div>
+                        <div style={{ fontSize: 12, color: LGF_CAUTION.inkSoft, marginTop: 1 }}>
                             Live Scrapers Are Temporarily Offline. Last-Known Rows Remain Visible With Freshness Labels.
                         </div>
                     </div>
                     <button
                         onClick={() => fetchGlobalLiveData(true)}
                         disabled={isRefreshing}
-                        style={{ flexShrink: 0, background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.3)', borderRadius: 7, padding: '5px 10px', color: '#f59e0b', fontSize: 12, fontWeight: 700, cursor: isRefreshing ? 'wait' : 'pointer', fontFamily: 'inherit' }}
+                        style={{ flexShrink: 0, background: LGF_CAUTION.well, border: `1px solid ${LGF_CAUTION.edge}`, borderRadius: 7, padding: '5px 10px', color: LGF_CAUTION.ink, fontSize: 12, fontWeight: 700, cursor: isRefreshing ? 'wait' : 'pointer', fontFamily: 'inherit' }}
                     >
                         {isRefreshing ? 'Retrying...' : 'Retry'}
                     </button>
@@ -1317,17 +1349,17 @@ function LiveGamesFeed({
             {(globalStats.dataMode === 'estimated' || globalStats.dataMode === 'mixed') && !selectedVenue && (
                 <div style={{
                     margin: '0 16px 12px', padding: '10px 16px', borderRadius: 10,
-                    background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.22)',
+                    background: LGF_ADVISORY.well, border: `1px solid ${LGF_ADVISORY.edge}`,
                     display: 'flex', alignItems: 'center', gap: 12,
                 }}>
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2.5" style={{ flexShrink: 0 }}>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={LGF_ADVISORY.ink} strokeWidth="2.5" style={{ flexShrink: 0 }}>
                         <circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" />
                     </svg>
                     <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: 12, fontWeight: 700, color: '#f59e0b' }}>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: LGF_ADVISORY.ink }}>
                             {globalStats.dataMode === 'estimated' ? 'Estimated Table Counts' : 'Some Table Counts Are Estimated'}
                         </div>
-                        <div style={{ fontSize: 12, color: 'rgba(245,158,11,0.75)', marginTop: 1 }}>
+                        <div style={{ fontSize: 12, color: LGF_ADVISORY.inkSoft, marginTop: 1 }}>
                             Cards Marked ESTIMATED Use Qualified Saved Observations, Not A Current Live Report.
                         </div>
                     </div>
@@ -1348,17 +1380,17 @@ function LiveGamesFeed({
             {isDataStale && !isScraperDead && !selectedVenue && (
                 <div style={{
                     margin: '0 16px 16px', padding: '12px 16px', borderRadius: 10,
-                    background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.3)',
+                    background: LGF_CAUTION.wellSoft, border: `1px solid ${LGF_CAUTION.edge}`,
                     display: 'flex', alignItems: 'center', gap: 12,
-                    boxShadow: '0 4px 12px rgba(245,158,11,0.1)'
+                    boxShadow: LGF_CAUTION.glowLift
                 }}>
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2.5">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={LGF_CAUTION.glyph} strokeWidth="2.5">
                         <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
                         <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
                     </svg>
                     <div>
-                        <div style={{ fontSize: 13, fontWeight: 700, color: '#f59e0b' }}>Live Data May Be Outdated</div>
-                        <div style={{ fontSize: 12, color: 'rgba(245,158,11,0.8)', marginTop: 2 }}>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: LGF_CAUTION.ink }}>Live Data May Be Outdated</div>
+                        <div style={{ fontSize: 12, color: LGF_CAUTION.inkSoft, marginTop: 2 }}>
                             Last Network Sync: {globalStats.lastScrape ? timeAgo(globalStats.lastScrape) : 'Unknown'}. Intelligence Engines May Be Experiencing Delays.
                         </div>
                     </div>
@@ -1441,13 +1473,13 @@ function LiveGamesFeed({
                         {mergedVenues.length === 0 ? (
                             isScraperDead ? (
                                 // ── SCRAPER DEAD + NO CACHED DATA: show warm placeholder, never a hard "no games" ──
-                                <div style={{ textAlign: 'center', padding: 40, background: 'rgba(13,17,23,0.6)', borderRadius: 16, border: '1px dashed rgba(245,158,11,0.2)' }}>
-                                    <div style={{ width: 64, height: 64, borderRadius: 32, background: 'rgba(245,158,11,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
-                                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="rgba(245,158,11,0.6)" strokeWidth="1.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                                <div style={{ textAlign: 'center', padding: 40, background: 'rgba(13,17,23,0.6)', borderRadius: 16, border: `1px dashed ${LGF_CAUTION.edgeSoft}` }}>
+                                    <div style={{ width: 64, height: 64, borderRadius: 32, background: LGF_CAUTION.wellSoft, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+                                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke={LGF_CAUTION.glyphSoft} strokeWidth="1.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
                                     </div>
-                                    <p style={{ fontSize: 16, fontWeight: 700, color: '#f59e0b', margin: '0 0 4px' }}>Intelligence Engines Are Syncing</p>
-                                    <p style={{ fontSize: 13, color: 'rgba(245,158,11,0.6)', marginBottom: 16 }}>Live Game Data Is Being Refreshed. Check Back In A Few Minutes.</p>
-                                    <button onClick={() => fetchGlobalLiveData(true)} disabled={isRefreshing} style={{ padding: '10px 20px', borderRadius: 10, background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.3)', color: '#f59e0b', fontSize: 13, fontWeight: 700, cursor: isRefreshing ? 'wait' : 'pointer', fontFamily: 'inherit' }}>
+                                    <p style={{ fontSize: 16, fontWeight: 700, color: LGF_CAUTION.ink, margin: '0 0 4px' }}>Intelligence Engines Are Syncing</p>
+                                    <p style={{ fontSize: 13, color: LGF_CAUTION.inkSoft, marginBottom: 16 }}>Live Game Data Is Being Refreshed. Check Back In A Few Minutes.</p>
+                                    <button onClick={() => fetchGlobalLiveData(true)} disabled={isRefreshing} style={{ padding: '10px 20px', borderRadius: 10, background: LGF_CAUTION.well, border: `1px solid ${LGF_CAUTION.edge}`, color: LGF_CAUTION.ink, fontSize: 13, fontWeight: 700, cursor: isRefreshing ? 'wait' : 'pointer', fontFamily: 'inherit' }}>
                                         {isRefreshing ? 'Retrying...' : 'Retry Now'}
                                     </button>
                                 </div>
@@ -1608,16 +1640,16 @@ class LiveGamesFeedErrorBoundary extends React.Component {
     render() {
         if (!this.state.hasError) return this.props.children;
         return (
-            <div style={{ padding: '40px 20px', textAlign: 'center', background: 'rgba(13,17,23,0.8)', borderRadius: 16, border: '1px solid rgba(245,158,11,0.2)', margin: '0 16px' }}>
-                <div style={{ width: 56, height: 56, borderRadius: 28, background: 'rgba(245,158,11,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px' }}>
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2">
+            <div style={{ padding: '40px 20px', textAlign: 'center', background: 'rgba(13,17,23,0.8)', borderRadius: 16, border: `1px solid ${LGF_CAUTION.edgeSoft}`, margin: '0 16px' }}>
+                <div style={{ width: 56, height: 56, borderRadius: 28, background: LGF_CAUTION.wellSoft, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px' }}>
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={LGF_CAUTION.glyph} strokeWidth="2">
                         <path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0115-6.7L21 8"/>
                         <path d="M3 22v-6h6"/><path d="M21 12a9 9 0 01-15 6.7L3 16"/>
                     </svg>
                 </div>
-                <div style={{ fontSize: 16, fontWeight: 700, color: '#f59e0b', marginBottom: 6 }}>Intelligence Engines Syncing</div>
-                <div style={{ fontSize: 12, color: 'rgba(245,158,11,0.65)', marginBottom: 20 }}>Live Data Is Refreshing. Retrying Automatically...</div>
-                <button onClick={() => this.setState({ hasError: false })} style={{ padding: '9px 20px', borderRadius: 10, fontSize: 13, fontWeight: 700, background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.3)', color: '#f59e0b', cursor: 'pointer', fontFamily: 'inherit' }}>Retry Now</button>
+                <div style={{ fontSize: 16, fontWeight: 700, color: LGF_CAUTION.ink, marginBottom: 6 }}>Intelligence Engines Syncing</div>
+                <div style={{ fontSize: 12, color: LGF_CAUTION.inkSoft, marginBottom: 20 }}>Live Data Is Refreshing. Retrying Automatically...</div>
+                <button onClick={() => this.setState({ hasError: false })} style={{ padding: '9px 20px', borderRadius: 10, fontSize: 13, fontWeight: 700, background: LGF_CAUTION.well, border: `1px solid ${LGF_CAUTION.edge}`, color: LGF_CAUTION.ink, cursor: 'pointer', fontFamily: 'inherit' }}>Retry Now</button>
             </div>
         );
     }
