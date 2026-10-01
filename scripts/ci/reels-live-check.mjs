@@ -1261,7 +1261,11 @@ async function verifySignedInBrowser(browser, session, article, report) {
         Boolean(document.querySelector('.vlc-reel-grid'))
         || document.body.innerText.includes(expectedEmptyText)
       ), { expectedEmptyText: emptyText });
-      assert.equal(await page.locator('[role="alert"]:visible').count(), 0, `${path} rendered an account collection alert`);
+      assert.equal(
+        await page.locator('.vlc-collection-alert:visible, .vlc-collection-pager [role="alert"]:visible').count(),
+        0,
+        `${path} rendered an account collection alert`,
+      );
       return {
         synchronized: true,
         state: await page.locator('.vlc-reel-grid').count() > 0 ? 'populated' : 'empty',

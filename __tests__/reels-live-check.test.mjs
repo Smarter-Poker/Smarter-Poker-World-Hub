@@ -123,6 +123,7 @@ test('ordinary article live proof is scoped to the requested post and its reader
   assert.match(ARTICLE_READER, /role="dialog"[\s\S]*aria-label="Article Reader"/);
   assert.match(REELS_LIVE_CHECK, /page\.getByText\(\/Click To Read Full Article\/i\)\.filter\(\{ visible: true \}\)/);
   assert.match(REELS_LIVE_CHECK, /page\.getByRole\('dialog', \{ name: 'Article Reader' \}\)/);
+  assert.match(REELS_LIVE_CHECK, /\.vlc-collection-alert:visible, \.vlc-collection-pager \[role="alert"\]:visible/);
 });
 
 function page(data, {
