@@ -104,13 +104,15 @@ test('VIP purchases use one database transaction for debit and entitlement exten
   );
 });
 
-test('Printful webhook secrets are header-only and fulfillment writes are checked', async () => {
+test('Printful webhooks use signed raw-body headers and fulfillment writes are checked', async () => {
   const [webhook, purchase] = await Promise.all([
     readFile(new URL('../pages/api/store/webhooks/printful.js', import.meta.url), 'utf8'),
     readFile(new URL('../pages/api/store/purchase-with-diamonds.js', import.meta.url), 'utf8'),
   ]);
 
   assert.doesNotMatch(webhook, /req\.query\.secret/);
-  assert.match(webhook, /x-smarter-poker-webhook-secret/);
+  assert.match(webhook, /x-pf-webhook-signature/);
+  assert.match(webhook, /x-pf-webhook-public-key/);
+  assert.match(webhook, /createHmac\('sha256'/);
   assert.match(purchase, /provider state update matched zero orders/i);
 });

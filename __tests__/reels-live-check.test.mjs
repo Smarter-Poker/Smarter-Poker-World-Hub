@@ -20,6 +20,7 @@ import {
 const REELS_FEED_SERVER = readFileSync(new URL('../src/lib/server/reelsFeed.js', import.meta.url), 'utf8');
 const REELS_LIVE_CHECK = readFileSync(new URL('../scripts/ci/reels-live-check.mjs', import.meta.url), 'utf8');
 const E2E_WORKFLOW = readFileSync(new URL('../.github/workflows/e2e-tests.yml', import.meta.url), 'utf8');
+const ARTICLE_READER = readFileSync(new URL('../src/components/social/ArticleReaderModal.jsx', import.meta.url), 'utf8');
 
 const OWNER = '11111111-1111-4111-8111-111111111111';
 const POST = '22222222-2222-4222-8222-222222222222';
@@ -103,6 +104,25 @@ test('hostile-drop proof isolates route failure from native codec fallback', () 
     ], embed.id),
     null,
   );
+});
+
+test('public mobile proof counts each media DOM node once inside the standalone Reels viewer', () => {
+  assert.match(
+    REELS_LIVE_CHECK,
+    /const players = page\s*\.locator\('main'\)\s*\.locator\('iframe\[src\*="youtube-nocookie\.com\/embed\/"\], video'\);/,
+    'nested accessible labels and global picture-in-picture must not double-count a Reel player',
+  );
+  assert.match(
+    REELS_LIVE_CHECK,
+    /page\.waitForFunction\(\(\) => \(\s*document\.querySelectorAll\('main iframe\[src\*="youtube-nocookie\.com\/embed\/"\], main video'\)\.length === 1\s*\)\);/,
+    'the hostile transition must settle to exactly one viewer player before its final assertion',
+  );
+});
+
+test('ordinary article live proof is scoped to the requested post and its reader dialog', () => {
+  assert.match(ARTICLE_READER, /role="dialog"[\s\S]*aria-label="Article Reader"/);
+  assert.match(REELS_LIVE_CHECK, /page\.getByText\(\/Click To Read Full Article\/i\)\.filter\(\{ visible: true \}\)/);
+  assert.match(REELS_LIVE_CHECK, /page\.getByRole\('dialog', \{ name: 'Article Reader' \}\)/);
 });
 
 function page(data, {
@@ -222,9 +242,9 @@ test('horse Reels resolve ordinary player profiles, including maintained zero-ve
   const attachProfiles = REELS_FEED_SERVER.match(/async function attachProfiles[\s\S]*?(?=\nasync function readPage)/)?.[0] || '';
   assert.match(attachProfiles, /PERSISTED_UUID_RE\.test\(String\(id \|\| ''\)\)/);
   assert.doesNotMatch(attachProfiles, /filter\(id => UUID_RE\.test/);
-  const followedAuthors = REELS_FEED_SERVER.match(/async function readFollowedCandidateAuthorIds[\s\S]*?(?=\nasync function loadEligibilityContext)/)?.[0] || '';
-  assert.match(followedAuthors, /candidateAuthorIds\.filter\(id => PERSISTED_UUID_RE\.test/);
-  assert.match(followedAuthors, /filter\(id => PERSISTED_UUID_RE\.test\(id\)\)/);
+  const followedAuthors = REELS_FEED_SERVER.match(/async function readAllFollowedAuthorIds[\s\S]*?(?=\nasync function loadEligibilityContext)/)?.[0] || '';
+  assert.match(followedAuthors, /PERSISTED_UUID_RE\.test\(followingId\)/,
+    'persisted followed authors may include maintained zero-version database UUIDs');
   assert.match(followedAuthors, /if \(!UUID_RE\.test\(String\(viewerId \|\| ''\)\)\)/,
     'caller-controlled viewer identity must remain strict');
   assert.match(REELS_FEED_SERVER, /const UUID_RE = \/\^\[0-9a-f\]\{8\}-\[0-9a-f\]\{4\}-\[1-5\]/,
@@ -308,6 +328,11 @@ test('all eleven SUP-07 aliases stay pinned to four canonical winners and source
     assert.match(migration, new RegExp(alias.post));
     assert.match(migration, new RegExp(alias.key));
   }
+  assert.match(
+    REELS_LIVE_CHECK,
+    /const expectedPostTopic = index === 3 \? 'unknown' : 'poker';[\s\S]*post\.topics\[0\] === expectedPostTopic/,
+    'the authoritative verifier must honor the normalized topics array for the legacy group',
+  );
 });
 
 test('My and Saved crawlers remain owner-bound, canonical, complete, and read-only', async () => {
@@ -492,6 +517,13 @@ test('workflow retains and independently asserts the complete sanitized receipt'
         .update(SUP07_ALIASES.map(alias => `${alias.reference}:${alias.winner}:${alias.key}`).join('|'))
         .digest('hex')
         .slice(0, 16),
+    },
+    aliasState: {
+      reelsRead: 7,
+      postsRead: 4,
+      reelFailures: [],
+      postFailures: [],
+      storageObjectsProven: 4,
     },
     accountCollections: { mine: collection, saved: collection },
     checks: [...REQUIRED_RECEIPT_CHECKS],

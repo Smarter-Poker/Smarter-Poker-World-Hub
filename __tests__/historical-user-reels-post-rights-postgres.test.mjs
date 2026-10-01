@@ -17,6 +17,10 @@ const followup = readFileSync(
   new URL('../supabase/migrations/20260927154600_restore_historical_user_reel_post_rights.sql', import.meta.url),
   'utf8',
 );
+const ambiguousCorrection = readFileSync(
+  new URL('../supabase/migrations/20261001182000_restore_ambiguous_user_reel_post_rights.sql', import.meta.url),
+  'utf8',
+);
 const foundation = readFileSync(
   new URL('../supabase/migrations/20260906235959_video_reels_integrity_foundation.sql', import.meta.url),
   'utf8',
@@ -54,6 +58,14 @@ const rollback = (() => {
   const begin = lines.findIndex(line => line === '-- BEGIN;');
   const end = lines.findIndex((line, index) => index >= begin && line === '-- COMMIT;');
   assert.ok(begin >= 0 && end > begin, 'the executable rollback must remain embedded in the migration');
+  return lines.slice(begin, end + 1).map(line => line.replace(/^-- ?/, '')).join('\n');
+})();
+
+const ambiguousRollback = (() => {
+  const lines = ambiguousCorrection.slice(ambiguousCorrection.indexOf('-- ROLLBACK')).split('\n');
+  const begin = lines.findIndex(line => line === '-- BEGIN;');
+  const end = lines.findIndex((line, index) => index >= begin && line === '-- COMMIT;');
+  assert.ok(begin >= 0 && end > begin, 'the ambiguous correction rollback must remain executable');
   return lines.slice(begin, end + 1).map(line => line.replace(/^-- ?/, '')).join('\n');
 })();
 
@@ -319,6 +331,32 @@ async function installPostPredecessorState(db) {
   `);
 }
 
+async function installAmbiguousLiveDrift(db) {
+  await installPostPredecessorState(db);
+  await db.query(followup);
+  await db.query(`
+    INSERT INTO supabase_migrations.schema_migrations(version, name)
+    VALUES ('20260927174555', 'restore_historical_user_reel_post_rights')
+  `);
+  await db.query(`
+    UPDATE public.social_posts
+    SET topics = ARRAY['unknown']::text[]
+    WHERE id = '14f549d1-8079-436f-8c4e-c42ec0432de5'
+  `);
+  await db.query(`
+    INSERT INTO supabase_migrations.schema_migrations(version, name)
+    VALUES
+      ('20260930182441', '20260930170100_social_post_topics_rule'),
+      ('20260930182606', '20260930170200_social_post_topics_backfill')
+  `);
+  const drift = await db.query(`
+    SELECT topic, topics, rights_status
+    FROM public.social_posts
+    WHERE id = '14f549d1-8079-436f-8c4e-c42ec0432de5'
+  `);
+  assert.deepEqual(drift.rows, [{ topic: 'unknown', topics: ['unknown'], rights_status: 'unknown' }]);
+}
+
 test('PostgreSQL 17 proves the SUP-07 trigger regression, forward repair, rollback, and refusal paths', async t => {
   const bin = pg17Bin();
   assert.ok(bin, 'PostgreSQL 17 is required; migration behavior must not silently skip');
@@ -383,6 +421,105 @@ test('PostgreSQL 17 proves the SUP-07 trigger regression, forward repair, rollba
       assert.ok(rolledBack.posts.filter(row => POST_IDS.includes(row.id)).every(row => row.rights_status === 'unknown'));
       assert.deepEqual(rolledBack.posts.map(row => row.immutable), repaired.posts.map(row => row.immutable));
       assert.deepEqual(rolledBack.reels, repaired.reels);
+    });
+
+    await t.test('ambiguous live drift repairs only rights and refuses replay atomically', async () => {
+      const db = await createDatabase('ambiguous_chain');
+      await installAmbiguousLiveDrift(db);
+      const before = await state(db);
+
+      await db.query(ambiguousCorrection);
+      const repaired = await state(db);
+      const repairedPost = repaired.posts.find(row => row.id === ALL_POST_IDS[0]);
+      assert.equal(repairedPost.rights_status, 'user_authorized');
+      assert.deepEqual(repaired.posts.map(row => row.immutable), before.posts.map(row => row.immutable));
+      assert.deepEqual(repaired.reels, before.reels);
+
+      await assert.rejects(
+        db.query(ambiguousCorrection),
+        error => /exact source-post state drifted/.test(error.message),
+      );
+      await db.query('ROLLBACK');
+      assert.deepEqual(await state(db), repaired, 'a refused corrective replay must leave every row byte-stable');
+
+      await db.query(ambiguousRollback);
+      assert.deepEqual(
+        await state(db),
+        before,
+        'rollback must restore rights to unknown without changing any other post or Reel byte',
+      );
+
+      const rolledBack = await state(db);
+      await assert.rejects(
+        db.query(ambiguousRollback),
+        error => /exact corrected state drifted/.test(error.message),
+      );
+      await db.query('ROLLBACK');
+      assert.deepEqual(await state(db), rolledBack, 'a refused rollback replay must be atomic');
+    });
+
+    await t.test('ambiguous rollback refuses unexpected corrected-state drift atomically', async () => {
+      const db = await createDatabase('ambiguous_rollback_drift');
+      await installAmbiguousLiveDrift(db);
+      await db.query(ambiguousCorrection);
+      await db.query(`
+        ALTER TABLE public.social_posts DISABLE TRIGGER trg_social_posts_video_contract_defaults;
+        UPDATE public.social_posts
+        SET canonical_asset_key = 'native:wrong'
+        WHERE id = '14f549d1-8079-436f-8c4e-c42ec0432de5';
+        ALTER TABLE public.social_posts ENABLE TRIGGER trg_social_posts_video_contract_defaults;
+      `);
+      const before = await state(db);
+      await assert.rejects(
+        db.query(ambiguousRollback),
+        error => /exact corrected state drifted/.test(error.message),
+      );
+      await db.query('ROLLBACK');
+      assert.deepEqual(await state(db), before, 'rollback drift refusal must be atomic');
+    });
+
+    await t.test('ambiguous correction refuses unexpected post drift atomically', async () => {
+      const mutations = [
+        ["content = content || ':later-edit'", 'content'],
+        ["canonical_asset_key = 'native:wrong'", 'canonical key'],
+        ["rights_status = 'user_authorized'", 'rights'],
+        ["topics = ARRAY['poker']::text[]", 'topics'],
+      ];
+      for (const [mutation, label] of mutations) {
+        const db = await createDatabase(`ambiguous_${label.replace(' ', '_')}`);
+        await installAmbiguousLiveDrift(db);
+        await db.query(`
+          ALTER TABLE public.social_posts DISABLE TRIGGER trg_social_posts_video_contract_defaults;
+          UPDATE public.social_posts SET ${mutation}
+          WHERE id = '14f549d1-8079-436f-8c4e-c42ec0432de5';
+          ALTER TABLE public.social_posts ENABLE TRIGGER trg_social_posts_video_contract_defaults;
+        `);
+        const before = await state(db);
+        await assert.rejects(
+          db.query(ambiguousCorrection),
+          error => /exact source-post state drifted/.test(error.message),
+          `${label} drift must be refused`,
+        );
+        await db.query('ROLLBACK');
+        assert.deepEqual(await state(db), before, `${label} refusal must be atomic`);
+      }
+    });
+
+    await t.test('ambiguous correction refuses a missing owned Storage object atomically', async () => {
+      const db = await createDatabase('ambiguous_storage');
+      await installAmbiguousLiveDrift(db);
+      await db.query(`
+        DELETE FROM storage.objects
+        WHERE bucket_id = 'live-recordings'
+          AND name = '${OWNER}/9e32239c-beb7-4d3d-85d9-e3cb862d6e32.webm'
+      `);
+      const before = await state(db);
+      await assert.rejects(
+        db.query(ambiguousCorrection),
+        error => /owned Storage object was not proven/.test(error.message),
+      );
+      await db.query('ROLLBACK');
+      assert.deepEqual(await state(db), before);
     });
 
     await t.test('missing, disabled, predicate-bound, body-drifted, column-drifted, event-drifted, and rewired triggers fail closed', async () => {

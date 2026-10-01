@@ -3051,6 +3051,9 @@ export default function ReelsPage({ reelsListing = null }) {
   }
 
   const videoId = getYouTubeVideoId(currentReel?.video_url);
+  const youtubeEmbedSrc = videoId
+    ? `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=${preferencesLoaded && preferences.autoplay ? 1 : 0}&mute=1&controls=1&rel=0&playsinline=1&enablejsapi=1&origin=${encodeURIComponent(typeof window !== 'undefined' ? window.location.origin : 'https://smarter.poker')}&widget_referrer=${encodeURIComponent(typeof window !== 'undefined' ? window.location.origin : 'https://smarter.poker')}&iv_load_policy=3&fs=1&cc_load_policy=${preferences.showCaptions ? 1 : 0}`
+    : null;
   const handleNativeVideoMetadata = (event) => {
     const duration = Number(event.currentTarget?.duration);
     // Some synthetic health checks announce metadata before their final
@@ -3190,12 +3193,21 @@ export default function ReelsPage({ reelsListing = null }) {
             <iframe
               ref={iframeRef}
               key="yt-player-persistent"
-              src={`https://www.youtube-nocookie.com/embed/${videoId}?autoplay=${preferencesLoaded && preferences.autoplay ? 1 : 0}&mute=1&controls=1&rel=0&playsinline=1&enablejsapi=1&origin=${encodeURIComponent(typeof window !== 'undefined' ? window.location.origin : 'https://smarter.poker')}&widget_referrer=${encodeURIComponent(typeof window !== 'undefined' ? window.location.origin : 'https://smarter.poker')}&iv_load_policy=3&fs=1&cc_load_policy=${preferences.showCaptions ? 1 : 0}`}
+              src={youtubeEmbedSrc}
               title={`${currentTopicLabel} Reel From ${currentSourceName}`}
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
               allowFullScreen
               referrerPolicy="strict-origin-when-cross-origin"
               onLoad={(e) => {
+                // A failed shallow channel transition can make Chromium
+                // self-navigate the retained iframe to about:blank. React
+                // still owns the same Reel and therefore does not rewrite an
+                // unchanged src prop. Restore the exact verified embed on the
+                // blank load without replacing the player or changing index.
+                if (e.currentTarget.getAttribute('src') === 'about:blank' && youtubeEmbedSrc) {
+                  e.currentTarget.src = youtubeEmbedSrc;
+                  return;
+                }
                 // BUG FIX: With key="yt-player-persistent" this onLoad fires ONCE at
                 // mount (not on every reel swipe). Establish the postMessage API bridge
                 // here; subsequent video switches go through loadVideoById in the

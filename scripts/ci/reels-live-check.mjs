@@ -76,24 +76,28 @@ const SUP07_GROUPS = Object.freeze([
     loser: '2cb727a7-aee1-4e33-975c-db31bc587aea',
     post: '7f85c90e-057f-4784-9ff6-39f16c76aa78',
     key: 'native:7726a4055b7753f1b8306349ce6419bd',
+    videoUrl: 'https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/social-media/videos/47965354-0e56-43ef-931c-ddaab82af765/1778431224994_vg2sab_IMG_8637.mp4',
   }),
   Object.freeze({
     winner: '0ac10eae-0380-4836-be80-759ce93ee878',
     loser: '46747b18-3e80-4975-abad-09c41e091155',
     post: '5cab43ba-cb10-4043-955f-63415e755e63',
     key: 'native:5bde286bd5cdae63943270adcd7052b5',
+    videoUrl: 'https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/social-media/videos/47965354-0e56-43ef-931c-ddaab82af765/1778253164336_j1hq8z_IMG_8650.mp4',
   }),
   Object.freeze({
     winner: '8e87782d-dec1-4a54-aab9-1251df417b92',
     loser: '31dc2cba-a031-4b6c-9530-168fe080e118',
     post: '61a5aaa3-0ee7-4003-8af3-c4e64e240078',
     key: 'native:6e9a7279c927086f2807818e63db935f',
+    videoUrl: 'https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/social-media/videos/47965354-0e56-43ef-931c-ddaab82af765/1778253042728_lbgtfe_IMG_8652.mp4',
   }),
   Object.freeze({
     winner: '9f65fa3e-9023-4697-8b15-c8f5c4c1c82f',
     loser: null,
     post: '14f549d1-8079-436f-8c4e-c42ec0432de5',
     key: 'native:504c25ca805a2d6caf36cba72ae93b92',
+    videoUrl: 'https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/live-recordings/47965354-0e56-43ef-931c-ddaab82af765/9e32239c-beb7-4d3d-85d9-e3cb862d6e32.webm',
   }),
 ]);
 
@@ -205,6 +209,7 @@ export function validateConfiguration(env) {
     'TEST_USER_PASSWORD',
     'NEXT_PUBLIC_SUPABASE_URL',
     'NEXT_PUBLIC_SUPABASE_ANON_KEY',
+    'SUPABASE_SERVICE_ROLE_KEY',
     'REELS_EXPECTED_SHA',
   ]) {
     assert.ok(env[name]?.trim(), `${name} is required; no credential or revision fallback is allowed`);
@@ -793,6 +798,98 @@ async function verifySup07Aliases() {
   };
 }
 
+async function readSup07AuthoritativeState(admin) {
+  const reelIds = [...new Set(SUP07_ALIASES.map((alias) => alias.winner).concat(
+    SUP07_ALIASES.map((alias) => alias.loser).filter(Boolean),
+  ))];
+  const postIds = [...new Set(SUP07_ALIASES.map((alias) => alias.post))];
+  const [reelsResult, postsResult] = await Promise.all([
+    admin.from('social_reels').select(
+      'id,author_id,source_post_id,video_url,is_public,is_deleted,source_type,playback_type,origin_type,rights_status,media_status,topic,canonical_asset_key,source_asset_id,publication_key,source_story_id,youtube_video_id,native_processing_requested',
+    ).in('id', reelIds),
+    admin.from('social_posts').select(
+      'id,author_id,content_type,media_urls,visibility,audience_mode,is_flagged,is_deleted,origin_type,playback_type,rights_status,topic,topics,canonical_asset_key,source_asset_id,youtube_video_id,publication_key',
+    ).in('id', postIds),
+  ]);
+  assert.ifError(reelsResult.error);
+  assert.ifError(postsResult.error);
+  const reels = new Map((reelsResult.data || []).map((row) => [row.id, row]));
+  const posts = new Map((postsResult.data || []).map((row) => [row.id, row]));
+  const reelFailures = [];
+  const postFailures = [];
+  const candidates = [];
+  for (const [index, group] of SUP07_GROUPS.entries()) {
+    const expectedTopic = index === 3 ? 'unknown' : 'poker';
+    const groupRows = [group.winner, group.loser].filter(Boolean);
+    for (const id of groupRows) {
+      const row = reels.get(id);
+      const failed = [];
+      const expected = {
+        source_post_id: group.post,
+        video_url: group.videoUrl,
+        is_public: true,
+        is_deleted: false,
+        source_type: 'native',
+        playback_type: 'native',
+        origin_type: 'social_post',
+        rights_status: 'user_authorized',
+        media_status: 'ready',
+        topic: expectedTopic,
+        canonical_asset_key: group.key,
+        source_asset_id: null,
+        publication_key: null,
+        source_story_id: null,
+        youtube_video_id: null,
+        native_processing_requested: false,
+      };
+      if (!row) failed.push('missing');
+      else for (const [field, value] of Object.entries(expected)) {
+        if (row[field] !== value) failed.push(field);
+      }
+      if (failed.length) reelFailures.push({ group: index + 1, kind: id === group.winner ? 'winner' : 'loser', fields: failed });
+    }
+    const post = posts.get(group.post);
+    const expectedPost = {
+      author_id: reels.get(group.winner)?.author_id,
+      content_type: 'video',
+      visibility: 'public',
+      audience_mode: null,
+      is_flagged: false,
+      is_deleted: false,
+      origin_type: 'legacy',
+      playback_type: 'native',
+      rights_status: 'user_authorized',
+      topic: expectedTopic,
+      canonical_asset_key: group.key,
+      source_asset_id: null,
+      youtube_video_id: null,
+      publication_key: null,
+    };
+    const failed = [];
+    if (!post) failed.push('missing');
+    else {
+      for (const [field, value] of Object.entries(expectedPost)) {
+        if (post[field] !== value) failed.push(field);
+      }
+      if (!Array.isArray(post.media_urls) || post.media_urls.length !== 1 || post.media_urls[0] !== group.videoUrl) failed.push('media_urls');
+      const expectedPostTopic = index === 3 ? 'unknown' : 'poker';
+      if (!(Array.isArray(post.topics) && post.topics.length === 1 && post.topics[0] === expectedPostTopic)) failed.push('topics');
+    }
+    if (failed.length) postFailures.push({ group: index + 1, fields: failed });
+    const authorId = reels.get(group.winner)?.author_id;
+    if (authorId) candidates.push({ playback_url: group.videoUrl, author_id: authorId });
+  }
+  const storage = await admin.rpc('fn_filter_valid_user_video_storage_urls', { p_candidates: candidates });
+  assert.ifError(storage.error);
+  return {
+    reelsRead: reels.size,
+    postsRead: posts.size,
+    reelFailures,
+    postFailures,
+    storageObjectsProven: Array.isArray(storage.data) ? storage.data.length : 0,
+  };
+}
+
 async function collectAccountCollection(collection, token, ownerId) {
   return crawlAccountCollection(async (cursor) => {
     const params = new URLSearchParams({ limit: String(COLLECTION_LIMIT) });
@@ -905,7 +1002,13 @@ async function verifyPublicBrowser(browser, bookmarkAlias, validatedForYouRows, 
         && params.get('id') === id;
     }, { id: bookmarkAlias.reference });
     assert.equal(await page.evaluate((key) => localStorage.getItem(key), RETIRED_CACHE_KEY), null, 'Retired Reel cache survived page startup');
-    const players = page.locator('iframe[src*="youtube-nocookie.com/embed/"], video');
+    // Count actual media descendants once beneath the standalone page root.
+    // The accessible viewer label is intentionally repeated by nested console
+    // elements, so chaining from getByLabel() can count one DOM node twice.
+    // The <main> root also excludes unrelated app-shell picture-in-picture.
+    const players = page
+      .locator('main')
+      .locator('iframe[src*="youtube-nocookie.com/embed/"], video');
     assert.equal(await players.count(), 1, 'Published Reel page mounted more than one media player');
     if (bookmarkPayload.data[0].source_attribution_url) {
       await page.getByRole('link', { name: /^View Original On / }).waitFor();
@@ -950,6 +1053,9 @@ async function verifyPublicBrowser(browser, bookmarkAlias, validatedForYouRows, 
     await dropped;
     await page.getByRole('alert').filter({ hasText: 'New Reels Could Not Be Loaded. Showing Your Current Reel.' }).waitFor();
     assert.equal(await page.locator('[data-live-proof-player="mounted"]').count(), 1, 'Mid-flight category drop replaced the mounted player');
+    await page.waitForFunction(() => (
+      document.querySelectorAll('main iframe[src*="youtube-nocookie.com/embed/"], main video').length === 1
+    ));
     assert.equal(await players.count(), 1, 'Mid-flight category drop created a second media player');
     assert.equal(state.injectedDrops, 1, 'The hostile mid-flight failure was not exercised exactly once');
 
@@ -1116,6 +1222,7 @@ async function verifySignedInBrowser(browser, session, article, report) {
   page.on('pageerror', () => pageErrors.push('browser-page-error'));
   page.setDefaultTimeout(45000);
   try {
+    report.signedInBrowserStage = 'following';
     const followingResponse = page.waitForResponse((response) => {
       const url = new URL(response.url());
       return url.pathname === '/api/reels/feed'
@@ -1125,14 +1232,16 @@ async function verifySignedInBrowser(browser, session, article, report) {
     assert.equal((await followingResponse).status(), 200, 'Signed-in Following browser request was rejected');
     assert.equal(await page.getByText(/Sign In (Again )?For Following/).count(), 0, 'Signed-in Following rendered an authentication prompt');
 
+    report.signedInBrowserStage = 'ordinary-article';
     await page.goto(`${APP_ORIGIN}/hub/social-media?post=${article.id}`, { waitUntil: 'domcontentloaded' });
-    const articleLabel = page.getByText(/Click To Read Full Article/i).first();
+    const articleLabel = page.getByText(/Click To Read Full Article/i).filter({ visible: true }).first();
     await articleLabel.waitFor();
     await articleLabel.click();
-    const reader = page.locator('iframe[src*="/api/proxy?url="]').first();
+    const readerDialog = page.getByRole('dialog', { name: 'Article Reader' });
+    const reader = readerDialog.locator('iframe[src*="/api/proxy?url="]');
     await reader.waitFor();
     assert.equal(new URL(page.url()).pathname, '/hub/social-media', 'Ordinary article was rewritten into a Reel route');
-    await page.locator('button[aria-label="Close"]:visible').last().click();
+    await readerDialog.getByRole('button', { name: 'Close' }).click();
     await reader.waitFor({ state: 'detached' });
 
     const verifyCollectionPage = async ({ path, apiPath, emptyText }) => {
@@ -1153,11 +1262,13 @@ async function verifySignedInBrowser(browser, session, article, report) {
         state: await page.locator('.vlc-reel-grid').count() > 0 ? 'populated' : 'empty',
       };
     };
+    report.signedInBrowserStage = 'my-reels';
     const myReels = await verifyCollectionPage({
       path: '/hub/reels/my-reels',
       apiPath: '/api/reels/mine',
       emptyText: 'Your Channel Is Quiet. Publish Your First Reel To Start The Feed',
     });
+    report.signedInBrowserStage = 'saved-reels';
     const savedReels = await verifyCollectionPage({
       path: '/hub/reels/saved',
       apiPath: '/api/reels/saved',
@@ -1172,6 +1283,7 @@ async function verifySignedInBrowser(browser, session, article, report) {
       browserErrors: pageErrors.length,
       ...readOnlyGuardReceipt(state),
     };
+    report.signedInBrowserStage = 'complete';
   } finally {
     await context.close();
   }
@@ -1299,6 +1411,11 @@ export function validateReceipt(report) {
   assert.equal(report.aliases?.checked, SUP07_ALIASES.length, 'Reels live receipt did not check every SUP-07 bookmark alias');
   assert.equal(report.aliases?.groups, SUP07_GROUPS.length, 'Reels live receipt did not check every SUP-07 canonical group');
   assert.equal(report.aliases?.winners, SUP07_GROUPS.length, 'Reels live receipt did not retain every SUP-07 winner');
+  assert.equal(report.aliasState?.reelsRead, 7, 'Reels live receipt did not read all SUP-07 Reel rows');
+  assert.equal(report.aliasState?.postsRead, 4, 'Reels live receipt did not read all SUP-07 source posts');
+  assert.deepEqual(report.aliasState?.reelFailures, [], 'SUP-07 Reel predicates drifted');
+  assert.deepEqual(report.aliasState?.postFailures, [], 'SUP-07 post predicates drifted');
+  assert.equal(report.aliasState?.storageObjectsProven, 4, 'SUP-07 Storage proof did not retain all four objects');
   assert.equal(
     report.aliases?.fingerprint,
     digest(SUP07_ALIASES.map(alias => `${alias.reference}:${alias.winner}:${alias.key}`).join('|')),
@@ -1423,6 +1540,10 @@ async function run() {
       auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
       global: { fetch: (url, options) => fetch(url, { ...options, signal: AbortSignal.timeout(20000) }) },
     });
+    const admin = createClient(AUTH_ORIGIN, process.env.SUPABASE_SERVICE_ROLE_KEY, {
+      auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+      global: { fetch: (url, options) => fetch(url, { ...options, signal: AbortSignal.timeout(20000) }) },
+    });
     const signedIn = await auth.auth.signInWithPassword({
       email: process.env.TEST_USER_EMAIL,
       password: process.env.TEST_USER_PASSWORD,
@@ -1456,6 +1577,8 @@ async function run() {
     const allRows = REEL_CATEGORIES.flatMap((category) => collections[category].rows);
     assert.ok(allRows.some((row) => row.origin_type === 'video_library'), 'Live feed has no managed Video Library supply');
     assert.ok(allRows.some((row) => row.origin_type === 'horse'), 'Live feed has no managed horse supply');
+    report.stage = 'alias-authoritative-state';
+    report.aliasState = await readSup07AuthoritativeState(admin);
     report.stage = 'aliases';
     report.aliases = await verifySup07Aliases();
     report.stage = 'account-collections';

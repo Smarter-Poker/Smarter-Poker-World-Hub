@@ -29,6 +29,7 @@ const MAX_RELATED_SCAN_ROWS = 5_000;
 const MAX_CURSOR_LENGTH = 1_024;
 const IN_FILTER_CHUNK_SIZE = 180;
 const IN_FILTER_PAGE_SIZE = 1_000;
+const FOLLOWING_PAGE_SIZE = 1_000;
 // Asset verification age and future skew come from the one shared freshness
 // contract (src/lib/videoLibraryAvailability.js), which mirrors the installed
 // SQL predicates. Do not redeclare them here. The legacy-transition window
@@ -556,24 +557,41 @@ async function readAllByValues(client, {
     return rows;
 }
 
-async function readFollowedCandidateAuthorIds(client, viewerId, candidateAuthorIds) {
+async function readAllFollowedAuthorIds(client, viewerId) {
     if (!UUID_RE.test(String(viewerId || ''))) {
         throw new ReelsFeedInputError('Authentication required for the Following feed');
     }
-    const authorIds = unique(candidateAuthorIds.filter(id => PERSISTED_UUID_RE.test(String(id || ''))));
-    if (!authorIds.length) return new Set();
-    const pages = await Promise.all(chunks(authorIds).map(async authorChunk => {
-        const { data, error } = await client
+    const followedAuthorIds = new Set();
+    let lastSeen = null;
+    while (true) {
+        let query = client
             .from('social_follows')
             .select('following_id')
             .eq('follower_id', viewerId)
-            .in('following_id', authorChunk);
+            .order('following_id', { ascending: true });
+        if (lastSeen) query = query.gt('following_id', lastSeen);
+        const { data, error } = await query.limit(FOLLOWING_PAGE_SIZE);
         if (error) throw error;
-        return Array.isArray(data) ? data : [];
-    }));
-    return new Set(pages.flat()
-        .map(row => String(row?.following_id || ''))
-        .filter(id => PERSISTED_UUID_RE.test(id)));
+        if (!Array.isArray(data)) throw new Error('Invalid Following membership response');
+        let pageLastSeen = lastSeen;
+        for (const row of data) {
+            const followingId = String(row?.following_id || '').toLowerCase();
+            if (!PERSISTED_UUID_RE.test(followingId) || (pageLastSeen && followingId <= pageLastSeen)) {
+                throw new Error('Invalid Following membership row');
+            }
+            followedAuthorIds.add(followingId);
+            pageLastSeen = followingId;
+        }
+        if (data.length < FOLLOWING_PAGE_SIZE) return followedAuthorIds;
+        if (!pageLastSeen || pageLastSeen === lastSeen) {
+            throw new Error('Following membership pagination did not advance');
+        }
+        lastSeen = pageLastSeen;
+    }
+}
+
+function isFollowedAuthor(followedAuthorIds, authorId) {
+    return followedAuthorIds?.has(String(authorId || '').toLowerCase()) === true;
 }
 
 async function loadEligibilityContext(client, rows) {
@@ -1110,13 +1128,17 @@ async function attachProfiles(client, rows) {
     return rows.map(row => publicRow(row, profileMap));
 }
 
-async function readPage(client, { limit, cursor, sort, scope, category, viewerId = null }) {
+async function readPage(client, { limit, cursor, sort, scope, category, followedAuthorIds = null }) {
     const selected = [];
     const selectedKeys = new Set();
     let scanCursor = cursor;
     let lastScannedCursor = cursor;
     let scanned = 0;
     let exhausted = false;
+
+    if (scope === 'following' && !followedAuthorIds?.size) {
+        return { rows: [], hasMore: false, nextCursor: null, partial: false };
+    }
 
     while (selected.length < limit + 1 && scanned < MAX_SCAN_ROWS) {
         const remainingBudget = MAX_SCAN_ROWS - scanned;
@@ -1139,21 +1161,23 @@ async function readPage(client, { limit, cursor, sort, scope, category, viewerId
         lastScannedCursor = cursorForRow(lastRawRow, sort);
         scanCursor = lastScannedCursor;
 
+        // Following can be sparse across the global chronology. Resolve the
+        // bounded candidate membership first so an account following only a
+        // few authors does not hydrate availability, rights, posts, native
+        // objects, and canonical groups for thousands of unrelated Reels.
+        // Keep the keyset scan itself global and uncapped so continuation and
+        // completeness do not depend on an arbitrary following-list limit.
+        const scopedRawRows = followedAuthorIds
+            ? rawRows.filter(row => isFollowedAuthor(followedAuthorIds, row.author_id))
+            : rawRows;
         const eligibilityOptions = { category, allowUnknownNativeUpload };
-        const candidateEligible = await eligibleRows(client, rawRows, scope, eligibilityOptions);
-        const winnerByKey = await canonicalWinners(client, rawRows, scope, eligibilityOptions);
-        const followedWinnerAuthors = scope === 'following'
-            ? await readFollowedCandidateAuthorIds(
-                client,
-                viewerId,
-                [...winnerByKey.values()].map(row => row.author_id)
-            )
-            : null;
+        const candidateEligible = await eligibleRows(client, scopedRawRows, scope, eligibilityOptions);
+        const winnerByKey = await canonicalWinners(client, scopedRawRows, scope, eligibilityOptions);
         for (const row of candidateEligible) {
             const winner = winnerByKey.get(row.canonical_asset_key);
             if (
                 winner?.id !== row.id
-                || (followedWinnerAuthors && !followedWinnerAuthors.has(winner.author_id))
+                || (followedAuthorIds && !isFollowedAuthor(followedAuthorIds, winner.author_id))
                 || selectedKeys.has(row.canonical_asset_key)
             ) continue;
             row._cursor = cursorForRow(row, sort);
@@ -1182,9 +1206,12 @@ async function readPage(client, { limit, cursor, sort, scope, category, viewerId
     };
 }
 
-async function readDetail(client, id, scope, sort, category, viewerId = null) {
+async function readDetail(client, id, scope, sort, category, followedAuthorIds = null) {
     if (!id) return { status: 'none', row: null };
     if (!UUID_RE.test(id)) throw new ReelsFeedInputError('Invalid Reel reference');
+    if (scope === 'following' && !followedAuthorIds?.size) {
+        return { status: 'unavailable', row: null };
+    }
 
     const { data, error } = await client
         .from('social_reels')
@@ -1207,15 +1234,8 @@ async function readDetail(client, id, scope, sort, category, viewerId = null) {
     const requested = directEligible.find(row => row.id === id || row.source_post_id === id)
         || directEligible[0];
     const winner = winnerByKey.get(requested.canonical_asset_key) || requested;
-    if (scope === 'following') {
-        const followedAuthors = await readFollowedCandidateAuthorIds(
-            client,
-            viewerId,
-            [winner.author_id]
-        );
-        if (!followedAuthors.has(winner.author_id)) {
-            return { status: 'unavailable', row: null };
-        }
+    if (scope === 'following' && !isFollowedAuthor(followedAuthorIds, winner.author_id)) {
+        return { status: 'unavailable', row: null };
     }
     winner._cursor = cursorForRow(winner, sort);
     return { status: 'found', row: winner };
@@ -1662,13 +1682,16 @@ export async function readPokerReelsFeed(options = {}) {
     if (scope === 'following' && !UUID_RE.test(viewerId)) {
         throw new ReelsFeedInputError('Authentication required for the Following feed');
     }
+    const followedAuthorIds = scope === 'following'
+        ? await readAllFollowedAuthorIds(client, viewerId)
+        : null;
 
     const [page, detail] = await Promise.all([
-        readPage(client, { limit, cursor, sort, scope, category, viewerId }),
+        readPage(client, { limit, cursor, sort, scope, category, followedAuthorIds }),
         // A cursor always denotes continuation. In particular the explicit
         // start sentinel lets a pinned limit=1 response continue from the
         // first natural feed row without pinning the detail again.
-        readDetail(client, cursor ? '' : id, scope, sort, category, viewerId),
+        readDetail(client, cursor ? '' : id, scope, sort, category, followedAuthorIds),
     ]);
 
     if (detail.status === 'not_found' || detail.status === 'unavailable') {

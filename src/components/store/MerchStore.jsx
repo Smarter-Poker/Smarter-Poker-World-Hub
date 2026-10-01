@@ -73,6 +73,7 @@ import {
 const DIAMONDS_PER_DOLLAR = 100;
 // Both money endpoints clamp quantity to 1..10 per line item.
 const MAX_QTY = 10;
+const MERCH_PAGE_SIZE = 12;
 
 const CATALOG_URL = '/api/store/merch-catalog';
 const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
@@ -695,6 +696,7 @@ export default function MerchStore({
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [sortMode, setSortMode] = useState('featured');
+  const [visibleLimit, setVisibleLimit] = useState(MERCH_PAGE_SIZE);
   const mountedRef = useRef(true);
   const activeAccountIdRef = useRef(user?.id || null);
   const diamondPurchaseAttemptRef = useRef(0);
@@ -906,11 +908,20 @@ export default function MerchStore({
     return filtered;
   }, [categoryFilter, focusProductId, products, searchQuery, sortMode]);
 
+  useEffect(() => {
+    setVisibleLimit(MERCH_PAGE_SIZE);
+  }, [categoryFilter, focusProductId, searchQuery, sortMode]);
+
+  const pagedProducts = useMemo(
+    () => (detailMode ? visibleProducts : visibleProducts.slice(0, visibleLimit)),
+    [detailMode, visibleLimit, visibleProducts]
+  );
+
   // ── Group into the page's existing category sections ──────────────────
   const sections = useMemo(() => {
     const order = [];
     const map = new Map();
-    for (const p of visibleProducts) {
+    for (const p of pagedProducts) {
       if (!map.has(p.category)) {
         map.set(p.category, []);
         order.push(p.category);
@@ -932,7 +943,7 @@ export default function MerchStore({
       return rank(a) - rank(b);
     });
     return order.map((key) => ({ key, label: categoryLabel(key), items: map.get(key) }));
-  }, [visibleProducts]);
+  }, [pagedProducts]);
 
   // ── Line-item builder shared by both checkout paths ───────────────────
   // `includePrice` exists only for the card endpoint's current validator,
@@ -1661,7 +1672,7 @@ export default function MerchStore({
               ))}
             </div>
             <div aria-live="polite" className={merchStyles.resultCount}>
-              Showing {visibleProducts.length} Of {products.length} Products
+              Showing {pagedProducts.length} Of {visibleProducts.length} Matching Products
             </div>
           </section>
         )}
@@ -1729,6 +1740,26 @@ export default function MerchStore({
             </div>
           </section>
         ))}
+
+        {!detailMode && pagedProducts.length < visibleProducts.length && (
+          <div className={merchStyles.loadMoreRow}>
+            <button
+              type="button"
+              className={`${merchStyles.actionControl} ${merchStyles.actionSecondary} ${merchStyles.loadMoreControl}`}
+              onClick={() => {
+                const nextLimit = Math.min(visibleLimit + MERCH_PAGE_SIZE, visibleProducts.length);
+                setVisibleLimit(nextLimit);
+                captureStoreEvent('catalog_page_loaded', {
+                  route: 'merch',
+                  visible: nextLimit,
+                  matched: visibleProducts.length,
+                });
+              }}
+            >
+              Load More Products ({visibleProducts.length - pagedProducts.length} Remaining)
+            </button>
+          </div>
+        )}
 
         {!detailMode && products.length > 0 && (
           <p className={merchStyles.legalCopy}>

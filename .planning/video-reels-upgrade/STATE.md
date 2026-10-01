@@ -14,6 +14,11 @@
 
 ## Policy Receipt
 
+- **Resumption read at:** canonical `2026-10-01T17:19:41.421Z`; portable `2026-10-01T17:17:34.753Z`
+- **Current policy version / manifest:** `2.9` / `a659f31c5c1c2b0864889508079a635dd5fe2fc98decfbfc9d3f9c80dd45ec3b`
+- **Current owner / operating / hardening / index hashes:** `b9478d0331314413d8e12c41210b63479cdcabc1f86ed3fdcb3251efa36e6349` / `a8bc3c04dce3354ebdd51a89c0b7d715af3344edcc794d33f6b3ad64506961d5` / `d5fc451ce5caf6d6b5e64597a13883e1246581678fe53c962339d0a66136993e` / `adce89c3f838f2f373cd504a00329d53906404d1dd42a647f672af6c16f95555`
+- **Resumed checkout / baseline:** external-SSD worktree `/Volumes/SmarterWork/agent-work/codex-reels-user-upload-repair-20260927`; `origin/main` `5ed295ee1c7da74de18ebbebf89dc4051a5f10de`
+
 - **Read at:** canonical `2026-09-27T16:41:14.256Z`; portable `2026-09-27T16:41:20.440Z`
 - **Policy version:** `2.9`
 - **Manifest SHA-256:** `7663cc909626f7e9966931d27166ad8774addc801f7ad1898a2d7564bc13c378`

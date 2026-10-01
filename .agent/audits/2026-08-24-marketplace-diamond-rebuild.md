@@ -259,3 +259,180 @@ At documentation time this candidate has not been protected-merged or
 published to production. Vercel READY identity, `/api/health` identity and
 live affected-route proof therefore remain pending. Local tests and
 screenshots must not be represented as merge or live-publication evidence.
+
+## 2026-10-01 Marketplace Launch Completion Programme
+
+### Authority, Ownership, And Exact Starting State
+
+The owner authorized the remaining Marketplace launch work through source,
+tests, protected delivery, publication, and live proof. This is Tier 3 World
+Hub and database work. The owned checkout is
+`/Volumes/SmarterWork/agent-work/marketplace-launch-20261001/world-hub`, the
+owned branch is `agent/codex/marketplace-launch-20261001`, and the exact
+starting protected revision is `e3f4e94a207002f9c8126dcdae36d1b07eab92db`.
+
+Canonical policy version 2.9 was emitted and read at
+`2026-10-01T15:49:34.821Z`. Receipt:
+
+- manifest `a659f31c5c1c2b0864889508079a635dd5fe2fc98decfbfc9d3f9c80dd45ec3b`
+- owner `b9478d0331314413d8e12c41210b63479cdcabc1f86ed3fdcb3251efa36e6349`
+- operating `a8bc3c04dce3354ebdd51a89c0b7d715af3344edcc794d33f6b3ad64506961d5`
+- hardening `d5fc451ce5caf6d6b5e64597a13883e1246581678fe53c962339d0a66136993e`
+- index `adce89c3f838f2f373cd504a00329d53906404d1dd42a647f672af6c16f95555`
+- reader `d5e6189878846064ac60269a41dfc4e6d9a7bda54610110ddc5813230198f36e`
+- reader test `6fa4010b3e02e35fca064cb6fb945861a69869a25fad32e4e773951431fc05ef`
+
+Repository `AGENTS.md`, `CLAUDE.md`, `AGENT-PLAYBOOK.md`, `PUBLISHING.md`,
+`MAC-STORAGE.md`, the Marketplace audit history, and the applicable Smarter
+Poker platform skill references were read before implementation. The external
+SSD is mounted separately with 117 GiB available.
+
+### Finite Acceptance Matrix And Build Order
+
+1. Make Lifetime VIP Card checkout available only after its one-time $499
+   offer, durable checkout identity, settlement, refund, dispute, and
+   cross-method entitlement provenance are atomic and retry-safe.
+2. Credit Lifetime VIP members 2,000 promotional Diamonds once per Chicago
+   calendar month, make each grant expire exactly 90 days after issuance, spend
+   expiring lots before permanent Diamonds, and preserve purchased or ordinarily
+   earned Diamonds during expiry, refunds, duplicates, and concurrency.
+3. Complete Printful automatic-fulfillment readiness without weakening manual
+   fulfillment. Provider activation remains fail closed until token, store,
+   webhook, automatic confirmation, and every active Printful variant mapping
+   are verified.
+4. Complete the remaining in-scope Marketplace experience improvements:
+   bounded Merch catalog pagination, scannable VIP benefits, signed-out Club
+   Shop preview, first-party commerce funnel reporting, an operational commerce
+   console, and final accessible keyboard/mobile contracts.
+5. Run focused database transition/rollback, API, UI, browser, build, and policy
+   checks on the exact candidate. Apply only the exact qualified migration,
+   verify installed history/readback, push through ordinary hooks, pass current
+   required checks, protected-merge, verify Vercel READY plus live commit
+   inclusion, and execute the authorized non-destructive and low-cost live
+   commerce proof that configured provider/test access permits.
+
+### Preserved Invariants And Exclusions
+
+- Club Shop revenue remains 100 percent Smarter.Poker; no club commission or
+  club credit is introduced.
+- Card and Diamond prices remain server-owned. Identity comes from the signed-in
+  session, not request parameters. Every money mutation retains durable
+  idempotency and exact-owner checks.
+- Marketplace navigation stays in the same browser surface. Existing Page 1
+  hierarchy and photorealistic asset direction remain unchanged.
+- No new infrastructure, release watcher, repair loop, external telemetry
+  integration, real-player destructive test, or credential disclosure is in
+  scope.
+- Automatic Printful fulfillment and live provider orders cannot be certified
+  from source alone. Missing provider account configuration is recorded as an
+  external activation dependency while all independent implementation and
+  verification continue.
+
+### Early Access Check
+
+- Git fetch through the configured SSH transport succeeds.
+- GitHub CLI authentication is available and the protected pull request was
+  created with automatic squash merge enabled.
+- Supabase CLI and the hardened direct PostgreSQL runner are authenticated to
+  the linked production project. The runner attests PostgreSQL 17, UTF8, the
+  exact database owner, pinned Supabase Root 2021 CA, and authorized TLS before
+  every status or apply operation.
+- The Vercel CLI currently has no authenticated session and therefore cannot
+  inspect or edit provider environment metadata from this checkout.
+- No secret value was read or printed. These access gaps do not block source,
+  local verification, migration qualification, or branch publication through
+  authenticated Git transport.
+
+### Implemented Launch Candidate
+
+- Lifetime VIP one-time Card checkout is enabled at the storefront, public
+  catalog, server checkout route, Stripe webhook, and production verifier. The
+  $499 purchase now records exact entitlement provenance and the prior VIP
+  state. Partial refunds retain Lifetime; full refunds and lost disputes
+  restore only the state owned by that purchase; later VIP writers clear stale
+  provenance; a won dispute cannot override an independent full refund.
+- Lifetime VIP members receive one idempotent 2,000-Diamond promotional lot per
+  eligible Chicago calendar month. Each lot has a 90-day expiry, spending is
+  allocated FIFO from the oldest active promotional lot, and expiry retires
+  only the remaining promotional amount through the canonical Mint journal.
+- The daily VIP stipend job expires overdue Lifetime lots, preserves the
+  existing recurring 500-Diamond contract, and grants the separate Lifetime
+  benefit in bounded chunks.
+- Printful intake now implements the provider's V2 raw-body HMAC-SHA256
+  signature and public-key binding, accepts current shipment events, refuses
+  anonymous database fallback, and keeps automatic fulfillment fail closed
+  until token, store, auto-confirmation, signed webhook keys, and every active
+  provider variant mapping are present.
+- Merch catalog pagination now renders 12 offers at a time with a bounded Load
+  More control. VIP benefits have in-page section navigation and collapsible
+  groups. Signed-out Club Shop visitors receive a read-only, price-free preview
+  of Time Bank and All Throwables access without purchase handlers.
+- Marketplace funnel receipts are now first-party, same-origin, allowlisted,
+  size-bounded, rate-limited, privacy-minimized, idempotent, and service-only.
+  The existing operator fulfillment console now includes an aggregated 30-day
+  commerce and readiness summary without exposing raw event rows.
+
+### Final Local Qualification
+
+- Real PostgreSQL 17 migration execution and behavioral proof: **1/1 passed**.
+  This applied all three new migrations to a disposable external-SSD cluster
+  and proved Lifetime settlement, partial/full reversal, refund-safe dispute
+  handling, monthly idempotency, FIFO spending, 90-day expiry retirement, and
+  operations aggregation including malformed historical metadata.
+- Permanent Marketplace gate: **629/629 passed**, including the PostgreSQL
+  contract, production-truth verifier, Card and Diamond paths, Printful,
+  ownership, refund/idempotency, account isolation, pagination, signed-out
+  preview, first-party operations, accessibility, and item fulfillment rules.
+- ESLint: **4,655/4,655 files passed**.
+- `git diff --check`: **passed**.
+- Optimized Next.js 16.3.3 Webpack production build: **passed**, with all 504
+  static pages generated and the new analytics, operations-summary, Printful,
+  Lifetime VIP, Merch, and cron routes present in the route manifest. The local
+  build had no production Supabase credentials by design; its expected
+  environment warnings did not fail compilation.
+
+### Provider Activation And Live Proof Still Required
+
+These are delivery or external-account steps, not unfinished source behavior:
+
+1. In Printful, connect the production store, create or obtain its private API
+   token, map every active made-to-order variant to a Printful sync variant,
+   and register the production V2 webhook URL
+   `https://smarter.poker/api/store/webhooks/printful` for shipment, return,
+   cancellation, and failure events.
+2. Store `PRINTFUL_API_TOKEN`, `PRINTFUL_STORE_ID`,
+   `PRINTFUL_AUTO_CONFIRM=true`, `PRINTFUL_WEBHOOK_SECRET`, and
+   `PRINTFUL_WEBHOOK_PUBLIC_KEY` in the existing Vercel project. Do not put
+   these values in Git or this checkpoint.
+3. Complete protected PR checks and squash merge. Confirm the Vercel Git
+   deployment is READY, its selected revision contains this candidate, and
+   `/api/health` reports that deployed revision.
+4. Run the authorized low-cost production launch matrix with owned fixtures:
+   Monthly VIP Card and Diamonds, Lifetime VIP Card and Diamonds, Merch Card
+   and Diamonds, Club Shop Card and Diamonds, multi-item cart, receipt and
+   fulfillment, retry/idempotency, refund/dispute, and Printful shipment
+   tracking. Independently clean up every created fixture and record the
+   readback evidence.
+
+### Production Migration Installation
+
+- Production initially rejected DDL during the active engine-maintenance thaw,
+  then admitted it after durable release. The Lifetime Card migration hit one
+  live lock-order deadlock. Its exact in-progress claim was cleared only after
+  an auditable recovery migration proved its canonical ledger and every new
+  postcondition were absent.
+- The monthly Lifetime Diamond migration exposed a deterministic lock-order
+  inversion between `auth.users` and `public.profiles`. The runner now rolls
+  back failed authored transactions before recording their durable failed
+  claim, and the migration explicitly takes the live authentication order:
+  `auth.users` before `public.profiles`. Two exact-checksum recovery migrations
+  proved both failed attempts left zero postconditions before retry.
+- Production status readback reports **Applied** for the three product
+  migrations and all three recovery records. The final monthly-Diamond source
+  checksum is `ac298a596af62f47f75493acd9dbb281697878576b436229cc9466917273d0cd`.
+- The real PostgreSQL 17 behavior test passed again after the lock-order fix.
+
+Source and production database installation are complete. Protected merge,
+Vercel publication, live route/SHA proof, and external Printful provider
+activation must remain separate evidence states and must not be reported as
+complete until their actual evidence is recorded here.

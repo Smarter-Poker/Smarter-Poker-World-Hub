@@ -589,7 +589,7 @@ if (requireProductionTruth) {
     const expectedVip = new Map([
       ['monthly', { id: 'vip-monthly', usd: 19.99, diamonds: 1_999, card: true }],
       ['yearly', { id: 'vip-yearly', usd: 199.99, diamonds: 19_999, card: true }],
-      ['lifetime', { id: 'vip-lifetime', usd: 499, diamonds: 49_900, card: false }],
+      ['lifetime', { id: 'vip-lifetime', usd: 499, diamonds: 49_900, card: true }],
     ]);
     const vipPlans = Array.isArray(strictCatalog?.vipPlans) ? strictCatalog.vipPlans : [];
     const vipContractReady = vipPlans.length === expectedVip.size

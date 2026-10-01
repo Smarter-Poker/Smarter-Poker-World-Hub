@@ -1,17 +1,20 @@
-import { timingSafeEqual } from 'node:crypto';
+import { createHmac, timingSafeEqual } from 'node:crypto';
 import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { reportApiError } from '../../../../src/lib/apiErrorHandler';
 const { restoreUuidFromExternalId } = require('../../../../src/lib/store/printfulFulfillment');
 
 export const config = {
-    api: { bodyParser: { sizeLimit: '256kb' } },
+    api: { bodyParser: false },
 };
+
+const MAX_WEBHOOK_BYTES = 256 * 1024;
 
 let _supabase = null;
 function getSupabase() {
     if (!_supabase) {
         const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
-        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+        if (!key) throw new Error('SUPABASE_SERVICE_ROLE_KEY not configured');
         _supabase = createClient(url, key);
     }
     return _supabase;
@@ -25,9 +28,36 @@ function safeEqual(actual, expected) {
         && timingSafeEqual(actualBuffer, expectedBuffer);
 }
 
-function webhookSecret(req) {
-    const header = req.headers['x-smarter-poker-webhook-secret'];
-    return typeof header === 'string' ? header : null;
+async function readRawBody(req) {
+    const chunks = [];
+    let received = 0;
+    for await (const chunk of req) {
+        received += chunk.length;
+        if (received > MAX_WEBHOOK_BYTES) {
+            const error = new Error('Printful webhook payload too large');
+            error.code = 'PAYLOAD_TOO_LARGE';
+            throw error;
+        }
+        chunks.push(chunk);
+    }
+    return Buffer.concat(chunks);
+}
+
+function verifyPrintfulSignature(req, rawBody, secretHex, expectedPublicKey) {
+    const signature = req.headers['x-pf-webhook-signature'];
+    const publicKey = req.headers['x-pf-webhook-public-key'];
+    if (
+        typeof signature !== 'string'
+        || !/^[0-9a-f]{64}$/i.test(signature)
+        || typeof publicKey !== 'string'
+        || !safeEqual(publicKey, expectedPublicKey)
+        || typeof secretHex !== 'string'
+        || !/^(?:[0-9a-f]{2})+$/i.test(secretHex)
+    ) return false;
+    const expected = createHmac('sha256', Buffer.from(secretHex, 'hex'))
+        .update(rawBody)
+        .digest('hex');
+    return safeEqual(signature.toLowerCase(), expected);
 }
 
 function clean(value, maxLength = 255) {
@@ -48,15 +78,29 @@ export default async function handler(req, res) {
         }
 
         const expectedSecret = process.env.PRINTFUL_WEBHOOK_SECRET;
-        if (!expectedSecret) {
-            console.warn('[printful-webhook] secret is not configured');
+        const expectedPublicKey = process.env.PRINTFUL_WEBHOOK_PUBLIC_KEY;
+        if (!expectedSecret || !expectedPublicKey) {
+            console.warn('[printful-webhook] signed webhook keys are not configured');
             return res.status(503).json({ success: false, error: 'Webhook not configured' });
         }
-        if (!safeEqual(webhookSecret(req), expectedSecret)) {
-            return res.status(401).json({ success: false, error: 'Invalid webhook secret' });
+        let rawBody;
+        try {
+            rawBody = await readRawBody(req);
+        } catch (error) {
+            if (error?.code === 'PAYLOAD_TOO_LARGE') {
+                return res.status(413).json({ success: false, error: 'Payload too large' });
+            }
+            throw error;
         }
-
-        const body = req.body && typeof req.body === 'object' ? req.body : {};
+        if (!verifyPrintfulSignature(req, rawBody, expectedSecret, expectedPublicKey)) {
+            return res.status(401).json({ success: false, error: 'Invalid webhook signature' });
+        }
+        let body;
+        try {
+            body = JSON.parse(rawBody.toString('utf8'));
+        } catch (_) {
+            return res.status(400).json({ success: false, error: 'Invalid JSON' });
+        }
         const expectedStoreId = clean(process.env.PRINTFUL_STORE_ID, 64);
         const observedStoreId = clean(
             body.store
@@ -78,9 +122,11 @@ export default async function handler(req, res) {
 
         const actionable = new Set([
             'package_shipped',
+            'shipment_sent',
             'order_failed',
             'order_canceled',
             'package_returned',
+            'shipment_returned',
         ]);
         if (!actionable.has(type)) {
             return res.status(202).json({ success: true, ignored: true });
@@ -110,7 +156,7 @@ export default async function handler(req, res) {
             },
         };
 
-        if (type === 'package_shipped') {
+        if (type === 'package_shipped' || type === 'shipment_sent') {
             update.status = 'shipped';
             const trackingNumber = clean(shipment.tracking_number, 160);
             const trackingUrl = clean(shipment.tracking_url, 500);
@@ -151,7 +197,7 @@ export default async function handler(req, res) {
                 ...update.metadata,
                 fulfillment_status: type,
                 needs_review: true,
-                needs_refund: type === 'order_canceled' || type === 'package_returned',
+                needs_refund: ['order_canceled', 'package_returned', 'shipment_returned'].includes(type),
                 reason: `printful_${type}`,
                 flagged_at: now,
             };
@@ -173,3 +219,5 @@ export default async function handler(req, res) {
         if (!res.headersSent) return res.status(500).json({ success: false, error: 'Webhook handler failed' });
     }
 }
+
+export { readRawBody, verifyPrintfulSignature };
