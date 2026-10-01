@@ -308,6 +308,11 @@ test('all eleven SUP-07 aliases stay pinned to four canonical winners and source
     assert.match(migration, new RegExp(alias.post));
     assert.match(migration, new RegExp(alias.key));
   }
+  assert.match(
+    REELS_LIVE_CHECK,
+    /const expectedPostTopic = index === 3 \? 'unknown' : 'poker';[\s\S]*post\.topics\[0\] === expectedPostTopic/,
+    'the authoritative verifier must honor the normalized topics array for the legacy group',
+  );
 });
 
 test('My and Saved crawlers remain owner-bound, canonical, complete, and read-only', async () => {
