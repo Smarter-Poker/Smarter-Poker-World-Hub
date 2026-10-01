@@ -26,6 +26,7 @@ test('Lifetime VIP receives its own defined digital benefit set', () => {
   assert.ok(lifetimeStart > 0);
   assert.ok(lifetimeEnd > lifetimeStart);
   for (const copy of [
+    '2,000 Promotional Diamonds Issued Every Month',
     'Unlimited Rabbit Hunts With Lifetime VIP',
     'Unlimited Standard Time Bank Activations',
     'Unlimited Throwables With Lifetime VIP',
@@ -54,10 +55,12 @@ test('finite allowances and the current stipend remain ordinary-plan benefits', 
   );
 });
 
-test('Lifetime benefit copy cannot imply excluded financial or physical products are free', () => {
+test('Lifetime benefit copy states the bounded monthly grant without implying excluded products are free', () => {
   assert.doesNotMatch(lifetimeBenefits, /Diamond Packages|Physical Merchandise|Tournament Buy-In/);
   assert.doesNotMatch(lifetimeBenefits, /Club Creation|Transferable/);
-  assert.doesNotMatch(lifetimeBenefits, /2,000|2000|90 Days/);
+  assert.match(lifetimeBenefits, /2,000 Promotional Diamonds Issued Every Month/);
+  assert.match(lifetimeBenefits, /Expire 90 Days After Issue/);
+  assert.match(lifetimeBenefits, /Oldest Promotional Diamonds Spend First/);
   assert.doesNotMatch(lifetimeBenefits, /\u2014/);
   assert.doesNotMatch(lifetimeBenefits, /icon:\s*['"][◆♦✓]['"]|[◆♦]/);
 });
@@ -85,7 +88,7 @@ test('the selected storefront plan controls the rendered benefit contract', () =
     /const displayedVipBenefits = getVipBenefitsForPlan\(selectedVIPPlan\?\.interval\)/
   );
   assert.match(store, /Everything Included With \{lifetimeSelected \? 'Lifetime VIP' : 'VIP'\}/);
-  assert.equal((store.match(/displayedVipBenefits/g) || []).length, 3);
+  assert.equal((store.match(/displayedVipBenefits/g) || []).length, 2);
   assert.doesNotMatch(store, /VIP_BENEFITS\.filter/);
   assert.match(store, /Monthly And Yearly VIP Carry Three Honest Monthly Ceilings/);
   assert.match(store, /Lifetime VIP Makes Those Three Digital Gameplay Benefits Unlimited/);

@@ -351,11 +351,11 @@ export const VIP_MEMBERSHIP = {
     name: 'VIP Lifetime',
     price: 499,
     interval: 'lifetime',
-    /* One payment, no renewal. The server-side card path is retained behind
-           this capability flag while its cross-method refund/provenance state
-           machine is completed. Diamond settlement is live and atomic. */
+    /* One payment, no renewal. Card and Diamond settlement are both
+       server-priced, account-bound, atomic and reversible through their own
+       provider-authoritative lifecycle. */
     oneTime: true,
-    cardCheckoutReady: false,
+    cardCheckoutReady: true,
     diamondCheckoutReady: true,
     popular: false,
   },
@@ -595,13 +595,20 @@ export const VIP_BENEFITS = [
    the engine still caps it at two activations per street, so "Unlimited" does
    not become an unlimited decision clock.
 
-   This list intentionally names digital entitlements only. Physical
-   merchandise, Diamond grants or packages, memberships, tournament buy-ins,
-   transferable assets, and operator-stock Club Shop items retain their normal
-   settlement rules. Lifetime still inherits the ordinary VIP contract above:
-   tournament eligibility never waives the stated buy-in, and a higher earning
-   cap is not a currency grant. */
+   This list intentionally names digital entitlements and the defined monthly
+   promotional Diamond benefit only. Physical merchandise, Diamond packages,
+   memberships, tournament buy-ins, transferable assets, and operator-stock
+   Club Shop items retain their normal settlement rules. Lifetime still
+   inherits the ordinary VIP contract above: tournament eligibility never
+   waives the stated buy-in, and a higher earning cap is not a currency grant. */
 export const VIP_LIFETIME_BENEFITS = [
+  {
+    title: '2,000 Promotional Diamonds Issued Every Month',
+    description:
+      'Issued On The First Of Each Month To Eligible Lifetime VIP Members. Oldest Promotional Diamonds Spend First, And Unused Monthly Diamonds Expire 90 Days After Issue',
+    value: '2,000 Diamonds/Mo',
+    category: 'Smarter.Poker',
+  },
   {
     title: 'Unlimited Rabbit Hunts With Lifetime VIP',
     description: 'Reveal The Undealt Community Cards Without Spending A Hunt Pack Or Diamonds',

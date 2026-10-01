@@ -3,7 +3,11 @@
  *  CRON: /api/cron/vip-stipend
  *  Schedule: daily  (e.g. "15 9 * * *")  — see "WHY DAILY" below.
  *
- *  Pays the 500 💎 monthly VIP stipend.
+ *  Pays both monthly VIP Diamond benefits:
+ *    • 500 Diamonds for verified Monthly and Yearly Card subscriptions.
+ *    • 2,000 promotional Diamonds for Lifetime VIP members who held Lifetime
+ *      before the current Chicago month began. Each Lifetime lot expires 90
+ *      days after issue and is retired through The Mint when unused.
  *
  *  src/data/diamondStoreData.js has advertised "500 Bonus Diamonds Credited
  *  Every Month" in VIP_BENEFITS since the store shipped. Nothing ever paid it.
@@ -84,7 +88,7 @@ function getSupabase() {
 /* ── Tunables ─────────────────────────────────────────────────────────────── */
 const PAGE_SIZE          = 500;   // rows pulled from vip_subscriptions per query
 const AWARD_CHUNK        = 10;    // concurrent award_diamonds_v2 calls
-const MAX_AWARDS_PER_RUN = 5000;  // hard ceiling — 5,000 x 500 💎 = $25,000 max
+const MAX_AWARDS_PER_RUN = 5000;  // hard ceiling per benefit class
 const MAX_PAGES          = 40;    // 40 x 500 = 20,000 subscription rows scanned
 
 /* Statuses Stripe considers a live, billable subscription. 'past_due' and
@@ -150,6 +154,15 @@ async function handler(req, res) {
         capped:         0,   // budget_exhausted / monthly_cap
         failed:         0,   // RPC errors
         truncated:      false,
+        lifetimeScanned: 0,
+        lifetimeEligible: 0,
+        lifetimeAwarded: 0,
+        lifetimeDiamonds: 0,
+        lifetimeAlreadyGranted: 0,
+        lifetimeNotEligible: 0,
+        lifetimeFailed: 0,
+        expiredUsers: 0,
+        expiredDiamonds: 0,
     };
 
     /* Reasons worth a human's attention, keyed by reason string. */
@@ -213,6 +226,19 @@ async function handler(req, res) {
         if (eligibleUserIds.size > userIds.length) stats.truncated = true;
 
         if (dryRun) {
+            const { count: lifetimeCount, error: lifetimeCountError } = await supabase
+                .from('profiles')
+                .select('id', { count: 'exact', head: true })
+                .eq('is_vip', true)
+                .eq('vip_tier', 'lifetime');
+            if (lifetimeCountError) {
+                return res.status(500).json({
+                    success: false,
+                    error: lifetimeCountError.message,
+                    stats,
+                });
+            }
+            stats.lifetimeEligible = lifetimeCount || 0;
             return res.status(200).json({
                 success: true,
                 dryRun: true,
@@ -222,6 +248,23 @@ async function handler(req, res) {
                 timestamp: new Date().toISOString(),
             });
         }
+
+        // Retire every overdue unused Lifetime lot before issuing the current
+        // month. The RPC is Mint-journalled and bounded; any refusal fails the
+        // run instead of silently leaving expired value spendable.
+        const { data: expiryResult, error: expiryError } = await supabase.rpc(
+            'expire_lifetime_vip_diamond_lots',
+            { p_limit: MAX_AWARDS_PER_RUN, p_as_of: new Date().toISOString() }
+        );
+        if (expiryError || !expiryResult?.success) {
+            return res.status(500).json({
+                success: false,
+                error: expiryError?.message || expiryResult?.error || 'Lifetime expiry failed',
+                stats,
+            });
+        }
+        stats.expiredUsers = Number(expiryResult.users) || 0;
+        stats.expiredDiamonds = Number(expiryResult.expired) || 0;
 
         // ═══════════════════════════════════════════════════════════════════
         // STEP 2 — award, in small concurrent chunks.
@@ -283,6 +326,78 @@ async function handler(req, res) {
                     stats.notEligible += 1;
                 } else {
                     stats.capped += 1;
+                }
+            }
+        }
+
+        // Lifetime is a distinct contract, not a larger recurring stipend.
+        // The database proves eligibility as of the first instant of the
+        // Chicago month and owns both idempotency and the 90-day lot.
+        const lifetimeUserIds = [];
+        for (let page = 0; page < MAX_PAGES && lifetimeUserIds.length < maxAwards; page++) {
+            const from = page * PAGE_SIZE;
+            const to = from + PAGE_SIZE - 1;
+            const { data: rows, error: lifetimeReadError } = await supabase
+                .from('profiles')
+                .select('id')
+                .eq('is_vip', true)
+                .eq('vip_tier', 'lifetime')
+                .order('id', { ascending: true })
+                .range(from, to);
+            if (lifetimeReadError) {
+                return res.status(500).json({
+                    success: false,
+                    error: lifetimeReadError.message,
+                    stats,
+                });
+            }
+            if (!rows?.length) break;
+            stats.lifetimeScanned += rows.length;
+            for (const row of rows) {
+                if (row.id && lifetimeUserIds.length < maxAwards) lifetimeUserIds.push(row.id);
+            }
+            if (rows.length < PAGE_SIZE) break;
+            if (page === MAX_PAGES - 1) stats.truncated = true;
+        }
+        stats.lifetimeEligible = lifetimeUserIds.length;
+
+        for (let i = 0; i < lifetimeUserIds.length; i += AWARD_CHUNK) {
+            const chunk = lifetimeUserIds.slice(i, i + AWARD_CHUNK);
+            const results = await Promise.all(chunk.map(async (userId) => {
+                try {
+                    const { data, error } = await supabase.rpc(
+                        'grant_lifetime_vip_monthly_diamonds',
+                        { p_user_id: userId, p_grant_month: `${monthKey}-01` }
+                    );
+                    if (error) return { userId, error };
+                    return { userId, data };
+                } catch (error) {
+                    return { userId, error };
+                }
+            }));
+
+            for (const result of results) {
+                if (result.error) {
+                    stats.lifetimeFailed += 1;
+                    if (stats.lifetimeFailed <= 5) {
+                        console.warn(
+                            '[cron/vip-stipend] Lifetime grant failed for',
+                            result.userId,
+                            '-',
+                            result.error?.message || result.error
+                        );
+                    }
+                    continue;
+                }
+                if (result.data?.success && result.data?.duplicate) {
+                    stats.lifetimeAlreadyGranted += 1;
+                } else if (result.data?.success) {
+                    stats.lifetimeAwarded += 1;
+                    stats.lifetimeDiamonds += Number(result.data.amount) || 0;
+                } else if (result.data?.error === 'not_eligible') {
+                    stats.lifetimeNotEligible += 1;
+                } else {
+                    stats.lifetimeFailed += 1;
                 }
             }
         }

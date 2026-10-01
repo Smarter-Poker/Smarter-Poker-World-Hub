@@ -1712,20 +1712,6 @@ export default async function handler(req, res) {
           },
         });
       }
-      if (type === 'vip_lifetime') {
-        // The UI capability flag mirrors this fail-closed server gate.
-        // Lifetime remains available through the atomic Diamond path;
-        // card checkout is withheld until refund/dispute provenance and
-        // cross-method acquisition state can be introduced together.
-        return res.status(503).json({
-          success: false,
-          error: {
-            code: 'LIFETIME_CARD_CHECKOUT_PAUSED',
-            message: 'Lifetime VIP is currently available with Diamonds.',
-          },
-        });
-      }
-
       let redemptionIntent;
       try {
         redemptionIntent = normalizeRedemptionIntent(type, rawRedemptionIntent);

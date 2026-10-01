@@ -797,9 +797,11 @@ ALL_CRONS = [
     # gave lifetime VIP for feature access. It paid 12 such accounts (6,000
     # diamonds) before this, every one with zero rows in vip_subscriptions.
     #
-    # '/api/cron/vip-stipend' is the documented control: it pays only accounts
-    # holding a vip_subscriptions row with a non-null stripe_subscription_id
-    # and a live Stripe status. Read that file's header before changing this.
+    # '/api/cron/vip-stipend' is the documented control. Its recurring leg pays
+    # only accounts holding a live paid Stripe subscription. Its separate
+    # Lifetime leg issues the owner-approved 2,000-Diamond monthly lot through
+    # The Mint and expires unused lot value after 90 days. Read that file's
+    # header before changing this.
     #
     # DAILY, not monthly, and that is deliberate. The handler is idempotent per
     # user per calendar month (reference_id `vip_stipend_<user>_<YYYY-MM>` plus

@@ -32,6 +32,8 @@ export default function MerchandiseFulfillmentConsole() {
   const [busyId, setBusyId] = useState(null);
   const [nextCursor, setNextCursor] = useState(null);
   const [operation, setOperation] = useState(null);
+  const [operationsSummary, setOperationsSummary] = useState(null);
+  const [summaryState, setSummaryState] = useState('idle');
   const [authOwnerId, setAuthOwnerId] = useState(null);
   const [authResolved, setAuthResolved] = useState(false);
   const [loadedOwnerId, setLoadedOwnerId] = useState(null);
@@ -44,6 +46,8 @@ export default function MerchandiseFulfillmentConsole() {
   const loadAbortRef = useRef(null);
   const transitionAbortRef = useRef(null);
   const transitionInFlightRef = useRef(false);
+  const summaryAbortRef = useRef(null);
+  const summaryRequestRef = useRef(0);
   const mountedRef = useRef(false);
   const authOwnerRef = useRef(null);
   const authObservedRef = useRef(false);
@@ -133,6 +137,46 @@ export default function MerchandiseFulfillmentConsole() {
     []
   );
 
+  const loadOperationsSummary = useCallback(async (expectedAccountId = authOwnerRef.current) => {
+    const requestId = ++summaryRequestRef.current;
+    summaryAbortRef.current?.abort();
+    const controller = new AbortController();
+    summaryAbortRef.current = controller;
+    if (!expectedAccountId) {
+      setOperationsSummary(null);
+      setSummaryState('idle');
+      controller.abort();
+      return;
+    }
+    setSummaryState('loading');
+    try {
+      const user = await ensureAuthReady(supabase);
+      const token = getAccessToken();
+      if (
+        requestId !== summaryRequestRef.current ||
+        authOwnerRef.current !== expectedAccountId ||
+        user?.id !== expectedAccountId ||
+        !token
+      ) return;
+      const response = await boundedCommerceFetch('/api/store/operations-summary', {
+        headers: { Authorization: `Bearer ${token}` },
+        cache: 'no-store',
+        signal: controller.signal,
+      });
+      const body = await response.json().catch(() => null);
+      if (requestId !== summaryRequestRef.current || authOwnerRef.current !== expectedAccountId) return;
+      if (!response.ok || !body?.success) throw new Error(body?.error || 'Summary unavailable');
+      setOperationsSummary(body.data);
+      setSummaryState('ready');
+    } catch (error) {
+      if (error?.name === 'AbortError' || requestId !== summaryRequestRef.current) return;
+      setOperationsSummary(null);
+      setSummaryState('error');
+    } finally {
+      if (summaryAbortRef.current === controller) summaryAbortRef.current = null;
+    }
+  }, []);
+
   useEffect(() => {
     mountedRef.current = true;
     return () => {
@@ -142,6 +186,9 @@ export default function MerchandiseFulfillmentConsole() {
       loadAbortRef.current = null;
       transitionAbortRef.current?.abort();
       transitionAbortRef.current = null;
+      summaryRequestRef.current += 1;
+      summaryAbortRef.current?.abort();
+      summaryAbortRef.current = null;
       transitionInFlightRef.current = false;
     };
   }, []);
@@ -159,6 +206,9 @@ export default function MerchandiseFulfillmentConsole() {
       loadAbortRef.current = null;
       transitionAbortRef.current?.abort();
       transitionAbortRef.current = null;
+      summaryRequestRef.current += 1;
+      summaryAbortRef.current?.abort();
+      summaryAbortRef.current = null;
       transitionInFlightRef.current = false;
       loadedOwnerRef.current = null;
       ordersRef.current = [];
@@ -169,6 +219,8 @@ export default function MerchandiseFulfillmentConsole() {
       setNextCursor(null);
       setBusyId(null);
       setOperation(null);
+      setOperationsSummary(null);
+      setSummaryState('idle');
       setState(
         nextOwnerId
           ? { kind: 'loading', message: 'Verifying The Current Operator Account...' }
@@ -190,7 +242,8 @@ export default function MerchandiseFulfillmentConsole() {
   useEffect(() => {
     if (!authResolved) return;
     void loadOrders({ expectedAccountId: authOwnerId });
-  }, [authOwnerId, authResolved, loadOrders]);
+    void loadOperationsSummary(authOwnerId);
+  }, [authOwnerId, authResolved, loadOperationsSummary, loadOrders]);
 
   useEffect(() => {
     busyIdRef.current = busyId;
@@ -286,6 +339,7 @@ export default function MerchandiseFulfillmentConsole() {
       if (!response.ok || !body?.success) throw new Error(body?.error || 'Operation failed');
       setOperation(null);
       await loadOrders({ expectedAccountId });
+      await loadOperationsSummary(expectedAccountId);
     } catch (error) {
       if (
         error?.name === 'AbortError' ||
@@ -334,7 +388,10 @@ export default function MerchandiseFulfillmentConsole() {
           <div className={styles.actions}>
             <button
               type="button"
-              onClick={() => void loadOrders()}
+              onClick={() => {
+                void loadOrders();
+                void loadOperationsSummary();
+              }}
               disabled={state.kind === 'loading' || signedOut}
             >
               Refresh Queue
@@ -346,6 +403,55 @@ export default function MerchandiseFulfillmentConsole() {
         <div className={styles.status} role="status" aria-live="polite">
           {marketplaceCopy(state.message)}
         </div>
+        {authOwnerId && (
+          <section className={styles.operations} aria-labelledby="store-operations-title">
+            <div className={styles.operationsHeading}>
+              <div>
+                <span className={styles.eyebrow}>Verified Commerce Signals</span>
+                <h2 id="store-operations-title">Marketplace Operations</h2>
+              </div>
+              <span className={styles.operationsState} role="status" aria-live="polite">
+                {summaryState === 'loading'
+                  ? 'Refreshing'
+                  : summaryState === 'error'
+                    ? 'Summary Unavailable'
+                    : operationsSummary?.readiness?.ready
+                      ? 'Commerce Ready'
+                      : 'Action Required'}
+              </span>
+            </div>
+            {operationsSummary && (
+              <div className={styles.metricGrid}>
+                <div>
+                  <strong>{operationsSummary.summary?.orders?.created || 0}</strong>
+                  <span>Orders In 30 Days</span>
+                </div>
+                <div>
+                  <strong>{operationsSummary.summary?.orders?.awaitingAttention || 0}</strong>
+                  <span>Need Fulfillment Attention</span>
+                </div>
+                <div>
+                  <strong>{operationsSummary.summary?.orders?.providerReview || 0}</strong>
+                  <span>Provider Reviews</span>
+                </div>
+                <div>
+                  <strong>
+                    {operationsSummary.summary?.lifetimeVip?.monthlyDiamondsIssued || 0}
+                  </strong>
+                  <span>Lifetime Diamonds Issued</span>
+                </div>
+                <div>
+                  <strong>{operationsSummary.readiness?.fulfillmentMode || 'Unknown'}</strong>
+                  <span>Fulfillment Mode</span>
+                </div>
+                <div>
+                  <strong>{operationsSummary.summary?.funnel?.store_checkout_complete || 0}</strong>
+                  <span>Verified Checkout Returns</span>
+                </div>
+              </div>
+            )}
+          </section>
+        )}
         {signedOut && (
           <div className={styles.authGate}>
             <p>

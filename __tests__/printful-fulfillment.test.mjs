@@ -154,7 +154,10 @@ test('checkout, webhooks, catalog, and Diamond fulfillment stay wired together',
   assert.match(stripeWebhook, /settle_paid_merch_order_atomic/);
   assert.match(stripeWebhook, /if \(releaseError\) throw releaseError/);
   assert.match(printfulWebhook, /timingSafeEqual/);
-  assert.match(printfulWebhook, /package_shipped/);
+  assert.match(printfulWebhook, /createHmac\('sha256'/);
+  assert.match(printfulWebhook, /x-pf-webhook-signature/);
+  assert.match(printfulWebhook, /x-pf-webhook-public-key/);
+  assert.match(printfulWebhook, /shipment_sent/);
   assert.match(catalog, /print_on_demand_available/);
   assert.match(diamondPurchase, /SHIPPING_ADDRESS_INCOMPLETE/);
   assert.match(diamondPurchase, /createPrintfulOrder/);

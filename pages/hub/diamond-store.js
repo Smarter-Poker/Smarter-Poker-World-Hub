@@ -191,6 +191,24 @@ const PROTECTED_TERMS_CHANGED_MESSAGE =
   'A Protected Purchase Recovery Exists For Earlier Terms. The Current Offer Does Not Match It, So This Page Will Not Start Or Verify A Different Purchase.';
 const CLUB_ADMIN_CREATABLE_CATEGORIES = Object.freeze(['Time Banks']);
 const ALL_THROWABLES_NAME = 'All Throwables Pack (10)';
+const SIGNED_OUT_CLUB_SHOP_PREVIEW = Object.freeze([
+  Object.freeze({
+    id: 'preview-time-bank',
+    name: 'Time Bank Access',
+    description: 'Verified Club Offers Can Add Standard Decision Time To Supported Tables.',
+    category: 'Time Banks',
+    item_type: 'time_bank',
+    grant_spec: Object.freeze({ type: 'time_bank', qty: 1 }),
+  }),
+  Object.freeze({
+    id: 'preview-throwables',
+    name: ALL_THROWABLES_NAME,
+    description: 'One Platform Pack Unlocks Access To The Full Reviewed Throwables Collection.',
+    category: 'Throwables',
+    item_type: 'throwable',
+    grant_spec: Object.freeze({ type: 'throwable', qty: 10 }),
+  }),
+]);
 const isThrowableAdminItem = (item) =>
   Boolean(item) &&
   (String(item.category || '').toLowerCase() === 'throwables' ||
@@ -430,7 +448,7 @@ const VIP_FAQ = [
   },
   {
     q: 'Do I Keep My 500 Bonus Diamonds?',
-    a: 'Yes. Diamonds Credited To Your Balance Are Permanently Yours, Monthly VIP Stipends Included, Even After The Membership Ends. The Stipend Is Credited To Active Monthly And Yearly Subscriptions.',
+    a: 'Yes. The 500 Diamonds Credited To Active Monthly And Yearly Subscriptions Stay In Your Balance. Lifetime VIP Instead Receives 2,000 Promotional Diamonds On The First Of Each Month; Each Lifetime Lot Expires 90 Days After It Is Issued If It Is Not Used.',
   },
   {
     q: 'Does A New Term Stack With The One I Have?',
@@ -458,7 +476,7 @@ const VIP_FAQ = [
   },
   {
     q: 'What Payment Methods Are Accepted?',
-    a: 'Monthly And Yearly VIP Accept All Major Credit And Debit Cards Through Our Secure Stripe Checkout, Including Apple Pay And Google Pay Where Your Device Supports Them. Every VIP Term Also Accepts Diamonds: 1,999 Diamond Monthly, 19,999 Yearly, Or 49,900 Lifetime. Lifetime Card Checkout Is Paused Until Its Refund And Dispute Protections Match The Diamond Path.',
+    a: 'Monthly, Yearly, And Lifetime VIP Accept All Major Credit And Debit Cards Through Our Secure Stripe Checkout, Including Apple Pay And Google Pay Where Your Device Supports Them. Every VIP Term Also Accepts Diamonds: 1,999 Diamond Monthly, 19,999 Yearly, Or 49,900 Lifetime.',
   },
 ];
 
@@ -505,6 +523,74 @@ export async function getServerSideProps({ res }) {
 function ClubShopLoadingText() {
   const hasMounted = useHasMounted();
   return hasMounted ? <>Loading Club Shop...</> : null;
+}
+
+function SignedOutClubShopPreview() {
+  return (
+    <section className={shellStyles.clubShopSurface} aria-labelledby="club-shop-preview-title">
+      <div style={{ textAlign: 'center', marginBottom: 22 }}>
+        <h3 id="club-shop-preview-title" style={{ color: '#EEF6FB', fontSize: 20, margin: 0 }}>
+          Preview Club Equipment
+        </h3>
+        <p style={{ color: 'rgba(233, 243, 250, 0.72)', fontSize: 13, lineHeight: 1.55 }}>
+          Sign In To Load The Live Club Catalog, Member Pricing, Ownership, And Purchase Controls.
+        </p>
+      </div>
+      <div className={shellStyles.clubItemGrid}>
+        {SIGNED_OUT_CLUB_SHOP_PREVIEW.map((item) => {
+          const productArt = resolveClubShopProductArt(item);
+          return (
+            <article key={item.id} className={shellStyles.clubItemCard}>
+              <div className={shellStyles.clubProductMedia}>
+                {productArt.kind === 'image' ? (
+                  <img
+                    src={productArt.source}
+                    alt={item.name}
+                    loading="lazy"
+                    decoding="async"
+                    className={shellStyles.clubProductCutout}
+                  />
+                ) : (
+                  <div
+                    role="img"
+                    aria-label={item.name}
+                    className={shellStyles.clubProductAtlas}
+                    style={{ backgroundPosition: productArt.position }}
+                  />
+                )}
+                <span className={shellStyles.clubItemCategory}>{item.category}</span>
+              </div>
+              <div className={shellStyles.clubItemBody} style={{ padding: 14 }}>
+                <h4 style={{ color: '#EEF6FB', fontSize: 15, margin: '0 0 6px' }}>{item.name}</h4>
+                <p style={{ color: 'rgba(233, 243, 250, 0.78)', fontSize: 13, lineHeight: 1.45 }}>
+                  {item.description}
+                </p>
+                <div className={shellStyles.cardEquivalent}>Club Pricing Appears After Sign In</div>
+              </div>
+            </article>
+          );
+        })}
+      </div>
+      <div style={{ display: 'flex', justifyContent: 'center', marginTop: 22 }}>
+        <Link
+          href="/auth/login?redirect=%2Fhub%2Fclub-shop"
+          className={shellStyles.dialogPrimaryAction}
+          style={{
+            display: 'inline-flex',
+            minHeight: 44,
+            alignItems: 'center',
+            padding: '10px 22px',
+            color: '#061018',
+            fontSize: 13,
+            fontWeight: 800,
+            textDecoration: 'none',
+          }}
+        >
+          Sign In To Open My Club Shop
+        </Link>
+      </div>
+    </section>
+  );
 }
 
 function MerchStoreLoadingText() {
@@ -1664,8 +1750,8 @@ export default function DiamondStorePage({
     return true;
   };
 
-  // Monthly and yearly use Stripe subscriptions. Lifetime remains Diamond-only
-  // until its cross-method refund/provenance state machine is safe to publish.
+  // Monthly and yearly use Stripe subscriptions. Lifetime uses a one-time
+  // Stripe payment with its own provenance-bound refund and dispute lifecycle.
   const handleVIPSubscribe = async () => {
     if (processingRef.current) return;
     const plan = selectedVIPPlan;
@@ -3889,59 +3975,62 @@ export default function DiamondStorePage({
                     <h2 style={styles.benefitsTitle}>
                       Everything Included With {lifetimeSelected ? 'Lifetime VIP' : 'VIP'}
                     </h2>
+                    <nav className={shellStyles.vipBenefitJumpNav} aria-label="VIP Page Sections">
+                      <a href="#vip-benefits-platform">Platform Benefits</a>
+                      <a href="#vip-benefits-arena">Club Arena Benefits</a>
+                      <a href="#vip-faq">Frequently Asked Questions</a>
+                    </nav>
 
-                    {/* Smarter.Poker Platform */}
-                    <div style={styles.benefitsCategoryHeader}>
-                      <span style={styles.benefitsCategoryLabel}>Smarter.Poker Platform</span>
-                    </div>
-                    <div className={shellStyles.responsiveGrid} style={styles.benefitsGrid}>
-                      {displayedVipBenefits
-                        .filter((b) => b.category === 'Smarter.Poker')
-                        .map((benefit, idx) => (
-                          <div
-                            key={idx}
-                            className={shellStyles.premiumDataCard}
-                            style={styles.benefitCard}
-                          >
-                            <div style={styles.benefitInfo}>
-                              <div style={styles.benefitTitle}>
-                                {marketplaceCopy(benefit.title)}
+                    {[
+                      {
+                        id: 'vip-benefits-platform',
+                        label: 'Smarter.Poker Platform',
+                        category: 'Smarter.Poker',
+                      },
+                      {
+                        id: 'vip-benefits-arena',
+                        label: 'Club & Diamond Arena Features',
+                        category: 'Club & Diamond Arena',
+                      },
+                    ].map((group) => {
+                      const benefits = displayedVipBenefits.filter(
+                        (benefit) => benefit.category === group.category
+                      );
+                      return (
+                        <details
+                          key={group.id}
+                          id={group.id}
+                          className={shellStyles.vipBenefitGroup}
+                          open
+                        >
+                          <summary>
+                            <span>{group.label}</span>
+                            <span>{benefits.length} Included</span>
+                          </summary>
+                          <div className={shellStyles.responsiveGrid} style={styles.benefitsGrid}>
+                            {benefits.map((benefit) => (
+                              <div
+                                key={benefit.title}
+                                className={shellStyles.premiumDataCard}
+                                style={styles.benefitCard}
+                              >
+                                <div style={styles.benefitInfo}>
+                                  <div style={styles.benefitTitle}>
+                                    {marketplaceCopy(benefit.title)}
+                                  </div>
+                                  <div style={styles.benefitDesc}>
+                                    {marketplaceCopy(benefit.description)}
+                                  </div>
+                                </div>
+                                <div style={styles.benefitValue}>
+                                  {marketplaceCopy(benefit.value)}
+                                </div>
                               </div>
-                              <div style={styles.benefitDesc}>
-                                {marketplaceCopy(benefit.description)}
-                              </div>
-                            </div>
-                            <div style={styles.benefitValue}>{marketplaceCopy(benefit.value)}</div>
+                            ))}
                           </div>
-                        ))}
-                    </div>
-                    {/* Club & Diamond Arena Features */}
-                    <div style={styles.benefitsCategoryHeader}>
-                      <span style={styles.benefitsCategoryLabel}>
-                        Club & Diamond Arena Features
-                      </span>
-                    </div>
-                    <div className={shellStyles.responsiveGrid} style={styles.benefitsGrid}>
-                      {displayedVipBenefits
-                        .filter((b) => b.category === 'Club & Diamond Arena')
-                        .map((benefit, idx) => (
-                          <div
-                            key={idx}
-                            className={shellStyles.premiumDataCard}
-                            style={styles.benefitCard}
-                          >
-                            <div style={styles.benefitInfo}>
-                              <div style={styles.benefitTitle}>
-                                {marketplaceCopy(benefit.title)}
-                              </div>
-                              <div style={styles.benefitDesc}>
-                                {marketplaceCopy(benefit.description)}
-                              </div>
-                            </div>
-                            <div style={styles.benefitValue}>{marketplaceCopy(benefit.value)}</div>
-                          </div>
-                        ))}
-                    </div>
+                        </details>
+                      );
+                    })}
                   </div>
 
                   {/* View in Marketplace Link */}
@@ -3966,7 +4055,7 @@ export default function DiamondStorePage({
                   </div>
 
                   {/* ─── Frequently Asked Questions ─── */}
-                  <div className={shellStyles.vipFaq}>
+                  <div id="vip-faq" className={shellStyles.vipFaq}>
                     <h2>Frequently Asked Questions</h2>
 
                     {VIP_FAQ.map((faq, idx) => (
@@ -4845,18 +4934,7 @@ export default function DiamondStorePage({
                       <ClubShopLoadingText />
                     </div>
                   ) : !committedStoreAccountId ? (
-                    <div style={{ textAlign: 'center', padding: 40 }}>
-                      <div
-                        style={{
-                          marginTop: 12,
-                          fontSize: 16,
-                          color: 'rgba(255,255,255,0.7)',
-                          fontWeight: 600,
-                        }}
-                      >
-                        Sign In To Access Your Club Shop
-                      </div>
-                    </div>
+                    <SignedOutClubShopPreview />
                   ) : clubShopError ? (
                     <div
                       role="alert"

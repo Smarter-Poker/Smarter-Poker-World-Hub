@@ -51,14 +51,14 @@ test('the subscribe control exists and is wired to the handler', () => {
   );
 });
 
-test('handleVIPSubscribe exposes card subscriptions and gates Lifetime to its atomic Diamond path', () => {
+test('handleVIPSubscribe exposes subscription, Lifetime Card, and atomic Diamond paths', () => {
   assert.match(STORE, /const handleVIPSubscribe = async/);
   assert.match(STORE, /await startStripeCheckout\(plan\)/, 'card plans must reach Stripe');
   assert.match(STORE, /runDiamondPlanPurchase/, 'the diamond plan path must be reachable');
   assert.match(
     DATA,
-    /lifetime:\s*\{[\s\S]*?oneTime:\s*true,[\s\S]*?cardCheckoutReady:\s*false/,
-    'lifetime must stay Diamond-only until its complete card refund/provenance lifecycle is published'
+    /lifetime:\s*\{[\s\S]*?oneTime:\s*true,[\s\S]*?cardCheckoutReady:\s*true/,
+    'Lifetime must expose Card checkout after its complete refund/provenance lifecycle is present'
   );
   assert.match(
     PUBLIC_CATALOG,
@@ -72,23 +72,23 @@ test('handleVIPSubscribe exposes card subscriptions and gates Lifetime to its at
   );
   assert.match(
     PUBLIC_CATALOG,
-    /id:\s*'vip-lifetime',[\s\S]*?cardCheckoutReady:\s*false/,
-    'the public catalog must not advertise the paused Lifetime Card path'
+    /id:\s*'vip-lifetime',[\s\S]*?cardCheckoutReady:\s*true/,
+    'the public catalog must advertise the live Lifetime Card path'
   );
-  assert.match(
+  assert.doesNotMatch(
     CHECKOUT,
     /code: 'LIFETIME_CARD_CHECKOUT_PAUSED'/,
-    'the server must mirror the storefront capability gate'
+    'the server must not retain the retired Lifetime Card capability gate'
   );
   assert.match(
     STORE,
     /const checkoutType = plan\.oneTime \? 'vip_lifetime' : 'subscription'/,
-    'the dormant browser card path must remain one-time rather than recurring'
+    'the Lifetime Card path must remain one-time rather than recurring'
   );
   assert.match(
     CHECKOUT,
     /type === 'vip_lifetime'/,
-    'the server must retain the one-time lifetime recovery implementation behind the gate'
+    'the server must retain the one-time Lifetime Card checkout implementation'
   );
   assert.match(
     WEBHOOK,
