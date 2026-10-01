@@ -1002,11 +1002,12 @@ async function verifyPublicBrowser(browser, bookmarkAlias, validatedForYouRows, 
         && params.get('id') === id;
     }, { id: bookmarkAlias.reference });
     assert.equal(await page.evaluate((key) => localStorage.getItem(key), RETIRED_CACHE_KEY), null, 'Retired Reel cache survived page startup');
-    // Count the standalone Reels viewer's media, not unrelated app-shell
-    // playback such as the global picture-in-picture manager. The hostile
-    // route proof is specifically responsible for preserving this viewer.
+    // Count actual media descendants once beneath the standalone page root.
+    // The accessible viewer label is intentionally repeated by nested console
+    // elements, so chaining from getByLabel() can count one DOM node twice.
+    // The <main> root also excludes unrelated app-shell picture-in-picture.
     const players = page
-      .getByLabel(/Reels Viewer$/)
+      .locator('main')
       .locator('iframe[src*="youtube-nocookie.com/embed/"], video');
     assert.equal(await players.count(), 1, 'Published Reel page mounted more than one media player');
     if (bookmarkPayload.data[0].source_attribution_url) {
