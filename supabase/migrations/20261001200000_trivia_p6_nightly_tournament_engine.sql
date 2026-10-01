@@ -188,7 +188,9 @@ CREATE INDEX IF NOT EXISTS trivia_tournament_horse_personas_band_idx
 CREATE TABLE IF NOT EXISTS public.trivia_tournament_entrants (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     tournament_id uuid NOT NULL REFERENCES public.trivia_tournaments(id) ON DELETE RESTRICT,
-    participant_id uuid REFERENCES public.profiles(id) ON DELETE SET NULL,
+    -- Immutable participant identity (no FK: account deletion must never be
+    -- blocked or rewrite tournament history; the ledger keeps the same id).
+    participant_id uuid NOT NULL,
     participant_kind text NOT NULL CHECK (participant_kind IN ('human', 'horse')),
     display_name text NOT NULL CHECK (length(display_name) BETWEEN 1 AND 80),
     entry_state text NOT NULL DEFAULT 'entered' CHECK (entry_state IN ('entered', 'refunded')),
@@ -263,7 +265,7 @@ CREATE TABLE IF NOT EXISTS public.trivia_tournament_population_runs (
 CREATE TABLE IF NOT EXISTS public.trivia_tournament_horse_schedule (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     tournament_id uuid NOT NULL REFERENCES public.trivia_tournaments(id) ON DELETE RESTRICT,
-    horse_id uuid REFERENCES public.profiles(id) ON DELETE SET NULL,
+    horse_id uuid NOT NULL,
     skill_band text NOT NULL CHECK (skill_band IN ('rookie', 'club', 'sharp', 'elite')),
     selection_rank integer NOT NULL CHECK (selection_rank >= 1),
     planned_join_at timestamptz NOT NULL,
@@ -510,7 +512,10 @@ SELECT jsonb_build_object(
     'transition_max_seconds', 90,
     'bracket_capacity', 256,
     'bracket_capacity_max', 512,
-    'auto_expand_capacity', true,
+    -- Phase 2's ledger caps a paid field at the rules' field.bracket_size, so a
+    -- 512 field is enabled by a rules version (or a zero-diamond canary), never
+    -- by silently expanding a paid 256 field mid-registration.
+    'auto_expand_capacity', false,
     'horse_target_min', 70,
     'horse_target_max', 140,
     'min_horses_to_start', 70,
@@ -779,10 +784,9 @@ BEGIN
        OR NEW.rake_amount IS DISTINCT FROM OLD.rake_amount
        OR NEW.net_contribution IS DISTINCT FROM OLD.net_contribution
        OR NEW.funding_source IS DISTINCT FROM OLD.funding_source
-       OR NEW.ledger_receipt IS DISTINCT FROM OLD.ledger_receipt
+       OR NEW.ledger_journal_id IS DISTINCT FROM OLD.ledger_journal_id
        OR NEW.created_by IS DISTINCT FROM OLD.created_by
-       OR (OLD.participant_id IS NOT NULL AND NEW.participant_id IS NOT NULL
-           AND NEW.participant_id <> OLD.participant_id)
+       OR NEW.participant_id IS DISTINCT FROM OLD.participant_id
        OR (OLD.seed_number IS NOT NULL AND NEW.seed_number IS DISTINCT FROM OLD.seed_number)
        OR (OLD.in_field AND NOT NEW.in_field)
        OR (OLD.entry_state = 'refunded' AND NEW.entry_state <> 'refunded')
@@ -1382,7 +1386,8 @@ $$;
 -- Test/canary instances outside the public schedule (operator; service_role).
 CREATE OR REPLACE FUNCTION public.trivia_tournament_create_test_instance(
     p_kind text, p_label text, p_start_at timestamptz, p_horse_target integer DEFAULT NULL,
-    p_zero_diamond boolean DEFAULT true, p_registration_opens_at timestamptz DEFAULT NULL)
+    p_zero_diamond boolean DEFAULT true, p_registration_opens_at timestamptz DEFAULT NULL,
+    p_bracket_capacity integer DEFAULT NULL)
 RETURNS jsonb
 LANGUAGE plpgsql
 SECURITY DEFINER
@@ -1405,6 +1410,10 @@ BEGIN
     IF p_horse_target IS NOT NULL AND p_horse_target NOT BETWEEN 70 AND 140 THEN
         RETURN jsonb_build_object('success', false, 'error', 'invalid_horse_target');
     END IF;
+    IF p_bracket_capacity IS NOT NULL AND (p_bracket_capacity NOT IN (256, 512)
+            OR (p_bracket_capacity = 512 AND NOT COALESCE(p_zero_diamond, false))) THEN
+        RETURN jsonb_build_object('success', false, 'error', 'invalid_bracket_capacity');
+    END IF;
     v_key := p_kind || ':' || p_label;
     SELECT id INTO v_id FROM public.trivia_tournaments WHERE schedule_key = v_key;
     IF FOUND THEN
@@ -1413,6 +1422,8 @@ BEGIN
     v_rules := public.trivia_tournament_rules_load();
     v_format := public.trivia_tournament_engine_format() || (v_rules->'format')
         || CASE WHEN p_zero_diamond THEN jsonb_build_object('entry_fee', 0, 'zero_diamond', true)
+                ELSE '{}'::jsonb END
+        || CASE WHEN p_bracket_capacity IS NOT NULL THEN jsonb_build_object('bracket_capacity', p_bracket_capacity)
                 ELSE '{}'::jsonb END;
     v_local := p_start_at AT TIME ZONE 'America/Chicago';
     v_id := public.trivia_tournament_create_instance(
@@ -3550,7 +3561,7 @@ GRANT EXECUTE ON FUNCTION public.trivia_tournament_scheduler_acquire(text, integ
 GRANT EXECUTE ON FUNCTION public.trivia_tournament_scheduler_release(uuid, bigint) TO service_role;
 GRANT EXECUTE ON FUNCTION public.trivia_tournament_scheduler_tick(uuid, bigint, boolean, integer) TO service_role;
 GRANT EXECUTE ON FUNCTION public.trivia_tournament_enter(uuid, uuid, text) TO service_role;
-GRANT EXECUTE ON FUNCTION public.trivia_tournament_create_test_instance(text, text, timestamptz, integer, boolean, timestamptz) TO service_role;
+GRANT EXECUTE ON FUNCTION public.trivia_tournament_create_test_instance(text, text, timestamptz, integer, boolean, timestamptz, integer) TO service_role;
 GRANT EXECUTE ON FUNCTION public.trivia_tournament_operator_cancel(uuid, text, text) TO service_role;
 GRANT EXECUTE ON FUNCTION public.trivia_tournament_play_open(uuid, uuid) TO service_role;
 GRANT EXECUTE ON FUNCTION public.trivia_tournament_play_question(uuid, uuid, integer) TO service_role;
@@ -3575,7 +3586,7 @@ DECLARE
     v_granted text[] := ARRAY[
         'trivia_tournament_scheduler_acquire(text,integer)', 'trivia_tournament_scheduler_release(uuid,bigint)',
         'trivia_tournament_scheduler_tick(uuid,bigint,boolean,integer)', 'trivia_tournament_enter(uuid,uuid,text)',
-        'trivia_tournament_create_test_instance(text,text,timestamp with time zone,integer,boolean,timestamp with time zone)',
+        'trivia_tournament_create_test_instance(text,text,timestamp with time zone,integer,boolean,timestamp with time zone,integer)',
         'trivia_tournament_operator_cancel(uuid,text,text)', 'trivia_tournament_play_open(uuid,uuid)',
         'trivia_tournament_play_question(uuid,uuid,integer)', 'trivia_tournament_play_answer(uuid,uuid,uuid,integer,uuid)',
         'trivia_tournament_play_finish(uuid,uuid)', 'trivia_tournament_play_view(uuid,uuid)',
