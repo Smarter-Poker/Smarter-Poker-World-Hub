@@ -1,0 +1,37 @@
+name: Series Discovery Contracts
+
+# The discovery stage hands its master list to the enrichment stage. A record
+# loaded from poker_series must carry its stored source address and provenance
+# with it, or the next stage re-derives them from a name and loses them. The
+# fix for that (#1778) was lost in the September 13 restoration (#1821) along
+# with its test and its CI step; this workflow keeps the test running on every
+# pull request that touches the scraper.
+
+on:
+  pull_request:
+    paths:
+      - 'scripts/scrape_poker_series_discovery.py'
+      - 'scripts/test_series_discovery_handoff.py'
+      - '.github/workflows/series-discovery-contracts.yml'
+      - '.github/workflows/poker-series-auto-pilot.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/scrape_poker_series_discovery.py'
+      - 'scripts/test_series_discovery_handoff.py'
+
+permissions:
+  contents: read
+
+jobs:
+  handoff:
+    name: Series Discovery Source Handoff Contracts
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Series Discovery Source Handoff Contracts
+        run: python3 -m unittest discover -s scripts -p test_series_discovery_handoff.py -v
