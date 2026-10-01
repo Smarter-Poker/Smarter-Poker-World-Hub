@@ -764,7 +764,13 @@ open and Phase 7 has not started.
 ### 2026-09-30 Post-Rotation Git-Source Activation Marker
 
 Provisioning workflow PR #2057 passed its required protected checks and
-squash-merged as `98f8d88bff026736a86bf4c15bf5585c39d96613`. This separate,
+squash-merged as `98f8d88bff026736a86bf4c15bf5585c39d96613`.
+Security follow-up PR #2059 also passed every required check, squash-merged as
+`ed05cf99486b6e01c46dc34af187c8fd37fcae6c`, and production serves that
+exact revision on deployment `dpl_FRbXmrtUh2tYqdCD9n6VmJ3HDJGG` with healthy
+database and Training grading checks. No provisioning run exists yet.
+
+This separate,
 non-secret checkpoint-only change is pre-staged so that the already-approved
 World Hub Git-source route can create one ordinary production deployment after
 the M1 HMAC value is rotated. It must remain draft and unmerged until the
