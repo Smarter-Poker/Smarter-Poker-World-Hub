@@ -36,13 +36,13 @@
 
 ## Wave 4: Verification And Release
 
-- [ ] Run targeted tests and coverage for all new logic.
-- [ ] Run typecheck, lint, complete production build, and secret/stub/diff checks.
-- [ ] Dry-run the migration and execute its assertions.
-- [ ] Commit with the required Smarter-Poker identity and push without bypassing hooks.
-- [ ] Confirm the PR, CI result, merge, migration ledger, and production SHA.
-- [ ] Prove one canonical test publication is created once, linked on both tables, poker-filtered, embed-ready, and produces no transcode job.
-- [ ] Prove replay, stale link, kill-switch, and simulated mid-flight failure behavior.
+- [x] Run targeted tests and coverage for all new logic.
+- [x] Run typecheck, lint, complete production build, and secret/stub/diff checks.
+- [x] Dry-run the migration and execute its assertions.
+- [x] Commit with the required Smarter-Poker identity and push without bypassing hooks.
+- [x] Confirm the PR, CI result, merge, migration ledger, and production SHA.
+- [x] Prove one canonical test publication is created once, linked on both tables, poker-filtered, embed-ready, and produces no transcode job.
+- [x] Prove replay, stale link, kill-switch, and simulated mid-flight failure behavior.
 
 ## Wave 5: Restore Managed Supply
 
@@ -52,7 +52,7 @@
 - [x] Add an independently controlled, approved `/cron/horse-video-reels` worker route and Open Claw schedule while leaving unrelated generated/text modes disabled.
 - [x] Record positive and negative YouTube verdicts in the shared verifier contract before a horse video becomes public.
 - [x] Preserve horse identity as ordinary author identity without exposing an internal horse label in the viewer.
-- [ ] Backfill in bounded, replay-safe pages until at least 2,000 unique verified candidates are public or every remaining candidate has a recorded rejection reason.
+- [x] Backfill in bounded, replay-safe pages until at least 2,000 unique verified candidates are public or every remaining candidate has a recorded rejection reason.
 
 ## Wave 6: Endless Multi-Topic Social Reels
 
