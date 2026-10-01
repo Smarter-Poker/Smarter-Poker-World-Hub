@@ -875,6 +875,105 @@ body.world-poker-near-me :is(
   box-shadow: var(--pnm-command-shadow), var(--pnm-command-inset) !important;
 }
 
+/* ---------------------------------------------------------------------------
+   ONE FRAME PER DEEP ROUTE (2026-09-30).
+
+   The shared rule above lists seven surfaces and paints all of them the same
+   way. Its specificity is (0,3,2), not (0,3,1): `:is()` takes the weight of
+   its heaviest argument and `.hgd-main > div:first-child` carries a
+   pseudo-class. So console-deep's `.pnc.pnm-deep-deck { border: 0 !important }`
+   at (0,3,1) loses, and so does the series page's own
+   `.pnc-panel.series-header { border: 0 !important }`.
+
+   Measured on /hub/venues/2802 at 375, 393 and 1440 before this: the painted
+   chassis wore `1px solid rgba(151, 174, 195, 0.34)`, a 3px radius and
+   `0 22px 58px rgba(0, 0, 0, 0.48)` outside its own art - a plain grey
+   rectangle drawn around an ornate painted frame. The location hero was
+   already released from it in poker-near-me-console-surfaces.css; these are
+   the rest of the painted deep-route surfaces.
+
+   The shared rule is not touched. It still dresses the surfaces that carry no
+   master art of their own. A surface that IS painted opts out here at
+   (0,4,1), which clears (0,3,2).
+   --------------------------------------------------------------------------- */
+
+body.world-poker-near-me .venue-page .pnc.pnm-deep-deck,
+body.world-poker-near-me .venue-page .pnc-panel.venue-header,
+body.world-poker-near-me .tour-page .pnc-panel.tour-header,
+body.world-poker-near-me .series-page .pnc-panel.series-header {
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: none !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+}
+
+/* The same list draws a 112px ion bar across the top edge of a surface that
+   has no art of its own. Over a painted head it is a drawn line on top of
+   the paint, so the painted surfaces drop it with their rectangle. */
+body.world-poker-near-me .venue-page .pnc-panel.venue-header::before,
+body.world-poker-near-me .tour-page .pnc-panel.tour-header::before,
+body.world-poker-near-me .series-page .pnc-panel.series-header::before {
+  content: none !important;
+}
+
+/* ---------------------------------------------------------------------------
+   THE VENUE AND TOUR HEADS RIDE THE CHASSIS (2026-09-30).
+
+   Both were bare copy inside that rectangle, sitting directly under painted
+   art: the venue head under the deep-route deck, the tour head above the
+   painted tour panels. They are now PokerNearMePanelShell, the same three
+   slice chassis the series head already uses.
+
+   panels-v1 is drawn 1000 wide. Asked for more, the head slice scales with
+   it and the type floats in a banner, so both stop at the master's own width
+   and centre - the cap the directory section heads take in
+   poker-near-me.css:1567 and the location index takes in
+   poker-near-me-console-deep.css:282. Measured before this: `.tour-header`
+   ran the full 1440 with the rectangle drawn hard against both screen edges.
+   --------------------------------------------------------------------------- */
+
+body.world-poker-near-me .venue-page .pnc-panel.venue-header,
+body.world-poker-near-me .tour-page .pnc-panel.tour-header {
+  /* 1000px is the master's own width. The 24px taken off `100%` is the
+     gutter `.pnc.pnm-deep-deck` already keeps in
+     poker-near-me-console-deep.css:6, so on a phone the venue head lines up
+     with the deck directly above it instead of running 12px wider on each
+     side; on a wide screen both resolve to the same 1000. */
+  width: min(calc(100% - 24px), 1000px) !important;
+  margin-inline: auto !important;
+  padding: 0 !important;
+  overflow: visible !important;
+}
+
+/* The series head is the one painted panel on its page that the shared
+   mobile rule at `:is(.series-header, .tour-header, .venue-header,
+   .hgs-header) { margin-inline: 8px !important }` still reaches, so under
+   769px it sat 8px in from the stats panel below it (measured x=20 against
+   x=12 at 375). It centres with its siblings. */
+body.world-poker-near-me .series-page .pnc-panel.series-header {
+  margin-inline: auto !important;
+}
+
+body.world-poker-near-me .venue-header__body,
+body.world-poker-near-me .tour-header__body {
+  gap: 0;
+  padding-block: 2px 4cqw;
+}
+
+/* Inside the chassis the breadcrumb strip is printed on the console's own
+   glass. Its own rectangle would be a second frame within a painted one. */
+body.world-poker-near-me .tour-page .pnc-panel.tour-header .breadcrumb-nav {
+  width: 100% !important;
+  margin-inline: 0 !important;
+  padding-inline: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: none !important;
+  box-shadow: none !important;
+}
+
 body.world-poker-near-me :is(.series-header, .tour-header, .hgs-header, .hgd-main > div:first-child) {
   position: relative;
   overflow: hidden;

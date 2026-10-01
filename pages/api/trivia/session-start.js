@@ -322,6 +322,47 @@ async function servePvpSession(res, sb, userId, match, sessionId, resumed) {
     });
 }
 
+/**
+ * Phase 5 v2 matches bind both seats, their escrow and their engine v3 server
+ * sessions atomically when the match is created (trivia_pvp_*_v2), so this
+ * route only RESUMES the caller's own seat session. It never creates a
+ * session, charges a stake or re-rolls a roster for a v2 match.
+ */
+async function serveV2PvpSeat(res, sb, userId, match) {
+    const side = match.player1_id === userId ? 1 : 2;
+    const { data: link, error: linkErr } = await sb
+        .from('trivia_pvp_session_links')
+        .select('session_id')
+        .eq('match_id', match.id)
+        .eq('side', side)
+        .maybeSingle();
+    if (linkErr) {
+        console.warn('[trivia session-start] v2 pvp seat load failed:', linkErr.message || linkErr);
+        return res.status(503).json({ success: false, error: 'pvp_storage_unavailable' });
+    }
+    if (!link?.session_id) {
+        return res.status(409).json({ success: false, error: 'session_link_invalid' });
+    }
+    const { data, error } = await sb.rpc('trivia_session_view_v3', {
+        p_session_id: link.session_id,
+        p_user_id: userId,
+    });
+    if (error) {
+        console.warn('[trivia session-start] v2 pvp seat view failed:', error.message || error);
+        return res.status(500).json({ success: false, error: 'session_load_failed' });
+    }
+    if (!data || data.success !== true) {
+        return res.status(v3ErrorStatus(data?.error)).json({ success: false, error: data?.error || 'session_load_failed' });
+    }
+    res.setHeader('Cache-Control', 'private, no-cache, no-store, must-revalidate');
+    return res.status(200).json({
+        ...toSoloStartResponse(data),
+        resumed: true,
+        matchId: match.id,
+        stake: Math.max(0, Math.floor(Number(match.stake_amount) || 0)),
+    });
+}
+
 async function reloadPvpDurableBinding(sb, matchId, side) {
     const [matchResult, linkResult] = await Promise.all([
         sb.from('trivia_pvp_matches')
@@ -373,7 +414,7 @@ async function startPvpSession(req, res, sb, userId) {
 
     const { data: match, error: matchErr } = await sb
         .from('trivia_pvp_matches')
-        .select('id, player1_id, player2_id, stake_amount, questions, status, created_at')
+        .select('id, player1_id, player2_id, stake_amount, questions, status, created_at, engine_version')
         .eq('id', matchId)
         .maybeSingle();
     if (matchErr) {
@@ -385,6 +426,9 @@ async function startPvpSession(req, res, sb, userId) {
     }
     if (match.player1_id !== userId && match.player2_id !== userId) {
         return res.status(403).json({ success: false, error: 'not_your_match' });
+    }
+    if (match.engine_version) {
+        return serveV2PvpSeat(res, sb, userId, match);
     }
     const matchValidation = validatePvpMatch(match, { requireActive: true });
     if (!matchValidation.ok) {

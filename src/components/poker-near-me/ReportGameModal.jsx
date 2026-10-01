@@ -636,7 +636,7 @@ export default function ReportGameModal({
                         />
                     </div>
                     {showReview && reviewForm.rating === 0 && reviewForm.reviewText.trim() && (
-                        <div style={{ fontSize: 12, color: 'rgba(245,158,11,0.7)', marginTop: 4 }}>
+                        <div style={{ fontSize: 12, color: 'rgba(69,173,255,0.85)', marginTop: 4 }}>
                             Please Add An Overall Star Rating To Submit The Review.
                         </div>
                     )}

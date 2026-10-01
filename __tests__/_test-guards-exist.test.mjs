@@ -263,6 +263,8 @@ import './training-surface-inventory.test.mjs';
 // default-off PvP and Tournament gates.
 import './trivia-console-contract.test.mjs';
 import './trivia-pvp-containment.test.mjs';
+// Trivia Phase 5: server-owned PvP engine v2 (stable 20-45 s horse deadline, human first, ledger settlement).
+import './trivia-pvp-engine-v2.test.mjs';
 import './trivia-tournament-containment.test.mjs';
 // Trivia Phase 3: eligibility-only paid/competitive pools, engine v3 golden seeds.
 import './trivia-phase-3-engine.test.mjs';
@@ -455,6 +457,11 @@ import './a-venue-mark-is-only-asked-for-when-it-exists.test.mjs';
 // logo_url. This pins the shared components so a new caller is covered.
 import './no-venue-picture-reaches-the-dom-unguarded.test.mjs';
 
+// Every venue page served two og:image tags and the generic site card won,
+// so all 478 shared one picture. next/head does not deduplicate by
+// `property`, only by `key`, and the two producers used different keys.
+import './a-venue-page-shares-its-own-card.test.mjs';
+
 // The Report-Only CSP can only graduate if its violations reach us, so the
 // reporting wiring and the endpoint that receives it are guarded here.
 import './csp-violations-reach-us.test.mjs';
@@ -553,6 +560,8 @@ const REQUIRED_TEST_FILES = [
     // competitive modes that must fail closed until their audits land.
     '__tests__/trivia-ui-foundation.test.mjs',
     '__tests__/trivia-pvp-containment.test.mjs',
+    // Phase 5 server-owned PvP engine v2 source contracts and transport policy.
+    '__tests__/trivia-pvp-engine-v2.test.mjs',
     '__tests__/trivia-tournament-containment.test.mjs',
     // Phase 3 question eligibility + deterministic engine v3 (1,000 golden seeds).
     '__tests__/trivia-phase-3-engine.test.mjs',
