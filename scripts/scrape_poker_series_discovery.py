@@ -145,7 +145,7 @@ def dedup_key(name: str) -> str:
     collapsed into one group and the older edition was deleted.
     """
     s = name.lower().strip()
-    s = re.sub(r"[\u2018\u2019'`]", "", s)
+    s = re.sub(r"[‘’'`]", "", s)
     s = re.sub(r"[^a-z0-9\s]", " ", s)
     return re.sub(r"\s+", " ", s).strip()
 
@@ -466,11 +466,20 @@ def fetch_db_known_series() -> tuple[set, list]:
 
     # Pull from poker_series table if it exists
     try:
-        rows = sb_get_paged("poker_series", "series_uid,series_name", "")
+        rows = sb_get_paged(
+            "poker_series", "series_uid,series_name,source_url,scrape_url,source", ""
+        )
         for r in rows:
             name = (r.get("series_name") or "").strip()
             if name:
-                db_records.append({"id": r.get("series_uid"), "name": name, "table": "poker_series"})
+                # The master list is the next stage's source handoff. Keep
+                # the stored address and provenance with the exact parent
+                # identity; names alone cannot reconstruct either one.
+                db_records.append({
+                    "id": r.get("series_uid"), "name": name, "table": "poker_series",
+                    "source_url": r.get("source_url") or r.get("scrape_url") or "",
+                    "scrape_source": r.get("source") or "",
+                })
                 known_keys.add(normalize_key(name))
         log.info(f"  poker_series:             {len(rows)} rows")
     except Exception as e:
