@@ -607,6 +607,11 @@ test('Following Reels use authenticated, bounded candidate checks with keyset co
   assert.match(REELS_FEED_API, /Authentication required/);
   assert.match(REELS_FEED_SERVER, /readFollowedCandidateAuthorIds/);
   assert.match(REELS_FEED_SERVER, /\.in\('following_id', authorChunk\)/);
+  assert.match(
+    REELS_FEED_SERVER,
+    /followedCandidateAuthors[\s\S]*?scopedRawRows[\s\S]*?eligibleRows\(client, scopedRawRows/,
+    'Following must discard unrelated candidates before expensive eligibility hydration',
+  );
   assert.match(REELS_FEED_SERVER, /followedWinnerAuthors\.has\(winner\.author_id\)/);
   assert.match(REELS_FEED_SERVER, /scanCursor = lastScannedCursor/);
   assert.doesNotMatch(REELS_FEED_SERVER, /MAX_FOLLOWING_AUTHORS/);

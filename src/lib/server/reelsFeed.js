@@ -1139,9 +1139,25 @@ async function readPage(client, { limit, cursor, sort, scope, category, viewerId
         lastScannedCursor = cursorForRow(lastRawRow, sort);
         scanCursor = lastScannedCursor;
 
+        // Following can be sparse across the global chronology. Resolve the
+        // bounded candidate membership first so an account following only a
+        // few authors does not hydrate availability, rights, posts, native
+        // objects, and canonical groups for thousands of unrelated Reels.
+        // Keep the keyset scan itself global and uncapped so continuation and
+        // completeness do not depend on an arbitrary following-list limit.
+        const followedCandidateAuthors = scope === 'following'
+            ? await readFollowedCandidateAuthorIds(
+                client,
+                viewerId,
+                rawRows.map(row => row.author_id)
+            )
+            : null;
+        const scopedRawRows = followedCandidateAuthors
+            ? rawRows.filter(row => followedCandidateAuthors.has(row.author_id))
+            : rawRows;
         const eligibilityOptions = { category, allowUnknownNativeUpload };
-        const candidateEligible = await eligibleRows(client, rawRows, scope, eligibilityOptions);
-        const winnerByKey = await canonicalWinners(client, rawRows, scope, eligibilityOptions);
+        const candidateEligible = await eligibleRows(client, scopedRawRows, scope, eligibilityOptions);
+        const winnerByKey = await canonicalWinners(client, scopedRawRows, scope, eligibilityOptions);
         const followedWinnerAuthors = scope === 'following'
             ? await readFollowedCandidateAuthorIds(
                 client,
