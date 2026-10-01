@@ -703,3 +703,24 @@ distribution, credential restoration, or global-header change has occurred in
 this contract stage. It remains a candidate until protected checks, merge,
 Vercel proof, migration installation/readback, exact bundle construction, and
 one signed M1 canary complete. Phase 6 remains open and Phase 7 has not started.
+
+### 2026-09-30 Post-Rotation Git-Source Activation Marker
+
+Provisioning workflow PR #2057 passed its required protected checks and
+squash-merged as `98f8d88bff026736a86bf4c15bf5585c39d96613`. This separate,
+non-secret checkpoint-only change is pre-staged so that the already-approved
+World Hub Git-source route can create one ordinary production deployment after
+the M1 HMAC value is rotated. It must remain draft and unmerged until the
+manual provisioning workflow has succeeded for the exact protected-main
+revision and emitted a matching non-secret request receipt plus M1-encrypted
+ciphertext artifact.
+
+When those predicates are independently verified, this pull request may be
+marked ready and protected-merged. The merge, rather than a Vercel API deploy,
+deploy hook, local build, or alternate project, is the activation event for the
+new Production environment value. Production must then report the merge (or a
+verified descendant containing it), healthy database and Training grading
+checks, and an M1 signed-gateway probe that returns an authenticated response
+before the ciphertext may be released to M1 for exactly one bounded canary.
+This marker contains no credential, rotates nothing by itself, leaves the
+global header untouched, and does not close Phase 6 or start Phase 7.
