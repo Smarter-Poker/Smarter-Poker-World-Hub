@@ -554,11 +554,14 @@ const nextConfig = {
   // binaries before the build runs, ensuring Turbopack also cannot bundle them.
   outputFileTracingExcludes: {
     '*': [
+      // puppeteer-core and @puppeteer/browsers are NOT listed: Next applies these
+      // excludes AFTER outputFileTracingIncludes (collect-build-traces.js), so a
+      // '*' exclude would strip the Phase 9 render route's driver even though the
+      // route includes it below (the first live render failed exactly so). Only the
+      // render route requires puppeteer-core, so nft traces it there and nowhere else.
       'node_modules/puppeteer/**',
-      'node_modules/puppeteer-core/**',
       'node_modules/puppeteer-extra/**',
       'node_modules/puppeteer-extra-plugin-stealth/**',
-      'node_modules/@puppeteer/**',
       'node_modules/canvas/**',
       'node_modules/phaser/**',
       'node_modules/pdf-parse/**',
@@ -609,10 +612,11 @@ const nextConfig = {
       'node_modules/@ffmpeg-installer/linux-x64/**/*',
       'node_modules/@ffprobe-installer/linux-x64/**/*',
     ],
-    // Phase 9 hand clip renderer: the '*' excludes above drop puppeteer-core
-    // from every other route; this include wins for this one route and adds
-    // the packed Chromium (@sparticuz/chromium, about 65 MB brotli) and the
-    // same two linux-x64 ffmpeg/ffprobe binaries the transcode cron carries.
+    // Phase 9 hand clip renderer: adds the packed Chromium (@sparticuz/chromium,
+    // about 65 MB brotli), the puppeteer-core driver (its dependencies are traced
+    // from its requires; neither it nor @puppeteer/* may appear in the '*'
+    // excludes above, which Next applies after these includes) and the same two
+    // linux-x64 ffmpeg/ffprobe binaries the transcode cron carries.
     'pages/api/cron/render-hand-clips': [
       'node_modules/@sparticuz/chromium/**/*',
       'node_modules/puppeteer-core/**/*',

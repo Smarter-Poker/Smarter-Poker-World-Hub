@@ -44,7 +44,11 @@ test('next.config.js marks the browser packages external and traces them into th
   assert.match(includes, /'pages\/api\/cron\/render-hand-clips': \[\s*'node_modules\/@sparticuz\/chromium\/\*\*\/\*',\s*'node_modules\/puppeteer-core\/\*\*\/\*',\s*'node_modules\/@ffmpeg-installer\/linux-x64\/\*\*\/\*',\s*'node_modules\/@ffprobe-installer\/linux-x64\/\*\*\/\*',\s*\]/);
   assert.match(includes, /'pages\/api\/cron\/transcode-videos': \[\s*'node_modules\/@ffmpeg-installer\/linux-x64\/\*\*\/\*',\s*'node_modules\/@ffprobe-installer\/linux-x64\/\*\*\/\*',\s*\]/, 'the transcode include is unchanged');
   const excludes = nextConfig.slice(nextConfig.indexOf('outputFileTracingExcludes: {'), nextConfig.indexOf('outputFileTracingIncludes: {'));
-  assert.ok(excludes.includes("'node_modules/puppeteer-core/**'"), "the '*' excludes still drop puppeteer-core from every other route");
+  // Next applies outputFileTracingExcludes AFTER outputFileTracingIncludes, so a
+  // '*' exclude of puppeteer-core or @puppeteer/* would strip the driver from the
+  // render route (the first live render failed with Cannot find module puppeteer-core).
+  assert.ok(!excludes.includes("'node_modules/puppeteer-core/**'"), "puppeteer-core must not be excluded for every route");
+  assert.ok(!excludes.includes("'node_modules/@puppeteer/**'"), "@puppeteer/browsers must not be excluded for every route");
   assert.ok(excludes.includes("'node_modules/puppeteer/**'"));
   assert.ok(!excludes.includes('sparticuz'), 'no exclude strips the packed Chromium');
   const starExcludes = [...excludes.matchAll(/'node_modules\/[^']+'/g)].map((m) => m[0]);
