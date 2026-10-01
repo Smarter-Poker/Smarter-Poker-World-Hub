@@ -4360,6 +4360,48 @@ body.world-poker-near-me .pnm-filter-well > .day-selector {
         flex: 1 1 104px;
     }
 }
+/* The Tours and Series banks are a state select plus a result count. The row
+   that carries the select is a block of its own inside the painted well, so
+   it declares its own direction the way the heading rows above it do. */
+body.world-poker-near-me .pnm-filter-well .pnm-filter-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+}
+/* The painted field art is a 348 x 114 master, so a control that grows with
+   the column grows in BOTH directions: at 375 the state select reached 307px
+   wide and printed a 100px-tall billboard where a control belongs. Capping it
+   at the width its drawn height allows (48px x 348/114) keeps the drawn
+   proportions and lets background-size: contain scale the master down to the
+   control instead of inflating it. The cap is declared !important because the
+   older command finish pins `max-width: none !important` on every select on
+   this route. */
+body.world-poker-near-me .pnm-state-select.pnm-state-select {
+    max-width: calc(48px * 348 / 114) !important;
+}
+
+/* THE SAME BILLBOARD, FOUR MORE TIMES (2026-10-01). Every .pnm-filter-select
+   on this route carries the same 348 x 114 painted master, so every one of
+   them inflates the same way: measured at 375, four of them printed 168 x 118
+   where a control belongs, while at 1440 the same elements sat correctly at
+   139 x 46. The rule above fixed the two the Tours and Series banks own; this
+   is the other four, by the same arithmetic. */
+body.world-poker-near-me .pnm-filter-select.pnm-filter-select {
+    max-width: calc(48px * 348 / 114) !important;
+    /* The cap alone is not enough: .pnm-filter-group is a flex row whose
+       align-items resolves to stretch, so the select was taking the height of
+       the tallest control beside it (measured 118px) and the aspect-ratio
+       never got to speak. Opting out of the stretch lets 348/114 compute the
+       height from the capped width, which is the 48px the art is drawn for. */
+    align-self: center;
+    /* ...and the height came from a flex basis, not the art: the phone rule in
+       poker-near-me-console-surfaces.css gives these controls
+       `flex: 1 1 118px`, and on the main axis a basis beats aspect-ratio, so
+       the box was 118px tall whatever the width. Sizing to content hands the
+       height back to 348/114. */
+    flex: 0 0 auto !important;
+}
 .pnm-section__title {
     margin: 0;
     font-size: 18px;
