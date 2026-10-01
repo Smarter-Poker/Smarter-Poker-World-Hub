@@ -777,6 +777,12 @@ test('a failed foreground channel switch retains the mounted Reel and exposes a 
     /<div key="reels-navigation-header"[\s\S]*?<main key="reels-viewer"/,
     'opening the conditional command header must preserve the keyed viewer sibling and mounted player',
   );
+  assert.match(REELS_PAGE, /const youtubeEmbedSrc = videoId[\s\S]*?youtube-nocookie\.com\/embed\/\$\{videoId\}/);
+  assert.match(
+    REELS_PAGE,
+    /getAttribute\('src'\) === 'about:blank'[\s\S]*?e\.currentTarget\.src = youtubeEmbedSrc;/,
+    'a retained iframe that self-navigates blank must restore the same verified embed',
+  );
 });
 
 test('the cold-start loading decision preserves player identity during a rejected channel transition', async () => {
