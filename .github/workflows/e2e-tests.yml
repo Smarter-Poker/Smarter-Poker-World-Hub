@@ -46,7 +46,7 @@ on:
       expected_sha:
         description: Full deployed commit SHA required for a published live verification
         type: string
-        default: ''
+        required: true
       messenger_fixture_conversation_id:
         description: Exact parent-owned sole-participant fixture UUID for messenger-send-live
         type: string

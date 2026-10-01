@@ -712,6 +712,10 @@ test('workflow retains and independently asserts the complete sanitized receipt'
     E2E_WORKFLOW,
     /name: Assert complete sanitized Reels receipt[\s\S]*REELS_EXPECTED_SHA: \$\{\{ inputs\.expected_sha \}\}/,
   );
+  assert.match(
+    E2E_WORKFLOW,
+    /expected_sha:\s*\n\s+description: Full deployed commit SHA required for a published live verification\s*\n\s+type: string\s*\n\s+required: true/,
+  );
   assert.throws(
     () => validateReceipt({ ...receipt, checks: receipt.checks.slice(1) }),
     /check inventory is incomplete/,
