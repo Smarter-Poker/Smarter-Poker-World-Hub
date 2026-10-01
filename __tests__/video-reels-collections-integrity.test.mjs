@@ -123,11 +123,12 @@ function emptyContext() {
   };
 }
 
-function loadCollectionReaderHarness(client, { scanChunkSize = 240 } = {}) {
+function loadCollectionReaderHarness(client, { scanChunkSize = 240, followingPageSize = 1_000 } = {}) {
   const transformed = SERVER
     .replace(/import \{ createClient \} from '[^']+';\n/, '')
     .replace(/import \{[\s\S]*?\} from '\.\.\/videoLibraryAvailability';\n/, '')
     .replace('const SCAN_CHUNK_SIZE = 240;', `const SCAN_CHUNK_SIZE = ${scanChunkSize};`)
+    .replace('const FOLLOWING_PAGE_SIZE = 1_000;', `const FOLLOWING_PAGE_SIZE = ${followingPageSize};`)
     .replace(/export class /g, 'class ')
     .replace(/export async function /g, 'async function ')
     .replace(/export const /g, 'const ');
@@ -177,7 +178,7 @@ function loadCollectionReaderHarness(client, { scanChunkSize = 240 } = {}) {
   };
 }
 
-function createMemoryClient(tables, { validNativeStorage = true } = {}) {
+function createMemoryClient(tables, { validNativeStorage = true, queryResponses = {} } = {}) {
   const queryLog = [];
   class Query {
     constructor(table) {
@@ -201,6 +202,10 @@ function createMemoryClient(tables, { validNativeStorage = true } = {}) {
     in(column, values) {
       const allowed = new Set(values);
       this.predicates.push(row => allowed.has(row?.[column]));
+      return this;
+    }
+    gt(column, value) {
+      this.predicates.push(row => String(row?.[column]) > String(value));
       return this;
     }
     or(expression) {
@@ -235,6 +240,10 @@ function createMemoryClient(tables, { validNativeStorage = true } = {}) {
     }
     async execute() {
       queryLog.push(this.table);
+      const queuedResponses = queryResponses[this.table];
+      if (Array.isArray(queuedResponses) && queuedResponses.length) {
+        return queuedResponses.shift();
+      }
       let rows = [...(tables[this.table] || [])]
         .filter(row => this.predicates.every(predicate => predicate(row)));
       if (this.orders.length) {
@@ -547,10 +556,7 @@ test('collection readers keep slots and sports across My Reels, Saved, and saved
   });
   const followQueriesAfter = client.queryLog.filter(table => table === 'social_follows').length;
   assert.deepEqual([...following.data].map(row => row.id), [reelA.id, reelB.id]);
-  assert.ok(
-    followQueriesAfter - followQueriesBefore <= 2,
-    'one candidate page must use at most two bounded follow-membership queries',
-  );
+  assert.equal(followQueriesAfter - followQueriesBefore, 1);
 });
 
 test('Following scans sparse global pages and keeps only followed canonical winners', async () => {
@@ -644,15 +650,126 @@ test('Following scans sparse global pages and keeps only followed canonical winn
   );
   assert.equal(following.hasMore, false);
   assert.equal(following.nextCursor, null);
-  assert.deepEqual(
-    client.queryLog.slice(0, 3),
-    ['social_reels', 'social_follows', 'social_reels'],
-    'an unrelated-only chunk must advance the global cursor without starting expensive eligibility hydration',
-  );
+  assert.equal(client.queryLog[0], 'social_follows');
   assert.ok(
-    client.queryLog.filter(table => table === 'social_follows').length >= 3,
+    client.queryLog.filter(table => table === 'social_reels').length >= 3,
     'the proof must cross multiple bounded global keyset chunks',
   );
+  assert.equal(
+    client.queryLog.filter(table => table === 'social_follows').length,
+    1,
+    'follow membership must be loaded once rather than once per Reel scan chunk',
+  );
+});
+
+test('Following exhaustively keyset-pages memberships once before scanning Reels', async () => {
+  const viewerId = '11111111-1111-4111-8111-111111111111';
+  const followedA = '22222222-2222-4222-8222-222222222222';
+  const followedB = '33333333-3333-4333-8333-333333333333';
+  const reel = nativeRow({
+    id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaab',
+    author_id: followedB,
+    canonical_asset_key: 'native:second-follow-page',
+    publication_key: 'user-reel:second-follow-page',
+    video_url: `https://test-project.supabase.co/storage/v1/object/public/social-media/reels/${followedB}/clip.mp4`,
+  });
+  const client = createMemoryClient({
+    social_reels: [reel],
+    social_posts: [],
+    saved_reels: [],
+    profiles: [],
+    social_follows: [
+      { follower_id: viewerId, following_id: followedA },
+      { follower_id: viewerId, following_id: followedB },
+    ],
+    video_library_videos: [],
+    youtube_embed_failures: [],
+  });
+  const { readFeed } = loadCollectionReaderHarness(client, { followingPageSize: 1 });
+  const result = await readFeed({ client, viewerId, scope: 'following', limit: 10 });
+  assert.deepEqual([...result.data].map(row => row.id), [reel.id]);
+  assert.equal(client.queryLog.filter(table => table === 'social_follows').length, 3);
+});
+
+test('Following membership reads fail closed on query errors and malformed rows', async () => {
+  const viewerId = '11111111-1111-4111-8111-111111111111';
+  const tables = { social_reels: [], social_follows: [] };
+  const failedClient = createMemoryClient(tables, {
+    queryResponses: {
+      social_follows: [{ data: null, error: new Error('membership unavailable') }],
+    },
+  });
+  await assert.rejects(
+    loadCollectionReaderHarness(failedClient).readFeed({
+      client: failedClient,
+      viewerId,
+      scope: 'following',
+    }),
+    /membership unavailable/,
+  );
+
+  const malformedClient = createMemoryClient(tables, {
+    queryResponses: {
+      social_follows: [{ data: [{ following_id: 'not-a-uuid' }], error: null }],
+    },
+  });
+  await assert.rejects(
+    loadCollectionReaderHarness(malformedClient).readFeed({
+      client: malformedClient,
+      viewerId,
+      scope: 'following',
+    }),
+    /Invalid Following membership row/,
+  );
+});
+
+test('Following deep links share one membership read and enforce the canonical winner author', async () => {
+  const viewerId = '11111111-1111-4111-8111-111111111111';
+  const followedAuthor = '22222222-2222-4222-8222-222222222222';
+  const unfollowedAuthor = '33333333-3333-4333-8333-333333333333';
+  const direct = nativeRow({
+    id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaac',
+    author_id: followedAuthor,
+    canonical_asset_key: 'native:following-detail',
+    publication_key: 'user-reel:following-detail',
+    video_url: `https://test-project.supabase.co/storage/v1/object/public/social-media/reels/${followedAuthor}/detail.mp4`,
+  });
+  const followedClient = createMemoryClient({
+    social_reels: [direct], social_posts: [], saved_reels: [], profiles: [],
+    social_follows: [{ follower_id: viewerId, following_id: followedAuthor }],
+    video_library_videos: [], youtube_embed_failures: [],
+  });
+  const followedResult = await loadCollectionReaderHarness(followedClient).readFeed({
+    client: followedClient,
+    id: direct.id,
+    viewerId,
+    scope: 'following',
+  });
+  assert.equal(followedResult.detailStatus, 'found');
+  assert.equal(followedResult.data[0].id, direct.id);
+  assert.equal(followedClient.queryLog.filter(table => table === 'social_follows').length, 1);
+
+  const unfollowedWinner = {
+    ...direct,
+    id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaad',
+    author_id: unfollowedAuthor,
+    video_url: `https://test-project.supabase.co/storage/v1/object/public/social-media/reels/${unfollowedAuthor}/detail.mp4`,
+    created_at: '2025-01-01T00:00:00.000Z',
+  };
+  const blockedClient = createMemoryClient({
+    social_reels: [direct, unfollowedWinner], social_posts: [], saved_reels: [], profiles: [],
+    social_follows: [{ follower_id: viewerId, following_id: followedAuthor }],
+    video_library_videos: [], youtube_embed_failures: [],
+  });
+  const blockedResult = await loadCollectionReaderHarness(blockedClient).readFeed({
+    client: blockedClient,
+    id: direct.id,
+    viewerId,
+    scope: 'following',
+  });
+  assert.equal(blockedResult.detailStatus, 'unavailable');
+  assert.deepEqual([...blockedResult.data], []);
+  assert.equal(blockedClient.queryLog.filter(table => table === 'social_follows').length, 1);
 });
 
 test('Following keeps persisted zero-version horse authors and hydrates their ordinary profiles', async () => {

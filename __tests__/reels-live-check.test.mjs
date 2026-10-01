@@ -222,9 +222,9 @@ test('horse Reels resolve ordinary player profiles, including maintained zero-ve
   const attachProfiles = REELS_FEED_SERVER.match(/async function attachProfiles[\s\S]*?(?=\nasync function readPage)/)?.[0] || '';
   assert.match(attachProfiles, /PERSISTED_UUID_RE\.test\(String\(id \|\| ''\)\)/);
   assert.doesNotMatch(attachProfiles, /filter\(id => UUID_RE\.test/);
-  const followedAuthors = REELS_FEED_SERVER.match(/async function readFollowedCandidateAuthorIds[\s\S]*?(?=\nasync function loadEligibilityContext)/)?.[0] || '';
-  assert.match(followedAuthors, /candidateAuthorIds\.filter\(id => PERSISTED_UUID_RE\.test/);
-  assert.match(followedAuthors, /filter\(id => PERSISTED_UUID_RE\.test\(id\)\)/);
+  const followedAuthors = REELS_FEED_SERVER.match(/async function readAllFollowedAuthorIds[\s\S]*?(?=\nasync function loadEligibilityContext)/)?.[0] || '';
+  assert.match(followedAuthors, /PERSISTED_UUID_RE\.test\(followingId\)/,
+    'persisted followed authors may include maintained zero-version database UUIDs');
   assert.match(followedAuthors, /if \(!UUID_RE\.test\(String\(viewerId \|\| ''\)\)\)/,
     'caller-controlled viewer identity must remain strict');
   assert.match(REELS_FEED_SERVER, /const UUID_RE = \/\^\[0-9a-f\]\{8\}-\[0-9a-f\]\{4\}-\[1-5\]/,
