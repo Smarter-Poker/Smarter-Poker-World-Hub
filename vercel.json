@@ -765,6 +765,10 @@
     {
       "path": "/api/cron/vip-lapse",
       "schedule": "0 * * * *"
+    },
+    {
+      "path": "/api/cron/render-hand-clips",
+      "schedule": "*/2 * * * *"
     }
   ],
   "redirects": [

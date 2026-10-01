@@ -525,6 +525,12 @@ const nextConfig = {
     // nft tracing to one binary (~50MB) instead of all 8 platforms (~670MB).
     '@ffmpeg-installer/linux-x64',
     '@ffprobe-installer/linux-x64',
+    // Phase 9 hand clip renderer (/api/cron/render-hand-clips): a packed
+    // headless Chromium plus the puppeteer core driver. Both ship binaries
+    // or ESM-only entry points that must NOT be webpacked; the route traces
+    // them in through outputFileTracingIncludes below.
+    '@sparticuz/chromium',
+    'puppeteer-core',
   ],
 
   // ─── Output File Tracing — Serverless Bundle Exclusions ─────────────────
@@ -548,11 +554,14 @@ const nextConfig = {
   // binaries before the build runs, ensuring Turbopack also cannot bundle them.
   outputFileTracingExcludes: {
     '*': [
+      // puppeteer-core and @puppeteer/browsers are NOT listed: Next applies these
+      // excludes AFTER outputFileTracingIncludes (collect-build-traces.js), so a
+      // '*' exclude would strip the Phase 9 render route's driver even though the
+      // route includes it below (the first live render failed exactly so). Only the
+      // render route requires puppeteer-core, so nft traces it there and nowhere else.
       'node_modules/puppeteer/**',
-      'node_modules/puppeteer-core/**',
       'node_modules/puppeteer-extra/**',
       'node_modules/puppeteer-extra-plugin-stealth/**',
-      'node_modules/@puppeteer/**',
       'node_modules/canvas/**',
       'node_modules/phaser/**',
       'node_modules/pdf-parse/**',
@@ -600,6 +609,17 @@ const nextConfig = {
   // binaries (~670 MB total).
   outputFileTracingIncludes: {
     'pages/api/cron/transcode-videos': [
+      'node_modules/@ffmpeg-installer/linux-x64/**/*',
+      'node_modules/@ffprobe-installer/linux-x64/**/*',
+    ],
+    // Phase 9 hand clip renderer: adds the packed Chromium (@sparticuz/chromium,
+    // about 65 MB brotli), the puppeteer-core driver (its dependencies are traced
+    // from its requires; neither it nor @puppeteer/* may appear in the '*'
+    // excludes above, which Next applies after these includes) and the same two
+    // linux-x64 ffmpeg/ffprobe binaries the transcode cron carries.
+    'pages/api/cron/render-hand-clips': [
+      'node_modules/@sparticuz/chromium/**/*',
+      'node_modules/puppeteer-core/**/*',
       'node_modules/@ffmpeg-installer/linux-x64/**/*',
       'node_modules/@ffprobe-installer/linux-x64/**/*',
     ],
@@ -916,8 +936,29 @@ const nextConfig = {
     // `next start` serves HTTP locally and WebKit upgrades every same-origin
     // chunk, leaving the page blank. The four above are unaffected by scheme,
     // so they apply everywhere and localhost is protected too.
+    // img-src WAS enforced here on 2026-09-30 and is BACK IN REPORT-ONLY.
+    //
+    // It went in on a 34-route sweep that reported zero violations, and the
+    // commit said plainly that every route in it was loaded signed out and
+    // that signed-in surfaces were an argument from the code rather than a
+    // measurement. That gap is exactly where the breakage was:
+    //
+    //   16 rows in profiles.avatar_url are lh3.googleusercontent.com, from
+    //   Google sign-in, written by the OAuth callback. Those people's photos
+    //   were blocked. 19 more reach the same URL through session metadata.
+    //
+    //   187 of the 187 social posts that carry a link_image were blocked.
+    //   Every link preview in the feed, saved posts, profile feeds, the
+    //   composer and messenger renders a publisher's own image raw.
+    //
+    //   The bankroll venue picker loads Leaflet's marker pins from
+    //   unpkg.com, which style-src allows and img-src does not, so the pin
+    //   silently disappeared.
+    //
+    // None of that is reachable without signing in, which is why a sweep
+    // that never signed in reported zero. The directive goes back only when
+    // the signed-in surface is guarded AND measured, not before.
     const enforcedCsp = [
-      imgSrcDirective(),
       "object-src 'none'",
       "base-uri 'self'",
       "form-action 'self'",

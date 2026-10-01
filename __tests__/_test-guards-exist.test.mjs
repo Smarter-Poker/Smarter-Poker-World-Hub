@@ -495,6 +495,17 @@ import './profile-reels-tab-ready-only.test.mjs';
 import './social-post-topics-rule-migration.test.mjs';
 import './social-post-topics-backfill-migration.test.mjs';
 import './feed-played-with-migration.test.mjs';
+// Phase 9.1 the hand replay renderer (p9-hub): the hand_clip_jobs queue
+// migration and its four functions, the disabled hand_clip mode row, the pure
+// render pieces, the render cron driven through fakes (every failure reason
+// ends in finish(failed), the publish call only for a horse job the fleet
+// marked), and the Vercel, Next and dispatcher wiring. Horses are players: the
+// request function reads the hand_history RLS predicate and nothing else.
+import './hand-clip-jobs-migration.test.mjs';
+import './hand-clip-mode-row-migration.test.mjs';
+import './hand-clip-render-lib.test.mjs';
+import './render-hand-clips-cron.test.mjs';
+import './hand-clip-config.test.mjs';
 
 // 2026-09-30 profile privacy: a stranger reads only public profile columns,
 // and the owner reads their own money, legal name and whereabouts through
