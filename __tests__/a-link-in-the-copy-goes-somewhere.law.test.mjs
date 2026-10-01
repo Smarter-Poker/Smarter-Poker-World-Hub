@@ -74,6 +74,10 @@ const SERVED_ELSEWHERE = new Set([
   // facts.js), served by the same rewrite; both fetched live 2026-09-22.
   '/hub/club-arena/help',
   '/hub/club-arena/legal/fair-gaming',
+  // The Poker Arena shared hand replay page (the Phase 9 clip renderer opens
+  // it with clip=1 in a headless browser), served by the same rewrite;
+  // fetched live 2026-10-01 (200 text/html).
+  '/hub/club-arena/replay',
   '/legal/privacy',      // 308 to /privacy
   '/legal/terms',        // 308 to /terms
   '/profile',            // 308 to /hub/profile
