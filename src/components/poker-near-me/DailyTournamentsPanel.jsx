@@ -43,7 +43,7 @@ function formatTime(timeStr) {
 const SOURCE_COLORS = {
   daily:   { bg: 'rgba(0, 212, 255, 0.15)', border: 'rgba(0, 212, 255, 0.4)',  text: '#00D4FF', label: 'Daily' },
   series:  { bg: 'rgba(168, 85, 247, 0.15)', border: 'rgba(168, 85, 247, 0.4)', text: '#A855F7', label: 'Series' },
-  tour:    { bg: 'rgba(245, 158, 11, 0.15)', border: 'rgba(245, 158, 11, 0.4)', text: '#F59E0B', label: 'Tour' },
+  tour:    { bg: 'rgba(255, 255, 255, 0.12)', border: 'rgba(255, 255, 255, 0.35)', text: '#FFFFFF', label: 'Tour' },
   charity: { bg: 'rgba(59, 130, 246, 0.15)', border: 'rgba(59, 130, 246, 0.4)', text: '#60A5FA', label: 'Charity' },
   home:    { bg: 'rgba(148, 163, 184, 0.15)', border: 'rgba(148, 163, 184, 0.4)', text: '#94A3B8', label: 'Home Game' },
 };
@@ -474,7 +474,7 @@ export default function DailyTournamentsPanel({ tournaments = [], onDayChange, o
                 <div className="ev-buyin" style={{ fontSize: 13, fontWeight: 700, color: 'rgba(148,163,184,0.6)', background: 'transparent', padding: '2px 4px' }}>TBD</div>
               )}
               {t.guaranteed != null && t.guaranteed > 0 && (
-                <div className="ev-gtd" style={{ fontSize: 12, fontWeight: 700, color: '#f59e0b', background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.25)', padding: '2px 6px', borderRadius: 4 }}>
+                <div className="ev-gtd" style={{ fontSize: 12, fontWeight: 700, color: '#22d3ee', background: 'rgba(34,211,238,0.12)', border: '1px solid rgba(34,211,238,0.25)', padding: '2px 6px', borderRadius: 4 }}>
                   ${Number(t.guaranteed).toLocaleString()} GTD
                 </div>
               )}

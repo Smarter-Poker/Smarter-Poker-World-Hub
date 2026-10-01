@@ -4,15 +4,19 @@
  */
 import React from 'react';
 import dynamic from 'next/dynamic';
+import { PokerNearMePanelShell } from './PokerNearMeConsole';
 
 const SeriesCard = dynamic(() => import('./NewSeriesVenueCard'), { ssr: false });
 
 const US_STATES = ['AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT','VA','WA','WV','WI','WY','DC'];
 
+// The house schema is black, blue, teal, silver and white; yellow and orange
+// are not used, so the WSOP and WSOPC gold moves to the white the Seasonal
+// Calendar legend already gives WSOP. Every chip stays in its own band.
 const TOUR_COLORS = {
-    'WSOP': { bg: 'linear-gradient(135deg, #c9a227, #8b6914)', text: '#000', border: '#c9a227' },
+    'WSOP': { bg: 'linear-gradient(135deg, #f2f8ff, #c3d2e0)', text: '#000', border: '#ffffff' },
     'WPT': { bg: 'linear-gradient(135deg, #dc2626, #991b1b)', text: '#fff', border: '#dc2626' },
-    'WSOPC': { bg: 'linear-gradient(135deg, #c9a227, #8b6914)', text: '#000', border: '#c9a227' },
+    'WSOPC': { bg: 'linear-gradient(135deg, #f2f8ff, #c3d2e0)', text: '#000', border: '#ffffff' },
     'MSPT': { bg: 'linear-gradient(135deg, #1e40af, #1e3a8a)', text: '#fff', border: '#3b82f6' },
     'RGPS': { bg: 'linear-gradient(135deg, #059669, #047857)', text: '#fff', border: '#10b981' },
     'PGT': { bg: 'linear-gradient(135deg, #7c3aed, #5b21b6)', text: '#fff', border: '#8b5cf6' },
@@ -230,11 +234,16 @@ export default function SeriesTabPanel({
 
     return (
         <>
+            {/* The state filter, the result count and the grid/calendar toggle are
+                one filter bank, so they sit in one painted well rather than
+                floating as two loose rows on black, the same way the Daily
+                Tournaments bank above them does. */}
+            <PokerNearMePanelShell as="div" className="pnm-section__frame" bodyClassName="pnm-filter-well">
             {/* State Filter */}
-            <div style={{ display: 'flex', gap: 8, marginBottom: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+            <div className="pnm-filter-row">
                 <select value={seriesStateVal}
                     onChange={(e) => setFilters(f => ({ ...f, hubSeriesState: e.target.value }))}
-                    className="sort-select" style={{ minWidth: 100 }}>
+                    className="sort-select pnm-state-select">
                     <option value="all">All States</option>
                     {US_STATES.map(st => (
                         <option key={st} value={st}>{st}</option>
@@ -254,6 +263,7 @@ export default function SeriesTabPanel({
                     </button>
                 </div>
             </div>
+            </PokerNearMePanelShell>
 
             {filteredSeries.length === 0 ? (
                 <div className="empty-state">

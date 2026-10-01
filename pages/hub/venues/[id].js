@@ -15,6 +15,7 @@ import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PokerNearMeFamilyNav from '../../../src/components/poker-near-me/PokerNearMeFamilyNav';
 import DeepRouteSignalDeck, { DeepRouteNotice } from '../../../src/components/poker-near-me/DeepRouteSignalDeck';
 import PokerNearMeRecentRail from '../../../src/components/poker-near-me/PokerNearMeRecentRail';
+import { PokerNearMePanelShell } from '../../../src/components/poker-near-me/PokerNearMeConsole';
 import PokerIdentityMark from '../../../src/components/poker-near-me/PokerIdentityMark';
 import { getVenueLogoUrl } from '../../../src/components/poker-near-me/pnm-utils';
 import MapSurfaceFrame from '../../../src/components/poker-near-me/MapSurfaceFrame';
@@ -427,6 +428,24 @@ const VENUE_TYPE_LABELS = {
   poker_club: 'Poker Club',
   home_game: 'Home Game',
   charity: 'Charity',
+};
+
+/* ONE PLATE PER KIND OF ROOM (2026-09-30).
+
+   No venue in the directory carries a cover photograph - 478 rows in the
+   bundled snapshot, zero cover_photo_url - so every venue profile in the
+   catalog drew the same hero: venue-signal-fallback-v1.webp, measured
+   identical on /hub/venues/2802 (charity) and /hub/venues/1832 (casino).
+   The plate now follows venue_type, using master art that already ships and
+   the same mapping the directory cards took in
+   poker-near-me-console-surfaces.css: a casino gets the floor-and-skyline
+   plate, a poker club gets the club table bay, and the table bay stays the
+   plate for every other kind of room. A real photograph still wins over all
+   three. The nearby-rooms cards on this page carry no picture, so none of
+   these can repeat against a card on the same screen. */
+const VENUE_HERO_PLATES = {
+  casino: '/images/pnm-phase-4/location-command-grid-v1.webp',
+  poker_club: '/images/pnm-redesign/casino-command-map-v1.webp',
 };
 
 const DAYS_ORDER = ['Daily', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
@@ -2017,6 +2036,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
                  real photograph goes on the stage; without one the deck
                  falls back to the approved painted venue plate. */
               image={venue.cover_photo_url || null}
+              plate={VENUE_HERO_PLATES[venue.venue_type] || null}
               imageAlt={venue.name + ' poker venue'}
               kind="venue"
               breadcrumbs={[
@@ -2074,27 +2094,15 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
               </section>
             )}
 
-            {/* Breadcrumb Navigation */}
-            {!isIframeMode && (
-              <nav className="breadcrumb-nav" aria-label="Breadcrumb">
-                <ol className="breadcrumb-list">
-                  <li className="breadcrumb-item">
-                    <Link href="/hub" legacyBehavior><a className="breadcrumb-link">Hub</a></Link>
-                    <span className="breadcrumb-sep">/</span>
-                  </li>
-                  <li className="breadcrumb-item">
-                    <Link href="/hub/poker-near-me/lobby" legacyBehavior><a className="breadcrumb-link">Poker Near Me</a></Link>
-                    <span className="breadcrumb-sep">/</span>
-                  </li>
-                  <li className="breadcrumb-item breadcrumb-current">
-                    {venue.name}
-                  </li>
-                </ol>
-              </nav>
-            )}
+            {/* ONE SET OF CRUMBS (2026-09-30). The painted deck above prints
+                Hub / Poker Near Me / <venue> as real links, with the same
+                aria-label, in the server HTML. A second copy below it was a
+                plain 1px rounded rectangle 83px tall at 375 saying exactly
+                the same three words, so the trail stays where it is painted
+                and the rectangle goes. */}
 
             {/* Header Section */}
-            <header className="venue-header">
+            <PokerNearMePanelShell as="header" className="venue-header" bodyClassName="venue-header__body">
               <div className="venue-header-top">
                 <div className="venue-name-group" style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
                   {/* Venue Logo */}
@@ -2229,7 +2237,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
                   <button type="button" onClick={() => setFriendNotice('')} aria-label="Dismiss friend request notice">Dismiss</button>
                 </div>
               )}
-            </header>
+            </PokerNearMePanelShell>
 
             {/* ============================================ */}
             {/* BRAVO LIVE GAMES BANNER (top of page)        */}
@@ -4057,12 +4065,10 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
           color: #00D4FF;
         }
 
-        /* Header Section */
-        .venue-header {
-          max-width: 900px;
-          margin: 0 auto;
-          padding: 20px 24px 24px;
-        }
+        /* Header Section. The painted chassis owns this block's width,
+           gutters and frame: see the venue and tour head rules in
+           src/styles/worlds/poker-near-me-command-surfaces.css. Only the
+           copy inside it is styled here. */
         .venue-header-top {
           display: flex;
           align-items: flex-start;
@@ -5347,50 +5353,6 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
         }
 
         /* ========================================= */
-        /* BREADCRUMB NAVIGATION                     */
-        /* ========================================= */
-        .breadcrumb-nav {
-          max-width: 900px;
-          margin: 0 auto;
-          padding: 12px 24px 0;
-        }
-        .breadcrumb-list {
-          display: flex;
-          align-items: center;
-          list-style: none;
-          margin: 0;
-          padding: 0;
-          flex-wrap: wrap;
-          gap: 0;
-        }
-        .breadcrumb-item {
-          display: flex;
-          align-items: center;
-          font-size: 13px;
-          font-weight: 500;
-        }
-        .breadcrumb-link {
-          color: #94a3b8;
-          text-decoration: none;
-          transition: color 0.2s;
-        }
-        .breadcrumb-link:hover {
-          color: #00D4FF;
-        }
-        .breadcrumb-sep {
-          margin: 0 8px;
-          color: #475569;
-        }
-        .breadcrumb-current {
-          color: #00D4FF;
-          font-weight: 600;
-          max-width: 280px;
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
-        }
-
-        /* ========================================= */
         /* MAP & DIRECTIONS                          */
         /* ========================================= */
         .map-section {
@@ -5875,7 +5837,6 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
           .bravo-live-scroll-btn {
             justify-content: center;
           }
-          .venue-header,
           .venue-location-integrity,
           .info-section,
           .tournaments-section,
@@ -5888,7 +5849,6 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
           .related-series-section,
           .nearby-venues-section,
           .claim-section,
-          .breadcrumb-nav,
           .map-section {
             padding-left: 16px;
             padding-right: 16px;
