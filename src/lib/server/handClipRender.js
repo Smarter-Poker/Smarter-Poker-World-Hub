@@ -11,7 +11,19 @@
  *
  * The clip page contract (C1 payload, C2 page, C3 state attribute) is the
  * Club Arena builder's; this file only writes window.__SP_CLIP__ before the
- * page runs, reads [data-clip-state] and calls window.__spClip.start().
+ * page runs, reads [data-clip-state] and [data-clip-step], and reads the plan
+ * and calls seek(i) on window.__spClip.
+ *
+ * THE CAMERA READS THE PLAN, NEVER THE CLOCK. The first capture (2026-10-01)
+ * screencast the page's own wall-clock playback; on the function's starved
+ * CPU the compositor fell seconds behind the felt, frames were dropped and
+ * the live sample ended on the turn with the river and the showdown never
+ * captured. Now the page hands over one beat per frame and the end hold
+ * (fitClipRate, animation speed 1), and the renderer takes ONE STILL PER
+ * FRAME: seek(i), the stage's data-clip-step confirming the commit, two
+ * animation frames for the paint, Page.captureScreenshot. Each still lasts
+ * its frame's beat in the concat list, the last one its beat plus the hold,
+ * so the clip is exactly what the page planned whatever the CPU did.
  *
  * Rules kept here:
  *   - one job per call; a failure ends in fn_hand_clip_finish(failed, reason)
@@ -36,18 +48,23 @@ export const CLIP_WIDTH = 1280;
 export const CLIP_HEIGHT = 720;
 export const GOTO_TIMEOUT_MS = 60000;
 export const READY_TIMEOUT_MS = 30000;
-export const DONE_GRACE_MS = 20000;
+/** The page commits a sought frame (data-clip-step) within this. */
+export const SEEK_TIMEOUT_MS = 10000;
+export const SEEK_POLL_MS = 50;
+/** Two animation frames are waited for after the commit, or this long. */
+export const PAINT_WAIT_MS = 2000;
 export const RENDER_DEADLINE_MS = 270000;
 export const POLL_MS = 250;
 export const STORAGE_BUCKET = 'social-media';
 export const DEFAULT_SUPABASE_URL = 'https://kuklfnapbkmacvwxktbh.supabase.co';
 
-export const SCREENCAST_PARAMS = Object.freeze({
+/** Page.captureScreenshot for one still: the 1280x720 stage, JPEG 85. */
+export const STILL_PARAMS = Object.freeze({
   format: 'jpeg',
   quality: 85,
-  maxWidth: CLIP_WIDTH,
-  maxHeight: CLIP_HEIGHT,
-  everyNthFrame: 1,
+  captureBeyondViewport: false,
+  optimizeForSpeed: true,
+  clip: Object.freeze({ x: 0, y: 0, width: CLIP_WIDTH, height: CLIP_HEIGHT, scale: 1 }),
 });
 
 /** The hand_history columns the clip page reads (design section 1). */
@@ -70,8 +87,32 @@ export const pageScripts = Object.freeze({
     const el = document.querySelector('[data-clip-state]');
     return el ? el.getAttribute('data-clip-state') : null;
   },
-  plannedMs: () => (window.__spClip && typeof window.__spClip.plannedMs === 'number' ? window.__spClip.plannedMs : null),
-  start: () => !!(window.__spClip && typeof window.__spClip.start === 'function' && window.__spClip.start()),
+  /** The frame on the felt, as the stage root reports it, or null. */
+  clipStep: () => {
+    const el = document.querySelector('[data-clip-step]');
+    const n = el ? Number(el.getAttribute('data-clip-step')) : NaN;
+    return Number.isInteger(n) ? n : null;
+  },
+  /** The plan off window.__spClip: one beat per frame and the end hold, or null. */
+  plan: () => {
+    const h = window.__spClip;
+    if (!h || typeof h !== 'object') return null;
+    const beats = Array.isArray(h.beats) ? h.beats.map((b) => Number(b)) : null;
+    if (!beats || beats.length === 0) return null;
+    if (beats.some((b) => !Number.isFinite(b) || b <= 0)) return null;
+    if (h.frames !== beats.length) return null;
+    const holdMs = Number(h.holdMs);
+    if (!Number.isFinite(holdMs) || holdMs < 0) return null;
+    return { frames: beats.length, rate: Number(h.rate), beats, holdMs, plannedMs: Number(h.plannedMs) };
+  },
+  seek: (index) => !!(window.__spClip && typeof window.__spClip.seek === 'function' && window.__spClip.seek(index)),
+  /** Resolves true after two animation frames, false when timeoutMs passes first. */
+  painted: (timeoutMs) => new Promise((resolve) => {
+    let settled = false;
+    const done = (v) => { if (!settled) { settled = true; resolve(v); } };
+    requestAnimationFrame(() => requestAnimationFrame(() => done(true)));
+    setTimeout(() => done(false), timeoutMs);
+  }),
 });
 
 /** True when the hero is one of the hand's players (the hand_history RLS shape). */
@@ -111,41 +152,33 @@ function quoteForConcat(path) {
 }
 
 /**
- * The ffmpeg concat demuxer list for timestamped screencast frames
- * ([{ path, timestamp }], timestamps in seconds since the epoch, as CDP
- * reports them). Each frame holds until the next one; the last frame holds
- * endHoldMs. The last file is listed once more because the demuxer applies
- * the final duration only when another entry follows it.
+ * How long each still lasts, in frame order: its beat, and for the last
+ * frame its beat plus the end hold. Whole milliseconds, never under one.
  */
-export function concatListFor(frames, endHoldMs = END_HOLD_MS) {
-  const sorted = (Array.isArray(frames) ? frames : [])
-    .filter((f) => f && f.path)
-    .map((f) => ({ path: f.path, timestamp: Number(f.timestamp) }))
-    .sort((a, b) => a.timestamp - b.timestamp);
-  const hold = Math.max(0.001, Number(endHoldMs) / 1000);
-  const lines = ['ffconcat version 1.0'];
-  let totalMs = 0;
-  sorted.forEach((frame, i) => {
-    const next = sorted[i + 1];
-    let seconds = next ? next.timestamp - frame.timestamp : hold;
-    if (!Number.isFinite(seconds) || seconds < 0.001) seconds = 0.001;
-    lines.push(quoteForConcat(frame.path), `duration ${seconds.toFixed(3)}`);
-    totalMs += seconds * 1000;
-  });
-  if (sorted.length > 0) lines.push(quoteForConcat(sorted[sorted.length - 1].path));
-  return { text: `${lines.join('\n')}\n`, durationMs: Math.round(totalMs), frames: sorted.length };
+export function stillDurationsFor(plan) {
+  const beats = Array.isArray(plan && plan.beats) ? plan.beats : [];
+  const last = beats.length - 1;
+  const hold = Math.max(0, Math.round(Number(plan && plan.holdMs) || 0));
+  return beats.map((b, i) => Math.max(1, Math.round(Number(b) || 0)) + (i === last ? hold : 0));
 }
 
-/** The hold that brings the captured span up to what the page planned, never under END_HOLD_MS. */
-export function endHoldFor(frames, plannedMs) {
-  const stamps = (Array.isArray(frames) ? frames : [])
-    .map((f) => Number(f && f.timestamp))
-    .filter((t) => Number.isFinite(t));
-  if (stamps.length === 0) return END_HOLD_MS;
-  const spanMs = (Math.max(...stamps) - Math.min(...stamps)) * 1000;
-  const planned = Number(plannedMs);
-  if (!Number.isFinite(planned) || planned <= 0) return END_HOLD_MS;
-  return Math.max(END_HOLD_MS, Math.round(planned - spanMs));
+/**
+ * The ffmpeg concat demuxer list for stills ([{ path, durationMs }], in
+ * order). Each still holds its own duration. The last file is listed once
+ * more because the demuxer applies the final duration only when another
+ * entry follows it.
+ */
+export function concatListForStills(stills) {
+  const list = (Array.isArray(stills) ? stills : []).filter((s) => s && s.path);
+  const lines = ['ffconcat version 1.0'];
+  let totalMs = 0;
+  for (const s of list) {
+    const ms = Math.max(1, Math.round(Number(s.durationMs) || 0));
+    lines.push(quoteForConcat(s.path), `duration ${(ms / 1000).toFixed(3)}`);
+    totalMs += ms;
+  }
+  if (list.length > 0) lines.push(quoteForConcat(list[list.length - 1].path));
+  return { text: `${lines.join('\n')}\n`, durationMs: totalMs, frames: list.length };
 }
 
 /** Contract C6 step 5: the encode. */
@@ -239,8 +272,7 @@ export async function renderClipJob(job, deps) {
     render_ms: null,
     published: false,
   };
-  const frames = [];
-  const pendingWrites = [];
+  const stills = [];
   let browser = null;
   let page = null;
   let session = null;
@@ -304,6 +336,17 @@ export async function renderClipJob(job, deps) {
     }
   };
 
+  const waitForStep = async (index, timeoutMs) => {
+    const t0 = now();
+    for (;;) {
+      const step = await page.evaluate(pageScripts.clipStep);
+      if (step === index) return 'committed';
+      if (now() >= deadlineAt) return 'deadline';
+      if (now() - t0 >= timeoutMs) return 'timeout';
+      await sleep(SEEK_POLL_MS);
+    }
+  };
+
   try {
     await mkdir(work, { recursive: true });
 
@@ -324,38 +367,39 @@ export async function renderClipJob(job, deps) {
     if (ready === 'too_long') return await fail('clip_too_long');
     if (ready === 'deadline') return await fail('render_deadline');
     if (ready !== 'ready') return await fail('clip_not_ready');
-    const plannedMs = await page.evaluate(pageScripts.plannedMs);
 
-    // 4. The screencast: every frame to /tmp/<job id>/f_<n>.jpg with its timestamp.
+    // 4. The plan: one beat per frame and the end hold, as the page fitted them.
+    const plan = await page.evaluate(pageScripts.plan);
+    if (!plan) return await fail('clip_plan_unreadable');
+    if (plan.frames < 2) return await fail('no_frames');
+    const durations = stillDurationsFor(plan);
+    const plannedMs = durations.reduce((a, b) => a + b, 0);
+    const guard = durationGuard(plannedMs, CLIP_MIN_MS, CLIP_MAX_MS);
+    if (guard) return await fail(guard);
+
+    // 5. One still per frame: seek, the commit confirmed, a paint, a screenshot.
     session = await page.createCDPSession();
-    const cdp = session;
-    cdp.on('Page.screencastFrame', (frame) => {
-      const n = frames.length;
-      const path = join(work, `f_${n}.jpg`);
-      frames.push({ path, timestamp: Number(frame && frame.metadata ? frame.metadata.timestamp : NaN) });
-      pendingWrites.push(
-        writeFile(path, Buffer.from(String(frame.data || ''), 'base64'))
-          .catch((err) => log(`[render-hand-clips] frame ${n} write failed: ${shortReason(err)}`)),
-      );
-      Promise.resolve(cdp.send('Page.screencastFrameAck', { sessionId: frame.sessionId })).catch(() => {});
-    });
-    await cdp.send('Page.startScreencast', { ...SCREENCAST_PARAMS });
-    const started = await page.evaluate(pageScripts.start);
-    if (started !== true) return await fail('clip_start_refused');
-    const done = await waitForState(['done'], CLIP_MAX_MS + DONE_GRACE_MS);
-    if (done === 'deadline') return await fail('render_deadline');
-    if (done !== 'done') return await fail('clip_timeout');
-    try { await cdp.send('Page.stopScreencast'); } catch (_) { /* the browser closes next */ }
-    await Promise.all(pendingWrites);
+    for (let i = 0; i < plan.frames; i += 1) {
+      if (now() >= deadlineAt) return await fail('render_deadline');
+      const sought = await page.evaluate(pageScripts.seek, i);
+      if (sought !== true) return await fail('clip_seek_refused');
+      const committed = await waitForStep(i, SEEK_TIMEOUT_MS);
+      if (committed === 'deadline') return await fail('render_deadline');
+      if (committed !== 'committed') return await fail('clip_seek_timeout');
+      await page.evaluate(pageScripts.painted, PAINT_WAIT_MS);
+      const shot = await session.send('Page.captureScreenshot', { ...STILL_PARAMS });
+      const data = shot && shot.data ? String(shot.data) : '';
+      if (data.length === 0) return await fail('still_empty');
+      const path = join(work, `f_${i}.jpg`);
+      await writeFile(path, Buffer.from(data, 'base64'));
+      stills.push({ path, durationMs: durations[i] });
+    }
     await closeBrowser();
 
-    // 5. The encode: per-frame durations, the end hold, the length guard, one MP4 and one poster.
-    summary.frames = frames.length;
-    if (frames.length < 2) return await fail('no_frames');
-    const list = concatListFor(frames, endHoldFor(frames, plannedMs));
+    // 6. The encode: each still for its beat, the end hold on the last, one MP4 and one poster.
+    summary.frames = stills.length;
+    const list = concatListForStills(stills);
     summary.duration_ms = list.durationMs;
-    const guard = durationGuard(list.durationMs, CLIP_MIN_MS, CLIP_MAX_MS);
-    if (guard) return await fail(guard);
     const listPath = join(work, 'frames.txt');
     const outPath = join(work, 'clip.mp4');
     const posterPath = join(work, 'poster.jpg');
@@ -363,14 +407,14 @@ export async function renderClipJob(job, deps) {
     await runFfmpeg(ffmpegArgsFor(listPath, outPath));
     await runFfmpeg(posterArgsFor(outPath, posterPath));
 
-    // 6. The upload: both objects, upsert, public URLs.
+    // 7. The upload: both objects, upsert, public URLs.
     const paths = storagePathsFor(job);
     await upload(paths.video, await readFile(outPath), 'video/mp4');
     await upload(paths.poster, await readFile(posterPath), 'image/jpeg');
     const videoUrl = publicUrlFor(supabaseUrl, paths.video);
     const posterUrl = publicUrlFor(supabaseUrl, paths.poster);
 
-    // 7. Finish ready; publish only a horse job the fleet marked for it.
+    // 8. Finish ready; publish only a horse job the fleet marked for it.
     summary.render_ms = now() - startedAt;
     const finished = await finish('ready', {
       p_video_url: videoUrl,
@@ -378,7 +422,7 @@ export async function renderClipJob(job, deps) {
       p_duration_ms: list.durationMs,
       p_width: CLIP_WIDTH,
       p_height: CLIP_HEIGHT,
-      p_frames: frames.length,
+      p_frames: stills.length,
       p_render_ms: summary.render_ms,
     });
     summary.state = (finished && finished.state) || 'ready';
