@@ -1559,6 +1559,62 @@ async function correlateDiamondPurchase(paymentIntent) {
     return null;
 }
 
+/**
+ * Find the one-time Lifetime VIP purchase behind a Stripe payment intent.
+ * Old completed rows may predate payment-intent persistence, so the typed
+ * Checkout Session is the same fail-closed fallback used by Diamond orders.
+ */
+async function correlateLifetimePurchase(paymentIntent) {
+    if (!paymentIntent) return null;
+
+    const { data: purchase, error: purchaseReadError } = await getSupabase()
+        .from('vip_lifetime_purchases')
+        .select('id')
+        .eq('stripe_payment_intent_id', paymentIntent)
+        .maybeSingle();
+    if (purchaseReadError) throw purchaseReadError;
+    if (purchase) return purchase.id;
+
+    const sessions = await stripe.checkout.sessions.list({ payment_intent: paymentIntent, limit: 10 });
+    const checkoutSession = sessions.data.find((entry) => (
+        entry.metadata?.type === 'vip_lifetime' && entry.metadata?.purchase_id
+    ));
+    if (!checkoutSession?.metadata?.purchase_id) return null;
+
+    const { data: recovered, error: recoveredError } = await getSupabase()
+        .from('vip_lifetime_purchases')
+        .select('id')
+        .eq('id', checkoutSession.metadata.purchase_id)
+        .maybeSingle();
+    if (recoveredError) throw recoveredError;
+    return recovered?.id || null;
+}
+
+async function applyLifetimeReversal(purchaseId, {
+    chargeAmount,
+    cumulativeRefund = 0,
+    event = 'refund',
+    disputeId = null,
+    disputeAmount = null,
+} = {}) {
+    const { data: result, error } = await getSupabase().rpc(
+        'reconcile_vip_lifetime_card_reversal_atomic',
+        {
+            p_purchase_id: purchaseId,
+            p_charge_amount_cents: chargeAmount,
+            p_refunded_amount_cents: cumulativeRefund,
+            p_event: event,
+            p_dispute_id: disputeId,
+            p_dispute_amount_cents: disputeAmount,
+        }
+    );
+    if (error) throw error;
+    if (!result?.success) {
+        throw new Error(`Lifetime VIP reversal failed: ${result?.error || 'unknown_error'}`);
+    }
+    return result;
+}
+
 async function handleDispute(dispute, eventType) {
     const paymentIntent = typeof dispute?.payment_intent === 'string'
         ? dispute.payment_intent
@@ -1570,6 +1626,25 @@ async function handleDispute(dispute, eventType) {
 
     const purchaseId = await correlateDiamondPurchase(paymentIntent);
     if (!purchaseId) {
+        const lifetimePurchaseId = await correlateLifetimePurchase(paymentIntent);
+        if (lifetimePurchaseId) {
+            const eventName = eventType === 'charge.dispute.closed'
+                ? `dispute_closed_${dispute?.status === 'won' ? 'won' : 'lost'}`
+                : eventType === 'charge.dispute.created'
+                    ? 'dispute_created'
+                    : 'dispute_funds_withdrawn';
+            const rawAmount = Number(dispute?.amount);
+            const disputeAmount = Number.isSafeInteger(rawAmount) && rawAmount >= 0
+                ? rawAmount
+                : null;
+            await applyLifetimeReversal(lifetimePurchaseId, {
+                chargeAmount: 49900,
+                event: eventName,
+                disputeId,
+                disputeAmount,
+            });
+            return;
+        }
         // Disputes are raised against merchandise, VIP and subscription charges
         // as well, and those are not this handler's business. Not correlating is
         // a normal outcome, not a failure: throwing here would make Stripe retry
@@ -1653,6 +1728,16 @@ async function handleRefund(charge) {
         return;
     }
 
+    const lifetimePurchaseId = await correlateLifetimePurchase(payment_intent);
+    if (lifetimePurchaseId) {
+        await applyLifetimeReversal(lifetimePurchaseId, {
+            chargeAmount,
+            cumulativeRefund,
+            event: 'refund',
+        });
+        return;
+    }
+
     // ═══════════════════════════════════════════════════════════════════════
     // MERCHANDISE refunds. handleRefund only ever looked at diamond_purchases,
     // so a refunded merch order kept its 'processing' status forever and would
@@ -1674,6 +1759,8 @@ async function handleRefund(charge) {
         const checkoutSession = sessions.data.find((entry) => (
             entry.metadata?.type === 'diamonds' && entry.metadata?.purchase_id
         )) || sessions.data.find((entry) => (
+            entry.metadata?.type === 'vip_lifetime' && entry.metadata?.purchase_id
+        )) || sessions.data.find((entry) => (
             entry.metadata?.type === 'merchandise' && entry.metadata?.order_id
         ));
         if (checkoutSession?.metadata?.type === 'diamonds' && checkoutSession.metadata.purchase_id) {
@@ -1686,6 +1773,25 @@ async function handleRefund(charge) {
                 throw pendingReadError || new Error('Refunded Diamond checkout could not be correlated');
             }
             await applyDiamondRefund(pendingPurchase.id, chargeAmount, cumulativeRefund);
+            return;
+        }
+        if (checkoutSession?.metadata?.type === 'vip_lifetime'
+            && checkoutSession.metadata.purchase_id) {
+            const { data: pendingLifetime, error: lifetimeReadError } = await getSupabase()
+                .from('vip_lifetime_purchases')
+                .select('id')
+                .eq('id', checkoutSession.metadata.purchase_id)
+                .maybeSingle();
+            if (lifetimeReadError || !pendingLifetime) {
+                throw lifetimeReadError || new Error(
+                    'Refunded Lifetime VIP checkout could not be correlated'
+                );
+            }
+            await applyLifetimeReversal(pendingLifetime.id, {
+                chargeAmount,
+                cumulativeRefund,
+                event: 'refund',
+            });
             return;
         }
         if (checkoutSession?.metadata?.type === 'merchandise' && checkoutSession.metadata.order_id) {

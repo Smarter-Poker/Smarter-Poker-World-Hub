@@ -93,12 +93,11 @@ const VIP_PLANS = [
     id: 'vip-lifetime',
     planKey: 'lifetime',
     /* Keep the public catalog aligned with the storefront and server gate.
-           The dormant one-time settlement path remains available for recovery,
-           but new Card checkouts stay paused until the complete refund,
-           dispute, and cross-method provenance lifecycle is published. */
+       Lifetime uses one-time Stripe Checkout plus the provenance-bound
+       settlement, refund, dispute, and cross-method reconciliation lifecycle. */
     checkoutPlan: 'vip-lifetime',
     oneTime: true,
-    cardCheckoutReady: false,
+    cardCheckoutReady: true,
     diamondCheckoutReady: true,
     name: 'Lifetime VIP',
     period: 'One Payment',
@@ -139,7 +138,7 @@ function verify() {
       const checks = [
         ['vip-monthly', vip.monthly, 19.99, true],
         ['vip-yearly', vip.yearly, 199.99, true],
-        ['vip-lifetime', vip.lifetime, 499, false],
+        ['vip-lifetime', vip.lifetime, 499, true],
       ];
       for (const [id, entry, expected, expectedCard] of checks) {
         if (!entry) {

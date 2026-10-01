@@ -75,7 +75,7 @@ export default function VipComparePage() {
                 </li>
                 {!lifetime && <li>Extends Existing Access Instead Of Replacing It</li>}
                 {lifetime && <li>Never Renews And Never Expires</li>}
-                {lifetime && <li>Lifetime Card Checkout Remains Safely Paused</li>}
+                {lifetime && <li>One-Time Card Or 49,900 Diamond Checkout</li>}
                 {lifetime && <li>Unlimited Throwables, Rabbit Hunts, And Standard Time Banks</li>}
                 {lifetime && (
                   <li>
@@ -102,8 +102,8 @@ export default function VipComparePage() {
         <div>
           <strong>Card</strong>
           <span>
-            Stripe Checkout Verifies Monthly And Yearly Terms. Lifetime Card Checkout Remains Paused
-            Until Its Full Refund, Dispute, And Cross-Method Lifecycle Is Published.
+            Stripe Checkout Verifies Monthly, Yearly, And One-Time Lifetime Payments. Refund And
+            Dispute Changes Reconcile Through Server-Owned Purchase Records.
           </span>
         </div>
         <div>
