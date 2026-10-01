@@ -116,6 +116,7 @@ JOB_TIMEOUTS = {
     '/api/internal/login-bridge-probe': 90,   # relay: Commander's two-leg probe takes 10-30s, relay caps at 50s
     '/api/internal/pnm-integrity-refresh': 300, # exact venue queue rebuild, including polygon assessment
     '/api/cron/trivia-theme-backfill': 300,
+    '/api/cron/trivia-nightly-tournament': 90,  # worker loops <=50s of fenced ticks during live windows
     '/api/cron/trivia-embed-backfill': 300,
     '/api/cron/trivia-player-retag':   300,
     '/api/cron/horse-posts':           600,   # up to 80 publishes, 540s internal deadline
@@ -950,6 +951,29 @@ ALL_CRONS = [
 OVERFLOW_CRONS = ALL_CRONS
 
 
+# ─── Phase 6 (2026-10-01): nightly Trivia tournament owner — SHIPPED DISABLED ───
+# ONE canonical OpenClaw identity owns creation (next seven 8:00 PM
+# America/Chicago instances), horse population, live-bracket advancement and
+# settlement. The workers route holds a database lease with a fencing token
+# per invocation, so an active/passive dispatcher pair can never both act, and
+# it only calls the authoritative trivia_tournament_* RPCs.
+# Enabling is root's Phase 12 cutover step: flip the constant below in a
+# reviewed PR in the same window that retires the dormant Vercel tick, with
+# TRIVIA_TOURNAMENTS_ENABLED (and, separately, TRIVIA_TOURNAMENT_HORSES_ENABLED)
+# set on the workers host. Every minute; the worker keeps ticking for ~45 s
+# while an event is in its population or live window.
+TRIVIA_NIGHTLY_TOURNAMENT_JOB = '/api/cron/trivia-nightly-tournament'
+TRIVIA_NIGHTLY_TOURNAMENT_SCHEDULE_ENABLED = False
+FLAG_GATED_CRONS = [
+    (TRIVIA_NIGHTLY_TOURNAMENT_JOB, dict(minute='*'), TRIVIA_NIGHTLY_TOURNAMENT_SCHEDULE_ENABLED),
+]
+
+
+def active_flag_gated_crons():
+    """(path, trigger_kwargs) for the flag-gated jobs whose switch is on."""
+    return [(path, kwargs) for path, kwargs, enabled in FLAG_GATED_CRONS if enabled is True]
+
+
 # Host-portability (2026-08-29). SCRAPER_PY used to resolve only against
 # Path.home()/'Documents'/... — Dan's Mac. On the Hetzner dispatcher the file was
 # absent, should_skip_on_secondary() skipped all five video-library jobs every
@@ -1118,6 +1142,8 @@ WORKERS_PREFERRED = {
     '/api/cron/training-daily-challenge':      '/cron/training-daily-challenge',
     '/api/cron/training-daily-report':         '/cron/training-daily-report',
     '/api/cron/training-cache-drift-audit':    '/cron/training-cache-drift-audit',
+    # Phase 6 nightly tournament owner (flag-gated, see FLAG_GATED_CRONS).
+    '/api/cron/trivia-nightly-tournament':     '/cron/trivia-nightly-tournament',
     # Legacy Trivia tournament workers retired with their schedules on
     # 2026-09-06. Direct worker calls return an authenticated 410 tombstone.
     # '/api/cron/venue-tournaments':           '/cron/venue-tournaments', # RETIRED 2026-09-04
@@ -1254,6 +1280,10 @@ CRITICAL_JOBS = {
     # maintenance break, where a failure is expected. Three in a row is 15
     # minutes of tables nobody can hold, and the break can never eat three.
     '/api/cron/table-socket-probe':     3,
+    # Phase 6: the worker answers 500 when the nightly tournament's DOMAIN health
+    # fails (missing instance, short horses, late start, stuck round, late
+    # settlement), so two consecutive minutes page. Inert until enabled.
+    '/api/cron/trivia-nightly-tournament': 2,
 }
 CRITICAL_RUNBOOKS = {
     '/api/internal/login-bridge-probe': 'smarter-poker-commander/docs/runbooks/login-bridge.md',
@@ -1263,6 +1293,7 @@ CRITICAL_RUNBOOKS = {
     '/api/cron/horse-video-reels':      'World-Hub .planning/video-reels-upgrade/STATE.md + journalctl -u openclaw | grep horse-video-reels',
     '/api/cron/training-cache-drift-audit': 'World-Hub .agent/audits/2026-09-08-horse-phase3-certification.md',
     '/api/cron/table-socket-probe':     'club-arena/docs/runbooks/tables-say-reconnecting.md',
+    '/api/cron/trivia-nightly-tournament': 'World-Hub docs/trivia/PHASE-6-RELEASE-REPORT.md (runbook) + trivia_tournament_health_v1()',
 }
 _critical_state = {}
 
@@ -2197,7 +2228,7 @@ def main():
     # keeps its historical id (no churn for the ~75 single-registration jobs)
     # and repeats get a stable, deterministic '#2' / '#3'.
     _id_counts = {}
-    for path, trigger_kwargs in ALL_CRONS:
+    for path, trigger_kwargs in ALL_CRONS + active_flag_gated_crons():
         if should_skip_on_secondary(path, role):
             log.info(f'  Skipped (secondary, SCRIPT_JOB): {path}')
             skipped += 1
