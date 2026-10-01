@@ -123,6 +123,7 @@ class ProvisionTrainingM1Hmac(unittest.TestCase):
             [entry(key='OTHER')],
             [entry(), entry('env_duplicate')],
             [entry(branch='release')],
+            [entry(branch='')],
             [entry(env_type='encrypted')],
             [entry(target=['preview'])],
         ]
