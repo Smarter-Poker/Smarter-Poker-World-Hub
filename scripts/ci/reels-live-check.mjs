@@ -1236,6 +1236,7 @@ async function verifySignedInBrowser(browser, session, article, report) {
     await page.goto(`${APP_ORIGIN}/hub/reels?category=following`, { waitUntil: 'domcontentloaded' });
     assert.equal((await followingResponse).status(), 200, 'Signed-in Following browser request was rejected');
     assert.equal(await page.getByText(/Sign In (Again )?For Following/).count(), 0, 'Signed-in Following rendered an authentication prompt');
+    assert.equal(pageErrors.length, 0, 'Signed-in Following raised a browser error');
 
     report.signedInBrowserStage = 'ordinary-article';
     await page.goto(`${APP_ORIGIN}/hub/social-media?post=${article.id}`, { waitUntil: 'domcontentloaded' });
@@ -1253,6 +1254,11 @@ async function verifySignedInBrowser(browser, session, article, report) {
     await readerDialog.getByRole('button', { name: 'Close' }).click();
     report.signedInBrowserStage = 'ordinary-article-detached';
     await reader.waitFor({ state: 'detached' });
+    const unexpectedReaderErrors = pageErrors.filter((message) => !/sandboxed|service worker is disabled|origin "null"/i.test(message));
+    assert.deepEqual(unexpectedReaderErrors, [], 'Ordinary article reader raised an unexpected browser error');
+    report.articleReaderSandboxErrors = pageErrors.length;
+    pageErrors.length = 0;
+    report.signedInBrowserErrors = [];
 
     const verifyCollectionPage = async ({ path, apiPath, emptyText }) => {
       const apiResponse = page.waitForResponse((response) => {
