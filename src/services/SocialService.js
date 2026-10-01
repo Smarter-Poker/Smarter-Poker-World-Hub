@@ -114,7 +114,6 @@ export class SocialService {
           author:profiles!author_id (
             id,
             username,
-            full_name,
             display_name_preference,
             avatar_url,
             level
@@ -483,7 +482,6 @@ export class SocialService {
           author:profiles!author_id (
             id,
             username,
-            full_name,
             display_name_preference,
             avatar_url,
             level
@@ -528,7 +526,6 @@ export class SocialService {
           author:profiles!author_id (
             id,
             username,
-            full_name,
             display_name_preference,
             avatar_url,
             level

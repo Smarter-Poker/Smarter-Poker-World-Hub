@@ -759,7 +759,9 @@ test('marketplace Diamond requests prove durable identity before every financial
   assert.match(storePage, /runDiamondPlanPurchase\([\s\S]{0,220}spend\.purchaseWasResumed/);
   assert.match(
     vipPurchase,
-    /if \(verifiedPurchase\.idempotent\) \{[\s\S]{0,500}\.from\('profiles'\)[\s\S]{0,500}if \(!attemptIsCurrent\(\)\) return false/
+    // The replay re-reads the balance through the owner path (2026-09-30):
+    // the table refuses profiles.diamonds to every signed-in account.
+    /if \(verifiedPurchase\.idempotent\) \{[\s\S]{0,500}readOwnProfile\(supabase,[\s\S]{0,500}if \(!attemptIsCurrent\(\)\) return false/
   );
   assert.match(
     vipPurchase,
@@ -871,7 +873,8 @@ test('marketplace Diamond requests prove durable identity before every financial
   );
   assert.match(
     storePage,
-    /const expectedAccountId = committedStoreAccountId;[\s\S]{0,1200}activeStoreAccountRef\.current !== expectedAccountId[\s\S]{0,1200}\.eq\('id', expectedAccountId\)/
+    // The owner path binds the read to the committed account (2026-09-30).
+    /const expectedAccountId = committedStoreAccountId;[\s\S]{0,1200}activeStoreAccountRef\.current !== expectedAccountId[\s\S]{0,1200}expectId: expectedAccountId/
   );
   assert.match(
     storePage,

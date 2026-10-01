@@ -53,7 +53,7 @@ export function LiveViewerList({ streamId, viewerCount, isOpen, onClose, current
                 const ids = rows.map(r => r.viewer_id);
                 const { data: profiles } = await supabase
                     .from('profiles')
-                    .select('id, username, full_name, avatar_url')
+                    .select('id, username, avatar_url')
                     .in('id', ids);
                 if (!mounted) return;
                 const profileMap = new Map((profiles || []).map(p => [p.id, p]));
@@ -108,7 +108,7 @@ export function LiveViewerList({ streamId, viewerCount, isOpen, onClose, current
                 if (needsHydrate.length) {
                     const { data: profiles } = await supabase
                         .from('profiles')
-                        .select('id, username, full_name, avatar_url')
+                        .select('id, username, avatar_url')
                         .in('id', needsHydrate);
                     if (!mounted) return;
                     const pmap = new Map((profiles || []).map(p => [p.id, p]));

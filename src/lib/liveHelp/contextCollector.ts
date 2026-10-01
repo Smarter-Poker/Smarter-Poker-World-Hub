@@ -4,6 +4,7 @@
 
 import { supabase } from '../supabase';
 import { signedTrainingScore } from '../training/sessionEvidence.mjs';
+import { readOwnProfile } from '../ownProfile';
 
 export interface UserContext {
     currentOrb: string;
@@ -25,11 +26,7 @@ export interface UserContext {
 export async function collectUserContext(userId: string): Promise<UserContext> {
     try {
         // Get user profile
-        const { data: profile, error: profileError } = await supabase
-            .from('profiles')
-            .select('level, diamonds')
-            .eq('id', userId)
-            .maybeSingle();
+        const { data: profile, error: profileError } = await readOwnProfile(supabase, 'level, diamonds', { expectId: userId });
         if (profileError) throw new Error(`Profile context unavailable: ${profileError.message}`);
 
         // Get current page from window location

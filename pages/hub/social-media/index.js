@@ -139,6 +139,7 @@ import { retryUserReelPublication } from '../../../src/lib/userReelPublicationRe
 import { createLatestRequestGuard } from '../../../src/lib/latestRequestGuard.mjs';
 import HubPageSummary from '../../../src/components/seo/HubPageSummary';
 import { hubProductSchema } from '../../../src/lib/seo/hubPageSchema';
+import { readOwnProfile } from '../../../src/lib/ownProfile';
 
 // AEO phase 3 (2026-09-17).
 const SOCIAL_SCHEMA = hubProductSchema({
@@ -358,7 +359,7 @@ const PostCard = React.memo(
                 try {
                   const { data: author } = await supabase
                     .from('profiles')
-                    .select('id, username, full_name, avatar_url')
+                    .select('id, username, avatar_url')
                     .eq('id', payload.authorId)
                     .maybeSingle();
                   setComments((prev) => {
@@ -557,7 +558,7 @@ const PostCard = React.memo(
         if (authorIds.length > 0) {
           const { data: profilesData } = await supabase
             .from('profiles')
-            .select('id, username, full_name, avatar_url')
+            .select('id, username, avatar_url')
             .in('id', authorIds);
 
           if (profilesData) {
@@ -4220,7 +4221,7 @@ function SocialMediaPage() {
             try {
               const { data: prof } = await supabase
                 .from('profiles')
-                .select('id, username, full_name, avatar_url')
+                .select('id, username, avatar_url')
                 .eq('id', actorId)
                 .maybeSingle();
               actorProfile = prof;
@@ -4326,11 +4327,7 @@ function SocialMediaPage() {
         try {
           const authUser = getAuthUser();
           if (!authUser) return;
-          const { data, error } = await supabase
-            .from('profiles')
-            .select('id,username,full_name,avatar_url,role')
-            .eq('id', authUser.id)
-            .maybeSingle();
+          const { data, error } = await readOwnProfile(supabase, 'id,username,full_name,avatar_url,role', { expectId: authUser.id });
 
           if (!error && data) {
             const p = data;
@@ -4454,11 +4451,7 @@ function SocialMediaPage() {
             )
               console.log('[Social] Fetching profile for user:', authUser.id);
 
-            const { data, error } = await supabase
-              .from('profiles')
-              .select('id,username,full_name,display_name,skill_tier,avatar_url,role')
-              .eq('id', authUser.id)
-              .maybeSingle();
+            const { data, error } = await readOwnProfile(supabase, 'id,username,full_name,display_name,skill_tier,avatar_url,role', { expectId: authUser.id });
 
             if (!error) {
               p = data || null;
@@ -4596,15 +4589,12 @@ function SocialMediaPage() {
                     actorIds.length > 0
                       ? supabase
                           .from('profiles')
-                          .select('id, username, full_name, avatar_url')
+                          .select('id, username, avatar_url')
                           .in('id', actorIds)
                       : Promise.resolve({ data: [] }),
-                    actorNames.length > 0
-                      ? supabase
-                          .from('profiles')
-                          .select('id, username, full_name, avatar_url')
-                          .in('full_name', actorNames)
-                      : Promise.resolve({ data: [] }),
+                    // No lookup by legal name: full_name is readable only by its
+                    // owner and staff (2026-09-30), so a stranger cannot be found by it.
+                    Promise.resolve({ data: [] }),
                   ]);
 
                   const profileById = {};
@@ -4811,7 +4801,7 @@ function SocialMediaPage() {
           try {
             const { data: p } = await supabase
               .from('social_posts')
-              .select('*, author:profiles!author_id(id, username, full_name, display_name, avatar_url)')
+              .select('*, author:profiles!author_id(id, username, display_name, avatar_url)')
               .eq('id', postId)
               .eq('is_deleted', false)
               .maybeSingle();
@@ -4923,7 +4913,7 @@ function SocialMediaPage() {
         if (actorIds.length > 0) {
           const { data: profiles } = await supabase
             .from('profiles')
-            .select('id, username, full_name, avatar_url')
+            .select('id, username, avatar_url')
             .in('id', actorIds);
           (profiles || []).forEach((p) => {
             profileById[p.id] = p;
@@ -6110,8 +6100,8 @@ function SocialMediaPage() {
         // Search users (search both username and full_name)
         const { data: users } = await supabase
           .from('profiles')
-          .select('id, username, full_name, avatar_url')
-          .or(`username.ilike.%${query}%,full_name.ilike.%${query}%`)
+          .select('id, username, avatar_url')
+          .or(`username.ilike.%${query}%,display_name.ilike.%${query}%`)
           .limit(8);
 
         // Search posts

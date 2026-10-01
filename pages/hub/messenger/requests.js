@@ -91,7 +91,7 @@ export default function MessageRequests() {
             if (senderIds.length > 0) {
                 const { data: profiles } = await supabase
                     .from('profiles')
-                    .select('id, username, full_name, avatar_url')
+                    .select('id, username, avatar_url')
                     .in('id', senderIds);
                 (profiles || []).forEach(p => { profilesMap[p.id] = p; });
             }
