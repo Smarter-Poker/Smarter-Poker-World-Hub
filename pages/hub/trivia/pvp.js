@@ -25,6 +25,8 @@ import TriviaErrorBoundary from '../../../src/components/trivia/TriviaErrorBound
 import TriviaAnswerOption from '../../../src/components/trivia/TriviaAnswerOption';
 import TriviaConsole, { TriviaGlassAction } from '../../../src/components/trivia/console/TriviaConsole';
 import TriviaConsoleDialog from '../../../src/components/trivia/console/TriviaConsoleDialog';
+import ResponsiveModeArt from '../../../src/components/trivia/console/ResponsiveModeArt';
+import { TRIVIA_INTRO_ART_PVP } from '../../../src/config/triviaIntroArt.mjs';
 import useTriviaQuestion from '../../../src/hooks/useTriviaQuestion';
 import useTriviaTimer from '../../../src/hooks/useTriviaTimer';
 import useVIPGate from '../../../src/hooks/useVIPGate';
@@ -35,6 +37,7 @@ import { printPlayerName } from '../../../src/lib/trivia/printPlayerName';
 import { formatTriviaDisplayNumber } from '../../../src/lib/trivia/formatTriviaDisplayNumber';
 import { triviaPvpPageReleaseResult } from '../../../src/lib/trivia/pvpReleaseControl.mjs';
 import HubPageSummary from '../../../src/components/seo/HubPageSummary';
+import { readOwnProfile } from '../../../src/lib/ownProfile';
 
 const STAKE_OPTIONS = [10, 25, 50, 100];
 // How long a finished player waits for their opponent before being offered an
@@ -105,7 +108,6 @@ export default function PvPPage({ pvpHorsesEnabled = false }) {
     const [pvpError, setPvpError] = useState(null);
     const [refundFailed, setRefundFailed] = useState(false);
     const [accessToken, setAccessToken] = useState(null); // for ReportQuestionButton
-    const [heroMissing, setHeroMissing] = useState(false); // presentation: mode picture failed to load
 
     // Server-graded session adapter (mode 'pvp'): session-start escrows the
     // stake and serves the shared, answer-free roster; session-answer grades
@@ -224,7 +226,7 @@ export default function PvPPage({ pvpHorsesEnabled = false }) {
             .channel(`trivia-pvp-bal:${userId}`)
             .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles', filter: `id=eq.${userId}` }, async () => {
                 try {
-                    const { data } = await supabase.from('profiles').select('diamonds').eq('id', userId).maybeSingle();
+                    const { data } = await readOwnProfile(supabase, 'diamonds', { expectId: userId });
                     if (data) setUserDiamonds(data.diamonds || 0);
                 } catch (e) {
                     console.warn('[PvP] Realtime diamond refresh failed:', e);
@@ -247,11 +249,7 @@ export default function PvPPage({ pvpHorsesEnabled = false }) {
 
         try {
             // Get diamond balance and username
-            const { data: profile } = await supabase
-                .from('profiles')
-                .select('diamonds, username')
-                .eq('id', user.id)
-                .maybeSingle();
+            const { data: profile } = await readOwnProfile(supabase, 'diamonds, username', { expectId: user.id });
 
             if (profile) {
                 setUserDiamonds(profile.diamonds || 0);
@@ -295,11 +293,7 @@ export default function PvPPage({ pvpHorsesEnabled = false }) {
         // Fresh balance check from DB to avoid stale-state false negatives
         let freshBalance = userDiamonds;
         try {
-            const { data: profile } = await supabase
-                .from('profiles')
-                .select('diamonds')
-                .eq('id', userId)
-                .maybeSingle();
+            const { data: profile } = await readOwnProfile(supabase, 'diamonds', { expectId: userId });
             if (profile) {
                 freshBalance = profile.diamonds || 0;
                 setUserDiamonds(freshBalance);
@@ -840,11 +834,7 @@ export default function PvPPage({ pvpHorsesEnabled = false }) {
 
         // Balance changed server-side - mirror it from the DB.
         try {
-            const { data: profile } = await supabase
-                .from('profiles')
-                .select('diamonds')
-                .eq('id', userId)
-                .maybeSingle();
+            const { data: profile } = await readOwnProfile(supabase, 'diamonds', { expectId: userId });
             if (profile) setUserDiamonds(profile.diamonds || 0);
         } catch (e) {
             console.warn('[PVP] balance refresh failed:', e);
@@ -1052,17 +1042,7 @@ export default function PvPPage({ pvpHorsesEnabled = false }) {
                         {/* Lobby */}
                         {gameState === 'lobby' && (
                             <div className="trivia-pvp-stage trivia-pvp-stage--lobby">
-                                {!heroMissing && (
-                                    <img
-                                        className="trivia-pvp-hero"
-                                        src="/images/trivia/modes-console-v1/pvp.webp"
-                                        alt=""
-                                        width={1000}
-                                        height={560}
-                                        decoding="async"
-                                        onError={() => setHeroMissing(true)}
-                                    />
-                                )}
+                                <ResponsiveModeArt art={TRIVIA_INTRO_ART_PVP} priority />
 
                                 <p className="trivia-console-copy trivia-pvp-intro">
                                     Two Players, The Same Questions, The Same Shot Clock. Pick A Stake And The Better Score Takes The Pot.

@@ -26,6 +26,7 @@ export default function TriviaFrameCard({
     children,
     className = '',
     imagePriority = false,
+    imagePreview,
     ...rest
 }) {
     const resolvedFamily = FRAME_ASSETS[family] ? family : 'knowledge';
@@ -38,7 +39,12 @@ export default function TriviaFrameCard({
             {...rest}
         >
             <span className={styles.visual}>
-                <span className={styles.artWell}>
+                {/* The picture's own tiny preview paints the well until the file
+                    decodes, so a fast scroll never shows an empty window. */}
+                <span
+                    className={styles.artWell}
+                    style={imagePreview ? { '--trivia-art-preview': `url("${imagePreview}")` } : undefined}
+                >
                     <img
                         className={styles.art}
                         src={image}

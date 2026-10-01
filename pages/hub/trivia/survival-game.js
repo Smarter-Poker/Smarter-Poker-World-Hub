@@ -26,6 +26,8 @@ import { useAvatar } from '../../../src/contexts/AvatarContext';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import TriviaConsole from '../../../src/components/trivia/console/TriviaConsole';
+import ResponsiveModeArt from '../../../src/components/trivia/console/ResponsiveModeArt';
+import { TRIVIA_INTRO_ART_SURVIVAL } from '../../../src/config/triviaIntroArt.mjs';
 import { toTitleCase } from '../../../src/lib/trivia/titleCase';
 import { formatTriviaDisplayNumber } from '../../../src/lib/trivia/formatTriviaDisplayNumber';
 import DiamondEngine from '../../../src/services/DiamondEngine';
@@ -44,6 +46,7 @@ import useTriviaQuestion from '../../../src/hooks/useTriviaQuestion';
 import useTriviaTimer from '../../../src/hooks/useTriviaTimer';
 import { getAccessToken } from '../../../src/lib/authUtils';
 import HubPageSummary from '../../../src/components/seo/HubPageSummary';
+import { readOwnProfile } from '../../../src/lib/ownProfile';
 
 const GAME_ENTRY_COST = 10; // restored with server-graded adoption - rewards pay via award_trivia_run now
 // Daily cap comes from triviaEngine so the lobby and the payout agree.
@@ -248,7 +251,7 @@ export default function SurvivalGamePage() {
             .channel(`trivia-survival:${userId}`)
             .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles', filter: `id=eq.${userId}` }, async () => {
                 try {
-                    const { data } = await supabase.from('profiles').select('diamonds').eq('id', userId).maybeSingle();
+                    const { data } = await readOwnProfile(supabase, 'diamonds', { expectId: userId });
                     if (data) setUserDiamonds(data.diamonds || 0);
                 } catch (e) {
                     console.warn('[Survival] Realtime diamond refresh failed:', e);
@@ -346,11 +349,7 @@ export default function SurvivalGamePage() {
 
     async function loadUserDiamonds(uid) {
         try {
-            const { data } = await supabase
-                .from('profiles')
-                .select('diamonds')
-                .eq('id', uid)
-                .maybeSingle();
+            const { data } = await readOwnProfile(supabase, 'diamonds', { expectId: uid });
             if (data) setUserDiamonds(data.diamonds || 0);
         } catch (e) {
             console.warn('[Survival] Diamond balance load failed:', e);
@@ -658,7 +657,7 @@ export default function SurvivalGamePage() {
                 if (Number.isFinite(submitted?.newBalance)) {
                     setUserDiamonds(submitted.newBalance);
                 } else if (userId) {
-                    const { data: profile } = await supabase.from('profiles').select('diamonds').eq('id', userId).maybeSingle();
+                    const { data: profile } = await readOwnProfile(supabase, 'diamonds', { expectId: userId });
                     if (profile) setUserDiamonds(profile.diamonds || 0);
                 }
 
@@ -905,15 +904,7 @@ export default function SurvivalGamePage() {
 
                                 {gameState === 'lobby' && (
                                     <section className="trivia-challenge-intro" aria-labelledby="survival-ready-title">
-                                        <img
-                                            className="trivia-challenge-hero"
-                                            src="/images/trivia/modes-console-v1/survival.webp"
-                                            alt=""
-                                            aria-hidden="true"
-                                            width={1000}
-                                            height={563}
-                                            decoding="async"
-                                        />
+                                        <ResponsiveModeArt art={TRIVIA_INTRO_ART_SURVIVAL} priority />
                                         <h2 id="survival-ready-title">Choose Your Starting Level</h2>
                                         <p>
                                             Clear {formatTriviaDisplayNumber(QUESTIONS_PER_LEVEL)} Questions Per Level

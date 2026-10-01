@@ -188,6 +188,24 @@ import './social-poker-card-picker.test.mjs';
 // for real - spoken card names, 44px targets, whole streets only, focus,
 // long press, and the drafts of a video post that uploads in the background.
 import './social-poker-card-picker-interaction.test.mjs';
+// 2026-09-30, Phase 8.1 (discovery and the feed): the All / Hands tab row,
+// the exclude= paging contract with the feed API (last two carry lists, 40
+// ids, ranked pages keep the server order, appends never repeat an id, no
+// recycling) and the feed video player (muted autoplay, one Unmute control
+// that shares sp:reels:muted with Reels, the caption under the media). All
+// three drive the real page through the poker-card harness.
+import './social-feed-tabs.test.mjs';
+import './social-feed-paging-contract.test.mjs';
+import './social-feed-video-player.test.mjs';
+// 2026-09-29: club page posts are shown as the page (name, avatar, link), never
+// as the person who posted them, on the feed card, the pinned strip, the media
+// lightbox, the public club page and both APIs. Owner decision: automated club
+// digests must appear as the club, not as a person.
+import './page-posts-show-the-page.test.mjs';
+// 2026-09-29, Phase 7: a puzzle post shows its choices under the board, the
+// clock before the reveal and the answer only after social_puzzles.revealed_at;
+// a post without a puzzle renders byte for byte as before.
+import './social-puzzle-answer-card.test.mjs';
 import './store-commerce-hardening.test.mjs';
 // 2026-09-05, the diamond wallet audit. Caught by this file's own meta-guard
 // before it could become another guard nobody runs: the law was written, passed
@@ -198,7 +216,21 @@ import './the-wallet-badges-count-the-whole-ledger.law.test.mjs';
 // whether today's login is claimed and what the next claim pays, from the
 // catalog's own rule; the wallet's Escape backs out one layer, not all of them.
 import './the-earn-pane-knows-what-it-cannot-tell.test.mjs';
+import './the-stats-panel-is-summed-in-sql.test.mjs';
+// 2026-09-30. The same panel, one level up: phase 7 gave the BREAKDOWN a
+// could-not-tell state and left the panel itself with two - `!stats` drew an
+// animated skeleton with no loading gate, and the route answers 200 with a
+// bare `lifetime: null` when its stats read throws, so Stats loaded for ever
+// and said nothing. This pins the third outcome at both ends, and pins the
+// live smoke's by-hand invocation to an npm script rather than to a claim.
+import './the-stats-panel-says-when-it-cannot-tell.test.mjs';
 import './the-ledger-speaks-to-the-player.law.test.mjs';
+// Phase 8 of 8, 2026-09-29. Phases 1 to 7 each pinned ONE side of the
+// route/client boundary, so the two could drift while both stayed green: a
+// renamed field, a bucket key nothing renders, a column dropped from the
+// route's select. This one pins the JOIN, against a snapshot of what
+// production actually declares (scripts/ci/lib/diamond-wallet-contract.mjs).
+import './the-route-and-the-client-agree.test.mjs';
 // Trivia lifeline charges are client-requested but server-priced. This guard
 // pins the database replay envelope so a cheaper or differently typed debit
 // can never masquerade as the paid skip.
@@ -231,9 +263,19 @@ import './training-surface-inventory.test.mjs';
 // default-off PvP and Tournament gates.
 import './trivia-console-contract.test.mjs';
 import './trivia-pvp-containment.test.mjs';
+// Trivia Phase 5: server-owned PvP engine v2 (stable 20-45 s horse deadline, human first, ledger settlement).
+import './trivia-pvp-engine-v2.test.mjs';
 import './trivia-tournament-containment.test.mjs';
+// Trivia Phase 6: nightly tournament engine (8 PM Central schedule, horse population, bracket, settlement).
 import './trivia-nightly-tournament.test.mjs';
+// Trivia Phase 3: eligibility-only paid/competitive pools, engine v3 golden seeds.
+import './trivia-phase-3-engine.test.mjs';
+// Trivia Phase 3: the spend route refuses a stray trivia_entry charge.
+import './trivia-entry-spend-retired.test.mjs';
 import './trivia-ui-foundation.test.mjs';
+// Trivia Phase 2: versioned rules seed parity, conserving money helpers,
+// ledger migration ACLs with every switch OFF, and the lifeline/audit wiring.
+import './trivia-ledger-phase-2.test.mjs';
 import './world-command-destinations.test.mjs';
 import './world-command-menu-law.test.mjs';
 import './world-menu-presentation.test.mjs';
@@ -248,6 +290,8 @@ import './world-copy-policy.test.mjs';
 // executes is the same kind of decoration as a healthcheck that pings an
 // unauthenticated endpoint, which is the very failure it exists to prevent.
 import './openclaw-workers-secret.test.mjs';
+// Phase 7 dispatcher entry and the puzzle migration invariants (2026-09-30).
+import './phase7-content-dispatch.test.mjs';
 // Required CHECK 8 also enforces the recovered Video worker publication boundary.
 import './openclaw-video-library-routing.test.mjs';
 // The same boundary's shared 7-day availability-freshness contract: SQL,
@@ -393,6 +437,84 @@ import './push-health-alert-evidence.test.mjs';
 // its window; every rotation is recorded once.
 import './push-health-alert-positive-evidence.test.mjs';
 
+// Four venue page actions that were wired to nothing: the review deep link, the
+// two forms that failed silently, and the hero that hotlinked a casino.
+import './venue-page-actions-reach-the-person.test.mjs';
+
+// The article reader proxy checked the caller's URL and then followed redirects
+// blindly, which let a 302 reach the cloud metadata address.
+import './the-proxy-checks-every-redirect-hop.test.mjs';
+
+// Venue art is hotlinked from 104 casino domains that img-src can never list.
+// The mirror holds it; these pin the guard and the readers that prefer it.
+import './venue-art-comes-from-the-mirror.test.mjs';
+
+// The card asked for /images/venues/<id>.png for every venue and hid the 404
+// in onError. 405 of 478 venues have no such file. This pins the manifest
+// that replaced the guess, and the card that must consult it.
+import './a-venue-mark-is-only-asked-for-when-it-exists.test.mjs';
+
+// The guard was half-applied: four map readers used it and the tour pin did
+// not, and the tournaments API put an unmirrored URL in a field called
+// logo_url. This pins the shared components so a new caller is covered.
+import './no-venue-picture-reaches-the-dom-unguarded.test.mjs';
+
+// Every venue page served two og:image tags and the generic site card won,
+// so all 478 shared one picture. next/head does not deduplicate by
+// `property`, only by `key`, and the two producers used different keys.
+import './a-venue-page-shares-its-own-card.test.mjs';
+
+// The Report-Only CSP can only graduate if its violations reach us, so the
+// reporting wiring and the endpoint that receives it are guarded here.
+import './csp-violations-reach-us.test.mjs';
+
+// Phase 8, discovery and the feed: topics are derived by one rule (mirrored
+// in src/lib/socialTopics.js), the feed API gains the Hands tab, the
+// per-author cap, the exclude list with carry, played-with ordering and the
+// native-video ready check. Each behaviour has its own test; every one runs
+// the real handler against an in-memory PostgREST.
+import './social-topics-derivation.test.mjs';
+import './social-feed-hands-tab.test.mjs';
+import './social-feed-author-cap.test.mjs';
+import './social-feed-exclude-and-carry.test.mjs';
+import './social-feed-played-with.test.mjs';
+import './social-feed-video-ready.test.mjs';
+
+// Phase 8 profile stats (p8-profile): the hand-stats RPC migration text, the
+// public route behind it, the rendered "At The Tables" card (identical for a
+// horse and a human profile) and the ready-only predicates on the profile
+// Reels tab. New files run nowhere unless they are imported here.
+import './profile-hand-stats-rpc.test.mjs';
+import './profile-hand-stats-api.test.mjs';
+import './profile-hand-stats-card.test.mjs';
+import './profile-reels-tab-ready-only.test.mjs';
+
+// Phase 8 discovery: social_posts.topics is derived by one SQL rule for every
+// writer (the trigger runs after the video contract), the backfill runs the
+// same rule over the existing rows and creates the GIN index the Hands tab
+// reads, and the played-with helper the ranked feed calls is service role only.
+// Horses are players: none of the three reads is_horse or origin_type.
+import './social-post-topics-rule-migration.test.mjs';
+import './social-post-topics-backfill-migration.test.mjs';
+import './feed-played-with-migration.test.mjs';
+// Phase 9.1 the hand replay renderer (p9-hub): the hand_clip_jobs queue
+// migration and its four functions, the disabled hand_clip mode row, the pure
+// render pieces, the render cron driven through fakes (every failure reason
+// ends in finish(failed), the publish call only for a horse job the fleet
+// marked), and the Vercel, Next and dispatcher wiring. Horses are players: the
+// request function reads the hand_history RLS predicate and nothing else.
+import './hand-clip-jobs-migration.test.mjs';
+import './hand-clip-mode-row-migration.test.mjs';
+import './hand-clip-render-lib.test.mjs';
+import './render-hand-clips-cron.test.mjs';
+import './hand-clip-config.test.mjs';
+
+// 2026-09-30 profile privacy: a stranger reads only public profile columns,
+// and the owner reads their own money, legal name and whereabouts through
+// get_my_full_profile(). A browser read naming an owner-only column is
+// refused whole (42501) once Club Arena revokes them.
+import './a-profile-shows-strangers-only-what-the-table-needs.law.test.mjs';
+
 const REPO = path.resolve(new URL('.', import.meta.url).pathname, '..');
 
 const REQUIRED_TEST_FILES = [
@@ -440,10 +562,20 @@ const REQUIRED_TEST_FILES = [
     // competitive modes that must fail closed until their audits land.
     '__tests__/trivia-ui-foundation.test.mjs',
     '__tests__/trivia-pvp-containment.test.mjs',
+    // Phase 5 server-owned PvP engine v2 source contracts and transport policy.
+    '__tests__/trivia-pvp-engine-v2.test.mjs',
     '__tests__/trivia-tournament-containment.test.mjs',
+    // Phase 6 nightly tournament API policy, release gate, legacy entry rewire and OpenClaw job gate.
     '__tests__/trivia-nightly-tournament.test.mjs',
+    // Phase 3 question eligibility + deterministic engine v3 (1,000 golden seeds).
+    '__tests__/trivia-phase-3-engine.test.mjs',
+    // The spend route refuses a trivia_entry charge; entry is charged at session start.
+    '__tests__/trivia-entry-spend-retired.test.mjs',
     // The console contract: chassis, inks, footer law and artwork families.
     '__tests__/trivia-console-contract.test.mjs',
+    // Trivia Phase 2 ledger: the rules registry seed is generated from the one
+    // JS module and every paid solo mode is seeded exactly as it runs today.
+    '__tests__/trivia-ledger-phase-2.test.mjs',
     // Club shop item rules. shopItemRules.js is the single validator shared by
     // BOTH admin write paths; before it existed the two disagreed and items
     // created from the World Hub granted nothing on redeem, accepted any image

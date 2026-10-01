@@ -3,12 +3,8 @@
   padding: 24px;
 }
 
-/* The three-slice shark-panel housing is gone. A 688px cart line carried a
-   109.31px empty top slice and a 106.25px empty bottom slice: 215.56px of
-   painted ornament with no content in it, plus a 14.4cqw horizontal reserve
-   and a 12cqw body floor. This is the restrained chrome the rest of the
-   programme already accepted (see .vipFaq in DiamondStoreShell). The PNGs
-   stay in the repo and stay referenced by the manifest and other surfaces. */
+/* Cart records reserve space for product information and actions inside a
+   restrained chrome frame without decorative structural slices. */
 .cartItemFrame,
 .summaryFrame {
   display: flex;
@@ -65,8 +61,8 @@
   padding: 14px 18px;
   border: 1px solid #627c8d;
   border-radius: 0;
-  background: #02070b url('/images/marketplace-console-v1/shark-panel/button-secondary.png')
-    center / 100% 100% no-repeat;
+  background-color: #07121a;
+  background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.07), transparent 48%);
   box-shadow:
     inset 0 1px 0 rgba(239, 251, 255, 0.46),
     inset 0 -4px 7px rgba(0, 0, 0, 0.86),
@@ -86,7 +82,8 @@
 
 .paymentChoice[aria-checked='true'] {
   border-color: #9bedfb;
-  background-image: url('/images/marketplace-console-v1/shark-panel/button-primary.png');
+  background-color: #06344a;
+  background-image: linear-gradient(180deg, rgba(120, 231, 250, 0.2), transparent 48%);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.62),
     inset 0 -4px 8px rgba(0, 0, 0, 0.82),
@@ -185,8 +182,8 @@
   padding: 14px 20px;
   border: 1px solid #a2effb;
   border-radius: 0;
-  background: #02070b url('/images/marketplace-console-v1/shark-panel/button-primary.png') center /
-    100% 100% no-repeat;
+  background-color: #06344a;
+  background-image: linear-gradient(180deg, rgba(120, 231, 250, 0.22), transparent 48%);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.58),
     inset 0 -4px 7px rgba(0, 0, 0, 0.88),
@@ -239,8 +236,8 @@
   place-items: center;
   width: 100%;
   padding: 8px 18px;
-  background: #02070b url('/images/marketplace-console-v1/shark-panel/button-secondary.png')
-    center / 100% 100% no-repeat;
+  background-color: #0a141d;
+  background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.08), transparent 48%);
 }
 
 .emptyBrowseButton {
@@ -249,8 +246,8 @@
   min-width: 210px;
   padding: 8px 28px;
   border-color: #a2effb;
-  background: #02070b url('/images/marketplace-console-v1/shark-panel/button-primary.png') center /
-    100% 100% no-repeat;
+  background-color: #06344a;
+  background-image: linear-gradient(180deg, rgba(120, 231, 250, 0.22), transparent 48%);
 }
 
 .continueShoppingLink:active,
@@ -285,8 +282,8 @@
 .removeButton,
 .clearCartButton {
   border-radius: 0;
-  background: #02070b url('/images/marketplace-console-v1/shark-panel/button-secondary.png')
-    center / 100% 100% no-repeat;
+  background-color: #0a141d;
+  background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.08), transparent 48%);
   box-shadow:
     inset 0 1px 0 rgba(245, 252, 255, 0.4),
     inset 0 -3px 5px rgba(0, 0, 0, 0.88),

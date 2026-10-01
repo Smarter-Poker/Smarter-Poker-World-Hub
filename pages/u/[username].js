@@ -85,7 +85,8 @@ export default function PublicProfilePage() {
     })();
   }, [username]);
 
-  const displayName = profile?.full_name || profile?.display_name || profile?.username || username;
+  // full_name is the player's legal name: only they and staff may read it (2026-09-30).
+  const displayName = profile?.display_name || profile?.username || username;
   const joinedYear = profile?.created_at ? new Date(profile.created_at).getFullYear() : null;
 
   return (

@@ -105,7 +105,10 @@ import GiphyPicker from '../../../src/components/shared/GiphyPicker';
 import TrendingVenues from '../../../src/components/social/TrendingVenues';
 import { SharedPostCreator } from '../../../src/components/social/SharedPostCreator';
 import GhostPostCard from '../../../src/components/social/GhostPostCard';
+import PuzzleAnswerCard from '../../../src/components/social/PuzzleAnswerCard';
 import PokerCardText, { PokerCardSnippet } from '../../../src/components/social/PokerCardText';
+import FeedTabs, { normalizeFeedTab } from '../../../src/components/social/FeedTabs';
+import FeedVideoPlayer from '../../../src/components/social/FeedVideoPlayer';
 import { normalizePokerPostContent, stripPokerCardMarkup, truncatePokerText } from '../../../src/lib/pokerCardMarkup';
 import dynamic from 'next/dynamic';
 const SharePostModal = dynamic(() => import('../../../src/components/social/SharePostModal'), {
@@ -129,7 +132,6 @@ import { spKeyActivate } from '../../../src/lib/keyboardActivate';
 import { SharedAvatar as Avatar } from '../../../src/components/social/SharedAvatar';
 import {
   VideoPostWrapper,
-  FeedVideoPoster,
 } from '../../../src/components/social/SharedVideoComponents';
 
 import { feedCache } from '../../../src/lib/feedCache';
@@ -137,6 +139,7 @@ import { retryUserReelPublication } from '../../../src/lib/userReelPublicationRe
 import { createLatestRequestGuard } from '../../../src/lib/latestRequestGuard.mjs';
 import HubPageSummary from '../../../src/components/seo/HubPageSummary';
 import { hubProductSchema } from '../../../src/lib/seo/hubPageSchema';
+import { readOwnProfile } from '../../../src/lib/ownProfile';
 
 // AEO phase 3 (2026-09-17).
 const SOCIAL_SCHEMA = hubProductSchema({
@@ -356,7 +359,7 @@ const PostCard = React.memo(
                 try {
                   const { data: author } = await supabase
                     .from('profiles')
-                    .select('id, username, full_name, avatar_url')
+                    .select('id, username, avatar_url')
                     .eq('id', payload.authorId)
                     .maybeSingle();
                   setComments((prev) => {
@@ -555,7 +558,7 @@ const PostCard = React.memo(
         if (authorIds.length > 0) {
           const { data: profilesData } = await supabase
             .from('profiles')
-            .select('id, username, full_name, avatar_url')
+            .select('id, username, avatar_url')
             .in('id', authorIds);
 
           if (profilesData) {
@@ -823,6 +826,207 @@ const PostCard = React.memo(
       setSubmittingComment(false);
     };
 
+    // Phase 8.1: the text of a video post is its caption and renders under the
+    // media grid; every other post keeps its text above the media. One element
+    // definition serves both positions (PokerCardText and the mention split
+    // are unchanged).
+    const postBody = editing ? (
+      <div
+        style={{
+          padding: '0 12px 12px',
+          transition: 'opacity 0.2s ease',
+          animationName: 'sp-fade-in',
+          animationDuration: '0.2s',
+        }}
+      >
+        {post.isClubPagePost && (
+          <div
+            style={{
+              fontSize: 11,
+              color: '#1877F2',
+              marginBottom: 6,
+              fontWeight: 600,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 4,
+            }}
+          >
+            <span
+              style={{
+                width: 6,
+                height: 6,
+                borderRadius: '50%',
+                background: '#1877F2',
+                display: 'inline-block',
+              }}
+            />
+            Editing As {post.author?.name || 'Club Page'} - Club Branding Preserved
+          </div>
+        )}
+        <textarea
+          value={editContent}
+          onChange={(e) => setEditContent(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') setEditing(false);
+          }}
+          autoFocus
+          style={{
+            width: '100%',
+            minHeight: 60,
+            padding: 8,
+            borderRadius: 8,
+            border: `1px solid ${C.border}`,
+            background: C.bg,
+            color: C.text,
+            fontSize: 15,
+            fontFamily: 'inherit',
+            resize: 'vertical',
+            outline: 'none',
+            boxSizing: 'border-box',
+          }}
+        />
+        <div style={{ display: 'flex', gap: 8, marginTop: 6, justifyContent: 'flex-end' }}>
+          <button
+            onClick={() => setEditing(false)}
+            style={{
+              padding: '6px 16px',
+              borderRadius: 20,
+              border: `1px solid ${C.border}`,
+              background: 'transparent',
+              color: C.textSec,
+              cursor: 'pointer',
+              fontSize: 13,
+              fontWeight: 500,
+            }}
+          >
+            Cancel
+          </button>
+          <button
+            onClick={async () => {
+              const content = normalizePokerPostContent(editContent.trim());
+              if (!content) {
+                toast.error('Post content cannot be empty');
+                return;
+              }
+              try {
+                const { error } = await supabase
+                  .from('social_posts')
+                  .update({ content })
+                  .eq('id', post.id)
+                  .eq('author_id', currentUserId);
+                if (error) throw error;
+                setDisplayContent(content);
+                setEditing(false);
+                toast.success('Post updated');
+                // Notify other tabs/components of the edit
+                busEmit.dataMutated?.('social_posts');
+                broadcastSync('smarter_poker_social_sync', {
+                  action: 'refresh_feed',
+                  tabId: BROADCAST_TAB_ID,
+                });
+              } catch (e) {
+                toast.error('Could not update post');
+                console.warn('[Social] Edit error:', e);
+              }
+            }}
+            disabled={!editContent.trim()}
+            style={{
+              padding: '6px 16px',
+              borderRadius: 20,
+              border: 'none',
+              background: C.blue,
+              color: 'white',
+              cursor: 'pointer',
+              fontSize: 13,
+              fontWeight: 600,
+              opacity: editContent.trim() ? 1 : 0.5,
+            }}
+          >
+            Save
+          </button>
+        </div>
+        <style>{`@keyframes sp-fade-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }`}</style>
+      </div>
+    ) : (
+      displayContent && (
+        <div
+          className="no-capitalize post-content"
+          data-preserve-case="true"
+          data-post-content="true"
+          data-user-content="true"
+          style={{ padding: '0 12px 12px', color: C.text, fontSize: 15, lineHeight: 1.4, textTransform: 'none' }}
+        >
+          {(() => {
+            // For link-type posts, strip URLs from displayed content (SmarterPoker-style)
+            let displayText = displayContent;
+            if (post.contentType === 'link' || post.contentType === 'video') {
+              displayText = displayText
+                .replace(/https?:\/\/[^\s]+/gi, '')
+                .replace(/🔗\s*/g, '')
+                .trim();
+            }
+
+            // If content is empty after stripping URL, don't render this block
+            if (!displayText) return null;
+
+            // See More: truncate at 300 chars unless expanded
+            const TRUNCATE_LENGTH = 300;
+            const truncated = truncatePokerText(displayText, TRUNCATE_LENGTH);
+            const needsTruncation = truncated.truncated && !expanded;
+            const visibleText = needsTruncation ? `${truncated.text}...` : displayText;
+
+            // Two things have to be true here at once, so this stays a local
+            // split rather than a call to renderMentions(): the non-mention
+            // parts must keep going through PokerCardText, and the mention
+            // parts must actually navigate. They rendered as blue
+            // cursor:pointer text with NO onClick, so @mentions in posts
+            // looked clickable and did nothing - they work in comments only.
+            // The regex is now /(@[\w.]+)/ to match renderMentions; the old
+            // /(@\w+)/ split usernames containing a dot differently in posts
+            // than in comments.
+            const rendered = visibleText.split(/(@[\w.]+)/g).map((part, i) =>
+              part.startsWith('@') ? (
+                <a
+                  key={i}
+                  href={`/hub/user/${part.slice(1)}`}
+                  style={{ color: C.blue, fontWeight: 600, textDecoration: 'none' }}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    router.push(`/hub/user/${part.slice(1)}`);
+                  }}
+                >
+                  {part}
+                </a>
+              ) : (
+                <PokerCardText key={i} text={part} />
+              )
+            );
+            return (
+              <>
+                {rendered}
+                {needsTruncation && (
+                  <span
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={spKeyActivate}
+                    onClick={() => setExpanded(true)}
+                    style={{
+                      color: C.textSec,
+                      cursor: 'pointer',
+                      fontWeight: 600,
+                      marginLeft: 4,
+                    }}
+                  >
+                    See More
+                  </span>
+                )}
+              </>
+            );
+          })()}
+        </div>
+      )
+    );
+
     return (
       <div
         className="no-capitalize"
@@ -983,201 +1187,18 @@ const PostCard = React.memo(
             </>
           )}
         </div>
-        {editing ? (
-          <div
-            style={{
-              padding: '0 12px 12px',
-              transition: 'opacity 0.2s ease',
-              animationName: 'sp-fade-in',
-              animationDuration: '0.2s',
-            }}
-          >
-            {post.isClubPagePost && (
-              <div
-                style={{
-                  fontSize: 11,
-                  color: '#1877F2',
-                  marginBottom: 6,
-                  fontWeight: 600,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 4,
-                }}
-              >
-                <span
-                  style={{
-                    width: 6,
-                    height: 6,
-                    borderRadius: '50%',
-                    background: '#1877F2',
-                    display: 'inline-block',
-                  }}
-                />
-                Editing As {post.author?.name || 'Club Page'} - Club Branding Preserved
-              </div>
-            )}
-            <textarea
-              value={editContent}
-              onChange={(e) => setEditContent(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Escape') setEditing(false);
-              }}
-              autoFocus
-              style={{
-                width: '100%',
-                minHeight: 60,
-                padding: 8,
-                borderRadius: 8,
-                border: `1px solid ${C.border}`,
-                background: C.bg,
-                color: C.text,
-                fontSize: 15,
-                fontFamily: 'inherit',
-                resize: 'vertical',
-                outline: 'none',
-                boxSizing: 'border-box',
-              }}
-            />
-            <div style={{ display: 'flex', gap: 8, marginTop: 6, justifyContent: 'flex-end' }}>
-              <button
-                onClick={() => setEditing(false)}
-                style={{
-                  padding: '6px 16px',
-                  borderRadius: 20,
-                  border: `1px solid ${C.border}`,
-                  background: 'transparent',
-                  color: C.textSec,
-                  cursor: 'pointer',
-                  fontSize: 13,
-                  fontWeight: 500,
-                }}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={async () => {
-                  const content = normalizePokerPostContent(editContent.trim());
-                  if (!content) {
-                    toast.error('Post content cannot be empty');
-                    return;
-                  }
-                  try {
-                    const { error } = await supabase
-                      .from('social_posts')
-                      .update({ content })
-                      .eq('id', post.id)
-                      .eq('author_id', currentUserId);
-                    if (error) throw error;
-                    setDisplayContent(content);
-                    setEditing(false);
-                    toast.success('Post updated');
-                    // Notify other tabs/components of the edit
-                    busEmit.dataMutated?.('social_posts');
-                    broadcastSync('smarter_poker_social_sync', {
-                      action: 'refresh_feed',
-                      tabId: BROADCAST_TAB_ID,
-                    });
-                  } catch (e) {
-                    toast.error('Could not update post');
-                    console.warn('[Social] Edit error:', e);
-                  }
-                }}
-                disabled={!editContent.trim()}
-                style={{
-                  padding: '6px 16px',
-                  borderRadius: 20,
-                  border: 'none',
-                  background: C.blue,
-                  color: 'white',
-                  cursor: 'pointer',
-                  fontSize: 13,
-                  fontWeight: 600,
-                  opacity: editContent.trim() ? 1 : 0.5,
-                }}
-              >
-                Save
-              </button>
-            </div>
-            <style>{`@keyframes sp-fade-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }`}</style>
-          </div>
-        ) : (
-          displayContent && (
-            <div
-              className="no-capitalize post-content"
-              data-preserve-case="true"
-              data-post-content="true"
-              data-user-content="true"
-              style={{ padding: '0 12px 12px', color: C.text, fontSize: 15, lineHeight: 1.4, textTransform: 'none' }}
-            >
-              {(() => {
-                // For link-type posts, strip URLs from displayed content (SmarterPoker-style)
-                let displayText = displayContent;
-                if (post.contentType === 'link' || post.contentType === 'video') {
-                  displayText = displayText
-                    .replace(/https?:\/\/[^\s]+/gi, '')
-                    .replace(/🔗\s*/g, '')
-                    .trim();
-                }
-
-                // If content is empty after stripping URL, don't render this block
-                if (!displayText) return null;
-
-                // See More: truncate at 300 chars unless expanded
-                const TRUNCATE_LENGTH = 300;
-                const truncated = truncatePokerText(displayText, TRUNCATE_LENGTH);
-                const needsTruncation = truncated.truncated && !expanded;
-                const visibleText = needsTruncation ? `${truncated.text}...` : displayText;
-
-                // Two things have to be true here at once, so this stays a local
-                // split rather than a call to renderMentions(): the non-mention
-                // parts must keep going through PokerCardText, and the mention
-                // parts must actually navigate. They rendered as blue
-                // cursor:pointer text with NO onClick, so @mentions in posts
-                // looked clickable and did nothing - they work in comments only.
-                // The regex is now /(@[\w.]+)/ to match renderMentions; the old
-                // /(@\w+)/ split usernames containing a dot differently in posts
-                // than in comments.
-                const rendered = visibleText.split(/(@[\w.]+)/g).map((part, i) =>
-                  part.startsWith('@') ? (
-                    <a
-                      key={i}
-                      href={`/hub/user/${part.slice(1)}`}
-                      style={{ color: C.blue, fontWeight: 600, textDecoration: 'none' }}
-                      onClick={(e) => {
-                        e.preventDefault();
-                        router.push(`/hub/user/${part.slice(1)}`);
-                      }}
-                    >
-                      {part}
-                    </a>
-                  ) : (
-                    <PokerCardText key={i} text={part} />
-                  )
-                );
-                return (
-                  <>
-                    {rendered}
-                    {needsTruncation && (
-                      <span
-                        role="button"
-                        tabIndex={0}
-                        onKeyDown={spKeyActivate}
-                        onClick={() => setExpanded(true)}
-                        style={{
-                          color: C.textSec,
-                          cursor: 'pointer',
-                          fontWeight: 600,
-                          marginLeft: 4,
-                        }}
-                      >
-                        See More
-                      </span>
-                    )}
-                  </>
-                );
-              })()}
-            </div>
-          )
+        {post.contentType !== 'video' && postBody}
+        {/* Phase 7: a puzzle post carries its options in metadata.puzzle. The
+            board is already drawn by the text body above through PokerCardText;
+            the card adds the choices, the clock and, after the reveal, the
+            answer. See src/components/social/PuzzleAnswerCard.jsx. */}
+        {post.metadata?.puzzle && (
+          <PuzzleAnswerCard
+            puzzle={post.metadata.puzzle}
+            postId={post.id}
+            authorId={post.authorId}
+            viewerId={currentUserId}
+          />
         )}
         {/* 📍 Check-in venue badge — shown on posts with "Checked in at" content */}
         {post.content &&
@@ -1574,13 +1595,18 @@ const PostCard = React.memo(
                   // iOS first-frame trick actually works. See the source
                   // comment in SharedVideoComponents.jsx for the full
                   // root-cause writeup.
+                  //
+                  // Phase 8.1: native rows play muted in view with a corner
+                  // Unmute control (FeedVideoPlayer); YouTube rows stay a poster
+                  // that opens Reels. The poster falls back to the chosen cover
+                  // frame when the thumbnail write was skipped.
                   <VideoPostWrapper
                     url={post.mediaUrls[0]}
                     onValidVideoClick={() => router.push(`/hub/reels?id=${post.id}`)}
                   >
-                    <FeedVideoPoster
-                      videoUrl={post.mediaUrls[0]}
-                      thumbnailUrl={post.thumbnail_url || post.thumbnailUrl || null}
+                    <FeedVideoPlayer
+                      post={post}
+                      posterUrl={post.thumbnailUrl || post.thumbnail_url || post.coverFrameUrl || null}
                     />
                   </VideoPostWrapper>
                 ) : post.contentType === 'link' || post.contentType === 'article' ? (
@@ -1649,10 +1675,10 @@ const PostCard = React.memo(
                           }}
                           onClick={() => router.push(`/hub/reels?id=${post.id}`)}
                         >
-                          <div style={{ width: '100%', height: '100%', pointerEvents: 'none' }}>
-                            <FeedVideoPoster
-                              videoUrl={url}
-                              thumbnailUrl={post.thumbnail_url || post.thumbnailUrl || null}
+                          <div style={{ width: '100%', height: '100%' }}>
+                            <FeedVideoPlayer
+                              post={post}
+                              posterUrl={post.thumbnailUrl || post.thumbnail_url || post.coverFrameUrl || null}
                             />
                           </div>
                           <div
@@ -1885,6 +1911,8 @@ const PostCard = React.memo(
             </div>
           </div>
         )}
+        {/* Phase 8.1: a video post's text is its caption, under the media. */}
+        {post.contentType === 'video' && postBody}
         {/* Link preview for posts with link_url but no media_urls. Shared Reel
             wrappers must reopen their canonical Reel rather than the sharing
             post ID or the article proxy. */}
@@ -3739,7 +3767,46 @@ function SocialMediaPage() {
   const [feedCycle, setFeedCycle] = useState(0); // Track how many times we've looped
   const seenPostIdsRef = useRef(new Set()); // Ref instead of state — avoids re-render on every scroll
   const POSTS_PER_PAGE = 20;
-  const MAX_FEED_CYCLES = 10; // Maximum loops before truly ending (shows tons of content)
+  // Phase 8.1: no recycling. The feed used to restart at offset 0 up to ten
+  // times and re-deliver the same posts flagged isSuggested. The server now
+  // skips what this client already holds (exclude=) and the end state says so.
+  const MAX_FEED_CYCLES = 0;
+  // Phase 8.1: the All / Hands tab. The API pages one row sequence per tab, so
+  // a tab change is a full refresh from offset 0. The choice is remembered per
+  // browser; it starts as All and reads the stored tab after mount so the
+  // server markup and the first client render agree.
+  const FEED_TAB_STORAGE_KEY = 'sp:feed:tab';
+  const [feedTab, setFeedTab] = useState('all');
+  const feedTabRef = useRef(feedTab);
+  useEffect(() => {
+    try {
+      const stored = normalizeFeedTab(localStorage.getItem(FEED_TAB_STORAGE_KEY));
+      if (stored !== feedTabRef.current) {
+        feedTabRef.current = stored;
+        setFeedTab(stored);
+      }
+    } catch (_) {
+      /* storage unavailable: the All tab */
+    }
+  }, []);
+  // The ids of the last two pages this client holds (oldest page first). The
+  // next request sends them as exclude= so raw-offset drift cannot repeat a
+  // row; a full refresh clears them together with the seen Set.
+  const FEED_EXCLUDE_MAX = 40;
+  const feedCarryRef = useRef([]);
+  const feedExcludeIds = () => {
+    const ids = [];
+    const held = new Set();
+    for (const page of feedCarryRef.current.slice(-2)) {
+      for (const id of page) {
+        if (typeof id === 'string' && id && !held.has(id)) {
+          held.add(id);
+          ids.push(id);
+        }
+      }
+    }
+    return ids.slice(-FEED_EXCLUDE_MAX);
+  };
 
   // ⚡ PERF: Cache friends/follows in refs — fetched ONCE on mount, reused on every infinite scroll page
   const friendIdsRef = useRef([]);
@@ -3937,6 +4004,12 @@ function SocialMediaPage() {
           // scroll mid-read (and broadcast the same reset to other tabs).
           // Now: show a non-destructive "new posts" pill instead. Each tab
           // has its own subscription, so no cross-tab broadcast is needed.
+          // Phase 8.1: on the Hands tab only a post that carries the hand
+          // facet counts; anything else would never appear in this tab.
+          if (feedTabRef.current === 'hands') {
+            const topics = Array.isArray(payload.new?.topics) ? payload.new.topics : [];
+            if (!topics.includes('hand')) return;
+          }
           setNewPostsCount((n) => Math.min(n + 1, 99));
         }
       )
@@ -4148,7 +4221,7 @@ function SocialMediaPage() {
             try {
               const { data: prof } = await supabase
                 .from('profiles')
-                .select('id, username, full_name, avatar_url')
+                .select('id, username, avatar_url')
                 .eq('id', actorId)
                 .maybeSingle();
               actorProfile = prof;
@@ -4254,11 +4327,7 @@ function SocialMediaPage() {
         try {
           const authUser = getAuthUser();
           if (!authUser) return;
-          const { data, error } = await supabase
-            .from('profiles')
-            .select('id,username,full_name,avatar_url,role')
-            .eq('id', authUser.id)
-            .maybeSingle();
+          const { data, error } = await readOwnProfile(supabase, 'id,username,full_name,avatar_url,role', { expectId: authUser.id });
 
           if (!error && data) {
             const p = data;
@@ -4382,11 +4451,7 @@ function SocialMediaPage() {
             )
               console.log('[Social] Fetching profile for user:', authUser.id);
 
-            const { data, error } = await supabase
-              .from('profiles')
-              .select('id,username,full_name,display_name,skill_tier,avatar_url,role')
-              .eq('id', authUser.id)
-              .maybeSingle();
+            const { data, error } = await readOwnProfile(supabase, 'id,username,full_name,display_name,skill_tier,avatar_url,role', { expectId: authUser.id });
 
             if (!error) {
               p = data || null;
@@ -4524,15 +4589,12 @@ function SocialMediaPage() {
                     actorIds.length > 0
                       ? supabase
                           .from('profiles')
-                          .select('id, username, full_name, avatar_url')
+                          .select('id, username, avatar_url')
                           .in('id', actorIds)
                       : Promise.resolve({ data: [] }),
-                    actorNames.length > 0
-                      ? supabase
-                          .from('profiles')
-                          .select('id, username, full_name, avatar_url')
-                          .in('full_name', actorNames)
-                      : Promise.resolve({ data: [] }),
+                    // No lookup by legal name: full_name is readable only by its
+                    // owner and staff (2026-09-30), so a stranger cannot be found by it.
+                    Promise.resolve({ data: [] }),
                   ]);
 
                   const profileById = {};
@@ -4739,7 +4801,7 @@ function SocialMediaPage() {
           try {
             const { data: p } = await supabase
               .from('social_posts')
-              .select('*, author:profiles!author_id(id, username, full_name, display_name, avatar_url)')
+              .select('*, author:profiles!author_id(id, username, display_name, avatar_url)')
               .eq('id', postId)
               .eq('is_deleted', false)
               .maybeSingle();
@@ -4851,7 +4913,7 @@ function SocialMediaPage() {
         if (actorIds.length > 0) {
           const { data: profiles } = await supabase
             .from('profiles')
-            .select('id, username, full_name, avatar_url')
+            .select('id, username, avatar_url')
             .in('id', actorIds);
           (profiles || []).forEach((p) => {
             profileById[p.id] = p;
@@ -4944,6 +5006,7 @@ function SocialMediaPage() {
       if (!append) {
         setFeedOffset(0);
         seenPostIdsRef.current = new Set();
+        feedCarryRef.current = [];
       }
       if (append) setLoadingMore(true);
 
@@ -5006,7 +5069,13 @@ function SocialMediaPage() {
       // No user_id param: /api/social/feed ignores it and derives identity from
       // the JWT (pages/_app.js injects the bearer token globally). All it did was
       // put a user UUID into every CDN and access log line.
-      const apiUrl = `/api/social/feed?offset=${offset}&limit=${POSTS_PER_PAGE}`;
+      // Phase 8.1: one row sequence per tab, plus the ids this client already
+      // holds so the server consumes them instead of returning them again.
+      const tab = normalizeFeedTab(feedTabRef.current);
+      const excludeIds = feedExcludeIds();
+      const apiUrl =
+        `/api/social/feed?offset=${offset}&limit=${POSTS_PER_PAGE}&tab=${tab}` +
+        (excludeIds.length > 0 ? `&exclude=${excludeIds.join(',')}` : '');
       const feedToken = getAccessToken();
       const response = await fetch(apiUrl, {
         cache: 'no-store',
@@ -5021,7 +5090,14 @@ function SocialMediaPage() {
         throw new Error(`Feed API error: ${response.status}`);
       }
 
-      const { posts: rawPosts, hasMore, nextOffset, partial } = await response.json();
+      const {
+        posts: rawPosts,
+        hasMore,
+        nextOffset,
+        partial,
+        ranked,
+        carry,
+      } = await response.json();
       // Browsers and service workers are allowed to resolve a fetch after an
       // abort. Sequence identity is the final guard against stale state.
       if (!request.isCurrent()) return;
@@ -5085,10 +5161,19 @@ function SocialMediaPage() {
         score: calculatePostScore(p),
       }));
 
-      formattedPosts.sort((a, b) => b.score - a.score);
+      // Phase 8.1: a ranked page (a signed-in viewer whose played-with call
+      // succeeded) keeps the server order; the score sort is today's fallback
+      // and still runs whenever the field is absent or false.
+      if (ranked !== true) formattedPosts.sort((a, b) => b.score - a.score);
 
       // Track seen post IDs (ref = no re-render)
       formattedPosts.forEach((p) => seenPostIdsRef.current.add(p.id));
+      // The server echoes the ids it returned (carry); the last two pages
+      // become the next exclude=. Without the field there is no exclude.
+      if (Array.isArray(carry)) {
+        const carried = carry.filter((id) => typeof id === 'string' && id);
+        feedCarryRef.current = [...feedCarryRef.current, carried].slice(-2);
+      }
 
       // Cache author profiles in IndexedDB for instant avatar render next visit
       const profileMap = {};
@@ -5098,7 +5183,18 @@ function SocialMediaPage() {
       if (Object.keys(profileMap).length > 0) feedCache.setProfiles(profileMap);
 
       if (append) {
-        setPosts((prev) => [...prev, ...formattedPosts]);
+        // Appends de-duplicate by id: raw-offset drift can hand back a row
+        // this client already holds, and a repeated key remounts a card.
+        setPosts((prev) => {
+          const held = new Set(prev.map((x) => x.id));
+          const fresh = [];
+          for (const row of formattedPosts) {
+            if (held.has(row.id)) continue;
+            held.add(row.id);
+            fresh.push(row);
+          }
+          return [...prev, ...fresh];
+        });
       } else {
         const pinned = deepLinkPostRef.current;
         setPosts(
@@ -5132,6 +5228,23 @@ function SocialMediaPage() {
       request.finish();
       if (wasCurrent) setLoadingMore(false);
     }
+  };
+
+  // Phase 8.1: a tab change is a full refresh from offset 0 (loadFeed already
+  // resets the offset, the seen Set and the carry list). The pill count
+  // belongs to the tab that was loaded, so it starts over too.
+  const handleFeedTabChange = (next) => {
+    const tab = normalizeFeedTab(next);
+    if (tab === feedTabRef.current) return;
+    feedTabRef.current = tab;
+    setFeedTab(tab);
+    try {
+      localStorage.setItem(FEED_TAB_STORAGE_KEY, tab);
+    } catch (_) {
+      /* storage unavailable: the tab still switches for this visit */
+    }
+    setNewPostsCount(0);
+    loadFeed(0, false);
   };
 
   useEffect(() => {
@@ -5987,8 +6100,8 @@ function SocialMediaPage() {
         // Search users (search both username and full_name)
         const { data: users } = await supabase
           .from('profiles')
-          .select('id, username, full_name, avatar_url')
-          .or(`username.ilike.%${query}%,full_name.ilike.%${query}%`)
+          .select('id, username, avatar_url')
+          .or(`username.ilike.%${query}%,display_name.ilike.%${query}%`)
           .limit(8);
 
         // Search posts
@@ -7843,6 +7956,12 @@ function SocialMediaPage() {
 
 
 
+                  {/* Phase 8.1: the All / Hands tab, for every visitor. It sits
+                      directly above the club filter so the two controls stack;
+                      the club "Only" filter keeps narrowing whichever tab is
+                      loaded. */}
+                  <FeedTabs value={feedTab} onChange={handleFeedTabChange} />
+
                   {/* ITEM 10: the club-posts filter used to be unreachable -
                       setShowClubPostsOnly(true) was never called anywhere, so both
                       filter expressions below and the "No Club Posts Yet" empty
@@ -7896,7 +8015,8 @@ function SocialMediaPage() {
                       the feed body renders nothing - an empty region with no
                       message and no call to action. */}
                   {posts.filter((p) => !blockedUserIds.has(p.authorId)).length === 0 &&
-                  !showClubPostsOnly ? (
+                  !showClubPostsOnly &&
+                  feedTab !== 'hands' ? (
                     <>
                       {inlineReelsCarousel}
                       <div style={{ textAlign: 'center', padding: '36px 24px 48px', color: C.textSec }}>
@@ -8003,6 +8123,43 @@ function SocialMediaPage() {
                                 }}
                               >
                                 Clear Filter
+                              </button>
+                            </div>
+                          );
+                        }
+                        if (feedTab === 'hands' && filteredPosts.length === 0) {
+                          return (
+                            <div
+                              data-feed-empty="hands"
+                              style={{
+                                textAlign: 'center',
+                                padding: '48px 24px',
+                                color: C.textSec,
+                              }}
+                            >
+                              <h3 style={{ color: C.text, fontSize: 16, marginBottom: 8 }}>
+                                No Hands Yet
+                              </h3>
+                              <p style={{ marginBottom: 16, lineHeight: 1.5, fontSize: 13 }}>
+                                Hands Played At The Tables And Shared Here Will Show Up In This Tab.
+                              </p>
+                              <button
+                                type="button"
+                                onClick={() => handleFeedTabChange('all')}
+                                style={{
+                                  padding: '8px 20px',
+                                  minHeight: 44,
+                                  background: C.blue,
+                                  color: 'white',
+                                  borderRadius: 6,
+                                  fontWeight: 600,
+                                  fontSize: 13,
+                                  border: 'none',
+                                  cursor: 'pointer',
+                                  fontFamily: 'inherit',
+                                }}
+                              >
+                                Show All Posts
                               </button>
                             </div>
                           );
@@ -8195,7 +8352,7 @@ function SocialMediaPage() {
                         )}
                         {!hasMorePosts && posts.length > 0 && (
                           <p style={{ color: C.textSec, fontSize: 14, textAlign: 'center' }}>
-                            You're All Caught Up! Check Back Later For New Content.
+                            You Are Caught Up. New Posts Will Appear Above.
                           </p>
                         )}
                       </div>

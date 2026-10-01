@@ -35,6 +35,76 @@ import {
 } from '../../../src/lib/triviaQuestionLoader';
 import { reportApiError } from '../../../src/lib/apiErrorHandler';
 import { withCronHealth } from '../../../src/lib/cronHealth';
+import { recordOperationalAlerts } from '../../../src/lib/operationalAlerts.mjs';
+import { phase3HealthFailureEvent } from '../../../src/lib/trivia/phase3Engine.mjs';
+
+/** Operational inbox source for Trivia question/session domain alerts (Phase 3). */
+export const TRIVIA_QUESTIONS_ALERT_SOURCE = 'worldhub.trivia-questions';
+
+/**
+ * Phase 3 domain pass: reconcile stale open sessions, measure the eligible pool and
+ * session integrity (trivia_question_health_v1 keeps one alert episode per condition)
+ * and deliver firing/recovered episodes to the Production Alerts inbox. Never throws:
+ * the depth report above must still be returned.
+ */
+export async function runPhase3Health(supabase, record = recordOperationalAlerts) {
+    const out = { sweep: null, healthy: null, conditions: [], metrics: null, delivered: 0, error: null, alert_error: null };
+    try {
+        const { data: sweep, error: sweepErr } = await supabase.rpc('trivia_expire_stale_sessions_v1', { p_limit: 500 });
+        out.sweep = sweepErr ? { error: sweepErr.message } : sweep;
+        const { data: health, error: healthErr } = await supabase.rpc('trivia_question_health_v1', { p_record: true });
+        if (healthErr || !health || health.success !== true) {
+            const reason = String(healthErr?.message || 'health_failed').slice(0, 200);
+            // A health run that cannot finish is an alert in its own right: without it the
+            // question and session checks go quiet exactly when the database struggles.
+            try {
+                await record([phase3HealthFailureEvent({ source: TRIVIA_QUESTIONS_ALERT_SOURCE, error: reason })]);
+                out.delivered += 1;
+            } catch (alertErr) {
+                // Kept in the pool guard's response (phase3.alert_error) as well as the log.
+                out.alert_error = String(alertErr?.message || alertErr).slice(0, 200);
+                console.warn('[TriviaPoolGuard] could not deliver the health failure alert:', out.alert_error);
+            }
+            throw new Error(reason);
+        }
+        out.healthy = health.healthy === true;
+        out.conditions = (health.conditions || []).map(c => c.alertname);
+        out.metrics = health.metrics;
+        const events = Array.isArray(health.events) ? health.events : [];
+        if (events.length > 0) {
+            await record(events.map(e => ({
+                source: TRIVIA_QUESTIONS_ALERT_SOURCE,
+                event_key: e.event_key,
+                alertname: e.alertname,
+                status: e.status,
+                severity: e.severity,
+                payload: {
+                    summary: e.summary,
+                    firing_since: e.firing_since,
+                    ...(e.resolves ? { resolves: e.resolves } : {}),
+                    health_run_id: health.run_id,
+                    metrics: {
+                        eligible_pool: health.metrics?.eligible_pool,
+                        tournament_256: health.metrics?.tournament_256?.supports,
+                        review_queue: health.metrics?.review_queue,
+                        reports_open_valid: health.metrics?.reports_open_valid,
+                        sessions_stale_open: health.metrics?.sessions_stale_open,
+                        submitted_without_stats: health.metrics?.submitted_without_stats,
+                        repeat_rate_7d: health.metrics?.repeat_rate_7d,
+                        invalid_question_voids_24h: health.metrics?.invalid_question_voids_24h,
+                    },
+                },
+            })));
+            out.delivered = events.length;
+            const resolved = events.filter(e => e.status === 'resolved').map(e => e.event_key);
+            if (resolved.length > 0) await supabase.rpc('trivia_ops_alert_ack_v1', { p_event_keys: resolved });
+        }
+    } catch (e) {
+        out.error = String(e?.message || e).slice(0, 200);
+        console.warn('[TriviaPoolGuard] phase 3 health failed:', out.error);
+    }
+    return out;
+}
 
 export const config = { maxDuration: 60 };
 
@@ -185,7 +255,10 @@ async function handler(req, res) {
             );
         }
 
+        const phase3 = await runPhase3Health(supabase);
+
         return res.status(200).json({
+            phase3,
             healthy,
             checkedAt: new Date().toISOString(),
             todayCST: today,

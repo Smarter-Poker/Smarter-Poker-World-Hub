@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import PokerNearMeConsole from './PokerNearMeConsole';
+import { safeImageUrl } from '../../lib/security/imageHosts.js';
 
 const FALLBACKS = {
   location: '/images/pnm-phase-4/location-command-grid-v1.webp',
@@ -91,15 +92,25 @@ export default function DeepRouteSignalDeck({
   freshness = null,
   actions = null,
   compact = false,
+  // ONE PLATE PER KIND OF ROOM (2026-09-30). A route with no photograph of
+  // its own falls to FALLBACKS[kind], which is one picture for every page of
+  // that kind. A caller that can tell its subjects apart passes the approved
+  // plate that fits this one; anything else keeps the kind's plate exactly as
+  // before. It is only ever a fallback: a real photograph still wins.
+  plate = null,
 }) {
-  const fallback = FALLBACKS[kind] || FALLBACKS.venue;
+  const fallback = safeImageUrl(plate) || FALLBACKS[kind] || FALLBACKS.venue;
+  // The stage image arrives from venue and club rows whose photo columns hold
+  // whatever a scraper or a page owner put there. An unmirrored host falls
+  // through to the approved painted plate below rather than being requested.
   const stageHeading = Boolean(headTitle && String(headTitle).trim() && headTitle !== title);
-  const [visual, setVisual] = useState(image || fallback);
+  const safeImage = safeImageUrl(image) || '';
+  const [visual, setVisual] = useState(safeImage || fallback);
   const safeMetrics = useMemo(() => normalizeMetrics(metrics), [metrics]);
 
   useEffect(() => {
-    setVisual(image || fallback);
-  }, [fallback, image]);
+    setVisual(safeImage || fallback);
+  }, [fallback, safeImage]);
 
   return (
     <PokerNearMeConsole

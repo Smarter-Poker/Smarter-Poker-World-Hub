@@ -134,7 +134,11 @@ function splitSqlArguments(source) {
 
 function functionArguments(signature) {
   return splitSqlArguments(signature)
-    .map((argument) => argument.replace(/^\s*(?:inout|in|out|variadic)\s+/i, '').trim())
+    // OUT parameters are results, not inputs: PostgREST never lists them among
+    // an RPC's arguments, so requiring them would fail every applied function
+    // that declares any.
+    .filter((argument) => !/^\s*out\s+/i.test(argument))
+    .map((argument) => argument.replace(/^\s*(?:inout|in|variadic)\s+/i, '').trim())
     .map((argument) => {
       const match = argument.match(
         /^"?([a-z_][a-z0-9_]*)"?\s+((?:"?[a-z_][a-z0-9_]*"?\.)?"?[a-z_][a-z0-9_]*"?)/i
@@ -146,6 +150,44 @@ function functionArguments(signature) {
       };
     })
     .filter(Boolean);
+}
+
+// Function headers, read with balanced parentheses. A lazy match up to the
+// next ") RETURNS" misreads a function declared with OUT parameters and no
+// RETURNS clause: it runs on into the following function's header and reports
+// arguments that belong to neither. The result keeps the shape of a regex match
+// ([header, name, arguments, return type] plus index) for the code below.
+function functionHeaders(clean) {
+  const headers = [];
+  const start = /create\s+(?:or\s+replace\s+)?function\s+(?:public\.)?"?([a-z0-9_]+)"?\s*\(/gi;
+  let match;
+  while ((match = start.exec(clean))) {
+    let depth = 1;
+    let quote = null;
+    let index = start.lastIndex;
+    for (; index < clean.length && depth > 0; index += 1) {
+      const char = clean[index];
+      if (quote) {
+        if (char === quote) quote = null;
+        continue;
+      }
+      if (char === "'" || char === '"') quote = char;
+      else if (char === '(') depth += 1;
+      else if (char === ')') depth -= 1;
+    }
+    if (depth !== 0) break;
+    const args = clean.slice(start.lastIndex, index - 1);
+    const returns = clean.slice(index).match(/^\s*returns\s+"?([a-z0-9_.]+)"?/i);
+    // Without a RETURNS clause only OUT parameters make a declaration (PostgreSQL
+    // then returns a record); anything else is not a header this gate can judge,
+    // such as CREATE FUNCTION text assembled inside a string for EXECUTE.
+    const hasOut = splitSqlArguments(args).some((argument) => /^\s*out\s+/i.test(argument));
+    start.lastIndex = index;
+    if (!returns && !hasOut) continue;
+    const header = clean.slice(match.index, index + (returns ? returns[0].length : 0));
+    headers.push(Object.assign([header, match[1], args, returns ? returns[1] : 'record'], { index: match.index }));
+  }
+  return headers;
 }
 
 // Keep SQL types private so the long-standing declaredObjects().fns contract
@@ -166,11 +208,7 @@ export function declaredObjects(sql) {
   // migration that creates or replaces a trigger function fail this check after
   // it has been applied successfully. Only validate functions that can actually
   // be represented by the live-schema source used below.
-  const fns = [
-    ...clean.matchAll(
-      /create\s+(?:or\s+replace\s+)?function\s+(?:public\.)?"?([a-z0-9_]+)"?\s*\(([\s\S]*?)\)\s*returns\s+"?([a-z0-9_.]+)"?/gi
-    ),
-  ]
+  const fns = functionHeaders(clean)
     .filter((m) => !/^(?:trigger|event_trigger)$/i.test(m[3]))
     .map((m) => {
       const args = functionArguments(m[2]);

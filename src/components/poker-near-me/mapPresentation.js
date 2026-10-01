@@ -1,3 +1,4 @@
+import { safeImageUrl } from '../../lib/security/imageHosts.js';
 import { escapeHtml, getOpenStatus } from './pnm-utils.js';
 import { openNativeMaps } from '../../utils/openNativeMaps.js';
 import { cashGameCountLabel, isModeledCashGameData } from '../../lib/poker-near-me/liveCashGameData.js';
@@ -103,8 +104,11 @@ export function truncatePokerMapLabel(name, maxLength = 22) {
 }
 
 function venueLogo(venue) {
-  return venue?.avatar_url || venue?.logo_url || venue?.profile_photo_url
-    || venue?.cover_photo_url || venue?.image_url || DEFAULT_LOGO;
+  // These end up inside raw HTML strings for Leaflet divIcons and popups, so
+  // they never pass through next/image and are governed by img-src directly.
+  return safeImageUrl(venue?.avatar_url) || safeImageUrl(venue?.logo_url)
+    || safeImageUrl(venue?.profile_photo_url) || safeImageUrl(venue?.cover_photo_url)
+    || safeImageUrl(venue?.image_url) || DEFAULT_LOGO;
 }
 
 export function createPokerVenueIcon(L, venue, options = {}) {
@@ -139,7 +143,9 @@ export function createPokerTourIcon(L, venue, options = {}) {
   const compact = options.variant === 'compact';
   const color = pokerTourColor(venue?.tour_code);
   const code = escapeHtml(String(venue?.tour_code || 'TOUR').slice(0, 4));
-  const logo = venue?.logo_url ? escapeHtml(venue.logo_url) : '';
+  // venueLogo, not the raw field: the tour pin was the one reader in this
+  // file that skipped the guard its three siblings use.
+  const logo = escapeHtml(venueLogo(venue));
   // Preserve the established Leaflet hit geometry. The compact stop reserves
   // the same vertical lane it always used, but now presents one complete
   // painted machine instead of stacking two CSS-built frames.
@@ -289,7 +295,7 @@ export function buildPokerTourPopupHtml(venue, options = {}) {
   const stop = escapeHtml(venue?.stop_name || venue?.name || 'Tour Stop');
   const city = escapeHtml(venue?.city || '');
   const state = escapeHtml(venue?.state || '');
-  const logo = venue?.logo_url ? escapeHtml(venue.logo_url) : DEFAULT_LOGO;
+  const logo = escapeHtml(venueLogo(venue));
   const tourPath = escapeHtml(`/hub/tours/${encodeURIComponent(venue?.tour_code || '')}`);
   const address = encodeURIComponent(`${venue?.city || ''}, ${venue?.state || ''}`);
   const body = `<div class="pnm-map-dossier__identity"><span class="pnm-map-dossier__logo-machine"><img src="${logo}" alt="" onerror="this.src='${DEFAULT_LOGO}';" /></span><div class="pnm-map-dossier__identity-copy"><strong>${name}</strong><span>${city}${city && state ? ', ' : ''}${state}</span></div></div><div class="pnm-map-dossier__signals"><span class="pnm-map-dossier__signal pnm-map-dossier__signal--type">${code}</span><span class="pnm-map-dossier__signal pnm-map-dossier__signal--${venue?.is_running ? 'open' : 'upcoming'}">${venue?.is_running ? 'IN PROGRESS' : 'UPCOMING'}</span></div><p class="pnm-map-dossier__stop">${stop}</p>${venue?.dates ? `<p class="pnm-map-dossier__dates">${escapeHtml(venue.dates)}</p>` : ''}<div class="pnm-map-dossier__actions"><button class="fsp-trigger pnm-map-dossier__action pnm-map-dossier__action--primary" data-url="${tourPath}" data-title="${name}">View Tour</button><button class="directions-trigger pnm-map-dossier__action pnm-map-dossier__action--secondary" data-addr="${address}" data-lat="${Number(venue?.latitude)}" data-lng="${Number(venue?.longitude)}">Directions</button></div>`;

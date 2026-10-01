@@ -45,7 +45,7 @@
     height: var(--frame-art-h);
     display: block;
     overflow: hidden;
-    background: #000;
+    background: #000 var(--trivia-art-preview, none) 50% 50% / cover no-repeat;
 }
 
 /* The whole scene is shown. Each modes-console-v1 artwork is exported at its

@@ -223,10 +223,31 @@ test('controller release-bundle builder and its suite stay in the repository', (
   );
 });
 
-test('restoring the scoped protocol opens no solver release gate', () => {
+test('reviewed M1 manifest opens only the exact bounded-canary gate', () => {
   const manifest = JSON.parse(fs.readFileSync('scripts/preflop-deep/phases.json', 'utf8'));
-  assert.equal(manifest.execution_scope, 'training_backlog');
+  assert.equal(manifest.version, 5);
+  assert.equal(manifest.execution_scope, 'bounded_canary');
   assert.equal(manifest.release_gate.solver_ready, false);
-  assert.notEqual(manifest.release_gate.bounded_canary_ready, true);
-  assert.equal(manifest.bounded_canary_contracts, undefined);
+  assert.equal(manifest.release_gate.bounded_canary_ready, true);
+  assert.deepEqual(
+    manifest.bounded_canary_contracts.map((contract) => ({
+      machineId: contract.machine_id,
+      partitionCount: contract.partition_count,
+      partitionIndex: contract.partition_index,
+      phaseId: contract.phase_id,
+      parentArtifactId: contract.parent_artifact_id,
+      childArtifactId: contract.child_artifact_id,
+    })),
+    [{
+      machineId: 'M1',
+      partitionCount: 2,
+      partitionIndex: 0,
+      phaseId: 'hu_cash_100bb_BTNvsBB',
+      parentArtifactId: '2d7b403c-e4d3-4c20-bff8-ed5db7ecb50a',
+      childArtifactId: '21d75135-faa8-4c0d-acbe-91b55c98daf0',
+    }],
+  );
+  assert.equal(manifest.phases.length, 1);
+  assert.equal(manifest.phases[0].id, 'hu_cash_100bb_BTNvsBB');
+  assert.deepEqual(manifest.phases[0].streets, ['flop', 'turn']);
 });

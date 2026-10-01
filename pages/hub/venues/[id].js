@@ -15,7 +15,9 @@ import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PokerNearMeFamilyNav from '../../../src/components/poker-near-me/PokerNearMeFamilyNav';
 import DeepRouteSignalDeck, { DeepRouteNotice } from '../../../src/components/poker-near-me/DeepRouteSignalDeck';
 import PokerNearMeRecentRail from '../../../src/components/poker-near-me/PokerNearMeRecentRail';
+import { PokerNearMePanelShell } from '../../../src/components/poker-near-me/PokerNearMeConsole';
 import PokerIdentityMark from '../../../src/components/poker-near-me/PokerIdentityMark';
+import { getVenueLogoUrl } from '../../../src/components/poker-near-me/pnm-utils';
 import MapSurfaceFrame from '../../../src/components/poker-near-me/MapSurfaceFrame';
 import {
   createPokerVenueIcon,
@@ -41,6 +43,7 @@ import {
 import { normalizeVenueName } from '../../../src/lib/poker-near-me/venueMatching';
 import { isPublishableStreetAddress } from '../../../src/lib/poker-near-me/structuredData';
 import { venueTitle } from '../../../src/lib/seo/venueTitle';
+import { safeImageUrl } from '../../../src/lib/security/imageHosts.js';
 import {
   createPokerMapSession,
   loadPokerMapRuntime,
@@ -142,7 +145,14 @@ function buildVenueSeo(venue, routeId, scheduleCount) {
     title,
     description: clampText(description, 300),
     canonical,
-    image: toAbsoluteImageUrl(venue.profile_photo_url) || toAbsoluteImageUrl(venue.cover_photo_url),
+    // THE SHARE CARD POINTS AT OUR MIRROR, NOT A CASINO (2026-09-30).
+    //
+    // This read profile_photo_url first, which is third party for 185 of the
+    // 194 venues that carry one, so every share of those venues sent the
+    // reader's scraper to the casino's own server. The mirrored logo comes
+    // first now and unmirrored values are dropped rather than published.
+    image: toAbsoluteImageUrl(getVenueLogoUrl(venue))
+      || toAbsoluteImageUrl(safeImageUrl(venue.cover_photo_url)),
   };
 }
 
@@ -420,6 +430,24 @@ const VENUE_TYPE_LABELS = {
   charity: 'Charity',
 };
 
+/* ONE PLATE PER KIND OF ROOM (2026-09-30).
+
+   No venue in the directory carries a cover photograph - 478 rows in the
+   bundled snapshot, zero cover_photo_url - so every venue profile in the
+   catalog drew the same hero: venue-signal-fallback-v1.webp, measured
+   identical on /hub/venues/2802 (charity) and /hub/venues/1832 (casino).
+   The plate now follows venue_type, using master art that already ships and
+   the same mapping the directory cards took in
+   poker-near-me-console-surfaces.css: a casino gets the floor-and-skyline
+   plate, a poker club gets the club table bay, and the table bay stays the
+   plate for every other kind of room. A real photograph still wins over all
+   three. The nearby-rooms cards on this page carry no picture, so none of
+   these can repeat against a card on the same screen. */
+const VENUE_HERO_PLATES = {
+  casino: '/images/pnm-phase-4/location-command-grid-v1.webp',
+  poker_club: '/images/pnm-redesign/casino-command-map-v1.webp',
+};
+
 const DAYS_ORDER = ['Daily', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
 function formatTime(timeStr) {
@@ -650,6 +678,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
     notes: '',
   });
   const [reportSubmitting, setReportSubmitting] = useState(false);
+  const [reportError, setReportError] = useState('');
 
   // Check-In state
   const [checkins, setCheckins] = useState([]);
@@ -699,6 +728,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
     verification_notes: '',
   });
   const [claimSubmitting, setClaimSubmitting] = useState(false);
+  const [claimError, setClaimError] = useState('');
 
   // Map state
   const mapContainerRef = useRef(null);
@@ -948,6 +978,12 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
         if (_token) headers['Authorization'] = 'Bearer ' + _token;
       } catch (_e) { console.warn('[App] Handled exception:', _e?.message || _e); }
     }
+    // Who's Here needs a session: the route answers 401 without one. This
+    // used to run for everybody, so every signed-out visit to a venue page
+    // spent a round trip on a call that could only fail, and printed two
+    // console errors doing it. Venue pages are the largest route family on
+    // the site (478 of them) and most of their traffic is signed out.
+    if (!authUser) { setWhosHere({ total: 0, people: [], friends: [] }); return; }
     fetch(whUrl, { headers: headers })
       .then(function(r) { return r.json(); })
       .then(function(j) { if (j.success) setWhosHere({ total: j.total || 0, people: j.people || [], friends: j.friends || [] }); })
@@ -1319,10 +1355,15 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'venue_checkins', filter: `venue_id=eq.${id}` }, () => {
         // Refresh check-in list, Who's Here, and enhancement data when someone new checks in
         fetchCheckins();
-        fetch('/api/poker/checkins/whos-here?venue_id=' + id)
-          .then(function(r) { return r.json(); })
-          .then(function(j) { if (j.success) setWhosHere({ total: j.total || 0, people: j.people || [], friends: j.friends || [] }); })
-          .catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
+        // Same rule as the mount effect: a signed-out viewer watching this
+        // page when somebody checks in would otherwise fire the authenticated
+        // route and collect a 401 for it.
+        if (getAuthUser()) {
+          fetch('/api/poker/checkins/whos-here?venue_id=' + id)
+            .then(function(r) { return r.json(); })
+            .then(function(j) { if (j.success) setWhosHere({ total: j.total || 0, people: j.people || [], friends: j.friends || [] }); })
+            .catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
+        }
         // Delayed refresh — let DB write settle
         setTimeout(function () {
           fetch('/api/poker/checkins/leaderboard?venue_id=' + id + '&period=month')
@@ -1563,10 +1604,16 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
       var json = await res.json();
       if (json.success) {
         setShowReportGame(false);
+        setReportError('');
         setReportForm({ game_type: 'NL Holdem', stakes: '', table_count: 1, wait_time: '', notes: '' });
         await fetchLiveGames();
+      } else {
+        setReportError(json?.error || 'That game could not be reported. Please try again.');
       }
-    } catch (err) { console.warn('[App] Handled exception:', err?.message || err); }
+    } catch (err) {
+      console.warn('[App] Handled exception:', err?.message || err);
+      setReportError('That game could not be reported. Check your connection and try again.');
+    }
     finally { setReportSubmitting(false); }
   };
 
@@ -1785,9 +1832,17 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
       if (json.success) {
         setClaimStatus('pending');
         setShowClaimForm(false);
+        setClaimError('');
         setClaimForm({ contact_name: '', contact_email: '', contact_phone: '', role: 'Manager', verification_notes: '' });
+      } else {
+        // A 200 that answers success:false used to do nothing at all: the form
+        // stayed open with every field still filled and no word to the person.
+        setClaimError(json?.error || 'That claim could not be submitted. Please try again.');
       }
-    } catch (err) { console.warn('[App] Handled exception:', err?.message || err); }
+    } catch (err) {
+      console.warn('[App] Handled exception:', err?.message || err);
+      setClaimError('That claim could not be submitted. Check your connection and try again.');
+    }
     finally { setClaimSubmitting(false); }
   };
 
@@ -1878,23 +1933,36 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
 
   return (
     <>
+      {/* A SHARE CARD IS A PROP, NEVER A SIBLING META (2026-09-30).
+          This page used to pass its own og: and twitter: tags as children.
+          next/head deduplicates meta by `key`, and by name/httpEquiv/charSet/
+          itemProp - NOT by `property`. SEOHead keys its tags `og-image`,
+          `twitter-card` and so on; this page keyed the same tags `og:image`
+          and `twitter:card`. Different keys never collide, so BOTH rendered,
+          SEOHead's first because children are emitted after it. Every scraper
+          reads the first one.
+          Measured on production: all 478 venue pages served two og:image tags
+          and the generic site card won every time, so every venue shared the
+          same picture. Two twitter:card tags, and two different site names
+          (`Smarter.Poker` and `Smarter Poker`) shipped the same way.
+          Every tag this page was passing is already emitted by SEOHead from
+          these same values, so they are gone and the two that differ are
+          props. This is the convention seven other pages already follow, and
+          the remedy home-games/[slug].js wrote down after the identical bug
+          hit `noindex` in August: pass it as a prop, never as a sibling.
+          twitterCard is `summary`, not `summary_large_image`: the mirrored
+          art is a wordmark, measured between 154x173 and 371x136, and a wide
+          short logo in a 1200x630 banner is mostly empty bars. A summary card
+          prints it as a thumbnail beside the name, which is what a logo is
+          for. */}
       <SEOHead
         title={seo.title}
         description={seo.description}
         canonical={seo.canonical}
+        ogImage={seo.image || undefined}
+        twitterCard="summary"
         noindex={!isIndexable}
-      >
-        <meta key="og:type" property="og:type" content="website" />
-        <meta key="og:site_name" property="og:site_name" content="Smarter Poker" />
-        <meta key="og:title" property="og:title" content={seo.title} />
-        <meta key="og:description" property="og:description" content={seo.description} />
-        <meta key="og:url" property="og:url" content={seo.canonical} />
-        {seo.image ? <meta key="og:image" property="og:image" content={seo.image} /> : null}
-        <meta key="twitter:card" name="twitter:card" content={seo.image ? 'summary_large_image' : 'summary'} />
-        <meta key="twitter:title" name="twitter:title" content={seo.title} />
-        <meta key="twitter:description" name="twitter:description" content={seo.description} />
-        {seo.image ? <meta key="twitter:image" name="twitter:image" content={seo.image} /> : null}
-      </SEOHead>
+      />
 
       {venueJsonLd && (
         <Head>
@@ -1992,6 +2060,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
                  real photograph goes on the stage; without one the deck
                  falls back to the approved painted venue plate. */
               image={venue.cover_photo_url || null}
+              plate={VENUE_HERO_PLATES[venue.venue_type] || null}
               imageAlt={venue.name + ' poker venue'}
               kind="venue"
               breadcrumbs={[
@@ -2049,32 +2118,23 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
               </section>
             )}
 
-            {/* Breadcrumb Navigation */}
-            {!isIframeMode && (
-              <nav className="breadcrumb-nav" aria-label="Breadcrumb">
-                <ol className="breadcrumb-list">
-                  <li className="breadcrumb-item">
-                    <Link href="/hub" legacyBehavior><a className="breadcrumb-link">Hub</a></Link>
-                    <span className="breadcrumb-sep">/</span>
-                  </li>
-                  <li className="breadcrumb-item">
-                    <Link href="/hub/poker-near-me/lobby" legacyBehavior><a className="breadcrumb-link">Poker Near Me</a></Link>
-                    <span className="breadcrumb-sep">/</span>
-                  </li>
-                  <li className="breadcrumb-item breadcrumb-current">
-                    {venue.name}
-                  </li>
-                </ol>
-              </nav>
-            )}
+            {/* ONE SET OF CRUMBS (2026-09-30). The painted deck above prints
+                Hub / Poker Near Me / <venue> as real links, with the same
+                aria-label, in the server HTML. A second copy below it was a
+                plain 1px rounded rectangle 83px tall at 375 saying exactly
+                the same three words, so the trail stays where it is painted
+                and the rectangle goes. */}
 
             {/* Header Section */}
-            <header className="venue-header">
+            <PokerNearMePanelShell as="header" className="venue-header" bodyClassName="venue-header__body">
               <div className="venue-header-top">
                 <div className="venue-name-group" style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
                   {/* Venue Logo */}
                   <PokerIdentityMark
-                    src={venue.profile_photo_url || venue.cover_photo_url}
+                    /* getVenueLogoUrl prefers the mirrored venue-logos bucket copy.
+                       Reading profile_photo_url first, as this did, hotlinked the
+                       casino's own server even for venues we had already mirrored. */
+                    src={getVenueLogoUrl(venue)}
                     name={venue.name}
                     size={56}
                     className="venue-profile-identity"
@@ -2201,7 +2261,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
                   <button type="button" onClick={() => setFriendNotice('')} aria-label="Dismiss friend request notice">Dismiss</button>
                 </div>
               )}
-            </header>
+            </PokerNearMePanelShell>
 
             {/* ============================================ */}
             {/* BRAVO LIVE GAMES BANNER (top of page)        */}
@@ -2861,8 +2921,15 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
                   {venue.venue_news.map(function (article, idx) {
                     return (
                       <div key={article.id || idx} className="venue-news-card">
-                        {article.image_url && (
-                          <div className="news-card-image" style={{ backgroundImage: 'url(' + article.image_url + ')' }} />
+                        {safeImageUrl(article.image_url) && (
+                          /* The scraper stores a publisher's own image URL verbatim, so it
+                             is guarded like any other remote picture. It is also quoted
+                             rather than concatenated: a ')' in the URL used to end the
+                             CSS token early and break the rule. */
+                          <div
+                            className="news-card-image"
+                            style={{ backgroundImage: `url(${JSON.stringify(safeImageUrl(article.image_url)).slice(1, -1)})` }}
+                          />
                         )}
                         <div className="news-card-content">
                           <h3 className="news-card-title">{article.title}</h3>
@@ -2969,7 +3036,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
                 </h2>
                 <button
                   className="section-action-btn"
-                  onClick={function () { setShowReportGame(!showReportGame); }}
+                  onClick={function () { setReportError(''); setShowReportGame(!showReportGame); }}
                 >
                   {showReportGame ? 'Cancel' : 'Report a Game'}
                 </button>
@@ -3040,6 +3107,15 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
                       onChange={function (e) { setReportForm(Object.assign({}, reportForm, { notes: e.target.value })); }}
                     />
                   </div>
+                  {reportError && (
+                    <div role="alert" style={{
+                      background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.4)',
+                      borderRadius: 8, padding: '10px 14px', marginBottom: 12,
+                      color: '#ef4444', fontSize: 13, fontWeight: 600,
+                    }}>
+                      {reportError}
+                    </div>
+                  )}
                   <button type="submit" className="form-submit-btn" disabled={reportSubmitting || !reportForm.stakes.trim()}>
                     {reportSubmitting ? 'Submitting...' : 'Submit Report'}
                   </button>
@@ -3386,7 +3462,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
             {/* REVIEWS & RATINGS SECTION (REPLACED WITH VenueReviews) */}
             {/* ============================================ */}
             <section id="reviews-section" className="reviews-section">
-              <VenueReviews venueId={id} venueName={venue?.name} />
+              <VenueReviews venueId={id} venueName={venue?.name} defaultOpen={showReviewForm} />
             </section>
 
             {/* ============================================ */}
@@ -3638,7 +3714,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
                       {!showClaimForm && (
                         <button
                           className="claim-cta-btn"
-                          onClick={function () { setShowClaimForm(true); }}
+                          onClick={function () { setClaimError(''); setShowClaimForm(true); }}
                         >
                           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                             <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
@@ -3711,11 +3787,20 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
                           onChange={function (e) { setClaimForm(Object.assign({}, claimForm, { verification_notes: e.target.value })); }}
                         />
                       </div>
+                      {claimError && (
+                        <div role="alert" style={{
+                          background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.4)',
+                          borderRadius: 8, padding: '10px 14px', marginBottom: 12,
+                          color: '#ef4444', fontSize: 13, fontWeight: 600,
+                        }}>
+                          {claimError}
+                        </div>
+                      )}
                       <div className="form-actions">
                         <button type="submit" className="form-submit-btn" disabled={claimSubmitting || !claimForm.contact_name.trim() || !claimForm.contact_email.trim()}>
                           {claimSubmitting ? 'Submitting...' : 'Submit Claim'}
                         </button>
-                        <button type="button" className="form-cancel-btn" onClick={function () { setShowClaimForm(false); }}>
+                        <button type="button" className="form-cancel-btn" onClick={function () { setClaimError(''); setShowClaimForm(false); }}>
                           Cancel
                         </button>
                       </div>
@@ -4004,12 +4089,10 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
           color: #00D4FF;
         }
 
-        /* Header Section */
-        .venue-header {
-          max-width: 900px;
-          margin: 0 auto;
-          padding: 20px 24px 24px;
-        }
+        /* Header Section. The painted chassis owns this block's width,
+           gutters and frame: see the venue and tour head rules in
+           src/styles/worlds/poker-near-me-command-surfaces.css. Only the
+           copy inside it is styled here. */
         .venue-header-top {
           display: flex;
           align-items: flex-start;
@@ -5294,50 +5377,6 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
         }
 
         /* ========================================= */
-        /* BREADCRUMB NAVIGATION                     */
-        /* ========================================= */
-        .breadcrumb-nav {
-          max-width: 900px;
-          margin: 0 auto;
-          padding: 12px 24px 0;
-        }
-        .breadcrumb-list {
-          display: flex;
-          align-items: center;
-          list-style: none;
-          margin: 0;
-          padding: 0;
-          flex-wrap: wrap;
-          gap: 0;
-        }
-        .breadcrumb-item {
-          display: flex;
-          align-items: center;
-          font-size: 13px;
-          font-weight: 500;
-        }
-        .breadcrumb-link {
-          color: #94a3b8;
-          text-decoration: none;
-          transition: color 0.2s;
-        }
-        .breadcrumb-link:hover {
-          color: #00D4FF;
-        }
-        .breadcrumb-sep {
-          margin: 0 8px;
-          color: #475569;
-        }
-        .breadcrumb-current {
-          color: #00D4FF;
-          font-weight: 600;
-          max-width: 280px;
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
-        }
-
-        /* ========================================= */
         /* MAP & DIRECTIONS                          */
         /* ========================================= */
         .map-section {
@@ -5822,7 +5861,6 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
           .bravo-live-scroll-btn {
             justify-content: center;
           }
-          .venue-header,
           .venue-location-integrity,
           .info-section,
           .tournaments-section,
@@ -5835,7 +5873,6 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
           .related-series-section,
           .nearby-venues-section,
           .claim-section,
-          .breadcrumb-nav,
           .map-section {
             padding-left: 16px;
             padding-right: 16px;

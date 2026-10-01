@@ -915,7 +915,7 @@ class LiveStreamService {
         // BUG-FIX-DEEP-AUDIT-R2 GUEST-1: enumerate safe columns;
         // guest_invite_code is no longer readable by end-user roles.
         .select(
-          LIVE_STREAM_SAFE_COLS + ', broadcaster:profiles(id, username, full_name, avatar_url)'
+          LIVE_STREAM_SAFE_COLS + ', broadcaster:profiles(id, username, avatar_url)'
         )
         .eq('id', streamId)
         .maybeSingle();
@@ -943,7 +943,7 @@ class LiveStreamService {
     const { data: stream, error } = await supabase
       .from('live_streams')
       // BUG-FIX-DEEP-AUDIT-R2 GUEST-1: safe-cols enumeration.
-      .select(LIVE_STREAM_SAFE_COLS + ', broadcaster:profiles(id, username, full_name, avatar_url)')
+      .select(LIVE_STREAM_SAFE_COLS + ', broadcaster:profiles(id, username, avatar_url)')
       .eq('id', streamId)
       .maybeSingle();
 

@@ -18,6 +18,7 @@ import { busEmit, eventBus, EventType } from '../../../src/engine/EventBus';
 import TourPageSummary from '../../../src/components/seo/TourPageSummary';
 import { tourSeo, tourSchema, registryCodeForTour, tourCanonical } from '../../../src/lib/seo/tourPageSeo';
 import { DeepRouteNotice } from '../../../src/components/poker-near-me/DeepRouteSignalDeck';
+import { PokerNearMePanelShell } from '../../../src/components/poker-near-me/PokerNearMeConsole';
 import tourSourceRegistry from '../../../data/tour-source-registry.json';
 
 
@@ -644,7 +645,7 @@ export default function TourDetailPage({ seo, stops = [], events = [], facts = n
         {tour && !loading && (
           <>
             {/* Header Section */}
-            <section className="tour-header">
+            <PokerNearMePanelShell as="section" className="tour-header" bodyClassName="tour-header__body">
               <div className="header-content">
 
                 <nav className="breadcrumb-nav" aria-label="Breadcrumb">
@@ -711,7 +712,7 @@ export default function TourDetailPage({ seo, stops = [], events = [], facts = n
                   </div>
                 )}
               </div>
-            </section>
+            </PokerNearMePanelShell>
 
                         {/* ══ SMARTER.POKER STANDARD: Tab Navigation ══ */}
             <section className="sp-tabs-bar">
@@ -1287,15 +1288,13 @@ const styles = `
     background: rgba(0, 212, 255, 0.25);
   }
 
-  /* Header Section */
-  .tour-header {
-    padding: 0 16px;
-    margin-bottom: 24px;
-  }
-  .header-content {
-    max-width: 900px;
-    margin: 0 auto;
-    padding-top: 20px;
+  /* Header Section. The painted chassis owns this block's width, gutters
+     and frame: see the venue and tour head rules in
+     src/styles/worlds/poker-near-me-command-surfaces.css. */
+  .tour-header__body .header-content {
+    max-width: 100%;
+    margin: 0;
+    padding-top: 4px;
   }
   .breadcrumb-nav {
     margin-bottom: 20px;

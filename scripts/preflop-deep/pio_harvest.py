@@ -20,7 +20,7 @@ EFF_CHIPS = 9750
 CHIPS_PER_BB = 100
 GAME_TYPE = "6max_cash"
 STACK_BB = 100
-GEOMETRY_TAG = "srp_parameterized_v2"
+GEOMETRY_TAG = tree_gen.GEOMETRY_TAG
 COMBO_ORDER = "card=rank*4+suit; combo=b*(b-1)/2+a; 2c2d=0..AhAs=1325"
 SOURCE_COMBO_ORDER_SCHEMA = "piosolver.show_hand_order.v1"
 CARD_PATTERN = re.compile(r"^[2-9TJQKA][cdhs]$")

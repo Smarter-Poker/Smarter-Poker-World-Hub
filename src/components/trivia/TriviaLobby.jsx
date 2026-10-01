@@ -8,6 +8,9 @@ import { useRouter } from 'next/router';
 import { acquireScrollLock } from '../../lib/scrollLock';
 import TriviaFrameCard from './console/TriviaFrameCard';
 import TriviaConsole from './console/TriviaConsole';
+import ResponsiveModeArt from './console/ResponsiveModeArt';
+import { TRIVIA_INTRO_ART_LOBBY } from '../../config/triviaIntroArt.mjs';
+import { TRIVIA_THUMBNAIL_PREVIEWS } from '../../config/triviaThumbnailPreviews.mjs';
 // The lobby no longer bills, so supabase / EventBus / getAuthUser are gone with
 // deductDiamonds. Entry price now comes from the engine config only.
 import { getModeConfig } from '../../lib/trivia/triviaEngine';
@@ -381,6 +384,14 @@ export default function TriviaLobby({
 
       {/* Mode Cards Section */}
       <section className="modes-section" aria-labelledby="trivia-modes-title">
+        {/* The lobby's own destination art (intro-v1): the Game Select room,
+            a text-free picture that dissolves into the black canvas. The
+            Daily header above and the Quick Stakes footer keep their art. */}
+        <ResponsiveModeArt
+          art={TRIVIA_INTRO_ART_LOBBY}
+          className="modes-intro-art"
+          sizes="(min-width: 1000px) 968px, 100vw"
+        />
         <div className="modes-toolbar">
           <div className="modes-toolbar__heading">
             <span className="modes-toolbar__eyebrow tc-label">Game Select</span>
@@ -458,6 +469,7 @@ export default function TriviaLobby({
                 className={`mode-image-card${unavailable ? ' mode-image-card--maintenance' : ''}`}
                 family={getModeFrameFamily(mode)}
                 image={mode.image}
+                imagePreview={TRIVIA_THUMBNAIL_PREVIEWS[mode.id]}
                 imageAlt=""
                 frameLabel={mode.name}
                 data-mode-availability={availability.state}
@@ -627,6 +639,10 @@ export default function TriviaLobby({
                 .modes-section {
                     position: relative;
                     margin: 18px 0 0;
+                }
+
+                .modes-intro-art {
+                    margin: 0 0 6px;
                 }
 
                 .modes-toolbar {
@@ -987,6 +1003,24 @@ export default function TriviaLobby({
 
                     .quick-stakes-section {
                         margin-top: 18px;
+                    }
+                }
+
+                /* In forced colours the two approved banners keep their art;
+                   their full-card buttons get a system-colour edge. */
+                @media (forced-colors: active) {
+                    .daily-trivia-banner__button,
+                    .quick-stakes-banner {
+                        outline: 1px solid ButtonText;
+                        outline-offset: -1px;
+                    }
+                }
+
+                /* At 400% zoom and on short landscape phones a rail pinned
+                   under the fixed header would cover the cards it filters. */
+                @media (max-height: 479px) {
+                    .mode-filters {
+                        position: static;
                     }
                 }
 

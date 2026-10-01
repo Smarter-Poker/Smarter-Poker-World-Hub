@@ -82,6 +82,46 @@ import {
     validateTriviaSessionDeadline,
     validateTriviaSessionRoster,
 } from '../../../src/lib/trivia/awardResponsePolicy.mjs';
+import {
+    ELIGIBLE_SERVING_SOURCE,
+    FREE_FALLBACK_SOURCE,
+    FREE_MODES,
+    isFreeLegacyFallbackEnabled,
+    isShadowSelectorEnabled,
+    isSoloEngineV3Enabled,
+    toSoloStartResponse,
+    v3ErrorStatus,
+} from '../../../src/lib/trivia/phase3Engine.mjs';
+
+/**
+ * Phase 3 engine v3 (TRIVIA_P3_SOLO_ENGINE_V3=true): the database builds a private,
+ * deterministic roster snapshot from the eligible pool, charges entry through today's
+ * create_trivia_session_v2 path and returns an answer-free DTO. Also serves resumes of
+ * any v3 session regardless of the flag, so a run started under v3 always finishes there.
+ */
+async function startOrResumeSoloV3(res, sb, userId, mode, sessionId, parentSessionId, resumeOnly) {
+    const { data, error } = resumeOnly
+        ? await sb.rpc('trivia_session_view_v3', { p_session_id: sessionId, p_user_id: userId })
+        : await sb.rpc('trivia_start_solo_session_v3', {
+            p_session_id: sessionId,
+            p_user_id: userId,
+            p_mode: mode,
+            p_parent_session_id: mode === 'survival' ? (parentSessionId || null) : null,
+        });
+    if (error) {
+        console.warn('[trivia session-start] v3 start failed:', error.message || error);
+        return res.status(500).json({ success: false, error: 'session_create_failed' });
+    }
+    if (!data || data.success !== true) {
+        const code = data?.error === 'insufficient_eligible_pool' ? 'no_questions_available' : (data?.error || 'session_create_failed');
+        return res.status(v3ErrorStatus(data?.error)).json({ success: false, error: code });
+    }
+    if (data.mode !== mode) return res.status(409).json({ success: false, error: 'session_mode_conflict' });
+    const body = toSoloStartResponse(data);
+    if (resumeOnly) body.resumed = true;
+    res.setHeader('Cache-Control', 'private, no-cache, no-store, must-revalidate');
+    return res.status(200).json(body);
+}
 
 /**
  * Allow-list of playable modes AND the per-mode ceiling on questions in one
@@ -282,6 +322,47 @@ async function servePvpSession(res, sb, userId, match, sessionId, resumed) {
     });
 }
 
+/**
+ * Phase 5 v2 matches bind both seats, their escrow and their engine v3 server
+ * sessions atomically when the match is created (trivia_pvp_*_v2), so this
+ * route only RESUMES the caller's own seat session. It never creates a
+ * session, charges a stake or re-rolls a roster for a v2 match.
+ */
+async function serveV2PvpSeat(res, sb, userId, match) {
+    const side = match.player1_id === userId ? 1 : 2;
+    const { data: link, error: linkErr } = await sb
+        .from('trivia_pvp_session_links')
+        .select('session_id')
+        .eq('match_id', match.id)
+        .eq('side', side)
+        .maybeSingle();
+    if (linkErr) {
+        console.warn('[trivia session-start] v2 pvp seat load failed:', linkErr.message || linkErr);
+        return res.status(503).json({ success: false, error: 'pvp_storage_unavailable' });
+    }
+    if (!link?.session_id) {
+        return res.status(409).json({ success: false, error: 'session_link_invalid' });
+    }
+    const { data, error } = await sb.rpc('trivia_session_view_v3', {
+        p_session_id: link.session_id,
+        p_user_id: userId,
+    });
+    if (error) {
+        console.warn('[trivia session-start] v2 pvp seat view failed:', error.message || error);
+        return res.status(500).json({ success: false, error: 'session_load_failed' });
+    }
+    if (!data || data.success !== true) {
+        return res.status(v3ErrorStatus(data?.error)).json({ success: false, error: data?.error || 'session_load_failed' });
+    }
+    res.setHeader('Cache-Control', 'private, no-cache, no-store, must-revalidate');
+    return res.status(200).json({
+        ...toSoloStartResponse(data),
+        resumed: true,
+        matchId: match.id,
+        stake: Math.max(0, Math.floor(Number(match.stake_amount) || 0)),
+    });
+}
+
 async function reloadPvpDurableBinding(sb, matchId, side) {
     const [matchResult, linkResult] = await Promise.all([
         sb.from('trivia_pvp_matches')
@@ -333,7 +414,7 @@ async function startPvpSession(req, res, sb, userId) {
 
     const { data: match, error: matchErr } = await sb
         .from('trivia_pvp_matches')
-        .select('id, player1_id, player2_id, stake_amount, questions, status, created_at')
+        .select('id, player1_id, player2_id, stake_amount, questions, status, created_at, engine_version')
         .eq('id', matchId)
         .maybeSingle();
     if (matchErr) {
@@ -345,6 +426,9 @@ async function startPvpSession(req, res, sb, userId) {
     }
     if (match.player1_id !== userId && match.player2_id !== userId) {
         return res.status(403).json({ success: false, error: 'not_your_match' });
+    }
+    if (match.engine_version) {
+        return serveV2PvpSeat(res, sb, userId, match);
     }
     const matchValidation = validatePvpMatch(match, { requireActive: true });
     if (!matchValidation.ok) {
@@ -399,6 +483,8 @@ async function startPvpSession(req, res, sb, userId) {
             want: wanted,
             attempts: 3,
             withoutAnswers: true,
+            source: ELIGIBLE_SERVING_SOURCE,
+            mode: 'pvp',
         });
         const drawn = filterAndShuffle(pool, excludeIds, wanted, {
             minQualityScore: DEFAULT_QUALITY_FLOOR,
@@ -600,7 +686,7 @@ export default async function handler(req, res) {
         // retries with the same nonce, which is also the session UUID.
         const { data: existing, error: existingErr } = await sb
             .from('trivia_sessions')
-            .select('id, user_id, mode, status, question_ids, permutations, entry_cost, entry_state, created_at, expires_at')
+            .select('id, user_id, mode, status, question_ids, permutations, entry_cost, entry_state, created_at, expires_at, engine_version')
             .eq('id', startNonce)
             .maybeSingle();
         if (existingErr) {
@@ -608,7 +694,16 @@ export default async function handler(req, res) {
         }
         if (existing) {
             if (existing.mode !== mode) return res.status(409).json({ success: false, error: 'session_mode_conflict' });
+            if (existing.engine_version) {
+                if (existing.user_id !== userId || existing.status !== 'open') {
+                    return res.status(409).json({ success: false, error: 'session_not_resumable' });
+                }
+                return startOrResumeSoloV3(res, sb, userId, mode, startNonce, parentSessionId, true);
+            }
             return serveExistingSoloSession(res, sb, userId, existing);
+        }
+        if (isSoloEngineV3Enabled(process.env)) {
+            return startOrResumeSoloV3(res, sb, userId, mode, startNonce, parentSessionId, false);
         }
 
         const wanted = expectedSoloQuestionCount(mode);
@@ -633,7 +728,7 @@ export default async function handler(req, res) {
         let picked = [];
         if (mode === 'daily') {
             const { data: rosterRows, error: rosterErr } = await sb
-                .from('trivia_questions')
+                .from(ELIGIBLE_SERVING_SOURCE)
                 .select('id, question, options, category, difficulty')
                 .eq('daily_date', getTodayCST())
                 .gte('quality_score', DEFAULT_QUALITY_FLOOR)
@@ -666,7 +761,28 @@ export default async function handler(req, res) {
                 want: wanted,
                 attempts: 3,
                 withoutAnswers: true,
+                source: ELIGIBLE_SERVING_SOURCE,
+                mode,
             });
+            // Paid modes never fall back: an insufficient verified pool fails closed
+            // below (503). Only free modes may top up from the relaxed pool, and only
+            // behind TRIVIA_FREE_LEGACY_FALLBACK_ENABLED.
+            if (FREE_MODES.has(mode) && isFreeLegacyFallbackEnabled(process.env)) {
+                const eligibleIds = new Set(pool.map(q => q && q.id));
+                const relaxed = await fetchRandomQuestionPool(sb, {
+                    category: categories,
+                    difficulty: diff,
+                    pageSize: Math.max(200, wanted * 5),
+                    minQuality: DEFAULT_QUALITY_FLOOR,
+                    excludeIds,
+                    want: wanted,
+                    attempts: 2,
+                    withoutAnswers: true,
+                    source: FREE_FALLBACK_SOURCE,
+                    mode,
+                });
+                for (const q of relaxed) if (q && !eligibleIds.has(q.id)) pool.push(q);
+            }
 
             const ordered = filterAndShuffle(pool, excludeIds, wanted, {
                 minQualityScore: DEFAULT_QUALITY_FLOOR,
@@ -740,6 +856,20 @@ export default async function handler(req, res) {
                 return res.status(502).json({ success: false, error: 'session_resume_failed' });
             }
             return serveExistingSoloSession(res, sb, userId, racedSession);
+        }
+
+        // Phase 3 rollout: the v3 selector runs in shadow for every legacy start and
+        // records a coverage comparison. No player-visible effect; failures ignored.
+        if (isShadowSelectorEnabled(process.env)) {
+            try {
+                await sb.rpc('trivia_shadow_compare_v1', {
+                    p_user_id: userId,
+                    p_mode: mode,
+                    p_legacy_question_ids: picked.map(q => q.id),
+                });
+            } catch (e) {
+                console.warn('[trivia session-start] shadow compare failed:', e?.message || e);
+            }
         }
 
         // Feed the 60-day no-repeat window. Fire-and-forget: a history write

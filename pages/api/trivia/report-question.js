@@ -4,18 +4,18 @@
  * Phase 54 #6 — user "report this question" endpoint.
  *
  * Body: { question_id: uuid, reason: enum, note?: string }
- * Auth: requires Bearer token (authenticated user). Reports are inserted
- *       under the user's auth.uid() via RLS-friendly policy.
+ * Auth: requires Bearer token (authenticated user). Browsers no longer write
+ *       trivia_question_reports directly (Phase 3 revoked it); intake is the
+ *       database function trivia_submit_question_report_v1.
  *
- * Side effect: if a question accumulates >= 3 unresolved reports from
- * established accounts, its quality_score is demoted below the gameplay floor
- * (6) and its daily_date is cleared, so it stops being served immediately
- * while an admin reviews it.
- *
- * Abuse controls: per-user daily report budget, and only accounts older than
- * 24h count toward the auto-demotion threshold — otherwise three throwaway
- * accounts could walk the pool and demote every question below the serving
- * floor, emptying the daily roster.
+ * Effect (Phase 3): a report is VALID only from an established human account
+ * that was actually served the question. One valid open report removes the
+ * question from paid/competitive pools immediately; the policy threshold of
+ * distinct valid reporters quarantines it everywhere. Quarantine changes
+ * eligibility only - the question row is never rewritten. Operations triage
+ * reports through /api/admin/trivia-question-reports (open -> triaged ->
+ * upheld | dismissed | duplicate). Spam is bounded by per-player daily and
+ * open-report budgets and by the served-to-reporter rule.
  */
 // Repo Immutable Rule 4: API routes must use src/lib/supabaseServerClient, not
 // raw '@supabase/supabase-js' (build-safety-gate CHECK 3 blocks the raw import,
@@ -23,14 +23,9 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/apiErrorHandler';
-import { getTodayStartCST } from '../../../src/lib/trivia/getTodayCST';
 
 const REASONS = ['wrong_answer', 'unclear', 'duplicate', 'offensive', 'broken', 'other'];
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const DEMOTION_THRESHOLD = 3;
-const DEMOTED_QUALITY_SCORE = 3;
-const MAX_REPORTS_PER_USER_PER_DAY = 10;
-const MIN_ACCOUNT_AGE_MS = 24 * 60 * 60 * 1000;
 
 export default async function handler(req, res) {
   try {
@@ -72,115 +67,43 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'note must be a string of 500 characters or fewer' });
     }
 
-    // Service-role client for the writes (RLS lets users insert their own rows,
-    // but the demotion update and cross-user counts need elevated access).
+    // Phase 3: intake is one database function (trivia_submit_question_report_v1).
+    // It dedups per player+question, enforces the daily and open-report budgets,
+    // marks a report VALID only from an established human account that was actually
+    // served the question, removes a validly reported question from paid/competitive
+    // pools at once and quarantines it (eligibility only) at the policy threshold.
+    // Question rows are never rewritten here any more.
     const adm = createClient(url, srKey, { auth: { persistSession: false } });
-
-    // The question must exist — a valid-but-unknown UUID used to insert an
-    // orphan report row.
-    const { data: question, error: qErr } = await adm
-      .from('trivia_questions')
-      .select('id, quality_score, daily_date')
-      .eq('id', question_id)
-      .maybeSingle();
-    if (qErr) {
-      console.warn('[report-question] question lookup failed:', qErr.message);
+    const sessionId = typeof req.body?.session_id === 'string' && UUID_RE.test(req.body.session_id)
+      ? req.body.session_id : null;
+    const { data: result, error: rpcErr } = await adm.rpc('trivia_submit_question_report_v1', {
+      p_user_id: userId,
+      p_question_id: question_id,
+      p_reason: reason,
+      p_note: typeof note === 'string' ? note.trim() || null : null,
+      p_session_id: sessionId,
+    });
+    if (rpcErr) {
+      console.warn('[report-question] intake failed:', rpcErr.message);
       return res.status(500).json({ error: 'Could not record report' });
     }
-    if (!question) {
-      return res.status(404).json({ error: 'Question not found' });
-    }
-
-    // Per-user daily report budget — applyRateLimit stops bursts, not slow drip.
-    const dayStart = getTodayStartCST();
-    const { count: todaysReports } = await adm
-      .from('trivia_question_reports')
-      .select('id', { count: 'exact', head: true })
-      .eq('user_id', userId)
-      .gte('created_at', dayStart);
-
-    if ((todaysReports || 0) >= MAX_REPORTS_PER_USER_PER_DAY) {
-      return res.status(429).json({
-        error: `Daily report limit reached (${MAX_REPORTS_PER_USER_PER_DAY}). Try again tomorrow.`,
-      });
-    }
-
-    // Reject duplicate report from same user for same question
-    const { data: existing } = await adm
-      .from('trivia_question_reports')
-      .select('id')
-      .eq('question_id', question_id)
-      .eq('user_id', userId)
-      .is('resolved_at', null)
-      .maybeSingle();
-    if (existing) {
-      return res.status(200).json({
-        ok: true,
-        deduped: true,
-        message: 'You already reported this question',
-        quality_score: question.quality_score ?? null,
-      });
-    }
-
-    const { error: insErr } = await adm
-      .from('trivia_question_reports')
-      .insert({ question_id, user_id: userId, reason, note: note?.trim() || null });
-    if (insErr) {
-      console.warn('[report-question] insert failed:', insErr.message);
-      return res.status(500).json({ error: 'Could not record report' });
-    }
-
-    // ── Phase 54: 3-strike auto-demotion ──────────────────────────────────
-    // Only reports from accounts older than 24h count, so a burst of throwaway
-    // accounts cannot bury good questions.
-    const { data: reporters, error: repErr } = await adm
-      .from('trivia_question_reports')
-      .select('user_id')
-      .eq('question_id', question_id)
-      .is('resolved_at', null)
-      .limit(200);
-
-    let unresolvedCount = null;
-    let eligibleCount = 0;
-    if (repErr) {
-      console.warn('[report-question] unresolved count failed:', repErr.message);
-    } else {
-      const reporterIds = [...new Set((reporters || []).map(r => r.user_id).filter(Boolean))];
-      unresolvedCount = reporterIds.length;
-
-      if (reporterIds.length >= DEMOTION_THRESHOLD) {
-        const cutoff = new Date(Date.now() - MIN_ACCOUNT_AGE_MS).toISOString();
-        const { data: established } = await adm
-          .from('profiles')
-          .select('id')
-          .in('id', reporterIds)
-          .lt('created_at', cutoff);
-        eligibleCount = (established || []).length;
-      } else {
-        eligibleCount = 0;
+    if (!result || result.success !== true) {
+      const code = result?.error || 'report_rejected';
+      if (code === 'question_not_found') return res.status(404).json({ error: 'Question not found' });
+      if (code === 'daily_report_limit' || code === 'open_report_limit') {
+        return res.status(429).json({ error: `Report limit reached (${code}). Try again tomorrow.`, code });
       }
+      return res.status(400).json({ error: code });
     }
-
-    const autoDemoted = eligibleCount >= DEMOTION_THRESHOLD;
-    let newQualityScore = question.quality_score ?? null;
-    if (autoDemoted) {
-      const { error: demoteErr } = await adm
-        .from('trivia_questions')
-        // Clearing daily_date pulls the question out of today's roster too,
-        // so clients that re-fetch stop receiving it immediately.
-        .update({ quality_score: DEMOTED_QUALITY_SCORE, daily_date: null })
-        .eq('id', question_id);
-      if (demoteErr) console.warn('[report-question] demotion failed:', demoteErr.message);
-      else newQualityScore = DEMOTED_QUALITY_SCORE;
+    if (result.duplicate) {
+      return res.status(200).json({ ok: true, deduped: true, message: 'You already reported this question' });
     }
-
     return res.status(200).json({
       ok: true,
-      auto_demoted: autoDemoted,
-      // null (not a fabricated 1) when the count query failed
-      unresolved_reports: unresolvedCount,
-      quality_score: newQualityScore,
-      still_servable: (newQualityScore ?? 10) >= 6,
+      report_id: result.report_id,
+      counted: result.valid === true,
+      excluded_from_paid_pools: result.excluded_from_paid_pools === true,
+      quarantined: result.quarantined === true,
     });
 
   } catch (err) {

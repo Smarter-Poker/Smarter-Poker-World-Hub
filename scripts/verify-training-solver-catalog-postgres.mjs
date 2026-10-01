@@ -28,6 +28,10 @@ const OPERATION_SCOPE_MIGRATION = path.join(
   ROOT,
   'supabase/migrations/20260913170000_training_solver_operation_scope_binding.sql',
 );
+const M1_BOUNDED_ACTIVATION_MIGRATION = path.join(
+  ROOT,
+  'supabase/migrations/20260930182000_activate_training_solver_m1_bounded_canary.sql',
+);
 
 const PRODUCTION_DEFAULT_ACL_SQL = String.raw`
 ALTER DEFAULT PRIVILEGES IN SCHEMA public
@@ -316,15 +320,17 @@ import pio_harvest as harvest
 board = ['9h', '8d', '7c']
 dead = set(board)
 live = [not set(harvest._combo_cards(index)).intersection(dead) for index in range(1326)]
-check = ' '.join('0.4' if value else '0' for value in live)
-bet = ' '.join('0.6' if value else '0' for value in live)
+check = ' '.join('0.1' if value else '0' for value in live)
+bet_33 = ' '.join('0.2' if value else '0' for value in live)
+bet_75 = ' '.join('0.3' if value else '0' for value in live)
+bet_125 = ' '.join('0.4' if value else '0' for value in live)
 ev = ' '.join('125' if value else 'nan' for value in live)
 
 def fake_pio(command):
     if command == 'show_children r:0':
-        return 'r:0:c r:0:b525'
+        return 'r:0:c r:0:b231 r:0:b525 r:0:b875'
     if command == 'show_strategy r:0':
-        return check + '\n' + bet
+        return '\n'.join((check, bet_33, bet_75, bet_125))
     if command == 'calc_ev OOP r:0':
         return ev
     raise AssertionError('unexpected harvester command: ' + command)
@@ -400,9 +406,23 @@ AS $$
     'actions', jsonb_build_array(
       jsonb_build_object('code', 'c', 'key', 'check', 'size_pct', 0),
       jsonb_build_object(
+        'code', 'b231',
+        'key', 'bet_chips_231',
+        'size_chips', 231,
+        'size_semantics', 'cumulative_postflop_contribution_target',
+        'size_pct', NULL
+      ),
+      jsonb_build_object(
         'code', 'b525',
         'key', 'bet_chips_525',
         'size_chips', 525,
+        'size_semantics', 'cumulative_postflop_contribution_target',
+        'size_pct', NULL
+      ),
+      jsonb_build_object(
+        'code', 'b875',
+        'key', 'bet_chips_875',
+        'size_chips', 875,
         'size_semantics', 'cumulative_postflop_contribution_target',
         'size_pct', NULL
       )
@@ -412,9 +432,15 @@ AS $$
         CASE WHEN pg_temp.combo_is_board_live(value, p_board) THEN 0.4 ELSE 0 END
         ORDER BY value
       ) FROM generate_series(0, 1325) value),
+      'b231', (SELECT jsonb_agg(
+        0 ORDER BY value
+      ) FROM generate_series(0, 1325) value),
       'b525', (SELECT jsonb_agg(
         CASE WHEN pg_temp.combo_is_board_live(value, p_board) THEN 0.6 ELSE 0 END
         ORDER BY value
+      ) FROM generate_series(0, 1325) value),
+      'b875', (SELECT jsonb_agg(
+        0 ORDER BY value
       ) FROM generate_series(0, 1325) value)
     ),
     'hand_evs_bb', (
@@ -430,7 +456,7 @@ AS $$
     'oop_player', p_oop,
     'ip_player', p_ip,
     'rake', '0.05 10',
-    'tree_geometry', 'srp_parameterized_v2',
+    'tree_geometry', 'srp_parameterized_four_action_v3',
     'solver', 'PioSOLVER',
     'ev_oop_bb', 0.75,
     'ev_ip_bb', 1.25,
@@ -460,7 +486,7 @@ INSERT INTO public.training_solver_provenance_authority (
   training_game_contracts_sha256, manifest_contracts, approved_by
 ) VALUES (
   'M1', 'PioSOLVER 3.0', repeat('a', 64), repeat('b', 40),
-  'training-v2', repeat('c', 64), repeat('1', 64), repeat('4', 64),
+  '5', repeat('c', 64), repeat('1', 64), repeat('4', 64),
   jsonb_build_array(jsonb_build_object(
     'game_type', 'hu_cash', 'stack_depth', 100,
     'oop_player', 'BB', 'ip_player', 'BTN',
@@ -470,7 +496,7 @@ INSERT INTO public.training_solver_provenance_authority (
     'ip_range_checksum', repeat('3', 64),
     'range_combo_order', 'card=rank*4+suit; combo=b*(b-1)/2+a; 2c2d=0..AhAs=1325',
     'source_combo_order_sha256', repeat('1', 64),
-    'tree_geometry', 'srp_parameterized_v2', 'streets', jsonb_build_array('flop', 'turn', 'river')
+    'tree_geometry', 'srp_parameterized_four_action_v3', 'streets', jsonb_build_array('flop', 'turn', 'river')
   ), jsonb_build_object(
     'game_type', 'hu_cash', 'stack_depth', 100,
     'oop_player', 'BB', 'ip_player', 'BTN',
@@ -480,7 +506,7 @@ INSERT INTO public.training_solver_provenance_authority (
     'ip_range_checksum', repeat('3', 64),
     'range_combo_order', 'card=rank*4+suit; combo=b*(b-1)/2+a; 2c2d=0..AhAs=1325',
     'source_combo_order_sha256', repeat('1', 64),
-    'tree_geometry', 'srp_parameterized_v2', 'streets', jsonb_build_array('flop', 'turn', 'river')
+    'tree_geometry', 'srp_parameterized_four_action_v3', 'streets', jsonb_build_array('flop', 'turn', 'river')
   )), 'phase6-disposable-postgres-verifier'
 );
 UPDATE public.training_solver_ingest_scopes
@@ -490,7 +516,7 @@ WHERE machine_id = 'M1'
   AND solver_version = 'PioSOLVER 3.0'
   AND solver_binary_checksum = repeat('a', 64)
   AND pipeline_commit = repeat('b', 40)
-  AND manifest_version = 'training-v2'
+  AND manifest_version = '5'
   AND manifest_checksum = repeat('c', 64)
   AND admission_mode = 'held';
 COMMIT;
@@ -508,7 +534,7 @@ SELECT
   '30000000-0000-4000-8000-000000000003',
   'hu_cash_BB_100bb_9h8d7c', 'hu_cash', 100, 'flop', matrix.value,
   'PioSOLVER 3.0', repeat('a', 64), 'M1', repeat('b', 40),
-  'training-v2', repeat('c', 64),
+  '5', repeat('c', 64),
   pg_temp.solver_checksum('hu_cash_BB_100bb_9h8d7c', matrix.value),
   'validated', now()
 FROM (VALUES ('${HARVESTED_MATRIX_SQL}'::jsonb)) AS matrix(value);
@@ -584,7 +610,7 @@ SELECT
   '60000000-0000-4000-8000-000000000006',
   'hu_cash_BB_100bb_2h3h4h', 'hu_cash', 100, 'flop', matrix.value,
   'PioSOLVER 3.0', repeat('a', 64), 'M1', repeat('b', 40),
-  'training-v2', repeat('c', 64),
+  '5', repeat('c', 64),
   pg_temp.solver_checksum('hu_cash_BB_100bb_2h3h4h', matrix.value),
   'validated', now()
 FROM (
@@ -604,7 +630,7 @@ SELECT
   '70000000-0000-4000-8000-000000000007',
   'hu_cash_BB_100bb_5h6h7h', 'hu_cash', 100, 'flop', matrix.value,
   'PioSOLVER 3.1', repeat('e', 64), 'M1', repeat('b', 40),
-  'training-v2', repeat('c', 64),
+  '5', repeat('c', 64),
   pg_temp.solver_checksum('hu_cash_BB_100bb_5h6h7h', matrix.value),
   'validated', now()
 FROM (
@@ -635,7 +661,7 @@ INSERT INTO public.solved_spots_gold (
   'hu_cash_BB_100bb_Jh7d2c', 'hu_cash', 100, 'flop',
   pg_temp.complete_solver_matrix(),
   'PioSOLVER 3.0', repeat('a', 64), 'M1', repeat('b', 40),
-  'training-v2', repeat('c', 64), pg_temp.solver_checksum(
+  '5', repeat('c', 64), pg_temp.solver_checksum(
     'hu_cash_BB_100bb_Jh7d2c',
     pg_temp.complete_solver_matrix()
   ),
@@ -1157,7 +1183,7 @@ INSERT INTO public.solved_spots_gold (
   pg_temp.complete_solver_matrix('BB', 'flop', '["Jh","7d","2c"]'::jsonb,
     'r:0', 'OOP', 'BB', 'BTN', 40),
   'PioSOLVER 3.0', repeat('a', 64), 'M1', repeat('b', 40),
-  'training-v2', repeat('c', 64), pg_temp.solver_checksum(
+  '5', repeat('c', 64), pg_temp.solver_checksum(
     'postflop_complete_BB_40bb_Jh7d2c',
     pg_temp.complete_solver_matrix('BB', 'flop', '["Jh","7d","2c"]'::jsonb,
       'r:0', 'OOP', 'BB', 'BTN', 40)
@@ -1194,7 +1220,7 @@ BEGIN
       'hu_cash_BB_100bb_AhKdQc', 'hu_cash', 100, 'flop',
       pg_temp.complete_solver_matrix('BB', 'flop', '["Ah","Kd","Qc"]'::jsonb),
       'PioSOLVER 3.0', repeat('a', 64), 'M1', repeat('b', 40),
-      'training-v2', repeat('c', 64), repeat('0', 64),
+      '5', repeat('c', 64), repeat('0', 64),
       'validated', now()
     );
   EXCEPTION WHEN check_violation THEN blocked := true;
@@ -1235,7 +1261,7 @@ BEGIN
     'M1', '91000000-0000-4000-8000-000000000099', 'heartbeat',
     signed_at - interval '2 days', repeat('9', 64),
     'PioSOLVER 3.0', repeat('a', 64), repeat('b', 40),
-    'training-v2', repeat('c', 64), signed_at - interval '2 days'
+    '5', repeat('c', 64), signed_at - interval '2 days'
   );
   matrix := pg_temp.complete_solver_matrix(
     'BB', 'flop', '["Kh","Qd","2s"]'::jsonb,
@@ -1247,7 +1273,7 @@ BEGIN
     'id', '90000000-0000-4000-8000-000000000009',
     'machine_id', 'M1',
     'manifest_checksum', repeat('c', 64),
-    'manifest_version', 'training-v2',
+    'manifest_version', '5',
     'pipeline_commit', repeat('b', 40),
     'quality_status', 'validated',
     'scenario_hash', 'hu_cash_BB_100bb_KhQd2s',
@@ -1265,7 +1291,7 @@ BEGIN
   SELECT * INTO first_receipt
   FROM public.training_ingest_solver_artifact_v1(
     'M1', 'PioSOLVER 3.0', repeat('a', 64), repeat('b', 40),
-    'training-v2', repeat('c', 64), nonce, signed_at, repeat('d', 64), artifact
+    '5', repeat('c', 64), nonce, signed_at, repeat('d', 64), artifact
   );
   IF first_receipt.artifact_id <> '90000000-0000-4000-8000-000000000009'
      OR first_receipt.scenario_hash <> 'hu_cash_BB_100bb_KhQd2s'
@@ -1298,7 +1324,7 @@ BEGIN
   SELECT * INTO replay_receipt
   FROM public.training_ingest_solver_artifact_v1(
     'M1', 'PioSOLVER 3.0', repeat('a', 64), repeat('b', 40),
-    'training-v2', repeat('c', 64), nonce, signed_at, repeat('d', 64), artifact
+    '5', repeat('c', 64), nonce, signed_at, repeat('d', 64), artifact
   );
   IF NOT replay_receipt.replayed
      OR (SELECT count(*) FROM public.training_solver_worker_receipts
@@ -1324,7 +1350,7 @@ BEGIN
   BEGIN
     PERFORM 1 FROM public.training_ingest_solver_artifact_v1(
       'M1', 'PioSOLVER 3.0', repeat('a', 64), repeat('b', 40),
-      'training-v2', repeat('c', 64), nonce, signed_at, repeat('d', 64), artifact
+      '5', repeat('c', 64), nonce, signed_at, repeat('d', 64), artifact
     );
   EXCEPTION WHEN raise_exception THEN
     quarantined_replay_blocked := SQLERRM = 'SOLVER_WORKER_REPLAY_ARTIFACT_NOT_CURRENT';
@@ -1343,14 +1369,14 @@ BEGIN
   BEGIN
     PERFORM 1 FROM public.training_ingest_solver_artifact_v1(
       'M1', 'PioSOLVER 3.0', repeat('a', 64), repeat('b', 40),
-      'training-v2', repeat('c', 64), nonce, signed_at, repeat('e', 64), artifact
+      '5', repeat('c', 64), nonce, signed_at, repeat('e', 64), artifact
     );
   EXCEPTION WHEN unique_violation THEN conflict_blocked := true;
   END;
   BEGIN
     PERFORM 1 FROM public.training_ingest_solver_artifact_v1(
       'M1', 'PioSOLVER 3.0', repeat('a', 64), repeat('b', 40),
-      'training-v2', repeat('c', 64),
+      '5', repeat('c', 64),
       '91000000-0000-4000-8000-000000000003', signed_at - interval '10 minutes',
       repeat('f', 64), artifact
     );
@@ -1359,7 +1385,7 @@ BEGIN
   BEGIN
     PERFORM 1 FROM public.training_ingest_solver_artifact_v1(
       'M1', 'PioSOLVER 3.0', repeat('a', 64), repeat('b', 40),
-      'training-v2', repeat('c', 64),
+      '5', repeat('c', 64),
       '91000000-0000-4000-8000-000000000004', signed_at, repeat('1', 64),
       jsonb_set(artifact, '{game_type}', '"mtt_6max_icm"'::jsonb)
     );
@@ -1368,7 +1394,7 @@ BEGIN
   BEGIN
     PERFORM 1 FROM public.training_ingest_solver_artifact_v1(
       'M1', 'PioSOLVER 3.0', repeat('a', 64), repeat('b', 40),
-      'training-v2', repeat('c', 64),
+      '5', repeat('c', 64),
       '91000000-0000-4000-8000-000000000006', signed_at, repeat('6', 64),
       jsonb_set(
         artifact,
@@ -1393,17 +1419,17 @@ BEGIN
 
   IF NOT public.training_claim_solver_worker_request_v1(
        'M1', 'PioSOLVER 3.0', repeat('a', 64), repeat('b', 40),
-       'training-v2', repeat('c', 64), metadata_nonce, 'row_states',
+       '5', repeat('c', 64), metadata_nonce, 'row_states',
        signed_at, repeat('2', 64)
      )
      OR public.training_claim_solver_worker_request_v1(
        'M1', 'PioSOLVER 3.0', repeat('a', 64), repeat('b', 40),
-       'training-v2', repeat('c', 64), metadata_nonce, 'row_states',
+       '5', repeat('c', 64), metadata_nonce, 'row_states',
        signed_at, repeat('2', 64)
      )
      OR public.training_claim_solver_worker_request_v1(
        'M2', 'PioSOLVER 3.0', repeat('a', 64), repeat('b', 40),
-       'training-v2', repeat('c', 64),
+       '5', repeat('c', 64),
        '91000000-0000-4000-8000-000000000005', 'heartbeat',
        signed_at, repeat('3', 64)
      ) THEN
@@ -1433,7 +1459,7 @@ AS $$
     'id', p_id,
     'machine_id', 'M1',
     'manifest_checksum', repeat('c', 64),
-    'manifest_version', 'training-v2',
+    'manifest_version', '5',
     'pipeline_commit', repeat('b', 40),
     'quality_status', 'validated',
     'scenario_hash', p_scenario_hash,
@@ -1463,7 +1489,7 @@ BEGIN
   );
   PERFORM 1 FROM public.training_ingest_solver_artifact_v1(
     'M1', 'PioSOLVER 3.0', repeat('a', 64), repeat('b', 40),
-    'training-v2', repeat('c', 64),
+    '5', repeat('c', 64),
     '93500000-0000-4000-8000-000000000001', signed_at, repeat('1', 64),
     pg_temp.backlog_worker_artifact(
       'd2000000-0000-4000-8000-000000000002',
@@ -1472,7 +1498,7 @@ BEGIN
   );
   PERFORM 1 FROM public.training_ingest_solver_artifact_v1(
     'M1', 'PioSOLVER 3.0', repeat('a', 64), repeat('b', 40),
-    'training-v2', repeat('c', 64),
+    '5', repeat('c', 64),
     '93500000-0000-4000-8000-000000000002', signed_at, repeat('2', 64),
     pg_temp.backlog_worker_artifact(
       'd3000000-0000-4000-8000-000000000003',
@@ -1505,7 +1531,7 @@ AS $$
     'id', p_id,
     'machine_id', 'M2',
     'manifest_checksum', repeat('e', 64),
-    'manifest_version', 'training-v2-canary',
+    'manifest_version', '5-canary',
     'pipeline_commit', repeat('b', 40),
     'quality_status', 'validated',
     'scenario_hash', p_scenario_hash,
@@ -1531,7 +1557,7 @@ INSERT INTO public.training_solver_provenance_authority (
 )
 SELECT
   'M1', solver_version, solver_binary_checksum, pipeline_commit,
-  'training-v2-conflict', repeat('d', 64), source_combo_order_sha256,
+  '5-conflict', repeat('d', 64), source_combo_order_sha256,
   training_game_contracts_sha256, manifest_contracts,
   'phase6-disposable-postgres-verifier'
 FROM public.training_solver_provenance_authority
@@ -1539,7 +1565,7 @@ WHERE machine_id = 'M1'
   AND solver_version = 'PioSOLVER 3.0'
   AND solver_binary_checksum = repeat('a', 64)
   AND pipeline_commit = repeat('b', 40)
-  AND manifest_version = 'training-v2'
+  AND manifest_version = '5'
   AND manifest_checksum = repeat('c', 64);
 INSERT INTO public.training_solver_bounded_canary_targets (
   machine_id, solver_version, solver_binary_checksum, pipeline_commit,
@@ -1547,13 +1573,13 @@ INSERT INTO public.training_solver_bounded_canary_targets (
   scenario_hash, street, node, hero_position, approved_by
 ) VALUES (
   'M1', 'PioSOLVER 3.0', repeat('a', 64), repeat('b', 40),
-  'training-v2-conflict', repeat('d', 64), 'parent',
+  '5-conflict', repeat('d', 64), 'parent',
   'c1000000-0000-4000-8000-000000000001',
   'hu_cash_BB_100bb_AsKd2c', 'flop', 'r:0', 'BB',
   'phase6-disposable-postgres-verifier'
 ), (
   'M1', 'PioSOLVER 3.0', repeat('a', 64), repeat('b', 40),
-  'training-v2-conflict', repeat('d', 64), 'child',
+  '5-conflict', repeat('d', 64), 'child',
   'c2000000-0000-4000-8000-000000000002',
   'turn_hu_cash_BB_100bb_AsKd2cAh', 'turn',
   'r:0:c:b412:c:Ah', 'BB', 'phase6-disposable-postgres-verifier'
@@ -1567,7 +1593,7 @@ BEGIN
     SET admission_mode = 'bounded_canary', partition_count = 2,
         partition_index = 0
     WHERE machine_id = 'M1'
-      AND manifest_version = 'training-v2-conflict'
+      AND manifest_version = '5-conflict'
       AND manifest_checksum = repeat('d', 64);
   EXCEPTION WHEN object_not_in_prerequisite_state THEN
     activation_blocked :=
@@ -1576,7 +1602,7 @@ BEGIN
   IF NOT activation_blocked OR NOT EXISTS (
     SELECT 1 FROM public.training_solver_ingest_scopes
     WHERE machine_id = 'M1'
-      AND manifest_version = 'training-v2-conflict'
+      AND manifest_version = '5-conflict'
       AND manifest_checksum = repeat('d', 64)
       AND admission_mode = 'held'
   ) THEN
@@ -1596,7 +1622,7 @@ INSERT INTO public.training_solver_provenance_authority (
 )
 SELECT
   'M2', solver_version, solver_binary_checksum, pipeline_commit,
-  'training-v2-canary', repeat('e', 64), source_combo_order_sha256,
+  '5-canary', repeat('e', 64), source_combo_order_sha256,
   training_game_contracts_sha256, manifest_contracts,
   'phase6-disposable-postgres-verifier'
 FROM public.training_solver_provenance_authority
@@ -1604,7 +1630,7 @@ WHERE machine_id = 'M1'
   AND solver_version = 'PioSOLVER 3.0'
   AND solver_binary_checksum = repeat('a', 64)
   AND pipeline_commit = repeat('b', 40)
-  AND manifest_version = 'training-v2'
+  AND manifest_version = '5'
   AND manifest_checksum = repeat('c', 64);
 INSERT INTO public.training_solver_bounded_canary_targets (
   machine_id, solver_version, solver_binary_checksum, pipeline_commit,
@@ -1612,13 +1638,13 @@ INSERT INTO public.training_solver_bounded_canary_targets (
   scenario_hash, street, node, hero_position, approved_by
 ) VALUES (
   'M2', 'PioSOLVER 3.0', repeat('a', 64), repeat('b', 40),
-  'training-v2-canary', repeat('e', 64), 'parent',
+  '5-canary', repeat('e', 64), 'parent',
   'c1000000-0000-4000-8000-000000000001',
   'hu_cash_BB_100bb_AsKd2c', 'flop', 'r:0', 'BB',
   'phase6-disposable-postgres-verifier'
 ), (
   'M2', 'PioSOLVER 3.0', repeat('a', 64), repeat('b', 40),
-  'training-v2-canary', repeat('e', 64), 'child',
+  '5-canary', repeat('e', 64), 'child',
   'c2000000-0000-4000-8000-000000000002',
   'turn_hu_cash_BB_100bb_AsKd2cAh', 'turn',
   'r:0:c:b412:c:Ah', 'BB', 'phase6-disposable-postgres-verifier'
@@ -1633,7 +1659,7 @@ WHERE machine_id = 'M2'
   AND solver_version = 'PioSOLVER 3.0'
   AND solver_binary_checksum = repeat('a', 64)
   AND pipeline_commit = repeat('b', 40)
-  AND manifest_version = 'training-v2-canary'
+  AND manifest_version = '5-canary'
   AND manifest_checksum = repeat('e', 64)
   AND admission_mode = 'held';
 COMMIT;
@@ -1658,7 +1684,7 @@ BEGIN
   IF (SELECT count(*)
       FROM public.training_solver_worker_row_states_v2(
         'M2', 'PioSOLVER 3.0', repeat('a', 64), repeat('b', 40),
-        'training-v2-canary', repeat('e', 64),
+        '5-canary', repeat('e', 64),
         ARRAY[
           'hu_cash_BB_100bb_AsKd2c',
           'turn_hu_cash_BB_100bb_AsKd2cAh'
@@ -1699,7 +1725,7 @@ BEGIN
 
   PERFORM 1 FROM public.training_ingest_solver_artifact_v1(
     'M2', 'PioSOLVER 3.0', repeat('a', 64), repeat('b', 40),
-    'training-v2-canary', repeat('e', 64),
+    '5-canary', repeat('e', 64),
     '94000000-0000-4000-8000-000000000001', signed_at, repeat('5', 64),
     pg_temp.worker_artifact(
       'c1000000-0000-4000-8000-000000000001',
@@ -1708,7 +1734,7 @@ BEGIN
   );
   PERFORM 1 FROM public.training_ingest_solver_artifact_v1(
     'M2', 'PioSOLVER 3.0', repeat('a', 64), repeat('b', 40),
-    'training-v2-canary', repeat('e', 64),
+    '5-canary', repeat('e', 64),
     '94000000-0000-4000-8000-000000000002', signed_at, repeat('6', 64),
     pg_temp.worker_artifact(
       'c2000000-0000-4000-8000-000000000002',
@@ -1719,7 +1745,7 @@ BEGIN
   BEGIN
     PERFORM 1 FROM public.training_ingest_solver_artifact_v1(
       'M2', 'PioSOLVER 3.0', repeat('a', 64), repeat('b', 40),
-      'training-v2-canary', repeat('e', 64),
+      '5-canary', repeat('e', 64),
       '94000000-0000-4000-8000-000000000003', signed_at, repeat('7', 64),
       pg_temp.worker_artifact(
         'c3000000-0000-4000-8000-000000000003',
@@ -1733,7 +1759,7 @@ BEGIN
   BEGIN
     PERFORM 1 FROM public.training_ingest_solver_artifact_v1(
       'M2', 'PioSOLVER 3.0', repeat('a', 64), repeat('b', 40),
-      'training-v2-canary', repeat('e', 64),
+      '5-canary', repeat('e', 64),
       '94000000-0000-4000-8000-000000000004', signed_at, repeat('8', 64),
       pg_temp.worker_artifact(
         'c1000000-0000-4000-8000-000000000001',
@@ -1747,7 +1773,7 @@ BEGIN
   BEGIN
     PERFORM 1 FROM public.training_ingest_solver_artifact_v1(
       'M2', 'PioSOLVER 3.0', repeat('a', 64), repeat('b', 40),
-      'training-v2-canary', repeat('e', 64),
+      '5-canary', repeat('e', 64),
       '94000000-0000-4000-8000-000000000005', signed_at, repeat('9', 64),
       pg_temp.worker_artifact(
         'c1000000-0000-4000-8000-000000000001',
@@ -1762,7 +1788,7 @@ BEGIN
   BEGIN
     PERFORM 1 FROM public.training_ingest_solver_artifact_v1(
       'M2', 'PioSOLVER 3.0', repeat('a', 64), repeat('b', 40),
-      'training-v2-canary', repeat('e', 64),
+      '5-canary', repeat('e', 64),
       '94000000-0000-4000-8000-000000000006', signed_at, repeat('a', 64),
       pg_temp.worker_artifact(
         'c3000000-0000-4000-8000-000000000003',
@@ -1776,7 +1802,7 @@ BEGIN
   BEGIN
     PERFORM 1 FROM public.training_ingest_solver_artifact_v1(
       'M2', 'PioSOLVER 3.0', repeat('a', 64), repeat('b', 40),
-      'training-v2-canary', repeat('e', 64),
+      '5-canary', repeat('e', 64),
       '94000000-0000-4000-8000-000000000007', signed_at, repeat('b', 64),
       pg_temp.worker_artifact(
         'c1000000-0000-4000-8000-000000000001',
@@ -1790,7 +1816,7 @@ BEGIN
   BEGIN
     PERFORM 1 FROM public.training_ingest_solver_artifact_v1(
       'M2', 'PioSOLVER 3.0', repeat('a', 64), repeat('b', 40),
-      'training-v2-canary', repeat('e', 64),
+      '5-canary', repeat('e', 64),
       '94000000-0000-4000-8000-000000000008', signed_at, repeat('c', 64),
       pg_temp.worker_artifact(
         'c1000000-0000-4000-8000-000000000001',
@@ -1805,7 +1831,7 @@ BEGIN
   BEGIN
     PERFORM 1 FROM public.training_ingest_solver_artifact_v1(
       'M1', 'PioSOLVER 3.0', repeat('a', 64), repeat('b', 40),
-      'training-v2-canary', repeat('e', 64),
+      '5-canary', repeat('e', 64),
       '94000000-0000-4000-8000-000000000009', signed_at, repeat('d', 64),
       pg_temp.worker_artifact(
         'c1000000-0000-4000-8000-000000000001',
@@ -1821,7 +1847,7 @@ BEGIN
     SET admission_mode = 'backlog', partition_count = NULL,
         partition_index = NULL
     WHERE machine_id = 'M2'
-      AND manifest_version = 'training-v2-canary'
+      AND manifest_version = '5-canary'
       AND manifest_checksum = repeat('e', 64);
   EXCEPTION WHEN object_not_in_prerequisite_state THEN
     scope_downgrade_blocked :=
@@ -1831,7 +1857,7 @@ BEGIN
     UPDATE public.training_solver_bounded_canary_targets
     SET node = 'r:0:c'
     WHERE machine_id = 'M2'
-      AND manifest_version = 'training-v2-canary'
+      AND manifest_version = '5-canary'
       AND target_role = 'parent';
   EXCEPTION WHEN object_not_in_prerequisite_state THEN
     target_mutation_blocked :=
@@ -1840,10 +1866,10 @@ BEGIN
   BEGIN
     UPDATE public.training_solver_bounded_canary_targets
     SET machine_id = 'M1',
-        manifest_version = 'training-v2-conflict',
+        manifest_version = '5-conflict',
         manifest_checksum = repeat('d', 64)
     WHERE machine_id = 'M2'
-      AND manifest_version = 'training-v2-canary'
+      AND manifest_version = '5-canary'
       AND manifest_checksum = repeat('e', 64)
       AND target_role = 'parent';
   EXCEPTION WHEN object_not_in_prerequisite_state THEN
@@ -1887,7 +1913,7 @@ BEGIN
      OR (SELECT count(*)
          FROM public.training_solver_worker_row_states_v2(
            'M2', 'PioSOLVER 3.0', repeat('a', 64), repeat('b', 40),
-           'training-v2-canary', repeat('e', 64),
+           '5-canary', repeat('e', 64),
            ARRAY[
              'hu_cash_BB_100bb_AsKd2c',
              'turn_hu_cash_BB_100bb_AsKd2cAh'
@@ -1909,7 +1935,7 @@ WHERE machine_id = 'M2'
   AND solver_version = 'PioSOLVER 3.0'
   AND solver_binary_checksum = repeat('a', 64)
   AND pipeline_commit = repeat('b', 40)
-  AND manifest_version = 'training-v2-canary'
+  AND manifest_version = '5-canary'
   AND manifest_checksum = repeat('e', 64)
   AND retired_at IS NULL;
 DO $bounded_canary_retirement_behavior$
@@ -1918,7 +1944,7 @@ BEGIN
     SELECT 1
     FROM public.training_solver_worker_row_states_v2(
       'M2', 'PioSOLVER 3.0', repeat('a', 64), repeat('b', 40),
-      'training-v2-canary', repeat('e', 64),
+      '5-canary', repeat('e', 64),
       ARRAY[
         'hu_cash_BB_100bb_AsKd2c',
         'turn_hu_cash_BB_100bb_AsKd2cAh'
@@ -1945,7 +1971,7 @@ BEGIN
     UPDATE public.training_solver_provenance_authority
     SET retired_at = NULL
     WHERE machine_id = 'M2'
-      AND manifest_version = 'training-v2-canary'
+      AND manifest_version = '5-canary'
       AND manifest_checksum = repeat('e', 64);
   EXCEPTION WHEN object_not_in_prerequisite_state THEN
     reactivation_blocked :=
@@ -1966,12 +1992,12 @@ INSERT INTO public.training_solver_provenance_authority (
 )
 SELECT
   'M2', solver_version, solver_binary_checksum, pipeline_commit,
-  'training-v2-held', repeat('f', 64), source_combo_order_sha256,
+  '5-held', repeat('f', 64), source_combo_order_sha256,
   training_game_contracts_sha256, manifest_contracts,
   'phase6-disposable-postgres-verifier'
 FROM public.training_solver_provenance_authority
 WHERE machine_id = 'M1'
-  AND manifest_version = 'training-v2'
+  AND manifest_version = '5'
   AND manifest_checksum = repeat('c', 64);
 DO $incomplete_scope_behavior$
 DECLARE
@@ -1988,7 +2014,7 @@ BEGIN
       scenario_hash, street, node, hero_position, approved_by
     ) VALUES (
       'M2', 'PioSOLVER 3.0', repeat('a', 64), repeat('b', 40),
-      'training-v2-held', repeat('f', 64), 'parent',
+      '5-held', repeat('f', 64), 'parent',
       'd1000000-0000-4000-8000-000000000001',
       'hu_cash_BB_100bb_5s6s7s', 'flop', 'r:0', 'BB',
       'phase6-disposable-postgres-verifier'
@@ -2002,7 +2028,7 @@ BEGIN
     SET admission_mode = 'bounded_canary', partition_count = 2,
         partition_index = 1
     WHERE machine_id = 'M2'
-      AND manifest_version = 'training-v2-held'
+      AND manifest_version = '5-held'
       AND manifest_checksum = repeat('f', 64);
   EXCEPTION WHEN check_violation THEN
     zero_target_activation_blocked :=
@@ -2014,7 +2040,7 @@ BEGIN
     scenario_hash, street, node, hero_position, approved_by
   ) VALUES (
     'M2', 'PioSOLVER 3.0', repeat('a', 64), repeat('b', 40),
-    'training-v2-held', repeat('f', 64), 'parent',
+    '5-held', repeat('f', 64), 'parent',
     'c3000000-0000-4000-8000-000000000003',
     'hu_cash_BB_100bb_9s8h7d', 'flop', 'r:0', 'BB',
     'phase6-disposable-postgres-verifier'
@@ -2024,7 +2050,7 @@ BEGIN
     SET admission_mode = 'bounded_canary', partition_count = 2,
         partition_index = 1
     WHERE machine_id = 'M2'
-      AND manifest_version = 'training-v2-held'
+      AND manifest_version = '5-held'
       AND manifest_checksum = repeat('f', 64);
   EXCEPTION WHEN check_violation THEN
     one_target_activation_blocked :=
@@ -2036,7 +2062,7 @@ BEGIN
     scenario_hash, street, node, hero_position, approved_by
   ) VALUES (
     'M2', 'PioSOLVER 3.0', repeat('a', 64), repeat('b', 40),
-    'training-v2-held', repeat('f', 64), 'child',
+    '5-held', repeat('f', 64), 'child',
     'c2000000-0000-4000-8000-000000000002',
     'turn_hu_cash_BB_100bb_AsKd2cAh', 'turn',
     'r:0:c:b412:c:Ah', 'BB', 'phase6-disposable-postgres-verifier'
@@ -2046,7 +2072,7 @@ BEGIN
     SET admission_mode = 'bounded_canary', partition_count = 2,
         partition_index = 1
     WHERE machine_id = 'M2'
-      AND manifest_version = 'training-v2-held'
+      AND manifest_version = '5-held'
       AND manifest_checksum = repeat('f', 64);
   EXCEPTION WHEN check_violation THEN
     invalid_lineage_activation_blocked :=
@@ -2054,7 +2080,7 @@ BEGIN
   END;
   DELETE FROM public.training_solver_bounded_canary_targets
   WHERE machine_id = 'M2'
-    AND manifest_version = 'training-v2-held'
+    AND manifest_version = '5-held'
     AND manifest_checksum = repeat('f', 64)
     AND target_role = 'child';
   INSERT INTO public.training_solver_bounded_canary_targets (
@@ -2063,7 +2089,7 @@ BEGIN
     scenario_hash, street, node, hero_position, approved_by
   ) VALUES (
     'M2', 'PioSOLVER 3.0', repeat('a', 64), repeat('b', 40),
-    'training-v2-held', repeat('f', 64), 'child',
+    '5-held', repeat('f', 64), 'child',
     'c4000000-0000-4000-8000-000000000004',
     'turn_hu_cash_BB_100bb_9s8h7d2c', 'turn',
     'r:0:c:b412:c:2c', 'BB', 'phase6-disposable-postgres-verifier'
@@ -2075,7 +2101,7 @@ BEGIN
       scenario_hash, street, node, hero_position, approved_by
     ) VALUES (
       'M2', 'PioSOLVER 3.0', repeat('a', 64), repeat('b', 40),
-      'training-v2-held', repeat('f', 64), 'parent',
+      '5-held', repeat('f', 64), 'parent',
       'c3000000-0000-4000-8000-000000000003',
       'hu_cash_BB_100bb_9s8h7d', 'flop', 'r:0', 'BB',
       'phase6-disposable-postgres-verifier'
@@ -2090,7 +2116,7 @@ BEGIN
      OR NOT EXISTS (
     SELECT 1 FROM public.training_solver_ingest_scopes
     WHERE machine_id = 'M2'
-      AND manifest_version = 'training-v2-held'
+      AND manifest_version = '5-held'
       AND manifest_checksum = repeat('f', 64)
       AND admission_mode = 'held'
   ) THEN
@@ -2157,7 +2183,7 @@ BEGIN
   BEGIN
     PERFORM public.training_claim_solver_worker_request_v1(
       'M1', 'PioSOLVER 3.0', repeat('a', 64), repeat('b', 40),
-      'training-v2', repeat('c', 64),
+      '5', repeat('c', 64),
       '92000000-0000-4000-8000-000000000001', 'heartbeat', now(), repeat('4', 64)
     );
   EXCEPTION WHEN insufficient_privilege THEN worker_claim_execute_blocked := true;
@@ -2165,7 +2191,7 @@ BEGIN
   BEGIN
     PERFORM 1 FROM public.training_ingest_solver_artifact_v1(
       'M1', 'PioSOLVER 3.0', repeat('a', 64), repeat('b', 40),
-      'training-v2', repeat('c', 64),
+      '5', repeat('c', 64),
       '92000000-0000-4000-8000-000000000002', now(), repeat('5', 64), '{}'::jsonb
     );
   EXCEPTION WHEN insufficient_privilege THEN worker_ingest_execute_blocked := true;
@@ -2179,7 +2205,7 @@ BEGIN
   BEGIN
     PERFORM 1 FROM public.training_solver_worker_row_states_v2(
       'M1', 'PioSOLVER 3.0', repeat('a', 64), repeat('b', 40),
-      'training-v2', repeat('c', 64),
+      '5', repeat('c', 64),
       ARRAY['hu_cash_BB_100bb_KhQd2s']
     );
   EXCEPTION WHEN insufficient_privilege THEN
@@ -2318,7 +2344,7 @@ $$;
 RESET ROLE;
 
 -- Exercise the retirement/read TOCTOU boundary on a dedicated authority. The
--- canonical M1 training-v2 authority must stay active for every later verifier
+-- canonical M1 5 authority must stay active for every later verifier
 -- probe; production retirement is one-way and must never need fixture reset.
 BEGIN;
 INSERT INTO public.training_solver_provenance_authority (
@@ -2328,7 +2354,7 @@ INSERT INTO public.training_solver_provenance_authority (
 )
 SELECT
   'M2', solver_version, solver_binary_checksum, pipeline_commit,
-  'training-v2-toctou', repeat('6', 64), source_combo_order_sha256,
+  '5-toctou', repeat('6', 64), source_combo_order_sha256,
   training_game_contracts_sha256, manifest_contracts,
   'phase6-disposable-postgres-toctou-verifier'
 FROM public.training_solver_provenance_authority
@@ -2336,7 +2362,7 @@ WHERE machine_id = 'M1'
   AND solver_version = 'PioSOLVER 3.0'
   AND solver_binary_checksum = repeat('a', 64)
   AND pipeline_commit = repeat('b', 40)
-  AND manifest_version = 'training-v2'
+  AND manifest_version = '5'
   AND manifest_checksum = repeat('c', 64);
 UPDATE public.training_solver_ingest_scopes
 SET admission_mode = 'backlog', configured_at = now(),
@@ -2345,7 +2371,7 @@ WHERE machine_id = 'M2'
   AND solver_version = 'PioSOLVER 3.0'
   AND solver_binary_checksum = repeat('a', 64)
   AND pipeline_commit = repeat('b', 40)
-  AND manifest_version = 'training-v2-toctou'
+  AND manifest_version = '5-toctou'
   AND manifest_checksum = repeat('6', 64)
   AND admission_mode = 'held';
 COMMIT;
@@ -2360,7 +2386,7 @@ SELECT
   '80000000-0000-4000-8000-000000000008',
   'hu_cash_BB_100bb_8h9hTh', 'hu_cash', 100, 'flop', matrix.value,
   'PioSOLVER 3.0', repeat('a', 64), 'M2', repeat('b', 40),
-  'training-v2-toctou', repeat('6', 64),
+  '5-toctou', repeat('6', 64),
   pg_temp.solver_checksum('hu_cash_BB_100bb_8h9hTh', matrix.value),
   'validated', now()
 FROM (
@@ -2384,7 +2410,7 @@ WHERE machine_id = 'M2'
   AND solver_version = 'PioSOLVER 3.0'
   AND solver_binary_checksum = repeat('a', 64)
   AND pipeline_commit = repeat('b', 40)
-  AND manifest_version = 'training-v2-toctou'
+  AND manifest_version = '5-toctou'
   AND manifest_checksum = repeat('6', 64);
 DO $$ BEGIN
   IF NOT EXISTS (
@@ -2420,7 +2446,7 @@ WHERE machine_id = 'M2'
   AND solver_version = 'PioSOLVER 3.0'
   AND solver_binary_checksum = repeat('a', 64)
   AND pipeline_commit = repeat('b', 40)
-  AND manifest_version = 'training-v2-toctou'
+  AND manifest_version = '5-toctou'
   AND manifest_checksum = repeat('6', 64);
 DO $$ BEGIN
   IF EXISTS (
@@ -2437,7 +2463,7 @@ BEGIN
   BEGIN
     PERFORM 1 FROM public.training_ingest_solver_artifact_v1(
       'M2', 'PioSOLVER 3.0', repeat('a', 64), repeat('b', 40),
-      'training-v2-toctou', repeat('6', 64),
+      '5-toctou', repeat('6', 64),
       '91000000-0000-4000-8000-000000000001', now(), repeat('d', 64), '{}'::jsonb
     );
   EXCEPTION WHEN insufficient_privilege THEN
@@ -2874,11 +2900,11 @@ try {
       )
       SELECT
         'M1', solver_version, solver_binary_checksum, pipeline_commit,
-        'training-v2-operation-held', repeat('7', 64),
+        '5-operation-held', repeat('7', 64),
         source_combo_order_sha256, training_game_contracts_sha256,
         manifest_contracts, 'phase6-operation-scope-verifier'
       FROM public.training_solver_provenance_authority
-      WHERE machine_id = 'M1' AND manifest_version = 'training-v2'
+      WHERE machine_id = 'M1' AND manifest_version = '5'
         AND manifest_checksum = repeat('c', 64);
 
       INSERT INTO public.training_solver_provenance_authority (
@@ -2888,11 +2914,11 @@ try {
       )
       SELECT
         'M2', solver_version, solver_binary_checksum, pipeline_commit,
-        'training-v2-operation-canary', repeat('8', 64),
+        '5-operation-canary', repeat('8', 64),
         source_combo_order_sha256, training_game_contracts_sha256,
         manifest_contracts, 'phase6-operation-scope-verifier'
       FROM public.training_solver_provenance_authority
-      WHERE machine_id = 'M1' AND manifest_version = 'training-v2'
+      WHERE machine_id = 'M1' AND manifest_version = '5'
         AND manifest_checksum = repeat('c', 64);
 
       INSERT INTO public.training_solver_bounded_canary_targets (
@@ -2901,13 +2927,13 @@ try {
         scenario_hash, street, node, hero_position, approved_by
       ) VALUES (
         'M2', 'PioSOLVER 3.0', repeat('a', 64), repeat('b', 40),
-        'training-v2-operation-canary', repeat('8', 64), 'parent',
+        '5-operation-canary', repeat('8', 64), 'parent',
         'c1000000-0000-4000-8000-000000000001',
         'hu_cash_BB_100bb_AsKd2c', 'flop', 'r:0', 'BB',
         'phase6-operation-scope-verifier'
       ), (
         'M2', 'PioSOLVER 3.0', repeat('a', 64), repeat('b', 40),
-        'training-v2-operation-canary', repeat('8', 64), 'child',
+        '5-operation-canary', repeat('8', 64), 'child',
         'c2000000-0000-4000-8000-000000000002',
         'turn_hu_cash_BB_100bb_AsKd2cAh', 'turn',
         'r:0:c:b412:c:Ah', 'BB', 'phase6-operation-scope-verifier'
@@ -2917,7 +2943,7 @@ try {
           partition_index = 1, configured_at = clock_timestamp(),
           configured_by = 'phase6-operation-scope-verifier'
       WHERE machine_id = 'M2'
-        AND manifest_version = 'training-v2-operation-canary'
+        AND manifest_version = '5-operation-canary'
         AND manifest_checksum = repeat('8', 64)
         AND admission_mode = 'held';
       COMMIT;
@@ -3030,12 +3056,12 @@ try {
         -- Exact active mode is required before a metadata nonce is consumed.
         IF NOT public.training_claim_solver_worker_request_v2(
              'M1', 'PioSOLVER 3.0', repeat('a', 64), repeat('b', 40),
-             'training-v2', repeat('c', 64), 'backlog',
+             '5', repeat('c', 64), 'backlog',
              '96000000-0000-4000-8000-000000000001', 'row_states',
              signed_at, repeat('1', 64)
            ) OR public.training_claim_solver_worker_request_v2(
              'M1', 'PioSOLVER 3.0', repeat('a', 64), repeat('b', 40),
-             'training-v2', repeat('c', 64), 'backlog',
+             '5', repeat('c', 64), 'backlog',
              '96000000-0000-4000-8000-000000000001', 'row_states',
              signed_at, repeat('1', 64)
            ) THEN
@@ -3051,25 +3077,25 @@ try {
           IF rejected_nonce = '96000000-0000-4000-8000-000000000002'::uuid THEN
             IF public.training_claim_solver_worker_request_v2(
               'M1', 'PioSOLVER 3.0', repeat('a', 64), repeat('b', 40),
-              'training-v2', repeat('c', 64), 'bounded_canary', rejected_nonce,
+              '5', repeat('c', 64), 'bounded_canary', rejected_nonce,
               'heartbeat', signed_at, repeat('2', 64)
             ) THEN RAISE EXCEPTION 'mode mismatch consumed a nonce'; END IF;
           ELSIF rejected_nonce = '96000000-0000-4000-8000-000000000003'::uuid THEN
             IF public.training_claim_solver_worker_request_v2(
               'M1', 'PioSOLVER 3.0', repeat('a', 64), repeat('b', 40),
-              'training-v2-operation-held', repeat('7', 64), 'backlog',
+              '5-operation-held', repeat('7', 64), 'backlog',
               rejected_nonce, 'heartbeat', signed_at, repeat('3', 64)
             ) THEN RAISE EXCEPTION 'held scope consumed a nonce'; END IF;
           ELSIF rejected_nonce = '96000000-0000-4000-8000-000000000004'::uuid THEN
             IF public.training_claim_solver_worker_request_v2(
               'M2', 'PioSOLVER 3.0', repeat('a', 64), repeat('b', 40),
-              'training-v2-canary', repeat('e', 64), 'bounded_canary',
+              '5-canary', repeat('e', 64), 'bounded_canary',
               rejected_nonce, 'heartbeat', signed_at, repeat('4', 64)
             ) THEN RAISE EXCEPTION 'retired authority consumed a nonce'; END IF;
           ELSE
             IF public.training_claim_solver_worker_request_v2(
               'M2', 'PioSOLVER 3.0', repeat('a', 64), repeat('b', 40),
-              'training-v2-operation-canary', repeat('8', 64),
+              '5-operation-canary', repeat('8', 64),
               'bounded_canary', rejected_nonce, 'board_page', signed_at,
               repeat('5', 64)
             ) THEN RAISE EXCEPTION 'canary board-page claim consumed a nonce'; END IF;
@@ -3086,7 +3112,7 @@ try {
 
         IF (SELECT count(*) FROM public.training_solver_worker_board_page_v2(
               'M1', 'PioSOLVER 3.0', repeat('a', 64), repeat('b', 40),
-              'training-v2', repeat('c', 64), 'backlog',
+              '5', repeat('c', 64), 'backlog',
               'hu_cash', 100, 'flop', 'BB', NULL, 75
             )) < 1 THEN
           RAISE EXCEPTION 'active backlog scope returned no board work';
@@ -3094,7 +3120,7 @@ try {
         BEGIN
           PERFORM 1 FROM public.training_solver_worker_board_page_v2(
             'M2', 'PioSOLVER 3.0', repeat('a', 64), repeat('b', 40),
-            'training-v2-operation-canary', repeat('8', 64),
+            '5-operation-canary', repeat('8', 64),
             'bounded_canary', 'hu_cash', 100, 'flop', 'BB', NULL, 75
           );
         EXCEPTION WHEN insufficient_privilege THEN
@@ -3103,7 +3129,7 @@ try {
         BEGIN
           PERFORM 1 FROM public.training_solver_worker_board_page_v2(
             'M1', 'PioSOLVER 3.0', repeat('a', 64), repeat('b', 40),
-            'training-v2', repeat('c', 64), 'bounded_canary',
+            '5', repeat('c', 64), 'bounded_canary',
             'hu_cash', 100, 'flop', 'BB', NULL, 75
           );
         EXCEPTION WHEN insufficient_privilege THEN
@@ -3112,7 +3138,7 @@ try {
 
         IF (SELECT count(*) FROM public.training_solver_worker_row_states_v3(
               'M2', 'PioSOLVER 3.0', repeat('a', 64), repeat('b', 40),
-              'training-v2-operation-canary', repeat('8', 64),
+              '5-operation-canary', repeat('8', 64),
               'bounded_canary', ARRAY[
                 'hu_cash_BB_100bb_AsKd2c',
                 'turn_hu_cash_BB_100bb_AsKd2cAh'
@@ -3126,7 +3152,7 @@ try {
         BEGIN
           PERFORM 1 FROM public.training_solver_worker_row_states_v3(
             'M2', 'PioSOLVER 3.0', repeat('a', 64), repeat('b', 40),
-            'training-v2-operation-canary', repeat('8', 64),
+            '5-operation-canary', repeat('8', 64),
             'bounded_canary', ARRAY['hu_cash_BB_100bb_AsKd2c']
           );
         EXCEPTION WHEN insufficient_privilege THEN
@@ -3135,7 +3161,7 @@ try {
         BEGIN
           PERFORM 1 FROM public.training_solver_worker_row_states_v3(
             'M2', 'PioSOLVER 3.0', repeat('a', 64), repeat('b', 40),
-            'training-v2-operation-canary', repeat('8', 64),
+            '5-operation-canary', repeat('8', 64),
             'bounded_canary', ARRAY[
               'hu_cash_BB_100bb_AsKd2c',
               'turn_hu_cash_BB_100bb_AsKd2cAh',
@@ -3148,7 +3174,7 @@ try {
         BEGIN
           PERFORM 1 FROM public.training_solver_worker_row_states_v3(
             'M1', 'PioSOLVER 3.0', repeat('a', 64), repeat('b', 40),
-            'training-v2', repeat('c', 64), 'backlog',
+            '5', repeat('c', 64), 'backlog',
             array_fill('hu_cash_BB_100bb_AsKd2c'::text, ARRAY[76])
           );
         EXCEPTION WHEN invalid_parameter_value THEN
@@ -3157,14 +3183,14 @@ try {
 
         PERFORM public.training_solver_worker_heartbeat_v1(
           'M1', 'PioSOLVER 3.0', repeat('a', 64), repeat('b', 40),
-          'training-v2', repeat('c', 64), 'backlog', 'scope-preflight', '',
+          '5', repeat('c', 64), 'backlog', 'scope-preflight', '',
           2, 3, 0, 'scope-bound heartbeat'
         );
         SELECT * INTO before_status FROM public.solver_status WHERE machine_id = 'M1';
         BEGIN
           PERFORM public.training_solver_worker_heartbeat_v1(
             'M1', 'PioSOLVER 3.0', repeat('a', 64), repeat('b', 40),
-            'training-v2', repeat('c', 64), 'bounded_canary', 'wrong-scope', '',
+            '5', repeat('c', 64), 'bounded_canary', 'wrong-scope', '',
             99, 99, 99, 'must not persist'
           );
         EXCEPTION WHEN insufficient_privilege THEN
@@ -3173,7 +3199,7 @@ try {
         BEGIN
           PERFORM public.training_solver_worker_heartbeat_v1(
             'M1', 'PioSOLVER 3.0', repeat('a', 64), repeat('b', 40),
-            'training-v2', repeat('c', 64), 'backlog', 'null-counter', '',
+            '5', repeat('c', 64), 'backlog', 'null-counter', '',
             NULL, 3, 0, 'must not persist'
           );
         EXCEPTION WHEN invalid_parameter_value THEN
@@ -3190,7 +3216,7 @@ try {
         BEGIN
           PERFORM 1 FROM public.training_ingest_solver_artifact_v2(
             'M1', 'PioSOLVER 3.0', repeat('a', 64), repeat('b', 40),
-            'training-v2', repeat('c', 64), 'bounded_canary',
+            '5', repeat('c', 64), 'bounded_canary',
             '96000000-0000-4000-8000-000000000006', signed_at,
             repeat('6', 64), '{}'::jsonb
           );
@@ -3232,7 +3258,7 @@ try {
         SELECT * INTO replay_receipt
         FROM public.training_ingest_solver_artifact_v2(
           'M1', 'PioSOLVER 3.0', repeat('a', 64), repeat('b', 40),
-          'training-v2', repeat('c', 64), 'backlog',
+          '5', repeat('c', 64), 'backlog',
           '91000000-0000-4000-8000-000000000001', replay_signed_at,
           repeat('d', 64), replay_artifact
         );
@@ -3253,7 +3279,7 @@ try {
       UPDATE public.training_solver_provenance_authority
       SET retired_at = clock_timestamp()
       WHERE machine_id = 'M2'
-        AND manifest_version = 'training-v2-operation-canary'
+        AND manifest_version = '5-operation-canary'
         AND manifest_checksum = repeat('8', 64)
         AND retired_at IS NULL;
 
@@ -3281,7 +3307,7 @@ try {
         USING (machine_id, solver_version, solver_binary_checksum,
                pipeline_commit, manifest_version, manifest_checksum)
       WHERE scope.machine_id = 'M2'
-        AND scope.manifest_version = 'training-v2-held'
+        AND scope.manifest_version = '5-held'
         AND scope.manifest_checksum = repeat('f', 64)
       GROUP BY admission_mode;
     `,
@@ -3305,12 +3331,12 @@ try {
       )
       SELECT
         machine_id, solver_version, solver_binary_checksum, pipeline_commit,
-        'training-v2-race-2', repeat('9', 64), source_combo_order_sha256,
+        '5-race-2', repeat('9', 64), source_combo_order_sha256,
         training_game_contracts_sha256, manifest_contracts,
         'phase6-disposable-postgres-race-verifier'
       FROM public.training_solver_provenance_authority
       WHERE machine_id = 'M2'
-        AND manifest_version = 'training-v2-held'
+        AND manifest_version = '5-held'
         AND manifest_checksum = repeat('f', 64);
 
       INSERT INTO public.training_solver_bounded_canary_targets (
@@ -3320,12 +3346,12 @@ try {
       )
       SELECT
         machine_id, solver_version, solver_binary_checksum, pipeline_commit,
-        'training-v2-race-2', repeat('9', 64), target_role, artifact_id,
+        '5-race-2', repeat('9', 64), target_role, artifact_id,
         scenario_hash, street, node, hero_position,
         'phase6-disposable-postgres-race-verifier'
       FROM public.training_solver_bounded_canary_targets
       WHERE machine_id = 'M2'
-        AND manifest_version = 'training-v2-held'
+        AND manifest_version = '5-held'
         AND manifest_checksum = repeat('f', 64);
     `,
     quiet: true,
@@ -3340,7 +3366,7 @@ try {
       SET admission_mode = 'bounded_canary', partition_count = 2,
           partition_index = 1
       WHERE machine_id = 'M2'
-        AND manifest_version = 'training-v2-held'
+        AND manifest_version = '5-held'
         AND manifest_checksum = repeat('f', 64)
         AND admission_mode = 'held';
       SELECT pg_sleep(1);
@@ -3361,7 +3387,7 @@ try {
           SET admission_mode = 'bounded_canary', partition_count = 2,
               partition_index = 1
           WHERE machine_id = 'M2'
-            AND manifest_version = 'training-v2-race-2'
+            AND manifest_version = '5-race-2'
             AND manifest_checksum = repeat('9', 64)
             AND admission_mode = 'held';
         EXCEPTION WHEN object_not_in_prerequisite_state THEN
@@ -3386,7 +3412,7 @@ try {
             AND authority.retired_at IS NULL
         )::text || '|' ||
         count(*) FILTER (
-          WHERE scope.manifest_version = 'training-v2-race-2'
+          WHERE scope.manifest_version = '5-race-2'
             AND scope.admission_mode = 'held'
         )::text
       FROM public.training_solver_ingest_scopes scope
@@ -3407,7 +3433,7 @@ try {
       UPDATE public.training_solver_provenance_authority
       SET retired_at = clock_timestamp()
       WHERE machine_id = 'M2'
-        AND manifest_version = 'training-v2-held'
+        AND manifest_version = '5-held'
         AND manifest_checksum = repeat('f', 64)
         AND retired_at IS NULL;
     `,
@@ -3427,7 +3453,7 @@ try {
       SELECT
         'M1', md5('stale-receipt-' || value::text)::uuid, 'heartbeat',
         now() - interval '25 hours', repeat('8', 64), 'PioSOLVER 3.0',
-        repeat('a', 64), repeat('b', 40), 'training-v2', repeat('c', 64),
+        repeat('a', 64), repeat('b', 40), '5', repeat('c', 64),
         now() - interval '25 hours'
       FROM generate_series(1, 101) value
       ON CONFLICT DO NOTHING;
@@ -3465,7 +3491,7 @@ try {
         ${heldRowProof}
         SELECT public.training_claim_solver_worker_request_v1(
           'M1', 'PioSOLVER 3.0', repeat('a', 64), repeat('b', 40),
-          'training-v2', repeat('c', 64),
+          '5', repeat('c', 64),
           '93000000-0000-4000-8000-000000000001', 'heartbeat',
           now(), repeat('7', 64)
         );
@@ -3511,7 +3537,7 @@ try {
     SELECT replayed
     FROM public.training_ingest_solver_artifact_v1(
       'M1', 'PioSOLVER 3.0', repeat('a', 64), repeat('b', 40),
-      'training-v2', repeat('c', 64), '${concurrentNonce}',
+      '5', repeat('c', 64), '${concurrentNonce}',
       '${concurrentSignedAt}'::timestamptz, repeat('6', 64), ${artifactExpression}
     );
   `;
@@ -4175,6 +4201,162 @@ try {
   if (finalOperationScopeClosed !== 't') {
     throw new Error('Final operation-scope migration state reopened a legacy or direct-write path.');
   }
+
+  const m1ActivationSeed = (childNode) => String.raw`
+    INSERT INTO public.solved_spots_gold (
+      id, scenario_hash, game_type, stack_depth, street, strategy_matrix_v2
+    ) VALUES (
+      '2d7b403c-e4d3-4c20-bff8-ed5db7ecb50a',
+      'hu_cash_BTN_100bb_2c4c7c', 'hu_cash', 100, 'flop',
+      jsonb_build_object('node', 'r:0:c', 'position', 'BTN')
+    ), (
+      '21d75135-faa8-4c0d-acbe-91b55c98daf0',
+      'turn_hu_cash_BTN_100bb_2c4c7c2d', 'hu_cash', 100, 'turn',
+      jsonb_build_object('node', '${childNode}', 'position', 'BTN')
+    );
+  `;
+  const prepareM1ActivationDatabase = (databaseName, childNode) => {
+    command(tool('createdb'), [
+      '-h', tempRoot, '-p', String(port), databaseName,
+    ], { quiet: true });
+    const activationConnection = [
+      '-h', tempRoot, '-p', String(port), '-d', databaseName,
+    ];
+    command(tool('psql'), [
+      '-X', '-v', 'ON_ERROR_STOP=1', ...activationConnection,
+    ], { input: baselineWithoutClusterRoles, quiet: true });
+    command(tool('psql'), [
+      '-X', '-v', 'ON_ERROR_STOP=1', ...activationConnection,
+    ], { input: PRODUCTION_DEFAULT_ACL_SQL, quiet: true });
+    command(tool('psql'), [
+      '-X', '-v', 'ON_ERROR_STOP=1', ...activationConnection,
+    ], { input: m1ActivationSeed(childNode), quiet: true });
+    for (const migration of [
+      MIGRATION, HARDENING_MIGRATION, WORKER_INGEST_MIGRATION,
+      BOUNDED_CANARY_MIGRATION, OPERATION_SCOPE_MIGRATION,
+    ]) {
+      command(tool('psql'), [
+        '-X', '-v', 'ON_ERROR_STOP=1', ...activationConnection,
+        '-f', migration,
+      ], { quiet: true });
+    }
+    return activationConnection;
+  };
+
+  const exactActivationConnection = prepareM1ActivationDatabase(
+    'phase6_m1_bounded_activation',
+    'r:0:c:b412:c:2d:c',
+  );
+  command(tool('psql'), [
+    '-X', '-v', 'ON_ERROR_STOP=1', ...exactActivationConnection,
+    '-f', M1_BOUNDED_ACTIVATION_MIGRATION,
+  ], { quiet: true });
+  const exactM1Activation = command(tool('psql'), [
+    '-X', '-v', 'ON_ERROR_STOP=1', '-tA', ...exactActivationConnection,
+  ], {
+    input: String.raw`
+      SELECT
+        (SELECT count(*) = 1
+         FROM public.training_solver_provenance_authority authority
+         WHERE authority.machine_id = 'M1'
+           AND authority.solver_version =
+             'PioSOLVER-pro 3.8.0 (Sep 22 2025, 11:05:45)'
+           AND authority.solver_binary_checksum =
+             'e21ea7ad1dbc2a9d826c25ac264688f632dd461b92de2bc35a53f6b78bcf5ceb'
+           AND authority.pipeline_commit =
+             '1ccf3907cf3298e24609eb6fbd903023d91dbddf'
+           AND authority.manifest_version = '5'
+           AND authority.manifest_checksum =
+             'b27ad1f3575e106d7d7f73bb4655e94398955a1275ae1fea9b3af7f574dbece8'
+           AND authority.retired_at IS NULL)
+        AND
+        (SELECT count(*) = 2
+         FROM public.training_solver_bounded_canary_targets target
+         WHERE target.machine_id = 'M1'
+           AND target.pipeline_commit =
+             '1ccf3907cf3298e24609eb6fbd903023d91dbddf'
+           AND target.manifest_version = '5'
+           AND target.manifest_checksum =
+             'b27ad1f3575e106d7d7f73bb4655e94398955a1275ae1fea9b3af7f574dbece8'
+           AND (target.target_role, target.artifact_id, target.node) IN (
+             ('parent', '2d7b403c-e4d3-4c20-bff8-ed5db7ecb50a'::uuid, 'r:0:c'),
+             ('child', '21d75135-faa8-4c0d-acbe-91b55c98daf0'::uuid,
+              'r:0:c:b412:c:2d:c')
+           ))
+        AND
+        (SELECT count(*) = 1
+         FROM public.training_solver_ingest_scopes scope
+         WHERE scope.machine_id = 'M1'
+           AND scope.pipeline_commit =
+             '1ccf3907cf3298e24609eb6fbd903023d91dbddf'
+           AND scope.manifest_version = '5'
+           AND scope.manifest_checksum =
+             'b27ad1f3575e106d7d7f73bb4655e94398955a1275ae1fea9b3af7f574dbece8'
+           AND scope.admission_mode = 'bounded_canary'
+           AND scope.partition_count = 2
+           AND scope.partition_index = 0)
+        AND NOT EXISTS (
+          SELECT 1
+          FROM public.training_solver_ingest_scopes scope
+          JOIN public.training_solver_provenance_authority authority
+            USING (
+              machine_id, solver_version, solver_binary_checksum,
+              pipeline_commit, manifest_version, manifest_checksum
+            )
+          WHERE scope.machine_id = 'M1'
+            AND scope.admission_mode IN ('backlog', 'bounded_canary')
+            AND authority.retired_at IS NULL
+            AND scope.pipeline_commit IS DISTINCT FROM
+              '1ccf3907cf3298e24609eb6fbd903023d91dbddf'
+        );
+    `,
+    quiet: true,
+  }).stdout.trim();
+  if (exactM1Activation !== 't') {
+    throw new Error('M1 bounded activation did not install only the exact reviewed tuple.');
+  }
+
+  const wrongIdentityConnection = prepareM1ActivationDatabase(
+    'phase6_m1_bounded_wrong_identity',
+    'r:0:c:b412:c:3d:c',
+  );
+  commandExpectFailure(
+    tool('psql'),
+    ['-X', '-v', 'ON_ERROR_STOP=1', ...wrongIdentityConnection,
+      '-f', M1_BOUNDED_ACTIVATION_MIGRATION],
+    { expected: 'TRAINING_SOLVER_M1_CANARY_CHILD_IDENTITY_MISMATCH' },
+  );
+  const wrongIdentityRolledBack = command(tool('psql'), [
+    '-X', '-v', 'ON_ERROR_STOP=1', '-tA', ...wrongIdentityConnection,
+  ], {
+    input: String.raw`
+      SELECT
+        NOT EXISTS (
+          SELECT 1 FROM public.training_solver_provenance_authority
+          WHERE pipeline_commit =
+            '1ccf3907cf3298e24609eb6fbd903023d91dbddf'
+            AND manifest_checksum =
+              'b27ad1f3575e106d7d7f73bb4655e94398955a1275ae1fea9b3af7f574dbece8'
+        )
+        AND NOT EXISTS (
+          SELECT 1 FROM public.training_solver_bounded_canary_targets
+          WHERE pipeline_commit =
+            '1ccf3907cf3298e24609eb6fbd903023d91dbddf'
+            AND manifest_checksum =
+              'b27ad1f3575e106d7d7f73bb4655e94398955a1275ae1fea9b3af7f574dbece8'
+        )
+        AND NOT EXISTS (
+          SELECT 1 FROM public.training_solver_ingest_scopes
+          WHERE machine_id = 'M1'
+            AND admission_mode IN ('backlog', 'bounded_canary')
+        );
+    `,
+    quiet: true,
+  }).stdout.trim();
+  if (wrongIdentityRolledBack !== 't') {
+    throw new Error('Wrong M1 target identity did not leave activation state untouched.');
+  }
+
   const evidenceLine = evidence.stdout
     .split('\n')
     .map((line) => line.trim())
@@ -4190,6 +4372,8 @@ try {
   const combinedEvidence = {
     ...JSON.parse(evidenceLine),
     ...JSON.parse(operationScopeEvidenceLine),
+    m1BoundedActivationExact: true,
+    m1WrongIdentityRollback: true,
   };
   console.log(`Phase 6 Training solver catalog verification passed: ${JSON.stringify(combinedEvidence)}`);
 } finally {

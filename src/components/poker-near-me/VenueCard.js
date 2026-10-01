@@ -23,6 +23,7 @@ import { cashGameCountLabel, isModeledCashGameData } from '../../lib/poker-near-
 import PokerNearMeConsole, { PokerNearMeConsoleIcon, PokerNearMePanelShell } from './PokerNearMeConsole';
 import { PnmPlateLabel } from './TourCard';
 import { acquireScrollLock } from '../../lib/scrollLock';
+import { safeImageUrl } from '../../lib/security/imageHosts.js';
 
 const formatMoney = (amount) => {
     if (!amount) return '$0';
@@ -633,8 +634,8 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
             {/* Home Game Host Info — Avatar + Name + Profile Link */}
             {venue.venue_type === 'home_game' && venue.host_display_name && (
                 <div className="vc3-host">
-                    {venue.host_avatar_url ? (
-                        <img src={venue.host_avatar_url} alt="" className="vc3-host-avatar" loading="lazy" />
+                    {safeImageUrl(venue.host_avatar_url) ? (
+                        <img src={safeImageUrl(venue.host_avatar_url)} alt="" className="vc3-host-avatar" loading="lazy" />
                     ) : (
                         <div className="vc3-host-avatar vc3-host-avatar-fallback">
                             <PokerNearMeConsoleIcon name="home" className="pnm-console-card__avatar-icon" />

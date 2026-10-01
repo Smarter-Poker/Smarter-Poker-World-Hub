@@ -63,6 +63,21 @@ body.world-poker-near-me {
 .pnc__body {
   position: relative;
   display: flex;
+  /* ONE FRAME, NOT THREE SLICES THAT MISS EACH OTHER (Dan, 2026-10-01):
+     "FRAMES SHOULD NOT BE THAT THICK, AND THEY NEED TO BE ONE FRAME. NOT
+     THIS BROKEN HALF AND HALF SHIT."
+     The chassis is a head, a repeating middle and a foot, and the head and
+     foot both declare width: 100%. This one did not, so it was the only
+     auto-width item in a column flex box whose align-items resolves to end:
+     it shrink-wrapped its content and was pushed to the right edge.
+     Measured on the venue profile at 1440: head and foot at x 220 width
+     1000, body at x 244 width 976. The middle rail therefore printed 24px
+     inboard of the rails above and below it, at a different scale, so the
+     left edge stepped in at the head seam and back out at the foot seam -
+     two rails where there should be one line, which is both the break and
+     most of the thickness. A slice of a frame is always the width of the
+     frame. */
+  width: 100%;
   min-width: 0;
   flex-direction: column;
   gap: 3cqw;
@@ -399,6 +414,14 @@ p.pnc-label {
   position: relative;
   z-index: 0;
   display: flex;
+  /* The same break as .pnc__body above, and worse here because these panels
+     carry wider content: measured on the live discovery page, a more-tool
+     card printed its head and foot at x 214 width 1012 and its middle at
+     x 396 width 649, and a directory section head printed 1000 / 627. The
+     middle rail was landing hundreds of pixels inboard of the rails it is
+     supposed to continue. A slice of a frame is always the width of the
+     frame. */
+  width: 100%;
   min-width: 0;
   flex: 1 1 auto;
   flex-direction: column;

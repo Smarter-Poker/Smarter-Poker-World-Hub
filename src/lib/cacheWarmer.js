@@ -98,7 +98,7 @@ export function warmCache(user) {
             };
 
             if (friendIds.length > 0) {
-                supabase.from('profiles').select('id, username, full_name, avatar_url').in('id', friendIds)
+                supabase.from('profiles').select('id, username, avatar_url').in('id', friendIds)
                     .then(({ data: friendProfiles }) => {
                         saveCachePayload(friendProfiles || []);
                         // Preload avatar images for first 5 friends

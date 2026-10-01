@@ -21,9 +21,11 @@ the tests and telemetry needed to prove its own behavior.
 | Phase | State | Release boundary |
 |---:|---|---|
 | 1 | Complete | Competitive containment, production baseline, final smoke, and release evidence are recorded in `PHASE-1-RELEASE-REPORT.md`. |
-| 2 | Ready next | Versioned rules, balanced journal/ledger, atomic economic operations, and settlement foundation. |
-| 3 | Planned | Question-bank and deterministic-engine defects found during Phase 1 are explicit entry blockers. |
-| 4–12 | Planned | Start only when the dependency graph and prior phase exit gates permit it. |
+| 2 | Complete (dormant) | Rules registry, balanced journal linked to the platform wallet journal, atomic ledger operations, treasury ceilings, settlement foundation and reconciliation are installed (2026-09-30) and recorded in `PHASE-2-RELEASE-REPORT.md`. The solo journal switch stays off and the treasury stays unfunded until the owner approves the canary run and funding. |
+| 3 | Complete (new engine dormant) | One database definition of an eligible question now serves every paid and competitive read. Curation, review, report and duplicate records, the deterministic roster and session engine, the tournament preflight, session cleanup and question and session health alerts are installed (2026-09-30) and recorded in `PHASE-3-RELEASE-REPORT.md`. Solo play on the new engine and the free-mode legacy fallback stay off until the owner enables them. |
+| 4 | Delivered (design review pending) | The owner-directed Console redesign (#2021) supplied the visual system, shell and primitives; #2050 closed the unique art program: sixteen families open on their own destination art, distinct from every lobby thumbnail, through `ResponsiveModeArt` (640/960/1440 AVIF/WebP, reserved space, previews), with a service-worker cache named for the exact art set. Accessibility and layout passes and the remaining owner-law conflicts are recorded in `PHASE-4-RELEASE-REPORT.md`. Dan's design review is the open human gate. |
+| 5 | Complete (dormant; PvP off) | Server-owned PvP queue and human-first matching, the stored 20–45 s Smarter Horse fallback, horses that play as real players from server-secret answer plans, one-transaction escrow and settlement through the Phase 2 ledger, one recovery function and metrics are installed (2026-09-30) and recorded in `PHASE-5-RELEASE-REPORT.md`. PvP winner payouts no longer count toward the 2,000/day Trivia cap (root decision). `TRIVIA_PVP_ENABLED` and `TRIVIA_PVP_HORSES_ENABLED` stay off; horse seats wait for treasury funding, production money canaries wait for root, the recovery schedule belongs to Phase 12 and the interface to Phase 7. |
+| 6–12 | Planned | Start only when the dependency graph and prior phase exit gates permit it. |
 
 The release controls for PvP, PvP horses, tournaments, and tournament horses remain
 off after Phase 1. “Ready next” does not mean enabled or partially shipped.

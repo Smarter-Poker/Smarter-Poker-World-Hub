@@ -148,6 +148,7 @@ import {
   EASTER_EGG_COUNTS,
 } from '../../src/data/diamondStoreData';
 import styles from '../../src/components/diamond-store/diamondStoreStyles';
+import { readOwnProfile } from '../../src/lib/ownProfile';
 
 // VIPCard is shared with the store card library.
 // A cold serverless Club Shop request can exceed five seconds even though the
@@ -1279,11 +1280,7 @@ export default function DiamondStorePage({
         )
           return;
         setUser(authUser);
-        const { data: profile, error: profileError } = await supabase
-          .from('profiles')
-          .select('is_vip, vip_tier, vip_expires_at, diamonds, diamond_multiplier')
-          .eq('id', expectedAccountId)
-          .maybeSingle();
+        const { data: profile, error: profileError } = await readOwnProfile(supabase, 'is_vip, vip_tier, vip_expires_at, diamonds, diamond_multiplier', { expectId: expectedAccountId });
         if (profileError) throw profileError;
         if (cancelled || activeStoreAccountRef.current !== expectedAccountId) return;
         setIsVip(!!profile?.is_vip);
@@ -1315,21 +1312,31 @@ export default function DiamondStorePage({
       .on(
         'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `id=eq.${user?.id}` },
-        (payload) => {
-          if (payload.new?.is_vip !== undefined) {
-            setIsVip(!!payload.new.is_vip);
+        async (payload) => {
+          const row = { ...(payload.new || {}) };
+          // The balance and multiplier are the owner's alone (2026-09-30), so
+          // Realtime leaves them out of the payload even here, on the owner's
+          // own row. Read them through the owner path when they are missing.
+          if (row.diamonds === undefined || row.diamond_multiplier === undefined) {
+            const { data: own } = await readOwnProfile(supabase, 'diamonds, diamond_multiplier', {
+              expectId: user.id,
+            });
+            if (own) Object.assign(row, own);
           }
-          if (payload.new?.diamond_multiplier !== undefined) {
-            setDiamondMultiplier(Number(payload.new.diamond_multiplier));
+          if (row.is_vip !== undefined) {
+            setIsVip(!!row.is_vip);
           }
-          if (payload.new?.vip_tier !== undefined) {
-            setVipTier(payload.new.vip_tier || null);
+          if (row.diamond_multiplier !== undefined) {
+            setDiamondMultiplier(Number(row.diamond_multiplier));
           }
-          if (payload.new?.vip_expires_at !== undefined) {
-            setVipExpiresAt(payload.new.vip_expires_at || null);
+          if (row.vip_tier !== undefined) {
+            setVipTier(row.vip_tier || null);
           }
-          if (payload.new?.diamonds !== undefined) {
-            setDiamondBalance(Number(payload.new.diamonds));
+          if (row.vip_expires_at !== undefined) {
+            setVipExpiresAt(row.vip_expires_at || null);
+          }
+          if (row.diamonds !== undefined) {
+            setDiamondBalance(Number(row.diamonds));
           }
         }
       )
@@ -1347,11 +1354,7 @@ export default function DiamondStorePage({
       // field this page renders so its balance and entitlement card cannot
       // drift independently.
       if (user?.id) {
-        supabase
-          .from('profiles')
-          .select('is_vip, vip_tier, vip_expires_at, diamonds, diamond_multiplier')
-          .eq('id', user.id)
-          .maybeSingle()
+        readOwnProfile(supabase, 'is_vip, vip_tier, vip_expires_at, diamonds, diamond_multiplier', { expectId: user.id })
           .then(({ data, error }) => {
             if (error) {
               console.warn('[Diamond Store] VIP refresh failed:', error.message || error);
@@ -1827,11 +1830,7 @@ export default function DiamondStorePage({
         let replayProfile = null;
         let replayProfileError = null;
         if (verifiedPurchase.idempotent) {
-          const { data: profile, error: profileError } = await supabase
-            .from('profiles')
-            .select('is_vip, vip_tier, vip_expires_at, diamonds, diamond_multiplier')
-            .eq('id', expectedAccountId)
-            .maybeSingle();
+          const { data: profile, error: profileError } = await readOwnProfile(supabase, 'is_vip, vip_tier, vip_expires_at, diamonds, diamond_multiplier', { expectId: expectedAccountId });
           if (!attemptIsCurrent()) return false;
           replayProfile = profile;
           replayProfileError =

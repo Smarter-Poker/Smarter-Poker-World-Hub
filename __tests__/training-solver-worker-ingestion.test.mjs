@@ -864,6 +864,7 @@ except SystemExit as error:
 phase = {
     'id': 'training_hu_cash_100bb', 'game_type': 'hu_cash', 'stack': 100,
     'street': 'flop', 'streets': ['flop'], 'objective': 'chip_ev',
+    'tree_geometry': 'srp_parameterized_four_action_v3',
     'pot_chips': 550, 'eff_chips': 9750, 'rake': '0.05 10',
     'accuracy_fraction': 0.005,
     'ip_range': 'ip.txt', 'ip_range_checksum': 'd' * 64,
@@ -887,7 +888,7 @@ separate_icm_contracts = worker.canonical_contract_pairs(worker.TRAINING_ICM_CON
 phase_contracts = worker.canonical_phase_contracts(phases)
 game_contracts = worker.canonical_training_game_contracts(phases)
 manifest = {
-    'version': 4, 'pipeline_bundle_checksum': 'f' * 64,
+    'version': 5, 'pipeline_bundle_checksum': 'f' * 64,
     'range_combo_order': worker.h.COMBO_ORDER,
     'artifact_combo_order': worker.h.COMBO_ORDER,
     'source_combo_order_schema': worker.h.SOURCE_COMBO_ORDER_SCHEMA,

@@ -1,3 +1,5 @@
+const { imgSrcDirective } = require('./src/lib/security/imageHosts');
+
 /* ═══════════════════════════════════════════════════════════════════════════
    AUTH-CRITICAL FILES — BUILD-TIME EXISTENCE GUARD
    ───────────────────────────────────────────────────────────────────────────
@@ -279,6 +281,24 @@ const withPWA = require('@ducanh2912/next-pwa').default({
           // NetworkOnly by policy — see (2) above.
           if (/\/chunks\/pages\//.test(url)) return false;
 
+          // Fonts are already CacheFirst at runtime (the static-assets rule
+          // below covers woff2), so they land in the cache the first time a
+          // glyph is actually wanted. Precaching them only moves that cost onto
+          // install(), where every visitor pays it up front on whatever page
+          // they landed on.
+          //
+          // next-pwa MEANS to exclude these already: its default exclude
+          // carries /\/_next\/static\/.*(?<!\.p)\.woff2/. That regex never
+          // matches, because workbox filters on the webpack ASSET NAME
+          // ("static/media/xxx-s.woff2") while the /_next/ prefix is only added
+          // afterwards by next-pwa's own transform. Measured on the live worker
+          // 2026-09-30: 54 woff2 files, 0.82MB, on the install path.
+          //
+          // Filtered here rather than via `exclude` for the reason given above:
+          // supplying `exclude` REPLACES the library default array and would
+          // silently lose its .map and manifest*.js exclusions.
+          if (/\.woff2?$/.test(url)) return false;
+
           return true;
         };
 
@@ -329,6 +349,21 @@ const withPWA = require('@ducanh2912/next-pwa').default({
         handler: 'NetworkOnly',
         options: {
           cacheName: 'pages-html',
+        },
+      },
+      // Trivia art has its OWN cache, named for the exact art set that shipped
+      // (scripts/trivia-art/art-cache-name.mjs). CacheFirst never revalidates,
+      // so when any file under /images/trivia/ changes the name changes, and
+      // worker/index.js deletes the older trivia-art-* caches and any Trivia
+      // picture left in static-assets on activate: an installed client cannot
+      // keep art that was replaced or rejected. It must stay ABOVE the generic
+      // image rule, which would otherwise match first.
+      {
+        urlPattern: ({ url, sameOrigin }) => sameOrigin && url.pathname.startsWith('/images/trivia/'),
+        handler: 'CacheFirst',
+        options: {
+          cacheName: 'trivia-art-32d8d51ff2',
+          expiration: { maxEntries: 160, maxAgeSeconds: 60 * 60 * 24 * 30 }, // 30 days
         },
       },
       // Cache static assets (images, fonts) - cache first (content-hashed, safe)
@@ -490,6 +525,12 @@ const nextConfig = {
     // nft tracing to one binary (~50MB) instead of all 8 platforms (~670MB).
     '@ffmpeg-installer/linux-x64',
     '@ffprobe-installer/linux-x64',
+    // Phase 9 hand clip renderer (/api/cron/render-hand-clips): a packed
+    // headless Chromium plus the puppeteer core driver. Both ship binaries
+    // or ESM-only entry points that must NOT be webpacked; the route traces
+    // them in through outputFileTracingIncludes below.
+    '@sparticuz/chromium',
+    'puppeteer-core',
   ],
 
   // ─── Output File Tracing — Serverless Bundle Exclusions ─────────────────
@@ -513,11 +554,14 @@ const nextConfig = {
   // binaries before the build runs, ensuring Turbopack also cannot bundle them.
   outputFileTracingExcludes: {
     '*': [
+      // puppeteer-core and @puppeteer/browsers are NOT listed: Next applies these
+      // excludes AFTER outputFileTracingIncludes (collect-build-traces.js), so a
+      // '*' exclude would strip the Phase 9 render route's driver even though the
+      // route includes it below (the first live render failed exactly so). Only the
+      // render route requires puppeteer-core, so nft traces it there and nowhere else.
       'node_modules/puppeteer/**',
-      'node_modules/puppeteer-core/**',
       'node_modules/puppeteer-extra/**',
       'node_modules/puppeteer-extra-plugin-stealth/**',
-      'node_modules/@puppeteer/**',
       'node_modules/canvas/**',
       'node_modules/phaser/**',
       'node_modules/pdf-parse/**',
@@ -565,6 +609,17 @@ const nextConfig = {
   // binaries (~670 MB total).
   outputFileTracingIncludes: {
     'pages/api/cron/transcode-videos': [
+      'node_modules/@ffmpeg-installer/linux-x64/**/*',
+      'node_modules/@ffprobe-installer/linux-x64/**/*',
+    ],
+    // Phase 9 hand clip renderer: adds the packed Chromium (@sparticuz/chromium,
+    // about 65 MB brotli), the puppeteer-core driver (its dependencies are traced
+    // from its requires; neither it nor @puppeteer/* may appear in the '*'
+    // excludes above, which Next applies after these includes) and the same two
+    // linux-x64 ffmpeg/ffprobe binaries the transcode cron carries.
+    'pages/api/cron/render-hand-clips': [
+      'node_modules/@sparticuz/chromium/**/*',
+      'node_modules/puppeteer-core/**/*',
       'node_modules/@ffmpeg-installer/linux-x64/**/*',
       'node_modules/@ffprobe-installer/linux-x64/**/*',
     ],
@@ -715,6 +770,31 @@ const nextConfig = {
   //   livekit.smarter.poker, *.livekit.cloud  — LiveKit voice/video
   //   *.smarter.poker                          — Platform sub-domains
   async headers() {
+    // Where a violation of either policy is sent. Until this existed the
+    // Report-Only policy below wrote to the visitor's own console and nowhere
+    // else, which is why it stayed staged: "confirmed zero" was not observable
+    // from here. The post-deploy sweep narrowed that to eight routes; this
+    // narrows it to none, because every route a real visitor loads now reports.
+    //
+    // report-uri ONLY, deliberately, and this is the opposite of what the first
+    // attempt shipped. `report-to` is the modern spelling and the obvious thing
+    // to ship alongside the legacy one, but measured against production on
+    // 2026-09-30 with headless Chromium on /hub/poker-near-me/venues, a page
+    // that trips eight img-src violations:
+    //
+    //   report-uri + report-to            0 of 8 delivered
+    //   report-to, absolute endpoint URL  0 of 8 delivered
+    //   report-uri alone                  8 of 8 delivered
+    //
+    // Chromium stops honouring report-uri the moment report-to is present, and
+    // then its Reporting API delivers nothing here, so shipping both is strictly
+    // worse than shipping the old one alone: it collects zero. Adding report-to
+    // back needs a measurement like the one above showing it actually delivers,
+    // not a spec reference saying it should. __tests__/csp-violations-reach-us
+    // pins the absence.
+    const CSP_REPORT_PATH = '/api/security/csp-report';
+    const reportingDirectives = `report-uri ${CSP_REPORT_PATH}`;
+
     const csp = [
       "default-src 'self'",
       // Scripts: self + OneSignal SDK + Google Maps + jsDelivr + unpkg (Leaflet/jsQR)
@@ -723,13 +803,24 @@ const nextConfig = {
       // session until that day, ten days after the vendor was retired). Three
       // allowances that would otherwise have been carried into an enforced
       // policy for a script nothing loads.
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://maps.googleapis.com https://cdn.jsdelivr.net https://unpkg.com",
+      // https://commander.smarter.poker is OUR OWN app, rewritten onto this
+      // origin by vercel.json (/commander/:path* and /api/commander/:path*).
+      // Its Next build sets an absolute assetPrefix, because without one the
+      // proxied HTML asks THIS origin for Commander's chunks and every one
+      // 404s. So the page legitimately loads nine cross-origin scripts and a
+      // stylesheet, 'self' never matches a subdomain, and script-src had no
+      // wildcard: measured live, /commander/login reported 13 violations per
+      // load. The exact host, not https://*.smarter.poker, because a wildcard
+      // in script-src would authorise execution from every subdomain we own.
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://maps.googleapis.com https://cdn.jsdelivr.net https://unpkg.com https://commander.smarter.poker",
       // Styles: self + inline + Google Fonts
-      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://unpkg.com https://cdn.jsdelivr.net",
+      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://unpkg.com https://cdn.jsdelivr.net https://commander.smarter.poker",
       // Fonts: Google Fonts CDN
       "font-src 'self' https://fonts.gstatic.com data:",
       // Images: self + Supabase + Google Storage + Maps static + QR + YouTube thumbs + Giphy + data URIs
-      "img-src 'self' data: blob: https://*.supabase.co https://*.smarter.poker https://storage.googleapis.com https://maps.googleapis.com https://maps.gstatic.com https://server.arcgisonline.com https://api.qrserver.com https://img.youtube.com https://media.giphy.com https://*.giphy.com https://images.unsplash.com",
+      // Composed from src/lib/security/imageHosts.js, which the runtime guard
+      // reads too, so the policy and what the components will render cannot drift.
+      imgSrcDirective(),
       // Connections: API calls to Supabase, OneSignal, Google Maps (geocode), Giphy, LiveKit
       //
       "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://maps.googleapis.com https://api.giphy.com https://*.livekit.cloud wss://*.livekit.cloud https://smarter.poker https://*.smarter.poker wss://*.smarter.poker",
@@ -759,10 +850,12 @@ const nextConfig = {
     //
     // The comment at the top of this block has said since Phase 6.1.14 that
     // the policy graduates to enforcing "once violations have been monitored
-    // and confirmed zero". Nothing has ever monitored it: there is no
-    // `report-uri` and no `report-to` in the policy above, so a violation
-    // writes one line to one browser console and is forgotten. A missing
-    // network allowance can otherwise go unnoticed.
+    // and confirmed zero". For most of that time nothing monitored it: the
+    // policy above carried no reporting directive at all, so a violation wrote
+    // one line to one browser console and was forgotten, and a missing network
+    // allowance could go unnoticed. The `report-uri` added on 2026-09-30 is
+    // what closed that, and the first thing it will quantify is venue
+    // photography, which trips img-src on every venue surface today.
     //
     // Club Arena's tests/e2e/production-csp-violations.spec.ts now collects
     // `securitypolicyviolation` events (they fire for a report-only policy too,
@@ -776,6 +869,43 @@ const nextConfig = {
     // script-src, style-src, connect-src, img-src, font-src, media-src,
     // frame-src, worker-src - break a page the moment one is wrong. They stay
     // report-only until the sweep has watched them for a while.
+    //
+    // img-src GRADUATES HERE, and this is the evidence, measured 2026-09-30.
+    //
+    // It was the last loading directive still reporting, and it reported for
+    // exactly one reason: venue and news photography was fetched from other
+    // people's servers. Both are now fetched from ours, so an image request
+    // never names a remote host.
+    //
+    // Venue art: 192 of 478 venues carried a third-party URL across 104 hosts.
+    // Every one of those venues already had a mirrored logo_url that nothing
+    // read. The readers prefer the mirror now and safeImageUrl drops anything
+    // it cannot serve, so a gap in the data is a missing picture rather than a
+    // blocked request. Swept anonymously across 34 routes INCLUDING nine venue
+    // pages chosen because they still carry a third-party profile_photo_url:
+    // zero violations.
+    //
+    // News thumbnails: five publisher CDNs, 225 violations on a single load of
+    // /hub/news. A sixth publisher, cardplayer.com, fired none, because that
+    // one host was already routed through /api/proxy. Every thumbnail takes
+    // that route now. Verified live after deploy: 225 to ZERO, with 30 of 30
+    // proxied pictures loading and no broken requests, so the pictures are
+    // still there.
+    //
+    // Two hosts the list simply never named were fixed first: i.ytimg.com,
+    // where YouTube actually serves thumbnails, and commander.smarter.poker,
+    // our own app rewritten onto this origin (13 violations a load, now zero).
+    //
+    // WHAT BREAKS IF THIS IS WRONG, and how you would know: an image from a
+    // host not on IMAGE_SOURCES stops loading and the page shows whatever
+    // fallback that component already draws. report-uri stays on this header,
+    // so a mistake reports itself rather than hiding. Revert is this one line.
+    //
+    // STILL UNPROVEN, stated rather than buried: every sweep was anonymous.
+    // Signed-in surfaces were never loaded. The avatars they draw go through
+    // PokerIdentityMark, LogoHolder, DeepRouteSignalDeck or an explicit
+    // safeImageUrl call, all guarded, but that is an argument from the code
+    // and not a measurement.
     //
     // What graduates here is the other kind: the four directives that govern
     // INJECTION rather than loading. None of them names a resource this site
@@ -806,12 +936,35 @@ const nextConfig = {
     // `next start` serves HTTP locally and WebKit upgrades every same-origin
     // chunk, leaving the page blank. The four above are unaffected by scheme,
     // so they apply everywhere and localhost is protected too.
+    // img-src WAS enforced here on 2026-09-30 and is BACK IN REPORT-ONLY.
+    //
+    // It went in on a 34-route sweep that reported zero violations, and the
+    // commit said plainly that every route in it was loaded signed out and
+    // that signed-in surfaces were an argument from the code rather than a
+    // measurement. That gap is exactly where the breakage was:
+    //
+    //   16 rows in profiles.avatar_url are lh3.googleusercontent.com, from
+    //   Google sign-in, written by the OAuth callback. Those people's photos
+    //   were blocked. 19 more reach the same URL through session metadata.
+    //
+    //   187 of the 187 social posts that carry a link_image were blocked.
+    //   Every link preview in the feed, saved posts, profile feeds, the
+    //   composer and messenger renders a publisher's own image raw.
+    //
+    //   The bankroll venue picker loads Leaflet's marker pins from
+    //   unpkg.com, which style-src allows and img-src does not, so the pin
+    //   silently disappeared.
+    //
+    // None of that is reachable without signing in, which is why a sweep
+    // that never signed in reported zero. The directive goes back only when
+    // the signed-in surface is guarded AND measured, not before.
     const enforcedCsp = [
       "object-src 'none'",
       "base-uri 'self'",
       "form-action 'self'",
       "frame-ancestors 'self'",
       ...(process.env.VERCEL ? ['upgrade-insecure-requests'] : []),
+      reportingDirectives,
     ].join('; ');
 
     return [
@@ -889,7 +1042,7 @@ const nextConfig = {
             // Monitor browser console for violations, then graduate to
             // Content-Security-Policy once the violation list is clean.
             key: 'Content-Security-Policy-Report-Only',
-            value: csp,
+            value: `${csp}; ${reportingDirectives}`,
           },
           {
             /**

@@ -4,7 +4,7 @@
  * next.config.js has carried `Content-Security-Policy-Report-Only` since Phase
  * 6.1.14 with a comment saying it graduates to enforcing "once violations have
  * been monitored and confirmed zero". Nothing ever monitored it: the policy has
- * no `report-uri` and no `report-to`, so a violation writes one line to one
+ * no reporting directive at all (a `report-uri` was added 2026-09-30), so a violation writes one line to one
  * browser console and is forgotten. The file says so itself, about the retired error provider
  * allowance that was missing for ten days.
  *
@@ -138,6 +138,47 @@ test('the resource-loading directives are still only report-only', () => {
         'one until production has been watched for longer than an afternoon.',
     );
   }
+});
+
+test('and a composed directive cannot slip past the check above', () => {
+  // THIS LAW ALREADY EXISTED AND DID NOT HOLD (2026-09-30).
+  //
+  // img-src was enforced for several hours. The check above greps the array's
+  // text for the literal string `img-src`, and the change added
+  // `imgSrcDirective()` instead - a function that RETURNS the directive. The
+  // literal never appeared, the law passed, and the policy shipped.
+  //
+  // What it cost: 16 people who sign in with Google have an
+  // lh3.googleusercontent.com avatar, and it was blocked. 187 of the 187
+  // social posts carrying a link_image were blocked. The bankroll map lost
+  // its Leaflet pins. None of it is reachable signed out, so the sweep that
+  // cleared the change never saw any of it.
+  //
+  // A builder is exactly how a resource directive will arrive next time, so
+  // the law has to read the call as well as the string.
+  const BUILDERS = [
+    ['imgSrcDirective', 'img-src'],
+    ['scriptSrcDirective', 'script-src'],
+    ['styleSrcDirective', 'style-src'],
+    ['connectSrcDirective', 'connect-src'],
+    ['fontSrcDirective', 'font-src'],
+  ];
+  for (const [fn, directive] of BUILDERS) {
+    assert.ok(
+      !new RegExp(`${fn}\\s*\\(`).test(ENFORCED),
+      `${fn}() composes ${directive}, and calling it inside enforcedCsp enforces ` +
+        `${directive} without ever writing the words. That is how it shipped last ` +
+        'time. Put it in the report-only policy, or change this law deliberately.',
+    );
+  }
+  // Anything that reads like a directive builder, including one not yet
+  // written, so the next spelling is caught too.
+  const unknown = [...ENFORCED.matchAll(/([A-Za-z]+(?:Src|Source)[A-Za-z]*Directive)\s*\(/g)]
+    .map((m) => m[1])
+    .filter((name) => !BUILDERS.some(([fn]) => fn === name));
+  assert.deepEqual(unknown, [],
+    'an unrecognised directive builder is being called inside enforcedCsp: '
+    + `${unknown.join(', ')}. Add it to BUILDERS above, or do not enforce it.`);
 });
 
 test('the proxy still sets its own enforced policy, which is what makes base-uri safe', () => {

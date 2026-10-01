@@ -1,3 +1,4 @@
+import { assertFetchableUrl, fetchGuarded } from '../../src/lib/security/fetchableUrl';
 import { reportApiError } from '../../src/lib/apiErrorHandler';
 /**
  * ╔═══════════════════════════════════════════════════════════════════════════╗
@@ -54,57 +55,6 @@ const CONFIG = {
  * Check if a hostname resolves to a private/reserved IP range (SSRF prevention).
  * Blocks: loopback, link-local, private ranges, cloud metadata endpoints.
  */
-function isPrivateOrReservedHost(hostname) {
-    // Block known metadata endpoints
-    const metadataHosts = [
-        '169.254.169.254',    // AWS/GCP/Azure metadata
-        'metadata.google.internal',
-        'metadata.google',
-        '100.100.100.200',    // Alibaba Cloud metadata
-    ];
-    if (metadataHosts.includes(hostname)) return true;
-
-    // Block IPv6 loopback variations
-    if (hostname === '::1' || hostname === '[::1]' || hostname.startsWith('fe80:')) return true;
-
-    // Parse as IPv4 and check private ranges
-    const parts = hostname.split('.');
-    if (parts.length === 4 && parts.every(p => /^\d+$/.test(p))) {
-        const octets = parts.map(Number);
-        if (octets.some(o => o < 0 || o > 255)) return false; // Invalid IP, let URL parser handle
-        const [a, b] = octets;
-        if (a === 0) return true;          // 0.0.0.0/8
-        if (a === 10) return true;         // 10.0.0.0/8
-        if (a === 127) return true;        // 127.0.0.0/8
-        if (a === 172 && b >= 16 && b <= 31) return true; // 172.16.0.0/12
-        if (a === 192 && b === 168) return true; // 192.168.0.0/16
-        if (a === 169 && b === 254) return true; // 169.254.0.0/16 (link-local)
-    }
-
-    // Block decimal IP (e.g. 2130706433 = 127.0.0.1)
-    if (/^\d+$/.test(hostname)) {
-        const num = parseInt(hostname);
-        if (num >= 0 && num <= 0xFFFFFFFF) {
-            const a = (num >>> 24) & 0xFF;
-            const b = (num >>> 16) & 0xFF;
-            if (a === 0 || a === 10 || a === 127) return true;
-            if (a === 172 && b >= 16 && b <= 31) return true;
-            if (a === 192 && b === 168) return true;
-            if (a === 169 && b === 254) return true;
-        }
-    }
-
-    // Block octal IPs (e.g. 0177.0.0.1 = 127.0.0.1)
-    if (hostname.split('.').some(p => p.startsWith('0') && p.length > 1 && /^\d+$/.test(p))) {
-        return true; // Reject any octal-looking IP entirely
-    }
-
-    // Block hex IPs (e.g. 0x7f000001)
-    if (/^0x[0-9a-fA-F]+$/.test(hostname)) return true;
-
-    return false;
-}
-
 // User agent rotation for better success rate
 const USER_AGENTS = [
     'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
@@ -195,8 +145,9 @@ export default async function handler(req, res) {
               });
           }
 
-          // Block internal addresses (SSRF prevention)
-          if (CONFIG.BLOCKED_HOSTS.some(h => parsed.hostname === h) || isPrivateOrReservedHost(parsed.hostname)) {
+          // Block internal addresses (SSRF prevention). Redirect hops are
+          // checked with the same predicate inside fetchGuarded below.
+          if (!(await assertFetchableUrl(parsed))) {
               return res.status(403).json({
                   error: 'BLOCKED_HOST',
                   message: 'This host is not allowed'
@@ -219,13 +170,16 @@ export default async function handler(req, res) {
       let lastError;
 
       for (let attempt = 1; attempt <= CONFIG.MAX_RETRIES; attempt++) {
+          // Declared out here so the finally below can always clear it. It used
+          // to live inside the try and be cleared only on the success path, so
+          // every throw left a 7 second timer armed on the invocation.
+          let timeout;
           try {
               const controller = new AbortController();
-              const timeout = setTimeout(() => controller.abort(), CONFIG.TIMEOUT_MS);
+              timeout = setTimeout(() => controller.abort(), CONFIG.TIMEOUT_MS);
 
-              response = await fetch(targetUrl, {
+              response = await fetchGuarded(targetUrl, {
                   signal: controller.signal,
-                  redirect: 'follow',
                   headers: {
                       'User-Agent': USER_AGENTS[attempt % USER_AGENTS.length],
                       'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
@@ -292,6 +246,25 @@ export default async function handler(req, res) {
           } catch (error) {
               lastError = error;
 
+              // A refused redirect is a decision, not a transient failure.
+              // Retrying it would dial the blocked host twice more and turn one
+              // refusal into three outbound requests.
+              if (error.code === 'BLOCKED_REDIRECT') {
+                  return res.status(403).json({
+                      error: 'BLOCKED_HOST',
+                      message: 'This host is not allowed',
+                  });
+              }
+              // A long or unparseable redirect chain is a property of the site,
+              // not a blocked host. Saying "not allowed" here told a reader the
+              // wrong thing about a perfectly legitimate publisher.
+              if (error.code === 'TOO_MANY_REDIRECTS' || error.code === 'BAD_REDIRECT') {
+                  return res.status(502).json({
+                      error: 'REDIRECT_CHAIN',
+                      message: 'That page redirected too many times to load.',
+                  });
+              }
+
               // Don't retry on abort (timeout)
               if (error.name === 'AbortError') {
                   return res.status(504).json({
@@ -300,6 +273,8 @@ export default async function handler(req, res) {
                       url: targetUrl
                   });
               }
+          } finally {
+              clearTimeout(timeout);
           }
 
           // Wait before retry (exponential backoff)

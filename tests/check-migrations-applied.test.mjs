@@ -316,3 +316,46 @@ test('the Phase 6 streak migration declares only its durable final relations', (
   assert.ok(declared.tables.includes('training_streak_activity_days'));
   assert.ok(!declared.tables.includes('training_streak_interval_migration_v1'));
 });
+
+test('CHECK 17 reads OUT parameters as results and stops at the header without RETURNS', () => {
+  const declared = declaredObjects(`
+    CREATE OR REPLACE FUNCTION public.trivia_candidates(p_profile text, p_ids uuid[],
+        OUT qids uuid[], OUT tiers smallint[])
+    LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = pg_catalog, public, pg_temp AS $$
+    BEGIN qids := '{}'; tiers := '{}'; END $$;
+    CREATE OR REPLACE FUNCTION public.trivia_passes(p_secret bytea, p_qids uuid[])
+    RETURNS TABLE(pos integer, question_id uuid)
+    LANGUAGE sql STABLE AS $$ SELECT 1, NULL::uuid $$;
+    CREATE OR REPLACE FUNCTION public.trivia_pair(p_x integer, INOUT p_total integer, OUT p_label text)
+    RETURNS record LANGUAGE sql AS $$ SELECT p_total, 'x' $$;
+  `);
+  assert.deepEqual(declared.fns, [
+    { name: 'trivia_candidates', args: ['p_profile', 'p_ids'] },
+    { name: 'trivia_passes', args: ['p_secret', 'p_qids'] },
+    { name: 'trivia_pair', args: ['p_x', 'p_total'] },
+  ]);
+
+  const live = {
+    ...emptyLiveSchema(),
+    fns: new Set(['trivia_candidates', 'trivia_passes', 'trivia_pair']),
+    rpcArgs: new Map([
+      ['trivia_candidates', [new Set(['p_profile', 'p_ids'])]],
+      ['trivia_passes', [new Set(['p_secret', 'p_qids'])]],
+      ['trivia_pair', [new Set(['p_x', 'p_total'])]],
+    ]),
+  };
+  assert.deepEqual(unappliedObjects(declared, live), []);
+  assert.deepEqual(unappliedObjects(declared, { ...live, fns: new Set(['trivia_passes', 'trivia_pair']) }), [
+    ['function', 'trivia_candidates(p_profile, p_ids)'],
+  ]);
+});
+
+test('CHECK 17 ignores CREATE FUNCTION text assembled inside a string for EXECUTE', () => {
+  const declared = declaredObjects(`
+    DO $$ BEGIN
+      EXECUTE 'CREATE OR REPLACE FUNCTION public.fn_dynamic() '
+              'RETURNS TABLE(x text) LANGUAGE sql AS $f$ SELECT 1 $f$';
+    END $$;
+  `);
+  assert.deepEqual(declared.fns, []);
+});

@@ -13,7 +13,7 @@ import { useState, useEffect, useRef } from 'react';
 import React from 'react';
 import { usePersistedState } from '../../../src/hooks/usePersistedState';
 import { supabase } from '../../../src/lib/supabase';
-import { SAFE_PROFILE_COLUMNS } from '../../../src/lib/profileColumns';
+import { SAFE_PROFILE_COLUMNS, OWNER_ONLY_PROFILE_COLUMNS } from '../../../src/lib/profileColumns';
 import { emitCacheInvalidation, onCacheInvalidation } from '../../../src/lib/cacheSync';
 import {
   broadcastSync,
@@ -50,6 +50,8 @@ import VideoLibraryConsole, {
   ConsoleCopy,
 } from '../../../src/components/video-library/console/VideoLibraryConsole';
 import auxiliaryReelsStyles from '../../../src/components/reels/AuxiliaryReelsSurfaces.module.css';
+import HandStatsCard from '../../../src/components/profile/HandStatsCard';
+import { readOwnProfile } from '../../../src/lib/ownProfile';
 const PlayerNotes = dynamic(() => import('../../../src/components/poker/PlayerNotes'), {
   ssr: false,
 });
@@ -272,7 +274,7 @@ function FriendsModal({ isOpen, onClose, profileId, profileName, currentUserId, 
         const chunk = profileFriendArray.slice(i, i + 50);
         const { data } = await supabase
           .from('profiles')
-          .select('id, username, full_name, avatar_url')
+          .select('id, username, avatar_url')
           .in('id', chunk);
         if (data) allProfiles.push(...data);
       }
@@ -2270,7 +2272,7 @@ export default function UserProfilePage() {
       // Avatar changed in another tab — refresh avatar columns
       supabase
         .from('profiles')
-        .select('avatar_url, arena_avatar_url, use_avatar_as_profile_pic, full_name, bio, username')
+        .select('avatar_url, arena_avatar_url, use_avatar_as_profile_pic, bio, username')
         .ilike('username', username)
         .maybeSingle()
         .then(({ data }) => {
@@ -2380,8 +2382,16 @@ export default function UserProfilePage() {
         .select(SAFE_PROFILE_COLUMNS)
         .ilike('username', username)
         .maybeSingle()
-        .then(({ data }) => {
-          if (data) setProfile(data);
+        .then(async ({ data }) => {
+          if (!data) return;
+          const me = getAuthUser();
+          if (me?.id && me.id === data.id) {
+            const { data: own } = await readOwnProfile(supabase, OWNER_ONLY_PROFILE_COLUMNS.join(', '), {
+              expectId: data.id,
+            });
+            if (own) Object.assign(data, own);
+          }
+          setProfile(data);
         });
     };
     window.addEventListener('profile-updated', handleProfileUpdated);
@@ -2522,6 +2532,16 @@ export default function UserProfilePage() {
           setContentLoading(false);
           setPokerLoading(false);
           return;
+        }
+
+        // Your own page still shows what only you may read - legal name,
+        // location, birth year, balance. Since 2026-09-30 those come from the
+        // owner path, never from the table, and only for your own row.
+        if (user?.id && user.id === data.id) {
+          const { data: own } = await readOwnProfile(supabase, OWNER_ONLY_PROFILE_COLUMNS.join(', '), {
+            expectId: data.id,
+          });
+          if (own) Object.assign(data, own);
         }
 
         setProfile(data);
@@ -2727,7 +2747,7 @@ export default function UserProfilePage() {
           const friendIds = allFriendIdArray.slice(0, 20); // Limit to 20 for display
           const { data: friendProfiles } = await supabase
             .from('profiles')
-            .select('id, username, full_name, avatar_url')
+            .select('id, username, avatar_url')
             .in('id', friendIds);
 
           if (friendProfiles) {
@@ -2802,13 +2822,21 @@ export default function UserProfilePage() {
             .or('content_type.eq.video,content_type.eq.live')
             .order('created_at', { ascending: false })
             .limit(30),
-          // Reels
-          supabase
-            .from('social_reels')
-            .select('id, video_url, caption, thumbnail_url, view_count, created_at')
-            .eq('author_id', socialId)
-            .order('created_at', { ascending: false })
-            .limit(30),
+          // Reels: only ready, undeleted rows, and only public ones unless the
+          // viewer owns this profile (the same test as isOwnProfile below).
+          // Phase 8: the permissive social_reels read policy returns every row,
+          // so the predicates the Reels surface applies live here too.
+          (() => {
+            const viewerOwnsProfile = user?.id === data.id;
+            let reelsQuery = supabase
+              .from('social_reels')
+              .select('id, video_url, caption, thumbnail_url, view_count, created_at')
+              .eq('author_id', socialId)
+              .eq('media_status', 'ready')
+              .eq('is_deleted', false);
+            if (!viewerOwnsProfile) reelsQuery = reelsQuery.eq('is_public', true);
+            return reelsQuery.order('created_at', { ascending: false }).limit(30);
+          })(),
           // Past Lives (posted recordings only)
           // BUG FIX (2026-05-11 audit): added feed_post_id so handleDeleteLive can
           // explicitly clean up the linked "X went live" social_posts entry on delete.
@@ -2902,11 +2930,7 @@ export default function UserProfilePage() {
                   const notifKey = `sp-streak-break-notif-${pokerUid}`;
                   const alreadyShown = sessionStorage.getItem(notifKey);
                   if (!alreadyShown) {
-                    supabase
-                      .from('profiles')
-                      .select('diamond_multiplier')
-                      .eq('id', pokerUid)
-                      .maybeSingle()
+                    readOwnProfile(supabase, 'diamond_multiplier', { expectId: pokerUid })
                       .then(({ data: prof }) => {
                         if (prof?.diamond_multiplier && prof.diamond_multiplier > 1.0) {
                           setStreakBreakAlert(true);
@@ -5209,6 +5233,9 @@ export default function UserProfilePage() {
                   setArticleReader({ open: true, url, title: 'HendonMob Poker Resume' })
                 }
               />
+
+              {/* At The Tables: real hand numbers, the same block for every profile (Phase 8) */}
+              <HandStatsCard userId={profile.id} isOwnProfile={isOwnProfile} />
 
               {/* Player Notes Component */}
               {!isOwnProfile && currentUser && profile && (

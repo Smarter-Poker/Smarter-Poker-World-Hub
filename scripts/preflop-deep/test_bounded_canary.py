@@ -54,6 +54,7 @@ def make_phase(game_type, stack):
         "objective": "chip_ev",
         "pot_chips": 550,
         "eff_chips": stack * 100,
+        "tree_geometry": worker.h.GEOMETRY_TAG,
         "rake": "0.05 10",
         "accuracy_fraction": 0.005,
         "ip_range": "ip.txt",
@@ -83,7 +84,7 @@ def make_canary(machine_id, parent_id, child_id, flop, turn):
 
 
 def make_manifest(include_canaries=True, execution_scope="bounded_canary",
-                  phase_pairs=None):
+                  phase_pairs=None, canary_machines=("M1", "M2")):
     if phase_pairs is None:
         phase_pairs = (
             [("hu_cash", 100)]
@@ -150,11 +151,13 @@ def make_manifest(include_canaries=True, execution_scope="bounded_canary",
         },
     }
     if include_canaries:
+        fixtures = {
+            "M1": (PARENT_ID, CHILD_ID, "2c4c7c", "2d"),
+            "M2": (M2_PARENT_ID, M2_CHILD_ID, "2c4dQd", "2d"),
+        }
         canaries = [
-            make_canary("M1", PARENT_ID, CHILD_ID, "2c4c7c", "2d"),
-            make_canary(
-                "M2", M2_PARENT_ID, M2_CHILD_ID, "2c4dQd", "2d"
-            ),
+            make_canary(machine_id, *fixtures[machine_id])
+            for machine_id in canary_machines
         ]
         manifest.update({
             "bounded_canary_contracts_schema": worker.BOUNDED_CANARY_CONTRACT_SCHEMA,
@@ -207,7 +210,161 @@ def row_for(target, admitted=False, machine_id="M1"):
     return row
 
 
+class FourActionGeometryTests(unittest.TestCase):
+    @staticmethod
+    def children_after(lines, prefix):
+        return sorted({
+            line[len(prefix)]
+            for line in lines
+            if len(line) > len(prefix) and line[:len(prefix)] == prefix
+        })
+
+    def test_no_facing_nodes_offer_check_and_three_bet_sizes_on_every_street(self):
+        lines = worker.h.tree_gen.build_lines(550, 9750)
+        self.assertEqual(self.children_after(lines, []), [0, 182, 412, 688])
+        self.assertEqual(self.children_after(lines, [0]), [0, 182, 412, 688])
+        self.assertEqual(
+            self.children_after(lines, [0, 412, 412]),
+            [412, 865, 1442, 2130],
+        )
+        self.assertEqual(
+            self.children_after(lines, [0, 412, 412, 412, 1442, 1442]),
+            [1442, 2575, 4018, 5734],
+        )
+
+    def test_facing_nodes_have_two_distinct_raises_and_all_in_is_binary(self):
+        geometry = worker.h.tree_gen
+        self.assertEqual(geometry.raise_targets(0, 412, 9750), [1236, 9750])
+        self.assertEqual(geometry.raise_targets(8500, 9000, 9750), [9750])
+        self.assertEqual(geometry.raise_targets(0, 3000, 9750), [9000, 9750])
+        self.assertEqual(geometry.raise_targets(9000, 9400, 9750), [9750])
+        self.assertEqual(geometry.raise_targets(0, 9750, 9750), [])
+        self.assertEqual(geometry.aggressive_target_or_jam(9650, 9750), 9650)
+        self.assertEqual(geometry.aggressive_target_or_jam(9651, 9750), 9750)
+        self.assertEqual(geometry.aggressive_target_or_jam(1, 50), 50)
+
+        lines = geometry.build_lines(550, 9750)
+        # Pio adds Fold implicitly. These explicit children are Call plus the
+        # two raise-to targets at a normal facing node.
+        self.assertEqual(
+            self.children_after(lines, [0, 412]),
+            [412, 1236, 9750],
+        )
+        # Once the all-in raise is chosen, only Call is explicit (Fold remains
+        # implicit), so the decision is strictly binary.
+        self.assertEqual(
+            self.children_after(lines, [0, 412, 9750]),
+            [9750],
+        )
+
+    def test_every_short_and_deep_facing_raise_has_meaningful_jam_separation(self):
+        geometry = worker.h.tree_gen
+        for eff in range(2, 151):
+            for actor in range(eff):
+                for opponent in range(actor + 1, eff + 1):
+                    targets = geometry.raise_targets(actor, opponent, eff)
+                    if opponent == eff:
+                        self.assertEqual(targets, [])
+                        continue
+                    self.assertEqual(targets[-1], eff)
+                    self.assertEqual(len(targets), len(set(targets)))
+                    self.assertNotIn(eff - 1, targets[:-1])
+                    if len(targets) == 2:
+                        standard = targets[0]
+                        amount_faced = opponent - actor
+                        self.assertGreaterEqual(
+                            standard,
+                            opponent + amount_faced,
+                        )
+                        self.assertGreaterEqual(
+                            eff - standard,
+                            geometry.MIN_NON_ALL_IN_RESIDUAL_CHIPS,
+                        )
+
+        for eff in (750, 1000, 9750, 25000, 100000):
+            probes = sorted({
+                1, max(1, eff // 100), max(1, eff // 20),
+                max(1, eff // 4), max(1, eff // 2), eff - 1,
+            })
+            for opponent in probes:
+                if opponent >= eff:
+                    continue
+                for actor in sorted({0, max(0, opponent // 2), opponent - 1}):
+                    targets = geometry.raise_targets(actor, opponent, eff)
+                    self.assertEqual(targets[-1], eff)
+                    self.assertNotIn(eff - 1, targets[:-1])
+                    if len(targets) == 2:
+                        self.assertGreaterEqual(
+                            eff - targets[0],
+                            geometry.MIN_NON_ALL_IN_RESIDUAL_CHIPS,
+                        )
+
+    def test_generated_short_and_deep_trees_never_offer_eff_minus_one_and_jam(self):
+        geometry = worker.h.tree_gen
+        for pot, eff in ((25, 50), (100, 250), (550, 750),
+                         (550, 1000), (550, 9750), (5000, 25000)):
+            lines = geometry.build_lines(pot, eff)
+            children = {}
+            for line in lines:
+                for index, child in enumerate(line):
+                    children.setdefault(tuple(line[:index]), set()).add(child)
+            for prefix, choices in children.items():
+                self.assertFalse(
+                    eff - 1 in choices and eff in choices,
+                    "%s/%s prefix %s exposes eff-1 and jam" % (pot, eff, prefix),
+                )
+
+    def test_new_geometry_identity_is_phase_checksum_bound(self):
+        self.assertEqual(
+            worker.h.GEOMETRY_TAG,
+            "srp_parameterized_four_action_v3",
+        )
+        phase = make_phase("hu_cash", 100)
+        legacy = copy.deepcopy(phase)
+        legacy["tree_geometry"] = "srp_parameterized_v2"
+        self.assertNotEqual(
+            worker.phase_contracts_checksum([phase]),
+            worker.phase_contracts_checksum([legacy]),
+        )
+
+        manifest = make_manifest()
+        manifest["phases"][0]["tree_geometry"] = "srp_parameterized_v2"
+        manifest["phase_contracts"] = worker.canonical_phase_contracts(
+            manifest["phases"]
+        )
+        manifest["phase_contracts_sha256"] = worker.phase_contracts_checksum(
+            manifest["phase_contracts"]
+        )
+        manifest["training_game_contracts"] = (
+            worker.canonical_training_game_contracts(manifest["phases"])
+        )
+        manifest["training_game_contracts_sha256"] = (
+            worker.training_game_contracts_checksum(
+                manifest["training_game_contracts"]
+            )
+        )
+        with self.assertRaisesRegex(SystemExit, "current protected tree geometry"):
+            validate_manifest(manifest)
+
+    def test_legacy_phase_contract_schema_fails_before_phase_shape_is_read(self):
+        manifest = make_manifest()
+        manifest["phase_contracts_schema"] = "training-solver-phase-contracts.v1"
+        del manifest["phases"][0]["tree_geometry"]
+        with self.assertRaisesRegex(
+                SystemExit, "legacy v1 producers must rebuild"):
+            validate_manifest(manifest)
+
+
 class BoundedCanaryManifestTests(unittest.TestCase):
+    def test_manifest_requires_exact_integer_version_five(self):
+        for invalid_version in (4, 6, "5", 5.0, True, None):
+            manifest = make_manifest()
+            manifest["version"] = invalid_version
+            with self.subTest(version=invalid_version):
+                with self.assertRaisesRegex(
+                        SystemExit, "manifest must be exact version 5"):
+                    validate_manifest(manifest)
+
     def test_valid_canary_does_not_open_default_backlog(self):
         manifest = make_manifest()
         (validated, _), _ = validate_manifest(manifest, "canary")
@@ -263,17 +420,18 @@ class BoundedCanaryManifestTests(unittest.TestCase):
         with self.assertRaisesRegex(SystemExit, "checksum-seal"):
             validate_manifest(tampered)
 
-        missing_machine = make_manifest()
-        missing_machine["bounded_canary_contracts"].pop()
-        missing_machine["bounded_canary_contracts_sha256"] = hashlib.sha256(
-            json.dumps(
-                missing_machine["bounded_canary_contracts"],
-                sort_keys=True,
-                separators=(",", ":"),
-            ).encode()
-        ).hexdigest()
-        with self.assertRaisesRegex(SystemExit, "exactly M1 and M2"):
-            validate_manifest(missing_machine)
+        m1_only = make_manifest(canary_machines=("M1",))
+        (validated, _), _ = validate_manifest(m1_only)
+        self.assertEqual(
+            worker.bounded_canary_for_machine(validated, "M1", 2, 0)["machine_id"],
+            "M1",
+        )
+        with self.assertRaisesRegex(SystemExit, "no unique bounded canary target for M2"):
+            worker.bounded_canary_for_machine(validated, "M2", 2, 1)
+
+        m2_only = make_manifest(canary_machines=("M2",))
+        with self.assertRaisesRegex(SystemExit, "require M1 first"):
+            validate_manifest(m2_only)
 
     def test_canary_rejects_invalid_uuid_lineage_node_and_machine_duplicates(self):
         invalid_uuid = make_manifest()

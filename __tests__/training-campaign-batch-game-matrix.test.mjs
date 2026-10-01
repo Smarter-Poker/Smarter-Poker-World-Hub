@@ -169,35 +169,32 @@ test('the local static range generator is untouched for callers that do not requ
   }
 });
 
-test('every SCENARIO game: the authored bank is smaller than one 20-hand attempt, and the route says so honestly', async () => {
-  // Pre-existing and unrelated to the solver work: getPsychologyQuestions pads
-  // a short bank by repeating entries, the route de-duplicates canonical ids,
-  // and an empty cache therefore yields fewer than 20 unique hands. The route
-  // must answer the exact shortfall contract (never a 500 and never a padded
-  // batch) and name every skipped duplicate in its server log.
+test('every SCENARIO game delivers 20 unique valid authored questions and persists the successful batch', async () => {
   const scenarioGames = GAME_IDS.filter((gameId) => classify(gameId) === 'scenario_bank');
   assert.ok(scenarioGames.length >= 20, scenarioGames.join(','));
-  const failures = [];
   for (const gameId of scenarioGames) {
-    const { response, serverLog, refusalLine, db } = await requestCampaignBatch(gameId, 1);
-    if (refusalLine) failures.push(`${gameId}: ${refusalLine}`);
-    if (response.statusCode === 200) {
-      if (response.body.questions.length !== 20) failures.push(`${gameId}: 200 with ${response.body.questions.length}`);
-      continue;
+    const result = await requestCampaignBatch(gameId, 1);
+    const { response, refusalLine, db } = result;
+    assert.equal(response.statusCode, 200, `${gameId}: ${JSON.stringify(response.body).slice(0, 300)}`);
+    assert.equal(refusalLine, null, `${gameId}: ${refusalLine}`);
+    const questions = result.response.body.questions;
+    assert.equal(questions.length, 20, gameId);
+    assert.equal(new Set(questions.map(({ id }) => id)).size, 20, `${gameId}: duplicate ids`);
+    assert.equal(new Set(questions.map(({ question }) => question)).size, 20, `${gameId}: duplicate prompts`);
+    assert.deepEqual(privateKeysIn(questions), [], `${gameId}: public answer leak`);
+    for (const question of questions) {
+      assert.equal(question.options?.length, 4, `${gameId}/${question.id}`);
+      assert.equal(new Set(question.options.map(({ text }) => text)).size, 4, `${gameId}/${question.id}`);
+      assert.equal(question.sourceClassification, 'CURATED', `${gameId}/${question.id}`);
+      assert.equal(question.dataQuality, 'CURATED', `${gameId}/${question.id}`);
+      assert.notEqual(question.solverProvenance?.verified, true, `${gameId}/${question.id}`);
+      assert.ok(question._gradingContext?.receipt, `${gameId}/${question.id}: no receipt`);
     }
-    if (response.statusCode !== 422 || response.body?.code !== 'TRAINING_ATTEMPT_QUESTION_SHORTFALL') {
-      failures.push(`${gameId}: ${response.statusCode} ${JSON.stringify(response.body).slice(0, 160)}`);
-      continue;
-    }
-    const skipped = serverLog.map((args) => String(args[0]))
-      .find((line) => /could not be canonicalised and were skipped/.test(line));
-    if (!skipped) failures.push(`${gameId}: shortfall without a canonicalisation log`);
-    else if (!/Duplicate canonical question identifier/.test(skipped)) failures.push(`${gameId}: ${skipped.slice(0, 200)}`);
-    if ((db.tables.get('training_question_cache') || []).length > 0) {
-      failures.push(`${gameId}: a refused batch must not write cache rows`);
-    }
+    const cacheRows = db.tables.get('training_question_cache') || [];
+    assert.equal(cacheRows.length, 20, `${gameId}: wrong persistence count`);
+    assert.ok(cacheRows.every((row) => row.source_classification === 'CURATED'),
+      `${gameId}: non-curated cache row`);
   }
-  assert.deepEqual(failures, []);
 });
 
 test('every other PioSOLVER game takes the same honest authored fallback with an empty catalog', async () => {

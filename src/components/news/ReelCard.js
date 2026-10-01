@@ -2,11 +2,11 @@ import React, { useEffect, useState } from 'react';
 import SPImage from '../common/SPImage';
 import { safeText, CardErrorBoundary } from './NewsBox';
 import { getYouTubeVideoId } from '../../lib/socialHelpers';
+import { newsImageUrl } from '../../lib/security/imageHosts.js';
 
 function getReelThumbnail(reel) {
-    if (typeof reel.thumbnail_url === 'string' && reel.thumbnail_url.trim()) {
-        return reel.thumbnail_url.trim();
-    }
+    const safe = newsImageUrl(reel.thumbnail_url);
+    if (safe) return safe;
     const videoId = getYouTubeVideoId(reel.video_url);
     return videoId ? `https://img.youtube.com/vi/${videoId}/hqdefault.jpg` : '';
 }

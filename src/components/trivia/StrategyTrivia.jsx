@@ -35,6 +35,8 @@ import GTOScenarioDisplay from './GTOScenarioDisplay';
 import TriviaSkeleton from './TriviaSkeleton';
 import TriviaConsole from './console/TriviaConsole';
 import TriviaConsoleDialog from './console/TriviaConsoleDialog';
+import ResponsiveModeArt from './console/ResponsiveModeArt';
+import { TRIVIA_INTRO_ART_CASH, TRIVIA_INTRO_ART_GTO, TRIVIA_INTRO_ART_ICM, TRIVIA_INTRO_ART_MTT } from '../../config/triviaIntroArt.mjs';
 
 /** Format poker text: enforce BB/SB spacing and capitalization rules */
 function formatPokerText(text) {
@@ -60,6 +62,7 @@ function formatPokerText(text) {
 import GameCostPopup from '../gates/GameCostPopup';
 import DiamondEngine from '../../services/DiamondEngine';
 import useVIP from '../../hooks/useVIP';
+import { readOwnProfile } from '../../lib/ownProfile';
 
 /**
  * Entry price for the strategy modes.
@@ -102,15 +105,13 @@ const STRATEGY_MODES = {
     }
 };
 
-// Text-free scene art for each table (modes-console-v1). The old
-// lobby JPEGs carried baked-in titles, numbers and a baked button, so
-// they are no longer referenced: the art is a picture on the glass and every
-// changing value is printed live beside it.
+// Each table's own destination art (intro-v1), distinct from its lobby
+// thumbnail: a picture on the glass, every changing value printed beside it.
 const MODE_ART = {
-    mtt: '/images/trivia/modes-console-v1/mtt.webp',
-    cash: '/images/trivia/modes-console-v1/cash.webp',
-    icm: '/images/trivia/modes-console-v1/icm.webp',
-    gto: '/images/trivia/modes-console-v1/gto.webp',
+    mtt: TRIVIA_INTRO_ART_MTT,
+    cash: TRIVIA_INTRO_ART_CASH,
+    icm: TRIVIA_INTRO_ART_ICM,
+    gto: TRIVIA_INTRO_ART_GTO,
 };
 
 // Helper functions for GTO analysis generation.
@@ -385,11 +386,7 @@ export default function StrategyTrivia({ mode }) {
 
     async function loadUserDiamonds(uid) {
         try {
-            const { data: profile } = await supabase
-                .from('profiles')
-                .select('diamonds')
-                .eq('id', uid)
-                .maybeSingle();
+            const { data: profile } = await readOwnProfile(supabase, 'diamonds', { expectId: uid });
             if (profile) {
                 setUserDiamonds(profile.diamonds || 0);
             }
@@ -641,7 +638,7 @@ export default function StrategyTrivia({ mode }) {
             setUserDiamonds(settled.newBalance);
         } else if (userId) {
             try {
-                const { data: freshProfile } = await supabase.from('profiles').select('diamonds').eq('id', userId).maybeSingle();
+                const { data: freshProfile } = await readOwnProfile(supabase, 'diamonds', { expectId: userId });
                 if (freshProfile) setUserDiamonds(freshProfile.diamonds || 0);
             } catch (e) {
                 console.warn('[StrategyTrivia] Balance refresh failed:', e?.message || e);
@@ -793,15 +790,7 @@ export default function StrategyTrivia({ mode }) {
                         console's own action starts the run. */}
                     {gameState === 'lobby' && (
                         <div className="strategy-lobby">
-                            <img
-                                className="strategy-hero"
-                                src={MODE_ART[mode] || MODE_ART.mtt}
-                                alt=""
-                                aria-hidden="true"
-                                width={1000}
-                                height={563}
-                                decoding="async"
-                            />
+                            <ResponsiveModeArt art={MODE_ART[mode] || MODE_ART.mtt} priority />
                             {/* Questions are dealt by the server when the game
                                 starts, so the only wait worth showing is the
                                 session-start + charge round-trip itself. */}

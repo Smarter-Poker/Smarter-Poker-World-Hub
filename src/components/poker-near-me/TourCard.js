@@ -1,5 +1,6 @@
 import React from 'react';
 import { PokerNearMeConsoleIcon, PokerNearMePanelShell, usePnmConsoleFitText } from './PokerNearMeConsole';
+import { safeImageUrl } from '../../lib/security/imageHosts.js';
 
 /**
  * TourCard - Poker tour card for Poker Near Me page
@@ -87,7 +88,7 @@ export default function TourCard({ tour, isFavorited, onFavorite, onNavigate }) 
 
     // For venue-table entries, derive a short code from the name
     const shortCode = tour.tour_code || (tour.name || '').replace(/[^A-Z]/g, '').slice(0, 4) || 'TOUR';
-    const logoUrl = tour.logo_url || null;
+    const logoUrl = safeImageUrl(tour.logo_url) || null;
     const [logoFailed, setLogoFailed] = React.useState(false);
 
     React.useEffect(() => {

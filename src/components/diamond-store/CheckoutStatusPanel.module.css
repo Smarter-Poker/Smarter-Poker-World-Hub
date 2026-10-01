@@ -1,25 +1,20 @@
-/* A percentage padding resolves against the CONTAINING BLOCK's inline size,
-   not this element's. The plate is narrower than its container, so the
-   percentages the artwork wants have to be measured against the plate. Same
-   remedy as .status in pages/hub/merch-store/fulfillment.module.css. */
+/* Transaction state is content, not an ornamental plate. Keep the panel
+   readable at every width and let the receipt determine its height. */
 .panel {
   --seal: #8defff;
-  --panel-plate-width: min(1188px, calc(100% - 52px));
 
   position: relative;
   display: grid;
-  grid-template-columns: 22% minmax(0, 1fr) minmax(86px, 10%);
+  grid-template-columns: minmax(88px, 16%) minmax(0, 1fr) auto;
   align-items: center;
-  width: var(--panel-plate-width);
-  aspect-ratio: 1800 / 386;
+  width: min(1188px, calc(100% - 24px));
+  min-height: 96px;
   margin: 18px auto 8px;
-  padding: calc(var(--panel-plate-width) * 0.045) calc(var(--panel-plate-width) * 0.047)
-    calc(var(--panel-plate-width) * 0.045) calc(var(--panel-plate-width) * 0.025);
-  overflow: hidden;
-  border: 0;
+  padding: 18px 20px;
+  border: 1px solid #365468;
   border-radius: 0;
-  background: transparent url('/images/marketplace-console-v1/status/wallet-row-shell.webp') center /
-    100% 100% no-repeat;
+  background: #07131b;
+  box-shadow: inset 0 1px 0 rgba(155, 179, 192, 0.14);
   color: #eef9ff;
 }
 
@@ -152,7 +147,7 @@
   min-height: 44px;
   align-items: center;
   justify-content: center;
-  border: 0;
+  border: 1px solid #456174;
   border-radius: 0;
   color: #eafaff;
   font:
@@ -174,14 +169,15 @@
 }
 
 .primaryAction {
-  background: transparent url('/images/marketplace-console-v1/shark-panel/button-primary.png')
-    center / 100% 100% no-repeat;
+  border-color: #18c9ee;
+  background: #063446;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18);
 }
 
 .secondaryAction,
 .dismiss {
-  background: transparent url('/images/marketplace-console-v1/shark-panel/button-secondary.png')
-    center / 100% 100% no-repeat;
+  background: #0a151d;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }
 
 .primaryAction:focus-visible,
@@ -199,14 +195,10 @@
 
 @media (max-width: 760px) {
   .panel {
-    --panel-plate-width: min(440px, calc(100% - 24px));
-
     grid-template-columns: minmax(0, 1fr);
-    aspect-ratio: 1105 / 1133;
+    width: calc(100% - 24px);
     margin-top: 12px;
-    padding: calc(var(--panel-plate-width) * 0.15) calc(var(--panel-plate-width) * 0.14)
-      calc(var(--panel-plate-width) * 0.13);
-    background-image: url('/images/marketplace-console-v1/utility/utility-shell.webp');
+    padding: 20px;
   }
 
   .seal {

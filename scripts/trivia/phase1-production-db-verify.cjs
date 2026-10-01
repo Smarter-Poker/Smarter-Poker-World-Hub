@@ -93,7 +93,15 @@ const EXPECTED_TRIGGERS = Object.freeze([
     ['trivia_pvp_matches', 'trg_sync_trivia_pvp_active_seats', 'sync_trivia_pvp_active_seats', 29],
     ['trivia_pvp_matches', 'trg_00_guard_quarantined_pvp_match', 'prevent_competitive_evidence_mutation', 27],
     ['trivia_pvp_matches', 'trg_prevent_linked_trivia_pvp_identity_change', 'prevent_linked_trivia_pvp_identity_change', 23],
+    // Phase 2 rules snapshot on the match row; Phase 5 v2 engine authority guard.
+    ['trivia_pvp_matches', 'trg_trivia_p2_rules_snapshot', 'trivia_rules_snapshot_guard', 23],
+    ['trivia_pvp_matches', 'trg_trivia_pvp_match_v2_guard', 'trivia_pvp_match_v2_guard', 23],
+    // Phase 5: the legacy validator judges legacy links only (WHEN engine_version IS NULL);
+    // v2 links are validated against the ledger participant + engine v3 seat and are immutable.
     ['trivia_pvp_session_links', 'trg_validate_trivia_pvp_session_link', 'validate_trivia_pvp_session_link', 23],
+    ['trivia_pvp_session_links', 'trg_trivia_pvp_session_link_v2_insert', 'trivia_pvp_validate_session_link_v2', 7],
+    ['trivia_pvp_session_links', 'trg_trivia_pvp_session_link_v2_update', 'trivia_pvp_session_link_v2_immutable', 19],
+    ['trivia_pvp_session_links', 'trg_trivia_pvp_session_link_v2_delete', 'trivia_pvp_session_link_v2_immutable', 11],
     ['trivia_sessions', 'trg_prevent_linked_trivia_session_identity_change', 'prevent_linked_trivia_session_identity_change', 19],
     ['trivia_sessions', 'trg_trivia_session_stats_v3', 'trg_finalize_trivia_session_stats_v3', 17],
     ['trivia_tournaments', 'trg_00_guard_quarantined_tournament', 'prevent_competitive_evidence_mutation', 27],
@@ -102,6 +110,7 @@ const EXPECTED_TRIGGERS = Object.freeze([
     ['trivia_tournament_rounds', 'trg_00_guard_quarantined_tournament_round', 'prevent_competitive_evidence_mutation', 31],
     ['competitive_quarantine', 'trg_00_freeze_competitive_quarantine', 'prevent_competitive_evidence_mutation', 27],
     ['trivia_pvp_settlement_decisions', 'trg_00_freeze_pvp_settlement_decision', 'prevent_competitive_evidence_mutation', 27],
+    ['trivia_pvp_settlement_decisions', 'trg_trivia_pvp_decision_v2_guard', 'trivia_pvp_decision_v2_guard', 7],
 ]);
 
 const EXPECTED_CONSTRAINTS = Object.freeze([

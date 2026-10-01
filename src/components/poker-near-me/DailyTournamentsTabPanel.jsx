@@ -133,6 +133,10 @@ export default function DailyTournamentsTabPanel({
 
     return (
         <>
+            {/* The day selector, the game-type chips, the buy-in fields and the
+                result count are one filter bank, so they sit in one painted
+                well rather than floating as four loose rows on black. */}
+            <PokerNearMePanelShell as="div" className="pnm-section__frame" bodyClassName="pnm-filter-well">
             {/* Day selector */}
             <div className="day-selector">
                 {DAYS_OF_WEEK.map(day => (
@@ -186,6 +190,7 @@ export default function DailyTournamentsTabPanel({
                     <span className="results-showing">Showing {shown.length} Of {filtered.length}</span>
                 )}
             </div>
+            </PokerNearMePanelShell>
 
             {pendingDay ? (
                 <div className="card-grid daily-grid">

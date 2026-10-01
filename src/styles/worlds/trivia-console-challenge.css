@@ -29,16 +29,6 @@
     margin-top: 0;
 }
 
-/* The mode's text-free scene, a picture on the glass (modes-console-v1). */
-.trivia-challenge-hero {
-    display: block;
-    width: 100%;
-    height: auto;
-    aspect-ratio: 16 / 9;
-    object-fit: cover;
-    background: var(--tc-black);
-}
-
 .trivia-challenge-intro,
 .trivia-challenge-stage,
 .trivia-challenge-state,

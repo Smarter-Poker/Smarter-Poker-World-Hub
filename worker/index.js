@@ -51,10 +51,45 @@ self.addEventListener('message', (event) => {
     }
 });
 
+// ---------------------------------------------------------------------------
+// TRIVIA ART CACHE MIGRATION (Trivia Phase 4). Trivia pictures are served
+// CacheFirst from their own cache, named for the exact art set that shipped
+// (next.config.js runtimeCaching, scripts/trivia-art/art-cache-name.mjs). When
+// the set changes the name changes, and this deletes every older trivia-art-*
+// cache plus any Trivia picture still held by the generic 'static-assets'
+// cache, so an installed client cannot keep showing replaced or rejected art.
+// It never throws: activation (and the push handler it guards) must not fail
+// because a cache could not be read. The next worker simply tries again.
+// ---------------------------------------------------------------------------
+const TRIVIA_ART_CACHE = 'trivia-art-32d8d51ff2';
+
+async function retireStaleTriviaArt() {
+    try {
+        if (!self.caches) return false;
+        const names = await caches.keys();
+        await Promise.all(names
+            .filter((name) => name.indexOf('trivia-art-') === 0 && name !== TRIVIA_ART_CACHE)
+            .map((name) => caches.delete(name)));
+        if (names.indexOf('static-assets') === -1) return true;
+        const shared = await caches.open('static-assets');
+        const requests = await shared.keys();
+        await Promise.all(requests
+            .filter((request) => new URL(request.url).pathname.indexOf('/images/trivia/') === 0)
+            .map((request) => shared.delete(request)));
+        return true;
+    } catch (error) {
+        // Best effort by design: the caches stay as they are and the next
+        // worker to activate tries again. Activation must not fail here.
+        console.warn('[SW] Trivia art cache migration skipped:', error);
+        return false;
+    }
+}
+
 self.addEventListener('activate', (event) => {
     event.waitUntil(
         (async () => {
             await self.clients.claim();
+            await retireStaleTriviaArt();
             const clients = await self.clients.matchAll({ type: 'window' });
             console.log(`[SW ${SP_SW_VERSION}] Activated. Controlled clients: ${clients.length}.`);
         })()

@@ -29,6 +29,8 @@ import { checkNewUnlocks, computeTriviaStats } from '../../../src/config/triviaA
 
 import TriviaSkeleton from '../../../src/components/trivia/TriviaSkeleton';
 import TriviaConsole from '../../../src/components/trivia/console/TriviaConsole';
+import ResponsiveModeArt from '../../../src/components/trivia/console/ResponsiveModeArt';
+import { TRIVIA_INTRO_ART_ARCADE, TRIVIA_INTRO_ART_DAILY, TRIVIA_INTRO_ART_HISTORY, TRIVIA_INTRO_ART_PRO, TRIVIA_INTRO_ART_RULES } from '../../../src/config/triviaIntroArt.mjs';
 import TriviaConsoleDialog from '../../../src/components/trivia/console/TriviaConsoleDialog';
 import { getRecentlySeenIds, fetchRandomQuestionPool } from '../../../src/lib/triviaQuestionLoader';
 import useServerGradedRun from '../../../src/hooks/useServerGradedRun';
@@ -45,6 +47,7 @@ import { getStreakTier, calculateRewardWithMultiplier } from '../../../src/confi
 
 // Phase 2 Enhancement Imports
 import { shuffleOptions } from '../../../src/lib/trivia/shuffleOptions';
+import { readOwnProfile } from '../../../src/lib/ownProfile';
 
 // Category source of truth is triviaEngine's CATEGORY_MAPPINGS - do not
 // re-declare category arrays here (three parallel maps had silently drifted).
@@ -67,17 +70,15 @@ const CATEGORY_MAP = {
     gto: [...CATEGORY_MAPPINGS.gto],
 };
 
-// Mode scene art for the lobby picture on the console glass. The art is a
-// text-free scene (modes-console-v1); every figure, rule and the Start action
-// are printed live around it. The old lobby-*.jpg art baked in text, numbers
-// and a Start button and is no longer referenced.
-// Literal paths, so the art audit can see every file this page uses.
+// Each mode's own destination art (intro-v1, src/config/triviaIntroArt.mjs),
+// distinct from its lobby thumbnail. The art is a text-free picture; every
+// figure, rule and the Start action are printed live around it.
 const MODE_ART = Object.freeze({
-    daily: '/images/trivia/modes-console-v1/daily.webp',
-    history: '/images/trivia/modes-console-v1/history.webp',
-    rules: '/images/trivia/modes-console-v1/rules.webp',
-    pro: '/images/trivia/modes-console-v1/pro.webp',
-    arcade: '/images/trivia/modes-console-v1/arcade.webp',
+    daily: TRIVIA_INTRO_ART_DAILY,
+    history: TRIVIA_INTRO_ART_HISTORY,
+    rules: TRIVIA_INTRO_ART_RULES,
+    pro: TRIVIA_INTRO_ART_PRO,
+    arcade: TRIVIA_INTRO_ART_ARCADE,
 });
 function getModeArt(mode) {
     return Object.prototype.hasOwnProperty.call(MODE_ART, mode) ? MODE_ART[mode] : null;
@@ -155,7 +156,6 @@ export default function TriviaModePage() {
     const [isStarting, setIsStarting] = useState(false);
     // The lobby's scene art is optional: until (or unless) it loads, the lobby
     // prints its live rows alone rather than a broken picture.
-    const [artFailed, setArtFailed] = useState(false);
 
     // Phase 1: Prize wheel and celebration states
     const [showPrizeWheel, setShowPrizeWheel] = useState(false);
@@ -225,11 +225,7 @@ export default function TriviaModePage() {
                     setIsVIP(vipStatus);
 
                     // Get diamonds
-                    const { data: profile } = await supabase
-                        .from('profiles')
-                        .select('diamonds')
-                        .eq('id', currentUserId)
-                        .maybeSingle();
+                    const { data: profile } = await readOwnProfile(supabase, 'diamonds', { expectId: currentUserId });
 
                     if (profile) {
                         setUserDiamonds(profile.diamonds || 0);
@@ -359,11 +355,7 @@ export default function TriviaModePage() {
 
     async function getUserDiamonds(userId) {
         if (!userId) return 0;
-        const { data } = await supabase
-            .from('profiles')
-            .select('diamonds')
-            .eq('id', userId)
-            .maybeSingle();
+        const { data } = await readOwnProfile(supabase, 'diamonds', { expectId: userId });
         return data?.diamonds || 0;
     }
 
@@ -891,11 +883,7 @@ export default function TriviaModePage() {
                         } else {
                             // newBalance missing from the response - fall back
                             // to a fresh profiles read for the header display.
-                            const { data: profile } = await supabase
-                                .from('profiles')
-                                .select('diamonds')
-                                .eq('id', userId)
-                                .maybeSingle();
+                            const { data: profile } = await readOwnProfile(supabase, 'diamonds', { expectId: userId });
                             if (profile && isMountedRef.current) setUserDiamonds(profile.diamonds || 0);
                         }
                     }
@@ -1287,7 +1275,7 @@ export default function TriviaModePage() {
                                 also a start control (AUDIT FIX H3: a real
                                 <button>, keyboard and screen-reader reachable),
                                 guarded by the same in-flight ref as the plate. */}
-                            {modeArt && !artFailed && (
+                            {modeArt && (
                                 <button
                                     type="button"
                                     className="mode-art-button"
@@ -1295,16 +1283,7 @@ export default function TriviaModePage() {
                                     disabled={isStarting}
                                     aria-label={`Start ${modeName}${isPaidMode ? `, Entry ${modeConfig.diamondCost} Diamonds` : ''}`}
                                 >
-                                    <img
-                                        src={modeArt}
-                                        alt=""
-                                        aria-hidden="true"
-                                        className="mode-art"
-                                        width="1600"
-                                        height="900"
-                                        decoding="async"
-                                        onError={() => setArtFailed(true)}
-                                    />
+                                    <ResponsiveModeArt art={modeArt} priority />
                                 </button>
                             )}
 
@@ -1535,11 +1514,7 @@ export default function TriviaModePage() {
                                 // tampered client name its own amount.
                                 try {
                                     if (userId) {
-                                        const { data: profile } = await supabase
-                                            .from('profiles')
-                                            .select('diamonds')
-                                            .eq('id', userId)
-                                            .maybeSingle();
+                                        const { data: profile } = await readOwnProfile(supabase, 'diamonds', { expectId: userId });
                                         if (profile && isMountedRef.current) setUserDiamonds(profile.diamonds || 0);
                                     }
                                 } catch (e) {

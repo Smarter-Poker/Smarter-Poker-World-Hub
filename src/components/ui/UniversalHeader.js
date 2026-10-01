@@ -45,6 +45,7 @@ import { listenBroadcast } from '../../lib/broadcastSync';
 import { getHeaderStats } from '../../lib/headerStats';
 import { resolveWorldMenu } from '../../config/worldMenuNavigation';
 import { resolveActiveVip, resolveHeaderPortrait } from '../../lib/headerPortrait';
+import { OWNER_PROFILE_RPC } from '../../lib/ownProfile';
 
 // Dark theme colors matching hub
 const C = {
@@ -565,18 +566,22 @@ export default function UniversalHeader({
                 console.warn('[App] Handled exception:', e?.message || e);
               }
 
-              const response = await fetch(
-                `${SUPABASE_URL}/rest/v1/profiles?id=eq.${authUser.id}&select=username,full_name,avatar_url,arena_avatar_url,use_avatar_as_profile_pic,diamonds,is_vip,vip_expires_at,is_admin`,
-                {
-                  headers: {
-                    apikey: SUPABASE_ANON_KEY,
-                    Authorization: `Bearer ${accessToken}`,
-                    'Content-Type': 'application/json',
-                  },
-                }
-              );
+              // The balance and the legal name are the owner's alone
+              // (2026-09-30): the table refuses them to every signed-in
+              // account, so this reads the caller's own row through the
+              // owner path, never profiles?select=.
+              const response = await fetch(`${SUPABASE_URL}/rest/v1/rpc/${OWNER_PROFILE_RPC}`, {
+                method: 'POST',
+                headers: {
+                  apikey: SUPABASE_ANON_KEY,
+                  Authorization: `Bearer ${accessToken}`,
+                  'Content-Type': 'application/json',
+                },
+                body: '{}',
+              });
               const profiles = await response.json();
-              const profile = profiles?.[0];
+              const ownRow = Array.isArray(profiles) ? profiles[0] : profiles;
+              const profile = ownRow && ownRow.id === authUser.id ? ownRow : null;
 
               if (profile && mounted) {
                 const vipActive = resolveActiveVip(!!profile.is_vip, profile.vip_expires_at);

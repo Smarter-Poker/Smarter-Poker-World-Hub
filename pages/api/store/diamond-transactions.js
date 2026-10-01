@@ -151,6 +151,37 @@ export default async function handler(req, res) {
           ? getSupabase().rpc('fn_diamond_wallet_summary', { p_user_id: userId })
           : Promise.resolve({ data: null, error: null });
 
+      /*
+       * THE BREAKDOWNS ARE SUMMED IN SQL TOO (phase 7, 2026-09-29).
+       *
+       * The headline has been exact since 2026-09-13, but the SOURCE and GIFT
+       * breakdowns under it were still reduced in the browser over the
+       * 5,000-row window above - so the two halves of one panel were computed
+       * from two different populations, and would disagree the moment a
+       * player's ledger outgrew the page. `fn_diamond_flow_by_kind` sums the
+       * WHOLE ledger per bucket, spent and earned. It is the same RPC the Club
+       * Arena wallet reads (DiamondService.getDiamondFlow), so one ledger
+       * cannot report two breakdowns.
+       *
+       * THE USER ID IS PASSED EXPLICITLY, AND THAT IS NOT OPTIONAL HERE.
+       * The function is SECURITY DEFINER and defaults `p_user_id` to
+       * `auth.uid()`, which is how the browser-side Club Arena caller reaches
+       * it. This route holds a SERVICE-ROLE client, so `auth.uid()` is NULL
+       * and omitting the argument raises `authentication_required` (measured
+       * against production 2026-09-29). The function's own guard -
+       * `v_role <> 'service_role' AND v_user IS DISTINCT FROM auth.uid()` -
+       * is what lets a service caller name a user. `userId` is the
+       * JWT-verified subject from getServerUserWithFallback, never
+       * `req.query.userId` (code safety rule 5, IDOR).
+       *
+       * Horses are players (10.5): the function takes no include/exclude
+       * flag, and nothing on this path filters on is_horse.
+       */
+      const flowPromise =
+        offset === 0
+          ? getSupabase().rpc('fn_diamond_flow_by_kind', { p_user_id: userId })
+          : Promise.resolve({ data: null, error: null });
+
       const { data, count, error } = await query;
 
       if (error) {
@@ -189,8 +220,29 @@ export default async function handler(req, res) {
        * as `null` so the client can say nothing, never as 0 - which would
        * tell a player who has earned 740,908 diamonds that they have
        * earned none.
+       *
+       * A NULL `lifetime` HAD TWO MEANINGS AND THE PANEL COULD NOT TELL
+       * THEM APART (2026-09-30, 10.86 rule 1).
+       *
+       * `lifetime` is null on a Load More, where nothing was asked for and
+       * nothing is wrong, AND when the 5,000-row window select below threw,
+       * where the read genuinely failed. Both left a 200 carrying a bare
+       * `lifetime: null`, so the browser set no error, rendered the ledger
+       * normally, and a player who opened Stats watched an animated skeleton
+       * for ever - a PENDING state standing in for an outcome that had
+       * already settled and was unreadable. `lifetimeStatus` names the three
+       * outcomes so the client can render three, not two:
+       *
+       *   'ok'          the figures were computed and are in `lifetime`
+       *   'unavailable' the read was attempted on this request and failed
+       *   'paged'       not asked for; this is not a first page
+       *
+       * A failed stats read still must not fail the whole request: the rows
+       * are what the player came for and they render either way, which is
+       * why this stays a 200 with a named outcome rather than becoming a 500.
        */
       let lifetime = null;
+      let lifetimeStatus = offset === 0 ? 'unavailable' : 'paged';
       try {
         const { data: allRows, error: statsErr } = await statsPromise;
         if (statsErr) throw statsErr;
@@ -208,10 +260,20 @@ export default async function handler(req, res) {
             thisMonthSpent = 0;
           let lastMonthEarned = 0,
             lastMonthSpent = 0;
-          let giftsSent = 0,
-            giftsReceived = 0,
-            giftCount = 0;
-          const bySource = {};
+          /*
+           * ONLY RECIPIENT NAMES ARE STILL REDUCED HERE (phase 7).
+           *
+           * `bySource`, `giftsSent`, `giftsReceived` and `giftCount` used to
+           * be accumulated in this loop and were DELETED on 2026-09-29, not
+           * left beside their replacement: `fn_diamond_flow_by_kind` sums
+           * every one of them over the whole ledger, and two code paths for
+           * one number is how a panel ends up disagreeing with itself.
+           *
+           * The recipient NAME has no SQL behind it - it is scraped out of
+           * the description text - so it is the one breakdown that still
+           * depends on this window, and `truncated` below is what tells the
+           * player when the window fell short.
+           */
           const recipients = {};
 
           for (const row of allRows) {
@@ -231,15 +293,10 @@ export default async function handler(req, res) {
               if (at >= thisMonth) thisMonthSpent += -amt;
               else if (at >= lastMonth) lastMonthSpent += -amt;
             }
-            bySource[kind] = (bySource[kind] || 0) + Math.abs(amt);
 
             if (kind === 'diamond_gift_sent') {
-              giftsSent += Math.abs(amt);
-              giftCount += 1;
               const match = (row.description || '').match(/to (.+?)\s*\[/);
               if (match) recipients[match[1]] = (recipients[match[1]] || 0) + Math.abs(amt);
-            } else if (kind === 'diamond_gift_received') {
-              giftsReceived += Math.abs(amt);
             }
           }
 
@@ -264,28 +321,50 @@ export default async function handler(req, res) {
             );
           }
 
+          /*
+           * IS THE WHOLE WEEK INSIDE THE WINDOW? PROVE IT, DO NOT ASSUME IT.
+           *
+           * `fn_diamond_flow_by_kind` reports lifetime and LAST 30 DAYS; it
+           * has no 7-day figure, so "This Week" stays a window sum. That is
+           * only honest if the window demonstrably covers the week. It does
+           * when the window was not truncated (it is then the whole ledger),
+           * and it still does when truncated so long as the OLDEST row in the
+           * window predates the week boundary - a full window reaching back
+           * past 7 days contains every row inside those 7 days, because the
+           * window is ordered newest first. Anything else is unknown, and
+           * unknown is its own outcome (10.86), never a quiet partial sum.
+           */
+          const oldestAt = allRows.length
+            ? new Date(allRows[allRows.length - 1].created_at).getTime()
+            : Date.now();
+          const weekExact =
+            allRows.length < 5000 || (Number.isFinite(oldestAt) && oldestAt < weekAgo);
+
           lifetime = {
             earned,
             spent,
             // true when earned/spent came from the whole-ledger SQL sum.
             exact,
+            // true when the week figures provably cover the whole week.
+            weekExact,
             weekEarned,
             weekSpent,
             thisMonthEarned,
             thisMonthSpent,
             lastMonthEarned,
             lastMonthSpent,
-            giftsSent,
-            giftsReceived,
-            giftCount,
             rowsCounted: allRows.length,
             // Whether the 5,000 ceiling was reached, so the client can
             // say "5,000 most recent" instead of implying "all time".
             truncated: allRows.length >= 5000,
-            bySource,
             recipients,
           };
+          lifetimeStatus = 'ok';
         }
+        /* `allRows` falsy with no error is only reachable off the first page,
+           where the promise resolves `{ data: null }` on purpose. On a first
+           page it would be an unreadable answer, and the initial value above
+           already says so - it is never quietly upgraded to 'ok'. */
       } catch (statsErr) {
         console.warn(
           '[diamond-transactions] lifetime stats unavailable:',
@@ -325,6 +404,70 @@ export default async function handler(req, res) {
         }
       }
 
+      /*
+       * THE WHOLE-LEDGER BREAKDOWN. null = COULD NOT TELL (10.86).
+       *
+       * Validated the way the Club Arena consumer validates it
+       * (DiamondService.getDiamondFlow): every figure must be a finite
+       * number and every bucket must be named, or the whole read is refused.
+       * A half-parsed breakdown drawn as bars is the failure this posture
+       * exists to prevent - an unreadable answer must never be coerced into
+       * an empty or zero one.
+       */
+      let flow = null;
+      try {
+        const { data: flowRow, error: flowErr } = await flowPromise;
+        if (flowErr) throw flowErr;
+        const row = Array.isArray(flowRow) ? flowRow[0] : flowRow;
+        if (offset === 0) {
+          if (!row || typeof row !== 'object') {
+            throw new Error('fn_diamond_flow_by_kind returned nothing');
+          }
+          const num = (v) => {
+            const n = Number(v);
+            if (!Number.isFinite(n)) {
+              throw new Error('fn_diamond_flow_by_kind returned a non-numeric figure');
+            }
+            return n;
+          };
+          const lines = (raw) => {
+            if (!Array.isArray(raw)) {
+              throw new Error('fn_diamond_flow_by_kind returned no bucket list');
+            }
+            return raw.map((l) => {
+              const r = l && typeof l === 'object' ? l : {};
+              if (typeof r.bucket !== 'string' || typeof r.label !== 'string') {
+                throw new Error('fn_diamond_flow_by_kind returned an unnamed bucket');
+              }
+              return {
+                bucket: r.bucket,
+                label: r.label,
+                lifetime: num(r.lifetime),
+                lifetimeCount: num(r.lifetime_count),
+                last30: num(r.last30),
+                last30Count: num(r.last30_count),
+              };
+            });
+          };
+          flow = {
+            spent: lines(row.spent),
+            earned: lines(row.earned),
+            spentTotal: num(row.spent_total),
+            earnedTotal: num(row.earned_total),
+            spentLast30: num(row.spent_last30),
+            earnedLast30: num(row.earned_last30),
+            readAt: String(row.read_at || ''),
+          };
+        }
+      } catch (flowErr) {
+        if (offset === 0) {
+          console.warn(
+            '[diamond-transactions] fn_diamond_flow_by_kind unavailable, breakdown is unknown:',
+            flowErr?.message || flowErr
+          );
+        }
+      }
+
       return res.status(200).json({
         success: true,
         transactions: data || [],
@@ -339,6 +482,16 @@ export default async function handler(req, res) {
         // Lifetime earned/spent over the whole ledger; null on the
         // paged requests that do not recompute it, and on failure.
         lifetime,
+        // WHICH of those two a null `lifetime` is: 'ok' (it is above),
+        // 'unavailable' (this request tried to read it and could not), or
+        // 'paged' (a Load More never asks). Without this the wallet cannot
+        // tell a settled-unreadable panel from one still loading, and it
+        // showed a skeleton for ever. 10.86 rule 1.
+        lifetimeStatus,
+        // Every source and gift bucket summed over the WHOLE ledger, spent
+        // and earned; first page only. null means the breakdown could not be
+        // read, and the panel must say so rather than draw empty bars.
+        flow,
         filter,
         balance: profile?.diamonds ?? 0,
         vip_expiration_date: profile?.vip_expires_at || null,

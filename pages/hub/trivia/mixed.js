@@ -12,6 +12,8 @@ import { getAuthUser, getSessionToken } from '../../../src/lib/authUtils';
 import { useAvatar } from '../../../src/contexts/AvatarContext';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import TriviaConsole from '../../../src/components/trivia/console/TriviaConsole';
+import ResponsiveModeArt from '../../../src/components/trivia/console/ResponsiveModeArt';
+import { TRIVIA_INTRO_ART_MIXED } from '../../../src/config/triviaIntroArt.mjs';
 import { toTitleCase } from '../../../src/lib/trivia/titleCase';
 import { formatTriviaDisplayNumber } from '../../../src/lib/trivia/formatTriviaDisplayNumber';
 import DiamondEngine from '../../../src/services/DiamondEngine';
@@ -28,6 +30,7 @@ import { getDailyDiamondsEarned } from '../../../src/lib/trivia/diamondCap';
 import { calculateDiamonds, DAILY_DIAMOND_CAPS } from '../../../src/lib/trivia/triviaEngine';
 import ReportQuestionButton from '../../../src/components/trivia/ReportQuestionButton';
 import HubPageSummary from '../../../src/components/seo/HubPageSummary';
+import { readOwnProfile } from '../../../src/lib/ownProfile';
 
 const GAME_ENTRY_COST = 10; // restored with server-graded adoption - rewards pay via award_trivia_run now
 // Cap comes from triviaEngine so the lobby and the payout can never disagree.
@@ -145,11 +148,7 @@ export default function MixedModePage() {
             setIsVip(vipStatus);
 
             // Load user diamonds
-            const { data: profile } = await supabase
-                .from('profiles')
-                .select('diamonds')
-                .eq('id', user.id)
-                .maybeSingle();
+            const { data: profile } = await readOwnProfile(supabase, 'diamonds', { expectId: user.id });
 
             if (profile) {
                 setUserDiamonds(profile.diamonds || 0);
@@ -191,7 +190,7 @@ export default function MixedModePage() {
             .channel(`trivia-mixed:${userId}`)
             .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'trivia_scores', filter: `user_id=eq.${userId}` }, async () => {
                 try {
-                    const { data: profile } = await supabase.from('profiles').select('diamonds').eq('id', userId).maybeSingle();
+                    const { data: profile } = await readOwnProfile(supabase, 'diamonds', { expectId: userId });
                     if (profile) setUserDiamonds(profile.diamonds || 0);
                 } catch (e) {
                     console.warn('[Mixed] Realtime refresh failed:', e);
@@ -392,7 +391,7 @@ export default function MixedModePage() {
                 if (Number.isFinite(result?.newBalance)) {
                     setUserDiamonds(result.newBalance);
                 } else {
-                    const { data: profile } = await supabase.from('profiles').select('diamonds').eq('id', userId).maybeSingle();
+                    const { data: profile } = await readOwnProfile(supabase, 'diamonds', { expectId: userId });
                     if (profile) setUserDiamonds(profile.diamonds || 0);
                 }
                 if ((result?.diamondsAwarded || 0) > 0) {
@@ -555,15 +554,7 @@ export default function MixedModePage() {
 
                             {gameState === 'ready' && (
                                 <section className="trivia-challenge-intro" aria-labelledby="mixed-ready-title">
-                                    <img
-                                        className="trivia-challenge-hero"
-                                        src="/images/trivia/modes-console-v1/mixed.webp"
-                                        alt=""
-                                        aria-hidden="true"
-                                        width={1000}
-                                        height={563}
-                                        decoding="async"
-                                    />
+                                    <ResponsiveModeArt art={TRIVIA_INTRO_ART_MIXED} priority />
                                     <h2 id="mixed-ready-title">One Run Through Every Discipline</h2>
                                     <p>
                                         Answer {formatTriviaDisplayNumber(QUESTIONS_PER_SESSION)} Server-Dealt Questions

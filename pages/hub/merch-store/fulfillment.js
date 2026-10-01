@@ -329,8 +329,8 @@ export default function MerchandiseFulfillmentConsole() {
       >
         <header className={styles.hero}>
           <div className={styles.eyebrow}>Protected Store Operations</div>
-          <h1>Fulfillment Command Vault</h1>
-          <p>Paid Orders, Manual Handoff, Tracking, Delivery, And Atomic Diamond Refunds.</p>
+          <h1>Merchandise Fulfillment</h1>
+          <p>Review Paid Orders, Manual Handoffs, Tracking, Delivery, And Diamond Refunds.</p>
           <div className={styles.actions}>
             <button
               type="button"

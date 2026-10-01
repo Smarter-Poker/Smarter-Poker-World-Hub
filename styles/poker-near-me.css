@@ -4310,14 +4310,97 @@
     /* The anchor scroll lands under the sticky header. */
     scroll-margin-top: calc(var(--sp-header-height, 56px) + 8px);
 }
-.pnm-section__head {
+/* Every heading, anchor row and filter bank on this page rides the painted
+   panels-v1 chassis, the same three raster slices the venue, tour, series and
+   tool cards beneath them already wear. The frame is artwork, never a CSS
+   border, radius or shadow, and it stops at the master's own 1000px so the
+   painted head is never asked for pixels the art does not have. */
+body.world-poker-near-me .pnm-section__frame {
+    width: min(100%, 1000px);
+    margin: 0 auto 12px;
+}
+body.world-poker-near-me .pnm-section__head,
+body.world-poker-near-me .pnm-subsection__head,
+body.world-poker-near-me .pnm-anchor-well,
+body.world-poker-near-me .pnm-filter-well {
+    /* The panel body is a column; a heading row reads left to right, so the
+       direction is declared here rather than inherited from the chassis. */
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 8px 10px;
+    padding: 2px 7.5% 12px;
+    border: 0;
+    margin: 0;
+}
+/* A row that is a block of its own inside the well takes the whole width. */
+body.world-poker-near-me .pnm-anchor-well > .pnm-sub-tabs,
+body.world-poker-near-me .pnm-filter-well > * {
+    flex-basis: 100%;
+    margin: 0;
+}
+/* Scoped to this well only: the day rail is boxed at calc(100% - 32px)
+   elsewhere on the route, which would inset it from the chip rail beside it. */
+body.world-poker-near-me .pnm-filter-well > .day-selector {
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+/* The painted rail takes 7.5% off each side, which on a phone is enough to
+   push the 140px floor and the 118px flex basis on these fields onto a row
+   each. They carry aspect-ratio 348/114, so a full-width field is also an
+   86px-tall field. Scoped to this well and to the phone, the floor drops far
+   enough for the pair to stay side by side and the art to keep its height. */
+@media (max-width: 600px) {
+    body.world-poker-near-me .pnm-filter-well .daily-filter-input.daily-filter-input,
+    body.world-poker-near-me .pnm-filter-well .sort-select.sort-select {
+        min-width: 104px;
+        flex: 1 1 104px;
+    }
+}
+/* The Tours and Series banks are a state select plus a result count. The row
+   that carries the select is a block of its own inside the painted well, so
+   it declares its own direction the way the heading rows above it do. */
+body.world-poker-near-me .pnm-filter-well .pnm-filter-row {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 8px 10px;
-    padding: 14px 4px 10px;
-    border-bottom: 1px solid rgba(255,255,255,0.08);
-    margin-bottom: 12px;
+    gap: 8px;
+}
+/* The painted field art is a 348 x 114 master, so a control that grows with
+   the column grows in BOTH directions: at 375 the state select reached 307px
+   wide and printed a 100px-tall billboard where a control belongs. Capping it
+   at the width its drawn height allows (48px x 348/114) keeps the drawn
+   proportions and lets background-size: contain scale the master down to the
+   control instead of inflating it. The cap is declared !important because the
+   older command finish pins `max-width: none !important` on every select on
+   this route. */
+body.world-poker-near-me .pnm-state-select.pnm-state-select {
+    max-width: calc(48px * 348 / 114) !important;
+}
+
+/* THE SAME BILLBOARD, FOUR MORE TIMES (2026-10-01). Every .pnm-filter-select
+   on this route carries the same 348 x 114 painted master, so every one of
+   them inflates the same way: measured at 375, four of them printed 168 x 118
+   where a control belongs, while at 1440 the same elements sat correctly at
+   139 x 46. The rule above fixed the two the Tours and Series banks own; this
+   is the other four, by the same arithmetic. */
+body.world-poker-near-me .pnm-filter-select.pnm-filter-select {
+    max-width: calc(48px * 348 / 114) !important;
+    /* The cap alone is not enough: .pnm-filter-group is a flex row whose
+       align-items resolves to stretch, so the select was taking the height of
+       the tallest control beside it (measured 118px) and the aspect-ratio
+       never got to speak. Opting out of the stretch lets 348/114 compute the
+       height from the capped width, which is the 48px the art is drawn for. */
+    align-self: center;
+    /* ...and the height came from a flex basis, not the art: the phone rule in
+       poker-near-me-console-surfaces.css gives these controls
+       `flex: 1 1 118px`, and on the main axis a basis beats aspect-ratio, so
+       the box was 118px tall whatever the width. Sizing to content hands the
+       height back to 348/114. */
+    flex: 0 0 auto !important;
 }
 .pnm-section__title {
     margin: 0;
@@ -4343,7 +4426,7 @@
     scroll-margin-top: calc(var(--sp-header-height, 56px) + 8px);
 }
 .pnm-subsection__title {
-    margin: 0 0 10px;
+    margin: 0;
     font-size: 15px;
     font-weight: 700;
     color: rgba(226,232,240,0.9);
@@ -4355,7 +4438,7 @@
     display: flex;
     flex-wrap: wrap;
     gap: 6px;
-    margin: 0 0 14px;
+    margin: 0;
 }
 .pnm-sub-tab {
     display: inline-flex;
@@ -4489,7 +4572,7 @@
 }
 @media (max-width: 768px) {
     .pnm-section__title { font-size: 17px; }
-    .pnm-section__head { padding: 10px 2px 8px; }
+    body.world-poker-near-me :is(.pnm-section__head, .pnm-subsection__head, .pnm-anchor-well, .pnm-filter-well) { padding: 2px 7.5% 10px; }
     .pnm-filter-bar .pnm-filter-group { flex: 1 1 calc(50% - 8px); min-width: 0; }
     .pnm-filter-bar .pnm-filter-select { width: 100%; min-width: 0; min-height: 44px; font-size: 16px; }
     .pnm-filter-bar .pnm-location-area { flex-basis: 100%; }

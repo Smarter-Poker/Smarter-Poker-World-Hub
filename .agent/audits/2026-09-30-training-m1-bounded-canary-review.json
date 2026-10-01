@@ -1,0 +1,90 @@
+{
+  "schema": "training-m1-bounded-canary-build-input.v1",
+  "migration_version": "20260930182000",
+  "manifest_version": 5,
+  "review": {
+    "approved_by": "Smarter.Poker Phase 6 controller decision 2026-09-30",
+    "expected_training_game_count": 107,
+    "expected_chip_ev_contract_count": 18,
+    "expected_icm_contract_count": 7,
+    "expected_tree_geometry": "srp_parameterized_four_action_v3"
+  },
+  "pipeline": {
+    "commit": "1ccf3907cf3298e24609eb6fbd903023d91dbddf",
+    "distribution": "controller-local-bundle.v1",
+    "files_sha256": {
+      "run_machine.py": "650ffd00161e0013d6942720fa7c3c0318734b1b8707c02ead35cad46a26d2c2",
+      "tree_gen.py": "e1a7e3923c5f0507f5aced0c05d88d9ad548fce38a641f639bfebe7de83c0138",
+      "pio_harvest.py": "f1bcc9f3b81774a8e138bea402b804e6c92ae656c483172a4b1a410e13223717",
+      "orchestrate.py": "f76ed635e472f69c58941aad36fae48b8fb26aa54abae495b6727e49f68c5b4d"
+    },
+    "bundle_sha256": "cb319d1fcd6ef2c945c7e0443fc5299d5c0deea8627851e998bd6b529a8bcc82"
+  },
+  "pio": {
+    "machine_id": "M1",
+    "solver_version": "PioSOLVER-pro 3.8.0 (Sep 22 2025, 11:05:45)",
+    "binary_sha256": "e21ea7ad1dbc2a9d826c25ac264688f632dd461b92de2bc35a53f6b78bcf5ceb",
+    "source_combo_order_sha256": "7d1e445d2a9fe34d416ea41adf7f2df2c4319c49141b389be5eb3d6cb2d9618a"
+  },
+  "phase": {
+    "id": "hu_cash_100bb_BTNvsBB",
+    "game_type": "hu_cash",
+    "stack": 100,
+    "street": "flop",
+    "streets": [
+      "flop",
+      "turn"
+    ],
+    "objective": "chip_ev",
+    "pot_chips": 550,
+    "eff_chips": 9750,
+    "tree_geometry": "srp_parameterized_four_action_v3",
+    "rake": "0.05 10",
+    "accuracy_fraction": 0.005,
+    "ip_range": "RFI_BTN_100.txt",
+    "ip_range_checksum": "6255165643c516cc03605773a76bcd43f38ee63d50d4013e296df5e1f6c616cc",
+    "oop_range": "BBflat_vs_BTN_100.txt",
+    "oop_range_checksum": "9dbfd7dff86d7502e20acacc8a89d593342287a771acd00b99eca9e0b513148d",
+    "ip_player": "BTN",
+    "oop_player": "BB",
+    "harvest": [
+      {
+        "node": "r:0",
+        "hero": "OOP",
+        "position": "BB"
+      },
+      {
+        "node": "r:0:c",
+        "hero": "IP",
+        "position": "BTN"
+      }
+    ]
+  },
+  "canary": {
+    "machine_id": "M1",
+    "partition_count": 2,
+    "partition_index": 0,
+    "phase_id": "hu_cash_100bb_BTNvsBB",
+    "parent_artifact_id": "2d7b403c-e4d3-4c20-bff8-ed5db7ecb50a",
+    "parent_scenario_hash": "hu_cash_BTN_100bb_2c4c7c",
+    "parent_node": "r:0:c",
+    "child_artifact_id": "21d75135-faa8-4c0d-acbe-91b55c98daf0",
+    "child_scenario_hash": "turn_hu_cash_BTN_100bb_2c4c7c2d",
+    "child_node": "r:0:c:b412:c:2d:c"
+  },
+  "self_test": {
+    "board": "AhKdQc",
+    "pot_chips": 550,
+    "eff_chips": 9750,
+    "rake": "0.05 10",
+    "accuracy_fraction": 0.005,
+    "oop_range": "BBflat_vs_BTN_100.txt",
+    "oop_range_checksum": "9dbfd7dff86d7502e20acacc8a89d593342287a771acd00b99eca9e0b513148d",
+    "ip_range": "RFI_BTN_100.txt",
+    "ip_range_checksum": "6255165643c516cc03605773a76bcd43f38ee63d50d4013e296df5e1f6c616cc",
+    "oop_player": "BB",
+    "ip_player": "BTN",
+    "ev_oop_min_bb": -20,
+    "ev_oop_max_bb": 20
+  }
+}

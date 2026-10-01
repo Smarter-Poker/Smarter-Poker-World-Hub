@@ -258,10 +258,11 @@ def contract_scope_checksum(contract_pairs):
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 
-PHASE_CONTRACT_SCHEMA = "training-solver-phase-contracts.v1"
+MANIFEST_VERSION = 5
+PHASE_CONTRACT_SCHEMA = "training-solver-phase-contracts.v2"
 PHASE_CONTRACT_FIELDS = (
     "id", "game_type", "stack", "street", "streets", "objective",
-    "pot_chips", "eff_chips", "rake", "accuracy_fraction", "ip_range",
+    "pot_chips", "eff_chips", "tree_geometry", "rake", "accuracy_fraction", "ip_range",
     "ip_range_checksum", "oop_range", "oop_range_checksum", "ip_player",
     "oop_player", "harvest",
 )
@@ -272,7 +273,7 @@ def canonical_phase_contracts(phases):
 
     Keeping this projection in one place is intentional: family/stack coverage
     alone is not enough to identify a solve. Street prefix, actor/node targets,
-    chip geometry, rake, convergence threshold, and both range artifact hashes
+    chip geometry, tree identity, rake, convergence threshold, and both range artifact hashes
     are all part of the row identity and therefore the protected manifest
     digest.
     """
@@ -491,8 +492,8 @@ EXECUTION_SCOPE_BOUNDED_CANARY = "bounded_canary"
 
 def canonical_bounded_canary_contracts(contracts):
     """Canonicalize only the fields the bounded runner is allowed to consume."""
-    if not isinstance(contracts, list) or len(contracts) != 2:
-        raise ValueError("bounded canary contracts must contain exactly M1 and M2 targets")
+    if not isinstance(contracts, list) or len(contracts) not in (1, 2):
+        raise ValueError("bounded canary contracts must contain M1 or M1 and M2 targets")
     canonical = []
     for contract in contracts:
         if (not isinstance(contract, dict)
@@ -626,8 +627,11 @@ def validate_bounded_canary_contracts(manifest):
         if contract["parent_scenario_hash"] in seen_scenarios or child_scenario in seen_scenarios:
             raise SystemExit("bounded canary scenarios must be globally distinct")
         seen_scenarios.update((contract["parent_scenario_hash"], child_scenario))
-    if seen_machines != set(BOUNDED_CANARY_PARTITIONS):
-        raise SystemExit("bounded canary contracts require exactly M1 and M2 targets")
+    if seen_machines not in ({"M1"}, set(BOUNDED_CANARY_PARTITIONS)):
+        raise SystemExit(
+            "bounded canary contracts require M1 first; M2 is optional only "
+            "after M1 is sealed in the same manifest"
+        )
     return contracts
 
 
@@ -684,8 +688,10 @@ def validate_manifest(manifest_text, run_mode="backlog"):
             "manifest execution scope %r does not authorize %s mode"
             % (manifest.get("execution_scope"), run_mode)
         )
-    if int(manifest.get("version", 0)) < 4 or not manifest.get("phases"):
-        raise SystemExit("manifest must be version 4+ with at least one approved phase")
+    if (type(manifest.get("version")) is not int
+            or manifest["version"] != MANIFEST_VERSION
+            or not manifest.get("phases")):
+        raise SystemExit("manifest must be exact version 5 with at least one approved phase")
     expected_chip_ev = canonical_contract_pairs(TRAINING_SOLVER_CONTRACTS)
     expected_icm = canonical_contract_pairs(TRAINING_ICM_CONTRACTS)
     if (manifest.get("range_combo_order") != h.COMBO_ORDER
@@ -713,10 +719,17 @@ def validate_manifest(manifest_text, run_mode="backlog"):
     bundle_checksum = str(manifest.get("pipeline_bundle_checksum") or "").lower()
     if len(bundle_checksum) != 64 or any(c not in "0123456789abcdef" for c in bundle_checksum):
         raise SystemExit("manifest must pin the approved pipeline bundle checksum")
+    observed_phase_schema = manifest.get("phase_contracts_schema")
+    if observed_phase_schema != PHASE_CONTRACT_SCHEMA:
+        raise SystemExit(
+            "manifest phase contract schema %r is unsupported; %s is required "
+            "and legacy v1 producers must rebuild their phase contracts"
+            % (observed_phase_schema, PHASE_CONTRACT_SCHEMA)
+        )
     phase_ids = set()
     for ph in manifest["phases"]:
         required = ("id", "game_type", "stack", "street", "streets", "objective",
-                    "pot_chips", "eff_chips", "rake", "accuracy_fraction",
+                    "pot_chips", "eff_chips", "tree_geometry", "rake", "accuracy_fraction",
                     "ip_range", "ip_range_checksum", "oop_range", "oop_range_checksum",
                     "ip_player", "oop_player", "harvest")
         missing = [field for field in required if ph.get(field) in (None, "", [])]
@@ -740,6 +753,11 @@ def validate_manifest(manifest_text, run_mode="backlog"):
             raise SystemExit("phase %s has an invalid pot" % ph["id"])
         if not isinstance(ph["eff_chips"], int) or ph["eff_chips"] <= 0:
             raise SystemExit("phase %s has an invalid effective stack" % ph["id"])
+        if ph["tree_geometry"] != h.GEOMETRY_TAG:
+            raise SystemExit(
+                "phase %s must bind the current protected tree geometry %s"
+                % (ph["id"], h.GEOMETRY_TAG)
+            )
         if (isinstance(ph["accuracy_fraction"], bool)
                 or not isinstance(ph["accuracy_fraction"], (int, float))
                 or not math.isfinite(ph["accuracy_fraction"])
@@ -809,14 +827,13 @@ def validate_manifest(manifest_text, run_mode="backlog"):
     declared_phase_digest = str(
         manifest.get("phase_contracts_sha256") or ""
     ).lower()
-    if (manifest.get("phase_contracts_schema") != PHASE_CONTRACT_SCHEMA
-            or declared_phase_specs != expected_phase_specs
+    if (declared_phase_specs != expected_phase_specs
             or not re.fullmatch(r"[0-9a-f]{64}", declared_phase_digest)
             or declared_phase_digest == "0" * 64
             or declared_phase_digest != phase_contracts_checksum(expected_phase_specs)):
         raise SystemExit(
             "manifest must seal exact phase streets, OOP/IP nodes, chip geometry, "
-            "rake, accuracy, and range artifact checksums"
+            "tree geometry, rake, accuracy, and range artifact checksums"
         )
     phase_contracts = {
         (phase["game_type"], phase["stack"]) for phase in manifest["phases"]

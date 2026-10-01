@@ -15,7 +15,7 @@ import { busEmit, eventBus, EventType } from '../../../src/engine/EventBus';
 import SkeletonLight from '../../../src/components/ui/SkeletonLight';
 import { supabase } from '../../../src/lib/supabase';
 // Shared social utilities & components (extracted from social-media)
-import { SOCIAL_COLORS, timeAgo as sharedTimeAgo, isYouTubeUrl, getYouTubeVideoId, getYouTubeEmbedUrl } from '../../../src/lib/socialHelpers';
+import { SOCIAL_COLORS, timeAgo as sharedTimeAgo, isYouTubeUrl, getYouTubeVideoId, getYouTubeEmbedUrl, pagePostIdentity } from '../../../src/lib/socialHelpers';
 import { SharedAvatar } from '../../../src/components/social/SharedAvatar';
 import { SharedLinkPreviewCard } from '../../../src/components/social/SharedLinkPreviewCard';
 import PokerCardText from '../../../src/components/social/PokerCardText';
@@ -236,6 +236,14 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, onDe
     // See More cuts at 300 characters with a card counting as one, never inside a card.
     const contentPreview = truncatePokerText(post.content || '', 300);
 
+    // A page post is shown as the page, never as the person who posted it.
+    const shownAs = pagePostIdentity(post, page);
+    const openShownAs = (e) => {
+        if (!shownAs?.href) return;
+        e.preventDefault();
+        router.push(shownAs.href);
+    };
+
     const shareUrl = typeof window !== 'undefined' ? `${window.location.origin}/hub/social-pages/${page?.slug || page?.id}` : '';
 
     return (
@@ -255,12 +263,16 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, onDe
                 </div>
             )}
 
-            {/* Author + Menu */}
+            {/* Page identity + Menu */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px' }}>
-                <Avatar src={post.author?.avatar_url} name={post.author?.full_name || post.author?.username} size={40} />
+                <Avatar src={shownAs?.avatar_url} name={shownAs?.name} size={40} linkTo={shownAs?.href || undefined} />
                 <div style={{ flex: 1 }}>
                     <div style={{ fontSize: 14, fontWeight: 700, color: C.text, display: 'flex', alignItems: 'center', gap: 5 }}>
-                        {post.author?.full_name || post.author?.username || 'Unknown'}
+                        {shownAs?.href ? (
+                            <a href={shownAs.href} onClick={openShownAs} style={{ color: 'inherit', textDecoration: 'none' }}>{shownAs.name || 'Unknown'}</a>
+                        ) : (
+                            <span>{shownAs?.name || 'Unknown'}</span>
+                        )}
                         {/* P10-9: Owner/Admin badge */}
                         {isPageOwner && post.author_id === (page?.owner_id || page?.created_by) && (
                             <span style={{ display: 'inline-block', padding: '1px 6px', borderRadius: 4, background: '#E7F3FF', color: C.blue, fontSize: 10, fontWeight: 700, letterSpacing: 0.3 }}>ADMIN</span>
@@ -2293,7 +2305,9 @@ export default function SocialPageDetail() {
                                                     display: 'flex', gap: 10, overflowX: 'auto', paddingBottom: 6,
                                                     WebkitOverflowScrolling: 'touch',
                                                 }}>
-                                                    {pinnedPosts.map(pp => (
+                                                    {pinnedPosts.map(pp => {
+                                                        const pinnedAs = pagePostIdentity(pp, page);
+                                                        return (
                                                         <div
                                                           role="button"
                                                           tabIndex={0}
@@ -2309,6 +2323,13 @@ export default function SocialPageDetail() {
                                                         onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-1px)'}
                                                         onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}
                                                         >
+                                                            {/* Shown as the page, never as the person who posted it */}
+                                                            {pinnedAs?.name && (
+                                                                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6, fontSize: 11, fontWeight: 700, color: C.textSec, minWidth: 0 }}>
+                                                                    <Avatar src={pinnedAs.avatar_url} name={pinnedAs.name} size={18} />
+                                                                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{pinnedAs.name}</span>
+                                                                </div>
+                                                            )}
                                                             <div style={{ fontSize: 12, fontWeight: 600, color: C.text, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', lineHeight: 1.4 }}>
                                                                 {pp.content ? <PokerCardText text={pp.content} /> : 'Pinned post'}
                                                             </div>
@@ -2317,7 +2338,8 @@ export default function SocialPageDetail() {
                                                                 <span>{pp.comment_count || 0} Comments</span>
                                                             </div>
                                                         </div>
-                                                    ))}
+                                                        );
+                                                    })}
                                                 </div>
                                             </div>
                                         );
@@ -2920,7 +2942,8 @@ export default function SocialPageDetail() {
 
                             {/* Media Gallery Tab */}
                             {activeTab === 'media' && (() => {
-                                const allMedia = posts.flatMap(p => (p.media_urls || []).map(url => ({ url, postId: p.id, author: p.author, created_at: p.created_at })));
+                                // Every picture is credited to the page it was posted on, not to the person who posted it.
+                                const allMedia = posts.flatMap(p => (p.media_urls || []).map(url => ({ url, postId: p.id, shownAs: pagePostIdentity(p, page), created_at: p.created_at })));
                                 return (
                                     <div style={{ background: C.card, borderRadius: 12, border: `1px solid ${C.border}`, padding: 20 }}>
                                         <h2 style={{ fontSize: 18, fontWeight: 800, color: C.text, margin: '0 0 16px' }}>
@@ -3618,11 +3641,11 @@ export default function SocialPageDetail() {
                           {/* P7-5 Author overlay + Counter */}
                           <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '20px 24px', background: 'linear-gradient(transparent, rgba(0,0,0,0.7))', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
                               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                                  {item?.author && (
+                                  {item?.shownAs?.name && (
                                       <>
-                                          <Avatar src={item.author?.avatar_url} name={item.author?.full_name || item.author?.username} size={32} />
+                                          <Avatar src={item.shownAs.avatar_url} name={item.shownAs.name} size={32} />
                                           <div>
-                                              <div style={{ color: '#fff', fontSize: 13, fontWeight: 600 }}>{item.author?.full_name || item.author?.username || 'Unknown'}</div>
+                                              <div style={{ color: '#fff', fontSize: 13, fontWeight: 600 }}>{item.shownAs.name}</div>
                                               <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: 11 }}>{item.created_at ? timeAgo(item.created_at) : ''}</div>
                                           </div>
                                       </>

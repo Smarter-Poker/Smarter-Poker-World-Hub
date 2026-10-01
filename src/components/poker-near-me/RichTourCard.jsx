@@ -9,6 +9,7 @@ import React from 'react';
 import useSWR from 'swr';
 import { PokerNearMeConsoleIcon, PokerNearMePanelShell } from './PokerNearMeConsole';
 import { PnmPlateLabel } from './TourCard';
+import { safeImageUrl } from '../../lib/security/imageHosts.js';
 
 const TOUR_TONES = {
     'WSOP': 'gold', 'WPT': 'red', 'WSOPC': 'gold', 'MSPT': 'blue',
@@ -60,8 +61,8 @@ function TourCardSkeleton({ venue }) {
     return (
         <PokerNearMePanelShell className="pnm-console-card pnm-console-card--tour rich-tour-card is-loading" bodyClassName="pnm-console-card__body">
             <div className="card-header">
-                {venue.logo_url && !logoFailed ? (
-                    <img src={venue.logo_url} alt={code}
+                {safeImageUrl(venue.logo_url) && !logoFailed ? (
+                    <img src={safeImageUrl(venue.logo_url)} alt={code}
                         onError={() => setLogoFailed(true)}
                         className="pnm-console-card__logo" />
                 ) : (
@@ -133,7 +134,8 @@ export default function RichTourCard({ venue, isFavorited, onFavorite, onNavigat
     const displayTour = tour || venue.tour_card_data || {};
     const tourTone = TOUR_TONES[tourCode] || TOUR_TONES.default;
     const tourTypeLabel = TOUR_TYPE_LABELS[displayTour.tour_type] || displayTour.tour_type || '';
-    const logoUrl = displayTour.logo_url || venue.logo_url;
+    // An unmirrored host returns null and the painted brand plate below draws instead.
+    const logoUrl = safeImageUrl(displayTour.logo_url) || safeImageUrl(venue.logo_url) || null;
     const [logoFailed, setLogoFailed] = React.useState(false);
 
     React.useEffect(() => {

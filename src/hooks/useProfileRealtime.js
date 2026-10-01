@@ -23,6 +23,7 @@
  */
 import { useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
+import { readOwnProfile } from '../lib/ownProfile';
 
 // ── Module-level shared state per userId ────────────────────────────────────
 // Map<userId, { channel, subscribers: Set<id>, callbacks: Map<id, CallbackSet> }>
@@ -45,8 +46,21 @@ function getOrCreateChannel(userId) {
                 schema: 'public',
                 table: 'profiles',
                 filter: `id=eq.${userId}`,
-            }, (payload) => {
-                const profile = payload.new;
+            }, async (payload) => {
+                const profile = { ...(payload.new || {}) };
+                // Realtime leaves out every column the subscriber's role may
+                // not SELECT, and since 2026-09-30 the Diamond balance is one
+                // of them even on the owner's own row. When the payload comes
+                // without it, read it through the owner path so the balance
+                // still moves live.
+                if (profile.diamonds === undefined) {
+                    try {
+                        const { data } = await readOwnProfile(supabase, 'diamonds', { expectId: userId });
+                        if (data && data.diamonds !== undefined) profile.diamonds = data.diamonds;
+                    } catch (e) {
+                        console.warn('[ProfileRealtime] Own balance read failed:', e?.message || e);
+                    }
+                }
                 // Fan out to all current subscribers
                 entry.callbacks.forEach((cbs) => {
                     if (profile.diamonds !== undefined) {
