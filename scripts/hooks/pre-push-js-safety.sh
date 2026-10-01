@@ -64,13 +64,13 @@ done
 PUSH_BASE=$(git merge-base "$CANDIDATE" refs/remotes/origin/main) || {
     echo "PUSH BLOCKED: fetch the protected main reference before checking."; exit 1;
 }
-# Deleted paths are intentionally absent from the candidate and cannot be
-# parsed. Keep renames/copies on their destination path while excluding
-# deletions from every file-content check below.
-CHANGED_FILES=$(git diff --name-only --diff-filter=ACMR "$PUSH_BASE" "$CANDIDATE") || exit 1
+CHANGED_FILES=$(git diff --name-only "$PUSH_BASE" "$CANDIDATE") || exit 1
+# Deleted paths still make this an application candidate and therefore retain
+# dependency/baseline checks, but their absent bytes must not be parsed.
+CONTENT_FILES=$(git diff --name-only --diff-filter=ACMR "$PUSH_BASE" "$CANDIDATE") || exit 1
 
 # Native module files are checked by Node; application JS/JSX uses Babel below.
-for file in $(printf '%s\n' "$CHANGED_FILES" | grep -E '\.(mjs|cjs)$'); do
+for file in $(printf '%s\n' "$CONTENT_FILES" | grep -E '\.(mjs|cjs)$'); do
     node --check "$file" || exit 1
 done
 if printf '%s\n' "$CHANGED_FILES" | grep -qE '(^|/)(AGENTS|CLAUDE|AGENT-PLAYBOOK|PUBLISHING)\.md$|^docs/agent-policy/|^\.agent/|^scripts/hooks/pre-push-js-safety\.sh$|^\.husky/pre-push$'; then
@@ -82,9 +82,10 @@ if [ -z "$CHANGED_FILES" ]; then
     exit 0
 fi
 
-JS_FILES=$(echo "$CHANGED_FILES" | grep -v 'public/hub/club-arena/assets/' | grep -E '\.(js|jsx|ts|tsx)$' | grep -v node_modules | grep -v '.next/')
+ALL_JS_FILES=$(echo "$CHANGED_FILES" | grep -v 'public/hub/club-arena/assets/' | grep -E '\.(js|jsx|ts|tsx)$' | grep -v node_modules | grep -v '.next/')
+JS_FILES=$(echo "$CONTENT_FILES" | grep -v 'public/hub/club-arena/assets/' | grep -E '\.(js|jsx|ts|tsx)$' | grep -v node_modules | grep -v '.next/')
 
-if [ -z "$JS_FILES" ]; then
+if [ -z "$ALL_JS_FILES" ]; then
     echo -e "${GREEN}✓ No JS/TS files changed. Push allowed.${NC}"
     exit 0
 fi
@@ -95,7 +96,7 @@ node -e "require.resolve('@babel/parser')" >/dev/null 2>&1 || {
     echo "PUSH BLOCKED: install locked private dependencies; @babel/parser is unavailable."
     exit 1
 }
-if printf '%s\n' "$JS_FILES" | grep -qE '\.(ts|tsx)$' && [ ! -x node_modules/.bin/tsc ]; then
+if printf '%s\n' "$ALL_JS_FILES" | grep -qE '\.(ts|tsx)$' && [ ! -x node_modules/.bin/tsc ]; then
     echo "PUSH BLOCKED: install locked private dependencies; TypeScript is unavailable."
     exit 1
 fi
