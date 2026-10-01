@@ -3,10 +3,19 @@ import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import test from 'node:test';
 
 const MIGRATION_NAME = '20260927154600_restore_historical_user_reel_post_rights.sql';
+const AMBIGUOUS_MIGRATION_NAME = '20261001182000_restore_ambiguous_user_reel_post_rights.sql';
 const migrationsDir = new URL('../supabase/migrations/', import.meta.url);
 const migrationUrl = new URL(MIGRATION_NAME, migrationsDir);
+const ambiguousMigrationUrl = new URL(AMBIGUOUS_MIGRATION_NAME, migrationsDir);
 const source = existsSync(migrationUrl) ? readFileSync(migrationUrl, 'utf8') : '';
+const ambiguousSource = existsSync(ambiguousMigrationUrl)
+  ? readFileSync(ambiguousMigrationUrl, 'utf8')
+  : '';
 const sql = source
+  .split('\n')
+  .filter(line => !line.trimStart().startsWith('--'))
+  .join('\n');
+const ambiguousSql = ambiguousSource
   .split('\n')
   .filter(line => !line.trimStart().startsWith('--'))
   .join('\n');
@@ -36,6 +45,99 @@ function block(tag) {
   assert.ok(match, `${MIGRATION_NAME} must contain an executable ${tag} block`);
   return match[1];
 }
+
+function ambiguousBlock(tag) {
+  const match = ambiguousSql.match(new RegExp(`DO \\$${tag}\\$([\\s\\S]*?)\\$${tag}\\$;`));
+  assert.ok(match, `${AMBIGUOUS_MIGRATION_NAME} must contain an executable ${tag} block`);
+  return match[1];
+}
+
+test('SUP-07 ambiguous post-rights correction is one guarded rights-only migration', () => {
+  assert.ok(existsSync(ambiguousMigrationUrl), `${AMBIGUOUS_MIGRATION_NAME} must exist`);
+  assert.deepEqual(
+    readdirSync(migrationsDir).filter(name => name.startsWith('20261001182000_')),
+    [AMBIGUOUS_MIGRATION_NAME],
+    'the corrective migration ledger version must be unique',
+  );
+  assert.match(ambiguousSource, /TIER:\s+3/);
+  assert.equal((ambiguousSql.match(/^BEGIN;$/gm) || []).length, 1);
+  assert.equal((ambiguousSql.match(/^COMMIT;$/gm) || []).length, 1);
+  assert.match(ambiguousSql, /SET TRANSACTION ISOLATION LEVEL SERIALIZABLE/);
+  assert.match(ambiguousSql, /SET LOCAL lock_timeout = '5s'/);
+  assert.match(ambiguousSql, /SET LOCAL statement_timeout = '60s'/);
+  assert.match(ambiguousSql, /sup07-ambiguous-user-reel-post-rights-v3/);
+  assert.doesNotMatch(ambiguousSql, /^\s*(?:ALTER|DROP|INSERT|DELETE|TRUNCATE)\b/im);
+  assert.doesNotMatch(ambiguousSql, /^\s*CREATE\s+(?!TEMP\s+TABLE\b)/im);
+  assert.doesNotMatch(ambiguousSource, /\p{Extended_Pictographic}/u);
+});
+
+test('ambiguous post-rights correction pins the exact drift, ownership, and predecessors', () => {
+  const preflight = ambiguousBlock('preflight');
+  assert.match(preflight, /version = '20260927154219' AND name = 'recover_historical_user_reels'/);
+  assert.match(preflight, /version = '20260927174555' AND name = 'restore_historical_user_reel_post_rights'/);
+  assert.match(preflight, /version = '20260930182441' AND name = '20260930170100_social_post_topics_rule'/);
+  assert.match(preflight, /version = '20260930182606' AND name = '20260930170200_social_post_topics_backfill'/);
+  assert.match(preflight, /public\.social_posts[\s\S]*FOR UPDATE/);
+  assert.match(preflight, /public\.social_reels[\s\S]*FOR SHARE/);
+  assert.ok(preflight.includes(AMBIGUOUS_POST_ID));
+  assert.ok(preflight.includes(AMBIGUOUS_REEL_ID));
+  assert.match(preflight, /p\.topics = ARRAY\['unknown'\]::text\[\]/);
+  assert.match(preflight, /p\.rights_status = 'unknown'/);
+  assert.match(preflight, /native:504c25ca805a2d6caf36cba72ae93b92/);
+  assert.match(preflight, /live-recordings\/47965354-0e56-43ef-931c-ddaab82af765\/9e32239c-beb7-4d3d-85d9-e3cb862d6e32\.webm/);
+  assert.match(preflight, /fn_filter_valid_user_video_storage_urls/);
+  assert.match(preflight, /v_count <> 1/);
+});
+
+test('ambiguous post-rights correction restores only rights and proves byte stability', () => {
+  const repair = ambiguousBlock('repair');
+  const postapply = ambiguousBlock('postapply');
+  assert.match(ambiguousSql, /set_config\('request\.jwt\.claim\.role', 'service_role', true\)/);
+  assert.match(repair, /UPDATE public\.social_posts[\s\S]*SET rights_status = 'user_authorized'/);
+  assert.match(repair, /topics = ARRAY\['unknown'\]::text\[\]/);
+  assert.match(repair, /rights_status = 'unknown'/);
+  assert.match(repair, /expected one update/);
+  const setClause = repair.match(/UPDATE public\.social_posts[\s\S]*?SET([\s\S]*?)WHERE/)?.[1] || '';
+  assert.equal(setClause.trim(), "rights_status = 'user_authorized'");
+  assert.match(postapply, /to_jsonb\(p\) - 'rights_status'/);
+  assert.match(postapply, /to_jsonb\(b\) - 'rights_status'/);
+  assert.match(postapply, /to_jsonb\(r\) = to_jsonb\(b\)/);
+  assert.match(postapply, /post bytes changed beyond rights_status/);
+  assert.match(postapply, /Reel changed or disappeared/);
+});
+
+test('ambiguous post-rights rollback is fail-closed and restores only rights', () => {
+  const rollback = ambiguousSource.slice(ambiguousSource.indexOf('-- ROLLBACK'));
+  assert.match(rollback, /-- BEGIN;/);
+  assert.match(rollback, /-- SET TRANSACTION ISOLATION LEVEL SERIALIZABLE;/);
+  assert.match(rollback, /-- SET LOCAL lock_timeout = '5s';/);
+  assert.match(rollback, /-- SET LOCAL statement_timeout = '60s';/);
+  assert.match(rollback, /-- SELECT pg_advisory_xact_lock/);
+  assert.match(rollback, /session_replication_role must be origin/);
+  assert.match(rollback, /--   PERFORM 1 FROM public\.social_posts[\s\S]*FOR UPDATE;/);
+  assert.match(rollback, /--   PERFORM 1 FROM public\.social_reels[\s\S]*FOR SHARE;/);
+  assert.ok(rollback.includes(AMBIGUOUS_POST_ID));
+  assert.ok(rollback.includes(AMBIGUOUS_REEL_ID));
+  assert.match(rollback, /p\.topics = ARRAY\['unknown'\]::text\[\]/);
+  assert.match(rollback, /p\.rights_status = 'user_authorized'/);
+  assert.match(rollback, /exact corrected state drifted/);
+  assert.match(rollback, /fn_filter_valid_user_video_storage_urls/);
+  assert.match(rollback, /v_count <> 1/);
+  assert.match(rollback, /owned Storage object was not proven/);
+  assert.match(rollback, /-- SELECT set_config\('request\.jwt\.claim\.role', 'service_role', true\);/);
+  assert.match(rollback, /service-role claim is not active/);
+  assert.match(rollback, /--   SET rights_status = 'unknown'/);
+  assert.match(rollback, /--     AND rights_status = 'user_authorized';/);
+  assert.match(rollback, /expected one update/);
+  assert.match(rollback, /_sup07_ambiguous_rollback_post_before/);
+  assert.match(rollback, /_sup07_ambiguous_rollback_reel_before/);
+  assert.match(rollback, /to_jsonb\(p\) - 'rights_status'/);
+  assert.match(rollback, /to_jsonb\(b\) - 'rights_status'/);
+  assert.match(rollback, /to_jsonb\(r\) = to_jsonb\(b\)/);
+  assert.match(rollback, /post bytes changed beyond rights_status/);
+  assert.match(rollback, /Reel changed or disappeared/);
+  assert.match(rollback, /-- COMMIT;/);
+});
 
 test('SUP-07 post-rights follow-up is one guarded forward migration', () => {
   assert.ok(existsSync(migrationUrl), `${MIGRATION_NAME} must exist`);

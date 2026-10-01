@@ -872,7 +872,8 @@ async function readSup07AuthoritativeState(admin) {
         if (post[field] !== value) failed.push(field);
       }
       if (!Array.isArray(post.media_urls) || post.media_urls.length !== 1 || post.media_urls[0] !== group.videoUrl) failed.push('media_urls');
-      if (index === 3 ? post.topics !== null : !(Array.isArray(post.topics) && post.topics.length === 1 && post.topics[0] === 'poker')) failed.push('topics');
+      const expectedPostTopic = index === 3 ? 'unknown' : 'poker';
+      if (!(Array.isArray(post.topics) && post.topics.length === 1 && post.topics[0] === expectedPostTopic)) failed.push('topics');
     }
     if (failed.length) postFailures.push({ group: index + 1, fields: failed });
     const authorId = reels.get(group.winner)?.author_id;
