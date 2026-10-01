@@ -977,7 +977,12 @@ async function verifyPublicBrowser(browser, bookmarkAlias, validatedForYouRows, 
   await installReadOnlyNetworkGuard(context, state);
   const page = await context.newPage();
   const pageErrors = [];
-  page.on('pageerror', () => pageErrors.push('browser-page-error'));
+  page.on('pageerror', (error) => {
+    const kind = error instanceof Error && error.name ? error.name : 'Error';
+    const message = error instanceof Error && error.message ? error.message.split('\n')[0].slice(0, 160) : 'browser-page-error';
+    pageErrors.push(`${kind}: ${message}`);
+    report.signedInBrowserErrors = [...pageErrors];
+  });
   page.setDefaultTimeout(40000);
   try {
     const initialResponse = page.waitForResponse((response) => {
