@@ -70,7 +70,9 @@ const _binPath = (x) => {
 // `headless` getter; its README launches puppeteer with headless: "shell", so
 // that is the fallback when the getter is absent.
 async function launchChromium() {
-    const chromiumModule = require('@sparticuz/chromium');
+    // @sparticuz/chromium 153 is an ES module (type: module); webpack refuses a
+    // require() of an ESM external, so it is loaded with a dynamic import.
+    const chromiumModule = await import('@sparticuz/chromium');
     const chromium = chromiumModule && chromiumModule.default ? chromiumModule.default : chromiumModule;
     const puppeteer = require('puppeteer-core');
     return puppeteer.launch({
