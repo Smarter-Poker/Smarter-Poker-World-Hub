@@ -82,6 +82,7 @@ async function handler(req, res) {
             .from('trivia_pvp_matches')
             .select('id, player1_id, player2_id, stake_amount, questions, status, player1_score, player2_score, winner_id, created_at, settlement_kind, stats_recorded_at')
             .or('status.in.(active,settling),and(status.in.(complete,completed),stats_recorded_at.is.null)')
+            .is('engine_version', null)
             .lt('created_at', cutoffIso)
             .order('created_at', { ascending: true })
             .limit(MAX_MATCHES_PER_RUN);
@@ -146,8 +147,22 @@ async function handler(req, res) {
             }
         }
 
+        // Phase 5 v2 engine: one idempotent recovery RPC expires dead queue
+        // presence, drives Smarter Horse plans, closes past-deadline seats and
+        // settles finished matches through the Phase 2 ledger. Manual only until
+        // the Phase 12 OpenClaw cutover schedules it.
+        const { data: v2Recovery, error: v2Error } = await sb.rpc('trivia_pvp_recover_v2', {
+            p_limit: MAX_MATCHES_PER_RUN,
+        });
+        if (v2Error || v2Recovery?.success !== true) {
+            settlementFailures += Math.max(1, Number(v2Recovery?.failed) || 0);
+            const failure = new Error(`v2 PvP recovery failed: ${v2Error?.message || v2Recovery?.failed || 'unknown'}`);
+            try { reportApiError(failure, { route: 'pvp-settle', engine: 'pvp-v2' }); } catch (_) {}
+        }
+
         const summary = {
             success: settlementFailures === 0,
+            v2_recovery: v2Error ? { success: false, error: 'recovery_failed' } : v2Recovery,
             scanned: (matches || []).length,
             settled,
             wins,
