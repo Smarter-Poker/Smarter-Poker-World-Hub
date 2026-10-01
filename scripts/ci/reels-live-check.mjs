@@ -1222,6 +1222,7 @@ async function verifySignedInBrowser(browser, session, article, report) {
   page.on('pageerror', () => pageErrors.push('browser-page-error'));
   page.setDefaultTimeout(45000);
   try {
+    report.signedInBrowserStage = 'following';
     const followingResponse = page.waitForResponse((response) => {
       const url = new URL(response.url());
       return url.pathname === '/api/reels/feed'
@@ -1231,14 +1232,16 @@ async function verifySignedInBrowser(browser, session, article, report) {
     assert.equal((await followingResponse).status(), 200, 'Signed-in Following browser request was rejected');
     assert.equal(await page.getByText(/Sign In (Again )?For Following/).count(), 0, 'Signed-in Following rendered an authentication prompt');
 
+    report.signedInBrowserStage = 'ordinary-article';
     await page.goto(`${APP_ORIGIN}/hub/social-media?post=${article.id}`, { waitUntil: 'domcontentloaded' });
-    const articleLabel = page.getByText(/Click To Read Full Article/i).first();
+    const articleLabel = page.getByText(/Click To Read Full Article/i).filter({ visible: true }).first();
     await articleLabel.waitFor();
     await articleLabel.click();
-    const reader = page.locator('iframe[src*="/api/proxy?url="]').first();
+    const readerDialog = page.getByRole('dialog', { name: 'Article Reader' });
+    const reader = readerDialog.locator('iframe[src*="/api/proxy?url="]');
     await reader.waitFor();
     assert.equal(new URL(page.url()).pathname, '/hub/social-media', 'Ordinary article was rewritten into a Reel route');
-    await page.locator('button[aria-label="Close"]:visible').last().click();
+    await readerDialog.getByRole('button', { name: 'Close' }).click();
     await reader.waitFor({ state: 'detached' });
 
     const verifyCollectionPage = async ({ path, apiPath, emptyText }) => {
@@ -1259,11 +1262,13 @@ async function verifySignedInBrowser(browser, session, article, report) {
         state: await page.locator('.vlc-reel-grid').count() > 0 ? 'populated' : 'empty',
       };
     };
+    report.signedInBrowserStage = 'my-reels';
     const myReels = await verifyCollectionPage({
       path: '/hub/reels/my-reels',
       apiPath: '/api/reels/mine',
       emptyText: 'Your Channel Is Quiet. Publish Your First Reel To Start The Feed',
     });
+    report.signedInBrowserStage = 'saved-reels';
     const savedReels = await verifyCollectionPage({
       path: '/hub/reels/saved',
       apiPath: '/api/reels/saved',
@@ -1278,6 +1283,7 @@ async function verifySignedInBrowser(browser, session, article, report) {
       browserErrors: pageErrors.length,
       ...readOnlyGuardReceipt(state),
     };
+    report.signedInBrowserStage = 'complete';
   } finally {
     await context.close();
   }
