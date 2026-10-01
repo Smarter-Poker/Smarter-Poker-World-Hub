@@ -105,11 +105,11 @@ test('hostile-drop proof isolates route failure from native codec fallback', () 
   );
 });
 
-test('public mobile proof counts media only inside the standalone Reels viewer', () => {
+test('public mobile proof counts each media DOM node once inside the standalone Reels viewer', () => {
   assert.match(
     REELS_LIVE_CHECK,
-    /const players = page\s*\.getByLabel\(\/Reels Viewer\$\/\)\s*\.locator\('iframe\[src\*="youtube-nocookie\.com\/embed\/"\], video'\);/,
-    'global picture-in-picture media must not be mistaken for a duplicate Reel player',
+    /const players = page\s*\.locator\('main'\)\s*\.locator\('iframe\[src\*="youtube-nocookie\.com\/embed\/"\], video'\);/,
+    'nested accessible labels and global picture-in-picture must not double-count a Reel player',
   );
 });
 
