@@ -1,11 +1,12 @@
 // The Phase 9 render cron through its deps (contract C6): a fake service
-// client, a fake browser whose page emits screencast frames and flips
-// data-clip-state, a fake ffmpeg that writes files, a fake storage upload and
-// a fake clock drive the whole claim -> render -> finish -> publish path.
-// Every failure reason ends in fn_hand_clip_finish(failed, reason) and never
-// in a thrown error; the publish call is made only for a horse job the fleet
-// marked auto_publish; /tmp/<job id> is removed on every path; every fire
-// writes one cron_execution_log row, the empty queue included.
+// client, a fake browser whose page hands over a plan, follows seek(i) with
+// data-clip-step and answers Page.captureScreenshot, a fake ffmpeg that writes
+// files, a fake storage upload and a fake clock drive the whole
+// claim -> render -> finish -> publish path. Every failure reason ends in
+// fn_hand_clip_finish(failed, reason) and never in a thrown error; the publish
+// call is made only for a horse job the fleet marked auto_publish; /tmp/<job id>
+// is removed on every path; every fire writes one cron_execution_log row, the
+// empty queue included.
 import assert from 'node:assert/strict';
 import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -15,7 +16,8 @@ import { createHandler } from '../pages/api/cron/render-hand-clips.js';
 import {
   CLIP_PAGE_URL,
   JOB_NAME,
-  SCREENCAST_PARAMS,
+  PAINT_WAIT_MS,
+  STILL_PARAMS,
   pageScripts,
   publicUrlFor,
   renderClipJob,
@@ -28,6 +30,11 @@ const HERO = '44444444-4444-4444-8444-444444444444';
 const OTHER = '22222222-2222-4222-8222-222222222222';
 const SUPABASE_URL = 'https://kuklfnapbkmacvwxktbh.supabase.co';
 const NULL_ROW = { id: null, hand_id: null, author_id: null, kind: null, state: null };
+/* Eleven frames: deal, three streets, seven actions; 11,900 ms of beats and an
+   8,100 ms hold make the 20,000 ms the page planned. */
+const BEATS = [1400, 900, 900, 1400, 900, 900, 1400, 900, 900, 900, 1400];
+const HOLD_MS = 8100;
+const PLANNED_MS = 20000;
 
 function makeJob(overrides = {}) {
   return {
@@ -85,22 +92,28 @@ function makeSupa({ claim = NULL_ROW, claimError = null, finishError = null, pub
 
 /**
  * A fake browser. `states` is the sequence [data-clip-state] reports on each
- * read (the last value repeats); `frameCount` frames arrive the moment the
- * screencast starts, 100 ms apart from `firstTimestamp`.
+ * read (the last value repeats); `plan` is what window.__spClip hands over;
+ * seek(i) answers `seekReturns` and, when `stepFollows`, data-clip-step reports
+ * the last sought frame; Page.captureScreenshot answers `shotData` (base64).
  */
-function makeBrowser({ states = ['loading', 'ready', 'playing', 'done'], frameCount = 11, firstTimestamp = 1700000000, frameGapSeconds = 0.1, plannedMs = 20000, startReturns = true } = {}) {
-  const rec = { injected: null, gotos: [], cdp: [], acks: 0, closed: 0, starts: 0, stateReads: 0 };
+function makeBrowser({
+  states = ['loading', 'ready'],
+  plan = { frames: BEATS.length, rate: 1, beats: BEATS, holdMs: HOLD_MS, plannedMs: PLANNED_MS },
+  seekReturns = true,
+  stepFollows = true,
+  shotData = (i) => Buffer.from(`still-${i}`).toString('base64'),
+} = {}) {
+  const rec = { injected: null, gotos: [], cdp: [], shots: 0, seeks: [], paints: [], closed: 0, stateReads: 0, stepReads: 0 };
   let reads = 0;
-  let handler = null;
+  let step = 0;
   const session = {
-    on: (event, fn) => { if (event === 'Page.screencastFrame') handler = fn; },
+    on: () => {},
     send: async (method, params) => {
       rec.cdp.push({ method, params });
-      if (method === 'Page.screencastFrameAck') rec.acks += 1;
-      if (method === 'Page.startScreencast' && handler) {
-        for (let i = 0; i < frameCount; i += 1) {
-          handler({ data: Buffer.from(`frame-${i}`).toString('base64'), metadata: { timestamp: firstTimestamp + i * frameGapSeconds }, sessionId: i + 1 });
-        }
+      if (method === 'Page.captureScreenshot') {
+        const n = rec.shots;
+        rec.shots += 1;
+        return { data: shotData(n) };
       }
       return {};
     },
@@ -109,15 +122,21 @@ function makeBrowser({ states = ['loading', 'ready', 'playing', 'done'], frameCo
     evaluateOnNewDocument: async (fn, payload) => { rec.injected = { fn, payload }; },
     goto: async (url, opts) => { rec.gotos.push({ url, opts }); },
     createCDPSession: async () => session,
-    evaluate: async (fn) => {
+    evaluate: async (fn, arg) => {
       if (fn === pageScripts.clipState) {
         rec.stateReads += 1;
         const state = states[Math.min(reads, states.length - 1)];
         reads += 1;
         return state;
       }
-      if (fn === pageScripts.plannedMs) return plannedMs;
-      if (fn === pageScripts.start) { rec.starts += 1; return startReturns; }
+      if (fn === pageScripts.plan) return plan;
+      if (fn === pageScripts.seek) {
+        rec.seeks.push(arg);
+        if (seekReturns && stepFollows) step = arg;
+        return seekReturns;
+      }
+      if (fn === pageScripts.clipStep) { rec.stepReads += 1; return step; }
+      if (fn === pageScripts.painted) { rec.paints.push(arg); return true; }
       throw new Error('unexpected page script');
     },
   };
@@ -212,7 +231,7 @@ test('a claim error answers 500 and writes an error row, never a throw', async (
   assert.match(rows[0].error, /fn_hand_clip_claim/);
 });
 
-test('a user job: claim, inject C1, goto, screencast, encode, upload, finish ready; no publish; /tmp cleaned; one log row', async () => {
+test('a user job: claim, inject C1, goto, one still per frame at its beat, encode, upload, finish ready; no publish; /tmp cleaned; one log row', async () => {
   const job = makeJob();
   const supa = makeSupa({ claim: job });
   const browser = makeBrowser();
@@ -225,6 +244,7 @@ test('a user job: claim, inject C1, goto, screencast, encode, upload, finish rea
   assert.equal(res.body.rendered, 1);
   assert.equal(res.body.job.state, 'ready');
   assert.equal(res.body.job.frames, 11);
+  assert.equal(res.body.job.duration_ms, PLANNED_MS);
 
   // C1 injected before any script, then the live clip page.
   assert.equal(browser.rec.injected.fn, pageScripts.inject);
@@ -234,21 +254,23 @@ test('a user job: claim, inject C1, goto, screencast, encode, upload, finish rea
   });
   assert.deepEqual(browser.rec.gotos, [{ url: CLIP_PAGE_URL, opts: { waitUntil: 'networkidle2', timeout: 60000 } }]);
 
-  // The screencast: C6 step 4 parameters, one ack per frame, stopped, browser closed once.
-  const methods = browser.rec.cdp.map((c) => c.method);
-  assert.equal(methods[0], 'Page.startScreencast');
-  assert.deepEqual(browser.rec.cdp[0].params, { ...SCREENCAST_PARAMS });
-  assert.equal(browser.rec.acks, 11);
-  assert.ok(methods.includes('Page.stopScreencast'));
-  assert.equal(browser.rec.starts, 1);
+  // The camera: every frame sought in order, each commit confirmed and painted, one still each.
+  assert.deepEqual(browser.rec.seeks, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+  assert.ok(browser.rec.stepReads >= 11, 'data-clip-step is read for every frame');
+  assert.deepEqual(browser.rec.paints, new Array(11).fill(PAINT_WAIT_MS));
+  assert.equal(browser.rec.shots, 11);
+  assert.ok(browser.rec.cdp.every((c) => c.method === 'Page.captureScreenshot'), 'no screencast, nothing else over CDP');
+  assert.deepEqual(browser.rec.cdp[0].params, { ...STILL_PARAMS });
   assert.equal(browser.rec.closed, 1);
 
-  // The encode: the concat list carried every frame; the exact C6 step 5 commands ran in order.
+  // The encode: the concat list carried every still for its beat, the last with the hold; the exact C6 step 5 commands ran in order.
   assert.equal(rec.ffmpeg.length, 2);
   assert.equal(rec.listFiles.length, 1);
-  assert.equal(rec.listFiles[0].frames, 11, 'eleven frame files were on disk when ffmpeg ran');
-  assert.equal((rec.listFiles[0].text.match(/^file '/gm) || []).length, 12, 'eleven frames plus the repeated last file');
-  assert.match(rec.listFiles[0].text, /duration 19\.000\n/, 'the hold stretches the 1 s span to the 20 s the page planned');
+  assert.equal(rec.listFiles[0].frames, 11, 'eleven still files were on disk when ffmpeg ran');
+  assert.equal((rec.listFiles[0].text.match(/^file '/gm) || []).length, 12, 'eleven stills plus the repeated last file');
+  const durations = [...rec.listFiles[0].text.matchAll(/^duration (\d+\.\d{3})$/gm)].map((m) => Math.round(Number(m[1]) * 1000));
+  assert.deepEqual(durations, [1400, 900, 900, 1400, 900, 900, 1400, 900, 900, 900, 1400 + HOLD_MS]);
+  assert.ok(rec.listFiles[0].text.includes(`${job.id}/f_0.jpg'`) && rec.listFiles[0].text.includes(`${job.id}/f_10.jpg'`));
   const [encode, poster] = rec.ffmpeg;
   assert.deepEqual(encode.slice(0, 4), ['-y', '-hide_banner', '-loglevel', 'error']);
   assert.ok(encode.includes('libx264') && encode.includes('veryfast') && encode.includes('+faststart') && encode.includes('-an'));
@@ -262,7 +284,7 @@ test('a user job: claim, inject C1, goto, screencast, encode, upload, finish rea
     { path: paths.poster, bytes: 8, contentType: 'image/jpeg' },
   ]);
 
-  // The finish call: ready with the measurement.
+  // The finish call: ready with the measurement, exactly what the page planned.
   const finishes = finishCalls(supa);
   assert.equal(finishes.length, 1);
   assert.deepEqual(finishes[0].args, {
@@ -270,7 +292,7 @@ test('a user job: claim, inject C1, goto, screencast, encode, upload, finish rea
     p_state: 'ready',
     p_video_url: publicUrlFor(SUPABASE_URL, paths.video),
     p_poster_url: publicUrlFor(SUPABASE_URL, paths.poster),
-    p_duration_ms: 20000,
+    p_duration_ms: PLANNED_MS,
     p_width: 1280,
     p_height: 720,
     p_frames: 11,
@@ -288,6 +310,25 @@ test('a user job: claim, inject C1, goto, screencast, encode, upload, finish rea
   assert.equal(rows[0].result.rendered, 1);
   assert.equal(rows[0].result.state, 'ready');
   assert.equal(rows[0].result.job_id, job.id);
+});
+
+test('the stills are what the page sent: each file holds that frame\'s screenshot', async () => {
+  const job = makeJob();
+  const supa = makeSupa({ claim: job });
+  const browser = makeBrowser();
+  const seen = [];
+  const { deps } = makeDeps({ supa, browser, tmpRoot });
+  deps.runFfmpeg = async (args) => {
+    const input = args[args.indexOf('-i') + 1];
+    if (input.endsWith('.txt')) {
+      const dir = join(input, '..');
+      for (let i = 0; i < 11; i += 1) seen.push(readFileSync(join(dir, `f_${i}.jpg`), 'utf8'));
+    }
+    writeFileSync(args[args.length - 1], Buffer.from('x'));
+  };
+  const summary = await renderClipJob(job, deps);
+  assert.equal(summary.state, 'ready');
+  assert.deepEqual(seen, new Array(11).fill(0).map((_, i) => `still-${i}`));
 });
 
 test('a horse job with auto_publish is handed to fn_p9_publish_hand_clip after the ready finish', async () => {
@@ -342,48 +383,67 @@ test('a publish error is logged, the clip stays ready, nothing throws and the fi
   assert.equal(rows[0].result.rendered, 1);
 });
 
+const noCamera = (b) => { assert.equal(b.rec.shots, 0, 'no still was taken'); assert.deepEqual(b.rec.seeks, []); };
+
 const failureCases = [
   {
     name: 'clip_too_long from the page (too_long before any capture)',
     reason: 'clip_too_long',
     browser: () => makeBrowser({ states: ['loading', 'too_long'] }),
-    check: (b) => { assert.equal(b.rec.cdp.length, 0, 'no screencast was started'); assert.equal(b.rec.starts, 0); },
+    check: noCamera,
   },
   {
     name: 'clip_not_ready after the 30 s ready wait',
     reason: 'clip_not_ready',
     browser: () => makeBrowser({ states: ['loading'] }),
     nowStepMs: 2000,
-    check: (b) => { assert.equal(b.rec.cdp.length, 0); assert.ok(b.rec.stateReads > 1); },
+    check: (b) => { noCamera(b); assert.ok(b.rec.stateReads > 1); },
   },
   {
-    name: 'clip_timeout when the page never reaches done',
-    reason: 'clip_timeout',
-    browser: () => makeBrowser({ states: ['ready', 'playing'] }),
-    nowStepMs: 2000,
-    check: (b) => { assert.equal(b.rec.starts, 1); assert.equal(b.rec.closed, 1); },
+    name: 'clip_plan_unreadable when the page hands over no plan',
+    reason: 'clip_plan_unreadable',
+    browser: () => makeBrowser({ plan: null }),
+    check: noCamera,
   },
   {
-    name: 'clip_start_refused when start() returns false',
-    reason: 'clip_start_refused',
-    browser: () => makeBrowser({ states: ['ready'], startReturns: false }),
+    name: 'no_frames when the plan has a single frame',
+    reason: 'no_frames',
+    browser: () => makeBrowser({ plan: { frames: 1, rate: 1, beats: [1400], holdMs: 13600, plannedMs: 15000 } }),
+    check: noCamera,
   },
   {
-    name: 'clip_too_long from the encode guard (frames span 45 s)',
+    name: 'clip_too_long from the plan guard (beats past 40 s) before any still',
     reason: 'clip_too_long',
-    browser: () => makeBrowser({ frameCount: 2, frameGapSeconds: 45 }),
+    browser: () => makeBrowser({ plan: { frames: 2, rate: 2, beats: [20000, 20000], holdMs: 1500, plannedMs: 41500 } }),
+    check: noCamera,
     checkDeps: (r) => { assert.equal(r.ffmpeg.length, 0, 'nothing is encoded'); assert.equal(r.uploads.length, 0); },
   },
   {
-    name: 'clip_too_short from the encode guard (1 s of frames, no plan)',
+    name: 'clip_too_short from the plan guard (beats and hold under 15 s) before any still',
     reason: 'clip_too_short',
-    browser: () => makeBrowser({ plannedMs: null }),
+    browser: () => makeBrowser({ plan: { frames: 2, rate: 1, beats: [1400, 900], holdMs: 1500, plannedMs: 3800 } }),
+    check: noCamera,
     checkDeps: (r) => { assert.equal(r.ffmpeg.length, 0); },
   },
   {
-    name: 'no_frames when the screencast delivers one frame',
-    reason: 'no_frames',
-    browser: () => makeBrowser({ frameCount: 1 }),
+    name: 'clip_seek_refused when the page refuses a frame',
+    reason: 'clip_seek_refused',
+    browser: () => makeBrowser({ seekReturns: false }),
+    check: (b) => { assert.deepEqual(b.rec.seeks, [0]); assert.equal(b.rec.shots, 0); assert.equal(b.rec.closed, 1); },
+  },
+  {
+    name: 'clip_seek_timeout when data-clip-step never shows the sought frame',
+    reason: 'clip_seek_timeout',
+    browser: () => makeBrowser({ stepFollows: false }),
+    nowStepMs: 2000,
+    check: (b) => { assert.deepEqual(b.rec.seeks, [0, 1], 'frame 0 was already on the felt; frame 1 never arrived'); assert.equal(b.rec.shots, 1); assert.equal(b.rec.closed, 1); },
+  },
+  {
+    name: 'still_empty when the screenshot has no data',
+    reason: 'still_empty',
+    browser: () => makeBrowser({ shotData: (i) => (i === 4 ? '' : Buffer.from('ok').toString('base64')) }),
+    check: (b) => { assert.equal(b.rec.shots, 5); },
+    checkDeps: (r) => { assert.equal(r.ffmpeg.length, 0); },
   },
   {
     name: 'an ffmpeg failure',
@@ -444,6 +504,22 @@ for (const c of failureCases) {
   });
 }
 
+test('render_deadline: the clock running out between stills fails the job and closes the browser', async () => {
+  const job = makeJob();
+  const supa = makeSupa({ claim: job });
+  const browser = makeBrowser();
+  const { deps } = makeDeps({ supa, browser, tmpRoot, nowStepMs: 10 });
+  /* The fake clock moves 10 ms per read and each still reads it twice: a
+     150 ms deadline runs out around the sixth frame. */
+  deps.deadlineMs = 150;
+  const summary = await renderClipJob(job, deps);
+  assert.equal(summary.state, 'failed');
+  assert.equal(summary.reason, 'render_deadline');
+  assert.ok(browser.rec.shots < 11, 'the camera stopped short');
+  assert.equal(browser.rec.closed, 1);
+  assert.equal(finishCalls(supa)[0].args.p_error, 'render_deadline');
+});
+
 test('a browser that cannot launch, and a finish call that fails, still resolve with the reason recorded', async () => {
   const job = makeJob();
   const supa = makeSupa({ claim: job });
@@ -499,4 +575,6 @@ test('the real handler module exports the Vercel config and a wrapped default ha
   assert.match(source, /\.from\('hand_discards'\)[\s\S]*\.eq\('table_id', hand\.table_id\)[\s\S]*\.eq\('hand_number', hand\.hand_number\)[\s\S]*\.eq\('user_id', job\.author_id\)/);
   const code = source.split('\n').filter((l) => !/^\s*(\/\/|\*|\/\*)/.test(l)).join('\n');
   assert.doesNotMatch(code, /setInterval|retry|is_horse/i, 'no watcher, no retry, no horse filter in the code');
+  const lib = readFileSync(new URL('../src/lib/server/handClipRender.js', import.meta.url), 'utf8');
+  assert.doesNotMatch(lib, /startScreencast|screencastFrame/i, 'the camera reads the plan, never a wall-clock screencast');
 });

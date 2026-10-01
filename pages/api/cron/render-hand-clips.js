@@ -6,9 +6,11 @@
  * Every two minutes (vercel.json crons) this function drains ONE job from
  * hand_clip_jobs: it claims the oldest queued row, opens the live Club Arena
  * replay page in clip mode inside a headless Chromium (puppeteer-core +
- * @sparticuz/chromium), records a CDP screencast while the page plays the
- * hand, encodes the frames with ffmpeg (@ffmpeg-installer, traced in exactly
- * like transcode-videos.js), uploads the MP4 and a poster JPEG to the public
+ * @sparticuz/chromium), takes one still per replay frame (the page hands
+ * over the beat of every frame; the camera seeks each one and screenshots
+ * it, so the clip is the page's plan whatever the CPU does), encodes the
+ * stills with ffmpeg (@ffmpeg-installer, traced in exactly like
+ * transcode-videos.js), uploads the MP4 and a poster JPEG to the public
  * social-media bucket, finishes the job as ready and, for a horse job the
  * fleet marked auto_publish, calls fn_p9_publish_hand_clip (which is the
  * switch: engine off or mode off leaves the clip ready and unpublished).
