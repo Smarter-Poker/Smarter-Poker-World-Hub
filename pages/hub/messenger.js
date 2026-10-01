@@ -2129,21 +2129,17 @@ function MessengerPage() {
         const selectedConvId = conversation.id;
         if (conversation.otherUser?.id) {
             try {
-                const { data: profile } = await supabase
-                    .from('profiles')
-                    .select('last_seen_at')
-                    .eq('id', conversation.otherUser.id)
-                    .maybeSingle();
+                // Another person's last-seen time is theirs alone (2026-09-30).
+                // The presence door says only whether they are online now
+                // (is_online and seen in the last five minutes), never when.
+                const { data: presence } = await supabase.rpc('fn_profile_presence', {
+                    p_user_ids: [conversation.otherUser.id],
+                });
                 // Staleness guard: bail if user already switched to a different conversation
                 if (activeConversationRef.current?.id !== selectedConvId) return;
-                if (profile?.last_seen_at) {
-                    const diff = Date.now() - new Date(profile.last_seen_at).getTime();
-                    setOtherUserLastSeen(profile.last_seen_at);
-                    setOtherUserStatus(diff < 120000 ? 'online' : 'offline'); // 2 min threshold
-                } else {
-                    setOtherUserStatus('offline');
-                    setOtherUserLastSeen(null);
-                }
+                const row = Array.isArray(presence) ? presence[0] : null;
+                setOtherUserStatus(row?.is_online ? 'online' : 'offline');
+                setOtherUserLastSeen(null);
             } catch { setOtherUserStatus('offline'); }
         }
     };
