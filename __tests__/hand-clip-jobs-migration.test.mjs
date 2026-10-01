@@ -8,7 +8,7 @@ import assert from 'node:assert/strict';
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import test from 'node:test';
 
-const MIGRATION_NAME = '20261001010100_hand_clip_jobs.sql';
+const MIGRATION_NAME = '20261001010600_hand_clip_jobs.sql';
 const migrationsDir = new URL('../supabase/migrations/', import.meta.url);
 const migrationUrl = new URL(MIGRATION_NAME, migrationsDir);
 const source = existsSync(migrationUrl) ? readFileSync(migrationUrl, 'utf8') : '';
@@ -29,7 +29,7 @@ function fnBlock(name) {
 test('the migration exists once, in one transaction, with the safety template', () => {
   assert.ok(existsSync(migrationUrl), `${MIGRATION_NAME} must exist`);
   assert.deepEqual(
-    readdirSync(migrationsDir).filter((name) => name.startsWith('20261001010100_')),
+    readdirSync(migrationsDir).filter((name) => name.startsWith('20261001010600_')),
     [MIGRATION_NAME],
     'the migration ledger version must be unique',
   );
