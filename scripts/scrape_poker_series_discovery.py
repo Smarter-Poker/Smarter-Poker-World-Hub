@@ -145,7 +145,7 @@ def dedup_key(name: str) -> str:
     collapsed into one group and the older edition was deleted.
     """
     s = name.lower().strip()
-    s = re.sub(r"[‘’'`]", "", s)
+    s = re.sub(r"[\\u2018\\u2019'`]", "", s)
     s = re.sub(r"[^a-z0-9\s]", " ", s)
     return re.sub(r"\s+", " ", s).strip()
 
