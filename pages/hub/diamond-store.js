@@ -533,8 +533,7 @@ function SignedOutClubShopPreview() {
           Preview Club Equipment
         </h3>
         <p style={{ color: 'rgba(233, 243, 250, 0.72)', fontSize: 13, lineHeight: 1.55 }}>
-          Sign In To Load Your Club&apos;s Live Catalog, Member Pricing, Ownership, And Purchase
-          Controls.
+          Sign In To Load The Live Club Catalog, Member Pricing, Ownership, And Purchase Controls.
         </p>
       </div>
       <div className={shellStyles.clubItemGrid}>
