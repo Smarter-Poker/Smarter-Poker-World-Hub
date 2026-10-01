@@ -457,6 +457,11 @@ import './a-venue-mark-is-only-asked-for-when-it-exists.test.mjs';
 // logo_url. This pins the shared components so a new caller is covered.
 import './no-venue-picture-reaches-the-dom-unguarded.test.mjs';
 
+// Every venue page served two og:image tags and the generic site card won,
+// so all 478 shared one picture. next/head does not deduplicate by
+// `property`, only by `key`, and the two producers used different keys.
+import './a-venue-page-shares-its-own-card.test.mjs';
+
 // The Report-Only CSP can only graduate if its violations reach us, so the
 // reporting wiring and the endpoint that receives it are guarded here.
 import './csp-violations-reach-us.test.mjs';
