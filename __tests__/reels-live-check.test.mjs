@@ -11,6 +11,7 @@ import {
   crawlCanonicalFeed,
   isBrowserReadOnlyRequest,
   isNarrowUnknownNativeReel,
+  selectStableHostileDropReel,
   validateCollectionPage,
   validateFeedPage,
   validateReceipt,
@@ -83,6 +84,26 @@ function youtubeRow(index = 1, overrides = {}) {
     ...overrides,
   });
 }
+
+test('hostile-drop proof isolates route failure from native codec fallback', () => {
+  const nativeAlias = nativeRow(1);
+  const embed = youtubeRow(2, { topic: 'poker' });
+  const staleEmbed = youtubeRow(3, {
+    topic: 'poker',
+    availability_checked_at: '2020-01-01T00:00:00.000Z',
+    last_verified_at: '2020-01-01T00:00:00.000Z',
+  });
+  assert.equal(selectStableHostileDropReel([nativeAlias, embed], nativeAlias.id), embed);
+  assert.equal(selectStableHostileDropReel([nativeAlias], nativeAlias.id), null);
+  assert.equal(selectStableHostileDropReel([staleEmbed, embed], nativeAlias.id), embed);
+  assert.equal(
+    selectStableHostileDropReel([
+      embed,
+      { ...embed, id: uuid(3), youtube_video_id: 'not-valid' },
+    ], embed.id),
+    null,
+  );
+});
 
 function page(data, {
   category = 'for-you',
@@ -481,6 +502,7 @@ test('workflow retains and independently asserts the complete sanitized receipt'
         oldBookmarkCanonicalized: true,
         loserAliasRenderedCanonicalWinner: true,
         staleStorageRetired: true,
+        hostileDropUsedStableEmbed: true,
         midFlightDropRetainedPlayer: true,
         retryRecoveredSports: true,
         activePlayers: 1,
