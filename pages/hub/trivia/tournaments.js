@@ -48,6 +48,7 @@ import { prizeSchedule, splitPrizePool } from '../../../src/lib/trivia/prizeSche
 import useVIPGate from '../../../src/hooks/useVIPGate';
 import { triviaTournamentPageReleaseResult } from '../../../src/lib/trivia/tournamentReleaseControl.mjs';
 import HubPageSummary from '../../../src/components/seo/HubPageSummary';
+import { readOwnProfile } from '../../../src/lib/ownProfile';
 
 // Direct navigation cannot boot the legacy tournament client while the
 // nightly server-owned tournament engine is being rebuilt.
@@ -314,11 +315,7 @@ export default function TournamentsPage() {
         setUserId(user.id);
 
         // Load diamonds
-        const { data: profile } = await supabase
-            .from('profiles')
-            .select('diamonds')
-            .eq('id', user.id)
-            .maybeSingle();
+        const { data: profile } = await readOwnProfile(supabase, 'diamonds', { expectId: user.id });
 
         if (profile) setUserDiamonds(profile.diamonds || 0);
 

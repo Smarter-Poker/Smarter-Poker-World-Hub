@@ -1,10 +1,23 @@
 .storefront {
+  min-width: 0;
   color: #edf7fb;
   font-family: var(--font-inter), Inter, Arial, sans-serif;
 }
 
+.storefront *,
+.storefront *::before,
+.storefront *::after {
+  box-sizing: border-box;
+}
+
+.storefrontDetail {
+  width: min(100%, 760px);
+  margin: 32px auto 0;
+}
+
 .intro {
   margin-bottom: 40px;
+  text-align: center;
 }
 
 .storeTitle,
@@ -31,29 +44,23 @@
   line-height: 1.65;
 }
 
-/* A percentage padding resolves against the CONTAINING BLOCK's inline size,
-   not this element's. The plate is narrower than its container, so the
-   percentages the artwork wants have to be measured against the plate. Same
-   remedy as .status in pages/hub/merch-store/fulfillment.module.css. */
 .balanceReadout {
-  --balance-plate-width: min(360px, 100%);
-
   display: inline-flex;
-  width: var(--balance-plate-width);
-  aspect-ratio: 1800 / 386;
+  min-height: 44px;
   align-items: center;
   justify-content: center;
+  flex-wrap: wrap;
   gap: 10px;
   margin-top: 16px;
-  padding: calc(var(--balance-plate-width) * 0.042) calc(var(--balance-plate-width) * 0.07)
-    calc(var(--balance-plate-width) * 0.042) calc(var(--balance-plate-width) * 0.25);
-  background: transparent url('/images/marketplace-console-v1/status/wallet-row-shell.webp') center /
-    100% 100% no-repeat;
+  padding: 10px 16px;
+  border: 1px solid #314c5c;
+  background: #071018;
   color: #c3d2da;
   font-family: var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif;
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.045em;
+  box-shadow: inset 0 1px 0 rgb(238 250 255 / 12%);
 }
 
 .balanceReadout strong,
@@ -71,18 +78,23 @@
   font-family: var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif;
 }
 
+.operatorRow {
+  margin-top: 12px;
+}
+
 .operatorLink {
   display: inline-flex;
   min-height: 46px;
   align-items: center;
   justify-content: center;
-  padding: 5px 30px;
+  padding: 9px 20px;
+  border: 1px solid #3f6578;
   color: #bceeff;
-  background: #02070b url('/images/marketplace-console-v1/shark-panel/button-secondary.png')
-    center / 100% 100% no-repeat;
+  background: #07131b;
   font-size: 13px;
   font-weight: 800;
   text-decoration: none;
+  box-shadow: inset 0 1px 0 rgb(238 250 255 / 11%);
 }
 
 .detailStatus {
@@ -107,19 +119,19 @@
 .discoveryControls {
   display: grid;
   gap: 12px;
-  margin: 0 0 20px;
-  padding: 8px 0 20px;
-  background: transparent;
+  margin: 0 0 24px;
+  padding: 16px;
+  border: 1px solid #263f4e;
+  background: #050d13;
+  box-shadow: inset 0 1px 0 rgb(238 250 255 / 8%);
 }
 
 .searchControl,
 .sortSelect {
   min-height: 48px;
-  background-color: #02070b;
-  background-image: url('/images/marketplace-console-v1/shark-panel/button-secondary.png');
-  background-position: center;
-  background-repeat: no-repeat;
-  background-size: 100% 100%;
+  border: 1px solid #385568;
+  background: #02080d;
+  box-shadow: inset 0 1px 0 rgb(238 250 255 / 9%);
 }
 
 .searchControl {
@@ -159,7 +171,6 @@
 
 .sortSelect {
   padding: 0 22px;
-  border: 0;
   color: #eef9fd;
   font:
     700 13px/1 var(--font-roboto-condensed),
@@ -174,15 +185,19 @@
 .wishlistControl,
 .optionControl,
 .quantityButton {
-  border: 0;
+  border: 1px solid #385568;
   color: #c7d3da;
-  background-color: #02070b;
-  background-image: url('/images/marketplace-console-v1/shark-panel/button-secondary.png');
-  background-position: center;
-  background-repeat: no-repeat;
-  background-size: 100% 100%;
+  background: #071017;
   font-weight: 800;
   letter-spacing: 0.018em;
+  box-shadow: inset 0 1px 0 rgb(238 250 255 / 8%);
+}
+
+.categoryGroup {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .categoryControl {
@@ -194,19 +209,12 @@
 
 .categoryControlSelected,
 .optionControlSelected,
-/* One primary action per card.
-
-   actionPrimary and actionDiamond both used button-primary.png, and
-   actionControl gave all four actions the same 48px height, weight 800 and
-   13px size. Measured on production, View Details, Add To Cart, Buy With Card
-   and Pay With Diamonds rendered with identical background-color, font-weight
-   and font-size: four equally dominant calls to action with nothing to say
-   which one was the main path. Each action now sits at its own weight, and
-   every path stays wired and visible. */
 .actionPrimary,
 .wishlistControlSelected {
+  border-color: #42d9ff;
   color: #eafcff;
-  background-image: url('/images/marketplace-console-v1/shark-panel/button-primary.png');
+  background: #0a3141;
+  box-shadow: inset 0 1px 0 rgb(238 250 255 / 20%);
 }
 
 .resultCount,
@@ -228,15 +236,18 @@
 
 .productCard {
   position: relative;
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
   overflow: hidden;
-  padding: 5px;
+  padding: 0;
+  scroll-margin-top: 96px;
   color: #eef6fa;
-  border: 1px solid #5a7688;
+  border: 1px solid #476273;
   background: #02070b;
   box-shadow:
-    inset 0 1px 0 rgba(232, 251, 255, 0.3),
-    inset 0 0 0 4px #02070b,
-    0 16px 34px #000;
+    inset 0 1px 0 rgb(232 251 255 / 18%),
+    0 16px 34px rgb(0 0 0 / 65%);
 }
 
 /* Unavailability used to fade the whole card. At 0.68 the card's own text
@@ -260,6 +271,7 @@
   align-items: center;
   justify-content: center;
   overflow: hidden;
+  border-bottom: 1px solid #263f4e;
   background: #02070b;
 }
 
@@ -304,10 +316,10 @@
   min-height: 32px;
   align-items: center;
   justify-content: center;
-  padding: 4px 18px;
+  padding: 5px 10px;
+  border: 1px solid #5c7888;
   color: #eef8fc;
-  background: #02070b url('/images/marketplace-console-v1/shark-panel/button-secondary.png')
-    center / 100% 100% no-repeat;
+  background: rgb(2 7 11 / 92%);
   font-family: var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif;
   font-size: 9px;
   font-weight: 800;
@@ -342,6 +354,7 @@
 
 .cardBody {
   display: flex;
+  min-width: 0;
   flex: 1;
   flex-direction: column;
   gap: 12px;
@@ -354,12 +367,14 @@
   color: #fff;
   font-size: 17px;
   line-height: 1.15;
+  overflow-wrap: anywhere;
 }
 
 .productDescription {
   color: #b3c1c8;
   font-size: 12px;
   line-height: 1.55;
+  overflow-wrap: anywhere;
 }
 
 .priceRow {
@@ -404,6 +419,12 @@
   cursor: pointer;
 }
 
+.optionGroup {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
 .optionControl:disabled {
   color: #68737a;
   cursor: not-allowed;
@@ -427,6 +448,7 @@
   display: inline-flex;
   align-items: center;
   overflow: hidden;
+  border: 1px solid #263f4e;
 }
 
 .quantityButton {
@@ -449,7 +471,10 @@
 }
 
 .quantityValue {
-  min-width: 34px;
+  display: grid;
+  min-width: 40px;
+  min-height: 44px;
+  place-items: center;
   color: #fff;
   font:
     800 13px/1 var(--font-roboto-condensed),
@@ -496,31 +521,37 @@
 /* Primary: the default settlement path. */
 .actionPrimary {
   min-height: 54px;
+  border-color: #42d9ff;
+  color: #fff;
+  background: #0a4f69;
   font-size: 14px;
   letter-spacing: 0.032em;
 }
 
-/* Secondary: the alternate settlement path, still a painted commerce control
-   so the Diamond route reads as a real option, one step below primary. */
+/* Secondary: the alternate settlement path remains clearly available. */
 .actionDiamond {
   min-height: 48px;
+  border-color: #1687aa;
   color: #8fe8ff;
+  background: #061a23;
   font-size: 13px;
 }
 
 /* Tertiary: deferred purchase. */
 .actionGold {
   min-height: 44px;
+  border-color: #766320;
   color: #f6d76d;
+  background: #181506;
   font-size: 12px;
 }
 
 /* Quaternary: navigation, not commerce, so it carries no painted plate. */
 .actionSecondary {
   min-height: 44px;
-  border: 1px solid #23394a;
-  color: #a9c2ce;
-  background-color: #060d13;
+  border: 1px solid #314957;
+  color: #b7cad3;
+  background: #071017;
   background-image: none;
   font-size: 12px;
   font-weight: 700;
@@ -544,28 +575,25 @@
   color: #f1d46b;
 }
 
-/* A percentage padding resolves against the CONTAINING BLOCK's inline size,
-   not this element's. The plate is narrower than its container, so the
-   percentages the artwork wants have to be measured against the plate. Same
-   remedy as .status in pages/hub/merch-store/fulfillment.module.css. */
 .catalogAlert {
-  --alert-plate-width: min(900px, 100%);
-
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(130px, 20%);
-  width: var(--alert-plate-width);
-  aspect-ratio: 1800 / 386;
+  grid-template-columns: minmax(0, 1fr) auto;
+  width: min(900px, 100%);
   align-items: center;
-  gap: 12px;
+  gap: 16px;
   margin: 0 auto 24px;
-  padding: calc(var(--alert-plate-width) * 0.042) calc(var(--alert-plate-width) * 0.06)
-    calc(var(--alert-plate-width) * 0.042) calc(var(--alert-plate-width) * 0.25);
-  background: transparent url('/images/marketplace-console-v1/status/wallet-row-shell.webp') center /
-    100% 100% no-repeat;
+  padding: 16px 18px;
+  border: 1px solid #6e5d22;
+  background: #141205;
   color: #f2d978;
   font-family: var(--font-inter), Inter, Arial, sans-serif;
   font-size: 10px;
   font-weight: 700;
+}
+
+.catalogAlertCopy {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .loadingStatus {
@@ -597,6 +625,22 @@
   margin-bottom: 7px;
   color: #eef7fb;
   font-size: 18px;
+}
+
+.emptyStateCopy {
+  margin-top: 6px;
+}
+
+.categorySection {
+  min-width: 0;
+  margin-bottom: 32px;
+}
+
+.productGrid {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+  gap: 18px;
 }
 
 .categoryTitle {
@@ -642,17 +686,17 @@
 
 @media (max-width: 620px) {
   .discoveryControls {
-    padding: 8px 0 20px;
+    padding: 14px;
   }
 
   .catalogAlert {
-    --alert-plate-width: min(440px, 100%);
-
     grid-template-columns: minmax(0, 1fr);
-    aspect-ratio: 1105 / 1133;
-    padding: calc(var(--alert-plate-width) * 0.18);
-    background-image: url('/images/marketplace-console-v1/utility/utility-shell.webp');
+    padding: 16px;
     text-align: center;
+  }
+
+  .productGrid {
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .purchasePair {

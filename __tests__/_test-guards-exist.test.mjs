@@ -491,6 +491,12 @@ import './social-post-topics-rule-migration.test.mjs';
 import './social-post-topics-backfill-migration.test.mjs';
 import './feed-played-with-migration.test.mjs';
 
+// 2026-09-30 profile privacy: a stranger reads only public profile columns,
+// and the owner reads their own money, legal name and whereabouts through
+// get_my_full_profile(). A browser read naming an owner-only column is
+// refused whole (42501) once Club Arena revokes them.
+import './a-profile-shows-strangers-only-what-the-table-needs.law.test.mjs';
+
 const REPO = path.resolve(new URL('.', import.meta.url).pathname, '..');
 
 const REQUIRED_TEST_FILES = [

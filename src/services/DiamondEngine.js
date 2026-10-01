@@ -7,6 +7,7 @@
 
 import { busEmit } from '../engine/EventBus';
 import supabase from '../lib/supabase';
+import { readOwnProfile } from '../lib/ownProfile';
 
 class DiamondEngineSupabase {
     constructor() {
@@ -34,11 +35,7 @@ class DiamondEngineSupabase {
         }
 
         try {
-            const { data, error } = await this.supabase
-                .from('profiles')
-                .select('diamonds')
-                .eq('id', this.userId)
-                .maybeSingle();
+            const { data, error } = await readOwnProfile(this.supabase, 'diamonds', { expectId: this.userId });
 
             if (error) {
                 console.warn('Error fetching balance:', error);

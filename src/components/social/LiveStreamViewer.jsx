@@ -17,6 +17,7 @@ import { getAccessToken, getFreshAccessToken } from '../../lib/authUtils';
 import Lottie from 'lottie-react';
 import diamondAnimation from '../../../public/diamond-animation.json';
 import useStreamingViewportLock from '../../lib/useStreamingViewportLock';
+import { readOwnProfile } from '../../lib/ownProfile';
 
 const C = {
   red: '#FA383E',
@@ -230,11 +231,7 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
 
         // Load diamond balance for gift panel (auth users only — anons can't gift)
         if (userId) {
-          supabase
-            .from('profiles')
-            .select('diamonds')
-            .eq('id', userId)
-            .maybeSingle()
+          readOwnProfile(supabase, 'diamonds', { expectId: userId })
             .then(({ data }) => {
               if (data) setUserDiamondBalance(data.diamonds || 0);
             });

@@ -101,7 +101,7 @@ export default function ShareStreakLeaderboard({ currentUserId }) {
                 const userIds = streakData.map(s => s.user_id);
                 const { data: profiles } = await sb
                     .from('profiles')
-                    .select('id, username, full_name, avatar_url')
+                    .select('id, username, avatar_url')
                     .in('id', userIds);
 
                 const profileMap = {};

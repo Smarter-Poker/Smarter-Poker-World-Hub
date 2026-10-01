@@ -4,6 +4,7 @@
  */
 
 import { supabase } from '../lib/supabase';
+import { readOwnProfile } from '../lib/ownProfile';
 
 /**
  * Default preference values. Returned as a fresh object every time so callers
@@ -18,11 +19,7 @@ function defaultPreferences() {
  * @returns {Promise<{ ok: boolean, error: Object|null, preferences: Object|null }>}
  */
 async function readStoredPreferences(userId) {
-    const { data, error } = await supabase
-        .from('profiles')
-        .select('poker_near_me_preferences')
-        .eq('id', userId)
-        .maybeSingle();
+    const { data, error } = await readOwnProfile(supabase, 'poker_near_me_preferences', { expectId: userId });
 
     if (error) {
         return { ok: false, error, preferences: null };

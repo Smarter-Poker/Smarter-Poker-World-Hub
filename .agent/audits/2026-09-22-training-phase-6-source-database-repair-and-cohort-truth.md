@@ -703,3 +703,60 @@ distribution, credential restoration, or global-header change has occurred in
 this contract stage. It remains a candidate until protected checks, merge,
 Vercel proof, migration installation/readback, exact bundle construction, and
 one signed M1 canary complete. Phase 6 remains open and Phase 7 has not started.
+
+### 2026-09-30 M1 Write-Only Provisioning Candidate
+
+The bounded-canary contract subsequently passed protected review and merged in
+PR #2049 as `bac240a0573d7c3f6b9ebcce05136670bdd76d25`. Its exact literal
+activation migration was applied once and read back with one authority, two
+targets, one parent, one child, only M1 partition `2/0`, and no other active M1
+scope. The controller-built five-file release remains checksum sealed at
+manifest SHA-256
+`b27ad1f3575e106d7d7f73bb4655e94398955a1275ae1fea9b3af7f574dbece8`
+and pipeline aggregate SHA-256
+`cb319d1fcd6ef2c945c7e0443fc5299d5c0deea8627851e998bd6b529a8bcc82`.
+No canary has run yet.
+
+The production-smoke evidence repair passed protected review in PR #2055 and
+merged as `228fde3a9ac3dac949588973a4084f149322d76f`. Production serves that
+exact commit as deployment `dpl_2cB54hZSMUtZmdk9WJrvuKGUG3t4` with healthy
+database and Training grading checks. That repair binds smoke evidence to an
+explicit external-archive directory and stable deployment identity; it does
+not claim 6F-6I completion.
+
+The current candidate adds one manual-only, protected-main-bound M1 HMAC
+provisioning workflow. It reads only safe Vercel environment metadata, requires
+exactly one non-branch, Production-only Sensitive M1 entry, generates a new
+32-byte key only in workflow memory, encrypts it to a verified ephemeral
+RSA-4096 M1 public key before provider mutation, patches only that existing
+entry's value, and retains only ciphertext plus a non-secret receipt for one
+day. It has no push, schedule, watcher, retry loop, deployment, Supabase path,
+or plaintext secret output. A later normal protected merge must create the
+Git-source deployment that activates the rotated value before the single M1
+canary is permitted.
+
+This remains a provisioning candidate, not a key rotation, deployment, solver
+admission, or Phase 6 completion. Phase 7 remains unstarted.
+
+### 2026-09-30 M1 Provisioning Security Follow-Up
+
+PR #2057 passed every required protected check, squash-merged as
+`98f8d88bff026736a86bf4c15bf5585c39d96613`, and production serves that
+exact revision on Vercel deployment `dpl_FWRDKhd5G4MZyHLBE53fLM5fKjr1`
+with healthy database and Training grading checks. No provisioning workflow
+was dispatched and no HMAC value was rotated.
+
+An independent pre-dispatch review found that the dedicated GitHub environment
+`Production – hub-vanguard` had no branch policy. It was immediately restricted
+to protected branches only and read back with
+`protected_branches=true`, `custom_branch_policies=false`; repository `main`
+was independently read back as protected. No other workflow uses this exact
+environment, so the change blocks branch-modified workflow copies without
+changing another production route.
+
+The same review found that the provider-metadata gate accepted an empty-string
+`gitBranch` as equivalent to literal null. The follow-up candidate now requires
+literal null and adds the empty-string case to the pre-secret fail-closed
+regression matrix. Provisioning and the one bounded M1 canary remain held until
+that correction passes protected review, merges, and is live. Phase 6 remains
+open and Phase 7 has not started.

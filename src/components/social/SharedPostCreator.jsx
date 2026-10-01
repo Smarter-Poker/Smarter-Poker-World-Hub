@@ -847,7 +847,7 @@ export function SharedPostCreator({
             const { data } = await supabase
               .from('profiles')
               // BUG-13 FIX: also select display_name as fallback when full_name is null
-              .select('id, username, full_name, display_name')
+              .select('id, username, display_name')
               .ilike('username', `%${query}%`)
               .limit(5);
             if (data) setMentionResults(data);

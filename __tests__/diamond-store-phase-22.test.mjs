@@ -337,8 +337,9 @@ test('remote Marketplace inventory and account telemetry cannot reintroduce bann
   assert.match(orders, /data-preserve-case="true">\{order\.trackingNumber\}/);
   assert.match(
     receipt,
-    /<MarketplaceConsoleStatusRow[\s\S]{0,120}?label=\{marketplaceCopy\(label\)\}/
+    /className=\{accountControls\.statusLabel\}>\{marketplaceCopy\(label\)\}<\/span>/
   );
+  assert.doesNotMatch(receipt, /MarketplaceConsoleStatusRow/);
   assert.match(receipt, /data-preserve-case="true">\{record\.trackingNumber\}/);
   assert.match(fulfillment, /marketplaceCopy\(item\.name \|\| 'Marketplace Item'\)/);
   assert.match(fulfillment, /<code data-preserve-case="true">\{order\.id\}<\/code>/);

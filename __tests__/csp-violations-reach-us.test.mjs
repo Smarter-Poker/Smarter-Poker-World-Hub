@@ -194,3 +194,23 @@ test('script-src and style-src name the commander app proxied onto this origin',
         'script-src must name the exact host, never a wildcard over our subdomains');
 });
 
+// ── img-src is ENFORCED, not merely reported ───────────────────────────────
+
+test('img-src is in the enforced policy, built from the one host list', () => {
+    const enforced = CONFIG.match(/const enforcedCsp = \[([\s\S]*?)\]\.join/);
+    assert.ok(enforced, 'the enforced policy must exist');
+    assert.match(enforced[1], /imgSrcDirective\(\)/,
+        'img-src graduated on 2026-09-30 after venue art and news thumbnails stopped '
+        + 'being fetched from other people\u2019s servers');
+    // It must be the SAME list the guard uses, or the header and the runtime
+    // check drift and a picture the guard allows gets blocked anyway.
+    assert.ok(!/["']img-src [^"']+["']/.test(enforced[1]),
+        'the enforced directive must be composed, never a second hand-written copy');
+});
+
+test('the enforced policy still says where to report, so a mistake is visible', () => {
+    const enforced = CONFIG.match(/const enforcedCsp = \[([\s\S]*?)\]\.join/);
+    assert.match(enforced[1], /reportingDirectives/,
+        'enforcing without reporting means a blocked picture fails silently');
+});
+
