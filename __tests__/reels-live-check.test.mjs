@@ -493,6 +493,13 @@ test('workflow retains and independently asserts the complete sanitized receipt'
         .digest('hex')
         .slice(0, 16),
     },
+    aliasState: {
+      reelsRead: 7,
+      postsRead: 4,
+      reelFailures: [],
+      postFailures: [],
+      storageObjectsProven: 4,
+    },
     accountCollections: { mine: collection, saved: collection },
     checks: [...REQUIRED_RECEIPT_CHECKS],
     coverage: {

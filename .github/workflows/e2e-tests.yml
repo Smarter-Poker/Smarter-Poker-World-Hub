@@ -461,6 +461,7 @@ jobs:
           TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD }}
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           REELS_EXPECTED_SHA: ${{ inputs.expected_sha }}
       - name: Assert complete sanitized Reels receipt
         run: node scripts/ci/reels-live-check.mjs --check-receipt test-results/reels-live/result.json
