@@ -111,6 +111,11 @@ test('public mobile proof counts each media DOM node once inside the standalone 
     /const players = page\s*\.locator\('main'\)\s*\.locator\('iframe\[src\*="youtube-nocookie\.com\/embed\/"\], video'\);/,
     'nested accessible labels and global picture-in-picture must not double-count a Reel player',
   );
+  assert.match(
+    REELS_LIVE_CHECK,
+    /page\.waitForFunction\(\(\) => \(\s*document\.querySelectorAll\('main iframe\[src\*="youtube-nocookie\.com\/embed\/"\], main video'\)\.length === 1\s*\)\);/,
+    'the hostile transition must settle to exactly one viewer player before its final assertion',
+  );
 });
 
 function page(data, {
