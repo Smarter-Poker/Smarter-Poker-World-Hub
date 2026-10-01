@@ -2,7 +2,7 @@
 
 - **Current phase:** 2 of 10
 - **Phase name:** Historical Reconciliation And Legacy Retirement
-- **Status:** Release candidate locally qualified. Phase 1 is protected-merged and exact-production verified at `25bcff2f92bb67d87681cf2ff09d9a671b93571e`. Phase 2 implements durable historical aliases, engagement-preserving reconciliation, global quarantine/takedown propagation, and confirmed legacy retirement. Protected merge, migration installation/readback, publication, and live behavior proof remain pending and are not claimed complete here.
+- **Status:** Release candidate qualified and database-installed. Phase 1 is protected-merged and exact-production verified at `25bcff2f92bb67d87681cf2ff09d9a671b93571e`. Phase 2 implements durable historical aliases, engagement-preserving reconciliation, global quarantine/takedown propagation, and confirmed legacy retirement. The exact migration is installed and read back; protected merge, publication, and live behavior proof remain pending and are not claimed complete here.
 - **Branch:** `agent/reels-phase2-reconciliation-20261001`
 - **Delivery PRs:** application `#1977`; Open Claw repairs `#1985`, `#1986`, `#1987`, `#1988`; batch verdict RPC `#1989`; stale-backfill cleanup `#1990`; verifier recovery `#1991`, `#1992`, `#1993`; hostile-state harness `#1994`; bounded recovery `#1995`; Workers shared-verdict consumer `#147`; canonical listing and timestamp repair `#1997`; manual 500-candidate bound `#1998`; historical user-upload recovery and global manual-bound correction `#2000` merged; maintained live verifier and SUP-07 post-rights correction follow-up pending.
 - **Workspace:** `/Volumes/SmarterWork/agent-work/codex-reels-user-upload-repair-20260927`
@@ -10,7 +10,7 @@
 - **Protected baseline at latest fetch:** `origin/main` `5b842784fd259bb6012ee72f68bcd3c97ff4ac9c`
 - **Operation owner:** this task owns the post-rights correction migration, maintained live verification, and final Phase 1 proof. Backfill run `36330655364` is terminal SUCCESS with its custody revoked. No second publisher or migration writer is active.
 - **Delivery classification:** World Hub client/server behavior plus one guarded data-only Supabase migration. No Club Arena engine contract or activation is required. The migration has no DDL, insert, delete, or external-media write; it updates only evidence-pinned historical rows and supplies an explicit rollback.
-- **Next gate:** push the exact candidate, pass hosted checks, protected-merge, install/read back the exact migration, verify the published revision, and exercise aliases, quarantines, old links, stale storage, and mid-flight recovery live. No Phase 2 success is claimed yet.
+- **Next gate:** pass the refreshed hosted checks, protected-merge, verify the published revision, and exercise aliases, quarantines, old links, stale storage, and mid-flight recovery live. No Phase 2 success is claimed yet.
 
 ## Policy Receipt
 
@@ -22,7 +22,8 @@
 - Focused Phase 2 suites pass: 122/122, with the direct collection/migration slice passing 23/23.
 - PostgreSQL 17.11 migration rehearsal reaches `COMMIT`, preserves aggregate views and interaction ownership, rewrites new alias-targeted engagement to the canonical winner, resolves old-alias counter RPCs, and quarantines an intentionally colliding mixed-reaction group.
 - Targeted ESLint reports zero errors. The complete production build passes all prebuild suites, compiles successfully, generates 504/504 pages, and passes every post-build performance budget.
-- `git diff --check` passes. This checkpoint intentionally leaves hosted CI, protected merge, production migration installation, deployment identity, and live proof pending.
+- `git diff --check` passes. Local qualification completed before installation; hosted CI, protected merge, deployment identity, and live proof remain separate gates.
+- Production installation completed once through the attested PostgreSQL 17 TLS runner. Ledger version `20261001221500` is applied with SHA-256 `b22d150b79b51b388dd0d14603220670fcfa1586b2127bbdf2f6741b88dbab50`; immediate status readback reports 1 selected, 1 applied, 0 pending. Protected merge, deployment identity, and live proof remain pending.
 
 ## Phase 1 Closeout Evidence
 
