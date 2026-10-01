@@ -1434,14 +1434,17 @@ async function run() {
     assert.equal(verified.data.user.email?.toLowerCase(), process.env.TEST_USER_EMAIL.toLowerCase(), 'Authenticated identity differs from configured test account');
     report.accountFingerprint = digest(session.user.id);
 
+    report.stage = 'following-signed-out';
     const anonymousFollowing = await readJson('/api/reels/feed?category=following&limit=20', { expectedStatus: 401 });
     assert.equal(anonymousFollowing.success, false, 'Signed-out Following unexpectedly succeeded');
+    report.stage = 'following-signed-in';
     const following = await readJson('/api/reels/feed?category=following&limit=20', { token: session.access_token });
     validateFeedPage(following, 'following');
     report.coverage.followingApi = { signedOutStatus: 401, signedInStatus: 200, reels: following.data.length };
 
     const collections = {};
     for (const category of REEL_CATEGORIES) {
+      report.stage = `category-${category}`;
       collections[category] = await collectCategory(category);
       report.categories[category] = collections[category].receipt;
     }
@@ -1453,7 +1456,9 @@ async function run() {
     const allRows = REEL_CATEGORIES.flatMap((category) => collections[category].rows);
     assert.ok(allRows.some((row) => row.origin_type === 'video_library'), 'Live feed has no managed Video Library supply');
     assert.ok(allRows.some((row) => row.origin_type === 'horse'), 'Live feed has no managed horse supply');
+    report.stage = 'aliases';
     report.aliases = await verifySup07Aliases();
+    report.stage = 'account-collections';
     const [mine, saved] = await Promise.all([
       collectAccountCollection('mine', session.access_token, session.user.id),
       collectAccountCollection('saved', session.access_token, session.user.id),
@@ -1463,19 +1468,25 @@ async function run() {
       saved: saved.receipt,
     };
 
+    report.stage = 'ordinary-article';
     const article = await findOrdinaryArticle(session.access_token);
     const { chromium } = await import('playwright');
     browser = await chromium.launch({ headless: true });
+    report.stage = 'public-mobile';
     await verifyPublicBrowser(
       browser,
       SUP07_ALIASES.find(alias => alias.kind === 'loser'),
       collections['for-you'].rows,
       report,
     );
+    report.stage = 'slots-desktop';
     await verifySlotsBrowser(browser, report);
+    report.stage = 'stale-auth-mobile';
     await verifyStaleAuthBrowser(browser, report);
+    report.stage = 'signed-in-mobile';
     await verifySignedInBrowser(browser, session, article, report);
 
+    report.stage = 'final-health';
     const finalHealth = await assertHealth(report.expectedSha);
     assert.equal(finalHealth.deploymentId, report.deploymentId, 'Production deployment changed during verification');
     report.productionIdentity.after = {
@@ -1485,6 +1496,7 @@ async function run() {
     report.coverage.healthStable = true;
     report.checks = [...REQUIRED_RECEIPT_CHECKS];
     report.status = 'passed';
+    report.stage = 'complete';
     validateReceipt(report);
     console.log(JSON.stringify(report));
   } catch (error) {
