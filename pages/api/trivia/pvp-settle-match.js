@@ -63,6 +63,7 @@ import {
     isTriviaPvpReleased,
     rejectUnavailableTriviaPvp,
 } from '../../../src/lib/trivia/pvpReleaseControl.mjs';
+import { pvpErrorStatus, toPvpDto } from '../../../src/lib/trivia/pvpMatchmakingPolicy.mjs';
 
 /** House rake on the PvP pot - same 10% the client UI advertises. */
 export const PVP_RAKE_PCT = 0.1;
@@ -203,7 +204,7 @@ export default async function handler(req, res) {
 
         const { data: match, error: loadErr } = await sb
             .from('trivia_pvp_matches')
-            .select('id, player1_id, player2_id, stake_amount, questions, status, player1_score, player2_score, winner_id, created_at, completed_at, settlement_kind')
+            .select('id, player1_id, player2_id, stake_amount, questions, status, player1_score, player2_score, winner_id, created_at, completed_at, settlement_kind, engine_version')
             .eq('id', matchId)
             .maybeSingle();
         if (loadErr) {
@@ -213,6 +214,20 @@ export default async function handler(req, res) {
         if (!match) return res.status(404).json({ success: false, error: 'match_not_found' });
         if (match.player1_id !== userId && match.player2_id !== userId) {
             return res.status(403).json({ success: false, error: 'not_your_match' });
+        }
+        // Phase 5 v2 matches settle only through the v2 engine authority (the
+        // legacy decision RPC is refused for them); answer with the v2 DTO.
+        if (match.engine_version) {
+            const { data: v2, error: v2Err } = await sb.rpc('trivia_pvp_settle_v2', {
+                p_user_id: userId,
+                p_match_id: matchId,
+            });
+            if (v2Err || !v2 || v2.success !== true) {
+                return res.status(v2Err ? 503 : pvpErrorStatus(v2?.error))
+                    .json({ success: false, error: v2?.error || 'settlement_unavailable' });
+            }
+            res.setHeader('Cache-Control', 'private, no-cache, no-store, must-revalidate');
+            return res.status(200).json(toPvpDto(v2));
         }
 
         const result = await settlePvpMatch(sb, match, { force: false });
