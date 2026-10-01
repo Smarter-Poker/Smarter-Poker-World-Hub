@@ -103,14 +103,17 @@ export const SUP07_ALIASES = Object.freeze(SUP07_GROUPS.flatMap((group) => [
   { reference: group.post, kind: 'post', ...group },
 ].map(Object.freeze)));
 
-export function selectStableHostileDropReel(rows, excludedId = null) {
+export function selectStableHostileDropReel(rows, excludedId = null, nowMs = Date.now()) {
   if (!Array.isArray(rows)) return null;
-  return rows.find((row) => (
-    row?.id
-    && row.id !== excludedId
-    && row.playback_type === 'youtube_embed'
-    && YOUTUBE_ID.test(String(row.youtube_video_id || ''))
-  )) || null;
+  return rows.find((row) => {
+    if (row?.id === excludedId || row?.playback_type !== 'youtube_embed') return false;
+    try {
+      validateReelRow(row, 'for-you', { nowMs });
+      return true;
+    } catch {
+      return false;
+    }
+  }) || null;
 }
 
 export const REQUIRED_RECEIPT_CHECKS = Object.freeze([
@@ -867,7 +870,7 @@ async function installReadOnlyNetworkGuard(context, state) {
   });
 }
 
-async function verifyPublicBrowser(browser, bookmarkAlias, report) {
+async function verifyPublicBrowser(browser, bookmarkAlias, validatedForYouRows, report) {
   const context = await browser.newContext({ viewport: { width: 390, height: 844 }, serviceWorkers: 'block' });
   const state = createReadOnlyBrowserState();
   await context.addInitScript(({ staleKey }) => {
@@ -892,8 +895,8 @@ async function verifyPublicBrowser(browser, bookmarkAlias, report) {
     const bookmarkPayload = await bookmarkResponse.json();
     assert.equal(bookmarkPayload?.data?.[0]?.id, bookmarkAlias.winner, 'Old Reel alias did not render its canonical winner');
     assert.equal(bookmarkPayload?.data?.[0]?.canonical_asset_key, bookmarkAlias.key, 'Old Reel alias rendered the wrong canonical asset');
-    const hostileDropReel = selectStableHostileDropReel(bookmarkPayload?.data, bookmarkAlias.winner);
-    assert.ok(hostileDropReel, 'The canonical feed did not provide a stable embed for the hostile-drop proof');
+    const hostileDropReel = selectStableHostileDropReel(validatedForYouRows, bookmarkAlias.winner);
+    assert.ok(hostileDropReel, 'The validated canonical crawl did not provide a fresh embeddable Reel for the hostile-drop proof');
     await page.getByLabel(/Reels Viewer$/).waitFor();
     await page.waitForFunction(({ id }) => {
       const params = new URL(location.href).searchParams;
@@ -1463,7 +1466,12 @@ async function run() {
     const article = await findOrdinaryArticle(session.access_token);
     const { chromium } = await import('playwright');
     browser = await chromium.launch({ headless: true });
-    await verifyPublicBrowser(browser, SUP07_ALIASES.find(alias => alias.kind === 'loser'), report);
+    await verifyPublicBrowser(
+      browser,
+      SUP07_ALIASES.find(alias => alias.kind === 'loser'),
+      collections['for-you'].rows,
+      report,
+    );
     await verifySlotsBrowser(browser, report);
     await verifyStaleAuthBrowser(browser, report);
     await verifySignedInBrowser(browser, session, article, report);
