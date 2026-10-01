@@ -772,6 +772,11 @@ test('a failed foreground channel switch retains the mounted Reel and exposes a 
     /const pageErrorBoundaryKey = resolvedPath === '\/hub\/reels'[\s\S]*?\? resolvedPath[\s\S]*?: router\.asPath;/,
   );
   assert.match(APP_SHELL, /<PageErrorBoundary key=\{pageErrorBoundaryKey\}>/);
+  assert.match(
+    REELS_PAGE,
+    /<div key="reels-navigation-header"[\s\S]*?<main key="reels-viewer"/,
+    'opening the conditional command header must preserve the keyed viewer sibling and mounted player',
+  );
 });
 
 test('the cold-start loading decision preserves player identity during a rejected channel transition', async () => {
