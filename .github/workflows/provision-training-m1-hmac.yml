@@ -1,0 +1,72 @@
+name: Provision Training M1 HMAC
+run-name: Phase 6 M1 HMAC ${{ inputs.request_id }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      expected_commit:
+        description: Exact current protected-main commit to provision
+        required: true
+        type: string
+      request_id:
+        description: Non-secret bounded request identifier
+        required: true
+        type: string
+      confirm:
+        description: Exact one-time rotation acknowledgement
+        required: true
+        type: string
+      m1_public_key_spki_b64:
+        description: Base64 DER SubjectPublicKeyInfo for M1's ephemeral RSA-4096 key
+        required: true
+        type: string
+      m1_public_key_spki_sha256:
+        description: Lowercase SHA-256 of the exact SPKI DER bytes
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: phase6-training-m1-hmac-provision
+  cancel-in-progress: false
+
+jobs:
+  provision:
+    name: Rotate once and seal for M1
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: Production – hub-vanguard
+    steps:
+      - name: Check out the exact protected-main revision without retained credentials
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ inputs.expected_commit }}
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Validate, rotate once, and encrypt without persisting plaintext
+        id: provision
+        env:
+          EXPECTED_COMMIT: ${{ inputs.expected_commit }}
+          PHASE6_REQUEST_ID: ${{ inputs.request_id }}
+          PHASE6_ROTATION_CONFIRM: ${{ inputs.confirm }}
+          M1_PUBLIC_KEY_SPKI_B64: ${{ inputs.m1_public_key_spki_b64 }}
+          M1_PUBLIC_KEY_SPKI_SHA256: ${{ inputs.m1_public_key_spki_sha256 }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: python3 scripts/ci/provision-training-m1-hmac.py
+
+      - name: Retain only the M1 ciphertext and non-secret receipt for one day
+        if: ${{ always() && steps.provision.outputs.ciphertext_created == 'true' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: phase6-m1-hmac-${{ github.run_id }}
+          path: |
+            ${{ runner.temp }}/phase6-m1-hmac/m1-hmac.oaep-sha256.bin
+            ${{ runner.temp }}/phase6-m1-hmac/receipt.json
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 0
