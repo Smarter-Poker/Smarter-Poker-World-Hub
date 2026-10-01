@@ -488,7 +488,10 @@ test('the real handler module exports the Vercel config and a wrapped default ha
   assert.match(source, /args: chromium\.args/);
   assert.match(source, /headless: chromium\.headless === undefined \? 'shell' : chromium\.headless/, 'the v153 package ships chrome-headless-shell');
   assert.match(source, /defaultViewport: \{ width: CLIP_WIDTH, height: CLIP_HEIGHT, deviceScaleFactor: 1 \}/);
-  assert.match(source, /require\('@sparticuz\/chromium'\)/);
+  // @sparticuz/chromium 153 is an ES module: the real adapter must load it with
+  // a dynamic import (a require() of an ESM external fails the webpack build).
+  assert.match(source, /await import\('@sparticuz\/chromium'\)/);
+  assert.doesNotMatch(source, /require\('@sparticuz\/chromium'\)/);
   assert.match(source, /require\('puppeteer-core'\)/);
   assert.match(source, /require\('@ffmpeg-installer\/ffmpeg'\)/);
   assert.match(source, /'x-upsert': 'true'/);
