@@ -25,26 +25,14 @@ import {
     applyWritingStyle
 } from '../../../src/content-engine/pipeline/HorseScheduler.js';
 
-// ClipLibrary functions - loaded dynamically in handler
+// RETIRED ARCHIVE: literal clip-array loading is intentionally disabled. This
+// file is retained only as historical implementation evidence; live supply is
+// database-backed and published by the maintained workers pipeline.
 let getRandomClip, getRandomCaption, markClipUsed, CLIP_CATEGORIES, getHorsePreferredSources, CLIP_LIBRARY;
 let clipLibraryLoaded = false;
 
 async function loadClipLibrary() {
-    if (clipLibraryLoaded) return true;
-    try {
-        const lib = await import('../../../src/content-engine/pipeline/ClipLibrary.js');
-        getRandomClip = lib.getRandomClip;
-        getRandomCaption = lib.getRandomCaption;
-        markClipUsed = lib.markClipUsed;
-        CLIP_CATEGORIES = lib.CLIP_CATEGORIES;
-        getHorsePreferredSources = lib.getHorsePreferredSources;
-        CLIP_LIBRARY = lib.CLIP_LIBRARY;
-        clipLibraryLoaded = true;
-        return true;
-    } catch (e) {
-        console.error('❌ Failed to load ClipLibrary:', e.message);
-        return false;
-    }
+    return false;
 }
 
 /**

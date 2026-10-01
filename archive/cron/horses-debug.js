@@ -15,22 +15,14 @@ function getSupabase() {
 }
 
 
-// Test if ClipLibrary loads
-let clipLibraryLoaded = false;
-let clipLibraryError = null;
-let getRandomClip = null;
-let getRandomCaption = null;
-let CLIP_CATEGORIES = null;
-
-try {
-    const lib = await import('../../../src/content-engine/pipeline/ClipLibrary.js');
-    getRandomClip = lib.getRandomClip;
-    getRandomCaption = lib.getRandomCaption;
-    CLIP_CATEGORIES = lib.CLIP_CATEGORIES;
-    clipLibraryLoaded = true;
-} catch (e) {
-    clipLibraryError = e.message;
-}
+// RETIRED ARCHIVE: the literal clip array and this diagnostic were replaced by
+// database-backed verified supply. Preserve the response shape for historical
+// inspection without retaining an executable import of the retired library.
+const clipLibraryLoaded = false;
+const clipLibraryError = 'Retired: verified clip supply is database-backed';
+const getRandomClip = null;
+const getRandomCaption = null;
+const CLIP_CATEGORIES = null;
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;

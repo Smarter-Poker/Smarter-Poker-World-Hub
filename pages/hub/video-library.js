@@ -52,32 +52,27 @@ import useTrainingBus from '../../src/hooks/useTrainingBus';
 // DISCOVERABILITY PHASE 7 (2026-09-19). This was dynamic(..., { ssr: false })
 // and the whole page body sits inside it, so the server rendered the head and
 // nothing else: a crawler got 106 words and not one video title, even though
-// `videos` is seeded from STATIC_CATALOG and needs no fetch to render. An
-// earlier fix pulled SEOHead out of this wrapper for the same reason, which
-// treated the symptom without naming the cause. PageTransition is a
-// framer-motion div that touches no browser API during render.
+// PageTransition is a framer-motion div that touches no browser API during
+// render. The playable catalog itself is never bundled here: only the live,
+// freshly verified catalog API may hydrate it.
 import PageTransition from '../../src/components/transitions/PageTransition';
 // ReelsViewer is dynamically loaded to reduce initial bundle size
 const ReelsViewer = dynamic(() => import('../../src/components/social/Reels').then(mod => mod.ReelsViewer), { ssr: false });
 import { findBestGames } from '../../src/utils/videoToTrainingMapper';
 
-// Static records retain legacy-ID aliases only. Playback fails closed until a
-// live catalog response supplies fresh persisted availability evidence.
 import {
-    FULL_VIDEOS as STATIC_VIDEOS,
-    SOURCES
-} from '../../src/data/videoLibraryData';
+    LEGACY_VIDEO_ID_ALIASES,
+    VIDEO_LIBRARY_SOURCES as SOURCES,
+} from '../../src/data/videoLibraryCompatibility';
 
-// Persistence uses YouTube's video ID as the canonical key. The legacy static
-// catalog used display-only aliases (hcl1, lodge1, ...), which orphaned saved
-// state whenever the database hydrated. Invalid FAKE placeholders are excluded
-// from any live catalog response instead of producing guaranteed dead embeds.
-const STATIC_VIDEO_ALIASES = new Map(STATIC_VIDEOS.map(video => [video.id, video.videoId]));
-const STATIC_VIDEO_CANONICAL_ALIASES = new Map(STATIC_VIDEOS.map(video => [video.videoId, video.id]));
+// Persistence uses YouTube's video ID as the canonical key. These maps migrate
+// old display-only aliases (hcl1, lodge1, ...) without retaining titles,
+// thumbnails, playback URLs or any other duplicate catalog authority.
+const STATIC_VIDEO_ALIASES = new Map(Object.entries(LEGACY_VIDEO_ID_ALIASES));
+const STATIC_VIDEO_CANONICAL_ALIASES = new Map(
+    Object.entries(LEGACY_VIDEO_ID_ALIASES).map(([legacyId, videoId]) => [videoId, legacyId]),
+);
 const canonicalStoredVideoId = videoId => STATIC_VIDEO_ALIASES.get(videoId) || videoId;
-const STATIC_CATALOG = STATIC_VIDEOS
-    .filter(isVideoLibraryVideoAllowed)
-    .map(video => ({ ...video, legacyId: video.id, id: video.videoId, videoId: video.videoId }));
 
 const EMPTY_VIDEO_SET = new Set();
 const EMPTY_VIDEO_MAP = new Map();
@@ -304,14 +299,14 @@ export default function VideoLibraryPage() {
     }, [filters.selectedSource, filters.selectedType, selectedSource, selectedType]);
 
     // Local state starts fail-closed; the live verified catalog hydrates it.
-    const [videos, setVideos] = useState(STATIC_CATALOG);
-    const [displayedCount, setDisplayedCount] = useState(STATIC_CATALOG.length);
-    const [allVideos, setAllVideos] = useState(STATIC_CATALOG); // unfiltered master list
+    const [videos, setVideos] = useState([]);
+    const [displayedCount, setDisplayedCount] = useState(0);
+    const [allVideos, setAllVideos] = useState([]); // verified, unfiltered master list
     const [catalogRefreshFailed, setCatalogRefreshFailed] = useState(false);
     const [catalogLoading, setCatalogLoading] = useState(true);
     useLoadFailsafe(catalogLoading, setCatalogLoading);
     const [catalogLoadingMore, setCatalogLoadingMore] = useState(false);
-    const [catalogTotal, setCatalogTotal] = useState(STATIC_CATALOG.length);
+    const [catalogTotal, setCatalogTotal] = useState(0);
     const [catalogHasMore, setCatalogHasMore] = useState(false);
     const [catalogNextOffset, setCatalogNextOffset] = useState(0);
     const catalogAbortRef = useRef(null);
@@ -1281,21 +1276,13 @@ export default function VideoLibraryPage() {
             reportVideoLibraryIssue('catalog_load', error);
             setCatalogRefreshFailed(true);
             if (!append) {
-                let fallback = STATIC_CATALOG;
-                if (selectedType !== 'ALL') fallback = fallback.filter(video => video.type === selectedType);
-                if (selectedSource !== 'ALL') fallback = fallback.filter(video => video.source === selectedSource);
-                if (libraryFilter !== 'ALL') {
-                    const ids = new Set(personalIdsForFilter);
-                    fallback = fallback.filter(video => ids.has(video.id));
-                }
-                if (catalogSearchQuery.trim()) {
-                    const query = catalogSearchQuery.trim().toLowerCase();
-                    fallback = fallback.filter(video => `${video.title} ${video.source} ${(video.tags || []).join(' ')}`.toLowerCase().includes(query));
-                }
-                setAllVideos(fallback);
-                setVideos(fallback);
-                setDisplayedCount(fallback.length);
-                setCatalogTotal(fallback.length);
+                // Never fall back to bundled or previously cached playback
+                // records. Without fresh persisted availability evidence the
+                // only honest catalog is empty.
+                setAllVideos([]);
+                setVideos([]);
+                setDisplayedCount(0);
+                setCatalogTotal(0);
                 setCatalogHasMore(false);
                 setCatalogNextOffset(0);
             }
@@ -2248,15 +2235,9 @@ export default function VideoLibraryPage() {
                             <span className="vl-skeleton-line" />
                         </div>
                     ))}
-                    {/* `videos` is seeded from STATIC_CATALOG - 161 titles that
-                        need no request - and the comment on that import says it
-                        exists to be shown "until DB fetch resolves". The
-                        `!catalogLoading` gate meant it never was: every first
-                        paint, and every server render, showed six skeletons
-                        instead of the catalogue it already had, which is why a
-                        crawler read 106 words on a page of 161 videos. The
-                        skeleton branch just above still covers the only case
-                        that needs it - loading with nothing to show yet. */}
+                    {/* Only verified live rows render. Loading has an explicit
+                        skeleton above; a failed refresh stays empty and shows
+                        the retry state below instead of stale playable data. */}
                     {videos.map((video, index) => {
                         const progress = getProgressPercent(video.id, video.duration);
                         const roundedProgress = Math.round(progress);

@@ -1213,10 +1213,24 @@ async function readDetail(client, id, scope, sort, category, followedAuthorIds =
         return { status: 'unavailable', row: null };
     }
 
+    // Phase 2 gives every retired Reel and linked source-post identifier a
+    // durable database-owned winner. Resolve before reading eligibility so a
+    // hidden tombstone can keep an old bookmark working without ever becoming
+    // public again. The winner still passes every ordinary rights, audience,
+    // topic, storage and availability gate below.
+    const { data: resolutionRows, error: resolutionError } = await client.rpc(
+        'resolve_social_reel_reference',
+        { p_reference_id: id },
+    );
+    if (resolutionError) throw resolutionError;
+    const resolution = Array.isArray(resolutionRows) ? resolutionRows[0] : resolutionRows;
+    const resolvedId = String(resolution?.canonical_reel_id || id).trim();
+    if (!UUID_RE.test(resolvedId)) return { status: 'not_found', row: null };
+
     const { data, error } = await client
         .from('social_reels')
         .select(REEL_SELECT)
-        .or(`id.eq.${id},source_post_id.eq.${id}`)
+        .or(`id.eq.${resolvedId},source_post_id.eq.${resolvedId}`)
         .limit(20);
     if (error) throw error;
     const directRows = Array.isArray(data) ? data : [];
@@ -1231,14 +1245,18 @@ async function readDetail(client, id, scope, sort, category, followedAuthorIds =
     const directEligible = await eligibleRows(client, directRows, scope, eligibilityOptions);
     if (!directEligible.length) return { status: 'unavailable', row: null };
     const winnerByKey = await canonicalWinners(client, directRows, scope, eligibilityOptions);
-    const requested = directEligible.find(row => row.id === id || row.source_post_id === id)
+    const requested = directEligible.find(row => row.id === resolvedId || row.source_post_id === resolvedId)
         || directEligible[0];
     const winner = winnerByKey.get(requested.canonical_asset_key) || requested;
     if (scope === 'following' && !isFollowedAuthor(followedAuthorIds, winner.author_id)) {
         return { status: 'unavailable', row: null };
     }
     winner._cursor = cursorForRow(winner, sort);
-    return { status: 'found', row: winner };
+    return {
+        status: 'found',
+        row: winner,
+        redirectedFrom: resolvedId === id ? null : id,
+    };
 }
 
 async function readOwnedCollectionChunk(client, { ownerId, cursor, limit }) {
@@ -1247,6 +1265,24 @@ async function readOwnedCollectionChunk(client, { ownerId, cursor, limit }) {
         .select(REEL_SELECT)
         .eq('author_id', ownerId)
         .eq('is_deleted', false)
+        .not('created_at', 'is', null);
+    query = applyCollectionCursorFilter(query, cursor, 'created_at');
+    const { data, error } = await query
+        .order('created_at', { ascending: false })
+        .order('id', { ascending: false })
+        .limit(limit);
+    if (error) throw error;
+    return Array.isArray(data) ? data : [];
+}
+
+async function readPublicProfileCollectionChunk(client, { authorId, cursor, limit }) {
+    let query = client
+        .from('social_reels')
+        .select(REEL_SELECT)
+        .eq('author_id', authorId)
+        .eq('is_public', true)
+        .eq('is_deleted', false)
+        .eq('media_status', 'ready')
         .not('created_at', 'is', null);
     query = applyCollectionCursorFilter(query, cursor, 'created_at');
     const { data, error } = await query
@@ -1569,6 +1605,88 @@ export async function readOwnedPokerReels(options = {}) {
 }
 
 /**
+ * Read the public Reels shown on a player profile through the same fail-closed
+ * eligibility boundary as the main feed. Profiles previously queried
+ * social_reels directly, which allowed a stale rights or availability verdict
+ * to survive after the canonical feed had removed the Reel.
+ */
+export async function readPublicProfileReels(options = {}) {
+    const client = options.client || getServiceClient();
+    const authorId = String(options.authorId || '').trim();
+    if (!PERSISTED_UUID_RE.test(authorId)) {
+        throw new ReelsFeedInputError('Invalid Reel profile');
+    }
+    const limit = clampCollectionLimit(options.limit);
+    const cursor = parseCollectionCursor(options.cursor, 'profile');
+    const selected = [];
+    const selectedKeys = new Set();
+    let scanCursor = cursor;
+    let lastScannedCursor = cursor;
+    let scanned = 0;
+    let exhausted = false;
+
+    while (selected.length < limit + 1 && scanned < MAX_OWNED_SCAN_ROWS) {
+        const chunkSize = Math.min(COLLECTION_SCAN_CHUNK_SIZE, MAX_OWNED_SCAN_ROWS - scanned);
+        const rawRows = await readPublicProfileCollectionChunk(client, {
+            authorId,
+            cursor: scanCursor,
+            limit: chunkSize,
+        });
+        if (!rawRows.length) {
+            exhausted = true;
+            break;
+        }
+        scanned += rawRows.length;
+        lastScannedCursor = collectionCursorForRow(
+            rawRows[rawRows.length - 1],
+            'profile',
+            'created_at',
+        );
+        scanCursor = lastScannedCursor;
+
+        const eligible = await eligibleRows(client, rawRows, 'all', {
+            allowUnknownNativeUpload: true,
+            category: COLLECTION_CATEGORY,
+        });
+        const winnerByKey = await canonicalWinners(client, rawRows, 'all', {
+            allowUnknownNativeUpload: true,
+            category: COLLECTION_CATEGORY,
+        });
+        for (const row of eligible) {
+            if (
+                winnerByKey.get(row.canonical_asset_key)?.id !== row.id
+                || selectedKeys.has(row.canonical_asset_key)
+            ) continue;
+            selectedKeys.add(row.canonical_asset_key);
+            selected.push(row);
+            if (selected.length >= limit + 1) break;
+        }
+        if (rawRows.length < chunkSize) {
+            exhausted = true;
+            break;
+        }
+    }
+
+    const hasBufferedRow = selected.length > limit;
+    const pageRows = selected.slice(0, limit);
+    const scanBudgetReached = scanned >= MAX_OWNED_SCAN_ROWS && !exhausted && !hasBufferedRow;
+    const hasMore = hasBufferedRow || !exhausted;
+    const nextPosition = hasMore
+        ? (pageRows.length
+            ? collectionCursorForRow(pageRows[pageRows.length - 1], 'profile', 'created_at')
+            : lastScannedCursor)
+        : null;
+
+    return {
+        data: await attachProfiles(client, pageRows),
+        hasMore,
+        nextCursor: encodeCursor(nextPosition),
+        partial: scanBudgetReached,
+        scanned,
+    };
+}
+
+/**
  * Read a user's saved collection without trusting historical saved targets.
  * Target Reel rows are loaded in bounded batches and passed through the same
  * public eligibility and canonical-winner checks as the public feed.
@@ -1662,6 +1780,7 @@ export async function readPublicReelById(options = {}) {
         data: detail.row || null,
         category,
         detailStatus: detail.status,
+        redirectedFrom: detail.redirectedFrom || null,
     };
 }
 
@@ -1743,6 +1862,7 @@ export async function readPokerReelsFeed(options = {}) {
         data,
         category,
         detailStatus: detail.status,
+        redirectedFrom: detail.redirectedFrom || null,
         hasMore,
         nextCursor,
         partial: page.partial,

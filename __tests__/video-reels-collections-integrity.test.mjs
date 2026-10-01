@@ -270,6 +270,34 @@ function createMemoryClient(tables, { validNativeStorage = true, queryResponses 
     queryLog,
     from: table => new Query(table),
     async rpc(name, args) {
+      if (name === 'resolve_social_reel_reference') {
+        const aliases = tables.social_reel_aliases || [];
+        const alias = aliases.find(row => (
+          row.alias_reel_id === args.p_reference_id
+          || row.alias_source_post_id === args.p_reference_id
+        ));
+        if (alias) return {
+          data: [{
+            requested_id: args.p_reference_id,
+            canonical_reel_id: alias.canonical_reel_id,
+            alias_reel_id: alias.alias_reel_id,
+            redirected: true,
+          }],
+          error: null,
+        };
+        const reel = (tables.social_reels || []).find(row => (
+          row.id === args.p_reference_id || row.source_post_id === args.p_reference_id
+        ));
+        return {
+          data: reel ? [{
+            requested_id: args.p_reference_id,
+            canonical_reel_id: reel.id,
+            alias_reel_id: null,
+            redirected: reel.id !== args.p_reference_id,
+          }] : [],
+          error: null,
+        };
+      }
       if (name !== 'fn_filter_valid_user_video_storage_urls') {
         throw new Error(`Unsupported memory-client RPC: ${name}`);
       }
@@ -851,6 +879,7 @@ test('public server readers admit only storage-proven unknown native uploads and
   const loser = {
     ...winner,
     id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+    is_public: false,
     created_at: '2026-05-08T12:00:01.000Z',
   };
   const sourcePost = {
@@ -875,6 +904,12 @@ test('public server readers admit only storage-proven unknown native uploads and
   };
   const tablesForPost = post => ({
     social_reels: [loser, winner],
+    social_reel_aliases: [{
+      alias_reel_id: loser.id,
+      alias_source_post_id: postId,
+      canonical_reel_id: winner.id,
+      canonical_asset_key: canonicalAssetKey,
+    }],
     social_posts: [post],
     profiles: [{ id: ownerId, username: 'owner', full_name: 'Owner', avatar_url: null }],
     social_follows: [{ follower_id: ownerId, following_id: ownerId }],

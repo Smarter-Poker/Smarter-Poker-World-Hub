@@ -320,6 +320,7 @@ import './reels-console-dependencies.test.mjs';
 import './reels-embedded-console-visual.test.mjs';
 import './historical-user-reels-recovery-migration.test.mjs';
 import './historical-user-reels-post-rights-followup-migration.test.mjs';
+import './social-reel-alias-reconciliation-migration.test.mjs';
 import './reels-live-check.test.mjs';
 import './reels-mixed-category-contract.test.mjs';
 import './reels-social-endless-continuation.test.mjs';

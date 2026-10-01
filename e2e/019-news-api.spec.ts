@@ -219,18 +219,21 @@ test.describe('11. News API — Maintenance Routes Reject Anonymous Callers', ()
     }
   });
 
-  // show-images and debug-extraction deliberately stay open OUTSIDE production
-  // (their own guard returns true when NODE_ENV !== 'production'), so this only
-  // asserts the production behaviour: hidden behind a 404.
+  // The old RSS extraction debugger was retired rather than shipped as a
+  // production route. The remaining image diagnostic stays hidden in production.
   test('debug routes are hidden in production', async ({ request, baseURL }) => {
     test.skip(
       !/smarter\.poker/i.test(baseURL || ''),
-      'show-images/debug-extraction are intentionally open outside production',
+      'show-images is intentionally open outside production',
     );
 
     for (const path of ['/api/news/show-images', '/api/news/debug-extraction']) {
       const res = await request.get(path);
-      expect([401, 403, 404], `GET ${path} returned ${res.status()}`).toContain(res.status());
+      if (path === '/api/news/debug-extraction') {
+        expect(res.status(), `GET ${path} must remain retired`).toBe(404);
+      } else {
+        expect([401, 403, 404], `GET ${path} returned ${res.status()}`).toContain(res.status());
+      }
     }
   });
 });

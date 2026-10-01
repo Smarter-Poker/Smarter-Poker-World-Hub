@@ -80,6 +80,7 @@ export default async function handler(req, res) {
             has_more: result.hasMore,
             next_cursor: result.nextCursor,
             category: result.category,
+            redirected_from: result.redirectedFrom,
             partial: result.partial,
             pagination: {
                 limit: result.data.length,

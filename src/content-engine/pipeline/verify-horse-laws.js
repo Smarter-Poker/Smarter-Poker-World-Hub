@@ -13,7 +13,8 @@ import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 config({ path: path.resolve(__dirname, '../../../.env.local') });
 
 import { createClient } from '@supabase/supabase-js';
@@ -100,16 +101,43 @@ async function verifyLaws() {
         'News reposting cron is missing!'
     );
 
-    // Check ClipLibrary has 2+ year age requirement
+    // Literal clip libraries were retired in favor of verified database-backed
+    // supply. Their absence is now the compliance invariant: restoring either
+    // would bypass freshness, rights and canonical publication controls.
     const clipLibraryPath = path.resolve(__dirname, './ClipLibrary.js');
-    if (fs.existsSync(clipLibraryPath)) {
-        const clipContent = fs.readFileSync(clipLibraryPath, 'utf8');
-        test(
-            'ClipLibrary has 2+ year age requirement',
-            clipContent.includes('2+ YEARS OLD') || clipContent.includes('CLIP_MIN_AGE'),
-            'Missing copyright safety age requirement'
-        );
-    }
+    const sportsClipLibraryPath = path.resolve(__dirname, './SportsClipLibrary.js');
+    test(
+        'Literal clip libraries remain retired',
+        !fs.existsSync(clipLibraryPath) && !fs.existsSync(sportsClipLibraryPath),
+        'Static clip supply must not return; use the verified database-backed pipeline'
+    );
+
+    const liveRoots = [
+        path.resolve(__dirname, '../../../pages'),
+        path.resolve(__dirname, '../../../scripts'),
+        path.resolve(__dirname, '..'),
+    ];
+    const liveLibraryCallers = [];
+    const scan = directory => {
+        if (!fs.existsSync(directory)) return;
+        for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+            const candidate = path.join(directory, entry.name);
+            if (entry.isDirectory()) scan(candidate);
+            else if (/\.(?:c?js|mjs|jsx|ts|tsx)$/.test(entry.name)
+                && candidate !== path.resolve(__filename)) {
+                const source = fs.readFileSync(candidate, 'utf8');
+                if (/['"]\.\/?(?:.*\/)?(?:Sports)?ClipLibrary\.js['"]/.test(source)) {
+                    liveLibraryCallers.push(candidate);
+                }
+            }
+        }
+    };
+    liveRoots.forEach(scan);
+    test(
+        'No live code imports a retired literal clip library',
+        liveLibraryCallers.length === 0,
+        liveLibraryCallers.join(', ')
+    );
 
     // ═══════════════════════════════════════════════════════════════════════
     // LAW 3: NO DUPLICATE CONTENT

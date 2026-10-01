@@ -64,7 +64,7 @@ const YOUTUBE_ID_RE = /^[A-Za-z0-9_-]{11}$/;
 const POKER_TOPICS = new Set(['poker', 'cash', 'tournament']);
 const YOUTUBE_HOSTS = new Set(['youtube.com', 'www.youtube.com', 'm.youtube.com', 'music.youtube.com']);
 const YOUTUBE_NOCOOKIE_HOSTS = new Set(['youtube-nocookie.com', 'www.youtube-nocookie.com']);
-const POST_SELECT = [
+export const POST_SELECT = [
     'id', 'content', 'content_type', 'media_urls', 'thumbnail_url',
     'like_count', 'comment_count', 'share_count', 'view_count', 'visibility',
     'audience_mode', 'audience_list',
@@ -184,7 +184,7 @@ function isManagedVideoLibraryPost(post) {
         || Boolean(post?.metadata?.video_library_id);
 }
 
-function isPublicAudiencePost(post) {
+export function isPublicAudiencePost(post) {
     if (!post || post.is_deleted === true || post.visibility === 'private') return false;
     const effectiveAudience = post.audience_mode
         || (post.visibility !== 'public' ? post.visibility : null)
@@ -214,7 +214,7 @@ async function supaFetch(path, options = {}) {
     return res.json();
 }
 
-async function readManagedEligibilityContext(posts) {
+export async function readManagedEligibilityContext(posts) {
     const managed = posts.filter(isManagedVideoLibraryPost);
     const assetIds = [...new Set(managed
         .map(post => String(post.source_asset_id || ''))
@@ -314,7 +314,7 @@ function hasActiveLegacyTransition(post, nowMs = Date.now()) {
         && expiresAt - nowMs <= LEGACY_TRANSITION_MAX_REMAINING_MS + MAX_FUTURE_SKEW_MS;
 }
 
-function managedVideoPostIsEligible(post, context, nowMs = Date.now()) {
+export function managedVideoPostIsEligible(post, context, nowMs = Date.now()) {
     const managed = isManagedVideoLibraryPost(post);
     if (post?.content_type !== 'video') return !managed;
 
@@ -390,7 +390,7 @@ function managedVideoPostIsEligible(post, context, nowMs = Date.now()) {
         && checkedAt <= nowMs + MAX_FUTURE_SKEW_MS;
 }
 
-function nativeVideoIsReady(post) {
+export function nativeVideoIsReady(post) {
     if (post?.content_type !== 'video' || post?.playback_type !== 'native') return true;
     return READY_TRANSCODE_STATUSES.has(post?.transcode_status ?? null);
 }

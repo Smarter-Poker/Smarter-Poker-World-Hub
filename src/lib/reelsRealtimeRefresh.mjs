@@ -32,6 +32,7 @@ export function shouldShowInitialReelsLoadingConsole({ loading = false, reelCoun
 }
 
 const POKER_TOPICS = new Set(['poker', 'cash', 'tournament']);
+const ALL_REEL_TOPICS = new Set(['poker', 'cash', 'tournament', 'slots', 'sports', 'unknown']);
 const BLOCKED_RIGHTS = new Set(['blocked', 'restricted']);
 const UNAVAILABLE_STATUSES = new Set([400, 404, 410]);
 
@@ -96,23 +97,34 @@ export function reelPlaybackSignature(row) {
  * True only when the raw row explicitly states a disqualifying value. A column
  * missing from a realtime payload is never read as a takedown.
  */
-export function hasExplicitReelIneligibility(row, { allowPrivate = false } = {}) {
+export function reelTopicsForCategory(category) {
+  if (category === 'casino-slots') return new Set(['slots']);
+  if (category === 'sports') return new Set(['sports']);
+  if (category === 'for-you') return ALL_REEL_TOPICS;
+  if (category === 'following') return ALL_REEL_TOPICS;
+  return POKER_TOPICS;
+}
+
+export function hasExplicitReelIneligibility(
+  row,
+  { allowPrivate = false, allowedTopics = POKER_TOPICS } = {},
+) {
   if (!row || typeof row !== 'object') return false;
   if (row.is_deleted === true) return true;
   if (row.is_public === false && !allowPrivate) return true;
   if (typeof row.media_status === 'string' && row.media_status !== 'ready') return true;
   const topic = lowered(row.topic);
-  if (typeof topic === 'string' && !POKER_TOPICS.has(topic)) return true;
+  if (typeof topic === 'string' && !allowedTopics.has(topic)) return true;
   return BLOCKED_RIGHTS.has(lowered(row.rights_status));
 }
 
 /** A raw row that could enter a public poker Reel feed. */
-export function isListableReelRow(row) {
+export function isListableReelRow(row, { allowedTopics = POKER_TOPICS } = {}) {
   if (!row || typeof row !== 'object' || !row.id) return false;
-  if (hasExplicitReelIneligibility(row)) return false;
+  if (hasExplicitReelIneligibility(row, { allowedTopics })) return false;
   return row.is_public === true
     && row.media_status === 'ready'
-    && POKER_TOPICS.has(lowered(row.topic));
+    && allowedTopics.has(lowered(row.topic));
 }
 
 /**
@@ -200,7 +212,7 @@ export function createReelRealtimeChangeFilter({ maxTracked = 2000 } = {}) {
   const none = Object.freeze({ refresh: false, remove: false });
 
   return {
-    classify({ eventType, row, stateReel = null } = {}) {
+    classify({ eventType, row, stateReel = null, allowedTopics = POKER_TOPICS } = {}) {
       const id = row?.id;
       if (!id) return none;
       if (eventType === 'DELETE') {
@@ -211,18 +223,21 @@ export function createReelRealtimeChangeFilter({ maxTracked = 2000 } = {}) {
       const previous = signatures.get(id);
       remember(id, signature);
       if (eventType === 'INSERT') {
-        return { refresh: !stateReel && isListableReelRow(row), remove: false };
+        return { refresh: !stateReel && isListableReelRow(row, { allowedTopics }), remove: false };
       }
       if (eventType !== 'UPDATE') return none;
       if (stateReel) {
-        if (hasExplicitReelIneligibility(row, { allowPrivate: stateReel.is_public === false })) {
+        if (hasExplicitReelIneligibility(row, {
+          allowPrivate: stateReel.is_public === false,
+          allowedTopics,
+        })) {
           return { refresh: true, remove: true };
         }
         if (previous !== undefined) return { refresh: previous !== signature, remove: false };
         return { refresh: rawReelPlaybackDiffers(row, stateReel), remove: false };
       }
       const changed = previous === undefined || previous !== signature;
-      return { refresh: changed && isListableReelRow(row), remove: false };
+      return { refresh: changed && isListableReelRow(row, { allowedTopics }), remove: false };
     },
     forget(id) {
       signatures.delete(id);
