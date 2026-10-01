@@ -588,7 +588,6 @@ export function ReelsViewer({ onClose }) {
   // one debounced BACKGROUND refresh that merges into the mounted feed without
   // swapping the player for the loading console.
   useEffect(() => {
-    if (!currentUserId) return;
     const realtimeFilter = reelRealtimeFilterRef.current;
     const handleReelChange = (eventType, row) => {
       const stateReel = row?.id
@@ -601,7 +600,7 @@ export function ReelsViewer({ onClose }) {
       scheduleBackgroundReelsRefresh();
     };
     const _ch = supabase
-      .channel(`reels-viewer:${currentUserId}`)
+      .channel(`reels-viewer:${currentUserId || 'public'}:${Math.random().toString(36).slice(2, 8)}`)
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'social_reels' }, (payload) => {
         handleReelChange('INSERT', payload?.new);
       })

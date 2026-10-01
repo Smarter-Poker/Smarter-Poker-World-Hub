@@ -3,7 +3,8 @@ import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
 const PAGE = readFileSync(new URL('../pages/hub/video-library.js', import.meta.url), 'utf8');
-const DATA = readFileSync(new URL('../src/data/videoLibraryData.js', import.meta.url), 'utf8');
+const COMPATIBILITY = readFileSync(new URL('../src/data/videoLibraryCompatibility.js', import.meta.url), 'utf8');
+const compatibilityModule = await import('../src/data/videoLibraryCompatibility.js');
 const HISTORY = readFileSync(
   new URL('../src/services/videoWatchHistory.js', import.meta.url),
   'utf8'
@@ -53,16 +54,19 @@ const BOTTOM_NAV_ROUTES = JSON.parse(
   readFileSync(new URL('../src/config/bottom-nav-routes.json', import.meta.url), 'utf8')
 );
 
-test('the playable fallback catalog canonicalizes IDs and rejects placeholder embeds', () => {
+test('legacy aliases are compatibility-only and the page has no playable fallback catalog', () => {
   assert.match(PAGE, /STATIC_VIDEO_ALIASES/);
-  assert.match(PAGE, /\.filter\(isVideoLibraryVideoAllowed\)/);
-  assert.match(PAGE, /legacyId: video\.id, id: video\.videoId/);
+  assert.match(PAGE, /Object\.entries\(LEGACY_VIDEO_ID_ALIASES\)/);
+  assert.doesNotMatch(PAGE, /STATIC_CATALOG|FULL_VIDEOS/);
+  assert.match(PAGE, /const \[videos, setVideos\] = useState\(\[\]\)/);
+  assert.match(PAGE, /setCatalogRefreshFailed\(true\)[\s\S]*setAllVideos\(\[\]\)[\s\S]*setVideos\(\[\]\)/);
   assert.match(CATALOG_API, /id: row\.youtube_video_id/);
   assert.match(PAGE, /legacyId: STATIC_VIDEO_CANONICAL_ALIASES\.get\(video\.videoId\)/);
   assert.ok(
-    (DATA.match(/videoId: 'FAKE/g) || []).length > 0,
-    'guard must exercise real legacy placeholders'
+    Object.values(compatibilityModule.LEGACY_VIDEO_ID_ALIASES).some(videoId => videoId.startsWith('FAKE')),
+    'compatibility must preserve old placeholder bookmarks so they fail closed after canonicalization'
   );
+  assert.doesNotMatch(COMPATIBILITY, /"(?:title|duration|views|videoUrl|thumbnail)"\s*:/i);
 });
 
 test('legacy persisted aliases remain visible and removable after canonicalization', () => {
@@ -271,11 +275,8 @@ test('the hamburger exposes every canonical Video Library view and source', () =
   const menuStart = MENU.indexOf("'video-library':");
   const menuEnd = MENU.indexOf("'trivia':", menuStart);
   const videoMenu = MENU.slice(menuStart, menuEnd);
-  const sourceStart = DATA.indexOf('export const SOURCES = [');
-  const canonicalSources = [...DATA.slice(sourceStart).matchAll(
-    /\{ id: '([^']+)', name: '([^']+)', logo: (?:null|'[^']+') \}/g
-  )]
-    .map(([, id, name]) => ({ id, name }))
+  const canonicalSources = compatibilityModule.VIDEO_LIBRARY_SOURCES
+    .map(({ id, name }) => ({ id, name }))
     .filter(({ id }) => id !== 'ALL');
   const menuSources = [...videoMenu.matchAll(
     /createMenuItem\.navigation\('([^']+)', '\/hub\/video-library\?source=([^']+)'\)/g

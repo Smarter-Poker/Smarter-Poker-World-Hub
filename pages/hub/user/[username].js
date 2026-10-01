@@ -2814,29 +2814,51 @@ export default function UserProfilePage() {
             .not('media_urls', 'is', null)
             .order('created_at', { ascending: false })
             .limit(50),
-          // Videos — Bug 15 fix: include live posts + thumbnail_url for cover images
-          supabase
-            .from('social_posts')
-            .select('id, media_urls, thumbnail_url, metadata, content, created_at, content_type')
-            .eq('author_id', socialId)
-            .or('content_type.eq.video,content_type.eq.live')
-            .order('created_at', { ascending: false })
-            .limit(30),
-          // Reels: only ready, undeleted rows, and only public ones unless the
-          // viewer owns this profile (the same test as isOwnProfile below).
-          // Phase 8: the permissive social_reels read policy returns every row,
-          // so the predicates the Reels surface applies live here too.
+          // Videos are filtered server-side through the same privacy, rights,
+          // storage-object, transcode and mutable availability contract as the
+          // main Social feed. Owners keep their own non-deleted private posts.
+          (() => {
+            const token = user?.id === data.id ? getAccessToken() : null;
+            return fetch(`/api/social/profile-videos?author_id=${encodeURIComponent(socialId)}`, {
+              method: 'GET',
+              cache: 'no-store',
+              headers: {
+                Accept: 'application/json',
+                ...(token ? { Authorization: `Bearer ${token}` } : {}),
+              },
+            });
+          })().then(async (response) => {
+            const payload = await response.json().catch(() => null);
+            if (!response.ok || !payload?.success || !Array.isArray(payload.data)) {
+              return { data: [], error: new Error(payload?.error || 'Profile Videos unavailable') };
+            }
+            return { data: payload.data, error: null };
+          }),
+          // Profile Reels use the same server-owned rights, availability,
+          // linked-post, native-object and canonical-winner gate as /hub/reels.
+          // Never restore the former direct social_reels query here: RLS alone
+          // cannot adjudicate mutable third-party playback availability.
           (() => {
             const viewerOwnsProfile = user?.id === data.id;
-            let reelsQuery = supabase
-              .from('social_reels')
-              .select('id, video_url, caption, thumbnail_url, view_count, created_at')
-              .eq('author_id', socialId)
-              .eq('media_status', 'ready')
-              .eq('is_deleted', false);
-            if (!viewerOwnsProfile) reelsQuery = reelsQuery.eq('is_public', true);
-            return reelsQuery.order('created_at', { ascending: false }).limit(30);
-          })(),
+            const token = viewerOwnsProfile ? getAccessToken() : null;
+            const endpoint = viewerOwnsProfile
+              ? '/api/reels/mine?limit=30'
+              : `/api/reels/profile?author_id=${encodeURIComponent(socialId)}&limit=30`;
+            return fetch(endpoint, {
+              method: 'GET',
+              cache: 'no-store',
+              headers: {
+                Accept: 'application/json',
+                ...(token ? { Authorization: `Bearer ${token}` } : {}),
+              },
+            });
+          })().then(async (response) => {
+            const payload = await response.json().catch(() => null);
+            if (!response.ok || !payload?.success || !Array.isArray(payload.data)) {
+              return { data: [], error: new Error(payload?.error || 'Profile Reels unavailable') };
+            }
+            return { data: payload.data, error: null };
+          }),
           // Past Lives (posted recordings only)
           // BUG FIX (2026-05-11 audit): added feed_post_id so handleDeleteLive can
           // explicitly clean up the linked "X went live" social_posts entry on delete.

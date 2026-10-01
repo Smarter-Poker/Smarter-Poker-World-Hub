@@ -170,42 +170,29 @@ export default function SavedPostsPage() {
             }
             setCurrentUser(user);
 
-            // 1. Get bookmarked post IDs
-            const { data: bookmarks, error: bmErr } = await supabase
-                .from('social_interactions')
-                .select('post_id, created_at')
-                .eq('user_id', user.id)
-                .eq('interaction_type', 'bookmark')
-                .order('created_at', { ascending: false });
-
-            if (bmErr || !bookmarks?.length) {
+            // The server derives bookmark ownership from the verified token
+            // and re-applies the Social feed privacy/video eligibility gates.
+            const token = getAccessToken();
+            const response = await fetch('/api/social/saved-posts', {
+                method: 'GET',
+                cache: 'no-store',
+                headers: {
+                    Accept: 'application/json',
+                    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                },
+            });
+            const payload = await response.json().catch(() => null);
+            const posts = payload?.data;
+            if (!response.ok || !payload?.success || !Array.isArray(posts) || !posts.length) {
                 setSavedPosts([]);
                 setLoading(false);
                 return;
             }
-
-            const postIds = bookmarks.map(b => b.post_id);
-
-            // 2. Fetch those posts
-            const { data: posts, error: postErr } = await supabase
-                .from('social_posts')
-                .select('*')
-                .in('id', postIds);
-
-            if (postErr || !posts?.length) {
-                setSavedPosts([]);
-                setLoading(false);
-                return;
-            }
-
-            // 3. Order posts by bookmark time (most recently saved first)
-            const bookmarkOrder = {};
-            bookmarks.forEach((b, i) => { bookmarkOrder[b.post_id] = i; });
-            posts.sort((a, b) => (bookmarkOrder[a.id] ?? 999) - (bookmarkOrder[b.id] ?? 999));
 
             setSavedPosts(posts);
 
-            // 4. Fetch author profiles
+            // Fetch only public profile chrome after the authoritative post
+            // collection has removed unavailable or no-longer-visible rows.
             const authorIds = [...new Set(posts.map(p => p.author_id).filter(Boolean))];
             if (authorIds.length > 0) {
                 const { data: profiles } = await supabase

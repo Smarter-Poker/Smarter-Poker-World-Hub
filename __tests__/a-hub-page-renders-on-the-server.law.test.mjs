@@ -10,7 +10,9 @@
  *
  * with the entire page body inside it. The server rendered the head and
  * nothing else. /hub/news declared itself the poker news hub and served a
- * crawler no headlines; /hub/video-library served none of its 161 titles.
+ * crawler no headlines. The Video Library now intentionally serves its shell
+ * and loading state until the verified live catalog arrives; it must not
+ * manufacture indexable content from a stale bundled playback catalog.
  *
  * The cause had been met twice before without being named: SEOHead was moved
  * out of that wrapper in one fix, the JSON-LD in another, each with a comment
@@ -82,14 +84,13 @@ test('the news feed does not need an effect to have something to show', () => {
   assert.doesNotMatch(src, /const NEWS_PAGE_SIZE = 24;\s*\n\s*const/);
 });
 
-test('the video library shows the catalogue it already has', () => {
+test('the video library renders only verified live catalog rows', () => {
   const src = read('pages/hub/video-library.js');
-  // `videos` is seeded from STATIC_CATALOG, whose own comment says it is there
-  // to be shown until the fetch resolves. `!catalogLoading &&` meant it never
-  // was: the first paint, and every server render, showed six skeletons.
-  assert.doesNotMatch(src, /\{!catalogLoading && videos\.map\(/);
+  assert.match(src, /const \[videos, setVideos\] = useState\(\[\]\)/);
+  assert.doesNotMatch(src, /STATIC_CATALOG|FULL_VIDEOS/);
+  assert.match(src, /catalogLoading && videos\.length === 0/);
   assert.match(src, /\{videos\.map\(\(video, index\) => \{/);
-  assert.doesNotMatch(src, /visibleCount=\{catalogLoading \? 0 : videos\.length\}/);
+  assert.match(src, /setCatalogRefreshFailed\(true\)[\s\S]*setVideos\(\[\]\)/);
 });
 
 test('the SWR fallback never breaks the page it is seeding', () => {

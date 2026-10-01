@@ -821,7 +821,7 @@ test('Reel viewers route realtime and focus revalidation through the background 
     const realtime = between(source, '// Realtime subscription', '.subscribe();');
     assert.doesNotMatch(realtime, /loadReels\s*\(/,
       `${name}: realtime handlers must never call the foreground loader`);
-    assert.match(realtime, /realtimeFilter\.classify\(\{ eventType, row, stateReel \}\)/,
+    assert.match(realtime, /realtimeFilter\.classify\(\{[\s\S]*?eventType,[\s\S]*?row,[\s\S]*?stateReel,?[\s\S]*?\}\)/,
       `${name}: every social_reels event is classified before acting`);
     assert.match(realtime, /if \(!verdict\.refresh\) return;[\s\S]*scheduleBackgroundReelsRefresh\(\)/,
       `${name}: only playback-relevant changes schedule a refresh`);

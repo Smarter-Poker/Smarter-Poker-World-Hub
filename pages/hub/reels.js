@@ -53,6 +53,7 @@ import {
   createReelRealtimeChangeFilter,
   createReelsRefreshCoordinator,
   mergeBackgroundReels,
+  reelTopicsForCategory,
   resolveStaleReels,
   shouldShowInitialReelsLoadingConsole,
 } from '../../src/lib/reelsRealtimeRefresh.mjs';
@@ -1100,6 +1101,21 @@ export default function ReelsPage({ reelsListing = null }) {
         },
       });
       if (!reelsRequest.isCurrent()) return;
+      if (
+        !background
+        && initialId
+        && payload.redirected_from === initialId
+        && payload.data?.[0]?.id
+        && payload.data[0].id !== initialId
+      ) {
+        // Keep the user on this surface while replacing a retired historical
+        // bookmark with its durable canonical Reel. The database resolver has
+        // already applied the full winner eligibility contract.
+        void router.replace({
+          pathname: '/hub/reels',
+          query: { ...router.query, id: payload.data[0].id },
+        }, undefined, { shallow: true, scroll: false });
+      }
       // Commit a route namespace change only after its authoritative response
       // lands. If a category switch drops mid-flight, the mounted Reel and its
       // index remain intact until the user retries instead of collapsing into
@@ -2779,20 +2795,24 @@ export default function ReelsPage({ reelsListing = null }) {
   // one debounced BACKGROUND refresh that merges into the mounted feed without
   // swapping the player for the loading console.
   useEffect(() => {
-    if (!user?.id) return;
     const realtimeFilter = reelRealtimeFilterRef.current;
     const handleReelChange = (eventType, row) => {
       const stateReel = row?.id
         ? reelsRef.current.find((reel) => reel.id === row.id) || null
         : null;
-      const verdict = realtimeFilter.classify({ eventType, row, stateReel });
+      const verdict = realtimeFilter.classify({
+        eventType,
+        row,
+        stateReel,
+        allowedTopics: reelTopicsForCategory(categoryForReelsRoute(router.query)),
+      });
       if (verdict.remove) removeMountedReels((reel) => reel.id === row.id);
       if (!verdict.refresh) return;
       if (stateReel && !verdict.remove) staleReelIdsRef.current.add(row.id);
       scheduleBackgroundReelsRefresh();
     };
     const _ch = supabase
-      .channel(`reels:${user.id}`)
+      .channel(`reels:${user?.id || 'public'}:${Math.random().toString(36).slice(2, 8)}`)
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'social_reels' }, (payload) => {
         handleReelChange('INSERT', payload?.new);
       })
