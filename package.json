@@ -92,6 +92,7 @@
     "@react-three/fiber": "^8.18.0",
     "@react-three/postprocessing": "2.16",
     "@smarter-poker/commander-shared": "file:vendor/commander-shared",
+    "@sparticuz/chromium": "153.0.0",
     "@stripe/stripe-js": "^8.7.0",
     "@supabase/ssr": "latest",
     "@tailwindcss/typography": "^0.5.19",

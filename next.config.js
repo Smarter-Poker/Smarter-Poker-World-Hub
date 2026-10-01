@@ -525,6 +525,12 @@ const nextConfig = {
     // nft tracing to one binary (~50MB) instead of all 8 platforms (~670MB).
     '@ffmpeg-installer/linux-x64',
     '@ffprobe-installer/linux-x64',
+    // Phase 9 hand clip renderer (/api/cron/render-hand-clips): a packed
+    // headless Chromium plus the puppeteer core driver. Both ship binaries
+    // or ESM-only entry points that must NOT be webpacked; the route traces
+    // them in through outputFileTracingIncludes below.
+    '@sparticuz/chromium',
+    'puppeteer-core',
   ],
 
   // ─── Output File Tracing — Serverless Bundle Exclusions ─────────────────
@@ -600,6 +606,16 @@ const nextConfig = {
   // binaries (~670 MB total).
   outputFileTracingIncludes: {
     'pages/api/cron/transcode-videos': [
+      'node_modules/@ffmpeg-installer/linux-x64/**/*',
+      'node_modules/@ffprobe-installer/linux-x64/**/*',
+    ],
+    // Phase 9 hand clip renderer: the '*' excludes above drop puppeteer-core
+    // from every other route; this include wins for this one route and adds
+    // the packed Chromium (@sparticuz/chromium, about 65 MB brotli) and the
+    // same two linux-x64 ffmpeg/ffprobe binaries the transcode cron carries.
+    'pages/api/cron/render-hand-clips': [
+      'node_modules/@sparticuz/chromium/**/*',
+      'node_modules/puppeteer-core/**/*',
       'node_modules/@ffmpeg-installer/linux-x64/**/*',
       'node_modules/@ffprobe-installer/linux-x64/**/*',
     ],

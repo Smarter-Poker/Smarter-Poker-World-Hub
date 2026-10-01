@@ -123,6 +123,7 @@ JOB_TIMEOUTS = {
     '/api/cron/horses-social-all':     600,
     '/api/cron/phase6-content':        300,   # grounded club/event reads plus capped publishing
     '/api/cron/phase7-content':        300,   # puzzle reveals plus capped puzzle and story publishing, 240s internal deadline
+    '/api/cron/phase9-content':        300,   # one horse hand clip enqueue per fire, 240s internal deadline
     '/api/cron/scrape-sports-clips':   300,
     '/api/cron/scrape-poker-clips':    300,
     '/api/cron/revalidate-poker-clips': 120,
@@ -757,6 +758,13 @@ ALL_CRONS = [
     # row ships disabled, so until the owner approves one this is a
     # measured no-op, exactly like Phase 6. Not a CRITICAL_JOB for 7.1.
     ('/api/cron/phase7-content',                  dict(minute=40)),          # hourly; due reveals, then capped publishing
+    # Fleet Content Programme Phase 9 (the hand replay renderer). Hourly at
+    # :25: the workers route picks ONE winning hand from the fleet's own
+    # review table and enqueues one hand_clip_jobs row; the Vercel cron
+    # /api/cron/render-hand-clips renders it within the next few minutes.
+    # The hand_clip mode row ships disabled, so until the owner approves it
+    # the rendered clip stays ready and unpublished. Not a CRITICAL_JOB.
+    ('/api/cron/phase9-content',                  dict(minute=25)),          # hourly; one clip enqueue, bounded by the fleet slot
     ('/api/cron/horses-social-friends',           dict(hour='*/6', minute=15)),
     ('/api/cron/horses-stories',                  dict(minute='5,20,35,50')),
     # RETIRED 2026-09-06: both legacy Trivia tournament lifecycle schedules
@@ -1183,6 +1191,7 @@ WORKERS_PREFERRED = {
     '/api/cron/horse-video-reels':             '/cron/horse-video-reels',
     '/api/cron/phase6-content':                '/cron/phase6-content',
     '/api/cron/phase7-content':                '/cron/phase7-content',
+    '/api/cron/phase9-content':                '/cron/phase9-content',
     # ─── 2B.3 Option B — generate-trivia-questions (handler 53) ─────────────
     # Workers repo has src/routes/generate-trivia-questions.ts (TS port of the
     # 560 LOC monolith handler) + src/lib/triviaValidator.ts (218 LOC port of
