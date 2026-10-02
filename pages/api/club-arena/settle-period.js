@@ -246,7 +246,7 @@ export default async function handler(req, res) {
       if (err_agents_8n8q4) {
         // FAIL-LOUD: if the reset does not land, every agent keeps last week's
         // weekly_rake_generated and the NEXT close pays commission on it a
-        // second time and re-charges the union hold on it. Silently warning
+        // second time. Silently warning
         // here meant the double-charge surfaced a week later as a mystery.
         return res.status(500).json({
           success: false,
@@ -347,9 +347,8 @@ export default async function handler(req, res) {
       // 401'd or stalled — which is the only reason this is a removal and not an
       // incident. Both tables are dropped in club-arena migration 20260901133348.
       //
-      // The period still closes, the union hold is still taken, and the agents
-      // are paid the way Dan said they are paid: "AGENTS HANDLE THEIR OWN
-      // PAYOUTS."
+      // The period still closes, and the agents are paid the way Dan said they
+      // are paid: "AGENTS HANDLE THEIR OWN PAYOUTS."
       let totalCommissions = 0;
 
       const agentsMap = new Map();
@@ -499,8 +498,8 @@ export default async function handler(req, res) {
       // .select() because the existing FAIL-LOUD branch below only fires on
       // `error`, and PostgREST reports a zero-row UPDATE as { error: null }.
       // Every consequence described in that comment -- period stays open,
-      // caller told "closed", next run re-applies commissions and the union
-      // hold -- follows just as exactly from a zero-row match. The check was
+      // caller told "closed", next run re-applies the player P&L -- follows
+      // just as exactly from a zero-row match. The check was
       // catching one of the two ways this fails.
       const { data: closedRows, error: err_settlement_periods_3wobo } = await supabaseAdmin
         .from('settlement_periods')
@@ -523,7 +522,7 @@ export default async function handler(req, res) {
           success: false,
           error: `Settlement completed but the period could not be marked closed: the update `
             + `matched no rows (period ${pid} may have been altered concurrently). DO NOT `
-            + `re-run close for this period -- commissions and the union hold have already `
+            + `re-run close for this period -- commissions and the player P&L have already `
             + `been applied.`,
           periodId: pid,
           alreadyApplied: true,
@@ -533,9 +532,8 @@ export default async function handler(req, res) {
         // FAIL-LOUD: this is the worst one. All the money movement above has
         // already committed. If the period is not marked closed, it stays
         // `open`, the caller is told "closed", and the next run re-executes
-        // EVERYTHING — re-inserting commission records, re-debiting the club
-        // treasury for the union hold and re-crediting the union. Report it so
-        // the period is closed by hand rather than settled twice.
+        // EVERYTHING — including the union player P&L leg. Report it so the
+        // period is closed by hand rather than settled twice.
         return res.status(500).json({
           success: false,
           error: `Settlement completed but the period could not be marked closed: `
