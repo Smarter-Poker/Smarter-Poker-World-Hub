@@ -327,17 +327,6 @@ export default async function handler(req, res) {
       // commissions from weekly_rake_generated (actual table rake).
       // ═══════════════════════════════════════════════════════════
 
-      // Get union settings for rakeback split
-      let unionRakeHold = 0.10; // default 10%
-      if (club.union_id) {
-        const { data: union } = await supabaseAdmin
-          .from('unions')
-          .select('settings')
-          .eq('id', club.union_id)
-          .maybeSingle();
-        unionRakeHold = union?.settings?.union_rake_hold || 0.10;
-      }
-
       // ── PHASE 7 (2026-09-01): THIS NO LONGER COMPUTES COMMISSION ──
       //
       // What stood here was a second, parallel commission calculation: it took
@@ -418,12 +407,22 @@ export default async function handler(req, res) {
         totalCommissions = Math.round(totalCommissions * 100) / 100;
       }
 
-      // Calculate union hold
       // settlement_periods.total_rake_collected is never updated by record_rake RPC,
       // so calculate actual total from agents' weekly_rake_generated
       const actualTotalRake = (agents || []).reduce((sum, a) => sum + (a.weekly_rake_generated || 0), 0);
       const totalRake = actualTotalRake || period.total_rake_collected || 0;
-      const unionHold = Math.round(totalRake * unionRakeHold * 100) / 100;
+      // THE UNION'S SHARE IS NOT TAKEN AGAIN HERE (2026-10-02, chip-drift
+      // phase 1). A union club's rake goes to the union's wallet in the hand
+      // that raked it (chip_ledger 'rake' table_stack -> union_wallet), and the
+      // club's share comes back through the weekly union rakeback close
+      // (fn_union_close_post_rake_debit). This route used to debit a further
+      // union_rake_hold share of the period's rake from the club treasury and
+      // credit the union's rake_wallet: the union paid twice for one hand. It
+      // never ran in production (no union_wallet_transactions row has ever
+      // carried tx_type 'settlement_hold'), and since 20261002140203 its first
+      // half refuses by name, which this route logged and stepped past while
+      // still answering success. The leg is gone, not guarded.
+      const unionHold = 0;
 
       // Update the period with the actual total
       if (actualTotalRake > 0) {
@@ -439,95 +438,6 @@ export default async function handler(req, res) {
         else if (!rakeRows || rakeRows.length === 0) console.error('[settle-period] total_rake_collected write matched ZERO rows for period', pid, '- the stored total will not match the settlement');
       }
 
-      // Debit union hold from club treasury, credit to union rake_wallet
-      if (club.union_id && unionHold > 0) {
-        const { error: holdDebitErr } = await supabaseAdmin.rpc('fn_debit_treasury', {
-          p_club_id: clubId,
-          p_amount: unionHold,
-        });
-
-        if (holdDebitErr) {
-          console.warn('[settle-period] union hold debit failed (treasury shortfall):', holdDebitErr.message);
-          // Skip union credit — don't create chips from thin air
-        } else {
-          // UNION AUDIT FIX 2026-07-21 (conservation): the union credit was
-          // fire-and-forget — if it failed after the treasury debit succeeded,
-          // the hold amount vanished (club debited, union never credited).
-          // Await it and REFUND the treasury on failure so chips are conserved.
-          const { error: holdCreditErr } = await supabaseAdmin.rpc('fn_union_credit_wallet', {
-            p_union_id: club.union_id,
-            p_wallet: 'rake_wallet',
-            p_amount: unionHold,
-            p_tx_type: 'settlement_hold',
-            p_club_id: clubId,
-            p_period_id: pid,
-          });
-          if (holdCreditErr) {
-            console.warn('[settle-period] union rake_wallet credit failed, refunding treasury:', holdCreditErr.message);
-            const { error: refundErr } = await supabaseAdmin.rpc('fn_credit_treasury', {
-              p_club_id: clubId,
-              p_amount: unionHold,
-            });
-            if (refundErr) {
-              console.error('[settle-period] CRITICAL: union hold refund ALSO failed - treasury debited, union not credited:', refundErr.message);
-              // Chips have been destroyed: the club was debited, the union was
-              // never credited, and putting them back failed too. That is a
-              // conservation break and must not be reported as a success.
-              return res.status(500).json({
-                success: false,
-                error: `CRITICAL: the union hold of ${unionHold} was debited from the club `
-                  + `treasury, crediting the union failed, and the refund failed as well. `
-                  + `Those chips are unaccounted for - reconcile before settling again.`,
-                conservationBreak: true,
-                amount: unionHold,
-                periodId: pid,
-              });
-            }
-            // Continue the settlement either way — the hold is skipped, not fatal.
-          } else {
-          // NOTE: fn_union_credit_wallet writes the union_wallet_transactions
-          // audit row itself (tx_type/club/period passed above) — the old
-          // manual insert here would double-log, so it was removed.
-          const { error: chipTxErr } = await supabaseAdmin.from('chip_transactions').insert({
-            club_id: clubId,
-            amount: unionHold,
-            transaction_type: 'union_hold',
-            notes: `Union rake hold: ${unionHold.toLocaleString()} chips (${(unionRakeHold * 100).toFixed(1)}% of ${totalRake.toLocaleString()} rake) - Period #${period.period_number}`,
-            metadata: {
-              period_id: pid,
-              period_number: period.period_number,
-              union_id: club.union_id,
-              hold_rate: unionRakeHold,
-            },
-          });
-          if (chipTxErr) console.warn('[settle-period] union hold chip_transactions insert error:', chipTxErr.message);
-
-          // Generate union_to_club invoice
-          const { error: invoiceErr } = await supabaseAdmin.from('settlement_invoices').insert({
-            club_id: clubId,
-            period_id: pid,
-            invoice_type: 'union_to_club',
-            from_entity_type: 'union',
-            from_entity_id: String(club.union_id),
-            to_entity_type: 'club',
-            to_entity_id: String(clubId),
-            gross_amount: totalRake,
-            net_amount: unionHold,
-            breakdown: {
-              total_rake: totalRake,
-              rake_hold_pct: unionRakeHold,
-              union_hold_amount: unionHold,
-              club_retained: totalRake - unionHold,
-              period_number: period.period_number,
-            },
-            status: 'paid',
-            chips_transferred: true,
-            transferred_at: new Date().toISOString(),
-          });
-          if (invoiceErr) console.warn('[settle-period] Invoice insert error:', invoiceErr.message);
-          } // end else (credit succeeded)
-        } // end else (debit succeeded)
-      }
 
       // PHASE 7: the club_to_agent invoices that were generated here are gone
       // with the commission_records they were built from. They were a third
@@ -630,7 +540,7 @@ export default async function handler(req, res) {
           success: false,
           error: `Settlement completed but the period could not be marked closed: `
             + `${err_settlement_periods_3wobo.message}. DO NOT re-run close for this `
-            + `period - commissions and the union hold have already been applied.`,
+            + `period - commissions and the player P&L have already been applied.`,
           periodId: pid,
           alreadyApplied: true,
         });
@@ -642,6 +552,7 @@ export default async function handler(req, res) {
         periodNumber: period.period_number,
         totalRakeCollected: totalRake,
         unionHold,
+        unionRake: club.union_id ? 'collected_per_hand_by_the_union' : null,
         clubRetained: totalRake - unionHold,
         playerPnl,
         // PHASE 7: no commission records are created by a close any more, and
