@@ -52,6 +52,20 @@ class RegistryIngestTests(unittest.TestCase):
         self.assertEqual(row['availability_source'], 'youtube_data_api_v3')
         self.assertTrue(row['embeddable'])
 
+    def test_poker_sources_use_the_canonical_cash_library_type(self):
+        source = {'id': 'source-uuid', 'name': 'Poker', 'ingest_topic': 'poker'}
+        item = {
+            'id': 'abcdefghijk',
+            'snippet': {'title': 'Poker Hand', 'channelId': 'UC1', 'channelTitle': 'Poker',
+                        'publishedAt': '2026-10-03T00:00:00Z',
+                        'thumbnails': {'high': {'url': 'https://image'}}},
+            'contentDetails': {'duration': 'PT45S'},
+            'status': {'privacyStatus': 'public', 'embeddable': True},
+        }
+        row, reason = MODULE.RegistryIngestor.qualify(source, item)
+        self.assertIsNone(reason)
+        self.assertEqual(row['type'], 'cash')
+
     def test_creator_cursor_stops_before_old_items(self):
         ingestor = MODULE.RegistryIngestor(None, 'unused', dry_run=True)
         ingestor.resolve_channel = lambda source: {**source, 'provider_source_id': 'UC1', 'uploads_playlist_id': 'UU1'}

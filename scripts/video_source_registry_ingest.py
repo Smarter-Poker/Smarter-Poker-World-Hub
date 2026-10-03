@@ -228,7 +228,7 @@ class RegistryIngestor:
         if not thumbnail or not snippet.get('publishedAt'):
             return None, 'metadata_incomplete'
         topic = source.get('ingest_topic')
-        video_type = 'slots' if topic == 'casino_slots' else ('sports' if topic == 'sports' else 'poker')
+        video_type = 'slots' if topic == 'casino_slots' else ('sports' if topic == 'sports' else 'cash')
         view_count = int((item.get('statistics') or {}).get('viewCount') or 0)
         now = iso_now()
         return {

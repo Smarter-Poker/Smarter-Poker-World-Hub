@@ -8,6 +8,9 @@ const dispatcher = fs.readFileSync('scripts/openclaw-cron-dispatcher.py', 'utf8'
 const workflow = fs.readFileSync('.github/workflows/deploy-openclaw.yml', 'utf8');
 const api = fs.readFileSync('pages/api/admin/video-sources.js', 'utf8');
 const page = fs.readFileSync('pages/hub/admin/video-sources.js', 'utf8');
+const sportsCompat = fs.readFileSync('supabase/migrations/20261003183500_video_library_sports_registry_compat.sql', 'utf8');
+const availability = fs.readFileSync('src/lib/videoLibraryAvailability.js', 'utf8');
+const commandRail = fs.readFileSync('src/components/video-library/VideoLibraryCommandRail.jsx', 'utf8');
 
 test('registry persists stable identity, cursors, lifecycle and independent health clocks', () => {
   for (const field of ['provider_source_id', 'uploads_playlist_id', 'provider_cursor',
@@ -43,6 +46,15 @@ test('provider metadata is qualified before one batched upsert', () => {
   assert.match(ingestor, /made_for_kids/);
   assert.match(ingestor, /\.upsert\(\s*new_rows, on_conflict='youtube_video_id', ignore_duplicates=True/);
   assert.doesNotMatch(ingestor, /for v in new_vids[\s\S]{0,300}\.insert\(/);
+});
+
+test('registry types match storage and sports publish as sports', () => {
+  assert.match(ingestor, /topic == 'casino_slots'.*topic == 'sports'.*'cash'/s);
+  assert.match(sportsCompat, /CHECK \(type IN \('cash', 'tournament', 'slots', 'sports'\)\)/);
+  assert.match(sportsCompat, /v_asset\.type IN \(''slots'', ''sports''\) THEN v_asset\.type/);
+  assert.match(sportsCompat, /ARRAY\[v_asset\.type\]::text\[\]/);
+  assert.match(availability, /\['cash', 'tournament', 'slots', 'sports'\]/);
+  assert.match(commandRail, /\{ id: 'sports', name: 'Sports' \}/);
 });
 
 test('Open Claw deploys and schedules only the registry ingestor', () => {
