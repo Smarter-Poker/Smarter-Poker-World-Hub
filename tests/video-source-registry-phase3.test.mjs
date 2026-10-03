@@ -61,5 +61,5 @@ test('operator API is admin-gated, allowlisted and the console is mobile first',
   assert.match(page, /Video Supply Console/);
   assert.match(page, /overflow-x:auto/);
   assert.match(page, /@media\(min-width:760px\)/);
-  assert.match(page, /Pause source/);
+  assert.match(page, /Pause Source/);
 });

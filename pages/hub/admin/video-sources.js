@@ -30,22 +30,22 @@ function SourceCard({ source, onPatch }) {
       <span className={`status ${unhealthy ? 'bad' : source.lifecycle_status}`}>{source.lifecycle_status}</span>
     </div>
     <div className="source-grid">
-      <div><span>Stable channel</span><b>{source.provider_source_id || 'Resolving on next run'}</b></div>
-      <div><span>Last success</span><b>{age(source.last_success_at)}</b></div>
-      <div><span>Latest yield</span><b>{source.last_qualified_count} qualified</b></div>
-      <div><span>Cadence</span><b>{source.cadence_minutes} min</b></div>
+      <div><span>Stable Channel</span><b>{source.provider_source_id || 'Resolving On Next Run'}</b></div>
+      <div><span>Last Success</span><b>{age(source.last_success_at)}</b></div>
+      <div><span>Latest Yield</span><b>{source.last_qualified_count} Qualified</b></div>
+      <div><span>Cadence</span><b>{source.cadence_minutes} Min</b></div>
     </div>
     {source.last_failure_code && <p className="failure">{source.last_failure_code}</p>}
     <div className="actions">
       {source.lifecycle_status === 'active'
-        ? <button onClick={() => onPatch(source, { lifecycle_status: 'paused' })}>Pause source</button>
-        : <button onClick={() => onPatch(source, { lifecycle_status: 'active' })}>Activate source</button>}
+        ? <button onClick={() => onPatch(source, { lifecycle_status: 'paused' })}>Pause Source</button>
+        : <button onClick={() => onPatch(source, { lifecycle_status: 'active' })}>Activate Source</button>}
       <select aria-label={`Cadence for ${source.name}`} value={source.cadence_minutes}
         onChange={(event) => onPatch(source, { cadence_minutes: Number(event.target.value) })}>
-        <option value="180">Every 3 hours</option><option value="360">Every 6 hours</option>
-        <option value="720">Every 12 hours</option><option value="1440">Daily</option>
+        <option value="180">Every 3 Hours</option><option value="360">Every 6 Hours</option>
+        <option value="720">Every 12 Hours</option><option value="1440">Daily</option>
       </select>
-      <a href={source.attribution_url || '#'} target="_blank" rel="noreferrer">Open channel</a>
+      <a href={source.attribution_url || '#'} target="_blank" rel="noreferrer">Open Channel</a>
     </div>
   </article>;
 }
@@ -111,7 +111,7 @@ export default function VideoSourceOperations() {
     <main className="page">
       <header className="hero">
         <div><small>CONTENT OPERATIONS / PHASE 3</small><h1>Video Supply Console</h1>
-          <p>Stable channels, incremental cursors, source health, and provider quota in one command surface.</p></div>
+          <p>Stable Channels, Incremental Cursors, Source Health, And Provider Quota In One Command Surface.</p></div>
         <button className="refresh" onClick={load} disabled={busy}>{busy ? 'Checking...' : 'Refresh telemetry'}</button>
       </header>
       {error && <div className="error" role="alert">{error}</div>}
@@ -127,24 +127,24 @@ export default function VideoSourceOperations() {
             <button key={value} className={topic === value ? 'active' : ''} onClick={() => setTopic(value)}>{label}</button>)}
         </nav>
         <form className="add-source" onSubmit={createSource}>
-          <strong>Add verified channel</strong>
-          <input required aria-label="Channel name" placeholder="Channel name" value={draft.name}
+          <strong>Add Verified Channel</strong>
+          <input required aria-label="Channel Name" placeholder="Channel Name" value={draft.name}
             onChange={(event) => setDraft((value) => ({ ...value, name: event.target.value }))} />
           <input required aria-label="YouTube handle" placeholder="@YouTubeHandle" value={draft.handle}
             onChange={(event) => setDraft((value) => ({ ...value, handle: event.target.value }))} />
           <select aria-label="Channel topic" value={draft.ingest_topic}
             onChange={(event) => setDraft((value) => ({ ...value, ingest_topic: event.target.value }))}>
-            <option value="poker">Poker</option><option value="casino_slots">Casino and slots</option><option value="sports">Sports</option>
+            <option value="poker">Poker</option><option value="casino_slots">Casino And Slots</option><option value="sports">Sports</option>
           </select>
-          <button type="submit">Add source</button>
+          <button type="submit">Add Source</button>
         </form>
         <section className="source-list" aria-live="polite">
           {sources.map((source) => <SourceCard key={source.id} source={source} onPatch={patchSource} />)}
         </section>
-        <section className="runs"><h2>Latest ingestion operations</h2>
+        <section className="runs"><h2>Latest Ingestion Operations</h2>
           {(data.recentRuns || []).slice(0, 12).map((run) => <div key={run.operation_id} className="run">
             <span className={`dot ${run.status}`} /><b>{run.source_name}</b><span>{run.status}</span>
-            <span>{run.qualified} qualified / {run.inserted} new</span><time>{age(run.completed_at || run.started_at)}</time>
+            <span>{run.qualified} Qualified / {run.inserted} New</span><time>{age(run.completed_at || run.started_at)}</time>
           </div>)}
         </section>
       </>}
