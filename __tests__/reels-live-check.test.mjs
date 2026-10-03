@@ -714,7 +714,7 @@ test('workflow retains and independently asserts the complete sanitized receipt'
   );
   assert.match(
     E2E_WORKFLOW,
-    /expected_sha:\s*\n\s+description: Full deployed commit SHA required for a published live verification\s*\n\s+type: string\s*\n\s+required: true/,
+    /expected_sha:\s*\n\s+description: Full deployed commit SHA \(required only for a published live verification suite\)\s*\n\s+type: string\s*\n\s+required: false\s*\n\s+default: ''/,
   );
   assert.throws(
     () => validateReceipt({ ...receipt, checks: receipt.checks.slice(1) }),

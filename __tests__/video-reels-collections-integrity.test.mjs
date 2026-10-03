@@ -1261,6 +1261,11 @@ test('canonical collection eligibility rejects deleted, private, and stale targe
     'all',
     { allowOwnerPrivate: true, ownerId },
   ), null);
+  assert.equal(
+    normalize(nativeRow({ source_post_id: postId }), emptyContext(), 'all'),
+    null,
+    'a linked Reel becomes unavailable immediately when its source post no longer exists',
+  );
 
   const privatePostContext = emptyContext();
   privatePostContext.postById.set(postId, {

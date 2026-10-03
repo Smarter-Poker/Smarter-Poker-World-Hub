@@ -136,23 +136,15 @@ function ReelViewerConsoleState({ title, subtitle, pill, pillInk = 'blue', copy,
 
 // Full-screen Reel Viewer
 export function ReelsViewer({ onClose }) {
-  // Source-aware atomic engagement counter.
-  // Uses SECURITY DEFINER RPCs - single UPDATE, no read-then-write race condition.
-  const incrementMetric = async (reel, field, amount) => {
-    if (!reel?.id) return;
-    try {
-      if (reel.source === 'posts') {
-        const rpc = amount > 0 ? 'increment_post_count' : 'decrement_post_count';
-        const { error } = await supabase.rpc(rpc, { p_post_id: reel.id, p_field: field });
-        if (error) throw error;
-      } else {
-        const rpc = amount > 0 ? 'increment_reel_count' : 'decrement_reel_count';
-        const { error } = await supabase.rpc(rpc, { p_reel_id: reel.id, p_field: field });
-        if (error) throw error;
-      }
-    } catch (e) {
-      console.warn('[ReelsViewer] Atomic counter update failed:', e?.message || e);
-    }
+  const recordShareMetric = async (reel, destination = 'external') => {
+    const token = getAccessToken();
+    if (!reel?.id || !token) return;
+    const response = await fetch('/api/social/share-count', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ post_id: reel.id, destination }),
+    });
+    if (!response.ok) throw new Error('Share metric failed');
   };
 
   const [reels, setReels] = useState([]);
@@ -198,13 +190,6 @@ export function ReelsViewer({ onClose }) {
   const [likeCounts, setLikeCounts] = useState({});
   const [commentCounts, setCommentCounts] = useState({});
   const [saved, setSaved] = useState({});
-  /*
-   * viewCounts used to live here alongside likeCounts and commentCounts, filled
-   * from the same DB payload - but unlike those two it was rendered nowhere, so
-   * it was three setState calls a session for a number nobody saw. The DB write
-   * below (incrementMetric) is untouched, so the real count still moves; only
-   * the local mirror is gone. ReelsFeedCarousel does display views.
-   */
   const savedTargetsByReelRef = useRef(new Map());
   // Infinite scroll state
   const [hasMore, setHasMore] = useState(true);
@@ -317,7 +302,6 @@ export function ReelsViewer({ onClose }) {
   const videoRef = useRef(null);
   const containerRef = useRef(null);
   const commentInputRef = useRef(null);
-  const viewedReelsRef = useRef(new Set());
   const overlayTimerRef = useRef(null);
   const likeDebounceRef = useRef(false);
   const lastTapRef = useRef(0);
@@ -717,15 +701,7 @@ export function ReelsViewer({ onClose }) {
       progressRAF.current = null;
     }
 
-    // Deduplicated view count - defer 2s so rapid swipes don't inflate counts
-    const reelId = reels[currentIndex]?.id;
-    const viewCountTimer =
-      reelId && currentUserId && !viewedReelsRef.current.has(reelId)
-        ? setTimeout(() => {
-            viewedReelsRef.current.add(reelId);
-            incrementMetric(reels[currentIndex], 'view_count', 1);
-          }, 2000)
-        : null;
+    const viewCountTimer = null;
 
     // Native video autoplay - only for non-YouTube reels
     const reel = reels[currentIndex];
@@ -1785,7 +1761,7 @@ export function ReelsViewer({ onClose }) {
         window.open(`https://wa.me/?text=${encodeURIComponent(title + ' ' + url)}`, '_blank');
       }
       if (!ownerRequest.isCurrent()) return;
-      if (platform !== 'copy') incrementMetric(reel, 'share_count', 1);
+      if (platform !== 'copy') await recordShareMetric(reel, platform === 'native' ? 'external' : platform);
       if (userId) busEmit.socialPostShared(reel.id, userId);
     } catch (err) {
       if (!ownerRequest.isCurrent()) return;
@@ -1844,7 +1820,7 @@ export function ReelsViewer({ onClose }) {
       if (result.already_shared) {
         showErrorToast('Already shared this reel!');
       } else {
-        incrementMetric(reel, 'share_count', 1);
+        await recordShareMetric(reel, 'feed');
         busEmit.socialPostShared(reel.id, userId);
         busEmit.dataMutated('social');
       }

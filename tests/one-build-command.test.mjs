@@ -196,7 +196,8 @@ test('the authenticated E2E gate can finish and report without masking test resu
     const workflow = fs.readFileSync(path.join(WORKFLOWS, 'e2e-tests.yml'), 'utf8');
     const config = fs.readFileSync(path.join(REPO, 'playwright.config.ts'), 'utf8');
 
-    const timeout = workflow.match(/timeout-minutes:\s*(\d+)/);
+    const e2eJob = workflow.match(/^  e2e:\n[\s\S]*?(?=^  [a-zA-Z0-9_-]+:\n|\z)/m)?.[0] || '';
+    const timeout = e2eJob.match(/timeout-minutes:\s*(\d+)/);
     assert.ok(timeout, 'the E2E workflow has no explicit job timeout');
     assert.ok(
         Number(timeout[1]) >= 60,
