@@ -135,9 +135,6 @@ JOB_TIMEOUTS = {
     # discipline: never kill a writer at 120s.
     '/api/cron/video-library-scraper':  1800,
     '/api/cron/video-library-reels':    1800,  #1650s publisher +150s final checkpoint reserve
-    '/api/cron/video-library-backfill': 1800,
-    '/api/cron/video-library-purge':    1800,
-    '/api/cron/video-library-views':    1800,
 }
 def job_timeout(path: str) -> int:
     return JOB_TIMEOUTS.get(path, REQUEST_TIMEOUT)
@@ -671,10 +668,8 @@ ALL_CRONS = [
     ('/api/cron/cleanup-orphan-uploads',    dict(hour=3, minute=30)),
     # ── Video Library — daily fresh content from all 25 creators (SCRIPT_JOBS) ──
     ('/api/cron/video-library-scraper',     dict(hour=6, minute=0)),   # Daily 6am UTC — RSS ingest
+    ('/api/cron/video-library-enrichment',  dict(minute='*/10')),      # Durable bounded Phase 4 jobs
     ('/api/cron/video-library-reels',       dict(hour=7, minute=0)),   # Daily 7am UTC — Sync reels
-    ('/api/cron/video-library-backfill',    dict(day_of_week='sat', hour=23, minute=0)),  # Weekly Sat 23:00 UTC — fix zero-views/fake dates
-    ('/api/cron/video-library-purge',       dict(day_of_week='sun', hour=0,  minute=0)),  # Weekly Sun 00:00 UTC — delete dead videos
-    ('/api/cron/video-library-views',       dict(day_of_week='fri', hour=22, minute=0)),  # Weekly Fri 22:00 UTC — refresh view counts for top 50
 
     # ══ WAVE 1 (2026-04-24 — migrated from vercel.json; see phase-2a4-wave-plan.md) ══
     # Scrapers (read-only ingest into Supabase, upsert on unique keys)
@@ -994,17 +989,15 @@ def _resolve_script(filename: str) -> str:
     return str(_SCRAPER_DIR_CANDIDATES[-1] / filename)
 
 
-SCRAPER_PY = _resolve_script('video_library_scraper.py')
+SCRAPER_PY = _resolve_script('video_source_registry_ingest.py')
 
 # ─── Jobs that invoke a local Python script instead of a Vercel HTTP endpoint ─
 # Maps cron path → list of args passed to `python3 SCRAPER_PY`.
 # Only used as a primary-role fallback for the Mac dispatcher. On secondary
 # (Hetzner), any path in WORKERS_PREFERRED below fires via HTTP instead.
-# 2026-08-15: '--sync-captions' is NOT a flag of video_library_scraper.py
-# (its argparse accepts only --dry-run/--source/--purge/--backfill/
-# --refresh-views/--tag-backfill), so this job exited 2 every night and new
-# library videos never reached social_reels. The flag belongs to
-# video_library_to_reels.py, which no scheduler referenced at all.
+# The registry ingestor owns only supported YouTube Data API discovery.
+# The retired scraper's maintenance modes were removed with it. Availability
+# and metadata are now validated in the supported provider batch before upsert.
 # SCRIPT_JOB_SCRIPTS overrides the script per path; default stays SCRAPER_PY.
 #
 # 2026-09-21 (fleet recertification D1) took video-library-reels out of
@@ -1029,9 +1022,11 @@ SCRAPER_PY = _resolve_script('video_library_scraper.py')
 # it, and SCRIPT_WORKER_OVERLAP below refuses to start if both claim a path.
 # __tests__/video-library-reels-fails-closed.test.mjs runs both halves.
 REELS_BRIDGE_PY = _resolve_script('video_library_to_reels.py')
+ENRICHMENT_PY = _resolve_script('video_enrichment_worker.py')
 
 SCRIPT_JOB_SCRIPTS = {
     '/api/cron/video-library-reels': REELS_BRIDGE_PY,
+    '/api/cron/video-library-enrichment': ENRICHMENT_PY,
 }
 
 # 2026-09-04: '--sync-captions' IS a flag of video_library_to_reels.py, but it
@@ -1050,12 +1045,10 @@ SCRIPT_JOB_SCRIPTS = {
 # verified atomic publisher, never as the old direct-write bridge.
 SCRIPT_JOBS = {
     '/api/cron/video-library-scraper':  [],                   # full daily run
+    '/api/cron/video-library-enrichment': ['--limit', '50'],  # bounded durable queue drain
     '/api/cron/video-library-reels':    [
         '--limit', '750', '--verify', '--verify-platform-supply'
     ],  # bounded official publisher plus shared poker/sports verdict renewal
-    '/api/cron/video-library-backfill': ['--backfill'],
-    '/api/cron/video-library-purge':    ['--purge'],
-    '/api/cron/video-library-views':    ['--refresh-views'],
 }
 
 
@@ -1486,7 +1479,7 @@ def fire_cron(path: str):
 
 def fire_script(path: str, extra_args: list):
     """
-    Run the video_library_scraper.py with the given extra args.
+    Run the registry-driven Video Library ingestion worker.
     The script itself POSTs its result back to the Vercel status webhook,
     so the audit log stays up to date even though we're running locally.
     """

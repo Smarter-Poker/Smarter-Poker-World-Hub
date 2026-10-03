@@ -101,6 +101,6 @@ test('account-scoped mutations invalidate stale completions and stale local filt
     assert.match(PAGE, new RegExp(`ownerToken[\\s\\S]{0,2600}${mutation}`), `${mutation} must capture an owner token before dispatch`);
   }
   assert.match(PAGE, /Old localStorage values from retired filters fail closed/);
-  assert.match(PAGE, /\['ALL', 'cash', 'tournament', 'slots'\]\.includes\(filters\.selectedType\)/);
+  assert.match(PAGE, /\['ALL', 'cash', 'tournament', 'slots', 'sports'\]\.includes\(filters\.selectedType\)/);
   assert.doesNotMatch(PAGE, /catch\s*\([^)]*\)\s*=>\s*\{\s*\}/);
 });
