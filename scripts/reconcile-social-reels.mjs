@@ -63,9 +63,9 @@ const stableUuid = (value) => {
 async function census() {
   const [reels, aliases, reconciliations, quarantines] = await Promise.all([
     readAll('social_reels', 'id,canonical_asset_key,created_at'),
-    readAll('social_reel_aliases', 'alias_reel_id,canonical_reel_id,canonical_asset_key'),
-    readAll('social_reel_reconciliations', 'operation_id,canonical_asset_key,status'),
-    readAll('social_reel_reconciliation_quarantine', 'operation_id,canonical_asset_key,proposed_canonical_reel_id,proposed_alias_reel_ids,reason_code,resolved_at'),
+    readAll('social_reel_aliases', 'alias_reel_id,canonical_reel_id,canonical_asset_key', 'alias_reel_id'),
+    readAll('social_reel_reconciliations', 'operation_id,canonical_asset_key,status', 'operation_id'),
+    readAll('social_reel_reconciliation_quarantine', 'operation_id,canonical_asset_key,proposed_canonical_reel_id,proposed_alias_reel_ids,reason_code,resolved_at', 'quarantine_id'),
   ]);
   const grouped = new Map();
   for (const reel of reels) {
@@ -127,34 +127,50 @@ function sanitized(state, outcomes = []) {
   };
 }
 
-let state = await census();
-const outcomes = [];
-if (apply) {
-  if (state.fingerprint !== expectedFingerprint) throw new Error('Reels reconciliation census changed after approval; refusing mutation');
-  if (state.pending.length !== Number(expectedPending)) throw new Error('Reels reconciliation pending count changed after approval; refusing mutation');
-  for (const group of state.pending) {
-    const winner = group.ordered[0];
-    const losers = group.ordered.slice(1);
-    const operationId = stableUuid(`phase2-reconciliation:${group.canonicalAssetKey}:${group.ordered.map((row) => row.id).join(',')}`);
-    const { data, error } = await supabase.rpc('reconcile_social_reel_duplicates', {
-      p_canonical_asset_key: group.canonicalAssetKey,
-      p_canonical_reel_id: winner.id,
-      p_alias_reel_ids: losers.map((row) => row.id),
-      p_reason: 'phase2_historical_reconciliation',
-      p_operation_id: operationId,
-    });
-    if (error) throw new Error(`Reconciliation operation failed: ${error.message}`);
-    outcomes.push(data || {});
+function writeReceipt(receipt) {
+  const serialized = `${JSON.stringify(receipt, null, 2)}\n`;
+  if (receiptPath) {
+    const resolvedReceipt = path.resolve(receiptPath);
+    fs.mkdirSync(path.dirname(resolvedReceipt), { recursive: true });
+    fs.writeFileSync(resolvedReceipt, serialized, { mode: 0o600 });
   }
-  state = await census();
-  if (state.pending.length !== 0) throw new Error('Post-apply census retained unrepresented duplicate groups');
+  process.stdout.write(serialized);
 }
 
-const receipt = sanitized(state, outcomes);
-const serialized = `${JSON.stringify(receipt, null, 2)}\n`;
-if (receiptPath) {
-  const resolvedReceipt = path.resolve(receiptPath);
-  fs.mkdirSync(path.dirname(resolvedReceipt), { recursive: true });
-  fs.writeFileSync(resolvedReceipt, serialized, { mode: 0o600 });
+async function main() {
+  let state = await census();
+  const outcomes = [];
+  if (apply) {
+    if (state.fingerprint !== expectedFingerprint) throw new Error('Reels reconciliation census changed after approval; refusing mutation');
+    if (state.pending.length !== Number(expectedPending)) throw new Error('Reels reconciliation pending count changed after approval; refusing mutation');
+    for (const group of state.pending) {
+      const winner = group.ordered[0];
+      const losers = group.ordered.slice(1);
+      const operationId = stableUuid(`phase2-reconciliation:${group.canonicalAssetKey}:${group.ordered.map((row) => row.id).join(',')}`);
+      const { data, error } = await supabase.rpc('reconcile_social_reel_duplicates', {
+        p_canonical_asset_key: group.canonicalAssetKey,
+        p_canonical_reel_id: winner.id,
+        p_alias_reel_ids: losers.map((row) => row.id),
+        p_reason: 'phase2_historical_reconciliation',
+        p_operation_id: operationId,
+      });
+      if (error) throw new Error(`Reconciliation operation failed: ${error.message}`);
+      outcomes.push(data || {});
+    }
+    state = await census();
+    if (state.pending.length !== 0) throw new Error('Post-apply census retained unrepresented duplicate groups');
+  }
+  writeReceipt({ ...sanitized(state, outcomes), status: 'passed' });
 }
-process.stdout.write(serialized);
+
+main().catch((error) => {
+  writeReceipt({
+    schemaVersion: 1,
+    observedAt: new Date().toISOString(),
+    mode: apply ? 'apply' : 'audit',
+    status: 'failed',
+    errorCode: 'reconciliation_operation_failed',
+  });
+  console.error(error?.message || 'Reels reconciliation operation failed');
+  process.exitCode = 1;
+});

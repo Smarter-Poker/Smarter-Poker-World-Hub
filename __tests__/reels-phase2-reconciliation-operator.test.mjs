@@ -20,11 +20,14 @@ test('the operator records sanitized coverage without exposing row identities', 
   assert.match(script, /pendingDuplicateGroups/);
   assert.match(script, /quarantineReasons/);
   assert.match(script, /pendingFingerprint/);
-  const sanitizedBody = script.slice(script.indexOf('function sanitized'), script.indexOf('let state ='));
+  const sanitizedBody = script.slice(script.indexOf('function sanitized'), script.indexOf('function writeReceipt'));
   assert.doesNotMatch(sanitizedBody, /canonicalAssetKey|alias_reel_id|canonical_reel_id|operation_id/);
   assert.doesNotMatch(script, /dotenv|\.env\.local|\.env\.prod/);
   assert.match(script, /unresolvedQuarantineGroups/);
   assert.match(script, /groupIdentity/);
+  assert.match(script, /'quarantine_id'\)/);
+  assert.match(script, /status: 'failed'/);
+  assert.match(script, /errorCode: 'reconciliation_operation_failed'/);
 });
 
 test('hosted audit and apply use secret environment values and fixed commands', () => {
