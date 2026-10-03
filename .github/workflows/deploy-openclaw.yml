@@ -839,6 +839,7 @@ jobs:
             exit "$rc"
           }
           trap cleanup EXIT HUP INT TERM
+          set +e
           sudo systemd-run \
             --quiet \
             --wait \
@@ -853,12 +854,27 @@ jobs:
               "PYTHONPATH=$current/vendor" \
               /usr/bin/python3 -s "$current/video_source_registry_ingest.py" \
                 --max-sources "$max_sources"
-          summary="$(sudo journalctl -u "$unit.service" --no-pager --output=cat | tail -n 1)"
+          worker_rc=$?
+          set -e
+          summary="$(sudo journalctl -u "$unit.service" --no-pager --output=cat | /usr/bin/python3 -c '
+          import json
+          import sys
+          for line in reversed(sys.stdin.read().splitlines()):
+              try:
+                  payload = json.loads(line)
+              except json.JSONDecodeError:
+                  continue
+              if isinstance(payload, dict) and "sources_processed" in payload and "totals" in payload:
+                  print(json.dumps(payload, sort_keys=True))
+                  raise SystemExit(0)
+          raise SystemExit("registry ingestion emitted no structured summary")
+          ')"
           test -n "$summary"
-          /usr/bin/python3 - "$summary" <<'PY'
+          /usr/bin/python3 - "$summary" "$worker_rc" <<'PY'
           import json
           import sys
           payload = json.loads(sys.argv[1])
+          worker_rc = int(sys.argv[2])
           if payload.get('sources_processed', 0) < 1:
               raise SystemExit('registry ingestion processed no sources')
           totals = payload.get('totals') or {}
@@ -868,7 +884,17 @@ jobs:
           print(json.dumps({
               'sources_processed': payload['sources_processed'],
               'totals': totals,
+              'failed_sources': [
+                  {
+                      'source_id': row.get('source_id'),
+                      'source_name': row.get('source_name'),
+                      'failure_code': row.get('failure_code'),
+                  }
+                  for row in payload.get('results', []) if row.get('status') == 'failed'
+              ],
           }, sort_keys=True))
+          if worker_rc:
+              raise SystemExit(f'registry ingestion worker exited {worker_rc}')
           PY
           trap - EXIT HUP INT TERM
           EOSSH

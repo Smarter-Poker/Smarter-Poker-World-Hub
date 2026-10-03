@@ -226,7 +226,12 @@ test('manual source-registry proof is exact-release, bounded, supervised, and su
   assert.match(ingestion, /systemd-run[\s\S]*--wait[\s\S]*--collect/);
   assert.match(ingestion, /--property=RuntimeMaxSec=1200/);
   assert.match(ingestion, /video_source_registry_ingest\.py"[\s\\]*--max-sources "\$max_sources"/);
+  assert.match(ingestion, /set \+e[\s\S]*worker_rc=\$\?[\s\S]*set -e/);
+  assert.match(ingestion, /reversed\(sys\.stdin\.read\(\)\.splitlines\(\)\)/);
+  assert.match(ingestion, /registry ingestion emitted no structured summary/);
   assert.match(ingestion, /payload\.get\('sources_processed', 0\) < 1/);
+  assert.match(ingestion, /failed_sources/);
+  assert.match(ingestion, /registry ingestion worker exited/);
   assert.match(ingestion, /'candidates', 'qualified', 'inserted', 'duplicates', 'rejected', 'quota_units'/);
   assert.doesNotMatch(ingestion, /cat \/etc\/openclaw\.env|source \/etc\/openclaw\.env|set -a/);
 });
