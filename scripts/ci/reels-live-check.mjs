@@ -133,7 +133,7 @@ export const REQUIRED_RECEIPT_CHECKS = Object.freeze([
   'All eleven SUP-07 Reel and post aliases resolve to four canonical winners',
   'Following rejects signed-out access and accepts the designated test account',
   'My Reels and Saved Reels are owner-bound, canonical, complete, private, and non-cacheable',
-  'Old loser bookmark canonicalization preserves the requested alias and renders its canonical winner',
+  'Old loser bookmarks resolve and canonicalize the URL to their surviving winner',
   'Retired browser cache is removed before playback',
   'Revoked and expired saved sessions fail closed into reauthentication without mounting private media',
   'A mid-flight category drop retains one mounted player and retry recovers',
@@ -1005,7 +1005,7 @@ async function verifyPublicBrowser(browser, bookmarkAlias, validatedForYouRows, 
       return params.get('category') === 'for-you'
         && params.get('feed') === 'trending'
         && params.get('id') === id;
-    }, { id: bookmarkAlias.reference });
+    }, { id: bookmarkAlias.winner });
     report.stage = 'public-mobile-retired-cache';
     assert.equal(await page.evaluate((key) => localStorage.getItem(key), RETIRED_CACHE_KEY), null, 'Retired Reel cache survived page startup');
     // Count actual media descendants once beneath the standalone page root.

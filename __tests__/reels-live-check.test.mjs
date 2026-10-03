@@ -333,6 +333,11 @@ test('all eleven SUP-07 aliases stay pinned to four canonical winners and source
     /const message = error instanceof Error \? error\.message\.split\('\\n'\)\[0\]\.trim\(\) : ''/,
     'the bounded live receipt must retain the first safe diagnostic line for non-assertion failures',
   );
+  assert.match(
+    REELS_LIVE_CHECK,
+    /\}, \{ id: bookmarkAlias\.winner \}\);/,
+    'an old loser bookmark must canonicalize its browser URL to the surviving winner',
+  );
   assert.equal(new Set(SUP07_ALIASES.map(alias => alias.reference)).size, 11);
   assert.equal(new Set(SUP07_ALIASES.map(alias => alias.winner)).size, 4);
   assert.equal(new Set(SUP07_ALIASES.map(alias => alias.post)).size, 4);
