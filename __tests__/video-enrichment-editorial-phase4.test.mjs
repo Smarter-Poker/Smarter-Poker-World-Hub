@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import test from 'node:test';
 const migration=fs.readFileSync('supabase/migrations/20261003131100_video_enrichment_editorial_phase4.sql','utf8');
 const completion=fs.readFileSync('supabase/migrations/20261003134000_video_editorial_completion_gates.sql','utf8');
+const fairness=fs.readFileSync('supabase/migrations/20261003134500_video_enrichment_claim_fairness.sql','utf8');
 const worker=fs.readFileSync('scripts/video_enrichment_worker.py','utf8');
 const ingest=fs.readFileSync('scripts/video_source_registry_ingest.py','utf8');
 const workflow=fs.readFileSync('.github/workflows/deploy-openclaw.yml','utf8');
@@ -14,6 +15,12 @@ test('Phase 4 owns durable records, jobs, events, retries, and dead letters',()=
  for(const name of ['video_enrichment_records','video_enrichment_jobs','video_editorial_events']) assert.match(migration,new RegExp(`CREATE TABLE public\\.${name}`));
  assert.match(migration,/FOR UPDATE SKIP LOCKED/); assert.match(migration,/attempt_count >= v_job\.max_attempts THEN 'dead_letter'/);
  assert.match(migration,/workflow_state IN \('discovered','validated','enriched','candidate','approved','rejected','published'\)/);
+});
+test('claim ordering recovers retries and completes per-video stage bundles promptly',()=>{
+ assert.match(fairness,/CASE WHEN status='retry' THEN 0 ELSE 1 END/);
+ assert.match(fairness,/video_id,[\s\S]*created_at,[\s\S]*id/);
+ assert.match(fairness,/FOR UPDATE SKIP LOCKED/);
+ assert.match(fairness,/REVOKE ALL[\s\S]*FROM PUBLIC, anon, authenticated/);
 });
 test('service role is the only database writer and custody is checked',()=>{
  assert.match(migration,/REVOKE ALL[\s\S]*FROM PUBLIC, anon, authenticated/);
