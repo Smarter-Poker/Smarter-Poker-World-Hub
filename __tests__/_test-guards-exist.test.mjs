@@ -293,6 +293,7 @@ import './phase7-content-dispatch.test.mjs';
 // Required CHECK 8 also enforces the recovered Video worker publication boundary.
 import './openclaw-video-library-routing.test.mjs';
 import './video-source-registry-phase3.test.mjs';
+import './video-enrichment-editorial-phase4.test.mjs';
 // The same boundary's shared 7-day availability-freshness contract: SQL,
 // JavaScript readers, Python renewal target and daily verifier capacity.
 import './video-library-freshness-contract.test.mjs';
