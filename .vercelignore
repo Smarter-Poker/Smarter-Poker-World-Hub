@@ -1,6 +1,4 @@
 # ═══════════════════════════════════════════════════════════════
-# .vercelignore — Exclude non-deployment files from Vercel upload
-# ═══════════════════════════════════════════════════════════════
 # HARD LAW: Vercel fails at 15,000 files. Keep under 12,000.
 # The 11k+ bulk files are in SCRAPE subdirs — exclude only those.
 # DO NOT exclude /data/ root or /services/ — API routes import them.
@@ -29,7 +27,7 @@ data/tournament-logs/
 data/pokeratlas-logs/
 
 # ── Agent / tooling dirs ──────────────────────────────────────
-.agent/
+# .agent/
 .agents/
 .gemini/
 .claude/
@@ -178,3 +176,8 @@ _legacy_sql/
 
 # ── Misc tooling ──────────────────────────────────────────────
 /eslint-plugin-smarter-poker/
+.agent-trees/
+src/content-engine/pipeline/output/
+*.mp4
+*.wasm
+*.dylib
