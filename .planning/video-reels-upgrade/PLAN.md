@@ -1,51 +1,44 @@
-# Phase 2 Plan: Historical Reconciliation And Legacy Retirement
+# Phase 3 Plan: Source Registry And High-Volume Ingestion
 
 ## Confirmed Baseline
 
-Phase 1 publishes and reads a rights-gated, terminal canonical feed, but historical identity is still computed at read time. There is no durable alias-to-winner registry, retired loser IDs can return 404/410 instead of resolving to a safe winner, and legacy write paths can strand engagement on a loser. Several profile and saved-post surfaces still read video rows outside the canonical server boundary. Confirmed obsolete direct writers, debug endpoints, and a duplicate static catalog also remain in the production tree.
+Phase 2 is protected-merged and live at `5e4b74d749e251089a9541823d1556ebc87bf589`. The canonical feed contains 2,212 playable Reels, but Video Library discovery still reads a hardcoded Python creator array through `yt-dlp`. That path has no durable provider cursor, no quota budget, incomplete source-health timestamps, one insert per candidate, and no operator control plane. An older `content_sources` table exists, but it does not yet own Video Library ingestion.
 
-## Wave 1: Durable Historical Identity
+## Wave 1: Registry Authority
 
-1. Add an immutable Reel alias registry and reconciliation operation ledger.
-2. Reject self-links, cycles, mixed canonical assets, ambiguous attribution, unresolved rights, active jobs, and unsupported interaction collisions.
-3. Resolve old Reel and source-post identifiers to one durable winner before applying the current availability, rights, audience, topic, and storage gates.
-4. Preserve every loser UUID as a non-public tombstone; never delete historical rows.
+1. Extend `content_sources` into the operator-owned YouTube ingestion registry without breaking its current poker/news/horse consumers.
+2. Store stable channel IDs, uploads-playlist IDs, lifecycle, cadence, cursor, topic, ingestion mode, region/category, rights/playback defaults, expected yield, and independent health timestamps.
+3. Add service-only run and quota ledgers plus an atomic source-observation RPC.
+4. Seed current poker, gambling/slots, and official sports sources; preserve current rows and disable no source implicitly.
 
-## Wave 2: Engagement-Preserving Reconciliation
+## Wave 2: Supported Incremental Ingestion
 
-1. Move or collapse likes, comments, saves, shares, reports, and interaction rows under an explicit deterministic collision policy.
-2. Preserve source-post engagement separately from Reel engagement.
-3. Sum views exactly once and recompute displayed counters from authoritative rows.
-4. Route writes through the canonical resolver so old clients cannot create new loser engagement.
-5. Record before/after totals and fail the transaction when any invariant differs.
+1. Replace the hardcoded creator loop with registry reads.
+2. Use YouTube Data API channel and uploads-playlist calls for creator supply, and `videos.list(chart=mostPopular, videoCategoryId=17)` for regional sports discovery.
+3. Stop at persisted high-water cursors, batch metadata and database writes, and default every third-party asset to embed-only rights.
+4. Enforce a persisted daily quota budget and fail closed before exhaustion.
 
-## Wave 3: Quarantine And Takedown Propagation
+## Wave 3: Operator Controls And Health
 
-1. Replace raw profile and saved-video reads with the canonical server boundary.
-2. Propagate post privacy, deletion, rights revocation, and confirmed media failures to linked Reels and every mounted viewer.
-3. Make invalidation work for signed-out viewers and every allowlisted category.
-4. Revalidate on focus/navigation and preserve a safe adjacent player when the active item is removed.
-5. Require deliberate verified republish before a quarantined asset can return.
+1. Add an admin-only source registry API with list, health summary, create, and patch operations.
+2. Add a mobile-first operator console for lifecycle, cadence, yield, cursor, and failure inspection.
+3. Report candidate, qualified, inserted, duplicate, rejected, failed, and quota-unit counts by topic and source family.
+4. Alert through the existing durable run-report path when freshness or yield thresholds fail.
 
-## Wave 4: Legacy Retirement
+## Wave 4: Verification And Release
 
-1. Remove confirmed uncalled direct writers and fake seed/test pipelines.
-2. Remove production debug routes that have no supported caller.
-3. Retire duplicate static clip/catalog libraries only after every caller uses the canonical registry or live API.
-4. Add source contracts that forbid new direct social post/Reel writes outside approved atomic publishers.
+1. Rehearse the additive migration on PostgreSQL and run source/API/runtime contracts.
+2. Prove cursor replay, quota refusal, batching, category isolation, disabled-source exclusion, and partial-provider failure handling.
+3. Install the migration once with preflight and readback.
+4. Protected-merge, publish both World Hub and Open Claw, run one bounded ingestion cycle, and verify registry health plus newly qualified rows live.
 
-## Wave 5: Verification And Release
+## Phase 3 Acceptance Gates
 
-1. Run focused migration, resolver, interaction, takedown, profile, saved-state, and caller-reachability tests.
-2. Run the exact applicable repository guards and production build once on the final candidate.
-3. Install any additive migration once with preflight, ledger readback, and post-install invariants.
-4. Protected-merge through GitHub, verify the exact Vercel deployment identity, and run read-only live proof for aliases, takedowns, old links, stale storage, and engagement totals.
-
-## Phase 2 Acceptance Gates
-
-- Every retired historical identifier deterministically resolves to one durable winner or one fail-closed unavailable result.
-- Engagement and attribution totals are preserved under a documented collision policy; no write can land on a loser.
-- Takedowns and confirmed unavailability disappear from feed, profile, saved, deep-link, mounted-player, and cache surfaces.
-- Ambiguous groups are quarantined with a reason and are never auto-merged.
-- Confirmed obsolete direct writers, debug endpoints, and duplicate libraries have no remaining callers and are removed.
-- Focused tests, required repository checks, protected merge, exact production identity, database readback, and live behavior proof all pass.
+- No Video Library discovery source is compiled into the scraper.
+- Every active creator source has a stable channel ID or is visibly pending/quarantined; sports chart sources persist region/category/retrieval state.
+- Incremental replay creates no duplicate canonical asset and advances a cursor only after its batch is committed.
+- Provider usage cannot exceed the persisted daily quota budget.
+- Configured active-source daily capacity is at least 500 qualified candidates across poker, casino/slots, and sports.
+- Operators can inspect and change source lifecycle/cadence without a code release.
+- Source health distinguishes last check, success, new item, failure streak, empty success, quota stop, and disabled state.
+- Focused tests, required repository checks, migration readback, protected merge, exact production identities, bounded live ingestion, and affected-behavior proof all pass.

@@ -11,7 +11,7 @@ on:
     branches: [main]
     paths:
       - 'scripts/openclaw-cron-dispatcher.py'
-      - 'scripts/video_library_scraper.py'
+      - 'scripts/video_source_registry_ingest.py'
       - 'scripts/video_library_to_reels.py'
       - 'scripts/openclaw-requirements.txt'
       - 'scripts/openclaw-requirements.lock'
@@ -20,6 +20,15 @@ on:
       - '.github/workflows/deploy-openclaw.yml'
   workflow_dispatch:
     inputs:
+      source_registry_max_sources:
+        description: Bounded registry sources to ingest after exact-main promotion
+        required: false
+        default: '0'
+        type: choice
+        options:
+          - '0'
+          - '25'
+          - '100'
       publisher_backfill_batches:
         description: Verified 500-item Reel publisher batches to run after promotion
         required: false
@@ -428,7 +437,7 @@ jobs:
           local_stage="$(mktemp -d "$RUNNER_TEMP/openclaw-stage.XXXXXX")"
           build_container="wh-openclaw-build-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
           trap 'docker rm -f "$build_container" >/dev/null 2>&1 || true; rm -rf -- "$local_stage"' EXIT
-          cp scripts/openclaw-cron-dispatcher.py scripts/video_library_scraper.py \
+          cp scripts/openclaw-cron-dispatcher.py scripts/video_source_registry_ingest.py \
             scripts/video_library_to_reels.py scripts/openclaw-requirements.txt \
             scripts/openclaw-requirements.lock "$local_stage/"
           timeout --signal=TERM --kill-after=10s 900s docker run --rm --pull=never \
@@ -458,7 +467,7 @@ jobs:
           manifest_hash="$(sha256sum "$local_stage/release-manifest.sha256" | awk '{print $1}')"
           archive_hash="$(sha256sum "$archive" | awk '{print $1}')"
           dispatcher_hash="$(sha256sum scripts/openclaw-cron-dispatcher.py | awk '{print $1}')"
-          scraper_hash="$(sha256sum scripts/video_library_scraper.py | awk '{print $1}')"
+          scraper_hash="$(sha256sum scripts/video_source_registry_ingest.py | awk '{print $1}')"
           publisher_hash="$(sha256sum scripts/video_library_to_reels.py | awk '{print $1}')"
           lock_hash="$(sha256sum scripts/openclaw-requirements.lock | awk '{print $1}')"
           scp "$archive" "$SSH_USER@$HOST:$upload"
@@ -535,7 +544,7 @@ jobs:
           rm -f "$upload"
 
           test "$(sudo sha256sum "$release/openclaw-cron-dispatcher.py" | awk '{print $1}')" = "$dispatcher_hash"
-          test "$(sudo sha256sum "$release/video_library_scraper.py" | awk '{print $1}')" = "$scraper_hash"
+          test "$(sudo sha256sum "$release/video_source_registry_ingest.py" | awk '{print $1}')" = "$scraper_hash"
           test "$(sudo sha256sum "$release/video_library_to_reels.py" | awk '{print $1}')" = "$publisher_hash"
           test "$(sudo sha256sum "$release/openclaw-requirements.lock" | awk '{print $1}')" = "$lock_hash"
 
@@ -556,7 +565,7 @@ jobs:
           run_preflight "openclaw-dispatcher-preflight-${run_id}-${run_attempt}" \
             /usr/bin/env -u PYTHONHOME -u PYTHONPATH "PYTHONPATH=$release/vendor" /usr/bin/python3 -s "$release/openclaw-cron-dispatcher.py" --preflight-only
           run_preflight "openclaw-scraper-preflight-${run_id}-${run_attempt}" \
-            /usr/bin/env -u PYTHONHOME -u PYTHONPATH "PYTHONPATH=$release/vendor" /usr/bin/python3 -s "$release/video_library_scraper.py" --preflight-only
+            /usr/bin/env -u PYTHONHOME -u PYTHONPATH "PYTHONPATH=$release/vendor" /usr/bin/python3 -s "$release/video_source_registry_ingest.py" --preflight-only
           run_preflight "openclaw-publisher-preflight-${run_id}-${run_attempt}" \
             /usr/bin/env -u PYTHONHOME -u PYTHONPATH "PYTHONPATH=$release/vendor" /usr/bin/python3 -s "$release/video_library_to_reels.py" --preflight-only
           sudo systemd-run --quiet --wait --collect \
@@ -591,7 +600,7 @@ jobs:
           unit_upload="openclaw-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}.service"
           unit_hash="$(sha256sum scripts/openclaw.service | awk '{print $1}')"
           dispatcher_hash="$(sha256sum scripts/openclaw-cron-dispatcher.py | awk '{print $1}')"
-          scraper_hash="$(sha256sum scripts/video_library_scraper.py | awk '{print $1}')"
+          scraper_hash="$(sha256sum scripts/video_source_registry_ingest.py | awk '{print $1}')"
           publisher_hash="$(sha256sum scripts/video_library_to_reels.py | awk '{print $1}')"
           scp scripts/openclaw.service "$SSH_USER@$HOST:$unit_upload"
           ssh "$SSH_USER@$HOST" 'bash -s' -- \
@@ -725,7 +734,7 @@ jobs:
           test "$invocation_two" = "$invocation_one"
           test "$(sudo readlink "$current")" = "$release"
           test "$(sudo sha256sum "$current/openclaw-cron-dispatcher.py" | awk '{print $1}')" = "$dispatcher_hash"
-          test "$(sudo sha256sum "$current/video_library_scraper.py" | awk '{print $1}')" = "$scraper_hash"
+          test "$(sudo sha256sum "$current/video_source_registry_ingest.py" | awk '{print $1}')" = "$scraper_hash"
           test "$(sudo sha256sum "$current/video_library_to_reels.py" | awk '{print $1}')" = "$publisher_hash"
           sudo sh -c "cd '$current' && sha256sum --quiet -c release-manifest.sha256"
           test "$(sudo systemctl show openclaw.service -p User --value)" = openclaw
@@ -738,10 +747,7 @@ jobs:
           done
           for route in \
             /api/cron/video-library-scraper \
-            /api/cron/video-library-reels \
-            /api/cron/video-library-backfill \
-            /api/cron/video-library-purge \
-            /api/cron/video-library-views; do
+            /api/cron/video-library-reels; do
             # Do not use grep -q here. With pipefail enabled, grep can close the
             # pipe on the first match and journalctl then exits on SIGPIPE (141),
             # turning a successful registration check into a failed release.
@@ -780,6 +786,84 @@ jobs:
           trap - ERR
           sudo rm -f "$unit_backup"
           rm -f "$unit_upload"
+          EOSSH
+
+      - name: Run requested bounded source-registry ingestion
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.source_registry_max_sources != '0' }}
+        env:
+          HOST: ${{ secrets.OPENCLAW_HOST }}
+          SSH_USER: ${{ secrets.HETZNER_SSH_USER || 'root' }}
+          SOURCE_REGISTRY_MAX_SOURCES: ${{ inputs.source_registry_max_sources }}
+        run: |
+          set -euo pipefail
+          case "$SOURCE_REGISTRY_MAX_SOURCES" in 25|100) ;; *) exit 2 ;; esac
+          ssh \
+            -o ServerAliveInterval=30 \
+            -o ServerAliveCountMax=20 \
+            -o TCPKeepAlive=yes \
+            "$SSH_USER@$HOST" 'bash -s' -- \
+            "$GITHUB_SHA" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" \
+            "$SOURCE_REGISTRY_MAX_SOURCES" <<'EOSSH'
+          set -euo pipefail
+          release_sha="$1"
+          run_id="$2"
+          run_attempt="$3"
+          max_sources="$4"
+          case "$release_sha" in (*[!0-9a-f]*|'') exit 2 ;; esac
+          test "${#release_sha}" -eq 40
+          case "$run_id" in (*[!0-9]*|'') exit 2 ;; esac
+          case "$run_attempt" in (*[!0-9]*|'') exit 2 ;; esac
+          case "$max_sources" in 25|100) ;; *) exit 2 ;; esac
+
+          current=/opt/openclaw/current
+          release="/opt/openclaw/releases/${release_sha}"
+          unit="openclaw-source-registry-${run_id}-${run_attempt}"
+          sudo test -L "$current"
+          test "$(sudo readlink "$current")" = "$release"
+          sudo sh -c "cd '$current' && sha256sum --quiet -c release-manifest.sha256"
+          sudo test -f /etc/openclaw.env
+          test "$(sudo stat -c '%U:%G %a' /etc/openclaw.env)" = 'root:root 600'
+
+          cleanup() {
+            rc=$?
+            trap - EXIT HUP INT TERM
+            sudo systemctl stop "$unit.service" >/dev/null 2>&1 || true
+            sudo systemctl reset-failed "$unit.service" >/dev/null 2>&1 || true
+            exit "$rc"
+          }
+          trap cleanup EXIT HUP INT TERM
+          sudo systemd-run \
+            --quiet \
+            --wait \
+            --collect \
+            --unit "$unit" \
+            --property=User=openclaw \
+            --property=Group=openclaw \
+            --property=WorkingDirectory="$current" \
+            --property=EnvironmentFile=/etc/openclaw.env \
+            --property=RuntimeMaxSec=1200 \
+            /usr/bin/env -u PYTHONHOME -u PYTHONPATH \
+              "PYTHONPATH=$current/vendor" \
+              /usr/bin/python3 -s "$current/video_source_registry_ingest.py" \
+                --max-sources "$max_sources"
+          summary="$(sudo journalctl -u "$unit.service" --no-pager --output=cat | tail -n 1)"
+          test -n "$summary"
+          /usr/bin/python3 - "$summary" <<'PY'
+          import json
+          import sys
+          payload = json.loads(sys.argv[1])
+          if payload.get('sources_processed', 0) < 1:
+              raise SystemExit('registry ingestion processed no sources')
+          totals = payload.get('totals') or {}
+          for key in ('candidates', 'qualified', 'inserted', 'duplicates', 'rejected', 'quota_units'):
+              if not isinstance(totals.get(key), int) or totals[key] < 0:
+                  raise SystemExit(f'invalid registry total: {key}')
+          print(json.dumps({
+              'sources_processed': payload['sources_processed'],
+              'totals': totals,
+          }, sort_keys=True))
+          PY
+          trap - EXIT HUP INT TERM
           EOSSH
 
       - name: Run requested bounded Reel backfill

@@ -19,7 +19,7 @@ const deployWorkflow = readFileSync(
   'utf8',
 );
 const scraperPath = fileURLToPath(
-  new URL('../scripts/video_library_scraper.py', import.meta.url),
+  new URL('../scripts/video_source_registry_ingest.py', import.meta.url),
 );
 const scraper = readFileSync(scraperPath, 'utf8');
 const publisher = readFileSync(
@@ -211,6 +211,26 @@ test('manual publication can request at most three bounded verified backfill bat
   assert.doesNotMatch(backfill, /cat \/etc\/openclaw\.env|source \/etc\/openclaw\.env|set -a/);
 });
 
+test('manual source-registry proof is exact-release, bounded, supervised, and summarized', () => {
+  assert.match(
+    deployWorkflow,
+    /source_registry_max_sources:[\s\S]*options:[\s\S]*- '0'[\s\S]*- '25'[\s\S]*- '100'/,
+  );
+  const start = deployWorkflow.indexOf('- name: Run requested bounded source-registry ingestion');
+  const end = deployWorkflow.indexOf('- name: Run requested bounded Reel backfill', start);
+  assert.ok(start > -1 && end > start);
+  const ingestion = deployWorkflow.slice(start, end);
+  assert.match(ingestion, /case "\$SOURCE_REGISTRY_MAX_SOURCES" in 25\|100\)/);
+  assert.match(ingestion, /test "\$\(sudo readlink "\$current"\)" = "\$release"/);
+  assert.match(ingestion, /sha256sum --quiet -c release-manifest\.sha256/);
+  assert.match(ingestion, /systemd-run[\s\S]*--wait[\s\S]*--collect/);
+  assert.match(ingestion, /--property=RuntimeMaxSec=1200/);
+  assert.match(ingestion, /video_source_registry_ingest\.py"[\s\\]*--max-sources "\$max_sources"/);
+  assert.match(ingestion, /payload\.get\('sources_processed', 0\) < 1/);
+  assert.match(ingestion, /'candidates', 'qualified', 'inserted', 'duplicates', 'rejected', 'quota_units'/);
+  assert.doesNotMatch(ingestion, /cat \/etc\/openclaw\.env|source \/etc\/openclaw\.env|set -a/);
+});
+
 test('release recovery verifies the exact Workers poker and sports pools without publishing them directly', () => {
   assert.match(publisher, /PLATFORM_POOL_LIMIT = 1_000/);
   assert.match(publisher, /def _load_platform_supply_rows\(exclude_video_ids=None\):/);
@@ -379,7 +399,7 @@ test('Open Claw service verifies the immutable release on every start; schema pr
   assert.doesNotMatch(service, /^ExecStartPre=.*video_library_scraper\.py/m);
   assert.doesNotMatch(service, /^ExecStartPre=.*video_library_to_reels\.py/m);
   const promotion = deployWorkflow.indexOf('sudo mv -Tf "$next_link" "$current"');
-  for (const script of ['openclaw-cron-dispatcher.py', 'video_library_scraper.py', 'video_library_to_reels.py']) {
+  for (const script of ['openclaw-cron-dispatcher.py', 'video_source_registry_ingest.py', 'video_library_to_reels.py']) {
     const gate = deployWorkflow.indexOf(`/usr/bin/python3 -s "$release/${script}" --preflight-only`);
     assert.ok(gate >= 0, `${script} release preflight is missing`);
     assert.ok(gate < promotion, `${script} release preflight must run before promotion`);
@@ -423,48 +443,25 @@ test('Open Claw dependency closure is fully pinned and hashed', () => {
   assert.match(dependencyLock, /^yt-dlp==2026\.8\.19 \\/m);
 });
 
-test('publisher/scraper preflights are read-only and yt-dlp ignores host state', () => {
+test('publisher preflight keeps isolated yt-dlp while discovery uses the supported registry API', () => {
   assert.match(publisher, /def run_schema_preflight\(\):/);
   assert.match(publisher, /record_youtube_embed_failure_verdict/);
   assert.match(publisher, /publish_video_library_reel/);
   assert.match(publisher, /'22023'/);
   assert.match(publisher, /is_deleted,caption,created_at/);
-  assert.match(scraper, /def run_schema_preflight\(\) -> None:/);
-  assert.match(scraper, /availability_failure_reason,availability_source/);
-  // Keep main's committed worker acknowledgement; preflight returns before any writer.
-  assert.match(scraper, /def report_to_api\(summary: dict\)/);
-  assert.match(scraper, /receipt\.get\('accepted'\) is not True/);
-  assert.match(scraper, /receipt\.get\('audit_id'\) != summary\['run_id'\]/);
-  assert.match(scraper, /if args\.preflight_only:[\s\S]*run_schema_preflight\(\)[\s\S]*elif args\.verify_sources:/);
-  assert.doesNotMatch(scraper, /except Exception:\s*\n\s*pass/);
-  assert.match(scraper, /AI analysis pre-warm failed/);
-  assert.match(scraper, /AI tagging trigger failed/);
-  assert.match(scraper, /summary\['errors'\]\.append\(f'Report commit unconfirmed:/);
-  const purge = scraper.slice(
-    scraper.indexOf('def check_playable'),
-    scraper.indexOf('# ── Published-date + views backfill'),
-  );
-  assert.match(purge, /error\.code in \(404, 410\)/);
-  assert.match(purge, /record_youtube_embed_failure_verdict/);
-  assert.match(purge, /p_verification_started_at/);
-  assert.doesNotMatch(purge, /\.update\s*\(/, 'purge must not write catalog availability directly');
+  assert.match(scraper, /fn_reserve_video_source_quota/);
+  assert.match(scraper, /self\.youtube\('playlistItems'/);
+  assert.match(scraper, /'chart': 'mostPopular'/);
+  assert.match(scraper, /if args\.preflight_only:/);
+  assert.doesNotMatch(scraper, /yt[_-]dlp|video_library_scraper\.py/i);
   assert.doesNotMatch(scraper, /SLACK_WEBHOOK_URL|hooks\.slack\.com/);
   assert.doesNotMatch(dispatcher, /Twilio HTTP \{resp\.status_code\}: \{resp\.text/);
 
-  for (const source of [publisher, scraper]) {
-    assert.match(source, /sys\.executable,[\s\S]{0,80}'-m',[\s\S]{0,80}'yt_dlp'/);
-    assert.match(source, /'--ignore-config'/);
-    assert.match(source, /'--no-plugin-dirs'/);
-    assert.match(source, /'--no-cache-dir'/);
-    assert.doesNotMatch(source, /shutil\.which\('yt-dlp'\)|\['yt-dlp'/);
-  }
-
-  const controlHelper = scraper.slice(
-    scraper.indexOf('def pipeline_control_enabled'),
-    scraper.indexOf('def run_schema_preflight'),
-  );
-  assert.match(controlHelper, /\.execute\(\)/);
-  assert.match(controlHelper, /return len\(rows\) == 1/);
+  assert.match(publisher, /sys\.executable,[\s\S]{0,80}'-m',[\s\S]{0,80}'yt_dlp'/);
+  assert.match(publisher, /'--ignore-config'/);
+  assert.match(publisher, /'--no-plugin-dirs'/);
+  assert.match(publisher, /'--no-cache-dir'/);
+  assert.doesNotMatch(publisher, /shutil\.which\('yt-dlp'\)|\['yt-dlp'/);
 });
 
 test('recovery excludes terminal failures and disabled payload keys are unique', () => {
@@ -496,8 +493,8 @@ test('the scraper help preflight succeeds before production secrets are injected
   });
 
   assert.equal(result.status, 0, result.stderr || result.stdout);
-  assert.match(result.stdout, /Video Library Daily Scraper v3/);
-  assert.doesNotMatch(result.stderr, /Missing SUPABASE credentials/);
+  assert.match(result.stdout, /Registry-driven YouTube Video Library ingestion/);
+  assert.doesNotMatch(result.stderr, /Missing required Supabase/);
 });
 
 

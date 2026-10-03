@@ -25,7 +25,7 @@ test "$(git -C "$REPO_ROOT" branch --show-current)" = main \
 release_paths=(
   .github/workflows/deploy-openclaw.yml
   scripts/openclaw-cron-dispatcher.py
-  scripts/video_library_scraper.py
+  scripts/video_source_registry_ingest.py
   scripts/video_library_to_reels.py
   scripts/openclaw-requirements.txt
   scripts/openclaw-requirements.lock
