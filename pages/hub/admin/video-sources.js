@@ -112,7 +112,7 @@ export default function VideoSourceOperations() {
       <header className="hero">
         <div><small>CONTENT OPERATIONS / PHASE 3</small><h1>Video Supply Console</h1>
           <p>Stable Channels, Incremental Cursors, Source Health, And Provider Quota In One Command Surface.</p></div>
-        <button className="refresh" onClick={load} disabled={busy}>{busy ? 'Checking...' : 'Refresh telemetry'}</button>
+        <div className="hero-actions"><a href="/hub/admin/video-editorial">Open Editorial Command</a><button className="refresh" onClick={load} disabled={busy}>{busy ? 'Checking...' : 'Refresh telemetry'}</button></div>
       </header>
       {error && <div className="error" role="alert">{error}</div>}
       {data && <>
@@ -155,7 +155,7 @@ export default function VideoSourceOperations() {
       .hero{max-width:1180px;margin:auto;border:1px solid ${COLORS.edge};background:linear-gradient(135deg,rgba(10,34,50,.96),rgba(2,9,15,.98));box-shadow:inset 0 1px rgba(164,230,255,.25),0 20px 60px #000;padding:22px;display:flex;flex-direction:column;gap:18px}
       small{color:${COLORS.cyan};letter-spacing:.18em;text-transform:uppercase} h1{font-size:clamp(2rem,8vw,4.6rem);margin:.2rem 0;line-height:.95;text-transform:uppercase} p{color:${COLORS.dim};max-width:680px}
       button,.actions a{border:1px solid ${COLORS.edge};background:linear-gradient(#15384a,#07131b);color:${COLORS.text};padding:11px 14px;text-transform:uppercase;letter-spacing:.08em;font-weight:700;cursor:pointer;text-decoration:none}
-      .refresh{align-self:flex-start}.error{max-width:1136px;margin:14px auto;border:1px solid ${COLORS.red};padding:14px;color:#ffd8df;background:#260811}
+      .hero-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.hero-actions a{border:1px solid ${COLORS.cyan};color:${COLORS.cyan};padding:11px 14px;text-decoration:none;text-transform:uppercase;font-weight:800}.refresh{align-self:flex-start}.error{max-width:1136px;margin:14px auto;border:1px solid ${COLORS.red};padding:14px;color:#ffd8df;background:#260811}
       .metrics{max-width:1180px;margin:14px auto;display:grid;grid-template-columns:repeat(2,1fr);gap:8px}.metric{border:1px solid #17445a;background:${COLORS.panel};padding:14px}.metric span{display:block;color:${COLORS.dim};font-size:.72rem;text-transform:uppercase}.metric strong{font-size:1.35rem}
       .rail{max-width:1180px;margin:20px auto 12px;display:flex;overflow-x:auto;gap:8px;padding-bottom:7px}.rail button{white-space:nowrap}.rail .active{border-color:${COLORS.cyan};color:${COLORS.cyan};box-shadow:inset 0 -2px ${COLORS.cyan}}
       .add-source{max-width:1150px;margin:0 auto 12px;border:1px solid #17445a;background:${COLORS.panel};padding:14px;display:grid;gap:8px}.add-source strong{text-transform:uppercase;color:${COLORS.cyan}}input,select{min-width:0;border:1px solid #24566c;background:#041018;color:${COLORS.text};padding:10px}

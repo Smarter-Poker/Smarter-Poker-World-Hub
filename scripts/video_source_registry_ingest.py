@@ -310,6 +310,13 @@ class RegistryIngestor:
                 ).execute()
                 inserted_count = len(result.data or [])
                 counts['duplicates'] += len(new_rows) - inserted_count
+                for inserted in result.data or []:
+                    video_id = inserted.get('id')
+                    if not video_id:
+                        raise RuntimeError('inserted_video_missing_id')
+                    self.supabase.rpc('fn_enqueue_video_enrichment', {
+                        'p_video_id': video_id, 'p_generation': 1,
+                    }).execute()
             counts['inserted'] = inserted_count
             status = 'succeeded' if counts['inserted'] else 'empty'
         except QuotaStopped as error:

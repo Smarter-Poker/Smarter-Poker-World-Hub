@@ -1,16 +1,31 @@
 # Program State
 
-- **Current phase:** 3 of 10
-- **Phase name:** Source Registry And High-Volume Ingestion
-- **Status:** Phase 3 complete. The source registry, supported high-volume ingestion worker, operator console, quota/run ledgers, sports catalog compatibility, atomic Open Claw key delivery, exact-main deployments, bounded production ingestion, and direct database/public readback are complete.
-- **Branch:** protected `main` at Phase 3 runtime closeout `062e6737da10c8edc605b78b182aabc420228ddd`
+- **Current phase:** 4 of 10
+- **Phase name:** Durable Enrichment And Editorial Workflow
+- **Status:** Phase 4 source and production database installation are qualified. Protected merge, Vercel/Open Claw publication, one bounded live enrichment drain, and exact live behavior proof remain in progress.
+- **Branch:** `agent/reels-phase4-editorial-enrichment` from protected main `b0306853e0ad281e761a41900690d771df0b251b`
 - **Delivery PRs:** application `#1977`; Open Claw repairs `#1985`, `#1986`, `#1987`, `#1988`; batch verdict RPC `#1989`; stale-backfill cleanup `#1990`; verifier recovery `#1991`, `#1992`, `#1993`; hostile-state harness `#1994`; bounded recovery `#1995`; Workers shared-verdict consumer `#147`; canonical listing and timestamp repair `#1997`; manual 500-candidate bound `#1998`; historical user-upload recovery and global manual-bound correction `#2000` merged; maintained live verifier and SUP-07 post-rights correction follow-up pending.
 - **Workspace:** `/Volumes/SmarterWork/agent-work/codex-reels-user-upload-repair-20260927`
 - **Exact tested integrated candidate revision:** `7010d7e3b78f3b615029d8637a36c9b7d39823af`, which includes protected main `5b842784fd259bb6012ee72f68bcd3c97ff4ac9c` plus the correction/verifier, hosted PostgreSQL path, mobile Command Rail, complete secondary Video Library navigation, embedded-Reels startup repair, full four-post/seven-Reel preservation, rollback time bounds, and deterministic concurrent-lock protection. The full Phase 1 suite passes 312/312 Node, 25/25 Vitest, and 52/52 Python tests. The standalone PostgreSQL 17 migration harness passes 13/13, including replica mode, trigger drift, storage drift, ledger drift, rollback drift, later-trigger mutation, all-seven-Reel deletion and ambiguous-post mutation in both forward and rollback paths, and an 11-row concurrent `FOR UPDATE NOWAIT` lock attack; its hosted-path portability contract is covered and the static migration contract passes 6/6. The exact CI-style repository reachability guard passes 1,827/1,827 with `--experimental-vm-modules`; the deterministic Training inventory verifier, focused live-verifier tests (25/25), targeted ESLint (zero errors), and `git diff --check` pass. The exact candidate also passes the full production build: compile succeeded, 504/504 pages generated, and all post-build performance budgets passed. Independent exact-head adversarial review returned PASS. Migration SHA-256 is `4944f0481af280996a4e6239f57384506914387ffbf6bf7183d6fff6e3bce066`.
 - **Protected baseline at Phase 3 start:** `origin/main` `5e4b74d749e251089a9541823d1556ebc87bf589`
 - **Operation owner:** this task owns the Phase 3 registry migration, registry worker, Open Claw release wiring, and bounded live-ingestion proof. No second Phase 3 migration writer is active.
 - **Delivery classification:** World Hub application and Open Claw worker behavior plus one additive Supabase migration. No Club Arena engine replacement or maintenance cutover applies.
-- **Next gate:** Phase 4 may begin as a separate scoped delivery after a fresh current-main recovery and policy/checkpoint read.
+- **Next gate:** protected-merge the exact candidate, publish Vercel and Open Claw, drain one bounded live enrichment batch, and verify database/editorial behavior directly.
+
+## Phase 4 Start — October 3, 2026
+
+- Scope is exactly ROADMAP Phase 4 requirements ENR-01 through ENR-05, ING-07, and OPS-05. Phase 5 clip selection and Phase 6 native media creation remain excluded.
+- Operation owner is this task. Delivery classification is World Hub application, Open Claw worker/dispatcher, and one additive Supabase migration; no Club Arena engine activation applies.
+- Fresh policy receipt: version `2.9`, manifest SHA-256 `a659f31c5c1c2b0864889508079a635dd5fe2fc98decfbfc9d3f9c80dd45ec3b`, emitted `2026-10-03T13:06:40.674Z`. The owned external-SSD worktree had 50 GiB free at start.
+
+## Phase 4 Local Qualification And Database Installation — October 3, 2026
+
+- Added durable enrichment records, six-type retry/dead-letter jobs, immutable editorial events, atomic claim/custody completion, optimistic editorial actions, replay, scheduling, quarantine, and candidate promotion. The worker is bounded to 50 items and never downloads third-party media bytes.
+- Added full mobile-first Editorial Command controls for clip boundaries, crop, captions, title, thumbnail, attribution, schedule, approval, rejection, quarantine, quality-evidence review, and dead-letter replay. The admin API requires an authenticated admin or the configured admin boundary.
+- Added deterministic game/format/skill/concept/event/stakes/language/source-quality classification. Ads and weak relevance are detected from metadata; frame/audio/caption/cut checks remain explicitly unresolved until human review rather than being guessed. Approval fails closed while any finding is detected or not assessed.
+- Added a default-off `video_library_editorial_gate` canary at the `social_reels` database boundary. When enabled it rejects unapproved, quarantined, or future-scheduled library publication and atomically advances approved rows to `published`; current production publication remains uninterrupted while the backlog is reviewed.
+- Production ledger versions `20261003131100` and `20261003134000` are installed exactly once. Readback proved the default-off control, both social Reel triggers, and all three security-definer functions. A rollback-only live trigger rehearsal proved candidate refusal and approved-to-published transition on a real managed Reel without retaining fixture changes.
+- Focused Phase 3/4/Open Claw contracts pass 35/35; Python compilation, targeted ESLint, and `git diff --check` pass. The exact repository meta-guard passes 2,490/2,490, including its disposable PostgreSQL suite, and the full production build passes with 506/506 static pages plus post-build performance budgets.
 
 ## Phase 3 Closeout — October 3, 2026
 
