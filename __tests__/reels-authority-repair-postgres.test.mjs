@@ -8,7 +8,8 @@ import test from 'node:test';
 
 const require = createRequire(import.meta.url);
 const { Client } = require('pg');
-const migration = readFileSync('supabase/migrations/20261003024500_reels_reconciliation_authority_repair.sql', 'utf8');
+const authorityMigration = readFileSync('supabase/migrations/20261003024500_reels_reconciliation_authority_repair.sql', 'utf8');
+const serviceCompatMigration = readFileSync('supabase/migrations/20261003031500_reels_service_rpc_authority_compat.sql', 'utf8');
 
 const pgBin = [process.env.PHASE6_POSTGRES_BIN, '/opt/homebrew/opt/postgresql@17/bin', '/usr/lib/postgresql/17/bin']
   .filter(Boolean).find((candidate) => existsSync(join(candidate, 'postgres')));
@@ -69,6 +70,9 @@ test('real PostgreSQL installs the repair and follows exact interaction indexes'
       ) RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, extensions AS $fixture$
       DECLARE v_ids uuid[] := ARRAY[p_canonical_reel_id] || p_alias_reel_ids; v_reason text;
       BEGIN
+        IF current_setting('request.jwt.claim.role', true) IS DISTINCT FROM 'service_role' THEN
+          RAISE EXCEPTION 'service role required';
+        END IF;
         v_reason := CASE
           WHEN EXISTS (
             SELECT 1 FROM public.social_interactions
@@ -81,13 +85,13 @@ test('real PostgreSQL installs the repair and follows exact interaction indexes'
         RETURN jsonb_build_object('applied', v_reason IS NULL, 'reason', v_reason);
       END $fixture$;
     `);
-    await client.query(migration);
+    await client.query(authorityMigration);
+    await client.query(serviceCompatMigration);
     const canonical = '00000000-0000-4000-8000-000000000001';
     const alias = '00000000-0000-4000-8000-000000000002';
     const owner = '00000000-0000-4000-8000-000000000003';
     const viewer = '00000000-0000-4000-8000-000000000004';
     await client.query('INSERT INTO social_reels(id,canonical_asset_key,author_id) VALUES ($1,$3,$4),($2,$3,$4)', [canonical, alias, 'asset:test', owner]);
-    await client.query("SELECT set_config('request.jwt.claim.role', 'service_role', false)");
     await client.query("INSERT INTO social_interactions VALUES ($1,$3,'share','{\"surface\":\"a\"}'),($2,$3,'share','{\"surface\":\"a\"}')", [canonical, alias, viewer]);
     const safeShare = await client.query("SELECT reconcile_social_reel_duplicates('asset:test',$1,ARRAY[$2]::uuid[],'fixture',$3) AS result", [canonical, alias, '00000000-0000-4000-8000-000000000005']);
     assert.equal(safeShare.rows[0].result.applied, true);

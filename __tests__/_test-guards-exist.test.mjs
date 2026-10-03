@@ -320,6 +320,7 @@ import './reels-phase2-profile-removal-and-cache.test.mjs';
 import './reels-phase2-route-runtime.test.mjs';
 import './reels-phase2-reconciliation-operator.test.mjs';
 import './reels-reconciliation-authority-repair-migration.test.mjs';
+import './reels-service-rpc-authority-compat-migration.test.mjs';
 import './reels-authority-repair-postgres.test.mjs';
 import './reels-carousel-console.test.mjs';
 import './reels-console-dependencies.test.mjs';
