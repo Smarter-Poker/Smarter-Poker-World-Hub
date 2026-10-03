@@ -70,6 +70,13 @@ test('profile Videos and Saved Posts share the authoritative Social video gate',
   const savedLoader = SAVED_POSTS_PAGE.match(/const loadSavedPosts[\s\S]*?\}, \[\]\);/)?.[0] || '';
   assert.doesNotMatch(savedLoader, /\.from\(['"]social_posts['"]\)/);
   assert.doesNotMatch(savedLoader, /\.from\(['"]social_interactions['"]\)/);
+  assert.match(savedLoader, /requestRef\.current\?\.abort\(\)/);
+  assert.match(savedLoader, /signal: controller\.signal/);
+  assert.match(savedLoader, /response\.status === 401[\s\S]*setCurrentUser\(null\)/);
+  assert.match(savedLoader, /throw new Error\(payload\?\.error/);
+  assert.match(SAVED_POSTS_PAGE, /window\.addEventListener\('focus', revalidate\)/);
+  assert.match(SAVED_POSTS_PAGE, /document\.addEventListener\('visibilitychange', revalidate\)/);
+  assert.match(SAVED_POSTS_PAGE, /role="alert"[\s\S]*Try Again/);
 });
 
 test('privacy and stale managed availability fail closed while ordinary posts remain eligible', () => {

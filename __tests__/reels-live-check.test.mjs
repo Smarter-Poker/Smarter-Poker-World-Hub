@@ -322,6 +322,22 @@ test('complete canonical crawler reaches a terminal page above two thousand with
 test('all eleven SUP-07 aliases stay pinned to four canonical winners and source posts', () => {
   const migration = readFileSync(new URL('../supabase/migrations/20260927144041_recover_historical_user_reels.sql', import.meta.url), 'utf8');
   assert.equal(SUP07_ALIASES.length, 11);
+  assert.equal(SUP07_ALIASES.filter(alias => alias.kind === 'loser').length, 3);
+  assert.match(
+    REELS_LIVE_CHECK,
+    /is_public:\s*id === group\.winner/,
+    'the live authority check must require canonical winners public and reconciled aliases private',
+  );
+  assert.match(
+    REELS_LIVE_CHECK,
+    /const message = error instanceof Error \? error\.message\.split\('\\n'\)\[0\]\.trim\(\) : ''/,
+    'the bounded live receipt must retain the first safe diagnostic line for non-assertion failures',
+  );
+  assert.match(
+    REELS_LIVE_CHECK,
+    /\}, \{ id: bookmarkAlias\.winner \}\);/,
+    'an old loser bookmark must canonicalize its browser URL to the surviving winner',
+  );
   assert.equal(new Set(SUP07_ALIASES.map(alias => alias.reference)).size, 11);
   assert.equal(new Set(SUP07_ALIASES.map(alias => alias.winner)).size, 4);
   assert.equal(new Set(SUP07_ALIASES.map(alias => alias.post)).size, 4);
@@ -714,7 +730,7 @@ test('workflow retains and independently asserts the complete sanitized receipt'
   );
   assert.match(
     E2E_WORKFLOW,
-    /expected_sha:\s*\n\s+description: Full deployed commit SHA required for a published live verification\s*\n\s+type: string\s*\n\s+required: true/,
+    /expected_sha:\s*\n\s+description: Full deployed commit SHA \(required only for a published live verification suite\)\s*\n\s+type: string\s*\n\s+required: false\s*\n\s+default: ''/,
   );
   assert.throws(
     () => validateReceipt({ ...receipt, checks: receipt.checks.slice(1) }),

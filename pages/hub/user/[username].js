@@ -52,6 +52,7 @@ import VideoLibraryConsole, {
 import auxiliaryReelsStyles from '../../../src/components/reels/AuxiliaryReelsSurfaces.module.css';
 import HandStatsCard from '../../../src/components/profile/HandStatsCard';
 import { readOwnProfile } from '../../../src/lib/ownProfile';
+import { removeOwnedReels } from '../../../src/lib/removeOwnedReels';
 const PlayerNotes = dynamic(() => import('../../../src/components/poker/PlayerNotes'), {
   ssr: false,
 });
@@ -2478,8 +2479,11 @@ export default function UserProfilePage() {
           if (parsed.friends) setFriends(parsed.friends);
           if (parsed.posts) setPosts(parsed.posts);
           if (parsed.photos) setPhotos(parsed.photos);
-          if (parsed.videos) setVideos(parsed.videos);
-          if (parsed.reels) setReels(parsed.reels);
+          // Never mount cached playable media. Rights, privacy, storage and
+          // availability can change independently while this two-hour profile
+          // cache is fresh; the canonical endpoints below must re-admit it.
+          setVideos([]);
+          setReels([]);
           if (parsed.lives) setPastLives(parsed.lives);
           
           if (parsed.pokerCheckins) setPokerCheckins(parsed.pokerCheckins);
@@ -3006,8 +3010,6 @@ export default function UserProfilePage() {
             friends: finalFriends,
             posts: userPosts,
             photos: finalPhotos,
-            videos: userVideos,
-            reels: userReels,
             lives: userLives,
           };
           localStorage.setItem(CACHE_KEY, JSON.stringify(cachePayload));
@@ -3027,6 +3029,68 @@ export default function UserProfilePage() {
 
     fetchProfile();
   }, [username]);
+
+  // Re-admit profile media whenever the document becomes visible or regains
+  // focus. This closes the window where a rights revocation or takedown in a
+  // different tab could leave playable media mounted on a cached profile.
+  useEffect(() => {
+    if (!profile?.id) return undefined;
+    let controller = null;
+    let sequence = 0;
+
+    const refreshCanonicalProfileMedia = async () => {
+      controller?.abort();
+      controller = new AbortController();
+      const requestSequence = ++sequence;
+      const socialId = socialIdRef.current || profile.id;
+      const ownsProfile = currentUser?.id === profile.id;
+      const token = ownsProfile ? getAccessToken() : null;
+      const headers = {
+        Accept: 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      };
+      try {
+        const [videosResponse, reelsResponse] = await Promise.all([
+          fetch(`/api/social/profile-videos?author_id=${encodeURIComponent(socialId)}`, {
+            cache: 'no-store', headers, signal: controller.signal,
+          }),
+          fetch(ownsProfile
+            ? '/api/reels/mine?limit=30'
+            : `/api/reels/profile?author_id=${encodeURIComponent(socialId)}&limit=30`, {
+            cache: 'no-store', headers, signal: controller.signal,
+          }),
+        ]);
+        const [videosPayload, reelsPayload] = await Promise.all([
+          videosResponse.json().catch(() => null),
+          reelsResponse.json().catch(() => null),
+        ]);
+        if (requestSequence !== sequence) return;
+        setVideos(videosResponse.ok && videosPayload?.success && Array.isArray(videosPayload.data)
+          ? videosPayload.data : []);
+        setReels(reelsResponse.ok && reelsPayload?.success && Array.isArray(reelsPayload.data)
+          ? reelsPayload.data : []);
+      } catch (error) {
+        if (error?.name !== 'AbortError' && requestSequence === sequence) {
+          // Fail closed: an unverified mounted player is less safe than an
+          // explicit temporary empty state while the canonical reader recovers.
+          setVideos([]);
+          setReels([]);
+          console.warn('[Profile Media] Canonical refresh failed:', error?.message || error);
+        }
+      }
+    };
+    const refreshWhenVisible = () => {
+      if (document.visibilityState === 'visible') void refreshCanonicalProfileMedia();
+    };
+    window.addEventListener('focus', refreshCanonicalProfileMedia);
+    document.addEventListener('visibilitychange', refreshWhenVisible);
+    return () => {
+      sequence += 1;
+      controller?.abort();
+      window.removeEventListener('focus', refreshCanonicalProfileMedia);
+      document.removeEventListener('visibilitychange', refreshWhenVisible);
+    };
+  }, [profile?.id, currentUser?.id]);
   // Realtime subscription — live updates
   useEffect(() => {
     if (!profile?.id) return;
@@ -3460,11 +3524,10 @@ export default function UserProfilePage() {
     // refetch pulled the post back into state and the user had to click delete a
     // second time. Fix: optimistic UI -> AWAIT the DB delete -> then broadcast.
     //
-    // BUG FIX (USER-DELETE-2): the post -> reel relationship uses
-    // ON DELETE SET NULL on social_reels.source_post_id, so deleting the post
-    // left an orphan reel that kept playing in /hub/reels. Until the migration
-    // changing that FK to ON DELETE CASCADE has propagated to every environment,
-    // explicitly delete the matching reel rows here.
+    // The post -> Reel relationship can retain a tombstone Reel after the post
+    // is deleted. The canonical reader rejects a linked Reel when its source
+    // post is absent, so preserve the row and reconciliation aliases rather
+    // than bypassing the server boundary with a client-side hard delete.
     const prevPosts = posts;
     const prevPhotos = photos;
     const prevVideos = videos;
@@ -3485,16 +3548,6 @@ export default function UserProfilePage() {
       setStats(prevStats);
       console.warn('Error deleting post:', error);
       return;
-    }
-
-    // Defense in depth — also delete any reel rows whose source_post_id matched
-    // this post. The migration moves the FK to ON DELETE CASCADE so this becomes
-    // a no-op once it lands, but until then it prevents orphan reels.
-    try {
-      const { error: err_social_reels_vu4qv } = await supabase.from('social_reels').delete().eq('source_post_id', postId);
-      if (err_social_reels_vu4qv) console.warn('[Supabase] Silent mutation failed in social_reels:', err_social_reels_vu4qv.message);
-    } catch (e) {
-      console.warn('[App] Reel cleanup after post delete failed (non-fatal):', e?.message || e);
     }
 
     // Defense in depth (2026-05-11) — also clean up any live_streams row whose
@@ -3554,31 +3607,25 @@ export default function UserProfilePage() {
     });
   };
 
-  // Delete a reel directly (separate from handleDeletePost, which targets
-  // social_posts). The Reels tab queries social_reels directly — many older
-  // reels have source_post_id=NULL because they were uploaded straight to
-  // the reels feed (not via a social_post mirror). Those won't cascade when
-  // a post is deleted because there's no post to delete. This handler lets
-  // an owner remove a reel from their profile by reel.id directly. Includes
-  // the same defense-in-depth pattern as handleDeletePost: optimistic UI
-  // first, then AWAIT the DB delete, then broadcast cache invalidation.
+  // Remove a Reel independently from a source post. The authenticated server
+  // boundary resolves every reconciliation alias and quarantines the complete
+  // group while preserving historical IDs as tombstones.
   const handleDeleteReel = async (reelId) => {
     if (!reelId || !currentUser?.id) return;
     const prevReels = reels;
     const prevStats = { ...stats };
     setReels((prev) => prev.filter((r) => r.id !== reelId));
     setStats((prev) => ({ ...prev, reels: Math.max(0, (prev.reels || 0) - 1) }));
-    const { error } = await supabase
-      .from('social_reels')
-      .delete()
-      .eq('id', reelId)
-      .eq('author_id', currentUser.id); // RLS-safety: only delete own reels
-    if (error) {
+    try {
+      await removeOwnedReels({ reelId });
+    } catch (error) {
       setReels(prevReels);
       setStats(prevStats);
-      console.warn('Error deleting reel:', error);
+      console.warn('Error deleting reel:', error?.message || error);
+      toast.error('Could not remove Reel. Please try again.');
       return;
     }
+    toast.success('Reel removed');
     invalidateProfileCache();
     busEmit.dataMutated('social');
     broadcastSync('smarter_poker_social_sync', {

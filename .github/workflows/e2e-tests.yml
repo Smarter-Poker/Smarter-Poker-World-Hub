@@ -41,12 +41,23 @@ on:
       suite:
         description: Verification suite to run
         type: choice
-        options: [full, messenger-live, messenger-send-live, messenger-continuity-live, reels-live]
+        options: [full, messenger-live, messenger-send-live, messenger-continuity-live, reels-live, reels-reconciliation-audit, reels-reconciliation-apply]
         default: full
       expected_sha:
-        description: Full deployed commit SHA required for a published live verification
+        description: Full deployed commit SHA (required only for a published live verification suite)
         type: string
-        required: true
+        required: false
+        default: ''
+      reels_reconciliation_fingerprint:
+        description: Exact read-only census SHA-256 required for a reconciliation apply
+        type: string
+        required: false
+        default: ''
+      reels_reconciliation_pending:
+        description: Exact read-only pending group count required for a reconciliation apply
+        type: string
+        required: false
+        default: ''
       messenger_fixture_conversation_id:
         description: Exact parent-owned sole-participant fixture UUID for messenger-send-live
         type: string
@@ -94,6 +105,54 @@ concurrency:
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
+  reels-reconciliation:
+    name: Reels Historical Reconciliation
+    if: ${{ inputs.suite == 'reels-reconciliation-audit' || inputs.suite == 'reels-reconciliation-apply' }}
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24.12.0'
+          cache: npm
+      - name: Restore locked dependencies
+        id: reconciliation-nm-cache
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: nm-wh-noscripts-${{ runner.os }}-node24-${{ hashFiles('package-lock.json') }}
+      - name: Install locked dependencies
+        if: steps.reconciliation-nm-cache.outputs.cache-hit != 'true'
+        run: npm ci --ignore-scripts
+      - name: Read only duplicate and ledger census
+        if: ${{ inputs.suite == 'reels-reconciliation-audit' }}
+        run: node scripts/reconcile-social-reels.mjs
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          REELS_RECONCILIATION_RECEIPT: test-results/reels-reconciliation/result.json
+      - name: Apply exact census-bound reconciliation
+        if: ${{ inputs.suite == 'reels-reconciliation-apply' }}
+        run: node scripts/reconcile-social-reels.mjs
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          REELS_RECONCILIATION_MODE: apply
+          REELS_RECONCILIATION_EXPECTED_FINGERPRINT: ${{ inputs.reels_reconciliation_fingerprint }}
+          REELS_RECONCILIATION_EXPECTED_PENDING: ${{ inputs.reels_reconciliation_pending }}
+          REELS_RECONCILIATION_RECEIPT: test-results/reels-reconciliation/result.json
+      - name: Retain sanitized reconciliation receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: reels-reconciliation-receipt
+          path: test-results/reels-reconciliation/result.json
+          if-no-files-found: error
+          retention-days: 7
+
   e2e:
     if: ${{ inputs.suite == 'full' || inputs.suite == '' }}
     name: Playwright E2E Tests

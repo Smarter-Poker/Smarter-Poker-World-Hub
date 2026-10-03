@@ -453,7 +453,6 @@ export default function ReelsPage({ reelsListing = null }) {
   const [loadMoreError, setLoadMoreError] = useState(null);
   const [viewCounts, setViewCounts] = useState({});
   const [videoProgress, setVideoProgress] = useState(0);
-  const viewedReelsRef = useRef(new Set());
   const autoUnmuteRetryTimersRef = useRef([]); // Cancelled on every reel change — prevents stale-iframe postMessage
   const playVideoOnLoadTimersRef = useRef([]); // Cancelled on every reel change — prevents premature playVideo to new iframe
   const [refreshing, setRefreshing] = useState(false);
@@ -1265,25 +1264,15 @@ export default function ReelsPage({ reelsListing = null }) {
     };
   }, [scheduleBackgroundReelsRefresh]);
 
-  // Helper to atomically increment/decrement counts for reels OR posts
-  // Uses SECURITY DEFINER RPCs - no race condition, no read-then-write
-  const incrementMetric = async (reel, field, amount) => {
-    if (!reel?.id) return;
-    try {
-      if (reel.source === 'posts') {
-        // social_posts path - use post-specific RPC
-        const rpc = amount > 0 ? 'increment_post_count' : 'decrement_post_count';
-        const { error } = await supabase.rpc(rpc, { p_post_id: reel.id, p_field: field });
-        if (error) throw error;
-      } else {
-        // social_reels path (native reels) - use reel-specific RPC
-        const rpc = amount > 0 ? 'increment_reel_count' : 'decrement_reel_count';
-        const { error } = await supabase.rpc(rpc, { p_reel_id: reel.id, p_field: field });
-        if (error) throw error;
-      }
-    } catch (e) {
-      console.warn('[Engagement] Atomic counter update failed:', e?.message || e);
-    }
+  const recordShareMetric = async (reel, destination = 'external') => {
+    const token = getAccessToken();
+    if (!reel?.id || !token) return;
+    const response = await fetch('/api/social/share-count', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ post_id: reel.id, destination }),
+    });
+    if (!response.ok) throw new Error('Share metric failed');
   };
 
   // Deep-link: if ?id= is in URL, scroll to that reel after load.
@@ -1523,17 +1512,6 @@ export default function ReelsPage({ reelsListing = null }) {
       setVideoProgress(0);
       setCaptionExpanded(false);
       setYtError(null); // Clear YouTube error state on reel change
-      // Deduplicated view count - only fire once per reel per session (auth only)
-      if (user?.id && !viewedReelsRef.current.has(currentReel.id)) {
-        viewedReelsRef.current.add(currentReel.id);
-        // Increment in DB AND update local state so UI reflects the view
-        const reelId = currentReel.id;
-        setViewCounts((prev) => ({
-          ...prev,
-          [reelId]: (prev[reelId] || currentReel.view_count || 0) + 1,
-        }));
-        incrementMetric(currentReel, 'view_count', 1);
-      }
     }
   }, [currentReel?.id]);
 
@@ -2150,7 +2128,7 @@ export default function ReelsPage({ reelsListing = null }) {
       }
       if (!ownerRequest.isCurrent()) return;
       if (platform !== 'copy') {
-        incrementMetric(reel, 'share_count', 1);
+        await recordShareMetric(reel, platform === 'native' ? 'external' : platform);
       }
       if (ownerRequest.ownerId) busEmit.socialPostShared(reel.id, ownerRequest.ownerId);
     } catch (err) {
@@ -2209,7 +2187,7 @@ export default function ReelsPage({ reelsListing = null }) {
       if (result.already_shared) {
         showErrorToast('Already shared this reel!');
       } else {
-        incrementMetric(reel, 'share_count', 1);
+        await recordShareMetric(reel, 'feed');
         busEmit.socialPostShared(reel.id, ownerRequest.ownerId);
         busEmit.dataMutated('social');
       }
