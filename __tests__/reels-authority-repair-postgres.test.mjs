@@ -24,7 +24,7 @@ async function freePort() {
 
 test('real PostgreSQL installs the repair and follows exact interaction indexes', async (t) => {
   if (!pgBin) return t.skip('PostgreSQL 17 server tools are unavailable');
-  const workRoot = process.env.SMARTER_WORK_ROOT || '/Volumes/SmarterWork/agent-work';
+  const workRoot = process.env.RUNNER_TEMP || process.env.SMARTER_WORK_ROOT || '/Volumes/SmarterWork/agent-work';
   mkdirSync(workRoot, { recursive: true });
   const root = mkdtempSync(join(workRoot, 'reels-pg-'));
   const data = join(root, 'data');
