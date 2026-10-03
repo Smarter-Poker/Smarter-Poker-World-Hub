@@ -359,19 +359,21 @@ test('Open Claw validates routing and database without changing operational inbo
   assert.match(dispatcher, /BASE_URL \+ '\/api\/internal\/operational-alert'/);
   assert.match(dispatcher, /resp\.json\(\)\.get\('recorded'\) is True/);
   // Operational alerts stay on the committed inbox: Twilio is never a
-  // delivery path here. The workflow carries only main's legacy alert keys
-  // into the host env (key-scoped, proved below) and never hands them to the
-  // credential probes or the release preflights.
+  // delivery path here. The workflow carries key-scoped delivery credentials
+  // into the host env (proved below) and never hands alert keys to credential
+  // probes or release preflights.
   assert.doesNotMatch(dispatcher, /api\.twilio\.com|import twilio|from twilio/);
   const probeBlock = deployWorkflow.match(/--unit "openclaw-workers-auth-preflight[\s\S]*?keep_release=true/)?.[0];
   assert.ok(probeBlock, 'credential probe block is missing');
   assert.doesNotMatch(probeBlock, /TWILIO|ADMIN_PHONE/);
   const managedKeySets = [...deployWorkflow.matchAll(/MANAGED_KEYS = \(([^)]*)\)/g)].map(match => match[1]);
-  assert.deepEqual(managedKeySets, [
-    "'TWILIO_ACCOUNT_SID', 'TWILIO_AUTH_TOKEN', 'TWILIO_PHONE_NUMBER', 'ADMIN_PHONE'",
-    "'TWILIO_ACCOUNT_SID', 'TWILIO_AUTH_TOKEN', 'TWILIO_PHONE_NUMBER', 'ADMIN_PHONE'",
-  ]);
-  for (const key of ['TWILIO_ACCOUNT_SID', 'TWILIO_AUTH_TOKEN', 'TWILIO_PHONE_NUMBER', 'ADMIN_PHONE']) {
+  assert.equal(managedKeySets.length, 2);
+  for (const keySet of managedKeySets) {
+    for (const key of ['TWILIO_ACCOUNT_SID', 'TWILIO_AUTH_TOKEN', 'TWILIO_PHONE_NUMBER', 'ADMIN_PHONE', 'YOUTUBE_DATA_API_KEY']) {
+      assert.match(keySet, new RegExp(`'${key}'`));
+    }
+  }
+  for (const key of ['TWILIO_ACCOUNT_SID', 'TWILIO_AUTH_TOKEN', 'TWILIO_PHONE_NUMBER', 'ADMIN_PHONE', 'YOUTUBE_DATA_API_KEY']) {
     assert.equal(deployWorkflow.match(new RegExp(`secrets\\.${key}\\b`, 'g'))?.length, 1, key);
   }
   for (const hostManaged of ['CRON_SECRET', 'SUPABASE_SERVICE_ROLE_KEY', 'NEXT_PUBLIC_SUPABASE_URL', 'WORKERS_BASE_URL']) {
@@ -640,7 +642,7 @@ test('runner alert secrets normalize safely and malformed values retain the vali
   }
 });
 
-test('managed alert keys merge key by key, atomically, only after the full contract validates', () => {
+test('managed delivery keys merge key by key, atomically, only after the full contract validates', () => {
   const marker = `sudo /usr/bin/python3 - /etc/openclaw.env "$managed_upload" <<'PY'\n`;
   const start = deployWorkflow.indexOf(marker);
   assert.ok(start >= 0, 'host merge program is missing');
@@ -662,6 +664,7 @@ test('managed alert keys merge key by key, atomically, only after the full contr
     sid: 'ACSIDVALUE0123456789',
     from: '+15550000001',
     admin: '+15550000002',
+    youtube: 'YOUTUBEKEYVALUE0123456789',
   };
   const hostLines = [
     '# host managed',
@@ -695,12 +698,13 @@ test('managed alert keys merge key by key, atomically, only after the full contr
     return { ...result, output, env: readFileSync(envPath, 'utf8') };
   };
   try {
-    const complete = [...hostLines, ...twilioLines, `ADMIN_PHONE=${secrets.admin}`].join('\n') + '\n';
+    const complete = [...hostLines, ...twilioLines, `ADMIN_PHONE=${secrets.admin}`,
+      `YOUTUBE_DATA_API_KEY=${secrets.youtube}`].join('\n') + '\n';
 
     // Unset GitHub secrets leave a complete host file byte-identical.
     let result = run(complete, '');
     assert.equal(result.status, 0, result.output);
-    assert.match(result.stdout, /managed alert keys unchanged/);
+    assert.match(result.stdout, /managed delivery keys unchanged/);
     assert.equal(result.env, complete);
 
     // Main required every alert key: a host missing one fails before any write.
@@ -720,28 +724,29 @@ test('managed alert keys merge key by key, atomically, only after the full contr
 
     // A configured secret replaces only its own key in place and appends a
     // missing one; host-managed lines, quoting and comments are untouched.
-    result = run(missingAdmin, `TWILIO_AUTH_TOKEN=${secrets.newToken}\nADMIN_PHONE=${secrets.admin}\n`);
+    result = run(missingAdmin, `TWILIO_AUTH_TOKEN=${secrets.newToken}\nADMIN_PHONE=${secrets.admin}\nYOUTUBE_DATA_API_KEY=${secrets.youtube}\n`);
     assert.equal(result.status, 0, result.output);
-    assert.match(result.stdout, /merged managed alert keys: ADMIN_PHONE, TWILIO_AUTH_TOKEN/);
+    assert.match(result.stdout, /merged managed delivery keys: ADMIN_PHONE, TWILIO_AUTH_TOKEN, YOUTUBE_DATA_API_KEY/);
     assert.equal(result.env, [
       ...hostLines,
       `TWILIO_ACCOUNT_SID=${secrets.sid}`,
       `TWILIO_AUTH_TOKEN=${secrets.newToken}`,
       `TWILIO_PHONE_NUMBER=${secrets.from}`,
       `ADMIN_PHONE=${secrets.admin}`,
+      `YOUTUBE_DATA_API_KEY=${secrets.youtube}`,
     ].join('\n') + '\n');
     assert.equal(statSync(envPath).mode & 0o777, 0o600);
 
     // Host-managed credentials can never be supplied through the managed file.
     result = run(complete, `CRON_SECRET=${secrets.newToken}\n`);
     assert.notEqual(result.status, 0);
-    assert.match(result.output, /unexpected managed alert line 1/);
+    assert.match(result.output, /unexpected managed delivery line 1/);
     assert.equal(result.env, complete);
 
     // Malformed managed values are refused by key name, never echoed.
     result = run(complete, `TWILIO_AUTH_TOKEN="${secrets.newToken}"\n`);
     assert.notEqual(result.status, 0);
-    assert.match(result.output, /malformed managed alert key: TWILIO_AUTH_TOKEN/);
+    assert.match(result.output, /malformed managed delivery key: TWILIO_AUTH_TOKEN/);
     assert.equal(result.env, complete);
 
     // An invalid host contract blocks the merge entirely.
@@ -756,7 +761,7 @@ test('managed alert keys merge key by key, atomically, only after the full contr
 });
 
 test('the incumbent /opt/openclaw is untouched until promotion, and rollback restores it', () => {
-  const validation = deployWorkflow.indexOf('- name: Validate the complete runtime contract and merge managed alert keys');
+  const validation = deployWorkflow.indexOf('- name: Validate the complete runtime contract and merge managed delivery keys');
   const preparation = deployWorkflow.slice(
     deployWorkflow.indexOf('- name: Verify runtime and prepare release directories'),
     validation,
