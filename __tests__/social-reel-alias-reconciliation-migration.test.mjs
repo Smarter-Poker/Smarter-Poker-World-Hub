@@ -7,6 +7,9 @@ const dir = new URL('../supabase/migrations/', import.meta.url);
 const url = new URL(NAME, dir);
 const source = existsSync(url) ? readFileSync(url, 'utf8') : '';
 const sql = source.split('\n').filter(line => !line.trimStart().startsWith('--')).join('\n');
+const reelsPage = readFileSync(new URL('../pages/hub/reels.js', import.meta.url), 'utf8');
+const reelsViewer = readFileSync(new URL('../src/components/social/Reels.jsx', import.meta.url), 'utf8');
+const reelsCarousel = readFileSync(new URL('../src/components/social/ReelsFeedCarousel.jsx', import.meta.url), 'utf8');
 
 test('Phase 2 alias foundation is one guarded additive ledger migration', () => {
   assert.ok(existsSync(url));
@@ -104,6 +107,13 @@ test('future engagement and counters cannot land on a retired alias', () => {
   assert.match(sql, /NEW\.source_type := 'reel'/);
   assert.match(sql, /FUNCTION public\.increment_reel_count\(p_reel_id uuid, p_field text\)[\s\S]*a\.alias_reel_id = p_reel_id[\s\S]*USING v_target/);
   assert.match(sql, /FUNCTION public\.decrement_reel_count\(p_reel_id uuid, p_field text\)[\s\S]*a\.alias_reel_id = p_reel_id[\s\S]*USING v_target/);
+});
+
+test('browser Reel surfaces never receive direct counter mutation authority', () => {
+  for (const client of [reelsPage, reelsViewer, reelsCarousel]) {
+    assert.doesNotMatch(client, /increment_reel_count|decrement_reel_count/);
+    assert.match(client, /\/api\/social\/share-count/);
+  }
 });
 
 test('security-definer functions pin search path and mutation is service-role gated', () => {

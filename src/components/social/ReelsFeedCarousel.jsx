@@ -260,24 +260,15 @@ function ReelViewer({
     accountScopeRef.current = createReelAccountScope(providerUser?.id);
   }
 
-  // Source-aware atomic engagement counter.
-  // Reels in the carousel may come from social_reels OR social_posts.
-  // Uses SECURITY DEFINER RPCs - single UPDATE, no read-then-write race condition.
-  const incrementMetric = async (reel, field, amount) => {
-    if (!reel?.id) return;
-    try {
-      if (reel.source === 'posts') {
-        const rpc = amount > 0 ? 'increment_post_count' : 'decrement_post_count';
-        const { error } = await supabase.rpc(rpc, { p_post_id: reel.id, p_field: field });
-        if (error) throw error;
-      } else {
-        const rpc = amount > 0 ? 'increment_reel_count' : 'decrement_reel_count';
-        const { error } = await supabase.rpc(rpc, { p_reel_id: reel.id, p_field: field });
-        if (error) throw error;
-      }
-    } catch (e) {
-      console.warn('[ReelCarousel] Atomic counter update failed:', e?.message || e);
-    }
+  const recordShareMetric = async (reel, destination = 'external') => {
+    const token = getAccessToken();
+    if (!reel?.id || !token) return;
+    const response = await fetch('/api/social/share-count', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ post_id: reel.id, destination }),
+    });
+    if (!response.ok) throw new Error('Share metric failed');
   };
 
   const [currentIndex, setCurrentIndex] = useState(startIndex);
@@ -457,7 +448,6 @@ function ReelViewer({
   const commentRequestGuardRef = useRef(null);
   const activeCommentReelIdRef = useRef(null);
   if (!commentRequestGuardRef.current) commentRequestGuardRef.current = createLatestRequestGuard();
-  const viewedReelsRef = useRef(new Set());
   const reelFileInputRef = useRef(null);
   const videoRef = useRef(null);
   // Report state
@@ -1639,7 +1629,7 @@ function ReelViewer({
       // Clipboard copy = link preview, not a social share — skip metric + bus event
       if (platform !== 'copy') {
         if (!ownerRequest.isCurrent()) return;
-        incrementMetric(reel, 'share_count', 1);
+        await recordShareMetric(reel, platform === 'native' ? 'external' : platform);
         if (userId) busEmit.socialPostShared(reel.id, userId);
       }
     } catch {
@@ -1676,7 +1666,7 @@ function ReelViewer({
       if (!response.ok) throw new Error(result.error || 'Share failed');
       if (!ownerRequest.isCurrent()) return;
       if (!result.already_shared) {
-        incrementMetric(reel, 'share_count', 1);
+        await recordShareMetric(reel, 'feed');
         busEmit.socialPostShared(reel.id, userId);
         busEmit.dataMutated('social');
       }
@@ -1788,20 +1778,7 @@ function ReelViewer({
       progressRAF.current = null;
     }
 
-    // Deduplicated view count — defer 2s so rapid swipes don't inflate counts.
-    // Only fires if the user actually watches for at least 2 seconds.
-    const reelId = reels[currentIndex]?.id;
-    const viewCountTimer =
-      reelId && authUser?.id && !viewedReelsRef.current.has(reelId)
-        ? setTimeout(() => {
-            viewedReelsRef.current.add(reelId);
-            setViewCounts((prev) => ({
-              ...prev,
-              [reelId]: (prev[reelId] || reels[currentIndex]?.view_count || 0) + 1,
-            }));
-            incrementMetric(reels[currentIndex], 'view_count', 1);
-          }, 2000)
-        : null;
+    const viewCountTimer = null;
 
     // Native video autoplay — only runs for non-YouTube reels.
     // Play via canplay event because the video element may be remounting due to key change;

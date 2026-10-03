@@ -9,7 +9,7 @@
  * SAFETY: This is a NEW page — no existing code is modified.
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
 import SEOHead from '../../src/components/seo/SEOHead';
@@ -160,11 +160,19 @@ export default function SavedPostsPage() {
     const [savedPosts, setSavedPosts] = useState([]);
     const [authorMap, setAuthorMap] = useState({});
     const [loading, setLoading] = useState(true);
+    const [loadError, setLoadError] = useState('');
+    const requestRef = useRef(null);
 
     const loadSavedPosts = useCallback(async () => {
+        requestRef.current?.abort();
+        const controller = new AbortController();
+        requestRef.current = controller;
+        setLoadError('');
         try {
             const user = getAuthUser();
             if (!user) {
+                setCurrentUser(null);
+                setSavedPosts([]);
                 setLoading(false);
                 return;
             }
@@ -176,6 +184,7 @@ export default function SavedPostsPage() {
             const response = await fetch('/api/social/saved-posts', {
                 method: 'GET',
                 cache: 'no-store',
+                signal: controller.signal,
                 headers: {
                     Accept: 'application/json',
                     ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -183,13 +192,20 @@ export default function SavedPostsPage() {
             });
             const payload = await response.json().catch(() => null);
             const posts = payload?.data;
-            if (!response.ok || !payload?.success || !Array.isArray(posts) || !posts.length) {
+            if (response.status === 401) {
+                // A cached local user is not an authenticated session. Never
+                // mislabel stale auth as an authoritative empty collection.
+                setCurrentUser(null);
                 setSavedPosts([]);
-                setLoading(false);
+                setAuthorMap({});
                 return;
+            }
+            if (!response.ok || !payload?.success || !Array.isArray(posts)) {
+                throw new Error(payload?.error || 'Saved Posts are temporarily unavailable');
             }
 
             setSavedPosts(posts);
+            if (!posts.length) setAuthorMap({});
 
             // Fetch only public profile chrome after the authoritative post
             // collection has removed unavailable or no-longer-visible rows.
@@ -207,13 +223,32 @@ export default function SavedPostsPage() {
                 }
             }
         } catch (err) {
+            if (err?.name === 'AbortError') return;
             console.warn('Load saved posts error:', err);
+            setLoadError('Saved Posts Could Not Be Refreshed');
+        } finally {
+            if (requestRef.current === controller) {
+                requestRef.current = null;
+                setLoading(false);
+            }
         }
-        setLoading(false);
     }, []);
 
     useEffect(() => {
         loadSavedPosts();
+        return () => requestRef.current?.abort();
+    }, [loadSavedPosts]);
+
+    useEffect(() => {
+        const revalidate = () => {
+            if (document.visibilityState === 'visible') loadSavedPosts();
+        };
+        window.addEventListener('focus', revalidate);
+        document.addEventListener('visibilitychange', revalidate);
+        return () => {
+            window.removeEventListener('focus', revalidate);
+            document.removeEventListener('visibilitychange', revalidate);
+        };
     }, [loadSavedPosts]);
 
     const handleUnsave = (postId) => {
@@ -243,7 +278,9 @@ export default function SavedPostsPage() {
                             <div>
                                 <h1 style={{ margin: 0, fontSize: 24, fontWeight: 700, color: C.text }}>Saved Posts</h1>
                                 <div style={{ fontSize: 14, color: C.textSec }}>
-                                    {savedPosts.length} {savedPosts.length === 1 ? 'item' : 'items'} Saved
+                                    {loadError
+                                        ? 'Saved Items Unavailable'
+                                        : `${savedPosts.length} ${savedPosts.length === 1 ? 'item' : 'items'} Saved`}
                                 </div>
                             </div>
                         </div>
@@ -259,6 +296,19 @@ export default function SavedPostsPage() {
                                     }} />
                                 ))}
                                 <style>{`@keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }`}</style>
+                            </div>
+                        ) : loadError ? (
+                            <div role="alert" style={{
+                                textAlign: 'center', padding: '60px 24px',
+                                background: C.card, borderRadius: 12, boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+                            }}>
+                                <div style={{ fontSize: 48, marginBottom: 16, opacity: 0.4 }}>↻</div>
+                                <h3 style={{ margin: '0 0 8px', color: C.text, fontSize: 20 }}>Refresh Needed</h3>
+                                <p style={{ margin: '0 0 20px', color: C.textSec, fontSize: 15 }}>{loadError}</p>
+                                <button type="button" onClick={() => { setLoading(true); loadSavedPosts(); }} style={{
+                                    padding: '10px 24px', border: 0, borderRadius: 8,
+                                    background: C.blue, color: 'white', cursor: 'pointer', fontWeight: 600,
+                                }}>Try Again</button>
                             </div>
                         ) : !currentUser ? (
                             <div style={{
