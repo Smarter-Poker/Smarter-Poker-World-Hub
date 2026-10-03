@@ -23,6 +23,7 @@ test('service role is the only database writer and custody is checked',()=>{
 test('new videos enter enrichment and the worker is bounded and metadata-only',()=>{
  assert.match(ingest,/fn_enqueue_video_enrichment/); assert.match(worker,/--limit/); assert.match(worker,/1 <= args\.limit <= 50/);
  assert.doesNotMatch(worker,/yt_dlp|ffmpeg|download/); assert.match(worker,/provider_caption_authority_not_configured/);
+ assert.match(worker,/def duration_seconds/); assert.match(worker,/re\.fullmatch\(r'PT/); assert.match(worker,/clock=re\.fullmatch/);
  assert.match(worker,/promote_candidate/); assert.match(worker,/workflow_state':'candidate/);
  for(const field of ['format','skill_level','players','events','stakes']) assert.match(worker,new RegExp(`'${field}'`));
 });
