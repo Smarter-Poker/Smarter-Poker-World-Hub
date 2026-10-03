@@ -133,7 +133,7 @@ export const REQUIRED_RECEIPT_CHECKS = Object.freeze([
   'All eleven SUP-07 Reel and post aliases resolve to four canonical winners',
   'Following rejects signed-out access and accepts the designated test account',
   'My Reels and Saved Reels are owner-bound, canonical, complete, private, and non-cacheable',
-  'Old loser bookmark canonicalization preserves the requested alias and renders its canonical winner',
+  'Old loser bookmarks resolve and canonicalize the URL to their surviving winner',
   'Retired browser cache is removed before playback',
   'Revoked and expired saved sessions fail closed into reauthentication without mounting private media',
   'A mid-flight category drop retains one mounted player and retry recovers',
@@ -144,9 +144,8 @@ export const REQUIRED_RECEIPT_CHECKS = Object.freeze([
 ]);
 
 function fixedFailure(error) {
-  return error instanceof assert.AssertionError
-    ? error.message.split('\n')[0]
-    : 'Live probe could not complete; inspect the bounded workflow logs';
+  const message = error instanceof Error ? error.message.split('\n')[0].trim() : '';
+  return message || 'Live probe could not complete; inspect the bounded workflow logs';
 }
 
 function digest(value) {
@@ -983,6 +982,7 @@ async function verifyPublicBrowser(browser, bookmarkAlias, validatedForYouRows, 
   page.on('pageerror', () => pageErrors.push('browser-page-error'));
   page.setDefaultTimeout(40000);
   try {
+    report.stage = 'public-mobile-bookmark-response';
     const initialResponse = page.waitForResponse((response) => {
       const url = new URL(response.url());
       return url.pathname === '/api/reels/feed'
@@ -997,13 +997,16 @@ async function verifyPublicBrowser(browser, bookmarkAlias, validatedForYouRows, 
     assert.equal(bookmarkPayload?.data?.[0]?.canonical_asset_key, bookmarkAlias.key, 'Old Reel alias rendered the wrong canonical asset');
     const hostileDropReel = selectStableHostileDropReel(validatedForYouRows, bookmarkAlias.winner);
     assert.ok(hostileDropReel, 'The validated canonical crawl did not provide a fresh embeddable Reel for the hostile-drop proof');
+    report.stage = 'public-mobile-bookmark-viewer';
     await page.getByLabel(/Reels Viewer$/).waitFor();
+    report.stage = 'public-mobile-bookmark-url';
     await page.waitForFunction(({ id }) => {
       const params = new URL(location.href).searchParams;
       return params.get('category') === 'for-you'
         && params.get('feed') === 'trending'
         && params.get('id') === id;
-    }, { id: bookmarkAlias.reference });
+    }, { id: bookmarkAlias.winner });
+    report.stage = 'public-mobile-retired-cache';
     assert.equal(await page.evaluate((key) => localStorage.getItem(key), RETIRED_CACHE_KEY), null, 'Retired Reel cache survived page startup');
     // Count actual media descendants once beneath the standalone page root.
     // The accessible viewer label is intentionally repeated by nested console
@@ -1025,6 +1028,7 @@ async function verifyPublicBrowser(browser, bookmarkAlias, validatedForYouRows, 
     // canonicalization above, then isolate route-failure preservation on a
     // freshly verified YouTube embed from the same authoritative feed so an
     // independent codec fallback cannot create a false hostile-drop failure.
+    report.stage = 'public-mobile-stable-response';
     const stableResponse = page.waitForResponse((response) => {
       const url = new URL(response.url());
       return url.pathname === '/api/reels/feed'
@@ -1037,11 +1041,13 @@ async function verifyPublicBrowser(browser, bookmarkAlias, validatedForYouRows, 
       { waitUntil: 'domcontentloaded' },
     );
     await stableResponse;
+    report.stage = 'public-mobile-stable-viewer';
     await page.getByLabel(/Reels Viewer$/).waitFor();
     assert.equal(await players.count(), 1, 'Stable hostile-drop setup mounted more than one media player');
     assert.equal(await players.first().evaluate((element) => element.tagName), 'IFRAME', 'Hostile-drop setup did not mount the verified embed');
     await players.first().evaluate((element) => { element.dataset.liveProofPlayer = 'mounted'; });
 
+    report.stage = 'public-mobile-hostile-drop';
     state.failNextSports = true;
     await page.getByRole('button', { name: 'Menu', exact: true }).click({ force: true });
     const sportsLink = page.locator('a[href="/hub/reels?category=sports"]').last();
@@ -1062,6 +1068,7 @@ async function verifyPublicBrowser(browser, bookmarkAlias, validatedForYouRows, 
     assert.equal(await players.count(), 1, 'Mid-flight category drop created a second media player');
     assert.equal(state.injectedDrops, 1, 'The hostile mid-flight failure was not exercised exactly once');
 
+    report.stage = 'public-mobile-retry';
     const recovered = page.waitForResponse((response) => {
       const url = new URL(response.url());
       return url.pathname === '/api/reels/feed'
