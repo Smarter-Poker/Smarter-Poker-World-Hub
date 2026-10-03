@@ -44,7 +44,7 @@ export const BLOCKED_VIDEO_LIBRARY_IDS = Object.freeze([
 
 const BLOCKED_VIDEO_LIBRARY_ID_SET = new Set(BLOCKED_VIDEO_LIBRARY_IDS);
 export const YOUTUBE_VIDEO_ID_RE = /^[A-Za-z0-9_-]{11}$/;
-export const VIDEO_LIBRARY_ALLOWED_TYPES = Object.freeze(['cash', 'tournament', 'slots']);
+export const VIDEO_LIBRARY_ALLOWED_TYPES = Object.freeze(['cash', 'tournament', 'slots', 'sports']);
 const VIDEO_LIBRARY_ALLOWED_TYPE_SET = new Set(VIDEO_LIBRARY_ALLOWED_TYPES);
 
 /**

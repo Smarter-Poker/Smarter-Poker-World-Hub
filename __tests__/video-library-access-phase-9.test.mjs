@@ -94,7 +94,7 @@ test('the availability gate rejects fake, blocked, missing, and object-form IDs'
     videoId: 'M7lc1UVf-VE', type: 'slots', availabilityStatus: 'verified',
     embeddable: true, availabilityCheckedAt: fresh,
   }), true);
-  assert.deepEqual(VIDEO_LIBRARY_ALLOWED_TYPES, ['cash', 'tournament', 'slots']);
+  assert.deepEqual(VIDEO_LIBRARY_ALLOWED_TYPES, ['cash', 'tournament', 'slots', 'sports']);
 });
 
 test('live, bookmark, and player entry points share the availability gate without a static fallback', () => {

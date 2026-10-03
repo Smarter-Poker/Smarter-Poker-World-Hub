@@ -285,7 +285,7 @@ export default function VideoLibraryPage() {
     const selectedSource = SOURCES.some(source => source?.id === filters.selectedSource)
         ? filters.selectedSource
         : 'ALL';
-    const selectedType = ['ALL', 'cash', 'tournament', 'slots'].includes(filters.selectedType)
+    const selectedType = ['ALL', 'cash', 'tournament', 'slots', 'sports'].includes(filters.selectedType)
         ? filters.selectedType
         : 'ALL';
     const setSelectedSource = (val) => setFilter('selectedSource', val);
@@ -367,7 +367,7 @@ export default function VideoLibraryPage() {
             // lowercase. Every ?type= deep link (two hamburger-menu entries and
             // the sitemap links) landed on an empty "No Videos Found" page.
             const requestedType = String(router.query.type).toLowerCase();
-            if (['all', 'cash', 'tournament', 'slots'].includes(requestedType)) {
+            if (['all', 'cash', 'tournament', 'slots', 'sports'].includes(requestedType)) {
                 setSelectedType(requestedType === 'all' ? 'ALL' : requestedType);
             }
         }
@@ -1709,6 +1709,7 @@ export default function VideoLibraryPage() {
             cash: 'Cash Games',
             tournament: 'Tournaments',
             slots: 'Casino And Slots',
+            sports: 'Sports',
         }[selectedType] || selectedType) : null,
         selectedSource !== 'ALL' ? activeSourceName : null,
         sortMode !== 'default' ? (sortMode === 'trending' ? 'Trending' : 'Top Rated') : null,
