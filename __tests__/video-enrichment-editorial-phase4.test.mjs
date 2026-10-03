@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import test from 'node:test';
 const migration=fs.readFileSync('supabase/migrations/20261003131100_video_enrichment_editorial_phase4.sql','utf8');
 const completion=fs.readFileSync('supabase/migrations/20261003134000_video_editorial_completion_gates.sql','utf8');
+const fairness=fs.readFileSync('supabase/migrations/20261003134500_video_enrichment_claim_fairness.sql','utf8');
 const worker=fs.readFileSync('scripts/video_enrichment_worker.py','utf8');
 const ingest=fs.readFileSync('scripts/video_source_registry_ingest.py','utf8');
 const workflow=fs.readFileSync('.github/workflows/deploy-openclaw.yml','utf8');
@@ -15,6 +16,12 @@ test('Phase 4 owns durable records, jobs, events, retries, and dead letters',()=
  assert.match(migration,/FOR UPDATE SKIP LOCKED/); assert.match(migration,/attempt_count >= v_job\.max_attempts THEN 'dead_letter'/);
  assert.match(migration,/workflow_state IN \('discovered','validated','enriched','candidate','approved','rejected','published'\)/);
 });
+test('claim ordering recovers retries and completes per-video stage bundles promptly',()=>{
+ assert.match(fairness,/CASE WHEN status='retry' THEN 0 ELSE 1 END/);
+ assert.match(fairness,/video_id,[\s\S]*created_at,[\s\S]*id/);
+ assert.match(fairness,/FOR UPDATE SKIP LOCKED/);
+ assert.match(fairness,/REVOKE ALL[\s\S]*FROM PUBLIC, anon, authenticated/);
+});
 test('service role is the only database writer and custody is checked',()=>{
  assert.match(migration,/REVOKE ALL[\s\S]*FROM PUBLIC, anon, authenticated/);
  assert.match(migration,/job custody mismatch/); assert.match(migration,/editorial version conflict/);
@@ -23,6 +30,7 @@ test('service role is the only database writer and custody is checked',()=>{
 test('new videos enter enrichment and the worker is bounded and metadata-only',()=>{
  assert.match(ingest,/fn_enqueue_video_enrichment/); assert.match(worker,/--limit/); assert.match(worker,/1 <= args\.limit <= 50/);
  assert.doesNotMatch(worker,/yt_dlp|ffmpeg|download/); assert.match(worker,/provider_caption_authority_not_configured/);
+ assert.match(worker,/def duration_seconds/); assert.match(worker,/re\.fullmatch\(r'PT/); assert.match(worker,/clock=re\.fullmatch/);
  assert.match(worker,/promote_candidate/); assert.match(worker,/workflow_state':'candidate/);
  for(const field of ['format','skill_level','players','events','stakes']) assert.match(worker,new RegExp(`'${field}'`));
 });

@@ -7,6 +7,16 @@ from pathlib import Path
 WORKER = f"{socket.gethostname()}:{os.getpid()}"
 QUALITY_REVIEW_CODES = ('blank_frames', 'duplicate_captions', 'poor_audio', 'mid_sentence_cuts')
 
+def duration_seconds(raw):
+    if isinstance(raw, (int, float)): return max(0, int(raw))
+    text=str(raw or '').strip()
+    if text.isdigit(): return int(text)
+    match=re.fullmatch(r'PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?',text,re.IGNORECASE)
+    if match: return int(match.group(1) or 0)*3600+int(match.group(2) or 0)*60+int(match.group(3) or 0)
+    clock=re.fullmatch(r'(?:(\d+):)?(\d{1,2}):(\d{2})',text)
+    if clock: return int(clock.group(1) or 0)*3600+int(clock.group(2))*60+int(clock.group(3))
+    return 0
+
 def classify(row):
     text = f"{row.get('title','')} {' '.join(row.get('tags') or [])}".lower()
     concepts = [name for name, pattern in {
@@ -14,7 +24,8 @@ def classify(row):
         'cash games': r'cash game', 'slots': r'slot|jackpot', 'sports': r'nfl|nba|nhl|mlb|sports'
     }.items() if re.search(pattern, text)]
     game = 'slots' if row.get('type') == 'slots' else ('sports' if row.get('type') == 'sports' else 'poker')
-    video_format = 'short' if int(row.get('duration') or 0) <= 180 else 'long_form'
+    seconds=duration_seconds(row.get('duration'))
+    video_format = 'short' if 0 < seconds <= 180 else 'long_form'
     skill = 'advanced' if re.search(r'advanced|solver|gto|high stakes', text) else ('beginner' if re.search(r'beginner|basics|101', text) else 'all_levels')
     stakes_match = re.search(r'(?<!\w)(?:\$\d+(?:k|m)?|micro stakes|low stakes|mid stakes|high stakes)', text)
     event_patterns = ('wsop', 'wpt', 'ept', 'super bowl', 'world series')
