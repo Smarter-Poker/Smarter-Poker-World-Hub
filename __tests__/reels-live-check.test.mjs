@@ -322,6 +322,12 @@ test('complete canonical crawler reaches a terminal page above two thousand with
 test('all eleven SUP-07 aliases stay pinned to four canonical winners and source posts', () => {
   const migration = readFileSync(new URL('../supabase/migrations/20260927144041_recover_historical_user_reels.sql', import.meta.url), 'utf8');
   assert.equal(SUP07_ALIASES.length, 11);
+  assert.equal(SUP07_ALIASES.filter(alias => alias.kind === 'loser').length, 3);
+  assert.match(
+    REELS_LIVE_CHECK,
+    /is_public:\s*id === group\.winner/,
+    'the live authority check must require canonical winners public and reconciled aliases private',
+  );
   assert.equal(new Set(SUP07_ALIASES.map(alias => alias.reference)).size, 11);
   assert.equal(new Set(SUP07_ALIASES.map(alias => alias.winner)).size, 4);
   assert.equal(new Set(SUP07_ALIASES.map(alias => alias.post)).size, 4);

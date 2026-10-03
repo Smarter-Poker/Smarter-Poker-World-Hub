@@ -827,7 +827,10 @@ async function readSup07AuthoritativeState(admin) {
       const expected = {
         source_post_id: group.post,
         video_url: group.videoUrl,
-        is_public: true,
+        // Reconciled aliases remain private tombstones so ordinary feed scans
+        // cannot expose duplicates. Old bookmarks resolve through the alias
+        // ledger to the public canonical winner instead.
+        is_public: id === group.winner,
         is_deleted: false,
         source_type: 'native',
         playback_type: 'native',
