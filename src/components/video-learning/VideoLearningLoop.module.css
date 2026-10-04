@@ -1,0 +1,57 @@
+.deck {
+  box-sizing: border-box;
+  display: grid;
+  gap: 12px;
+  width: 100%;
+  padding: 14px;
+  border: 1px solid #31556d;
+  background:
+    linear-gradient(90deg, transparent 0 9px, rgb(69 173 255 / 20%) 9px 10px, transparent 10px),
+    linear-gradient(180deg, #10222e 0%, #061018 54%, #020507 100%);
+  box-shadow: inset 0 1px #bde8ff, inset 0 -1px #000, 0 12px 26px rgb(0 0 0 / 45%);
+  color: #e9f3fa;
+}
+
+.headingRow { display: flex; align-items: start; justify-content: space-between; gap: 12px; }
+.kicker { display: block; color: #74c8ff; font: 700 11px/1.2 'Roboto Condensed', 'Arial Narrow', sans-serif; letter-spacing: .04em; }
+.headingRow h3 { margin: 3px 0 0; font: 800 20px/1.05 'Roboto Condensed', 'Arial Narrow', sans-serif; }
+.resume { flex: 0 0 auto; padding: 5px 8px; border: 1px solid #41718e; color: #c8ffd2; font: 700 11px/1 'Roboto Condensed', 'Arial Narrow', sans-serif; }
+.reason { padding-left: 10px; border-left: 2px solid #45adff; }
+.reason strong, .lessons > strong { display: block; color: #9edcff; font: 700 12px/1.2 'Roboto Condensed', 'Arial Narrow', sans-serif; }
+.reason p { margin: 4px 0 6px; color: #d5dee5; font: 400 13px/1.45 Inter, sans-serif; }
+.reason a { color: #74c8ff; font: 700 12px/1.3 'Roboto Condensed', 'Arial Narrow', sans-serif; }
+.actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); border-top: 1px solid #233e52; border-left: 1px solid #233e52; }
+.actions a, .actions button {
+  box-sizing: border-box;
+  display: grid;
+  place-items: center;
+  min-height: 46px;
+  padding: 8px;
+  border: 0;
+  border-right: 1px solid #233e52;
+  border-bottom: 1px solid #233e52;
+  border-radius: 0;
+  background: linear-gradient(180deg, #153247 0%, #08151e 100%);
+  color: #eaf7ff;
+  font: 700 12px/1.2 'Roboto Condensed', 'Arial Narrow', sans-serif;
+  text-align: center;
+  text-decoration: none;
+  cursor: pointer;
+}
+.actions button[aria-pressed='true'] { color: #c8ffd2; box-shadow: inset 0 -3px #53c878; }
+.actions a:focus-visible, .actions button:focus-visible, .lessons a:focus-visible, .lessons button:focus-visible { outline: 2px solid #74c8ff; outline-offset: -3px; }
+.lessons { display: grid; gap: 7px; }
+.lessons > div { display: flex; gap: 7px; overflow-x: auto; padding-bottom: 3px; scrollbar-width: thin; scrollbar-color: #5d8298 #071018; }
+.lessons a, .lessons button { flex: 0 0 min(78vw, 260px); min-height: 44px; padding: 8px 10px; border: 1px solid #34566b; border-radius: 0; background: #07131b; color: #dcebf4; font: 600 12px/1.3 Inter, sans-serif; text-align: left; text-decoration: none; cursor: pointer; }
+.compact { padding: 10px; box-shadow: inset 0 1px #7cb9dd; }
+.compact .headingRow h3 { font-size: 17px; }
+
+@media (min-width: 720px) {
+  .deck { padding: 16px; }
+  .actions { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  .lessons a, .lessons button { flex-basis: 240px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .deck * { scroll-behavior: auto !important; transition: none !important; }
+}

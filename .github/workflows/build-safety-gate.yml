@@ -1153,6 +1153,7 @@ jobs:
             __tests__/revenuecat-webhook.test.mjs \
             __tests__/pull-to-refresh-no-transform-at-rest.test.mjs \
             __tests__/native-app-cors.test.mjs \
+            __tests__/club-arena-static-skips-middleware.test.mjs \
             __tests__/privacy-page-and-app-links.test.mjs \
             tests/club-arena-is-a-rewrite.test.mjs \
             tests/the-deploy-docs-name-the-live-route.test.mjs \

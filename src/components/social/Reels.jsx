@@ -26,7 +26,9 @@ import {
   normaliseReelIds,
 } from '../../lib/reelInteractionHydration';
 import { createLatestRequestGuard } from '../../lib/latestRequestGuard.mjs';
-import { scanReelsContinuations } from '../../lib/reelsContinuation.mjs';
+import { loadCanonicalReelsWindow } from '../../lib/reelsFeedController.mjs';
+import { recordReelsDeliveryMetric } from '../../lib/reelsDeliveryMetrics';
+import { capReelsInMemory, dataSaverEnabled } from '../../lib/reelsDeliveryContract.mjs';
 import {
   BACKGROUND_REELS_REFRESH,
   REELS_BACKGROUND_REFRESH_DELAY_MS,
@@ -50,6 +52,9 @@ import VideoLibraryConsole, {
   ConsoleDataRow,
 } from '../video-library/console/VideoLibraryConsole';
 import ReelResponsibleGamingNotice from './ReelResponsibleGamingNotice';
+import ReelPlayerFrame from '../reels/ReelPlayerFrame';
+import ReelFeedbackActions from '../reels/ReelFeedbackActions';
+import { reelSourceKey } from '../../lib/reelsFeedback.mjs';
 import styles from './ReelsConsole.module.css';
 
 // ReelsConsole.module.css keeps every full-screen close action below env(safe-area-inset-top).
@@ -136,6 +141,11 @@ function ReelViewerConsoleState({ title, subtitle, pill, pillInk = 'blue', copy,
 
 // Full-screen Reel Viewer
 export function ReelsViewer({ onClose }) {
+  const prefersDataSaver = useMemo(() => dataSaverEnabled({
+    connection: typeof navigator !== 'undefined' ? navigator.connection : null,
+  }), []);
+  const deliveryStartRef = useRef(Date.now());
+  const deliveryMeasuredRef = useRef(false);
   const recordShareMetric = async (reel, destination = 'external') => {
     const token = getAccessToken();
     if (!reel?.id || !token) return;
@@ -953,14 +963,11 @@ export function ReelsViewer({ onClose }) {
     try {
       const idSet = new Set();
       const urlSet = new Set();
-      const payload = await scanReelsContinuations({
-        fetchPage: (cursor) => fetchPokerReels({
-          limit: 120,
-          cursor,
-          signal: reelsRequest.signal,
-          scope: 'library-viewer',
-          category: 'for-you',
-        }),
+      const payload = await loadCanonicalReelsWindow({
+        limit: 120,
+        signal: reelsRequest.signal,
+        scope: 'library-viewer',
+        category: 'for-you',
         selectRows: (rows) => rows
           .map((reel) => ({ ...reel, source: 'reels' }))
           .filter((reel) => {
@@ -1050,6 +1057,15 @@ export function ReelsViewer({ onClose }) {
       // DB is source of truth on a full reload - DB values win over stale optimistic counts
       setLikeCounts((prev) => ({ ...prev, ...lc }));
       setCommentCounts((prev) => ({ ...prev, ...cc }));
+      if (filteredMerged.length && !deliveryMeasuredRef.current) {
+        deliveryMeasuredRef.current = true;
+        void recordReelsDeliveryMetric({
+          surface: 'library',
+          feedMode: 'latest',
+          startupMs: Date.now() - deliveryStartRef.current,
+          playbackType: filteredMerged[0]?.playback_type || 'unknown',
+        });
+      }
     } catch (e) {
       if (e?.name === 'AbortError' || !reelsRequest.isCurrent()) return;
       if (background) {
@@ -1085,6 +1101,27 @@ export function ReelsViewer({ onClose }) {
 
   const currentReel = reels[currentIndex];
   activeCommentReelIdRef.current = currentReel?.id || null;
+
+  const handleRecommendationFeedback = (action) => {
+    if (!currentReel?.id) return;
+    const ownerId = currentUserId || null;
+    if (action === 'not-interested') {
+      void handleDislike();
+    } else if (action === 'already-watched') {
+      setWatchedReelIds((previous) => persistWatchedReelIds([...new Set([...previous, currentReel.id])], ownerId));
+    } else {
+      const source = reelSourceKey(currentReel);
+      setNotInterestedIds((previous) => {
+        const next = new Set(previous);
+        if (action === 'hide-source' && source) reels.forEach((reel) => { if (reelSourceKey(reel) === source) next.add(reel.id); });
+        else next.add(currentReel.id);
+        return persistNotInterestedReelIds(next, ownerId);
+      });
+      goNext();
+    }
+    setShowMoreMenu(false);
+    setShowContextMenu(false);
+  };
 
   // Phase 9: Watched Indicator Timer
   useEffect(() => {
@@ -1155,15 +1192,12 @@ export function ReelsViewer({ onClose }) {
       const existingIds = new Set(reels.map((reel) => reel.id));
       const existingUrls = new Set(reels.map((reel) => reel.video_url).filter(Boolean));
       const seenUrlsThisScan = new Set();
-      const payload = await scanReelsContinuations({
+      const payload = await loadCanonicalReelsWindow({
         cursor: reelsCursorRef.current,
-        fetchPage: (cursor) => fetchPokerReels({
-          limit: 60,
-          cursor,
-          signal: reelsRequest.signal,
-          scope: 'library-viewer',
-          category: 'for-you',
-        }),
+        limit: 60,
+        signal: reelsRequest.signal,
+        scope: 'library-viewer',
+        category: 'for-you',
         selectRows: (rows) => rows
           .map((reel) => ({ ...reel, source: 'reels' }))
           .filter((reel) => {
@@ -1190,7 +1224,10 @@ export function ReelsViewer({ onClose }) {
           lc[reel.id] = reel.like_count || 0;
           cc[reel.id] = reel.comment_count || 0;
         });
-        setReels((prev) => mergeReels(prev, fresh, { category: 'for-you' }));
+        setReels((prev) => capReelsInMemory(
+          mergeReels(prev, fresh, { category: 'for-you' }),
+          currentReel?.id,
+        ));
         setLikeCounts((prev) => ({ ...prev, ...lc }));
         setCommentCounts((prev) => ({ ...prev, ...cc }));
       }
@@ -2751,16 +2788,7 @@ export function ReelsViewer({ onClose }) {
         >
           Keyboard Help
         </button>
-        <button
-          type="button"
-          className={styles.wordActionDanger}
-          onClick={() => {
-            handleDislike();
-            setShowMoreMenu(false);
-          }}
-        >
-          {notInterestedIds.has(currentReel?.id) ? 'Restore Recommendation' : 'Not For Me'}
-        </button>
+        <ReelFeedbackActions buttonClassName={styles.wordActionDanger} onFeedback={handleRecommendationFeedback} />
         <button
           type="button"
           className={styles.wordActionDanger}
@@ -3005,7 +3033,11 @@ export function ReelsViewer({ onClose }) {
                   : null;
 
                 return (
-                  <section
+                  <ReelPlayerFrame
+                    as="section"
+                    active={isActive}
+                    reelId={reel.id}
+                    dataSaver={prefersDataSaver}
                     key={reel.id}
                     className={styles.slide}
                     data-reel-index={index}
@@ -3053,7 +3085,7 @@ export function ReelsViewer({ onClose }) {
                         key={reel.id}
                         src={reel.video_url}
                         poster={reel.thumbnail_url || undefined}
-                        preload="auto"
+                        preload={prefersDataSaver ? 'metadata' : 'auto'}
                         playsInline
                         loop
                         muted={muted}
@@ -3154,7 +3186,7 @@ export function ReelsViewer({ onClose }) {
                         />
                       </div>
                     ) : null}
-                  </section>
+                  </ReelPlayerFrame>
                 );
               })}
             </div>

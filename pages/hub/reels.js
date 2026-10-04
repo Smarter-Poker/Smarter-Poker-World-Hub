@@ -22,6 +22,11 @@ import { reelsPreferences, savedReelsService } from '../../src/services/preferen
 import { getAuthUser } from '../../src/lib/authUtils';
 import UploadReelModal from '../../src/components/reels/UploadReelModal';
 import ReelPublicationRecoveryBanner from '../../src/components/reels/ReelPublicationRecoveryBanner';
+import ReelsModeRail from '../../src/components/reels/ReelsModeRail';
+import ReelPlayerFrame from '../../src/components/reels/ReelPlayerFrame';
+import ReelFeedbackActions from '../../src/components/reels/ReelFeedbackActions';
+import VideoLearningLoop from '../../src/components/video-learning/VideoLearningLoop';
+import { reelSourceKey } from '../../src/lib/reelsFeedback.mjs';
 import { saveAppSetting } from '../../src/lib/appSettingsSync';
 import { busEmit, eventBus, EventType } from '../../src/engine/EventBus';
 import GiphyPicker from '../../src/components/shared/GiphyPicker';
@@ -46,7 +51,7 @@ import {
   normaliseReelAuthorIds,
 } from '../../src/lib/reelInteractionHydration';
 import { createLatestRequestGuard } from '../../src/lib/latestRequestGuard.mjs';
-import { scanReelsContinuations } from '../../src/lib/reelsContinuation.mjs';
+import { loadCanonicalReelsWindow } from '../../src/lib/reelsFeedController.mjs';
 import {
   BACKGROUND_REELS_REFRESH,
   REELS_BACKGROUND_REFRESH_DELAY_MS,
@@ -82,6 +87,8 @@ import {
   withDeadline,
 } from '../../src/lib/seo/publicFeedListing.mjs';
 import { readPokerReelsFeed } from '../../src/lib/server/reelsFeed';
+import { capReelsInMemory, reelsFeedModeContract, reelsFeedModeForQuery } from '../../src/lib/reelsDeliveryContract.mjs';
+import { recordReelsDeliveryMetric } from '../../src/lib/reelsDeliveryMetrics';
 
 const C = {
   bg: '#000000',
@@ -327,6 +334,8 @@ export async function getServerSideProps({ res }) {
 
 export default function ReelsPage({ reelsListing = null }) {
   const [reels, setReels] = useState([]);
+  const deliveryStartRef = useRef(Date.now());
+  const deliveryMeasuredRef = useRef(false);
   // The feed client also performs eager cleanup at module load, but Pages
   // Router hydration can reuse a server-evaluated module graph. Repeat the
   // idempotent cleanup after the browser mounts so an old localStorage Reel
@@ -443,6 +452,7 @@ export default function ReelsPage({ reelsListing = null }) {
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [savedReels, setSavedReels] = useState(new Set());
   const savedTargetsByReelRef = useRef(new Map());
+  const studySavePendingRef = useRef(new Set());
   const [showHeart, setShowHeart] = useState(false);
   const [ttsOverlay, setTtsOverlay] = useState(null); // Train This Spot in-place overlay { ctx, games }
   // Age-restricted / errored YouTube video detection
@@ -994,7 +1004,7 @@ export default function ReelsPage({ reelsListing = null }) {
       playVideoOnLoadTimersRef.current.forEach((t) => clearTimeout(t));
       playVideoOnLoadTimersRef.current = [];
     };
-  }, [router.isReady, router.query.category, router.query.feed, router.query.id]);
+  }, [router.isReady, router.query.category, router.query.feed, router.query.id, router.query.mode]);
 
   useEffect(() => () => {
     reelsRequestGuardRef.current?.abort();
@@ -1038,9 +1048,13 @@ export default function ReelsPage({ reelsListing = null }) {
     const initialId = Array.isArray(router.query.id) ? router.query.id[0] : router.query.id;
     const deepLinkRequest = { id: initialId };
     try {
-      const routeCategory = categoryForReelsRoute(router.query);
-      const feedMode = feedModeForReelsRoute(router.query);
-      const routeNamespace = `${routeCategory}:${feedMode}`;
+      const requestedMode = reelsFeedModeForQuery(router.query);
+      const modeContract = reelsFeedModeContract(requestedMode, { signedIn: Boolean(user?.id) });
+      const modeWasExplicit = Boolean(router.query.mode);
+      const routeCategory = modeWasExplicit ? modeContract.category : categoryForReelsRoute(router.query);
+      const feedMode = modeContract.id === 'following' ? 'following' : feedModeForReelsRoute(router.query);
+      const routeSort = modeWasExplicit ? modeContract.sort : feedMode === 'trending' ? 'popular' : 'recent';
+      const routeNamespace = `${modeContract.id}:${routeCategory}:${routeSort}`;
       const routeNamespaceChanged = reelsRouteNamespaceRef.current !== routeNamespace;
       const authUser = feedMode === 'following' ? getAuthUser() : null;
       const followingAccessToken = feedMode === 'following' ? getAccessToken() : null;
@@ -1066,19 +1080,16 @@ export default function ReelsPage({ reelsListing = null }) {
         source: 'reels',
         profiles: video.profiles || null,
       });
-      const payload = await scanReelsContinuations({
-        fetchPage: (cursor, pageNumber) => fetchPokerReels({
-          limit: 120,
-          cursor,
-          // The deep-linked Reel is pinned only by a foreground load; a
-          // background refresh reads the natural window it merges into.
-          id: pageNumber === 1 && !background ? deepLinkRequest.id || null : null,
-          sort: feedMode === 'trending' ? 'popular' : 'recent',
-          signal: reelsRequest.signal,
-          scope: feedMode === 'following' ? 'following' : 'standalone',
-          category: routeCategory,
-          accessToken: followingAccessToken,
-        }),
+      const payload = await loadCanonicalReelsWindow({
+        limit: 120,
+        id: !background ? deepLinkRequest.id || null : null,
+        mode: modeContract.id,
+        sort: routeSort,
+        signal: reelsRequest.signal,
+        scope: feedMode === 'following' ? 'following' : 'standalone',
+        category: routeCategory,
+        accessToken: followingAccessToken,
+        signedIn: Boolean(authUser?.id),
         selectRows: (rows) => {
           const mappedReels = rows.map(mapFeedReel);
           const fresh = mappedReels.filter((reel) => !notInterestedIds.has(reel.id));
@@ -1211,13 +1222,22 @@ export default function ReelsPage({ reelsListing = null }) {
         setLikeCounts((prev) => ({ ...lc, ...prev }));
         setCommentCounts((prev) => ({ ...cc, ...prev }));
         setViewCounts((prev) => ({ ...vc, ...prev }));
+        if (!deliveryMeasuredRef.current) {
+          deliveryMeasuredRef.current = true;
+          void recordReelsDeliveryMetric({
+            surface: 'standalone',
+            feedMode: modeContract.id,
+            startupMs: Date.now() - deliveryStartRef.current,
+            playbackType: finalReels[0]?.playback_type || 'unknown',
+          });
+        }
       } else {
         setReels([]);
         setCurrentIndex(0);
       }
     } catch (e) {
       if (e?.name === 'AbortError' || !reelsRequest.isCurrent()) return;
-      if (feedModeForReelsRoute(router.query) === 'following' && [401, 403].includes(e?.status)) {
+      if (reelsFeedModeForQuery(router.query) === 'following' && [401, 403].includes(e?.status)) {
         setFollowingReauthRequired(true);
         setReels([]);
         currentIndexRef.current = 0;
@@ -1247,7 +1267,7 @@ export default function ReelsPage({ reelsListing = null }) {
       if (settled.current && !background) setLoading(false);
       if (settled.flushQueued) scheduleBackgroundReelsRefresh();
     }
-  }, [notInterestedIds, router.query.category, router.query.feed, router.query.id, scheduleBackgroundReelsRefresh]);
+  }, [notInterestedIds, router.query.category, router.query.feed, router.query.id, router.query.mode, scheduleBackgroundReelsRefresh, user?.id]);
   loadReelsRef.current = loadReels;
 
   useEffect(() => {
@@ -1299,6 +1319,30 @@ export default function ReelsPage({ reelsListing = null }) {
   const currentSourceUrl = reelSourceUrl(currentReel);
   const currentTopicLabel = reelTopicLabel(currentReel);
   activeCommentReelIdRef.current = currentReel?.id || null;
+
+  const handleRecommendationFeedback = (action) => {
+    if (!currentReel?.id) return;
+    const ownerId = user?.id || null;
+    if (action === 'not-interested') {
+      void handleDislike();
+    } else if (action === 'already-watched') {
+      setWatchedReelIds((previous) => persistWatchedReelIds([...new Set([...previous, currentReel.id])], ownerId));
+    } else {
+      const source = reelSourceKey(currentReel);
+      setNotInterestedIds((previous) => {
+        const next = new Set(previous);
+        if (action === 'hide-source' && source) {
+          reels.forEach((reel) => { if (reelSourceKey(reel) === source) next.add(reel.id); });
+        } else {
+          next.add(currentReel.id);
+        }
+        return persistNotInterestedReelIds(next, ownerId);
+      });
+      slideToNextRef.current();
+    }
+    setShowContextMenu(false);
+    setShowMoreMenu(false);
+  };
 
   // Phase 9: Watched Indicator Timer
   useEffect(() => {
@@ -1410,8 +1454,12 @@ export default function ReelsPage({ reelsListing = null }) {
     setLoadingMore(true);
     setLoadMoreError(null);
     try {
-      const routeCategory = categoryForReelsRoute(router.query);
-      const feedMode = feedModeForReelsRoute(router.query);
+      const requestedMode = reelsFeedModeForQuery(router.query);
+      const modeContract = reelsFeedModeContract(requestedMode, { signedIn: Boolean(user?.id) });
+      const modeWasExplicit = Boolean(router.query.mode);
+      const routeCategory = modeWasExplicit ? modeContract.category : categoryForReelsRoute(router.query);
+      const feedMode = modeContract.id === 'following' ? 'following' : feedModeForReelsRoute(router.query);
+      const routeSort = modeWasExplicit ? modeContract.sort : feedMode === 'trending' ? 'popular' : 'recent';
       const followingAccessToken = feedMode === 'following' ? getAccessToken() : null;
       if (feedMode === 'following' && !followingAccessToken) {
         setFollowingReauthRequired(true);
@@ -1424,17 +1472,16 @@ export default function ReelsPage({ reelsListing = null }) {
       const existingIds = new Set(reels.map((reel) => reel.id));
       const existingUrls = new Set(reels.map((reel) => reel.video_url).filter(Boolean));
       const seenUrlsThisScan = new Set();
-      const payload = await scanReelsContinuations({
+      const payload = await loadCanonicalReelsWindow({
         cursor: reelsCursorRef.current,
-        fetchPage: (cursor) => fetchPokerReels({
-          limit: 60,
-          cursor,
-          sort: feedMode === 'trending' ? 'popular' : 'recent',
-          signal: reelsRequest.signal,
-          scope: feedMode === 'following' ? 'following' : 'standalone',
-          category: routeCategory,
-          accessToken: followingAccessToken,
-        }),
+        limit: 60,
+        mode: modeContract.id,
+        sort: routeSort,
+        signal: reelsRequest.signal,
+        scope: feedMode === 'following' ? 'following' : 'standalone',
+        category: routeCategory,
+        accessToken: followingAccessToken,
+        signedIn: Boolean(followingAccessToken),
         selectRows: (rows) => rows
           .map((reel) => ({
             ...reel,
@@ -1462,7 +1509,10 @@ export default function ReelsPage({ reelsListing = null }) {
           setLoadMoreError('More Reels remain beyond filtered results. Continue when ready.');
         }
       } else {
-        setReels((prev) => mergeReels(prev, mappedFiltered, { category: routeCategory }));
+        setReels((prev) => capReelsInMemory(
+          mergeReels(prev, mappedFiltered, { category: routeCategory }),
+          currentReel?.id,
+        ));
         const lc = {},
           cc = {},
           vc = {};
@@ -2262,9 +2312,9 @@ export default function ReelsPage({ reelsListing = null }) {
   const handleSave = async () => {
     const ownerRequest = accountScopeRef.current.capture(activeUserIdRef.current);
     const reel = currentReel;
-    if (!reel) return;
-    if (!ownerRequest.ownerId) return showErrorToast('Sign in to save reels');
-    if (!ownerRequest.isCurrent()) return;
+    if (!reel) return false;
+    if (!ownerRequest.ownerId) { showErrorToast('Sign in to save reels'); return false; }
+    if (!ownerRequest.isCurrent()) return false;
     const isSaved = savedReels.has(reel.id);
     const previousTargets = savedTargetsByReelRef.current.get(reel.id) || [];
     // #1 Optimistic update - instant UI response
@@ -2283,11 +2333,11 @@ export default function ReelsPage({ reelsListing = null }) {
           ownerRequest.ownerId,
           previousTargets.length ? previousTargets : reel.id,
         );
-        if (!ownerRequest.isCurrent()) return;
+        if (!ownerRequest.isCurrent()) return false;
         savedTargetsByReelRef.current.delete(reel.id);
       } else {
         await savedReelsService.saveReel(ownerRequest.ownerId, reel.id, 'reel');
-        if (!ownerRequest.isCurrent()) return;
+        if (!ownerRequest.isCurrent()) return false;
         savedTargetsByReelRef.current.set(reel.id, [reel.id]);
       }
       try {
@@ -2295,8 +2345,9 @@ export default function ReelsPage({ reelsListing = null }) {
       } catch (eventError) {
         console.warn('[Reels] Bookmark event failed:', eventError?.message || eventError);
       }
+      return true;
     } catch (err) {
-      if (!ownerRequest.isCurrent()) return;
+      if (!ownerRequest.isCurrent()) return false;
       // AUDIT FIX: rollback to the PRE-operation state, not unconditionally delete.
       // Old: always deleted from Set, which was wrong when save (not unsave) failed —
       // the optimistic add was reverted by deleting, but re-adding if isSaved was never handled.
@@ -2311,6 +2362,56 @@ export default function ReelsPage({ reelsListing = null }) {
       }
       showErrorToast('Save failed - try again');
       console.warn('Save reel failed:', err?.message || err);
+      return false;
+    }
+  };
+
+  const handleStudySave = async () => {
+    const reel = currentReel;
+    if (!reel?.id || studySavePendingRef.current.has(reel.id)) return false;
+    const token = getAccessToken();
+    const sourceAssetId = String(reel?.source_asset_id || '').trim();
+    const wasSaved = savedReels.has(reel?.id);
+    if (!token || !/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(sourceAssetId)) return handleSave();
+    const ownerRequest = accountScopeRef.current.capture(activeUserIdRef.current);
+    if (!ownerRequest.ownerId || !ownerRequest.isCurrent()) return false;
+    studySavePendingRef.current.add(reel.id);
+    if (wasSaved) {
+      setSavedReels(prev => { const next = new Set(prev); next.delete(reel.id); return next; });
+    } else {
+      setSavedReels(prev => new Set([...prev, reel.id]));
+    }
+    try {
+      const response = await fetch('/api/video-library/study-list', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          action: 'reel-save', videoId: sourceAssetId, reelId: reel.id,
+          saved: !wasSaved, ownerId: ownerRequest.ownerId,
+        }),
+      });
+      const payload = await response.json().catch(() => null);
+      if (!response.ok || !payload?.success || payload.ownerId !== ownerRequest.ownerId || !ownerRequest.isCurrent()) {
+        throw new Error(payload?.error || `Study list request failed (${response.status})`);
+      }
+      if (wasSaved) savedTargetsByReelRef.current.delete(reel.id);
+      else savedTargetsByReelRef.current.set(reel.id, [reel.id]);
+      try { busEmit.socialPostBookmarked(reel.id, ownerRequest.ownerId, { added: !wasSaved }); }
+      catch (eventError) {
+        const message = eventError?.message || eventError;
+        console.warn('[Reels] Bookmark event failed:', message);
+      }
+      return true;
+    } catch (error) {
+      if (ownerRequest.isCurrent()) {
+        if (wasSaved) setSavedReels(prev => new Set([...prev, reel.id]));
+        else setSavedReels(prev => { const next = new Set(prev); next.delete(reel.id); return next; });
+      }
+      console.warn('[Reels] Study list update failed:', error?.message || error);
+      showErrorToast('Study list could not be updated');
+      return false;
+    } finally {
+      studySavePendingRef.current.delete(reel.id);
     }
   };
 
@@ -2904,7 +3005,8 @@ export default function ReelsPage({ reelsListing = null }) {
       }}
     />
   ) : null;
-  const followingSignInRequired = categoryForReelsRoute(router.query) === 'following'
+  const activeFeedMode = reelsFeedModeForQuery(router.query);
+  const followingSignInRequired = activeFeedMode === 'following'
     && (!user?.id || followingReauthRequired);
   const reelsNavigationHeader = (
     <div key="reels-navigation-header" style={{ position: 'relative', zIndex: 10001 }}>
@@ -2915,6 +3017,14 @@ export default function ReelsPage({ reelsListing = null }) {
         commandMenuItems={menuConfig.menuItems}
         commandMenuBottomLinks={menuConfig.bottomLinks}
         commandMenuShowProfile={false}
+      />
+      <ReelsModeRail
+        activeMode={activeFeedMode}
+        signedIn={Boolean(user?.id)}
+        onChange={(mode) => {
+          const contract = reelsFeedModeContract(mode, { signedIn: true });
+          void router.push({ pathname: '/hub/reels', query: { mode, category: contract.category } }, undefined, { shallow: true, scroll: false });
+        }}
       />
     </div>
   );
@@ -3162,7 +3272,9 @@ export default function ReelsPage({ reelsListing = null }) {
         {/* Engagement Stats Pill REMOVED - duplicated the sidebar heart/comment buttons */}
 
         {/* VIDEO WRAPPER with slide animation */}
-        <div
+        <ReelPlayerFrame
+          reelId={currentReel?.id}
+          dataSaver={preferences.dataSaver}
           style={{
             position: 'absolute',
             top: 0,
@@ -3345,7 +3457,7 @@ export default function ReelsPage({ reelsListing = null }) {
               />
             </>
           ) : null}
-        </div>
+        </ReelPlayerFrame>
 
         <progress className={styles.progress} value={Math.round(videoProgress)} max={100} aria-label="Video Progress" />
 
@@ -3579,6 +3691,21 @@ export default function ReelsPage({ reelsListing = null }) {
           </>
         )}
         <ReelResponsibleGamingNotice topic={currentReel?.topic} />
+        <VideoLearningLoop
+          compact
+          title="Carry This Reel Into Practice"
+          source={currentSourceName}
+          topic={currentTopicLabel}
+          reason={currentReel?.selection_reason || currentReel?.recommendation_reason}
+          mode={activeFeedMode}
+          saved={savedReels.has(currentReel?.id)}
+          onSave={handleStudySave}
+          chronologicalHref="/hub/reels?mode=latest"
+          fullVideoHref={videoId ? `/hub/video-library?v=${encodeURIComponent(videoId)}` : null}
+          onAskGeeves={() => window.dispatchEvent(new window.CustomEvent('geeves-open'))}
+          quizHref={`/hub/trivia?topic=${encodeURIComponent(currentTopicLabel || 'poker')}`}
+          sandboxHref="/hub/personal-assistant/sandbox"
+        />
         <div className={styles.actions} aria-label="Reel Actions">
           <ReelAction aria-label={liked[currentReel?.id] ? 'Unlike' : 'Like'} aria-pressed={Boolean(liked[currentReel?.id])}
             onClick={() => {
@@ -3657,6 +3784,7 @@ export default function ReelsPage({ reelsListing = null }) {
             setShowContextMenu(false); setShowMoreMenu(false);
           }}>Copy Link</ReelAction>
           <ReelAction onClick={() => { setShowContextMenu(false); setShowMoreMenu(false); setShowReportModal(true); }}>Report</ReelAction>
+          <ReelFeedbackActions className={styles.choiceList} buttonClassName={styles.wordActionDanger} onFeedback={handleRecommendationFeedback} />
         </ReelsConsoleDialog>
       )}
 

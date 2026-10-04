@@ -154,7 +154,7 @@ test('every Reel viewer sequences refreshes, appends, and comment loads', () => 
 
 test('full-screen viewers preserve bounded-scan cursors and expose continuation controls', () => {
   for (const source of [REELS_PAGE, REELS_COMPONENT]) {
-    assert.match(source, /scanReelsContinuations/);
+    assert.match(source, /loadCanonicalReelsWindow/);
     assert.match(source, /Continue Finding Reels/);
     assert.doesNotMatch(
       source,
@@ -406,7 +406,7 @@ test('slots Reels carry the responsible-gaming console notice on every viewer', 
 
 test('following deep links authenticate and mixed collections avoid poker-only copy', () => {
   assert.match(REELS_PAGE, /feedModeForReelsRoute,/);
-  assert.equal((REELS_PAGE.match(/feedModeForReelsRoute\(router\.query\)/g) || []).length, 5,
+  assert.equal((REELS_PAGE.match(/feedModeForReelsRoute\(router\.query\)/g) || []).length, 4,
     'initial, continuation, auth-error, and expired-session paths derive Following from the category');
   assert.match(
     REELS_PAGE,
@@ -455,7 +455,7 @@ test('legacy routes canonicalize without dropping detail, feed, or upload state 
   assert.match(REELS_PAGE, /const canonicalCategory = categoryForReelsRoute\(router\.query\)/);
   assert.match(REELS_PAGE, /query: \{ \.\.\.router\.query, category: canonicalCategory \}/);
   assert.match(REELS_PAGE, /\{ shallow: true \}/);
-  assert.match(REELS_PAGE, /const routeNamespace = `\$\{routeCategory\}:\$\{feedMode\}`/);
+  assert.match(REELS_PAGE, /const routeNamespace = `\$\{modeContract\.id\}:\$\{routeCategory\}:\$\{routeSort\}`/);
   assert.match(REELS_PAGE, /reelsRouteNamespaceRef\.current !== routeNamespace[\s\S]*currentIndexRef\.current = 0;[\s\S]*setCurrentIndex\(0\)/);
   assert.match(REELS_PAGE, /console\.warn\('Load reels error:', e\);[\s\S]*setReels\(\[\]\);[\s\S]*currentIndexRef\.current = 0;[\s\S]*setCurrentIndex\(0\)/);
 });
