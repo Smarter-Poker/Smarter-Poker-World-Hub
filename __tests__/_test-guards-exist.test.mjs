@@ -295,6 +295,7 @@ import './openclaw-video-library-routing.test.mjs';
 import './video-source-registry-phase3.test.mjs';
 import './video-enrichment-editorial-phase4.test.mjs';
 import './video-reel-candidate-phase5.test.mjs';
+import './video-native-studio-phase6.test.mjs';
 // The same boundary's shared 7-day availability-freshness contract: SQL,
 // JavaScript readers, Python renewal target and daily verifier capacity.
 import './video-library-freshness-contract.test.mjs';
