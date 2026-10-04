@@ -11,8 +11,10 @@ import {
 } from '../../hooks/useYouTubeErrorManager';
 import { supabase } from '../../lib/supabase';
 import { getAuthUser, getAccessToken } from '../../lib/authUtils';
+import { submitReelReport } from '../../lib/reelsReportClient.mjs';
 import { busEmit, eventBus, EventType } from '../../engine/EventBus';
 import Link from 'next/link';
+import ReelTrustStrip from '../reels/ReelTrustStrip';
 import GiphyPicker from '../shared/GiphyPicker';
 import {
   buildReelPath,
@@ -93,7 +95,7 @@ function reelSourceName(reel) {
   return reel?.channel_name
     || reel?.profiles?.full_name
     || reel?.profiles?.username
-    || `${reelTopicLabel(reel)} Creator`;
+    || 'Creator Unavailable';
 }
 
 function reelSourceUrl(reel) {
@@ -840,14 +842,7 @@ export function ReelsViewer({ onClose }) {
     const ownerRequest = accountScopeRef.current.capture(activeUserIdRef.current);
     if (!currentReel?.id || !ownerRequest.ownerId || !ownerRequest.isCurrent() || !reportReason.trim()) return;
     try {
-      const { error } = await supabase.from('social_interactions').insert({
-        user_id: ownerRequest.ownerId,
-        post_id: currentReel.id,
-        interaction_type: 'report',
-        metadata: { reason: reportReason.trim() },
-      });
-      // BUG FIX: do NOT show success UI if the insert failed silently
-      if (error) throw error;
+      await submitReelReport({ reelId: currentReel.id, reason: reportReason, ownerId: ownerRequest.ownerId, accessToken: getAccessToken() });
       if (!ownerRequest.isCurrent()) return;
       setReportSubmitted(true);
       clearTimeout(reportModalTimerRef.current);
@@ -2930,6 +2925,13 @@ export function ReelsViewer({ onClose }) {
         <div className={styles.choiceList}>
           {[
             'Inappropriate Content',
+            'Copyright Or Rights',
+            'Incorrect Attribution',
+            'Unlabeled Promotion',
+            'Unlabeled Generated Media',
+            'Underage Or Safety',
+            'Gambling Harm',
+            'Playback Unavailable',
             'Spam Or Scam',
             'Harassment',
             'Misinformation',
@@ -3243,6 +3245,7 @@ export function ReelsViewer({ onClose }) {
               ) : null}
 
               <ReelResponsibleGamingNotice topic={currentReel?.topic} />
+              <ReelTrustStrip reel={currentReel} compact />
 
               <div className={styles.actionGrid}>
                 <button type="button" className={styles.wordAction} onClick={onClose}>

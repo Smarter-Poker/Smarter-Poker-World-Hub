@@ -11,7 +11,7 @@ import {
   searchTerms,
 } from '../../../src/lib/videoLearningContract.mjs';
 
-const VIDEO_FIELDS = 'youtube_video_id, source_id, source_name, type, title, thumbnail_url, views_text, views_count, duration, published_at, scraped_at, tags, availability_status, embeddable, availability_checked_at';
+const VIDEO_FIELDS = 'youtube_video_id, source_id, source_name, type, title, thumbnail_url, views_text, views_count, duration, published_at, scraped_at, tags, availability_status, embeddable, availability_checked_at, attribution_name, attribution_url, disclosure_kind, sponsor_name, made_for_kids';
 const MAX_CANDIDATES = 240;
 let client;
 const supabase = () => client ||= createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
@@ -21,7 +21,11 @@ const limitOf = (value) => Math.max(1, Math.min(60, Number.parseInt(one(value), 
 function video(row) {
   return {
     id: row.youtube_video_id, videoId: row.youtube_video_id, source: row.source_id,
-    sourceName: row.source_name || row.source_id, type: row.type || 'cash', title: row.title,
+    sourceName: row.attribution_name || row.source_name || row.source_id,
+    attributionName: row.attribution_name || row.source_name || row.source_id,
+    attributionUrl: row.attribution_url || null,
+    disclosureKind: row.disclosure_kind || 'organic', sponsorName: row.sponsor_name || null,
+    madeForKids: row.made_for_kids ?? null, type: row.type || 'cash', title: row.title,
     thumbnail: row.thumbnail_url, views: row.views_text, viewsCount: Number(row.views_count || 0),
     duration: row.duration || '', publishedAt: row.published_at, scrapedAt: row.scraped_at,
     tags: Array.isArray(row.tags) ? row.tags : [], availabilityStatus: row.availability_status,

@@ -143,6 +143,14 @@ const REEL_SELECT = [
     'canonical_asset_key',
     'publication_key',
     'native_processing_requested',
+    'attribution_name',
+    'attribution_url',
+    'disclosure_kind',
+    'sponsor_name',
+    'made_for_kids',
+    'moderation_state',
+    'takedown_case_id',
+    'taken_down_at',
     'legacy_transition_eligible',
     'legacy_transition_expires_at',
 ].join(',');
@@ -156,6 +164,14 @@ const LIBRARY_SELECT = [
     'availability_status',
     'embeddable',
     'availability_checked_at',
+    'attribution_name',
+    'attribution_url',
+    'disclosure_kind',
+    'sponsor_name',
+    'made_for_kids',
+    'moderation_state',
+    'takedown_case_id',
+    'taken_down_at',
 ].join(',');
 
 let serviceClient = null;
@@ -774,7 +790,8 @@ function sourcePostOwnsUnknownNativeUpload(row, sourcePost, videoUrl) {
 }
 
 function normalizeEligibleRow(row, context, scope, options = {}) {
-    if (!row || row.is_deleted === true || row.media_status !== 'ready') return null;
+    if (!row || row.is_deleted === true || row.media_status !== 'ready'
+        || row.moderation_state === 'taken_down' || row.taken_down_at) return null;
     const ownerId = String(options.ownerId || '').trim();
     const isOwnerPrivate = options.allowOwnerPrivate === true
         && UUID_RE.test(ownerId)
@@ -812,6 +829,7 @@ function normalizeEligibleRow(row, context, scope, options = {}) {
         return null;
     }
     if (managedLibrary) {
+        if (asset.moderation_state === 'taken_down' || asset.taken_down_at) return null;
         const expectedCanonicalKey = asset?.youtube_video_id
             ? `youtube:${asset.youtube_video_id}`
             : null;
@@ -905,12 +923,18 @@ function normalizeEligibleRow(row, context, scope, options = {}) {
     if (!canonicalAssetKey) return null;
     const topic = explicitTopic;
     const sourcePost = row.source_post_id ? context.postById.get(row.source_post_id) : null;
-    const sourceName = boundedSourceName(asset?.source_name)
+    const sourceName = boundedSourceName(row.attribution_name)
+        || boundedSourceName(asset?.attribution_name)
+        || boundedSourceName(asset?.source_name)
         || boundedSourceName(asset?.source_id)
         || sourceNameFromMetadata(sourcePost?.metadata);
-    const sourceAttributionUrl = youtubeId
-        ? `https://www.youtube.com/watch?v=${youtubeId}`
-        : null;
+    const sourceAttributionUrl = safeHttpUrl(row.attribution_url)
+        || safeHttpUrl(asset?.attribution_url)
+        || (youtubeId ? `https://www.youtube.com/watch?v=${youtubeId}` : null);
+    // The immutable, time-bounded legacy transition predates persisted creator
+    // attribution. Preserve that already-installed bridge while fresh catalog
+    // proof is established; every non-transition managed row fails closed.
+    if (managedLibrary && youtubeId && !legacyTransitionEligible && (!sourceName || !sourceAttributionUrl)) return null;
 
     return {
         id: row.id,
@@ -940,6 +964,12 @@ function normalizeEligibleRow(row, context, scope, options = {}) {
         source_name: sourceName,
         source_url: sourceAttributionUrl,
         source_attribution_url: sourceAttributionUrl,
+        disclosure_kind: row.disclosure_kind || asset?.disclosure_kind || 'organic',
+        sponsor_name: boundedSourceName(row.sponsor_name || asset?.sponsor_name),
+        made_for_kids: row.made_for_kids ?? asset?.made_for_kids ?? null,
+        moderation_state: row.moderation_state || asset?.moderation_state || 'active',
+        takedown_case_id: row.takedown_case_id || asset?.takedown_case_id || null,
+        taken_down_at: row.taken_down_at || asset?.taken_down_at || null,
         origin_type: originType,
         playback_type: playbackType,
         topic,
@@ -1092,7 +1122,7 @@ function publicRow(row, profileMap) {
         || (row.playback_type === 'youtube_embed' ? 'Original YouTube Source' : null)
         || profile?.full_name
         || profile?.username
-        || 'Smarter.Poker';
+        || 'Creator Unavailable';
     const {
         _hasLivePost,
         _managedLibrary,
