@@ -92,7 +92,8 @@ export default function VideoOperations() {
       }
     };
     const handleStorage = (event) => {
-      if (event.key === 'smarter-poker-auth'
+      if (event.key === null
+        || event.key === 'smarter-poker-auth'
         || (event.key?.startsWith('sb-') && event.key?.endsWith('-auth-token'))) invalidateSession();
     };
     window.addEventListener('storage', handleStorage);

@@ -136,6 +136,7 @@ test('operations console links existing controls and handles alerts, empty state
   assert.match(page, /token\(\) !== access/);
   assert.match(page, /supabase\.auth\.onAuthStateChange\(invalidateSession\)/);
   assert.match(page, /window\.addEventListener\('storage', handleStorage\)/);
+  assert.match(page, /event\.key === null/);
   assert.match(page, /response\.status === 401 \|\| response\.status === 403/);
   assert.match(page, /failureClasses/);
   assert.match(page, /row\.statuses\.generating/);
