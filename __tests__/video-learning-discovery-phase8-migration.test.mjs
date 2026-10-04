@@ -26,7 +26,7 @@ test('Phase 8 indexes only approved playable editorial material for full-text an
 test('every eligible catalog video is searchable before optional enrichment', () => {
   assert.match(seedSql, /FROM public\.video_library_videos v/);
   assert.match(seedSql, /WHERE public\.fn_is_video_library_asset_eligible\(v\.id\)/);
-  assert.match(seedSql, /coalesce\(array_to_string\(v\.tags,' '\),''\)/);
+  assert.match(seedSql, /jsonb_array_elements_text/);
   assert.match(seedSql, /trg_sync_video_learning_catalog_document/);
   assert.match(seedSql, /AFTER INSERT OR UPDATE OF[\s\S]*OR DELETE/);
   assert.match(seedSql, /eligible catalog rows are missing search documents/);

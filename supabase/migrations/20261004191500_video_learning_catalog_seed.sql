@@ -16,7 +16,8 @@ BEGIN
   END IF;
   SELECT * INTO r FROM public.video_enrichment_records WHERE video_id=p_video_id;
   v_title:=v.title;
-  v_concepts:=array_to_string(v.tags,' ');
+  SELECT coalesce(string_agg(tag,' '),'') INTO v_concepts
+  FROM jsonb_array_elements_text(CASE WHEN jsonb_typeof(v.tags)='array' THEN v.tags ELSE '[]'::jsonb END) tag;
   IF r.video_id IS NOT NULL AND r.workflow_state IN ('approved','published') THEN
     v_title:=coalesce(nullif(r.editorial_title,''),v.title);
     v_concepts:=coalesce(array_to_string(r.concepts,' '),v_concepts);
@@ -56,12 +57,16 @@ ON public.video_library_videos FOR EACH ROW EXECUTE FUNCTION public.fn_sync_vide
 REVOKE ALL ON FUNCTION public.fn_sync_video_learning_catalog_document() FROM PUBLIC,anon,authenticated,service_role;
 
 INSERT INTO public.video_learning_search_documents(video_id,title,creator_name,concepts_text,chapters_text,transcript_text,search_vector,editorial_version,published_at,indexed_at)
-SELECT v.id,v.title,v.source_name,coalesce(array_to_string(v.tags,' '),''),'','',
+SELECT v.id,v.title,v.source_name,tags_text.value,'','',
   setweight(to_tsvector('english',coalesce(v.title,'')),'A')
     ||setweight(to_tsvector('english',coalesce(v.source_name,'')),'A')
-    ||setweight(to_tsvector('english',coalesce(array_to_string(v.tags,' '),'')),'B'),
+    ||setweight(to_tsvector('english',tags_text.value),'B'),
   1,v.published_at,now()
 FROM public.video_library_videos v
+CROSS JOIN LATERAL (
+  SELECT coalesce(string_agg(tag,' '),'') value
+  FROM jsonb_array_elements_text(CASE WHEN jsonb_typeof(v.tags)='array' THEN v.tags ELSE '[]'::jsonb END) tag
+) tags_text
 WHERE public.fn_is_video_library_asset_eligible(v.id)
 ON CONFLICT(video_id) DO NOTHING;
 
