@@ -348,6 +348,8 @@ import './video-reels-api-resilience.test.mjs';
 import './video-reels-collections-integrity.test.mjs';
 import './video-reels-integrity-phase-1.test.mjs';
 import './video-reels-phase7-unified-delivery.test.mjs';
+import './video-reels-phase8-learning-contract.test.mjs';
+import './video-reels-phase8-learning-loop.test.mjs';
 import './video-reels-ui-integrity.test.mjs';
 import './video-reels-youtube-sql-security.test.mjs';
 
@@ -519,6 +521,9 @@ import './hand-clip-mode-row-migration.test.mjs';
 import './hand-clip-render-lib.test.mjs';
 import './render-hand-clips-cron.test.mjs';
 import './hand-clip-config.test.mjs';
+// Phase 8 video learning: approved-only semantic/full-text search, owner-only
+// study continuity, and service-owned bot-resistant organic measurement.
+import './video-learning-discovery-phase8-migration.test.mjs';
 
 // 2026-09-30 profile privacy: a stranger reads only public profile columns,
 // and the owner reads their own money, legal name and whereabouts through

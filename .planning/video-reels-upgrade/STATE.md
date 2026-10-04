@@ -1,5 +1,15 @@
 # Program State
 
+## Phase 8 Candidate - October 4, 2026
+
+- **Current phase:** 8 of 10. Scope is UX-05 and SRCH-01 through SRCH-05: approved semantic discovery, explainable recommendation ranking, bounded session diversity, chronological fallback, study lists, timestamp continuation, connected Geeves/quiz/training actions, and bot-resistant learning measurement.
+- **Workspace / branch:** `/Volumes/SmarterWork/agent-work/video-reels-phase8-20261004` / `codex/video-reels-phase8-20261004`, based on protected `main` `c0203a75fffece1a40626a9bdf2afb2154d2c171`.
+- **Policy receipt:** current owner policy version `2.9`, manifest SHA-256 `a659f31c5c1c2b0864889508079a635dd5fe2fc98decfbfc9d3f9c80dd45ec3b`; canonical reader and repository publishing instructions were freshly read at phase start.
+- **Implemented source:** one additive migration supplies approved/playable-only FTS plus optional vector embeddings, owner-RLS study lists and continuation, a service-only privacy-bounded learning-event ledger, automatic editorial search synchronization, and least-privilege RPCs. New discovery and study APIs use those exact contracts. Video Library and Reels share the mobile-first painted Study Circuit for recommendation reasons, newest-first recovery, saves, resume, full lessons, related lessons, Geeves, quiz, and sandbox actions.
+- **Local verification:** Phase 8 focused contracts pass 19/19; migration transaction controls pass 19/19; the connected Video/Reels suite passes 376 Node, 25 Vitest, and 47 Python tests; targeted ESLint has zero errors; `git diff --check` passes; and the complete production build generated 507/507 static pages and passed its performance budget.
+- **Database preflight:** production has pgvector `0.8.0`. Primary migration `20261004190000` has immutable SHA-256 `e4158c926d055921cd47fd24acb10b7b3165d24c71953af0e5ab976ce6b85ada`; catalog seed/synchronization follow-up `20261004191500` has SHA-256 `0644239522d1fe1fcb0ca3d5934005466f9df48805755ee151e8a6f4fee4f246`.
+- **Pending gates:** final adversarial review, commit/push, hosted CI, protected merge, exact migration installation/readback, Vercel READY, live identity, and affected behavior proof. No production completion is claimed by this candidate checkpoint.
+
 ## Phase 5 And Phase 6 Production Closeout - October 4, 2026
 
 - **Status:** Phases 5, 6, and 7 are fully delivered. Phase 7 protected-squash-merged through PR `#2107` as `43271f7d9fc9ad26e949486d9830efd36ffb043f`, both migrations are installed and read back, Vercel production is READY, and live behavior is verified.

@@ -1,44 +1,42 @@
-# Phase 3 Plan: Source Registry And High-Volume Ingestion
+# Phase 8 Plan: Search, Personalization, And Learning Loop
 
 ## Confirmed Baseline
 
-Phase 2 is protected-merged and live at `5e4b74d749e251089a9541823d1556ebc87bf589`. The canonical feed contains 2,212 playable Reels, but Video Library discovery still reads a hardcoded Python creator array through `yt-dlp`. That path has no durable provider cursor, no quota budget, incomplete source-health timestamps, one insert per candidate, and no operator control plane. An older `content_sources` table exists, but it does not yet own Video Library ingestion.
+Phase 7 is protected-merged and live through `c0203a75fffece1a40626a9bdf2afb2154d2c171`. Its shared player, card, cursor, feedback, accessibility, and mobile budgets remain the delivery foundation. Phase 8 owns UX-05 and SRCH-01 through SRCH-05 only.
 
-## Wave 1: Registry Authority
+## Wave 1: Search And Ranking Authority
 
-1. Extend `content_sources` into the operator-owned YouTube ingestion registry without breaking its current poker/news/horse consumers.
-2. Store stable channel IDs, uploads-playlist IDs, lifecycle, cadence, cursor, topic, ingestion mode, region/category, rights/playback defaults, expected yield, and independent health timestamps.
-3. Add service-only run and quota ledgers plus an atomic source-observation RPC.
-4. Seed current poker, gambling/slots, and official sports sources; preserve current rows and disable no source implicitly.
+1. Index only approved, currently playable titles, creators, concepts, chapters, and approved transcripts.
+2. Support weighted full-text search with a durable optional vector embedding contract.
+3. Rank by relevance, freshness, completion, saves, learning goals, explicit feedback, and bounded creator/topic diversity.
+4. Always expose recommendation reasons and a chronological alternative.
 
-## Wave 2: Supported Incremental Ingestion
+## Wave 2: Study Continuity
 
-1. Replace the hardcoded creator loop with registry reads.
-2. Use YouTube Data API channel and uploads-playlist calls for creator supply, and `videos.list(chart=mostPopular, videoCategoryId=17)` for regional sports discovery.
-3. Stop at persisted high-water cursors, batch metadata and database writes, and default every third-party asset to embed-only rights.
-4. Enforce a persisted daily quota budget and fail closed before exhaustion.
+1. Add owner-scoped study lists and items.
+2. Persist timestamp continuation and completion through an authenticated RPC.
+3. Connect each eligible Reel or Library video to its full lesson, related lessons, Geeves explanation, quiz, and verified training sandbox action.
+4. Preserve the existing Watch Later and saved-Reel experience during the compatibility transition.
 
-## Wave 3: Operator Controls And Health
+## Wave 3: Trustworthy Learning Measurement
 
-1. Add an admin-only source registry API with list, health summary, create, and patch operations.
-2. Add a mobile-first operator console for lifecycle, cadence, yield, cursor, and failure inspection.
-3. Report candidate, qualified, inserted, duplicate, rejected, failed, and quota-unit counts by topic and source family.
-4. Alert through the existing durable run-report path when freshness or yield thresholds fail.
+1. Accept learning events only through the service boundary.
+2. Reject anonymous, unverified-human, automated-profile, high-bot-score, stale, future, and duplicate-window events from organic ranking measurements.
+3. Store bounded enumerated events without raw payloads, IP addresses, user agents, or URLs.
 
 ## Wave 4: Verification And Release
 
-1. Rehearse the additive migration on PostgreSQL and run source/API/runtime contracts.
-2. Prove cursor replay, quota refusal, batching, category isolation, disabled-source exclusion, and partial-provider failure handling.
-3. Install the migration once with preflight and readback.
-4. Protected-merge, publish both World Hub and Open Claw, run one bounded ingestion cycle, and verify registry health plus newly qualified rows live.
+1. Run focused migration, API, client, hostile-state, migration-runner, lint, and connected Video/Reels tests.
+2. Complete the exact production build and required protected checks.
+3. Install the exact migration once and read back schema, grants, RLS, functions, trigger, indexes, and migration identity.
+4. Protected-merge, wait for the Vercel Git deployment, verify exact live identity, public routes, semantic discovery, chronological fallback, and signed-out study-list refusal.
 
-## Phase 3 Acceptance Gates
+## Phase 8 Acceptance Gates
 
-- No Video Library discovery source is compiled into the scraper.
-- Every active creator source has a stable channel ID or is visibly pending/quarantined; sports chart sources persist region/category/retrieval state.
-- Incremental replay creates no duplicate canonical asset and advances a cursor only after its batch is committed.
-- Provider usage cannot exceed the persisted daily quota budget.
-- Configured active-source daily capacity is at least 500 qualified candidates across poker, casino/slots, and sports.
-- Operators can inspect and change source lifecycle/cadence without a code release.
-- Source health distinguishes last check, success, new item, failure streak, empty success, quota stop, and disabled state.
-- Focused tests, required repository checks, migration readback, protected merge, exact production identities, bounded live ingestion, and affected-behavior proof all pass.
+- Search never indexes rejected, unapproved, stale, restricted, private, or unavailable media.
+- Semantic discovery is server authoritative and the Library client actually calls it.
+- Study and continuation state are owner-scoped and use the new Phase 8 tables/RPC.
+- Recommendation reasons and newest-first fallback are visible on mobile and desktop.
+- Session seen state is bounded and ranking enforces source/topic diversity.
+- Horse/automated profiles cannot influence organic ranking analytics.
+- Focused tests, full connected suite, production build, required CI, protected merge, migration installation/readback, Vercel READY identity, and live behavior proof all pass.
