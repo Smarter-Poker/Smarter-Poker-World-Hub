@@ -13,6 +13,8 @@ on:
       - 'scripts/openclaw-cron-dispatcher.py'
       - 'scripts/video_source_registry_ingest.py'
       - 'scripts/video_enrichment_worker.py'
+      - 'scripts/video_reel_candidate_worker.py'
+      - 'scripts/video_native_studio_worker.py'
       - 'scripts/video_library_to_reels.py'
       - 'scripts/openclaw-requirements.txt'
       - 'scripts/openclaw-requirements.lock'
@@ -445,7 +447,7 @@ jobs:
           local_stage="$(mktemp -d "$RUNNER_TEMP/openclaw-stage.XXXXXX")"
           build_container="wh-openclaw-build-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
           trap 'docker rm -f "$build_container" >/dev/null 2>&1 || true; rm -rf -- "$local_stage"' EXIT
-          cp scripts/openclaw-cron-dispatcher.py scripts/video_source_registry_ingest.py scripts/video_enrichment_worker.py \
+          cp scripts/openclaw-cron-dispatcher.py scripts/video_source_registry_ingest.py scripts/video_enrichment_worker.py scripts/video_reel_candidate_worker.py scripts/video_native_studio_worker.py \
             scripts/video_library_to_reels.py scripts/openclaw-requirements.txt \
             scripts/openclaw-requirements.lock "$local_stage/"
           timeout --signal=TERM --kill-after=10s 900s docker run --rm --pull=never \
@@ -477,12 +479,14 @@ jobs:
           dispatcher_hash="$(sha256sum scripts/openclaw-cron-dispatcher.py | awk '{print $1}')"
           scraper_hash="$(sha256sum scripts/video_source_registry_ingest.py | awk '{print $1}')"
           enrichment_hash="$(sha256sum scripts/video_enrichment_worker.py | awk '{print $1}')"
+          candidate_hash="$(sha256sum scripts/video_reel_candidate_worker.py | awk '{print $1}')"
+          studio_hash="$(sha256sum scripts/video_native_studio_worker.py | awk '{print $1}')"
           publisher_hash="$(sha256sum scripts/video_library_to_reels.py | awk '{print $1}')"
           lock_hash="$(sha256sum scripts/openclaw-requirements.lock | awk '{print $1}')"
           scp "$archive" "$SSH_USER@$HOST:$upload"
           ssh "$SSH_USER@$HOST" 'bash -s' -- \
             "$GITHUB_SHA" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" \
-            "$archive_hash" "$dispatcher_hash" "$scraper_hash" "$enrichment_hash" "$publisher_hash" "$lock_hash" "$manifest_hash" <<'EOSSH'
+            "$archive_hash" "$dispatcher_hash" "$scraper_hash" "$enrichment_hash" "$candidate_hash" "$studio_hash" "$publisher_hash" "$lock_hash" "$manifest_hash" <<'EOSSH'
           set -euo pipefail
           release_sha="$1"
           run_id="$2"
@@ -491,14 +495,16 @@ jobs:
           dispatcher_hash="$5"
           scraper_hash="$6"
           enrichment_hash="$7"
-          publisher_hash="$8"
-          lock_hash="$9"
-          manifest_hash="${10}"
+          candidate_hash="$8"
+          studio_hash="$9"
+          publisher_hash="${10}"
+          lock_hash="${11}"
+          manifest_hash="${12}"
           case "$release_sha" in (*[!0-9a-f]*|'') exit 2 ;; esac
           test "${#release_sha}" -eq 40
           case "$run_id" in (*[!0-9]*|'') exit 2 ;; esac
           case "$run_attempt" in (*[!0-9]*|'') exit 2 ;; esac
-          for expected_hash in "$archive_hash" "$dispatcher_hash" "$scraper_hash" "$enrichment_hash" "$publisher_hash" "$lock_hash" "$manifest_hash"; do
+          for expected_hash in "$archive_hash" "$dispatcher_hash" "$scraper_hash" "$enrichment_hash" "$candidate_hash" "$studio_hash" "$publisher_hash" "$lock_hash" "$manifest_hash"; do
             case "$expected_hash" in (*[!0-9a-f]*|'') exit 2 ;; esac
             test "${#expected_hash}" -eq 64
           done
@@ -556,6 +562,8 @@ jobs:
           test "$(sudo sha256sum "$release/openclaw-cron-dispatcher.py" | awk '{print $1}')" = "$dispatcher_hash"
           test "$(sudo sha256sum "$release/video_source_registry_ingest.py" | awk '{print $1}')" = "$scraper_hash"
           test "$(sudo sha256sum "$release/video_enrichment_worker.py" | awk '{print $1}')" = "$enrichment_hash"
+          test "$(sudo sha256sum "$release/video_reel_candidate_worker.py" | awk '{print $1}')" = "$candidate_hash"
+          test "$(sudo sha256sum "$release/video_native_studio_worker.py" | awk '{print $1}')" = "$studio_hash"
           test "$(sudo sha256sum "$release/video_library_to_reels.py" | awk '{print $1}')" = "$publisher_hash"
           test "$(sudo sha256sum "$release/openclaw-requirements.lock" | awk '{print $1}')" = "$lock_hash"
 
@@ -579,6 +587,10 @@ jobs:
             /usr/bin/env -u PYTHONHOME -u PYTHONPATH "PYTHONPATH=$release/vendor" /usr/bin/python3 -s "$release/video_source_registry_ingest.py" --preflight-only
           run_preflight "openclaw-enrichment-preflight-${run_id}-${run_attempt}" \
             /usr/bin/env -u PYTHONHOME -u PYTHONPATH "PYTHONPATH=$release/vendor" /usr/bin/python3 -s "$release/video_enrichment_worker.py" --preflight-only
+          run_preflight "openclaw-candidate-preflight-${run_id}-${run_attempt}" \
+            /usr/bin/env -u PYTHONHOME -u PYTHONPATH "PYTHONPATH=$release/vendor" /usr/bin/python3 -s "$release/video_reel_candidate_worker.py" --preflight-only
+          run_preflight "openclaw-native-studio-preflight-${run_id}-${run_attempt}" \
+            /usr/bin/env -u PYTHONHOME -u PYTHONPATH "PYTHONPATH=$release/vendor" /usr/bin/python3 -s "$release/video_native_studio_worker.py" --preflight-only
           run_preflight "openclaw-publisher-preflight-${run_id}-${run_attempt}" \
             /usr/bin/env -u PYTHONHOME -u PYTHONPATH "PYTHONPATH=$release/vendor" /usr/bin/python3 -s "$release/video_library_to_reels.py" --preflight-only
           sudo systemd-run --quiet --wait --collect \
@@ -615,11 +627,13 @@ jobs:
           dispatcher_hash="$(sha256sum scripts/openclaw-cron-dispatcher.py | awk '{print $1}')"
           scraper_hash="$(sha256sum scripts/video_source_registry_ingest.py | awk '{print $1}')"
           enrichment_hash="$(sha256sum scripts/video_enrichment_worker.py | awk '{print $1}')"
+          candidate_hash="$(sha256sum scripts/video_reel_candidate_worker.py | awk '{print $1}')"
+          studio_hash="$(sha256sum scripts/video_native_studio_worker.py | awk '{print $1}')"
           publisher_hash="$(sha256sum scripts/video_library_to_reels.py | awk '{print $1}')"
           scp scripts/openclaw.service "$SSH_USER@$HOST:$unit_upload"
           ssh "$SSH_USER@$HOST" 'bash -s' -- \
             "$GITHUB_SHA" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" \
-            "$unit_hash" "$dispatcher_hash" "$scraper_hash" "$enrichment_hash" "$publisher_hash" <<'EOSSH'
+            "$unit_hash" "$dispatcher_hash" "$scraper_hash" "$enrichment_hash" "$candidate_hash" "$studio_hash" "$publisher_hash" <<'EOSSH'
           set -euo pipefail
           release_sha="$1"
           run_id="$2"
@@ -628,12 +642,14 @@ jobs:
           dispatcher_hash="$5"
           scraper_hash="$6"
           enrichment_hash="$7"
-          publisher_hash="$8"
+          candidate_hash="$8"
+          studio_hash="$9"
+          publisher_hash="${10}"
           case "$release_sha" in (*[!0-9a-f]*|'') exit 2 ;; esac
           test "${#release_sha}" -eq 40
           case "$run_id" in (*[!0-9]*|'') exit 2 ;; esac
           case "$run_attempt" in (*[!0-9]*|'') exit 2 ;; esac
-          for expected_hash in "$unit_hash" "$dispatcher_hash" "$scraper_hash" "$enrichment_hash" "$publisher_hash"; do
+          for expected_hash in "$unit_hash" "$dispatcher_hash" "$scraper_hash" "$enrichment_hash" "$candidate_hash" "$studio_hash" "$publisher_hash"; do
             case "$expected_hash" in (*[!0-9a-f]*|'') exit 2 ;; esac
             test "${#expected_hash}" -eq 64
           done
@@ -751,6 +767,8 @@ jobs:
           test "$(sudo sha256sum "$current/openclaw-cron-dispatcher.py" | awk '{print $1}')" = "$dispatcher_hash"
           test "$(sudo sha256sum "$current/video_source_registry_ingest.py" | awk '{print $1}')" = "$scraper_hash"
           test "$(sudo sha256sum "$current/video_enrichment_worker.py" | awk '{print $1}')" = "$enrichment_hash"
+          test "$(sudo sha256sum "$current/video_reel_candidate_worker.py" | awk '{print $1}')" = "$candidate_hash"
+          test "$(sudo sha256sum "$current/video_native_studio_worker.py" | awk '{print $1}')" = "$studio_hash"
           test "$(sudo sha256sum "$current/video_library_to_reels.py" | awk '{print $1}')" = "$publisher_hash"
           sudo sh -c "cd '$current' && sha256sum --quiet -c release-manifest.sha256"
           test "$(sudo systemctl show openclaw.service -p User --value)" = openclaw
@@ -763,6 +781,8 @@ jobs:
           done
           for route in \
             /api/cron/video-library-scraper \
+            /api/cron/video-reel-candidates \
+            /api/cron/video-native-studio \
             /api/cron/video-library-reels; do
             # Do not use grep -q here. With pipefail enabled, grep can close the
             # pipe on the first match and journalctl then exits on SIGPIPE (141),
