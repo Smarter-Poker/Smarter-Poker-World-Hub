@@ -85,7 +85,7 @@ test('the exclusion is scoped to Club Arena and changes nothing else', () => {
     '/',
     '/hub',
     '/hub/poker-near-me',
-    '/hub/training/app.js',
+    '/hub/news/app.js',
     '/hub/club-arena-archive/logo.png',
     '/images/logo.png',
     '/cards/as.webp',
