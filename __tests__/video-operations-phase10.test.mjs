@@ -104,9 +104,9 @@ test('pipeline switch writes are versioned, replay-safe, actor-audited, and righ
 test('operations console links existing controls and handles alerts, empty states, and mobile reporting', () => {
   for (const path of ['/hub/admin/video-sources','/hub/admin/video-editorial',
     '/hub/admin/video-rights-moderation','/hub/admin/video-native-studio']) assert.ok(page.includes(path));
-  for (const label of ['Alerts','Sources and Run Funnel','Candidate Queue','Delivery Quality',
-    'Feature Flags and Jobs','Learning Funnel','Usage and Cost']) assert.ok(page.includes(label));
-  assert.match(page, /No mobile delivery samples/);
+  for (const label of ['Alerts','Sources And Run Funnel','Candidate Queue','Delivery Quality',
+    'Feature Flags And Jobs','Learning Funnel','Usage And Cost']) assert.ok(page.includes(label));
+  assert.match(page, /No Mobile Delivery Samples/);
   assert.match(page, /@media\(max-width:600px\)/);
   assert.match(page, /Pause Stage/);
   assert.match(page, /Resume Stage/);
