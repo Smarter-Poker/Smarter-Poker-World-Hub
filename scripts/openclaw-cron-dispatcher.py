@@ -1260,6 +1260,7 @@ CRITICAL_JOBS = {
     # SCRIPT_JOB exit code is a result like any other; two bad mornings page.
     '/api/cron/video-library-scraper':  2,   # daily; 2 = two days without fresh videos
     '/api/cron/video-library-reels':    2,   # daily; 2 = two days of library videos not reaching the feed
+    '/api/cron/video-reel-candidates':  3,   # ten-minute cadence; three misses = stalled candidate supply
     '/api/cron/horse-video-reels':      3,   # hourly; 3 = three hours without the horse video supply path
     # The cache audit has two daily idempotent passes. Page if both fail, so a
     # full day can never lose its integrity audit without reaching an operator.
@@ -1277,6 +1278,7 @@ CRITICAL_RUNBOOKS = {
     '/api/internal/pnm-integrity-refresh': 'World-Hub .agent/audits/2026-09-05-poker-near-me-phase-6-final-closeout.md',
     '/api/cron/video-library-scraper':  'World-Hub CLAUDE.md 11.3 + journalctl -u openclaw | grep video-library',
     '/api/cron/video-library-reels':    'World-Hub CLAUDE.md 11.3 + journalctl -u openclaw | grep video-library',
+    '/api/cron/video-reel-candidates':  'World-Hub .planning/video-reels-upgrade/STATE.md + journalctl -u openclaw | grep video-reel-candidates',
     '/api/cron/horse-video-reels':      'World-Hub .planning/video-reels-upgrade/STATE.md + journalctl -u openclaw | grep horse-video-reels',
     '/api/cron/training-cache-drift-audit': 'World-Hub .agent/audits/2026-09-08-horse-phase3-certification.md',
     '/api/cron/table-socket-probe':     'club-arena/docs/runbooks/tables-say-reconnecting.md',

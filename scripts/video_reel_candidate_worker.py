@@ -1,11 +1,17 @@
 #!/usr/bin/env python3
 """Bounded Phase 5 metadata-only candidate selector."""
 from __future__ import annotations
-import argparse, json, os, re, socket, sys
+import argparse, json, os, re, socket, sys, uuid
 from pathlib import Path
 
-WORKER=f"{socket.gethostname()}:{os.getpid()}"
+WORKER=f"{socket.gethostname()}:{os.getpid()}:{uuid.uuid4().hex}"
 YOUTUBE_ID=re.compile(r'^[A-Za-z0-9_-]{11}$')
+UUID=re.compile(r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$')
+
+def failure_code(exc):
+    known={'duration_unavailable','candidate_source_missing','rights_or_embed_identity_missing'}
+    raw=str(exc).strip().lower()
+    return raw if raw in known else f'candidate_{type(exc).__name__.lower()}'[:120]
 
 def duration_seconds(raw):
     if isinstance(raw,(int,float)): return max(0,int(raw))
@@ -14,7 +20,8 @@ def duration_seconds(raw):
     iso=re.fullmatch(r'PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?',text,re.I)
     if iso: return int(iso.group(1) or 0)*3600+int(iso.group(2) or 0)*60+int(iso.group(3) or 0)
     clock=re.fullmatch(r'(?:(\d+):)?(\d{1,2}):(\d{2})',text)
-    if clock: return int(clock.group(1) or 0)*3600+int(clock.group(2))*60+int(clock.group(3))
+    if clock and int(clock.group(2))<60 and int(clock.group(3))<60:
+        return int(clock.group(1) or 0)*3600+int(clock.group(2))*60+int(clock.group(3))
     return 0
 
 def chapter_candidates(chapters,duration):
@@ -33,7 +40,7 @@ def select_segment(video,enrichment):
     if duration<=0: raise ValueError('duration_unavailable')
     quality=float(enrichment.get('quality_score') or 0)
     concepts=[str(value).lower() for value in enrichment.get('concepts') or []]
-    if duration<=180 or enrichment.get('format')=='short':
+    if duration<=180 and enrichment.get('format')=='short':
         return 0,duration,'validated_short','Validated Short uses its complete bounded runtime',{'duration_seconds':duration,'signals':['validated','short_format'],'concepts':concepts}
     chapters=chapter_candidates(enrichment.get('chapters'),duration)
     meaningful=[item for item in chapters if item[0]>0 or item[1].lower() not in ('video start','start')]
@@ -63,12 +70,12 @@ def main():
     summary={'claimed':len(claims),'proposed':0,'failed':0,'by_kind':{},'failures':[]}
     for claim in claims:
         try:
-            video=db.table('video_library_videos').select('id,youtube_video_id,video_url,source_id,source_name,type,title,duration').eq('id',claim['video_id']).maybe_single().execute().data
+            video=db.table('video_library_videos').select('id,youtube_video_id,video_url,source_id,source_name,type,title,duration,provider_channel_id').eq('id',claim['video_id']).maybe_single().execute().data
             enrichment=db.table('video_enrichment_records').select('format,concepts,chapters,quality_score,game_type').eq('video_id',claim['video_id']).maybe_single().execute().data
             if not video or not enrichment: raise RuntimeError('candidate_source_missing')
             source=None
-            if video.get('source_id'):
-                source=db.table('content_sources').select('id,provider_source_id,name,rights_status,playback_mode').eq('id',video['source_id']).maybe_single().execute().data
+            if UUID.fullmatch(str(video.get('source_id') or '')):
+                source=db.table('content_sources').select('id,provider_source_id,name,rights_status,playback_mode,ingest_topic').eq('id',video['source_id']).maybe_single().execute().data
             source=source or {}
             start,end,kind,reason,rationale=select_segment(video,enrichment)
             youtube_id=str(video.get('youtube_video_id') or '')
@@ -79,16 +86,21 @@ def main():
             elif owned:
                 mode='native_master'; embed=None; native=True
             else: raise RuntimeError('rights_or_embed_identity_missing')
-            topic='sports' if video.get('type')=='sports' else ('casino-slots' if video.get('type')=='slots' else 'poker')
+            topic='sports' if source.get('ingest_topic')=='sports' or video.get('type')=='sports' else ('casino-slots' if source.get('ingest_topic')=='casino_slots' or video.get('type')=='slots' else 'poker')
             payload={'p_candidate_id':claim['id'],'p_worker':WORKER,'p_selection_kind':kind,'p_playback_mode':mode,
               'p_start':start,'p_end':end,'p_embed_url':embed,'p_reason':reason,'p_rationale':rationale,
               'p_quality':enrichment.get('quality_score'),'p_source_key':str(video.get('source_id') or video.get('source_name') or 'unknown'),
-              'p_creator_key':str(source.get('provider_source_id') or video.get('source_name') or 'unknown'),'p_topic':topic,
+              'p_creator_key':str(source.get('provider_source_id') or video.get('provider_channel_id') or video.get('source_name') or 'unknown'),'p_topic':topic,
               'p_rights_status':rights,'p_native_clip_eligible':native}
             db.rpc('fn_finish_video_reel_candidate',payload).execute()
             summary['proposed']+=1; summary['by_kind'][kind]=summary['by_kind'].get(kind,0)+1
         except Exception as exc:
-            summary['failed']+=1; summary['failures'].append({'candidate_id':claim.get('id'),'code':str(exc).split(':',1)[0][:120]})
+            code=failure_code(exc)
+            try:
+                db.rpc('fn_fail_video_reel_candidate',{'p_candidate_id':claim.get('id'),'p_worker':WORKER,'p_failure_code':code}).execute()
+            except Exception as failure_exc:
+                code=f'{code}_custody_{failure_code(failure_exc)}'[:120]
+            summary['failed']+=1; summary['failures'].append({'candidate_id':claim.get('id'),'code':code})
     print(json.dumps(summary,sort_keys=True))
     if summary['failed']: raise SystemExit(1)
 
