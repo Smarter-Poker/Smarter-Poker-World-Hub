@@ -29,9 +29,13 @@ export default async function handler(req,res) {
       const state=typeof req.query.state==='string' ? req.query.state : null;
       let query=c.admin.from('video_enrichment_records').select('*,video_library_videos!inner(id,title,thumbnail_url,source_name,type,duration,views_count,video_url)').order('updated_at',{ascending:false}).limit(100);
       if (state) query=query.eq('workflow_state',state);
-      const [records,jobs]=await Promise.all([query,c.admin.from('video_enrichment_jobs').select('id,video_id,job_type,status,attempt_count,max_attempts,failure_code,available_at,updated_at').in('status',['retry','dead_letter']).order('updated_at',{ascending:false}).limit(100)]);
-      if (records.error || jobs.error) return res.status(500).json({error:(records.error||jobs.error).message});
-      return res.status(200).json({records:records.data||[],exceptions:jobs.data||[]});
+      const [records,jobs,candidates]=await Promise.all([
+        query,
+        c.admin.from('video_enrichment_jobs').select('id,video_id,job_type,status,attempt_count,max_attempts,failure_code,available_at,updated_at').in('status',['retry','dead_letter']).order('updated_at',{ascending:false}).limit(100),
+        c.admin.from('video_reel_candidates').select('*').order('updated_at',{ascending:false}).limit(200),
+      ]);
+      if (records.error || jobs.error || candidates.error) return res.status(500).json({error:(records.error||jobs.error||candidates.error).message});
+      return res.status(200).json({records:records.data||[],exceptions:jobs.data||[],candidates:candidates.data||[]});
     }
     if (req.method==='POST') {
       const id=String(req.body?.video_id||''); if (!UUID.test(id)) return res.status(400).json({error:'Valid video id required'});
@@ -40,6 +44,13 @@ export default async function handler(req,res) {
       return res.status(202).json({video_id:id,enqueued:result.data});
     }
     if (req.method==='PATCH') {
+      if (req.body?.candidate_id) {
+        const candidateId=String(req.body.candidate_id), action=String(req.body.action||''), version=Number(req.body.version);
+        if (!UUID.test(candidateId) || !Number.isInteger(version) || !['approve','reject'].includes(action)) return res.status(400).json({error:'Valid candidate, version, and review action required'});
+        const result=await c.admin.rpc('fn_review_video_reel_candidate',{p_candidate_id:candidateId,p_actor_id:user.id,p_action:action,p_expected_version:version,p_reason:req.body?.reason||null});
+        if (result.error) return res.status(result.error.message?.includes('version conflict')?409:400).json({error:result.error.message});
+        return res.status(200).json({candidate:result.data});
+      }
       const id=String(req.body?.video_id||''), action=String(req.body?.action||''), version=Number(req.body?.version);
       if (!UUID.test(id) || !Number.isInteger(version)) return res.status(400).json({error:'Valid video id and version required'});
       const allowed=new Set(['edit','approve','reject','schedule','quarantine','restore','replay']); if (!allowed.has(action)) return res.status(400).json({error:'Unsupported action'});

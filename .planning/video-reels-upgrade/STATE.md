@@ -1,16 +1,30 @@
 # Program State
 
-- **Current phase:** 4 of 10
-- **Phase name:** Durable Enrichment And Editorial Workflow
-- **Status:** Phase 4 source and production database installation are qualified. Protected merge, Vercel/Open Claw publication, one bounded live enrichment drain, and exact live behavior proof remain in progress.
-- **Branch:** `agent/reels-phase4-editorial-enrichment` from protected main `b0306853e0ad281e761a41900690d771df0b251b`
+- **Current phase:** 5 of 10
+- **Phase name:** Reel Candidate And Highlight Engine
+- **Status:** Phase 5 implementation and qualification are in progress. The exact migration installed successfully during its production transaction rehearsal and is recorded once; protected source delivery, Open Claw publication, bounded live selection, and UI/API proof remain required.
+- **Branch:** `agent/reels-phase5-candidate-highlights` from protected main `74b2c0ad8ce1bf6d20fefd7cb907ccfd96c89553`
 - **Delivery PRs:** application `#1977`; Open Claw repairs `#1985`, `#1986`, `#1987`, `#1988`; batch verdict RPC `#1989`; stale-backfill cleanup `#1990`; verifier recovery `#1991`, `#1992`, `#1993`; hostile-state harness `#1994`; bounded recovery `#1995`; Workers shared-verdict consumer `#147`; canonical listing and timestamp repair `#1997`; manual 500-candidate bound `#1998`; historical user-upload recovery and global manual-bound correction `#2000` merged; maintained live verifier and SUP-07 post-rights correction follow-up pending.
 - **Workspace:** `/Volumes/SmarterWork/agent-work/codex-reels-user-upload-repair-20260927`
 - **Exact tested integrated candidate revision:** `7010d7e3b78f3b615029d8637a36c9b7d39823af`, which includes protected main `5b842784fd259bb6012ee72f68bcd3c97ff4ac9c` plus the correction/verifier, hosted PostgreSQL path, mobile Command Rail, complete secondary Video Library navigation, embedded-Reels startup repair, full four-post/seven-Reel preservation, rollback time bounds, and deterministic concurrent-lock protection. The full Phase 1 suite passes 312/312 Node, 25/25 Vitest, and 52/52 Python tests. The standalone PostgreSQL 17 migration harness passes 13/13, including replica mode, trigger drift, storage drift, ledger drift, rollback drift, later-trigger mutation, all-seven-Reel deletion and ambiguous-post mutation in both forward and rollback paths, and an 11-row concurrent `FOR UPDATE NOWAIT` lock attack; its hosted-path portability contract is covered and the static migration contract passes 6/6. The exact CI-style repository reachability guard passes 1,827/1,827 with `--experimental-vm-modules`; the deterministic Training inventory verifier, focused live-verifier tests (25/25), targeted ESLint (zero errors), and `git diff --check` pass. The exact candidate also passes the full production build: compile succeeded, 504/504 pages generated, and all post-build performance budgets passed. Independent exact-head adversarial review returned PASS. Migration SHA-256 is `4944f0481af280996a4e6239f57384506914387ffbf6bf7183d6fff6e3bce066`.
 - **Protected baseline at Phase 3 start:** `origin/main` `5e4b74d749e251089a9541823d1556ebc87bf589`
 - **Operation owner:** this task owns the Phase 3 registry migration, registry worker, Open Claw release wiring, and bounded live-ingestion proof. No second Phase 3 migration writer is active.
 - **Delivery classification:** World Hub application and Open Claw worker behavior plus one additive Supabase migration. No Club Arena engine replacement or maintenance cutover applies.
-- **Next gate:** protected-merge the exact candidate, publish Vercel and Open Claw, drain one bounded live enrichment batch, and verify database/editorial behavior directly.
+- **Next gate:** finish exact-candidate qualification, protected-merge, publish Vercel and Open Claw, run one bounded live candidate batch, and verify selection, rights, diversity, API, and embedded-preview behavior directly.
+
+## Phase 5 Start — October 4, 2026
+
+- Scope is exactly ROADMAP Phase 5 requirements REL-01, REL-02, REL-05, and REL-06. Phase 6 media transformation and Phase 7 public-client unification remain excluded.
+- The candidate engine stores one replay-safe candidate per source video, selects whole validated Shorts or bounded long-form chapter/metadata windows, preserves explicit rationale and quality evidence, uses start/end YouTube privacy-enhanced embeds, and never fetches or transforms third-party media.
+- Candidate review enforces rolling source, creator, topic, and source-video limits. Native eligibility is structurally impossible unless source rights are `owned` or `licensed`; embed candidates are structurally ineligible for native processing.
+- The migration rehearsal at `2026-10-04T12:24Z` revealed that the file-owned `COMMIT` completed the production transaction despite the outer rehearsal wrapper. All statements succeeded outside the protected database maintenance interval. Ledger version `20261004124500` was immediately recorded once and read back with both tables, all three security-definer functions, fixed search paths, and service-role-only execution. The installed migration source is now immutable and must match the protected delivery exactly.
+- Fresh policy receipt: version `2.9`, manifest SHA-256 `a659f31c5c1c2b0864889508079a635dd5fe2fc98decfbfc9d3f9c80dd45ec3b`, emitted `2026-10-04T12:18:34.081Z`. The owned external-SSD worktree had 19 GiB free at start.
+
+## Phase 4 Closeout — October 3, 2026
+
+- Core PR `#2100` protected-squash-merged as `1ebc51c5e353efa1eda586e072de1cfbe6988f15`; duration repair PR `#2101` merged as `81649d68b5095ea4e9484514320d7f568fa89b73`; claim-fairness repair PR `#2102` merged as `74b2c0ad8ce1bf6d20fefd7cb907ccfd96c89553`.
+- Final Vercel deployment `dpl_CTVxDpeU2A2MZjrgqCeiTYAnKAzn` became READY and public health reported exact final SHA `74b2c0ad8ce1bf6d20fefd7cb907ccfd96c89553`. Exact Open Claw release `81649d68b5095ea4e9484514320d7f568fa89b73` passed immutable promotion and verification; the later claim-fairness change was database-only and installed directly.
+- The live recovery batch cleared all 43 legacy duration retries with zero retry/dead-letter rows remaining, advanced to 107 successful jobs, and produced the first complete six-stage editorial candidate. All three Phase 4 migrations are recorded exactly once; the editorial publication gate remains deliberately default-off pending reviewed approvals.
 
 ## Phase 4 Start — October 3, 2026
 

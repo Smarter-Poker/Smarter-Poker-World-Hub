@@ -669,6 +669,7 @@ ALL_CRONS = [
     # ── Video Library — daily fresh content from all 25 creators (SCRIPT_JOBS) ──
     ('/api/cron/video-library-scraper',     dict(hour=6, minute=0)),   # Daily 6am UTC — RSS ingest
     ('/api/cron/video-library-enrichment',  dict(minute='*/10')),      # Durable bounded Phase 4 jobs
+    ('/api/cron/video-reel-candidates',     dict(minute='5,15,25,35,45,55')), # Phase 5 after enrichment
     ('/api/cron/video-library-reels',       dict(hour=7, minute=0)),   # Daily 7am UTC — Sync reels
 
     # ══ WAVE 1 (2026-04-24 — migrated from vercel.json; see phase-2a4-wave-plan.md) ══
@@ -1023,10 +1024,12 @@ SCRAPER_PY = _resolve_script('video_source_registry_ingest.py')
 # __tests__/video-library-reels-fails-closed.test.mjs runs both halves.
 REELS_BRIDGE_PY = _resolve_script('video_library_to_reels.py')
 ENRICHMENT_PY = _resolve_script('video_enrichment_worker.py')
+CANDIDATE_PY = _resolve_script('video_reel_candidate_worker.py')
 
 SCRIPT_JOB_SCRIPTS = {
     '/api/cron/video-library-reels': REELS_BRIDGE_PY,
     '/api/cron/video-library-enrichment': ENRICHMENT_PY,
+    '/api/cron/video-reel-candidates': CANDIDATE_PY,
 }
 
 # 2026-09-04: '--sync-captions' IS a flag of video_library_to_reels.py, but it
@@ -1046,6 +1049,7 @@ SCRIPT_JOB_SCRIPTS = {
 SCRIPT_JOBS = {
     '/api/cron/video-library-scraper':  [],                   # full daily run
     '/api/cron/video-library-enrichment': ['--limit', '50'],  # bounded durable queue drain
+    '/api/cron/video-reel-candidates': ['--limit', '25'],     # bounded explainable candidate selection
     '/api/cron/video-library-reels':    [
         '--limit', '750', '--verify', '--verify-platform-supply'
     ],  # bounded official publisher plus shared poker/sports verdict renewal
