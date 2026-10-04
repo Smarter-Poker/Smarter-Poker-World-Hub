@@ -1,5 +1,16 @@
 # Program State
 
+## Phase 5 And Phase 6 Production Closeout - October 4, 2026
+
+- **Status:** Phases 5 and 6 are fully delivered. Phase 7 remains unstarted and excluded from this closeout.
+- **Protected delivery:** Phase 6 stacked PR `#2104` merged into the Phase 5 branch, then combined PR `#2103` passed every required context and protected-squash-merged to `main` as `33fc9c69bf43a9dc83582facf7d9af6498bf6cc5` at `2026-10-04T14:27:02Z`. The final stale Hub-page-count regression was repaired and its focused test passed 8/8 before submission; hosted Pre-Deploy Safety Checks then passed 3,145/3,145 tests.
+- **Database installation:** ledger versions `20261004130000` and `20261004143000` are installed exactly once with SHA-256 identities `ed0d8a27d0c93b8bc0085b4fb41e9a018512971864cce2330597dd7f74bc1e20` and `a5c97a08b66c05acc270295c5c652d408b98b14201f032151e5d8205a4612ba4`. Readback proved all four native-studio tables are present and the Phase 5/6 ledger selection has two installed and zero pending migrations.
+- **Production publication:** Vercel deployment `dpl_79C59hvMrS7oD4UHxDmwAbsRzD4C` reached READY. Public `/api/health` reported exact merge `33fc9c69bf43a9dc83582facf7d9af6498bf6cc5`; `/hub/admin/video-native-studio` returned 200 and its signed-out API boundary returned 401. Open Claw run `37209301933`, job `111457020342`, passed immutable build/preflight, atomic promotion, restart, and exact-release verification.
+- **Bounded live Phase 5 proof:** the production scheduler created exactly 25 candidates at `2026-10-04T14:35:01.833Z`: 23 metadata highlights and two complete validated Shorts, all `proposed`, with zero failed rows. All 25 use privacy-enhanced `third_party_embed` playback with `embed_only` rights and are structurally ineligible for native rendering.
+- **Phase 6 fail-closed proof:** production has zero registered source masters and zero native renditions, so no third-party asset was downloaded, transformed, or fabricated. The native studio limit row is enabled at two jobs per run with a 256 MiB maximum output. Rights evidence, owned/licensed status, an approved `native_master` candidate, and an active registered master remain mandatory before a render can be claimed.
+- **Policy receipt:** current owner policy version `2.9`, manifest SHA-256 `a659f31c5c1c2b0864889508079a635dd5fe2fc98decfbfc9d3f9c80dd45ec3b`, emitted `2026-10-04T14:13:46.278Z`; portable/canonical policy comparison passed on the release candidate.
+- **Remaining issues:** none within Phases 5 or 6. Phase 7 client unification requires a new phase start and must not be inferred from this closeout.
+
 ## Phase 6 Start - October 4, 2026
 
 - **Current phase:** 6 of 10. Scope is exactly RGT-02, RGT-03, REL-03, REL-04, and ENR-04: rights-cleared source masters, enforceable permission evidence, vertical rendering, subtitles, safe-area/action-aware crop controls, posters, branding, output validation, storage lifecycle, retry custody, and bounded cost controls. Phase 7 client unification remains excluded.
