@@ -8,6 +8,7 @@ const { buildAlerts } = require('../lib/videoOperationsAlerts.js');
 const migration = readFileSync(new URL('../supabase/migrations/20261004213000_video_operations_analytics_phase10.sql', import.meta.url), 'utf8');
 const api = readFileSync(new URL('../pages/api/admin/video-operations.js', import.meta.url), 'utf8');
 const page = readFileSync(new URL('../pages/hub/admin/video-operations.js', import.meta.url), 'utf8');
+const pushGuard = readFileSync(new URL('../scripts/guard-merged-branch.sh', import.meta.url), 'utf8');
 
 test('Phase 10 analytics reports complete source, candidate, rights, cost, and mobile aggregates', () => {
   for (const table of ['content_sources','video_source_ingestion_runs','video_source_quota_usage',
@@ -115,4 +116,11 @@ test('operations console links existing controls and handles alerts, empty state
   assert.match(page, /pendingControlOperations/);
   assert.match(page, /newOperationId/);
   assert.match(readFileSync(new URL('../docs/video-reels-phase10-operations.md', import.meta.url), 'utf8'), /Alert thresholds/);
+});
+
+test('protected push guard uses configured credentials and public readback without reading environment files', () => {
+  assert.match(pushGuard, /gh auth token/);
+  assert.match(pushGuard, /Public pull-request metadata needs no token/);
+  assert.match(pushGuard, /https:\/\/api\.github\.com\/repos\/\$SLUG\/pulls/);
+  assert.doesNotMatch(pushGuard, /read_key|CANDIDATE_FILE|git-common-dir|\.env/);
 });
