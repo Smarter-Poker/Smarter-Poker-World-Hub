@@ -1,5 +1,16 @@
 # Program State
 
+## Phase 9 Active - October 4, 2026
+
+- **Current phase:** 9 of 10. Scope is RGT-03 through RGT-07 and OPS-01: creator claims/submissions, durable rights evidence, exact attribution/disclosures, moderation reports, responsible-play and Made For Kids handling, revocation, and end-to-end takedown.
+- **Baseline:** Phase 8 protected closeout is live at `ab60785a5cf86a3fcafb217d0b0578ae0daacdd2`.
+- **Policy receipt:** owner policy `2.9`, manifest SHA-256 `a659f31c5c1c2b0864889508079a635dd5fe2fc98decfbfc9d3f9c80dd45ec3b`, read from canonical and portable copies on 2026-10-04; portable/canonical drift check passed.
+- **Owned checkout:** `/Volumes/SmarterWork/agent-work/video-reels-phase9-20261004`, branch `codex/video-reels-phase9-20261004`, operation owner `/root`.
+- **Acceptance:** the Phase 9 plan in `PLAN.md`; no Phase 10 analytics/experimentation expansion except the minimum review surface needed to make Phase 9 operable.
+- **Initial audit:** Phase 6 rights evidence is service-only and native-master-specific; creators have no claim/submission workflow; direct browser report inserts do not create authoritative moderation cases; source-master revocation does not atomically suppress all public surfaces; exact disclosure and Made For Kids authority are absent from canonical delivery; generic attribution fallbacks violate RGT-05.
+- **Delivery state:** implementation in progress; nothing from Phase 9 is yet claimed tested, merged, installed, published, or live.
+- **Local verification checkpoint:** creator and operator consoles, bearer-bound APIs, durable report/takedown authority, exact attribution/disclosures, Made For Kids delivery, creator source-master reservation/upload, creator clip consent, global suppression, and route inventory are implemented. Phase 9 focused tests pass 24/24; the deeper Video Library/Reels integration set passes 91/91; repository lint passes 4,680 files; the complete `npm run build` prebuild, route generation, optimized compile, and performance budget pass. Migration runner dry-run binds SHA-256 and authored transaction checkpoints. Protected delivery, database installation, and live proof remain pending and are not yet claimed.
+
 ## Phase 8 Production Closeout - October 4, 2026
 
 - **Current phase:** 8 of 10. Scope is UX-05 and SRCH-01 through SRCH-05: approved semantic discovery, explainable recommendation ranking, bounded session diversity, chronological fallback, study lists, timestamp continuation, connected Geeves/quiz/training actions, and bot-resistant learning measurement.

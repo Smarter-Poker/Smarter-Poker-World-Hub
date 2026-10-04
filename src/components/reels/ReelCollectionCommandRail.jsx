@@ -13,6 +13,7 @@ const COMMANDS = Object.freeze([
     { href: '/hub/reels?category=following', label: 'Following', category: 'following' },
     { href: '/hub/reels/my-reels', label: 'My Reels' },
     { href: '/hub/reels/saved', label: 'Saved Reels' },
+    { href: '/hub/reels/creator', label: 'Creator Rights' },
 ]);
 
 export default function ReelCollectionCommandRail() {

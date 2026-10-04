@@ -10,7 +10,7 @@ function youtubeId(reel) {
 
 export default function ReelCard({ reel, onOpen, className = '' }) {
   const id = youtubeId(reel);
-  const creator = reel?.channel_name || reel?.profiles?.full_name || reel?.profiles?.username || 'Verified Creator';
+  const creator = reel?.channel_name || reel?.profiles?.full_name || reel?.profiles?.username || 'Creator Unavailable';
   const thumbnail = reel?.thumbnail_url || (id ? `https://img.youtube.com/vi/${id}/hqdefault.jpg` : null);
   const native = reel?.playback_type === 'native' || reel?.source_type === 'native';
   const content = (
@@ -22,6 +22,11 @@ export default function ReelCard({ reel, onOpen, className = '' }) {
         <span className="sp-reel-card__play" aria-hidden="true">▶</span>
       </span>
       <span className="sp-reel-card__creator vlc-reel-card__author">{creator}</span>
+      <span className="sp-reel-card__trust" aria-label="Media disclosures">
+        {reel?.disclosure_kind && reel.disclosure_kind !== 'organic' ? String(reel.disclosure_kind).replace('_', ' ') : null}
+        {reel?.made_for_kids === true ? ' / Made For Kids' : null}
+        {['slots', 'casino'].includes(String(reel?.topic || '').toLowerCase()) ? ' / Responsible Play' : null}
+      </span>
       <span className="sp-reel-card__caption vlc-reel-card__caption">{reel?.caption || 'Watch Reel'}</span>
     </>
   );

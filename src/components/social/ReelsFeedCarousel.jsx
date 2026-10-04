@@ -13,6 +13,7 @@ import { supabase } from '../../lib/supabase';
 import { useSupabase } from '../../providers/SupabaseProvider';
 import { busEmit, eventBus, EventType } from '../../engine/EventBus';
 import { getAccessToken, getAuthUser } from '../../lib/authUtils';
+import { submitReelReport } from '../../lib/reelsReportClient.mjs';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import GiphyPicker from '../shared/GiphyPicker';
@@ -56,6 +57,7 @@ import ReelResponsibleGamingNotice from './ReelResponsibleGamingNotice';
 import ReelCard from '../reels/ReelCard';
 import ReelPlayerFrame from '../reels/ReelPlayerFrame';
 import ReelFeedbackActions from '../reels/ReelFeedbackActions';
+import ReelTrustStrip from '../reels/ReelTrustStrip';
 import { reelSourceKey } from '../../lib/reelsFeedback.mjs';
 import { recordReelsDeliveryMetric } from '../../lib/reelsDeliveryMetrics';
 import { capReelsInMemory, dataSaverEnabled } from '../../lib/reelsDeliveryContract.mjs';
@@ -118,7 +120,7 @@ function reelSourceName(reel) {
   return reel?.channel_name
     || reel?.profiles?.full_name
     || reel?.profiles?.username
-    || `${reelTopicLabel(reel)} Creator`;
+    || 'Creator Unavailable';
 }
 
 function reelSourceUrl(reel) {
@@ -1679,13 +1681,7 @@ function ReelViewer({
     if (!userId) return;
     const ownerRequest = accountScopeRef.current.capture(userId);
     try {
-      const { error } = await supabase.from('social_interactions').insert({
-        user_id: userId,
-        post_id: currentReel.id,
-        interaction_type: 'report',
-        metadata: { reason: reportReason.trim() },
-      });
-      if (error) throw error;
+      await submitReelReport({ reelId: currentReel.id, reason: reportReason, ownerId: userId, accessToken: getAccessToken() });
       if (!ownerRequest.isCurrent()) return;
       setReportSubmitted(true);
       // BUG FIX (RFC-7): track report modal dismiss timer — prevents setState-after-unmount.
@@ -2795,6 +2791,7 @@ function ReelViewer({
               </ConsoleCopy>
             )}
             <ReelResponsibleGamingNotice topic={currentReel.topic} />
+            <ReelTrustStrip reel={currentReel} compact />
           </div>
         </div>
 
@@ -2811,6 +2808,13 @@ function ReelViewer({
                   <div className="vlc-carousel-options" role="group" aria-label="Report Reason">
                     {[
                       'Inappropriate Content',
+                      'Copyright Or Rights',
+                      'Incorrect Attribution',
+                      'Unlabeled Promotion',
+                      'Unlabeled Generated Media',
+                      'Underage Or Safety',
+                      'Gambling Harm',
+                      'Playback Unavailable',
                       'Spam Or Scam',
                       'Harassment',
                       'Misinformation',
