@@ -1,14 +1,15 @@
 # Program State
 
-## Phase 8 Candidate - October 4, 2026
+## Phase 8 Production Closeout - October 4, 2026
 
 - **Current phase:** 8 of 10. Scope is UX-05 and SRCH-01 through SRCH-05: approved semantic discovery, explainable recommendation ranking, bounded session diversity, chronological fallback, study lists, timestamp continuation, connected Geeves/quiz/training actions, and bot-resistant learning measurement.
-- **Workspace / branch:** `/Volumes/SmarterWork/agent-work/video-reels-phase8-20261004` / `codex/video-reels-phase8-20261004`, based on protected `main` `c0203a75fffece1a40626a9bdf2afb2154d2c171`.
+- **Delivery:** protected PR `#2109` squash-merged as `3bad0036d1f2f62f8fabfa88f44a33bba4818abe`. Vercel deployment `dpl_2jQXFEVRa4PHJ3oKbFspgByQi62p` reached READY, and public `/api/health` reported that exact merge SHA.
 - **Policy receipt:** current owner policy version `2.9`, manifest SHA-256 `a659f31c5c1c2b0864889508079a635dd5fe2fc98decfbfc9d3f9c80dd45ec3b`; canonical reader and repository publishing instructions were freshly read at phase start.
 - **Implemented source:** one additive migration supplies approved/playable-only FTS plus optional vector embeddings, owner-RLS study lists and continuation, a service-only privacy-bounded learning-event ledger, automatic editorial search synchronization, and least-privilege RPCs. New discovery and study APIs use those exact contracts. Video Library and Reels share the mobile-first painted Study Circuit for recommendation reasons, newest-first recovery, saves, resume, full lessons, related lessons, Geeves, quiz, and sandbox actions.
 - **Local verification:** Phase 8 focused contracts pass 19/19; migration transaction controls pass 19/19; the connected Video/Reels suite passes 376 Node, 25 Vitest, and 47 Python tests; targeted ESLint has zero errors; `git diff --check` passes; and the complete production build generated 507/507 static pages and passed its performance budget.
-- **Database preflight:** production has pgvector `0.8.0`. Primary migration `20261004190000` has immutable SHA-256 `e4158c926d055921cd47fd24acb10b7b3165d24c71953af0e5ab976ce6b85ada`; catalog seed/synchronization follow-up `20261004191500` has SHA-256 `0644239522d1fe1fcb0ca3d5934005466f9df48805755ee151e8a6f4fee4f246`.
-- **Pending gates:** final adversarial review, commit/push, hosted CI, protected merge, exact migration installation/readback, Vercel READY, live identity, and affected behavior proof. No production completion is claimed by this candidate checkpoint.
+- **Database proof:** production pgvector is `0.8.0`. Primary migration `20261004190000` is installed once with SHA-256 `e4158c926d055921cd47fd24acb10b7b3165d24c71953af0e5ab976ce6b85ada`; catalog seed/synchronization migration `20261004191500` is installed once with SHA-256 `0644239522d1fe1fcb0ca3d5934005466f9df48805755ee151e8a6f4fee4f246`. Readback proves five tables, six public RPCs, owner RLS, client event-insert refusal, one catalog trigger, 2,342 eligible videos, 2,342 search documents, and zero eligible videos missing a document.
+- **Hosted and live proof:** every required protected check passed, including migration-applied, phantom table/column/RPC, PostgreSQL, TypeScript, undefined-identifier, conflict, policy, and the five-minute pre-deploy gate. `/hub/video-library`, `/hub/reels`, and `/hub/social-media` return 200. Live recommended and chronological discovery both return playable rows with reason, learning-action, session, and pagination contracts; signed-out Study Queue access returns 401.
+- **Remaining issues:** none within Phase 8. Ready for Phase 9 of 10.
 
 ## Phase 5 And Phase 6 Production Closeout - October 4, 2026
 
