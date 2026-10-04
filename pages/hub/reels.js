@@ -25,6 +25,7 @@ import ReelPublicationRecoveryBanner from '../../src/components/reels/ReelPublic
 import ReelsModeRail from '../../src/components/reels/ReelsModeRail';
 import ReelPlayerFrame from '../../src/components/reels/ReelPlayerFrame';
 import ReelFeedbackActions from '../../src/components/reels/ReelFeedbackActions';
+import VideoLearningLoop from '../../src/components/video-learning/VideoLearningLoop';
 import { reelSourceKey } from '../../src/lib/reelsFeedback.mjs';
 import { saveAppSetting } from '../../src/lib/appSettingsSync';
 import { busEmit, eventBus, EventType } from '../../src/engine/EventBus';
@@ -451,6 +452,7 @@ export default function ReelsPage({ reelsListing = null }) {
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [savedReels, setSavedReels] = useState(new Set());
   const savedTargetsByReelRef = useRef(new Map());
+  const studySavePendingRef = useRef(new Set());
   const [showHeart, setShowHeart] = useState(false);
   const [ttsOverlay, setTtsOverlay] = useState(null); // Train This Spot in-place overlay { ctx, games }
   // Age-restricted / errored YouTube video detection
@@ -2310,9 +2312,9 @@ export default function ReelsPage({ reelsListing = null }) {
   const handleSave = async () => {
     const ownerRequest = accountScopeRef.current.capture(activeUserIdRef.current);
     const reel = currentReel;
-    if (!reel) return;
-    if (!ownerRequest.ownerId) return showErrorToast('Sign in to save reels');
-    if (!ownerRequest.isCurrent()) return;
+    if (!reel) return false;
+    if (!ownerRequest.ownerId) { showErrorToast('Sign in to save reels'); return false; }
+    if (!ownerRequest.isCurrent()) return false;
     const isSaved = savedReels.has(reel.id);
     const previousTargets = savedTargetsByReelRef.current.get(reel.id) || [];
     // #1 Optimistic update - instant UI response
@@ -2331,11 +2333,11 @@ export default function ReelsPage({ reelsListing = null }) {
           ownerRequest.ownerId,
           previousTargets.length ? previousTargets : reel.id,
         );
-        if (!ownerRequest.isCurrent()) return;
+        if (!ownerRequest.isCurrent()) return false;
         savedTargetsByReelRef.current.delete(reel.id);
       } else {
         await savedReelsService.saveReel(ownerRequest.ownerId, reel.id, 'reel');
-        if (!ownerRequest.isCurrent()) return;
+        if (!ownerRequest.isCurrent()) return false;
         savedTargetsByReelRef.current.set(reel.id, [reel.id]);
       }
       try {
@@ -2343,8 +2345,9 @@ export default function ReelsPage({ reelsListing = null }) {
       } catch (eventError) {
         console.warn('[Reels] Bookmark event failed:', eventError?.message || eventError);
       }
+      return true;
     } catch (err) {
-      if (!ownerRequest.isCurrent()) return;
+      if (!ownerRequest.isCurrent()) return false;
       // AUDIT FIX: rollback to the PRE-operation state, not unconditionally delete.
       // Old: always deleted from Set, which was wrong when save (not unsave) failed —
       // the optimistic add was reverted by deleting, but re-adding if isSaved was never handled.
@@ -2359,6 +2362,56 @@ export default function ReelsPage({ reelsListing = null }) {
       }
       showErrorToast('Save failed - try again');
       console.warn('Save reel failed:', err?.message || err);
+      return false;
+    }
+  };
+
+  const handleStudySave = async () => {
+    const reel = currentReel;
+    if (!reel?.id || studySavePendingRef.current.has(reel.id)) return false;
+    const token = getAccessToken();
+    const sourceAssetId = String(reel?.source_asset_id || '').trim();
+    const wasSaved = savedReels.has(reel?.id);
+    if (!token || !/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(sourceAssetId)) return handleSave();
+    const ownerRequest = accountScopeRef.current.capture(activeUserIdRef.current);
+    if (!ownerRequest.ownerId || !ownerRequest.isCurrent()) return false;
+    studySavePendingRef.current.add(reel.id);
+    if (wasSaved) {
+      setSavedReels(prev => { const next = new Set(prev); next.delete(reel.id); return next; });
+    } else {
+      setSavedReels(prev => new Set([...prev, reel.id]));
+    }
+    try {
+      const response = await fetch('/api/video-library/study-list', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          action: 'reel-save', videoId: sourceAssetId, reelId: reel.id,
+          saved: !wasSaved, ownerId: ownerRequest.ownerId,
+        }),
+      });
+      const payload = await response.json().catch(() => null);
+      if (!response.ok || !payload?.success || payload.ownerId !== ownerRequest.ownerId || !ownerRequest.isCurrent()) {
+        throw new Error(payload?.error || `Study list request failed (${response.status})`);
+      }
+      if (wasSaved) savedTargetsByReelRef.current.delete(reel.id);
+      else savedTargetsByReelRef.current.set(reel.id, [reel.id]);
+      try { busEmit.socialPostBookmarked(reel.id, ownerRequest.ownerId, { added: !wasSaved }); }
+      catch (eventError) {
+        const message = eventError?.message || eventError;
+        console.warn('[Reels] Bookmark event failed:', message);
+      }
+      return true;
+    } catch (error) {
+      if (ownerRequest.isCurrent()) {
+        if (wasSaved) setSavedReels(prev => new Set([...prev, reel.id]));
+        else setSavedReels(prev => { const next = new Set(prev); next.delete(reel.id); return next; });
+      }
+      console.warn('[Reels] Study list update failed:', error?.message || error);
+      showErrorToast('Study list could not be updated');
+      return false;
+    } finally {
+      studySavePendingRef.current.delete(reel.id);
     }
   };
 
@@ -3638,6 +3691,21 @@ export default function ReelsPage({ reelsListing = null }) {
           </>
         )}
         <ReelResponsibleGamingNotice topic={currentReel?.topic} />
+        <VideoLearningLoop
+          compact
+          title="Carry This Reel Into Practice"
+          source={currentSourceName}
+          topic={currentTopicLabel}
+          reason={currentReel?.selection_reason || currentReel?.recommendation_reason}
+          mode={activeFeedMode}
+          saved={savedReels.has(currentReel?.id)}
+          onSave={handleStudySave}
+          chronologicalHref="/hub/reels?mode=latest"
+          fullVideoHref={videoId ? `/hub/video-library?v=${encodeURIComponent(videoId)}` : null}
+          onAskGeeves={() => window.dispatchEvent(new window.CustomEvent('geeves-open'))}
+          quizHref={`/hub/trivia?topic=${encodeURIComponent(currentTopicLabel || 'poker')}`}
+          sandboxHref="/hub/personal-assistant/sandbox"
+        />
         <div className={styles.actions} aria-label="Reel Actions">
           <ReelAction aria-label={liked[currentReel?.id] ? 'Unlike' : 'Like'} aria-pressed={Boolean(liked[currentReel?.id])}
             onClick={() => {
