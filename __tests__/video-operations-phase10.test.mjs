@@ -6,6 +6,7 @@ const require = createRequire(import.meta.url);
 const { buildAlerts } = require('../lib/videoOperationsAlerts.js');
 
 const migration = readFileSync(new URL('../supabase/migrations/20261004213000_video_operations_analytics_phase10.sql', import.meta.url), 'utf8');
+const indexMigration = readFileSync(new URL('../supabase/migrations/20261004222000_video_reels_control_events_actor_index.sql', import.meta.url), 'utf8');
 const api = readFileSync(new URL('../pages/api/admin/video-operations.js', import.meta.url), 'utf8');
 const page = readFileSync(new URL('../pages/hub/admin/video-operations.js', import.meta.url), 'utf8');
 const pushGuard = readFileSync(new URL('../scripts/guard-merged-branch.sh', import.meta.url), 'utf8');
@@ -24,6 +25,12 @@ test('Phase 10 analytics reports complete source, candidate, rights, cost, and m
   }
   assert.match(migration, /least\(greatest\(coalesce\(p_window_hours, 24\), 1\), 168\)/);
   assert.match(migration, /status IN \('queued','running','retry','dead_letter','succeeded'\)/);
+});
+
+test('control event actor foreign key has a valid index in a forward migration', () => {
+  assert.match(migration, /actor_user_id uuid NOT NULL REFERENCES public\.profiles\(id\)/);
+  assert.match(indexMigration, /CREATE INDEX IF NOT EXISTS video_reels_control_events_actor_idx[\s\S]*ON public\.video_reels_control_events\(actor_user_id\)/);
+  assert.match(indexMigration, /i\.indisvalid/);
 });
 
 test('Phase 10 aggregates redact raw errors and never return user, session, asset, or cursor identities', () => {
