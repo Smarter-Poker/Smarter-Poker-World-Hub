@@ -59,7 +59,7 @@ export default async function handler(req, res) {
       if (reservation.data && (reservation.data.actor_id !== user.id || reservation.data.video_id !== videoId || reservation.data.mime_type !== mimeType || Number(reservation.data.byte_size) !== byteSize)) return res.status(409).json({ success: false, error: 'Upload operation replay does not match its original file' });
       if (!reservation.data) {
         const path = `${videoId}/${crypto.randomUUID()}.source`;
-        reservation = await service.from('video_source_upload_tickets').insert({ operation_id: operationId, video_id: videoId, storage_path: path, actor_id: user.id, byte_size: byteSize, mime_type: mimeType }).select('*').single();
+        reservation = await service.from('video_source_upload_tickets').insert({ operation_id: operationId, video_id: videoId, storage_path: path, actor_id: user.id, byte_size: byteSize, mime_type: mimeType }).select('*').maybeSingle();
         if (reservation.error) return res.status(409).json({ success: false, error: 'Source upload reservation could not be created' });
       }
       const signed = await service.storage.from('video-source-masters').createSignedUploadUrl(reservation.data.storage_path);

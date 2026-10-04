@@ -108,7 +108,7 @@ function CreatorSources({ rows, mutate, busy }) {
   };
   return <>
     <form className={styles.formBay} onSubmit={submit}>
-      <div className={styles.sectionHeading}><span>01</span><div><h2>Claim A Source</h2><p>Connect the exact channel you control. Every claim remains pending until its proof is reviewed.</p></div></div>
+      <div className={styles.sectionHeading}><span>01</span><div><h2>Claim A Source</h2><p>Connect The Exact Channel You Control. Every Claim Remains Pending Until Its Proof Is Reviewed.</p></div></div>
       <div className={styles.fieldGrid}>
         <Field label="Registered Source ID"><input required value={draft.content_source_id} onChange={event => setDraft(current => ({ ...current, content_source_id: event.target.value }))} /></Field>
         <Field label="Provider Channel ID"><input required value={draft.provider_channel_id} onChange={event => setDraft(current => ({ ...current, provider_channel_id: event.target.value }))} /></Field>
@@ -165,7 +165,7 @@ function CreatorSubmissions({ rows, mutate, busy }) {
   };
   return <>
     <form className={styles.formBay} onSubmit={submit}>
-      <div className={styles.sectionHeading}><span>02</span><div><h2>Submit Creator Media</h2><p>Submit one exact YouTube identity or one reserved source-master upload ticket for review.</p></div></div>
+      <div className={styles.sectionHeading}><span>02</span><div><h2>Submit Creator Media</h2><p>Submit One Exact YouTube Identity Or One Reserved Source-Master Upload Ticket For Review.</p></div></div>
       <div className={styles.fieldGrid}>
         <Field label="Approved Source Claim ID"><input value={draft.source_claim_id} onChange={event => setDraft(current => ({ ...current, source_claim_id: event.target.value }))} /></Field>
         <Field label="Library Video ID"><input value={draft.video_id} onChange={event => setDraft(current => ({ ...current, video_id: event.target.value }))} /></Field>
@@ -191,7 +191,7 @@ function CreatorSubmissions({ rows, mutate, busy }) {
 
 function CreatorAttribution({ rows, mutate, busy }) {
   const [drafts, setDrafts] = useState({});
-  if (!rows.length) return <EmptyState>No verified creator sources are ready for attribution controls.</EmptyState>;
+  if (!rows.length) return <EmptyState>No Verified Creator Sources Are Ready For Attribution Controls.</EmptyState>;
   return <div className={styles.records}>{rows.map(row => {
     const id = rowId(row);
     const draft = drafts[id] || { attribution_name: row.attribution_name || '', attribution_url: row.attribution_url || '' };
@@ -206,7 +206,7 @@ function CreatorAttribution({ rows, mutate, busy }) {
 }
 
 function CreatorClipReviews({ rows, mutate, busy }) {
-  if (!rows.length) return <EmptyState>No clips are waiting for your review.</EmptyState>;
+  if (!rows.length) return <EmptyState>No Clips Are Waiting For Your Review.</EmptyState>;
   return <div className={styles.records}>{rows.map(row => <RecordCard key={rowId(row)} row={row}>
     {row.preview_url || row.embed_url ? <div className={styles.preview}><iframe src={row.preview_url || row.embed_url} title={`Clip Review: ${titleOf(row)}`} loading="lazy" allow="encrypted-media; picture-in-picture" referrerPolicy="strict-origin-when-cross-origin" /></div> : null}
     <ConsoleDataRow label="Clip Window" value={`${row.clip_start_seconds ?? '--'}s To ${row.clip_end_seconds ?? '--'}s`} />
@@ -225,7 +225,7 @@ function CreatorCases({ rows, mutate, busy }) {
   };
   return <>
     <form className={styles.formBay} onSubmit={submit}>
-      <div className={styles.sectionHeading}><span>05</span><div><h2>Open A Rights Case</h2><p>Request an attribution correction, rights revocation, or complete takedown. Public delivery is removed by the moderation decision, not by this browser.</p></div></div>
+      <div className={styles.sectionHeading}><span>05</span><div><h2>Open A Rights Case</h2><p>Request An Attribution Correction, Rights Revocation, Or Complete Takedown. Public Delivery Is Removed By The Moderation Decision, Not By This Browser.</p></div></div>
       <div className={styles.fieldGrid}>
         <Field label="Reel, Video, Or Source ID"><input required value={draft.target_id} onChange={event => setDraft(current => ({ ...current, target_id: event.target.value }))} /></Field>
         <Field label="Case Type"><select value={draft.reason} onChange={event => setDraft(current => ({ ...current, reason: event.target.value }))}><option value="rights_revoked">Rights Revoked</option><option value="copyright">Copyright Or Rights</option><option value="incorrect_attribution">Incorrect Attribution</option><option value="unlabeled_sponsored">Sponsored Media Not Labeled</option><option value="unlabeled_generated">Generated Media Not Labeled</option></select></Field>
@@ -256,7 +256,7 @@ function AdminPanel({ tab, snapshot, mutate, busy }) {
       : tab === 'attribution' ? list(snapshot, 'attribution_requests')
         : tab === 'clips' ? list(snapshot, 'clip_reviews', 'clips')
         : tab === 'reports' ? list(snapshot, 'reports') : list(snapshot, 'takedowns', 'cases');
-  if (!rows.length) return <EmptyState>No {tab.replaceAll('_', ' ')} require review.</EmptyState>;
+  if (!rows.length) return <EmptyState>No {tab.replaceAll('_', ' ')} Require Review.</EmptyState>;
   return <div className={styles.records}>{rows.map(row => <AdminReviewCard key={rowId(row)} row={row} tab={tab} mutate={mutate} busy={busy} />)}</div>;
 }
 
@@ -416,7 +416,7 @@ export default function VideoCreatorRightsConsole({ mode = 'creator' }) {
         {tabs.map(([id, label], index) => <button type="button" key={id} aria-current={tab === id ? 'page' : undefined} onClick={() => setTab(id)}><span>{String(index + 1).padStart(2, '0')}</span>{label}</button>)}
       </nav>
       {error ? <div className={styles.alert} role="alert"><b>Console Signal Interrupted</b><span>{error}</span>{!signedOut ? <ActionButton onClick={load}>Retry Connection</ActionButton> : null}</div> : null}
-      {signedOut ? <div className={styles.empty}><p>Sign in to open your account-bound creator rights ledger.</p><Link href={`/auth/login?redirect=${encodeURIComponent(admin ? '/hub/admin/video-rights-moderation' : '/hub/reels/creator')}`}>Sign In</Link></div>
+      {signedOut ? <div className={styles.empty}><p>Sign In To Open Your Account-Bound Creator Rights Ledger.</p><Link href={`/auth/login?redirect=${encodeURIComponent(admin ? '/hub/admin/video-rights-moderation' : '/hub/reels/creator')}`}>Sign In</Link></div>
         : loading && !snapshot ? <div className={styles.loading} role="status"><span /><span /><span /><p>Reading The Authoritative Rights Ledger</p></div>
           : snapshot ? admin
             ? <AdminPanel tab={tab} snapshot={snapshot} mutate={mutate} busy={mutating} />

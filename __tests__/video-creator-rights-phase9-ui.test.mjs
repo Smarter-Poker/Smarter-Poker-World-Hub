@@ -50,8 +50,8 @@ test('console provides loading, empty, error, retry and signed-out states', () =
   assert.match(consoleSource, /role="status"/);
   assert.match(consoleSource, /role="alert"/);
   assert.match(consoleSource, /Retry Connection/);
-  assert.match(consoleSource, /Sign in to open your account-bound creator rights ledger/);
-  assert.match(consoleSource, /No clips are waiting for your review/);
+  assert.match(consoleSource, /Sign In To Open Your Account-Bound Creator Rights Ledger/);
+  assert.match(consoleSource, /No Clips Are Waiting For Your Review/);
 });
 
 test('visual treatment is mobile-first painted hardware rather than flat cards', () => {

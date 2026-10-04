@@ -29,7 +29,7 @@ export default function ReelTrustStrip({ reel, compact = false }) {
       </div>
       {labels.length ? <div className={styles.labels}>{labels.map((label) => <span key={label}>{label}</span>)}</div> : null}
       {reel.sponsor_name && ['sponsored', 'promotional'].includes(reel.disclosure_kind) ? <p>Presented By {reel.sponsor_name}</p> : null}
-      {casino ? <p>Entertainment only. Set limits and play responsibly.</p> : null}
+      {casino ? <p>Entertainment Only. Set Limits And Play Responsibly.</p> : null}
     </aside>
   );
 }
