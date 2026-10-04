@@ -425,7 +425,15 @@ GRANT EXECUTE ON FUNCTION public.fn_review_video_creator_claim(uuid,integer,text
 DO $assertions$
 BEGIN
   IF to_regclass('public.video_creator_source_claims') IS NULL OR to_regclass('public.video_creator_submissions') IS NULL OR to_regclass('public.video_attribution_records') IS NULL OR to_regclass('public.video_attribution_update_requests') IS NULL OR to_regclass('public.video_creator_clip_reviews') IS NULL OR to_regclass('public.video_moderation_cases') IS NULL OR to_regclass('public.video_moderation_events') IS NULL THEN RAISE EXCEPTION 'post-apply: Phase 9 tables missing'; END IF;
-  IF has_table_privilege('anon','public.video_moderation_cases','SELECT') OR has_table_privilege('authenticated','public.video_moderation_events','SELECT') THEN RAISE EXCEPTION 'post-apply: moderation authority exposed'; END IF;
+  IF has_table_privilege('anon','public.video_moderation_cases','SELECT')
+     OR has_table_privilege('anon','public.video_moderation_events','SELECT')
+     OR has_table_privilege('authenticated','public.video_moderation_cases','INSERT')
+     OR has_table_privilege('authenticated','public.video_moderation_cases','UPDATE')
+     OR has_table_privilege('authenticated','public.video_moderation_cases','DELETE')
+     OR has_table_privilege('authenticated','public.video_moderation_events','INSERT')
+     OR has_table_privilege('authenticated','public.video_moderation_events','UPDATE')
+     OR has_table_privilege('authenticated','public.video_moderation_events','DELETE')
+  THEN RAISE EXCEPTION 'post-apply: moderation authority exposed'; END IF;
   IF NOT EXISTS(SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='video_moderation_cases' AND policyname='video_cases_owner_read') THEN RAISE EXCEPTION 'post-apply: owner case policy missing'; END IF;
 END $assertions$;
 

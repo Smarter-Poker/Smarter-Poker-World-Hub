@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
-const sql = readFileSync(new URL('../supabase/migrations/20261004200000_video_creator_rights_moderation_phase9.sql', import.meta.url), 'utf8');
+const sql = readFileSync(new URL('../supabase/migrations/20261004201500_video_creator_rights_moderation_phase9.sql', import.meta.url), 'utf8');
 
 test('Phase 9 creates durable claims, submissions, attribution, creator clip reviews, cases and events', () => {
   for (const table of ['video_creator_source_claims','video_creator_submissions','video_attribution_records','video_attribution_update_requests','video_creator_clip_reviews','video_moderation_cases','video_moderation_events']) assert.match(sql, new RegExp(`CREATE TABLE public\\.${table}`));
