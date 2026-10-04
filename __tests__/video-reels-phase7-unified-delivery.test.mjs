@@ -25,6 +25,7 @@ const VIDEO_LIBRARY = read('../pages/hub/video-library.js');
 const CONTROLLER = read('../src/lib/reelsFeedController.mjs');
 const METRICS_API = read('../pages/api/reels/delivery-metrics.js');
 const METRICS_SQL = read('../supabase/migrations/20261004180000_reels_delivery_metrics.sql');
+const METRICS_SEQUENCE_PRIVILEGES_SQL = read('../supabase/migrations/20261004182500_reels_delivery_metrics_sequence_privileges.sql');
 const PLAYER = read('../src/components/reels/ReelPlayerFrame.jsx');
 
 test('all three public Reel surfaces use the one canonical feed controller', () => {
@@ -63,6 +64,8 @@ test('delivery metrics are aggregate-only and service-role protected', () => {
   assert.match(METRICS_SQL, /ENABLE ROW LEVEL SECURITY/);
   assert.match(METRICS_SQL, /REVOKE ALL[\s\S]*PUBLIC, anon, authenticated/);
   assert.match(METRICS_SQL, /GRANT USAGE, SELECT ON SEQUENCE public\.reels_delivery_metrics_id_seq TO service_role/);
+  assert.match(METRICS_SEQUENCE_PRIVILEGES_SQL, /REVOKE ALL ON SEQUENCE public\.reels_delivery_metrics_id_seq\s+FROM PUBLIC, anon, authenticated/);
+  assert.match(METRICS_SEQUENCE_PRIVILEGES_SQL, /GRANT USAGE, SELECT ON SEQUENCE public\.reels_delivery_metrics_id_seq\s+TO service_role/);
   assert.match(METRICS_SQL, /Stores no user, reel, session, IP, URL, or device identifier/);
   assert.doesNotMatch(METRICS_SQL, /user_id|reel_id|session_id|ip_address|user_agent/i);
   assert.match(METRICS_API, /LIMITS\.write/);
