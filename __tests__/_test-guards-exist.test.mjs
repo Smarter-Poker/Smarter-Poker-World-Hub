@@ -675,6 +675,8 @@ const CI_UNREACHABLE_ON_PURPOSE = {
     'server-auth-asymmetric.test.mjs': 'self-executing harness, process.exit() on import',
 };
 
+import './video-operations-phase10.test.mjs';
+
 test('every guard in __tests__ is reachable by CI', () => {
     const here = fs.readFileSync(path.join(REPO, '__tests__', '_test-guards-exist.test.mjs'), 'utf8');
     const workflows = fs.readdirSync(path.join(REPO, '.github', 'workflows'))

@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
+import './video-operations-phase10.test.mjs';
 
 const sql = readFileSync(new URL('../supabase/migrations/20261004201500_video_creator_rights_moderation_phase9.sql', import.meta.url), 'utf8');
 
