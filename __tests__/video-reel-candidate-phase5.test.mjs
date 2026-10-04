@@ -19,6 +19,10 @@ test('Phase 5 persists one explainable bounded candidate per source video',()=>{
  assert.match(durationGuard,/p_end>v_duration/);
  assert.match(durationGuard,/source_duration_seconds=v_duration/);
  assert.match(durationGuard,/fn_video_duration_seconds\(v\.duration\)>0/);
+ assert.match(durationGuard,/coalesce\(v_duration,0\)<=0/);
+ assert.match(durationGuard,/p_start IS NULL OR p_end IS NULL/);
+ assert.match(durationGuard,/candidate explanation is incomplete/);
+ assert.match(durationGuard,/m\[2\]::numeric<60 AND m\[3\]::numeric<60/);
 });
 
 test('candidate claims are replay safe, reclaim abandoned custody, and remain service only',()=>{

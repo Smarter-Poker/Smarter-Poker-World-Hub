@@ -12,7 +12,9 @@ BEGIN
   m:=regexp_match(p_duration,'^PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?$','i');
   IF m IS NOT NULL THEN RETURN coalesce(m[1]::numeric,0)*3600+coalesce(m[2]::numeric,0)*60+coalesce(m[3]::numeric,0); END IF;
   m:=regexp_match(p_duration,'^(?:(\d+):)?(\d{1,2}):(\d{2})$');
-  IF m IS NOT NULL THEN RETURN coalesce(m[1]::numeric,0)*3600+m[2]::numeric*60+m[3]::numeric; END IF;
+  IF m IS NOT NULL AND m[2]::numeric<60 AND m[3]::numeric<60 THEN
+    RETURN coalesce(m[1]::numeric,0)*3600+m[2]::numeric*60+m[3]::numeric;
+  END IF;
   RETURN 0;
 END $$;
 
@@ -62,7 +64,19 @@ BEGIN
   SELECT * INTO v_candidate FROM public.video_reel_candidates WHERE id=p_candidate_id FOR UPDATE;
   IF v_candidate.id IS NULL OR v_candidate.status<>'generating' OR v_candidate.claimed_by IS DISTINCT FROM p_worker THEN RAISE EXCEPTION 'candidate custody mismatch'; END IF;
   SELECT public.fn_video_duration_seconds(duration) INTO v_duration FROM public.video_library_videos WHERE id=v_candidate.video_id;
-  IF v_duration<=0 OR p_start<0 OR p_end<=p_start OR p_end>v_duration OR p_end-p_start>180 THEN RAISE EXCEPTION 'candidate segment is outside source runtime'; END IF;
+  IF coalesce(v_duration,0)<=0 OR p_start IS NULL OR p_end IS NULL OR p_start<0 OR p_end<=p_start OR p_end>v_duration OR p_end-p_start>180 THEN
+    RAISE EXCEPTION 'candidate segment is outside source runtime';
+  END IF;
+  IF p_selection_kind NOT IN ('validated_short','chapter_highlight','metadata_highlight')
+     OR p_playback_mode NOT IN ('third_party_embed','native_master')
+     OR nullif(btrim(p_reason),'') IS NULL
+     OR jsonb_typeof(coalesce(p_rationale,'null'::jsonb)) IS DISTINCT FROM 'object'
+     OR p_quality IS NULL OR p_quality NOT BETWEEN 0 AND 100
+     OR nullif(btrim(p_source_key),'') IS NULL
+     OR nullif(btrim(p_creator_key),'') IS NULL
+     OR nullif(btrim(p_topic),'') IS NULL
+     OR p_rights_status IS NULL
+  THEN RAISE EXCEPTION 'candidate explanation is incomplete'; END IF;
   IF p_playback_mode='third_party_embed' AND (p_embed_url !~ '^https://www\.youtube-nocookie\.com/embed/[A-Za-z0-9_-]{11}\?start=[0-9]+&end=[0-9]+$' OR p_native_clip_eligible) THEN RAISE EXCEPTION 'third-party candidate must use bounded embed playback'; END IF;
   IF p_native_clip_eligible AND p_rights_status NOT IN ('owned','licensed') THEN RAISE EXCEPTION 'native clipping requires owned or licensed rights'; END IF;
   UPDATE public.video_reel_candidates SET status='proposed',selection_kind=p_selection_kind,playback_mode=p_playback_mode,
