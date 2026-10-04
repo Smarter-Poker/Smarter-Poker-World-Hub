@@ -362,7 +362,7 @@ export function DiamondRewardTracker({
                             </div>
                             <div style={styles.rule}>
                                 💵 1 💎 = $0.01. A Dedicated Free Player Earns About {fmt(MONTHLY_CAP.free)} 💎 A Month
-                                (${(MONTHLY_CAP.free / 100).toFixed(0)}) - A VIP Card Plus A Stack For The Diamond Arena.
+                                (${(MONTHLY_CAP.free / 100).toFixed(0)}) - A VIP Card With Diamonds Left Over.
                             </div>
                         </div>
                     </div>
