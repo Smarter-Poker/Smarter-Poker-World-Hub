@@ -735,7 +735,6 @@ const nextConfig = {
       { protocol: 'https', hostname: '*.supabase.co' }, // Any Supabase project
       { protocol: 'https', hostname: 'images.unsplash.com' }, // Fallback stock photos
       { protocol: 'https', hostname: 'smarter.poker' }, // Platform CDN
-      { protocol: 'https', hostname: 'diamond.smarter.poker' }, // Diamond assets
       { protocol: 'https', hostname: 'auth.smarter.poker' }, // Supabase auth + storage proxy (avatars, logos)
       { protocol: 'https', hostname: '*.smarter.poker' }, // Catch-all for platform sub-domains
       { protocol: 'https', hostname: 'api.qrserver.com' }, // QR code generation
