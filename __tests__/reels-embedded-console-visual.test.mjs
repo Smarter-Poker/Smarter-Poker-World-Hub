@@ -148,5 +148,5 @@ test('real Reel media and account-scoped interaction wiring are preserved', () =
   assert.match(VIEWER, /handleShareToFeed/);
   assert.match(VIEWER, /handleReport/);
   assert.match(VIEWER, /loadMoreReels/);
-  assert.match(VIEWER, /scanReelsContinuations/);
+  assert.match(VIEWER, /loadCanonicalReelsWindow/);
 });

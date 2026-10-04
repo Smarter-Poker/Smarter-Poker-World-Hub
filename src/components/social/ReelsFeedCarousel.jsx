@@ -22,7 +22,7 @@ import {
   fetchPokerReels,
   isUnclassifiedNativeCommunityReel,
 } from '../../lib/reelsFeedClient';
-import { scanReelsContinuations } from '../../lib/reelsContinuation.mjs';
+import { loadCanonicalReelsWindow } from '../../lib/reelsFeedController.mjs';
 import {
   BACKGROUND_REELS_REFRESH,
   REELS_BACKGROUND_REFRESH_DELAY_MS,
@@ -53,6 +53,12 @@ import VideoLibraryConsole, {
   ConsoleDataRow,
 } from '../video-library/console/VideoLibraryConsole';
 import ReelResponsibleGamingNotice from './ReelResponsibleGamingNotice';
+import ReelCard from '../reels/ReelCard';
+import ReelPlayerFrame from '../reels/ReelPlayerFrame';
+import ReelFeedbackActions from '../reels/ReelFeedbackActions';
+import { reelSourceKey } from '../../lib/reelsFeedback.mjs';
+import { recordReelsDeliveryMetric } from '../../lib/reelsDeliveryMetrics';
+import { capReelsInMemory, dataSaverEnabled } from '../../lib/reelsDeliveryContract.mjs';
 
 // Time ago helper
 function timeAgo(d) {
@@ -201,46 +207,6 @@ function isReelsAuthError(error) {
   return error?.code === 'REELS_AUTH_REQUIRED' || error?.status === 401 || error?.status === 403;
 }
 
-// Individual Reel Card in the carousel
-function ReelCard({ reel, onClick }) {
-  const isYouTube = isYouTubeUrl(reel.video_url);
-  const youtubeThumbnail = isYouTube
-    ? reel.thumbnail_url || getYouTubeThumbnail(reel.video_url)
-    : null;
-  const creatorName = reelSourceName(reel);
-
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="vlc-reel-card"
-      aria-label={`Open reel by ${creatorName}`}
-    >
-      <span className="vlc-reel-card__media">
-        {isYouTube && youtubeThumbnail ? (
-          <img src={youtubeThumbnail} alt={reel.caption || 'Reel'} loading="lazy" />
-        ) : !isYouTube ? (
-          <video
-            src={reel.video_url}
-            muted
-            playsInline
-            preload="none"
-            poster={reel.thumbnail_url || undefined}
-            aria-label={reel.caption || 'Reel preview'}
-          />
-        ) : (
-          <span className="vlc-reel-card__fallback">Verified Video</span>
-        )}
-      </span>
-      <span className="vlc-reel-card__author">
-        {reel.profiles?.avatar_url ? <img src={reel.profiles.avatar_url} alt="" /> : null}
-        <span>{creatorName}</span>
-      </span>
-      <span className="vlc-reel-card__caption">{reel.caption || 'Open Reel'}</span>
-    </button>
-  );
-}
-
 function ReelViewer({
   reels,
   startIndex,
@@ -252,6 +218,9 @@ function ReelViewer({
   onRetryContinuation,
   onActiveIndexChange,
 }) {
+  const prefersDataSaver = useMemo(() => dataSaverEnabled({
+    connection: typeof navigator !== 'undefined' ? navigator.connection : null,
+  }), []);
   const { user: providerUser } = useSupabase();
   const [authUser, setAuthUser] = useState(providerUser || null);
   const activeUserIdRef = useRef(providerUser?.id || null);
@@ -498,6 +467,25 @@ function ReelViewer({
   const currentSourceName = reelSourceName(currentReel);
   const currentSourceUrl = reelSourceUrl(currentReel);
   activeCommentReelIdRef.current = currentReel?.id || null;
+
+  const handleRecommendationFeedback = (action) => {
+    if (!currentReel?.id) return;
+    if (action === 'not-interested') {
+      void handleDislike();
+    } else if (action === 'already-watched') {
+      setWatchedReelIds((previous) => persistWatchedReelIds([...new Set([...previous, currentReel.id])], activeUserIdRef.current || null));
+    } else {
+      const source = reelSourceKey(currentReel);
+      setNotInterestedIds((previous) => {
+        const next = new Set(previous);
+        if (action === 'hide-source' && source) reels.forEach((reel) => { if (reelSourceKey(reel) === source) next.add(reel.id); });
+        else next.add(currentReel.id);
+        return persistNotInterestedReelIds(next, activeUserIdRef.current || null);
+      });
+      goNext();
+    }
+    closePanel();
+  };
   const interactionReelIds = useMemo(() => normaliseReelIds(reels), [reels]);
   const interactionAuthorIds = useMemo(() => normaliseReelAuthorIds(reels), [reels]);
 
@@ -2430,7 +2418,7 @@ function ReelViewer({
               }}
             />
 
-            <div className="vlc-carousel-viewer-media">
+            <ReelPlayerFrame className="vlc-carousel-viewer-media" reelId={currentReel.id} dataSaver={prefersDataSaver}>
               {/* YouTube thumbnail — instant visual feedback while iframe loads */}
               {isYouTubeUrl(currentReel.video_url) && (
                 <img
@@ -2549,6 +2537,7 @@ function ReelViewer({
                 // useEffect added above.
                 muted={muted}
                 playsInline
+                preload={prefersDataSaver ? 'metadata' : 'auto'}
                 poster={currentReel.thumbnail_url || undefined}
                 style={{
                   width: '100%',
@@ -2655,7 +2644,7 @@ function ReelViewer({
                   );
                 }
               })}
-            </div>
+            </ReelPlayerFrame>
             {paused && ytReady && !ytError && (
               <span className="vlc-carousel-play-state" aria-live="polite">
                 Paused
@@ -2903,6 +2892,7 @@ function ReelViewer({
                 >
                   Report
                 </button>
+                <ReelFeedbackActions onFeedback={handleRecommendationFeedback} />
               </div>
             ) : showShortcutsOverlay ? (
               <>
@@ -3210,6 +3200,8 @@ function ReelViewer({
 }
 // Main Reels Feed Carousel component
 export function ReelsFeedCarousel() {
+  const deliveryStartRef = useRef(Date.now());
+  const deliveryMeasuredRef = useRef(false);
   const router = useRouter();
   const { user: providerUser } = useSupabase();
   const ownerId = providerUser?.id || null;
@@ -3417,21 +3409,28 @@ export function ReelsFeedCarousel() {
         throw error;
       }
       const notInterested = loadNotInterestedReelIds(ownerId);
-      const payload = await scanReelsContinuations({
-        fetchPage: (pageCursor) => fetchPokerReels({
-          limit: 50,
-          cursor: pageCursor,
-          signal: reelsRequest.signal,
-          scope: following ? 'following' : 'social-carousel',
-          category: activeCategory,
-          accessToken,
-        }),
+      const payload = await loadCanonicalReelsWindow({
+        limit: 50,
+        signal: reelsRequest.signal,
+        scope: following ? 'following' : 'social-carousel',
+        category: activeCategory,
+        accessToken,
+        signedIn: Boolean(ownerId),
         selectRows: (rows) => rows
           .filter((reel) => !notInterested.has(reel.id))
           .map((reel) => ({ ...reel, source: 'reels' })),
       });
       if (!reelsRequest.isCurrent()) return;
       const allReels = payload.data;
+      if (!background && allReels.length && !deliveryMeasuredRef.current) {
+        deliveryMeasuredRef.current = true;
+        void recordReelsDeliveryMetric({
+          surface: 'social',
+          feedMode: following ? 'following' : 'for-you',
+          startupMs: Date.now() - deliveryStartRef.current,
+          playbackType: allReels[0]?.playback_type || 'unknown',
+        });
+      }
       const { nextCursor, hasMore: pageHasMore } = readContinuationState(payload);
 
       if (background) {
@@ -3593,16 +3592,14 @@ export function ReelsFeedCarousel() {
       const notInterested = loadNotInterestedReelIds(ownerId);
       const existingIds = new Set(reelsRef.current.map((reel) => reel.id));
       const seenThisScan = new Set();
-      const payload = await scanReelsContinuations({
+      const payload = await loadCanonicalReelsWindow({
         cursor,
-        fetchPage: (pageCursor) => fetchPokerReels({
-          limit: 50,
-          cursor: pageCursor,
-          signal: reelsRequest.signal,
-          scope: following ? 'following' : 'social-carousel',
-          category: activeCategory,
-          accessToken,
-        }),
+        limit: 50,
+        signal: reelsRequest.signal,
+        scope: following ? 'following' : 'social-carousel',
+        category: activeCategory,
+        accessToken,
+        signedIn: Boolean(ownerId),
         selectRows: (rows) => rows
           .filter((reel) => !notInterested.has(reel.id))
           .map((reel) => ({ ...reel, source: 'reels' }))
@@ -3626,7 +3623,10 @@ export function ReelsFeedCarousel() {
       setHasMore(pageHasMore);
       if (payload.data.length > 0) {
         setReels((current) => {
-          const merged = mergeCarouselReels(current, payload.data);
+          const merged = capReelsInMemory(
+            mergeCarouselReels(current, payload.data),
+            current[viewerActiveIndexRef.current]?.id,
+          );
           reelsRef.current = merged;
           return merged;
         });
@@ -3937,7 +3937,7 @@ export function ReelsFeedCarousel() {
             className="vlc-feed-reel-strip"
           >
             {reels.map((reel, index) => (
-              <ReelCard key={reel.id} reel={reel} onClick={() => openViewer(index)} />
+              <ReelCard key={reel.id} reel={reel} onOpen={() => openViewer(index)} />
             ))}
           </div>
           {continuationError ? (
