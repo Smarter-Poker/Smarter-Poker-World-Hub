@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const migrationPath = path.join(root, 'supabase/migrations/20261004190000_video_learning_discovery_phase8.sql');
 const sql = fs.readFileSync(migrationPath, 'utf8');
+const seedSql = fs.readFileSync(path.join(root, 'supabase/migrations/20261004191500_video_learning_catalog_seed.sql'), 'utf8');
 
 test('Phase 8 indexes only approved playable editorial material for full-text and semantic search', () => {
   assert.match(sql, /workflow_state NOT IN \('approved','published'\)/);
@@ -20,6 +21,15 @@ test('Phase 8 indexes only approved playable editorial material for full-text an
   assert.match(sql, /btrim\(coalesce\(p_query,''\)\)=''/);
   assert.match(sql, /CREATE TRIGGER trg_sync_video_learning_search_document/);
   assert.match(sql, /WHERE r\.workflow_state IN \('approved','published'\) AND public\.fn_is_video_library_asset_eligible\(r\.video_id\)/);
+});
+
+test('every eligible catalog video is searchable before optional enrichment', () => {
+  assert.match(seedSql, /FROM public\.video_library_videos v/);
+  assert.match(seedSql, /WHERE public\.fn_is_video_library_asset_eligible\(v\.id\)/);
+  assert.match(seedSql, /coalesce\(array_to_string\(v\.tags,' '\),''\)/);
+  assert.match(seedSql, /trg_sync_video_learning_catalog_document/);
+  assert.match(seedSql, /AFTER INSERT OR UPDATE OF[\s\S]*OR DELETE/);
+  assert.match(seedSql, /eligible catalog rows are missing search documents/);
 });
 
 test('Phase 8 study lists and continuation state are owner scoped', () => {
