@@ -670,6 +670,7 @@ ALL_CRONS = [
     ('/api/cron/video-library-scraper',     dict(hour=6, minute=0)),   # Daily 6am UTC — RSS ingest
     ('/api/cron/video-library-enrichment',  dict(minute='*/10')),      # Durable bounded Phase 4 jobs
     ('/api/cron/video-reel-candidates',     dict(minute='5,15,25,35,45,55')), # Phase 5 after enrichment
+    ('/api/cron/video-native-studio',       dict(minute='8,18,28,38,48')), # Phase 6 bounded rights-cleared renders
     ('/api/cron/video-library-reels',       dict(hour=7, minute=0)),   # Daily 7am UTC — Sync reels
 
     # ══ WAVE 1 (2026-04-24 — migrated from vercel.json; see phase-2a4-wave-plan.md) ══
@@ -1025,11 +1026,13 @@ SCRAPER_PY = _resolve_script('video_source_registry_ingest.py')
 REELS_BRIDGE_PY = _resolve_script('video_library_to_reels.py')
 ENRICHMENT_PY = _resolve_script('video_enrichment_worker.py')
 CANDIDATE_PY = _resolve_script('video_reel_candidate_worker.py')
+NATIVE_STUDIO_PY = _resolve_script('video_native_studio_worker.py')
 
 SCRIPT_JOB_SCRIPTS = {
     '/api/cron/video-library-reels': REELS_BRIDGE_PY,
     '/api/cron/video-library-enrichment': ENRICHMENT_PY,
     '/api/cron/video-reel-candidates': CANDIDATE_PY,
+    '/api/cron/video-native-studio': NATIVE_STUDIO_PY,
 }
 
 # 2026-09-04: '--sync-captions' IS a flag of video_library_to_reels.py, but it
@@ -1050,6 +1053,7 @@ SCRIPT_JOBS = {
     '/api/cron/video-library-scraper':  [],                   # full daily run
     '/api/cron/video-library-enrichment': ['--limit', '50'],  # bounded durable queue drain
     '/api/cron/video-reel-candidates': ['--limit', '25'],     # bounded explainable candidate selection
+    '/api/cron/video-native-studio': ['--limit', '2'],        # bounded rights-cleared FFmpeg work
     '/api/cron/video-library-reels':    [
         '--limit', '750', '--verify', '--verify-platform-supply'
     ],  # bounded official publisher plus shared poker/sports verdict renewal
@@ -1261,6 +1265,7 @@ CRITICAL_JOBS = {
     '/api/cron/video-library-scraper':  2,   # daily; 2 = two days without fresh videos
     '/api/cron/video-library-reels':    2,   # daily; 2 = two days of library videos not reaching the feed
     '/api/cron/video-reel-candidates':  3,   # ten-minute cadence; three misses = stalled candidate supply
+    '/api/cron/video-native-studio':    3,   # repeated render failures require operator investigation
     '/api/cron/horse-video-reels':      3,   # hourly; 3 = three hours without the horse video supply path
     # The cache audit has two daily idempotent passes. Page if both fail, so a
     # full day can never lose its integrity audit without reaching an operator.
@@ -1279,6 +1284,7 @@ CRITICAL_RUNBOOKS = {
     '/api/cron/video-library-scraper':  'World-Hub CLAUDE.md 11.3 + journalctl -u openclaw | grep video-library',
     '/api/cron/video-library-reels':    'World-Hub CLAUDE.md 11.3 + journalctl -u openclaw | grep video-library',
     '/api/cron/video-reel-candidates':  'World-Hub .planning/video-reels-upgrade/STATE.md + journalctl -u openclaw | grep video-reel-candidates',
+    '/api/cron/video-native-studio':    'World-Hub .planning/video-reels-upgrade/STATE.md + journalctl -u openclaw | grep video-native-studio',
     '/api/cron/horse-video-reels':      'World-Hub .planning/video-reels-upgrade/STATE.md + journalctl -u openclaw | grep horse-video-reels',
     '/api/cron/training-cache-drift-audit': 'World-Hub .agent/audits/2026-09-08-horse-phase3-certification.md',
     '/api/cron/table-socket-probe':     'club-arena/docs/runbooks/tables-say-reconnecting.md',
