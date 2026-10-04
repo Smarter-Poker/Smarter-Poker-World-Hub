@@ -2348,7 +2348,11 @@ export default function VideoLibraryPage() {
                                     </div>
                                     <div className="vl-new-week-copy">
                                         <strong>{video.title}</strong>
-                                        <span>{String(video.source || 'Verified Creator').replace('_', ' ')}</span>
+                                        <span>{String(video.attributionName || video.sourceName || 'Creator Unavailable').replace('_', ' ')}</span>
+                                        <small>{[
+                                            video.disclosureKind && video.disclosureKind !== 'organic' ? String(video.disclosureKind).replace('_', ' ') : null,
+                                            video.madeForKids === true ? 'Made For Kids' : null,
+                                        ].filter(Boolean).join(' / ')}</small>
                                     </div>
                                 </div>
                             ))}
@@ -2722,9 +2726,10 @@ export default function VideoLibraryPage() {
                             ref={playerIframeRef}
                             key={iframeKey}
                             id="youtube-player"
-                            src={`https://www.youtube.com/embed/${selectedVideo.videoId}?autoplay=${preferences.autoplay === false ? 0 : 1}&start=${selectedVideoResumeSeconds}&mute=${isTouchDevice ? 0 : 1}&rel=0&fs=1&iv_load_policy=3&enablejsapi=1&playsinline=1&cc_load_policy=${preferences.captions ? 1 : 0}&origin=${typeof window !== 'undefined' ? window.location.origin : 'https://smarter.poker'}`}
+                            src={`https://www.youtube-nocookie.com/embed/${selectedVideo.videoId}?autoplay=${preferences.autoplay === false ? 0 : 1}&start=${selectedVideoResumeSeconds}&mute=${isTouchDevice ? 0 : 1}&rel=0&controls=1&fs=1&iv_load_policy=3&enablejsapi=1&playsinline=1&cc_load_policy=${preferences.captions ? 1 : 0}&origin=${encodeURIComponent(typeof window !== 'undefined' ? window.location.origin : 'https://smarter.poker')}&widget_referrer=${encodeURIComponent(typeof window !== 'undefined' ? window.location.origin : 'https://smarter.poker')}`}
                             title={selectedVideo.title}
                             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
+                            referrerPolicy="strict-origin-when-cross-origin"
                             allowFullScreen
                             onLoad={(e) => {
                                 // mute=1 in URL ensures mobile autoplay compliance.

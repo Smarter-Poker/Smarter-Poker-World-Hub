@@ -10,7 +10,7 @@ import {
 const DEFAULT_LIMIT = 30;
 const MAX_LIMIT = 60;
 const MAX_PERSONAL_IDS = 500;
-const VIDEO_FIELDS = 'youtube_video_id, source_id, source_name, type, title, thumbnail_url, views_text, views_count, duration, published_at, scraped_at, tags, availability_status, embeddable, availability_checked_at';
+const VIDEO_FIELDS = 'youtube_video_id, source_id, source_name, type, title, thumbnail_url, views_text, views_count, duration, published_at, scraped_at, tags, availability_status, embeddable, availability_checked_at, attribution_name, attribution_url, disclosure_kind, sponsor_name, made_for_kids';
 
 let supabaseClient = null;
 
@@ -55,7 +55,12 @@ function normaliseVideo(row) {
         id: row.youtube_video_id,
         videoId: row.youtube_video_id,
         source: row.source_id,
-        sourceName: row.source_name || row.source_id,
+        sourceName: row.attribution_name || row.source_name || row.source_id,
+        attributionName: row.attribution_name || row.source_name || row.source_id,
+        attributionUrl: row.attribution_url || null,
+        disclosureKind: row.disclosure_kind || 'organic',
+        sponsorName: row.sponsor_name || null,
+        madeForKids: row.made_for_kids ?? null,
         type: row.type || 'cash',
         title: row.title,
         views: row.views_text && row.views_text !== '0' ? row.views_text : String(row.views_count || ''),

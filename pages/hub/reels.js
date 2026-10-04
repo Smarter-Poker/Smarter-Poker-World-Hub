@@ -25,12 +25,14 @@ import ReelPublicationRecoveryBanner from '../../src/components/reels/ReelPublic
 import ReelsModeRail from '../../src/components/reels/ReelsModeRail';
 import ReelPlayerFrame from '../../src/components/reels/ReelPlayerFrame';
 import ReelFeedbackActions from '../../src/components/reels/ReelFeedbackActions';
+import ReelTrustStrip from '../../src/components/reels/ReelTrustStrip';
 import VideoLearningLoop from '../../src/components/video-learning/VideoLearningLoop';
 import { reelSourceKey } from '../../src/lib/reelsFeedback.mjs';
 import { saveAppSetting } from '../../src/lib/appSettingsSync';
 import { busEmit, eventBus, EventType } from '../../src/engine/EventBus';
 import GiphyPicker from '../../src/components/shared/GiphyPicker';
 import { getAccessToken } from '../../src/lib/authUtils';
+import { submitReelReport } from '../../src/lib/reelsReportClient.mjs';
 import { getYouTubeVideoId } from '../../src/lib/socialHelpers';
 import {
   findBestGames,
@@ -281,7 +283,7 @@ function reelSourceName(reel) {
   return reel?.channel_name
     || reel?.profiles?.full_name
     || reel?.profiles?.username
-    || `${reelTopicLabel(reel)} Creator`;
+    || 'Creator Unavailable';
 }
 
 function reelSourceUrl(reel) {
@@ -1771,14 +1773,7 @@ export default function ReelsPage({ reelsListing = null }) {
     const ownerRequest = accountScopeRef.current.capture(activeUserIdRef.current);
     if (!currentReel?.id || !ownerRequest.ownerId || !ownerRequest.isCurrent() || !reportReason.trim()) return;
     try {
-      const { error } = await supabase.from('social_interactions').insert({
-        user_id: ownerRequest.ownerId,
-        post_id: currentReel.id,
-        interaction_type: 'report',
-        metadata: { reason: reportReason.trim() },
-      });
-      // AUDIT FIX: do NOT show success UI if the insert failed silently
-      if (error) throw error;
+      await submitReelReport({ reelId: currentReel.id, reason: reportReason, ownerId: ownerRequest.ownerId, accessToken: getAccessToken() });
       if (!ownerRequest.isCurrent()) return;
       setReportSubmitted(true);
       clearTimeout(reportModalTimerRef.current);
@@ -3678,6 +3673,7 @@ export default function ReelsPage({ reelsListing = null }) {
             View Original On {currentSourceName}
           </a>
         ) : null}
+        <ReelTrustStrip reel={currentReel} />
         {currentReel?.profiles?.id && user?.id && currentReel.profiles.id !== user.id && (
           <ReelAction onClick={handleFollow} aria-pressed={Boolean(following[currentReel.profiles.id])}>{following[currentReel.profiles.id] ? 'Following' : 'Follow'}</ReelAction>
         )}
@@ -3916,7 +3912,7 @@ export default function ReelsPage({ reelsListing = null }) {
           {reportSubmitted ? <ConsoleCopy align="center">Thank You. We Will Review This Content.</ConsoleCopy> : (
             <>
               <ConsoleCopy>Why Are You Reporting This Content?</ConsoleCopy>
-              {['Inappropriate Content', 'Spam Or Scam', 'Harassment', 'Misinformation', 'Other'].map((reason) => (
+              {['Copyright Or Rights', 'Incorrect Attribution', 'Unlabeled Promotion', 'Unlabeled Generated Media', 'Underage Or Safety', 'Gambling Harm', 'Playback Unavailable', 'Inappropriate Content', 'Spam Or Scam', 'Harassment', 'Misinformation', 'Other'].map((reason) => (
                 <ReelAction key={reason} onClick={() => setReportReason(reason)} aria-pressed={reportReason === reason}>{reason}</ReelAction>
               ))}
             </>
