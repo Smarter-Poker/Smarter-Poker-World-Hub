@@ -347,6 +347,7 @@ import './video-library-phase-7.test.mjs';
 import './video-reels-api-resilience.test.mjs';
 import './video-reels-collections-integrity.test.mjs';
 import './video-reels-integrity-phase-1.test.mjs';
+import './video-reels-phase7-unified-delivery.test.mjs';
 import './video-reels-ui-integrity.test.mjs';
 import './video-reels-youtube-sql-security.test.mjs';
 

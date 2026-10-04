@@ -22,6 +22,10 @@ import { reelsPreferences, savedReelsService } from '../../src/services/preferen
 import { getAuthUser } from '../../src/lib/authUtils';
 import UploadReelModal from '../../src/components/reels/UploadReelModal';
 import ReelPublicationRecoveryBanner from '../../src/components/reels/ReelPublicationRecoveryBanner';
+import ReelsModeRail from '../../src/components/reels/ReelsModeRail';
+import ReelPlayerFrame from '../../src/components/reels/ReelPlayerFrame';
+import ReelFeedbackActions from '../../src/components/reels/ReelFeedbackActions';
+import { reelSourceKey } from '../../src/lib/reelsFeedback.mjs';
 import { saveAppSetting } from '../../src/lib/appSettingsSync';
 import { busEmit, eventBus, EventType } from '../../src/engine/EventBus';
 import GiphyPicker from '../../src/components/shared/GiphyPicker';
@@ -46,7 +50,7 @@ import {
   normaliseReelAuthorIds,
 } from '../../src/lib/reelInteractionHydration';
 import { createLatestRequestGuard } from '../../src/lib/latestRequestGuard.mjs';
-import { scanReelsContinuations } from '../../src/lib/reelsContinuation.mjs';
+import { loadCanonicalReelsWindow } from '../../src/lib/reelsFeedController.mjs';
 import {
   BACKGROUND_REELS_REFRESH,
   REELS_BACKGROUND_REFRESH_DELAY_MS,
@@ -82,6 +86,8 @@ import {
   withDeadline,
 } from '../../src/lib/seo/publicFeedListing.mjs';
 import { readPokerReelsFeed } from '../../src/lib/server/reelsFeed';
+import { capReelsInMemory, reelsFeedModeContract, reelsFeedModeForQuery } from '../../src/lib/reelsDeliveryContract.mjs';
+import { recordReelsDeliveryMetric } from '../../src/lib/reelsDeliveryMetrics';
 
 const C = {
   bg: '#000000',
@@ -327,6 +333,8 @@ export async function getServerSideProps({ res }) {
 
 export default function ReelsPage({ reelsListing = null }) {
   const [reels, setReels] = useState([]);
+  const deliveryStartRef = useRef(Date.now());
+  const deliveryMeasuredRef = useRef(false);
   // The feed client also performs eager cleanup at module load, but Pages
   // Router hydration can reuse a server-evaluated module graph. Repeat the
   // idempotent cleanup after the browser mounts so an old localStorage Reel
@@ -994,7 +1002,7 @@ export default function ReelsPage({ reelsListing = null }) {
       playVideoOnLoadTimersRef.current.forEach((t) => clearTimeout(t));
       playVideoOnLoadTimersRef.current = [];
     };
-  }, [router.isReady, router.query.category, router.query.feed, router.query.id]);
+  }, [router.isReady, router.query.category, router.query.feed, router.query.id, router.query.mode]);
 
   useEffect(() => () => {
     reelsRequestGuardRef.current?.abort();
@@ -1038,9 +1046,13 @@ export default function ReelsPage({ reelsListing = null }) {
     const initialId = Array.isArray(router.query.id) ? router.query.id[0] : router.query.id;
     const deepLinkRequest = { id: initialId };
     try {
-      const routeCategory = categoryForReelsRoute(router.query);
-      const feedMode = feedModeForReelsRoute(router.query);
-      const routeNamespace = `${routeCategory}:${feedMode}`;
+      const requestedMode = reelsFeedModeForQuery(router.query);
+      const modeContract = reelsFeedModeContract(requestedMode, { signedIn: Boolean(user?.id) });
+      const modeWasExplicit = Boolean(router.query.mode);
+      const routeCategory = modeWasExplicit ? modeContract.category : categoryForReelsRoute(router.query);
+      const feedMode = modeContract.id === 'following' ? 'following' : feedModeForReelsRoute(router.query);
+      const routeSort = modeWasExplicit ? modeContract.sort : feedMode === 'trending' ? 'popular' : 'recent';
+      const routeNamespace = `${modeContract.id}:${routeCategory}:${routeSort}`;
       const routeNamespaceChanged = reelsRouteNamespaceRef.current !== routeNamespace;
       const authUser = feedMode === 'following' ? getAuthUser() : null;
       const followingAccessToken = feedMode === 'following' ? getAccessToken() : null;
@@ -1066,19 +1078,16 @@ export default function ReelsPage({ reelsListing = null }) {
         source: 'reels',
         profiles: video.profiles || null,
       });
-      const payload = await scanReelsContinuations({
-        fetchPage: (cursor, pageNumber) => fetchPokerReels({
-          limit: 120,
-          cursor,
-          // The deep-linked Reel is pinned only by a foreground load; a
-          // background refresh reads the natural window it merges into.
-          id: pageNumber === 1 && !background ? deepLinkRequest.id || null : null,
-          sort: feedMode === 'trending' ? 'popular' : 'recent',
-          signal: reelsRequest.signal,
-          scope: feedMode === 'following' ? 'following' : 'standalone',
-          category: routeCategory,
-          accessToken: followingAccessToken,
-        }),
+      const payload = await loadCanonicalReelsWindow({
+        limit: 120,
+        id: !background ? deepLinkRequest.id || null : null,
+        mode: modeContract.id,
+        sort: routeSort,
+        signal: reelsRequest.signal,
+        scope: feedMode === 'following' ? 'following' : 'standalone',
+        category: routeCategory,
+        accessToken: followingAccessToken,
+        signedIn: Boolean(authUser?.id),
         selectRows: (rows) => {
           const mappedReels = rows.map(mapFeedReel);
           const fresh = mappedReels.filter((reel) => !notInterestedIds.has(reel.id));
@@ -1211,13 +1220,22 @@ export default function ReelsPage({ reelsListing = null }) {
         setLikeCounts((prev) => ({ ...lc, ...prev }));
         setCommentCounts((prev) => ({ ...cc, ...prev }));
         setViewCounts((prev) => ({ ...vc, ...prev }));
+        if (!deliveryMeasuredRef.current) {
+          deliveryMeasuredRef.current = true;
+          void recordReelsDeliveryMetric({
+            surface: 'standalone',
+            feedMode: modeContract.id,
+            startupMs: Date.now() - deliveryStartRef.current,
+            playbackType: finalReels[0]?.playback_type || 'unknown',
+          });
+        }
       } else {
         setReels([]);
         setCurrentIndex(0);
       }
     } catch (e) {
       if (e?.name === 'AbortError' || !reelsRequest.isCurrent()) return;
-      if (feedModeForReelsRoute(router.query) === 'following' && [401, 403].includes(e?.status)) {
+      if (reelsFeedModeForQuery(router.query) === 'following' && [401, 403].includes(e?.status)) {
         setFollowingReauthRequired(true);
         setReels([]);
         currentIndexRef.current = 0;
@@ -1247,7 +1265,7 @@ export default function ReelsPage({ reelsListing = null }) {
       if (settled.current && !background) setLoading(false);
       if (settled.flushQueued) scheduleBackgroundReelsRefresh();
     }
-  }, [notInterestedIds, router.query.category, router.query.feed, router.query.id, scheduleBackgroundReelsRefresh]);
+  }, [notInterestedIds, router.query.category, router.query.feed, router.query.id, router.query.mode, scheduleBackgroundReelsRefresh, user?.id]);
   loadReelsRef.current = loadReels;
 
   useEffect(() => {
@@ -1299,6 +1317,30 @@ export default function ReelsPage({ reelsListing = null }) {
   const currentSourceUrl = reelSourceUrl(currentReel);
   const currentTopicLabel = reelTopicLabel(currentReel);
   activeCommentReelIdRef.current = currentReel?.id || null;
+
+  const handleRecommendationFeedback = (action) => {
+    if (!currentReel?.id) return;
+    const ownerId = user?.id || null;
+    if (action === 'not-interested') {
+      void handleDislike();
+    } else if (action === 'already-watched') {
+      setWatchedReelIds((previous) => persistWatchedReelIds([...new Set([...previous, currentReel.id])], ownerId));
+    } else {
+      const source = reelSourceKey(currentReel);
+      setNotInterestedIds((previous) => {
+        const next = new Set(previous);
+        if (action === 'hide-source' && source) {
+          reels.forEach((reel) => { if (reelSourceKey(reel) === source) next.add(reel.id); });
+        } else {
+          next.add(currentReel.id);
+        }
+        return persistNotInterestedReelIds(next, ownerId);
+      });
+      slideToNextRef.current();
+    }
+    setShowContextMenu(false);
+    setShowMoreMenu(false);
+  };
 
   // Phase 9: Watched Indicator Timer
   useEffect(() => {
@@ -1410,8 +1452,12 @@ export default function ReelsPage({ reelsListing = null }) {
     setLoadingMore(true);
     setLoadMoreError(null);
     try {
-      const routeCategory = categoryForReelsRoute(router.query);
-      const feedMode = feedModeForReelsRoute(router.query);
+      const requestedMode = reelsFeedModeForQuery(router.query);
+      const modeContract = reelsFeedModeContract(requestedMode, { signedIn: Boolean(user?.id) });
+      const modeWasExplicit = Boolean(router.query.mode);
+      const routeCategory = modeWasExplicit ? modeContract.category : categoryForReelsRoute(router.query);
+      const feedMode = modeContract.id === 'following' ? 'following' : feedModeForReelsRoute(router.query);
+      const routeSort = modeWasExplicit ? modeContract.sort : feedMode === 'trending' ? 'popular' : 'recent';
       const followingAccessToken = feedMode === 'following' ? getAccessToken() : null;
       if (feedMode === 'following' && !followingAccessToken) {
         setFollowingReauthRequired(true);
@@ -1424,17 +1470,16 @@ export default function ReelsPage({ reelsListing = null }) {
       const existingIds = new Set(reels.map((reel) => reel.id));
       const existingUrls = new Set(reels.map((reel) => reel.video_url).filter(Boolean));
       const seenUrlsThisScan = new Set();
-      const payload = await scanReelsContinuations({
+      const payload = await loadCanonicalReelsWindow({
         cursor: reelsCursorRef.current,
-        fetchPage: (cursor) => fetchPokerReels({
-          limit: 60,
-          cursor,
-          sort: feedMode === 'trending' ? 'popular' : 'recent',
-          signal: reelsRequest.signal,
-          scope: feedMode === 'following' ? 'following' : 'standalone',
-          category: routeCategory,
-          accessToken: followingAccessToken,
-        }),
+        limit: 60,
+        mode: modeContract.id,
+        sort: routeSort,
+        signal: reelsRequest.signal,
+        scope: feedMode === 'following' ? 'following' : 'standalone',
+        category: routeCategory,
+        accessToken: followingAccessToken,
+        signedIn: Boolean(followingAccessToken),
         selectRows: (rows) => rows
           .map((reel) => ({
             ...reel,
@@ -1462,7 +1507,10 @@ export default function ReelsPage({ reelsListing = null }) {
           setLoadMoreError('More Reels remain beyond filtered results. Continue when ready.');
         }
       } else {
-        setReels((prev) => mergeReels(prev, mappedFiltered, { category: routeCategory }));
+        setReels((prev) => capReelsInMemory(
+          mergeReels(prev, mappedFiltered, { category: routeCategory }),
+          currentReel?.id,
+        ));
         const lc = {},
           cc = {},
           vc = {};
@@ -2904,7 +2952,8 @@ export default function ReelsPage({ reelsListing = null }) {
       }}
     />
   ) : null;
-  const followingSignInRequired = categoryForReelsRoute(router.query) === 'following'
+  const activeFeedMode = reelsFeedModeForQuery(router.query);
+  const followingSignInRequired = activeFeedMode === 'following'
     && (!user?.id || followingReauthRequired);
   const reelsNavigationHeader = (
     <div key="reels-navigation-header" style={{ position: 'relative', zIndex: 10001 }}>
@@ -2915,6 +2964,14 @@ export default function ReelsPage({ reelsListing = null }) {
         commandMenuItems={menuConfig.menuItems}
         commandMenuBottomLinks={menuConfig.bottomLinks}
         commandMenuShowProfile={false}
+      />
+      <ReelsModeRail
+        activeMode={activeFeedMode}
+        signedIn={Boolean(user?.id)}
+        onChange={(mode) => {
+          const contract = reelsFeedModeContract(mode, { signedIn: true });
+          void router.push({ pathname: '/hub/reels', query: { mode, category: contract.category } }, undefined, { shallow: true, scroll: false });
+        }}
       />
     </div>
   );
@@ -3162,7 +3219,9 @@ export default function ReelsPage({ reelsListing = null }) {
         {/* Engagement Stats Pill REMOVED - duplicated the sidebar heart/comment buttons */}
 
         {/* VIDEO WRAPPER with slide animation */}
-        <div
+        <ReelPlayerFrame
+          reelId={currentReel?.id}
+          dataSaver={preferences.dataSaver}
           style={{
             position: 'absolute',
             top: 0,
@@ -3345,7 +3404,7 @@ export default function ReelsPage({ reelsListing = null }) {
               />
             </>
           ) : null}
-        </div>
+        </ReelPlayerFrame>
 
         <progress className={styles.progress} value={Math.round(videoProgress)} max={100} aria-label="Video Progress" />
 
@@ -3657,6 +3716,7 @@ export default function ReelsPage({ reelsListing = null }) {
             setShowContextMenu(false); setShowMoreMenu(false);
           }}>Copy Link</ReelAction>
           <ReelAction onClick={() => { setShowContextMenu(false); setShowMoreMenu(false); setShowReportModal(true); }}>Report</ReelAction>
+          <ReelFeedbackActions className={styles.choiceList} buttonClassName={styles.wordActionDanger} onFeedback={handleRecommendationFeedback} />
         </ReelsConsoleDialog>
       )}
 

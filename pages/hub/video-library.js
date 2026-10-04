@@ -604,6 +604,7 @@ export default function VideoLibraryPage() {
 
     // "New This Week" rail dismiss state
     const [newThisWeekDismissed, setNewThisWeekDismissed] = useState(false);
+    const [discoveryView, setDiscoveryView] = useState('new-today');
 
     const isPlayerPlayingRef = useRef(false);
     const handlePlaybackInfo = useCallback((info) => {
@@ -1635,6 +1636,25 @@ export default function VideoLibraryPage() {
         .slice(0, 20)
     , [allVideos]); // ← stable: recomputes only when library refreshes
 
+    const discoveryViews = useMemo(() => {
+        const now = Date.now();
+        const sorted = [...allVideos].sort((a, b) => new Date(b.scrapedAt || b.publishedAt || 0) - new Date(a.scrapedAt || a.publishedAt || 0));
+        const searchText = video => [video.title, video.source, ...(video.tags || [])].filter(Boolean).join(' ').toLowerCase();
+        const tagged = matcher => sorted.filter(video => matcher(searchText(video)));
+        return [
+            { id: 'new-today', label: 'New Today', videos: sorted.filter(video => {
+                const published = new Date(video.scrapedAt || video.publishedAt || 0).getTime();
+                return published > 0 && now - published <= 24 * 60 * 60 * 1000;
+            }) },
+            { id: 'shorts', label: 'Shorts', videos: sorted.filter(video => parseDuration(video.duration) > 0 && parseDuration(video.duration) <= 180) },
+            { id: 'skill-level', label: 'Skill Level', videos: tagged(text => /beginner|intermediate|advanced|fundamental|masterclass/.test(text)) },
+            { id: 'creator', label: 'Creator', videos: sorted.filter(video => Boolean(video.source)) },
+            { id: 'event', label: 'Event', videos: tagged(text => /wsop|wpt|tournament|event|final table|main event/.test(text)) },
+            { id: 'duration', label: 'Under 10 Min', videos: sorted.filter(video => parseDuration(video.duration) > 0 && parseDuration(video.duration) <= 600) },
+        ];
+    }, [allVideos]);
+    const activeDiscoveryView = discoveryViews.find(view => view.id === discoveryView) || discoveryViews[0];
+
     // Cleanup share toast timer on unmount
     useEffect(() => () => { if (shareToastTimer.current) clearTimeout(shareToastTimer.current); }, []);
 
@@ -2189,6 +2209,50 @@ export default function VideoLibraryPage() {
                         )}
                     </section>
                 )}
+
+                <section className="vl-new-this-week" aria-labelledby="vl-discovery-title" data-video-library-discovery>
+                    <div className="vl-new-week-header">
+                        <h2 id="vl-discovery-title"><span>Explore</span>Discovery Deck</h2>
+                    </div>
+                    <div className="vl-type-toggle-row" role="tablist" aria-label="Video discovery views">
+                        {discoveryViews.map(view => (
+                            <button
+                                type="button"
+                                role="tab"
+                                key={view.id}
+                                className={`vl-filter-button${discoveryView === view.id ? ' is-active' : ''}`}
+                                aria-selected={discoveryView === view.id}
+                                onClick={() => setDiscoveryView(view.id)}
+                            >
+                                {view.label} <span>{view.videos.length}</span>
+                            </button>
+                        ))}
+                    </div>
+                    {activeDiscoveryView.videos.length > 0 ? (
+                        <div className="vl-new-week-scroll vl-new-week-grid" role="tabpanel" aria-label={activeDiscoveryView.label}>
+                            {activeDiscoveryView.videos.slice(0, 8).map(video => (
+                                <div
+                                    key={`${activeDiscoveryView.id}-${video.videoId}`}
+                                    className="vl-new-week-card"
+                                    onClick={() => handleOpenVideo(video)}
+                                    onKeyDown={(event) => handleVideoCardKeyDown(event, video)}
+                                    role="button"
+                                    tabIndex={0}
+                                    aria-label={`Play ${video.title}`}
+                                >
+                                    <div className="vl-new-week-media">
+                                        <img src={getThumbnail(video.videoId)} alt="" loading="lazy" decoding="async" onLoad={event => recoverYouTubeThumbnail(event, video.videoId)} onError={event => recoverYouTubeThumbnail(event, video.videoId)} />
+                                        {video.duration ? <span className="vl-new-week-duration">{video.duration}</span> : null}
+                                    </div>
+                                    <div className="vl-new-week-copy">
+                                        <strong>{video.title}</strong>
+                                        <span>{String(video.source || 'Verified Creator').replace('_', ' ')}</span>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    ) : <p className="vl-empty-copy" role="status">No Verified Videos Match This View Yet.</p>}
+                </section>
 
                 {/* Video Grid */}
                 {catalogRefreshFailed && (
