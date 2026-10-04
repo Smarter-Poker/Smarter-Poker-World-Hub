@@ -1,9 +1,11 @@
 import Head from 'next/head';
 import dynamic from 'next/dynamic';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { supabase } from '../../../src/lib/supabase';
 
 const UniversalHeader = dynamic(() => import('../../../src/components/ui/UniversalHeader'), { ssr: false });
 const windows = [24, 72, 168];
+const adjustableControls = new Set(['video_library_discovery', 'video_library_enrichment', 'video_library_reel_creation', 'video_library_reel_publication', 'video_library_editorial_gate']);
 const windowLabel = (hours) => hours === 168 ? '7 days' : `${hours} hours`;
 function token() {
   try { return JSON.parse(localStorage.getItem('smarter-poker-auth') || 'null')?.access_token || null; }
@@ -36,6 +38,7 @@ export default function VideoOperations() {
   const pendingControlOperations = useRef(new Map());
   const requestSequence = useRef(0);
   const requestController = useRef(null);
+  const controlController = useRef(null);
   const load = useCallback(async () => {
     const requestId = ++requestSequence.current;
     requestController.current?.abort();
@@ -49,7 +52,13 @@ export default function VideoOperations() {
         headers: { Authorization: `Bearer ${access}` }, cache: 'no-store', signal: controller.signal,
       });
       const body = await response.json();
-      if (!response.ok) throw new Error(body.error || 'Operations snapshot failed');
+      if (!response.ok) {
+        if (response.status === 401 || response.status === 403) {
+          setData(null);
+          pendingControlOperations.current.clear();
+        }
+        throw new Error(body.error || 'Operations snapshot failed');
+      }
       if (requestId !== requestSequence.current) return;
       if (token() !== access) { setData(null); setError('Admin session changed. Sign in again to view pipeline operations.'); return; }
       setData(body);
@@ -65,6 +74,36 @@ export default function VideoOperations() {
     return () => { requestController.current?.abort(); requestSequence.current += 1; };
   }, [load]);
 
+  useEffect(() => {
+    const invalidateSession = (event) => {
+      requestController.current?.abort();
+      controlController.current?.abort();
+      requestSequence.current += 1;
+      pendingControlOperations.current.clear();
+      setData(null);
+      setSavingControl('');
+      setBusy(false);
+      const access = event === 'SIGNED_OUT' ? null : token();
+      if (access) {
+        setError('Admin session changed. Reloading the operations snapshot.');
+        load();
+      } else {
+        setError('Sign in with an admin account to view pipeline operations.');
+      }
+    };
+    const handleStorage = (event) => {
+      if (event.key === null
+        || event.key === 'smarter-poker-auth'
+        || (event.key?.startsWith('sb-') && event.key?.endsWith('-auth-token'))) invalidateSession();
+    };
+    window.addEventListener('storage', handleStorage);
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(invalidateSession);
+    return () => {
+      window.removeEventListener('storage', handleStorage);
+      subscription?.unsubscribe();
+    };
+  }, [load]);
+
   const changeControl = useCallback(async (control) => {
     if (savingControl) return;
     const reason = String(controlReason[control.control_key] || '').trim();
@@ -78,23 +117,32 @@ export default function VideoOperations() {
     };
     if (!operation.operation_id) { setError('Secure operation IDs are unavailable in this browser.'); return; }
     pendingControlOperations.current.set(control.control_key, operation);
+    const controller = new AbortController();
+    controlController.current?.abort();
+    controlController.current = controller;
     setSavingControl(control.control_key); setError('');
     try {
       const response = await fetch('/api/admin/video-operations', {
         method: 'PATCH', headers: { Authorization: `Bearer ${access}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify(operation),
+        body: JSON.stringify(operation), signal: controller.signal,
       });
       const body = await response.json();
+      if (token() !== access) return;
       if (!response.ok) {
-        if (response.status < 500) pendingControlOperations.current.delete(control.control_key);
+        if (response.status === 401 || response.status === 403) {
+          setData(null);
+          pendingControlOperations.current.clear();
+        } else if (response.status < 500) pendingControlOperations.current.delete(control.control_key);
         if (response.status === 409) await load();
         throw new Error(body.error || 'Pipeline switch update failed');
       }
       pendingControlOperations.current.delete(control.control_key);
       setControlReason((current) => ({ ...current, [control.control_key]: '' }));
       await load();
-    } catch (cause) { setError(cause.message || 'Pipeline switch update failed'); }
-    finally { setSavingControl(''); }
+    } catch (cause) {
+      if (cause.name !== 'AbortError' && token() === access) setError(cause.message || 'Pipeline switch update failed');
+    }
+    finally { if (token() === access) setSavingControl(''); }
   }, [controlReason, load, savingControl]);
 
   const snapshot = data?.snapshot;
@@ -136,10 +184,12 @@ export default function VideoOperations() {
   const runRows = useMemo(() => {
     const grouped = new Map();
     for (const row of snapshot?.ingestion || []) {
-      const value = grouped.get(row.topic) || { topic: row.topic, runs: 0, candidates: 0, qualified: 0, inserted: 0, duplicates: 0, rejected: 0, quota: 0, failures: 0 };
+      const value = grouped.get(row.topic) || { topic: row.topic, runs: 0, candidates: 0, qualified: 0, inserted: 0, duplicates: 0, rejected: 0, quota: 0, failures: 0, failureClasses: {} };
       for (const key of ['runs', 'candidates', 'qualified', 'inserted', 'duplicates', 'rejected']) value[key] += Number(row[key] || 0);
       value.quota += Number(row.quota_units || 0);
       if (row.status === 'failed' || row.status === 'quota_stopped') value.failures += Number(row.runs || 0);
+      const failureClass = ['quota', 'data_contract', 'source_unavailable', 'provider_transport', 'other'].includes(row.failure_class) ? row.failure_class : 'other';
+      if (failureClass !== 'none') value.failureClasses[failureClass] = (value.failureClasses[failureClass] || 0) + Number(row.runs || 0);
       grouped.set(row.topic, value);
     }
     return [...grouped.values()];
@@ -185,11 +235,11 @@ export default function VideoOperations() {
         <div className="columns">
           <section className="panel"><div className="section-title"><div><small>SUPPLY / INGESTION</small><h2>Sources And Run Funnel</h2></div></div>
             {sourceRows.length ? <div className="table-wrap"><table><thead><tr><th>Topic</th><th>Sources</th><th>Active</th><th>Overdue</th><th>Lifecycle</th></tr></thead><tbody>{sourceRows.map((row) => <tr key={row.topic}><td>{row.topic || 'Unassigned'}</td><td>{number(row.sources)}</td><td>{number(row.active)}</td><td>{number(row.overdue)}</td><td>{row.lifecycles.join(' · ')}</td></tr>)}</tbody></table></div> : <p className="quiet">No Registered Video Sources.</p>}
-            {runRows.length ? <div className="table-wrap"><table><thead><tr><th>Topic</th><th>Runs</th><th>Found</th><th>Qualified</th><th>Inserted</th><th>Duplicate</th><th>Rejected</th><th>Failed</th><th>Quota Units</th></tr></thead><tbody>{runRows.map((row) => <tr key={row.topic}><td>{row.topic}</td>{['runs','candidates','qualified','inserted','duplicates','rejected','failures','quota'].map((key) => <td key={key}>{number(row[key])}</td>)}</tr>)}</tbody></table></div> : <p className="quiet">No Ingestion Runs During This Window.</p>}
+            {runRows.length ? <div className="table-wrap"><table><thead><tr><th>Topic</th><th>Runs</th><th>Found</th><th>Qualified</th><th>Inserted</th><th>Duplicate</th><th>Rejected</th><th>Failed</th><th>Failure Classes</th><th>Quota Units</th></tr></thead><tbody>{runRows.map((row) => <tr key={row.topic}><td>{row.topic}</td>{['runs','candidates','qualified','inserted','duplicates','rejected','failures'].map((key) => <td key={key}>{number(row[key])}</td>)}<td>{Object.entries(row.failureClasses).map(([name, count]) => `${name}: ${number(count)}`).join(' · ') || 'None'}</td><td>{number(row.quota)}</td></tr>)}</tbody></table></div> : <p className="quiet">No Ingestion Runs During This Window.</p>}
           </section>
 
           <section className="panel"><div className="section-title"><div><small>EDITORIAL / RIGHTS</small><h2>Candidate Queue</h2></div><a href="/hub/admin/video-editorial">Review Queue</a></div>
-            {candidateRows.length ? <div className="table-wrap"><table><thead><tr><th>Topic</th><th>Proposed</th><th>Approved</th><th>Published</th><th>Published In Window</th><th>Rejected</th><th>Stale</th></tr></thead><tbody>{candidateRows.map((row) => <tr key={row.topic}><td>{row.topic}</td><td>{number(row.statuses.proposed)}</td><td>{number(row.statuses.approved)}</td><td>{number(row.statuses.published)}</td><td>{number(row.publishedInWindow)}</td><td>{number(row.statuses.rejected)}</td><td>{number(row.stale)}</td></tr>)}</tbody></table></div> : <p className="quiet">No Reel Candidates Are Queued.</p>}
+            {candidateRows.length ? <div className="table-wrap"><table><thead><tr><th>Topic</th><th>Generating</th><th>Proposed</th><th>Approved</th><th>Published</th><th>Published In Window</th><th>Rate Limited</th><th>Rejected</th><th>Stale</th></tr></thead><tbody>{candidateRows.map((row) => <tr key={row.topic}><td>{row.topic}</td><td>{number(row.statuses.generating)}</td><td>{number(row.statuses.proposed)}</td><td>{number(row.statuses.approved)}</td><td>{number(row.statuses.published)}</td><td>{number(row.publishedInWindow)}</td><td>{number(row.statuses.rate_limited)}</td><td>{number(row.statuses.rejected)}</td><td>{number(row.stale)}</td></tr>)}</tbody></table></div> : <p className="quiet">No Reel Candidates Are Queued.</p>}
             <div className="mini-grid"><article><span>Topic Mismatches</span><b className={snapshot.topicLeakCount ? 'red-text' : ''}>{number(snapshot.topicLeakCount)}</b></article><article><span>Pending Rights Cases</span><b>{number((snapshot.moderationCases || []).filter((row) => ['submitted','triaged','in_review'].includes(row.status)).reduce((n,row)=>n+Number(row.count||0),0))}</b></article><article><span>Expired Rights Evidence</span><b className={sum(snapshot.rightsEvidence, 'expired') ? 'red-text' : ''}>{number(sum(snapshot.rightsEvidence, 'expired'))}</b></article><article><span>Enrichment Dead Letters</span><b className={sum(jobs.filter((row)=>row.status==='dead_letter'),'count') ? 'red-text' : ''}>{number(sum(jobs.filter((row)=>row.status==='dead_letter'),'count'))}</b></article></div>
           </section>
 
@@ -200,8 +250,8 @@ export default function VideoOperations() {
 
           <section className="panel"><div className="section-title"><div><small>GUARDS / RECOVERY</small><h2>Feature Flags And Jobs</h2></div></div>
             <div className="controls">{controls.map((control) => {
-              const adjustable = control.control_key !== 'youtube_native_transcode';
-              return <div className="control-row" key={control.control_key}><span>{control.control_key.replaceAll('_',' ')}</span><b className={control.enabled ? 'enabled' : 'disabled'}>{control.enabled ? 'Enabled' : 'Disabled'}</b>{adjustable ? <><input aria-label={`Reason for ${control.control_key}`} value={controlReason[control.control_key] || ''} maxLength={240} placeholder="Reason For Change" onChange={(event) => setControlReason((current) => ({ ...current, [control.control_key]: event.target.value }))}/><button onClick={() => changeControl(control)} disabled={!!savingControl || busy}>{savingControl === control.control_key ? 'Saving…' : control.enabled ? 'Pause Stage' : 'Resume Stage'}</button></> : <small>Rights Cleared Service Path Only</small>}</div>;
+              const adjustable = adjustableControls.has(control.control_key);
+              return <div className="control-row" key={control.control_key}><span>{control.control_key.replaceAll('_',' ')}</span><b className={control.enabled ? 'enabled' : 'disabled'}>{control.enabled ? 'Enabled' : 'Disabled'}</b>{adjustable ? <><input aria-label={`Reason for ${control.control_key}`} value={controlReason[control.control_key] || ''} maxLength={240} placeholder="Reason For Change" onChange={(event) => setControlReason((current) => ({ ...current, [control.control_key]: event.target.value }))}/><button onClick={() => changeControl(control)} disabled={!!savingControl || busy}>{savingControl === control.control_key ? 'Saving…' : control.enabled ? 'Pause Stage' : 'Resume Stage'}</button></> : <small>{control.control_key === 'youtube_native_transcode' ? 'Rights Cleared Service Path Only' : 'Not adjustable in this console'}</small>}</div>;
             })}</div>
             {jobs.length ? <div className="table-wrap"><table><thead><tr><th>Job</th><th>State</th><th>Count</th><th>Due</th></tr></thead><tbody>{jobs.map((row) => <tr key={`${row.job_type}:${row.status}`}><td>{row.job_type}</td><td>{row.status}</td><td>{number(row.count)}</td><td>{number(row.due)}</td></tr>)}</tbody></table></div> : <p className="quiet">No Enrichment Jobs Were Recorded.</p>}
             {controlHistory.length > 0 && <div className="table-wrap"><table><thead><tr><th>Switch History</th><th>Before</th><th>After</th><th>Reason</th><th>Changed</th></tr></thead><tbody>{controlHistory.map((event, index) => <tr key={`${event.control_key}:${event.created_at}:${index}`}><td>{event.control_key}</td><td>{event.enabled_before ? 'Enabled' : 'Disabled'}</td><td>{event.enabled_after ? 'Enabled' : 'Disabled'}</td><td>{event.reason}</td><td>{new Date(event.created_at).toLocaleString()}</td></tr>)}</tbody></table></div>}

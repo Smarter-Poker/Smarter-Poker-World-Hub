@@ -1,7 +1,7 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
-import { randomUUID } from 'crypto';
 const { buildAlerts } = require('../../../lib/videoOperationsAlerts');
+const { isVideoOperationsOperationId } = require('../../../lib/videoOperationsContract');
 
 function clients() {
   const url = (process.env.NEXT_PUBLIC_SUPABASE_URL || '').trim();
@@ -53,14 +53,14 @@ export default async function handler(req, res) {
     const enabled = req.body?.enabled;
     const expectedUpdatedAt = typeof req.body?.expected_updated_at === 'string' ? req.body.expected_updated_at : '';
     const reason = typeof req.body?.reason === 'string' ? req.body.reason.trim() : '';
-    const operationId = typeof req.body?.operation_id === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(req.body.operation_id)
-      ? req.body.operation_id : randomUUID();
+    const operationId = typeof req.body?.operation_id === 'string' ? req.body.operation_id : '';
     const parsedTimestamp = new Date(expectedUpdatedAt);
-    if (!controlKey || typeof enabled !== 'boolean' || !expectedUpdatedAt
+    if (!isVideoOperationsOperationId(operationId)
+      || !controlKey || typeof enabled !== 'boolean' || !expectedUpdatedAt
       || !Number.isFinite(parsedTimestamp.getTime())
       || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/.test(expectedUpdatedAt)
       || reason.length < 1 || reason.length > 240) {
-      return res.status(400).json({ error: 'Choose a pipeline switch, include its current version, and enter a reason up to 240 characters.' });
+      return res.status(400).json({ error: 'Choose a pipeline switch, provide a valid operation ID and current version, and enter a reason up to 240 characters.' });
     }
     if (!user.id) return res.status(403).json({ error: 'A signed-in admin is required to change pipeline switches.' });
     try {

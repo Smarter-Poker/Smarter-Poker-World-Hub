@@ -4,10 +4,12 @@ import { createRequire } from 'node:module';
 import test from 'node:test';
 const require = createRequire(import.meta.url);
 const { buildAlerts } = require('../lib/videoOperationsAlerts.js');
+const { isVideoOperationsOperationId } = require('../lib/videoOperationsContract.js');
 
 const migration = readFileSync(new URL('../supabase/migrations/20261004213000_video_operations_analytics_phase10.sql', import.meta.url), 'utf8');
 const indexMigration = readFileSync(new URL('../supabase/migrations/20261004222000_video_reels_control_events_actor_index.sql', import.meta.url), 'utf8');
 const api = readFileSync(new URL('../pages/api/admin/video-operations.js', import.meta.url), 'utf8');
+const operationsContract = readFileSync(new URL('../lib/videoOperationsContract.js', import.meta.url), 'utf8');
 const page = readFileSync(new URL('../pages/hub/admin/video-operations.js', import.meta.url), 'utf8');
 const pushGuard = readFileSync(new URL('../scripts/guard-merged-branch.sh', import.meta.url), 'utf8');
 
@@ -65,7 +67,7 @@ test('alert thresholds sort critical data-integrity failures first and report we
   const healthy = buildAlerts({
     sources: [{ active: 4, overdue: 0 }], ingestion: [], duplicates: { duplicateRows: 0 },
     topicLeakCount: 0, candidates: [], rightsEvidence: [], moderationCases: [],
-    controls: ['video_library_discovery','video_library_enrichment','video_library_reel_creation','video_library_reel_publication'].map((control_key) => ({ control_key, enabled: true })),
+    controls: [...['video_library_discovery','video_library_enrichment','video_library_reel_creation','video_library_reel_publication'].map((control_key) => ({ control_key, enabled: true })), { control_key: 'video_library_editorial_gate', enabled: false }],
     jobs: [], delivery: [{ samples: 5, startup_ms_p95: 2999, dropped_frames: 20, decoded_frames: 1000, surface: 'standalone', feed_mode: 'for-you' }],
     quota: [{ daily_budget: 1000, remaining: 110, usage_date: '2026-10-04' }],
   });
@@ -90,6 +92,11 @@ test('alert thresholds sort critical data-integrity failures first and report we
     controls: [{ control_key: 'video_library_reel_publication', enabled: true }],
   });
   assert.ok(publicationAlerts.some((alert) => alert.key === 'publication_stall' && alert.count === 3));
+
+  const missingCanary = buildAlerts({ controls: [] });
+  assert.ok(missingCanary.some((alert) => alert.key === 'missing_video_library_editorial_gate' && alert.severity === 'critical'));
+  const disabledCanary = buildAlerts({ controls: [...['video_library_discovery','video_library_enrichment','video_library_reel_creation','video_library_reel_publication'].map((control_key) => ({ control_key, enabled: true })), { control_key: 'video_library_editorial_gate', enabled: false }] });
+  assert.ok(!disabledCanary.some((alert) => alert.key === 'pipeline_circuit_breaker'));
 });
 
 test('pipeline switch writes are versioned, replay-safe, actor-audited, and rights-gated', () => {
@@ -104,8 +111,15 @@ test('pipeline switch writes are versioned, replay-safe, actor-audited, and righ
   assert.match(migration, /REVOKE ALL ON FUNCTION public\.fn_set_video_reels_pipeline_control[\s\S]*FROM PUBLIC, anon, authenticated/);
   assert.match(migration, /GRANT EXECUTE ON FUNCTION public\.fn_set_video_reels_pipeline_control[\s\S]*TO service_role/);
   assert.match(api, /expected_updated_at/);
-  assert.match(api, /\[1-8\]\[0-9a-f\]\{3\}/);
+  assert.match(operationsContract, /\[1-8\]\[0-9a-f\]\{3\}/);
+  assert.match(api, /const operationId = typeof req\.body\?\.operation_id === 'string' \? req\.body\.operation_id : ''/);
+  assert.match(api, /!isVideoOperationsOperationId\(operationId\)/);
+  assert.doesNotMatch(api, /randomUUID/);
   assert.match(api, /reason.length < 1 \|\| reason.length > 240/);
+  assert.equal(isVideoOperationsOperationId('f1b242f4-76a2-45b5-a0b1-8a6d3a0f4c11'), true);
+  assert.equal(isVideoOperationsOperationId(undefined), false);
+  assert.equal(isVideoOperationsOperationId('not-an-operation-id'), false);
+  assert.equal(isVideoOperationsOperationId('f1b242f4-76a2-05b5-a0b1-8a6d3a0f4c11'), false);
 });
 
 test('operations console links existing controls and handles alerts, empty states, and mobile reporting', () => {
@@ -120,6 +134,15 @@ test('operations console links existing controls and handles alerts, empty state
   assert.match(page, /youtube_native_transcode/);
   assert.match(page, /requestSequence = useRef\(0\)/);
   assert.match(page, /token\(\) !== access/);
+  assert.match(page, /supabase\.auth\.onAuthStateChange\(invalidateSession\)/);
+  assert.match(page, /window\.addEventListener\('storage', handleStorage\)/);
+  assert.match(page, /event\.key === null/);
+  assert.match(page, /response\.status === 401 \|\| response\.status === 403/);
+  assert.match(page, /failureClasses/);
+  assert.match(page, /row\.statuses\.generating/);
+  assert.match(page, /row\.statuses\.rate_limited/);
+  assert.match(page, /adjustableControls\.has\(control\.control_key\)/);
+  assert.match(page, /Not adjustable in this console/);
   assert.match(page, /pendingControlOperations/);
   assert.match(page, /newOperationId/);
   assert.match(readFileSync(new URL('../docs/video-reels-phase10-operations.md', import.meta.url), 'utf8'), /Alert thresholds/);
