@@ -29,3 +29,21 @@ test('retired or cached unknown world URLs return 404 while valid worlds and ali
     assert.ok((await context.getServerSideProps({ params: { orbId: key } })).props);
   }
 });
+test('the last traces of the standalone Diamond Arena stay removed', async () => {
+  assert.ok(!read('next.config.js').includes('diamond.smarter.poker'), 'the retired iframe origin is not an image host');
+  const search = read('src/world/components/GlobalSearch.tsx');
+  const mock = search.slice(search.indexOf('const mockResults = ['), search.indexOf('].filter('));
+  assert.match(mock, /'Poker Arena'/);
+  assert.doesNotMatch(mock, /Diamond Arena/, 'Diamond Arena is a selection inside Poker Arena, not its own search result');
+  const { DIAMOND_ENTRIES } = await import('../src/lib/geevesKB/trainingAndDiamonds.js');
+  const entry = DIAMOND_ENTRIES.find(item => item.id === 'ds-3');
+  assert.ok(entry, 'ds-3 keeps its id');
+  const spoken = [entry.answer, ...entry.followUps].join('\n');
+  for (const retired of ['Table Settings', 'Schedule', 'Leaderboard', 'History', 'leaderboard', 'schedule', 'buy-in']) {
+    assert.ok(!spoken.includes(retired), `ds-3 no longer describes ${retired}`);
+  }
+  assert.match(entry.answer, /Poker Arena/);
+  assert.match(entry.answer, /\/hub\/club-arena/);
+  assert.ok(!spoken.includes('—'), 'no em dash in player-facing copy');
+  assert.ok(!read('src/lib/geevesKB/worldHub.js').includes('Biggest diamond earners'), 'the leaderboards page has no Diamond Arena category');
+});
