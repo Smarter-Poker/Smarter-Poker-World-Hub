@@ -1479,7 +1479,7 @@ export const EASTER_EGGS = {
     name: 'First Blood',
     rarity: 'common',
     diamonds: 10,
-    hint: 'Win your first Diamond Arena hand.',
+    hint: 'Win your first Poker Arena hand.',
     category: 'discovery',
     verifiable: true,
     icon: 'Swords',

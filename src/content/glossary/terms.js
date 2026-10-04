@@ -544,7 +544,7 @@ export const GLOSSARY_TERMS = [
     term: 'Club Chips Versus Diamonds',
     category: 'Club Poker',
     definition:
-      'On Smarter.Poker, Club Chips And Diamonds Are Two Separate Currencies. Club Chips Are Play Credits A Club Issues For Its Own Tables, With No Cash Value. Diamonds Are A Promotional Rewards Currency Used Across The Platform, Including Diamond Arena Games. Neither Can Be Cashed Out, And There Is No Real-Money Gambling On The Platform.',
+      'On Smarter.Poker, Club Chips And Diamonds Are Two Separate Currencies. Club Chips Are Play Credits A Club Issues For Its Own Tables, With No Cash Value. Diamonds Are A Promotional Rewards Currency Used Across The Platform. Neither Can Be Cashed Out, And There Is No Real-Money Gambling On The Platform.',
     related: ['settlement', 'poker-union', 'rakeback', 'club-agent'],
   },
   {

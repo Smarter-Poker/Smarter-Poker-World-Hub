@@ -73,7 +73,7 @@ export default function HelpPage() {
                 },
                 {
                     q: 'What is the Diamond Arena?',
-                    a: 'The Diamond Arena is our competitive poker room where you can play cash games and tournaments with other players for diamonds and XP.'
+                    a: 'Diamond Arena is a selection inside Poker Arena. It no longer has a page of its own. Open Poker Arena from the Hub and select Diamond Arena. Every player is automatically a member. Funded Diamond games are not open for play yet.'
                 }
             ]
         },

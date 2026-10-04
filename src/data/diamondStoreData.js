@@ -528,13 +528,13 @@ export const VIP_BENEFITS = [
     value: 'Exclusive',
     category: 'Smarter.Poker',
   },
-  // ─── CLUB & DIAMOND ARENA FEATURES ───
+  // ─── CLUB ARENA FEATURES ───
   {
     title: '100 Free Rabbit Hunts Every Month',
     description:
       'See The Cards That Would Have Come After You Fold. Hunts Beyond The First 100 Cost 5 Diamonds Each',
     value: '100/Mo',
-    category: 'Club & Diamond Arena',
+    category: 'Club Arena',
     plans: ['month', 'year'],
   },
   {
@@ -542,27 +542,27 @@ export const VIP_BENEFITS = [
     description:
       'Your Hand Is Protected Every Time You Disconnect. Free Accounts Get Exactly One Per Session',
     value: 'Unlimited',
-    category: 'Club & Diamond Arena',
+    category: 'Club Arena',
   },
   {
     title: 'Auto Time Bank Activation, Free Every Time',
     description:
       'Your Time Bank Fires Automatically The Moment You Need It. Free Accounts Pay 5 Diamonds Per Activation',
     value: 'No Diamond Cost',
-    category: 'Club & Diamond Arena',
+    category: 'Club Arena',
   },
   {
     title: 'Stack Display In Big Blinds, Free Every Session',
     description: 'Display Every Stack In Big Blinds Without The Standard 5-Diamond Session Charge',
     value: 'No Diamond Cost',
-    category: 'Club & Diamond Arena',
+    category: 'Club Arena',
   },
   {
     title: '120 Extra Time Bank Seconds Every Month',
     description:
       'Added On Top Of The 40 Second Base Bank, For 160 Seconds Of Thinking Time In Total',
     value: '+120s/Mo',
-    category: 'Club & Diamond Arena',
+    category: 'Club Arena',
     plans: ['month', 'year'],
   },
   {
@@ -570,7 +570,7 @@ export const VIP_BENEFITS = [
     description:
       'Throw Any Of The 49 Items At The Table For Free. Throws Beyond The First 500 Cost 1 Diamond Each',
     value: '500/Mo',
-    category: 'Club & Diamond Arena',
+    category: 'Club Arena',
     plans: ['month', 'year'],
   },
   {
@@ -578,14 +578,14 @@ export const VIP_BENEFITS = [
     description:
       'Every VIP-Tier Avatar Frame Belongs To You For As Long As You Are A Member, With No Separate Unlock To Buy',
     value: 'VIP Only',
-    category: 'Club & Diamond Arena',
+    category: 'Club Arena',
   },
   {
     title: 'Entry To VIP-Only Club Tournaments',
     description:
       'Tournaments A Club Flags As VIP Only Are Open To You And Carry A VIP Tag In The Lobby',
     value: 'VIP Only',
-    category: 'Club & Diamond Arena',
+    category: 'Club Arena',
   },
 ];
 
@@ -613,40 +613,40 @@ export const VIP_LIFETIME_BENEFITS = [
     title: 'Unlimited Rabbit Hunts With Lifetime VIP',
     description: 'Reveal The Undealt Community Cards Without Spending A Hunt Pack Or Diamonds',
     value: 'Unlimited',
-    category: 'Club & Diamond Arena',
+    category: 'Club Arena',
   },
   {
     title: 'Unlimited Standard Time Bank Activations',
     description:
       'Receive Another 20-Second Time Bank Whenever Needed. The Two-Per-Street Anti-Stall Limit Still Applies',
     value: 'Unlimited',
-    category: 'Club & Diamond Arena',
+    category: 'Club Arena',
   },
   {
     title: 'Unlimited Throwables With Lifetime VIP',
     description: 'Use Every Available Table Throwable Without Spending A Pack Credit Or Diamond',
     value: 'Unlimited',
-    category: 'Club & Diamond Arena',
+    category: 'Club Arena',
   },
   {
     title: 'Every Cataloged Table Skin And Background Included',
     description:
       'Equip Every Current And Future Cataloged Digital Felt, Table Skin, And Scene While Lifetime VIP Is Active',
     value: 'All Included',
-    category: 'Club & Diamond Arena',
+    category: 'Club Arena',
   },
   {
     title: 'Every Cataloged Card Back And Dealer Button Included',
     description:
       'Equip Every Current And Future Cataloged Digital Card Back And Dealer Button Without A Separate Purchase',
     value: 'All Included',
-    category: 'Club & Diamond Arena',
+    category: 'Club Arena',
   },
   {
     title: 'Lifetime Emoji Packs And Player Tags Included',
     description: 'Emoji Packs And Player Tags Never Require A Separate Diamond Purchase',
     value: 'All Included',
-    category: 'Club & Diamond Arena',
+    category: 'Club Arena',
   },
 ];
 
