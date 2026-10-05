@@ -661,7 +661,7 @@ async function decideChipRequest(db, op, req, res, body) {
     approvalId: approval.approvalId, trailClosed: mark.ok === true, auditRecorded: audit?.ok === true };
 }
 
-export async function handleFloorAdmin({ op, db, query, requestId, method = 'GET', req, res, body = {} }) {
+export async function handle({ op, db, query, requestId, method = 'GET', req, res, body = {} }) {
   if (method === 'POST') {
     if (body.action === 'set_club_status') return setClubStatus(db, op, req, body);
     if (body.action === 'fund_club') return fundClub(db, op, req, res, body);
@@ -685,7 +685,9 @@ export async function handleFloorAdmin({ op, db, query, requestId, method = 'GET
   return sectionAnnouncements(db, query, requestId);
 }
 
-export const floorAdminSpec = Object.freeze({
+export const handleFloorAdmin = handle;
+
+export const spec = Object.freeze({
   name: 'horses.floor-admin',
   methods: ['GET', 'POST'],
   permission: { GET: PERMISSIONS.CONSOLE_READ, POST: PERMISSIONS.CONSOLE_READ },
@@ -693,4 +695,6 @@ export const floorAdminSpec = Object.freeze({
   durable: { POST: { max: 20, windowSeconds: 60 } },
 });
 
-export default withOperatorRoute(floorAdminSpec, handleFloorAdmin);
+export const floorAdminSpec = spec;
+
+export default withOperatorRoute(spec, handle);
