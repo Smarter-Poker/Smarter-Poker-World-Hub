@@ -31,7 +31,7 @@ const __dirname = path.dirname(__filename);
 config({ path: path.resolve(__dirname, '../../../.env.local') });
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 // ═══════════════════════════════════════════════════════════════════════════
 // PROFILE PICTURE LAW v1.0 - EMBEDDED HARD RULES
@@ -158,6 +158,7 @@ function detectGender(name) {
 
 class AutonomousHorseAvatarAgent {
     constructor() {
+        if (!SUPABASE_KEY) throw new Error('[AutonomousHorseAvatarAgent] SUPABASE_SERVICE_ROLE_KEY is required: content_authors is server-only and is not readable with the anon key');
         this.supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
         this.outputDir = path.resolve(__dirname, './output/horse_avatars');
         this.ensureDirectory();

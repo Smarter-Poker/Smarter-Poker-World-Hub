@@ -4,9 +4,10 @@
 import { createClient } from '@supabase/supabase-js';
 
 // Use known credentials (same as registerHorsesAsUsers.js)
+if (!process.env.SUPABASE_SERVICE_ROLE_KEY) throw new Error('[audit-horses] SUPABASE_SERVICE_ROLE_KEY is required: content_authors is server-only and is not readable with the anon key');
 const supabase = createClient(
     'https://kuklfnapbkmacvwxktbh.supabase.co',
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
 async function audit() {

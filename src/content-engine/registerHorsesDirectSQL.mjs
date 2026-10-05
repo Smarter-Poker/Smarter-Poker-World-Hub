@@ -8,9 +8,10 @@
 import { createClient } from '@supabase/supabase-js';
 
 // Production credentials
+if (!process.env.SUPABASE_SERVICE_ROLE_KEY) throw new Error('[registerHorsesDirectSQL] SUPABASE_SERVICE_ROLE_KEY is required: content_authors is server-only and is not readable with the anon key');
 const supabase = createClient(
     'https://kuklfnapbkmacvwxktbh.supabase.co',
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
 async function registerHorses() {

@@ -20,9 +20,10 @@ envContent.split('\n').forEach(line => {
     if (match) env[match[1].trim()] = match[2].trim();
 });
 
+if (!env.SUPABASE_SERVICE_ROLE_KEY) throw new Error('[applyAndSeedHorses] SUPABASE_SERVICE_ROLE_KEY is required: content_authors is server-only and is not readable with the anon key');
 const supabase = createClient(
     env.NEXT_PUBLIC_SUPABASE_URL,
-    env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    env.SUPABASE_SERVICE_ROLE_KEY
 );
 
 // Load personas

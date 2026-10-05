@@ -1,9 +1,13 @@
 /**
- * HORSE PRESENCE UTILITY (Client-Side)
+ * HORSE PRESENCE UTILITY (server-side only)
  * ═══════════════════════════════════════════════════════════════════════════
  * Pure-math presence check for horse profiles.
  * Determines if a horse is "online" based on its deterministic schedule.
  * No DB calls - uses the same hash algorithm as HorseScheduler.js
+ *
+ * Only pages/api/social/presence.js may import this. Whether an id is a horse
+ * is decided there, server-side, and the browser receives one `online` list
+ * for every player alike. A browser import would need the roster to call it.
  * ═══════════════════════════════════════════════════════════════════════════
  */
 

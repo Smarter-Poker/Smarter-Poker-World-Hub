@@ -547,6 +547,11 @@ import './video-learning-discovery-phase8-migration.test.mjs';
 // refused whole (42501) once Club Arena revokes them.
 import './a-profile-shows-strangers-only-what-the-table-needs.law.test.mjs';
 
+// 2026-10-05: the roster (content_authors) never reaches a browser. Presence
+// is one `online` list from /api/social/presence for every player alike, and
+// the /horses console reads the roster through /api/horses/roster.
+import './the-roster-never-reaches-a-browser.law.test.mjs';
+
 const REPO = path.resolve(new URL('.', import.meta.url).pathname, '..');
 
 const REQUIRED_TEST_FILES = [

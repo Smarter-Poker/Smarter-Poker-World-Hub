@@ -36,7 +36,7 @@ import ProfileSkeleton from '../../../src/components/skeletons/ProfileSkeleton';
 import ContentSkeleton from '../../../src/components/skeletons/ContentSkeleton';
 import PokerSkeleton from '../../../src/components/skeletons/PokerSkeleton';
 import { getAuthUser, getAccessToken } from '../../../src/lib/authUtils';
-import { isHorseOnlineNow } from '../../../src/lib/horsePresence';
+import { usePresence } from '../../../src/hooks/usePresence';
 import EditPostModal from '../../../src/components/social/EditPostModal';
 import HashtagRenderer from '../../../src/components/social/HashtagRenderer';
 import SharePostModal from '../../../src/components/social/SharePostModal';
@@ -1091,7 +1091,7 @@ function PostCard({
   onPostEdited,
   currentUserId,
   currentUser,
-  horseProfileIds = new Set(),
+  authorOnline = false,
 }) {
   const router = useRouter();
   const [deleting, setDeleting] = useState(false);
@@ -1326,7 +1326,7 @@ function PostCard({
             loading="lazy"
             decoding="async"
           />
-          {horseProfileIds.has(post.author_id) && isHorseOnlineNow(post.author_id) && (
+          {authorOnline && (
             <span
               style={{
                 position: 'absolute',
@@ -1992,7 +1992,6 @@ export default function UserProfilePage() {
   const [reels, setReels] = useState([]);
   const [pastLives, setPastLives] = useState([]);
   const [isPosting, setIsPosting] = useState(false);
-  const [horseProfileIds, setHorseProfileIds] = useState(new Set());
   const [postContent, setPostContent] = useState('');
   const [showPostComposer, setShowPostComposer] = useState(false);
   const [coverLoaded, setCoverLoaded] = useState(false);
@@ -2128,7 +2127,7 @@ export default function UserProfilePage() {
   // Refs
   const profileMenuRef = useRef(null);
   const loadedUsernameRef = useRef(null);
-  const socialIdRef = useRef(null); // Resolved horse social identity (may differ from profile.id)
+  const socialIdRef = useRef(null); // The id social reads use for the loaded profile (its own id)
 
   // Tab state — persisted
   const [activeTab, setActiveTab] = usePersistedState('sp-filters-user-profile', 'all');
@@ -2435,17 +2434,13 @@ export default function UserProfilePage() {
     };
   }, []);
 
-  // Phase 15: Load horse profile IDs for online presence
-  useEffect(() => {
-    supabase
-      .from('content_authors')
-      .select('profile_id')
-      .eq('is_active', true)
-      .not('profile_id', 'is', null)
-      .then(({ data }) => {
-        if (data) setHorseProfileIds(new Set(data.map((h) => h.profile_id)));
-      });
-  }, []);
+  // Online dots for this profile and the authors of its posts. Presence is
+  // answered by /api/social/presence for every player alike; the page only asks.
+  const presenceIds = React.useMemo(
+    () => [profile?.id, ...posts.map((p) => p.author_id)],
+    [profile?.id, posts]
+  );
+  const onlineIds = usePresence(presenceIds);
 
   useEffect(() => {
     if (!username) return;
@@ -2455,7 +2450,7 @@ export default function UserProfilePage() {
     setShareCopied(false);
     setBioExpanded(false);
     setAnimatedStats({ friends: 0, following: 0, followers: 0, posts: 0 });
-    socialIdRef.current = null; // Reset horse social identity for new profile
+    socialIdRef.current = null; // Reset the social id for the new profile
 
     // Only show loading skeleton if we're loading a DIFFERENT profile.
     // If same profile is already loaded (e.g. back-navigation), keep it visible
@@ -2565,50 +2560,13 @@ export default function UserProfilePage() {
           })
           .catch(() => {}); // non-fatal
 
-        // ═══════════════════════════════════════════════════════════
-        // HORSE SOCIAL IDENTITY RESOLUTION
-        // ═══════════════════════════════════════════════════════════
-        // Horses have TWO profiles: a "real name" profile (e.g. daphne.winterfield)
-        // and an "alias" profile (e.g. Prairiegal) stored in content_authors.profile_id.
-        // Posts, friendships, and follows are all tied to the alias profile_id.
-        // We need to detect this and use the correct ID for social queries.
-        let socialId = data.id; // Default: use the loaded profile's ID
-        try {
-          // Check 1: Is this profile directly referenced by content_authors?
-          const { data: caDirectMatch } = await supabase
-            .from('content_authors')
-            .select('profile_id')
-            .eq('profile_id', data.id)
-            .eq('is_active', true)
-            .limit(1)
-            .maybeSingle();
-
-          if (!caDirectMatch) {
-            // Check 2: Does content_authors have a horse whose full_name matches this profile?
-            // This catches the case where the user navigates to the "real name" profile
-            // but the horse's social data lives under a different profile_id (the alias profile).
-            const profileName = data.full_name || data.username || '';
-            if (profileName) {
-              const { data: caNameMatch } = await supabase
-                .from('content_authors')
-                .select('profile_id')
-                .eq('is_active', true)
-                .not('profile_id', 'is', null)
-                .ilike('name', profileName)
-                .limit(1)
-                .maybeSingle();
-
-              if (caNameMatch && caNameMatch.profile_id && caNameMatch.profile_id !== data.id) {
-                socialId = caNameMatch.profile_id;
-              }
-            }
-          }
-        } catch (e) {
-          // Non-fatal: fall back to data.id
-          console.warn('[Profile] Horse social ID resolution failed:', e?.message || e);
-        }
-        // CRITICAL: Always sync ref AFTER resolution so realtime listeners
-        // (which depend on profile.id) read the correct social ID.
+        // A profile's social reads (posts, friends, follows, counts) use the
+        // profile's own id, the same for every player. The page never resolves
+        // an alternate id (removed 2026-10-05: it never changed an id in
+        // production and it read a server-only table from the browser).
+        const socialId = data.id;
+        // Sync the ref before the realtime listeners (which depend on
+        // profile.id) read it.
         socialIdRef.current = socialId;
 
         // ═══════════════════════════════════════════════════════════
@@ -4273,10 +4231,7 @@ export default function UserProfilePage() {
                   name={displayName}
                   size={120}
                 />
-                {(() => {
-                  const hid = socialIdRef.current || profile.id;
-                  return horseProfileIds.has(hid) && isHorseOnlineNow(hid);
-                })() && (
+                {onlineIds.has(profile.id) && (
                   <span
                     style={{
                       position: 'absolute',
@@ -5930,7 +5885,7 @@ export default function UserProfilePage() {
                       }}
                       currentUserId={currentUser?.id}
                       currentUser={currentUser}
-                      horseProfileIds={horseProfileIds}
+                      authorOnline={onlineIds.has(post.author_id)}
                     />
                   ))
                 ) : (
