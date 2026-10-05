@@ -76,6 +76,7 @@ export function validatePrivateNoStoreCacheControl(value) {
   const directives = new Set(String(value || '').split(',').map((part) => part.trim().toLowerCase()));
   assert.ok(directives.has('private'), 'Operations response is not private');
   assert.ok(directives.has('no-store'), 'Operations response is not no-store');
+  assert.equal(directives.has('public'), false, 'Operations response contains a conflicting public directive');
 }
 
 export function validateReceipt(receipt, expectedSha) {

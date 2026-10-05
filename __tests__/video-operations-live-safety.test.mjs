@@ -40,6 +40,7 @@ test('Video Operations live proof requires both private and no-store cache direc
   assert.doesNotThrow(() => validatePrivateNoStoreCacheControl('private, no-store'));
   assert.throws(() => validatePrivateNoStoreCacheControl('no-store'), /not private/);
   assert.throws(() => validatePrivateNoStoreCacheControl('public, no-store'), /not private/);
+  assert.throws(() => validatePrivateNoStoreCacheControl('private, public, no-store'), /conflicting public directive/);
   assert.throws(() => validatePrivateNoStoreCacheControl('private'), /not no-store/);
 });
 
