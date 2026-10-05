@@ -99,8 +99,12 @@ test('it compares before it mutates anything', () => {
   // If the handover happened after `git worktree add`, main's copy would inherit
   // a tree the stale copy had already made, which is the one arrangement worse
   // than either script running alone.
+  // The probe is the COMMAND that cuts the tree, not any mention of the words:
+  // since 2026-09-29 the provisioner also prints "use git worktree add
+  // directly" in an error message above the handover, and matching that line
+  // would fail this law on a script that still obeys it.
   const handover = SCRIPT.indexOf('AGENT_WORKSPACE_REEXEC=1 exec bash');
-  const worktreeAdd = SCRIPT.indexOf('worktree add');
+  const worktreeAdd = SCRIPT.indexOf('worktree add -b');
   assert.notEqual(handover, -1);
   assert.notEqual(worktreeAdd, -1);
   assert.ok(handover < worktreeAdd, 'the handover happens after the worktree is created');
