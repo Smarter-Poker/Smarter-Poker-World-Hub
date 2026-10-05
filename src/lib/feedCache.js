@@ -51,11 +51,12 @@ function storiesLocalStorageKey(viewerId) {
     return `sp-stories-cache:${viewerKey(viewerId)}`;
 }
 
+// Every library post carries source_asset_id and a video-library:
+// publication_key. A browser never receives origin_type or the pipeline's
+// metadata (src/lib/socialPostShape.js), so neither is consulted here.
 export function isManagedVideoLibraryPost(post) {
-    return post?.origin_type === 'video_library'
-        || Boolean(post?.source_asset_id)
-        || String(post?.publication_key || '').startsWith('video-library:')
-        || Boolean(post?.metadata?.video_library_id);
+    return Boolean(post?.source_asset_id)
+        || String(post?.publication_key || '').startsWith('video-library:');
 }
 
 function cacheSafePosts(posts) {

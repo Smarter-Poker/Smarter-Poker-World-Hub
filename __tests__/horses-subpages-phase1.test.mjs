@@ -153,14 +153,25 @@ test('the three sub-pages carry no emoji either', () => {
 
 // ── Presence module ────────────────────────────────────────────────────────────
 
-test('src/lib/horsePresence.js stays (the presence API imports it) and carries no emoji', () => {
-  // The Phase 1 audit snapshot called this module dead. It is not: since
-  // 2026-10-05 pages/api/social/presence.js imports isHorseOnlineNow (the
-  // social pages used to, in the browser). It stays; only its emoji header goes.
-  const src = read('src/lib/horsePresence.js');
-  assert.match(src, /export function isHorseOnlineNow/);
-  assert.doesNotMatch(src, EMOJI);
-  assert.equal(src.includes(EM_DASH), false);
+test('src/lib/horsePresence.js is gone and nothing imports it', () => {
+  // 2026-10-05: presence has one definition, the database's (fn_profile_presence
+  // over profiles.is_online and a heartbeat under five minutes old). A player
+  // with no browser keeps a real heartbeat written server-side, so no code runs
+  // a schedule any more and the module that did is deleted.
+  assert.equal(fs.existsSync(path.join(ROOT, 'src/lib/horsePresence.js')), false);
+  const importers = [];
+  const walk = (dir) => {
+    if (!fs.existsSync(dir)) return;
+    for (const name of fs.readdirSync(dir)) {
+      if (name === 'node_modules' || name.startsWith('.')) continue;
+      const full = path.join(dir, name);
+      if (fs.statSync(full).isDirectory()) walk(full);
+      else if (/\.(m?js|jsx|ts|tsx|cjs)$/.test(name)
+        && /['"][^'"]*\/horsePresence(?:\.js)?['"]/.test(fs.readFileSync(full, 'utf8'))) importers.push(full);
+    }
+  };
+  for (const dir of ['pages', 'src', 'app', 'lib']) walk(path.join(ROOT, dir));
+  assert.deepEqual(importers, []);
 });
 
 // ── Token integrity ────────────────────────────────────────────────────────

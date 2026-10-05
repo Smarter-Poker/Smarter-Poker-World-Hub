@@ -53,6 +53,7 @@ import auxiliaryReelsStyles from '../../../src/components/reels/AuxiliaryReelsSu
 import HandStatsCard from '../../../src/components/profile/HandStatsCard';
 import { readOwnProfile } from '../../../src/lib/ownProfile';
 import { removeOwnedReels } from '../../../src/lib/removeOwnedReels';
+import { BROWSER_POST_SELECT } from '../../../src/lib/socialPostShape';
 const PlayerNotes = dynamic(() => import('../../../src/components/poker/PlayerNotes'), {
   ssr: false,
 });
@@ -1967,8 +1968,8 @@ export default function UserProfilePage() {
       const lastPost = posts[posts.length - 1];
       const { data: morePosts, error } = await supabase
         .from('social_posts')
-        .select(`*, user_profiles(*)`)
-        .eq('user_id', profile.id)
+        .select(BROWSER_POST_SELECT)
+        .eq('author_id', socialIdRef.current || profile.id)
         .lt('created_at', lastPost.created_at)
         .order('created_at', { ascending: false })
         .limit(20);
@@ -2288,7 +2289,7 @@ export default function UserProfilePage() {
       // Re-fetch post count
       supabase
         .from('social_posts')
-        .select('*', { count: 'exact', head: true })
+        .select('id', { count: 'exact', head: true })
         .eq('author_id', sid)
         .then(({ count }) => {
           if (count != null) setStats((prev) => ({ ...prev, posts: count }));
@@ -2598,7 +2599,7 @@ export default function UserProfilePage() {
             .eq('following_id', socialId),
           supabase
             .from('social_posts')
-            .select('*', { count: 'exact', head: true })
+            .select('id', { count: 'exact', head: true })
             .eq('author_id', socialId),
         ];
 
@@ -2764,7 +2765,7 @@ export default function UserProfilePage() {
           // Posts (use socialId for horse-aware lookup)
           supabase
             .from('social_posts')
-            .select('*')
+            .select(BROWSER_POST_SELECT)
             .eq('author_id', socialId)
             .order('created_at', { ascending: false })
             .limit(20),
@@ -3076,13 +3077,13 @@ export default function UserProfilePage() {
           ] = await Promise.all([
             supabase
               .from('social_posts')
-              .select('*')
+              .select(BROWSER_POST_SELECT)
               .eq('author_id', sid)
               .order('created_at', { ascending: false })
               .limit(20),
             supabase
               .from('social_posts')
-              .select('*', { count: 'exact', head: true })
+              .select('id', { count: 'exact', head: true })
               .eq('author_id', sid),
             supabase
               .from('social_follows')
@@ -3706,7 +3707,7 @@ export default function UserProfilePage() {
       const { data, error } = await supabase
         .from('social_posts')
         .insert(insertPayload)
-        .select()
+        .select(BROWSER_POST_SELECT)
         .maybeSingle();
 
       if (error) {

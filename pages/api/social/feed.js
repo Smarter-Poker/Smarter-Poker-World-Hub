@@ -35,6 +35,7 @@ import {
 } from '../../../src/lib/videoLibraryAvailability';
 import { FEED_TOPICS } from '../../../src/lib/socialTopics';
 import { rankFeedPage } from '../../../src/lib/feedRanking';
+import { displayMetadata } from '../../../src/lib/socialPostShape';
 
 const POST_SCAN_SIZE = 100;
 const MAX_POST_SCAN_ROWS = 5_000;
@@ -684,8 +685,9 @@ export default async function handler(req, res) {
                 link_description: p.link_description || null,
                 link_image: p.link_image || null,
                 link_site_name: p.link_site_name || null,
-                metadata: meta,
-                origin_type: p.origin_type,
+                // Only the keys the UI renders; never origin_type. A horse's
+                // post and a human's carry the same shape (socialPostShape.js).
+                metadata: displayMetadata(meta),
                 playback_type: p.playback_type,
                 topic: p.topic,
                 topics: Array.isArray(p.topics) ? p.topics : [],
