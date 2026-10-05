@@ -154,7 +154,7 @@ test('every Reel viewer sequences refreshes, appends, and comment loads', () => 
 
 test('full-screen viewers preserve bounded-scan cursors and expose continuation controls', () => {
   for (const source of [REELS_PAGE, REELS_COMPONENT]) {
-    assert.match(source, /scanReelsContinuations/);
+    assert.match(source, /loadCanonicalReelsWindow/);
     assert.match(source, /Continue Finding Reels/);
     assert.doesNotMatch(
       source,
@@ -406,7 +406,7 @@ test('slots Reels carry the responsible-gaming console notice on every viewer', 
 
 test('following deep links authenticate and mixed collections avoid poker-only copy', () => {
   assert.match(REELS_PAGE, /feedModeForReelsRoute,/);
-  assert.equal((REELS_PAGE.match(/feedModeForReelsRoute\(router\.query\)/g) || []).length, 5,
+  assert.equal((REELS_PAGE.match(/feedModeForReelsRoute\(router\.query\)/g) || []).length, 4,
     'initial, continuation, auth-error, and expired-session paths derive Following from the category');
   assert.match(
     REELS_PAGE,
@@ -455,7 +455,7 @@ test('legacy routes canonicalize without dropping detail, feed, or upload state 
   assert.match(REELS_PAGE, /const canonicalCategory = categoryForReelsRoute\(router\.query\)/);
   assert.match(REELS_PAGE, /query: \{ \.\.\.router\.query, category: canonicalCategory \}/);
   assert.match(REELS_PAGE, /\{ shallow: true \}/);
-  assert.match(REELS_PAGE, /const routeNamespace = `\$\{routeCategory\}:\$\{feedMode\}`/);
+  assert.match(REELS_PAGE, /const routeNamespace = `\$\{modeContract\.id\}:\$\{routeCategory\}:\$\{routeSort\}`/);
   assert.match(REELS_PAGE, /reelsRouteNamespaceRef\.current !== routeNamespace[\s\S]*currentIndexRef\.current = 0;[\s\S]*setCurrentIndex\(0\)/);
   assert.match(REELS_PAGE, /console\.warn\('Load reels error:', e\);[\s\S]*setReels\(\[\]\);[\s\S]*currentIndexRef\.current = 0;[\s\S]*setCurrentIndex\(0\)/);
 });
@@ -772,6 +772,17 @@ test('a failed foreground channel switch retains the mounted Reel and exposes a 
     /const pageErrorBoundaryKey = resolvedPath === '\/hub\/reels'[\s\S]*?\? resolvedPath[\s\S]*?: router\.asPath;/,
   );
   assert.match(APP_SHELL, /<PageErrorBoundary key=\{pageErrorBoundaryKey\}>/);
+  assert.match(
+    REELS_PAGE,
+    /<div key="reels-navigation-header"[\s\S]*?<main key="reels-viewer"/,
+    'opening the conditional command header must preserve the keyed viewer sibling and mounted player',
+  );
+  assert.match(REELS_PAGE, /const youtubeEmbedSrc = videoId[\s\S]*?youtube-nocookie\.com\/embed\/\$\{videoId\}/);
+  assert.match(
+    REELS_PAGE,
+    /getAttribute\('src'\) === 'about:blank'[\s\S]*?e\.currentTarget\.src = youtubeEmbedSrc;/,
+    'a retained iframe that self-navigates blank must restore the same verified embed',
+  );
 });
 
 test('the cold-start loading decision preserves player identity during a rejected channel transition', async () => {
@@ -810,7 +821,7 @@ test('Reel viewers route realtime and focus revalidation through the background 
     const realtime = between(source, '// Realtime subscription', '.subscribe();');
     assert.doesNotMatch(realtime, /loadReels\s*\(/,
       `${name}: realtime handlers must never call the foreground loader`);
-    assert.match(realtime, /realtimeFilter\.classify\(\{ eventType, row, stateReel \}\)/,
+    assert.match(realtime, /realtimeFilter\.classify\(\{[\s\S]*?eventType,[\s\S]*?row,[\s\S]*?stateReel,?[\s\S]*?\}\)/,
       `${name}: every social_reels event is classified before acting`);
     assert.match(realtime, /if \(!verdict\.refresh\) return;[\s\S]*scheduleBackgroundReelsRefresh\(\)/,
       `${name}: only playback-relevant changes schedule a refresh`);

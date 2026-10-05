@@ -121,7 +121,6 @@ export function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
                 'Training Games',
                 'Trivia',
                 'Bankroll Manager',
-                'Diamond Arena',
             ].filter(r => r.toLowerCase().includes(query.toLowerCase()));
             setResults(mockResults);
         } else {

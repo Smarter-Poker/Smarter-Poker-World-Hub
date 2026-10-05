@@ -105,7 +105,13 @@ test('Lifetime card price and active-session database guards are fixed and repro
 
   assert.match(source, /stripePrice\.currency !== 'usd'/);
   assert.match(source, /lifetimeUnitAmount !== 49900/);
-  assert.match(source, /code: 'LIFETIME_CARD_CHECKOUT_PAUSED'/);
+  assert.doesNotMatch(source, /LIFETIME_CARD_CHECKOUT_PAUSED/);
+  const catalog = await read('src/data/diamondStoreData.js');
+  const lifetimePlan = catalog.slice(
+    catalog.indexOf('lifetime: {', catalog.indexOf('export const VIP_MEMBERSHIP')),
+    catalog.indexOf('\n  },', catalog.indexOf('lifetime: {', catalog.indexOf('export const VIP_MEMBERSHIP')))
+  );
+  assert.match(lifetimePlan, /cardCheckoutReady: true/);
   assert.match(source, /type === 'subscription' \|\| type === 'vip_lifetime'/);
   assert.match(source, /findActiveLifetimeCheckout\(user\.id\)/);
   assert.match(parityMigration, /p_plan NOT IN \('monthly', 'yearly', 'lifetime'\)/);

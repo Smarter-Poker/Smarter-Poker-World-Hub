@@ -659,6 +659,16 @@
   text-align: center;
 }
 
+.loadMoreRow {
+  display: flex;
+  justify-content: center;
+  margin: 4px 0 30px;
+}
+
+.loadMoreControl {
+  width: min(360px, 100%);
+}
+
 /* `!important` for the same reason the store shell uses it: the global reset in
    src/index.css ends `button:focus` with `outline: none !important`, which
    silently beats any focus-visible outline declared at normal specificity

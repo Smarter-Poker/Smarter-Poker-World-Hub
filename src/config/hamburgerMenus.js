@@ -1171,8 +1171,8 @@ export const MENU_CONFIGS = {
         menuItems: [
             createMenuItem.section('Promotions'),
             createMenuItem.navigation('All Promotions', '/hub/promotions'),
-            // Normalized to the canonical param used by the diamond-store and
-            // diamond-arena configs (?category=vip); ?tab=vip landed unfiltered.
+            // Links straight to the VIP membership page; the old ?tab=vip
+            // store link landed unfiltered.
             createMenuItem.navigation('VIP Offers', '/hub/vip-membership'),
             createMenuItem.divider(),
             createMenuItem.section('Quick Links'),

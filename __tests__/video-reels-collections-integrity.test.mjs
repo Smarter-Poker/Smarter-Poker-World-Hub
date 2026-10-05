@@ -123,10 +123,12 @@ function emptyContext() {
   };
 }
 
-function loadCollectionReaderHarness(client) {
+function loadCollectionReaderHarness(client, { scanChunkSize = 240, followingPageSize = 1_000 } = {}) {
   const transformed = SERVER
     .replace(/import \{ createClient \} from '[^']+';\n/, '')
     .replace(/import \{[\s\S]*?\} from '\.\.\/videoLibraryAvailability';\n/, '')
+    .replace('const SCAN_CHUNK_SIZE = 240;', `const SCAN_CHUNK_SIZE = ${scanChunkSize};`)
+    .replace('const FOLLOWING_PAGE_SIZE = 1_000;', `const FOLLOWING_PAGE_SIZE = ${followingPageSize};`)
     .replace(/export class /g, 'class ')
     .replace(/export async function /g, 'async function ')
     .replace(/export const /g, 'const ');
@@ -176,7 +178,7 @@ function loadCollectionReaderHarness(client) {
   };
 }
 
-function createMemoryClient(tables, { validNativeStorage = true } = {}) {
+function createMemoryClient(tables, { validNativeStorage = true, queryResponses = {} } = {}) {
   const queryLog = [];
   class Query {
     constructor(table) {
@@ -200,6 +202,10 @@ function createMemoryClient(tables, { validNativeStorage = true } = {}) {
     in(column, values) {
       const allowed = new Set(values);
       this.predicates.push(row => allowed.has(row?.[column]));
+      return this;
+    }
+    gt(column, value) {
+      this.predicates.push(row => String(row?.[column]) > String(value));
       return this;
     }
     or(expression) {
@@ -234,6 +240,10 @@ function createMemoryClient(tables, { validNativeStorage = true } = {}) {
     }
     async execute() {
       queryLog.push(this.table);
+      const queuedResponses = queryResponses[this.table];
+      if (Array.isArray(queuedResponses) && queuedResponses.length) {
+        return queuedResponses.shift();
+      }
       let rows = [...(tables[this.table] || [])]
         .filter(row => this.predicates.every(predicate => predicate(row)));
       if (this.orders.length) {
@@ -260,6 +270,34 @@ function createMemoryClient(tables, { validNativeStorage = true } = {}) {
     queryLog,
     from: table => new Query(table),
     async rpc(name, args) {
+      if (name === 'resolve_social_reel_reference') {
+        const aliases = tables.social_reel_aliases || [];
+        const alias = aliases.find(row => (
+          row.alias_reel_id === args.p_reference_id
+          || row.alias_source_post_id === args.p_reference_id
+        ));
+        if (alias) return {
+          data: [{
+            requested_id: args.p_reference_id,
+            canonical_reel_id: alias.canonical_reel_id,
+            alias_reel_id: alias.alias_reel_id,
+            redirected: true,
+          }],
+          error: null,
+        };
+        const reel = (tables.social_reels || []).find(row => (
+          row.id === args.p_reference_id || row.source_post_id === args.p_reference_id
+        ));
+        return {
+          data: reel ? [{
+            requested_id: args.p_reference_id,
+            canonical_reel_id: reel.id,
+            alias_reel_id: null,
+            redirected: reel.id !== args.p_reference_id,
+          }] : [],
+          error: null,
+        };
+      }
       if (name !== 'fn_filter_valid_user_video_storage_urls') {
         throw new Error(`Unsupported memory-client RPC: ${name}`);
       }
@@ -546,10 +584,220 @@ test('collection readers keep slots and sports across My Reels, Saved, and saved
   });
   const followQueriesAfter = client.queryLog.filter(table => table === 'social_follows').length;
   assert.deepEqual([...following.data].map(row => row.id), [reelA.id, reelB.id]);
-  assert.ok(
-    followQueriesAfter - followQueriesBefore <= 2,
-    'one candidate page must use at most two bounded follow-membership queries',
+  assert.equal(followQueriesAfter - followQueriesBefore, 1);
+});
+
+test('Following scans sparse global pages and keeps only followed canonical winners', async () => {
+  const viewerId = '11111111-1111-4111-8111-111111111111';
+  const followedAuthor = '22222222-2222-4222-8222-222222222222';
+  const unfollowedAuthor = '33333333-3333-4333-8333-333333333333';
+  const row = (id, author_id, canonical_asset_key, created_at) => nativeRow({
+    id,
+    author_id,
+    canonical_asset_key,
+    publication_key: `user-reel:${id}`,
+    video_url: `https://test-project.supabase.co/storage/v1/object/public/social-media/reels/${author_id}/${id}.mp4`,
+    created_at,
+  });
+  const unfollowedDecoyA = row(
+    'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa6',
+    unfollowedAuthor,
+    'native:unfollowed-decoy-a',
+    '2026-09-06T17:00:00.000Z',
   );
+  const unfollowedDecoyB = row(
+    'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa7',
+    unfollowedAuthor,
+    'native:unfollowed-decoy-b',
+    '2026-09-06T16:00:00.000Z',
+  );
+  const followedLoser = row(
+    'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1',
+    followedAuthor,
+    'native:unfollowed-winner',
+    '2026-09-06T15:00:00.000Z',
+  );
+  const unfollowedWinner = row(
+    'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa2',
+    unfollowedAuthor,
+    'native:unfollowed-winner',
+    '2026-09-06T14:00:00.000Z',
+  );
+  const unfollowedLoser = row(
+    'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa3',
+    unfollowedAuthor,
+    'native:followed-winner',
+    '2026-09-06T13:00:00.000Z',
+  );
+  const followedWinner = row(
+    'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa4',
+    followedAuthor,
+    'native:followed-winner',
+    '2026-09-06T12:00:00.000Z',
+  );
+  const sparseFollowed = row(
+    'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa5',
+    followedAuthor,
+    'native:sparse-followed',
+    '2026-09-06T11:00:00.000Z',
+  );
+  const client = createMemoryClient({
+    social_reels: [
+      unfollowedDecoyA,
+      unfollowedDecoyB,
+      followedLoser,
+      unfollowedWinner,
+      unfollowedLoser,
+      followedWinner,
+      sparseFollowed,
+    ],
+    social_posts: [],
+    saved_reels: [],
+    profiles: [
+      { id: followedAuthor, username: 'followed', full_name: 'Followed', avatar_url: null },
+      { id: unfollowedAuthor, username: 'unfollowed', full_name: 'Unfollowed', avatar_url: null },
+    ],
+    social_follows: [{ follower_id: viewerId, following_id: followedAuthor }],
+    video_library_videos: [],
+    youtube_embed_failures: [],
+  });
+  const { readFeed } = loadCollectionReaderHarness(client, { scanChunkSize: 2 });
+  const following = await readFeed({
+    client,
+    category: 'following',
+    viewerId,
+    scope: 'following',
+    sort: 'recent',
+    limit: 10,
+  });
+
+  assert.deepEqual(
+    [...following.data].map(item => item.id),
+    [followedWinner.id, sparseFollowed.id],
+    'a followed loser must not replace an unfollowed canonical winner, while sparse followed winners remain reachable',
+  );
+  assert.equal(following.hasMore, false);
+  assert.equal(following.nextCursor, null);
+  assert.equal(client.queryLog[0], 'social_follows');
+  assert.ok(
+    client.queryLog.filter(table => table === 'social_reels').length >= 3,
+    'the proof must cross multiple bounded global keyset chunks',
+  );
+  assert.equal(
+    client.queryLog.filter(table => table === 'social_follows').length,
+    1,
+    'follow membership must be loaded once rather than once per Reel scan chunk',
+  );
+});
+
+test('Following exhaustively keyset-pages memberships once before scanning Reels', async () => {
+  const viewerId = '11111111-1111-4111-8111-111111111111';
+  const followedA = '22222222-2222-4222-8222-222222222222';
+  const followedB = '33333333-3333-4333-8333-333333333333';
+  const reel = nativeRow({
+    id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaab',
+    author_id: followedB,
+    canonical_asset_key: 'native:second-follow-page',
+    publication_key: 'user-reel:second-follow-page',
+    video_url: `https://test-project.supabase.co/storage/v1/object/public/social-media/reels/${followedB}/clip.mp4`,
+  });
+  const client = createMemoryClient({
+    social_reels: [reel],
+    social_posts: [],
+    saved_reels: [],
+    profiles: [],
+    social_follows: [
+      { follower_id: viewerId, following_id: followedA },
+      { follower_id: viewerId, following_id: followedB },
+    ],
+    video_library_videos: [],
+    youtube_embed_failures: [],
+  });
+  const { readFeed } = loadCollectionReaderHarness(client, { followingPageSize: 1 });
+  const result = await readFeed({ client, viewerId, scope: 'following', limit: 10 });
+  assert.deepEqual([...result.data].map(row => row.id), [reel.id]);
+  assert.equal(client.queryLog.filter(table => table === 'social_follows').length, 3);
+});
+
+test('Following membership reads fail closed on query errors and malformed rows', async () => {
+  const viewerId = '11111111-1111-4111-8111-111111111111';
+  const tables = { social_reels: [], social_follows: [] };
+  const failedClient = createMemoryClient(tables, {
+    queryResponses: {
+      social_follows: [{ data: null, error: new Error('membership unavailable') }],
+    },
+  });
+  await assert.rejects(
+    loadCollectionReaderHarness(failedClient).readFeed({
+      client: failedClient,
+      viewerId,
+      scope: 'following',
+    }),
+    /membership unavailable/,
+  );
+
+  const malformedClient = createMemoryClient(tables, {
+    queryResponses: {
+      social_follows: [{ data: [{ following_id: 'not-a-uuid' }], error: null }],
+    },
+  });
+  await assert.rejects(
+    loadCollectionReaderHarness(malformedClient).readFeed({
+      client: malformedClient,
+      viewerId,
+      scope: 'following',
+    }),
+    /Invalid Following membership row/,
+  );
+});
+
+test('Following deep links share one membership read and enforce the canonical winner author', async () => {
+  const viewerId = '11111111-1111-4111-8111-111111111111';
+  const followedAuthor = '22222222-2222-4222-8222-222222222222';
+  const unfollowedAuthor = '33333333-3333-4333-8333-333333333333';
+  const direct = nativeRow({
+    id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaac',
+    author_id: followedAuthor,
+    canonical_asset_key: 'native:following-detail',
+    publication_key: 'user-reel:following-detail',
+    video_url: `https://test-project.supabase.co/storage/v1/object/public/social-media/reels/${followedAuthor}/detail.mp4`,
+  });
+  const followedClient = createMemoryClient({
+    social_reels: [direct], social_posts: [], saved_reels: [], profiles: [],
+    social_follows: [{ follower_id: viewerId, following_id: followedAuthor }],
+    video_library_videos: [], youtube_embed_failures: [],
+  });
+  const followedResult = await loadCollectionReaderHarness(followedClient).readFeed({
+    client: followedClient,
+    id: direct.id,
+    viewerId,
+    scope: 'following',
+  });
+  assert.equal(followedResult.detailStatus, 'found');
+  assert.equal(followedResult.data[0].id, direct.id);
+  assert.equal(followedClient.queryLog.filter(table => table === 'social_follows').length, 1);
+
+  const unfollowedWinner = {
+    ...direct,
+    id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaad',
+    author_id: unfollowedAuthor,
+    video_url: `https://test-project.supabase.co/storage/v1/object/public/social-media/reels/${unfollowedAuthor}/detail.mp4`,
+    created_at: '2025-01-01T00:00:00.000Z',
+  };
+  const blockedClient = createMemoryClient({
+    social_reels: [direct, unfollowedWinner], social_posts: [], saved_reels: [], profiles: [],
+    social_follows: [{ follower_id: viewerId, following_id: followedAuthor }],
+    video_library_videos: [], youtube_embed_failures: [],
+  });
+  const blockedResult = await loadCollectionReaderHarness(blockedClient).readFeed({
+    client: blockedClient,
+    id: direct.id,
+    viewerId,
+    scope: 'following',
+  });
+  assert.equal(blockedResult.detailStatus, 'unavailable');
+  assert.deepEqual([...blockedResult.data], []);
+  assert.equal(blockedClient.queryLog.filter(table => table === 'social_follows').length, 1);
 });
 
 test('Following keeps persisted zero-version horse authors and hydrates their ordinary profiles', async () => {
@@ -631,6 +879,7 @@ test('public server readers admit only storage-proven unknown native uploads and
   const loser = {
     ...winner,
     id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+    is_public: false,
     created_at: '2026-05-08T12:00:01.000Z',
   };
   const sourcePost = {
@@ -655,6 +904,12 @@ test('public server readers admit only storage-proven unknown native uploads and
   };
   const tablesForPost = post => ({
     social_reels: [loser, winner],
+    social_reel_aliases: [{
+      alias_reel_id: loser.id,
+      alias_source_post_id: postId,
+      canonical_reel_id: winner.id,
+      canonical_asset_key: canonicalAssetKey,
+    }],
     social_posts: [post],
     profiles: [{ id: ownerId, username: 'owner', full_name: 'Owner', avatar_url: null }],
     social_follows: [{ follower_id: ownerId, following_id: ownerId }],
@@ -1006,6 +1261,11 @@ test('canonical collection eligibility rejects deleted, private, and stale targe
     'all',
     { allowOwnerPrivate: true, ownerId },
   ), null);
+  assert.equal(
+    normalize(nativeRow({ source_post_id: postId }), emptyContext(), 'all'),
+    null,
+    'a linked Reel becomes unavailable immediately when its source post no longer exists',
+  );
 
   const privatePostContext = emptyContext();
   privatePostContext.postById.set(postId, {

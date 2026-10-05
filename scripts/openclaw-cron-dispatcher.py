@@ -136,9 +136,6 @@ JOB_TIMEOUTS = {
     # discipline: never kill a writer at 120s.
     '/api/cron/video-library-scraper':  1800,
     '/api/cron/video-library-reels':    1800,  #1650s publisher +150s final checkpoint reserve
-    '/api/cron/video-library-backfill': 1800,
-    '/api/cron/video-library-purge':    1800,
-    '/api/cron/video-library-views':    1800,
 }
 def job_timeout(path: str) -> int:
     return JOB_TIMEOUTS.get(path, REQUEST_TIMEOUT)
@@ -672,10 +669,10 @@ ALL_CRONS = [
     ('/api/cron/cleanup-orphan-uploads',    dict(hour=3, minute=30)),
     # ── Video Library — daily fresh content from all 25 creators (SCRIPT_JOBS) ──
     ('/api/cron/video-library-scraper',     dict(hour=6, minute=0)),   # Daily 6am UTC — RSS ingest
+    ('/api/cron/video-library-enrichment',  dict(minute='*/10')),      # Durable bounded Phase 4 jobs
+    ('/api/cron/video-reel-candidates',     dict(minute='5,15,25,35,45,55')), # Phase 5 after enrichment
+    ('/api/cron/video-native-studio',       dict(minute='8,18,28,38,48')), # Phase 6 bounded rights-cleared renders
     ('/api/cron/video-library-reels',       dict(hour=7, minute=0)),   # Daily 7am UTC — Sync reels
-    ('/api/cron/video-library-backfill',    dict(day_of_week='sat', hour=23, minute=0)),  # Weekly Sat 23:00 UTC — fix zero-views/fake dates
-    ('/api/cron/video-library-purge',       dict(day_of_week='sun', hour=0,  minute=0)),  # Weekly Sun 00:00 UTC — delete dead videos
-    ('/api/cron/video-library-views',       dict(day_of_week='fri', hour=22, minute=0)),  # Weekly Fri 22:00 UTC — refresh view counts for top 50
 
     # ══ WAVE 1 (2026-04-24 — migrated from vercel.json; see phase-2a4-wave-plan.md) ══
     # Scrapers (read-only ingest into Supabase, upsert on unique keys)
@@ -798,9 +795,11 @@ ALL_CRONS = [
     # gave lifetime VIP for feature access. It paid 12 such accounts (6,000
     # diamonds) before this, every one with zero rows in vip_subscriptions.
     #
-    # '/api/cron/vip-stipend' is the documented control: it pays only accounts
-    # holding a vip_subscriptions row with a non-null stripe_subscription_id
-    # and a live Stripe status. Read that file's header before changing this.
+    # '/api/cron/vip-stipend' is the documented control. Its recurring leg pays
+    # only accounts holding a live paid Stripe subscription. Its separate
+    # Lifetime leg issues the owner-approved 2,000-Diamond monthly lot through
+    # The Mint and expires unused lot value after 90 days. Read that file's
+    # header before changing this.
     #
     # DAILY, not monthly, and that is deliberate. The handler is idempotent per
     # user per calendar month (reference_id `vip_stipend_<user>_<YYYY-MM>` plus
@@ -1016,17 +1015,15 @@ def _resolve_script(filename: str) -> str:
     return str(_SCRAPER_DIR_CANDIDATES[-1] / filename)
 
 
-SCRAPER_PY = _resolve_script('video_library_scraper.py')
+SCRAPER_PY = _resolve_script('video_source_registry_ingest.py')
 
 # ─── Jobs that invoke a local Python script instead of a Vercel HTTP endpoint ─
 # Maps cron path → list of args passed to `python3 SCRAPER_PY`.
 # Only used as a primary-role fallback for the Mac dispatcher. On secondary
 # (Hetzner), any path in WORKERS_PREFERRED below fires via HTTP instead.
-# 2026-08-15: '--sync-captions' is NOT a flag of video_library_scraper.py
-# (its argparse accepts only --dry-run/--source/--purge/--backfill/
-# --refresh-views/--tag-backfill), so this job exited 2 every night and new
-# library videos never reached social_reels. The flag belongs to
-# video_library_to_reels.py, which no scheduler referenced at all.
+# The registry ingestor owns only supported YouTube Data API discovery.
+# The retired scraper's maintenance modes were removed with it. Availability
+# and metadata are now validated in the supported provider batch before upsert.
 # SCRIPT_JOB_SCRIPTS overrides the script per path; default stays SCRAPER_PY.
 #
 # 2026-09-21 (fleet recertification D1) took video-library-reels out of
@@ -1051,9 +1048,15 @@ SCRAPER_PY = _resolve_script('video_library_scraper.py')
 # it, and SCRIPT_WORKER_OVERLAP below refuses to start if both claim a path.
 # __tests__/video-library-reels-fails-closed.test.mjs runs both halves.
 REELS_BRIDGE_PY = _resolve_script('video_library_to_reels.py')
+ENRICHMENT_PY = _resolve_script('video_enrichment_worker.py')
+CANDIDATE_PY = _resolve_script('video_reel_candidate_worker.py')
+NATIVE_STUDIO_PY = _resolve_script('video_native_studio_worker.py')
 
 SCRIPT_JOB_SCRIPTS = {
     '/api/cron/video-library-reels': REELS_BRIDGE_PY,
+    '/api/cron/video-library-enrichment': ENRICHMENT_PY,
+    '/api/cron/video-reel-candidates': CANDIDATE_PY,
+    '/api/cron/video-native-studio': NATIVE_STUDIO_PY,
 }
 
 # 2026-09-04: '--sync-captions' IS a flag of video_library_to_reels.py, but it
@@ -1072,12 +1075,12 @@ SCRIPT_JOB_SCRIPTS = {
 # verified atomic publisher, never as the old direct-write bridge.
 SCRIPT_JOBS = {
     '/api/cron/video-library-scraper':  [],                   # full daily run
+    '/api/cron/video-library-enrichment': ['--limit', '50'],  # bounded durable queue drain
+    '/api/cron/video-reel-candidates': ['--limit', '25'],     # bounded explainable candidate selection
+    '/api/cron/video-native-studio': ['--limit', '2'],        # bounded rights-cleared FFmpeg work
     '/api/cron/video-library-reels':    [
         '--limit', '750', '--verify', '--verify-platform-supply'
     ],  # bounded official publisher plus shared poker/sports verdict renewal
-    '/api/cron/video-library-backfill': ['--backfill'],
-    '/api/cron/video-library-purge':    ['--purge'],
-    '/api/cron/video-library-views':    ['--refresh-views'],
 }
 
 
@@ -1287,6 +1290,8 @@ CRITICAL_JOBS = {
     # SCRIPT_JOB exit code is a result like any other; two bad mornings page.
     '/api/cron/video-library-scraper':  2,   # daily; 2 = two days without fresh videos
     '/api/cron/video-library-reels':    2,   # daily; 2 = two days of library videos not reaching the feed
+    '/api/cron/video-reel-candidates':  3,   # ten-minute cadence; three misses = stalled candidate supply
+    '/api/cron/video-native-studio':    3,   # repeated render failures require operator investigation
     '/api/cron/horse-video-reels':      3,   # hourly; 3 = three hours without the horse video supply path
     # The cache audit has two daily idempotent passes. Page if both fail, so a
     # full day can never lose its integrity audit without reaching an operator.
@@ -1308,6 +1313,8 @@ CRITICAL_RUNBOOKS = {
     '/api/internal/pnm-integrity-refresh': 'World-Hub .agent/audits/2026-09-05-poker-near-me-phase-6-final-closeout.md',
     '/api/cron/video-library-scraper':  'World-Hub CLAUDE.md 11.3 + journalctl -u openclaw | grep video-library',
     '/api/cron/video-library-reels':    'World-Hub CLAUDE.md 11.3 + journalctl -u openclaw | grep video-library',
+    '/api/cron/video-reel-candidates':  'World-Hub .planning/video-reels-upgrade/STATE.md + journalctl -u openclaw | grep video-reel-candidates',
+    '/api/cron/video-native-studio':    'World-Hub .planning/video-reels-upgrade/STATE.md + journalctl -u openclaw | grep video-native-studio',
     '/api/cron/horse-video-reels':      'World-Hub .planning/video-reels-upgrade/STATE.md + journalctl -u openclaw | grep horse-video-reels',
     '/api/cron/training-cache-drift-audit': 'World-Hub .agent/audits/2026-09-08-horse-phase3-certification.md',
     '/api/cron/table-socket-probe':     'club-arena/docs/runbooks/tables-say-reconnecting.md',
@@ -1515,7 +1522,7 @@ def fire_cron(path: str):
 
 def fire_script(path: str, extra_args: list):
     """
-    Run the video_library_scraper.py with the given extra args.
+    Run the registry-driven Video Library ingestion worker.
     The script itself POSTs its result back to the Vercel status webhook,
     so the audit log stays up to date even though we're running locally.
     """

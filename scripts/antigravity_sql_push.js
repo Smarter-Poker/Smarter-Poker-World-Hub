@@ -422,6 +422,13 @@ async function run() {
                     // A durable failed/ambiguous claim prevents blind replay.
                     // If the connection died, the original in_progress claim
                     // remains and provides the same fail-closed boundary.
+                    // Authored migrations open their own transaction. A SQL
+                    // failure leaves that session transaction aborted, so
+                    // explicitly roll it back before recording the durable
+                    // failed claim. This does not retry or hide ambiguity.
+                    if (transactionPlan.authored.length > 0) {
+                        await client.query('ROLLBACK').catch(() => {});
+                    }
                     await markIndependentMigrationFailed(client, file, error.code).catch(() => {});
                     throw error;
                 }

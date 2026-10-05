@@ -1,7 +1,7 @@
 // The pure pieces of the Phase 9 clip renderer (src/lib/server/handClipRender.js):
-// the C1 payload, the ffmpeg concat list and its durations, the exact ffmpeg
-// and poster argument arrays of C6 step 5, the storage paths and public URLs
-// of step 6, the length guard, and the scripts the browser runs.
+// the C1 payload, the still durations and the ffmpeg concat list they make,
+// the exact ffmpeg and poster argument arrays of C6 step 5, the storage paths
+// and public URLs of step 6, the length guard, and the scripts the browser runs.
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
@@ -11,18 +11,20 @@ import {
   END_HOLD_MS,
   HAND_COLUMNS,
   JOB_NAME,
+  PAINT_WAIT_MS,
   RENDER_DEADLINE_MS,
-  SCREENCAST_PARAMS,
+  SEEK_TIMEOUT_MS,
+  STILL_PARAMS,
   buildClipPayload,
-  concatListFor,
+  concatListForStills,
   durationGuard,
-  endHoldFor,
   ffmpegArgsFor,
   heroInHand,
   pageScripts,
   posterArgsFor,
   publicUrlFor,
   shortReason,
+  stillDurationsFor,
   storagePathsFor,
 } from '../src/lib/server/handClipRender.js';
 
@@ -43,7 +45,15 @@ test('the constants are the C6 numbers', () => {
   assert.equal(CLIP_MAX_MS, 40000);
   assert.equal(END_HOLD_MS, 1500);
   assert.equal(RENDER_DEADLINE_MS, 270000);
-  assert.deepEqual({ ...SCREENCAST_PARAMS }, { format: 'jpeg', quality: 85, maxWidth: 1280, maxHeight: 720, everyNthFrame: 1 });
+  assert.equal(SEEK_TIMEOUT_MS, 10000);
+  assert.equal(PAINT_WAIT_MS, 2000);
+  assert.deepEqual({ ...STILL_PARAMS, clip: { ...STILL_PARAMS.clip } }, {
+    format: 'jpeg',
+    quality: 85,
+    captureBeyondViewport: false,
+    optimizeForSpeed: true,
+    clip: { x: 0, y: 0, width: 1280, height: 720, scale: 1 },
+  });
   for (const col of ['id', 'table_id', 'hand_number', 'game_variant', 'small_blind', 'big_blind', 'players', 'actions', 'board',
     'community_cards', 'community_cards2', 'community_cards3', 'rit_boards', 'pots', 'pot_size', 'winners', 'winners_by_board',
     'winner_name', 'showdown', 'hole_cards', 'bomb_pot', 'kill_pot', 'rake_amount', 'bbj_amount', 'button_seat', 'started_at',
@@ -82,41 +92,43 @@ test('buildClipPayload is the C1 shape: facts fill the hero cards only when the 
   assert.equal(buildClipPayload(HAND, null, null, { ...JOB, style: undefined }).style, 'felt-720p');
 });
 
-test('concatListFor holds each frame until the next timestamp, holds the last one, and repeats the last file', () => {
-  const frames = [
-    { path: '/tmp/j/f_1.jpg', timestamp: 1700000000.100 },
-    { path: '/tmp/j/f_0.jpg', timestamp: 1700000000.000 },
-    { path: '/tmp/j/f_2.jpg', timestamp: 1700000000.350 },
-  ];
-  const list = concatListFor(frames, 1500);
+test('stillDurationsFor gives every frame its beat and the last frame its beat plus the hold', () => {
+  assert.deepEqual(stillDurationsFor({ beats: [1400, 900, 900, 1400], holdMs: 1500 }), [1400, 900, 900, 2900]);
+  assert.deepEqual(stillDurationsFor({ beats: [1400, 900], holdMs: 4100 }), [1400, 5000], 'a longer hold reaches minMs');
+  assert.deepEqual(stillDurationsFor({ beats: [120.4, 0], holdMs: -5 }), [120, 1], 'whole milliseconds, never under one, no negative hold');
+  assert.deepEqual(stillDurationsFor({ beats: [], holdMs: 1500 }), []);
+  assert.deepEqual(stillDurationsFor(null), []);
+  const sum = stillDurationsFor({ beats: [1400, 900, 900, 1400], holdMs: 1500 }).reduce((a, b) => a + b, 0);
+  assert.equal(sum, 4600 + 1500, 'the stills last exactly what the page planned');
+});
+
+test('concatListForStills holds each still for its duration and repeats the last file', () => {
+  const list = concatListForStills([
+    { path: '/tmp/j/f_0.jpg', durationMs: 1400 },
+    { path: '/tmp/j/f_1.jpg', durationMs: 900 },
+    { path: '/tmp/j/f_2.jpg', durationMs: 2900 },
+  ]);
   assert.equal(list.frames, 3);
-  assert.equal(list.durationMs, 1850, '100 + 250 + 1500');
+  assert.equal(list.durationMs, 5200);
   assert.equal(list.text, [
     'ffconcat version 1.0',
     "file '/tmp/j/f_0.jpg'",
-    'duration 0.100',
+    'duration 1.400',
     "file '/tmp/j/f_1.jpg'",
-    'duration 0.250',
+    'duration 0.900',
     "file '/tmp/j/f_2.jpg'",
-    'duration 1.500',
+    'duration 2.900',
     "file '/tmp/j/f_2.jpg'",
     '',
   ].join('\n'));
-  assert.equal(concatListFor([], 1500).text, 'ffconcat version 1.0\n');
-  assert.equal(concatListFor([], 1500).durationMs, 0);
-  const same = concatListFor([{ path: '/a.jpg', timestamp: 5 }, { path: '/b.jpg', timestamp: 5 }], 1500);
-  assert.match(same.text, /duration 0\.001\n/, 'a zero gap is clamped so the demuxer keeps the frame');
-  const quoted = concatListFor([{ path: "/tmp/o'k/f.jpg", timestamp: 1 }], 1500);
+  assert.equal(concatListForStills([]).text, 'ffconcat version 1.0\n');
+  assert.equal(concatListForStills([]).durationMs, 0);
+  const tiny = concatListForStills([{ path: '/a.jpg', durationMs: 0 }, { path: '/b.jpg', durationMs: 0.2 }]);
+  assert.match(tiny.text, /duration 0\.001\n/, 'a duration never goes below one millisecond');
+  assert.equal(tiny.durationMs, 2);
+  const quoted = concatListForStills([{ path: "/tmp/o'k/f.jpg", durationMs: 1000 }]);
   assert.ok(quoted.text.includes("file '/tmp/o'\\''k/f.jpg'"), 'an apostrophe in the path is escaped for the demuxer');
-  assert.equal(concatListFor([{ path: '/a.jpg', timestamp: 1 }], 0).durationMs, 1, 'the hold never goes below one millisecond');
-});
-
-test('endHoldFor stretches the hold to what the page planned and never below the 1.5 s end hold', () => {
-  const frames = [{ timestamp: 100 }, { timestamp: 110 }];
-  assert.equal(endHoldFor(frames, 20000), 10000, 'a 10 s span planned at 20 s holds 10 s');
-  assert.equal(endHoldFor(frames, 11000), 1500, 'a plan close to the span keeps the 1.5 s hold');
-  assert.equal(endHoldFor(frames, null), 1500);
-  assert.equal(endHoldFor([], 20000), 1500);
+  assert.equal(concatListForStills([{ path: '/a.jpg' }, null, { durationMs: 5 }]).frames, 1, 'entries without a path are dropped');
 });
 
 test('ffmpegArgsFor and posterArgsFor are exactly the C6 step 5 commands', () => {
@@ -173,28 +185,69 @@ test('shortReason is one line of at most 300 characters', () => {
   assert.equal(shortReason(new Error('x'.repeat(500))).length, 300);
 });
 
-test('the browser scripts inject the payload, read the clip state and start the clip', () => {
-  const saved = { window: globalThis.window, document: globalThis.document };
+test('the browser scripts inject the payload, read the state and the step, read the plan and seek', async () => {
+  const saved = {
+    window: globalThis.window,
+    document: globalThis.document,
+    requestAnimationFrame: globalThis.requestAnimationFrame,
+  };
   try {
     globalThis.window = {};
     globalThis.document = { querySelector: () => null };
     pageScripts.inject({ v: 1, heroId: HERO });
     assert.deepEqual(globalThis.window.__SP_CLIP__, { v: 1, heroId: HERO });
     assert.equal(pageScripts.clipState(), null, 'no stage yet');
-    globalThis.document = { querySelector: (sel) => (sel === '[data-clip-state]' ? { getAttribute: () => 'ready' } : null) };
+    assert.equal(pageScripts.clipStep(), null);
+    const attrs = { 'data-clip-state': 'ready', 'data-clip-step': '0' };
+    globalThis.document = {
+      querySelector: (sel) => {
+        const name = sel.slice(1, -1);
+        return name in attrs ? { getAttribute: (a) => attrs[a] } : null;
+      },
+    };
     assert.equal(pageScripts.clipState(), 'ready');
-    assert.equal(pageScripts.plannedMs(), null);
-    assert.equal(pageScripts.start(), false, 'no __spClip means no start');
-    let started = 0;
-    globalThis.window.__spClip = { v: 1, plannedMs: 21500, start: () => { started += 1; return true; } };
-    assert.equal(pageScripts.plannedMs(), 21500);
-    assert.equal(pageScripts.start(), true);
-    assert.equal(started, 1);
+    assert.equal(pageScripts.clipStep(), 0);
+    attrs['data-clip-step'] = '12';
+    assert.equal(pageScripts.clipStep(), 12);
+    attrs['data-clip-step'] = 'x';
+    assert.equal(pageScripts.clipStep(), null, 'not a frame index');
+
+    assert.equal(pageScripts.plan(), null, 'no __spClip means no plan');
+    assert.equal(pageScripts.seek(3), false, 'no __spClip means no seek');
+    const sought = [];
+    globalThis.window.__spClip = {
+      v: 1, state: 'ready', frames: 3, rate: 1, beats: [1400, 900, 1400], holdMs: 1500, plannedMs: 5200,
+      seek: (i) => { sought.push(i); return i < 3; },
+      start: () => true,
+    };
+    assert.deepEqual(pageScripts.plan(), { frames: 3, rate: 1, beats: [1400, 900, 1400], holdMs: 1500, plannedMs: 5200 });
+    assert.equal(pageScripts.seek(2), true);
+    assert.equal(pageScripts.seek(3), false);
+    assert.deepEqual(sought, [2, 3]);
+    // A plan that does not describe every frame is no plan.
+    globalThis.window.__spClip = { frames: 3, beats: [1400, 900], holdMs: 1500 };
+    assert.equal(pageScripts.plan(), null, 'frames and beats disagree');
+    globalThis.window.__spClip = { frames: 2, beats: [1400, 0], holdMs: 1500 };
+    assert.equal(pageScripts.plan(), null, 'a zero beat');
+    globalThis.window.__spClip = { frames: 2, beats: [1400, 900], holdMs: -1 };
+    assert.equal(pageScripts.plan(), null, 'a negative hold');
+    globalThis.window.__spClip = { frames: 0, beats: [], holdMs: 0 };
+    assert.equal(pageScripts.plan(), null, 'too_long hands over no beats');
+
+    // painted: two animation frames, or the timeout.
+    let rafs = 0;
+    globalThis.requestAnimationFrame = (fn) => { rafs += 1; setImmediate(fn); };
+    assert.equal(await pageScripts.painted(1000), true);
+    assert.equal(rafs, 2);
+    globalThis.requestAnimationFrame = () => {};
+    assert.equal(await pageScripts.painted(5), false, 'a compositor that never paints does not hang the camera');
+
     for (const fn of Object.values(pageScripts)) {
       assert.doesNotMatch(fn.toString(), /\b(require|import|process)\b/, 'self-contained for puppeteer serialisation');
     }
   } finally {
     globalThis.window = saved.window;
     globalThis.document = saved.document;
+    globalThis.requestAnimationFrame = saved.requestAnimationFrame;
   }
 });

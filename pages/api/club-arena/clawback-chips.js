@@ -189,7 +189,8 @@ export default async function handler(req, res) {
         p_amount: clawbackAmount
       });
 
-      if (rpcErr || !rpcResult?.success) {
+      // A result that moved nothing is never a clawback, whatever it says.
+      if (rpcErr || !rpcResult?.success || !(Number(rpcResult?.recovered) > 0)) {
         // Revert claim note
         const { error: err_chip_transactions_kqjxd } = await getSupabase()
           .from('chip_transactions')
@@ -197,13 +198,25 @@ export default async function handler(req, res) {
           .eq('id', transactionId);
         if (err_chip_transactions_kqjxd) console.warn('[Supabase] Silent mutation failed in chip_transactions:', err_chip_transactions_kqjxd.message);
 
-        return res.status(200).json({
-          success: true,
-          partial: rpcResult?.partial || false,
-          recovered: rpcResult?.recovered || 0,
-          playerNewBalance: rpcResult?.player_new_balance || 0,
-          message: rpcResult?.error || 'Player balance may be in-play',
-          windowRemaining: `${remainingSeconds}s`
+        // Nothing moved, so this is never a success. fn_clawback_chips_atomic
+        // was retired on 2026-10-02 (Club Arena migration
+        // 20261002042417_every_chip_store_refuses): it credited agent wallets
+        // with no chip_ledger leg, and now moves nothing and answers
+        // { success: false, error: 'clawback_retired' }. Reporting success here
+        // told an operator chips came back when none did.
+        if (rpcResult?.error === 'clawback_retired') {
+          return res.status(410).json({
+            success: false,
+            error: 'clawback_retired',
+            message: rpcResult?.message || 'Chip clawback is retired. Use the agent wallet claim back.',
+            recovered: 0,
+          });
+        }
+        return res.status(rpcErr ? 502 : 409).json({
+          success: false,
+          error: rpcResult?.error || (rpcResult?.success ? 'clawback_moved_nothing' : 'clawback_failed'),
+          message: rpcResult?.message || 'Clawback did not move any chips',
+          recovered: 0,
         });
       }
 

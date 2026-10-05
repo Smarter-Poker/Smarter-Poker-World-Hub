@@ -76,7 +76,7 @@ test('history proof rejects duplicate, unrelated, unlabeled or unbounded rows', 
 
 test('hosted continuity mode preserves defaults and reads only owning credential store', () => {
   const source = readFileSync('.github/workflows/e2e-tests.yml', 'utf8');
-  assert.match(source, /options: \[full, messenger-live, messenger-send-live, messenger-continuity-live, reels-live\]/);
+  assert.match(source, /options: \[full, messenger-live, messenger-send-live, messenger-continuity-live, reels-live, video-operations-live, reels-reconciliation-audit, reels-reconciliation-apply\]/);
   assert.match(source, /default: full/);
   assert.match(source, /if: \$\{\{ inputs\.suite == 'full' \|\| inputs\.suite == '' \}\}/);
   assert.match(source, /run: node scripts\/ci\/messenger-continuity-live\.mjs/);

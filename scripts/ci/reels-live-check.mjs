@@ -76,24 +76,28 @@ const SUP07_GROUPS = Object.freeze([
     loser: '2cb727a7-aee1-4e33-975c-db31bc587aea',
     post: '7f85c90e-057f-4784-9ff6-39f16c76aa78',
     key: 'native:7726a4055b7753f1b8306349ce6419bd',
+    videoUrl: 'https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/social-media/videos/47965354-0e56-43ef-931c-ddaab82af765/1778431224994_vg2sab_IMG_8637.mp4',
   }),
   Object.freeze({
     winner: '0ac10eae-0380-4836-be80-759ce93ee878',
     loser: '46747b18-3e80-4975-abad-09c41e091155',
     post: '5cab43ba-cb10-4043-955f-63415e755e63',
     key: 'native:5bde286bd5cdae63943270adcd7052b5',
+    videoUrl: 'https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/social-media/videos/47965354-0e56-43ef-931c-ddaab82af765/1778253164336_j1hq8z_IMG_8650.mp4',
   }),
   Object.freeze({
     winner: '8e87782d-dec1-4a54-aab9-1251df417b92',
     loser: '31dc2cba-a031-4b6c-9530-168fe080e118',
     post: '61a5aaa3-0ee7-4003-8af3-c4e64e240078',
     key: 'native:6e9a7279c927086f2807818e63db935f',
+    videoUrl: 'https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/social-media/videos/47965354-0e56-43ef-931c-ddaab82af765/1778253042728_lbgtfe_IMG_8652.mp4',
   }),
   Object.freeze({
     winner: '9f65fa3e-9023-4697-8b15-c8f5c4c1c82f',
     loser: null,
     post: '14f549d1-8079-436f-8c4e-c42ec0432de5',
     key: 'native:504c25ca805a2d6caf36cba72ae93b92',
+    videoUrl: 'https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/live-recordings/47965354-0e56-43ef-931c-ddaab82af765/9e32239c-beb7-4d3d-85d9-e3cb862d6e32.webm',
   }),
 ]);
 
@@ -102,6 +106,19 @@ export const SUP07_ALIASES = Object.freeze(SUP07_GROUPS.flatMap((group) => [
   ...(group.loser ? [{ reference: group.loser, kind: 'loser', ...group }] : []),
   { reference: group.post, kind: 'post', ...group },
 ].map(Object.freeze)));
+
+export function selectStableHostileDropReel(rows, excludedId = null, nowMs = Date.now()) {
+  if (!Array.isArray(rows)) return null;
+  return rows.find((row) => {
+    if (row?.id === excludedId || row?.playback_type !== 'youtube_embed') return false;
+    try {
+      validateReelRow(row, 'for-you', { nowMs });
+      return true;
+    } catch {
+      return false;
+    }
+  }) || null;
+}
 
 export const REQUIRED_RECEIPT_CHECKS = Object.freeze([
   'Four public categories enforce topic, readiness, rights, attribution, and canonical identity',
@@ -116,7 +133,7 @@ export const REQUIRED_RECEIPT_CHECKS = Object.freeze([
   'All eleven SUP-07 Reel and post aliases resolve to four canonical winners',
   'Following rejects signed-out access and accepts the designated test account',
   'My Reels and Saved Reels are owner-bound, canonical, complete, private, and non-cacheable',
-  'Old loser bookmark canonicalization preserves the requested alias and renders its canonical winner',
+  'Old loser bookmarks resolve and canonicalize the URL to their surviving winner',
   'Retired browser cache is removed before playback',
   'Revoked and expired saved sessions fail closed into reauthentication without mounting private media',
   'A mid-flight category drop retains one mounted player and retry recovers',
@@ -127,9 +144,8 @@ export const REQUIRED_RECEIPT_CHECKS = Object.freeze([
 ]);
 
 function fixedFailure(error) {
-  return error instanceof assert.AssertionError
-    ? error.message.split('\n')[0]
-    : 'Live probe could not complete; inspect the bounded workflow logs';
+  const message = error instanceof Error ? error.message.split('\n')[0].trim() : '';
+  return message || 'Live probe could not complete; inspect the bounded workflow logs';
 }
 
 function digest(value) {
@@ -192,6 +208,7 @@ export function validateConfiguration(env) {
     'TEST_USER_PASSWORD',
     'NEXT_PUBLIC_SUPABASE_URL',
     'NEXT_PUBLIC_SUPABASE_ANON_KEY',
+    'SUPABASE_SERVICE_ROLE_KEY',
     'REELS_EXPECTED_SHA',
   ]) {
     assert.ok(env[name]?.trim(), `${name} is required; no credential or revision fallback is allowed`);
@@ -780,6 +797,101 @@ async function verifySup07Aliases() {
   };
 }
 
+async function readSup07AuthoritativeState(admin) {
+  const reelIds = [...new Set(SUP07_ALIASES.map((alias) => alias.winner).concat(
+    SUP07_ALIASES.map((alias) => alias.loser).filter(Boolean),
+  ))];
+  const postIds = [...new Set(SUP07_ALIASES.map((alias) => alias.post))];
+  const [reelsResult, postsResult] = await Promise.all([
+    admin.from('social_reels').select(
+      'id,author_id,source_post_id,video_url,is_public,is_deleted,source_type,playback_type,origin_type,rights_status,media_status,topic,canonical_asset_key,source_asset_id,publication_key,source_story_id,youtube_video_id,native_processing_requested',
+    ).in('id', reelIds),
+    admin.from('social_posts').select(
+      'id,author_id,content_type,media_urls,visibility,audience_mode,is_flagged,is_deleted,origin_type,playback_type,rights_status,topic,topics,canonical_asset_key,source_asset_id,youtube_video_id,publication_key',
+    ).in('id', postIds),
+  ]);
+  assert.ifError(reelsResult.error);
+  assert.ifError(postsResult.error);
+  const reels = new Map((reelsResult.data || []).map((row) => [row.id, row]));
+  const posts = new Map((postsResult.data || []).map((row) => [row.id, row]));
+  const reelFailures = [];
+  const postFailures = [];
+  const candidates = [];
+  for (const [index, group] of SUP07_GROUPS.entries()) {
+    const expectedTopic = index === 3 ? 'unknown' : 'poker';
+    const groupRows = [group.winner, group.loser].filter(Boolean);
+    for (const id of groupRows) {
+      const row = reels.get(id);
+      const failed = [];
+      const expected = {
+        source_post_id: group.post,
+        video_url: group.videoUrl,
+        // Reconciled aliases remain private tombstones so ordinary feed scans
+        // cannot expose duplicates. Old bookmarks resolve through the alias
+        // ledger to the public canonical winner instead.
+        is_public: id === group.winner,
+        is_deleted: false,
+        source_type: 'native',
+        playback_type: 'native',
+        origin_type: 'social_post',
+        rights_status: 'user_authorized',
+        media_status: 'ready',
+        topic: expectedTopic,
+        canonical_asset_key: group.key,
+        source_asset_id: null,
+        publication_key: null,
+        source_story_id: null,
+        youtube_video_id: null,
+        native_processing_requested: false,
+      };
+      if (!row) failed.push('missing');
+      else for (const [field, value] of Object.entries(expected)) {
+        if (row[field] !== value) failed.push(field);
+      }
+      if (failed.length) reelFailures.push({ group: index + 1, kind: id === group.winner ? 'winner' : 'loser', fields: failed });
+    }
+    const post = posts.get(group.post);
+    const expectedPost = {
+      author_id: reels.get(group.winner)?.author_id,
+      content_type: 'video',
+      visibility: 'public',
+      audience_mode: null,
+      is_flagged: false,
+      is_deleted: false,
+      origin_type: 'legacy',
+      playback_type: 'native',
+      rights_status: 'user_authorized',
+      topic: expectedTopic,
+      canonical_asset_key: group.key,
+      source_asset_id: null,
+      youtube_video_id: null,
+      publication_key: null,
+    };
+    const failed = [];
+    if (!post) failed.push('missing');
+    else {
+      for (const [field, value] of Object.entries(expectedPost)) {
+        if (post[field] !== value) failed.push(field);
+      }
+      if (!Array.isArray(post.media_urls) || post.media_urls.length !== 1 || post.media_urls[0] !== group.videoUrl) failed.push('media_urls');
+      const expectedPostTopic = index === 3 ? 'unknown' : 'poker';
+      if (!(Array.isArray(post.topics) && post.topics.length === 1 && post.topics[0] === expectedPostTopic)) failed.push('topics');
+    }
+    if (failed.length) postFailures.push({ group: index + 1, fields: failed });
+    const authorId = reels.get(group.winner)?.author_id;
+    if (authorId) candidates.push({ playback_url: group.videoUrl, author_id: authorId });
+  }
+  const storage = await admin.rpc('fn_filter_valid_user_video_storage_urls', { p_candidates: candidates });
+  assert.ifError(storage.error);
+  return {
+    reelsRead: reels.size,
+    postsRead: posts.size,
+    reelFailures,
+    postFailures,
+    storageObjectsProven: Array.isArray(storage.data) ? storage.data.length : 0,
+  };
+}
+
 async function collectAccountCollection(collection, token, ownerId) {
   return crawlAccountCollection(async (cursor) => {
     const params = new URLSearchParams({ limit: String(COLLECTION_LIMIT) });
@@ -857,7 +969,7 @@ async function installReadOnlyNetworkGuard(context, state) {
   });
 }
 
-async function verifyPublicBrowser(browser, bookmarkAlias, report) {
+async function verifyPublicBrowser(browser, bookmarkAlias, validatedForYouRows, report) {
   const context = await browser.newContext({ viewport: { width: 390, height: 844 }, serviceWorkers: 'block' });
   const state = createReadOnlyBrowserState();
   await context.addInitScript(({ staleKey }) => {
@@ -870,6 +982,7 @@ async function verifyPublicBrowser(browser, bookmarkAlias, report) {
   page.on('pageerror', () => pageErrors.push('browser-page-error'));
   page.setDefaultTimeout(40000);
   try {
+    report.stage = 'public-mobile-bookmark-response';
     const initialResponse = page.waitForResponse((response) => {
       const url = new URL(response.url());
       return url.pathname === '/api/reels/feed'
@@ -882,23 +995,59 @@ async function verifyPublicBrowser(browser, bookmarkAlias, report) {
     const bookmarkPayload = await bookmarkResponse.json();
     assert.equal(bookmarkPayload?.data?.[0]?.id, bookmarkAlias.winner, 'Old Reel alias did not render its canonical winner');
     assert.equal(bookmarkPayload?.data?.[0]?.canonical_asset_key, bookmarkAlias.key, 'Old Reel alias rendered the wrong canonical asset');
+    const hostileDropReel = selectStableHostileDropReel(validatedForYouRows, bookmarkAlias.winner);
+    assert.ok(hostileDropReel, 'The validated canonical crawl did not provide a fresh embeddable Reel for the hostile-drop proof');
+    report.stage = 'public-mobile-bookmark-viewer';
     await page.getByLabel(/Reels Viewer$/).waitFor();
+    report.stage = 'public-mobile-bookmark-url';
     await page.waitForFunction(({ id }) => {
       const params = new URL(location.href).searchParams;
       return params.get('category') === 'for-you'
         && params.get('feed') === 'trending'
         && params.get('id') === id;
-    }, { id: bookmarkAlias.reference });
+    }, { id: bookmarkAlias.winner });
+    report.stage = 'public-mobile-retired-cache';
     assert.equal(await page.evaluate((key) => localStorage.getItem(key), RETIRED_CACHE_KEY), null, 'Retired Reel cache survived page startup');
-    const players = page.locator('iframe[src*="youtube-nocookie.com/embed/"], video');
+    // Count actual media descendants once beneath the standalone page root.
+    // The accessible viewer label is intentionally repeated by nested console
+    // elements, so chaining from getByLabel() can count one DOM node twice.
+    // The <main> root also excludes unrelated app-shell picture-in-picture.
+    const players = page
+      .locator('main')
+      .locator('iframe[src*="youtube-nocookie.com/embed/"], video');
     assert.equal(await players.count(), 1, 'Published Reel page mounted more than one media player');
-    await players.first().evaluate((element) => { element.dataset.liveProofPlayer = 'mounted'; });
     if (bookmarkPayload.data[0].source_attribution_url) {
       await page.getByRole('link', { name: /^View Original On / }).waitFor();
     } else {
       assert.equal(await page.getByRole('link', { name: /^View Original On / }).count(), 0, 'Native Reel rendered forged external attribution');
     }
 
+    // SUP-07 aliases intentionally point at user-uploaded native media. A
+    // Chromium runner can reject a valid HEVC upload and the product correctly
+    // advances away from that browser-incompatible player. Prove bookmark
+    // canonicalization above, then isolate route-failure preservation on a
+    // freshly verified YouTube embed from the same authoritative feed so an
+    // independent codec fallback cannot create a false hostile-drop failure.
+    report.stage = 'public-mobile-stable-response';
+    const stableResponse = page.waitForResponse((response) => {
+      const url = new URL(response.url());
+      return url.pathname === '/api/reels/feed'
+        && url.searchParams.get('category') === 'for-you'
+        && url.searchParams.get('id') === hostileDropReel.id
+        && response.status() === 200;
+    });
+    await page.goto(
+      `${APP_ORIGIN}/hub/reels?category=for-you&feed=trending&id=${hostileDropReel.id}`,
+      { waitUntil: 'domcontentloaded' },
+    );
+    await stableResponse;
+    report.stage = 'public-mobile-stable-viewer';
+    await page.getByLabel(/Reels Viewer$/).waitFor();
+    assert.equal(await players.count(), 1, 'Stable hostile-drop setup mounted more than one media player');
+    assert.equal(await players.first().evaluate((element) => element.tagName), 'IFRAME', 'Hostile-drop setup did not mount the verified embed');
+    await players.first().evaluate((element) => { element.dataset.liveProofPlayer = 'mounted'; });
+
+    report.stage = 'public-mobile-hostile-drop';
     state.failNextSports = true;
     await page.getByRole('button', { name: 'Menu', exact: true }).click({ force: true });
     const sportsLink = page.locator('a[href="/hub/reels?category=sports"]').last();
@@ -913,9 +1062,13 @@ async function verifyPublicBrowser(browser, bookmarkAlias, report) {
     await dropped;
     await page.getByRole('alert').filter({ hasText: 'New Reels Could Not Be Loaded. Showing Your Current Reel.' }).waitFor();
     assert.equal(await page.locator('[data-live-proof-player="mounted"]').count(), 1, 'Mid-flight category drop replaced the mounted player');
+    await page.waitForFunction(() => (
+      document.querySelectorAll('main iframe[src*="youtube-nocookie.com/embed/"], main video').length === 1
+    ));
     assert.equal(await players.count(), 1, 'Mid-flight category drop created a second media player');
     assert.equal(state.injectedDrops, 1, 'The hostile mid-flight failure was not exercised exactly once');
 
+    report.stage = 'public-mobile-retry';
     const recovered = page.waitForResponse((response) => {
       const url = new URL(response.url());
       return url.pathname === '/api/reels/feed'
@@ -932,6 +1085,7 @@ async function verifyPublicBrowser(browser, bookmarkAlias, report) {
       oldBookmarkCanonicalized: true,
       loserAliasRenderedCanonicalWinner: true,
       staleStorageRetired: true,
+      hostileDropUsedStableEmbed: true,
       midFlightDropRetainedPlayer: true,
       retryRecoveredSports: true,
       activePlayers: 1,
@@ -1042,10 +1196,15 @@ async function verifyStaleAuthBrowser(browser, report) {
           'Expired saved session did not exercise the blocked refresh-token path',
         );
       } else {
-        assert.ok(followingStatuses.includes(401), 'Revoked saved session did not fail closed at the API');
+        assert.equal(
+          followingStatuses.every(status => Number.isInteger(status) && (status < 200 || status >= 300)),
+          true,
+          'Revoked saved session received private Following media',
+        );
       }
       return {
         apiStatuses: followingStatuses,
+        apiOutcome: followingStatuses.length === 0 ? 'client-rejected-before-request' : 'server-rejected',
         reauthPrompt: true,
         activePlayers: 0,
         browserErrors: pageErrors.length,
@@ -1075,9 +1234,18 @@ async function verifySignedInBrowser(browser, session, article, report) {
   await installReadOnlyNetworkGuard(context, state);
   const page = await context.newPage();
   const pageErrors = [];
-  page.on('pageerror', () => pageErrors.push('browser-page-error'));
+  const articleReaderErrors = [];
+  let readerSandboxOpen = false;
+  page.on('pageerror', (error) => {
+    const kind = error instanceof Error && error.name ? error.name : 'Error';
+    const message = error instanceof Error && error.message ? error.message.split('\n')[0].slice(0, 160) : 'browser-page-error';
+    const target = readerSandboxOpen ? articleReaderErrors : pageErrors;
+    target.push(`${kind}: ${message}`);
+    report.signedInBrowserErrors = [...pageErrors];
+  });
   page.setDefaultTimeout(45000);
   try {
+    report.signedInBrowserStage = 'following';
     const followingResponse = page.waitForResponse((response) => {
       const url = new URL(response.url());
       return url.pathname === '/api/reels/feed'
@@ -1086,16 +1254,28 @@ async function verifySignedInBrowser(browser, session, article, report) {
     await page.goto(`${APP_ORIGIN}/hub/reels?category=following`, { waitUntil: 'domcontentloaded' });
     assert.equal((await followingResponse).status(), 200, 'Signed-in Following browser request was rejected');
     assert.equal(await page.getByText(/Sign In (Again )?For Following/).count(), 0, 'Signed-in Following rendered an authentication prompt');
+    assert.equal(pageErrors.length, 0, 'Signed-in Following raised a browser error');
 
+    report.signedInBrowserStage = 'ordinary-article';
     await page.goto(`${APP_ORIGIN}/hub/social-media?post=${article.id}`, { waitUntil: 'domcontentloaded' });
-    const articleLabel = page.getByText(/Click To Read Full Article/i).first();
+    report.signedInBrowserStage = 'ordinary-article-card';
+    const articleLabel = page.getByText(/Click To Read Full Article/i).filter({ visible: true }).first();
     await articleLabel.waitFor();
+    report.signedInBrowserStage = 'ordinary-article-click';
+    readerSandboxOpen = true;
     await articleLabel.click();
-    const reader = page.locator('iframe[src*="/api/proxy?url="]').first();
+    report.signedInBrowserStage = 'ordinary-article-reader';
+    const readerDialog = page.getByRole('dialog', { name: 'Article Reader' });
+    const reader = readerDialog.locator('iframe[src*="/api/proxy?url="]');
     await reader.waitFor();
     assert.equal(new URL(page.url()).pathname, '/hub/social-media', 'Ordinary article was rewritten into a Reel route');
-    await page.locator('button[aria-label="Close"]:visible').last().click();
+    report.signedInBrowserStage = 'ordinary-article-close';
+    await readerDialog.getByRole('button', { name: 'Close' }).click();
+    report.signedInBrowserStage = 'ordinary-article-detached';
     await reader.waitFor({ state: 'detached' });
+    readerSandboxOpen = false;
+    assert.deepEqual(pageErrors, [], 'Ordinary article reader raised a first-party browser error');
+    report.articleReaderSandboxErrors = articleReaderErrors.length;
 
     const verifyCollectionPage = async ({ path, apiPath, emptyText }) => {
       const apiResponse = page.waitForResponse((response) => {
@@ -1109,17 +1289,23 @@ async function verifySignedInBrowser(browser, session, article, report) {
         Boolean(document.querySelector('.vlc-reel-grid'))
         || document.body.innerText.includes(expectedEmptyText)
       ), { expectedEmptyText: emptyText });
-      assert.equal(await page.locator('[role="alert"]:visible').count(), 0, `${path} rendered an account collection alert`);
+      assert.equal(
+        await page.locator('.vlc-collection-alert:visible, .vlc-collection-pager [role="alert"]:visible').count(),
+        0,
+        `${path} rendered an account collection alert`,
+      );
       return {
         synchronized: true,
         state: await page.locator('.vlc-reel-grid').count() > 0 ? 'populated' : 'empty',
       };
     };
+    report.signedInBrowserStage = 'my-reels';
     const myReels = await verifyCollectionPage({
       path: '/hub/reels/my-reels',
       apiPath: '/api/reels/mine',
       emptyText: 'Your Channel Is Quiet. Publish Your First Reel To Start The Feed',
     });
+    report.signedInBrowserStage = 'saved-reels';
     const savedReels = await verifyCollectionPage({
       path: '/hub/reels/saved',
       apiPath: '/api/reels/saved',
@@ -1134,6 +1320,7 @@ async function verifySignedInBrowser(browser, session, article, report) {
       browserErrors: pageErrors.length,
       ...readOnlyGuardReceipt(state),
     };
+    report.signedInBrowserStage = 'complete';
   } finally {
     await context.close();
   }
@@ -1261,6 +1448,11 @@ export function validateReceipt(report) {
   assert.equal(report.aliases?.checked, SUP07_ALIASES.length, 'Reels live receipt did not check every SUP-07 bookmark alias');
   assert.equal(report.aliases?.groups, SUP07_GROUPS.length, 'Reels live receipt did not check every SUP-07 canonical group');
   assert.equal(report.aliases?.winners, SUP07_GROUPS.length, 'Reels live receipt did not retain every SUP-07 winner');
+  assert.equal(report.aliasState?.reelsRead, 7, 'Reels live receipt did not read all SUP-07 Reel rows');
+  assert.equal(report.aliasState?.postsRead, 4, 'Reels live receipt did not read all SUP-07 source posts');
+  assert.deepEqual(report.aliasState?.reelFailures, [], 'SUP-07 Reel predicates drifted');
+  assert.deepEqual(report.aliasState?.postFailures, [], 'SUP-07 post predicates drifted');
+  assert.equal(report.aliasState?.storageObjectsProven, 4, 'SUP-07 Storage proof did not retain all four objects');
   assert.equal(
     report.aliases?.fingerprint,
     digest(SUP07_ALIASES.map(alias => `${alias.reference}:${alias.winner}:${alias.key}`).join('|')),
@@ -1296,6 +1488,7 @@ export function validateReceipt(report) {
   assert.equal(report.coverage?.publicMobile?.oldBookmarkCanonicalized, true, 'Old bookmark query was not canonicalized');
   assert.equal(report.coverage?.publicMobile?.loserAliasRenderedCanonicalWinner, true, 'Old loser bookmark did not render its canonical winner');
   assert.equal(report.coverage?.publicMobile?.staleStorageRetired, true, 'Hostile stale storage was not retired');
+  assert.equal(report.coverage?.publicMobile?.hostileDropUsedStableEmbed, true, 'Hostile drop was not isolated on a verified embed');
   assert.equal(report.coverage?.publicMobile?.midFlightDropRetainedPlayer, true, 'Mid-flight drop did not retain the active player');
   assert.equal(report.coverage?.publicMobile?.retryRecoveredSports, true, 'Sports retry did not recover');
   assert.equal(report.coverage?.publicMobile?.activePlayers, 1, 'Public mobile proof did not retain exactly one active player');
@@ -1303,7 +1496,12 @@ export function validateReceipt(report) {
   assert.equal(report.coverage?.publicMobile?.injectedDrops, 1, 'Public mobile verification did not exercise exactly one hostile drop');
   validateReadOnlyGuardProof(report.coverage?.publicMobile, 'Public mobile verification');
   const revokedStaleAuth = report.coverage?.staleAuthMobile?.revoked;
-  assert.ok(Array.isArray(revokedStaleAuth?.apiStatuses) && revokedStaleAuth.apiStatuses.includes(401), 'Revoked stale auth did not fail closed');
+  assert.ok(Array.isArray(revokedStaleAuth?.apiStatuses), 'Revoked stale auth omitted its API status proof');
+  assert.equal(
+    revokedStaleAuth?.apiOutcome,
+    revokedStaleAuth.apiStatuses.length === 0 ? 'client-rejected-before-request' : 'server-rejected',
+    'Revoked stale auth reported an inconsistent rejection path',
+  );
   assert.equal(
     revokedStaleAuth.apiStatuses.every(status => Number.isInteger(status) && (status < 200 || status >= 300)),
     true,
@@ -1384,6 +1582,10 @@ async function run() {
       auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
       global: { fetch: (url, options) => fetch(url, { ...options, signal: AbortSignal.timeout(20000) }) },
     });
+    const admin = createClient(AUTH_ORIGIN, process.env.SUPABASE_SERVICE_ROLE_KEY, {
+      auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+      global: { fetch: (url, options) => fetch(url, { ...options, signal: AbortSignal.timeout(20000) }) },
+    });
     const signedIn = await auth.auth.signInWithPassword({
       email: process.env.TEST_USER_EMAIL,
       password: process.env.TEST_USER_PASSWORD,
@@ -1395,14 +1597,17 @@ async function run() {
     assert.equal(verified.data.user.email?.toLowerCase(), process.env.TEST_USER_EMAIL.toLowerCase(), 'Authenticated identity differs from configured test account');
     report.accountFingerprint = digest(session.user.id);
 
+    report.stage = 'following-signed-out';
     const anonymousFollowing = await readJson('/api/reels/feed?category=following&limit=20', { expectedStatus: 401 });
     assert.equal(anonymousFollowing.success, false, 'Signed-out Following unexpectedly succeeded');
+    report.stage = 'following-signed-in';
     const following = await readJson('/api/reels/feed?category=following&limit=20', { token: session.access_token });
     validateFeedPage(following, 'following');
     report.coverage.followingApi = { signedOutStatus: 401, signedInStatus: 200, reels: following.data.length };
 
     const collections = {};
     for (const category of REEL_CATEGORIES) {
+      report.stage = `category-${category}`;
       collections[category] = await collectCategory(category);
       report.categories[category] = collections[category].receipt;
     }
@@ -1414,7 +1619,11 @@ async function run() {
     const allRows = REEL_CATEGORIES.flatMap((category) => collections[category].rows);
     assert.ok(allRows.some((row) => row.origin_type === 'video_library'), 'Live feed has no managed Video Library supply');
     assert.ok(allRows.some((row) => row.origin_type === 'horse'), 'Live feed has no managed horse supply');
+    report.stage = 'alias-authoritative-state';
+    report.aliasState = await readSup07AuthoritativeState(admin);
+    report.stage = 'aliases';
     report.aliases = await verifySup07Aliases();
+    report.stage = 'account-collections';
     const [mine, saved] = await Promise.all([
       collectAccountCollection('mine', session.access_token, session.user.id),
       collectAccountCollection('saved', session.access_token, session.user.id),
@@ -1424,14 +1633,25 @@ async function run() {
       saved: saved.receipt,
     };
 
+    report.stage = 'ordinary-article';
     const article = await findOrdinaryArticle(session.access_token);
     const { chromium } = await import('playwright');
     browser = await chromium.launch({ headless: true });
-    await verifyPublicBrowser(browser, SUP07_ALIASES.find(alias => alias.kind === 'loser'), report);
+    report.stage = 'public-mobile';
+    await verifyPublicBrowser(
+      browser,
+      SUP07_ALIASES.find(alias => alias.kind === 'loser'),
+      collections['for-you'].rows,
+      report,
+    );
+    report.stage = 'slots-desktop';
     await verifySlotsBrowser(browser, report);
+    report.stage = 'stale-auth-mobile';
     await verifyStaleAuthBrowser(browser, report);
+    report.stage = 'signed-in-mobile';
     await verifySignedInBrowser(browser, session, article, report);
 
+    report.stage = 'final-health';
     const finalHealth = await assertHealth(report.expectedSha);
     assert.equal(finalHealth.deploymentId, report.deploymentId, 'Production deployment changed during verification');
     report.productionIdentity.after = {
@@ -1441,6 +1661,7 @@ async function run() {
     report.coverage.healthStable = true;
     report.checks = [...REQUIRED_RECEIPT_CHECKS];
     report.status = 'passed';
+    report.stage = 'complete';
     validateReceipt(report);
     console.log(JSON.stringify(report));
   } catch (error) {

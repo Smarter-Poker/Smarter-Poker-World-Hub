@@ -289,6 +289,7 @@ async function runMarketplaceReadiness({
     || ['true', 'false'].includes(printfulAutoConfirmValue);
   const printfulStoreConfigured = bool(env.PRINTFUL_STORE_ID);
   const printfulWebhookConfigured = bool(env.PRINTFUL_WEBHOOK_SECRET);
+  const printfulWebhookPublicKeyConfigured = bool(env.PRINTFUL_WEBHOOK_PUBLIC_KEY);
   // `PRINTFUL_AUTO_CONFIRM=false` by itself is an explicit manual-mode
   // declaration, not an attempted provider connection. Any credential,
   // provider identifier, webhook secret, or enabled auto-confirm flag does
@@ -297,11 +298,13 @@ async function runMarketplaceReadiness({
     || printfulAutoConfirmEnabled
     || !printfulAutoConfirmValid
     || printfulStoreConfigured
-    || printfulWebhookConfigured;
+    || printfulWebhookConfigured
+    || printfulWebhookPublicKeyConfigured;
   const printfulConfigured = printfulTokenConfigured
     && printfulAutoConfirmEnabled
     && printfulStoreConfigured
     && printfulWebhookConfigured
+    && printfulWebhookPublicKeyConfigured
     && bool(isPrintfulReady(env));
 
   let catalog = {
@@ -443,6 +446,7 @@ async function runMarketplaceReadiness({
         autoConfirmValid: printfulAutoConfirmValid,
         storeConfigured: printfulStoreConfigured,
         webhookConfigured: printfulWebhookConfigured,
+        webhookPublicKeyConfigured: printfulWebhookPublicKeyConfigured,
       },
     },
     capabilities,

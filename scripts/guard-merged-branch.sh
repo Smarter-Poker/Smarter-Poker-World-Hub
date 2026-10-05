@@ -71,42 +71,9 @@ REPO="${REPO%.git}"         # Smarter-Poker-World-Hub
 [ -z "$REPO" ] && exit 0
 SLUG="Smarter-Poker/$REPO"
 
-# Token: `gh` first (it is not installed on this Mac, but a CI box may have it),
-# then .env.
-#
-# THE .env IS NOT IN THE WORKTREE. Every agent works in `git worktree add`
-# checkouts under .agent-trees/, and .env is gitignored, so it exists ONLY in
-# the primary clone. Looking at `--show-toplevel` finds nothing and the guard
-# silently fails open - which is exactly how the first version of this file did
-# nothing at all. `--git-common-dir` points at the primary clone's .git for
-# every linked worktree, so its parent is the one directory guaranteed to have
-# the .env.
-# THE KEY IS NOT CALLED THE SAME THING IN BOTH REPOS (found 2026-09-06, the
-# hard way). Club Arena's .env has GITHUB_TOKEN; the World Hub's has
-# GITHUB_PAT_FINE_GRAINED and no GITHUB_TOKEN at all. The first version of this
-# guard looked for one name, found nothing in the World Hub, and failed open on
-# every single push - installed, running, and silent. It let a second lost-commit
-# incident through within the hour, which is how it was noticed.
-#
-# So try every name either repo actually uses, and the environment first.
-read_key() {
-  [ -f "$1" ] || return 1
-  line="$(grep -m1 "^${2}=" "$1" 2>/dev/null || true)"
-  [ -n "$line" ] || return 1
-  line="${line#${2}=}"
-  line="${line%\"}"; line="${line#\"}"
-  line="${line%\'}"; line="${line#\'}"
-  line="${line%% *}"
-  [ -n "$line" ] || return 1
-  printf '%s' "$line"
-}
-
-# CANDIDATE tokens, plural, and each is TRIED rather than trusted. Stopping at
-# the first one found is what broke this: the World Hub's .env yields
-# GITHUB_PAT_FINE_GRAINED, that PAT has expired and answers "Bad credentials",
-# and the working GITHUB_TOKEN sits in the sibling clone which was never
-# reached. A guard that stops at the first plausible key is a guard that is
-# inert whenever the first key is stale.
+# Use only credentials supplied by the process or the configured GitHub CLI.
+# The repository is public, so an unauthenticated read below remains available
+# when those configured credentials are absent or expired.
 CANDIDATES=""
 add_candidate() { [ -n "$1" ] && CANDIDATES="$CANDIDATES $1"; }
 
@@ -114,23 +81,7 @@ add_candidate "${GITHUB_TOKEN:-}"
 add_candidate "${GH_TOKEN:-}"
 add_candidate "$(gh auth token 2>/dev/null || true)"
 
-COMMON="$(git rev-parse --git-common-dir 2>/dev/null || true)"
-case "$COMMON" in /*) ;; *) COMMON="$ROOT/$COMMON" ;; esac
-PRIMARY="$(cd "$(dirname "$COMMON")" 2>/dev/null && pwd || true)"
-ESTATE="$(dirname "$PRIMARY")"
-for CANDIDATE_FILE in "$ROOT/.env" "$PRIMARY/.env" \
-                      "$ESTATE/club-arena/.env" \
-                      "$ESTATE/Smarter-Poker-World-Hub/.env"; do
-  [ -f "$CANDIDATE_FILE" ] || continue
-  for KEY in GITHUB_TOKEN GH_TOKEN GITHUB_PAT_FINE_GRAINED GITHUB_PAT; do
-    add_candidate "$(read_key "$CANDIDATE_FILE" "$KEY" || true)"
-  done
-done
-
-[ -z "$CANDIDATES" ] && exit 0            # fail open: no token, no opinion
-
 RESP=""
-AUTH_FAILED=0
 for TOKEN in $CANDIDATES; do
   TRY="$(curl -sS --max-time 12 \
     -H "Authorization: Bearer $TOKEN" \
@@ -139,7 +90,6 @@ for TOKEN in $CANDIDATES; do
   [ -z "$TRY" ] && continue               # no network for this attempt
   case "$TRY" in
     *'"Bad credentials"'*|*'"Requires authentication"'*)
-      AUTH_FAILED=1
       continue ;;                         # stale key: try the next candidate
   esac
   RESP="$TRY"
@@ -147,19 +97,15 @@ for TOKEN in $CANDIDATES; do
 done
 
 if [ -z "$RESP" ]; then
-  # Every candidate failed. Allow the push - this must never block on GitHub
-  # being unreachable - but SAY SO, because inert-but-installed is the exact
-  # state this guard exists to prevent, and a silent one teaches nobody.
-  if [ "$AUTH_FAILED" = "1" ]; then
-    echo ""
-    echo "  WARNING: guard-merged-branch could not authenticate to GitHub."
-    echo "  Every token it found was rejected, so the merged-branch check is"
-    echo "  NOT running. Your push is allowed. Nothing is checking whether this"
-    echo "  branch's pull request already merged - see CLAUDE.md on why that"
-    echo "  loses commits while git reports success."
-    echo "  Fix: put a working GITHUB_TOKEN in the primary clone's .env."
-    echo ""
-  fi
+  # Public pull-request metadata needs no token. Do not read another credential
+  # store or another task's files to keep this branch safety check active.
+  RESP="$(curl -sS --max-time 12 \
+    -H "Accept: application/vnd.github+json" \
+    "https://api.github.com/repos/$SLUG/pulls?head=Smarter-Poker:$BRANCH&state=all&per_page=10" 2>/dev/null || true)"
+fi
+
+if [ -z "$RESP" ]; then
+  echo "WARNING: guard-merged-branch could not read public pull-request state; check remains unknown and push is allowed."
   exit 0
 fi
 

@@ -48,6 +48,23 @@ jobs:
           if [ -f scripts/requirements.txt ]; then pip install -r scripts/requirements.txt; fi
 
       # ---------------------------------------------------------
+      # STEP 0: Discovery handoff contracts. Offline (network access is
+      # asserted off, credentials are replaced), so they cannot write. A
+      # database record must reach enrichment with its stored source_url and
+      # source; if that contract fails, the run stops before discovery exports
+      # name-only records.
+      # ---------------------------------------------------------
+      - name: Series Discovery Source Handoff Contracts
+        id: discovery_contracts
+        run: python3 -m unittest discover -s scripts -p test_series_discovery_handoff.py -v
+
+      - name: Alert Human (Discovery Handoff Contracts Failed)
+        if: failure() && steps.discovery_contracts.outcome == 'failure'
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: python3 scripts/utils/send_sms_alert.py "Step 0 (Discovery Handoff Contracts) Failed"
+
+      # ---------------------------------------------------------
       # STEP 1: Discovery Phase (Hunt for NEW series on PokerAtlas/Others)
       # ---------------------------------------------------------
       - name: Discovery Sweep

@@ -68,7 +68,7 @@ const vipPlans = [
     checkoutPlan: 'vip-lifetime',
     priceUsd: 499,
     priceDiamonds: 49_900,
-    cardCheckoutReady: false,
+    cardCheckoutReady: true,
     diamondCheckoutReady: true,
   },
 ];
@@ -155,7 +155,7 @@ function merchCatalog(mode = 'ready') {
 
 function strictCatalog(mode) {
   const plans = structuredClone(vipPlans);
-  if (mode === 'wrong_vip_capability') plans[2].cardCheckoutReady = true;
+  if (mode === 'wrong_vip_capability') plans[2].cardCheckoutReady = false;
   return {
     success: true,
     chipPackages: [],
@@ -265,7 +265,7 @@ test('Phase 7 publishes exact route, payment, and cross-method safety contracts'
   );
   assert.match(readinessSource, /marker === MARKETPLACE_PHASE7_SCHEMA_MARKER/);
   assert.doesNotMatch(readinessSource, /client\.rpc\('reserve_merch_order'/);
-  assert.match(catalog, /cardCheckoutReady: false,[\s\S]*diamondCheckoutReady: true/);
+  assert.match(catalog, /id:\s*'vip-lifetime',[\s\S]*cardCheckoutReady:\s*true,[\s\S]*diamondCheckoutReady:\s*true/);
   assert.match(catalog, /cardCheckoutReady: true,[\s\S]*diamondCheckoutReady: false/);
   assert.match(merch, /payment_methods: \['card', 'diamonds'\]/);
   assert.match(merch, /const strict = req\.query\?\.strict === '1'/);
@@ -273,8 +273,8 @@ test('Phase 7 publishes exact route, payment, and cross-method safety contracts'
   assert.match(merch, /MAX_ITEMS \+ \(strict \? 1 : 0\)/);
   assert.match(merch, /item\.has_variants === true && \(variantsByItem\[item\.id\] \|\| \[\]\)\.length === 0/);
   assert.match(merch, /strict && payload\.some\(\(item\) => item\.has_variants && item\.variants\.length === 0\)/);
-  assert.doesNotMatch(compare, /Stripe Checkout Verifies Every Term, Lifetime Included/);
-  assert.match(compare, /Lifetime Card Checkout Remains Safely Paused/);
+  assert.match(compare, /Stripe Checkout Verifies Monthly, Yearly, And One-Time Lifetime Payments/);
+  assert.doesNotMatch(compare, /Lifetime Card Checkout Remains Safely Paused/);
   assert.match(diamondVip, /classifyStripeSubscriptionForVip/);
   assert.match(diamondVip, /classifyStripeCheckoutSessionForVip/);
   assert.match(diamondVip, /code: 'ACTIVE_SUBSCRIPTION_EXISTS'/);

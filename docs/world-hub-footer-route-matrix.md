@@ -3,7 +3,7 @@
 Generated from the physical Pages Router tree and `src/config/world-footer-navigation.json`.
 Dynamic routes are shown using their source parameter names. Runtime verification uses representative reachable parameters where authentication or data is required.
 
-**Total applicable physical routes: 191.**
+**Total applicable physical routes: 192.**
 
 ## Coverage summary
 
@@ -13,7 +13,7 @@ Dynamic routes are shown using their source parameter names. Runtime verificatio
 | Training Games | 98 | `footer-training-games-v2.png` | PASS | PASS |
 | Poker News | 3 | `footer-poker-news-v2.png` | PASS | PASS |
 | Poker Trivia | 17 | `footer-poker-trivia-v2.png` | PASS | PASS |
-| Social Media | 18 | `footer-social-media-v2.png` | PASS | PASS |
+| Social Media | 19 | `footer-social-media-v2.png` | PASS | PASS |
 | My Clubs | 1 | `footer-my-clubs-v2.png` | PASS | PASS |
 | Video Library | 1 | `footer-video-library-v2.png` | PASS | PASS |
 | Odds Calculator | 1 | `footer-odds-calculator-v2.png` | PASS | PASS |
@@ -154,6 +154,7 @@ Dynamic routes are shown using their source parameter names. Runtime verificatio
 | `/hub/messenger/requests` | Social Media | App-shell legacy/generic footer | `footer-social-media-v2.png` | PASS | PASS |
 | `/hub/post/[id]` | Social Media | App-shell legacy/generic footer | `footer-social-media-v2.png` | PASS | PASS |
 | `/hub/reels` | Social Media | App-shell legacy/generic footer | `footer-social-media-v2.png` | PASS | PASS |
+| `/hub/reels/creator` | Social Media | App-shell legacy/generic footer | `footer-social-media-v2.png` | PASS | PASS |
 | `/hub/reels/my-reels` | Social Media | App-shell legacy/generic footer | `footer-social-media-v2.png` | PASS | PASS |
 | `/hub/reels/saved` | Social Media | App-shell legacy/generic footer | `footer-social-media-v2.png` | PASS | PASS |
 | `/hub/saved-posts` | Social Media | App-shell legacy/generic footer | `footer-social-media-v2.png` | PASS | PASS |
@@ -229,4 +230,3 @@ Dynamic routes are shown using their source parameter names. Runtime verificatio
 - `/hub/vip-membership`, `/hub/merch-store`, `/hub/smarter-rewards` and `/hub/club-shop` render the same Marketplace store page with a different initial tab, so they own the same in-flow commerce footer. The fixed illustrated footer previously covered the VIP plan purchase buttons and the Marketplace commerce links on these routes because no clearance was reserved for it.
 - `/hub/my-clubs` is a server-side redirect to Social Pages Managed and does not render a footer document of its own.
 - Routes outside the 13 product-family prefixes are not part of this exact-artwork migration. Existing platform fallback behavior is retained where the route policy enables it.
-

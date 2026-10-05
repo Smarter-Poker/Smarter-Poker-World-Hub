@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import test from 'node:test';
 import {
   APP_ORIGIN,
@@ -50,6 +50,46 @@ const {
   sanitizePokerReels,
 } = clientModule;
 const feedCacheModule = await import(`data:text/javascript;base64,${Buffer.from(FEED_CACHE).toString('base64')}`);
+
+const RETIRED_DIRECT_VIDEO_WRITERS = [
+  '../scripts/ingest-pokernews-videos.js',
+  '../scripts/seed-reels.mjs',
+  '../scripts/mass-horse-posts.mjs',
+  '../src/content-engine/pipeline/post-video-clip.js',
+  '../src/content-engine/pipeline/unleash-horses.js',
+  '../pages/api/admin/initialize-horse-sources.js',
+  '../src/content-engine/pipeline/ClipLibrary.js',
+  '../src/content-engine/pipeline/SportsClipLibrary.js',
+];
+
+test('retired video utilities cannot bypass the managed Reel publisher', () => {
+  for (const path of RETIRED_DIRECT_VIDEO_WRITERS) {
+    assert.equal(existsSync(new URL(path, import.meta.url)), false, `${path} must remain retired`);
+  }
+
+  const scriptsDirectory = new URL('../scripts/', import.meta.url);
+  const videoUtilityNames = readdirSync(scriptsDirectory)
+    .filter(name => /(?:video|reel|clip)/i.test(name))
+    .filter(name => /\.(?:c?js|mjs)$/.test(name));
+  const directManagedWrites = [];
+  for (const name of videoUtilityNames) {
+    const source = readFileSync(new URL(name, scriptsDirectory), 'utf8');
+    if (/\.from\(['"]social_(?:reels|posts)['"]\)[\s\S]{0,300}?\.(?:insert|upsert)\(/.test(source)) {
+      directManagedWrites.push(name);
+    }
+  }
+  assert.deepEqual(
+    directManagedWrites,
+    [],
+    'video maintenance utilities must publish through the verified atomic publisher, not write social tables directly',
+  );
+
+  // Owned/licensed native uploads are the one maintained media exception.
+  // Keep its explicit rights gate pinned so it cannot become a third-party
+  // YouTube backdoor while managed library assets use the SQL publisher.
+  assert.match(VIDEO_CLIPPER, /\['owned', 'licensed'\]\.includes\(rightsStatus\)/);
+  assert.match(VIDEO_CLIPPER, /\.from\(['"]social_reels['"]\)[\s\S]*?\.insert\(/);
+});
 
 test('the published Reels verifier is read-only and rejects hostile live payloads', () => {
   assert.equal(isBrowserReadOnlyRequest('GET', `${APP_ORIGIN}/api/reels/feed`), true);
@@ -600,14 +640,20 @@ test('clients abort stale requests, refuse cache seeding, revalidate on focus, a
   assert.match(REELS_PAGE, /Retry More Reels/);
 });
 
-test('Following Reels use authenticated, bounded candidate checks with keyset continuation', () => {
+test('Following Reels load authenticated memberships once with keyset continuation', () => {
   assert.match(REELS_FEED_API, /getServerUserWithFallback/);
   assert.match(REELS_FEED_API, /scope === 'following'/);
   assert.match(REELS_FEED_API, /viewerId/);
   assert.match(REELS_FEED_API, /Authentication required/);
-  assert.match(REELS_FEED_SERVER, /readFollowedCandidateAuthorIds/);
-  assert.match(REELS_FEED_SERVER, /\.in\('following_id', authorChunk\)/);
-  assert.match(REELS_FEED_SERVER, /followedWinnerAuthors\.has\(winner\.author_id\)/);
+  assert.match(REELS_FEED_SERVER, /readAllFollowedAuthorIds/);
+  assert.match(REELS_FEED_SERVER, /\.order\('following_id', \{ ascending: true \}\)/);
+  assert.match(REELS_FEED_SERVER, /\.gt\('following_id', lastSeen\)/);
+  assert.match(
+    REELS_FEED_SERVER,
+    /followedAuthorIds[\s\S]*?scopedRawRows[\s\S]*?eligibleRows\(client, scopedRawRows/,
+    'Following must discard unrelated candidates before expensive eligibility hydration',
+  );
+  assert.match(REELS_FEED_SERVER, /isFollowedAuthor\(followedAuthorIds, winner\.author_id\)/);
   assert.match(REELS_FEED_SERVER, /scanCursor = lastScannedCursor/);
   assert.doesNotMatch(REELS_FEED_SERVER, /MAX_FOLLOWING_AUTHORS/);
   assert.doesNotMatch(REELS_FEED_SERVER, /\.in\('author_id', authorChunk\)/);

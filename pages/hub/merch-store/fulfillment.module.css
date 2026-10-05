@@ -99,6 +99,69 @@
   margin-top: 12px;
 }
 
+.operations {
+  max-width: 1180px;
+  margin: 0 auto 20px;
+  padding: 20px;
+  border: 1px solid #526f80;
+  background: #02070b;
+  box-shadow: inset 0 1px 0 rgb(232 251 255 / 18%);
+}
+
+.operationsHeading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.operationsHeading h2 {
+  margin: 6px 0 0;
+  font-size: 1.35rem;
+}
+
+.operationsState {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 14px;
+  border: 1px solid #385568;
+  color: #9bf4ff;
+  background: #071017;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.metricGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+}
+
+.metricGrid > div {
+  display: grid;
+  gap: 5px;
+  min-height: 86px;
+  align-content: center;
+  padding: 14px;
+  border: 1px solid #23394a;
+  background: #070e15;
+}
+
+.metricGrid strong {
+  color: #e7c869;
+  font-size: 1.25rem;
+  overflow-wrap: anywhere;
+}
+
+.metricGrid span {
+  color: #aebcc5;
+  font-family: var(--font-inter), Inter, Arial, sans-serif;
+  font-size: 0.75rem;
+  line-height: 1.35;
+}
+
 .grid {
   max-width: 1180px;
   margin: 0 auto;

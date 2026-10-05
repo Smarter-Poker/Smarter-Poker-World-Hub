@@ -5,7 +5,7 @@ import test from 'node:test';
 const read = path => readFileSync(new URL(path, import.meta.url), 'utf8');
 const PAGE = read('../pages/hub/video-library.js');
 const CATALOG = read('../pages/api/video-library/catalog.js');
-const DATA = read('../src/data/videoLibraryData.js');
+const COMPATIBILITY = read('../src/data/videoLibraryCompatibility.js');
 const AVAILABILITY = read('../src/lib/videoLibraryAvailability.js');
 const INTEGRITY_MIGRATION = read('../supabase/migrations/20260906235959_video_reels_integrity_foundation.sql');
 const MEMORY_CAMPAIGN = read('../src/components/memory/MemoryCampaignView.tsx');
@@ -14,11 +14,11 @@ const SUPABASE_TYPES = read('../src/types/supabase.ts');
 const availabilityModule = await import(`data:text/javascript;base64,${Buffer.from(AVAILABILITY).toString('base64')}`);
 const { BLOCKED_VIDEO_LIBRARY_IDS, VIDEO_LIBRARY_ALLOWED_TYPES, isVideoLibraryVideoAllowed } = availabilityModule;
 
-test('the audited fallback source no longer contains inaccessible embeds', () => {
-  const declaredIds = [...DATA.matchAll(/videoId:\s*'([^']+)'/g)].map(match => match[1]);
-  const overlap = declaredIds.filter(videoId => BLOCKED_VIDEO_LIBRARY_IDS.includes(videoId));
+test('the compatibility module contains no playable fallback records', () => {
   assert.equal(BLOCKED_VIDEO_LIBRARY_IDS.length, 32);
-  assert.deepEqual(overlap, []);
+  assert.doesNotMatch(COMPATIBILITY, /FULL_VIDEOS|STATIC_CATALOG|availabilityStatus|embeddable/);
+  assert.doesNotMatch(COMPATIBILITY, /"(?:title|duration|views|videoUrl|thumbnail)"\s*:/i);
+  assert.match(COMPATIBILITY, /LEGACY_VIDEO_ID_ALIASES/);
 });
 
 test('the availability gate rejects fake, blocked, missing, and object-form IDs', () => {
@@ -94,11 +94,13 @@ test('the availability gate rejects fake, blocked, missing, and object-form IDs'
     videoId: 'M7lc1UVf-VE', type: 'slots', availabilityStatus: 'verified',
     embeddable: true, availabilityCheckedAt: fresh,
   }), true);
-  assert.deepEqual(VIDEO_LIBRARY_ALLOWED_TYPES, ['cash', 'tournament', 'slots']);
+  assert.deepEqual(VIDEO_LIBRARY_ALLOWED_TYPES, ['cash', 'tournament', 'slots', 'sports']);
 });
 
-test('live, fallback, bookmark, and player entry points share the availability gate', () => {
-  assert.match(PAGE, /STATIC_VIDEOS[\s\S]*\.filter\(isVideoLibraryVideoAllowed\)/);
+test('live, bookmark, and player entry points share the availability gate without a static fallback', () => {
+  assert.doesNotMatch(PAGE, /STATIC_CATALOG|FULL_VIDEOS/);
+  assert.match(PAGE, /const \[videos, setVideos\] = useState\(\[\]\)/);
+  assert.match(PAGE, /setCatalogRefreshFailed\(true\)[\s\S]*setVideos\(\[\]\)/);
   assert.match(PAGE, /payload\.data[\s\S]*\.filter\(isVideoLibraryVideoAllowed\)/);
   assert.match(PAGE, /if \(!isVideoLibraryVideoAllowed\(requestedVideoId\)\)/);
   assert.match(PAGE, /video\?\.videoId !== requestedVideoId \|\| !isVideoLibraryVideoAllowed\(video\)/);

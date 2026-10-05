@@ -294,6 +294,10 @@ import './openclaw-workers-secret.test.mjs';
 import './phase7-content-dispatch.test.mjs';
 // Required CHECK 8 also enforces the recovered Video worker publication boundary.
 import './openclaw-video-library-routing.test.mjs';
+import './video-source-registry-phase3.test.mjs';
+import './video-enrichment-editorial-phase4.test.mjs';
+import './video-reel-candidate-phase5.test.mjs';
+import './video-native-studio-phase6.test.mjs';
 // The same boundary's shared 7-day availability-freshness contract: SQL,
 // JavaScript readers, Python renewal target and daily verifier capacity.
 import './video-library-freshness-contract.test.mjs';
@@ -317,11 +321,19 @@ import './background-video-upload-recovery.test.mjs';
 import './news-live-wire-phase-4.test.mjs';
 import './news-reels-club-arena-console.test.mjs';
 import './profile-reels-console.test.mjs';
+import './reels-phase2-profile-quarantine.test.mjs';
+import './reels-phase2-profile-removal-and-cache.test.mjs';
+import './reels-phase2-route-runtime.test.mjs';
+import './reels-phase2-reconciliation-operator.test.mjs';
+import './reels-reconciliation-authority-repair-migration.test.mjs';
+import './reels-service-rpc-authority-compat-migration.test.mjs';
+import './reels-authority-repair-postgres.test.mjs';
 import './reels-carousel-console.test.mjs';
 import './reels-console-dependencies.test.mjs';
 import './reels-embedded-console-visual.test.mjs';
 import './historical-user-reels-recovery-migration.test.mjs';
 import './historical-user-reels-post-rights-followup-migration.test.mjs';
+import './social-reel-alias-reconciliation-migration.test.mjs';
 import './reels-live-check.test.mjs';
 import './reels-mixed-category-contract.test.mjs';
 import './reels-social-endless-continuation.test.mjs';
@@ -337,8 +349,12 @@ import './video-library-phase-7.test.mjs';
 import './video-reels-api-resilience.test.mjs';
 import './video-reels-collections-integrity.test.mjs';
 import './video-reels-integrity-phase-1.test.mjs';
+import './video-reels-phase7-unified-delivery.test.mjs';
+import './video-reels-phase8-learning-contract.test.mjs';
+import './video-reels-phase8-learning-loop.test.mjs';
 import './video-reels-ui-integrity.test.mjs';
 import './video-reels-youtube-sql-security.test.mjs';
+import './video-operations-live-safety.test.mjs';
 
 // 2026-09-04: a synthetic probe never signs a person out. login-probe was
 // pointed at Dan's own account and called a bare signOut() - global scope -
@@ -508,6 +524,9 @@ import './hand-clip-mode-row-migration.test.mjs';
 import './hand-clip-render-lib.test.mjs';
 import './render-hand-clips-cron.test.mjs';
 import './hand-clip-config.test.mjs';
+// Phase 8 video learning: approved-only semantic/full-text search, owner-only
+// study continuity, and service-owned bot-resistant organic measurement.
+import './video-learning-discovery-phase8-migration.test.mjs';
 
 // 2026-09-30 profile privacy: a stranger reads only public profile columns,
 // and the owner reads their own money, legal name and whereabouts through
@@ -660,6 +679,8 @@ const CI_UNREACHABLE_ON_PURPOSE = {
     'messenger-utils.test.mjs': 'self-executing harness, process.exit() on import',
     'server-auth-asymmetric.test.mjs': 'self-executing harness, process.exit() on import',
 };
+
+import './video-operations-phase10.test.mjs';
 
 test('every guard in __tests__ is reachable by CI', () => {
     const here = fs.readFileSync(path.join(REPO, '__tests__', '_test-guards-exist.test.mjs'), 'utf8');

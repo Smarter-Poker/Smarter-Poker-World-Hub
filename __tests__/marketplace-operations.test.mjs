@@ -123,6 +123,7 @@ test('strict readiness proves the exact Phase 7 schema marker and live provider 
     PRINTFUL_AUTO_CONFIRM: 'true',
     PRINTFUL_STORE_ID: '42',
     PRINTFUL_WEBHOOK_SECRET: 'printful-webhook-secret',
+    PRINTFUL_WEBHOOK_PUBLIC_KEY: 'printful-public-key',
   };
 
   const result = await runMarketplaceReadiness({
@@ -262,6 +263,7 @@ test('every partial Printful configuration is misconfigured instead of safe defe
     { PRINTFUL_AUTO_CONFIRM: 'sometimes' },
     { PRINTFUL_STORE_ID: '42' },
     { PRINTFUL_WEBHOOK_SECRET: 'printful-webhook-secret' },
+    { PRINTFUL_WEBHOOK_PUBLIC_KEY: 'printful-public-key' },
   ];
 
   for (const partial of partialConfigurations) {
@@ -309,6 +311,7 @@ test('a healthy Printful connection reports mixed mode while any active item rem
     PRINTFUL_AUTO_CONFIRM: 'true',
     PRINTFUL_STORE_ID: '42',
     PRINTFUL_WEBHOOK_SECRET: 'printful-webhook-secret',
+    PRINTFUL_WEBHOOK_PUBLIC_KEY: 'printful-public-key',
   };
   const result = await runMarketplaceReadiness({
     env,
@@ -339,6 +342,7 @@ test('a configured Printful catalog fails readiness while any provider item is u
     PRINTFUL_AUTO_CONFIRM: 'true',
     PRINTFUL_STORE_ID: '42',
     PRINTFUL_WEBHOOK_SECRET: 'printful-webhook-secret',
+    PRINTFUL_WEBHOOK_PUBLIC_KEY: 'printful-public-key',
   };
   const result = await runMarketplaceReadiness({
     env,

@@ -1776,7 +1776,7 @@ export default function SignUpPage() {
                   <span style={styles.playerNumberLabel}>Your Player Number</span>
                   <span style={styles.playerNumber}>#{assignedPlayerNumber || '-'}</span>
                   <span style={styles.playerNumberInfo}>
-                    Your Universal ID Across PokerIQ, Diamond Arena & Club Arena
+                    Your Universal ID Across PokerIQ, Training & Club Arena
                   </span>
                 </div>
 
