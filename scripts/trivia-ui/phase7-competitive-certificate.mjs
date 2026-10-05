@@ -814,9 +814,9 @@ async function tournamentDesk(page, row, failures) {
     await screenshot(page, `${row.scenario}-${row.viewport}-my-run`);
 
     const views = [
-        ['Bracket', '.tt-bracket-list', 'Your Path:'],
-        ['Field', '.tt-field-list', 'Fixture Player'],
-        ['Results', '.tt-results-list', 'Official Results'],
+        ['Bracket', '.tt-bracket', 'Your Path:'],
+        ['Field', '.tt-field', 'Fixture Player'],
+        ['Results', '.tt-results', 'Official Results'],
         ['Receipt', '.tt-receipt', 'fixture-nightly-entry-001'],
         ['History', '.tt-history', 'Previous 8 PM Nightly'],
     ];
@@ -827,13 +827,22 @@ async function tournamentDesk(page, row, failures) {
             await viewButton.getAttribute('aria-pressed') === 'true', 'aria-pressed=true');
         const view = page.locator(selector);
         await view.waitFor({ state: 'visible', timeout: 10_000 });
-        if (name === 'Bracket') {
-            await view.locator('[data-current-path="true"]').first().scrollIntoViewIfNeeded();
-        }
-        const viewText = await view.innerText();
-        record(row, failures, `tournament-${name.toLowerCase()}`, viewText.includes(text), text);
+        const expected = view.getByText(text, { exact: false }).first();
+        await expected.waitFor({ state: 'attached', timeout: 10_000 });
+        await expected.evaluate(element => element.scrollIntoView({ block: 'center', inline: 'nearest' }));
+        await page.waitForTimeout(50);
+        const viewText = await view.textContent() || '';
+        record(row, failures, `tournament-${name.toLowerCase()}`,
+            viewText.includes(text) && await expected.isVisible(), text);
         if (name === 'Bracket' || name === 'Field') {
-            record(row, failures, `tournament-${name.toLowerCase()}-horse-disclosure`, viewText.includes('Smarter Horse'));
+            const disclosedHorse = name === 'Bracket'
+                ? view.locator('.tt-bracket-seat').filter({ hasText: 'Smarter Horse' }).first()
+                : view.locator('.tt-field-list li').filter({ hasText: 'Smarter Horse' }).first();
+            await disclosedHorse.waitFor({ state: 'attached', timeout: 10_000 });
+            await disclosedHorse.evaluate(element => element.scrollIntoView({ block: 'center', inline: 'nearest' }));
+            await page.waitForTimeout(50);
+            record(row, failures, `tournament-${name.toLowerCase()}-horse-disclosure`,
+                await disclosedHorse.isVisible());
         }
         await screenshot(page, `${row.scenario}-${row.viewport}-${name}`);
     }
