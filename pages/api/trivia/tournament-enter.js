@@ -14,10 +14,10 @@ export default async function handler(req, res) {
             res.setHeader('Allow', 'POST');
             return res.status(405).json({ success: false, error: 'Method not allowed' });
         }
-        if (!applyRateLimit(req, res, LIMITS.write)) return;
         if (!areTriviaTournamentsReleased(process.env)) {
             return rejectUnavailableTriviaTournament(res);
         }
+        if (!applyRateLimit(req, res, LIMITS.write)) return;
 
         // Phase 6: the legacy entry path is retired behind the nightly engine.
         // Same request shape, one Phase 2 entry contract (trivia_tournament_enter).

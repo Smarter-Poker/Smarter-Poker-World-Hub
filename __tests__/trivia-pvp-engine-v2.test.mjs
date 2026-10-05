@@ -7,10 +7,13 @@ import {
     PVP_HORSE_WAIT_MAX_SECONDS,
     PVP_HORSE_WAIT_MIN_SECONDS,
     deadlineAlignDelayMs,
+    parsePvpHistoryQuery,
     parseJoinBody,
     parseTicketId,
     pvpErrorStatus,
     toPvpDto,
+    toPvpHistoryDto,
+    toPvpQuoteDto,
 } from '../src/lib/trivia/pvpMatchmakingPolicy.mjs';
 
 const ROOT = process.cwd();
@@ -22,8 +25,10 @@ const migration = (suffix) => {
 };
 const engineSql = migration('_trivia_p5_pvp_engine.sql');
 const capSql = migration('_trivia_p5_pvp_settlement_cap_exemption.sql');
+const quoteBindingSql = migration('_trivia_p7_pvp_quote_join_binding.sql');
+const historySql = migration('_trivia_p7_pvp_history_receipts.sql');
 const handler = read('src/lib/trivia/pvpApiHandler.js');
-const ROUTES = ['join', 'status', 'heartbeat', 'resume', 'cancel'];
+const ROUTES = ['quote', 'join', 'status', 'heartbeat', 'resume', 'cancel', 'history'];
 const U = '11111111-1111-4111-8111-111111111111';
 
 test('the horse window is the product contract, not configuration', () => {
@@ -94,6 +99,56 @@ test('no browser write path and exact function ACLs are asserted inside the migr
     }
 });
 
+test('Phase 7 joins bind the confirmed quote before queue, match or escrow mutation', () => {
+    assert.match(quoteBindingSql, /CREATE FUNCTION public\.trivia_pvp_join_v3\([\s\S]*p_expected_rules_version text/);
+    assert.match(quoteBindingSql, /CREATE FUNCTION public\.trivia_pvp__join_core_v3\([\s\S]*p_expected_rules_version text/);
+    assert.match(quoteBindingSql, /FROM public\.trivia_rules_current AS c[\s\S]{0,120}FOR SHARE OF c/);
+
+    const core = quoteBindingSql.slice(
+        quoteBindingSql.indexOf('CREATE FUNCTION public.trivia_pvp__join_core_v3('),
+        quoteBindingSql.indexOf('CREATE FUNCTION public.trivia_pvp_join_v3('),
+    );
+    const compare = core.indexOf('v_rules_version IS DISTINCT FROM p_expected_rules_version');
+    const insert = core.indexOf('INSERT INTO public.trivia_pvp_queue');
+    const match = core.indexOf('trivia_pvp__try_match');
+    assert.ok(compare > 0 && insert > compare && match > insert,
+        'stale quote refusal must precede ticket creation and matching');
+    assert.match(core, /v_ticket\.rules_version_id IS DISTINCT FROM p_expected_rules_version/);
+    assert.match(core, /v_existing_rules_version IS DISTINCT FROM p_expected_rules_version/);
+    assert.match(quoteBindingSql, /REVOKE ALL ON FUNCTION public\.trivia_pvp_join_v2\([\s\S]{0,120}service_role/);
+    assert.match(quoteBindingSql, /GRANT EXECUTE ON FUNCTION public\.trivia_pvp_join_v3\([\s\S]{0,120}TO service_role/);
+});
+
+test('Phase 7 quote reports database join and horse capability without bypassing release control', () => {
+    assert.match(quoteBindingSql, /CREATE FUNCTION public\.trivia_pvp_quote_v3\(p_user_id uuid\)/);
+    assert.match(quoteBindingSql, /'joinsEnabled', v_cfg\.joins_enabled/);
+    assert.match(quoteBindingSql, /'horseFallbackEnabled', v_cfg\.joins_enabled AND v_cfg\.horses_enabled/);
+    assert.match(handler, /rpc = 'trivia_pvp_quote_v3'/);
+    assert.match(handler, /rpc = 'trivia_pvp_join_v3'/);
+    assert.match(handler, /p_expected_rules_version: parsed\.rulesVersion/);
+    assert.match(handler, /toPvpQuoteDto\(data, \{ horsesAllowed \}\)/);
+});
+
+test('Phase 7 history is viewer-scoped, bounded, service-only and receipt-backed', () => {
+    const historyFunction = historySql.slice(
+        historySql.indexOf('CREATE FUNCTION public.trivia_pvp_history_v1'),
+        historySql.indexOf('ALTER FUNCTION public.trivia_pvp_history_v1'),
+    );
+    assert.match(historySql, /CREATE FUNCTION public\.trivia_pvp_history_v1\(/);
+    assert.match(historySql, /p_user_id IN \(m\.player1_id, m\.player2_id\)/);
+    assert.match(historySql, /p_limit < 1 OR p_limit > 20[\s\S]*p_offset < 0 OR p_offset > 500/);
+    assert.match(historySql, /'stake_reference'[\s\S]*'settlement_reference'[\s\S]*d\.reference_family/);
+    assert.match(historySql, /'receipts', credits\.receipts/);
+    assert.match(historySql, /WHEN COALESCE\(opponent\.is_horse, false\) THEN 'Smarter Horse'/);
+    assert.match(historySql, /auth\.role\(\)\) IS DISTINCT FROM 'service_role'/);
+    assert.match(historySql, /REVOKE ALL ON FUNCTION public\.trivia_pvp_history_v1[\s\S]*PUBLIC, anon, authenticated, service_role/);
+    assert.match(historySql, /GRANT EXECUTE ON FUNCTION public\.trivia_pvp_history_v1[\s\S]*TO service_role/);
+    assert.match(historySql, /search_path = ''/);
+    assert.doesNotMatch(historyFunction, /'answer|question_ids|session_id|horse_plan|roster/i);
+    assert.match(handler, /rpc = 'trivia_pvp_history_v1'/);
+    assert.match(handler, /toPvpHistoryDto\(data\)/);
+});
+
 test('the earning-cap exemption is tight: only pvp_win moves to an uncapped engine', () => {
     assert.match(capSql, /md5\(v_def\) <> '247d01bac63a1c273019cce221ea168f'/);
     assert.match(capSql, /WHEN COALESCE\(p_transaction_type, p_type\) = 'pvp_win' THEN 'trivia_pvp'/);
@@ -119,13 +174,24 @@ test('every PvP route is gated, authenticated and returns only the sanitized DTO
 });
 
 test('transport validation and DTO allowlist', () => {
-    assert.deepEqual(parseJoinBody({ stake: 25, clientNonce: U }), { ok: true, stake: 25, clientNonce: U });
-    assert.equal(parseJoinBody({ stake: 30, clientNonce: U }).error, 'invalid_stake');
-    assert.equal(parseJoinBody({ stake: '25', clientNonce: 'x' }).error, 'invalid_client_nonce');
+    assert.deepEqual(parseJoinBody({ stake: 25, clientNonce: U, rulesVersion: 'pvp.standard@1' }), {
+        ok: true, stake: 25, clientNonce: U, rulesVersion: 'pvp.standard@1',
+    });
+    assert.equal(parseJoinBody({ stake: 30, clientNonce: U, rulesVersion: 'pvp.standard@1' }).error, 'invalid_stake');
+    assert.equal(parseJoinBody({ stake: '25', clientNonce: 'x', rulesVersion: 'pvp.standard@1' }).error, 'invalid_client_nonce');
+    assert.equal(parseJoinBody({ stake: 25, clientNonce: U }).error, 'invalid_rules_version');
+    assert.equal(parseJoinBody({ stake: 25, clientNonce: U, rulesVersion: 'pvp.other@1' }).error, 'invalid_rules_version');
     assert.equal(parseTicketId(undefined), null);
     assert.equal(parseTicketId('nope'), undefined);
+    assert.deepEqual(parsePvpHistoryQuery({}), { ok: true, limit: 10, offset: 0 });
+    assert.deepEqual(parsePvpHistoryQuery({ limit: '20', offset: '500' }), { ok: true, limit: 20, offset: 500 });
+    assert.equal(parsePvpHistoryQuery({ limit: 21 }).error, 'invalid_pagination');
+    assert.equal(parsePvpHistoryQuery({ offset: -1 }).error, 'invalid_pagination');
     assert.equal(pvpErrorStatus('insufficient_diamonds'), 402);
     assert.equal(pvpErrorStatus('pvp_joins_paused'), 503);
+    assert.equal(pvpErrorStatus('rules_quote_stale'), 409);
+    assert.equal(pvpErrorStatus('match_quarantined'), 409);
+    assert.equal(pvpErrorStatus('treasury_unavailable'), 503);
     const dto = toPvpDto({
         success: true, state: 'searching', server_now: '2026-09-30T00:00:00Z', poll_after_ms: 2000,
         ticket: { id: U, status: 'waiting', stake: 25, horse_wait_seconds: 31, horse_eligible_at: '2026-09-30T00:00:04Z',
@@ -140,6 +206,39 @@ test('transport validation and DTO allowlist', () => {
     assert.equal(deadlineAlignDelayMs(dto), 4025);
     assert.equal(deadlineAlignDelayMs({ ...dto, ticket: { ...dto.ticket, presence: 'lapsed' } }), 0);
     assert.equal(deadlineAlignDelayMs({ ...dto, ticket: { ...dto.ticket, horseFallbackEnabled: false } }), 0);
+
+    const rawQuote = {
+        serverNow: '2026-10-05T12:00:00Z', balance: 80, rulesVersion: 'pvp.standard@1',
+        joinsEnabled: true, horseFallbackEnabled: true,
+        stakes: [{ stake: 25, pot: 50, rake: 5, possibleReturn: 45, netWin: 20, secret: 'drop' }],
+        questionCount: 20, humanFirst: true, horseWaitSeconds: { min: 20, max: 45 },
+        horseLabel: 'anything', cancellation: 'search_only_before_match', tie: 'stake_refund', secret: 'drop',
+    };
+    const quote = toPvpQuoteDto(rawQuote, { horsesAllowed: true });
+    assert.deepEqual(quote.stakes[0], { stake: 25, pot: 50, rake: 5, possibleReturn: 45, netWin: 20 });
+    assert.equal(quote.joinsEnabled, true);
+    assert.equal(quote.horseFallbackEnabled, true);
+    assert.equal(toPvpQuoteDto(rawQuote, { horsesAllowed: false }).horseFallbackEnabled, false);
+    assert.equal(quote.horseLabel, 'Smarter Horse');
+    assert.equal('secret' in quote, false);
+
+    const history = toPvpHistoryDto({
+        server_now: '2026-10-05T12:00:00Z', total: 1, offset: 0, limit: 10,
+        items: [{
+            settled_at: '2026-10-05T11:59:00Z', rules_version_id: 'pvp.standard@1',
+            opponent: { kind: 'horse', is_horse: true, display_name: 'Hidden Horse Name', horse_id: U },
+            outcome: 'win', decision: 'win', forfeit: false, my_correct: 14, opponent_correct: 12,
+            stake: 25, pot: 50, rake: 5, payout: 45, net: 20,
+            receipts: [{ reference: 'pvp_match_win_ref', kind: 'pvp_win', amount: 45, wallet_id: U }],
+            stake_reference: 'pvp_stake_ref', settlement_reference: 'pvp_settlement_ref',
+            match_id: U, session_id: U, answer_key: [1],
+        }],
+    });
+    assert.equal(history.items[0].opponent.displayName, 'Smarter Horse');
+    assert.equal(history.items[0].opponent.label, 'Smarter Horse');
+    assert.equal(history.items[0].stakeReference, 'pvp_stake_ref');
+    assert.deepEqual(history.items[0].receipts[0], { reference: 'pvp_match_win_ref', kind: 'pvp_win', amount: 45 });
+    for (const leak of ['match_id', 'session_id', 'answer_key']) assert.equal(leak in history.items[0], false);
 });
 
 test('legacy PvP paths cannot move money on a v2 match', () => {

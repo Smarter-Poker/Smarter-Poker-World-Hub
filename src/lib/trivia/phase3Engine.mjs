@@ -87,14 +87,21 @@ export function stripKeyBearing(value) {
 export function toSoloStartResponse(dto) {
     const safe = stripKeyBearing(dto || {});
     const questions = (Array.isArray(safe.questions) ? safe.questions : [])
-        .filter(q => isObject(q) && typeof q.id === 'string')
-        .map(q => ({
-            id: q.id,
-            question: q.question,
-            options: Array.isArray(q.options) ? q.options : [],
-            category: q.category ?? null,
-            difficulty: q.difficulty ?? null,
-        }));
+        .filter(q => isObject(q) && (typeof q.id === 'string' || Number.isInteger(Number(q.position))))
+        .map(q => {
+            const out = {
+                position: Number.isInteger(Number(q.position)) ? Number(q.position) : null,
+                state: typeof q.state === 'string' ? q.state : 'unanswered',
+                id: typeof q.id === 'string' ? q.id : null,
+                question: typeof q.question === 'string' ? q.question : null,
+                options: Array.isArray(q.options) ? q.options : [],
+                category: q.category ?? null,
+                difficulty: q.difficulty ?? null,
+                openedAt: q.openedAt || null,
+                deadlineAt: q.deadlineAt || null,
+            };
+            return out;
+        });
     return {
         success: true,
         sessionId: safe.sessionId,

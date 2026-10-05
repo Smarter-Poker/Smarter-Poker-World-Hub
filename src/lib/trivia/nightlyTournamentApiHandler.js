@@ -20,6 +20,7 @@ import {
     findForbiddenKeys,
     nightlyErrorStatus,
     normalizeNightlyError,
+    projectNightlyDto,
 } from './nightlyTournamentPolicy.mjs';
 
 /** Runs one already-gated nightly action. Exported for the legacy entry alias. */
@@ -52,7 +53,7 @@ export async function runNightlyAction(action, req, res, sb) {
         console.error('[trivia nightly] refused to forward forbidden keys:', action, leaked.slice(0, 5));
         return res.status(500).json({ success: false, error: 'internal_error' });
     }
-    return res.status(200).json(data);
+    return res.status(200).json(projectNightlyDto(action, data));
 }
 
 export function createNightlyTournamentApi({ serviceClient, env = process.env } = {}) {

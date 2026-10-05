@@ -106,7 +106,10 @@ test('question DTOs never carry answer keys, explanations or revision internals'
     const out = toSoloStartResponse(dto);
     const text = JSON.stringify(out);
     for (const k of ['correct_index', 'explanation', 'revision_id', 'originalIndex']) assert.ok(!text.includes(k), k);
-    assert.deepEqual(out.questions[0], { id: 'q', question: 'Q?', options: ['a', 'b'], category: 'c', difficulty: 'easy' });
+    assert.deepEqual(out.questions[0], {
+        position: 1, state: 'unanswered', id: 'q', question: 'Q?', options: ['a', 'b'],
+        category: 'c', difficulty: 'easy', openedAt: null, deadlineAt: null,
+    });
     assert.deepEqual(stripKeyBearing({ a: [{ answer_key: 1, keep: 2 }] }), { a: [{ keep: 2 }] });
 });
 
@@ -126,6 +129,9 @@ test('routes: paid/competitive selection reads only the eligibility definition; 
     assert.match(submit, /trivia_session_settle_solo_v3/);
     assert.match(submit, /trivia_session_submit_v3/);
     assert.match(submit, /\(sig != null \|\| competitive\) && sig !== session\.contract_signature/);
+    const hook = read('src/hooks/useServerGradedRun.js');
+    assert.match(hook, /contractSignatureRef\.current = json\.contractSignature \|\| null/);
+    assert.match(hook, /contractSignature: contractSignatureRef\.current/);
     const report = read('pages/api/trivia/report-question.js');
     assert.match(report, /trivia_submit_question_report_v1/);
     assert.doesNotMatch(report, /from\('trivia_question_reports'\)/);
