@@ -87,7 +87,6 @@ const ESTATE = [
   'Smarter-Poker/smarter-poker-commander',
   'Smarter-Poker/commander-shared',
   'Smarter-Poker/smarter-poker-workers',
-  'Smarter-Poker/Smarter-Poker-Diamond-Arena',
   'Smarter-Poker/PepNationLab',
 ];
 
