@@ -322,6 +322,11 @@ import './yt-worker-release-safety.test.mjs';
 // while the fleet switch is off or as anything but a pinned non-horse
 // profile. Same CHECK 8 reasoning as the block above.
 import './video-library-reels-fails-closed.test.mjs';
+// 2026-09-22, Production Alerts Fleet: OpenClawFleetLongSilence had fired for
+// video-library-scraper since 2026-08-29 because its report-back webhook
+// never existed - report_to_api() swallowed the 404 as non-fatal, so nothing
+// ever showed the gap. Same CHECK 8 reasoning as the block above.
+import './video-library-scraper-report-endpoint-exists.test.mjs';
 // Video Library and Reels Phase 1 (2026-09-23): the suites behind
 // `npm run test:video-reels-phase-1` that need nothing from node_modules, so
 // CHECK 8 (which does not `npm ci`) executes them instead of only naming them.
