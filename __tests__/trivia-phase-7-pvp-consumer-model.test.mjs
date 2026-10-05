@@ -226,6 +226,8 @@ test('PvP history is bounded, viewer-scoped through the API, horse-disclosed and
     assert.match(pvpExperience, /<ResultReceipts result=\{item\}/);
     assert.match(pvpExperience, /label="Older Matches"/);
     assert.match(pvpExperience, /label="Newer Matches"/);
+    assert.match(pvpExperience, /Math\.min\(offset \+ 1, total\)\} To \{Math\.min\(offset \+ items\.length, total\)\} Of \{total\}/);
+    assert.doesNotMatch(pvpExperience, /[–—]/);
     assert.match(pvpExperience, /historyRequestSequenceRef\.current === requestSequence/);
     assert.match(pvpExperience, /user\?\.id && bootState === 'ready'/);
     assert.match(pvpPage, /key=\{user\?\.id \|\| 'signed-out'\}/);

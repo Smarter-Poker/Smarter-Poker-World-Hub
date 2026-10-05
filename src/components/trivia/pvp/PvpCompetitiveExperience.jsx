@@ -274,7 +274,7 @@ function PvpHistory({ history, loading, error, onPage, onRetry }) {
                         onClick={() => onPage(Math.max(0, offset - limit))}
                         disabled={loading || offset === 0}
                     />
-                    <span>{Math.min(offset + 1, total)}–{Math.min(offset + items.length, total)} Of {total}</span>
+                    <span>{Math.min(offset + 1, total)} To {Math.min(offset + items.length, total)} Of {total}</span>
                     <TriviaGlassAction
                         label="Older Matches"
                         onClick={() => onPage(offset + limit)}
