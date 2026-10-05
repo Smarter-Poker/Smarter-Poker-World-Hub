@@ -225,3 +225,58 @@ test('no caller sends update_page_preferences a column it does not accept', () =
   assert.deepEqual(offenders, [],
     `update_page_preferences accepts only ${ACCEPTED_COLUMNS.join(', ')} (diamond_arena_preferences is removed)`);
 });
+
+// 2026-10-05 audit: three profiles store bankroll_preferences = {} and three
+// store poker_near_me_preferences = {}. The getters returned that {} as-is, so
+// every default read as undefined: Bankroll Settings showed Auto-Save and
+// Notifications unchecked (and flipped the inputs to uncontrolled), and the
+// Poker Near Me lobby read geofence alerts as off while the menu showed on.
+// A first save of one key stores only that key, so the same happens after any
+// first toggle. Reads must merge the stored value OVER the defaults.
+const READ_DEFAULTS = [
+  {
+    file: 'src/services/bankrollPreferences.js',
+    fn: 'getBankrollPreferences',
+    column: 'bankroll_preferences',
+    defaults: { autoSave: true, notifications: true, currencyEUR: false },
+  },
+  {
+    file: 'src/services/pokerNearMePreferences.js',
+    fn: 'getPokerNearMePreferences',
+    column: 'poker_near_me_preferences',
+    defaults: { geofenceAlerts: true, locationEnabled: true, showNewcomerFriendly: true },
+  },
+  {
+    file: 'src/services/memoryGamesPreferences.js',
+    fn: 'getMemoryGamesPreferences',
+    column: 'memory_games_preferences',
+    defaults: { soundEffects: true, keyboardShortcuts: true, showTimer: true, visualHints: false },
+  },
+  {
+    file: 'src/services/newsPreferences.js',
+    fn: 'getNewsPreferences',
+    column: 'news_preferences',
+    defaults: { pushNotifications: false, emailDigest: false },
+  },
+];
+
+for (const svc of READ_DEFAULTS) {
+  test(`${svc.fn} reads a stored {} as the defaults`, async () => {
+    const fake = fakeClient({ column: svc.column, stored: {} });
+    const mod = await loadService(svc.file, fake);
+    assert.deepEqual(await mod[svc.fn](USER), svc.defaults);
+  });
+
+  test(`${svc.fn} keeps stored keys and fills only the missing ones`, async () => {
+    const [firstKey, firstValue] = Object.entries(svc.defaults)[0];
+    const fake = fakeClient({ column: svc.column, stored: { [firstKey]: !firstValue, extra: 'kept' } });
+    const mod = await loadService(svc.file, fake);
+    const got = await mod[svc.fn](USER);
+    assert.equal(got[firstKey], !firstValue, 'a stored key wins over its default');
+    assert.equal(got.extra, 'kept');
+    for (const [k, v] of Object.entries(svc.defaults)) {
+      if (k === firstKey) continue;
+      assert.equal(got[k], v, `missing key "${k}" must read as its default`);
+    }
+  });
+}
