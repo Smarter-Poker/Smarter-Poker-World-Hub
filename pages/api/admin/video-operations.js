@@ -37,8 +37,8 @@ async function authorize(req, res, connection) {
 }
 
 export default async function handler(req, res) {
-  if (!applyRateLimit(req, res, req.method === 'GET' ? LIMITS.read : LIMITS.write)) return;
   res.setHeader('Cache-Control', 'private, no-store');
+  if (!applyRateLimit(req, res, req.method === 'GET' ? LIMITS.read : LIMITS.write)) return;
   if (!['GET', 'PATCH'].includes(req.method)) {
     res.setHeader('Allow', 'GET, PATCH');
     return res.status(405).json({ error: 'Method not allowed' });

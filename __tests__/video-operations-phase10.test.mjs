@@ -4,7 +4,7 @@ import { createRequire } from 'node:module';
 import test from 'node:test';
 const require = createRequire(import.meta.url);
 const { buildAlerts } = require('../lib/videoOperationsAlerts.js');
-const { isVideoOperationsOperationId } = require('../lib/videoOperationsContract.js');
+const { formatVideoOperationsMetric, isVideoOperationsOperationId } = require('../lib/videoOperationsContract.js');
 
 const migration = readFileSync(new URL('../supabase/migrations/20261004213000_video_operations_analytics_phase10.sql', import.meta.url), 'utf8');
 const indexMigration = readFileSync(new URL('../supabase/migrations/20261004222000_video_reels_control_events_actor_index.sql', import.meta.url), 'utf8');
@@ -53,6 +53,7 @@ test('Phase 10 aggregates redact raw errors and never return user, session, asse
 
 test('Phase 10 admin snapshot and writes require admin authorization and stay private', () => {
   assert.match(api, /Cache-Control', 'private, no-store'/);
+  assert.ok(api.indexOf("res.setHeader('Cache-Control', 'private, no-store')") < api.indexOf('applyRateLimit(req, res'), 'rate-limited responses must remain private and uncached');
   assert.match(api, /connection\.anon\.auth\.getUser/);
   assert.match(api, /profile\.data\?\.is_admin !== true/);
   assert.match(api, /LIMITS\.read/);
@@ -146,6 +147,18 @@ test('operations console links existing controls and handles alerts, empty state
   assert.match(page, /pendingControlOperations/);
   assert.match(page, /newOperationId/);
   assert.match(readFileSync(new URL('../docs/video-reels-phase10-operations.md', import.meta.url), 'utf8'), /Alert thresholds/);
+});
+
+test('operations metrics preserve preformatted cost labels without rendering NaN', () => {
+  assert.equal(formatVideoOperationsMetric('$12.34'), '$12.34');
+  assert.equal(formatVideoOperationsMetric(1234), '1,234');
+  assert.equal(formatVideoOperationsMetric('1234'), '1,234');
+  assert.equal(formatVideoOperationsMetric(undefined), '0');
+  assert.equal(formatVideoOperationsMetric(Number.NaN), '0');
+  assert.equal(formatVideoOperationsMetric('NaN'), '0');
+  assert.equal(formatVideoOperationsMetric('Infinity'), '0');
+  assert.equal(formatVideoOperationsMetric('$NaN'), '0');
+  assert.match(page, /formatVideoOperationsMetric\(value\)/);
 });
 
 test('protected push guard uses configured credentials and public readback without reading environment files', () => {

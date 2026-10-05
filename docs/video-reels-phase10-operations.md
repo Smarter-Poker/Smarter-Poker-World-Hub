@@ -28,4 +28,6 @@ Use a disabled stage as a circuit breaker when its downstream behavior needs con
 
 The console verifies the session on refresh and on same-tab auth or cross-tab storage changes. It clears the displayed snapshot when the session changes or the API rejects authorization. Only the five supported pipeline controls are adjustable; unknown controls remain read-only until the API contract explicitly supports them.
 
+For a published read-only verification, dispatch the `E2E Tests (Playwright)` workflow with suite `video-operations-live` and provide the exact deployed commit SHA. It signs in only with the designated `TEST_USER_EMAIL` / `TEST_USER_PASSWORD`, verifies production health and the authenticated admin snapshot, checks the private response headers and required controls, and stores a sanitized receipt. It does not change pipeline switches. A non-admin test identity fails the probe rather than falling back to another account.
+
 The editorial gate supports a guarded canary through reviewed candidates and publication controls. This console does not assign randomized users, schedule releases, or perform automatic rollback. A human admin chooses and audits each reversible switch change; existing rights, quality, and publication transaction guards remain active.
