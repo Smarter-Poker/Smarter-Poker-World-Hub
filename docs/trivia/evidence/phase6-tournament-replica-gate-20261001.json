@@ -1,0 +1,194 @@
+{
+ "phase": 6,
+ "kind": "replica_gate",
+ "run": "p6-gate8",
+ "build": {
+  "file": "supabase/migrations/20261001200000_trivia_p6_nightly_tournament_engine.sql",
+  "md5": "88a6a9ae0b4d690c4c4e5dc5b76ad06b",
+  "sha256": "ecf0d371a87e36b262bade4e223b4af59f4ab3af62cf42df9e203a88c8ae16ca",
+  "bytes": 201595,
+  "fingerprint": "ec4c1ae53c59982d3cedf6ab1fb3c8de",
+  "fingerprint_objects": 261
+ },
+ "replica": "local Postgres 17 copy of the production public schema (2026-09-29) + installed Phase 2/3/5 migrations; synthetic players, horses and treasury only",
+ "suites": {
+  "10_schedule_dst": [
+   {
+    "suite": "schedule_dst",
+    "pass": true,
+    "public_instances": 108,
+    "distinct_dates": 108,
+    "horse_targets_in_range": true,
+    "horse_target_min": 70,
+    "horse_target_max": 140,
+    "utc_hours": {
+     "1": 41,
+     "2": 67
+    }
+   }
+  ],
+  "20_lease": [
+   {
+    "suite": "lease_single_session",
+    "pass": true,
+    "takeovers": 1,
+    "final_token": 3
+   },
+   {
+    "note": "takeover token=5 after waiting 3s for the in-flight owner transaction"
+   },
+   {
+    "note": "old owner after takeover: fenced"
+   },
+   {
+    "suite": "lease_concurrency",
+    "pass": true
+   }
+  ],
+  "30_population": [
+   {
+    "suite": "population",
+    "pass": true,
+    "targets": [
+     {
+      "target": 70,
+      "horses": 70,
+      "humans": 30,
+      "bracket": 128,
+      "gross": 1000,
+      "horse_funding": 700
+     },
+     {
+      "target": 100,
+      "horses": 100,
+      "humans": 30,
+      "bracket": 256,
+      "gross": 1300,
+      "horse_funding": 1000
+     },
+     {
+      "target": 140,
+      "horses": 140,
+      "humans": 30,
+      "bracket": 256,
+      "gross": 1700,
+      "horse_funding": 1400
+     }
+    ],
+    "treasury_balance_after": 10000000
+   }
+  ],
+  "40_event_140": [
+   {
+    "suite": "event_140",
+    "pass": true,
+    "bracket_minutes": 33.0,
+    "round_seconds": [
+     300,
+     300,
+     180,
+     186,
+     162,
+     150,
+     132,
+     147
+    ],
+    "no_shows": 8,
+    "decided_by": {
+     "bye": 76,
+     "completion": 1,
+     "double_no_show": 1,
+     "no_show": 6,
+     "response_time": 24,
+     "score": 147
+    },
+    "champion_kind": "horse",
+    "human_prizes": 0,
+    "horse_prizes": 1620
+   },
+   {
+    "parallel_phase": {
+     "deadlocks": 0,
+     "errors": 0
+    }
+   },
+   {
+    "suite": "concurrency",
+    "pass": true
+   }
+  ],
+  "50_event_256_failures": [
+   {
+    "suite": "event_256_failures",
+    "pass": true,
+    "bracket_minutes": 53.7,
+    "round_seconds": [
+     700,
+     300,
+     300,
+     300,
+     300,
+     300,
+     300,
+     300
+    ],
+    "no_shows": 0,
+    "expired_seats": 320,
+    "decided_by": {
+     "completion": 21,
+     "response_time": 32,
+     "score": 202
+    },
+    "outage_alerts": [
+     {
+      "code": "round_stuck",
+      "round": 1,
+      "deadline_at": "2026-10-01T08:59:00-05:00",
+      "tournament_id": "23f165cf-599c-438b-9380-83aea7aaace2"
+     }
+    ],
+    "human_prizes": 0,
+    "horse_prizes": 2304
+   }
+  ],
+  "60_cancel_cap": [
+   {
+    "suite": "cancel_short_cap",
+    "pass": true,
+    "short_field": {
+     "target": 100,
+     "entered_horses": 60,
+     "refunded_total": 650
+    },
+    "cap_exempt_prize": 15,
+    "runner_up_prize": 3
+   }
+  ],
+  "70_acl_fence": [
+   {
+    "suite": "acl_fence",
+    "pass": true
+   }
+  ],
+  "80_canary_512": [
+   {
+    "suite": "canary_512",
+    "pass": true,
+    "entrants": 440,
+    "bracket": 512,
+    "rounds": 9,
+    "questions": 90
+   }
+  ]
+ },
+ "suite_exit_codes": {
+  "10_schedule_dst": 0,
+  "20_lease": 0,
+  "30_population": 0,
+  "40_event_140": 0,
+  "50_event_256_failures": 0,
+  "60_cancel_cap": 0,
+  "70_acl_fence": 0,
+  "80_canary_512": 0
+ }
+}
