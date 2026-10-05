@@ -26,8 +26,8 @@ test('creator portal is bearer-bound, account-exact and exposes real Phase 9 ope
 });
 
 test('moderation route verifies administrators and uses versioned authority RPCs', () => {
-  assert.match(moderation, /profiles.*is_admin/s);
-  assert.match(moderation, /profile\.data\?\.is_admin !== true/);
+  assert.match(moderation, /profiles.*is_admin, role/s);
+  assert.match(moderation, /isVideoAdminProfile\(profile\.data\)/);
   for (const fn of ['fn_review_video_creator_claim', 'fn_review_video_creator_submission', 'fn_review_video_attribution_update', 'fn_review_video_creator_clip', 'fn_review_video_moderation_case', 'fn_apply_video_takedown']) {
     assert.match(moderation, new RegExp(fn));
   }
