@@ -76,7 +76,7 @@ export default function TermsOfService() {
 
                         {/* Footer */}
                         <div style={styles.footer}>
-                            <p style={styles.lastUpdated}>Last Updated: September 8, 2026</p>
+                            <p style={styles.lastUpdated}>Last Updated: October 5, 2026</p>
                             <p style={styles.contact}>
                                 Questions? Contact Us at{' '}
                                 <a href="mailto:support@smarter.poker" style={styles.link}>
@@ -153,7 +153,7 @@ function TermsSection() {
             </p>
             <ul style={styles.list}>
                 <li><strong>PokerIQ:</strong> Interactive GTO Training And Quizzes</li>
-                <li><strong>Diamond Arena:</strong> Competitive Training Challenges</li>
+                <li><strong>Diamond Arena:</strong> A Selection Inside Poker Arena In Club Arena (Not Yet Open To Players)</li>
                 <li><strong>Club Arena:</strong> Community Features And Club Management</li>
                 <li><strong>Hand History Analysis:</strong> Review And Improvement Tools</li>
             </ul>
@@ -448,7 +448,7 @@ function GamingSection() {
                 <li><strong>PokerIQ Hub:</strong> Full Access With Training And Rewards</li>
                 <li><strong>GTO Training:</strong> Skill Development With Diamond Rewards</li>
                 <li><strong>Social Media:</strong> Full Integration, Posting, And Sharing</li>
-                <li><strong>Diamond Arena:</strong> Prize Redemptions Enabled</li>
+                <li><strong>Diamond Arena Games In Poker Arena, When Offered:</strong> Prize Redemptions Enabled</li>
                 <li><strong>Cash Out Prizes:</strong> Eligible For Prizes Up To $1,100 Per Redemption</li>
             </ul>
 
@@ -461,7 +461,7 @@ function GamingSection() {
                 <li><strong>PokerIQ Hub:</strong> ✅ ENABLED (Training/Study Only)</li>
                 <li><strong>GTO Training:</strong> ✅ ENABLED (Skill Development)</li>
                 <li><strong>Social Media:</strong> ✅ ENABLED (Posting/Sharing)</li>
-                <li><strong>Diamond Arena:</strong> ❌ DISABLED (No Prize Entry)</li>
+                <li><strong>Diamond Arena Games In Poker Arena, When Offered:</strong> ❌ DISABLED (No Prize Entry)</li>
                 <li><strong>Cash Out Prizes:</strong> ❌ BLOCKED (Physical Lock)</li>
             </ul>
             <p style={styles.paragraph}>
@@ -508,7 +508,6 @@ function GamingSection() {
                     <li>Completing Training Modules And Social Tasks Earns Diamonds At No Cost</li>
                     <li>XP Progression Is Based Solely On Skill And Activity, Not Purchases</li>
                     <li>Leaderboard Rankings Are Determined By Performance, Not Spending</li>
-                    <li><strong>Free Roll Hourly Tournaments:</strong> Enter The Diamond Arena Every Hour With ZERO Entry Fee</li>
                 </ul>
                 <p style={styles.consentText}>
                     Free Methods Of Earning Diamonds Are Always Available To All Users. Premium Purchases
