@@ -231,6 +231,16 @@ test('union detail includes money-permission-gated rake-share oversight', async 
   assert.equal(payload.rakeShareWindowDays, 30);
   const call = db.calls.find((item) => item.name === 'fn_union_rake_by_club');
   assert.deepEqual(call.args, { p_union_id: ID, p_days: 30 });
+  assert.deepEqual(
+    db.calls
+      .filter((item) => item.method === 'order' && ['union_settlement_rounds', 'union_applications', 'union_leave_requests'].includes(item.table))
+      .map((item) => [item.table, item.args[0]]),
+    [
+      ['union_settlement_rounds', 'executed_at'],
+      ['union_applications', 'applied_at'],
+      ['union_leave_requests', 'requested_at'],
+    ],
+  );
 });
 
 test('cashout queue reports never-used, none-pending and unknown as different states', async () => {

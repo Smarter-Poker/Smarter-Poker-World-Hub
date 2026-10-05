@@ -286,10 +286,10 @@ async function sectionUnion(db, op, query, requestId) {
   const [unionResult, clubsResult, roundsResult, presettlementsResult, applicationsResult, leaveResult, rakeShareResult] = await Promise.all([
     db.from('unions').select('id, name, code, union_code, club_count, member_count, chip_balance, created_at').eq('id', unionId).maybeSingle(),
     runPaged(db.from('union_clubs').select('*', { count: 'exact' }).eq('union_id', unionId), page),
-    runPaged(db.from('union_settlement_rounds').select('*', { count: 'exact' }).eq('union_id', unionId).order('created_at', { ascending: false }), page),
+    runPaged(db.from('union_settlement_rounds').select('*', { count: 'exact' }).eq('union_id', unionId).order('executed_at', { ascending: false }), page),
     runPaged(db.from('union_presettlements').select('*', { count: 'exact' }).eq('union_id', unionId).order('created_at', { ascending: false }), page),
-    runPaged(db.from('union_applications').select('*', { count: 'exact' }).eq('union_id', unionId).order('created_at', { ascending: false }), page),
-    runPaged(db.from('union_leave_requests').select('*', { count: 'exact' }).eq('union_id', unionId).order('created_at', { ascending: false }), page),
+    runPaged(db.from('union_applications').select('*', { count: 'exact' }).eq('union_id', unionId).order('applied_at', { ascending: false }), page),
+    runPaged(db.from('union_leave_requests').select('*', { count: 'exact' }).eq('union_id', unionId).order('requested_at', { ascending: false }), page),
     rakeSharePromise,
   ]);
   if (unionResult.error) c.fail('union', unionResult.error);
