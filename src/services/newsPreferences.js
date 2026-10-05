@@ -67,12 +67,11 @@ export async function getNewsPreferences(userId) {
 /**
  * Update user's news preferences
  *
- * Callers send single-key deltas (e.g. { pushNotifications: true }). To stay
- * safe regardless of whether the RPC merges or replaces the JSON column, this
- * function reads the current value, deep-merges the delta over it client-side,
- * and writes the full merged object. If the pre-read fails, the raw delta is
- * sent as before (the RPC may still merge server-side) rather than risking a
- * wipe by merging over defaults.
+ * Callers send single-key deltas (e.g. { pushNotifications: true }). The
+ * update_page_preferences RPC REPLACES the whole JSON column, so this function
+ * reads the current value, merges the delta over it client-side, and writes
+ * the full merged object. If the pre-read fails, the save is refused (thrown):
+ * sending the raw delta would replace every saved sibling key with it.
  *
  * @param {string} userId - User ID
  * @param {Object} preferences - Preference keys to update (partial object)
@@ -83,27 +82,25 @@ export async function updateNewsPreferences(userId, preferences) {
         throw new Error('User ID is required');
     }
 
-    let merged = preferences;
+    const patch = preferences && typeof preferences === 'object' && !Array.isArray(preferences) ? preferences : {};
 
-    // Best-effort read-merge so a replace-semantics RPC can't drop sibling keys.
     try {
-        const { data, error } = await supabase
+        // Read-merge so the replace-semantics RPC cannot drop sibling keys.
+        const { data, error: readError } = await supabase
             .from('profiles')
             .select('news_preferences')
             .eq('id', userId)
             .maybeSingle();
 
-        const current = data?.news_preferences;
-        if (!error && current && typeof current === 'object' && !Array.isArray(current)) {
-            merged = { ...current, ...preferences };
-        }
-    } catch (readError) {
-        // Fall through with the raw delta — do not merge over defaults on a
-        // failed read, or a transient outage could erase saved values.
-        console.warn('News preferences pre-read failed, sending delta only:', readError?.message);
-    }
+        // An unknown current value must not be overwritten with a partial one.
+        if (readError) throw readError;
 
-    try {
+        const current = data?.news_preferences;
+        const merged = {
+            ...(current && typeof current === 'object' && !Array.isArray(current) ? current : {}),
+            ...patch,
+        };
+
         const { error } = await supabase.rpc('update_page_preferences', {
             p_user_id: userId,
             p_column_name: 'news_preferences',

@@ -69,9 +69,13 @@ export async function getPokerNearMePreferences(userId) {
  * the patch over the currently stored blob first so unrelated preferences are
  * not wiped.
  *
+ * A failed read or a failed save THROWS. This used to return the optimistic
+ * value on any error, so the page looked saved when nothing was stored; every
+ * caller already catches (try/catch or .catch) and keeps its local state.
+ *
  * @param {string} userId - User ID
  * @param {Object} preferences - Partial preferences to merge in
- * @returns {Promise<Object>} The full merged preferences object
+ * @returns {Promise<Object>} The full merged preferences object that was written
  */
 export async function updatePokerNearMePreferences(userId, preferences) {
     if (!userId) {
@@ -84,10 +88,6 @@ export async function updatePokerNearMePreferences(userId, preferences) {
         const stored = await readStoredPreferences(userId);
 
         if (!stored.ok) {
-            if (stored.error.code === '42703' || stored.error.message?.includes('column')) {
-                console.warn('DB migration pending for poker_near_me_preferences. Skipping save.');
-                return { ...defaultPreferences(), ...patch };
-            }
             // Writing a partial blob when the current value is unknown would wipe
             // every other stored preference - bail out instead.
             throw stored.error;
@@ -105,17 +105,11 @@ export async function updatePokerNearMePreferences(userId, preferences) {
             p_preferences: merged,
         });
 
-        if (error) {
-            if (error.code === '42703' || error.message?.includes('column')) {
-                console.warn('DB migration pending for poker_near_me_preferences. Skipping save.');
-                return merged;
-            }
-            throw error;
-        }
+        if (error) throw error;
 
         return merged;
     } catch (error) {
         console.warn('Error updating poker near me preferences:', error);
-        return { ...defaultPreferences(), ...patch }; // Optimistically return to prevent UI crash
+        throw error;
     }
 }
