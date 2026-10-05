@@ -512,7 +512,7 @@ export const HUB_PAGE_SUMMARIES = {
   'trivia-pvp': {
     heading: 'About Head To Head',
     lead:
-      'Head To Head Puts Two Players On The Same Questions At The Same Time, And The Faster Correct Answer Takes The Point. Matches Are Short, Results Are Immediate, And Both Players See Every Answer Afterwards, So A Match Doubles As A Way To Find Out What The Other Person Knew That You Did Not. Free To Play, And Nothing In It Is A Wager.',
+      'Head To Head Puts Two Players On The Same Twenty Questions With A Diamond Stake Selected Before Search. The Server Shows The Exact Stake, Rake And Possible Return Before Entry, Tries To Find A Human First, And May Seat A Disclosed Smarter Horse After The Stored Twenty To Forty Five Second Window. Ties And Cancelled Searches Return Diamonds Under The Published Rules.',
     links: [
       { name: 'Poker Trivia', href: '/hub/trivia', text: 'Every Mode, And How The Question Bank Works.' },
       { name: 'Leaderboard', href: '/hub/trivia/leaderboard', text: 'Who Is Winning Matches Today, This Week And All Time.' },
@@ -521,7 +521,7 @@ export const HUB_PAGE_SUMMARIES = {
   'trivia-tournaments': {
     heading: 'About Trivia Tournaments',
     lead:
-      'Trivia Tournaments Are Scheduled Events: Everyone Answers The Same Questions In The Same Order At The Same Time, And The Field Is Ranked On Correct Answers And Speed. Registration Opens Before The Start, The Standings Move Live While It Runs, And The Final Table Of Results Stays Readable Afterwards. Free To Enter, And Nothing In It Is A Wager.',
+      'Trivia Nightly Starts At Eight PM Central With Server Published Registration, Entry, Rake And Prize Pool Terms. Humans And Disclosed Smarter Horses Advance Through Server Timed Head To Head Rounds, With Correct Answers, Answer Time, Completion Time And Seed Resolving Ties In That Order. Results, Refunds And Diamond References Remain Available After The Event.',
     links: [
       { name: 'Poker Trivia', href: '/hub/trivia', text: 'Every Mode, And How The Question Bank Works.' },
       { name: 'Events Calendar', href: '/hub/events-calendar', text: 'Live Poker Series And Festivals By Date.' },

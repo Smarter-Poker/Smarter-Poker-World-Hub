@@ -6,7 +6,7 @@ import path from 'node:path';
 import test from 'node:test';
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
-const [route, panel, sql, queueBudgetSql, narrowQueueSql, healthDisclosureSql] = await Promise.all([
+const [route, panel, sql, queueBudgetSql, narrowQueueSql, healthDisclosureSql, cursorTotalSql] = await Promise.all([
   readFile(path.join(ROOT, 'pages/api/horses/integrity-admin.js'), 'utf8'),
   readFile(path.join(ROOT, 'src/components/horses/IntegrityPanel.jsx'), 'utf8'),
   readFile(path.join(
@@ -24,6 +24,10 @@ const [route, panel, sql, queueBudgetSql, narrowQueueSql, healthDisclosureSql] =
   readFile(path.join(
     ROOT,
     'supabase/migrations/20260906141131_integrity_health_discloses_latest_detector_run.sql'
+  ), 'utf8'),
+  readFile(path.join(
+    ROOT,
+    'supabase/migrations/20261005105534_integrity_queue_keeps_filtered_total_across_cursor_pages.sql'
   ), 'utf8'),
 ]);
 
@@ -51,6 +55,14 @@ test('the queue consumes the exact ranked RPC response contract', () => {
     'an omitted zero-count tier must not be presented as an unknown count');
   assert.match(route, /filteredTotal: Number\.isFinite\(Number\(data\.totals\.filtered_groups\)\)/,
     'filtered queue pagination must use the filtered total returned by the RPC');
+});
+
+test('the queue cursor preserves the view-wide filtered total', () => {
+  assert.match(cursorTotalSql, /'filtered_groups', coalesce\(/);
+  assert.match(cursorTotalSql, /p_cursor \? 'filtered_groups'/);
+  assert.match(cursorTotalSql, /'filtered_groups', coalesce\([\s\S]*SELECT count\(\*\)::bigint FROM selected/);
+  assert.match(cursorTotalSql, /v_expected_pre text := '8a9d9de1e1a957e43ac765f2fe7f8b43'/);
+  assert.match(cursorTotalSql, /Post-image mismatch/);
 });
 
 test('the database repeats the verdict guard under the case row lock', () => {

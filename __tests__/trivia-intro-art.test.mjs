@@ -47,7 +47,7 @@ const DESTINATION = Object.freeze({
     mixed: 'pages/hub/trivia/mixed.js',
     survival: 'pages/hub/trivia/survival-game.js',
     'time-attack': 'pages/hub/trivia/time-attack.js',
-    pvp: 'pages/hub/trivia/pvp.js',
+    pvp: 'src/components/trivia/pvp/PvpCompetitiveExperience.jsx',
     tournaments: 'pages/hub/trivia/tournaments.js',
 });
 const FAMILIES = ['lobby', ...TRIVIA_MODES.map((mode) => mode.id)];
@@ -177,9 +177,10 @@ test('ResponsiveModeArt reserves its box, paints a preview, and is lazy unless i
     assert.deepEqual([...css.matchAll(/#[0-9a-fA-F]{3,8}\b/g)].map((m) => m[0]), ['#000'], 'schema ink only');
     for (const [id, rel] of Object.entries(DESTINATION)) {
         const tags = [...read(rel).matchAll(/<ResponsiveModeArt\b[\s\S]*?\/>/g)].map((m) => m[0]);
-        assert.equal(tags.length, 1, `${rel} renders its art once`);
+        const expectedBranches = id === 'tournaments' ? 2 : 1;
+        assert.equal(tags.length, expectedBranches, `${rel} renders art only in its mutually exclusive hero branches`);
         if (id === 'lobby') assert.doesNotMatch(tags[0], /\bpriority\b/, 'the Daily header stays the lobby hero');
-        else assert.match(tags[0], /\bpriority\b/, `${rel}: the intro art is the page hero`);
+        else for (const tag of tags) assert.match(tag, /\bpriority\b/, `${rel}: the intro art is the page hero`);
     }
 });
 

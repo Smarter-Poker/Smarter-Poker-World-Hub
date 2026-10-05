@@ -1012,6 +1012,7 @@ test('club-arena-admin: set_club_status audits club.set_status with before and a
       action: 'set_club_status',
       clubId: '33333333-3333-3333-3333-333333333333',
       status: 'suspended',
+      reason: 'Operational safety review',
     },
     query: {},
     method: 'POST',
@@ -1021,6 +1022,7 @@ test('club-arena-admin: set_club_status audits club.set_status with before and a
   assert.equal(audits[0].p_action, 'club.set_status');
   assert.equal(audits[0].p_before_state.status, 'active');
   assert.equal(audits[0].p_details.status, 'suspended');
+  assert.equal(audits[0].p_details.reason, 'Operational safety review');
 
   await assert.rejects(
     caHandle({

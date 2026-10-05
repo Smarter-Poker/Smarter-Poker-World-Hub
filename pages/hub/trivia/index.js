@@ -4,7 +4,7 @@
  */
 
 import SEOHead from '../../../src/components/seo/SEOHead';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '../../../src/lib/supabase';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
 import { useAvatar } from '../../../src/contexts/AvatarContext';
@@ -16,7 +16,6 @@ import HamburgerMenu from '../../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../../src/config/hamburgerMenus';
 import { getTriviaPreferences, updateTriviaPreferences } from '../../../src/services/triviaPreferences';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
-import TriviaSkeleton from '../../../src/components/trivia/TriviaSkeleton';
 import { getTodayCST } from '../../../src/lib/trivia/getTodayCST';
 import styles from '../../../src/styles/trivia/TriviaHub.module.css';
 import * as triviaAudio from '../../../src/lib/trivia/triviaAudio';
@@ -24,6 +23,10 @@ import { isTriviaPvpReleased } from '../../../src/lib/trivia/pvpReleaseControl.m
 import { areTriviaTournamentsReleased } from '../../../src/lib/trivia/tournamentReleaseControl.mjs';
 import HubPageSummary from '../../../src/components/seo/HubPageSummary';
 import { readOwnProfile } from '../../../src/lib/ownProfile';
+import {
+    createTriviaLobbyAccountRequestGuard,
+    projectTriviaLobbyProfileRead,
+} from '../../../src/lib/trivia/lobbyAccountIsolation.mjs';
 
 const GAME_SETTINGS_KEY = 'trivia_settings';
 
@@ -48,7 +51,35 @@ export default function TriviaHubPage({ modeAvailability }) {
     const [dailyCompleted, setDailyCompleted] = useState(false);
     const [currentStreak, setCurrentStreak] = useState(0);
     const [isLoading, setIsLoading] = useState(true);
+    const [playerDataStatus, setPlayerDataStatus] = useState({
+        profile: 'loading',
+        daily: 'loading',
+        streak: 'loading',
+    });
     const [menuOpen, setMenuOpen] = useState(false);
+    const playerDataRequestGuardRef = useRef(null);
+    if (!playerDataRequestGuardRef.current) {
+        playerDataRequestGuardRef.current = createTriviaLobbyAccountRequestGuard();
+    }
+    const latestUserIdRef = useRef(userId || null);
+    latestUserIdRef.current = userId || null;
+
+    // Account-owned values must never survive an identity transition. This
+    // runs before the data-loading effect below and invalidates every pending
+    // completion from the prior account.
+    useEffect(() => {
+        playerDataRequestGuardRef.current.invalidate();
+        setUserDiamonds(0);
+        setIsVip(false);
+        setDailyCompleted(false);
+        setCurrentStreak(0);
+        setPlayerDataStatus({
+            profile: 'loading',
+            daily: 'loading',
+            streak: 'loading',
+        });
+        setIsLoading(true);
+    }, [userId]);
 
     // Hamburger menu preferences
     const [preferences, setPreferences] = useState({
@@ -112,23 +143,43 @@ export default function TriviaHubPage({ modeAvailability }) {
     // Using existing supabase instance from lib
 
     const loadUserData = useCallback(async () => {
+        const requestUserId = userId || null;
+        if (requestUserId !== latestUserIdRef.current) return;
+        const request = playerDataRequestGuardRef.current.begin(requestUserId);
+        const requestIsCurrent = () => playerDataRequestGuardRef.current
+            .isCurrent(request, latestUserIdRef.current);
+
         if (!userId) {
             // Wait for auth to populate or fail
-            if (!authLoading) {
+            if (!authLoading && requestIsCurrent()) {
                 setUserDiamonds(0);
                 setIsVip(false);
                 setDailyCompleted(false);
                 setCurrentStreak(0);
+                setPlayerDataStatus({
+                    profile: 'signed-out',
+                    daily: 'signed-out',
+                    streak: 'signed-out',
+                });
                 setIsLoading(false);
             }
             return;
         }
+        if (!requestIsCurrent()) return;
+        setIsLoading(true);
+        setPlayerDataStatus((previous) => ({
+            profile: previous.profile === 'ready' ? 'refreshing' : 'loading',
+            daily: previous.daily === 'ready' ? 'refreshing' : 'loading',
+            streak: previous.streak === 'ready' ? 'refreshing' : 'loading',
+        }));
         try {
             const today = getTodayCST();
 
             // Run the three independent reads in parallel — was three
             // sequential awaits, ~2 extra round trips before the lobby showed.
-            const [profileRes, dailyPlayRes, streakRes] = await Promise.all([
+            // Each result is applied independently. A streak outage must not
+            // erase a valid balance or make a completed Daily attempt playable.
+            const [profileRead, dailyPlayRead, streakRead] = await Promise.allSettled([
                 readOwnProfile(supabase, 'diamonds, is_vip', { expectId: userId }),
                 // NOTE: multiple daily_trivia_plays rows per (user, date) are
                 // possible (replays), so .maybeSingle() errored with 2+ rows
@@ -147,28 +198,45 @@ export default function TriviaHubPage({ modeAvailability }) {
                     .maybeSingle(),
             ]);
 
-            const readErrors = [profileRes?.error, dailyPlayRes?.error, streakRes?.error].filter(Boolean);
-            if (readErrors.length > 0) {
-                throw new Error(readErrors.map(error => error.message || String(error)).join('; '));
+            if (!requestIsCurrent()) return;
+
+            const profileProjection = projectTriviaLobbyProfileRead(profileRead);
+            const dailyPlayRes = dailyPlayRead.status === 'fulfilled' ? dailyPlayRead.value : null;
+            const streakRes = streakRead.status === 'fulfilled' ? streakRead.value : null;
+            const nextStatus = {
+                profile: profileProjection.status,
+                daily: dailyPlayRead.status === 'fulfilled' && dailyPlayRes && !dailyPlayRes.error ? 'ready' : 'error',
+                streak: streakRead.status === 'fulfilled' && streakRes && !streakRes.error ? 'ready' : 'error',
+            };
+
+            if (profileProjection.applyValue) {
+                setUserDiamonds(profileProjection.userDiamonds);
+                setIsVip(profileProjection.isVip);
             }
 
-            const profile = profileRes?.data;
-            if (profile) {
-                setUserDiamonds(profile.diamonds || 0);
-                setIsVip(profile.is_vip === true);
+            // A successful null owner profile is authoritative. Clear every
+            // account-scoped value instead of retaining data from a previous
+            // account or a profile that was removed mid-session.
+            if (profileProjection.applyValue && !profileProjection.profileExists) {
+                setDailyCompleted(false);
+                setCurrentStreak(0);
+            } else if (nextStatus.daily === 'ready') {
+                const dailyPlay = dailyPlayRes?.data;
+                setDailyCompleted(!!(dailyPlay && dailyPlay.length > 0));
             }
 
-            const dailyPlay = dailyPlayRes?.data;
-            setDailyCompleted(!!(dailyPlay && dailyPlay.length > 0));
-
-            const streakData = streakRes?.data;
-            if (streakData) {
-                setCurrentStreak(streakData.current_streak || 0);
+            if (!(profileProjection.applyValue && !profileProjection.profileExists)
+                && nextStatus.streak === 'ready') {
+                const streakData = streakRes?.data;
+                setCurrentStreak(streakData?.current_streak || 0);
             }
+            setPlayerDataStatus(nextStatus);
         } catch (error) {
+            if (!requestIsCurrent()) return;
             console.warn('Error loading user data:', error);
+            setPlayerDataStatus({ profile: 'error', daily: 'error', streak: 'error' });
         }
-        setIsLoading(false);
+        if (requestIsCurrent()) setIsLoading(false);
     }, [userId, authLoading]);
 
     useEffect(() => {
@@ -228,20 +296,19 @@ export default function TriviaHubPage({ modeAvailability }) {
 
                 <main className={styles.content}>
                     <h1 className="sr-only">Smarter Poker Trivia</h1>
-                    {isLoading ? (
-                        <div className={styles.loading}>
-                            <TriviaSkeleton label="Loading Trivia Modes" />
-                        </div>
-                    ) : (
-                        <TriviaLobby
-                            userDiamonds={userDiamonds}
-                            isVip={isVip}
-                            dailyCompleted={dailyCompleted}
-                            currentStreak={currentStreak}
-                            modeAvailability={modeAvailability}
-                            onDiamondsChange={(delta) => setUserDiamonds(prev => prev + delta)}
-                        />
-                    )}
+                    <TriviaLobby
+                        userDiamonds={userDiamonds}
+                        isVip={isVip}
+                        dailyCompleted={dailyCompleted}
+                        currentStreak={currentStreak}
+                        modeAvailability={modeAvailability}
+                        authState={authLoading ? 'loading' : userId ? 'authenticated' : 'signed-out'}
+                        accountKey={userId || null}
+                        playerDataLoading={isLoading}
+                        playerDataStatus={playerDataStatus}
+                        onRetryPlayerData={loadUserData}
+                        onDiamondsChange={(delta) => setUserDiamonds(prev => prev + delta)}
+                    />
                 </main>
             </div>
 

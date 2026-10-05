@@ -64,8 +64,11 @@ function createStartNonce() {
     return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
 }
 
-async function postJson(url, body, accessToken) {
+async function postJson(url, body, resolveAccessToken) {
     const headers = { 'Content-Type': 'application/json' };
+    const accessToken = typeof resolveAccessToken === 'function'
+        ? await resolveAccessToken()
+        : null;
     if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
     const res = await fetch(url, {
         method: 'POST',
@@ -88,7 +91,11 @@ async function postJson(url, body, accessToken) {
  * @param {string} mode  one of the trivia mode ids (endless, survival, ...)
  * @param {object} [opts]
  * @param {string} [opts.accessToken] Supabase access token, when the page has
- *        one handy. Omit to rely on the session cookie.
+ *        one handy. Retained for existing solo-mode callers.
+ * @param {() => (string|null|Promise<string|null>)} [opts.accessTokenProvider]
+ *        Request-time token resolver for long-lived flows. PvP supplies the
+ *        maintained refresh-aware resolver so same-user token rotation never
+ *        leaves a committed match using the token captured at mount time.
  */
 export default function useServerGradedRun(mode, opts = {}) {
     const [sessionId, setSessionId] = useState(null);
@@ -102,9 +109,23 @@ export default function useServerGradedRun(mode, opts = {}) {
     const startingRef = useRef(false);
     const submittingRef = useRef(false);
     const sessionRef = useRef(null);
+    // Competitive engine-v3 sessions are bound to an immutable contract.
+    // Keep the server-issued signature beside the session id and return it on
+    // submit; omitting it makes the competitive submit route correctly refuse
+    // the request with contract_mismatch.
+    const contractSignatureRef = useRef(null);
     const pendingStartNonceRef = useRef(null);
 
     const isEnabled = SERVER_GRADING_ENABLED && !SELF_SETTLING_MODES.has(mode);
+    const accessToken = opts.accessToken;
+    const accessTokenProvider = opts.accessTokenProvider;
+    const resolveAccessToken = useCallback(async () => {
+        if (typeof accessTokenProvider === 'function') {
+            const current = await accessTokenProvider();
+            return typeof current === 'string' && current ? current : null;
+        }
+        return typeof accessToken === 'string' && accessToken ? accessToken : null;
+    }, [accessToken, accessTokenProvider]);
 
     const start = useCallback(async ({ count, category, difficulty, matchId, parentSessionId } = {}) => {
         if (!isEnabled) throw new Error('server_grading_disabled');
@@ -130,10 +151,11 @@ export default function useServerGradedRun(mode, opts = {}) {
                     startNonce: mode === 'pvp' ? undefined : pendingStartNonceRef.current,
                     parentSessionId,
                 },
-                opts.accessToken
+                resolveAccessToken
             );
             pendingStartNonceRef.current = null;
             sessionRef.current = json.sessionId;
+            contractSignatureRef.current = json.contractSignature || null;
             setSessionId(json.sessionId);
             // questions[].options are already permuted; no correct_index.
             return {
@@ -144,6 +166,8 @@ export default function useServerGradedRun(mode, opts = {}) {
                 newBalance: json.newBalance == null ? null : Number(json.newBalance),
                 resumed: json.resumed === true,
                 expiresAt: json.expiresAt || null,
+                contract: json.contract || null,
+                contractSignature: json.contractSignature || null,
             };
         } catch (e) {
             setError(e.message || 'start_failed');
@@ -152,7 +176,7 @@ export default function useServerGradedRun(mode, opts = {}) {
             startingRef.current = false;
             setIsStarting(false);
         }
-    }, [isEnabled, mode, opts.accessToken]);
+    }, [isEnabled, mode, resolveAccessToken]);
 
     /**
      * Record ONE answer mid-run and get its verdict back
@@ -177,9 +201,9 @@ export default function useServerGradedRun(mode, opts = {}) {
                 questionId,
                 displayIndex: Number.isInteger(displayIndex) ? displayIndex : -1,
             },
-            opts.accessToken
+            resolveAccessToken
         );
-    }, [isEnabled, opts.accessToken]);
+    }, [isEnabled, resolveAccessToken]);
 
     /**
      * @param {Array<{questionId: string, displayIndex: number}>} answers
@@ -208,11 +232,17 @@ export default function useServerGradedRun(mode, opts = {}) {
                 }));
             const json = await postJson(
                 '/api/trivia/session-submit',
-                { sessionId: id, answers: clean, cashedOut: submitOpts.cashedOut === true },
-                opts.accessToken
+                {
+                    sessionId: id,
+                    answers: clean,
+                    cashedOut: submitOpts.cashedOut === true,
+                    contractSignature: contractSignatureRef.current,
+                },
+                resolveAccessToken
             );
             // The session is single-use; clear it so a retry cannot re-submit.
             sessionRef.current = null;
+            contractSignatureRef.current = null;
             setSessionId(null);
             return json;
         } catch (e) {
@@ -220,6 +250,7 @@ export default function useServerGradedRun(mode, opts = {}) {
             // sit on a dead id and retry forever.
             if (e.status === 409 || e.status === 410) {
                 sessionRef.current = null;
+                contractSignatureRef.current = null;
                 setSessionId(null);
             }
             setError(e.message || 'submit_failed');
@@ -228,10 +259,11 @@ export default function useServerGradedRun(mode, opts = {}) {
             submittingRef.current = false;
             setIsSubmitting(false);
         }
-    }, [isEnabled, opts.accessToken]);
+    }, [isEnabled, resolveAccessToken]);
 
     const reset = useCallback(() => {
         sessionRef.current = null;
+        contractSignatureRef.current = null;
         pendingStartNonceRef.current = null;
         setSessionId(null);
         setError(null);

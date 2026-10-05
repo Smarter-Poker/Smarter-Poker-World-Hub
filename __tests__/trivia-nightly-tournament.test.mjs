@@ -14,6 +14,7 @@ import {
     findForbiddenKeys,
     nightlyErrorStatus,
     normalizeNightlyError,
+    projectNightlyDto,
 } from '../src/lib/trivia/nightlyTournamentPolicy.mjs';
 
 const ROOT = process.cwd();
@@ -35,7 +36,10 @@ test('every action builds exactly one RPC and the user id never comes from the b
 });
 
 test('pagination is explicit and bounded (no silent row caps)', () => {
-    assert.equal(buildNightlyRpc('field', { tournamentId: T, limit: '200', offset: '400' }, null).args.p_limit, 200);
+    const field = buildNightlyRpc('field', { tournamentId: T, limit: '200', offset: '400' }, U);
+    assert.equal(field.rpc, 'trivia_tournament_field_v2');
+    assert.equal(field.args.p_user_id, U);
+    assert.equal(field.args.p_limit, 200);
     assert.equal(buildNightlyRpc('field', { tournamentId: T, limit: '201' }, null).error, 'invalid_request');
     assert.equal(buildNightlyRpc('bracket', { tournamentId: T, round: 9, limit: 256 }, null).args.p_round, 9);
     assert.equal(buildNightlyRpc('bracket', { tournamentId: T, round: 10 }, null).error, 'invalid_request');
@@ -65,6 +69,9 @@ test('errors map to stable statuses; unknown database errors never leak', () => 
     assert.equal(nightlyErrorStatus('registration_closed'), 409);
     assert.equal(nightlyErrorStatus('tournament_not_found'), 404);
     assert.equal(nightlyErrorStatus('vip_required'), 403);
+    assert.equal(nightlyErrorStatus('horse_target_reached'), 409);
+    assert.equal(nightlyErrorStatus('ledger_refused'), 503);
+    assert.equal(nightlyErrorStatus('tournament_entry_retired'), 410);
     assert.equal(normalizeNightlyError('relation "x" does not exist'), 'internal_error');
     assert.equal(nightlyErrorStatus('something_new'), 500);
 });
@@ -73,6 +80,59 @@ test('answer keys, horse plans and secrets are refused before forwarding', () =>
     assert.deepEqual(findForbiddenKeys({ items: [{ seed: 3, displayName: 'A', participantKind: 'horse' }] }), []);
     assert.deepEqual(findForbiddenKeys({ session: { questions: [{ correct_index: 2 }] } }), ['$.session.questions[0].correct_index']);
     assert.equal(findForbiddenKeys({ a: { chosen_original_index: 1, permutations: {} } }).length, 2);
+});
+
+test('every nightly response is projected through an action-specific nested allowlist', () => {
+    const schedule = projectNightlyDto('schedule', {
+        success: true, serverTime: 'now', internal: 'drop', instances: [{
+            tournamentId: T, name: 'Nightly', state: 'registration', seedSecret: 'drop',
+            format: { shotClockSeconds: 20, horsePlan: 'drop' },
+            viewer: { entered: true, entrantId: Q, walletBalance: 999 },
+        }],
+    });
+    assert.equal(schedule.instances[0].tournamentId, T);
+    assert.equal(schedule.instances[0].format.shotClockSeconds, 20);
+    assert.equal(schedule.instances[0].viewer.entered, true);
+    assert.equal('internal' in schedule, false);
+    assert.equal('seedSecret' in schedule.instances[0], false);
+    assert.equal('horsePlan' in schedule.instances[0].format, false);
+    assert.equal('walletBalance' in schedule.instances[0].viewer, false);
+
+    const bracket = projectNightlyDto('bracket', { success: true, items: [{
+        matchupId: Q, secret: 'drop', seats: [{ displayName: 'Clover', participantKind: 'horse', answerKey: 2 }],
+    }] });
+    assert.deepEqual(bracket.items[0].seats[0], { displayName: 'Clover', participantKind: 'horse' });
+
+    const answer = projectNightlyDto('play', { success: true, recorded: true, sequence: 4 });
+    assert.equal(answer.sequence, 4, 'answer acknowledgements preserve their scalar play sequence');
+    const grade = projectNightlyDto('play', {
+        success: true,
+        outcome: 'correct',
+        wasCorrect: true,
+        correctDisplayIndex: 2,
+        explanation: 'The Revealed Answer',
+        correct: 10,
+        score: 2000,
+        per_question: [{ position: 1, question_id: Q, outcome: 'correct', correct: true, display_index: 2 }],
+        sequence: [{ questionIndex: 0, result: 'correct', secret: 'drop' }],
+    });
+    assert.deepEqual(grade, { success: true },
+        'the competitive play DTO never exposes a grading oracle, including nested results');
+
+    const recorded = projectNightlyDto('play', { success: true, recorded: true, outcome: 'recorded' });
+    assert.equal(recorded.outcome, 'recorded', 'a non-grading answer acknowledgement remains visible');
+});
+
+test('Phase 7 migration closes unscoped tournament reads and adds the server-owned PvP quote', () => {
+    const sql = read('supabase/migrations/20261005120500_trivia_p7_competitive_read_boundaries.sql');
+    assert.match(sql, /CREATE FUNCTION public\.trivia_tournament_visible_v1/);
+    for (const name of ['field', 'bracket', 'match', 'results']) {
+        assert.match(sql, new RegExp(`CREATE FUNCTION public\\.trivia_tournament_${name}_v2`));
+    }
+    assert.match(sql, /REVOKE ALL ON FUNCTION public\.trivia_tournament_field_v1[\s\S]*FROM PUBLIC, anon, authenticated, service_role/);
+    assert.match(sql, /CREATE FUNCTION public\.trivia_pvp_quote_v2/);
+    assert.match(sql, /public\.trivia_rules_pvp_money/);
+    assert.match(sql, /SET search_path = ''/);
 });
 
 test('release gate runs before rate limit, identity and any RPC', () => {
@@ -91,6 +151,10 @@ test('release gate runs before rate limit, identity and any RPC', () => {
 test('legacy entry route is the nightly engine behind the same fail-closed gate', () => {
     const src = read('pages/api/trivia/tournament-enter.js');
     assert.match(src, /if \(!areTriviaTournamentsReleased\(process\.env\)\)[\s\S]{0,180}rejectUnavailableTriviaTournament\(res\)/);
+    assert.ok(
+        src.indexOf('if (!areTriviaTournamentsReleased(process.env))') < src.indexOf('if (!applyRateLimit(req, res, LIMITS.write))'),
+        'disabled legacy aliases refuse before consuming a rate-limit slot',
+    );
     assert.match(src, /runNightlyAction\('enter'/);
     assert.doesNotMatch(src, /enter_trivia_tournament_v2/);
     const route = read('pages/api/trivia/nightly/[action].js');

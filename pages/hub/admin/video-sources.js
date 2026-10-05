@@ -124,7 +124,7 @@ export default function VideoSourceOperations() {
         </section>
         <nav className="rail" aria-label="Source topic filter">
           {[['all','All sources'],['poker','Poker'],['casino_slots','Casino and slots'],['sports','Sports']].map(([value,label]) =>
-            <button key={value} className={topic === value ? 'active' : ''} onClick={() => setTopic(value)}>{label}</button>)}
+            <button key={value} className={topic === value ? 'active' : ''} aria-pressed={topic === value} onClick={() => setTopic(value)}>{label}</button>)}
         </nav>
         <form className="add-source" onSubmit={createSource}>
           <strong>Add Verified Channel</strong>
@@ -162,6 +162,7 @@ export default function VideoSourceOperations() {
       .source-list{max-width:1180px;margin:auto;display:grid;gap:10px}.source-card{border:1px solid #17445a;background:linear-gradient(145deg,#0a1c27,#050d13);padding:16px;box-shadow:inset 0 1px rgba(255,255,255,.08)}.source-head{display:flex;justify-content:space-between;gap:12px}.source-head h2{margin:4px 0 14px;font-size:1.15rem}.status{height:max-content;padding:4px 7px;border:1px solid ${COLORS.green};color:${COLORS.green};font-size:.68rem;text-transform:uppercase}.status.paused,.status.bad{border-color:${COLORS.gold};color:${COLORS.gold}}.status.retired{border-color:${COLORS.red};color:${COLORS.red}}
       .source-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.source-grid span{display:block;color:${COLORS.dim};font-size:.68rem;text-transform:uppercase}.source-grid b{font-size:.82rem;word-break:break-word}.failure{color:${COLORS.gold};font-family:ui-monospace,monospace;font-size:.75rem}.actions{display:flex;gap:8px;margin-top:15px;flex-wrap:wrap}.actions a{font-size:.75rem}
       .runs{max-width:1180px;margin:26px auto;border:1px solid #17445a;background:${COLORS.panel};padding:16px}.runs h2{text-transform:uppercase;font-size:1rem}.run{display:grid;grid-template-columns:10px 1.4fr 1fr 1.5fr auto;gap:8px;align-items:center;border-top:1px solid #143242;padding:10px 0;font-size:.75rem;color:${COLORS.dim}}.run b{color:${COLORS.text}}.dot{width:7px;height:7px;border-radius:50%;background:${COLORS.gold}}.dot.succeeded,.dot.empty{background:${COLORS.green}}.dot.failed{background:${COLORS.red}}
+      @media(max-width:600px){.run{grid-template-columns:10px minmax(0,1fr) auto;grid-template-areas:"dot source time" ". status status" ". counts counts";align-items:start}.run>:nth-child(1){grid-area:dot;margin-top:4px}.run>:nth-child(2){grid-area:source;overflow-wrap:anywhere}.run>:nth-child(3){grid-area:status}.run>:nth-child(4){grid-area:counts}.run>:nth-child(5){grid-area:time;white-space:nowrap}}
       @media(min-width:760px){.page{padding:30px}.hero{padding:36px;flex-direction:row;justify-content:space-between;align-items:end}.metrics{grid-template-columns:repeat(4,1fr)}.add-source{grid-template-columns:1fr 1.2fr 1fr 1fr auto;align-items:center}.source-list{grid-template-columns:repeat(2,1fr)}}
       @media(min-width:1180px){.source-list{grid-template-columns:repeat(3,1fr)}}
     `}</style>

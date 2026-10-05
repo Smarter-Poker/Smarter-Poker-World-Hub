@@ -489,6 +489,13 @@ test('the deadline stays armed until the body is read, not just until the header
   assert.doesNotMatch(failed.message, /500|Request Failed/,
     'a timeout is not a server refusal and must not read like one');
 
+  const ignoredSignal = await settle(withRequestTimeout(
+    () => new Promise(() => {}),
+    { timeoutMs: 40 },
+  ));
+  assert.equal(isTimeoutError(ignoredSignal), true,
+    'the deadline must reject even when token refresh or another callback ignores AbortSignal');
+
   // Work that finishes inside the bound is untouched, and a real server error
   // keeps its own identity rather than being dressed up as a timeout.
   assert.equal(await withRequestTimeout(async () => 'body', { timeoutMs: 5000 }), 'body');
@@ -525,13 +532,13 @@ test('useOperatorFetch bounds the whole round trip and keeps its unmount abort',
     'the bound is a named constant, justified in a comment, and a caller may override it');
   assert.match(src, /A caller with a heavier read passes `timeoutMs`/,
     'the chosen bound must be justified where it is defined');
-  assert.match(src, /const timer = setTimeout\(\(\) => \{ timedOut = true; abort\(\); \}, ms\);/,
-    'the abort must be on a real timer, not only on unmount');
+  assert.match(src, /const timer = setTimeout\(\(\) => \{[\s\S]*?timedOut = true;[\s\S]*?abort\(\);[\s\S]*?rejectDeadline\(timeoutError\(ms\)\);[\s\S]*?\}, ms\);/,
+    'the timer must both abort cooperative work and reject work that ignores the signal');
   assert.match(src, /clearTimeout\(timer\);/, 'the timer must be cleared');
 
   // The timer is armed, then the work is awaited, and only then is it cleared.
   const armed = src.indexOf('const timer = setTimeout(');
-  const awaited = src.indexOf('return await run(controller.signal);');
+  const awaited = src.indexOf('return await Promise.race(');
   const cleared = src.indexOf('clearTimeout(timer);');
   assert.ok(armed > 0 && awaited > armed && cleared > awaited,
     'the timer may only be cleared after the awaited work has fully settled');
@@ -553,6 +560,10 @@ test('useOperatorFetch bounds the whole round trip and keeps its unmount abort',
   assert.match(src, /err\.name = 'TimeoutError';/, 'a timeout is its own outcome, not a 500');
   assert.match(src, /controllersRef\.current\.add\(controller\)/,
     'the unmount abort set must survive the repair');
+  const tokenAt = src.indexOf('const token = await getFreshAccessToken();');
+  const boundAt = src.indexOf('withRequestTimeout(async (signal) => {');
+  assert.ok(tokenAt > boundAt,
+    'token refresh must share the same deadline as the request it authorizes');
   assert.match(src, /signals: \[controller \? controller\.signal : null, options\.signal\]/,
     'the unmount controller and the caller signal both still cancel');
 });

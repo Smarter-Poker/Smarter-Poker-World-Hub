@@ -1363,8 +1363,11 @@
 # .option.selected) keeps working unchanged. Lucide React icons reused.
 # TRAIN-WIRE-TRIVIA-ANSWER-OPTION-1 — pages/hub/trivia/mixed.js. Replaces
 # 30-line inline options.map block with <TriviaAnswerOption /> usage.
-# TRAIN-WIRE-TRIVIA-ANSWER-OPTION-2 — pages/hub/trivia/pvp.js. Same swap.
-# TRAIN-WIRE-TRIVIA-ANSWER-OPTION-3 — pages/hub/trivia/tournaments.js. Same.
+# TRAIN-WIRE-TRIVIA-ANSWER-OPTION-2 - retired from the live registry in Phase
+# 7. PvP now uses its server-sealed duel control with sending, recorded and
+# retry-same-answer states instead of the browser-scored shared primitive.
+# TRAIN-WIRE-TRIVIA-ANSWER-OPTION-3 - TournamentSections.jsx keeps the shared
+# TriviaAnswerOption primitive on the server-authoritative nightly play path.
 
 # ─── Phase-32: useTriviaQuestion hook ───────────────────────────────────────
 # TRAIN-TRIVIA-HOOK-1 — src/hooks/useTriviaQuestion.js. New shared hook
@@ -1383,16 +1386,10 @@
 # shared hook. Mode-specific side effects (timer stop, per-category stats,
 # scoring, answersRef ledger, busEmit, 1200ms advance via setTimeout)
 # live in the hook's onAnswer callback so external semantics are identical.
-# TRAIN-WIRE-TRIVIA-HOOK-2 — pages/hub/trivia/pvp.js. Second hook adopter.
-# Same pattern as HOOK-1 but with PvP-specific side effects (per-question
-# accuracy ledger via playerAnswersRef, scoreRef, 500ms advance). PR #504
-# also restored the missing TriviaAnswerOption import that PR #497 had
-# left dangling — would have crashed the PvP playing screen at runtime.
-# TRAIN-WIRE-TRIVIA-HOOK-3 — pages/hub/trivia/tournaments.js. Third hook
-# adopter. Same pattern with tournament-specific side effects (scoreRef
-# += 100 per correct, answersRef ledger, finishRoundPlay on last question,
-# 500ms advance). PR #505 also restored the missing TriviaAnswerOption
-# import (same latent crash as pvp.js had).
+# TRAIN-WIRE-TRIVIA-HOOK-2 - retired from the live registry in Phase 7. PvP
+# replaced the browser-scored hook with its server-receipt state machine.
+# TRAIN-WIRE-TRIVIA-HOOK-3 - retired from the live registry in Phase 7. The
+# nightly server session now owns first-answer locking and recovery identity.
 # TRAIN-WIRE-TRIVIA-ANSWER-OPTION-4 — pages/hub/trivia/endless.js. Fourth
 # TriviaAnswerOption adopter. Replaced raw <button> answer map with
 # <TriviaAnswerOption variant="inline"> component. PR #513.
@@ -1410,12 +1407,12 @@
 # visibility-change pause/resume, and setInterval countdown with onTimeout.
 # autoResumeOnVisible flag controls whether hook auto-resumes on tab-return.
 # PR #524.
-# TRAIN-WIRE-TRIVIA-TIMER-2 — pages/hub/trivia/mixed.js. First page to adopt
+# TRAIN-WIRE-TRIVIA-TIMER-2 - pages/hub/trivia/mixed.js. First page to adopt
 # useTriviaTimer. Removed local timer state/refs/effects; replaced with hook.
 # autoResumeOnVisible=true (no explicit resume UI). PR #525.
-# TRAIN-WIRE-TRIVIA-TIMER-3 — pages/hub/trivia/pvp.js and
-# pages/hub/trivia/tournaments.js. Second and third pages to adopt
-# useTriviaTimer. Same autoResumeOnVisible=true pattern. PRs #526, #527.
+# TRAIN-WIRE-TRIVIA-TIMER-3 - retired from the live registry in Phase 7.
+# Competitive PvP and nightly play now project immutable server deadlines;
+# local timer state can no longer author their game transitions.
 # TRAIN-WIRE-TRIVIA-TIMER-4 — pages/hub/trivia/endless.js. Fourth page to
 # adopt useTriviaTimer. autoResumeOnVisible=false: page has explicit Resume
 # Game overlay; hook stops timer on tab-hide, page shows overlay, resume
@@ -1562,17 +1559,13 @@ TRAIN-WIRE-QUIZ-ANSWER-3
 TRAIN-WIRE-QUIZ-ANSWER-5
 TRAIN-WIRE-QUIZ-ANSWER-6
 TRAIN-WIRE-TRIVIA-ANSWER-OPTION-1
-TRAIN-WIRE-TRIVIA-ANSWER-OPTION-2
 TRAIN-WIRE-TRIVIA-ANSWER-OPTION-3
 TRAIN-WIRE-TRIVIA-ANSWER-OPTION-4
 TRAIN-WIRE-TRIVIA-HOOK-1
-TRAIN-WIRE-TRIVIA-HOOK-2
-TRAIN-WIRE-TRIVIA-HOOK-3
 TRAIN-WIRE-TRIVIA-HOOK-4
 TRAIN-WIRE-TRIVIA-HOOK-5
 TRAIN-WIRE-TRIVIA-TIMER-1
 TRAIN-WIRE-TRIVIA-TIMER-2
-TRAIN-WIRE-TRIVIA-TIMER-3
 TRAIN-WIRE-TRIVIA-TIMER-4
 TRAIN-WIRE-TRIVIA-TIMER-5
 TRAIN-WIRE-UDT-ACTIONBTN-1

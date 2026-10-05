@@ -9,6 +9,7 @@ import { acquireScrollLock } from '../../lib/scrollLock';
 import TriviaFrameCard from './console/TriviaFrameCard';
 import TriviaConsole from './console/TriviaConsole';
 import ResponsiveModeArt from './console/ResponsiveModeArt';
+import CompetitiveLobbyBriefing from './competitive/CompetitiveLobbyBriefing';
 import { TRIVIA_INTRO_ART_LOBBY } from '../../config/triviaIntroArt.mjs';
 import { TRIVIA_THUMBNAIL_PREVIEWS } from '../../config/triviaThumbnailPreviews.mjs';
 // The lobby no longer bills, so supabase / EventBus / getAuthUser are gone with
@@ -90,6 +91,11 @@ export default function TriviaLobby({
   currentStreak = 0,
   onDiamondsChange,
   modeAvailability,
+  authState = 'loading',
+  accountKey = null,
+  playerDataLoading = false,
+  playerDataStatus = { profile: 'loading', daily: 'loading', streak: 'loading' },
+  onRetryPlayerData,
 }) {
   const router = useRouter();
   const [activeFilter, setActiveFilter] = useState('all');
@@ -130,6 +136,13 @@ export default function TriviaLobby({
   const maintenanceModeCount = filteredModes.length - liveModeCount;
   const dailyAvailability = availabilityFor(TRIVIA_FEATURED_MODE.id);
   const quickStakesAvailability = availabilityFor(TRIVIA_QUICK_STAKES_MODE.id);
+  const failedPlayerReads = Object.entries(playerDataStatus)
+    .filter(([, state]) => state === 'error')
+    .map(([name]) => name);
+  const playerDataPartial = failedPlayerReads.length > 0;
+  const allPlayerReadsFailed = failedPlayerReads.length === 3;
+  const profileDataReady = playerDataStatus.profile === 'ready' || playerDataStatus.profile === 'signed-out';
+  const dailyDataUnavailable = playerDataStatus.daily === 'error';
 
   const revealFilter = (filterIndex, { focus = false } = {}) => {
     // Wait for React to apply the active state before measuring. Scrolling
@@ -296,6 +309,10 @@ export default function TriviaLobby({
   };
 
   const _startModeInner = (modeId) => {
+    if (playerDataLoading) {
+      setRouteError('Player access is still loading.');
+      return;
+    }
     const availability = availabilityFor(modeId);
     if (!availability.enabled) {
       setRouteError(availability.message);
@@ -332,7 +349,7 @@ export default function TriviaLobby({
   const pendingModeDefinition = pendingMode
     ? MODE_CARDS.find((mode) => mode.id === pendingMode) || null
     : null;
-  const pendingShortfall = pendingCost > 0 && Number(userDiamonds) < pendingCost;
+  const pendingShortfall = profileDataReady && pendingCost > 0 && Number(userDiamonds) < pendingCost;
   const closeChargePopup = () => {
     setShowChargePopup(false);
     setPendingMode(null);
@@ -359,9 +376,13 @@ export default function TriviaLobby({
           onClick={() => {
             if (!dailyCompleted && dailyAvailability.enabled) startMode(TRIVIA_FEATURED_MODE.id);
           }}
-          disabled={dailyCompleted || !dailyAvailability.enabled}
+          disabled={playerDataLoading || dailyDataUnavailable || dailyCompleted || !dailyAvailability.enabled}
           aria-label={
-            dailyCompleted
+            playerDataLoading
+              ? 'Checking Daily Trivia Status'
+              : dailyDataUnavailable
+                ? 'Daily Trivia Status Unavailable'
+              : dailyCompleted
               ? 'Daily Trivia Completed'
               : dailyAvailability.enabled
                 ? 'Start Daily Trivia - Free, Once Per Day'
@@ -369,7 +390,11 @@ export default function TriviaLobby({
           }
         />
       </div>
-      {dailyCompleted ? (
+      {playerDataLoading ? (
+        <p className="daily-trivia-status tc-ink--blue" role="status">Checking Player Status</p>
+      ) : dailyDataUnavailable ? (
+        <p className="daily-trivia-status tc-ink--red" role="alert">Daily Status Unavailable / Entry Locked</p>
+      ) : dailyCompleted ? (
         <p className="daily-trivia-status tc-ink--green">
           Completed Today
           {currentStreak > 0 ? ` / ${currentStreak} Day Streak` : ''}
@@ -381,6 +406,28 @@ export default function TriviaLobby({
           Day {currentStreak} Streak / Keep It Alive
         </p>
       ) : null}
+
+      {playerDataPartial ? (
+        <div className="player-data-notice" role="status" aria-live="polite">
+          <p>
+            {allPlayerReadsFailed
+              ? 'Player Details Are Unavailable. Game Charges Stay Server Verified.'
+              : 'Some Player Details Are Unavailable. Successful Reads Were Kept And Game Charges Stay Server Verified.'}
+          </p>
+          {typeof onRetryPlayerData === 'function' ? (
+            <button type="button" className="tc-word player-data-notice__retry" onClick={onRetryPlayerData}>
+              Refresh Player Status
+            </button>
+          ) : null}
+        </div>
+      ) : null}
+
+      <CompetitiveLobbyBriefing
+        key={`competitive-lobby:${accountKey || authState}`}
+        authState={authState}
+        accountKey={accountKey}
+        modeAvailability={modeAvailability}
+      />
 
       {/* Mode Cards Section */}
       <section className="modes-section" aria-labelledby="trivia-modes-title">
@@ -447,8 +494,12 @@ export default function TriviaLobby({
             const variableCost = VARIABLE_COST_MODES.has(mode.id);
             const modeName = mode.name;
             const modeDescription = printTitle(mode.description);
-            const costText = unavailable
+            const costText = playerDataLoading
+              ? 'Checking Access'
+              : unavailable
               ? 'Unavailable'
+              : !profileDataReady
+                ? 'Verified At Entry'
               : isVip
                 ? 'VIP Free'
                 : variableCost
@@ -477,6 +528,7 @@ export default function TriviaLobby({
                 onPointerDown={() => availability.enabled && prefetchMode(mode.id)}
                 onFocus={() => availability.enabled && prefetchMode(mode.id)}
                 disabled={isRouting || unavailable}
+                aria-disabled={playerDataLoading || unavailable}
                 title={unavailable ? availability.message : undefined}
                 aria-label={
                   unavailable
@@ -531,10 +583,12 @@ export default function TriviaLobby({
           onClick={() => startMode(TRIVIA_QUICK_STAKES_MODE.id)}
           onPointerDown={() => prefetchMode(TRIVIA_QUICK_STAKES_MODE.id)}
           onFocus={() => prefetchMode(TRIVIA_QUICK_STAKES_MODE.id)}
-          disabled={isRouting || !quickStakesAvailability.enabled}
+          disabled={isRouting || playerDataLoading || !quickStakesAvailability.enabled}
           aria-label={
-            quickStakesAvailability.enabled
-              ? `${TRIVIA_QUICK_STAKES_MODE.name} - ${TRIVIA_QUICK_STAKES_MODE.description}. ${isVip ? 'Free For VIP' : `Entry ${getEntryCost(TRIVIA_QUICK_STAKES_MODE.id)} Diamonds`}.`
+            playerDataLoading
+              ? 'Checking Quick Stakes Access'
+              : quickStakesAvailability.enabled
+              ? `${TRIVIA_QUICK_STAKES_MODE.name} - ${TRIVIA_QUICK_STAKES_MODE.description}. ${!profileDataReady ? 'Entry Verified On Game Page' : isVip ? 'Free For VIP' : `Entry ${getEntryCost(TRIVIA_QUICK_STAKES_MODE.id)} Diamonds`}.`
               : quickStakesAvailability.message
           }
         >
@@ -633,6 +687,38 @@ export default function TriviaLobby({
                     line-height: 1.35;
                     text-align: center;
                     text-transform: uppercase;
+                }
+
+                .player-data-notice {
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    gap: 12px;
+                    margin-top: 10px;
+                    padding: 8px 2px;
+                    border-top: var(--tc-rule);
+                    border-bottom: var(--tc-rule);
+                    color: var(--tc-ink-gold);
+                    box-shadow: var(--tc-rule-lit);
+                }
+
+                .player-data-notice p {
+                    margin: 0;
+                    font-size: 13px;
+                    font-weight: 700;
+                    line-height: 1.4;
+                }
+
+                .player-data-notice__retry {
+                    flex: 0 0 auto;
+                    min-height: 44px;
+                    color: var(--tc-ink-blue);
+                    touch-action: manipulation;
+                }
+
+                .player-data-notice__retry:focus-visible {
+                    outline: 3px solid var(--tc-ink-blue);
+                    outline-offset: 2px;
                 }
 
 
@@ -957,6 +1043,11 @@ export default function TriviaLobby({
                         margin-top: 14px;
                     }
 
+                    .player-data-notice {
+                        align-items: flex-start;
+                        flex-direction: column;
+                    }
+
                     .modes-toolbar {
                         align-items: end;
                         padding: 8px 2px 8px;
@@ -1047,7 +1138,8 @@ export default function TriviaLobby({
 
                 @media (forced-colors: active) {
                     .mode-filter.tc-word[aria-pressed='true'],
-                    .dm-hitbox:focus-visible {
+                    .dm-hitbox:focus-visible,
+                    .player-data-notice__retry:focus-visible {
                         outline: 2px solid Highlight;
                     }
 
@@ -1125,7 +1217,9 @@ export default function TriviaLobby({
                 <li className="tc-row">
                   <span className="tc-row__label">Your Balance</span>
                   <span className={`tc-row__value ${pendingShortfall ? 'tc-ink--red' : 'tc-ink--silver'}`}>
-                    {Number(userDiamonds || 0).toLocaleString('en-US')} Diamonds
+                    {profileDataReady
+                      ? `${Number(userDiamonds || 0).toLocaleString('en-US')} Diamonds`
+                      : 'Verified On Game Page'}
                   </span>
                 </li>
               </ul>

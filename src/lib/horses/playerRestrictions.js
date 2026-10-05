@@ -23,7 +23,7 @@
  * SQL treats it that way, so an operator who restricts the account does not
  * also have to remember to tick cash.
  *
- * Only two of the five are ENFORCED today, and this list says which, because
+ * Only two of the five concrete surfaces are ENFORCED today, and this list says which, because
  * an operator choosing `transfers` deserves to know it is recorded rather
  * than blocking anything: the guards are attached to table_seats (cash) and
  * tournament_players (tournaments), which is where every seat and every
@@ -40,13 +40,18 @@ export const RESTRICTION_SCOPES = Object.freeze([
 ]);
 
 /** Which scopes a guard actually watches today. */
-export const ENFORCED_SCOPES = Object.freeze(['account', 'cash', 'tournaments']);
+export const ENFORCED_SCOPES = Object.freeze(['cash', 'tournaments']);
 
 export const SCOPE_META = Object.freeze({
   account: {
     label: 'Whole Account',
-    blurb: 'Everything Below, Together. The Heaviest Thing An Operator Can Do',
-    enforced: true,
+    blurb: 'Cash And Tournament Entry Are Guarded. Transfers And Social Are Recorded Only',
+    // Account is a composite decision, not a separately guarded surface.
+    // Calling it fully enforced hid the two child scopes that still have no
+    // guard. `partial` lets an operator see the exact coverage without
+    // weakening the second-operator rule for a whole-account decision.
+    enforced: false,
+    partial: true,
   },
   cash: {
     label: 'Cash Games',

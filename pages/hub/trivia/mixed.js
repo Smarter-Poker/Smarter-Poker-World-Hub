@@ -92,7 +92,7 @@ export default function MixedModePage() {
     const trivia = useTriviaQuestion(questions[currentQuestionIndex]);
     const { selectedAnswer, showResult } = trivia;
 
-    // TRAIN-WIRE-TRIVIA-TIMER-1 - shared shot-clock hook
+    // TRAIN-WIRE-TRIVIA-TIMER-2 - first shared shot-clock hook adopter
     const timer = useTriviaTimer({ initialTime: 24, showResult: trivia.showResult, gameState, onTimeout: handleTimeout });
 
     // Per-category stats for current session

@@ -118,9 +118,18 @@ export async function withRequestTimeout(run, { timeoutMs, signals = [] } = {}) 
     }
   }
 
-  const timer = setTimeout(() => { timedOut = true; abort(); }, ms);
+  let rejectDeadline;
+  const deadline = new Promise((_, reject) => { rejectDeadline = reject; });
+  const timer = setTimeout(() => {
+    timedOut = true;
+    abort();
+    rejectDeadline(timeoutError(ms));
+  }, ms);
   try {
-    return await run(controller.signal);
+    // Abort is advisory: a token refresh, lock wait or third-party callback
+    // may ignore the signal. The rejection race makes the deadline real even
+    // in that case, while the abort still stops cooperative work.
+    return await Promise.race([Promise.resolve().then(() => run(controller.signal)), deadline]);
   } catch (err) {
     // The deadline fired, so this AbortError is ours. Report it as a timeout,
     // which an operator can tell apart from a 500 and from their own navigation.
@@ -156,18 +165,17 @@ export default function useOperatorFetch() {
       if (isCurrent && isCurrent() !== true) throw new Error('The account or view changed. Refresh the original operation.');
     };
     checkScope();
-    // getFreshAccessToken reads the token out of storage and only hits the
-    // network when it is close to expiry. The argument-less client session
-    // read is banned repo-wide (pre-commit CHECK C).
-    const token = await getFreshAccessToken();
-    checkScope();
-    if (!token) throw new Error('Session Expired. Please Sign In Again.');
-
     const controller = typeof AbortController === 'function' ? new AbortController() : null;
     if (controller) controllersRef.current.add(controller);
 
     try {
       return await withRequestTimeout(async (signal) => {
+        // Authentication is part of the request, not work before it. Keeping
+        // refresh under this same deadline prevents a storage lock or stalled
+        // refresh from leaving the console spinning forever before fetch.
+        const token = await getFreshAccessToken();
+        checkScope();
+        if (!token) throw new Error('Session Expired. Please Sign In Again.');
         const res = await fetch(url, {
           ...fetchOptions,
           signal,

@@ -746,7 +746,15 @@ function restrictionMessage(enforced, scope) {
   // plural nouns and one of them is already a phrase, so the sentence is
   // built around the label rather than agreeing with it.
   const what = `${scopeLabel(scope)} Is Now Restricted For This Player`;
-  if (enforced === true) return `${what}. New Entries Will Be Refused`;
+  if (enforced === true) {
+    if (scope === 'account') {
+      return `${what}. Cash Games And Tournament Entry Will Be Refused. Transfers And Social Are Recorded Only`;
+    }
+    if (scope === 'cash' || scope === 'tournaments') {
+      return `${what}. New Entries Will Be Refused`;
+    }
+    return `${what}. This Scope Is Recorded Only Because No Guard Watches It Yet`;
+  }
   if (enforced === false) {
     return `${what}, And Enforcement Is Off. This Is Recorded And Observed, Not Refused`;
   }
