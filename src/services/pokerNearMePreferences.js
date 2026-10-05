@@ -29,7 +29,7 @@ async function readStoredPreferences(userId) {
     return {
         ok: true,
         error: null,
-        preferences: stored && typeof stored === 'object' ? stored : null,
+        preferences: stored && typeof stored === 'object' && !Array.isArray(stored) ? stored : null,
     };
 }
 
@@ -54,7 +54,9 @@ export async function getPokerNearMePreferences(userId) {
             throw error;
         }
 
-        return preferences || defaultPreferences();
+        // Merge OVER the defaults: a stored {} (or a blob missing a key) must
+        // read each missing key as its default, not as undefined/off.
+        return { ...defaultPreferences(), ...(preferences || {}) };
     } catch (error) {
         console.warn('Error fetching poker near me preferences:', error);
         return defaultPreferences();
