@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs';
 import {
     applyPvpAnswerReceipt,
     createPvpDtoAuthority,
+    createPvpQuoteAuthority,
     defaultPvpStake,
     derivePvpSessionProgress,
     estimatedPvpServerNow,
@@ -53,6 +54,40 @@ test('pre-commit quote must be complete and remains server-owned', () => {
     assert.equal(isAuthoritativePvpQuote({ ...quote, joinsEnabled: null }), false);
     assert.equal(isAuthoritativePvpQuote({ ...quote, horseFallbackEnabled: null }), false);
     assert.equal(isAuthoritativePvpQuote({ ...quote, rulesVersion: 'pvp.standard/roster@1' }), false);
+});
+
+test('entry terms are latest-response-wins across reverse-order success and failure', async () => {
+    const authority = createPvpQuoteAuthority();
+    const commits = [];
+    let releaseOlder;
+    let releaseNewer;
+    const olderGate = new Promise(resolve => { releaseOlder = resolve; });
+    const newerGate = new Promise(resolve => { releaseNewer = resolve; });
+    const older = authority.begin();
+    const olderFailure = olderGate.then(() => {
+        if (authority.isCurrent(older)) commits.push('older-failure');
+    });
+    const newer = authority.begin();
+    const newerSuccess = newerGate.then(() => {
+        if (authority.isCurrent(newer)) commits.push('newer-success');
+    });
+
+    releaseNewer();
+    await newerSuccess;
+    releaseOlder();
+    await olderFailure;
+    assert.deepEqual(commits, ['newer-success']);
+
+    const loadQuoteStart = pvpExperience.indexOf('const loadQuote = useCallback');
+    const loadQuoteEnd = pvpExperience.indexOf('const loadHistory = useCallback', loadQuoteStart);
+    const loadQuote = pvpExperience.slice(loadQuoteStart, loadQuoteEnd);
+    assert.match(loadQuote, /const requestSequence = quoteAuthorityRef\.current\.begin\(\)/);
+    assert.match(loadQuote, /!quoteAuthorityRef\.current\.isCurrent\(requestSequence\)/,
+        'success and error adoption reject superseded responses');
+    assert.match(loadQuote, /quoteAuthorityRef\.current\.isCurrent\(requestSequence\)[\s\S]*setQuoteLoading\(false\)/,
+        'a superseded request cannot clear the current loading state');
+    assert.match(pvpExperience, /quoteAuthorityRef\.current\.invalidate\(\)/,
+        'account remount invalidates every prior quote request');
 });
 
 test('countdowns advance from the persisted server anchor, never the browser epoch', () => {
@@ -210,6 +245,77 @@ test('PvP transport resolves only the seven maintained exact handlers', () => {
     );
     assert.match(pvpExperience, /throw new Error\('unsupported_pvp_action'\)/);
     assert.doesNotMatch(pvpExperience, /\/api\/trivia\/pvp\/\$\{action\}/);
+});
+
+test('a stale rules quote blocks a new join until its durable outcome is confirmed', () => {
+    const predicateStart = pvpExperience.indexOf('function isStaleRulesQuoteError');
+    const predicateEnd = pvpExperience.indexOf('\n\nasync function requestPvp', predicateStart);
+    assert.ok(predicateStart >= 0 && predicateEnd > predicateStart, 'stale-quote predicate is present');
+    const isStaleRulesQuoteError = new Function(
+        `${pvpExperience.slice(predicateStart, predicateEnd)}\nreturn isStaleRulesQuoteError;`,
+    )();
+    assert.equal(isStaleRulesQuoteError({ status: 409, payload: { error: 'rules_quote_stale' } }), true);
+    assert.equal(isStaleRulesQuoteError({ status: 500, payload: { error: 'rules_quote_stale' } }), false);
+    assert.equal(isStaleRulesQuoteError({ status: 409, payload: { error: 'match_quarantined' } }), false);
+
+    const planStart = pvpExperience.indexOf('function staleRulesQuoteRecoveryPlan');
+    assert.ok(planStart >= 0 && predicateEnd > planStart, 'stale-quote recovery plan is present');
+    const staleRulesQuoteRecoveryPlan = new Function(
+        'isActivePvpState',
+        `${pvpExperience.slice(planStart, predicateEnd)}\nreturn staleRulesQuoteRecoveryPlan;`,
+    )((state) => ['searching', 'dealing', 'playing', 'waiting', 'settling'].includes(state));
+    assert.deepEqual(staleRulesQuoteRecoveryPlan(null), {
+        kind: 'unconfirmed', retireNonce: false, refreshQuote: false,
+    }, 'a failed or null resume preserves the operation identity and cannot refresh entry terms');
+    assert.deepEqual(staleRulesQuoteRecoveryPlan({ state: 'idle' }), {
+        kind: 'inactive', retireNonce: true, refreshQuote: true,
+    }, 'an authoritative inactive resume permits fresh entry terms');
+    assert.deepEqual(staleRulesQuoteRecoveryPlan({ state: 'searching' }), {
+        kind: 'active', retireNonce: true, refreshQuote: false,
+    }, 'an authoritative active resume restores the existing entry without offering a new one');
+
+    const joinStart = pvpExperience.indexOf('const handleJoin = useCallback');
+    const joinEnd = pvpExperience.indexOf('const handleCancel = useCallback', joinStart);
+    assert.ok(joinStart >= 0 && joinEnd > joinStart, 'join handler is present');
+    const join = pvpExperience.slice(joinStart, joinEnd);
+    assert.match(join, /const staleRulesQuote = isStaleRulesQuoteError\(error\)/);
+    const unconfirmedStart = join.indexOf("else if (staleRecovery?.kind === 'unconfirmed')");
+    const inactiveStart = join.indexOf("else if (staleRecovery?.kind === 'inactive')", unconfirmedStart);
+    const fallbackStart = join.indexOf('} else {', inactiveStart);
+    assert.ok(unconfirmedStart >= 0 && inactiveStart > unconfirmedStart && fallbackStart > inactiveStart);
+    const unconfirmed = join.slice(unconfirmedStart, inactiveStart);
+    assert.match(unconfirmed, /staleQuoteRecoveryRef\.current = true/);
+    assert.match(unconfirmed, /setQuote\(null\)[\s\S]*setSelectedStake\(null\)[\s\S]*setConnection\('reconnecting'\)/);
+    assert.match(unconfirmed, /Entry Outcome Is Unconfirmed/);
+    assert.doesNotMatch(unconfirmed, /joinNonceRef\.current = null|loadQuote\(/,
+        'unknown outcomes preserve the nonce and cannot reload terms');
+
+    const inactive = join.slice(inactiveStart, fallbackStart);
+    assert.match(inactive, /staleRecovery\.retireNonce\) joinNonceRef\.current = null/);
+    assert.match(inactive, /staleRecovery\.refreshQuote \? await loadQuote\(\) : null/);
+    assert.match(inactive, /Entry Terms Changed\. Review The Current Terms Before Joining Again\./);
+
+    const retryStart = pvpExperience.indexOf('const handleRetryConnection = useCallback');
+    const retryEnd = pvpExperience.indexOf('\n\n    useEffect(() => {', retryStart);
+    assert.ok(retryStart >= 0 && retryEnd > retryStart);
+    const retry = pvpExperience.slice(retryStart, retryEnd);
+    assert.match(retry, /if \(staleQuoteRecoveryRef\.current\) \{[\s\S]*staleRulesQuoteRecoveryPlan\(recovered\)/);
+    assert.match(retry, /recovery\.retireNonce\) joinNonceRef\.current = null/);
+    assert.match(retry, /recovery\.kind === 'active'\)[\s\S]*setShowLobby\(false\)/,
+        'an active durable recovery exits the post-result entry lobby');
+    const activeRecoveryStart = retry.indexOf("if (recovery.kind === 'active')");
+    const inactiveRecoveryStart = retry.indexOf('} else if (recovery.refreshQuote)', activeRecoveryStart);
+    assert.ok(activeRecoveryStart >= 0 && inactiveRecoveryStart > activeRecoveryStart);
+    assert.doesNotMatch(retry.slice(activeRecoveryStart, inactiveRecoveryStart), /loadQuote\(/,
+        'an active durable entry never requests fresh join terms');
+    assert.match(retry, /recovery\.refreshQuote\)[\s\S]*await loadQuote\(\)/,
+        'only a successful authoritative inactive resume re-enables a fresh quote');
+});
+
+test('a failed quote has an explicit sequenced retry without a page reload', () => {
+    assert.match(pvpExperience, /label=\{quoteLoading \? 'Loading Entry Terms' : 'Reload Entry Terms'\}/);
+    assert.match(pvpExperience, /onClick=\{\(\) => void loadQuote\(\)\}/);
+    assert.match(pvpExperience, /disabled=\{quoteLoading\}/);
 });
 
 test('PvP DTO adoption is abortable, sequenced, action-owned, and account-bound', () => {
