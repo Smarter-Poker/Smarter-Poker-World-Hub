@@ -5,7 +5,11 @@ import test from 'node:test';
 const require = createRequire(import.meta.url);
 const { buildAlerts } = require('../lib/videoOperationsAlerts.js');
 const { isVideoAdminProfile } = require('../lib/videoAdminAuthorization.js');
-const { formatVideoOperationsMetric, isVideoOperationsOperationId } = require('../lib/videoOperationsContract.js');
+const {
+  formatVideoOperationsMetric,
+  isVideoOperationsOperationId,
+  isVideoReconciliationQuarantineSnapshot,
+} = require('../lib/videoOperationsContract.js');
 
 const migration = readFileSync(new URL('../supabase/migrations/20261004213000_video_operations_analytics_phase10.sql', import.meta.url), 'utf8');
 const indexMigration = readFileSync(new URL('../supabase/migrations/20261004222000_video_reels_control_events_actor_index.sql', import.meta.url), 'utf8');
@@ -75,6 +79,26 @@ test('unresolved Reel identity conflicts are hidden atomically and preserved for
   }
 });
 
+test('quarantine aggregate validation fails closed on missing, malformed, or incomplete database results', () => {
+  const valid = {
+    openGroups: 2,
+    reelRows: 3,
+    suppressedRows: 3,
+    publicRows: 0,
+    unsafeRows: 0,
+    nativeProcessingRows: 0,
+    missingSnapshots: 0,
+    missingReelReferences: 0,
+    byReason: [{ reasonCode: 'mixed_author', groups: 1 }, { reasonCode: 'other', groups: 1 }],
+  };
+  assert.equal(isVideoReconciliationQuarantineSnapshot(valid), true);
+  assert.equal(isVideoReconciliationQuarantineSnapshot({ ...valid, openGroups: 0 }), false);
+  assert.equal(isVideoReconciliationQuarantineSnapshot({ ...valid, unsafeRows: '0' }), false);
+  assert.equal(isVideoReconciliationQuarantineSnapshot({ ...valid, byReason: [{ reasonCode: 'creator@example.com', groups: 2 }] }), false);
+  assert.equal(isVideoReconciliationQuarantineSnapshot({ ...valid, byReason: [{ reasonCode: 'mixed_author', groups: 1 }, { reasonCode: 'mixed_author', groups: 1 }] }), false);
+  assert.equal(isVideoReconciliationQuarantineSnapshot(null), false);
+});
+
 test('Phase 10 aggregates redact raw errors and never return user, session, asset, or cursor identities', () => {
   const start = migration.indexOf('CREATE OR REPLACE FUNCTION public.fn_video_operations_snapshot');
   const end = migration.indexOf('CREATE OR REPLACE FUNCTION public.fn_set_video_reels_pipeline_control');
@@ -100,8 +124,9 @@ test('Phase 10 admin snapshot and writes require admin authorization and stay pr
   assert.match(api, /LIMITS\.write/);
   assert.match(api, /fn_video_operations_snapshot/);
   assert.match(api, /fn_video_reconciliation_quarantine_snapshot/);
+  assert.match(api, /isVideoReconciliationQuarantineSnapshot\(reconciliationQuarantines\)/);
   assert.match(api, /Promise\.all\(\[[\s\S]*fn_video_operations_snapshot[\s\S]*fn_video_reconciliation_quarantine_snapshot/);
-  assert.match(api, /quarantineError \|\| !reconciliationQuarantines/);
+  assert.match(api, /quarantineError \|\| !isVideoReconciliationQuarantineSnapshot\(reconciliationQuarantines\)/);
   assert.match(api, /const snapshot = \{ \.\.\.data, reconciliationQuarantines \}/);
   assert.match(api, /fn_set_video_reels_pipeline_control/);
   assert.match(api, /windowHours/);

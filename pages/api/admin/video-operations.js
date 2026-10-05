@@ -2,7 +2,10 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 const { buildAlerts } = require('../../../lib/videoOperationsAlerts');
 const { isVideoAdminProfile } = require('../../../lib/videoAdminAuthorization');
-const { isVideoOperationsOperationId } = require('../../../lib/videoOperationsContract');
+const {
+  isVideoOperationsOperationId,
+  isVideoReconciliationQuarantineSnapshot,
+} = require('../../../lib/videoOperationsContract');
 
 function clients() {
   const url = (process.env.NEXT_PUBLIC_SUPABASE_URL || '').trim();
@@ -96,8 +99,7 @@ export default async function handler(req, res) {
     const { data, error } = operationsResult;
     const { data: reconciliationQuarantines, error: quarantineError } = quarantineResult;
     if (error || !data || typeof data !== 'object' || Array.isArray(data)
-      || quarantineError || !reconciliationQuarantines || typeof reconciliationQuarantines !== 'object'
-      || Array.isArray(reconciliationQuarantines)) {
+      || quarantineError || !isVideoReconciliationQuarantineSnapshot(reconciliationQuarantines)) {
       return res.status(503).json({ error: 'Video operations snapshot is unavailable' });
     }
     const snapshot = { ...data, reconciliationQuarantines };
