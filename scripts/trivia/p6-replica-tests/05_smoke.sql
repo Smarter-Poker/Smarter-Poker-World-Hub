@@ -16,7 +16,7 @@ SELECT lifecycle_state, horse_target,
        (SELECT count(*) FROM trivia_tournament_entrants e WHERE e.tournament_id = t.id AND participant_kind='human') humans,
        (SELECT outcome FROM trivia_tournament_population_runs p WHERE p.tournament_id=t.id AND run_kind='final_reconcile') final_outcome
   FROM trivia_tournaments t WHERE id = :'tid';
-SELECT p6test.advance('2 minutes'); 
+SELECT p6test.advance('2 minutes');
 SELECT p6test.tick()->'actions' AS start_tick;
 SELECT lifecycle_state, total_rounds FROM trivia_tournaments WHERE id = :'tid';
 DO $$ DECLARE v_state text; v_tid uuid; BEGIN

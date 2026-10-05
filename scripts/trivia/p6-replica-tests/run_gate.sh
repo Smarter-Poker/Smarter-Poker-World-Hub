@@ -10,7 +10,7 @@ run_suite() {
   s=$1; db="p6_g${s%%_*}"
   dropdb --if-exists $db >/dev/null 2>&1; createdb -T p6_base $db
   { psql -d $db -X -q -1 -v ON_ERROR_STOP=1 -f $P/engine.sql 2>&1 | grep -v -E "NOTICE|^ *$|^-+$|ensure_horse_personas|^\(1 row\)| 0$"
-    psql -d $db -X -q -v ON_ERROR_STOP=1 -f $P/tests/00_fixtures.sql 2>&1 | grep -E "ERROR|FAIL" 
+    psql -d $db -X -q -v ON_ERROR_STOP=1 -f $P/tests/00_fixtures.sql 2>&1 | grep -E "ERROR|FAIL"
     start=$(date +%s)
     psql -d $db -X -At -v ON_ERROR_STOP=1 -f $P/tests/$s.sql 2>&1 | grep -v NOTICE
     rc=${PIPESTATUS[0]}
