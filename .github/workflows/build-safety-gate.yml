@@ -1139,6 +1139,10 @@ jobs:
             __tests__/horses-phase7-no-figure-claims-more-than-it-knows.law.test.mjs \
             __tests__/horses-phase7-rake-audit-migration.test.mjs \
             __tests__/horses-phase7-server.test.mjs \
+            __tests__/horses-phase8-client.test.mjs \
+            __tests__/horses-phase8-model.test.mjs \
+            __tests__/horses-phase8-server.test.mjs \
+            __tests__/horses-phase8-the-console-never-invents-authority.law.test.mjs \
             __tests__/scroll-lock.test.mjs \
             __tests__/union-settlement-math.test.mjs \
             __tests__/public-shell-precache.test.mjs \
