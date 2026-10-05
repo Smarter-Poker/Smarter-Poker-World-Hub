@@ -315,10 +315,20 @@ test('a preview/* branch builds a preview and is not auto-merged into main', () 
     'preview/* must still be the opt-in that gets a Vercel preview build'
   );
 
+  // Since 2026-10-05 this repo carries the estate's split-privilege opener:
+  // an unprivileged `Agent Branch Proposal` signal fires on a push, and the
+  // trusted `Agent Open PR` consumer on main acts on it. preview/* has to be
+  // refused at BOTH ends, so that neither half can open the pull request alone.
+  const proposal = read('.github/workflows/agent-branch-proposal.yml');
+  assert.match(
+    proposal,
+    /branches-ignore:[\s\S]*?- 'preview\/\*\*'/,
+    'agent-branch-proposal.yml must not even signal for a preview/* branch.'
+  );
   const openPr = read('.github/workflows/agent-open-pr.yml');
   assert.match(
     openPr,
-    /!startsWith\(github\.ref_name, 'preview\/'\)/,
+    /!startsWith\(github\.event\.workflow_run\.head_branch, 'preview\/'\)/,
     "agent-open-pr.yml must skip preview/* branches. A branch whose whole " +
       'purpose is to be looked at must not open a pull request that autopilot ' +
       'then merges - that is how an experiment reached production on 2026-09-09.'
