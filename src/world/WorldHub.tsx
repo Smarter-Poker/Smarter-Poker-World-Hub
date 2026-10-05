@@ -434,7 +434,7 @@ export default function WorldHub({ onOpenCardCustomizer }: { onOpenCardCustomize
     // Build carousel orbs — inject Toke Tracker (always) and Commander card
     const carouselOrbs = useMemo(() => {
         const orbs = [...POKER_IQ_ORBS];
-        // Always inject Toke Tracker at position 2 (after Social Media + Diamond Arena)
+        // Always inject Toke Tracker at index 2 (third card in the base list)
         if (!orbs.find(o => o.id === 'toke-tracker')) {
             orbs.splice(2, 0, TOKE_TRACKER_ORB);
         }
