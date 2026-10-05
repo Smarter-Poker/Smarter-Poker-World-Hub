@@ -8,6 +8,7 @@ import {
     nativeVideoIsReady,
     readManagedEligibilityContext,
 } from './feed';
+import { toBrowserPost } from '../../../src/lib/socialPostShape';
 
 const PERSISTED_UUID_RE = /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i;
 let serviceClient = null;
@@ -56,7 +57,8 @@ export default async function handler(req, res) {
             && managedVideoPostIsEligible(post, context)
             && nativeVideoIsReady(post)
         )).slice(0, 30);
-        return res.status(200).json({ success: true, data: eligible });
+        // A browser never receives origin_type or the pipeline's metadata.
+        return res.status(200).json({ success: true, data: eligible.map(toBrowserPost) });
     } catch (error) {
         console.warn('[api/social/profile-videos] failed:', error?.message || error);
         return res.status(503).json({ success: false, error: 'Profile Videos are temporarily unavailable' });

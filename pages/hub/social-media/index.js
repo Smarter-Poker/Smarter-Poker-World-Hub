@@ -99,6 +99,7 @@ import { useSocialStore } from '../../../src/stores/socialStore';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import toast from '../../../src/stores/toastStore';
 import { getAccessToken } from '../../../src/lib/authUtils';
+import { fetchBrowserPost } from '../../../src/lib/socialPostClient';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { broadcastSync, listenBroadcast, BROADCAST_TAB_ID } from '../../../src/lib/broadcastSync';
 import GiphyPicker from '../../../src/components/shared/GiphyPicker';
@@ -3700,6 +3701,11 @@ function SocialMediaPage() {
   const globalSearchTimeout = useRef(null);
   // Stable ref to always-fresh loadFeed — prevents stale closure in BroadcastChannel/Realtime listeners
   const loadFeedRef = useRef(null);
+  // The ids on screen, so a Realtime update re-reads only a post the reader holds.
+  const shownPostIdsRef = useRef(new Set());
+  useEffect(() => {
+    shownPostIdsRef.current = new Set(posts.map((p) => p.id));
+  }, [posts]);
   const feedRequestGuardRef = useRef(createLatestRequestGuard());
 
   // Unmount cleanup: cancel deferred timers to prevent zombie state writes
@@ -4046,12 +4052,23 @@ function SocialMediaPage() {
                     ...p,
                     thumbnail_url: updatedPost.thumbnail_url ?? p.thumbnail_url,
                     thumbnailUrl: updatedPost.thumbnail_url ?? p.thumbnailUrl,
-                    metadata: updatedPost.metadata ?? p.metadata,
                     content: updatedPost.content ?? p.content,
                   }
                 : p
             )
           );
+          // The payload is never trusted for metadata. The post is read again
+          // through /api/social/post, which answers with the keys the UI
+          // renders and nothing else, whoever wrote it.
+          if (!shownPostIdsRef.current.has(updatedPost.id)) return;
+          fetchBrowserPost(updatedPost.id)
+            .then((fresh) => {
+              if (!fresh) return;
+              setPosts((prev) =>
+                prev.map((p) => (p.id === fresh.id ? { ...p, metadata: fresh.metadata } : p))
+              );
+            })
+            .catch(() => {});
         }
       )
       .on(
@@ -4791,12 +4808,9 @@ function SocialMediaPage() {
         processedPostIdRef.current = postId;
         (async () => {
           try {
-            const { data: p } = await supabase
-              .from('social_posts')
-              .select('*, author:profiles!author_id(id, username, display_name, avatar_url)')
-              .eq('id', postId)
-              .eq('is_deleted', false)
-              .maybeSingle();
+            // The server answers as this viewer, with only the metadata the
+            // UI renders: a browser never reads a whole social_posts row.
+            const p = await fetchBrowserPost(String(postId));
             if (p) {
               const meta = p.metadata || {};
               const formatted = {

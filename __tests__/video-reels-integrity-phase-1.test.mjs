@@ -595,7 +595,7 @@ test('social feed caches are viewer-scoped and never persist interaction truth',
   try {
     await feedCacheModule.feedCache.setPosts([
       { id: 'community', isLiked: true, isBookmarked: true, reactions: ['love'] },
-      { id: 'managed', origin_type: 'video_library', isLiked: true },
+      { id: 'managed', source_asset_id: '33333333-3333-4333-8333-333333333333', publication_key: 'video-library:fixture', isLiked: true },
     ], viewerA);
     const ownCache = await feedCacheModule.feedCache.getPosts(viewerA);
     const otherCache = await feedCacheModule.feedCache.getPosts(viewerB);

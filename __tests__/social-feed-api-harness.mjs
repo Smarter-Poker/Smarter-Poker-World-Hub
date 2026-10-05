@@ -54,6 +54,7 @@ export function applyFakeEnv() {
 const videoLibraryAvailability = await import('../src/lib/videoLibraryAvailability.js');
 const socialTopics = await import('../src/lib/socialTopics.js');
 const feedRanking = await import('../src/lib/feedRanking.js');
+const socialPostShape = await import('../src/lib/socialPostShape.js');
 
 function compile(source, mocks) {
     const code = ts.transpileModule(source, {
@@ -92,6 +93,7 @@ function compileFeedRoute() {
         '../../../src/lib/videoLibraryAvailability': videoLibraryAvailability,
         '../../../src/lib/socialTopics': socialTopics,
         '../../../src/lib/feedRanking': feedRanking,
+        '../../../src/lib/socialPostShape': socialPostShape,
         '../../../src/lib/serverAuth': {
             getServerUserWithFallback: async (req) => {
                 const token = String(req?.headers?.authorization || '').replace(/^Bearer\s+/i, '');
