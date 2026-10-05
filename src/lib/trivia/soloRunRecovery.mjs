@@ -132,4 +132,3 @@ export function clearSoloRunRecovery(storage, mode, accountId) {
         return false;
     }
 }
-

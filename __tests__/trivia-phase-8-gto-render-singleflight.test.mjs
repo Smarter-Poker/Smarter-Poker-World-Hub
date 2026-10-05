@@ -133,4 +133,3 @@ test('the API route uses the full digest claim and a lease longer than its runti
     assert.match(route, /error: 'render_in_progress'/);
     assert.match(route, /signal: AbortSignal\.timeout\(90_000\)/);
 });
-
