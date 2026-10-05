@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { readdirSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import test from 'node:test';
 
@@ -202,7 +202,44 @@ test('transport validation and DTO allowlist', () => {
     assert.equal(dto.ticket.horseWaitSeconds, 31);
     for (const leak of ['plan', 'answer_key', 'roster']) assert.equal(leak in dto, false);
     assert.equal('queue_position' in dto.ticket || 'other_user_id' in dto.ticket, false);
-    assert.equal(toPvpDto({ state: 'nonsense' }).state, 'idle');
+    assert.throws(() => toPvpDto({ state: 'nonsense' }), /invalid_pvp_state/);
+    assert.throws(() => toPvpDto({}), /invalid_pvp_state/);
+    assert.throws(() => toPvpDto(null), /invalid_pvp_state/);
+    assert.throws(() => toPvpDto({ state: 'searching' }), /invalid_pvp_dto/);
+    assert.throws(() => toPvpDto({ state: 'search_ended', ticket: { id: 'invalid' } }), /invalid_pvp_dto/);
+    for (const state of ['dealing', 'playing', 'waiting', 'settling']) {
+        assert.throws(() => toPvpDto({ state }), /invalid_pvp_dto/, state);
+    }
+    assert.throws(() => toPvpDto({ state: 'result', match: { id: U } }), /invalid_pvp_dto/);
+    assert.throws(() => toPvpDto({
+        state: 'result',
+        match: { id: U },
+        result: { outcome: 'win', decision: 'win', stake_reference: 'stake' },
+    }), /invalid_pvp_dto/);
+    assert.throws(() => toPvpDto({
+        state: 'result',
+        match: { id: U },
+        result: {
+            outcome: 'loss',
+            decision: 'win',
+            stake_reference: 'pvp_stake_match_player',
+            settlement_reference: 'pvp_settlement_match',
+            settled_at: '2026-09-30T00:01:00Z',
+        },
+    }), /invalid_pvp_dto/, 'terminal receipts must be an explicit array even when empty');
+    const resultDto = toPvpDto({
+        state: 'result',
+        match: { id: U },
+        result: {
+            outcome: 'loss',
+            decision: 'win',
+            receipts: [],
+            stake_reference: 'pvp_stake_match_player',
+            settlement_reference: 'pvp_settlement_match',
+            settled_at: '2026-09-30T00:01:00Z',
+        },
+    });
+    assert.equal(resultDto.result.settlementReference, 'pvp_settlement_match');
     assert.equal(deadlineAlignDelayMs(dto), 4025);
     assert.equal(deadlineAlignDelayMs({ ...dto, ticket: { ...dto.ticket, presence: 'lapsed' } }), 0);
     assert.equal(deadlineAlignDelayMs({ ...dto, ticket: { ...dto.ticket, horseFallbackEnabled: false } }), 0);
@@ -239,6 +276,21 @@ test('transport validation and DTO allowlist', () => {
     assert.equal(history.items[0].stakeReference, 'pvp_stake_ref');
     assert.deepEqual(history.items[0].receipts[0], { reference: 'pvp_match_win_ref', kind: 'pvp_win', amount: 45 });
     for (const leak of ['match_id', 'session_id', 'answer_key']) assert.equal(leak in history.items[0], false);
+});
+
+test('retired browser-owned PvP matchmaking authority cannot return', () => {
+    assert.equal(existsSync(join(ROOT, 'src/services/pvpMatchmaking.js')), false,
+        'the direct browser queue and match writer must remain deleted');
+
+    const runtimeFiles = [
+        'pages/hub/trivia/pvp.js',
+        'src/components/trivia/pvp/PvpCompetitiveExperience.jsx',
+    ];
+    for (const file of runtimeFiles) {
+        const source = read(file);
+        assert.doesNotMatch(source, /services\/pvpMatchmaking|joinMatchmakingQueue|leaveMatchmakingQueue|findMatch\(/,
+            `${file} must use only the server-authoritative PvP API`);
+    }
 });
 
 test('legacy PvP paths cannot move money on a v2 match', () => {

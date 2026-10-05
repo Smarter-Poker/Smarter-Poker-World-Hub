@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import vm from 'node:vm';
+import * as socialPostShape from '../src/lib/socialPostShape.js';
 
 const read = path => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
 
@@ -53,6 +54,7 @@ function commonDependencies(client, auth, gates = {}) {
     '../../../src/lib/supabaseServerClient': { createClient: () => client },
     '../../../src/lib/serverAuth': { getServerUserWithFallback: auth },
     '../../../src/lib/apiRateLimit': { applyRateLimit: () => true, LIMITS: { read: {}, write: {} } },
+    '../../../src/lib/socialPostShape': { ...socialPostShape },
     './feed': {
       POST_SELECT: 'fixture-select',
       isPublicAudiencePost: gates.isPublicAudiencePost || (post => post.visibility === 'public'),

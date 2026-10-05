@@ -18,6 +18,8 @@ export const PVP_STATES = Object.freeze([
 ]);
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const TICKET_REQUIRED_STATES = new Set(['searching', 'search_ended']);
+const MATCH_REQUIRED_STATES = new Set(['dealing', 'playing', 'waiting', 'settling', 'result']);
 
 export function isUuid(value) {
     return typeof value === 'string' && UUID_RE.test(value);
@@ -181,7 +183,29 @@ function sanitizeHistoryItem(value) {
 /** Allowlist projection of the database DTO; anything unknown is dropped. */
 export function toPvpDto(raw) {
     const d = raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : {};
-    const state = PVP_STATES.includes(d.state) ? d.state : 'idle';
+    if (!PVP_STATES.includes(d.state)) {
+        throw new Error('invalid_pvp_state');
+    }
+    const state = d.state;
+    const ticket = sanitizeTicket(d.ticket);
+    const match = sanitizeMatch(d.match);
+    const result = sanitizeResult(d.result);
+    if (TICKET_REQUIRED_STATES.has(state) && !ticket?.id) {
+        throw new Error('invalid_pvp_dto');
+    }
+    if (MATCH_REQUIRED_STATES.has(state) && !match?.id) {
+        throw new Error('invalid_pvp_dto');
+    }
+    if (state === 'result' && (
+        !Array.isArray(d.result?.receipts)
+        || !result?.outcome
+        || !result.decision
+        || !result.stakeReference
+        || !result.settlementReference
+        || !result.settledAt
+    )) {
+        throw new Error('invalid_pvp_dto');
+    }
     const out = {
         success: true,
         engine: 'pvp-v2',
@@ -189,9 +213,9 @@ export function toPvpDto(raw) {
         state,
         pollAfterMs: int(d.poll_after_ms),
         heartbeatSeconds: int(d.heartbeat_seconds),
-        ticket: sanitizeTicket(d.ticket),
-        match: sanitizeMatch(d.match),
-        result: sanitizeResult(d.result),
+        ticket,
+        match,
+        result,
     };
     if (typeof d.join === 'string') out.join = str(d.join);
     if (d.stake_mismatch === true) out.stakeMismatch = true;

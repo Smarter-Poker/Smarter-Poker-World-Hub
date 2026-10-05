@@ -10,6 +10,7 @@ import {
     applyPvpAnswerReceipt,
     createPvpClientNonce,
     createPvpDtoAuthority,
+    createPvpQuoteAuthority,
     defaultPvpStake,
     derivePvpSessionProgress,
     formatPvpDuration,
@@ -59,6 +60,22 @@ function readableEndReason(reason) {
         case 'void': return 'Match Voided';
         default: return reason ? String(reason).replaceAll('_', ' ') : 'Search Ended';
     }
+}
+
+function isStaleRulesQuoteError(error) {
+    return error?.status === 409 && error?.payload?.error === 'rules_quote_stale';
+}
+
+function staleRulesQuoteRecoveryPlan(restored) {
+    if (!restored) {
+        return { kind: 'unconfirmed', retireNonce: false, refreshQuote: false };
+    }
+    const active = isActivePvpState(restored.state);
+    return {
+        kind: active ? 'active' : 'inactive',
+        retireNonce: true,
+        refreshQuote: !active,
+    };
 }
 
 async function requestPvp(action, { method = 'POST', body, params, signal } = {}) {
@@ -339,10 +356,15 @@ export default function PvpCompetitiveExperience({ user, authLoading, pvpHorsesE
     const terminalQuoteRef = useRef(null);
     const historySettlementRef = useRef(null);
     const historyRequestSequenceRef = useRef(0);
+    const staleQuoteRecoveryRef = useRef(false);
     const dtoAuthorityRef = useRef(null);
+    const quoteAuthorityRef = useRef(null);
     const journeyTrackerRef = useRef(null);
     if (!dtoAuthorityRef.current) {
         dtoAuthorityRef.current = createPvpDtoAuthority();
+    }
+    if (!quoteAuthorityRef.current) {
+        quoteAuthorityRef.current = createPvpQuoteAuthority();
     }
     if (!journeyTrackerRef.current) {
         journeyTrackerRef.current = createCompetitiveJourneyTracker();
@@ -394,10 +416,12 @@ export default function PvpCompetitiveExperience({ user, authLoading, pvpHorsesE
     }, [adoptDto]);
 
     const loadQuote = useCallback(async ({ signal } = {}) => {
+        const requestSequence = quoteAuthorityRef.current.begin();
         setQuoteLoading(true);
         setQuoteError(null);
         try {
             const next = await requestPvp('quote', { method: 'GET', signal });
+            if (signal?.aborted || !quoteAuthorityRef.current.isCurrent(requestSequence)) return null;
             if (!isAuthoritativePvpQuote(next)) {
                 const error = new Error('invalid_pvp_quote');
                 error.payload = { error: 'invalid_pvp_quote' };
@@ -406,12 +430,16 @@ export default function PvpCompetitiveExperience({ user, authLoading, pvpHorsesE
             setQuote(next);
             return next;
         } catch (error) {
-            if (error?.name === 'AbortError') return null;
+            if (error?.name === 'AbortError'
+                || signal?.aborted
+                || !quoteAuthorityRef.current.isCurrent(requestSequence)) return null;
             setQuote(null);
             setQuoteError(pvpErrorCopy(error));
             return null;
         } finally {
-            setQuoteLoading(false);
+            if (!signal?.aborted && quoteAuthorityRef.current.isCurrent(requestSequence)) {
+                setQuoteLoading(false);
+            }
         }
     }, []);
 
@@ -442,6 +470,8 @@ export default function PvpCompetitiveExperience({ user, authLoading, pvpHorsesE
     useEffect(() => {
         const authority = dtoAuthorityRef.current;
         authority.reset();
+        quoteAuthorityRef.current.invalidate();
+        staleQuoteRecoveryRef.current = false;
         if (authLoading) {
             setBootState('loading');
             return undefined;
@@ -506,6 +536,7 @@ export default function PvpCompetitiveExperience({ user, authLoading, pvpHorsesE
         return () => {
             controller.abort();
             authority.reset();
+            quoteAuthorityRef.current.invalidate();
         };
         // serverRun.reset is stable; depending on the full hook object would
         // restart recovery every render.
@@ -556,16 +587,35 @@ export default function PvpCompetitiveExperience({ user, authLoading, pvpHorsesE
         setActionError(null);
         try {
             const current = latestDtoRef.current;
+            let recovered = null;
             if (current && isActivePvpState(current.state)) {
-                await readLatestStatus({
+                recovered = await readLatestStatus({
                     action: current.state === 'searching' ? 'heartbeat' : 'status',
                     actionGeneration,
                 });
             }
             else {
-                await readDto('resume', { method: 'GET', actionGeneration });
+                recovered = await readDto('resume', { method: 'GET', actionGeneration });
             }
-            if (authority.isActionCurrent(actionGeneration) && !quote) await loadQuote();
+            if (!authority.isActionCurrent(actionGeneration)) return;
+            if (staleQuoteRecoveryRef.current) {
+                const recovery = staleRulesQuoteRecoveryPlan(recovered);
+                if (recovery.kind === 'unconfirmed') {
+                    setConnection('reconnecting');
+                    setConnectionMessage('The Server Still Could Not Confirm Whether This Entry Was Accepted. Restore Again Before Trying To Join.');
+                    return;
+                }
+                staleQuoteRecoveryRef.current = false;
+                if (recovery.retireNonce) joinNonceRef.current = null;
+                if (recovery.kind === 'active') {
+                    setShowLobby(false);
+                    setNotice('The Server Had Already Accepted This Entry. Your Match Was Restored Without A Second Charge.');
+                } else if (recovery.refreshQuote) {
+                    await loadQuote();
+                }
+                return;
+            }
+            if (!quote) await loadQuote();
         } catch (error) {
             if (!authority.isActionCurrent(actionGeneration)) return;
             setConnection('reconnecting');
@@ -784,6 +834,7 @@ export default function PvpCompetitiveExperience({ user, authLoading, pvpHorsesE
         } catch (error) {
             // Join has a durable client nonce. Before offering the same safe
             // retry, first ask resume whether the server already accepted it.
+            const staleRulesQuote = isStaleRulesQuoteError(error);
             let restored = null;
             try {
                 restored = await readDto('resume', { method: 'GET', actionGeneration });
@@ -791,10 +842,38 @@ export default function PvpCompetitiveExperience({ user, authLoading, pvpHorsesE
                 restored = null;
             }
             if (!authority.isActionCurrent(actionGeneration)) return;
+            const staleRecovery = staleRulesQuote
+                ? staleRulesQuoteRecoveryPlan(restored)
+                : null;
             if (restored && isActivePvpState(restored.state)) {
+                staleQuoteRecoveryRef.current = false;
                 joinNonceRef.current = null;
                 setShowLobby(false);
                 setNotice('The Server Had Already Accepted This Entry. Your Match Was Restored Without A Second Charge.');
+            } else if (staleRecovery?.kind === 'unconfirmed') {
+                // A stale-rules refusal can refer to an existing ticket or
+                // match under different rules. Until resume confirms the
+                // durable state, preserve the operation identity and block a
+                // new join rather than claiming that no entry exists.
+                staleQuoteRecoveryRef.current = true;
+                setQuote(null);
+                setSelectedStake(null);
+                setConnection('reconnecting');
+                setConnectionMessage('The Server Could Not Confirm Whether This Entry Was Accepted. Restore Your Server Record Before Trying Again.');
+                setActionError('Entry Terms Changed, But The Entry Outcome Is Unconfirmed. No New Entry Can Be Requested Until Recovery Succeeds.');
+            } else if (staleRecovery?.kind === 'inactive') {
+                // The server refused this exact quote before creating a ticket,
+                // match or escrow hold only after resume has authoritatively
+                // proved that no active entry remains.
+                staleQuoteRecoveryRef.current = false;
+                if (staleRecovery.retireNonce) joinNonceRef.current = null;
+                setQuote(null);
+                setSelectedStake(null);
+                const refreshedQuote = staleRecovery.refreshQuote ? await loadQuote() : null;
+                if (!authority.isActionCurrent(actionGeneration)) return;
+                setActionError(refreshedQuote
+                    ? 'Entry Terms Changed. Review The Current Terms Before Joining Again.'
+                    : 'Entry Terms Changed, But The Current Terms Could Not Be Reloaded. No Entry Was Created.');
             } else {
                 setActionError(pvpErrorCopy(error));
                 if (error?.status === 402) await loadQuote();
@@ -1042,7 +1121,16 @@ export default function PvpCompetitiveExperience({ user, authLoading, pvpHorsesE
                     </p>
                     <LiveNotices {...reconnectProps} />
                     {quoteLoading ? <p className="trivia-pvp-state" aria-live="polite">Loading Current Terms.</p> : null}
-                    {quoteError ? <p className="trivia-pvp-notice" data-tone="danger">{quoteError}</p> : null}
+                    {quoteError ? (
+                        <div className="trivia-pvp-notice" data-tone="danger">
+                            <p>{quoteError}</p>
+                            <TriviaGlassAction
+                                label={quoteLoading ? 'Loading Entry Terms' : 'Reload Entry Terms'}
+                                onClick={() => void loadQuote()}
+                                disabled={quoteLoading}
+                            />
+                        </div>
+                    ) : null}
                     {quote && !quote.joinsEnabled ? (
                         <p className="trivia-pvp-notice" data-tone="info">
                             New Entries Are Paused. Existing Searches And Matches Can Still Be Restored.

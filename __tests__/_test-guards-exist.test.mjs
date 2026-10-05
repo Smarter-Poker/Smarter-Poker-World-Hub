@@ -552,6 +552,11 @@ import './a-profile-shows-strangers-only-what-the-table-needs.law.test.mjs';
 // the /horses console reads the roster through /api/horses/roster.
 import './the-roster-never-reaches-a-browser.law.test.mjs';
 
+// 2026-10-05: a post never says who wrote it. No browser read of social_posts
+// names origin_type or metadata (or selects *), and every server route hands a
+// post over as toBrowserPost(row): only the metadata keys the UI renders.
+import './a-post-never-says-who-wrote-it.law.test.mjs';
+
 const REPO = path.resolve(new URL('.', import.meta.url).pathname, '..');
 
 const REQUIRED_TEST_FILES = [

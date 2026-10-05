@@ -43,7 +43,7 @@ export default function OfficialRules() {
                         <div style={styles.content}>
                             <h1 style={styles.title}>Official Rules</h1>
                             <p style={styles.intro}>
-                                Smarter.Poker Diamond Arena Sweepstakes & Promotional Rewards Program
+                                Smarter.Poker Diamond Sweepstakes & Promotional Rewards Program
                             </p>
 
                             {/* AMOE Banner */}
@@ -95,7 +95,6 @@ export default function OfficialRules() {
                                 <li><strong>Social Tasks:</strong> Post, Share, And Engage With The Community</li>
                                 <li><strong>Referral Program:</strong> Invite Friends To Earn Bonus Diamonds</li>
                                 <li><strong>Leaderboard Ranking:</strong> Top Performers On Weekly Leaderboards Receive Diamond Bonuses</li>
-                                <li><strong>Free Roll Hourly Tournaments:</strong> Enter The Diamond Arena Every Hour With <strong>ZERO Entry Fee</strong> - Winners Receive Diamond Prizes</li>
                             </ul>
 
                             <h3 style={styles.subheading}>Premium Features (Optional)</h3>
@@ -141,7 +140,7 @@ export default function OfficialRules() {
                                 </p>
                             </div>
 
-                            <h2 style={styles.heading}>4. Diamond Arena - Tiered Access</h2>
+                            <h2 style={styles.heading}>4. Tiered Access</h2>
 
                             <h3 style={styles.subheading}>Full Access (Eligible States)</h3>
                             <table style={styles.table}>
@@ -165,7 +164,7 @@ export default function OfficialRules() {
                                         <td style={{ ...styles.td, color: '#00ff66' }}>✅ Full Integration</td>
                                     </tr>
                                     <tr style={styles.tableRow}>
-                                        <td style={styles.td}>Diamond Arena</td>
+                                        <td style={styles.td}>Diamond Arena Games In Poker Arena (When Offered)</td>
                                         <td style={{ ...styles.td, color: '#00ff66' }}>✅ Prize Redemptions Enabled</td>
                                     </tr>
                                     <tr style={styles.tableRow}>
@@ -197,7 +196,7 @@ export default function OfficialRules() {
                                         <td style={{ ...styles.td, color: '#00ff66' }}>✅ ENABLED (Posting/Sharing)</td>
                                     </tr>
                                     <tr style={styles.tableRow}>
-                                        <td style={styles.td}>Diamond Arena</td>
+                                        <td style={styles.td}>Diamond Arena Games In Poker Arena (When Offered)</td>
                                         <td style={{ ...styles.td, color: '#ff4d4d' }}>❌ DISABLED (No Prize Entry)</td>
                                     </tr>
                                     <tr style={styles.tableRow}>
@@ -277,7 +276,7 @@ export default function OfficialRules() {
 
                         {/* Footer */}
                         <div style={styles.footer}>
-                            <p style={styles.lastUpdated}>Last Updated: January 12, 2026 (V2.0)</p>
+                            <p style={styles.lastUpdated}>Last Updated: October 5, 2026 (V2.1)</p>
                             <p style={styles.contact}>
                                 Questions? Contact Us at{' '}
                                 <a href="mailto:support@smarter.poker" style={styles.link}>

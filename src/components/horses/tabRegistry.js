@@ -77,8 +77,10 @@ export const TABS = [
   { id: 'stats', label: 'Statistics', permission: 'money.read', legacy: true },
   { id: 'merch', label: 'Merch Catalog', permission: 'console.read', legacy: true },
   { id: 'promo', label: 'Promo Codes', permission: 'console.read', legacy: true },
-  { id: 'economy', label: 'Economy', permission: 'money.read', legacy: true },
-  { id: 'mint', label: 'The Mint', permission: 'money.read', legacy: true },
+  { id: 'economy', label: 'Economy', permission: 'money.read',
+    load: () => import('./EconomyPanel') },
+  { id: 'mint', label: 'The Mint', permission: 'money.read',
+    load: () => import('./MintPanel') },
   // Anti-Abuse and Bug Reports are both player records read side by side.
   { id: 'antiabuse', label: 'Anti-Abuse', permission: 'players.read', legacy: true },
   { id: 'clubarena', label: 'Club Arena', permission: 'clubs.read', legacy: true },
@@ -142,6 +144,11 @@ export const TABS = [
     load: () => import('./CashierPanel') },
   { id: 'rake', label: 'Rake', permission: 'money.read',
     load: () => import('./RakePanel') },
+
+  // Phase 8. Read-only control-plane evidence. Existing source-specific routes
+  // continue to own every write; this tab requires only the console read floor.
+  { id: 'platform', label: 'Platform Operations', permission: 'console.read',
+    load: () => import('./PlatformPanel') },
 ];
 
 export const DEFAULT_TAB = 'stable';

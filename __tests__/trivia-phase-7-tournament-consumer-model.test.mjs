@@ -4,11 +4,15 @@ import { readFileSync } from 'node:fs';
 import {
     TOURNAMENT_API_ACTIONS,
     chooseTournamentInstance,
+    createTournamentActionLease,
+    createTournamentRequestAuthority,
     currentPathMatchupIds,
     firstOpenQuestion,
     mergeOpenedQuestion,
     nextLockedPosition,
+    pendingAfterTournamentContextSupersession,
     participantLabel,
+    isTournamentActionCurrent,
     registrationAction,
     secondsUntil,
     serverNowMs,
@@ -96,6 +100,100 @@ test('changing the selected tournament clears every event-scoped consumer cache'
     assert.match(source, /const changed = tournamentIdRef\.current !== nextId;[\s\S]{0,100}if \(changed\) resetTournamentContext\(\);/);
     assert.match(source, /const \[summaryPayload, runPayload\] = await Promise\.all\([\s\S]{0,120}tournamentIdRef\.current !== id/,
         'a late core response cannot repopulate the previous tournament after a context change');
+});
+
+test('reverse-order same-event responses commit only the newest request in every read lane', async () => {
+    for (const lane of ['context', 'core', 'bracket', 'field', 'results', 'receipt', 'history']) {
+        const authority = createTournamentRequestAuthority();
+        const commits = [];
+        let releaseOlder;
+        let releaseNewer;
+        const olderGate = new Promise(resolve => { releaseOlder = resolve; });
+        const newerGate = new Promise(resolve => { releaseNewer = resolve; });
+        const older = authority.begin(lane);
+        const olderResponse = olderGate.then(() => {
+            if (authority.isCurrent(older)) commits.push('older');
+        });
+        const newer = authority.begin(lane);
+        const newerResponse = newerGate.then(() => {
+            if (authority.isCurrent(newer)) commits.push('newer');
+        });
+
+        releaseNewer();
+        await newerResponse;
+        releaseOlder();
+        await olderResponse;
+
+        assert.deepEqual(commits, ['newer'], lane);
+    }
+});
+
+test('nightly read lanes gate payload, error, and loading adoption on their latest lease', () => {
+    const laneBoundaries = [
+        ['loadCore', 'loadBracket', 'core'],
+        ['loadBracket', 'loadField', 'bracket'],
+        ['loadField', 'loadResults', 'field'],
+        ['loadResults', 'loadReceipt', 'results'],
+        ['loadReceipt', 'loadHistory', 'receipt'],
+        ['loadHistory', 'openHistoricalReceipt', 'history'],
+        ['openHistoricalReceipt', 'bootstrap', 'context'],
+    ];
+    for (const [startName, endName, lane] of laneBoundaries) {
+        const start = source.indexOf(`const ${startName}`);
+        const end = source.indexOf(`const ${endName}`, start);
+        assert.ok(start >= 0 && end > start, `${lane} loader boundary exists`);
+        const loader = source.slice(start, end);
+        assert.match(loader, new RegExp(`begin\\('${lane}'\\)`), `${lane} starts a monotonic lease`);
+        assert.match(loader, /isCurrent\(requestLease\)/, `${lane} refuses stale adoption`);
+    }
+    assert.match(source, /const controller = new AbortController\(\);[\s\S]{0,500}loadCore\(tournamentId, \{ quiet: true, signal: controller\.signal \}\)/,
+        'poll transport aborts in addition to sequence-gating state');
+    const bootstrapStart = source.indexOf('const bootstrap');
+    const bootstrapEnd = source.indexOf('\n\n    useEffect', bootstrapStart);
+    assert.match(source.slice(bootstrapStart, bootstrapEnd), /begin\('context'\)/,
+        'schedule selection shares the global context authority');
+});
+
+test('schedule and history selection cannot overwrite each other out of order', () => {
+    const authority = createTournamentRequestAuthority();
+    const historicalSelection = authority.begin('context');
+    const scheduleSelection = authority.begin('context');
+
+    assert.equal(authority.isCurrent(scheduleSelection), true);
+    assert.equal(authority.isCurrent(historicalSelection), false);
+    assert.equal(pendingAfterTournamentContextSupersession('history-receipt'), '');
+    assert.equal(pendingAfterTournamentContextSupersession('enter'), 'enter');
+    assert.match(source, /const requestLease = requestAuthorityRef\.current\.begin\('context'\);\s*setPending\(pendingAfterTournamentContextSupersession\);/,
+        'the newer schedule owner releases only a superseded history receipt pending state');
+});
+
+test('an old tournament mutation cannot paint its session after context changes', async () => {
+    const authority = createTournamentRequestAuthority();
+    let currentTournamentId = 'event-a';
+    const commits = [];
+    let releaseOldResponse;
+    const oldResponse = new Promise(resolve => { releaseOldResponse = resolve; });
+    const actionLease = createTournamentActionLease(authority, currentTournamentId);
+
+    const oldMutation = oldResponse.then(() => {
+        if (isTournamentActionCurrent(authority, actionLease, currentTournamentId)) {
+            commits.push('old-session');
+        }
+    });
+
+    authority.invalidate(['core', 'bracket', 'field', 'results', 'receipt', 'action']);
+    currentTournamentId = 'event-b';
+    releaseOldResponse();
+    await oldMutation;
+
+    assert.deepEqual(commits, []);
+    assert.equal(isTournamentActionCurrent(authority, actionLease, currentTournamentId), false);
+    assert.match(source, /const actionLease = beginTournamentAction\(\)/);
+    assert.match(source, /if \(!canAdoptTournamentAction\(actionLease\)\) return;/);
+    assert.match(source, /body: \{ tournamentId: actionLease\.tournamentId, action: 'question', position: nextPosition \}/,
+        'session hydration must keep opening questions against the original event');
+    assert.match(source, /if \(canAdoptTournamentAction\(actionLease\)\) setPending\(''\)/,
+        'only the current mutation owner can clear a newer action pending state');
 });
 
 test('account transitions remount all private tournament state and signed-out receipts stay hidden', () => {

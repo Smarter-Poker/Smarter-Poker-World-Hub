@@ -28,9 +28,13 @@ import {
 } from '../../../src/components/trivia/tournaments/TournamentSections';
 import {
     chooseTournamentInstance,
+    createTournamentActionLease,
+    createTournamentRequestAuthority,
     firstOpenQuestion,
     mergeOpenedQuestion,
     nextLockedPosition,
+    pendingAfterTournamentContextSupersession,
+    isTournamentActionCurrent,
     secondsUntil,
     serverNowMs,
     tournamentEntryDialogAction,
@@ -43,6 +47,7 @@ const BRACKET_PAGE_SIZE = 64;
 const FIELD_PAGE_SIZE = 50;
 const RESULTS_PAGE_SIZE = 50;
 const HISTORY_PAGE_SIZE = 20;
+const EVENT_REQUEST_LANES = Object.freeze(['core', 'bracket', 'field', 'results', 'receipt', 'action']);
 
 export function getServerSideProps() {
     return triviaTournamentPageReleaseResult(process.env);
@@ -206,10 +211,16 @@ function TournamentPageExperience({ user, authLoading }) {
     const answerNonceRef = useRef(new Map());
     const tournamentIdRef = useRef(null);
     const skipNextCoreLoadRef = useRef(null);
+    const requestAuthorityRef = useRef(null);
     const journeyTrackerRef = useRef(null);
+    if (!requestAuthorityRef.current) {
+        requestAuthorityRef.current = createTournamentRequestAuthority();
+    }
     if (!journeyTrackerRef.current) {
         journeyTrackerRef.current = createCompetitiveJourneyTracker();
     }
+
+    useEffect(() => () => requestAuthorityRef.current.invalidateAll(), []);
 
     useEffect(() => {
         journeyTrackerRef.current.track('nightly_tournament', 'impression', {
@@ -265,6 +276,8 @@ function TournamentPageExperience({ user, authLoading }) {
     }, []);
 
     const resetTournamentContext = useCallback(() => {
+        requestAuthorityRef.current.invalidate(EVENT_REQUEST_LANES);
+        setPending('');
         setTournament(null);
         setSummary(null);
         setMyRun(null);
@@ -304,6 +317,18 @@ function TournamentPageExperience({ user, authLoading }) {
         answerNonceRef.current.clear();
     }, []);
 
+    const beginTournamentAction = useCallback(() => (
+        createTournamentActionLease(requestAuthorityRef.current, tournamentIdRef.current)
+    ), []);
+
+    const canAdoptTournamentAction = useCallback(actionLease => (
+        isTournamentActionCurrent(
+            requestAuthorityRef.current,
+            actionLease,
+            tournamentIdRef.current,
+        )
+    ), []);
+
     const beginTournamentContext = useCallback((nextTournamentId, { skipCoreLoad = false } = {}) => {
         const nextId = nextTournamentId || null;
         const changed = tournamentIdRef.current !== nextId;
@@ -337,8 +362,9 @@ function TournamentPageExperience({ user, authLoading }) {
         if (typeof window !== 'undefined' && window.matchMedia('(min-width: 900px)').matches) setActiveTab('bracket');
     }, []);
 
-    const loadSchedule = useCallback(async signal => {
+    const loadSchedule = useCallback(async (signal, requestLease) => {
         const payload = await nightlyRequest('schedule', { params: { days: 8 }, signal });
+        if (!requestAuthorityRef.current.isCurrent(requestLease)) return null;
         anchorClock(payload);
         const requestedId = typeof router.query?.tournamentId === 'string' ? router.query.tournamentId : null;
         const selected = chooseTournamentInstance(payload.instances, requestedId);
@@ -350,6 +376,7 @@ function TournamentPageExperience({ user, authLoading }) {
 
     const loadCore = useCallback(async (id, { signal, quiet = false } = {}) => {
         if (!id || !online) return;
+        const requestLease = requestAuthorityRef.current.begin('core');
         if (!quiet) setLaneLoading('core', true);
         setLaneError('core', '');
         try {
@@ -358,7 +385,7 @@ function TournamentPageExperience({ user, authLoading }) {
                 ? nightlyRequest('my-run', { params: { tournamentId: id }, signal }).catch(error => ({ _error: error }))
                 : Promise.resolve(null);
             const [summaryPayload, runPayload] = await Promise.all([summaryPromise, runPromise]);
-            if (tournamentIdRef.current !== id) return;
+            if (tournamentIdRef.current !== id || !requestAuthorityRef.current.isCurrent(requestLease)) return;
             anchorClock(summaryPayload);
             setSummary(summaryPayload);
             setTournament(summaryPayload.tournament);
@@ -374,10 +401,14 @@ function TournamentPageExperience({ user, authLoading }) {
                 if (runPayload.current?.matchupId) {
                     try {
                         const matchup = await nightlyRequest('match', { params: { tournamentId: id, matchupId: runPayload.current.matchupId }, signal });
-                        if (tournamentIdRef.current !== id) return;
+                        if (tournamentIdRef.current !== id || !requestAuthorityRef.current.isCurrent(requestLease)) return;
                         setCurrentMatch(matchup);
                     } catch (error) {
-                        if (error?.name !== 'AbortError' && tournamentIdRef.current === id) setLaneError('core', displayError(error));
+                        if (error?.name !== 'AbortError'
+                            && tournamentIdRef.current === id
+                            && requestAuthorityRef.current.isCurrent(requestLease)) {
+                            setLaneError('core', displayError(error));
+                        }
                     }
                 } else {
                     setCurrentMatch(null);
@@ -388,7 +419,9 @@ function TournamentPageExperience({ user, authLoading }) {
             }
             setPageState('ready');
         } catch (error) {
-            if (error?.name === 'AbortError' || tournamentIdRef.current !== id) return;
+            if (error?.name === 'AbortError'
+                || tournamentIdRef.current !== id
+                || !requestAuthorityRef.current.isCurrent(requestLease)) return;
             const message = displayError(error);
             if (quiet) setLaneError('core', message);
             else {
@@ -396,87 +429,121 @@ function TournamentPageExperience({ user, authLoading }) {
                 setPageState('error');
             }
         } finally {
-            if (!quiet && tournamentIdRef.current === id) setLaneLoading('core', false);
+            if (tournamentIdRef.current === id
+                && requestAuthorityRef.current.isCurrent(requestLease)) {
+                setLaneLoading('core', false);
+            }
         }
     }, [anchorClock, online, setLaneError, setLaneLoading, signedIn]);
 
     const loadBracket = useCallback(async (offset = 0, signal) => {
         if (!tournamentId || !online) return;
         const id = tournamentId;
+        const requestLease = requestAuthorityRef.current.begin('bracket');
         setLaneLoading('bracket', true);
         setLaneError('bracket', '');
         try {
             const payload = await nightlyRequest('bracket', { params: { tournamentId: id, round: bracketRound, offset, limit: BRACKET_PAGE_SIZE }, signal });
-            if (tournamentIdRef.current !== id) return;
+            if (tournamentIdRef.current !== id || !requestAuthorityRef.current.isCurrent(requestLease)) return;
             setBracket(payload);
         } catch (error) {
-            if (error?.name !== 'AbortError' && tournamentIdRef.current === id) setLaneError('bracket', displayError(error));
+            if (error?.name !== 'AbortError'
+                && tournamentIdRef.current === id
+                && requestAuthorityRef.current.isCurrent(requestLease)) {
+                setLaneError('bracket', displayError(error));
+            }
         } finally {
-            if (tournamentIdRef.current === id) setLaneLoading('bracket', false);
+            if (tournamentIdRef.current === id && requestAuthorityRef.current.isCurrent(requestLease)) {
+                setLaneLoading('bracket', false);
+            }
         }
     }, [bracketRound, online, setLaneError, setLaneLoading, tournamentId]);
 
     const loadField = useCallback(async (offset = 0, signal) => {
         if (!tournamentId || !online) return;
         const id = tournamentId;
+        const requestLease = requestAuthorityRef.current.begin('field');
         setLaneLoading('field', true);
         setLaneError('field', '');
         try {
             const payload = await nightlyRequest('field', { params: { tournamentId: id, offset, limit: FIELD_PAGE_SIZE, q: fieldQuery.trim(), kind: fieldKind }, signal });
-            if (tournamentIdRef.current !== id) return;
+            if (tournamentIdRef.current !== id || !requestAuthorityRef.current.isCurrent(requestLease)) return;
             setField(payload);
         } catch (error) {
-            if (error?.name !== 'AbortError' && tournamentIdRef.current === id) setLaneError('field', displayError(error));
+            if (error?.name !== 'AbortError'
+                && tournamentIdRef.current === id
+                && requestAuthorityRef.current.isCurrent(requestLease)) {
+                setLaneError('field', displayError(error));
+            }
         } finally {
-            if (tournamentIdRef.current === id) setLaneLoading('field', false);
+            if (tournamentIdRef.current === id && requestAuthorityRef.current.isCurrent(requestLease)) {
+                setLaneLoading('field', false);
+            }
         }
     }, [fieldKind, fieldQuery, online, setLaneError, setLaneLoading, tournamentId]);
 
     const loadResults = useCallback(async (offset = 0, signal) => {
         if (!tournamentId || !online) return;
         const id = tournamentId;
+        const requestLease = requestAuthorityRef.current.begin('results');
         setLaneLoading('results', true);
         setLaneError('results', '');
         try {
             const payload = await nightlyRequest('results', { params: { tournamentId: id, offset, limit: RESULTS_PAGE_SIZE }, signal });
-            if (tournamentIdRef.current !== id) return;
+            if (tournamentIdRef.current !== id || !requestAuthorityRef.current.isCurrent(requestLease)) return;
             setResults(payload);
         } catch (error) {
-            if (error?.name !== 'AbortError' && tournamentIdRef.current === id) setLaneError('results', displayError(error));
+            if (error?.name !== 'AbortError'
+                && tournamentIdRef.current === id
+                && requestAuthorityRef.current.isCurrent(requestLease)) {
+                setLaneError('results', displayError(error));
+            }
         } finally {
-            if (tournamentIdRef.current === id) setLaneLoading('results', false);
+            if (tournamentIdRef.current === id && requestAuthorityRef.current.isCurrent(requestLease)) {
+                setLaneLoading('results', false);
+            }
         }
     }, [online, setLaneError, setLaneLoading, tournamentId]);
 
     const loadReceipt = useCallback(async signal => {
         if (!tournamentId || !signedIn || !online) return;
         const id = tournamentId;
+        const requestLease = requestAuthorityRef.current.begin('receipt');
         setLaneLoading('receipt', true);
         setLaneError('receipt', '');
         try {
             const payload = await nightlyRequest('receipt', { params: { tournamentId: id }, signal });
-            if (tournamentIdRef.current !== id) return;
+            if (tournamentIdRef.current !== id || !requestAuthorityRef.current.isCurrent(requestLease)) return;
             setReceipt(payload);
         } catch (error) {
-            if (error?.name === 'AbortError' || tournamentIdRef.current !== id) return;
+            if (error?.name === 'AbortError'
+                || tournamentIdRef.current !== id
+                || !requestAuthorityRef.current.isCurrent(requestLease)) return;
             if (error?.code === 'not_entered') setReceipt(null);
             else setLaneError('receipt', displayError(error));
         } finally {
-            if (tournamentIdRef.current === id) setLaneLoading('receipt', false);
+            if (tournamentIdRef.current === id && requestAuthorityRef.current.isCurrent(requestLease)) {
+                setLaneLoading('receipt', false);
+            }
         }
     }, [online, setLaneError, setLaneLoading, signedIn, tournamentId]);
 
     const loadHistory = useCallback(async (offset = 0, signal) => {
         if (!signedIn || !online) return;
+        const requestLease = requestAuthorityRef.current.begin('history');
         setLaneLoading('history', true);
         setLaneError('history', '');
         try {
             const payload = await nightlyRequest('history', { params: { offset, limit: HISTORY_PAGE_SIZE }, signal });
-            setHistory({ ...payload, offset, limit: HISTORY_PAGE_SIZE });
+            if (requestAuthorityRef.current.isCurrent(requestLease)) {
+                setHistory({ ...payload, offset, limit: HISTORY_PAGE_SIZE });
+            }
         } catch (error) {
-            if (error?.name !== 'AbortError') setLaneError('history', displayError(error));
+            if (error?.name !== 'AbortError' && requestAuthorityRef.current.isCurrent(requestLease)) {
+                setLaneError('history', displayError(error));
+            }
         } finally {
-            setLaneLoading('history', false);
+            if (requestAuthorityRef.current.isCurrent(requestLease)) setLaneLoading('history', false);
         }
     }, [online, setLaneError, setLaneLoading, signedIn]);
 
@@ -486,6 +553,7 @@ function TournamentPageExperience({ user, authLoading }) {
             setLaneError('history', tournamentErrorMessage('offline'));
             return;
         }
+        const requestLease = requestAuthorityRef.current.begin('context');
         setPending('history-receipt');
         setLaneError('history', '');
         try {
@@ -495,6 +563,7 @@ function TournamentPageExperience({ user, authLoading }) {
                 nightlyRequest('my-run', { params: { tournamentId: historicalTournamentId } })
                     .catch(error => ({ _error: error })),
             ]);
+            if (!requestAuthorityRef.current.isCurrent(requestLease)) return;
             beginTournamentContext(historicalTournamentId, { skipCoreLoad: true });
             anchorClock(summaryPayload);
             setSummary(summaryPayload);
@@ -514,13 +583,17 @@ function TournamentPageExperience({ user, authLoading }) {
             setActiveTab('receipt');
             window.scrollTo({ top: 0, behavior: 'smooth' });
         } catch (error) {
-            if (error?.name !== 'AbortError') setLaneError('history', displayError(error));
+            if (error?.name !== 'AbortError' && requestAuthorityRef.current.isCurrent(requestLease)) {
+                setLaneError('history', displayError(error));
+            }
         } finally {
-            setPending('');
+            if (requestAuthorityRef.current.isCurrent(requestLease)) setPending('');
         }
     }, [anchorClock, beginTournamentContext, online, pending, setLaneError, setLaneLoading, signedIn]);
 
     const bootstrap = useCallback(async signal => {
+        const requestLease = requestAuthorityRef.current.begin('context');
+        setPending(pendingAfterTournamentContextSupersession);
         if (!online) {
             setPageError(tournamentErrorMessage('offline'));
             setPageState('error');
@@ -529,9 +602,9 @@ function TournamentPageExperience({ user, authLoading }) {
         setPageState('loading');
         setPageError('');
         try {
-            await loadSchedule(signal);
+            await loadSchedule(signal, requestLease);
         } catch (error) {
-            if (error?.name === 'AbortError') return;
+            if (error?.name === 'AbortError' || !requestAuthorityRef.current.isCurrent(requestLease)) return;
             setPageError(displayError(error));
             setPageState('error');
         }
@@ -563,10 +636,12 @@ function TournamentPageExperience({ user, authLoading }) {
     }, [bracketRound, loadBracket, pageState, tournamentId]);
 
     useEffect(() => {
-        if (activeTab === 'field' && !field) void loadField(0);
-        if (activeTab === 'results' && !results) void loadResults(0);
-        if (activeTab === 'receipt' && signedIn && !receipt) void loadReceipt();
-        if (activeTab === 'history' && signedIn && !history) void loadHistory(0);
+        const controller = new AbortController();
+        if (activeTab === 'field' && !field) void loadField(0, controller.signal);
+        if (activeTab === 'results' && !results) void loadResults(0, controller.signal);
+        if (activeTab === 'receipt' && signedIn && !receipt) void loadReceipt(controller.signal);
+        if (activeTab === 'history' && signedIn && !history) void loadHistory(0, controller.signal);
+        return () => controller.abort();
     }, [activeTab, field, history, loadField, loadHistory, loadReceipt, loadResults, receipt, results, signedIn]);
 
     useEffect(() => {
@@ -581,22 +656,27 @@ function TournamentPageExperience({ user, authLoading }) {
         if (!tournamentId || pageState !== 'ready' || !online) return undefined;
         let stopped = false;
         let timer = null;
+        const controller = new AbortController();
         const activeRun = Boolean(myRun?.current);
         const activeEvent = ['held', 'live', 'settling'].includes(tournament?.state);
         const delay = activeRun ? 3000 : activeEvent ? 8000 : 45000;
         const poll = async () => {
-            await loadCore(tournamentId, { quiet: true });
-            if (activeTab === 'bracket' || activeEvent) await loadBracket(bracket?.offset || 0);
+            await loadCore(tournamentId, { quiet: true, signal: controller.signal });
+            if (!stopped && (activeTab === 'bracket' || activeEvent)) {
+                await loadBracket(bracket?.offset || 0, controller.signal);
+            }
             if (!stopped) timer = window.setTimeout(poll, delay);
         };
         timer = window.setTimeout(poll, delay);
         return () => {
             stopped = true;
+            controller.abort();
             if (timer) window.clearTimeout(timer);
         };
     }, [activeTab, bracket?.offset, loadBracket, loadCore, myRun?.current, online, pageState, tournament?.state, tournamentId]);
 
-    const hydrateSession = useCallback(async sessionDto => {
+    const hydrateSession = useCallback(async (sessionDto, actionLease) => {
+        if (!canAdoptTournamentAction(actionLease)) return false;
         setSession(sessionDto);
         setPlayError('');
         const alreadyOpen = firstOpenQuestion(sessionDto);
@@ -613,15 +693,19 @@ function TournamentPageExperience({ user, authLoading }) {
                 action: 'resume_play',
                 state: 'playing',
             });
-            return;
+            return true;
         }
         const nextPosition = nextLockedPosition(sessionDto);
         if (nextPosition === null) {
             setActiveQuestion(null);
-            await loadCore(tournamentId, { quiet: true });
-            return;
+            await loadCore(actionLease.tournamentId, { quiet: true });
+            return canAdoptTournamentAction(actionLease);
         }
-        const opened = await nightlyRequest('play', { method: 'POST', body: { tournamentId, action: 'question', position: nextPosition } });
+        const opened = await nightlyRequest('play', {
+            method: 'POST',
+            body: { tournamentId: actionLease.tournamentId, action: 'question', position: nextPosition },
+        });
+        if (!canAdoptTournamentAction(actionLease)) return false;
         const merged = mergeOpenedQuestion(sessionDto, opened.question);
         setSession(merged);
         setActiveQuestion(opened.question);
@@ -632,10 +716,12 @@ function TournamentPageExperience({ user, authLoading }) {
                 state: 'playing',
             });
         }
-    }, [loadCore, tournamentId]);
+        return true;
+    }, [canAdoptTournamentAction, loadCore]);
 
     const openOrResume = useCallback(async action => {
         if (!tournamentId || pending) return;
+        const actionLease = beginTournamentAction();
         setPending(action === 'view' ? 'resume' : 'play');
         setPlayError('');
         try {
@@ -644,25 +730,32 @@ function TournamentPageExperience({ user, authLoading }) {
                 action: action === 'view' ? 'resume_play' : 'open_play',
                 state: action === 'view' ? 'resume' : 'ready',
             });
-            const payload = await nightlyRequest('play', { method: 'POST', body: { tournamentId, action } });
+            const payload = await nightlyRequest('play', {
+                method: 'POST',
+                body: { tournamentId: actionLease.tournamentId, action },
+            });
+            if (!canAdoptTournamentAction(actionLease)) return;
             if (payload.seat_finished) {
                 setSession(null);
                 setActiveQuestion(null);
-                await loadCore(tournamentId, { quiet: true });
+                await loadCore(actionLease.tournamentId, { quiet: true });
                 return;
             }
-            await hydrateSession(payload.session || payload);
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+            const adopted = await hydrateSession(payload.session || payload, actionLease);
+            if (adopted && canAdoptTournamentAction(actionLease)) {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
         } catch (error) {
+            if (!canAdoptTournamentAction(actionLease)) return;
             const message = displayError(error);
             if (action === 'view' && error?.code === 'no_session') setPlayError('No Open Session Was Found. Open The Round To Begin.');
             else if (error?.code === 'round_not_open' && error?.body?.opensAt) {
                 setPlayError(`The Server Round Opens In ${Math.max(0, secondsUntil(error.body.opensAt, nowMs) || 0)} Seconds.`);
             } else setPlayError(message);
         } finally {
-            setPending('');
+            if (canAdoptTournamentAction(actionLease)) setPending('');
         }
-    }, [hydrateSession, loadCore, nowMs, pending, tournamentId]);
+    }, [beginTournamentAction, canAdoptTournamentAction, hydrateSession, loadCore, nowMs, pending, tournamentId]);
 
     useEffect(() => {
         const matchupId = myRun?.current?.matchupId;
@@ -677,6 +770,7 @@ function TournamentPageExperience({ user, authLoading }) {
             void router.push(`/auth/login?redirect=${encodeURIComponent(PAGE_PATH)}`);
             return;
         }
+        const actionLease = beginTournamentAction();
         setPending('enter');
         try {
             journeyTrackerRef.current.track('nightly_tournament', 'intent', {
@@ -684,40 +778,58 @@ function TournamentPageExperience({ user, authLoading }) {
                 action: 'enter',
                 state: 'ready',
             });
-            await nightlyRequest('enter', { method: 'POST', body: { tournamentId, clientNonce: entryNonce(tournamentId) } });
-            await loadCore(tournamentId, { quiet: true });
+            await nightlyRequest('enter', {
+                method: 'POST',
+                body: {
+                    tournamentId: actionLease.tournamentId,
+                    clientNonce: entryNonce(actionLease.tournamentId),
+                },
+            });
+            if (!canAdoptTournamentAction(actionLease)) return;
+            await loadCore(actionLease.tournamentId, { quiet: true });
+            if (!canAdoptTournamentAction(actionLease)) return;
             await loadReceipt();
-            setActiveTab('run');
+            if (canAdoptTournamentAction(actionLease)) setActiveTab('run');
         } catch (error) {
-            setDialogError({ code: error?.code || 'internal_error', message: displayError(error) });
+            if (canAdoptTournamentAction(actionLease)) {
+                setDialogError({ code: error?.code || 'internal_error', message: displayError(error) });
+            }
         } finally {
-            setPending('');
+            if (canAdoptTournamentAction(actionLease)) setPending('');
         }
-    }, [loadCore, loadReceipt, pending, router, signedIn, tournamentId]);
+    }, [beginTournamentAction, canAdoptTournamentAction, loadCore, loadReceipt, pending, router, signedIn, tournamentId]);
 
     const refreshSession = useCallback(async () => {
-        if (!tournamentId) return;
+        if (!tournamentId || pending) return;
+        const actionLease = beginTournamentAction();
         setPending('resume');
         setPlayError('');
         try {
-            const payload = await nightlyRequest('play', { method: 'POST', body: { tournamentId, action: 'view' } });
-            await hydrateSession(payload);
+            const payload = await nightlyRequest('play', {
+                method: 'POST',
+                body: { tournamentId: actionLease.tournamentId, action: 'view' },
+            });
+            if (!canAdoptTournamentAction(actionLease)) return;
+            await hydrateSession(payload, actionLease);
         } catch (error) {
+            if (!canAdoptTournamentAction(actionLease)) return;
             setPlayError(displayError(error));
             setSession(null);
             setActiveQuestion(null);
-            await loadCore(tournamentId, { quiet: true });
+            await loadCore(actionLease.tournamentId, { quiet: true });
         } finally {
-            setPending('');
+            if (canAdoptTournamentAction(actionLease)) setPending('');
         }
-    }, [hydrateSession, loadCore, tournamentId]);
+    }, [beginTournamentAction, canAdoptTournamentAction, hydrateSession, loadCore, pending, tournamentId]);
 
     const submitAnswer = useCallback(async displayIndex => {
         if (!tournamentId || !activeQuestion?.id || pending) return;
+        const actionLease = beginTournamentAction();
+        const questionId = activeQuestion.id;
         setSelectedAnswer(displayIndex);
         setPending('answer');
         setPlayError('');
-        const attemptKey = activeQuestion.id;
+        const attemptKey = questionId;
         let nonce = answerNonceRef.current.get(attemptKey);
         if (!nonce) {
             nonce = createUuid();
@@ -726,42 +838,59 @@ function TournamentPageExperience({ user, authLoading }) {
         try {
             const payload = await nightlyRequest('play', {
                 method: 'POST',
-                body: { tournamentId, action: 'answer', questionId: activeQuestion.id, displayIndex, clientNonce: nonce },
+                body: {
+                    tournamentId: actionLease.tournamentId,
+                    action: 'answer',
+                    questionId,
+                    displayIndex,
+                    clientNonce: nonce,
+                },
             });
+            if (!canAdoptTournamentAction(actionLease)) return;
             setSelectedAnswer(null);
             if (payload.seat_finished) {
                 setSession(null);
                 setActiveQuestion(null);
-                await loadCore(tournamentId, { quiet: true });
+                await loadCore(actionLease.tournamentId, { quiet: true });
             } else {
-                const view = await nightlyRequest('play', { method: 'POST', body: { tournamentId, action: 'view' } });
-                await hydrateSession(view);
+                const view = await nightlyRequest('play', {
+                    method: 'POST',
+                    body: { tournamentId: actionLease.tournamentId, action: 'view' },
+                });
+                if (!canAdoptTournamentAction(actionLease)) return;
+                await hydrateSession(view, actionLease);
             }
         } catch (error) {
+            if (!canAdoptTournamentAction(actionLease)) return;
             setPlayError(displayError(error));
             if (['answer_late', 'position_out_of_order', 'question_not_open', 'session_closed', 'session_expired'].includes(error?.code)) {
                 setSelectedAnswer(null);
             }
         } finally {
-            setPending('');
+            if (canAdoptTournamentAction(actionLease)) setPending('');
         }
-    }, [activeQuestion, hydrateSession, loadCore, pending, tournamentId]);
+    }, [activeQuestion, beginTournamentAction, canAdoptTournamentAction, hydrateSession, loadCore, pending, tournamentId]);
 
     const finishRound = useCallback(async () => {
         if (!tournamentId || pending) return;
+        const actionLease = beginTournamentAction();
         setPending('finish');
         setPlayError('');
         try {
-            await nightlyRequest('play', { method: 'POST', body: { tournamentId, action: 'finish' } });
+            await nightlyRequest('play', {
+                method: 'POST',
+                body: { tournamentId: actionLease.tournamentId, action: 'finish' },
+            });
+            if (!canAdoptTournamentAction(actionLease)) return;
             setSession(null);
             setActiveQuestion(null);
-            await loadCore(tournamentId, { quiet: true });
+            await loadCore(actionLease.tournamentId, { quiet: true });
         } catch (error) {
-            setPlayError(displayError(error));
+            if (canAdoptTournamentAction(actionLease)) setPlayError(displayError(error));
         } finally {
-            setPending('');
+            if (canAdoptTournamentAction(actionLease)) setPending('');
         }
-    }, [loadCore, pending, tournamentId]);
+    }, [beginTournamentAction, canAdoptTournamentAction, loadCore, pending, tournamentId]);
 
     const questionSeconds = useMemo(() => secondsUntil(activeQuestion?.deadlineAt, nowMs), [activeQuestion?.deadlineAt, nowMs]);
     useEffect(() => {

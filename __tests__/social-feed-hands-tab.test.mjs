@@ -119,10 +119,12 @@ test('every post carries topics, coverFrameUrl and transcodeStatus next to the f
         assert.equal(post.playedWith, false, 'anonymous viewers never carry a played-with flag');
         for (const field of ['id', 'authorId', 'content', 'contentType', 'mediaUrls', 'thumbnailUrl', 'thumbnail_url',
             'likeCount', 'commentCount', 'shareCount', 'reactions', 'isLiked', 'isBookmarked', 'viewCount',
-            'visibility', 'createdAt', 'link_url', 'metadata', 'origin_type', 'playback_type', 'topic',
+            'visibility', 'createdAt', 'link_url', 'metadata', 'playback_type', 'topic',
             'rights_status', 'source_asset_id', 'youtube_video_id', 'canonical_asset_key', 'publication_key', 'author']) {
             assert.ok(Object.hasOwn(post, field), `${field} stays on every post`);
         }
+        // origin_type says who wrote a post; a browser never receives it.
+        assert.equal(Object.hasOwn(post, 'origin_type'), false, 'origin_type never leaves the server');
     }
     assert.deepEqual(Object.keys(res.body), ['posts', 'hasMore', 'nextOffset', 'partial', 'offset', 'limit', 'tab', 'ranked', 'carry']);
 });

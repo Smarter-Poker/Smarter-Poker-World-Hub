@@ -8,6 +8,7 @@ import {
     nativeVideoIsReady,
     readManagedEligibilityContext,
 } from './feed';
+import { toBrowserPost } from '../../../src/lib/socialPostShape';
 
 let serviceClient = null;
 
@@ -58,7 +59,8 @@ export default async function handler(req, res) {
             && managedVideoPostIsEligible(post, context)
             && nativeVideoIsReady(post)
         )).sort((left, right) => (order.get(left.id) ?? 999) - (order.get(right.id) ?? 999));
-        return res.status(200).json({ success: true, data: eligible });
+        // A browser never receives origin_type or the pipeline's metadata.
+        return res.status(200).json({ success: true, data: eligible.map(toBrowserPost) });
     } catch (error) {
         console.warn('[api/social/saved-posts] failed:', error?.message || error);
         return res.status(503).json({ success: false, error: 'Saved Posts are temporarily unavailable' });
