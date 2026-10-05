@@ -21,6 +21,14 @@ test('ClubArenaPanel owns every legacy section and keeps URL state controlled', 
   }
 });
 
+test('ClubArenaPanel imports every extracted formatting and export helper it calls', () => {
+  const tokenImport = source.match(/import\s*\{([^}]+)\}\s*from\s*['"]\.\.\/\.\.\/lib\/horsesAdminTokens['"]/);
+  assert.ok(tokenImport, 'horsesAdminTokens import');
+  for (const helper of ['signed', 'downloadCsv', 'stampedName', 'toCsv']) {
+    assert.match(tokenImport[1], new RegExp(`\\b${helper}\\b`), helper);
+  }
+});
+
 test('Club Arena reads canonical page rows and preserves nested panel seams', () => {
   for (const page of [
     'clubs', 'unions', 'cashouts', 'transactions', 'members', 'agents',
