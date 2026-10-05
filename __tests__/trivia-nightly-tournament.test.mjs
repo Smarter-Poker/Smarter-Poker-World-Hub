@@ -107,9 +107,20 @@ test('every nightly response is projected through an action-specific nested allo
     assert.equal(answer.sequence, 4, 'answer acknowledgements preserve their scalar play sequence');
     const grade = projectNightlyDto('play', {
         success: true,
+        outcome: 'correct',
+        wasCorrect: true,
+        correctDisplayIndex: 2,
+        explanation: 'The Revealed Answer',
+        correct: 10,
+        score: 2000,
+        per_question: [{ position: 1, question_id: Q, outcome: 'correct', correct: true, display_index: 2 }],
         sequence: [{ questionIndex: 0, result: 'correct', secret: 'drop' }],
     });
-    assert.deepEqual(grade.sequence, [{ questionIndex: 0, result: 'correct' }]);
+    assert.deepEqual(grade, { success: true },
+        'the competitive play DTO never exposes a grading oracle, including nested results');
+
+    const recorded = projectNightlyDto('play', { success: true, recorded: true, outcome: 'recorded' });
+    assert.equal(recorded.outcome, 'recorded', 'a non-grading answer acknowledgement remains visible');
 });
 
 test('Phase 7 migration closes unscoped tournament reads and adds the server-owned PvP quote', () => {

@@ -821,7 +821,10 @@ async function tournamentDesk(page, row, failures) {
         ['History', '.tt-history', 'Previous 8 PM Nightly'],
     ];
     for (const [name, selector, text] of views) {
-        await page.getByRole('tab', { name, exact: true }).click();
+        const viewButton = page.getByRole('button', { name, exact: true });
+        await viewButton.click();
+        record(row, failures, `tournament-${name.toLowerCase()}-selected`,
+            await viewButton.getAttribute('aria-pressed') === 'true', 'aria-pressed=true');
         await page.locator(selector).waitFor({ state: 'visible', timeout: 10_000 });
         const body = await page.locator('body').innerText();
         record(row, failures, `tournament-${name.toLowerCase()}`, body.includes(text), text);

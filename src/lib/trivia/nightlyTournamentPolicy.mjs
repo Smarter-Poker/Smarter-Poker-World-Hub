@@ -261,20 +261,19 @@ function projectReceiptLeg(value, keys) {
 function projectPlay(value) {
     const out = pick(value, ['success', 'round', 'matchup_id', 'deadline_at', 'seat_finished',
         'matchup_resolved', 'sessionId', 'position', 'recorded', 'duplicate', 'sequence',
-        'storedDisplayIndex', 'outcome', 'wasCorrect', 'correctDisplayIndex', 'explanation',
-        'total', 'voided', 'graded_total', 'answered', 'correct', 'score', 'answer_time_ms_total',
-        'status', 'expiresAt', 'questionCount', 'entryCost', 'entryState']);
+        'storedDisplayIndex', 'outcome', 'status', 'expiresAt', 'questionCount', 'entryCost',
+        'entryState']);
     if (own(value, 'session')) out.session = projectSession(value.session);
     if (own(value, 'question')) out.question = value.question == null ? null : projectQuestion(value.question);
     if (own(value, 'questions')) out.questions = list(value.questions, projectQuestion);
-    if (own(value, 'per_question')) {
-        out.per_question = list(value.per_question, (item) => pick(item,
-            ['position', 'question_id', 'outcome', 'correct', 'display_index', 'answered_at', 'elapsed_ms']));
-    }
+    // Competitive questions are shared across the field. The database owns
+    // grading and its reveal boundary, but this browser contract never needs a
+    // grade oracle. Keep only non-grading acknowledgements even if a future RPC
+    // adds correct/wrong, a score, a correct display index, an explanation, or
+    // per-question grading details to its result.
+    if (!['recorded', 'late', 'timeout'].includes(out.outcome)) delete out.outcome;
     if (own(value, 'sequence')) {
-        if (Array.isArray(value.sequence)) {
-            out.sequence = list(value.sequence, (item) => pick(item, ['questionIndex', 'result']));
-        } else if (Number.isInteger(value.sequence)) {
+        if (Number.isInteger(value.sequence)) {
             out.sequence = value.sequence;
         } else {
             delete out.sequence;
@@ -284,9 +283,9 @@ function projectPlay(value) {
 }
 
 /**
- * Action-specific allowlist projection. The SQL contract is answer-free today;
- * this projector makes that property durable when a database function gains a
- * new column tomorrow. Unknown keys are dropped even when they are nested.
+ * Action-specific allowlist projection. Competitive browser DTOs remain free
+ * of answer keys and grading oracles even when a database function gains a new
+ * column tomorrow. Unknown keys are dropped even when they are nested.
  */
 export function projectNightlyDto(action, value) {
     const d = value && typeof value === 'object' && !Array.isArray(value) ? value : {};

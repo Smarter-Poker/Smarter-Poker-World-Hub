@@ -136,7 +136,10 @@ The nightly API remains `/api/trivia/nightly/[action]` with these maintained act
 
 Field, bracket, match, and results now call viewer-aware v2 database reads. Unknown SQL fields and
 forbidden answer, revision, permutation, secret, and horse-plan keys are dropped before a browser
-response.
+response. The competitive `play` projection also strips grade totals, correct/wrong sequences,
+per-question verdicts, correct display indexes, and explanations. Only a scalar answer sequence
+and non-grading `recorded`/`late`/`timeout` acknowledgements can reach the browser while a shared
+tournament question set is in use.
 
 ## Visual, responsive, and accessibility contract
 
@@ -253,6 +256,10 @@ The retained installation certificate is
   the server's service role.
 - No browser chooses a horse, grades an answer, writes a queue/bracket, changes a wallet, declares
   a winner, or settles/refunds a competitive event.
+- The production build's maintained Next patch layer now handles Google font URLs with query/hash
+  suffixes or no filename extension by reading the downloaded font signature. It preserves Next's
+  original fetch/cache/preload/CSS-replacement flow and fails closed on unknown bytes instead of
+  dereferencing a missing regular-expression match.
 
 ## Verification record
 
@@ -271,6 +278,8 @@ their tested inputs, not a substitute for the final exact-candidate run after al
 | Final lobby account-switch hardening subset | 19/19 passed |
 | Final tournament account/receipt/selector hardening subset | 23/23 passed |
 | Final PvP stale-response and radiogroup hardening subset | 41/41 passed |
+| Final tournament selector and grade-oracle hardening subset | 23/23 passed |
+| Next Google font-loader root-cause regression | 5/5 passed |
 | Scoped lane lint | Passed with no new errors; only previously recorded warnings where applicable |
 
 The first broad integration attempt reported 143/146 because three direct-source visual contracts
