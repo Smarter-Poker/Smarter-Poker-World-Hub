@@ -43,9 +43,10 @@
  * incident had at least 69 runs, so a stricter bound buys nothing.
  *
  * A "success" is only a row whose status is exactly 'success'. Running,
- * killed, null, and unknown statuses are not completed work. HTTP handlers
- * write through cron middleware; local SCRIPT_JOBS are recorded by the
- * dispatcher around the subprocess so neither execution path is invisible.
+ * killed, null, and unknown statuses are not completed work. This ledger only
+ * sees producers that write cron_execution_log. Local SCRIPT_JOBS bypass the
+ * HTTP request path, so the dispatcher must record their start and terminal
+ * state around each subprocess for U4.3 to measure them.
  *
  * DELIBERATELY NOT FAILED ON
  *   - jobs with fewer than MIN_RUNS runs in the window
