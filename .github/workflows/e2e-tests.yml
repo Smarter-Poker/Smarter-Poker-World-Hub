@@ -41,7 +41,7 @@ on:
       suite:
         description: Verification suite to run
         type: choice
-        options: [full, messenger-live, messenger-send-live, messenger-continuity-live, reels-live, reels-reconciliation-audit, reels-reconciliation-apply]
+        options: [full, messenger-live, messenger-send-live, messenger-continuity-live, reels-live, video-operations-live, reels-reconciliation-audit, reels-reconciliation-apply]
         default: full
       expected_sha:
         description: Full deployed commit SHA (required only for a published live verification suite)
@@ -532,5 +532,50 @@ jobs:
         with:
           name: reels-live-receipt
           path: test-results/reels-live/result.json
+          if-no-files-found: error
+          retention-days: 7
+
+  video-operations-live:
+    name: Published Video Operations Verification
+    if: ${{ inputs.suite == 'video-operations-live' }}
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24.12.0'
+          cache: npm
+      - name: Verify Video Operations live probe safety
+        run: node scripts/ci/video-operations-live-check.mjs --self-test
+      - name: Restore locked dependencies
+        id: video-operations-live-nm-cache
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: nm-wh-noscripts-${{ runner.os }}-node24-${{ hashFiles('package-lock.json') }}
+      - name: Install locked dependencies
+        if: steps.video-operations-live-nm-cache.outputs.cache-hit != 'true'
+        run: npm ci --ignore-scripts
+      - name: Verify published Video Operations with designated test account
+        run: node scripts/ci/video-operations-live-check.mjs
+        env:
+          TEST_USER_EMAIL: ${{ vars.TEST_USER_EMAIL || secrets.TEST_USER_EMAIL }}
+          TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          VIDEO_OPERATIONS_EXPECTED_SHA: ${{ inputs.expected_sha }}
+      - name: Assert complete sanitized Video Operations receipt
+        run: node scripts/ci/video-operations-live-check.mjs --check-receipt test-results/video-operations-live/result.json
+        env:
+          VIDEO_OPERATIONS_EXPECTED_SHA: ${{ inputs.expected_sha }}
+      - name: Retain sanitized Video Operations receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: video-operations-live-receipt
+          path: test-results/video-operations-live/result.json
           if-no-files-found: error
           retention-days: 7

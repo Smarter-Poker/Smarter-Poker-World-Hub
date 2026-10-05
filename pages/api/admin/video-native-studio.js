@@ -1,6 +1,7 @@
 import crypto from 'node:crypto';
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
+const { isVideoAdminProfile } = require('../../../lib/videoAdminAuthorization');
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f-]{27}$/i,
   SHA = /^[0-9a-f]{64}$/;
@@ -30,10 +31,10 @@ async function authorize(req, res, c) {
   }
   const profile = await c.admin
     .from('profiles')
-    .select('is_admin')
+    .select('is_admin, role')
     .eq('id', data.user.id)
     .maybeSingle();
-  if (profile.error || profile.data?.is_admin !== true) {
+  if (profile.error || !isVideoAdminProfile(profile.data)) {
     res.status(403).json({ error: 'Admin access required' });
     return null;
   }

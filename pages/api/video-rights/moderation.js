@@ -2,6 +2,7 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 import { UUID_RE, bearerToken, boundedText } from '../../../src/lib/videoRightsContract.mjs';
+const { isVideoAdminProfile } = require('../../../lib/videoAdminAuthorization');
 
 let serviceClient;
 const service = () => serviceClient ||= createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } });
@@ -14,8 +15,8 @@ export default async function handler(req, res) {
     const db = service();
     const { user, error } = await getServerUserWithFallback(req, db);
     if (error || !user?.id || !bearerToken(req)) return res.status(401).json({ success: false, error: 'Authentication required' });
-    const profile = await db.from('profiles').select('is_admin').eq('id', user.id).maybeSingle();
-    if (profile.error || profile.data?.is_admin !== true) return res.status(403).json({ success: false, error: 'Admin access required' });
+    const profile = await db.from('profiles').select('is_admin, role').eq('id', user.id).maybeSingle();
+    if (profile.error || !isVideoAdminProfile(profile.data)) return res.status(403).json({ success: false, error: 'Admin access required' });
     if (req.method === 'GET') {
       const [claims, submissions, cases, attributionRequests, clips] = await Promise.all([
         db.from('video_creator_source_claims').select('*').order('updated_at', { ascending: false }).limit(200),
