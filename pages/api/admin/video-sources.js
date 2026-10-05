@@ -1,5 +1,6 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
+const { isVideoAdminProfile } = require('../../../lib/videoAdminAuthorization');
 
 const TOPICS = new Set(['poker', 'casino_slots', 'sports']);
 const LIFECYCLES = new Set(['active', 'paused', 'quarantined', 'retired']);
@@ -35,9 +36,9 @@ async function authorize(req, res, connection) {
     res.status(401).json({ error: 'Invalid or expired admin session' });
     return false;
   }
-  const profile = await connection.admin.from('profiles').select('is_admin')
+  const profile = await connection.admin.from('profiles').select('is_admin, role')
     .eq('id', data.user.id).maybeSingle();
-  if (profile.error || profile.data?.is_admin !== true) {
+  if (profile.error || !isVideoAdminProfile(profile.data)) {
     res.status(403).json({ error: 'Admin access required' });
     return false;
   }

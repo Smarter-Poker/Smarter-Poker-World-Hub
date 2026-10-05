@@ -4,10 +4,12 @@ import { createRequire } from 'node:module';
 import test from 'node:test';
 const require = createRequire(import.meta.url);
 const { buildAlerts } = require('../lib/videoOperationsAlerts.js');
-const { isVideoOperationsOperationId } = require('../lib/videoOperationsContract.js');
+const { isVideoAdminProfile } = require('../lib/videoAdminAuthorization.js');
+const { formatVideoOperationsMetric, isVideoOperationsOperationId } = require('../lib/videoOperationsContract.js');
 
 const migration = readFileSync(new URL('../supabase/migrations/20261004213000_video_operations_analytics_phase10.sql', import.meta.url), 'utf8');
 const indexMigration = readFileSync(new URL('../supabase/migrations/20261004222000_video_reels_control_events_actor_index.sql', import.meta.url), 'utf8');
+const dueAccuracyMigration = readFileSync(new URL('../supabase/migrations/20261005011200_video_operations_due_job_accuracy_phase10_followup.sql', import.meta.url), 'utf8');
 const api = readFileSync(new URL('../pages/api/admin/video-operations.js', import.meta.url), 'utf8');
 const operationsContract = readFileSync(new URL('../lib/videoOperationsContract.js', import.meta.url), 'utf8');
 const page = readFileSync(new URL('../pages/hub/admin/video-operations.js', import.meta.url), 'utf8');
@@ -35,6 +37,15 @@ test('control event actor foreign key has a valid index in a forward migration',
   assert.match(indexMigration, /i\.indisvalid/);
 });
 
+test('due enrichment counts include only jobs the worker can claim', () => {
+  const docs = readFileSync(new URL('../docs/video-reels-phase10-operations.md', import.meta.url), 'utf8');
+  assert.match(dueAccuracyMigration, /CREATE OR REPLACE FUNCTION public\.fn_video_operations_snapshot\(p_window_hours integer DEFAULT 24\)/);
+  assert.match(dueAccuracyMigration, /status IN \('queued','retry'\) AND available_at <= clock_timestamp\(\)\)::bigint AS due/);
+  assert.doesNotMatch(dueAccuracyMigration, /FILTER \(WHERE available_at < clock_timestamp\(\)\)::bigint AS due/);
+  assert.match(dueAccuracyMigration, /postflight: due count does not match claimable queue states/);
+  assert.match(docs, /“Due” counts only queued or retry jobs/);
+});
+
 test('Phase 10 aggregates redact raw errors and never return user, session, asset, or cursor identities', () => {
   const start = migration.indexOf('CREATE OR REPLACE FUNCTION public.fn_video_operations_snapshot');
   const end = migration.indexOf('CREATE OR REPLACE FUNCTION public.fn_set_video_reels_pipeline_control');
@@ -53,14 +64,31 @@ test('Phase 10 aggregates redact raw errors and never return user, session, asse
 
 test('Phase 10 admin snapshot and writes require admin authorization and stay private', () => {
   assert.match(api, /Cache-Control', 'private, no-store'/);
+  assert.ok(api.indexOf("res.setHeader('Cache-Control', 'private, no-store')") < api.indexOf('applyRateLimit(req, res'), 'rate-limited responses must remain private and uncached');
   assert.match(api, /connection\.anon\.auth\.getUser/);
-  assert.match(api, /profile\.data\?\.is_admin !== true/);
+  assert.match(api, /isVideoAdminProfile\(profile\.data\)/);
   assert.match(api, /LIMITS\.read/);
   assert.match(api, /LIMITS\.write/);
   assert.match(api, /fn_video_operations_snapshot/);
   assert.match(api, /fn_set_video_reels_pipeline_control/);
   assert.match(api, /windowHours/);
   assert.doesNotMatch(api, /json\(\{\s*error:\s*error\.message/);
+});
+
+test('every Video admin subpage honors the platform administrator role contract', () => {
+  assert.equal(isVideoAdminProfile({ is_admin: true, role: 'member' }), true);
+  for (const role of ['admin', 'superadmin', 'god', ' GOD ']) {
+    assert.equal(isVideoAdminProfile({ is_admin: false, role }), true);
+  }
+  for (const profile of [null, {}, { is_admin: false, role: 'member' }, { role: 'operator' }]) {
+    assert.equal(isVideoAdminProfile(profile), false);
+  }
+  for (const path of ['../pages/api/admin/video-operations.js', '../pages/api/admin/video-sources.js',
+    '../pages/api/admin/video-editorial.js', '../pages/api/admin/video-native-studio.js']) {
+    const source = readFileSync(new URL(path, import.meta.url), 'utf8');
+    assert.match(source, /select\('is_admin, role'\)/);
+    assert.match(source, /isVideoAdminProfile\(profile\.data\)/);
+  }
 });
 
 test('alert thresholds sort critical data-integrity failures first and report weak metric coverage', () => {
@@ -146,6 +174,18 @@ test('operations console links existing controls and handles alerts, empty state
   assert.match(page, /pendingControlOperations/);
   assert.match(page, /newOperationId/);
   assert.match(readFileSync(new URL('../docs/video-reels-phase10-operations.md', import.meta.url), 'utf8'), /Alert thresholds/);
+});
+
+test('operations metrics preserve preformatted cost labels without rendering NaN', () => {
+  assert.equal(formatVideoOperationsMetric('$12.34'), '$12.34');
+  assert.equal(formatVideoOperationsMetric(1234), '1,234');
+  assert.equal(formatVideoOperationsMetric('1234'), '1,234');
+  assert.equal(formatVideoOperationsMetric(undefined), '0');
+  assert.equal(formatVideoOperationsMetric(Number.NaN), '0');
+  assert.equal(formatVideoOperationsMetric('NaN'), '0');
+  assert.equal(formatVideoOperationsMetric('Infinity'), '0');
+  assert.equal(formatVideoOperationsMetric('$NaN'), '0');
+  assert.match(page, /formatVideoOperationsMetric\(value\)/);
 });
 
 test('protected push guard uses configured credentials and public readback without reading environment files', () => {

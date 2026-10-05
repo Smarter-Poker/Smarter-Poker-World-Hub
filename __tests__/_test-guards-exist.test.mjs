@@ -352,6 +352,7 @@ import './video-reels-phase8-learning-contract.test.mjs';
 import './video-reels-phase8-learning-loop.test.mjs';
 import './video-reels-ui-integrity.test.mjs';
 import './video-reels-youtube-sql-security.test.mjs';
+import './video-operations-live-safety.test.mjs';
 
 // 2026-09-04: a synthetic probe never signs a person out. login-probe was
 // pointed at Dan's own account and called a bare signOut() - global scope -

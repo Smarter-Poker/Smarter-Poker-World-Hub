@@ -1,5 +1,6 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
+const { isVideoAdminProfile } = require('../../../lib/videoAdminAuthorization');
 
 function clients() {
   const url=(process.env.NEXT_PUBLIC_SUPABASE_URL||'').trim(), anon=(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY||'').trim(), service=(process.env.SUPABASE_SERVICE_ROLE_KEY||'').trim();
@@ -13,8 +14,8 @@ async function authorize(req,res,c) {
   if (!header.startsWith('Bearer ')) { res.status(401).json({error:'Admin session required'}); return null; }
   const {data,error}=await c.anon.auth.getUser(header.slice(7));
   if (error || !data?.user) { res.status(401).json({error:'Invalid or expired admin session'}); return null; }
-  const profile=await c.admin.from('profiles').select('is_admin').eq('id',data.user.id).maybeSingle();
-  if (profile.error || profile.data?.is_admin!==true) { res.status(403).json({error:'Admin access required'}); return null; }
+  const profile=await c.admin.from('profiles').select('is_admin, role').eq('id',data.user.id).maybeSingle();
+  if (profile.error || !isVideoAdminProfile(profile.data)) { res.status(403).json({error:'Admin access required'}); return null; }
   return data.user;
 }
 const UUID=/^[0-9a-f]{8}-[0-9a-f-]{27}$/i;
