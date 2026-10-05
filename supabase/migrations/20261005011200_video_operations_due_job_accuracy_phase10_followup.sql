@@ -141,7 +141,7 @@ BEGIN
   SELECT coalesce(jsonb_agg(to_jsonb(x) ORDER BY x.status), '[]'::jsonb)
   INTO v_jobs FROM (
     SELECT status, job_type, count(*)::bigint AS count,
-      count(*) FILTER (WHERE status IN ('queued','retry') AND available_at < clock_timestamp())::bigint AS due
+      count(*) FILTER (WHERE status IN ('queued','retry') AND available_at <= clock_timestamp())::bigint AS due
     FROM public.video_enrichment_jobs
     WHERE status IN ('queued','running','retry','dead_letter','succeeded')
       AND (created_at >= v_since OR status IN ('queued','running','retry','dead_letter'))
@@ -215,7 +215,7 @@ DO $postflight$
 DECLARE v_definition text;
 BEGIN
   v_definition := pg_get_functiondef('public.fn_video_operations_snapshot(integer)'::regprocedure);
-  IF position('status IN (''queued'',''retry'') AND available_at < clock_timestamp()' IN v_definition) = 0 THEN
+  IF position('status IN (''queued'',''retry'') AND available_at <= clock_timestamp()' IN v_definition) = 0 THEN
     RAISE EXCEPTION 'postflight: due count does not match claimable queue states';
   END IF;
   IF has_function_privilege('anon', 'public.fn_video_operations_snapshot(integer)', 'EXECUTE')

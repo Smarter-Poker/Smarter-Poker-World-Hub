@@ -39,7 +39,7 @@ test('control event actor foreign key has a valid index in a forward migration',
 test('due enrichment counts include only jobs the worker can claim', () => {
   const docs = readFileSync(new URL('../docs/video-reels-phase10-operations.md', import.meta.url), 'utf8');
   assert.match(dueAccuracyMigration, /CREATE OR REPLACE FUNCTION public\.fn_video_operations_snapshot\(p_window_hours integer DEFAULT 24\)/);
-  assert.match(dueAccuracyMigration, /status IN \('queued','retry'\) AND available_at < clock_timestamp\(\)\)::bigint AS due/);
+  assert.match(dueAccuracyMigration, /status IN \('queued','retry'\) AND available_at <= clock_timestamp\(\)\)::bigint AS due/);
   assert.doesNotMatch(dueAccuracyMigration, /FILTER \(WHERE available_at < clock_timestamp\(\)\)::bigint AS due/);
   assert.match(dueAccuracyMigration, /postflight: due count does not match claimable queue states/);
   assert.match(docs, /“Due” counts only queued or retry jobs/);
