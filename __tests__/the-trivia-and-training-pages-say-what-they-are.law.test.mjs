@@ -88,15 +88,27 @@ test('each mode has its own words, not one blurb repeated', () => {
     const lead = src.slice(start).match(/lead:\s*\n?\s*'([^']+)'/)?.[1];
     assert.ok(lead, `${key} has a lead`);
     assert.ok(lead.split(/\s+/).length >= 45, `${key} has a lead of only ${lead.split(/\s+/).length} words`);
-    leads.push(lead);
+    leads.push({ key, lead });
   }
-  assert.equal(new Set(leads).size, leads.length, 'every lead is distinct');
+  assert.equal(new Set(leads.map(({ lead }) => lead)).size, leads.length, 'every lead is distinct');
 
-  // A quiz and a drill are not gambling, and the copy has to say so.
-  const triviaLeads = leads.filter((l) => /trivia|quiz|question/i.test(l));
+  // Free modes say they are free. Paid competitive modes preserve their
+  // authoritative Diamond economics instead of making a false free claim.
+  const paidCompetitiveTrivia = {
+    'trivia-pvp': /Diamond Stake[\s\S]*Rake[\s\S]*Possible Return/i,
+    'trivia-tournaments': /Entry[\s\S]*Rake[\s\S]*Prize Pool/i,
+  };
+  const freeLanguage = /free to play|free to enter|free to appear/i;
+  const triviaLeads = leads.filter(({ lead }) => /trivia|quiz|question/i.test(lead));
   assert.ok(triviaLeads.length >= 4, 'the trivia entries describe the quiz');
-  for (const lead of triviaLeads) {
-    assert.match(lead, /free to play|free to enter|free to appear/i, `a trivia lead must say it is free: ${lead.slice(0, 50)}`);
+  for (const { key, lead } of triviaLeads) {
+    const paidEconomics = paidCompetitiveTrivia[key];
+    if (paidEconomics) {
+      assert.match(lead, paidEconomics, `${key} states its paid competitive economics`);
+      assert.doesNotMatch(lead, freeLanguage, `${key} must not claim a paid entry is free`);
+      continue;
+    }
+    assert.match(lead, freeLanguage, `a free trivia lead must say it is free: ${lead.slice(0, 50)}`);
   }
 });
 

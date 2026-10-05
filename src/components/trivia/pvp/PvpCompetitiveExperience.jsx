@@ -27,6 +27,15 @@ import {
 const DIAMOND_FORMAT = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 });
 const ACTIVE_SESSION_STATES = new Set(['dealing', 'playing']);
 const TERMINAL_STATES = new Set(['result', 'search_ended']);
+const PVP_ACTION_ENDPOINTS = Object.freeze({
+    quote: '/api/trivia/pvp/quote',
+    join: '/api/trivia/pvp/join',
+    status: '/api/trivia/pvp/status',
+    heartbeat: '/api/trivia/pvp/heartbeat',
+    resume: '/api/trivia/pvp/resume',
+    cancel: '/api/trivia/pvp/cancel',
+    history: '/api/trivia/pvp/history',
+});
 
 function formatDiamonds(value) {
     return Number.isInteger(value) ? DIAMOND_FORMAT.format(value) : 'Unavailable';
@@ -69,7 +78,12 @@ async function requestPvp(action, { method = 'POST', body, params, signal } = {}
     for (const [key, value] of Object.entries(params || {})) {
         if (value !== undefined && value !== null && value !== '') search.set(key, String(value));
     }
-    const response = await fetch(`/api/trivia/pvp/${action}${search.size ? `?${search}` : ''}`, {
+    const endpoint = Object.prototype.hasOwnProperty.call(PVP_ACTION_ENDPOINTS, action)
+        ? PVP_ACTION_ENDPOINTS[action]
+        : null;
+    if (!endpoint) throw new Error('unsupported_pvp_action');
+    const requestUrl = search.size ? `${endpoint}?${search}` : endpoint;
+    const response = await fetch(requestUrl, {
         method,
         headers,
         credentials: 'include',

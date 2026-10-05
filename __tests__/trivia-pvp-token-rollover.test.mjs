@@ -30,7 +30,7 @@ function okResponse() {
 test('same-user PvP token rollover reaches join, start, answer, and submit', async () => {
     const requestPvpSource = sourceBetween(
         experienceSource,
-        'async function requestPvp',
+        'const PVP_ACTION_ENDPOINTS',
         '\nfunction DataRow',
     );
     const postJsonSource = sourceBetween(
@@ -58,6 +58,10 @@ test('same-user PvP token rollover reaches join, start, answer, and submit', asy
     )(fetchImpl);
 
     await requestPvp('join', { body: { stake: 10 } });
+    await assert.rejects(
+        requestPvp('__proto__', { body: {} }),
+        /unsupported_pvp_action/,
+    );
     authState.token = 'token-after-join';
     await postJson('/api/trivia/session-start', { mode: 'pvp' }, freshToken);
     authState.token = 'token-after-start';

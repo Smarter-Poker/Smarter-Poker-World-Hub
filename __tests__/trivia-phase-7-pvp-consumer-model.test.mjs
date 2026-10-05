@@ -200,6 +200,18 @@ test('PvP experience wires resume and duplicate paint to server question receipt
     );
 });
 
+test('PvP transport resolves only the seven maintained exact handlers', () => {
+    for (const action of ['quote', 'join', 'status', 'heartbeat', 'resume', 'cancel', 'history']) {
+        assert.match(pvpExperience, new RegExp(`${action}: '/api/trivia/pvp/${action}'`));
+    }
+    assert.match(
+        pvpExperience,
+        /Object\.prototype\.hasOwnProperty\.call\(PVP_ACTION_ENDPOINTS, action\)/,
+    );
+    assert.match(pvpExperience, /throw new Error\('unsupported_pvp_action'\)/);
+    assert.doesNotMatch(pvpExperience, /\/api\/trivia\/pvp\/\$\{action\}/);
+});
+
 test('PvP DTO adoption is abortable, sequenced, action-owned, and account-bound', () => {
     assert.match(pvpExperience, /createPvpDtoAuthority\(\)/);
     assert.match(pvpExperience, /authority\.beginRead\(\{ actionGeneration, signal \}\)/);

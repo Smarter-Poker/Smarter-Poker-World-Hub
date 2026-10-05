@@ -273,6 +273,14 @@ import './trivia-pvp-engine-v2.test.mjs';
 import './trivia-tournament-containment.test.mjs';
 // Trivia Phase 6: nightly tournament engine (8 PM Central schedule, horse population, bracket, settlement).
 import './trivia-nightly-tournament.test.mjs';
+// Trivia Phase 7: competitive journey analytics, lobby/account boundaries,
+// exact PvP/tournament consumer contracts, and request-time token rollover.
+import './trivia-competitive-journey-analytics.test.mjs';
+import './trivia-competitive-lobby-phase-7.test.mjs';
+import './trivia-lobby-account-isolation.test.mjs';
+import './trivia-phase-7-pvp-consumer-model.test.mjs';
+import './trivia-phase-7-tournament-consumer-model.test.mjs';
+import './trivia-pvp-token-rollover.test.mjs';
 // Trivia Phase 3: eligibility-only paid/competitive pools, engine v3 golden seeds.
 import './trivia-phase-3-engine.test.mjs';
 // Trivia Phase 3: the spend route refuses a stray trivia_entry charge.
