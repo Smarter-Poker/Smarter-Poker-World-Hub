@@ -967,3 +967,142 @@
     .opsCardsAlways { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .opsSplit { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
+
+/* Phase 8 Platform Operations. A 375px-first instrument stack with machined
+   rails and source-labelled evidence. No status is communicated by colour
+   alone, and the geometry remains square like the Club Arena console. */
+.platformPanel { container-type: inline-size; }
+.platformPanel button:focus-visible,
+.platformPanel a:focus-visible {
+    outline: 2px solid var(--accent, rgba(0,212,255,1));
+    outline-offset: 3px;
+}
+.platformEyebrow {
+    display: block;
+    margin-bottom: 5px;
+    color: var(--accent, rgba(0,212,255,1));
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+}
+.platformStatus {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin: 0 0 12px;
+    padding: 11px 13px;
+    border: 1px solid var(--line-strong, rgba(255,255,255,.16));
+    border-left: 4px solid var(--text-muted, rgba(139,147,161,1));
+    background: linear-gradient(90deg, rgba(255,255,255,.06), var(--bg-inset, rgba(13,21,32,1)) 58%);
+    box-shadow: inset 0 1px rgba(255,255,255,.09), inset 0 0 0 2px rgba(0,0,0,.28);
+    color: var(--text-dim, rgba(156,163,175,1));
+    font-size: 11px;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+}
+.platformStatus strong { color: var(--text, rgba(243,244,246,1)); text-align: right; }
+.platformStatus_good { border-left-color: var(--accent, rgba(0,212,255,1)); }
+.platformStatus_warn { border-left-color: var(--warn, rgba(245,158,11,1)); }
+.platformStatus_danger { border-left-color: var(--danger, rgba(239,68,68,1)); }
+.platformInstrumentGrid,
+.platformRegistry,
+.platformSplit {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+}
+.platformInstrumentGrid { margin-bottom: 12px; }
+.platformFact {
+    min-width: 0;
+    padding: 12px;
+    border: 1px solid var(--line, rgba(255,255,255,.08));
+    background: linear-gradient(145deg, rgba(34,49,59,.82), var(--bg-inset, rgba(13,21,32,1)) 60%);
+    box-shadow: inset 0 1px rgba(255,255,255,.07), inset 0 0 0 1px rgba(0,0,0,.32);
+}
+.platformQualifier {
+    display: block;
+    margin-top: 5px;
+    color: var(--text-muted, rgba(139,147,161,1));
+    font-size: 10px;
+    line-height: 1.45;
+}
+.platformSourceBar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 16px;
+    margin: 12px 0;
+    padding: 10px 12px;
+    border-top: 1px solid var(--accent-line, rgba(0,212,255,.3));
+    border-bottom: 1px solid var(--line, rgba(255,255,255,.08));
+    color: var(--text-muted, rgba(139,147,161,1));
+    font-size: 11px;
+}
+.platformFrame {
+    min-width: 0;
+    margin: 0 0 12px;
+    padding: 13px;
+    border: 1px solid var(--line-strong, rgba(255,255,255,.16));
+    border-radius: 3px;
+    background: linear-gradient(152deg, rgba(39,55,65,.96), var(--bg-panel, rgba(17,24,39,1)) 46%, var(--bg-inset, rgba(13,21,32,1)));
+    box-shadow: inset 0 1px rgba(255,255,255,.11), inset 0 0 0 2px rgba(0,0,0,.34), 0 14px 30px rgba(0,0,0,.18);
+}
+.platformFrameHead,
+.platformControlHead {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+.platformFrameHead h3,
+.platformControlHead h3 { margin: 0; color: var(--text, rgba(243,244,246,1)); font-size: 14px; overflow-wrap: anywhere; }
+.platformFrameHead span,
+.platformControlHead span { color: var(--text-muted, rgba(139,147,161,1)); font-size: 10px; letter-spacing: .08em; text-transform: uppercase; }
+.platformFacts { display: grid; grid-template-columns: 1fr; gap: 8px; }
+.platformLedger { display: grid; gap: 7px; }
+.platformLedgerRow {
+    display: grid;
+    gap: 7px;
+    padding: 10px;
+    border-left: 3px solid var(--accent-line, rgba(0,212,255,.3));
+    background: var(--bg-inset, rgba(13,21,32,1));
+}
+.platformLedgerRow > div { display: grid; gap: 3px; min-width: 0; }
+.platformLedgerRow strong { color: var(--text, rgba(243,244,246,1)); font-size: 12px; overflow-wrap: anywhere; }
+.platformLedgerRow span { color: var(--text-muted, rgba(139,147,161,1)); font-size: 11px; line-height: 1.45; overflow-wrap: anywhere; }
+.platformControl {
+    min-width: 0;
+    padding: 13px;
+    border: 1px solid var(--line-strong, rgba(255,255,255,.16));
+    border-radius: 3px;
+    background: linear-gradient(145deg, rgba(35,52,63,.96), var(--bg-panel, rgba(17,24,39,1)) 50%, var(--bg-inset, rgba(13,21,32,1)));
+    box-shadow: inset 0 1px rgba(255,255,255,.09), inset 0 0 0 2px rgba(0,0,0,.3);
+}
+.platformControlHead strong { color: var(--accent, rgba(0,212,255,1)); font-size: 12px; text-align: right; }
+.platformBlast {
+    margin: 10px 0 0;
+    padding: 9px 10px;
+    border-left: 3px solid var(--warn, rgba(245,158,11,1));
+    color: var(--text-dim, rgba(156,163,175,1));
+    background: rgba(0,0,0,.2);
+    font-size: 11px;
+    line-height: 1.5;
+}
+
+@media (min-width: 640px) {
+    .platformInstrumentGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .platformFacts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .platformLedgerRow { grid-template-columns: minmax(0, .8fr) minmax(0, 1.2fr); }
+}
+
+@media (min-width: 960px) {
+    .platformInstrumentGrid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .platformRegistry,
+    .platformSplit { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .platformPanel *, .platformPanel *::before, .platformPanel *::after { scroll-behavior: auto !important; transition: none !important; }
+}

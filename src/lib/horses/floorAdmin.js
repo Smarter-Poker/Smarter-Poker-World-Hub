@@ -90,6 +90,12 @@ export function deliveryHealthState({ sourceOk, pending, lastDrainAt, now = Date
 let engineCache = null;
 const ENGINE_CACHE_MS = 15000;
 
+function healthNumber(value) {
+  if (value === null || value === undefined || value === '') return null;
+  const number = Number(value);
+  return Number.isFinite(number) ? number : null;
+}
+
 export function clearFloorEngineCacheForTests() { engineCache = null; }
 
 export async function readEngineHealth({ fetchImpl = globalThis.fetch, url, timeoutMs = 2500, now = Date.now() } = {}) {
@@ -107,24 +113,58 @@ export async function readEngineHealth({ fetchImpl = globalThis.fetch, url, time
     const response = await Promise.race([
       (async () => {
         const fetched = await fetchImpl(url, { method: 'GET', headers: { Accept: 'application/json' }, signal: controller.signal });
-        if (!fetched.ok) return fetched;
-        const body = await fetched.json();
-        return { ok: fetched.ok, boundedBody: body };
+        let body = null;
+        try { body = await fetched.json(); } catch { /* an HTML/error body is not health evidence */ }
+        return { ok: fetched.ok, status: Number(fetched.status) || null, boundedBody: body };
       })(),
       deadline,
     ]);
-    if (!response.ok) return { ok: false, state: 'unknown', checkedAt: new Date(now).toISOString() };
     const raw = response.boundedBody;
+    const hasHealthEvidence = raw && typeof raw === 'object' && (
+      typeof raw.liveness === 'string' || typeof raw.status === 'string' ||
+      typeof raw.running === 'boolean' || healthNumber(raw.activeTables) !== null
+    );
+    // The engine deliberately returns structured health while degraded. A 503
+    // with that body proves reachability and carries the state an operator
+    // needs; a non-JSON 503 proves neither and remains Unknown.
+    if (!response.ok && !hasHealthEvidence) {
+      return { ok: false, state: 'unknown', httpStatus: response.status, checkedAt: new Date(now).toISOString() };
+    }
+    if (!hasHealthEvidence) return { ok: false, state: 'unknown', checkedAt: new Date(now).toISOString() };
+    const degraded = response.ok !== true || raw.status === 'degraded' || raw.liveness === 'degraded' || raw.running === false;
     const value = {
       ok: true,
-      state: 'ready',
+      state: degraded ? 'degraded' : 'ready',
+      httpStatus: response.status,
       checkedAt: new Date(now).toISOString(),
-      activeTables: Number.isFinite(Number(raw.activeTables)) ? Number(raw.activeTables) : null,
-      dealableTableCount: Number.isFinite(Number(raw.dealableTableCount)) ? Number(raw.dealableTableCount) : null,
-      stalledTableCount: Number.isFinite(Number(raw.stalledTableCount)) ? Number(raw.stalledTableCount) : null,
-      activeTournaments: Number.isFinite(Number(raw.activeTournaments)) ? Number(raw.activeTournaments) : null,
-      humansSeatedTotal: Number.isFinite(Number(raw.humansSeatedTotal)) ? Number(raw.humansSeatedTotal) : null,
-      avgHandsPerHour: Number.isFinite(Number(raw.telemetry?.avgHandsPerHour)) ? Number(raw.telemetry.avgHandsPerHour) : null,
+      liveness: typeof raw.liveness === 'string' ? raw.liveness.slice(0, 40) : null,
+      status: typeof raw.status === 'string' ? raw.status.slice(0, 40) : null,
+      running: typeof raw.running === 'boolean' ? raw.running : null,
+      version: typeof raw.version === 'string' ? raw.version.slice(0, 80) : null,
+      releaseSha: typeof raw.releaseSha === 'string' ? raw.releaseSha.slice(0, 80) : null,
+      instanceId: typeof raw.instanceId === 'string' ? raw.instanceId.slice(0, 120) : null,
+      uptimeSeconds: healthNumber(raw.uptime),
+      activeTables: healthNumber(raw.activeTables),
+      dealableTableCount: healthNumber(raw.dealableTableCount),
+      stalledTableCount: healthNumber(raw.stalledTableCount),
+      activeTournaments: healthNumber(raw.activeTournaments),
+      humansSeatedTotal: healthNumber(raw.humansSeatedTotal),
+      avgHandsPerHour: healthNumber(raw.telemetry?.avgHandsPerHour),
+      averageActionProcessingMs: healthNumber(raw.performance?.avgActionProcessingMs),
+      actionProcessingSamples: healthNumber(raw.performance?.totalActionsRecorded),
+      actionProcessingThresholdViolations: healthNumber(raw.performance?.processingThresholdViolations),
+      broadcastThresholdViolations: healthNumber(raw.performance?.broadcastThresholdViolations),
+      maintenance: raw.maintenance && typeof raw.maintenance === 'object' ? {
+        active: typeof raw.maintenance.active === 'boolean' ? raw.maintenance.active : null,
+        phase: typeof raw.maintenance.phase === 'string' ? raw.maintenance.phase.slice(0, 80) : null,
+        durableConfirmed: typeof raw.maintenance.durableConfirmed === 'boolean' ? raw.maintenance.durableConfirmed : null,
+        breakEndsAt: raw.maintenance.breakEndsAt ?? null,
+        remainingMs: healthNumber(raw.maintenance.remainingMs),
+        unparkedTables: healthNumber(raw.maintenance.unparkedTables),
+        readyForRestart: typeof raw.maintenance.readyForRestart === 'boolean' ? raw.maintenance.readyForRestart : null,
+        recoveryWindowReady: typeof raw.maintenance.recoveryWindowReady === 'boolean' ? raw.maintenance.recoveryWindowReady : null,
+        reason: typeof raw.maintenance.reason === 'string' ? raw.maintenance.reason.slice(0, 240) : null,
+      } : null,
       rakeSpec: raw.rakeSpec && typeof raw.rakeSpec === 'object' ? {
         drifted: typeof raw.rakeSpec.drifted === 'boolean' ? raw.rakeSpec.drifted : null,
         detail: typeof raw.rakeSpec.detail === 'string' ? raw.rakeSpec.detail.slice(0, 240) : null,
