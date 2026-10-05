@@ -113,7 +113,7 @@ BEGIN
     -- IF v_role NOT IN ('admin','superadmin','god') ...
     v_after := regexp_replace(
       v_after,
-      '[A-Za-z_][A-Za-z0-9_.]*[[:space:]]+NOT[[:space:]]+IN[[:space:]]*\\([[:space:]]*''(admin|superadmin|god)''[[:space:]]*,[[:space:]]*''(admin|superadmin|god)''[[:space:]]*,[[:space:]]*''(admin|superadmin|god)''[[:space:]]*\\)',
+      '[A-Za-z_][A-Za-z0-9_.]*[[:space:]]+NOT[[:space:]]+IN[[:space:]]*\([[:space:]]*''(admin|superadmin|god)''[[:space:]]*,[[:space:]]*''(admin|superadmin|god)''[[:space:]]*,[[:space:]]*''(admin|superadmin|god)''[[:space:]]*\)',
       'NOT public.fn_ca_operator_has_permission(' || v_identity || ', ' || v_permission_literal || ')',
       'gi'
     );
@@ -121,7 +121,7 @@ BEGIN
     -- WHERE id = caller AND role IN (...), including qualified role columns.
     v_after := regexp_replace(
       v_after,
-      '[A-Za-z_][A-Za-z0-9_.]*role[[:space:]]+IN[[:space:]]*\\([[:space:]]*''(admin|superadmin|god)''[[:space:]]*,[[:space:]]*''(admin|superadmin|god)''[[:space:]]*,[[:space:]]*''(admin|superadmin|god)''[[:space:]]*\\)',
+      '([A-Za-z_][A-Za-z0-9_.]*\.)?role[[:space:]]+IN[[:space:]]*\([[:space:]]*''(admin|superadmin|god)''[[:space:]]*,[[:space:]]*''(admin|superadmin|god)''[[:space:]]*,[[:space:]]*''(admin|superadmin|god)''[[:space:]]*\)',
       'public.fn_ca_operator_has_permission(' || v_identity || ', ' || v_permission_literal || ')',
       'gi'
     );
@@ -129,7 +129,7 @@ BEGIN
     -- Some installed definitions use the array spelling.
     v_after := regexp_replace(
       v_after,
-      '[A-Za-z_][A-Za-z0-9_.]*role[[:space:]]*=[[:space:]]*ANY[[:space:]]*\\([[:space:]]*ARRAY\\[[^]]*''admin''[^]]*''superadmin''[^]]*''god''[^]]*\\][[:space:]]*\\)',
+      '([A-Za-z_][A-Za-z0-9_.]*\.)?role[[:space:]]*=[[:space:]]*ANY[[:space:]]*\([[:space:]]*ARRAY\[[^]]*''admin''[^]]*''superadmin''[^]]*''god''[^]]*\][[:space:]]*\)',
       'public.fn_ca_operator_has_permission(' || v_identity || ', ' || v_permission_literal || ')',
       'gi'
     );

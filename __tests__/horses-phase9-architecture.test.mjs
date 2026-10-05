@@ -138,7 +138,7 @@ test('shared operator state preserves null, empty, patch and account-reset seman
 });
 
 test('the named-role database helper gates every folded RPC with canonical permissions', async () => {
-  const migration = await read('supabase/migrations/20261005221404_stable_admin_phase9_named_operator_database_gates.sql');
+  const migration = await read('supabase/migrations/20261005231629_stable_admin_phase9_named_operator_database_gates.sql');
   assert.match(migration, /CREATE OR REPLACE FUNCTION public\.fn_ca_operator_has_permission\(/);
   assert.match(migration, /auth\.uid\(\) <> p_user_id/);
   assert.match(migration, /public\.fn_ca_operator_permissions\(p_user_id\)/);
@@ -146,6 +146,10 @@ test('the named-role database helper gates every folded RPC with canonical permi
   assert.match(migration, /REVOKE ALL ON FUNCTION public\.fn_ca_operator_has_permission\(uuid, text\)[\s\S]*FROM PUBLIC, anon/);
   assert.match(migration, /GRANT EXECUTE ON FUNCTION public\.fn_ca_operator_has_permission\(uuid, text\)[\s\S]*TO authenticated, service_role/);
   assert.match(migration, /fn_is_horse_admin[\s\S]*'fleet\.read'/);
+  assert.equal(migration.includes(String.raw`\\(`), false, 'PostgreSQL regex literals must not use JavaScript double escaping');
+  assert.equal(migration.includes(String.raw`\\[`), false, 'PostgreSQL array regex literals must not use JavaScript double escaping');
+  assert.equal(migration.includes(String.raw`\(`), true, 'literal parentheses remain escaped for PostgreSQL regex');
+  assert.match(migration, /\(\[A-Za-z_\]\[A-Za-z0-9_.\]\*\\\.\)\?role/, 'bare and qualified role columns must both match');
 
   const gates = [
     ['get_home_content_report_detail(uuid,uuid)', 'players.read'],
