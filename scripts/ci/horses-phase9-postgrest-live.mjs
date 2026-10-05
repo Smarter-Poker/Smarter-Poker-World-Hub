@@ -4,7 +4,6 @@ import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import process from 'node:process';
-import { createClient } from '@supabase/supabase-js';
 
 const RECEIPT = 'test-results/horses-phase9-postgrest/result.json';
 
@@ -32,6 +31,7 @@ export function validateReceipt(receipt) {
 
 async function run() {
   validateConfiguration(process.env);
+  const { createClient } = await import('@supabase/supabase-js');
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   const client = createClient(url, anonKey, {
