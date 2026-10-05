@@ -108,3 +108,14 @@ test('player-facing World Hub copy no longer sends anyone to a playable Diamond 
     assert.doesNotMatch(visible, /Diamond Arena/, file);
   }
 });
+test('the legal pages no longer describe the retired standalone Diamond Arena', () => {
+  for (const file of ['pages/terms.js', 'pages/legal/official-rules.js']) {
+    const source = read(file);
+    assert.doesNotMatch(source, /Enter The Diamond Arena/i, file);
+    assert.doesNotMatch(source, /Free Roll Hourly/i, file);
+    assert.doesNotMatch(source, /hourly[^<\n]*Diamond Arena|Diamond Arena[^<\n]*hourly/i, file);
+    assert.doesNotMatch(source, /Diamond Arena Sweepstakes/i, file);
+    assert.doesNotMatch(source, /<strong>Diamond Arena:<\/strong> (Competitive|Prize|❌)/, file);
+    assert.match(source, /Last Updated: October 5, 2026/, file);
+  }
+});
