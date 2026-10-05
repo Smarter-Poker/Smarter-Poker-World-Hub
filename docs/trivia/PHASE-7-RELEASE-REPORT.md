@@ -5,25 +5,25 @@ and the 8:00 PM Central nightly tournament. It consumes the server-owned Phase 5
 contracts, preserves immutable Diamond receipts, and applies the published
 `#ClubArenaConsole` / `#SmarterCasinoRealism` system at mobile and desktop widths.
 
-This report is intentionally a pre-release record. The database additions described below are
-installed, but the application candidate has not yet completed protected delivery. Every release
-field marked **PENDING** must be replaced with observed evidence before Phase 7 is called complete.
+This report is the final Phase 7 release record. The database additions are installed, the exact
+reviewed application candidate completed protected delivery, and production remains deliberately
+dormant behind server-owned competitive release controls.
 
 ## Release state
 
 | Boundary | Current state |
 |---|---|
-| Application source | Implemented in the owned Phase 7 working candidate; final exact-candidate validation is **PENDING** |
+| Application source | Exact reviewed head `dfe07835743b4ba369a1f611d8cfd9f900364861`, tree `4d46e94fbe0260d6dc86a21a7cddd9bbf76f86d4`, passed final validation |
 | Database | Three additive Phase 7 migrations installed with exact source and ledger identity |
 | Competitive activation | Off by design; PvP, PvP horses, tournaments, tournament horses, and the nightly schedule remain disabled |
-| Candidate revision | **PENDING - working tree is not yet committed** |
-| Remote branch | **PENDING - not yet pushed** |
-| Pull request | **PENDING - not yet opened or attached** |
-| Required checks | **PENDING** |
-| Protected merge | **PENDING** |
-| Canonical Vercel deployment | **PENDING** |
-| Production `/api/health` identity | **PENDING** |
-| Live route/API verification | **PENDING** |
+| Candidate revision | `dfe07835743b4ba369a1f611d8cfd9f900364861` |
+| Remote branch | `agent/codex/trivia-phase7-competitive-ui-20261005` pushed with exact-head readback |
+| Pull request | [#2123](https://github.com/Smarter-Poker/Smarter-Poker-World-Hub/pull/2123), attached and protected |
+| Required checks | All required exact-head checks passed, including the full Pre-Deploy Safety lane and all three Supabase invariants |
+| Protected merge | Squash-merged at `2026-10-05T14:18:52Z` as `7e7a89e95512d2ff1f010921b90fcecd1150ad2e` |
+| Canonical Vercel deployment | READY as `dpl_HBWq5TV4P1o7GLyuUaeMbSzX7fHU` on `hub-vanguard-h75xai9q1-smarter-poker.vercel.app` |
+| Production `/api/health` identity | HTTP 200/`ok`; exact merge, deployment URL, deployment ID, database, and Training receipt checks verified |
+| Live route/API verification | Passed: 18 disabled competitive API operations, both gated destination routes, and mobile/desktop lobby rendering |
 
 Database installation does not activate competitive play. The server release controls remain the
 final gate even though the installed PvP configuration can report that its own join and horse
@@ -157,8 +157,9 @@ tournament question set is in use.
 - PvP stake choices implement one roving radio tab stop with Arrow, Home, and End navigation while
   skipping unavailable stakes. Tournament view selectors use native button and `aria-pressed`
   semantics because the desktop layout can display My Run beside the selected center view.
-- The final three-route browser certificate at 375, 390, and 1440 px is **PENDING** on the exact
-  release candidate.
+- The exact-release-candidate browser certificate passed 24/24 scenarios and 355/355 assertions at
+  375, 390, and 1440 px with 42 retained screenshots, zero failures, zero page errors, zero
+  serious/critical accessibility findings, and zero uncontained writes.
 
 ## Journey analytics
 
@@ -285,32 +286,39 @@ their tested inputs, not a substitute for the final exact-candidate run after al
 The first broad integration attempt reported 143/146 because three direct-source visual contracts
 still named the replaced legacy components. Those assertions were updated to the new composed PvP
 surface and mutually exclusive tournament art branches; the affected focused set then passed
-24/24. This is not yet the final candidate certificate.
+24/24. That intermediate result was superseded by the final exact-candidate certificate below.
 
-### Required before completion
+### Final exact-candidate certificate
 
-- Final focused Phase 7 and directly affected Trivia regression suite: passed 155/155 before the
-  three final isolation/keyboard fixes; those changed inputs then passed their 19/19, 23/23, and
-  41/41 focused suites. The same focused changed-input set will be rerun after final rebase.
-- Final scoped ESLint on every changed JavaScript/JSX/module file: passed with zero errors and five
-  previously recorded warnings before the three final fixes; their targeted lint passes were clean
-  apart from the same warnings. The final rebased candidate remains to be recorded.
-- Final whitespace/diff validation: passed before candidate freeze; final rebased check remains to
-  be recorded.
-- Final 375/390/1440 browser certificate with flags off/on, signed-out, human and Smarter Horse PvP,
-  and a 140-horse-plus-human tournament fixture: **PENDING**.
-- One production build on the exact rebased candidate: **PENDING**.
-- Policy/candidate classification checks on the exact final revision: **PENDING**.
-- Protected PR required checks: **PENDING**.
-- Canonical `hub-vanguard` READY deployment and live identity/behavior proof: **PENDING**.
+- The final direct safety-gate and affected regression set passed 55/55. The maintained required
+  CHECK 8 aggregator ran 2,640 tests; its hosted required lane passed in full. The one local
+  sandbox-denied pre-existing temporary PostgreSQL `initdb` case passed 1/1 in its permitted lane;
+  no assertion was weakened or skipped.
+- Scoped ESLint, JavaScript/module syntax checks, and `git diff --check` passed on the exact head.
+- The Node `24.12.0` production build passed its prebuild safeguards, compilation, all 510 static
+  pages, the complete seven-route PvP manifest, and the postbuild performance budget.
+- The exact browser certificate was generated at `2026-10-05T14:12:31.855Z`: 24/24 scenarios and
+  355/355 assertions passed across flags off/on, signed-out, human and Smarter Horse PvP, and the
+  140-horse-plus-human tournament fixture. It retained 42 screenshots. Summary SHA-256:
+  `9714ee3c8ec570c07c85d182ad73ac4b8e42d82fde9698db072fb3663662e0da`; full certificate
+  SHA-256: `a772f4c81e2bf2a2108cef56fc67ce54f423d9e306de97c9b8ac487aaf4aba28`.
+- The ordinary pre-push hook passed policy 18/18 plus all applicable source, import, syntax,
+  Next/Vercel, UI-text, and title-case checks on the exact head.
+- Required exact-head jobs passed: audit-marker registry `37322953232` / `111806382739`, conflict
+  detection `37322953505` / `111806383773`, undefined-identifier scan `37322953331` /
+  `111806383226`, Pre-Deploy Safety `37322953253` / `111806382821`, TypeScript `37322953253` /
+  `111806383173`, and all three Supabase invariants in run `37322953244` with jobs
+  `111806382699`, `111806383335`, and `111806383347`.
+- Protected PR #2123 merged the exact reviewed head, canonical `hub-vanguard` publication became
+  READY, production health identified the exact merge, and the disabled-state live certificate
+  passed without creating competitive money or schedule state.
 
-No product-wide suite or repeated unchanged test is required merely to fill this report. Changed
-inputs invalidate only their affected evidence.
+No product-wide suite or repeated unchanged test was added merely to fill this report. Changed
+inputs invalidated only their affected evidence.
 
-## Disabled production behavior to verify after publication
+## Disabled production behavior verified after publication
 
-With release controls still off, the published candidate must continue to prove all of the
-following:
+With release controls still off, the published candidate proved all of the following:
 
 - PvP quote, join, status, heartbeat, resume, cancel, and history fail closed with private,
   non-cacheable HTTP 503 responses and `Retry-After: 300`.
@@ -321,8 +329,30 @@ following:
 - No production PvP ticket, match, tournament, entrant, settlement, escrow, or wallet movement is
   created by Phase 7 delivery.
 
-Observed post-publication values, response headers, deployment ID, selected commit, and health
-identity are **PENDING**.
+Observed post-publication results:
+
+- All 18 maintained competitive operations returned HTTP 503 with `private, no-store, max-age=0`,
+  `Retry-After: 300`, and the exact release-control error: seven PvP operations and eleven nightly
+  operations. This proves both competitive systems fail closed before authentication or mutation.
+- `/hub/trivia/pvp` and `/hub/trivia/tournaments` returned 307 to `/hub/trivia`; `/hub/trivia`
+  returned 200 with `data-competitive-lobby-state="feature-off"`, the exact mobile and desktop
+  layout markers, and truthful maintenance copy for Competitive Rooms, 1 V 1, and Tournament.
+- A read-only production browser certificate passed at 393 x 852 and 1440 x 900: two disabled
+  maintenance cards, both rendered artworks decoded and ready, no actionable competitive control,
+  one H1, no horizontal overflow, zero page errors, and zero competitive API requests. The mobile
+  screenshot SHA-256 is `ca0722d7369c4a4304af17f12aee40b87d8f2aa9cbc0a75e76f3996eb85049b0`;
+  the desktop screenshot SHA-256 is
+  `4f575d912434168b8be67fe797f127edb7e1d1ef8f076e9865a41d9705890c5c`.
+- Production `/api/health` returned HTTP 200 with `status: "ok"`, commit
+  `7e7a89e95512d2ff1f010921b90fcecd1150ad2e`, deployment
+  `dpl_HBWq5TV4P1o7GLyuUaeMbSzX7fHU`, canonical host
+  `hub-vanguard-h75xai9q1-smarter-poker.vercel.app`, healthy database state, and a configured/healthy
+  Training grading receipt. The response is non-cacheable.
+- Vercel commit status became successful at `2026-10-05T14:22:31Z`; GitHub deployment
+  `6861512401` reported production success at `2026-10-05T14:22:32Z` for the same canonical host.
+- Retained evidence is under
+  `/Volumes/SmarterArchives/agent-evidence/trivia-program-20260929/evidence/p7-competitive-ui/`,
+  including the exact-candidate browser certificate and production mobile/desktop screenshots.
 
 ## Rollback and activation boundary
 
@@ -338,8 +368,8 @@ identity are **PENDING**.
 
 ## Completion gate
 
-Phase 7 is not complete while any release placeholder in this report remains **PENDING**. Completion
-requires the exact candidate to pass the scoped checks, merge through branch protection, publish
-from the protected merge to canonical `hub-vanguard`, appear in production health identity (or a
-proven descendant), and pass the disabled-route live certificate without activating competitive
-money or schedules.
+Phase 7 completed its exit gate on `2026-10-05`: the exact candidate passed scoped verification,
+merged through branch protection, published from the protected merge to canonical `hub-vanguard`,
+appeared as the exact production health identity, and passed the disabled-route live certificate
+without activating competitive money or schedules. Release controls remain off by design; later
+activation is a separate rollout phase, not an unfinished Phase 7 delivery item.
