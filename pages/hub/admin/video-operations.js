@@ -2,6 +2,7 @@ import Head from 'next/head';
 import dynamic from 'next/dynamic';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { supabase } from '../../../src/lib/supabase';
+const { formatVideoOperationsMetric } = require('../../../lib/videoOperationsContract');
 
 const UniversalHeader = dynamic(() => import('../../../src/components/ui/UniversalHeader'), { ssr: false });
 const windows = [24, 72, 168];
@@ -25,7 +26,7 @@ const number = (value) => Number(value || 0).toLocaleString();
 const sum = (rows, key) => (rows || []).reduce((total, row) => total + Number(row[key] || 0), 0);
 
 function Metric({ label, value, note, tone = 'mint' }) {
-  return <article className={`metric ${tone}`}><span>{label}</span><strong>{number(value)}</strong>{note && <small>{note}</small>}</article>;
+  return <article className={`metric ${tone}`}><span>{label}</span><strong>{formatVideoOperationsMetric(value)}</strong>{note && <small>{note}</small>}</article>;
 }
 
 export default function VideoOperations() {
