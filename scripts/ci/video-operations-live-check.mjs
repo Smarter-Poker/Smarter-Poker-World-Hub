@@ -72,6 +72,12 @@ export function validateOperationsSnapshot(payload) {
   };
 }
 
+export function validatePrivateNoStoreCacheControl(value) {
+  const directives = new Set(String(value || '').split(',').map((part) => part.trim().toLowerCase()));
+  assert.ok(directives.has('private'), 'Operations response is not private');
+  assert.ok(directives.has('no-store'), 'Operations response is not no-store');
+}
+
 export function validateReceipt(receipt, expectedSha) {
   assert.equal(receipt.status, 'passed', 'Video Operations live verification did not pass');
   assert.equal(receipt.expectedSha, expectedSha, 'Receipt expected revision differs');
@@ -131,7 +137,7 @@ export async function runLiveVerification(env = process.env) {
       cache: 'no-store', redirect: 'error', signal: AbortSignal.timeout(20000),
     });
     assert.equal(response.status, 200, `Authenticated Video Operations API returned HTTP ${response.status}`);
-    assert.match(response.headers.get('cache-control') || '', /no-store/, 'Operations response is not private no-store data');
+    validatePrivateNoStoreCacheControl(response.headers.get('cache-control'));
     receipt.snapshot = validateOperationsSnapshot(await response.json());
 
     const finalHealth = await fetch(`${APP_ORIGIN}/api/health`, { cache: 'no-store', redirect: 'error', signal: AbortSignal.timeout(20000) });

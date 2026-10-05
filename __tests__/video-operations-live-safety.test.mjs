@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
-import { AUTH_ORIGIN, validateConfiguration, validateOperationsSnapshot, validateReceipt } from '../scripts/ci/video-operations-live-check.mjs';
+import { AUTH_ORIGIN, validateConfiguration, validateOperationsSnapshot, validatePrivateNoStoreCacheControl, validateReceipt } from '../scripts/ci/video-operations-live-check.mjs';
 
 const workflow = readFileSync(new URL('../.github/workflows/e2e-tests.yml', import.meta.url), 'utf8');
 const controls = ['video_library_discovery', 'video_library_enrichment', 'video_library_reel_creation', 'video_library_reel_publication', 'video_library_editorial_gate']
@@ -34,6 +34,13 @@ test('Video Operations live proof refuses missing configuration and private fiel
   const hostile = structuredClone(payload);
   hostile.snapshot.sources[0].provider_cursor = 'private';
   assert.throws(() => validateOperationsSnapshot(hostile), /private field provider_cursor/);
+});
+
+test('Video Operations live proof requires both private and no-store cache directives', () => {
+  assert.doesNotThrow(() => validatePrivateNoStoreCacheControl('private, no-store'));
+  assert.throws(() => validatePrivateNoStoreCacheControl('no-store'), /not private/);
+  assert.throws(() => validatePrivateNoStoreCacheControl('public, no-store'), /not private/);
+  assert.throws(() => validatePrivateNoStoreCacheControl('private'), /not no-store/);
 });
 
 test('Video Operations live receipt binds production SHA, deployment, sources, candidates, and controls', () => {
