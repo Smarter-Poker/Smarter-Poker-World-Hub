@@ -13,6 +13,8 @@
  *   node scripts/trivia-deterministic-seed.js --dry-run --category=gto_theory --target=10
  *   node scripts/trivia-deterministic-seed.js --live --category=gto_theory --target=1500
  *   node scripts/trivia-deterministic-seed.js --live --all
+ *   node scripts/trivia-deterministic-seed.js --repair-ev --dry-run --all
+ *   node scripts/trivia-deterministic-seed.js --repair-ev --live --all
  *
  * Categories handled:
  *   gto_theory, gto_scenarios, cash_game_situations, mtt_situations, icm_chip_ev
@@ -31,10 +33,11 @@ const { createSolverOperatorPool } = require('./lib/solver-operator-db');
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-if (!SUPABASE_URL || !SERVICE_KEY || !process.env.SUPABASE_DB_PASSWORD) {
+const EARLY_IS_REPAIR_EV = process.argv.includes('--repair-ev');
+if (!process.env.SUPABASE_DB_PASSWORD || (!EARLY_IS_REPAIR_EV && (!SUPABASE_URL || !SERVICE_KEY))) {
     console.error(
-        'Missing credentials. Set NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY '
-        + '(trivia_questions target only), and SUPABASE_DB_PASSWORD (solver warehouse reads).',
+        'Missing credentials. EV repair requires SUPABASE_DB_PASSWORD. Seeding also requires '
+        + 'NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY.',
     );
     process.exit(1);
 }
@@ -43,24 +46,43 @@ const args = process.argv.slice(2);
 const IS_DRY_RUN = args.includes('--dry-run');
 const IS_LIVE = args.includes('--live');
 const IS_ALL = args.includes('--all');
+const IS_REPAIR_EV = args.includes('--repair-ev');
 const VERBOSE = args.includes('--verbose');
 const ARG_CATEGORY = args.find(a => a.startsWith('--category='))?.split('=')[1];
 const ARG_TARGET = parseInt(args.find(a => a.startsWith('--target='))?.split('=')[1] || '0', 10);
 const ARG_OFFSET = parseInt(args.find(a => a.startsWith('--offset='))?.split('=')[1] || '0', 10);
 let selectTrustedSolverMatrix;
+let createAuthoritativeTriviaSolverEv;
+let sanitizeAuthoritativeTriviaSolverEv;
 let operatorPool;
 
 if (!IS_DRY_RUN && !IS_LIVE) {
-    console.error('Usage: node scripts/trivia-deterministic-seed.js [--dry-run|--live] [--category=X] [--target=N] [--all]');
+    console.error('Usage: node scripts/trivia-deterministic-seed.js [--dry-run|--live] [--repair-ev] [--category=X] [--target=N] [--all]');
+    process.exit(1);
+}
+if (IS_DRY_RUN && IS_LIVE) {
+    console.error('Choose exactly one write mode: --dry-run or --live.');
     process.exit(1);
 }
 
 // ─── HTTP CLIENT ──────────────────────────────────────────────────────────
-const HEADERS = {
-    'apikey': SERVICE_KEY,
-    'Authorization': `Bearer ${SERVICE_KEY}`,
-    'Content-Type': 'application/json',
-};
+function createSupabaseRestHeaders(serviceKey) {
+    const headers = {
+        'apikey': serviceKey,
+        'Content-Type': 'application/json',
+    };
+
+    // Modern Supabase secret keys are opaque API keys, not JWTs. Sending one
+    // as a Bearer token makes PostgREST attempt JWT parsing and reject it.
+    // Legacy service_role JWTs still require both headers for compatibility.
+    if (!serviceKey.startsWith('sb_secret_')) {
+        headers.Authorization = `Bearer ${serviceKey}`;
+    }
+
+    return headers;
+}
+
+const HEADERS = SERVICE_KEY ? createSupabaseRestHeaders(SERVICE_KEY) : null;
 
 async function fetchWithRetry(url, options) {
     let response;
@@ -81,7 +103,10 @@ async function fetchWithRetry(url, options) {
 const SOLVER_TABLE_COLUMNS = {
     solved_spots_gold: new Set([
         'id', 'scenario_hash', 'street', 'stack_depth', 'game_type',
-        'strategy_matrix', 'strategy_matrix_v2',
+        'strategy_matrix', 'strategy_matrix_v2', 'solver_version',
+        'solver_binary_checksum', 'machine_id', 'pipeline_commit',
+        'manifest_version', 'manifest_checksum', 'source_artifact_checksum',
+        'quality_status', 'audited_at',
     ]),
     memory_charts_gold: new Set([
         'chart_id', 'game_type', 'stack_depth', 'hero_position',
@@ -128,8 +153,36 @@ async function querySolverWarehouse(table, params = '') {
     const where = predicates.length ? ` WHERE ${predicates.join(' AND ')}` : '';
     if (!operatorPool) operatorPool = createSolverOperatorPool({ statementTimeout: 120_000, max: 2 });
     const orderBy = assertSolverColumn(SOLVER_TABLE_ORDER_BY[table], table);
+    // `solver_provenance_active` is computed in the same database snapshot as
+    // the artifact read. A well-shaped V2 JSON blob alone is not authority:
+    // its exact catalog identity and provenance tuple must both still be live.
+    const authorityProjection = table === 'solved_spots_gold' ? `,
+      EXISTS (
+        SELECT 1
+        FROM public.training_solver_artifact_catalog AS catalog
+        JOIN public.training_solver_provenance_authority AS authority
+          ON authority.machine_id = public."solved_spots_gold".machine_id
+         AND authority.solver_version = public."solved_spots_gold".solver_version
+         AND authority.solver_binary_checksum = public."solved_spots_gold".solver_binary_checksum
+         AND authority.pipeline_commit = public."solved_spots_gold".pipeline_commit
+         AND authority.manifest_version = public."solved_spots_gold".manifest_version
+         AND authority.manifest_checksum = public."solved_spots_gold".manifest_checksum
+         AND authority.source_combo_order_sha256 =
+             public."solved_spots_gold".strategy_matrix_v2 ->> 'source_combo_order_sha256'
+         AND authority.training_game_contracts_sha256 =
+             public."solved_spots_gold".strategy_matrix_v2 ->> 'training_game_contracts_sha256'
+         AND authority.retired_at IS NULL
+        WHERE catalog.artifact_id = public."solved_spots_gold".id
+          AND catalog.scenario_hash = public."solved_spots_gold".scenario_hash
+          AND catalog.game_type = public."solved_spots_gold".game_type
+          AND catalog.stack_depth = public."solved_spots_gold".stack_depth
+          AND catalog.street = public."solved_spots_gold".street
+          AND catalog.hero_position = public."solved_spots_gold".strategy_matrix_v2 ->> 'position'
+          AND public."solved_spots_gold".quality_status = 'validated'
+          AND public."solved_spots_gold".audited_at IS NOT NULL
+      ) AS solver_provenance_active` : '';
     const result = await operatorPool.query(
-        `SELECT ${columns} FROM public."${table}"${where} ORDER BY ${orderBy} ASC LIMIT ${limit} OFFSET ${offset}`,
+        `SELECT ${columns}${authorityProjection} FROM public."${table}"${where} ORDER BY ${orderBy} ASC LIMIT ${limit} OFFSET ${offset}`,
         values,
     );
     return result.rows;
@@ -296,6 +349,11 @@ function buildQuestionFromScenario(scenario, questionIndex) {
 
     const seed = hashSeed(`${scenario.scenario_hash || scenario.id}_${questionIndex}`);
     const heroHand = allHands[seed % allHands.length];
+    const solverEvData = createAuthoritativeTriviaSolverEv({
+        row: scenario,
+        matrix: sm,
+        heroHand,
+    });
 
     // Per-action frequencies for this hand
     const handActions = {};
@@ -487,6 +545,7 @@ function buildQuestionFromScenario(scenario, questionIndex) {
         stackDepth: scenario.stack_depth,
         gameType: scenario.game_type,
         isMixedStrategy: maxFreq < 0.95 && validActions.filter(a => handActions[a] > 0.05).length > 1,
+        solverEvData,
     };
 }
 
@@ -689,6 +748,7 @@ function buildTriviaRow(question, category, difficulty) {
             stack_depth: question.stackDepth || null,
             game_type: question.gameType || null,
             gto_frequencies: question.gtoFrequencies || null,
+            ...(question.solverEvData ? { ev_data: question.solverEvData } : {}),
             correct_action: question.correctAction || null,
             mixed_strategy: question.isMixedStrategy === true,
         },
@@ -742,6 +802,204 @@ async function loadServableQuestionSet() {
     }
     servableQuestionsCache = existing;
     return servableQuestionsCache;
+}
+
+async function loadDeterministicEvRepairRows(category = null) {
+    const rows = [];
+    let lastId = null;
+    while (true) {
+        if (!operatorPool) operatorPool = createSolverOperatorPool({ statementTimeout: 120_000, max: 2 });
+        const page = (await operatorPool.query(`
+          SELECT id, category, engine_metadata
+          FROM public.trivia_questions
+          WHERE source = 'deterministic'
+            AND ($1::text IS NULL OR category = $1::text)
+            AND ($2::uuid IS NULL OR id > $2::uuid)
+          ORDER BY id ASC
+          LIMIT 1000
+        `, [category, lastId])).rows;
+        if (!page || page.length === 0) break;
+        rows.push(...page);
+        if (page.length < 1000) break;
+        lastId = page[page.length - 1]?.id;
+        if (!lastId) throw new Error('EV repair pagination returned no cursor.');
+    }
+    return rows;
+}
+
+async function loadAuthoritativeSolverArtifactsById(artifactIds) {
+    const ids = [...new Set(artifactIds)].filter(id => (
+        typeof id === 'string'
+        && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)
+    ));
+    if (ids.length === 0) return [];
+    if (!operatorPool) operatorPool = createSolverOperatorPool({ statementTimeout: 120_000, max: 2 });
+    const result = await operatorPool.query(`
+      SELECT
+        artifact.id, artifact.scenario_hash, artifact.street, artifact.stack_depth,
+        artifact.game_type, artifact.strategy_matrix_v2, artifact.solver_version,
+        artifact.solver_binary_checksum, artifact.machine_id, artifact.pipeline_commit,
+        artifact.manifest_version, artifact.manifest_checksum,
+        artifact.source_artifact_checksum, artifact.quality_status,
+        artifact.audited_at, true AS solver_provenance_active
+      FROM public.training_solver_artifact_catalog AS catalog
+      JOIN public.solved_spots_gold AS artifact
+        ON artifact.id = catalog.artifact_id
+       AND artifact.scenario_hash = catalog.scenario_hash
+       AND artifact.game_type = catalog.game_type
+       AND artifact.stack_depth = catalog.stack_depth
+       AND artifact.street = catalog.street
+       AND artifact.strategy_matrix_v2 ->> 'position' = catalog.hero_position
+      JOIN public.training_solver_provenance_authority AS authority
+        ON authority.machine_id = artifact.machine_id
+       AND authority.solver_version = artifact.solver_version
+       AND authority.solver_binary_checksum = artifact.solver_binary_checksum
+       AND authority.pipeline_commit = artifact.pipeline_commit
+       AND authority.manifest_version = artifact.manifest_version
+       AND authority.manifest_checksum = artifact.manifest_checksum
+       AND authority.source_combo_order_sha256 =
+           artifact.strategy_matrix_v2 ->> 'source_combo_order_sha256'
+       AND authority.training_game_contracts_sha256 =
+           artifact.strategy_matrix_v2 ->> 'training_game_contracts_sha256'
+       AND authority.retired_at IS NULL
+      WHERE artifact.id = ANY($1::uuid[])
+        AND artifact.quality_status = 'validated'
+        AND artifact.audited_at IS NOT NULL
+      ORDER BY artifact.id ASC
+    `, [ids]);
+    return result.rows;
+}
+
+function stableJsonValue(value) {
+    if (Array.isArray(value)) return value.map(stableJsonValue);
+    if (!value || typeof value !== 'object') return value;
+    return Object.fromEntries(
+        Object.keys(value).sort().map(key => [key, stableJsonValue(value[key])]),
+    );
+}
+
+function sameJson(left, right) {
+    return JSON.stringify(stableJsonValue(left)) === JSON.stringify(stableJsonValue(right));
+}
+
+async function readTriviaEngineMetadata(questionId) {
+    if (!operatorPool) operatorPool = createSolverOperatorPool({ statementTimeout: 120_000, max: 2 });
+    const result = await operatorPool.query(
+        'SELECT engine_metadata FROM public.trivia_questions WHERE id = $1::uuid LIMIT 1',
+        [questionId],
+    );
+    return result.rows?.[0]?.engine_metadata || null;
+}
+
+async function patchTriviaEngineMetadata(target, metadata, nextMetadata) {
+    if (!operatorPool) operatorPool = createSolverOperatorPool({ statementTimeout: 120_000, max: 2 });
+    try {
+        const result = await operatorPool.query(`
+          UPDATE public.trivia_questions
+          SET engine_metadata = $3::jsonb,
+              updated_at = now()
+          WHERE id = $1::uuid
+            AND source = 'deterministic'
+            AND engine_metadata = $2::jsonb
+          RETURNING id, engine_metadata
+        `, [target.id, JSON.stringify(metadata), JSON.stringify(nextMetadata)]);
+        if (result.rows.length === 1) return result.rows;
+
+        const durable = await readTriviaEngineMetadata(target.id);
+        if (sameJson(durable, nextMetadata)) return [{ id: target.id, engine_metadata: durable }];
+        return [];
+    } catch (error) {
+        // A transport failure can make the commit outcome unknown. Read the
+        // durable row before allowing an operator to retry a possible effect.
+        const durable = await readTriviaEngineMetadata(target.id);
+        if (sameJson(durable, nextMetadata)) return [{ id: target.id, engine_metadata: durable }];
+        throw new Error(`EV metadata patch outcome unknown: ${error?.message || error}`);
+    }
+}
+
+async function repairOneSolverEv(target, artifact) {
+    const metadata = target?.engine_metadata && typeof target.engine_metadata === 'object'
+        && !Array.isArray(target.engine_metadata)
+        ? target.engine_metadata
+        : null;
+    if (!metadata || !artifact || metadata.scenario_hash !== artifact.scenario_hash) {
+        return { status: 'unverified' };
+    }
+    const matrix = selectTrustedSolverMatrix(artifact);
+    const evData = createAuthoritativeTriviaSolverEv({
+        row: artifact,
+        matrix,
+        heroHand: metadata.hero_hand,
+    });
+    if (!evData) return { status: 'unverified' };
+    const existing = sanitizeAuthoritativeTriviaSolverEv(metadata.ev_data);
+    if (existing && sameJson(existing, evData)) return { status: 'current' };
+    if (IS_DRY_RUN) return { status: 'repairable' };
+
+    const nextMetadata = { ...metadata, ev_data: evData };
+    // Match the exact metadata snapshot we read. If another writer changes the
+    // row first, PostgREST updates zero rows and this operation fails instead
+    // of erasing their concurrent keys with a stale JSON document.
+    const updated = await patchTriviaEngineMetadata(target, metadata, nextMetadata);
+    if (!Array.isArray(updated) || updated.length !== 1) return { status: 'conflict' };
+    const readback = sanitizeAuthoritativeTriviaSolverEv(updated[0]?.engine_metadata?.ev_data);
+    return readback && sameJson(readback, evData)
+        ? { status: 'updated' }
+        : { status: 'invalid_readback' };
+}
+
+/**
+ * Maintained backfill for deterministic rows created before EV provenance
+ * existed. It resolves each question by its immutable solver artifact id,
+ * reads only artifacts admitted by the live catalog/authority join, then uses
+ * an optimistic metadata compare-and-swap plus readback. It never derives EV
+ * from legacy V1 rows or from a scenario-hash guess.
+ */
+async function repairSolverEvMetadata(category = null) {
+    const targets = await loadDeterministicEvRepairRows(category);
+    const eligible = targets.filter(target => {
+        const metadata = target?.engine_metadata;
+        return metadata && typeof metadata === 'object'
+            && typeof metadata.scenario_id === 'string'
+            && typeof metadata.scenario_hash === 'string'
+            && typeof metadata.hero_hand === 'string';
+    });
+    const counts = {
+        scanned: targets.length,
+        eligible: eligible.length,
+        current: 0,
+        repairable: 0,
+        updated: 0,
+        unverified: targets.length - eligible.length,
+        conflict: 0,
+        invalid_readback: 0,
+    };
+
+    for (let index = 0; index < eligible.length; index += 75) {
+        const batch = eligible.slice(index, index + 75);
+        const artifacts = await loadAuthoritativeSolverArtifactsById(
+            batch.map(target => target.engine_metadata.scenario_id),
+        );
+        const byId = new Map(artifacts.map(artifact => [String(artifact.id), artifact]));
+        for (let inner = 0; inner < batch.length; inner += 4) {
+            const outcomes = await Promise.all(batch.slice(inner, inner + 4).map(target => (
+                repairOneSolverEv(target, byId.get(String(target.engine_metadata.scenario_id)))
+            )));
+            outcomes.forEach(({ status }) => { counts[status] = (counts[status] || 0) + 1; });
+        }
+    }
+
+    const mode = IS_DRY_RUN ? 'would repair' : 'updated';
+    console.log(`   EV provenance repair: scanned=${counts.scanned} eligible=${counts.eligible} current=${counts.current}`);
+    console.log(`   ${mode}=${IS_DRY_RUN ? counts.repairable : counts.updated} unverified=${counts.unverified}`);
+    if (counts.conflict || counts.invalid_readback) {
+        throw new Error(`EV repair failed closed: conflicts=${counts.conflict}, invalid_readback=${counts.invalid_readback}`);
+    }
+    return {
+        category: category || 'all deterministic strategy rows',
+        generated: IS_DRY_RUN ? counts.repairable : counts.updated,
+        repair: counts,
+    };
 }
 
 // ─── MAIN PER-CATEGORY DRIVER ─────────────────────────────────────────────
@@ -808,7 +1066,9 @@ async function seedCategory(category, target) {
         try {
             const select = source.table === 'memory_charts_gold'
                 ? 'chart_id,game_type,stack_depth,hero_position,villain_action,hand_matrix'
-                : 'id,scenario_hash,street,stack_depth,game_type,strategy_matrix,strategy_matrix_v2';
+                : 'id,scenario_hash,street,stack_depth,game_type,strategy_matrix,strategy_matrix_v2,'
+                  + 'solver_version,solver_binary_checksum,machine_id,pipeline_commit,manifest_version,'
+                  + 'manifest_checksum,source_artifact_checksum,quality_status,audited_at';
             pool = await supabaseQueryPaginated(source.table,
                 `?select=${select}${source.filter}`, POOL_SIZE, ARG_OFFSET);
             console.log(`   pool from ${source.table}${source.filter}: ${pool.length} rows`
@@ -913,13 +1173,32 @@ async function main() {
     ({ selectTrustedSolverMatrix } = await import(pathToFileURL(
         path.join(__dirname, '../src/lib/training/solverMatrixTrust.js'),
     ).href));
+    ({
+        createAuthoritativeTriviaSolverEv,
+        sanitizeAuthoritativeTriviaSolverEv,
+    } = await import(pathToFileURL(
+        path.join(__dirname, '../src/lib/trivia/solverEvPolicy.mjs'),
+    ).href));
     const t0 = Date.now();
     console.log('═══════════════════════════════════════════════════════════════');
     console.log(`🎯 TRIVIA DETERMINISTIC SEEDER`);
     console.log(`   Mode:     ${IS_LIVE ? '🚀 LIVE (writes to DB)' : '🔍 DRY RUN'}`);
+    if (IS_REPAIR_EV) console.log('   Operation: repair authoritative V2 EV provenance');
     if (ARG_CATEGORY) console.log(`   Category: ${ARG_CATEGORY}`);
     if (IS_ALL) console.log(`   Scope:    all 5 strategy categories`);
     console.log('═══════════════════════════════════════════════════════════════');
+
+    if (IS_REPAIR_EV) {
+        if (ARG_CATEGORY && !CATEGORY_CONFIG[ARG_CATEGORY]) {
+            throw new Error(`Unknown category: ${ARG_CATEGORY}`);
+        }
+        const result = await repairSolverEvMetadata(ARG_CATEGORY || null);
+        const elapsed = ((Date.now() - t0) / 1000).toFixed(1);
+        console.log('\n═══ EV REPAIR SUMMARY ═══');
+        console.log(`  ${result.category}: ${result.generated}`);
+        console.log(`  elapsed: ${elapsed}s`);
+        return;
+    }
 
     let categories;
     if (IS_ALL) {

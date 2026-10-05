@@ -16,7 +16,7 @@ import { useRouter } from 'next/router';
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../../../src/lib/supabase';
 import { busEmit } from '../../../src/engine/EventBus';
-import { getAuthUser } from '../../../src/lib/authUtils';
+import { getAccessToken, getAuthUser } from '../../../src/lib/authUtils';
 import { useAvatar } from '../../../src/contexts/AvatarContext';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
@@ -28,15 +28,26 @@ import {
     getCategoryName,
 } from '../../../src/lib/trivia/triviaEngine';
 import useServerGradedRun from '../../../src/hooks/useServerGradedRun';
-import useTriviaTimer from '../../../src/hooks/useTriviaTimer';
 import { toTitleCase } from '../../../src/lib/trivia/titleCase';
 import { formatTriviaDisplayNumber } from '../../lib/trivia/formatTriviaDisplayNumber';
 import GTOScenarioDisplay from './GTOScenarioDisplay';
+import ReportQuestionButton from './ReportQuestionButton';
 import TriviaSkeleton from './TriviaSkeleton';
 import TriviaConsole from './console/TriviaConsole';
 import TriviaConsoleDialog from './console/TriviaConsoleDialog';
 import ResponsiveModeArt from './console/ResponsiveModeArt';
 import { TRIVIA_INTRO_ART_CASH, TRIVIA_INTRO_ART_GTO, TRIVIA_INTRO_ART_ICM, TRIVIA_INTRO_ART_MTT } from '../../config/triviaIntroArt.mjs';
+import {
+    buildStrategyQuestionContext,
+    readStrategySolverMetadata,
+    strategyQuestionIntegrity,
+    strategyResumeProgress,
+} from './strategyExperienceModel.mjs';
+import { createSoloJourneyTracker } from '../../lib/trivia/soloJourneyAnalytics.mjs';
+import {
+    createAccountOperationScope,
+    isStaleAccountOperation,
+} from '../../lib/trivia/accountOperationScope.mjs';
 
 /** Format poker text: enforce BB/SB spacing and capitalization rules */
 function formatPokerText(text) {
@@ -59,7 +70,6 @@ function formatPokerText(text) {
         .replace(/\bbig[- ]blind\b/gi, 'Big-Blind')
         .replace(/\bsmall[- ]blind\b/gi, 'Small-Blind');
 }
-import GameCostPopup from '../gates/GameCostPopup';
 import DiamondEngine from '../../services/DiamondEngine';
 import useVIP from '../../hooks/useVIP';
 import { readOwnProfile } from '../../lib/ownProfile';
@@ -79,7 +89,6 @@ function getEntryCost(mode) {
 }
 
 const QUESTIONS_PER_GAME = 20;
-const SECONDS_PER_QUESTION = 60;
 
 // Strategy mode configuration - display only. The question draw itself is
 // server-side: /api/trivia/session-start resolves each mode through
@@ -89,19 +98,27 @@ const SECONDS_PER_QUESTION = 60;
 const STRATEGY_MODES = {
     mtt: {
         title: 'MTT Scenarios',
-        subtitle: 'Tournament Situations'
+        subtitle: 'Tournament Situations',
+        station: 'Tournament Decision Room',
+        description: 'Read The Blind Level, Stack Pressure, Position And Payout Stage Before You Commit To A Tournament Line.'
     },
     cash: {
         title: 'Cash Game',
-        subtitle: 'Deep Stack Scenarios'
+        subtitle: 'Deep Stack Scenarios',
+        station: 'High-Limit Cash Room',
+        description: 'Work Through Real Cash-Table Decisions With Stakes, Effective Stack, Position, Street And Pot Context In View.'
     },
     icm: {
         title: 'ICM & Chip EV',
-        subtitle: 'Equity Decisions'
+        subtitle: 'Equity Decisions',
+        station: 'Tournament Equity Desk',
+        description: 'Separate Chips Gained From Payout Equity Gained, Then Choose The Line That Fits The Actual Tournament Pressure.'
     },
     gto: {
         title: 'GTO Master',
-        subtitle: 'Solver-Based Spots'
+        subtitle: 'Solver-Based Spots',
+        station: 'Solver Analysis Booth',
+        description: 'Lock Your Decision First, Then Read The Server-Released Frequency Mix, Range Distribution And EV Without Invented Solver Numbers.'
     }
 };
 
@@ -113,83 +130,6 @@ const MODE_ART = {
     icm: TRIVIA_INTRO_ART_ICM,
     gto: TRIVIA_INTRO_ART_GTO,
 };
-
-// Helper functions for GTO analysis generation.
-// The correct answer text now arrives from the server verdict
-// (correctDisplayIndex) - the question object carries no answer key.
-function generateGTOApproach(category, correctAnswerText) {
-    const correctAnswer = correctAnswerText || '';
-
-    const approaches = {
-        'gto_theory': `Solver-based strategy involves a balanced range construction. ${correctAnswer.includes('bet') || correctAnswer.includes('raise') ? 'By taking aggressive action here, we build the pot while protecting our equity.' : 'This line optimizes our expected value against a balanced opponent strategy.'}`,
-        'mtt_situations': `In tournament play, ICM pressure and stack dynamics dictate optimal frequencies. ${correctAnswer.includes('fold') ? 'Folding here preserves tournament equity by avoiding marginal situations.' : 'This aggressive line maximizes fold equity while maintaining tournament life.'}`,
-        'cash_game_situations': `Deep stack play requires careful consideration of implied odds and equity realization. ${correctAnswer.includes('call') ? 'Calling preserves stack-to-pot ratio advantages for future streets.' : 'This sizing exploits our range advantage on this texture.'}`,
-        'icm_chip_ev': `ICM calculations show significant risk premium in this spot. The chip EV vs $EV differential requires adjusting our standard frequencies to account for pay jump implications.`
-    };
-
-    return approaches[category] || 'This action maximizes expected value given the game tree and opponent tendencies.';
-}
-
-/**
- * REAL solver metadata only.
- * ═══════════════════════════════════════════════════════════════════════
- * This used to be generateEVAnalysis()/generateAlternateLines(): a fixed EV of
- * +0.85/+1.25/+1.75 BB keyed on difficulty alone, and 15%/10%/5% frequencies
- * assigned by option POSITION, presented to the player as solver output. Any
- * competent player spots identical "solver" numbers on every question, and the
- * product's whole claim is credibility.
- *
- * Now the panel renders numbers only when the question row actually carries
- * them in trivia_questions.engine_metadata (Phase 49 column: gtoFrequencies,
- * evData). When it does not, the EV/alternate-lines sections are omitted and
- * only the question's own explanation is shown.
- *
- * @returns {{confidence:number|null, evAnalysis:object|null, alternateLines:object[]}}
- */
-function readSolverMetadata(question) {
-    const empty = { confidence: null, evAnalysis: null, alternateLines: [] };
-    const meta = question?.engine_metadata;
-    if (!meta || typeof meta !== 'object') return empty;
-
-    const out = { ...empty };
-
-    // EV — accept evData.ev / evData.value / evBB, in big blinds.
-    const ev = meta.evData ?? meta.ev ?? null;
-    const evValue = typeof ev === 'number'
-        ? ev
-        : (Number.isFinite(ev?.ev) ? ev.ev : (Number.isFinite(ev?.value) ? ev.value : null));
-    if (Number.isFinite(evValue)) {
-        out.evAnalysis = {
-            value: Math.round(evValue * 100) / 100,
-            description: typeof ev?.description === 'string'
-                ? ev.description
-                : 'Expected Value Of The Solver-Preferred Line For This Spot, In Big Blinds.',
-        };
-    }
-
-    // Frequencies — { FOLD: 12, CALL: 33, ... } or [{action, frequency}]
-    const freqs = meta.gtoFrequencies ?? meta.frequencies ?? null;
-    let rows = [];
-    if (Array.isArray(freqs)) {
-        rows = freqs
-            .filter(f => f && typeof f.action === 'string' && Number.isFinite(f.frequency))
-            .map(f => ({ action: String(f.action).toUpperCase(), frequency: Math.round(f.frequency), description: f.description || '' }));
-    } else if (freqs && typeof freqs === 'object') {
-        rows = Object.entries(freqs)
-            .filter(([, v]) => Number.isFinite(v))
-            .map(([k, v]) => ({ action: String(k).toUpperCase(), frequency: Math.round(v), description: '' }));
-    }
-    if (rows.length > 0) {
-        rows.sort((a, b) => b.frequency - a.frequency);
-        out.confidence = Math.max(0, Math.min(100, rows[0].frequency));
-        out.alternateLines = rows.slice(1, 3).map(r => ({
-            ...r,
-            description: r.description || 'Mixed-Strategy Branch Reported By The Solver For This Node.',
-        }));
-    }
-
-    return out;
-}
 
 // ════════════════════════════════════════════════
 // Graphic Playing Card Renderer
@@ -289,6 +229,20 @@ function renderTextWithCards(text, transform) {
 export default function StrategyTrivia({ mode }) {
     const router = useRouter();
     const config = STRATEGY_MODES[mode] || STRATEGY_MODES.mtt;
+    const soloJourneyTrackerRef = useRef(null);
+    if (!soloJourneyTrackerRef.current) soloJourneyTrackerRef.current = createSoloJourneyTracker();
+    const soloRunLifecycleRef = useRef({ active: false, settled: false, mode, state: 'playing' });
+    const resumeRetryRef = useRef(false);
+
+    useEffect(() => () => {
+        const lifecycle = soloRunLifecycleRef.current;
+        if (lifecycle.active && !lifecycle.settled) {
+            soloJourneyTrackerRef.current.track(lifecycle.mode, 'abandon', {
+                surface: 'strategy',
+                abandon_state: lifecycle.state === 'settling' ? 'settling' : 'playing',
+            });
+        }
+    }, []);
 
     // ═══════════════════════════════════════════════════════════════
     // HARDENED: Source VIP status from centralized useVIP hook
@@ -311,14 +265,12 @@ export default function StrategyTrivia({ mode }) {
     const [showResult, setShowResult] = useState(false);
     const [correctCount, setCorrectCount] = useState(0);
 
-    // Server-authoritative run: session-start deals (and permutes) the
-    // questions, session-answer grades each tap, session-submit caps and
-    // pays. The client never receives an answer key.
-    const serverRun = useServerGradedRun(mode);
     // Current question's server verdict (wasCorrect / correctDisplayIndex /
     // explanation); null until session-answer resolves, cleared on advance.
     // The whole reveal is driven from this.
     const [verdict, setVerdict] = useState(null);
+    const [answerPending, setAnswerPending] = useState(false);
+    const [answerFailure, setAnswerFailure] = useState(null);
     // Locks taps from the moment of the tap until the question advances, so a
     // slow session-answer round-trip cannot accept a second answer.
     const answerLockRef = useRef(false);
@@ -344,18 +296,52 @@ export default function StrategyTrivia({ mode }) {
     // Final tally for the results screen: server-graded correct / total.
     const [resultSummary, setResultSummary] = useState(null);
     const [resultCapped, setResultCapped] = useState(false);
+    const [settlementReceipt, setSettlementReceipt] = useState(null);
+    const [settlementReplayed, setSettlementReplayed] = useState(false);
+    const [balanceRefreshDelayed, setBalanceRefreshDelayed] = useState(false);
+    const [entryReceipt, setEntryReceipt] = useState(null);
     // Entry-flow error (session-start failure, signed-out, etc.)
     const [entryError, setEntryError] = useState(null);
     const [isPreparing, setIsPreparing] = useState(false);
+    const [resumeNotice, setResumeNotice] = useState(null);
+    const [isOnline, setIsOnline] = useState(true);
+    const [runContract, setRunContract] = useState(null);
+    const [runExpiresAt, setRunExpiresAt] = useState(null);
+    const [timerSeconds, setTimerSeconds] = useState(null);
 
     // User data — userId from useVIP, fallback to getAuthUser
     const [localUserId, setLocalUserId] = useState(null);
-    const userId = vipUserId || localUserId;
+    const authIdentityRef = useRef(null);
+    const accountOperationScopeRef = useRef(null);
+    if (!accountOperationScopeRef.current) {
+        accountOperationScopeRef.current = createAccountOperationScope();
+    }
+    const userId = avatarLoading
+        ? (vipUserId || localUserId)
+        : (avatarUser?.id || getAuthUser()?.id || null);
+    if (!avatarLoading) accountOperationScopeRef.current.transition(userId);
     const [userDiamonds, setUserDiamonds] = useState(0);
     const [isLoading, setIsLoading] = useState(true);
 
-    const startTimeRef = useRef(null);
+    // Server-authoritative run: session-start deals (and permutes) the
+    // questions, session-answer grades each tap, session-submit caps and
+    // pays. The durable adapter scopes recovery to this account and resolves
+    // a fresh token for every request, so auth rotation and reload do not
+    // orphan a charged run.
+    const serverRun = useServerGradedRun(mode, {
+        accountId: userId,
+        accessTokenProvider: getAccessToken,
+    });
+
+    useEffect(() => {
+        if (gameState === 'results' && settlementReceipt?.sessionId) {
+            serverRun.acknowledgeSettlement();
+        }
+    }, [gameState, settlementReceipt?.sessionId, serverRun.acknowledgeSettlement]);
+
     const isStartingRef = useRef(false); // Prevent double-click race
+    const startOperationRef = useRef(null);
+    const answerOperationRef = useRef(null);
     // Per question index: { questionId, displayIndex } as recorded through
     // session-answer at tap time. This is what session-submit grades from;
     // questions that never reached session-answer are filled in as -1
@@ -364,73 +350,206 @@ export default function StrategyTrivia({ mode }) {
 
     const finishedRef = useRef(false);      // finishGame runs at most once per game
     const advanceLockRef = useRef(false);   // Next button double-click guard
+    const gameSurfaceRef = useRef(null);
+    const questionHeadingRef = useRef(null);
+    const timedOutQuestionRef = useRef(null);
 
     // Entry price for this mode (config first, see getEntryCost).
     const entryCost = getEntryCost(mode);
 
     const currentQuestion = questions[currentQuestionIndex];
+    const currentQuestionId = typeof currentQuestion?.id === 'string' && currentQuestion.id
+        ? currentQuestion.id
+        : null;
+    const currentQuestionIntegrity = strategyQuestionIntegrity(currentQuestion);
+    const currentContext = buildStrategyQuestionContext(mode, currentQuestion);
+    const contractTimer = runContract?.timer && typeof runContract.timer === 'object'
+        ? runContract.timer
+        : null;
+    const timerDeadline = currentQuestion?.deadlineAt
+        || currentQuestion?.deadline_at
+        || contractTimer?.deadlineAt
+        || contractTimer?.deadline_at
+        || null;
+    const timerDeadlineMs = typeof timerDeadline === 'string' || typeof timerDeadline === 'number'
+        ? Date.parse(String(timerDeadline))
+        : NaN;
+    const hasAuthoritativeShotClock = contractTimer?.kind === 'shot_clock'
+        && Number.isFinite(timerDeadlineMs);
 
     // Initialize. Re-runs on auth resolution so the user is properly wired up
     // even if AvatarContext was still loading on first render.
     useEffect(() => {
         if (avatarLoading) return;
         const user = avatarUser || getAuthUser();
+        const nextUserId = user?.id || null;
+        const identityChanged = authIdentityRef.current !== nextUserId;
+        const previousUserId = authIdentityRef.current;
+        authIdentityRef.current = nextUserId;
+        accountOperationScopeRef.current.transition(nextUserId);
+        if (nextUserId) setLocalUserId(nextUserId);
+        else setLocalUserId(null);
+        if (identityChanged) {
+            // A result or balance from account A must never survive under
+            // account B. The old account's durable recovery record remains
+            // stored under its own key and can be resumed after switching back.
+            setUserDiamonds(0);
+            setQuestions([]);
+            setCurrentQuestionIndex(0);
+            setSelectedAnswer(null);
+            setShowResult(false);
+            setCorrectCount(0);
+            setVerdict(null);
+            setAnswerPending(false);
+            setAnswerFailure(null);
+            setResultActualAwarded(null);
+            setResultAwardError(null);
+            setResultSummary(null);
+            setResultCapped(false);
+            setSettlementReceipt(null);
+            setSettlementReplayed(false);
+            setEntryReceipt(null);
+            setEntryError(null);
+            setRunContract(null);
+            setRunExpiresAt(null);
+            setResumeNotice(null);
+            setIsPreparing(false);
+            setBalanceRefreshDelayed(false);
+            answersRef.current = [];
+            serverResultRef.current = null;
+            startOperationRef.current = null;
+            answerOperationRef.current = null;
+            isStartingRef.current = false;
+            answerLockRef.current = false;
+            finishedRef.current = false;
+            if (previousUserId) setGameState('lobby');
+        }
         if (user) {
-            setLocalUserId(user.id);
             loadUserDiamonds(user.id);
             DiamondEngine.init(user.id);
         }
         setIsLoading(false);
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [avatarUser?.id, avatarLoading]);
 
+    useEffect(() => {
+        if (typeof window === 'undefined') return undefined;
+        const update = () => setIsOnline(window.navigator.onLine !== false);
+        update();
+        window.addEventListener('online', update);
+        window.addEventListener('offline', update);
+        return () => {
+            window.removeEventListener('online', update);
+            window.removeEventListener('offline', update);
+        };
+    }, []);
+
     async function loadUserDiamonds(uid) {
+        const operationScope = accountOperationScopeRef.current.capture();
+        if (operationScope.identity !== uid) return;
         try {
             const { data: profile } = await readOwnProfile(supabase, 'diamonds', { expectId: uid });
+            if (authIdentityRef.current !== uid
+                || !accountOperationScopeRef.current.isCurrent(operationScope)) return;
             if (profile) {
                 setUserDiamonds(profile.diamonds || 0);
             }
         } catch (e) {
             console.warn('[StrategyTrivia] Failed to load diamonds:', e);
+            // Never leave a prior account's balance visible after an auth
+            // boundary if the fresh profile read fails.
+            if (authIdentityRef.current === uid
+                && accountOperationScopeRef.current.isCurrent(operationScope)) setUserDiamonds(0);
         }
     }
 
-    // ══ TIMER ══
-    // Was a setInterval whose updater called handleTimeout() — a side effect
-    // inside a setState updater. React 18 may invoke updaters twice, and
-    // handleTimeout -> gradeAnswer(-1) records an answer, so a double
-    // invocation could fire twice (gradeAnswer's answerLockRef also guards
-    // this now). The shared hook keeps its updater pure, fires onTimeout
-    // once, is anchored to a wall-clock deadline (no drift) and pauses when
-    // the tab is hidden instead of burning the clock in the background.
-    const { timeLeft, resetTimer, setIsTimerRunning } = useTriviaTimer({
-        initialTime: SECONDS_PER_QUESTION,
-        showResult,
-        gameState,
-        playingState: 'playing',
-        pauseOnHide: true,
-        onTimeout: () => { handleTimeout(); },
-    });
+    async function adoptServedRun(served, operationScope) {
+        if (!accountOperationScopeRef.current.isCurrent(operationScope)) return false;
+        if (!served || !Array.isArray(served.questions) || served.questions.length === 0) {
+            setEntryError('The Server Did Not Return A Playable Roster. Retry This Same Entry Request.');
+            return false;
+        }
 
-    /**
-     * Start (or restart) a game.
-     *
-     * ORDER MATTERS: the server session is opened BEFORE the entry charge, so
-     * a start failure can never eat an entry fee, and every charge-failure
-     * path abandons the session via serverRun.reset() (it expires server-side
-     * and pays nothing). The server deals (and permutes) the questions - they
-     * are used VERBATIM, because reshuffling them or their options would
-     * break the display-index mapping the grader uses. Play Again gets a
-     * fresh draw for free: session-start records the served ids into
-     * trivia_user_question_history at serve time, so the next session's
-     * 60-day exclusion already covers this run.
-     */
+        // Questions and options stay in the server's order. Reordering either
+        // would break the persisted display-index mapping used by grading.
+        const set = served.questions;
+        soloJourneyTrackerRef.current.beginRun(served.sessionId || serverRun.sessionId);
+        soloRunLifecycleRef.current = { active: true, settled: false, mode, state: 'playing' };
+        const progress = strategyResumeProgress(set);
+        const restoredCorrect = set.filter(question => question?.answerState?.wasCorrect === true).length;
+        answersRef.current = set.map(question => {
+            const state = question?.answerState || question?.answer || null;
+            const displayIndex = Number(state?.storedDisplayIndex);
+            return Number.isInteger(displayIndex)
+                ? {
+                    questionId: question.id,
+                    displayIndex,
+                    voided: state?.voided === true || state?.outcome === 'voided',
+                }
+                : null;
+        });
+
+        if (Number.isFinite(served.newBalance)) setUserDiamonds(served.newBalance);
+        if (served.entryState === 'charged' && served.entryCost > 0 && served.resumed !== true) {
+            busEmit.diamondsSpent(served.entryCost, `${config.title} Entry`);
+        }
+
+        finishedRef.current = false;
+        advanceLockRef.current = false;
+        answerLockRef.current = false;
+        serverResultRef.current = null;
+        setQuestions(set);
+        setResultActualAwarded(null);
+        setResultAwardError(null);
+        setResultSummary(null);
+        setResultCapped(false);
+        setSettlementReceipt(null);
+        setSettlementReplayed(false);
+        setBalanceRefreshDelayed(false);
+        setRunContract(served.contract && typeof served.contract === 'object' ? served.contract : null);
+        setRunExpiresAt(served.expiresAt || null);
+        setTimerSeconds(null);
+        setEntryReceipt({
+            sessionId: served.sessionId || serverRun.sessionId || null,
+            entryCost: Number(served.entryCost) || 0,
+            entryState: served.entryState || 'free',
+            resumed: served.resumed === true,
+        });
+        setGameState('playing');
+        setCurrentQuestionIndex(progress.firstUnanswered >= 0 ? progress.firstUnanswered : Math.max(0, set.length - 1));
+        setCorrectCount(restoredCorrect);
+        setVerdict(null);
+        setSelectedAnswer(null);
+        setAnswerPending(false);
+        setAnswerFailure(null);
+        setShowResult(false);
+        setEntryError(null);
+        setResumeNotice(served.resumed === true
+            ? `Run Resumed At Question ${Math.min(set.length, progress.answered + 1)} Of ${set.length}. Previously Locked Answers Stay Binding.`
+            : null);
+
+        if (progress.allAnswered) {
+            setResumeNotice('Every Answer Was Already Locked. Recovering The Authoritative Settlement Receipt.');
+            await finishGame(set, restoredCorrect, operationScope);
+        }
+        return true;
+    }
+
+    /** Start a new server-owned run. An uncertain response keeps its durable
+     * nonce, so the next tap retries the same entry instead of charging twice. */
     async function startGame() {
         if (isStartingRef.current) return;
+        const operationScope = accountOperationScopeRef.current.capture();
+        if (operationScope.identity !== (userId || null)) return;
+        const startOperation = { operationScope };
         // Race: isVip is false until the async VIP check resolves.
         if (vipInitializing) return;
+        if (entryError) {
+            soloJourneyTrackerRef.current.track(mode, 'retry', { surface: 'strategy', retry_kind: 'start' });
+        }
         isStartingRef.current = true;
+        startOperationRef.current = startOperation;
         setEntryError(null);
+        setResumeNotice(null);
         setIsPreparing(true);
         try {
             // Session-start needs an authenticated caller; fail with a clear
@@ -439,66 +558,104 @@ export default function StrategyTrivia({ mode }) {
                 setEntryError('Please Sign In To Play This Mode.');
                 return;
             }
+            if (!isOnline) {
+                setEntryError('You Are Offline. Reconnect, Then Retry This Same Entry Request.');
+                return;
+            }
 
             // 1. Open the server session first. No charge has happened yet.
             let served;
             try {
                 served = await serverRun.start({ count: QUESTIONS_PER_GAME });
+                if (!accountOperationScopeRef.current.isCurrent(operationScope)) return;
             } catch (e) {
                 console.warn('[StrategyTrivia] Server session start failed:', e?.message || e);
+                if (!accountOperationScopeRef.current.isCurrent(operationScope)
+                    || isStaleAccountOperation(e)) return;
                 if (e?.status === 402) {
                     setShowOutOfDiamonds(true);
                     return;
                 }
-                setEntryError('Could Not Start The Game. Please Try Again In A Moment. You Have Not Been Charged.');
+                setEntryError('The Start Result Could Not Be Confirmed. Retry Uses The Same Entry Request And Cannot Create A Second Charge.');
                 return;
             }
-            if (!served || !Array.isArray(served.questions) || served.questions.length === 0) {
-                // NEVER charge for an empty game.
-                serverRun.reset();
-                setEntryError('No Questions Are Available Right Now. Please Try Again In A Moment. You Have Not Been Charged.');
-                return;
-            }
-
-            // Solver metadata is intentionally not fetched before an answer is
-            // locked: it can encode the preferred action. session-answer may
-            // return a safe analysis subset after first-answer-wins commits.
-            const set = served.questions;
-            if (Number.isFinite(served.newBalance)) setUserDiamonds(served.newBalance);
-            if (served.entryState === 'charged' && served.entryCost > 0) {
-                busEmit.diamondsSpent(served.entryCost, `${config.title} Entry`);
-            }
-
-            // 3. Start. Everything below is synchronous so a paid entry
-            //    always lands in a playable game.
-            setQuestions(set);
-
-            finishedRef.current = false;
-            advanceLockRef.current = false;
-            answerLockRef.current = false;
-            serverResultRef.current = null;
-            answersRef.current = [];
-
-            setResultActualAwarded(null);
-            setResultAwardError(null);
-            setResultSummary(null);
-            setResultCapped(false);
-            setGameState('playing');
-            setCurrentQuestionIndex(0);
-            setCorrectCount(0);
-            setVerdict(null);
-            setSelectedAnswer(null);
-            setShowResult(false);
-            startTimeRef.current = Date.now();
-            resetTimer(SECONDS_PER_QUESTION);
+            await adoptServedRun(served, operationScope);
         } finally {
-            setIsPreparing(false);
-            isStartingRef.current = false;
+            if (startOperationRef.current === startOperation) {
+                startOperationRef.current = null;
+                isStartingRef.current = false;
+                if (accountOperationScopeRef.current.isCurrent(operationScope)) setIsPreparing(false);
+            }
+        }
+    }
+
+    async function resumeGame() {
+        if (isStartingRef.current || typeof serverRun.resume !== 'function') return;
+        const operationScope = accountOperationScopeRef.current.capture();
+        if (operationScope.identity !== (userId || null)) return;
+        const startOperation = { operationScope };
+        if (resumeRetryRef.current) {
+            soloJourneyTrackerRef.current.track(mode, 'retry', { surface: 'strategy', retry_kind: 'resume' });
+            resumeRetryRef.current = false;
+        }
+        if (!userId) {
+            router.push(`/auth/login?redirect=/hub/trivia/${mode}`);
+            return;
+        }
+        if (!isOnline) {
+            setEntryError('You Are Offline. Reconnect To Resume This Run.');
+            return;
+        }
+        isStartingRef.current = true;
+        startOperationRef.current = startOperation;
+        setEntryError(null);
+        setIsPreparing(true);
+        try {
+            const served = await serverRun.resume();
+            if (!accountOperationScopeRef.current.isCurrent(operationScope)) return;
+            if (served?.resumedSettlement === true && served.settlement) {
+                soloRunLifecycleRef.current = { active: true, settled: false, mode, state: 'settling' };
+                const recoveredEntry = Array.isArray(served.settlement?.receipt?.transactions)
+                    ? served.settlement.receipt.transactions.find(transaction => transaction?.role === 'entry')
+                    : null;
+                const recoveredSettlement = {
+                    ...served.settlement,
+                    sessionId: served.settlement.sessionId || served.sessionId || serverRun.recoverableSession?.sessionId || null,
+                    replayed: true,
+                };
+                finishedRef.current = false;
+                serverResultRef.current = recoveredSettlement;
+                setEntryReceipt({
+                    sessionId: recoveredSettlement.sessionId,
+                    entryCost: recoveredEntry && Number.isFinite(Number(recoveredEntry.amount))
+                        ? Math.abs(Number(recoveredEntry.amount))
+                        : 0,
+                    entryState: recoveredEntry ? 'charged' : 'confirmed',
+                    resumed: true,
+                });
+                setResumeNotice('The Existing Settlement Receipt Was Recovered. No New Entry Or Payout Was Created.');
+                await finishGame([], Number(recoveredSettlement.correct) || 0, operationScope);
+                return;
+            }
+            await adoptServedRun(served, operationScope);
+        } catch (error) {
+            console.warn('[StrategyTrivia] Session resume failed:', error?.message || error);
+            if (!accountOperationScopeRef.current.isCurrent(operationScope)
+                || isStaleAccountOperation(error)) return;
+            resumeRetryRef.current = true;
+            setEntryError(error?.status === 410
+                ? 'The Server Confirmed That This Run Expired And Can No Longer Be Resumed.'
+                : 'The Run Could Not Be Resumed Yet. Retry Keeps The Same Session And Entry Receipt.');
+        } finally {
+            if (startOperationRef.current === startOperation) {
+                startOperationRef.current = null;
+                isStartingRef.current = false;
+                if (accountOperationScopeRef.current.isCurrent(operationScope)) setIsPreparing(false);
+            }
         }
     }
 
     function handleTimeout() {
-        setIsTimerRunning(false);
         gradeAnswer(-1); // records the timeout server-side and reveals the answer
     }
 
@@ -509,20 +666,67 @@ export default function StrategyTrivia({ mode }) {
      * the player can re-tap - the endpoint is idempotent per question, so a
      * retry cannot double-record. displayIndex -1 is the shot-clock timeout.
      */
-    async function gradeAnswer(displayIndex) {
-        if (answerLockRef.current || selectedAnswer !== null || showResult) return;
+    async function gradeAnswer(displayIndex, { retry = false, invalidQuestion = false } = {}) {
+        const operationScope = accountOperationScopeRef.current.capture();
+        if (operationScope.identity !== (userId || null)) return;
+        const retryingSameIntent = retry
+            && answerFailure
+            && answerFailure.questionId === questions[currentQuestionIndex]?.id
+            && answerFailure.displayIndex === displayIndex
+            && answerFailure.invalidQuestion === invalidQuestion;
+        if (answerLockRef.current || showResult || (selectedAnswer !== null && !retryingSameIntent)) return;
+        if (retryingSameIntent) {
+            soloJourneyTrackerRef.current.track(mode, 'retry', {
+                surface: 'strategy',
+                retry_kind: invalidQuestion ? 'invalid_question' : 'answer',
+            });
+        }
         const q = questions[currentQuestionIndex];
         if (!q || typeof q.id !== 'string') return;
+        if (!isOnline) {
+            setAnswerFailure({
+                questionId: q.id,
+                displayIndex,
+                invalidQuestion,
+                message: invalidQuestion
+                    ? 'You Are Offline. Reconnect To Verify This Unavailable Question With The Server.'
+                    : 'You Are Offline. Reconnect To Lock This Same Answer.',
+            });
+            if (displayIndex >= 0) setSelectedAnswer(displayIndex);
+            return;
+        }
+        const answerOperation = { operationScope, questionId: q.id };
         answerLockRef.current = true;
-        setIsTimerRunning(false);
+        answerOperationRef.current = answerOperation;
+        setAnswerPending(true);
+        setAnswerFailure(null);
         if (displayIndex >= 0) setSelectedAnswer(displayIndex); // instant visual lock on the tap
         try {
-            const v = await serverRun.answer({ questionId: q.id, displayIndex });
-            answersRef.current[currentQuestionIndex] = { questionId: q.id, displayIndex };
+            const v = await serverRun.answer({ questionId: q.id, displayIndex, invalidQuestion });
+            if (!accountOperationScopeRef.current.isCurrent(operationScope)) return;
+            // Solver/explanation metadata is reveal-only. Refuse any receipt
+            // that is not for the exact session and question whose answer was
+            // just bound before allowing that metadata into React state.
+            if (v?.questionId !== q.id || v?.sessionId !== serverRun.sessionId) {
+                const receiptError = new Error('answer_receipt_mismatch');
+                receiptError.code = 'answer_receipt_mismatch';
+                throw receiptError;
+            }
+            const storedDisplayIndex = Number.isInteger(v?.storedDisplayIndex)
+                ? v.storedDisplayIndex
+                : displayIndex;
+            answersRef.current[currentQuestionIndex] = {
+                questionId: q.id,
+                displayIndex: storedDisplayIndex,
+                voided: v?.voided === true || v?.outcome === 'voided',
+            };
+            setSelectedAnswer(storedDisplayIndex >= 0 ? storedDisplayIndex : null);
             setVerdict(v);
             setShowResult(true);
             // Side effects key off the server verdict, never a local compare.
-            if (v?.wasCorrect === true) {
+            if (v?.voided === true || v?.outcome === 'voided') {
+                setResumeNotice('The Server Verified This Question As Unavailable. It Was Voided And Does Not Count Against The Run.');
+            } else if (v?.wasCorrect === true) {
                 setCorrectCount(prev => prev + 1);
                 busEmit.decisionCorrect(correctCount + 1);
             } else {
@@ -531,20 +735,60 @@ export default function StrategyTrivia({ mode }) {
             }
         } catch (e) {
             console.warn('[StrategyTrivia] Answer grading failed:', e?.message || e);
-            if (displayIndex < 0) {
-                // Timeout that could not reach the server: no re-tap is
-                // possible, so record it locally (session-submit still grades
-                // it server-side as unanswered) and advance without a reveal.
-                answersRef.current[currentQuestionIndex] = { questionId: q.id, displayIndex: -1 };
-                answerLockRef.current = false;
-                nextQuestion();
-                return;
-            }
-            // Unlock and let the player re-tap.
-            setSelectedAnswer(null);
+            if (!accountOperationScopeRef.current.isCurrent(operationScope)
+                || isStaleAccountOperation(e)) return;
+            const serverCode = e?.payload?.error || e?.code || e?.message;
+            const requiresRefresh = invalidQuestion
+                && serverCode === 'question_still_valid'
+                && e?.payload?.retryable === true;
+            // The server may have committed the first answer before the
+            // response was lost. Keep the exact intent locked and retry only
+            // that display index; allowing a different tap would make the UI
+            // disagree with first-answer-wins persistence.
+            setAnswerFailure({
+                questionId: q.id,
+                displayIndex,
+                invalidQuestion,
+                requiresRefresh,
+                message: requiresRefresh
+                    ? 'The Server Revalidated This Question. Refresh The Same Run To Restore Its Authoritative Play Data.'
+                    : invalidQuestion
+                        ? 'The Server Void Check Was Not Confirmed. Retry The Same Check; No Local Score Change Was Made.'
+                        : displayIndex < 0
+                            ? 'The Timeout Result Was Not Confirmed. Retry Records The Same Timeout.'
+                            : 'The Answer Result Was Not Confirmed. Retry Locks This Same Answer.',
+            });
             answerLockRef.current = false;
+        } finally {
+            if (answerOperationRef.current === answerOperation) {
+                answerOperationRef.current = null;
+                if (accountOperationScopeRef.current.isCurrent(operationScope)) setAnswerPending(false);
+            }
         }
     }
+
+    // Strategy tables are untimed unless the server-issued run contract says
+    // otherwise. A shot clock is rendered and enforced only from its absolute
+    // server deadline; the client never invents a 60-second rule or pauses an
+    // authoritative deadline while the tab is hidden.
+    useEffect(() => {
+        if (!hasAuthoritativeShotClock || gameState !== 'playing' || showResult || !currentQuestion?.id) {
+            setTimerSeconds(null);
+            return undefined;
+        }
+
+        const tick = () => {
+            const remaining = Math.max(0, Math.ceil((timerDeadlineMs - Date.now()) / 1000));
+            setTimerSeconds(remaining);
+            if (remaining === 0 && timedOutQuestionRef.current !== currentQuestion.id) {
+                timedOutQuestionRef.current = currentQuestion.id;
+                handleTimeout();
+            }
+        };
+        tick();
+        const intervalId = window.setInterval(tick, 250);
+        return () => window.clearInterval(intervalId);
+    }, [currentQuestion?.id, gameState, hasAuthoritativeShotClock, showResult, timerDeadlineMs]);
 
     function nextQuestion() {
         // Double-clicking Next used to run setCurrentQuestionIndex(prev+1)
@@ -560,13 +804,17 @@ export default function StrategyTrivia({ mode }) {
         setCurrentQuestionIndex(prev => prev + 1);
         setVerdict(null);
         setSelectedAnswer(null);
+        setAnswerFailure(null);
+        setAnswerPending(false);
         setShowResult(false);
         answerLockRef.current = false;
-        resetTimer(SECONDS_PER_QUESTION);
     }
 
     // Release the advance lock once the new question has rendered.
-    useEffect(() => { advanceLockRef.current = false; }, [currentQuestionIndex]);
+    useEffect(() => {
+        advanceLockRef.current = false;
+        if (gameState === 'playing') questionHeadingRef.current?.focus();
+    }, [currentQuestionIndex, gameState]);
 
     /**
      * Settle the run server-side. /api/trivia/session-submit grades from the
@@ -580,24 +828,32 @@ export default function StrategyTrivia({ mode }) {
      * re-submitting a closed session, and finishedRef reopens on failure so
      * the results screen's retry button can run settlement again.
      */
-    async function finishGame() {
+    async function finishGame(
+        questionSet = questions,
+        correctOverride = correctCount,
+        operationScope = accountOperationScopeRef.current.capture(),
+    ) {
+        if (operationScope.identity !== (userId || null)
+            || !accountOperationScopeRef.current.isCurrent(operationScope)) return;
+        const isCurrentAccountOperation = () => accountOperationScopeRef.current.isCurrent(operationScope);
         if (finishedRef.current) return;
         finishedRef.current = true;
+        if (soloRunLifecycleRef.current.active) soloRunLifecycleRef.current.state = 'settling';
 
-        setIsTimerRunning(false);
-        const timeSpent = Math.max(0, Math.floor((Date.now() - (startTimeRef.current || Date.now())) / 1000));
+        const activeQuestions = Array.isArray(questionSet) ? questionSet : questions;
 
         let settled = serverResultRef.current;
         if (!settled) {
-            const submitAnswers = questions.map((q, idx) => {
+            const submitAnswers = activeQuestions.map((q, idx) => {
                 const a = answersRef.current[idx];
                 return {
                     questionId: q.id,
                     displayIndex: (a && Number.isInteger(a.displayIndex)) ? a.displayIndex : -1,
                 };
-            });
+                });
             try {
                 settled = await serverRun.submit(submitAnswers);
+                if (!isCurrentAccountOperation()) return;
                 if (!settled) {
                     // The hook's in-flight guard swallowed a concurrent call;
                     // let that call finish the game instead of settling zeros.
@@ -607,46 +863,71 @@ export default function StrategyTrivia({ mode }) {
                 serverResultRef.current = settled;
             } catch (e) {
                 console.warn('[StrategyTrivia] CRITICAL: settlement failed - run not yet paid:', e?.message || e);
+                if (!isCurrentAccountOperation() || isStaleAccountOperation(e)) return;
+                soloJourneyTrackerRef.current.track(mode, 'settlement', {
+                    surface: 'strategy',
+                    settlement_outcome: 'failed',
+                });
                 // Reopen so the results screen's retry can run settlement
                 // again. On a transient failure the session is still open
                 // server-side (the hook only discards it on 409/410), so a
                 // retry pays; correct/total shown meanwhile come from the
                 // per-tap verdicts.
                 finishedRef.current = false;
-                setResultSummary({ correct: correctCount, total: questions.length });
-                setResultActualAwarded(0);
+                setResultSummary({ correct: null, total: null, pending: true });
+                setResultActualAwarded(null);
                 setResultAwardError(e?.message || 'Settlement failed');
                 setResultCapped(false);
+                setSettlementReceipt(null);
+                setSettlementReplayed(false);
                 setGameState('results');
                 return;
             }
         }
 
         const awarded = Number.isFinite(settled?.diamondsAwarded) ? settled.diamondsAwarded : 0;
-        const serverCorrect = Number.isFinite(settled?.correct) ? settled.correct : correctCount;
-        const serverTotal = Number.isFinite(settled?.total) ? settled.total : questions.length;
+        const serverCorrect = Number.isFinite(settled?.correct) ? settled.correct : correctOverride;
+        const serverTotal = Number.isFinite(settled?.total) ? settled.total : activeQuestions.length;
 
         // Display-only cap awareness: the server pays the same accuracy tiers
         // as calculateDiamonds and clamps to the mode's daily cap, so an
         // award below the uncapped formula means the cap absorbed the rest.
         const rawExpected = calculateDiamonds(mode, serverCorrect, serverTotal, 0);
-        setResultCapped(awarded < rawExpected);
+        const capped = awarded < rawExpected;
+        setResultCapped(capped);
 
         // Local balance from the server's post-award number, with a fresh
         // profiles read as the fallback.
         if (Number.isFinite(settled?.newBalance)) {
             setUserDiamonds(settled.newBalance);
+            setBalanceRefreshDelayed(false);
         } else if (userId) {
             try {
                 const { data: freshProfile } = await readOwnProfile(supabase, 'diamonds', { expectId: userId });
-                if (freshProfile) setUserDiamonds(freshProfile.diamonds || 0);
+                if (!isCurrentAccountOperation()) return;
+                if (freshProfile) {
+                    setUserDiamonds(freshProfile.diamonds || 0);
+                    setBalanceRefreshDelayed(false);
+                } else {
+                    setBalanceRefreshDelayed(true);
+                }
             } catch (e) {
                 console.warn('[StrategyTrivia] Balance refresh failed:', e?.message || e);
+                if (!isCurrentAccountOperation()) return;
+                setBalanceRefreshDelayed(true);
             }
         }
 
-        if (awarded > 0) busEmit.diamondsEarned(awarded, `${config.title} Reward`);
-        if (serverTotal > 0 && serverCorrect >= serverTotal) busEmit.celebration('confetti');
+        if (!isCurrentAccountOperation()) return;
+
+        // A replay is proof of the original settlement, not a second earning
+        // event. Do not duplicate wallet analytics or celebration side effects.
+        if (settled?.replayed !== true && awarded > 0) {
+            busEmit.diamondsEarned(awarded, `${config.title} Reward`);
+        }
+        if (settled?.replayed !== true && serverTotal > 0 && serverCorrect >= serverTotal) {
+            busEmit.celebration('confetti');
+        }
 
         // session-submit persists the verified score atomically with payout.
         // Client INSERT is intentionally revoked so leaderboard and wheel
@@ -659,37 +940,51 @@ export default function StrategyTrivia({ mode }) {
         setResultSummary({ correct: serverCorrect, total: serverTotal });
         setResultActualAwarded(awarded);
         setResultAwardError(null);
+        // Preserve the server's durable evidence verbatim. In particular, do
+        // not rebuild a shallow client receipt that drops transaction rows,
+        // request identity, settlement reference or result hash.
+        setSettlementReceipt(settled?.receipt && typeof settled.receipt === 'object'
+            ? settled.receipt
+            : null);
+        setSettlementReplayed(settled?.replayed === true);
+        setResumeNotice(null);
         setGameState('results');
+        soloJourneyTrackerRef.current.track(mode, 'settlement', {
+            surface: 'strategy',
+            settlement_outcome: settled?.replayed === true ? 'replayed' : 'verified',
+        });
+        if (capped) {
+            soloJourneyTrackerRef.current.track(mode, 'cap', { surface: 'strategy', cap_state: 'applied' });
+        }
+        soloJourneyTrackerRef.current.track(mode, 'completion', { surface: 'strategy' });
+        soloRunLifecycleRef.current = { active: false, settled: true, mode, state: 'settling' };
     }
 
-    // ══ KEYBOARD CONTROLS ══ 1-4 / A-D answer, Enter advances.
-    useEffect(() => {
-        if (gameState !== 'playing') return undefined;
-        const onKeyDown = (e) => {
-            if (e.metaKey || e.ctrlKey || e.altKey) return;
-            const target = e.target;
-            const tag = (target?.tagName || '').toLowerCase();
-            if (tag === 'input' || tag === 'textarea' || target?.isContentEditable) return;
+    // Keyboard shortcuts are scoped to the focused strategy surface. A key
+    // pressed in the global header, report dialog or any interactive control
+    // can never answer or advance a question behind that control.
+    function handleGameKeyDown(event) {
+        if (gameState !== 'playing' || event.metaKey || event.ctrlKey || event.altKey) return;
+        const target = event.target;
+        if (!gameSurfaceRef.current?.contains(target)) return;
+        if (target?.closest?.('button, a, input, textarea, select, [contenteditable="true"], [role="dialog"]')) return;
 
-            if (!showResult && selectedAnswer === null && currentQuestion) {
-                let idx = -1;
-                if (/^[1-9]$/.test(e.key)) idx = parseInt(e.key, 10) - 1;
-                else if (/^[a-jA-J]$/.test(e.key)) idx = e.key.toLowerCase().charCodeAt(0) - 97;
-                if (idx >= 0 && idx < (currentQuestion.options?.length || 0)) {
-                    e.preventDefault();
-                    gradeAnswer(idx);
-                    return;
-                }
+        if (!showResult && selectedAnswer === null && !answerFailure && currentQuestionIntegrity.ok) {
+            let index = -1;
+            if (/^[1-9]$/.test(event.key)) index = Number(event.key) - 1;
+            else if (/^[a-jA-J]$/.test(event.key)) index = event.key.toLowerCase().charCodeAt(0) - 97;
+            if (index >= 0 && index < (currentQuestion?.options?.length || 0)) {
+                event.preventDefault();
+                gradeAnswer(index);
             }
-            if (showResult && (e.key === 'Enter' || e.key === ' ') && tag !== 'button' && tag !== 'a') {
-                e.preventDefault();
-                nextQuestion();
-            }
-        };
-        window.addEventListener('keydown', onKeyDown);
-        return () => window.removeEventListener('keydown', onKeyDown);
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [gameState, showResult, selectedAnswer, currentQuestion, currentQuestionIndex, questions.length]);
+            return;
+        }
+
+        if (showResult && (event.key === 'Enter' || event.key === ' ')) {
+            event.preventDefault();
+            nextQuestion();
+        }
+    }
 
 
     if (isLoading) {
@@ -707,7 +1002,36 @@ export default function StrategyTrivia({ mode }) {
         );
     }
 
-    const timerInk = timeLeft <= 10 ? 'red' : 'gold';
+    const timerInk = hasAuthoritativeShotClock && timerSeconds != null && timerSeconds <= 10 ? 'red' : 'gold';
+    const timerDisplay = showResult
+        ? 'Locked'
+        : hasAuthoritativeShotClock && timerSeconds != null
+            ? timerSeconds
+            : 'Untimed';
+    const runExpiryLabel = runExpiresAt && Number.isFinite(Date.parse(runExpiresAt))
+        ? new Date(runExpiresAt).toLocaleString()
+        : null;
+    const lobbyPrimaryAction = !userId
+        ? { label: 'Sign In To Play', onClick: () => router.push(`/auth/login?redirect=/hub/trivia/${mode}`), disabled: vipInitializing }
+        : serverRun.hasRecoverableSession
+            ? { label: isPreparing ? 'Recovering Run' : 'Resume Run', onClick: resumeGame, disabled: isPreparing || !isOnline }
+            : { label: isPreparing ? 'Dealing In' : entryError ? 'Retry Start' : 'Start Challenge', onClick: startGame, disabled: isPreparing || vipInitializing || !isOnline };
+    const primaryAction = gameState === 'lobby'
+        ? lobbyPrimaryAction
+        : gameState === 'playing' && showResult
+            ? { label: currentQuestionIndex + 1 >= questions.length ? 'See Results' : 'Next Question', onClick: nextQuestion }
+            : gameState === 'results'
+                ? resultAwardError
+                    ? {
+                        label: 'Retry Settlement',
+                        onClick: () => {
+                            soloJourneyTrackerRef.current.track(mode, 'retry', { surface: 'strategy', retry_kind: 'settlement' });
+                            finishGame();
+                        },
+                        disabled: !isOnline,
+                    }
+                    : { label: isPreparing ? 'Dealing In' : 'Play Again', onClick: startGame, disabled: isPreparing || vipInitializing || !isOnline }
+                : undefined;
 
     return (
         <PageTransition>
@@ -746,17 +1070,6 @@ export default function StrategyTrivia({ mode }) {
                     ) : null}
                 </TriviaConsoleDialog>
 
-                {/* One-time diamond cost popup for non-VIP users.
-                    featureKey, not pageKey: every other call site in the repo
-                    passes featureKey, so this popup's per-feature acknowledged
-                    tracking was reading undefined on all four strategy modes. */}
-                <GameCostPopup
-                    userId={userId}
-                    featureKey={`trivia_${mode}`}
-                    isVip={isVip}
-                    cost={entryCost}
-                />
-
                 <div className="content">
                     <TriviaConsole
                         className="strategy-console"
@@ -769,19 +1082,21 @@ export default function StrategyTrivia({ mode }) {
                         secondaryAction={gameState === 'results'
                             ? { label: 'Back To Lobby', onClick: () => router.push('/hub/trivia') }
                             : undefined}
-                        primaryAction={gameState === 'lobby'
-                            ? { label: isPreparing ? 'Dealing In' : 'Start Challenge', onClick: startGame, disabled: isPreparing || vipInitializing }
-                            : gameState === 'playing' && showResult
-                                ? { label: currentQuestionIndex + 1 >= questions.length ? 'See Results' : 'Next Question', onClick: nextQuestion }
-                            : gameState === 'results'
-                                ? resultAwardError
-                                    ? { label: 'Retry Settlement', onClick: finishGame }
-                                    : { label: isPreparing ? 'Dealing In' : 'Play Again', onClick: startGame, disabled: isPreparing || vipInitializing }
-                                : undefined}
+                        primaryAction={primaryAction}
                     >
                     {entryError && (
                         <p className="strategy-alert tc-ink--red" role="alert">
                             {entryError}
+                        </p>
+                    )}
+                    {!isOnline && (
+                        <p className="strategy-alert tc-ink--gold" role="status">
+                            Offline. Your Current Run Identity Is Preserved. Reconnect To Continue.
+                        </p>
+                    )}
+                    {resumeNotice && (
+                        <p className="strategy-alert tc-ink--blue" role="status" aria-live="polite">
+                            {resumeNotice}
                         </p>
                     )}
 
@@ -790,21 +1105,31 @@ export default function StrategyTrivia({ mode }) {
                         console's own action starts the run. */}
                     {gameState === 'lobby' && (
                         <div className="strategy-lobby">
-                            <ResponsiveModeArt art={MODE_ART[mode] || MODE_ART.mtt} priority />
+                            <div className="strategy-lobby__art">
+                                <ResponsiveModeArt art={MODE_ART[mode] || MODE_ART.mtt} priority />
+                            </div>
+                            <div className="strategy-lobby__brief">
+                                <p className="strategy-station tc-label">{config.station}</p>
+                                <p className="strategy-description">{config.description}</p>
+                                {serverRun.hasRecoverableSession && (
+                                    <p className="strategy-recovery tc-ink--gold" role="status">
+                                        A Previous Run Is Ready To Resume. Its Locked Answers And Entry Receipt Stay Binding.
+                                    </p>
+                                )}
                             {/* Questions are dealt by the server when the game
                                 starts, so the only wait worth showing is the
                                 session-start + charge round-trip itself. */}
-                            {isPreparing && (
-                                <p className="strategy-status tc-label" role="status">Dealing In</p>
-                            )}
-                            <ul className="tc-rows strategy-terms" aria-label={`${config.title} Table Terms`}>
+                                {isPreparing && (
+                                    <p className="strategy-status tc-label" role="status">{serverRun.hasRecoverableSession ? 'Recovering Run' : 'Dealing In'}</p>
+                                )}
+                                <ul className="tc-rows strategy-terms" aria-label={`${config.title} Table Terms`}>
                                 <li className="tc-row">
                                     <span className="tc-row__label">Questions</span>
                                     <span className="tc-row__value">{QUESTIONS_PER_GAME}</span>
                                 </li>
                                 <li className="tc-row">
-                                    <span className="tc-row__label">Time Per Question</span>
-                                    <span className="tc-row__value">{SECONDS_PER_QUESTION} Seconds</span>
+                                    <span className="tc-row__label">Decision Clock</span>
+                                    <span className="tc-row__value">Confirmed When Run Starts</span>
                                 </li>
                                 <li className="tc-row">
                                     <span className="tc-row__label">Entry</span>
@@ -832,41 +1157,77 @@ export default function StrategyTrivia({ mode }) {
                                         <span className="tc-row__value tc-ink--gold">{formatTriviaDisplayNumber(userDiamonds)} Diamonds</span>
                                     </li>
                                 )}
-                            </ul>
+                                </ul>
+                            </div>
                         </div>
                     )}
 
                     {/* PLAYING STATE */}
                     {gameState === 'playing' && currentQuestion && (
-                        <div className="game-area">
-                            {/* Header: progress on the left, the shot clock
-                                printed on the glass on the right (gold, red
-                                at ten seconds and under). */}
+                        <div
+                            ref={gameSurfaceRef}
+                            className="game-area"
+                            tabIndex={-1}
+                            onKeyDown={handleGameKeyDown}
+                        >
+                            {/* The contract rail never invents a clock. These
+                                four strategy modes are untimed today; a live
+                                countdown appears only for a server-issued
+                                shot-clock deadline. */}
                             <div className="game-header">
                                 <div className="progress tc-label" role="status" aria-live="polite">
                                     Question {currentQuestionIndex + 1} Of {questions.length}
                                 </div>
-                                <div className="strategy-clock" data-warning={timeLeft <= 10 ? 'true' : 'false'}>
-                                    <span className="strategy-clock__label">Time</span>
+                                <div className="strategy-clock" data-warning={timerInk === 'red' ? 'true' : 'false'}>
+                                    <span className="strategy-clock__label">Decision Clock</span>
                                     <span className={`strategy-clock__value tc-ink--${timerInk}`} aria-hidden="true">
-                                        {timeLeft}
+                                        {timerDisplay}
                                     </span>
-                                    {/* Announce at the 30/10/5s marks only — a
-                                        per-second live region is unusable. */}
                                     <span className="sr-only" role="timer" aria-live="assertive">
-                                        {timeLeft === 30 || timeLeft === 10 || timeLeft === 5
-                                            ? `${timeLeft} seconds remaining`
-                                            : ''}
+                                        {showResult
+                                            ? 'Decision Locked'
+                                            : hasAuthoritativeShotClock && [30, 10, 5, 0].includes(timerSeconds)
+                                            ? `${timerSeconds} seconds remaining`
+                                            : 'Untimed Decision'}
                                     </span>
                                 </div>
                             </div>
+
+                            {(runExpiryLabel || entryReceipt) && (
+                                <ul className="tc-rows strategy-run-contract" aria-label="Run Contract">
+                                    <li className="tc-row">
+                                        <span className="tc-row__label">Entry State</span>
+                                        <span className="tc-row__value">{toTitleCase(entryReceipt?.entryState || 'Confirmed')}</span>
+                                    </li>
+                                    {runExpiryLabel && (
+                                        <li className="tc-row">
+                                            <span className="tc-row__label">Session Expires</span>
+                                            <span className="tc-row__value">{runExpiryLabel}</span>
+                                        </li>
+                                    )}
+                                </ul>
+                            )}
+
+                            <section className="strategy-context" aria-labelledby="strategy-context-heading">
+                                <h2 id="strategy-context-heading" className="strategy-context__heading tc-label">
+                                    {currentContext.heading}
+                                </h2>
+                                <ul className="tc-rows">
+                                    {currentContext.items.map(item => (
+                                        <li className="tc-row" key={item.label}>
+                                            <span className="tc-row__label">{item.label}</span>
+                                            <span className={`tc-row__value${item.ink ? ` tc-ink--${item.ink}` : ''}`}>{item.value}</span>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </section>
 
                             <div className="question-content-area">
                                 <p className="category-badge tc-label">
                                     {toTitleCase(getCategoryName(currentQuestion.category))}
                                 </p>
 
-                                <h2 className="question-text">
+                                <h2 ref={questionHeadingRef} className="question-text" tabIndex={-1}>
                                     {/* Card detection runs on the RAW text and the
                                         title-caser is applied to the remaining
                                         fragments — title-casing first turned every
@@ -878,6 +1239,34 @@ export default function StrategyTrivia({ mode }) {
                                 </h2>
                             </div>
 
+                            {!currentQuestionIntegrity.ok && !showResult && (
+                                <div className="strategy-question-fault" role="alert">
+                                    <p className="strategy-alert tc-ink--red">
+                                        {currentQuestionId
+                                            ? 'This Question Is Missing Required Play Data And Cannot Accept An Answer. Verify It With The Server To Void It Without Affecting Your Score.'
+                                            : 'This Question Is Missing Its Server Identity. Refresh The Same Run To Restore The Authoritative Question Before Continuing.'}
+                                    </p>
+                                    <button
+                                        type="button"
+                                        className="tc-word"
+                                        onClick={currentQuestionId
+                                            ? () => gradeAnswer(-1, { invalidQuestion: true })
+                                            : resumeGame}
+                                        disabled={answerPending || isPreparing || Boolean(answerFailure) || !isOnline}
+                                    >
+                                        {currentQuestionId ? 'Verify And Void Question' : 'Refresh Question From Server'}
+                                    </button>
+                                    <ReportQuestionButton
+                                        key={`${serverRun.sessionId || 'no-session'}:${currentQuestion.id}`}
+                                        questionId={currentQuestion.id}
+                                        sessionId={serverRun.sessionId}
+                                        accountId={userId}
+                                        userToken={getAccessToken()}
+                                    />
+                                </div>
+                            )}
+
+                            {currentQuestionIntegrity.ok && (
                             <div className="bottom-actions-area" data-revealed={showResult ? 'true' : 'false'}>
                                 <div className="options">
                                     {/* Options are rendered in the server's display
@@ -904,7 +1293,7 @@ export default function StrategyTrivia({ mode }) {
                                                 type="button"
                                                 className={optionClass}
                                                 onClick={() => gradeAnswer(index)}
-                                                disabled={showResult || selectedAnswer !== null}
+                                                disabled={showResult || selectedAnswer !== null || answerPending || Boolean(answerFailure)}
                                                 data-trivia-answer
                                                 aria-pressed={selectedAnswer === index}
                                                 aria-label={`Answer ${letter}: ${option}`}
@@ -930,6 +1319,37 @@ export default function StrategyTrivia({ mode }) {
                                     here are gone with the move to server grading -
                                     see the note by the serverRun declaration. */}
                             </div>
+                            )}
+
+                            {answerPending && (
+                                <p className="strategy-answer-state tc-ink--blue" role="status" aria-live="polite">
+                                    Locking This Answer With The Server
+                                </p>
+                            )}
+                            {answerFailure && (
+                                <div className="strategy-answer-retry" role="alert">
+                                    <p className="strategy-alert tc-ink--red">{answerFailure.message}</p>
+                                    <button
+                                        type="button"
+                                        className="tc-word"
+                                        onClick={answerFailure.requiresRefresh
+                                            ? resumeGame
+                                            : () => gradeAnswer(answerFailure.displayIndex, {
+                                                retry: true,
+                                                invalidQuestion: answerFailure.invalidQuestion === true,
+                                            })}
+                                        disabled={answerPending || isPreparing || !isOnline}
+                                    >
+                                        {answerFailure.requiresRefresh
+                                            ? 'Refresh Question From Server'
+                                            : answerFailure.invalidQuestion
+                                                ? 'Retry Same Void Check'
+                                                : answerFailure.displayIndex < 0
+                                                    ? 'Retry Same Timeout'
+                                                    : 'Retry Same Answer'}
+                                    </button>
+                                </div>
+                            )}
 
                             {/* Analysis panel — real solver metadata only.
                                 Everything here is driven by the SERVER
@@ -939,49 +1359,57 @@ export default function StrategyTrivia({ mode }) {
                                 reads correctDisplayIndex / wasCorrect /
                                 explanation from session-answer. */}
                             {showResult && verdict && (() => {
-                                const solver = readSolverMetadata(
-                                    verdict.solverMetadata
-                                        ? { engine_metadata: verdict.solverMetadata }
-                                        : currentQuestion
+                                const options = Array.isArray(currentQuestion.options) ? currentQuestion.options : [];
+                                const wasVoided = verdict.voided === true || verdict.outcome === 'voided';
+                                const solver = readStrategySolverMetadata(
+                                    verdict.solverMetadata,
+                                    verdict.correctDisplayIndex >= 0
+                                        ? (options[verdict.correctDisplayIndex] || '')
+                                        : '',
+                                    options
                                 );
-                                const hasSolverData = solver.confidence != null;
+                                const hasSolverData = solver.frequencyRows.length > 0 || Boolean(solver.evAnalysis);
                                 const wasCorrect = verdict.wasCorrect === true;
                                 const correctText = verdict.correctDisplayIndex >= 0
-                                    ? (currentQuestion.options[verdict.correctDisplayIndex] || '')
+                                    ? (options[verdict.correctDisplayIndex] || '')
                                     : '';
 
                                 return (
                                     <div className="answer-analysis">
                                         {/* Result verdict */}
                                         <p
-                                            className={`answer-verdict tc-ink--${wasCorrect ? 'green' : 'red'}`}
-                                            data-correct={wasCorrect ? 'true' : 'false'}
+                                            className={`answer-verdict tc-ink--${wasVoided ? 'blue' : wasCorrect ? 'green' : 'red'}`}
+                                            data-correct={wasVoided ? 'voided' : wasCorrect ? 'true' : 'false'}
                                             role="status"
                                         >
-                                            {wasCorrect ? 'Correct' : 'Incorrect'}
+                                            {wasVoided ? 'Question Voided' : wasCorrect ? 'Correct' : 'Incorrect'}
                                         </p>
 
-                                        {hasSolverData ? (
+                                        {wasVoided ? (
+                                            <div className="coaching-notes">
+                                                <p className="coaching-notes__head tc-label">Authoritative Review</p>
+                                                <p className="coaching-notes__body">
+                                                    The Server Verified That This Question Is Unavailable. It Is Excluded From The Graded Total And Does Not Affect Your Score.
+                                                </p>
+                                            </div>
+                                        ) : hasSolverData ? (
                                             <GTOScenarioDisplay
-                                                action={correctText.split(' ')[0]?.replace(/[^a-zA-Z0-9-]/g, '').toUpperCase() || 'OPTIMAL'}
-                                                confidence={solver.confidence}
-                                                explanation={verdict.explanation}
-                                                gtoApproach={toTitleCase(generateGTOApproach(currentQuestion.category, correctText))}
-                                                evAnalysis={solver.evAnalysis}
-                                                alternateLines={solver.alternateLines}
-                                                isCorrectAnswer={wasCorrect}
-                                                showDetails={true}
-                                                // Enables the opt-in "Generate visual card"
-                                                // button. Without a questionId the panel
-                                                // hides it by design, which kept the whole
-                                                // visual-analysis feature dark. The category
-                                                // lets the panel hide the button up front for
-                                                // questions /api/trivia/render-gto-panel
-                                                // would reject anyway. Auth falls back to the
-                                                // live supabase session inside the panel.
+                                                key={`${userId}:${serverRun.sessionId}:${currentQuestion.id}`}
                                                 questionId={currentQuestion.id}
                                                 sessionId={serverRun.sessionId}
+                                                accountId={userId}
+                                                mode={mode}
                                                 category={currentQuestion.category}
+                                                accessToken={getAccessToken()}
+                                                action={solver.preferredAction || correctText}
+                                                preferredFrequency={solver.preferredFrequency}
+                                                explanation={verdict.explanation}
+                                                evAnalysis={solver.evAnalysis}
+                                                alternateLines={solver.alternateLines}
+                                                frequencyRows={solver.frequencyRows}
+                                                rangeSummary={solver.rangeSummary}
+                                                isCorrectAnswer={wasCorrect}
+                                                showDetails={true}
                                             />
                                         ) : (
                                             /* No solver metadata on this question: show the
@@ -1008,11 +1436,24 @@ export default function StrategyTrivia({ mode }) {
                                                         )}
                                                     </p>
                                                 )}
-                                                <p className="coaching-notes__body">
-                                                    {toTitleCase(generateGTOApproach(currentQuestion.category, correctText))}
-                                                </p>
+                                                {!verdict.explanation && (
+                                                    <p className="coaching-notes__body tc-ink--muted">
+                                                        No Solver Frequency, Range Or EV Data Was Released For This Question.
+                                                    </p>
+                                                )}
                                             </div>
                                         )}
+                                        <ReportQuestionButton
+                                            key={currentQuestion.id}
+                                            questionId={currentQuestion.id}
+                                            sessionId={serverRun.sessionId}
+                                            accountId={userId}
+                                            userToken={getAccessToken()}
+                                            onDone={(report) => soloJourneyTrackerRef.current.track(mode, 'report', {
+                                                surface: 'strategy',
+                                                report_outcome: report?.deduped === true ? 'deduped' : 'recorded',
+                                            })}
+                                        />
                                     </div>
                                 );
                             })()}
@@ -1026,32 +1467,91 @@ export default function StrategyTrivia({ mode }) {
                         from diamondsAwarded (already cap-clamped and paid). */}
                     {gameState === 'results' && (() => {
                         const summary = resultSummary || { correct: correctCount, total: questions.length };
-                        const pct = summary.total > 0 ? summary.correct / summary.total : 0;
-                        const awarded = resultActualAwarded != null ? resultActualAwarded : 0;
+                        const settlementPending = summary.pending === true || resultAwardError;
+                        const pct = !settlementPending && summary.total > 0 ? summary.correct / summary.total : 0;
+                        const awarded = resultActualAwarded;
                         return (
                             <div className="results">
-                                <p className="result-status tc-label">{pct >= 0.8 ? 'Expert Result' : pct >= 0.5 ? 'Strong Result' : 'Session Complete'}</p>
-                                <h2>Challenge Complete!</h2>
+                                <p className="result-status tc-label">
+                                    {settlementPending ? 'Settlement Pending' : pct >= 0.8 ? 'Expert Result' : pct >= 0.5 ? 'Strong Result' : 'Session Complete'}
+                                </p>
+                                <h2>{settlementPending ? 'Run Complete' : 'Challenge Complete!'}</h2>
 
-                                <p className="score-main" aria-label={`${summary.correct} Of ${summary.total} Correct`}>
-                                    <span className={`score-num tc-ink--${pct >= 0.7 ? 'green' : 'silver'}`}>{summary.correct}</span>
-                                    <span className="score-total tc-ink--muted">/ {summary.total}</span>
+                                <p className="score-main" aria-label={settlementPending ? 'Score Pending Authoritative Settlement' : `${summary.correct} Of ${summary.total} Correct`}>
+                                    <span className={`score-num tc-ink--${!settlementPending && pct >= 0.7 ? 'green' : 'silver'}`}>
+                                        {settlementPending ? '--' : summary.correct}
+                                    </span>
+                                    <span className="score-total tc-ink--muted">{settlementPending ? 'Pending' : `/ ${summary.total}`}</span>
                                 </p>
 
                                 <ul className="tc-rows">
                                     <li className="tc-row">
                                         <span className="tc-row__label">Correct Answers</span>
-                                        <span className="tc-row__value">{summary.correct} Of {summary.total}</span>
+                                        <span className="tc-row__value">
+                                            {settlementPending ? 'Pending Server Receipt' : `${summary.correct} Of ${summary.total}`}
+                                        </span>
                                     </li>
                                     <li className="tc-row">
                                         <span className="tc-row__label">Diamonds Awarded</span>
-                                        {/* Phase 68: shows what was ACTUALLY credited, never
-                                            the calculated-but-failed amount. */}
-                                        <span className={`tc-row__value diamonds-earned tc-ink--${awarded > 0 ? 'gold' : 'muted'}`}>
-                                            +{formatTriviaDisplayNumber(awarded)} Diamonds
+                                        <span className={`tc-row__value diamonds-earned tc-ink--${awarded == null ? 'red' : awarded > 0 ? 'gold' : 'muted'}`}>
+                                            {awarded == null ? 'Pending Authoritative Settlement' : `+${formatTriviaDisplayNumber(awarded)} Diamonds`}
                                         </span>
                                     </li>
-                                    {userId && (
+                                    {entryReceipt && (
+                                        <li className="tc-row">
+                                            <span className="tc-row__label">Entry Receipt</span>
+                                            <span className="tc-row__value">
+                                                {entryReceipt.entryState === 'charged'
+                                                    ? `${formatTriviaDisplayNumber(entryReceipt.entryCost)} Diamonds Charged`
+                                                    : ['free', 'vip', 'continuation'].includes(entryReceipt.entryState)
+                                                        ? 'No Entry Charge'
+                                                        : 'Confirmed In Settlement Receipt'}
+                                            </span>
+                                        </li>
+                                    )}
+                                    {entryReceipt?.sessionId && (
+                                        <li className="tc-row">
+                                            <span className="tc-row__label">Run Receipt</span>
+                                            <span className="tc-row__value strategy-receipt-id">{entryReceipt.sessionId}</span>
+                                        </li>
+                                    )}
+                                    {settlementReceipt?.settlementReference && (
+                                        <li className="tc-row">
+                                            <span className="tc-row__label">Settlement Reference</span>
+                                            <span className="tc-row__value strategy-receipt-id">{settlementReceipt.settlementReference}</span>
+                                        </li>
+                                    )}
+                                    {settlementReceipt?.scoreId && (
+                                        <li className="tc-row">
+                                            <span className="tc-row__label">Score Record</span>
+                                            <span className="tc-row__value strategy-receipt-id">{settlementReceipt.scoreId}</span>
+                                        </li>
+                                    )}
+                                    {settlementReceipt?.requestId && (
+                                        <li className="tc-row">
+                                            <span className="tc-row__label">Settlement Request</span>
+                                            <span className="tc-row__value strategy-receipt-id">{settlementReceipt.requestId}</span>
+                                        </li>
+                                    )}
+                                    {settlementReceipt?.resultHash && (
+                                        <li className="tc-row">
+                                            <span className="tc-row__label">Result Hash</span>
+                                            <span className="tc-row__value strategy-receipt-id">{settlementReceipt.resultHash}</span>
+                                        </li>
+                                    )}
+                                    {settlementReceipt?.submittedAt && Number.isFinite(Date.parse(settlementReceipt.submittedAt)) && (
+                                        <li className="tc-row">
+                                            <span className="tc-row__label">Settled At</span>
+                                            <span className="tc-row__value">{new Date(settlementReceipt.submittedAt).toLocaleString()}</span>
+                                        </li>
+                                    )}
+                                    {settlementReplayed && (
+                                        <li className="tc-row">
+                                            <span className="tc-row__label">Settlement State</span>
+                                            <span className="tc-row__value tc-ink--blue">Recovered From Existing Receipt</span>
+                                        </li>
+                                    )}
+                                    {userId && !settlementPending && (
                                         <li className="tc-row">
                                             <span className="tc-row__label">Your Balance</span>
                                             <span className="tc-row__value">{formatTriviaDisplayNumber(userDiamonds)} Diamonds</span>
@@ -1059,11 +1559,42 @@ export default function StrategyTrivia({ mode }) {
                                     )}
                                     {/* The Play Again plate is too narrow for the
                                         price, so the next entry is printed here. */}
-                                    <li className="tc-row">
-                                        <span className="tc-row__label">Next Entry</span>
-                                        <span className="tc-row__value">{isVip ? 'Free With VIP' : <>{entryCost} Diamonds</>}</span>
-                                    </li>
+                                    {!settlementPending && (
+                                        <li className="tc-row">
+                                            <span className="tc-row__label">Next Entry</span>
+                                            <span className="tc-row__value">{isVip ? 'Free With VIP' : <>{entryCost} Diamonds</>}</span>
+                                        </li>
+                                    )}
                                 </ul>
+
+                                {Array.isArray(settlementReceipt?.transactions) && settlementReceipt.transactions.length > 0 && (
+                                    <section className="strategy-transactions" aria-labelledby="strategy-transactions-heading">
+                                        <h3 id="strategy-transactions-heading" className="tc-label">Diamond Transaction Record</h3>
+                                        <ul className="tc-rows">
+                                            {settlementReceipt.transactions.map((transaction, index) => (
+                                                <li className="tc-row" key={transaction?.id || transaction?.referenceId || index}>
+                                                    <span className="tc-row__label">
+                                                        {toTitleCase(String(transaction?.role || 'Transaction').replace(/_/g, ' '))}
+                                                    </span>
+                                                    <span className="tc-row__value strategy-transaction-value">
+                                                        {transaction?.amount !== null
+                                                            && transaction?.amount !== undefined
+                                                            && Number.isFinite(Number(transaction.amount))
+                                                            ? `${Number(transaction.amount) > 0 ? '+' : ''}${formatTriviaDisplayNumber(Number(transaction.amount))} Diamonds`
+                                                            : 'Recorded'}
+                                                        {transaction?.referenceId ? ` | ${transaction.referenceId}` : ''}
+                                                        {transaction?.id ? ` | ID ${transaction.id}` : ''}
+                                                        {transaction?.balanceAfter !== null
+                                                            && transaction?.balanceAfter !== undefined
+                                                            && Number.isFinite(Number(transaction.balanceAfter))
+                                                            ? ` | Balance ${formatTriviaDisplayNumber(Number(transaction.balanceAfter))}`
+                                                            : ''}
+                                                    </span>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </section>
+                                )}
 
                                 {resultCapped && (
                                     <p className="results-note tc-ink--gold">
@@ -1071,9 +1602,15 @@ export default function StrategyTrivia({ mode }) {
                                     </p>
                                 )}
 
+                                {balanceRefreshDelayed && !settlementPending && (
+                                    <p className="results-note tc-ink--gold" role="status">
+                                        Settlement Is Confirmed, But The Wallet Balance Refresh Is Delayed. The Transaction Receipt Above Remains Authoritative.
+                                    </p>
+                                )}
+
                                 {resultAwardError && (
                                     <p className="strategy-alert tc-ink--red" role="alert">
-                                        The Run Could Not Be Settled ({toTitleCase(String(resultAwardError).replace(/_/g, ' '))}). Your Reward Has Not Been Paid Yet.
+                                        The Settlement Receipt Is Still Pending ({toTitleCase(String(resultAwardError).replace(/_/g, ' '))}). Retry The Same Run; Do Not Start A New Entry.
                                         {/* finishGame reopened finishedRef on failure and
                                             the console action retries the same run. */}
                                     </p>

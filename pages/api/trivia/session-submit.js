@@ -13,7 +13,7 @@ import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
  *
  * Everything the payout depends on comes from the server:
  *   - WHICH questions counted           -> trivia_sessions.question_ids
- *   - WHAT the right answer was         -> trivia_questions.correct_index
+ *   - WHAT the right answer was         -> bound trivia_question_revisions
  *   - HOW display order maps to it      -> trivia_sessions.permutations
  *   - HOW MANY questions the run was    -> length of the stored roster
  *   - HOW MANY points / diamonds        -> computed here, then clamped
@@ -48,9 +48,9 @@ import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/apiErrorHandler';
-import { serviceClient, deterministicOptionOrder, optionOrderSeed } from './tournament-lifecycle';
+import { serviceClient } from './tournament-lifecycle';
 import { getDailyDiamondsEarned, clampToCap } from '../../../src/lib/trivia/diamondCap';
-import { getTodayStartCST } from '../../../src/lib/trivia/getTodayCST';
+import { getTodayCST, getTodayStartCST } from '../../../src/lib/trivia/getTodayCST';
 import { calculateDiamonds, DAILY_DIAMOND_CAPS, getModeConfig } from '../../../src/lib/trivia/triviaEngine';
 import { computeStakePot, ARCADE_MAX_RUN_PAYOUT, CASH_OUT_MIN_ANSWERED } from '../../../src/lib/trivia/arcadeStakes';
 import {
@@ -68,13 +68,255 @@ import {
     findForbiddenFields,
     v3ErrorStatus,
 } from '../../../src/lib/trivia/phase3Engine.mjs';
+import {
+    expectedSoloTransactionReceipts,
+    verifySoloTransactionReceipts,
+} from '../../../src/lib/trivia/settlementReceiptPolicy.mjs';
+
+async function readSoloSettlementReceipt(sb, userId, sessionId, result) {
+    const { data: settledSession, error: sessionError } = await sb
+        .from('trivia_sessions')
+        .select('id, user_id, mode, status, entry_cost, entry_state, created_at, submitted_at, settlement_request_id, engine_version')
+        .eq('id', sessionId)
+        .maybeSingle();
+    if (sessionError || !settledSession || settledSession.user_id !== userId
+        || settledSession.status !== 'submitted' || !settledSession.created_at
+        || !settledSession.submitted_at) {
+        return { ok: false, error: 'settlement_receipt_unavailable' };
+    }
+    const submittedAt = new Date(settledSession.submitted_at);
+    const createdAt = new Date(settledSession.created_at);
+    if (Number.isNaN(submittedAt.getTime()) || Number.isNaN(createdAt.getTime())) {
+        return { ok: false, error: 'settlement_receipt_unavailable' };
+    }
+    const expected = expectedSoloTransactionReceipts({
+        sessionId,
+        userId,
+        mode: settledSession.mode,
+        entryCost: settledSession.entry_cost,
+        entryState: settledSession.entry_state,
+        diamondsAwarded: result?.diamondsAwarded,
+        dailyBonusAwarded: result?.dailyBonusAwarded,
+        chicagoDate: getTodayCST(createdAt),
+    });
+    if (!expected) return { ok: false, error: 'settlement_receipt_unavailable' };
+
+    let rows = [];
+    if (expected.length > 0) {
+        const { data, error } = await sb
+            .from('diamond_transactions')
+            .select('id, amount, transaction_type, type, balance_after, reference_id, created_at')
+            .eq('user_id', userId)
+            .in('reference_id', expected.map(item => item.referenceId));
+        if (error) return { ok: false, error: 'settlement_receipt_unavailable' };
+        rows = data || [];
+    }
+    const verified = verifySoloTransactionReceipts(expected, rows);
+    if (!verified.ok) return verified;
+    let durableRequestId = typeof settledSession.settlement_request_id === 'string'
+        ? settledSession.settlement_request_id
+        : null;
+    if (!durableRequestId && settledSession.engine_version) {
+        const { data: resultRow, error: resultError } = await sb
+            .from('trivia_session_results')
+            .select('request_id')
+            .eq('session_id', sessionId)
+            .maybeSingle();
+        if (resultError) return { ok: false, error: 'settlement_receipt_unavailable' };
+        durableRequestId = typeof resultRow?.request_id === 'string' ? resultRow.request_id : null;
+    }
+    if (durableRequestId !== null && !UUID_RE.test(durableRequestId)) {
+        return { ok: false, error: 'settlement_receipt_unavailable' };
+    }
+    return {
+        ok: true,
+        receipt: {
+            sessionId,
+            requestId: durableRequestId,
+            settlementReference: `trivia_session_${sessionId}`,
+            submittedAt: settledSession.submitted_at,
+            scoreId: typeof result?.scoreId === 'string' ? result.scoreId : null,
+            resultHash: typeof result?.resultHash === 'string' ? result.resultHash : null,
+            transactions: verified.receipts,
+        },
+    };
+}
+
+const isPlainRecord = value => Boolean(value)
+    && typeof value === 'object'
+    && !Array.isArray(value);
+
+function canonicalJson(value) {
+    if (Array.isArray(value)) return `[${value.map(canonicalJson).join(',')}]`;
+    if (isPlainRecord(value)) {
+        return `{${Object.keys(value).sort().map(key => `${JSON.stringify(key)}:${canonicalJson(value[key])}`).join(',')}}`;
+    }
+    return JSON.stringify(value);
+}
+
+function normalizeStoredLegacyReview(value, rosterIds) {
+    if (value == null) return { ok: true, review: null };
+    if (!Array.isArray(value) || value.length > rosterIds.length) {
+        return { ok: false, error: 'settlement_snapshot_invalid' };
+    }
+    const roster = new Set(rosterIds);
+    const seen = new Set();
+    const review = [];
+    for (const item of value) {
+        if (!isPlainRecord(item)
+            || typeof item.questionId !== 'string'
+            || !UUID_RE.test(item.questionId)
+            || !roster.has(item.questionId)
+            || seen.has(item.questionId)
+            || typeof item.wasCorrect !== 'boolean'
+            || !Number.isInteger(item.correctDisplayIndex)
+            || item.correctDisplayIndex < -1
+            || (item.outcome !== undefined && !['correct', 'wrong', 'voided'].includes(item.outcome))
+            || (item.voided !== undefined && typeof item.voided !== 'boolean')) {
+            return { ok: false, error: 'settlement_snapshot_invalid' };
+        }
+        seen.add(item.questionId);
+        review.push({
+            questionId: item.questionId,
+            wasCorrect: item.wasCorrect,
+            correctDisplayIndex: item.correctDisplayIndex,
+            ...(item.outcome === undefined ? {} : { outcome: item.outcome }),
+            ...(item.voided === undefined ? {} : { voided: item.voided }),
+        });
+    }
+    return { ok: true, review };
+}
+
+/**
+ * A submitted legacy session is a receipt replay, not another grading pass.
+ * New settlements seal their complete response under api_response_v1. Older
+ * sessions predate that snapshot, so they can only replay fields already
+ * committed by award_trivia_run; unavailable review details stay unavailable.
+ */
+function projectStoredLegacySettlement(session) {
+    const stored = session?.settlement_result;
+    if (!isPlainRecord(stored)) {
+        return { ok: false, error: 'settlement_result_unavailable' };
+    }
+    const rosterIds = Array.isArray(session.question_ids)
+        ? session.question_ids.filter(id => typeof id === 'string' && UUID_RE.test(id))
+        : [];
+    if (rosterIds.length !== (session.question_ids || []).length
+        || new Set(rosterIds).size !== rosterIds.length) {
+        return { ok: false, error: 'settlement_snapshot_invalid' };
+    }
+
+    const snapshot = stored.api_response_v1;
+    if (snapshot !== undefined) {
+        if (!isPlainRecord(snapshot)
+            || snapshot.success !== true
+            || snapshot.sessionId !== session.id
+            || snapshot.mode !== session.mode
+            || !Number.isInteger(snapshot.correct) || snapshot.correct < 0
+            || !Number.isInteger(snapshot.score) || snapshot.score < 0
+            || !Number.isInteger(snapshot.diamondsAwarded) || snapshot.diamondsAwarded < 0
+            || !Number.isInteger(snapshot.dailyBonusAwarded) || snapshot.dailyBonusAwarded < 0
+            || (snapshot.scoreId !== null
+                && (typeof snapshot.scoreId !== 'string' || !UUID_RE.test(snapshot.scoreId)))
+            || (snapshot.newBalance !== null && !Number.isFinite(snapshot.newBalance))
+            || !Number.isInteger(snapshot.total) || snapshot.total < 0
+            || !Number.isInteger(snapshot.servedTotal) || snapshot.servedTotal < snapshot.total
+            || !Number.isInteger(snapshot.voided) || snapshot.voided < 0
+            || snapshot.total + snapshot.voided !== snapshot.servedTotal) {
+            return { ok: false, error: 'settlement_snapshot_invalid' };
+        }
+        const review = normalizeStoredLegacyReview(snapshot.perQuestion, rosterIds);
+        if (!review.ok || review.review === null) return { ok: false, error: 'settlement_snapshot_invalid' };
+        return {
+            ok: true,
+            response: {
+                success: true,
+                sessionId: session.id,
+                mode: session.mode,
+                correct: snapshot.correct,
+                total: snapshot.total,
+                servedTotal: snapshot.servedTotal,
+                voided: snapshot.voided,
+                score: snapshot.score,
+                scoreId: snapshot.scoreId,
+                diamondsAwarded: snapshot.diamondsAwarded,
+                dailyBonusAwarded: snapshot.dailyBonusAwarded,
+                newBalance: snapshot.newBalance,
+                replayed: true,
+                deadlinePassed: snapshot.deadlinePassed === true,
+                perQuestion: review.review,
+            },
+        };
+    }
+
+    const verified = validateTriviaAwardResponse(stored, {
+        sessionId: session.id,
+        score: stored.score,
+        correct: stored.correct_count,
+        diamonds: stored.diamonds_awarded,
+    });
+    if (!verified.ok) return { ok: false, error: 'settlement_result_invalid' };
+    const receipt = verified.receipt;
+    const storedReview = stored.settlement_review ?? stored.review ?? stored.per_question;
+    const review = normalizeStoredLegacyReview(storedReview, rosterIds);
+    if (!review.ok) return review;
+
+    return {
+        ok: true,
+        response: {
+            success: true,
+            sessionId: session.id,
+            mode: session.mode,
+            correct: receipt.correct,
+            score: receipt.score,
+            scoreId: receipt.scoreId,
+            diamondsAwarded: receipt.diamondsAwarded,
+            dailyBonusAwarded: receipt.dailyBonusAwarded,
+            newBalance: receipt.newBalance,
+            replayed: true,
+            ...(Number.isInteger(stored.total) && stored.total >= 0 ? { total: stored.total } : {}),
+            ...(Number.isInteger(stored.served_total) && stored.served_total >= 0
+                ? { servedTotal: stored.served_total }
+                : {}),
+            ...(Number.isInteger(stored.voided) && stored.voided >= 0 ? { voided: stored.voided } : {}),
+            ...(review.review === null ? {} : { perQuestion: review.review }),
+        },
+    };
+}
+
+async function respondWithStoredLegacySettlement(res, sb, userId, session) {
+    const projected = projectStoredLegacySettlement(session);
+    if (!projected.ok) {
+        console.warn('[trivia session-submit] immutable replay unavailable:', projected.error);
+        return res.status(502).json({ success: false, error: projected.error });
+    }
+    const evidence = await readSoloSettlementReceipt(sb, userId, session.id, projected.response);
+    if (!evidence.ok) {
+        console.warn('[trivia session-submit] settlement receipt unavailable:', evidence.error);
+        return res.status(502).json({ success: false, error: evidence.error });
+    }
+    res.setHeader('Cache-Control', 'private, no-cache, no-store, must-revalidate');
+    return res.status(200).json({ ...projected.response, receipt: evidence.receipt });
+}
+
+async function reloadStoredLegacySession(sb, userId, sessionId) {
+    const { data, error } = await sb
+        .from('trivia_sessions')
+        .select('id, user_id, mode, question_ids, status, settlement_result')
+        .eq('id', sessionId)
+        .eq('user_id', userId)
+        .maybeSingle();
+    if (error || !data || data.status !== 'submitted') return null;
+    return data;
+}
 
 /**
  * Engine v3 reward: today's formulas (calculateDiamonds / arcade stake pot / daily
  * caps) applied to the DATABASE grade. The database re-grades inside
- * trivia_session_settle_solo_v3 and refuses a stale basis ('grade_changed').
+ * trivia_session_settle_solo_v4 and refuses any stale grade basis
+ * ('grade_changed').
  */
-async function v3RewardDiamonds(sb, userId, mode, grade, ageMs, cashedOut) {
+async function v3RewardDiamonds(sb, userId, mode, grade, ageMs, cashedOut, playDate) {
     const cfg = getModeConfig(mode);
     const limit = Number(cfg?.timeLimit);
     const elapsedSec = Number.isFinite(ageMs) ? Math.floor(ageMs / 1000) : 0;
@@ -92,8 +334,8 @@ async function v3RewardDiamonds(sb, userId, mode, grade, ageMs, cashedOut) {
     const cap = DAILY_DIAMOND_CAPS[mode];
     if (!Number.isFinite(cap)) return 0;
     const [fromScores, fromSessions] = await Promise.all([
-        getDailyDiamondsEarned(sb, userId, mode),
-        sessionDiamondsToday(sb, userId, mode),
+        getDailyDiamondsEarned(sb, userId, mode, playDate),
+        sessionDiamondsForDay(sb, userId, mode, playDate),
     ]);
     return Math.max(0, Math.floor(clampToCap(Math.max(fromScores || 0, fromSessions || 0), raw, cap)));
 }
@@ -104,7 +346,9 @@ async function submitV3(req, res, sb, userId, session) {
     if ((sig != null || competitive) && sig !== session.contract_signature) {
         return res.status(409).json({ success: false, error: 'contract_mismatch' });
     }
-    const requestId = typeof req.body?.requestId === 'string' && UUID_RE.test(req.body.requestId) ? req.body.requestId : null;
+    const requestId = typeof req.body?.requestId === 'string' && UUID_RE.test(req.body.requestId)
+        ? req.body.requestId
+        : session.id;
     res.setHeader('Cache-Control', 'private, no-cache, no-store, must-revalidate');
     if (competitive) {
         const { data, error } = await sb.rpc('trivia_session_submit_v3', {
@@ -122,6 +366,10 @@ async function submitV3(req, res, sb, userId, session) {
     }
     const createdMs = session.created_at ? new Date(session.created_at).getTime() : NaN;
     const ageMs = Number.isFinite(createdMs) ? Date.now() - createdMs : Number.POSITIVE_INFINITY;
+    const playDate = Number.isFinite(createdMs) ? getTodayCST(new Date(createdMs)) : null;
+    if (!playDate || !/^\d{4}-\d{2}-\d{2}$/.test(playDate)) {
+        return res.status(500).json({ success: false, error: 'invalid_session_time' });
+    }
     let settled = null;
     for (let attempt = 0; attempt < 2; attempt++) {
         const { data: grade, error: gradeErr } = await sb.rpc('trivia_session_grade_v3', { p_session_id: session.id });
@@ -129,11 +377,14 @@ async function submitV3(req, res, sb, userId, session) {
             return res.status(500).json({ success: false, error: 'grading_failed' });
         }
         const diamonds = session.status === 'open'
-            ? await v3RewardDiamonds(sb, userId, session.mode, grade, ageMs, req.body?.cashedOut === true)
+            ? await v3RewardDiamonds(
+                sb, userId, session.mode, grade, ageMs,
+                req.body?.cashedOut === true, playDate,
+            )
             : 0;
-        const { data, error } = await sb.rpc('trivia_session_settle_solo_v3', {
+        const { data, error } = await sb.rpc('trivia_session_settle_solo_v4', {
             p_session_id: session.id, p_user_id: userId, p_diamonds: diamonds,
-            p_answered_basis: Number(grade.answered) || 0, p_request_id: requestId,
+            p_grade_basis: grade, p_request_id: requestId,
         });
         if (error) return res.status(500).json({ success: false, error: 'award_failed' });
         settled = data;
@@ -142,21 +393,43 @@ async function submitV3(req, res, sb, userId, session) {
     if (!settled || settled.success !== true) {
         return res.status(v3ErrorStatus(settled?.error)).json({ success: false, error: settled?.error || 'award_failed' });
     }
-    return res.status(200).json({
+    const response = {
         success: true, sessionId: session.id, mode: session.mode, engine: 'trivia-engine/3',
         correct: settled.correct, total: settled.graded_total, score: settled.score, voided: settled.voided,
         scoreId: settled.score_id ?? null, diamondsAwarded: Number(settled.diamonds_awarded) || 0,
         dailyBonusAwarded: Number(settled.daily_bonus_awarded) || 0,
         newBalance: settled.new_balance == null ? null : Number(settled.new_balance),
         replayed: settled.replayed === true, deadlinePassed: false,
-        perQuestion: Array.isArray(settled.per_question) ? settled.per_question.map(p => ({
-            questionId: p.questionId, wasCorrect: p.wasCorrect === true,
-            correctDisplayIndex: Number.isInteger(p.correctDisplayIndex) ? p.correctDisplayIndex : -1,
-        })) : [],
-    });
+        resultHash: typeof settled.result_hash === 'string' ? settled.result_hash : null,
+        perQuestion: Array.isArray(settled.per_question) ? settled.per_question.map(p => {
+            const voided = p.outcome === 'void';
+            return {
+                questionId: p.questionId,
+                wasCorrect: voided ? false : p.wasCorrect === true,
+                correctDisplayIndex: voided
+                    ? -1
+                    : (Number.isInteger(p.correctDisplayIndex) ? p.correctDisplayIndex : -1),
+                outcome: voided ? 'voided' : p.outcome,
+                voided,
+            };
+        }) : [],
+    };
+    const evidence = await readSoloSettlementReceipt(sb, userId, session.id, response);
+    if (!evidence.ok) {
+        console.warn('[trivia session-submit] settlement receipt unavailable:', evidence.error);
+        return res.status(502).json({ success: false, error: evidence.error });
+    }
+    return res.status(200).json({ ...response, receipt: evidence.receipt });
 }
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function validPermutation(value, optionCount) {
+    return Array.isArray(value)
+        && value.length === optionCount
+        && value.every(index => Number.isInteger(index) && index >= 0 && index < optionCount)
+        && new Set(value).size === optionCount;
+}
 
 /** A session that was never submitted goes stale. Six hours. */
 const SESSION_TTL_MS = 6 * 60 * 60 * 1000;
@@ -176,7 +449,8 @@ const MAX_POINTS_PER_QUESTION = {
 const DEFAULT_MAX_POINTS_PER_QUESTION = 100;
 
 /**
- * Diamonds already banked today (CST day) from server-graded sessions.
+ * Diamonds already banked on the session's immutable CST play day from
+ * server-graded sessions.
  *
  * getDailyDiamondsEarned() reads trivia_scores.diamonds_earned, which this
  * route does not write, so on its own it would report 0 forever and the daily
@@ -184,15 +458,27 @@ const DEFAULT_MAX_POINTS_PER_QUESTION = 100;
  * the caller takes the LARGER of the two, so the cap holds no matter which
  * ledger a mode happens to write to.
  */
-async function sessionDiamondsToday(sb, userId, mode) {
+function nextChicagoDate(chicagoDate) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(String(chicagoDate || ''))) return null;
+    const [year, month, day] = chicagoDate.split('-').map(Number);
+    const next = new Date(Date.UTC(year, month - 1, day + 1, 12));
+    if (Number.isNaN(next.getTime())) return null;
+    return [next.getUTCFullYear(), String(next.getUTCMonth() + 1).padStart(2, '0'),
+        String(next.getUTCDate()).padStart(2, '0')].join('-');
+}
+
+async function sessionDiamondsForDay(sb, userId, mode, chicagoDate) {
     try {
+        const nextDate = nextChicagoDate(chicagoDate);
+        if (!nextDate) return Number.POSITIVE_INFINITY;
         const { data, error } = await sb
             .from('trivia_sessions')
             .select('diamonds_awarded')
             .eq('user_id', userId)
             .eq('mode', mode)
             .eq('status', 'submitted')
-            .gte('created_at', getTodayStartCST())
+            .gte('created_at', getTodayStartCST(chicagoDate))
+            .lt('created_at', getTodayStartCST(nextDate))
             .limit(1000);
         if (error) {
             // Fail closed: an unreadable ledger must not read as "nothing
@@ -245,7 +531,7 @@ export default async function handler(req, res) {
         // --- LOAD THE SESSION (service role; RLS blocks client writes) ----
         const { data: session, error: loadErr } = await sb
             .from('trivia_sessions')
-            .select('id, user_id, mode, question_ids, permutations, status, created_at, expires_at, answers, settlement_result, score, correct_count, diamonds_awarded, engine_version, contract_signature')
+            .select('id, user_id, mode, question_ids, question_revision_ids, permutations, status, created_at, expires_at, answers, settlement_result, score, correct_count, diamonds_awarded, engine_version, contract_signature')
             .eq('id', sessionId)
             .maybeSingle();
         if (loadErr) {
@@ -273,24 +559,40 @@ export default async function handler(req, res) {
         if (session.status !== 'open' && !replaying) {
             return res.status(409).json({ success: false, error: 'session_closed' });
         }
+        // Settlement replay is resolved before any mutable question, answer-key
+        // or eligibility read. A later curation/quarantine change cannot alter
+        // an already committed result or the review the player originally saw.
+        if (replaying) {
+            return await respondWithStoredLegacySettlement(res, sb, userId, session);
+        }
 
         const createdMs = session.created_at ? new Date(session.created_at).getTime() : NaN;
         const ageMs = Number.isFinite(createdMs) ? Date.now() - createdMs : Number.POSITIVE_INFINITY;
+        const playDate = Number.isFinite(createdMs) ? getTodayCST(new Date(createdMs)) : null;
+        if (!playDate || !/^\d{4}-\d{2}-\d{2}$/.test(playDate)) {
+            return res.status(500).json({ success: false, error: 'invalid_session_time' });
+        }
         const expiresMs = session.expires_at ? new Date(session.expires_at).getTime() : NaN;
         const deadlinePassed = !replaying && (
             (Number.isFinite(expiresMs) && Date.now() > expiresMs)
             || (!Number.isFinite(expiresMs) && ageMs > SESSION_TTL_MS)
         );
         // `deadlinePassed` is advisory response metadata only. The locked
-        // award_trivia_run_v2 transaction is the deadline authority: checking
+        // award_trivia_run_v4 delegates to the locked v2 award transaction and
+        // is the deadline authority: checking
         // and closing here would leave a TOCTOU window in which another submit
         // could cross expires_at after this read but before the SQL award.
 
         const mode = session.mode;
-        const rosterIds = (Array.isArray(session.question_ids) ? session.question_ids : [])
-            .filter(id => typeof id === 'string' && UUID_RE.test(id));
-        if (rosterIds.length === 0) {
+        const storedRosterIds = Array.isArray(session.question_ids) ? session.question_ids : [];
+        if (storedRosterIds.length === 0) {
             return res.status(400).json({ success: false, error: 'empty_session' });
+        }
+        const rosterIds = storedRosterIds
+            .filter(id => typeof id === 'string' && UUID_RE.test(id));
+        if (rosterIds.length !== storedRosterIds.length || new Set(rosterIds).size !== rosterIds.length) {
+            console.warn('[trivia session-submit] stored roster is malformed');
+            return res.status(500).json({ success: false, error: 'grading_failed' });
         }
         // --- COLLECT ANSWERS, DROPPING ANYTHING OFF-ROSTER ---------------
         // submit.js grades whatever ids the client sends, so a client could
@@ -312,15 +614,48 @@ export default async function handler(req, res) {
         // `answers` deliberately remains unread beyond shape validation.
 
         // --- THE ANSWER KEY, FETCHED SERVER-SIDE ONLY --------------------
-        const { data: keyRows, error: keyErr } = await sb
-            .from('trivia_questions')
-            .select('id, correct_index, options')
-            .in('id', rosterIds);
-        if (keyErr) {
-            console.warn('[trivia session-submit] answer key lookup failed:', keyErr.message || keyErr);
+        const revisionMap = session.question_revision_ids && typeof session.question_revision_ids === 'object'
+            && !Array.isArray(session.question_revision_ids)
+            ? session.question_revision_ids
+            : {};
+        const revisionIds = rosterIds.map(questionId => revisionMap[questionId]);
+        if (revisionIds.some(revisionId => typeof revisionId !== 'string' || !UUID_RE.test(revisionId))) {
+            return res.status(409).json({ success: false, error: 'revision_provenance_unavailable' });
+        }
+        const [keyResult, eligibilityResult] = await Promise.all([
+            sb.from('trivia_question_revisions')
+                .select('id, question_id, correct_index, options, structurally_valid')
+                .in('id', revisionIds),
+            sb.from('trivia_question_eligibility_v1')
+                .select('question_id, structurally_valid, audit_verified, quarantined')
+                .in('question_id', rosterIds),
+        ]);
+        if (keyResult.error || eligibilityResult.error) {
+            const gradingError = keyResult.error || eligibilityResult.error;
+            console.warn('[trivia session-submit] answer key/eligibility lookup failed:', gradingError.message || gradingError);
             return res.status(500).json({ success: false, error: 'grading_failed' });
         }
-        const keyById = new Map((keyRows || []).map(r => [r.id, r]));
+        const keyRows = keyResult.data || [];
+        const keyById = new Map((keyRows || [])
+            .filter(row => revisionMap[row.question_id] === row.id)
+            .map(row => [row.question_id, row]));
+        const eligibilityById = new Map((eligibilityResult.data || []).map(r => [r.question_id, r]));
+        // Match trivia_p3_grade exactly. Serving-quality/review policy can
+        // stop a row from entering a future roster, but only malformed
+        // structure, a failed audit or active quarantine neutralizes a row
+        // that was already served. Missing projections fail grading above;
+        // they never silently become a player-selected void.
+        const voidedIds = new Set(rosterIds.filter(qid => {
+            const eligibility = eligibilityById.get(qid);
+            return serverAnswers[qid]?.v === true
+                || keyById.get(qid)?.structurally_valid === false
+                || eligibility?.audit_verified === false
+                || eligibility?.quarantined === true;
+        }));
+        if (keyById.size !== rosterIds.length || eligibilityById.size !== rosterIds.length) {
+            console.warn('[trivia session-submit] grading projection incomplete');
+            return res.status(500).json({ success: false, error: 'grading_failed' });
+        }
 
         // --- GRADE -------------------------------------------------------
         // The denominator is the SERVED roster, not the answered subset.
@@ -334,17 +669,26 @@ export default async function handler(req, res) {
 
         for (const qid of rosterIds) {
             const row = keyById.get(qid);
+            if (voidedIds.has(qid)) {
+                perQuestion.push({
+                    questionId: qid,
+                    wasCorrect: false,
+                    correctDisplayIndex: -1,
+                    outcome: 'voided',
+                    voided: true,
+                });
+                continue;
+            }
             const optionCount = Array.isArray(row?.options) ? row.options.length : 0;
-            // Prefer the permutation persisted at serve time; recompute from
-            // the shared helper only if the row predates it. Both produce
-            // order[displayIndex] === originalIndex.
-            let order = Array.isArray(stored[qid]) ? stored[qid] : null;
-            if (!order && optionCount > 0) {
-                order = deterministicOptionOrder(optionCount, optionOrderSeed(userId, sessionId, qid));
+            // The persisted permutation is part of the immutable session
+            // evidence. Never recreate it under a later algorithm version.
+            const order = stored[qid];
+            if (!validPermutation(order, optionCount)) {
+                return res.status(409).json({ success: false, error: 'revision_provenance_unavailable' });
             }
 
             const displayIndex = byId.has(qid) ? byId.get(qid) : -1;
-            const originalIndex = (order && Number.isInteger(displayIndex)
+            const originalIndex = (Number.isInteger(displayIndex)
                 && displayIndex >= 0 && displayIndex < order.length)
                 ? order[displayIndex]
                 : -1;
@@ -356,11 +700,13 @@ export default async function handler(req, res) {
             // Feedback the client can render AFTER the fact. Handing back the
             // display position of the answer once the run is closed leaks
             // nothing: the run is already graded and paid.
-            const correctDisplayIndex = order && key >= 0 ? order.indexOf(key) : -1;
-            perQuestion.push({ questionId: qid, wasCorrect, correctDisplayIndex });
+            const correctDisplayIndex = key >= 0 ? order.indexOf(key) : -1;
+            perQuestion.push({ questionId: qid, wasCorrect, correctDisplayIndex, outcome: wasCorrect ? 'correct' : 'wrong', voided: false });
         }
 
-        const total = rosterIds.length;
+        const servedTotal = rosterIds.length;
+        const voided = voidedIds.size;
+        const total = Math.max(0, servedTotal - voided);
 
         // --- SCORE (server-computed, mirrors submit.js's ceiling) --------
         const perQuestionPoints = MAX_POINTS_PER_QUESTION[mode] ?? DEFAULT_MAX_POINTS_PER_QUESTION;
@@ -382,10 +728,10 @@ export default async function handler(req, res) {
         // read from the client. An arcade run abandoned mid-way without a
         // legitimate cash-out pays nothing, exactly like the game UI says.
         let rawDiamonds;
-        const verdictById = new Map(perQuestion.map(p => [p.questionId, p.wasCorrect]));
+        const verdictById = new Map(perQuestion.filter(p => !p.voided).map(p => [p.questionId, p.wasCorrect]));
         const recordedSeq = rosterIds
             .map(qid => ({ qid, rec: serverAnswers[qid] }))
-            .filter(x => x.rec && Number.isInteger(x.rec.n))
+            .filter(x => !voidedIds.has(x.qid) && x.rec && Number.isInteger(x.rec.n))
             .sort((a, b) => a.rec.n - b.rec.n)
             .map(x => ({
                 questionIndex: rosterIds.indexOf(x.qid),
@@ -395,7 +741,7 @@ export default async function handler(req, res) {
             }));
         if (mode === 'arcade' && recordedSeq.length > 0) {
             const { pot, answered } = computeStakePot(recordedSeq);
-            const runComplete = recordedSeq.length >= rosterIds.length;
+            const runComplete = recordedSeq.length >= total;
             const legitimateCashOut = cashedOut === true && answered >= CASH_OUT_MIN_ANSWERED;
             rawDiamonds = (runComplete || legitimateCashOut)
                 ? Math.min(ARCADE_MAX_RUN_PAYOUT, Math.max(0, Math.floor(pot)))
@@ -408,8 +754,8 @@ export default async function handler(req, res) {
         const cap = DAILY_DIAMOND_CAPS[mode];
         if (Number.isFinite(cap)) {
             const [fromScores, fromSessions] = await Promise.all([
-                getDailyDiamondsEarned(sb, userId, mode),
-                sessionDiamondsToday(sb, userId, mode),
+                getDailyDiamondsEarned(sb, userId, mode, playDate),
+                sessionDiamondsForDay(sb, userId, mode, playDate),
             ]);
             const earnedToday = Math.max(fromScores || 0, fromSessions || 0);
             diamonds = clampToCap(earnedToday, rawDiamonds, cap);
@@ -422,13 +768,21 @@ export default async function handler(req, res) {
         diamonds = Math.max(0, Math.floor(diamonds));
 
         // --- PAY OUT (atomic close + idempotent credit) ------------------
-        const { data: award, error: awardErr } = await sb.rpc('award_trivia_run_v2', {
+        const validAnswered = Array.from(byId.keys()).filter(qid => !voidedIds.has(qid)).length;
+        const requestId = typeof req.body?.requestId === 'string' && UUID_RE.test(req.body.requestId)
+            ? req.body.requestId
+            : sessionId;
+        const { data: award, error: awardErr } = await sb.rpc('award_trivia_run_v4', {
             p_session_id: sessionId,
             p_score: score,
             p_correct: correct,
             p_total: total,
-            p_answered: byId.size,
+            p_answered: validAnswered,
             p_diamonds: diamonds,
+            p_completion_total: servedTotal,
+            p_completion_answered: Math.min(servedTotal, validAnswered + voided),
+            p_request_id: requestId,
+            p_settlement_snapshot: { deadlinePassed, perQuestion },
         });
         if (awardErr) {
             console.warn('[trivia session-submit] award_trivia_run failed:', awardErr.message || awardErr);
@@ -455,14 +809,24 @@ export default async function handler(req, res) {
             return res.status(502).json({ success: false, error: 'invalid_award_receipt' });
         }
         const receipt = verifiedAward.receipt;
-
-        res.setHeader('Cache-Control', 'private, no-cache, no-store, must-revalidate');
-        return res.status(200).json({
+        // A competing request may have won the row lock after this request
+        // loaded an open session. Its committed snapshot is authoritative;
+        // never return the review computed above from a now-stale projection.
+        if (receipt.replayed) {
+            const storedSession = await reloadStoredLegacySession(sb, userId, sessionId);
+            if (!storedSession) {
+                return res.status(502).json({ success: false, error: 'settlement_result_unavailable' });
+            }
+            return await respondWithStoredLegacySettlement(res, sb, userId, storedSession);
+        }
+        const response = {
             success: true,
             sessionId,
             mode,
             correct: receipt.correct,
             total,
+            servedTotal,
+            voided,
             score: receipt.score,
             scoreId: receipt.scoreId,
             diamondsAwarded: receipt.diamondsAwarded,
@@ -471,7 +835,21 @@ export default async function handler(req, res) {
             replayed: receipt.replayed,
             deadlinePassed,
             perQuestion,
-        });
+        };
+        const evidence = await readSoloSettlementReceipt(sb, userId, sessionId, response);
+        if (!evidence.ok) {
+            console.warn('[trivia session-submit] settlement receipt unavailable:', evidence.error);
+            return res.status(502).json({ success: false, error: evidence.error });
+        }
+
+        if (canonicalJson(award?.api_response_v1) !== canonicalJson(response)) {
+            console.warn('[trivia session-submit] atomic settlement snapshot mismatch');
+            return res.status(502).json({ success: false, error: 'settlement_snapshot_unavailable' });
+        }
+
+        const completeResponse = { ...response, receipt: evidence.receipt };
+        res.setHeader('Cache-Control', 'private, no-cache, no-store, must-revalidate');
+        return res.status(200).json(completeResponse);
     } catch (e) {
         console.warn('[trivia session-submit] unexpected:', e);
         try { reportApiError(e, req); } catch (_reportError) { console.warn('[App] Handled exception:', _reportError?.message || _reportError); }

@@ -6,9 +6,9 @@
  * Body: { question_id: uuid, reason: enum, note?: string }
  * Auth: requires Bearer token (authenticated user). Browsers no longer write
  *       trivia_question_reports directly (Phase 3 revoked it); intake is the
- *       database function trivia_submit_question_report_v1.
+ *       database function trivia_submit_question_report_v2.
  *
- * Effect (Phase 3): a report is VALID only from an established human account
+ * Effect (Phase 3): a report is VALID only from an established account
  * that was actually served the question. One valid open report removes the
  * question from paid/competitive pools immediately; the policy threshold of
  * distinct valid reporters quarantines it everywhere. Quarantine changes
@@ -67,16 +67,22 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'note must be a string of 500 characters or fewer' });
     }
 
-    // Phase 3: intake is one database function (trivia_submit_question_report_v1).
+    // Phase 8: intake is one session-bound database function. A supplied
+    // session must contain this canonical question; V3 reports retain the
+    // immutable revision served to the player.
     // It dedups per player+question, enforces the daily and open-report budgets,
-    // marks a report VALID only from an established human account that was actually
+    // marks a report VALID only from an established account that was actually
     // served the question, removes a validly reported question from paid/competitive
     // pools at once and quarantines it (eligibility only) at the policy threshold.
     // Question rows are never rewritten here any more.
+    const suppliedSessionId = req.body?.session_id;
+    if (suppliedSessionId != null
+      && (typeof suppliedSessionId !== 'string' || !UUID_RE.test(suppliedSessionId))) {
+      return res.status(400).json({ error: 'session_id must be a valid UUID when supplied' });
+    }
+    const sessionId = typeof suppliedSessionId === 'string' ? suppliedSessionId : null;
     const adm = createClient(url, srKey, { auth: { persistSession: false } });
-    const sessionId = typeof req.body?.session_id === 'string' && UUID_RE.test(req.body.session_id)
-      ? req.body.session_id : null;
-    const { data: result, error: rpcErr } = await adm.rpc('trivia_submit_question_report_v1', {
+    const { data: result, error: rpcErr } = await adm.rpc('trivia_submit_question_report_v2', {
       p_user_id: userId,
       p_question_id: question_id,
       p_reason: reason,

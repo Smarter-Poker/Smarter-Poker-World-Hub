@@ -59,6 +59,15 @@ function prefersReducedMotion() {
     catch { return false; }
 }
 
+function questionIntegrityIssue(question) {
+    if (!question || typeof question !== 'object') return 'The question record is missing.';
+    if (typeof question.id !== 'string' || !question.id) return 'The question identity is missing.';
+    if (typeof question.question !== 'string' || !question.question.trim()) return 'The question text is missing.';
+    if (!Array.isArray(question.options) || question.options.length < 2) return 'The answer choices are incomplete.';
+    if (question.options.some(option => typeof option !== 'string' || !option.trim())) return 'One or more answer choices are invalid.';
+    return null;
+}
+
 export default function TriviaGame({
     questions,
     mode,
@@ -86,12 +95,40 @@ export default function TriviaGame({
     // report route requires a signed-in bearer token.
     enableReport = false,
     reportToken = null,
+    reportSessionId = null,
+    onQuestionReported = null,
+    onRetry = null,
+    onInvalidQuestionRefresh = null,
+    // Recovery starts on the first unanswered server question. Earlier slots
+    // are projected from the server's binding answer state; final grading still
+    // reads the durable session, never a browser-reconstructed answer key.
+    initialQuestionIndex = 0,
+    initialAnswers = null,
+    initialVerdicts = null,
+    initialCorrectCount = 0,
+    initialStreak = 0,
 }) {
-    const [currentIndex, setCurrentIndex] = useState(0);
+    const recoveredIndex = Number.isInteger(initialQuestionIndex)
+        ? Math.min(Math.max(0, initialQuestionIndex), Math.max(0, (questions?.length || 1) - 1))
+        : 0;
+    const recoveredAnswers = Array.isArray(initialAnswers)
+        ? [...initialAnswers]
+        : Array(recoveredIndex);
+    const recoveredVerdicts = initialVerdicts && typeof initialVerdicts === 'object'
+        ? { ...initialVerdicts }
+        : {};
+    const recoveredCorrectCount = Math.max(0, Math.floor(Number(initialCorrectCount) || 0));
+    const recoveredStreak = Math.max(0, Math.floor(Number(initialStreak) || 0));
+    const [currentIndex, setCurrentIndex] = useState(recoveredIndex);
     const [selectedAnswer, setSelectedAnswer] = useState(null);
     const [showExplanation, setShowExplanation] = useState(false);
-    const [answers, setAnswers] = useState([]);
+    const [answers, setAnswers] = useState(() => recoveredAnswers);
     const [isLocked, setIsLocked] = useState(false);
+    const [isAnswerPending, setIsAnswerPending] = useState(false);
+    const [answerError, setAnswerError] = useState(null);
+    const [invalidQuestionError, setInvalidQuestionError] = useState(null);
+    const [invalidQuestionNeedsRefresh, setInvalidQuestionNeedsRefresh] = useState(false);
+    const [isInvalidSkipPending, setIsInvalidSkipPending] = useState(false);
     const { isVip } = useVIP();
     const [reduceMotion] = useState(prefersReducedMotion);
 
@@ -101,7 +138,7 @@ export default function TriviaGame({
     const [diamonds, setDiamonds] = useState(userDiamonds);
 
     // ══ NEW: Combo / Fire Mode state ══
-    const [streak, setStreak] = useState(0);
+    const [streak, setStreak] = useState(recoveredStreak);
     const [showCombo, setShowCombo] = useState(false);
     const [isFireMode, setIsFireMode] = useState(false);
     const [showStreakLost, setShowStreakLost] = useState(false);
@@ -118,7 +155,7 @@ export default function TriviaGame({
 
     // ══ NEW: Game active state for ghost opponent ══
     const [isGameActive, setIsGameActive] = useState(true);
-    const [correctCount, setCorrectCount] = useState(0);
+    const [correctCount, setCorrectCount] = useState(recoveredCorrectCount);
 
     // ══ NEW: Audio mute ══
     const [muted, setMuted] = useState(audio.isMuted());
@@ -128,15 +165,22 @@ export default function TriviaGame({
     const opponentDataRef = useRef({ score: null, name: null });
     const stakePotRef = useRef(0); // Ref to avoid stale closure in advanceQuestion
     const confettiRef = useRef(null); // Lazy-loaded canvas-confetti
-    const answersRef = useRef([]); // Ref mirror of answers - avoids stale closure in auto-complete
-    const streakRef = useRef(0); // Ref mirror of streak
+    const answersRef = useRef(answers); // Ref mirror of answers - avoids stale closure in auto-complete
+    const streakRef = useRef(recoveredStreak); // Ref mirror of streak
+    // A server answer is first-answer-wins. Keep the exact attempted answer
+    // across an uncertain response so Retry can only replay that same answer;
+    // unlocking the options here would let the screen claim a different choice
+    // from the one the server already committed.
+    const pendingAnswerRef = useRef(null);
+    const answerRequestRef = useRef(false);
+    const invalidSkipRequestRef = useRef(false);
 
     // Server-graded verdicts keyed by questionIndex. The ref is written
     // synchronously alongside the state so the 800ms arcade auto-advance and
     // the timer-expiry auto-complete always score against the latest verdicts
     // rather than a stale render's copy.
-    const [verdicts, setVerdicts] = useState({});
-    const verdictsRef = useRef({});
+    const [verdicts, setVerdicts] = useState(() => recoveredVerdicts);
+    const verdictsRef = useRef(recoveredVerdicts);
     const storeVerdict = (questionIndex, verdict) => {
         verdictsRef.current = { ...verdictsRef.current, [questionIndex]: verdict };
         setVerdicts(verdictsRef.current);
@@ -403,6 +447,41 @@ export default function TriviaGame({
         }
     };
 
+    const submitServerAnswer = async (attempt) => {
+        if (!serverGrader || !attempt || answerRequestRef.current) return;
+        answerRequestRef.current = true;
+        setIsAnswerPending(true);
+        setAnswerError(null);
+        try {
+            const verdict = await serverGrader(attempt);
+            if (!isMountedRef.current) return;
+            // session-answer reports the server's binding choice. On a replay
+            // this can differ from a stale client tap, so the authoritative
+            // stored index must drive reveal, review and final submission.
+            const storedIndex = Number.isInteger(verdict?.storedDisplayIndex)
+                && verdict.storedDisplayIndex >= 0
+                && verdict.storedDisplayIndex < (currentQuestion?.options?.length || 0)
+                ? verdict.storedDisplayIndex
+                : attempt.displayIndex;
+            setSelectedAnswer(storedIndex);
+            storeVerdict(attempt.questionIndex, verdict);
+            const newAnswers = [...answersRef.current];
+            newAnswers[attempt.questionIndex] = storedIndex;
+            answersRef.current = newAnswers;
+            setAnswers(newAnswers);
+            pendingAnswerRef.current = null;
+            answerRequestRef.current = false;
+            setIsAnswerPending(false);
+            applyVerdict(!!verdict?.wasCorrect, storedIndex, newAnswers);
+        } catch (err) {
+            console.warn('[TriviaGame] serverGrader failed; the same answer remains locked for retry:', err?.message || err);
+            if (!isMountedRef.current) return;
+            answerRequestRef.current = false;
+            setIsAnswerPending(false);
+            setAnswerError('Your Answer Was Not Confirmed. Retry This Same Answer To Continue.');
+        }
+    };
+
     const selectAnswer = (index) => {
         if (isLocked || selectedAnswer !== null) return;
 
@@ -411,26 +490,13 @@ export default function TriviaGame({
         setIsLocked(true);
 
         if (serverGrader) {
-            // Server-authoritative path: the tap locks in instantly, but the
-            // verdict (and any reveal) waits for the server. answers[] is only
-            // appended on success so a failed call can be re-tapped without
-            // recording a duplicate slot; the server treats the FIRST answer
-            // per question as binding and replays the stored verdict on
-            // retry, so unlocking here is safe.
-            serverGrader({ questionId: currentQuestion.id, displayIndex: index, questionIndex: currentIndex })
-                .then((verdict) => {
-                    if (!isMountedRef.current) return;
-                    storeVerdict(currentIndex, verdict);
-                    const newAnswers = [...answersRef.current, index];
-                    setAnswers(newAnswers);
-                    applyVerdict(!!verdict?.wasCorrect, index, newAnswers);
-                })
-                .catch((err) => {
-                    console.warn('[TriviaGame] serverGrader failed, unlocking for retry:', err?.message || err);
-                    if (!isMountedRef.current) return;
-                    setSelectedAnswer(null);
-                    setIsLocked(false);
-                });
+            const attempt = {
+                questionId: currentQuestion.id,
+                displayIndex: index,
+                questionIndex: currentIndex,
+            };
+            pendingAnswerRef.current = attempt;
+            submitServerAnswer(attempt);
             return;
         }
 
@@ -479,7 +545,60 @@ export default function TriviaGame({
             setSelectedAnswer(null);
             setShowExplanation(false);
             setIsLocked(false);
+            setIsAnswerPending(false);
+            setAnswerError(null);
+            setInvalidQuestionError(null);
+            setInvalidQuestionNeedsRefresh(false);
+            pendingAnswerRef.current = null;
+            answerRequestRef.current = false;
             setEliminatedOptions([]);
+        }
+    };
+
+    const skipInvalidQuestion = async () => {
+        if (invalidSkipRequestRef.current) return;
+        if (invalidQuestionError && typeof onRetry === 'function') onRetry('invalid_question');
+        invalidSkipRequestRef.current = true;
+        setIsInvalidSkipPending(true);
+        setInvalidQuestionError(null);
+        setInvalidQuestionNeedsRefresh(false);
+        try {
+            // The client cannot declare a question void. The answer route
+            // verifies the installed eligibility view and only permits this
+            // advance when the exact served question is authoritatively void.
+            if (!serverGrader || typeof currentQuestion?.id !== 'string') {
+                throw new Error('authoritative_question_validation_unavailable');
+            }
+            const verdict = await serverGrader({
+                questionId: currentQuestion.id,
+                displayIndex: -1,
+                questionIndex: currentIndex,
+                invalidQuestion: true,
+            });
+            if (!isMountedRef.current) return;
+            if (verdict?.voided !== true || verdict?.outcome !== 'voided') {
+                throw new Error('question_still_valid');
+            }
+            storeVerdict(currentIndex, verdict);
+            const newAnswers = [...answersRef.current];
+            newAnswers[currentIndex] = -1;
+            answersRef.current = newAnswers;
+            setAnswers(newAnswers);
+            onAnswer?.({ questionIndex: currentIndex, answerIndex: -1, isCorrect: null, skipped: true });
+            advanceQuestion(newAnswers);
+        } catch (skipError) {
+            console.warn('[TriviaGame] invalid-question skip was not confirmed:', skipError?.message || skipError);
+            if (isMountedRef.current) {
+                const requiresRefresh = skipError?.message === 'question_still_valid'
+                    || skipError?.message === 'authoritative_question_validation_unavailable';
+                setInvalidQuestionNeedsRefresh(requiresRefresh);
+                setInvalidQuestionError(skipError?.message === 'question_still_valid'
+                    ? 'The Server Still Marks This Question Valid. Resume The Run To Refresh Its Verified Copy.'
+                    : 'The Question Could Not Be Verified As Void. Retry Validation To Continue.');
+            }
+        } finally {
+            invalidSkipRequestRef.current = false;
+            if (isMountedRef.current) setIsInvalidSkipPending(false);
         }
     };
 
@@ -528,44 +647,39 @@ export default function TriviaGame({
     // 1-4 / A-D pick an answer, Enter advances, Esc moves focus to Cash Out
     // (focus, never an instant cash-out - a stray Esc must not move diamonds).
     const cashOutBtnRef = useRef(null);
-    useEffect(() => {
-        const onKeyDown = (e) => {
-            if (e.metaKey || e.ctrlKey || e.altKey) return;
-            const target = e.target;
-            const tag = (target?.tagName || '').toLowerCase();
-            if (tag === 'input' || tag === 'textarea' || target?.isContentEditable) return;
+    const answerConfirmed = !serverGrader || Boolean(verdicts[currentIndex]);
+    const canAdvanceQuestion = selectedAnswer !== null && answerConfirmed && !isAnswerPending;
+    const onGameKeyDown = (e) => {
+        if (e.metaKey || e.ctrlKey || e.altKey) return;
+        const target = e.target;
+        if (target?.closest?.('button, a, input, textarea, select, summary, [contenteditable="true"], [role="dialog"], [aria-modal="true"]')) return;
 
-            const key = e.key;
+        const key = e.key;
 
-            // Answer selection
-            if (selectedAnswer === null && !isLocked && currentQuestion) {
-                let idx = -1;
-                if (/^[1-9]$/.test(key)) idx = parseInt(key, 10) - 1;
-                else if (/^[a-jA-J]$/.test(key)) idx = key.toLowerCase().charCodeAt(0) - 97;
-                if (idx >= 0 && idx < (currentQuestion.options?.length || 0) && !eliminatedOptions.includes(idx)) {
-                    e.preventDefault();
-                    selectAnswer(idx);
-                    return;
-                }
-            }
-
-            // Advance (non-arcade advances manually). Buttons already handle
-            // Enter/Space themselves, so don't double-fire on a focused one.
-            if ((key === 'Enter' || key === ' ') && !isArcadeMode && selectedAnswer !== null && tag !== 'button' && tag !== 'a') {
+        // Shortcuts are intentionally scoped to the focused gameplay surface;
+        // typing or activating header, dialog and report controls cannot answer.
+        if (selectedAnswer === null && !isLocked && currentQuestion) {
+            let idx = -1;
+            if (/^[1-9]$/.test(key)) idx = parseInt(key, 10) - 1;
+            else if (/^[a-jA-J]$/.test(key)) idx = key.toLowerCase().charCodeAt(0) - 97;
+            if (idx >= 0 && idx < (currentQuestion.options?.length || 0) && !eliminatedOptions.includes(idx)) {
                 e.preventDefault();
-                advanceQuestion();
+                selectAnswer(idx);
                 return;
             }
+        }
 
-            if (key === 'Escape' && cashOutBtnRef.current) {
-                e.preventDefault();
-                cashOutBtnRef.current.focus();
-            }
-        };
-        window.addEventListener('keydown', onKeyDown);
-        return () => window.removeEventListener('keydown', onKeyDown);
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [selectedAnswer, isLocked, currentQuestion, eliminatedOptions, isArcadeMode, currentIndex, answers]);
+        if ((key === 'Enter' || key === ' ') && !isArcadeMode && canAdvanceQuestion) {
+            e.preventDefault();
+            advanceQuestion();
+            return;
+        }
+
+        if (key === 'Escape' && cashOutBtnRef.current) {
+            e.preventDefault();
+            cashOutBtnRef.current.focus();
+        }
+    };
 
     const getDifficultyInk = (difficulty) => {
         switch (difficulty) {
@@ -585,7 +699,32 @@ export default function TriviaGame({
         return names[category] || 'General';
     };
 
-    if (!currentQuestion) return null;
+    const integrityIssue = questionIntegrityIssue(currentQuestion);
+    if (integrityIssue) {
+        return (
+            <div className="trivia-game" data-question-state="invalid">
+                <div className="trivia-console-state">
+                    <h2>Question Unavailable</h2>
+                    <p role="alert">{integrityIssue} The Server Will Decide Whether To Exclude It From The Final Grade.</p>
+                    {invalidQuestionError ? <p className="tc-ink--red" role="alert">{invalidQuestionError}</p> : null}
+                    <button
+                        type="button"
+                        className="tc-word"
+                        onClick={invalidQuestionNeedsRefresh && onInvalidQuestionRefresh
+                            ? onInvalidQuestionRefresh
+                            : skipInvalidQuestion}
+                        disabled={isInvalidSkipPending}
+                    >
+                        {isInvalidSkipPending
+                            ? 'Checking Question'
+                            : invalidQuestionNeedsRefresh && onInvalidQuestionRefresh
+                                ? 'Reload Verified Question'
+                                : 'Skip Unavailable Question'}
+                    </button>
+                </div>
+            </div>
+        );
+    }
 
     const multiplier = getMultiplier();
     const canCashOut = enableStakes && currentIndex >= 5 && stakePot > 0 && selectedAnswer === null;
@@ -620,6 +759,10 @@ export default function TriviaGame({
         <div
             className={`trivia-game ${isFireMode ? 'fire-mode' : ''} ${showWrongShake && !reduceMotion ? 'screen-shake' : ''} ${showCorrectFlash ? 'correct-flash' : ''}`}
             ref={gameContainerRef}
+            tabIndex={0}
+            onKeyDown={onGameKeyDown}
+            aria-label="Trivia Game. Use Number Or Letter Keys To Choose An Answer."
+            data-resumed-from={recoveredIndex}
         >
             {/* Screen-reader running commentary: score and time pressure are
                 otherwise conveyed only by colour. */}
@@ -742,6 +885,29 @@ export default function TriviaGame({
                     })}
                 </div>
 
+                {serverGrader && isAnswerPending && (
+                    <p className="trivia-console-copy tc-ink--blue" role="status" aria-live="polite">
+                        Checking Answer
+                    </p>
+                )}
+
+                {serverGrader && answerError && (
+                    <div className="explanation-section">
+                        <p className="trivia-question-report-error" role="alert">{answerError}</p>
+                        <button
+                            type="button"
+                            className="tc-word"
+                            onClick={() => {
+                                if (typeof onRetry === 'function') onRetry('answer');
+                                submitServerAnswer(pendingAnswerRef.current);
+                            }}
+                            disabled={isAnswerPending || !pendingAnswerRef.current}
+                        >
+                            Retry Answer
+                        </button>
+                    </div>
+                )}
+
                 {/* Hint Buttons. Force-disabled under a serverGrader: the
                     50/50 hint needs the answer key client-side, which is
                     exactly what server grading removes. */}
@@ -822,7 +988,7 @@ export default function TriviaGame({
 
                 {/* ════ Actions: lit words on the glass ════ */}
                 <div className="trivia-game__actions">
-                    {!isArcadeMode && selectedAnswer !== null && (
+                    {!isArcadeMode && canAdvanceQuestion && (
                         <button
                             type="button"
                             className="next-button tc-word"
@@ -853,7 +1019,13 @@ export default function TriviaGame({
                         {muted ? 'Sound Off' : 'Sound On'}
                     </button>
                     {enableReport && currentQuestion?.id ? (
-                        <ReportQuestionButton key={currentQuestion.id} questionId={currentQuestion.id} userToken={reportToken} />
+                        <ReportQuestionButton
+                            key={currentQuestion.id}
+                            questionId={currentQuestion.id}
+                            userToken={reportToken}
+                            sessionId={reportSessionId}
+                            onDone={onQuestionReported}
+                        />
                     ) : null}
                 </div>
             </div>

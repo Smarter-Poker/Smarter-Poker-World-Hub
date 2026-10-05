@@ -1,0 +1,10 @@
+Use case: stylized-concept
+Asset type: responsive cinematic website hero for an MTT poker decision-training route
+Primary request: Create a physically rendered multi-table tournament final-table decision scene from the player's rail. A real nine-seat oval poker table is active in the center with adult players in dark formal casual clothing, the felt carrying community cards and unequal working stacks. A massive machined tournament clock assembly hangs above the table: concentric brushed-gunmetal rings, a moving mechanical sweep marker, and segmented light blocks, but absolutely no digits, letters, labels, or text. Beyond the rail, rows of now-empty tournament tables fade into darkness, making this unmistakably the final table. A modest prize-gold trophy silhouette glints far behind the dealer.
+Style/medium: photoreal cinematic casino environment, premium high-stakes realism, physically plausible full-frame cinema photograph, rendered rather than graphic design
+Composition/framing: low rail-level wide landscape, the live final table, players, mechanical tournament clock, unequal stacks, and distant empty tables remain inside the central 60 percent width and central 55 percent height for both 16:10 and 12:5 center crops; clear foreground rail, real depth
+Lighting/mood: tournament pressure, true-black casino void, cool silver key light, restrained electric-blue clock and rail energy, tiny prize-gold trophy highlight, deep shadows, high dynamic range
+Color palette: black, carbon charcoal, machined gunmetal, cold chrome, restrained electric blue, very limited prize gold
+Materials/textures: worn charcoal felt, padded black leather rail, brushed steel clock rings, polished chrome details, real cards, physically plausible mixed-height chip stacks
+Text: none
+Constraints: one distinct tournament final-table decision scene; blank unbranded surfaces; no logos; no text; no numbers; no watermark; no giant isolated chips; no generic chip pile still life; no flat icons; no SaaS cards; no glassmorphism; no purple or magenta; no robot, holographic assistant, Jarvis, sci-fi spaceship console, or duplicate broadcast-studio composition
