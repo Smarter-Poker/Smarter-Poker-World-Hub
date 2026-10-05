@@ -9,6 +9,7 @@ import { createPost, createComment, createAuthor } from './social-types';
 import { claimReward } from '../lib/claimReward';
 import { busEmit } from '../engine/EventBus';
 import { getAuthUser, getAccessToken, getFreshAccessToken } from '../lib/authUtils';
+import { BROWSER_POST_SELECT, toBrowserPost } from '../lib/socialPostShape';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // 🌐 SOCIAL SERVICE CLASS
@@ -74,7 +75,7 @@ export class SocialService {
             console.warn('RPC fallback: using direct query for feed');
             const { data, error } = await this.supabase
                 .from('social_posts')
-                .select('*')
+                .select(BROWSER_POST_SELECT)
                 .or('visibility.eq.public,visibility.is.null')
                 .order('created_at', { ascending: false })
                 .range(offset, offset + limit);
@@ -110,7 +111,7 @@ export class SocialService {
                 // 2026-08-15 audit: user_dna_profiles does not exist (PGRST200 on
                 // every call) — author data lives on profiles (id/level).
                 .select(`
-          *,
+          ${BROWSER_POST_SELECT},
           author:profiles!author_id (
             id,
             username,
@@ -203,7 +204,7 @@ export class SocialService {
                         visibility,
                         achievement_data: achievementData
                     })
-                    .select('*')
+                    .select(BROWSER_POST_SELECT)
                     .maybeSingle();
 
                 if (error) {
@@ -280,7 +281,7 @@ export class SocialService {
                     updated_at: new Date().toISOString()
                 })
                 .eq('id', postId)
-                .select()
+                .select(BROWSER_POST_SELECT)
                 .maybeSingle();
 
             if (error) throw error;
@@ -923,8 +924,10 @@ export class SocialService {
                     if (onNewPost) {
                         // Wrap raw DB row in createPost() to match the SocialPost format
                         // that views expect (author, engagement, isLiked, etc.)
+                        // Only what a browser may know: no origin_type, and
+                        // metadata reduced to the keys the UI renders.
                         const formattedPost = createPost({
-                            ...payload.new,
+                            ...toBrowserPost(payload.new),
                             post_id: payload.new.id,
                             author_username: 'New Post', // Minimal — will be refreshed by debounced full load
                             author_avatar: null,

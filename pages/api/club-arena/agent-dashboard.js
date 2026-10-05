@@ -104,8 +104,16 @@ export default async function handler(req, res) {
         profiles = profs || [];
       }
 
+      // Online means what fn_profile_presence means everywhere else: the flag
+      // AND a heartbeat under five minutes old. The raw flag stays set long
+      // after a player leaves, and the heartbeat itself is its owner's, so
+      // neither leaves this route.
+      const presenceCutoff = Date.now() - 5 * 60 * 1000;
       const profileMap = {};
-      for (const p of profiles) profileMap[p.id] = p;
+      for (const { last_seen: lastSeen, ...p } of profiles) {
+        const seenAt = lastSeen ? Date.parse(lastSeen) : NaN;
+        profileMap[p.id] = { ...p, is_online: p.is_online === true && Number.isFinite(seenAt) && seenAt > presenceCutoff };
+      }
 
       const enrichedPlayers = (players || []).map(p => ({
         ...p,

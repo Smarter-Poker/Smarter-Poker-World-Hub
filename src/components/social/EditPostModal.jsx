@@ -90,7 +90,7 @@ export default function EditPostModal({ post, onClose, onSaved, supabase }) {
                     updated_at: new Date().toISOString()
                 })
                 .eq('id', post.id)
-                .select()
+                .select('id')
                 .maybeSingle();
 
             if (updateError) throw updateError;
