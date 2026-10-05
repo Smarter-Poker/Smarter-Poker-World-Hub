@@ -8,6 +8,7 @@ const { formatVideoOperationsMetric, isVideoOperationsOperationId } = require('.
 
 const migration = readFileSync(new URL('../supabase/migrations/20261004213000_video_operations_analytics_phase10.sql', import.meta.url), 'utf8');
 const indexMigration = readFileSync(new URL('../supabase/migrations/20261004222000_video_reels_control_events_actor_index.sql', import.meta.url), 'utf8');
+const dueAccuracyMigration = readFileSync(new URL('../supabase/migrations/20261005011200_video_operations_due_job_accuracy_phase10_followup.sql', import.meta.url), 'utf8');
 const api = readFileSync(new URL('../pages/api/admin/video-operations.js', import.meta.url), 'utf8');
 const operationsContract = readFileSync(new URL('../lib/videoOperationsContract.js', import.meta.url), 'utf8');
 const page = readFileSync(new URL('../pages/hub/admin/video-operations.js', import.meta.url), 'utf8');
@@ -33,6 +34,15 @@ test('control event actor foreign key has a valid index in a forward migration',
   assert.match(migration, /actor_user_id uuid NOT NULL REFERENCES public\.profiles\(id\)/);
   assert.match(indexMigration, /CREATE INDEX IF NOT EXISTS video_reels_control_events_actor_idx[\s\S]*ON public\.video_reels_control_events\(actor_user_id\)/);
   assert.match(indexMigration, /i\.indisvalid/);
+});
+
+test('due enrichment counts include only jobs the worker can claim', () => {
+  const docs = readFileSync(new URL('../docs/video-reels-phase10-operations.md', import.meta.url), 'utf8');
+  assert.match(dueAccuracyMigration, /CREATE OR REPLACE FUNCTION public\.fn_video_operations_snapshot\(p_window_hours integer DEFAULT 24\)/);
+  assert.match(dueAccuracyMigration, /status IN \('queued','retry'\) AND available_at < clock_timestamp\(\)\)::bigint AS due/);
+  assert.doesNotMatch(dueAccuracyMigration, /FILTER \(WHERE available_at < clock_timestamp\(\)\)::bigint AS due/);
+  assert.match(dueAccuracyMigration, /postflight: due count does not match claimable queue states/);
+  assert.match(docs, /“Due” counts only queued or retry jobs/);
 });
 
 test('Phase 10 aggregates redact raw errors and never return user, session, asset, or cursor identities', () => {

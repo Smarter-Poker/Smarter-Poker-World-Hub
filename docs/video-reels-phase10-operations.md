@@ -6,6 +6,7 @@ The Video Operations page at `/hub/admin/video-operations` is an admin-only over
 
 - **Sources and run funnel:** active and overdue sources, per-topic ingestion attempts, candidates found and qualified, inserts, duplicates, rejects, sanitized failure classes, and quota units. Failure classes are allowlisted categories; raw provider error text is never returned.
 - **Candidate queue and rights:** generating, proposed, approved, published, rate-limited, and rejected candidate counts, stale proposals, topic mismatches, open takedowns/moderation cases, expired rights evidence, and dead-letter jobs. Use the linked editor and rights consoles for item-level review.
+- **Enrichment jobs:** status counts include queued, running, retry, succeeded, and dead-letter work. “Due” counts only queued or retry jobs whose `available_at` time has arrived; completed and running rows are not due work.
 - **Learning funnel:** organically qualified impressions, plays, progress, completions, saves, and distinct sessions grouped by event and discovery source. Automated and rejected learning events are excluded.
 - **Delivery quality:** startup p95, dropped and decoded frames, memory, transferred bytes, battery, and data-saver samples by surface and feed mode. Small sample counts are reported as insufficient evidence.
 - **Usage and cost:** YouTube quota remaining and estimated native rendition costs/output bytes. Rendition cost is an estimate, not a provider invoice.
