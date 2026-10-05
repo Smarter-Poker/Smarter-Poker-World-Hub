@@ -296,35 +296,37 @@ test('the audit filter select is driven by the shared group table', async () => 
 
 test('no loader is bound bare to onClick, where the event becomes its first argument', async () => {
   const code = stripComments(await read(INDEX));
+  const mint = stripComments(await read(`${COMPONENT_DIR}MintPanel.jsx`));
   // loadMintData(ledgerOffset) and loadGrinderData(offset) both take a number
   // first. onClick={loadMintData} handed them a React synthetic event.
   assert.ok(!/onClick=\{loadMintData\}/.test(code), 'onClick={loadMintData} passes the event as an offset');
   assert.ok(!/onClick=\{loadGrinderData\}/.test(code), 'onClick={loadGrinderData} passes the event as an offset');
-  assert.match(code, /loadMintData\(0\)/);
+  assert.ok(!/onClick=\{load\}/.test(mint), 'onClick={load} passes the event as an offset');
+  assert.match(mint, /onClick=\{\(\) => load\(0, filters\)\}/);
 });
 
 test('the Mint idempotency key rotates with the payload', async () => {
-  const code = stripComments(await read(INDEX));
-  const at = code.indexOf('const mintPayloadKey');
+  const code = stripComments(await read(`${COMPONENT_DIR}MintPanel.jsx`));
+  const at = code.indexOf('const payloadKey');
   assert.ok(at > 0, 'the key must be derived from the composed payload');
   const declaration = code.slice(at, at + 300);
   // Every field of the composed operation participates in the key, so it
   // rotates the moment the intent changes and never outlives it.
-  for (const field of ['mintAction', 'mintAsset', 'mintTargetKind', 'mintTargetId', 'mintAmount', 'mintReason']) {
+  for (const field of ['form.action', 'form.asset', 'form.target', 'form.targetId', 'form.amount', 'form.reason']) {
     assert.ok(
-      new RegExp(`\\b${field}\\b`).test(declaration),
+      declaration.includes(field),
       `${field} must be part of the idempotency key`,
     );
   }
-  assert.match(code, /setMintOpId\(newMintOpId\(\)\)/);
+  assert.match(code, /setOpId\(newOpId\(\)\)/);
 });
 
 test('the Mint receipt is built from what the console composed', async () => {
-  const src = await read(INDEX);
+  const src = await read(`${COMPONENT_DIR}MintPanel.jsx`);
   // Not read off the raw fn_ca_mint return, which the route never promises.
-  assert.match(src, /action: mintConfirm\.action/);
-  assert.match(src, /amount: mintConfirm\.amount/);
-  assert.match(src, /op_id: mintConfirm\.opId/);
+  assert.match(src, /action: confirm\.action/);
+  assert.match(src, /amount: confirm\.amount/);
+  assert.match(src, /opId: confirm\.opId/);
 });
 
 /**
@@ -436,6 +438,8 @@ test('Club Arena counts come from the route, never from a page length', async ()
 
 test('every capped list sends its limit explicitly and can say it is capped', async () => {
   const src = await read(INDEX);
+  const economy = await read(`${COMPONENT_DIR}EconomyPanel.jsx`);
+  const rendered = `${src}\n${economy}`;
   for (const constant of ['CA_OVERVIEW_LIMIT', 'CA_CLUB_LIMIT', 'CA_LEDGER_LIMIT', 'MINT_TARGET_LIMIT']) {
     assert.ok(src.includes(`const ${constant} =`), `${constant} must be declared`);
     assert.ok(
@@ -450,7 +454,7 @@ test('every capped list sends its limit explicitly and can say it is capped', as
   assert.ok((src.match(/<ShowingOf/g) || []).length >= 5, 'every capped list needs the note');
   for (const flag of ['circulationTruncated', 'unaccountedSeatExitsTruncated', 'rpcRowCap',
     'pendingCashoutTotalTruncated', 'diamondPurchaseTruncated']) {
-    assert.ok(src.includes(flag), `${flag} is returned by a route and must be rendered`);
+    assert.ok(rendered.includes(flag), `${flag} is returned by a route and must be rendered`);
   }
 });
 
@@ -806,12 +810,15 @@ test('tabRegistry exports twenty-four tabs in order, and Fleet Command replaced 
 
 test('every paged list on the page renders a real Pager', async () => {
   const src = await read(INDEX);
-  const pagers = (src.match(/<Pager\b/g) || []).length;
+  const mint = await read(`${COMPONENT_DIR}MintPanel.jsx`);
+  const fleet = await read(`${COMPONENT_DIR}FleetPanel.jsx`);
+  const rendered = `${src}\n${mint}\n${fleet}`;
+  const pagers = (rendered.match(/<Pager\b/g) || []).length;
   assert.ok(
     pagers >= 4,
     `expected a Pager on the Mint ledger, Bug Reports, the grinder roster and the audit log, found ${pagers}`,
   );
-  assert.match(src, /goMintLedgerPage\(mintLedgerOffset \+ MINT_LEDGER_PAGE_SIZE\)/);
+  assert.match(mint, /onNext=\{\(\) => load\(\(ledger\.offset \|\| 0\) \+ PAGE, filters\)\}/);
   // The hand-rolled audit pagination is gone.
   assert.ok(!/`Page \$\{auditPage \+ 1\}`/.test(src), 'the audit log uses the shared Pager now');
   // hasMore is threaded through wherever a route can send it.
