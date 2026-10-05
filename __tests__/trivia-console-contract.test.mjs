@@ -139,7 +139,7 @@ test('every Trivia page renders on the console chassis', () => {
     for (const rel of ROUTES.filter(r => !/\/(cash|gto|icm|mtt)\.js$/.test(r))) {
         const source = read(rel);
         const direct = /console\/TriviaConsole/.test(source);
-        const viaComponent = /TriviaLobby|StrategyTrivia|TriviaGame|TimeAttackGame/.test(source);
+        const viaComponent = /TriviaLobby|StrategyTrivia|TriviaGame|TimeAttackGame|PvpCompetitiveExperience/.test(source);
         assert.ok(direct || viaComponent, `${rel} must render on TriviaConsole (directly or through its surface component)`);
     }
     for (const rel of ['pages/hub/trivia/cash.js', 'pages/hub/trivia/gto.js', 'pages/hub/trivia/icm.js', 'pages/hub/trivia/mtt.js']) {
