@@ -13,9 +13,10 @@ const __dirname = path.dirname(__filename);
 
 dotenv.config({ path: path.resolve(__dirname, '../../../.env.local') });
 
+if (!process.env.SUPABASE_SERVICE_ROLE_KEY) throw new Error('[listMissingAvatars] SUPABASE_SERVICE_ROLE_KEY is required: content_authors is server-only and is not readable with the anon key');
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
 const { data, error } = await supabase

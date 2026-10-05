@@ -22,7 +22,7 @@ import { config } from 'dotenv';
 config({ path: '../../../.env.local' });
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 // ═══════════════════════════════════════════════════════════════════════════
 // PROFILE PICTURE LAW - PROMPT TEMPLATES
@@ -163,6 +163,7 @@ function generatePrompt(horse) {
 
 class HorseAvatarGenerator {
     constructor() {
+        if (!SUPABASE_KEY) throw new Error('[HorseAvatarGenerator] SUPABASE_SERVICE_ROLE_KEY is required: content_authors is server-only and is not readable with the anon key');
         this.supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
         this.outputDir = './output/avatars';
         this.ensureDirectory();

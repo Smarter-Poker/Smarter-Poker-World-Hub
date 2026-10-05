@@ -11,7 +11,12 @@
 import { createClient } from '@supabase/supabase-js';
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
-const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+function serviceClient() {
+    if (!SUPABASE_KEY) throw new Error('[HorseSocialIntelligence] SUPABASE_SERVICE_ROLE_KEY is required: content_authors is server-only and is not readable with the anon key');
+    return createClient(SUPABASE_URL, SUPABASE_KEY);
+}
 
 // ═══════════════════════════════════════════════════════════════════════════
 // HELPER FUNCTIONS
@@ -353,7 +358,7 @@ export function generateTagMessage(alias, content) {
  */
 export async function getFriendsForTagging(horseProfileId, friendGroup) {
     try {
-        const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+        const supabase = serviceClient();
 
         const { data: horses } = await supabase
             .from('content_authors')

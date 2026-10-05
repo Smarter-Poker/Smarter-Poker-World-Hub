@@ -355,17 +355,11 @@ const AUDIT_TRAIL_PAGE_SIZE = 25;
 const BULK_CHUNK = 500;
 
 /**
- * Exactly the columns the roster renders, edits or exports.
- *
- * This was `select('*')`, which pulled every bio for 1,000+ rows on mount AND
- * on every 2-second sync tick. `bio` is the expensive one and the cards do show
- * it, so it stays; what is gone is everything the panel never reads.
- * Cross-checked against every `persona.` and `p.` access in this file: the
- * cards (name, alias, avatar_url, location, specialty, stakes, bio, voice,
- * is_active), the edit form (gender), the CSV export, and the horse-versus-
- * social-only split (profile_id).
+ * The roster's columns (cards, edit form, CSV export, the horse-versus-
+ * social-only split) are fixed server-side in pages/api/horses/roster.js as
+ * ROSTER_COLUMNS. The browser never reads content_authors itself.
  */
-const ROSTER_COLUMNS = 'id, name, alias, gender, location, specialty, stakes, bio, voice, is_active, avatar_url, profile_id';
+const ROSTER_PAGE_SIZE = 1000;
 
 export default function HorsesAdmin() {
   const router = useRouter();
@@ -886,29 +880,28 @@ export default function HorsesAdmin() {
   // CORE DATA
   // ═══════════════════════════════════════════════════════════════════════════
   /**
-   * Every content_authors row, in pages, so the roster cannot be silently
-   * truncated as the fleet grows. Returns the same shape the caller had
-   * before: `{ data, error }`.
+   * Every roster row, in pages, so the roster cannot be silently truncated as
+   * the fleet grows. Read through the operator route (/api/horses/roster,
+   * fleet.read, service role): the table is not readable from a browser.
+   * Returns the same shape the caller had before: `{ data, error }`.
    */
   const fetchAllAuthors = useCallback(async () => {
-    const PAGE = 500;
     const rows = [];
-    for (let from = 0; ; from += PAGE) {
-      const res = await supabase
-        .from('content_authors')
-        .select(ROSTER_COLUMNS)
-        .order('name')
-        .order('id')
-        .range(from, from + PAGE - 1);
-      // A failed page is NOT an empty roster. Surface it rather than
-      // returning the partial list as though it were whole.
-      if (res.error) return { data: null, error: res.error };
-      rows.push(...(res.data || []));
-      if (!res.data || res.data.length < PAGE) break;
-      if (from > 100000) break; // runaway guard
+    try {
+      for (let offset = 0; ; offset += ROSTER_PAGE_SIZE) {
+        const body = await authFetch(`/api/horses/roster?limit=${ROSTER_PAGE_SIZE}&offset=${offset}`);
+        // A failed or malformed page is NOT an empty roster. Surface it rather
+        // than returning the partial list as though it were whole.
+        if (!Array.isArray(body?.rows)) return { data: null, error: new Error('Roster Response Was Malformed') };
+        rows.push(...body.rows);
+        if (!body.hasMore || body.rows.length === 0) break;
+        if (offset > 100000) break; // runaway guard
+      }
+    } catch (err) {
+      return { data: null, error: err instanceof Error ? err : new Error(String(err)) };
     }
     return { data: rows, error: null };
-  }, []);
+  }, [authFetch]);
 
   const loadData = useCallback(async () => {
     // Every one of these used to be destructured as `{ data }` only, so a failed

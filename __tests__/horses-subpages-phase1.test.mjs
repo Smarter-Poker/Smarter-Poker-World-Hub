@@ -153,10 +153,10 @@ test('the three sub-pages carry no emoji either', () => {
 
 // ── Presence module ────────────────────────────────────────────────────────────
 
-test('src/lib/horsePresence.js stays (six social surfaces import it) and carries no emoji', () => {
-  // The Phase 1 audit snapshot did not include pages/hub/social-media or
-  // src/components/social, so it called this module dead. In the real repo
-  // six files import isHorseOnlineNow. It stays; only its emoji header goes.
+test('src/lib/horsePresence.js stays (the presence API imports it) and carries no emoji', () => {
+  // The Phase 1 audit snapshot called this module dead. It is not: since
+  // 2026-10-05 pages/api/social/presence.js imports isHorseOnlineNow (the
+  // social pages used to, in the browser). It stays; only its emoji header goes.
   const src = read('src/lib/horsePresence.js');
   assert.match(src, /export function isHorseOnlineNow/);
   assert.doesNotMatch(src, EMOJI);

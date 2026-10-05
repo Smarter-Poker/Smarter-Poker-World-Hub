@@ -11,7 +11,12 @@
 import { createClient } from '@supabase/supabase-js';
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
-const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+function serviceClient() {
+    if (!SUPABASE_KEY) throw new Error('[HorseRelationships] SUPABASE_SERVICE_ROLE_KEY is required: content_authors is server-only and is not readable with the anon key');
+    return createClient(SUPABASE_URL, SUPABASE_KEY);
+}
 
 // ═══════════════════════════════════════════════════════════════════════════
 // FRIEND GROUP DEFINITIONS - Based on stakes, personality, and vibe
@@ -170,7 +175,7 @@ export function shouldHorseReply(replierProfileId, postAuthorId, baseChance = 0.
  */
 export async function getFriendGroupPosts(horseProfileId, limit = 5) {
     try {
-        const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+        const supabase = serviceClient();
         const group = getHorseFriendGroup(horseProfileId);
 
         // Get all horses (we'll filter by group based on their IDs)

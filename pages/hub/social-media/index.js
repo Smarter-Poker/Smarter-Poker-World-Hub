@@ -86,7 +86,7 @@ import InviteFriendsModal from '../../../src/components/ui/InviteFriendsModal';
 import { SocialProfileGateForCurrentUser } from '../../../src/components/gates/SocialProfileCompletionGate';
 import { HubErrorBoundary } from '../../../src/components/ui/HubErrorBoundary';
 import { useActiveIdentity } from '../../../src/contexts/ActiveIdentityContext';
-import { isHorseOnlineNow } from '../../../src/lib/horsePresence';
+import { usePresence } from '../../../src/hooks/usePresence';
 import { blockUser, getBlockedUsers } from '../../../src/services/privacy-service';
 import { buildReelPath } from '../../../src/lib/reelsFeedClient';
 import {
@@ -200,7 +200,7 @@ const PostCard = React.memo(
     onOpenArticle,
     onBlock,
     onShare,
-    horseProfileIds = new Set(),
+    authorOnline = false,
   }) {
     const router = useRouter();
     const [liked, setLiked] = useState(post.isLiked);
@@ -1047,7 +1047,7 @@ const PostCard = React.memo(
             style={{ textDecoration: 'none', position: 'relative', display: 'inline-block' }}
           >
             <Avatar src={post.author?.avatar} name={post.author?.name} size={40} />
-            {horseProfileIds.has(post.authorId) && isHorseOnlineNow(post.authorId) && (
+            {authorOnline && (
               <span
                 style={{
                   position: 'absolute',
@@ -3294,12 +3294,12 @@ const PostCard = React.memo(
       prevProps.post.shareCount === nextProps.post.shareCount &&
       prevProps.currentUserId === nextProps.currentUserId &&
       // These three change without currentUserId changing: a profile edit
-      // re-sets `user` (name + avatar) and horseProfileIds arrives async. Left
-      // out, the comment composer's avatar and the author name stayed stale and
-      // the horse online dot never appeared.
+      // re-sets `user` (name + avatar) and presence arrives async. Left out,
+      // the comment composer's avatar and the author name stayed stale and
+      // the online dot never appeared.
       prevProps.currentUserName === nextProps.currentUserName &&
       prevProps.currentUserAvatar === nextProps.currentUserAvatar &&
-      prevProps.horseProfileIds === nextProps.horseProfileIds
+      prevProps.authorOnline === nextProps.authorOnline
     );
   }
 );
@@ -3652,22 +3652,14 @@ function SocialMediaPage() {
   const [isPosting, setIsPosting] = useState(false);
   const [deletePostId, setDeletePostId] = useState(null);
   const [notifications, setNotifications] = useState([]);
-  const [horseProfileIds, setHorseProfileIds] = useState(new Set());
   const [blockedUserIds, setBlockedUserIds] = useState(new Set());
   const undoDeleteRef = useRef(null);
   const [shareModalPost, setShareModalPost] = useState(null);
 
-  // Phase 15: Load horse profile IDs for online presence indicators
-  useEffect(() => {
-    supabase
-      .from('content_authors')
-      .select('profile_id')
-      .eq('is_active', true)
-      .not('profile_id', 'is', null)
-      .then(({ data }) => {
-        if (data) setHorseProfileIds(new Set(data.map((h) => h.profile_id)));
-      });
-  }, []);
+  // Online dots for the authors in the feed. Presence is answered by
+  // /api/social/presence for every player alike; the page only asks.
+  const presenceIds = React.useMemo(() => posts.map((p) => p.authorId), [posts]);
+  const onlineIds = usePresence(presenceIds);
 
   // Phase 2: Load blocked user IDs for feed filtering
   useEffect(() => {
@@ -8227,7 +8219,7 @@ function SocialMediaPage() {
                                   title: cardTitle || p.link_title || null,
                                 });
                               }}
-                              horseProfileIds={horseProfileIds}
+                              authorOnline={onlineIds.has(p.authorId)}
                             />
                           );
                         });

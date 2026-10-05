@@ -14,10 +14,11 @@ const __dirname = path.dirname(__filename);
 config({ path: path.resolve(__dirname, '../../../.env.local') });
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+if (!key) throw new Error('[force-suspend] SUPABASE_SERVICE_ROLE_KEY is required: content_authors is server-only and is not readable with the anon key');
 
 console.debug('URL:', url ? 'Found' : 'MISSING');
-console.debug('Key:', key ? 'Found (service role or anon)' : 'MISSING');
+console.debug('Key:', key ? 'Found (service role)' : 'MISSING');
 
 if (!url || !key) {
     console.warn('Missing credentials!');

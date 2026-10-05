@@ -19,9 +19,10 @@ config({ path: path.resolve(__dirname, '../../../.env.local') });
 
 import { createClient } from '@supabase/supabase-js';
 
+if (!process.env.SUPABASE_SERVICE_ROLE_KEY) throw new Error('[verify-horse-laws] SUPABASE_SERVICE_ROLE_KEY is required: content_authors is server-only and is not readable with the anon key');
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
 const CRON_DIR = path.resolve(__dirname, '../../../pages/api/cron');
@@ -207,7 +208,7 @@ async function verifyLaws() {
     );
     test(
         'SUPABASE_KEY is set',
-        !!(process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY),
+        !!process.env.SUPABASE_SERVICE_ROLE_KEY,
         'Missing Supabase key'
     );
     test(

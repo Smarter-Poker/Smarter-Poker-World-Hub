@@ -11,9 +11,10 @@ import { getGrokClient } from '../../lib/grokClient.js';
 import fs from 'fs';
 import https from 'https';
 
+if (!process.env.SUPABASE_SERVICE_ROLE_KEY) throw new Error('[generate-horse-avatars] SUPABASE_SERVICE_ROLE_KEY is required: content_authors is server-only and is not readable with the anon key');
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 const grok = getGrokClient();
 
