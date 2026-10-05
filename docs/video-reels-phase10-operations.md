@@ -2,6 +2,12 @@
 
 The Video Operations page at `/hub/admin/video-operations` is an admin-only overview of the managed video pipeline. It reads complete database aggregates for a 24-hour, 72-hour, or 7-day window. Responses are `private, no-store`; raw provider errors, cursors, media identifiers, learner identifiers, and session identifiers are not returned.
 
+## Reel identity quarantine visibility
+
+Unresolved Reel reconciliation conflicts are a visibility boundary, not a resolution. Mixed-author, mixed-source, and other identity conflicts stay unresolved until independent ownership and rights review confirms a safe disposition. The forward migration records each row's previous public/native-processing flags, hides all existing members atomically, and guards later inserts, visibility changes, processing requests, and quarantine-group updates. It preserves Reel IDs, authorship, engagement history, and rights evidence. It does not select a canonical Reel or restore media when a case is marked resolved.
+
+The operations API adds a service-role-only aggregate with counts by sanitized reason code, involved/suppressed rows, public or native-requested rows, missing snapshots, and missing Reel references. It never returns Reel IDs, canonical asset keys, operation payloads, creator/user identities, or evidence details. Missing aggregate data fails the admin snapshot closed with HTTP 503. The console shows open cases and guard state; any public/native-requested row or ledger gap raises a critical alert, while safely hidden unresolved cases remain a warning pending independent review.
+
 ## Dashboard sections
 
 - **Sources and run funnel:** active and overdue sources, per-topic ingestion attempts, candidates found and qualified, inserts, duplicates, rejects, sanitized failure classes, and quota units. Failure classes are allowlisted categories; raw provider error text is never returned.

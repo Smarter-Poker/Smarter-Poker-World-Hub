@@ -6,6 +6,7 @@ const route = await readFile(new URL('../pages/api/horses/floor-admin.js', impor
 const model = await readFile(new URL('../src/lib/horses/floorAdmin.js', import.meta.url), 'utf8');
 const rakeReportMigration = await readFile(new URL('../supabase/migrations/20261005112820_operator_rake_aggregate_reports.sql', import.meta.url), 'utf8');
 const chipDecisionMigration = await readFile(new URL('../supabase/migrations/20261005113331_operator_chip_request_decision_is_atomic.sql', import.meta.url), 'utf8');
+const terminalChipSafetyMigration = await readFile(new URL('../supabase/migrations/20261005151155_chip_request_refuses_terminal_clubs.sql', import.meta.url), 'utf8');
 
 test('Phase 6 creates no duplicate Club Arena writer and no release repair loop', () => {
   for (const table of ['club_announcements', 'union_announcements', 'notifications', 'push_outbox', 'union_applications', 'union_leave_requests', 'tables']) {
@@ -74,6 +75,22 @@ test('O5 chip decisions lock one row, key funding to op_id and expose no browser
   assert.match(route, /PERMISSIONS\.CASHIER_WRITE/);
   assert.match(route, /requiresApproval\(op\?\.policy, 'fund_club', amount\)/);
   assert.match(route, /action: `chip_request\.\$\{decision === 'approve'/);
+});
+
+test('O5 chip approval locks the club after the request and refuses terminal states before funding', () => {
+  const requestLock = terminalChipSafetyMigration.indexOf('FROM public.chip_requests');
+  const clubLock = terminalChipSafetyMigration.indexOf('FROM public.clubs c');
+  const terminalGuard = terminalChipSafetyMigration.indexOf("v_club_status IS NULL OR v_club_status NOT IN ('active', 'suspended')");
+  const fundingCall = terminalChipSafetyMigration.indexOf('v_fund := public.fn_ca_fund_club');
+  assert.ok(requestLock >= 0, 'request row lock exists');
+  assert.ok(clubLock > requestLock, 'club row is read after the request is locked');
+  assert.ok(terminalGuard > clubLock, 'terminal guard follows the authoritative club read');
+  assert.ok(fundingCall > terminalGuard, 'funding cannot run before the terminal guard');
+  assert.match(terminalChipSafetyMigration, /FROM public\.clubs c[\s\S]*?FOR UPDATE/);
+  assert.match(terminalChipSafetyMigration, /'reason', 'club_terminal'/);
+  assert.match(terminalChipSafetyMigration, /'reason', 'club_not_found'/);
+  assert.match(terminalChipSafetyMigration, /v_club_status IS NULL OR v_club_status NOT IN \('active', 'suspended'\)/);
+  assert.doesNotMatch(terminalChipSafetyMigration, /v_club_status\s*=\s*'active'/);
 });
 
 test('Phase 6 server and model copy contain no em dash or emoji', () => {
