@@ -56,7 +56,7 @@ test('retired admin surface is static, local-font, and explicit about the protec
   const source = await readFile(new URL('../pages/hub/admin/autofix.js', import.meta.url), 'utf8');
   assert.match(source, /Deployment Autofix Retired/);
   assert.match(source, /Protected Pull Request/);
-  assert.match(source, /first-party operational inbox/);
+  assert.match(source, /First-Party Operational Inbox/);
   for (const forbidden of ['useEffect', 'setInterval', 'fetch(', 'fonts.googleapis.com', '/api/deploy-status', '/api/deploy-autofix']) {
     assert.equal(source.includes(forbidden), false, `retired surface must not contain ${forbidden}`);
   }
