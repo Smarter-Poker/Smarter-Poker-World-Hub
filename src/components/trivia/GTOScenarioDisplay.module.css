@@ -126,6 +126,28 @@
     line-height: 1.1;
 }
 
+.rangeSummary {
+    margin: 0;
+    color: #e4e7ec;
+    font-family: Inter, system-ui, sans-serif;
+    font-size: max(14px, 3.2cqw);
+    line-height: 1.55;
+    overflow-wrap: anywhere;
+}
+
+.frequencyList {
+    min-width: 0;
+}
+
+.frequencyRow {
+    align-items: baseline;
+    gap: 3cqw;
+}
+
+.frequencyRow :global(.tc-row__value) {
+    font-variant-numeric: tabular-nums lining-nums;
+}
+
 .alternateLine {
     flex-direction: column;
     align-items: stretch;
@@ -216,4 +238,45 @@
     clip: rect(0 0 0 0);
     white-space: nowrap;
     border: 0;
+}
+
+@media (min-width: 900px) {
+    .panel {
+        gap: 12px;
+    }
+
+    .kicker,
+    .sectionTitle,
+    .sectionState,
+    .lineFrequency,
+    .loadingLabel,
+    .panelError,
+    .panelHint {
+        font-size: 13px;
+    }
+
+    .explanationText,
+    .rangeSummary,
+    .lineActionText,
+    .lineDescription {
+        font-size: 15px;
+    }
+
+    .sectionHeader {
+        gap: 18px;
+        padding: 10px 0;
+    }
+
+    .sectionBody {
+        gap: 8px;
+        padding-bottom: 14px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .sectionHeader,
+    .panelActions button {
+        scroll-behavior: auto;
+        transition: none;
+    }
 }

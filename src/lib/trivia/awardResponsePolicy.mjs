@@ -64,7 +64,7 @@ export function validateTriviaSessionRoster(questionIds, expectedCount) {
 }
 
 /**
- * Validate record_trivia_session_answer's durable first-answer receipt before
+ * Validate the legacy locked-answer RPC's durable first-answer receipt before
  * any verdict, correct option, or explanation is allowed into an HTTP
  * response. Fresh writes must echo the submitted display index exactly;
  * replays may return a different index because the first stored answer wins.

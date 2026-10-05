@@ -22,23 +22,35 @@ import { getTodayStartCST } from './getTodayCST';
  * @param {object} supabase — Supabase client instance
  * @param {string} userId
  * @param {string} mode — mode filter (e.g. 'endless')
- * @returns {Promise<number>} — total diamonds earned today (in CST day)
+ * @param {string} [chicagoDate] — exact immutable play day when replaying a
+ *        session across midnight; defaults to the current Chicago day
+ * @returns {Promise<number>} — total diamonds earned in the requested CST day
  */
-export async function getDailyDiamondsEarned(supabase, userId, mode) {
+export async function getDailyDiamondsEarned(supabase, userId, mode, chicagoDate) {
     if (!supabase || !userId) return 0;
+
+    if (chicagoDate !== undefined && !/^\d{4}-\d{2}-\d{2}$/.test(String(chicagoDate))) {
+        return Number.MAX_SAFE_INTEGER;
+    }
 
     // Phase 74: this used to re-implement getTodayStartCST() byte-for-byte,
     // including the bug where the CST/CDT offset was read from the CURRENT
     // abbreviation rather than the abbreviation in effect at the target
     // midnight — shifting the cap window by an hour on both DST changeover
     // days. One source of truth now.
-    const todayStartCST = getTodayStartCST();
-
     let query = supabase
         .from('trivia_scores')
         .select('diamonds_earned')
-        .eq('user_id', userId)
-        .gte('created_at', todayStartCST);
+        .eq('user_id', userId);
+
+    // A settling session keeps the Chicago day on which it was opened. Use
+    // the persisted score bucket instead of a rolling `created_at >= today`
+    // window so a retry after midnight cannot be underpaid or consume the
+    // following day's allowance. Existing display callers retain today's
+    // legacy created_at query.
+    query = chicagoDate === undefined
+        ? query.gte('created_at', getTodayStartCST())
+        : query.eq('play_date', chicagoDate);
 
     // Omitting the mode filter yields the ALL-MODES total (used for a
     // platform-wide daily cap). Passing a mode keeps the per-mode behaviour.

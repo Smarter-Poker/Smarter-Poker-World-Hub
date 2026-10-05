@@ -1,0 +1,10 @@
+Use case: stylized-concept
+Asset type: responsive cinematic website hero for a live Daily Poker Trivia route
+Primary request: Create a physically rendered live-broadcast poker trivia table scene, unmistakably a real daily broadcast room rather than a still life. A regulation oval poker table with charcoal felt and a machined gunmetal rail is fully set for play, viewed from a low three-quarter broadcast camera. Several real adult players sit naturally around the table in the midground, faces secondary and non-identifiable, studying a newly dealt decision. Above and behind the table, a suspended ring of professional broadcast lights and compact studio cameras suggests a live on-air production without any signage. A restrained prize-gold winner beacon glows beyond the dealer position like a daily appointment.
+Style/medium: photoreal cinematic casino environment, premium high-stakes realism, physically plausible full-frame cinema photograph, rendered rather than graphic design
+Composition/framing: wide landscape master with the essential table, players, broadcast cameras, and gold beacon held inside the central 60 percent width and central 55 percent height so both a 16:10 center crop and a 12:5 center crop remain complete; meaningful depth, calm true-black negative space at edges; no object cropped awkwardly
+Lighting/mood: true-black casino void, cool silver key light, restrained electric-blue table-edge energy, tiny controlled prize-gold highlight, deep shadows, high dynamic range, subtle film grain
+Color palette: pure black, carbon charcoal, machined gunmetal, cold chrome, restrained electric blue, very limited prize gold
+Materials/textures: physically accurate charcoal felt, padded black leather, machined steel, polished chrome, real cards and modest chip stacks in active play
+Text: none
+Constraints: one distinct live broadcast table scene; blank unbranded surfaces; no logos; no text; no numbers; no watermark; no generic chip pile; no isolated chip still life; no flat icon; no SaaS UI; no glassmorphism; no purple or magenta; no robot, holographic assistant, Jarvis, sci-fi spaceship console, or duplicate composition

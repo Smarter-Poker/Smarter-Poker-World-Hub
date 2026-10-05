@@ -67,9 +67,6 @@ export function ThemeProvider({ children }) {
     // Save preference when it changes
     useEffect(() => {
         if (mounted) {
-            localStorage.setItem('smarter-poker-theme', isDark ? 'dark' : 'light');
-            saveAppSetting('theme', isDark ? 'dark' : 'light', 'smarter-poker-theme');
-
             // Apply CSS variables to document root
             const theme = isDark ? themes.dark : themes.light;
             const root = document.documentElement;
@@ -86,8 +83,18 @@ export function ThemeProvider({ children }) {
         }
     }, [isDark, mounted]);
 
-    const toggleTheme = () => setIsDark(prev => !prev);
-    const setTheme = (themeName) => setIsDark(themeName === 'dark');
+    // Hydration and route changes only apply the saved/system theme. Persist
+    // cross-device settings exclusively after an explicit user choice; writing
+    // the initial value here caused every signed-in page mount to PATCH the
+    // profile even when the user had not changed anything.
+    const persistThemeChoice = (themeName) => {
+        const nextTheme = themeName === 'dark' ? 'dark' : 'light';
+        setIsDark(nextTheme === 'dark');
+        saveAppSetting('theme', nextTheme, 'smarter-poker-theme');
+    };
+
+    const toggleTheme = () => persistThemeChoice(isDark ? 'light' : 'dark');
+    const setTheme = themeName => persistThemeChoice(themeName);
 
     const value = {
         theme: isDark ? themes.dark : themes.light,

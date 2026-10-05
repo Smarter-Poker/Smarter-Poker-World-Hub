@@ -34,6 +34,7 @@ import { DAILY_DIAMOND_CAPS } from '../../../src/lib/trivia/triviaEngine';
 import { formatTriviaDisplayNumber } from '../../../src/lib/trivia/formatTriviaDisplayNumber';
 import HubPageSummary from '../../../src/components/seo/HubPageSummary';
 import { printPlayerName } from '../../../src/lib/trivia/printPlayerName';
+import { createAccountOperationScope, isStaleAccountOperation } from '../../../src/lib/trivia/accountOperationScope.mjs';
 
 // Roster size requested from /api/trivia/session-start. The 30-second clock
 // realistically allows well under 30 answers, so 60 is generous headroom;
@@ -57,6 +58,14 @@ export default function TimeAttackPage() {
     const isStartingRef = useRef(false); // Prevent double-click race
     const [questions, setQuestions] = useState([]);
     const [userId, setUserId] = useState(null);
+    const accountOperationScopeRef = useRef(null);
+    if (!accountOperationScopeRef.current) {
+        accountOperationScopeRef.current = createAccountOperationScope();
+    }
+    const resolvedAccountId = authLoading
+        ? userId
+        : (avatarUser?.id || getAuthUser()?.id || null);
+    if (!authLoading) accountOperationScopeRef.current.transition(resolvedAccountId);
     const [dailyDiamondsEarned, setDailyDiamondsEarned] = useState(0);
     const [leaderboard, setLeaderboard] = useState([]);
     const [personalBest, setPersonalBest] = useState(0);
@@ -67,40 +76,92 @@ export default function TimeAttackPage() {
     const [startError, setStartError] = useState(null);
     // Server-authoritative run: session-start deals, session-answer grades
     // each tap, session-submit caps and pays. No client-side crediting.
-    const serverRun = useServerGradedRun('time-attack');
+    const serverRun = useServerGradedRun('time-attack', { accountId: resolvedAccountId });
     // Answers actually recorded via session-answer this game, in tap order:
     // { questionId, displayIndex }. This is what session-submit grades from;
     // unanswered served questions are deliberately omitted (the server counts
     // them wrong, which is free here because payout is per-correct).
     const sessionAnswersRef = useRef([]);
+    const accountLoadRef = useRef(0);
+    const accountIdentityRef = useRef(null);
+    const startOperationRef = useRef(null);
 
     useEffect(() => {
         if (authLoading) return;
+        const user = avatarUser || getAuthUser();
+        const nextAccountId = user?.id || null;
+        const identityChanged = accountIdentityRef.current !== nextAccountId;
+        accountIdentityRef.current = nextAccountId;
+        const operationScope = accountOperationScopeRef.current.transition(nextAccountId);
+        const request = ++accountLoadRef.current;
+        if (identityChanged) {
+            startOperationRef.current = null;
+            isStartingRef.current = false;
+            savePhaseRef.current = 0;
+            serverResultRef.current = null;
+            sessionAnswersRef.current = [];
+            setQuestions([]);
+            setResult(null);
+            setSaveErrorPayload(null);
+            setStartError(null);
+            setShowOutOfDiamonds(false);
+            setDailyDiamondsEarned(0);
+            setPersonalBest(0);
+            setIsVip(false);
+            setGameState('lobby');
+        }
+        setUserId(nextAccountId);
+        setPageLoading(true);
         // Phase 56: was missing .catch — if either promise rejected, unhandled
         // rejection propagated up. Now caught + logged with finally still firing.
-        Promise.all([loadUserData(), loadLeaderboard()])
-            .catch(e => console.warn('[TimeAttack] init load failed:', e))
-            .finally(() => setPageLoading(false));
+        Promise.all([loadUserData(user, request, operationScope), loadLeaderboard()])
+            .catch(e => {
+                if (accountOperationScopeRef.current.isCurrent(operationScope)) {
+                    console.warn('[TimeAttack] init load failed:', e);
+                }
+            })
+            .finally(() => {
+                if (request === accountLoadRef.current
+                    && accountOperationScopeRef.current.isCurrent(operationScope)) setPageLoading(false);
+            });
     }, [avatarUser?.id, authLoading]);
     // Realtime subscription — live updates
     useEffect(() => {
         if (!userId) return;
         const _ch = supabase
             .channel(`trivia-ta:${userId}`)
-            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'trivia_scores', filter: `user_id=eq.${userId}` }, () => { loadUserData(); })
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'trivia_scores', filter: `user_id=eq.${userId}` }, () => {
+                const operationScope = accountOperationScopeRef.current.capture();
+                if (operationScope.identity !== userId) return;
+                loadUserData({ id: userId }, ++accountLoadRef.current, operationScope);
+            })
             .subscribe();
         return () => { supabase.removeChannel(_ch); };
     }, [userId]);
 
-    async function loadUserData() {
-        const user = avatarUser || getAuthUser();
-        if (!user) return;
-
-        setUserId(user.id);
+    async function loadUserData(
+        user = avatarUser || getAuthUser(),
+        request = ++accountLoadRef.current,
+        operationScope = accountOperationScopeRef.current.capture(),
+    ) {
+        if (operationScope.identity !== (user?.id || null)) return;
+        if (!user) {
+            if (request !== accountLoadRef.current
+                || !accountOperationScopeRef.current.isCurrent(operationScope)) return;
+            // Drop the prior account before the hook can recover or settle
+            // against stale browser custody.
+            setUserId(null);
+            setIsVip(false);
+            setDailyDiamondsEarned(0);
+            setPersonalBest(0);
+            return;
+        }
 
         // Check VIP status
         await DiamondEngine.init(user.id);
         const vipStatus = await DiamondEngine.isVIP();
+        if (request !== accountLoadRef.current
+            || !accountOperationScopeRef.current.isCurrent(operationScope)) return;
         setIsVip(vipStatus);
 
         // Get today's time attack diamonds.
@@ -115,6 +176,8 @@ export default function TimeAttackPage() {
             .eq('mode', 'time-attack')
             .gte('created_at', todayStartCST)
             .limit(50) // time attack scores
+        if (request !== accountLoadRef.current
+            || !accountOperationScopeRef.current.isCurrent(operationScope)) return;
 
         if (scores) {
             const total = scores.reduce((sum, s) => sum + (s.diamonds_earned || 0), 0);
@@ -130,6 +193,8 @@ export default function TimeAttackPage() {
             .order('correct_count', { ascending: false })
             .limit(1)
             .maybeSingle();
+        if (request !== accountLoadRef.current
+            || !accountOperationScopeRef.current.isCurrent(operationScope)) return;
 
         if (best) {
             setPersonalBest(best.correct_count);
@@ -171,8 +236,16 @@ export default function TimeAttackPage() {
 
     async function handleStart() {
         if (isStartingRef.current) return;
+        const operationScope = accountOperationScopeRef.current.capture();
+        if (operationScope.identity !== (userId || null)) return;
+        const startOperation = { operationScope };
         isStartingRef.current = true;
+        startOperationRef.current = startOperation;
         try {
+        if (!userId) {
+            setStartError('Please Sign In To Play Time Attack.');
+            return;
+        }
         // Reset the per-game save pipeline. This is the REAL "Play Again" path
         // (the complete screen's button calls handleStart) - a stale phase or
         // settlement from the previous game would make this game skip its own
@@ -204,7 +277,10 @@ export default function TimeAttackPage() {
         let served;
         try {
             served = await serverRun.start({ count: QUESTIONS_PER_SESSION });
+            if (!accountOperationScopeRef.current.isCurrent(operationScope)) return;
         } catch (e) {
+            if (!accountOperationScopeRef.current.isCurrent(operationScope)
+                || isStaleAccountOperation(e)) return;
             console.warn('[TimeAttack] Server session start failed:', e?.message || e);
             // A 402 is the balance gate, not a connection problem: show the
             // Not Enough Diamonds state alone instead of both messages.
@@ -216,9 +292,10 @@ export default function TimeAttackPage() {
             return;
         }
         if (!served || !Array.isArray(served.questions) || served.questions.length === 0) {
-            // NEVER charge for an empty game.
-            serverRun.reset();
-            setStartError('We Could Not Load Any Questions Right Now. Please Check Your Connection And Try Again.');
+            // A successful start may already have charged before the malformed
+            // roster is detected here. Keep custody so retry reuses that exact
+            // session and cannot create a second entry charge.
+            setStartError('We Could Not Confirm The Dealt Questions. Retry This Same Entry Request.');
             return;
         }
 
@@ -229,7 +306,10 @@ export default function TimeAttackPage() {
         setStartError(null);
         setGameState('playing');
         } finally {
-            isStartingRef.current = false;
+            if (startOperationRef.current === startOperation) {
+                startOperationRef.current = null;
+                isStartingRef.current = false;
+            }
         }
     }
 
@@ -238,7 +318,14 @@ export default function TimeAttackPage() {
     // and the first answer per question is binding server-side, so the
     // component's retry after a rejection cannot double-count.
     async function gradeAnswer({ questionId, displayIndex }) {
+        const operationScope = accountOperationScopeRef.current.capture();
+        if (operationScope.identity !== (userId || null)) {
+            throw new Error('stale_account_operation');
+        }
         const verdict = await serverRun.answer({ questionId, displayIndex });
+        if (!accountOperationScopeRef.current.isCurrent(operationScope)) {
+            throw new Error('stale_account_operation');
+        }
         sessionAnswersRef.current.push({ questionId, displayIndex });
         return verdict;
     }
@@ -249,11 +336,20 @@ export default function TimeAttackPage() {
     // the already-paid result instead of re-submitting a closed session.
     const serverResultRef = useRef(null);
 
+    useEffect(() => {
+        if (gameState === 'complete' && serverResultRef.current?.sessionId) {
+            serverRun.acknowledgeSettlement();
+        }
+    }, [gameState, result?.diamondsEarned, serverRun.acknowledgeSettlement]);
+
     // NOTE: a handlePlayAgain() that set gameState 'ready' used to live here. It
     // was dead code — nothing called it and no render branch existed for 'ready',
     // so its idempotency reset never ran. That reset now lives in handleStart.
 
     async function handleComplete(gameResult) {
+        const operationScope = accountOperationScopeRef.current.capture();
+        if (operationScope.identity !== (userId || null)) return;
+        const isCurrentAccountOperation = () => accountOperationScopeRef.current.isCurrent(operationScope);
         setResult(gameResult);
         setGameState('saving');
 
@@ -273,6 +369,7 @@ export default function TimeAttackPage() {
                             displayIndex: a.displayIndex
                         }))
                     );
+                    if (!isCurrentAccountOperation()) return;
                     serverResultRef.current = submitted;
                     savePhaseRef.current = 1;
                     if ((submitted?.diamondsAwarded || 0) > 0) {
@@ -302,22 +399,25 @@ export default function TimeAttackPage() {
                 savePhaseRef.current = Math.max(savePhaseRef.current, 3);
 
                 // Done saving — reset phase tracker for next game
+                if (!isCurrentAccountOperation()) return;
                 setGameState('complete');
                 setSaveErrorPayload(null);
                 savePhaseRef.current = 0;
 
             } catch (e) {
+                if (!isCurrentAccountOperation() || isStaleAccountOperation(e)) return;
                 console.warn('[TimeAttack] Failed to save data:', e);
                 setSaveErrorPayload(gameResult);
                 setGameState('saving_error');
                 return; // halt and show retry UI (savePhaseRef preserves progress)
             }
         } else {
+            if (!isCurrentAccountOperation()) return;
             setGameState('complete');
             setSaveErrorPayload(null);
         }
 
-        loadLeaderboard();
+        if (isCurrentAccountOperation()) loadLeaderboard();
     }
 
     // Retry function for network drops — resumes from where it left off

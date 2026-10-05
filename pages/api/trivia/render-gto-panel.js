@@ -8,25 +8,39 @@ import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
  * POST /api/trivia/render-gto-panel
  *
  * Input: { question_id: uuid }
- * Returns: { imageUrl: "https://...", illustrative: boolean }
+ * Returns: { imageUrl: "https://...", illustrative: false, solverSource }
  *
- * SECURITY: the prompt is built EXCLUSIVELY from the trivia_questions row
- * identified by question_id. It used to interpolate free-text `question`,
- * `correctAnswer`, `explanation`, `options` and `category` straight from the
- * request body into a paid image-generation prompt, which made this a
- * subsidised arbitrary-image generator writing to a public bucket under
- * content-derived cache keys (unbounded keys = unbounded storage + spend).
+ * SECURITY: the prompt is built EXCLUSIVELY from the immutable question
+ * revision bound to the authenticated session. It used to interpolate
+ * free-text request fields into a paid image-generation prompt, which made
+ * this a subsidised arbitrary-image generator writing to a public bucket
+ * under content-derived cache keys (unbounded keys = unbounded storage +
+ * spend). The review RPC also refuses pre-answer access and durable voids.
  *
- * HONESTY: frequencies and EV are read from engine_metadata when the row was
- * produced by the deterministic solver pipeline. Otherwise the panel is
- * generated with clearly illustrative numbers and labelled as such, rather
- * than presenting invented solver output as real analysis.
+ * HONESTY: frequencies and EV are projected from server metadata only after
+ * the answer is irreversibly bound. When that evidence is absent, the route
+ * fails closed; it never invents a confidence, EV, range or alternate line.
  */
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import crypto from 'crypto';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/apiErrorHandler';
+import { renderGtoPanelSingleflight } from '../../../src/lib/trivia/gtoRenderSingleflight.mjs';
+import { sanitizeSolverAnalysis } from '../../../src/lib/trivia/strategyContextPolicy.mjs';
+import { v3ErrorStatus } from '../../../src/lib/trivia/phase3Engine.mjs';
+import {
+    canRenderStrategyVisualCard,
+    isStrategyVisualCardCategory,
+    isStrategyVisualCardMode,
+} from '../../../src/lib/trivia/strategyVisualCardPolicy.mjs';
+
+export const config = { maxDuration: 120 };
+
+// The lease outlives the function's configured maximum duration. A killed
+// invocation therefore cannot still be purchasing a render when the claim is
+// eligible to be stolen by another application instance.
+const RENDER_CLAIM_LEASE_SECONDS = 180;
 
 let _supabase = null;
 function getSupabase() {
@@ -40,40 +54,19 @@ function getSupabase() {
 
 // Action colors for the panel
 const ACTION_COLORS = {
-    'FOLD': 'red',
-    'CHECK': 'gray/blue',
-    'CALL': 'yellow/amber',
-    'BET': 'cyan',
-    'RAISE': 'neon green',
-    'SHOVE': 'magenta/purple',
-    'ALL-IN': 'magenta/purple',
-    '3-BET': 'neon green',
-    '4-BET': 'purple',
-    'OPTIMAL': 'cyan',
-};
-
-// Difficulty to confidence mapping
-const DIFFICULTY_CONFIDENCE = {
-    'easy': 92,
-    'medium': 78,
-    'hard': 85,
-};
-
-// Category-specific GTO approaches
-const CATEGORY_APPROACHES = {
-    'gto_theory': 'Solver-based strategy involves a balanced range construction with aggressive value betting on favorable textures.',
-    'gto_scenarios': 'This line optimizes expected value against an equilibrium strategy while maintaining range balance.',
-    'mtt_situations': 'In tournament play, ICM pressure and stack dynamics dictate optimal frequencies for this spot.',
-    'cash_game_situations': 'Deep stack play requires careful consideration of implied odds and equity realization.',
-    'icm_chip_ev': 'ICM calculations show significant risk premium here. The chip EV vs $EV differential requires frequency adjustments.',
+    'FOLD': 'warning red',
+    'CHECK': 'cold chrome',
+    'CALL': 'electric table blue',
+    'BET': 'restrained prize gold',
+    'RAISE': 'restrained prize gold',
+    'SHOVE': 'restrained prize gold',
+    'ALL-IN': 'restrained prize gold',
+    '3-BET': 'restrained prize gold',
+    '4-BET': 'restrained prize gold',
+    'OPTIMAL': 'electric table blue',
 };
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
-/** Only these categories get a GTO analysis panel. */
-const GTO_CATEGORIES = new Set([
-    'gto_theory', 'gto_scenarios', 'mtt_situations', 'cash_game_situations', 'icm_chip_ev',
-]);
 
 /** Trim a DB string to a hard length before it enters the prompt. */
 function clamp(text, max) {
@@ -81,31 +74,6 @@ function clamp(text, max) {
     return s.length > max ? `${s.slice(0, max - 1)}...` : s;
 }
 
-/**
- * Real GTO frequency for an action from engine_metadata.gtoFrequencies,
- * when the deterministic pipeline produced this question.
- * @returns {number|null} percentage 0-100
- */
-function pickFrequency(meta, action) {
-    const freqs = meta?.gtoFrequencies;
-    if (!freqs || typeof freqs !== 'object') return null;
-    const key = Object.keys(freqs).find(k => k.toUpperCase() === String(action).toUpperCase());
-    const raw = key ? freqs[key] : null;
-    const num = typeof raw === 'number' ? raw : parseFloat(raw);
-    if (!Number.isFinite(num)) return null;
-    // Accept either 0-1 or 0-100 encodings.
-    const pct = num <= 1 ? num * 100 : num;
-    return Math.max(0, Math.min(100, Math.round(pct)));
-}
-
-/** Real EV string from engine_metadata.evData, when present. */
-function pickEv(meta) {
-    const ev = meta?.evData;
-    const raw = typeof ev === 'object' && ev !== null ? (ev.bb ?? ev.value ?? ev.ev) : ev;
-    const num = typeof raw === 'number' ? raw : parseFloat(raw);
-    if (!Number.isFinite(num)) return null;
-    return `${num >= 0 ? '+' : ''}${num.toFixed(2)}BB`;
-}
 
 export default async function handler(req, res) {
   try {
@@ -140,117 +108,146 @@ export default async function handler(req, res) {
               return res.status(400).json({ success: false, error: 'question_id (uuid) required' });
           }
 
-          // A panel reveals the solver-preferred play. End users may generate
-          // it only after this question's first answer is bound in an owned
-          // session (or after that session is submitted). This closes the
-          // pre-answer answer-key oracle while preserving post-answer coaching.
-          if (!hasAdminAuth) {
-              const sessionId = req.body?.session_id ?? req.body?.sessionId;
-              if (typeof sessionId !== 'string' || !UUID_RE.test(sessionId)) {
-                  return res.status(400).json({ success: false, error: 'session_id_required' });
-              }
-              const { data: session, error: sessionErr } = await getSupabase()
+          // A panel reveals the solver-preferred play. Every caller, including
+          // an operator, supplies a real session so the render is tied to the
+          // exact revision the player saw rather than today's mutable row.
+          const sessionId = req.body?.session_id ?? req.body?.sessionId;
+          if (typeof sessionId !== 'string' || !UUID_RE.test(sessionId)) {
+              return res.status(400).json({ success: false, error: 'session_id_required' });
+          }
+
+          let reviewUserId = authenticatedUserId;
+          if (hasAdminAuth) {
+              const { data: ownedSession, error: ownerErr } = await getSupabase()
                   .from('trivia_sessions')
-                  .select('user_id, status, question_ids, answers')
+                  .select('user_id')
                   .eq('id', sessionId)
                   .maybeSingle();
-              if (sessionErr || !session || session.user_id !== authenticatedUserId) {
-                  return res.status(403).json({ success: false, error: 'session_not_owned' });
+              if (ownerErr) {
+                  console.warn('[Trivia-GTO-Panel] session owner lookup failed:', ownerErr.message || ownerErr);
+                  return res.status(500).json({ success: false, error: 'session_lookup_failed' });
               }
-              const inRoster = Array.isArray(session.question_ids) && session.question_ids.includes(questionId);
-              const answerBound = session.answers && typeof session.answers === 'object'
-                  && Object.prototype.hasOwnProperty.call(session.answers, questionId);
-              if (!inRoster || (session.status !== 'submitted' && !answerBound)) {
-                  return res.status(409).json({ success: false, error: 'answer_not_locked' });
+              if (!ownedSession?.user_id) {
+                  return res.status(404).json({ success: false, error: 'session_not_found' });
               }
+              reviewUserId = ownedSession.user_id;
           }
 
-          const { data: row, error: qErr } = await getSupabase()
-              .from('trivia_questions')
-              .select('id, category, difficulty, question, options, correct_index, explanation, engine_metadata, source')
-              .eq('id', questionId)
-              .maybeSingle();
-
-          if (qErr) {
-              console.warn('[Trivia-GTO-Panel] question lookup failed:', qErr.message);
-              return res.status(500).json({ success: false, error: 'Lookup failed' });
+          const { data: review, error: reviewErr } = await getSupabase().rpc(
+              'trivia_session_question_review_v1',
+              {
+                  p_session_id: sessionId,
+                  p_user_id: reviewUserId,
+                  p_question_id: questionId,
+              },
+          );
+          if (reviewErr) {
+              console.warn('[Trivia-GTO-Panel] bound revision review failed:', reviewErr.message || reviewErr);
+              return res.status(500).json({ success: false, error: 'question_review_failed' });
           }
-          if (!row) {
-              return res.status(404).json({ success: false, error: 'Question not found' });
+          if (!review?.success) {
+              const reviewError = review?.error || 'question_review_failed';
+              return res.status(v3ErrorStatus(reviewError)).json({ success: false, error: reviewError });
           }
-          if (!GTO_CATEGORIES.has(row.category)) {
+          // This paid visual belongs only to the four solo strategy booths,
+          // not to any trivia session that happens to carry solver metadata.
+          // The mode comes from the locked review RPC, never from the body.
+          if (!isStrategyVisualCardMode(review.mode)) {
+              return res.status(400).json({ success: false, error: 'unsupported_session_mode' });
+          }
+          if (review.voided === true || review.outcome === 'voided') {
+              return res.status(422).json({ success: false, error: 'solver_analysis_unavailable' });
+          }
+          if (!UUID_RE.test(review.revisionId || '')) {
+              return res.status(409).json({ success: false, error: 'revision_provenance_unavailable' });
+          }
+          if (!isStrategyVisualCardCategory(review.category)) {
               return res.status(400).json({ success: false, error: 'Question is not a GTO-category question' });
           }
+          if (!canRenderStrategyVisualCard(review.mode, review.category)) {
+              return res.status(409).json({ success: false, error: 'strategy_mode_category_mismatch' });
+          }
 
-          const options = Array.isArray(row.options) ? row.options : [];
-          const correctIndex = Number.isInteger(row.correct_index) ? row.correct_index : 0;
-          const difficulty = row.difficulty || 'medium';
-          const category = row.category;
-
+          const options = Array.isArray(review.options) ? review.options : [];
+          const correctIndex = Number.isInteger(review.correctIndex) ? review.correctIndex : -1;
+          if (correctIndex < 0 || correctIndex >= options.length) {
+              return res.status(409).json({ success: false, error: 'revision_provenance_unavailable' });
+          }
+          const category = review.category;
           const action = extractAction(options[correctIndex]);
-          const gtoApproach = CATEGORY_APPROACHES[category] || CATEGORY_APPROACHES['gto_theory'];
+          const solverAnalysis = sanitizeSolverAnalysis(review.engineMetadata);
+          if (!solverAnalysis) {
+              return res.status(422).json({ success: false, error: 'solver_analysis_unavailable' });
+          }
 
-          // Real solver numbers when the row carries them; otherwise clearly
-          // illustrative placeholders derived from difficulty.
-          const meta = row.engine_metadata && typeof row.engine_metadata === 'object' ? row.engine_metadata : null;
-          const realFreq = pickFrequency(meta, action);
-          const realEv = pickEv(meta);
-          const illustrative = realFreq == null && realEv == null;
+          const actionFrequency = solverAnalysis.frequencies[action] ?? null;
+          const frequencyRows = Object.entries(solverAnalysis.frequencies)
+              .map(([solverAction, frequency]) => ({ action: solverAction, frequency }))
+              .sort((a, b) => b.frequency - a.frequency || a.action.localeCompare(b.action));
+          const evValue = solverAnalysis.ev
+              ? `${solverAnalysis.ev.value >= 0 ? '+' : ''}${solverAnalysis.ev.value.toFixed(2)} ${solverAnalysis.ev.unit}`
+              : null;
 
-          const frequency = realFreq ?? (DIFFICULTY_CONFIDENCE[difficulty] || 78);
-          const evValue = realEv ?? (difficulty === 'hard' ? '+1.75BB' : difficulty === 'medium' ? '+1.25BB' : '+0.85BB');
+          const explanation = clamp(review.explanation || 'No authored explanation is available for this solved spot.', 200);
 
-          const explanation = clamp(row.explanation || 'This is the optimal GTO play in this situation.', 200);
+          // The source evidence is part of the key. If a reviewed solve is
+          // corrected, the old image can never masquerade as the new one.
+          const { cacheDigest, cacheKey } = generateCacheIdentity({
+              questionId,
+              revisionId: review.revisionId,
+              action,
+              frequencyRows,
+              ev: solverAnalysis.ev,
+              source: solverAnalysis.source,
+              renderVersion: 'club-arena-console-v1',
+          });
 
-          // Alternate lines from the other options in the DB row.
-          const alternateLines = options
-              .filter((_, i) => i !== correctIndex)
-              .slice(0, 2)
-              .map((opt, i) => ({
-                  action: extractAction(opt),
-                  frequency: pickFrequency(meta, extractAction(opt)) != null
-                      ? `${pickFrequency(meta, extractAction(opt))}%`
-                      : (i === 0 ? '15%' : '5%'),
-                  reason: i === 0
-                      ? 'Mixed strategy for range balance'
-                      : 'Against extremely tight opponents',
-              }));
+          const ownerToken = crypto.randomUUID();
+          const rendered = await renderGtoPanelSingleflight({
+              cacheDigest,
+              ownerToken,
+              leaseSeconds: RENDER_CLAIM_LEASE_SECONDS,
+              readCachedImage: () => checkCachedImage(cacheKey),
+              claimRender: claimRenderLease,
+              generateImage: () => generateWithGrok({
+                  action,
+                  actionFrequency,
+                  frequencyRows,
+                  explanation,
+                  evValue,
+                  category,
+              }),
+              uploadImage: imageBuffer => uploadToStorage(cacheKey, imageBuffer),
+              releaseRender: releaseRenderLease,
+              onReleaseError: (releaseError, { primaryError }) => {
+                  console.warn('[Trivia-GTO-Panel] Claim release failed:', releaseError?.message || releaseError);
+                  try {
+                      reportApiError(releaseError, {
+                          route: '/api/trivia/render-gto-panel',
+                          stage: 'claim_release',
+                          primaryOperationFailed: Boolean(primaryError),
+                      });
+                  } catch (_reportError) {
+                      console.warn('[App] Handled exception:', _reportError?.message || _reportError);
+                  }
+              },
+          });
 
-          // Cache key is derived from the QUESTION ID, so the number of
-          // distinct stored objects is bounded by the question pool.
-          const cacheKey = generateCacheKey({ questionId: row.id, illustrative });
-
-          // Check if image exists in cache
-          const existingUrl = await checkCachedImage(cacheKey);
-          if (existingUrl) {
-              return res.status(200).json({
-                  success: true,
-                  imageUrl: existingUrl,
-                  fromCache: true,
-                  illustrative,
+          if (rendered.state === 'pending') {
+              res.setHeader('Retry-After', String(Math.max(1, Math.ceil(rendered.retryAfterMs / 1000))));
+              return res.status(409).json({
+                  success: false,
+                  error: 'render_in_progress',
+                  retryAfterMs: rendered.retryAfterMs,
               });
           }
 
-          // Generate image using Grok AI
-          const imageBuffer = await generateWithGrok({
-              action,
-              frequency,
-              explanation,
-              gtoApproach,
-              evValue,
-              alternateLines,
-              category,
-              illustrative,
-          });
-
-          // Upload to Supabase storage
-          const imageUrl = await uploadToStorage(cacheKey, imageBuffer);
-
           return res.status(200).json({
               success: true,
-              imageUrl,
-              fromCache: false,
-              illustrative,
+              imageUrl: rendered.imageUrl,
+              fromCache: rendered.fromCache,
+              illustrative: false,
+              solverSource: solverAnalysis.source,
           });
 
       } catch (error) {
@@ -289,56 +286,48 @@ function extractAction(text) {
  */
 async function generateWithGrok({
     action,
-    frequency,
+    actionFrequency,
+    frequencyRows,
     explanation,
-    gtoApproach,
     evValue,
-    alternateLines,
     category,
-    illustrative = false,
 }) {
-    const actionColor = ACTION_COLORS[action] || 'neon green';
-    // Do not present invented numbers as solver output.
-    const sourceBadge = illustrative
-        ? 'ILLUSTRATIVE - not solver output'
-        : 'Smarter Poker Data';
+    const actionColor = ACTION_COLORS[action] || 'electric table blue';
+    const mix = frequencyRows.length > 0
+        ? frequencyRows.map(row => `${row.action}: ${row.frequency}%`).join(', ')
+        : 'No action frequencies supplied';
+    const primaryFrequency = actionFrequency == null
+        ? 'No preferred-line frequency supplied'
+        : `${action}: ${actionFrequency}%`;
+    const evLine = evValue == null ? 'No EV value supplied' : `EV: ${evValue}`;
 
-    const prompt = `Create a premium poker GTO analysis panel with futuristic metal styling:
+    const prompt = `Create one premium poker analysis evidence plate for Smarter Poker.
 
-DESIGN SPECIFICATIONS:
-- Dark navy/black gradient background (#0a1628 to #1a2744)
-- Metallic silver-gray beveled frame with rounded corners
-- Cyan accent lights at bottom corners
-- Tech aesthetic like Iron Man HUD interface
+SCENE AND MATERIALS:
+- True black casino void, not a blue gradient.
+- One machined gunmetal instrument frame with sharp chamfered corners, cold chrome fasteners, carbon-fiber inlay and restrained electric-blue edge energy.
+- It must feel physically mounted beside a real high-stakes poker table, with shallow-depth table felt and chips visible beyond the instrument. No floating dashboard cards.
+- No glassmorphism, no purple, no magenta, no generic sci-fi HUD, no robot face, no pill buttons, no rounded SaaS panels.
 
-HEADER SECTION:
-- TOP LEFT: Circular Jarvis AI avatar (cyan glowing humanoid robot face) with "JARVIS" label below
-- CENTER: Large "${action}" text in ${actionColor} with glow effect, inside a pill-shaped badge
-- RIGHT: "${frequency}%" in a circular meter
-- TOP RIGHT CORNER: "${sourceBadge}" badge in cyan
+VERIFIED SERVER DATA ONLY:
+- Category: "${clamp(category, 48)}"
+- Preferred action: "${action}" in ${actionColor}
+- Preferred-line evidence: "${primaryFrequency}"
+- Complete supplied mix: "${mix}"
+- Supplied EV evidence: "${evLine}"
+- Authored explanation: "${explanation}"
+- Source legend: "VERIFIED SERVER METADATA"
 
-CONTENT SECTIONS (4 expandable metal-framed cards):
-
-1. EXPLANATION:
-"${explanation}"
-Highlight "${action}" in ${actionColor}, "GTO" and "EV" terms in cyan
-
-2. GTO APPROACH:
-"${gtoApproach}"
-Highlight "balanced range" in cyan
-
-3. $ EV ANALYSIS:
-Large "${evValue}" in green with glow
-"This action yields an expected value of ${evValue}, significantly higher than alternatives."
-
-4. ALTERNATE LINES:
-${alternateLines.map((line, i) => `• ${i === 0 ? 'Yellow' : 'Red'} dot: ${line.action} - ${line.frequency} - "${line.reason}"`).join('\n')}
-
-STYLE: Premium, futuristic, metal-framed poker solver UI. High-tech dark theme. NO plain/basic styling.`;
+COMPOSITION:
+- Wide landscape analysis plate, legible hierarchy, restrained blue illumination and a small prize-gold accent only on the preferred action.
+- Present only the exact values above. Do not infer, add, round differently, or invent any percentage, range, EV, confidence, action, reason or claim.
+- If a field says no value supplied, omit that metric area instead of filling it.
+- No logos, no watermark, no decorative icon set, no fictional controls.`;
 
     // Call Grok image generation
     const response = await fetch('https://api.x.ai/v1/images/generations', {
         method: 'POST',
+        signal: AbortSignal.timeout(90_000),
         headers: {
             'Authorization': `Bearer ${(process.env.XAI_API_KEY || '').trim()}`,
             'Content-Type': 'application/json',
@@ -366,12 +355,40 @@ STYLE: Premium, futuristic, metal-framed poker solver UI. High-tech dark theme. 
 }
 
 /**
- * Generate cache key from content
+ * Generate a full digest for durable coordination and retain the established
+ * storage object key for cache compatibility.
  */
-function generateCacheKey(data) {
+function generateCacheIdentity(data) {
     const hash = crypto.createHash('sha256');
     hash.update(JSON.stringify(data));
-    return `trivia-gto-${hash.digest('hex').substring(0, 16)}`;
+    const cacheDigest = hash.digest('hex');
+    return {
+        cacheDigest,
+        cacheKey: `trivia-gto-${cacheDigest.substring(0, 16)}`,
+    };
+}
+
+async function claimRenderLease({ cacheDigest, ownerToken, leaseSeconds }) {
+    const { data, error } = await getSupabase().rpc('trivia_claim_gto_render_v1', {
+        p_cache_digest: cacheDigest,
+        p_owner_token: ownerToken,
+        p_lease_seconds: leaseSeconds,
+    });
+    if (error || typeof data?.acquired !== 'boolean') {
+        console.warn('[Trivia-GTO-Panel] Claim failed:', error?.message || 'invalid claim response');
+        throw new Error('GTO render coordination unavailable');
+    }
+    return data;
+}
+
+async function releaseRenderLease({ cacheDigest, ownerToken }) {
+    const { data, error } = await getSupabase().rpc('trivia_release_gto_render_v1', {
+        p_cache_digest: cacheDigest,
+        p_owner_token: ownerToken,
+    });
+    if (error || data !== true) {
+        throw new Error(error?.message || 'GTO render claim was not released by its owner');
+    }
 }
 
 /**

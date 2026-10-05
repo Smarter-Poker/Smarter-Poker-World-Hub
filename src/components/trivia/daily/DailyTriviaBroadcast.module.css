@@ -1,0 +1,325 @@
+/*
+ * Daily Trivia is a live broadcast desk on the shared Club Arena console:
+ * art first on phones, a deliberate art/telemetry split on desktop, engraved
+ * ledger rules instead of floating cards. Master inks only; no hover.
+ */
+.broadcast {
+    display: grid;
+    gap: max(20px, 4cqw);
+    min-width: 0;
+}
+
+.artStage {
+    position: relative;
+    min-width: 0;
+    overflow: hidden;
+    border-block: 1px solid #6d747c;
+    box-shadow: 0 -1px 0 rgb(228 231 236 / 35%), 0 1px 0 #000000;
+}
+
+.frequency {
+    position: absolute;
+    right: max(10px, 2cqw);
+    bottom: max(8px, 1.6cqw);
+    padding: 4px 8px;
+    color: #e4e7ec;
+    background: rgb(0 0 0 / 82%);
+    border-left: 3px solid #45adff;
+    font-family: 'Roboto Condensed', Inter, system-ui, sans-serif;
+    font-size: max(11px, 2.3cqw);
+    font-weight: 800;
+    letter-spacing: 0.12em;
+}
+
+.statusDeck {
+    display: grid;
+    align-content: start;
+    gap: max(14px, 2.6cqw);
+    min-width: 0;
+}
+
+.attempt {
+    display: grid;
+    gap: 6px;
+    padding-left: max(12px, 2.6cqw);
+    border-left: 4px solid #45adff;
+}
+
+.attempt h2,
+.sectionHead h2 {
+    margin: 0;
+    font-family: 'Roboto Condensed', Inter, system-ui, sans-serif;
+    font-weight: 800;
+    line-height: 1.05;
+}
+
+.attempt h2 {
+    font-size: max(24px, 5.4cqw);
+    letter-spacing: 0.02em;
+}
+
+.attempt p,
+.state p {
+    margin: 0;
+    color: #9aa5b3;
+    font: 500 max(14px, 3cqw) / 1.5 Inter, system-ui, sans-serif;
+}
+
+.tagline {
+    margin: 0;
+    color: #e4e7ec;
+    font: 650 max(15px, 3.2cqw) / 1.45 Inter, system-ui, sans-serif;
+    overflow-wrap: anywhere;
+}
+
+.telemetry,
+.receiptRows {
+    display: grid;
+    margin: 0;
+}
+
+.telemetry > div,
+.receiptRows > div {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 16px;
+    min-width: 0;
+    padding: max(10px, 2cqw) 0;
+    border-top: 1px solid #6d747c;
+    box-shadow: inset 0 1px 0 rgb(228 231 236 / 12%);
+}
+
+.telemetry dt,
+.receiptRows dt {
+    color: #9aa5b3;
+    font: 800 max(12px, 2.5cqw) / 1.3 'Roboto Condensed', Inter, system-ui, sans-serif;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.telemetry dd,
+.receiptRows dd {
+    min-width: 0;
+    margin: 0;
+    color: #e4e7ec;
+    font: 750 max(14px, 3cqw) / 1.35 'Roboto Condensed', Inter, system-ui, sans-serif;
+    overflow-wrap: anywhere;
+    text-align: right;
+}
+
+.leaderboard,
+.receipt {
+    display: grid;
+    gap: max(12px, 2.4cqw);
+    min-width: 0;
+    padding-top: max(18px, 3.5cqw);
+    border-top: 2px solid #6d747c;
+    box-shadow: inset 0 1px 0 rgb(228 231 236 / 22%);
+}
+
+.sectionHead {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.sectionHead h2 {
+    color: #f4f7fb;
+    font-size: max(20px, 4.2cqw);
+}
+
+.sectionHead > span {
+    flex: none;
+    font: 800 max(11px, 2.4cqw) / 1.2 'Roboto Condensed', Inter, system-ui, sans-serif;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}
+
+.state {
+    display: grid;
+    justify-items: start;
+    gap: 10px;
+    padding-left: 12px;
+    border-left: 4px solid #f02849;
+}
+
+.transactions {
+    display: grid;
+    gap: 14px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.transaction {
+    display: grid;
+    gap: 8px;
+    min-width: 0;
+    padding: 12px 0 0 12px;
+    border-top: 1px solid #6d747c;
+    border-left: 4px solid #45adff;
+    box-shadow: inset 0 1px 0 rgb(228 231 236 / 12%);
+}
+
+.transactionHead {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 6px 12px;
+    color: #f4f7fb;
+    font: 800 max(13px, 2.8cqw) / 1.35 'Roboto Condensed', Inter, system-ui, sans-serif;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+
+.transactionRows {
+    display: grid;
+    margin: 0;
+}
+
+.transactionRows > div {
+    display: grid;
+    grid-template-columns: minmax(76px, 0.35fr) minmax(0, 1fr);
+    gap: 10px;
+    min-width: 0;
+    padding: 7px 0;
+    border-top: 1px solid rgb(109 116 124 / 55%);
+}
+
+.transactionRows dt,
+.transactionRows dd {
+    margin: 0;
+    font: 700 max(11px, 2.35cqw) / 1.4 'Roboto Condensed', Inter, system-ui, sans-serif;
+}
+
+.transactionRows dt {
+    color: #9aa5b3;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+}
+
+.transactionRows dd {
+    min-width: 0;
+    color: #e4e7ec;
+    overflow-wrap: anywhere;
+    text-align: right;
+}
+
+.rankings {
+    display: grid;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.ranking {
+    display: grid;
+    grid-template-columns: 3ch minmax(0, 1fr);
+    gap: 4px 12px;
+    align-items: baseline;
+    min-width: 0;
+    padding: max(11px, 2.2cqw) 0;
+    border-top: 1px solid #6d747c;
+    box-shadow: inset 0 1px 0 rgb(228 231 236 / 10%);
+}
+
+.ranking[aria-current='true'] {
+    border-left: 4px solid #45adff;
+    padding-left: 8px;
+}
+
+.rank {
+    color: #45adff;
+    font: 800 max(13px, 2.8cqw) / 1 'Roboto Condensed', Inter, system-ui, sans-serif;
+    font-variant-numeric: tabular-nums;
+}
+
+.player {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    min-width: 0;
+    color: #f4f7fb;
+    font: 750 max(15px, 3.2cqw) / 1.3 Inter, system-ui, sans-serif;
+    overflow-wrap: anywhere;
+}
+
+.record {
+    display: flex;
+    grid-column: 2;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 2px 12px;
+    color: #9aa5b3;
+    font: 700 max(12px, 2.6cqw) / 1.4 'Roboto Condensed', Inter, system-ui, sans-serif;
+    letter-spacing: 0.04em;
+}
+
+.record strong {
+    color: #ffd700;
+}
+
+@media (min-width: 1024px) {
+    .broadcast {
+        grid-template-columns: minmax(0, 1.55fr) minmax(280px, 0.75fr);
+        align-items: start;
+        gap: 28px 34px;
+    }
+
+    .artStage {
+        grid-column: 1;
+        grid-row: 1;
+    }
+
+    .statusDeck {
+        grid-column: 2;
+        grid-row: 1;
+    }
+
+    .leaderboard {
+        grid-column: 1 / -1;
+    }
+
+    .attempt h2 {
+        font-size: 30px;
+    }
+
+    .telemetry dt,
+    .receiptRows dt,
+    .sectionHead > span {
+        font-size: 12px;
+    }
+
+    .telemetry dd,
+    .receiptRows dd {
+        font-size: 15px;
+    }
+
+    .sectionHead h2 {
+        font-size: 24px;
+    }
+
+    .ranking {
+        grid-template-columns: 4ch minmax(0, 1fr) minmax(260px, 0.8fr);
+        gap: 14px;
+    }
+
+    .record {
+        grid-column: 3;
+        justify-content: flex-end;
+        text-align: right;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .broadcast *,
+    .broadcast *::before,
+    .broadcast *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        scroll-behavior: auto !important;
+        transition-duration: 0.01ms !important;
+    }
+}

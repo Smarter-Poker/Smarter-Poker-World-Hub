@@ -19,7 +19,7 @@ import PageTransition from '../../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import TriviaGame from '../../../src/components/trivia/TriviaGame';
 import TriviaResult from '../../../src/components/trivia/TriviaResult';
-import LeaderboardDisplay, { printPlayerName } from '../../../src/components/trivia/LeaderboardDisplay';
+import LeaderboardDisplay from '../../../src/components/trivia/LeaderboardDisplay';
 import { TRIVIA_MODES, calculateDiamonds, CATEGORY_MAPPINGS, DAILY_DIAMOND_CAPS } from '../../../src/lib/trivia/triviaEngine';
 import { getTodayCST } from '../../../src/lib/trivia/getTodayCST';
 import { toTitleCase } from '../../../src/lib/trivia/titleCase';
@@ -32,8 +32,15 @@ import TriviaConsole from '../../../src/components/trivia/console/TriviaConsole'
 import ResponsiveModeArt from '../../../src/components/trivia/console/ResponsiveModeArt';
 import { TRIVIA_INTRO_ART_ARCADE, TRIVIA_INTRO_ART_DAILY, TRIVIA_INTRO_ART_HISTORY, TRIVIA_INTRO_ART_PRO, TRIVIA_INTRO_ART_RULES } from '../../../src/config/triviaIntroArt.mjs';
 import TriviaConsoleDialog from '../../../src/components/trivia/console/TriviaConsoleDialog';
+import DailyTriviaBroadcast, { DailyLeaderboard, DailySettlementReceipt } from '../../../src/components/trivia/daily/DailyTriviaBroadcast';
+import { projectDailyResume } from '../../../src/components/trivia/daily/dailyTriviaModel.mjs';
 import { getRecentlySeenIds, fetchRandomQuestionPool } from '../../../src/lib/triviaQuestionLoader';
 import useServerGradedRun from '../../../src/hooks/useServerGradedRun';
+import { createSoloJourneyTracker } from '../../../src/lib/trivia/soloJourneyAnalytics.mjs';
+import {
+    createAccountOperationScope,
+    isStaleAccountOperation,
+} from '../../../src/lib/trivia/accountOperationScope.mjs';
 
 // Phase 55 - gameplay quality floor. Questions tagged below this by the audit
 // pipeline (qs=2 auto-demoted via 3-strike user reports, qs=4 unclear English,
@@ -95,23 +102,26 @@ const SERVER_GRADED_PAGE_MODES = new Set([
     'mtt', 'cash', 'icm', 'gto'
 ]);
 
-// Yesterday in America/Chicago as YYYY-MM-DD (streak-continuation check)
-function getYesterdayCST() {
-    const cst = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Chicago' }));
-    cst.setDate(cst.getDate() - 1);
-    return `${cst.getFullYear()}-${String(cst.getMonth() + 1).padStart(2, '0')}-${String(cst.getDate()).padStart(2, '0')}`;
-}
-
 export default function TriviaModePage() {
     useTrainingBus('trivia-mode');
     const router = useRouter();
     const { mode } = router.query;
     const { user: avatarUser, loading: authLoading } = useAvatar();
+    const soloJourneyTrackerRef = useRef(null);
+    if (!soloJourneyTrackerRef.current) soloJourneyTrackerRef.current = createSoloJourneyTracker();
+    const soloRunLifecycleRef = useRef({ active: false, settled: false, mode: null, state: 'playing' });
+    const startRetryRef = useRef(false);
+    const resumeRetryRef = useRef(false);
 
-    // The hook owns the session lifecycle and the explicit allow-list prevents
-    // an ad-hoc query parameter from half-enabling an unsupported mode.
-    const serverRun = useServerGradedRun(mode);
-    const serverGraded = serverRun.isEnabled && SERVER_GRADED_PAGE_MODES.has(mode);
+    useEffect(() => () => {
+        const lifecycle = soloRunLifecycleRef.current;
+        if (lifecycle.active && !lifecycle.settled) {
+            soloJourneyTrackerRef.current.track(lifecycle.mode, 'abandon', {
+                surface: 'daily',
+                abandon_state: lifecycle.state === 'settling' ? 'settling' : 'playing',
+            });
+        }
+    }, []);
 
     // ── AUDIT FIX (C1) ───────────────────────────────────────────────
     // 'survival' exists in TRIVIA_MODES (diamondCost: 10) but this page has
@@ -140,6 +150,27 @@ export default function TriviaModePage() {
     const [userStreak, setUserStreak] = useState(0);
     const [bestStreak, setBestStreak] = useState(0);
     const [userId, setUserId] = useState(null);
+    const accountIdentityRef = useRef(null);
+    const accountOperationScopeRef = useRef(null);
+    if (!accountOperationScopeRef.current) {
+        accountOperationScopeRef.current = createAccountOperationScope();
+    }
+    const resolvedAccountId = authLoading
+        ? userId
+        : (avatarUser?.id || getAuthUser()?.id || null);
+    if (!authLoading) accountOperationScopeRef.current.transition(resolvedAccountId);
+    // Recovery must use the same resolved account authority as the page. Some
+    // sessions hydrate through getAuthUser() before AvatarContext does; binding
+    // recovery only to avatarUser would make those authenticated starts
+    // non-durable.
+    const serverRun = useServerGradedRun(mode, { accountId: resolvedAccountId });
+
+    useEffect(() => {
+        if (gameState === 'results' && result?.receipt?.sessionId) {
+            serverRun.acknowledgeSettlement();
+        }
+    }, [gameState, result?.receipt?.sessionId, serverRun.acknowledgeSettlement]);
+    const serverGraded = serverRun.isEnabled && SERVER_GRADED_PAGE_MODES.has(mode);
     const [userDiamonds, setUserDiamonds] = useState(0);
     const [error, setError] = useState(null);
     const [isVIP, setIsVIP] = useState(false);
@@ -150,6 +181,21 @@ export default function TriviaModePage() {
     const [dailyDiamondsClaimed, setDailyDiamondsClaimed] = useState(false);
     const [dailyLeaderboard, setDailyLeaderboard] = useState([]);
     const [lastPlayDate, setLastPlayDate] = useState(null);
+    const [dailyStatus, setDailyStatus] = useState('loading');
+    const [dailyStatusError, setDailyStatusError] = useState(null);
+    const [dailyLeaderboardState, setDailyLeaderboardState] = useState('loading');
+    const [dailyLeaderboardError, setDailyLeaderboardError] = useState(null);
+    const [isOnline, setIsOnline] = useState(() => typeof navigator === 'undefined' || navigator.onLine !== false);
+    const [dailyResumeSeed, setDailyResumeSeed] = useState({
+        questionIndex: 0,
+        answers: [],
+        verdicts: {},
+        correctCount: 0,
+        streak: 0,
+    });
+    const dailyStatusRequestRef = useRef(0);
+    const dailyLeaderboardRequestRef = useRef(0);
+    const startOperationRef = useRef(null);
 
     // Personal best (per-mode) for the ready screen / results delta
     const [personalBest, setPersonalBest] = useState(null);
@@ -189,6 +235,17 @@ export default function TriviaModePage() {
     // first attempt would otherwise flip it and drop the bonus mid-retry).
     const firstDailyTodayRef = useRef(null);
 
+    useEffect(() => {
+        const markOnline = () => setIsOnline(true);
+        const markOffline = () => setIsOnline(false);
+        window.addEventListener('online', markOnline);
+        window.addEventListener('offline', markOffline);
+        return () => {
+            window.removeEventListener('online', markOnline);
+            window.removeEventListener('offline', markOffline);
+        };
+    }, []);
+
     // Using existing supabase instance from lib
     const modeConfig = mode ? TRIVIA_MODES[mode] : null;
 
@@ -200,13 +257,55 @@ export default function TriviaModePage() {
         if (mode === 'survival') return;
         // Wait for auth to finish loading before initializing
         if (authLoading) return;
+        const accountChanged = accountIdentityRef.current !== resolvedAccountId;
+        accountIdentityRef.current = resolvedAccountId;
+        const operationScope = accountOperationScopeRef.current.transition(resolvedAccountId);
+        let cancelled = false;
+        const isCurrent = () => !cancelled
+            && accountOperationScopeRef.current.isCurrent(operationScope);
+
+        // An auth boundary owns the run boundary. Preserve the old account's
+        // durable recovery pointer, but never keep its in-memory session or
+        // balance on screen under a different identity.
+        if (accountChanged) {
+            startOperationRef.current = null;
+            isStartingRef.current = false;
+            setIsStarting(false);
+            dailyStatusRequestRef.current += 1;
+            savePhaseRef.current = 0;
+            cappedRewardRef.current = null;
+            firstDailyTodayRef.current = null;
+            scoreIdRef.current = null;
+            setUserId(resolvedAccountId);
+            setUserDiamonds(0);
+            setIsVIP(false);
+            setUserStreak(0);
+            setBestStreak(0);
+            setLastPlayDate(null);
+            setPersonalBest(null);
+            setDailyDiamondsClaimed(false);
+            setQuestions([]);
+            setResult(null);
+            setSaveErrorPayload(null);
+            setWheelPrize(null);
+        }
+        if (accountChanged && ['playing', 'saving', 'saving_error'].includes(gameStateRef.current)) {
+            setError(resolvedAccountId
+                ? 'Your Account Changed. Start Or Resume A Run For This Account.'
+                : 'Sign In Again To Continue Trivia.');
+            setGameState('error');
+            return () => { cancelled = true; };
+        }
+
         // AUDIT FIX (M4): this effect re-runs when avatarUser?.id or
         // authLoading change (sign-in completing in another tab, session
         // refresh re-hydrating AvatarContext). initialize() unconditionally
         // setGameState('loading'), which destroyed an in-progress PAID game
         // - entry diamonds already deducted, no completion, no refund.
         // Never re-initialize over an active or still-saving run.
-        if (['playing', 'saving', 'saving_error'].includes(gameStateRef.current)) return;
+        if (['playing', 'saving', 'saving_error'].includes(gameStateRef.current)) {
+            return () => { cancelled = true; };
+        }
 
         async function initialize() {
             setGameState('loading');
@@ -214,36 +313,51 @@ export default function TriviaModePage() {
 
             try {
                 // Try avatarUser first, then getAuthUser as fallback
-                const currentUserId = avatarUser?.id || getAuthUser()?.id || null;
+                const currentUserId = resolvedAccountId;
 
                 if (currentUserId) {
                     setUserId(currentUserId);
+                    setUserDiamonds(0);
+                    setIsVIP(false);
+                    setUserStreak(0);
+                    setBestStreak(0);
+                    setLastPlayDate(null);
+                    setPersonalBest(null);
 
                     // Check VIP status
                     await DiamondEngine.init(currentUserId);
                     const vipStatus = await DiamondEngine.isVIP();
+                    if (!isCurrent()) return;
                     setIsVIP(vipStatus);
 
                     // Get diamonds
                     const { data: profile } = await readOwnProfile(supabase, 'diamonds', { expectId: currentUserId });
+                    if (!isCurrent()) return;
 
                     if (profile) {
                         setUserDiamonds(profile.diamonds || 0);
                     }
 
-                    // Get streak (load current, best AND last_play_date so the
-                    // completion handler can tell "already advanced today" from
-                    // "consecutive day" - prevents streak inflation on replays)
-                    const { data: streakData } = await supabase
-                        .from('trivia_streaks')
-                        .select('current_streak, best_streak, last_play_date')
-                        .eq('user_id', currentUserId)
-                        .maybeSingle();
+                    if (mode === 'daily') {
+                        // Daily attempt/streak state is one authoritative read
+                        // with explicit loading/error states. It is re-read
+                        // after settlement so streak-shield outcomes are never
+                        // invented by client calendar arithmetic.
+                        await loadDailyAccountState(currentUserId);
+                        if (!isCurrent()) return;
+                    } else {
+                        const { data: streakData } = await supabase
+                            .from('trivia_streaks')
+                            .select('current_streak, best_streak, last_play_date')
+                            .eq('user_id', currentUserId)
+                            .maybeSingle();
+                        if (!isCurrent()) return;
 
-                    if (streakData) {
-                        setUserStreak(streakData.current_streak || 0);
-                        setBestStreak(streakData.best_streak || 0);
-                        setLastPlayDate(streakData.last_play_date || null);
+                        if (streakData) {
+                            setUserStreak(streakData.current_streak || 0);
+                            setBestStreak(streakData.best_streak || 0);
+                            setLastPlayDate(streakData.last_play_date || null);
+                        }
                     }
 
                     // Personal best for this mode (cheap retention win - data
@@ -257,6 +371,7 @@ export default function TriviaModePage() {
                             .order('score', { ascending: false })
                             .limit(1)
                             .maybeSingle();
+                        if (!isCurrent()) return;
                         if (bestRow && typeof bestRow.score === 'number') {
                             setPersonalBest(bestRow.score);
                         }
@@ -269,6 +384,7 @@ export default function TriviaModePage() {
                         const arcadeCost = modeConfig?.diamondCost || 0;
                         if (arcadeCost > 0) {
                             const diamonds = profile?.diamonds ?? (await getUserDiamonds(currentUserId));
+                            if (!isCurrent()) return;
                             if (diamonds < arcadeCost) {
                                 setError(`Not Enough Diamonds. You Need ${arcadeCost} Diamonds To Play ${toTitleCase(modeConfig?.name || 'This Mode')}.`);
                                 setGameState('error');
@@ -277,21 +393,30 @@ export default function TriviaModePage() {
                         }
                     }
 
-                    // Check if daily diamonds already claimed today
+                } else {
+                    // Never leave a previous account's recovery scope, wallet,
+                    // streak or best score active after sign-out. Public modes
+                    // may still load their anonymous question/lobby state.
+                    setUserId(null);
+                    setUserDiamonds(0);
+                    setIsVIP(false);
+                    setUserStreak(0);
+                    setBestStreak(0);
+                    setLastPlayDate(null);
+                    setPersonalBest(null);
                     if (mode === 'daily') {
-                        const today = getTodayCST();
-                        const { data: existingPlay } = await supabase
-                            .from('daily_trivia_plays')
-                            .select('id')
-                            .eq('user_id', currentUserId)
-                            .eq('played_date', today)
-                            .limit(1);
-                        if (existingPlay && existingPlay.length > 0) {
-                            setDailyDiamondsClaimed(true);
-                        }
-                        // Load daily leaderboard
-                        await loadDailyLeaderboard();
+                        // Authentication is required for the server-owned
+                        // Daily run; public standings still load below.
+                        dailyStatusRequestRef.current += 1;
+                        setDailyDiamondsClaimed(false);
+                        setDailyStatus('ready');
+                        setDailyStatusError(null);
                     }
+                }
+
+                if (mode === 'daily') {
+                    await loadDailyLeaderboard();
+                    if (!isCurrent()) return;
                 }
 
                 // Load questions (works with or without user).
@@ -305,6 +430,7 @@ export default function TriviaModePage() {
                     setQuestions([]);
                 } else {
                     const loadedQuestions = await loadQuestions(mode, modeConfig.questionsCount, currentUserId);
+                    if (!isCurrent()) return;
                     if (loadedQuestions.length === 0) {
                         setError('No Questions Available. Please Try Again Later.');
                         setGameState('error');
@@ -317,6 +443,7 @@ export default function TriviaModePage() {
                 // Load leaderboard for arcade
                 if (mode === 'arcade') {
                     await loadLeaderboard();
+                    if (!isCurrent()) return;
                 }
 
                 // Load community accuracy for ghost opponent
@@ -325,6 +452,7 @@ export default function TriviaModePage() {
                         .from('trivia_scores')
                         .select('correct_count, total_questions')
                         .limit(100);
+                    if (!isCurrent()) return;
                     if (accuracyData && accuracyData.length >= 5) {
                         const totalCorrect = accuracyData.reduce((s, r) => s + (r.correct_count || 0), 0);
                         const totalQs = accuracyData.reduce((s, r) => s + (r.total_questions || 0), 0);
@@ -332,15 +460,17 @@ export default function TriviaModePage() {
                     }
                 } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
 
-                setGameState('ready');
+                if (isCurrent()) setGameState('ready');
             } catch (err) {
                 console.warn('Error initializing trivia:', err);
+                if (!isCurrent()) return;
                 setError('Failed To Load Trivia. Please Try Again.');
                 setGameState('error');
             }
         }
 
         initialize();
+        return () => { cancelled = true; };
     }, [mode, modeConfig, avatarUser?.id, authLoading]);
     // Realtime subscription - live updates. Only the daily page renders the
     // daily leaderboard, so don't run the 2-query pipeline for other modes.
@@ -520,67 +650,125 @@ export default function TriviaModePage() {
         setLeaderboard(data || []);
     }
 
-    async function loadDailyLeaderboard() {
+    async function loadDailyAccountState(accountId) {
+        if (!accountId) return null;
+        const operationScope = accountOperationScopeRef.current.capture();
+        if (operationScope.identity !== accountId) return null;
+        const request = ++dailyStatusRequestRef.current;
+        setDailyStatus('loading');
+        setDailyStatusError(null);
         try {
-            // Get top streakers (users with best daily trivia streaks).
-            // NOTE: no `profiles(username)` embed here - trivia_streaks.user_id
-            // references auth.users, not profiles, so PostgREST cannot resolve
-            // the relationship and the whole select fails. Fetch usernames in a
-            // second query keyed by id instead.
-            const { data: streakData } = await supabase
+            const today = getTodayCST();
+            const [streakResponse, playResponse] = await Promise.all([
+                supabase
+                    .from('trivia_streaks')
+                    .select('current_streak, best_streak, last_play_date')
+                    .eq('user_id', accountId)
+                    .maybeSingle(),
+                supabase
+                    .from('daily_trivia_plays')
+                    .select('id')
+                    .eq('user_id', accountId)
+                    .eq('played_date', today)
+                    .limit(1),
+            ]);
+            if (!accountOperationScopeRef.current.isCurrent(operationScope)) return null;
+            if (streakResponse.error) throw streakResponse.error;
+            if (playResponse.error) throw playResponse.error;
+            const projection = {
+                currentStreak: Math.max(0, Number(streakResponse.data?.current_streak) || 0),
+                bestStreak: Math.max(0, Number(streakResponse.data?.best_streak) || 0),
+                lastPlayDate: streakResponse.data?.last_play_date || null,
+                completed: (playResponse.data || []).length > 0,
+            };
+            if (request !== dailyStatusRequestRef.current) return null;
+            setUserStreak(projection.currentStreak);
+            setBestStreak(projection.bestStreak);
+            setLastPlayDate(projection.lastPlayDate);
+            setDailyDiamondsClaimed(projection.completed);
+            setDailyStatus('ready');
+            return projection;
+        } catch (err) {
+            console.warn('[Daily Trivia] Attempt status load failed:', err?.message || err);
+            if (!accountOperationScopeRef.current.isCurrent(operationScope)) return null;
+            if (request !== dailyStatusRequestRef.current) return null;
+            setDailyStatusError('Your Daily attempt status could not be verified.');
+            setDailyStatus('error');
+            return null;
+        }
+    }
+
+    async function loadDailyLeaderboard() {
+        const request = ++dailyLeaderboardRequestRef.current;
+        setDailyLeaderboardState('loading');
+        setDailyLeaderboardError(null);
+        try {
+            // trivia_streaks.user_id references auth.users, not profiles, so
+            // usernames are fetched in a second explicit read.
+            const { data: streakData, error: streakError } = await supabase
                 .from('trivia_streaks')
                 .select('user_id, current_streak, best_streak')
                 .order('current_streak', { ascending: false })
                 .limit(10);
+            if (streakError) throw streakError;
 
-            if (streakData && streakData.length > 0) {
-                // Also get accuracy stats from daily trivia scores
-                const userIds = streakData.map(s => s.user_id);
+            const rows = streakData || [];
+            if (rows.length === 0) {
+                if (request === dailyLeaderboardRequestRef.current) {
+                    setDailyLeaderboard([]);
+                    setDailyLeaderboardState('ready');
+                }
+                return [];
+            }
 
-                // Usernames (profiles.id is 1:1 with auth.users.id)
-                const usernameMap = {};
-                try {
-                    const { data: profileRows } = await supabase
-                        .from('profiles')
-                        .select('id, username')
-                        .in('id', userIds);
-                    (profileRows || []).forEach(p => { usernameMap[p.id] = p.username; });
-                } catch (e) { console.warn('[Daily Trivia] Username fetch failed:', e); }
-
-                const { data: scoreData } = await supabase
+            const userIds = rows.map(s => s.user_id);
+            const [profilesResponse, scoresResponse] = await Promise.all([
+                supabase.from('profiles').select('id, username').in('id', userIds),
+                supabase
                     .from('trivia_scores')
                     .select('user_id, correct_count, total_questions')
                     .eq('mode', 'daily')
-                    .in('user_id', userIds);
+                    .in('user_id', userIds),
+            ]);
+            if (profilesResponse.error) throw profilesResponse.error;
+            if (scoresResponse.error) throw scoresResponse.error;
 
-                // Aggregate accuracy per user
-                const accuracyMap = {};
-                const gamesMap = {};
-                (scoreData || []).forEach(s => {
-                    if (!accuracyMap[s.user_id]) {
-                        accuracyMap[s.user_id] = { correct: 0, total: 0 };
-                        gamesMap[s.user_id] = 0;
-                    }
-                    accuracyMap[s.user_id].correct += s.correct_count || 0;
-                    accuracyMap[s.user_id].total += s.total_questions || 0;
-                    gamesMap[s.user_id]++;
-                });
+            const usernameMap = {};
+            (profilesResponse.data || []).forEach(p => { usernameMap[p.id] = p.username; });
+            const accuracyMap = {};
+            const gamesMap = {};
+            (scoresResponse.data || []).forEach(score => {
+                if (!accuracyMap[score.user_id]) {
+                    accuracyMap[score.user_id] = { correct: 0, total: 0 };
+                    gamesMap[score.user_id] = 0;
+                }
+                accuracyMap[score.user_id].correct += Number(score.correct_count) || 0;
+                accuracyMap[score.user_id].total += Number(score.total_questions) || 0;
+                gamesMap[score.user_id] += 1;
+            });
 
-                const lb = streakData.map(s => ({
-                    userId: s.user_id,
-                    username: usernameMap[s.user_id] || 'Player',
-                    streak: s.current_streak || 0,
-                    bestStreak: s.best_streak || 0,
-                    accuracy: accuracyMap[s.user_id]
-                        ? Math.round((accuracyMap[s.user_id].correct / accuracyMap[s.user_id].total) * 100)
-                        : 0,
-                    gamesPlayed: gamesMap[s.user_id] || 0
-                }));
-
-                setDailyLeaderboard(lb);
-            }
+            const next = rows.map(streakRow => {
+                const aggregate = accuracyMap[streakRow.user_id];
+                return {
+                    userId: streakRow.user_id,
+                    username: usernameMap[streakRow.user_id] || 'Player',
+                    streak: streakRow.current_streak || 0,
+                    bestStreak: streakRow.best_streak || 0,
+                    accuracy: aggregate?.total > 0 ? Math.round((aggregate.correct / aggregate.total) * 100) : 0,
+                    gamesPlayed: gamesMap[streakRow.user_id] || 0,
+                };
+            });
+            if (request !== dailyLeaderboardRequestRef.current) return null;
+            setDailyLeaderboard(next);
+            setDailyLeaderboardState('ready');
+            return next;
         } catch (err) {
-            console.warn('[Daily Trivia] Error loading leaderboard:', err);
+            console.warn('[Daily Trivia] Leaderboard load failed:', err?.message || err);
+            if (request !== dailyLeaderboardRequestRef.current) return null;
+            setDailyLeaderboard([]);
+            setDailyLeaderboardError('Verified standings are temporarily unavailable.');
+            setDailyLeaderboardState('error');
+            return null;
         }
     }
 
@@ -642,7 +830,16 @@ export default function TriviaModePage() {
     const isStartingRef = useRef(false); // Prevent double-click race
     const startGame = async () => {
         if (isStartingRef.current) return;
+        const operationScope = accountOperationScopeRef.current.capture();
+        if (operationScope.identity !== resolvedAccountId
+            || operationScope.identity !== (userId || null)) return;
+        const startOperation = { operationScope };
+        if (startRetryRef.current) {
+            soloJourneyTrackerRef.current.track(mode, 'retry', { surface: 'daily', retry_kind: 'start' });
+            startRetryRef.current = false;
+        }
         isStartingRef.current = true;
+        startOperationRef.current = startOperation;
         setIsStarting(true); // visible pressed/loading state on the lobby
         try {
         savePhaseRef.current = 0;
@@ -662,6 +859,27 @@ export default function TriviaModePage() {
         const modeCost = modeConfig?.diamondCost || 0;
         const isFreeMode = modeCost === 0;
 
+        if (mode === 'daily' && !userId) {
+            router.push('/auth/login?redirect=/hub/trivia/daily');
+            return;
+        }
+        if (serverGraded && !userId) {
+            // Durable start/settlement custody is account-scoped for every
+            // solo server-graded mode, including the free History, Rules and
+            // Pro rooms. Do not let those modes fall into a generic storage
+            // error after the player presses Start.
+            setError('Please Sign In To Play This Mode.');
+            setGameState('error');
+            return;
+        }
+        if (mode === 'daily' && (!isOnline || dailyStatus !== 'ready')) {
+            setDailyStatusError(!isOnline
+                ? 'Reconnect before starting a server-verified Daily run.'
+                : 'Your Daily attempt status must be verified before starting.');
+            setDailyStatus('error');
+            return;
+        }
+
         // AUDIT FIX (M3): the charge below is gated on `userId`, so a
         // signed-out visitor slipped past it and played PAID modes for free.
         // Mirror StrategyTrivia: paid entry requires a signed-in account.
@@ -678,18 +896,42 @@ export default function TriviaModePage() {
         if (serverGraded) {
             try {
                 const started = await serverRun.start({ count: modeConfig.questionsCount });
-                setQuestions(started.questions);
+                if (!accountOperationScopeRef.current.isCurrent(operationScope)) return;
+                const startedQuestions = Array.isArray(started?.questions) ? started.questions : [];
+                soloJourneyTrackerRef.current.beginRun(started?.sessionId);
+                soloRunLifecycleRef.current = { active: true, settled: false, mode, state: 'playing' };
+                setQuestions(startedQuestions);
+                const resumeProjection = mode === 'daily'
+                    ? projectDailyResume(startedQuestions)
+                    : { questionIndex: 0, answers: [], verdicts: {}, correctCount: 0, streak: 0, complete: false };
+                if (mode === 'daily') setDailyResumeSeed(resumeProjection);
                 if (Number.isFinite(started.newBalance)) setUserDiamonds(started.newBalance);
                 if (started.entryState === 'charged' && started.entryCost > 0) {
                     busEmit.diamondsSpent(started.entryCost, `Trivia ${mode} entry`);
                 }
+                if (mode === 'daily' && started.resumed && resumeProjection.complete) {
+                    await handleComplete({
+                        answers: resumeProjection.answers,
+                        correctCount: resumeProjection.correctCount,
+                        totalQuestions: startedQuestions.length,
+                        skippedCount: resumeProjection.answers.filter(answer => answer < 0).length,
+                        timeSpent: 0,
+                        timeRemaining: 0,
+                    }, startedQuestions);
+                    return;
+                }
             } catch (e) {
                 console.warn('[mode] Server-graded session start failed:', e?.message || e);
+                if (!accountOperationScopeRef.current.isCurrent(operationScope)
+                    || isStaleAccountOperation(e)) return;
+                startRetryRef.current = true;
                 if (e?.status === 402) {
                     setShowOutOfDiamonds(true);
                     return;
                 }
-                setError('Could Not Start The Game. Please Try Again.');
+                setError(e?.status === 401
+                    ? 'Please Sign In To Start This Server-Verified Run.'
+                    : 'Could Not Start The Game. Please Try Again.');
                 setGameState('error');
                 return;
             }
@@ -697,13 +939,20 @@ export default function TriviaModePage() {
 
         setGameState('playing');
         } finally {
-            isStartingRef.current = false;
-            setIsStarting(false);
+            if (startOperationRef.current === startOperation) {
+                startOperationRef.current = null;
+                isStartingRef.current = false;
+                if (accountOperationScopeRef.current.isCurrent(operationScope)) setIsStarting(false);
+            }
         }
     };
 
-    const handleComplete = async (gameResult) => {
+    async function handleComplete(gameResult, questionSet = questions, recoveredSettlement = null) {
+        const operationScope = accountOperationScopeRef.current.capture();
+        if (operationScope.identity !== (userId || null)) return;
+        const isCurrentAccountOperation = () => accountOperationScopeRef.current.isCurrent(operationScope);
         setGameState('saving');
+        if (soloRunLifecycleRef.current.active) soloRunLifecycleRef.current.state = 'settling';
         const {
             correctCount, totalQuestions, timeSpent, timeRemaining, answers,
             stakePot = 0, cashedOut = false,
@@ -719,18 +968,25 @@ export default function TriviaModePage() {
         // display-index answers and adopts the server's numbers wholesale.
         // On failure, fall into the saving_error retry state WITHOUT any
         // client-side crediting; a retry re-submits the same session.
-        let serverResult = null;
-        if (serverGraded) {
+        let serverResult = recoveredSettlement;
+        let projectionWarning = null;
+        if (serverGraded && !serverResult) {
             try {
                 const idAnswers = (gameResult.answers || [])
                     .map((a, i) => ({
-                        questionId: questions[i]?.id,
+                        questionId: questionSet[i]?.id,
                         displayIndex: (typeof a === 'number' && a >= 0) ? a : -1
                     }))
                     .filter(x => typeof x.questionId === 'string');
                 serverResult = await serverRun.submit(idAnswers, { cashedOut: gameResult.cashedOut === true });
+                if (!isCurrentAccountOperation()) return;
             } catch (e) {
                 console.warn('[mode] Server-graded submit failed:', e?.message || e);
+                if (!isCurrentAccountOperation() || isStaleAccountOperation(e)) return;
+                soloJourneyTrackerRef.current.track(mode, 'settlement', {
+                    surface: 'daily',
+                    settlement_outcome: 'failed',
+                });
                 setSaveErrorPayload(gameResult);
                 setGameState('saving_error');
                 return;
@@ -739,8 +995,13 @@ export default function TriviaModePage() {
         const useServerPayout = serverGraded && serverResult != null;
         // Effective score numbers - the server's when it graded the run, the
         // client's (verdict-counted by TriviaGame) otherwise.
+        const authoritativeTotal = serverResult?.total == null ? null : Number(serverResult.total);
         const effCorrectCount = useServerPayout ? (Number(serverResult.correct) || 0) : correctCount;
-        const effTotalQuestions = useServerPayout ? (Number(serverResult.total) || totalQuestions) : totalQuestions;
+        // Zero is a valid authoritative denominator when every served
+        // question was voided. Never replace it with the client roster size.
+        const effTotalQuestions = useServerPayout && Number.isFinite(authoritativeTotal)
+            ? Math.max(0, Math.floor(authoritativeTotal))
+            : totalQuestions;
         const runScore = useServerPayout
             ? (Number(serverResult.score) || 0)
             : correctCount * 100 + (timeRemaining || 0) * 2;
@@ -783,6 +1044,7 @@ export default function TriviaModePage() {
             if (cappedRewardRef.current == null) {
                 try {
                     const earnedToday = await getDailyDiamondsEarned(supabase, userId, mode);
+                    if (!isCurrentAccountOperation()) return;
                     // DAILY_DIAMOND_CAPS in triviaEngine is the single source of
                     // truth (it was re-balanced per mode in Phase 80). The local
                     // "two perfect runs" heuristic disagreed with it, so the
@@ -794,6 +1056,7 @@ export default function TriviaModePage() {
                     cappedRewardRef.current = clampToCap(earnedToday, rawDiamonds, modeDailyCap);
                 } catch (e) {
                     console.warn('[mode] Daily cap check failed, awarding uncapped:', e);
+                    if (!isCurrentAccountOperation()) return;
                     cappedRewardRef.current = rawDiamonds;
                 }
             }
@@ -812,23 +1075,15 @@ export default function TriviaModePage() {
             celebrations.triggerConfetti();
         }
 
-        // Update streak for daily mode - the streak advances at most ONCE per
-        // CST day (dailyDiamondsClaimed covers replays this session; the
-        // last_play_date check covers replays after a reload).
+        // Daily streaks can consume a server-owned streak shield, so calendar
+        // arithmetic in the browser cannot determine the settled value. Keep
+        // the last verified value until the authoritative projection reloads.
         const today = getTodayCST();
         if (firstDailyTodayRef.current == null) {
             firstDailyTodayRef.current = mode === 'daily' && !dailyDiamondsClaimed && lastPlayDate !== today;
         }
         const firstDailyToday = firstDailyTodayRef.current;
         let newStreak = userStreak;
-        if (mode === 'daily' && firstDailyToday) {
-            if (correctCount === 0) {
-                newStreak = 0;
-            } else {
-                // Consecutive day -> +1; first ever play or a gap -> restart at 1
-                newStreak = lastPlayDate === getYesterdayCST() ? userStreak + 1 : 1;
-            }
-        }
 
         // Daily trivia: award 10 diamonds for finishing all 10 questions (once per day).
         // AUDIT FIX (M1): gate on the SERVED question count, not on
@@ -847,7 +1102,7 @@ export default function TriviaModePage() {
             if (dailyBonusDiamonds > 0) {
                 setDailyDiamondsClaimed(true);
             }
-        } else if (firstDailyToday && questions.length >= (modeConfig?.questionsCount || 10)) {
+        } else if (firstDailyToday && questionSet.length >= (modeConfig?.questionsCount || 10)) {
             // Threshold was a hard-coded 20 from the old roster size; the daily
             // roster is now 10 questions, so ">= 20" could never pass.
             dailyBonusDiamonds = 10;
@@ -862,10 +1117,14 @@ export default function TriviaModePage() {
                 // returned id is the only valid prize-wheel token; browsers no
                 // longer have INSERT permission on trivia_scores.
                 if (savePhaseRef.current < 1) {
-                    if (!useServerPayout || !serverResult?.scoreId) {
+                    if (!useServerPayout) {
                         throw new Error('verified_score_missing');
                     }
-                    scoreIdRef.current = serverResult.scoreId;
+                    // A settlement response is terminal even if an optional
+                    // projection id is absent. Never retry the paid settlement
+                    // because a downstream receipt/prize token was incomplete.
+                    scoreIdRef.current = serverResult?.receipt?.scoreId || serverResult?.scoreId || null;
+                    if (!scoreIdRef.current) projectionWarning = 'The score record reference is not available for this receipt.';
                     savePhaseRef.current = 1;
                 }
 
@@ -878,13 +1137,28 @@ export default function TriviaModePage() {
                         if ((Number(serverResult.diamondsAwarded) || 0) > 0) {
                             busEmit.diamondsEarned(Number(serverResult.diamondsAwarded) || 0, `Trivia ${mode}`);
                         }
-                        if (serverResult.newBalance != null) {
-                            if (isMountedRef.current) setUserDiamonds(Number(serverResult.newBalance) || userDiamonds);
+                        const settledBalance = serverResult.newBalance == null
+                            ? null
+                            : Number(serverResult.newBalance);
+                        if (Number.isFinite(settledBalance)) {
+                            if (isMountedRef.current && isCurrentAccountOperation()) {
+                                // Zero is a valid authoritative post-settlement
+                                // balance; never replace it with the stale
+                                // pre-settlement client value.
+                                setUserDiamonds(settledBalance);
+                            }
                         } else {
                             // newBalance missing from the response - fall back
                             // to a fresh profiles read for the header display.
-                            const { data: profile } = await readOwnProfile(supabase, 'diamonds', { expectId: userId });
-                            if (profile && isMountedRef.current) setUserDiamonds(profile.diamonds || 0);
+                            try {
+                                const { data: profile } = await readOwnProfile(supabase, 'diamonds', { expectId: userId });
+                                if (!isCurrentAccountOperation()) return;
+                                if (profile && isMountedRef.current) setUserDiamonds(profile.diamonds || 0);
+                            } catch (refreshError) {
+                                console.warn('[mode] Settled balance refresh failed:', refreshError?.message || refreshError);
+                                if (!isCurrentAccountOperation()) return;
+                                projectionWarning = 'The run settled, but the displayed balance could not be refreshed.';
+                            }
                         }
                     }
                     // There is deliberately NO else branch. Every mode this
@@ -904,18 +1178,29 @@ export default function TriviaModePage() {
                 // transaction that stores settlement_result. Browsers retain
                 // read-only access to those projections and never replay or
                 // manufacture analytics writes.
-                if (mode === 'daily' && firstDailyToday) {
-                    setUserStreak(newStreak);
-                    setLastPlayDate(today);
-                    const appliedBest = Math.max(newStreak, bestStreak);
-                    if (appliedBest > bestStreak) setBestStreak(appliedBest);
-                }
                 savePhaseRef.current = 5;
             } catch (err) {
                 console.warn('[mode] Failed to save data:', err);
-                setSaveErrorPayload(gameResult);
-                setGameState('saving_error');
-                return; // halt and show retry UI (savePhaseRef preserves progress)
+                if (!isCurrentAccountOperation()) return;
+                // session-submit is the only retryable settlement boundary.
+                // Once it returns success, a projection/read failure must not
+                // attempt to submit the closed session again.
+                if (!serverResult?.sessionId) {
+                    setSaveErrorPayload(gameResult);
+                    setGameState('saving_error');
+                    return;
+                }
+                projectionWarning = 'The run settled, but some account details could not be refreshed.';
+            }
+        }
+
+        if (mode === 'daily' && userId) {
+            const authoritativeDaily = await loadDailyAccountState(userId);
+            if (!isCurrentAccountOperation()) return;
+            if (authoritativeDaily) {
+                newStreak = authoritativeDaily.currentStreak;
+            } else {
+                projectionWarning = projectionWarning || 'The run settled, but the updated streak could not be loaded.';
             }
         }
 
@@ -930,6 +1215,7 @@ export default function TriviaModePage() {
                     .select('mode, score, correct_count, total_questions, diamonds_earned, time_spent, play_date, created_at')
                     .eq('user_id', userId)
                     .limit(1000);
+                if (!isCurrentAccountOperation()) return;
                 // ONE aggregator, shared with /hub/trivia/achievements. The
                 // hand-rolled object here omitted categoryCorrect, the speed
                 // fields and maxGamesInDay, so this toast and the achievements
@@ -952,7 +1238,7 @@ export default function TriviaModePage() {
             } catch (e) { console.warn('[Trivia] Achievement check failed:', e); }
         }
 
-        if (!isMountedRef.current) return;
+        if (!isMountedRef.current || !isCurrentAccountOperation()) return;
         const finalScore = runScore;
         const beatPersonalBest = personalBest != null && finalScore > personalBest;
         if (personalBest == null || finalScore > personalBest) setPersonalBest(finalScore);
@@ -969,6 +1255,18 @@ export default function TriviaModePage() {
             capReached,
             beatPersonalBest,
             dailyBonusDiamonds,
+            sessionId: useServerPayout ? (serverResult?.receipt?.sessionId || serverResult?.sessionId || null) : null,
+            scoreId: useServerPayout ? (serverResult?.receipt?.scoreId || serverResult?.scoreId || null) : null,
+            settlementReplayed: useServerPayout && serverResult?.replayed === true,
+            voidedCount: useServerPayout ? Math.max(0, Number(serverResult?.voided) || 0) : 0,
+            // Keep the server receipt byte-for-byte as the settlement evidence.
+            // References, transaction ids, balance-after values, request id,
+            // submission time and result hash must never be reconstructed from
+            // browser-visible ids.
+            receipt: useServerPayout && serverResult?.receipt && typeof serverResult.receipt === 'object'
+                ? serverResult.receipt
+                : null,
+            projectionWarning,
             // Bought skips are scored neutral by TriviaGame: excluded from
             // totalQuestions, counted here so the result screen can say so.
             skippedCount,
@@ -989,17 +1287,28 @@ export default function TriviaModePage() {
             // correct_index; once the server has graded the run, its
             // perQuestion verdicts are the answer key for the review.
             questions: useServerPayout && Array.isArray(serverResult?.perQuestion)
-                ? questions.map(q => {
+                ? questionSet.map(q => {
                     const verdict = serverResult.perQuestion.find(v => v?.questionId === q?.id);
                     return Number.isInteger(verdict?.correctDisplayIndex)
                         ? { ...q, correct_index: verdict.correctDisplayIndex }
                         : q;
                 })
-                : questions,
+                : questionSet,
             answers: gameResult.answers || [],
         });
 
         setGameState('results');
+        if (useServerPayout) {
+            soloJourneyTrackerRef.current.track(mode, 'settlement', {
+                surface: 'daily',
+                settlement_outcome: serverResult?.replayed === true ? 'replayed' : 'verified',
+            });
+            if (capReached) {
+                soloJourneyTrackerRef.current.track(mode, 'cap', { surface: 'daily', cap_state: 'applied' });
+            }
+            soloJourneyTrackerRef.current.track(mode, 'completion', { surface: 'daily' });
+            soloRunLifecycleRef.current = { active: false, settled: true, mode, state: 'settling' };
+        }
         setSaveErrorPayload(null);
         savePhaseRef.current = 0; // Reset for next game
 
@@ -1012,13 +1321,99 @@ export default function TriviaModePage() {
         if (mode === 'arcade') {
             await loadLeaderboard();
         }
-    };
+    }
 
     // Retry function for network drops - resumes from where it left off
     const handleRetrySave = () => {
+        soloJourneyTrackerRef.current.track(mode, 'retry', { surface: 'daily', retry_kind: 'settlement' });
         setGameState('saving');
         setSaveErrorPayload(null);
         handleComplete(saveErrorPayload || result); // savePhaseRef skips already-completed steps
+    };
+
+    const resumeDailyRun = async () => {
+        if (mode !== 'daily' || isStartingRef.current) return;
+        const operationScope = accountOperationScopeRef.current.capture();
+        if (operationScope.identity !== (userId || null)) return;
+        const startOperation = { operationScope };
+        if (resumeRetryRef.current) {
+            soloJourneyTrackerRef.current.track(mode, 'retry', { surface: 'daily', retry_kind: 'resume' });
+            resumeRetryRef.current = false;
+        }
+        if (!userId) {
+            router.push('/auth/login?redirect=/hub/trivia/daily');
+            return;
+        }
+        if (!isOnline) {
+            setError('Reconnect Before Resuming Your Daily Run.');
+            setGameState('error');
+            return;
+        }
+        isStartingRef.current = true;
+        startOperationRef.current = startOperation;
+        setIsStarting(true);
+        setError(null);
+        // Also supports a malformed client projection that the server still
+        // considers valid: unmount the stale game, re-read the same durable
+        // session and mount from its authoritative projection.
+        setGameState('loading');
+        try {
+            const resumed = await serverRun.resume({ count: modeConfig.questionsCount });
+            if (!accountOperationScopeRef.current.isCurrent(operationScope)) return;
+            soloJourneyTrackerRef.current.beginRun(resumed?.sessionId);
+            soloRunLifecycleRef.current = { active: true, settled: false, mode, state: 'playing' };
+            if (resumed?.resumedSettlement && resumed.settlement) {
+                await handleComplete({
+                    answers: [],
+                    correctCount: Number(resumed.settlement.correct) || 0,
+                    totalQuestions: Number(resumed.settlement.total) || 0,
+                    skippedCount: 0,
+                    timeSpent: 0,
+                    timeRemaining: 0,
+                }, [], resumed.settlement);
+                return;
+            }
+            const resumedQuestions = Array.isArray(resumed?.questions) ? resumed.questions : [];
+            if (resumedQuestions.length === 0) throw new Error('resume_questions_missing');
+            setQuestions(resumedQuestions);
+            const resumeProjection = projectDailyResume(resumedQuestions);
+            setDailyResumeSeed(resumeProjection);
+            if (resumeProjection.complete) {
+                await handleComplete({
+                    answers: resumeProjection.answers,
+                    correctCount: resumeProjection.correctCount,
+                    totalQuestions: resumedQuestions.length,
+                    skippedCount: resumeProjection.answers.filter(answer => answer < 0).length,
+                    timeSpent: 0,
+                    timeRemaining: 0,
+                }, resumedQuestions);
+                return;
+            }
+            setGameState('playing');
+        } catch (resumeError) {
+            console.warn('[Daily Trivia] Resume failed:', resumeError?.message || resumeError);
+            if (!accountOperationScopeRef.current.isCurrent(operationScope)
+                || isStaleAccountOperation(resumeError)) return;
+            resumeRetryRef.current = true;
+            setError('Could Not Resume The Daily Run. Verify Your Connection And Try Again.');
+            setGameState('error');
+        } finally {
+            if (startOperationRef.current === startOperation) {
+                startOperationRef.current = null;
+                isStartingRef.current = false;
+                if (accountOperationScopeRef.current.isCurrent(operationScope)) setIsStarting(false);
+            }
+        }
+    };
+
+    const retryDailyLoad = async () => {
+        const operationScope = accountOperationScopeRef.current.capture();
+        if (operationScope.identity !== (userId || null)) return;
+        setError(null);
+        setGameState('ready');
+        if (userId) await loadDailyAccountState(userId);
+        if (!accountOperationScopeRef.current.isCurrent(operationScope)) return;
+        await loadDailyLeaderboard();
     };
 
     /**
@@ -1031,6 +1426,8 @@ export default function TriviaModePage() {
      * wheel is then purely cosmetic: it spins to `prizeId` and reports back.
      */
     const openPrizeWheel = async () => {
+        const operationScope = accountOperationScopeRef.current.capture();
+        if (operationScope.identity !== (userId || null)) return;
         setWheelError(null);
         const scoreId = scoreIdRef.current;
         if (!userId || !scoreId) {
@@ -1048,6 +1445,7 @@ export default function TriviaModePage() {
                 body: JSON.stringify({ scoreId })
             });
             const data = await response.json().catch(() => null);
+            if (!accountOperationScopeRef.current.isCurrent(operationScope)) return;
             if (!response.ok) {
                 const spinErr = new Error(data?.error || `wheel_request_failed_${response.status}`);
                 spinErr.code = data?.error;
@@ -1068,6 +1466,7 @@ export default function TriviaModePage() {
             setShowPrizeWheel(true);
         } catch (e) {
             console.warn('[PrizeWheel] spin request failed:', e?.message || e);
+            if (!accountOperationScopeRef.current.isCurrent(operationScope)) return;
             setWheelError(e?.code === 'spin_window_expired'
                 ? 'This Spin Has Expired.'
                 : 'Could Not Start The Prize Wheel. Please Try Again.');
@@ -1078,6 +1477,8 @@ export default function TriviaModePage() {
     // removed with the wager. It only fed a modal that could not settle.
 
     const handlePlayAgain = async () => {
+        const operationScope = accountOperationScopeRef.current.capture();
+        if (operationScope.identity !== (userId || null)) return;
         if (mode === 'arcade' && !isVIP && userDiamonds < (modeConfig?.diamondCost || 10)) {
             router.push('/hub/trivia');
             return;
@@ -1099,6 +1500,7 @@ export default function TriviaModePage() {
         setShowPrizeWheel(false);
         setWheelSpun(false);
         setIsPerfectScore(false);
+        setDailyResumeSeed({ questionIndex: 0, answers: [], verdicts: {}, correctCount: 0, streak: 0 });
 
         // Re-fetch a FRESH question set. The previous behavior replayed the
         // identical questions with known answers (diamond-farming hole); the
@@ -1107,14 +1509,16 @@ export default function TriviaModePage() {
         if (!serverGraded) {
             try {
                 const fresh = await loadQuestions(mode, modeConfig.questionsCount, userId);
+                if (!accountOperationScopeRef.current.isCurrent(operationScope)) return;
                 if (fresh && fresh.length > 0) {
                     setQuestions(sortByDifficulty(shuffleOptions(fresh)));
                 }
             } catch (e) {
                 console.warn('[mode] Play Again question refetch failed, reusing previous set:', e);
+                if (!accountOperationScopeRef.current.isCurrent(operationScope)) return;
             }
         }
-        if (isMountedRef.current) setGameState('ready');
+        if (isMountedRef.current && accountOperationScopeRef.current.isCurrent(operationScope)) setGameState('ready');
     };
 
     // AUDIT FIX (C1): survival is served by /hub/trivia/survival-game; the
@@ -1182,7 +1586,19 @@ export default function TriviaModePage() {
     let consoleSecondary;
     if (gameState === 'ready') {
         consoleSecondary = backToTrivia;
-        consolePrimary = { label: startLabel, onClick: startGame, disabled: isStarting };
+        if (mode === 'daily' && !userId) {
+            consolePrimary = { label: 'Sign In To Play', onClick: () => router.push('/auth/login?redirect=/hub/trivia/daily') };
+        } else if (mode === 'daily' && serverRun.hasRecoverableSession) {
+            consolePrimary = { label: isStarting ? 'Resuming' : 'Resume Run', onClick: resumeDailyRun, disabled: isStarting || !isOnline };
+        } else if (mode === 'daily' && dailyStatus === 'error') {
+            consolePrimary = { label: 'Retry Attempt Status', onClick: retryDailyLoad };
+        } else {
+            consolePrimary = {
+                label: startLabel,
+                onClick: startGame,
+                disabled: isStarting || (mode === 'daily' && (!isOnline || dailyStatus !== 'ready')),
+            };
+        }
     } else if (gameState === 'results' && result) {
         consoleSecondary = showPlayAgain ? backToTrivia : undefined;
         consolePrimary = showPlayAgain
@@ -1194,7 +1610,9 @@ export default function TriviaModePage() {
         consoleSecondary = backToTrivia;
         consolePrimary = needsDiamonds
             ? { label: 'Get Diamonds', onClick: () => router.push('/hub/diamond-store'), tone: 'gold' }
-            : { label: 'Try Again', onClick: () => window.location.reload() };
+            : mode === 'daily'
+                ? { label: 'Try Again', onClick: retryDailyLoad }
+                : { label: 'Try Again', onClick: () => window.location.reload() };
     }
 
     return (
@@ -1202,7 +1620,7 @@ export default function TriviaModePage() {
             <SEOHead
                 title="Poker Trivia Game"
                 description="Play Poker Trivia On Smarter.Poker. Test Your Knowledge Across Multiple Game Modes."
-                canonical="/hub/trivia"
+                canonical={mode === 'daily' ? '/hub/trivia/daily' : `/hub/trivia/${mode}`}
                 noindex={true}
             />
 
@@ -1232,7 +1650,7 @@ export default function TriviaModePage() {
                         eyebrow="Smarter Poker Trivia"
                         title={modeName}
                         subtitle={modeTagFitsHead ? modeTag : undefined}
-                        pill={gameState === 'ready' ? 'Ready' : gameState === 'playing' ? 'Live' : gameState === 'results' ? 'Results' : gameState === 'saving' ? 'Saving' : gameState === 'saving_error' || gameState === 'error' ? 'Attention' : 'Loading'}
+                        pill={gameState === 'ready' && mode === 'daily' && serverRun.hasRecoverableSession ? 'Resume' : gameState === 'ready' ? 'Ready' : gameState === 'playing' ? 'Live' : gameState === 'results' ? 'Results' : gameState === 'saving' ? 'Saving' : gameState === 'saving_error' || gameState === 'error' ? 'Attention' : 'Loading'}
                         pillInk={gameState === 'saving_error' || gameState === 'error' ? 'red' : gameState === 'playing' ? 'green' : 'blue'}
                         titleAs="h1"
                         secondaryAction={consoleSecondary}
@@ -1271,93 +1689,110 @@ export default function TriviaModePage() {
 
                     {gameState === 'ready' && (
                         <div className="ready-screen">
-                            {/* The mode's scene art, printed on the glass. It is
-                                also a start control (AUDIT FIX H3: a real
-                                <button>, keyboard and screen-reader reachable),
-                                guarded by the same in-flight ref as the plate. */}
-                            {modeArt && (
-                                <button
-                                    type="button"
-                                    className="mode-art-button"
-                                    onClick={startGame}
-                                    disabled={isStarting}
-                                    aria-label={`Start ${modeName}${isPaidMode ? `, Entry ${modeConfig.diamondCost} Diamonds` : ''}`}
-                                >
-                                    <ResponsiveModeArt art={modeArt} priority />
-                                </button>
-                            )}
+                            {mode === 'daily' ? (
+                                <DailyTriviaBroadcast
+                                    art={modeArt}
+                                    signedIn={Boolean(userId)}
+                                    online={isOnline}
+                                    status={dailyStatus}
+                                    statusError={dailyStatusError}
+                                    completed={dailyDiamondsClaimed}
+                                    recoverable={serverRun.hasRecoverableSession}
+                                    tagline={modeTag}
+                                    questionsCount={modeConfig.questionsCount}
+                                    dailyCap={Number.isFinite(dailyCap) ? dailyCap : 10}
+                                    userDiamonds={userDiamonds}
+                                    userStreak={userStreak}
+                                    bestStreak={bestStreak}
+                                    personalBest={personalBest}
+                                    leaderboardState={dailyLeaderboardState}
+                                    leaderboard={dailyLeaderboard}
+                                    leaderboardError={dailyLeaderboardError}
+                                    currentUserId={userId}
+                                    onRetryStatus={() => loadDailyAccountState(userId)}
+                                    onRetryLeaderboard={loadDailyLeaderboard}
+                                />
+                            ) : (
+                                <>
+                                    {/* Other modes retain their existing art
+                                        entrance. Daily's scene is deliberately
+                                        passive; its semantic action lives in
+                                        the console footer. */}
+                                    {modeArt && (
+                                        <button
+                                            type="button"
+                                            className="mode-art-button"
+                                            onClick={startGame}
+                                            disabled={isStarting}
+                                            aria-label={`Start ${modeName}${isPaidMode ? `, Entry ${modeConfig.diamondCost} Diamonds` : ''}`}
+                                        >
+                                            <ResponsiveModeArt art={modeArt} priority />
+                                        </button>
+                                    )}
 
-                            {!modeTagFitsHead && modeTag ? (
-                                <p className="trivia-console-copy mode-tagline">{modeTag}</p>
-                            ) : null}
+                                    {!modeTagFitsHead && modeTag ? (
+                                        <p className="trivia-console-copy mode-tagline">{modeTag}</p>
+                                    ) : null}
 
-                            <ul className="tc-rows mode-details">
-                                <li className="tc-row">
-                                    <span className="tc-row__label">Questions</span>
-                                    <span className="tc-row__value">{modeConfig.questionsCount}</span>
-                                </li>
-                                <li className="tc-row">
-                                    <span className="tc-row__label">Clock</span>
-                                    <span className="tc-row__value">
-                                        {modeConfig.timeLimit
-                                            ? (modeConfig.timeLimit % 60 === 0 ? `${modeConfig.timeLimit / 60} Minutes` : `${modeConfig.timeLimit} Seconds`)
-                                            : 'Untimed'}
-                                    </span>
-                                </li>
-                                <li className="tc-row">
-                                    <span className="tc-row__label">Entry Cost</span>
-                                    <span className={`tc-row__value ${isPaidMode ? 'tc-ink--gold' : 'tc-ink--green'}`}>
-                                        {isPaidMode ? (isVIP ? 'Free For VIP' : `${modeConfig.diamondCost} Diamonds`) : 'Free'}
-                                    </span>
-                                </li>
-                                {Number.isFinite(dailyCap) && (
-                                    <li className="tc-row">
-                                        <span className="tc-row__label">Daily Earning Cap</span>
-                                        <span className="tc-row__value">{formatTriviaDisplayNumber(dailyCap)} Diamonds</span>
-                                    </li>
-                                )}
-                                {userId && (
-                                    <li className="tc-row">
-                                        <span className="tc-row__label">Your Diamonds</span>
-                                        <span className="tc-row__value tc-ink--gold">{formatTriviaDisplayNumber(userDiamonds)}</span>
-                                    </li>
-                                )}
-                                {mode === 'daily' && userId && (
-                                    <li className="tc-row">
-                                        <span className="tc-row__label">Daily Streak</span>
-                                        <span className="tc-row__value">{formatTriviaDisplayNumber(userStreak)} Days</span>
-                                    </li>
-                                )}
-                                {personalBest != null && (
-                                    <li className="tc-row">
-                                        <span className="tc-row__label">Your Best</span>
-                                        <span className="tc-row__value">{formatTriviaDisplayNumber(personalBest)}</span>
-                                    </li>
-                                )}
-                            </ul>
+                                    <ul className="tc-rows mode-details">
+                                        <li className="tc-row">
+                                            <span className="tc-row__label">Questions</span>
+                                            <span className="tc-row__value">{modeConfig.questionsCount}</span>
+                                        </li>
+                                        <li className="tc-row">
+                                            <span className="tc-row__label">Clock</span>
+                                            <span className="tc-row__value">
+                                                {modeConfig.timeLimit
+                                                    ? (modeConfig.timeLimit % 60 === 0 ? `${modeConfig.timeLimit / 60} Minutes` : `${modeConfig.timeLimit} Seconds`)
+                                                    : 'Untimed'}
+                                            </span>
+                                        </li>
+                                        <li className="tc-row">
+                                            <span className="tc-row__label">Entry Cost</span>
+                                            <span className={`tc-row__value ${isPaidMode ? 'tc-ink--gold' : 'tc-ink--green'}`}>
+                                                {isPaidMode ? (isVIP ? 'Free For VIP' : `${modeConfig.diamondCost} Diamonds`) : 'Free'}
+                                            </span>
+                                        </li>
+                                        {Number.isFinite(dailyCap) && (
+                                            <li className="tc-row">
+                                                <span className="tc-row__label">Daily Earning Cap</span>
+                                                <span className="tc-row__value">{formatTriviaDisplayNumber(dailyCap)} Diamonds</span>
+                                            </li>
+                                        )}
+                                        {userId && (
+                                            <li className="tc-row">
+                                                <span className="tc-row__label">Your Diamonds</span>
+                                                <span className="tc-row__value tc-ink--gold">{formatTriviaDisplayNumber(userDiamonds)}</span>
+                                            </li>
+                                        )}
+                                        {personalBest != null && (
+                                            <li className="tc-row">
+                                                <span className="tc-row__label">Your Best</span>
+                                                <span className="tc-row__value">{formatTriviaDisplayNumber(personalBest)}</span>
+                                            </li>
+                                        )}
+                                    </ul>
 
-                            <p className="trivia-console-copy mode-disclosure">
-                                {isPaidMode
-                                    ? `Entry Is ${modeConfig.diamondCost} Diamonds, Charged Only When The Game Starts. VIP Members Play Free.`
-                                    : mode === 'daily'
-                                        ? (dailyDiamondsClaimed
-                                            ? "Today's Completion Bonus Is Already Claimed. You Can Still Play For Practice."
-                                            : "Free To Play. Finish All Questions For Today's Completion Bonus.")
-                                        : 'Free To Play. Answers Are Graded By The Server As You Go.'}
-                            </p>
-                            {isStarting && (
-                                <p className="trivia-console-copy tc-ink--blue" role="status">Dealing In</p>
-                            )}
+                                    <p className="trivia-console-copy mode-disclosure">
+                                        {isPaidMode
+                                            ? `Entry Is ${modeConfig.diamondCost} Diamonds, Charged Only When The Game Starts. VIP Members Play Free.`
+                                            : 'Free To Play. Answers Are Graded By The Server As You Go.'}
+                                    </p>
+                                    {isStarting && (
+                                        <p className="trivia-console-copy tc-ink--blue" role="status">Dealing In</p>
+                                    )}
 
-                            {mode === 'arcade' && (
-                                <div className="leaderboard-section">
-                                    <LeaderboardDisplay
-                                        entries={leaderboard}
-                                        currentUserId={userId}
-                                        filter={leaderboardFilter}
-                                        onFilterChange={(f) => loadLeaderboard(f)}
-                                    />
-                                </div>
+                                    {mode === 'arcade' && (
+                                        <div className="leaderboard-section">
+                                            <LeaderboardDisplay
+                                                entries={leaderboard}
+                                                currentUserId={userId}
+                                                filter={leaderboardFilter}
+                                                onFilterChange={(f) => loadLeaderboard(f)}
+                                            />
+                                        </div>
+                                    )}
+                                </>
                             )}
                         </div>
                     )}
@@ -1366,12 +1801,17 @@ export default function TriviaModePage() {
                         <TriviaGame
                             questions={questions}
                             mode={mode}
+                            initialQuestionIndex={mode === 'daily' ? dailyResumeSeed.questionIndex : 0}
+                            initialAnswers={mode === 'daily' ? dailyResumeSeed.answers : null}
+                            initialVerdicts={mode === 'daily' ? dailyResumeSeed.verdicts : null}
+                            initialCorrectCount={mode === 'daily' ? dailyResumeSeed.correctCount : 0}
+                            initialStreak={mode === 'daily' ? dailyResumeSeed.streak : 0}
                             timeLimit={modeConfig.timeLimit}
                             onComplete={handleComplete}
                             userDiamonds={userDiamonds}
                             enableHints={mode !== 'arcade'}
                             enableStakes={mode === 'arcade'}
-                            enableGhostOpponent={true}
+                            enableGhostOpponent={mode !== 'daily' || dailyResumeSeed.questionIndex === 0}
                             ghostAccuracy={communityAccuracy}
                             // Per-answer server grading - null keeps the
                             // legacy client-keyed path byte-for-byte.
@@ -1383,6 +1823,16 @@ export default function TriviaModePage() {
                             // Report Question needs a signed-in bearer token.
                             enableReport={Boolean(userId)}
                             reportToken={userId ? getAccessToken() : null}
+                            reportSessionId={serverGraded ? serverRun.sessionId : null}
+                            onQuestionReported={(report) => soloJourneyTrackerRef.current.track(mode, 'report', {
+                                surface: 'daily',
+                                report_outcome: report?.deduped === true ? 'deduped' : 'recorded',
+                            })}
+                            onRetry={(retryKind) => soloJourneyTrackerRef.current.track(mode, 'retry', {
+                                surface: 'daily',
+                                retry_kind: retryKind,
+                            })}
+                            onInvalidQuestionRefresh={mode === 'daily' ? resumeDailyRun : null}
                             // onDiamondsChange is deliberately NOT passed. It
                             // existed to settle hint purchases and stake
                             // deltas by crediting/debiting from the browser,
@@ -1414,6 +1864,11 @@ export default function TriviaModePage() {
                                         : `${result.skippedCount} Questions Were Skipped And Scored Neutral. They Are Not Counted In Your Accuracy.`}
                                 </p>
                             )}
+                            {result.projectionWarning && (
+                                <p className="trivia-console-copy tc-ink--gold cap-callout" role="status">
+                                    {result.projectionWarning}
+                                </p>
+                            )}
                             {wheelError && (
                                 <p className="trivia-console-copy tc-ink--red cap-callout" role="alert">{wheelError}</p>
                             )}
@@ -1434,6 +1889,8 @@ export default function TriviaModePage() {
                                 // re-offering a bet that cannot pay.
                             />
 
+                            {mode === 'daily' ? <DailySettlementReceipt result={result} /> : null}
+
                             {mode === 'arcade' && (
                                 <div className="leaderboard-section">
                                     <LeaderboardDisplay
@@ -1452,30 +1909,13 @@ export default function TriviaModePage() {
                                         TriviaResult's reward breakdown
                                         (showDailyBonusRow) - rendering it here too
                                         showed the same diamonds twice. */}
-                                    {dailyLeaderboard.length > 0 && (
-                                        <div className="daily-leaderboard">
-                                            <h2 className="tc-label">Daily Trivia Leaderboard</h2>
-                                            <ol className="tc-rows daily-lb-list" aria-label="Daily Trivia Streaks">
-                                                {dailyLeaderboard.map((entry, idx) => (
-                                                    <li
-                                                        key={entry.userId}
-                                                        className={`tc-row daily-lb-row ${entry.userId === userId ? 'you' : ''}`}
-                                                        aria-current={entry.userId === userId ? 'true' : undefined}
-                                                    >
-                                                        <span className="daily-lb-who">
-                                                            <span className={`daily-lb-rank ${idx === 0 ? 'tc-ink--gold' : idx === 1 ? 'tc-ink--silver' : idx === 2 ? 'tc-ink--blue' : 'tc-ink--muted'}`}>{idx + 1}</span>
-                                                            <span className={`daily-lb-name ${entry.userId === userId ? 'tc-ink--white' : 'tc-ink--silver'}`}>{printPlayerName(entry.username, 'Player')}</span>
-                                                            {entry.userId === userId && <span className="tc-label">You</span>}
-                                                        </span>
-                                                        <span className="daily-lb-stats">
-                                                            <span className="tc-ink--gold">{formatTriviaDisplayNumber(entry.streak)} Day Streak</span>
-                                                            <span className="tc-ink--muted">{entry.accuracy}% Accuracy, {formatTriviaDisplayNumber(entry.gamesPlayed)} {entry.gamesPlayed === 1 ? 'Game' : 'Games'}</span>
-                                                        </span>
-                                                    </li>
-                                                ))}
-                                            </ol>
-                                        </div>
-                                    )}
+                                    <DailyLeaderboard
+                                        state={dailyLeaderboardState}
+                                        entries={dailyLeaderboard}
+                                        currentUserId={userId}
+                                        error={dailyLeaderboardError}
+                                        onRetry={loadDailyLeaderboard}
+                                    />
                                 </div>
                             )}
                         </div>

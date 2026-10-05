@@ -128,11 +128,17 @@ export function v3ErrorStatus(code) {
         case 'session_expired': return 410;
         case 'insufficient_eligible_pool': return 503;
         case 'invalid_mode': case 'invalid_arguments': case 'invalid_display_index':
+        case 'unsupported_session_mode':
         case 'question_not_in_session': case 'invalid_scope': return 400;
         case 'session_closed': case 'session_id_conflict': case 'question_not_open': case 'answer_late':
         case 'position_out_of_order': case 'grade_changed': case 'seat_has_open_session':
         case 'contract_mismatch': case 'survival_continuation_used': case 'survival_complete':
-        case 'survival_level_not_passed': case 'invalid_survival_continuation': return 409;
+        case 'survival_level_not_passed': case 'invalid_survival_continuation':
+        case 'answer_not_bound': case 'answer_not_revealed': case 'answer_already_recorded':
+        case 'question_still_valid': case 'revision_provenance_unavailable': case 'revision_not_found':
+        case 'not_engine_v3': case 'not_legacy_session': case 'settlement_snapshot_invalid':
+        case 'answer_record_invalid': case 'reveal_policy_unavailable':
+        case 'strategy_mode_category_mismatch': return 409;
         default: return 500;
     }
 }

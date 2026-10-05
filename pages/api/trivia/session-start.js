@@ -92,6 +92,181 @@ import {
     toSoloStartResponse,
     v3ErrorStatus,
 } from '../../../src/lib/trivia/phase3Engine.mjs';
+import {
+    sanitizeSolverAnalysis,
+    sanitizeStrategyContext,
+} from '../../../src/lib/trivia/strategyContextPolicy.mjs';
+
+const STRATEGY_CONTEXT_MODES = new Set(['mtt', 'cash', 'icm', 'gto']);
+const IMMEDIATE_REVEAL_MODES = new Set([
+    'daily', 'history', 'rules', 'pro', 'arcade', 'mtt', 'cash', 'icm', 'gto',
+    'mixed', 'survival', 'endless', 'time-attack',
+]);
+
+function validPermutation(value, optionCount) {
+    return Array.isArray(value)
+        && value.length === optionCount
+        && value.every(index => Number.isInteger(index) && index >= 0 && index < optionCount)
+        && new Set(value).size === optionCount;
+}
+
+function solverMetadataAfterAnswer(rawMetadata) {
+    const analysis = sanitizeSolverAnalysis(rawMetadata);
+    return analysis ? {
+        gtoFrequencies: analysis.frequencies,
+        evData: analysis.ev,
+        source: analysis.source,
+    } : null;
+}
+
+function voidAnswerState() {
+    return {
+        storedDisplayIndex: -1,
+        wasCorrect: false,
+        outcome: 'voided',
+        voided: true,
+    };
+}
+
+function answerState({ storedDisplayIndex, order, correctIndex, explanation, engineMetadata, outcome }) {
+    if (!Number.isInteger(storedDisplayIndex) || storedDisplayIndex < -1
+        || !Array.isArray(order) || !Number.isInteger(correctIndex)) return null;
+    const originalIndex = storedDisplayIndex >= 0 && storedDisplayIndex < order.length
+        ? order[storedDisplayIndex]
+        : -1;
+    return {
+        storedDisplayIndex,
+        wasCorrect: originalIndex >= 0 && originalIndex === correctIndex,
+        correctDisplayIndex: order.indexOf(correctIndex),
+        outcome: typeof outcome === 'string'
+            ? outcome
+            : (storedDisplayIndex < 0 ? 'skip' : (originalIndex === correctIndex ? 'correct' : 'wrong')),
+        explanation: typeof explanation === 'string' ? explanation : null,
+        solverMetadata: solverMetadataAfterAnswer(engineMetadata),
+    };
+}
+
+function withSafeContext(mode, question, metadata) {
+    if (!STRATEGY_CONTEXT_MODES.has(mode)) return question;
+    const context = sanitizeStrategyContext(metadata);
+    return context ? { ...question, context } : question;
+}
+
+async function loadBoundStrategyContexts(sb, mode, sessionId, userId, questionIds) {
+    if (!STRATEGY_CONTEXT_MODES.has(mode)) return new Map();
+    const { data, error } = await sb.rpc('trivia_session_context_projection_v1', {
+        p_session_id: sessionId,
+        p_user_id: userId,
+    });
+    if (error || data?.success !== true || !Array.isArray(data.questions)) {
+        console.warn('[trivia session-start] context projection failed:', error?.message || data?.error || 'invalid_response');
+        throw new Error('session_resume_projection_failed');
+    }
+    const expected = new Set(questionIds);
+    const rows = data.questions;
+    if (rows.length !== expected.size
+        || rows.some(row => !row || typeof row.questionId !== 'string' || !expected.has(row.questionId))
+        || new Set(rows.map(row => row.questionId)).size !== expected.size) {
+        throw new Error('session_resume_projection_failed');
+    }
+    return new Map(rows.map(row => [row.questionId, row.engineMetadata]));
+}
+
+async function loadBoundAnswerReviews(sb, sessionId, userId, answerRows) {
+    const reviews = await Promise.all(answerRows.map(async row => {
+        const { data, error } = await sb.rpc('trivia_session_question_review_v1', {
+            p_session_id: sessionId,
+            p_user_id: userId,
+            p_question_id: row.question_id,
+        });
+        const authoritativeVoid = data?.voided === true && data?.outcome === 'voided';
+        if (error || data?.success !== true
+            || data.questionId !== row.question_id
+            || (!authoritativeVoid && (
+                data.revisionId !== row.revision_id
+                || !Number.isInteger(data.correctIndex)
+            ))) {
+            console.warn('[trivia session-start] answer review failed:', error?.message || data?.error || 'invalid_response');
+            throw new Error('session_resume_projection_failed');
+        }
+        return [row.question_id, data];
+    }));
+    return new Map(reviews);
+}
+
+async function enrichV3StartResponse(sb, mode, sessionId, userId, body) {
+    const questions = Array.isArray(body?.questions) ? body.questions : [];
+    const ids = questions.map(question => question?.id).filter(id => typeof id === 'string');
+    if (ids.length === 0) return body;
+
+    const [sessionResult, answerResult] = await Promise.all([
+        sb.from('trivia_sessions').select('permutations').eq('id', sessionId).maybeSingle(),
+        sb.from('trivia_session_answers')
+            .select('question_id, revision_id, display_index, is_correct, outcome, server_voided_at')
+            .eq('session_id', sessionId),
+    ]);
+    if (sessionResult.error || answerResult.error) {
+        const error = sessionResult.error || answerResult.error;
+        console.warn('[trivia session-start] v3 resume projection failed:', error?.message || error);
+        throw new Error('session_resume_projection_failed');
+    }
+
+    const answerRows = Array.isArray(answerResult.data) ? answerResult.data : [];
+    const answerQuestionIds = answerRows.map(row => row?.question_id);
+    const revisionIds = answerRows.map(row => row?.revision_id);
+    if (answerRows.length !== ids.length
+        || new Set(answerQuestionIds).size !== ids.length
+        || ids.some(id => !answerQuestionIds.includes(id))
+        || revisionIds.some(id => typeof id !== 'string' || !PVP_UUID_RE.test(id))
+        || new Set(revisionIds).size !== ids.length) {
+        throw new Error('session_resume_revision_missing');
+    }
+    const answerById = new Map(answerRows.map(row => [row.question_id, row]));
+    const permutations = sessionResult.data?.permutations && typeof sessionResult.data.permutations === 'object'
+        ? sessionResult.data.permutations
+        : {};
+    const reviewRows = IMMEDIATE_REVEAL_MODES.has(mode)
+        ? answerRows.filter(row => row?.outcome && !row.server_voided_at)
+        : [];
+    const [contextById, reviewById] = await Promise.all([
+        loadBoundStrategyContexts(sb, mode, sessionId, userId, answerQuestionIds),
+        loadBoundAnswerReviews(sb, sessionId, userId, reviewRows),
+    ]);
+
+    return {
+        ...body,
+        questions: questions.map(question => {
+            const storedAnswer = answerById.get(question.id);
+            let projected = withSafeContext(mode, question, contextById.get(question.id));
+            if (!storedAnswer?.outcome || !IMMEDIATE_REVEAL_MODES.has(mode)) return projected;
+            if (storedAnswer.server_voided_at) {
+                return {
+                    ...projected,
+                    answerState: voidAnswerState(),
+                };
+            }
+            const review = reviewById.get(question.id);
+            if (review?.voided === true && review?.outcome === 'voided') {
+                return { ...projected, answerState: voidAnswerState() };
+            }
+            const order = permutations[question.id];
+            const optionCount = Array.isArray(question.options) ? question.options.length : 0;
+            const state = review && validPermutation(order, optionCount)
+                ? answerState({
+                    storedDisplayIndex: storedAnswer.display_index == null ? -1 : storedAnswer.display_index,
+                    order,
+                    correctIndex: review.correctIndex,
+                    explanation: review.explanation,
+                    engineMetadata: review.engineMetadata,
+                    outcome: storedAnswer.outcome,
+                })
+                : null;
+            if (!state) throw new Error('session_resume_projection_failed');
+            projected = { ...projected, answerState: state };
+            return projected;
+        }),
+    };
+}
 
 /**
  * Phase 3 engine v3 (TRIVIA_P3_SOLO_ENGINE_V3=true): the database builds a private,
@@ -117,7 +292,12 @@ async function startOrResumeSoloV3(res, sb, userId, mode, sessionId, parentSessi
         return res.status(v3ErrorStatus(data?.error)).json({ success: false, error: code });
     }
     if (data.mode !== mode) return res.status(409).json({ success: false, error: 'session_mode_conflict' });
-    const body = toSoloStartResponse(data);
+    let body = toSoloStartResponse(data);
+    try {
+        body = await enrichV3StartResponse(sb, mode, sessionId, userId, body);
+    } catch (_error) {
+        return res.status(500).json({ success: false, error: 'session_resume_failed' });
+    }
     if (resumeOnly) body.resumed = true;
     res.setHeader('Cache-Control', 'private, no-cache, no-store, must-revalidate');
     return res.status(200).json(body);
@@ -180,7 +360,10 @@ async function fetchPvpRosterRows(sb, rosterIds) {
         .filter(q => q && typeof q.id === 'string' && Array.isArray(q.options) && q.options.length >= 2);
 }
 
-async function serveExistingSoloSession(res, sb, userId, session) {
+async function serveExistingSoloSession(res, sb, userId, session, {
+    resumed = true,
+    newBalance = null,
+} = {}) {
     if (!session || session.user_id !== userId || session.status !== 'open') {
         return res.status(409).json({ success: false, error: 'session_not_resumable' });
     }
@@ -198,35 +381,88 @@ async function serveExistingSoloSession(res, sb, userId, session) {
             .json({ success: false, error: deadline.error });
     }
 
-    const rows = await fetchPvpRosterRows(sb, roster.questionIds);
-    if (rows.length !== expectedCount) {
-        return res.status(503).json({ success: false, error: 'no_questions_available' });
+    const revisionMap = session.question_revision_ids && typeof session.question_revision_ids === 'object'
+        && !Array.isArray(session.question_revision_ids)
+        ? session.question_revision_ids
+        : {};
+    const revisionIds = roster.questionIds.map(id => revisionMap[id]);
+    if (revisionIds.some(id => typeof id !== 'string' || !PVP_UUID_RE.test(id))) {
+        return res.status(409).json({ success: false, error: 'revision_provenance_unavailable' });
     }
-    const byId = new Map(rows.map(row => [row.id, row]));
+    const { data: rows, error: projectionError } = await sb
+        .from('trivia_question_revisions')
+        .select('id, question_id, question, options, category, difficulty')
+        .in('id', revisionIds);
+    if (projectionError) {
+        console.warn('[trivia session-start] solo revision projection failed:', projectionError.message || projectionError);
+        return res.status(500).json({ success: false, error: 'session_resume_failed' });
+    }
+    if (!Array.isArray(rows) || rows.length !== expectedCount) {
+        return res.status(409).json({ success: false, error: 'revision_provenance_unavailable' });
+    }
+    const byQuestionId = new Map(rows.map(row => [row.question_id, row]));
     const stored = session.permutations && typeof session.permutations === 'object'
         ? session.permutations
         : {};
+    const storedAnswers = session.answers && typeof session.answers === 'object'
+        ? session.answers
+        : {};
+    let contextById;
+    let reviewById;
+    try {
+        [contextById, reviewById] = await Promise.all([
+            loadBoundStrategyContexts(sb, session.mode, session.id, userId, roster.questionIds),
+            loadBoundAnswerReviews(sb, session.id, userId, roster.questionIds
+                .filter(id => storedAnswers[id]
+                    && storedAnswers[id].v !== true
+                    && Number.isInteger(storedAnswers[id].d))
+                .map(id => ({ question_id: id, revision_id: revisionMap[id] }))),
+        ]);
+    } catch (_error) {
+        return res.status(500).json({ success: false, error: 'session_resume_failed' });
+    }
     const questions = roster.questionIds.map(id => {
-        const q = byId.get(id);
-        if (!q) return null;
-        const order = Array.isArray(stored[id])
-            ? stored[id]
-            : deterministicOptionOrder(q.options.length, optionOrderSeed(userId, session.id, id));
-        return {
-            id: q.id,
+        const q = byQuestionId.get(id);
+        if (!q || q.id !== revisionMap[id]) return null;
+        const order = stored[id];
+        if (!validPermutation(order, q.options.length)) return null;
+        let projected = withSafeContext(session.mode, {
+            id: q.question_id,
             question: q.question,
             options: order.map(index => q.options[index]),
             category: q.category ?? null,
             difficulty: q.difficulty ?? null,
-        };
+            state: 'unanswered',
+        }, contextById.get(id));
+        const storedAnswer = storedAnswers[id] || null;
+        if (storedAnswer?.v === true) {
+            return { ...projected, state: 'answered', answerState: voidAnswerState() };
+        }
+        if (storedAnswer && Number.isInteger(storedAnswer.d)
+            && validPermutation(order, q.options.length)) {
+            const review = reviewById.get(id);
+            if (review?.voided === true && review?.outcome === 'voided') {
+                return { ...projected, state: 'answered', answerState: voidAnswerState() };
+            }
+            const state = answerState({
+                storedDisplayIndex: storedAnswer.d,
+                order,
+                correctIndex: review?.correctIndex,
+                explanation: review?.explanation,
+                engineMetadata: review?.engineMetadata,
+            });
+            if (!state) return null;
+            projected = { ...projected, state: 'answered', answerState: state };
+        }
+        return projected;
     }).filter(Boolean);
     if (questions.length !== expectedCount) {
-        return res.status(503).json({ success: false, error: 'no_questions_available' });
+        return res.status(409).json({ success: false, error: 'revision_provenance_unavailable' });
     }
     res.setHeader('Cache-Control', 'private, no-cache, no-store, must-revalidate');
     return res.status(200).json({
         success: true,
-        resumed: true,
+        resumed,
         sessionId: session.id,
         mode: session.mode,
         questionCount: questions.length,
@@ -234,7 +470,7 @@ async function serveExistingSoloSession(res, sb, userId, session) {
         entryCost: session.entry_cost || 0,
         entryState: session.entry_state || 'legacy',
         expiresAt: session.expires_at || null,
-        newBalance: null,
+        newBalance,
     });
 }
 
@@ -686,7 +922,7 @@ export default async function handler(req, res) {
         // retries with the same nonce, which is also the session UUID.
         const { data: existing, error: existingErr } = await sb
             .from('trivia_sessions')
-            .select('id, user_id, mode, status, question_ids, permutations, entry_cost, entry_state, created_at, expires_at, engine_version')
+            .select('id, user_id, mode, status, question_ids, question_revision_ids, permutations, entry_cost, entry_state, created_at, expires_at, answers, engine_version')
             .eq('id', startNonce)
             .maybeSingle();
         if (existingErr) {
@@ -807,21 +1043,12 @@ export default async function handler(req, res) {
         // exists.
         const sessionId = startNonce;
         const permutations = {};
-        const questions = picked.map(q => {
+        picked.forEach(q => {
             const order = deterministicOptionOrder(
                 q.options.length,
                 optionOrderSeed(userId, sessionId, q.id)
             );
             permutations[q.id] = order;
-            return {
-                id: q.id,
-                question: q.question,
-                // Display order. session-submit maps the returned index back
-                // through `order` before comparing to the server-only key.
-                options: order.map(i => q.options[i]),
-                category: q.category ?? null,
-                difficulty: q.difficulty ?? null,
-            };
         });
 
         const { data: created, error: insertErr } = await sb.rpc('create_trivia_session_v2', {
@@ -849,7 +1076,7 @@ export default async function handler(req, res) {
         if (created.duplicate) {
             const { data: racedSession, error: racedSessionError } = await sb
                 .from('trivia_sessions')
-                .select('id, user_id, mode, status, question_ids, permutations, entry_cost, entry_state, created_at, expires_at')
+                .select('id, user_id, mode, status, question_ids, question_revision_ids, permutations, entry_cost, entry_state, created_at, expires_at, answers')
                 .eq('id', sessionId)
                 .maybeSingle();
             if (racedSessionError || !racedSession) {
@@ -880,18 +1107,20 @@ export default async function handler(req, res) {
             console.warn('[trivia session-start] history record failed:', e?.message || e);
         }
 
-        // Personalized and single-use - never cacheable.
-        res.setHeader('Cache-Control', 'private, no-cache, no-store, must-revalidate');
-        return res.status(200).json({
-            success: true,
-            sessionId,
-            mode,
-            questionCount: questions.length,
-            questions,
-            entryCost: Number(created.entry_cost) || 0,
-            entryState: created.entry_state || 'free',
+        // Serve the exact revisions captured by the atomic insert trigger. A
+        // concurrent curation edit can therefore never make the browser see a
+        // different body/options/context than the revision used for grading.
+        const { data: persistedSession, error: persistedError } = await sb
+            .from('trivia_sessions')
+            .select('id, user_id, mode, status, question_ids, question_revision_ids, permutations, entry_cost, entry_state, created_at, expires_at, answers')
+            .eq('id', sessionId)
+            .maybeSingle();
+        if (persistedError || !persistedSession) {
+            return res.status(502).json({ success: false, error: 'session_resume_failed' });
+        }
+        return serveExistingSoloSession(res, sb, userId, persistedSession, {
+            resumed: false,
             newBalance: created.new_balance == null ? null : Number(created.new_balance),
-            expiresAt: created.expires_at || null,
         });
     } catch (e) {
         console.warn('[trivia session-start] unexpected:', e);

@@ -362,7 +362,7 @@ const withPWA = require('@ducanh2912/next-pwa').default({
         urlPattern: ({ url, sameOrigin }) => sameOrigin && url.pathname.startsWith('/images/trivia/'),
         handler: 'CacheFirst',
         options: {
-          cacheName: 'trivia-art-32d8d51ff2',
+          cacheName: 'trivia-art-c1fb74cfb5',
           expiration: { maxEntries: 160, maxAgeSeconds: 60 * 60 * 24 * 30 }, // 30 days
         },
       },

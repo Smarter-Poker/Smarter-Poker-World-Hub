@@ -20,6 +20,7 @@ import { gradeRun, optionPermutation, selectRoster, sha256Hex } from '../src/lib
 import {
     CLIENT_TIMING_FIELDS, SELF_GRADED_FIELDS, findForbiddenFields, isFreeLegacyFallbackEnabled,
     isShadowSelectorEnabled, isSoloEngineV3Enabled, phase3HealthFailureEvent, stripKeyBearing, toSoloStartResponse,
+    v3ErrorStatus,
 } from '../src/lib/trivia/phase3Engine.mjs';
 
 const ROOT = process.cwd();
@@ -98,6 +99,17 @@ test('self-graded shapes and client clocks are detected anywhere in a request', 
         ['elapsedMs']);
 });
 
+test('bound-answer and immutable-provenance refusals have one stable conflict mapping', () => {
+    for (const code of [
+        'answer_not_bound', 'answer_not_revealed', 'answer_already_recorded',
+        'revision_provenance_unavailable', 'revision_not_found', 'question_still_valid',
+        'not_legacy_session', 'answer_record_invalid', 'reveal_policy_unavailable',
+        'strategy_mode_category_mismatch',
+    ]) assert.equal(v3ErrorStatus(code), 409, code);
+    assert.equal(v3ErrorStatus('not_your_session'), 403);
+    assert.equal(v3ErrorStatus('question_not_in_session'), 400);
+});
+
 test('question DTOs never carry answer keys, explanations or revision internals', () => {
     const dto = { success: true, sessionId: 's', mode: 'arcade', engine: 'trivia-engine/3', entryCost: 10,
         questions: [{ position: 1, id: 'q', question: 'Q?', options: ['a', 'b'], category: 'c', difficulty: 'easy',
@@ -123,17 +135,17 @@ test('routes: paid/competitive selection reads only the eligibility definition; 
     assert.match(start, /trivia_shadow_compare_v1/);
     const answer = read('pages/api/trivia/session-answer.js');
     assert.match(answer, /client_timing_not_accepted/);
-    assert.match(answer, /trivia_session_answer_v3/);
+    assert.match(answer, /trivia_session_answer_v4/);
     const submit = read('pages/api/trivia/session-submit.js');
     assert.match(submit, /legacy_submission_shape/);
-    assert.match(submit, /trivia_session_settle_solo_v3/);
+    assert.match(submit, /trivia_session_settle_solo_v4/);
     assert.match(submit, /trivia_session_submit_v3/);
     assert.match(submit, /\(sig != null \|\| competitive\) && sig !== session\.contract_signature/);
     const hook = read('src/hooks/useServerGradedRun.js');
     assert.match(hook, /contractSignatureRef\.current = json\.contractSignature \|\| null/);
     assert.match(hook, /contractSignature: contractSignatureRef\.current/);
     const report = read('pages/api/trivia/report-question.js');
-    assert.match(report, /trivia_submit_question_report_v1/);
+    assert.match(report, /trivia_submit_question_report_v2/);
     assert.doesNotMatch(report, /from\('trivia_question_reports'\)/);
     assert.doesNotMatch(report, /quality_score:/);
     const gen = read('pages/api/cron/generate-trivia.js');

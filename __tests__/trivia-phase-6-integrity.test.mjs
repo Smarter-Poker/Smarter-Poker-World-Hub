@@ -18,6 +18,7 @@ const tournamentInvoker = read('supabase/migrations/20260827232500_trivia_phase6
 const staleTournamentCleanup = read('supabase/migrations/20260827233000_trivia_phase6_cancel_empty_stale_tournaments.sql');
 const submit = read('pages/api/trivia/session-submit.js');
 const answer = read('pages/api/trivia/session-answer.js');
+const phase3Engine = read('src/lib/trivia/phase3Engine.mjs');
 const legacySubmit = read('pages/api/trivia/submit.js');
 const generator = read('pages/api/cron/generate-trivia.js');
 const diamondEngine = read('src/services/DiamondEngine.js');
@@ -74,7 +75,8 @@ test('settlement is replay-safe, deadline-bound and fails closed on credit error
     assert.match(submit, /answers` deliberately remains unread beyond shape validation/);
     assert.match(submit, /validateTriviaAwardResponse\(award/);
     assert.match(submit, /dailyBonusAwarded: receipt\.dailyBonusAwarded/);
-    assert.match(answer, /session_expired' \? 410/);
+    assert.match(answer, /v3ErrorStatus\(error\)/);
+    assert.match(phase3Engine, /case 'session_expired': return 410/);
 });
 
 test('legacy forged scores are retired and model strategy generation is disabled', () => {
