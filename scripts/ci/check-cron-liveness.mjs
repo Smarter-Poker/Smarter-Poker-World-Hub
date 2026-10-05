@@ -42,9 +42,10 @@
  * inside the window. It is deliberately low (3): every job in the 2026-08-17
  * incident had at least 69 runs, so a stricter bound buys nothing.
  *
- * A "success" is any row whose status is not 'error'. That mirrors how
- * fire_cron() records outcomes and avoids guessing at a success vocabulary
- * that may later grow.
+ * A "success" is only a row whose status is exactly 'success'. Running,
+ * killed, null, and unknown statuses are not completed work. HTTP handlers
+ * write through cron middleware; local SCRIPT_JOBS are recorded by the
+ * dispatcher around the subprocess so neither execution path is invisible.
  *
  * DELIBERATELY NOT FAILED ON
  *   - jobs with fewer than MIN_RUNS runs in the window
@@ -156,11 +157,11 @@ async function main() {
       const p = scheduled[i];
       const job = toJobName(p);
       const enc = encodeURIComponent(job);
-      const [runs, errors] = await Promise.all([
+      const [runs, successes] = await Promise.all([
         countRows(base, key, `job_name=eq.${enc}&started_at=gte.${since}&select=id`),
-        countRows(base, key, `job_name=eq.${enc}&started_at=gte.${since}&status=eq.error&select=id`),
+        countRows(base, key, `job_name=eq.${enc}&started_at=gte.${since}&status=eq.success&select=id`),
       ]);
-      results[i] = { path: p, job, runs, successes: runs - errors };
+      results[i] = { path: p, job, runs, successes };
     }
   };
   await Promise.all(Array.from({ length: Math.min(CONCURRENCY, scheduled.length) }, worker));
