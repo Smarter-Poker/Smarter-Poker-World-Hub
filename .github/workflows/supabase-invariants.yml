@@ -140,6 +140,12 @@ jobs:
       # failures sat in cron_execution_log the whole time; nothing read it.
       # See .agent/audits/2026-08-17-cron-triage-seven-jobs-never-worked.md
       #
+      - name: Test Open Claw script execution telemetry
+        run: python3 scripts/ci/test-openclaw-script-logging.py
+
+      - name: Test explicit cron success semantics
+        run: node --test __tests__/openclaw-script-execution-log.test.mjs
+
       # Non-blocking for the same reason as U4.2 above: it currently reports 8
       # real failures plus 14 jobs that have never fired at all. Flip
       # continue-on-error to false once those are cleared — leaving it red

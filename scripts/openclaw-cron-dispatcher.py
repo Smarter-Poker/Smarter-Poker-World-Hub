@@ -1522,32 +1522,119 @@ def fire_cron(path: str):
 
 def fire_script(path: str, extra_args: list):
     """
-    Run the registry-driven Video Library ingestion worker.
-    The script itself POSTs its result back to the Vercel status webhook,
-    so the audit log stays up to date even though we're running locally.
+    Run a local script job and record its outcome in the shared cron ledger.
+
+    Script jobs bypass the HTTP cron middleware, so without this runner-owned
+    record they are invisible to cron_execution_log and U4.3 can only report
+    them as silent. The same UUID is used for the start upsert and terminal
+    update so a bounded retry after an ambiguous network result cannot create
+    duplicate execution rows. Telemetry is best-effort and never blocks the
+    established worker from running.
     """
     cmd = [sys.executable, SCRIPT_JOB_SCRIPTS.get(path, SCRAPER_PY)] + extra_args
     log.info(f'▶ Script job {path} → {" ".join(cmd)}')
-    t0 = time.time()
+    t0 = time.monotonic()
     timeout = job_timeout(path)
+    execution_id = str(uuid.uuid4())
+    job_name = path.replace('/api', '', 1)
+
+    def write_execution(payload, *, starting):
+        base = os.environ.get('NEXT_PUBLIC_SUPABASE_URL', '').rstrip('/')
+        key = os.environ.get('SUPABASE_SERVICE_ROLE_KEY', '')
+        if not base or not key:
+            log.warning(f'⚠️ {path} execution telemetry unavailable (Supabase config missing)')
+            return False
+
+        endpoint = f'{base}/rest/v1/cron_execution_log'
+        headers = {
+            'apikey': key,
+            'Authorization': f'Bearer {key}',
+            'Content-Type': 'application/json',
+            'Prefer': 'resolution=merge-duplicates,return=minimal' if starting else 'return=minimal',
+        }
+        params = {'on_conflict': 'id'} if starting else {'id': f'eq.{execution_id}'}
+
+        for attempt in range(2):
+            try:
+                if starting:
+                    response = requests.post(
+                        endpoint,
+                        params=params,
+                        headers=headers,
+                        json=payload,
+                        timeout=3,
+                        allow_redirects=False,
+                    )
+                else:
+                    response = requests.patch(
+                        endpoint,
+                        params=params,
+                        headers=headers,
+                        json=payload,
+                        timeout=3,
+                        allow_redirects=False,
+                    )
+                if 200 <= response.status_code < 300:
+                    return True
+                # Retry only transient server/throttle outcomes. Authorization,
+                # schema and request errors are deterministic for this attempt.
+                if response.status_code not in (408, 425, 429) and response.status_code < 500:
+                    log.warning(
+                        f'⚠️ {path} execution telemetry refused (HTTP {response.status_code})'
+                    )
+                    return False
+                last_error = f'HTTP {response.status_code}'
+            except requests.RequestException as exc:
+                last_error = type(exc).__name__
+            except Exception as exc:
+                last_error = type(exc).__name__
+
+            if attempt < 1:
+                time.sleep(0.25)
+
+        log.warning(f'⚠️ {path} execution telemetry failed ({last_error})')
+        return False
+
+    write_execution({
+        'id': execution_id,
+        'job_name': job_name,
+        'status': 'running',
+        'result': {},
+        'error': None,
+    }, starting=True)
+
+    def finish_execution(status, result, error=None):
+        completed_at = datetime.now(timezone.utc).isoformat()
+        write_execution({
+            'status': status,
+            'completed_at': completed_at,
+            'duration_ms': max(0, int((time.monotonic() - t0) * 1000)),
+            'result': result,
+            'error': error,
+        }, starting=False)
+
     try:
         result = subprocess.run(
             cmd,
             capture_output=False,  # let stdout/stderr flow to our log
             timeout=timeout,
         )
-        elapsed = round(time.time() - t0, 1)
+        elapsed = round(time.monotonic() - t0, 1)
         if result.returncode == 0:
             log.info(f'✅ {path} script exited 0 [{elapsed}s]')
+            finish_execution('success', {'exit_code': 0})
             _critical_record(path, True)
         else:
             log.warning(f'⚠️ {path} script exited {result.returncode} [{elapsed}s]')
+            finish_execution('error', {'exit_code': int(result.returncode)}, 'script_exit_nonzero')
             _critical_record(path, False, f'exit {result.returncode} after {elapsed}s')
     except subprocess.TimeoutExpired:
         log.error(f'❌ {path} script TIMEOUT after {timeout}s (killed)')
+        finish_execution('error', {'timeout_seconds': timeout}, 'script_timeout')
         _critical_record(path, False, f'killed at {timeout}s')
     except Exception as e:
         log.error(f'❌ {path} script {type(e).__name__}: {e}')
+        finish_execution('error', {}, 'dispatcher_exception')
         _critical_record(path, False, f'{type(e).__name__}: {e}')
 
 
