@@ -10,6 +10,7 @@ const { formatVideoOperationsMetric, isVideoOperationsOperationId } = require('.
 const migration = readFileSync(new URL('../supabase/migrations/20261004213000_video_operations_analytics_phase10.sql', import.meta.url), 'utf8');
 const indexMigration = readFileSync(new URL('../supabase/migrations/20261004222000_video_reels_control_events_actor_index.sql', import.meta.url), 'utf8');
 const dueAccuracyMigration = readFileSync(new URL('../supabase/migrations/20261005011200_video_operations_due_job_accuracy_phase10_followup.sql', import.meta.url), 'utf8');
+const quarantineMigration = readFileSync(new URL('../supabase/migrations/20261005122500_video_reconciliation_visibility_quarantine_phase10.sql', import.meta.url), 'utf8');
 const api = readFileSync(new URL('../pages/api/admin/video-operations.js', import.meta.url), 'utf8');
 const operationsContract = readFileSync(new URL('../lib/videoOperationsContract.js', import.meta.url), 'utf8');
 const page = readFileSync(new URL('../pages/hub/admin/video-operations.js', import.meta.url), 'utf8');
@@ -46,6 +47,34 @@ test('due enrichment counts include only jobs the worker can claim', () => {
   assert.match(docs, /“Due” counts only queued or retry jobs/);
 });
 
+test('unresolved Reel identity conflicts are hidden atomically and preserved for independent review', () => {
+  assert.match(quarantineMigration, /CREATE TABLE public\.social_reel_reconciliation_visibility/);
+  assert.match(quarantineMigration, /prior_is_public boolean/);
+  assert.match(quarantineMigration, /prior_native_processing_requested boolean NOT NULL/);
+  assert.match(quarantineMigration, /AFTER INSERT ON public\.social_reel_reconciliation_quarantine/);
+  assert.match(quarantineMigration, /AFTER UPDATE OF proposed_canonical_reel_id, proposed_alias_reel_ids, resolved_at/);
+  assert.match(quarantineMigration, /pg_advisory_xact_lock\(hashtextextended\([\s\S]*video_reel_reconciliation_visibility:/);
+  assert.match(quarantineMigration, /BEFORE INSERT ON public\.social_reels/);
+  assert.match(quarantineMigration, /BEFORE UPDATE OF id, is_public, native_processing_requested ON public\.social_reels/);
+  assert.match(quarantineMigration, /SET is_public = false,[\s\S]*native_processing_requested = false/);
+  assert.match(quarantineMigration, /'unsafeRows'/);
+  assert.match(quarantineMigration, /'missingSnapshots'/);
+  assert.match(quarantineMigration, /'missingReelReferences'/);
+  assert.match(quarantineMigration, /REVOKE ALL ON public\.social_reel_reconciliation_visibility FROM PUBLIC, anon, authenticated, service_role/);
+  assert.match(quarantineMigration, /CREATE POLICY social_reel_reconciliation_visibility_service_read[\s\S]*FOR SELECT TO service_role/);
+  assert.match(quarantineMigration, /CREATE INDEX social_reel_reconciliation_visibility_reel_idx[\s\S]*ON public\.social_reel_reconciliation_visibility\(reel_id\)/);
+  assert.match(quarantineMigration, /has_table_privilege\('service_role', 'public\.social_reel_reconciliation_visibility', 'INSERT'\)/);
+  assert.match(quarantineMigration, /has_function_privilege\('service_role', 'public\.fn_keep_unresolved_reel_quarantine_private\(\)', 'EXECUTE'\)/);
+  assert.match(quarantineMigration, /FROM PUBLIC, anon, authenticated/);
+  assert.match(quarantineMigration, /GRANT EXECUTE ON FUNCTION public\.fn_video_reconciliation_quarantine_snapshot\(\)[\s\S]*TO service_role/);
+  assert.match(quarantineMigration, /VALUES \(\s*v_quarantine_id, NEW\.id, NEW\.is_public, NEW\.native_processing_requested\s*\) ON CONFLICT \(quarantine_id, reel_id\) DO NOTHING/);
+  assert.doesNotMatch(quarantineMigration, /DELETE FROM public\.(social_reels|social_likes|social_comments|social_interactions|saved_reels)/);
+  const snapshotBody = quarantineMigration.slice(quarantineMigration.indexOf('CREATE FUNCTION public.fn_video_reconciliation_quarantine_snapshot()'));
+  for (const rawField of ['canonical_asset_key', 'operation_id', 'request_payload', 'details', 'author_id', 'user_id']) {
+    assert.doesNotMatch(snapshotBody, new RegExp(`'${rawField}'`));
+  }
+});
+
 test('Phase 10 aggregates redact raw errors and never return user, session, asset, or cursor identities', () => {
   const start = migration.indexOf('CREATE OR REPLACE FUNCTION public.fn_video_operations_snapshot');
   const end = migration.indexOf('CREATE OR REPLACE FUNCTION public.fn_set_video_reels_pipeline_control');
@@ -70,6 +99,10 @@ test('Phase 10 admin snapshot and writes require admin authorization and stay pr
   assert.match(api, /LIMITS\.read/);
   assert.match(api, /LIMITS\.write/);
   assert.match(api, /fn_video_operations_snapshot/);
+  assert.match(api, /fn_video_reconciliation_quarantine_snapshot/);
+  assert.match(api, /Promise\.all\(\[[\s\S]*fn_video_operations_snapshot[\s\S]*fn_video_reconciliation_quarantine_snapshot/);
+  assert.match(api, /quarantineError \|\| !reconciliationQuarantines/);
+  assert.match(api, /const snapshot = \{ \.\.\.data, reconciliationQuarantines \}/);
   assert.match(api, /fn_set_video_reels_pipeline_control/);
   assert.match(api, /windowHours/);
   assert.doesNotMatch(api, /json\(\{\s*error:\s*error\.message/);
@@ -127,6 +160,20 @@ test('alert thresholds sort critical data-integrity failures first and report we
   assert.ok(!disabledCanary.some((alert) => alert.key === 'pipeline_circuit_breaker'));
 });
 
+test('identity quarantine alerts warn on safely hidden cases and escalate visibility or ledger leaks', () => {
+  const hidden = buildAlerts({ reconciliationQuarantines: { openGroups: 160, unsafeRows: 0, missingSnapshots: 0, missingReelReferences: 0 } });
+  assert.ok(hidden.some((alert) => alert.key === 'reel_identity_quarantine' && alert.severity === 'warning' && alert.count === 160
+    && alert.message === '160 Reel identity quarantine cases are safely hidden pending independent review.'));
+  const leaked = buildAlerts({ reconciliationQuarantines: { openGroups: 160, unsafeRows: 3, missingSnapshots: 1, missingReelReferences: 0 } });
+  assert.equal(leaked[0].key, 'reel_identity_quarantine');
+  assert.equal(leaked[0].severity, 'critical');
+  assert.equal(leaked[0].count, 3);
+  assert.match(leaked[0].message, /still public or marked for native processing/);
+  const orphaned = buildAlerts({ reconciliationQuarantines: { openGroups: 0, unsafeRows: 0, missingSnapshots: 0, missingReelReferences: 1 } });
+  assert.equal(orphaned[0].severity, 'critical');
+  assert.equal(orphaned[0].count, 1);
+});
+
 test('pipeline switch writes are versioned, replay-safe, actor-audited, and rights-gated', () => {
   assert.match(migration, /CREATE TABLE public\.video_reels_control_events/);
   assert.match(migration, /operation_id uuid PRIMARY KEY/);
@@ -154,7 +201,11 @@ test('operations console links existing controls and handles alerts, empty state
   for (const path of ['/hub/admin/video-sources','/hub/admin/video-editorial',
     '/hub/admin/video-rights-moderation','/hub/admin/video-native-studio']) assert.ok(page.includes(path));
   for (const label of ['Alerts','Sources And Run Funnel','Candidate Queue','Delivery Quality',
-    'Feature Flags And Jobs','Learning Funnel','Usage And Cost']) assert.ok(page.includes(label));
+    'Feature Flags And Jobs','Learning Funnel','Usage And Cost','Reel Identity Quarantine']) assert.ok(page.includes(label));
+  for (const label of ['Previously Public Rows Now Hidden','Public Or Native Processing Requested',
+    'Visibility Guard Active','Independent Ownership And Rights Review']) assert.ok(page.includes(label));
+  assert.match(page, /quarantineReasons\.map/);
+  assert.match(page, /missingSnapshots/);
   assert.match(page, /No Mobile Delivery Samples/);
   assert.match(page, /@media\(max-width:600px\)/);
   assert.match(page, /Pause Stage/);

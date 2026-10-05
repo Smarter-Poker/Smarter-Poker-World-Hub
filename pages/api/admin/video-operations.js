@@ -89,11 +89,19 @@ export default async function handler(req, res) {
   const requested = Number.parseInt(Array.isArray(req.query.windowHours) ? req.query.windowHours[0] : req.query.windowHours, 10);
   const windowHours = [24, 72, 168].includes(requested) ? requested : 24;
   try {
-    const { data, error } = await connection.admin.rpc('fn_video_operations_snapshot', { p_window_hours: windowHours });
-    if (error || !data || typeof data !== 'object') {
+    const [operationsResult, quarantineResult] = await Promise.all([
+      connection.admin.rpc('fn_video_operations_snapshot', { p_window_hours: windowHours }),
+      connection.admin.rpc('fn_video_reconciliation_quarantine_snapshot'),
+    ]);
+    const { data, error } = operationsResult;
+    const { data: reconciliationQuarantines, error: quarantineError } = quarantineResult;
+    if (error || !data || typeof data !== 'object' || Array.isArray(data)
+      || quarantineError || !reconciliationQuarantines || typeof reconciliationQuarantines !== 'object'
+      || Array.isArray(reconciliationQuarantines)) {
       return res.status(503).json({ error: 'Video operations snapshot is unavailable' });
     }
-    return res.status(200).json({ snapshot: data, alerts: buildAlerts(data) });
+    const snapshot = { ...data, reconciliationQuarantines };
+    return res.status(200).json({ snapshot, alerts: buildAlerts(snapshot) });
   } catch {
     return res.status(503).json({ error: 'Video operations snapshot is unavailable' });
   }
