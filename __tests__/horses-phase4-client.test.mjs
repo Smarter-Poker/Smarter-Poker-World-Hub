@@ -269,6 +269,13 @@ test('a scope with no guard says so before it is chosen', () => {
   );
 });
 
+test('the whole-account scope discloses partial enforcement before it is chosen', () => {
+  assert.match(panel, /SCOPE_META\[restrictDraft\.scope\]\?\.partial === true/);
+  assert.match(panel, /Cash Games And Tournament Entry Are Guarded\. Transfers And Social Are Recorded/);
+  assert.match(panel, /SCOPE_META\[restrictDraft\.scope\]\?\.partial !== true/,
+    'the no-guard warning must not claim a whole-account restriction stops nothing');
+});
+
 test('each list only loads while its section is open', () => {
   for (const section of ['search', 'restrictions', 'observations', 'tickets', 'reports']) {
     assert.match(

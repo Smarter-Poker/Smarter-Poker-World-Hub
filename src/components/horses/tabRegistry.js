@@ -131,6 +131,17 @@ export const TABS = [
   // case write and any money-moving sanction. Horses remain in every result.
   { id: 'integrity', label: 'Integrity', permission: 'players.read',
     load: () => import('./IntegrityPanel') },
+
+  // Phase 6. Operational oversight stays read-only in these four panels.
+  // Authority that already belongs to Club Arena is linked, never copied.
+  { id: 'floor', label: 'Live Floor', permission: 'clubs.read',
+    load: () => import('./FloorPanel') },
+  { id: 'tournaments', label: 'Tournaments', permission: 'clubs.read',
+    load: () => import('./TournamentsPanel') },
+  { id: 'cashier', label: 'Cashier', permission: 'money.read',
+    load: () => import('./CashierPanel') },
+  { id: 'rake', label: 'Rake', permission: 'money.read',
+    load: () => import('./RakePanel') },
 ];
 
 export const DEFAULT_TAB = 'stable';
@@ -149,6 +160,8 @@ export const CA_SECTIONS = [
   // the maker-checker tab above is also called Approvals, and two unrelated
   // screens with one name in one nav is a wrong click waiting to happen.
   ['approvals', 'Union Applications'],
+  ['operations', 'Operations', () => import('./ClubsUnionsPanel')],
+  ['announcements', 'Announcements', () => import('./AnnouncementsPanel')],
 ];
 
 export const DEFAULT_CA_SECTION = 'overview';

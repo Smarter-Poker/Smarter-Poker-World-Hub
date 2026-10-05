@@ -46,7 +46,7 @@
  */
 import { withOperatorRoute } from '../../../src/lib/horses/operatorRoute.js';
 import { PERMISSIONS, hasPermission } from '../../../src/lib/horses/permissions.js';
-import { badRequest, notFound } from '../../../src/lib/horses/apiEnvelope.js';
+import { ApiError, badRequest, notFound } from '../../../src/lib/horses/apiEnvelope.js';
 import { auditOperatorAction } from '../../../src/lib/horses/operatorAudit.js';
 import { runPaged, fetchAll } from '../../../src/lib/horses/paged.js';
 import {
@@ -57,7 +57,7 @@ import {
   sourceCollector,
 } from '../../../src/lib/horses/listShape.js';
 import { mapDbError } from '../../../src/lib/horses/dbErrors.js';
-import { uuid, enumOf, searchTerm } from '../../../src/lib/horses/validate.js';
+import { uuid, enumOf, searchTerm, text } from '../../../src/lib/horses/validate.js';
 
 /**
  * Every value that means "chips were created" in production. The panel used to
@@ -1100,17 +1100,25 @@ async function setClubStatus(db, op, req, body) {
   if (!clubId) throw badRequest('A Valid Club Id Is Required');
   const status = enumOf(body.status, VALID_CLUB_STATUS);
   if (!status) throw badRequest(`Status Must Be One Of: ${VALID_CLUB_STATUS.join(', ')}`);
+  const reason = text(body.reason, { min: 10, max: 500 });
+  if (!reason) throw badRequest('A Reason Of At Least 10 Characters Is Required');
 
-  const { data: before } = await db
+  const { data: before, error: beforeError } = await db
     .from('clubs')
     .select('id, name, status')
     .eq('id', clubId)
     .maybeSingle();
+  if (beforeError) throw mapDbError(beforeError, 'That Club', { route: 'horses.club-arena-admin' });
+  if (!before) throw notFound('Club Not Found');
+  if (!VALID_CLUB_STATUS.includes(before.status)) {
+    throw new ApiError(409, 'A Terminal Or Deleted Club Cannot Be Reactivated From Stable Admin', 'club_terminal');
+  }
 
   const { data, error } = await db
     .from('clubs')
     .update({ status, updated_at: new Date().toISOString() })
     .eq('id', clubId)
+    .eq('status', before.status)
     .select('id, status')
     .maybeSingle();
   // Addendum item 17: a Supabase error becomes the status that describes it,
@@ -1124,7 +1132,7 @@ async function setClubStatus(db, op, req, body) {
     targetId: clubId,
     before: before ? { status: before.status ?? null, name: before.name ?? null } : null,
     after: { status: data.status ?? null },
-    details: { status },
+    details: { status, reason },
   });
 
   return { club: data };

@@ -313,15 +313,22 @@ test('an UNKNOWN switch is never reported as off', async () => {
 });
 
 test('a scope with no guard is labelled as recorded only', () => {
-  const guarded = ['account', 'cash', 'tournaments'];
+  const fullyGuarded = ['cash', 'tournaments'];
   for (const scope of RESTRICTION_SCOPES) {
     const meta = SCOPE_META[scope];
-    assert.equal(
-      meta.enforced,
-      guarded.includes(scope),
-      `${scope}: SCOPE_META.enforced must match whether a guard actually watches it`
-    );
-    if (!meta.enforced) {
+    if (scope === 'account') {
+      assert.equal(meta.enforced, false, 'account is not fully guarded while two child scopes remain unguarded');
+      assert.equal(meta.partial, true, 'account must be represented as partial rather than unguarded');
+      assert.match(meta.blurb, /Cash And Tournament Entry Are Guarded/);
+      assert.match(meta.blurb, /Transfers And Social Are Recorded Only/);
+    } else {
+      assert.equal(
+        meta.enforced,
+        fullyGuarded.includes(scope),
+        `${scope}: SCOPE_META.enforced must match whether a guard actually watches it`
+      );
+    }
+    if (!meta.enforced && !meta.partial) {
       assert.match(
         meta.blurb,
         /Recorded Only/,

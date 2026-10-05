@@ -1637,26 +1637,6 @@ export default function HorsesAdmin() {
     }
   }, [authFetch, showNotification]);
 
-  const toggleClubStatus = useCallback(async (club, newStatus) => {
-    setCaProcessing(true);
-    const previous = club.status;
-    setCaClubs((prev) => prev.map((c) => (c.id === club.id ? { ...c, status: newStatus } : c)));
-    try {
-      await authFetch('/api/horses/club-arena-admin', {
-        method: 'POST',
-        body: JSON.stringify({ action: 'set_club_status', clubId: club.id, status: newStatus }),
-      });
-      if (caSelectedClub?.id === club.id) setCaSelectedClub((p) => ({ ...p, status: newStatus }));
-      showNotification(newStatus === 'suspended' ? 'Club Suspended' : 'Club Reactivated');
-    } catch (err) {
-      // Revert. The old code logged the failure and still said it worked.
-      setCaClubs((prev) => prev.map((c) => (c.id === club.id ? { ...c, status: previous } : c)));
-      showNotification(err.message, 'error');
-    } finally {
-      setCaProcessing(false);
-    }
-  }, [authFetch, caSelectedClub, showNotification]);
-
   /**
    * The route accepts action 'approve' | 'cancel' and the console only ever
    * sent 'approve'. An admin looking at a fraudulent or mistaken request had
@@ -3179,6 +3159,11 @@ export default function HorsesAdmin() {
    *  Staff And Roles, Approvals (Phase 2) and Fleet Command (Phase 3). It is
    *  null on every other tab, so exactly one panel renders. */
   const RegistryPanel = activeTabEntry ? panelComponentFor(activeTabEntry) : null;
+  const activeCaEntry = useMemo(() => {
+    const section = CA_SECTIONS.find(([id]) => id === caSection);
+    return typeof section?.[2] === 'function' ? { id: `clubarena-${section[0]}`, label: section[1], load: section[2] } : null;
+  }, [caSection]);
+  const RegistryCAPanel = activeCaEntry ? panelComponentFor(activeCaEntry) : null;
 
   // ── Derived ──
   const filteredPersonas = useMemo(() => {
@@ -3469,7 +3454,7 @@ export default function HorsesAdmin() {
               active tab, so moving to another tab clears a captured error and
               the nav never goes down with the panel. */}
           <ErrorBoundary
-            resetKey={activeTab}
+            resetKey={`${activeTab}:${activeTab === 'clubarena' ? caSection : ''}`}
             label={activeTabEntry?.label || 'This Tab'}
           >
           {/* A registry tab is its own module and gets the operator context
@@ -5975,12 +5960,16 @@ export default function HorsesAdmin() {
                 {/* margin-left:auto pinned this to the end of the SCROLL width
                     on mobile, where .subNav becomes a nowrap overflow strip --
                     so the primary refresh sat past seven tabs, invisible. */}
-                <button onClick={loadClubArenaData} disabled={caLoading} className={styles.subNavRefresh}>
-                  {caLoading ? 'Refreshing' : 'Refresh'}
-                </button>
+                {!RegistryCAPanel && (
+                  <button onClick={loadClubArenaData} disabled={caLoading} className={styles.subNavRefresh}>
+                    {caLoading ? 'Refreshing' : 'Refresh'}
+                  </button>
+                )}
               </div>
 
-              {caError ? (
+              {RegistryCAPanel ? (
+                <RegistryCAPanel authFetch={authFetch} showNotification={showNotification} permissions={operatorPermissions} operatorId={operatorId} policy={operatorPolicy} />
+              ) : caError ? (
                 <div className={styles.errorState}>
                   <div>Club Arena Data Unavailable: {caError}</div>
                   <button className={styles.actionBtn} onClick={loadClubArenaData}>Retry</button>
@@ -6080,17 +6069,16 @@ export default function HorsesAdmin() {
                               <span style={{ fontSize: 11, color: T.muted }}>
                                 Treasury {num(club.chip_treasury, '0')}
                               </span>
-                              {/* toggleClubStatus existed in code with no button anywhere. */}
                               <button
                                 className={styles.filterBtn}
-                                disabled={caProcessing}
                                 style={{ marginLeft: 'auto' }}
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  toggleClubStatus(club, club.status === 'suspended' ? 'active' : 'suspended');
+                                  setCaSection('operations');
+                                  setCaSelectedClub(null);
                                 }}
                               >
-                                {club.status === 'suspended' ? 'Reactivate' : 'Suspend'}
+                                Manage In Operations
                               </button>
                             </div>
                           </div>

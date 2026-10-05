@@ -202,6 +202,10 @@ test('the scopes that claim to be enforced are the ones with a guard', () => {
   // transfers and social are recorded only, and the panel must say so.
   assert.equal(SCOPE_META.transfers.enforced, false);
   assert.equal(SCOPE_META.social.enforced, false);
+  assert.equal(SCOPE_META.account.enforced, false);
+  assert.equal(SCOPE_META.account.partial, true);
+  assert.match(SCOPE_META.account.blurb, /Cash And Tournament Entry Are Guarded/);
+  assert.match(SCOPE_META.account.blurb, /Transfers And Social Are Recorded Only/);
   assert.match(SCOPE_META.transfers.blurb, /Recorded Only/);
   assert.match(SCOPE_META.social.blurb, /Recorded Only/);
 });
@@ -296,6 +300,10 @@ test('what the operator is told is derived from the LIVE switch', () => {
     /Recorded And Observed, Not Refused/,
     'with enforcement off the operator must be told the restriction refuses nothing'
   );
+  assert.match(fn, /scope === 'cash' \|\| scope === 'tournaments'/,
+    'only the two concrete guarded surfaces may promise that new entries are refused');
+  assert.match(fn, /Transfers And Social Are Recorded Only/,
+    'whole-account copy must disclose its partial enforcement coverage');
   assert.match(
     fn,
     /Could Not Be Read, So Assume Nothing/,

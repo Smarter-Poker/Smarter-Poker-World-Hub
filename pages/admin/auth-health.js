@@ -17,6 +17,7 @@
 
 import { useState, useEffect } from 'react';
 import { createClient } from '@supabase/supabase-js';
+import consoleStyles from '../../src/components/admin/OperatorAdminSurface.module.css';
 
 /**
  * [2026-07-25] REACHABILITY FIX. The old getServerSideProps demanded an
@@ -81,17 +82,17 @@ const fmtAge = (iso) => {
 function FlowCard({ name, runs, ok, failed, lastRun, expectedCadenceMin }) {
     const stale = !lastRun || (Date.now() - new Date(lastRun).getTime()) > (expectedCadenceMin * 2 * 60_000);
     let status, color, msg;
-    if (Number(failed) > 0) { status = 'FAILED'; color = '#ef4444'; msg = `${failed} failure(s) in last hour`; }
-    else if (stale) { status = 'STALE'; color = '#eab308'; msg = `last run ${fmtAge(lastRun)} (cadence ~${expectedCadenceMin}m)`; }
-    else { status = 'OK'; color = '#22c55e'; msg = `${ok}/${runs} ok in last 15m`; }
+    if (Number(failed) > 0) { status = 'FAILED'; color = '#991b1b'; msg = `${failed} failure(s) in last hour`; }
+    else if (stale) { status = 'STALE'; color = '#713f12'; msg = `last run ${fmtAge(lastRun)} (cadence ~${expectedCadenceMin}m)`; }
+    else { status = 'OK'; color = '#166534'; msg = `${ok}/${runs} ok in last 15m`; }
     return (
-        <div style={{ background: '#1a2433', border: `1px solid ${color}`, borderRadius: 8, padding: 16 }}>
+        <div className={consoleStyles.metric} style={{ background: '#1a2433', border: `1px solid ${color}`, borderRadius: 8, padding: 16 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                 <span style={{ fontSize: 14, fontWeight: 600 }}>{name}</span>
-                <span style={{ background: color, color: '#fff', padding: '2px 10px', borderRadius: 12, fontSize: 11, fontWeight: 600 }}>{status}</span>
+                <span style={{ background: color, color: '#fff', padding: '2px 10px', borderRadius: 12, fontSize: 12, fontWeight: 600 }}>{status}</span>
             </div>
             <div style={{ fontSize: 12, color: '#9ca3af', marginTop: 8 }}>{msg}</div>
-            <div style={{ fontSize: 11, color: '#6b7280', marginTop: 4 }}>Last: {fmtAge(lastRun)}</div>
+            <div style={{ fontSize: 12, color: '#aabcc4', marginTop: 4 }}>Last: {fmtAge(lastRun)}</div>
         </div>
     );
 }
@@ -144,20 +145,20 @@ export default function AuthHealthDashboard(props) {
     }, [props.clientMode]);
 
     const { loading, health, heartbeats, error, generatedAt } = state;
-    if (loading) return <main style={S.page}><div style={S.err}>Loading Auth Health…</div></main>;
-    if (error) return <main style={S.page}><div style={S.err}>{error}</div></main>;
-    if (!health) return <main style={S.page}><div style={S.err}>No Health Data Yet - Wait For First Probe Runs (5-15 Min After Deploy).</div></main>;
+    if (loading) return <main className={consoleStyles.surface} style={S.page}><div className={consoleStyles.state} style={S.err} role="status">Loading Auth Health...</div></main>;
+    if (error) return <main className={consoleStyles.surface} style={S.page}><div className={consoleStyles.state} style={S.err} role="alert">{error}</div></main>;
+    if (!health) return <main className={consoleStyles.surface} style={S.page}><div className={consoleStyles.state} style={S.err} role="status">No Health Data Yet - Wait For First Probe Runs (5-15 Min After Deploy).</div></main>;
 
     return (
-        <main style={S.page}>
+        <main className={consoleStyles.surface} style={S.page}>
             <header style={S.header}>
                 <div>
                     <h1 style={S.h1}>Auth Health - Unified</h1>
-                    <p style={S.p}>Generated {fmtAge(generatedAt)}. <a href="/admin/auth-health" style={S.link}>↻ Refresh</a> · <a href="/admin/signup-health" style={S.link}>Signup-Only View</a></p>
+                    <p style={S.p}>Generated {fmtAge(generatedAt)}. <a href="/admin/auth-health" style={S.link}>Refresh</a> · <a href="/admin/signup-health" style={S.link}>Signup-Only View</a></p>
                 </div>
             </header>
 
-            <section style={S.section}>
+            <section className={consoleStyles.panel} style={S.section}>
                 <h2 style={S.h2}>Flow Status</h2>
                 <div style={S.grid}>
                     <FlowCard name="Signup" runs={health.signup_runs_15m} ok={health.signup_ok_15m} failed={health.signup_failed_1h} lastRun={health.signup_last_run} expectedCadenceMin={5} />
@@ -168,17 +169,18 @@ export default function AuthHealthDashboard(props) {
                 </div>
             </section>
 
-            <section style={S.section}>
+            <section className={consoleStyles.panel} style={S.section}>
                 <h2 style={S.h2}>Real-User Signal</h2>
                 <div style={S.grid}>
-                    <div style={S.statCard}><div style={S.statLabel}>Real Signups (24h)</div><div style={{ ...S.statValue, color: Number(health.real_signups_24h) === 0 ? '#ef4444' : '#fff' }}>{health.real_signups_24h}</div></div>
-                    <div style={S.statCard}><div style={S.statLabel}>Real Signups (1h)</div><div style={S.statValue}>{health.real_signups_1h}</div></div>
-                    <div style={S.statCard}><div style={S.statLabel}>Trigger Errors (1h)</div><div style={{ ...S.statValue, color: Number(health.trigger_errors_1h) > 0 ? '#ef4444' : '#fff' }}>{health.trigger_errors_1h}</div></div>
+                    <div className={consoleStyles.metric} style={S.statCard}><div style={S.statLabel}>Real Signups (24h)</div><div style={{ ...S.statValue, color: Number(health.real_signups_24h) === 0 ? '#ef4444' : '#fff' }}>{health.real_signups_24h}</div></div>
+                    <div className={consoleStyles.metric} style={S.statCard}><div style={S.statLabel}>Real Signups (1h)</div><div style={S.statValue}>{health.real_signups_1h}</div></div>
+                    <div className={consoleStyles.metric} style={S.statCard}><div style={S.statLabel}>Trigger Errors (1h)</div><div style={{ ...S.statValue, color: Number(health.trigger_errors_1h) > 0 ? '#ef4444' : '#fff' }}>{health.trigger_errors_1h}</div></div>
                 </div>
             </section>
 
-            <section style={S.section}>
+            <section className={consoleStyles.panel} style={S.section}>
                 <h2 style={S.h2}>Recent Probe Heartbeats (Last 40)</h2>
+                <div className={consoleStyles.tableWell} tabIndex={0} role="region" aria-label="Recent Probe Heartbeats">
                 <table style={S.table}>
                     <thead><tr><th style={S.th}>When</th><th style={S.th}>Probe</th><th style={S.th}>Status</th><th style={S.th}>Duration</th></tr></thead>
                     <tbody>
@@ -186,15 +188,16 @@ export default function AuthHealthDashboard(props) {
                             <tr key={h.id}>
                                 <td style={S.td}>{fmtAge(h.occurred_at)}</td>
                                 <td style={S.td}><code>{h.probe_name}</code></td>
-                                <td style={S.td}><span style={{ background: h.status === 'ok' ? '#22c55e' : h.status === 'failed' ? '#ef4444' : '#eab308', color: '#fff', padding: '2px 8px', borderRadius: 8, fontSize: 11 }}>{h.status}</span></td>
+                                <td style={S.td}><span style={{ background: h.status === 'ok' ? '#166534' : h.status === 'failed' ? '#991b1b' : '#713f12', color: '#fff', padding: '2px 8px', borderRadius: 8, fontSize: 12 }}>{h.status}</span></td>
                                 <td style={S.td}>{h.duration_ms ? `${h.duration_ms}ms` : '-'}</td>
                             </tr>
                         ))}
                     </tbody>
                 </table>
+                </div>
             </section>
 
-            <footer style={{ marginTop: 32, paddingTop: 16, borderTop: '1px solid #2a3a4a', color: '#6b7280', fontSize: 12 }}>
+            <footer style={{ marginTop: 32, paddingTop: 16, borderTop: '1px solid #2a3a4a', color: '#aabcc4', fontSize: 12 }}>
                 Backed By <code>Public.Auth_Health_View</code> + <code>Probe_Heartbeats</code>. Runbook: <a href="/docs/SIGNUP_RUNBOOK.md" style={S.link}>SIGNUP_RUNBOOK.Md</a>.
             </footer>
         </main>
@@ -210,10 +213,10 @@ const S = {
     section: { marginBottom: 32, padding: 24, background: '#0d1f35', borderRadius: 12, border: '1px solid #1e293b' },
     grid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 12 },
     statCard: { background: '#1a2433', border: '1px solid #2a3a4a', borderRadius: 8, padding: 16 },
-    statLabel: { fontSize: 11, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: 0.5 },
+    statLabel: { fontSize: 12, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: 0.5 },
     statValue: { fontSize: 28, fontWeight: 600, marginTop: 4 },
     table: { width: '100%', borderCollapse: 'collapse', fontSize: 13 },
-    th: { textAlign: 'left', padding: '8px 12px', borderBottom: '1px solid #2a3a4a', color: '#9ca3af', fontWeight: 500, fontSize: 11, textTransform: 'uppercase' },
+    th: { textAlign: 'left', padding: '8px 12px', borderBottom: '1px solid #2a3a4a', color: '#9ca3af', fontWeight: 500, fontSize: 12, textTransform: 'uppercase' },
     td: { padding: '8px 12px', borderBottom: '1px solid #1e293b' },
     link: { color: '#00D4FF', textDecoration: 'none' },
     err: { padding: 16, background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.5)', borderRadius: 8, color: '#fca5a5' },

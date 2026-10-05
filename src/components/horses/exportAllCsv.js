@@ -11,7 +11,7 @@
  * fetchPage and returns rows, so it can be unit tested without a browser. The
  * download is the only side effect and it lives in the wrapper.
  */
-import { toCsv, downloadCsv, stampedName } from '../../lib/horsesAdminTokens';
+import { toCsv, downloadCsv, stampedName } from '../../lib/horsesAdminTokens.js';
 
 /**
  * Walk fetchPage(offset, limit) until every row is collected.
@@ -33,8 +33,8 @@ export async function collectAllRows(fetchPage, options = {}) {
   let pages = 0;
   let complete = false;
 
-  for (let offset = 0; pages < maxPages; offset += limit) {
-    // eslint-disable-next-line no-await-in-loop
+  let offset = 0;
+  while (pages < maxPages) {
     const page = await fetchPage(offset, limit);
     pages += 1;
     const batch = Array.isArray(page?.rows) ? page.rows : [];
@@ -42,9 +42,14 @@ export async function collectAllRows(fetchPage, options = {}) {
     rows.push(...batch);
     if (onProgress) onProgress({ fetched: rows.length, total, pages });
 
-    if (batch.length === 0) { complete = true; break; }
+    if (batch.length === 0) { complete = total === null || rows.length >= total; break; }
     if (total !== null && rows.length >= total) { complete = true; break; }
-    if (total === null && batch.length < limit) { complete = true; break; }
+    const serverOffset = Number.isSafeInteger(page?.offset) && page.offset >= 0 ? page.offset : offset;
+    const nextOffset = serverOffset + batch.length;
+    if (nextOffset <= offset) break;
+    offset = nextOffset;
+    if (total === null && page?.hasMore === false) { complete = true; break; }
+    if (total === null && page?.hasMore !== true && batch.length < limit) { complete = true; break; }
   }
 
   return { rows, total, pages, complete };
@@ -65,6 +70,7 @@ export default async function exportAllCsv({
   maxPages = 200,
   onProgress,
   jsonColumns = [],
+  recordCompletion,
 }) {
   const jsonKeys = new Set(jsonColumns);
   const { rows, total, complete } = await collectAllRows(fetchPage, { limit, maxPages, onProgress });
@@ -80,6 +86,11 @@ export default async function exportAllCsv({
     return copy;
   });
 
+  // The receipt records a prepared file. Browsers expose no trustworthy
+  // signal that a requested download reached the operator's filesystem.
+  if (typeof recordCompletion === 'function') {
+    await recordCompletion({ rowCount: shaped.length, total, complete });
+  }
   downloadCsv(stampedName(filenamePrefix), toCsv(shaped, columns));
-  return { exported: shaped.length, total, complete };
+  return { exported: shaped.length, total, complete, prepared: true, delivery: 'requested' };
 }

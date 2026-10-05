@@ -9,13 +9,14 @@
  * on fn_is_horse_admin() - the client-side role check below is UX, not
  * security.
  */
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Head from 'next/head';
 import { supabase } from '../../src/lib/supabase';
 import { getAuthUser, getFreshAccessToken } from '../../src/lib/authUtils';
 import { useRouter } from 'next/router';
 import { T, toCsv, downloadCsv, stampedName } from '../../src/lib/horsesAdminTokens';
 import { operatorGate } from '../../src/components/horses/operatorAdmin';
+import { withRequestTimeout } from '../../src/components/horses/useOperatorFetch';
 import styles from './horses.module.css';
 
 /* COLOUR. Every value is a token from T, resolved by the custom properties
@@ -75,6 +76,29 @@ const PAGE_CSS = `
 const VARIANTS = ['', 'nlh', 'plo4', 'plo5', 'plo6', 'plo8', 'short_deck', 'pineapple'];
 const FORMATS = ['', 'cash', 'hu_cash', 'tournament'];
 const PAGE_SIZE = 50;
+
+function safeReadMessage(label, error) {
+  console.warn(`${label} read failed`, error);
+  return `${label} Could Not Be Read. Retry.`;
+}
+
+function beginRead(reads, key) {
+  const previous = reads.current[key];
+  if (previous?.controller) previous.controller.abort();
+  const controller = typeof AbortController === 'function' ? new AbortController() : null;
+  const request = { sequence: (previous?.sequence || 0) + 1, controller };
+  reads.current[key] = request;
+  return request;
+}
+
+function isCurrentRead(reads, key, request) {
+  return reads.current[key]?.sequence === request.sequence;
+}
+
+async function rpcWithSignal(name, args, signal) {
+  const query = supabase.rpc(name, args);
+  return typeof query.abortSignal === 'function' ? query.abortSignal(signal) : query;
+}
 
 // ── CSV export ─────────────────────────────────────────────────────────────
 /**
@@ -448,6 +472,11 @@ export default function HorseHandReviews() {
   const [page, setPage] = useState(0);
   const [expanded, setExpanded] = useState(null);
   const [busy, setBusy] = useState(false);
+  const readsRef = useRef({});
+
+  useEffect(() => () => {
+    for (const request of Object.values(readsRef.current)) request?.controller?.abort();
+  }, []);
 
   useEffect(() => {
     // Auth via the sanctioned local-storage reader (authUtils) - the
@@ -468,146 +497,110 @@ export default function HorseHandReviews() {
         router.push('/auth/login?redirect=/horses/hand-reviews');
         return;
       }
-      const token = await getFreshAccessToken();
-      if (!token) {
-        router.push('/auth/login?redirect=/horses/hand-reviews');
-        return;
-      }
-      const gate = await operatorGate(token);
-      if (gate.ok) {
-        setIsAdmin(true);
-      } else if (gate.denied) {
-        router.push('/');
-        return;
-      } else {
-        setRoleError(gate.error || 'The Operator Check Failed.');
+      try {
+        const decision = await withRequestTimeout(async () => {
+          const token = await getFreshAccessToken();
+          if (!token) return { signedOut: true };
+          return { gate: await operatorGate(token) };
+        });
+        if (decision.signedOut) {
+          router.push('/auth/login?redirect=/horses/hand-reviews');
+        } else if (decision.gate.ok) {
+          setIsAdmin(true);
+        } else if (decision.gate.denied) {
+          router.push('/');
+        } else {
+          setRoleError(decision.gate.error || 'The Operator Check Failed.');
+        }
+      } catch (error) {
+        setRoleError(safeReadMessage('The Operator Check', error));
+      } finally {
         setLoading(false);
-        return;
       }
-      setLoading(false);
     };
     verify();
   }, [router]);
 
   const loadSummary = useCallback(async () => {
+    const request = beginRead(readsRef, 'summary');
     setSummaryError(null);
-    const { data, error } = await supabase.rpc('ca_horse_review_summary', { p_days: days });
-    if (error) setSummaryError(error.message);
-    else setSummary(data);
+    try {
+      const { data, error } = await withRequestTimeout(
+        (signal) => rpcWithSignal('ca_horse_review_summary', { p_days: days }, signal),
+        { signals: [request.controller?.signal] }
+      );
+      if (!isCurrentRead(readsRef, 'summary', request)) return;
+      if (error) setSummaryError(safeReadMessage('Review Summary', error));
+      else setSummary(data);
+    } catch (error) {
+      if (isCurrentRead(readsRef, 'summary', request) && error?.name !== 'AbortError') {
+        setSummaryError(safeReadMessage('Review Summary', error));
+      }
+    }
   }, [days]);
 
   const loadAudits = useCallback(async () => {
+    const request = beginRead(readsRef, 'audits');
     setAuditsError(null);
-    const { data, error } = await supabase.rpc('ca_horse_daily_audit', { p_days: 14 });
-    if (error) setAuditsError(error.message);
-    else setAudits(data || []);
-    // The error was discarded here. A failing or ungranted RPC rendered as
-    // "No Data Yet" -- in the one panel whose own caption says a deployed
-    // layer sitting at zero IS a wiring regression. So a broken read looked
-    // exactly like the finding it is meant to help you rule out.
-    const { data: tData, error: tErr } = await supabase.rpc('ca_brain_telemetry', { p_days: 3 });
-    if (tErr) {
-      setTelemetryError(tErr.message);
-      setTelemetry([]);
-    } else {
-      setTelemetryError(null);
-      setTelemetry(tData || []);
-    }
-    // 2026-09-04: the Data Ledger read. Same discipline: a failed read must
-    // LOOK failed, because an empty ledger is itself a critical audit finding
-    // (data_ledger_missing) and must not be confused with a query that did
-    // not run.
-    const { data: ldData, error: ldErr } = await supabase.rpc('ca_horse_data_ledger');
-    if (ldErr) {
-      setLedgerError(ldErr.message);
-      setLedger([]);
-    } else {
-      setLedgerError(null);
-      setLedger(ldData || []);
-    }
-    // Same error discipline as telemetry: a failed read must LOOK failed.
-    const { data: lgData, error: lgErr } = await supabase.rpc('ca_horse_league_card', {
-      p_runs: 3,
-    });
-    if (lgErr) {
-      setLeagueError(lgErr.message);
-      setLeague([]);
-    } else {
-      setLeagueError(null);
-      setLeague(lgData || []);
-    }
-    const { data: ttData, error: ttErr } = await supabase.rpc('ca_horse_tag_trends', {
-      p_days: 7,
-    });
-    if (ttErr) {
-      setTagTrendsError(ttErr.message);
-      setTagTrends([]);
-    } else {
-      setTagTrendsError(null);
-      setTagTrends(ttData || []);
-    }
-    // Same error discipline as every read above: a failed RPC must LOOK
-    // failed, not render as "No Data Yet" - on this page an empty card is
-    // itself a finding, so the two states can never be allowed to look alike.
-    const { data: tcData, error: tcErr } = await supabase.rpc('ca_horse_tournament_card', {
-      p_days: 7,
-    });
-    if (tcErr) {
-      setTourneyError(tcErr.message);
-      setTourney([]);
-    } else {
-      setTourneyError(null);
-      setTourney(tcData || []);
-    }
-    const { data: fqData, error: fqErr } = await supabase.rpc('ca_horse_frequency_card', {
-      p_days: 7,
-    });
-    if (fqErr) {
-      setFreqError(fqErr.message);
-      setFreq([]);
-    } else {
-      setFreqError(null);
-      setFreq(fqData || []);
-    }
-    const { data: agData, error: agErr } = await supabase.rpc('ca_horse_solver_agreement', {
-      p_runs: 14,
-    });
-    if (agErr) {
-      setAgreeError(agErr.message);
-      setAgree([]);
-    } else {
-      setAgreeError(null);
-      setAgree(agData || []);
-    }
-    const { data: adData, error: adErr } = await supabase.rpc(
-      'ca_horse_solver_agreement_decisions',
-      { p_day: null, p_reference: 'gto_charts', p_limit: 100 }
-    );
-    if (adErr) {
-      setAgreeDecisionsError(adErr.message);
-      setAgreeDecisions([]);
-    } else {
-      setAgreeDecisionsError(null);
-      setAgreeDecisions(adData || []);
-    }
-    // This one contract joins certification, both independently attributed
-    // solver workers, the compactor and the latest agreement receipt. Empty
-    // and failed are different states: an empty corpus is a real critical
-    // condition, while a failed read proves nothing about the corpus.
-    const { data: certData, error: certErr } = await supabase.rpc(
-      'ca_gto_v31_certification_status',
-      { p_dataset_id: null }
-    );
-    if (certErr) {
-      setCertificationError(certErr.message);
-      setCertification(null);
-    } else {
-      setCertificationError(null);
-      setCertification(certData || null);
+    try {
+      const specs = [
+        ['ca_horse_daily_audit', { p_days: 14 }],
+        ['ca_brain_telemetry', { p_days: 3 }],
+        ['ca_horse_data_ledger', undefined],
+        ['ca_horse_league_card', { p_runs: 3 }],
+        ['ca_horse_tag_trends', { p_days: 7 }],
+        ['ca_horse_tournament_card', { p_days: 7 }],
+        ['ca_horse_frequency_card', { p_days: 7 }],
+        ['ca_horse_solver_agreement', { p_runs: 14 }],
+        ['ca_horse_solver_agreement_decisions', { p_day: null, p_reference: 'gto_charts', p_limit: 100 }],
+        ['ca_gto_v31_certification_status', { p_dataset_id: null }],
+      ];
+      const results = await withRequestTimeout(
+        (signal) => Promise.all(specs.map(([name, args]) => rpcWithSignal(name, args, signal))),
+        { signals: [request.controller?.signal] }
+      );
+      if (!isCurrentRead(readsRef, 'audits', request)) return;
+      const apply = (result, label, setData, setError, empty) => {
+        if (result.error) {
+          setError(safeReadMessage(label, result.error));
+          setData(empty);
+        } else {
+          setError(null);
+          setData(result.data ?? empty);
+        }
+      };
+      apply(results[0], 'Daily Audit', setAudits, setAuditsError, []);
+      apply(results[1], 'Brain Telemetry', setTelemetry, setTelemetryError, []);
+      apply(results[2], 'Data Ledger', setLedger, setLedgerError, []);
+      apply(results[3], 'League Card', setLeague, setLeagueError, []);
+      apply(results[4], 'Tag Trends', setTagTrends, setTagTrendsError, []);
+      apply(results[5], 'Tournament Card', setTourney, setTourneyError, []);
+      apply(results[6], 'Frequency Card', setFreq, setFreqError, []);
+      apply(results[7], 'Solver Agreement', setAgree, setAgreeError, []);
+      apply(results[8], 'Agreement Decisions', setAgreeDecisions, setAgreeDecisionsError, []);
+      apply(results[9], 'Certification', setCertification, setCertificationError, null);
+    } catch (error) {
+      if (isCurrentRead(readsRef, 'audits', request) && error?.name !== 'AbortError') {
+        const message = safeReadMessage('Audit Feeds', error);
+        // The ten reads share one deadline. If that batch fails, every card
+        // must become failed rather than leaving old rows or an empty state
+        // that looks like a successful read.
+        setAuditsError(message); setAudits([]);
+        setTelemetryError(message); setTelemetry([]);
+        setLedgerError(message); setLedger([]);
+        setLeagueError(message); setLeague([]);
+        setTagTrendsError(message); setTagTrends([]);
+        setTourneyError(message); setTourney([]);
+        setFreqError(message); setFreq([]);
+        setAgreeError(message); setAgree([]);
+        setAgreeDecisionsError(message); setAgreeDecisions([]);
+        setCertificationError(message); setCertification(null);
+      }
     }
   }, []);
 
   const loadRows = useCallback(async () => {
+    const request = beginRead(readsRef, 'rows');
     setBusy(true);
     setRowsError(null);
     const params = {
@@ -619,10 +612,21 @@ export default function HorseHandReviews() {
       p_limit: PAGE_SIZE,
       p_offset: page * PAGE_SIZE,
     };
-    const { data, error } = await supabase.rpc('ca_horse_hand_reviews', params);
-    if (error) setRowsError(error.message);
-    else setRows(data || []);
-    setBusy(false);
+    try {
+      const { data, error } = await withRequestTimeout(
+        (signal) => rpcWithSignal('ca_horse_hand_reviews', params, signal),
+        { signals: [request.controller?.signal] }
+      );
+      if (!isCurrentRead(readsRef, 'rows', request)) return;
+      if (error) setRowsError(safeReadMessage('Hand Reviews', error));
+      else setRows(data || []);
+    } catch (error) {
+      if (isCurrentRead(readsRef, 'rows', request) && error?.name !== 'AbortError') {
+        setRowsError(safeReadMessage('Hand Reviews', error));
+      }
+    } finally {
+      if (isCurrentRead(readsRef, 'rows', request)) setBusy(false);
+    }
   }, [filters, page]);
 
   useEffect(() => {
@@ -701,7 +705,7 @@ export default function HorseHandReviews() {
           <div>
             <h1 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 600, color: T.text }}>Horse Hand Reviews</h1>
             <p style={{ margin: '0.5rem 0 0 0', color: T.muted, fontSize: '0.875rem' }}>
-              Every Hand Where A Horse Won Or Lost 20bb+, Flagged At Settlement With Leak Tags. Raw Hands Kept 30 Days; Rollups Permanent.
+              Every Hand Where A Horse Won Or Lost 20bb+, Flagged At Settlement With Leak Tags. Horse-Only Hand History Is Kept Seven Days. Human Hand History Is Kept Indefinitely.
             </p>
           </div>
           <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
