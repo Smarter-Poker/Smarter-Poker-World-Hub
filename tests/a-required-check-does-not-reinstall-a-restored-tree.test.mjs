@@ -14,7 +14,17 @@
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync, readdirSync } from 'node:fs';
+import {
+  readFileSync,
+  readdirSync,
+  mkdtempSync,
+  mkdirSync,
+  writeFileSync,
+  existsSync,
+  rmSync,
+} from 'node:fs';
+import { spawnSync } from 'node:child_process';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 const DIR = join(process.cwd(), '.github', 'workflows');
@@ -81,5 +91,95 @@ test('no E2E workflow starts next on a literal port', () => {
     assert.ok(!/next start -p \d{4}/.test(text), `${f} starts next on a literal port`);
     assert.match(text, /scripts\/ci\/e2e-port\.mjs 3000/, `${f} must derive its port`);
     assert.ok(!/127\.0\.0\.1:3000|localhost:3000/.test(text), `${f} still points at :3000`);
+  }
+});
+
+// A Mac agent entering or checking a workspace must not recreate the dependency
+// copies the user removed. Run the actual helpers with disposable roots and a
+// recording npm executable; no package download or existing install is touched.
+function runWorkspaceFunction(name, system) {
+  const source = readFileSync(join(process.cwd(), 'scripts/agent-workspace.sh'), 'utf8');
+  const match = source.match(new RegExp(String.raw`^${name}\(\) \{\n.*?^\}`, 'ms'));
+  assert.ok(match, `${name} must remain an executable workspace function`);
+  return spawnSync(
+    '/bin/bash',
+    [
+      '-c',
+      [
+        'set -eu',
+        `uname() { printf '%s\n' '${system}'; }`,
+        'ROOT=/nonexistent-policy-fixture',
+        'DIR=/nonexistent-policy-fixture',
+        match[0],
+        `${name} ""`,
+      ].join('\n'),
+    ],
+    { encoding: 'utf8' }
+  );
+}
+
+function runRepairFixture(t, system) {
+  const root = mkdtempSync(join(tmpdir(), 'wh-dependency-policy-'));
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  const tools = join(root, 'tools');
+  mkdirSync(tools);
+  const sentinel = join(root, 'npm-was-called');
+  const stubs = {
+    uname: `printf '%s\n' '${system}'`,
+    git: 'printf "%s\n" "$POLICY_FIXTURE/.git"',
+    npm: 'printf called > "$POLICY_SENTINEL"; exit 1',
+  };
+  for (const [name, body] of Object.entries(stubs)) {
+    writeFileSync(join(tools, name), `#!/bin/sh\n${body}\n`, { mode: 0o755 });
+  }
+  const result = spawnSync('/bin/bash', [join(process.cwd(), 'scripts/check-node-modules.sh')], {
+    encoding: 'utf8',
+    env: {
+      ...process.env,
+      PATH: `${tools}:/usr/bin:/bin`,
+      POLICY_FIXTURE: root,
+      POLICY_SENTINEL: sentinel,
+    },
+  });
+  return { result, npmCalled: existsSync(sentinel) };
+}
+
+test('Mac workspace provisioning returns before dependency reads, copies or installs', () => {
+  const result = runWorkspaceFunction('provision_node_modules', 'Darwin');
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stderr, /Mac provisioning disabled/);
+});
+
+test('Mac native dependency repair remains read-only', () => {
+  const result = runWorkspaceFunction('verify_native_deps', 'Darwin');
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(result.stdout + result.stderr, '');
+});
+
+test('Linux workspace provisioning retains its absent-package return', () => {
+  const result = runWorkspaceFunction('provision_node_modules', 'Linux');
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(result.stdout + result.stderr, '');
+});
+
+test('a direct Mac dependency repair call cannot start npm', (t) => {
+  const { result, npmCalled } = runRepairFixture(t, 'Darwin');
+  assert.equal(result.status, 1, result.stderr);
+  assert.equal(npmCalled, false);
+  assert.match(result.stdout, /exact lockfile in CI/);
+});
+
+test('a direct Linux dependency repair call retains its explicit repair path', (t) => {
+  const { result, npmCalled } = runRepairFixture(t, 'Linux');
+  assert.equal(result.status, 1, result.stderr);
+  assert.equal(npmCalled, true);
+});
+
+test('both workspace dependency helpers remain valid shell programs', () => {
+  for (const name of ['agent-workspace.sh', 'check-node-modules.sh']) {
+    const result = spawnSync('/bin/bash', ['-n', join(process.cwd(), 'scripts', name)], {
+      encoding: 'utf8',
+    });
+    assert.equal(result.status, 0, result.stderr);
   }
 });

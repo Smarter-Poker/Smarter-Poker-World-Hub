@@ -23,6 +23,12 @@ set -euo pipefail
 
 CHECK_ONLY=0
 [ "${1:-}" = "--check" ] && CHECK_ONLY=1
+# Read-only on every Mac, including direct calls from an older provisioner.
+MAC_HOST=0
+if [ "$(uname -s)" = Darwin ]; then
+  MAC_HOST=1
+  CHECK_ONLY=1
+fi
 
 ROOT=$(git rev-parse --path-format=absolute --git-common-dir); ROOT=${ROOT%/.git}
 NM="$ROOT/node_modules"
@@ -56,7 +62,11 @@ echo ""
 echo "    $NM"
 echo ""
 echo "  Every new worktree clones this directory, so every new tree comes up"
-echo "  broken, not just yours. Add dependencies in $ROOT and install THERE."
+if [ "$MAC_HOST" = 1 ]; then
+  echo "  broken, not just yours. Install and verify the exact lockfile in CI."
+else
+  echo "  broken, not just yours. Add dependencies in $ROOT and install THERE."
+fi
 echo "  ─────────────────────────────────────────────────────────────────────"
 echo ""
 
