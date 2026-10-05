@@ -112,6 +112,13 @@ test('account transitions remount all private tournament state and signed-out re
     assert.doesNotMatch(receipt, /\n\s*\{receipt \? \(/);
 });
 
+test('immutable tournament receipt references remain byte-exact under the world copy policy', () => {
+    assert.match(sections, /data-preserve-case=\{row\.preserveCase \? 'true' : undefined\}/);
+    for (const label of ['Rules', 'Entry Reference', 'Journal', 'Refund Reference', 'Payout Reference', 'Settlement ID', 'Idempotency Key']) {
+        assert.match(sections, new RegExp(`label: '${label}'[^\\n]+preserveCase: true`), label);
+    }
+});
+
 test('responsive tournament view selectors use honest native button semantics', () => {
     const tabsStart = sections.indexOf('export function TournamentTabs');
     const tabsEnd = sections.indexOf('export function TournamentEventLedger', tabsStart);

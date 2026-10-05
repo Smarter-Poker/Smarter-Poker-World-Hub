@@ -825,11 +825,15 @@ async function tournamentDesk(page, row, failures) {
         await viewButton.click();
         record(row, failures, `tournament-${name.toLowerCase()}-selected`,
             await viewButton.getAttribute('aria-pressed') === 'true', 'aria-pressed=true');
-        await page.locator(selector).waitFor({ state: 'visible', timeout: 10_000 });
-        const body = await page.locator('body').innerText();
-        record(row, failures, `tournament-${name.toLowerCase()}`, body.includes(text), text);
+        const view = page.locator(selector);
+        await view.waitFor({ state: 'visible', timeout: 10_000 });
+        if (name === 'Bracket') {
+            await view.locator('[data-current-path="true"]').first().scrollIntoViewIfNeeded();
+        }
+        const viewText = await view.innerText();
+        record(row, failures, `tournament-${name.toLowerCase()}`, viewText.includes(text), text);
         if (name === 'Bracket' || name === 'Field') {
-            record(row, failures, `tournament-${name.toLowerCase()}-horse-disclosure`, body.includes('Smarter Horse'));
+            record(row, failures, `tournament-${name.toLowerCase()}-horse-disclosure`, viewText.includes('Smarter Horse'));
         }
         await screenshot(page, `${row.scenario}-${row.viewport}-${name}`);
     }

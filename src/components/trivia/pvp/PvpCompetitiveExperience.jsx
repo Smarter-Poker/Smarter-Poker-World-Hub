@@ -88,11 +88,11 @@ async function requestPvp(action, { method = 'POST', body, params, signal } = {}
     return payload;
 }
 
-function DataRow({ label, value, ink = 'silver', className = '' }) {
+function DataRow({ label, value, ink = 'silver', className = '', preserveCase = false }) {
     return (
         <div className={`trivia-pvp-data-row ${className}`.trim()}>
             <dt>{label}</dt>
-            <dd className={`tc-ink--${ink}`}>{value}</dd>
+            <dd className={`tc-ink--${ink}`} data-preserve-case={preserveCase ? 'true' : undefined}>{value}</dd>
         </div>
     );
 }
@@ -194,8 +194,8 @@ function ResultReceipts({ result, headingId = 'pvp-receipts-title' }) {
         <section className="trivia-pvp-receipts" aria-labelledby={headingId}>
             <h3 id={headingId} className="tc-label">Transaction Record</h3>
             <dl className="trivia-pvp-data">
-                <DataRow label="Stake Reference" value={result?.stakeReference || 'Unavailable'} />
-                <DataRow label="Settlement Reference" value={result?.settlementReference || 'Unavailable'} />
+                <DataRow label="Stake Reference" value={result?.stakeReference || 'Unavailable'} preserveCase />
+                <DataRow label="Settlement Reference" value={result?.settlementReference || 'Unavailable'} preserveCase />
                 <DataRow label="Settled" value={result?.settledAt || 'Unavailable'} />
             </dl>
             {receipts.length > 0 ? (
@@ -257,7 +257,7 @@ function PvpHistory({ history, loading, error, onPage, onRetry }) {
                                             <DataRow label="Opponent Score" value={formatDiamonds(item.opponentCorrect)} />
                                             <DataRow label="Stake" value={`${formatDiamonds(item.stake)} Diamonds`} ink="gold" />
                                             <DataRow label="Payout" value={`${formatDiamonds(item.payout)} Diamonds`} ink={item.payout > 0 ? 'green' : 'silver'} />
-                                            <DataRow label="Rules" value={item.rulesVersion || 'Unavailable'} />
+                                            <DataRow label="Rules" value={item.rulesVersion || 'Unavailable'} preserveCase />
                                         </dl>
                                         <ResultReceipts result={item} headingId={`pvp-history-receipt-${itemNumber}`} />
                                     </div>
@@ -1039,7 +1039,7 @@ export default function PvpCompetitiveExperience({ user, authLoading, pvpHorsesE
                             <dl className="trivia-pvp-data trivia-pvp-data--summary">
                                 <DataRow label="Current Balance" value={`${formatDiamonds(quote.balance)} Diamonds`} ink="gold" />
                                 <DataRow label="Questions" value={formatDiamonds(quote.questionCount)} />
-                                <DataRow label="Rules Version" value={quote.rulesVersion} />
+                                <DataRow label="Rules Version" value={quote.rulesVersion} preserveCase />
                                 <DataRow
                                     label="Smarter Horse"
                                     value={pvpHorsesEnabled && quote.horseFallbackEnabled

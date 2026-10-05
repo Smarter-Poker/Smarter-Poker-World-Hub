@@ -80,7 +80,12 @@ export function TournamentRows({ rows, label }) {
             {list.map((row, index) => (
                 <li key={`${row.label}-${index}`} className={row.wrap ? 'tc-row tt-row--wrap' : 'tc-row'}>
                     <span className="tc-row__label">{row.label}</span>
-                    <span className={`tc-row__value${row.ink ? ` tc-ink--${row.ink}` : ''}`}>{row.value}</span>
+                    <span
+                        className={`tc-row__value${row.ink ? ` tc-ink--${row.ink}` : ''}`}
+                        data-preserve-case={row.preserveCase ? 'true' : undefined}
+                    >
+                        {row.value}
+                    </span>
                 </li>
             ))}
         </ul>
@@ -147,7 +152,7 @@ export function TournamentEventLedger({ tournament, summary, nowMs, onReminder }
                     { label: 'Human Field', value: exactDiamonds(tournament.humansEntered) },
                     { label: 'Smarter Horses', value: `${exactDiamonds(tournament.horsesEntered)} / ${exactDiamonds(tournament.horseTarget)}`, ink: 'blue' },
                     { label: 'Capacity', value: exactDiamonds(tournament.bracketCapacity) },
-                    { label: 'Rules', value: tournament.rulesVersionId, wrap: true },
+                    { label: 'Rules', value: tournament.rulesVersionId, wrap: true, preserveCase: true },
                     { label: 'Questions Per Round', value: exactDiamonds(format.questionsPerRound) },
                     { label: 'Server Shot Clock', value: Number.isFinite(format.shotClockSeconds) ? `${format.shotClockSeconds} Seconds` : null },
                     { label: 'Server Round Window', value: Number.isFinite(format.roundWindowSeconds) ? `${Math.trunc(format.roundWindowSeconds / 60)} Minutes` : null },
@@ -387,16 +392,16 @@ export function TournamentReceipt({ receipt, loading, error, signedIn, onSignIn,
             {signedIn && receipt ? (
                 <TournamentRows label="Tournament Transaction References" rows={[
                     { label: 'Entry', value: `${exactDiamonds(receipt.entry?.amount)} Diamonds`, ink: 'gold' },
-                    { label: 'Entry Reference', value: receipt.entry?.reference, wrap: true },
+                    { label: 'Entry Reference', value: receipt.entry?.reference, wrap: true, preserveCase: true },
                     { label: 'Funding Source', value: toTitleCase(String(receipt.entry?.fundingSource || '').replace(/_/g, ' ')), wrap: true },
-                    { label: 'Journal', value: receipt.entry?.journalId, wrap: true },
+                    { label: 'Journal', value: receipt.entry?.journalId, wrap: true, preserveCase: true },
                     receipt.refund ? { label: 'Refund', value: `${exactDiamonds(receipt.refund.amount)} Diamonds`, ink: 'green' } : null,
-                    receipt.refund ? { label: 'Refund Reference', value: receipt.refund.reference, wrap: true } : null,
+                    receipt.refund ? { label: 'Refund Reference', value: receipt.refund.reference, wrap: true, preserveCase: true } : null,
                     receipt.payout ? { label: 'Payout', value: `${exactDiamonds(receipt.payout.amount)} Diamonds`, ink: 'green' } : null,
-                    receipt.payout ? { label: 'Payout Reference', value: receipt.payout.reference, wrap: true } : null,
+                    receipt.payout ? { label: 'Payout Reference', value: receipt.payout.reference, wrap: true, preserveCase: true } : null,
                     { label: 'Settlement', value: toTitleCase(String(receipt.settlement?.state || 'Pending')), wrap: true },
-                    { label: 'Settlement ID', value: receipt.settlement?.settlementId, wrap: true },
-                    { label: 'Idempotency Key', value: receipt.settlement?.idempotencyKey, wrap: true },
+                    { label: 'Settlement ID', value: receipt.settlement?.settlementId, wrap: true, preserveCase: true },
+                    { label: 'Idempotency Key', value: receipt.settlement?.idempotencyKey, wrap: true, preserveCase: true },
                 ]} />
             ) : null}
         </section>

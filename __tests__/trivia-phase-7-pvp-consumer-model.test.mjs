@@ -231,3 +231,10 @@ test('PvP history is bounded, viewer-scoped through the API, horse-disclosed and
     assert.match(pvpPage, /key=\{user\?\.id \|\| 'signed-out'\}/);
     assert.doesNotMatch(pvpExperience, /supabase\.(?:from|rpc)\(/);
 });
+
+test('immutable PvP transaction references remain byte-exact under the world copy policy', () => {
+    assert.match(pvpExperience, /data-preserve-case=\{preserveCase \? 'true' : undefined\}/);
+    assert.match(pvpExperience, /label="Stake Reference"[\s\S]{0,120}preserveCase/);
+    assert.match(pvpExperience, /label="Settlement Reference"[\s\S]{0,120}preserveCase/);
+    assert.match(pvpExperience, /label="Rules Version"[\s\S]{0,80}preserveCase/);
+});
