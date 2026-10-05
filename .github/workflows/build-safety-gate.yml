@@ -1131,6 +1131,20 @@ jobs:
             __tests__/notification-feed-recovery.test.mjs \
             __tests__/phase-3-deliverables.test.mjs \
             __tests__/phase-4-deliverables.test.mjs \
+            __tests__/trivia-phase-8-auth-boundary.test.mjs \
+            __tests__/trivia-phase-8-custody-consumers.test.mjs \
+            __tests__/trivia-phase-8-daily-ui.test.mjs \
+            __tests__/trivia-phase-8-gto-ev-provenance.test.mjs \
+            __tests__/trivia-phase-8-gto-render-singleflight.test.mjs \
+            __tests__/trivia-phase-8-immutable-play-day.test.mjs \
+            __tests__/trivia-phase-8-intro-art.test.mjs \
+            __tests__/trivia-phase-8-legacy-replay.test.mjs \
+            __tests__/trivia-phase-8-recovery-receipts.test.mjs \
+            __tests__/trivia-phase-8-report-contract.test.mjs \
+            __tests__/trivia-phase-8-resume-projection.test.mjs \
+            __tests__/trivia-phase-8-sql-contract.test.mjs \
+            __tests__/trivia-phase-8-strategy-ui.test.mjs \
+            __tests__/trivia-phase-8-telemetry.test.mjs \
             __tests__/horses-phase6-client.test.mjs \
             __tests__/horses-phase6-model.test.mjs \
             __tests__/horses-phase6-server.test.mjs \
