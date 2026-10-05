@@ -4,6 +4,7 @@ import { createRequire } from 'node:module';
 import test from 'node:test';
 const require = createRequire(import.meta.url);
 const { buildAlerts } = require('../lib/videoOperationsAlerts.js');
+const { isVideoAdminProfile } = require('../lib/videoAdminAuthorization.js');
 const { formatVideoOperationsMetric, isVideoOperationsOperationId } = require('../lib/videoOperationsContract.js');
 
 const migration = readFileSync(new URL('../supabase/migrations/20261004213000_video_operations_analytics_phase10.sql', import.meta.url), 'utf8');
@@ -65,13 +66,29 @@ test('Phase 10 admin snapshot and writes require admin authorization and stay pr
   assert.match(api, /Cache-Control', 'private, no-store'/);
   assert.ok(api.indexOf("res.setHeader('Cache-Control', 'private, no-store')") < api.indexOf('applyRateLimit(req, res'), 'rate-limited responses must remain private and uncached');
   assert.match(api, /connection\.anon\.auth\.getUser/);
-  assert.match(api, /profile\.data\?\.is_admin !== true/);
+  assert.match(api, /isVideoAdminProfile\(profile\.data\)/);
   assert.match(api, /LIMITS\.read/);
   assert.match(api, /LIMITS\.write/);
   assert.match(api, /fn_video_operations_snapshot/);
   assert.match(api, /fn_set_video_reels_pipeline_control/);
   assert.match(api, /windowHours/);
   assert.doesNotMatch(api, /json\(\{\s*error:\s*error\.message/);
+});
+
+test('every Video admin subpage honors the platform administrator role contract', () => {
+  assert.equal(isVideoAdminProfile({ is_admin: true, role: 'member' }), true);
+  for (const role of ['admin', 'superadmin', 'god', ' GOD ']) {
+    assert.equal(isVideoAdminProfile({ is_admin: false, role }), true);
+  }
+  for (const profile of [null, {}, { is_admin: false, role: 'member' }, { role: 'operator' }]) {
+    assert.equal(isVideoAdminProfile(profile), false);
+  }
+  for (const path of ['../pages/api/admin/video-operations.js', '../pages/api/admin/video-sources.js',
+    '../pages/api/admin/video-editorial.js', '../pages/api/admin/video-native-studio.js']) {
+    const source = readFileSync(new URL(path, import.meta.url), 'utf8');
+    assert.match(source, /select\('is_admin, role'\)/);
+    assert.match(source, /isVideoAdminProfile\(profile\.data\)/);
+  }
 });
 
 test('alert thresholds sort critical data-integrity failures first and report weak metric coverage', () => {
