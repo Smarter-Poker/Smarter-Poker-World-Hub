@@ -74,7 +74,10 @@ test('merchandise admin endpoint is platform-admin-only and never hard-deletes c
 
 test('Stable Admin and storefront are wired to the editable expanded catalog', async () => {
   const [horses, admin, store, fallback, checkout] = await Promise.all([
-    read('pages/horses/index.js'),
+    Promise.all([
+      read('src/components/horses/tabRegistry.js'),
+      read('src/components/horses/MerchPanel.jsx'),
+    ]).then((sources) => sources.join('\n')),
     read('src/components/admin/MerchCatalogAdmin.jsx'),
     read('src/components/store/MerchStore.jsx'),
     read('src/data/diamondStoreData.js'),

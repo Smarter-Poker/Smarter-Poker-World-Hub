@@ -89,9 +89,12 @@ import {
   staffUrl,
   trailActor,
 } from '../src/components/horses/operatorAdmin.js';
+import { readHorsesConsoleSource } from './helpers/horses-console-source.mjs';
 
 const ROOT = new URL('../', import.meta.url);
-const read = (path) => readFile(new URL(path, ROOT), 'utf8');
+const read = (path) => path === INDEX
+  ? readHorsesConsoleSource()
+  : readFile(new URL(path, ROOT), 'utf8');
 
 const INDEX = 'pages/horses/index.js';
 const COMPONENT_DIR = 'src/components/horses/';
@@ -927,20 +930,23 @@ test('rowsOf reads the paged field name and the legacy alias beside it', () => {
 // FILE CONTRACTS
 // ═══════════════════════════════════════════════════════════════════════════
 
-test('the registry carries the two Phase 2 tabs, with a permission and a module', () => {
+test('the registry carries the two Phase 2 tabs, with a permission and a module', async () => {
   const staff = TABS.find((t) => t.id === 'staff');
   const approvals = TABS.find((t) => t.id === 'approvals');
 
   assert.ok(staff, 'the staff tab must be registered');
   assert.equal(staff.label, 'Staff And Roles');
   assert.equal(staff.permission, 'console.read');
-  assert.equal(typeof staff.load, 'function', 'a Phase 2 tab is its own code-split module');
+  assert.equal(staff.legacy, undefined, 'a Phase 2 tab is owned by the explicit component map');
   assert.notEqual(staff.legacy, true, 'a Phase 2 tab is not rendered inline by index.js');
 
   assert.ok(approvals, 'the approvals tab must be registered');
   assert.equal(approvals.label, 'Approvals');
   assert.equal(approvals.permission, 'console.read');
-  assert.equal(typeof approvals.load, 'function');
+  assert.equal(approvals.legacy, undefined);
+  const dynamicPanels = await read(`${COMPONENT_DIR}dynamicPanels.js`);
+  assert.match(dynamicPanels, /const StaffPanel = dynamic\(\(\) => import\('\.\/StaffPanel'\)/);
+  assert.match(dynamicPanels, /const ApprovalsPanel = dynamic\(\(\) => import\('\.\/ApprovalsPanel'\)/);
 });
 
 test('both Phase 2 panels exist as real files the registry can load', async () => {
@@ -950,8 +956,8 @@ test('both Phase 2 panels exist as real files the registry can load', async () =
 });
 
 test('the nav is filtered through permittedTabs, not rendered raw', async () => {
-  const src = await read(INDEX);
-  assert.match(src, /permittedTabs\(visibleTabs\(TABS\), operatorPermissions\)/);
+  const src = await readFile(new URL(INDEX, ROOT), 'utf8');
+  assert.match(src, /permittedTabs\(visibleTabs\(TABS\), permissions\)/);
   // And the console reads the permission list from the route rather than
   // deciding it locally from profiles.role.
   assert.match(src, /permissionsFromPayload\(body\)/);
@@ -980,11 +986,11 @@ test('the pending branch does not reload the ledger as if something was written'
 });
 
 test('goToTab is a state move, so the URL write effect owns the navigation', async () => {
-  const src = await read(INDEX);
-  assert.match(src, /const goToTab = useCallback\(\(tabId\) => \{ setActiveTab\(tabId\); \}, \[\]\);/);
+  const src = await readFile(new URL(INDEX, ROOT), 'utf8');
+  assert.match(src, /onNavigate=\{setActiveTab\}/);
   // The one place that writes the query string still routes through the pure
   // helper, which is what makes this a real navigation with a history entry.
-  assert.match(src, /nextUrlQuery\(\{ activeTab, caSection \}, router\.query\)/);
+  assert.match(src, /nextUrlQuery\(state, router\.query\)/);
 });
 
 test('THE GUARD CANNOT FIRE ON A LEGACY OPERATOR', () => {
@@ -1086,76 +1092,73 @@ test('the stranding guard is wired to relocationTarget, not to an inline conditi
 });
 
 test('the operator context is cleared on logout', async () => {
-  const src = await read(INDEX);
-  assert.match(src, /setOperatorPermissions\(null\); setOperatorPolicy\(null\); setOperatorId\(null\);/);
+  const src = await readFile(new URL(INDEX, ROOT), 'utf8');
+  assert.match(src, /const handleLogout = async \(\) => \{\s*resetOperatorContext\(null\)/);
+  const store = await read('src/stores/stableAdminStore.js');
+  assert.match(store, /unknownOperatorContext\(fallbackOperatorId, state\.sessionGeneration \+ 1\)/);
 });
 
 test('a failed operator-context read clears the context rather than keeping a stale one', async () => {
-  const src = await read(INDEX);
+  const src = await readFile(new URL(INDEX, ROOT), 'utf8');
   const start = src.indexOf('const body = await authFetch(policyUrl());');
   assert.ok(start > 0, 'the console must read the policy section');
   const block = src.slice(start, start + 400);
   // The read and its failure path are one function now (readOperatorContext),
   // and the failure path clears through clearOperatorContext, which sets the
   // four fields to their "nobody has told us" values.
-  assert.match(block, /catch \(err\) \{[\s\S]*clearOperatorContext\(authUser\.id\)/);
-  assert.match(block, /denied: isOperatorDenial\(err\)/);
-  const clear = src.indexOf('const clearOperatorContext = useCallback(');
-  assert.ok(clear > 0);
-  const clearBlock = src.slice(clear, clear + 400);
-  assert.match(clearBlock, /setOperatorPermissions\(null\)/);
-  assert.match(clearBlock, /setOperatorPolicy\(null\)/);
+  assert.match(block, /catch \(error\) \{[\s\S]*resetOperatorContext\(authUser\?\.id \|\| null\)/);
+  assert.match(block, /denied: isOperatorDenial\(error\)/);
+  const clearBlock = await read('src/components/horses/stableAdminState.mjs');
+  assert.match(clearBlock, /permissions: null/);
+  assert.match(clearBlock, /policy: null/);
   // The two Phase 2 additions clear the same way, for the same reason: an
   // alone-rule left over from the last successful read would let the Mint's
   // confirm dialog claim a self-approval this console can no longer verify.
-  assert.match(clearBlock, /setOperatorAloneRule\(null\)/);
-  assert.match(clearBlock, /setOperatorDegraded\(false\)/);
+  assert.match(clearBlock, /aloneRule: null/);
+  assert.match(clearBlock, /permissionsDegraded: false/);
 });
 
 test('the Audit tab sends targetType and targetId, and renders inputs for both', async () => {
-  const src = await read(INDEX);
-  assert.match(src, /targetType: auditTargetType\.trim\(\) \|\| undefined/);
-  assert.match(src, /targetId: auditTarget\.trim\(\) \|\| undefined/);
-  assert.match(src, /id="audit-target-type"/);
-  assert.match(src, /id="audit-target"/);
+  const src = await read(`${COMPONENT_DIR}AuditPanel.jsx`);
+  assert.match(src, /targetType: targetType\.trim\(\) \|\| undefined/);
+  assert.match(src, /targetId: target\.trim\(\) \|\| undefined/);
+  assert.match(src, /aria-label="Target Type"/);
+  assert.match(src, /aria-label="Target ID"/);
   // A filter change returns to page one. The query object is memoised on
   // every filter, and the one audit effect resets the page when it changes.
   assert.match(
     src,
-    /\}, \[auditPrefix, auditAdmin, auditTarget, auditTargetType, auditFrom, auditTo, auditDays\]\);/,
+    /\}, \[prefix, admin, target, targetType, from, to, days\]\);/,
   );
-  assert.match(src, /if \(filterChanged && auditPage !== 0\) \{\s*setAuditPage\(0\);/);
+  assert.match(src, /if \(changed && offset !== 0\) \{ setOffset\(0\); return; \}/);
 });
 
 test('IP, user agent and request id are columns AND CSV columns', async () => {
-  const src = await read(INDEX);
-  assert.match(src, /<th scope="col">IP<\/th>/);
-  assert.match(src, /<th scope="col">User Agent<\/th>/);
-  assert.match(src, /<th scope="col">Request ID<\/th>/);
-  assert.match(src, /entry\.ip_address \|\| '-'/);
-  assert.match(src, /entry\.user_agent \|\| '-'/);
-  assert.match(src, /entry\.request_id \|\| '-'/);
+  const src = await read(`${COMPONENT_DIR}AuditPanel.jsx`);
+  assert.match(src, /header: 'IP'/);
+  assert.match(src, /\['user_agent','User Agent'\]/);
+  assert.match(src, /header: 'Request ID'/);
+  assert.match(src, /row\.ip_address \|\| '-'/);
+  assert.match(src, /row\.request_id \|\| '-'/);
   for (const key of ['ip_address', 'user_agent', 'request_id']) {
-    assert.match(src, new RegExp(`\\['${key}', '[^']+'\\]`), `the CSV must export ${key}`);
+    assert.match(src, new RegExp(`\\['${key}','[^']+'\\]`), `the CSV must export ${key}`);
   }
 });
 
 test('the Trail action is bound, paged, and inside the shared Modal', async () => {
-  const src = await read(INDEX);
-  assert.match(src, /onClick=\{\(\) => openAuditTrail\(entry\)\}/);
+  const src = await read(`${COMPONENT_DIR}AuditPanel.jsx`);
+  assert.match(src, /onClick=\{\(\) => openTrail\(row\)\}/);
   // Both, because the route requires both and answers 400 for either alone.
-  assert.match(src, /disabled=\{!entry\.target_id \|\| !entry\.target_type\}/);
+  assert.match(src, /disabled=\{!row\.target_id \|\| !row\.target_type\}/);
   assert.match(src, /auditTrailUrl\(\{/);
-  assert.match(src, /\{auditTrailFor && \(\s*<Modal/);
-  assert.match(src, /goAuditTrailPage\(auditTrailOffset \+ AUDIT_TRAIL_PAGE_SIZE\)/);
-  // The expanded-row colspan follows the column count, or the detail row
-  // stops spanning the table.
-  assert.match(src, /colSpan=\{8\}/);
+  assert.match(src, /\{trailFor \? <Modal/);
+  assert.match(src, /pageTrail\(trailOffset \+ TRAIL_PAGE\)/);
+  assert.match(src, /columns=\{columns\}/);
 });
 
 test('the registry panels are handed the operator context rather than refetching it', async () => {
-  const src = await read(INDEX);
-  const start = src.indexOf('<RegistryPanel');
+  const src = await readFile(new URL(INDEX, ROOT), 'utf8');
+  const start = src.indexOf('<Panel ');
   assert.ok(start > 0);
   const clause = src.slice(start, src.indexOf('/>', start));
   for (const prop of ['authFetch', 'showNotification', 'permissions', 'operatorId', 'policy', 'onPolicyChange']) {
@@ -1212,8 +1215,8 @@ test('the Staff panel revokes by grant id, from the grants array', async () => {
 });
 
 test('the console normalises the policy rather than reading one spelling', async () => {
-  const src = await read(INDEX);
-  assert.match(src, /setOperatorPolicy\(normalizePolicy\(body && body\.policy\)\)/);
+  const src = await readFile(new URL(INDEX, ROOT), 'utf8');
+  assert.match(src, /policy: normalizePolicy\(body\?\.policy\)/);
   const staff = await read(`${COMPONENT_DIR}StaffPanel.jsx`);
   // Re-verification H-3: the WHOLE section=policy answer goes back up, not
   // the policy alone, because the alone rule is computed by the policy and a
@@ -1559,9 +1562,9 @@ test('a decision refused as stale reloads the queue instead of leaving the row',
 });
 
 test('the three unguarded fetches now carry a sequence guard', async () => {
-  const index = await read(INDEX);
-  assert.match(index, /auditTrailSeqRef\.current \+= 1;/);
-  assert.match(index, /if \(seq !== auditTrailSeqRef\.current\) return;/);
+  const index = await read(`${COMPONENT_DIR}AuditPanel.jsx`);
+  assert.match(index, /\+\+trailSequence\.current/);
+  assert.match(index, /if \(seq !== trailSequence\.current\) return;/);
   const staff = await read(`${COMPONENT_DIR}StaffPanel.jsx`);
   assert.match(staff, /loadSeqRef\.current \+= 1;/);
   assert.match(staff, /if \(seq !== loadSeqRef\.current\) return;/);
@@ -1590,16 +1593,16 @@ test('the Staff panel surfaces a degraded permission list and a capped roster', 
   const src = await read(`${COMPONENT_DIR}StaffPanel.jsx`);
   assert.match(src, /permissionsDegraded/);
   assert.match(src, /staffMeta && staffMeta\.truncated/);
-  const index = await read(INDEX);
-  assert.match(index, /permissionsDegraded=\{operatorDegraded\}/);
-  assert.match(index, /operator\.degraded === true/);
+  const index = await readFile(new URL(INDEX, ROOT), 'utf8');
+  assert.match(index, /permissionsDegraded=\{permissionsDegraded\}/);
+  assert.match(index, /body\?\.operator\?\.degraded === true/);
 });
 
 test('the Mint dialog is handed the route\'s aloneRule', async () => {
-  const index = await read(INDEX);
+  const index = await readFile(new URL(INDEX, ROOT), 'utf8');
   const mint = await read(`${COMPONENT_DIR}MintPanel.jsx`);
-  assert.match(index, /setOperatorAloneRule\(body && body\.aloneRule \? body\.aloneRule : null\)/);
-  assert.match(index, /aloneRule=\{operatorAloneRule\}/);
+  assert.match(index, /aloneRule: body\?\.aloneRule \|\| null/);
+  assert.match(index, /aloneRule=\{aloneRule\}/);
   assert.match(mint, /thresholdDecision\(\{ policy, kind: 'mint', amount, asset: form\.asset, aloneRule \}\)/);
   // And the 202 jump is only offered when that tab is in this nav.
   assert.match(index, /approvalsAvailable=\{navTabs\.some\(\(tab\) => tab\.id === 'approvals'\)\}/);
@@ -1607,7 +1610,7 @@ test('the Mint dialog is handed the route\'s aloneRule', async () => {
 });
 
 test('the Trail dialog renders through trailActor', async () => {
-  const src = await read(INDEX);
+  const src = await read(`${COMPONENT_DIR}AuditPanel.jsx`);
   assert.match(src, /trailActor\(row\)\.label/);
   assert.match(src, /trailActor\(row\)\.role/);
 });

@@ -32,7 +32,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const SRC = fs.readFileSync(path.join(ROOT, 'pages/horses/hand-reviews.js'), 'utf8');
+const SRC = fs.readFileSync(path.join(ROOT, 'src/components/horses/HandReviewsPanel.jsx'), 'utf8');
 
 // ── The logic, mirrored exactly from the page ────────────────────────────
 const RANK = { critical: 0, warn: 1, info: 2 };

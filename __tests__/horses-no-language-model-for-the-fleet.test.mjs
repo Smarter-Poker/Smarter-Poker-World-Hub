@@ -59,9 +59,9 @@ const read = (p) => readFile(at(p), 'utf8');
 /** Every file that renders or accepts a /horses setting. */
 const CONSOLE_SOURCES = [
   'pages/horses/index.js',
-  'pages/horses/sql-console.js',
-  'pages/horses/hg-moderation.js',
-  'pages/horses/hand-reviews.js',
+  'src/components/horses/SqlConsolePanel.jsx',
+  'src/components/horses/HgModerationPanel.jsx',
+  'src/components/horses/HandReviewsPanel.jsx',
   'src/components/horses/FleetPanel.jsx',
   'src/components/horses/StaffPanel.jsx',
   'src/components/horses/ApprovalsPanel.jsx',

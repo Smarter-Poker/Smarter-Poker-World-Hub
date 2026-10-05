@@ -52,9 +52,12 @@ test('Phase 7 source parses and contains no forbidden copy', async () => {
 
 test('Economy and Mint are code split and the legacy monolith got shorter', async () => {
   const registry = await read('src/components/horses/tabRegistry.js');
+  const panels = await read('src/components/horses/dynamicPanels.js');
   const index = await read('pages/horses/index.js');
-  assert.match(registry, /id: 'economy'[\s\S]*?import\('\.\/EconomyPanel'\)/);
-  assert.match(registry, /id: 'mint'[\s\S]*?import\('\.\/MintPanel'\)/);
+  assert.match(registry, /id: 'economy'/);
+  assert.match(registry, /id: 'mint'/);
+  assert.match(panels, /const EconomyPanel = dynamic\(\(\) => import\('\.\/EconomyPanel'\)/);
+  assert.match(panels, /const MintPanel = dynamic\(\(\) => import\('\.\/MintPanel'\)/);
   assert.ok(index.split('\n').length < 8118);
   assert.doesNotMatch(index, /<h2>Diamond Economy<\/h2>/);
 });
