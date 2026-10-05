@@ -1111,7 +1111,14 @@ export default function PlayersPanel({
               ))}
             </select>
             <p className={styles.fieldHint}>{SCOPE_META[restrictDraft.scope]?.blurb}</p>
-            {SCOPE_META[restrictDraft.scope]?.enforced === false && (
+            {SCOPE_META[restrictDraft.scope]?.partial === true && (
+              <div className={styles.warnNote}>
+                Cash Games And Tournament Entry Are Guarded. Transfers And Social Are Recorded
+                Only, Even When Enforcement Is On.
+              </div>
+            )}
+            {SCOPE_META[restrictDraft.scope]?.enforced === false
+              && SCOPE_META[restrictDraft.scope]?.partial !== true && (
               <div className={styles.warnNote}>
                 No Guard Watches This Scope Yet. Choosing It Records The Decision And Stops
                 Nothing, Even When Enforcement Is On.

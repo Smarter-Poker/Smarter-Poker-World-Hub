@@ -6,7 +6,7 @@ import { useRouter } from 'next/router';
 import { eventBus, EventType } from '../../src/engine/EventBus';
 import { T, toCsv, downloadCsv, stampedName } from '../../src/lib/horsesAdminTokens';
 import { operatorGate } from '../../src/components/horses/operatorAdmin';
-import { readJsonBody } from '../../src/components/horses/useOperatorFetch';
+import { readJsonBody, withRequestTimeout } from '../../src/components/horses/useOperatorFetch';
 import styles from './horses.module.css';
 
 // COLOUR. Every value comes from T, which is a set of var() strings resolved
@@ -153,21 +153,27 @@ export default function OmnichannelSQLConsole() {
             // asks GET operator-admin?section=policy with the bearer: 200 is
             // an operator, 401/403 is a refusal, and anything else is "could
             // not verify" - which is neither, so it gets the retry screen.
-            const token = await getFreshAccessToken();
-            if (!token) {
+            try {
+                const decision = await withRequestTimeout(async () => {
+                    const token = await getFreshAccessToken();
+                    if (!token) return { signedOut: true };
+                    return { gate: await operatorGate(token) };
+                });
+                if (decision.signedOut) {
+                    router.push('/auth/login?redirect=/horses/sql-console');
+                } else if (decision.gate.ok) {
+                    setIsAdmin(true);
+                } else if (decision.gate.denied) {
+                    router.push('/');
+                } else {
+                    setAuthError('Could Not Verify Your Role: ' + decision.gate.error);
+                }
+            } catch (error) {
+                console.warn('SQL console operator verification failed', error);
+                setAuthError('Could Not Verify Your Role. Retry The Check.');
+            } finally {
                 setLoadingConfig(false);
-                router.push('/auth/login?redirect=/horses/sql-console');
-                return;
             }
-            const gate = await operatorGate(token);
-            if (gate.ok) {
-                setIsAdmin(true);
-            } else if (gate.denied) {
-                router.push('/');
-            } else {
-                setAuthError('Could Not Verify Your Role: ' + gate.error);
-            }
-            setLoadingConfig(false);
         };
         verifyAuth();
 
@@ -233,27 +239,32 @@ export default function OmnichannelSQLConsole() {
         pushHistory(sqlQuery);
 
         try {
-            const token = await getFreshAccessToken();
-            if (!token) {
+            const outcome = await withRequestTimeout(async (signal) => {
+                const token = await getFreshAccessToken();
+                if (!token) return { signedOut: true };
+                const body = confirmValue === null ? { sql: sqlQuery } : { sql: sqlQuery, confirm: confirmValue };
+                const res = await fetch('/api/admin/execute-sql', {
+                    method: 'POST',
+                    signal,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify(body)
+                });
+
+                // NEVER res.json() BLIND. A 502 or 504 from the platform is an
+                // HTML page, and parsing it threw a SyntaxError into the catch,
+                // so the operator read a parser failure instead of the status.
+                // readJsonBody answers {} for a body that is not JSON, and it
+                // stays inside the same deadline as auth and response headers.
+                return { res, data: await readJsonBody(res) };
+            });
+            if (outcome.signedOut) {
                 setResult({ status: 401, data: { success: false, error: 'Session Expired. Refresh The Page Or Sign In Again.' } });
                 return;
             }
-            const body = confirmValue === null ? { sql: sqlQuery } : { sql: sqlQuery, confirm: confirmValue };
-            const res = await fetch('/api/admin/execute-sql', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify(body)
-            });
-
-            // NEVER res.json() BLIND. A 502 or 504 from the platform is an
-            // HTML page, and parsing it threw a SyntaxError into the catch,
-            // so the operator read "Unexpected token <" instead of the status.
-            // readJsonBody is the console's own reader and answers {} for a
-            // body that is not JSON.
-            const data = await readJsonBody(res);
+            const { res, data } = outcome;
             if (!res.ok) {
                 // The route's own sentence where it sent one, the status where
                 // it did not.
@@ -277,12 +288,14 @@ export default function OmnichannelSQLConsole() {
             if (data.success && data.committed && data.mutating) {
                 try {
                     eventBus.emit(EventType.DATA_MUTATED, { source: SELF_EMIT_TAG }, 'SQLConsole');
-                } catch (e) {
-                    console.warn('Failed to emit mutation event:', e);
+                } catch {
+                    // The committed server result remains authoritative when
+                    // this best-effort local refresh signal is unavailable.
                 }
             }
         } catch (err) {
-            setResult({ status: 500, data: { success: false, error: err.message } });
+            console.warn('SQL console request failed', err);
+            setResult({ status: 500, data: { success: false, error: 'The SQL Request Could Not Be Completed. Retry.' } });
         } finally {
             setIsRunning(false);
         }

@@ -21,6 +21,7 @@
 
 import { useState, useEffect } from 'react';
 import { createClient } from '@supabase/supabase-js';
+import consoleStyles from '../../src/components/admin/OperatorAdminSurface.module.css';
 
 /**
  * [2026-07-25] REACHABILITY FIX — same as /admin/auth-health: browsers never
@@ -64,7 +65,7 @@ export async function getServerSideProps({ req, res }) {
 }
 
 function statusBadge(status) {
-    const colors = { ok: '#22c55e', warn: '#eab308', degraded: '#ef4444', failed: '#ef4444', partial: '#f59e0b' };
+    const colors = { ok: '#166534', warn: '#713f12', degraded: '#991b1b', failed: '#991b1b', partial: '#78350f' };
     return (
         <span style={{
             background: colors[status] || '#6b7280',
@@ -151,17 +152,17 @@ export default function SignupHealthDashboard(props) {
     const { loading, health, heartbeats, errors, error, generatedAt } = state;
     if (loading) {
         return (
-            <main style={S.page}>
+            <main className={consoleStyles.surface} style={S.page}>
                 <h1 style={S.h1}>Signup Health</h1>
-                <div style={S.errBox}>Loading…</div>
+                <div className={consoleStyles.state} style={S.errBox} role="status">Loading...</div>
             </main>
         );
     }
     if (error) {
         return (
-            <main style={S.page}>
+            <main className={consoleStyles.surface} style={S.page}>
                 <h1 style={S.h1}>Signup Health</h1>
-                <div style={S.errBox}>{error}</div>
+                <div className={consoleStyles.state} style={S.errBox} role="alert">{error}</div>
             </main>
         );
     }
@@ -176,20 +177,20 @@ export default function SignupHealthDashboard(props) {
     })();
 
     return (
-        <main style={S.page}>
+        <main className={consoleStyles.surface} style={S.page}>
             <header style={S.header}>
                 <div>
                     <h1 style={S.h1}>Signup Health</h1>
                     <p style={S.p}>
                         Generated {fmtAge(generatedAt)}. Reload To Refresh.
-                        {' '}<a href="/admin/signup-health" style={S.link}>↻</a>
+                        {' '}<a href="/admin/signup-health" style={S.link}>Refresh</a>
                     </p>
                 </div>
                 <div style={{ fontSize: 24, fontWeight: 600 }}>{statusBadge(dashboardStatus)}</div>
             </header>
 
             {health && (
-                <section style={S.section}>
+                <section className={consoleStyles.panel} style={S.section}>
                     <h2 style={S.h2}>Counts</h2>
                     <div style={S.grid}>
                         <Stat label="Real signups (15m)" value={health.new_users_15m} hint="excludes probes" />
@@ -209,11 +210,12 @@ export default function SignupHealthDashboard(props) {
                 </section>
             )}
 
-            <section style={S.section}>
+            <section className={consoleStyles.panel} style={S.section}>
                 <h2 style={S.h2}>Recent Probe Heartbeats (Last 20)</h2>
                 {heartbeats.length === 0 ? (
                     <p style={S.p}>No Heartbeats Recorded Yet. Wait For The Cron To Fire (5-15 Min After First Deploy).</p>
                 ) : (
+                    <div className={consoleStyles.tableWell} tabIndex={0} role="region" aria-label="Recent Probe Heartbeats">
                     <table style={S.table}>
                         <thead>
                             <tr>
@@ -234,14 +236,16 @@ export default function SignupHealthDashboard(props) {
                             ))}
                         </tbody>
                     </table>
+                    </div>
                 )}
             </section>
 
-            <section style={S.section}>
+            <section className={consoleStyles.panel} style={S.section}>
                 <h2 style={S.h2}>Recent Signup_Errors (Last 50)</h2>
                 {errors.length === 0 ? (
-                    <p style={{ ...S.p, color: '#22c55e' }}>✓ No Trigger Errors Logged. Signups Are Flowing Cleanly Through All 3 Triggers.</p>
+                    <p style={{ ...S.p, color: '#65e8aa' }}>No Trigger Errors Logged. Signups Are Flowing Cleanly Through All 3 Triggers.</p>
                 ) : (
+                    <div className={consoleStyles.tableWell} tabIndex={0} role="region" aria-label="Recent Signup Errors">
                     <table style={S.table}>
                         <thead>
                             <tr>
@@ -262,10 +266,11 @@ export default function SignupHealthDashboard(props) {
                             ))}
                         </tbody>
                     </table>
+                    </div>
                 )}
             </section>
 
-            <footer style={{ marginTop: 40, paddingTop: 16, borderTop: '1px solid #2a3a4a', color: '#6b7280', fontSize: 12 }}>
+            <footer style={{ marginTop: 40, paddingTop: 16, borderTop: '1px solid #2a3a4a', color: '#aabcc4', fontSize: 12 }}>
                 Backed By <code>Public.Signup_Health_View</code>, <code>Public.Probe_Heartbeats</code>, <code>Public.Signup_Errors</code>.
                 {' '}Runbook: <a href="/docs/SIGNUP_RUNBOOK.md" style={S.link}>SIGNUP_RUNBOOK.Md</a>
             </footer>
@@ -275,15 +280,15 @@ export default function SignupHealthDashboard(props) {
 
 function Stat({ label, value, alert, hint }) {
     return (
-        <div style={{
+        <div className={consoleStyles.metric} style={{
             background: alert ? 'rgba(239,68,68,0.15)' : '#1a2433',
             border: alert ? '1px solid rgba(239,68,68,0.5)' : '1px solid #2a3a4a',
             borderRadius: 8,
             padding: 16,
         }}>
-            <div style={{ fontSize: 11, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: 0.5 }}>{label}</div>
+            <div style={{ fontSize: 12, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: 0.5 }}>{label}</div>
             <div style={{ fontSize: 28, fontWeight: 600, color: alert ? '#ef4444' : '#fff', marginTop: 4 }}>{value ?? '-'}</div>
-            {hint && <div style={{ fontSize: 11, color: '#6b7280', marginTop: 4 }}>{hint}</div>}
+            {hint && <div style={{ fontSize: 12, color: '#aabcc4', marginTop: 4 }}>{hint}</div>}
         </div>
     );
 }
@@ -297,7 +302,7 @@ const S = {
     section: { marginBottom: 32, padding: 24, background: '#0d1f35', borderRadius: 12, border: '1px solid #1e293b' },
     grid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 12 },
     table: { width: '100%', borderCollapse: 'collapse', fontSize: 13 },
-    th: { textAlign: 'left', padding: '8px 12px', borderBottom: '1px solid #2a3a4a', color: '#9ca3af', fontWeight: 500, fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5 },
+    th: { textAlign: 'left', padding: '8px 12px', borderBottom: '1px solid #2a3a4a', color: '#9ca3af', fontWeight: 500, fontSize: 12, textTransform: 'uppercase', letterSpacing: 0.5 },
     td: { padding: '8px 12px', borderBottom: '1px solid #1e293b' },
     link: { color: '#00D4FF', textDecoration: 'none' },
     errBox: { padding: 16, background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.5)', borderRadius: 8, color: '#fca5a5' },
