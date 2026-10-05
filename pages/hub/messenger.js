@@ -29,6 +29,7 @@ import { eventBus, EventType, busEmit } from '../../src/engine/EventBus';
 import useTrainingBus from '../../src/hooks/useTrainingBus';
 import useMessengerSearch from '../../src/hooks/useMessengerSearch';
 import { resolveMessengerClubEntry } from '../../src/lib/messengerClubEntry.mjs';
+import { organizeConversations } from '../../src/lib/messengerOrganization.mjs';
 import { createMessengerSendOperation, restoreMessengerSendOperations, messengerOperationMessage,
     mergeMessengerPendingMessages, reconcileMessengerMessage, acknowledgeMessengerSend,
     performMessengerSend, saveMessengerSendOperation } from '../../src/lib/messengerSendOperation.mjs';
@@ -398,14 +399,6 @@ function MessengerPage() {
     const [callType, setCallType] = useState('video'); // 'audio' or 'video'
     const [callRoomName, setCallRoomName] = useState('');
     const [showUserInfo, setShowUserInfo] = useState(false);
-    const [showPushPrompt, setShowPushPrompt] = useState(false);
-
-    const [pushPromptHandled, setPushPromptHandled] = useState(() => {
-        if (typeof window !== 'undefined') {
-            return localStorage.getItem('messenger_push_prompt_handled') === '1';
-        }
-        return false;
-    });
     // Editing State
     const [editingMessage, setEditingMessage] = useState(null); // message being edited
     const [editText, setEditText] = useState('');
@@ -501,7 +494,7 @@ function MessengerPage() {
     const [showScrollDown, setShowScrollDown] = useState(false);
 
     // OneSignal Push Notifications
-    const { isInitialized: pushReady, isSubscribed: pushSubscribed, subscribe: subscribePush, setExternalUserId } = useOneSignal();
+    const { isInitialized: pushReady, subscribe: subscribePush } = useOneSignal();
 
     // Dark Mode detection & theme override
     useEffect(() => {
@@ -525,11 +518,22 @@ function MessengerPage() {
 
     // Preference update handler with Supabase sync
     const updatePreference = async (key, value) => {
+        const previous = preferences;
         const updated = { ...preferences, [key]: value };
         setPreferences(updated);
-        await messengerPreferences.update(user?.id, { [key]: value });
+        try {
+            await messengerPreferences.update(user?.id, { [key]: value });
+        } catch (error) {
+            // A persisted delivery setting must never be shown as changed when
+            // the write failed. Restore the previous account-confirmed value.
+            setPreferences(previous);
+            setToast({ type: 'error', message: 'Could Not Save Notification Preference' });
+            return;
+        }
 
-        // 📲 PUSH NOTIFICATIONS: Hook toggle into OneSignal subscribe/unsubscribe
+        // The persisted messenger_alerts setting now governs delivery. Enabling
+        // it can enroll this device; disabling it leaves the subscription in
+        // place but the server gate suppresses Messenger alerts on every device.
         if (key === 'notifications') {
             if (value && pushReady && subscribePush) {
                 try {
@@ -3038,98 +3042,6 @@ function MessengerPage() {
         return () => window.removeEventListener('message', handleParentMessage);
     }, [conversations, router.query.hideHeader]);
 
-    // 📲 Link OneSignal to user ID for push notifications
-    useEffect(() => {
-        let cancelled = false;
-        let promptTimer = null;
-
-        if (user?.id && pushReady && setExternalUserId) {
-            // Link user's Supabase ID to OneSignal for targeted notifications
-            setExternalUserId(user.id);
-
-            // Check Supabase for cross-device persistence (if localStorage missed it)
-            if (!pushPromptHandled && !pushSubscribed) {
-                supabase.from('profiles').select('messenger_preferences').eq('id', user.id).maybeSingle().then(({ data }) => {
-                    if (cancelled) return;
-                    if (data?.messenger_preferences?.pushPromptHandled) {
-                        setPushPromptHandled(true);
-                        try { localStorage.setItem('messenger_push_prompt_handled', '1'); } catch (e) { console.warn('[App] Handled exception:', e); }
-                        return;
-                    }
-                    // User hasn't handled it — show prompt after 3s delay
-                    promptTimer = setTimeout(() => {
-                        if (!cancelled) setShowPushPrompt(true);
-                    }, 3000);
-                });
-            }
-        }
-
-        return () => {
-            cancelled = true;
-            if (promptTimer) clearTimeout(promptTimer);
-        };
-    }, [user?.id, pushReady, pushSubscribed, pushPromptHandled, setExternalUserId]);
-
-    /**
-     * Persist "the user has answered the push prompt" everywhere it is read:
-     * local state, localStorage, and profiles.messenger_preferences. The RPC is
-     * an atomic JSONB merge; the fallback is a read-modify-write, which is only
-     * safe here because this flag is one-way (false -> true).
-     */
-    const persistPushPromptHandled = useCallback(async () => {
-        setPushPromptHandled(true);
-        try {
-            localStorage.setItem('messenger_push_prompt_handled', '1');
-        } catch (e) {
-            console.warn('[Messenger] push prompt localStorage write failed:', e?.message || e);
-        }
-        if (!user?.id) return;
-        try {
-            const { error } = await supabase.rpc('fn_merge_messenger_preferences', {
-                p_user_id: user.id,
-                p_key: 'pushPromptHandled',
-                p_value: true,
-            });
-            if (!error) return;
-            throw error;
-        } catch (_) {
-            try {
-                const { data: cur } = await supabase
-                    .from('profiles')
-                    .select('messenger_preferences')
-                    .eq('id', user.id)
-                    .maybeSingle();
-                const merged = { ...(cur?.messenger_preferences || {}), pushPromptHandled: true };
-                const { error: prefErr } = await supabase
-                    .from('profiles')
-                    .update({ messenger_preferences: merged })
-                    .eq('id', user.id);
-                if (prefErr) {
-                    console.warn('[Messenger] push prompt pref persist failed:', prefErr.message);
-                }
-            } catch (e2) {
-                console.warn('[Messenger] push prompt pref persist failed:', e2?.message || e2);
-            }
-        }
-    }, [user?.id]);
-
-    const handlePushEnable = useCallback(async () => {
-        let success = false;
-        try {
-            if (subscribePush) success = await subscribePush();
-        } catch (e) {
-            console.warn('[Messenger] push subscribe failed:', e?.message || e);
-        }
-        await persistPushPromptHandled();
-        setShowPushPrompt(false);
-        if (success) setToast({ type: 'success', message: 'Push Notifications Enabled' });
-    }, [subscribePush, persistPushPromptHandled]);
-
-    const handlePushDismiss = useCallback(async () => {
-        await persistPushPromptHandled();
-        setShowPushPrompt(false);
-    }, [persistPushPromptHandled]);
-
     const enterClubWorkspace = (club, folder = 'messages') => {
         if (!club || !joinedClubs.some(c => c.id === club.id)) return;
         setWorkspaceSelection({ clubId: club.id, folder: folder === 'invoices' ? 'invoices' : 'messages' });
@@ -3689,17 +3601,6 @@ function MessengerPage() {
             {/* Toast Notifications */}
             <Toast toast={toast} onDismiss={() => setToast(null)} theme={C} />
 
-            {/* Push Notification Subscription Banner */}
-            {showPushPrompt && !pushSubscribed && (
-                <PushPromptModal
-                    setShowPushPrompt={setShowPushPrompt}
-                    onEnable={handlePushEnable}
-                    onDismiss={handlePushDismiss}
-                    C={C}
-                    isMobile={isMobile}
-                />
-            )}
-
             {/* Ringing Audio for Incoming Calls */}
             <audio
                 ref={incomingCallAudioRef}
@@ -4188,30 +4089,10 @@ function MessengerPage() {
                             </div>
                         ) : (
                             <>                                {/* Regular Conversations */}
-                                {conversations.filter(conv => {
-                                    // ITEM 13 (2026-09-08): ?filter=unread was a
-                                    // hamburger row that landed on the identical
-                                    // default inbox, because nothing here read the
-                                    // param. Now it does.
-                                    if (router.query.filter === 'unread'
-                                        && !(Number(conv.unreadCount) > 0)) return false;
-                                    if (!searchQuery) return true;
-                                    const q = searchQuery.toLowerCase();
-                                    const otherName = conv.otherUser?.full_name?.toLowerCase() || '';
-                                    const otherDisplayName = conv.otherUser?.display_name?.toLowerCase() || '';
-                                    const otherUsername = conv.otherUser?.username?.toLowerCase() || '';
-                                    // Group threads have no other user, so matching on
-                                    // names alone hid them the moment anything was typed.
-                                    const groupTitle = (conv.title || conv.group_name || '').toLowerCase();
-                                    return otherName.includes(q) || otherDisplayName.includes(q)
-                                        || otherUsername.includes(q) || groupTitle.includes(q);
-                                }).sort((a, b) => {
-                                    // Pinned conversations always sort to top (using localStorage-backed state)
-                                    const aPinned = pinnedConvoIds.includes(a.id);
-                                    const bPinned = pinnedConvoIds.includes(b.id);
-                                    if (aPinned && !bPinned) return -1;
-                                    if (!aPinned && bPinned) return 1;
-                                    return 0; // Preserve existing chronological order
+                                {organizeConversations(conversations, {
+                                    pinnedIds: pinnedConvoIds,
+                                    unreadOnly: router.query.filter === 'unread',
+                                    query: searchQuery,
                                 }).map(conv => (
                                     <ConversationItem
                                         key={conv.id}
@@ -4966,7 +4847,6 @@ function MessengerPage() {
     );
 }
 
-const PushPromptModal = dynamic(() => import('../../src/components/messenger/modals/PushPromptModal'), { ssr: false });
 export default function MessengerPageWithBoundary() {
     return (
         <HubErrorBoundary name="Messenger">

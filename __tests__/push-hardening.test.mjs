@@ -28,6 +28,7 @@ import {
     LEGACY_PREF_COLUMN,
     LEGACY_PREF_COLUMNS,
     legacyPrefAllowed,
+    eventToTypeKey,
 } from '../src/lib/push/push-prefs.js';
 import { gateDecision } from '../src/lib/push/push-gate.js';
 
@@ -117,4 +118,27 @@ test('daily challenge pushes honour Club Arena daily mission reminders', () => {
         allowed: false,
         reason: 'legacy_disabled:daily_challenge',
     });
+});
+
+test('Messenger sends honour both current and legacy message opt-outs', () => {
+    // notifyNewMessage emits `new_message`; this exact key must reach the
+    // shared gate so the preference controls in both settings surfaces remain
+    // a real promise rather than a display-only toggle.
+    assert.equal(eventToTypeKey('new_message'), 'new_message');
+    assert.equal(LEGACY_PREF_COLUMN.new_message, 'messenger_alerts');
+
+    assert.deepEqual(
+        gateDecision(
+            { prefs: { push_type_prefs: { new_message: false } }, legacy: null },
+            'new_message'
+        ),
+        { allowed: false, reason: 'type_disabled:new_message' }
+    );
+    assert.deepEqual(
+        gateDecision(
+            { prefs: null, legacy: { messenger_alerts: false } },
+            'new_message'
+        ),
+        { allowed: false, reason: 'legacy_disabled:new_message' }
+    );
 });

@@ -92,6 +92,27 @@ test('settlement without a union falls back to the club settlement page', () => 
     assert.equal(route({ type: 'settlement', data: { club_id: 'c1' } }), '/hub/club-arena/clubs/c1/settlement');
 });
 
+test('an accounting invoice without a stored URL still opens its exact verified conversation', () => {
+    assert.equal(
+        route({ type: 'accounting_invoice', data: { conversationId: 'invoice-thread-1', club_id: 'club-1' } }),
+        '/hub/messenger?conversation=invoice-thread-1'
+    );
+});
+
+test('an accounting invoice without a conversation falls back to its joined-club invoice inbox', () => {
+    assert.equal(
+        route({ type: 'accounting_invoice', data: { club_id: 'club 1' } }),
+        '/hub/messenger?clubId=club%201&folder=invoices'
+    );
+});
+
+test('realtime Messenger alert aliases retain their conversation destination', () => {
+    assert.equal(
+        route({ type: 'messenger_message', data: { conversation_id: 'thread-1' } }),
+        '/hub/messenger?conversation=thread-1'
+    );
+});
+
 // ── Social people ────────────────────────────────────────────────────────
 test('friend_request opens the requester profile once enrichment ran', () => {
     assert.equal(

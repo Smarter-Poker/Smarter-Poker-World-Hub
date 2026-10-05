@@ -199,9 +199,20 @@ export function resolveNotificationRoute(n) {
     }
 
     // ── 7. Messaging ──────────────────────────────────────────────────
-    if (t === 'message' || t === 'direct_message' || t === 'new_message') {
+    // Accounting delivery normally includes action_url, but a realtime insert
+    // and older rows can reach a notification surface before that field is
+    // present. Keep their exact conversation destination in the same verified
+    // Messenger path as ordinary messages. Messenger resolves that link using
+    // the current account and club membership, so a deleted conversation or
+    // revoked invoice never becomes access through an old notification.
+    if (t === 'message' || t === 'messenger_message' || t === 'direct_message'
+        || t === 'new_message' || t === 'missed_call' || t === 'accounting_invoice') {
         const convo = pick(d, 'conversation_id', 'conversationId', 'thread_id');
         if (convo) return `/hub/messenger?conversation=${convo}`;
+        if (t === 'accounting_invoice') {
+            const clubId = pick(d, 'club_id', 'clubId');
+            if (clubId) return `/hub/messenger?clubId=${seg(clubId)}&folder=invoices`;
+        }
         return '/hub/messenger';
     }
 
