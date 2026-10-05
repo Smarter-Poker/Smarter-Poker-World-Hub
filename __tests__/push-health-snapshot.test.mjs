@@ -73,7 +73,9 @@ function pageHtml(data,error=null) {
  let index=0;const react={...React,useState:()=>[index++===0?data:error,()=>{}],useEffect:()=>{}};
  const Page=compile('../pages/admin/push-health.js',name=>{
   if(name==='react')return react;if(name==='next/head')return ({children})=>React.createElement(React.Fragment,null,children);
-  if(name.endsWith('usePushHealth'))return ()=>({data,error});throw Error(name);
+  if(name.endsWith('usePushHealth'))return ()=>({data,error});
+  if(name.endsWith('OperatorAdminSurface.module.css'))return new Proxy({}, {get:(_target,key)=>String(key)});
+  throw Error(name);
  },React);return renderToStaticMarkup(Page());
 }
 test('rendered dashboard does not present old healthy totals after an error',()=>{const html=pageHtml({...snapshot(),config:{configured:true,keyMatches:true}},'Push Health Is Unavailable.');assert.match(html,/Push Health Is Unavailable/);assert.doesNotMatch(html,/VAPID configured|Queue backlog|6007/);});
