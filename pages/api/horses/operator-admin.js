@@ -1168,6 +1168,7 @@ async function executeApproval(db, op, req, approvalId, { via = 'execute_approva
     });
     throw new ApiError(409, `${shaped.message}. Nothing Moved`, shaped.reason);
   }
+  if (shaped.summary?.chipRequestId) requirePermission(op, PERMISSIONS.CASHIER_WRITE);
 
   const { data: result, error: rpcErr } = await db.rpc(shaped.rpc, shaped.args);
   if (rpcErr) {
@@ -1340,6 +1341,7 @@ async function recordExecutionExpiry(db, op, req, row, { via }) {
       );
     }
   } catch (err) {
+    marked = false;
     console.error(
       `[horses.operator-admin] could not mark approval ${row.id} expired:`,
       err?.message || err

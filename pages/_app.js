@@ -267,6 +267,7 @@ const TRAINING_STANDALONE_ART_IDS = new Set([
 // is deliberately regression-tested because unrelated route-shell work must
 // never remove global navigation from legacy and dynamic Hub pages again.
 const HUB_ROUTES_WITHOUT_SHARED_HEADER = new Set([
+  '/hub/admin',
   '/hub/admin/autofix',
   '/hub/admin/diamond-liability',
   '/hub/commander',

@@ -468,10 +468,45 @@ test('the sub-pages keep their retry screen for a failed check and send a denial
 test('sql-console never calls res.json() blind', async () => {
   const src = await read(SQL);
   const code = codeOnly(src);
-  assert.match(src, /import \{ readJsonBody \} from '\.\.\/\.\.\/src\/components\/horses\/useOperatorFetch';/);
-  assert.match(code, /const data = await readJsonBody\(res\);/);
+  assert.match(src, /import \{ readJsonBody, withRequestTimeout \} from '\.\.\/\.\.\/src\/components\/horses\/useOperatorFetch';/);
+  assert.match(code, /data: await readJsonBody\(res\)/);
   assert.ok(!code.includes('await res.json()'), 'no blind res.json()');
   assert.match(code, /`Request Failed \(\$\{res\.status\}\)`/);
+});
+
+test('hand reviews cancel superseded reads, scrub database errors and state the binding retention law', async () => {
+  const src = await read(HAND);
+  assert.match(src, /function beginRead\(reads, key\)/);
+  assert.match(src, /previous\?\.controller\) previous\.controller\.abort\(\)/);
+  assert.match(src, /function isCurrentRead\(reads, key, request\)/);
+  assert.match(src, /withRequestTimeout\(/, 'auth and every review read must have a deadline');
+  assert.match(src, /finally \{\s*if \(isCurrentRead\(readsRef, 'rows', request\)\) setBusy\(false\);/,
+    'the active row read must always release its spinner');
+  assert.doesNotMatch(src, /set[A-Za-z]+Error\([^\n]*\.message\)/,
+    'raw database messages must not be rendered to an operator');
+  assert.match(src, /Horse-Only Hand History Is Kept Seven Days\. Human Hand History Is Kept Indefinitely\./);
+  assert.doesNotMatch(src, /Raw Hands Kept 30 Days; Rollups Permanent/);
+  const failedBatch = src.slice(src.indexOf("const message = safeReadMessage('Audit Feeds', error)"), src.indexOf('}, []);', src.indexOf("const message = safeReadMessage('Audit Feeds', error)")));
+  for (const setter of [
+    'setAuditsError', 'setTelemetryError', 'setLedgerError', 'setLeagueError',
+    'setTagTrendsError', 'setTourneyError', 'setFreqError', 'setAgreeError',
+    'setAgreeDecisionsError', 'setCertificationError',
+  ]) {
+    assert.match(failedBatch, new RegExp(`${setter}\\(message\\)`),
+      `${setter} must show the shared batch failure rather than stale or empty data`);
+  }
+});
+
+test('sql-console puts token refresh, fetch and body read under one deadline', async () => {
+  const src = await read(SQL);
+  const run = src.slice(src.indexOf('const runQuery = async'), src.indexOf('const handleExecute'));
+  const bound = run.indexOf('withRequestTimeout(async (signal) => {');
+  assert.ok(bound >= 0);
+  assert.ok(run.indexOf('await getFreshAccessToken()', bound) > bound);
+  assert.ok(run.indexOf("await fetch('/api/admin/execute-sql'", bound) > bound);
+  assert.ok(run.indexOf('await readJsonBody(res)', bound) > bound);
+  assert.match(run, /signal,/);
+  assert.doesNotMatch(run, /error: err\.message/);
 });
 
 // ── House rules over every file this pass touched ───────────────────────────

@@ -17,6 +17,7 @@
  */
 import { useCallback, useEffect, useState } from 'react';
 import Head from 'next/head';
+import consoleStyles from '../../../src/components/admin/OperatorAdminSurface.module.css';
 
 // ── Palette (same tokens as src/components/diamond-store/diamondStoreStyles) ──
 const C = {
@@ -26,7 +27,7 @@ const C = {
     border: 'rgba(255, 255, 255, 0.1)',
     text: '#E4E6EB',
     dim: 'rgba(255, 255, 255, 0.6)',
-    faint: 'rgba(255, 255, 255, 0.4)',
+    faint: 'rgba(255, 255, 255, 0.72)',
     cyan: '#00D4FF',
     green: '#00ff88',
     gold: '#FFD700',
@@ -52,6 +53,7 @@ function readLocalAccessToken() {
 function Panel({ title, subtitle, children, accent }) {
     return (
         <section
+            className={consoleStyles.panel}
             style={{
                 background: C.panel,
                 border: `1px solid ${accent || C.border}`,
@@ -77,6 +79,7 @@ function Panel({ title, subtitle, children, accent }) {
 function MoneyStat({ label, usdValue, diamonds, color, hint, big }) {
     return (
         <div
+            className={consoleStyles.metric}
             style={{
                 background: C.panelSoft,
                 border: `1px solid ${C.border}`,
@@ -85,7 +88,7 @@ function MoneyStat({ label, usdValue, diamonds, color, hint, big }) {
                 minWidth: 0,
             }}
         >
-            <div style={{ fontSize: 11, color: C.dim, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>
+            <div style={{ fontSize: 12, color: C.dim, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>
                 {label}
             </div>
             <div
@@ -103,14 +106,14 @@ function MoneyStat({ label, usdValue, diamonds, color, hint, big }) {
             {diamonds !== undefined && diamonds !== null && (
                 <div style={{ fontSize: 12, color: C.faint, marginTop: 6 }}>{num(diamonds)} &#9670;</div>
             )}
-            {hint && <div style={{ fontSize: 11, color: C.faint, marginTop: 6 }}>{hint}</div>}
+            {hint && <div style={{ fontSize: 12, color: C.faint, marginTop: 6 }}>{hint}</div>}
         </div>
     );
 }
 
 function Grid({ children, min = 200 }) {
     return (
-        <div style={{ display: 'grid', gridTemplateColumns: `repeat(auto-fit, minmax(${min}px, 1fr))`, gap: 12 }}>
+        <div className={consoleStyles.responsiveGrid} style={{ display: 'grid', gridTemplateColumns: `repeat(auto-fit, minmax(${min}px, 1fr))`, gap: 12 }}>
             {children}
         </div>
     );
@@ -136,6 +139,8 @@ function Message({ tone, title, children }) {
     const color = tone === 'error' ? C.red : tone === 'warn' ? C.gold : C.cyan;
     return (
         <div
+            className={`${consoleStyles.state} ${consoleStyles.panel}`}
+            role={tone === 'error' ? 'alert' : 'status'}
             style={{
                 background: C.panel,
                 border: `1px solid ${color}`,
@@ -198,9 +203,9 @@ export default function DiamondLiabilityDashboard() {
                 <title>Diamond Liability | Admin | Smarter.Poker</title>
                 <meta name="robots" content="noindex, nofollow" />
             </Head>
-            <div style={{ minHeight: '100vh', background: C.bg, color: C.text, fontFamily: 'Inter, -apple-system, sans-serif' }}>
-                <div style={{ maxWidth: 1180, margin: '0 auto', padding: '28px 20px 80px' }}>{body}</div>
-            </div>
+            <main className={consoleStyles.surface} style={{ minHeight: '100vh', background: C.bg, color: C.text, fontFamily: 'Inter, -apple-system, sans-serif' }}>
+                <div style={{ maxWidth: 1180, margin: '0 auto', paddingBottom: 48 }}>{body}</div>
+            </main>
         </>
     );
 
@@ -223,7 +228,7 @@ export default function DiamondLiabilityDashboard() {
         );
     }
     if (loading && !data) {
-        return shell(<div style={{ color: C.dim, padding: '64px 0', textAlign: 'center', fontSize: 14 }}>Loading Diamond Liability&hellip;</div>);
+        return shell(<div className={consoleStyles.state} role="status" style={{ color: C.dim, padding: '64px 0', textAlign: 'center', fontSize: 14 }}>Loading Diamond Liability...</div>);
     }
     if (error && !data) {
         return shell(
@@ -235,7 +240,7 @@ export default function DiamondLiabilityDashboard() {
             </Message>
         );
     }
-    if (!data) return shell(<div style={{ color: C.dim }}>No Data.</div>);
+    if (!data) return shell(<div className={consoleStyles.state} role="status" style={{ color: C.dim }}>No Data.</div>);
 
     const { outstanding, flow, recirculation, budget, topEarners = [], notes = [] } = data;
 
@@ -334,7 +339,7 @@ export default function DiamondLiabilityDashboard() {
 
                 {outflowTotal > 0 && (
                     <div style={{ marginTop: 22 }}>
-                        <div style={{ fontSize: 11, color: C.dim, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12 }}>
+                        <div style={{ fontSize: 12, color: C.dim, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12 }}>
                             Share Of All Outflow
                         </div>
                         <Bar label="Recirculated - arena / gameplay" value={recirculation?.recirculated || 0} total={outflowTotal} color={C.cyan} right={usd(recirculation?.recirculatedUsd)} />
@@ -346,8 +351,8 @@ export default function DiamondLiabilityDashboard() {
                 )}
 
                 {recirculation?.byType?.length > 0 && (
-                    <div style={{ marginTop: 24, overflowX: 'auto' }}>
-                        <div style={{ fontSize: 11, color: C.dim, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 }}>
+                    <div className={consoleStyles.tableWell} tabIndex={0} role="region" aria-label="Diamond Outflow By Transaction Type" style={{ marginTop: 24 }}>
+                        <div style={{ fontSize: 12, color: C.dim, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 }}>
                             Outflow By Transaction_Type
                         </div>
                         <table style={tableStyle}>
@@ -410,12 +415,12 @@ export default function DiamondLiabilityDashboard() {
             {/* ── TOP EARNERS ── */}
             <Panel
                 title="Top earners - 30d"
-                subtitle={`Abuse-detection surface. Monthly cap: ${num(data.monthlyCap?.free)} ◆ free / ${num(data.monthlyCap?.vip)} ◆ VIP.`}
+                subtitle={`Abuse-detection surface. Monthly cap: ${num(data.monthlyCap?.free)} diamonds free / ${num(data.monthlyCap?.vip)} diamonds VIP.`}
             >
                 {topEarners.length === 0 ? (
                     <div style={{ fontSize: 13, color: C.faint }}>No Positive Diamond Awards In The Last 30 Days.</div>
                 ) : (
-                    <div style={{ overflowX: 'auto' }}>
+                    <div className={consoleStyles.tableWell} tabIndex={0} role="region" aria-label="Top Diamond Earners">
                         <table style={tableStyle}>
                             <thead>
                                 <tr>
@@ -436,7 +441,7 @@ export default function DiamondLiabilityDashboard() {
                                                 {e.username || <span style={{ color: C.faint }}>(No Username)</span>}
                                                 {e.isVip && <span style={vipPill}>VIP</span>}
                                             </div>
-                                            <div style={{ fontSize: 10, color: C.faint, fontFamily: 'ui-monospace, monospace' }}>{e.userId}</div>
+                                            <div style={{ fontSize: 12, color: C.faint, fontFamily: 'ui-monospace, monospace' }}>{e.userId}</div>
                                         </td>
                                         <td style={{ ...tdStyle, textAlign: 'right' }}>{num(e.diamonds)}</td>
                                         <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 700, color: C.text }}>{usd(e.usd)}</td>
@@ -459,7 +464,7 @@ export default function DiamondLiabilityDashboard() {
             </Panel>
 
             {error && (
-                <div style={{ fontSize: 12, color: C.red, marginTop: 8 }}>Last Refresh Failed: {error}</div>
+                <div className={consoleStyles.state} role="alert" style={{ fontSize: 12, color: '#ff7a7a', marginTop: 8 }}>Last Refresh Failed: {error}</div>
             )}
         </>
     );
@@ -482,7 +487,7 @@ const tableStyle = { width: '100%', borderCollapse: 'collapse', fontSize: 13, mi
 const thStyle = {
     textAlign: 'left',
     padding: '8px 10px',
-    fontSize: 10,
+    fontSize: 12,
     textTransform: 'uppercase',
     letterSpacing: 1,
     color: C.faint,
@@ -494,7 +499,7 @@ const tdStyle = { padding: '10px', color: C.dim, verticalAlign: 'top' };
 
 const vipPill = {
     marginLeft: 8,
-    fontSize: 9,
+    fontSize: 12,
     fontWeight: 800,
     color: '#000',
     background: C.gold,

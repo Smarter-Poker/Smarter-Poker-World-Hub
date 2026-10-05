@@ -1,250 +1,68 @@
-import React, { useEffect, useState } from 'react';
 import Head from 'next/head';
 
-const STATUS_COLORS = {
-  READY: '#00c853',
-  ERROR: '#ff1744',
-  BUILDING: '#ffab00',
-  QUEUED: '#90a4ae',
-  CANCELED: '#616161',
-};
-
-function StatCard({ label, value, color }) {
-  return (
-    <div style={{
-      background: 'linear-gradient(135deg, #1a1f2e 0%, #0d1117 100%)',
-      border: '1px solid rgba(255,255,255,0.08)',
-      borderRadius: 12,
-      padding: '20px 24px',
-      minWidth: 140,
-      textAlign: 'center',
-    }}>
-      <div style={{ fontSize: 32, fontWeight: 700, color: color || '#e0e0e0', fontFamily: 'monospace' }}>
-        {value}
-      </div>
-      <div style={{ fontSize: 12, color: '#90a4ae', marginTop: 6, textTransform: 'uppercase', letterSpacing: 1 }}>
-        {label}
-      </div>
-    </div>
-  );
-}
-
-function DeployRow({ deploy }) {
-  const stateColor = STATUS_COLORS[deploy.state] || '#90a4ae';
-  // Use createdAt relative display — computed client-side only to avoid hydration mismatch
-  const [ageStr, setAgeStr] = React.useState('');
-  React.useEffect(() => {
-    const age = Math.round((Date.now() - deploy.createdAt) / 60000);
-    setAgeStr(age < 60 ? `${age}m ago` : `${Math.round(age / 60)}h ago`);
-  }, [deploy.createdAt]);
-
-  return (
-    <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-      <td style={{ padding: '10px 12px' }}>
-        <span style={{
-          display: 'inline-block',
-          padding: '3px 10px',
-          borderRadius: 6,
-          fontSize: 11,
-          fontWeight: 600,
-          color: '#fff',
-          background: stateColor,
-          minWidth: 70,
-          textAlign: 'center',
-        }}>
-          {deploy.state}
-        </span>
-      </td>
-      <td style={{ padding: '10px 12px', fontFamily: 'monospace', fontSize: 13, color: '#b0bec5' }}>
-        {deploy.sha}
-      </td>
-      <td style={{ padding: '10px 12px', fontSize: 13, color: deploy.isAutofix ? '#ffab00' : '#e0e0e0', maxWidth: 400, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-        {deploy.isAutofix && <span style={{ marginRight: 6, fontSize: 10, background: '#ffab00', color: '#000', padding: '2px 6px', borderRadius: 4, fontWeight: 700 }}>AUTOFIX</span>}
-        {deploy.message.substring(0, 60)}
-      </td>
-      <td style={{ padding: '10px 12px', fontSize: 12, color: '#78909c', textAlign: 'right' }}>
-        {ageStr}
-      </td>
-    </tr>
-  );
-}
-
-export default function AutofixDashboard() {
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [lastRefresh, setLastRefresh] = useState(null);
-
-  const fetchData = async () => {
-    try {
-      setLoading(true);
-      const res = await fetch('/api/deploy-status');
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const json = await res.json();
-      setData(json);
-      setLastRefresh(new Date());
-      setError(null);
-    } catch (e) {
-      setError(e.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchData();
-    const interval = setInterval(fetchData, 30000); // Auto-refresh every 30s
-    return () => clearInterval(interval);
-  }, []);
-
+export default function RetiredAutofixPage() {
   return (
     <>
       <Head>
-        <title>Autofix Pipeline | Admin | Smarter.Poker</title>
-        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" />
-        <style dangerouslySetInnerHTML={{ __html: `
-          body { background: #0a0e17; color: #e0e0e0; font-family: 'Inter', -apple-system, sans-serif; margin: 0; }
-        ` }} />
+        <title>Deployment Autofix Retired | Smarter.Poker</title>
+        <meta name="robots" content="noindex,nofollow" />
       </Head>
-
-      <div style={{ maxWidth: 960, margin: '0 auto', padding: '32px 20px' }}>
-        {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 32 }}>
-          <div>
-            <h1 style={{ margin: 0, fontSize: 24, fontWeight: 700, color: '#fff' }}>
-              Autofix Pipeline
-            </h1>
-            <p style={{ margin: '4px 0 0', fontSize: 13, color: '#78909c' }}>
-              Autonomous Build Error Detection And Repair
-            </p>
+      <main className="retiredShell">
+        <section className="retiredPanel" aria-labelledby="retired-title">
+          <div className="statusRail" aria-hidden="true" />
+          <p className="eyebrow">Stable Admin · Release Control</p>
+          <h1 id="retired-title">Deployment Autofix Retired</h1>
+          <p className="lead">
+            Automated Release Repair Is Permanently Disabled. This Surface Does Not Poll Providers,
+            Call An AI Model, Change Source Code, Or Initiate A Deployment.
+          </p>
+          <div className="protocol" aria-label="Current release protocol">
+            <span>Protected Pull Request</span>
+            <span>Required Checks</span>
+            <span>Approved Publication</span>
+            <span>Live Verification</span>
           </div>
-          <div style={{ textAlign: 'right' }}>
-            <div style={{
-              display: 'inline-flex', alignItems: 'center', gap: 8,
-              padding: '6px 14px', borderRadius: 20,
-              background: data?.pipeline?.status === 'healthy'
-                ? 'rgba(0,200,83,0.15)'
-                : data?.pipeline?.status === 'error'
-                ? 'rgba(255,23,68,0.15)'
-                : 'rgba(255,171,0,0.15)',
-              border: `1px solid ${
-                data?.pipeline?.status === 'healthy' ? 'rgba(0,200,83,0.3)'
-                : data?.pipeline?.status === 'error' ? 'rgba(255,23,68,0.3)'
-                : 'rgba(255,171,0,0.3)'
-              }`,
-            }}>
-              <span style={{
-                width: 8, height: 8, borderRadius: '50%',
-                background: data?.pipeline?.status === 'healthy' ? '#00c853'
-                  : data?.pipeline?.status === 'error' ? '#ff1744'
-                  : '#ffab00',
-                boxShadow: `0 0 8px ${
-                  data?.pipeline?.status === 'healthy' ? '#00c853'
-                  : data?.pipeline?.status === 'error' ? '#ff1744'
-                  : '#ffab00'
-                }`,
-              }} />
-              <span style={{
-                fontSize: 12, fontWeight: 600,
-                color: data?.pipeline?.status === 'healthy' ? '#00c853'
-                  : data?.pipeline?.status === 'error' ? '#ff1744'
-                  : '#ffab00',
-              }}>
-                {data?.pipeline?.status === 'healthy' ? 'All Clear'
-                  : data?.pipeline?.status === 'error' ? 'Build Errors'
-                  : 'Monitoring'}
-              </span>
-            </div>
-            {lastRefresh && (
-              <div style={{ fontSize: 11, color: '#546e7a', marginTop: 4 }}>
-                Last Refresh: {lastRefresh.toLocaleTimeString()}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {error && (
-          <div style={{ padding: 16, background: 'rgba(255,23,68,0.1)', border: '1px solid rgba(255,23,68,0.3)', borderRadius: 8, marginBottom: 24, color: '#ff1744', fontSize: 13 }}>
-            Error: {error}
-          </div>
-        )}
-
-        {/* Stats Cards */}
-        {data && (
-          <div style={{ display: 'flex', gap: 16, marginBottom: 32, flexWrap: 'wrap' }}>
-            <StatCard label="Deploys" value={data.stats.totalDeploys} />
-            <StatCard label="Errors" value={data.stats.errorCount} color={data.stats.errorCount > 0 ? '#ff1744' : '#00c853'} />
-            <StatCard label="Autofixes" value={data.stats.autofixCount} color="#ffab00" />
-            <StatCard label="Success Rate" value={`${data.stats.successRate}%`} color={data.stats.successRate >= 80 ? '#00c853' : '#ff1744'} />
-            <StatCard label="Poll Interval" value="2m" color="#42a5f5" />
-          </div>
-        )}
-
-        {/* Pipeline Config */}
-        {data?.pipeline && (
-          <div style={{
-            background: 'linear-gradient(135deg, #1a1f2e 0%, #0d1117 100%)',
-            border: '1px solid rgba(255,255,255,0.08)',
-            borderRadius: 12, padding: 20, marginBottom: 32,
-          }}>
-            <h3 style={{ margin: '0 0 12px', fontSize: 14, color: '#78909c', textTransform: 'uppercase', letterSpacing: 1 }}>Pipeline Configuration</h3>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12 }}>
-              {Object.entries(data.pipeline || {}).map(([key, val]) => (
-                <div key={key} style={{ fontSize: 13 }}>
-                  <span style={{ color: '#78909c' }}>{key}: </span>
-                  <span style={{ color: '#e0e0e0', fontWeight: 500 }}>{val}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Recent Deployments */}
-        {data?.deployments && (
-          <div style={{
-            background: 'linear-gradient(135deg, #1a1f2e 0%, #0d1117 100%)',
-            border: '1px solid rgba(255,255,255,0.08)',
-            borderRadius: 12, overflow: 'hidden', marginBottom: 32,
-          }}>
-            <h3 style={{ margin: 0, padding: '16px 20px', fontSize: 14, color: '#78909c', textTransform: 'uppercase', letterSpacing: 1, borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-              Recent Deployments
-            </h3>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <tbody>
-                {data.deployments.map((d) => (
-                  <DeployRow key={d.id} deploy={d} />
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-
-        {/* Autofix Commit History */}
-        {data?.autofixCommits?.length > 0 && (
-          <div style={{
-            background: 'linear-gradient(135deg, #1a1f2e 0%, #0d1117 100%)',
-            border: '1px solid rgba(255,255,255,0.08)',
-            borderRadius: 12, overflow: 'hidden',
-          }}>
-            <h3 style={{ margin: 0, padding: '16px 20px', fontSize: 14, color: '#78909c', textTransform: 'uppercase', letterSpacing: 1, borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-              Autofix Commit History
-            </h3>
-            {data.autofixCommits.map((c, i) => (
-              <div key={i} style={{ padding: '12px 20px', borderBottom: '1px solid rgba(255,255,255,0.04)', display: 'flex', alignItems: 'center', gap: 12 }}>
-                <span style={{ fontFamily: 'monospace', fontSize: 12, color: '#ffab00', minWidth: 80 }}>{c.sha}</span>
-                <span style={{ fontSize: 13, color: '#e0e0e0', flex: 1 }}>{c.message}</span>
-                <span style={{ fontSize: 11, color: '#546e7a', whiteSpace: 'nowrap' }}>
-                  {c.date ? new Date(c.date).toLocaleString() : ''}
-                </span>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {loading && !data && (
-          <div style={{ textAlign: 'center', padding: 60, color: '#78909c' }}>Loading Pipeline Data...</div>
-        )}
-      </div>
+          <p className="note">
+            Authenticated Deployment Failures Continue To Be Recorded In The First-Party Operational Inbox For Operator Review.
+          </p>
+        </section>
+      </main>
+      <style jsx>{`
+        .retiredShell {
+          min-height: calc(100vh - 64px);
+          display: grid;
+          place-items: center;
+          padding: 28px 16px;
+          color: #edf7ff;
+          background:
+            radial-gradient(circle at 50% 0%, rgba(0, 153, 255, 0.13), transparent 38%),
+            linear-gradient(180deg, #06111a 0%, #02070c 72%);
+          font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        }
+        .retiredPanel {
+          position: relative;
+          width: min(760px, 100%);
+          overflow: hidden;
+          padding: 32px 24px 26px;
+          border: 1px solid #426980;
+          border-radius: 18px;
+          background: linear-gradient(145deg, rgba(10, 26, 38, 0.98), rgba(3, 10, 16, 0.99));
+          box-shadow: inset 0 1px 0 rgba(208, 237, 255, 0.15), 0 24px 80px rgba(0, 0, 0, 0.52);
+        }
+        .statusRail { position: absolute; inset: 0 auto 0 0; width: 4px; background: #1597df; }
+        .eyebrow { margin: 0 0 12px; color: #7ecbff; font-size: 0.72rem; font-weight: 800; letter-spacing: 0.18em; text-transform: uppercase; }
+        h1 { margin: 0; font-size: clamp(2rem, 7vw, 3.8rem); line-height: 0.98; letter-spacing: -0.045em; }
+        .lead { margin: 22px 0; max-width: 64ch; color: #b8c9d4; font-size: 1rem; line-height: 1.7; }
+        .protocol { display: grid; grid-template-columns: 1fr; gap: 8px; counter-reset: step; }
+        .protocol span { counter-increment: step; padding: 12px 14px; border: 1px solid #29485a; border-radius: 10px; color: #d9edf8; background: #071722; font-size: 0.82rem; font-weight: 750; letter-spacing: 0.04em; }
+        .protocol span::before { content: "0" counter(step); margin-right: 12px; color: #28aef7; font-variant-numeric: tabular-nums; }
+        .note { margin: 22px 0 0; padding-top: 18px; border-top: 1px solid #254354; color: #8fa8b7; font-size: 0.85rem; line-height: 1.55; }
+        @media (min-width: 640px) {
+          .retiredShell { padding: 48px 28px; }
+          .retiredPanel { padding: 48px 46px 40px; border-radius: 22px; }
+          .protocol { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        }
+      `}</style>
     </>
   );
 }
