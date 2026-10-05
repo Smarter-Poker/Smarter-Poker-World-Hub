@@ -107,6 +107,10 @@ import './global-header-profile-frame-law.test.mjs';
 // Delete Account had been sending a value Settings ignores.
 import './hamburger-signout-contract.test.mjs';
 import './menu-query-params-are-real.test.mjs';
+// 2026-10-05: update_page_preferences REPLACES the whole jsonb column, so every
+// service that calls it must merge the caller's patch over the stored value,
+// and a failed read or save must throw rather than look saved.
+import './page-preferences-merge-before-save.test.mjs';
 import './horse-hand-reviews-panel.test.mjs';
 import './horses-console-phase1.test.mjs';
 import './horses-libs-review.test.mjs';
