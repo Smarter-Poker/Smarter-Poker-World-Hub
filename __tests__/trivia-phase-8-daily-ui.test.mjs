@@ -121,7 +121,7 @@ test('Daily art is passive and the mobile-first broadcast becomes a separate des
     assert.match(component, /<div className=\{styles\.artStage\}>[\s\S]*?<ResponsiveModeArt/);
     assert.doesNotMatch(component, /<button[^>]*>[\s\S]{0,300}<ResponsiveModeArt/);
     assert.match(component, /Loading Verified Standings/);
-    assert.match(component, /No verified Daily finishes are posted yet/);
+    assert.match(component, /No Verified Daily Finishes Are Posted Yet/);
     assert.match(component, /Retry Standings/);
     assert.match(component, /Settlement Receipt/);
     assert.match(component, /Settlement Reference/);

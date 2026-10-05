@@ -28,7 +28,7 @@ function DailyLeaderboard({ state, entries, currentUserId, error, onRetry }) {
                     <button type="button" className="tc-word" onClick={onRetry}>Retry Standings</button>
                 </div>
             ) : rows.length === 0 ? (
-                <p className="trivia-console-copy tc-ink--muted">No verified Daily finishes are posted yet.</p>
+                <p className="trivia-console-copy tc-ink--muted">No Verified Daily Finishes Are Posted Yet.</p>
             ) : (
                 <ol className={styles.rankings} aria-label="Daily Trivia Streaks">
                     {rows.map((entry, index) => {
@@ -154,7 +154,7 @@ export function DailySettlementReceipt({ result }) {
             </div>
             {!receipt ? (
                 <div className={styles.state} role="alert">
-                    <p>The server grade was received, but its verified settlement receipt is unavailable.</p>
+                    <p>The Server Grade Was Received, But Its Verified Settlement Receipt Is Unavailable.</p>
                 </div>
             ) : null}
             <dl className={styles.receiptRows}>
