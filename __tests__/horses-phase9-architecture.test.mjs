@@ -166,6 +166,27 @@ test('the named-role database helper gates every folded RPC with canonical permi
   assert.match(migration, /Post-apply gate missing from/);
 });
 
+test('every folded caller-scoped RPC is executable by authenticated but never anon', async () => {
+  const grants = await read('supabase/migrations/20261005232042_stable_admin_phase9_rpc_execute_grants.sql');
+  const signatures = [
+    'get_home_content_report_detail(uuid, uuid)',
+    'list_home_content_reports(uuid, text, text, integer, integer)',
+    'resolve_home_content_report(uuid, text, text, uuid)',
+    'fn_get_home_games_onboarding_status_admin(uuid, uuid)',
+    'fn_anonymize_hg_user_content(uuid, uuid)',
+    'list_home_ban_appeals_admin(uuid, text, uuid, integer, integer)',
+    'review_home_ban_appeal(uuid, text, text, uuid)',
+  ];
+  for (const signature of signatures) {
+    const escaped = signature.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    assert.match(grants, new RegExp(`REVOKE ALL ON FUNCTION public\\.${escaped} FROM PUBLIC, anon`));
+    assert.match(grants, new RegExp(`GRANT EXECUTE ON FUNCTION public\\.${escaped} TO authenticated, service_role`));
+  }
+  assert.match(grants, /fn_ca_operator_has_permission/);
+  assert.match(grants, /has_function_privilege\('authenticated'/);
+  assert.match(grants, /has_function_privilege\('anon'/);
+});
+
 test('the production build runs the Phase 9 lazy-bundle checker', async () => {
   const checkerPath = new URL('scripts/check-horses-phase9-bundles.mjs', ROOT);
   assert.equal(existsSync(checkerPath), true, 'bundle checker is required once Phase 9 adds it');
