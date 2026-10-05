@@ -187,6 +187,22 @@ test('every folded caller-scoped RPC is executable by authenticated but never an
   assert.match(grants, /has_function_privilege\('anon'/);
 });
 
+test('the production PostgREST proof is isolated, credential-backed and manually dispatchable', async () => {
+  const [probe, workflow] = await Promise.all([
+    read('scripts/ci/horses-phase9-postgrest-live.mjs'),
+    read('.github/workflows/e2e-tests.yml'),
+  ]);
+  assert.match(probe, /signInWithPassword/);
+  assert.match(probe, /fn_ca_operator_has_permission/);
+  assert.match(probe, /mismatchedIdentityRefused/);
+  assert.match(probe, /unknownPermissionRefused/);
+  assert.match(probe, /anonymousRefused/);
+  assert.doesNotMatch(probe, /SUPABASE_SERVICE_ROLE_KEY/);
+  assert.match(workflow, /options: \[full, horses-phase9-postgrest,/);
+  assert.match(workflow, /node scripts\/ci\/horses-phase9-postgrest-live\.mjs/);
+  assert.match(workflow, /TEST_USER_PASSWORD: \$\{\{ secrets\.TEST_USER_PASSWORD \}\}/);
+});
+
 test('the production build runs the Phase 9 lazy-bundle checker', async () => {
   const checkerPath = new URL('scripts/check-horses-phase9-bundles.mjs', ROOT);
   assert.equal(existsSync(checkerPath), true, 'bundle checker is required once Phase 9 adds it');

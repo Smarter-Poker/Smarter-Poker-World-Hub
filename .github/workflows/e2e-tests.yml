@@ -41,7 +41,7 @@ on:
       suite:
         description: Verification suite to run
         type: choice
-        options: [full, messenger-live, messenger-send-live, messenger-continuity-live, reels-live, video-operations-live, reels-reconciliation-audit, reels-reconciliation-apply]
+        options: [full, horses-phase9-postgrest, messenger-live, messenger-send-live, messenger-continuity-live, reels-live, video-operations-live, reels-reconciliation-audit, reels-reconciliation-apply]
         default: full
       expected_sha:
         description: Full deployed commit SHA (required only for a published live verification suite)
@@ -577,5 +577,47 @@ jobs:
         with:
           name: video-operations-live-receipt
           path: test-results/video-operations-live/result.json
+          if-no-files-found: error
+          retention-days: 7
+
+  horses-phase9-postgrest:
+    name: Stable Admin Phase 9 PostgREST Verification
+    if: ${{ inputs.suite == 'horses-phase9-postgrest' }}
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24.12.0'
+          cache: npm
+      - name: Verify Stable Admin PostgREST probe safety
+        run: node scripts/ci/horses-phase9-postgrest-live.mjs --self-test
+      - name: Restore locked dependencies
+        id: horses-phase9-postgrest-nm-cache
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: nm-wh-noscripts-${{ runner.os }}-node24-${{ hashFiles('package-lock.json') }}
+      - name: Install locked dependencies
+        if: steps.horses-phase9-postgrest-nm-cache.outputs.cache-hit != 'true'
+        run: npm ci --ignore-scripts
+      - name: Verify Stable Admin permissions through PostgREST
+        run: node scripts/ci/horses-phase9-postgrest-live.mjs
+        env:
+          TEST_USER_EMAIL: ${{ vars.TEST_USER_EMAIL || secrets.TEST_USER_EMAIL }}
+          TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+      - name: Assert sanitized Stable Admin receipt
+        run: node scripts/ci/horses-phase9-postgrest-live.mjs --check-receipt test-results/horses-phase9-postgrest/result.json
+      - name: Retain sanitized Stable Admin receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: horses-phase9-postgrest-receipt
+          path: test-results/horses-phase9-postgrest/result.json
           if-no-files-found: error
           retention-days: 7
