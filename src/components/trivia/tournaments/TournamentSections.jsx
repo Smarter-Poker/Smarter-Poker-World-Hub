@@ -449,6 +449,7 @@ export function TournamentQuestionStage({ session, question, secondsLeft, select
             {error ? <TournamentStateBanner title="Answer Not Recorded" message={error} tone="red" role="alert" action={{ label: 'Retry From Server', onClick: onRetry }} /> : null}
             <h2 id="tt-question-title" className="tt-question">{toTitleCase(question?.question || 'Opening Question')}</h2>
             <div className="tt-options">
+                {/* TRAIN-WIRE-TRIVIA-ANSWER-OPTION-3: shared accessible option primitive, driven only by the authoritative tournament answer state. */}
                 {(question?.options || []).map((option, index) => <TriviaAnswerOption key={`${question.id}-${index}`} index={index} option={toTitleCase(String(option))} selectedAnswer={selected} showResult={false} disabled={pending || selected !== null} onSelect={onAnswer} />)}
             </div>
             <p className="tt-play__privacy tc-ink--muted">The Server Records The First Answer. Verdicts Stay Hidden Until The Round Closes.</p>
