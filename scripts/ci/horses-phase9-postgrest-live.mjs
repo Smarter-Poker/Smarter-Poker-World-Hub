@@ -46,10 +46,6 @@ async function run() {
   assert.ok(user?.id, 'configured test identity did not produce a user');
   assert.equal(user.email?.toLowerCase(), process.env.TEST_USER_EMAIL.toLowerCase());
 
-  const permissions = await client.rpc('fn_ca_operator_permissions', { p_user_id: user.id });
-  assert.ifError(permissions.error);
-  assert.ok(permissions.data?.permissions?.includes('fleet.read'), 'configured test identity is not a Stable Admin operator with fleet.read');
-
   const allowed = await client.rpc('fn_ca_operator_has_permission', {
     p_user_id: user.id,
     p_permission: 'fleet.read',
