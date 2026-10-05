@@ -2,8 +2,11 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import DataTable from './DataTable';
 import exportAllCsv from './exportAllCsv';
 import Pager from './Pager';
+import EconomyExport from './EconomyExport';
 import styles from './shared.module.css';
 import { RAKE_COLUMNS, exactDecimalText, exportState, pageOf, rakeUrl, recordExportCompletion } from './floorAdmin';
+import { dataOf, economyAdminUrl } from './economyAdmin';
+import { findingStability } from './economyModel';
 
 const DIMENSIONS = ['club', 'union', 'stake', 'date'];
 const DAYS = 30;
@@ -16,6 +19,8 @@ export default function RakePanel({ authFetch }) {
   const [error, setError] = useState('');
   const [exportResult, setExportResult] = useState(null);
   const [offset, setOffset] = useState(0);
+  const [oversight, setOversight] = useState({});
+  const [oversightError, setOversightError] = useState('');
   const sequence = useRef(0);
 
   useEffect(() => () => { sequence.current += 1; }, []);
@@ -34,6 +39,19 @@ export default function RakePanel({ authFetch }) {
     }
   }, [authFetch, dimension, offset]);
   useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    let alive = true;
+    Promise.all(['rakelaw', 'rakeback', 'leaderboard', 'bbj', 'promotions', 'abuse'].map(async (section) => {
+      try { return [section, dataOf(await authFetch(economyAdminUrl(section)))]; }
+      catch { return [section, null]; }
+    })).then((entries) => {
+      if (!alive) return;
+      const next = Object.fromEntries(entries);
+      setOversight(next);
+      if (entries.some(([, value]) => !value)) setOversightError('Some Economy Oversight Sources Could Not Be Read. Missing Figures Stay Unknown.');
+    });
+    return () => { alive = false; };
+  }, [authFetch]);
 
   const rake = pageOf(body, 'rake');
   const drift = body?.drift ?? null;
@@ -86,5 +104,37 @@ export default function RakePanel({ authFetch }) {
     <div className={styles.opsDesktop}><DataTable rows={rake.rows} columns={columns} loading={loading} empty={rakeUnknown ? 'Rake Aggregate State Is Unknown.' : 'No Rake Was Recorded In This Window.'} caption={`${titleCase(dimension)} Rake Aggregates For ${window?.label || 'The Selected Window'}, As Of ${window?.asOf || 'Unknown'}, Includes Horses`} /></div>
     <Pager offset={rake.offset} limit={rake.limit || 100} count={rake.rows.length} total={rake.total} hasMore={rake.hasMore} loading={loading} noun="Aggregate Rows" onPrevious={() => setOffset(Math.max(0, offset - 100))} onNext={() => setOffset(offset + (rake.limit || 100))} />
     <div className={styles.card}><h3 className={styles.cardTitle}>Rate Change History</h3>{body?.rateHistory?.state === 'history.unknown' ? <div className={styles.errorNote} role="alert">Rate Change History Is Unknown.</div> : history.rows.length === 0 ? <div className={styles.stateNote}>No Rate Change Has Ever Been Filed. This Does Not Prove There Is No Drift.</div> : <DataTable rows={history.rows} columns={[{ key: 'created_at', header: 'Changed' }, { key: 'old_rate', header: 'Old Rate' }, { key: 'new_rate', header: 'New Rate' }, { key: 'notes', header: 'Notes' }]} />}</div>
+    <section className={styles.opsDetail} aria-labelledby="rake-law-title">
+      <div className={styles.opsDetailHead}><h3 id="rake-law-title" className={styles.opsCardTitle}>Rake Law And Payout Oversight</h3><span>Reporting Only</span></div>
+      {oversightError ? <div className={styles.errorNote} role="alert">{oversightError}</div> : null}
+      <div className={styles.opsDetailGrid}>
+        <div><span className={styles.opsFactLabel}>Maximum Rake</span><span className={styles.opsFactValue}>{exactDecimalText(oversight.rakelaw?.law?.max_rake_percent)}%</span></div>
+        <div><span className={styles.opsFactLabel}>Maximum Cap</span><span className={styles.opsFactValue}>{exactDecimalText(oversight.rakelaw?.law?.max_rake_cap_bb)} BB</span></div>
+        <div><span className={styles.opsFactLabel}>Heads-Up Percent</span><span className={styles.opsFactValue}>{exactDecimalText(oversight.rakelaw?.law?.heads_up_percent)}%</span></div>
+        <div><span className={styles.opsFactLabel}>Over-Spec</span><span className={styles.opsFactValue}>{oversight.rakelaw?.overSpec === 0 ? 'No Hand Was Over-Raked' : oversight.rakelaw?.overSpec ?? 'Unknown'}</span></div>
+        <div><span className={styles.opsFactLabel}>Pending Rakeback</span><span className={styles.opsFactValue}>{exactDecimalText(oversight.rakeback?.pendingAmount)}</span></div>
+        <div><span className={styles.opsFactLabel}>Pending Rows</span><span className={styles.opsFactValue}>{oversight.rakeback?.pendingCount ?? 'Unknown'}</span></div>
+      </div>
+      <div className={styles.warnNote}>{oversight.rakelaw?.disclosure || 'Rake Finding Stability Is Unknown.'}</div>
+      <div className={styles.opsCardsAlways}>{(oversight.rakelaw?.findings?.rows || []).slice(0, 20).map((row, index) => <article className={styles.opsCard} key={row.id || index}><div className={styles.opsCardHead}><h4 className={styles.opsCardTitle}>{row.finding || row.kind || 'Rake Finding'}</h4><span>{findingStability(row)}</span></div><div className={styles.opsFacts}><div><span className={styles.opsFactLabel}>Table</span><span className={styles.opsFactValue}>{row.table_id || 'Unknown'}</span></div><div><span className={styles.opsFactLabel}>Recorded</span><span className={styles.opsFactValue}>{row.created_at || 'Unknown'}</span></div></div></article>)}</div>
+      <EconomyExport rows={oversight.rakelaw?.findings?.rows || []} columns={[["id", "Finding ID"], ["entity_id", "Entity"], ["stored_balance", "Recorded Rake"], ["ledger_balance", "Expected Rake"], ["created_at", "Recorded"], ["metadata", "Finding Metadata"]]} label="Export Returned Rake Findings" filenamePrefix="rake-law-findings" complete={oversight.rakelaw?.findings?.hasMore !== true && oversight.rakelaw?.findings?.truncated !== true && (oversight.rakelaw?.findings?.total == null || Number(oversight.rakelaw.findings.total) <= (oversight.rakelaw?.findings?.rows || []).length)} total={oversight.rakelaw?.findings?.total} />
+      <div className={styles.warnNote}>{oversight.rakeback?.disclosure || 'Rakeback Evidence Is Unknown.'}</div>
+      <div className={styles.opsDetailGrid}>
+        <div><span className={styles.opsFactLabel}>Periods Returned</span><span className={styles.opsFactValue}>{oversight.rakeback?.periods?.rows?.length ?? 'Unknown'}</span></div>
+        <div><span className={styles.opsFactLabel}>Payouts Returned</span><span className={styles.opsFactValue}>{oversight.rakeback?.payouts?.length ?? 'Unknown'}</span></div>
+        <div><span className={styles.opsFactLabel}>Settle Runs Returned</span><span className={styles.opsFactValue}>{oversight.rakeback?.runs?.length ?? 'Unknown'}</span></div>
+      </div>
+      <div className={styles.opsCardsAlways}>{(oversight.rakeback?.runs || []).map((run, index) => <article className={styles.opsCard} key={run.id || index}><div className={styles.opsCardHead}><h4 className={styles.opsCardTitle}>Rakeback Settle Evidence</h4><span>{run.status || 'Unknown'}</span></div><div className={styles.opsFacts}><div><span className={styles.opsFactLabel}>Started</span><span className={styles.opsFactValue}>{run.started_at || run.created_at || 'Unknown'}</span></div><div><span className={styles.opsFactLabel}>Result Fields</span><span className={styles.opsFactValue}>{run.result && typeof run.result === 'object' ? Object.keys(run.result).length : 'Unknown'}</span></div></div></article>)}</div>
+      <EconomyExport rows={oversight.rakeback?.periods?.rows || []} columns={[["id", "Period ID"], ["period_start", "Period Start"], ["period_end", "Period End"], ["status", "Status"], ["rakeback_amount", "Amount"], ["user_id", "Player"], ["club_id", "Club"]]} label="Export Returned Rakeback Periods" filenamePrefix="rakeback-periods" complete={oversight.rakeback?.periods?.hasMore !== true && oversight.rakeback?.periods?.truncated !== true && (oversight.rakeback?.periods?.total == null || Number(oversight.rakeback.periods.total) <= (oversight.rakeback?.periods?.rows || []).length)} total={oversight.rakeback?.periods?.total} />
+      <div className={styles.warnNote}>{oversight.leaderboard?.disclosure || 'Leaderboard Mutability Is Unknown.'}</div>
+      <div className={styles.opsCardsAlways}>{(oversight.leaderboard?.payouts || []).map((row, index) => <article className={styles.opsCard} key={row.id || index}><div className={styles.opsCardHead}><h4 className={styles.opsCardTitle}>{row.leaderboard_id || 'Leaderboard Payout'}</h4><span>{row.status || 'Recorded'}</span></div><div className={styles.opsFacts}><div><span className={styles.opsFactLabel}>Amount</span><span className={styles.opsFactValue}>{exactDecimalText(row.amount ?? row.payout_amount)}</span></div><div><span className={styles.opsFactLabel}>Awarded</span><span className={styles.opsFactValue}>{row.awarded_at || row.created_at || 'Unknown'}</span></div></div></article>)}</div>
+      <EconomyExport rows={oversight.leaderboard?.payouts || []} columns={[["id", "Payout ID"], ["leaderboard_id", "Leaderboard"], ["player_id", "Player"], ["amount", "Amount"], ["status", "Status"], ["awarded_at", "Awarded"]]} label="Export Leaderboard Payouts" filenamePrefix="leaderboard-payouts" total={(oversight.leaderboard?.payouts || []).length} />
+      <div className={styles.warnNote}>{oversight.bbj?.disclosure || 'Bad Beat Jackpot State Is Unknown.'}</div>
+      <div className={styles.opsCardsAlways}>{(oversight.bbj?.pools || []).map((pool, index) => <article className={styles.opsCard} key={pool.id || index}><div className={styles.opsCardHead}><h4 className={styles.opsCardTitle}>{pool.club_id ? 'Club Pool' : 'Union Pool'}</h4><span>{pool.status || 'Unknown'}</span></div><div className={styles.opsFacts}><div><span className={styles.opsFactLabel}>Main, Separate</span><span className={styles.opsFactValue}>{exactDecimalText(pool.main_balance)}</span></div><div><span className={styles.opsFactLabel}>Backup, Separate</span><span className={styles.opsFactValue}>{exactDecimalText(pool.backup_balance)}</span></div></div></article>)}</div>
+      <EconomyExport rows={oversight.bbj?.payouts?.rows || []} columns={[["id", "Payout ID"], ["payout_type", "Type"], ["amount", "Amount"], ["status", "Status"], ["created_at", "Recorded"]]} label="Export Returned Jackpot Payouts" filenamePrefix="bbj-payouts" complete={oversight.bbj?.payouts?.hasMore !== true && oversight.bbj?.payouts?.truncated !== true && (oversight.bbj?.payouts?.total == null || Number(oversight.bbj.payouts.total) <= (oversight.bbj?.payouts?.rows || []).length)} total={oversight.bbj?.payouts?.total} />
+      <div className={styles.warnNote}>{oversight.abuse?.disclosure || 'Promotion Abuse Detector Liveness Is Unknown.'}</div>
+      <div className={styles.stateNote}>Promotion Award Rows: {oversight.promotions?.rows?.length ?? 'Unknown'}. Promotion Awards Are Read-Only Here.</div>
+      <EconomyExport rows={oversight.promotions?.rows || []} columns={[["id", "Award ID"], ["promotion_id", "Promotion"], ["user_id", "Player"], ["amount", "Amount"], ["status", "Status"], ["created_at", "Recorded"]]} label="Export Promotion Awards" filenamePrefix="promotion-awards" total={(oversight.promotions?.rows || []).length} />
+    </section>
   </section>;
 }

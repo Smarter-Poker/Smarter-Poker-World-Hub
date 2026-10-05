@@ -958,28 +958,25 @@ test('the nav is filtered through permittedTabs, not rendered raw', async () => 
 });
 
 test('THE MINT CONFIRM READS THE PENDING BRANCH', async () => {
-  const src = await read(INDEX);
+  const src = await read(`${COMPONENT_DIR}MintPanel.jsx`);
   // The 202 test is a function call, not an inline truthiness check that
   // would take the branch for any body carrying a `pending` key.
-  assert.match(src, /if \(isPendingApproval\(body\)\) \{/);
+  assert.match(src, /pending: data\?\.pending === true/);
   // The receipt names the approval id...
-  assert.match(src, /approvalId: body\.approvalId/);
-  assert.match(src, /Approval \{mintReceipt\.approvalId\}/);
+  assert.match(src, /approvalId: data\?\.approvalId \|\| null/);
+  assert.match(src, /Open Approval \{receipt\.approvalId \|\| ''\}/);
   // ...and the jump to the queue is bound to a button.
-  assert.match(src, /goToTab\('approvals'\)/);
+  assert.match(src, /onNavigate\('approvals'\)/);
   // The confirm dialog states which of the two things is about to happen.
   assert.match(src, /thresholdDecision\(\{/);
-  assert.match(src, /mintConfirm\.approval\.headline/);
-  assert.match(src, /mintConfirm\.approval\?\.willRequest/);
+  assert.match(src, /confirm\.approval\?\.headline/);
+  assert.match(src, /confirm\.approval\?\.willRequest/);
 });
 
 test('the pending branch does not reload the ledger as if something was written', async () => {
-  const src = await read(INDEX);
-  const start = src.indexOf('if (isPendingApproval(body)) {');
-  assert.ok(start > 0);
-  const branch = src.slice(start, src.indexOf('const result = body.result', start));
-  assert.ok(!branch.includes('loadMintData'), 'nothing was written, so nothing is re-read');
-  assert.ok(branch.includes('return;'), 'the branch must not fall through to the receipt');
+  const src = await read(`${COMPONENT_DIR}MintPanel.jsx`);
+  assert.match(src, /if \(!data\?\.pending\) await load\(0, filters\);/);
+  assert.ok(!/if \(data\?\.pending\) await load/.test(src), 'nothing was written, so nothing is re-read');
 });
 
 test('goToTab is a state move, so the URL write effect owns the navigation', async () => {
@@ -1571,6 +1568,9 @@ test('the three unguarded fetches now carry a sequence guard', async () => {
   const approvals = await read(`${COMPONENT_DIR}ApprovalsPanel.jsx`);
   assert.match(approvals, /pendingSeqRef\.current \+= 1;/);
   assert.match(approvals, /if \(seq !== pendingSeqRef\.current\) return;/);
+  const mint = await read(`${COMPONENT_DIR}MintPanel.jsx`);
+  assert.match(mint, /const seq = \+\+loadSeqRef\.current;/);
+  assert.match(mint, /if \(seq !== loadSeqRef\.current\) return;/);
 });
 
 test('the Staff panel refuses to save a policy it has not read', async () => {
@@ -1596,11 +1596,14 @@ test('the Staff panel surfaces a degraded permission list and a capped roster', 
 });
 
 test('the Mint dialog is handed the route\'s aloneRule', async () => {
-  const src = await read(INDEX);
-  assert.match(src, /setOperatorAloneRule\(body && body\.aloneRule \? body\.aloneRule : null\)/);
-  assert.match(src, /aloneRule: operatorAloneRule/);
+  const index = await read(INDEX);
+  const mint = await read(`${COMPONENT_DIR}MintPanel.jsx`);
+  assert.match(index, /setOperatorAloneRule\(body && body\.aloneRule \? body\.aloneRule : null\)/);
+  assert.match(index, /aloneRule=\{operatorAloneRule\}/);
+  assert.match(mint, /thresholdDecision\(\{ policy, kind: 'mint', amount, asset: form\.asset, aloneRule \}\)/);
   // And the 202 jump is only offered when that tab is in this nav.
-  assert.match(src, /navTabs\.some\(\(tab\) => tab\.id === 'approvals'\)/);
+  assert.match(index, /approvalsAvailable=\{navTabs\.some\(\(tab\) => tab\.id === 'approvals'\)\}/);
+  assert.match(mint, /receipt\.pending && approvalsAvailable/);
 });
 
 test('the Trail dialog renders through trailActor', async () => {

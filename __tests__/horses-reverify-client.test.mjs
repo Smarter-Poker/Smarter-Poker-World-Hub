@@ -287,6 +287,7 @@ test('M-2: the audit target type and id inputs debounce 300 ms into the query', 
 
 test('M-3: the mint ledger drops a superseded response, and the grinder loader it named is gone', async () => {
   const src = await read(INDEX);
+  const mint = await read('src/components/horses/MintPanel.jsx');
   // Phase 3 replaced the grinder tab with Fleet Command, whose roster is paged
   // by usePagedList (its own monotonic sequence plus an AbortController), so
   // the loader this finding hardened no longer exists to harden. Both halves
@@ -294,14 +295,14 @@ test('M-3: the mint ledger drops a superseded response, and the grinder loader i
   assert.ok(!src.includes('const loadGrinderData ='), 'the grinder loader belongs to Fleet Command now');
   assert.ok(!src.includes('grinderSeqRef'), 'and its sequence guard went with it');
 
-  const ledger = block(src, 'const loadMintLedger = useCallback(async (asset = ', 1000);
-  assert.match(ledger, /const seq = \+\+mintLedgerSeqRef\.current;/);
-  assert.match(ledger, /setMintLedgerLoading\(true\);/);
-  assert.match(ledger, /if \(seq !== mintLedgerSeqRef\.current\) return;/);
-  assert.match(ledger, /if \(seq === mintLedgerSeqRef\.current\) setMintLedgerLoading\(false\);/);
+  const ledger = block(mint, 'const load = useCallback(async (offset = ', 1600);
+  assert.match(ledger, /const seq = \+\+loadSeqRef\.current;/);
+  assert.match(ledger, /setLoading\(true\);/);
+  assert.match(ledger, /if \(seq !== loadSeqRef\.current\) return;/);
+  assert.match(ledger, /if \(seq === loadSeqRef\.current\) setLoading\(false\);/);
   // And the ledger pager is disabled while ITS page loads, not only while the
   // whole panel does.
-  assert.match(src, /loading=\{mintLoading \|\| mintLedgerLoading\}/);
+  assert.match(mint, /loading=\{loading\}/);
 });
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -385,12 +386,13 @@ test('L-3: the compose guard refuses a third decimal on chips and the pattern is
 });
 
 test('L-3: chip amounts render with two decimals in the confirm sentence, the toast and the receipts', async () => {
-  const src = await read(INDEX);
-  const fmt = block(src, 'function formatAmount(value, asset) {', 400);
-  assert.match(fmt, /minimumFractionDigits: 2, maximumFractionDigits: 2/);
-  assert.match(src, /formatAmount\(mintConfirm\.amount, mintConfirm\.asset\)\} \{assetLabel\(mintConfirm\.asset\)\}/);
-  assert.equal((src.match(/formatAmount\(mintReceipt\.amount, mintReceipt\.asset\)/g) || []).length, 2);
-  assert.match(src, /Yes, \$\{mintConfirm\.action === 'mint' \? 'Issue' : 'Retire'\} \$\{formatAmount\(mintConfirm\.amount, mintConfirm\.asset\)\}/);
+  const src = await read('src/components/horses/MintPanel.jsx');
+  const formatter = await read('src/components/horses/economyAdmin.js');
+  assert.match(formatter, /export function decimalText\(value, digits = 2\)/);
+  assert.match(formatter, /'0'\.repeat\(digits\)/);
+  assert.match(src, /decimalText\(confirm\.amount\)\} \{confirm\.asset\}/);
+  assert.match(src, /decimalText\(receipt\.amount\)/);
+  assert.match(src, /`\$\{confirm\.action === 'mint' \? 'Issued' : 'Retired'\} \$\{decimalText\(confirm\.amount\)\}/);
 });
 
 // ═══════════════════════════════════════════════════════════════════════════
