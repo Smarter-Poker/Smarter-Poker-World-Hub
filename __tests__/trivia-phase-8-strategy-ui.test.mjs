@@ -168,6 +168,12 @@ test('strategy surface parses and pins recovery, reporting, receipts and scoped 
     assert.match(source, /setSettlementReceipt\(settled\?\.receipt/);
     assert.match(source, /Diamond Transaction Record/);
     assert.match(source, /settlementReceipt\.transactions\.map/);
+    assert.match(source, /data-preserve-case="true">\{entryReceipt\.sessionId\}<\/span>/);
+    assert.match(source, /data-preserve-case="true">\{settlementReceipt\.settlementReference\}<\/span>/);
+    assert.match(source, /data-preserve-case="true">\{settlementReceipt\.scoreId\}<\/span>/);
+    assert.match(source, /data-preserve-case="true">\{settlementReceipt\.requestId\}<\/span>/);
+    assert.match(source, /data-preserve-case="true">\{settlementReceipt\.resultHash\}<\/span>/);
+    assert.match(source, /className="tc-row__value strategy-transaction-value" data-preserve-case="true"/);
     assert.match(source, /settled\?\.replayed !== true && awarded > 0/);
     assert.match(source, /onKeyDown=\{handleGameKeyDown\}/);
     assert.doesNotMatch(source, /window\.addEventListener\(['"]keydown/);

@@ -7,6 +7,11 @@ const SQL = readFileSync(new URL(
     import.meta.url,
 ), 'utf8');
 
+const ACL_SQL = readFileSync(new URL(
+    '../supabase/migrations/20261005202700_trivia_p8_gto_render_claims_acl.sql',
+    import.meta.url,
+), 'utf8');
+
 function definition(name, nextName) {
     const start = SQL.indexOf(`CREATE OR REPLACE FUNCTION public.${name}`);
     const end = nextName
@@ -216,4 +221,39 @@ test('report thresholds serialize per canonical question and every exposed funct
     assert.match(SQL, /SET search_path = pg_catalog, public, extensions, pg_temp/g);
     assert.match(SQL, /NOTIFY pgrst, 'reload schema'/);
     assert.match(SQL, /Phase 8 provenance is irreversible; destructive rollback refused\. Ship a forward fix\./);
+});
+
+test('forward ACL closeout gives render claims only the four required service privileges', () => {
+    assert.match(ACL_SQL, /-- TIER:\s+2/);
+    assert.match(ACL_SQL, /public\.trivia_gto_render_claims table privileges/);
+    assert.match(ACL_SQL, /relowner::pg_catalog\.regrole::text <> 'postgres'/);
+    assert.match(ACL_SQL, /NOT v_relation\.relrowsecurity/);
+    assert.match(ACL_SQL, /NOT v_relation\.relforcerowsecurity/);
+    assert.match(ACL_SQL, /FROM pg_catalog\.pg_policy policy[\s\S]*policy\.polrelid = v_relation\.oid/);
+    assert.match(ACL_SQL, /FROM pg_catalog\.aclexplode\(v_relation\.relacl\) acl[\s\S]*acl\.grantee = 0/);
+
+    const resets = ACL_SQL.match(
+        /REVOKE ALL PRIVILEGES ON TABLE public\.trivia_gto_render_claims\s+FROM PUBLIC, anon, authenticated, service_role;/g,
+    ) ?? [];
+    assert.equal(resets.length, 1, 'the forward migration must reset all four application ACL principals once');
+
+    const grants = (ACL_SQL.match(
+        /^GRANT[\s\S]*?ON TABLE public\.trivia_gto_render_claims[\s\S]*?;/gm,
+    ) ?? []).map((statement) => statement.replace(/\s+/g, ' ').trim());
+    assert.deepEqual(grants, [
+        'GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.trivia_gto_render_claims TO service_role;',
+    ], 'service_role must receive exactly the four render-claim DML privileges');
+
+    assert.match(ACL_SQL, /\('anon', ARRAY\[\]::text\[\]\)/);
+    assert.match(ACL_SQL, /\('authenticated', ARRAY\[\]::text\[\]\)/);
+    assert.match(
+        ACL_SQL,
+        /\('service_role', ARRAY\['SELECT', 'INSERT', 'UPDATE', 'DELETE'\]::text\[\]\)/,
+    );
+    assert.match(
+        ACL_SQL,
+        /\('TRUNCATE'\), \('REFERENCES'\), \('TRIGGER'\), \('MAINTAIN'\)/,
+    );
+    assert.match(ACL_SQL, /pg_catalog\.has_table_privilege\([\s\S]*IS DISTINCT FROM/);
+    assert.match(ACL_SQL, /TRIVIA_P8_RENDER_CLAIMS_ACL_POSTCONDITION_MISMATCH/);
 });

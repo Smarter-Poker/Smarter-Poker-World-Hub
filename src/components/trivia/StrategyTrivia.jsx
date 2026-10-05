@@ -1512,31 +1512,31 @@ export default function StrategyTrivia({ mode }) {
                                     {entryReceipt?.sessionId && (
                                         <li className="tc-row">
                                             <span className="tc-row__label">Run Receipt</span>
-                                            <span className="tc-row__value strategy-receipt-id">{entryReceipt.sessionId}</span>
+                                            <span className="tc-row__value strategy-receipt-id" data-preserve-case="true">{entryReceipt.sessionId}</span>
                                         </li>
                                     )}
                                     {settlementReceipt?.settlementReference && (
                                         <li className="tc-row">
                                             <span className="tc-row__label">Settlement Reference</span>
-                                            <span className="tc-row__value strategy-receipt-id">{settlementReceipt.settlementReference}</span>
+                                            <span className="tc-row__value strategy-receipt-id" data-preserve-case="true">{settlementReceipt.settlementReference}</span>
                                         </li>
                                     )}
                                     {settlementReceipt?.scoreId && (
                                         <li className="tc-row">
                                             <span className="tc-row__label">Score Record</span>
-                                            <span className="tc-row__value strategy-receipt-id">{settlementReceipt.scoreId}</span>
+                                            <span className="tc-row__value strategy-receipt-id" data-preserve-case="true">{settlementReceipt.scoreId}</span>
                                         </li>
                                     )}
                                     {settlementReceipt?.requestId && (
                                         <li className="tc-row">
                                             <span className="tc-row__label">Settlement Request</span>
-                                            <span className="tc-row__value strategy-receipt-id">{settlementReceipt.requestId}</span>
+                                            <span className="tc-row__value strategy-receipt-id" data-preserve-case="true">{settlementReceipt.requestId}</span>
                                         </li>
                                     )}
                                     {settlementReceipt?.resultHash && (
                                         <li className="tc-row">
                                             <span className="tc-row__label">Result Hash</span>
-                                            <span className="tc-row__value strategy-receipt-id">{settlementReceipt.resultHash}</span>
+                                            <span className="tc-row__value strategy-receipt-id" data-preserve-case="true">{settlementReceipt.resultHash}</span>
                                         </li>
                                     )}
                                     {settlementReceipt?.submittedAt && Number.isFinite(Date.parse(settlementReceipt.submittedAt)) && (
@@ -1576,7 +1576,7 @@ export default function StrategyTrivia({ mode }) {
                                                     <span className="tc-row__label">
                                                         {toTitleCase(String(transaction?.role || 'Transaction').replace(/_/g, ' '))}
                                                     </span>
-                                                    <span className="tc-row__value strategy-transaction-value">
+                                                    <span className="tc-row__value strategy-transaction-value" data-preserve-case="true">
                                                         {transaction?.amount !== null
                                                             && transaction?.amount !== undefined
                                                             && Number.isFinite(Number(transaction.amount))

@@ -68,3 +68,18 @@ test('every non-PvP server-run consumer fences delayed account-owned writes', ()
     assert.match(hook, /operationScopeRef\.current\.transition\(operationIdentity\)/);
     assert.match(hook, /requireCurrentOperation\(operationScope\)/);
 });
+
+test('the signed-in shell persists theme only after an explicit user choice', () => {
+    const source = read('src/providers/ThemeProvider.jsx');
+    assert.doesNotThrow(() => parse(source, { sourceType: 'module', plugins: ['jsx'] }));
+
+    const applyEffectStart = source.indexOf('// Save preference when it changes');
+    const persistChoiceStart = source.indexOf('const persistThemeChoice');
+    assert.ok(applyEffectStart >= 0 && persistChoiceStart > applyEffectStart);
+    assert.doesNotMatch(source.slice(applyEffectStart, persistChoiceStart), /saveAppSetting|localStorage\.setItem/);
+
+    const explicitChoice = source.slice(persistChoiceStart, source.indexOf('const value', persistChoiceStart));
+    assert.match(explicitChoice, /saveAppSetting\('theme', nextTheme, 'smarter-poker-theme'\)/);
+    assert.match(explicitChoice, /toggleTheme = \(\) => persistThemeChoice/);
+    assert.match(explicitChoice, /setTheme = themeName => persistThemeChoice/);
+});

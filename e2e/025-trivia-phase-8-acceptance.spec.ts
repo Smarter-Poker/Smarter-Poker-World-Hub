@@ -458,7 +458,7 @@ async function expectEntranceComposition(page: Page, mode: TriviaMode, mobile: b
   expect(source).toContain(mobile ? '-mobile-' : '-wide-');
 
   const description = mode === 'daily'
-    ? page.getByText('Fresh Daily', { exact: true })
+    ? page.locator('[data-daily-attempt] section[aria-labelledby="daily-attempt-state"]').getByText('Fresh Daily', { exact: true })
     : page.locator('.strategy-description');
   await expect(description).toBeVisible();
 

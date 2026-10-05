@@ -158,12 +158,12 @@ export function DailySettlementReceipt({ result }) {
                 </div>
             ) : null}
             <dl className={styles.receiptRows}>
-                <div><dt>Session</dt><dd>{receipt?.sessionId || result.sessionId}</dd></div>
-                {receipt?.scoreId ? <div><dt>Score Record</dt><dd>{receipt.scoreId}</dd></div> : null}
-                {receipt?.settlementReference ? <div><dt>Settlement Reference</dt><dd>{receipt.settlementReference}</dd></div> : null}
-                {receipt?.requestId ? <div><dt>Request</dt><dd>{receipt.requestId}</dd></div> : null}
-                {receipt?.resultHash ? <div><dt>Result Hash</dt><dd>{receipt.resultHash}</dd></div> : null}
-                {receipt?.submittedAt ? <div><dt>Submitted</dt><dd><time dateTime={receipt.submittedAt}>{receipt.submittedAt}</time></dd></div> : null}
+                <div><dt>Session</dt><dd data-preserve-case="true">{receipt?.sessionId || result.sessionId}</dd></div>
+                {receipt?.scoreId ? <div><dt>Score Record</dt><dd data-preserve-case="true">{receipt.scoreId}</dd></div> : null}
+                {receipt?.settlementReference ? <div><dt>Settlement Reference</dt><dd data-preserve-case="true">{receipt.settlementReference}</dd></div> : null}
+                {receipt?.requestId ? <div><dt>Request</dt><dd data-preserve-case="true">{receipt.requestId}</dd></div> : null}
+                {receipt?.resultHash ? <div><dt>Result Hash</dt><dd data-preserve-case="true">{receipt.resultHash}</dd></div> : null}
+                {receipt?.submittedAt ? <div><dt>Submitted</dt><dd><time data-preserve-case="true" dateTime={receipt.submittedAt}>{receipt.submittedAt}</time></dd></div> : null}
                 <div><dt>Server Grade</dt><dd>{formatTriviaDisplayNumber(result.correctCount)} / {formatTriviaDisplayNumber(result.totalQuestions)}</dd></div>
                 <div><dt>Run Reward</dt><dd className={reward > 0 ? 'tc-ink--gold' : undefined}>{formatTriviaDisplayNumber(reward)} Diamonds</dd></div>
                 <div><dt>Daily Bonus</dt><dd className={bonus > 0 ? 'tc-ink--gold' : undefined}>{formatTriviaDisplayNumber(bonus)} Diamonds</dd></div>
@@ -180,11 +180,11 @@ export function DailySettlementReceipt({ result }) {
                                 </span>
                             </div>
                             <dl className={styles.transactionRows}>
-                                <div><dt>Reference</dt><dd>{transaction.referenceId}</dd></div>
-                                {transaction.id ? <div><dt>Record</dt><dd>{transaction.id}</dd></div> : null}
-                                {transaction.kind ? <div><dt>Type</dt><dd>{transaction.kind}</dd></div> : null}
+                                <div><dt>Reference</dt><dd data-preserve-case="true">{transaction.referenceId}</dd></div>
+                                {transaction.id ? <div><dt>Record</dt><dd data-preserve-case="true">{transaction.id}</dd></div> : null}
+                                {transaction.kind ? <div><dt>Type</dt><dd data-preserve-case="true">{transaction.kind}</dd></div> : null}
                                 {transaction.balanceAfter != null ? <div><dt>Balance After</dt><dd>{formatTriviaDisplayNumber(transaction.balanceAfter)}</dd></div> : null}
-                                {transaction.createdAt ? <div><dt>Posted</dt><dd><time dateTime={transaction.createdAt}>{transaction.createdAt}</time></dd></div> : null}
+                                {transaction.createdAt ? <div><dt>Posted</dt><dd><time data-preserve-case="true" dateTime={transaction.createdAt}>{transaction.createdAt}</time></dd></div> : null}
                             </dl>
                         </li>
                     ))}

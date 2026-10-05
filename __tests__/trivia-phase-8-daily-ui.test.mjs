@@ -136,6 +136,22 @@ test('Daily art is passive and the mobile-first broadcast becomes a separate des
     assert.doesNotMatch(css.replace(/\/\*[\s\S]*?\*\//g, ''), /:hover/);
 });
 
+test('Daily settlement keeps every authoritative receipt identifier byte-for-byte', () => {
+    const component = read('src/components/trivia/daily/DailyTriviaBroadcast.jsx');
+    const receipt = component.slice(component.indexOf('export function DailySettlementReceipt'));
+
+    assert.match(receipt, /<dd data-preserve-case="true">\{receipt\?\.sessionId \|\| result\.sessionId\}<\/dd>/);
+    assert.match(receipt, /<dd data-preserve-case="true">\{receipt\.scoreId\}<\/dd>/);
+    assert.match(receipt, /<dd data-preserve-case="true">\{receipt\.settlementReference\}<\/dd>/);
+    assert.match(receipt, /<dd data-preserve-case="true">\{receipt\.requestId\}<\/dd>/);
+    assert.match(receipt, /<dd data-preserve-case="true">\{receipt\.resultHash\}<\/dd>/);
+    assert.match(receipt, /<dd data-preserve-case="true">\{transaction\.referenceId\}<\/dd>/);
+    assert.match(receipt, /<dd data-preserve-case="true">\{transaction\.id\}<\/dd>/);
+    assert.match(receipt, /<dd data-preserve-case="true">\{transaction\.kind\}<\/dd>/);
+    assert.doesNotMatch(receipt, /toTitleCase|normalizeWorldCopy/);
+    assert.doesNotMatch(receipt, /`trivia_(?:session|daily_bonus)_\$\{/);
+});
+
 test('server answer uncertainty locks the same answer and keyboard shortcuts stay local', () => {
     const game = read('src/components/trivia/TriviaGame.jsx');
     assert.match(game, /pendingAnswerRef/);
