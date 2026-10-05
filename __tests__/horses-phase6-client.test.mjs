@@ -14,20 +14,27 @@ const read = (path) => readFile(new URL(path, ROOT), 'utf8');
 const EXPORT_PANELS = ['FloorPanel.jsx', 'TournamentsPanel.jsx', 'CashierPanel.jsx', 'RakePanel.jsx'];
 const PANELS = [...EXPORT_PANELS, 'ClubsUnionsPanel.jsx', 'AnnouncementsPanel.jsx'];
 
-test('all Phase 6 tabs are visible code-split reads with real permissions', () => {
+test('all Phase 6 tabs are visible code-split reads with real permissions', async () => {
   const expected = { floor: 'clubs.read', tournaments: 'clubs.read', cashier: 'money.read', rake: 'money.read' };
+  const dynamicPanels = await read('src/components/horses/dynamicPanels.js');
+  const componentNames = { floor: 'FloorPanel', tournaments: 'TournamentsPanel', cashier: 'CashierPanel', rake: 'RakePanel' };
   for (const [id, permission] of Object.entries(expected)) {
     const tab = TABS.find((entry) => entry.id === id);
     assert.ok(tab, `${id} tab`);
     assert.equal(tab.permission, permission);
-    assert.equal(typeof tab.load, 'function');
+    const componentName = componentNames[id];
+    assert.match(dynamicPanels, new RegExp(`const ${componentName} = dynamic\\(\\(\\) => import\\('\\.\\/${componentName}'\\)`));
+    assert.match(dynamicPanels, new RegExp(`${id}: ${componentName}`));
     assert.notEqual(tab.legacy, true);
   }
   assert.equal(TABS.some((entry) => ['clubs-unions', 'announcements'].includes(entry.id)), false);
+  const sectionComponents = { operations: 'ClubsUnionsPanel', announcements: 'AnnouncementsPanel' };
   for (const id of ['operations', 'announcements']) {
     const section = CA_SECTIONS.find(([sectionId]) => sectionId === id);
     assert.ok(section, `${id} Club Arena section`);
-    assert.equal(typeof section[2], 'function');
+    const componentName = sectionComponents[id];
+    assert.match(dynamicPanels, new RegExp(`const ${componentName} = dynamic\\(\\(\\) => import\\('\\.\\/${componentName}'\\)`));
+    assert.match(dynamicPanels, new RegExp(`${id}: ${componentName}`));
   }
 });
 

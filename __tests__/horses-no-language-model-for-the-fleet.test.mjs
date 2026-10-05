@@ -163,10 +163,10 @@ test('the settings route still owns the social content engine keys', async () =>
 });
 
 test('the Settings tab points an operator at the control that does work', async () => {
-  const body = await read('pages/horses/index.js');
+  const body = await read('src/components/horses/SettingsPanel.jsx');
 
   assert.ok(
-    /HorseLogic Is A Deterministic Engine/.test(body),
+    /HorseLogic Is A Deterministic (?:Club Arena )?Engine/.test(body),
     'the Horse Fleet card no longer states that the engine is deterministic. '
       + 'An operator arriving where four controls used to be needs to be told why they went.',
   );
@@ -176,7 +176,7 @@ test('the Settings tab points an operator at the control that does work', async 
       + 'actually governed',
   );
   assert.ok(
-    /navTabs\.some\(\(t\) => t\.id === 'fleet'\)/.test(body),
+    /permissions\.includes\('fleet\.read'\)/.test(body),
     'the Fleet Command button is no longer gated on the operator holding fleet.read. '
       + 'A settings.write account need not hold it, and a button that lands on a hidden '
       + 'panel is worse than no button.',

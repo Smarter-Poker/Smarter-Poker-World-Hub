@@ -8,15 +8,18 @@ import test from 'node:test';
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 const migration = (await readdir(path.join(ROOT, 'supabase', 'migrations')))
   .find((name) => name.includes('ca_phase5_integrity_cases_and_review_queue'));
-const [route, panel, registry, sql] = await Promise.all([
+const [route, panel, registry, dynamicPanels, sql] = await Promise.all([
   readFile(path.join(ROOT, 'pages/api/horses/integrity-admin.js'), 'utf8'),
   readFile(path.join(ROOT, 'src/components/horses/IntegrityPanel.jsx'), 'utf8'),
   readFile(path.join(ROOT, 'src/components/horses/tabRegistry.js'), 'utf8'),
+  readFile(path.join(ROOT, 'src/components/horses/dynamicPanels.js'), 'utf8'),
   readFile(path.join(ROOT, 'supabase/migrations', migration), 'utf8'),
 ]);
 
 test('the lazy Integrity tab reaches the panel and its single API door', () => {
-  assert.match(registry, /id: 'integrity'[\s\S]*?load: \(\) => import\('\.\/IntegrityPanel'\)/);
+  assert.match(registry, /id: 'integrity'[\s\S]*?permission: 'players\.read'/);
+  assert.match(dynamicPanels, /const IntegrityPanel = dynamic\(\(\) => import\('\.\/IntegrityPanel'\)/);
+  assert.match(dynamicPanels, /integrity: IntegrityPanel/);
   assert.match(panel, /INTEGRITY_ADMIN/);
   assert.match(route, /export default withOperatorRoute\(spec, handle\)/);
 });

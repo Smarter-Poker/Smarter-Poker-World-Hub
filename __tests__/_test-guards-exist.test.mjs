@@ -149,6 +149,10 @@ import './horses-phase5-release-audit.test.mjs';
 // Next chunks, and accessible large-list virtualization. Imported here because
 // required CHECK 8 runs this meta-guard without a full application build.
 import './horses-phase9-infrastructure.test.mjs';
+import './horses-club-arena-panel.test.mjs';
+import './horses-phase9-architecture.test.mjs';
+import './horses-phase9-core-panels.test.mjs';
+import './horses-phase9-legacy-panels.test.mjs';
 import './operator-console-visual-system.test.mjs';
 import './horses-admin-states-are-honest.law.test.mjs';
 import './horses-operator-console-parses.law.test.mjs';

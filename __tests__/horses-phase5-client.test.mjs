@@ -47,6 +47,7 @@ import { TABS, findTab, visibleTabs } from '../src/components/horses/tabRegistry
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const component = (name) => path.join(HERE, '..', 'src/components/horses', name);
 const panel = await readFile(component('IntegrityPanel.jsx'), 'utf8');
+const dynamicPanels = await readFile(component('dynamicPanels.js'), 'utf8');
 const integritySource = await readFile(component('integrityAdmin.js'), 'utf8');
 const operatorFetchSource = await readFile(component('useOperatorFetch.js'), 'utf8');
 const pagedListSource = await readFile(component('usePagedList.js'), 'utf8');
@@ -80,7 +81,8 @@ test('the Integrity tab is visible, code split, and read-gated', () => {
   assert.ok(tab);
   assert.equal(tab.label, 'Integrity');
   assert.equal(tab.permission, 'players.read');
-  assert.equal(typeof tab.load, 'function');
+  assert.match(dynamicPanels, /const IntegrityPanel = dynamic\(\(\) => import\('\.\/IntegrityPanel'\)/);
+  assert.match(dynamicPanels, /integrity: IntegrityPanel/);
   assert.notEqual(tab.legacy, true);
   assert.ok(visibleTabs(TABS).some((entry) => entry.id === 'integrity'));
 });
