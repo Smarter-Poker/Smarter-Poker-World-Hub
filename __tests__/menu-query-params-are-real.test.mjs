@@ -93,6 +93,41 @@ test('every ?source= the menu sends to News is one News can filter by', () => {
   }
 });
 
+/** Pull the `key:` values out of an array-of-objects literal named `name`. */
+function keyList(src, name) {
+  const i = src.indexOf(name);
+  assert.notEqual(i, -1, `${name} must exist - this test reads it, not a copy`);
+  const close = src.indexOf('];', i);
+  return [...src.slice(i, close).matchAll(/key:\s*'([^']+)'/g)].map((x) => x[1]);
+}
+
+test('every Leaderboards menu link uses a param and value the page accepts', () => {
+  // 2026-10-04: the menu sent ?period=weekly|monthly and ?category=training|
+  // tournaments|social. leaderboards.js reads router.query.tab against TABS and
+  // router.query.period against PERIODS (week|month|all) and reads ?category=
+  // nowhere, so five of six rows opened the unfiltered board.
+  const src = read('pages/hub/leaderboards.js');
+  const accepted = {
+    tab: keyList(src, 'const TABS'),
+    period: keyList(src, 'const PERIODS'),
+  };
+  assert.ok(accepted.tab.length >= 2 && accepted.period.length >= 2, 'sanity: TABS and PERIODS are real lists');
+  for (const param of Object.keys(accepted)) {
+    assert.match(src, new RegExp(`router\\.query\\.${param}\\b`),
+      `sanity: leaderboards.js still reads ?${param}= from the URL`);
+  }
+  const links = hrefs.filter((h) => h.split('?')[0] === '/hub/leaderboards' && h.includes('?'));
+  assert.ok(links.length > 0, 'sanity: the Leaderboards menu still links filtered views');
+  for (const href of links) {
+    for (const [param, value] of new URLSearchParams(href.split('?')[1])) {
+      assert.ok(param in accepted,
+        `${href} sends ?${param}=, which pages/hub/leaderboards.js never reads (it reads ${Object.keys(accepted).join(', ')})`);
+      assert.ok(accepted[param].includes(value),
+        `${href} sends ${param}="${value}"; leaderboards.js accepts ${accepted[param].join(', ')}`);
+    }
+  }
+});
+
 test('the Diamond Store is linked by its real routes, not a param it never reads', () => {
   const src = read('pages/hub/diamond-store.js');
   assert.ok(!/router\.query\.category/.test(src),
