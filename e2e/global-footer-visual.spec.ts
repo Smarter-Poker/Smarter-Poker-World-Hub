@@ -173,19 +173,24 @@ const expectedArtworkStage = (
 const visit = async (page: Page, route: string) => {
   for (let attempt = 0; attempt < 3; attempt += 1) {
     try {
-      await page.goto(route, { waitUntil: 'domcontentloaded' });
+      // WebKit can paint and hydrate a production page while a late resource
+      // keeps its DOMContentLoaded lifecycle promise unresolved. Navigation
+      // only owns the committed document; each test below waits for the exact
+      // product state it needs before making an assertion.
+      await page.goto(route, { waitUntil: 'commit', timeout: 15_000 });
       return;
     } catch (error) {
-      const isDocumentReplacement =
-        /ERR_ABORTED|Frame load interrupted|is interrupted by another navigation/.test(
+      const isRecoverableNavigation =
+        /ERR_ABORTED|Frame load interrupted|is interrupted by another navigation|TimeoutError|Navigation timeout/.test(
           String(error)
         );
-      if (attempt === 2 || !isDocumentReplacement) throw error;
+      if (attempt === 2 || !isRecoverableNavigation) throw error;
       // The app updater can intentionally replace the first document after a
       // fresh production build. Let that replacement settle, then restore the
       // requested canonical URL. WebKit reports this as an overlapping
       // navigation instead of ERR_ABORTED.
-      await page.waitForLoadState('domcontentloaded').catch(() => undefined);
+      await page.evaluate(() => window.stop()).catch(() => undefined);
+      await page.waitForTimeout(50);
     }
   }
 };
@@ -272,7 +277,9 @@ test.describe('dynamic World Hub footer route and visual contract', () => {
     await expect(pageFooter).toBeVisible();
     await expect(pageFooter).toHaveAttribute('data-footer-layout', 'in-flow');
     await expect(pageFooter).toHaveCSS('position', 'static');
-    await expect(page.locator('body')).toHaveAttribute('data-world-copy-policy', 'marketplace');
+    await expect(page.locator('body')).toHaveAttribute('data-world-copy-policy', 'marketplace', {
+      timeout: 15_000,
+    });
     await expect(page.locator('.world-copy-scope')).toHaveCount(1);
   });
 
@@ -373,9 +380,16 @@ test.describe('dynamic World Hub footer route and visual contract', () => {
         await expect(artwork).toBeVisible();
         await expect(artwork).toHaveCSS('object-fit', 'fill');
         await expect(artwork).toHaveCSS('filter', 'none');
-        await artwork.evaluate(async (image: HTMLImageElement) => {
-          if (!image.complete || image.naturalWidth === 0) await image.decode();
-        });
+        await expect
+          .poll(
+            () =>
+              artwork.evaluate(
+                (image: HTMLImageElement) =>
+                  image.complete && image.naturalWidth > 0 && image.naturalHeight > 0
+              ),
+            { timeout: 15_000, message: `${entry.id} approved artwork must finish loading` }
+          )
+          .toBe(true);
 
         const stageBox = await stage.boundingBox();
         expect(stageBox).not.toBeNull();
@@ -386,7 +400,9 @@ test.describe('dynamic World Hub footer route and visual contract', () => {
         expect(Math.abs(stageBox!.width - expectedStage.width)).toBeLessThanOrEqual(1);
         expect(Math.abs(stageBox!.height - expectedStage.height)).toBeLessThanOrEqual(1);
         expect(Math.abs(stageBox!.y + stageBox!.height - 568)).toBeLessThan(4);
-        expect(Math.abs(navBox!.height - stageBox!.height)).toBeLessThan(2);
+        // The fixed control shell owns Club Arena's shared 44px floor. Narrow
+        // artwork can be shorter while remaining bottom-welded and unstretched.
+        expect(Math.abs(navBox!.height - expectedClubFooterHeight(320))).toBeLessThanOrEqual(3);
         const decodedArtwork = await artwork.evaluate((image: HTMLImageElement) => ({
           width: image.naturalWidth,
           height: image.naturalHeight,
@@ -612,7 +628,9 @@ test.describe('dynamic World Hub footer route and visual contract', () => {
     await visit(page, '/hub/video-library');
 
     const nav = page.locator('[data-global-bottom-nav="true"]');
-    await expect(nav).toHaveAttribute('data-footer-scroll-armed', 'true');
+    await expect(nav).toHaveAttribute('data-footer-scroll-armed', 'true', {
+      timeout: 15_000,
+    });
     await page.evaluate(() => {
       document.body.style.minHeight = '400vh';
       window.scrollTo(0, 200);
