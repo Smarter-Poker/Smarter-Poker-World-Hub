@@ -5,6 +5,10 @@ production proof are recorded here only after they occur.
 
 Policy receipt: version 2.9, manifest
 `a659f31c5c1c2b0864889508079a635dd5fe2fc98decfbfc9d3f9c80dd45ec3b`.
+Resumption receipt: the four canonical sources under
+`/Users/smarter.poker/Documents` were emitted and read at
+`2026-10-06T03:00:50.166Z` from candidate
+`e89824385ac81f67200bf29548b02f5edf01602e`.
 
 ## Scope Completed
 
