@@ -707,7 +707,10 @@ function ArtworkBottomNav({ footer, activeHref, warm, hidden = false, armed = fa
         boxSizing: 'border-box',
         display: 'flex',
         justifyContent: 'center',
-        alignItems: 'flex-start',
+        // Narrow artwork can be shorter than the 44px shell once its native
+        // aspect ratio is preserved. Weld that stage to the viewport edge;
+        // flex-start leaves a visible bottom gap at 320px.
+        alignItems: 'flex-end',
         zIndex: BOTTOM_NAV_Z,
         padding: 0,
         background: 'transparent',

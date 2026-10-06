@@ -271,7 +271,7 @@ test('the app shell resolves a world footer, one spacer, and the Club Arena boun
   assert.match(nav, /FOOTER_ARTWORK_HEIGHT = 'clamp\(44px, 12\.326vw, 132px\)'/);
   assert.match(
     nav,
-    /className="bn-nav bn-artwork-nav"[\s\S]*?style=\{\{[\s\S]*?height: FOOTER_ARTWORK_HEIGHT,[\s\S]*?pointerEvents: 'none'/
+    /className="bn-nav bn-artwork-nav"[\s\S]*?style=\{\{[\s\S]*?height: FOOTER_ARTWORK_HEIGHT,[\s\S]*?alignItems: 'flex-end',[\s\S]*?pointerEvents: 'none'/
   );
   assert.match(nav, /gridTemplateColumns: `repeat\(\$\{items\.length\}, minmax\(0, 1fr\)\)`/);
   assert.match(nav, /overflow: 'hidden'/);
