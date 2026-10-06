@@ -299,7 +299,7 @@ export default function TriviaLeaderboard() {
             <>
                 <SEOHead
                     title="Trivia Leaderboard - Comparable Rankings"
-                    description="Compare Verified Poker Trivia Scores By Mode Or Read Official Nightly Tournament Results."
+                    description="Compare Verified Poker Trivia Scores By Mode, Follow Your Rank, Or Review Official Nightly Tournament Results Across Comparable Boards."
                     canonical="/hub/trivia/leaderboard"
                 />
                 <PageTransition>
