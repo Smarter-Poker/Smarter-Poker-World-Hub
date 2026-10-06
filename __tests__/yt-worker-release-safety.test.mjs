@@ -318,6 +318,14 @@ test('the build toolchain comes only from the official python image and an offic
   assert.ok(order.every((index, i) => index >= 0 && (i === 0 || index > order[i - 1])), `ordered build script: ${order}`);
   assert.equal(script.slice(0, order[5]).match(/\bnode\s+-/g), null, 'no node invocation before the verified toolchain');
   assert.doesNotMatch(script, /\bapt(?:-get)?\b|\bxz\b|\bcurl\b|\bwget\b|\bdpkg\b/);
+  // The payload is reproducible: no bytecode, whose embedded source mtimes made
+  // a rebuild of an already promoted commit fail the manifest comparison.
+  assert.match(script, /PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=\/release\/vendor python3 -B -s -m yt_dlp --version/);
+  assert.ok(
+    script.indexOf('test -z "$(find /release -name __pycache__ -print -quit)"') > script.indexOf('python3 -B -s -m yt_dlp --version'),
+    'the payload is checked for bytecode after the last Python import',
+  );
+  assert.match(script, /--no-compile/);
   assert.match(workflow, /--tmpfs \/opt\/node-toolchain:rw,exec,nosuid,nodev,size=256m/);
   assert.match(workflow, /--env HOME=\/tmp --env NODE_TOOLCHAIN_PY/);
   assert.match(workflow, /--memory=1g --memory-swap=1g --pids-limit=256 --read-only/);
