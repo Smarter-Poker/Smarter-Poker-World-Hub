@@ -136,7 +136,7 @@ test('no Trivia surface imports generic chrome or floating glyph icons', () => {
 
 test('every Trivia page renders on the console chassis', () => {
     const consoleUsers = SOURCES.filter(rel => /TriviaConsole(Dialog)?['"]/.test(read(rel)) || /<TriviaConsole\b/.test(read(rel)));
-    for (const rel of ROUTES.filter(r => !/\/(cash|gto|icm|mtt)\.js$/.test(r))) {
+    for (const rel of ROUTES.filter(r => !/\/(cash|gto|icm|mtt|survival)\.js$/.test(r))) {
         const source = read(rel);
         const direct = /console\/TriviaConsole/.test(source);
         const viaComponent = /TriviaLobby|StrategyTrivia|TriviaGame|TimeAttackGame|PvpCompetitiveExperience/.test(source);
@@ -146,6 +146,21 @@ test('every Trivia page renders on the console chassis', () => {
         assert.match(read(rel), /StrategyTrivia/, `${rel} delegates to StrategyTrivia`);
     }
     assert.ok(consoleUsers.length >= 10, 'the console primitives are actually used');
+});
+
+test('the retired Survival alias redirects on the server before any console, auth, question, or charge path can mount', () => {
+    const source = read('pages/hub/trivia/survival.js');
+    assert.match(source, /const LIVE_SURVIVAL_ROUTE = ['"]\/hub\/trivia\/survival-game['"];?/);
+    assert.match(source, /export function getServerSideProps\(\)/, 'the compatibility route redirects before hydration');
+    assert.match(source, /destination:\s*LIVE_SURVIVAL_ROUTE/);
+    assert.match(source, /permanent:\s*false/, 'the compatibility redirect remains rollback-safe');
+    assert.match(source, /export default function SurvivalCompatibilityRedirect\(\)\s*\{\s*return null;\s*\}/);
+    const executable = source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+    assert.doesNotMatch(
+        executable,
+        /TriviaConsole|useTriviaServerRun|useAuth|supabase|session-(?:start|answer|submit)|charge|diamond/i,
+        'the alias must never initialize UI, identity, questions, or financial work before redirecting'
+    );
 });
 
 test('the footer law lives in the primitive: two plates or a lit word, never one plate', () => {

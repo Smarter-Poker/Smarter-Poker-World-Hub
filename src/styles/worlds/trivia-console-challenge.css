@@ -329,7 +329,7 @@
 
 .trivia-challenge-levels {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 0.8cqw 2cqw;
 }
 
@@ -489,6 +489,135 @@
     color: var(--tc-ink-gold);
 }
 
+/* Phase 9 intros are image-first on phones and become a deliberate
+   scene-plus-control composition on desktop. The picture remains the first
+   DOM item so mobile and assistive reading order agree. */
+.phase9-intro-layout,
+.phase9-intro-copy,
+.phase9-mode-brief,
+.phase9-settlement {
+    display: grid;
+    min-width: 0;
+    gap: 2.4cqw;
+}
+
+.phase9-intro-copy {
+    align-content: start;
+}
+
+.phase9-mode-brief,
+.phase9-settlement {
+    padding-top: 1.8cqw;
+    border-top: var(--tc-rule);
+    box-shadow: var(--tc-rule-lit);
+}
+
+.phase9-mode-brief > h2,
+.phase9-settlement h2 {
+    margin: 0;
+    color: var(--tc-ink-blue);
+    font-size: max(13px, 3cqw) !important;
+    font-weight: 800;
+    letter-spacing: 0.16em;
+    line-height: 1.25;
+    text-transform: uppercase;
+}
+
+.phase9-mode-brief > p,
+.phase9-settlement > p {
+    margin: 0;
+    color: var(--tc-ink-silver);
+    font-family: Inter, system-ui, sans-serif;
+    font-size: max(14px, 3.2cqw);
+    line-height: 1.5;
+}
+
+.phase9-mode-brief__rows,
+.phase9-settlement__rows {
+    display: grid;
+    gap: 0;
+    margin: 0;
+}
+
+.phase9-mode-brief__rows > div,
+.phase9-settlement__rows > div {
+    display: grid;
+    grid-template-columns: minmax(7rem, 0.45fr) minmax(0, 1fr);
+    gap: 2cqw;
+    align-items: baseline;
+    min-height: 44px;
+    padding: 1.2cqw 0;
+    border-top: var(--tc-rule);
+    box-shadow: var(--tc-rule-lit);
+}
+
+.phase9-mode-brief__rows dt,
+.phase9-settlement__rows dt {
+    color: var(--tc-ink-blue);
+    font-size: max(12px, 2.5cqw);
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}
+
+.phase9-mode-brief__rows dd,
+.phase9-settlement__rows dd {
+    min-width: 0;
+    margin: 0;
+    overflow-wrap: anywhere;
+    color: var(--tc-ink-silver);
+    font-size: max(13px, 2.9cqw);
+    text-align: right;
+}
+
+.phase9-settlement__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 2cqw;
+}
+
+.phase9-settlement__head > span {
+    font-size: max(12px, 2.6cqw);
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}
+
+.phase9-settlement__transactions {
+    display: grid;
+    gap: 0;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.phase9-settlement__transactions > li {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0.6cqw 2cqw;
+    min-height: 44px;
+    padding: 1.2cqw 0;
+    border-top: var(--tc-rule);
+    box-shadow: var(--tc-rule-lit);
+}
+
+.phase9-settlement__transactions small {
+    grid-column: 1 / -1;
+    overflow-wrap: anywhere;
+    color: var(--tc-ink-muted);
+}
+
+.phase9-review-list > li {
+    display: grid;
+    align-items: start;
+    gap: 0.8cqw;
+}
+
+.phase9-review-list p {
+    margin: 0;
+}
+
 /* Meaningful motion: a wrong answer shakes the stage (reduced motion off). */
 .trivia-challenge-stage--shaking {
     animation: trivia-console-shake 180ms linear;
@@ -524,6 +653,14 @@
 
     .trivia-challenge-levels {
         grid-template-columns: repeat(5, minmax(0, 1fr));
+    }
+}
+
+@media (min-width: 860px) {
+    .phase9-intro-layout {
+        grid-template-columns: minmax(0, 1.35fr) minmax(280px, 0.65fr);
+        align-items: start;
+        column-gap: 3.2cqw;
     }
 }
 

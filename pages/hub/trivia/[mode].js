@@ -34,6 +34,8 @@ import { TRIVIA_INTRO_ART_ARCADE, TRIVIA_INTRO_ART_DAILY, TRIVIA_INTRO_ART_HISTO
 import TriviaConsoleDialog from '../../../src/components/trivia/console/TriviaConsoleDialog';
 import DailyTriviaBroadcast, { DailyLeaderboard, DailySettlementReceipt } from '../../../src/components/trivia/daily/DailyTriviaBroadcast';
 import { projectDailyResume } from '../../../src/components/trivia/daily/dailyTriviaModel.mjs';
+import KnowledgeModeBrief from '../../../src/components/trivia/phase9/KnowledgeModeBrief';
+import Phase9SettlementReceipt from '../../../src/components/trivia/phase9/Phase9SettlementReceipt';
 import { getRecentlySeenIds, fetchRandomQuestionPool } from '../../../src/lib/triviaQuestionLoader';
 import useServerGradedRun from '../../../src/hooks/useServerGradedRun';
 import { createSoloJourneyTracker } from '../../../src/lib/trivia/soloJourneyAnalytics.mjs';
@@ -101,6 +103,7 @@ const SERVER_GRADED_PAGE_MODES = new Set([
     'arcade', 'daily', 'history', 'rules', 'pro',
     'mtt', 'cash', 'icm', 'gto'
 ]);
+const PHASE9_KNOWLEDGE_MODES = new Set(['arcade', 'history', 'rules', 'pro']);
 
 export default function TriviaModePage() {
     useTrainingBus('trivia-mode');
@@ -207,6 +210,7 @@ export default function TriviaModePage() {
     const [showPrizeWheel, setShowPrizeWheel] = useState(false);
     const [wheelSpun, setWheelSpun] = useState(false);
     const [isPerfectScore, setIsPerfectScore] = useState(false);
+    const [arcadeInventory, setArcadeInventory] = useState({ streakShield: 0, freeEntry: 0, status: 'idle' });
     const celebrations = useCelebrations();
 
     // Server-resolved prize-wheel outcome ({ prizeId, prizeAmount }) - the wheel
@@ -288,6 +292,7 @@ export default function TriviaModePage() {
             setResult(null);
             setSaveErrorPayload(null);
             setWheelPrize(null);
+            setArcadeInventory({ streakShield: 0, freeEntry: 0, status: 'idle' });
         }
         if (accountChanged && ['playing', 'saving', 'saving_error'].includes(gameStateRef.current)) {
             setError(resolvedAccountId
@@ -336,6 +341,27 @@ export default function TriviaModePage() {
 
                     if (profile) {
                         setUserDiamonds(profile.diamonds || 0);
+                    }
+
+                    if (mode === 'arcade') {
+                        setArcadeInventory(prev => ({ ...prev, status: 'loading' }));
+                        const { data: itemRows, error: itemError } = await supabase
+                            .from('trivia_user_items')
+                            .select('item_type, quantity')
+                            .eq('user_id', currentUserId)
+                            .in('item_type', ['streak_shield', 'arcade_ticket']);
+                        if (!isCurrent()) return;
+                        if (itemError) {
+                            console.warn('[Arcade] Inventory read failed:', itemError.message);
+                            setArcadeInventory({ streakShield: 0, freeEntry: 0, status: 'error' });
+                        } else {
+                            const itemMap = new Map((itemRows || []).map(item => [item.item_type, Number(item.quantity) || 0]));
+                            setArcadeInventory({
+                                streakShield: itemMap.get('streak_shield') || 0,
+                                freeEntry: itemMap.get('arcade_ticket') || 0,
+                                status: 'ready',
+                            });
+                        }
                     }
 
                     if (mode === 'daily') {
@@ -901,15 +927,16 @@ export default function TriviaModePage() {
                 soloJourneyTrackerRef.current.beginRun(started?.sessionId);
                 soloRunLifecycleRef.current = { active: true, settled: false, mode, state: 'playing' };
                 setQuestions(startedQuestions);
-                const resumeProjection = mode === 'daily'
+                const supportsProjectedResume = mode === 'daily' || PHASE9_KNOWLEDGE_MODES.has(mode);
+                const resumeProjection = supportsProjectedResume
                     ? projectDailyResume(startedQuestions)
                     : { questionIndex: 0, answers: [], verdicts: {}, correctCount: 0, streak: 0, complete: false };
-                if (mode === 'daily') setDailyResumeSeed(resumeProjection);
+                if (supportsProjectedResume) setDailyResumeSeed(resumeProjection);
                 if (Number.isFinite(started.newBalance)) setUserDiamonds(started.newBalance);
                 if (started.entryState === 'charged' && started.entryCost > 0) {
                     busEmit.diamondsSpent(started.entryCost, `Trivia ${mode} entry`);
                 }
-                if (mode === 'daily' && started.resumed && resumeProjection.complete) {
+                if (supportsProjectedResume && started.resumed && resumeProjection.complete) {
                     await handleComplete({
                         answers: resumeProjection.answers,
                         correctCount: resumeProjection.correctCount,
@@ -1332,7 +1359,7 @@ export default function TriviaModePage() {
     };
 
     const resumeDailyRun = async () => {
-        if (mode !== 'daily' || isStartingRef.current) return;
+        if ((mode !== 'daily' && !PHASE9_KNOWLEDGE_MODES.has(mode)) || isStartingRef.current) return;
         const operationScope = accountOperationScopeRef.current.capture();
         if (operationScope.identity !== (userId || null)) return;
         const startOperation = { operationScope };
@@ -1341,7 +1368,7 @@ export default function TriviaModePage() {
             resumeRetryRef.current = false;
         }
         if (!userId) {
-            router.push('/auth/login?redirect=/hub/trivia/daily');
+            router.push(`/auth/login?redirect=/hub/trivia/${mode}`);
             return;
         }
         if (!isOnline) {
@@ -1391,11 +1418,11 @@ export default function TriviaModePage() {
             }
             setGameState('playing');
         } catch (resumeError) {
-            console.warn('[Daily Trivia] Resume failed:', resumeError?.message || resumeError);
+            console.warn(`[Trivia ${mode}] Resume failed:`, resumeError?.message || resumeError);
             if (!accountOperationScopeRef.current.isCurrent(operationScope)
                 || isStaleAccountOperation(resumeError)) return;
             resumeRetryRef.current = true;
-            setError('Could Not Resume The Daily Run. Verify Your Connection And Try Again.');
+            setError(`Could Not Resume The ${mode === 'daily' ? 'Daily' : modeName} Run. Verify Your Connection And Try Again.`);
             setGameState('error');
         } finally {
             if (startOperationRef.current === startOperation) {
@@ -1568,6 +1595,7 @@ export default function TriviaModePage() {
     const modeTag = toTitleCase(descriptionParts.length > 1 ? descriptionParts.slice(1).join(', ') : (descriptionParts[0] || ''));
     const modeTagFitsHead = modeTag.length > 0 && modeTag.length <= 28;
     const isPaidMode = (modeConfig.diamondCost || 0) > 0;
+    const isPhase9KnowledgeMode = PHASE9_KNOWLEDGE_MODES.has(mode);
     const dailyCap = DAILY_DIAMOND_CAPS?.[mode];
     const needsDiamonds = typeof error === 'string' && /Diamonds/.test(error);
     const backToTrivia = { label: 'Back To Trivia', onClick: () => router.push('/hub/trivia') };
@@ -1586,9 +1614,9 @@ export default function TriviaModePage() {
     let consoleSecondary;
     if (gameState === 'ready') {
         consoleSecondary = backToTrivia;
-        if (mode === 'daily' && !userId) {
-            consolePrimary = { label: 'Sign In To Play', onClick: () => router.push('/auth/login?redirect=/hub/trivia/daily') };
-        } else if (mode === 'daily' && serverRun.hasRecoverableSession) {
+        if ((mode === 'daily' || isPhase9KnowledgeMode) && !userId) {
+            consolePrimary = { label: 'Sign In To Play', onClick: () => router.push(`/auth/login?redirect=/hub/trivia/${mode}`) };
+        } else if ((mode === 'daily' || isPhase9KnowledgeMode) && serverRun.hasRecoverableSession) {
             consolePrimary = { label: isStarting ? 'Resuming' : 'Resume Run', onClick: resumeDailyRun, disabled: isStarting || !isOnline };
         } else if (mode === 'daily' && dailyStatus === 'error') {
             consolePrimary = { label: 'Retry Attempt Status', onClick: retryDailyLoad };
@@ -1608,7 +1636,9 @@ export default function TriviaModePage() {
         consolePrimary = { label: 'Retry Save', onClick: handleRetrySave };
     } else if (gameState === 'error') {
         consoleSecondary = backToTrivia;
-        consolePrimary = needsDiamonds
+        consolePrimary = serverRun.hasRecoverableSession && isPhase9KnowledgeMode
+            ? { label: 'Retry Resume', onClick: resumeDailyRun, disabled: isStarting || !isOnline }
+            : needsDiamonds
             ? { label: 'Get Diamonds', onClick: () => router.push('/hub/diamond-store'), tone: 'gold' }
             : mode === 'daily'
                 ? { label: 'Try Again', onClick: retryDailyLoad }
@@ -1650,7 +1680,7 @@ export default function TriviaModePage() {
                         eyebrow="Smarter Poker Trivia"
                         title={modeName}
                         subtitle={modeTagFitsHead ? modeTag : undefined}
-                        pill={gameState === 'ready' && mode === 'daily' && serverRun.hasRecoverableSession ? 'Resume' : gameState === 'ready' ? 'Ready' : gameState === 'playing' ? 'Live' : gameState === 'results' ? 'Results' : gameState === 'saving' ? 'Saving' : gameState === 'saving_error' || gameState === 'error' ? 'Attention' : 'Loading'}
+                        pill={gameState === 'ready' && (mode === 'daily' || isPhase9KnowledgeMode) && serverRun.hasRecoverableSession ? 'Resume' : gameState === 'ready' ? 'Ready' : gameState === 'playing' ? 'Live' : gameState === 'results' ? 'Results' : gameState === 'saving' ? 'Saving' : gameState === 'saving_error' || gameState === 'error' ? 'Attention' : 'Loading'}
                         pillInk={gameState === 'saving_error' || gameState === 'error' ? 'red' : gameState === 'playing' ? 'green' : 'blue'}
                         titleAs="h1"
                         secondaryAction={consoleSecondary}
@@ -1713,21 +1743,22 @@ export default function TriviaModePage() {
                                     onRetryLeaderboard={loadDailyLeaderboard}
                                 />
                             ) : (
-                                <>
-                                    {/* Other modes retain their existing art
-                                        entrance. Daily's scene is deliberately
-                                        passive; its semantic action lives in
-                                        the console footer. */}
-                                    {modeArt && (
-                                        <button
-                                            type="button"
-                                            className="mode-art-button"
-                                            onClick={startGame}
-                                            disabled={isStarting}
-                                            aria-label={`Start ${modeName}${isPaidMode ? `, Entry ${modeConfig.diamondCost} Diamonds` : ''}`}
-                                        >
-                                            <ResponsiveModeArt art={modeArt} priority />
-                                        </button>
+                                <div className={isPhase9KnowledgeMode ? 'phase9-intro-layout' : undefined}>
+                                    {/* The scene is passive. The one semantic
+                                        Start/Resume action lives in the console
+                                        footer and remains keyboard-visible. */}
+                                    {modeArt && <ResponsiveModeArt art={modeArt} priority />}
+
+                                    <div className={isPhase9KnowledgeMode ? 'phase9-intro-copy' : undefined}>
+                                    {isPhase9KnowledgeMode && !userId && (
+                                        <p className="trivia-console-copy tc-ink--blue" role="status">
+                                            Sign In To Start Or Recover A Server-Verified Run.
+                                        </p>
+                                    )}
+                                    {isPhase9KnowledgeMode && userId && serverRun.hasRecoverableSession && (
+                                        <p className="trivia-console-copy tc-ink--gold" role="status">
+                                            An Account-Scoped Run Is Waiting. Resume It Without Paying Or Dealing Again.
+                                        </p>
                                     )}
 
                                     {!modeTagFitsHead && modeTag ? (
@@ -1773,6 +1804,24 @@ export default function TriviaModePage() {
                                         )}
                                     </ul>
 
+                                    {mode === 'arcade' && userId && (
+                                        <section className="phase9-mode-brief" aria-labelledby="arcade-owned-inventory-title">
+                                            <h2 id="arcade-owned-inventory-title">Your Prize Inventory</h2>
+                                            {arcadeInventory.status === 'error' ? (
+                                                <p role="alert">Inventory Is Temporarily Unavailable. Your Recorded Prizes Are Not Changed.</p>
+                                            ) : arcadeInventory.status === 'loading' ? (
+                                                <p role="status">Checking Recorded Prizes</p>
+                                            ) : (
+                                                <dl className="phase9-mode-brief__rows">
+                                                    <div><dt>Streak Shields</dt><dd>{formatTriviaDisplayNumber(arcadeInventory.streakShield)}</dd></div>
+                                                    <div><dt>Free Entries</dt><dd>{formatTriviaDisplayNumber(arcadeInventory.freeEntry)}</dd></div>
+                                                </dl>
+                                            )}
+                                        </section>
+                                    )}
+
+                                    {isPhase9KnowledgeMode && <KnowledgeModeBrief mode={mode} />}
+
                                     <p className="trivia-console-copy mode-disclosure">
                                         {isPaidMode
                                             ? `Entry Is ${modeConfig.diamondCost} Diamonds, Charged Only When The Game Starts. VIP Members Play Free.`
@@ -1792,7 +1841,8 @@ export default function TriviaModePage() {
                                             />
                                         </div>
                                     )}
-                                </>
+                                    </div>
+                                </div>
                             )}
                         </div>
                     )}
@@ -1801,11 +1851,11 @@ export default function TriviaModePage() {
                         <TriviaGame
                             questions={questions}
                             mode={mode}
-                            initialQuestionIndex={mode === 'daily' ? dailyResumeSeed.questionIndex : 0}
-                            initialAnswers={mode === 'daily' ? dailyResumeSeed.answers : null}
-                            initialVerdicts={mode === 'daily' ? dailyResumeSeed.verdicts : null}
-                            initialCorrectCount={mode === 'daily' ? dailyResumeSeed.correctCount : 0}
-                            initialStreak={mode === 'daily' ? dailyResumeSeed.streak : 0}
+                            initialQuestionIndex={(mode === 'daily' || isPhase9KnowledgeMode) ? dailyResumeSeed.questionIndex : 0}
+                            initialAnswers={(mode === 'daily' || isPhase9KnowledgeMode) ? dailyResumeSeed.answers : null}
+                            initialVerdicts={(mode === 'daily' || isPhase9KnowledgeMode) ? dailyResumeSeed.verdicts : null}
+                            initialCorrectCount={(mode === 'daily' || isPhase9KnowledgeMode) ? dailyResumeSeed.correctCount : 0}
+                            initialStreak={(mode === 'daily' || isPhase9KnowledgeMode) ? dailyResumeSeed.streak : 0}
                             timeLimit={modeConfig.timeLimit}
                             onComplete={handleComplete}
                             userDiamonds={userDiamonds}
@@ -1890,6 +1940,23 @@ export default function TriviaModePage() {
                             />
 
                             {mode === 'daily' ? <DailySettlementReceipt result={result} /> : null}
+                            {isPhase9KnowledgeMode ? (
+                                <Phase9SettlementReceipt
+                                    settlement={{
+                                        ...result.receipt,
+                                        receipt: result.receipt,
+                                        sessionId: result.sessionId,
+                                        diamondsAwarded: result.diamondsEarned,
+                                        correct: result.correctCount,
+                                        total: result.totalQuestions,
+                                        voided: result.voidedCount,
+                                        replayed: result.settlementReplayed,
+                                    }}
+                                    modeLabel={modeName}
+                                    correctCount={result.correctCount}
+                                    totalQuestions={result.totalQuestions}
+                                />
+                            ) : null}
 
                             {mode === 'arcade' && (
                                 <div className="leaderboard-section">
@@ -1956,6 +2023,19 @@ export default function TriviaModePage() {
                                     if (userId) {
                                         const { data: profile } = await readOwnProfile(supabase, 'diamonds', { expectId: userId });
                                         if (profile && isMountedRef.current) setUserDiamonds(profile.diamonds || 0);
+                                        const { data: itemRows, error: itemError } = await supabase
+                                            .from('trivia_user_items')
+                                            .select('item_type, quantity')
+                                            .eq('user_id', userId)
+                                            .in('item_type', ['streak_shield', 'arcade_ticket']);
+                                        if (!itemError && isMountedRef.current) {
+                                            const itemMap = new Map((itemRows || []).map(item => [item.item_type, Number(item.quantity) || 0]));
+                                            setArcadeInventory({
+                                                streakShield: itemMap.get('streak_shield') || 0,
+                                                freeEntry: itemMap.get('arcade_ticket') || 0,
+                                                status: 'ready',
+                                            });
+                                        }
                                     }
                                 } catch (e) {
                                     console.warn('[PrizeWheel] balance refresh failed:', e?.message || e);

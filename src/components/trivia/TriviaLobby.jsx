@@ -40,6 +40,7 @@ function printTitle(text) {
 }
 
 const ACKNOWLEDGED_KEY = 'trivia_charge_acknowledged';
+const TRANSPARENT_PIXEL = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==';
 
 // Mixed Mode is the lobby's multi-category progression card; all other cards
 // use their registry category directly. This keeps every frame family owned by
@@ -101,6 +102,7 @@ export default function TriviaLobby({
   const [activeFilter, setActiveFilter] = useState('all');
   const filterRailRef = useRef(null);
   const filterButtonRefs = useRef([]);
+  const quickStakesRef = useRef(null);
   const modalRef = useRef(null);
   const previousFocusRef = useRef(null);
   const routingRef = useRef(false);
@@ -125,6 +127,23 @@ export default function TriviaLobby({
   const [pendingMode, setPendingMode] = useState(null);
   const [isRouting, setIsRouting] = useState(false);
   const [routeError, setRouteError] = useState('');
+  const [quickStakesArtReady, setQuickStakesArtReady] = useState(false);
+
+  useEffect(() => {
+    const section = quickStakesRef.current;
+    if (!section || quickStakesArtReady) return undefined;
+    if (typeof IntersectionObserver === 'undefined') {
+      setQuickStakesArtReady(true);
+      return undefined;
+    }
+    const observer = new IntersectionObserver((entries) => {
+      if (!entries.some((entry) => entry.isIntersecting)) return;
+      setQuickStakesArtReady(true);
+      observer.disconnect();
+    }, { rootMargin: '128px 0px' });
+    observer.observe(section);
+    return () => observer.disconnect();
+  }, [quickStakesArtReady]);
 
   const pendingCost = pendingMode ? getEntryCost(pendingMode) : 0;
   const filteredModes =
@@ -576,7 +595,7 @@ export default function TriviaLobby({
 
       {/* Quick Stakes Section - approved landscape art at native ratio,
           nothing printed over it; the entry line prints beneath. */}
-      <div className="quick-stakes-section">
+      <div ref={quickStakesRef} className="quick-stakes-section">
         <button
           type="button"
           className="quick-stakes-banner"
@@ -593,7 +612,7 @@ export default function TriviaLobby({
           }
         >
           <img
-            src={TRIVIA_QUICK_STAKES_MODE.image}
+            src={quickStakesArtReady ? TRIVIA_QUICK_STAKES_MODE.image : TRANSPARENT_PIXEL}
             alt=""
             aria-hidden
             className="quick-stakes-banner__img"

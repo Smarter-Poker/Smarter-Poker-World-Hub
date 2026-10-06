@@ -40,10 +40,11 @@
  *
  * Step 3 above says "reloads exactly once when control CHANGES". There is a
  * second way controllerchange fires that is not a change at all: the very
- * first visit. next.config.js builds the worker with skipWaiting + clientsClaim
- * (@ducanh2912/next-pwa), so on a page that loaded with NO controller the new
- * worker installs, activates and claims immediately -- and controllerchange
- * fires on a document whose HTML and chunks came straight off the network.
+ * first visit. The custom root worker skips waiting, retires release-scoped
+ * caches, and only then claims clients, so on a page that loaded with NO
+ * controller the new worker still takes control during that visit -- and
+ * controllerchange fires on a document whose HTML and chunks came straight
+ * off the network.
  * There is no old build to escape, and the reload bought nothing: it simply
  * threw the rendered page away and drew it again.
  *

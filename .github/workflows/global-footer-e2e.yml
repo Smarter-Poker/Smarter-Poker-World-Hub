@@ -84,6 +84,11 @@ jobs:
       - name: Build production application
         run: npm run build -- --webpack
         env:
+          # next-pwa is deliberately disabled outside Vercel. This maintained
+          # production-build job is the only existing browser gate that can
+          # exercise an installed worker without creating another broad build.
+          VERCEL: '1'
+          VERCEL_GIT_COMMIT_SHA: ${{ github.sha }}
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co' }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder' }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY || 'placeholder' }}
@@ -111,8 +116,14 @@ jobs:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co' }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder' }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY || 'placeholder' }}
+          # The public release stays fail-closed. This loopback-only server opens
+          # both page surfaces so their own mobile budgets cannot pass by
+          # measuring the lobby redirect instead.
+          TRIVIA_PVP_ENABLED: 'true'
+          TRIVIA_TOURNAMENTS_ENABLED: 'true'
 
       - name: Wait for server
+        id: production_server_ready
         run: |
           for attempt in $(seq 1 30); do
             if curl -fsS http://127.0.0.1:${{ steps.port.outputs.port }}/hub/install -o /dev/null; then
@@ -122,6 +133,23 @@ jobs:
           done
           tail -100 /tmp/footer-next-server.log || true
           exit 1
+
+      # Trivia owns the new release evidence in this shared production-build
+      # job. Run it as soon as the server is ready so unrelated World/footer
+      # failures cannot skip or delay the scoped Phase 11 certification.
+      - name: Trivia Phase 11 mobile p75 performance budgets
+        if: ${{ !cancelled() && steps.production_server_ready.outcome == 'success' }}
+        run: npx playwright test e2e/trivia-performance-budget.spec.ts --project=trivia-performance --workers=2
+        env:
+          CI: true
+          NEXT_PUBLIC_BASE_URL: http://127.0.0.1:${{ steps.port.outputs.port }}
+
+      - name: Trivia installed-PWA upgrade and rollback compatibility
+        if: ${{ !cancelled() && steps.production_server_ready.outcome == 'success' }}
+        run: npx playwright test e2e/trivia-pwa-rollback.spec.ts --project=trivia-pwa --workers=1
+        env:
+          CI: true
+          NEXT_PUBLIC_BASE_URL: http://127.0.0.1:${{ steps.port.outputs.port }}
 
       - name: Verify Diamond Marketplace Page 1 commerce anatomy
         run: npx playwright test e2e/05-diamond-store.spec.ts --project=marketplace-audit-chromium --no-deps --grep "diamond (starter and cinematic packs expose complete readable offer details|variable catalog partition stays complete without duplication)" --workers=1

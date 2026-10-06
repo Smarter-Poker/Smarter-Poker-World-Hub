@@ -44,6 +44,7 @@
  * ===========================================================================
  */
 
+import { randomUUID } from 'node:crypto';
 import { serviceClient } from '../trivia/tournament-lifecycle';
 import { settlePvpMatch } from '../trivia/pvp-settle-match';
 import { requireAdminSecret } from '../../../src/lib/trivia/adminAuth';
@@ -147,12 +148,15 @@ async function handler(req, res) {
             }
         }
 
-        // Phase 5 v2 engine: one idempotent recovery RPC expires dead queue
-        // presence, drives Smarter Horse plans, closes past-deadline seats and
-        // settles finished matches through the Phase 2 ledger. Manual only until
-        // the Phase 12 OpenClaw cutover schedules it.
-        const { data: v2Recovery, error: v2Error } = await sb.rpc('trivia_pvp_recover_v2', {
+        // Phase 12 wraps the Phase 5 recovery core in one canonical database
+        // lease/fence. Every HTTP invocation gets a distinct holder identity;
+        // a concurrent invocation records standby and cannot enter the core.
+        // The route remains unscheduled until the reviewed production cutover.
+        const recoveryHolder = `openclaw:trivia-pvp-recovery:${randomUUID()}`;
+        const { data: v2Recovery, error: v2Error } = await sb.rpc('trivia_pvp_recovery_run_v1', {
+            p_holder_id: recoveryHolder,
             p_limit: MAX_MATCHES_PER_RUN,
+            p_lease_seconds: 90,
         });
         if (v2Error || v2Recovery?.success !== true) {
             settlementFailures += Math.max(1, Number(v2Recovery?.failed) || 0);

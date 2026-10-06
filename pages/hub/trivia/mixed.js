@@ -32,6 +32,10 @@ import ReportQuestionButton from '../../../src/components/trivia/ReportQuestionB
 import HubPageSummary from '../../../src/components/seo/HubPageSummary';
 import { readOwnProfile } from '../../../src/lib/ownProfile';
 import { createAccountOperationScope, isStaleAccountOperation } from '../../../src/lib/trivia/accountOperationScope.mjs';
+import Phase9SettlementReceipt from '../../../src/components/trivia/phase9/Phase9SettlementReceipt';
+import Phase9RunReview from '../../../src/components/trivia/phase9/Phase9RunReview';
+import { orderDealerChoiceQuestions, projectPhase9Recovery } from '../../../src/components/trivia/phase9/phase9RunModel.mjs';
+import usePhase9ReducedMotion from '../../../src/components/trivia/phase9/usePhase9ReducedMotion';
 
 const GAME_ENTRY_COST = 10; // restored with server-graded adoption - rewards pay via award_trivia_run now
 // Cap comes from triviaEngine so the lobby and the payout can never disagree.
@@ -60,6 +64,18 @@ const QUESTIONS_PER_SESSION = 21;
 function displayCategoryFor(dbCategory) {
     const cat = CATEGORIES.find(c => c.dbCategories.includes(dbCategory));
     return cat ? cat.id : 'poker_history';
+}
+
+function prepareDealerChoiceQuestions(questions) {
+    const tagged = (Array.isArray(questions) ? questions : []).map(question => ({
+        ...question,
+        displayCategory: displayCategoryFor(question?.category),
+    }));
+    return orderDealerChoiceQuestions(tagged, CATEGORIES.map(category => category.id));
+}
+
+function emptyCategoryStats() {
+    return Object.fromEntries(CATEGORIES.map(category => [category.id, { answered: 0, correct: 0 }]));
 }
 
 export default function MixedModePage() {
@@ -105,15 +121,7 @@ export default function MixedModePage() {
     const timer = useTriviaTimer({ initialTime: 24, showResult: trivia.showResult, gameState, onTimeout: handleTimeout });
 
     // Per-category stats for current session
-    const [categoryStats, setCategoryStats] = useState({
-        poker_history: { answered: 0, correct: 0 },
-        rule_knowledge: { answered: 0, correct: 0 },
-        gto_theory: { answered: 0, correct: 0 },
-        mtt_situations: { answered: 0, correct: 0 },
-        cash_game_situations: { answered: 0, correct: 0 },
-        icm_chip_ev: { answered: 0, correct: 0 },
-        gto_scenarios: { answered: 0, correct: 0 }
-    });
+    const [categoryStats, setCategoryStats] = useState(emptyCategoryStats);
 
     // Cumulative mastery from database
     const [categoryMastery, setCategoryMastery] = useState({});
@@ -123,6 +131,8 @@ export default function MixedModePage() {
     const [capReached, setCapReached] = useState(false);
     const [earnedTodayCap, setEarnedTodayCap] = useState(0); // diamonds earned today (for cap display)
     const [loadError, setLoadError] = useState(null);
+    const [answerError, setAnswerError] = useState(null);
+    const [settlementResult, setSettlementResult] = useState(null);
     const [accessToken, setAccessToken] = useState(null); // for ReportQuestionButton
     const answersRef = useRef([]); // per index: { questionId, displayIndex, wasCorrect } from the server verdict
 
@@ -130,7 +140,9 @@ export default function MixedModePage() {
     const initRequestRef = useRef(0); // Retires stale account reads after an auth boundary
     const accountIdentityRef = useRef(null);
     const startOperationRef = useRef(null);
+    const forceNewStartRef = useRef(false);
     const answerOperationRef = useRef(null);
+    const reduceMotion = usePhase9ReducedMotion();
 
     useEffect(() => {
         // Wait for AvatarContext to resolve — with an empty dep array this
@@ -150,6 +162,7 @@ export default function MixedModePage() {
             && accountOperationScopeRef.current.isCurrent(operationScope);
         if (identityChanged) {
             startOperationRef.current = null;
+            forceNewStartRef.current = false;
             answerOperationRef.current = null;
             isStartingRef.current = false;
             answerLockRef.current = false;
@@ -166,6 +179,9 @@ export default function MixedModePage() {
             setEarnedTodayCap(0);
             setSaveErrorPayload(null);
             setLoadError(null);
+            setAnswerError(null);
+            setSettlementResult(null);
+            setCategoryStats(emptyCategoryStats());
             setTotalCorrect(0);
             setDiamondsEarned(0);
             setCapReached(false);
@@ -181,7 +197,7 @@ export default function MixedModePage() {
                 setAccessToken(null);
                 setIsVip(false);
                 setUserDiamonds(0);
-                router.push('/hub/trivia');
+                setGameState('ready');
                 return;
             }
 
@@ -273,6 +289,7 @@ export default function MixedModePage() {
         const answerOperation = { operationScope, questionId: q.id };
         answerLockRef.current = true;
         answerOperationRef.current = answerOperation;
+        setAnswerError(null);
         trivia.setSelectedAnswer(displayIndex); // instant visual lock on the tap
         try {
             const v = await serverRun.answer({ questionId: q.id, displayIndex });
@@ -292,6 +309,7 @@ export default function MixedModePage() {
                 // Unlock and let the player re-tap.
                 trivia.setSelectedAnswer(null);
                 answerLockRef.current = false;
+                setAnswerError('Could Not Submit That Answer. Tap The Same Answer Again.');
             }
         } finally {
             if (answerOperationRef.current === answerOperation) answerOperationRef.current = null;
@@ -324,7 +342,7 @@ export default function MixedModePage() {
             busEmit.decisionCorrect(totalCorrect + 1);
         } else {
             busEmit.decisionIncorrect(totalCorrect);
-            busEmit.screenShake('light');
+            if (!reduceMotion) busEmit.screenShake('light');
         }
     }
 
@@ -343,7 +361,95 @@ export default function MixedModePage() {
         }, 1200);
     }
 
+    async function resumeServerRun() {
+        if (isStartingRef.current) return;
+        if (!userId) {
+            router.push('/auth/login?redirect=/hub/trivia/mixed');
+            return;
+        }
+        const operationScope = accountOperationScopeRef.current.capture();
+        if (operationScope.identity !== userId) return;
+        const startOperation = { operationScope };
+        isStartingRef.current = true;
+        startOperationRef.current = startOperation;
+        setLoadError(null);
+        setGameState('loading');
+        try {
+            const resumed = await serverRun.resume({ count: QUESTIONS_PER_SESSION });
+            if (!accountOperationScopeRef.current.isCurrent(operationScope)) return;
+            if (resumed?.resumedSettlement && resumed.settlement) {
+                const settled = resumed.settlement;
+                serverResultRef.current = settled;
+                setSettlementResult(settled);
+                const settledCorrect = Math.max(0, Number(settled.correct) || 0);
+                const settledTotal = Math.max(0, Number(settled.total) || QUESTIONS_PER_SESSION);
+                const settledAward = Math.max(0, Number(settled.diamondsAwarded) || 0);
+                setTotalCorrect(settledCorrect);
+                setDiamondsEarned(settledAward);
+                setCapReached(settledAward < calculateDiamonds('mixed', settledCorrect, settledTotal));
+                setGameState('results');
+                return;
+            }
+
+            const resumedQuestions = prepareDealerChoiceQuestions(resumed?.questions);
+            if (resumedQuestions.length === 0) throw new Error('resume_questions_missing');
+            const projection = projectPhase9Recovery(resumedQuestions);
+            const restoredStats = emptyCategoryStats();
+            const restoredAnswers = [];
+            resumedQuestions.forEach((question, index) => {
+                const answerState = projection.verdicts[index];
+                if (!answerState) return;
+                const category = question.displayCategory;
+                restoredStats[category].answered += 1;
+                if (answerState.wasCorrect === true) restoredStats[category].correct += 1;
+                restoredAnswers[index] = {
+                    questionId: question.id,
+                    displayIndex: answerState.storedDisplayIndex,
+                    wasCorrect: answerState.wasCorrect === true,
+                };
+            });
+
+            setQuestions(resumedQuestions);
+            answersRef.current = restoredAnswers;
+            setCategoryStats(restoredStats);
+            setTotalCorrect(projection.correctCount);
+            setDiamondsEarned(projection.correctCount);
+            setCurrentQuestionIndex(Math.min(projection.questionIndex, Math.max(0, resumedQuestions.length - 1)));
+            setVerdict(null);
+            setAnswerError(null);
+            setSettlementResult(null);
+            answerLockRef.current = false;
+            trivia.reset();
+            timer.resetTimer();
+
+            if (projection.complete) {
+                await finishGame({ roster: resumedQuestions, recordedAnswers: restoredAnswers });
+            } else {
+                setGameState('playing');
+            }
+        } catch (error) {
+            if (!accountOperationScopeRef.current.isCurrent(operationScope)
+                || isStaleAccountOperation(error)) return;
+            console.warn('[Mixed] Resume failed:', error?.message || error);
+            setLoadError('Could Not Resume This Account-Scoped Run. Check Your Connection And Try Again.');
+            setGameState('error');
+        } finally {
+            if (startOperationRef.current === startOperation) {
+                startOperationRef.current = null;
+                isStartingRef.current = false;
+            }
+        }
+    }
+
     async function startGame() {
+        const forceNew = forceNewStartRef.current;
+        forceNewStartRef.current = false;
+        if (!userId) {
+            setLoadError('Please Sign In To Play Mixed Trivia.');
+            setGameState('error');
+            return;
+        }
+        if (!forceNew && serverRun.hasRecoverableSession) return resumeServerRun();
         if (isStartingRef.current) return;
         const operationScope = accountOperationScopeRef.current.capture();
         if (operationScope.identity !== (userId || null)) return;
@@ -351,11 +457,6 @@ export default function MixedModePage() {
         isStartingRef.current = true;
         startOperationRef.current = startOperation;
         try {
-        if (!userId) {
-            setLoadError('Please Sign In To Play Mixed Trivia.');
-            setGameState('error');
-            return;
-        }
         setLoadError(null);
         setGameState('loading');
 
@@ -391,15 +492,15 @@ export default function MixedModePage() {
             setGameState('error');
             return;
         }
-        // Tag each question with its display group so the per-category stat
-        // panels keep working against the server's db-level category names.
-        served.questions.forEach(q => { q.displayCategory = displayCategoryFor(q.category); });
+        // Dealer's Choice display order rotates through every populated
+        // category bay without changing question ids or option order.
+        const dealtQuestions = prepareDealerChoiceQuestions(served.questions);
 
         if (Number.isFinite(served.newBalance)) setUserDiamonds(served.newBalance);
         if (served.entryState === 'charged' && served.entryCost > 0) {
             busEmit.diamondsSpent(served.entryCost, 'Mixed entry');
         }
-        setQuestions(served.questions);
+        setQuestions(dealtQuestions);
         setCurrentQuestionIndex(0);
         trivia.reset();
         setVerdict(null);
@@ -407,18 +508,12 @@ export default function MixedModePage() {
         setTotalCorrect(0);
         setDiamondsEarned(0);
         setCapReached(false);
+        setSettlementResult(null);
+        setAnswerError(null);
         serverResultRef.current = null;
         savePhaseRef.current = 0;
         answersRef.current = [];
-        setCategoryStats({
-            poker_history: { answered: 0, correct: 0 },
-            rule_knowledge: { answered: 0, correct: 0 },
-            gto_theory: { answered: 0, correct: 0 },
-            mtt_situations: { answered: 0, correct: 0 },
-            cash_game_situations: { answered: 0, correct: 0 },
-            icm_chip_ev: { answered: 0, correct: 0 },
-            gto_scenarios: { answered: 0, correct: 0 }
-        });
+        setCategoryStats(emptyCategoryStats());
         timer.resetTimer();
         setGameState('playing');
         } finally {
@@ -446,7 +541,7 @@ export default function MixedModePage() {
         }
     }, [gameState, diamondsEarned, serverRun.acknowledgeSettlement]);
 
-    async function finishGame() {
+    async function finishGame({ roster = questions, recordedAnswers = answersRef.current } = {}) {
         const operationScope = accountOperationScopeRef.current.capture();
         if (operationScope.identity !== (userId || null)) return;
         const isCurrentAccountOperation = () => accountOperationScopeRef.current.isCurrent(operationScope);
@@ -460,7 +555,7 @@ export default function MixedModePage() {
 
         // Provisional client-side count, used ONLY for the saving_error copy -
         // every number that persists below comes from the server settlement.
-        const provisionalCorrect = answersRef.current.filter(a => a && a.wasCorrect).length;
+        const provisionalCorrect = recordedAnswers.filter(a => a && a.wasCorrect).length;
 
         try {
             // Phase 1: settle the run server-side (only if not already settled).
@@ -469,8 +564,8 @@ export default function MixedModePage() {
             // session-answer - then applies the daily cap and pays through a
             // locked RPC. No client-side crediting, ever.
             if (savePhaseRef.current < 1) {
-                const submitAnswers = questions.map((q, idx) => {
-                    const a = answersRef.current[idx];
+                const submitAnswers = roster.map((q, idx) => {
+                    const a = recordedAnswers[idx];
                     return {
                         questionId: q.id,
                         displayIndex: (a && Number.isInteger(a.displayIndex)) ? a.displayIndex : -1
@@ -479,6 +574,7 @@ export default function MixedModePage() {
                 const result = await serverRun.submit(submitAnswers);
                 if (!isCurrentAccountOperation()) return;
                 serverResultRef.current = result;
+                setSettlementResult(result);
                 savePhaseRef.current = 1;
 
                 // Local balance from the server's post-award number, with a
@@ -492,13 +588,13 @@ export default function MixedModePage() {
                 }
                 if ((result?.diamondsAwarded || 0) > 0) {
                     busEmit.diamondsEarned(result.diamondsAwarded, 'Mixed Mode');
-                    busEmit.celebration('confetti');
+                    if (!reduceMotion) busEmit.celebration('confetti');
                 }
             }
             const settled = serverResultRef.current || {};
             const awarded = Number.isFinite(settled.diamondsAwarded) ? settled.diamondsAwarded : 0;
             const serverCorrect = Number.isFinite(settled.correct) ? settled.correct : provisionalCorrect;
-            const serverTotal = Number.isFinite(settled.total) ? settled.total : questions.length;
+            const serverTotal = Number.isFinite(settled.total) ? settled.total : roster.length;
             if (!isCurrentAccountOperation()) return;
 
             // Settlement atomically owns history, mastery and skip telemetry.
@@ -544,17 +640,21 @@ export default function MixedModePage() {
     // just-played questions are now in trivia_user_question_history), and
     // startGame() opens the new session BEFORE charging another entry fee.
     async function playAgain() {
+        serverRun.acknowledgeSettlement();
+        forceNewStartRef.current = true;
         await startGame();
     }
 
     const currentQuestion = questions[currentQuestionIndex];
     const currentCategory = CATEGORIES.find(c => c.id === currentQuestion?.displayCategory) || CATEGORIES[0];
+    const currentCategoryBay = Math.max(0, CATEGORIES.findIndex(category => category.id === currentCategory.id));
+    const nextCategory = CATEGORIES[(currentCategoryBay + 1) % CATEGORIES.length];
     // The pill is a short painted slot (about eight characters at 375px);
     // longer state, balance and timer copy is printed on the glass below.
     const balanceLabel = isVip ? 'VIP' : 'Ready';
     const stateLabel = showOutOfDiamonds ? 'Balance' : ({
         loading: 'Loading',
-        ready: balanceLabel,
+        ready: !userId ? 'Sign In' : serverRun.hasRecoverableSession ? 'Resume' : balanceLabel,
         playing: `${formatTriviaDisplayNumber(timer.timeLeft)} Sec`,
         saving: 'Saving',
         saving_error: 'Retry',
@@ -565,9 +665,15 @@ export default function MixedModePage() {
     const primaryAction = showOutOfDiamonds
         ? { label: 'Get Diamonds', onClick: () => router.push('/hub/diamond-store') }
         : gameState === 'ready'
-            ? { label: 'Start Mixed Trivia', onClick: startGame }
+            ? !userId
+                ? { label: 'Sign In To Play', onClick: () => router.push('/auth/login?redirect=/hub/trivia/mixed') }
+                : serverRun.hasRecoverableSession
+                    ? { label: 'Resume Mixed Run', onClick: resumeServerRun }
+                    : { label: 'Start Mixed Trivia', onClick: startGame }
             : gameState === 'error'
-                ? { label: 'Try Again', onClick: startGame }
+                ? serverRun.hasRecoverableSession
+                    ? { label: 'Retry Resume', onClick: resumeServerRun }
+                    : { label: 'Try Again', onClick: startGame }
                 : gameState === 'saving_error'
                     ? { label: 'Retry Save', onClick: handleRetrySave }
                     : gameState === 'results'
@@ -585,7 +691,7 @@ export default function MixedModePage() {
             <>
                 <SEOHead
                     title="Mixed Trivia - All Categories"
-                    description="Mixed Poker Trivia On Smarter.Poker: Every Category At Once And In Random Order, So You Cannot Prepare For What Is Coming. Free To Play, No Account Needed, And Nothing In It Is A Wager."
+                    description="Mixed Poker Trivia On Smarter.Poker: enter a server-verified Dealer's Choice rotation across seven poker disciplines with category breakdowns and a verified receipt."
                     canonical="/hub/trivia/mixed"
                 />
 
@@ -651,13 +757,24 @@ export default function MixedModePage() {
                             )}
 
                             {gameState === 'ready' && (
-                                <section className="trivia-challenge-intro" aria-labelledby="mixed-ready-title">
+                                <section className="trivia-challenge-intro phase9-intro-layout" aria-labelledby="mixed-ready-title">
                                     <ResponsiveModeArt art={TRIVIA_INTRO_ART_MIXED} priority />
+                                    <div className="phase9-intro-copy">
                                     <h2 id="mixed-ready-title">One Run Through Every Discipline</h2>
                                     <p>
                                         Answer {formatTriviaDisplayNumber(QUESTIONS_PER_SESSION)} Server-Dealt Questions
                                         Across History, Rules, Pro, Tournament, Cash, ICM, And GTO Play.
                                     </p>
+                                    {!userId && (
+                                        <p className="trivia-challenge-notice" role="status">
+                                            Sign In To Start Or Recover A Server-Verified Run.
+                                        </p>
+                                    )}
+                                    {userId && serverRun.hasRecoverableSession && (
+                                        <p className="trivia-challenge-notice" role="status">
+                                            Your Existing Entry Is Safe. Resume It Without Paying Again.
+                                        </p>
+                                    )}
                                     <dl className="trivia-challenge-stats">
                                         <div className="trivia-challenge-stat">
                                             <dt>Questions</dt>
@@ -684,20 +801,35 @@ export default function MixedModePage() {
                                             </li>
                                         </ul>
                                     )}
-                                    <ul className="trivia-challenge-list" aria-label="Mixed Trivia Categories">
-                                        {CATEGORIES.map(category => (
-                                            <li key={category.id}>{category.name}</li>
+                                    <ul className="trivia-challenge-list" aria-label="Dealer's Choice Rotation Order">
+                                        {CATEGORIES.map((category, index) => (
+                                            <li key={category.id}>
+                                                <span className="tc-ink--blue">Bay {formatTriviaDisplayNumber(index + 1)}</span>
+                                                {' - '}{category.name}
+                                            </li>
                                         ))}
                                     </ul>
+                                    <p className="trivia-challenge-note">
+                                        Dealer's Choice Rotates Through Each Populated Bay Before Returning To The First.
+                                    </p>
+                                    </div>
                                 </section>
                             )}
 
                             {gameState === 'playing' && currentQuestion && (
                                 <section className="trivia-challenge-stage" aria-labelledby="mixed-question-title">
+                                    {answerError && <p className="trivia-challenge-alert" role="alert">{answerError}</p>}
                                     <dl className="trivia-challenge-stats trivia-challenge-stats--compact">
                                         <div className="trivia-challenge-stat">
                                             <dt>Category</dt>
                                             <dd>{currentCategory.name}</dd>
+                                        </div>
+                                        <div className="trivia-challenge-stat">
+                                            <dt>Dealer's Choice</dt>
+                                            <dd>
+                                                Bay {formatTriviaDisplayNumber(currentCategoryBay + 1)} Of {formatTriviaDisplayNumber(CATEGORIES.length)}
+                                                <span className="sr-only">. Next Category {nextCategory.name}</span>
+                                            </dd>
                                         </div>
                                         <div className="trivia-challenge-stat">
                                             <dt>Time</dt>
@@ -828,6 +960,19 @@ export default function MixedModePage() {
                                             })}
                                         </dl>
                                     </section>
+
+                                    <Phase9RunReview
+                                        questions={questions}
+                                        settlement={settlementResult}
+                                        title="Review Missed Questions"
+                                    />
+
+                                    <Phase9SettlementReceipt
+                                        settlement={settlementResult}
+                                        modeLabel="Mixed"
+                                        correctCount={totalCorrect}
+                                        totalQuestions={settlementResult?.total || questions.length}
+                                    />
 
                                     <button
                                         type="button"

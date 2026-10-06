@@ -1,5 +1,6 @@
 import { useFitText } from './useFitText';
 import styles from './TriviaConsole.module.css';
+import useTriviaPreferenceRuntime from '../../../hooks/useTriviaPreferenceRuntime';
 
 const MASTER_WIDTH = 1000;
 const TOP_HEIGHT = 348;
@@ -112,6 +113,7 @@ export default function TriviaConsole({
     className = '',
     ...rest
 }) {
+    useTriviaPreferenceRuntime();
     const hasPlates = Boolean(primaryAction && secondaryAction);
     const soleAction = hasPlates ? null : (primaryAction || secondaryAction || null);
     const hasBody = (children !== undefined && children !== null && children !== false) || Boolean(soleAction);

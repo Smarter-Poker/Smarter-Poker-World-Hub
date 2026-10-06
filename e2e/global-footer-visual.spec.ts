@@ -387,12 +387,33 @@ test.describe('dynamic World Hub footer route and visual contract', () => {
         expect(Math.abs(stageBox!.height - expectedStage.height)).toBeLessThanOrEqual(1);
         expect(Math.abs(stageBox!.y + stageBox!.height - 568)).toBeLessThan(4);
         expect(Math.abs(navBox!.height - stageBox!.height)).toBeLessThan(2);
+        const decodedArtwork = await artwork.evaluate((image: HTMLImageElement) => ({
+          width: image.naturalWidth,
+          height: image.naturalHeight,
+          path: new URL(image.currentSrc).pathname,
+        }));
+        expect(decodedArtwork.width).toBeGreaterThan(0);
+        expect(decodedArtwork.height).toBeGreaterThan(0);
+        // With a width-descriptor srcset, browsers expose density-corrected
+        // natural dimensions. The height is therefore rounded to an integer
+        // CSS pixel (for example 294 x 127 for a raw 640 x 274 source). Prove
+        // the approved aspect survives that mandated one-pixel normalization
+        // instead of comparing two rounded ratios.
+        const expectedIntrinsicHeight =
+          decodedArtwork.width * definition!.artwork.height / definition!.artwork.width;
         expect(
-          await artwork.evaluate((image: HTMLImageElement) => [
-            image.naturalWidth,
-            image.naturalHeight,
-          ])
-        ).toEqual([definition!.artwork.width, definition!.artwork.height]);
+          Math.abs(decodedArtwork.height - expectedIntrinsicHeight),
+          `${entry.id} responsive artwork changed aspect beyond one density-corrected pixel`
+        ).toBeLessThanOrEqual(1);
+        const approvedArtworkPaths = [
+          definition!.artwork.src,
+          ...('sources' in definition!.artwork && definition!.artwork.sources
+            ? definition!.artwork.sources.flatMap((source) =>
+                source.srcSet.split(',').map((candidate) => candidate.trim().split(/\s+/)[0])
+              )
+            : []),
+        ];
+        expect(approvedArtworkPaths).toContain(decodedArtwork.path);
 
         for (let index = 0; index < 6; index += 1) {
           const link = links.nth(index);

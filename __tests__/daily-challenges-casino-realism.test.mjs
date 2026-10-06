@@ -61,7 +61,8 @@ test('Daily Challenges preserve their real data and action wiring', () => {
   assert.match(goalsPage, /authedFetch\(`\/api\/training\/get-sessions\?limit=50`\)/);
   assert.match(goalsPage, /authedFetch\('\/api\/training\/daily-bonus'/);
   assert.match(triviaPage, /serverGrader=\{serverGraded \? \(args\) => serverRun\.answer\(args\) : null\}/);
-  assert.match(triviaPage, /onClick=\{startGame\}/);
+  assert.match(triviaPage, /consolePrimary\s*=\s*\{\s*label:\s*startLabel,\s*onClick:\s*startGame,/);
+  assert.match(triviaPage, /primaryAction=\{consolePrimary\}/);
   assert.match(memoryPage, /dailyChallengeService\.getTodaysChallenge\(\)/);
   assert.match(memoryPage, /onPlay=\{startDailyPractice\}/);
   assert.match(memoryPage, /onClick=\{startDailyPractice\}/);

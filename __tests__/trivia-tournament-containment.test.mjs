@@ -92,20 +92,30 @@ test('every tournament entry or play surface uses the fail-closed server gate', 
     }
 });
 
-test('authenticated lifecycle cannot mutate while the release is disabled', () => {
-    for (const [label, source] of [
-        ['scheduled lifecycle', cronLifecycleRoute],
-        ['manual lifecycle', manualLifecycleRoute],
-    ]) {
-        const authGate = source.lastIndexOf('requireAdminSecret(req, res');
-        const releaseGate = source.lastIndexOf('!areTriviaTournamentsReleased(process.env)');
-        const lifecycleMutation = source.lastIndexOf('await runTournamentLifecycle');
+test('the legacy manual lifecycle HTTP authority is an authenticated database-free 410 tombstone', () => {
+    const handlerStart = manualLifecycleRoute.lastIndexOf('export default function handler');
+    const handler = manualLifecycleRoute.slice(handlerStart);
+    const authGate = handler.indexOf('requireAdminSecret(req, res');
+    const gone = handler.indexOf('res.status(410)');
 
-        assert.ok(authGate >= 0, `${label} auth gate must exist`);
-        assert.ok(releaseGate > authGate, `${label} release gate must run after authentication`);
-        assert.ok(lifecycleMutation > releaseGate, `${label} release gate must run before mutation`);
-        assert.match(source, /rejectUnavailableTriviaTournament\(res\)/);
-    }
+    assert.ok(handlerStart >= 0, 'retired lifecycle handler must exist');
+    assert.ok(authGate >= 0, 'retired lifecycle remains private');
+    assert.ok(gone > authGate, 'authenticated stale callers receive Gone');
+    assert.match(handler, /legacy_tournament_lifecycle_retired/);
+    assert.match(handler, /retired_route_invoked/);
+    assert.match(handler, /fenced_nightly_tournament_engine/);
+    assert.doesNotMatch(handler, /runTournamentLifecycle|serviceClient|createClient|\.from\(|\.rpc\(/);
+});
+
+test('the legacy scheduled lifecycle is an authenticated database-free 410 tombstone', () => {
+    const authGate = cronLifecycleRoute.indexOf('requireAdminSecret(req, res');
+    const gone = cronLifecycleRoute.indexOf('res.status(410)');
+    assert.ok(authGate >= 0, 'retired tick remains private');
+    assert.ok(gone > authGate, 'authenticated stale callers receive Gone');
+    assert.match(cronLifecycleRoute, /legacy_tournament_tick_retired/);
+    assert.match(cronLifecycleRoute, /retired_route_invoked/);
+    assert.match(cronLifecycleRoute, /fenced_nightly_tournament_engine/);
+    assert.doesNotMatch(cronLifecycleRoute, /runTournamentLifecycle|serviceClient|withCronHealth|createClient|\.from\(|\.rpc\(/);
 });
 
 test('legacy tournament schedulers and worker routing stay retired', () => {

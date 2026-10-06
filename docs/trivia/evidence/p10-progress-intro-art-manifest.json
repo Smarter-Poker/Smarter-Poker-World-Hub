@@ -1,0 +1,554 @@
+{
+  "version": "intro-v3",
+  "generatedBy": "scripts/trivia-art/export-phase10.mjs",
+  "generationProvider": "OpenAI image generation tool",
+  "rules": "Independent mobile and desktop compositions; text-free; no logos or real people; essential copy remains live HTML.",
+  "encoders": {
+    "avif": {
+      "quality": 52,
+      "effort": 6
+    },
+    "webp": {
+      "quality": 76,
+      "effort": 6
+    }
+  },
+  "families": {
+    "stats": {
+      "promptFile": "scripts/trivia-art/sources/intro-v3/stats-prompt.txt",
+      "promptSha256": "df3971cd5f466f3245ea3f73182de1ddcbae52c6b531f2a1bedce185d94b9565",
+      "sources": {
+        "mobile": {
+          "file": "scripts/trivia-art/sources/intro-v3/stats-mobile-source.png",
+          "width": 1586,
+          "height": 992,
+          "sha256": "a746cdc822dc1eff7f3cb847f213bcedd4b84f7ff8853da67c9f4b878596c9df"
+        },
+        "wide": {
+          "file": "scripts/trivia-art/sources/intro-v3/stats-wide-source.png",
+          "width": 1942,
+          "height": 809,
+          "sha256": "afcbb37ddc8bdcc0a7dd46efc8f031c251953c4e24cdf886fd6033390c72485b"
+        }
+      },
+      "crops": {
+        "mobile": {
+          "ratio": [
+            16,
+            10
+          ],
+          "files": [
+            {
+              "file": "stats-mobile-640.735e60ca3c.avif",
+              "format": "avif",
+              "width": 640,
+              "height": 400,
+              "bytes": 19060,
+              "sha256": "735e60ca3c9bf78c344315d9e5ca99b5ce6f59cb357b7a211e7156be149df7f4"
+            },
+            {
+              "file": "stats-mobile-640.398cc591f0.webp",
+              "format": "webp",
+              "width": 640,
+              "height": 400,
+              "bytes": 27872,
+              "sha256": "398cc591f0f106e7e3cd4e6a2bd38ed21db2dab3b8fea638746ca6c29e4872c7"
+            },
+            {
+              "file": "stats-mobile-960.313e0d62be.avif",
+              "format": "avif",
+              "width": 960,
+              "height": 600,
+              "bytes": 33182,
+              "sha256": "313e0d62bebf780ee42dad7ff57693cbbb71a443b83037bd7425966e075170b6"
+            },
+            {
+              "file": "stats-mobile-960.87caa7f7ec.webp",
+              "format": "webp",
+              "width": 960,
+              "height": 600,
+              "bytes": 50860,
+              "sha256": "87caa7f7ec1a1681e419ab8651f5ac00276f01188cd2f34d036a4eb0bec27ba2"
+            },
+            {
+              "file": "stats-mobile-1440.68f89af06f.avif",
+              "format": "avif",
+              "width": 1440,
+              "height": 900,
+              "bytes": 56258,
+              "sha256": "68f89af06f03d1a5cecb461b0f1d6cacb47c13ac95f28a3475c9be4319057d61"
+            },
+            {
+              "file": "stats-mobile-1440.66738dbd31.webp",
+              "format": "webp",
+              "width": 1440,
+              "height": 900,
+              "bytes": 90874,
+              "sha256": "66738dbd31f400e981702a234815b030aed565a5ebb466776225d870ef826220"
+            }
+          ]
+        },
+        "wide": {
+          "ratio": [
+            12,
+            5
+          ],
+          "files": [
+            {
+              "file": "stats-wide-640.db17f0e93b.avif",
+              "format": "avif",
+              "width": 640,
+              "height": 267,
+              "bytes": 25853,
+              "sha256": "db17f0e93bc75c091d92106e8a872f0aa9d317711c7cb89a268e5b686b04780e"
+            },
+            {
+              "file": "stats-wide-640.f22e80f242.webp",
+              "format": "webp",
+              "width": 640,
+              "height": 267,
+              "bytes": 33794,
+              "sha256": "f22e80f242765cd01bf9ae8461e117b320c91f023849b81d507aa6170e53ad49"
+            },
+            {
+              "file": "stats-wide-960.4ceb377db9.avif",
+              "format": "avif",
+              "width": 960,
+              "height": 400,
+              "bytes": 48118,
+              "sha256": "4ceb377db918ed6cc5ff79fd48549b5791d5386e154a73951cb3743a769fb11f"
+            },
+            {
+              "file": "stats-wide-960.fedaa1e1ec.webp",
+              "format": "webp",
+              "width": 960,
+              "height": 400,
+              "bytes": 64542,
+              "sha256": "fedaa1e1ec60d94f957df33d6941be1caf9fa2759b5eb13d426b3ebbbfe7caa7"
+            },
+            {
+              "file": "stats-wide-1440.e8aba6b260.avif",
+              "format": "avif",
+              "width": 1440,
+              "height": 600,
+              "bytes": 85755,
+              "sha256": "e8aba6b26071d666045a5c5ea509181be95dfaa78a435e9d8ec9309f027a9f11"
+            },
+            {
+              "file": "stats-wide-1440.3883e940b2.webp",
+              "format": "webp",
+              "width": 1440,
+              "height": 600,
+              "bytes": 119790,
+              "sha256": "3883e940b2052e82f5473b8ff54ff67abba69efb49406fcde28072e0cc0498fd"
+            }
+          ]
+        }
+      },
+      "preview": "data:image/webp;base64,UklGRnwAAABXRUJQVlA4IHAAAADwBACdASogABQAPu1iqE2ppaOiMAgBMB2JZ1TM0AbkAWvahtwkynZ8xmajWaXOpSAA/u+lheWWOiHRFwA0yeTzokwgxno8GgBnZSO2YUjDPv08MiJ0NPjcBnwT8/XnvAnqgkBgwOK+0NL7gfD5BAAA",
+      "previewBytes": 132
+    },
+    "leaderboard": {
+      "promptFile": "scripts/trivia-art/sources/intro-v3/leaderboard-prompt.txt",
+      "promptSha256": "ec15a8506394260402159808918aac58922292bf26ddca1f651427a25f221a3e",
+      "sources": {
+        "mobile": {
+          "file": "scripts/trivia-art/sources/intro-v3/leaderboard-mobile-source.png",
+          "width": 1586,
+          "height": 992,
+          "sha256": "acc9d5dc6db9e6ddb39dbd41cb9f95a0fb182f413d70b3bdf31f8995ec5ab4aa"
+        },
+        "wide": {
+          "file": "scripts/trivia-art/sources/intro-v3/leaderboard-wide-source.png",
+          "width": 1983,
+          "height": 793,
+          "sha256": "604323289413dc987c55c2eea049c01f4017d26f633b98cde35bdce9bb09baf2"
+        }
+      },
+      "crops": {
+        "mobile": {
+          "ratio": [
+            16,
+            10
+          ],
+          "files": [
+            {
+              "file": "leaderboard-mobile-640.3e4bd1e7c7.avif",
+              "format": "avif",
+              "width": 640,
+              "height": 400,
+              "bytes": 30326,
+              "sha256": "3e4bd1e7c7038379f3d975253f80f08453a607425ac6320d740e26dc0ccaf0e0"
+            },
+            {
+              "file": "leaderboard-mobile-640.9f05417057.webp",
+              "format": "webp",
+              "width": 640,
+              "height": 400,
+              "bytes": 42344,
+              "sha256": "9f05417057468f46972e71d52e2f2b46a9b0858f6037b82cd5f89630f163e9a1"
+            },
+            {
+              "file": "leaderboard-mobile-960.319344e576.avif",
+              "format": "avif",
+              "width": 960,
+              "height": 600,
+              "bytes": 53819,
+              "sha256": "319344e5763723fc79551fe861aad232689b75b32eecca6917a9f7a69f82fd6e"
+            },
+            {
+              "file": "leaderboard-mobile-960.e5a50ac6d3.webp",
+              "format": "webp",
+              "width": 960,
+              "height": 600,
+              "bytes": 77884,
+              "sha256": "e5a50ac6d387dd75a75ed683b66c2e07c2f2ae7c9424315c202a56c654c00bf6"
+            },
+            {
+              "file": "leaderboard-mobile-1440.4d772051e0.avif",
+              "format": "avif",
+              "width": 1440,
+              "height": 900,
+              "bytes": 91364,
+              "sha256": "4d772051e089a06a358eb5a0adaf0df7fb8f81616e3606da108650552f6c192c"
+            },
+            {
+              "file": "leaderboard-mobile-1440.2ffc5ae1b4.webp",
+              "format": "webp",
+              "width": 1440,
+              "height": 900,
+              "bytes": 138288,
+              "sha256": "2ffc5ae1b4177be2d7457dfceeba2d88a9a7f84cf95705a2ecdcc6b69caa83a7"
+            }
+          ]
+        },
+        "wide": {
+          "ratio": [
+            12,
+            5
+          ],
+          "files": [
+            {
+              "file": "leaderboard-wide-640.4f457e4ddb.avif",
+              "format": "avif",
+              "width": 640,
+              "height": 267,
+              "bytes": 23015,
+              "sha256": "4f457e4ddb0ff103e60f1fce20ac129c1a682e8a67d9f44dd475ff17b36fc8e8"
+            },
+            {
+              "file": "leaderboard-wide-640.86202e3db6.webp",
+              "format": "webp",
+              "width": 640,
+              "height": 267,
+              "bytes": 31074,
+              "sha256": "86202e3db67f79865827aa17092f855cd0b3c67832e678663ee52ccb674985cb"
+            },
+            {
+              "file": "leaderboard-wide-960.de843a6053.avif",
+              "format": "avif",
+              "width": 960,
+              "height": 400,
+              "bytes": 42325,
+              "sha256": "de843a605372b52af2ced6a48e64d17c4490ec165b7d6b2d48e4155014ebf9d9"
+            },
+            {
+              "file": "leaderboard-wide-960.1a312ed1bc.webp",
+              "format": "webp",
+              "width": 960,
+              "height": 400,
+              "bytes": 58808,
+              "sha256": "1a312ed1bc8ce5bd73f1a1be9e6e4abd9f1aa7f31e4aa55bf4f3f7de56b2da4e"
+            },
+            {
+              "file": "leaderboard-wide-1440.6e4b8d7efe.avif",
+              "format": "avif",
+              "width": 1440,
+              "height": 600,
+              "bytes": 73418,
+              "sha256": "6e4b8d7efeafa1f7ede43288be84a0fa68ab68a90f0c87b7e5a45a538e63977e"
+            },
+            {
+              "file": "leaderboard-wide-1440.c0ae1bcfe3.webp",
+              "format": "webp",
+              "width": 1440,
+              "height": 600,
+              "bytes": 106952,
+              "sha256": "c0ae1bcfe3142e2cc771685302928d2fc99309a61c201a7376a6d24bd24664e0"
+            }
+          ]
+        }
+      },
+      "preview": "data:image/webp;base64,UklGRvAAAABXRUJQVlA4IOQAAACwBACdASogABQAPu1gqE2ppSOiMAgBMB2JYgDDNzCJrk8d9XokBs78yX5myBukAP7w0+vcY1dNE69JtgrITTlQOSJR163y3J9FIqTENHyO4eFJzdPo34fMqRDFpiUrlyBiMDqIjixIHd1G6xbyIukyjKlWueLP1cxYMyahM3vysusSpln+ZAm2Ww6SI5Wli5fEMOvFL8wX2J9YJqYDiFEpLgW6SSqNyvlIN6TGqHD2Pr26P62uGNcVjeeb8C9SlYEW9tEZxNh8s5yF3apdxXvLhGGsZ+3XQfh6/GaYC26vcLcAAAA=",
+      "previewBytes": 248
+    },
+    "achievements": {
+      "promptFile": "scripts/trivia-art/sources/intro-v3/achievements-prompt.txt",
+      "promptSha256": "63cfb18876e35fa83401d147982699c62f94d1c30e4e47218890aa088cbc1566",
+      "sources": {
+        "mobile": {
+          "file": "scripts/trivia-art/sources/intro-v3/achievements-mobile-source.png",
+          "width": 1586,
+          "height": 992,
+          "sha256": "015bc79ee0b46a5ce503300159a0cd2d898123892c86cd713379421008351c95"
+        },
+        "wide": {
+          "file": "scripts/trivia-art/sources/intro-v3/achievements-wide-source.png",
+          "width": 1983,
+          "height": 793,
+          "sha256": "9e13eafb0b7c1905fb9a41fc9a34cb8604b2dfd5948c11794de8abbce30696bd"
+        }
+      },
+      "crops": {
+        "mobile": {
+          "ratio": [
+            16,
+            10
+          ],
+          "files": [
+            {
+              "file": "achievements-mobile-640.fcc5421dc5.avif",
+              "format": "avif",
+              "width": 640,
+              "height": 400,
+              "bytes": 21222,
+              "sha256": "fcc5421dc5fef00d7bc7919131c98a60def32d1afb485c5ec8040b7d7bb014a4"
+            },
+            {
+              "file": "achievements-mobile-640.39eee00581.webp",
+              "format": "webp",
+              "width": 640,
+              "height": 400,
+              "bytes": 29568,
+              "sha256": "39eee0058185ff1356d1e38f83414f583e1f4e229c55c1446068f4105bb759ca"
+            },
+            {
+              "file": "achievements-mobile-960.58ab74f319.avif",
+              "format": "avif",
+              "width": 960,
+              "height": 600,
+              "bytes": 41134,
+              "sha256": "58ab74f319311926696cb8b085e832809fe909e9c00155752a4bc7414d55bd86"
+            },
+            {
+              "file": "achievements-mobile-960.5a8419fd99.webp",
+              "format": "webp",
+              "width": 960,
+              "height": 600,
+              "bytes": 59304,
+              "sha256": "5a8419fd99280877f1b219a177ef753cc223e09239d8fdbaf69fadd17f251365"
+            },
+            {
+              "file": "achievements-mobile-1440.cf422e3499.avif",
+              "format": "avif",
+              "width": 1440,
+              "height": 900,
+              "bytes": 76183,
+              "sha256": "cf422e34990bfcc1c07006cb703aaea8df0075cb063f4a306699b4111d46358f"
+            },
+            {
+              "file": "achievements-mobile-1440.c78baf8b08.webp",
+              "format": "webp",
+              "width": 1440,
+              "height": 900,
+              "bytes": 114726,
+              "sha256": "c78baf8b08991c89621fd67108af7374e3f5058c58c9bbd7b11ef1eeaf845a18"
+            }
+          ]
+        },
+        "wide": {
+          "ratio": [
+            12,
+            5
+          ],
+          "files": [
+            {
+              "file": "achievements-wide-640.d1fc99a6c2.avif",
+              "format": "avif",
+              "width": 640,
+              "height": 267,
+              "bytes": 27689,
+              "sha256": "d1fc99a6c2fe6fb10e1701b6fc6ca9e2b6a8e7b0570584796d7a579b339408d3"
+            },
+            {
+              "file": "achievements-wide-640.6d4bdcc45d.webp",
+              "format": "webp",
+              "width": 640,
+              "height": 267,
+              "bytes": 35330,
+              "sha256": "6d4bdcc45ddfe3cad656bc8933a2534e395659a88efa4a263ce8dff97b10dcda"
+            },
+            {
+              "file": "achievements-wide-960.15cb8728eb.avif",
+              "format": "avif",
+              "width": 960,
+              "height": 400,
+              "bytes": 49937,
+              "sha256": "15cb8728eb4796656d805cd5d1cde76837f802949d797b5881a369136c53d710"
+            },
+            {
+              "file": "achievements-wide-960.ad1e4a856d.webp",
+              "format": "webp",
+              "width": 960,
+              "height": 400,
+              "bytes": 65980,
+              "sha256": "ad1e4a856d84c43d9d3a98636a97caa785fca8a8211e2ec642547529d6367f6e"
+            },
+            {
+              "file": "achievements-wide-1440.58cf3bfd69.avif",
+              "format": "avif",
+              "width": 1440,
+              "height": 600,
+              "bytes": 86806,
+              "sha256": "58cf3bfd69915571c549cc7555e286dbb98a53b875d55167bdd93de9ad2d7ed9"
+            },
+            {
+              "file": "achievements-wide-1440.4cdf901a44.webp",
+              "format": "webp",
+              "width": 1440,
+              "height": 600,
+              "bytes": 119556,
+              "sha256": "4cdf901a4408c855d0e972765295b56f09a4c71ad7007e2bc91cb4222c5fdcbf"
+            }
+          ]
+        }
+      },
+      "preview": "data:image/webp;base64,UklGRqQAAABXRUJQVlA4IJgAAABwBQCdASogABQAPu1kqU2ppaQiMAgBMB2JZQDKAd3N8TFDjSnORWCHH/6gAT5UuewHjQgAAP7sx34IPknAO1rKwe26fSdd+bT56h7OMS/LqHINYVRbKmz/zjtekmg6iFPVYkQKfFBD9tsd9Tyf4G0WtxQ0GnTZUSYV1FHwWK47DCxs6Sb95Y2RbBlUaLD+TEqQla/SmMGQAA==",
+      "previewBytes": 172
+    },
+    "settings": {
+      "promptFile": "scripts/trivia-art/sources/intro-v3/settings-prompt.txt",
+      "promptSha256": "979729851f9ad6f9e45b5c08e819eebe5f6c4e95de0d8e5664f453ffc8b58b9c",
+      "sources": {
+        "mobile": {
+          "file": "scripts/trivia-art/sources/intro-v3/settings-mobile-source.png",
+          "width": 1586,
+          "height": 992,
+          "sha256": "d76a94153f6ae268efeb7644e184396650fdd5fd4389cbc3b9d69141a723d567"
+        },
+        "wide": {
+          "file": "scripts/trivia-art/sources/intro-v3/settings-wide-source.png",
+          "width": 1942,
+          "height": 809,
+          "sha256": "216a52efb04b1648e1d52ded0c0c830573f17425452f080bcb516fe253dbc895"
+        }
+      },
+      "crops": {
+        "mobile": {
+          "ratio": [
+            16,
+            10
+          ],
+          "files": [
+            {
+              "file": "settings-mobile-640.585b7b67ea.avif",
+              "format": "avif",
+              "width": 640,
+              "height": 400,
+              "bytes": 20983,
+              "sha256": "585b7b67ea837d6d97da830b192793c686cc10e245c14ca606088ad0cf6c1123"
+            },
+            {
+              "file": "settings-mobile-640.641055459a.webp",
+              "format": "webp",
+              "width": 640,
+              "height": 400,
+              "bytes": 29690,
+              "sha256": "641055459a7bba747c78465aa499464ed15c3e3fdfac84d555d60002e9922674"
+            },
+            {
+              "file": "settings-mobile-960.e125fd1f7b.avif",
+              "format": "avif",
+              "width": 960,
+              "height": 600,
+              "bytes": 36563,
+              "sha256": "e125fd1f7bef5921ccf885dcfc5ab84b55692f84ce74ab5ae0e9183f3d837391"
+            },
+            {
+              "file": "settings-mobile-960.c7a679fea4.webp",
+              "format": "webp",
+              "width": 960,
+              "height": 600,
+              "bytes": 54644,
+              "sha256": "c7a679fea40411c34b4d419aa76092d345a8dc356b5fb730c295c5f5d6ef3249"
+            },
+            {
+              "file": "settings-mobile-1440.39e4b13f38.avif",
+              "format": "avif",
+              "width": 1440,
+              "height": 900,
+              "bytes": 60601,
+              "sha256": "39e4b13f387fc15ed47e95b26852ccc4d0b6527508d3f4eaaccf23dca0c33262"
+            },
+            {
+              "file": "settings-mobile-1440.74e67de160.webp",
+              "format": "webp",
+              "width": 1440,
+              "height": 900,
+              "bytes": 96402,
+              "sha256": "74e67de1600946aa144ee5f81435efd98d478f6947116484697a3d27ebd390c9"
+            }
+          ]
+        },
+        "wide": {
+          "ratio": [
+            12,
+            5
+          ],
+          "files": [
+            {
+              "file": "settings-wide-640.a6333cde44.avif",
+              "format": "avif",
+              "width": 640,
+              "height": 267,
+              "bytes": 19587,
+              "sha256": "a6333cde44305f67553ccb98b2d95418dd21660f8b8a0ad99ae7bb5cc5e7dbef"
+            },
+            {
+              "file": "settings-wide-640.f2521ce990.webp",
+              "format": "webp",
+              "width": 640,
+              "height": 267,
+              "bytes": 26274,
+              "sha256": "f2521ce990d78aedefb62696f5bba53159f1ae8abe7843352632fdcbfea6fcf8"
+            },
+            {
+              "file": "settings-wide-960.b2d273e7e0.avif",
+              "format": "avif",
+              "width": 960,
+              "height": 400,
+              "bytes": 35118,
+              "sha256": "b2d273e7e0848d77594a2eabcd8696851a4082cd4518e0e9c304512e938c6784"
+            },
+            {
+              "file": "settings-wide-960.e359235b2a.webp",
+              "format": "webp",
+              "width": 960,
+              "height": 400,
+              "bytes": 48840,
+              "sha256": "e359235b2aaf224ae672ecee4199dcf25cad4b70754b1e16daf83c5bf7e5a1a3"
+            },
+            {
+              "file": "settings-wide-1440.fd0dab05bf.avif",
+              "format": "avif",
+              "width": 1440,
+              "height": 600,
+              "bytes": 60891,
+              "sha256": "fd0dab05bf59923720869d21c7cab813df6019e78e836eab3866288f9198cb66"
+            },
+            {
+              "file": "settings-wide-1440.40ea70b533.webp",
+              "format": "webp",
+              "width": 1440,
+              "height": 600,
+              "bytes": 88554,
+              "sha256": "40ea70b533d7e9a29e239f3a962895dc96d1f0efc62ceb3f5791e84ee3ebfd44"
+            }
+          ]
+        }
+      },
+      "preview": "data:image/webp;base64,UklGRp4AAABXRUJQVlA4IJIAAACwBACdASogABQAPu1iqU2ppaQiMAgBMB2JYwDOOBuLPMHzQWlsb7xyprenACgAAP7maWg3dj2t2b1EqQsgXaBUNRUnXE2UE+lnF+25gsxtlJiYhFFf0OAxK4kdi0xqhEm+3QfDnISraRDnISrFIPWQdQt/M9qzxEXA7UU7qM6mNNLYFaX7JaWW2Uxem7xVMgAAAA==",
+      "previewBytes": 166
+    }
+  }
+}

@@ -1,78 +1,42 @@
 /**
  * GET|POST /api/cron/trivia-tournament-tick
- * ═══════════════════════════════════════════════════════════════════════════
- * Dormant, manual-only recovery entry point for the tournament lifecycle.
  *
- * Runs one pass of runTournamentLifecycle(), which:
- *   - closes registration and generates the seeded bracket once start_time hits
- *   - cancels + refunds tournaments that never reached the minimum field size
- *   - decides matchups whose deadline has passed (forfeits, ties, byes)
- *   - opens the next round with the winners
- *   - finalises standings and pays the accumulated prize pool out, atomically
- *     and idempotently
+ * Authenticated tombstone for the legacy tournament lifecycle worker.
  *
- * Auth: `Authorization: Bearer ${CRON_SECRET}`. Phase 1 deliberately removes
- * this route from Vercel, OpenClaw and worker schedules while tournaments are
- * contained. It exists only for an operator-controlled future recovery after
- * the release controls, engine and economy gates have all been approved.
- * ═══════════════════════════════════════════════════════════════════════════
+ * Phase 6 replaced this worker with the fenced nightly engine owned by the
+ * OpenClaw workers route. Keeping the old implementation callable would give
+ * an operator two authorities over the same tournament family as soon as the
+ * public release flag is enabled. A stale caller is authenticated, recorded in
+ * provider logs with a structured outcome, and refused before any database
+ * client is created.
  */
 
-import { runTournamentLifecycle, serviceClient } from '../trivia/tournament-lifecycle';
-import { reportApiError } from '../../../src/lib/apiErrorHandler';
 import { requireAdminSecret } from '../../../src/lib/trivia/adminAuth';
-import { withCronHealth } from '../../../src/lib/cronHealth';
-import {
-    areTriviaTournamentsReleased,
-    rejectUnavailableTriviaTournament,
-} from '../../../src/lib/trivia/tournamentReleaseControl.mjs';
 
-async function handler(req, res) {
-    const startedAt = Date.now();
-    try {
-        if (req.method !== 'GET' && req.method !== 'POST') {
-            return res.status(405).json({ success: false, error: 'Method not allowed' });
-        }
+const ROUTE = '/api/cron/trivia-tournament-tick';
 
-        // Cron auth via the shared gate: fail-closed when CRON_SECRET is unset
-        // or too short, constant-time comparison, header-only (no ?secret=).
-        // This route moves diamonds, so it must not carry a weaker private copy
-        // of the check than the admin routes do.
-        if (!requireAdminSecret(req, res, { label: 'trivia-tournament-tick' })) return;
-        if (!areTriviaTournamentsReleased(process.env)) {
-            return rejectUnavailableTriviaTournament(res);
-        }
-
-        const out = await runTournamentLifecycle(serviceClient(), {});
-
-        const durationMs = Date.now() - startedAt;
-        const actions = {};
-        for (const r of out.results || []) {
-            const key = r?.action || 'unknown';
-            actions[key] = (actions[key] || 0) + 1;
-        }
-        // Loud log for anything that moved money or failed.
-        for (const r of out.results || []) {
-            if (r?.action === 'completed' || r?.action === 'cancelled' || r?.action === 'error') {
-                console.log('[trivia-tournament-tick]', JSON.stringify(r));
-            }
-        }
-
-        return res.status(out.success ? 200 : 500).json({
-            success: out.success,
-            processed: out.processed || 0,
-            actions,
-            duration_ms: durationMs,
-            results: out.results || []
-        });
-    } catch (e) {
-        console.error('[trivia-tournament-tick] unexpected:', e);
-        try { reportApiError(e, { route: '/api/cron/trivia-tournament-tick' }); } catch (_) {}
-        return res.status(500).json({ success: false, error: 'internal_error' });
+export default function handler(req, res) {
+    if (req.method !== 'GET' && req.method !== 'POST') {
+        res.setHeader('Allow', 'GET, POST');
+        return res.status(405).json({ success: false, error: 'method_not_allowed' });
     }
-}
 
-// cron telemetry (2026-08-14): cron_health_log had readers, a dashboard and a
-// UNIQUE key — and no writer anywhere, ever. This wrapper is the supply side;
-// it is fail-open and skips unauthorized (401/403) hits.
-export default withCronHealth('trivia-tournament-tick', handler);
+    // Keep the tombstone private. Public callers must not be able to use a
+    // retired route as a deployment-or-flag oracle.
+    if (!requireAdminSecret(req, res, { label: 'trivia-tournament-tick-retired' })) return;
+
+    res.setHeader('Cache-Control', 'private, no-store, max-age=0');
+    console.warn('[trivia-retired-route]', JSON.stringify({
+        event: 'retired_route_invoked',
+        route: ROUTE,
+        method: req.method,
+        replacement: '/cron/trivia-nightly-tournament',
+        occurred_at: new Date().toISOString(),
+    }));
+
+    return res.status(410).json({
+        success: false,
+        error: 'legacy_tournament_tick_retired',
+        replacement: 'fenced_nightly_tournament_engine',
+    });
+}

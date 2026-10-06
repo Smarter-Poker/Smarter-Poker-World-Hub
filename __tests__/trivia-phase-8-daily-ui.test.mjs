@@ -104,8 +104,8 @@ test('Daily route and owned components parse and carry the complete recovery con
     assert.match(page, /<DailySettlementReceipt result=\{result\}/);
     assert.match(page, /reportSessionId=\{serverGraded \? serverRun\.sessionId : null\}/);
     assert.match(page, /projectDailyResume\(resumedQuestions\)/);
-    assert.match(page, /initialAnswers=\{mode === 'daily' \? dailyResumeSeed\.answers : null\}/);
-    assert.match(page, /initialVerdicts=\{mode === 'daily' \? dailyResumeSeed\.verdicts : null\}/);
+    assert.match(page, /initialAnswers=\{\(mode === 'daily' \|\| isPhase9KnowledgeMode\) \? dailyResumeSeed\.answers : null\}/);
+    assert.match(page, /initialVerdicts=\{\(mode === 'daily' \|\| isPhase9KnowledgeMode\) \? dailyResumeSeed\.verdicts : null\}/);
     assert.match(page, /onInvalidQuestionRefresh=\{mode === 'daily' \? resumeDailyRun : null\}/);
     assert.match(page, /voidedCount:/);
     assert.match(page, /Number\.isFinite\(authoritativeTotal\)/);
