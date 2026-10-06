@@ -41224,7 +41224,7 @@
         {
           "element": "button",
           "name": "resolvedHeaderWorld\n              ? `Open ${resolvedHeaderWorld.label} Command Menu`\n              : 'Open Menu'",
-          "line": 1628,
+          "line": 1642,
           "handler": "() => (\n              onMenuClick && !ownsCanonicalMenu\n                ? onMenuClick()\n                : setCommandMenuOpen(true)\n            )",
           "destination": null,
           "type": "button",
@@ -41234,7 +41234,7 @@
         {
           "element": "button",
           "name": "Go Back",
-          "line": 1645,
+          "line": 1659,
           "handler": "onBackClick || handleBack",
           "destination": null,
           "type": "button",
@@ -41244,7 +41244,7 @@
         {
           "element": "button",
           "name": "Go To The Hub",
-          "line": 1651,
+          "line": 1665,
           "handler": "() => router.push('/hub')",
           "destination": null,
           "type": "button",
@@ -41254,7 +41254,7 @@
         {
           "element": "button",
           "name": "My Profile",
-          "line": 1657,
+          "line": 1671,
           "handler": "goToProfile",
           "destination": null,
           "type": "button",
@@ -41264,7 +41264,7 @@
         {
           "element": "button",
           "name": "Diamond Wallet",
-          "line": 1674,
+          "line": 1688,
           "handler": "() => setIsWalletOpen(true)",
           "destination": null,
           "type": "button",
@@ -41274,7 +41274,7 @@
         {
           "element": "button",
           "name": "safeIsVip ? 'VIP Membership Active' : 'VIP Membership Inactive'",
-          "line": 1680,
+          "line": 1694,
           "handler": "() => router.push('/hub/vip-membership')",
           "destination": null,
           "type": "button",
@@ -41284,7 +41284,7 @@
         {
           "element": "button",
           "name": "Messages",
-          "line": 1689,
+          "line": 1703,
           "handler": "() => router.push('/hub/messenger')",
           "destination": null,
           "type": "button",
@@ -41294,7 +41294,7 @@
         {
           "element": "button",
           "name": "Notifications",
-          "line": 1701,
+          "line": 1715,
           "handler": "() => openOverlay('notifications')",
           "destination": null,
           "type": "button",
@@ -41539,7 +41539,7 @@
         },
         {
           "kind": "PLACEHOLDER",
-          "line": 1433,
+          "line": 1438,
           "excerpt": "placeholder silhouette. That ring is the \"thick broken frame\": the live",
           "disposition": "frozen-global-header-dependency",
           "review": "accepted",
@@ -67891,11 +67891,11 @@
       "effectRef": "src/components/ui/ReportBugWidget.jsx"
     },
     {
-      "id": "src/components/ui/UniversalHeader.js:1628:1",
+      "id": "src/components/ui/UniversalHeader.js:1642:1",
       "file": "src/components/ui/UniversalHeader.js",
       "element": "button",
       "name": "resolvedHeaderWorld\n              ? `Open ${resolvedHeaderWorld.label} Command Menu`\n              : 'Open Menu'",
-      "line": 1628,
+      "line": 1642,
       "handler": "() => (\n              onMenuClick && !ownsCanonicalMenu\n                ? onMenuClick()\n                : setCommandMenuOpen(true)\n            )",
       "destination": null,
       "type": "button",
@@ -67904,11 +67904,11 @@
       "effectRef": "src/components/ui/UniversalHeader.js"
     },
     {
-      "id": "src/components/ui/UniversalHeader.js:1645:2",
+      "id": "src/components/ui/UniversalHeader.js:1659:2",
       "file": "src/components/ui/UniversalHeader.js",
       "element": "button",
       "name": "Go Back",
-      "line": 1645,
+      "line": 1659,
       "handler": "onBackClick || handleBack",
       "destination": null,
       "type": "button",
@@ -67917,11 +67917,11 @@
       "effectRef": "src/components/ui/UniversalHeader.js"
     },
     {
-      "id": "src/components/ui/UniversalHeader.js:1651:3",
+      "id": "src/components/ui/UniversalHeader.js:1665:3",
       "file": "src/components/ui/UniversalHeader.js",
       "element": "button",
       "name": "Go To The Hub",
-      "line": 1651,
+      "line": 1665,
       "handler": "() => router.push('/hub')",
       "destination": null,
       "type": "button",
@@ -67930,11 +67930,11 @@
       "effectRef": "src/components/ui/UniversalHeader.js"
     },
     {
-      "id": "src/components/ui/UniversalHeader.js:1657:4",
+      "id": "src/components/ui/UniversalHeader.js:1671:4",
       "file": "src/components/ui/UniversalHeader.js",
       "element": "button",
       "name": "My Profile",
-      "line": 1657,
+      "line": 1671,
       "handler": "goToProfile",
       "destination": null,
       "type": "button",
@@ -67943,11 +67943,11 @@
       "effectRef": "src/components/ui/UniversalHeader.js"
     },
     {
-      "id": "src/components/ui/UniversalHeader.js:1674:5",
+      "id": "src/components/ui/UniversalHeader.js:1688:5",
       "file": "src/components/ui/UniversalHeader.js",
       "element": "button",
       "name": "Diamond Wallet",
-      "line": 1674,
+      "line": 1688,
       "handler": "() => setIsWalletOpen(true)",
       "destination": null,
       "type": "button",
@@ -67956,11 +67956,11 @@
       "effectRef": "src/components/ui/UniversalHeader.js"
     },
     {
-      "id": "src/components/ui/UniversalHeader.js:1680:6",
+      "id": "src/components/ui/UniversalHeader.js:1694:6",
       "file": "src/components/ui/UniversalHeader.js",
       "element": "button",
       "name": "safeIsVip ? 'VIP Membership Active' : 'VIP Membership Inactive'",
-      "line": 1680,
+      "line": 1694,
       "handler": "() => router.push('/hub/vip-membership')",
       "destination": null,
       "type": "button",
@@ -67969,11 +67969,11 @@
       "effectRef": "src/components/ui/UniversalHeader.js"
     },
     {
-      "id": "src/components/ui/UniversalHeader.js:1689:7",
+      "id": "src/components/ui/UniversalHeader.js:1703:7",
       "file": "src/components/ui/UniversalHeader.js",
       "element": "button",
       "name": "Messages",
-      "line": 1689,
+      "line": 1703,
       "handler": "() => router.push('/hub/messenger')",
       "destination": null,
       "type": "button",
@@ -67982,11 +67982,11 @@
       "effectRef": "src/components/ui/UniversalHeader.js"
     },
     {
-      "id": "src/components/ui/UniversalHeader.js:1701:8",
+      "id": "src/components/ui/UniversalHeader.js:1715:8",
       "file": "src/components/ui/UniversalHeader.js",
       "element": "button",
       "name": "Notifications",
-      "line": 1701,
+      "line": 1715,
       "handler": "() => openOverlay('notifications')",
       "destination": null,
       "type": "button",
@@ -87004,7 +87004,7 @@
       {
         "file": "src/components/ui/UniversalHeader.js",
         "kind": "PLACEHOLDER",
-        "line": 1433,
+        "line": 1438,
         "excerpt": "placeholder silhouette. That ring is the \"thick broken frame\": the live",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -96043,7 +96043,7 @@
       {
         "file": "src/components/ui/UniversalHeader.js",
         "kind": "PLACEHOLDER",
-        "line": 1433,
+        "line": 1438,
         "excerpt": "placeholder silhouette. That ring is the \"thick broken frame\": the live",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
