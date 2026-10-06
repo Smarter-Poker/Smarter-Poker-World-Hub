@@ -35,13 +35,18 @@ test('SettingsPanel fails closed before a canonical read and patches only shared
   assert.doesNotMatch(source, /localStorage|sessionStorage/);
 });
 
-test('StatsPanel independently reads canonical platform, analytics, roster and pipeline sources', () => {
+test('StatsPanel independently reads canonical platform and analytics sources', () => {
   const source = read('StatsPanel.jsx');
   assert.match(source, /section=platform/);
   assert.match(source, /\/api\/horses\/analytics\?type=summary/);
-  assert.match(source, /\/api\/horses\/roster\?limit=/);
-  assert.match(source, /action: 'pipeline_runs'/);
+  // Phase 10 (2026-10-06): the five content metrics come from one database
+  // function behind the analytics route, so the panel no longer pages the
+  // whole roster or reads pipeline_runs (a table nothing live writes) to fill
+  // cards; it reads no fleet table at all.
+  assert.doesNotMatch(source, /\/api\/horses\/roster\?limit=/);
+  assert.doesNotMatch(source, /action: 'pipeline_runs'/);
   assert.doesNotMatch(source, /from\('pipeline_runs'\)/);
+  assert.match(source, /import KpiTile from '\.\/KpiTile';/);
   assert.match(source, /selectNavigationBadges/);
   assert.match(source, /Promise\.allSettled/);
   assert.match(source, /stopBroadcast\(\)/);
