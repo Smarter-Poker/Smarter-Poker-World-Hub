@@ -52,6 +52,7 @@ from pio_upi import (  # noqa: E402
     analyze_node,
     harvest_node,
     parse_children,
+    parse_calc_results,
     run_self_test,
     solve_scenario,
     setup_commands,
@@ -179,6 +180,23 @@ class NodeLineTests(unittest.TestCase):
 
 
 class PioHarvestTests(unittest.TestCase):
+    def test_real_pio38_calc_results_has_optional_runtime_and_required_equity_fields(self):
+        captured = "\n".join(("EV OOP: 250.000", "EV IP: 250.000",
+            "OOP's MES: 250.000", "IP's MES: 250.000", "Exploitable for: 0.000"))
+        parsed = parse_calc_results(captured)
+        self.assertEqual(parsed, {"ev_oop_chips": 250, "ev_ip_chips": 250,
+            "oop_mes_chips": 250, "ip_mes_chips": 250, "exploitability_chips": 0})
+        self.assertNotIn("running_time_seconds", parsed)
+        self.assertEqual(parse_calc_results(captured + "\nrunning time: 1.25")["running_time_seconds"], 1.25)
+        for runtime in ("-1", "NaN", "Infinity", "invalid", "1 seconds"):
+            with self.subTest(runtime=runtime), self.assertRaises(PioError):
+                parse_calc_results(captured + "\nrunning time: " + runtime)
+        with self.assertRaises(PioError):
+            parse_calc_results(captured + "\nrunning time: 1\nrunning time: 2")
+        for missing in captured.splitlines():
+            with self.subTest(missing=missing), self.assertRaises(PioError):
+                parse_calc_results("\n".join(line for line in captured.splitlines() if line != missing))
+
     def fake_pio(self, command: str) -> str:
         if command == "show_children r:0":
             return "r:0:c r:0:b50 r:0:b1000"

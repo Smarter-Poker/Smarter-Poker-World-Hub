@@ -430,9 +430,11 @@ def parse_calc_results(raw: str) -> dict[str, float]:
         if not math.isfinite(value):
             raise PioError("calc_results returned a nonfinite field")
         parsed[output_name] = value
-    if set(parsed) != set(expected.values()):
+    required = set(expected.values()) - {"running_time_seconds"}
+    if not required.issubset(parsed):
         raise PioError("calc_results omitted a required named field")
-    if parsed["running_time_seconds"] < 0 or parsed["exploitability_chips"] < 0:
+    # Pio 3.8 omits runtime. Keep it absent rather than inventing measured time.
+    if ("running_time_seconds" in parsed and parsed["running_time_seconds"] < 0) or parsed["exploitability_chips"] < 0:
         raise PioError("calc_results returned an impossible negative metric")
     return parsed
 
