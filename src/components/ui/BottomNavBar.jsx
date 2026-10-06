@@ -696,6 +696,12 @@ function ArtworkBottomNav({ footer, activeHref, warm, hidden = false, armed = fa
         right: 0,
         width: '100%',
         maxWidth: '100vw',
+        // Give the fixed shell its own gold-standard height instead of asking
+        // WebKit to infer it from an aspect-ratio child. At 1920x1080 WebKit
+        // can briefly report the inferred shell as a zero-size rectangle even
+        // while its controls are visible, which also makes the footer an
+        // unreliable pointer target during that layout frame.
+        height: FOOTER_ARTWORK_HEIGHT,
         margin: 0,
         overflow: 'hidden',
         boxSizing: 'border-box',
