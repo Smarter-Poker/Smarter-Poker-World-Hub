@@ -93,9 +93,13 @@ export const OWNER_ONLY_PROFILE_COLUMNS = [
     'poker_near_me_preferences',
 ];
 
+// No is_online (2026-10-05): online-now is the presence door's answer
+// (fn_profile_presence via /api/social/presence and usePresence), never the
+// raw flag, which stays true long after somebody leaves. Nothing that reads
+// this list used it, and naming it is what keeps the raw column granted.
 export const SAFE_PROFILE_COLUMNS =
     'id, display_name, username, bio, alias, avatar_url, arena_avatar_url, ' +
-    'use_avatar_as_profile_pic, role, status, is_vip, is_admin, is_online, player_number, ' +
+    'use_avatar_as_profile_pic, role, status, is_vip, is_admin, player_number, ' +
     'level, tier, skill_tier, login_streak, streak_days, settings, preferences, ' +
     'social_page_id, favorite_venue, home_poker_club, friends_count, hendon_total_cashes, ' +
     'hendon_total_earnings, email_verified, phone_verified, onboarding_complete, created_at, ' +

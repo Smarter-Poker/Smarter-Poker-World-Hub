@@ -84,6 +84,16 @@ test('the list is still a real list, so the guard cannot pass by reading nothing
   }
 });
 
+test('presence is asked of the presence door, never read raw off the row', () => {
+  /* 2026-10-05: online-now is fn_profile_presence's answer (the flag AND a
+     heartbeat under five minutes old). Reading profiles.is_online raw shows a
+     stale "online" and keeps that column granted to every browser. */
+  const cols = safeColumns();
+  for (const raw of ['is_online', 'last_seen']) {
+    assert.ok(!cols.includes(raw), `${raw} must not be read raw off a stranger's row`);
+  }
+});
+
 test('no duplicate names', () => {
   const cols = safeColumns();
   const dupes = cols.filter((c, i) => cols.indexOf(c) !== i);
