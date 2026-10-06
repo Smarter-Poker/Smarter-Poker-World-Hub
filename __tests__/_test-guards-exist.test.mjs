@@ -112,6 +112,10 @@ import './next-google-font-loader-patch.test.mjs';
 // service that calls it must merge the caller's patch over the stored value,
 // and a failed read or save must throw rather than look saved.
 import './page-preferences-merge-before-save.test.mjs';
+// Phase 10, 2026-10-06: the five fleet content metrics come from one database
+// function, service_role only, whose feed denominator keeps horses in it; the
+// analytics route and the Stats tab read that function and nothing else.
+import './fleet-content-metrics.test.mjs';
 import './horse-hand-reviews-panel.test.mjs';
 import './horses-console-phase1.test.mjs';
 import './horses-libs-review.test.mjs';
