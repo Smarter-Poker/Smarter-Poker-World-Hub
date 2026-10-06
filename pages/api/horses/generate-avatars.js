@@ -188,6 +188,7 @@ async function remainingCount(db) {
   const { count, error } = await db
     .from('content_authors')
     .select('*', { count: 'exact', head: true })
+    .eq('is_active', true)
     .is('avatar_url', null);
   if (error) {
     console.warn('[generate-avatars] remaining count failed:', error.message || error);
@@ -218,6 +219,10 @@ export async function handle({ req, op, db, query }) {
   const { data: horses, error } = await db
     .from('content_authors')
     .select('id, name, gender, location, specialty, profile_id')
+    // A muted author (a retired or closed horse) is not given a new face:
+    // the photo would be mirrored onto a profile that was deliberately
+    // stripped of one (2026-10-06).
+    .eq('is_active', true)
     .is('avatar_url', null)
     .limit(limit);
   if (error) {
@@ -286,6 +291,7 @@ export async function handle({ req, op, db, query }) {
         .from('profiles')
         .update({ avatar_url: permanentUrl })
         .eq('id', horse.profile_id)
+        .neq('status', 'deleted')
         .select('id');
       if (profErr) console.warn('[generate-avatars] profiles mirror failed for', horse.name, profErr.message);
       else if (!mirrorRows || mirrorRows.length === 0) {

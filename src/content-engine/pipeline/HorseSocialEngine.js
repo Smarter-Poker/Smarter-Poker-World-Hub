@@ -355,6 +355,12 @@ async function sendFriendRequests(maxRequests = 10) {
         .from('profiles')
         .select('id, username, full_name')
         .not('id', 'in', `(${horseIds.join(',')})`)
+        // A real user is a person with an open account. "Not an active
+        // author" also matched retired horses and closed accounts, so an
+        // active horse could befriend an identity that was taken off every
+        // public surface (2026-10-06).
+        .eq('is_horse', false)
+        .neq('status', 'deleted')
         .limit(50);
 
     // Combine potential targets: other horses + real users
@@ -542,6 +548,8 @@ async function commentOnPosts(maxComments = 20, includeRealUsers = true) {
     let postsQuery = getSupabase()
         .from('social_posts')
         .select('id, author_id, content_type, content, link_site_name')
+        // a deleted post is not engaged with (2026-10-06)
+        .eq('is_deleted', false)
         .order('created_at', { ascending: false })
         .limit(50);
 
@@ -767,6 +775,8 @@ async function likePosts(maxLikes = 30, includeRealUsers = true) {
     let postsQuery = getSupabase()
         .from('social_posts')
         .select('id, author_id')
+        // a deleted post is not engaged with (2026-10-06)
+        .eq('is_deleted', false)
         .order('created_at', { ascending: false })
         .limit(100);
 
