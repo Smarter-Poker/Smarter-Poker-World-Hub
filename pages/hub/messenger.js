@@ -1754,7 +1754,7 @@ function MessengerPage() {
             setConnectionStatus('connected');
             setClubAccess({ userId, clubs: result.clubs });
             setConversations(result.conversations);
-            setWorkspaceUnread({ key: requestKey, counts: result.unreadCounts });
+            setWorkspaceUnread({ key: requestKey, counts: result.unreadCounts, attentionCounts: result.attentionCounts });
             setWeeklyPreview(result.weeklySummary ? { key: requestKey, report: result.weeklySummary } : null);
             setInboxError(null);
         } catch (error) {
@@ -4004,6 +4004,7 @@ function MessengerPage() {
                     <ClubArenaWorkspace clubs={joinedClubs} open={clubDrawerOpen}
                         clubId={workspaceSelection.clubId} folder={workspaceSelection.folder} theme={C}
                         unreadCounts={workspaceUnread?.key === workspaceKey ? workspaceUnread.counts : messengerUnread?.clubs?.[workspaceSelection.clubId]}
+                        attentionCounts={workspaceUnread?.key === workspaceKey ? workspaceUnread.attentionCounts : null}
                         clubUnread={messengerUnread?.clubs}
                         onEnter={enterClubWorkspace} onExit={leaveClubWorkspace}
                         onFolder={folder => setWorkspaceSelection(prev => ({ ...prev, folder }))} />

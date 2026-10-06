@@ -1,10 +1,10 @@
 import React from 'react';
 
-export default function ClubArenaWorkspace({ clubs, open, clubId, folder, onEnter, onExit, onFolder, unreadCounts, clubUnread, theme: C }) {
+export default function ClubArenaWorkspace({ clubs, open, clubId, folder, onEnter, onExit, onFolder, unreadCounts, attentionCounts, clubUnread, theme: C }) {
     if (!clubs.length) return null;
     const club = clubs.find(c => c.id === clubId);
     const button = { background: C.card, color: C.text, border: `1px solid ${C.border}`, borderRadius: 10, padding: '10px 12px', cursor: 'pointer', font: 'inherit' };
-    const badge = count => count > 0 ? <span aria-label={`${count} Unread`} style={{ display: 'inline-block', marginLeft: 6, minWidth: 20, padding: '1px 5px', borderRadius: 12, background: C.red || '#E4405F', color: '#fff', fontSize: 12, fontWeight: 700 }}>{count > 99 ? '99+' : count}</span> : null;
+    const badge = (count, label = 'Unread') => count > 0 ? <span aria-label={`${count} ${label}`} style={{ display: 'inline-block', marginLeft: 6, minWidth: 20, padding: '1px 5px', borderRadius: 12, background: C.red || '#E4405F', color: '#fff', fontSize: 12, fontWeight: 700 }}>{count > 99 ? '99+' : count}</span> : null;
     const clubTotal = Object.values(clubUnread || {}).reduce((sum, counts) => sum + counts.messages + counts.invoices, 0);
     return <section aria-label="Club Arena" style={{ padding: '8px 16px 12px', borderBottom: `1px solid ${C.border}` }}>
         <button type="button" aria-expanded={open} aria-controls="club-arena-workspace"
@@ -28,7 +28,7 @@ export default function ClubArenaWorkspace({ clubs, open, clubId, folder, onEnte
                     aria-selected={folder === tab} onClick={() => onFolder(tab)}
                     style={{ ...button, flex: 1, color: folder === tab ? C.blue : C.text, borderColor: folder === tab ? C.blue : C.border }}>
                     {tab === 'invoices' ? 'Invoices' : 'Messages'}
-                    {badge(unreadCounts?.[tab])}
+                    {badge(attentionCounts?.[tab] ?? unreadCounts?.[tab], attentionCounts?.[tab] === undefined ? 'Unread' : 'Needs Attention')}
                 </button>)}
             </div>
             {folder === 'invoices' && <p style={{ fontSize: 12, lineHeight: 1.5, color: C.textSec, margin: '10px 0 0' }}>
