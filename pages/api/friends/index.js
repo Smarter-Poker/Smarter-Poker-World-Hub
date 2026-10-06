@@ -93,8 +93,10 @@ export default async function handler(req, res) {
         if (!safeQ) return res.status(200).json({ success: true, data: [] });
         const { data, error } = await getSupabase()
           .from('profiles')
-          .select('id, username, full_name, display_name, avatar_url, city, state, favorite_game, is_vip')
-          .or(`username.ilike.%${safeQ}%,full_name.ilike.%${safeQ}%`)
+          .select('id, username, display_name, avatar_url, favorite_game, is_vip, is_online')
+          // A stranger is found by the names they chose to show - never by
+          // their legal name (owner-only since 2026-09-30, profileColumns.js).
+          .or(`username.ilike.%${safeQ}%,display_name.ilike.%${safeQ}%`)
           .neq('id', userId)
           .limit(50);
         if (error) {
@@ -157,7 +159,10 @@ export default async function handler(req, res) {
 
         if (action === 'full') {
           // ═══ FULL DATA for friends page ═══
-          const fullFields = 'id, username, full_name, display_name, avatar_url, city, state, favorite_game, last_active, is_vip';
+          // Friends, followers and suggestions are other people: no legal name,
+          // no whereabouts, no last-seen (OWNER_ONLY_PROFILE_COLUMNS). Presence
+          // is the public is_online flag.
+          const fullFields = 'id, username, display_name, avatar_url, favorite_game, is_vip, is_online';
           const friends = await resolveFriendIds(allFriendIds, fullFields);
 
           // 3. Pending incoming requests (with requester profiles)
@@ -171,7 +176,7 @@ export default async function handler(req, res) {
           let incomingRequests = [];
           if (incomingRaw?.length) {
             const requesterIds = incomingRaw.map(r => r.user_id);
-            const requesterProfiles = await resolveFriendIds(requesterIds, 'id, username, full_name, display_name, avatar_url');
+            const requesterProfiles = await resolveFriendIds(requesterIds, 'id, username, display_name, avatar_url');
             const profileMap = {};
             requesterProfiles.forEach(p => { profileMap[p.id] = p; });
             incomingRequests = incomingRaw.map(r => ({
@@ -215,9 +220,10 @@ export default async function handler(req, res) {
 
           let suggestionsQuery = getSupabase()
             .from('profiles')
-            .select('id, username, full_name, display_name, avatar_url, city, state, favorite_game, last_active')
+            .select(fullFields)
             .neq('id', userId)
-            .order('last_active', { ascending: false, nullsLast: true })
+            .order('is_online', { ascending: false, nullsLast: true })
+            .order('created_at', { ascending: false })
             .limit(500);
 
           // Filter out existing connections (friends + pending) if any

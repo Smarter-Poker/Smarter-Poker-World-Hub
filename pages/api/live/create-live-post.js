@@ -93,12 +93,12 @@ export default async function handler(req, res) {
         // Get broadcaster profile for display name
         const { data: profile } = await supabase
             .from('profiles')
-            .select('username, display_name, full_name')
+            .select('username, display_name')
             .eq('id', user.id)
             .maybeSingle();
-        // Prefer display_name (user-chosen proper-case alias) over full_name, then
+        // Prefer display_name (user-chosen proper-case alias), then
         // fall back to the lowercase username slug as a last resort.
-        const displayName = profile?.display_name || profile?.full_name || profile?.username || 'Someone';
+        const displayName = profile?.display_name || profile?.username || 'Someone';
 
         // Create the live feed post
         const streamTitle = title || stream.title || 'Live Stream';

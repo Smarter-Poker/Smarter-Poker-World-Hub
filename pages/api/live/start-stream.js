@@ -12,9 +12,10 @@
  *
  * BUG 16: Live stream post shows user's alias instead of real display name.
  *   CAUSE: Content string built from user.user_metadata (alias/handle) instead
- *          of profiles.full_name (display name).
- *   FIX:   Fetch profiles.full_name first; fall back to profiles.username only
- *          if full_name is null.
+ *          of the profile's public display name.
+ *   FIX:   Fetch profiles.display_name first; fall back to profiles.username only
+ *          if display_name is null. full_name is owner-only (real identity) and
+ *          must never be written into a public stream title or feed post.
  */
 
 import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
@@ -37,18 +38,17 @@ export default async function handler(req, res) {
 
   try {
     // ── BUG-16 FIX: fetch real display name from profiles ──────────────────
-    // profiles.full_name is the canonical display name set during onboarding.
+    // profiles.display_name is the public display name. full_name is owner-only.
     // user.user_metadata.alias is a handle and must NOT be used for feed posts.
     const { data: profile } = await supabase
       .from('profiles')
-      .select('full_name, username, avatar_url')
+      .select('display_name, username, avatar_url')
       .eq('id', user.id)
       .maybeSingle();
 
     const displayName =
-      profile?.full_name ||
+      profile?.display_name ||
       profile?.username ||
-      user.email?.split('@')[0] ||
       'Streamer';
 
     // Create the live_streams row first so we have the ID for the feed post FK.

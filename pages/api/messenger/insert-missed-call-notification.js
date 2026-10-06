@@ -78,11 +78,11 @@ export default async function handler(req, res) {
     // Look up the caller's display name
     const { data: profile } = await getSupabase()
         .from('profiles')
-        .select('username, full_name, avatar_url')
+        .select('username, avatar_url')
         .eq('id', user.id)
         .maybeSingle();
 
-    const callerName = profile?.username || profile?.full_name || 'Someone';
+    const callerName = profile?.username || 'Someone';
     const typeLabel = callType === 'video' ? 'Video' : 'Voice';
     const reasonLabel = reason === 'declined' ? 'Declined' : 'Missed';
 

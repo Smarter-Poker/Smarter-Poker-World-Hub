@@ -82,7 +82,7 @@ export default async function handler(req, res) {
           if (authorIds.length > 0) {
               const { data: profileData } = await getSupabase()
                   .from('profiles')
-                  .select('id, username, full_name, avatar_url')
+                  .select('id, username, avatar_url')
                   .in('id', authorIds)
                       .limit(100);
               (profileData || []).forEach(p => { profiles[p.id] = p; });

@@ -182,8 +182,8 @@ export default async function handler(req, res) {
                   .from('social_pages').select('owner_id, name').eq('id', page_id).maybeSingle();
               if (ownerPage && ownerPage.owner_id !== user_id) {
                   const { data: followerProfile } = await getSupabase()
-                      .from('profiles').select('username, full_name').eq('id', user_id).maybeSingle();
-                  const followerName = followerProfile?.username || followerProfile?.full_name || 'Someone';
+                      .from('profiles').select('username').eq('id', user_id).maybeSingle();
+                  const followerName = followerProfile?.username || 'Someone';
                   const notifTitle = requiresApproval ? '🔔 New Follow Request' : '🎉 New Follower';
                   const notifMsg = requiresApproval
                       ? `${followerName} wants to follow your page "${ownerPage.name}". Approve or reject in your Live Games tab.`
@@ -241,7 +241,7 @@ export default async function handler(req, res) {
                   if (userIds.length > 0) {
                       const { data: profileData } = await getSupabase()
                           .from('profiles')
-                          .select('id, username, full_name, avatar_url')
+                          .select('id, username, avatar_url')
                           .in('id', userIds)
                               .limit(100);
                       (profileData || []).forEach(p => { profiles[p.id] = p; });

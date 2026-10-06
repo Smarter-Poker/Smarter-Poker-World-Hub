@@ -193,7 +193,7 @@ function FriendAvatar({ friend }) {
           lineHeight: 1.3,
         }}
       >
-        {friend.full_name?.split(' ').slice(0, 2).join(' ') || friend.username}
+        {friend.display_name || friend.username}
       </div>
       <div style={{ fontSize: 11, color: C.textSec }}>
         {mutualCount > 0 ? `${mutualCount} mutual` : ''}
@@ -359,7 +359,7 @@ function FriendsModal({ isOpen, onClose, profileId, profileName, currentUserId, 
       all.sort(
         (a, b) =>
           b.mutualCount - a.mutualCount ||
-          (a.full_name || a.username || '').localeCompare(b.full_name || b.username || '')
+          (a.display_name || a.username || '').localeCompare(b.display_name || b.username || '')
       );
 
       setAllFriends(all);
@@ -397,7 +397,7 @@ function FriendsModal({ isOpen, onClose, profileId, profileName, currentUserId, 
   const filtered = searchQuery.trim()
     ? activeList.filter(
         (f) =>
-          (f.full_name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+          (f.display_name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
           (f.username || '').toLowerCase().includes(searchQuery.toLowerCase())
       )
     : activeList;
@@ -612,7 +612,7 @@ function FriendsModal({ isOpen, onClose, profileId, profileName, currentUserId, 
                       whiteSpace: 'nowrap',
                     }}
                   >
-                    {friend.full_name || friend.username}
+                    {friend.display_name || friend.username}
                   </div>
                   {friend.mutualCount > 0 && (
                     <div style={{ fontSize: 13, color: C.textSec }}>
@@ -648,7 +648,7 @@ function FriendsModal({ isOpen, onClose, profileId, profileName, currentUserId, 
                           });
                           if (error) throw error;
                           toast.success(
-                            `Friend request sent to ${friend.full_name?.split(' ')[0] || friend.username}`
+                            `Friend request sent to ${friend.display_name || friend.username}`
                           );
                         } catch (err) {
                           setPendingRequests((prev) => {
@@ -1344,7 +1344,7 @@ function PostCard({
         </div>
         <div style={{ flex: 1 }}>
           <div style={{ fontWeight: 600, fontSize: 14, color: C.text }}>
-            {author?.username || author?.full_name}
+            {author?.username || author?.display_name}
           </div>
           <div style={{ fontSize: 12, color: C.textSec }}>
             {timeAgo(editablePost.created_at)}
@@ -1674,7 +1674,7 @@ function PostCard({
                       }}
                     >
                       <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>
-                        {c.author?.username || c.author?.full_name || 'User'}
+                        {c.author?.username || c.author?.display_name || 'User'}
                       </div>
                       {c.author_id === currentUserId && editingCommentId !== c.id && (
                         <div style={{ display: 'flex', gap: 6 }}>
@@ -3325,7 +3325,10 @@ export default function UserProfilePage() {
       notifyFriendsSync();
       // Insert in-app notification for the recipient
       const senderName =
-        currentUser?.user_metadata?.full_name || currentUser?.user_metadata?.username || 'Someone';
+        currentUser?.user_metadata?.display_name ||
+        currentUser?.user_metadata?.username ||
+        currentUser?.user_metadata?.poker_alias ||
+        'Someone';
       const senderUsername = currentUser?.user_metadata?.username || currentUser?.id;
       supabase
         .from('notifications')
@@ -3802,10 +3805,14 @@ export default function UserProfilePage() {
   }
 
   const isOwnProfile = currentUser?.id === profile.id;
-  // Display name = real name (full_name) first, username as fallback
+  // Display name = public display_name first, username as fallback. The real
+  // name (full_name) is owner-only and never shown on a profile others see.
   // Poker alias (@username) is shown separately as a handle badge
-  const displayName = profile.full_name || profile.username || 'Player';
-  const pokerAlias = profile.username && profile.full_name ? profile.username : null; // Only show alias badge if they have both
+  const displayName = profile.display_name || profile.username || 'Player';
+  const pokerAlias =
+    profile.username && profile.display_name && profile.display_name !== profile.username
+      ? profile.username
+      : null; // Only show alias badge when a distinct display_name is shown
   const locationParts = [
     profile.city,
     profile.state,
@@ -4668,7 +4675,7 @@ export default function UserProfilePage() {
                   <img
                     key={f.id}
                     src={f.avatar_url || '/default-avatar.png'}
-                    alt={f.username || f.full_name || 'Friend'}
+                    alt={f.username || f.display_name || 'Friend'}
                     style={{
                       width: 28,
                       height: 28,
@@ -4686,7 +4693,7 @@ export default function UserProfilePage() {
                   <strong>
                     {friends
                       .slice(0, 2)
-                      .map((f) => f.full_name?.split(' ')[0] || f.username)
+                      .map((f) => f.display_name || f.username)
                       .join(', ')}
                   </strong>
                   {friends.length > 2 && ` and ${friends.length - 2} others`}
@@ -7078,7 +7085,7 @@ export default function UserProfilePage() {
             onClick={(e) => e.stopPropagation()}
           >
             <div style={{ fontSize: 18, fontWeight: 700, color: C.text, marginBottom: 12 }}>
-              Unfriend {profile?.username || profile?.full_name}?
+              Unfriend {profile?.username || profile?.display_name}?
             </div>
             <div style={{ fontSize: 14, color: C.textSec, marginBottom: 20 }}>
               Are You Sure You Want To Remove This Person From Your Friends List?
@@ -7146,7 +7153,7 @@ export default function UserProfilePage() {
             onClick={(e) => e.stopPropagation()}
           >
             <div style={{ fontSize: 18, fontWeight: 700, color: C.text, marginBottom: 12 }}>
-              Block {profile?.username || profile?.full_name}?
+              Block {profile?.username || profile?.display_name}?
             </div>
             <div style={{ fontSize: 14, color: C.textSec, marginBottom: 20 }}>
               They Won't Be Able To See Your Posts Or Message You.
@@ -7251,7 +7258,7 @@ export default function UserProfilePage() {
             onClick={(e) => e.stopPropagation()}
           >
             <div style={{ fontSize: 18, fontWeight: 700, color: C.text, marginBottom: 12 }}>
-              Report {profile?.username || profile?.full_name}
+              Report {profile?.username || profile?.display_name}
             </div>
             <div style={{ fontSize: 14, color: C.textSec, marginBottom: 12 }}>
               Why Are You Reporting This User?
@@ -7416,7 +7423,7 @@ export default function UserProfilePage() {
         isOpen={showFriendsModal}
         onClose={() => setShowFriendsModal(false)}
         profileId={profile?.id}
-        profileName={profile?.full_name || profile?.username}
+        profileName={profile?.display_name || profile?.username}
         currentUserId={currentUser?.id}
         socialIdRef={socialIdRef}
       />

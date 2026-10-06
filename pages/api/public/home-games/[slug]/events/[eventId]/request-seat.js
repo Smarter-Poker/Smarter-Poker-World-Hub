@@ -301,10 +301,13 @@ async function dispatchHostNotification(supabase, ctx) {
 
   // ── Resolve profile display names ────────────────────────────────────────
   const [hostProfileRes, requesterProfileRes] = await Promise.allSettled([
-    supabase.from('profiles').select('id, display_name, full_name, first_name, username').eq('id', host_user_id).maybeSingle(),
-    supabase.from('profiles').select('id, display_name, full_name, first_name, username').eq('id', requester_user_id).maybeSingle(),
+    supabase.from('profiles').select('id, display_name, username').eq('id', host_user_id).maybeSingle(),
+    supabase.from('profiles').select('id, display_name, username').eq('id', requester_user_id).maybeSingle(),
   ]);
-  const pickName = (p) => (p?.display_name || p?.full_name || p?.first_name || p?.username || null);
+  // display_name || username only: these names go to the OTHER party (the
+  // host's bell/push/DM, and the requester's DM thread), and a legal or
+  // first name is owner-only (OWNER_ONLY_PROFILE_COLUMNS).
+  const pickName = (p) => (p?.display_name || p?.username || null);
   const hostProfile = hostProfileRes.status === 'fulfilled' ? hostProfileRes.value?.data : null;
   const requesterProfile = requesterProfileRes.status === 'fulfilled' ? requesterProfileRes.value?.data : null;
   const hostName = pickName(hostProfile) || 'Host';

@@ -39,15 +39,16 @@ export default async function handler(req, res) {
     // Get broadcaster display name
     // LN-1 FIX: include display_name in the select and at the front of the
     // priority chain — matches the platform-wide convention of
-    // display_name > username > full_name > fallback.
+    // display_name > username > fallback. full_name is owner-only and is
+    // never written into a notification other people read.
     const { data: profile } = await supabaseAdmin
       .from('profiles')
-      .select('display_name, username, full_name, avatar_url')
+      .select('display_name, username, avatar_url')
       .eq('id', user.id)
       .maybeSingle();
 
     const displayName =
-      profile?.display_name || profile?.username || profile?.full_name || 'Someone you follow';
+      profile?.display_name || profile?.username || 'Someone you follow';
 
     // Get all followers
     const { data: followers, error } = await supabaseAdmin

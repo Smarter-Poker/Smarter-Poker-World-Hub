@@ -87,10 +87,10 @@ export default async function handler(req, res) {
                           .from('social_page_posts').select('author_id, page_id').eq('id', post_id).maybeSingle();
                       if (postData && postData.author_id !== user_id) {
                           const { data: likerProfile } = await getSupabase()
-                              .from('profiles').select('full_name, username').eq('id', user_id).maybeSingle();
+                              .from('profiles').select('username').eq('id', user_id).maybeSingle();
                           const { data: pageData } = await getSupabase()
                               .from('social_pages').select('name').eq('id', postData.page_id).maybeSingle();
-                          const likerName = likerProfile?.username || likerProfile?.full_name || 'Someone';
+                          const likerName = likerProfile?.username || 'Someone';
                           const pageName = pageData?.name || 'a page';
                           fetch(`${process.env.NEXT_PUBLIC_SITE_URL || 'https://smarter.poker'}/api/notifications/send`, {
                               method: 'POST',
@@ -174,7 +174,7 @@ export default async function handler(req, res) {
               // Enrich with profile
               const { data: profile } = await getSupabase()
                   .from('profiles')
-                  .select('id, username, full_name, avatar_url')
+                  .select('id, username, avatar_url')
                   .eq('id', user_id)
                   .maybeSingle();
 
@@ -186,7 +186,7 @@ export default async function handler(req, res) {
                       const { data: pg } = await getSupabase()
                           .from('social_pages').select('owner_id, name').eq('id', pd.page_id).maybeSingle();
                       if (pg && pg.owner_id !== user_id) {
-                          const cn = profile?.username || profile?.full_name || 'Someone';
+                          const cn = profile?.username || 'Someone';
                           fetch(`${process.env.NEXT_PUBLIC_SITE_URL || 'https://smarter.poker'}/api/notifications/send`, {
                               method: 'POST', headers: { 'Content-Type': 'application/json', 'x-admin-secret': process.env.ADMIN_ROUTE_SECRET || '' },
                               body: JSON.stringify({ title: 'New Comment', message: `${cn} commented on a post in "${pg.name}"`, externalUserIds: [pg.owner_id], url: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://smarter.poker'}/hub/social-pages/${pd.page_id}`, data: { type: 'page_comment', page_id: pd.page_id, post_id } }),
@@ -204,7 +204,7 @@ export default async function handler(req, res) {
                                   if (mentionedUsers && mentionedUsers.length > 0) {
                                       const mentionIds = mentionedUsers.filter(u => u.id !== user_id).map(u => u.id);
                                       if (mentionIds.length > 0) {
-                                          const cn2 = profile?.username || profile?.full_name || 'Someone';
+                                          const cn2 = profile?.username || 'Someone';
                                           const pageName = pg?.name || 'a page';
                                           fetch(`${process.env.NEXT_PUBLIC_SITE_URL || 'https://smarter.poker'}/api/notifications/send`, {
                                               method: 'POST', headers: { 'Content-Type': 'application/json', 'x-admin-secret': process.env.ADMIN_ROUTE_SECRET || '' },
@@ -271,7 +271,7 @@ export default async function handler(req, res) {
           if (userIds.length > 0) {
               const { data: profileData } = await getSupabase()
                   .from('profiles')
-                  .select('id, username, full_name, avatar_url')
+                  .select('id, username, avatar_url')
                   .in('id', userIds);
               (profileData || []).forEach(p => { profiles[p.id] = p; });
           }

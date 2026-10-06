@@ -119,7 +119,7 @@ export default async function handler(req, res) {
                   const userIds = sorted.map(([id]) => id);
                   const { data: profiles } = await getSupabase()
                       .from('profiles')
-                      .select('id, username, full_name, avatar_url')
+                      .select('id, username, display_name, avatar_url')
                       .in('id', userIds)
                           .limit(100);
                   const profileMap = {};
@@ -161,7 +161,7 @@ export default async function handler(req, res) {
                   const userIds = sorted.map(([id]) => id);
                   const { data: profiles } = await getSupabase()
                       .from('profiles')
-                      .select('id, username, full_name, avatar_url')
+                      .select('id, username, display_name, avatar_url')
                       .in('id', userIds)
                           .limit(100);
                   const profileMap = {};
@@ -211,7 +211,7 @@ export default async function handler(req, res) {
                   const userIds = sorted.map(([id]) => id);
                   const { data: profiles } = await getSupabase()
                       .from('profiles')
-                      .select('id, username, full_name, avatar_url')
+                      .select('id, username, display_name, avatar_url')
                       .in('id', userIds)
                           .limit(100);
                   const profileMap = {};
@@ -239,7 +239,7 @@ export default async function handler(req, res) {
           const userIds = topLeaders.map(l => l.user_id);
           const { data: profiles } = await getSupabase()
               .from('profiles')
-              .select('id, username, full_name, avatar_url')
+              .select('id, username, display_name, avatar_url')
               .in('id', userIds)
                   .limit(100);
           const profileMap = {};
