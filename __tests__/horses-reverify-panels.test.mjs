@@ -44,9 +44,9 @@ const APPROVALS = `${COMPONENT_DIR}ApprovalsPanel.jsx`;
 const STAFF = `${COMPONENT_DIR}StaffPanel.jsx`;
 const MODAL = `${COMPONENT_DIR}Modal.jsx`;
 const CSS = `${COMPONENT_DIR}shared.module.css`;
-const SQL = 'pages/horses/sql-console.js';
-const HGM = 'pages/horses/hg-moderation.js';
-const HAND = 'pages/horses/hand-reviews.js';
+const SQL = `${COMPONENT_DIR}SqlConsolePanel.jsx`;
+const HGM = `${COMPONENT_DIR}HgModerationPanel.jsx`;
+const HAND = `${COMPONENT_DIR}HandReviewsPanel.jsx`;
 
 /** Executable lines only: a commented-out call is not a call. */
 function codeOnly(src) {
@@ -365,8 +365,8 @@ test('the backdrop never centres a dialog it cannot scroll to, and .btn is 44px 
 test('hg-moderation uses the shared Modal and ConfirmDialog and has no dialog of its own', async () => {
   const src = await read(HGM);
   const code = codeOnly(src);
-  assert.match(src, /import Modal from '\.\.\/\.\.\/src\/components\/horses\/Modal';/);
-  assert.match(src, /import ConfirmDialog from '\.\.\/\.\.\/src\/components\/horses\/ConfirmDialog';/);
+  assert.match(src, /import Modal from '\.\/Modal';/);
+  assert.match(src, /import ConfirmDialog from '\.\/ConfirmDialog';/);
   assert.ok(!/function Modal\(/.test(code), 'the page-local Modal is gone');
   assert.ok(!code.includes('FOCUSABLE'), 'the page-local focus trap is gone');
   assert.ok(!code.includes('offsetParent'), 'the offsetParent heuristic is gone');
@@ -452,26 +452,28 @@ test('operatorGate asks section=policy with the bearer and reads the answer', as
   assert.deepEqual(soft, { ok: false, denied: false, status: 200, error: 'Nope' });
 });
 
-test('the sub-pages keep their retry screen for a failed check and send a denial away', async () => {
-  for (const [file, denial] of [[SQL, "router.push('/')"], [HGM, 'setAuthed(false)'], [HAND, "router.push('/')"]]) {
+test('folded sub-pages leave authentication and denial states to the parent console', async () => {
+  for (const file of [SQL, HGM, HAND]) {
     const code = codeOnly(await read(file));
-    const at = code.indexOf('await operatorGate(token)');
-    assert.ok(at > 0, `${file} calls the gate`);
-    const branch = code.slice(at, at + 700);
-    assert.ok(branch.includes(denial), `${file}: a denial -> ${denial}`);
-    assert.match(branch, /gate\.error/, `${file}: the failure message reaches the retry screen`);
+    assert.doesNotMatch(code, /operatorGate|getAuthUser|getFreshAccessToken|router\.push\('/,
+      `${file} must not create a second auth lifecycle`);
   }
+  assert.match(await read(SQL), /function SqlConsolePanel\(\{ authFetch \}\)/);
+  assert.match(await read(HGM), /function HgModerationPanel\(\{ authFetch, permissions = null \}\)/);
 });
 
 // ── L-9: sql-console reads bodies through readJsonBody ─────────────────────
 
-test('sql-console never calls res.json() blind', async () => {
+test('sql-console delegates token refresh, deadline and response parsing to authFetch', async () => {
   const src = await read(SQL);
   const code = codeOnly(src);
-  assert.match(src, /import \{ readJsonBody, withRequestTimeout \} from '\.\.\/\.\.\/src\/components\/horses\/useOperatorFetch';/);
-  assert.match(code, /data: await readJsonBody\(res\)/);
+  assert.match(code, /await authFetch\('\/api\/admin\/execute-sql'/);
+  assert.match(code, /method:\s*'POST'/);
+  assert.match(code, /body:\s*JSON\.stringify\(body\)/);
   assert.ok(!code.includes('await res.json()'), 'no blind res.json()');
-  assert.match(code, /`Request Failed \(\$\{res\.status\}\)`/);
+  assert.doesNotMatch(code, /\bfetch\(/, 'the panel must not bypass authFetch');
+  assert.doesNotMatch(code, /getFreshAccessToken|readJsonBody|withRequestTimeout/,
+    'the parent seam owns token refresh, body parsing and the deadline');
 });
 
 test('hand reviews cancel superseded reads, scrub database errors and state the binding retention law', async () => {
@@ -479,7 +481,7 @@ test('hand reviews cancel superseded reads, scrub database errors and state the 
   assert.match(src, /function beginRead\(reads, key\)/);
   assert.match(src, /previous\?\.controller\) previous\.controller\.abort\(\)/);
   assert.match(src, /function isCurrentRead\(reads, key, request\)/);
-  assert.match(src, /withRequestTimeout\(/, 'auth and every review read must have a deadline');
+  assert.match(src, /withRequestTimeout\(/, 'every review read must have a deadline');
   assert.match(src, /finally \{\s*if \(isCurrentRead\(readsRef, 'rows', request\)\) setBusy\(false\);/,
     'the active row read must always release its spinner');
   assert.doesNotMatch(src, /set[A-Za-z]+Error\([^\n]*\.message\)/,
@@ -497,16 +499,13 @@ test('hand reviews cancel superseded reads, scrub database errors and state the 
   }
 });
 
-test('sql-console puts token refresh, fetch and body read under one deadline', async () => {
+test('sql-console keeps execute failures inside the result surface', async () => {
   const src = await read(SQL);
   const run = src.slice(src.indexOf('const runQuery = async'), src.indexOf('const handleExecute'));
-  const bound = run.indexOf('withRequestTimeout(async (signal) => {');
-  assert.ok(bound >= 0);
-  assert.ok(run.indexOf('await getFreshAccessToken()', bound) > bound);
-  assert.ok(run.indexOf("await fetch('/api/admin/execute-sql'", bound) > bound);
-  assert.ok(run.indexOf('await readJsonBody(res)', bound) > bound);
-  assert.match(run, /signal,/);
-  assert.doesNotMatch(run, /error: err\.message/);
+  assert.match(run, /await authFetch\('\/api\/admin\/execute-sql'/);
+  assert.match(run, /setResult\(\{\s*status:\s*err\?\.status\s*\|\|\s*500,/);
+  assert.match(run, /data:\s*\{\s*success:\s*false,/);
+  assert.match(run, /error:\s*err\?\.message\s*\|\|\s*'The SQL Request Could Not Be Completed\. Retry\.'/);
 });
 
 // ── House rules over every file this pass touched ───────────────────────────

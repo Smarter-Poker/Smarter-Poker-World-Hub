@@ -9,12 +9,14 @@ import { TABS } from '../src/components/horses/tabRegistry.js';
 const ROOT = new URL('../', import.meta.url);
 const read = (path) => readFile(new URL(path, ROOT), 'utf8');
 
-test('Platform Operations is a console-read code-split tab', () => {
+test('Platform Operations is a console-read code-split tab', async () => {
   const tab = TABS.find((entry) => entry.id === 'platform');
   assert.ok(tab);
   assert.equal(tab.label, 'Platform Operations');
   assert.equal(tab.permission, 'console.read');
-  assert.equal(typeof tab.load, 'function');
+  const dynamicPanels = await read('src/components/horses/dynamicPanels.js');
+  assert.match(dynamicPanels, /const PlatformPanel = dynamic\(\(\) => import\('\.\/PlatformPanel'\)/);
+  assert.match(dynamicPanels, /platform: PlatformPanel/);
   assert.notEqual(tab.legacy, true);
 });
 

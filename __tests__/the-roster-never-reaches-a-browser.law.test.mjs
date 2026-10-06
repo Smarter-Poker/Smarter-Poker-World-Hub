@@ -165,7 +165,7 @@ test('the profile page uses the profile id for every player', () => {
 });
 
 test('the console reads the roster through an operator route', () => {
-  const page = stripComments(read('pages/horses/index.js'));
+  const page = stripComments(read('src/components/horses/StablePanel.jsx'));
   assert.match(page, /authFetch\(`\/api\/horses\/roster\?limit=\$\{ROSTER_PAGE_SIZE\}&offset=\$\{offset\}`\)/);
   const route = stripComments(read('pages/api/horses/roster.js'));
   assert.match(route, /export default withOperatorRoute\(spec, handle\)/);

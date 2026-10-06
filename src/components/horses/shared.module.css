@@ -426,11 +426,15 @@
     align-items: center;
     gap: 8px;
     flex: 0 0 auto;
+    min-width: 0;
+    width: max-content;
 }
 
 @media (min-width: 769px) {
     .tablist {
+        flex: 1 1 100%;
         flex-wrap: wrap;
+        width: 100%;
     }
 }
 
