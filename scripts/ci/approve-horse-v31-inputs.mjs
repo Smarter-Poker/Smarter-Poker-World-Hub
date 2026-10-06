@@ -1,12 +1,35 @@
 import { createHash } from 'node:crypto';
+import { spawnSync } from 'node:child_process';
 import { readFile, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
-import { pathToFileURL } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const ORIGIN = 'https://kuklfnapbkmacvwxktbh.supabase.co';
 const HEX = /^[0-9a-f]{64}$/;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 const CHECKOUT = /^[0-9a-f]{40}$/;
+
+export function deriveInputIdentity(bytes) {
+  const pipelineRoot = fileURLToPath(new URL('../horse-solver-v31/', import.meta.url));
+  const program = [
+    'import json,sys',
+    'from contract import _json_bytes,input_bundle_checksum,input_bundle_id',
+    'bundle=_json_bytes(sys.stdin.buffer.read(),"approval bundle")',
+    'checksum=input_bundle_checksum(bundle)',
+    'print(json.dumps({"checksum":checksum,"id":input_bundle_id(checksum)}))',
+  ].join('\n');
+  const child = spawnSync('python3', ['-c', program], {
+    cwd: pipelineRoot, input: bytes, encoding: 'utf8', timeout: 10_000, maxBuffer: 128_000,
+    env: { PATH: process.env.PATH || '/usr/bin:/bin', PYTHONDONTWRITEBYTECODE: '1', LANG: 'C.UTF-8' },
+  });
+  if (child.status !== 0 || child.error) throw new Error('local_input_identity_validation_failed');
+  let identity;
+  try { identity = JSON.parse(child.stdout); } catch { throw new Error('local_input_identity_validation_failed'); }
+  if (!HEX.test(identity.checksum || '') || !UUID.test(identity.id || '')) {
+    throw new Error('local_input_identity_validation_failed');
+  }
+  return identity;
+}
 
 export function validateConfig(env) {
   if (env.GITHUB_REF !== 'refs/heads/main' || env.GITHUB_RUN_ATTEMPT !== '1'
@@ -70,10 +93,9 @@ export async function run(env) {
       if (bytes.length > 1_000_000 || createHash('sha256').update(bytes).digest('hex') !== env.V31_APPROVAL_SHA256) {
         throw new Error('immutable_approval_file_mismatch');
       }
+      const { checksum, id } = deriveInputIdentity(bytes);
+      if (checksum !== env.V31_BUNDLE_CHECKSUM || id !== env.V31_BUNDLE_ID) throw new Error('local_input_identity_mismatch');
       const bundle = JSON.parse(bytes.toString('utf8'));
-      const checksum = await request('/rest/v1/rpc/fn_gto_v31_input_bundle_checksum', { p_bundle: bundle }, env, token);
-      const id = await request('/rest/v1/rpc/fn_gto_v31_input_bundle_id', { p_bundle_checksum: checksum }, env, token);
-      if (checksum !== env.V31_BUNDLE_CHECKSUM || id !== env.V31_BUNDLE_ID) throw new Error('database_input_identity_mismatch');
       receipt.inputBundleId = id;
       receipt.inputBundleChecksum = checksum;
       receipt.approvalAttempted = true;
