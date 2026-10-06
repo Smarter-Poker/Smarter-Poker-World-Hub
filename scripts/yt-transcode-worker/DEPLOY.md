@@ -34,12 +34,50 @@ sudo grep -Eq '^SUPABASE_SERVICE_ROLE_KEY=eyJ[^[:space:]]+\.[^[:space:]]+\.[^[:s
 If any check fails, stop. Credential provisioning is an operator-owned action
 outside this runbook.
 
-GitHub Actions also requires `HETZNER_HOST` and
-`HETZNER_SSH_PRIVATE_KEY`. `HETZNER_HOST` must resolve to the dedicated
-`reels-transcode-worker` (Hetzner server 128782737). Both deployment and
+GitHub Actions also requires, in the `Production` environment, the
+`YT_WORKER_HOST` variable and the `YT_WORKER_SSH_PRIVATE_KEY` secret. Both are
+dedicated to this worker; the shared `HETZNER_HOST` /
+`HETZNER_SSH_PRIVATE_KEY` pair belongs to other workflows and is never used
+here. `YT_WORKER_HOST` must be the IPv4 address of the dedicated
+`reels-transcode-worker` (Hetzner server 168974582,
+`reels-transcode-worker-20261006`, 5.161.232.126). Both deployment and
 diagnostics compare the scanned ed25519 key with that host's independently
 verified, repository-pinned fingerprint before opening an SSH session; a host
 or key mismatch fails closed.
+
+The previous host, server 128782737 (5.161.49.206), was compromised in the
+August 2026 incident (`.agent/audits/2026-08-16-ACTIVE-COMPROMISE-fleet-wide-xmrig.md`).
+It is powered off and kept only for forensics. Never redeploy to it.
+
+## Rebuilding the host
+
+A compromised or unhealthy host is replaced, never repaired in place.
+
+1. Create a new Hetzner server in the same project: type `cpx21`, location
+   `ash`, image `ubuntu-24.04` (the workflow requires host Python 3.12),
+   firewall `workers-ssh-only` (tcp 22 + icmp inbound; the worker itself is
+   outbound-only and listens on nothing), and a freshly generated, dedicated
+   deploy key as its only project SSH key.
+2. Read the new host's ed25519 fingerprint from inside an authenticated session
+   (`ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub`) and check it matches
+   `ssh-keyscan -t ed25519` output.
+3. Provision it: copy `provision-host.sh` and `sp-yt-transcode.service`, then
+   run `bash provision-host.sh sp-yt-transcode.service` as root. It installs
+   the verified runtime (Node.js from nodejs.org, pinned by sha256), hardens
+   sshd to key-only, creates `openclaw`, and enables the unit without starting
+   it. If the upgrade asks for a reboot, reboot now and then run
+   `systemctl stop sp-yt-transcode`: with no release promoted yet the enabled
+   unit retries at boot, and the workflow requires it `inactive` (or `active`).
+4. Write `/etc/sp-yt-transcode.env` (root:root 600) with a newly issued,
+   dedicated Supabase secret key; never copy a key from the old host.
+5. Change the pinned fingerprint and server ID in `deploy-yt-worker.yml`,
+   `yt-worker-diag.yml`, `sp-yt-transcode.service`, this guide and
+   `__tests__/yt-worker-release-safety.test.mjs` in one reviewed PR; set
+   `YT_WORKER_HOST` and `YT_WORKER_SSH_PRIVATE_KEY`.
+6. Run the workflow once (promotes the release; the inactive unit stays
+   inactive), `systemctl start sp-yt-transcode`, then run it again so the
+   restart-and-verify path proves the running service.
+7. Power off the old server, then revoke its Supabase key.
 
 ## Deployment
 

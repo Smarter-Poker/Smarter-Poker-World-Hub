@@ -30,13 +30,13 @@ jobs:
       - name: Set up SSH agent
         uses: webfactory/ssh-agent@dc588b651fe13675774614f8e6a936a468676387 # v0.9.0
         with:
-          ssh-private-key: ${{ secrets.HETZNER_SSH_PRIVATE_KEY }}
+          ssh-private-key: ${{ secrets.YT_WORKER_SSH_PRIVATE_KEY }}
 
-      # Canonical reels-transcode-worker: Hetzner server 128782737.
+      # Canonical reels-transcode-worker: Hetzner server 168974582.
       - name: Trust the independently pinned reels-transcode-worker host key
         env:
-          HOST: ${{ secrets.HETZNER_HOST }}
-          EXPECTED_ED25519_FINGERPRINT: SHA256:sZTpafVw76Jpgu+pwgp5X3nuaSfEnedVuZd/eWWiG+4
+          HOST: ${{ vars.YT_WORKER_HOST }}
+          EXPECTED_ED25519_FINGERPRINT: SHA256:iKTWWkBS+nHscqvzFsII54viy4H7DmLD+MfYO7+cy/k
         run: |
           set -euo pipefail
           test -n "$HOST"
@@ -54,8 +54,8 @@ jobs:
 
       - name: Worker process / resource state
         env:
-          HOST: ${{ secrets.HETZNER_HOST }}
-          SSH_USER: ${{ secrets.HETZNER_SSH_USER || 'root' }}
+          HOST: ${{ vars.YT_WORKER_HOST }}
+          SSH_USER: root
         run: |
           ssh "$SSH_USER@$HOST" '
             echo "=== systemd ==="
@@ -73,8 +73,8 @@ jobs:
 
       - name: Worker journal tail
         env:
-          HOST: ${{ secrets.HETZNER_HOST }}
-          SSH_USER: ${{ secrets.HETZNER_SSH_USER || 'root' }}
+          HOST: ${{ vars.YT_WORKER_HOST }}
+          SSH_USER: root
           TAIL_LINES: ${{ inputs.tail_lines }}
         run: |
           case "$TAIL_LINES" in (*[!0-9]*|'') exit 2 ;; esac
