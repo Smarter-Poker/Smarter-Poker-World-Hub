@@ -37,6 +37,7 @@ import {
 import { triviaArtCacheName } from '../scripts/trivia-art/art-cache-name.mjs';
 import { TRIVIA_THUMBNAIL_PREVIEWS } from '../src/config/triviaThumbnailPreviews.mjs';
 import { TRIVIA_MIDDLE_MODES } from '../src/config/triviaModeRegistry.mjs';
+import { elements, loadSurface } from './social-poker-card-harness.mjs';
 
 const ROOT = process.cwd();
 const read = (rel) => readFileSync(join(ROOT, rel), 'utf8');
@@ -211,7 +212,7 @@ test('ResponsiveModeArt reserves its box, paints a preview, and is lazy unless i
     assert.match(jsx, /loading=\{priority \? 'eager' : 'lazy'\}/);
     assert.match(jsx, /fetchpriority=\{priority \? 'high' : 'auto'\}/);
     assert.match(jsx, /aria-hidden=\{decorative \? 'true' : undefined\}/);
-    assert.match(jsx, /onError=\{\(\) => setFailed\(true\)\}/);
+    assert.match(jsx, /onError=\{\(\) => setArtFailure/);
     assert.match(css, /\.art \{[\s\S]*?aspect-ratio: 16 \/ 10;[\s\S]*?background-image: var\(--trivia-art-preview, none\);/);
     assert.match(css, /@media \(min-width: 768px\) \{\s*\.art \{\s*aspect-ratio: 12 \/ 5;/);
     assert.match(css, /\.art\[data-art-state='error'\] \.image \{\s*visibility: hidden;/);
@@ -219,11 +220,41 @@ test('ResponsiveModeArt reserves its box, paints a preview, and is lazy unless i
     assert.deepEqual([...css.matchAll(/#[0-9a-fA-F]{3,8}\b/g)].map((m) => m[0]), ['#000'], 'schema ink only');
     for (const [id, rel] of Object.entries(DESTINATION)) {
         const tags = [...read(rel).matchAll(/<ResponsiveModeArt\b[\s\S]*?\/>/g)].map((m) => m[0]);
-        const expectedBranches = id === 'tournaments' ? 2 : 1;
+        const expectedBranches = new Set(['endless', 'survival', 'tournaments']).has(id) ? 2 : 1;
         assert.equal(tags.length, expectedBranches, `${rel} renders art only in its mutually exclusive hero branches`);
         if (id === 'lobby') assert.doesNotMatch(tags[0], /\bpriority\b/, 'the Daily header stays the lobby hero');
         else for (const tag of tags) assert.match(tag, /\bpriority\b/, `${rel}: the intro art is the page hero`);
     }
+});
+
+test('ResponsiveModeArt failure custody follows the art identity across a router rerender', () => {
+    const { module, state } = loadSurface('src/components/trivia/console/ResponsiveModeArt.jsx');
+    const makeArt = (key) => ({
+        key,
+        preview: `data:image/webp;base64,${key}`,
+        mobile: { avif: `${key}-mobile.avif 640w`, webp: `${key}-mobile.webp 640w`, src: `${key}-mobile.webp`, width: 640, height: 400 },
+        wide: { avif: `${key}-wide.avif 1440w`, webp: `${key}-wide.webp 1440w`, width: 1440, height: 600 },
+    });
+    const first = makeArt('first-mode');
+    const second = makeArt('second-mode');
+    const draw = (art) => module.default({ art, priority: true });
+    const imageIn = (tree) => elements(tree).find((element) => element.type === 'img');
+
+    let tree = draw(first);
+    assert.equal(tree.props['data-art-state'], 'ready');
+    const staleFirstError = imageIn(tree).props.onError;
+    staleFirstError();
+    assert.deepEqual(state.get('artFailure'), { key: first.key, failed: true });
+    assert.equal(draw(first).props['data-art-state'], 'error', 'the failed file leaves its own preview visible');
+
+    tree = draw(second);
+    assert.equal(tree.props['data-art-state'], 'ready', 'a reused component does not hide the replacement art');
+    // Even a late event from the replaced image cannot poison the new key.
+    staleFirstError();
+    assert.equal(draw(second).props['data-art-state'], 'ready');
+    imageIn(tree).props.onError();
+    assert.equal(draw(second).props['data-art-state'], 'error');
+    assert.equal(draw(first).props['data-art-state'], 'ready', 'returning to an earlier identity starts a fresh request');
 });
 
 test('lobby card pictures paint their own preview, so a fast scroll never shows an empty well', () => {

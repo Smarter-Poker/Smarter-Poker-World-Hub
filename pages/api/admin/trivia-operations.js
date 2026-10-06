@@ -146,11 +146,16 @@ async function getSnapshot(req, res, client, operator) {
             .eq('id', 1).maybeSingle(),
     ];
     if (lookup) {
-        reads.push(client.rpc('trivia_operator_support_lookup_v1', {
-            p_operator_id: operator.user.id,
-            p_kind: lookup.kind,
-            p_target_id: lookup.targetId,
-        }));
+        reads.push(lookup.kind === 'settlement'
+            ? client.rpc('trivia_settlement_payout_control_status_v1', {
+                p_operator_id: operator.user.id,
+                p_settlement_id: lookup.targetId,
+            })
+            : client.rpc('trivia_operator_support_lookup_v1', {
+                p_operator_id: operator.user.id,
+                p_kind: lookup.kind,
+                p_target_id: lookup.targetId,
+            }));
     }
 
     const [

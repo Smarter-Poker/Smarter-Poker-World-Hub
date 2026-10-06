@@ -103,6 +103,20 @@ export default async function handler(req, res) {
         }
         const source = sourceCheck.source;
 
+        // Trivia paid skips are a compound authority operation: the fixed
+        // five-Diamond debit, first-answer binding, per-session cap and
+        // immutable receipt must commit together.  The generic spend endpoint
+        // cannot prove a session/question or bind the answer, so accepting the
+        // historical source here could create a paid-but-unbound skip.  Cached
+        // clients fail closed and must recover through session-paid-skip.
+        if (source === 'trivia_lifeline') {
+            return res.status(409).json({
+                success: false,
+                error: 'paid_skip_requires_session_authority',
+                code: 'paid_skip_requires_session_authority',
+            });
+        }
+
         // Known products are priced here, never by the browser. In particular,
         // a Trivia client cannot pre-seed a lifeline reference with a one-
         // diamond debit and later replay it as the five-diamond purchase.
@@ -171,12 +185,7 @@ export default async function handler(req, res) {
         // decision: an exact idempotent retry must still be able to recover its
         // committed receipt after the player's balance changes.
         //
-        // A Trivia lifeline goes through trivia_solo_spend (Trivia Phase 2). It
-        // takes the same arguments and returns the same receipt: while the
-        // server-side solo_journal switch is OFF (the default) it simply calls
-        // deduct_diamonds; when root turns the switch ON it posts the same
-        // debit through the balanced Trivia journal.
-        const spendRpc = source === 'trivia_lifeline' ? 'trivia_solo_spend' : 'deduct_diamonds';
+        const spendRpc = 'deduct_diamonds';
         const { data, error } = await supabase.rpc(spendRpc, {
             p_user_id: userId,
             p_amount: amount,

@@ -12,6 +12,7 @@ import {
 const ROOT = process.cwd();
 const read = (path) => readFileSync(join(ROOT, path), 'utf8');
 const MIGRATION = 'supabase/migrations/20261005234000_trivia_p11_operations_authority.sql';
+const PAYOUT_CONTROL_MIGRATION = 'supabase/migrations/20261006053300_trivia_p11_payout_control_authority.sql';
 const ADVISOR_HARDENING = 'supabase/migrations/20261006014800_trivia_p9_12_advisor_hardening.sql';
 
 test('Phase 11 migration creates named least-privilege roles and immutable audit records', () => {
@@ -50,8 +51,31 @@ test('operator execution is reasoned, idempotent and wired only to existing auth
         'Phase 12 must be able to verify both operator capability and the exact canary target');
     assert.doesNotMatch(sql, /v_holder\s*:=\s*'operator:'[^;]*p_request_key/i,
         'a 128-character request key can breach the scheduler holder limit');
-    assert.match(sql, /payout_hold[\s\S]*unsupported_action[\s\S]*settlement choke point/i);
-    assert.doesNotMatch(sql, /CREATE TABLE public\.trivia_(?:payout_holds|settlement_holds)/i, 'an unenforced hold table would be fake authority');
+});
+
+test('payout hold and release are durable, exact-once and enforced at the settlement row lock', () => {
+    const sql = read(PAYOUT_CONTROL_MIGRATION);
+    assert.match(sql, /TIER:\s*3/);
+    assert.match(sql, /CREATE TABLE public\.trivia_settlement_payout_controls_v1/i);
+    assert.match(sql, /receipt_id uuid NOT NULL UNIQUE[\s\S]*DEFERRABLE INITIALLY DEFERRED/i);
+    assert.match(sql, /BEFORE UPDATE OR DELETE[\s\S]*trivia_p11_forbid_history_mutation/i);
+    assert.match(sql, /ENABLE ROW LEVEL SECURITY/);
+    assert.match(sql, /CREATE POLICY trivia_settlement_payout_controls_rpc_only[\s\S]*AS RESTRICTIVE[\s\S]*TO PUBLIC[\s\S]*USING \(false\)[\s\S]*WITH CHECK \(false\)/i);
+    assert.doesNotMatch(sql, /GRANT SELECT ON TABLE public\.trivia_settlement_payout_controls_v1 TO service_role/i);
+    assert.match(sql, /trivia_settlement_payout_control_apply_v1[\s\S]*FOR UPDATE/i);
+    assert.match(sql, /trivia_settlement_settle[\s\S]*FOR UPDATE[\s\S]*settlement_payout_held/i);
+    assert.match(sql, /CREATE OR REPLACE FUNCTION public\.trivia_ledger_rake[\s\S]*FOR UPDATE[\s\S]*settlement_payout_held/i);
+    assert.match(sql, /CREATE TRIGGER trg_trivia_p11_guard_rake_mutation[\s\S]*BEFORE UPDATE OF rake_amount/i);
+    assert.match(sql, /trivia_p11_guard_rake_mutation_v1[\s\S]*NEW\.rake_amount > OLD\.rake_amount[\s\S]*settlement_payout_held/i);
+    assert.match(sql, /v_terminal\s*=\s*'refunded'[\s\S]*v_outcome\s+IN\s*\('tie',\s*'refund',\s*'cancelled'\)/i);
+    assert.match(sql, /v_terminal\s*=\s*'voided'[\s\S]*v_outcome\s*=\s*'void'/i);
+    assert.match(sql, /p_action NOT IN \('payout_hold', 'payout_release'\)[\s\S]*trivia_operator_execute_before_payout_control_v1/i);
+    assert.match(sql, /v_payload <> '\{\}'::jsonb[\s\S]*invalid_payload_field/i);
+    assert.match(sql, /pg_advisory_xact_lock[\s\S]*request_hash[\s\S]*idempotency_conflict/i);
+    assert.match(sql, /payout_already_held[\s\S]*payout_not_held/i);
+    assert.match(sql, /ROLLBACK \(Tier 3[\s\S]*CREATE OR REPLACE FUNCTION public\.trivia_ledger_rake[\s\S]*DROP TRIGGER trg_trivia_p11_guard_rake_mutation/i);
+    assert.match(sql, /NOTIFY pgrst, 'reload schema'/i);
+    assert.doesNotMatch(sql, /pg_cron|CREATE EXTENSION[^;]*cron|schedule\s*\(/i);
 });
 
 test('PvP recovery receipts require explicit core success and record standby without false success', () => {
@@ -128,6 +152,20 @@ test('action parser rejects client-owned authority and preserves stable retry ke
     assert.equal(valid.ok, true);
     assert.equal(valid.value.requestKey, 'op-retry-key-001');
     assert.equal(valid.value.payload.enabled, false);
+    assert.equal(parseOperationsActionRequest({
+        requestKey: 'payout-hold-001',
+        action: 'payout_hold',
+        reason: 'Hold this settlement while the payout evidence is reviewed.',
+        targetId: '00000000-0000-4000-8000-000000000000',
+        payload: {},
+    }).ok, true);
+    assert.equal(parseOperationsActionRequest({
+        requestKey: 'payout-hold-002',
+        action: 'payout_hold',
+        reason: 'Hold this settlement while the payout evidence is reviewed.',
+        targetId: '00000000-0000-4000-8000-000000000000',
+        payload: { amount: 500 },
+    }).ok, false);
 
     for (const body of [
         { ...valid.value, operatorId: '00000000-0000-4000-8000-000000000000' },
@@ -153,19 +191,25 @@ test('operator and support DTO normalizers fail closed', () => {
         ok: true,
         value: { kind: 'tournament', targetId: '00000000-0000-4000-8000-000000000000' },
     });
+    assert.equal(parseSupportLookupRequest({ kind: 'settlement', targetId: '00000000-0000-4000-8000-000000000000' }).ok, true);
     assert.equal(parseSupportLookupRequest({ kind: 'profile', targetId: 'secret' }).ok, false);
 });
 
-test('operator page uses durable action receipts and labels unsupported settlement controls truthfully', () => {
+test('operator page wires durable payout controls and same-settlement readback truthfully', () => {
     const page = read('pages/admin/trivia-operations.js');
+    const api = read('pages/api/admin/trivia-operations.js');
     assert.match(page, /method:\s*'POST'/);
     assert.match(page, /requestKey/);
     assert.match(page, /receipt_id|receiptId/);
     assert.match(page, /Retry Same Request/);
     assert.match(page, /Recover Canary\/Test Settlement With Engine Fence/);
     assert.match(page, /Public Recovery Stays Behind Its Durable Release Authority/);
-    assert.match(page, /Payout hold unavailable/);
-    assert.match(page, /settlement choke point/i);
+    assert.match(page, /Settlement payout control/);
+    assert.match(page, /action:\s*'payout_hold'/);
+    assert.match(page, /action:\s*'payout_release'/);
+    assert.match(page, /Blocks Payout And Rake Settlement, Never Exact-Entry Cancellation Refunds/);
+    assert.match(page, /option value="settlement"/);
+    assert.match(api, /lookup\.kind === 'settlement'[\s\S]*trivia_settlement_payout_control_status_v1/);
     assert.doesNotMatch(page, /@supabase\/supabase-js|SUPABASE_SERVICE_ROLE_KEY/);
 });
 

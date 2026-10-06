@@ -53,6 +53,21 @@ export function normalizeSoloRunRecovery(value, { mode, accountId, now = Date.no
         ? null
         : (UUID_RE.test(String(value.settlementRequestId)) ? String(value.settlementRequestId) : null);
     if (value.phase === 'settling' && !settlementRequestId) return null;
+    // Endless and Survival cannot advance past an expired question until its
+    // binding -1 answer has an authoritative receipt. Keep that exact question
+    // beside the already account/mode/session-scoped run pointer so a reload
+    // replays it instead of silently losing the miss.
+    const pendingTimeoutQuestionId = value.pendingTimeoutQuestionId == null
+        ? null
+        : (UUID_RE.test(String(value.pendingTimeoutQuestionId))
+            ? String(value.pendingTimeoutQuestionId)
+            : null);
+    const survivalLevel = value.survivalLevel == null
+        ? null
+        : (Number.isInteger(value.survivalLevel)
+            && value.survivalLevel >= 1 && value.survivalLevel <= 10
+            ? value.survivalLevel
+            : null);
 
     return Object.freeze({
         version: SOLO_RUN_RECOVERY_VERSION,
@@ -63,6 +78,8 @@ export function normalizeSoloRunRecovery(value, { mode, accountId, now = Date.no
         createdAt: value.createdAt,
         expiresAt,
         settlementRequestId,
+        pendingTimeoutQuestionId,
+        survivalLevel,
     });
 }
 
@@ -74,6 +91,8 @@ export function createSoloRunRecovery({
     createdAt = Date.now(),
     expiresAt = null,
     settlementRequestId = null,
+    pendingTimeoutQuestionId = null,
+    survivalLevel = null,
 } = {}) {
     return normalizeSoloRunRecovery({
         version: SOLO_RUN_RECOVERY_VERSION,
@@ -84,6 +103,8 @@ export function createSoloRunRecovery({
         createdAt,
         expiresAt,
         settlementRequestId,
+        pendingTimeoutQuestionId,
+        survivalLevel,
     }, { mode, accountId, now: createdAt });
 }
 

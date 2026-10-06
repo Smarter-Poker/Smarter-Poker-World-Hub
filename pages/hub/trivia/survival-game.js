@@ -40,6 +40,7 @@ import TriviaAnswerOption from '../../../src/components/trivia/TriviaAnswerOptio
 import { shareResult } from '../../../src/lib/trivia/shareResult';
 import { DAILY_DIAMOND_CAPS, calculateDiamonds } from '../../../src/lib/trivia/triviaEngine';
 import useServerGradedRun from '../../../src/hooks/useServerGradedRun';
+import { isRetiredTriviaRunError } from '../../../src/lib/trivia/runRecoveryPolicy.mjs';
 import * as triviaAudio from '../../../src/lib/trivia/triviaAudio';
 import ReportQuestionButton from '../../../src/components/trivia/ReportQuestionButton';
 import useTriviaQuestion from '../../../src/hooks/useTriviaQuestion';
@@ -47,7 +48,11 @@ import useTriviaTimer from '../../../src/hooks/useTriviaTimer';
 import { getAccessToken } from '../../../src/lib/authUtils';
 import HubPageSummary from '../../../src/components/seo/HubPageSummary';
 import { readOwnProfile } from '../../../src/lib/ownProfile';
-import { createAccountOperationScope, isStaleAccountOperation } from '../../../src/lib/trivia/accountOperationScope.mjs';
+import {
+    createAccountOperationScope,
+    isStaleAccountOperation,
+    shouldGateAccountOwnedRender,
+} from '../../../src/lib/trivia/accountOperationScope.mjs';
 import Phase9SettlementReceipt from '../../../src/components/trivia/phase9/Phase9SettlementReceipt';
 import { projectPhase9Recovery } from '../../../src/components/trivia/phase9/phase9RunModel.mjs';
 import usePhase9ReducedMotion from '../../../src/components/trivia/phase9/usePhase9ReducedMotion';
@@ -78,18 +83,21 @@ function survivalLevelStorageKey(accountId) {
     return `trivia:survival-level:v1:${accountId}`;
 }
 
-function readRecoveredLevel(accountId, fallback) {
-    try {
-        const value = Number(window.localStorage.getItem(survivalLevelStorageKey(accountId)));
-        return Number.isInteger(value) && value >= 1 && value <= LEVEL_CONFIG.length ? value : fallback;
-    } catch (_error) {
-        return fallback;
-    }
-}
-
 function writeRecoveredLevel(accountId, level) {
     try { window.localStorage.setItem(survivalLevelStorageKey(accountId), String(level)); }
     catch (_error) { /* the shared run hook will already refuse custody when storage is unavailable */ }
+}
+
+function authoritativeSurvivalLevel(value) {
+    return Number.isInteger(value) && value >= 1 && value <= LEVEL_CONFIG.length
+        ? value
+        : null;
+}
+
+function authoritativeSurvivalCorrect(value) {
+    return Number.isInteger(value) && value >= 0 && value <= QUESTIONS_PER_LEVEL
+        ? value
+        : null;
 }
 
 function clearRecoveredLevel(accountId) {
@@ -106,10 +114,13 @@ export default function SurvivalGamePage() {
     if (!accountOperationScopeRef.current) {
         accountOperationScopeRef.current = createAccountOperationScope();
     }
+    // Never continue a previous account's live mutation while authentication
+    // is unresolved. Recovery remains durable and is re-adopted only after
+    // AvatarContext resolves the current identity.
     const resolvedAccountId = authLoading
-        ? userId
+        ? null
         : (avatarUser?.id || getAuthUser()?.id || null);
-    if (!authLoading) accountOperationScopeRef.current.transition(resolvedAccountId);
+    accountOperationScopeRef.current.transition(resolvedAccountId);
 
     // Game state
     const [gameState, setGameState] = useState('lobby'); // lobby, playing, levelComplete, gameOver, victory
@@ -153,11 +164,9 @@ export default function SurvivalGamePage() {
     // Locks taps from the moment of the tap until the question advances, so a
     // slow session-answer round-trip cannot accept a second answer.
     const answerLockRef = useRef(false);
-    // Answers recorded via session-answer THIS LEVEL, in tap order:
+    // Answers recorded by the server THIS LEVEL, in tap order:
     // { questionId, displayIndex }. This is what session-submit grades from;
-    // skipped questions are deliberately omitted (the server counts an
-    // omitted question wrong, which matches survival's fixed 20-question
-    // denominator - a skip can never count toward minCorrect).
+    // paid skips are binding -1 answers with a separate immutable receipt.
     const sessionAnswersRef = useRef([]);
     // questionId -> per-tap verdict, for the post-level review panel. The old
     // panel read correct_index off the question; that key no longer exists
@@ -170,8 +179,8 @@ export default function SurvivalGamePage() {
     // NOTE: the 50/50 and Double Chance lifelines are gone with the move to
     // server grading - 50/50 needs the answer key the client no longer
     // receives, and Double Chance needs a second attempt the binding
-    // first-answer rule cannot honour. Skip survives because it never answers:
-    // it just advances past a question that is then omitted from the submit.
+    // first-answer rule cannot honour. Skip survives through the dedicated
+    // paid-skip authority, which atomically binds a distinct -1 answer.
     const [lifelinesUsedThisLevel, setLifelinesUsedThisLevel] = useState(0);
     const LIFELINE_COST = 5;
     const MAX_LIFELINES_PER_LEVEL = 3;
@@ -183,6 +192,13 @@ export default function SurvivalGamePage() {
     const [screenShake, setScreenShake] = useState(false);
     const [isPaused, setIsPaused] = useState(false); // Visibility-based pause
     const heartbeatIntervalRef = useRef(null);
+
+    useEffect(() => {
+        if (!authLoading) return;
+        timer.setIsTimerRunning(false);
+        setIsPaused(true);
+        setGameState(previous => previous === 'lobby' ? previous : 'lobby');
+    }, [authLoading, timer.setIsTimerRunning]);
 
     // Game Settings (persist to localStorage)
     const [settings, setSettings] = useState({
@@ -207,6 +223,8 @@ export default function SurvivalGamePage() {
     // Surfaced for both a failed lifeline purchase and a failed answer
     // submission (was lifelineError; the grading path needs it too).
     const [actionError, setActionError] = useState(null);
+    const [timeoutRetryQuestionId, setTimeoutRetryQuestionId] = useState(null);
+    const [isTimeoutRetrying, setIsTimeoutRetrying] = useState(false);
 
     // User state
     const [isLoading, setIsLoading] = useState(false);
@@ -216,14 +234,10 @@ export default function SurvivalGamePage() {
     const [levelLoadError, setLevelLoadError] = useState(null);
     const [showReview, setShowReview] = useState(false);
 
-    // VIP members get lifelines free, so the balance check must not lock their
-    // buttons (previously it did — VIPs were both charged and gated).
-    // NOTE: must stay BELOW the `isVip` useState above. It was originally
-    // declared next to LIFELINE_COST (~line 106), which read `isVip` from its
-    // temporal dead zone and threw "Cannot access 'isVip' before
-    // initialization" on every single render of this page.
-    const lifelineLocked = lifelinesUsedThisLevel >= MAX_LIFELINES_PER_LEVEL
-        || (!isVip && userDiamonds < LIFELINE_COST);
+    // Only the server receipt owns entitlement and balance. A cached balance
+    // or VIP read may be stale, so it must never block a valid request before
+    // the paid-skip authority can answer (including an authoritative 402).
+    const lifelineLocked = lifelinesUsedThisLevel >= MAX_LIFELINES_PER_LEVEL;
 
     const startTimeRef = useRef(null);
     // Mirrors of correctCount/incorrectCount for the async verdict path -
@@ -287,6 +301,10 @@ export default function SurvivalGamePage() {
             setTotalDiamondsEarned(0);
             setCorrectCount(0);
             setIncorrectCount(0);
+            setLifelinesUsedThisLevel(0);
+            setSkipUsedThisQuestion(false);
+            setTimeoutRetryQuestionId(null);
+            setIsTimeoutRetrying(false);
             setSaveErrorPayload(null);
             setActionError(null);
             setGameState('lobby');
@@ -431,8 +449,52 @@ export default function SurvivalGamePage() {
     function handleTimeOut() {
         timer.setIsTimerRunning(false);
         setScreenShake(false);
+        if (authLoading) return;
         if (!reduceMotion && 'vibrate' in navigator) navigator.vibrate([200, 100, 200]);
         gradeAnswer(-1);
+    }
+
+    function holdExpiredQuestionForRetry(questionId, roster = questions, message = null) {
+        const retryIndex = roster.findIndex(question => question?.id === questionId);
+        if (retryIndex < 0) return false;
+        setCurrentQuestionIndex(retryIndex);
+        setVerdict(null);
+        trivia.reset();
+        setSkipUsedThisQuestion(false);
+        setTimeoutRetryQuestionId(questionId);
+        setIsTimeoutRetrying(false);
+        setIsPaused(false);
+        answerLockRef.current = true;
+        timer.setIsTimerRunning(false);
+        setActionError(message || 'Time Expired. Confirm This Exact Expired Answer With The Server Before Play Can Continue.');
+        return true;
+    }
+
+    function retryExpiredQuestion() {
+        gradeAnswer(-1, { allowPendingTimeoutRetry: true });
+    }
+
+    function leaveRetiredLevel(error) {
+        if (!isRetiredTriviaRunError(error)) return false;
+        serverRun.reset();
+        answerLockRef.current = false;
+        lifelineBusyRef.current = false;
+        sessionAnswersRef.current = [];
+        verdictsRef.current = new Map();
+        serverResultRef.current = null;
+        savePhaseRef.current = 0;
+        setQuestions([]);
+        setTimeoutRetryQuestionId(null);
+        setIsTimeoutRetrying(false);
+        setSkipUsedThisQuestion(false);
+        setActionError(null);
+        setSaveErrorPayload(null);
+        setSettlementResult(null);
+        setLastLevelAwarded(null);
+        setGameState('lobby');
+        setLevelLoadError('That Server Level Is Closed Or Expired. Its Custody Was Retired; Start A Fresh Level.');
+        timer.setIsTimerRunning(false);
+        return true;
     }
 
     async function loadUserDiamonds(
@@ -482,25 +544,30 @@ export default function SurvivalGamePage() {
         const operationScope = accountOperationScopeRef.current.capture();
         if (operationScope.identity !== userId) return;
         const startOperation = { operationScope };
-        const progressFallback = Math.min(Math.max(1, userProgress.highestLevel + 1), LEVEL_CONFIG.length);
-        const recoveredLevel = readRecoveredLevel(userId, progressFallback);
-        const recoveredConfig = LEVEL_CONFIG[recoveredLevel - 1];
         isStartingRef.current = true;
         startOperationRef.current = startOperation;
         setIsLoading(true);
         setLevelLoadError(null);
         setGameState('loading_level');
         try {
-            const resumed = await serverRun.resume({
-                count: QUESTIONS_PER_LEVEL,
-                difficulty: recoveredConfig.difficulty,
-            });
+            let resumed = await serverRun.resume({ count: QUESTIONS_PER_LEVEL });
             if (!accountOperationScopeRef.current.isCurrent(operationScope)) return;
+            const recoveredLevel = authoritativeSurvivalLevel(
+                resumed?.survivalLevel ?? resumed?.settlement?.survivalLevel);
+            if (recoveredLevel === null) throw new Error('survival_level_authority_missing');
+            const recoveredConfig = LEVEL_CONFIG[recoveredLevel - 1];
+            if (!resumed?.resumedSettlement
+                && (!Number.isInteger(resumed?.requiredCorrect)
+                    || resumed.requiredCorrect !== recoveredConfig.minCorrect)) {
+                throw new Error('survival_level_authority_mismatch');
+            }
             setCurrentLevel(recoveredLevel);
+            writeRecoveredLevel(userId, recoveredLevel);
 
             if (resumed?.resumedSettlement && resumed.settlement) {
                 const settled = resumed.settlement;
-                const correct = Math.max(0, Number(settled.correct) || 0);
+                const correct = authoritativeSurvivalCorrect(settled.correct);
+                if (correct === null) throw new Error('survival_score_authority_missing');
                 const awarded = Math.max(0, Number(settled.diamondsAwarded) || 0);
                 serverResultRef.current = settled;
                 setSettlementResult(settled);
@@ -515,15 +582,90 @@ export default function SurvivalGamePage() {
                 return;
             }
 
+            // A reload can occur after the shot clock expired but before the
+            // binding -1 receipt reached the browser. Replay that exact,
+            // account/session-scoped mutation before gameplay is enabled.
+            let timeoutReplayFailure = null;
+            let timeoutReplayTerminal = false;
+            const pendingTimeoutQuestionId = resumed?.pendingTimeoutQuestionId;
+            if (typeof pendingTimeoutQuestionId === 'string') {
+                try {
+                    const receipt = await serverRun.answer({
+                        questionId: pendingTimeoutQuestionId,
+                        displayIndex: -1,
+                    });
+                    if (!accountOperationScopeRef.current.isCurrent(operationScope)) return;
+                    resumed = {
+                        ...resumed,
+                        pendingTimeoutQuestionId: null,
+                        terminalFailureCount: Number.isInteger(receipt?.terminalFailureCount)
+                            ? receipt.terminalFailureCount
+                            : resumed.terminalFailureCount,
+                        runMissLimitReached: typeof receipt?.runMissLimitReached === 'boolean'
+                            ? receipt.runMissLimitReached
+                            : resumed.runMissLimitReached,
+                        questions: (Array.isArray(resumed.questions) ? resumed.questions : []).map(question => (
+                            question?.id === pendingTimeoutQuestionId
+                                ? {
+                                    ...question,
+                                    state: 'answered',
+                                    answerState: {
+                                        storedDisplayIndex: -1,
+                                        wasCorrect: receipt?.wasCorrect === true,
+                                        correctDisplayIndex: Number.isInteger(receipt?.correctDisplayIndex)
+                                            ? receipt.correctDisplayIndex
+                                            : -1,
+                                        outcome: receipt?.outcome || 'skip',
+                                        explanation: typeof receipt?.explanation === 'string' ? receipt.explanation : null,
+                                        ...(receipt?.voided === true ? { voided: true } : {}),
+                                    },
+                                }
+                                : question
+                        )),
+                    };
+                } catch (error) {
+                    if (!accountOperationScopeRef.current.isCurrent(operationScope)
+                        || isStaleAccountOperation(error)) return;
+                    const code = error?.payload?.error || error?.code || error?.message;
+                    if (code === 'run_miss_limit_reached') {
+                        timeoutReplayTerminal = true;
+                        resumed = {
+                            ...resumed,
+                            terminalFailureCount: Number.isInteger(error?.payload?.terminalFailureCount)
+                                ? error.payload.terminalFailureCount
+                                : resumed.terminalFailureCount,
+                            runMissLimitReached: true,
+                        };
+                    } else {
+                        timeoutReplayFailure = {
+                            questionId: code === 'position_out_of_order'
+                                && typeof error?.payload?.priorQuestionId === 'string'
+                                ? error.payload.priorQuestionId
+                                : pendingTimeoutQuestionId,
+                            message: code === 'position_out_of_order'
+                                ? 'An Earlier Expired Question Still Needs Server Confirmation. Confirm It Before The Level Resumes.'
+                                : 'The Expired Answer Is Still Waiting For Server Confirmation. Retry It To Resume This Level.',
+                        };
+                    }
+                }
+            }
+
             const resumedQuestions = Array.isArray(resumed?.questions) ? resumed.questions : [];
             if (resumedQuestions.length < QUESTIONS_PER_LEVEL) throw new Error('resume_questions_missing');
-            const projection = projectPhase9Recovery(resumedQuestions);
+            if (!Number.isInteger(resumed?.terminalFailureCount)
+                || resumed.terminalFailureCount < 0
+                || typeof resumed?.runMissLimitReached !== 'boolean') {
+                throw new Error('resume_run_boundary_missing');
+            }
+            const projection = projectPhase9Recovery(resumedQuestions, {
+                countPaidSkipsAsWrong: true,
+                authoritativeFailureCount: resumed.terminalFailureCount,
+            });
             const restoredVerdicts = new Map();
             resumedQuestions.forEach((question, index) => {
                 if (projection.verdicts[index]) restoredVerdicts.set(question.id, projection.verdicts[index]);
             });
             setQuestions(resumedQuestions);
-            writeRecoveredLevel(userId, recoveredLevel);
             sessionAnswersRef.current = projection.recordedAnswers;
             verdictsRef.current = restoredVerdicts;
             correctCountRef.current = projection.correctCount;
@@ -534,16 +676,33 @@ export default function SurvivalGamePage() {
             setVerdict(null);
             setSettlementResult(null);
             setLastLevelAwarded(null);
-            setLifelinesUsedThisLevel(0);
+            setLifelinesUsedThisLevel(Math.min(
+                MAX_LIFELINES_PER_LEVEL,
+                Math.max(0, Number(resumed.paidSkipCount) || 0),
+            ));
             setSkipUsedThisQuestion(false);
             setIsPaused(false);
+            startTimeRef.current = Date.now();
+
+            if (timeoutReplayFailure) {
+                if (!holdExpiredQuestionForRetry(
+                    timeoutReplayFailure.questionId,
+                    resumedQuestions,
+                    timeoutReplayFailure.message,
+                )) throw new Error('resume_timeout_question_missing');
+                setGameState('playing');
+                return;
+            }
+
+            setTimeoutRetryQuestionId(null);
+            setIsTimeoutRetrying(false);
             answerLockRef.current = false;
             trivia.reset();
             timer.resetTimer();
-            startTimeRef.current = Date.now();
 
             const remaining = resumedQuestions.length - projection.questionIndex;
-            if (projection.complete || projection.correctCount + remaining < recoveredConfig.minCorrect) {
+            if (timeoutReplayTerminal || projection.complete || resumed.runMissLimitReached === true
+                || projection.correctCount + remaining < recoveredConfig.minCorrect) {
                 setGameState('saving_progress');
                 await saveLevelResult(operationScope, recoveredLevel);
             } else {
@@ -641,12 +800,21 @@ export default function SurvivalGamePage() {
             return;
         }
 
+        const servedLevel = authoritativeSurvivalLevel(served.survivalLevel);
+        if (servedLevel === null
+            || !Number.isInteger(served.requiredCorrect)
+            || served.requiredCorrect !== LEVEL_CONFIG[servedLevel - 1].minCorrect) {
+            setLevelLoadError('The Server Could Not Confirm This Level Boundary. Resume This Same Entry To Recover It Safely.');
+            setGameState('lobby');
+            return;
+        }
+        setCurrentLevel(servedLevel);
         if (Number.isFinite(served.newBalance)) setUserDiamonds(served.newBalance);
         if (served.entryState === 'charged' && served.entryCost > 0) {
             busEmit.diamondsSpent(served.entryCost, 'Survival entry');
         }
         setQuestions(served.questions);
-        writeRecoveredLevel(userId, level);
+        writeRecoveredLevel(userId, servedLevel);
         setCurrentQuestionIndex(0);
         setCorrectCount(0);
         setIncorrectCount(0);
@@ -657,7 +825,13 @@ export default function SurvivalGamePage() {
         answerLockRef.current = false;
         setLastLevelAwarded(null);
         setSkipUsedThisQuestion(false);
-        setLifelinesUsedThisLevel(0); // Reset lifeline counter
+        setTimeoutRetryQuestionId(null);
+        setIsTimeoutRetrying(false);
+        setActionError(null);
+        setLifelinesUsedThisLevel(Math.min(
+            MAX_LIFELINES_PER_LEVEL,
+            Math.max(0, Number(served.paidSkipCount) || 0),
+        ));
         setScreenShake(false);
         setGameState('playing');
         timer.resetTimer();
@@ -670,55 +844,17 @@ export default function SurvivalGamePage() {
         }
     }
 
-    /**
-     * Charge a lifeline. Returns true when the player may use it.
-     * VIP members are never charged (matching HintButtons.jsx / StrategyTrivia).
-     * Charges route through DiamondEngine.deduct - the direct balance RPC
-     * this page used to call lost authenticated EXECUTE on 2026-08-03, so
-     * every purchase silently failed.
-     */
-    async function chargeLifeline(cost, source, operationScope) {
-        if (!accountOperationScopeRef.current.isCurrent(operationScope)
-            || operationScope.identity !== (userId || null)) return false;
-        if (isVip) return true;              // VIP lifelines are free
-        if (!userId) return true;            // Guest play - nothing to charge
-        if (userDiamonds < cost) {
-            setShowOutOfDiamonds(true);
-            return false;
-        }
-        try {
-            const charge = await DiamondEngine.deduct(cost, source, {
-                description: 'Survival Trivia skip lifeline',
-                referenceId: `trivia_lifeline:${serverRun.sessionId}:${currentQuestion?.id}:skip`,
-            });
-            if (!accountOperationScopeRef.current.isCurrent(operationScope)) return false;
-            if (!charge.success) {
-                setShowOutOfDiamonds(true);
-                return false;
-            }
-            if (charge.balance !== undefined) setUserDiamonds(charge.balance);
-            // DiamondEngine.deduct auto-emits busEmit.diamondsSpent
-            return true;
-        } catch (e) {
-            if (!accountOperationScopeRef.current.isCurrent(operationScope)
-                || isStaleAccountOperation(e)) return false;
-            console.warn('[Survival] Lifeline deduction failed:', e);
-            setActionError('Could Not Purchase That Lifeline. Please Try Again.');
-            setTimeout(() => {
-                if (accountOperationScopeRef.current.isCurrent(operationScope)) setActionError(null);
-            }, 3000);
-            return false;
-        }
-    }
-
-    // Skip Question Function (costs 5 diamonds, free for VIP). The skipped
-    // question is never answered: it is omitted from session-submit, which
-    // grades it wrong against the fixed 20-question denominator - exactly
-    // what a skip cost before (it never counted toward minCorrect).
+    // The server atomically derives VIP/price, locks the level, enforces the
+    // three-skip cap, posts the Diamond debit (when owed), records the binding
+    // -1 answer and returns one immutable receipt. Retrying this exact
+    // session/question replays that receipt without another debit.
     async function useSkipQuestion() {
         if (trivia.showResult || skipUsedThisQuestion || answerLockRef.current) return;
         const operationScope = accountOperationScopeRef.current.capture();
         if (operationScope.identity !== (userId || null)) return;
+        const question = questions[currentQuestionIndex];
+        const sessionId = serverRun.sessionId;
+        if (!question?.id || !sessionId) return;
         if (lifelinesUsedThisLevel >= MAX_LIFELINES_PER_LEVEL) {
             // Lifeline limit reached — silently prevent
             return;
@@ -730,25 +866,109 @@ export default function SurvivalGamePage() {
         const lifelineOperation = { operationScope };
         lifelineBusyRef.current = true;
         lifelineOperationRef.current = lifelineOperation;
+        answerLockRef.current = true;
+        setSkipUsedThisQuestion(true);
+        timer.setIsTimerRunning(false);
+        let completed = false;
         try {
-            const paid = await chargeLifeline(LIFELINE_COST, 'trivia_lifeline', operationScope);
+            const skipReceipt = await serverRun.paidSkip({ questionId: question.id });
             if (!accountOperationScopeRef.current.isCurrent(operationScope)) return;
-            if (!paid) return;
-            setLifelinesUsedThisLevel(prev => prev + 1);
+            if (!skipReceipt || skipReceipt.storedDisplayIndex !== -1
+                || skipReceipt.outcome !== 'skip'
+                || !Number.isInteger(skipReceipt.paidSkipCount)
+                || skipReceipt.paidSkipCount < 1
+                || skipReceipt.paidSkipCount > MAX_LIFELINES_PER_LEVEL
+                || !Number.isInteger(skipReceipt.terminalFailureCount)
+                || skipReceipt.terminalFailureCount < 0
+                || typeof skipReceipt.runMissLimitReached !== 'boolean') {
+                throw new Error('paid_skip_not_recorded');
+            }
+            setUserDiamonds(skipReceipt.newBalance);
+            // `vip`/`entitlementWasVip` describe the original immutable
+            // transaction. The separately locked profile projection is the
+            // only receipt field that may update the current membership UI.
+            setIsVip(skipReceipt.currentVipEligible === true);
+            if (skipReceipt.newlyCharged && skipReceipt.diamondsCharged > 0) {
+                busEmit.diamondsSpent(skipReceipt.diamondsCharged, 'trivia_lifeline');
+            }
+            if (!sessionAnswersRef.current.some(answer => answer.questionId === question.id)) {
+                sessionAnswersRef.current.push({ questionId: question.id, displayIndex: -1 });
+            }
+            setLifelinesUsedThisLevel(skipReceipt.paidSkipCount);
+            incorrectCountRef.current = skipReceipt.terminalFailureCount;
+            setIncorrectCount(incorrectCountRef.current);
 
-            setSkipUsedThisQuestion(true);
-            timer.setIsTimerRunning(false);
+            completed = true;
 
-            // Boundary from the actual loaded set, not the constant.
-            if (currentQuestionIndex + 1 >= (questions.length || QUESTIONS_PER_LEVEL)) {
-                // Skipping the LAST question settles the level - the player
-                // must never sit on a dead board having paid for the skip.
+            // A confirmed paid skip consumes one of the fixed 20 scoring
+            // positions as non-correct. Apply the same mathematical terminal
+            // boundary as a wrong answer so the browser never advances into a
+            // question the server has already made unreachable.
+            const levelLength = questions.length || QUESTIONS_PER_LEVEL;
+            const remainingQuestions = levelLength - currentQuestionIndex - 1;
+            const maxPossibleCorrect = correctCountRef.current + remainingQuestions;
+            if (skipReceipt.runMissLimitReached === true
+                || currentQuestionIndex + 1 >= levelLength
+                || maxPossibleCorrect < LEVEL_CONFIG[currentLevel - 1].minCorrect) {
                 setGameState('saving_progress');
                 saveLevelResult(operationScope);
             } else {
                 advanceToNextQuestion();
             }
+        } catch (error) {
+            if (!accountOperationScopeRef.current.isCurrent(operationScope)
+                || isStaleAccountOperation(error)) return;
+            console.warn('[Survival] Paid skip record failed:', error?.message || error);
+            const code = error?.payload?.error || error?.code || error?.message;
+            if (leaveRetiredLevel(error)) {
+                completed = true;
+                return;
+            }
+            if (Number.isInteger(error?.payload?.newBalance)) {
+                setUserDiamonds(error.payload.newBalance);
+            }
+            if (Number.isInteger(error?.payload?.paidSkipCount)) {
+                setLifelinesUsedThisLevel(Math.min(MAX_LIFELINES_PER_LEVEL, error.payload.paidSkipCount));
+            }
+            if (Number.isInteger(error?.payload?.terminalFailureCount)) {
+                incorrectCountRef.current = Math.max(0, error.payload.terminalFailureCount);
+                setIncorrectCount(incorrectCountRef.current);
+            }
+            if (code === 'position_out_of_order') {
+                completed = true;
+                const priorQuestionId = typeof error?.payload?.priorQuestionId === 'string'
+                    ? error.payload.priorQuestionId
+                    : null;
+                if (!priorQuestionId || !holdExpiredQuestionForRetry(
+                    priorQuestionId,
+                    questions,
+                    'An Earlier Expired Question Still Needs Server Confirmation Before A Paid Skip Can Be Used.',
+                )) {
+                    setTimeoutRetryQuestionId(null);
+                    setIsTimeoutRetrying(false);
+                    answerLockRef.current = true;
+                    timer.setIsTimerRunning(false);
+                    setActionError('The Server Requested An Earlier Question That Is Missing From This Level. Reload And Resume The Same Level Before Continuing.');
+                }
+            } else if (error?.status === 402 || code === 'insufficient_diamonds') {
+                setShowOutOfDiamonds(true);
+                setActionError(null);
+            } else if (code === 'paid_skip_limit_reached') {
+                setActionError('The Server-Verified Three-Skip Limit Has Been Reached For This Level.');
+            } else if (code === 'run_miss_limit_reached') {
+                completed = true;
+                setActionError(null);
+                setGameState('saving_progress');
+                saveLevelResult(operationScope);
+            } else {
+                setActionError('The Skip Was Not Confirmed. Retry This Question; A Committed Receipt Cannot Charge Twice.');
+            }
         } finally {
+            if (!completed && accountOperationScopeRef.current.isCurrent(operationScope)) {
+                answerLockRef.current = false;
+                setSkipUsedThisQuestion(false);
+                timer.setIsTimerRunning(true);
+            }
             if (lifelineOperationRef.current === lifelineOperation) {
                 lifelineOperationRef.current = null;
                 lifelineBusyRef.current = false;
@@ -758,36 +978,74 @@ export default function SurvivalGamePage() {
 
     // Per-answer server grading. Lock the tap immediately, record it with
     // /api/trivia/session-answer (the first answer per question is BINDING
-    // server-side), then reveal from the verdict. A failed call unlocks so the
-    // player can re-tap - the endpoint is idempotent per question, so a retry
-    // cannot double-record. displayIndex -1 is the shot-clock timeout.
-    async function gradeAnswer(displayIndex) {
-        if (answerLockRef.current || trivia.showResult) return;
+    // server-side), then reveal from the verdict. Positive-answer failures
+    // unlock for another tap. A failed shot-clock
+    // timeout never advances locally: its exact -1 mutation remains locked to
+    // this question until the idempotent server receipt succeeds.
+    async function gradeAnswer(displayIndex, { allowPendingTimeoutRetry = false } = {}) {
         const operationScope = accountOperationScopeRef.current.capture();
         if (operationScope.identity !== (userId || null)) return;
         const q = questions[currentQuestionIndex];
         if (!q || typeof q.id !== 'string') return;
+        const pendingTimeoutId = timeoutRetryQuestionId || serverRun.pendingTimeoutQuestionId;
+        const retryingTimeout = displayIndex === -1
+            && allowPendingTimeoutRetry
+            && pendingTimeoutId === q.id;
+        if (answerOperationRef.current) return;
+        if ((answerLockRef.current && !retryingTimeout) || trivia.showResult) return;
         const answerOperation = { operationScope };
         answerOperationRef.current = answerOperation;
         answerLockRef.current = true;
         timer.setIsTimerRunning(false);
+        if (displayIndex === -1) {
+            setTimeoutRetryQuestionId(q.id);
+            setIsTimeoutRetrying(true);
+        }
         if (displayIndex >= 0) trivia.setSelectedAnswer(displayIndex); // instant visual lock on the tap
         try {
             const v = await serverRun.answer({ questionId: q.id, displayIndex });
             if (!accountOperationScopeRef.current.isCurrent(operationScope)) return;
+            if (displayIndex === -1) {
+                setTimeoutRetryQuestionId(null);
+                setIsTimeoutRetrying(false);
+                setActionError(null);
+            }
             applyVerdict(q, displayIndex, v, operationScope);
         } catch (e) {
             if (!accountOperationScopeRef.current.isCurrent(operationScope)
                 || isStaleAccountOperation(e)) return;
             console.warn('[Survival] Answer grading failed:', e?.message || e);
-            if (displayIndex < 0) {
-                // Timeout that could not reach the server: no re-tap is
-                // possible, so record it locally (session-submit still grades
-                // it server-side) and count the miss without a reveal.
-                sessionAnswersRef.current.push({ questionId: q.id, displayIndex: -1 });
-                incorrectCountRef.current += 1;
+            const code = e?.payload?.error || e?.code || e?.message;
+            if (leaveRetiredLevel(e)) return;
+            if (Number.isInteger(e?.payload?.terminalFailureCount)) {
+                incorrectCountRef.current = Math.max(0, e.payload.terminalFailureCount);
                 setIncorrectCount(incorrectCountRef.current);
-                scheduleAdvanceOrSettle(400, operationScope);
+            }
+            if (code === 'run_miss_limit_reached') {
+                setTimeoutRetryQuestionId(null);
+                setIsTimeoutRetrying(false);
+                setGameState('saving_progress');
+                saveLevelResult(operationScope);
+            } else if (code === 'position_out_of_order') {
+                const priorQuestionId = typeof e?.payload?.priorQuestionId === 'string'
+                    ? e.payload.priorQuestionId
+                    : null;
+                if (!priorQuestionId || !holdExpiredQuestionForRetry(
+                    priorQuestionId,
+                    questions,
+                    'An Earlier Expired Question Still Needs Server Confirmation. Confirm It Before Returning To This Question.',
+                )) {
+                    setTimeoutRetryQuestionId(null);
+                    setIsTimeoutRetrying(false);
+                    answerLockRef.current = true;
+                    timer.setIsTimerRunning(false);
+                    setActionError('The Server Requested An Earlier Question That Is Missing From This Level. Reload And Resume The Same Level Before Continuing.');
+                }
+            } else if (displayIndex < 0) {
+                // Fail closed on the same expired question. The hook retained
+                // its durable pendingTimeoutQuestionId before transport, so
+                // this explicit retry can safely replay the exact -1 write.
+                holdExpiredQuestionForRetry(q.id);
             } else {
                 // Unlock and let the player re-tap; give the shot clock back.
                 trivia.setSelectedAnswer(null);
@@ -814,17 +1072,24 @@ export default function SurvivalGamePage() {
         // correct option) - the submit's perQuestion drives history instead.
         verdictsRef.current.set(q.id, v);
 
+        const hasAuthoritativeFailureCount = Number.isInteger(v?.terminalFailureCount)
+            && v.terminalFailureCount >= 0;
+        if (hasAuthoritativeFailureCount) {
+            incorrectCountRef.current = v.terminalFailureCount;
+            setIncorrectCount(incorrectCountRef.current);
+        }
+
         if (v?.wasCorrect === true) {
             correctCountRef.current += 1;
             setCorrectCount(correctCountRef.current);
             busEmit.decisionCorrect(correctCountRef.current);
-            scheduleAdvanceOrSettle(1200, operationScope);
+            scheduleAdvanceOrSettle(1200, operationScope, v?.runMissLimitReached === true);
         } else {
-            incorrectCountRef.current += 1;
+            if (!hasAuthoritativeFailureCount) incorrectCountRef.current += 1;
             setIncorrectCount(incorrectCountRef.current);
             busEmit.decisionIncorrect(correctCountRef.current);
             if (!reduceMotion) busEmit.screenShake('light');
-            scheduleAdvanceOrSettle(1500, operationScope);
+            scheduleAdvanceOrSettle(1500, operationScope, v?.runMissLimitReached === true);
         }
     }
 
@@ -833,7 +1098,7 @@ export default function SurvivalGamePage() {
     // the most common fail path; settling it (rather than jumping straight to
     // gameOver) pays the per-correct reward for what WAS answered and records
     // history/scores through the same pipeline as a finished level.
-    function scheduleAdvanceOrSettle(delayMs, operationScope) {
+    function scheduleAdvanceOrSettle(delayMs, operationScope, forceTerminal = false) {
         const config = LEVEL_CONFIG[currentLevel - 1];
         // Boundary from the ACTUAL loaded set, falling back to the constant
         // only if state is somehow empty.
@@ -844,7 +1109,8 @@ export default function SurvivalGamePage() {
         if (answerTimeoutRef.current) clearTimeout(answerTimeoutRef.current);
         answerTimeoutRef.current = setTimeout(() => {
             if (!accountOperationScopeRef.current.isCurrent(operationScope)) return;
-            if (currentQuestionIndex + 1 >= levelLength || maxPossibleCorrect < config.minCorrect) {
+            if (forceTerminal || currentQuestionIndex + 1 >= levelLength
+                || maxPossibleCorrect < config.minCorrect) {
                 setGameState('saving_progress');
                 saveLevelResult(operationScope);
             } else {
@@ -893,23 +1159,37 @@ export default function SurvivalGamePage() {
         if (!accountOperationScopeRef.current.isCurrent(operationScope)
             || operationScope.identity !== (userId || null)) return;
         const isCurrentAccountOperation = () => accountOperationScopeRef.current.isCurrent(operationScope);
-        const config = LEVEL_CONFIG[level - 1];
         try {
             // Phase 1: settle this level's session server-side (only if not
-            // already settled). Skipped questions are omitted from the array:
-            // the server counts them wrong, which matches the fixed
-            // 20-question denominator the pass mark is measured against.
+            // already settled). Paid skips and timeouts were already bound
+            // through session-answer and their displayIndex -1 receipts are
+            // replayed against the fixed 20-question denominator.
             if (savePhaseRef.current < 1) {
-                const submitted = await serverRun.submit(
-                    sessionAnswersRef.current.map(a => ({
-                        questionId: a.questionId,
-                        displayIndex: a.displayIndex
-                    }))
-                );
+                let submitted;
+                if (!serverRun.sessionId && serverRun.hasRecoverableSession) {
+                    const resumed = await serverRun.resume({ count: QUESTIONS_PER_LEVEL });
+                    if (!resumed?.resumedSettlement || !resumed.settlement) {
+                        throw new Error('survival_settlement_replay_missing');
+                    }
+                    submitted = resumed.settlement;
+                } else {
+                    submitted = await serverRun.submit(
+                        sessionAnswersRef.current.map(a => ({
+                            questionId: a.questionId,
+                            displayIndex: a.displayIndex
+                        }))
+                    );
+                }
                 if (!isCurrentAccountOperation()) return;
+                const submittedLevel = authoritativeSurvivalLevel(submitted?.survivalLevel);
+                if (submittedLevel === null) throw new Error('survival_level_authority_missing');
+                const submittedCorrect = authoritativeSurvivalCorrect(submitted?.correct);
+                if (submittedCorrect === null) throw new Error('survival_score_authority_missing');
                 serverResultRef.current = submitted;
                 setSettlementResult(submitted);
                 survivalParentSessionRef.current = submitted.sessionId;
+                setCurrentLevel(submittedLevel);
+                writeRecoveredLevel(userId, submittedLevel);
                 savePhaseRef.current = 1;
 
                 // Local balance from the server's post-award number, with a
@@ -931,18 +1211,24 @@ export default function SurvivalGamePage() {
                 // server's uncapped survival formula, so paying less than it
                 // means the daily cap clipped this level. No client clamp is
                 // applied anywhere - the server already did.
-                const uncapped = calculateDiamonds('survival', Number.isFinite(submitted?.correct) ? submitted.correct : 0, QUESTIONS_PER_LEVEL);
+                const uncapped = calculateDiamonds('survival', submittedCorrect, QUESTIONS_PER_LEVEL);
                 if (awardedNow < uncapped) setCapReachedThisRun(true);
                 if (awardedNow > 0) {
-                    busEmit.diamondsEarned(awardedNow, `Survival Level ${level}`);
+                    busEmit.diamondsEarned(awardedNow, `Survival Level ${submittedLevel}`);
                     if (!reduceMotion) busEmit.celebration('confetti');
                 }
             }
 
             const settled = serverResultRef.current || {};
+            const settledLevel = authoritativeSurvivalLevel(settled.survivalLevel);
+            if (settledLevel === null) throw new Error('survival_level_authority_missing');
+            const serverCorrect = authoritativeSurvivalCorrect(settled.correct);
+            if (serverCorrect === null) throw new Error('survival_score_authority_missing');
+            const config = LEVEL_CONFIG[settledLevel - 1];
+            setCurrentLevel(settledLevel);
+            writeRecoveredLevel(userId, settledLevel);
             // The submit's `correct` is authoritative: if the client tally
             // and the server count disagree, the server wins.
-            const serverCorrect = Number.isFinite(settled.correct) ? settled.correct : correctCountRef.current;
             const passed = serverCorrect >= config.minCorrect;
             correctCountRef.current = serverCorrect;
             setCorrectCount(serverCorrect);
@@ -958,7 +1244,7 @@ export default function SurvivalGamePage() {
                         .from('survival_progress')
                         .upsert({
                             user_id: userId,
-                            highest_level: Math.max(level, userProgress.highestLevel),
+                            highest_level: Math.max(settledLevel, userProgress.highestLevel),
                             last_played: new Date().toISOString()
                         }, { onConflict: 'user_id' });
                     if (!isCurrentAccountOperation()) return;
@@ -967,7 +1253,7 @@ export default function SurvivalGamePage() {
                     }
                     setUserProgress(prev => ({
                         ...prev,
-                        highestLevel: Math.max(level, prev.highestLevel)
+                        highestLevel: Math.max(settledLevel, prev.highestLevel)
                     }));
                 }
                 savePhaseRef.current = 2;
@@ -988,13 +1274,14 @@ export default function SurvivalGamePage() {
             setSaveErrorPayload(null);
             savePhaseRef.current = 0;
             if (passed) {
-                setGameState(level >= LEVEL_CONFIG.length ? 'victory' : 'levelComplete');
+                setGameState(settledLevel >= LEVEL_CONFIG.length ? 'victory' : 'levelComplete');
             } else {
                 setGameState('gameOver');
             }
         } catch (e) {
             if (!isCurrentAccountOperation() || isStaleAccountOperation(e)) return;
             console.warn('[Survival] Failed to save level result:', e);
+            if (leaveRetiredLevel(e)) return;
             // Save failed (network drop) -> Provide Retry UI (savePhaseRef
             // preserves progress; serverResultRef keeps an already-paid
             // settlement so a retry never re-submits a closed session).
@@ -1046,6 +1333,10 @@ export default function SurvivalGamePage() {
                 : ''
         }));
 
+    const activeTimeoutRetryQuestionId = timeoutRetryQuestionId || serverRun.pendingTimeoutQuestionId;
+    const timeoutRetryRequired = gameState === 'playing'
+        && Boolean(currentQuestion?.id)
+        && activeTimeoutRetryQuestionId === currentQuestion.id;
     // The pill is a short painted slot (about eight characters at 375px);
     // longer state, balance and timer copy is printed on the glass below.
     const balanceLabel = !userId ? 'Sign In' : serverRun.hasRecoverableSession ? 'Resume' : isVip ? 'VIP' : 'Ready';
@@ -1057,7 +1348,7 @@ export default function SurvivalGamePage() {
             : {
                 lobby: balanceLabel,
                 loading_level: 'Dealing',
-                playing: `Level ${formatTriviaDisplayNumber(currentLevel)}`,
+                playing: timeoutRetryRequired ? 'Confirm' : `Level ${formatTriviaDisplayNumber(currentLevel)}`,
                 saving_progress: 'Saving',
                 saving_error: 'Retry',
                 levelComplete: 'Cleared',
@@ -1093,7 +1384,9 @@ export default function SurvivalGamePage() {
                     'aria-disabled': isLoading,
                         }
                 : gameState === 'playing'
-                    ? { label: 'Pause Game', onClick: pauseGame }
+                    ? timeoutRetryRequired
+                        ? { label: isTimeoutRetrying ? 'Confirming Expired Answer' : 'Retry Expired Answer', onClick: retryExpiredQuestion, disabled: isTimeoutRetrying }
+                        : { label: 'Pause Game', onClick: pauseGame }
                 : gameState === 'saving_error'
                     ? { label: 'Retry Save', onClick: handleRetrySave }
                     : gameState === 'levelComplete'
@@ -1116,8 +1409,37 @@ export default function SurvivalGamePage() {
         : gameState === 'levelComplete'
             ? { label: 'Save And Exit', onClick: backToLobby }
             : gameState === 'gameOver'
-                ? { label: 'Back To Trivia', onClick: backToLobby }
-                : null;
+            ? { label: 'Back To Trivia', onClick: backToLobby }
+            : null;
+
+    const accountBoundaryPending = shouldGateAccountOwnedRender({
+        loading: authLoading,
+        resolvedIdentity: resolvedAccountId,
+        loadedIdentity: userId,
+    });
+    if (accountBoundaryPending) {
+        return (
+            <TriviaErrorBoundary pageName="Survival Mode">
+                <>
+                    <SEOHead title="Survival Poker Trivia: One Life" description="Survival Poker Trivia On Smarter.Poker: enter one progressive server-verified run, clear ten rising checkpoints, protect limited lives, and receive a verified level ledger." canonical="/hub/trivia/survival-game" />
+                    <div className="trivia-challenge-page trivia-challenge-page--survival" data-trivia-family="challenge" data-trivia-surface="survival-game" data-game-state="loading">
+                        <UniversalHeader pageDepth={2} />
+                        <PageTransition>
+                            <main className="trivia-challenge-shell" aria-labelledby="survival-trivia-title">
+                                <TriviaConsole className="trivia-challenge-console" eyebrow="Ten Level Challenge" title="Survival Trivia" titleId="survival-trivia-title" subtitle="Clear Every Level" pill="Loading" aria-labelledby="survival-trivia-title" secondaryAction={{ label: 'Back To Trivia', onClick: () => router.push('/hub/trivia') }}>
+                                    <section className="trivia-challenge-intro phase9-intro-layout" aria-label="Loading Account Run">
+                                        <ResponsiveModeArt art={TRIVIA_INTRO_ART_SURVIVAL} priority />
+                                        <p className="trivia-challenge-notice" role="status">Loading The Authoritative Run For This Account</p>
+                                    </section>
+                                </TriviaConsole>
+                            </main>
+                        </PageTransition>
+                    </div>
+                </>
+                <HubPageSummary page="trivia-survival" as="h1" />
+            </TriviaErrorBoundary>
+        );
+    }
 
     return (
         <TriviaErrorBoundary pageName="Survival Mode">
@@ -1300,6 +1622,21 @@ export default function SurvivalGamePage() {
                                         {actionError && (
                                             <p className="trivia-challenge-alert" role="alert">{actionError}</p>
                                         )}
+                                        {timeoutRetryRequired && (
+                                            <section className="trivia-challenge-state trivia-challenge-state--error" role="alert" aria-live="assertive" aria-labelledby="survival-timeout-retry-title">
+                                                <h3 id="survival-timeout-retry-title">Expired Answer Needs Confirmation</h3>
+                                                <p id="survival-timeout-retry-copy">The Level Is Locked On This Question Until Its Exact Timeout Is Recorded By The Server.</p>
+                                                <button
+                                                    type="button"
+                                                    className="trivia-challenge-action"
+                                                    onClick={retryExpiredQuestion}
+                                                    disabled={isTimeoutRetrying}
+                                                    aria-describedby="survival-timeout-retry-copy"
+                                                >
+                                                    {isTimeoutRetrying ? 'Confirming Expired Answer' : 'Retry Expired Answer'}
+                                                </button>
+                                            </section>
+                                        )}
 
                                         <dl className="trivia-challenge-stats trivia-challenge-stats--compact">
                                             <div className="trivia-challenge-stat">
@@ -1470,7 +1807,7 @@ export default function SurvivalGamePage() {
                                                     selectedAnswer={trivia.selectedAnswer}
                                                     correctIndex={verdict ? verdict.correctDisplayIndex : null}
                                                     showResult={trivia.showResult}
-                                                    disabled={trivia.selectedAnswer !== null || trivia.showResult}
+                                                    disabled={trivia.selectedAnswer !== null || trivia.showResult || timeoutRetryRequired}
                                                     onSelect={gradeAnswer}
                                                 />
                                             ))}
@@ -1481,7 +1818,7 @@ export default function SurvivalGamePage() {
                                                 type="button"
                                                 className="trivia-challenge-action trivia-challenge-action--lifeline"
                                                 onClick={useSkipQuestion}
-                                                disabled={lifelineLocked}
+                                                disabled={lifelineLocked || skipUsedThisQuestion || answerLockRef.current}
                                             >
                                                 Skip Question | {isVip ? 'VIP Included' : `${formatTriviaDisplayNumber(LIFELINE_COST)} Diamonds`}
                                             </button>

@@ -36,8 +36,19 @@ export default function ResponsiveModeArt({
 }) {
     const artRef = useRef(null);
     const imageRef = useRef(null);
-    const [failed, setFailed] = useState(false);
+    const artKey = art?.key || null;
+    const [artFailure, setArtFailure] = useState(() => ({ key: artKey, failed: false }));
     const [ready, setReady] = useState(Boolean(priority));
+    // A failed request belongs to the exact art identity that emitted it. Do
+    // not carry that failure through a Pages-router reuse into the next mode.
+    // Identity-derived state resets in the same render (an effect would leave
+    // the replacement hidden for one paint).
+    let currentFailure = artFailure;
+    if (artFailure.key !== artKey) {
+        currentFailure = { key: artKey, failed: false };
+        setArtFailure(currentFailure);
+    }
+    const failed = Boolean(artKey) && currentFailure.failed;
 
     useEffect(() => {
         if (ready || priority) {
@@ -61,8 +72,12 @@ export default function ResponsiveModeArt({
     // A file that failed before hydration never fires onError for React.
     useEffect(() => {
         const image = imageRef.current;
-        if (ready && image && image.complete && image.naturalWidth === 0 && image.currentSrc) setFailed(true);
-    }, [ready]);
+        if (ready && image && image.complete && image.naturalWidth === 0 && image.currentSrc) {
+            setArtFailure((current) => current.key === artKey
+                ? { ...current, failed: true }
+                : current);
+        }
+    }, [artKey, ready]);
 
     if (!art) return null;
     const decorative = !alt;
@@ -76,7 +91,7 @@ export default function ResponsiveModeArt({
             style={{ '--trivia-art-preview': `url("${art.preview}")` }}
             {...rest}
         >
-            <picture className={styles.picture}>
+            <picture key={art.key} className={styles.picture}>
                 <source
                     media={TRIVIA_ART_WIDE_MEDIA}
                     type="image/avif"
@@ -108,7 +123,9 @@ export default function ResponsiveModeArt({
                     fetchpriority={priority ? 'high' : 'auto'}
                     decoding="async"
                     draggable={false}
-                    onError={() => setFailed(true)}
+                    onError={() => setArtFailure((current) => current.key === art.key
+                        ? { ...current, failed: true }
+                        : current)}
                 />
             </picture>
         </span>

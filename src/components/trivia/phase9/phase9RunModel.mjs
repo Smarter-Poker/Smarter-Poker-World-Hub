@@ -5,7 +5,10 @@ const TERMINAL_QUESTION_STATES = new Set(['answered', 'timeout', 'voided']);
  * server's resume roster. The projection never invents an answer: only the
  * stored display index and verdict returned by the server are adopted.
  */
-export function projectPhase9Recovery(questions) {
+export function projectPhase9Recovery(questions, {
+    countPaidSkipsAsWrong = false,
+    authoritativeFailureCount,
+} = {}) {
     const roster = Array.isArray(questions) ? questions : [];
     const answers = [];
     const verdicts = {};
@@ -31,10 +34,16 @@ export function projectPhase9Recovery(questions) {
             });
         }
         if (answerState.wasCorrect === true) correctCount += 1;
-        else if (!['skip', 'voided'].includes(answerState.outcome)) wrongCount += 1;
+        else if (answerState.outcome !== 'voided'
+            && (countPaidSkipsAsWrong || answerState.outcome !== 'skip')) wrongCount += 1;
     });
 
     if (firstOutstanding < 0 && roster.length > 0) firstOutstanding = roster.length;
+
+    const projectedWrongCount = wrongCount;
+    if (Number.isInteger(authoritativeFailureCount) && authoritativeFailureCount >= 0) {
+        wrongCount = authoritativeFailureCount;
+    }
 
     return {
         complete: roster.length > 0 && firstOutstanding === roster.length,
@@ -44,6 +53,7 @@ export function projectPhase9Recovery(questions) {
         recordedAnswers,
         correctCount,
         wrongCount,
+        projectedWrongCount,
     };
 }
 
