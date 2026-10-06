@@ -15,8 +15,8 @@
  *      profiles at all, so an embedded author made every signed-out deep link
  *      (a shared /hub/post/<id> link) fail with 42501 and answer 503;
  *   2. for a row the caller can see, its metadata (reduced to the keys the UI
- *      renders, displayMetadata) and its author's public card (the same four
- *      fields the feed shows) are read with the service role; origin_type is
+ *      renders, displayMetadata) and its author's public card (id, username,
+ *      display_name, avatar_url) are read with the service role; origin_type is
  *      never read.
  *
  * A horse's post and a human's come back in the same shape.
@@ -27,8 +27,8 @@ import { BROWSER_POST_SELECT, displayMetadata } from '../../../src/lib/socialPos
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const CLIENT_OPTIONS = { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } };
-/** The author card a post carries: the fields the feed already shows anybody. */
-export const POST_AUTHOR_COLUMNS = 'id,username,display_name,full_name,avatar_url';
+/** The author card a post carries: public fields only (never a legal name). */
+export const POST_AUTHOR_COLUMNS = 'id,username,display_name,avatar_url';
 
 let serviceClient = null;
 

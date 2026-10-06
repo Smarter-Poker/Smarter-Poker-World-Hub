@@ -432,7 +432,7 @@ function loadPostRoute({
   visibleRow,
   notes = { scheduler: 'phase6', ended: true },
   visibleError = null,
-  authorRow = { id: 'a', username: 'u', display_name: 'D', full_name: null, avatar_url: null },
+  authorRow = { id: 'a', username: 'u', display_name: 'D', avatar_url: null },
 }) {
   const calls = [];
   const createClient = (url, key, options) => {
@@ -496,7 +496,7 @@ function fakeRes() {
 }
 
 test('/api/social/post reads the row as the caller and only the metadata and author with the service role', async () => {
-  const author = { id: 'a', username: 'u', display_name: 'D', full_name: null, avatar_url: null };
+  const author = { id: 'a', username: 'u', display_name: 'D', avatar_url: null };
   const { mod, calls } = loadPostRoute({ visibleRow: { id: POST_ID, author_id: 'a', content: 'x' }, authorRow: author });
   const res = fakeRes();
   await mod.default({ method: 'GET', query: { id: POST_ID }, headers: { authorization: `Bearer ${TOKEN}` } }, res);
@@ -514,7 +514,7 @@ test('/api/social/post reads the row as the caller and only the metadata and aut
   assert.equal(notes.select, 'metadata', 'origin_type is never read');
   assert.equal(card.key, 'service-key');
   assert.equal(card.table, 'profiles');
-  assert.equal(card.select, 'id,username,display_name,full_name,avatar_url', 'the public card only');
+  assert.equal(card.select, 'id,username,display_name,avatar_url', 'the public card only, never a legal name');
   assert.deepEqual(card.filters, [['id', 'a']]);
 });
 
