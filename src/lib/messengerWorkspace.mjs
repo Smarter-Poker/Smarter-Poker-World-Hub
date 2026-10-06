@@ -175,14 +175,16 @@ export async function getMessengerWorkspace(db, userId, request, internal = {}) 
     const selected = club && !club.pageId && folder === 'messages' ? []
         : selectWorkspaceConversations(conversations, accounting, userId, club, folder);
     const countUnread = list => list.reduce((sum, c) => sum + c.unreadCount, 0);
-    const countAttention = list => list.reduce((sum, c) => sum + (c.requiresAction || c.unreadCount > 0 ? 1 : 0), 0);
+    // Invoice attention preserves the real unread-message total. A separate
+    // indicator is added only after the conversation itself is fully read.
+    const countInvoiceAttention = list => list.reduce((sum, c) => sum + c.unreadCount + (c.requiresAction && c.unreadCount === 0 ? 1 : 0), 0);
     const unreadCounts = {
         messages: club && !club.pageId ? 0 : countUnread(selectWorkspaceConversations(conversations, accounting, userId, club, 'messages')),
         invoices: club ? countUnread(selectWorkspaceConversations(conversations, accounting, userId, club, 'invoices')) : 0,
     };
     const attentionCounts = {
-        messages: club && !club.pageId ? 0 : countAttention(selectWorkspaceConversations(conversations, accounting, userId, club, 'messages')),
-        invoices: club ? countAttention(selectWorkspaceConversations(conversations, accounting, userId, club, 'invoices')) : 0,
+        messages: unreadCounts.messages,
+        invoices: club ? countInvoiceAttention(selectWorkspaceConversations(conversations, accounting, userId, club, 'invoices')) : 0,
     };
     const conversation = resolvedId ? selected.find(c => c.id === resolvedId) : null;
     if (resolvedId && !conversation) fail(404, 'Conversation Unavailable');

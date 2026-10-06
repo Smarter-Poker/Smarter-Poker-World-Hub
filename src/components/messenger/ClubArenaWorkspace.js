@@ -28,7 +28,8 @@ export default function ClubArenaWorkspace({ clubs, open, clubId, folder, onEnte
                     aria-selected={folder === tab} onClick={() => onFolder(tab)}
                     style={{ ...button, flex: 1, color: folder === tab ? C.blue : C.text, borderColor: folder === tab ? C.blue : C.border }}>
                     {tab === 'invoices' ? 'Invoices' : 'Messages'}
-                    {badge(attentionCounts?.[tab] ?? unreadCounts?.[tab], attentionCounts?.[tab] === undefined ? 'Unread' : 'Needs Attention')}
+                    {badge(tab === 'invoices' ? (attentionCounts?.invoices ?? unreadCounts?.invoices) : unreadCounts?.messages,
+                        tab === 'invoices' && attentionCounts?.invoices !== undefined ? 'Needs Attention' : 'Unread')}
                 </button>)}
             </div>
             {folder === 'invoices' && <p style={{ fontSize: 12, lineHeight: 1.5, color: C.textSec, margin: '10px 0 0' }}>
