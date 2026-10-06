@@ -626,21 +626,28 @@ test('both dialogs render inside an error boundary', async () => {
 
 test('the tab and the Club Arena section are mirrored into the URL', async () => {
   const src = await read(INDEX);
+  const app = await read('pages/_app.js');
   assert.match(src, /resolveInitialTab\(router\.query\)/);
   assert.match(src, /resolveInitialSection\(router\.query\)/);
-  assert.match(src, /router\.replace\([\s\S]*?nextUrlQuery\(state, router\.query\)[\s\S]*?\{ shallow: true \}/);
+  assert.match(src, /const target = \{ pathname: router\.pathname, query: nextUrlQuery\(state, router\.query\) \}/);
+  assert.match(src, /method === 'replace'[\s\S]*?router\.replace\(target, undefined, \{ shallow: true, scroll: false \}\)/);
   // A push for a real navigation is what makes Back undo a jump; a replace on
   // every write overwrites the entry it came from.
-  assert.match(src, /router\.push\([\s\S]*?nextUrlQuery\(state, router\.query\)[\s\S]*?\{ shallow: true \}/);
+  assert.match(src, /router\.push\(target, undefined, \{ shallow: true, scroll: false \}\)/);
   // The hydration latch, and the guard that stops the write effect acting on a
   // difference it has not seen resolved.
   assert.match(src, /urlHydratedRef/);
   assert.match(src, /urlSyncedRef/);
   assert.match(src, /pendingUrlStateRef/);
   assert.match(src, /queuedUrlStateRef/);
-  assert.match(src, /if \(pendingUrlStateRef\.current \|\| queuedUrlStateRef\.current\) return;/);
-  assert.match(src, /if \(pending\) \{[\s\S]*?queuedUrlStateRef\.current = state;[\s\S]*?return;/);
-  assert.match(src, /setUrlWriteEpoch\(\(value\) => value \+ 1\)/);
+  assert.match(src, /startUrlWriteRef/);
+  assert.match(src, /if \(urlMatchesState\(pending, router\.query\)\) \{[\s\S]*?if \(queued\) startUrlWriteRef\.current\?\.\(queued, 'push'\)/);
+  assert.match(src, /pendingUrlStateRef\.current = null;[\s\S]*?queuedUrlStateRef\.current = null;[\s\S]*?setActiveTab\(resolveInitialTab\(router\.query\)\)/);
+  assert.match(src, /queuedUrlStateRef\.current = pending\.activeTab === state\.activeTab[\s\S]*?\? null[\s\S]*?: state;/);
+  assert.match(src, /Promise\.resolve\(navigation\)[\s\S]*?finishWrite\(completed === false\)[\s\S]*?finishWrite\(true\)/);
+  assert.match(src, /event\.currentTarget\.dataset\.tabid/);
+  assert.match(app, /resolvedPath === '\/hub\/reels' \|\| resolvedPath === '\/horses'[\s\S]*?\? resolvedPath[\s\S]*?: router\.asPath/);
+  assert.ok(!src.includes('urlWriteEpoch'), 'URL writes must not depend on a render-driven retry counter');
   assert.match(src, /if \(!urlSyncedRef\.current\) return;/);
   // The registry owns the default section.
   assert.match(src, /useState\(DEFAULT_CA_SECTION\)/);

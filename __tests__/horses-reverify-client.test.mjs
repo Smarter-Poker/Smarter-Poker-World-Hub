@@ -364,8 +364,8 @@ test('L-1: the write effect asks urlNeedsNormalising in its agreement branch', a
   assert.match(src, /if \(urlNeedsNormalising\(state, router\.query\)\) \{/);
   // Still a replace, never a push: normalising must not cost a Back press.
   const branch = block(src, 'if (urlNeedsNormalising(state, router.query)) {', 300);
-  assert.match(branch, /router\.replace\(/);
-  assert.ok(src.indexOf('router.replace(', src.indexOf('if (urlNeedsNormalising(state')) < src.indexOf('router.push('), 'normalisation replaces before real navigation pushes');
+  assert.match(branch, /startUrlWrite\(state, 'replace'\)/);
+  assert.match(src, /if \(!urlSyncedRef\.current\) return;[\s\S]*?startUrlWrite\(state, 'push'\)/);
 });
 
 // ═══════════════════════════════════════════════════════════════════════════
