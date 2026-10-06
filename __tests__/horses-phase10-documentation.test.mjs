@@ -45,7 +45,7 @@ test('the operator runbook covers every visible top-level tab with its canonical
 
 test('the permission record covers the full canonical vocabulary and every role', () => {
   const vocabulary = exportedStringValues(PERMISSIONS, 'PERMISSIONS');
-  assert.equal(vocabulary.length, 21);
+  assert.equal(vocabulary.length, 22);
   for (const permission of vocabulary) {
     assert.ok(MATRIX.split('\n').some((line) => line.startsWith(`| \`${permission}\` |`)), `${permission} must have a matrix row`);
   }

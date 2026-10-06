@@ -49,6 +49,13 @@ const REVERIFY_PATH = join(
   repo,
   'supabase/migrations/20260903202500_ca_operator_reverify_fixes.sql'
 );
+/** Later capabilities extend the permission vocabulary additively. Historical
+ * migrations remain immutable, so current-role equality is evaluated over the
+ * ordered migration chain rather than requiring Phase 2 to predict Phase 11. */
+const INCIDENT_ACK_PATH = join(
+  repo,
+  'supabase/migrations/20261006022053_stable_admin_phase11_incident_acknowledgements.sql'
+);
 const SIM_PATH = join(repo, 'docs/horses/PHASE2-SIM.sql');
 const SIM2_PATH = join(repo, 'docs/horses/PHASE2-SIM-2.sql');
 const CONTRACT_PATH = join(repo, 'docs/horses/PHASE2-CONTRACTS.md');
@@ -57,6 +64,7 @@ const sql = readFileSync(MIGRATION_PATH, 'utf8');
 const followup = readFileSync(FOLLOWUP_PATH, 'utf8');
 const gate = readFileSync(GATE_PATH, 'utf8');
 const reverify = readFileSync(REVERIFY_PATH, 'utf8');
+const incidentAck = readFileSync(INCIDENT_ACK_PATH, 'utf8');
 const sim = readFileSync(SIM_PATH, 'utf8');
 const sim2 = readFileSync(SIM2_PATH, 'utf8');
 const contract = readFileSync(CONTRACT_PATH, 'utf8');
@@ -86,6 +94,11 @@ const gateCode = gate
 
 /** The re-verification migration, comment lines stripped the same way. */
 const reverifyCode = reverify
+  .split('\n')
+  .filter((line) => !line.trim().startsWith('--'))
+  .join('\n');
+
+const incidentAckCode = incidentAck
   .split('\n')
   .filter((line) => !line.trim().startsWith('--'))
   .join('\n');
@@ -218,6 +231,25 @@ function seededPermissionsByRole() {
   return byRole;
 }
 
+function additivePermissionPairs() {
+  const pairs = new Set();
+  const pattern = /SELECT\s+role_key,\s*'([a-z._]+)'\s+FROM\s*\(VALUES([\s\S]*?)\)\s+AS\s+roles\s*\(role_key\)/gi;
+  for (const match of incidentAckCode.matchAll(pattern)) {
+    for (const role of match[2].matchAll(/\('([a-z_]+)'\)/g)) pairs.add(`${role[1]}|${match[1]}`);
+  }
+  return pairs;
+}
+
+function effectivePermissionsByRole() {
+  const byRole = seededPermissionsByRole();
+  for (const pair of additivePermissionPairs()) {
+    const [role, permission] = pair.split('|');
+    (byRole[role] = byRole[role] || []).push(permission);
+  }
+  for (const role of Object.keys(byRole)) byRole[role] = [...new Set(byRole[role])].sort();
+  return byRole;
+}
+
 /** The permission strings in the cross-join block that gives owner and the
  *  three legacy roles everything. */
 function crossJoinPermissions() {
@@ -273,10 +305,11 @@ test('the indexes the console queries need are created', () => {
 
 // ------------------------------------------------------- permission seed
 
-test('every permission in permissions.js, plus admin.manage, is seeded', () => {
-  const all = crossJoinPermissions();
+test('every current permission is installed by the additive migration chain', () => {
+  const effective = effectivePermissionsByRole();
+  const all = new Set(effective.owner);
   for (const permission of EXPECTED_PERMISSIONS) {
-    assert.ok(all.has(permission), `permission not seeded for the full-access roles: ${permission}`);
+    assert.ok(all.has(permission), `permission not installed for the full-access roles: ${permission}`);
   }
   assert.equal(
     all.size,
@@ -320,8 +353,8 @@ test('admin.manage goes to owner and the legacy roles only', () => {
  * role the module defines - not "the seed is a subset", which is what
  * let the drift through the first time.
  */
-test('the seed is exactly ROLE_PERMISSIONS from permissions.js, role for role', () => {
-  const seeded = seededPermissionsByRole();
+test('the migration chain is exactly ROLE_PERMISSIONS from permissions.js, role for role', () => {
+  const seeded = effectivePermissionsByRole();
 
   for (const [role, permissions] of Object.entries(ROLE_PERMISSIONS)) {
     const expected = [...new Set(permissions)].sort();
@@ -351,8 +384,8 @@ test('the seed is exactly ROLE_PERMISSIONS from permissions.js, role for role', 
   }
 });
 
-test('each named role gets exactly its contract permission set', () => {
-  const pairs = seededPairs();
+test('each named role gets exactly its current contract permission set', () => {
+  const pairs = new Set([...seededPairs(), ...additivePermissionPairs()]);
   for (const [role, permissions] of Object.entries(ROLE_SETS)) {
     for (const permission of permissions) {
       assert.ok(pairs.has(`${role}|${permission}`), `${role} is missing ${permission}`);

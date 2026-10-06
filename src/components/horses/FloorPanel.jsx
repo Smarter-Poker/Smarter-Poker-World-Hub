@@ -10,6 +10,11 @@ import {
 
 const LIMIT = 100;
 
+function scopeText(row = {}) {
+  const club = row.club_name || row.club_id || 'Unknown Club';
+  return row.union_name ? `${row.union_name} / ${club}` : club;
+}
+
 export default function FloorPanel({ authFetch }) {
   const [body, setBody] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -85,13 +90,13 @@ export default function FloorPanel({ authFetch }) {
 
   const columns = [
     { key: 'name', header: 'Table', render: (row) => row.name || row.table_name || row.id },
-    { key: 'club', header: 'Club', render: (row) => row.club_name || row.club_id || 'Unknown' },
+    { key: 'club', header: 'Owner Scope', render: (row) => scopeText(row) },
     { key: 'stakes', header: 'Stakes', render: (row) => row.small_blind !== null && row.small_blind !== undefined && row.big_blind !== null && row.big_blind !== undefined ? `${row.small_blind} / ${row.big_blind}` : 'Unknown' },
     { key: 'seats', header: 'Seats', render: (row) => `${compositionOf(row).occupied} / ${row.max_players ?? 'Unknown'}` },
     { key: 'horses', header: 'Horses', render: (row) => compositionOf(row).horses ?? 'Unknown' },
     { key: 'humans', header: 'Humans', render: (row) => compositionOf(row).humans ?? 'Unknown' },
     { key: 'detail', header: 'Detail', render: (row) => <button type="button" className={styles.btn} onClick={() => openTable(row)}>View Seats</button> },
-    { key: 'manage', header: 'Club Arena', render: (row) => <a className={styles.opsLink} href={clubArenaLink('table', row)}>Open Table Management</a> },
+    { key: 'manage', header: 'Club Arena', render: (row) => <a className={styles.opsLink} href={clubArenaLink('table', row)}>Open Owner Game Management</a> },
   ];
 
   const detailSeats = pageOf(detail, 'seats');
@@ -100,7 +105,7 @@ export default function FloorPanel({ authFetch }) {
   return (
     <section className={styles.panel} aria-labelledby="floor-title">
       <div className={styles.panelHead}>
-        <div><h2 id="floor-title" className={styles.panelTitle}>Live Floor</h2><p className={styles.panelIntro}>A Read-Only View Of Every Live Table. Pause, Park And Safe-Boundary Close Are Not Available Here.</p></div>
+        <div><h2 id="floor-title" className={styles.panelTitle}>Live Floor</h2><p className={styles.panelIntro}>A Read-Only View Of Every Live Table. Owner Pause, Resume And Empty-Table Close Stay In Club Arena. Platform Park And Occupied-Table Boundary Close Are Not Available.</p></div>
         <button type="button" className={styles.btn} onClick={load} disabled={loading}>Refresh</button>
       </div>
       <div className={styles.opsDisclosure} role={disclosure.tone === 'danger' ? 'alert' : 'status'}><strong>{disclosure.title}</strong><span>{disclosure.body}</span></div>
@@ -108,11 +113,11 @@ export default function FloorPanel({ authFetch }) {
       {detailLoading ? <div className={styles.stateNote} role="status">Reading Table Seats...</div> : null}
       {detailError ? <div className={styles.errorNote} role="alert">{detailError}</div> : null}
       {detail ? <section className={styles.opsDetail} aria-labelledby="table-detail-title">
-        <div className={styles.opsDetailHead}><div><h3 id="table-detail-title" className={styles.opsCardTitle}>{detail.table?.name || 'Table Detail'}</h3><span className={styles.fieldHint}>Seat-Level Read. No Player Or Chip State Can Be Changed Here.</span></div><button type="button" className={styles.btn} onClick={closeDetail}>Close Detail</button></div>
+        <div className={styles.opsDetailHead}><div><h3 id="table-detail-title" className={styles.opsCardTitle}>{detail.table?.name || 'Table Detail'}</h3><span className={styles.fieldHint}>Seat-Level Read. Owner Controls Require The Scoped Club Arena Authority.</span></div><button type="button" className={styles.btn} onClick={closeDetail}>Close Detail</button></div>
         <div className={styles.opsDetailGrid}><div><span className={styles.opsFactLabel}>State</span><span className={styles.opsFactValue}>{detail.table?.status || 'Unknown'}</span></div><div><span className={styles.opsFactLabel}>Occupied</span><span className={styles.opsFactValue}>{detailComposition.occupied ?? 'Unknown'} / {detail.table?.max_players ?? 'Unknown'}</span></div><div><span className={styles.opsFactLabel}>Player Types</span><span className={styles.opsFactValue}>{detailComposition.horses ?? 'Unknown'} Horses, {detailComposition.humans ?? 'Unknown'} Humans, {detailComposition.unknown ?? 'Unknown'} Unknown</span></div></div>
         {detailSeats.rows.length ? <ul className={styles.opsSeatList} aria-label="Current Seats">{detailSeats.rows.map((seat) => <li className={styles.opsSeat} key={`${seat.table_id}-${seat.seat_number}-${seat.user_id}`}><strong>Seat {seat.seat_number ?? 'Unknown'}</strong><span>{seat.user_id || 'Player Unknown'}</span><span>{seat.playerType === 'horse' ? 'Horse' : seat.playerType === 'human' ? 'Human' : 'Type Unknown'}</span></li>)}</ul> : <div className={styles.stateNote}>No Occupied Seats Were Reported.</div>}
         {detailSeats.truncated ? <div className={styles.exportStatus} role="alert">The Seat List Is Incomplete. Use Club Arena For The Authoritative Table View.</div> : null}
-        <a className={styles.opsLink} href={clubArenaLink('table', detail.table || {})}>Open Table Management</a>
+        <a className={styles.opsLink} href={clubArenaLink('table', detail.table || {})}>Open Owner Game Management</a>
       </section> : null}
       <div className={styles.opsToolbar}><span className={styles.fieldHint}>Horses And Humans Are Counted And Labelled Separately.</span><button type="button" className={`${styles.btn} ${styles.btnGo}`} onClick={runExport} disabled={exportResult?.running === true}>Export Full Floor</button></div>
       {exportView.message ? <div className={styles.exportStatus} role={exportView.state === 'export.truncated' ? 'alert' : 'status'}>{exportView.message}</div> : null}
@@ -120,7 +125,7 @@ export default function FloorPanel({ authFetch }) {
         <div>
           <div className={styles.opsCards}>
             {!loading && tables.rows.length === 0 ? <div className={styles.stateNote}>{body?.state === 'floor.empty_no_live_tables' ? 'No Live Tables Were Reported.' : 'No Table Rows Are Available.'}</div> : null}
-            {tables.rows.map((row) => { const composition = compositionOf(row); return <article className={styles.opsCard} key={row.id || row.table_id}><div className={styles.opsCardHead}><h3 className={styles.opsCardTitle}>{row.name || row.table_name || 'Unnamed Table'}</h3><span>{row.status || 'Unknown'}</span></div><div className={styles.opsFacts}><div><span className={styles.opsFactLabel}>Club</span><span className={styles.opsFactValue}>{row.club_name || row.club_id || 'Unknown'}</span></div><div><span className={styles.opsFactLabel}>Stakes</span><span className={styles.opsFactValue}>{row.small_blind !== null && row.small_blind !== undefined && row.big_blind !== null && row.big_blind !== undefined ? `${row.small_blind} / ${row.big_blind}` : 'Unknown'}</span></div><div><span className={styles.opsFactLabel}>Seats</span><span className={styles.opsFactValue}>{composition.occupied ?? 'Unknown'} / {row.max_players ?? 'Unknown'}</span></div><div><span className={styles.opsFactLabel}>Horses</span><span className={styles.opsFactValue}>{composition.horses ?? 'Unknown'}</span></div><div><span className={styles.opsFactLabel}>Humans</span><span className={styles.opsFactValue}>{composition.humans ?? 'Unknown'}</span></div></div><div className={styles.opsActions}><button type="button" className={styles.btn} onClick={() => openTable(row)}>View Seats</button><a className={styles.opsLink} href={clubArenaLink('table', row)}>Open Table Management</a></div></article>; })}
+            {tables.rows.map((row) => { const composition = compositionOf(row); return <article className={styles.opsCard} key={row.id || row.table_id}><div className={styles.opsCardHead}><h3 className={styles.opsCardTitle}>{row.name || row.table_name || 'Unnamed Table'}</h3><span>{row.status || 'Unknown'}</span></div><div className={styles.opsFacts}><div><span className={styles.opsFactLabel}>Owner Scope</span><span className={styles.opsFactValue}>{scopeText(row)}</span></div><div><span className={styles.opsFactLabel}>Stakes</span><span className={styles.opsFactValue}>{row.small_blind !== null && row.small_blind !== undefined && row.big_blind !== null && row.big_blind !== undefined ? `${row.small_blind} / ${row.big_blind}` : 'Unknown'}</span></div><div><span className={styles.opsFactLabel}>Seats</span><span className={styles.opsFactValue}>{composition.occupied ?? 'Unknown'} / {row.max_players ?? 'Unknown'}</span></div><div><span className={styles.opsFactLabel}>Horses</span><span className={styles.opsFactValue}>{composition.horses ?? 'Unknown'}</span></div><div><span className={styles.opsFactLabel}>Humans</span><span className={styles.opsFactValue}>{composition.humans ?? 'Unknown'}</span></div></div><div className={styles.opsActions}><button type="button" className={styles.btn} onClick={() => openTable(row)}>View Seats</button><a className={styles.opsLink} href={clubArenaLink('table', row)}>Open Owner Game Management</a></div></article>; })}
           </div>
           <div className={styles.opsDesktop}><DataTable rows={tables.rows} columns={columns} loading={loading} empty="No Live Tables Were Reported." caption="Database Live Tables, With Horses And Humans Included" /></div>
           <Pager offset={tables.offset} limit={tables.limit || LIMIT} count={tables.rows.length} total={tables.total} hasMore={tables.hasMore} loading={loading} noun="Tables" onPrevious={() => setOffset(Math.max(0, offset - LIMIT))} onNext={() => setOffset(offset + LIMIT)} />

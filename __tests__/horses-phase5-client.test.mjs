@@ -22,6 +22,7 @@ import {
   flagsUrl,
   handsUrl,
   healthUrl,
+  linksUrl,
   listMeta,
   openCaseBody,
   pairsUrl,
@@ -87,17 +88,18 @@ test('the Integrity tab is visible, code split, and read-gated', () => {
   assert.ok(visibleTabs(TABS).some((entry) => entry.id === 'integrity'));
 });
 
-test('every client URL names one of the seven route sections', () => {
+test('every client URL names one of the eight route sections', () => {
   const urls = [
     queueUrl({}),
     caseUrl('case-1'),
     pairsUrl({}),
     flagsUrl({}),
+    linksUrl({}),
     timingUrl({}),
     handsUrl({ playerId: 'player-1' }),
     healthUrl(),
   ];
-  assert.equal(INTEGRITY_SECTIONS.length, 7);
+  assert.equal(INTEGRITY_SECTIONS.length, 8);
   for (const url of urls) {
     assert.ok(url.startsWith(INTEGRITY_ADMIN));
     const section = new URL(url, 'https://x').searchParams.get('section');
@@ -122,12 +124,26 @@ test('queue filters keep server ranking and cursor pagination explicit', () => {
 });
 
 test('no Integrity URL has a horse exclusion parameter', () => {
-  for (const url of [queueUrl({}), pairsUrl({}), flagsUrl({}), timingUrl({}), handsUrl({ playerId: 'p' })]) {
+  for (const url of [queueUrl({}), pairsUrl({}), flagsUrl({}), linksUrl({}), timingUrl({}), handsUrl({ playerId: 'p' })]) {
     assert.ok(!/include.?horses|exclude.?horses|is_horse/i.test(url), url);
   }
   assert.ok(!/includeHorses|Exclude Horses|Hide Horses/.test(panel));
   assert.match(panel, /player_a_is_horse/,
     'horse identity belongs beside a result as disclosure');
+});
+
+test('identity links use bounded cursor paging and optional evidence dates', () => {
+  const url = new URL(linksUrl({
+    since: '2026-09-01T00:00:00Z',
+    asOf: '2026-10-01T00:00:00Z',
+    cursor: { evidence_weight: 100, player_a_id: 'a' },
+    limit: 25,
+  }), 'https://x');
+  assert.equal(url.searchParams.get('section'), 'links');
+  assert.equal(url.searchParams.get('since'), '2026-09-01T00:00:00Z');
+  assert.equal(url.searchParams.get('asOf'), '2026-10-01T00:00:00Z');
+  assert.equal(url.searchParams.get('limit'), '25');
+  assert.match(url.searchParams.get('cursor'), /evidence_weight/);
 });
 
 test('every mutation carries an operation ID and the route action name', () => {
@@ -238,7 +254,7 @@ test('the queue has three honest empty answers', () => {
   assert.equal(integrityEmptyState({ state: 'review_available', rowCount: 2 }), null);
 });
 
-test('the live health banner is above all seven local sections', () => {
+test('the live health banner is above all eight local sections', () => {
   const banner = panel.indexOf('<DetectorHealthBanner');
   const nav = panel.indexOf('aria-label="Integrity Sections"');
   assert.ok(banner > 0 && nav > banner,

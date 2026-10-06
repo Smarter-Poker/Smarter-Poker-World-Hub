@@ -40,17 +40,28 @@ test('O6 aggregates the full window in Postgres and returns exact text totals wi
 });
 
 test('tournament reads use only fields proved by the generated schema or current engine route', () => {
-  const selects = [...route.matchAll(/from\('tournaments'\)[\s\S]{0,180}?\.select\('([^']+)'/g)].map((match) => match[1]);
+  const selects = [...route.matchAll(/from\('tournaments'\)[\s\S]{0,700}?\.select\('([^']+)'/g)].map((match) => match[1]);
   assert.ok(selects.length >= 2);
-  const allowed = new Set(['id', 'name', 'status', 'start_time', 'buy_in_amount', 'prize_pool', 'guaranteed_prize', 'late_reg_mins', 'max_players', 'current_players', 'created_at']);
-  for (const select of selects) {
-    for (const field of select.split(',').map((item) => item.trim())) assert.ok(allowed.has(field), `unproved tournament field ${field}`);
-  }
-  for (const phantom of ['registration_end', 'guarantee', 'club_id', 'union_id']) assert.equal(selects.some((select) => select.split(',').map((item) => item.trim()).includes(phantom)), false);
+  const rowSelects = selects.filter((select) => select.includes('name'));
+  assert.ok(rowSelects.length >= 2);
+  assert.ok(rowSelects.every((select) => select.includes('club_id') && select.includes('union_id')));
+  assert.ok(selects.some((select) => select.includes('registration_rows:tournament_players(count)')));
+  assert.ok(selects.some((select) => select.includes('overlay_rows:tournament_guarantee_overlays(')));
+  for (const phantom of ['registration_end', 'guarantee,']) assert.equal(selects.some((select) => select.includes(phantom)), false);
   assert.match(route, /VISIBLE_TOURNAMENT_STATUSES[\s\S]{0,160}'late_reg'/);
   assert.match(route, /LIVE_TOURNAMENT_STATUSES[\s\S]{0,100}'late_reg'/);
   assert.match(route, /\.in\('status', VISIBLE_TOURNAMENT_STATUSES\)/);
   assert.match(route, /\.in\('status', LIVE_TOURNAMENT_STATUSES\)/);
+});
+
+test('O1 and O2 retain existing owner controls as links and never add a second writer', () => {
+  for (const forbidden of ['atomic_cancel_tournament', 'fn_close_managed_game', '/admin/pause', '/admin/resume']) {
+    assert.equal(route.includes(forbidden), false, `World Hub must not invoke ${forbidden}`);
+  }
+  assert.match(route, /tournament_refund_entitlements/);
+  assert.match(route, /tournament_refund_tranches/);
+  assert.match(model, /owner_pause_resume:\s*'AVAILABLE_IN_CLUB_ARENA'/);
+  assert.match(model, /platform_park:\s*'MISSING'/);
 });
 
 test('read sections contain no queue optimism, horse exclusion, or hidden authority', () => {

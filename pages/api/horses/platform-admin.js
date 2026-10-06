@@ -1,22 +1,23 @@
 /**
  * Stable Admin Phase 8 platform observability.
  *
- * This route is deliberately GET-only. It projects existing authorities and
- * never records a scorecard, captures a freeze mark, moves an Arena or Trivia
- * switch, dispatches a release, changes maintenance state or acknowledges an
- * incident.
+ * GET projects existing authorities. POST may only append an incident
+ * ownership acknowledgement/release event; it never mutates source incident
+ * resolution, source health, maintenance, release, or control state.
  */
 import { withOperatorRoute } from '../../../src/lib/horses/operatorRoute.js';
-import { PERMISSIONS } from '../../../src/lib/horses/permissions.js';
-import { badRequest } from '../../../src/lib/horses/apiEnvelope.js';
+import { PERMISSIONS, hasPermission } from '../../../src/lib/horses/permissions.js';
+import { ApiError, badRequest, conflict, notFound } from '../../../src/lib/horses/apiEnvelope.js';
+import { auditOperatorAction } from '../../../src/lib/horses/operatorAudit.js';
 import { pageFor, shapeList, sourceCollector } from '../../../src/lib/horses/listShape.js';
 import { runPaged } from '../../../src/lib/horses/paged.js';
-import { enumOf } from '../../../src/lib/horses/validate.js';
+import { enumOf, text as validatedText, uuid } from '../../../src/lib/horses/validate.js';
 import { floorDivergence, readEngineHealth } from '../../../src/lib/horses/floorAdmin.js';
 import {
   MISSING_CONTROL_ROWS,
   PLATFORM_ADMIN_SECTIONS,
   PLATFORM_PAGE,
+  applyIncidentAcknowledgements,
   boundedEvidence,
   boundedText,
   canReadFreezeAmounts,
@@ -34,6 +35,14 @@ import {
 const ENGINE_HEALTH_URL = (process.env.GAME_SERVER_URL || process.env.ENGINE_URL || 'https://engine.smarter.poker').replace(/\/$/, '') + '/health';
 const LIVE_TABLE_STATUSES = Object.freeze(['running', 'active', 'waiting']);
 const COMBINED_PAGE_MAX_ROWS = 500;
+const INCIDENT_ACK_ACTIONS = Object.freeze(['acknowledge', 'release']);
+const INCIDENT_ACK_SOURCES = Object.freeze([
+  'ca_drift_incidents',
+  'operational_alert_events',
+  'engine_alerts',
+  'deploy_alerts',
+  'financial_alerts',
+]);
 
 function meta(section, collector) {
   return {
@@ -371,14 +380,77 @@ async function sectionIncidents(db, op, query, requestId) {
     visibleSources,
     page
   );
+  const visibleIdentities = [...new Set(combined.rows.map((row) => row.sourceIdentity).filter(Boolean))];
+  let acknowledgementRows = [];
+  if (visibleIdentities.length) {
+    const acknowledgements = await db
+      .from('ca_operator_incident_ack_current')
+      .select('source_table, source_identity, action, actor_id, note, request_id, operation_id, observed_status, observed_at, created_at')
+      .in('source_identity', visibleIdentities);
+    c.check('ca_operator_incident_ack_current', acknowledgements);
+    if (!acknowledgements.error) acknowledgementRows = acknowledgements.data || [];
+  }
+  combined.rows = applyIncidentAcknowledgements(combined.rows, acknowledgementRows);
   return {
     ...meta('incidents', c),
     ...combined,
     state: c.all().length ? 'incidents.partial' : 'incidents.ready',
     sources,
     identityPolicy: 'Source Identities Remain Separate',
-    acknowledgement: { available: false, meaning: 'Seen And Owned, Never Resolved', state: 'no_shared_durable_acknowledgement_contract' },
+    acknowledgement: {
+      available: hasPermission(op?.permissions, PERMISSIONS.INCIDENTS_ACK),
+      permission: PERMISSIONS.INCIDENTS_ACK,
+      meaning: 'Seen And Owned, Never Resolved',
+      state: 'append_only_operator_ownership_overlay',
+    },
   };
+}
+
+async function recordIncidentAcknowledgement({ req, op, db, body, requestId }) {
+  const action = enumOf(body.action, INCIDENT_ACK_ACTIONS);
+  const sourceTable = enumOf(body.sourceTable, INCIDENT_ACK_SOURCES);
+  const sourceIdentity = validatedText(body.sourceIdentity, { min: 1, max: 512 });
+  const note = validatedText(body.note, { min: 3, max: 500 });
+  const operationId = uuid(body.operationId);
+  if (!action) throw badRequest('Action Must Be Acknowledge Or Release', 'invalid_incident_ack_action');
+  if (!sourceTable) throw badRequest('Pick A Valid Incident Source', 'invalid_incident_source');
+  if (!sourceIdentity) throw badRequest('A Valid Incident Identity Is Required', 'invalid_incident_identity');
+  if (!note) throw badRequest('A Note Of 3 To 500 Characters Is Required', 'invalid_incident_ack_note');
+  if (!operationId) throw badRequest('A Valid Operation Id Is Required', 'invalid_operation_id');
+
+  const { data, error } = await db.rpc('fn_ca_operator_record_incident_ack_event', {
+    p_source_table: sourceTable,
+    p_source_identity: sourceIdentity,
+    p_action: action,
+    p_actor_id: op.user.id,
+    p_note: note,
+    p_request_id: requestId,
+    p_operation_id: operationId,
+  });
+  if (error) {
+    if (error.code === 'P0002') throw notFound('Incident Source Row Not Found', 'incident_not_found');
+    if (error.code === '23505') throw conflict('That Operation Id Was Already Used', 'operation_id_conflict');
+    if (error.code === '22023') throw badRequest('Incident Acknowledgement Was Invalid', 'invalid_incident_acknowledgement');
+    throw new ApiError(500, 'Incident Acknowledgement Could Not Be Recorded', 'incident_ack_write_failed');
+  }
+
+  const event = data?.event || null;
+  if (data?.replayed !== true) {
+    await auditOperatorAction(op, req, {
+      action: `incident.${action}`,
+      targetType: sourceTable,
+      targetId: sourceIdentity,
+      before: null,
+      after: {
+        ownershipState: action === 'acknowledge' ? 'acknowledged' : 'released',
+        eventId: event?.id ?? null,
+        operationId,
+      },
+      details: { note, sourceStatusUnchanged: true },
+    });
+  }
+
+  return { acknowledgement: event, replayed: data?.replayed === true };
 }
 
 function sourceOk(c, name, result) {
@@ -446,7 +518,8 @@ async function sectionRegistry(db, requestId) {
   };
 }
 
-export async function handle({ op, db, query, requestId }) {
+export async function handle({ req, op, db, body, method, query, requestId }) {
+  if (method === 'POST') return recordIncidentAcknowledgement({ req, op, db, body, requestId });
   const section = enumOf(query.section, PLATFORM_ADMIN_SECTIONS);
   if (!section) throw badRequest('Pick A Valid Platform Operations Section', 'invalid_section');
   if (section === 'engine') return sectionEngine(db, requestId);
@@ -463,9 +536,10 @@ export const handlePlatformAdmin = handle;
 
 export const spec = Object.freeze({
   name: 'horses.platform-admin',
-  methods: ['GET'],
-  permission: PERMISSIONS.CONSOLE_READ,
-  limit: 'read',
+  methods: ['GET', 'POST'],
+  permission: { GET: PERMISSIONS.CONSOLE_READ, POST: PERMISSIONS.INCIDENTS_ACK },
+  limit: { GET: 'read', POST: 'write' },
+  durable: { POST: { max: 60, windowSeconds: 60 } },
 });
 
 export const platformAdminSpec = spec;

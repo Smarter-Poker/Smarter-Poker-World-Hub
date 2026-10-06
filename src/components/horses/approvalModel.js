@@ -85,6 +85,7 @@ export const KIND_PERMISSIONS = {
   cashout: 'cashier.write',
   fleet_policy: 'fleet.write',
   sanction: 'moderation.write',
+  daily_close: 'money.write',
 };
 
 export function permissionForKind(kind) {

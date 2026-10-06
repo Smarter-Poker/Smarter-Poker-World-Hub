@@ -110,7 +110,7 @@ proof.
 ## 6. Operator Model
 
 Canonical roles are owner, operations, finance, compliance, support and
-read_only, plus legacy god/superadmin/admin recovery roles. There are 21 named
+read_only, plus legacy god/superadmin/admin recovery roles. There are 22 named
 permissions. Current values of `approvals_enabled`, `enforce_named_roles` and
 `restrictions_enforced` are production state, not constants in this handoff.
 Read them before an operation and never flip them as a verification step.
