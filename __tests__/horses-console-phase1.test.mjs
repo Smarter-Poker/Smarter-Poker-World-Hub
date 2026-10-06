@@ -637,8 +637,10 @@ test('the tab and the Club Arena section are mirrored into the URL', async () =>
   assert.match(src, /urlHydratedRef/);
   assert.match(src, /urlSyncedRef/);
   assert.match(src, /pendingUrlStateRef/);
-  assert.match(src, /if \(pending && !urlMatchesState\(pending, router\.query\)\) return;/);
-  assert.match(src, /pending\?\.activeTab === state\.activeTab && pending\?\.caSection === state\.caSection/);
+  assert.match(src, /queuedUrlStateRef/);
+  assert.match(src, /if \(pendingUrlStateRef\.current \|\| queuedUrlStateRef\.current\) return;/);
+  assert.match(src, /if \(pending\) \{[\s\S]*?queuedUrlStateRef\.current = state;[\s\S]*?return;/);
+  assert.match(src, /setUrlWriteEpoch\(\(value\) => value \+ 1\)/);
   assert.match(src, /if \(!urlSyncedRef\.current\) return;/);
   // The registry owns the default section.
   assert.match(src, /useState\(DEFAULT_CA_SECTION\)/);
