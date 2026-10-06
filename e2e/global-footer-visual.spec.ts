@@ -176,9 +176,8 @@ const visit = async (page: Page, route: string) => {
     try {
       // WebKit can paint and hydrate a production page while a late resource
       // keeps its DOMContentLoaded lifecycle promise unresolved. Navigation
-      // only owns the committed document. Tests that exercise client-owned
-      // behavior call visitHydrated below; the 203-route SSR inventory does
-      // not need to wait for client effects it never asserts.
+      // only owns the committed document. Client-owned behavior is proven by
+      // each feature's own observable readiness signal below.
       await page.goto(route, { waitUntil: 'commit', timeout: 15_000 });
       return;
     } catch (error) {
@@ -200,20 +199,24 @@ const visit = async (page: Page, route: string) => {
   throw lastError;
 };
 
-const visitHydrated = async (page: Page, route: string) => {
+const visitReady = async (
+  page: Page,
+  route: string,
+  readiness: { selector: string; attribute: string; value: string }
+) => {
   let lastError: unknown;
-  for (let attempt = 0; attempt < 3; attempt += 1) {
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    await visit(page, route);
     try {
-      await visit(page, route);
-      await page.waitForFunction(
-        () => document.documentElement.dataset.worldHubHydrated === 'true',
-        undefined,
-        { timeout: 15_000 }
+      await expect(page.locator(readiness.selector)).toHaveAttribute(
+        readiness.attribute,
+        readiness.value,
+        { timeout: 7_500 }
       );
       return;
     } catch (error) {
       lastError = error;
-      if (attempt === 2 || !/TimeoutError|Execution context was destroyed/.test(String(error))) {
+      if (attempt === 1 || !/Timeout|Timed out|Execution context was destroyed/.test(String(error))) {
         throw error;
       }
       await page.evaluate(() => window.stop()).catch(() => undefined);
@@ -298,7 +301,16 @@ test.describe('dynamic World Hub footer route and visual contract', () => {
     page,
   }) => {
     await page.setViewportSize({ width: 390, height: 844 });
-    await visitHydrated(page, '/hub/diamond-store');
+    await visitReady(page, '/hub/diamond-store', {
+      selector: 'body',
+      attribute: 'data-world-copy-policy',
+      value: 'marketplace',
+    });
+
+    // This attribute is installed by the marketplace's client effect. It is
+    // the behavior this test actually needs and remains observable in WebKit
+    // even when an unrelated late resource delays the page lifecycle.
+    await expect(page.locator('body')).toHaveAttribute('data-world-copy-policy', 'marketplace');
 
     await expect(page.locator('[data-global-bottom-nav="true"]')).toHaveCount(0);
     const pageFooter = page.locator('[data-marketplace-page-footer="true"]');
@@ -306,9 +318,6 @@ test.describe('dynamic World Hub footer route and visual contract', () => {
     await expect(pageFooter).toBeVisible();
     await expect(pageFooter).toHaveAttribute('data-footer-layout', 'in-flow');
     await expect(pageFooter).toHaveCSS('position', 'static');
-    await expect(page.locator('body')).toHaveAttribute('data-world-copy-policy', 'marketplace', {
-      timeout: 15_000,
-    });
     await expect(page.locator('.world-copy-scope')).toHaveCount(1);
   });
 
@@ -372,6 +381,16 @@ test.describe('dynamic World Hub footer route and visual contract', () => {
         expect(definition, `missing registry definition for ${entry.id}`).toBeTruthy();
 
         await page.setViewportSize({ width: 320, height: 568 });
+        // Load the exact asset in the same browser page before the product
+        // route. APIRequestContext has a separate HTTP cache and cannot warm
+        // WebKit's image loader. This direct bounded navigation both proves
+        // the asset is served and puts its decoded bytes in the browser cache;
+        // the rendered product image must still pass the checks below.
+        const artworkResponse = await page.goto(definition!.artwork.src, {
+          waitUntil: 'load',
+          timeout: 15_000,
+        });
+        expect(artworkResponse?.status(), `${entry.id} approved artwork was not served`).toBe(200);
         await installFooterAuthBoundary(page, entry.id);
         await visit(page, entry.route);
         const nav = page.locator('[data-global-bottom-nav="true"]');
@@ -493,10 +512,15 @@ test.describe('dynamic World Hub footer route and visual contract', () => {
       // layout process has accumulated prior sizes, masking otherwise healthy
       // geometry with a whole-test timeout.
       await page.setViewportSize(viewport);
-      await visitHydrated(page, '/hub/training');
+      await visitReady(page, '/hub/training', {
+        selector: '[data-global-bottom-nav="true"]',
+        attribute: 'data-footer-scroll-armed',
+        value: 'true',
+      });
 
       const nav = page.locator('[data-global-bottom-nav="true"]');
       await expect(nav).toHaveCount(1);
+      await expect(nav).toHaveAttribute('data-footer-scroll-armed', 'true');
       await expect(nav).toHaveAttribute('data-footer-world', 'training');
       await expect(nav).toHaveAttribute(
         'data-footer-artwork',
@@ -577,7 +601,11 @@ test.describe('dynamic World Hub footer route and visual contract', () => {
           window.localStorage.setItem('pnm_tutorial_seen', '1');
         });
         await installFooterAuthBoundary(page, entry.id);
-        await visitHydrated(page, entry.route);
+        await visitReady(page, entry.route, {
+          selector: '[data-global-bottom-nav="true"]',
+          attribute: 'data-footer-scroll-armed',
+          value: 'true',
+        });
         const nav = page.locator('[data-global-bottom-nav="true"]');
         await expect(nav).toHaveCount(1);
         await expect(nav).toHaveAttribute('data-footer-hide-on-scroll', 'true');
@@ -586,9 +614,7 @@ test.describe('dynamic World Hub footer route and visual contract', () => {
         // Linux WebKit (CI, 2026-09-04) the first scrolls below landed BEFORE
         // it existed, nothing saw them, and "should hide" failed on whichever
         // world happened to hydrate slowest. Wait for the fact, not the clock.
-        await expect(nav).toHaveAttribute('data-footer-scroll-armed', 'true', {
-          timeout: 15_000,
-        });
+        await expect(nav).toHaveAttribute('data-footer-scroll-armed', 'true');
 
         await page.evaluate(() => {
           document.body.style.minHeight = '400vh';
@@ -654,12 +680,14 @@ test.describe('dynamic World Hub footer route and visual contract', () => {
 
   test('a small inner scroller cannot countermand document travel', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
-    await visitHydrated(page, '/hub/video-library');
+    await visitReady(page, '/hub/video-library', {
+      selector: '[data-global-bottom-nav="true"]',
+      attribute: 'data-footer-scroll-armed',
+      value: 'true',
+    });
 
     const nav = page.locator('[data-global-bottom-nav="true"]');
-    await expect(nav).toHaveAttribute('data-footer-scroll-armed', 'true', {
-      timeout: 15_000,
-    });
+    await expect(nav).toHaveAttribute('data-footer-scroll-armed', 'true');
     await page.evaluate(() => {
       document.body.style.minHeight = '400vh';
       window.scrollTo(0, 200);

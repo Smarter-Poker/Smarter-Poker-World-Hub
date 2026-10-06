@@ -995,18 +995,6 @@ export default function App({ Component, pageProps }) {
     : routeWorldFooterConfig || (bottomNavRouteConfig ? getFallbackFooter() : null);
   const [isEmbedded, setIsEmbedded] = useState(false);
 
-  // Production browser gates must distinguish a committed SSR document from
-  // a client that is actually ready to own interactions. WebKit can expose
-  // the former while a replacement document or late resource prevents React
-  // effects from running. Keep this marker global and route-independent so
-  // readiness checks never infer hydration from a feature-specific detail.
-  useEffect(() => {
-    document.documentElement.dataset.worldHubHydrated = 'true';
-    return () => {
-      delete document.documentElement.dataset.worldHubHydrated;
-    };
-  }, []);
-
   // Two legacy settings surfaces intentionally suppress platform chrome when
   // embedded. Evaluate after hydration so server and first client render agree.
   // 2026-09-04: notice a revoked session. PostgREST checks signatures, not
