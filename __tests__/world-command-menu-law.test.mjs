@@ -154,6 +154,11 @@ test('the approved hamburger trigger covers routes without duplicating the heade
   assert.match(dockSource, /hideHeader=true/);
   assert.match(dockSource, /restoreFallbackFocusRef/);
   assert.match(dockSource, /sp:approved-world-menu-owner/);
+  assert.match(
+    dockSource,
+    /\.sp-world-command-trigger\s*\{[\s\S]*?z-index:\s*10050;/,
+    'the route fallback must stay above page-owned viewers such as Reels'
+  );
   /* HAMBURGER EVERYWHERE (Dan 2026-09-05: "about the dots, yes fix and change
      it back to hamburger menu only"). This used to pin the dock to
      "command-grid" - a six-node mark on a control whose only job is to open a

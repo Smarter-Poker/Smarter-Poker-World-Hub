@@ -290,7 +290,11 @@ export default function WorldCommandDock() {
           position: fixed;
           top: max(12px, env(safe-area-inset-top, 0px));
           left: max(12px, env(safe-area-inset-left, 0px));
-          z-index: 1200;
+          /* Route fallbacks must remain reachable above page-owned viewers.
+             Reels intentionally occupies z-index 9999, while the command
+             drawer starts at 10100; keep its trigger in the global-navigation
+             layer between those two surfaces. */
+          z-index: 10050;
           min-width: 172px;
           min-height: 48px;
           display: grid;
