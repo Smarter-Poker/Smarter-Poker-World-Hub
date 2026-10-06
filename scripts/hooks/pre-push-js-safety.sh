@@ -634,7 +634,7 @@ NEXTJS_CONFIG_ERRORS=0
 
 # 11a — vercel.json buildCommand must include --webpack for Next.js >= 15
 if [ -f "vercel.json" ]; then
-    BUILD_CMD=$(node -e "try{const d=require('./vercel.json');console.log(d.buildCommand||'')}catch(e){}" 2>/dev/null || echo "")
+    BUILD_CMD=$(node -e "try{const d=require('./vercel.json');const p=require('./package.json');const c=d.buildCommand||'';const m=c.match(/^npm run ([A-Za-z0-9:_-]+)$/);console.log(m&&p.scripts?.[m[1]]?c+' && '+p.scripts[m[1]]:c)}catch(e){}" 2>/dev/null || echo "")
     if [ -n "$BUILD_CMD" ]; then
         NEXT_VERSION=$(node -e "try{const p=require('./node_modules/next/package.json');console.log(p.version)}catch(e){console.log('0')}" 2>/dev/null || echo "0")
         NEXT_MAJOR=$(echo "$NEXT_VERSION" | cut -d. -f1)

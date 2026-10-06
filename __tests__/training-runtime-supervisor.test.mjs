@@ -205,7 +205,8 @@ test('package exposes the supervised runtime audit as a permanent entrypoint', (
   );
 
   const vercel = JSON.parse(readFileSync(join(ROOT, 'vercel.json'), 'utf8'));
-  assert.match(vercel.buildCommand, /npm run test:training:phase6-authority/);
+  const deployedBuild = `${vercel.buildCommand}\n${packageJson.scripts['build:vercel'] || ''}`;
+  assert.match(deployedBuild, /npm run test:training:phase6-authority/);
   const vercelIgnore = readFileSync(join(ROOT, '.vercelignore'), 'utf8');
   const phase6BuildTests = [
     packageJson.scripts['test:training:legacy-windows-retirement'],

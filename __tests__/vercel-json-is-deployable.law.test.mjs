@@ -43,6 +43,8 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const vercel = JSON.parse(readFileSync(join(ROOT, 'vercel.json'), 'utf8'));
+const pkg = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8'));
+const deployedBuild = `${vercel.buildCommand}\n${pkg.scripts['build:vercel'] || ''}`;
 
 // Vercel's route-object schema. Anything else is rejected at deploy time.
 const ALLOWED_HEADER_KEYS = new Set(['source', 'headers', 'has', 'missing']);
@@ -154,12 +156,12 @@ test('no command in vercel.json is longer than the schema allows', () => {
 });
 
 test('the build command is kept short by a script, not by luck', () => {
-    // 239 of 256 is not much room. The next person to add a build step should
-    // add it to scripts/copy-reader-assets.mjs, or to whatever script the
-    // command already calls, rather than to the command.
+    // The Vercel field stays stable while the named package script owns the
+    // deploy sequence and can grow without invalidating vercel.json.
     const config = JSON.parse(readFileSync(join(ROOT, 'vercel.json'), 'utf8'));
-    assert.match(config.buildCommand, /copy-reader-assets\.mjs/,
-        'the asset copies belong behind one script, which is what keeps this under the limit');
+    assert.equal(config.buildCommand, 'npm run build:vercel');
+    assert.match(pkg.scripts['build:vercel'], /copy-reader-assets\.mjs/,
+        'the deployed build must retain the reader asset runner');
     assert.doesNotMatch(config.buildCommand, /copy-tesseract-assets\.mjs/, 'chained directly, this overflowed');
     assert.doesNotMatch(config.buildCommand, /copy-pdfjs-assets\.mjs/);
 });
@@ -172,11 +174,9 @@ test('the one script still runs both copies, before next build', () => {
     // fail the build rather than be skipped.
     assert.match(script, /process\.exit\(run\.status \|\| 1\)/);
 
-    const config = JSON.parse(readFileSync(join(ROOT, 'vercel.json'), 'utf8'));
-    const copyAt = config.buildCommand.indexOf('copy-reader-assets.mjs');
-    const buildAt = config.buildCommand.indexOf('next build');
+    const copyAt = deployedBuild.indexOf('copy-reader-assets.mjs');
+    const buildAt = deployedBuild.indexOf('next build');
     assert.ok(copyAt >= 0 && buildAt >= 0 && copyAt < buildAt);
 
-    const pkg = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8'));
     assert.match(pkg.scripts.prebuild, /copy-reader-assets\.mjs/, 'a local build must generate them too');
 });
