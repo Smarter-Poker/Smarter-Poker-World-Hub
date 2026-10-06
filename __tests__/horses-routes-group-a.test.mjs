@@ -1350,6 +1350,21 @@ test('stable-admin: every action asks for the permission it actually needs', asy
   assert.equal(stableSpec.permission, 'console.read');
 });
 
+test('stable-admin: read_settings answers any operator with the settings row and nothing else', async () => {
+  const row = { id: 'settings-1', posts_per_day: 20, engine_enabled: true };
+  const db = fakeDb({ content_settings: { rows: [row] } });
+  const consoleOnly = { ...fakeOp(db), permissions: ['console.read'] };
+  const out = await stableHandle({ req: fakeReq({ method: 'POST' }), op: consoleOnly, db, body: { action: 'read_settings' } });
+  assert.deepEqual(out, { settings: row });
+  const read = db.calls.find((c) => c.table === 'content_settings');
+  assert.ok(read, 'the service role reads the row: a browser no longer can');
+  assert.doesNotMatch(read.select, /\*/, 'named columns only');
+  assert.match(read.select, /\bposts_per_day\b/);
+  assert.match(read.select, /\bengine_enabled\b/);
+  assert.equal(read.insert, undefined);
+  assert.equal(read.update, undefined);
+});
+
 test('stable-admin: audit_log and set_ticket_status ask for their own permission', async () => {
   const db = fakeDb();
   const contentOnly = { ...fakeOp(db), permissions: ['content.write'] };

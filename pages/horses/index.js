@@ -140,14 +140,16 @@ export default function HorsesAdmin() {
     let cancelled = false;
     Promise.allSettled([
       authFetch('/api/horses/club-arena-admin?section=badges'),
-      supabase.from('content_settings').select('*').order('id', { ascending: true }).limit(1).maybeSingle(),
+      // content_settings is not readable from a browser: the operator route
+      // reads it with the service role.
+      authFetch('/api/horses/stable-admin', { method: 'POST', body: JSON.stringify({ action: 'read_settings' }) }),
     ]).then(([badgeResult, settingsResult]) => {
       if (cancelled) return;
       if (badgeResult.status === 'fulfilled') {
         patchOperatorContext({ navigationBadges: badgeResult.value?.badges || null });
       }
-      if (settingsResult.status === 'fulfilled' && !settingsResult.value.error) {
-        patchOperatorContext({ socialSettings: settingsResult.value.data || null });
+      if (settingsResult.status === 'fulfilled') {
+        patchOperatorContext({ socialSettings: settingsResult.value?.settings || null });
       }
     });
     return () => { cancelled = true; };

@@ -1,5 +1,4 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { supabase } from '../../lib/supabase';
 import { T } from '../../lib/horsesAdminTokens';
 import { broadcastSync, listenBroadcast } from '../../lib/broadcastSync';
 import {
@@ -46,12 +45,17 @@ export default function SettingsPanel({ authFetch, showNotification, onNavigate,
   const load = useCallback(async () => {
     setLoading(true);
     setReadError('');
-    const result = await supabase
-      .from('content_settings')
-      .select('*')
-      .order('id', { ascending: true })
-      .limit(1)
-      .maybeSingle();
+    // Operator route, service role: content_settings is not readable from a
+    // browser (pages/api/horses/stable-admin.js, read_settings).
+    let result;
+    try {
+      const body = await authFetch('/api/horses/stable-admin', {
+        method: 'POST', body: JSON.stringify({ action: 'read_settings' }),
+      });
+      result = { data: body?.settings || null, error: null };
+    } catch (cause) {
+      result = { data: null, error: cause instanceof Error ? cause : new Error(String(cause)) };
+    }
     if (!mountedRef.current) return;
     if (result.error) {
       setLoaded(false);
@@ -66,7 +70,7 @@ export default function SettingsPanel({ authFetch, showNotification, onNavigate,
       patchContext({ socialSettings: null });
     }
     setLoading(false);
-  }, [patchContext]);
+  }, [authFetch, patchContext]);
 
   useEffect(() => {
     mountedRef.current = true;

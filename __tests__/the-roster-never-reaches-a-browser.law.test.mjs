@@ -139,6 +139,44 @@ test('no browser file reads content_authors, keeps a roster set, or runs the sch
   assert.deepEqual(offenders, [], 'the roster is server-only; ask a pages/api route instead');
 });
 
+/**
+ * Every table that names, configures or describes the house players. Each is
+ * read only by the service role; a browser read is a leak while the table is
+ * open and an outage once it is closed. bot_profiles and personas list them by
+ * name; content_settings is the content engine's cadence and model.
+ */
+const SERVER_ONLY_TABLES = [
+  'content_authors',
+  'clip_usage_log',
+  'horse_post_modes',
+  'bot_profiles',
+  'personas',
+  'content_settings',
+];
+
+test('no browser file reads a table that names or configures the house players', () => {
+  const offenders = [];
+  for (const file of browserFiles()) {
+    const code = stripComments(readFileSync(file, 'utf8'));
+    for (const table of SERVER_ONLY_TABLES) {
+      if (new RegExp(`\\.from\\(\\s*['"\`]${table}['"\`]\\s*\\)`).test(code)) offenders.push(`${rel(file)}: .from('${table}')`);
+      if (new RegExp(`/rest/v1/${table}\\b`).test(code)) offenders.push(`${rel(file)}: /rest/v1/${table}`);
+    }
+  }
+  assert.deepEqual(offenders, [], 'server-only; ask a pages/api operator route instead');
+});
+
+test('the console reads the engine settings through the operator route', () => {
+  const files = browserFiles().map(rel);
+  assert.ok(files.includes('src/components/horses/SettingsPanel.jsx'), 'the import walk reaches the settings panel');
+  for (const file of ['pages/horses/index.js', 'src/components/horses/SettingsPanel.jsx']) {
+    assert.match(stripComments(read(file)), /action: 'read_settings'/, file);
+  }
+  const route = stripComments(read('pages/api/horses/stable-admin.js'));
+  assert.match(route, /read_settings: PERMISSIONS\.CONSOLE_READ/);
+  assert.match(route, /if \(action === 'read_settings'\) return readSettings\(db\);/);
+});
+
 test('the dead Vite console that read the roster with the anon key stays deleted', () => {
   assert.equal(existsSync(join(ROOT, 'src/content-engine/admin/HorsesAdmin.jsx')), false);
   assert.equal(existsSync(join(ROOT, 'src/content-engine/admin/main.jsx')), false);

@@ -168,6 +168,7 @@ const ACTIONS = [
   'bulk_delete',
   'set_ticket_status',
   'save_settings',
+  'read_settings',
   'audit_log',
 ];
 
@@ -601,6 +602,29 @@ async function saveSettings(db, op, req, body) {
   return { settings: data };
 }
 
+/**
+ * The engine settings row, read for the console (2026-10-05).
+ *
+ * The console used to read content_settings straight from the browser with the
+ * public key, which only worked because the table was readable by anybody:
+ * any visitor could read the content engine's posting cadence and model. The
+ * read lives here now, behind operator auth and the service role, so the table
+ * can be closed to anon and authenticated. Same row the writer updates: the
+ * lowest id.
+ */
+export const SETTINGS_READ_COLUMNS = ['id', ...SETTINGS_FIELDS, 'updated_at'].join(', ');
+
+async function readSettings(db) {
+  const { data, error } = await db
+    .from('content_settings')
+    .select(SETTINGS_READ_COLUMNS)
+    .order('id', { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  if (error) throw mapDbError(error, 'The Engine Settings', { route: 'horses.stable-admin' });
+  return { settings: data || null };
+}
+
 // -- AUDIT LOG (read) --------------------------------------------------------
 //
 // Until this release the console WROTE to admin_audit_log from three routes and
@@ -855,6 +879,7 @@ const ACTION_PERMISSIONS = Object.freeze({
   delete_horse: PERMISSIONS.CONTENT_WRITE,
   bulk_delete: PERMISSIONS.CONTENT_WRITE,
   save_settings: PERMISSIONS.CONTENT_WRITE,
+  read_settings: PERMISSIONS.CONSOLE_READ,
   set_ticket_status: PERMISSIONS.SUPPORT_WRITE,
   audit_log: PERMISSIONS.AUDIT_READ,
 });
@@ -877,6 +902,7 @@ export async function handle({ req, op, db, body }) {
   }
 
   if (action === 'audit_log') return auditLog(db, body);
+  if (action === 'read_settings') return readSettings(db);
   if (action === 'set_ticket_status') return setTicketStatus(db, op, req, body);
 
   if (action === 'create_horse') return createHorse(db, op, req, body);
