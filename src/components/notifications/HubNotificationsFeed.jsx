@@ -69,6 +69,7 @@ import { getMenuConfig } from '../../config/hamburgerMenus';
 import { getAccessToken } from '../../lib/authUtils';
 import { homeGameUrl } from '../../lib/home-games/urls';
 import { resolveNotificationRoute } from '../../lib/notificationRoute';
+import { groupNotificationsByDate } from '../../lib/notificationFeedGroups.mjs';
 
 const C = {
     bg: '#F0F2F5', card: '#FFFFFF', text: '#050505', textSec: '#65676B',
@@ -665,6 +666,11 @@ export default function HubNotificationsFeed({ embedded = false, onNotifCleared 
     };
 
     const unreadCount = notifications.filter(n => !n.read).length;
+    // Sections are presentation-only. Keep every source row intact so the
+    // existing per-notification read/delete/routing rules remain unchanged.
+    const visibleNotificationGroups = groupNotificationsByDate(
+        notifications.filter(n => isVisibleNotification(n, user?.id) && user?.id === getAuthUser()?.id)
+    );
 
     if (loading) {
         return (
@@ -775,7 +781,12 @@ export default function HubNotificationsFeed({ embedded = false, onNotifCleared 
                             <p style={{ color: C.textSec }}>When Someone Likes, Comments, Or Tags You, You'll See It Here.</p>
                         </div>
                     ) : (
-                        notifications.filter(n => isVisibleNotification(n, user?.id) && user?.id === getAuthUser()?.id).map(n => {
+                        visibleNotificationGroups.map(group => (
+                            <section key={group.label} aria-label={group.label}>
+                                <h2 style={{ margin: 0, padding: '14px 16px 8px', color: C.textSec, fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', background: C.bg }}>
+                                    {group.label}
+                                </h2>
+                                {group.notifications.map(n => {
                             // Comprehensive notification icon map — category-based + message parsing
                             const getNotifIcon = () => {
                                 const s = 14; const clr = '#fff';
@@ -1110,7 +1121,9 @@ export default function HubNotificationsFeed({ embedded = false, onNotifCleared 
                                     </div>
                                 </div>
                             );
-                        })
+                                })}
+                            </section>
+                        ))
                     )}
                 </div>
 

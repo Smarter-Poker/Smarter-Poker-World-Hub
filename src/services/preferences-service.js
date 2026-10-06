@@ -14,18 +14,46 @@ import { getAccessToken } from '../lib/authUtils';
 // ═══════════════════════════════════════════════════════════════════════════
 
 export const messengerPreferences = {
-  // Get preferences (localStorage only — messenger_preferences column not yet in DB)
+  // Messenger delivery consent lives with the other notification preferences.
+  // Keep the menu's historic local setting as a fallback for signed-out use,
+  // but when a user is signed in the persisted value is authoritative so the
+  // Messenger menu, Settings, and the push gate cannot disagree.
   async get(userId) {
-    return {
+    const local = {
       notifications: localStorage.getItem('messenger-notifications') !== 'false',
       readReceipts: localStorage.getItem('messenger-read-receipts') !== 'false',
       activeStatus: localStorage.getItem('messenger-active-status') !== 'false',
       messageSounds: localStorage.getItem('messenger-sounds') !== 'false',
     };
+
+    if (!userId) return local;
+
+    try {
+      const { data, error } = await supabase
+        .from('user_notification_preferences')
+        .select('messenger_alerts')
+        .eq('user_id', userId)
+        .maybeSingle();
+      if (error) throw error;
+      if (typeof data?.messenger_alerts === 'boolean') {
+        local.notifications = data.messenger_alerts;
+        localStorage.setItem('messenger-notifications', data.messenger_alerts.toString());
+      }
+    } catch (error) {
+      // The last known local value remains usable while the account setting is
+      // temporarily unavailable. Updates still reject so the UI can roll back.
+      console.warn('[Preferences] Error loading Messenger notification preference:', error);
+    }
+
+    return local;
   },
 
-  // Update preferences (localStorage only — DB sync disabled until column exists)
+  // Update preferences. `messenger_alerts` is also the legacy preference the
+  // server-side push gate consults for direct messages and calls.
   async update(userId, preferences) {
+    const priorNotificationValue = preferences.notifications !== undefined
+      ? localStorage.getItem('messenger-notifications')
+      : null;
     if (preferences.notifications !== undefined) {
       localStorage.setItem('messenger-notifications', preferences.notifications.toString());
     }
@@ -37,6 +65,17 @@ export const messengerPreferences = {
     }
     if (preferences.messageSounds !== undefined) {
       localStorage.setItem('messenger-sounds', preferences.messageSounds.toString());
+    }
+
+    if (userId && preferences.notifications !== undefined) {
+      const { error } = await supabase
+        .from('user_notification_preferences')
+        .upsert({ user_id: userId, messenger_alerts: preferences.notifications }, { onConflict: 'user_id' });
+      if (error) {
+        if (priorNotificationValue === null) localStorage.removeItem('messenger-notifications');
+        else localStorage.setItem('messenger-notifications', priorNotificationValue);
+        throw error;
+      }
     }
     return preferences;
   },

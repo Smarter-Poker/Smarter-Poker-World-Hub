@@ -174,7 +174,10 @@ jobs:
           __tests__/messenger-read-state.test.mjs
           __tests__/messenger-sync-lifecycle.test.mjs
           __tests__/messenger-completion-lifecycle.test.mjs
+          __tests__/messenger-organization.test.mjs
+          __tests__/messenger-alert-preferences.test.mjs
           __tests__/notifications-completion.test.mjs
+          __tests__/notification-feed-groups.test.mjs
           __tests__/messenger-accounting-ui.test.mjs
           __tests__/messenger-conversation-link.test.mjs
           __tests__/messenger-search-lifecycle.test.mjs
