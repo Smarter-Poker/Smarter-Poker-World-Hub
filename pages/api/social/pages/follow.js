@@ -281,10 +281,14 @@ export default async function handler(req, res) {
           }
 
           if (user_id) {
-              // Get pages a user follows
+              // Get pages a user follows. The person themselves sees every
+              // follow, pending ones included. Anyone else sees only approved
+              // follows of public pages: membership of a private page, or a
+              // request still waiting on its owner, is not a stranger's to read.
+              const isSelf = requester_id === user_id;
               const { data, error } = await getSupabase()
                   .from('social_page_followers')
-                  .select('page_id, role, created_at')
+                  .select('page_id, role, status, created_at')
                   .eq('user_id', user_id)
                       .limit(100);
 
@@ -302,8 +306,13 @@ export default async function handler(req, res) {
                   (pageData || []).forEach(p => { pages[p.id] = p; });
               }
 
-              const enriched = (data || []).map(f => ({
+              const visible = isSelf
+                  ? (data || [])
+                  : (data || []).filter(f => f.status === 'approved'
+                      && pages[f.page_id] && pages[f.page_id].is_public !== false);
+              const enriched = visible.map(({ status, ...f }) => ({
                   ...f,
+                  ...(isSelf ? { status } : {}),
                   page: pages[f.page_id] || null
               }));
 
