@@ -243,7 +243,8 @@ test('the service worker cache for Trivia art is named for the exact art that sh
     const worker = read('worker/index.js');
     assert.ok(worker.includes(`const TRIVIA_ART_CACHE = '${name}';`),
         `worker/index.js must name ${name} (run node scripts/trivia-art/art-cache-name.mjs after changing any Trivia art)`);
-    assert.match(worker, /await self\.clients\.claim\(\);\s*await retireStaleTriviaArt\(\);/);
+    assert.match(worker, /await retireStaleTriviaArt\(\);[\s\S]*?await self\.clients\.claim\(\);/,
+        'the new worker must retire rejected Trivia art before it claims any client');
     assert.match(worker, /name\.indexOf\('trivia-art-'\) === 0 && name !== TRIVIA_ART_CACHE/);
     assert.match(worker, /pathname\.indexOf\('\/images\/trivia\/'\) === 0/);
     const config = read('next.config.js');
