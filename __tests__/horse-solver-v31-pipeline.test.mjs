@@ -65,8 +65,9 @@ test('workers use narrow HMAC ingress and PostgreSQL-owned node seals', () => {
   assert.doesNotMatch(compactor, /mark_candidate|promote_dataset/);
   assert.match(pio, /calc_ev \{player\} \{node\}:\{action\}/);
   const rakeSetup = pio.indexOf('commands.append(f"set_rake');
-  const treeBuild = pio.indexOf('"build_tree",', rakeSetup);
-  assert.ok(rakeSetup > 0 && treeBuild > rakeSetup);
+  const treeBuild = pio.indexOf('commands.append("build_tree")');
+  const go = pio.indexOf('"go",', rakeSetup);
+  assert.ok(treeBuild > 0 && rakeSetup > treeBuild && go > rakeSetup);
   assert.match(documentation, /cannot mark a candidate or promote one/);
   assert.match(documentation, /no OpenClaw dependency/);
   assert.match(preparer, /"approved": False/);

@@ -11,6 +11,13 @@ export is divided by chips per big blind. ICM output therefore represents
 BB-equivalent payout equity, not chip EV. Unversioned models fail closed.
 The compiler conserves the root pot once and retains funded terminal payouts.
 
+Actual Pio 3.8 commissioning identified two launch defects: distribution files
+require executable-local working directories, and rake configuration requires
+an already built tree. Both are corrected with retained subprocess and command
+sequence regressions. Cash and ICM command order was checked on the licensed M2
+installation. An explicit self-test-only scenario now checks an independently
+derived analytic poker fixture without contributing any export or serving cell.
+
 A manual protected-main Actions operation provisions separate M1, M2 and
 compactor gateway keys. It binds the exact dispatch revision before checkout,
 uses the existing production secret store and retains only RSA-OAEP-SHA256

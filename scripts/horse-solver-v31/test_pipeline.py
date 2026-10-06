@@ -247,11 +247,12 @@ class PioHarvestTests(unittest.TestCase):
         )
         self.assertAlmostEqual(result["weighted_policy_ev_bb"], 1.8)
 
-    def test_rake_and_exactly_one_icm_mode_precede_tree_build(self):
+    def test_rake_and_exactly_one_icm_mode_follow_tree_build_and_precede_go(self):
         scenario = base_scenario()
         commands = setup_commands(scenario, [1.0] * 1326, [1.0] * 1326)
         self.assertLess(commands.index("reset_icm_tables"), commands.index("set_rake 0 0"))
-        self.assertLess(commands.index("set_rake 0 0"), commands.index("build_tree"))
+        self.assertLess(commands.index("build_tree"), commands.index("reset_icm_tables"))
+        self.assertLess(commands.index("set_rake 0 0"), commands.index("go"))
         self.assertFalse(any(command.startswith("set_icm") for command in commands))
         self.assertIn("set_accuracy 0.005 fraction", commands)
         self.assertEqual(commands[commands.index("set_accuracy 0.005 fraction") + 1], "go")
@@ -275,9 +276,9 @@ class PioHarvestTests(unittest.TestCase):
             scenario, [1.0] * 1326, [1.0] * 1326, icm_model=model
         )
         self.assertLess(commands.index("set_rake 0 0"), commands.index("reset_icm_tables"))
-        self.assertLess(commands.index("reset_icm_tables"), commands.index("build_tree"))
+        self.assertLess(commands.index("build_tree"), commands.index("set_rake 0 0"))
         self.assertEqual(sum(command.startswith("set_icm ") for command in commands), 1)
-        self.assertLess(commands.index("set_icm 1000 1400"), commands.index("build_tree"))
+        self.assertLess(commands.index("set_icm 1000 1400"), commands.index("go"))
         self.assertEqual(sum(command.startswith("set_icm_point ") for command in commands), 4)
         self.assertIn("set_icm_point OOP 2000 2500", commands)
         # A payout utility of 1 is 2500 chip-equivalent units, not one chip.
@@ -317,9 +318,15 @@ class PioHarvestTests(unittest.TestCase):
             (root / scenario["ip_range_path"]).write_text(payload, encoding="utf-8")
             manifest = ApprovedManifest(root / "manifest.json", root, {}, "a" * 64)
             commands: list[str] = []
+            tree_built = False
 
             def pio(command: str) -> str:
+                nonlocal tree_built
                 commands.append(command)
+                if command == "build_tree":
+                    tree_built = True
+                if command.startswith("set_rake ") and not tree_built:
+                    raise PioError("set_rake missing/incorrect tree")
                 if command == "calc_results":
                     return "\n".join(
                         (
@@ -756,6 +763,19 @@ class ManifestAndGatewayTests(unittest.TestCase):
         self.assertEqual(len(compactor.declared_coverage(manifest)), 1)
         self.assertEqual(owned_targets(train, "M1"), train["targets"])
         self.assertEqual(owned_targets(train, "M2"), [])
+        fixture = json.loads(json.dumps(train))
+        fixture.update({"scenario_id": "analytic.selftest", "purpose": "self_test"})
+        fixture["targets"][0]["target_id"] = "analytic.only"
+        with_fixture = ApprovedManifest(Path("manifest.json"), Path("inputs"),
+            {"scenarios": [fixture, train, holdout], "self_test": {"scenario_id": "analytic.selftest"}}, "a" * 64)
+        self.assertEqual(compactor.declared_coverage(with_fixture), compactor.declared_coverage(manifest))
+        self.assertEqual(owned_targets(fixture, "M1"), [])
+        self.assertEqual(owned_targets(fixture, "M2"), [])
+        with mock.patch.object(worker, "solve_scenario", return_value={}) as solve, mock.patch.object(worker, "run_self_test", return_value={"verified": True}):
+            selected, receipt = worker.solver_self_test(lambda command: "", with_fixture)
+        self.assertIs(selected, fixture)
+        self.assertTrue(receipt["verified"])
+        self.assertIs(solve.call_args.args[1], fixture)
 
         missing_holdout = ApprovedManifest(
             Path("manifest.json"), Path("inputs"), {"scenarios": [train]}, "a" * 64
@@ -1103,6 +1123,30 @@ class ManifestAndGatewayTests(unittest.TestCase):
             self.assertEqual(loaded.provenance["manifest_checksum"], digest(manifest_bytes))
             self.assertEqual(loaded.source_combo_order, canonical_hand_order_tokens())
             self.assertEqual(loaded.icm_models["satellite.1000"]["ip_stack_chips"], 1400)
+            fixture_manifest = json.loads(json.dumps(manifest))
+            fixture_scenario = json.loads(json.dumps(scenario))
+            fixture_scenario.update({"scenario_id": "analytic.selftest", "purpose": "self_test"})
+            fixture_scenario["targets"][0]["target_id"] = "analytic.only"
+            fixture_manifest["scenarios"].append(fixture_scenario)
+            fixture_manifest["self_test"]["scenario_id"] = "analytic.selftest"
+            def load_fixture():
+                payload = canonical_json(fixture_manifest)
+                manifest_path.write_bytes(payload)
+                return load_manifest(manifest_path, expected_checksum=digest(payload),
+                    input_root=input_root, pipeline_root=pipeline_root)
+            self.assertEqual(len(load_fixture().raw["scenarios"]), 3)
+            fixture_manifest["self_test"]["scenario_id"] = scenario["scenario_id"]
+            with self.assertRaisesRegex(ContractError, "purpose must match"):
+                load_fixture()
+            fixture_manifest["self_test"]["scenario_id"] = "analytic.selftest"
+            fixture_scenario["purpose"] = "unknown"
+            with self.assertRaisesRegex(ContractError, "purpose must be"):
+                load_fixture()
+            fixture_scenario["purpose"] = "self_test"
+            fixture_scenario["unrecognized"] = True
+            with self.assertRaises(ContractError):
+                load_fixture()
+            manifest_path.write_bytes(manifest_bytes)
             invalid_combo = b"\xff"
             (input_root / "combo.txt").write_bytes(invalid_combo)
             invalid_combo_manifest = json.loads(json.dumps(manifest))

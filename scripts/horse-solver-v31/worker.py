@@ -320,6 +320,8 @@ def ordered_scenarios(manifest: ApprovedManifest) -> list[dict[str, Any]]:
 def owned_targets(scenario: dict[str, Any], machine: str) -> list[dict[str, Any]]:
     """Return only the manifest targets assigned to this independent split."""
 
+    if scenario.get("purpose", "harvest") == "self_test":
+        return []
     return [target for target in scenario["targets"] if target["machine_id"] == machine]
 
 

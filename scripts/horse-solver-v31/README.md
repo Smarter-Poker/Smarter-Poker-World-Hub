@@ -72,6 +72,13 @@ Create one immutable input directory containing:
    signatures must be disjoint. Changing only suits or flop-card order produces
    the same strategic board under suit isomorphism, so it is reproducibility
    evidence rather than held-out evidence and is rejected by the compactor.
+   A standalone analytic startup fixture must declare `purpose: "self_test"`
+   and be the scenario referenced by the root `self_test` contract. It is
+   solved and checked at startup but never harvested, counted in worker target
+   totals, or declared as a serving cell. Ordinary scenarios omit `purpose`
+   or use `"harvest"`; any other purpose or unreferenced self-test fixture is
+   rejected. Historical self-tests referencing real harvest scenarios continue
+   to use their ordinary independently assigned exports.
 
 The input bundle approved through `ca_gto_v31_approve_input_bundle` must include
 file receipts for the range bundle, combo-order file, ICM model, and the exact

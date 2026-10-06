@@ -787,6 +787,9 @@ def setup_commands(
         "add_line " + " ".join(_format_number(value) for value in line)
         for line in scenario["tree_lines"]
     )
+    # Pio 3.8's set_rake requires an existing tree, including the zero-rake
+    # command used before installing ICM. Select the EV model before solving.
+    commands.append("build_tree")
     if scenario.get("objective") == "icm":
         # Pio keeps the EV model in global state across trees.  Explicitly
         # disable rake before installing an ICM model so a prior cash tree can
@@ -821,7 +824,6 @@ def setup_commands(
         raise PioError("solve_accuracy must be a fraction in (0, 0.01]")
     commands.extend(
         (
-            "build_tree",
             f"set_accuracy {_format_number(accuracy)} fraction",
             "go",
             "wait_for_solver",
@@ -842,10 +844,10 @@ def setup_commands(
     elif len(rake_commands) != 1 or active_icm_commands:
         raise PioError("a cash/chip-EV scenario must clear ICM and install one rake model")
     if any(
-        commands.index(command) > commands.index("build_tree")
+        not commands.index("build_tree") < commands.index(command) < commands.index("go")
         for command in rake_commands + icm_resets + active_icm_commands
     ):
-        raise PioError("the EV model must be configured before build_tree")
+        raise PioError("the EV model must be configured after build_tree and before go")
     return commands
 
 

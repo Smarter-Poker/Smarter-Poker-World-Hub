@@ -784,7 +784,10 @@ def _validate_scenario(
     icm_models: dict[str, dict[str, Any]],
     verify_inputs: bool,
 ) -> dict[str, Any]:
-    scenario = _exact_keys(raw, SCENARIO_KEYS, f"scenarios[{index}]")
+    keys = SCENARIO_KEYS | {"purpose"} if isinstance(raw, dict) and "purpose" in raw else SCENARIO_KEYS
+    scenario = _exact_keys(raw, keys, f"scenarios[{index}]")
+    if scenario.get("purpose", "harvest") not in ("harvest", "self_test"):
+        raise ContractError(f"scenarios[{index}].purpose must be harvest or self_test")
     scenario_id = _json_string(
         scenario["scenario_id"], f"scenarios[{index}].scenario_id"
     )
@@ -1025,7 +1028,8 @@ def load_manifest(
             if target["target_id"] in all_target_ids:
                 raise ContractError(f"duplicate target_id: {target['target_id']}")
             all_target_ids.add(target["target_id"])
-            target_machines.add(target["machine_id"])
+            if scenario.get("purpose", "harvest") == "harvest":
+                target_machines.add(target["machine_id"])
     if target_machines != {"M1", "M2"}:
         raise ContractError("manifest must assign source targets to both M1 and M2")
     self_test = _exact_keys(manifest["self_test"], SELF_TEST_KEYS, "self_test")
@@ -1044,6 +1048,10 @@ def load_manifest(
     ):
         raise ContractError("self_test expected_children is invalid")
     self_scenario = scenario_by_id[self_test["scenario_id"]]
+    if any(scenario.get("purpose", "harvest") == "self_test"
+           and scenario["scenario_id"] != self_test["scenario_id"]
+           for scenario in scenarios):
+        raise ContractError("self_test purpose must match the referenced self_test scenario")
     self_target = next(
         (target for target in self_scenario["targets"] if target["node"] == self_test["node"]),
         None,
