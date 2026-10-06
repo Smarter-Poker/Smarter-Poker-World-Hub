@@ -91,6 +91,10 @@ export default async function exportAllCsv({
   if (typeof recordCompletion === 'function') {
     await recordCompletion({ rowCount: shaped.length, total, complete });
   }
-  downloadCsv(stampedName(filenamePrefix), toCsv(shaped, columns));
+  const exportedRows = complete ? shaped : [{
+    __export_state: `TRUNCATED EXPORT. ${shaped.length} ROWS EXPORTED. ${total === null ? 'TOTAL UNKNOWN' : `TOTAL ${total}`}. SAFETY CAP ${limit * maxPages}.`,
+  }, ...shaped];
+  const exportedColumns = complete ? columns : [['__export_state', 'Export State'], ...columns];
+  downloadCsv(stampedName(`${filenamePrefix}${complete ? '' : '-truncated'}`), toCsv(exportedRows, exportedColumns));
   return { exported: shaped.length, total, complete, prepared: true, delivery: 'requested' };
 }

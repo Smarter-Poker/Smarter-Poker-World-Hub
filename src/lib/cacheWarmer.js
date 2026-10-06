@@ -68,7 +68,7 @@ export function warmCache(user) {
             supabase.rpc('get_my_full_profile').then(r => ({ ...r, data: Array.isArray(r.data) ? r.data[0] : r.data })),
             supabase.from('social_follows').select('*', { count: 'exact', head: true }).eq('follower_id', userId),
             supabase.from('social_follows').select('*', { count: 'exact', head: true }).eq('following_id', userId),
-            supabase.from('social_posts').select('*', { count: 'exact', head: true }).eq('author_id', userId),
+            supabase.from('social_posts').select('id', { count: 'exact', head: true }).eq('author_id', userId),
             supabase.from('friendships').select('user_id, friend_id').eq('status', 'accepted').or(`user_id.eq.${userId},friend_id.eq.${userId}`).limit(200),
         ]).then(([profileRes, followingCount, followersCount, postsCount, friendshipsRes]) => {
             if (!profileRes.data || !CACHE_KEY) return;

@@ -52,6 +52,28 @@ export function defaultPvpStake(quote) {
     return (quote.stakes.find((entry) => entry.stake <= quote.balance) || quote.stakes[0]).stake;
 }
 
+/**
+ * Owns quote-response ordering independently from match/status DTO ordering.
+ * Multiple legitimate callers can request fresh entry terms at once (boot,
+ * terminal-state recovery, or a stale-rules recovery). Only the newest quote
+ * request may adopt success, failure, or loading completion.
+ */
+export function createPvpQuoteAuthority() {
+    let sequence = 0;
+    return Object.freeze({
+        begin() {
+            sequence += 1;
+            return sequence;
+        },
+        isCurrent(requestSequence) {
+            return Number.isInteger(requestSequence) && requestSequence === sequence;
+        },
+        invalidate() {
+            sequence += 1;
+        },
+    });
+}
+
 export function pvpStakeKeyboardTarget(stakes, balance, currentStake, key) {
     const affordable = (Array.isArray(stakes) ? stakes : [])
         .filter((entry) => isIntegerAtLeast(entry?.stake, 1) && entry.stake <= balance);

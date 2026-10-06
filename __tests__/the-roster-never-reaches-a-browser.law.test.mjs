@@ -13,7 +13,9 @@
  * tab. Those reads moved server-side:
  *
  *   - presence: POST /api/social/presence answers ONE `online` list for any
- *     ids, every player decided the same way, and never says which rule fired;
+ *     ids from fn_profile_presence alone, the definition every surface uses;
+ *     a player with no browser keeps a real heartbeat written server-side, so
+ *     the route reads no roster and runs no schedule;
  *   - the profile page uses the profile's own id for every player;
  *   - the console reads /api/horses/roster (operator auth, fleet.read).
  *
@@ -177,13 +179,13 @@ const PRESENCE_SOURCE = read('pages/api/social/presence.js');
 const ts = require('typescript');
 
 const ID = (n) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
-const HUMAN_ONLINE = ID(1);
-const HUMAN_OFFLINE = ID(2);
-const SCHEDULE_AWAKE = ID(3);
-const SCHEDULE_ASLEEP = ID(4);
+const ONLINE_A = ID(1);
+const OFFLINE_A = ID(2);
+const ONLINE_B = ID(3);
+const OFFLINE_B = ID(4);
 const TOKEN = 'caller-token-0123456789abcdef0123456789';
 
-function loadPresence({ presenceRows = [], presenceError = null, rosterRows = [], rosterError = null, user = { id: ID(99) } } = {}) {
+function loadPresence({ presenceRows = [], presenceError = null, user = { id: ID(99) } } = {}) {
   const calls = [];
   const createClient = (url, key, options) => {
     const auth = options?.global?.headers?.Authorization || null;
@@ -201,7 +203,7 @@ function loadPresence({ presenceRows = [], presenceError = null, rosterRows = []
           eq(col, v) { q.filters.push(['eq', col, v]); return builder; },
           in(col, v) { q.filters.push(['in', col, v]); return builder; },
           then(onOk, onErr) {
-            return Promise.resolve({ data: rosterError ? null : rosterRows, error: rosterError }).then(onOk, onErr);
+            return Promise.resolve({ data: [], error: null }).then(onOk, onErr);
           },
         };
         return builder;
@@ -212,7 +214,6 @@ function loadPresence({ presenceRows = [], presenceError = null, rosterRows = []
     '../../../src/lib/supabaseServerClient': { createClient },
     '../../../src/lib/serverAuth': { getServerUserWithFallback: async () => ({ user, error: user ? null : 'no' }) },
     '../../../src/lib/apiRateLimit': { applyRateLimit: () => true, LIMITS: { read: { max: 120, windowMs: 60000 } } },
-    '../../../src/lib/horsePresence': { isHorseOnlineNow: (id) => id === SCHEDULE_AWAKE },
   };
   const code = ts.transpileModule(PRESENCE_SOURCE, {
     fileName: 'presence.js',
@@ -249,29 +250,33 @@ const post = (ids, auth = `Bearer ${TOKEN}`) => ({
   body: { ids },
 });
 
-test('presence: one `online` list, in the order asked, whatever made each id online', async () => {
+test('presence: one `online` list, in the order asked, from fn_profile_presence alone', async () => {
   const { mod, calls } = loadPresence({
     presenceRows: [
-      { user_id: HUMAN_ONLINE, is_online: true },
-      { user_id: HUMAN_OFFLINE, is_online: false },
-      { user_id: SCHEDULE_AWAKE, is_online: false },
-      { user_id: SCHEDULE_ASLEEP, is_online: false },
+      { user_id: ONLINE_A, is_online: true },
+      { user_id: OFFLINE_A, is_online: false },
+      { user_id: ONLINE_B, is_online: true },
+      { user_id: OFFLINE_B, is_online: false },
     ],
-    rosterRows: [{ profile_id: SCHEDULE_AWAKE }, { profile_id: SCHEDULE_ASLEEP }],
   });
   const res = fakeRes();
-  await mod.default(post([SCHEDULE_AWAKE, HUMAN_OFFLINE, HUMAN_ONLINE, SCHEDULE_ASLEEP]), res);
+  await mod.default(post([ONLINE_B, OFFLINE_A, ONLINE_A, OFFLINE_B]), res);
   assert.equal(res.statusCode, 200);
   assert.deepEqual(Object.keys(res.body).sort(), ['online', 'success'], 'no other field, ever');
-  assert.deepEqual(res.body.online, [SCHEDULE_AWAKE, HUMAN_ONLINE]);
+  assert.deepEqual(res.body.online, [ONLINE_B, ONLINE_A]);
   assert.equal(res.headers['cache-control'], 'private, no-store, max-age=0');
 
-  const rpc = calls.find((c) => c.kind === 'rpc');
-  assert.equal(rpc.name, 'fn_profile_presence', 'humans are online by the platform definition');
-  assert.equal(rpc.auth, `Bearer ${TOKEN}`, 'asked as the caller');
-  const roster = calls.find((c) => c.kind === 'from');
-  assert.equal(roster.table, 'content_authors');
-  assert.equal(roster.key, 'service-key', 'the roster is read with the service role only');
+  const rpcs = calls.filter((c) => c.kind === 'rpc');
+  assert.equal(rpcs.length, 1);
+  assert.equal(rpcs[0].name, 'fn_profile_presence', 'everybody is online by the platform definition');
+  assert.equal(rpcs[0].auth, `Bearer ${TOKEN}`, 'asked as the caller');
+  assert.deepEqual(calls.filter((c) => c.kind === 'from'), [], 'no table is read: no roster, no schedule');
+});
+
+test('presence: the route knows nothing about who anybody is', () => {
+  const code = stripComments(PRESENCE_SOURCE);
+  assert.doesNotMatch(code, /content_authors|horsePresence|isHorseOnlineNow|is_horse|\.from\(/);
+  assert.equal(existsSync(join(ROOT, 'src/lib/horsePresence.js')), false, 'the schedule module is gone');
 });
 
 test('presence: every success response in the route is { success, online } and nothing else', () => {
@@ -281,34 +286,31 @@ test('presence: every success response in the route is { success, online } and n
   for (const ok of oks) assert.match(ok, /^\.json\(\{\s*success:\s*true,\s*online(?::\s*\[\])?\s*\}\)$/, ok);
 });
 
-test('presence: if either source fails nobody is online (a half answer is a label)', async () => {
-  for (const failure of [{ presenceError: { message: 'rpc down' } }, { rosterError: { message: 'roster down' } }]) {
-    const { mod } = loadPresence({
-      presenceRows: [{ user_id: HUMAN_ONLINE, is_online: true }],
-      rosterRows: [{ profile_id: SCHEDULE_AWAKE }],
-      ...failure,
-    });
-    const res = fakeRes();
-    await mod.default(post([HUMAN_ONLINE, SCHEDULE_AWAKE]), res);
-    assert.equal(res.statusCode, 500);
-    assert.equal(res.body.online, undefined);
-  }
+test('presence: if the database cannot answer, nobody is online', async () => {
+  const { mod } = loadPresence({
+    presenceRows: [{ user_id: ONLINE_A, is_online: true }],
+    presenceError: { message: 'rpc down' },
+  });
+  const res = fakeRes();
+  await mod.default(post([ONLINE_A]), res);
+  assert.equal(res.statusCode, 500);
+  assert.equal(res.body.online, undefined);
 });
 
 test('presence: signed-in callers only, POST only, at most 200 uuids', async () => {
   let { mod } = loadPresence();
   let res = fakeRes();
-  await mod.default(post([HUMAN_ONLINE], null), res);
+  await mod.default(post([ONLINE_A], null), res);
   assert.equal(res.statusCode, 401);
 
   ({ mod } = loadPresence({ user: null }));
   res = fakeRes();
-  await mod.default(post([HUMAN_ONLINE]), res);
+  await mod.default(post([ONLINE_A]), res);
   assert.equal(res.statusCode, 401);
 
   ({ mod } = loadPresence());
   res = fakeRes();
-  await mod.default({ ...post([HUMAN_ONLINE]), method: 'GET' }, res);
+  await mod.default({ ...post([ONLINE_A]), method: 'GET' }, res);
   assert.equal(res.statusCode, 405);
 
   res = fakeRes();
@@ -319,5 +321,5 @@ test('presence: signed-in callers only, POST only, at most 200 uuids', async () 
   await mod.default(post(Array.from({ length: 201 }, (_, i) => ID(i + 1000))), res);
   assert.equal(res.statusCode, 400);
 
-  assert.deepEqual(mod.parsePresenceIds({ ids: [HUMAN_ONLINE.toUpperCase(), HUMAN_ONLINE] }), { ids: [HUMAN_ONLINE] });
+  assert.deepEqual(mod.parsePresenceIds({ ids: [ONLINE_A.toUpperCase(), ONLINE_A] }), { ids: [ONLINE_A] });
 });

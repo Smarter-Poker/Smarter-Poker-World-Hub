@@ -6,13 +6,30 @@
 import { supabase } from '../lib/supabase';
 
 /**
+ * Defaults for every preference the page reads. A stored blob can lack keys
+ * ({} is stored for some profiles, and a first save writes only the merged
+ * patch), so reads merge the stored value OVER these rather than replacing
+ * them: a missing key must read as its default, not as undefined/off.
+ */
+function defaultPreferences() {
+    return { autoSave: true, notifications: true, currencyEUR: false };
+}
+
+function withDefaults(stored) {
+    return {
+        ...defaultPreferences(),
+        ...(stored && typeof stored === 'object' && !Array.isArray(stored) ? stored : {}),
+    };
+}
+
+/**
  * Get user's bankroll preferences
  * @param {string} userId - User ID
  * @returns {Promise<Object>} Preferences object
  */
 export async function getBankrollPreferences(userId) {
     if (!userId) {
-        return { autoSave: true, notifications: true };
+        return defaultPreferences();
     }
 
     try {
@@ -24,10 +41,10 @@ export async function getBankrollPreferences(userId) {
 
         if (error) throw error;
 
-        return data?.bankroll_preferences || { autoSave: true, notifications: true };
+        return withDefaults(data?.bankroll_preferences);
     } catch (error) {
         console.warn('Error fetching bankroll preferences:', error);
-        return { autoSave: true, notifications: true };
+        return defaultPreferences();
     }
 }
 

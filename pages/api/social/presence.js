@@ -6,29 +6,25 @@
  * Dan, 2026-09-02: "NOBODY SHOULD EVER EVER EVER BE ABLE TO LOOK AT OUR CODE
  * OR USE A DEVELOPER TOOL AND FIND THIS OUT."
  *
- * The social feed and the profile page used to work this out in the browser:
- * they downloaded every content_authors.profile_id and drew the green dot only
- * for an id on that list whose schedule said "awake". The download was the
- * roster, and a dot only roster members could ever get was a label on every
- * post. Presence is answered here now, for everyone, the same way:
+ * There is ONE definition of online, and it is the database's:
+ * fn_profile_presence says a player is online while profiles.is_online is set
+ * and their heartbeat (profiles.last_seen) is under five minutes old. The
+ * messenger, the hover card, the feed dot and the profile dot all read it, so
+ * no two surfaces can disagree about anybody.
  *
- *   - a player is online when fn_profile_presence says so (is_online with a
- *     heartbeat under five minutes old, the definition the messenger uses);
- *   - a player with no browser keeps a heartbeat through its schedule, so it
- *     is also online while isHorseOnlineNow says it is awake.
+ * Until 2026-10-05 this route also ran a schedule (isHorseOnlineNow) for the
+ * roster, read from content_authors: the feed showed a horse online half the
+ * day while the messenger, asking the database, always showed it offline.
+ * Comparing two screens was enough to single one out. A player with no
+ * browser now keeps a real heartbeat in the same columns instead, written
+ * server-side (smarter_private.fn_horse_presence_tick on pg_cron), so this
+ * route knows nothing about who anybody is and needs no roster.
  *
- * The response never says which rule matched. It is one `online` list in the
- * order the ids were asked for, and both sources must answer or nobody is
- * online: a half answer (schedule only) would draw the dot on exactly the
- * accounts it must never single out.
- *
- * Signed-in callers only. The roster is read with the service role, which is
- * the only role that will be able to read it.
+ * Signed-in callers only, asked as the caller.
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
-import { isHorseOnlineNow } from '../../../src/lib/horsePresence';
 
 export const PRESENCE_MAX_IDS = 200;
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -40,6 +36,7 @@ function supabaseUrl() {
   return process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
 }
 
+/** Used only to verify the caller's token. */
 function getServiceClient() {
   if (serviceClient) return serviceClient;
   const url = supabaseUrl();
@@ -88,20 +85,15 @@ export function parsePresenceIds(body) {
 }
 
 /**
- * The one answer: the asked-for ids that are online by either rule, in the
- * order they were asked. Pure; exported for the law test.
+ * The asked-for ids that fn_profile_presence calls online, in the order they
+ * were asked. Pure; exported for the law test.
  */
-export function resolveOnline(ids, presenceRows, scheduledRows, isScheduledOnline) {
+export function resolveOnline(ids, presenceRows) {
   const live = new Set();
   for (const row of presenceRows || []) {
     if (row && row.is_online === true && typeof row.user_id === 'string') live.add(row.user_id.toLowerCase());
   }
-  const scheduled = new Set();
-  for (const row of scheduledRows || []) {
-    const id = typeof row?.profile_id === 'string' ? row.profile_id.toLowerCase() : null;
-    if (id && isScheduledOnline(id)) scheduled.add(id);
-  }
-  return ids.filter((id) => live.has(id) || scheduled.has(id));
+  return ids.filter((id) => live.has(id));
 }
 
 export default async function handler(req, res) {
@@ -132,18 +124,9 @@ export default async function handler(req, res) {
   if (parsed.ids.length === 0) return res.status(200).json({ success: true, online: [] });
 
   try {
-    const [presence, scheduled] = await Promise.all([
-      callerClient(token).rpc('fn_profile_presence', { p_user_ids: parsed.ids }),
-      service
-        .from('content_authors')
-        .select('profile_id')
-        .eq('is_active', true)
-        .in('profile_id', parsed.ids),
-    ]);
-    // Both or nothing. See the header: a schedule-only answer is a label.
+    const presence = await callerClient(token).rpc('fn_profile_presence', { p_user_ids: parsed.ids });
     if (presence.error) throw presence.error;
-    if (scheduled.error) throw scheduled.error;
-    const online = resolveOnline(parsed.ids, presence.data, scheduled.data, isHorseOnlineNow);
+    const online = resolveOnline(parsed.ids, presence.data);
     return res.status(200).json({ success: true, online });
   } catch (err) {
     console.error('[social/presence]', err?.message || err);

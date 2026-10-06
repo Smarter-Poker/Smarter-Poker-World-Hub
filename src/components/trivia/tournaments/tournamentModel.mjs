@@ -22,6 +22,70 @@ export const TOURNAMENT_TABS = Object.freeze([
 ]);
 
 const ACTIVE_STATES = new Set(['held', 'live', 'settling']);
+
+/**
+ * Keeps each independently rendered tournament lane latest-response-wins.
+ * Aborting fetches is still useful for transport cleanup, but it is not an
+ * authority boundary: a transport can resolve after abort or two callers can
+ * legitimately overlap.  Only the newest lease for a lane may commit state.
+ */
+export function createTournamentRequestAuthority() {
+    const generations = new Map();
+
+    return Object.freeze({
+        begin(lane) {
+            const key = String(lane || '').trim();
+            if (!key) throw new Error('tournament_request_lane_required');
+            const generation = (generations.get(key) || 0) + 1;
+            generations.set(key, generation);
+            return Object.freeze({ lane: key, generation });
+        },
+        isCurrent(lease) {
+            return Boolean(
+                lease
+                && typeof lease.lane === 'string'
+                && Number.isInteger(lease.generation)
+                && generations.get(lease.lane) === lease.generation,
+            );
+        },
+        invalidate(lanes) {
+            const keys = Array.isArray(lanes) ? lanes : [lanes];
+            for (const lane of keys) {
+                const key = String(lane || '').trim();
+                if (key) generations.set(key, (generations.get(key) || 0) + 1);
+            }
+        },
+        invalidateAll() {
+            for (const key of generations.keys()) {
+                generations.set(key, (generations.get(key) || 0) + 1);
+            }
+        },
+    });
+}
+
+export function createTournamentActionLease(authority, tournamentId) {
+    if (!authority || typeof authority.begin !== 'function' || !tournamentId) {
+        throw new Error('tournament_action_context_required');
+    }
+    return Object.freeze({
+        tournamentId,
+        requestLease: authority.begin('action'),
+    });
+}
+
+export function isTournamentActionCurrent(authority, actionLease, currentTournamentId) {
+    return Boolean(
+        authority
+        && actionLease?.tournamentId
+        && actionLease.tournamentId === currentTournamentId
+        && authority.isCurrent(actionLease.requestLease),
+    );
+}
+
+export function pendingAfterTournamentContextSupersession(pending) {
+    return pending === 'history-receipt' ? '' : pending;
+}
+
 const ERROR_COPY = Object.freeze({
     authentication_required: 'Sign In To Open Your Tournament Run.',
     insufficient_diamonds: 'Your Wallet Does Not Have Enough Diamonds For This Entry.',
