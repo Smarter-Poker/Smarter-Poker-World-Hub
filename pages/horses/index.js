@@ -68,6 +68,7 @@ export default function HorsesAdmin() {
   const keyboardFocusTabRef = useRef(null);
   const urlHydratedRef = useRef(false);
   const urlSyncedRef = useRef(false);
+  const pendingUrlStateRef = useRef(null);
 
   const showNotification = useCallback((message, type = 'success') => {
     if (notifyTimer.current) clearTimeout(notifyTimer.current);
@@ -186,6 +187,9 @@ export default function HorsesAdmin() {
 
   useEffect(() => {
     if (!router.isReady) return;
+    const pending = pendingUrlStateRef.current;
+    if (pending && !urlMatchesState(pending, router.query)) return;
+    if (pending) pendingUrlStateRef.current = null;
     setActiveTab(resolveInitialTab(router.query));
     setCaSection(resolveInitialSection(router.query));
     urlHydratedRef.current = true;
@@ -197,15 +201,21 @@ export default function HorsesAdmin() {
     if (urlMatchesState(state, router.query)) {
       urlSyncedRef.current = true;
       if (urlNeedsNormalising(state, router.query)) {
+        pendingUrlStateRef.current = state;
         router.replace(
           { pathname: router.pathname, query: nextUrlQuery(state, router.query) },
           undefined,
           { shallow: true },
-        );
+        ).catch(() => {
+          if (pendingUrlStateRef.current === state) pendingUrlStateRef.current = null;
+        });
       }
       return;
     }
     if (!urlSyncedRef.current) return;
+    const pending = pendingUrlStateRef.current;
+    if (pending?.activeTab === state.activeTab && pending?.caSection === state.caSection) return;
+    pendingUrlStateRef.current = state;
     const keyboardTarget = keyboardFocusTabRef.current === activeTab ? activeTab : null;
     router.push(
       { pathname: router.pathname, query: nextUrlQuery(state, router.query) },
@@ -216,6 +226,8 @@ export default function HorsesAdmin() {
       window.requestAnimationFrame(() => {
         navRef.current?.querySelector(`[data-tabid="${keyboardTarget}"]`)?.focus({ preventScroll: true });
       });
+    }).catch(() => {
+      if (pendingUrlStateRef.current === state) pendingUrlStateRef.current = null;
     });
   }, [activeTab, caSection, router.isReady]);
 
