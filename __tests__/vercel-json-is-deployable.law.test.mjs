@@ -155,11 +155,10 @@ test('no command in vercel.json is longer than the schema allows', () => {
 
 test('the build command is kept short by a script, not by luck', () => {
     // 239 of 256 is not much room. The next person to add a build step should
-    // add it to scripts/copy-reader-assets.mjs, or to whatever script the
-    // command already calls, rather than to the command.
+    // add it to scripts/vercel-build.sh rather than to the command.
     const config = JSON.parse(readFileSync(join(ROOT, 'vercel.json'), 'utf8'));
-    assert.match(config.buildCommand, /copy-reader-assets\.mjs/,
-        'the asset copies belong behind one script, which is what keeps this under the limit');
+    assert.match(config.buildCommand, /vercel-build\.sh/,
+        'the production build belongs behind one script, which keeps this under the limit');
     assert.doesNotMatch(config.buildCommand, /copy-tesseract-assets\.mjs/, 'chained directly, this overflowed');
     assert.doesNotMatch(config.buildCommand, /copy-pdfjs-assets\.mjs/);
 });
@@ -172,9 +171,9 @@ test('the one script still runs both copies, before next build', () => {
     // fail the build rather than be skipped.
     assert.match(script, /process\.exit\(run\.status \|\| 1\)/);
 
-    const config = JSON.parse(readFileSync(join(ROOT, 'vercel.json'), 'utf8'));
-    const copyAt = config.buildCommand.indexOf('copy-reader-assets.mjs');
-    const buildAt = config.buildCommand.indexOf('next build');
+    const runner = readFileSync(join(ROOT, 'scripts/vercel-build.sh'), 'utf8');
+    const copyAt = runner.indexOf('copy-reader-assets.mjs');
+    const buildAt = runner.indexOf('next build');
     assert.ok(copyAt >= 0 && buildAt >= 0 && copyAt < buildAt);
 
     const pkg = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8'));

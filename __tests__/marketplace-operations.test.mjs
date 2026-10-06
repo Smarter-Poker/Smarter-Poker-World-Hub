@@ -492,9 +492,11 @@ test('Vercel build and scheduled health probe enforce marketplace operations wit
   const vercel = JSON.parse(vercelText);
   assert.match(pkg.scripts['test:marketplace'], /marketplace-operations\.test\.mjs/);
   assert.match(pkg.scripts.build, /npm run test:marketplace/);
-  assert.ok(vercel.buildCommand.indexOf('prune-platform-bins') < vercel.buildCommand.indexOf('patch-next'));
-  assert.ok(vercel.buildCommand.indexOf('patch-next') < vercel.buildCommand.indexOf('test:marketplace'));
-  assert.ok(vercel.buildCommand.indexOf('test:marketplace') < vercel.buildCommand.indexOf('next build'));
+  assert.match(vercel.buildCommand, /vercel-build\.sh/);
+  const buildRunner = await readFile(new URL('../scripts/vercel-build.sh', import.meta.url), 'utf8');
+  assert.ok(buildRunner.indexOf('prune-platform-bins') < buildRunner.indexOf('patch-next'));
+  assert.ok(buildRunner.indexOf('patch-next') < buildRunner.indexOf('test:marketplace'));
+  assert.ok(buildRunner.indexOf('test:marketplace') < buildRunner.indexOf('next build'));
   for (const file of pkg.scripts['test:marketplace'].match(/__tests__\/[^ ]+\.mjs/g) || []) {
     const escaped = file.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     assert.match(vercelIgnore, new RegExp(`!/${escaped}`));
