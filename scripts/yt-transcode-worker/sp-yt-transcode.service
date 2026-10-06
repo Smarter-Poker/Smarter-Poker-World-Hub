@@ -1,6 +1,6 @@
 # /etc/systemd/system/sp-yt-transcode.service
 # Smarter Poker YouTube → native MP4 conversion worker.
-# Runs only on the dedicated reels-transcode-worker (Hetzner server 128782737).
+# Runs only on the dedicated reels-transcode-worker (Hetzner server 168974582).
 
 [Unit]
 Description=Smarter Poker YouTube Transcode Worker

@@ -27,17 +27,25 @@ test('the production workflow is serialized, least-privileged, and strict after 
   assert.match(workflow, /StrictHostKeyChecking yes/);
   assert.doesNotMatch(workflow, /HETZNER_SSH_KNOWN_HOSTS/);
   for (const source of [workflow, diagnosticsWorkflow]) {
-    assert.match(source, /Hetzner server 128782737/);
+    assert.match(source, /Hetzner server 168974582/);
     assert.match(
       source,
-      /EXPECTED_ED25519_FINGERPRINT: SHA256:sZTpafVw76Jpgu\+pwgp5X3nuaSfEnedVuZd\/eWWiG\+4/,
+      /EXPECTED_ED25519_FINGERPRINT: SHA256:iKTWWkBS\+nHscqvzFsII54viy4H7DmLD\+MfYO7\+cy\/k/,
     );
     assert.doesNotMatch(source, /SHA256:vBM49cqODqlsNSufComdeay1X5WrZV8PaOxLBdWr1u8/);
+    // 128782737 (5.161.49.206) was compromised in August 2026 and is powered
+    // off for forensics; nothing may deploy to or trust it again.
+    assert.doesNotMatch(source, /SHA256:sZTpafVw76Jpgu\+pwgp5X3nuaSfEnedVuZd\/eWWiG\+4/);
+    assert.doesNotMatch(source, /128782737|5\.161\.49\.206/);
     assert.match(source, /ssh-keyscan[^\n]+2>\/dev\/null/);
+    // Host and key are dedicated to this worker, never the shared Hetzner pair.
+    assert.match(source, /HOST: \$\{\{ vars\.YT_WORKER_HOST \}\}/);
+    assert.match(source, /ssh-private-key: \$\{\{ secrets\.YT_WORKER_SSH_PRIVATE_KEY \}\}/);
+    assert.doesNotMatch(source, /secrets\.HETZNER_(?:HOST|SSH_PRIVATE_KEY|SSH_USER)\b/);
   }
   for (const source of [deployGuide, service]) {
     assert.match(source, /reels-transcode-worker/);
-    assert.match(source, /128782737/);
+    assert.match(source, /168974582/);
   }
   assert.doesNotMatch(deployGuide, /learns the host's ed25519 key\s+at first contact/);
   assert.doesNotMatch(service, /alongside sp-transcode\.service/);

@@ -5,7 +5,13 @@ name: Deploy Rights-Gated YT Transcode Worker
 # copies, prints, or rewrites values in /etc/sp-yt-transcode.env. Native
 # processing remains fail-closed behind the
 # database youtube_native_transcode control.
-# Required repository secrets: HETZNER_HOST and HETZNER_SSH_PRIVATE_KEY.
+# Requires, in the Production environment, the YT_WORKER_HOST variable and the
+# YT_WORKER_SSH_PRIVATE_KEY secret. Both belong to this host alone. The shared
+# HETZNER_HOST / HETZNER_SSH_PRIVATE_KEY pair, also used by unrelated
+# workflows, stopped authenticating to this box during the August 2026
+# incident, and every run from 2026-08-15 failed on it. The host is bound by the pinned
+# ed25519 fingerprint below, so changing the variable alone cannot redirect a
+# deploy; a rebuilt host needs a reviewed fingerprint change (see DEPLOY.md).
 
 on:
   push:
@@ -43,14 +49,14 @@ jobs:
       - name: Set up SSH agent
         uses: webfactory/ssh-agent@dc588b651fe13675774614f8e6a936a468676387 # v0.9.0
         with:
-          ssh-private-key: ${{ secrets.HETZNER_SSH_PRIVATE_KEY }}
+          ssh-private-key: ${{ secrets.YT_WORKER_SSH_PRIVATE_KEY }}
 
-      # Canonical reels-transcode-worker: Hetzner server 128782737. The
+      # Canonical reels-transcode-worker: Hetzner server 168974582. The
       # fingerprint, rather than an IP printed in logs, binds this deploy to it.
       - name: Trust the canonical reels-transcode-worker host
         env:
-          HOST: ${{ secrets.HETZNER_HOST }}
-          EXPECTED_ED25519_FINGERPRINT: SHA256:sZTpafVw76Jpgu+pwgp5X3nuaSfEnedVuZd/eWWiG+4
+          HOST: ${{ vars.YT_WORKER_HOST }}
+          EXPECTED_ED25519_FINGERPRINT: SHA256:iKTWWkBS+nHscqvzFsII54viy4H7DmLD+MfYO7+cy/k
         run: |
           set -euo pipefail
           test -n "$HOST"
@@ -69,8 +75,8 @@ jobs:
 
       - name: Validate host-managed configuration boundary
         env:
-          HOST: ${{ secrets.HETZNER_HOST }}
-          SSH_USER: ${{ secrets.HETZNER_SSH_USER || 'root' }}
+          HOST: ${{ vars.YT_WORKER_HOST }}
+          SSH_USER: root
         run: |
           ssh "$SSH_USER@$HOST" 'bash -s' <<'EOSSH'
           set -euo pipefail
@@ -99,8 +105,8 @@ jobs:
 
       - name: Verify existing runtime
         env:
-          HOST: ${{ secrets.HETZNER_HOST }}
-          SSH_USER: ${{ secrets.HETZNER_SSH_USER || 'root' }}
+          HOST: ${{ vars.YT_WORKER_HOST }}
+          SSH_USER: root
         run: |
           ssh "$SSH_USER@$HOST" 'bash -s' <<'EOSSH'
           set -euo pipefail
@@ -126,8 +132,8 @@ jobs:
       - name: Stage and preflight immutable worker release
         env:
           BUILD_IMAGE: ${{ vars.VIDEO_YT_BUILD_IMAGE }}
-          HOST: ${{ secrets.HETZNER_HOST }}
-          SSH_USER: ${{ secrets.HETZNER_SSH_USER || 'root' }}
+          HOST: ${{ vars.YT_WORKER_HOST }}
+          SSH_USER: root
           # Owner decision (23 Sep 2026): official images only. The build
           # container downloads the official Node.js v20.20.2 linux-x64 tarball
           # from nodejs.org and accepts it only when its sha256 equals BOTH the
@@ -325,8 +331,8 @@ jobs:
 
       - name: Install unit and verify stable exact release
         env:
-          HOST: ${{ secrets.HETZNER_HOST }}
-          SSH_USER: ${{ secrets.HETZNER_SSH_USER || 'root' }}
+          HOST: ${{ vars.YT_WORKER_HOST }}
+          SSH_USER: root
         run: |
           set -euo pipefail
           unit_upload="sp-yt-transcode-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}.service"
