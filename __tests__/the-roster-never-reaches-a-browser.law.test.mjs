@@ -143,7 +143,8 @@ test('no browser file reads content_authors, keeps a roster set, or runs the sch
  * Every table that names, configures or describes the house players. Each is
  * read only by the service role; a browser read is a leak while the table is
  * open and an outage once it is closed. bot_profiles and personas list them by
- * name; content_settings is the content engine's cadence and model.
+ * name; content_settings is the content engine's cadence and model;
+ * pipeline_runs counts what the content engine published.
  */
 const SERVER_ONLY_TABLES = [
   'content_authors',
@@ -152,6 +153,7 @@ const SERVER_ONLY_TABLES = [
   'bot_profiles',
   'personas',
   'content_settings',
+  'pipeline_runs',
 ];
 
 test('no browser file reads a table that names or configures the house players', () => {

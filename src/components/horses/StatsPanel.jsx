@@ -1,5 +1,4 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { supabase } from '../../lib/supabase';
 import { listenBroadcast } from '../../lib/broadcastSync';
 import { num, T } from '../../lib/horsesAdminTokens';
 import {
@@ -40,7 +39,8 @@ export default function StatsPanel({ authFetch, onNavigate }) {
       authFetch('/api/horses/club-arena-admin?section=platform'),
       authFetch('/api/horses/analytics?type=summary'),
       readRoster(authFetch),
-      supabase.from('pipeline_runs').select('*').order('started_at', { ascending: false }).limit(10),
+      // pipeline_runs is not readable from a browser: the operator route reads it.
+      authFetch('/api/horses/stable-admin', { method: 'POST', body: JSON.stringify({ action: 'pipeline_runs' }) }),
     ]);
     if (platformResult.status === 'fulfilled') setPlatform(platformResult.value.platform || null);
     else { setPlatform(null); setPlatformError(platformResult.reason?.message || 'Platform Pulse Could Not Be Read'); }
@@ -48,7 +48,7 @@ export default function StatsPanel({ authFetch, onNavigate }) {
     else { setAnalytics(null); setAnalyticsError(analyticsResult.reason?.message || 'Analytics Could Not Be Read'); }
     if (rosterResult.status === 'fulfilled') setPersonas(rosterResult.value);
     else { setPersonas([]); setContentError(rosterResult.reason?.message || 'Roster Counts Could Not Be Read'); }
-    if (runsResult.status === 'fulfilled' && !runsResult.value.error) setPipelineRuns(runsResult.value.data || []);
+    if (runsResult.status === 'fulfilled' && Array.isArray(runsResult.value?.runs)) setPipelineRuns(runsResult.value.runs);
     else {
       setPipelineRuns([]);
       setContentError((current) => current || runsResult.value?.error?.message || runsResult.reason?.message || 'Pipeline Counts Could Not Be Read');

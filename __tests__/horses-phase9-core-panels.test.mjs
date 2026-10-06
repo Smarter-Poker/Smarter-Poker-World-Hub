@@ -40,7 +40,8 @@ test('StatsPanel independently reads canonical platform, analytics, roster and p
   assert.match(source, /section=platform/);
   assert.match(source, /\/api\/horses\/analytics\?type=summary/);
   assert.match(source, /\/api\/horses\/roster\?limit=/);
-  assert.match(source, /from\('pipeline_runs'\)/);
+  assert.match(source, /action: 'pipeline_runs'/);
+  assert.doesNotMatch(source, /from\('pipeline_runs'\)/);
   assert.match(source, /selectNavigationBadges/);
   assert.match(source, /Promise\.allSettled/);
   assert.match(source, /stopBroadcast\(\)/);

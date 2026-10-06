@@ -1365,6 +1365,19 @@ test('stable-admin: read_settings answers any operator with the settings row and
   assert.equal(read.update, undefined);
 });
 
+test('stable-admin: pipeline_runs answers any operator with the recent runs, newest first', async () => {
+  const runs = [{ id: 'r2', started_at: '2026-10-05T10:00:00Z' }, { id: 'r1', started_at: '2026-10-04T10:00:00Z' }];
+  const db = fakeDb({ pipeline_runs: { rows: runs } });
+  const consoleOnly = { ...fakeOp(db), permissions: ['console.read'] };
+  const out = await stableHandle({ req: fakeReq({ method: 'POST' }), op: consoleOnly, db, body: { action: 'pipeline_runs' } });
+  assert.ok(Array.isArray(out.runs));
+  const read = db.calls.find((c) => c.table === 'pipeline_runs');
+  assert.ok(read, 'the service role reads the runs: a browser no longer can');
+  assert.doesNotMatch(read.select, /\*|metadata/, 'named columns only, never the run notes');
+  assert.deepEqual(read.filters.find(([op]) => op === 'order'), ['order', 'started_at', { ascending: false }]);
+  assert.deepEqual(read.filters.find(([op]) => op === 'limit'), ['limit', 10]);
+});
+
 test('stable-admin: audit_log and set_ticket_status ask for their own permission', async () => {
   const db = fakeDb();
   const contentOnly = { ...fakeOp(db), permissions: ['content.write'] };

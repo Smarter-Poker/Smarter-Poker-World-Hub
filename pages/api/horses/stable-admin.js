@@ -169,6 +169,7 @@ const ACTIONS = [
   'set_ticket_status',
   'save_settings',
   'read_settings',
+  'pipeline_runs',
   'audit_log',
 ];
 
@@ -625,6 +626,26 @@ async function readSettings(db) {
   return { settings: data || null };
 }
 
+/**
+ * The content pipeline's recent runs, for the Pipeline and Stats tabs. Read
+ * here for the same reason as the settings: the browser used to read
+ * pipeline_runs with the public key, so its post and video counts were
+ * readable by anybody.
+ */
+export const PIPELINE_RUN_COLUMNS =
+  'id, run_type, started_at, completed_at, text_posts_created, videos_created, memes_created, news_shared, errors, duration_seconds';
+const PIPELINE_RUNS_SHOWN = 10;
+
+async function readPipelineRuns(db) {
+  const { data, error } = await db
+    .from('pipeline_runs')
+    .select(PIPELINE_RUN_COLUMNS)
+    .order('started_at', { ascending: false })
+    .limit(PIPELINE_RUNS_SHOWN);
+  if (error) throw mapDbError(error, 'The Pipeline Runs', { route: 'horses.stable-admin' });
+  return { runs: Array.isArray(data) ? data : [] };
+}
+
 // -- AUDIT LOG (read) --------------------------------------------------------
 //
 // Until this release the console WROTE to admin_audit_log from three routes and
@@ -880,6 +901,7 @@ const ACTION_PERMISSIONS = Object.freeze({
   bulk_delete: PERMISSIONS.CONTENT_WRITE,
   save_settings: PERMISSIONS.CONTENT_WRITE,
   read_settings: PERMISSIONS.CONSOLE_READ,
+  pipeline_runs: PERMISSIONS.CONSOLE_READ,
   set_ticket_status: PERMISSIONS.SUPPORT_WRITE,
   audit_log: PERMISSIONS.AUDIT_READ,
 });
@@ -903,6 +925,7 @@ export async function handle({ req, op, db, body }) {
 
   if (action === 'audit_log') return auditLog(db, body);
   if (action === 'read_settings') return readSettings(db);
+  if (action === 'pipeline_runs') return readPipelineRuns(db);
   if (action === 'set_ticket_status') return setTicketStatus(db, op, req, body);
 
   if (action === 'create_horse') return createHorse(db, op, req, body);
