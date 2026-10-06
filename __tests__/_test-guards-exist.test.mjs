@@ -156,6 +156,8 @@ import './horses-phase9-legacy-panels.test.mjs';
 import './operator-console-visual-system.test.mjs';
 import './horses-admin-states-are-honest.law.test.mjs';
 import './horses-operator-console-parses.law.test.mjs';
+// A retired (benched, closed) horse is never selected again (2026-10-06).
+import './a-closed-horse-is-never-selected-again.law.test.mjs';
 import './horses-reverify-client.test.mjs';
 import './horses-reverify-panels.test.mjs';
 import './horses-reverify-routes.test.mjs';
