@@ -106,8 +106,11 @@ class PioProcess:
         self._expected_solver_version = expected_solver_version
         self._expected_hand_order = tuple(expected_hand_order)
         self._pio_to_canonical: tuple[int, ...] = ()
+        executable_path = Path(executable).resolve()
         self._process = subprocess.Popen(
-            [str(executable)],
+            [str(executable_path)],
+            # Pio resolves its licensed distribution dependencies from cwd.
+            cwd=executable_path.parent,
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,

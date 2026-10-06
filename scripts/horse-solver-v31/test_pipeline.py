@@ -352,6 +352,10 @@ class PioTransportTests(unittest.TestCase):
                     f"""\
                     #!/usr/bin/env python3
                     import sys
+                    from pathlib import Path
+
+                    if Path.cwd() != Path(__file__).resolve().parent:
+                        raise RuntimeError("distribution files require executable-local cwd")
 
                     HAND_ORDER = {approved_order!r}
                     PIO_TO_CANONICAL = {pio_to_canonical!r}
