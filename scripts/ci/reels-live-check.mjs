@@ -43,16 +43,10 @@ export const SOURCE_DIVERSITY_FLOORS = Object.freeze({
 const VERIFICATION_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1_000;
 const MAX_FUTURE_SKEW_MS = 5 * 60 * 1_000;
 const RETIRED_CACHE_KEY = 'sp:reels:poker:v1:production-live-proof';
-const ALLOWED_ORIGINS = new Set([
-  'user_upload',
-  'story',
-  'social_post',
-  'video_library',
-  'horse',
-  'pokernews',
-  'generated',
-  'legacy',
-]);
+// A Reel response never says who published it (src/lib/socialReelShape.js):
+// the public API carries no origin_type. The probe learns each crawled Reel's
+// origin only through the service role (readReelOrigins), for supply counts.
+const REEL_ORIGIN_CHUNK = 200;
 const RESTRICTED_TEXT = Object.freeze([
   /\brequires?\s+(?:a\s+)?subscription\b/i,
   /\b(?:membership|subscription)\s+(?:is\s+)?required\b/i,
@@ -168,7 +162,6 @@ function hasRestrictedText(row) {
 
 export function isNarrowUnknownNativeReel(row) {
   return String(row?.topic || '').toLowerCase() === 'unknown'
-    && row?.origin_type === 'social_post'
     && row?.source_type === 'native'
     && row?.playback_type === 'native'
     && row?.rights_status === 'user_authorized'
@@ -189,11 +182,39 @@ function countBy(rows, select) {
   }, {});
 }
 
-function supplyReceipt(rows) {
+function isManagedLibraryReel(row) {
+  return row?.source_type === 'video_library'
+    || Boolean(row?.source_asset_id)
+    || String(row?.publication_key || '').startsWith('video-library:');
+}
+
+/** Each Reel's origin, read with the service role; the public API never carries it. */
+export async function readReelOrigins(admin, ids) {
+  const unique = [...new Set(ids)];
+  const origins = new Map();
+  for (let index = 0; index < unique.length; index += REEL_ORIGIN_CHUNK) {
+    const chunk = unique.slice(index, index + REEL_ORIGIN_CHUNK);
+    const { data, error } = await admin.from('social_reels').select('id,origin_type').in('id', chunk);
+    assert.ifError(error);
+    for (const row of data || []) origins.set(row.id, row.origin_type);
+  }
+  assert.equal(origins.size, unique.length, 'A crawled Reel has no authoritative row');
+  return origins;
+}
+
+/** Every horse Reel (classified with the service role) carries an ordinary player profile. */
+export function assertHorseReelProfiles(horseRows) {
+  for (const row of horseRows) {
+    assert.ok(row?.profiles && typeof row.profiles === 'object', 'Horse Reel did not resolve an ordinary player profile');
+    assert.equal(row.profiles.id, row.author_id, 'Reel profile disagrees with its author identity');
+  }
+}
+
+function supplyReceipt(rows, originById = new Map()) {
   const sourceNames = [...new Set(rows.map(row => row.source_name || 'native'))].sort();
   return {
     topics: countBy(rows, row => row.topic),
-    origins: countBy(rows, row => row.origin_type),
+    origins: countBy(rows, row => originById.get(row.id)),
     sourceTypes: countBy(rows, row => row.source_type),
     playbackTypes: countBy(rows, row => row.playback_type),
     rightsStatuses: countBy(rows, row => row.rights_status),
@@ -277,19 +298,22 @@ export function validateReelRow(row, category, {
   assert.ok(CATEGORY_TOPICS[category]?.has(topic) || narrowUnknown, 'Reel escaped its category topic contract');
   assert.equal(row.media_status, 'ready', 'Reel is not ready');
   assert.ok(!['blocked', 'restricted'].includes(row.rights_status), 'Blocked or restricted Reel reached the public feed');
-  assert.ok(ALLOWED_ORIGINS.has(row.origin_type), 'Reel origin is not part of the canonical contract');
+  assert.equal(
+    Object.prototype.hasOwnProperty.call(row, 'origin_type'),
+    false,
+    'A Reel response says who published it',
+  );
   assert.ok(['youtube_embed', 'native'].includes(row.playback_type), 'Reel playback type is not supported');
   assert.ok(typeof row.canonical_asset_key === 'string' && row.canonical_asset_key.trim(), 'Reel canonical identity is missing');
   assert.ok(typeof row.video_url === 'string' && row.video_url.startsWith('https://'), 'Reel playback URL is not HTTPS');
   assert.equal(hasRestrictedText(row), false, 'Restricted or subscription-only text reached the public feed');
   assert.equal(row.legacy_transition_eligible, false, 'Legacy-transition Reel reached the canonical public feed');
-  if (row.origin_type === 'horse') {
-    assert.ok(row.profiles && typeof row.profiles === 'object', 'Horse Reel did not resolve an ordinary player profile');
-    assert.equal(row.profiles.id, row.author_id, 'Horse Reel profile disagrees with its player-author identity');
+  if (row.profiles != null) {
+    assert.ok(typeof row.profiles === 'object', 'Reel author profile is not an object');
     assert.equal(
       Object.prototype.hasOwnProperty.call(row.profiles, 'is_horse'),
       false,
-      'Horse Reel exposed an internal fleet label in the public profile',
+      'Reel exposed an internal fleet label in the public profile',
     );
   }
   if (row.availability_status != null) {
@@ -299,7 +323,13 @@ export function validateReelRow(row, category, {
     assert.match(String(row.youtube_video_id || ''), YOUTUBE_ID, 'YouTube Reel identity is invalid');
     assert.equal(row.canonical_asset_key, `youtube:${row.youtube_video_id}`, 'YouTube canonical identity disagrees with playback identity');
     assert.ok(['embed_only', 'owned', 'licensed'].includes(row.rights_status), 'YouTube Reel lacks a supported rights contract');
-    assert.ok(typeof row.source_name === 'string' && row.source_name.trim(), 'YouTube source name is missing');
+    // The name is the video's (its attribution or the shared library's
+    // record), never the publisher's notes, so a player's YouTube Reel and a
+    // horse's read the same: channel_name falls back to the original source.
+    assert.ok(
+      [row.source_name, row.channel_name].some(value => typeof value === 'string' && value.trim()),
+      'YouTube source name is missing',
+    );
     assert.ok(
       isYouTubeAttribution(row.source_attribution_url || row.source_url, row.youtube_video_id),
       'YouTube source attribution is missing or disagrees with playback identity',
@@ -320,7 +350,7 @@ export function validateReelRow(row, category, {
       assert.ok(row.canonical_asset_key.startsWith('native:'), 'Native Reel canonical identity is invalid');
     }
   }
-  if (row.origin_type === 'video_library') {
+  if (isManagedLibraryReel(row)) {
     assert.equal(row.availability_status, 'verified', 'Unverified library Reel reached the public feed');
     assert.equal(row.embeddable, true, 'Non-embeddable library Reel reached the public feed');
     assert.ok(isFreshTimestamp(row.availability_checked_at, nowMs), 'Stale library Reel reached the public feed');
@@ -372,8 +402,13 @@ export async function crawlCanonicalFeed(readPage, {
   maxPages = MAX_COMPLETE_FEED_PAGES,
   requireTerminal = true,
   nowMs = Date.now(),
+  classifyOrigins = null,
 } = {}) {
   assert.equal(typeof readPage, 'function', 'Canonical feed crawler requires a page reader');
+  const finish = async (rows, fields) => {
+    const originById = classifyOrigins ? await classifyOrigins(rows.map(row => row.id)) : new Map();
+    return { rows, ...fields, originById, mix: supplyReceipt(rows, originById) };
+  };
   const seenIds = new Set();
   const seenKeys = new Set();
   const seenCursors = new Set();
@@ -386,13 +421,11 @@ export async function crawlCanonicalFeed(readPage, {
     rows.push(...pageRows);
     if (!payload.has_more) {
       assert.ok(rows.length > minimumExclusive, `Canonical Reels crawl did not exceed ${minimumExclusive} unique Reels`);
-      return {
-        rows,
+      return finish(rows, {
         cursorCount: seenCursors.size,
         pageCount: pageNumber,
         terminal: true,
-        mix: supplyReceipt(rows),
-      };
+      });
     }
     assert.ok(!seenCursors.has(payload.next_cursor), 'Reels continuation repeated a cursor');
     assert.notEqual(payload.next_cursor, cursor, 'Reels continuation did not advance');
@@ -400,13 +433,11 @@ export async function crawlCanonicalFeed(readPage, {
     cursor = payload.next_cursor;
     if (!requireTerminal && pageNumber === maxPages) {
       assert.ok(rows.length > minimumExclusive, `Reels sample did not exceed ${minimumExclusive} unique Reels`);
-      return {
-        rows,
+      return finish(rows, {
         cursorCount: seenCursors.size,
         pageCount: pageNumber,
         terminal: false,
-        mix: supplyReceipt(rows),
-      };
+      });
     }
   }
   assert.fail(`Canonical Reels crawl exceeded its ${maxPages}-page safety bound`);
@@ -559,7 +590,6 @@ export function selfTest() {
     video_url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
     source_name: 'Source',
     source_attribution_url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
-    origin_type: 'video_library',
     is_public: true,
     availability_status: 'verified',
     embeddable: true,
@@ -599,12 +629,15 @@ export function selfTest() {
     () => validateFeedPage(page([row], 'sports', { partial: true }), 'sports'),
     /partial page/,
   );
+  assert.throws(
+    () => validateFeedPage(page([{ ...row, origin_type: 'horse' }]), 'sports'),
+    /says who published it/,
+  );
   const unknownNative = {
     ...row,
     id: '00000000-0000-4000-8000-000000000002',
     author_id: '00000000-0000-4000-8000-000000000004',
     topic: 'unknown',
-    origin_type: 'social_post',
     source_type: 'native',
     playback_type: 'native',
     rights_status: 'user_authorized',
@@ -703,7 +736,7 @@ async function assertHealth(expectedSha) {
   return health;
 }
 
-async function collectCategory(category) {
+async function collectCategory(category, admin) {
   const complete = category === 'for-you';
   const requestedLimit = complete ? COMPLETE_FEED_LIMIT : PAGE_LIMIT;
   const requestedPages = complete ? MAX_COMPLETE_FEED_PAGES : 3;
@@ -722,10 +755,13 @@ async function collectCategory(category) {
     minimumExclusive: complete ? COMPLETE_FEED_MINIMUM : 0,
     maxPages: requestedPages,
     requireTerminal: complete,
+    classifyOrigins: (ids) => readReelOrigins(admin, ids),
   });
-  const { rows } = collection;
-  const managed = rows.filter((row) => ['video_library', 'horse'].includes(row.origin_type));
-  const horseRows = rows.filter((row) => row.origin_type === 'horse');
+  const { rows, originById } = collection;
+  const originOf = (row) => originById.get(row.id);
+  const managed = rows.filter((row) => ['video_library', 'horse'].includes(originOf(row)));
+  const horseRows = rows.filter((row) => originOf(row) === 'horse');
+  assertHorseReelProfiles(horseRows);
   const horseAuthors = new Set(horseRows.map((row) => row.author_id));
   const sourceFloor = SOURCE_DIVERSITY_FLOORS[category];
   assert.ok(managed.length > 0, `${category} did not expose managed library or horse supply`);
@@ -735,9 +771,9 @@ async function collectCategory(category) {
   );
   assert.match(collection.mix.sourceFingerprint, /^[0-9a-f]{16}$/, `${category} source fingerprint is invalid`);
   if (complete) {
-    assert.ok(rows.some(row => row.origin_type === 'video_library'), 'Complete For You crawl has no Video Library supply');
-    assert.ok(rows.some(row => row.origin_type === 'horse'), 'Complete For You crawl has no horse supply');
-    assert.ok(rows.some(row => row.origin_type === 'social_post'), 'Complete For You crawl has no social-post supply');
+    assert.ok(rows.some(row => originOf(row) === 'video_library'), 'Complete For You crawl has no Video Library supply');
+    assert.ok(rows.some(row => originOf(row) === 'horse'), 'Complete For You crawl has no horse supply');
+    assert.ok(rows.some(row => originOf(row) === 'social_post'), 'Complete For You crawl has no social-post supply');
     assert.ok(rows.some(row => row.topic === 'sports'), 'Complete For You crawl has no Sports supply');
     assert.ok(rows.some(row => row.topic === 'slots'), 'Complete For You crawl has no Casino And Slots supply');
     assert.ok(rows.some(row => ['poker', 'cash', 'tournament'].includes(row.topic)), 'Complete For You crawl has no Poker supply');
@@ -745,6 +781,7 @@ async function collectCategory(category) {
   return {
     firstId: rows[0].id,
     rows,
+    originById,
     receipt: {
       pages: collection.pageCount,
       cursors: collection.cursorCount,
@@ -757,9 +794,9 @@ async function collectCategory(category) {
       duplicateAssets: 0,
       restrictedTextMatches: 0,
       managed: managed.length,
-      library: rows.filter((row) => row.origin_type === 'video_library').length,
-      horse: rows.filter((row) => row.origin_type === 'horse').length,
-      socialPost: rows.filter((row) => row.origin_type === 'social_post').length,
+      library: rows.filter((row) => originOf(row) === 'video_library').length,
+      horse: horseRows.length,
+      socialPost: rows.filter((row) => originOf(row) === 'social_post').length,
       unknownNative: rows.filter((row) => row.topic === 'unknown').length,
       horseAuthorProfiles: {
         reels: horseRows.length,
@@ -1608,7 +1645,7 @@ async function run() {
     const collections = {};
     for (const category of REEL_CATEGORIES) {
       report.stage = `category-${category}`;
-      collections[category] = await collectCategory(category);
+      collections[category] = await collectCategory(category, admin);
       report.categories[category] = collections[category].receipt;
     }
     report.canonicalCrawl = collections['for-you'].receipt;
@@ -1617,8 +1654,11 @@ async function run() {
     assert.ok(topicSupply.has('slots'), 'Live feed has no Casino And Slots supply');
     assert.ok([...topicSupply].some((topic) => ['poker', 'cash', 'tournament'].includes(topic)), 'Live feed has no Poker supply');
     const allRows = REEL_CATEGORIES.flatMap((category) => collections[category].rows);
-    assert.ok(allRows.some((row) => row.origin_type === 'video_library'), 'Live feed has no managed Video Library supply');
-    assert.ok(allRows.some((row) => row.origin_type === 'horse'), 'Live feed has no managed horse supply');
+    const allOrigins = (row) => REEL_CATEGORIES
+      .map((category) => collections[category].originById.get(row.id))
+      .find(Boolean);
+    assert.ok(allRows.some((row) => allOrigins(row) === 'video_library'), 'Live feed has no managed Video Library supply');
+    assert.ok(allRows.some((row) => allOrigins(row) === 'horse'), 'Live feed has no managed horse supply');
     report.stage = 'alias-authoritative-state';
     report.aliasState = await readSup07AuthoritativeState(admin);
     report.stage = 'aliases';

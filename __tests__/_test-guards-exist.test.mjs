@@ -565,6 +565,11 @@ import './the-roster-never-reaches-a-browser.law.test.mjs';
 // post over as toBrowserPost(row): only the metadata keys the UI renders.
 import './a-post-never-says-who-wrote-it.law.test.mjs';
 
+// 2026-10-05: a Reel never says who made it. No browser file names
+// social_reels.origin_type, every Reel leaves the server reader through
+// toBrowserReel(row), and a source name is the video's, never the pipeline's.
+import './a-reel-never-says-who-made-it.law.test.mjs';
+
 const REPO = path.resolve(new URL('.', import.meta.url).pathname, '..');
 
 const REQUIRED_TEST_FILES = [

@@ -112,7 +112,6 @@ test('category realtime adaptation rejects explicit cross-category topic changes
     is_public: true,
     is_deleted: false,
     media_status: 'ready',
-    origin_type: 'social_post',
     source_type: 'native',
     playback_type: 'native',
     rights_status: 'user_authorized',

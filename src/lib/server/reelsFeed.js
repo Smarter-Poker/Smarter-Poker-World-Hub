@@ -8,6 +8,7 @@
  * the same safety checks this module centralises.
  */
 import { createClient } from '../supabaseServerClient';
+import { toBrowserReel } from '../socialReelShape';
 import {
     BLOCKED_VIDEO_LIBRARY_IDS,
     VIDEO_LIBRARY_ALLOWED_TYPES,
@@ -314,14 +315,6 @@ function boundedSourceName(value) {
     if (typeof value !== 'string') return null;
     const compact = value.replace(/\s+/g, ' ').trim();
     return compact && compact.length <= 160 ? compact : null;
-}
-
-function sourceNameFromMetadata(metadata) {
-    if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) return null;
-    return boundedSourceName(metadata.clip_source)
-        || boundedSourceName(metadata.source_name)
-        || boundedSourceName(metadata.channel_name)
-        || boundedSourceName(metadata.source);
 }
 
 function isTrustedNativeUrl(value, authorId) {
@@ -673,8 +666,8 @@ async function loadEligibilityContext(client, rows) {
                     'audience_list',
                     'is_flagged',
                     'is_deleted',
-                    'metadata',
-                    'origin_type',
+                    // Never metadata or origin_type: a Reel is judged and
+                    // named by what it is, not by who published it.
                     'playback_type',
                     'topic',
                     'rights_status',
@@ -922,12 +915,14 @@ function normalizeEligibleRow(row, context, scope, options = {}) {
     const canonicalAssetKey = canonicalKeyForRow({ ...row, video_url: videoUrl });
     if (!canonicalAssetKey) return null;
     const topic = explicitTopic;
-    const sourcePost = row.source_post_id ? context.postById.get(row.source_post_id) : null;
+    // The source is a property of the video (its own attribution or the shared
+    // library's record of it), never of the linked post's metadata: only the
+    // publishing pipeline writes a clip_source there, so a name read from it
+    // would appear on a horse's Reel and on no player's.
     const sourceName = boundedSourceName(row.attribution_name)
         || boundedSourceName(asset?.attribution_name)
         || boundedSourceName(asset?.source_name)
-        || boundedSourceName(asset?.source_id)
-        || sourceNameFromMetadata(sourcePost?.metadata);
+        || boundedSourceName(asset?.source_id);
     const sourceAttributionUrl = safeHttpUrl(row.attribution_url)
         || safeHttpUrl(asset?.attribution_url)
         || (youtubeId ? `https://www.youtube.com/watch?v=${youtubeId}` : null);
@@ -970,7 +965,6 @@ function normalizeEligibleRow(row, context, scope, options = {}) {
         moderation_state: row.moderation_state || asset?.moderation_state || 'active',
         takedown_case_id: row.takedown_case_id || asset?.takedown_case_id || null,
         taken_down_at: row.taken_down_at || asset?.taken_down_at || null,
-        origin_type: originType,
         playback_type: playbackType,
         topic,
         rights_status: rightsStatus,
@@ -1130,7 +1124,7 @@ function publicRow(row, profileMap) {
         _rawVideoUrl,
         ...safe
     } = row;
-    return {
+    return toBrowserReel({
         ...safe,
         channel_name: channelName,
         profiles: profile ? {
@@ -1139,7 +1133,7 @@ function publicRow(row, profileMap) {
             full_name: profile.full_name || null,
             avatar_url: profile.avatar_url || null,
         } : null,
-    };
+    });
 }
 
 async function attachProfiles(client, rows) {
@@ -1807,7 +1801,7 @@ export async function readPublicReelById(options = {}) {
         category,
     );
     return {
-        data: detail.row || null,
+        data: detail.row ? toBrowserReel(detail.row) : null,
         category,
         detailStatus: detail.status,
         redirectedFrom: detail.redirectedFrom || null,

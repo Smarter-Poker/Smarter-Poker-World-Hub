@@ -74,7 +74,6 @@ function unclassifiedNativeCommunityReel(overrides = {}) {
     is_public: true,
     is_deleted: false,
     media_status: 'ready',
-    origin_type: 'social_post',
     source_type: 'native',
     playback_type: 'native',
     rights_status: 'user_authorized',
@@ -138,7 +137,7 @@ test('the client keeps category boundaries while For You admits every approved t
     'Following never admits an unclassified row',
   );
   for (const hostile of [
-    { ...community, origin_type: 'horse' },
+    { ...community, source_type: 'youtube' },
     { ...community, rights_status: 'unknown' },
     { ...community, source_post_id: null },
     { ...community, publication_key: 'forged' },

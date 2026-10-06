@@ -5,6 +5,7 @@ import test from 'node:test';
 import {
   APP_ORIGIN,
   REQUIRED_RECEIPT_CHECKS,
+  assertHorseReelProfiles,
   SOURCE_DIVERSITY_FLOORS,
   SUP07_ALIASES,
   crawlAccountCollection,
@@ -42,7 +43,6 @@ function nativeRow(index, overrides = {}) {
     source_story_id: null,
     youtube_video_id: null,
     media_status: 'ready',
-    origin_type: 'horse',
     playback_type: 'native',
     topic: 'poker',
     rights_status: 'owned',
@@ -68,7 +68,6 @@ function youtubeRow(index = 1, overrides = {}) {
     video_url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
     source_type: 'youtube',
     youtube_video_id: 'dQw4w9WgXcQ',
-    origin_type: 'video_library',
     playback_type: 'youtube_embed',
     topic: 'sports',
     rights_status: 'embed_only',
@@ -229,12 +228,18 @@ test('live Reel validation rejects partial, duplicate, stale, legacy, and restri
 test('horse Reels resolve ordinary player profiles, including maintained zero-version database UUIDs', () => {
   const row = nativeRow(30);
   validateFeedPage(page([row]), 'for-you');
+  assertHorseReelProfiles([row]);
   assert.throws(
-    () => validateFeedPage(page([{ ...row, profiles: null }]), 'for-you'),
+    () => assertHorseReelProfiles([{ ...row, profiles: null }]),
     /ordinary player profile/,
   );
   assert.throws(
-    () => validateFeedPage(page([{ ...row, profiles: { ...row.profiles, id: uuid(31) } }]), 'for-you'),
+    () => validateFeedPage(page([{ ...row, origin_type: 'horse' }]), 'for-you'),
+    /says who published it/,
+    'the public API never carries origin_type',
+  );
+  assert.throws(
+    () => assertHorseReelProfiles([{ ...row, profiles: { ...row.profiles, id: uuid(31) } }]),
     /profile disagrees/,
   );
   assert.throws(
@@ -258,7 +263,6 @@ test('horse Reels resolve ordinary player profiles, including maintained zero-ve
 test('unknown topic is accepted only for the exact storage-proven native social-post shape', () => {
   const row = nativeRow(40, {
     topic: 'unknown',
-    origin_type: 'social_post',
     source_type: 'native',
     playback_type: 'native',
     rights_status: 'user_authorized',
@@ -272,7 +276,7 @@ test('unknown topic is accepted only for the exact storage-proven native social-
     { source_asset_id: uuid(900) },
     { native_processing_requested: true },
     { source_post_id: 'not-a-uuid' },
-    { origin_type: 'legacy' },
+    { source_type: 'youtube' },
     { rights_status: 'unknown' },
   ]) {
     assert.throws(
@@ -298,7 +302,9 @@ test('complete canonical crawler reaches a terminal page above two thousand with
     }));
   }
   let requested = 0;
-  const result = await crawlCanonicalFeed(async () => pages[requested++]);
+  const result = await crawlCanonicalFeed(async () => pages[requested++], {
+    classifyOrigins: async (ids) => new Map(ids.map((id) => [id, 'horse'])),
+  });
   assert.equal(result.rows.length, 2_001);
   assert.equal(result.pageCount, 17);
   assert.equal(result.mix.topics.poker, 2_001);
