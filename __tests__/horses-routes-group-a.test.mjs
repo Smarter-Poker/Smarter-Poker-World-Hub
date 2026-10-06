@@ -1632,17 +1632,43 @@ test('anti-abuse: an unknown section is a 400', async () => {
 
 const { handle: analyticsHandle, spec: analyticsSpec } = await import(path.join(ROUTE_DIR, 'analytics.js'));
 
+/**
+ * Phase 10 (2026-10-06): the route serves one type, summary, from one database
+ * function, fn_fleet_content_metrics(p_days). The shape below is the contract
+ * both the page and the weekly digest build to; the route hands it on whole.
+ */
+const METRICS_SAMPLE = Object.freeze({
+  window: { days: 7, since: '2026-09-29T15:00:00+00:00', until: '2026-10-06T15:00:00+00:00' },
+  feed: { horse_posts: 10, feed_posts: 80, horse_share_pct: 12.5 },
+  reactions: { human_likes: 4, human_comments: 1, horse_posts: 10, per_horse_post: 0.5 },
+  captions: { horse_posts: 10, distinct_captions: 9, distinct_caption_pct: 90.0 },
+  coverage: { horses_posted: 8, fleet_size: 900, coverage_pct: 0.9, coverage_pct_of_1000: 0.8 },
+  readiness: { horses_not_social_ready: 62 },
+  posts: { horse_posts: 10, horses_posted: 8 },
+  runs: [{ job_name: '/cron/horse-posts', runs: 1, succeeded: 1, errored: 0, killed: 0, skipped_runs: 0, engine_off_runs: 0, due: 0, posted: 0, failed: 0, collided: 0, enqueued: 0 }],
+  ledger: { phrases: [{ kind: 'caption', rows_written: 0, distinct_keys: 0, rows_that_repeat: 0 }], assets: { rows: 0, distinct: 0 } },
+});
+
+const analyticsCall = (db) => (query) =>
+  analyticsHandle({ req: fakeReq(), op: fakeOp(db), db, body: {}, query, method: 'GET' });
+
 test('analytics: days and type are validated before anything is loaded', async () => {
   const db = fakeDb();
-  const call = (query) => analyticsHandle({ req: fakeReq(), op: fakeOp(db), db, body: {}, query, method: 'GET' });
+  const call = analyticsCall(db);
   await assert.rejects(call({ type: 'summary', days: 'abc' }), (e) => e.status === 400);
   await assert.rejects(call({ type: 'summary', days: '0' }), (e) => e.status === 400);
   await assert.rejects(call({ type: 'summary', days: '366' }), (e) => e.status === 400);
   await assert.rejects(call({ type: 'made-up' }), (e) => e.status === 400 && /Invalid Type/.test(e.message));
+  // Phase 10: the three types the mirror served went with it.
+  for (const retired of ['errors', 'top-horses', 'clips']) {
+    await assert.rejects(call({ type: retired }), (e) => e.status === 400 && /Invalid Type/.test(e.message));
+  }
   assert.equal(analyticsSpec.permission, 'console.read');
+  assert.deepEqual(analyticsSpec.methods, ['GET']);
+  assert.equal(analyticsSpec.limit, 'read');
 
   // A repeated query param arrives as an array. Validate the selected first
-  // value without coupling this unit test to the live analytics service.
+  // value; the function is never called for a request that fails validation.
   await assert.rejects(
     call({ type: ['made-up', 'summary'], days: ['7'] }),
     (e) => e.status === 400 && /Invalid Type/.test(e.message)
@@ -1651,22 +1677,75 @@ test('analytics: days and type are validated before anything is loaded', async (
     call({ type: ['summary', 'errors'], days: ['0', '7'] }),
     (e) => e.status === 400 && /Days Must Be Between/.test(e.message)
   );
-  // A repeated query param arrives as an array. It used to 400 where the
-  // original coerced and defaulted.
+  assert.equal(db.calls.length, 0, 'nothing is read before validation passes');
+});
+
+test('analytics: summary calls fn_fleet_content_metrics with the validated window and returns the object whole', async () => {
+  const db = fakeDb(
+    {},
+    {
+      fn_fleet_content_metrics: async (args) => ({
+        data: { ...METRICS_SAMPLE, window: { ...METRICS_SAMPLE.window, days: args.p_days } },
+        error: null,
+      }),
+    }
+  );
+  const call = analyticsCall(db);
+
+  const payload = await call({ type: 'summary', days: '30' });
+  assert.deepEqual(db.calls, [{ rpc: 'fn_fleet_content_metrics', args: { p_days: 30 } }]);
+  assert.deepEqual(Object.keys(payload).sort(), ['data', 'window_days']);
+  assert.equal(payload.window_days, 30);
+  assert.deepEqual(
+    Object.keys(payload.data).sort(),
+    ['captions', 'coverage', 'feed', 'ledger', 'posts', 'reactions', 'readiness', 'runs', 'window'],
+    'the nine contract keys, untouched'
+  );
+  assert.equal(payload.data.window.days, 30);
+  assert.equal(payload.data.feed.horse_share_pct, 12.5);
+  assert.equal(payload.data.readiness.horses_not_social_ready, 62);
+
+  // No days: the window defaults to 7. An array of days is coerced to its
+  // first value, where the original 400'd.
+  const defaulted = await call({});
+  assert.equal(defaulted.window_days, 7);
+  assert.deepEqual(db.calls.at(-1), { rpc: 'fn_fleet_content_metrics', args: { p_days: 7 } });
+  const coerced = await call({ type: ['summary', 'errors'], days: ['14'] });
+  assert.equal(coerced.window_days, 14);
+  assert.deepEqual(db.calls.at(-1), { rpc: 'fn_fleet_content_metrics', args: { p_days: 14 } });
+});
+
+test('analytics: a function error is one 503 with a sentence this route wrote, never the database text', async () => {
   const quiet = console.error;
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   console.error = () => {};
-  process.env.SUPABASE_SERVICE_ROLE_KEY = '';
   try {
+    const failing = fakeDb(
+      {},
+      {
+        fn_fleet_content_metrics: async () => ({
+          data: null,
+          error: { message: 'relation "public.social_posts" does not exist', code: '42P01' },
+        }),
+      }
+    );
+    await assert.rejects(analyticsCall(failing)({ type: 'summary' }), (e) => {
+      assert.equal(e.status, 503);
+      assert.equal(e.code, 'analytics_unavailable');
+      assert.equal(e.message, 'Analytics Is Unavailable');
+      assert.doesNotMatch(e.message, /social_posts|42P01/);
+      return true;
+    });
+    assert.equal(failing.calls.length, 1, 'one call, no retry');
+
+    // A function that answers with nothing is unavailable too: the page must
+    // read Unknown, never a fabricated zero.
+    const empty = fakeDb({}, { fn_fleet_content_metrics: async () => ({ data: null, error: null }) });
     await assert.rejects(
-      call({ type: ['summary', 'errors'], days: ['7'] }),
-      (e) => e.status === 503 && e.code === 'analytics_unavailable',
-      'the array is coerced, so the request reaches the service and fails there, not at validation'
+      analyticsCall(empty)({ type: 'summary' }),
+      (e) => e.status === 503 && e.code === 'analytics_unavailable'
     );
   } finally {
     console.error = quiet;
-    if (serviceKey === undefined) delete process.env.SUPABASE_SERVICE_ROLE_KEY;
-    else process.env.SUPABASE_SERVICE_ROLE_KEY = serviceKey;
   }
 });
 
