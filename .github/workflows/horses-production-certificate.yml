@@ -1,0 +1,86 @@
+name: Stable Admin Production Certificate
+
+on:
+  workflow_dispatch:
+    inputs:
+      expected_sha:
+        description: Full production commit SHA reported by /api/health
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: horses-production-certificate-${{ inputs.expected_sha }}
+  cancel-in-progress: false
+
+jobs:
+  certify:
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
+    timeout-minutes: 12
+    steps:
+      - name: Validate Expected Revision
+        env:
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
+        run: |
+          if [ "$GITHUB_REF" != 'refs/heads/main' ]; then
+            echo 'This certificate may run only from protected main.' >&2
+            exit 1
+          fi
+          if ! printf '%s' "$EXPECTED_SHA" | grep -Eq '^[0-9a-f]{40}$'; then
+            echo 'expected_sha must be one full lowercase Git commit SHA' >&2
+            exit 1
+          fi
+          test "$GITHUB_SHA" = "$EXPECTED_SHA"
+
+      - uses: actions/checkout@v4
+        with:
+          # Never execute a caller-selected tree with production credentials.
+          # GitHub's protected-main event SHA is the checkout authority. The
+          # input is evidence to compare, not a ref to execute.
+          ref: ${{ github.sha }}
+
+      - name: Confirm Checked Out Revision
+        env:
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
+        run: |
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test "$GITHUB_SHA" = "$EXPECTED_SHA"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.12.0
+          cache: npm
+
+      - name: Install Dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Certify Stable Admin In Production
+        env:
+          HORSES_VERIFY_BASE_URL: https://smarter.poker
+          HORSES_VERIFY_EXPECTED_SHA: ${{ inputs.expected_sha }}
+          HORSES_VERIFY_RECEIPT: ${{ runner.temp }}/horses-production-certificate.json
+          TEST_USER_EMAIL: ${{ vars.TEST_USER_EMAIL || secrets.TEST_USER_EMAIL }}
+          TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD }}
+        run: node scripts/verify-horses-production-certificate.mjs
+
+      - name: Publish Sanitized Summary
+        if: always()
+        env:
+          RECEIPT: ${{ runner.temp }}/horses-production-certificate.json
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
+        run: |
+          node -e "const fs=require('node:fs');const p=process.env.RECEIPT;if(!fs.existsSync(p)){fs.writeFileSync(p,JSON.stringify({schemaVersion:1,kind:'stable-admin-production-certificate',status:'failed',startedAt:null,completedAt:new Date().toISOString(),provenance:{repositorySha:process.env.GITHUB_SHA||null,runId:process.env.GITHUB_RUN_ID||null,runAttempt:process.env.GITHUB_RUN_ATTEMPT||null},target:{host:'smarter.poker',expectedSha:process.env.EXPECTED_SHA||null,observedSha:null,deploymentId:null,deploymentUrl:null,databaseStatus:null,stableAcrossRun:false},authenticated:false,viewports:[],failureCode:'verifier_not_started'},null,2)+'\n',{mode:0o600})}const r=JSON.parse(fs.readFileSync(p,'utf8'));const lines=['## Stable Admin Production Certificate','','Status: '+r.status,'Expected SHA: '+r.target.expectedSha,'Observed SHA: '+(r.target.observedSha||'Unavailable'),'Deployment: '+(r.target.deploymentId||'Unavailable'),'Database: '+(r.target.databaseStatus||'Unavailable'),'Authenticated: '+(r.authenticated?'Yes':'No'),'Viewports: '+(r.viewports.map(v=>v.width+'x'+v.height).join(', ')||'None'),'Failure Code: '+(r.failureCode||'None')];fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY,lines.join('\n')+'\n')"
+
+      - name: Upload Sanitized Certificate
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: stable-admin-production-certificate-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/horses-production-certificate.json
+          if-no-files-found: error
+          retention-days: 30
