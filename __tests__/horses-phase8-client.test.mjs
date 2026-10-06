@@ -51,6 +51,9 @@ test('estimated throughput and incident acknowledgement are labelled in UI copy'
   assert.match(source, /Acknowledgement Means Seen And Owned/);
   assert.match(source, /It Never Resolves A Drift/);
   assert.doesNotMatch(source, /Acknowledged\s*[,.:;-]?\s*Resolved/i);
+  assert.match(source, /Acknowledge And Own/);
+  assert.match(source, /Release Ownership/);
+  assert.match(source, /Retry Uses The Same Operation Id/);
 });
 
 test('incident evidence discloses permission filtering and the bounded merge cap', async () => {

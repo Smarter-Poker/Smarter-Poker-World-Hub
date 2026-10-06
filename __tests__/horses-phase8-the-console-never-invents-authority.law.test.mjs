@@ -14,14 +14,17 @@ const SOURCES = [
   'src/components/horses/PlatformPanel.jsx',
 ];
 
-test('Phase 8 is a GET-only projection with no action map or generic updater', async () => {
-  assert.deepEqual(platformAdminSpec.methods, ['GET']);
-  assert.equal(platformAdminSpec.permission, 'console.read');
+test('Phase 8 projection remains read-only except the Phase 11 incident ownership overlay', async () => {
+  assert.deepEqual(platformAdminSpec.methods, ['GET', 'POST']);
+  assert.deepEqual(platformAdminSpec.permission, { GET: 'console.read', POST: 'incidents.ack' });
   assert.deepEqual(PLATFORM_ADMIN_SECTIONS, ['engine', 'maintenance', 'breaks', 'releases', 'crons', 'alerts', 'incidents', 'registry']);
   const source = (await Promise.all(SOURCES.map(read))).join('\n');
   assert.doesNotMatch(source, /genericUpdater:\s*true/);
-  assert.doesNotMatch(source, /methods:\s*\[[^\]]*['"](?:POST|PUT|PATCH|DELETE)['"]/);
   assert.doesNotMatch(source, /\.from\([^)]*\)\.(?:insert|update|upsert|delete)\s*\(/);
+  const route = await read('pages/api/horses/platform-admin.js');
+  const rpcNames = [...route.matchAll(/\.rpc\(['"]([^'"]+)/g)].map((match) => match[1]);
+  assert.deepEqual(rpcNames, ['fn_ca_operator_record_incident_ack_event']);
+  assert.doesNotMatch(route, /(?:ca_drift_incidents|operational_alert_events|engine_alerts|deploy_alerts|financial_alerts)[\s\S]{0,200}\.(?:update|upsert|delete)\s*\(/);
 });
 
 test('retired dispatchers and evidence writers cannot be invoked from Phase 8', async () => {

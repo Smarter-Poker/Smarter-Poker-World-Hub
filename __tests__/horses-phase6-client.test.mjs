@@ -4,7 +4,7 @@ import test from 'node:test';
 import { parse } from '@babel/parser';
 import {
   clubArenaLink, compositionOf, eventUrl, evidenceEntries, exactDecimalText, exportState,
-  floorAdminUrl, floorDisclosure, moneyText, pageOf, recordExportCompletion, tableUrl,
+  floorAdminUrl, floorDisclosure, moneyText, pageOf, recordExportCompletion, tableUrl, tournamentGroup,
 } from '../src/components/horses/floorAdmin.js';
 import { CA_SECTIONS, TABS } from '../src/components/horses/tabRegistry.js';
 import { collectAllRows } from '../src/components/horses/exportAllCsv.js';
@@ -127,12 +127,24 @@ test('rake exports full-window aggregates with exact decimal strings and freshne
 
 test('links point into actual Club Arena SPA routes', () => {
   assert.equal(clubArenaLink('table', { id: 't1', club_id: 'c1' }), '/hub/club-arena/clubs/c1/table-management');
+  assert.equal(clubArenaLink('table', { id: 't1', club_id: 'c1', union_id: 'u1' }), '/hub/club-arena/unions/u1/table-management');
   assert.equal(clubArenaLink('table', { id: 't1' }), '/hub/club-arena');
-  assert.equal(clubArenaLink('tournament', { id: 'e1' }), '/hub/club-arena/tournaments/e1');
+  assert.equal(clubArenaLink('tournament', { id: 'e1', club_id: 'c1' }), '/hub/club-arena/clubs/c1/table-management');
+  assert.equal(clubArenaLink('tournament', { id: 'e1', union_id: 'u1' }), '/hub/club-arena/unions/u1/table-management');
+  assert.equal(clubArenaLink('tournament', { id: 'e1' }), '/hub/club-arena');
   assert.equal(clubArenaLink('cashier', { club_id: 'c1' }), '/hub/club-arena/clubs/c1/cashier');
   assert.equal(clubArenaLink('cashier', {}), '/hub/club-arena/cashier');
   assert.equal(clubArenaLink('club-announcement', { club_id: 'c1' }), '/hub/club-arena/clubs/c1/announcements');
   assert.equal(clubArenaLink('union-announcement', { union_id: 'u1' }), '/hub/club-arena/unions/u1/operations');
+});
+
+test('tournament state grouping is explicit and stable', () => {
+  assert.equal(tournamentGroup('running'), 'running');
+  assert.equal(tournamentGroup('in_progress'), 'running');
+  assert.equal(tournamentGroup('late_reg'), 'late_registration');
+  assert.equal(tournamentGroup('registering'), 'late_registration');
+  assert.equal(tournamentGroup('upcoming'), 'upcoming');
+  assert.equal(tournamentGroup('scheduled'), 'upcoming');
 });
 
 test('Phase 6 panels parse and ship no browser database writes, generic authority or forbidden copy', async () => {
@@ -214,7 +226,12 @@ test('floor and tournament lists expose read-only drill-downs with explicit unkn
   assert.match(tournaments, /eventUrl\(tournamentId\)/);
   assert.match(tournaments, /View Event Evidence/);
   assert.match(tournaments, /No Overlay Record/);
-  assert.match(tournaments, /Cancellation And Refund Receipt/);
+  assert.match(tournaments, /Cancellation Receipt/);
+  assert.match(tournaments, /Refund Entitlement And Payment Evidence/);
+  assert.match(tournaments, /Open Owner Game Management/);
+  assert.doesNotMatch(tournaments, /Open Engine-Owned Management/);
+  assert.match(tournaments, /GROUPS\.map/);
+  assert.match(tournaments, /Overlay, Highest First/);
   assert.match(tournaments, /Dry Run Only/);
   assert.match(tournaments, /Apply Set To False/);
 });

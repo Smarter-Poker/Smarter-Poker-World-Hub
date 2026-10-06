@@ -96,6 +96,18 @@ export default defineConfig({
       use: { ...devices['iPhone 13'] },
     },
     {
+      // These two commerce-anatomy checks install their own deterministic
+      // Marketplace session and API fixtures. Keep them independent from the
+      // authenticated suite so --no-deps never requires a missing user.json.
+      name: 'marketplace-audit-chromium',
+      testMatch: /05-diamond-store\.spec\.ts$/,
+      use: {
+        ...devices['Desktop Chrome'],
+        storageState: { cookies: [], origins: [] },
+        serviceWorkers: 'block',
+      },
+    },
+    {
       name: 'world-menu-visual',
       testMatch: /022-world-menu-visual\.spec\.ts$/,
       fullyParallel: false,

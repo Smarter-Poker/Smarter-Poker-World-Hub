@@ -5,6 +5,7 @@
  * GET  /api/horses/integrity-admin?section=case&caseId=
  * GET  /api/horses/integrity-admin?section=pairs
  * GET  /api/horses/integrity-admin?section=flags
+ * GET  /api/horses/integrity-admin?section=links
  * GET  /api/horses/integrity-admin?section=timing
  * GET  /api/horses/integrity-admin?section=hands
  * GET  /api/horses/integrity-admin?section=health
@@ -36,7 +37,7 @@ import {
   uuidList,
 } from '../../../src/lib/horses/validate.js';
 
-const SECTIONS = Object.freeze(['queue', 'case', 'pairs', 'flags', 'timing', 'hands', 'health']);
+const SECTIONS = Object.freeze(['queue', 'case', 'pairs', 'flags', 'links', 'timing', 'hands', 'health']);
 const ACTIONS = Object.freeze([
   'open_case',
   'add_item',
@@ -90,6 +91,7 @@ const READ_RPCS = Object.freeze({
   case: 'fn_ca_integrity_case',
   pairs: 'fn_ca_integrity_pairs',
   flags: 'fn_ca_integrity_flags',
+  links: 'fn_ca_integrity_identity_links',
   timing: 'fn_ca_integrity_timing',
   hands: 'fn_ca_integrity_hands',
   health: 'fn_ca_integrity_detector_health',
@@ -371,6 +373,20 @@ function readArgs(section, query) {
         ...TIMING_HAND_LIMIT,
         sentence: `The Timing Sample Must Be Between 1 And ${TIMING_HAND_LIMIT.max} Hands`,
       }),
+    };
+  }
+
+  if (section === 'links') {
+    const since = optionalDate(query.since, 'That Identity Evidence Start Is Not Valid');
+    return {
+      p_include_horses: true,
+      ...(since ? { p_since: since } : {}),
+      ...snapshot,
+      p_limit: boundedInteger(query.limit, {
+        ...QUERY_LIMIT,
+        sentence: `The Page Size Must Be Between 1 And ${QUERY_LIMIT.max}`,
+      }),
+      p_cursor: cursorOf(query.cursor),
     };
   }
 

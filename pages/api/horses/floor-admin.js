@@ -36,6 +36,7 @@ const ENGINE_HEALTH_URL = (process.env.GAME_SERVER_URL || process.env.ENGINE_URL
 const CLUB_STATUSES = Object.freeze(['active', 'suspended']);
 const MEMBER_CHIP_PAGE_SIZE = 1000;
 const MEMBER_CHIP_MAX_ROWS = 100000;
+const EVENT_REFUND_EVIDENCE_LIMIT = 500;
 
 function controls(section) {
   return { controls: FLOOR_ADMIN_CONTROL_MANIFEST[section], availability: FLOOR_ADMIN_CONTROL_AVAILABILITY[section] || {}, links: FLOOR_ADMIN_LINKS };
@@ -76,12 +77,54 @@ function composition(seats, profileRead, seatsComplete = true) {
   return { occupied: list.length, horses: unknown ? null : knownHorses, humans: unknown ? null : knownHumans, unknown, knownHorses, knownHumans };
 }
 
+async function scopeNames(db, rows, c) {
+  const clubIds = [...new Set((rows || []).map((row) => row.club_id).filter(Boolean))];
+  const directUnionIds = [...new Set((rows || []).map((row) => row.union_id).filter(Boolean))];
+  const clubsResult = clubIds.length
+    ? await db.from('clubs').select('id, name, union_id').in('id', clubIds)
+    : { data: [], error: null };
+  const clubsOk = c.check('scope_clubs', clubsResult);
+  const clubMap = new Map((clubsResult.data || []).map((row) => [row.id, row]));
+  const unionIds = [...new Set([
+    ...directUnionIds,
+    ...(clubsResult.data || []).map((row) => row.union_id).filter(Boolean),
+  ])];
+  const unionsResult = unionIds.length
+    ? await db.from('unions').select('id, name').in('id', unionIds)
+    : { data: [], error: null };
+  const unionsOk = c.check('scope_unions', unionsResult);
+  const unionMap = new Map((unionsResult.data || []).map((row) => [row.id, row]));
+  return { clubMap, unionMap, complete: clubsOk && unionsOk };
+}
+
+function withScopeName(row, scopes) {
+  const club = scopes.clubMap.get(row.club_id);
+  const unionId = row.union_id || club?.union_id || null;
+  return {
+    ...row,
+    union_id: unionId,
+    club_name: club?.name || null,
+    union_name: scopes.unionMap.get(unionId)?.name || null,
+  };
+}
+
+function relatedCount(value) {
+  const candidate = Array.isArray(value) ? value[0]?.count : value?.count;
+  return candidate !== null && candidate !== undefined && Number.isFinite(Number(candidate))
+    ? Number(candidate)
+    : null;
+}
+
+function relatedOne(value) {
+  return Array.isArray(value) ? (value[0] || null) : (value || null);
+}
+
 async function sectionFloor(db, query, requestId) {
   const c = sourceCollector({ requestId, route: 'horses.floor-admin' });
   const page = pageFor(query, 'tables', PAGE);
   const [tablesResult, databaseCount, engine] = await Promise.all([
     runPaged(db.from('tables')
-      .select('id, name, club_id, status, small_blind, big_blind, max_players, tournament_id, created_at', { count: 'exact' })
+      .select('id, name, club_id, union_id, status, small_blind, big_blind, max_players, tournament_id, created_at', { count: 'exact' })
       .in('status', LIVE_TABLE_STATUSES)
       .order('created_at', { ascending: false }), page),
     db.from('tables').select('id', { count: 'exact', head: true }).in('status', LIVE_TABLE_STATUSES),
@@ -96,6 +139,7 @@ async function sectionFloor(db, query, requestId) {
   const seatsOk = c.check('table_seats', seatsResult);
   const seatsComplete = seatsOk && typeof seatsResult.count === 'number' && seatsResult.count === (seatsResult.data || []).length;
   const horseProfiles = await profileHorseMap(db, (seatsResult.data || []).map((row) => row.user_id), c);
+  const scopes = await scopeNames(db, tablesResult.data || [], c);
   const seatsByTable = new Map();
   for (const seat of seatsResult.data || []) {
     const list = seatsByTable.get(seat.table_id) || [];
@@ -103,12 +147,15 @@ async function sectionFloor(db, query, requestId) {
     seatsByTable.set(seat.table_id, list);
   }
   const compositionComplete = seatsComplete && horseProfiles.complete;
-  const rows = (tablesResult.data || []).map((row) => ({ ...row, composition: composition(seatsByTable.get(row.id), horseProfiles, compositionComplete) }));
+  const rows = (tablesResult.data || []).map((row) => ({
+    ...withScopeName(row, scopes),
+    composition: composition(seatsByTable.get(row.id), horseProfiles, compositionComplete),
+  }));
   const databaseActive = typeof databaseCount.count === 'number' ? databaseCount.count : null;
   const divergence = floorDivergence(databaseActive, engine.ok ? engine.activeTables : null);
   return {
     ...baseMeta('floor', c),
-    state: floorReadState({ databaseOk: !tablesResult.error && !databaseCount.error && compositionComplete, engineOk: engine.ok, divergence, rowCount: rows.length }),
+    state: floorReadState({ databaseOk: !tablesResult.error && !databaseCount.error && compositionComplete && scopes.complete, engineOk: engine.ok, divergence, rowCount: rows.length }),
     tables: shapeList(tablesResult, page, rows),
     database: { ok: !databaseCount.error, activeTables: databaseActive },
     engine,
@@ -123,17 +170,18 @@ async function sectionTable(db, query, requestId) {
   const c = sourceCollector({ requestId, route: 'horses.floor-admin' });
   const page = pageFor(query, 'seats', SEAT_PAGE);
   const [tableResult, seatsResult] = await Promise.all([
-    db.from('tables').select('id, name, club_id, status, small_blind, big_blind, max_players, tournament_id, created_at').eq('id', tableId).maybeSingle(),
+    db.from('tables').select('id, name, club_id, union_id, status, small_blind, big_blind, max_players, tournament_id, created_at').eq('id', tableId).maybeSingle(),
     runPaged(db.from('table_seats').select('table_id, user_id, seat_number, joined_at', { count: 'exact' }).eq('table_id', tableId).is('left_at', null).order('seat_number'), page),
   ]);
   if (tableResult.error) c.fail('table', tableResult.error);
   if (!tableResult.error && !tableResult.data) throw notFound('That Table Was Not Found');
   const seatsOk = c.check('table_seats', seatsResult);
   const horseProfiles = await profileHorseMap(db, (seatsResult.data || []).map((row) => row.user_id), c);
+  const scopes = await scopeNames(db, tableResult.data ? [tableResult.data] : [], c);
   const seats = (seatsResult.data || []).map((row) => ({ ...row, playerType: seatsOk && horseProfiles.ok ? (horseProfiles.map.get(row.user_id) || 'unknown') : 'unknown' }));
   const seatPage = shapeList(seatsResult, page, seats);
   const completeSeats = seatsOk && !seatPage.hasMore;
-  return { ...baseMeta('table', c), state: tableResult.data && completeSeats && horseProfiles.ok && horseProfiles.complete ? 'table.ready' : 'table.unknown', table: tableResult.data || null, composition: composition(seats, horseProfiles, completeSeats), seats: seatPage };
+  return { ...baseMeta('table', c), state: tableResult.data && completeSeats && horseProfiles.ok && horseProfiles.complete && scopes.complete ? 'table.ready' : 'table.unknown', table: tableResult.data ? withScopeName(tableResult.data, scopes) : null, composition: composition(seats, horseProfiles, completeSeats), seats: seatPage };
 }
 
 async function sectionTournaments(db, op, query, requestId) {
@@ -146,7 +194,7 @@ async function sectionTournaments(db, op, query, requestId) {
     : Promise.resolve({ data: null, error: null, permissionRequired: true });
   const [result, countResult, engine, payoutWindowResult] = await Promise.all([
     runPaged(db.from('tournaments')
-      .select('id, name, status, start_time, buy_in_amount, prize_pool, guaranteed_prize, late_reg_mins, max_players, current_players, created_at', { count: 'exact' })
+      .select('id, name, club_id, union_id, status, start_time, buy_in_amount, prize_pool, guaranteed_prize, late_reg_mins, max_players, current_players, created_at, registration_rows:tournament_players(count), overlay_rows:tournament_guarantee_overlays(amount, club_id, union_id, funded_at, bank_type, bank_entity_id)', { count: 'exact' })
       .in('status', VISIBLE_TOURNAMENT_STATUSES).order('start_time'), page),
     db.from('tournaments').select('id', { count: 'exact', head: true }).in('status', LIVE_TOURNAMENT_STATUSES),
     readEngineHealth({ url: ENGINE_HEALTH_URL }),
@@ -154,10 +202,21 @@ async function sectionTournaments(db, op, query, requestId) {
   ]);
   c.check('tournaments', result); c.check('tournament_count', countResult);
   if (canReadMoney) c.check('payout_window_audit', payoutWindowResult);
+  const scopes = await scopeNames(db, result.data || [], c);
   const databaseActive = typeof countResult.count === 'number' ? countResult.count : null;
   const divergence = floorDivergence(databaseActive, engine.ok ? engine.activeTournaments : null);
-  const rows = (result.data || []).map((row) => ({ ...row, registered_count: row.current_players !== null && row.current_players !== undefined && row.current_players !== '' && Number.isFinite(Number(row.current_players)) ? Number(row.current_players) : null }));
-  const state = result.error ? 'tournaments.unknown' : !engine.ok || (canReadMoney && payoutWindowResult.error) ? 'tournaments.partial' : rows.length ? 'tournaments.ready' : 'tournaments.empty_none_scheduled';
+  const rows = (result.data || []).map((raw) => {
+    const row = withScopeName(raw, scopes);
+    const overlay = relatedOne(row.overlay_rows);
+    return {
+      ...row,
+      registered_count: relatedCount(row.registration_rows),
+      overlay_amount: overlay?.amount ?? null,
+      overlay_state: overlay ? 'recorded' : 'not_recorded',
+      overlay,
+    };
+  });
+  const state = result.error ? 'tournaments.unknown' : !engine.ok || (canReadMoney && payoutWindowResult.error) || c.all().length ? 'tournaments.partial' : rows.length ? 'tournaments.ready' : 'tournaments.empty_none_scheduled';
   return {
     ...baseMeta('tournaments', c), state, tournaments: shapeList(result, page, rows), engine, divergence,
     payoutWindowAudit: canReadMoney && !payoutWindowResult.error ? payoutWindowResult.data : null,
@@ -171,26 +230,47 @@ async function sectionEvent(db, op, query, requestId) {
   if (!tournamentId) throw badRequest('Pick A Valid Tournament', 'invalid_tournament');
   if (!hasPermission(op?.permissions, PERMISSIONS.MONEY_READ)) throw forbidden(`Permission Required: ${PERMISSIONS.MONEY_READ}`, 'permission_denied');
   const c = sourceCollector({ requestId, route: 'horses.floor-admin' });
-  const [eventResult, playersResult, overlayResult, receiptResult, payoutAuditResult] = await Promise.all([
-    db.from('tournaments').select('id, name, status, start_time, buy_in_amount, prize_pool, guaranteed_prize, late_reg_mins, max_players, current_players, created_at').eq('id', tournamentId).maybeSingle(),
+  const [eventResult, playersResult, overlayResult, receiptResult, entitlementsResult, tranchesResult, payoutAuditResult] = await Promise.all([
+    db.from('tournaments').select('id, name, club_id, union_id, status, start_time, buy_in_amount, prize_pool, guaranteed_prize, late_reg_mins, max_players, current_players, created_at').eq('id', tournamentId).maybeSingle(),
     db.from('tournament_players').select('id', { count: 'exact', head: true }).eq('tournament_id', tournamentId),
     db.from('tournament_guarantee_overlays').select('*').eq('tournament_id', tournamentId).maybeSingle(),
     db.from('tournament_cancellation_receipts').select('*').eq('tournament_id', tournamentId).maybeSingle(),
+    db.from('tournament_refund_entitlements').select('id, refund_prize, refund_bounty, refund_fee', { count: 'exact' }).eq('tournament_id', tournamentId).order('id').range(0, EVENT_REFUND_EVIDENCE_LIMIT - 1),
+    db.from('tournament_refund_tranches').select('wallet_transaction_id, amount_paid_now', { count: 'exact' }).eq('tournament_id', tournamentId).order('wallet_transaction_id').range(0, EVENT_REFUND_EVIDENCE_LIMIT - 1),
     db.rpc('fn_tournament_payout_reconcile', { p_tournament_id: tournamentId, p_apply: false }),
   ]);
   if (eventResult.error) c.fail('tournament', eventResult.error);
   if (!eventResult.error && !eventResult.data) throw notFound('That Tournament Was Not Found');
   c.check('tournament_players', playersResult); c.check('tournament_overlay', overlayResult);
-  c.check('tournament_cancellation_receipt', receiptResult); c.check('payout_audit', payoutAuditResult);
+  c.check('tournament_cancellation_receipt', receiptResult);
+  const entitlementsOk = c.check('tournament_refund_entitlements', entitlementsResult);
+  const tranchesOk = c.check('tournament_refund_tranches', tranchesResult);
+  c.check('payout_audit', payoutAuditResult);
+  const scopes = await scopeNames(db, eventResult.data ? [eventResult.data] : [], c);
+  const entitlementCount = typeof entitlementsResult.count === 'number' ? entitlementsResult.count : null;
+  const trancheCount = typeof tranchesResult.count === 'number' ? tranchesResult.count : null;
+  const refundComplete = entitlementsOk && tranchesOk && entitlementCount === (entitlementsResult.data || []).length && trancheCount === (tranchesResult.data || []).length;
+  const owedCents = refundComplete ? sumMoneyRowsCents(entitlementsResult.data || [], ['refund_prize', 'refund_bounty', 'refund_fee']) : null;
+  const paidCents = refundComplete ? sumMoneyRowsCents(tranchesResult.data || [], ['amount_paid_now']) : null;
+  const refundEvidence = {
+    state: !entitlementsOk || !tranchesOk ? 'unknown' : entitlementCount === 0 && trancheCount === 0 ? 'not_recorded' : refundComplete ? 'recorded' : 'partial',
+    entitlement_count: entitlementCount,
+    paid_tranche_count: trancheCount,
+    complete: refundComplete,
+    total_owed: owedCents === null ? null : centsText(owedCents),
+    total_paid: paidCents === null ? null : centsText(paidCents),
+    outstanding: owedCents !== null && paidCents !== null ? centsText(owedCents - paidCents) : null,
+  };
   return {
     ...baseMeta('event', c),
     state: eventResult.error ? 'event.unknown' : c.all().length ? 'event.partial' : 'event.ready',
-    event: eventResult.data,
+    event: eventResult.data ? withScopeName(eventResult.data, scopes) : null,
     registrations: playersResult.count ?? null,
     overlay: overlayResult.data || null,
     overlayState: overlayResult.error ? 'unknown' : overlayResult.data ? 'recorded' : 'not_recorded',
     cancellationReceipt: receiptResult.data || null,
     cancellationReceiptState: receiptResult.error ? 'unknown' : receiptResult.data ? 'recorded' : 'not_recorded',
+    refundEvidence,
     payoutAudit: payoutAuditResult.error ? null : payoutAuditResult.data,
     payoutAuditState: payoutAuditResult.error ? 'unknown' : 'ready',
     payoutAuditMode: 'dry_run',
@@ -213,9 +293,23 @@ function addMoney2dp(totalCents, raw) {
 }
 
 function centsText(cents) {
-  const whole = cents / 100n;
-  const fraction = String(cents % 100n).padStart(2, '0');
-  return `${whole}.${fraction}`;
+  const negative = cents < 0n;
+  const absolute = negative ? -cents : cents;
+  const whole = absolute / 100n;
+  const fraction = String(absolute % 100n).padStart(2, '0');
+  return `${negative ? '-' : ''}${whole}.${fraction}`;
+}
+
+function sumMoneyRowsCents(rows, keys) {
+  let total = 0n;
+  for (const row of rows) {
+    for (const key of keys) {
+      const next = addMoney2dp(total, row?.[key] ?? '0');
+      if (next === null) return null;
+      total = next;
+    }
+  }
+  return total;
 }
 
 async function readMemberChipTotal(db, clubId, c) {
