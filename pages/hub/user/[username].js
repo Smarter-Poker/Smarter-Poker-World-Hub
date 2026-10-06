@@ -276,7 +276,7 @@ function FriendsModal({ isOpen, onClose, profileId, profileName, currentUserId, 
         const chunk = profileFriendArray.slice(i, i + 50);
         const { data } = await supabase
           .from('profiles')
-          .select('id, username, avatar_url')
+          .select('id, username, display_name, avatar_url')
           .in('id', chunk);
         if (data) allProfiles.push(...data);
       }
@@ -2710,7 +2710,7 @@ export default function UserProfilePage() {
           const friendIds = allFriendIdArray.slice(0, 20); // Limit to 20 for display
           const { data: friendProfiles } = await supabase
             .from('profiles')
-            .select('id, username, avatar_url')
+            .select('id, username, display_name, avatar_url')
             .in('id', friendIds);
 
           if (friendProfiles) {
@@ -3731,7 +3731,7 @@ export default function UserProfilePage() {
         author: {
           id: currentUser.id,
           username: currentUser.user_metadata?.username,
-          full_name: currentUser.user_metadata?.full_name,
+          display_name: currentUser.user_metadata?.display_name,
           avatar_url: currentUser.user_metadata?.avatar_url,
         },
       };

@@ -82,6 +82,18 @@ function Toggle({ value, onChange, label, description }) {
 // ═══════════════════════════════════════════════════════════════════════════
 // SELECT COMPONENT
 // ═══════════════════════════════════════════════════════════════════════════
+// Settings keys that no longer do anything. display_name_preference chose
+// "real name vs username" for posts; ruling 25 makes the legal name owner-only,
+// so other people are always shown display_name, then username. Dropping the
+// key keeps it from being written back into app_settings on the next save.
+const RETIRED_SETTING_KEYS = ['display_name_preference'];
+
+function withoutRetiredSettings(obj) {
+    const out = { ...(obj || {}) };
+    for (const k of RETIRED_SETTING_KEYS) delete out[k];
+    return out;
+}
+
 function Select({ value, onChange, options, label }) {
     return (
         <div style={styles.settingRow}>
@@ -340,7 +352,9 @@ export default function SettingsPage() {
         friendActivity: false,
 
         // Privacy
-        display_name_preference: 'full_name', // 'full_name' or 'username'
+        // No display_name_preference (ruling 25): other people are shown
+        // display_name, then username - never the legal name - so a
+        // "post as my real name" choice no longer did anything.
         profileVisibility: 'public',
         showOnlineStatus: true,
         showHandHistory: true,
@@ -369,7 +383,7 @@ export default function SettingsPage() {
         if (typeof window === 'undefined') return SETTINGS_DEFAULTS;
         try {
             const cached = localStorage.getItem('sp-user-settings');
-            if (cached) return { ...SETTINGS_DEFAULTS, ...JSON.parse(cached) };
+            if (cached) return { ...SETTINGS_DEFAULTS, ...withoutRetiredSettings(JSON.parse(cached)) };
         } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
         return SETTINGS_DEFAULTS;
     });
@@ -381,23 +395,22 @@ export default function SettingsPage() {
         if (!user?.id) return;
 
         const loadSettings = async () => {
-            // Load user's display preference AND app_settings from profiles table
+            // Load app_settings from profiles table
             const { data: profile } = await supabase
                 .from('profiles')
-                .select('display_name_preference, app_settings')
+                .select('app_settings')
                 .eq('id', user.id)
                 .maybeSingle();
 
             if (profile) {
-                const dbSettings = profile.app_settings || {};
+                const dbSettings = withoutRetiredSettings(profile.app_settings);
                 setSettings(prev => ({
-                    ...prev,
+                    ...withoutRetiredSettings(prev),
                     ...dbSettings,
-                    display_name_preference: profile.display_name_preference || dbSettings.display_name_preference || 'full_name'
                 }));
                 // Also update localStorage cache with DB values
                 try {
-                    localStorage.setItem('sp-user-settings', JSON.stringify({ ...SETTINGS_DEFAULTS, ...dbSettings, display_name_preference: profile.display_name_preference || 'full_name' }));
+                    localStorage.setItem('sp-user-settings', JSON.stringify({ ...SETTINGS_DEFAULTS, ...dbSettings }));
                 } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
             }
         };
@@ -434,16 +447,15 @@ export default function SettingsPage() {
                 if (user?.id) {
                     supabase
                         .from('profiles')
-                        .select('display_name_preference, app_settings')
+                        .select('app_settings')
                         .eq('id', user.id)
                         .maybeSingle()
                         .then(({ data: profile }) => {
                             if (profile) {
-                                const dbSettings = profile.app_settings || {};
+                                const dbSettings = withoutRetiredSettings(profile.app_settings);
                                 setSettings(prev => ({
-                                    ...prev,
+                                    ...withoutRetiredSettings(prev),
                                     ...dbSettings,
-                                    display_name_preference: profile.display_name_preference || dbSettings.display_name_preference || 'full_name'
                                 }));
                             }
                         });
@@ -538,7 +550,7 @@ export default function SettingsPage() {
     }, [show2FAModal]);
 
     const updateSetting = async (key, value) => {
-        const newSettings = { ...settings, [key]: value };
+        const newSettings = withoutRetiredSettings({ ...settings, [key]: value });
         setSettings(newSettings);
 
         // Persist all settings to localStorage (fast cache)
@@ -546,27 +558,11 @@ export default function SettingsPage() {
             localStorage.setItem('sp-user-settings', JSON.stringify(newSettings));
         } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
 
-        // If posting name preference changed, immediately notify social media page
-        // (social page listens for smarter_poker_settings_sync to recompute user.name)
-        if (key === 'display_name_preference') {
-            broadcastSyncDebounced('smarter_poker_settings_sync', { action: 'refresh_settings', tabId: BROADCAST_TAB_ID });
-        }
-
         // Persist ALL settings to Supabase profiles.app_settings (cross-device)
         if (user?.id) {
-            // Build the update payload — always save app_settings JSONB
-            const updatePayload = { app_settings: newSettings };
-            // If display_name_preference changed, also update the dedicated column
-            if (key === 'display_name_preference') {
-                updatePayload.display_name_preference = value;
-            }
-            const { error } = await supabase.from('profiles').update(updatePayload).eq('id', user.id);
+            const { error } = await supabase.from('profiles').update({ app_settings: newSettings }).eq('id', user.id);
             if (error) {
                 console.warn('[Settings] Failed to save settings to DB:', error);
-                // Revert optimistic update on failure
-                if (key === 'display_name_preference') {
-                    setSettings(prev => ({ ...prev, display_name_preference: prev.display_name_preference }));
-                }
             }
         }
 
@@ -1450,17 +1446,11 @@ export default function SettingsPage() {
                                 <h2 style={styles.sectionTitle}>Privacy Settings</h2>
 
                                 <div style={styles.card}>
-                                    <Select
-                                        label="Social Media Posting Name"
-                                        value={settings.display_name_preference || 'full_name'}
-                                        onChange={(v) => updateSetting('display_name_preference', v)}
-                                        options={[
-                                            { value: 'full_name', label: 'Full Name (e.g., Dan Bekavac) - Default' },
-                                            { value: 'username', label: 'Poker Alias (e.g., KingFish)' },
-                                        ]}
-                                    />
+                                    <div style={styles.settingRow}>
+                                        <span style={styles.settingLabel}>Name Others See</span>
+                                    </div>
                                     <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginTop: -8, marginBottom: 16, paddingLeft: 4 }}>
-                                        Choose The Name That Appears As "Posting As" When You Create Posts And Comments
+                                        Other People See Your Display Name, Or Your Username If You Have None. To Show Your Real Name, Make It Your Display Name In Edit Profile.
                                     </div>
                                     <Select
                                         label="Profile Visibility"
@@ -2322,13 +2312,13 @@ export default function SettingsPage() {
                                                             <img src={entry.blocked.avatar_url} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                                         ) : (
                                                             <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 16, fontWeight: 600 }}>
-                                                                {(entry.blocked?.full_name || entry.blocked?.username || '?')[0].toUpperCase()}
+                                                                {(entry.blocked?.display_name || entry.blocked?.username || '?')[0].toUpperCase()}
                                                             </span>
                                                         )}
                                                     </div>
                                                     <div style={{ flex: 1, minWidth: 0 }}>
                                                         <div style={{ fontSize: 14, fontWeight: 600, color: '#e4e6eb', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                                            {entry.blocked?.full_name || entry.blocked?.username || 'Unknown User'}
+                                                            {entry.blocked?.display_name || entry.blocked?.username || 'Unknown User'}
                                                         </div>
                                                         {entry.blocked?.username && (
                                                             <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>@{entry.blocked.username}</div>

@@ -2,7 +2,7 @@
  * LiveViewerList — Slide-up sheet showing who's watching.
  *
  * STREAM-BUG-11 upgrades:
- *   - Search input filters by username OR full_name (case-insensitive).
+ *   - Search input filters by username OR display_name (case-insensitive).
  *   - Optional `currentUser` + `inviteCode` props enable an Invite button
  *     per row that DMs the stream link via the in-app messenger (same
  *     shape as GuestInviteModal.sendInvite).
@@ -53,7 +53,7 @@ export function LiveViewerList({ streamId, viewerCount, isOpen, onClose, current
                 const ids = rows.map(r => r.viewer_id);
                 const { data: profiles } = await supabase
                     .from('profiles')
-                    .select('id, username, avatar_url')
+                    .select('id, username, display_name, avatar_url')
                     .in('id', ids);
                 if (!mounted) return;
                 const profileMap = new Map((profiles || []).map(p => [p.id, p]));
@@ -90,7 +90,8 @@ export function LiveViewerList({ streamId, viewerCount, isOpen, onClose, current
                 for (const c of json.conversations) {
                     if (c.is_group) continue;
                     // get-conversations shapes each row as
-                    //   { id, otherUser:{ id, username, full_name, avatar_url }, ... }
+                    //   { id, otherUser:{ id, username, display_name, avatar_url }, ... }
+                    // Only the public display_name is read: full_name is owner-only (ruling 25).
                     const o = c.otherUser || c.other_user || null;
                     const otherId = o?.id || c.other_user_id || null;
                     if (!otherId || seen.has(otherId)) continue;
@@ -98,17 +99,17 @@ export function LiveViewerList({ streamId, viewerCount, isOpen, onClose, current
                     partners.push({
                         id: otherId,
                         username: o?.username || c.other_user_username || null,
-                        full_name: o?.full_name || o?.display_name || null,
+                        display_name: o?.display_name || null,
                         avatar_url: o?.avatar_url || c.other_user_avatar || null,
                     });
                     if (partners.length >= 10) break;
                 }
-                // Hydrate any partner whose API row lacked a username/full_name.
-                const needsHydrate = partners.filter(p => !p.username && !p.full_name).map(p => p.id);
+                // Hydrate any partner whose API row lacked a username/display_name.
+                const needsHydrate = partners.filter(p => !p.username && !p.display_name).map(p => p.id);
                 if (needsHydrate.length) {
                     const { data: profiles } = await supabase
                         .from('profiles')
-                        .select('id, username, avatar_url')
+                        .select('id, username, display_name, avatar_url')
                         .in('id', needsHydrate);
                     if (!mounted) return;
                     const pmap = new Map((profiles || []).map(p => [p.id, p]));
@@ -150,7 +151,7 @@ export function LiveViewerList({ streamId, viewerCount, isOpen, onClose, current
         };
     }, [isOpen, streamId]);
 
-    // Apply search filter (case-insensitive on username + full_name).
+    // Apply search filter (case-insensitive on username + display_name).
     // Watchers come first; recentChats filtered to exclude anyone already
     // in the viewers list (no duplicates) and the current user.
     const watcherIdSet = useMemo(() => new Set(viewers.map(v => v.id)), [viewers]);
@@ -159,7 +160,7 @@ export function LiveViewerList({ streamId, viewerCount, isOpen, onClose, current
         if (!q) return viewers;
         return viewers.filter(v =>
             (v.username || '').toLowerCase().includes(q) ||
-            (v.full_name || '').toLowerCase().includes(q)
+            (v.display_name || '').toLowerCase().includes(q)
         );
     }, [viewers, search]);
     const filteredRecentChats = useMemo(() => {
@@ -169,7 +170,7 @@ export function LiveViewerList({ streamId, viewerCount, isOpen, onClose, current
             if (currentUser?.id && p.id === currentUser.id) return false;
             if (!q) return true;
             return (p.username || '').toLowerCase().includes(q) ||
-                   (p.full_name || '').toLowerCase().includes(q);
+                   (p.display_name || '').toLowerCase().includes(q);
         });
     }, [recentChats, watcherIdSet, search, currentUser?.id]);
 
@@ -326,7 +327,7 @@ export function LiveViewerList({ streamId, viewerCount, isOpen, onClose, current
                                 style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover' }}
                             />
                             <span style={{ color: 'white', fontSize: 14, fontWeight: 500, flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                {viewer.username || viewer.full_name || 'Anonymous'}
+                                {viewer.display_name || viewer.username || 'Anonymous'}
                             </span>
                         </div>
                     ))}
@@ -360,14 +361,14 @@ export function LiveViewerList({ streamId, viewerCount, isOpen, onClose, current
                                             style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover' }}
                                         />
                                         <span style={{ color: 'white', fontSize: 14, fontWeight: 500, flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                            {p.username || p.full_name || 'Unknown'}
+                                            {p.display_name || p.username || 'Unknown'}
                                         </span>
                                         {canInvite && (
                                             <button
                                                 type="button"
                                                 onClick={() => sendStreamInvite(p.id)}
                                                 disabled={inviting || invited}
-                                                aria-label={`Invite ${p.username || p.full_name || 'user'} to stream`}
+                                                aria-label={`Invite ${p.display_name || p.username || 'user'} to stream`}
                                                 style={{
                                                     padding: '6px 14px',
                                                     borderRadius: 999,

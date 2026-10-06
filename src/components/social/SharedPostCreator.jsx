@@ -45,6 +45,35 @@ import {
 // useComposeStore import removed (2026-05-03): the /compose route handoff
 // is gone, inline staging handles everything via local component state.
 
+// The name other people see on a check-in. Callers pass different user
+// shapes (the social-media user object, a raw Supabase auth user), so this
+// reads the public fields itself instead of trusting `user.name`: the legal
+// name is owner-only (ruling 25) and an email local part is never a name.
+// `user.name` is used only when no public field exists and it is neither the
+// legal name nor derived from the email address.
+export function publicNameOf(user) {
+  if (!user) return 'Player';
+  const meta = user.user_metadata || {};
+  const pick =
+    user.display_name ||
+    user.username ||
+    user.alias ||
+    meta.display_name ||
+    meta.username ||
+    meta.poker_alias;
+  if (pick) return pick;
+  const name = typeof user.name === 'string' ? user.name.trim() : '';
+  if (!name || name.includes('@')) return 'Player';
+  const lower = name.toLowerCase();
+  const legal = [user.full_name, meta.full_name]
+    .filter(Boolean)
+    .map((v) => String(v).trim().toLowerCase());
+  if (legal.includes(lower)) return 'Player';
+  const localPart = String(user.email || meta.email || '').split('@')[0].toLowerCase();
+  if (localPart && localPart === lower) return 'Player';
+  return name;
+}
+
 export function SharedPostCreator({
   user,
   onPost,
@@ -872,7 +901,7 @@ export function SharedPostCreator({
           try {
             const { data } = await supabase
               .from('profiles')
-              // BUG-13 FIX: also select display_name as fallback when full_name is null
+              // Public columns only: full_name is owner-only (ruling 25).
               .select('id, username, display_name')
               .ilike('username', `%${query}%`)
               .limit(5);
@@ -1542,7 +1571,7 @@ export function SharedPostCreator({
                 headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
                 body: JSON.stringify({
                   venue_id: checkInVenue.id,
-                  user_name: authorOverride ? authorOverride.name : user?.name || 'Player',
+                  user_name: authorOverride ? authorOverride.name : publicNameOf(user),
                   message: finalContent || null,
                   skip_post: true,
                 }),
@@ -2053,11 +2082,8 @@ export function SharedPostCreator({
                   <Avatar name={u.username} size={32} />
                   <div>
                     <div style={{ fontWeight: 600, fontSize: 14 }}>@{u.username}</div>
-                    {u.full_name || u.display_name ? (
-                      <div style={{ fontSize: 12, color: C.textSec }}>
-                        {/* BUG-13 FIX: fall back to display_name if full_name is null */}
-                        {u.full_name || u.display_name}
-                      </div>
+                    {u.display_name ? (
+                      <div style={{ fontSize: 12, color: C.textSec }}>{u.display_name}</div>
                     ) : null}
                   </div>
                 </div>

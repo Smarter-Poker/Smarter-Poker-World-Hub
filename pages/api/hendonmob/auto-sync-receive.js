@@ -6,16 +6,24 @@
  * 
  * POST /api/hendonmob/auto-sync-receive
  * Body: { userId, stats: { totalCashes, totalEarnings, biggestCash } }
- * Header: X-Auto-Sync-Key: <secret>
+ * Header: X-Hendon-Sync-Token: <the one-run token auto-sync.js minted>
+ *     or Authorization: Bearer <CRON_SECRET> (or x-admin-secret: <ADMIN_ROUTE_SECRET>)
+ *
+ * 2026-10-05 privacy audit: this used to accept X-Auto-Sync-Key with
+ * HENDON_AUTO_SYNC_SECRET, and auto-sync.js pasted that same secret into
+ * every prompt it sent to Manus, so the secret lives in a third party's task
+ * history. It now accepts a server-side operator credential, or the one-run
+ * token auto-sync.js minted for this Manus task: found by its SHA-256 in
+ * public.hendon_sync_tokens, unexpired, unrevoked, and naming this userId.
  */
 
+import crypto from 'crypto';
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { reportApiError } from '../../../src/lib/apiErrorHandler';
+import { requestHasPokerOpsSecret } from '../../../src/lib/poker-near-me/opsReadAuth';
 
 // NOTE: Removed edge runtime — this handler uses Node.js Pages Router API (req.query/res.status/etc)
 // and cannot run on Vercel Edge Runtime. Keep as Node.js runtime.
-
-const AUTO_SYNC_SECRET = process.env.HENDON_AUTO_SYNC_SECRET || '';
 
 let _supabase = null;
 function getSupabase() {
@@ -34,13 +42,7 @@ export default async function handler(req, res) {
         return res.status(405).json({ error: 'POST only' });
     }
 
-    // Auth via secret key
-    const secretKey = req.headers['x-auto-sync-key'];
-    if (!secretKey || !AUTO_SYNC_SECRET || secretKey !== AUTO_SYNC_SECRET) {
-        return res.status(401).json({ error: 'Invalid sync key' });
-    }
-
-    const { userId, stats } = req.body;
+    const { userId, stats } = req.body || {};
 
     if (!userId || !stats) {
         return res.status(400).json({ error: 'userId and stats required' });
@@ -50,6 +52,29 @@ export default async function handler(req, res) {
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     if (!uuidRegex.test(userId)) {
         return res.status(400).json({ error: 'Invalid userId format - must be a valid UUID' });
+    }
+
+    // Auth: a header-only operator secret (CRON_SECRET / ADMIN_ROUTE_SECRET),
+    // or the one-run token of the Manus task that queued THIS account.
+    let authorized = requestHasPokerOpsSecret(req);
+    if (!authorized) {
+        const raw = req.headers['x-hendon-sync-token'];
+        const runToken = typeof raw === 'string' ? raw.trim() : '';
+        if (/^[0-9a-f]{64}$/.test(runToken)) {
+            const tokenHash = crypto.createHash('sha256').update(runToken).digest('hex');
+            const { data: grant } = await getSupabase()
+                .from('hendon_sync_tokens')
+                .select('id')
+                .eq('token_hash', tokenHash)
+                .is('revoked_at', null)
+                .gt('expires_at', new Date().toISOString())
+                .contains('user_ids', [userId])
+                .maybeSingle();
+            authorized = Boolean(grant?.id);
+        }
+    }
+    if (!authorized) {
+        return res.status(401).json({ error: 'Unauthorized' });
     }
 
     // Build update — ONLY include fields that have real values

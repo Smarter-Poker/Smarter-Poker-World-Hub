@@ -7,7 +7,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import { supabase } from '../../src/lib/supabase';
-import { getSafeUser } from '../../src/lib/authUtils';
+import { getSafeUser, getAccessToken } from '../../src/lib/authUtils';
 import SEOHead from '../../src/components/seo/SEOHead';
 import PokerCardText from '../../src/components/social/PokerCardText';
 import Link from 'next/link';
@@ -410,7 +410,11 @@ export default function ClubPage() {
     if (!id || !user?.id) return;
     async function checkFollowStatus() {
       try {
-        const res = await fetch(`/api/social/pages/follow?page_id=${id}&requester_id=${user.id}`);
+        // Identity is the bearer token, never a query id (the API ignores requester_id).
+        const token = getAccessToken();
+        const res = await fetch(`/api/social/pages/follow?page_id=${id}`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
         if (!res.ok) throw new Error(`Request failed (${res.status})`);
         const json = await res.json();
         if (json.success) {

@@ -3,3 +3,6 @@ export const C = {
     border: '#DADDE1', blue: '#1877F2', blueHover: '#166FE5', green: '#42B72A', gold: '#FFD700',
 };
 export const MAX_UPLOAD_SIZE = 5 * 1024 * 1024;
+// Public display name (ruling 25): optional, trimmed, at most 40 characters.
+// Empty is stored as NULL so other players see the username instead.
+export const DISPLAY_NAME_MAX_LENGTH = 40;

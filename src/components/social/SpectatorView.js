@@ -49,7 +49,7 @@ export default function SpectatorView({ session, currentUser, onClose }) {
         const loadChat = async () => {
             const { data } = await supabase
                 .from('session_chat_messages')
-                .select('*, profiles:user_id(username, avatar_url)')
+                .select('*, profiles:user_id(username, display_name, avatar_url)')
                 .eq('session_id', session.id)
                 .order('created_at', { ascending: true })
                 .limit(100);
@@ -146,7 +146,7 @@ export default function SpectatorView({ session, currentUser, onClose }) {
                     </div>
                     <div>
                         <div style={{ color: T.text, fontSize: 15, fontWeight: 700 }}>
-                            {session.profiles?.full_name || session.profiles?.username || 'Player'}
+                            {session.profiles?.display_name || session.profiles?.username || 'Player'}
                         </div>
                         <div style={{ color: T.textSec, fontSize: 11 }}>
                             {session.venue_name} - {session.stakes} {session.game_type}

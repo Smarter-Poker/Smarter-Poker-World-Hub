@@ -2132,11 +2132,13 @@ export function GoLiveModal({
     const text = commentInput.trim();
     setCommentInput('');
     commentInputRef.current?.blur(); // #10: dismiss mobile keyboard
+    // Public name only, matching what the server stores for everyone else:
+    // the legal name is owner-only (ruling 25) and an email is never a name.
     const authorName =
       user.username ||
-      user.full_name ||
-      user.user_metadata?.full_name ||
-      user.email?.split('@')[0] ||
+      user.display_name ||
+      user.user_metadata?.username ||
+      user.user_metadata?.display_name ||
       'Broadcaster';
     const optimisticId = `opt-${Date.now()}`;
     const newComment = {

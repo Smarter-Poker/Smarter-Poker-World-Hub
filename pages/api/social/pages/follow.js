@@ -6,7 +6,7 @@
  * PUT  /api/social/pages/follow  - Update follower preferences (notifications, role)
  */
 import { createClient } from '../../../../src/lib/supabaseServerClient';
-import { requireAuth } from '../../../../src/lib/auth-middleware';
+import { requireAuth, optionalAuth } from '../../../../src/lib/auth-middleware';
 import { reportApiError } from '../../../../src/lib/apiErrorHandler';
 
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
@@ -211,7 +211,17 @@ export default async function handler(req, res) {
           const page_id = safeQ(req.query.page_id);
           const user_id = safeQ(req.query.user_id);
           const role = safeQ(req.query.role);
-          const requester_id = safeQ(req.query.requester_id);
+          // Identity comes from the verified JWT only (rule 5). A
+          // ?requester_id= query value is ignored: it let any caller claim
+          // to be a private page's owner and read its member list. No token,
+          // or an invalid one, means an anonymous caller.
+          let requester_id = null;
+          try {
+              const requester = await optionalAuth(req, getSupabase());
+              requester_id = requester?.id || null;
+          } catch (_authErr) {
+              requester_id = null;
+          }
 
           if (page_id) {
               // Get followers for a page
@@ -241,7 +251,7 @@ export default async function handler(req, res) {
                   if (userIds.length > 0) {
                       const { data: profileData } = await getSupabase()
                           .from('profiles')
-                          .select('id, username, avatar_url')
+                          .select('id, username, display_name, avatar_url')
                           .in('id', userIds)
                               .limit(100);
                       (profileData || []).forEach(p => { profiles[p.id] = p; });

@@ -3609,6 +3609,7 @@ function SocialMediaPage() {
               parsed.name && parsed.name !== parsed.full_name
                 ? parsed.name
                 : parsed.username || 'Player',
+            display_name: parsed.display_name || null,
             full_name: parsed.full_name,
             username: parsed.username,
             avatar: parsed.avatar,
@@ -3634,6 +3635,7 @@ function SocialMediaPage() {
         return {
           id: authUser.id,
           name: name || 'Player',
+          display_name: authUser.user_metadata?.display_name || null,
           full_name: fullName || null,
           username: alias || null,
           avatar: authUser.user_metadata?.avatar_url || null,
@@ -4321,6 +4323,7 @@ function SocialMediaPage() {
           ...prev,
           ...(newFullName !== null ? { full_name: newFullName } : {}),
           ...(newUsername !== null ? { username: newUsername } : {}),
+          ...(d.display_name ? { display_name: d.display_name } : {}),
           // Public name only: user.name is sent to other people.
           name: d.display_name || newUsername || prev?.username || prev?.name,
           ...(d.avatar_url ? { avatar: d.avatar_url } : {}),
@@ -4341,6 +4344,7 @@ function SocialMediaPage() {
             setUser((prev) => ({
               ...prev,
               name: freshName || prev?.name,
+              display_name: p.display_name || null,
               full_name: p.full_name || prev?.full_name,
               username: p.username || prev?.username,
               avatar: p.avatar_url || null,
@@ -4353,6 +4357,7 @@ function SocialMediaPage() {
                 JSON.stringify({
                   ...cached,
                   name: freshName || cached.name,
+                  display_name: p.display_name || null,
                   full_name: p.full_name || cached.full_name,
                   username: p.username || cached.username,
                   avatar: p.avatar_url || cached.avatar,
@@ -4377,32 +4382,16 @@ function SocialMediaPage() {
       handleProfileUpdated();
     });
 
-    // Cross-tab: Settings changed (e.g. display_name_preference toggled in Settings page)
-    // Immediately recompute user.name to show correct "Posting As" name without reload
-    const cleanupSettingsBc = listenBroadcast('smarter_poker_settings_sync', () => {
-      setUser((prev) => {
-        if (!prev) return prev;
-        // The owner-only real name (full_name) never becomes user.name, which
-        // is sent to other people, whatever display_name_preference says.
-        const newName = prev.name || prev.username || 'Player';
-        if (newName === prev.name) return prev; // no-op if unchanged
-        // Also update localStorage cache
-        try {
-          const cached = JSON.parse(localStorage.getItem('sp-social-user') || '{}');
-          localStorage.setItem(
-            'sp-social-user',
-            JSON.stringify({ ...cached, name: newName, ts: Date.now() })
-          );
-        } catch (_) {}
-        return { ...prev, name: newName };
-      });
-    });
+    // No Settings listener here any more: Settings used to broadcast a
+    // "posting name" choice (display_name_preference) that recomputed
+    // user.name. Ruling 25 retired it - user.name is always the public
+    // display_name, then username - and profile edits arrive above through
+    // 'profile-updated' and the avatar channel.
 
     return () => {
       clearTimeout(debounceTimer);
       window.removeEventListener('profile-updated', handleProfileUpdated);
       cleanupAvatarBc();
-      cleanupSettingsBc();
     };
   }, []);
 
@@ -4478,6 +4467,7 @@ function SocialMediaPage() {
           setUser({
             id: p?.id || authUser.id,
             name: displayName,
+            display_name: p?.display_name || null,
             full_name: p?.full_name || null,
             username: p?.username || null,
             avatar: p?.avatar_url || null,
@@ -4492,6 +4482,7 @@ function SocialMediaPage() {
               JSON.stringify({
                 id: p?.id || authUser.id,
                 name: displayName,
+                display_name: p?.display_name || null,
                 full_name: p?.full_name || null,
                 username: p?.username || null,
                 avatar: p?.avatar_url || null,
@@ -4553,48 +4544,26 @@ function SocialMediaPage() {
                         .filter(Boolean)
                     ),
                   ];
-                  const actorNames = [
-                    ...new Set(
-                      notifs
-                        .map((n) => {
-                          const match = n.title?.match(/^([A-Za-z]+\s+[A-Za-z]+)/);
-                          return match ? match[1] : null;
-                        })
-                        .filter(Boolean)
-                    ),
-                  ];
-
-                  // ⚡ Fetch both profile lookups in PARALLEL
-                  const [profilesByIdRes, profilesByNameRes] = await Promise.all([
+                  // Actors are looked up by id only. There is no lookup by
+                  // legal name: full_name is readable only by its owner and
+                  // staff (ruling 25), so a stranger cannot be found by it.
+                  const profilesByIdRes =
                     actorIds.length > 0
-                      ? supabase
+                      ? await supabase
                           .from('profiles')
-                          .select('id, username, avatar_url')
+                          .select('id, username, display_name, avatar_url')
                           .in('id', actorIds)
-                      : Promise.resolve({ data: [] }),
-                    // No lookup by legal name: full_name is readable only by its
-                    // owner and staff (2026-09-30), so a stranger cannot be found by it.
-                    Promise.resolve({ data: [] }),
-                  ]);
+                      : { data: [] };
 
                   const profileById = {};
                   (profilesByIdRes.data || []).forEach((p) => {
                     profileById[p.id] = p;
                   });
-                  const profileByName = {};
-                  (profilesByNameRes.data || []).forEach((p) => {
-                    if (p.full_name) profileByName[p.full_name.toLowerCase()] = p;
-                  });
 
                   const enrichedNotifs = notifs.map((n) => {
                     const actorId =
                       n.data?.commenter_id || n.data?.actor_id || n.actor_id || n.data?.sender_id;
-                    let profile = actorId ? profileById[actorId] : null;
-                    if (!profile) {
-                      const match = n.title?.match(/^([A-Za-z]+\s+[A-Za-z]+)/);
-                      const actorName = match ? match[1] : null;
-                      profile = actorName ? profileByName[actorName.toLowerCase()] : null;
-                    }
+                    const profile = actorId ? profileById[actorId] : null;
                     const dispName =
                       n.data?.actor_name ||
                       n.data?.sender_name ||

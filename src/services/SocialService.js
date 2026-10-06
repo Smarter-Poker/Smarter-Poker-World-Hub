@@ -48,8 +48,6 @@ export class SocialService {
                     post_id: row.post_id,
                     author_id: row.author_id,
                     author_username: row.author_username,
-                    author_full_name: row.author_full_name,
-                    author_display_name_preference: row.author_display_name_preference,
                     author_avatar: row.author_avatar,
                     author_level: row.author_level,
                     content: row.content,
@@ -115,7 +113,7 @@ export class SocialService {
           author:profiles!author_id (
             id,
             username,
-            display_name_preference,
+            display_name,
             avatar_url,
             level
           )
@@ -475,7 +473,7 @@ export class SocialService {
           author:profiles!author_id (
             id,
             username,
-            display_name_preference,
+            display_name,
             avatar_url,
             level
           )
@@ -519,7 +517,7 @@ export class SocialService {
           author:profiles!author_id (
             id,
             username,
-            display_name_preference,
+            display_name,
             avatar_url,
             level
           )

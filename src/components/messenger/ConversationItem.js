@@ -39,8 +39,7 @@ export function ConversationItem({
     const groupTitle = conversation.title || conversation.group_name || null;
     const isGroupThread = conversation.is_group || (!otherUser && !!groupTitle);
     const displayName =
-        otherUser?.full_name
-        || otherUser?.display_name
+        otherUser?.display_name
         || otherUser?.username
         || otherUser?.name
         || groupTitle

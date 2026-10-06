@@ -164,8 +164,11 @@ export default function ManageSocialPage() {
 
     const fetchMembers = async () => {
         try {
-            const reqParam = user?.id ? `&requester_id=${user.id}` : '';
-            const res = await fetch(`/api/social/pages/follow?page_id=${page.id}${reqParam}`);
+            // Identity is the bearer token, never a query id (the API ignores requester_id).
+            const token = getAccessToken();
+            const res = await fetch(`/api/social/pages/follow?page_id=${page.id}`, {
+                headers: token ? { Authorization: `Bearer ${token}` } : {},
+            });
             if (!res.ok) throw new Error(`Request failed (${res.status})`);
             const json = await res.json();
             if (json.success) setMembers(json.data || []);
@@ -786,7 +789,7 @@ export default function ManageSocialPage() {
                                         )}
                                     </div>
                                     {members
-                                        .filter(m => !memberSearch || (m.profile?.full_name || m.profile?.username || '').toLowerCase().includes(memberSearch.toLowerCase()))
+                                        .filter(m => !memberSearch || (m.profile?.display_name || m.profile?.username || '').toLowerCase().includes(memberSearch.toLowerCase()))
                                         .map(m => (
                                         <div key={m.id} style={{
                                             display: 'flex', alignItems: 'center', gap: 10, padding: '10px 0',
@@ -798,11 +801,11 @@ export default function ManageSocialPage() {
                                                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                                                 color: '#fff', fontWeight: 700, fontSize: 16,
                                             }}>
-                                                {!m.profile?.avatar_url && (m.profile?.full_name || '?')[0]}
+                                                {!m.profile?.avatar_url && (m.profile?.display_name || m.profile?.username || '?')[0]}
                                             </div>
                                             <div style={{ flex: 1 }}>
                                                 <div style={{ fontSize: 14, fontWeight: 600, color: C.text }}>
-                                                    {m.profile?.full_name || m.profile?.username || 'Unknown'}
+                                                    {m.profile?.display_name || m.profile?.username || 'Unknown'}
                                                 </div>
                                                 {m.role === 'owner' ? (
                                                     <div style={{ fontSize: 12, color: C.blue, fontWeight: 600 }}>Owner</div>
@@ -843,7 +846,7 @@ export default function ManageSocialPage() {
                                                 <button
                                                     onClick={() => handleRemoveMember(m.user_id)}
                                                     disabled={removingMember.has(m.user_id)}
-                                                    aria-label={`Remove ${m.profile?.full_name || 'member'}`}
+                                                    aria-label={`Remove ${m.profile?.display_name || m.profile?.username || 'member'}`}
                                                     style={{
                                                         padding: '4px 10px', borderRadius: 6, border: `1px solid ${C.border}`,
                                                         background: C.bg, fontSize: 11, cursor: 'pointer', fontFamily: 'inherit',
@@ -871,7 +874,7 @@ export default function ManageSocialPage() {
                                         }}>
                                             <div style={{ flex: 1 }}>
                                                 <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>
-                                                    {p.author?.full_name || 'Unknown'}
+                                                    {p.author?.display_name || p.author?.username || 'Unknown'}
                                                     {p.is_pinned && <span style={{ color: C.blue, marginLeft: 6 }}>[Pinned]</span>}
                                                 </div>
                                                 <div style={{ fontSize: 13, color: C.textSec, marginTop: 2 }}>
