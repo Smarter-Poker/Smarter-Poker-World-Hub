@@ -378,7 +378,9 @@ test('every Reel surface keeps one active player and preserves YouTube controls'
 
 test('third-party Reels expose accurate source attribution with a neutral fallback', () => {
   assert.match(REELS_SERVER, /'source_id',[\s\S]*'source_name'/);
-  assert.match(REELS_SERVER, /sourceNameFromMetadata\(sourcePost\?\.metadata\)/);
+  // A source name is the video's, never the publishing pipeline's notes on
+  // the linked post (__tests__/a-reel-never-says-who-made-it.law.test.mjs).
+  assert.doesNotMatch(REELS_SERVER, /sourceNameFromMetadata|sourcePost\?\.metadata/);
   assert.match(REELS_SERVER, /source_attribution_url: sourceAttributionUrl/);
   assert.match(REELS_SERVER, /row\.source_name[\s\S]*Original YouTube Source/);
   for (const source of [REELS_PAGE, REELS_COMPONENT, REELS_CAROUSEL]) {

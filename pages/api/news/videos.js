@@ -50,7 +50,6 @@ export default async function handler(req, res) {
                 channel: reel.channel_name || 'Smarter.Poker',
                 published_at: reel.created_at,
                 scraped_at: reel.created_at,
-                origin_type: reel.origin_type,
                 playback_type: reel.playback_type,
                 topic: reel.topic,
                 rights_status: reel.rights_status,

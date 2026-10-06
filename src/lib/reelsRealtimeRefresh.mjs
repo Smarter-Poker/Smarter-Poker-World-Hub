@@ -36,7 +36,9 @@ const ALL_REEL_TOPICS = new Set(['poker', 'cash', 'tournament', 'slots', 'sports
 const BLOCKED_RIGHTS = new Set(['blocked', 'restricted']);
 const UNAVAILABLE_STATUSES = new Set([400, 404, 410]);
 
-// Raw social_reels columns that decide whether and how a row plays. Counter
+// Raw social_reels columns that decide whether and how a row plays. Never
+// origin_type: it is not granted to the browser, so Realtime never carries it
+// (src/lib/socialReelShape.js). Counter
 // columns (view_count, like_count, comment_count, share_count), captions,
 // thumbnails and timestamps are deliberately absent: a change to them alone
 // never refreshes a viewer.
@@ -51,7 +53,6 @@ export const REEL_PLAYBACK_FIELDS = Object.freeze([
   'is_deleted',
   'topic',
   'rights_status',
-  'origin_type',
   'author_id',
   'source_post_id',
   'source_asset_id',

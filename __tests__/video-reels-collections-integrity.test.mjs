@@ -24,6 +24,15 @@ const {
 );
 assert.equal(Number.isFinite(VIDEO_LIBRARY_VERIFICATION_MAX_AGE_MS), true);
 assert.equal(Number.isFinite(VIDEO_LIBRARY_MAX_FUTURE_SKEW_MS), true);
+// The reader also imports the pure browser-shape module (what a browser may
+// know about a Reel); the harnesses hand it the REAL toBrowserReel too.
+const REEL_SHAPE_SOURCE = readFileSync(
+  new URL('../src/lib/socialReelShape.js', import.meta.url),
+  'utf8',
+);
+const { toBrowserReel } = await import(
+  `data:text/javascript;base64,${Buffer.from(REEL_SHAPE_SOURCE).toString('base64')}`
+);
 const MINE_API = read('../pages/api/reels/mine.js');
 const SAVED_API = read('../pages/api/reels/saved.js');
 const SAVED_STATUS_API = read('../pages/api/reels/saved-status.js');
@@ -36,6 +45,7 @@ function loadEligibilityHarness() {
   const transformed = SERVER
     .replace(/import \{ createClient \} from '[^']+';\n/, '')
     .replace(/import \{[\s\S]*?\} from '\.\.\/videoLibraryAvailability';\n/, '')
+    .replace(/import \{ toBrowserReel \} from '\.\.\/socialReelShape';\n/, '')
     .replace(/export class /g, 'class ')
     .replace(/export async function /g, 'async function ')
     .replace(/export const /g, 'const ');
@@ -44,6 +54,7 @@ function loadEligibilityHarness() {
     VIDEO_LIBRARY_ALLOWED_TYPES: ['cash', 'tournament', 'slots'],
     VIDEO_LIBRARY_MAX_FUTURE_SKEW_MS,
     VIDEO_LIBRARY_VERIFICATION_MAX_AGE_MS,
+    toBrowserReel,
     Buffer,
     Date,
     Error,
@@ -127,6 +138,7 @@ function loadCollectionReaderHarness(client, { scanChunkSize = 240, followingPag
   const transformed = SERVER
     .replace(/import \{ createClient \} from '[^']+';\n/, '')
     .replace(/import \{[\s\S]*?\} from '\.\.\/videoLibraryAvailability';\n/, '')
+    .replace(/import \{ toBrowserReel \} from '\.\.\/socialReelShape';\n/, '')
     .replace('const SCAN_CHUNK_SIZE = 240;', `const SCAN_CHUNK_SIZE = ${scanChunkSize};`)
     .replace('const FOLLOWING_PAGE_SIZE = 1_000;', `const FOLLOWING_PAGE_SIZE = ${followingPageSize};`)
     .replace(/export class /g, 'class ')
@@ -137,6 +149,7 @@ function loadCollectionReaderHarness(client, { scanChunkSize = 240, followingPag
     VIDEO_LIBRARY_ALLOWED_TYPES: ['cash', 'tournament', 'slots'],
     VIDEO_LIBRARY_MAX_FUTURE_SKEW_MS,
     VIDEO_LIBRARY_VERIFICATION_MAX_AGE_MS,
+    toBrowserReel,
     Buffer,
     Date,
     Error,

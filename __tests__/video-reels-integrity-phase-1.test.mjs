@@ -109,7 +109,7 @@ test('the published Reels verifier is read-only and rejects hostile live payload
     video_url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
     source_name: 'Verified Source',
     source_attribution_url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
-    origin_type: 'video_library',
+    source_type: 'video_library',
     is_public: true,
     availability_status: 'verified',
     embeddable: true,
