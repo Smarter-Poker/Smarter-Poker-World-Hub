@@ -8,12 +8,13 @@
  * GET  /api/hendonmob/auto-sync?userId=X — Trigger sync for one user
  * 
  * Who may trigger it (2026-10-05 privacy audit):
- *   - the weekly workflow, with HENDON_AUTO_SYNC_SECRET (x-auto-sync-key
- *     header, or ?key= as .github/workflows/hendonmob-auto-sync.yml sends it);
- *   - an operator with CRON_SECRET / ADMIN_ROUTE_SECRET (header only);
+ *   - the weekly workflow or an operator, with CRON_SECRET / ADMIN_ROUTE_SECRET
+ *     in a header (.github/workflows/hendonmob-auto-sync.yml sends x-cron-secret);
  *   - a signed-in platform administrator (profiles.is_admin or an admin role).
  * It used to accept ANY valid user JWT, which let every signed-in player start
- * a paid, all-user scrape job.
+ * a paid, all-user scrape job, and HENDON_AUTO_SYNC_SECRET, which had been
+ * pasted into every Manus prompt and so sits in a third party's task history.
+ * That secret is retired: nothing accepts it any more, so it needs no rotation.
  *
  * No standing secret is ever placed in the prompt sent to Manus (a third
  * party). The prompt used to embed HENDON_AUTO_SYNC_SECRET as the callback
@@ -33,25 +34,7 @@ import { authorizePokerOpsRead } from '../../../src/lib/poker-near-me/opsReadAut
 
 const MANUS_API_KEY = (process.env.MANUS_API_KEY || '').trim();
 const MANUS_API_URL = 'https://api.manus.ai/v1/tasks';
-const AUTO_SYNC_SECRET = (process.env.HENDON_AUTO_SYNC_SECRET || '').trim();
 const HENDON_TOKEN_TTL_HOURS = 12;
-
-/** Constant-time comparison that tolerates unequal lengths. */
-function safeEqual(a, b) {
-    if (typeof a !== 'string' || typeof b !== 'string') return false;
-    const ab = Buffer.from(a, 'utf8');
-    const bb = Buffer.from(b, 'utf8');
-    if (ab.length !== bb.length) {
-        crypto.timingSafeEqual(ab, ab);
-        return false;
-    }
-    return crypto.timingSafeEqual(ab, bb);
-}
-
-function firstString(value) {
-    if (Array.isArray(value)) return typeof value[0] === 'string' ? value[0] : '';
-    return typeof value === 'string' ? value : '';
-}
 
 let _supabase = null;
 function getSupabase() {
@@ -124,19 +107,10 @@ export default async function handler(req, res) {
         return res.status(405).json({ error: 'Method not allowed' });
     }
 
-    // Auth: the workflow's sync secret, an operator secret, or a verified
-    // platform administrator. An ordinary user JWT is NOT enough.
-    // ?key= stays accepted only because the weekly workflow sends it that way.
-    const secretKey = firstString(req.headers['x-auto-sync-key']) || firstString(req.query.key);
-
-    let authorized = false;
-
-    if (AUTO_SYNC_SECRET.length >= 8 && secretKey && safeEqual(secretKey.trim(), AUTO_SYNC_SECRET)) {
-        authorized = true;
-    } else {
-        const ops = await authorizePokerOpsRead(req, getSupabase());
-        authorized = ops.authorized === true;
-    }
+    // Auth: an operator secret in a header, or a verified platform
+    // administrator. An ordinary user JWT is NOT enough.
+    const ops = await authorizePokerOpsRead(req, getSupabase());
+    const authorized = ops.authorized === true;
 
     if (!authorized) {
         return res.status(401).json({ error: 'Unauthorized' });
