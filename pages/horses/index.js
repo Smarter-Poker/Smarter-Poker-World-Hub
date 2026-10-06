@@ -69,6 +69,8 @@ export default function HorsesAdmin() {
   const urlHydratedRef = useRef(false);
   const urlSyncedRef = useRef(false);
   const pendingUrlStateRef = useRef(null);
+  const queuedUrlStateRef = useRef(null);
+  const [urlWriteEpoch, setUrlWriteEpoch] = useState(0);
 
   const showNotification = useCallback((message, type = 'success') => {
     if (notifyTimer.current) clearTimeout(notifyTimer.current);
@@ -187,34 +189,39 @@ export default function HorsesAdmin() {
 
   useEffect(() => {
     if (!router.isReady) return;
-    const pending = pendingUrlStateRef.current;
-    if (pending && !urlMatchesState(pending, router.query)) return;
-    if (pending) pendingUrlStateRef.current = null;
+    if (pendingUrlStateRef.current || queuedUrlStateRef.current) return;
     setActiveTab(resolveInitialTab(router.query));
     setCaSection(resolveInitialSection(router.query));
     urlHydratedRef.current = true;
-  }, [router.isReady, router.query.tab, router.query.section]);
+  }, [router.isReady, router.query.tab, router.query.section, urlWriteEpoch]);
 
   useEffect(() => {
     if (!router.isReady || !urlHydratedRef.current) return;
     const state = { activeTab, caSection };
+    const pending = pendingUrlStateRef.current;
+    if (pending) {
+      queuedUrlStateRef.current = state;
+      return;
+    }
+    const finishWrite = () => {
+      if (pendingUrlStateRef.current === state) pendingUrlStateRef.current = null;
+      setUrlWriteEpoch((value) => value + 1);
+    };
     if (urlMatchesState(state, router.query)) {
       urlSyncedRef.current = true;
       if (urlNeedsNormalising(state, router.query)) {
+        queuedUrlStateRef.current = null;
         pendingUrlStateRef.current = state;
         router.replace(
           { pathname: router.pathname, query: nextUrlQuery(state, router.query) },
           undefined,
           { shallow: true },
-        ).catch(() => {
-          if (pendingUrlStateRef.current === state) pendingUrlStateRef.current = null;
-        });
+        ).catch(() => {}).finally(finishWrite);
       }
       return;
     }
     if (!urlSyncedRef.current) return;
-    const pending = pendingUrlStateRef.current;
-    if (pending?.activeTab === state.activeTab && pending?.caSection === state.caSection) return;
+    queuedUrlStateRef.current = null;
     pendingUrlStateRef.current = state;
     const keyboardTarget = keyboardFocusTabRef.current === activeTab ? activeTab : null;
     router.push(
@@ -226,10 +233,8 @@ export default function HorsesAdmin() {
       window.requestAnimationFrame(() => {
         navRef.current?.querySelector(`[data-tabid="${keyboardTarget}"]`)?.focus({ preventScroll: true });
       });
-    }).catch(() => {
-      if (pendingUrlStateRef.current === state) pendingUrlStateRef.current = null;
-    });
-  }, [activeTab, caSection, router.isReady]);
+    }).catch(() => {}).finally(finishWrite);
+  }, [activeTab, caSection, router.isReady, urlWriteEpoch]);
 
   const navTabs = useMemo(
     () => permittedTabs(visibleTabs(TABS), permissions),
