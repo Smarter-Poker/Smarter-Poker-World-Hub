@@ -1854,7 +1854,7 @@ class GameController {
   /** @private — Lazy-load personality module */
   async _getPersonalityModule() {
     try {
-      return await import('../../content-engine/services/HorsePokerPersonality.js').then(m => m.default || m);
+      return await import('./brain/HorsePokerPersonality.js').then(m => m.default || m);
     } catch {
       return null;
     }
