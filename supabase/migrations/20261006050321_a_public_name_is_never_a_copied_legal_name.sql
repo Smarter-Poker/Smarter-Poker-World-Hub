@@ -1,4 +1,7 @@
--- 20261006043256_a_public_name_is_never_a_copied_legal_name.sql
+-- 20261006050321_a_public_name_is_never_a_copied_legal_name.sql
+-- Applied to production 2026-10-06 05:03 UTC as version 20261006050321
+-- (reserved as 20261006043256, the name its audit rows carry), after #2167
+-- was live; 23 rows cleared, 23 admin_audit_log rows written.
 -- ═══════════════════════════════════════════════════════════════════════
 -- TIER:         2 (data correction, audited, reversible)
 -- AUTHOR:       Claude, privacy follow-ups 2026-10-06
