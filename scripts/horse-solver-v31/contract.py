@@ -15,7 +15,7 @@ from typing import Any, Iterable
 
 MANIFEST_CONTRACT = "smarter-poker.horse-solver-v31-manifest.v1"
 RANGE_BUNDLE_CONTRACT = "smarter-poker.horse-solver-v31-range-bundle.v1"
-ICM_MODEL_CONTRACT = "smarter-poker.horse-solver-v31-icm-model.v1"
+ICM_MODEL_CONTRACT = "smarter-poker.horse-solver-v31-icm-model.v2"
 INPUT_BUNDLE_CONTRACT = "smarter-poker.horse-solver-v31-input-bundle.v2"
 COMBO_ORDER = "card=rank*4+suit; combo=b*(b-1)/2+a; 2c2d=0..AhAs=1325"
 HEX40 = re.compile(r"^[0-9a-f]{40}$")
@@ -93,7 +93,8 @@ SCENARIO_KEYS = {
     "targets",
 }
 ICM_ROOT_KEYS = {"contract", "models"}
-ICM_MODEL_KEYS = {"model_id", "oop_stack_chips", "ip_stack_chips", "points"}
+ICM_MODEL_KEYS = {"model_id", "oop_stack_chips", "ip_stack_chips", "points",
+                  "root_pot_chips", "source_snapshot_path", "source_snapshot_checksum"}
 ICM_POINT_KEYS = {"player", "stack_chips", "utility"}
 TARGET_KEYS = {
     "target_id",
@@ -590,6 +591,32 @@ def _icm_models(input_root: Path, manifest: dict[str, Any]) -> dict[str, dict[st
         ip_stack = _positive_integer(
             model["ip_stack_chips"], f"ICM models[{model_index}].ip_stack_chips"
         )
+        pot = _positive_integer(model["root_pot_chips"], "ICM root pot")
+        source_path = _safe_relative_path(model["source_snapshot_path"], "ICM source path")
+        source_checksum = _nonzero_hex(model["source_snapshot_checksum"], 64, "ICM source checksum")
+        source = _exact_keys(_json_bytes(_verify_file(input_root, source_path, source_checksum).read_bytes(), "ICM source snapshot"),
+            {"contract", "utility_unit", "field_stacks_chips", "payouts", "oop_index", "ip_index", "root_pot_chips"}, "ICM source snapshot")
+        if source["contract"] != "smarter-poker.horse-solver-v31-icm-snapshot.v1" or source["utility_unit"] != "payout":
+            raise ContractError("ICM source snapshot contract/utility units are invalid")
+        stacks, payouts = source["field_stacks_chips"], source["payouts"]
+        if not isinstance(stacks, list) or not 2 <= len(stacks) <= 10:
+            raise ContractError("ICM snapshot requires 2..10 live field stacks")
+        stacks = [_positive_integer(value, "ICM field stack") for value in stacks]
+        if not isinstance(payouts, list) or not 1 <= len(payouts) <= len(stacks):
+            raise ContractError("ICM snapshot payout count is invalid")
+        payouts = [_finite_number(value, "ICM payout", 0) for value in payouts]
+        if sum(payouts) <= 0 or any(a < b for a, b in zip(payouts, payouts[1:])):
+            raise ContractError("ICM payouts must be descending with a positive pool")
+        oop_index = _positive_integer(source["oop_index"], "ICM OOP index", allow_zero=True)
+        ip_index = _positive_integer(source["ip_index"], "ICM IP index", allow_zero=True)
+        if oop_index == ip_index or max(oop_index, ip_index) >= len(stacks):
+            raise ContractError("ICM source player indexes are invalid")
+        if stacks[oop_index] != oop_stack or stacks[ip_index] != ip_stack or source["root_pot_chips"] != pot:
+            raise ContractError("ICM source stacks/root pot differ from model")
+        # Stacks are chips behind at the solve root; the pot is added once.
+        payout_per_chip = sum(payouts) / (sum(stacks) + pot)
+        if not math.isfinite(payout_per_chip) or payout_per_chip <= 0:
+            raise ContractError("ICM payout-to-chip normalization is not finite and positive")
         points = model["points"]
         if not isinstance(points, list):
             raise ContractError(f"ICM models[{model_index}].points must be an array")
@@ -614,6 +641,8 @@ def _icm_models(input_root: Path, manifest: dict[str, Any]) -> dict[str, dict[st
                 f"ICM models[{model_index}].points[{point_index}].utility",
                 0,
             )
+            if utility > sum(payouts):
+                raise ContractError("ICM utility exceeds the remaining prize pool")
             identity = (player, stack)
             if identity in seen_points:
                 raise ContractError("ICM model repeats a player/stack point")
@@ -624,7 +653,7 @@ def _icm_models(input_root: Path, manifest: dict[str, Any]) -> dict[str, dict[st
             ordered = sorted(by_player[player])
             if len(ordered) < 2:
                 raise ContractError(f"ICM model {model_id} needs at least two {player} points")
-            if ordered[0][0] > starting_stack - effective or ordered[-1][0] < starting_stack + effective:
+            if ordered[0][0] > starting_stack - effective or ordered[-1][0] < starting_stack + effective + pot:
                 raise ContractError(f"ICM model {model_id} does not cover every reachable {player} stack")
             if any(
                 later[1] <= earlier[1]
@@ -636,6 +665,9 @@ def _icm_models(input_root: Path, manifest: dict[str, Any]) -> dict[str, dict[st
             "model_id": model_id,
             "oop_stack_chips": oop_stack,
             "ip_stack_chips": ip_stack,
+            "root_pot_chips": pot,
+            "payout_per_chip": payout_per_chip,
+            "source_snapshot_checksum": source_checksum,
             "points": tuple(
                 (player, stack, utility)
                 for player in ("OOP", "IP")
@@ -820,6 +852,8 @@ def _validate_scenario(
                 raise ContractError(
                     f"scenarios[{index}] ICM stacks do not match effective_stack_chips"
                 )
+            if model["root_pot_chips"] != scenario["pot_chips"]:
+                raise ContractError(f"scenarios[{index}] ICM root pot does not match scenario")
     else:
         if icm_model_id is not None:
             raise ContractError(f"scenarios[{index}] chip/cash EV may not name an ICM model")

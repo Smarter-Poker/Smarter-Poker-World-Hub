@@ -727,6 +727,11 @@ def _icm_setup_commands(
     ):
         raise PioError("approved ICM stacks do not match the scenario")
     points = icm_model.get("points")
+    payout_per_chip = icm_model.get("payout_per_chip")
+    if isinstance(payout_per_chip, bool) or not isinstance(payout_per_chip, (int, float)) or not math.isfinite(payout_per_chip) or payout_per_chip <= 0:
+        raise PioError("approved ICM payout-to-chip normalization is absent or invalid")
+    if icm_model.get("root_pot_chips") != scenario.get("pot_chips"):
+        raise PioError("approved ICM root pot does not match the scenario")
     if not isinstance(points, (tuple, list)) or len(points) < 4:
         raise PioError("approved ICM interpolation points are incomplete")
     commands = ["reset_icm_tables", f"set_icm {oop_stack} {ip_stack}"]
@@ -745,7 +750,7 @@ def _icm_setup_commands(
             raise PioError("approved ICM interpolation point is invalid")
         seen.add((player, stack))
         commands.append(
-            f"set_icm_point {player} {stack} {_format_number(utility)}"
+            f"set_icm_point {player} {stack} {_format_number(utility / payout_per_chip)}"
         )
     if {player for player, _stack in seen} != {"OOP", "IP"}:
         raise PioError("approved ICM interpolation points omit a player")

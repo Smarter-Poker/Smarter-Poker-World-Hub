@@ -19,6 +19,20 @@ test('the certified V31 solver pipeline passes its hermetic parser and contract 
   assert.match(result.stderr, /OK/);
 });
 
+for (const suite of [
+  'scripts/horse-solver-v31/test_compile_inputs.py',
+  'scripts/ci/test-provision-horse-v31-hmac.py',
+]) {
+  test(`V31 commissioning prerequisite ${suite} passes`, () => {
+    const result = spawnSync(process.env.PYTHON_BIN || 'python3', [suite], {
+      cwd: ROOT, encoding: 'utf8', timeout: 120_000,
+    });
+    assert.equal(result.status, 0, `${result.stdout}\n${result.stderr}`);
+    assert.match(result.stderr, /Ran \d+ tests/);
+    assert.match(result.stderr, /OK/);
+  });
+}
+
 test('workers use narrow HMAC ingress and PostgreSQL-owned node seals', () => {
   const worker = read('scripts/horse-solver-v31/worker.py');
   const gateway = read('scripts/horse-solver-v31/gateway.py');

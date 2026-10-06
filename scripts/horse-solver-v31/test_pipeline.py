@@ -31,6 +31,7 @@ from contract import (  # noqa: E402
     ContractError,
     _finite_number,
     _json_bytes,
+    _icm_models,
     canonical_hand_order_tokens,
     input_bundle_checksum,
     input_bundle_id,
@@ -261,6 +262,8 @@ class PioHarvestTests(unittest.TestCase):
             "model_id": "satellite.1000",
             "oop_stack_chips": 1000,
             "ip_stack_chips": 1400,
+            "root_pot_chips": 100,
+            "payout_per_chip": 0.0004,
             "points": (
                 ("OOP", 0, 0.0),
                 ("OOP", 2000, 1.0),
@@ -276,6 +279,11 @@ class PioHarvestTests(unittest.TestCase):
         self.assertEqual(sum(command.startswith("set_icm ") for command in commands), 1)
         self.assertLess(commands.index("set_icm 1000 1400"), commands.index("build_tree"))
         self.assertEqual(sum(command.startswith("set_icm_point ") for command in commands), 4)
+        self.assertIn("set_icm_point OOP 2000 2500", commands)
+        # A payout utility of 1 is 2500 chip-equivalent units, not one chip.
+        model.pop("payout_per_chip")
+        with self.assertRaisesRegex(PioError, "normalization"):
+            setup_commands(scenario, [1.0] * 1326, [1.0] * 1326, icm_model=model)
 
     def test_rake_and_icm_cannot_share_a_tree_and_go_never_uses_accuracy_as_seconds(self):
         scenario = base_scenario()
@@ -401,6 +409,41 @@ class PioTransportTests(unittest.TestCase):
 
 
 class ManifestAndGatewayTests(unittest.TestCase):
+    def test_icm_normalization_binds_snapshot_and_covers_the_root_pot(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            source = {"contract": "smarter-poker.horse-solver-v31-icm-snapshot.v1",
+                      "utility_unit": "payout", "field_stacks_chips": [1000, 1400],
+                      "payouts": [100], "oop_index": 0, "ip_index": 1,
+                      "root_pot_chips": 100}
+            source_bytes = canonical_json(source)
+            (root / "snapshot.json").write_bytes(source_bytes)
+            model = {"model_id": "real.snapshot", "oop_stack_chips": 1000,
+                     "ip_stack_chips": 1400, "root_pot_chips": 100,
+                     "source_snapshot_path": "snapshot.json",
+                     "source_snapshot_checksum": digest(source_bytes),
+                     "points": [{"player": "OOP", "stack_chips": 0, "utility": 0},
+                                {"player": "OOP", "stack_chips": 2100, "utility": 84},
+                                {"player": "IP", "stack_chips": 400, "utility": 16},
+                                {"player": "IP", "stack_chips": 2500, "utility": 100}]}
+            def load():
+                payload = canonical_json({"contract": ICM_MODEL_CONTRACT, "models": [model]})
+                (root / "model.json").write_bytes(payload)
+                return _icm_models(root, {"icm_model_path": "model.json",
+                                          "icm_model_checksum": digest(payload)})
+            self.assertAlmostEqual(load()["real.snapshot"]["payout_per_chip"], 0.04)
+            model["points"][1]["stack_chips"] = 2000
+            with self.assertRaisesRegex(ContractError, "reachable"):
+                load()
+            model["points"][1]["stack_chips"] = 2100
+            model["points"][1]["utility"] = 101
+            with self.assertRaisesRegex(ContractError, "prize pool"):
+                load()
+            model["points"][1]["utility"] = 84
+            (root / "snapshot.json").write_bytes(source_bytes + b" ")
+            with self.assertRaises(ContractError):
+                load()
+
     def test_gateway_response_parser_is_strict_and_operation_bound(self):
         payload = canonical_json(
             {"success": True, "operation": "dataset_contract", "result": {"state": "building"}}
@@ -965,16 +1008,30 @@ class ManifestAndGatewayTests(unittest.TestCase):
                         "model_id": "satellite.1000",
                         "oop_stack_chips": 1000,
                         "ip_stack_chips": 1400,
+                        "root_pot_chips": 100,
+                        "source_snapshot_path": "models/snapshot.json",
+                        "source_snapshot_checksum": digest(canonical_json({
+                            "contract": "smarter-poker.horse-solver-v31-icm-snapshot.v1",
+                            "utility_unit": "payout", "field_stacks_chips": [1000, 1400],
+                            "payouts": [1], "oop_index": 0, "ip_index": 1,
+                            "root_pot_chips": 100,
+                        })),
                         "points": [
                             {"player": "OOP", "stack_chips": 0, "utility": 0},
-                            {"player": "OOP", "stack_chips": 2000, "utility": 1},
+                            {"player": "OOP", "stack_chips": 2100, "utility": 1},
                             {"player": "IP", "stack_chips": 400, "utility": 0.2},
-                            {"player": "IP", "stack_chips": 2400, "utility": 1},
+                            {"player": "IP", "stack_chips": 2500, "utility": 1},
                         ],
                     }
                 ],
             }
             icm_bytes = canonical_json(icm_bundle)
+            (input_root / "models" / "snapshot.json").write_bytes(canonical_json({
+                "contract": "smarter-poker.horse-solver-v31-icm-snapshot.v1",
+                "utility_unit": "payout", "field_stacks_chips": [1000, 1400],
+                "payouts": [1], "oop_index": 0, "ip_index": 1,
+                "root_pot_chips": 100,
+            }))
             (input_root / "models" / "icm.json").write_bytes(icm_bytes)
             scenario = base_scenario()
             scenario["oop_range_checksum"] = digest(range_payload)
