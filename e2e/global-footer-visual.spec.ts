@@ -176,14 +176,10 @@ const visit = async (page: Page, route: string) => {
     try {
       // WebKit can paint and hydrate a production page while a late resource
       // keeps its DOMContentLoaded lifecycle promise unresolved. Navigation
-      // only owns the committed document. The app marker proves React effects
-      // ran before feature-specific assertions are allowed to begin.
+      // only owns the committed document. Tests that exercise client-owned
+      // behavior call visitHydrated below; the 203-route SSR inventory does
+      // not need to wait for client effects it never asserts.
       await page.goto(route, { waitUntil: 'commit', timeout: 15_000 });
-      await page.waitForFunction(
-        () => document.documentElement.dataset.worldHubHydrated === 'true',
-        undefined,
-        { timeout: 15_000 }
-      );
       return;
     } catch (error) {
       lastError = error;
@@ -196,6 +192,30 @@ const visit = async (page: Page, route: string) => {
       // fresh production build. Let that replacement settle, then restore the
       // requested canonical URL. WebKit reports this as an overlapping
       // navigation instead of ERR_ABORTED.
+      await page.evaluate(() => window.stop()).catch(() => undefined);
+      await page.goto('about:blank', { waitUntil: 'commit', timeout: 5_000 }).catch(() => undefined);
+      await page.waitForTimeout(50);
+    }
+  }
+  throw lastError;
+};
+
+const visitHydrated = async (page: Page, route: string) => {
+  let lastError: unknown;
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    try {
+      await visit(page, route);
+      await page.waitForFunction(
+        () => document.documentElement.dataset.worldHubHydrated === 'true',
+        undefined,
+        { timeout: 15_000 }
+      );
+      return;
+    } catch (error) {
+      lastError = error;
+      if (attempt === 2 || !/TimeoutError|Execution context was destroyed/.test(String(error))) {
+        throw error;
+      }
       await page.evaluate(() => window.stop()).catch(() => undefined);
       await page.goto('about:blank', { waitUntil: 'commit', timeout: 5_000 }).catch(() => undefined);
       await page.waitForTimeout(50);
@@ -278,7 +298,7 @@ test.describe('dynamic World Hub footer route and visual contract', () => {
     page,
   }) => {
     await page.setViewportSize({ width: 390, height: 844 });
-    await visit(page, '/hub/diamond-store');
+    await visitHydrated(page, '/hub/diamond-store');
 
     await expect(page.locator('[data-global-bottom-nav="true"]')).toHaveCount(0);
     const pageFooter = page.locator('[data-marketplace-page-footer="true"]');
@@ -473,7 +493,7 @@ test.describe('dynamic World Hub footer route and visual contract', () => {
       // layout process has accumulated prior sizes, masking otherwise healthy
       // geometry with a whole-test timeout.
       await page.setViewportSize(viewport);
-      await visit(page, '/hub/training');
+      await visitHydrated(page, '/hub/training');
 
       const nav = page.locator('[data-global-bottom-nav="true"]');
       await expect(nav).toHaveCount(1);
@@ -557,7 +577,7 @@ test.describe('dynamic World Hub footer route and visual contract', () => {
           window.localStorage.setItem('pnm_tutorial_seen', '1');
         });
         await installFooterAuthBoundary(page, entry.id);
-        await visit(page, entry.route);
+        await visitHydrated(page, entry.route);
         const nav = page.locator('[data-global-bottom-nav="true"]');
         await expect(nav).toHaveCount(1);
         await expect(nav).toHaveAttribute('data-footer-hide-on-scroll', 'true');
@@ -634,7 +654,7 @@ test.describe('dynamic World Hub footer route and visual contract', () => {
 
   test('a small inner scroller cannot countermand document travel', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
-    await visit(page, '/hub/video-library');
+    await visitHydrated(page, '/hub/video-library');
 
     const nav = page.locator('[data-global-bottom-nav="true"]');
     await expect(nav).toHaveAttribute('data-footer-scroll-armed', 'true', {

@@ -286,6 +286,23 @@ test('the footer gate waits for product facts instead of WebKit lifecycle accide
     );
     assert.match(
         spec,
+        /const visitHydrated = async/,
+        'client readiness must have an explicit helper separate from the SSR inventory visit',
+    );
+    assert.doesNotMatch(
+        spec.slice(spec.indexOf('const visit = async'), spec.indexOf('const visitHydrated = async')),
+        /worldHubHydrated/,
+        'the 203-route server-render inventory must not wait for client effects it does not assert',
+    );
+    for (const route of ['/hub/diamond-store', '/hub/training', 'entry.route', '/hub/video-library']) {
+        assert.match(
+            spec,
+            new RegExp(`visitHydrated\\(page, ${route === 'entry.route' ? route.replace('.', '\\.') : `'${route}'`}\\)`),
+            `${route} interaction proof must wait for the root hydration marker`,
+        );
+    }
+    assert.match(
+        spec,
         /for \(let attempt = 0; attempt < 3; attempt \+= 1\)/,
         'hydration recovery must remain bounded to three attempts',
     );
