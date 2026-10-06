@@ -572,6 +572,8 @@ import './a-post-never-says-who-wrote-it.law.test.mjs';
 // social_reels.origin_type, every Reel leaves the server reader through
 // toBrowserReel(row), and a source name is the video's, never the pipeline's.
 import './a-reel-never-says-who-made-it.law.test.mjs';
+// Players attest a Sports Reel topic the way a horse does (World Hub #2150).
+import './players-share-sports-reels.test.mjs';
 
 const REPO = path.resolve(new URL('.', import.meta.url).pathname, '..');
 
