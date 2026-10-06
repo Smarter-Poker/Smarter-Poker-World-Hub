@@ -1,3 +1,5 @@
+-- 20261006024310_stable_admin_phase11_incident_acknowledgements_canonical.sql
+-- Reserved against origin/main and every remote branch.
 -- Stable Admin Phase 11 / C7: durable incident ownership acknowledgements.
 -- This is an append-only overlay. It never updates the alert/drift sources and
 -- an acknowledgement never changes source health, resolution, or status.
@@ -17,7 +19,7 @@ BEGIN
 END
 $preflight$;
 
-CREATE TABLE public.ca_operator_incident_ack_events (
+CREATE TABLE IF NOT EXISTS public.ca_operator_incident_ack_events (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   source_table text NOT NULL CHECK (source_table IN (
     'ca_drift_incidents',
@@ -40,14 +42,14 @@ CREATE TABLE public.ca_operator_incident_ack_events (
 COMMENT ON TABLE public.ca_operator_incident_ack_events IS
   'Append-only operator ownership overlay. Acknowledge/release never resolves or mutates its source incident.';
 
-CREATE INDEX ca_operator_incident_ack_events_source_idx
+CREATE INDEX IF NOT EXISTS ca_operator_incident_ack_events_source_idx
   ON public.ca_operator_incident_ack_events (source_table, source_identity, created_at DESC, id DESC);
 
 ALTER TABLE public.ca_operator_incident_ack_events ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON public.ca_operator_incident_ack_events FROM PUBLIC, anon, authenticated;
 GRANT SELECT ON public.ca_operator_incident_ack_events TO service_role;
 
-CREATE FUNCTION public.fn_ca_operator_incident_ack_events_append_only()
+CREATE OR REPLACE FUNCTION public.fn_ca_operator_incident_ack_events_append_only()
 RETURNS trigger
 LANGUAGE plpgsql
 SET search_path = pg_catalog, public
@@ -57,15 +59,19 @@ BEGIN
 END
 $function$;
 
+DROP TRIGGER IF EXISTS ca_operator_incident_ack_events_no_update_delete
+  ON public.ca_operator_incident_ack_events;
 CREATE TRIGGER ca_operator_incident_ack_events_no_update_delete
   BEFORE UPDATE OR DELETE ON public.ca_operator_incident_ack_events
   FOR EACH ROW EXECUTE FUNCTION public.fn_ca_operator_incident_ack_events_append_only();
 
+DROP TRIGGER IF EXISTS ca_operator_incident_ack_events_no_truncate
+  ON public.ca_operator_incident_ack_events;
 CREATE TRIGGER ca_operator_incident_ack_events_no_truncate
   BEFORE TRUNCATE ON public.ca_operator_incident_ack_events
   FOR EACH STATEMENT EXECUTE FUNCTION public.fn_ca_operator_incident_ack_events_append_only();
 
-CREATE VIEW public.ca_operator_incident_ack_current
+CREATE OR REPLACE VIEW public.ca_operator_incident_ack_current
 WITH (security_invoker = true)
 AS
 SELECT DISTINCT ON (source_table, source_identity)
@@ -86,7 +92,7 @@ ORDER BY source_table, source_identity, created_at DESC, id DESC;
 REVOKE ALL ON public.ca_operator_incident_ack_current FROM PUBLIC, anon, authenticated;
 GRANT SELECT ON public.ca_operator_incident_ack_current TO service_role;
 
-CREATE FUNCTION public.fn_ca_operator_record_incident_ack_event(
+CREATE OR REPLACE FUNCTION public.fn_ca_operator_record_incident_ack_event(
   p_source_table text,
   p_source_identity text,
   p_action text,

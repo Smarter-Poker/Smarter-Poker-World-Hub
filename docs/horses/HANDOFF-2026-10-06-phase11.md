@@ -28,7 +28,7 @@ Policy receipt: version 2.9, manifest
 
 ## Database Files
 
-- `20261006022053_stable_admin_phase11_incident_acknowledgements.sql`
+- `20261006024310_stable_admin_phase11_incident_acknowledgements_canonical.sql`
 - `20261006022120_stable_admin_phase11_finance_records.sql`
 - `20261006022123_stable_admin_phase11_identity_links.sql`
 

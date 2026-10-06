@@ -54,7 +54,7 @@ const REVERIFY_PATH = join(
  * ordered migration chain rather than requiring Phase 2 to predict Phase 11. */
 const INCIDENT_ACK_PATH = join(
   repo,
-  'supabase/migrations/20261006022053_stable_admin_phase11_incident_acknowledgements.sql'
+  'supabase/migrations/20261006024310_stable_admin_phase11_incident_acknowledgements_canonical.sql'
 );
 const SIM_PATH = join(repo, 'docs/horses/PHASE2-SIM.sql');
 const SIM2_PATH = join(repo, 'docs/horses/PHASE2-SIM-2.sql');

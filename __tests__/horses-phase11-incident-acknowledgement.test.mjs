@@ -2,11 +2,11 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 
-const migrationUrl = new URL('../supabase/migrations/20261006022053_stable_admin_phase11_incident_acknowledgements.sql', import.meta.url);
+const migrationUrl = new URL('../supabase/migrations/20261006024310_stable_admin_phase11_incident_acknowledgements_canonical.sql', import.meta.url);
 const migration = await readFile(migrationUrl, 'utf8');
 
 test('C7 installs an append-only acknowledgement overlay with exact service grants', () => {
-  assert.match(migration, /CREATE TABLE public\.ca_operator_incident_ack_events/);
+  assert.match(migration, /CREATE TABLE IF NOT EXISTS public\.ca_operator_incident_ack_events/);
   assert.match(migration, /action IN \('acknowledge', 'release'\)/);
   assert.match(migration, /BEFORE UPDATE OR DELETE/);
   assert.match(migration, /BEFORE TRUNCATE/);
