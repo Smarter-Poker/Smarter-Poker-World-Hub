@@ -891,7 +891,11 @@ export default function ProfilePage() {
                         {undoSnapshot && !isDirty && (
                             <button
                                 onClick={async () => {
-                                    // Restore snapshot and save to DB
+                                    // Restore snapshot and save to DB. Keep what is
+                                    // on screen now so a refused save can put it back.
+                                    const beforeUndo = { ...profile };
+                                    const beforeUndoOriginal = { ...originalProfile };
+                                    const snapshot = undoSnapshot;
                                     setProfile({ ...undoSnapshot });
                                     setOriginalProfile({ ...undoSnapshot });
                                     setUndoSnapshot(null);
@@ -901,7 +905,7 @@ export default function ProfilePage() {
                                         const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
                                         const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
                                         const undoToken = getProfileJwt();
-                                        await fetch(`${supabaseUrl}/rest/v1/profiles?id=eq.${user.id}`, {
+                                        const undoRes = await fetch(`${supabaseUrl}/rest/v1/profiles?id=eq.${user.id}`, {
                                             method: 'PATCH',
                                             headers: { 'apikey': supabaseKey, 'Authorization': `Bearer ${undoToken}`, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
                                             body: JSON.stringify({
@@ -917,6 +921,9 @@ export default function ProfilePage() {
                                                 updated_at: new Date().toISOString(),
                                             }),
                                         });
+                                        // A refused PATCH (expired session, a taken
+                                        // username) must not be reported as restored.
+                                        if (!undoRes.ok) throw new Error(`Undo save failed (${undoRes.status})`);
                                         // Full 4-layer sync for undo save
                                         window.dispatchEvent(new CustomEvent('profile-updated', {
                                             detail: {
@@ -938,6 +945,11 @@ export default function ProfilePage() {
                                         setMessage('Undo successful - previous profile restored.');
                                     } catch (e) {
                                         console.warn('Undo save error:', e);
+                                        // Nothing was saved: show the saved profile again
+                                        // and keep the Undo button so they can retry.
+                                        setProfile(beforeUndo);
+                                        setOriginalProfile(beforeUndoOriginal);
+                                        setUndoSnapshot(snapshot);
                                         setMessage('Error: Could not undo. Please try again.');
                                     }
                                 }}

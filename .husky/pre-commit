@@ -19,14 +19,18 @@
 ROOT=$(git rev-parse --show-toplevel)
 FAIL=0
 
-sh "$ROOT/scripts/guard-shared-clone.sh"    || FAIL=1
+# The three bash scripts run under bash, as their shebangs ask. `sh` ignores a
+# shebang, and where sh is dash (Linux, CI images, cloud agents) each one died
+# on `set -o pipefail` and refused every commit without checking anything.
+# pre-push already calls its bash scripts this way.
+bash "$ROOT/scripts/guard-shared-clone.sh"    || FAIL=1
 
 # A commit Vercel cannot attribute never builds. CHECK 15 in ci.yml already
 # catches this, but only AFTER the commit is on main and the deployment has
 # already gone to BLOCKED. This is the same rule, at the only moment where
 # the answer is still "that commit was never made".
-sh "$ROOT/scripts/guard-commit-identity.sh" || FAIL=1
-sh "$ROOT/scripts/hooks/pre-commit-core.sh" || FAIL=1
+bash "$ROOT/scripts/guard-commit-identity.sh" || FAIL=1
+bash "$ROOT/scripts/hooks/pre-commit-core.sh" || FAIL=1
 sh "$ROOT/scripts/hooks/pre-commit-transpile.sh" || FAIL=1
 
 exit $FAIL
