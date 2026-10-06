@@ -139,7 +139,7 @@ export function buildUserVideoProvenance(
             userStorageVideo = false;
         }
     }
-    const topic = ['poker', 'cash', 'tournament'].includes(confirmedTopic)
+    const topic = ['poker', 'cash', 'tournament', 'sports'].includes(confirmedTopic)
         ? confirmedTopic
         : 'unknown';
     return {
