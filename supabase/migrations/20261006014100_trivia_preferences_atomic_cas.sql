@@ -1,5 +1,5 @@
 -- ============================================================================
--- 20261005233500_trivia_preferences_atomic_cas.sql
+-- 20261006014100_trivia_preferences_atomic_cas.sql
 -- ============================================================================
 -- TIER:        3
 -- AUTHOR:      Codex Phase 10 progress/account lane
@@ -15,6 +15,8 @@
 --   not an authoritative compare-and-swap token.
 --
 -- HOW:
+--   - Restores the maintained trivia_preferences document when an older
+--     production lineage never installed the archived UI-only column.
 --   - Adds a server-owned bigint revision beside trivia_preferences.
 --   - Removes authenticated direct writes and the generic preference RPC
 --     bypass for this one column.
@@ -38,15 +40,15 @@ BEGIN
     RAISE EXCEPTION 'pre-flight failed: public.profiles not found';
   END IF;
 
-  IF NOT EXISTS (
+  IF EXISTS (
     SELECT 1
       FROM information_schema.columns
      WHERE table_schema = 'public'
        AND table_name = 'profiles'
        AND column_name = 'trivia_preferences'
-       AND data_type = 'jsonb'
+       AND data_type <> 'jsonb'
   ) THEN
-    RAISE EXCEPTION 'pre-flight failed: profiles.trivia_preferences jsonb not found';
+    RAISE EXCEPTION 'pre-flight failed: profiles.trivia_preferences has an incompatible type';
   END IF;
 
   IF NOT EXISTS (
@@ -83,6 +85,15 @@ END
 $preflight$;
 
 -- 2. AUTHORITATIVE REVISION AND WRITE GUARD
+-- Production lineages that skipped the archived hamburger-menu migration do
+-- not have this column. Make the maintained authority self-contained instead
+-- of depending on an archived migration that cannot be replayed.
+ALTER TABLE public.profiles
+  ADD COLUMN IF NOT EXISTS trivia_preferences jsonb NOT NULL DEFAULT '{}'::jsonb;
+
+COMMENT ON COLUMN public.profiles.trivia_preferences IS
+  'Account-scoped Trivia gameplay, feedback and accessibility preferences.';
+
 ALTER TABLE public.profiles
   ADD COLUMN trivia_preferences_revision bigint NOT NULL DEFAULT 0;
 
@@ -298,6 +309,17 @@ BEGIN
       FROM information_schema.columns
      WHERE table_schema = 'public'
        AND table_name = 'profiles'
+       AND column_name = 'trivia_preferences'
+       AND data_type = 'jsonb'
+  ) THEN
+    RAISE EXCEPTION 'post-apply failed: trivia preferences document is missing';
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1
+      FROM information_schema.columns
+     WHERE table_schema = 'public'
+       AND table_name = 'profiles'
        AND column_name = 'trivia_preferences_revision'
        AND data_type = 'bigint'
        AND is_nullable = 'NO'
@@ -413,4 +435,6 @@ COMMIT;
 -- ALTER TABLE public.profiles
 --   DROP CONSTRAINT IF EXISTS profiles_trivia_preferences_revision_nonnegative;
 -- ALTER TABLE public.profiles DROP COLUMN IF EXISTS trivia_preferences_revision;
+-- Keep trivia_preferences itself: it may contain user-authored settings and
+-- forward-only rollback must never discard those values.
 -- COMMIT;

@@ -71,7 +71,7 @@ test('the maintained gate runs the real Phase 12 migration once on its existing 
     assert.match(runner, /PHASE6_POSTGRES_BIN/);
     assert.match(runner, /trap cleanup EXIT INT TERM/);
     assert.match(runner, /p12-cutover-pg17\.\*/);
-    assert.match(runner, /20261006011842_trivia_p12_competitive_cutover_authority\.sql/);
+    assert.match(runner, /20261006014200_trivia_p12_competitive_cutover_authority\.sql/);
     assert.match(runner, /space_before_kb/);
     assert.match(runner, /before_kb < 524288/);
     assert.match(runner, /shared_memory_type=mmap/);

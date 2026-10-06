@@ -8,7 +8,7 @@ const ROOT = process.cwd();
 const USER = '00000000-0000-4000-8000-000000000001';
 const MIGRATION = readFileSync(join(
   ROOT,
-  'supabase/migrations/20261005233500_trivia_preferences_atomic_cas.sql',
+  'supabase/migrations/20261006014100_trivia_preferences_atomic_cas.sql',
 ), 'utf8');
 
 const read = (file) => readFileSync(join(ROOT, file), 'utf8');
@@ -144,6 +144,7 @@ async function withBrowserService(authority, run) {
 
 test('migration owns revision, locks the row, fences browser writes, and returns cloud conflict state', () => {
   assert.match(MIGRATION, /ADD COLUMN trivia_preferences_revision bigint NOT NULL DEFAULT 0/);
+  assert.match(MIGRATION, /ADD COLUMN IF NOT EXISTS trivia_preferences jsonb NOT NULL DEFAULT '\{\}'::jsonb/);
   assert.match(MIGRATION, /CHECK \(trivia_preferences_revision >= 0\) NOT VALID/);
   assert.match(MIGRATION, /VALIDATE CONSTRAINT profiles_trivia_preferences_revision_nonnegative/);
   assert.match(MIGRATION, /BEFORE UPDATE OF trivia_preferences, trivia_preferences_revision/);

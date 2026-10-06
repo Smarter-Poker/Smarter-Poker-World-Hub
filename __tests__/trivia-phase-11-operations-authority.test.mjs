@@ -12,6 +12,7 @@ import {
 const ROOT = process.cwd();
 const read = (path) => readFileSync(join(ROOT, path), 'utf8');
 const MIGRATION = 'supabase/migrations/20261005234000_trivia_p11_operations_authority.sql';
+const ADVISOR_HARDENING = 'supabase/migrations/20261006014800_trivia_p9_12_advisor_hardening.sql';
 
 test('Phase 11 migration creates named least-privilege roles and immutable audit records', () => {
     const sql = read(MIGRATION);
@@ -160,10 +161,24 @@ test('operator page uses durable action receipts and labels unsupported settleme
     assert.match(page, /method:\s*'POST'/);
     assert.match(page, /requestKey/);
     assert.match(page, /receipt_id|receiptId/);
-    assert.match(page, /Retry same request/);
-    assert.match(page, /Recover canary\/test settlement with engine fence/);
-    assert.match(page, /Public recovery stays behind its durable release authority/);
+    assert.match(page, /Retry Same Request/);
+    assert.match(page, /Recover Canary\/Test Settlement With Engine Fence/);
+    assert.match(page, /Public Recovery Stays Behind Its Durable Release Authority/);
     assert.match(page, /Payout hold unavailable/);
     assert.match(page, /settlement choke point/i);
     assert.doesNotMatch(page, /@supabase\/supabase-js|SUPABASE_SERVICE_ROLE_KEY/);
+});
+
+test('advisor hardening makes internal denial explicit and indexes new foreign keys', () => {
+    const sql = read(ADVISOR_HARDENING);
+    assert.match(sql, /CREATE POLICY trivia_internal_no_direct_access/);
+    assert.match(sql, /v_policy_count <> 13/);
+    assert.match(
+        sql,
+        /CREATE INDEX trivia_achievement_awards_v2_definition_idx[\s\S]*\(achievement_id, definition_version\)/,
+    );
+    assert.match(
+        sql,
+        /CREATE INDEX trivia_operator_grants_v1_role_idx[\s\S]*\(role_key\)/,
+    );
 });

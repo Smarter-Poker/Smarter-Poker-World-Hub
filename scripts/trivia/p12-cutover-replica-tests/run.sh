@@ -107,7 +107,7 @@ run_psql() {
 }
 
 run_psql -f "$repo_root/scripts/trivia/p12-cutover-replica-tests/00_fixture.sql"
-run_psql -f "$repo_root/supabase/migrations/20261006011842_trivia_p12_competitive_cutover_authority.sql"
+run_psql -f "$repo_root/supabase/migrations/20261006014200_trivia_p12_competitive_cutover_authority.sql"
 run_psql -f "$repo_root/scripts/trivia/p12-cutover-replica-tests/10_assertions.sql"
 
 peak_kb="$(space_kb)"

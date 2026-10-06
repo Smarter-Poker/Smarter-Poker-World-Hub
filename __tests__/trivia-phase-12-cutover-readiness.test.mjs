@@ -12,7 +12,7 @@ import test from 'node:test';
 
 const ROOT = process.cwd();
 const read = (path) => readFileSync(join(ROOT, path), 'utf8');
-const migrationPath = 'supabase/migrations/20261006011842_trivia_p12_competitive_cutover_authority.sql';
+const migrationPath = 'supabase/migrations/20261006014200_trivia_p12_competitive_cutover_authority.sql';
 const sql = read(migrationPath);
 const dispatcher = read('scripts/openclaw-cron-dispatcher.py');
 const pvpRecoveryRoute = read('pages/api/cron/pvp-settle.js');
