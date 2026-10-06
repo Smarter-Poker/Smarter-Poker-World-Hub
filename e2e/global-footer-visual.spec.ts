@@ -418,14 +418,14 @@ test.describe('dynamic World Hub footer route and visual contract', () => {
     }
   });
 
-  test('footer remains fixed, complete, and non-scrolling at every supported width', async ({
-    page,
-  }) => {
-    // Seven full navigations plus WebKit viewport changes can exceed the
-    // project-wide 30s default on a cold shared runner. Geometry assertions
-    // remain strict; only the execution budget is widened.
-    test.setTimeout(120_000);
-    for (const viewport of VIEWPORTS) {
+  for (const viewport of VIEWPORTS) {
+    test(`footer remains fixed, complete, and non-scrolling at ${viewport.width}x${viewport.height}`, async ({
+      page,
+    }) => {
+      // Keep each viewport in a fresh browser page. Reusing one WebKit page
+      // across sixteen viewport mutations can deadlock the document after its
+      // layout process has accumulated prior sizes, masking otherwise healthy
+      // geometry with a whole-test timeout.
       await page.setViewportSize(viewport);
       await visit(page, '/hub/training');
 
@@ -481,8 +481,8 @@ test.describe('dynamic World Hub footer route and visual contract', () => {
       const clearanceBox = await clearance.boundingBox();
       expect(clearanceBox).not.toBeNull();
       expect(Math.abs(clearanceBox!.height - navBox!.height)).toBeLessThan(2);
-    }
-  });
+    });
+  }
 
   /**
    * Dan, 2026-09-04: "any other pages that you can 'scroll up to see more'
