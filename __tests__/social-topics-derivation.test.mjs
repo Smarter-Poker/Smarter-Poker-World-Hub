@@ -95,6 +95,24 @@ test('step 3: facets from metadata', () => {
     assert.deepEqual(derive({ metadata: { shared_reel_topic: 'cash' } }), ['poker', 'cash']);
     assert.deepEqual(derive({ topic: 'slots', metadata: { shared_reel_topic: 'sports' } }), ['slots'], 'never overrides a known primary');
     assert.deepEqual(derive({ metadata: { shared_reel_topic: 'video' } }), ['unknown']);
+    // The declared topic the horse video publisher and the player Reel
+    // publisher both write: the same Sports post is Sports for either author.
+    assert.deepEqual(derive({ metadata: { topic: 'sports' } }), ['sports'], 'a declared topic names the primary when unknown');
+    assert.deepEqual(derive({ metadata: { topic: 'Sports ' } }), ['sports']);
+    assert.deepEqual(derive({ metadata: { topic: 'tournament' } }), ['poker', 'tournament']);
+    assert.deepEqual(derive({ metadata: { topic: 'video' } }), ['unknown']);
+    assert.deepEqual(derive({ metadata: { topic: { a: 1 } } }), ['unknown']);
+    assert.deepEqual(derive({ topic: 'poker', metadata: { topic: 'sports' } }), ['poker'], 'never overrides a known primary');
+    assert.deepEqual(derive({ metadata: { shared_reel_topic: 'slots', topic: 'sports' } }), ['slots'], 'shared_reel_topic is read first');
+    assert.deepEqual(derive({ metadata: { clip_type: 'sports' } }), ['sports'], 'a collector clip type names the primary when unknown');
+    assert.deepEqual(derive({ metadata: { clip_type: 'poker' } }), ['poker']);
+    assert.deepEqual(derive({ metadata: { clip_type: 'slots' } }), ['unknown'], 'clip_type knows poker and sports only');
+    assert.deepEqual(derive({ metadata: { topic: 'unknown', clip_type: 'sports' } }), ['sports']);
+    assert.deepEqual(
+        derive({ topic: 'sports', topics: ['sports'], contentType: 'video', content: 'What a dunk', metadata: { topic: 'sports', clip_type: 'sports' } }),
+        derive({ topic: 'sports', topics: ['sports'], contentType: 'video', content: 'What a dunk', metadata: { topic: 'sports', topic_attested: true } }),
+        'a horse Sports video and a player Sports Reel derive the same topics',
+    );
 });
 
 test('step 4 and 5: a card token means a hand, tips and articles mean strategy', () => {

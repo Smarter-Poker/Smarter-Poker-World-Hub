@@ -137,6 +137,7 @@ import {
 
 import { feedCache } from '../../../src/lib/feedCache';
 import { retryUserReelPublication } from '../../../src/lib/userReelPublicationRecovery.mjs';
+import { normalizeUserReelTopic, USER_REEL_TOPIC_LABELS } from '../../../src/lib/userReelTopics.mjs';
 import { createLatestRequestGuard } from '../../../src/lib/latestRequestGuard.mjs';
 import HubPageSummary from '../../../src/components/seo/HubPageSummary';
 import { hubProductSchema } from '../../../src/lib/seo/hubPageSchema';
@@ -5381,15 +5382,23 @@ function SocialMediaPage() {
     // Reels are an explicitly public, single-video publication. Defend this
     // boundary here as well as in the composer because callers can invoke
     // handlePost without going through the current checkbox UI.
+    // pokerContentConfirmed carries the attested Reel topic ('poker' or
+    // 'sports'); a legacy `true` means Poker.
+    const reelTopic = pokerContentConfirmed ? normalizeUserReelTopic(pokerContentConfirmed) : null;
+    if (pokerContentConfirmed && !reelTopic) {
+      toast.error('Choose Poker Reels or Sports Reels before publishing.', 6000);
+      return false;
+    }
+    const reelLabel = reelTopic ? `${USER_REEL_TOPIC_LABELS[reelTopic]} Reels` : 'Reels';
     if (pokerContentConfirmed && visibility !== 'public') {
-      toast.error('Poker Reels are public. Change this post to Public before publishing.', 6000);
+      toast.error(`${reelLabel} are public. Change this post to Public before publishing.`, 6000);
       return false;
     }
     if (
       pokerContentConfirmed &&
       (type !== 'video' || !Array.isArray(urls) || urls.length !== 1)
     ) {
-      toast.error('Poker Reels can publish exactly one video at a time.', 6000);
+      toast.error(`${reelLabel} can publish exactly one video at a time.`, 6000);
       return false;
     }
 
@@ -5641,17 +5650,17 @@ function SocialMediaPage() {
         ? buildUserVideoProvenance(
             submittedVideoUrl,
             'social_post',
-            pokerContentConfirmed ? 'poker' : 'unknown',
+            reelTopic || 'unknown',
             user.id
           )
         : null;
 
-      // Poker-confirmed videos use the atomic post+Reel boundary. Generic
+      // Topic-attested (Poker or Sports) videos use the atomic post+Reel boundary. Generic
       // videos remain ordinary posts with topic=unknown until classified.
       let data = null;
       let rpcResult = null;
       let atomicReelId = null;
-      if (submittedVideoUrl && pokerContentConfirmed) {
+      if (submittedVideoUrl && reelTopic) {
         let publication;
         if (reelPublicationIntentId) {
           const publicationResult = await retryUserReelPublication({
@@ -5677,7 +5686,7 @@ function SocialMediaPage() {
             'publish_user_video_reel',
             {
               p_video_url: submittedVideoUrl,
-              p_topic: 'poker',
+              p_topic: reelTopic,
               p_topic_confirmed: true,
               p_caption: content || null,
               p_thumbnail_url: thumbnailUrl || null,
