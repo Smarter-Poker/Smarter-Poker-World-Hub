@@ -436,7 +436,7 @@ async function pnl(db, query) {
   const deadSource = await db.from('club_financial_summary').select('*').order('updated_at', { ascending: false }).limit(1);
   fail(result.error, 'Club Profit And Loss Could Not Be Computed', 'pnl_unavailable');
   return {
-    state: 'pnl.on_demand_only',
+    state: 'pnl.computed_for_snapshot',
     scope,
     clubId: scope === 'club' ? clubId : null,
     unionId: scope === 'union' ? unionId : null,
@@ -446,7 +446,7 @@ async function pnl(db, query) {
     result: result.data || null,
     deadSource: deadSource.error ? null : deadSource.data?.[0] || null,
     deadSourceState: deadSource.error ? 'pnl.dead_source_unknown' : deadSource.data?.length ? 'pnl.dead_source' : 'pnl.dead_source_absent',
-    disclosure: 'Computed At Request Time. No Durable Per-Club Profit And Loss Record Exists',
+    disclosure: 'Computed At Request Time. The Enclosing Record Action Persists This Result As A Durable Snapshot',
   };
 }
 

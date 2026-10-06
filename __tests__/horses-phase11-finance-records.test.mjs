@@ -42,4 +42,7 @@ test('economy write actions are bounded, idempotent and audited', async () => {
   assert.match(route, /economy\.pnl_recorded/);
   assert.match(route, /economy\.close_signed/);
   assert.match(route, /hasPermission\(op\.permissions, PERMISSIONS\.MONEY_WRITE\)/);
+  assert.match(route, /state: 'pnl\.computed_for_snapshot'/);
+  assert.match(route, /Persists This Result As A Durable Snapshot/);
+  assert.doesNotMatch(route, /No Durable Per-Club Profit And Loss Record Exists/);
 });
