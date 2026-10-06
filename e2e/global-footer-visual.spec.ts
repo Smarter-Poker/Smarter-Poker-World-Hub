@@ -387,12 +387,28 @@ test.describe('dynamic World Hub footer route and visual contract', () => {
         expect(Math.abs(stageBox!.height - expectedStage.height)).toBeLessThanOrEqual(1);
         expect(Math.abs(stageBox!.y + stageBox!.height - 568)).toBeLessThan(4);
         expect(Math.abs(navBox!.height - stageBox!.height)).toBeLessThan(2);
+        const decodedArtwork = await artwork.evaluate((image: HTMLImageElement) => ({
+          width: image.naturalWidth,
+          height: image.naturalHeight,
+          path: new URL(image.currentSrc).pathname,
+        }));
+        expect(decodedArtwork.width).toBeGreaterThan(0);
+        expect(decodedArtwork.height).toBeGreaterThan(0);
         expect(
-          await artwork.evaluate((image: HTMLImageElement) => [
-            image.naturalWidth,
-            image.naturalHeight,
-          ])
-        ).toEqual([definition!.artwork.width, definition!.artwork.height]);
+          Math.abs(
+            decodedArtwork.width / decodedArtwork.height
+              - definition!.artwork.width / definition!.artwork.height
+          )
+        ).toBeLessThan(0.01);
+        const approvedArtworkPaths = [
+          definition!.artwork.src,
+          ...('sources' in definition!.artwork && definition!.artwork.sources
+            ? definition!.artwork.sources.flatMap((source) =>
+                source.srcSet.split(',').map((candidate) => candidate.trim().split(/\s+/)[0])
+              )
+            : []),
+        ];
+        expect(approvedArtworkPaths).toContain(decodedArtwork.path);
 
         for (let index = 0; index < 6; index += 1) {
           const link = links.nth(index);

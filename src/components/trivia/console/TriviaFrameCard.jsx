@@ -1,5 +1,35 @@
+import { useEffect, useRef, useState } from 'react';
 import { useFitText } from './useFitText';
 import styles from './TriviaFrameCard.module.css';
+
+const TRANSPARENT_PIXEL = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==';
+const CARD_ART_ROOT_MARGIN = '128px 0px';
+
+function useDeferredCardArt(priority) {
+    const visualRef = useRef(null);
+    const [ready, setReady] = useState(Boolean(priority));
+
+    useEffect(() => {
+        if (ready || priority) {
+            if (priority && !ready) setReady(true);
+            return undefined;
+        }
+        const visual = visualRef.current;
+        if (!visual || typeof IntersectionObserver === 'undefined') {
+            setReady(true);
+            return undefined;
+        }
+        const observer = new IntersectionObserver((entries) => {
+            if (!entries.some((entry) => entry.isIntersecting)) return;
+            setReady(true);
+            observer.disconnect();
+        }, { rootMargin: CARD_ART_ROOT_MARGIN });
+        observer.observe(visual);
+        return () => observer.disconnect();
+    }, [priority, ready]);
+
+    return { visualRef, ready };
+}
 
 // WebP renders of the approved frame masters (same 1254 x 1254 pixels with
 // alpha, about a fifth of the PNG weight).
@@ -31,6 +61,7 @@ export default function TriviaFrameCard({
 }) {
     const resolvedFamily = FRAME_ASSETS[family] ? family : 'knowledge';
     const labelRef = useFitText(frameLabel, 1, 0.5);
+    const { visualRef, ready: artReady } = useDeferredCardArt(imagePriority);
     return (
         <button
             type="button"
@@ -38,7 +69,11 @@ export default function TriviaFrameCard({
             data-master-art={`trivia-${resolvedFamily}-frame-v1`}
             {...rest}
         >
-            <span className={styles.visual}>
+            <span
+                ref={visualRef}
+                className={styles.visual}
+                data-card-art-ready={artReady ? 'true' : 'false'}
+            >
                 {/* The picture's own tiny preview paints the well until the file
                     decodes, so a fast scroll never shows an empty window. */}
                 <span
@@ -47,7 +82,7 @@ export default function TriviaFrameCard({
                 >
                     <img
                         className={styles.art}
-                        src={image}
+                        src={artReady ? image : TRANSPARENT_PIXEL}
                         alt={imageAlt}
                         width="1024"
                         height="1024"
@@ -57,7 +92,7 @@ export default function TriviaFrameCard({
                 </span>
                 <img
                     className={styles.frame}
-                    src={FRAME_ASSETS[resolvedFamily]}
+                    src={artReady ? FRAME_ASSETS[resolvedFamily] : TRANSPARENT_PIXEL}
                     alt=""
                     aria-hidden="true"
                     width="1254"

@@ -731,33 +731,43 @@ function ArtworkBottomNav({ footer, activeHref, warm, hidden = false, armed = fa
           pointerEvents: 'none',
         }}
       >
-        <img
-          src={artwork.src}
-          alt=""
-          aria-hidden="true"
-          draggable="false"
-          decoding="async"
-          className="bn-artwork-image"
-          data-exact-approved-artwork="true"
-          width={artwork.width}
-          height={artwork.height}
-          style={{
-            position: 'absolute',
-            ...artworkImageStyle(artwork),
-            display: 'block',
-            // `fill` is now lossless, not a stretch: artworkStageStyle gives the
-            // stage the artwork's own aspect ratio, so the box the image fills
-            // already has the frame's shape. There is nothing left to distort
-            // and nothing to letterbox.
-            objectFit: 'fill',
-            // A uniform downscale of a fine quilted texture still aliases on
-            // low-DPR screens. High-quality resampling is what keeps the
-            // diamonds and the bevel clean.
-            imageRendering: 'auto',
-            userSelect: 'none',
-            pointerEvents: 'none',
-          }}
-        />
+        <picture>
+          {(artwork.sources || []).map((source) => (
+            <source
+              key={`${source.type}:${source.srcSet}`}
+              type={source.type}
+              srcSet={source.srcSet}
+              sizes={source.sizes}
+            />
+          ))}
+          <img
+            src={artwork.src}
+            alt=""
+            aria-hidden="true"
+            draggable="false"
+            decoding="async"
+            className="bn-artwork-image"
+            data-exact-approved-artwork="true"
+            width={artwork.width}
+            height={artwork.height}
+            style={{
+              position: 'absolute',
+              ...artworkImageStyle(artwork),
+              display: 'block',
+              // `fill` is now lossless, not a stretch: artworkStageStyle gives the
+              // stage the artwork's own aspect ratio, so the box the image fills
+              // already has the frame's shape. There is nothing left to distort
+              // and nothing to letterbox.
+              objectFit: 'fill',
+              // A uniform downscale of a fine quilted texture still aliases on
+              // low-DPR screens. High-quality resampling is what keeps the
+              // diamonds and the bevel clean.
+              imageRendering: 'auto',
+              userSelect: 'none',
+              pointerEvents: 'none',
+            }}
+          />
+        </picture>
 
         {items.map((item, index) => {
           const leftPercent =

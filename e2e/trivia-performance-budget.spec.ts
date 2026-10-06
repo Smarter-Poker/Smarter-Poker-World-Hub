@@ -1,4 +1,4 @@
-import { expect, test, type Browser, type Page } from '@playwright/test';
+import { devices, expect, test, type Browser, type Page } from '@playwright/test';
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -26,6 +26,9 @@ type Sample = TriviaBudget & {
 const registry = (JSON.parse(
   fs.readFileSync(path.join(process.cwd(), 'scripts/ci/mobile-budget.json'), 'utf8'),
 ) as { trivia: TriviaBudgetRegistry }).trivia;
+
+const { defaultBrowserType: pixel5Browser, ...pixel5Context } = devices['Pixel 5'];
+if (pixel5Browser !== 'chromium') throw new Error('The Trivia performance profile must remain Chromium');
 
 const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || process.env.PLAYWRIGHT_BASE_URL || 'http://127.0.0.1:3000';
 const kb = (bytes: number) => bytes / 1024;
@@ -108,10 +111,7 @@ async function trustedNonNavigatingInteraction(page: Page) {
 
 async function measureColdMobileSample(browser: Browser, route: string): Promise<Sample> {
   const context = await browser.newContext({
-    viewport: { width: 375, height: 812 },
-    deviceScaleFactor: 2,
-    isMobile: true,
-    hasTouch: true,
+    ...pixel5Context,
     serviceWorkers: 'block',
     storageState: { cookies: [], origins: [] },
   });
@@ -145,6 +145,8 @@ async function measureColdMobileSample(browser: Browser, route: string): Promise
     const status = response?.status() || 0;
     expect(status, `${route} must render successfully before its performance result is meaningful`).toBeGreaterThanOrEqual(200);
     expect(status, `${route} must render successfully before its performance result is meaningful`).toBeLessThan(400);
+    const expectedPath = route === '/hub/trivia/survival' ? '/hub/trivia/survival-game' : route;
+    expect(new URL(page.url()).pathname, `${route} must measure its intended page`).toBe(expectedPath);
 
     await page.evaluate(async () => { await document.fonts?.ready; });
     await page.waitForTimeout(900);

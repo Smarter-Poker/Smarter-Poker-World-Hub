@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { createHash } from 'node:crypto';
+import { readFileSync, statSync } from 'node:fs';
+import { basename, join } from 'node:path';
 import test from 'node:test';
 
 const ROOT = process.cwd();
@@ -114,6 +115,8 @@ test('every rebuilt Trivia route has finite p75 Core Web Vitals and resource cei
 
     const spec = read('e2e/trivia-performance-budget.spec.ts');
     for (const contract of [
+        /devices\['Pixel 5'\]/,
+        /\.\.\.pixel5Context/,
         /function p75/,
         /largest-contentful-paint/,
         /layout-shift/,
@@ -124,6 +127,7 @@ test('every rebuilt Trivia route has finite p75 Core Web Vitals and resource cei
         /request\.resourceType\(\) === 'fetch'/,
         /produced no LCP entry/,
         /produced no trusted interaction timing/,
+        /must measure its intended page/,
     ]) assert.match(spec, contract);
     assert.doesNotMatch(spec, /if \([^)]*lcp[^)]*>\s*0\)/i, 'a missing LCP cannot silently skip its assertion');
 });
@@ -147,6 +151,8 @@ test('the existing production-build browser job owns Trivia budgets and installe
     );
     assert.match(workflow, /trivia-performance-budget\.spec\.ts --project=trivia-performance/);
     assert.match(workflow, /trivia-pwa-rollback\.spec\.ts --project=trivia-pwa/);
+    assert.match(workflow, /TRIVIA_PVP_ENABLED:\s*'true'/);
+    assert.match(workflow, /TRIVIA_TOURNAMENTS_ENABLED:\s*'true'/);
 
     const config = read('playwright.config.ts');
     assert.match(config, /name: 'trivia-performance'[\s\S]*?serviceWorkers: 'block'/);
@@ -175,4 +181,53 @@ test('the Trivia performance project is pinned to Chromium for CDP metrics', () 
     assert.match(project, /\.\.\.devices\['Pixel 5'\]/, 'the CDP gate must use a Chromium mobile device profile');
     assert.match(project, /browserName:\s*'chromium'/, 'the CDP gate must explicitly launch Chromium');
     assert.doesNotMatch(project, /devices\['iPhone 13'\]/, 'a WebKit-default device profile would break newCDPSession');
+});
+
+test('approved shared chrome is responsive and below-fold lobby art waits for the viewport', () => {
+    const header = read('src/components/ui/UniversalHeader.js');
+    const footer = JSON.parse(read('src/config/world-footer-navigation.json'))
+        .worlds.find((world) => world.id === 'trivia')?.artwork;
+    const bottomNav = read('src/components/ui/BottomNavBar.jsx');
+    const frameCard = read('src/components/trivia/console/TriviaFrameCard.jsx');
+
+    assert.match(header, /<picture className="approved-global-header__picture">/);
+    assert.match(header, /global-header-desktop-824\.625ee4e7dd\.webp 824w/);
+    assert.match(header, /global-header-desktop-1200\.c58360aee1\.webp 1200w/);
+    assert.ok(
+        statSync(join(ROOT, 'public/images/global-header/global-header-desktop-824.625ee4e7dd.webp')).size <= 75 * 1024,
+        'the phone header derivative must stay below 75KB',
+    );
+
+    for (const relativePath of [
+        'public/images/global-header/global-header-desktop-824.625ee4e7dd.webp',
+        'public/images/global-header/global-header-desktop-1200.c58360aee1.webp',
+        'public/images/global-header/global-header-desktop-1648.0660349552.webp',
+        'public/images/footers/world-hub/footer-poker-trivia-v2-640.8127741cce.webp',
+        'public/images/footers/world-hub/footer-poker-trivia-v2-960.ce11e590da.webp',
+        'public/images/footers/world-hub/footer-poker-trivia-v2-1916.d526120ec9.webp',
+    ]) {
+        const hashToken = basename(relativePath).match(/\.([0-9a-f]{10})\.webp$/)?.[1];
+        assert.ok(hashToken, `${relativePath} carries a content hash`);
+        const actualHash = createHash('sha256').update(readFileSync(join(ROOT, relativePath))).digest('hex');
+        assert.equal(actualHash.slice(0, 10), hashToken, `${relativePath} bytes match its URL`);
+    }
+
+    assert.equal(footer?.src, '/images/footers/world-hub/footer-poker-trivia-v2.png');
+    assert.match(footer?.sources?.[0]?.srcSet || '', /footer-poker-trivia-v2-640\.8127741cce\.webp 640w/);
+    assert.ok(
+        statSync(join(ROOT, 'public/images/footers/world-hub/footer-poker-trivia-v2-640.8127741cce.webp')).size <= 80 * 1024,
+        'the phone footer derivative must stay below 80KB',
+    );
+    assert.match(bottomNav, /\(artwork\.sources \|\| \[\]\)\.map/);
+
+    assert.match(frameCard, /new IntersectionObserver/);
+    assert.match(frameCard, /CARD_ART_ROOT_MARGIN = '128px 0px'/);
+    assert.match(frameCard, /src=\{artReady \? image : TRANSPARENT_PIXEL\}/);
+    assert.match(frameCard, /src=\{artReady \? FRAME_ASSETS\[resolvedFamily\] : TRANSPARENT_PIXEL\}/);
+
+    const responsiveArt = read('src/components/trivia/console/ResponsiveModeArt.jsx');
+    const lobby = read('src/components/trivia/TriviaLobby.jsx');
+    assert.match(responsiveArt, /srcSet=\{ready \? art\.mobile\.webp : undefined\}/);
+    assert.match(responsiveArt, /src=\{ready \? art\.mobile\.src : art\.preview\}/);
+    assert.match(lobby, /src=\{quickStakesArtReady \? TRIVIA_QUICK_STAKES_MODE\.image : TRANSPARENT_PIXEL\}/);
 });
