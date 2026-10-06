@@ -167,7 +167,7 @@ function Podium({ leaders }) {
                                 }}>
                                     <Avatar
                                         src={leader.user?.avatar_url}
-                                        name={leader.user?.full_name || leader.user?.username}
+                                        name={leader.user?.display_name || leader.user?.username}
                                         size={avatarSize}
                                     />
                                 </div>
@@ -185,7 +185,7 @@ function Podium({ leaders }) {
                                 whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
                                 maxWidth: 120
                             }}>
-                                {leader.user?.full_name || leader.user?.username || 'Player'}
+                                {leader.user?.display_name || leader.user?.username || 'Player'}
                             </div>
                         </Link>
                         <div style={{
@@ -250,7 +250,7 @@ function LeaderRow({ leader, type, index }) {
                     {/* Avatar */}
                     <Avatar
                         src={leader.user?.avatar_url}
-                        name={leader.user?.full_name || leader.user?.username}
+                        name={leader.user?.display_name || leader.user?.username}
                         size={40}
                     />
 
@@ -260,7 +260,7 @@ function LeaderRow({ leader, type, index }) {
                             fontSize: 14, fontWeight: 600, color: C.text,
                             whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'
                         }}>
-                            {leader.user?.full_name || leader.user?.username || 'Player'}
+                            {leader.user?.display_name || leader.user?.username || 'Player'}
                         </div>
                         {leader.user?.username && (
                             <div style={{ fontSize: 12, color: C.textSec }}>

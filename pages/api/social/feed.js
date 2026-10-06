@@ -608,7 +608,7 @@ export default async function handler(req, res) {
         const [profilesData, likesData, ownLikesData, bookmarksData, playedWithResult] = await Promise.all([
             // Profiles for all authors on this page
             authorIds.length > 0
-                ? supaFetch(`/profiles?id=in.(${authorIds.join(',')})&select=id,username,full_name,display_name,avatar_url`)
+                ? supaFetch(`/profiles?id=in.(${authorIds.join(',')})&select=id,username,display_name,avatar_url`)
                 : Promise.resolve([]),
 
             // Reaction flavor for posts on this page (display only — capped)
@@ -700,7 +700,8 @@ export default async function handler(req, res) {
                 canonical_asset_key: p.canonical_asset_key,
                 publication_key: p.publication_key,
                 author: {
-                    name: meta.page_name || profile?.full_name || profile?.display_name || profile?.username || 'Player',
+                    // Never the author's legal name (owner-only, ruling 25).
+                    name: meta.page_name || profile?.display_name || profile?.username || 'Player',
                     username: profile?.username || null,
                     avatar: meta.page_avatar_url || profile?.avatar_url || null,
                 },

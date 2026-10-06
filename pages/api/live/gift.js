@@ -259,7 +259,7 @@ export default async function handler(req, res) {
   // ── GUARD: Fetch sender profile for age gate ──
   const { data: senderProfile } = await supabase
     .from('profiles')
-    .select('id, created_at, username, display_name, full_name, avatar_url, is_farming_flagged')
+    .select('id, created_at, username, display_name, avatar_url, is_farming_flagged')
     .eq('id', user.id)
     .maybeSingle();
 
@@ -267,9 +267,12 @@ export default async function handler(req, res) {
     ? (new Date() - new Date(senderProfile.created_at)) / (1000 * 60 * 60 * 24)
     : 0;
 
-  const isKingfish =
-    senderProfile?.full_name?.toLowerCase().includes('dan bekavac') ||
-    senderProfile?.username?.toLowerCase() === 'kingfish';
+  // The owner's account is identified by its id. It used to be matched on a
+  // full_name containing 'dan bekavac' or the username 'kingfish', but both
+  // columns are writable by their owner, so any account could rename itself
+  // into the exemption from every gift limit below.
+  const OWNER_ACCOUNT_ID = '47965354-0e56-43ef-931c-ddaab82af765';
+  const isKingfish = senderProfile?.id === OWNER_ACCOUNT_ID;
 
   // ── Trust signal: completed non-refunded diamond purchase ──
   // Mirrors the DB-side cap function (fn_check_anti_farming_gift_cap) which
@@ -502,7 +505,7 @@ export default async function handler(req, res) {
   // the real account, and the privileged-column guard authorises the one door
   // it is allowed through.
   const senderName =
-    senderProfile?.display_name || senderProfile?.full_name || senderProfile?.username || 'A fan';
+    senderProfile?.display_name || senderProfile?.username || 'A fan';
   let gift = null;
   let senderNewBalance = 0;
 

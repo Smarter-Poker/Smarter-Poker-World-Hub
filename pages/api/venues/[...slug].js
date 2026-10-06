@@ -300,10 +300,10 @@ app.post('/reviews', async (c) => {
     try {
       const { data: reviewerProfile } = await adminSupabase
         .from('profiles')
-        .select('username, full_name')
+        .select('username, display_name')
         .eq('id', userId)
         .maybeSingle();
-      reviewerName = reviewerProfile?.full_name || reviewerProfile?.username || 'Anonymous';
+      reviewerName = reviewerProfile?.display_name || reviewerProfile?.username || 'Anonymous';
     } catch (_profileErr) { /* keep Anonymous */ }
 
     const ratingNum = parseInt(rating, 10);

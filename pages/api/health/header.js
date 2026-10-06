@@ -66,13 +66,15 @@ export default async function handler(req, res) {
               });
           }
 
-          // Health check passed
+          // Health check passed. Only whether the balance column could be
+          // read is reported - never the balance itself, since this endpoint
+          // is anonymous and the balance belongs to a real account.
           return res.status(200).json({
               status: 'ok',
               message: 'Header stats API is healthy',
               latency_ms: latency,
               test_data: {
-                  diamonds: profile.diamonds
+                  diamonds_readable: profile.diamonds !== undefined
               }
           });
 

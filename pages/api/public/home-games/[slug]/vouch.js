@@ -100,7 +100,7 @@ export default async function handler(req, res) {
                 const userIds = vouches.map(v => v.user_id);
                 const { data: pData } = await supabase
                     .from('profiles')
-                    .select('id, display_name, full_name, first_name, username, avatar_url')
+                    .select('id, display_name, username, avatar_url')
                     .in('id', userIds);
                 if (pData) profiles = pData;
             }
@@ -115,7 +115,7 @@ export default async function handler(req, res) {
                 const p = profileMap[v.user_id] || {};
                 return {
                     user_id: v.user_id,
-                    display_name: p.display_name || p.full_name || p.first_name || p.username || 'Player',
+                    display_name: p.display_name || p.username || 'Player',
                     avatar_url: p.avatar_url || null,
                     vouched_at: v.created_at,
                 };

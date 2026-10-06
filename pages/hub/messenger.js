@@ -342,7 +342,7 @@ function MessengerPage() {
             if (authUser) {
                 return {
                     ...authUser,
-                    username: authUser.user_metadata?.poker_alias || authUser.email?.split('@')[0],
+                    username: authUser.user_metadata?.poker_alias || authUser.user_metadata?.username || null,
                     avatar_url: authUser.user_metadata?.avatar_url || null,
                     full_name: authUser.user_metadata?.full_name || null,
                 };
@@ -737,7 +737,7 @@ function MessengerPage() {
                     const prof = profileResp?.profile || {};
                     setUser({
                         ...authUser,
-                        username: prof.username || authUser.email?.split('@')[0],
+                        username: prof.username || authUser.user_metadata?.poker_alias || authUser.user_metadata?.username || null,
                         avatar_url: prof.avatar_url,
                         full_name: prof.full_name,
                         is_vip: prof.is_vip
@@ -1004,7 +1004,7 @@ function MessengerPage() {
 
             setUser(previous => previous?.id === nextId ? { ...previous, ...authUser } : {
                 ...authUser,
-                username: authUser.user_metadata?.poker_alias || authUser.email?.split('@')[0],
+                username: authUser.user_metadata?.poker_alias || authUser.user_metadata?.username || null,
                 avatar_url: authUser.user_metadata?.avatar_url || null,
             });
             // The workspace effect loads a new actor after its state commits.
@@ -2650,7 +2650,7 @@ function MessengerPage() {
             const content = rawContent.trim() ? `[Forwarded] ${rawContent.trim()}` : '[Forwarded Message]';
             const receipt = await queueMessengerSend(content, { actorId, conversationId: targetConversation.id });
             if (receipt && current()) {
-                setToast({ type: 'success', message: `Message Forwarded To ${targetConversation.otherUser?.full_name || targetConversation.otherUser?.display_name || targetConversation.otherUser?.username || 'Conversation'}` });
+                setToast({ type: 'success', message: `Message Forwarded To ${targetConversation.otherUser?.display_name || targetConversation.otherUser?.username || 'Conversation'}` });
                 busEmit.messageForwarded(original.conversation_id || activeConversation?.id, targetConversation.id);
             }
         } finally {
@@ -2834,7 +2834,7 @@ function MessengerPage() {
             if (isRequest) {
                 setToast({
                     type: 'info',
-                    message: `${otherUser.full_name || otherUser.username} isn't your friend - your message will be sent as a request`
+                    message: `${otherUser.display_name || otherUser.username} isn't your friend - your message will be sent as a request`
                 });
             }
         } catch (e) {
@@ -3084,6 +3084,7 @@ function MessengerPage() {
             otherUser: {
                 id: 'jarvis',
                 username: 'jarvis',
+                display_name: 'Jarvis',
                 full_name: 'Jarvis',
                 avatar_url: null,
             },
@@ -3133,10 +3134,9 @@ function MessengerPage() {
 
         // Generate unique room name: smarter-poker-{conversationId}-{timestamp}
         const roomName = `smarter-poker-${activeConversation.id.slice(0, 8)}-${Date.now()}`;
-        // BUG FIX: Use profile-fetched name (user.full_name from line 2651), not
-        // user.user_metadata.full_name which is stale Google OAuth data for Google
-        // sign-in users who changed their profile name after registration.
-        const callerName = user.full_name || user.username || user.user_metadata?.full_name || user.user_metadata?.username || 'Someone';
+        // callerName is broadcast to the callee, so it is the public handle only:
+        // full_name (profile or stale Google OAuth user_metadata) is owner-only.
+        const callerName = user.display_name || user.username || user.user_metadata?.username || user.user_metadata?.poker_alias || 'Someone';
         const callerAvatar = user.avatar_url || user.user_metadata?.avatar_url || null;
 
         // Set calling state to show "Calling..." UI
@@ -3248,7 +3248,7 @@ function MessengerPage() {
             outgoingRingToneRef.current.start();
         }
 
-        setToast({ type: 'info', message: `Calling ${otherUser.full_name || otherUser.username}...` });
+        setToast({ type: 'info', message: `Calling ${otherUser.display_name || otherUser.username}...` });
     };
 
     const isEndingCallRef = useRef(false);
@@ -3465,8 +3465,7 @@ function MessengerPage() {
     // rendered blank for one - including the union's weekly statement thread.
     // The API path names it `title`, the direct-Supabase fallback `group_name`.
     const activeTitle =
-        otherUser?.full_name
-        || otherUser?.display_name
+        otherUser?.display_name
         || otherUser?.username
         || activeConversation?.title
         || activeConversation?.group_name
@@ -3584,9 +3583,9 @@ function MessengerPage() {
                                     onMouseEnter={e => e.currentTarget.style.background = C.hoverBg}
                                     onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                                 >
-                                    <Avatar src={conv.otherUser?.avatar_url} name={conv.otherUser?.full_name || conv.otherUser?.display_name || conv.otherUser?.username} size={36} />
+                                    <Avatar src={conv.otherUser?.avatar_url} name={conv.otherUser?.display_name || conv.otherUser?.username} size={36} />
                                     <div>
-                                        <div style={{ fontWeight: 600, fontSize: 14, color: C.text }}>{conv.otherUser?.full_name || conv.otherUser?.display_name || conv.otherUser?.username}</div>
+                                        <div style={{ fontWeight: 600, fontSize: 14, color: C.text }}>{conv.otherUser?.display_name || conv.otherUser?.username}</div>
                                     </div>
                                 </button>
                             ))}
@@ -3662,7 +3661,7 @@ function MessengerPage() {
                             boxShadow: '0 0 0 4px rgba(0,132,255,0.3), 0 0 30px rgba(0,132,255,0.4)',
                             animation: 'ring 1.5s infinite',
                         }}>
-                            {!callingUser.avatar_url && (callingUser.username?.[0]?.toUpperCase() || callingUser.full_name?.[0]?.toUpperCase() || '?')}
+                            {!callingUser.avatar_url && (callingUser.username?.[0]?.toUpperCase() || callingUser.display_name?.[0]?.toUpperCase() || '?')}
                         </div>
 
                         {/* Callee Name */}
@@ -3672,7 +3671,7 @@ function MessengerPage() {
                             fontWeight: 600,
                             margin: '0 0 8px 0',
                         }}>
-                            {callingUser.full_name || callingUser.username || 'User'}
+                            {callingUser.display_name || callingUser.username || 'User'}
                         </h2>
 
                         {/* Status */}
@@ -3873,7 +3872,7 @@ function MessengerPage() {
                             {callType === 'video' ? <VideoIcon size={24} color="white" /> : <PhoneIcon size={24} color="white" />}
                             <div>
                                 <div style={{ color: 'white', fontWeight: 600 }}>
-                                    {callType === 'video' ? 'Video' : 'Voice'} Call With {activeConversation?.otherUser?.full_name || activeConversation?.otherUser?.display_name || activeConversation?.otherUser?.username || 'User'}
+                                    {callType === 'video' ? 'Video' : 'Voice'} Call With {activeConversation?.otherUser?.display_name || activeConversation?.otherUser?.username || 'User'}
                                 </div>
                                 <div style={{ color: '#888', fontSize: 12 }}>Smarter Poker Video</div>
                             </div>
@@ -3903,10 +3902,10 @@ function MessengerPage() {
                     {/* LiveKit Video Component — BUG-1 FIX: Pass auth token for API calls */}
                     <LiveKitCall
                         roomName={callRoomName}
-                        participantName={user?.full_name || user?.username || user?.user_metadata?.username || 'User'}
+                        participantName={user?.display_name || user?.username || user?.user_metadata?.username || user?.user_metadata?.poker_alias || 'User'}
                         participantId={user?.id}
                         callType={callType}
-                        otherUserName={activeConversation?.otherUser?.full_name || activeConversation?.otherUser?.display_name || activeConversation?.otherUser?.username}
+                        otherUserName={activeConversation?.otherUser?.display_name || activeConversation?.otherUser?.username}
                         onEnd={endCall}
                         authToken={getAccessToken()}
                     />
@@ -4246,6 +4245,7 @@ function MessengerPage() {
                                 otherUser: {
                                     id: 'jarvis',
                                     username: 'jarvis',
+                                    display_name: 'Jarvis',
                                     full_name: 'Jarvis',
                                     avatar_url: null
                                 },
@@ -4714,7 +4714,7 @@ function MessengerPage() {
                                         })
                                     ); })()}
                                     {/* Typing indicator */}
-                                    {otherTyping && <TypingIndicator name={otherUser?.full_name || otherUser?.display_name || otherUser?.username} theme={C} />}
+                                    {otherTyping && <TypingIndicator name={otherUser?.display_name || otherUser?.username} theme={C} />}
                                     {hasNewerMessages && <button type="button" disabled={loadingNewerMessages} onClick={loadNewerMessages}
                                         style={{ ...continuityButtonStyle, display: 'block', margin: '12px auto' }}>
                                         {loadingNewerMessages ? 'Loading Newer Messages...' : 'Load Newer Messages'}

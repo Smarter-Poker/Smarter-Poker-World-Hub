@@ -400,7 +400,7 @@ try {
           try {
             const { data: profiles } = await getSupabase()
               .from('profiles')
-              .select('id, username, avatar_url, full_name')
+              .select('id, username, avatar_url, display_name')
               .in('id', userIds);
             if (profiles) {
               for (const p of profiles) profileMap[p.id] = p;

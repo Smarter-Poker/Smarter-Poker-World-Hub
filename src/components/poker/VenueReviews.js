@@ -301,7 +301,7 @@ export default function VenueReviews({ venueId, venueName, defaultOpen = false }
                 venue_id: venueId,
                 rating: formRating,
                 review_text: formText.trim(),
-                reviewer_name: currentUser?.user_metadata?.full_name || currentUser?.user_metadata?.username || 'Anonymous',
+                reviewer_name: currentUser?.user_metadata?.display_name || currentUser?.user_metadata?.username || currentUser?.user_metadata?.poker_alias || 'Anonymous',
             };
 
             // Only include categories that were rated

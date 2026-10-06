@@ -104,7 +104,7 @@ export default async function handler(req, res) {
         if (userIds.length > 0) {
             const { data: profiles } = await getSupabase()
                 .from('profiles')
-                .select('id, username, avatar_url, full_name')
+                .select('id, username, avatar_url, display_name')
                 .in('id', userIds);
             if (profiles) {
                 const profileMap = {};
@@ -114,7 +114,9 @@ export default async function handler(req, res) {
                     if (p) {
                         l.username = p.username || null;
                         l.avatar_url = p.avatar_url || null;
-                        l.full_name = p.full_name || l.user_name;
+                        // `full_name` key kept for existing consumers; it carries the public
+                        // display name, never the owner-only legal name.
+                        l.full_name = p.display_name || p.username || l.user_name;
                     }
                 }
             }
