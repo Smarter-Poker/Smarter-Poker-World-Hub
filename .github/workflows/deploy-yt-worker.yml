@@ -257,7 +257,11 @@ jobs:
               node --check index.js
               python3 -m pip install --disable-pip-version-check --no-cache-dir --no-deps \
                 --no-compile --only-binary=:all: --require-hashes --target vendor --requirement yt-dlp.requirements.txt
-              test "$(PYTHONPATH=/release/vendor python3 -s -m yt_dlp --version)" = "$(cat yt-dlp.version)"
+              # -B: importing yt_dlp must not leave mtime-stamped .pyc files in
+              # the payload; they made every rebuild of the same commit differ
+              # from its promoted release, so any re-run failed the manifest cmp.
+              test "$(PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=/release/vendor python3 -B -s -m yt_dlp --version)" = "$(cat yt-dlp.version)"
+              test -z "$(find /release -name __pycache__ -print -quit)"
             '
           (cd "$local_stage" && find . \( -type f -o -type l \) ! -name release-manifest.sha256 -print0 \
             | LC_ALL=C sort -z | xargs -0 sha256sum > release-manifest.sha256)
