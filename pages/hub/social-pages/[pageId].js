@@ -1183,8 +1183,11 @@ export default function SocialPageDetail() {
     const fetchFollowers = useCallback(async () => {
         if (!page?.id) return;
         try {
-            const reqParam = user?.id ? `&requester_id=${user.id}` : '';
-            const res = await fetch(`/api/social/pages/follow?page_id=${page.id}${reqParam}`);
+            // Identity is the bearer token, never a query id (the API ignores requester_id).
+            const token = getAccessToken();
+            const res = await fetch(`/api/social/pages/follow?page_id=${page.id}`, {
+                headers: token ? { Authorization: `Bearer ${token}` } : {},
+            });
             if (!res.ok) throw new Error(`Request failed (${res.status})`);
             const json = await res.json();
             if (json.success) setFollowers(json.data || []);

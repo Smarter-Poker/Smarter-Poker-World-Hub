@@ -90,6 +90,9 @@ function walk(dir, out = []) {
 const privateNamesIn = (text) =>
   [...new Set((text.replace(/\$\{[^}]*\}/g, '').match(/[a-z_]+/g) || []).filter((w) => PRIVATE.has(w)))];
 
+// Every PostgREST spelling of an embedded profiles join (see privateReads).
+const EMBED_RE = /\bprofiles(?:\s*:\s*\w+)?(?:\s*!\s*\w+)*\s*\(([^()]*)\)/g;
+
 function privateReads(src) {
   const hits = [];
   // a .from('profiles') chain whose select is a literal (or '*')
@@ -100,8 +103,13 @@ function privateReads(src) {
     const names = sel.trim() === '*' ? ['*'] : privateNamesIn(sel);
     if (names.length) hits.push(`.from('profiles').select(${sel.slice(0, 60)}) -> ${names}`);
   }
-  // an embedded profiles(...) / profiles!fk(...) join
-  for (const m of src.matchAll(/\bprofiles(?:\s*!\s*\w+)?\s*\(([^()]*)\)/g)) {
+  // an embedded join, in every PostgREST spelling: profiles(...),
+  // profiles!fk(...), profiles!fk!inner(...), the alias-on-column form
+  // profiles:user_id(...), and an aliased author:profiles(...) /
+  // author:profiles!fk(...) (the \b after the colon catches the alias).
+  // live-session.js handed out full_name through profiles:user_id(...) for
+  // a week because the old pattern only knew the first two.
+  for (const m of src.matchAll(EMBED_RE)) {
     const names = privateNamesIn(m[1]);
     if (names.length) hits.push(`profiles(${m[1].trim().slice(0, 60)}) -> ${names}`);
   }

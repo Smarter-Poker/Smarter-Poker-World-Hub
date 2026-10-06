@@ -859,12 +859,14 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
     // Optimistic: use locally-known display name for instant feedback.
     // The server will store the canonical profile username — the real row
     // replaces this optimistic one once the API responds.
+    // Public name only: the legal name is owner-only (ruling 25) and an
+    // email is never a name.
     const localDisplayName =
       user?.username ||
       user?.user_metadata?.preferred_username ||
-      user?.full_name ||
-      user?.user_metadata?.full_name ||
-      user?.email?.split('@')[0] ||
+      user?.display_name ||
+      user?.user_metadata?.username ||
+      user?.user_metadata?.display_name ||
       'Viewer';
     const optimisticId = `optimistic-${Date.now()}`;
     const optimisticComment = {

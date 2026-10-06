@@ -101,7 +101,7 @@ export default function ShareStreakLeaderboard({ currentUserId }) {
                 const userIds = streakData.map(s => s.user_id);
                 const { data: profiles } = await sb
                     .from('profiles')
-                    .select('id, username, avatar_url')
+                    .select('id, username, display_name, avatar_url')
                     .in('id', userIds);
 
                 const profileMap = {};
@@ -206,7 +206,7 @@ export default function ShareStreakLeaderboard({ currentUserId }) {
                         const profile = entry.profile;
                         const tier = getTier(entry.streak_days);
                         const isMe = entry.user_id === currentUserId;
-                        const name = profile?.full_name || profile?.username || 'Anonymous';
+                        const name = profile?.display_name || profile?.username || 'Anonymous';
                         const avatar = profile?.avatar_url;
                         const username = profile?.username;
 

@@ -1,4 +1,3 @@
-import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 /**
  * HENDONMOB AUTO-SYNC via MANUS AI
  * 
@@ -8,16 +7,51 @@ import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
  * GET  /api/hendonmob/auto-sync         — Trigger sync for all users
  * GET  /api/hendonmob/auto-sync?userId=X — Trigger sync for one user
  * 
- * Protected by a secret key to prevent unauthorized triggers.
- * Can be called by: Vercel cron, external scheduler, or manual curl.
+ * Who may trigger it (2026-10-05 privacy audit):
+ *   - the weekly workflow, with HENDON_AUTO_SYNC_SECRET (x-auto-sync-key
+ *     header, or ?key= as .github/workflows/hendonmob-auto-sync.yml sends it);
+ *   - an operator with CRON_SECRET / ADMIN_ROUTE_SECRET (header only);
+ *   - a signed-in platform administrator (profiles.is_admin or an admin role).
+ * It used to accept ANY valid user JWT, which let every signed-in player start
+ * a paid, all-user scrape job.
+ *
+ * No standing secret is ever placed in the prompt sent to Manus (a third
+ * party). The prompt used to embed HENDON_AUTO_SYNC_SECRET as the callback
+ * credential, which handed the trigger secret to Manus and to everything that
+ * can read its task history. Each run now mints a one-run callback token:
+ * random, stored only as its SHA-256 in public.hendon_sync_tokens, expiring
+ * after HENDON_TOKEN_TTL_HOURS, and valid only for writing the HendonMob stats
+ * of the accounts queued in that run (auto-sync-receive checks all three).
+ * A leaked task history therefore exposes, at worst, a dead token that could
+ * only ever have written three public stats for those accounts.
  */
 
+import crypto from 'crypto';
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { reportApiError } from '../../../src/lib/apiErrorHandler';
+import { authorizePokerOpsRead } from '../../../src/lib/poker-near-me/opsReadAuth';
 
 const MANUS_API_KEY = (process.env.MANUS_API_KEY || '').trim();
 const MANUS_API_URL = 'https://api.manus.ai/v1/tasks';
-const AUTO_SYNC_SECRET = process.env.HENDON_AUTO_SYNC_SECRET || '';
+const AUTO_SYNC_SECRET = (process.env.HENDON_AUTO_SYNC_SECRET || '').trim();
+const HENDON_TOKEN_TTL_HOURS = 12;
+
+/** Constant-time comparison that tolerates unequal lengths. */
+function safeEqual(a, b) {
+    if (typeof a !== 'string' || typeof b !== 'string') return false;
+    const ab = Buffer.from(a, 'utf8');
+    const bb = Buffer.from(b, 'utf8');
+    if (ab.length !== bb.length) {
+        crypto.timingSafeEqual(ab, ab);
+        return false;
+    }
+    return crypto.timingSafeEqual(ab, bb);
+}
+
+function firstString(value) {
+    if (Array.isArray(value)) return typeof value[0] === 'string' ? value[0] : '';
+    return typeof value === 'string' ? value : '';
+}
 
 let _supabase = null;
 function getSupabase() {
@@ -34,9 +68,12 @@ function getSupabase() {
  * The prompt instructs Manus to:
  * 1. Visit each HendonMob URL
  * 2. Read ONLY explicitly labeled stats
- * 3. POST results back to our sync API
+ * 3. Report the results as JSON in its final task output
+ *
+ * This text goes to a third party. It must never contain a secret, token or
+ * other credential of ours.
  */
-function buildManusPrompt(users, syncApiUrl) {
+function buildManusPrompt(users, callbackUrl, runToken) {
     const userLines = users.map((u, i) => 
         `${i + 1}. Name: "${u.display_name || 'Unknown'}" | URL: ${u.hendon_url} | UserID: ${u.id}`
     ).join('\n');
@@ -54,13 +91,7 @@ For EACH player above, do the following:
    - "Total Live Earnings" → extract the dollar amount (e.g. $900,957)
    - Look for the text that says "X cashes" (e.g. "52 cashes") → extract the number
    - "Best Live Cash" → extract the dollar amount (e.g. $252,020)
-3. After extracting, send the data by making this HTTP request:
-
-POST ${syncApiUrl}
-Headers:
-  Content-Type: application/json
-  X-Auto-Sync-Key: ${AUTO_SYNC_SECRET}
-Body (JSON):
+3. Record the result for that player in this exact JSON shape:
 {
   "userId": "<the UserID from the list above>",
   "stats": {
@@ -70,7 +101,12 @@ Body (JSON):
   }
 }
 
-4. Move to the next player. Wait 3 seconds between each.
+4. Send that JSON object for the player with an HTTP POST to:
+   ${callbackUrl}
+   with the headers "Content-Type: application/json" and "X-Hendon-Sync-Token: ${runToken}".
+   That token is single-run and only valid for the players listed above.
+5. Move to the next player. Wait 3 seconds between each.
+Do not make any other HTTP request except loading the HendonMob pages.
 
 IMPORTANT RULES:
 - Every value MUST come from an explicit label on the page
@@ -78,7 +114,7 @@ IMPORTANT RULES:
 - Remove dollar signs and commas from numbers before sending (e.g. "$900,957" → 900957)
 - If the page is blocked or fails to load, skip that player and move on
 
-After processing all players, report a summary of how many succeeded and failed.`;
+After processing all players, finish with a single JSON array containing every player's result object, followed by a summary of how many succeeded and failed.`;
 }
 
 export default async function handler(req, res) {
@@ -88,19 +124,18 @@ export default async function handler(req, res) {
         return res.status(405).json({ error: 'Method not allowed' });
     }
 
-    // Auth: either the sync secret or a valid JWT
-    const secretKey = req.headers['x-auto-sync-key'] || req.query.key;
-    const token = req.headers.authorization?.replace('Bearer ', '');
+    // Auth: the workflow's sync secret, an operator secret, or a verified
+    // platform administrator. An ordinary user JWT is NOT enough.
+    // ?key= stays accepted only because the weekly workflow sends it that way.
+    const secretKey = firstString(req.headers['x-auto-sync-key']) || firstString(req.query.key);
 
     let authorized = false;
 
-    if (secretKey && AUTO_SYNC_SECRET && secretKey === AUTO_SYNC_SECRET) {
+    if (AUTO_SYNC_SECRET.length >= 8 && secretKey && safeEqual(secretKey.trim(), AUTO_SYNC_SECRET)) {
         authorized = true;
-    } else if (token) {
-        const { user: authUser, error: authErr } = await getServerUserWithFallback(req, getSupabase());
-    const authData = { user: authUser };
-        const user = authData?.user;
-        if (user) authorized = true;
+    } else {
+        const ops = await authorizePokerOpsRead(req, getSupabase());
+        authorized = ops.authorized === true;
     }
 
     if (!authorized) {
@@ -135,13 +170,25 @@ export default async function handler(req, res) {
             });
         }
 
-        // Build the sync API URL (where Manus will POST results)
-        const host = req.headers.host || 'smarter.poker';
-        const protocol = host.includes('localhost') ? 'http' : 'https';
-        const syncApiUrl = `${protocol}://${host}/api/hendonmob/auto-sync-receive`;
+        // One-run callback token: random, stored hashed, short-lived, and
+        // scoped to exactly the accounts queued here.
+        const runToken = crypto.randomBytes(32).toString('hex');
+        const { error: tokenError } = await getSupabase()
+            .from('hendon_sync_tokens')
+            .insert({
+                token_hash: crypto.createHash('sha256').update(runToken).digest('hex'),
+                user_ids: users.map((u) => u.id),
+                expires_at: new Date(Date.now() + HENDON_TOKEN_TTL_HOURS * 3600 * 1000).toISOString(),
+            });
+        if (tokenError) {
+            console.warn('[Auto-Sync] could not record the run token:', tokenError.message || tokenError);
+            return res.status(500).json({ success: false, error: 'Could not prepare the sync run' });
+        }
 
-        // Create Manus task
-        const prompt = buildManusPrompt(users, syncApiUrl);
+        // A fixed origin: a forwarded Host header must never choose where a
+        // third party sends a credential.
+        const callbackUrl = 'https://smarter.poker/api/hendonmob/auto-sync-receive';
+        const prompt = buildManusPrompt(users, callbackUrl, runToken);
 
         const manusResponse = await fetch(MANUS_API_URL, {
             method: 'POST',

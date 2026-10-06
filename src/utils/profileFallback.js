@@ -36,7 +36,8 @@ export function safeProfile(profile, fallback = {}) {
  */
 export function getDisplayName(profile) {
     if (!profile) return 'Unknown User';
-    return profile.display_name || profile.full_name || profile.username || 'Unknown User';
+    // Public fields only: full_name is owner-only (ruling 25).
+    return profile.display_name || profile.username || 'Unknown User';
 }
 
 /**

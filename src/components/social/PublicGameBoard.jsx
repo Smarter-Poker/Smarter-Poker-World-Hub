@@ -60,7 +60,11 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
       return;
     }
     try {
-      const res = await fetch(`/api/social/pages/follow?page_id=${pageId}&requester_id=${userId}`);
+      // Identity is the bearer token, never a query id (the API ignores requester_id).
+      const token = getAccessToken();
+      const res = await fetch(`/api/social/pages/follow?page_id=${pageId}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (json.success) {

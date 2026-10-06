@@ -83,7 +83,7 @@ function SavedPostCard({ post, author, onUnsave, currentUserId }) {
                 />
                 <div style={{ flex: 1 }}>
                     <Link href={`/hub/user/${author?.username}`} style={{ fontWeight: 600, fontSize: 14, color: C.text, textDecoration: 'none' }}>
-                        {author?.full_name || author?.username || 'User'}
+                        {author?.display_name || author?.username || 'User'}
                     </Link>
                     <div style={{ fontSize: 12, color: C.textSec }}>
                         {timeAgo(post.created_at)}
@@ -213,7 +213,7 @@ export default function SavedPostsPage() {
             if (authorIds.length > 0) {
                 const { data: profiles } = await supabase
                     .from('profiles')
-                    .select('id, username, avatar_url')
+                    .select('id, username, display_name, avatar_url')
                     .in('id', authorIds);
 
                 if (profiles) {

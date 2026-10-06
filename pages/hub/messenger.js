@@ -2688,7 +2688,7 @@ function MessengerPage() {
         const metadata = getClubMetadata();
         const profile = isClubMode && clubPage
             ? { id: actorId, username: clubPage.name, avatar_url: clubPage.avatar_url, is_club_identity: true, club_id: clubPage.id }
-            : { id: actorId, username: user.full_name || user.username || user.user_metadata?.username, avatar_url: user.avatar_url || user.user_metadata?.avatar_url };
+            : { id: actorId, username: user.username || user.user_metadata?.username, avatar_url: user.avatar_url || user.user_metadata?.avatar_url };
         const sameAccount = () => authIdentityRef.current === actorId && authGenerationRef.current === generation;
         const current = () => sameAccount() && workspaceRef.current === scope && activeConversationRef.current?.id === conversationId;
         const blobUrl = URL.createObjectURL(file);

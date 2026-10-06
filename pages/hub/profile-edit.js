@@ -172,6 +172,9 @@ export default function ProfilePage() {
         first_name: '',
         last_name: '',
         username: '',
+        // Public name other players see (ruling 25). Never derived from
+        // first/last name, which are the owner's private legal name.
+        display_name: '',
         bio: '',
         city: '',
         state: '',
@@ -210,7 +213,7 @@ export default function ProfilePage() {
         const handleBeforeUnload = (e) => {
             if (!originalProfile || !profile) return;
             // Compare key fields to detect dirty state
-            const fields = ['first_name','last_name','username','bio','city','state','country',
+            const fields = ['first_name','last_name','username','display_name','bio','city','state','country',
                 'phone','email','website','twitter','instagram','tiktok','telegram',
                 'hendon_url','favorite_game','favorite_hand','favorite_hand_plo',
                 'home_casino','birth_year','birthday','card_back_preference'];
@@ -256,7 +259,7 @@ export default function ProfilePage() {
     // ── Dirty check helper — detects unsaved changes ──
     const isDirty = (() => {
         if (!originalProfile || !profile) return false;
-        const fields = ['first_name','last_name','username','bio','city','state','country',
+        const fields = ['first_name','last_name','username','display_name','bio','city','state','country',
             'phone','email','website','twitter','instagram','tiktok','telegram',
             'hendon_url','favorite_game','favorite_hand','favorite_hand_plo',
             'home_casino','birth_year','birthday','card_back_preference'];
@@ -378,7 +381,7 @@ export default function ProfilePage() {
                     {profile.cover_photo_url && (
                         <img
                             src={profile.cover_photo_url}
-                            alt="Cover photo"
+                            alt="Cover Photo"
                             loading="lazy"
                             style={{
                                 position: 'absolute', inset: 0, width: '100%', height: '100%',
@@ -771,7 +774,7 @@ export default function ProfilePage() {
                                     >
                                         <img
                                             src={friend.avatar_url || '/default-avatar.png'}
-                                            alt={friend.full_name || friend.username}
+                                            alt={friend.display_name || friend.username}
                                             loading="lazy"
                                             style={{
                                                 width: 80, height: 80, borderRadius: '50%',
@@ -783,7 +786,7 @@ export default function ProfilePage() {
                                             fontSize: 13, fontWeight: 600, color: C.text,
                                             maxWidth: 80, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'
                                         }}>
-                                            {friend.full_name || friend.username || 'User'}
+                                            {friend.display_name || friend.username || 'User'}
                                         </div>
                                         {friend.mutualCount > 0 && (
                                             <div style={{ fontSize: 11, color: C.textSec }}>
@@ -906,6 +909,9 @@ export default function ProfilePage() {
                                                 last_name: (undoSnapshot.last_name || '').trim(),
                                                 full_name: `${(undoSnapshot.first_name || '').trim()} ${(undoSnapshot.last_name || '').trim()}`.trim(),
                                                 username: (undoSnapshot.username || '').trim() || null,
+                                                // Restore the public name from the snapshot itself,
+                                                // never rebuilt from the legal name (ruling 25).
+                                                display_name: (undoSnapshot.display_name || '').trim() || null,
                                                 bio: undoSnapshot.bio, city: undoSnapshot.city, state: undoSnapshot.state,
                                                 country: undoSnapshot.country, phone: undoSnapshot.phone, email: undoSnapshot.email,
                                                 updated_at: new Date().toISOString(),
@@ -918,6 +924,7 @@ export default function ProfilePage() {
                                                 first_name: (undoSnapshot.first_name || '').trim(),
                                                 last_name: (undoSnapshot.last_name || '').trim(),
                                                 username: undoSnapshot.username,
+                                                display_name: (undoSnapshot.display_name || '').trim() || null,
                                                 avatar_url: undoSnapshot.avatar_url,
                                             }
                                         }));

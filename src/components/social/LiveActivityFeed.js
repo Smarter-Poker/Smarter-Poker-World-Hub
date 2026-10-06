@@ -182,7 +182,7 @@ export default function LiveActivityFeed({ currentUser }) {
                         {/* Details */}
                         <div style={{ flex: 1, minWidth: 0 }}>
                             <div style={{ color: T.text, fontSize: 14, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                {s.profiles?.full_name || s.profiles?.username || 'Player'}
+                                {s.profiles?.display_name || s.profiles?.username || 'Player'}
                             </div>
                             <div style={{ color: T.textSec, fontSize: 11 }}>
                                 {s.venue_name} - {s.stakes} {s.game_type}

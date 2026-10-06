@@ -4,14 +4,21 @@
  * Uses service-role client so it can insert notifications (RLS bypassed server-side).
  * Respects follower's user_notification_preferences.live_notifications setting.
  */
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../src/lib/supabaseServerClient';
 import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+// Rule 4: API routes use the patched server client, created lazily (never at
+// module scope during SSG), exactly as the neighbouring notification routes do.
+let _supabase = null;
+function getSupabase() {
+  if (!_supabase) {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+    const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    _supabase = createClient(url, key);
+  }
+  return _supabase;
+}
 
 // STREAM-POLISH-R2 PUSH-1: dedup window. Followers who already received
 // a 'live' notification for this stream_id in the last DEDUP_WINDOW_MS
@@ -30,6 +37,7 @@ export default async function handler(req, res) {
   if (!applyRateLimit(req, res, LIMITS.write)) return;
 
   try {
+    const supabaseAdmin = getSupabase();
     const { user } = await getServerUserWithFallback(req, supabaseAdmin);
     if (!user) return res.status(401).json({ error: 'Unauthorized' });
 

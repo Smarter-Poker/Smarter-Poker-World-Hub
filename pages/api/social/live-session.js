@@ -131,7 +131,7 @@ export default async function handler(req, res) {
 
                 const { data: msg, error: chatErr } = await sb.from('session_chat_messages').insert({
                     session_id, user_id: user.id, message: message.trim(),
-                }).select('*, profiles:user_id(username, avatar_url)').maybeSingle();
+                }).select('*, profiles:user_id(username, avatar_url, display_name)').maybeSingle();
 
                 if (chatErr) {
                     console.warn('[Live Session API] Chat error:', chatErr);
@@ -153,7 +153,7 @@ export default async function handler(req, res) {
             // Get specific session
             if (session_id) {
                 const { data } = await sb.from('live_sessions')
-                    .select('*, profiles:user_id(username, avatar_url, full_name)')
+                    .select('*, profiles:user_id(username, avatar_url, display_name)')
                     .eq('id', session_id)
                     .maybeSingle();
                 return res.status(200).json({ session: data });
@@ -185,7 +185,7 @@ export default async function handler(req, res) {
                 if (friendIds.length === 0) return res.status(200).json({ sessions: [] });
 
                 const { data: sessions } = await sb.from('live_sessions')
-                    .select('*, profiles:user_id(username, avatar_url, full_name)')
+                    .select('*, profiles:user_id(username, avatar_url, display_name)')
                     .in('user_id', friendIds)
                     .in('status', ['active', 'break'])
                     .in('privacy', ['public', 'friends'])
@@ -196,7 +196,7 @@ export default async function handler(req, res) {
 
             // Public sessions
             const { data: sessions } = await sb.from('live_sessions')
-                .select('*, profiles:user_id(username, avatar_url, full_name)')
+                .select('*, profiles:user_id(username, avatar_url, display_name)')
                 .eq('privacy', 'public')
                 .in('status', ['active', 'break'])
                 .order('started_at', { ascending: false })

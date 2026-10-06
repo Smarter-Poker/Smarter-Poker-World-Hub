@@ -729,7 +729,7 @@ export function useMessengerService({ conversationId, currentUser, messengerType
             if (uniqueUserIds.length > 0) {
                 const { data: profiles } = await supabase
                     .from('profiles')
-                    .select('id, username, avatar_url, is_vip')
+                    .select('id, username, display_name, avatar_url, is_vip')
                     .in('id', uniqueUserIds);
                 (profiles || []).forEach(p => { profileMap[p.id] = p; });
             }
@@ -741,7 +741,7 @@ export function useMessengerService({ conversationId, currentUser, messengerType
                 const profile = profileMap[p.user_id];
                 participantsByConvo[p.conversation_id].push({
                     id: p.user_id,
-                    name: profile?.full_name || profile?.username || 'Unknown',
+                    name: profile?.display_name || profile?.username || 'Unknown',
                     avatar: profile?.avatar_url || null,
                     role: p.role || 'member',
                     isVip: profile?.is_vip || false,

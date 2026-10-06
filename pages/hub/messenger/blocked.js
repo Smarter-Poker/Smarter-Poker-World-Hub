@@ -110,7 +110,7 @@ export default function BlockedUsers() {
                                      loading="lazy" />
                                     <div style={styles.userInfo}>
                                         <div style={styles.username}>
-                                            {item.blocked?.full_name || item.blocked?.username || 'Unknown User'}
+                                            {item.blocked?.display_name || item.blocked?.username || 'Unknown User'}
                                         </div>
                                         <div style={styles.blockedDate}>
                                             Blocked {new Date(item.created_at).toLocaleDateString()}

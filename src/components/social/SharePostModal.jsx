@@ -71,7 +71,7 @@ const EXTERNAL_PLATFORMS = [
 // ═══════════════════════════════════════════════════════════════════════════
 function buildRichSharePayload(post, postUrl, senderMessage) {
     const author = post?.author || {};
-    const authorName = author.name || author.full_name || author.username || 'Player';
+    const authorName = author.name || author.display_name || author.username || 'Player';
     const mediaUrls = post?.mediaUrls || post?.media_urls || [];
     const previewImage = mediaUrls[0] || post?.link_image || post?.thumbnail_url || null;
     // The preview travels as plain text, so cards go as words, never storage tokens.

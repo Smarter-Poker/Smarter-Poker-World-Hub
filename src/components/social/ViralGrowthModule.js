@@ -41,7 +41,7 @@ export default function ViralGrowthModule({ currentUser }) {
                 // Get referrals
                 const { data: refs } = await supabase
                     .from('referrals')
-                    .select('*, referee:referee_id(username, full_name, avatar_url)')
+                    .select('*, referee:referee_id(username, display_name, avatar_url)')
                     .eq('referrer_id', currentUser.id)
                     .order('created_at', { ascending: false });
 
@@ -131,7 +131,7 @@ export default function ViralGrowthModule({ currentUser }) {
                             <div key={ref.id} style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'rgba(0,0,0,0.2)', padding: '8px 12px', borderRadius: 8 }}>
                                 <img src={ref.referee?.avatar_url || '/default-avatar.png'} alt="" style={{ width: 32, height: 32, borderRadius: '50%', border: '1px solid #444' }} />
                                 <div style={{ flex: 1 }}>
-                                    <div style={{ fontSize: 13, fontWeight: 600 }}>{ref.referee?.full_name || ref.referee?.username || 'Unknown User'}</div>
+                                    <div style={{ fontSize: 13, fontWeight: 600 }}>{ref.referee?.display_name || ref.referee?.username || 'Unknown User'}</div>
                                     <div style={{ fontSize: 11, color: '#00FF88' }}>{ref.status === 'completed' ? '+500 Diamonds Earned' : 'Pending...'}</div>
                                 </div>
                             </div>
