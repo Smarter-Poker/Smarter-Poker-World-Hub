@@ -240,7 +240,7 @@ def safe_metadata(entry: Mapping[str, Any]) -> dict[str, Any]:
     }
 
 
-def select_target(entries: Sequence[Mapping[str, Any]], principal: str) -> dict[str, Any]:
+def select_target(entries: Sequence[Mapping[str, Any]], principal: str, *, allow_missing: bool = False) -> dict[str, Any] | None:
     if principal not in PRINCIPALS:
         raise ProvisionError("invalid V31 principal")
     secret_key = f"HORSE_SOLVER_V31_{principal}_HMAC_SECRET"
@@ -249,6 +249,8 @@ def select_target(entries: Sequence[Mapping[str, Any]], principal: str) -> dict[
     if len(ids) != len(set(ids)):
         raise ProvisionError("Vercel environment metadata contains duplicate IDs")
     matches = [entry for entry in safe_entries if entry["key"] == secret_key]
+    if not matches and allow_missing:
+        return None
     if len(matches) != 1:
         raise ProvisionError("expected exactly one V31 HMAC environment entry")
     target = matches[0]
@@ -275,10 +277,17 @@ def _timestamp(value: Any) -> float:
 def verify_after(before_entries: Sequence[Mapping[str, Any]], after_entries: Sequence[Mapping[str, Any]], principal: str) -> dict[str, Any]:
     before_safe = {entry["id"]: entry for entry in map(safe_metadata, before_entries)}
     after_safe = {entry["id"]: entry for entry in map(safe_metadata, after_entries)}
+    before_target = select_target(before_entries, principal, allow_missing=True)
+    after_target = select_target(after_entries, principal)
+    if before_target is None:
+        if set(after_safe) != set(before_safe) | {after_target["id"]} or after_target["id"] in before_safe:
+            raise ProvisionError("Vercel environment inventory changed beyond the new V31 entry")
+        if any(before_safe[entry_id] != after_safe[entry_id] for entry_id in before_safe):
+            raise ProvisionError("an unrelated Vercel environment entry changed during creation")
+        _timestamp(after_target["updatedAt"])
+        return after_target
     if set(before_safe) != set(after_safe):
         raise ProvisionError("Vercel environment entry inventory changed during rotation")
-    before_target = select_target(before_entries, principal)
-    after_target = select_target(after_entries, principal)
     if before_target["id"] != after_target["id"]:
         raise ProvisionError("V31 HMAC environment identity changed during rotation")
 
@@ -329,7 +338,7 @@ class VercelApi:
         try:
             response = self._opener(req, timeout=20)
             with response:
-                if method == "PATCH":
+                if method in ("PATCH", "POST"):
                     while response.read(64 * 1024):
                         pass
                     return None
@@ -349,7 +358,7 @@ class VercelApi:
         if isinstance(pagination, Mapping) and pagination.get("next") not in (None, ""):
             raise ProvisionError("Vercel environment inventory exceeded the bounded metadata page")
         entries = payload.get("envs", payload.get("env"))
-        if not isinstance(entries, list) or not entries:
+        if not isinstance(entries, list):
             raise ProvisionError("Vercel returned no environment metadata")
         if not all(isinstance(entry, Mapping) for entry in entries):
             raise ProvisionError("Vercel returned malformed environment metadata")
@@ -367,6 +376,22 @@ class VercelApi:
                 f"/v9/projects/{self._project_id}/env/{quoted_id}?{query}",
                 raw_body=body,
             )
+        finally:
+            for index in range(len(body)):
+                body[index] = 0
+
+    def create_value(self, principal: str, secret_value: bytearray) -> None:
+        if principal not in PRINCIPALS:
+            raise ProvisionError("invalid V31 principal")
+        query = parse.urlencode({"teamId": self._team_id})
+        body = bytearray(json.dumps({"key": f"HORSE_SOLVER_V31_{principal}_HMAC_SECRET",
+                                    "type": "sensitive", "target": ["production"]},
+                                   separators=(",", ":")).encode("utf-8")[:-1])
+        body.extend(b',"value":"')
+        body.extend(secret_value)
+        body.extend(b'"}')
+        try:
+            self._request("POST", f"/v10/projects/{self._project_id}/env?{query}", raw_body=body)
         finally:
             for index in range(len(body)):
                 body[index] = 0
@@ -469,7 +494,7 @@ def provision(
     now: Callable[[], str] = _utc_now,
 ) -> dict[str, Any]:
     before_entries = api.list_entries()
-    before_target = select_target(before_entries, config.principal)
+    before_target = select_target(before_entries, config.principal, allow_missing=True)
     if config.artifact_dir.exists():
         raise ProvisionError("artifact directory already exists")
 
@@ -489,7 +514,8 @@ def provision(
             "schemaVersion": 1,
             "operation": "horse_v31_hmac_rotation",
             "principal": config.principal,
-            "environmentVariableKey": before_target["key"],
+            "environmentVariableKey": f"HORSE_SOLVER_V31_{config.principal}_HMAC_SECRET",
+            "mutationKind": "create" if before_target is None else "rotate",
             "replayPolicy": "do_not_rerun; reconcile this owning run and receipt",
             "status": "ciphertext_ready",
             "expectedCommit": config.expected_commit,
@@ -498,7 +524,7 @@ def provision(
             "requestId": config.request_id,
             "projectId": config.project_id,
             "teamId": config.team_id,
-            "environmentVariableId": before_target["id"],
+            "environmentVariableId": before_target["id"] if before_target else None,
             "publicKeySpkiSha256": config.public_key_fingerprint,
             "ciphertext": {
                 "filename": CIPHERTEXT_FILENAME,
@@ -506,7 +532,7 @@ def provision(
                 "sha256": hashlib.sha256(ciphertext).hexdigest(),
                 "algorithm": "RSA-4096-OAEP-SHA256-MGF1-SHA256",
             },
-            "updatedAtBefore": before_target["updatedAt"],
+            "updatedAtBefore": before_target["updatedAt"] if before_target else None,
             "plaintextPersisted": False,
             "deploymentTriggered": False,
             "recordedAt": now(),
@@ -518,7 +544,10 @@ def provision(
             receipt["status"] = "mutation_in_progress"
             receipt["recordedAt"] = now()
             _write_receipt(receipt_path, receipt)
-            api.patch_value(before_target["id"], secret)
+            if before_target is None:
+                api.create_value(config.principal, secret)
+            else:
+                api.patch_value(before_target["id"], secret)
             after_entries = api.list_entries()
             after_target = verify_after(before_entries, after_entries, config.principal)
         except Exception:
@@ -528,6 +557,7 @@ def provision(
             raise
 
         receipt["status"] = "complete"
+        receipt["environmentVariableId"] = after_target["id"]
         receipt["updatedAtAfter"] = after_target["updatedAt"]
         receipt["recordedAt"] = now()
         _write_receipt(receipt_path, receipt)
