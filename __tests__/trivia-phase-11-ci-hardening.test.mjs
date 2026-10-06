@@ -189,6 +189,7 @@ test('approved shared chrome is responsive and below-fold lobby art waits for th
         .worlds.find((world) => world.id === 'trivia')?.artwork;
     const bottomNav = read('src/components/ui/BottomNavBar.jsx');
     const frameCard = read('src/components/trivia/console/TriviaFrameCard.jsx');
+    const footerBrowserGate = read('e2e/global-footer-visual.spec.ts');
 
     assert.match(header, /<picture className="approved-global-header__picture">/);
     assert.match(header, /global-header-desktop-824\.625ee4e7dd\.webp 824w/);
@@ -219,6 +220,9 @@ test('approved shared chrome is responsive and below-fold lobby art waits for th
         'the phone footer derivative must stay below 80KB',
     );
     assert.match(bottomNav, /\(artwork\.sources \|\| \[\]\)\.map/);
+    assert.match(footerBrowserGate, /const expectedIntrinsicHeight =/);
+    assert.match(footerBrowserGate, /toBeLessThanOrEqual\(1\)/);
+    assert.match(footerBrowserGate, /approvedArtworkPaths/);
 
     assert.match(frameCard, /new IntersectionObserver/);
     assert.match(frameCard, /CARD_ART_ROOT_MARGIN = '128px 0px'/);

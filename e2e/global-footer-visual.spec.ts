@@ -394,12 +394,17 @@ test.describe('dynamic World Hub footer route and visual contract', () => {
         }));
         expect(decodedArtwork.width).toBeGreaterThan(0);
         expect(decodedArtwork.height).toBeGreaterThan(0);
+        // With a width-descriptor srcset, browsers expose density-corrected
+        // natural dimensions. The height is therefore rounded to an integer
+        // CSS pixel (for example 294 x 127 for a raw 640 x 274 source). Prove
+        // the approved aspect survives that mandated one-pixel normalization
+        // instead of comparing two rounded ratios.
+        const expectedIntrinsicHeight =
+          decodedArtwork.width * definition!.artwork.height / definition!.artwork.width;
         expect(
-          Math.abs(
-            decodedArtwork.width / decodedArtwork.height
-              - definition!.artwork.width / definition!.artwork.height
-          )
-        ).toBeLessThan(0.01);
+          Math.abs(decodedArtwork.height - expectedIntrinsicHeight),
+          `${entry.id} responsive artwork changed aspect beyond one density-corrected pixel`
+        ).toBeLessThanOrEqual(1);
         const approvedArtworkPaths = [
           definition!.artwork.src,
           ...('sources' in definition!.artwork && definition!.artwork.sources
