@@ -193,28 +193,31 @@ test.describe('25. Stable Admin Phase 9 architecture smoke', () => {
     await page.goto('/horses', { waitUntil: 'domcontentloaded' });
     const tabs = page.getByRole('tablist', { name: 'Stable Admin Tabs' }).getByRole('tab');
     await expect(tabs).toHaveCount(28);
+    await expectSelectedTab(page, 'stable');
 
     await tabs.first().focus();
+    await expect(tabs.first()).toBeFocused();
     await page.keyboard.press('ArrowRight');
     const secondId = await tabs.nth(1).getAttribute('data-tabid');
     expect(secondId).toBeTruthy();
     await expectSelectedTab(page, secondId as string);
+    await expect(tabs.nth(1)).toBeFocused();
 
-    await tabs.nth(1).focus();
     await page.keyboard.press('End');
     const lastId = await tabs.last().getAttribute('data-tabid');
     expect(lastId).toBeTruthy();
     await expectSelectedTab(page, lastId as string);
+    await expect(tabs.last()).toBeFocused();
 
-    await tabs.last().focus();
     await page.keyboard.press('Home');
     const firstId = await tabs.first().getAttribute('data-tabid');
     expect(firstId).toBeTruthy();
     await expectSelectedTab(page, firstId as string);
+    await expect(tabs.first()).toBeFocused();
 
-    await tabs.first().focus();
     await page.keyboard.press('ArrowLeft');
     await expectSelectedTab(page, lastId as string);
+    await expect(tabs.last()).toBeFocused();
   });
 
   test('375px has no document overflow and reduced motion disables smooth tab scrolling', async ({ page }) => {

@@ -65,12 +65,12 @@ export default function HorsesAdmin() {
   const [notification, setNotification] = useState(null);
   const notifyTimer = useRef(null);
   const navRef = useRef(null);
-  const keyboardFocusTabRef = useRef(null);
   const urlHydratedRef = useRef(false);
   const urlSyncedRef = useRef(false);
   const pendingUrlStateRef = useRef(null);
   const queuedUrlStateRef = useRef(null);
-  const [urlWriteEpoch, setUrlWriteEpoch] = useState(0);
+  const startUrlWriteRef = useRef(null);
+  const latestUrlQueryRef = useRef(router.query);
 
   const showNotification = useCallback((message, type = 'success') => {
     if (notifyTimer.current) clearTimeout(notifyTimer.current);
@@ -187,54 +187,82 @@ export default function HorsesAdmin() {
     await supabase.auth.signOut();
   };
 
+  const startUrlWrite = useCallback((state, method = 'push') => {
+    queuedUrlStateRef.current = null;
+    pendingUrlStateRef.current = state;
+    const finishWrite = (reconcile = false) => {
+      if (pendingUrlStateRef.current !== state) return;
+      pendingUrlStateRef.current = null;
+      const queued = queuedUrlStateRef.current;
+      queuedUrlStateRef.current = null;
+      if (queued) {
+        startUrlWriteRef.current?.(queued, 'push');
+        return;
+      }
+      if (reconcile && !urlMatchesState(state, latestUrlQueryRef.current)) {
+        setActiveTab(resolveInitialTab(latestUrlQueryRef.current));
+        setCaSection(resolveInitialSection(latestUrlQueryRef.current));
+      }
+    };
+    let navigation;
+    try {
+      const target = { pathname: router.pathname, query: nextUrlQuery(state, router.query) };
+      navigation = method === 'replace'
+        ? router.replace(target, undefined, { shallow: true, scroll: false })
+        : router.push(target, undefined, { shallow: true, scroll: false });
+    } catch {
+      finishWrite();
+      return;
+    }
+    Promise.resolve(navigation)
+      .then((completed) => finishWrite(completed === false))
+      .catch(() => finishWrite(true));
+  }, [router]);
+
+  useEffect(() => {
+    startUrlWriteRef.current = startUrlWrite;
+  }, [startUrlWrite]);
+
   useEffect(() => {
     if (!router.isReady) return;
-    if (pendingUrlStateRef.current || queuedUrlStateRef.current) return;
+    latestUrlQueryRef.current = router.query;
+    const pending = pendingUrlStateRef.current;
+    if (pending) {
+      if (urlMatchesState(pending, router.query)) {
+        pendingUrlStateRef.current = null;
+        const queued = queuedUrlStateRef.current;
+        queuedUrlStateRef.current = null;
+        if (queued) startUrlWriteRef.current?.(queued, 'push');
+        return;
+      }
+      pendingUrlStateRef.current = null;
+      queuedUrlStateRef.current = null;
+    }
     setActiveTab(resolveInitialTab(router.query));
     setCaSection(resolveInitialSection(router.query));
     urlHydratedRef.current = true;
-  }, [router.isReady, router.query.tab, router.query.section, urlWriteEpoch]);
+  }, [router.isReady, router.query.tab, router.query.section]);
 
   useEffect(() => {
     if (!router.isReady || !urlHydratedRef.current) return;
     const state = { activeTab, caSection };
     const pending = pendingUrlStateRef.current;
     if (pending) {
-      queuedUrlStateRef.current = state;
+      queuedUrlStateRef.current = pending.activeTab === state.activeTab && pending.caSection === state.caSection
+        ? null
+        : state;
       return;
     }
-    const finishWrite = () => {
-      if (pendingUrlStateRef.current === state) pendingUrlStateRef.current = null;
-      setUrlWriteEpoch((value) => value + 1);
-    };
     if (urlMatchesState(state, router.query)) {
       urlSyncedRef.current = true;
       if (urlNeedsNormalising(state, router.query)) {
-        queuedUrlStateRef.current = null;
-        pendingUrlStateRef.current = state;
-        router.replace(
-          { pathname: router.pathname, query: nextUrlQuery(state, router.query) },
-          undefined,
-          { shallow: true },
-        ).catch(() => {}).finally(finishWrite);
+        startUrlWrite(state, 'replace');
       }
       return;
     }
     if (!urlSyncedRef.current) return;
-    queuedUrlStateRef.current = null;
-    pendingUrlStateRef.current = state;
-    const keyboardTarget = keyboardFocusTabRef.current === activeTab ? activeTab : null;
-    router.push(
-      { pathname: router.pathname, query: nextUrlQuery(state, router.query) },
-      undefined,
-      { shallow: true },
-    ).then(() => {
-      if (!keyboardTarget || keyboardFocusTabRef.current !== keyboardTarget) return;
-      window.requestAnimationFrame(() => {
-        navRef.current?.querySelector(`[data-tabid="${keyboardTarget}"]`)?.focus({ preventScroll: true });
-      });
-    }).catch(() => {}).finally(finishWrite);
-  }, [activeTab, caSection, router.isReady, urlWriteEpoch]);
+    startUrlWrite(state, 'push');
+  }, [activeTab, caSection, router.isReady, startUrlWrite]);
 
   const navTabs = useMemo(
     () => permittedTabs(visibleTabs(TABS), permissions),
@@ -256,7 +284,8 @@ export default function HorsesAdmin() {
   const onTabKeyDown = useCallback((event) => {
     if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
     event.preventDefault();
-    const current = navTabs.findIndex((tab) => tab.id === activeTab);
+    const currentId = event.currentTarget.dataset.tabid;
+    const current = navTabs.findIndex((tab) => tab.id === currentId);
     if (current < 0) return;
     let next = current;
     if (event.key === 'ArrowLeft') next = (current - 1 + navTabs.length) % navTabs.length;
@@ -265,9 +294,9 @@ export default function HorsesAdmin() {
     if (event.key === 'End') next = navTabs.length - 1;
     const tab = navTabs[next];
     if (!tab) return;
-    keyboardFocusTabRef.current = tab.id;
     setActiveTab(tab.id);
-  }, [activeTab, navTabs]);
+    navRef.current?.querySelector(`[data-tabid="${tab.id}"]`)?.focus({ preventScroll: true });
+  }, [navTabs]);
 
   const handlePolicyChange = useCallback((payload) => {
     const change = operatorContextChange(payload);
@@ -357,13 +386,10 @@ export default function HorsesAdmin() {
                   : tab.id === 'bugreports' ? bugReportBadge : 0;
               return (
                 <button key={tab.id} id={`horses-tab-${tab.id}`} data-tabid={tab.id}
-                  ref={(element) => {
-                    if (element && keyboardFocusTabRef.current === tab.id) element.focus({ preventScroll: true });
-                  }}
                   role="tab" type="button" aria-selected={activeTab === tab.id}
                   aria-controls={HORSES_PANEL_ID} tabIndex={activeTab === tab.id ? 0 : -1}
                   className={activeTab === tab.id ? styles.active : ''}
-                  onClick={() => { keyboardFocusTabRef.current = null; setActiveTab(tab.id); }} onKeyDown={onTabKeyDown}
+                  onClick={() => setActiveTab(tab.id)} onKeyDown={onTabKeyDown}
                   style={badge > 0 ? { color: T.danger, fontWeight: 700 } : undefined}>
                   {tab.label}{badge > 0 ? ` (${num(badge)})` : ''}
                 </button>
