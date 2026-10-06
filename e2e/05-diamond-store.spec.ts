@@ -906,7 +906,9 @@ test.describe('5. Storefront Routes And Design Contract', () => {
     });
 
     await page.goto('/hub/diamond-store', { waitUntil: 'domcontentloaded' });
-    await expect(page.getByRole('status')).toContainText('Current Pricing Verified');
+    await expect(
+      page.getByRole('status').filter({ hasText: /^Current Pricing Verified$/ })
+    ).toHaveText('Current Pricing Verified');
     await expect(page.getByLabel('Starter Diamond Packs').locator('article')).toHaveCount(2);
     const offers = page.locator('[data-diamond-package]');
     await expect(offers).toHaveCount(8);
@@ -987,7 +989,9 @@ test.describe('5. Storefront Routes And Design Contract', () => {
     );
 
     await page.goto('/hub/diamond-store', { waitUntil: 'domcontentloaded' });
-    await expect(page.getByRole('status')).toContainText('Current Pricing Verified');
+    await expect(
+      page.getByRole('status').filter({ hasText: /^Current Pricing Verified$/ })
+    ).toHaveText('Current Pricing Verified');
     let offers = page.locator('[data-diamond-package]');
     await expect(offers).toHaveCount(9);
     expect(
@@ -1014,7 +1018,9 @@ test.describe('5. Storefront Routes And Design Contract', () => {
 
     catalog = [PAGE1_DIAMOND_PACKAGES[0], PAGE1_DIAMOND_PACKAGES[1], unknownPackage];
     await page.reload({ waitUntil: 'domcontentloaded' });
-    await expect(page.getByRole('status')).toContainText('Current Pricing Verified');
+    await expect(
+      page.getByRole('status').filter({ hasText: /^Current Pricing Verified$/ })
+    ).toHaveText('Current Pricing Verified');
     offers = page.locator('[data-diamond-package]');
     await expect(offers).toHaveCount(3);
     expect(
