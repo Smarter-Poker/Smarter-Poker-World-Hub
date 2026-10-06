@@ -118,6 +118,7 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY || 'placeholder' }}
 
       - name: Wait for server
+        id: production_server_ready
         run: |
           for attempt in $(seq 1 30); do
             if curl -fsS http://127.0.0.1:${{ steps.port.outputs.port }}/hub/install -o /dev/null; then
@@ -127,6 +128,23 @@ jobs:
           done
           tail -100 /tmp/footer-next-server.log || true
           exit 1
+
+      # Trivia owns the new release evidence in this shared production-build
+      # job. Run it as soon as the server is ready so unrelated World/footer
+      # failures cannot skip or delay the scoped Phase 11 certification.
+      - name: Trivia Phase 11 mobile p75 performance budgets
+        if: ${{ !cancelled() && steps.production_server_ready.outcome == 'success' }}
+        run: npx playwright test e2e/trivia-performance-budget.spec.ts --project=trivia-performance --workers=2
+        env:
+          CI: true
+          NEXT_PUBLIC_BASE_URL: http://127.0.0.1:${{ steps.port.outputs.port }}
+
+      - name: Trivia installed-PWA upgrade and rollback compatibility
+        if: ${{ !cancelled() && steps.production_server_ready.outcome == 'success' }}
+        run: npx playwright test e2e/trivia-pwa-rollback.spec.ts --project=trivia-pwa --workers=1
+        env:
+          CI: true
+          NEXT_PUBLIC_BASE_URL: http://127.0.0.1:${{ steps.port.outputs.port }}
 
       - name: Verify footer routes and geometry
         # This suite deliberately exercises 203 SSR routes, 84 live controls, and
@@ -166,18 +184,6 @@ jobs:
       # same build, so it costs one more minute, not another job.
       - name: Mobile performance budget (thirteen World roots)
         run: npx playwright test e2e/mobile-budget.spec.ts --project=mobile-budget --workers=2
-        env:
-          CI: true
-          NEXT_PUBLIC_BASE_URL: http://127.0.0.1:${{ steps.port.outputs.port }}
-
-      - name: Trivia Phase 11 mobile p75 performance budgets
-        run: npx playwright test e2e/trivia-performance-budget.spec.ts --project=trivia-performance --workers=2
-        env:
-          CI: true
-          NEXT_PUBLIC_BASE_URL: http://127.0.0.1:${{ steps.port.outputs.port }}
-
-      - name: Trivia installed-PWA upgrade and rollback compatibility
-        run: npx playwright test e2e/trivia-pwa-rollback.spec.ts --project=trivia-pwa --workers=1
         env:
           CI: true
           NEXT_PUBLIC_BASE_URL: http://127.0.0.1:${{ steps.port.outputs.port }}

@@ -131,6 +131,20 @@ test('every rebuilt Trivia route has finite p75 Core Web Vitals and resource cei
 test('the existing production-build browser job owns Trivia budgets and installed-PWA rollback', () => {
     const workflow = read('.github/workflows/global-footer-e2e.yml');
     assert.match(workflow, /VERCEL:\s*'1'/, 'the maintained build must emit the real root worker');
+    assert.match(workflow, /name: Wait for server\s+id: production_server_ready/);
+    const runWhenServerIsReady = /if: \$\{\{ !cancelled\(\) && steps\.production_server_ready\.outcome == 'success' \}\}/g;
+    assert.equal(
+        [...workflow.matchAll(runWhenServerIsReady)].length,
+        2,
+        'both Trivia browser gates must still run after an unrelated browser suite fails when the production server is ready',
+    );
+    const triviaPerformanceStep = workflow.indexOf('name: Trivia Phase 11 mobile p75 performance budgets');
+    const triviaPwaStep = workflow.indexOf('name: Trivia installed-PWA upgrade and rollback compatibility');
+    const unrelatedFooterStep = workflow.indexOf('name: Verify footer routes and geometry');
+    assert.ok(
+        triviaPerformanceStep < unrelatedFooterStep && triviaPwaStep < unrelatedFooterStep,
+        'scoped Trivia release evidence must run before the unrelated footer matrix',
+    );
     assert.match(workflow, /trivia-performance-budget\.spec\.ts --project=trivia-performance/);
     assert.match(workflow, /trivia-pwa-rollback\.spec\.ts --project=trivia-pwa/);
 
