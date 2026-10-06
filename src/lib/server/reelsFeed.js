@@ -1114,7 +1114,7 @@ function publicRow(row, profileMap) {
     const profile = profileMap.get(row.author_id) || null;
     const channelName = row.source_name
         || (row.playback_type === 'youtube_embed' ? 'Original YouTube Source' : null)
-        || profile?.full_name
+        || profile?.display_name
         || profile?.username
         || 'Creator Unavailable';
     const {
@@ -1130,7 +1130,10 @@ function publicRow(row, profileMap) {
         profiles: profile ? {
             id: profile.id,
             username: profile.username || null,
-            full_name: profile.full_name || null,
+            display_name: profile.display_name || null,
+            // Kept under the old key for the reel cards that read it: the
+            // PUBLIC display name. The legal name is owner-only (ruling 25).
+            full_name: profile.display_name || null,
             avatar_url: profile.avatar_url || null,
         } : null,
     });
@@ -1143,7 +1146,7 @@ async function attachProfiles(client, rows) {
     const profiles = authorIds.length
         ? await readAllByValues(client, {
             table: 'profiles',
-            select: 'id,username,full_name,avatar_url',
+            select: 'id,username,display_name,avatar_url',
             column: 'id',
             values: authorIds,
         })

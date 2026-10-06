@@ -60,14 +60,29 @@ async function accountingMap(db, ids, userId) {
             .select('conversation_id,scope_id,recipient_id,sender_id,issuer_type,last_discussion_at')
             .in('conversation_id', ids.slice(start, start + 100)));
         if (records.length) {
-            const { data: visibility, error } = await db.rpc('fn_messenger_private_accounting_threads', {
-                p_user_id: userId, p_conversation_ids: records.map(record => record.conversation_id),
-            });
-            if (error || !Array.isArray(visibility)) fail(503, 'Invoice Threads Unavailable');
+            const conversationIds = records.map(record => record.conversation_id);
+            // Visibility and action state are separate protected reads. An
+            // invoice cannot become actionable because of message metadata or
+            // a preview: only the delivery-linked settlement reader may say so.
+            const [visibilityResult, attentionResult] = await Promise.all([
+                db.rpc('fn_messenger_private_accounting_threads', {
+                    p_user_id: userId, p_conversation_ids: conversationIds,
+                }),
+                db.rpc('fn_messenger_private_invoice_attention', {
+                    p_user_id: userId, p_conversation_ids: conversationIds,
+                }),
+            ]);
+            const { data: visibility, error } = visibilityResult;
+            if (error || !Array.isArray(visibility) || attentionResult.error || !Array.isArray(attentionResult.data)) {
+                fail(503, 'Invoice Threads Unavailable');
+            }
+            const actionable = new Set(attentionResult.data
+                .filter(row => conversationIds.includes(row?.conversation_id) && row.requires_action === true)
+                .map(row => row.conversation_id));
             for (const record of records) {
                 const visible = visibility.find(row => row.conversation_id === record.conversation_id);
                 if (!visible) fail(503, 'Invoice Thread Unavailable');
-                map.set(record.conversation_id, { ...record, ...visible });
+                map.set(record.conversation_id, { ...record, ...visible, requiresAction: actionable.has(record.conversation_id) });
             }
         }
     }
@@ -83,7 +98,7 @@ export function selectWorkspaceConversations(conversations, accounting, userId, 
             return invoice?.scope_id === club?.id && ((invoice.recipient_id === userId && invoice.recipient_visible) || (invoice.sender_id === userId && !!invoice.last_discussion_at));
         }
         return !invoice;
-    }).map(c => ({ ...c, isAccounting: accounting.has(c.id), clubId: club?.id || null }));
+    }).map(c => ({ ...c, isAccounting: accounting.has(c.id), requiresAction: accounting.get(c.id)?.requiresAction === true, clubId: club?.id || null }));
 }
 
 export async function getMessengerWorkspace(db, userId, request, internal = {}) {
@@ -160,9 +175,16 @@ export async function getMessengerWorkspace(db, userId, request, internal = {}) 
     const selected = club && !club.pageId && folder === 'messages' ? []
         : selectWorkspaceConversations(conversations, accounting, userId, club, folder);
     const countUnread = list => list.reduce((sum, c) => sum + c.unreadCount, 0);
+    // Invoice attention preserves the real unread-message total. A separate
+    // indicator is added only after the conversation itself is fully read.
+    const countInvoiceAttention = list => list.reduce((sum, c) => sum + c.unreadCount + (c.requiresAction && c.unreadCount === 0 ? 1 : 0), 0);
     const unreadCounts = {
         messages: club && !club.pageId ? 0 : countUnread(selectWorkspaceConversations(conversations, accounting, userId, club, 'messages')),
         invoices: club ? countUnread(selectWorkspaceConversations(conversations, accounting, userId, club, 'invoices')) : 0,
+    };
+    const attentionCounts = {
+        messages: unreadCounts.messages,
+        invoices: club ? countInvoiceAttention(selectWorkspaceConversations(conversations, accounting, userId, club, 'invoices')) : 0,
     };
     const conversation = resolvedId ? selected.find(c => c.id === resolvedId) : null;
     if (resolvedId && !conversation) fail(404, 'Conversation Unavailable');
@@ -201,7 +223,7 @@ export async function getMessengerWorkspace(db, userId, request, internal = {}) 
             }
         }
     }
-    return { success: true, clubs, conversations: selected, conversation, weeklySummary, unreadCounts,
+    return { success: true, clubs, conversations: selected, conversation, weeklySummary, unreadCounts, attentionCounts,
         workspace: club ? 'club' : 'social', clubId: club?.id || null, folder };
 }
 

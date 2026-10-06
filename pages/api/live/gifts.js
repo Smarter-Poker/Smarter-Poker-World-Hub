@@ -30,7 +30,7 @@ export default async function handler(req, res) {
         const { data: gifts, error } = await supabase
             .from('live_gifts')
             // Includes sender_id (G-1: stable user key) and avatar_url (G-7).
-            .select('amount, sender_id, profiles!sender_id(username, full_name, avatar_url)')
+            .select('amount, sender_id, profiles!sender_id(username, display_name, avatar_url)')
             .eq('stream_id', stream_id)
             .order('amount', { ascending: false })  // raw rows ordered by per-row amount
             .limit(MAX_GIFT_ROWS);                  // G-5: bound the working set
@@ -49,7 +49,7 @@ export default async function handler(req, res) {
             } else {
                 byUser.set(g.sender_id, {
                     user_id: g.sender_id,
-                    name: g.profiles?.username || g.profiles?.full_name || 'Anonymous',
+                    name: g.profiles?.username || g.profiles?.display_name || 'Anonymous',
                     avatar_url: g.profiles?.avatar_url || null,
                     amount: g.amount,
                 });

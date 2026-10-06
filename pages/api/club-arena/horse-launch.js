@@ -70,12 +70,12 @@ async function fleetStatus(db, requestId) {
   const [totalHorses, seatedHorses, activeTables, regTournaments] = await Promise.all([
     db
       .from('profiles')
-      .select('*', { count: 'exact', head: true })
+      .select('id', { count: 'exact', head: true })
       .eq('is_horse', true)
       .in('horse_status', ['active', 'seated']),
     db
       .from('profiles')
-      .select('*', { count: 'exact', head: true })
+      .select('id', { count: 'exact', head: true })
       .eq('is_horse', true)
       .eq('horse_status', 'seated'),
     db

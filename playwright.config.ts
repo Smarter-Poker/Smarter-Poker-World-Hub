@@ -93,7 +93,22 @@ export default defineConfig({
     {
       name: 'footer-webkit',
       testMatch: /global-footer-visual\.spec\.ts$/,
-      use: { ...devices['iPhone 13'] },
+      // The global push worker can starve WebKit hydration while this project
+      // walks every World route and viewport. Footer behavior does not own push
+      // delivery, so keep that unrelated worker outside this visual contract.
+      use: { ...devices['iPhone 13'], serviceWorkers: 'block' },
+    },
+    {
+      // These two commerce-anatomy checks install their own deterministic
+      // Marketplace session and API fixtures. Keep them independent from the
+      // authenticated suite so --no-deps never requires a missing user.json.
+      name: 'marketplace-audit-chromium',
+      testMatch: /05-diamond-store\.spec\.ts$/,
+      use: {
+        ...devices['Desktop Chrome'],
+        storageState: { cookies: [], origins: [] },
+        serviceWorkers: 'block',
+      },
     },
     {
       name: 'world-menu-visual',

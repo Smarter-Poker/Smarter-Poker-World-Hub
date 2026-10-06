@@ -151,6 +151,7 @@ export function normalizeIncident(source, row) {
     return {
       identity: `ca_drift_incidents:${row.id}`,
       sourceTable: source,
+      sourceIdentity: String(row.id),
       id: row.id,
       occurredAt: row.detected_at,
       lastSeenAt: row.last_seen_at,
@@ -174,9 +175,34 @@ export function normalizeIncident(source, row) {
   return {
     identity: `${source}:${id}`,
     sourceTable: source,
+    sourceIdentity: String(id),
     ...alert,
     acknowledgementMeaning: 'Read Only Until A Source-Specific Audited Contract Exists',
   };
+}
+
+export function applyIncidentAcknowledgements(rows, acknowledgementRows) {
+  const current = new Map((acknowledgementRows || []).map((row) => [
+    `${row.source_table}:${row.source_identity}`,
+    row,
+  ]));
+  return (rows || []).map((row) => {
+    const event = current.get(row.identity);
+    if (!event) return { ...row, ownershipState: null };
+    const acknowledged = event.action === 'acknowledge';
+    return {
+      ...row,
+      ownershipState: acknowledged ? 'acknowledged' : 'released',
+      acknowledged,
+      acknowledgedAt: acknowledged ? event.created_at : null,
+      acknowledgedBy: acknowledged ? event.actor_id : null,
+      acknowledgementNote: event.note,
+      acknowledgementOperationId: event.operation_id,
+      acknowledgementObservedStatus: event.observed_status,
+      acknowledgementObservedAt: event.observed_at,
+      acknowledgementMeaning: 'Operator Ownership Only; Source Status And Resolution Are Unchanged',
+    };
+  });
 }
 
 export function canReadFreezeAmounts(op) {

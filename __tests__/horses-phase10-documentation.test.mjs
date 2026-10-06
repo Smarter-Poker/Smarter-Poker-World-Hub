@@ -45,7 +45,7 @@ test('the operator runbook covers every visible top-level tab with its canonical
 
 test('the permission record covers the full canonical vocabulary and every role', () => {
   const vocabulary = exportedStringValues(PERMISSIONS, 'PERMISSIONS');
-  assert.equal(vocabulary.length, 21);
+  assert.equal(vocabulary.length, 22);
   for (const permission of vocabulary) {
     assert.ok(MATRIX.split('\n').some((line) => line.startsWith(`| \`${permission}\` |`)), `${permission} must have a matrix row`);
   }
@@ -89,6 +89,15 @@ test('the current handoff points to the ten-phase continuation and separates del
     assert.match(HANDOFF.toLowerCase(), new RegExp(layer));
   }
   assert.match(HANDOFF, /No pending cell above may remain/);
+  const deliveryRecord = HANDOFF
+    .split('## 9. Final Delivery Record')[1]
+    .split('No pending cell above may remain')[0];
+  assert.doesNotMatch(deliveryRecord, /\| Pending(?:[ .]|$)/i);
+  assert.match(deliveryRecord, /PR #\d+/);
+  assert.match(deliveryRecord, /dpl_[A-Za-z0-9]+/);
+  assert.match(deliveryRecord, /READY/);
+  assert.match(deliveryRecord, /`\/api\/health`/);
+  assert.match(deliveryRecord, /12\/12/);
 });
 
 test('Phase 10 documents contain no UI-forbidden dash or emoji bytes', () => {

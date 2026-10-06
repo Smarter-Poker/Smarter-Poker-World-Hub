@@ -11,9 +11,13 @@
  *   1. the row is read AS THE CALLER (their bearer token, or the public key
  *      when signed out), so row-level security decides who may see it exactly
  *      as it did when the browser read it directly; only browser-granted
- *      columns are named;
- *   2. its metadata is read with the service role and reduced to the keys the
- *      UI renders (displayMetadata); origin_type is never read.
+ *      columns are named, and nothing is embedded: anon has no access to
+ *      profiles at all, so an embedded author made every signed-out deep link
+ *      (a shared /hub/post/<id> link) fail with 42501 and answer 503;
+ *   2. for a row the caller can see, its metadata (reduced to the keys the UI
+ *      renders, displayMetadata) and its author's public card (id, username,
+ *      display_name, avatar_url) are read with the service role; origin_type is
+ *      never read.
  *
  * A horse's post and a human's come back in the same shape.
  */
@@ -23,7 +27,8 @@ import { BROWSER_POST_SELECT, displayMetadata } from '../../../src/lib/socialPos
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const CLIENT_OPTIONS = { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } };
-export const POST_AUTHOR_SELECT = 'author:profiles!author_id(id,username,display_name,avatar_url)';
+/** The author card a post carries: public fields only (never a legal name). */
+export const POST_AUTHOR_COLUMNS = 'id,username,display_name,avatar_url';
 
 let serviceClient = null;
 
@@ -79,21 +84,37 @@ export default async function handler(req, res) {
     try {
         const visible = await callerClient(bearerToken(req))
             .from('social_posts')
-            .select(`${BROWSER_POST_SELECT},${POST_AUTHOR_SELECT}`)
+            .select(BROWSER_POST_SELECT)
             .eq('id', id)
             .eq('is_deleted', false)
             .maybeSingle();
         if (visible.error) throw visible.error;
         if (!visible.data) return res.status(404).json({ success: false, error: 'Post not found' });
 
-        const notes = await getServiceClient()
-            .from('social_posts')
-            .select('metadata')
-            .eq('id', id)
-            .maybeSingle();
+        const service = getServiceClient();
+        const authorId = visible.data.author_id;
+        const [notes, author] = await Promise.all([
+            service
+                .from('social_posts')
+                .select('metadata')
+                .eq('id', id)
+                .maybeSingle(),
+            authorId
+                ? service
+                    .from('profiles')
+                    .select(POST_AUTHOR_COLUMNS)
+                    .eq('id', authorId)
+                    .maybeSingle()
+                : Promise.resolve({ data: null, error: null }),
+        ]);
         if (notes.error) throw notes.error;
+        if (author.error) throw author.error;
 
-        const post = { ...visible.data, metadata: displayMetadata(notes.data?.metadata) };
+        const post = {
+            ...visible.data,
+            author: author.data || null,
+            metadata: displayMetadata(notes.data?.metadata),
+        };
         return res.status(200).json({ success: true, post });
     } catch (err) {
         console.warn('[api/social/post] failed:', err?.message || err);

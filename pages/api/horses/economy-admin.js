@@ -1,16 +1,17 @@
-/** Stable Admin Phase 7 economy and finance reporting. GET only. */
+/** Stable Admin economy and finance reporting with durable Phase 11 records. */
 import { withOperatorRoute } from '../../../src/lib/horses/operatorRoute.js';
-import { PERMISSIONS } from '../../../src/lib/horses/permissions.js';
-import { ApiError, badRequest } from '../../../src/lib/horses/apiEnvelope.js';
-import { enumOf, int, uuid } from '../../../src/lib/horses/validate.js';
+import { PERMISSIONS, hasPermission } from '../../../src/lib/horses/permissions.js';
+import { ApiError, badRequest, forbidden } from '../../../src/lib/horses/apiEnvelope.js';
+import { enumOf, int, text, uuid } from '../../../src/lib/horses/validate.js';
 import { fetchAll, paging, runPaged, pagedResult } from '../../../src/lib/horses/paged.js';
+import { auditOperatorAction } from '../../../src/lib/horses/operatorAudit.js';
 
 export const ECONOMY_SECTIONS = Object.freeze([
   'supply', 'velocity', 'register', 'treasury', 'conservation', 'drift', 'burnin',
   'rakelaw', 'rakeback', 'leaderboard', 'bbj', 'promotions', 'abuse', 'close',
   'digest', 'pnl', 'invoices', 'jobs', 'exports',
 ]);
-export const ECONOMY_ACTIONS = Object.freeze([]);
+export const ECONOMY_ACTIONS = Object.freeze(['record_export_prepared', 'record_pnl_snapshot', 'sign_daily_close']);
 const PAGE = { defaultLimit: 50, max: 200 };
 
 function fail(error, sentence, code) {
@@ -378,14 +379,14 @@ async function close(db) {
   const [manifests, restatements, closes, epochs] = await Promise.all([
     db.from('ca_ledger_day_manifests').select('*').order('day', { ascending: true }).limit(1000),
     db.from('ca_ledger_day_manifest_restatements').select('*').order('restated_at', { ascending: false }).limit(100),
-    db.from('commander_day_closes').select('id', { count: 'exact', head: true }),
+    db.from('ca_daily_closes').select('id,close_day,manifest_sha256,manifest_row_count,manifest_net_amount,exceptions,signed_by,signed_at,op_id,approval_id,request_id', { count: 'exact' }).order('close_day', { ascending: false }).limit(1000),
     db.from('ca_financial_epochs').select('*').order('id', { ascending: false }).limit(10),
   ]);
   fail(manifests.error, 'Manifest Coverage Could Not Be Read', 'manifest_unavailable');
   const lastDay = manifests.data?.at(-1)?.day || new Date().toISOString().slice(0, 10);
   const firstDay = manifests.data?.[0]?.day || lastDay;
   return {
-    state: closes.error ? 'close.signature_state_unknown' : closes.count > 0 ? 'close.foreign_domain_rows' : 'close.not_closed',
+    state: closes.error ? 'close.signature_state_unknown' : closes.count > 0 ? 'close.signed' : 'close.not_closed',
     manifests: manifests.data || [],
     manifestCount: manifests.data?.length || 0,
     restatements: restatements.error ? null : restatements.data || [],
@@ -394,25 +395,28 @@ async function close(db) {
     epochState: sourceState(epochs, 'close.epochs_recorded', 'close.epochs_unknown'),
     fromDay: firstDay,
     toDay: lastDay,
-    signedCount: closes.error ? null : 0,
-    disclosure: 'No Day Has Been Operator-Signed',
+    closes: closes.error ? null : closes.data || [],
+    signedCount: closes.error ? null : closes.count,
+    disclosure: closes.error ? 'Daily Close Signatures Could Not Be Read' : closes.count ? 'Signed Days Bind The Exact Journal Manifest SHA Recorded At Signature Time' : 'No Day Has Been Operator-Signed',
   };
 }
 
 async function digest(db) {
-  const [result, cron] = await Promise.all([
+  const [durable, result, cron] = await Promise.all([
+    db.from('ca_weekly_revenue_digest_runs').select('id,run_key,window_start,window_end,gross_revenue,net_revenue,rake_revenue,recipient_count,scheduler,outcome,figures,first_recorded_at,last_recorded_at').order('window_end', { ascending: false }).limit(100),
     db.from('notifications').select('id,user_id,data,created_at').contains('data', { kind: 'weekly_revenue_digest' }).order('created_at', { ascending: false }).limit(50),
     pgCronEvidence(db, ['ca-revenue-digest-weekly']),
   ]);
-  if (result.error) return { state: 'digest.unknown', rows: [], disclosure: 'Digest History Could Not Be Read' };
+  if (durable.error && result.error) return { state: 'digest.unknown', rows: [], disclosure: 'Digest History Could Not Be Read' };
   const rows = result.data || [];
   return {
-    state: rows.length ? 'digest.recorded_not_durable' : 'digest.run_missed',
+    state: durable.error ? 'digest.durable_record_unknown' : durable.data?.length ? 'digest.durable_runs' : rows.length ? 'digest.legacy_evidence_only' : 'digest.run_missed',
+    runs: durable.error ? null : durable.data || [],
     rows,
     recipientCount: new Set(rows.map((row) => row.user_id).filter(Boolean)).size,
     lastNotificationAt: rows[0]?.created_at || null,
     scheduler: cron,
-    disclosure: 'Digest Figures Exist Only In Notification Payloads. Delivery Is Not Durably Confirmed',
+    disclosure: durable.error ? 'Durable Digest Runs Could Not Be Read. Notification Evidence Is Shown Separately' : 'Digest Run Figures And Recipients Are Durable. Notification Creation Still Does Not Confirm Human Receipt',
   };
 }
 
@@ -479,12 +483,115 @@ async function jobs(db) {
   };
 }
 
-async function exportsSection() {
-  return { state: 'export.no_job_record', auditState: 'export.no_audit_identity', cap: 100000, disclosure: 'Platform Exports Are Not Recorded. The Downloaded File Is The Operator Record' };
+async function exportsSection(db, query) {
+  const page = paging(query, PAGE);
+  const result = await runPaged(db.from('ca_operator_export_jobs')
+    .select('id,requester_id,request_id,surface,permission,filters,format,state,row_count,complete,content_sha256,byte_size,error_code,prepared_at,expires_at,op_id', { count: 'exact' })
+    .order('prepared_at', { ascending: false }), page);
+  fail(result.error, 'Export Receipts Could Not Be Read', 'exports_unavailable');
+  return {
+    state: 'export.receipts_recorded',
+    ...pagedResult(result, page),
+    cap: 100000,
+    disclosure: 'A Prepared Receipt Binds The Requested Browser File. It Does Not Prove That The Browser Saved Or Delivered It',
+  };
 }
 
-export async function handle({ db, query, method }) {
-  if (method !== 'GET') throw badRequest('This Route Is Read-Only', 'read_only');
+function objectOf(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
+  return Object.fromEntries(Object.entries(value).slice(0, 40));
+}
+
+async function recordExportPrepared(db, op, req, body, requestId) {
+  const opId = uuid(body.opId);
+  const surface = text(body.surface, { max: 80 });
+  const rowCount = int(body.rowCount, { min: 0, max: 10000000 });
+  const complete = body.complete === true;
+  const contentSha256 = typeof body.contentSha256 === 'string' && /^[0-9a-f]{64}$/i.test(body.contentSha256) ? body.contentSha256.toLowerCase() : null;
+  const byteSize = int(body.byteSize, { min: 0, max: 1000000000 });
+  if (!opId || !surface || rowCount === null || !contentSha256 || byteSize === null) {
+    throw badRequest('The Export Receipt Is Incomplete', 'export_receipt_invalid');
+  }
+  const expected = {
+    requester_id: op.user.id, request_id: requestId, surface, permission: PERMISSIONS.MONEY_READ,
+    filters: objectOf(body.filters), format: 'csv', state: complete ? 'prepared' : 'truncated',
+    row_count: rowCount, complete, content_sha256: contentSha256, byte_size: byteSize, op_id: opId,
+  };
+  const prior = await db.from('ca_operator_export_jobs').select('*').eq('op_id', opId).maybeSingle();
+  fail(prior.error, 'The Export Receipt Could Not Be Checked', 'export_receipt_unavailable');
+  let receipt = prior.data;
+  if (receipt) {
+    const same = receipt.requester_id === expected.requester_id && receipt.surface === surface
+      && Number(receipt.row_count) === rowCount && receipt.complete === complete
+      && receipt.content_sha256 === contentSha256 && Number(receipt.byte_size) === byteSize;
+    if (!same) throw new ApiError(409, 'That Export Key Belongs To A Different File', 'export_op_id_reused');
+  } else {
+    const inserted = await db.from('ca_operator_export_jobs').insert(expected).select('*').maybeSingle();
+    fail(inserted.error, 'The Export Receipt Could Not Be Recorded', 'export_receipt_unavailable');
+    if (!inserted.data) throw new ApiError(503, 'The Export Receipt Could Not Be Recorded', 'export_receipt_unavailable');
+    receipt = inserted.data;
+    await auditOperatorAction(op, req, { action: 'economy.export_prepared', targetType: 'operator_export', targetId: receipt.id, after: receipt, details: { surface, complete, row_count: rowCount } });
+  }
+  return { state: 'export.prepared', receipt, disclosure: 'The Receipt Was Recorded Before The Browser Download Was Requested' };
+}
+
+async function recordPnlSnapshot(db, op, req, body, requestId) {
+  const opId = uuid(body.opId);
+  if (!opId) throw badRequest('A Valid Profit And Loss Operation ID Is Required', 'op_id_required');
+  const computed = await pnl(db, body);
+  const scopeId = computed.scope === 'union' ? computed.unionId : computed.clubId;
+  const sourceFunction = computed.scope === 'union' ? 'fn_union_pnl_all_clubs' : 'fn_ca_fleet_pnl';
+  const prior = await db.from('ca_club_pnl_snapshots').select('*').eq('op_id', opId).maybeSingle();
+  fail(prior.error, 'The Profit And Loss Receipt Could Not Be Checked', 'pnl_snapshot_unavailable');
+  if (prior.data) {
+    if (prior.data.scope !== computed.scope || prior.data.scope_id !== scopeId || prior.data.period_start !== computed.from || prior.data.period_end !== computed.to) {
+      throw new ApiError(409, 'That Profit And Loss Key Belongs To A Different Request', 'pnl_op_id_reused');
+    }
+    return { state: 'pnl.snapshot_recorded', snapshot: prior.data, computed, idempotent: true };
+  }
+  const epoch = await db.from('ca_financial_epochs').select('id').order('id', { ascending: false }).limit(1).maybeSingle();
+  const inserted = await db.from('ca_club_pnl_snapshots').insert({
+    scope: computed.scope, scope_id: scopeId, period_start: computed.from, period_end: computed.to,
+    source_function: sourceFunction, source_version: 'phase11-v1', financial_epoch_id: epoch.error ? null : epoch.data?.id ?? null,
+    includes_horses: true, result: computed.result ?? {}, recorded_by: op.user.id, op_id: opId, request_id: requestId,
+  }).select('*').maybeSingle();
+  fail(inserted.error, 'The Profit And Loss Snapshot Could Not Be Recorded', 'pnl_snapshot_unavailable');
+  if (!inserted.data) throw new ApiError(503, 'The Profit And Loss Snapshot Could Not Be Recorded', 'pnl_snapshot_unavailable');
+  await auditOperatorAction(op, req, { action: 'economy.pnl_recorded', targetType: computed.scope, targetId: scopeId, after: inserted.data, details: { from: computed.from, to: computed.to, source_function: sourceFunction } });
+  return { state: 'pnl.snapshot_recorded', snapshot: inserted.data, computed, idempotent: false };
+}
+
+async function signDailyClose(db, op, req, res, body, requestId) {
+  if (!hasPermission(op.permissions, PERMISSIONS.MONEY_WRITE)) throw forbidden('Money Write Permission Is Required', 'permission_denied');
+  const opId = uuid(body.opId);
+  const day = typeof body.day === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(body.day) ? body.day : null;
+  const manifestSha256 = typeof body.manifestSha256 === 'string' && /^[0-9a-f]{64}$/i.test(body.manifestSha256) ? body.manifestSha256.toLowerCase() : null;
+  const exceptions = Array.isArray(body.exceptions) ? body.exceptions.slice(0, 50).map((value) => String(value).trim().slice(0, 500)).filter(Boolean) : null;
+  if (!opId || !day || !manifestSha256 || !exceptions) throw badRequest('The Daily Close Request Is Incomplete', 'daily_close_invalid');
+  const requested = await db.rpc('fn_ca_operator_request_daily_close', { p_day: day, p_manifest_sha256: manifestSha256, p_requested_by: op.user.id, p_exceptions: exceptions, p_op_id: opId, p_request_id: requestId });
+  fail(requested.error, 'The Daily Close Approval Could Not Be Recorded', 'daily_close_unavailable');
+  const gate = requested.data || {};
+  if (gate.ok === false) throw new ApiError(409, 'That Daily Close Request Cannot Be Reused', gate.error || 'daily_close_refused');
+  if (gate.required) {
+    await auditOperatorAction(op, req, { action: 'economy.close_requested', targetType: 'ledger_day', targetId: day, details: { approval_id: gate.approval_id, manifest_sha256: manifestSha256, exceptions } });
+    res.status(202).json({ success: true, pending: true, approvalId: gate.approval_id, status: gate.status || 'pending', requestId, message: 'Daily Close Approval Is Pending' });
+    return undefined;
+  }
+  const signed = await db.rpc('fn_ca_operator_sign_daily_close', { p_day: day, p_manifest_sha256: manifestSha256, p_signed_by: op.user.id, p_exceptions: exceptions, p_op_id: opId, p_approval_id: gate.approval_id, p_request_id: requestId });
+  fail(signed.error, 'The Daily Close Could Not Be Signed', 'daily_close_unavailable');
+  if (signed.data?.ok === false) throw new ApiError(409, 'The Daily Close Was Not Signed', signed.data.error || 'daily_close_refused');
+  await auditOperatorAction(op, req, { action: 'economy.close_signed', targetType: 'ledger_day', targetId: day, after: signed.data?.close || null, details: { manifest_sha256: manifestSha256, approval_id: gate.approval_id } });
+  return { state: 'close.signed', close: signed.data?.close || null, idempotent: signed.data?.idempotent === true };
+}
+
+export async function handle({ db, query, method, body, op, req, res, requestId }) {
+  if (method === 'POST') {
+    const action = enumOf(body.action, ECONOMY_ACTIONS);
+    if (!action) throw badRequest('Choose A Valid Economy Action', 'action_required');
+    if (action === 'record_export_prepared') return recordExportPrepared(db, op, req, body, requestId);
+    if (action === 'record_pnl_snapshot') return recordPnlSnapshot(db, op, req, body, requestId);
+    return signDailyClose(db, op, req, res, body, requestId);
+  }
   const section = enumOf(query.section, ECONOMY_SECTIONS) || 'supply';
   const handlers = { supply, velocity, register, treasury, conservation, drift, burnin, rakelaw: rakeLaw, rakeback, leaderboard, bbj, promotions, abuse, close, digest, pnl, invoices, jobs, exports: exportsSection };
   return handlers[section](db, query);
@@ -493,7 +600,7 @@ export async function handle({ db, query, method }) {
 export const handleEconomyAdmin = handle;
 
 export const spec = Object.freeze({
-  name: 'horses.economy-admin', methods: ['GET'], permission: PERMISSIONS.MONEY_READ, limit: 'read',
+  name: 'horses.economy-admin', methods: ['GET', 'POST'], permission: PERMISSIONS.MONEY_READ, limit: { GET: 'read', POST: 'write' },
 });
 export const economyAdminSpec = spec;
 

@@ -23,7 +23,10 @@ test('StablePanel owns its paged roster, guarded writes, modal, virtualization a
 
 test('SettingsPanel fails closed before a canonical read and patches only shared settings projection', () => {
   const source = read('SettingsPanel.jsx');
-  assert.match(source, /\.order\('id', \{ ascending: true \}\)/);
+  // The canonical row (lowest id) is read server-side: content_settings is not
+  // readable from a browser (stable-admin read_settings).
+  assert.match(source, /action: 'read_settings'/);
+  assert.doesNotMatch(source, /from\('content_settings'\)/);
   assert.match(source, /if \(!loaded \|\| !canWrite\)/);
   assert.match(source, /action: 'save_settings'/);
   assert.match(source, /patchContext\(\{ socialSettings: next \}\)/);
@@ -37,7 +40,8 @@ test('StatsPanel independently reads canonical platform, analytics, roster and p
   assert.match(source, /section=platform/);
   assert.match(source, /\/api\/horses\/analytics\?type=summary/);
   assert.match(source, /\/api\/horses\/roster\?limit=/);
-  assert.match(source, /from\('pipeline_runs'\)/);
+  assert.match(source, /action: 'pipeline_runs'/);
+  assert.doesNotMatch(source, /from\('pipeline_runs'\)/);
   assert.match(source, /selectNavigationBadges/);
   assert.match(source, /Promise\.allSettled/);
   assert.match(source, /stopBroadcast\(\)/);

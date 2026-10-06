@@ -9,6 +9,7 @@ import {
   estimatedPlatformHandsPerSecond,
   maintenanceReconciliation,
   normalizeIncident,
+  applyIncidentAcknowledgements,
   registryRow,
   scrubBreakScorecard,
   scrubFault,
@@ -16,6 +17,7 @@ import {
 import {
   booleanState,
   engineModel,
+  incidentAcknowledgementPayload,
   incidentDisposition,
   pageOf,
   permissionRequiredSources,
@@ -123,6 +125,16 @@ test('registry and incident models preserve Unknown, Missing and acknowledgement
   assert.equal(incident.acknowledgementMeaning, 'Operator Ownership Only');
   assert.equal(incidentDisposition(incident), 'Acknowledged, Not Resolved');
   assert.equal(incidentDisposition({ status: 'resolved' }), 'Source Reports Resolved');
+  const [released] = applyIncidentAcknowledgements([incident], [{
+    source_table: 'ca_drift_incidents', source_identity: 'i1', action: 'release',
+    note: 'Shift handoff', operation_id: 'op-1', created_at: '2026-10-05T19:00:00Z',
+  }]);
+  assert.equal(released.ownershipState, 'released');
+  assert.equal(released.status, 'open');
+  assert.equal(incidentDisposition(released), 'Ownership Released');
+  assert.deepEqual(incidentAcknowledgementPayload(released, 'acknowledge', '  Owned  ', 'op-2'), {
+    action: 'acknowledge', sourceTable: 'ca_drift_incidents', sourceIdentity: 'i1', note: 'Owned', operationId: 'op-2',
+  });
 });
 
 test('client pages preserve server caps and unknown totals', () => {

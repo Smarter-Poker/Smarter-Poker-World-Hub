@@ -163,6 +163,31 @@ test('event payout reconciliation is always a dry run and overlay absence remain
   assert.equal(payload.overlay, null);
   assert.equal(payload.overlayState, 'not_recorded');
   assert.equal(payload.payoutAuditMode, 'dry_run');
+  assert.equal(payload.refundEvidence.state, 'not_recorded');
+});
+
+test('event refund evidence totals complete exact rows without floating point conversion', async () => {
+  const db = makeDb({
+    tournaments: { data: { id: ID, name: 'Event', club_id: ID, status: 'cancelled' }, error: null },
+    tournament_players: { data: null, count: 2, error: null },
+    tournament_guarantee_overlays: { data: null, error: null },
+    tournament_cancellation_receipts: { data: { tournament_id: ID, refunded_count: 2 }, error: null },
+    tournament_refund_entitlements: { data: [
+      { id: 'e1', refund_prize: '10.10', refund_bounty: '2.20', refund_fee: '0.30' },
+      { id: 'e2', refund_prize: '4.40', refund_bounty: '0.00', refund_fee: '0.50' },
+    ], count: 2, error: null },
+    tournament_refund_tranches: { data: [
+      { wallet_transaction_id: 'w1', amount_paid_now: '12.60' },
+      { wallet_transaction_id: 'w2', amount_paid_now: '4.90' },
+    ], count: 2, error: null },
+    clubs: { data: [{ id: ID, name: 'Club One', union_id: null }], error: null },
+  }, { fn_tournament_payout_reconcile: { data: { ok: true }, error: null } });
+  const payload = await handleFloorAdmin(context('event', db));
+  assert.deepEqual(payload.refundEvidence, {
+    state: 'recorded', entitlement_count: 2, paid_tranche_count: 2, complete: true,
+    total_owed: '17.50', total_paid: '17.50', outstanding: '0.00',
+  });
+  assert.equal(payload.event.club_name, 'Club One');
 });
 
 test('the tournament window payout audit is permission-gated and always a dry run', async () => {
@@ -306,6 +331,31 @@ test('a clamped floor seat read makes every page composition unknown instead of 
   }
 });
 
+test('the floor resolves club and union names for scoped owner management', async () => {
+  const originalFetch = globalThis.fetch;
+  clearFloorEngineCacheForTests();
+  globalThis.fetch = async () => ({ ok: true, async json() { return { activeTables: 1 }; } });
+  try {
+    const unionId = '22222222-2222-4222-8222-222222222222';
+    const db = makeDb({
+      tables: [
+        { data: [{ id: ID, name: 'Scoped Table', club_id: ID, union_id: unionId, status: 'active' }], count: 1, error: null },
+        { data: null, count: 1, error: null },
+      ],
+      table_seats: { data: [], count: 0, error: null },
+      clubs: { data: [{ id: ID, name: 'Club One', union_id: unionId }], error: null },
+      unions: { data: [{ id: unionId, name: 'Union One' }], error: null },
+    });
+    const payload = await handleFloorAdmin(context('floor', db));
+    assert.equal(payload.tables.rows[0].club_name, 'Club One');
+    assert.equal(payload.tables.rows[0].union_name, 'Union One');
+    assert.equal(payload.tables.rows[0].union_id, unionId);
+  } finally {
+    globalThis.fetch = originalFetch;
+    clearFloorEngineCacheForTests();
+  }
+});
+
 test('announcement delivery health reads only completed dispatch runs', async () => {
   const db = makeDb({
     club_announcements: { data: [], count: 0, error: null },
@@ -333,12 +383,28 @@ test('event readiness includes every source and an overlay read failure stays un
 test('a null tournament registration remains null', async () => {
   const db = makeDb({
     tournaments: [
-      { data: [{ id: ID, current_players: null }], count: 1, error: null },
+      { data: [{ id: ID, current_players: 99, registration_rows: [{ count: null }] }], count: 1, error: null },
       { data: null, count: 0, error: null },
     ],
   });
   const payload = await handleFloorAdmin(context('tournaments', db));
   assert.equal(payload.tournaments.rows[0].registered_count, null);
+});
+
+test('the tournament list uses exact related registrations and scoped overlay evidence', async () => {
+  const db = makeDb({
+    tournaments: [
+      { data: [{ id: ID, club_id: ID, union_id: '22222222-2222-4222-8222-222222222222', current_players: 99, registration_rows: [{ count: 7 }], overlay_rows: [{ amount: '123.45' }] }], count: 1, error: null },
+      { data: null, count: 1, error: null },
+    ],
+    clubs: { data: [{ id: ID, name: 'Club One', union_id: '22222222-2222-4222-8222-222222222222' }], error: null },
+    unions: { data: [{ id: '22222222-2222-4222-8222-222222222222', name: 'Union One' }], error: null },
+  }, { fn_tournament_payout_sweep: { data: {}, error: null } });
+  const payload = await handleFloorAdmin(context('tournaments', db));
+  assert.equal(payload.tournaments.rows[0].registered_count, 7);
+  assert.equal(payload.tournaments.rows[0].overlay_amount, '123.45');
+  assert.equal(payload.tournaments.rows[0].club_name, 'Club One');
+  assert.equal(payload.tournaments.rows[0].union_name, 'Union One');
 });
 
 test('rake uses full-window database aggregates and preserves exact decimal strings', async () => {

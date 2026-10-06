@@ -20,6 +20,25 @@ export function platformAdminUrl(section, params = {}) {
   return `${PLATFORM_ADMIN}?${search.toString()}`;
 }
 
+export function incidentOperationId() {
+  if (globalThis.crypto?.randomUUID) return globalThis.crypto.randomUUID();
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (character) => {
+    const random = Math.floor(Math.random() * 16);
+    const value = character === 'x' ? random : (random & 0x3) | 0x8;
+    return value.toString(16);
+  });
+}
+
+export function incidentAcknowledgementPayload(row, action, note, operationId) {
+  return {
+    action,
+    sourceTable: row.sourceTable,
+    sourceIdentity: row.sourceIdentity,
+    note: String(note || '').trim(),
+    operationId,
+  };
+}
+
 export function dataOf(body) {
   return body?.data && typeof body.data === 'object' ? body.data : body || {};
 }
@@ -166,6 +185,8 @@ export function registryRows(body) {
 }
 
 export function incidentDisposition(row = {}) {
+  if (row.ownershipState === 'acknowledged') return 'Acknowledged, Not Resolved';
+  if (row.ownershipState === 'released') return 'Ownership Released';
   const acknowledged = row.acknowledged === true || known(row.acknowledgedAt ?? row.acknowledged_at) || String(row.status || '').toLowerCase() === 'acknowledged';
   if (acknowledged) return 'Acknowledged, Not Resolved';
   if (String(row.status || '').toLowerCase() === 'resolved') return 'Source Reports Resolved';

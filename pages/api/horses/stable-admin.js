@@ -168,6 +168,8 @@ const ACTIONS = [
   'bulk_delete',
   'set_ticket_status',
   'save_settings',
+  'read_settings',
+  'pipeline_runs',
   'audit_log',
 ];
 
@@ -601,6 +603,49 @@ async function saveSettings(db, op, req, body) {
   return { settings: data };
 }
 
+/**
+ * The engine settings row, read for the console (2026-10-05).
+ *
+ * The console used to read content_settings straight from the browser with the
+ * public key, which only worked because the table was readable by anybody:
+ * any visitor could read the content engine's posting cadence and model. The
+ * read lives here now, behind operator auth and the service role, so the table
+ * can be closed to anon and authenticated. Same row the writer updates: the
+ * lowest id.
+ */
+export const SETTINGS_READ_COLUMNS = ['id', ...SETTINGS_FIELDS, 'updated_at'].join(', ');
+
+async function readSettings(db) {
+  const { data, error } = await db
+    .from('content_settings')
+    .select(SETTINGS_READ_COLUMNS)
+    .order('id', { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  if (error) throw mapDbError(error, 'The Engine Settings', { route: 'horses.stable-admin' });
+  return { settings: data || null };
+}
+
+/**
+ * The content pipeline's recent runs, for the Pipeline and Stats tabs. Read
+ * here for the same reason as the settings: the browser used to read
+ * pipeline_runs with the public key, so its post and video counts were
+ * readable by anybody.
+ */
+export const PIPELINE_RUN_COLUMNS =
+  'id, run_type, started_at, completed_at, text_posts_created, videos_created, memes_created, news_shared, errors, duration_seconds';
+const PIPELINE_RUNS_SHOWN = 10;
+
+async function readPipelineRuns(db) {
+  const { data, error } = await db
+    .from('pipeline_runs')
+    .select(PIPELINE_RUN_COLUMNS)
+    .order('started_at', { ascending: false })
+    .limit(PIPELINE_RUNS_SHOWN);
+  if (error) throw mapDbError(error, 'The Pipeline Runs', { route: 'horses.stable-admin' });
+  return { runs: Array.isArray(data) ? data : [] };
+}
+
 // -- AUDIT LOG (read) --------------------------------------------------------
 //
 // Until this release the console WROTE to admin_audit_log from three routes and
@@ -855,6 +900,8 @@ const ACTION_PERMISSIONS = Object.freeze({
   delete_horse: PERMISSIONS.CONTENT_WRITE,
   bulk_delete: PERMISSIONS.CONTENT_WRITE,
   save_settings: PERMISSIONS.CONTENT_WRITE,
+  read_settings: PERMISSIONS.CONSOLE_READ,
+  pipeline_runs: PERMISSIONS.CONSOLE_READ,
   set_ticket_status: PERMISSIONS.SUPPORT_WRITE,
   audit_log: PERMISSIONS.AUDIT_READ,
 });
@@ -877,6 +924,8 @@ export async function handle({ req, op, db, body }) {
   }
 
   if (action === 'audit_log') return auditLog(db, body);
+  if (action === 'read_settings') return readSettings(db);
+  if (action === 'pipeline_runs') return readPipelineRuns(db);
   if (action === 'set_ticket_status') return setTicketStatus(db, op, req, body);
 
   if (action === 'create_horse') return createHorse(db, op, req, body);

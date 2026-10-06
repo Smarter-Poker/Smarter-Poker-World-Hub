@@ -41,6 +41,7 @@ permission declaration on each owning route.
 | `catalog.write` | Yes | Yes | No | No | No | No | Yes | Yes | Yes |
 | `content.write` | Yes | Yes | No | No | No | No | Yes | Yes | Yes |
 | `settings.write` | Yes | Yes | No | No | No | No | Yes | Yes | Yes |
+| `incidents.ack` | Yes | Yes | No | Yes | No | No | Yes | Yes | Yes |
 | `avatars.generate` | Yes | Yes | No | No | No | No | Yes | Yes | Yes |
 | `gdpr.erase` | Yes | No | No | Yes | No | No | Yes | Yes | Yes |
 | `sql.execute` | Yes | No | No | No | No | No | Yes | Yes | Yes |
@@ -78,6 +79,8 @@ top-level tabs while preserving unrelated query parameters.
 | Fund a club | `money.write` or owning route's exact finance permission | Idempotent `fn_ca_fund_club` path and maker-checker. |
 | Approve/cancel a cashout | `cashier.write` | Queue epoch/scope guard and maker-checker threshold. |
 | Restrict or sanction a player | `moderation.write` | Reason/state rules; confiscation also needs `money.write`. |
+| Acknowledge or release incident ownership | `incidents.ack` | Append-only overlay; source incident health and status stay unchanged. |
+| Sign a daily financial close | `money.write` | Exact manifest hash, reviewed exceptions and maker-checker policy. |
 | Edit a player record | `players.write` | Field allowlist and audit. |
 | Resolve/assign support work | `support.write` | Ticket state and audit. |
 | Grant/revoke operator role or edit policy | `admin.manage` | Reason, final-admin guard and audit. |
@@ -90,8 +93,8 @@ top-level tabs while preserving unrelated query parameters.
 
 ## 5. Maker-Checker Matrix
 
-Kinds are `mint`, `burn`, `fund_club`, `cashout`, `fleet_policy` and
-`sanction`. The request is bound to kind, target, operation identity and payload
+Kinds are `mint`, `burn`, `fund_club`, `cashout`, `fleet_policy`, `sanction` and
+`daily_close`. The request is bound to kind, target, operation identity and payload
 fingerprint. Rejection, expiry or mismatch cannot release the operation.
 Self-approval is refused unless the configured alone rule applies and the
 database proves there is no second eligible approver. Approval is not execution:

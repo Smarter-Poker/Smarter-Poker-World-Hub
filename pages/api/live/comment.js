@@ -133,12 +133,12 @@ export default async function handler(req, res) {
     // 4. Resolve author_name from profiles — NEVER trust the client
     const { data: profile } = await supabase
       .from('profiles')
-      .select('username, full_name')
+      .select('username, display_name')
       .eq('id', user.id)
       .maybeSingle();
 
     const authorName =
-      profile?.username || profile?.full_name || user.email?.split('@')[0] || 'Viewer';
+      profile?.username || profile?.display_name || 'Viewer';
 
     // 5. Insert comment with server-resolved author_name
     const { data: comment, error: insertErr } = await supabase

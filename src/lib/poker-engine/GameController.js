@@ -1601,7 +1601,11 @@ class GameController {
         const { data: profs, error: profErr } = await sb
           .from('profiles')
           .select('id, alias, avatar_url')
-          .in('id', memberIds);
+          .in('id', memberIds)
+          // A benched horse (horse_status 'disabled') and a closed account
+          // (status 'deleted') never take a seat (2026-10-06).
+          .neq('horse_status', 'disabled')
+          .neq('status', 'deleted');
         if (profErr) {
           console.warn('[GameController] fillTableWithHorses: profiles read failed:', profErr.message);
           return { success: false, error: `profiles read failed: ${profErr.message}`, seated: 0 };
@@ -1753,7 +1757,11 @@ class GameController {
         const { data: profs, error: profErr } = await sb
           .from('profiles')
           .select('id, alias, avatar_url')
-          .in('id', memberIds);
+          .in('id', memberIds)
+          // A benched horse (horse_status 'disabled') and a closed account
+          // (status 'deleted') never take a seat (2026-10-06).
+          .neq('horse_status', 'disabled')
+          .neq('status', 'deleted');
         if (profErr) {
           console.warn('[GameController] autoRegisterHorses: profiles read failed:', profErr.message);
           return { success: false, error: `profiles read failed: ${profErr.message}`, registered: 0 };
@@ -1776,6 +1784,9 @@ class GameController {
         .from('profiles')
         .select('id, alias, avatar_url')
         .eq('is_horse', true)
+        // A benched horse and a closed account never take a seat (2026-10-06).
+        .neq('horse_status', 'disabled')
+        .neq('status', 'deleted')
         .limit(100);
       horseProfiles = data || [];
     }

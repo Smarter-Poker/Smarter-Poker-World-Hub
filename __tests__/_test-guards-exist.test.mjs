@@ -156,6 +156,8 @@ import './horses-phase9-legacy-panels.test.mjs';
 import './operator-console-visual-system.test.mjs';
 import './horses-admin-states-are-honest.law.test.mjs';
 import './horses-operator-console-parses.law.test.mjs';
+// A retired (benched, closed) horse is never selected again (2026-10-06).
+import './a-closed-horse-is-never-selected-again.law.test.mjs';
 import './horses-reverify-client.test.mjs';
 import './horses-reverify-panels.test.mjs';
 import './horses-reverify-routes.test.mjs';
@@ -554,6 +556,7 @@ import './video-learning-discovery-phase8-migration.test.mjs';
 // get_my_full_profile(). A browser read naming an owner-only column is
 // refused whole (42501) once Club Arena revokes them.
 import './a-profile-shows-strangers-only-what-the-table-needs.law.test.mjs';
+import './a-server-route-hands-a-stranger-no-private-field.law.test.mjs';
 
 // 2026-10-05: the roster (content_authors) never reaches a browser. Presence
 // is one `online` list from /api/social/presence for every player alike, and

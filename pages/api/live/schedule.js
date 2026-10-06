@@ -24,7 +24,7 @@ export default async function handler(req, res) {
         const { broadcaster_id } = req.query;
         const { data, error } = await supabase
             .from('scheduled_lives')
-            .select('*, broadcaster:profiles(id, username, full_name, avatar_url)')
+            .select('*, broadcaster:profiles(id, username, display_name, avatar_url)')
             .eq('broadcaster_id', broadcaster_id || user.id)
             .gte('scheduled_at', new Date().toISOString())
             .order('scheduled_at', { ascending: true });
@@ -88,11 +88,11 @@ export default async function handler(req, res) {
 
         const { data: profile } = await supabase
             .from('profiles')
-            .select('username, full_name')
+            .select('username, display_name')
             .eq('id', user.id)
             .maybeSingle();
 
-        const displayName = profile?.username || profile?.full_name || 'Someone you follow';
+        const displayName = profile?.username || profile?.display_name || 'Someone you follow';
         const scheduledDate = parsedAt.toLocaleString('en-US', {
             weekday: 'short', month: 'short', day: 'numeric',
             hour: 'numeric', minute: '2-digit', timeZoneName: 'short'

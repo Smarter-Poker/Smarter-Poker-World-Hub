@@ -116,7 +116,7 @@ export default async function handler(req, res) {
               if (data.owner_id) {
                   const { data: profile } = await getSupabase()
                       .from('profiles')
-                      .select('id, username, full_name, avatar_url')
+                      .select('id, username, avatar_url')
                       .eq('id', data.owner_id)
                       .maybeSingle();
                   owner = profile;
@@ -180,7 +180,7 @@ export default async function handler(req, res) {
               if (data.owner_id) {
                   const { data: profile } = await getSupabase()
                       .from('profiles')
-                      .select('id, username, full_name, avatar_url')
+                      .select('id, username, avatar_url')
                       .eq('id', data.owner_id)
                       .maybeSingle();
                   owner = profile;

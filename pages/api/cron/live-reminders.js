@@ -100,11 +100,11 @@ async function handler(req, res) {
       // Get broadcaster display name
       const { data: profile } = await supabase
         .from('profiles')
-        .select('username, full_name')
+        .select('username, display_name')
         .eq('id', sched.broadcaster_id)
         .maybeSingle();
 
-      const displayName = profile?.username || profile?.full_name || 'Someone you follow';
+      const displayName = profile?.username || profile?.display_name || 'Someone you follow';
 
       // Get followers
       const { data: followers } = await supabase

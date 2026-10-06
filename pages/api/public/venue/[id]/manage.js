@@ -25,8 +25,8 @@ function getSupabase() {
 export default async function handler(req, res) {
   try {
     // NEVER shared-cache this endpoint. Every response is per-manager and
-    // authenticated: it carries the full venue row, every manager's profile
-    // (including email), and venue_verification_log rows containing IP
+    // authenticated: it carries the full venue row, every manager's public profile
+    // (no email - a co-manager is not platform staff), and venue_verification_log rows containing IP
     // addresses and user agents. Under `public, s-maxage=60` a CDN would hand
     // one manager's payload to the next visitor of the same URL — or hand a
     // cached 403 to a legitimate manager.
@@ -107,7 +107,7 @@ async function handleGet(req, res, venueId, user, manager) {
             .from('venue_managers')
             .select(`
                 id, role, is_active, created_at,
-                user:profiles(id, username, avatar_url, email)
+                user:profiles(id, username, display_name, avatar_url)
             `)
             .eq('venue_id', parseInt(venueId))
             .eq('is_active', true)

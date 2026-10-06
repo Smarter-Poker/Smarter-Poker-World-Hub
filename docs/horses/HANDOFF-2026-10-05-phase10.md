@@ -110,7 +110,7 @@ proof.
 ## 6. Operator Model
 
 Canonical roles are owner, operations, finance, compliance, support and
-read_only, plus legacy god/superadmin/admin recovery roles. There are 21 named
+read_only, plus legacy god/superadmin/admin recovery roles. There are 22 named
 permissions. Current values of `approvals_enabled`, `enforce_named_roles` and
 `restrictions_enforced` are production state, not constants in this handoff.
 Read them before an operation and never flip them as a verification step.
@@ -171,11 +171,11 @@ again if a newer protected descendant becomes the served revision.
 | --- | --- | --- |
 | Phase 9 source | PR, protected checks, merge revision | PR #2141, every required check green, merged as `46df73f9377023dedb03d5228217954c84b88368`; final head `a299da579c8f9f0945c89477867f7d3347a063f2`. |
 | Phase 9 database | Exact ledger version/hash, owner, security, grants, allowed/refused PostgREST | Installed `20261005231629` at SHA-256 `0933b94edbe85b366a2b0aeb03cadb51ba30141af4790404ebb6e8e3c699d6d4` and `20261005232042` at SHA-256 `f3bb5dc9454689a37922d78de2f6d7e4abc95441ec743f93080d143a15a82ccc`. Readback proved all nine functions owned by `postgres`, security definer, pinned search path, authenticated execute, no anonymous execute and canonical named-role gates. Live PostgREST run `37389319986` proved own-user allow, mismatched-user refusal, unknown-permission refusal and anonymous refusal. |
-| Phase 9 publication | Vercel deployment ID, READY, selected revision, `/api/health` | Pending successful protected descendant publication after deployment `dpl_DD9GcDe7g9z3Xve4CFv66vzZH43v` failed before becoming READY. |
-| Phase 9 live behavior | Authenticated shell, tabs, redirects, desktop/mobile | Pending merge. |
-| Phase 10 source | PR, protected checks, merge revision | Pending Phase 10 PR. |
-| Phase 10 publication | Vercel deployment ID, READY, selected revision, `/api/health` | Pending Phase 10 merge. |
-| Phase 10 live behavior | Documentation served in source, live console unchanged and healthy | Pending Phase 10 merge. |
+| Phase 9 publication | Vercel deployment ID, READY, selected revision, `/api/health` | The first Phase 9 protected descendant was repaired in PR #2143 after `dpl_DD9GcDe7g9z3Xve4CFv66vzZH43v` failed the 256-character Vercel build-command limit. Deployment `dpl_6DBwdBNsAVqtiaVG6yswCVnA6zmE` became READY on merge `821c25f0256393ef264d7dcd43b8a0aed16a8983`. The final product descendant is recorded below. |
+| Phase 9 live behavior | Authenticated shell, tabs, redirects, desktop/mobile | Production UI certificate on final product merge `67f7fb6d5aac104aa88c8b263dc477a597308c92`: 12/12 desktop and 375px mobile cases passed against `https://smarter.poker`, covering all 28 tabs and lazy chunks, URL/tab/tabpanel agreement, automatic Arrow/Home/End focus, HG inner tabs, all three 307 redirects, reduced motion, no document overflow, restricted SQL relocation and zero page/chunk failures. The browser suite uses synthetic operator auth and intercepted API fixtures; real allowed/refused database authorization is the separate PostgREST run `37389319986` recorded above. |
+| Phase 10 source | PR, protected checks, merge revision | Phase 10 package PR #2143 passed every protected check and merged as `821c25f0256393ef264d7dcd43b8a0aed16a8983`. Keyboard follow-ups #2146 and #2147 merged as `54dd01c7a5f67d6c6612078ea0af73a6ee031ec3` and `e5f41e6bea1a25b74a6631502002004c1cc79fbe`. Root-cause repair PR #2154 passed all seven active ruleset checks and merged as `67f7fb6d5aac104aa88c8b263dc477a597308c92`. |
+| Phase 10 publication | Vercel deployment ID, READY, selected revision, `/api/health` | Final product deployment `dpl_G5bQn9nj3xEiHTANWYrM3MtHFeQf` is READY with no alias error on `smarter.poker` and `www.smarter.poker`, selected merge `67f7fb6d5aac104aa88c8b263dc477a597308c92`, and `/api/health` reported that exact commit and deployment with database status `ok`. |
+| Phase 10 live behavior | Documentation served in source, live console unchanged and healthy | The 12/12 production certificate above passed after the final READY deployment. The Phase 10 runbook, permission matrix, GLI-19 disclosure, final gap re-score, contracts and handoff are present in the protected product revision; the nine explicitly documented partial capabilities remain future product debt rather than hidden completion claims. |
 
 No pending cell above may remain when the programme is declared delivered.
 

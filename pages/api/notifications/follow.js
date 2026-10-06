@@ -44,11 +44,11 @@ export default async function handler(req, res) {
 
         // Look up the follower's display name
         const { data: profile } = await supabase.from('profiles')
-            .select('username, full_name')
+            .select('username')
             .eq('id', user.id)
             .maybeSingle();
 
-        const displayName = profile?.username || profile?.full_name || user.email?.split('@')[0] || 'Someone';
+        const displayName = profile?.username || 'Someone';
 
         // Insert notification using service role (bypasses RLS)
         const { error } = await supabase.from('notifications').insert({
