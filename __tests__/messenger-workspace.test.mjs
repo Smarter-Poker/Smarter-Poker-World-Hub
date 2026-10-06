@@ -77,6 +77,14 @@ test('a read invoice keeps its tab attention only when the private reader report
  assert.equal(r.conversations[0].requiresAction,true);
  assert.ok(calls.some(c=>c.rpc==='fn_messenger_private_invoice_attention'&&c.p_user_id===ids.user));
 });
+test('invoice attention retains every unread message and adds no duplicate marker for that thread',async()=>{
+ const {db,tables}=fixture();
+ tables.unread_counts={[ids.invoice]:2};
+ tables.accounting_conversations[0].requires_action=true;
+ const r=await getMessengerWorkspace(db,ids.user,{workspace:'club',clubId:ids.club,folder:'invoices'});
+ assert.equal(r.unreadCounts.invoices,2);
+ assert.equal(r.attentionCounts.invoices,2);
+});
 test('an invoice action-reader outage is unavailable rather than treated as no action',async()=>{
  const {db}=fixture({broken:'attention'});
  await assert.rejects(getMessengerWorkspace(db,ids.user,{workspace:'club',clubId:ids.club,folder:'invoices'}),e=>e.status===503);
