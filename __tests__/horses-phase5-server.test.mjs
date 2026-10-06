@@ -139,7 +139,7 @@ test('the route has one operator door and the correct permission floor', () => {
 });
 
 test('every read gets live health first and preserves full cron and gap detail', async () => {
-  for (const section of ['queue', 'case', 'pairs', 'flags', 'timing', 'hands', 'health']) {
+  for (const section of ['queue', 'case', 'pairs', 'flags', 'links', 'timing', 'hands', 'health']) {
     const db = makeDb({
       fn_ca_integrity_queue: {
         data: {
@@ -163,6 +163,49 @@ test('every read gets live health first and preserves full cron and gap detail',
     assert.equal(answer.health.latest_cron.status, 'success');
     assert.equal(answer.health.latest_cron.duration_ms, 8000);
   }
+});
+
+test('identity links always include horses and forward a bounded evidence window and cursor', async () => {
+  const cursor = {
+    evidence_weight: 100,
+    shared_signal_count: 2,
+    evidence_occurrences: 8,
+    last_seen: '2026-10-01T00:00:00Z',
+    player_a_id: SUBJECT_A,
+    player_b_id: SUBJECT_B,
+  };
+  const db = makeDb({
+    fn_ca_integrity_identity_links: {
+      data: {
+        ok: true,
+        state: 'review_available',
+        links: [{ player_a_id: SUBJECT_A, player_b_id: SUBJECT_B }],
+        coverage: [],
+      },
+      error: null,
+    },
+  });
+  const answer = await handle(context({
+    db,
+    query: {
+      section: 'links',
+      includeHorses: 'false',
+      since: '2026-09-01T00:00:00Z',
+      asOf: '2026-10-01T00:00:00Z',
+      limit: '25',
+      cursor: JSON.stringify(cursor),
+    },
+  }));
+  const call = db.calls.find((entry) => entry.name === 'fn_ca_integrity_identity_links');
+  assert.deepEqual(call.args, {
+    p_include_horses: true,
+    p_since: '2026-09-01T00:00:00.000Z',
+    p_as_of: '2026-10-01T00:00:00.000Z',
+    p_limit: 25,
+    p_cursor: cursor,
+  });
+  assert.equal(answer.state, 'review_available');
+  assert.equal(answer.links.length, 1);
 });
 
 test('the queue defaults to all players and forwards ranked cursor filters to the RPC', async () => {

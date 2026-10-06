@@ -47,6 +47,7 @@ export const PERMISSIONS = Object.freeze({
   CATALOG_WRITE: 'catalog.write',
   CONTENT_WRITE: 'content.write',
   SETTINGS_WRITE: 'settings.write',
+  INCIDENTS_ACK: 'incidents.ack',
   AVATARS_GENERATE: 'avatars.generate',
   GDPR_ERASE: 'gdpr.erase',
   SQL_EXECUTE: 'sql.execute',
@@ -108,6 +109,7 @@ export const ROLE_PERMISSIONS = Object.freeze({
     P.PROMO_WRITE,
     P.AVATARS_GENERATE,
     P.MONEY_READ,
+    P.INCIDENTS_ACK,
   ]),
 
   // The Mint, the cashier and the club treasuries. No moderation, no content,
@@ -129,6 +131,7 @@ export const ROLE_PERMISSIONS = Object.freeze({
     P.MODERATION_WRITE,
     P.PLAYERS_WRITE,
     P.GDPR_ERASE,
+    P.INCIDENTS_ACK,
   ]),
 
   // The help desk. Answers tickets, edits a player, sees the club they are in.

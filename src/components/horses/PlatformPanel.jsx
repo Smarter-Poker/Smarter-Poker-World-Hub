@@ -3,7 +3,7 @@ import { OPERATOR_TIMEOUT_MS } from './useOperatorFetch';
 import Pager from './Pager';
 import styles from './shared.module.css';
 import {
-  booleanState, dataOf, engineModel, incidentDisposition, maintenanceModel,
+  booleanState, dataOf, engineModel, incidentAcknowledgementPayload, incidentDisposition, incidentOperationId, maintenanceModel,
   numberText, pageOf, permissionRequiredSources, platformAdminUrl, registryRows, sourceFailures, stateOf,
   text, timestamp, toneForState,
 } from './platformAdmin';
@@ -156,17 +156,50 @@ function pagerFor(active, data) {
   };
 }
 
-function IncidentsSection({ alerts, incidents, alertError, incidentError }) {
+function IncidentsSection({ alerts, incidents, alertError, incidentError, authFetch, reload }) {
+  const [editor, setEditor] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [actionError, setActionError] = useState('');
+  const pendingOperations = useRef(new Map());
   const alertPage = pageOf(alerts);
   const incidentPage = pageOf(incidents);
   const alertRows = alertError ? [] : alertPage.rows;
   const incidentRows = incidentError ? [] : incidentPage.rows;
   const withheld = [...permissionRequiredSources(alerts), ...permissionRequiredSources(incidents)]
     .filter((source, index, all) => all.findIndex((candidate) => candidate.name === source.name && candidate.permission === source.permission) === index);
+  const canAcknowledge = dataOf(incidents)?.acknowledgement?.available === true;
+  const begin = (row, action) => {
+    setActionError('');
+    setEditor({ identity: row.identity, action, note: '', row });
+  };
+  const submit = async (event) => {
+    event.preventDefault();
+    const note = editor?.note?.trim();
+    if (!editor || note.length < 3) { setActionError('Enter A Note Of At Least 3 Characters.'); return; }
+    const key = `${editor.identity}:${editor.action}`;
+    const operationId = pendingOperations.current.get(key) || incidentOperationId();
+    pendingOperations.current.set(key, operationId);
+    setSaving(true);
+    setActionError('');
+    try {
+      await authFetch('/api/horses/platform-admin', {
+        method: 'POST',
+        timeoutMs: OPERATOR_TIMEOUT_MS,
+        body: JSON.stringify(incidentAcknowledgementPayload(editor.row, editor.action, note, operationId)),
+      });
+      pendingOperations.current.delete(key);
+      setEditor(null);
+      await reload();
+    } catch (error) {
+      setActionError(error?.message || 'Incident Ownership Could Not Be Recorded. Retry Uses The Same Operation Id.');
+    } finally {
+      setSaving(false);
+    }
+  };
   return <><SourceDisclosure value={alerts} error={alertError} /><SourceDisclosure value={incidents} error={incidentError} />
     {withheld.length ? <Note tone="warn">Permission-Scoped Sources Withheld: {withheld.map((source) => `${source.name} (${source.permission})`).join(', ')}. This View Is Partial, Not Complete.</Note> : null}
     <section className={styles.platformFrame}><div className={styles.platformFrameHead}><h3>Alert Health</h3><span>{alertError ? 'Unknown' : `${alertRows.length} Returned`}</span></div><div className={styles.platformLedger}>{alertRows.map((row, index) => <article className={styles.platformLedgerRow} key={row.id || `${row.source}-${index}`}><div><strong>{text(row.alertname ?? row.source ?? row.type, 'Alert')}</strong><span>{timestamp(row.last_received_at ?? row.received_at ?? row.created_at ?? row.detected_at)}</span></div><div><span>{text(row.state ?? row.status)}</span><span>{text(row.message ?? row.summary ?? row.description ?? row.reason, 'No Detail Returned')}</span></div></article>)}</div>{!alertRows.length ? <div className={styles.stateNote}>{alertError ? 'Alert Health Is Unknown.' : 'No Alert Rows Were Returned. This Does Not Prove There Are No Alerts.'}</div> : null}</section>
-    <section className={styles.platformFrame}><div className={styles.platformFrameHead}><h3>Platform Incidents</h3><span>{incidentError ? 'Unknown' : `${incidentRows.length} Returned`}</span></div><div className={styles.platformLedger}>{incidentRows.map((row, index) => <article className={styles.platformLedgerRow} key={row.identity || row.incident_key || row.id || index}><div><strong>{text(row.title ?? row.classification ?? row.alertname ?? row.source, 'Platform Incident')}</strong><span>{timestamp(row.lastSeenAt ?? row.occurredAt ?? row.last_received_at ?? row.detected_at ?? row.created_at)}</span></div><div><span>{incidentDisposition(row)}</span><span>{text(row.summary ?? row.message ?? row.description ?? row.reason, 'No Detail Returned')}</span></div></article>)}</div>{!incidentRows.length ? <div className={styles.stateNote}>{incidentError ? 'Platform Incidents Are Unknown.' : 'No Incident Rows Were Returned. This Does Not Prove There Are No Incidents.'}</div> : null}</section>
+    <section className={styles.platformFrame}><div className={styles.platformFrameHead}><h3>Platform Incidents</h3><span>{incidentError ? 'Unknown' : `${incidentRows.length} Returned`}</span></div><div className={styles.platformLedger}>{incidentRows.map((row, index) => <article className={styles.platformLedgerRow} key={row.identity || row.incident_key || row.id || index}><div><strong>{text(row.title ?? row.classification ?? row.alertname ?? row.source, 'Platform Incident')}</strong><span>{timestamp(row.lastSeenAt ?? row.occurredAt ?? row.last_received_at ?? row.detected_at ?? row.created_at)}</span><span>Source Status: {text(row.status ?? (row.resolved === true ? 'resolved' : null))}</span></div><div><span>{incidentDisposition(row)}</span><span>{text(row.summary ?? row.message ?? row.description ?? row.reason, 'No Detail Returned')}</span>{row.acknowledgementNote ? <span>Ownership Note: {text(row.acknowledgementNote)}</span> : null}{canAcknowledge ? <div><button type="button" className={`${styles.btn} ${styles.btnGo}`} disabled={saving} onClick={() => begin(row, row.ownershipState === 'acknowledged' ? 'release' : 'acknowledge')}>{row.ownershipState === 'acknowledged' ? 'Release Ownership' : 'Acknowledge And Own'}</button></div> : null}{editor?.identity === row.identity ? <form onSubmit={submit}><label><span>Audit Note</span><textarea value={editor.note} maxLength={500} disabled={saving} onChange={(event) => setEditor((current) => ({ ...current, note: event.target.value }))} /></label><div><button type="submit" className={`${styles.btn} ${styles.btnGo}`} disabled={saving}>{saving ? 'Recording...' : `Confirm ${editor.action === 'acknowledge' ? 'Acknowledgement' : 'Release'}`}</button><button type="button" className={styles.btn} disabled={saving} onClick={() => { setEditor(null); setActionError(''); }}>Cancel</button></div>{actionError ? <Note tone="danger">{actionError}</Note> : null}</form> : null}</div></article>)}</div>{!incidentRows.length ? <div className={styles.stateNote}>{incidentError ? 'Platform Incidents Are Unknown.' : 'No Incident Rows Were Returned. This Does Not Prove There Are No Incidents.'}</div> : null}</section>
     {alertPage.cap?.reached || incidentPage.cap?.reached ? <Note tone="warn">This Combined View Reached Its {numberText(alertPage.cap?.maxRows ?? incidentPage.cap?.maxRows)} Row Evidence Cap. Newest Evidence Is Shown And Additional Rows Are Intentionally Not Loaded.</Note> : null}
     <Note tone="warn">Acknowledgement Means Seen And Owned. It Never Resolves A Drift, Clears An Alert, Repairs A Break Or Makes Health Green.</Note></>;
 }
@@ -200,8 +233,8 @@ export default function PlatformPanel({ authFetch }) {
   if (active === 'releases') content = <ReleasesSection value={state.data.releases} error={state.errors.releases} />;
   if (active === 'registry') content = <RegistrySection value={state.data.registry} error={state.errors.registry} />;
   if (active === 'crons') content = <JobsSection value={state.data.crons} error={state.errors.crons} />;
-  if (active === 'incidents') content = <IncidentsSection alerts={state.data.alerts} incidents={state.data.incidents} alertError={state.errors.alerts} incidentError={state.errors.incidents} />;
+  if (active === 'incidents') content = <IncidentsSection alerts={state.data.alerts} incidents={state.data.incidents} alertError={state.errors.alerts} incidentError={state.errors.incidents} authFetch={authFetch} reload={load} />;
 
   const pager = pagerFor(active, state.data);
-  return <section className={`${styles.opsPanel} ${styles.platformPanel}`} aria-labelledby="platform-title"><header className={styles.opsHeader}><div><span className={styles.platformEyebrow}>Control Plane Evidence</span><h2 id="platform-title" className={styles.opsTitle}>Platform Operations</h2><p className={styles.opsSubtitle}>Read-Only Engine, Maintenance, Release, Control, Scheduler And Incident Evidence. Missing Sources Stay Unknown.</p></div><button type="button" className={`${styles.btn} ${styles.btnGo}`} onClick={load} disabled={state.loading}>{state.loading ? 'Reading Evidence...' : 'Refresh Active Section'}</button></header><nav className={styles.opsSubnav} aria-label="Platform Operations Sections">{GROUPS.map((item) => <button key={item.id} type="button" className={`${styles.opsSubnavBtn} ${active === item.id ? styles.opsSubnavActive : ''}`} aria-current={active === item.id ? 'page' : undefined} onClick={() => { setActive(item.id); setOffset(0); }}>{item.label}</button>)}</nav><div aria-live="polite">{state.loading && !group.routes.some((route) => state.data[route] || state.errors[route]) ? <div className={styles.stateNote}>Reading {group.label}...</div> : content}</div>{pager ? <Pager offset={pager.offset} limit={pager.limit} count={pager.count} total={pager.total} hasMore={pager.hasMore} loading={state.loading} noun={pager.noun} onPrevious={() => setOffset(Math.max(0, offset - pager.limit))} onNext={() => setOffset(offset + pager.limit)} /> : null}</section>;
+  return <section className={`${styles.opsPanel} ${styles.platformPanel}`} aria-labelledby="platform-title"><header className={styles.opsHeader}><div><span className={styles.platformEyebrow}>Control Plane Evidence</span><h2 id="platform-title" className={styles.opsTitle}>Platform Operations</h2><p className={styles.opsSubtitle}>Engine, Maintenance, Release, Control And Scheduler Evidence Stays Read-Only. Incident Ownership Uses A Separate Audited Overlay; Missing Sources Stay Unknown.</p></div><button type="button" className={`${styles.btn} ${styles.btnGo}`} onClick={load} disabled={state.loading}>{state.loading ? 'Reading Evidence...' : 'Refresh Active Section'}</button></header><nav className={styles.opsSubnav} aria-label="Platform Operations Sections">{GROUPS.map((item) => <button key={item.id} type="button" className={`${styles.opsSubnavBtn} ${active === item.id ? styles.opsSubnavActive : ''}`} aria-current={active === item.id ? 'page' : undefined} onClick={() => { setActive(item.id); setOffset(0); }}>{item.label}</button>)}</nav><div aria-live="polite">{state.loading && !group.routes.some((route) => state.data[route] || state.errors[route]) ? <div className={styles.stateNote}>Reading {group.label}...</div> : content}</div>{pager ? <Pager offset={pager.offset} limit={pager.limit} count={pager.count} total={pager.total} hasMore={pager.hasMore} loading={state.loading} noun={pager.noun} onPrevious={() => setOffset(Math.max(0, offset - pager.limit))} onNext={() => setOffset(offset + pager.limit)} /> : null}</section>;
 }

@@ -851,11 +851,12 @@ test('requiresApproval: a missing or unreadable amount is gated, not exempted', 
 });
 
 test('the approval kind vocabulary matches the contract and maps to permissions', () => {
-  assert.deepEqual([...APPROVAL_KINDS], ['mint', 'burn', 'fund_club', 'cashout', 'fleet_policy', 'sanction']);
+  assert.deepEqual([...APPROVAL_KINDS], ['mint', 'burn', 'fund_club', 'cashout', 'fleet_policy', 'sanction', 'daily_close']);
   assert.equal(KIND_PERMISSION.mint, PERMISSIONS.MONEY_WRITE);
   assert.equal(KIND_PERMISSION.burn, PERMISSIONS.MONEY_WRITE);
   assert.equal(KIND_PERMISSION.fund_club, PERMISSIONS.MONEY_WRITE);
   assert.equal(KIND_PERMISSION.cashout, PERMISSIONS.CASHIER_WRITE);
+  assert.equal(KIND_PERMISSION.daily_close, PERMISSIONS.MONEY_WRITE);
   assert.equal(isApprovalKind('mint'), true);
   assert.equal(isApprovalKind('teleport'), false);
 });

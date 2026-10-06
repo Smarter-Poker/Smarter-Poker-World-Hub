@@ -42,8 +42,8 @@ export const FLOOR_ADMIN_CONTROL_MANIFEST = Object.freeze({
 
 /** Product availability is separate from authority classification. */
 export const FLOOR_ADMIN_CONTROL_AVAILABILITY = Object.freeze({
-  floor: Object.freeze({ safe_boundary_control: 'DEFERRED' }),
-  table: Object.freeze({ safe_boundary_control: 'DEFERRED' }),
+  floor: Object.freeze({ owner_pause_resume: 'AVAILABLE_IN_CLUB_ARENA', owner_empty_close: 'AVAILABLE_IN_CLUB_ARENA', platform_park: 'MISSING', occupied_boundary_close: 'MISSING' }),
+  table: Object.freeze({ owner_pause_resume: 'AVAILABLE_IN_CLUB_ARENA', owner_empty_close: 'AVAILABLE_IN_CLUB_ARENA', platform_park: 'MISSING', occupied_boundary_close: 'MISSING' }),
   cashouts: Object.freeze({ bulk_approve: 'DEFERRED' }),
   rake: Object.freeze({ change_rate: 'DEFERRED', durable_export_jobs: 'DEFERRED' }),
   announcements: Object.freeze({ platform_broadcast: 'DEFERRED' }),

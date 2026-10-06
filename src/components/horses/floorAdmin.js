@@ -132,16 +132,26 @@ export function exportState(result) {
 
 export function clubArenaLink(kind, row = {}) {
   const clubId = row.club_id ?? row.clubId ?? '';
-  const tournamentId = row.tournament_id ?? row.tournamentId ?? row.id ?? '';
-  if (kind === 'table') return clubId ? `/hub/club-arena/clubs/${encodeURIComponent(clubId)}/table-management` : '/hub/club-arena';
-  if (kind === 'tournament') return tournamentId ? `/hub/club-arena/tournaments/${encodeURIComponent(tournamentId)}` : '/hub/club-arena';
+  const unionId = row.union_id ?? row.unionId ?? '';
+  if (kind === 'table' || kind === 'tournament') {
+    if (unionId) return `/hub/club-arena/unions/${encodeURIComponent(unionId)}/table-management`;
+    if (clubId) return `/hub/club-arena/clubs/${encodeURIComponent(clubId)}/table-management`;
+    return '/hub/club-arena';
+  }
   if (kind === 'cashier') return clubId ? `/hub/club-arena/clubs/${encodeURIComponent(clubId)}/cashier` : '/hub/club-arena/cashier';
   if (kind === 'club') return clubId ? `/hub/club-arena/clubs/${encodeURIComponent(clubId)}/operations` : '/hub/club-arena';
   if (kind === 'club-announcement') return clubId ? `/hub/club-arena/clubs/${encodeURIComponent(clubId)}/announcements` : '/hub/club-arena';
-  const unionId = row.union_id ?? row.unionId ?? row.id ?? '';
-  if (kind === 'union') return unionId ? `/hub/club-arena/unions/${encodeURIComponent(unionId)}` : '/hub/club-arena';
-  if (kind === 'union-announcement') return unionId ? `/hub/club-arena/unions/${encodeURIComponent(unionId)}/operations` : '/hub/club-arena';
+  const linkedUnionId = unionId || row.id || '';
+  if (kind === 'union') return linkedUnionId ? `/hub/club-arena/unions/${encodeURIComponent(linkedUnionId)}` : '/hub/club-arena';
+  if (kind === 'union-announcement') return linkedUnionId ? `/hub/club-arena/unions/${encodeURIComponent(linkedUnionId)}/operations` : '/hub/club-arena';
   return '/hub/club-arena';
+}
+
+export function tournamentGroup(status) {
+  const value = String(status || '').toLowerCase();
+  if (value === 'running' || value === 'in_progress') return 'running';
+  if (value === 'late_reg' || value === 'registering') return 'late_registration';
+  return 'upcoming';
 }
 
 export function moneyText(value) {
@@ -181,7 +191,7 @@ export function evidenceEntries(value) {
 }
 
 export const FLOOR_COLUMNS = Object.freeze([
-  ['name', 'Table'], ['club_name', 'Club'], ['stakes', 'Stakes'],
+  ['name', 'Table'], ['club_name', 'Club'], ['union_name', 'Union'], ['stakes', 'Stakes'],
   ['occupied_seats', 'Occupied'], ['capacity', 'Capacity'],
   ['horse_count', 'Horses'], ['human_count', 'Humans'],
 ]);

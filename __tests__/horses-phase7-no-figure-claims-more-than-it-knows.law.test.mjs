@@ -17,10 +17,10 @@ const SOURCES = [
   'src/components/horses/economyModel.js',
 ];
 
-test('Phase 7 economy route is GET-only, money-read gated and has no action map', () => {
-  assert.deepEqual(economyAdminSpec.methods, ['GET']);
+test('Phase 7 reads remain money-read gated and Phase 11 adds only recorded evidence actions', () => {
+  assert.deepEqual(economyAdminSpec.methods, ['GET', 'POST']);
   assert.equal(economyAdminSpec.permission, 'money.read');
-  assert.deepEqual(ECONOMY_ACTIONS, []);
+  assert.deepEqual(ECONOMY_ACTIONS, ['record_export_prepared', 'record_pnl_snapshot', 'sign_daily_close']);
   assert.equal(ECONOMY_SECTIONS.length, 19);
 });
 

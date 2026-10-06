@@ -25,17 +25,22 @@ function makeDb(results = {}) {
       calls.push({ table, method: 'from', args: [] });
       return queryResult(results[table] || { data: [], count: 0, error: null }, calls, table);
     },
+    rpc(name, args) {
+      calls.push({ table: null, method: 'rpc', name, args });
+      return Promise.resolve(results[`rpc:${name}`] || { data: null, error: null });
+    },
   };
 }
 
-const context = (section, db, query = {}, op = { permissions: ['console.read'] }) => ({
-  op, db, method: 'GET', query: { section, ...query }, requestId: 'phase8-test',
+const context = (section, db, query = {}, op = { permissions: ['console.read'] }, overrides = {}) => ({
+  op: { user: { id: '00000000-0000-4000-8000-000000000001' }, db, ...op }, db, method: 'GET', query: { section, ...query }, requestId: 'phase8-test', ...overrides,
 });
 
-test('platform route is GET-only and gated by the console read floor', () => {
-  assert.deepEqual(platformAdminSpec.methods, ['GET']);
-  assert.equal(platformAdminSpec.permission, 'console.read');
-  assert.equal(platformAdminSpec.limit, 'read');
+test('platform reads use console.read and the only write uses incidents.ack', () => {
+  assert.deepEqual(platformAdminSpec.methods, ['GET', 'POST']);
+  assert.deepEqual(platformAdminSpec.permission, { GET: 'console.read', POST: 'incidents.ack' });
+  assert.deepEqual(platformAdminSpec.limit, { GET: 'read', POST: 'write' });
+  assert.deepEqual(platformAdminSpec.durable.POST, { max: 60, windowSeconds: 60 });
 });
 
 test('cron sources fail independently and capped pages remain newest first', async () => {
@@ -106,7 +111,7 @@ test('registry is a read-only allowlist and missing controls are Missing, never 
   assert.equal(db.calls.some((call) => ['insert', 'update', 'upsert', 'delete', 'rpc'].includes(call.method)), false);
 });
 
-test('incidents retain separate identities and expose no false acknowledgement write', async () => {
+test('incidents retain separate identities and expose the permission-gated overlay', async () => {
   const db = makeDb({
     ca_drift_incidents: { data: [{ id: 'drift-1', status: 'acknowledged', acknowledged_at: '2026-10-05T18:00:00Z' }], count: 1, error: null },
   });
@@ -117,6 +122,58 @@ test('incidents retain separate identities and expose no false acknowledgement w
   assert.equal(result.sources.drift.rows[0].acknowledgementMeaning, 'Operator Ownership Only');
   assert.equal(result.sources.financial.state, 'permission_required');
   assert.equal(db.calls.some((call) => call.table === 'financial_alerts'), false);
+});
+
+test('incident acknowledgement appends through one idempotent RPC and files the standard audit', async () => {
+  const event = { id: 'event-1', action: 'acknowledge', source_table: 'engine_alerts', source_identity: '42' };
+  const db = makeDb({
+    'rpc:fn_ca_operator_record_incident_ack_event': { data: { event, replayed: false }, error: null },
+  });
+  const body = {
+    action: 'acknowledge',
+    sourceTable: 'engine_alerts',
+    sourceIdentity: '42',
+    note: 'Owned by platform operations',
+    operationId: '00000000-0000-4000-8000-000000000042',
+  };
+  const result = await handlePlatformAdmin(context(null, db, {}, { permissions: ['incidents.ack'] }, { method: 'POST', body, req: { headers: {} } }));
+  assert.deepEqual(result.acknowledgement, event);
+  assert.equal(result.replayed, false);
+  const append = db.calls.find((call) => call.name === 'fn_ca_operator_record_incident_ack_event');
+  assert.equal(append.args.p_operation_id, body.operationId);
+  assert.equal(append.args.p_source_table, 'engine_alerts');
+  assert.ok(db.calls.some((call) => call.name === 'fn_log_admin_action'));
+  assert.equal(db.calls.some((call) => ['insert', 'update', 'upsert', 'delete'].includes(call.method)), false);
+});
+
+test('an idempotent acknowledgement replay returns the original event without duplicating audit', async () => {
+  const event = { id: 'event-1', action: 'acknowledge', source_table: 'engine_alerts', source_identity: '42' };
+  const db = makeDb({
+    'rpc:fn_ca_operator_record_incident_ack_event': { data: { event, replayed: true }, error: null },
+  });
+  const result = await handlePlatformAdmin(context(null, db, {}, { permissions: ['incidents.ack'] }, {
+    method: 'POST',
+    body: {
+      action: 'acknowledge', sourceTable: 'engine_alerts', sourceIdentity: '42',
+      note: 'Owned by platform operations', operationId: '00000000-0000-4000-8000-000000000042',
+    },
+    req: { headers: {} },
+  }));
+  assert.equal(result.replayed, true);
+  assert.equal(db.calls.filter((call) => call.name === 'fn_ca_operator_record_incident_ack_event').length, 1);
+  assert.equal(db.calls.some((call) => call.name === 'fn_log_admin_action'), false);
+});
+
+test('incident rows receive the latest ownership overlay without changing source status', async () => {
+  const db = makeDb({
+    engine_alerts: { data: [{ id: 42, status: 'firing', received_at: '2026-10-05T18:00:00Z' }], count: 1, error: null },
+    ca_operator_incident_ack_current: { data: [{ source_table: 'engine_alerts', source_identity: '42', action: 'release', note: 'Shift handoff', created_at: '2026-10-05T19:00:00Z' }], error: null },
+  });
+  const result = await handlePlatformAdmin(context('incidents', db, {}, { permissions: ['console.read', 'incidents.ack'] }));
+  const incident = result.rows.find((row) => row.identity === 'engine_alerts:42');
+  assert.equal(result.acknowledgement.available, true);
+  assert.equal(incident.ownershipState, 'released');
+  assert.equal(incident.status, 'firing');
 });
 
 test('combined incident pages retain the requested shared offset', async () => {

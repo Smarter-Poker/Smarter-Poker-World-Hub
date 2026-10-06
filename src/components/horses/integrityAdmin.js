@@ -17,6 +17,7 @@ export const INTEGRITY_SECTIONS = Object.freeze([
   'case',
   'pairs',
   'flags',
+  'links',
   'timing',
   'hands',
   'health',
@@ -108,6 +109,15 @@ export function pairsUrl({ cursor = '', limit = 25 } = {}) {
 
 export function flagsUrl({ cursor = '', limit = 25 } = {}) {
   return integrityAdminUrl('flags', {
+    cursor,
+    limit: limitOf(limit),
+  });
+}
+
+export function linksUrl({ since = '', asOf = '', cursor = '', limit = 25 } = {}) {
+  return integrityAdminUrl('links', {
+    since: String(since || '').trim(),
+    asOf: String(asOf || '').trim(),
     cursor,
     limit: limitOf(limit),
   });

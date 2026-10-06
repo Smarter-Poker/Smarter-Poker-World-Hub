@@ -1321,7 +1321,7 @@ test('every React hook imported by the Phase 2 panels is called', async () => {
 // BEHAVIOUR - the findings this review pass fixed
 // ═══════════════════════════════════════════════════════════════════════════
 
-test('the kind/permission table is IDENTICAL to the server\'s, for all six kinds', () => {
+test('the kind/permission table is IDENTICAL to the server\'s for every kind', () => {
   // The client said sanction -> `sanction.write`, which is in neither the
   // server table nor the vocabulary, so the local check refused every
   // sanction row - including for a god - and explained the refusal in terms
