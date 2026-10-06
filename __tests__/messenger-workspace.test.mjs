@@ -54,7 +54,7 @@ function fixture({ member=true, role='player', broken=null, cap=200, page=true }
         let data=[...(tables[table] || [])], limit=Infinity, order=null, ascending=true;
         const q={select(){return q;},eq(k,v){data=data.filter(r=>r[k]===v);return q;},neq(k,v){data=data.filter(r=>r[k]!==v);return q;},contains(k,v){data=data.filter(r=>Object.entries(v).every(([key,value])=>r[k]?.[key]===value));return q;},in(k,values){data=data.filter(r=>values.includes(r[k]));return q;},gt(k,v){data=data.filter(r=>r[k]>v);return q;},not(k,op,v){data=data.filter(r=>r[k]!==v);return q;},lte(k,v){data=data.filter(r=>r[k]<=v);return q;},order(k,options={}){order=k;ascending=options.ascending!==false;return q;},limit(n){limit=n;return q;},then(resolve,reject){calls.push(table);if(order)data.sort((a,b)=>String(a[order]).localeCompare(String(b[order]))*(ascending?1:-1));return Promise.resolve({data:data.slice(0,Math.min(cap,limit)),error:broken===table?{code:'42501'}:null}).then(resolve,reject);}};
         return q;
-    },async rpc(name,args){calls.push({...args,rpc:name});if(name==='fn_messenger_private_message_page')return {data:tables.messages||[],error:broken==='messages'?{code:'42883'}:null};if(name==='fn_messenger_private_search_messages')return {data:tables.searchResults||[],error:broken==='search'?{code:'57014'}:null};if(name==='fn_messenger_private_accounting_threads')return {data:tables.accounting_conversations.filter(c=>args.p_conversation_ids.includes(c.conversation_id)).map(c=>({conversation_id:c.conversation_id,recipient_visible:c.recipient_visible!==false&&c.recipient_id===args.p_user_id,last_message_preview:'Visible Document'})),error:broken==='visibility'?{code:'42501'}:null};if(name==='fn_messenger_private_weekly_summary')return {data:Object.hasOwn(tables,'weeklyReceipt')?tables.weeklyReceipt:{contract_version:1,user_id:args.p_user_id,club_id:args.p_club_id,period_id:args.p_period_id,summary:tables.report},error:broken==='summary'?{code:'42501'}:null};if(broken==='rpc')return {data:null,error:{code:'57014'}}; const convs=args.p_context_entity_id ? [ids.chat,ids.invoice,ids.agentInvoice] : page ? [ids.social] : [ids.social,ids.invoice,ids.agentInvoice];return {data:convs.map(id=>({conversation_id:id,title:id,is_group:true,unread_count:1})),error:null};}};
+    },async rpc(name,args){calls.push({...args,rpc:name});if(name==='fn_messenger_private_message_page')return {data:tables.messages||[],error:broken==='messages'?{code:'42883'}:null};if(name==='fn_messenger_private_search_messages')return {data:tables.searchResults||[],error:broken==='search'?{code:'57014'}:null};if(name==='fn_messenger_private_accounting_threads')return {data:tables.accounting_conversations.filter(c=>args.p_conversation_ids.includes(c.conversation_id)).map(c=>({conversation_id:c.conversation_id,recipient_visible:c.recipient_visible!==false&&c.recipient_id===args.p_user_id,last_message_preview:'Visible Document'})),error:broken==='visibility'?{code:'42501'}:null};if(name==='fn_messenger_private_invoice_attention')return {data:tables.accounting_conversations.filter(c=>args.p_conversation_ids.includes(c.conversation_id)).map(c=>({conversation_id:c.conversation_id,requires_action:c.requires_action===true})),error:broken==='attention'?{code:'42501'}:null};if(name==='fn_messenger_private_weekly_summary')return {data:Object.hasOwn(tables,'weeklyReceipt')?tables.weeklyReceipt:{contract_version:1,user_id:args.p_user_id,club_id:args.p_club_id,period_id:args.p_period_id,summary:tables.report},error:broken==='summary'?{code:'42501'}:null};if(broken==='rpc')return {data:null,error:{code:'57014'}}; const convs=args.p_context_entity_id ? [ids.chat,ids.invoice,ids.agentInvoice] : page ? [ids.social] : [ids.social,ids.invoice,ids.agentInvoice];return {data:convs.map(id=>({conversation_id:id,title:id,is_group:true,unread_count:tables.unread_counts?.[id]??1})),error:null};}};
     return {db,tables,calls};
 }
 
@@ -67,6 +67,28 @@ test('a forged club URL cannot grant membership',async()=>{const {db}=fixture({m
 test('membership in a different club does not grant access',async()=>{const {db}=fixture();await assert.rejects(getMessengerWorkspace(db,ids.user,{workspace:'club',clubId:ids.second}),e=>e.status===403);});
 test('club messages exclude all accounting threads',async()=>{const {db}=fixture();const r=await getMessengerWorkspace(db,ids.user,{workspace:'club',clubId:ids.club});assert.deepEqual(r.conversations.map(c=>c.id),[ids.chat]);});
 test('invoice tab includes recipient documents and discussions, not every issuer-to-agent thread',async()=>{const {db}=fixture({role:'owner'});const r=await getMessengerWorkspace(db,ids.user,{workspace:'club',clubId:ids.club,folder:'invoices'});assert.deepEqual(r.conversations.map(c=>c.id),[ids.invoice]);assert.equal(r.conversations[0].isAccounting,true);});
+test('a read invoice keeps its tab attention only when the private reader reports explicit action',async()=>{
+ const {db,tables,calls}=fixture();
+ tables.unread_counts={[ids.invoice]:0};
+ tables.accounting_conversations[0].requires_action=true;
+ const r=await getMessengerWorkspace(db,ids.user,{workspace:'club',clubId:ids.club,folder:'invoices'});
+ assert.equal(r.unreadCounts.invoices,0);
+ assert.equal(r.attentionCounts.invoices,1);
+ assert.equal(r.conversations[0].requiresAction,true);
+ assert.ok(calls.some(c=>c.rpc==='fn_messenger_private_invoice_attention'&&c.p_user_id===ids.user));
+});
+test('invoice attention retains every unread message and adds no duplicate marker for that thread',async()=>{
+ const {db,tables}=fixture();
+ tables.unread_counts={[ids.invoice]:2};
+ tables.accounting_conversations[0].requires_action=true;
+ const r=await getMessengerWorkspace(db,ids.user,{workspace:'club',clubId:ids.club,folder:'invoices'});
+ assert.equal(r.unreadCounts.invoices,2);
+ assert.equal(r.attentionCounts.invoices,2);
+});
+test('an invoice action-reader outage is unavailable rather than treated as no action',async()=>{
+ const {db}=fixture({broken:'attention'});
+ await assert.rejects(getMessengerWorkspace(db,ids.user,{workspace:'club',clubId:ids.club,folder:'invoices'}),e=>e.status===503);
+});
 test('invoice notification resolves its workspace even from social entry',async()=>{const {db}=fixture();const r=await getMessengerWorkspace(db,ids.user,{workspace:'resolve',conversationId:ids.invoice});assert.equal(r.clubId,ids.club);assert.equal(r.folder,'invoices');assert.equal(r.conversation.id,ids.invoice);});
 test('notification cannot resolve a conversation without participation',async()=>{const {db}=fixture();await assert.rejects(getMessengerWorkspace(db,ids.user,{workspace:'resolve',conversationId:ids.agentInvoice}),e=>e.status===403);});
 test('removed club membership cannot be restored by a notification',async()=>{const {db}=fixture({member:false});await assert.rejects(getMessengerWorkspace(db,ids.user,{workspace:'resolve',conversationId:ids.invoice}),e=>e.status===403);});

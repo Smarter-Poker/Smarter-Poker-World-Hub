@@ -33,18 +33,6 @@ const C = {
     gradient3: 'linear-gradient(135deg, #14b8a6 0%, #06b6d4 100%)',
 };
 
-// Time ago helper for last active status
-function timeAgo(date) {
-    if (!date) return null;
-    const seconds = Math.floor((Date.now() - new Date(date).getTime()) / 1000);
-    if (seconds < 60) return 'Just now';
-    if (seconds < 300) return 'online'; // Within 5 minutes = online
-    if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
-    if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
-    if (seconds < 604800) return `${Math.floor(seconds / 86400)}d ago`;
-    return `${Math.floor(seconds / 604800)}w ago`;
-}
-
 function Avatar({ src, name, size = 60, hasStory = false }) {
     return (
         <div style={{
@@ -142,11 +130,11 @@ function FriendRequestCard({ request, onAccept, onDecline }) {
             transition: 'all 0.3s ease'
         }}>
             <Link href={`/hub/user/${user?.username || user?.id}`} style={{ flexShrink: 0 }}>
-                <Avatar src={user?.avatar_url} name={user?.full_name || user?.username} size={70} />
+                <Avatar src={user?.avatar_url} name={user?.display_name || user?.username} size={70} />
             </Link>
             <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontWeight: 700, fontSize: 17, color: C.text, marginBottom: 4 }}>
-                    {user?.full_name || user?.username || 'Poker Player'}
+                    {user?.display_name || user?.username || 'Poker Player'}
                 </div>
                 <span style={{ fontSize: 14, color: C.blue }}>Friend Request Pending</span>
             </div>
@@ -218,12 +206,12 @@ function UserCard({
             border: `1px solid ${C.border}`,
         }}>
             <Link href={`/hub/user/${user.username || user.id}`} style={{ flexShrink: 0 }}>
-                <Avatar src={user.avatar_url} name={user.full_name || user.username} size={70} />
+                <Avatar src={user.avatar_url} name={user.display_name || user.username} size={70} />
             </Link>
             <div style={{ flex: 1, minWidth: 0 }}>
                 <Link href={`/hub/user/${user.username || user.id}`} style={{ textDecoration: 'none' }}>
                     <div style={{ fontWeight: 700, fontSize: 16, color: C.text, marginBottom: 4 }}>
-                        {user.full_name || user.username || 'Poker Player'}
+                        {user.display_name || user.username || 'Poker Player'}
                     </div>
                 </Link>
                 {mutualCount > 0 && (
@@ -236,48 +224,30 @@ function UserCard({
                         Follows You
                     </div>
                 )}
-                {user.city && user.state && (
-                    <div style={{ fontSize: 13, color: C.textSec, marginBottom: 4 }}>
-                        {user.city}, {user.state}
-                    </div>
-                )}
                 {user.favorite_game && (
                     <div style={{ fontSize: 13, color: C.textSec }}>
                         {user.favorite_game}
                     </div>
                 )}
-                {/* Last Active Status */}
-                {user.last_active && (() => {
-                    const status = timeAgo(user.last_active);
-                    const isOnline = status === 'online';
-                    return (
-                        <div style={{
-                            fontSize: 12,
-                            color: isOnline ? C.teal : C.textSec,
-                            marginTop: 4,
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 4
-                        }}>
-                            {isOnline ? (
-                                <>
-                                    <span style={{
-                                        width: 8, height: 8,
-                                        borderRadius: '50%',
-                                        background: C.teal,
-                                        boxShadow: '0 0 6px rgba(20, 184, 166, 0.6)'
-                                    }} />
-                                    Online Now
-                                </>
-                            ) : (
-                                <>
-                                    <span style={{ opacity: 0.6, fontSize: 10 }}>Active</span>
-                                    Active {status}
-                                </>
-                            )}
-                        </div>
-                    );
-                })()}
+                {/* Presence: the public is_online flag. Last-seen is owner-only. */}
+                {user.is_online && (
+                    <div style={{
+                        fontSize: 12,
+                        color: C.teal,
+                        marginTop: 4,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 4
+                    }}>
+                        <span style={{
+                            width: 8, height: 8,
+                            borderRadius: '50%',
+                            background: C.teal,
+                            boxShadow: '0 0 6px rgba(20, 184, 166, 0.6)'
+                        }} />
+                        Online Now
+                    </div>
+                )}
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-end' }}>
                 {isFriend ? (
@@ -771,7 +741,7 @@ function FriendsPage() {
                 busEmit.friendRequestSent(friendId);
                 broadcastSyncDebounced('smarter_poker_friends_sync', { action: 'refresh', tabId: BROADCAST_TAB_ID });
                 // Insert in-app notification for the recipient so it shows in their bell
-                const senderName = user?.user_metadata?.full_name || user?.user_metadata?.username || 'Someone';
+                const senderName = user?.user_metadata?.username || 'Someone';
                 const senderUsername = user?.user_metadata?.username || user?.id;
                 supabase.from('notifications').insert({
                     user_id: friendId,
@@ -837,7 +807,7 @@ function FriendsPage() {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json', 'x-admin-secret': '' },
                             body: JSON.stringify({
-                                title: user?.user_metadata?.poker_alias || user?.user_metadata?.full_name || 'Your Friend',
+                                title: user?.user_metadata?.poker_alias || user?.user_metadata?.username || 'Your Friend',
                                 message: 'accepted your friend request',
                                 externalUserIds: [request.user_id],
                                 url: `https://smarter.poker/hub/user/${user?.user_metadata?.poker_alias || user?.id}`,

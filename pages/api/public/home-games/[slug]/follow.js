@@ -293,10 +293,12 @@ async function dispatchFollowNotification(supabase, { page, follower_user_id }) 
         // Resolve follower display name
         const { data: profile } = await supabase
             .from('profiles')
-            .select('display_name, full_name, first_name, username')
+            .select('display_name, username')
             .eq('id', follower_user_id)
             .maybeSingle();
-        const followerName = profile?.display_name || profile?.full_name || profile?.first_name || profile?.username || 'Someone';
+        // display_name || username only: this name goes to the host, and a
+        // legal or first name is owner-only (OWNER_ONLY_PROFILE_COLUMNS).
+        const followerName = profile?.display_name || profile?.username || 'Someone';
 
         const gameName = groupRow?.name || page.name || 'your home game';
         const manageUrl = `https://smarter.poker/hub/home-games/${encodeURIComponent(page.slug)}`;

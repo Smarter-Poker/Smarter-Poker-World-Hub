@@ -1629,7 +1629,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
       // Prefer authenticated user ID for streak/profile/friend matching
       var authUser = getAuthUser();
       var userId = (authUser && authUser.id) ? authUser.id : getAnonymousUserId();
-      var displayName = checkinName.trim() || (authUser && (authUser.user_metadata?.full_name || authUser.user_metadata?.name)) || 'Anonymous';
+      var displayName = checkinName.trim() || (authUser && (authUser.user_metadata?.display_name || authUser.user_metadata?.username || authUser.user_metadata?.poker_alias)) || 'Anonymous';
 
       // Build headers with JWT auth
       var fetchHeaders = { 'Content-Type': 'application/json' };

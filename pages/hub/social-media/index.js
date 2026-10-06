@@ -372,7 +372,7 @@ const PostCard = React.memo(
                         text: payload.content || '',
                         authorId: payload.authorId,
                         parentId: payload.parentId || null,
-                        authorName: author?.full_name || author?.username || 'Player',
+                        authorName: author?.display_name || author?.username || 'Player',
                         authorAvatar: author?.avatar_url || null,
                         authorUsername: author?.username || null,
                         time: 'Just now',
@@ -578,7 +578,7 @@ const PostCard = React.memo(
             text: c.content,
             authorId: c.author_id,
             parentId: c.parent_id || null,
-            authorName: author.full_name || author.username || 'Player',
+            authorName: author.display_name || author.username || 'Player',
             authorAvatar: author.avatar_url || null,
             authorUsername: author.username || null,
             time: timeAgo(c.created_at),
@@ -3589,11 +3589,11 @@ function SocialMediaPage() {
 
   // 🛡️ INSTANT AUTH: Initialize user synchronously from localStorage
   // Prevents "Log In" flash while async profile fetch completes
-  // Priority: sp-social-user cache (has DB username + display pref) → JWT user_metadata (may be stale)
+  // Priority: sp-social-user cache (has DB username) → JWT user_metadata (may be stale)
   const [user, setUser] = useState(() => {
     if (typeof window === 'undefined') return null;
     try {
-      // First: try our own profile cache written after DB fetch (always fresh, respects display pref)
+      // First: try our own profile cache written after DB fetch (always fresh)
       const cached = localStorage.getItem('sp-social-user');
       if (cached) {
         const parsed = JSON.parse(cached);
@@ -3601,7 +3601,13 @@ function SocialMediaPage() {
         if (parsed?.id && parsed?.ts && Date.now() - parsed.ts < 3600000) {
           return {
             id: parsed.id,
-            name: parsed.name,
+            // user.name is sent to other people (check-in user_name, typing
+            // indicator), so it is never the owner-only real name. A cache
+            // written before 2026-10-05 may still hold full_name here.
+            name:
+              parsed.name && parsed.name !== parsed.full_name
+                ? parsed.name
+                : parsed.username || 'Player',
             full_name: parsed.full_name,
             username: parsed.username,
             avatar: parsed.avatar,
@@ -3617,19 +3623,16 @@ function SocialMediaPage() {
     try {
       const authUser = getAuthUser();
       if (authUser) {
-        // JWT fallback — use full_name by default if available, otherwise alias
+        // JWT fallback — public handle only. full_name is owner-only
+        // (2026-09-30) and user.name is sent to other people (check-in
+        // user_name, typing indicator), so the real name is never used here.
         const fullName = authUser.user_metadata?.full_name;
         const alias = authUser.user_metadata?.poker_alias;
-        // Read display preference from settings cache
-        let pref = 'full_name';
-        try {
-          const s = JSON.parse(localStorage.getItem('sp-user-settings') || '{}');
-          pref = s.display_name_preference || 'full_name';
-        } catch (_) {}
-        const name = pref === 'username' ? alias || fullName : fullName || alias;
+        const name =
+          authUser.user_metadata?.display_name || alias || authUser.user_metadata?.username;
         return {
           id: authUser.id,
-          name: name || authUser.email?.split('@')[0] || 'Player',
+          name: name || 'Player',
           full_name: fullName || null,
           username: alias || null,
           avatar: authUser.user_metadata?.avatar_url || null,
@@ -4246,7 +4249,7 @@ function SocialMediaPage() {
               {
                 ...n,
                 actor_avatar_url: actorProfile?.avatar_url || n.data?.actor_avatar || null,
-                actor_name: actorProfile?.username || actorProfile?.full_name || displayName,
+                actor_name: actorProfile?.username || actorProfile?.display_name || displayName,
                 actor_username: actorProfile?.username || null,
               },
               ...prev,
@@ -4311,22 +4314,14 @@ function SocialMediaPage() {
       // OPTIMISTIC: Instant UI update from event.detail (no network needed)
       const d = e?.detail;
       if (d && (d.full_name || d.avatar_url || d.username)) {
-        // Re-read pref from cache (may have changed in Settings)
-        let pref = 'full_name';
-        try {
-          const s = JSON.parse(localStorage.getItem('sp-user-settings') || '{}');
-          pref = s.display_name_preference || 'full_name';
-        } catch (_) {}
         const newFullName = d.full_name || null;
         const newUsername = d.username || null;
         setUser((prev) => ({
           ...prev,
           ...(newFullName !== null ? { full_name: newFullName } : {}),
           ...(newUsername !== null ? { username: newUsername } : {}),
-          name:
-            pref === 'username'
-              ? newUsername || d.username || prev?.username || prev?.full_name
-              : newFullName || d.full_name || prev?.full_name || prev?.username,
+          // Public name only: user.name is sent to other people.
+          name: d.display_name || newUsername || prev?.username || prev?.name,
           ...(d.avatar_url ? { avatar: d.avatar_url } : {}),
         }));
       }
@@ -4336,19 +4331,12 @@ function SocialMediaPage() {
         try {
           const authUser = getAuthUser();
           if (!authUser) return;
-          const { data, error } = await readOwnProfile(supabase, 'id,username,full_name,avatar_url,role', { expectId: authUser.id });
+          const { data, error } = await readOwnProfile(supabase, 'id,username,full_name,display_name,avatar_url,role', { expectId: authUser.id });
 
           if (!error && data) {
             const p = data;
-            let pref = 'full_name';
-            try {
-              const s = JSON.parse(localStorage.getItem('sp-user-settings') || '{}');
-              pref = s.display_name_preference || 'full_name';
-            } catch (_) {}
-            const freshName =
-              pref === 'username'
-                ? p.username || p.full_name || null
-                : p.full_name || p.username || null;
+            // Public name only: user.name is sent to other people.
+            const freshName = p.display_name || p.username || null;
             setUser((prev) => ({
               ...prev,
               name: freshName || prev?.name,
@@ -4393,15 +4381,9 @@ function SocialMediaPage() {
     const cleanupSettingsBc = listenBroadcast('smarter_poker_settings_sync', () => {
       setUser((prev) => {
         if (!prev) return prev;
-        let pref = 'full_name';
-        try {
-          const s = JSON.parse(localStorage.getItem('sp-user-settings') || '{}');
-          pref = s.display_name_preference || 'full_name';
-        } catch (_) {}
-        const newName =
-          pref === 'username'
-            ? prev.username || prev.full_name || prev.name
-            : prev.full_name || prev.username || prev.name;
+        // The owner-only real name (full_name) never becomes user.name, which
+        // is sent to other people, whatever display_name_preference says.
+        const newName = prev.name || prev.username || 'Player';
         if (newName === prev.name) return prev; // no-op if unchanged
         // Also update localStorage cache
         try {
@@ -4483,27 +4465,15 @@ function SocialMediaPage() {
           if (p?.role === 'god') {
             setIsGodMode(true);
           }
-          // Read display_name_preference: full_name (default) or username (alias)
-          let displayNamePref = 'full_name';
-          try {
-            const cachedSettings = JSON.parse(localStorage.getItem('sp-user-settings') || '{}');
-            displayNamePref = cachedSettings.display_name_preference || 'full_name';
-          } catch (_) {}
-          // Also fetch from DB if not in settings cache (first-time visitors)
-          if (!localStorage.getItem('sp-user-settings')) {
-            try {
-              const prefRes = await supabase
-                .from('profiles')
-                .select('display_name_preference')
-                .eq('id', p?.id || authUser.id)
-                .maybeSingle();
-              displayNamePref = prefRes.data?.display_name_preference || 'full_name';
-            } catch (_) {}
-          }
+          // Public name only: user.name is sent to other people (check-in
+          // user_name, typing indicator), and full_name is owner-only
+          // (2026-09-30), so display_name_preference no longer picks the real name.
           const displayName =
-            displayNamePref === 'username'
-              ? p?.username || p?.full_name || authUser.email?.split('@')[0] || 'Player'
-              : p?.full_name || p?.username || authUser.email?.split('@')[0] || 'Player';
+            p?.display_name ||
+            p?.username ||
+            authUser.user_metadata?.poker_alias ||
+            authUser.user_metadata?.username ||
+            'Player';
           setUser({
             id: p?.id || authUser.id,
             name: displayName,
@@ -4632,7 +4602,7 @@ function SocialMediaPage() {
                     return {
                       ...n,
                       actor_avatar_url: profile?.avatar_url || n.data?.actor_avatar || null,
-                      actor_name: profile?.username || profile?.full_name || dispName,
+                      actor_name: profile?.username || profile?.display_name || dispName,
                       actor_username: profile?.username || null,
                     };
                   });
@@ -4839,7 +4809,7 @@ function SocialMediaPage() {
                 link_site_name: p.link_site_name || null,
                 metadata: meta,
                 author: {
-                  name: meta.page_name || p.author?.display_name || p.author?.full_name || p.author?.username || 'Player',
+                  name: meta.page_name || p.author?.display_name || p.author?.username || 'Player',
                   username: p.author?.username || null,
                   avatar: meta.page_avatar_url || p.author?.avatar_url || null,
                 },
@@ -4937,7 +4907,7 @@ function SocialMediaPage() {
           return {
             ...n,
             actor_avatar_url: profile?.avatar_url || n.data?.actor_avatar || null,
-            actor_name: profile?.username || profile?.full_name || displayName,
+            actor_name: profile?.username || profile?.display_name || displayName,
             actor_username: profile?.username || null,
           };
         });
@@ -6103,7 +6073,7 @@ function SocialMediaPage() {
     setGlobalSearchLoading(true);
     globalSearchTimeout.current = setTimeout(async () => {
       try {
-        // Search users (search both username and full_name)
+        // Search users (search both username and display_name)
         const { data: users } = await supabase
           .from('profiles')
           .select('id, username, avatar_url')

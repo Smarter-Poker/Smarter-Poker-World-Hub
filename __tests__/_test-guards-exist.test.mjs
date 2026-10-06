@@ -554,6 +554,7 @@ import './video-learning-discovery-phase8-migration.test.mjs';
 // get_my_full_profile(). A browser read naming an owner-only column is
 // refused whole (42501) once Club Arena revokes them.
 import './a-profile-shows-strangers-only-what-the-table-needs.law.test.mjs';
+import './a-server-route-hands-a-stranger-no-private-field.law.test.mjs';
 
 // 2026-10-05: the roster (content_authors) never reaches a browser. Presence
 // is one `online` list from /api/social/presence for every player alike, and

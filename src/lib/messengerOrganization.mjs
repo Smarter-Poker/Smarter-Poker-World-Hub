@@ -27,7 +27,7 @@ export function organizeConversations(conversations, { pinnedIds = [], unreadOnl
             if (unreadOnly && !conversationNeedsAttention(conversation)) return false;
             if (!needle) return true;
             const other = conversation.otherUser || {};
-            return [other.full_name, other.display_name, other.username, conversation.title, conversation.group_name]
+            return [other.display_name, other.username, conversation.title, conversation.group_name]
                 .filter(Boolean)
                 .some((value) => String(value).toLowerCase().includes(needle));
         })

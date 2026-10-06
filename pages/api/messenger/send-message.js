@@ -262,11 +262,11 @@ export default async function handler(req, res) {
               if (!rpcResult.replayed && otherIds.length > 0) {
                   const { data: senderProfile } = await getSupabase()
                       .from('profiles')
-                      .select('username, full_name, avatar_url')
+                      .select('username, avatar_url')
                       .eq('id', userId)
                       .maybeSingle();
                   const senderName =
-                      senderProfile?.username || senderProfile?.full_name || 'Someone';
+                      senderProfile?.username || 'Someone';
 
                   // Never put message media or metadata in a lock-screen preview.
                   const preview =

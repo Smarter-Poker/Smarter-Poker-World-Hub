@@ -193,10 +193,10 @@ export default async function handler(req, res) {
       // in depth against a malicious direct API call.
       const { data: profile } = await supabase
         .from('profiles')
-        .select('username, full_name')
+        .select('username, display_name')
         .eq('id', user.id)
         .maybeSingle();
-      displayName = profile?.username || profile?.full_name || identity;
+      displayName = profile?.username || profile?.display_name || identity;
     }
 
     // Dynamic import REQUIRED — livekit-server-sdk v2 is ESM-only, no CJS build

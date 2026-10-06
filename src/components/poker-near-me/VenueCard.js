@@ -382,9 +382,8 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
             const authUser = getAuthUser();
             const userDisplayName =
                 authUser?.user_metadata?.display_name
-                || authUser?.user_metadata?.full_name
                 || authUser?.user_metadata?.username
-                || (authUser?.email ? String(authUser.email).split('@')[0] : null)
+                || authUser?.user_metadata?.poker_alias
                 || 'Player';
 
             const venueIdInt = parseInt(venue.id, 10);

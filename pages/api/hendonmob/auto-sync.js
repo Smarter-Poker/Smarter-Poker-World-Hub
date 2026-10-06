@@ -38,7 +38,7 @@ function getSupabase() {
  */
 function buildManusPrompt(users, syncApiUrl) {
     const userLines = users.map((u, i) => 
-        `${i + 1}. Name: "${u.full_name || 'Unknown'}" | URL: ${u.hendon_url} | UserID: ${u.id}`
+        `${i + 1}. Name: "${u.display_name || 'Unknown'}" | URL: ${u.hendon_url} | UserID: ${u.id}`
     ).join('\n');
 
     return `You are a data extraction agent. Your job is to visit HendonMob poker player pages and extract REAL statistics.
@@ -115,7 +115,7 @@ export default async function handler(req, res) {
         // Get users to scrape
         let query = getSupabase()
             .from('profiles')
-            .select('id, full_name, hendon_url')
+            .select('id, display_name, hendon_url')
             .not('hendon_url', 'is', null)
             .neq('hendon_url', '');
 

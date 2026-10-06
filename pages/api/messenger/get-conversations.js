@@ -312,7 +312,7 @@ export default async function handler(req, res) {
         if (otherUserIds.size > 0) {
             const { data: profiles, error: profErr } = await getSupabase()
                 .from('profiles')
-                .select('id, username, display_name, full_name, avatar_url')
+                .select('id, username, display_name, avatar_url')
                 .in('id', [...otherUserIds]);
             if (profErr) {
                 // eslint-disable-next-line no-console
