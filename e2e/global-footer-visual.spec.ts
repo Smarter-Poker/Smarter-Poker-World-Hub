@@ -171,15 +171,22 @@ const expectedArtworkStage = (
 };
 
 const visit = async (page: Page, route: string) => {
+  let lastError: unknown;
   for (let attempt = 0; attempt < 3; attempt += 1) {
     try {
       // WebKit can paint and hydrate a production page while a late resource
       // keeps its DOMContentLoaded lifecycle promise unresolved. Navigation
-      // only owns the committed document; each test below waits for the exact
-      // product state it needs before making an assertion.
+      // only owns the committed document. The app marker proves React effects
+      // ran before feature-specific assertions are allowed to begin.
       await page.goto(route, { waitUntil: 'commit', timeout: 15_000 });
+      await page.waitForFunction(
+        () => document.documentElement.dataset.worldHubHydrated === 'true',
+        undefined,
+        { timeout: 15_000 }
+      );
       return;
     } catch (error) {
+      lastError = error;
       const isRecoverableNavigation =
         /ERR_ABORTED|Frame load interrupted|is interrupted by another navigation|TimeoutError|Navigation timeout/.test(
           String(error)
@@ -190,9 +197,11 @@ const visit = async (page: Page, route: string) => {
       // requested canonical URL. WebKit reports this as an overlapping
       // navigation instead of ERR_ABORTED.
       await page.evaluate(() => window.stop()).catch(() => undefined);
+      await page.goto('about:blank', { waitUntil: 'commit', timeout: 5_000 }).catch(() => undefined);
       await page.waitForTimeout(50);
     }
   }
+  throw lastError;
 };
 
 const withIsolatedPage = async <T>(

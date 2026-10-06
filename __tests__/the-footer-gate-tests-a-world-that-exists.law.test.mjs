@@ -268,10 +268,31 @@ test('the specs never import a module Playwright cannot transpile', () => {
 
 test('the footer gate waits for product facts instead of WebKit lifecycle accidents', () => {
     const spec = read(FOOTER_SPEC);
+    const app = read('pages/_app.js');
     assert.match(
         spec,
         /page\.goto\(route, \{ waitUntil: 'commit', timeout: 15_000 \}\)/,
         'route navigation must stop waiting once the production document commits',
+    );
+    assert.match(
+        app,
+        /document\.documentElement\.dataset\.worldHubHydrated = 'true'/,
+        'the app must expose a route-independent marker after React effects run',
+    );
+    assert.match(
+        spec,
+        /document\.documentElement\.dataset\.worldHubHydrated === 'true'[\s\S]*?timeout: 15_000/,
+        'the gate must prove client hydration before checking feature-owned state',
+    );
+    assert.match(
+        spec,
+        /for \(let attempt = 0; attempt < 3; attempt \+= 1\)/,
+        'hydration recovery must remain bounded to three attempts',
+    );
+    assert.match(
+        spec,
+        /page\.goto\('about:blank', \{ waitUntil: 'commit', timeout: 5_000 \}\)/,
+        'a failed hydration attempt must discard the stranded document before retrying',
     );
     assert.match(
         spec,
