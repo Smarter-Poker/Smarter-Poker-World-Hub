@@ -19,7 +19,11 @@
  *      tournament -> poker; slots -> slots; sports -> sports). Facets a writer
  *      supplied in `topics` are kept when they are real facets.
  *   3. facets from metadata (grounded_type, puzzle, phase7_mode, phase6_mode,
- *      news_box, news_type, source, video_type, shared_reel_topic).
+ *      news_box, news_type, source, video_type); if still unknown, the
+ *      primary a post declares about itself: shared_reel_topic, then topic,
+ *      then clip_type (poker or sports). The horse video publisher and the
+ *      player Reel publisher both write metadata.topic, so a Sports video is
+ *      Sports by the same rule whoever posted it.
  *   4. facets from content (a card token means the post carries a hand).
  *   5. facets from content_type (tips and articles are strategy).
  *   6. if the primary is still unknown and any poker facet was found -> poker.
@@ -136,6 +140,13 @@ export function deriveSocialPostTopics(input) {
     if (FORMAT_FACETS.has(videoType)) facets.add(videoType);
     if (primary === 'unknown' && metaPresent(meta, 'shared_reel_topic')) {
         primary = primaryFrom(meta.shared_reel_topic, facets);
+    }
+    if (primary === 'unknown' && metaPresent(meta, 'topic')) {
+        primary = primaryFrom(meta.topic, facets);
+    }
+    if (primary === 'unknown') {
+        const clipType = metaText(meta, 'clip_type');
+        if (clipType === 'poker' || clipType === 'sports') primary = clipType;
     }
 
     // 4. facets from content.

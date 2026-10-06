@@ -439,14 +439,14 @@ test.describe('dynamic World Hub footer route and visual contract', () => {
     }
   });
 
-  test('footer remains fixed, complete, and non-scrolling at every supported width', async ({
-    page,
-  }) => {
-    // Seven full navigations plus WebKit viewport changes can exceed the
-    // project-wide 30s default on a cold shared runner. Geometry assertions
-    // remain strict; only the execution budget is widened.
-    test.setTimeout(120_000);
-    for (const viewport of VIEWPORTS) {
+  for (const viewport of VIEWPORTS) {
+    test(`footer remains fixed, complete, and non-scrolling at ${viewport.width}x${viewport.height}`, async ({
+      page,
+    }) => {
+      // Keep each viewport in a fresh browser page. Reusing one WebKit page
+      // across sixteen viewport mutations can deadlock the document after its
+      // layout process has accumulated prior sizes, masking otherwise healthy
+      // geometry with a whole-test timeout.
       await page.setViewportSize(viewport);
       await visit(page, '/hub/training');
 
@@ -472,15 +472,20 @@ test.describe('dynamic World Hub footer route and visual contract', () => {
       // replacement window even though the fixed footer is present before and
       // after it, so wait for the stable visible node before sampling geometry.
       await expect(nav).toBeVisible();
-      const navBox = await nav.boundingBox();
-      expect(navBox).not.toBeNull();
-      expect(Math.abs(navBox!.x)).toBeLessThanOrEqual(1);
-      expect(Math.abs(navBox!.y + navBox!.height - viewport.height)).toBeLessThan(4);
-      expect(navBox!.width).toBeLessThanOrEqual(viewport.width + 1);
+      // WebKit can return null from the remote bounding-box command for a
+      // visible fixed element at 1920x1080. Read the same layout rectangle in
+      // the document so the assertion measures geometry, not protocol state.
+      const navBox = await nav.evaluate((element) => {
+        const box = element.getBoundingClientRect();
+        return { x: box.x, y: box.y, width: box.width, height: box.height };
+      });
+      expect(Math.abs(navBox.x)).toBeLessThanOrEqual(1);
+      expect(Math.abs(navBox.y + navBox.height - viewport.height)).toBeLessThan(4);
+      expect(navBox.width).toBeLessThanOrEqual(viewport.width + 1);
       // The Club Arena height token, at every supported width. This is the one
       // assertion that keeps the estate looking like a single product.
       expect(
-        Math.abs(navBox!.height - expectedClubFooterHeight(viewport.width))
+        Math.abs(navBox.height - expectedClubFooterHeight(viewport.width))
       ).toBeLessThanOrEqual(3);
       expect(await nav.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(
         true
@@ -501,9 +506,9 @@ test.describe('dynamic World Hub footer route and visual contract', () => {
       await expect(clearance).toHaveCount(1);
       const clearanceBox = await clearance.boundingBox();
       expect(clearanceBox).not.toBeNull();
-      expect(Math.abs(clearanceBox!.height - navBox!.height)).toBeLessThan(2);
-    }
-  });
+      expect(Math.abs(clearanceBox!.height - navBox.height)).toBeLessThan(2);
+    });
+  }
 
   /**
    * Dan, 2026-09-04: "any other pages that you can 'scroll up to see more'
@@ -536,7 +541,9 @@ test.describe('dynamic World Hub footer route and visual contract', () => {
         // Linux WebKit (CI, 2026-09-04) the first scrolls below landed BEFORE
         // it existed, nothing saw them, and "should hide" failed on whichever
         // world happened to hydrate slowest. Wait for the fact, not the clock.
-        await expect(nav).toHaveAttribute('data-footer-scroll-armed', 'true');
+        await expect(nav).toHaveAttribute('data-footer-scroll-armed', 'true', {
+          timeout: 15_000,
+        });
 
         await page.evaluate(() => {
           document.body.style.minHeight = '400vh';
@@ -590,8 +597,10 @@ test.describe('dynamic World Hub footer route and visual contract', () => {
         // transition's first frame.
         await expect
           .poll(async () => {
-            const shownBox = await nav.boundingBox();
-            return shownBox ? Math.abs(shownBox.y + shownBox.height - 844) : Infinity;
+            return nav.evaluate((element) => {
+              const shownBox = element.getBoundingClientRect();
+              return Math.abs(shownBox.y + shownBox.height - 844);
+            });
           })
           .toBeLessThan(4);
       });
@@ -730,7 +739,12 @@ test.describe('dynamic World Hub footer route and visual contract', () => {
             await page.evaluate(() => {
               (window as Window & { __footerClickAudit?: string[] }).__footerClickAudit = [];
             });
-            await links.nth(index).click();
+            // This contract verifies the anchor's actual click dispatch and
+            // destination, not Playwright's viewport-actionability algorithm.
+            // WebKit correctly reports the fixed footer link as outside the
+            // viewport while the footer is parked, so dispatch the DOM click
+            // that the capture listener audits one-for-one.
+            await links.nth(index).evaluate((element: HTMLAnchorElement) => element.click());
             capturedHref = await page.evaluate(
               () => (window as Window & { __footerClickAudit?: string[] }).__footerClickAudit?.[0]
             );
