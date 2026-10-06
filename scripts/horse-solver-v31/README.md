@@ -23,6 +23,15 @@ and it has no OpenClaw dependency.
 
 ## Required approved inputs
 
+Use `compile_inputs.py --recipe <recipe.json> --source-root <supplied-sources>
+--output-root <new-input-directory>` to compile supplied ranges and ICM
+snapshots. The recipe records the original range ordering, exact spot context,
+source reference, reviewer, and file checksums. The compiler preserves source
+bytes, remaps ranges to the canonical artifact order, and writes a derivation
+receipt. Its output is unapproved until the normal authenticated approval
+operation succeeds. Legacy range names alone do not prove their action-line,
+table-size, or stack-depth provenance.
+
 Create one immutable input directory containing:
 
 1. A range-bundle JSON whose file receipts cover every OOP/IP 1,326-combo
@@ -34,11 +43,28 @@ Create one immutable input directory containing:
    ship a substitute order file: capture it from the licensed, approved binary
    and approve those exact bytes with the rest of the input bundle.
 3. A reviewed ICM/payout model bundle using contract
-   `smarter-poker.horse-solver-v31-icm-model.v1`. Each model names the OOP/IP
+   `smarter-poker.horse-solver-v31-icm-model.v2`. Each model names the OOP/IP
    starting stacks and monotone interpolation points for both players. Every
    ICM scenario references one model by `icm_model_id`; the worker derives
    `reset_icm_tables`, `set_icm`, and every `set_icm_point` command from those
    pinned bytes. Chip-EV and cash-EV scenarios must use `icm_model_id: null`.
+   Models also require `root_pot_chips`, `source_snapshot_path` and
+   `source_snapshot_checksum`. The byte-pinned snapshot has contract
+   `smarter-poker.horse-solver-v31-icm-snapshot.v1`, `utility_unit: "payout"`,
+   `field_stacks_chips`, descending `payouts`, distinct `oop_index`/`ip_index`,
+   and `root_pot_chips`. Field stacks are every live player's chips **behind**
+   at the root, so conserved field chips equal their sum plus the root pot.
+   Interpolation points cover starting stack minus effective stack through
+   starting stack plus effective stack plus root pot. Source snapshots must
+   represent real frozen tournament inputs; their hash is bound by the model.
+   The worker scales each payout utility by conserved chips / remaining prize
+   pool before sending it to Pio, a positive scale that preserves preferences.
+   Thus ICM `*_evs_bb` exports are **BB-equivalent payout equity**, not chip EV:
+   one payout unit is converted at prize pool / conserved chips, then divided
+   by chips per BB. Cash/chip EV exports retain ordinary chip EV in BB.
+   Unversioned models without this normalization fail validation. Pio's
+   [ICM command contract](https://piosolver.com/docs/upi/commands/#alternative-ev-models)
+   takes the utility of each final stack, not a chip-denominated EV by default.
 4. A complete enabled scenario manifest. Each target declares its exact Pio
    node, board, role, facing kind, size bucket, ordered child topology, and
    owning `machine_id`. M1 is the training split and M2 is the holdout split;
@@ -46,6 +72,13 @@ Create one immutable input directory containing:
    signatures must be disjoint. Changing only suits or flop-card order produces
    the same strategic board under suit isomorphism, so it is reproducibility
    evidence rather than held-out evidence and is rejected by the compactor.
+   A standalone analytic startup fixture must declare `purpose: "self_test"`
+   and be the scenario referenced by the root `self_test` contract. It is
+   solved and checked at startup but never harvested, counted in worker target
+   totals, or declared as a serving cell. Ordinary scenarios omit `purpose`
+   or use `"harvest"`; any other purpose or unreferenced self-test fixture is
+   rejected. Historical self-tests referencing real harvest scenarios continue
+   to use their ordinary independently assigned exports.
 
 The input bundle approved through `ca_gto_v31_approve_input_bundle` must include
 file receipts for the range bundle, combo-order file, ICM model, and the exact
@@ -94,7 +127,9 @@ fails closed.
 2. A horse administrator reviews the exact bytes and submits the generated
    approval JSON unchanged to `ca_gto_v31_approve_input_bundle`. The returned
    UUID and stored checksum must equal the values printed by the preparer.
-   Approval is a human gate; generating files does not approve them.
+   Approval uses an existing authenticated horse-administrator session;
+   generating files does not approve them. The authorized controller owns this
+   operation when that session is available.
 3. Deploy the World Hub gateway and configure three distinct secrets:
    `HORSE_SOLVER_V31_M1_HMAC_SECRET`,
    `HORSE_SOLVER_V31_M2_HMAC_SECRET`, and

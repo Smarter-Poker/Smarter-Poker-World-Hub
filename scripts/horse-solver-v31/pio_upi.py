@@ -106,8 +106,11 @@ class PioProcess:
         self._expected_solver_version = expected_solver_version
         self._expected_hand_order = tuple(expected_hand_order)
         self._pio_to_canonical: tuple[int, ...] = ()
+        executable_path = Path(executable).resolve()
         self._process = subprocess.Popen(
-            [str(executable)],
+            [str(executable_path)],
+            # Pio resolves its licensed distribution dependencies from cwd.
+            cwd=executable_path.parent,
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
@@ -427,9 +430,11 @@ def parse_calc_results(raw: str) -> dict[str, float]:
         if not math.isfinite(value):
             raise PioError("calc_results returned a nonfinite field")
         parsed[output_name] = value
-    if set(parsed) != set(expected.values()):
+    required = set(expected.values()) - {"running_time_seconds"}
+    if not required.issubset(parsed):
         raise PioError("calc_results omitted a required named field")
-    if parsed["running_time_seconds"] < 0 or parsed["exploitability_chips"] < 0:
+    # Pio 3.8 omits runtime. Keep it absent rather than inventing measured time.
+    if ("running_time_seconds" in parsed and parsed["running_time_seconds"] < 0) or parsed["exploitability_chips"] < 0:
         raise PioError("calc_results returned an impossible negative metric")
     return parsed
 
@@ -727,6 +732,11 @@ def _icm_setup_commands(
     ):
         raise PioError("approved ICM stacks do not match the scenario")
     points = icm_model.get("points")
+    payout_per_chip = icm_model.get("payout_per_chip")
+    if isinstance(payout_per_chip, bool) or not isinstance(payout_per_chip, (int, float)) or not math.isfinite(payout_per_chip) or payout_per_chip <= 0:
+        raise PioError("approved ICM payout-to-chip normalization is absent or invalid")
+    if icm_model.get("root_pot_chips") != scenario.get("pot_chips"):
+        raise PioError("approved ICM root pot does not match the scenario")
     if not isinstance(points, (tuple, list)) or len(points) < 4:
         raise PioError("approved ICM interpolation points are incomplete")
     commands = ["reset_icm_tables", f"set_icm {oop_stack} {ip_stack}"]
@@ -745,7 +755,7 @@ def _icm_setup_commands(
             raise PioError("approved ICM interpolation point is invalid")
         seen.add((player, stack))
         commands.append(
-            f"set_icm_point {player} {stack} {_format_number(utility)}"
+            f"set_icm_point {player} {stack} {_format_number(utility / payout_per_chip)}"
         )
     if {player for player, _stack in seen} != {"OOP", "IP"}:
         raise PioError("approved ICM interpolation points omit a player")
@@ -779,6 +789,9 @@ def setup_commands(
         "add_line " + " ".join(_format_number(value) for value in line)
         for line in scenario["tree_lines"]
     )
+    # Pio 3.8's set_rake requires an existing tree, including the zero-rake
+    # command used before installing ICM. Select the EV model before solving.
+    commands.append("build_tree")
     if scenario.get("objective") == "icm":
         # Pio keeps the EV model in global state across trees.  Explicitly
         # disable rake before installing an ICM model so a prior cash tree can
@@ -813,7 +826,6 @@ def setup_commands(
         raise PioError("solve_accuracy must be a fraction in (0, 0.01]")
     commands.extend(
         (
-            "build_tree",
             f"set_accuracy {_format_number(accuracy)} fraction",
             "go",
             "wait_for_solver",
@@ -834,10 +846,10 @@ def setup_commands(
     elif len(rake_commands) != 1 or active_icm_commands:
         raise PioError("a cash/chip-EV scenario must clear ICM and install one rake model")
     if any(
-        commands.index(command) > commands.index("build_tree")
+        not commands.index("build_tree") < commands.index(command) < commands.index("go")
         for command in rake_commands + icm_resets + active_icm_commands
     ):
-        raise PioError("the EV model must be configured before build_tree")
+        raise PioError("the EV model must be configured after build_tree and before go")
     return commands
 
 

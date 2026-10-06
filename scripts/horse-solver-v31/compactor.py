@@ -45,6 +45,8 @@ def declared_coverage(manifest: ApprovedManifest) -> list[dict[str, Any]]:
     machines: dict[bytes, set[str]] = {}
     board_ranks: dict[bytes, dict[str, set[str]]] = {}
     for scenario in manifest.raw["scenarios"]:
+        if scenario.get("purpose", "harvest") == "self_test":
+            continue
         for target in scenario["targets"]:
             context = target_context(scenario, target)
             key = canonical_json(context)
