@@ -1161,6 +1161,9 @@ jobs:
             __tests__/horses-phase8-server.test.mjs \
             __tests__/horses-phase8-the-console-never-invents-authority.law.test.mjs \
             __tests__/horses-phase10-documentation.test.mjs \
+            __tests__/horses-phase11-finance-records.test.mjs \
+            __tests__/horses-phase11-identity-links.test.mjs \
+            __tests__/horses-phase11-incident-acknowledgement.test.mjs \
             __tests__/scroll-lock.test.mjs \
             __tests__/union-settlement-math.test.mjs \
             __tests__/public-shell-precache.test.mjs \
