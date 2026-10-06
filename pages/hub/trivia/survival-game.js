@@ -48,6 +48,9 @@ import { getAccessToken } from '../../../src/lib/authUtils';
 import HubPageSummary from '../../../src/components/seo/HubPageSummary';
 import { readOwnProfile } from '../../../src/lib/ownProfile';
 import { createAccountOperationScope, isStaleAccountOperation } from '../../../src/lib/trivia/accountOperationScope.mjs';
+import Phase9SettlementReceipt from '../../../src/components/trivia/phase9/Phase9SettlementReceipt';
+import { projectPhase9Recovery } from '../../../src/components/trivia/phase9/phase9RunModel.mjs';
+import usePhase9ReducedMotion from '../../../src/components/trivia/phase9/usePhase9ReducedMotion';
 
 const GAME_ENTRY_COST = 10; // restored with server-graded adoption - rewards pay via award_trivia_run now
 // Daily cap comes from triviaEngine so the lobby and the payout agree.
@@ -70,6 +73,29 @@ const LEVEL_CONFIG = [
 ];
 
 const QUESTIONS_PER_LEVEL = 20;
+
+function survivalLevelStorageKey(accountId) {
+    return `trivia:survival-level:v1:${accountId}`;
+}
+
+function readRecoveredLevel(accountId, fallback) {
+    try {
+        const value = Number(window.localStorage.getItem(survivalLevelStorageKey(accountId)));
+        return Number.isInteger(value) && value >= 1 && value <= LEVEL_CONFIG.length ? value : fallback;
+    } catch (_error) {
+        return fallback;
+    }
+}
+
+function writeRecoveredLevel(accountId, level) {
+    try { window.localStorage.setItem(survivalLevelStorageKey(accountId), String(level)); }
+    catch (_error) { /* the shared run hook will already refuse custody when storage is unavailable */ }
+}
+
+function clearRecoveredLevel(accountId) {
+    try { window.localStorage.removeItem(survivalLevelStorageKey(accountId)); }
+    catch (_error) { /* best-effort projection cleanup */ }
+}
 
 export default function SurvivalGamePage() {
     useTrainingBus('trivia-survival-game');
@@ -100,6 +126,7 @@ export default function SurvivalGamePage() {
     const [lastLevelAwarded, setLastLevelAwarded] = useState(null);
     // True once the daily cap has clipped an award during this run.
     const [capReachedThisRun, setCapReachedThisRun] = useState(false);
+    const [settlementResult, setSettlementResult] = useState(null);
 
     // TRAIN-WIRE-TRIVIA-HOOK-5 — selectedAnswer/showResult managed by shared hook
     const currentQuestion = questions[currentQuestionIndex];
@@ -164,6 +191,7 @@ export default function SurvivalGamePage() {
         screenShake: true,  // Screen shake effect
         intensity: 'high'   // 'low', 'medium', 'high'
     });
+    const reduceMotion = usePhase9ReducedMotion();
 
     // NOTE: the speed-bonus diamonds are gone with the move to server
     // grading. The server pays the engine's survival formula and nothing
@@ -213,6 +241,7 @@ export default function SurvivalGamePage() {
     const accountLoadRef = useRef(0);
     const accountIdentityRef = useRef(null);
     const startOperationRef = useRef(null);
+    const forceNewLevelRef = useRef(false);
     const answerOperationRef = useRef(null);
     const lifelineOperationRef = useRef(null);
 
@@ -238,6 +267,7 @@ export default function SurvivalGamePage() {
         const operationScope = accountOperationScopeRef.current.transition(nextAccountId);
         if (identityChanged) {
             startOperationRef.current = null;
+            forceNewLevelRef.current = false;
             answerOperationRef.current = null;
             lifelineOperationRef.current = null;
             isStartingRef.current = false;
@@ -253,6 +283,7 @@ export default function SurvivalGamePage() {
             setUserProgress({ highestLevel: 0 });
             setIsVip(false);
             setLastLevelAwarded(null);
+            setSettlementResult(null);
             setTotalDiamondsEarned(0);
             setCorrectCount(0);
             setIncorrectCount(0);
@@ -355,7 +386,7 @@ export default function SurvivalGamePage() {
     // Side-effects only — reacts to timer.timeLeft ticks for haptics, screenShake, heartbeat audio.
     // useTriviaTimer owns the countdown; this effect only drives feedback.
     useEffect(() => {
-        if (!timer.isTimerRunning || trivia.showResult) {
+        if (!timer.isTimerRunning || trivia.showResult || reduceMotion) {
             if (heartbeatIntervalRef.current) clearInterval(heartbeatIntervalRef.current);
             setScreenShake(false);
             return;
@@ -365,17 +396,17 @@ export default function SurvivalGamePage() {
         const intensityMultiplier = settings.intensity === 'high' ? 1 : settings.intensity === 'medium' ? 0.6 : 0.3;
 
         // Haptic feedback every second (if enabled)
-        if (settings.haptics && 'vibrate' in navigator) {
+        if (!reduceMotion && settings.haptics && 'vibrate' in navigator) {
             const baseVibration = t <= 3 ? 100 : t <= 8 ? 50 : 20;
             navigator.vibrate(Math.round(baseVibration * intensityMultiplier));
         }
 
         // Screen shake at 3 seconds (if enabled)
-        if (settings.screenShake && t <= 3 && t > 0) setScreenShake(true);
+        if (!reduceMotion && settings.screenShake && t <= 3 && t > 0) setScreenShake(true);
         else setScreenShake(false);
 
         // Heartbeat audio at 8 seconds - speeds up (if enabled)
-        if (settings.audio && t <= 8 && t > 0) {
+        if (!reduceMotion && settings.audio && t <= 8 && t > 0) {
             const volume = 0.3 * intensityMultiplier;
             const speed = Math.max(200, 600 - ((8 - t) * 50));
             if (heartbeatIntervalRef.current) clearInterval(heartbeatIntervalRef.current);
@@ -392,7 +423,7 @@ export default function SurvivalGamePage() {
             // Unmount cleanup for it lives in its own effect above.
             if (heartbeatIntervalRef.current) clearInterval(heartbeatIntervalRef.current);
         };
-    }, [timer.isTimerRunning, trivia.showResult, timer.timeLeft, settings]);
+    }, [timer.isTimerRunning, trivia.showResult, timer.timeLeft, settings, reduceMotion]);
 
     // Handle timeout - recorded server-side as a skip (displayIndex -1),
     // which session-answer grades as wrong, so the verdict path counts the
@@ -400,7 +431,7 @@ export default function SurvivalGamePage() {
     function handleTimeOut() {
         timer.setIsTimerRunning(false);
         setScreenShake(false);
-        if ('vibrate' in navigator) navigator.vibrate([200, 100, 200]);
+        if (!reduceMotion && 'vibrate' in navigator) navigator.vibrate([200, 100, 200]);
         gradeAnswer(-1);
     }
 
@@ -442,7 +473,106 @@ export default function SurvivalGamePage() {
         }
     }
 
+    async function resumeServerLevel() {
+        if (isStartingRef.current) return;
+        if (!userId) {
+            router.push('/auth/login?redirect=/hub/trivia/survival-game');
+            return;
+        }
+        const operationScope = accountOperationScopeRef.current.capture();
+        if (operationScope.identity !== userId) return;
+        const startOperation = { operationScope };
+        const progressFallback = Math.min(Math.max(1, userProgress.highestLevel + 1), LEVEL_CONFIG.length);
+        const recoveredLevel = readRecoveredLevel(userId, progressFallback);
+        const recoveredConfig = LEVEL_CONFIG[recoveredLevel - 1];
+        isStartingRef.current = true;
+        startOperationRef.current = startOperation;
+        setIsLoading(true);
+        setLevelLoadError(null);
+        setGameState('loading_level');
+        try {
+            const resumed = await serverRun.resume({
+                count: QUESTIONS_PER_LEVEL,
+                difficulty: recoveredConfig.difficulty,
+            });
+            if (!accountOperationScopeRef.current.isCurrent(operationScope)) return;
+            setCurrentLevel(recoveredLevel);
+
+            if (resumed?.resumedSettlement && resumed.settlement) {
+                const settled = resumed.settlement;
+                const correct = Math.max(0, Number(settled.correct) || 0);
+                const awarded = Math.max(0, Number(settled.diamondsAwarded) || 0);
+                serverResultRef.current = settled;
+                setSettlementResult(settled);
+                survivalParentSessionRef.current = settled.sessionId || null;
+                correctCountRef.current = correct;
+                setCorrectCount(correct);
+                setLastLevelAwarded(awarded);
+                setTotalDiamondsEarned(awarded);
+                setGameState(correct >= recoveredConfig.minCorrect
+                    ? (recoveredLevel >= LEVEL_CONFIG.length ? 'victory' : 'levelComplete')
+                    : 'gameOver');
+                return;
+            }
+
+            const resumedQuestions = Array.isArray(resumed?.questions) ? resumed.questions : [];
+            if (resumedQuestions.length < QUESTIONS_PER_LEVEL) throw new Error('resume_questions_missing');
+            const projection = projectPhase9Recovery(resumedQuestions);
+            const restoredVerdicts = new Map();
+            resumedQuestions.forEach((question, index) => {
+                if (projection.verdicts[index]) restoredVerdicts.set(question.id, projection.verdicts[index]);
+            });
+            setQuestions(resumedQuestions);
+            writeRecoveredLevel(userId, recoveredLevel);
+            sessionAnswersRef.current = projection.recordedAnswers;
+            verdictsRef.current = restoredVerdicts;
+            correctCountRef.current = projection.correctCount;
+            incorrectCountRef.current = projection.wrongCount;
+            setCorrectCount(projection.correctCount);
+            setIncorrectCount(projection.wrongCount);
+            setCurrentQuestionIndex(Math.min(projection.questionIndex, resumedQuestions.length - 1));
+            setVerdict(null);
+            setSettlementResult(null);
+            setLastLevelAwarded(null);
+            setLifelinesUsedThisLevel(0);
+            setSkipUsedThisQuestion(false);
+            setIsPaused(false);
+            answerLockRef.current = false;
+            trivia.reset();
+            timer.resetTimer();
+            startTimeRef.current = Date.now();
+
+            const remaining = resumedQuestions.length - projection.questionIndex;
+            if (projection.complete || projection.correctCount + remaining < recoveredConfig.minCorrect) {
+                setGameState('saving_progress');
+                await saveLevelResult(operationScope, recoveredLevel);
+            } else {
+                setGameState('playing');
+            }
+        } catch (error) {
+            if (!accountOperationScopeRef.current.isCurrent(operationScope)
+                || isStaleAccountOperation(error)) return;
+            console.warn('[Survival] Resume failed:', error?.message || error);
+            setLevelLoadError('Could Not Resume This Account-Scoped Level. Check Your Connection And Try Again.');
+            setGameState('lobby');
+        } finally {
+            if (startOperationRef.current === startOperation) {
+                startOperationRef.current = null;
+                isStartingRef.current = false;
+                if (accountOperationScopeRef.current.isCurrent(operationScope)) setIsLoading(false);
+            }
+        }
+    }
+
     async function startLevel(level) {
+        const forceNew = forceNewLevelRef.current;
+        forceNewLevelRef.current = false;
+        if (!userId) {
+            setLevelLoadError('Please Sign In To Play Survival Trivia.');
+            setGameState('lobby');
+            return;
+        }
+        if (!forceNew && serverRun.hasRecoverableSession) return resumeServerLevel();
         if (isStartingRef.current) return;
         const operationScope = accountOperationScopeRef.current.capture();
         if (operationScope.identity !== (userId || null)) return;
@@ -450,20 +580,17 @@ export default function SurvivalGamePage() {
         isStartingRef.current = true;
         startOperationRef.current = startOperation;
         try {
-        if (!userId) {
-            setLevelLoadError('Please Sign In To Play Survival Trivia.');
-            setGameState('lobby');
-            return;
-        }
         setLevelLoadError(null);
         setCurrentLevel(level);
-        if (level === 1) survivalParentSessionRef.current = null;
+        // A level-one retry keeps the settled parent id so the server can
+        // recognise it as the same run. A true new run arrives with no parent.
 
         // Reset the per-level save pipeline. A stale phase or settlement from
         // the previous level would make this level skip its own submit and
         // re-report the old numbers.
         savePhaseRef.current = 0;
         serverResultRef.current = null;
+        setSettlementResult(null);
         sessionAnswersRef.current = [];
         verdictsRef.current = new Map();
         setSaveErrorPayload(null);
@@ -519,6 +646,7 @@ export default function SurvivalGamePage() {
             busEmit.diamondsSpent(served.entryCost, 'Survival entry');
         }
         setQuestions(served.questions);
+        writeRecoveredLevel(userId, level);
         setCurrentQuestionIndex(0);
         setCorrectCount(0);
         setIncorrectCount(0);
@@ -695,7 +823,7 @@ export default function SurvivalGamePage() {
             incorrectCountRef.current += 1;
             setIncorrectCount(incorrectCountRef.current);
             busEmit.decisionIncorrect(correctCountRef.current);
-            busEmit.screenShake('light');
+            if (!reduceMotion) busEmit.screenShake('light');
             scheduleAdvanceOrSettle(1500, operationScope);
         }
     }
@@ -745,8 +873,9 @@ export default function SurvivalGamePage() {
         if (['levelComplete', 'gameOver', 'victory'].includes(gameState)
             && serverResultRef.current?.sessionId) {
             serverRun.acknowledgeSettlement();
+            if (userId) clearRecoveredLevel(userId);
         }
-    }, [gameState, lastLevelAwarded, serverRun.acknowledgeSettlement]);
+    }, [gameState, lastLevelAwarded, serverRun.acknowledgeSettlement, userId]);
 
     /**
      * Settle the level with the server and persist the results. Runs for
@@ -759,11 +888,12 @@ export default function SurvivalGamePage() {
      */
     async function saveLevelResult(
         operationScope = accountOperationScopeRef.current.capture(),
+        level = currentLevel,
     ) {
         if (!accountOperationScopeRef.current.isCurrent(operationScope)
             || operationScope.identity !== (userId || null)) return;
         const isCurrentAccountOperation = () => accountOperationScopeRef.current.isCurrent(operationScope);
-        const config = LEVEL_CONFIG[currentLevel - 1];
+        const config = LEVEL_CONFIG[level - 1];
         try {
             // Phase 1: settle this level's session server-side (only if not
             // already settled). Skipped questions are omitted from the array:
@@ -778,6 +908,7 @@ export default function SurvivalGamePage() {
                 );
                 if (!isCurrentAccountOperation()) return;
                 serverResultRef.current = submitted;
+                setSettlementResult(submitted);
                 survivalParentSessionRef.current = submitted.sessionId;
                 savePhaseRef.current = 1;
 
@@ -803,8 +934,8 @@ export default function SurvivalGamePage() {
                 const uncapped = calculateDiamonds('survival', Number.isFinite(submitted?.correct) ? submitted.correct : 0, QUESTIONS_PER_LEVEL);
                 if (awardedNow < uncapped) setCapReachedThisRun(true);
                 if (awardedNow > 0) {
-                    busEmit.diamondsEarned(awardedNow, `Survival Level ${currentLevel}`);
-                    busEmit.celebration('confetti');
+                    busEmit.diamondsEarned(awardedNow, `Survival Level ${level}`);
+                    if (!reduceMotion) busEmit.celebration('confetti');
                 }
             }
 
@@ -827,7 +958,7 @@ export default function SurvivalGamePage() {
                         .from('survival_progress')
                         .upsert({
                             user_id: userId,
-                            highest_level: Math.max(currentLevel, userProgress.highestLevel),
+                            highest_level: Math.max(level, userProgress.highestLevel),
                             last_played: new Date().toISOString()
                         }, { onConflict: 'user_id' });
                     if (!isCurrentAccountOperation()) return;
@@ -836,7 +967,7 @@ export default function SurvivalGamePage() {
                     }
                     setUserProgress(prev => ({
                         ...prev,
-                        highestLevel: Math.max(currentLevel, prev.highestLevel)
+                        highestLevel: Math.max(level, prev.highestLevel)
                     }));
                 }
                 savePhaseRef.current = 2;
@@ -857,7 +988,7 @@ export default function SurvivalGamePage() {
             setSaveErrorPayload(null);
             savePhaseRef.current = 0;
             if (passed) {
-                setGameState(currentLevel >= 10 ? 'victory' : 'levelComplete');
+                setGameState(level >= LEVEL_CONFIG.length ? 'victory' : 'levelComplete');
             } else {
                 setGameState('gameOver');
             }
@@ -867,7 +998,7 @@ export default function SurvivalGamePage() {
             // Save failed (network drop) -> Provide Retry UI (savePhaseRef
             // preserves progress; serverResultRef keeps an already-paid
             // settlement so a retry never re-submits a closed session).
-            setSaveErrorPayload({ level: currentLevel });
+            setSaveErrorPayload({ level });
             setGameState('saving_error');
         }
     }
@@ -880,12 +1011,16 @@ export default function SurvivalGamePage() {
     };
 
     function continueToNextLevel() {
+        serverRun.acknowledgeSettlement();
+        forceNewLevelRef.current = true;
         startLevel(currentLevel + 1);
     }
 
     function restartFromLevel(level) {
         setTotalDiamondsEarned(0);
         setCapReachedThisRun(false);
+        serverRun.acknowledgeSettlement();
+        forceNewLevelRef.current = true;
         startLevel(level);
     }
 
@@ -894,6 +1029,7 @@ export default function SurvivalGamePage() {
     }
 
     const config = LEVEL_CONFIG[currentLevel - 1];
+    const livesRemaining = Math.max(0, (QUESTIONS_PER_LEVEL - config.minCorrect + 1) - incorrectCount);
 
     // Questions the player got wrong this level, with the right answer, for
     // the post-run review panel on the game-over screen. Built from the
@@ -912,7 +1048,7 @@ export default function SurvivalGamePage() {
 
     // The pill is a short painted slot (about eight characters at 375px);
     // longer state, balance and timer copy is printed on the glass below.
-    const balanceLabel = isVip ? 'VIP' : 'Ready';
+    const balanceLabel = !userId ? 'Sign In' : serverRun.hasRecoverableSession ? 'Resume' : isVip ? 'VIP' : 'Ready';
     const nextAvailableLevel = Math.min(userProgress.highestLevel + 1, LEVEL_CONFIG.length);
     const stateLabel = showOutOfDiamonds
         ? 'Balance'
@@ -934,19 +1070,30 @@ export default function SurvivalGamePage() {
         timer.setIsTimerRunning(true);
     };
 
+    const pauseGame = () => {
+        timer.setIsTimerRunning(false);
+        setIsPaused(true);
+    };
+
     const primaryAction = showOutOfDiamonds
         ? { label: 'Get Diamonds', onClick: () => router.push('/hub/diamond-store') }
         : isPaused
             ? { label: 'Resume Game', onClick: resumeGame }
             : gameState === 'lobby'
-                ? {
+                ? !userId
+                    ? { label: 'Sign In To Play', onClick: () => router.push('/auth/login?redirect=/hub/trivia/survival-game') }
+                    : serverRun.hasRecoverableSession
+                        ? { label: 'Resume Saved Level', onClick: resumeServerLevel, disabled: isLoading }
+                        : {
                     label: userProgress.highestLevel > 0
                         ? `Continue From Level ${formatTriviaDisplayNumber(nextAvailableLevel)}`
                         : 'Start Level 1',
                     onClick: () => startLevel(nextAvailableLevel),
                     disabled: isLoading,
                     'aria-disabled': isLoading,
-                }
+                        }
+                : gameState === 'playing'
+                    ? { label: 'Pause Game', onClick: pauseGame }
                 : gameState === 'saving_error'
                     ? { label: 'Retry Save', onClick: handleRetrySave }
                     : gameState === 'levelComplete'
@@ -986,7 +1133,7 @@ export default function SurvivalGamePage() {
                     stays out of the sitemap, which is correct for a redirect. */}
                 <SEOHead
                     title="Survival Poker Trivia: One Life"
-                    description="Survival Poker Trivia On Smarter.Poker: One Run, One Life, And A Wrong Answer Ends It. Knowing You Do Not Know Is Worth As Much As Knowing. Free To Play, And Nothing In It Is A Wager."
+                    description="Survival Poker Trivia On Smarter.Poker: enter one progressive server-verified run, clear ten rising checkpoints, protect limited lives, and receive a verified level ledger."
                     canonical="/hub/trivia/survival-game"
                 />
 
@@ -1036,8 +1183,9 @@ export default function SurvivalGamePage() {
                                 )}
 
                                 {gameState === 'lobby' && (
-                                    <section className="trivia-challenge-intro" aria-labelledby="survival-ready-title">
+                                    <section className="trivia-challenge-intro phase9-intro-layout" aria-labelledby="survival-ready-title">
                                         <ResponsiveModeArt art={TRIVIA_INTRO_ART_SURVIVAL} priority />
+                                        <div className="phase9-intro-copy">
                                         <h2 id="survival-ready-title">Choose Your Starting Level</h2>
                                         <p>
                                             Clear {formatTriviaDisplayNumber(QUESTIONS_PER_LEVEL)} Questions Per Level
@@ -1046,6 +1194,16 @@ export default function SurvivalGamePage() {
 
                                         {levelLoadError && (
                                             <p className="trivia-challenge-alert" role="alert">{levelLoadError}</p>
+                                        )}
+                                        {!userId && (
+                                            <p className="trivia-challenge-notice" role="status">
+                                                Sign In To Start Or Recover A Server-Verified Run.
+                                            </p>
+                                        )}
+                                        {userId && serverRun.hasRecoverableSession && (
+                                            <p className="trivia-challenge-notice" role="status">
+                                                A Saved Level Is Waiting. Resume It Without Starting Or Charging Another Run.
+                                            </p>
                                         )}
 
                                         <dl className="trivia-challenge-stats">
@@ -1085,12 +1243,12 @@ export default function SurvivalGamePage() {
                                                         type="button"
                                                         className="trivia-challenge-level"
                                                         onClick={() => startLevel(level.level)}
-                                                        disabled={!isUnlocked || isLoading}
-                                                        aria-label={`Level ${level.level}, ${level.accuracyRequired}% Required, ${isCompleted ? 'Complete' : isUnlocked ? 'Available' : 'Locked'}`}
+                                                        disabled={!userId || !isUnlocked || isLoading || serverRun.hasRecoverableSession}
+                                                        aria-label={`Level ${level.level}, ${level.accuracyRequired}% Required, ${!userId ? 'Sign In Required' : serverRun.hasRecoverableSession ? 'Resume Saved Level First' : isCompleted ? 'Complete' : isUnlocked ? 'Available' : 'Locked'}`}
                                                     >
                                                         <span>Level {formatTriviaDisplayNumber(level.level)}</span>
                                                         <span>{formatTriviaDisplayNumber(level.accuracyRequired)}% Required</span>
-                                                        <span>{isCompleted ? 'Complete' : isUnlocked ? 'Available' : 'Locked'}</span>
+                                                        <span>{!userId ? 'Sign In' : serverRun.hasRecoverableSession ? 'Resume Saved Level' : isCompleted ? 'Complete' : isUnlocked ? 'Available' : 'Locked'}</span>
                                                     </button>
                                                 );
                                             })}
@@ -1099,6 +1257,7 @@ export default function SurvivalGamePage() {
                                         <p className="trivia-challenge-note">
                                             Retries Are Free. The Entry Cost Applies Only When Starting A New Run.
                                         </p>
+                                        </div>
                                     </section>
                                 )}
 
@@ -1155,6 +1314,14 @@ export default function SurvivalGamePage() {
                                                 <dt>Wrong</dt>
                                                 <dd>{formatTriviaDisplayNumber(incorrectCount)}</dd>
                                             </div>
+                                            <div className="trivia-challenge-stat" data-tone="accent">
+                                                <dt>Lives Remaining</dt>
+                                                <dd>{formatTriviaDisplayNumber(livesRemaining)}</dd>
+                                            </div>
+                                            <div className="trivia-challenge-stat">
+                                                <dt>Checkpoint</dt>
+                                                <dd>{formatTriviaDisplayNumber(currentLevel)} Of {formatTriviaDisplayNumber(LEVEL_CONFIG.length)}</dd>
+                                            </div>
                                             <div className="trivia-challenge-stat">
                                                 <dt>Diamonds</dt>
                                                 <dd>{formatTriviaDisplayNumber(totalDiamondsEarned)}</dd>
@@ -1199,11 +1366,12 @@ export default function SurvivalGamePage() {
                                                         type="button"
                                                         role="switch"
                                                         aria-labelledby="survival-audio-label"
-                                                        aria-checked={settings.audio}
+                                                        aria-checked={!reduceMotion && settings.audio}
+                                                        disabled={reduceMotion}
                                                         className="trivia-challenge-switch"
                                                         onClick={() => triviaAudio.setMuted(settings.audio)}
                                                     >
-                                                        {settings.audio ? 'On' : 'Off'}
+                                                        {reduceMotion ? 'Reduced' : settings.audio ? 'On' : 'Off'}
                                                     </button>
                                                 </div>
                                                 <div className="trivia-challenge-setting">
@@ -1212,11 +1380,12 @@ export default function SurvivalGamePage() {
                                                         type="button"
                                                         role="switch"
                                                         aria-labelledby="survival-haptics-label"
-                                                        aria-checked={settings.haptics}
+                                                        aria-checked={!reduceMotion && settings.haptics}
+                                                        disabled={reduceMotion}
                                                         className="trivia-challenge-switch"
                                                         onClick={() => setSettings(prev => ({ ...prev, haptics: !prev.haptics }))}
                                                     >
-                                                        {settings.haptics ? 'On' : 'Off'}
+                                                        {reduceMotion ? 'Reduced' : settings.haptics ? 'On' : 'Off'}
                                                     </button>
                                                 </div>
                                                 <div className="trivia-challenge-setting">
@@ -1225,11 +1394,12 @@ export default function SurvivalGamePage() {
                                                         type="button"
                                                         role="switch"
                                                         aria-labelledby="survival-shake-label"
-                                                        aria-checked={settings.screenShake}
+                                                        aria-checked={!reduceMotion && settings.screenShake}
+                                                        disabled={reduceMotion}
                                                         className="trivia-challenge-switch"
                                                         onClick={() => setSettings(prev => ({ ...prev, screenShake: !prev.screenShake }))}
                                                     >
-                                                        {settings.screenShake ? 'On' : 'Off'}
+                                                        {reduceMotion ? 'Reduced' : settings.screenShake ? 'On' : 'Off'}
                                                     </button>
                                                 </div>
                                                 <fieldset className="trivia-challenge-setting-group">
@@ -1467,6 +1637,15 @@ export default function SurvivalGamePage() {
                                             </div>
                                         </dl>
                                     </section>
+                                )}
+
+                                {['levelComplete', 'gameOver', 'victory'].includes(gameState) && (
+                                    <Phase9SettlementReceipt
+                                        settlement={settlementResult}
+                                        modeLabel={`Survival Level ${currentLevel}`}
+                                        correctCount={correctCount}
+                                        totalQuestions={settlementResult?.total || QUESTIONS_PER_LEVEL}
+                                    />
                                 )}
                             </TriviaConsole>
                         </main>

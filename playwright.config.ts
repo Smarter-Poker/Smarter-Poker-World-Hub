@@ -153,5 +153,33 @@ export default defineConfig({
       testMatch: /mobile-budget\.spec\.ts$/,
       use: { ...devices['iPhone 13'], serviceWorkers: 'block' },
     },
+    {
+      // Phase 11 Trivia budget gate. It runs against the production build in
+      // Global Footer E2E, takes four cold mobile samples per route, and keeps
+      // service-worker cache hits out of the transfer-size measurements.
+      name: 'trivia-performance',
+      testMatch: /trivia-performance-budget\.spec\.ts$/,
+      fullyParallel: true,
+      retries: 0,
+      use: {
+        ...devices['iPhone 13'],
+        serviceWorkers: 'block',
+        storageState: { cookies: [], origins: [] },
+      },
+    },
+    {
+      // The installed-PWA rollback test must use a real service worker. Keep it
+      // isolated and serial because unregister/re-register is origin-scoped.
+      name: 'trivia-pwa',
+      testMatch: /trivia-pwa-rollback\.spec\.ts$/,
+      fullyParallel: false,
+      workers: 1,
+      retries: 0,
+      use: {
+        ...devices['Desktop Chrome'],
+        serviceWorkers: 'allow',
+        storageState: { cookies: [], origins: [] },
+      },
+    },
   ],
 });

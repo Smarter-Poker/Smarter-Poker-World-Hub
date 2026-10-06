@@ -61,7 +61,7 @@ self.addEventListener('message', (event) => {
 // It never throws: activation (and the push handler it guards) must not fail
 // because a cache could not be read. The next worker simply tries again.
 // ---------------------------------------------------------------------------
-const TRIVIA_ART_CACHE = 'trivia-art-c1fb74cfb5';
+const TRIVIA_ART_CACHE = 'trivia-art-2aeb3f37c9';
 
 async function retireStaleTriviaArt() {
     try {

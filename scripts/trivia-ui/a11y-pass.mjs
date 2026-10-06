@@ -43,6 +43,7 @@ const VIEWPORTS = [
     { name: '390', width: 390, height: 844 }, { name: '430', width: 430, height: 932 },
     { name: '768', width: 768, height: 1024 }, { name: '1024', width: 1024, height: 768 },
     { name: '1280', width: 1280, height: 800 }, { name: '1440', width: 1440, height: 900 },
+    { name: '1920', width: 1920, height: 1080 },
     { name: 'landscape', width: 844, height: 390 },
     { name: 'zoom200', width: 640, height: 450 }, { name: 'reflow400', width: 320, height: 256 },
 ];
@@ -186,4 +187,9 @@ run().then((rows) => {
     const bad = rows.filter((r) => r.overflow || r.broken.length || r.axe.some((v) => v.trivia.length) || r.occluded.length || (r.keyboard && (r.keyboard.noRing.length || r.keyboard.offscreen.length)));
     writeFileSync(join(OUT, 'summary.json'), JSON.stringify({ pages: rows.length, flagged: bad.length, base: BASE }, null, 1));
     console.log(`DONE pages=${rows.length} flagged=${bad.length}`);
+    // This file is a release gate, not a report generator. Before Phase 11 it
+    // printed a non-zero flagged count and still exited 0, so CI could certify
+    // a known accessibility/layout failure. Preserve every artifact for
+    // diagnosis, then make the process result agree with its own summary.
+    if (bad.length > 0) process.exitCode = 1;
 }).catch((e) => { console.error(e); process.exit(1); });

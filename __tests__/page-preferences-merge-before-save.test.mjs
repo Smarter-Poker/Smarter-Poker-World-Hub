@@ -22,6 +22,7 @@ import { readFileSync, writeFileSync, mkdtempSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { pathToFileURL } from 'node:url';
+import { derivePreferenceSyncState } from '../src/lib/trivia/progressAccount.mjs';
 
 const ROOT = process.cwd();
 const read = (p) => readFileSync(join(ROOT, p), 'utf8');
@@ -45,6 +46,7 @@ async function loadService(file, fake) {
   let src = read(file);
   const key = `__fake_${Math.random().toString(36).slice(2)}`;
   globalThis[key] = fake;
+  globalThis[key].derivePreferenceSyncState = derivePreferenceSyncState;
   src = src.replace(
     /import \{ supabase \} from '\.\.\/lib\/supabase';/,
     `const supabase = globalThis['${key}'].supabase;`
@@ -52,6 +54,10 @@ async function loadService(file, fake) {
   src = src.replace(
     /import \{ readOwnProfile \} from '\.\.\/lib\/ownProfile';/,
     `const readOwnProfile = (...a) => globalThis['${key}'].readOwnProfile(...a);`
+  );
+  src = src.replace(
+    /import \{ derivePreferenceSyncState \} from '\.\.\/lib\/trivia\/progressAccount\.mjs';/,
+    `const derivePreferenceSyncState = (...a) => globalThis['${key}'].derivePreferenceSyncState(...a);`
   );
   assert.doesNotMatch(src, /^import /m, `${file} gained an import this harness does not stub`);
   const out = join(TMP, `${key}.mjs`);
@@ -62,7 +68,11 @@ async function loadService(file, fake) {
 /** A fake client holding one stored column value. */
 function fakeClient({ column, stored, readError = null, rpcError = null }) {
   const calls = { rpc: [], reads: 0 };
-  const row = stored === undefined ? null : { id: USER, [column]: stored };
+  const row = stored === undefined ? null : {
+    id: USER,
+    [column]: stored,
+    ...(column === 'trivia_preferences' ? { trivia_preferences_revision: 0 } : {}),
+  };
   const supabase = {
     from(table) {
       assert.equal(table, 'profiles');
@@ -78,7 +88,23 @@ function fakeClient({ column, stored, readError = null, rpcError = null }) {
     },
     async rpc(name, args) {
       calls.rpc.push({ name, args });
-      return rpcError ? { data: null, error: rpcError } : { data: args.p_preferences, error: null };
+      if (rpcError) return { data: null, error: rpcError };
+      if (name === 'update_trivia_preferences_cas') {
+        return {
+          data: {
+            contract: 'trivia-preferences-cas/1',
+            version: 1,
+            success: true,
+            conflict: false,
+            changed: true,
+            revision: args.p_expected_revision + 1,
+            preferences: args.p_preferences,
+            updatedAt: '2026-10-05T23:35:00.000Z',
+          },
+          error: null,
+        };
+      }
+      return { data: args.p_preferences, error: null };
     },
   };
   const readOwnProfile = async () => {
@@ -117,6 +143,14 @@ const SERVICES = [
     stored: { geofenceAlerts: false, lastLocationCity: 'Austin' },
     patch: { showNewcomerFriendly: false },
   },
+  {
+    file: 'src/services/triviaPreferences.js',
+    fn: 'updateTriviaPreferences',
+    column: 'trivia_preferences',
+    stored: { soundEffects: false, timerEnabled: true, customFutureKey: 'kept' },
+    patch: { soundEffects: true },
+    rpc: 'update_trivia_preferences_cas',
+  },
 ];
 
 for (const svc of SERVICES) {
@@ -127,9 +161,15 @@ for (const svc of SERVICES) {
 
     assert.equal(fake.calls.rpc.length, 1, 'exactly one save');
     const { name, args } = fake.calls.rpc[0];
-    assert.equal(name, 'update_page_preferences');
-    assert.equal(args.p_user_id, USER);
-    assert.equal(args.p_column_name, svc.column);
+    assert.equal(name, svc.rpc || 'update_page_preferences');
+    if (svc.rpc) {
+      assert.equal(args.p_expected_revision, 0);
+      assert.equal('p_user_id' in args, false, 'JWT, not browser input, binds the CAS account');
+      assert.equal('p_column_name' in args, false, 'Trivia uses its dedicated least-privilege writer');
+    } else {
+      assert.equal(args.p_user_id, USER);
+      assert.equal(args.p_column_name, svc.column);
+    }
     for (const [k, v] of Object.entries(svc.stored)) {
       if (k in svc.patch) continue;
       assert.deepEqual(args.p_preferences[k], v,
@@ -138,7 +178,11 @@ for (const svc of SERVICES) {
     for (const [k, v] of Object.entries(svc.patch)) {
       assert.deepEqual(args.p_preferences[k], v, `patch key "${k}" must win`);
     }
-    assert.deepEqual(result, args.p_preferences, 'resolves with the object that was written');
+    for (const [k, v] of Object.entries(args.p_preferences)) {
+      assert.deepEqual(result[k], v, `saved result must carry preference key "${k}"`);
+    }
+    if (svc.rpc) assert.equal(result._sync.revision, 1, 'CAS result carries the server revision');
+    else assert.deepEqual(result, args.p_preferences, 'resolves with the object that was written');
   });
 
   test(`${svc.fn} refuses to save when the stored value cannot be read`, async () => {
@@ -223,7 +267,7 @@ test('no caller sends update_page_preferences a column it does not accept', () =
   walk('pages');
   assert.ok(callers >= 4, 'sanity: the four page-preference services call the RPC');
   assert.deepEqual(offenders, [],
-    `update_page_preferences accepts only ${ACCEPTED_COLUMNS.join(', ')} (diamond_arena_preferences is removed)`);
+    `update_page_preferences accepts only maintained non-Trivia columns: ${ACCEPTED_COLUMNS.join(', ')}`);
 });
 
 // 2026-10-05 audit: three profiles store bankroll_preferences = {} and three
@@ -257,6 +301,23 @@ const READ_DEFAULTS = [
     fn: 'getNewsPreferences',
     column: 'news_preferences',
     defaults: { pushNotifications: false, emailDigest: false },
+  },
+  {
+    file: 'src/services/triviaPreferences.js',
+    fn: 'getTriviaPreferences',
+    column: 'trivia_preferences',
+    defaults: {
+      soundEffects: true,
+      timerEnabled: true,
+      hintsEnabled: false,
+      difficulty: 'medium',
+      haptics: true,
+      screenShake: true,
+      intensity: 'high',
+      reducedMotion: false,
+      highContrast: false,
+      largerText: false,
+    },
   },
 ];
 

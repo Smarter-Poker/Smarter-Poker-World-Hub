@@ -303,5 +303,6 @@ test('legacy PvP paths cannot move money on a v2 match', () => {
     assert.match(settle, /if \(match\.engine_version\) \{[\s\S]{0,200}rpc\('trivia_pvp_settle_v2'/);
     const cron = read('pages/api/cron/pvp-settle.js');
     assert.match(cron, /\.is\('engine_version', null\)/);
-    assert.match(cron, /rpc\('trivia_pvp_recover_v2'/);
+    assert.match(cron, /rpc\('trivia_pvp_recovery_run_v1'/);
+    assert.doesNotMatch(cron, /rpc\('trivia_pvp_recover_v2'/);
 });

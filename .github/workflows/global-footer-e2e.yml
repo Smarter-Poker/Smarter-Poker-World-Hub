@@ -84,6 +84,11 @@ jobs:
       - name: Build production application
         run: npm run build -- --webpack
         env:
+          # next-pwa is deliberately disabled outside Vercel. This maintained
+          # production-build job is the only existing browser gate that can
+          # exercise an installed worker without creating another broad build.
+          VERCEL: '1'
+          VERCEL_GIT_COMMIT_SHA: ${{ github.sha }}
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co' }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder' }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY || 'placeholder' }}
@@ -161,6 +166,18 @@ jobs:
       # same build, so it costs one more minute, not another job.
       - name: Mobile performance budget (thirteen World roots)
         run: npx playwright test e2e/mobile-budget.spec.ts --project=mobile-budget --workers=2
+        env:
+          CI: true
+          NEXT_PUBLIC_BASE_URL: http://127.0.0.1:${{ steps.port.outputs.port }}
+
+      - name: Trivia Phase 11 mobile p75 performance budgets
+        run: npx playwright test e2e/trivia-performance-budget.spec.ts --project=trivia-performance --workers=2
+        env:
+          CI: true
+          NEXT_PUBLIC_BASE_URL: http://127.0.0.1:${{ steps.port.outputs.port }}
+
+      - name: Trivia installed-PWA upgrade and rollback compatibility
+        run: npx playwright test e2e/trivia-pwa-rollback.spec.ts --project=trivia-pwa --workers=1
         env:
           CI: true
           NEXT_PUBLIC_BASE_URL: http://127.0.0.1:${{ steps.port.outputs.port }}
