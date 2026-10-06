@@ -86,10 +86,11 @@ const HORSE_FIELDS = [
 /**
  * Settings keys the panel owns. `id` is handled separately.
  *
- * These are the SOCIAL CONTENT engine's settings and nothing else. The row is
- * read by `src/content-engine/pipeline/PipelineCommander.js`, which writes
- * posts and stories; `ai_model` and `temperature` steer that writing and are
- * legitimate.
+ * These are the SOCIAL CONTENT engine's settings and nothing else. The JS
+ * mirror that read this row to write posts and stories was deleted in Phase
+ * 10; the live engine (`Fleet.ts` in the workers repo) reads only
+ * `engine_enabled` from it, so the schedule and model keys steer nothing
+ * until the Settings tab is rewired to what the worker reads.
  *
  * The four `grinder_*` keys that used to sit at the end of this list were
  * REMOVED on 2026-09-04. They were write-only: this route accepted them, the

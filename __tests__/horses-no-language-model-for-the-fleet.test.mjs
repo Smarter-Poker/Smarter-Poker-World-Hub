@@ -37,10 +37,12 @@
  * repo next. A test is the only form of a rule that argues back.
  *
  * IF THIS FILE GOES RED, YOUR CHANGE IS THE BUG. Do not loosen an assertion to
- * land a card. The legitimate place to say "model" in this console is the AI
- * Settings card, which steers the SOCIAL CONTENT engine
- * (src/content-engine/pipeline/PipelineCommander.js reads that row to write
- * posts and stories) and has nothing to do with poker. The legitimate place to
+ * land a card. The only place "model" is said in this console is the AI
+ * Settings card, written for the SOCIAL CONTENT engine's content_settings row,
+ * which has nothing to do with poker. The JS mirror that read that row was
+ * deleted in Phase 10; the live engine (Fleet.ts in the workers repo) reads
+ * only engine_enabled from it, and the next phase retires the controls that
+ * steer nothing. The legitimate place to
  * steer how many horses take seats is Fleet Command, which writes
  * ca_horse_fleet_policy and which the engine genuinely reads once per club per
  * cycle.
@@ -140,8 +142,10 @@ test('the settings route refuses every grinder_* key', async () => {
 
 test('the settings route still owns the social content engine keys', async () => {
   // The negative above must not be satisfied by deleting the whole card. The
-  // content engine genuinely reads these, in
-  // src/content-engine/pipeline/PipelineCommander.js.
+  // JS mirror that read these keys was deleted in Phase 10 and the live engine
+  // (Fleet.ts in the workers repo) reads only engine_enabled; the allowlist
+  // stays pinned here until the Settings tab is rewired to what the worker
+  // reads, which replaces this test.
   const body = await read('pages/api/horses/stable-admin.js');
   const allowlist = body.match(/const SETTINGS_FIELDS = \[([\s\S]*?)\];/)[1];
 
