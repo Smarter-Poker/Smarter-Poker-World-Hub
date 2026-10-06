@@ -266,11 +266,11 @@ export default function AuthCallback() {
                         meta.name ||
                         [meta.given_name, meta.family_name].filter(Boolean).join(' ') ||
                         null;
-                    const username =
-                        meta.poker_alias ||
-                        meta.preferred_username ||
-                        (fullName ? fullName.replace(/[^a-zA-Z0-9]/g, '').slice(0, 15) : null) ||
-                        (user.email ? user.email.split('@')[0] : null);
+                    // Only a handle the person chose. Never derived from their
+                    // legal name or their email (ruling 25: both are theirs
+                    // alone); ensure-profile gives everyone else a unique
+                    // Player handle they can change in Edit Profile.
+                    const username = meta.poker_alias || meta.preferred_username || null;
 
                     const resp = await fetch('/api/auth/ensure-profile', {
                         method: 'POST',

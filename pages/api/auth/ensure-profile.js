@@ -306,7 +306,9 @@ export default async function handler(req, res) {
           const uniqueSuffix = String(user_id).replace(/-/g, '').slice(0, 6);
           const fallbackUsername = `Player${nextPlayerNumber}_${uniqueSuffix}`;
 
-          let finalUsername = username || email?.split('@')[0] || fallbackUsername;
+          // Never the email's local part: the username is public and the email
+          // is not (ruling 25).
+          let finalUsername = username || fallbackUsername;
 
           /**
            * The welcome grant, as a function so BOTH insert paths can run it.
