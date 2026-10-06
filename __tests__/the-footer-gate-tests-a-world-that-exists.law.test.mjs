@@ -265,3 +265,32 @@ test('the specs never import a module Playwright cannot transpile', () => {
     assert.ok(imports.includes('./world-menu-signed-out-exclusions.json'),
         'the skip list must be the same file the law reads');
 });
+
+test('the footer gate waits for product facts instead of WebKit lifecycle accidents', () => {
+    const spec = read(FOOTER_SPEC);
+    assert.match(
+        spec,
+        /page\.goto\(route, \{ waitUntil: 'commit', timeout: 15_000 \}\)/,
+        'route navigation must stop waiting once the production document commits',
+    );
+    assert.match(
+        spec,
+        /TimeoutError\|Navigation timeout/,
+        'a bounded WebKit navigation timeout must receive the same limited retry as document replacement',
+    );
+    assert.doesNotMatch(
+        spec,
+        /image\.decode\(\)/,
+        'WebKit image readiness must be polled from complete and intrinsic size, not decode()',
+    );
+    assert.match(
+        spec,
+        /navBox!\.height - expectedClubFooterHeight\(320\)/,
+        'the 320px check must measure the fixed control shell against its own shared height token',
+    );
+    assert.match(
+        spec,
+        /data-footer-scroll-armed[\s\S]*?timeout: 15_000/,
+        'hydration-owned scroll behavior must receive its explicit bounded readiness wait',
+    );
+});
