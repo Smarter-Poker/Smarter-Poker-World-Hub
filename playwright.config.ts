@@ -162,7 +162,8 @@ export default defineConfig({
       fullyParallel: true,
       retries: 0,
       use: {
-        ...devices['iPhone 13'],
+        ...devices['Pixel 5'],
+        browserName: 'chromium',
         serviceWorkers: 'block',
         storageState: { cookies: [], origins: [] },
       },

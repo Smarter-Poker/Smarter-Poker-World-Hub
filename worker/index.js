@@ -58,38 +58,58 @@ self.addEventListener('message', (event) => {
 // the set changes the name changes, and this deletes every older trivia-art-*
 // cache plus any Trivia picture still held by the generic 'static-assets'
 // cache, so an installed client cannot keep showing replaced or rejected art.
-// It never throws: activation (and the push handler it guards) must not fail
-// because a cache could not be read. The next worker simply tries again.
+// Activation fails closed if the postcondition cannot be proved. Claiming
+// clients while rejected art remains would let an installed PWA reload into a
+// mixed release; keeping the previous worker active is the safe outcome.
 // ---------------------------------------------------------------------------
 const TRIVIA_ART_CACHE = 'trivia-art-2aeb3f37c9';
 
 async function retireStaleTriviaArt() {
-    try {
-        if (!self.caches) return false;
-        const names = await caches.keys();
-        await Promise.all(names
-            .filter((name) => name.indexOf('trivia-art-') === 0 && name !== TRIVIA_ART_CACHE)
-            .map((name) => caches.delete(name)));
-        if (names.indexOf('static-assets') === -1) return true;
-        const shared = await caches.open('static-assets');
+    const cacheStorage = self.caches;
+    if (!cacheStorage) throw new Error('Trivia art cache migration requires CacheStorage');
+
+    const names = await cacheStorage.keys();
+    await Promise.all(names
+        .filter((name) => name.indexOf('trivia-art-') === 0 && name !== TRIVIA_ART_CACHE)
+        .map((name) => cacheStorage.delete(name)));
+
+    if (names.indexOf('static-assets') !== -1) {
+        const shared = await cacheStorage.open('static-assets');
         const requests = await shared.keys();
         await Promise.all(requests
             .filter((request) => new URL(request.url).pathname.indexOf('/images/trivia/') === 0)
             .map((request) => shared.delete(request)));
-        return true;
-    } catch (error) {
-        // Best effort by design: the caches stay as they are and the next
-        // worker to activate tries again. Activation must not fail here.
-        console.warn('[SW] Trivia art cache migration skipped:', error);
-        return false;
     }
+
+    // CacheStorage mutation can race another activation listener or an older
+    // controlling worker. Verify the authoritative postcondition before this
+    // worker is allowed to claim a single client.
+    const remainingNames = await cacheStorage.keys();
+    const staleNames = remainingNames.filter(
+        (name) => name.indexOf('trivia-art-') === 0 && name !== TRIVIA_ART_CACHE
+    );
+    let rejectedSharedEntries = [];
+    if (remainingNames.indexOf('static-assets') !== -1) {
+        const shared = await cacheStorage.open('static-assets');
+        rejectedSharedEntries = (await shared.keys()).filter(
+            (request) => new URL(request.url).pathname.indexOf('/images/trivia/') === 0
+        );
+    }
+    if (staleNames.length > 0 || rejectedSharedEntries.length > 0) {
+        throw new Error('Trivia art cache migration postcondition failed');
+    }
+
+    return true;
 }
 
 self.addEventListener('activate', (event) => {
     event.waitUntil(
         (async () => {
-            await self.clients.claim();
             await retireStaleTriviaArt();
+            // This is the sole clients.claim() for the generated root worker.
+            // next.config.js disables Workbox's parallel default so no page can
+            // observe or reload into the new release before cleanup succeeds.
+            await self.clients.claim();
             const clients = await self.clients.matchAll({ type: 'window' });
             console.log(`[SW ${SP_SW_VERSION}] Activated. Controlled clients: ${clients.length}.`);
         })()

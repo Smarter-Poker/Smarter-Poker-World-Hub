@@ -154,10 +154,25 @@ test('the existing production-build browser job owns Trivia budgets and installe
 
     const pwa = read('e2e/trivia-pwa-rollback.spec.ts');
     assert.match(pwa, /const TRIVIA_ART_CACHE = '\(trivia-art-\[0-9a-f\]\+\)'/);
-    assert.match(pwa, /registration\.unregister\(\)/);
+    assert.doesNotMatch(pwa, /\.unregister\(\)/, 'unregister leaves the old controlling worker alive and cannot identify a new activation');
+    assert.match(pwa, /activateRootWorker\(page, '\/sw\.js\?trivia-release=forward-candidate'/);
+    assert.match(pwa, /activateRootWorker\(page, '\/sw\.js', ''\)/);
+    assert.match(pwa, /active\.state !== 'activated'/, 'cache assertions must wait for activate event.waitUntil to settle');
     assert.match(pwa, /trivia-art-prior-rejected/);
     assert.match(pwa, /trivia-art-forward-candidate/);
     assert.match(pwa, /static-assets/);
     assert.match(pwa, /_next\\\/static\\\/chunks\\\/pages/);
     assert.match(read('__tests__/trivia-pwa-rollback.test.mjs'), /triviaArtCacheName/, 'the rollback gate must bind the worker to the exact shipped art digest');
+});
+
+test('the Trivia performance project is pinned to Chromium for CDP metrics', () => {
+    const config = read('playwright.config.ts');
+    const projectStart = config.indexOf("name: 'trivia-performance'");
+    const projectEnd = config.indexOf("name: 'trivia-pwa'", projectStart);
+    assert.ok(projectStart >= 0 && projectEnd > projectStart, 'the Trivia performance project must remain independently configured');
+
+    const project = config.slice(projectStart, projectEnd);
+    assert.match(project, /\.\.\.devices\['Pixel 5'\]/, 'the CDP gate must use a Chromium mobile device profile');
+    assert.match(project, /browserName:\s*'chromium'/, 'the CDP gate must explicitly launch Chromium');
+    assert.doesNotMatch(project, /devices\['iPhone 13'\]/, 'a WebKit-default device profile would break newCDPSession');
 });

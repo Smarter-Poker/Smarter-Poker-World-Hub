@@ -163,6 +163,12 @@ const withPWA = require('@ducanh2912/next-pwa').default({
   // build-cost denylist and is NOT what keeps public/ out of the precache.
   // See the additionalManifestEntries comment below for what actually does.
   workboxOptions: {
+    // The custom worker owns client takeover because its activate handler must
+    // retire rejected Trivia art before any controlled page can reload under
+    // the new release. Workbox defaults this to true, which registered a
+    // second activate listener that claimed clients in parallel with that
+    // migration and exposed the pre-migration cache state to installed PWAs.
+    clientsClaim: false,
     // ─── THE ROOT SERVICE WORKER MUST BE ABLE TO INSTALL ───────────────────
     // Dan, 2026-08-29, from an iPhone: "ENABLE NOTIFICATIONS ISN'T WORKING",
     // with Club Arena's prompt showing "The notification service worker did
