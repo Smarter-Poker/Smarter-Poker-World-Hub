@@ -56,7 +56,9 @@ async function checkAndDelete() {
     // Verify final count
     const { count } = await supabase
         .from('social_posts')
-        .select('*', { count: 'exact', head: true });
+        // Not '*': the public key may name only browser-granted columns
+        // (src/lib/socialPostShape.js), and '*' includes origin_type.
+        .select('id', { count: 'exact', head: true });
 
     console.log(`\n📊 Remaining posts: ${count}`);
 }

@@ -428,7 +428,12 @@ const POST_ROUTE = read('pages/api/social/post.js');
 const POST_ID = '00000000-0000-4000-8000-0000000000aa';
 const TOKEN = 'caller-token-0123456789abcdef0123456789';
 
-function loadPostRoute({ visibleRow, notes = { scheduler: 'phase6', ended: true }, visibleError = null }) {
+function loadPostRoute({
+  visibleRow,
+  notes = { scheduler: 'phase6', ended: true },
+  visibleError = null,
+  authorRow = { id: 'a', username: 'u', display_name: 'D', avatar_url: null },
+}) {
   const calls = [];
   const createClient = (url, key, options) => {
     const auth = options?.global?.headers?.Authorization || null;
@@ -440,7 +445,15 @@ function loadPostRoute({ visibleRow, notes = { scheduler: 'phase6', ended: true 
           select(cols) { q.select = cols; return builder; },
           eq(col, v) { q.filters.push([col, v]); return builder; },
           maybeSingle() {
+            if (key === 'service-key' && table === 'profiles') return Promise.resolve({ data: authorRow, error: null });
             if (key === 'service-key') return Promise.resolve({ data: { metadata: notes }, error: null });
+            // The database as it is: anon and authenticated may name only
+            // browser-granted social_posts columns, and anon may not read
+            // profiles at all, so a caller-scoped embed of profiles fails for
+            // every signed-out caller with 42501.
+            if (/profiles|\bauthor\s*:/.test(q.select || '')) {
+              return Promise.resolve({ data: null, error: { code: '42501', message: 'permission denied for table profiles' } });
+            }
             return Promise.resolve({ data: visibleError ? null : visibleRow, error: visibleError });
           },
         };
@@ -482,22 +495,37 @@ function fakeRes() {
   };
 }
 
-test('/api/social/post reads the row as the caller and only the metadata with the service role', async () => {
-  const { mod, calls } = loadPostRoute({ visibleRow: { id: POST_ID, content: 'x', author: { id: 'a' } } });
+test('/api/social/post reads the row as the caller and only the metadata and author with the service role', async () => {
+  const author = { id: 'a', username: 'u', display_name: 'D', avatar_url: null };
+  const { mod, calls } = loadPostRoute({ visibleRow: { id: POST_ID, author_id: 'a', content: 'x' }, authorRow: author });
   const res = fakeRes();
   await mod.default({ method: 'GET', query: { id: POST_ID }, headers: { authorization: `Bearer ${TOKEN}` } }, res);
   assert.equal(res.statusCode, 200);
-  assert.deepEqual(res.body.post, { id: POST_ID, content: 'x', author: { id: 'a' }, metadata: { ended: true } });
+  assert.deepEqual(res.body.post, { id: POST_ID, author_id: 'a', content: 'x', author, metadata: { ended: true } });
   assert.equal(res.headers['cache-control'], 'private, no-store, max-age=0');
-  const [visible, notes] = calls;
+  const [visible, notes, card] = calls;
   assert.equal(visible.key, 'anon-key', 'row-level security decides who sees the row');
   assert.equal(visible.auth, `Bearer ${TOKEN}`);
-  assert.ok(visible.select.startsWith(`${BROWSER_POST_SELECT},`), 'only browser columns, plus the author');
+  assert.equal(visible.select, BROWSER_POST_SELECT, 'only browser columns, and nothing embedded');
   assert.doesNotMatch(visible.select, LABEL_COLUMN);
   assert.doesNotMatch(visible.select, /\*/);
   assert.deepEqual(visible.filters, [['id', POST_ID], ['is_deleted', false]]);
   assert.equal(notes.key, 'service-key');
   assert.equal(notes.select, 'metadata', 'origin_type is never read');
+  assert.equal(card.key, 'service-key');
+  assert.equal(card.table, 'profiles');
+  assert.equal(card.select, 'id,username,display_name,avatar_url', 'the public card only, never a legal name');
+  assert.deepEqual(card.filters, [['id', 'a']]);
+});
+
+test('/api/social/post: a signed-out reader of a public post gets it, author and all', async () => {
+  const { mod, calls } = loadPostRoute({ visibleRow: { id: POST_ID, author_id: 'a', content: 'x' } });
+  const res = fakeRes();
+  await mod.default({ method: 'GET', query: { id: POST_ID }, headers: {} }, res);
+  assert.equal(res.statusCode, 200, 'a shared link opened signed out used to answer 503');
+  assert.equal(res.body.post.author.username, 'u');
+  assert.equal(calls[0].auth, null, 'signed out reads with the public key');
+  assert.equal(calls[0].key, 'anon-key');
 });
 
 test('/api/social/post: hidden or missing is 404, a bad id is 400, a failure says nothing', async () => {

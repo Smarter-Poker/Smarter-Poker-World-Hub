@@ -1350,6 +1350,34 @@ test('stable-admin: every action asks for the permission it actually needs', asy
   assert.equal(stableSpec.permission, 'console.read');
 });
 
+test('stable-admin: read_settings answers any operator with the settings row and nothing else', async () => {
+  const row = { id: 'settings-1', posts_per_day: 20, engine_enabled: true };
+  const db = fakeDb({ content_settings: { rows: [row] } });
+  const consoleOnly = { ...fakeOp(db), permissions: ['console.read'] };
+  const out = await stableHandle({ req: fakeReq({ method: 'POST' }), op: consoleOnly, db, body: { action: 'read_settings' } });
+  assert.deepEqual(out, { settings: row });
+  const read = db.calls.find((c) => c.table === 'content_settings');
+  assert.ok(read, 'the service role reads the row: a browser no longer can');
+  assert.doesNotMatch(read.select, /\*/, 'named columns only');
+  assert.match(read.select, /\bposts_per_day\b/);
+  assert.match(read.select, /\bengine_enabled\b/);
+  assert.equal(read.insert, undefined);
+  assert.equal(read.update, undefined);
+});
+
+test('stable-admin: pipeline_runs answers any operator with the recent runs, newest first', async () => {
+  const runs = [{ id: 'r2', started_at: '2026-10-05T10:00:00Z' }, { id: 'r1', started_at: '2026-10-04T10:00:00Z' }];
+  const db = fakeDb({ pipeline_runs: { rows: runs } });
+  const consoleOnly = { ...fakeOp(db), permissions: ['console.read'] };
+  const out = await stableHandle({ req: fakeReq({ method: 'POST' }), op: consoleOnly, db, body: { action: 'pipeline_runs' } });
+  assert.ok(Array.isArray(out.runs));
+  const read = db.calls.find((c) => c.table === 'pipeline_runs');
+  assert.ok(read, 'the service role reads the runs: a browser no longer can');
+  assert.doesNotMatch(read.select, /\*|metadata/, 'named columns only, never the run notes');
+  assert.deepEqual(read.filters.find(([op]) => op === 'order'), ['order', 'started_at', { ascending: false }]);
+  assert.deepEqual(read.filters.find(([op]) => op === 'limit'), ['limit', 10]);
+});
+
 test('stable-admin: audit_log and set_ticket_status ask for their own permission', async () => {
   const db = fakeDb();
   const contentOnly = { ...fakeOp(db), permissions: ['content.write'] };
