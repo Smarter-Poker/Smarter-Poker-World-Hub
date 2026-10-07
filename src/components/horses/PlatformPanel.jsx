@@ -56,7 +56,7 @@ function EngineSection({ value, error }) {
     <Fact label="Dealable Tables" value={error ? 'Unknown' : numberText(model.dealableTables)} />
     <Fact label="Stalled Tables" value={error ? 'Unknown' : numberText(model.stalledTables)} />
     <Fact label="Active Tournaments" value={error ? 'Unknown' : numberText(model.tournaments)} />
-    <Fact label="Humans Seated, Engine" value={error ? 'Unknown' : numberText(model.humansSeated)} />
+    <Fact label="Humans Seated, Live Tables" value={error ? 'Unknown' : numberText(model.humansSeated)} qualifier="Read From The Database, Horses And Left Seats Excluded" />
     <Fact label="Occupied Seats, Database" value={error ? 'Unknown' : numberText(model.occupiedSeats)} />
     <Fact label="Average Hands Per Hour" value={error ? 'Unknown' : numberText(model.averageHandsPerHour)} />
     <Fact label="Estimated Platform Hands Per Second" value={error ? 'Unknown' : numberText(model.estimatedHandsPerSecond)} qualifier="Estimated From Active Tables And Measured-Table Hands Per Hour" />
