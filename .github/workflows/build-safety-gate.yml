@@ -161,6 +161,9 @@ jobs:
       - name: Local Scraper Runtime Integrity And Delivery
         run: python3 -m unittest scripts/test_local_scraper_runtime.py -v
 
+      - name: Training M1 Scope-Preserving HMAC Provisioning
+        run: python3 -m unittest discover -s __tests__ -p test_provision_training_m1_hmac.py
+
       - name: Messenger Club And Invoice Separation
         run: >-
           node --experimental-vm-modules --test
