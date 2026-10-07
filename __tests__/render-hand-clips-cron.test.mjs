@@ -148,7 +148,7 @@ function makeBrowser({
   return { rec, launch: async () => browser };
 }
 
-function makeDeps({ supa, browser, hand = makeHand(), facts = null, discard = null, ffmpegFails = false, uploadFails = false, nowStepMs = 10, tmpRoot } = {}) {
+function makeDeps({ supa, browser, hand = makeHand(), facts = null, discard = null, table = { name: 'Main Street' }, ffmpegFails = false, uploadFails = false, nowStepMs = 10, tmpRoot } = {}) {
   const rec = { ffmpeg: [], uploads: [], logs: [], listFiles: [] };
   let t = 1700000000000;
   const deps = {
@@ -167,7 +167,7 @@ function makeDeps({ supa, browser, hand = makeHand(), facts = null, discard = nu
       rec.uploads.push({ path, bytes: body.length, contentType });
       if (uploadFails) throw new Error('upload 503: storage unavailable');
     },
-    fetchHand: async () => ({ hand, facts, discard }),
+    fetchHand: async () => ({ hand, facts, discard, table }),
     now: () => { t += nowStepMs; return t; },
     sleep: async () => {},
     log: (msg) => rec.logs.push(String(msg)),
@@ -253,7 +253,7 @@ test('a user job: claim, inject C1, goto, one still per frame at its beat, encod
   // C1 injected before any script, then the live clip page.
   assert.equal(browser.rec.injected.fn, pageScripts.inject);
   assert.deepEqual(browser.rec.injected.payload, {
-    v: 1, style: 'felt-720p', heroId: HERO, row: makeHand(),
+    v: 1, style: 'felt-720p', heroId: HERO, row: makeHand(), tableName: 'Main Street',
     privateHoleCards: { [HERO]: [{ rank: 'A', suit: 's' }] }, discardedCards: {}, minMs: 15000, maxMs: 40000,
   });
   assert.deepEqual(browser.rec.gotos, [{ url: CLIP_PAGE_URL, opts: { waitUntil: 'networkidle2', timeout: 60000 } }]);
@@ -299,8 +299,8 @@ test('a user job: claim, inject C1, goto, one still per frame at its beat, encod
     p_video_url: publicUrlFor(SUPABASE_URL, paths.video),
     p_poster_url: publicUrlFor(SUPABASE_URL, paths.poster),
     p_duration_ms: PLANNED_MS,
-    p_width: 1280,
-    p_height: 720,
+    p_width: 1080,
+    p_height: 1350,
     p_frames: 11,
     p_render_ms: finishes[0].args.p_render_ms,
     p_error: null,
@@ -579,6 +579,7 @@ test('the real handler module exports the Vercel config and a wrapped default ha
   assert.match(source, /'x-upsert': 'true'/);
   assert.match(source, /\.from\('ca_hand_facts'\)[\s\S]*\.eq\('hand_id', job\.hand_id\)[\s\S]*\.eq\('user_id', job\.author_id\)/);
   assert.match(source, /\.from\('hand_discards'\)[\s\S]*\.eq\('table_id', hand\.table_id\)[\s\S]*\.eq\('hand_number', hand\.hand_number\)[\s\S]*\.eq\('user_id', job\.author_id\)/);
+  assert.match(source, /\.from\('tables'\)[\s\S]*\.select\('name'\)[\s\S]*\.eq\('id', hand\.table_id\)/, 'the table name is read for the share header');
   const code = source.split('\n').filter((l) => !/^\s*(\/\/|\*|\/\*)/.test(l)).join('\n');
   assert.doesNotMatch(code, /setInterval|retry|is_horse/i, 'no watcher, no retry, no horse filter in the code');
   const lib = readFileSync(new URL('../src/lib/server/handClipRender.js', import.meta.url), 'utf8');

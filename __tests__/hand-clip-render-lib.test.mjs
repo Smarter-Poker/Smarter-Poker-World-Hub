@@ -56,7 +56,7 @@ test('the constants are the C6 numbers', () => {
     quality: 85,
     captureBeyondViewport: false,
     optimizeForSpeed: true,
-    clip: { x: 0, y: 0, width: 1280, height: 720, scale: 1 },
+    clip: { x: 0, y: 0, width: 1080, height: 1350, scale: 1 },
   });
   for (const col of ['id', 'table_id', 'hand_number', 'game_variant', 'small_blind', 'big_blind', 'players', 'actions', 'board',
     'community_cards', 'community_cards2', 'community_cards3', 'rit_boards', 'pots', 'pot_size', 'winners', 'winners_by_board',
@@ -82,11 +82,14 @@ test('buildClipPayload is the C1 shape: facts fill the hero cards only when the 
     style: 'felt-720p',
     heroId: HERO,
     row: HAND,
+    tableName: null,
     privateHoleCards: { [HERO]: facts.hole_cards },
     discardedCards: {},
     minMs: 15000,
     maxMs: 40000,
   });
+  assert.equal(buildClipPayload(HAND, facts, null, JOB, { name: 'Main Street' }).tableName, 'Main Street', 'the table name rides along for the share header');
+  assert.equal(buildClipPayload(HAND, facts, null, JOB, { name: '  ' }).tableName, null, 'a blank name is no name');
   const withRowCards = buildClipPayload({ ...HAND, hole_cards: { [HERO]: ['As', 'Ks'] } }, facts, null, JOB);
   assert.deepEqual(withRowCards.privateHoleCards, {}, 'the row already carries the hero cards');
   const draw = buildClipPayload(HAND, null, { discarded_card: { rank: '7', suit: 'd' }, seat_number: 1 }, JOB);
@@ -139,7 +142,7 @@ test('ffmpegArgsFor and posterArgsFor are exactly the C6 step 5 commands', () =>
   assert.deepEqual(ffmpegArgsFor('/tmp/j/frames.txt', '/tmp/j/clip.mp4'), [
     '-y', '-hide_banner', '-loglevel', 'error',
     '-f', 'concat', '-safe', '0', '-i', '/tmp/j/frames.txt',
-    '-vf', 'scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(ow-iw)/2:(oh-ih)/2:color=black',
+    '-vf', 'scale=1080:1350:force_original_aspect_ratio=decrease,pad=1080:1350:(ow-iw)/2:(oh-ih)/2:color=black',
     '-r', '30',
     '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '22',
     '-pix_fmt', 'yuv420p',
