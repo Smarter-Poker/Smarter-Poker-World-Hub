@@ -296,6 +296,7 @@ const HUB_ROUTES_WITHOUT_SHARED_HEADER = new Set([
   '/hub/social-media/compose',
   '/hub/tournaments',
   '/hub/trivia/survival',
+  '/hub/verify-phone',
 ]);
 // GlobalReportBugButton removed — bug reporting is inside every HamburgerMenu via ReportBugWidget
 // ═══════════════════════════════════════════════════════════════════════════
