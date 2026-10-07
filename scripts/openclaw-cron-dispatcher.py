@@ -125,6 +125,7 @@ JOB_TIMEOUTS = {
     '/api/cron/phase6-content':        300,   # grounded club/event reads plus capped publishing
     '/api/cron/phase7-content':        300,   # puzzle reveals plus capped puzzle and story publishing, 240s internal deadline
     '/api/cron/phase9-content':        300,   # one horse hand clip enqueue per fire, 240s internal deadline
+    '/api/cron/fleet-weekly-digest':   120,   # one metrics RPC, two reads, one mail; 90s internal deadline
     '/api/cron/scrape-sports-clips':   300,
     '/api/cron/scrape-poker-clips':    300,
     '/api/cron/revalidate-poker-clips': 120,
@@ -763,6 +764,15 @@ ALL_CRONS = [
     # The hand_clip mode row ships disabled, so until the owner approves it
     # the rendered clip stays ready and unpublished. Not a CRITICAL_JOB.
     ('/api/cron/phase9-content',                  dict(minute=25)),          # hourly; one clip enqueue, bounded by the fleet slot
+    # Fleet Content Programme Phase 10 (one engine, measured): the weekly
+    # digest. Monday 09:30 UTC; the workers route reads the same
+    # fn_fleet_content_metrics the horses admin page shows, plus the
+    # engine switch and every mode row, and mails one plain-text summary
+    # through Resend. Read-only: it writes nothing but the mail, and when
+    # FLEET_DIGEST_EMAIL is unset on the workers VM it records
+    # skipped: recipient_unset, by design. Not a CRITICAL_JOB: an absent
+    # Monday mail is itself the signal.
+    ('/api/cron/fleet-weekly-digest',             dict(day_of_week='mon', hour=9, minute=30)),
     ('/api/cron/horses-social-friends',           dict(hour='*/6', minute=15)),
     ('/api/cron/horses-stories',                  dict(minute='5,20,35,50')),
     # RETIRED 2026-09-06: both legacy Trivia tournament lifecycle schedules
@@ -1221,6 +1231,7 @@ WORKERS_PREFERRED = {
     '/api/cron/phase6-content':                '/cron/phase6-content',
     '/api/cron/phase7-content':                '/cron/phase7-content',
     '/api/cron/phase9-content':                '/cron/phase9-content',
+    '/api/cron/fleet-weekly-digest':           '/cron/fleet-weekly-digest',
     # ─── 2B.3 Option B — generate-trivia-questions (handler 53) ─────────────
     # Workers repo has src/routes/generate-trivia-questions.ts (TS port of the
     # 560 LOC monolith handler) + src/lib/triviaValidator.ts (218 LOC port of
