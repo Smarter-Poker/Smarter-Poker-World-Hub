@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { existsSync, mkdtempSync, rmSync } from 'node:fs';
+import { existsSync, mkdtempSync, rmSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { spawn, spawnSync } from 'node:child_process';
@@ -4316,6 +4316,53 @@ try {
     throw new Error('M1 bounded activation did not install only the exact reviewed tuple.');
   }
 
+  // Exercise the maintained wrapper against the actual installed production
+  // migrations; fixture pins are deliberately isolated from production.
+  const replacementCommit = '002cb37bbd89df86f4cc054fcf370f794b14f413';
+  const replacementManifest = '3115537d7169913cac08db6a40797af7b516e33d1e4faa8d51310704aaf58a25';
+  const replacementPath = path.join(tempRoot, 'm1-replacement-fixture.sql');
+  writeFileSync(replacementPath, readFileSync(M1_BOUNDED_ACTIVATION_MIGRATION, 'utf8')
+    .replaceAll('1ccf3907cf3298e24609eb6fbd903023d91dbddf', replacementCommit)
+    .replaceAll('b27ad1f3575e106d7d7f73bb4655e94398955a1275ae1fea9b3af7f574dbece8', replacementManifest));
+  const replacementSql = readFileSync(path.join(ROOT, 'supabase/migrations/20261007052243_training_m1_pio38_pin_transition.sql'), 'utf8');
+  command(tool('psql'), ['-X', '-v', 'ON_ERROR_STOP=1', ...exactActivationConnection], { input: replacementSql, quiet: true });
+  commandExpectFailure(tool('psql'), ['-X', '-v', 'ON_ERROR_STOP=1', ...exactActivationConnection], {
+    input: replacementSql, expected: 'TRAINING_M1_SCOPE_GUARD_PREIMAGE_MISMATCH',
+  });
+  const recoverySql = command('python3', [
+    path.join(ROOT, 'scripts/preflop-deep/transition_m1_bounded_canary.py'),
+    '--activation', replacementPath, '--commit', replacementCommit, '--manifest', replacementManifest, '--recovery',
+  ], { quiet: true }).stdout;
+  command(tool('psql'), ['-X', '-v', 'ON_ERROR_STOP=1', ...exactActivationConnection], { input: recoverySql, quiet: true });
+  const transitionState = command(tool('psql'), ['-X', '-tA', ...exactActivationConnection], {
+    input: `SELECT (SELECT count(*) FROM training_solver_provenance_authority WHERE pipeline_commit='1ccf3907cf3298e24609eb6fbd903023d91dbddf' AND retired_at IS NOT NULL)=1 AND (SELECT count(*) FROM training_solver_ingest_scopes WHERE pipeline_commit IN ('1ccf3907cf3298e24609eb6fbd903023d91dbddf','${replacementCommit}') AND admission_mode='held' AND partition_count IS NULL AND partition_index IS NULL)=2;`, quiet: true,
+  }).stdout.trim();
+  if (transitionState !== 't') throw new Error('M1 replacement/recovery did not leave both exact scopes held and old permanently retired');
+  commandExpectFailure(tool('psql'), ['-X', '-v', 'ON_ERROR_STOP=1', ...exactActivationConnection], {
+    input: "UPDATE training_solver_provenance_authority SET retired_at=NULL WHERE pipeline_commit='1ccf3907cf3298e24609eb6fbd903023d91dbddf';",
+    expected: 'TRAINING_SOLVER_PROVENANCE_RETIREMENT_IMMUTABLE',
+  });
+  const blockedTransitionConnection = prepareM1ActivationDatabase('phase6_m1_pin_receipt_refusal', 'r:0:c:b412:c:2d:c');
+  command(tool('psql'), ['-X', '-v', 'ON_ERROR_STOP=1', ...blockedTransitionConnection, '-f', M1_BOUNDED_ACTIVATION_MIGRATION], { quiet: true });
+  command(tool('psql'), ['-X', '-v', 'ON_ERROR_STOP=1', ...blockedTransitionConnection], {
+    input: `INSERT INTO training_solver_worker_receipts(machine_id,request_nonce,operation,signed_at,body_sha256,solver_version,solver_binary_checksum,pipeline_commit,manifest_version,manifest_checksum)
+      SELECT machine_id,'00000000-0000-4000-8000-000000000111','heartbeat',clock_timestamp(),repeat('c',64),solver_version,solver_binary_checksum,pipeline_commit,manifest_version,manifest_checksum FROM training_solver_ingest_scopes WHERE pipeline_commit='1ccf3907cf3298e24609eb6fbd903023d91dbddf';`, quiet: true,
+  });
+  commandExpectFailure(tool('psql'), ['-X', '-v', 'ON_ERROR_STOP=1', ...blockedTransitionConnection], { input: replacementSql, expected: 'TRAINING_M1_OLD_PIN_HAS_RECEIPTS' });
+  const refusalState = command(tool('psql'), ['-X', '-tA', ...blockedTransitionConnection], {
+    input: `SELECT (SELECT count(*) FROM training_solver_provenance_authority WHERE pipeline_commit='1ccf3907cf3298e24609eb6fbd903023d91dbddf' AND retired_at IS NULL)=1 AND NOT EXISTS(SELECT 1 FROM training_solver_provenance_authority WHERE pipeline_commit='${replacementCommit}');`, quiet: true,
+  }).stdout.trim();
+  if (refusalState !== 't') throw new Error('M1 receipt refusal changed authority state');
+  const rollbackTransitionConnection = prepareM1ActivationDatabase('phase6_m1_pin_atomic_rollback', 'r:0:c:b412:c:2d:c');
+  command(tool('psql'), ['-X', '-v', 'ON_ERROR_STOP=1', ...rollbackTransitionConnection, '-f', M1_BOUNDED_ACTIVATION_MIGRATION], { quiet: true });
+  commandExpectFailure(tool('psql'), ['-X', '-v', 'ON_ERROR_STOP=1', ...rollbackTransitionConnection], {
+    input: replacementSql.replace(/^COMMIT;$/m, 'SELECT 1/0;\nCOMMIT;'), expected: 'division by zero',
+  });
+  const rollbackTransitionState = command(tool('psql'), ['-X', '-tA', ...rollbackTransitionConnection], {
+    input: `SELECT (SELECT count(*) FROM training_solver_provenance_authority WHERE pipeline_commit='1ccf3907cf3298e24609eb6fbd903023d91dbddf' AND retired_at IS NULL)=1 AND (SELECT count(*) FROM training_solver_ingest_scopes WHERE pipeline_commit='1ccf3907cf3298e24609eb6fbd903023d91dbddf' AND admission_mode='bounded_canary')=1 AND NOT EXISTS(SELECT 1 FROM training_solver_provenance_authority WHERE pipeline_commit='${replacementCommit}');`, quiet: true,
+  }).stdout.trim();
+  if (rollbackTransitionState !== 't') throw new Error('M1 failed replacement was not atomically rolled back');
+
   const wrongIdentityConnection = prepareM1ActivationDatabase(
     'phase6_m1_bounded_wrong_identity',
     'r:0:c:b412:c:3d:c',
@@ -4374,6 +4421,12 @@ try {
     ...JSON.parse(operationScopeEvidenceLine),
     m1BoundedActivationExact: true,
     m1WrongIdentityRollback: true,
+    m1AtomicPinTransition: true,
+    m1PinDuplicateRefused: true,
+    m1RecoveryHoldsNewOnly: true,
+    m1OldRetirementImmutable: true,
+    m1PinReceiptRefusalAtomic: true,
+    m1PinTransitionFailureRolledBack: true,
   };
   console.log(`Phase 6 Training solver catalog verification passed: ${JSON.stringify(combinedEvidence)}`);
 } finally {
