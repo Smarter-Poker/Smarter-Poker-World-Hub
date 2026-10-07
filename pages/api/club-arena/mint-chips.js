@@ -191,15 +191,28 @@ export default async function handler(req, res) {
     // The RPC derives the actor from auth.uid(), so it must run as the CALLER,
     // not as service_role. It also owns the union law (member clubs revoked;
     // union owners/admins mint into the union bank).
-    const DIAMONDS_PER_CHIP = 1 / 100; // 1 diamond = 100 chips
-    const diamondsNeeded = Math.ceil(amount * DIAMONDS_PER_CHIP);
-
+    //
+    // THE RATE IS A ROW (Dan 2026-09-07: 1 diamond = $0.01, 1 chip = $1.00).
+    // fn_mint_chips_from_diamonds reads public.fn_ca_bridge_rate() (diamonds
+    // per chip, from ca_bridge_rate). This route used to convert with a literal
+    // 1/100 left over from the 2026-08-21 rate, so "mint 100 chips" spent 1
+    // diamond and the server credited 0.01 chips. The route now asks the same
+    // function the server uses, and refuses rather than guesses when it cannot.
     try {
       const callerClient = createClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co',
         process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
         { global: { headers: { Authorization: `Bearer ${token}` } } }
       );
+
+      const { data: rateData, error: rateErr } = await callerClient.rpc('fn_ca_bridge_rate');
+      const diamondsPerChip = Number(rateData);
+      if (rateErr || !Number.isSafeInteger(diamondsPerChip) || diamondsPerChip <= 0) {
+        console.warn('[mint-chips] bridge rate unavailable:', rateErr?.message || rateData);
+        return res.status(503).json({ success: false, error: 'The Chip Mint Rate Could Not Be Read. Nothing Was Minted' });
+      }
+      // amount is a whole number of chips (the contract floors it), so this is exact.
+      const diamondsNeeded = amount * diamondsPerChip;
 
       const { data: mintRes, error: mintErr } = await callerClient.rpc(
         'fn_mint_chips_from_diamonds',
@@ -218,7 +231,7 @@ export default async function handler(req, res) {
         clubId, type: 'chips_minted',
         title: `${amount.toLocaleString()} Chips Minted`,
         message: `${amount.toLocaleString()} chips minted from ${diamondsNeeded.toLocaleString()} diamonds${notes ? ` - ${notes}` : ''}.`,
-        data: { amount, diamonds: diamondsNeeded },
+        data: { amount, diamonds: diamondsNeeded, diamondsPerChip },
         excludeUserId: user.id,
       }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
 
@@ -232,6 +245,7 @@ export default async function handler(req, res) {
         clubId,
         amount: mintRes.chips ?? amount,
         diamondsSpent: mintRes.diamonds_spent ?? diamondsNeeded,
+        diamondsPerChip: mintRes.diamonds_per_chip ?? diamondsPerChip,
         scope: mintRes.scope,
         treasuryAfter: mintRes.club_pool_after ?? mintRes.union_bank_after ?? null,
       });

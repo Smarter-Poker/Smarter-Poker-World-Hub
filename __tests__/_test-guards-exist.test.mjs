@@ -29,6 +29,7 @@ import './delete-account-closes-the-account.test.mjs';
  * No single deletion can hide a regression.
  */
 import './club-arena-shell-cache.test.mjs';
+import './club-arena-mint-chips-live-rate.test.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import { test } from 'node:test';
