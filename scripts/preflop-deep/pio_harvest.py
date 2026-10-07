@@ -263,14 +263,12 @@ def build_setup_commands(board, oop_weights, ip_weights, pot=550, eff=9750,
         "clear_lines",
     ]
     cmds += ["add_line " + " ".join(str(x) for x in ln) for ln in tree_gen.build_lines(pot, eff)]
-    # Rake is part of the game definition and must be configured before the
-    # tree is built. Setting it after build_tree can leave the generated tree
-    # carrying the previous/default rake while the exported metadata claims
-    # the requested value.
+    # Pio 3.8 requires an existing tree for set_rake, including zero rake.
+    # Configure the actual EV model after building and before any solve.
     accuracy_token = _accuracy_fraction_command(accuracy_fraction)
     cmds += [
-        "set_rake %s" % rake,
         "build_tree",
+        "set_rake %s" % rake,
         "set_accuracy %s fraction" % accuracy_token,
         "go",
         "wait_for_solver",
