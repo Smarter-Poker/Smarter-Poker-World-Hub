@@ -78,7 +78,15 @@ def feature_contract_version(value: dict[str, Any]) -> str:
 
 
 def manifest_keys(value: Any) -> set[str]:
-    return ROOT_KEYS | ({"feature_contract_version"} if isinstance(value, dict) and "feature_contract_version" in value else set())
+    return ROOT_KEYS | {key for key in ("feature_contract_version", "policy_export_schema") if isinstance(value, dict) and key in value}
+
+
+def policy_export_schema(value: dict[str, Any]) -> str:
+    if "policy_export_schema" not in value:
+        return "smarter-poker.pio-policy.v3"
+    if value["policy_export_schema"] != "smarter-poker.pio-policy.v4":
+        raise ContractError("unknown policy_export_schema")
+    return value["policy_export_schema"]
 FILE_KEYS = {"path", "checksum"}
 SCENARIO_KEYS = {
     "scenario_id",
@@ -377,7 +385,7 @@ def input_bundle_identity(p_bundle: Any) -> dict[str, Any]:
             "icm_model_checksum",
             "files",
             "approval_note",
-        } | ({"feature_contract_version"} if isinstance(p_bundle, dict) and "feature_contract_version" in p_bundle else set()),
+        } | {key for key in ("feature_contract_version", "policy_export_schema") if isinstance(p_bundle, dict) and key in p_bundle},
         "input approval bundle",
     )
     bundle_key = _json_string(bundle["bundle_key"], "input approval bundle_key")
@@ -454,8 +462,10 @@ def input_bundle_identity(p_bundle: Any) -> dict[str, Any]:
     if not identity_files:
         raise ContractError("input approval has no immutable input receipts")
     feature_contract_version(bundle)
+    policy_export_schema(bundle)
     return {
         "contract": INPUT_BUNDLE_CONTRACT,
+        **({"policy_export_schema": bundle["policy_export_schema"]} if "policy_export_schema" in bundle else {}),
         **({"feature_contract_version": bundle["feature_contract_version"]} if "feature_contract_version" in bundle else {}),
         "bundle_key": bundle_key,
         "bundle_version": bundle_version,
@@ -990,6 +1000,7 @@ class ApprovedManifest:
     @property
     def provenance(self) -> dict[str, str]:
         return {
+            **({"policy_export_schema": policy_export_schema(self.raw)} if "policy_export_schema" in self.raw else {}),
             **({"feature_contract_version": feature_contract_version(self.raw)} if "feature_contract_version" in self.raw else {}),
             "dataset_key": self.raw["dataset_key"],
             "solver_version": self.raw["solver_version"],
@@ -1024,6 +1035,7 @@ def load_manifest(
     decoded = _json_bytes(payload, "manifest")
     manifest = _exact_keys(decoded, manifest_keys(decoded), "manifest")
     feature_contract_version(manifest)
+    policy_export_schema(manifest)
     if manifest["contract"] != MANIFEST_CONTRACT:
         raise ContractError("manifest contract is invalid")
     if manifest["enabled"] is not True:

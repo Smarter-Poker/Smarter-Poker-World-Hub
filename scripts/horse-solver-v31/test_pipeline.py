@@ -52,6 +52,7 @@ from pio_upi import (  # noqa: E402
     PioError,
     PioProcess,
     analyze_node,
+    complete_node_state,
     harvest_node,
     parse_children,
     parse_calc_results,
@@ -129,6 +130,43 @@ def base_scenario() -> dict:
 
 
 class NodeLineTests(unittest.TestCase):
+    def test_complete_effective_state_keeps_actual_unequal_icm_model_separate(self):
+        scenario = {**base_scenario(), "objective": "icm", "utility_context": "icm", "rake": None, "icm_model_id": "unequal"}
+        model = {"model_id": "unequal", "oop_stack_chips": 1500, "ip_stack_chips": 1000,
+                 "root_pot_chips": 100, "payout_per_chip": 1.0, "source_snapshot_checksum": 'a'*64,
+                 "points": (("OOP", 500, 500.0), ("OOP", 2600, 2600.0), ("IP", 0, 0.0), ("IP", 2100, 2100.0))}
+        state = complete_node_state(scenario, scenario["targets"][0], icm_model=model, icm_model_checksum='f'*64)
+        self.assertEqual(state["root_behind_chips"], [1000, 1000])
+        self.assertEqual(state["stack_semantics"], "solver-effective-behind-at-root")
+        self.assertEqual(state["utility"]["icm_model"]["oop_stack_chips"], 1500)
+        self.assertEqual(state["utility"]["rake"], [0, 0])
+        self.assertEqual(state["utility"]["icm_model"]["source_snapshot_checksum"], 'a'*64)
+        with self.assertRaises(PioError):
+            complete_node_state(scenario, scenario["targets"][0], icm_model_checksum='f'*64)
+        with self.assertRaises(PioError):
+            complete_node_state(scenario, scenario["targets"][0], icm_model={**model, "source_snapshot_checksum": None}, icm_model_checksum='f'*64)
+
+    def test_complete_state_recovers_actual_multistreet_node_payments(self):
+        scenario = base_scenario()
+        target = {"node": "r:0:b100:b300:c:2d:c:b200", "board": "AsKd7c2d"}
+        state = complete_node_state(scenario, target, icm_model_checksum='f'*64)
+        self.assertEqual(state["pot_chips"], 900)
+        self.assertEqual(state["contributions_chips"], [0, 200])
+        self.assertEqual(state["total_spent_chips"], [300, 500])
+        self.assertEqual(state["remaining_chips"], [700, 500])
+        self.assertEqual(state["acting_solver_player"], 0)
+        self.assertEqual(state["to_call_chips"], 200)
+        self.assertEqual(state["minimum_raise_target_chips"], 400)
+        self.assertEqual([a["family"] for a in state["public_history"]], ["bet", "raise", "call", "check", "bet"])
+        self.assertEqual(state["positions"], ["SB", "BB"])
+        with self.assertRaisesRegex(PioError, "minimum raise"):
+            complete_node_state(scenario, {"node": "r:0:b100:b150"}, icm_model_checksum='f'*64)
+        short = {**scenario, "effective_stack_chips": 350}
+        state = complete_node_state(short, {"node": "r:0:b200:b350", "board": scenario["flop_board"]}, icm_model_checksum='f'*64)
+        self.assertEqual(state["last_full_raise_increment_chips"], 200)
+        self.assertEqual(state["minimum_raise_target_chips"], 550)
+        self.assertEqual(state["public_history"][-1]["family"], "all_in")
+
     def test_conditional_root_jam_is_explicit_and_forced_before_build(self):
         scenario = base_scenario()
         self.assertFalse(any(c.startswith("force_line") for c in setup_commands(scenario, [1.] * 1326, [1.] * 1326)))
@@ -213,6 +251,33 @@ class NodeLineTests(unittest.TestCase):
 
 
 class PioHarvestTests(unittest.TestCase):
+    def test_v4_exports_both_exact_ranges_without_changing_legacy_bytes(self):
+        scenario = base_scenario()
+        target = scenario["targets"][0]
+        kwargs = dict(manifest_checksum='c'*64, source_combo_order_checksum='d'*64, range_bundle_checksum='e'*64, icm_model_checksum='f'*64)
+        legacy = harvest_node(self.fake_pio, scenario, target, **kwargs)
+        self.assertNotIn("complete_public_state", legacy)
+        self.assertNotIn("solver_ranges", legacy)
+        calls = []
+        def both(command):
+            calls.append(command)
+            return vector(0.25) if command == "show_range IP r:0" else self.fake_pio(command)
+        upgraded = harvest_node(both, scenario, target, policy_export_schema="smarter-poker.pio-policy.v4", **kwargs)
+        restored = {k:v for k,v in upgraded.items() if k not in ("complete_public_state", "solver_ranges")}
+        restored["schema"] = "smarter-poker.pio-policy.v3"
+        self.assertEqual(canonical_json(restored), canonical_json(legacy))
+        self.assertEqual(calls.count("show_range OOP r:0"), 1)
+        self.assertEqual(calls.count("show_range IP r:0"), 1)
+        self.assertEqual(upgraded["solver_ranges"]["IP"], [float(x) for x in vector(0.25).split()])
+        from worker import complete_checkpoint_matches
+        self.assertTrue(complete_checkpoint_matches(upgraded, scenario, target, icm_model_checksum='f'*64))
+        upgraded["complete_public_state"]["pot_chips"] += 1
+        self.assertFalse(complete_checkpoint_matches(upgraded, scenario, target, icm_model_checksum='f'*64))
+        def invalid(command):
+            return " ".join(["nan"] * 1326) if command == "show_range IP r:0" else self.fake_pio(command)
+        with self.assertRaises(PioError):
+            harvest_node(invalid, scenario, target, policy_export_schema="smarter-poker.pio-policy.v4", **kwargs)
+
     def test_heads_up_postflop_positions_cannot_reverse_blinds(self):
         scenario = base_scenario()
         scenario['table_size'] = 2
@@ -857,6 +922,10 @@ class ManifestAndGatewayTests(unittest.TestCase):
 
             legacy_provenance = ApprovedManifest(Path("unused"), inputs, manifest, result["manifest_checksum"]).provenance
             self.assertNotIn("feature_contract_version", legacy_provenance)
+            self.assertNotIn("policy_export_schema", legacy_provenance)
+            v4_provenance = ApprovedManifest(Path("unused"), inputs, {**manifest, "policy_export_schema": "smarter-poker.pio-policy.v4"}, result["manifest_checksum"]).provenance
+            self.assertEqual(v4_provenance.pop("policy_export_schema"), "smarter-poker.pio-policy.v4")
+            self.assertEqual(canonical_json(v4_provenance), canonical_json(legacy_provenance))
             versioned_draft = {**draft, "feature_contract_version": "holdem-board-relative-v2"}
             draft_path.write_bytes(canonical_json(versioned_draft))
             versioned_args = types.SimpleNamespace(**vars(args))
@@ -920,6 +989,10 @@ class ManifestAndGatewayTests(unittest.TestCase):
         expected = "91b7ae079daa5100ac80001c50fcca145e5ced8048adf455b4f5e84a5e5aaf51"
         self.assertEqual(INPUT_BUNDLE_CONTRACT, "smarter-poker.horse-solver-v31-input-bundle.v2")
         self.assertEqual(input_bundle_checksum(bundle), expected)
+        self.assertNotEqual(input_bundle_checksum({**bundle, "policy_export_schema": "smarter-poker.pio-policy.v4"}), expected)
+        for invalid in (None, "smarter-poker.pio-policy.v3", "", 4):
+            with self.assertRaisesRegex(ContractError, "policy_export_schema"):
+                input_bundle_checksum({**bundle, "policy_export_schema": invalid})
         # Legacy omission retains the exact historical identity; explicit
         # feature contracts become immutable approval bytes without a cycle.
         for version in ("rank-suit-count-v1", "holdem-board-relative-v2"):

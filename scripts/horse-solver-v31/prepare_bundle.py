@@ -17,6 +17,7 @@ from contract import (
     REQUIRED_PIPELINE_FILES,
     manifest_keys,
     feature_contract_version,
+    policy_export_schema,
     ContractError,
     _exact_keys,
     _json_bytes,
@@ -60,6 +61,7 @@ def base_approval_bundle(
     manifest_checksum: str,
 ) -> dict[str, Any]:
     return {
+        **({"policy_export_schema": policy_export_schema(manifest)} if "policy_export_schema" in manifest else {}),
         **({"feature_contract_version": feature_contract_version(manifest)} if "feature_contract_version" in manifest else {}),
         "bundle_key": bundle_key,
         "bundle_version": bundle_version,
@@ -170,6 +172,7 @@ def prepare(args: argparse.Namespace) -> dict[str, Any]:
     decoded = _json_bytes(draft_path.read_bytes(), "manifest draft")
     draft = _exact_keys(decoded, manifest_keys(decoded), "manifest")
     feature_contract_version(draft)
+    policy_export_schema(draft)
     if draft["contract"] != MANIFEST_CONTRACT or draft["enabled"] is not True:
         raise ContractError("manifest draft must be an enabled V31 manifest")
     if draft["input_bundle_id"] != PLACEHOLDER_BUNDLE_ID:
