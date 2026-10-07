@@ -214,6 +214,9 @@ jobs:
       - name: Training Phase 6 Public Certificate Safety
         run: node --test __tests__/training-phase6-public-certificate.test.mjs
 
+      - name: Training Phase 6 Atomic Management SQL Safety
+        run: node --test __tests__/training-phase6-atomic-management-sql.test.mjs
+
       # The behavioral migration verifiers exercise disposable PostgreSQL 17
       # clusters. Ubuntu 24.04 ships PostgreSQL 16, which cannot model the PG17
       # MAINTAIN privilege enforced in production. Both GitHub-hosted and the
@@ -273,6 +276,9 @@ jobs:
 
       - name: "CHECK 24C: Training PostgreSQL 17 Behavioral Authority"
         run: npm run audit:training:phase6-db
+
+      - name: Training Phase 6 Atomic Management PostgreSQL Rollback Authority
+        run: node scripts/qualify-phase6-atomic-management-pg17.mjs
 
       # Reuse the already-resolved PG17 binaries. The gate owns one disposable
       # local cluster/database, removes it on every exit, and applies the real
