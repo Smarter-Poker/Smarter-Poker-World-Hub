@@ -54,6 +54,21 @@ export const END_HOLD_MS = 1500;
  */
 export const CLIP_WIDTH = 1080;
 export const CLIP_HEIGHT = 1350;
+/**
+ * THE OWNER'S CLOCK (2026-10-07). The share page prints the hand's time in
+ * the viewer's own time zone; a clip has no viewer at render time, so it
+ * prints the owner's, which is what the owner compares it against.
+ */
+export const CLIP_TIMEZONE = 'America/Chicago';
+/**
+ * THE TRANSPORT GLYPHS (2026-10-07). The share page draws its transport
+ * buttons with text symbols (first, previous, play, pause, next) that the
+ * viewer's system font supplies. The packed Chromium ships Open Sans only,
+ * so the first share-page clip rendered five empty buttons. This folder
+ * holds a subset of Noto Sans Symbols 2 (OFL) that carries them; the route
+ * copies it into the fontconfig directory before the browser starts.
+ */
+export const CLIP_FONTS_DIR = 'fonts/hand-clip';
 export const GOTO_TIMEOUT_MS = 60000;
 export const READY_TIMEOUT_MS = 30000;
 /** The page commits a sought frame (data-clip-step) within this. */

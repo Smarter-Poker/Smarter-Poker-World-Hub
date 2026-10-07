@@ -14,6 +14,8 @@ import {
   PAINT_WAIT_MS,
   SETTLE_WAIT_MS,
   SETTLE_POLL_MS,
+  CLIP_TIMEZONE,
+  CLIP_FONTS_DIR,
   RENDER_DEADLINE_MS,
   SEEK_TIMEOUT_MS,
   STILL_PARAMS,
@@ -51,6 +53,8 @@ test('the constants are the C6 numbers', () => {
   assert.equal(PAINT_WAIT_MS, 2000);
   assert.equal(SETTLE_WAIT_MS, 4000);
   assert.equal(SETTLE_POLL_MS, 50);
+  assert.equal(CLIP_TIMEZONE, 'America/Chicago');
+  assert.equal(CLIP_FONTS_DIR, 'fonts/hand-clip');
   assert.deepEqual({ ...STILL_PARAMS, clip: { ...STILL_PARAMS.clip } }, {
     format: 'jpeg',
     quality: 85,
