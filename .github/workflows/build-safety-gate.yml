@@ -164,6 +164,9 @@ jobs:
       - name: Training M1 Scope-Preserving HMAC Provisioning
         run: python3 -m unittest discover -s __tests__ -p test_provision_training_m1_hmac.py
 
+      - name: Training M1 Atomic Source-Pin Transition
+        run: python3 -m unittest discover -s scripts/preflop-deep -p test_transition_m1_bounded_canary.py
+
       - name: Messenger Club And Invoice Separation
         run: >-
           node --experimental-vm-modules --test
