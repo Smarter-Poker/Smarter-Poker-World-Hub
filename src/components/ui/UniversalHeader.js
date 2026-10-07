@@ -1332,6 +1332,11 @@ export default function UniversalHeader({
                     isolation: isolate;
                 }
 
+                .approved-global-header__picture {
+                    display: block;
+                    width: 100%;
+                }
+
                 .approved-global-header__art {
                     display: block;
                     width: calc(100% - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px));
@@ -1614,16 +1619,25 @@ export default function UniversalHeader({
       )}
 
       <header className="approved-global-header" data-artwork="approved-global-header" ref={publishHeaderHeight}>
-        <img
-          src="/images/global-header/global-header-desktop.png"
-          alt=""
-          width="1648"
-          height="168"
-          className="approved-global-header__art"
-          aria-hidden="true"
-          fetchpriority="high"
-          decoding="sync"
-        />
+        <picture className="approved-global-header__picture">
+          {/* Lossless, responsive derivatives preserve the byte-pinned approved
+              artwork while phones stop downloading the full desktop PNG. */}
+          <source
+            type="image/webp"
+            srcSet="/images/global-header/global-header-desktop-824.625ee4e7dd.webp 824w, /images/global-header/global-header-desktop-1200.c58360aee1.webp 1200w, /images/global-header/global-header-desktop-1648.0660349552.webp 1648w"
+            sizes="100vw"
+          />
+          <img
+            src="/images/global-header/global-header-desktop.png"
+            alt=""
+            width="1648"
+            height="168"
+            className="approved-global-header__art"
+            aria-hidden="true"
+            fetchpriority="high"
+            decoding="sync"
+          />
+        </picture>
         <div className="approved-global-header__controls">
           <button
             type="button"

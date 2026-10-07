@@ -1,11 +1,12 @@
 /**
- * Route factory for /api/trivia/pvp/{join,status,heartbeat,resume,cancel}.
+ * Route factory for /api/trivia/pvp/{quote,join,status,heartbeat,resume,cancel,history}.
  *
  * Order of checks: method -> server-only release control (private 503 while
  * TRIVIA_PVP_ENABLED is off) -> rate limit -> authenticated identity from the
  * token/cookie (never from the body) -> ONE service-role RPC -> allowlisted,
  * user-scoped DTO. No route reads a queue row, chooses an opponent, touches a
- * wallet or decides an outcome; the trivia_pvp_*_v2 RPCs own all of that.
+ * wallet or decides an outcome; the versioned trivia_pvp_* RPCs own all of
+ * that. Join v3 binds the submitted rules version to the confirmed quote.
  *
  * Status and heartbeat also align the Smarter Horse claim with the stored
  * deadline: when a live searching ticket's horse_eligible_at is at most a few
@@ -22,18 +23,23 @@ import {
 } from './pvpReleaseControl.mjs';
 import {
     deadlineAlignDelayMs,
+    parsePvpHistoryQuery,
     parseJoinBody,
     parseTicketId,
     pvpErrorStatus,
     toPvpDto,
+    toPvpHistoryDto,
+    toPvpQuoteDto,
 } from './pvpMatchmakingPolicy.mjs';
 
 export const PVP_ROUTE_ACTIONS = Object.freeze({
+    quote: { methods: ['GET'], limit: { ...LIMITS.read, scope: 'trivia-pvp-quote' } },
     join: { methods: ['POST'], limit: { ...LIMITS.write, scope: 'trivia-pvp-join' } },
     status: { methods: ['GET', 'POST'], limit: { ...LIMITS.read, scope: 'trivia-pvp-status' } },
     heartbeat: { methods: ['POST'], limit: { ...LIMITS.read, scope: 'trivia-pvp-status' } },
     resume: { methods: ['GET', 'POST'], limit: { ...LIMITS.read, scope: 'trivia-pvp-status' } },
     cancel: { methods: ['POST'], limit: { ...LIMITS.write, scope: 'trivia-pvp-cancel' } },
+    history: { methods: ['GET'], limit: { ...LIMITS.read, scope: 'trivia-pvp-history' } },
 });
 
 const defaultSleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -66,11 +72,25 @@ export function createPvpRoute(action, { serviceClient, env = process.env, sleep
 
             let rpc;
             let args;
-            if (action === 'join') {
+            if (action === 'quote') {
+                rpc = 'trivia_pvp_quote_v3';
+                args = { p_user_id: user.id };
+            } else if (action === 'join') {
                 const parsed = parseJoinBody(input);
                 if (!parsed.ok) return res.status(400).json({ success: false, error: parsed.error });
-                rpc = 'trivia_pvp_join_v2';
-                args = { p_user_id: user.id, p_stake: parsed.stake, p_client_nonce: parsed.clientNonce, p_horses_allowed: horsesAllowed };
+                rpc = 'trivia_pvp_join_v3';
+                args = {
+                    p_user_id: user.id,
+                    p_stake: parsed.stake,
+                    p_client_nonce: parsed.clientNonce,
+                    p_horses_allowed: horsesAllowed,
+                    p_expected_rules_version: parsed.rulesVersion,
+                };
+            } else if (action === 'history') {
+                const parsed = parsePvpHistoryQuery(input);
+                if (!parsed.ok) return res.status(400).json({ success: false, error: parsed.error });
+                rpc = 'trivia_pvp_history_v1';
+                args = { p_user_id: user.id, p_limit: parsed.limit, p_offset: parsed.offset };
             } else if (action === 'cancel') {
                 const ticketId = parseTicketId(input.ticketId);
                 if (ticketId === undefined) return res.status(400).json({ success: false, error: 'invalid_ticket_id' });
@@ -94,7 +114,11 @@ export function createPvpRoute(action, { serviceClient, env = process.env, sleep
                 const code = typeof data?.error === 'string' ? data.error : 'pvp_unavailable';
                 return res.status(pvpErrorStatus(code)).json({ success: false, error: code });
             }
-            let dto = toPvpDto(data);
+            let dto = action === 'quote'
+                ? toPvpQuoteDto(data, { horsesAllowed })
+                : action === 'history'
+                    ? toPvpHistoryDto(data)
+                    : toPvpDto(data);
             if (rpc === 'trivia_pvp_status_v2') {
                 const delay = deadlineAlignDelayMs(dto);
                 if (delay > 0) {

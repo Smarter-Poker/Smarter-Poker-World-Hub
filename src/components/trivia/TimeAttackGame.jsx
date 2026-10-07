@@ -17,6 +17,7 @@ import { DAILY_DIAMOND_CAPS } from '../../lib/trivia/triviaEngine';
 import TriviaAnswerOption from './TriviaAnswerOption';
 import ReportQuestionButton from './ReportQuestionButton';
 import { getAccessToken } from '../../lib/authUtils';
+import usePhase9ReducedMotion from './phase9/usePhase9ReducedMotion';
 
 const GAME_DURATION = 30; // seconds
 // Single source of truth for the cap lives in triviaEngine.
@@ -52,8 +53,10 @@ export default function TimeAttackGame({
     const [gameOver, setGameOver] = useState(false);
     const [diamondsEarned, setDiamondsEarned] = useState(0);
     const [fastAnswers, setFastAnswers] = useState(0);
+    const [answerError, setAnswerError] = useState(null);
     const answerStartTime = useRef(Date.now());
     const answersRef = useRef([]); // Track per-question correct/incorrect
+    const reduceMotion = usePhase9ReducedMotion();
 
     const currentQuestion = questions[currentIndex];
     const remainingCap = Math.max(0, DAILY_DIAMOND_CAP - dailyDiamondsEarned);
@@ -139,6 +142,7 @@ export default function TimeAttackGame({
         if (isRevealing || gameOver || !currentQuestion) return;
 
         const answerTime = (Date.now() - answerStartTime.current) / 1000;
+        setAnswerError(null);
         setSelectedAnswer(answerIndex);
         setIsRevealing(true);
 
@@ -167,6 +171,7 @@ export default function TimeAttackGame({
                 if (!_isMountedRef.current) return;
                 setSelectedAnswer(null);
                 setIsRevealing(false);
+                setAnswerError('Could Not Submit That Answer. Tap The Same Answer Again.');
             });
     };
 
@@ -197,7 +202,7 @@ export default function TimeAttackGame({
                 setWrongCount(prev => prev + 1);
                 answersRef.current.push(false);
                 busEmit.decisionIncorrect(correctCount);
-                busEmit.screenShake('light');
+                if (!reduceMotion) busEmit.screenShake('light');
             }
 
             // The clock ran out while this answer was revealing — end now that
@@ -250,8 +255,6 @@ export default function TimeAttackGame({
     }
 
     const warning = timeLeft <= 10;
-    const cappedDiamonds = Math.min(diamondsEarned, remainingCap);
-
     return (
         <div className="time-attack-game" data-game-over={gameOver ? 'true' : 'false'}>
             {/* The clock: live seconds printed on the glass (gold, red at ten
@@ -286,6 +289,8 @@ export default function TimeAttackGame({
                     <dd>+{diamondsEarned}</dd>
                 </div>
             </dl>
+
+            {answerError && <p className="trivia-challenge-alert" role="alert">{answerError}</p>}
 
             {/* Question */}
             {!gameOver && currentQuestion && (
@@ -323,26 +328,11 @@ export default function TimeAttackGame({
                 </div>
             )}
 
-            {/* Game Over: the run's final figures, printed as rows. The page
-                owns saving, the result and Play Again. */}
+            {/* The page owns the only terminal composition. This bridge state
+                avoids a second competing "Time Is Up" screen while the
+                settlement callback moves the parent into Saving. */}
             {gameOver && (
-                <section className="time-attack-over" aria-labelledby="time-attack-over-title">
-                    <h2 id="time-attack-over-title" className="tc-ink--gold">Time Is Up</h2>
-                    <ul className="tc-rows">
-                        <li className="tc-row">
-                            <span className="tc-row__label">Correct</span>
-                            <span className="tc-row__value">{correctCount}</span>
-                        </li>
-                        <li className="tc-row">
-                            <span className="tc-row__label">Fast Answers</span>
-                            <span className="tc-row__value">{fastAnswers}</span>
-                        </li>
-                        <li className="tc-row">
-                            <span className="tc-row__label">Diamonds</span>
-                            <span className="tc-row__value tc-ink--gold">+{cappedDiamonds}</span>
-                        </li>
-                    </ul>
-                </section>
+                <div className="trivia-challenge-state" role="status"><p>Confirming Final Answer</p></div>
             )}
         </div>
     );

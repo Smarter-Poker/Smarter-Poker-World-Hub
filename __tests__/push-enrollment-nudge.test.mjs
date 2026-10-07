@@ -163,3 +163,10 @@ test('the Messenger invoice workspace announces its moment', () => {
     assert.match(page, /workspaceSelection\.folder === 'invoices'/);
     assert.match(page, /requestPushNudge\('invoice_workspace'\)/);
 });
+
+test('Messenger delegates consent and retry decisions to the shared push host', () => {
+    const page = readFileSync(join(ROOT, 'pages/hub/messenger.js'), 'utf8');
+    assert.doesNotMatch(page, /PushPromptModal/, 'Messenger must not mount a second consent modal');
+    assert.doesNotMatch(page, /messenger_push_prompt_handled/, 'legacy permanent dismissal must not bypass the shared cool-down ledger');
+    assert.doesNotMatch(page, /setExternalUserId\(/, 'the VAPID provider authenticates enrollment server-side');
+});

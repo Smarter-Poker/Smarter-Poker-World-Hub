@@ -267,6 +267,7 @@ const TRAINING_STANDALONE_ART_IDS = new Set([
 // is deliberately regression-tested because unrelated route-shell work must
 // never remove global navigation from legacy and dynamic Hub pages again.
 const HUB_ROUTES_WITHOUT_SHARED_HEADER = new Set([
+  '/hub/admin',
   '/hub/admin/autofix',
   '/hub/admin/diamond-liability',
   '/hub/commander',
@@ -961,10 +962,10 @@ export default function App({ Component, pageProps }) {
   // over its internal routes.
   const resolvedPath =
     (router.asPath || router.pathname).split(/[?#]/, 1)[0].replace(/\/+$/, '') || '/';
-  // Category/feed/deep-link changes on the full-screen Reel viewer must not
-  // remount the page before an in-flight request can settle. All other routes
-  // retain the historical full-URL error-boundary reset behavior.
-  const pageErrorBoundaryKey = resolvedPath === '/hub/reels'
+  // Query-state changes must not remount the full-screen Reel viewer or the
+  // Stable Admin console while their in-flight work and keyboard state settle.
+  // Other routes retain the historical full-URL error-boundary reset behavior.
+  const pageErrorBoundaryKey = resolvedPath === '/hub/reels' || resolvedPath === '/horses'
     ? resolvedPath
     : router.asPath;
   // Every Poker Near Me route owns a complete SEOHead. Keeping the generic

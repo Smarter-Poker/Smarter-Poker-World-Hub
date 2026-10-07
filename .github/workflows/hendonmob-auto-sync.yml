@@ -13,8 +13,12 @@ jobs:
       - name: Trigger Manus AI HendonMob Scraper
         run: |
           echo "🔄 Triggering HendonMob auto-sync via Manus AI..."
+          # Header, not query string: a query string lands in access logs.
+          # CRON_SECRET, not HENDON_AUTO_SYNC_SECRET, which was retired on
+          # 2026-10-06 after years of being pasted into third-party prompts.
           RESPONSE=$(curl -s -w "\nHTTP_STATUS:%{http_code}" \
-            "https://smarter.poker/api/hendonmob/auto-sync?key=${{ secrets.HENDON_AUTO_SYNC_SECRET }}")
+            -H "x-cron-secret: ${{ secrets.CRON_SECRET }}" \
+            "https://smarter.poker/api/hendonmob/auto-sync")
           
           HTTP_STATUS=$(echo "$RESPONSE" | grep "HTTP_STATUS" | cut -d: -f2)
           BODY=$(echo "$RESPONSE" | grep -v "HTTP_STATUS")

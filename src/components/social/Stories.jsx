@@ -229,7 +229,7 @@ export function StoriesBar({ userId, userAvatar, onOpenLive }) {
         try {
             const { data } = await supabase
                 .from('live_streams')
-                .select('id, broadcaster_id, title, thumbnail_url, status, viewer_count, category, description, broadcaster:profiles!broadcaster_id(id, username, avatar_url)')
+                .select('id, broadcaster_id, title, thumbnail_url, status, viewer_count, category, description, broadcaster:profiles!broadcaster_id(id, username, display_name, avatar_url)')
                 .eq('status', 'live');
             if (data) {
                 setLiveUsers(new Set(data.map(s => s.broadcaster_id)));
@@ -422,7 +422,7 @@ export function StoriesBar({ userId, userAvatar, onOpenLive }) {
                                 story={{
                                     author_id: broadcasterId,
                                     author_avatar: stream.broadcaster?.avatar_url || '/default-avatar.png',
-                                    author_fullname: stream.broadcaster?.full_name || stream.broadcaster?.username || stream.title || 'Live',
+                                    author_fullname: stream.broadcaster?.display_name || stream.broadcaster?.username || stream.title || 'Live',
                                     author_username: stream.broadcaster?.username,
                                 }}
                                 onClick={() => {

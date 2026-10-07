@@ -11,6 +11,7 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 import { createClient } from '@supabase/supabase-js';
+import consoleStyles from '../../src/components/admin/OperatorAdminSurface.module.css';
 
 const TARGET_PER_CATEGORY = 1500;
 const SIXTY_DAY_FLOOR = 1200;
@@ -169,7 +170,7 @@ function CatRow({ catId, counts, track }) {
     return (
         <tr style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}>
             <td style={{ padding: '12px 12px', fontWeight: 600, color: '#fff' }}>
-                <span style={{ display: 'inline-block', width: 18, height: 18, borderRadius: 4, background: trackColor, marginRight: 8, fontSize: 11, lineHeight: '18px', textAlign: 'center', color: '#000', fontWeight: 700 }}>
+                <span style={{ display: 'inline-block', width: 20, height: 20, borderRadius: 4, background: trackColor, marginRight: 8, fontSize: 12, lineHeight: '20px', textAlign: 'center', color: '#000', fontWeight: 700 }}>
                     {track}
                 </span>
                 {PRETTY[catId]}
@@ -179,7 +180,7 @@ function CatRow({ catId, counts, track }) {
             <td style={{ padding: '12px 8px', minWidth: 140 }}>{bar(counts.hard, targetHard, '#a855f7')}</td>
             <td style={{ padding: '12px 12px', textAlign: 'right', fontVariantNumeric: 'tabular-nums', fontWeight: 600, color: belowFloor ? '#ef4444' : totalPct >= 100 ? '#22c55e' : '#fff' }}>
                 {counts.total} / {TARGET_PER_CATEGORY}
-                <div style={{ fontSize: 11, fontWeight: 400, color: 'rgba(255,255,255,0.5)' }}>
+                <div style={{ fontSize: 12, fontWeight: 400, color: 'rgba(255,255,255,0.72)' }}>
                     {totalPct}%{belowFloor ? ' · below 60-day floor' : ''}
                 </div>
             </td>
@@ -189,7 +190,7 @@ function CatRow({ catId, counts, track }) {
 
 export default function TriviaPoolDashboard({ byCat, sources, audit, phase54, generatedAt, error }) {
     if (error) {
-        return <div style={{ padding: 40, color: '#ef4444', background: '#0a0a15', minHeight: '100vh', fontFamily: 'system-ui' }}>Error: {error}</div>;
+        return <main className={consoleStyles.surface}><div className={consoleStyles.state} role="alert" style={{ padding: 24, color: '#ff7a7a' }}>Error: {error}</div></main>;
     }
     const totalCount = ALL.reduce((s, c) => s + (byCat[c]?.total || 0), 0);
     const targetTotal = ALL.length * TARGET_PER_CATEGORY;
@@ -199,11 +200,11 @@ export default function TriviaPoolDashboard({ byCat, sources, audit, phase54, ge
     const trackBTotal = TRACK_B.reduce((s, c) => s + (byCat[c]?.total || 0), 0);
 
     return (
-        <div style={{ padding: 32, background: '#0a0a15', minHeight: '100vh', color: '#fff', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
+        <main className={consoleStyles.surface} style={{ background: '#0a0a15', minHeight: '100vh', color: '#fff', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
             <div style={{ maxWidth: 1100, margin: '0 auto' }}>
-                <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 8 }}>
+                <div className={consoleStyles.responsiveGrid} style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto', alignItems: 'baseline', gap: 12, marginBottom: 8 }}>
                     <h1 style={{ fontSize: 28, fontWeight: 700, margin: 0 }}>Trivia Pool Dashboard</h1>
-                    <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>
+                    <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.72)' }}>
                         Generated {new Date(generatedAt).toLocaleString()} · <a href="/admin/trivia-pool" style={{ color: '#00D4FF' }}>Reload</a>
                     </div>
                 </div>
@@ -212,14 +213,14 @@ export default function TriviaPoolDashboard({ byCat, sources, audit, phase54, ge
                 </div>
 
                 {/* Top summary cards */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 32 }}>
+                <div className={consoleStyles.responsiveGrid} style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 32 }}>
                     <Card title="Pool total" value={`${totalCount.toLocaleString()} / ${targetTotal.toLocaleString()}`} subtitle={`${overallPct}% complete`} color={overallPct >= 100 ? '#22c55e' : overallPct >= 50 ? '#fbbf24' : '#ef4444'} />
                     <Card title="Track A (deterministic)" value={`${trackATotal.toLocaleString()} / 7,500`} subtitle={`${Math.round((trackATotal / 7500) * 100)}% - solver-grounded`} color="#22c55e" />
                     <Card title="Track B (Grok-3-mini)" value={`${trackBTotal.toLocaleString()} / 7,500`} subtitle={`${Math.round((trackBTotal / 7500) * 100)}% - fact-verified`} color="#06b6d4" />
                 </div>
 
                 {/* Per-category table */}
-                <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 12, overflow: 'hidden', marginBottom: 24 }}>
+                <div className={consoleStyles.tableWell} tabIndex={0} role="region" aria-label="Trivia Questions By Category" style={{ marginBottom: 24 }}>
                     <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                         <thead>
                             <tr style={{ background: 'rgba(255,255,255,0.05)' }}>
@@ -232,19 +233,19 @@ export default function TriviaPoolDashboard({ byCat, sources, audit, phase54, ge
                         </thead>
                         <tbody>
                             {TRACK_A.map(cat => <CatRow key={cat} catId={cat} counts={byCat[cat]} track="A" />)}
-                            <tr><td colSpan={5} style={{ padding: '8px 12px', background: 'rgba(255,255,255,0.02)', fontSize: 11, color: 'rgba(255,255,255,0.4)', letterSpacing: 0.5 }}>━━ TRACK B ━━</td></tr>
+                            <tr><td colSpan={5} style={{ padding: '8px 12px', background: 'rgba(255,255,255,0.02)', fontSize: 12, color: 'rgba(255,255,255,0.72)', letterSpacing: 0.5 }}>TRACK B</td></tr>
                             {TRACK_B.map(cat => <CatRow key={cat} catId={cat} counts={byCat[cat]} track="B" />)}
                         </tbody>
                     </table>
                 </div>
 
                 {/* Source mix */}
-                <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 12, padding: 20, marginBottom: 24 }}>
+                <div className={consoleStyles.panel} style={{ padding: 20, marginBottom: 24 }}>
                     <h3 style={{ fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.6)', letterSpacing: 0.5, margin: '0 0 12px 0' }}>SOURCE MIX</h3>
                     <div style={{ display: 'flex', gap: 32, flexWrap: 'wrap' }}>
                         {sources.map(({ src, count }) => (
                             <div key={src} style={{ display: 'flex', flexDirection: 'column' }}>
-                                <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>{src === 'null' ? 'unset (legacy)' : src}</span>
+                                <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.72)' }}>{src === 'null' ? 'unset (legacy)' : src}</span>
                                 <span style={{ fontSize: 22, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{count.toLocaleString()}</span>
                             </div>
                         ))}
@@ -253,13 +254,13 @@ export default function TriviaPoolDashboard({ byCat, sources, audit, phase54, ge
 
                 {/* Phase 52: fact-check audit panel */}
                 {audit && (
-                    <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 12, padding: 20, marginBottom: 24 }}>
+                    <div className={consoleStyles.panel} style={{ padding: 20, marginBottom: 24 }}>
                         <h3 style={{ fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.6)', letterSpacing: 0.5, margin: '0 0 12px 0' }}>FACT-CHECK AUDIT (Track B Only)</h3>
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 16, marginBottom: 16 }}>
+                        <div className={consoleStyles.responsiveGrid} style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 16, marginBottom: 16 }}>
                             <Card title="Grok questions" value={audit.grokTotal.toLocaleString()} subtitle="Track B total" color="#06b6d4" />
                             <Card title="Audited" value={`${audit.grokAudited.toLocaleString()} / ${audit.grokTotal.toLocaleString()}`} subtitle={`${audit.grokTotal > 0 ? Math.round((audit.grokAudited / audit.grokTotal) * 100) : 0}% reviewed`} color="#fbbf24" />
-                            <Card title="Verified ✓" value={audit.verifiedTrue.toLocaleString()} subtitle="quality_score = 9" color="#22c55e" />
-                            <Card title="Flagged ✗" value={audit.verifiedFalse.toLocaleString()} subtitle="quality_score = 2 (excluded)" color="#ef4444" />
+                            <Card title="Verified" value={audit.verifiedTrue.toLocaleString()} subtitle="quality_score = 9" color="#22c55e" />
+                            <Card title="Flagged" value={audit.verifiedFalse.toLocaleString()} subtitle="quality_score = 2 (excluded)" color="#ef4444" />
                             <Card title="Last 24h" value={audit.auditedLast24h.toLocaleString()} subtitle="reviewed today" color="#a855f7" />
                         </div>
                         {audit.recentFlagged.length > 0 && (
@@ -270,12 +271,12 @@ export default function TriviaPoolDashboard({ byCat, sources, audit, phase54, ge
                                         <div key={i} style={{ padding: '10px 12px', borderTop: i > 0 ? '1px solid rgba(255,255,255,0.05)' : 'none', fontSize: 12 }}>
                                             <div style={{ display: 'flex', gap: 12, marginBottom: 4 }}>
                                                 <span style={{ color: '#ef4444', fontWeight: 600 }}>Conf {Math.round(f.confidence * 100)}%</span>
-                                                <span style={{ color: 'rgba(255,255,255,0.4)' }}>{new Date(f.audited_at).toLocaleString()}</span>
-                                                <code style={{ color: 'rgba(255,255,255,0.5)', fontSize: 11 }}>{f.question_id.slice(0, 8)}</code>
+                                                <span style={{ color: 'rgba(255,255,255,0.72)' }}>{new Date(f.audited_at).toLocaleString()}</span>
+                                                <code style={{ color: 'rgba(255,255,255,0.72)', fontSize: 12 }}>{f.question_id.slice(0, 8)}</code>
                                             </div>
                                             <div style={{ color: 'rgba(255,255,255,0.85)', lineHeight: 1.5 }}>{f.reasoning}</div>
                                             {f.corrected_answer_text && (
-                                                <div style={{ marginTop: 4, color: '#22c55e', fontSize: 11 }}>
+                                                <div style={{ marginTop: 4, color: '#65e8aa', fontSize: 12 }}>
                                                     Suggested Correct Answer: <strong>{f.corrected_answer_text}</strong>
                                                 </div>
                                             )}
@@ -289,11 +290,11 @@ export default function TriviaPoolDashboard({ byCat, sources, audit, phase54, ge
 
                 {/* Phase 54: quality systems panel */}
                 {phase54 && (
-                    <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 12, padding: 20, marginBottom: 24 }}>
+                    <div className={consoleStyles.panel} style={{ padding: 20, marginBottom: 24 }}>
                         <h3 style={{ fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.6)', letterSpacing: 0.5, margin: '0 0 12px 0' }}>QUALITY SYSTEMS (Phase 54)</h3>
 
                         {/* Top tile row */}
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 12, marginBottom: 16 }}>
+                        <div className={consoleStyles.responsiveGrid} style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 12, marginBottom: 16 }}>
                             <Card title="Paused categories" value={phase54.pausedCategories.length.toString()} subtitle={phase54.pausedCategories.length === 0 ? 'all generating' : phase54.pausedCategories.map(c => c.category).join(', ').slice(0, 40)} color={phase54.pausedCategories.length > 0 ? '#ef4444' : '#22c55e'} />
                             <Card title="Open reports" value={phase54.unresolvedReportCount.toString()} subtitle="users flagged" color={phase54.unresolvedReportCount > 0 ? '#fbbf24' : '#22c55e'} />
                             <Card title="Regression failures" value={phase54.recentRegressionFailures.length.toString()} subtitle="last 48h" color={phase54.recentRegressionFailures.length > 0 ? '#ef4444' : '#22c55e'} />
@@ -308,12 +309,12 @@ export default function TriviaPoolDashboard({ byCat, sources, audit, phase54, ge
                                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 8 }}>
                                     {phase54.categoryHealth.map(h => (
                                         <div key={h.category} style={{ padding: '8px 10px', borderRadius: 6, background: h.generation_paused ? 'rgba(239,68,68,0.12)' : 'rgba(34,197,94,0.06)', border: '1px solid ' + (h.generation_paused ? 'rgba(239,68,68,0.3)' : 'rgba(34,197,94,0.15)') }}>
-                                            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.7)' }}>{h.category}</div>
+                                            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.72)' }}>{h.category}</div>
                                             <div style={{ fontSize: 14, fontWeight: 600, color: h.generation_paused ? '#ef4444' : '#22c55e' }}>
                                                 {h.pass_rate !== null ? Math.round(h.pass_rate * 100) + '%' : 'no data'}
-                                                {h.generation_paused && <span style={{ marginLeft: 6, fontSize: 10, color: '#ef4444' }}>PAUSED</span>}
+                                                {h.generation_paused && <span style={{ marginLeft: 6, fontSize: 12, color: '#ff7a7a' }}>PAUSED</span>}
                                             </div>
-                                            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>N={h.audited_count}</div>
+                                            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.72)' }}>N={h.audited_count}</div>
                                         </div>
                                     ))}
                                 </div>
@@ -327,10 +328,10 @@ export default function TriviaPoolDashboard({ byCat, sources, audit, phase54, ge
                                 <div style={{ background: 'rgba(251,191,36,0.04)', borderRadius: 8, overflow: 'hidden' }}>
                                     {phase54.recentReports.map((r, i) => (
                                         <div key={r.id} style={{ padding: '8px 12px', borderTop: i > 0 ? '1px solid rgba(255,255,255,0.05)' : 'none', fontSize: 12 }}>
-                                            <div style={{ display: 'flex', gap: 12 }}>
+                                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
                                                 <span style={{ color: '#fbbf24', fontWeight: 600, minWidth: 100 }}>{r.reason}</span>
-                                                <code style={{ color: 'rgba(255,255,255,0.5)', fontSize: 11 }}>{r.question_id.slice(0, 8)}</code>
-                                                <span style={{ color: 'rgba(255,255,255,0.4)', marginLeft: 'auto' }}>{new Date(r.created_at).toLocaleString()}</span>
+                                                <code style={{ color: 'rgba(255,255,255,0.72)', fontSize: 12 }}>{r.question_id.slice(0, 8)}</code>
+                                                <span style={{ color: 'rgba(255,255,255,0.72)', marginLeft: 'auto' }}>{new Date(r.created_at).toLocaleString()}</span>
                                             </div>
                                             {r.note && <div style={{ marginTop: 4, color: 'rgba(255,255,255,0.7)' }}>"{r.note}"</div>}
                                         </div>
@@ -347,9 +348,9 @@ export default function TriviaPoolDashboard({ byCat, sources, audit, phase54, ge
                                     {phase54.recentRegressionFailures.map((f, i) => (
                                         <div key={i} style={{ padding: '8px 12px', borderTop: i > 0 ? '1px solid rgba(255,255,255,0.05)' : 'none', fontSize: 12, color: 'rgba(255,255,255,0.85)' }}>
                                             <span style={{ color: '#ef4444', fontWeight: 600 }}>{f.test_name}</span>
-                                            {f.category && <span style={{ marginLeft: 8, color: 'rgba(255,255,255,0.5)' }}>{f.category}</span>}
+                                            {f.category && <span style={{ marginLeft: 8, color: 'rgba(255,255,255,0.72)' }}>{f.category}</span>}
                                             <span style={{ marginLeft: 8 }}>Metric {f.metric} (Threshold {f.threshold})</span>
-                                            <span style={{ marginLeft: 'auto', color: 'rgba(255,255,255,0.4)', fontSize: 11 }}>{new Date(f.ran_at).toLocaleString()}</span>
+                                            <span style={{ marginLeft: 'auto', color: 'rgba(255,255,255,0.72)', fontSize: 12 }}>{new Date(f.ran_at).toLocaleString()}</span>
                                         </div>
                                     ))}
                                 </div>
@@ -370,14 +371,14 @@ export default function TriviaPoolDashboard({ byCat, sources, audit, phase54, ge
                     </div>
                 </div>
             </div>
-        </div>
+        </main>
     );
 }
 
 function Card({ title, value, subtitle, color }) {
     return (
-        <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 12, padding: 20, borderLeft: `3px solid ${color}` }}>
-            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>{title}</div>
+        <div className={consoleStyles.metric} style={{ padding: 20, borderLeft: `3px solid ${color}` }}>
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.72)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>{title}</div>
             <div style={{ fontSize: 26, fontWeight: 700, fontVariantNumeric: 'tabular-nums', marginBottom: 4 }}>{value}</div>
             <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)' }}>{subtitle}</div>
         </div>

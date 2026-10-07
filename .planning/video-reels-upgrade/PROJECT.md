@@ -29,7 +29,7 @@ Turn the Video Library, the horse content fleet, and every Reels surface into on
 ## Technology And Constraints
 
 - Next.js Pages Router, React 18, Supabase/PostgreSQL, Zustand, SWR, OpenClaw, and the Hetzner worker estate.
-- Work is performed only in isolated `.agent-trees` worktrees.
+- Work is performed only in isolated task-owned worktrees on `/Volumes/SmarterWork/agent-work/`, per the current external-SSD storage policy.
 - Database changes are forward-compatible and include executable post-apply assertions.
 - YouTube metadata and playback must follow YouTube API and embedded-player policies.
 - Native clipping is limited to owned or explicitly licensed media.

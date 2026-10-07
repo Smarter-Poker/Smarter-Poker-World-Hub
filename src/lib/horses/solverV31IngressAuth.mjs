@@ -49,6 +49,12 @@ const PROVENANCE_KEYS = Object.freeze([
   'input_bundle_checksum',
 ]);
 
+export function v31FeatureContractVersion(value) {
+  const version = Object.prototype.hasOwnProperty.call(value || {}, 'feature_contract_version')
+    ? value.feature_contract_version : 'rank-suit-count-v1';
+  return ['rank-suit-count-v1', 'holdem-board-relative-v2'].includes(version) ? version : null;
+}
+
 function exactKeys(value, expected) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
   const actual = Object.keys(value);
@@ -317,7 +323,9 @@ export function v31IngressEnvelopeIsValid(envelope, principal) {
   if (envelope.contract !== V31_INGRESS_PROTOCOL
       || envelope.principal !== principal
       || !V31_INGRESS_OPERATIONS.includes(envelope.operation)
-      || !exactKeys(envelope.provenance, PROVENANCE_KEYS)
+      || !exactKeys(envelope.provenance, Object.prototype.hasOwnProperty.call(envelope.provenance || {}, 'feature_contract_version')
+        ? [...PROVENANCE_KEYS, 'feature_contract_version'] : PROVENANCE_KEYS)
+      || !v31FeatureContractVersion(envelope.provenance)
       || !envelope.payload
       || typeof envelope.payload !== 'object'
       || Array.isArray(envelope.payload)) return false;

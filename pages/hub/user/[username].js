@@ -36,7 +36,7 @@ import ProfileSkeleton from '../../../src/components/skeletons/ProfileSkeleton';
 import ContentSkeleton from '../../../src/components/skeletons/ContentSkeleton';
 import PokerSkeleton from '../../../src/components/skeletons/PokerSkeleton';
 import { getAuthUser, getAccessToken } from '../../../src/lib/authUtils';
-import { isHorseOnlineNow } from '../../../src/lib/horsePresence';
+import { usePresence } from '../../../src/hooks/usePresence';
 import EditPostModal from '../../../src/components/social/EditPostModal';
 import HashtagRenderer from '../../../src/components/social/HashtagRenderer';
 import SharePostModal from '../../../src/components/social/SharePostModal';
@@ -52,6 +52,8 @@ import VideoLibraryConsole, {
 import auxiliaryReelsStyles from '../../../src/components/reels/AuxiliaryReelsSurfaces.module.css';
 import HandStatsCard from '../../../src/components/profile/HandStatsCard';
 import { readOwnProfile } from '../../../src/lib/ownProfile';
+import { removeOwnedReels } from '../../../src/lib/removeOwnedReels';
+import { BROWSER_POST_SELECT } from '../../../src/lib/socialPostShape';
 const PlayerNotes = dynamic(() => import('../../../src/components/poker/PlayerNotes'), {
   ssr: false,
 });
@@ -191,7 +193,7 @@ function FriendAvatar({ friend }) {
           lineHeight: 1.3,
         }}
       >
-        {friend.full_name?.split(' ').slice(0, 2).join(' ') || friend.username}
+        {friend.display_name || friend.username}
       </div>
       <div style={{ fontSize: 11, color: C.textSec }}>
         {mutualCount > 0 ? `${mutualCount} mutual` : ''}
@@ -274,7 +276,7 @@ function FriendsModal({ isOpen, onClose, profileId, profileName, currentUserId, 
         const chunk = profileFriendArray.slice(i, i + 50);
         const { data } = await supabase
           .from('profiles')
-          .select('id, username, avatar_url')
+          .select('id, username, display_name, avatar_url')
           .in('id', chunk);
         if (data) allProfiles.push(...data);
       }
@@ -357,7 +359,7 @@ function FriendsModal({ isOpen, onClose, profileId, profileName, currentUserId, 
       all.sort(
         (a, b) =>
           b.mutualCount - a.mutualCount ||
-          (a.full_name || a.username || '').localeCompare(b.full_name || b.username || '')
+          (a.display_name || a.username || '').localeCompare(b.display_name || b.username || '')
       );
 
       setAllFriends(all);
@@ -395,7 +397,7 @@ function FriendsModal({ isOpen, onClose, profileId, profileName, currentUserId, 
   const filtered = searchQuery.trim()
     ? activeList.filter(
         (f) =>
-          (f.full_name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+          (f.display_name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
           (f.username || '').toLowerCase().includes(searchQuery.toLowerCase())
       )
     : activeList;
@@ -610,7 +612,7 @@ function FriendsModal({ isOpen, onClose, profileId, profileName, currentUserId, 
                       whiteSpace: 'nowrap',
                     }}
                   >
-                    {friend.full_name || friend.username}
+                    {friend.display_name || friend.username}
                   </div>
                   {friend.mutualCount > 0 && (
                     <div style={{ fontSize: 13, color: C.textSec }}>
@@ -646,7 +648,7 @@ function FriendsModal({ isOpen, onClose, profileId, profileName, currentUserId, 
                           });
                           if (error) throw error;
                           toast.success(
-                            `Friend request sent to ${friend.full_name?.split(' ')[0] || friend.username}`
+                            `Friend request sent to ${friend.display_name || friend.username}`
                           );
                         } catch (err) {
                           setPendingRequests((prev) => {
@@ -1090,7 +1092,7 @@ function PostCard({
   onPostEdited,
   currentUserId,
   currentUser,
-  horseProfileIds = new Set(),
+  authorOnline = false,
 }) {
   const router = useRouter();
   const [deleting, setDeleting] = useState(false);
@@ -1325,7 +1327,7 @@ function PostCard({
             loading="lazy"
             decoding="async"
           />
-          {horseProfileIds.has(post.author_id) && isHorseOnlineNow(post.author_id) && (
+          {authorOnline && (
             <span
               style={{
                 position: 'absolute',
@@ -1342,7 +1344,7 @@ function PostCard({
         </div>
         <div style={{ flex: 1 }}>
           <div style={{ fontWeight: 600, fontSize: 14, color: C.text }}>
-            {author?.username || author?.full_name}
+            {author?.username || author?.display_name}
           </div>
           <div style={{ fontSize: 12, color: C.textSec }}>
             {timeAgo(editablePost.created_at)}
@@ -1672,7 +1674,7 @@ function PostCard({
                       }}
                     >
                       <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>
-                        {c.author?.username || c.author?.full_name || 'User'}
+                        {c.author?.username || c.author?.display_name || 'User'}
                       </div>
                       {c.author_id === currentUserId && editingCommentId !== c.id && (
                         <div style={{ display: 'flex', gap: 6 }}>
@@ -1966,8 +1968,8 @@ export default function UserProfilePage() {
       const lastPost = posts[posts.length - 1];
       const { data: morePosts, error } = await supabase
         .from('social_posts')
-        .select(`*, user_profiles(*)`)
-        .eq('user_id', profile.id)
+        .select(BROWSER_POST_SELECT)
+        .eq('author_id', socialIdRef.current || profile.id)
         .lt('created_at', lastPost.created_at)
         .order('created_at', { ascending: false })
         .limit(20);
@@ -1991,7 +1993,6 @@ export default function UserProfilePage() {
   const [reels, setReels] = useState([]);
   const [pastLives, setPastLives] = useState([]);
   const [isPosting, setIsPosting] = useState(false);
-  const [horseProfileIds, setHorseProfileIds] = useState(new Set());
   const [postContent, setPostContent] = useState('');
   const [showPostComposer, setShowPostComposer] = useState(false);
   const [coverLoaded, setCoverLoaded] = useState(false);
@@ -2127,7 +2128,7 @@ export default function UserProfilePage() {
   // Refs
   const profileMenuRef = useRef(null);
   const loadedUsernameRef = useRef(null);
-  const socialIdRef = useRef(null); // Resolved horse social identity (may differ from profile.id)
+  const socialIdRef = useRef(null); // The id social reads use for the loaded profile (its own id)
 
   // Tab state — persisted
   const [activeTab, setActiveTab] = usePersistedState('sp-filters-user-profile', 'all');
@@ -2288,7 +2289,7 @@ export default function UserProfilePage() {
       // Re-fetch post count
       supabase
         .from('social_posts')
-        .select('*', { count: 'exact', head: true })
+        .select('id', { count: 'exact', head: true })
         .eq('author_id', sid)
         .then(({ count }) => {
           if (count != null) setStats((prev) => ({ ...prev, posts: count }));
@@ -2434,17 +2435,13 @@ export default function UserProfilePage() {
     };
   }, []);
 
-  // Phase 15: Load horse profile IDs for online presence
-  useEffect(() => {
-    supabase
-      .from('content_authors')
-      .select('profile_id')
-      .eq('is_active', true)
-      .not('profile_id', 'is', null)
-      .then(({ data }) => {
-        if (data) setHorseProfileIds(new Set(data.map((h) => h.profile_id)));
-      });
-  }, []);
+  // Online dots for this profile and the authors of its posts. Presence is
+  // answered by /api/social/presence for every player alike; the page only asks.
+  const presenceIds = React.useMemo(
+    () => [profile?.id, ...posts.map((p) => p.author_id)],
+    [profile?.id, posts]
+  );
+  const onlineIds = usePresence(presenceIds);
 
   useEffect(() => {
     if (!username) return;
@@ -2454,7 +2451,7 @@ export default function UserProfilePage() {
     setShareCopied(false);
     setBioExpanded(false);
     setAnimatedStats({ friends: 0, following: 0, followers: 0, posts: 0 });
-    socialIdRef.current = null; // Reset horse social identity for new profile
+    socialIdRef.current = null; // Reset the social id for the new profile
 
     // Only show loading skeleton if we're loading a DIFFERENT profile.
     // If same profile is already loaded (e.g. back-navigation), keep it visible
@@ -2478,8 +2475,11 @@ export default function UserProfilePage() {
           if (parsed.friends) setFriends(parsed.friends);
           if (parsed.posts) setPosts(parsed.posts);
           if (parsed.photos) setPhotos(parsed.photos);
-          if (parsed.videos) setVideos(parsed.videos);
-          if (parsed.reels) setReels(parsed.reels);
+          // Never mount cached playable media. Rights, privacy, storage and
+          // availability can change independently while this two-hour profile
+          // cache is fresh; the canonical endpoints below must re-admit it.
+          setVideos([]);
+          setReels([]);
           if (parsed.lives) setPastLives(parsed.lives);
           
           if (parsed.pokerCheckins) setPokerCheckins(parsed.pokerCheckins);
@@ -2561,50 +2561,13 @@ export default function UserProfilePage() {
           })
           .catch(() => {}); // non-fatal
 
-        // ═══════════════════════════════════════════════════════════
-        // HORSE SOCIAL IDENTITY RESOLUTION
-        // ═══════════════════════════════════════════════════════════
-        // Horses have TWO profiles: a "real name" profile (e.g. daphne.winterfield)
-        // and an "alias" profile (e.g. Prairiegal) stored in content_authors.profile_id.
-        // Posts, friendships, and follows are all tied to the alias profile_id.
-        // We need to detect this and use the correct ID for social queries.
-        let socialId = data.id; // Default: use the loaded profile's ID
-        try {
-          // Check 1: Is this profile directly referenced by content_authors?
-          const { data: caDirectMatch } = await supabase
-            .from('content_authors')
-            .select('profile_id')
-            .eq('profile_id', data.id)
-            .eq('is_active', true)
-            .limit(1)
-            .maybeSingle();
-
-          if (!caDirectMatch) {
-            // Check 2: Does content_authors have a horse whose full_name matches this profile?
-            // This catches the case where the user navigates to the "real name" profile
-            // but the horse's social data lives under a different profile_id (the alias profile).
-            const profileName = data.full_name || data.username || '';
-            if (profileName) {
-              const { data: caNameMatch } = await supabase
-                .from('content_authors')
-                .select('profile_id')
-                .eq('is_active', true)
-                .not('profile_id', 'is', null)
-                .ilike('name', profileName)
-                .limit(1)
-                .maybeSingle();
-
-              if (caNameMatch && caNameMatch.profile_id && caNameMatch.profile_id !== data.id) {
-                socialId = caNameMatch.profile_id;
-              }
-            }
-          }
-        } catch (e) {
-          // Non-fatal: fall back to data.id
-          console.warn('[Profile] Horse social ID resolution failed:', e?.message || e);
-        }
-        // CRITICAL: Always sync ref AFTER resolution so realtime listeners
-        // (which depend on profile.id) read the correct social ID.
+        // A profile's social reads (posts, friends, follows, counts) use the
+        // profile's own id, the same for every player. The page never resolves
+        // an alternate id (removed 2026-10-05: it never changed an id in
+        // production and it read a server-only table from the browser).
+        const socialId = data.id;
+        // Sync the ref before the realtime listeners (which depend on
+        // profile.id) read it.
         socialIdRef.current = socialId;
 
         // ═══════════════════════════════════════════════════════════
@@ -2636,7 +2599,7 @@ export default function UserProfilePage() {
             .eq('following_id', socialId),
           supabase
             .from('social_posts')
-            .select('*', { count: 'exact', head: true })
+            .select('id', { count: 'exact', head: true })
             .eq('author_id', socialId),
         ];
 
@@ -2747,7 +2710,7 @@ export default function UserProfilePage() {
           const friendIds = allFriendIdArray.slice(0, 20); // Limit to 20 for display
           const { data: friendProfiles } = await supabase
             .from('profiles')
-            .select('id, username, avatar_url')
+            .select('id, username, display_name, avatar_url')
             .in('id', friendIds);
 
           if (friendProfiles) {
@@ -2802,7 +2765,7 @@ export default function UserProfilePage() {
           // Posts (use socialId for horse-aware lookup)
           supabase
             .from('social_posts')
-            .select('*')
+            .select(BROWSER_POST_SELECT)
             .eq('author_id', socialId)
             .order('created_at', { ascending: false })
             .limit(20),
@@ -2814,29 +2777,51 @@ export default function UserProfilePage() {
             .not('media_urls', 'is', null)
             .order('created_at', { ascending: false })
             .limit(50),
-          // Videos — Bug 15 fix: include live posts + thumbnail_url for cover images
-          supabase
-            .from('social_posts')
-            .select('id, media_urls, thumbnail_url, metadata, content, created_at, content_type')
-            .eq('author_id', socialId)
-            .or('content_type.eq.video,content_type.eq.live')
-            .order('created_at', { ascending: false })
-            .limit(30),
-          // Reels: only ready, undeleted rows, and only public ones unless the
-          // viewer owns this profile (the same test as isOwnProfile below).
-          // Phase 8: the permissive social_reels read policy returns every row,
-          // so the predicates the Reels surface applies live here too.
+          // Videos are filtered server-side through the same privacy, rights,
+          // storage-object, transcode and mutable availability contract as the
+          // main Social feed. Owners keep their own non-deleted private posts.
+          (() => {
+            const token = user?.id === data.id ? getAccessToken() : null;
+            return fetch(`/api/social/profile-videos?author_id=${encodeURIComponent(socialId)}`, {
+              method: 'GET',
+              cache: 'no-store',
+              headers: {
+                Accept: 'application/json',
+                ...(token ? { Authorization: `Bearer ${token}` } : {}),
+              },
+            });
+          })().then(async (response) => {
+            const payload = await response.json().catch(() => null);
+            if (!response.ok || !payload?.success || !Array.isArray(payload.data)) {
+              return { data: [], error: new Error(payload?.error || 'Profile Videos unavailable') };
+            }
+            return { data: payload.data, error: null };
+          }),
+          // Profile Reels use the same server-owned rights, availability,
+          // linked-post, native-object and canonical-winner gate as /hub/reels.
+          // Never restore the former direct social_reels query here: RLS alone
+          // cannot adjudicate mutable third-party playback availability.
           (() => {
             const viewerOwnsProfile = user?.id === data.id;
-            let reelsQuery = supabase
-              .from('social_reels')
-              .select('id, video_url, caption, thumbnail_url, view_count, created_at')
-              .eq('author_id', socialId)
-              .eq('media_status', 'ready')
-              .eq('is_deleted', false);
-            if (!viewerOwnsProfile) reelsQuery = reelsQuery.eq('is_public', true);
-            return reelsQuery.order('created_at', { ascending: false }).limit(30);
-          })(),
+            const token = viewerOwnsProfile ? getAccessToken() : null;
+            const endpoint = viewerOwnsProfile
+              ? '/api/reels/mine?limit=30'
+              : `/api/reels/profile?author_id=${encodeURIComponent(socialId)}&limit=30`;
+            return fetch(endpoint, {
+              method: 'GET',
+              cache: 'no-store',
+              headers: {
+                Accept: 'application/json',
+                ...(token ? { Authorization: `Bearer ${token}` } : {}),
+              },
+            });
+          })().then(async (response) => {
+            const payload = await response.json().catch(() => null);
+            if (!response.ok || !payload?.success || !Array.isArray(payload.data)) {
+              return { data: [], error: new Error(payload?.error || 'Profile Reels unavailable') };
+            }
+            return { data: payload.data, error: null };
+          }),
           // Past Lives (posted recordings only)
           // BUG FIX (2026-05-11 audit): added feed_post_id so handleDeleteLive can
           // explicitly clean up the linked "X went live" social_posts entry on delete.
@@ -2984,8 +2969,6 @@ export default function UserProfilePage() {
             friends: finalFriends,
             posts: userPosts,
             photos: finalPhotos,
-            videos: userVideos,
-            reels: userReels,
             lives: userLives,
           };
           localStorage.setItem(CACHE_KEY, JSON.stringify(cachePayload));
@@ -3005,6 +2988,68 @@ export default function UserProfilePage() {
 
     fetchProfile();
   }, [username]);
+
+  // Re-admit profile media whenever the document becomes visible or regains
+  // focus. This closes the window where a rights revocation or takedown in a
+  // different tab could leave playable media mounted on a cached profile.
+  useEffect(() => {
+    if (!profile?.id) return undefined;
+    let controller = null;
+    let sequence = 0;
+
+    const refreshCanonicalProfileMedia = async () => {
+      controller?.abort();
+      controller = new AbortController();
+      const requestSequence = ++sequence;
+      const socialId = socialIdRef.current || profile.id;
+      const ownsProfile = currentUser?.id === profile.id;
+      const token = ownsProfile ? getAccessToken() : null;
+      const headers = {
+        Accept: 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      };
+      try {
+        const [videosResponse, reelsResponse] = await Promise.all([
+          fetch(`/api/social/profile-videos?author_id=${encodeURIComponent(socialId)}`, {
+            cache: 'no-store', headers, signal: controller.signal,
+          }),
+          fetch(ownsProfile
+            ? '/api/reels/mine?limit=30'
+            : `/api/reels/profile?author_id=${encodeURIComponent(socialId)}&limit=30`, {
+            cache: 'no-store', headers, signal: controller.signal,
+          }),
+        ]);
+        const [videosPayload, reelsPayload] = await Promise.all([
+          videosResponse.json().catch(() => null),
+          reelsResponse.json().catch(() => null),
+        ]);
+        if (requestSequence !== sequence) return;
+        setVideos(videosResponse.ok && videosPayload?.success && Array.isArray(videosPayload.data)
+          ? videosPayload.data : []);
+        setReels(reelsResponse.ok && reelsPayload?.success && Array.isArray(reelsPayload.data)
+          ? reelsPayload.data : []);
+      } catch (error) {
+        if (error?.name !== 'AbortError' && requestSequence === sequence) {
+          // Fail closed: an unverified mounted player is less safe than an
+          // explicit temporary empty state while the canonical reader recovers.
+          setVideos([]);
+          setReels([]);
+          console.warn('[Profile Media] Canonical refresh failed:', error?.message || error);
+        }
+      }
+    };
+    const refreshWhenVisible = () => {
+      if (document.visibilityState === 'visible') void refreshCanonicalProfileMedia();
+    };
+    window.addEventListener('focus', refreshCanonicalProfileMedia);
+    document.addEventListener('visibilitychange', refreshWhenVisible);
+    return () => {
+      sequence += 1;
+      controller?.abort();
+      window.removeEventListener('focus', refreshCanonicalProfileMedia);
+      document.removeEventListener('visibilitychange', refreshWhenVisible);
+    };
+  }, [profile?.id, currentUser?.id]);
   // Realtime subscription — live updates
   useEffect(() => {
     if (!profile?.id) return;
@@ -3032,13 +3077,13 @@ export default function UserProfilePage() {
           ] = await Promise.all([
             supabase
               .from('social_posts')
-              .select('*')
+              .select(BROWSER_POST_SELECT)
               .eq('author_id', sid)
               .order('created_at', { ascending: false })
               .limit(20),
             supabase
               .from('social_posts')
-              .select('*', { count: 'exact', head: true })
+              .select('id', { count: 'exact', head: true })
               .eq('author_id', sid),
             supabase
               .from('social_follows')
@@ -3280,7 +3325,10 @@ export default function UserProfilePage() {
       notifyFriendsSync();
       // Insert in-app notification for the recipient
       const senderName =
-        currentUser?.user_metadata?.full_name || currentUser?.user_metadata?.username || 'Someone';
+        currentUser?.user_metadata?.display_name ||
+        currentUser?.user_metadata?.username ||
+        currentUser?.user_metadata?.poker_alias ||
+        'Someone';
       const senderUsername = currentUser?.user_metadata?.username || currentUser?.id;
       supabase
         .from('notifications')
@@ -3438,11 +3486,10 @@ export default function UserProfilePage() {
     // refetch pulled the post back into state and the user had to click delete a
     // second time. Fix: optimistic UI -> AWAIT the DB delete -> then broadcast.
     //
-    // BUG FIX (USER-DELETE-2): the post -> reel relationship uses
-    // ON DELETE SET NULL on social_reels.source_post_id, so deleting the post
-    // left an orphan reel that kept playing in /hub/reels. Until the migration
-    // changing that FK to ON DELETE CASCADE has propagated to every environment,
-    // explicitly delete the matching reel rows here.
+    // The post -> Reel relationship can retain a tombstone Reel after the post
+    // is deleted. The canonical reader rejects a linked Reel when its source
+    // post is absent, so preserve the row and reconciliation aliases rather
+    // than bypassing the server boundary with a client-side hard delete.
     const prevPosts = posts;
     const prevPhotos = photos;
     const prevVideos = videos;
@@ -3463,16 +3510,6 @@ export default function UserProfilePage() {
       setStats(prevStats);
       console.warn('Error deleting post:', error);
       return;
-    }
-
-    // Defense in depth — also delete any reel rows whose source_post_id matched
-    // this post. The migration moves the FK to ON DELETE CASCADE so this becomes
-    // a no-op once it lands, but until then it prevents orphan reels.
-    try {
-      const { error: err_social_reels_vu4qv } = await supabase.from('social_reels').delete().eq('source_post_id', postId);
-      if (err_social_reels_vu4qv) console.warn('[Supabase] Silent mutation failed in social_reels:', err_social_reels_vu4qv.message);
-    } catch (e) {
-      console.warn('[App] Reel cleanup after post delete failed (non-fatal):', e?.message || e);
     }
 
     // Defense in depth (2026-05-11) — also clean up any live_streams row whose
@@ -3532,31 +3569,25 @@ export default function UserProfilePage() {
     });
   };
 
-  // Delete a reel directly (separate from handleDeletePost, which targets
-  // social_posts). The Reels tab queries social_reels directly — many older
-  // reels have source_post_id=NULL because they were uploaded straight to
-  // the reels feed (not via a social_post mirror). Those won't cascade when
-  // a post is deleted because there's no post to delete. This handler lets
-  // an owner remove a reel from their profile by reel.id directly. Includes
-  // the same defense-in-depth pattern as handleDeletePost: optimistic UI
-  // first, then AWAIT the DB delete, then broadcast cache invalidation.
+  // Remove a Reel independently from a source post. The authenticated server
+  // boundary resolves every reconciliation alias and quarantines the complete
+  // group while preserving historical IDs as tombstones.
   const handleDeleteReel = async (reelId) => {
     if (!reelId || !currentUser?.id) return;
     const prevReels = reels;
     const prevStats = { ...stats };
     setReels((prev) => prev.filter((r) => r.id !== reelId));
     setStats((prev) => ({ ...prev, reels: Math.max(0, (prev.reels || 0) - 1) }));
-    const { error } = await supabase
-      .from('social_reels')
-      .delete()
-      .eq('id', reelId)
-      .eq('author_id', currentUser.id); // RLS-safety: only delete own reels
-    if (error) {
+    try {
+      await removeOwnedReels({ reelId });
+    } catch (error) {
       setReels(prevReels);
       setStats(prevStats);
-      console.warn('Error deleting reel:', error);
+      console.warn('Error deleting reel:', error?.message || error);
+      toast.error('Could not remove Reel. Please try again.');
       return;
     }
+    toast.success('Reel removed');
     invalidateProfileCache();
     busEmit.dataMutated('social');
     broadcastSync('smarter_poker_social_sync', {
@@ -3679,7 +3710,7 @@ export default function UserProfilePage() {
       const { data, error } = await supabase
         .from('social_posts')
         .insert(insertPayload)
-        .select()
+        .select(BROWSER_POST_SELECT)
         .maybeSingle();
 
       if (error) {
@@ -3700,7 +3731,7 @@ export default function UserProfilePage() {
         author: {
           id: currentUser.id,
           username: currentUser.user_metadata?.username,
-          full_name: currentUser.user_metadata?.full_name,
+          display_name: currentUser.user_metadata?.display_name,
           avatar_url: currentUser.user_metadata?.avatar_url,
         },
       };
@@ -3774,10 +3805,14 @@ export default function UserProfilePage() {
   }
 
   const isOwnProfile = currentUser?.id === profile.id;
-  // Display name = real name (full_name) first, username as fallback
+  // Display name = public display_name first, username as fallback. The real
+  // name (full_name) is owner-only and never shown on a profile others see.
   // Poker alias (@username) is shown separately as a handle badge
-  const displayName = profile.full_name || profile.username || 'Player';
-  const pokerAlias = profile.username && profile.full_name ? profile.username : null; // Only show alias badge if they have both
+  const displayName = profile.display_name || profile.username || 'Player';
+  const pokerAlias =
+    profile.username && profile.display_name && profile.display_name !== profile.username
+      ? profile.username
+      : null; // Only show alias badge when a distinct display_name is shown
   const locationParts = [
     profile.city,
     profile.state,
@@ -4204,10 +4239,7 @@ export default function UserProfilePage() {
                   name={displayName}
                   size={120}
                 />
-                {(() => {
-                  const hid = socialIdRef.current || profile.id;
-                  return horseProfileIds.has(hid) && isHorseOnlineNow(hid);
-                })() && (
+                {onlineIds.has(profile.id) && (
                   <span
                     style={{
                       position: 'absolute',
@@ -4643,7 +4675,7 @@ export default function UserProfilePage() {
                   <img
                     key={f.id}
                     src={f.avatar_url || '/default-avatar.png'}
-                    alt={f.username || f.full_name || 'Friend'}
+                    alt={f.username || f.display_name || 'Friend'}
                     style={{
                       width: 28,
                       height: 28,
@@ -4661,7 +4693,7 @@ export default function UserProfilePage() {
                   <strong>
                     {friends
                       .slice(0, 2)
-                      .map((f) => f.full_name?.split(' ')[0] || f.username)
+                      .map((f) => f.display_name || f.username)
                       .join(', ')}
                   </strong>
                   {friends.length > 2 && ` and ${friends.length - 2} others`}
@@ -5861,7 +5893,7 @@ export default function UserProfilePage() {
                       }}
                       currentUserId={currentUser?.id}
                       currentUser={currentUser}
-                      horseProfileIds={horseProfileIds}
+                      authorOnline={onlineIds.has(post.author_id)}
                     />
                   ))
                 ) : (
@@ -7053,7 +7085,7 @@ export default function UserProfilePage() {
             onClick={(e) => e.stopPropagation()}
           >
             <div style={{ fontSize: 18, fontWeight: 700, color: C.text, marginBottom: 12 }}>
-              Unfriend {profile?.username || profile?.full_name}?
+              Unfriend {profile?.username || profile?.display_name}?
             </div>
             <div style={{ fontSize: 14, color: C.textSec, marginBottom: 20 }}>
               Are You Sure You Want To Remove This Person From Your Friends List?
@@ -7121,7 +7153,7 @@ export default function UserProfilePage() {
             onClick={(e) => e.stopPropagation()}
           >
             <div style={{ fontSize: 18, fontWeight: 700, color: C.text, marginBottom: 12 }}>
-              Block {profile?.username || profile?.full_name}?
+              Block {profile?.username || profile?.display_name}?
             </div>
             <div style={{ fontSize: 14, color: C.textSec, marginBottom: 20 }}>
               They Won't Be Able To See Your Posts Or Message You.
@@ -7226,7 +7258,7 @@ export default function UserProfilePage() {
             onClick={(e) => e.stopPropagation()}
           >
             <div style={{ fontSize: 18, fontWeight: 700, color: C.text, marginBottom: 12 }}>
-              Report {profile?.username || profile?.full_name}
+              Report {profile?.username || profile?.display_name}
             </div>
             <div style={{ fontSize: 14, color: C.textSec, marginBottom: 12 }}>
               Why Are You Reporting This User?
@@ -7391,7 +7423,7 @@ export default function UserProfilePage() {
         isOpen={showFriendsModal}
         onClose={() => setShowFriendsModal(false)}
         profileId={profile?.id}
-        profileName={profile?.full_name || profile?.username}
+        profileName={profile?.display_name || profile?.username}
         currentUserId={currentUser?.id}
         socialIdRef={socialIdRef}
       />

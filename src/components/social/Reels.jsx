@@ -11,8 +11,10 @@ import {
 } from '../../hooks/useYouTubeErrorManager';
 import { supabase } from '../../lib/supabase';
 import { getAuthUser, getAccessToken } from '../../lib/authUtils';
+import { submitReelReport } from '../../lib/reelsReportClient.mjs';
 import { busEmit, eventBus, EventType } from '../../engine/EventBus';
 import Link from 'next/link';
+import ReelTrustStrip from '../reels/ReelTrustStrip';
 import GiphyPicker from '../shared/GiphyPicker';
 import {
   buildReelPath,
@@ -26,7 +28,9 @@ import {
   normaliseReelIds,
 } from '../../lib/reelInteractionHydration';
 import { createLatestRequestGuard } from '../../lib/latestRequestGuard.mjs';
-import { scanReelsContinuations } from '../../lib/reelsContinuation.mjs';
+import { loadCanonicalReelsWindow } from '../../lib/reelsFeedController.mjs';
+import { recordReelsDeliveryMetric } from '../../lib/reelsDeliveryMetrics';
+import { capReelsInMemory, dataSaverEnabled } from '../../lib/reelsDeliveryContract.mjs';
 import {
   BACKGROUND_REELS_REFRESH,
   REELS_BACKGROUND_REFRESH_DELAY_MS,
@@ -50,6 +54,9 @@ import VideoLibraryConsole, {
   ConsoleDataRow,
 } from '../video-library/console/VideoLibraryConsole';
 import ReelResponsibleGamingNotice from './ReelResponsibleGamingNotice';
+import ReelPlayerFrame from '../reels/ReelPlayerFrame';
+import ReelFeedbackActions from '../reels/ReelFeedbackActions';
+import { reelSourceKey } from '../../lib/reelsFeedback.mjs';
 import styles from './ReelsConsole.module.css';
 
 // ReelsConsole.module.css keeps every full-screen close action below env(safe-area-inset-top).
@@ -88,7 +95,7 @@ function reelSourceName(reel) {
   return reel?.channel_name
     || reel?.profiles?.full_name
     || reel?.profiles?.username
-    || `${reelTopicLabel(reel)} Creator`;
+    || 'Creator Unavailable';
 }
 
 function reelSourceUrl(reel) {
@@ -136,23 +143,20 @@ function ReelViewerConsoleState({ title, subtitle, pill, pillInk = 'blue', copy,
 
 // Full-screen Reel Viewer
 export function ReelsViewer({ onClose }) {
-  // Source-aware atomic engagement counter.
-  // Uses SECURITY DEFINER RPCs - single UPDATE, no read-then-write race condition.
-  const incrementMetric = async (reel, field, amount) => {
-    if (!reel?.id) return;
-    try {
-      if (reel.source === 'posts') {
-        const rpc = amount > 0 ? 'increment_post_count' : 'decrement_post_count';
-        const { error } = await supabase.rpc(rpc, { p_post_id: reel.id, p_field: field });
-        if (error) throw error;
-      } else {
-        const rpc = amount > 0 ? 'increment_reel_count' : 'decrement_reel_count';
-        const { error } = await supabase.rpc(rpc, { p_reel_id: reel.id, p_field: field });
-        if (error) throw error;
-      }
-    } catch (e) {
-      console.warn('[ReelsViewer] Atomic counter update failed:', e?.message || e);
-    }
+  const prefersDataSaver = useMemo(() => dataSaverEnabled({
+    connection: typeof navigator !== 'undefined' ? navigator.connection : null,
+  }), []);
+  const deliveryStartRef = useRef(Date.now());
+  const deliveryMeasuredRef = useRef(false);
+  const recordShareMetric = async (reel, destination = 'external') => {
+    const token = getAccessToken();
+    if (!reel?.id || !token) return;
+    const response = await fetch('/api/social/share-count', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ post_id: reel.id, destination }),
+    });
+    if (!response.ok) throw new Error('Share metric failed');
   };
 
   const [reels, setReels] = useState([]);
@@ -198,13 +202,6 @@ export function ReelsViewer({ onClose }) {
   const [likeCounts, setLikeCounts] = useState({});
   const [commentCounts, setCommentCounts] = useState({});
   const [saved, setSaved] = useState({});
-  /*
-   * viewCounts used to live here alongside likeCounts and commentCounts, filled
-   * from the same DB payload - but unlike those two it was rendered nowhere, so
-   * it was three setState calls a session for a number nobody saw. The DB write
-   * below (incrementMetric) is untouched, so the real count still moves; only
-   * the local mirror is gone. ReelsFeedCarousel does display views.
-   */
   const savedTargetsByReelRef = useRef(new Map());
   // Infinite scroll state
   const [hasMore, setHasMore] = useState(true);
@@ -317,7 +314,6 @@ export function ReelsViewer({ onClose }) {
   const videoRef = useRef(null);
   const containerRef = useRef(null);
   const commentInputRef = useRef(null);
-  const viewedReelsRef = useRef(new Set());
   const overlayTimerRef = useRef(null);
   const likeDebounceRef = useRef(false);
   const lastTapRef = useRef(0);
@@ -588,7 +584,6 @@ export function ReelsViewer({ onClose }) {
   // one debounced BACKGROUND refresh that merges into the mounted feed without
   // swapping the player for the loading console.
   useEffect(() => {
-    if (!currentUserId) return;
     const realtimeFilter = reelRealtimeFilterRef.current;
     const handleReelChange = (eventType, row) => {
       const stateReel = row?.id
@@ -601,7 +596,7 @@ export function ReelsViewer({ onClose }) {
       scheduleBackgroundReelsRefresh();
     };
     const _ch = supabase
-      .channel(`reels-viewer:${currentUserId}`)
+      .channel(`reels-viewer:${currentUserId || 'public'}:${Math.random().toString(36).slice(2, 8)}`)
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'social_reels' }, (payload) => {
         handleReelChange('INSERT', payload?.new);
       })
@@ -718,15 +713,7 @@ export function ReelsViewer({ onClose }) {
       progressRAF.current = null;
     }
 
-    // Deduplicated view count - defer 2s so rapid swipes don't inflate counts
-    const reelId = reels[currentIndex]?.id;
-    const viewCountTimer =
-      reelId && currentUserId && !viewedReelsRef.current.has(reelId)
-        ? setTimeout(() => {
-            viewedReelsRef.current.add(reelId);
-            incrementMetric(reels[currentIndex], 'view_count', 1);
-          }, 2000)
-        : null;
+    const viewCountTimer = null;
 
     // Native video autoplay - only for non-YouTube reels
     const reel = reels[currentIndex];
@@ -855,14 +842,7 @@ export function ReelsViewer({ onClose }) {
     const ownerRequest = accountScopeRef.current.capture(activeUserIdRef.current);
     if (!currentReel?.id || !ownerRequest.ownerId || !ownerRequest.isCurrent() || !reportReason.trim()) return;
     try {
-      const { error } = await supabase.from('social_interactions').insert({
-        user_id: ownerRequest.ownerId,
-        post_id: currentReel.id,
-        interaction_type: 'report',
-        metadata: { reason: reportReason.trim() },
-      });
-      // BUG FIX: do NOT show success UI if the insert failed silently
-      if (error) throw error;
+      await submitReelReport({ reelId: currentReel.id, reason: reportReason, ownerId: ownerRequest.ownerId, accessToken: getAccessToken() });
       if (!ownerRequest.isCurrent()) return;
       setReportSubmitted(true);
       clearTimeout(reportModalTimerRef.current);
@@ -978,14 +958,11 @@ export function ReelsViewer({ onClose }) {
     try {
       const idSet = new Set();
       const urlSet = new Set();
-      const payload = await scanReelsContinuations({
-        fetchPage: (cursor) => fetchPokerReels({
-          limit: 120,
-          cursor,
-          signal: reelsRequest.signal,
-          scope: 'library-viewer',
-          category: 'for-you',
-        }),
+      const payload = await loadCanonicalReelsWindow({
+        limit: 120,
+        signal: reelsRequest.signal,
+        scope: 'library-viewer',
+        category: 'for-you',
         selectRows: (rows) => rows
           .map((reel) => ({ ...reel, source: 'reels' }))
           .filter((reel) => {
@@ -1075,6 +1052,15 @@ export function ReelsViewer({ onClose }) {
       // DB is source of truth on a full reload - DB values win over stale optimistic counts
       setLikeCounts((prev) => ({ ...prev, ...lc }));
       setCommentCounts((prev) => ({ ...prev, ...cc }));
+      if (filteredMerged.length && !deliveryMeasuredRef.current) {
+        deliveryMeasuredRef.current = true;
+        void recordReelsDeliveryMetric({
+          surface: 'library',
+          feedMode: 'latest',
+          startupMs: Date.now() - deliveryStartRef.current,
+          playbackType: filteredMerged[0]?.playback_type || 'unknown',
+        });
+      }
     } catch (e) {
       if (e?.name === 'AbortError' || !reelsRequest.isCurrent()) return;
       if (background) {
@@ -1110,6 +1096,27 @@ export function ReelsViewer({ onClose }) {
 
   const currentReel = reels[currentIndex];
   activeCommentReelIdRef.current = currentReel?.id || null;
+
+  const handleRecommendationFeedback = (action) => {
+    if (!currentReel?.id) return;
+    const ownerId = currentUserId || null;
+    if (action === 'not-interested') {
+      void handleDislike();
+    } else if (action === 'already-watched') {
+      setWatchedReelIds((previous) => persistWatchedReelIds([...new Set([...previous, currentReel.id])], ownerId));
+    } else {
+      const source = reelSourceKey(currentReel);
+      setNotInterestedIds((previous) => {
+        const next = new Set(previous);
+        if (action === 'hide-source' && source) reels.forEach((reel) => { if (reelSourceKey(reel) === source) next.add(reel.id); });
+        else next.add(currentReel.id);
+        return persistNotInterestedReelIds(next, ownerId);
+      });
+      goNext();
+    }
+    setShowMoreMenu(false);
+    setShowContextMenu(false);
+  };
 
   // Phase 9: Watched Indicator Timer
   useEffect(() => {
@@ -1180,15 +1187,12 @@ export function ReelsViewer({ onClose }) {
       const existingIds = new Set(reels.map((reel) => reel.id));
       const existingUrls = new Set(reels.map((reel) => reel.video_url).filter(Boolean));
       const seenUrlsThisScan = new Set();
-      const payload = await scanReelsContinuations({
+      const payload = await loadCanonicalReelsWindow({
         cursor: reelsCursorRef.current,
-        fetchPage: (cursor) => fetchPokerReels({
-          limit: 60,
-          cursor,
-          signal: reelsRequest.signal,
-          scope: 'library-viewer',
-          category: 'for-you',
-        }),
+        limit: 60,
+        signal: reelsRequest.signal,
+        scope: 'library-viewer',
+        category: 'for-you',
         selectRows: (rows) => rows
           .map((reel) => ({ ...reel, source: 'reels' }))
           .filter((reel) => {
@@ -1215,7 +1219,10 @@ export function ReelsViewer({ onClose }) {
           lc[reel.id] = reel.like_count || 0;
           cc[reel.id] = reel.comment_count || 0;
         });
-        setReels((prev) => mergeReels(prev, fresh, { category: 'for-you' }));
+        setReels((prev) => capReelsInMemory(
+          mergeReels(prev, fresh, { category: 'for-you' }),
+          currentReel?.id,
+        ));
         setLikeCounts((prev) => ({ ...prev, ...lc }));
         setCommentCounts((prev) => ({ ...prev, ...cc }));
       }
@@ -1786,7 +1793,7 @@ export function ReelsViewer({ onClose }) {
         window.open(`https://wa.me/?text=${encodeURIComponent(title + ' ' + url)}`, '_blank');
       }
       if (!ownerRequest.isCurrent()) return;
-      if (platform !== 'copy') incrementMetric(reel, 'share_count', 1);
+      if (platform !== 'copy') await recordShareMetric(reel, platform === 'native' ? 'external' : platform);
       if (userId) busEmit.socialPostShared(reel.id, userId);
     } catch (err) {
       if (!ownerRequest.isCurrent()) return;
@@ -1845,7 +1852,7 @@ export function ReelsViewer({ onClose }) {
       if (result.already_shared) {
         showErrorToast('Already shared this reel!');
       } else {
-        incrementMetric(reel, 'share_count', 1);
+        await recordShareMetric(reel, 'feed');
         busEmit.socialPostShared(reel.id, userId);
         busEmit.dataMutated('social');
       }
@@ -2776,16 +2783,7 @@ export function ReelsViewer({ onClose }) {
         >
           Keyboard Help
         </button>
-        <button
-          type="button"
-          className={styles.wordActionDanger}
-          onClick={() => {
-            handleDislike();
-            setShowMoreMenu(false);
-          }}
-        >
-          {notInterestedIds.has(currentReel?.id) ? 'Restore Recommendation' : 'Not For Me'}
-        </button>
+        <ReelFeedbackActions buttonClassName={styles.wordActionDanger} onFeedback={handleRecommendationFeedback} />
         <button
           type="button"
           className={styles.wordActionDanger}
@@ -2927,6 +2925,13 @@ export function ReelsViewer({ onClose }) {
         <div className={styles.choiceList}>
           {[
             'Inappropriate Content',
+            'Copyright Or Rights',
+            'Incorrect Attribution',
+            'Unlabeled Promotion',
+            'Unlabeled Generated Media',
+            'Underage Or Safety',
+            'Gambling Harm',
+            'Playback Unavailable',
             'Spam Or Scam',
             'Harassment',
             'Misinformation',
@@ -3030,7 +3035,11 @@ export function ReelsViewer({ onClose }) {
                   : null;
 
                 return (
-                  <section
+                  <ReelPlayerFrame
+                    as="section"
+                    active={isActive}
+                    reelId={reel.id}
+                    dataSaver={prefersDataSaver}
                     key={reel.id}
                     className={styles.slide}
                     data-reel-index={index}
@@ -3078,7 +3087,7 @@ export function ReelsViewer({ onClose }) {
                         key={reel.id}
                         src={reel.video_url}
                         poster={reel.thumbnail_url || undefined}
-                        preload="auto"
+                        preload={prefersDataSaver ? 'metadata' : 'auto'}
                         playsInline
                         loop
                         muted={muted}
@@ -3179,7 +3188,7 @@ export function ReelsViewer({ onClose }) {
                         />
                       </div>
                     ) : null}
-                  </section>
+                  </ReelPlayerFrame>
                 );
               })}
             </div>
@@ -3236,6 +3245,7 @@ export function ReelsViewer({ onClose }) {
               ) : null}
 
               <ReelResponsibleGamingNotice topic={currentReel?.topic} />
+              <ReelTrustStrip reel={currentReel} compact />
 
               <div className={styles.actionGrid}>
                 <button type="button" className={styles.wordAction} onClick={onClose}>

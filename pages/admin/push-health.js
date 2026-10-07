@@ -8,6 +8,7 @@
  */
 import Head from 'next/head';
 import usePushHealth from '../../src/hooks/usePushHealth';
+import consoleStyles from '../../src/components/admin/OperatorAdminSurface.module.css';
 
 const STATUS_LABEL = {
     ok: 'Reachable',
@@ -33,7 +34,7 @@ const REASON_LABEL = {
 // user_choice and not_enrolled are EXPECTED. Only `fault` means we are broken.
 const KIND_COLOR = {
     user_choice: '#10B981',
-    not_enrolled: '#6B7280',
+    not_enrolled: '#AABCC4',
     throttled: '#F59E0B',
     fault: '#EF4444',
 };
@@ -48,7 +49,7 @@ const STATUS_COLOR = {
     ok: '#10B981',
     zombie: '#F59E0B',
     subscription_dead: '#EF4444',
-    never_enabled: '#6B7280',
+    never_enabled: '#AABCC4',
 };
 
 export default function PushHealthPage() {
@@ -56,21 +57,21 @@ export default function PushHealthPage() {
 
     return (
         <>
-            <Head><title>Push Health | Smarter Poker Admin</title><meta name="robots" content="noindex" /></Head>
-            <div style={{ minHeight: '100vh', background: '#0B1120', color: '#fff', padding: 24 }}>
+            <Head><title>Push Health | Smarter Poker Admin</title></Head>
+            <main className={consoleStyles.surface} style={{ minHeight: '100vh', background: '#0B1120', color: '#fff', padding: 24 }}>
                 <div style={{ maxWidth: 1000, margin: '0 auto' }}>
                     <h1 style={{ fontSize: 24, fontWeight: 700, margin: 0 }}>Push Health</h1>
                     <p style={{ color: '#9CA3AF', fontSize: 14, marginTop: 4 }}>
                         Delivery Is Measured By Service Worker Receipts, Not By What The Push Service Accepted.
                     </p>
 
-                    {error && <p style={{ color: '#FCA5A5', marginTop: 20 }}>{error}</p>}
-                    {!data && !error && <p style={{ color: '#6B7280', marginTop: 20 }}>Loading...</p>}
+                    {error && <p className={consoleStyles.state} role="alert" style={{ color: '#FCA5A5', marginTop: 20 }}>{error}</p>}
+                    {!data && !error && <p className={consoleStyles.secondary} role="status" style={{ color: '#AABCC4', marginTop: 20 }}>Loading...</p>}
 
                     {data && !error && (
                         <>
                             <p style={{ color: '#9CA3AF', fontSize: 12 }}>Checked {new Date(data.observedAt).toLocaleString()}. Counts Include Every Matching Record.</p>
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 12, marginTop: 20 }}>
+                            <div className={consoleStyles.responsiveGrid} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 12, marginTop: 20 }}>
                                 <Stat label="VAPID configured" value={data.config.configured ? 'Yes' : 'NO'} bad={!data.config.configured} />
                                 <Stat label="Keys match" value={data.config.keyMatches ? 'Yes' : 'NO'} bad={!data.config.keyMatches} />
                                 <Stat label="Active devices" value={data.subscriptions.active} />
@@ -86,7 +87,7 @@ export default function PushHealthPage() {
                             </div>
 
                             <h2 style={{ fontSize: 18, fontWeight: 600, marginTop: 32 }}>Delivery Funnel (24h)</h2>
-                            <p style={{ color: '#6B7280', fontSize: 13, marginTop: 4 }}>
+                            <p style={{ color: '#AABCC4', fontSize: 13, marginTop: 4 }}>
                                 Queued To Sent Is Our Plumbing. Sent To Confirmed Is Reality: Push
                                 Services Return 2xx For Devices That Are Long Gone, So Only A
                                 Service-Worker Receipt Proves Anything Was Drawn On A Screen.
@@ -95,7 +96,7 @@ export default function PushHealthPage() {
                             </p>
                             {data.funnel ? (
                                 <>
-                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12, marginTop: 12 }}>
+                                    <div className={consoleStyles.responsiveGrid} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12, marginTop: 12 }}>
                                         <Stat label="Queued" value={data.funnel.queued} />
                                         <Stat label="Unreachable" value={data.funnel.unreachable} />
                                         <Stat label="Addressable" value={data.funnel.addressable} />
@@ -121,23 +122,23 @@ export default function PushHealthPage() {
                                         />
                                     </div>
                                     {data.funnel.devicesPushed === 0 && (
-                                        <p style={{ color: '#6B7280', fontSize: 12, marginTop: 8 }}>
+                                        <p style={{ color: '#AABCC4', fontSize: 12, marginTop: 8 }}>
                                             Nothing Was Pushed In This Window, So Confirm Rate Is Not
                                             Meaningful Yet.
                                         </p>
                                     )}
                                 </>
                             ) : (
-                                <p style={{ color: '#6B7280', marginTop: 12 }}>Funnel Unavailable.</p>
+                                <p style={{ color: '#AABCC4', marginTop: 12 }}>Funnel Unavailable.</p>
                             )}
 
                             <h2 style={{ fontSize: 18, fontWeight: 600, marginTop: 32 }}>Push Volume By Type (7d)</h2>
-                            <p style={{ color: '#6B7280', fontSize: 13, marginTop: 4 }}>
+                            <p style={{ color: '#AABCC4', fontSize: 13, marginTop: 4 }}>
                                 A Feature That Suddenly Dominates This List Is Spamming People.
                             </p>
-                            <div style={{ marginTop: 12, border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, overflow: 'hidden' }}>
+                            <div className={consoleStyles.panel} style={{ marginTop: 12, border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, overflow: 'hidden' }}>
                                 {(!data.byType || data.byType.length === 0) && (
-                                    <p style={{ padding: 16, color: '#6B7280', margin: 0 }}>No Push Activity In The Last 7 Days.</p>
+                                    <p style={{ padding: 16, color: '#AABCC4', margin: 0 }}>No Push Activity In The Last 7 Days.</p>
                                 )}
                                 {(data.byType || []).map((t) => (
                                     <div key={t.event} style={{
@@ -153,13 +154,13 @@ export default function PushHealthPage() {
                             </div>
 
                             <h2 style={{ fontSize: 18, fontWeight: 600, marginTop: 32 }}>Why Pushes Were Suppressed</h2>
-                            <p style={{ color: '#6B7280', fontSize: 13, marginTop: 4 }}>
+                            <p style={{ color: '#AABCC4', fontSize: 13, marginTop: 4 }}>
                                 Last 7 Days. Green And Grey Are Working As Intended -- A Suppressed
                                 Push Is Only A Problem When It Is Red.
                             </p>
-                            <div style={{ marginTop: 12, border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, overflow: 'hidden' }}>
+                            <div className={consoleStyles.panel} style={{ marginTop: 12, border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, overflow: 'hidden' }}>
                                 {(!data.skipReasons || data.skipReasons.length === 0) && (
-                                    <p style={{ padding: 16, color: '#6B7280', margin: 0 }}>
+                                    <p style={{ padding: 16, color: '#AABCC4', margin: 0 }}>
                                         Nothing Suppressed In The Last 7 Days.
                                     </p>
                                 )}
@@ -171,7 +172,7 @@ export default function PushHealthPage() {
                                         <div style={{ minWidth: 0 }}>
                                             <span style={{ fontSize: 14 }}>{REASON_LABEL[r.reason] || r.reason}</span>
                                             <span style={{
-                                                marginLeft: 8, fontSize: 11, fontWeight: 700,
+                                                marginLeft: 8, fontSize: 12, fontWeight: 700,
                                                 color: KIND_COLOR[r.kind] || '#9CA3AF',
                                             }}>
                                                 {KIND_LABEL[r.kind] || r.kind}
@@ -183,9 +184,9 @@ export default function PushHealthPage() {
                             </div>
 
                             <h2 style={{ fontSize: 18, fontWeight: 600, marginTop: 32 }}>Staff Reachability</h2>
-                            <div style={{ marginTop: 12, border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, overflow: 'hidden' }}>
+                            <div className={consoleStyles.panel} style={{ marginTop: 12, border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, overflow: 'hidden' }}>
                                 {data.staff.length === 0 && (
-                                    <p style={{ padding: 16, color: '#6B7280', margin: 0 }}>No Staff Accounts Found.</p>
+                                    <p style={{ padding: 16, color: '#AABCC4', margin: 0 }}>No Staff Accounts Found.</p>
                                 )}
                                 {data.staff.map((s) => (
                                     <div key={s.id} style={{
@@ -196,7 +197,7 @@ export default function PushHealthPage() {
                                             <p style={{ margin: 0, fontSize: 14, fontWeight: 600 }}>
                                                 {s.username || s.email || s.id.slice(0, 8)}
                                             </p>
-                                            <p style={{ margin: 0, fontSize: 12, color: '#6B7280' }}>
+                                            <p style={{ margin: 0, fontSize: 12, color: '#AABCC4' }}>
                                                 {s.role} - {s.devices} Active device{s.devices === 1 ? '' : 's'}
                                                 {s.lastFailure ? ` - last error: ${s.lastFailure}` : ''}
                                             </p>
@@ -225,18 +226,18 @@ export default function PushHealthPage() {
                         </>
                     )}
                 </div>
-            </div>
+            </main>
         </>
     );
 }
 
 function Stat({ label, value, bad }) {
     return (
-        <div style={{
+        <div className={consoleStyles.metric} style={{
             border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12,
             padding: 14, background: '#111827',
         }}>
-            <p style={{ margin: 0, fontSize: 12, color: '#6B7280' }}>{label}</p>
+            <p style={{ margin: 0, fontSize: 12, color: '#AABCC4' }}>{label}</p>
             <p style={{ margin: '4px 0 0', fontSize: 22, fontWeight: 700, color: bad ? '#F87171' : '#fff' }}>
                 {value}
             </p>

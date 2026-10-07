@@ -93,6 +93,14 @@ function isOwnedStorageVideoUrl(value, userId) {
   }
 }
 
+// The topics a player may attest for a Reel. publish_user_video_reel accepts
+// exactly these (public.user_reel_topics()); horses publish the same two.
+export const USER_REEL_TOPICS = Object.freeze(['poker', 'sports']);
+
+export function userReelIntentTopic(intent) {
+  return intent?.topic === undefined ? 'poker' : intent.topic;
+}
+
 function validateIntent(intent, expectedUserId) {
   if (!intent || typeof intent !== 'object' || Array.isArray(intent)) {
     return 'saved publication intent is not an object';
@@ -115,6 +123,10 @@ function validateIntent(intent, expectedUserId) {
   }
   if (intent.thumbnailUrl !== null && typeof intent.thumbnailUrl !== 'string') {
     return 'saved publication thumbnail is invalid';
+  }
+  // Intents saved before the Sports choice carry no topic; they were Poker.
+  if (intent.topic !== undefined && !USER_REEL_TOPICS.includes(intent.topic)) {
+    return 'saved publication topic is invalid';
   }
   for (const field of [
     'createdAt',
@@ -183,6 +195,7 @@ export function createUserReelPublicationIntent({
   videoUrl,
   caption = null,
   thumbnailUrl = null,
+  topic = 'poker',
   now = Date.now(),
 }) {
   const intent = {
@@ -192,7 +205,7 @@ export function createUserReelPublicationIntent({
     videoUrl,
     caption: typeof caption === 'string' && caption.trim() ? caption.trim() : null,
     thumbnailUrl: typeof thumbnailUrl === 'string' && thumbnailUrl.trim() ? thumbnailUrl.trim() : null,
-    topic: 'poker',
+    topic,
     visibility: 'public',
     status: 'pending',
     createdAt: now,
@@ -376,7 +389,7 @@ export async function retryUserReelPublication({
     const rpcPromise = Promise.resolve(
       supabase.rpc('publish_user_video_reel', {
         p_video_url: attempting.videoUrl,
-        p_topic: 'poker',
+        p_topic: userReelIntentTopic(attempting),
         p_topic_confirmed: true,
         p_caption: attempting.caption,
         p_thumbnail_url: attempting.thumbnailUrl,

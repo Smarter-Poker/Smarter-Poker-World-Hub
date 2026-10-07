@@ -493,9 +493,11 @@ function ClubPageDashboard({ C, page, userId, userName, onBack, onPageUpdated, o
       };
       const fetchPending = async () => {
         try {
-          const res = await fetch(
-            `/api/social/pages/follow?page_id=${page.id}&requester_id=${userId}`
-          );
+          // Identity is the bearer token, never a query id (the API ignores requester_id).
+          const token = getAccessToken();
+          const res = await fetch(`/api/social/pages/follow?page_id=${page.id}`, {
+            headers: token ? { Authorization: `Bearer ${token}` } : {},
+          });
           if (!res.ok) throw new Error(`Request failed (${res.status})`);
           const json = await res.json();
           if (json.success)
@@ -2461,7 +2463,7 @@ function ClubPageDashboard({ C, page, userId, userName, onBack, onPageUpdated, o
                   </div>
                   <div>
                     <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>
-                      {f.profile?.username || f.profile?.full_name || 'Unknown'}
+                      {f.profile?.display_name || f.profile?.username || 'Unknown'}
                     </div>
                     <div style={{ fontSize: 11, color: C.textSec }}>
                       {f.profile?.username

@@ -1,5 +1,5 @@
 {
-  "_comment": "Mobile performance budgets for e2e/mobile-budget.spec.ts (Global Footer E2E workflow, production build, 375px, unauthenticated). The registry covers all thirteen non-Social World menu roots. jsKb = transferred script bytes before load; lcpMs = Largest Contentful Paint. A row may only go DOWN, with one recorded exception below. `converted: true` also enforces the 12px text floor and 44px tap targets on that route; flip it in the phase PR that converts the page (docs/mobile-standard/ROLLOUT-PLAN.md). Baselines 2026-09-03 (branch before the legacy telemetry integration): jsKb 635-711 across the original ten routes. Re-baselined 2026-09-04 after merging main: the SHARED framework chunk grew about 100KB on every route (legacy telemetry, #1315), measured jsKb 740-817, LCP 272-1068ms on a Mac. That growth belongs to the app shell, not to any page, so every row was raised once to sit above it (converted 850, unconverted 900); from here rows only go down.",
+  "_comment": "Mobile performance budgets for the production-build Playwright gates in Global Footer E2E. routes covers the non-Social World roots. trivia covers the rebuilt Trivia route families with four cold mobile samples and a p75 gate for every metric. Transfer budgets are encoded response bytes. Query count is browser fetch/XHR requests, and memory is Chromium JSHeapUsedSize. Core Web Vitals use the Phase 11 thresholds and must never silently pass when their browser APIs are unavailable. Budgets may only go down unless the same change records a measured, reviewed baseline reason.",
   "routes": {
     "/hub/bankroll-manager": {
       "jsKb": 850,
@@ -60,6 +60,42 @@
       "jsKb": 900,
       "lcpMs": 3500,
       "converted": false
+    }
+  },
+  "trivia": {
+    "samples": 4,
+    "defaults": {
+      "lcpMs": 2500,
+      "inpMs": 200,
+      "cls": 0.1,
+      "jsKb": 900,
+      "cssKb": 256,
+      "imageKb": 1024,
+      "queryCount": 16,
+      "jsHeapMb": 96
+    },
+    "routes": {
+      "/hub/trivia": {},
+      "/hub/trivia/daily": {},
+      "/hub/trivia/arcade": {},
+      "/hub/trivia/history": {},
+      "/hub/trivia/rules": {},
+      "/hub/trivia/pro": {},
+      "/hub/trivia/mtt": {},
+      "/hub/trivia/cash": {},
+      "/hub/trivia/icm": {},
+      "/hub/trivia/gto": {},
+      "/hub/trivia/endless": {},
+      "/hub/trivia/mixed": {},
+      "/hub/trivia/survival-game": {},
+      "/hub/trivia/survival": {},
+      "/hub/trivia/time-attack": {},
+      "/hub/trivia/pvp": {},
+      "/hub/trivia/tournaments": {},
+      "/hub/trivia/achievements": {},
+      "/hub/trivia/leaderboard": {},
+      "/hub/trivia/settings": {},
+      "/hub/trivia/stats": {}
     }
   }
 }

@@ -696,12 +696,21 @@ function ArtworkBottomNav({ footer, activeHref, warm, hidden = false, armed = fa
         right: 0,
         width: '100%',
         maxWidth: '100vw',
+        // Give the fixed shell its own gold-standard height instead of asking
+        // WebKit to infer it from an aspect-ratio child. At 1920x1080 WebKit
+        // can briefly report the inferred shell as a zero-size rectangle even
+        // while its controls are visible, which also makes the footer an
+        // unreliable pointer target during that layout frame.
+        height: FOOTER_ARTWORK_HEIGHT,
         margin: 0,
         overflow: 'hidden',
         boxSizing: 'border-box',
         display: 'flex',
         justifyContent: 'center',
-        alignItems: 'flex-start',
+        // Narrow artwork can be shorter than the 44px shell once its native
+        // aspect ratio is preserved. Weld that stage to the viewport edge;
+        // flex-start leaves a visible bottom gap at 320px.
+        alignItems: 'flex-end',
         zIndex: BOTTOM_NAV_Z,
         padding: 0,
         background: 'transparent',
@@ -731,33 +740,43 @@ function ArtworkBottomNav({ footer, activeHref, warm, hidden = false, armed = fa
           pointerEvents: 'none',
         }}
       >
-        <img
-          src={artwork.src}
-          alt=""
-          aria-hidden="true"
-          draggable="false"
-          decoding="async"
-          className="bn-artwork-image"
-          data-exact-approved-artwork="true"
-          width={artwork.width}
-          height={artwork.height}
-          style={{
-            position: 'absolute',
-            ...artworkImageStyle(artwork),
-            display: 'block',
-            // `fill` is now lossless, not a stretch: artworkStageStyle gives the
-            // stage the artwork's own aspect ratio, so the box the image fills
-            // already has the frame's shape. There is nothing left to distort
-            // and nothing to letterbox.
-            objectFit: 'fill',
-            // A uniform downscale of a fine quilted texture still aliases on
-            // low-DPR screens. High-quality resampling is what keeps the
-            // diamonds and the bevel clean.
-            imageRendering: 'auto',
-            userSelect: 'none',
-            pointerEvents: 'none',
-          }}
-        />
+        <picture>
+          {(artwork.sources || []).map((source) => (
+            <source
+              key={`${source.type}:${source.srcSet}`}
+              type={source.type}
+              srcSet={source.srcSet}
+              sizes={source.sizes}
+            />
+          ))}
+          <img
+            src={artwork.src}
+            alt=""
+            aria-hidden="true"
+            draggable="false"
+            decoding="async"
+            className="bn-artwork-image"
+            data-exact-approved-artwork="true"
+            width={artwork.width}
+            height={artwork.height}
+            style={{
+              position: 'absolute',
+              ...artworkImageStyle(artwork),
+              display: 'block',
+              // `fill` is now lossless, not a stretch: artworkStageStyle gives the
+              // stage the artwork's own aspect ratio, so the box the image fills
+              // already has the frame's shape. There is nothing left to distort
+              // and nothing to letterbox.
+              objectFit: 'fill',
+              // A uniform downscale of a fine quilted texture still aliases on
+              // low-DPR screens. High-quality resampling is what keeps the
+              // diamonds and the bevel clean.
+              imageRendering: 'auto',
+              userSelect: 'none',
+              pointerEvents: 'none',
+            }}
+          />
+        </picture>
 
         {items.map((item, index) => {
           const leftPercent =

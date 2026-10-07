@@ -3,9 +3,10 @@
  * Shows user info, stats, and quick actions
  */
 
-import { useState, useRef } from 'react';
+import { useMemo, useState, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import Link from 'next/link';
+import { usePresence } from '../hooks/usePresence';
 
 const C = {
     bg: '#F0F2F5', card: '#FFFFFF', text: '#050505', textSec: '#65676B',
@@ -18,6 +19,11 @@ export function ProfileHoverCard({ userId, username, children, position = 'botto
     const [loading, setLoading] = useState(false);
     const timeoutRef = useRef(null);
     const containerRef = useRef(null);
+    // Online is the one presence answer every surface uses (fn_profile_presence
+    // through /api/social/presence), never the raw is_online flag, which stays
+    // set long after a player leaves.
+    const presenceIds = useMemo(() => (profile?.id ? [profile.id] : []), [profile?.id]);
+    const onlineIds = usePresence(presenceIds);
 
     const handleMouseEnter = () => {
         timeoutRef.current = setTimeout(() => {
@@ -41,7 +47,7 @@ export function ProfileHoverCard({ userId, username, children, position = 'botto
             let query = supabase
                 .from('profiles')
                 // A stranger's balance and whereabouts are theirs alone (2026-09-30).
-                .select('id, username, avatar_url, bio, skill_tier, is_online')
+                .select('id, username, avatar_url, bio, skill_tier')
                 .limit(1);
 
             if (userId) {
@@ -105,7 +111,7 @@ export function ProfileHoverCard({ userId, username, children, position = 'botto
                                 position: 'relative',
                             }}>
                                 {/* Online indicator */}
-                                {profile.is_online && (
+                                {onlineIds.has(String(profile.id).toLowerCase()) && (
                                     <div style={{
                                         position: 'absolute',
                                         top: 8,

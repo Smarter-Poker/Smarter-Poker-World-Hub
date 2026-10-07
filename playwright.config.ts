@@ -93,7 +93,22 @@ export default defineConfig({
     {
       name: 'footer-webkit',
       testMatch: /global-footer-visual\.spec\.ts$/,
-      use: { ...devices['iPhone 13'] },
+      // The global push worker can starve WebKit hydration while this project
+      // walks every World route and viewport. Footer behavior does not own push
+      // delivery, so keep that unrelated worker outside this visual contract.
+      use: { ...devices['iPhone 13'], serviceWorkers: 'block' },
+    },
+    {
+      // These two commerce-anatomy checks install their own deterministic
+      // Marketplace session and API fixtures. Keep them independent from the
+      // authenticated suite so --no-deps never requires a missing user.json.
+      name: 'marketplace-audit-chromium',
+      testMatch: /05-diamond-store\.spec\.ts$/,
+      use: {
+        ...devices['Desktop Chrome'],
+        storageState: { cookies: [], origins: [] },
+        serviceWorkers: 'block',
+      },
     },
     {
       name: 'world-menu-visual',
@@ -152,6 +167,35 @@ export default defineConfig({
       name: 'mobile-budget',
       testMatch: /mobile-budget\.spec\.ts$/,
       use: { ...devices['iPhone 13'], serviceWorkers: 'block' },
+    },
+    {
+      // Phase 11 Trivia budget gate. It runs against the production build in
+      // Global Footer E2E, takes four cold mobile samples per route, and keeps
+      // service-worker cache hits out of the transfer-size measurements.
+      name: 'trivia-performance',
+      testMatch: /trivia-performance-budget\.spec\.ts$/,
+      fullyParallel: true,
+      retries: 0,
+      use: {
+        ...devices['Pixel 5'],
+        browserName: 'chromium',
+        serviceWorkers: 'block',
+        storageState: { cookies: [], origins: [] },
+      },
+    },
+    {
+      // The installed-PWA rollback test must use a real service worker. Keep it
+      // isolated and serial because unregister/re-register is origin-scoped.
+      name: 'trivia-pwa',
+      testMatch: /trivia-pwa-rollback\.spec\.ts$/,
+      fullyParallel: false,
+      workers: 1,
+      retries: 0,
+      use: {
+        ...devices['Desktop Chrome'],
+        serviceWorkers: 'allow',
+        storageState: { cookies: [], origins: [] },
+      },
     },
   ],
 });

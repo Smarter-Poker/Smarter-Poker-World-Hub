@@ -346,8 +346,25 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    // Non-API routes (www redirect + jurisdiction gate)
-    '/((?!api|_next/static|_next/image|favicon.ico).*)',
+    // Non-API routes (www redirect + jurisdiction gate).
+    //
+    // CLUB ARENA STATIC FILES DO NOT RUN THIS FUNCTION (2026-10-04). The arena
+    // is an external rewrite to its own origin (next.config.js afterFiles), and
+    // one cold page load pulls 80-125 images, fonts, scripts and stylesheets
+    // through it. With this matcher catching every non-API path, each of those
+    // files was billed three times: a CDN request, an invocation of this
+    // function, and origin transfer. Measured 2026-10-03/04: ~2.0M requests a
+    // day on this project, 97% of them under /hub/club-arena, 1,990,915
+    // middleware runs, and the on-demand budget exhausted in four days.
+    //
+    // Nothing in this file decides anything for a picture or a font. The www
+    // redirect and the jurisdiction gate act on the DOCUMENT, and the document
+    // is still matched: /hub/club-arena, every extension-less client route,
+    // index.html and the other .html files, and every .json (build-info.json,
+    // manifest.json, the prerender manifest) are deliberately NOT in the
+    // extension list below. Pinned by
+    // __tests__/club-arena-static-skips-middleware.test.mjs.
+    '/((?!api|_next/static|_next/image|favicon.ico|hub/club-arena/.*\\.(?:js|mjs|css|png|jpe?g|webp|avif|gif|svg|ico|woff2?|ttf|otf|mp3|ogg|wav|m4a|mp4|webm)$).*)',
     // Club Arena native app CORS (section 0) - nothing else runs on these
     '/api/club-arena/:path*',
     '/api/store/:path*',

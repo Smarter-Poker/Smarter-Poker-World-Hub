@@ -34,20 +34,42 @@ export default function ResponsiveModeArt({
     className = '',
     ...rest
 }) {
+    const artRef = useRef(null);
     const imageRef = useRef(null);
     const [failed, setFailed] = useState(false);
+    const [ready, setReady] = useState(Boolean(priority));
+
+    useEffect(() => {
+        if (ready || priority) {
+            if (priority && !ready) setReady(true);
+            return undefined;
+        }
+        const artNode = artRef.current;
+        if (!artNode || typeof IntersectionObserver === 'undefined') {
+            setReady(true);
+            return undefined;
+        }
+        const observer = new IntersectionObserver((entries) => {
+            if (!entries.some((entry) => entry.isIntersecting)) return;
+            setReady(true);
+            observer.disconnect();
+        }, { rootMargin: '128px 0px' });
+        observer.observe(artNode);
+        return () => observer.disconnect();
+    }, [priority, ready]);
 
     // A file that failed before hydration never fires onError for React.
     useEffect(() => {
         const image = imageRef.current;
-        if (image && image.complete && image.naturalWidth === 0 && image.currentSrc) setFailed(true);
-    }, []);
+        if (ready && image && image.complete && image.naturalWidth === 0 && image.currentSrc) setFailed(true);
+    }, [ready]);
 
     if (!art) return null;
     const decorative = !alt;
 
     return (
         <span
+            ref={artRef}
             className={`${styles.art} ${className}`.trim()}
             data-art={art.key}
             data-art-state={failed ? 'error' : 'ready'}
@@ -58,7 +80,7 @@ export default function ResponsiveModeArt({
                 <source
                     media={TRIVIA_ART_WIDE_MEDIA}
                     type="image/avif"
-                    srcSet={art.wide.avif}
+                    srcSet={ready ? art.wide.avif : undefined}
                     sizes={sizes}
                     width={art.wide.width}
                     height={art.wide.height}
@@ -66,17 +88,17 @@ export default function ResponsiveModeArt({
                 <source
                     media={TRIVIA_ART_WIDE_MEDIA}
                     type="image/webp"
-                    srcSet={art.wide.webp}
+                    srcSet={ready ? art.wide.webp : undefined}
                     sizes={sizes}
                     width={art.wide.width}
                     height={art.wide.height}
                 />
-                <source type="image/avif" srcSet={art.mobile.avif} sizes={sizes} />
+                <source type="image/avif" srcSet={ready ? art.mobile.avif : undefined} sizes={sizes} />
                 <img
                     ref={imageRef}
                     className={styles.image}
-                    src={art.mobile.src}
-                    srcSet={art.mobile.webp}
+                    src={ready ? art.mobile.src : art.preview}
+                    srcSet={ready ? art.mobile.webp : undefined}
                     sizes={sizes}
                     width={art.mobile.width}
                     height={art.mobile.height}

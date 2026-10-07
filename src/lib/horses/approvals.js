@@ -70,6 +70,7 @@ export const APPROVAL_KINDS = Object.freeze([
   'cashout',
   'fleet_policy',
   'sanction',
+  'daily_close',
 ]);
 
 /**
@@ -84,6 +85,7 @@ const THRESHOLD_FIELD = Object.freeze({
   cashout: 'cashoutThreshold',
   fleet_policy: null,
   sanction: null,
+  daily_close: null,
 });
 
 /** The permission a decision on each kind requires (contract section 2). */
@@ -94,6 +96,7 @@ export const KIND_PERMISSION = Object.freeze({
   cashout: 'cashier.write',
   fleet_policy: 'fleet.write',
   sanction: 'moderation.write',
+  daily_close: 'money.write',
 });
 
 export function isApprovalKind(kind) {
@@ -450,6 +453,26 @@ function fundClubValidator(payload, opId) {
   if (!reason) return refuse('payload_reason_invalid', 'The Stored Request Has No Usable Reason');
   const key = executionKey(p, opId);
   if (!key.ok) return key;
+  const chipRequestId = p.chipRequestId ?? p.chip_request_id;
+  if (chipRequestId !== undefined && chipRequestId !== null) {
+    const requestId = uuid(chipRequestId);
+    const actorId = uuid(p.actorId ?? p.actor_id);
+    if (!requestId) return refuse('payload_target_invalid', 'The Stored Request Names No Valid Chip Request');
+    if (!actorId) return refuse('payload_actor_missing', 'The Stored Request Names No Operator For The Chip Decision');
+    return {
+      ok: true,
+      kind: 'fund_club',
+      rpc: 'fn_ca_operator_decide_chip_request',
+      args: {
+        p_request_id: requestId,
+        p_action: 'approve',
+        p_actor_id: actorId,
+        p_expected_op_id: uuid(key.opId),
+        p_expected_amount: amount,
+      },
+      summary: { kind: 'fund_club', clubId, amount, opId: key.opId, chipRequestId: requestId },
+    };
+  }
   return {
     ok: true,
     kind: 'fund_club',

@@ -1553,7 +1553,7 @@ export function GoLiveModal({
           await liveStreamService.startBroadcast(
             user.id,
             title ||
-              `${user.full_name || user.user_metadata?.full_name || user.email?.split('@')[0] || 'Live'}'s Live`,
+              `${user.display_name || user.username || user.user_metadata?.username || user.user_metadata?.poker_alias || 'Live'}'s Live`,
             streamRef.current,
             thumbUrl,
             category,
@@ -2132,11 +2132,13 @@ export function GoLiveModal({
     const text = commentInput.trim();
     setCommentInput('');
     commentInputRef.current?.blur(); // #10: dismiss mobile keyboard
+    // Public name only, matching what the server stores for everyone else:
+    // the legal name is owner-only (ruling 25) and an email is never a name.
     const authorName =
       user.username ||
-      user.full_name ||
-      user.user_metadata?.full_name ||
-      user.email?.split('@')[0] ||
+      user.display_name ||
+      user.user_metadata?.username ||
+      user.user_metadata?.display_name ||
       'Broadcaster';
     const optimisticId = `opt-${Date.now()}`;
     const newComment = {
@@ -2624,7 +2626,7 @@ export function GoLiveModal({
                     <input
                       value={title}
                       onChange={(e) => setTitle(e.target.value)}
-                      placeholder={`${user?.full_name || user?.user_metadata?.full_name || 'Your'}'s Live Stream`}
+                      placeholder={`${user?.display_name || user?.username || user?.user_metadata?.username || user?.user_metadata?.poker_alias || 'Your'}'s Live Stream`}
                       style={{
                         width: '100%',
                         padding: '11px 14px',

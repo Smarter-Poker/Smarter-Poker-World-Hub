@@ -72,7 +72,7 @@ export function SearchBar({
                             <Avatar src={user.avatar_url} name={user.username} size={40} theme={C} />
                             <div>
                                 <div style={{ fontWeight: 500 }}>{user.username}</div>
-                                {user.full_name && <div style={{ fontSize: 13, color: C.textSec }}>{user.full_name}</div>}
+                                {user.display_name && user.display_name !== user.username && <div style={{ fontSize: 13, color: C.textSec }}>{user.display_name}</div>}
                             </div>
                         </div>
                     ))}

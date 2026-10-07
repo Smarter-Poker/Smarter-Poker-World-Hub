@@ -25,6 +25,7 @@ import { getAccessToken } from '../../src/lib/authUtils';
 import { useAvatar } from '../../src/contexts/AvatarContext';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import VideoLibraryCommandRail from '../../src/components/video-library/VideoLibraryCommandRail';
+import VideoLearningLoop from '../../src/components/video-learning/VideoLearningLoop';
 import HubPageShell from '../../src/components/ui/HubPageShell';
 import PullToRefresh from '../../src/components/ui/PullToRefresh';
 import toast from '../../src/stores/toastStore';
@@ -52,32 +53,27 @@ import useTrainingBus from '../../src/hooks/useTrainingBus';
 // DISCOVERABILITY PHASE 7 (2026-09-19). This was dynamic(..., { ssr: false })
 // and the whole page body sits inside it, so the server rendered the head and
 // nothing else: a crawler got 106 words and not one video title, even though
-// `videos` is seeded from STATIC_CATALOG and needs no fetch to render. An
-// earlier fix pulled SEOHead out of this wrapper for the same reason, which
-// treated the symptom without naming the cause. PageTransition is a
-// framer-motion div that touches no browser API during render.
+// PageTransition is a framer-motion div that touches no browser API during
+// render. The playable catalog itself is never bundled here: only the live,
+// freshly verified catalog API may hydrate it.
 import PageTransition from '../../src/components/transitions/PageTransition';
 // ReelsViewer is dynamically loaded to reduce initial bundle size
 const ReelsViewer = dynamic(() => import('../../src/components/social/Reels').then(mod => mod.ReelsViewer), { ssr: false });
 import { findBestGames } from '../../src/utils/videoToTrainingMapper';
 
-// Static records retain legacy-ID aliases only. Playback fails closed until a
-// live catalog response supplies fresh persisted availability evidence.
 import {
-    FULL_VIDEOS as STATIC_VIDEOS,
-    SOURCES
-} from '../../src/data/videoLibraryData';
+    LEGACY_VIDEO_ID_ALIASES,
+    VIDEO_LIBRARY_SOURCES as SOURCES,
+} from '../../src/data/videoLibraryCompatibility';
 
-// Persistence uses YouTube's video ID as the canonical key. The legacy static
-// catalog used display-only aliases (hcl1, lodge1, ...), which orphaned saved
-// state whenever the database hydrated. Invalid FAKE placeholders are excluded
-// from any live catalog response instead of producing guaranteed dead embeds.
-const STATIC_VIDEO_ALIASES = new Map(STATIC_VIDEOS.map(video => [video.id, video.videoId]));
-const STATIC_VIDEO_CANONICAL_ALIASES = new Map(STATIC_VIDEOS.map(video => [video.videoId, video.id]));
+// Persistence uses YouTube's video ID as the canonical key. These maps migrate
+// old display-only aliases (hcl1, lodge1, ...) without retaining titles,
+// thumbnails, playback URLs or any other duplicate catalog authority.
+const STATIC_VIDEO_ALIASES = new Map(Object.entries(LEGACY_VIDEO_ID_ALIASES));
+const STATIC_VIDEO_CANONICAL_ALIASES = new Map(
+    Object.entries(LEGACY_VIDEO_ID_ALIASES).map(([legacyId, videoId]) => [videoId, legacyId]),
+);
 const canonicalStoredVideoId = videoId => STATIC_VIDEO_ALIASES.get(videoId) || videoId;
-const STATIC_CATALOG = STATIC_VIDEOS
-    .filter(isVideoLibraryVideoAllowed)
-    .map(video => ({ ...video, legacyId: video.id, id: video.videoId, videoId: video.videoId }));
 
 const EMPTY_VIDEO_SET = new Set();
 const EMPTY_VIDEO_MAP = new Map();
@@ -290,7 +286,7 @@ export default function VideoLibraryPage() {
     const selectedSource = SOURCES.some(source => source?.id === filters.selectedSource)
         ? filters.selectedSource
         : 'ALL';
-    const selectedType = ['ALL', 'cash', 'tournament', 'slots'].includes(filters.selectedType)
+    const selectedType = ['ALL', 'cash', 'tournament', 'slots', 'sports'].includes(filters.selectedType)
         ? filters.selectedType
         : 'ALL';
     const setSelectedSource = (val) => setFilter('selectedSource', val);
@@ -304,14 +300,14 @@ export default function VideoLibraryPage() {
     }, [filters.selectedSource, filters.selectedType, selectedSource, selectedType]);
 
     // Local state starts fail-closed; the live verified catalog hydrates it.
-    const [videos, setVideos] = useState(STATIC_CATALOG);
-    const [displayedCount, setDisplayedCount] = useState(STATIC_CATALOG.length);
-    const [allVideos, setAllVideos] = useState(STATIC_CATALOG); // unfiltered master list
+    const [videos, setVideos] = useState([]);
+    const [displayedCount, setDisplayedCount] = useState(0);
+    const [allVideos, setAllVideos] = useState([]); // verified, unfiltered master list
     const [catalogRefreshFailed, setCatalogRefreshFailed] = useState(false);
     const [catalogLoading, setCatalogLoading] = useState(true);
     useLoadFailsafe(catalogLoading, setCatalogLoading);
     const [catalogLoadingMore, setCatalogLoadingMore] = useState(false);
-    const [catalogTotal, setCatalogTotal] = useState(STATIC_CATALOG.length);
+    const [catalogTotal, setCatalogTotal] = useState(0);
     const [catalogHasMore, setCatalogHasMore] = useState(false);
     const [catalogNextOffset, setCatalogNextOffset] = useState(0);
     const catalogAbortRef = useRef(null);
@@ -372,7 +368,7 @@ export default function VideoLibraryPage() {
             // lowercase. Every ?type= deep link (two hamburger-menu entries and
             // the sitemap links) landed on an empty "No Videos Found" page.
             const requestedType = String(router.query.type).toLowerCase();
-            if (['all', 'cash', 'tournament', 'slots'].includes(requestedType)) {
+            if (['all', 'cash', 'tournament', 'slots', 'sports'].includes(requestedType)) {
                 setSelectedType(requestedType === 'all' ? 'ALL' : requestedType);
             }
         }
@@ -472,6 +468,8 @@ export default function VideoLibraryPage() {
     const playlistNameInputRef = useRef(null);
     const playlistTriggerRef = useRef(null);
     const [storedWatchLater, setWatchLater] = useState(new Set());
+    const [learningStudyIds, setLearningStudyIds] = useState(new Set());
+    const [learningProgressByVideo, setLearningProgressByVideo] = useState(new Map());
     // 2026-08-15: the three "My Library" hamburger entries
     // (?filter=favorites|history|watchlater) previously fell into a handler
     // that just ran setSearchQuery('favorites'), so users got
@@ -609,6 +607,7 @@ export default function VideoLibraryPage() {
 
     // "New This Week" rail dismiss state
     const [newThisWeekDismissed, setNewThisWeekDismissed] = useState(false);
+    const [discoveryView, setDiscoveryView] = useState('new-today');
 
     const isPlayerPlayingRef = useRef(false);
     const handlePlaybackInfo = useCallback((info) => {
@@ -795,6 +794,36 @@ export default function VideoLibraryPage() {
         };
     }, [userId, setSelectedVideo, showActionNotice]);
 
+    // Phase 8 learning state is authoritative for the Study Circuit. Hydrate it
+    // independently from the legacy library tables and discard stale account
+    // responses so an account switch can never expose another owner's state.
+    useEffect(() => {
+        const controller = new AbortController();
+        const token = getAccessToken();
+        setLearningStudyIds(new Set());
+        setLearningProgressByVideo(new Map());
+        if (!userId || !token) return () => controller.abort();
+        const ownerToken = ownerScopeRef.current.capture(userId);
+        void fetch(`/api/video-library/study-list?ownerId=${encodeURIComponent(userId)}`, {
+            cache: 'no-store',
+            signal: controller.signal,
+            headers: { Accept: 'application/json', Authorization: `Bearer ${token}` },
+        }).then(async response => {
+            if (!response.ok) throw new Error(`Study state request failed (${response.status})`);
+            const payload = await response.json();
+            if (!payload?.success || payload.ownerId !== userId || !ownerScopeRef.current.isCurrent(ownerToken)) return;
+            const lists = Array.isArray(payload.data?.lists) ? payload.data.lists : [];
+            const progress = Array.isArray(payload.data?.progress) ? payload.data.progress : [];
+            ownerScopeRef.current.commit(ownerToken, () => {
+                setLearningStudyIds(new Set(lists.flatMap(list => list.items || []).map(item => item.videoId).filter(Boolean)));
+                setLearningProgressByVideo(new Map(progress.filter(item => item.videoId).map(item => [item.videoId, item])));
+            });
+        }).catch(error => {
+            if (error?.name !== 'AbortError') reportVideoLibraryIssue('learning_state_sync', error);
+        });
+        return () => controller.abort();
+    }, [userId]);
+
     // Hamburger menu handlers - save to Supabase
     const updatePreference = useCallback(async (key, value) => {
         const ownerToken = ownerScopeRef.current.capture(userId);
@@ -886,7 +915,7 @@ export default function VideoLibraryPage() {
         const actionKey = `${ownerToken.ownerId}:${ownerToken.generation}:watch-later:${videoId}`;
         if (pendingVideoActionsRef.current.has(actionKey)) return false;
         pendingVideoActionsRef.current.add(actionKey);
-        const wasSaved = watchLater.has(videoId);
+        const wasSaved = learningStudyIds.has(video.videoId) || watchLater.has(videoId);
 
         setWatchLater(prev => {
             const next = new Set(personalStateIsCurrent ? prev : EMPTY_VIDEO_SET);
@@ -895,16 +924,50 @@ export default function VideoLibraryPage() {
         });
 
         try {
-            if (wasSaved) {
-                await removeFromWatchLater(userId, videoId, video.legacyId ? [video.legacyId] : []);
-            } else {
-                await addToWatchLater(userId, videoId, {
-                    title: video.title,
-                    source: video.source,
-                    video_url: `https://youtube.com/watch?v=${video.videoId}`
+            const learningToken = getAccessToken();
+            if (!learningToken) throw new Error('Study list authentication is unavailable');
+            const learningRequest = async method => {
+                const response = await fetch('/api/video-library/study-list', {
+                    method,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        Authorization: `Bearer ${learningToken}`,
+                    },
+                    body: JSON.stringify({ videoId: video.videoId, ownerId: userId }),
                 });
+                if (!response.ok) throw new Error(`Study list request failed (${response.status})`);
+            };
+            if (wasSaved) {
+                await learningRequest('DELETE');
+                try {
+                    await removeFromWatchLater(userId, videoId, video.legacyId ? [video.legacyId] : []);
+                } catch (error) {
+                    await learningRequest('POST').catch(compensationError => {
+                        reportVideoLibraryIssue('study_list_compensation', compensationError);
+                    });
+                    throw error;
+                }
+            } else {
+                await learningRequest('POST');
+                try {
+                    await addToWatchLater(userId, videoId, {
+                        title: video.title,
+                        source: video.source,
+                        video_url: `https://youtube.com/watch?v=${video.videoId}`
+                    });
+                } catch (error) {
+                    await learningRequest('DELETE').catch(compensationError => {
+                        reportVideoLibraryIssue('study_list_compensation', compensationError);
+                    });
+                    throw error;
+                }
             }
             return ownerScopeRef.current.commit(ownerToken, () => {
+                setLearningStudyIds(prev => {
+                    const next = new Set(prev);
+                    if (wasSaved) next.delete(video.videoId); else next.add(video.videoId);
+                    return next;
+                });
                 showActionNotice(wasSaved ? 'Removed from Watch Later.' : 'Saved to Watch Later.', { videoId: video.videoId });
             });
         } catch (error) {
@@ -921,7 +984,7 @@ export default function VideoLibraryPage() {
         } finally {
             if (ownerScopeRef.current.isCurrent(ownerToken)) pendingVideoActionsRef.current.delete(actionKey);
         }
-    }, [userId, watchLater, personalStateIsCurrent, showActionNotice]);
+    }, [userId, learningStudyIds, watchLater, personalStateIsCurrent, showActionNotice]);
 
     const saveWatchSession = useCallback(async (startTime, video, { quiet = false, sessionUserId = watchSessionUserIdRef.current } = {}) => {
         const effectiveUserId = sessionUserId || userId;
@@ -942,6 +1005,25 @@ export default function VideoLibraryPage() {
                 durationSeconds: parseDuration(video.duration),
                 progressSeconds: playerPositionRef.current
             });
+            const learningDuration = parseDuration(video.duration);
+            const learningToken = getAccessToken();
+            if (learningDuration > 0 && learningToken) {
+                const learningResponse = await fetch('/api/video-library/study-list', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        Authorization: `Bearer ${learningToken}`,
+                    },
+                    body: JSON.stringify({
+                        action: 'progress',
+                        ownerId: effectiveUserId,
+                        videoId: video.videoId,
+                        positionSeconds: Math.min(playerPositionRef.current, learningDuration),
+                        durationSeconds: learningDuration,
+                    }),
+                });
+                if (!learningResponse.ok) throw new Error(`Learning progress request failed (${learningResponse.status})`);
+            }
             if (!ownerScopeRef.current.isCurrent(ownerToken)) return false;
             const persistedProgress = Number(savedSession?.progress_seconds);
             const persistedTotal = Number(savedSession?.watch_duration_seconds);
@@ -1241,14 +1323,26 @@ export default function VideoLibraryPage() {
         if (libraryFilter !== 'ALL') params.set('ids', personalIdsForFilter.join(','));
 
         try {
-            const response = await fetch(`/api/video-library/catalog?${params.toString()}`, {
+            const semanticDiscovery = libraryFilter === 'ALL' && Boolean(catalogSearchQuery.trim());
+            const discoveryToken = semanticDiscovery ? getAccessToken() : null;
+            if (semanticDiscovery) {
+                params.delete('offset');
+                params.set('mode', router.query.rank === 'chronological' ? 'chronological' : 'recommended');
+                if (userId && discoveryToken) params.set('ownerId', userId);
+            }
+            const endpoint = semanticDiscovery ? '/api/video-library/discovery' : '/api/video-library/catalog';
+            const response = await fetch(`${endpoint}?${params.toString()}`, {
                 signal: controller.signal,
                 cache: 'no-store',
-                headers: { Accept: 'application/json' },
+                headers: {
+                    Accept: 'application/json',
+                    ...(discoveryToken ? { Authorization: `Bearer ${discoveryToken}` } : {}),
+                },
             });
             if (!response.ok) throw new Error(`Catalog request failed (${response.status})`);
             const payload = await response.json();
             if (!payload?.success || !Array.isArray(payload.data)) throw new Error('Catalog response was invalid');
+            if (semanticDiscovery && discoveryToken && payload.ownerId !== userId) throw new Error('Discovery response owner mismatch');
             if (requestId !== catalogRequestRef.current) return;
 
             const pageVideos = payload.data
@@ -1281,21 +1375,13 @@ export default function VideoLibraryPage() {
             reportVideoLibraryIssue('catalog_load', error);
             setCatalogRefreshFailed(true);
             if (!append) {
-                let fallback = STATIC_CATALOG;
-                if (selectedType !== 'ALL') fallback = fallback.filter(video => video.type === selectedType);
-                if (selectedSource !== 'ALL') fallback = fallback.filter(video => video.source === selectedSource);
-                if (libraryFilter !== 'ALL') {
-                    const ids = new Set(personalIdsForFilter);
-                    fallback = fallback.filter(video => ids.has(video.id));
-                }
-                if (catalogSearchQuery.trim()) {
-                    const query = catalogSearchQuery.trim().toLowerCase();
-                    fallback = fallback.filter(video => `${video.title} ${video.source} ${(video.tags || []).join(' ')}`.toLowerCase().includes(query));
-                }
-                setAllVideos(fallback);
-                setVideos(fallback);
-                setDisplayedCount(fallback.length);
-                setCatalogTotal(fallback.length);
+                // Never fall back to bundled or previously cached playback
+                // records. Without fresh persisted availability evidence the
+                // only honest catalog is empty.
+                setAllVideos([]);
+                setVideos([]);
+                setDisplayedCount(0);
+                setCatalogTotal(0);
                 setCatalogHasMore(false);
                 setCatalogNextOffset(0);
             }
@@ -1305,7 +1391,7 @@ export default function VideoLibraryPage() {
                 setCatalogLoadingMore(false);
             }
         }
-    }, [libraryFilter, userId, visibleLibrarySyncState, personalIdsForFilter, selectedSource, selectedType, catalogSearchQuery, sortMode]);
+    }, [libraryFilter, userId, visibleLibrarySyncState, personalIdsForFilter, selectedSource, selectedType, catalogSearchQuery, sortMode, router.query.rank]);
 
     useEffect(() => {
         void fetchCatalogPage({ append: false });
@@ -1648,6 +1734,25 @@ export default function VideoLibraryPage() {
         .slice(0, 20)
     , [allVideos]); // ← stable: recomputes only when library refreshes
 
+    const discoveryViews = useMemo(() => {
+        const now = Date.now();
+        const sorted = [...allVideos].sort((a, b) => new Date(b.scrapedAt || b.publishedAt || 0) - new Date(a.scrapedAt || a.publishedAt || 0));
+        const searchText = video => [video.title, video.source, ...(video.tags || [])].filter(Boolean).join(' ').toLowerCase();
+        const tagged = matcher => sorted.filter(video => matcher(searchText(video)));
+        return [
+            { id: 'new-today', label: 'New Today', videos: sorted.filter(video => {
+                const published = new Date(video.scrapedAt || video.publishedAt || 0).getTime();
+                return published > 0 && now - published <= 24 * 60 * 60 * 1000;
+            }) },
+            { id: 'shorts', label: 'Shorts', videos: sorted.filter(video => parseDuration(video.duration) > 0 && parseDuration(video.duration) <= 180) },
+            { id: 'skill-level', label: 'Skill Level', videos: tagged(text => /beginner|intermediate|advanced|fundamental|masterclass/.test(text)) },
+            { id: 'creator', label: 'Creator', videos: sorted.filter(video => Boolean(video.source)) },
+            { id: 'event', label: 'Event', videos: tagged(text => /wsop|wpt|tournament|event|final table|main event/.test(text)) },
+            { id: 'duration', label: 'Under 10 Min', videos: sorted.filter(video => parseDuration(video.duration) > 0 && parseDuration(video.duration) <= 600) },
+        ];
+    }, [allVideos]);
+    const activeDiscoveryView = discoveryViews.find(view => view.id === discoveryView) || discoveryViews[0];
+
     // Cleanup share toast timer on unmount
     useEffect(() => () => { if (shareToastTimer.current) clearTimeout(shareToastTimer.current); }, []);
 
@@ -1722,6 +1827,7 @@ export default function VideoLibraryPage() {
             cash: 'Cash Games',
             tournament: 'Tournaments',
             slots: 'Casino And Slots',
+            sports: 'Sports',
         }[selectedType] || selectedType) : null,
         selectedSource !== 'ALL' ? activeSourceName : null,
         sortMode !== 'default' ? (sortMode === 'trending' ? 'Trending' : 'Top Rated') : null,
@@ -1794,8 +1900,8 @@ export default function VideoLibraryPage() {
         setSelectedType('ALL');
         setSortMode('default');
         setLibraryFilter('ALL');
-        if (router.query.type || router.query.source || router.query.filter || router.query.q || router.query.sort) {
-            const { type: _type, source: _source, filter: _filter, q: _q, sort: _sort, ...nextQuery } = router.query;
+        if (router.query.type || router.query.source || router.query.filter || router.query.q || router.query.sort || router.query.rank) {
+            const { type: _type, source: _source, filter: _filter, q: _q, sort: _sort, rank: _rank, ...nextQuery } = router.query;
             hadNavigationQueryRef.current = false;
             void router.replace({ pathname: router.pathname, query: nextQuery }, undefined, { shallow: true, scroll: false });
         }
@@ -1821,11 +1927,14 @@ export default function VideoLibraryPage() {
         });
     };
 
-    const selectedVideoProgress = selectedVideo
-        ? getProgressPercent(selectedVideo.id, selectedVideo.duration)
-        : 0;
+    const selectedLearningProgress = selectedVideo ? learningProgressByVideo.get(selectedVideo.videoId) : null;
+    const selectedVideoProgress = selectedLearningProgress
+        ? Number(selectedLearningProgress.percent_complete || 0) * 100
+        : selectedVideo
+            ? getProgressPercent(selectedVideo.id, selectedVideo.duration)
+            : 0;
     const selectedVideoResumeSeconds = selectedVideo && selectedVideoProgress > 0 && selectedVideoProgress < 95
-        ? Math.floor(watchProgress.get(selectedVideo.id)?.watchedSeconds || 0)
+        ? Math.floor(selectedLearningProgress?.position_seconds || watchProgress.get(selectedVideo.id)?.watchedSeconds || 0)
         : 0;
 
     const refreshLibrary = useCallback(async () => {
@@ -1939,10 +2048,10 @@ export default function VideoLibraryPage() {
                             <input
                                 ref={searchInputRef}
                                 type="text"
-                                aria-label="Search the poker video library"
+                                aria-label="Search titles, creators, concepts, chapters, and transcripts"
                                 aria-keyshortcuts="/"
                                 aria-controls="video-library-grid"
-                                placeholder={libraryFilter === 'ALL' ? 'Search Videos...' : `Search ${currentViewMeta.title}...`}
+                                placeholder={libraryFilter === 'ALL' ? 'Search Concepts, Creators, Or Hands...' : `Search ${currentViewMeta.title}...`}
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
                                 onKeyDown={(event) => {
@@ -1965,6 +2074,7 @@ export default function VideoLibraryPage() {
                             ) : (
                                 <kbd className="vl-search-shortcut" aria-hidden="true">/</kbd>
                             )}
+                            <span className="vl-sr-only">Search Includes Titles, Creators, Poker Concepts, Chapters, And Approved Transcript Text.</span>
                         </div>
                     </div>
 
@@ -2202,6 +2312,54 @@ export default function VideoLibraryPage() {
                     </section>
                 )}
 
+                <section className="vl-new-this-week" aria-labelledby="vl-discovery-title" data-video-library-discovery>
+                    <div className="vl-new-week-header">
+                        <h2 id="vl-discovery-title"><span>Explore</span>Discovery Deck</h2>
+                    </div>
+                    <div className="vl-type-toggle-row" role="tablist" aria-label="Video discovery views">
+                        {discoveryViews.map(view => (
+                            <button
+                                type="button"
+                                role="tab"
+                                key={view.id}
+                                className={`vl-filter-button${discoveryView === view.id ? ' is-active' : ''}`}
+                                aria-selected={discoveryView === view.id}
+                                onClick={() => setDiscoveryView(view.id)}
+                            >
+                                {view.label} <span>{view.videos.length}</span>
+                            </button>
+                        ))}
+                    </div>
+                    {activeDiscoveryView.videos.length > 0 ? (
+                        <div className="vl-new-week-scroll vl-new-week-grid" role="tabpanel" aria-label={activeDiscoveryView.label}>
+                            {activeDiscoveryView.videos.slice(0, 8).map(video => (
+                                <div
+                                    key={`${activeDiscoveryView.id}-${video.videoId}`}
+                                    className="vl-new-week-card"
+                                    onClick={() => handleOpenVideo(video)}
+                                    onKeyDown={(event) => handleVideoCardKeyDown(event, video)}
+                                    role="button"
+                                    tabIndex={0}
+                                    aria-label={`Play ${video.title}`}
+                                >
+                                    <div className="vl-new-week-media">
+                                        <img src={getThumbnail(video.videoId)} alt="" loading="lazy" decoding="async" onLoad={event => recoverYouTubeThumbnail(event, video.videoId)} onError={event => recoverYouTubeThumbnail(event, video.videoId)} />
+                                        {video.duration ? <span className="vl-new-week-duration">{video.duration}</span> : null}
+                                    </div>
+                                    <div className="vl-new-week-copy">
+                                        <strong>{video.title}</strong>
+                                        <span>{String(video.attributionName || video.sourceName || 'Creator Unavailable').replace('_', ' ')}</span>
+                                        <small>{[
+                                            video.disclosureKind && video.disclosureKind !== 'organic' ? String(video.disclosureKind).replace('_', ' ') : null,
+                                            video.madeForKids === true ? 'Made For Kids' : null,
+                                        ].filter(Boolean).join(' / ')}</small>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    ) : <p className="vl-empty-copy" role="status">No Verified Videos Match This View Yet.</p>}
+                </section>
+
                 {/* Video Grid */}
                 {catalogRefreshFailed && (
                     <div className="vl-catalog-notice" role="alert">
@@ -2248,15 +2406,9 @@ export default function VideoLibraryPage() {
                             <span className="vl-skeleton-line" />
                         </div>
                     ))}
-                    {/* `videos` is seeded from STATIC_CATALOG - 161 titles that
-                        need no request - and the comment on that import says it
-                        exists to be shown "until DB fetch resolves". The
-                        `!catalogLoading` gate meant it never was: every first
-                        paint, and every server render, showed six skeletons
-                        instead of the catalogue it already had, which is why a
-                        crawler read 106 words on a page of 161 videos. The
-                        skeleton branch just above still covers the only case
-                        that needs it - loading with nothing to show yet. */}
+                    {/* Only verified live rows render. Loading has an explicit
+                        skeleton above; a failed refresh stays empty and shows
+                        the retry state below instead of stale playable data. */}
                     {videos.map((video, index) => {
                         const progress = getProgressPercent(video.id, video.duration);
                         const roundedProgress = Math.round(progress);
@@ -2574,9 +2726,10 @@ export default function VideoLibraryPage() {
                             ref={playerIframeRef}
                             key={iframeKey}
                             id="youtube-player"
-                            src={`https://www.youtube.com/embed/${selectedVideo.videoId}?autoplay=${preferences.autoplay === false ? 0 : 1}&start=${selectedVideoResumeSeconds}&mute=${isTouchDevice ? 0 : 1}&rel=0&fs=1&iv_load_policy=3&enablejsapi=1&playsinline=1&cc_load_policy=${preferences.captions ? 1 : 0}&origin=${typeof window !== 'undefined' ? window.location.origin : 'https://smarter.poker'}`}
+                            src={`https://www.youtube-nocookie.com/embed/${selectedVideo.videoId}?autoplay=${preferences.autoplay === false ? 0 : 1}&start=${selectedVideoResumeSeconds}&mute=${isTouchDevice ? 0 : 1}&rel=0&controls=1&fs=1&iv_load_policy=3&enablejsapi=1&playsinline=1&cc_load_policy=${preferences.captions ? 1 : 0}&origin=${encodeURIComponent(typeof window !== 'undefined' ? window.location.origin : 'https://smarter.poker')}&widget_referrer=${encodeURIComponent(typeof window !== 'undefined' ? window.location.origin : 'https://smarter.poker')}`}
                             title={selectedVideo.title}
                             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
+                            referrerPolicy="strict-origin-when-cross-origin"
                             allowFullScreen
                             onLoad={(e) => {
                                 // mute=1 in URL ensures mobile autoplay compliance.
@@ -2693,6 +2846,23 @@ export default function VideoLibraryPage() {
                                 </button>
                             </div>
                         </div>
+
+                        <VideoLearningLoop
+                            title="Build Your Next Study Rep"
+                            source={selectedVideo.source}
+                            topic={(selectedVideo.tags || [selectedVideo.type])[0]}
+                            reason={selectedVideo.recommendationReasons || selectedVideo.recommendationReason || selectedVideo.selectionReason}
+                            mode={sortMode === 'default' ? 'latest' : 'learning'}
+                            resumeLabel={selectedVideoResumeSeconds > 0 ? `Resume At ${formatTime(selectedVideoResumeSeconds)}` : 'Ready To Study'}
+                            saved={learningStudyIds.has(selectedVideo.videoId) || watchLater.has(selectedVideo.id)}
+                            onSave={() => void toggleWatchLater(selectedVideo)}
+                            chronologicalHref={`/hub/video-library?${new URLSearchParams({ q: catalogSearchQuery || selectedVideo.title, rank: 'chronological' }).toString()}`}
+                            relatedLessons={relatedVideos}
+                            onOpenLesson={handleOpenVideo}
+                            onAskGeeves={() => window.dispatchEvent(new window.CustomEvent('geeves-open'))}
+                            quizHref={`/hub/trivia?topic=${encodeURIComponent((selectedVideo.tags || [selectedVideo.type || 'poker'])[0])}`}
+                            sandboxHref="/hub/personal-assistant/sandbox"
+                        />
 
                         {/* ── P3: Related Videos Rail ── */}
                         {relatedVideos.length > 0 && (

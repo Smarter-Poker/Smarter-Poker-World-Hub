@@ -86,7 +86,7 @@ import InviteFriendsModal from '../../../src/components/ui/InviteFriendsModal';
 import { SocialProfileGateForCurrentUser } from '../../../src/components/gates/SocialProfileCompletionGate';
 import { HubErrorBoundary } from '../../../src/components/ui/HubErrorBoundary';
 import { useActiveIdentity } from '../../../src/contexts/ActiveIdentityContext';
-import { isHorseOnlineNow } from '../../../src/lib/horsePresence';
+import { usePresence } from '../../../src/hooks/usePresence';
 import { blockUser, getBlockedUsers } from '../../../src/services/privacy-service';
 import { buildReelPath } from '../../../src/lib/reelsFeedClient';
 import {
@@ -99,6 +99,7 @@ import { useSocialStore } from '../../../src/stores/socialStore';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import toast from '../../../src/stores/toastStore';
 import { getAccessToken } from '../../../src/lib/authUtils';
+import { fetchBrowserPost } from '../../../src/lib/socialPostClient';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { broadcastSync, listenBroadcast, BROADCAST_TAB_ID } from '../../../src/lib/broadcastSync';
 import GiphyPicker from '../../../src/components/shared/GiphyPicker';
@@ -136,6 +137,7 @@ import {
 
 import { feedCache } from '../../../src/lib/feedCache';
 import { retryUserReelPublication } from '../../../src/lib/userReelPublicationRecovery.mjs';
+import { normalizeUserReelTopic, USER_REEL_TOPIC_LABELS } from '../../../src/lib/userReelTopics.mjs';
 import { createLatestRequestGuard } from '../../../src/lib/latestRequestGuard.mjs';
 import HubPageSummary from '../../../src/components/seo/HubPageSummary';
 import { hubProductSchema } from '../../../src/lib/seo/hubPageSchema';
@@ -200,7 +202,7 @@ const PostCard = React.memo(
     onOpenArticle,
     onBlock,
     onShare,
-    horseProfileIds = new Set(),
+    authorOnline = false,
   }) {
     const router = useRouter();
     const [liked, setLiked] = useState(post.isLiked);
@@ -371,7 +373,7 @@ const PostCard = React.memo(
                         text: payload.content || '',
                         authorId: payload.authorId,
                         parentId: payload.parentId || null,
-                        authorName: author?.full_name || author?.username || 'Player',
+                        authorName: author?.display_name || author?.username || 'Player',
                         authorAvatar: author?.avatar_url || null,
                         authorUsername: author?.username || null,
                         time: 'Just now',
@@ -577,7 +579,7 @@ const PostCard = React.memo(
             text: c.content,
             authorId: c.author_id,
             parentId: c.parent_id || null,
-            authorName: author.full_name || author.username || 'Player',
+            authorName: author.display_name || author.username || 'Player',
             authorAvatar: author.avatar_url || null,
             authorUsername: author.username || null,
             time: timeAgo(c.created_at),
@@ -1047,7 +1049,7 @@ const PostCard = React.memo(
             style={{ textDecoration: 'none', position: 'relative', display: 'inline-block' }}
           >
             <Avatar src={post.author?.avatar} name={post.author?.name} size={40} />
-            {horseProfileIds.has(post.authorId) && isHorseOnlineNow(post.authorId) && (
+            {authorOnline && (
               <span
                 style={{
                   position: 'absolute',
@@ -3294,12 +3296,12 @@ const PostCard = React.memo(
       prevProps.post.shareCount === nextProps.post.shareCount &&
       prevProps.currentUserId === nextProps.currentUserId &&
       // These three change without currentUserId changing: a profile edit
-      // re-sets `user` (name + avatar) and horseProfileIds arrives async. Left
-      // out, the comment composer's avatar and the author name stayed stale and
-      // the horse online dot never appeared.
+      // re-sets `user` (name + avatar) and presence arrives async. Left out,
+      // the comment composer's avatar and the author name stayed stale and
+      // the online dot never appeared.
       prevProps.currentUserName === nextProps.currentUserName &&
       prevProps.currentUserAvatar === nextProps.currentUserAvatar &&
-      prevProps.horseProfileIds === nextProps.horseProfileIds
+      prevProps.authorOnline === nextProps.authorOnline
     );
   }
 );
@@ -3588,11 +3590,11 @@ function SocialMediaPage() {
 
   // 🛡️ INSTANT AUTH: Initialize user synchronously from localStorage
   // Prevents "Log In" flash while async profile fetch completes
-  // Priority: sp-social-user cache (has DB username + display pref) → JWT user_metadata (may be stale)
+  // Priority: sp-social-user cache (has DB username) → JWT user_metadata (may be stale)
   const [user, setUser] = useState(() => {
     if (typeof window === 'undefined') return null;
     try {
-      // First: try our own profile cache written after DB fetch (always fresh, respects display pref)
+      // First: try our own profile cache written after DB fetch (always fresh)
       const cached = localStorage.getItem('sp-social-user');
       if (cached) {
         const parsed = JSON.parse(cached);
@@ -3600,7 +3602,14 @@ function SocialMediaPage() {
         if (parsed?.id && parsed?.ts && Date.now() - parsed.ts < 3600000) {
           return {
             id: parsed.id,
-            name: parsed.name,
+            // user.name is sent to other people (check-in user_name, typing
+            // indicator), so it is never the owner-only real name. A cache
+            // written before 2026-10-05 may still hold full_name here.
+            name:
+              parsed.name && parsed.name !== parsed.full_name
+                ? parsed.name
+                : parsed.username || 'Player',
+            display_name: parsed.display_name || null,
             full_name: parsed.full_name,
             username: parsed.username,
             avatar: parsed.avatar,
@@ -3616,19 +3625,17 @@ function SocialMediaPage() {
     try {
       const authUser = getAuthUser();
       if (authUser) {
-        // JWT fallback — use full_name by default if available, otherwise alias
+        // JWT fallback — public handle only. full_name is owner-only
+        // (2026-09-30) and user.name is sent to other people (check-in
+        // user_name, typing indicator), so the real name is never used here.
         const fullName = authUser.user_metadata?.full_name;
         const alias = authUser.user_metadata?.poker_alias;
-        // Read display preference from settings cache
-        let pref = 'full_name';
-        try {
-          const s = JSON.parse(localStorage.getItem('sp-user-settings') || '{}');
-          pref = s.display_name_preference || 'full_name';
-        } catch (_) {}
-        const name = pref === 'username' ? alias || fullName : fullName || alias;
+        const name =
+          authUser.user_metadata?.display_name || alias || authUser.user_metadata?.username;
         return {
           id: authUser.id,
-          name: name || authUser.email?.split('@')[0] || 'Player',
+          name: name || 'Player',
+          display_name: authUser.user_metadata?.display_name || null,
           full_name: fullName || null,
           username: alias || null,
           avatar: authUser.user_metadata?.avatar_url || null,
@@ -3652,22 +3659,14 @@ function SocialMediaPage() {
   const [isPosting, setIsPosting] = useState(false);
   const [deletePostId, setDeletePostId] = useState(null);
   const [notifications, setNotifications] = useState([]);
-  const [horseProfileIds, setHorseProfileIds] = useState(new Set());
   const [blockedUserIds, setBlockedUserIds] = useState(new Set());
   const undoDeleteRef = useRef(null);
   const [shareModalPost, setShareModalPost] = useState(null);
 
-  // Phase 15: Load horse profile IDs for online presence indicators
-  useEffect(() => {
-    supabase
-      .from('content_authors')
-      .select('profile_id')
-      .eq('is_active', true)
-      .not('profile_id', 'is', null)
-      .then(({ data }) => {
-        if (data) setHorseProfileIds(new Set(data.map((h) => h.profile_id)));
-      });
-  }, []);
+  // Online dots for the authors in the feed. Presence is answered by
+  // /api/social/presence for every player alike; the page only asks.
+  const presenceIds = React.useMemo(() => posts.map((p) => p.authorId), [posts]);
+  const onlineIds = usePresence(presenceIds);
 
   // Phase 2: Load blocked user IDs for feed filtering
   useEffect(() => {
@@ -3708,6 +3707,11 @@ function SocialMediaPage() {
   const globalSearchTimeout = useRef(null);
   // Stable ref to always-fresh loadFeed — prevents stale closure in BroadcastChannel/Realtime listeners
   const loadFeedRef = useRef(null);
+  // The ids on screen, so a Realtime update re-reads only a post the reader holds.
+  const shownPostIdsRef = useRef(new Set());
+  useEffect(() => {
+    shownPostIdsRef.current = new Set(posts.map((p) => p.id));
+  }, [posts]);
   const feedRequestGuardRef = useRef(createLatestRequestGuard());
 
   // Unmount cleanup: cancel deferred timers to prevent zombie state writes
@@ -4054,12 +4058,23 @@ function SocialMediaPage() {
                     ...p,
                     thumbnail_url: updatedPost.thumbnail_url ?? p.thumbnail_url,
                     thumbnailUrl: updatedPost.thumbnail_url ?? p.thumbnailUrl,
-                    metadata: updatedPost.metadata ?? p.metadata,
                     content: updatedPost.content ?? p.content,
                   }
                 : p
             )
           );
+          // The payload is never trusted for metadata. The post is read again
+          // through /api/social/post, which answers with the keys the UI
+          // renders and nothing else, whoever wrote it.
+          if (!shownPostIdsRef.current.has(updatedPost.id)) return;
+          fetchBrowserPost(updatedPost.id)
+            .then((fresh) => {
+              if (!fresh) return;
+              setPosts((prev) =>
+                prev.map((p) => (p.id === fresh.id ? { ...p, metadata: fresh.metadata } : p))
+              );
+            })
+            .catch(() => {});
         }
       )
       .on(
@@ -4237,7 +4252,7 @@ function SocialMediaPage() {
               {
                 ...n,
                 actor_avatar_url: actorProfile?.avatar_url || n.data?.actor_avatar || null,
-                actor_name: actorProfile?.username || actorProfile?.full_name || displayName,
+                actor_name: actorProfile?.username || actorProfile?.display_name || displayName,
                 actor_username: actorProfile?.username || null,
               },
               ...prev,
@@ -4302,22 +4317,15 @@ function SocialMediaPage() {
       // OPTIMISTIC: Instant UI update from event.detail (no network needed)
       const d = e?.detail;
       if (d && (d.full_name || d.avatar_url || d.username)) {
-        // Re-read pref from cache (may have changed in Settings)
-        let pref = 'full_name';
-        try {
-          const s = JSON.parse(localStorage.getItem('sp-user-settings') || '{}');
-          pref = s.display_name_preference || 'full_name';
-        } catch (_) {}
         const newFullName = d.full_name || null;
         const newUsername = d.username || null;
         setUser((prev) => ({
           ...prev,
           ...(newFullName !== null ? { full_name: newFullName } : {}),
           ...(newUsername !== null ? { username: newUsername } : {}),
-          name:
-            pref === 'username'
-              ? newUsername || d.username || prev?.username || prev?.full_name
-              : newFullName || d.full_name || prev?.full_name || prev?.username,
+          ...(d.display_name ? { display_name: d.display_name } : {}),
+          // Public name only: user.name is sent to other people.
+          name: d.display_name || newUsername || prev?.username || prev?.name,
           ...(d.avatar_url ? { avatar: d.avatar_url } : {}),
         }));
       }
@@ -4327,22 +4335,16 @@ function SocialMediaPage() {
         try {
           const authUser = getAuthUser();
           if (!authUser) return;
-          const { data, error } = await readOwnProfile(supabase, 'id,username,full_name,avatar_url,role', { expectId: authUser.id });
+          const { data, error } = await readOwnProfile(supabase, 'id,username,full_name,display_name,avatar_url,role', { expectId: authUser.id });
 
           if (!error && data) {
             const p = data;
-            let pref = 'full_name';
-            try {
-              const s = JSON.parse(localStorage.getItem('sp-user-settings') || '{}');
-              pref = s.display_name_preference || 'full_name';
-            } catch (_) {}
-            const freshName =
-              pref === 'username'
-                ? p.username || p.full_name || null
-                : p.full_name || p.username || null;
+            // Public name only: user.name is sent to other people.
+            const freshName = p.display_name || p.username || null;
             setUser((prev) => ({
               ...prev,
               name: freshName || prev?.name,
+              display_name: p.display_name || null,
               full_name: p.full_name || prev?.full_name,
               username: p.username || prev?.username,
               avatar: p.avatar_url || null,
@@ -4355,6 +4357,7 @@ function SocialMediaPage() {
                 JSON.stringify({
                   ...cached,
                   name: freshName || cached.name,
+                  display_name: p.display_name || null,
                   full_name: p.full_name || cached.full_name,
                   username: p.username || cached.username,
                   avatar: p.avatar_url || cached.avatar,
@@ -4379,38 +4382,16 @@ function SocialMediaPage() {
       handleProfileUpdated();
     });
 
-    // Cross-tab: Settings changed (e.g. display_name_preference toggled in Settings page)
-    // Immediately recompute user.name to show correct "Posting As" name without reload
-    const cleanupSettingsBc = listenBroadcast('smarter_poker_settings_sync', () => {
-      setUser((prev) => {
-        if (!prev) return prev;
-        let pref = 'full_name';
-        try {
-          const s = JSON.parse(localStorage.getItem('sp-user-settings') || '{}');
-          pref = s.display_name_preference || 'full_name';
-        } catch (_) {}
-        const newName =
-          pref === 'username'
-            ? prev.username || prev.full_name || prev.name
-            : prev.full_name || prev.username || prev.name;
-        if (newName === prev.name) return prev; // no-op if unchanged
-        // Also update localStorage cache
-        try {
-          const cached = JSON.parse(localStorage.getItem('sp-social-user') || '{}');
-          localStorage.setItem(
-            'sp-social-user',
-            JSON.stringify({ ...cached, name: newName, ts: Date.now() })
-          );
-        } catch (_) {}
-        return { ...prev, name: newName };
-      });
-    });
+    // No Settings listener here any more: Settings used to broadcast a
+    // "posting name" choice (display_name_preference) that recomputed
+    // user.name. Ruling 25 retired it - user.name is always the public
+    // display_name, then username - and profile edits arrive above through
+    // 'profile-updated' and the avatar channel.
 
     return () => {
       clearTimeout(debounceTimer);
       window.removeEventListener('profile-updated', handleProfileUpdated);
       cleanupAvatarBc();
-      cleanupSettingsBc();
     };
   }, []);
 
@@ -4474,30 +4455,19 @@ function SocialMediaPage() {
           if (p?.role === 'god') {
             setIsGodMode(true);
           }
-          // Read display_name_preference: full_name (default) or username (alias)
-          let displayNamePref = 'full_name';
-          try {
-            const cachedSettings = JSON.parse(localStorage.getItem('sp-user-settings') || '{}');
-            displayNamePref = cachedSettings.display_name_preference || 'full_name';
-          } catch (_) {}
-          // Also fetch from DB if not in settings cache (first-time visitors)
-          if (!localStorage.getItem('sp-user-settings')) {
-            try {
-              const prefRes = await supabase
-                .from('profiles')
-                .select('display_name_preference')
-                .eq('id', p?.id || authUser.id)
-                .maybeSingle();
-              displayNamePref = prefRes.data?.display_name_preference || 'full_name';
-            } catch (_) {}
-          }
+          // Public name only: user.name is sent to other people (check-in
+          // user_name, typing indicator), and full_name is owner-only
+          // (2026-09-30), so display_name_preference no longer picks the real name.
           const displayName =
-            displayNamePref === 'username'
-              ? p?.username || p?.full_name || authUser.email?.split('@')[0] || 'Player'
-              : p?.full_name || p?.username || authUser.email?.split('@')[0] || 'Player';
+            p?.display_name ||
+            p?.username ||
+            authUser.user_metadata?.poker_alias ||
+            authUser.user_metadata?.username ||
+            'Player';
           setUser({
             id: p?.id || authUser.id,
             name: displayName,
+            display_name: p?.display_name || null,
             full_name: p?.full_name || null,
             username: p?.username || null,
             avatar: p?.avatar_url || null,
@@ -4512,6 +4482,7 @@ function SocialMediaPage() {
               JSON.stringify({
                 id: p?.id || authUser.id,
                 name: displayName,
+                display_name: p?.display_name || null,
                 full_name: p?.full_name || null,
                 username: p?.username || null,
                 avatar: p?.avatar_url || null,
@@ -4573,48 +4544,26 @@ function SocialMediaPage() {
                         .filter(Boolean)
                     ),
                   ];
-                  const actorNames = [
-                    ...new Set(
-                      notifs
-                        .map((n) => {
-                          const match = n.title?.match(/^([A-Za-z]+\s+[A-Za-z]+)/);
-                          return match ? match[1] : null;
-                        })
-                        .filter(Boolean)
-                    ),
-                  ];
-
-                  // ⚡ Fetch both profile lookups in PARALLEL
-                  const [profilesByIdRes, profilesByNameRes] = await Promise.all([
+                  // Actors are looked up by id only. There is no lookup by
+                  // legal name: full_name is readable only by its owner and
+                  // staff (ruling 25), so a stranger cannot be found by it.
+                  const profilesByIdRes =
                     actorIds.length > 0
-                      ? supabase
+                      ? await supabase
                           .from('profiles')
-                          .select('id, username, avatar_url')
+                          .select('id, username, display_name, avatar_url')
                           .in('id', actorIds)
-                      : Promise.resolve({ data: [] }),
-                    // No lookup by legal name: full_name is readable only by its
-                    // owner and staff (2026-09-30), so a stranger cannot be found by it.
-                    Promise.resolve({ data: [] }),
-                  ]);
+                      : { data: [] };
 
                   const profileById = {};
                   (profilesByIdRes.data || []).forEach((p) => {
                     profileById[p.id] = p;
                   });
-                  const profileByName = {};
-                  (profilesByNameRes.data || []).forEach((p) => {
-                    if (p.full_name) profileByName[p.full_name.toLowerCase()] = p;
-                  });
 
                   const enrichedNotifs = notifs.map((n) => {
                     const actorId =
                       n.data?.commenter_id || n.data?.actor_id || n.actor_id || n.data?.sender_id;
-                    let profile = actorId ? profileById[actorId] : null;
-                    if (!profile) {
-                      const match = n.title?.match(/^([A-Za-z]+\s+[A-Za-z]+)/);
-                      const actorName = match ? match[1] : null;
-                      profile = actorName ? profileByName[actorName.toLowerCase()] : null;
-                    }
+                    const profile = actorId ? profileById[actorId] : null;
                     const dispName =
                       n.data?.actor_name ||
                       n.data?.sender_name ||
@@ -4623,7 +4572,7 @@ function SocialMediaPage() {
                     return {
                       ...n,
                       actor_avatar_url: profile?.avatar_url || n.data?.actor_avatar || null,
-                      actor_name: profile?.username || profile?.full_name || dispName,
+                      actor_name: profile?.username || profile?.display_name || dispName,
                       actor_username: profile?.username || null,
                     };
                   });
@@ -4799,12 +4748,9 @@ function SocialMediaPage() {
         processedPostIdRef.current = postId;
         (async () => {
           try {
-            const { data: p } = await supabase
-              .from('social_posts')
-              .select('*, author:profiles!author_id(id, username, display_name, avatar_url)')
-              .eq('id', postId)
-              .eq('is_deleted', false)
-              .maybeSingle();
+            // The server answers as this viewer, with only the metadata the
+            // UI renders: a browser never reads a whole social_posts row.
+            const p = await fetchBrowserPost(String(postId));
             if (p) {
               const meta = p.metadata || {};
               const formatted = {
@@ -4833,7 +4779,7 @@ function SocialMediaPage() {
                 link_site_name: p.link_site_name || null,
                 metadata: meta,
                 author: {
-                  name: meta.page_name || p.author?.display_name || p.author?.full_name || p.author?.username || 'Player',
+                  name: meta.page_name || p.author?.display_name || p.author?.username || 'Player',
                   username: p.author?.username || null,
                   avatar: meta.page_avatar_url || p.author?.avatar_url || null,
                 },
@@ -4931,7 +4877,7 @@ function SocialMediaPage() {
           return {
             ...n,
             actor_avatar_url: profile?.avatar_url || n.data?.actor_avatar || null,
-            actor_name: profile?.username || profile?.full_name || displayName,
+            actor_name: profile?.username || profile?.display_name || displayName,
             actor_username: profile?.username || null,
           };
         });
@@ -5375,15 +5321,23 @@ function SocialMediaPage() {
     // Reels are an explicitly public, single-video publication. Defend this
     // boundary here as well as in the composer because callers can invoke
     // handlePost without going through the current checkbox UI.
+    // pokerContentConfirmed carries the attested Reel topic ('poker' or
+    // 'sports'); a legacy `true` means Poker.
+    const reelTopic = pokerContentConfirmed ? normalizeUserReelTopic(pokerContentConfirmed) : null;
+    if (pokerContentConfirmed && !reelTopic) {
+      toast.error('Choose Poker Reels or Sports Reels before publishing.', 6000);
+      return false;
+    }
+    const reelLabel = reelTopic ? `${USER_REEL_TOPIC_LABELS[reelTopic]} Reels` : 'Reels';
     if (pokerContentConfirmed && visibility !== 'public') {
-      toast.error('Poker Reels are public. Change this post to Public before publishing.', 6000);
+      toast.error(`${reelLabel} are public. Change this post to Public before publishing.`, 6000);
       return false;
     }
     if (
       pokerContentConfirmed &&
       (type !== 'video' || !Array.isArray(urls) || urls.length !== 1)
     ) {
-      toast.error('Poker Reels can publish exactly one video at a time.', 6000);
+      toast.error(`${reelLabel} can publish exactly one video at a time.`, 6000);
       return false;
     }
 
@@ -5635,17 +5589,17 @@ function SocialMediaPage() {
         ? buildUserVideoProvenance(
             submittedVideoUrl,
             'social_post',
-            pokerContentConfirmed ? 'poker' : 'unknown',
+            reelTopic || 'unknown',
             user.id
           )
         : null;
 
-      // Poker-confirmed videos use the atomic post+Reel boundary. Generic
+      // Topic-attested (Poker or Sports) videos use the atomic post+Reel boundary. Generic
       // videos remain ordinary posts with topic=unknown until classified.
       let data = null;
       let rpcResult = null;
       let atomicReelId = null;
-      if (submittedVideoUrl && pokerContentConfirmed) {
+      if (submittedVideoUrl && reelTopic) {
         let publication;
         if (reelPublicationIntentId) {
           const publicationResult = await retryUserReelPublication({
@@ -5671,7 +5625,7 @@ function SocialMediaPage() {
             'publish_user_video_reel',
             {
               p_video_url: submittedVideoUrl,
-              p_topic: 'poker',
+              p_topic: reelTopic,
               p_topic_confirmed: true,
               p_caption: content || null,
               p_thumbnail_url: thumbnailUrl || null,
@@ -6097,7 +6051,7 @@ function SocialMediaPage() {
     setGlobalSearchLoading(true);
     globalSearchTimeout.current = setTimeout(async () => {
       try {
-        // Search users (search both username and full_name)
+        // Search users (search both username and display_name)
         const { data: users } = await supabase
           .from('profiles')
           .select('id, username, avatar_url')
@@ -8227,7 +8181,7 @@ function SocialMediaPage() {
                                   title: cardTitle || p.link_title || null,
                                 });
                               }}
-                              horseProfileIds={horseProfileIds}
+                              authorOnline={onlineIds.has(p.authorId)}
                             />
                           );
                         });

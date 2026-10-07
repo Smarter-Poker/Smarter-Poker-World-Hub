@@ -55,20 +55,22 @@ try {
         // is not rendered as "Anonymous" in every public feed. Both sources are
         // account-scoped, so neither can be varied per request the way the old
         // body field could.
+        // This name is PUBLIC (other users read it), so it is built only from
+        // display_name / username - never the legal name (full_name is
+        // owner-only, OWNER_ONLY_PROFILE_COLUMNS) or the email local part
+        // (email is a sensitive column).
         const meta = authUser.user_metadata || {};
         let resolvedUserName =
           meta.display_name
-          || meta.full_name
           || meta.username
-          || (authUser.email ? String(authUser.email).split('@')[0] : null)
           || 'Anonymous';
         try {
           const { data: profileRow } = await getSupabase()
             .from('profiles')
-            .select('username, full_name')
+            .select('username, display_name')
             .eq('id', user_id)
             .maybeSingle();
-          resolvedUserName = profileRow?.full_name || profileRow?.username || resolvedUserName;
+          resolvedUserName = profileRow?.display_name || profileRow?.username || resolvedUserName;
         } catch (_profileErr) { /* keep the metadata-derived name */ }
 
         // Cap the free-text message. It had no length bound at all and is

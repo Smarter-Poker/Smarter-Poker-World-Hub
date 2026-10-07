@@ -12,6 +12,7 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
+import { readHorsesConsoleSource } from './helpers/horses-console-source.mjs';
 
 import {
   isPendingApproval,
@@ -30,7 +31,9 @@ import {
 import * as tabRegistry from '../src/components/horses/tabRegistry.js';
 
 const ROOT = new URL('../', import.meta.url);
-const read = (path) => readFile(new URL(path, ROOT), 'utf8');
+const read = (path) => path === INDEX
+  ? readHorsesConsoleSource()
+  : readFile(new URL(path, ROOT), 'utf8');
 const INDEX = 'pages/horses/index.js';
 
 /** Source with block and line comments removed, for "no X remains" checks. */
@@ -159,9 +162,9 @@ test('B-1: a tagged cashout row renders a Waiting For Approval pill instead of i
 });
 
 test('B-1: the cashout confirmation is the shared dialog carrying thresholdDecision for kind cashout', async () => {
-  const src = await read(INDEX);
+  const src = await read('src/components/horses/ClubArenaPanel.jsx');
   const open = block(src, 'const resolveCashout = useCallback((cashout, action) => {', 700);
-  assert.match(open, /thresholdDecision\(\{[\s\S]*kind: 'cashout'[\s\S]*asset: 'chips'[\s\S]*aloneRule: operatorAloneRule/);
+  assert.match(open, /thresholdDecision\(\{[\s\S]*kind: 'cashout'[\s\S]*asset: 'chips'[\s\S]*aloneRule/);
   assert.match(src, /\{cashoutConfirm && \(\s*<ConfirmDialog/);
   assert.match(src, /onConfirm=\{submitCashout\}/);
   assert.match(src, /\{cashoutConfirm\.decision\.headline\}/);
@@ -206,13 +209,14 @@ test('H-3: a bare policy object is still accepted and changes only the policy', 
 });
 
 test('H-3: index.js applies all three from handlePolicyChange', async () => {
-  const src = await read(INDEX);
+  const src = await readFile(new URL(INDEX, ROOT), 'utf8');
   assert.match(src, /onPolicyChange=\{handlePolicyChange\}/);
   const handler = block(src, 'const handlePolicyChange = useCallback((payload) => {', 500);
   assert.match(handler, /const change = operatorContextChange\(payload\);/);
-  assert.match(handler, /setOperatorPolicy\(normalizePolicy\(change\.policy\)\)/);
-  assert.match(handler, /if \(change\.aloneRule !== undefined\) setOperatorAloneRule\(change\.aloneRule\)/);
-  assert.match(handler, /if \(change\.permissions !== undefined\) setOperatorPermissions\(change\.permissions\)/);
+  assert.match(handler, /const patch = \{ policy: normalizePolicy\(change\.policy\) \}/);
+  assert.match(handler, /if \(change\.aloneRule !== undefined\) patch\.aloneRule = change\.aloneRule/);
+  assert.match(handler, /if \(change\.permissions !== undefined\) patch\.permissions = change\.permissions/);
+  assert.match(handler, /patchOperatorContext\(patch\)/);
 });
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -245,20 +249,20 @@ test('M-1: the header role comes from the operator envelope, and a grantee reads
 });
 
 test('M-1: index.js keeps no role list and asks section=policy on both sign-in paths', async () => {
-  const src = await read(INDEX);
+  const src = await readFile(new URL(INDEX, ROOT), 'utf8');
   const code = codeOnly(src);
   assert.ok(!code.includes('ADMIN_ROLES'), 'ADMIN_ROLES is gone from index.js');
   assert.ok(!code.includes(".from('profiles')"), 'the browser no longer reads profiles.role to decide access');
   const reader = block(src, 'const readOperatorContext = useCallback(async (authUser) => {', 600);
   assert.match(reader, /const body = await authFetch\(policyUrl\(\)\);/);
-  assert.match(reader, /applyOperatorContext\(body, authUser\.id\)/);
+  assert.match(reader, /applyPolicyEnvelope\(body, authUser\)/);
   const check = block(src, 'const checkAuth = useCallback(async () => {', 900);
   assert.match(check, /const answer = await readOperatorContext\(authUser\);/);
-  assert.match(check, /setRole\(operatorRoleFromPayload\(answer\.body\)\)/);
-  const login = block(src, 'const handleLogin = async (e) => {', 1200);
+  assert.match(src, /operatorRole: operatorRoleFromPayload\(body\)/);
+  const login = block(src, 'const handleLogin = async (event) => {', 1200);
   assert.match(login, /const answer = await readOperatorContext\(data\.user\);/);
-  assert.match(login, /if \(answer\.denied\) \{[\s\S]*await supabase\.auth\.signOut\(\);[\s\S]*setLoginError\(ACCESS_DENIED_MESSAGE\)/);
-  assert.match(src, /const ACCESS_DENIED_MESSAGE = 'Access Denied\. Operator Privileges Are Required\.';/);
+  assert.match(login, /if \(answer\.denied\) await supabase\.auth\.signOut\(\);[\s\S]*setLoginError\(answer\.denied \? ACCESS_DENIED_MESSAGE/);
+  assert.match(src, /const ACCESS_DENIED_MESSAGE = 'Access Denied\. This Account Is Not An Operator\.';/);
   // One read per sign-in: the old bootstrap effect keyed on `user` is gone,
   // so the context is not fetched twice.
   assert.equal((code.match(/authFetch\(policyUrl\(\)\)/g) || []).length, 1);
@@ -269,16 +273,16 @@ test('M-1: index.js keeps no role list and asks section=policy on both sign-in p
 // ═══════════════════════════════════════════════════════════════════════════
 
 test('M-2: the audit target type and id inputs debounce 300 ms into the query', async () => {
-  const src = await read(INDEX);
-  assert.match(src, /value=\{auditTargetTypeInput\}/);
-  assert.match(src, /onChange=\{\(e\) => setAuditTargetTypeInput\(e\.target\.value\)\}/);
-  assert.match(src, /value=\{auditTargetInput\}/);
-  assert.match(src, /onChange=\{\(e\) => setAuditTargetInput\(e\.target\.value\)\}/);
-  assert.match(src, /setTimeout\(\(\) => setAuditTarget\(auditTargetInput\), 300\)/);
-  assert.match(src, /setTimeout\(\(\) => setAuditTargetType\(auditTargetTypeInput\), 300\)/);
+  const src = await read('src/components/horses/AuditPanel.jsx');
+  assert.match(src, /value=\{typeInput\}/);
+  assert.match(src, /onChange=\{\(event\) => setTypeInput\(event\.target\.value\)\}/);
+  assert.match(src, /value=\{targetInput\}/);
+  assert.match(src, /onChange=\{\(event\) => setTargetInput\(event\.target\.value\)\}/);
+  assert.match(src, /setTimeout\(\(\) => setTarget\(targetInput\), 300\)/);
+  assert.match(src, /setTimeout\(\(\) => setTargetType\(typeInput\), 300\)/);
   // The query still reads the debounced values, never the input ones.
-  assert.match(src, /targetId: auditTarget\.trim\(\) \|\| undefined/);
-  assert.match(src, /targetType: auditTargetType\.trim\(\) \|\| undefined/);
+  assert.match(src, /targetId: target\.trim\(\) \|\| undefined/);
+  assert.match(src, /targetType: targetType\.trim\(\) \|\| undefined/);
 });
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -287,6 +291,7 @@ test('M-2: the audit target type and id inputs debounce 300 ms into the query', 
 
 test('M-3: the mint ledger drops a superseded response, and the grinder loader it named is gone', async () => {
   const src = await read(INDEX);
+  const mint = await read('src/components/horses/MintPanel.jsx');
   // Phase 3 replaced the grinder tab with Fleet Command, whose roster is paged
   // by usePagedList (its own monotonic sequence plus an AbortController), so
   // the loader this finding hardened no longer exists to harden. Both halves
@@ -294,14 +299,14 @@ test('M-3: the mint ledger drops a superseded response, and the grinder loader i
   assert.ok(!src.includes('const loadGrinderData ='), 'the grinder loader belongs to Fleet Command now');
   assert.ok(!src.includes('grinderSeqRef'), 'and its sequence guard went with it');
 
-  const ledger = block(src, 'const loadMintLedger = useCallback(async (asset = ', 1000);
-  assert.match(ledger, /const seq = \+\+mintLedgerSeqRef\.current;/);
-  assert.match(ledger, /setMintLedgerLoading\(true\);/);
-  assert.match(ledger, /if \(seq !== mintLedgerSeqRef\.current\) return;/);
-  assert.match(ledger, /if \(seq === mintLedgerSeqRef\.current\) setMintLedgerLoading\(false\);/);
+  const ledger = block(mint, 'const load = useCallback(async (offset = ', 1600);
+  assert.match(ledger, /const seq = \+\+loadSeqRef\.current;/);
+  assert.match(ledger, /setLoading\(true\);/);
+  assert.match(ledger, /if \(seq !== loadSeqRef\.current\) return;/);
+  assert.match(ledger, /if \(seq === loadSeqRef\.current\) setLoading\(false\);/);
   // And the ledger pager is disabled while ITS page loads, not only while the
   // whole panel does.
-  assert.match(src, /loading=\{mintLoading \|\| mintLedgerLoading\}/);
+  assert.match(mint, /loading=\{loading\}/);
 });
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -309,14 +314,14 @@ test('M-3: the mint ledger drops a superseded response, and the grinder loader i
 // ═══════════════════════════════════════════════════════════════════════════
 
 test('M-5: the dynamic loading component renders the error and a Try Again that calls retry', async () => {
-  const src = await read(INDEX);
-  const panel = block(src, 'function panelComponentFor(tab) {', 1600);
-  assert.match(panel, /loading: \(\{ error, retry \}\) => \(error/);
-  assert.match(panel, /\{tab\.label\} Could Not Be Loaded/);
+  const panel = await read('src/components/horses/dynamicPanels.js');
+  assert.match(panel, /function loadingState\(label\)/);
+  assert.match(panel, /function DynamicPanelState\(\{ error, retry \}\)/);
+  assert.match(panel, /\{label\} Could Not Be Loaded/);
   assert.match(panel, /role="alert"/);
   assert.match(panel, /onClick=\{retry\}/);
   assert.match(panel, /Try Again/);
-  assert.match(panel, /Loading \{tab\.label\}/);
+  assert.match(panel, /Loading \{label\}/);
 });
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -355,12 +360,12 @@ test('L-1: sections normalise the same way', () => {
 });
 
 test('L-1: the write effect asks urlNeedsNormalising in its agreement branch', async () => {
-  const src = await read(INDEX);
-  assert.match(src, /if \(urlNeedsNormalising\(\{ activeTab, caSection \}, router\.query\)\) \{\s*const query = nextUrlQuery/);
+  const src = await readFile(new URL(INDEX, ROOT), 'utf8');
+  assert.match(src, /if \(urlNeedsNormalising\(state, router\.query\)\) \{/);
   // Still a replace, never a push: normalising must not cost a Back press.
-  const branch = block(src, 'if (urlNeedsNormalising({ activeTab, caSection }, router.query)) {', 300);
-  assert.match(branch, /router\.replace\(/);
-  assert.doesNotMatch(branch, /router\.push\(/);
+  const branch = block(src, 'if (urlNeedsNormalising(state, router.query)) {', 300);
+  assert.match(branch, /startUrlWrite\(state, 'replace'\)/);
+  assert.match(src, /if \(!urlSyncedRef\.current\) return;[\s\S]*?startUrlWrite\(state, 'push'\)/);
 });
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -368,9 +373,11 @@ test('L-1: the write effect asks urlNeedsNormalising in its agreement branch', a
 // ═══════════════════════════════════════════════════════════════════════════
 
 test('L-3: the compose guard refuses a third decimal on chips and the pattern is the one money2dp applies', async () => {
-  const src = await read(INDEX);
-  const literal = src.match(/const CHIP_AMOUNT_PATTERN = (\/[^\n]+\/);/);
-  assert.ok(literal, 'CHIP_AMOUNT_PATTERN is declared');
+  const src = await read('src/components/horses/MintPanel.jsx');
+  const amountLine = src.match(/const amountValid = [^\n]+/);
+  assert.ok(amountLine, 'the chips amount pattern is applied to the composed form amount');
+  const literal = amountLine[0].match(/: (\/.*\/)\.test\(form\.amount\)/);
+  assert.ok(literal, 'the chips branch has an explicit pattern');
   const pattern = new RegExp(literal[1].slice(1, -1));
   assert.equal(pattern.test('100'), true);
   assert.equal(pattern.test('100.1'), true);
@@ -378,19 +385,17 @@ test('L-3: the compose guard refuses a third decimal on chips and the pattern is
   assert.equal(pattern.test('100.005'), false);
   assert.equal(pattern.test('1e3'), false);
   assert.equal(pattern.test('.5'), false);
-  assert.match(
-    src,
-    /if \(mintAsset === 'chips' && !CHIP_AMOUNT_PATTERN\.test\(String\(mintAmount\)\.trim\(\)\)\) \{\s*showNotification\('Chips Take At Most Two Decimals\.', 'error'\)/,
-  );
+  assert.match(src, /const valid = canWrite && amountValid && Number\(form\.amount\) > 0/);
 });
 
 test('L-3: chip amounts render with two decimals in the confirm sentence, the toast and the receipts', async () => {
-  const src = await read(INDEX);
-  const fmt = block(src, 'function formatAmount(value, asset) {', 400);
-  assert.match(fmt, /minimumFractionDigits: 2, maximumFractionDigits: 2/);
-  assert.match(src, /formatAmount\(mintConfirm\.amount, mintConfirm\.asset\)\} \{assetLabel\(mintConfirm\.asset\)\}/);
-  assert.equal((src.match(/formatAmount\(mintReceipt\.amount, mintReceipt\.asset\)/g) || []).length, 2);
-  assert.match(src, /Yes, \$\{mintConfirm\.action === 'mint' \? 'Issue' : 'Retire'\} \$\{formatAmount\(mintConfirm\.amount, mintConfirm\.asset\)\}/);
+  const src = await read('src/components/horses/MintPanel.jsx');
+  const formatter = await read('src/components/horses/economyAdmin.js');
+  assert.match(formatter, /export function decimalText\(value, digits = 2\)/);
+  assert.match(formatter, /'0'\.repeat\(digits\)/);
+  assert.match(src, /decimalText\(confirm\.amount\)\} \{confirm\.asset\}/);
+  assert.match(src, /decimalText\(receipt\.amount\)/);
+  assert.match(src, /`\$\{confirm\.action === 'mint' \? 'Issued' : 'Retired'\} \$\{decimalText\(confirm\.amount\)\}/);
 });
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -419,15 +424,13 @@ test('L-8: the dead OPERATOR_PERMISSION export is gone', async () => {
 // ═══════════════════════════════════════════════════════════════════════════
 
 test('L-2: a filter change on a later page resets first and lets the page change load', async () => {
-  const src = await read(INDEX);
-  const effect = block(src, 'const auditQuerySeenRef = useRef(auditQuery);', 700);
-  assert.match(effect, /const filterChanged = auditQuerySeenRef\.current !== auditQuery;/);
-  assert.match(effect, /if \(filterChanged && auditPage !== 0\) \{\s*setAuditPage\(0\);\s*return;\s*\}/);
-  assert.match(effect, /if \(activeTab === 'audit' && auditLoaded\) loadAuditLog\(\);/);
-  assert.match(effect, /\}, \[auditQuery, auditPage\]\);/);
+  const src = await read('src/components/horses/AuditPanel.jsx');
+  assert.match(src, /const changed = seen\.current !== queryKey;/);
+  assert.match(src, /if \(changed && offset !== 0\) \{ setOffset\(0\); return; \}/);
+  assert.match(src, /load\(\); \}, \[queryKey, offset, load\]\);/);
   // The old wrong comment is gone.
   assert.ok(!src.includes('the load that runs in\n  // this commit already sees page 0'));
-  assert.match(src, /auditSeqRef/);
+  assert.match(src, /sequence/);
 });
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -435,10 +438,11 @@ test('L-2: a filter change on a later page resets first and lets the page change
 // ═══════════════════════════════════════════════════════════════════════════
 
 test('L-11: the CSV header and the trail rows both say Request ID, and the fragments are Title Case', async () => {
-  const src = await read(INDEX);
-  assert.match(src, /\['request_id', 'Request ID'\]/);
-  assert.equal((src.match(/\|\| 'Not Recorded'\}/g) || []).length, 2);
-  assert.equal((src.match(/` - Request ID \$\{(entry|row)\.request_id\}`/g) || []).length, 2);
+  const src = await read('src/components/horses/AuditPanel.jsx');
+  assert.match(src, /\['request_id','Request ID'\]/);
+  assert.match(src, /header: 'Request ID'/);
+  assert.match(src, /\|\| 'Not Recorded'\}/);
+  assert.match(src, /` - Request ID \$\{row\.request_id\}`/);
   assert.ok(!src.includes("'not recorded'"));
   assert.ok(!src.includes('` - request ${'));
 });
@@ -456,7 +460,7 @@ function lowerCaseOffenders(text) {
 }
 
 test('M-7: every attribute string and toast in index.js is Title Case', async () => {
-  const src = await read(INDEX);
+  const src = await readFile(new URL(INDEX, ROOT), 'utf8');
   const failures = [];
   src.split('\n').forEach((line, i) => {
     if (/^\s*(\/\/|\*|\/\*)/.test(line)) return;
@@ -497,15 +501,18 @@ test('M-7: the review list of lower-case copy is gone from index.js', async () =
   ]) {
     assert.ok(!src.includes(gone), `${JSON.stringify(gone)} must be Title Case now`);
   }
-  for (const present of [
-    'Enter An Amount Greater Than Zero.',
-    'Diamonds Are Whole Numbers.',
-    'Pick A Club Or Union.',
-    'Write A Reason Of At Least Ten Characters.',
-    "? 'Entry' : 'Entries'",
-  ]) {
-    assert.ok(src.includes(present), `${JSON.stringify(present)} must be present`);
-  }
+  const mint = await read('src/components/horses/MintPanel.jsx');
+  assert.match(mint, /Number\(form\.amount\) > 0/);
+  const amountLine = mint.match(/const amountValid = [^\n]+/);
+  const diamondLiteral = amountLine?.[0].match(/\? (\/.*?\/)\.test\(form\.amount\)/);
+  assert.ok(diamondLiteral, 'diamonds retain an explicit whole-number pattern');
+  const diamondPattern = new RegExp(diamondLiteral[1].slice(1, -1));
+  assert.equal(diamondPattern.test('10'), true);
+  assert.equal(diamondPattern.test('10.5'), false);
+  assert.match(mint, /form\.targetId && opId/);
+  assert.match(mint, /form\.reason\.trim\(\)\.length >= 10/);
+  const audit = await read('src/components/horses/AuditPanel.jsx');
+  assert.match(audit, /noun="Entries"/);
 });
 
 test('the files touched by this pass obey the house rules on dashes, emoji and single-row reads', async () => {

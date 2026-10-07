@@ -174,7 +174,10 @@ jobs:
           __tests__/messenger-read-state.test.mjs
           __tests__/messenger-sync-lifecycle.test.mjs
           __tests__/messenger-completion-lifecycle.test.mjs
+          __tests__/messenger-organization.test.mjs
+          __tests__/messenger-alert-preferences.test.mjs
           __tests__/notifications-completion.test.mjs
+          __tests__/notification-feed-groups.test.mjs
           __tests__/messenger-accounting-ui.test.mjs
           __tests__/messenger-conversation-link.test.mjs
           __tests__/messenger-search-lifecycle.test.mjs
@@ -261,6 +264,12 @@ jobs:
 
       - name: "CHECK 24C: Training PostgreSQL 17 Behavioral Authority"
         run: npm run audit:training:phase6-db
+
+      # Reuse the already-resolved PG17 binaries. The gate owns one disposable
+      # local cluster/database, removes it on every exit, and applies the real
+      # Phase 12 cutover migration over its minimal prerequisite fixture.
+      - name: "Trivia Phase 12 PostgreSQL 17 Cutover Authority"
+        run: bash scripts/trivia/p12-cutover-replica-tests/run.sh
 
       - name: Engine Alert Receipt PostgreSQL Contracts
         run: node --test __tests__/engine-alert-receipts-postgres.test.mjs
@@ -1131,6 +1140,36 @@ jobs:
             __tests__/notification-feed-recovery.test.mjs \
             __tests__/phase-3-deliverables.test.mjs \
             __tests__/phase-4-deliverables.test.mjs \
+            __tests__/trivia-phase-8-auth-boundary.test.mjs \
+            __tests__/trivia-phase-8-custody-consumers.test.mjs \
+            __tests__/trivia-phase-8-daily-ui.test.mjs \
+            __tests__/trivia-phase-8-gto-ev-provenance.test.mjs \
+            __tests__/trivia-phase-8-gto-render-singleflight.test.mjs \
+            __tests__/trivia-phase-8-immutable-play-day.test.mjs \
+            __tests__/trivia-phase-8-intro-art.test.mjs \
+            __tests__/trivia-phase-8-legacy-replay.test.mjs \
+            __tests__/trivia-phase-8-recovery-receipts.test.mjs \
+            __tests__/trivia-phase-8-report-contract.test.mjs \
+            __tests__/trivia-phase-8-resume-projection.test.mjs \
+            __tests__/trivia-phase-8-sql-contract.test.mjs \
+            __tests__/trivia-phase-8-strategy-ui.test.mjs \
+            __tests__/trivia-phase-8-telemetry.test.mjs \
+            __tests__/horses-phase6-client.test.mjs \
+            __tests__/horses-phase6-model.test.mjs \
+            __tests__/horses-phase6-server.test.mjs \
+            __tests__/horses-phase6-the-floor-says-what-it-owns.law.test.mjs \
+            __tests__/horses-phase7-model.test.mjs \
+            __tests__/horses-phase7-no-figure-claims-more-than-it-knows.law.test.mjs \
+            __tests__/horses-phase7-rake-audit-migration.test.mjs \
+            __tests__/horses-phase7-server.test.mjs \
+            __tests__/horses-phase8-client.test.mjs \
+            __tests__/horses-phase8-model.test.mjs \
+            __tests__/horses-phase8-server.test.mjs \
+            __tests__/horses-phase8-the-console-never-invents-authority.law.test.mjs \
+            __tests__/horses-phase10-documentation.test.mjs \
+            __tests__/horses-phase11-finance-records.test.mjs \
+            __tests__/horses-phase11-identity-links.test.mjs \
+            __tests__/horses-phase11-incident-acknowledgement.test.mjs \
             __tests__/scroll-lock.test.mjs \
             __tests__/union-settlement-math.test.mjs \
             __tests__/public-shell-precache.test.mjs \
@@ -1153,6 +1192,7 @@ jobs:
             __tests__/revenuecat-webhook.test.mjs \
             __tests__/pull-to-refresh-no-transform-at-rest.test.mjs \
             __tests__/native-app-cors.test.mjs \
+            __tests__/club-arena-static-skips-middleware.test.mjs \
             __tests__/privacy-page-and-app-links.test.mjs \
             tests/club-arena-is-a-rewrite.test.mjs \
             tests/the-deploy-docs-name-the-live-route.test.mjs \
@@ -1217,6 +1257,28 @@ jobs:
             __tests__/a-hub-page-renders-on-the-server.law.test.mjs \
             __tests__/the-feeds-say-what-they-hold.law.test.mjs \
             tests/club-arena-public-routes-are-prerendered.test.mjs
+
+      # Phase 9-12 Trivia contracts stay focused and run once in the existing
+      # required source gate. Browser budgets/PWA behavior remain in the
+      # production-build Global Footer job below rather than rebuilding here.
+      - name: "Trivia Phases 9-12 focused contracts"
+        run: >-
+          node --test
+          __tests__/trivia-console-contract.test.mjs
+          __tests__/trivia-phase-9-challenge-knowledge.test.mjs
+          __tests__/trivia-phase-10-art-provenance.test.mjs
+          __tests__/trivia-phase-10-progress-account.test.mjs
+          __tests__/trivia-achievement-authority.test.mjs
+          __tests__/page-preferences-merge-before-save.test.mjs
+          __tests__/trivia-preferences-atomic-cas.test.mjs
+          __tests__/trivia-phase-11-12-operations.test.mjs
+          __tests__/trivia-phase-11-operations-authority.test.mjs
+          __tests__/trivia-phase-12-historical-reconciliation.test.mjs
+          __tests__/trivia-phase-12-cutover-readiness.test.mjs
+          __tests__/trivia-pvp-engine-v2.test.mjs
+          __tests__/trivia-tournament-containment.test.mjs
+          __tests__/trivia-phase-11-ci-hardening.test.mjs
+          __tests__/trivia-pwa-rollback.test.mjs
 
       # ═══════════════════════════════════════════════════════════════
       # CHECK 6: Cron governance — enforce CLAUDE.md section 11

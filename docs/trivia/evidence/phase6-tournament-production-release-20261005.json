@@ -1,0 +1,145 @@
+{
+  "schemaVersion": 1,
+  "phase": 6,
+  "stage": "A",
+  "scope": "Dormant 8 PM America/Chicago nightly Trivia tournament engine, 70-140 horse field, normalized bracket, atomic settlement, APIs, scheduler owner, and worker runtime",
+  "source": {
+    "worldHub": {
+      "pullRequest": 2120,
+      "candidateHead": "ce6293e803874b70b90f8202a75c8efe4ae784c9",
+      "mergeCommit": "b51ee15d1a926af3ba27de00424c9bce380f1cbd",
+      "mergedAt": "2026-10-05T11:13:00Z",
+      "requiredChecks": {
+        "result": "passed",
+        "count": 7,
+        "names": [
+          "Audit Marker Guard",
+          "No Conflict Markers",
+          "No New Undefined Identifiers",
+          "Pre-Deploy Safety Checks",
+          "TypeScript",
+          "Supabase U4.2",
+          "Supabase U4.3"
+        ]
+      }
+    },
+    "workers": {
+      "initialPullRequest": 160,
+      "initialMergeCommit": "a13e9c0dc316d5ce1c7c89cb81452fdb19b2def0",
+      "hardeningPullRequest": 161,
+      "hardeningCandidateHead": "5e9694e91f8a3228d62e9c0d91017b8213ea25a9",
+      "finalMergeCommit": "416f871c54e65cc5f962f5feaac4839e37c307ec",
+      "mergedAt": "2026-10-05T11:15:10Z",
+      "ciRun": 37301555532,
+      "ciResult": "passed"
+    }
+  },
+  "database": {
+    "projectRef": "kuklfnapbkmacvwxktbh",
+    "postgresMajor": 17,
+    "migrationVersion": "20261001200000",
+    "migrationName": "trivia_p6_nightly_tournament_engine",
+    "sourceSha256": "ecf0d371a87e36b262bade4e223b4af59f4ab3af62cf42df9e203a88c8ae16ca",
+    "storedStatementMd5": "88a6a9ae0b4d690c4c4e5dc5b76ad06b",
+    "executionSeconds": 2.24,
+    "transaction": "migration SQL and ledger row committed atomically",
+    "installedAt": "2026-10-05T11:04Z",
+    "readback": {
+      "relations": 16,
+      "relationsMissingRls": 0,
+      "ownedFunctionsInstalled": 60,
+      "ownedFunctionsExpected": 60,
+      "browserFunctionExecutePrivileges": 0,
+      "browserRelationPrivileges": 0,
+      "ownershipAndRowContractTriggers": 4,
+      "horsePersonas": 1000,
+      "horseProfiles": 1000,
+      "bracket8SeedOrder": [1, 8, 4, 5, 2, 7, 3, 6],
+      "legacyEntryError": "tournament_entry_retired",
+      "legacyEntryDiamondsMoved": 0
+    }
+  },
+  "replicaGate": {
+    "file": "docs/trivia/evidence/phase6-tournament-replica-gate-20261001.json",
+    "run": "p6-gate8",
+    "postgresMajor": 17,
+    "sourceMd5": "88a6a9ae0b4d690c4c4e5dc5b76ad06b",
+    "sourceSha256": "ecf0d371a87e36b262bade4e223b4af59f4ab3af62cf42df9e203a88c8ae16ca",
+    "fingerprint": "ec4c1ae53c59982d3cedf6ab1fb3c8de",
+    "fingerprintObjects": 261,
+    "suitesPassed": 8,
+    "deadlocks": 0,
+    "errors": 0
+  },
+  "publication": {
+    "openClaw": {
+      "deploymentRun": 37301506770,
+      "result": "success",
+      "sourceCommit": "b51ee15d1a926af3ba27de00424c9bce380f1cbd",
+      "nightlyScheduleRegistered": false
+    },
+    "worldHub": {
+      "project": "hub-vanguard",
+      "projectId": "prj_op66GkZyZcygXQKm76iyycfVFAQx",
+      "deploymentId": "dpl_2vj1WJ6ehfJEBUVfF9vBBkZw59Xu",
+      "deploymentUrl": "hub-vanguard-psqpb8im9-smarter-poker.vercel.app",
+      "servedCommit": "b51ee15d1a926af3ba27de00424c9bce380f1cbd",
+      "healthStatus": "ok",
+      "observedAt": "2026-10-05T11:16:49Z",
+      "nightlyScheduleEndpoint": {
+        "status": 503,
+        "cacheControl": "private, no-store, max-age=0",
+        "retryAfterSeconds": 300,
+        "error": "tournaments_temporarily_unavailable"
+      },
+      "tournamentPage": {
+        "status": 307,
+        "location": "/hub/trivia",
+        "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate"
+      }
+    },
+    "workers": {
+      "deploymentRun": 37301746026,
+      "deploymentResult": "success",
+      "servedCommit": "416f871c54e65cc5f962f5feaac4839e37c307ec",
+      "revisionLabel": "416f871c54e",
+      "healthStatus": "ok",
+      "healthObservedAt": "2026-10-05T11:16:32.695Z",
+      "disabledRouteProbe": {
+        "observedWindowUtc": "2026-10-05T11:16:49Z/2026-10-05T11:19:08Z",
+        "status": 503,
+        "cacheControl": "no-store",
+        "retryAfterSeconds": 300,
+        "tournamentsReleased": false,
+        "horsesReleased": false,
+        "error": "tournaments_temporarily_unavailable"
+      }
+    }
+  },
+  "postDeploymentDormancy": {
+    "checkedAt": "2026-10-05T11:19:08.515964Z",
+    "verifiedTls": true,
+    "migrationStillInstalled": true,
+    "v2Tournaments": 0,
+    "entrants": 0,
+    "schedulerRuns": 0,
+    "populationRuns": 0,
+    "matchups": 0,
+    "results": 0,
+    "events": 0,
+    "settlements": 0,
+    "escrowAccounts": 0,
+    "walletJournalsSinceInstall": 0
+  },
+  "releaseControls": {
+    "triviaTournamentsEnabled": false,
+    "triviaTournamentHorsesEnabled": false,
+    "openClawScheduleEnabled": false,
+    "expectedDormantHealth": {
+      "healthy": false,
+      "alert": "next_instance_coverage_short",
+      "reason": "The scheduler is intentionally unregistered during Stage A"
+    }
+  },
+  "result": "Phase 6 Stage A is installed, merged, published, live-verified, and dormant"
+}

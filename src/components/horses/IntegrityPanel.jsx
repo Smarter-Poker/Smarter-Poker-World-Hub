@@ -34,6 +34,7 @@ import {
   handsUrl,
   healthOf,
   healthUrl,
+  linksUrl,
   listMeta,
   newIntegrityOpId,
   openCaseBody,
@@ -63,6 +64,7 @@ const SECTIONS = [
   ['case', 'Case'],
   ['pairs', 'Pairs'],
   ['flags', 'Flags'],
+  ['links', 'Identity Links'],
   ['timing', 'Timing'],
   ['hands', 'Hands'],
   ['health', 'Health'],
@@ -408,6 +410,50 @@ function SimpleRecordCard({ row, kind }) {
   );
 }
 
+function IdentityLinkCard({ row, canModerate, busy, onOpenCase }) {
+  const evidenceTypes = arrayOf(first(row, 'evidence_types', 'evidenceTypes'));
+  const sources = arrayOf(first(row, 'sources'));
+  const networkSize = first(row, 'largest_shared_network', 'largestSharedNetwork');
+  return (
+    <article className={styles.card}>
+      <div className={styles.panelHead}>
+        <div>
+          <h3 className={styles.cardTitle}>{participantName(row, 'a')} And {participantName(row, 'b')}</h3>
+          <div className={styles.pillRow}>
+            {evidenceTypes.map((type) => (
+              <StatusPill key={String(type)} status={String(type)} label={patternLabel(type)} tone="info" />
+            ))}
+          </div>
+        </div>
+        <button
+          type="button"
+          className={`${styles.btn} ${styles.btnGo}`}
+          disabled={busy || !canModerate || subjectIdsOf(row).length !== 2}
+          onClick={() => onOpenCase(row)}
+        >
+          Open Multi Accounting Case
+        </button>
+      </div>
+      <dl className={styles.factGrid}>
+        <Fact label="Player A"><Participant name={participantName(row, 'a')} horse={participantIsHorse(row, 'a')} /></Fact>
+        <Fact label="Player B"><Participant name={participantName(row, 'b')} horse={participantIsHorse(row, 'b')} /></Fact>
+        <Fact label="Shared Signals">{num(first(row, 'shared_signal_count', 'sharedSignalCount'), 'Unknown')}</Fact>
+        <Fact label="Evidence Events">{num(first(row, 'evidence_occurrences', 'evidenceOccurrences'), 'Unknown')}</Fact>
+        <Fact label="Largest Shared Network">{num(networkSize, 'Unknown')} Players</Fact>
+        <Fact label="First Seen">{when(first(row, 'first_seen', 'firstSeen'), true)}</Fact>
+        <Fact label="Last Seen">{when(first(row, 'last_seen', 'lastSeen'), true)}</Fact>
+        <Fact label="Sources">{sources.length ? sources.map(patternLabel).join(', ') : 'Unknown'}</Fact>
+      </dl>
+      <div className={networkSize > 2 ? styles.warnNote : styles.infoNote}>
+        <strong>Correlation Only. </strong>
+        {networkSize > 2
+          ? 'This Evidence Includes A Network Shared By Several Players. Shared Networks Can Be Ordinary Household, Venue Or Carrier Traffic.'
+          : 'Shared Identity Evidence Requires Human Review. It Does Not Prove Multi Accounting.'}
+      </div>
+    </article>
+  );
+}
+
 function CursorPager({ resource, cursor, history, setCursor, setHistory, noun }) {
   const rows = rowsOf(resource.data, noun.toLowerCase());
   const meta = listMeta(resource.data, rows.length);
@@ -503,6 +549,20 @@ export default function IntegrityPanel({
     active: section === 'flags',
     authFetch,
     url: flagRequestUrl,
+  });
+
+  const [linkDraft, setLinkDraft] = useState({ since: '', asOf: '' });
+  const [linkFilters, setLinkFilters] = useState({ since: '', asOf: '' });
+  const [linkCursor, setLinkCursor] = useState('');
+  const [linkBack, setLinkBack] = useState([]);
+  const linkRequestUrl = useMemo(
+    () => linksUrl({ ...linkFilters, cursor: linkCursor, limit: PAGE_SIZE }),
+    [linkCursor, linkFilters],
+  );
+  const links = useIntegrityRead({
+    active: section === 'links',
+    authFetch,
+    url: linkRequestUrl,
   });
 
   const [timingDraft, setTimingDraft] = useState({ since: '', asOf: '' });
@@ -602,6 +662,38 @@ export default function IntegrityPanel({
     if (id) viewCase(id);
   }, [post, queue.refresh, viewCase]);
 
+  const openIdentityCase = useCallback(async (row) => {
+    const subjectIds = subjectIdsOf(row);
+    if (subjectIds.length !== 2) return;
+    const opened = await post(openCaseBody({
+      subjectIds,
+      kind: 'multi_accounting',
+      severity: 'medium',
+      note: 'Opened From Identity Link Correlation. This Evidence Is Not A Verdict.',
+    }), 'Multi Accounting Case Opened');
+    if (!opened) return;
+    const root = payloadOf(opened);
+    const caseId = first(root, 'caseId', 'case_id') || first(root.case, 'id');
+    if (!caseId) return;
+    const attached = await post(addItemBody({
+      caseId,
+      itemType: 'observation',
+      itemRef: `identity-link:${subjectIds.join(':')}:${first(row, 'last_seen', 'lastSeen') || 'unknown'}`,
+      detail: {
+        evidenceTypes: arrayOf(first(row, 'evidence_types', 'evidenceTypes')),
+        sources: arrayOf(first(row, 'sources')),
+        sharedSignalCount: first(row, 'shared_signal_count', 'sharedSignalCount'),
+        evidenceOccurrences: first(row, 'evidence_occurrences', 'evidenceOccurrences'),
+        largestSharedNetwork: first(row, 'largest_shared_network', 'largestSharedNetwork'),
+        firstSeen: first(row, 'first_seen', 'firstSeen'),
+        lastSeen: first(row, 'last_seen', 'lastSeen'),
+        disclosure: 'Correlation For Human Review, Not A Verdict. Raw Identifiers Withheld.',
+      },
+    }), 'Identity Observation Attached');
+    links.refresh();
+    if (attached) viewCase(caseId);
+  }, [links.refresh, post, viewCase]);
+
   const resetQueuePage = useCallback(() => {
     setQueueCursor('');
     setQueueBack([]);
@@ -669,6 +761,10 @@ export default function IntegrityPanel({
 
   const pairRows = rowsOf(pairs.data, 'pairs');
   const flagRows = rowsOf(flags.data, 'flags');
+  const linkRows = rowsOf(links.data, 'links');
+  const linkPayload = payloadOf(links.data);
+  const linkCoverage = arrayOf(first(linkPayload, 'coverage'));
+  const staleLinkSources = linkCoverage.filter((source) => first(source, 'state') === 'stale');
   const timingRows = timingRowsOf(timing.data);
   const timingCoverage = first(payloadOf(timing.data), 'coverage') || {};
   const handRows = rowsOf(hands.data, 'hands');
@@ -1098,14 +1194,84 @@ export default function IntegrityPanel({
             <p className={styles.cardNote}>The Complete Flag Feed, Ordered By The Server And Paged With A Stable Cursor.</p>
             <button type="button" className={styles.btn} onClick={flags.refresh} disabled={flags.loading}>Refresh Flags</button>
           </div>
-          <div className={styles.infoNote}>
-            <strong>Multi-Accounting Is Deferred. </strong>
-            The Device And Signup Sources Have No Edges Yet, So An Empty Link Graph Would Not Be An Honest Product.
-          </div>
           {renderListState(flags, flagRows, { title: 'No Flags Match This View', detail: 'The Flag Source Was Read, But The Current Filters Returned No Records.' })}
           {flagRows.map((row, index) => <SimpleRecordCard key={String(first(row, 'id') || index)} row={row} kind="flags" />)}
           {flagRows.length > 0 && (
             <CursorPager resource={flags} cursor={flagCursor} history={flagBack} setCursor={setFlagCursor} setHistory={setFlagBack} noun="Flags" />
+          )}
+        </section>
+      )}
+
+      {section === 'links' && (
+        <section id="integrity-panel-links" role="tabpanel" aria-labelledby="integrity-tab-links">
+          <div className={styles.card}>
+            <h3 className={styles.cardTitle}>Identity Link Correlation</h3>
+            <p className={styles.cardNote}>
+              Shared Session, Signup And Device Evidence Is Ranked For Human Review. Raw Identifiers Are Withheld, And A Link Is Never A Verdict.
+            </p>
+            <div className={styles.filterRow}>
+              <label className={styles.field}>
+                <span className={styles.fieldLabel}>Since</span>
+                <input className={styles.input} type="datetime-local" value={linkDraft.since} onChange={(event) => setLinkDraft((draft) => ({ ...draft, since: event.target.value }))} />
+              </label>
+              <label className={styles.field}>
+                <span className={styles.fieldLabel}>As Of</span>
+                <input className={styles.input} type="datetime-local" value={linkDraft.asOf} onChange={(event) => setLinkDraft((draft) => ({ ...draft, asOf: event.target.value }))} />
+              </label>
+              <button
+                type="button"
+                className={`${styles.btn} ${styles.btnGo}`}
+                onClick={() => {
+                  setLinkCursor('');
+                  setLinkBack([]);
+                  setLinkFilters({ since: toInstant(linkDraft.since), asOf: toInstant(linkDraft.asOf) });
+                }}
+              >
+                Apply Evidence Window
+              </button>
+              <button type="button" className={styles.btn} onClick={links.refresh} disabled={links.loading}>Refresh Links</button>
+            </div>
+            <p className={styles.fieldHint}>The Default Window Is The Last Ninety Days, Capped At One Year.</p>
+          </div>
+
+          {linkCoverage.length > 0 && (
+            <div className={styles.kpiGrid}>
+              {linkCoverage.map((source) => (
+                <KpiTile
+                  key={String(first(source, 'source'))}
+                  label={first(source, 'label') || patternLabel(first(source, 'source'))}
+                  value={num(first(source, 'rows'), 'Unknown')}
+                  hint={`${patternLabel(first(source, 'state') || 'unknown')}. ${first(source, 'capture_scope', 'captureScope') || 'Coverage Unknown'}`}
+                  tone={first(source, 'state') === 'producing' ? undefined : 'warn'}
+                />
+              ))}
+            </div>
+          )}
+          {staleLinkSources.length > 0 && (
+            <div className={styles.warnNote} role="status">
+              <strong>Some Identity Sources Are Stale. </strong>
+              {staleLinkSources.map((source) => first(source, 'label') || first(source, 'source')).join(', ')} Have Not Produced Recent Evidence.
+            </div>
+          )}
+          {links.loading && !links.loaded && <div className={styles.stateNote}>Loading Identity Links</div>}
+          {links.error && <div className={styles.errorNote} role="alert">{links.error}</div>}
+          {links.loaded && !links.error && linkRows.length === 0 && (
+            <div className={styles.infoNote} role="status">
+              <strong>{first(linkPayload, 'state') === 'nothing_produced' ? 'No Identity Evidence Has Been Produced' : 'No Shared Identity Links Match This Window'}. </strong>
+              Source Coverage Above Distinguishes A Quiet Window From An Unbuilt Or Stale Source.
+            </div>
+          )}
+          {linkRows.map((row, index) => (
+            <IdentityLinkCard
+              key={`${first(row, 'player_a_id', 'playerAId')}-${first(row, 'player_b_id', 'playerBId')}-${index}`}
+              row={row}
+              canModerate={canModerate}
+              busy={busy}
+              onOpenCase={openIdentityCase}
+            />
+          ))}
+          {linkRows.length > 0 && (
+            <CursorPager resource={links} cursor={linkCursor} history={linkBack} setCursor={setLinkCursor} setHistory={setLinkBack} noun="Links" />
           )}
         </section>
       )}

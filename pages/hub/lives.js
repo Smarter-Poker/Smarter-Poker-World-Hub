@@ -115,7 +115,7 @@ export default function LivesPage({ livesListing = null }) {
             const { data: liveStreams } = await supabase
                 .from('live_streams')
                 // BUG-FIX-DEEP-AUDIT-R2 GUEST-1: safe-cols enumeration.
-                .select(LIVE_STREAM_SAFE_COLS + ', broadcaster:profiles!broadcaster_id(username, avatar_url)')
+                .select(LIVE_STREAM_SAFE_COLS + ', broadcaster:profiles!broadcaster_id(username, display_name, avatar_url)')
                 .eq('status', 'live')
                 .order('started_at', { ascending: false })
                 .limit(50);
@@ -124,7 +124,7 @@ export default function LivesPage({ livesListing = null }) {
             const { data: recordedStreams } = await supabase
                 .from('live_streams')
                 // BUG-FIX-DEEP-AUDIT-R2 GUEST-1: safe-cols enumeration.
-                .select(LIVE_STREAM_SAFE_COLS + ', broadcaster:profiles!broadcaster_id(username, avatar_url)')
+                .select(LIVE_STREAM_SAFE_COLS + ', broadcaster:profiles!broadcaster_id(username, display_name, avatar_url)')
                 .eq('status', 'ended')
                 .eq('is_posted', true)
                 .not('video_url', 'is', null)
@@ -219,7 +219,7 @@ export default function LivesPage({ livesListing = null }) {
         try {
             const { data } = await supabase
                 .from('scheduled_lives')
-                .select('*, profiles:broadcaster_id(username, avatar_url)')
+                .select('*, profiles:broadcaster_id(username, display_name, avatar_url)')
                 .gte('scheduled_at', new Date().toISOString())
                 .order('scheduled_at', { ascending: true })
                 .limit(5);
@@ -921,7 +921,7 @@ export default function LivesPage({ livesListing = null }) {
                                 @{stream.broadcaster?.username || stream.profiles?.username || 'Unknown'}
                             </div>
                             <div style={{ color: C.textSec, fontSize: 13 }}>
-                                {stream.broadcaster?.full_name || stream.profiles?.full_name || ''}
+                                {stream.broadcaster?.display_name || stream.profiles?.display_name || ''}
                             </div>
                         </div>
                     </div>

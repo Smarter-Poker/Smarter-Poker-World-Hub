@@ -128,13 +128,14 @@ export default async function handler(req, res) {
             });
         }
 
-        // Try to enrich with profile data (avatar, full_name)
+        // Try to enrich with profile data (avatar, display name). Accepted
+        // friends are still not the owner: full_name is owner-only.
         const userIds = visiblePeople.map(p => p.user_id).filter(id => id && !id.startsWith('anon-'));
         let profileMap = {};
         if (userIds.length > 0) {
             const { data: profiles } = await getSupabase()
                 .from('profiles')
-                .select('id, username, full_name, avatar_url')
+                .select('id, username, display_name, avatar_url')
                 .in('id', userIds);
             if (profiles) {
                 for (const p of profiles) {
@@ -148,7 +149,8 @@ export default async function handler(req, res) {
             const profile = profileMap[p.user_id];
             return {
                 ...p,
-                full_name: profile?.full_name || p.user_name,
+                // `full_name` key kept for existing consumers; public display name only.
+                full_name: profile?.display_name || profile?.username || p.user_name,
                 username: profile?.username || null,
                 avatar_url: profile?.avatar_url || null,
             };

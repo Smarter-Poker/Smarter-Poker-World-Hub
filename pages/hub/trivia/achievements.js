@@ -1,474 +1,304 @@
-/**
- * Trivia - Achievements
- * Fetches user's trivia achievements from Supabase
- * Uses trivia_scores and trivia_streaks to determine unlocks
- * SmarterPoker Dark color schema — no emojis
- */
-
-import { useState, useEffect } from 'react';
-import SEOHead from '../../../src/components/seo/SEOHead';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/router';
-import { supabase } from '../../../src/lib/supabase';
-import { getAuthUser } from '../../../src/lib/authUtils';
-import { useAvatar } from '../../../src/contexts/AvatarContext';
+import SEOHead from '../../../src/components/seo/SEOHead';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import TriviaErrorBoundary from '../../../src/components/trivia/TriviaErrorBoundary';
 import TriviaConsole from '../../../src/components/trivia/console/TriviaConsole';
+import ResponsiveModeArt from '../../../src/components/trivia/console/ResponsiveModeArt';
+import { TRIVIA_INTRO_ART } from '../../../src/config/triviaIntroArt.mjs';
+import { authedFetch, getAuthUser } from '../../../src/lib/authUtils';
+import { useAvatar } from '../../../src/contexts/AvatarContext';
+import useOnlineStatus from '../../../src/hooks/useOnlineStatus';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
-import { busEmit } from '../../../src/engine/EventBus';
 import { formatTriviaDisplayNumber } from '../../../src/lib/trivia/formatTriviaDisplayNumber';
 import {
-    TRIVIA_ACHIEVEMENTS,
-    ACHIEVEMENT_CATEGORIES,
-    RARITY_CONFIG,
-    computeTriviaStats,
-    isUnlocked,
-    sumAchievementRewards
-} from '../../../src/config/triviaAchievements';
+    ACHIEVEMENT_CONTRACT,
+    ACHIEVEMENT_VERSION,
+    normalizeAchievementItem,
+    normalizeAchievementSnapshot,
+} from '../../../src/lib/trivia/achievementAuthority.mjs';
 
-// ═══════════════════════════════════════════════════════════════════════════
-// PRESENTATION LAYER ONLY
-// ═══════════════════════════════════════════════════════════════════════════
-// The achievement DEFINITIONS live in src/config/triviaAchievements.js and are
-// shared with [mode].js's post-game unlock check. This page used to carry its
-// own inline 12-achievement list whose ids and thresholds disagreed with that
-// config ('first_answer' vs 'first_question', a 5-day streak tier that does not
-// exist, no rewards at all), so a player could be told they had unlocked
-// something the game never granted — and vice versa. Everything below is
-// rendering metadata for the shared list, never a second source of truth.
+const ERROR_COPY = Object.freeze({
+    authentication_required: 'Sign In Again To Read Or Claim This Achievement.',
+    invalid_achievement_id: 'This Achievement Identifier Is Invalid.',
+    achievement_not_found: 'This Achievement Is No Longer Available.',
+    not_eligible: 'The Server Has Not Verified This Achievement Yet.',
+    award_failed: 'The Award Could Not Be Settled. The Same Claim Can Be Retried Safely.',
+    internal_error: 'The Achievement Service Is Temporarily Unavailable.',
+});
 
-/**
- * Progress bars for the countable achievements: achievement id -> the stats
- * field it counts and the value it needs. Purely cosmetic — a missing entry
- * just means "no progress bar", never a different unlock rule. The unlock
- * itself is always decided by the config's own `requirement`.
- */
-const PROGRESS = {
-    first_question: ['totalQuestions', 1],
-    ten_correct: ['correctAnswers', 10],
-    fifty_correct: ['correctAnswers', 50],
-    hundred_correct: ['correctAnswers', 100],
-    five_hundred_correct: ['correctAnswers', 500],
-    thousand_correct: ['correctAnswers', 1000],
-    perfect_game: ['perfectGames', 1],
-    five_perfects: ['perfectGames', 5],
-    ten_perfects: ['perfectGames', 10],
-    streak_3: ['bestStreak', 3],
-    streak_7: ['bestStreak', 7],
-    streak_14: ['bestStreak', 14],
-    streak_30: ['bestStreak', 30],
-    streak_100: ['bestStreak', 100],
-    streak_365: ['bestStreak', 365],
-    blitz_master: ['fastGamesWon', 10],
-    arcade_debut: ['arcadeGames', 1],
-    arcade_veteran: ['arcadeGames', 25],
-    arcade_profit: ['arcadeDiamondsEarned', 500],
-    arcade_whale: ['arcadeDiamondsEarned', 2000],
-    comeback_kid: ['comebackWins', 1],
-    marathon: ['maxGamesInDay', 10]
-};
-
-/**
- * Title Case for strings that reach the screen from data (the copy gates only
- * read literals). Raises the first letter of every word and never lowers the
- * rest, so acronyms and names survive ('8 PM', 'MTT', '1v1', 'GTO'), and
- * writes clock times as '2 AM'. The shared toTitleCase lowers everything
- * after the first letter ('PM' -> 'Pm', '2am' -> '2Am'), so it is not used
- * for these strings.
- */
 function printTitle(text) {
     return String(text ?? '')
-      .replace(/(\d)\s?(am|pm)\b/gi, (match, digit, meridiem) => `${digit} ${meridiem.toUpperCase()}`)
-      .replace(/(^|[\s_\-/(])(\p{Ll})/gu, (match, lead, letter) => lead + letter.toUpperCase());
+        .replaceAll('_', ' ')
+        .replace(/(^|[\s\-/(])(\p{Ll})/gu, (match, lead, letter) => lead + letter.toUpperCase());
 }
 
-/** Rarity is printed in a schema ink, never the config's own off-schema colour. */
-const RARITY_INK = {
-    common: 'tc-ink--muted',
-    rare: 'tc-ink--blue',
-    epic: 'tc-ink--white',
-    legendary: 'tc-ink--gold'
-};
-
-/** Mastery achievements count a categoryCorrect bucket rather than a top-level field. */
-const CATEGORY_PROGRESS = {
-    history_master: ['history', 50],
-    rules_master: ['rules', 50],
-    pro_master: ['pro', 50]
-};
-
-function progressFor(id, stats) {
-    const direct = PROGRESS[id];
-    if (direct) {
-        const [field, target] = direct;
-        const current = Number(stats?.[field]);
-        if (Number.isFinite(current) && target > 0) return { current: Math.min(current, target), target };
-        return { current: 0, target };
-    }
-    const cat = CATEGORY_PROGRESS[id];
-    if (cat) {
-        const [bucket, target] = cat;
-        const current = Number(stats?.categoryCorrect?.[bucket]) || 0;
-        return { current: Math.min(current, target), target };
-    }
-    return null;
-}
-
-// Locally-remembered unlocks, so a NEW unlock can be celebrated the first time
-// the player sees it. Server-side persistence (earned_at, diamond rewards,
-// profile badges) needs a trivia_achievements table + migration, which is
-// outside this page's ownership — see the cross-file note in the report.
-const SEEN_UNLOCKS_KEY = 'trivia_achievements_seen';
-
-function readSeenUnlocks(uid) {
-    if (typeof window === 'undefined' || !uid) return [];
-    try {
-        const raw = JSON.parse(localStorage.getItem(SEEN_UNLOCKS_KEY) || '{}') || {};
-        return Array.isArray(raw[uid]) ? raw[uid] : [];
-    } catch (e) {
-        return [];
+function safeNormalizeItem(raw) {
+    try { return normalizeAchievementItem(raw); }
+    catch (error) {
+        console.warn('[TriviaAchievements] Invalid Item:', error?.message || error);
+        return null;
     }
 }
 
-function writeSeenUnlocks(uid, ids) {
-    if (typeof window === 'undefined' || !uid) return false;
-    try {
-        const raw = JSON.parse(localStorage.getItem(SEEN_UNLOCKS_KEY) || '{}') || {};
-        raw[uid] = ids;
-        localStorage.setItem(SEEN_UNLOCKS_KEY, JSON.stringify(raw));
-        return true;
-    } catch (e) {
-        console.warn('[Achievements] Could not persist seen unlocks:', e);
-        return false;
-    }
+function hasSettledReceipt(item) {
+    return item?.state === 'awarded'
+        && Number.isFinite(item.settledDiamonds)
+        && Boolean(item.receiptId && item.journalId && item.transactionId);
 }
 
-/**
- * Page through the user's full trivia_scores history.
- * A bare .select() is silently capped by PostgREST's server max-rows setting
- * (typically 1000), which understated totals for heavy users and could hide an
- * achievement they had genuinely earned.
- */
-async function fetchAllScores(supabase, uid) {
-    const PAGE = 1000;
-    const MAX_PAGES = 20;
-    const all = [];
-    for (let page = 0; page < MAX_PAGES; page++) {
-        const from = page * PAGE;
-        const { data, error } = await supabase
-            // BUGFIX (2026-08-12): .from('trivia_scores') was missing entirely,
-            // so this called supabase.select(...) on the client itself and threw
-            // `TypeError: supabase.select is not a function` on the very first
-            // page. The throw escaped to loadAchievements()'s catch, which is why
-            // EVERY user saw "We could not load your achievements right now" and
-            // a permanent 0/30 — the page has never once rendered an achievement.
-            .from('trivia_scores')
-            // computeTriviaStats needs time_spent / play_date / created_at too
-            // (speed, marathon and the night-owl/early-bird achievements).
-            .select('mode, score, correct_count, total_questions, diamonds_earned, time_spent, play_date, created_at')
-            .eq('user_id', uid)
-            .range(from, from + PAGE - 1);
-        if (error) {
-            console.warn('[Achievements] Score page fetch failed:', error.message);
-            // No history at all is an error the player must see, not an
-            // empty record; a later page failing keeps what was read.
-            if (page === 0) throw error;
-            break;
-        }
-        if (!data || data.length === 0) break;
-        all.push(...data);
-        if (data.length < PAGE) break;
+async function readResponse(response) {
+    const body = await response.json().catch(() => null);
+    if (!response.ok || body?.success !== true) {
+        const error = new Error(body?.error || `request_failed_${response.status}`);
+        error.code = body?.error || 'internal_error';
+        error.status = response.status;
+        error.body = body;
+        throw error;
     }
-    return all;
+    return body;
+}
+
+function validateRead(body) {
+    return normalizeAchievementSnapshot(body).items;
+}
+
+function receiptCompleteState(item) {
+    if (item.state !== 'awarded') return item.state;
+    return hasSettledReceipt(item) ? 'credited' : 'error';
+}
+
+function AchievementItem({ item, claimState, claimError, online, onClaim }) {
+    const renderedState = receiptCompleteState(item);
+    const hasProgress = item.progressTarget !== null && item.progressTarget > 0 && item.progressCurrent !== null;
+    const progress = hasProgress ? Math.min(item.progressCurrent, item.progressTarget) : null;
+    const pending = claimState === 'pending';
+    const errorCopy = claimError || (item.state === 'error' ? ERROR_COPY[item.errorCode] || 'The Server Could Not Verify This Achievement.' : '');
+    return (
+        <li className="trivia-progress-item" data-achievement-id={item.id} data-category={item.category} data-rarity={item.rarity} data-state={renderedState}>
+            <h3 className="trivia-progress-item__title"><span>{printTitle(item.title)}</span><span className={renderedState === 'credited' ? 'tc-ink--green' : renderedState === 'eligible' ? 'tc-ink--blue' : renderedState === 'error' ? 'tc-ink--red' : 'tc-ink--muted'}>{pending ? 'Pending' : printTitle(renderedState)}</span></h3>
+            <p className="trivia-progress-item__description">{item.description}</p>
+            <p className="trivia-progress-item__meta">
+                <span>{printTitle(item.category)}</span>
+                <span>{printTitle(item.rarity)}</span>
+                {hasProgress ? <span className="tc-ink--blue" aria-label={`${printTitle(item.title)} Progress ${progress} Of ${item.progressTarget}`}>{formatTriviaDisplayNumber(progress)} / {formatTriviaDisplayNumber(item.progressTarget)}</span> : null}
+            </p>
+
+            {renderedState === 'credited' ? (
+                <dl className="trivia-progress-receipt">
+                    <div><dt>Settled Award</dt><dd className="tc-ink--gold">{formatTriviaDisplayNumber(item.settledDiamonds)} Diamonds</dd></div>
+                    <div><dt>Awarded At</dt><dd>{item.awardedAt ? new Date(item.awardedAt).toLocaleString() : 'Time Not Available'}</dd></div>
+                    <div><dt>Receipt</dt><dd>{item.receiptId}</dd></div>
+                    <div><dt>Journal</dt><dd>{item.journalId}</dd></div>
+                    <div><dt>Transaction</dt><dd>{item.transactionId}</dd></div>
+                </dl>
+            ) : null}
+            {item.state === 'awarded' && renderedState === 'error' ? <p className="trivia-progress-status tc-ink--red" role="alert">Award Record Incomplete. No Diamond Amount Is Displayed Without A Settled Receipt And Journal.</p> : null}
+            {errorCopy ? <p className="trivia-progress-status tc-ink--red" role="alert">{errorCopy}</p> : null}
+            {item.state === 'eligible' ? (
+                <div className="trivia-progress-achievement-actions">
+                    <button type="button" className="tc-word" disabled={pending || !online} onClick={() => onClaim(item.id)}>{pending ? 'Claim Pending' : claimState === 'error' ? 'Retry Same Claim' : 'Claim Verified Award'}</button>
+                    {!online ? <span className="tc-ink--gold">Connect To Claim</span> : null}
+                </div>
+            ) : null}
+        </li>
+    );
 }
 
 export default function TriviaAchievements() {
     useTrainingBus('trivia-achievements');
     const router = useRouter();
-    // Reactive user from AvatarContext — required so the realtime channel
-    // effect re-runs once auth resolves. Previously the empty-deps useEffect
-    // captured a getAuthUser() return value at mount time; if auth wasn't
-    // hydrated yet, the channel never registered.
+    const online = useOnlineStatus();
     const { user: avatarUser, loading: avatarLoading } = useAvatar();
     const [userId, setUserId] = useState(null);
+    const [items, setItems] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
-    const [achievements, setAchievements] = useState([]);
-    const [unlockedCount, setUnlockedCount] = useState(0);
-    const [newlyUnlocked, setNewlyUnlocked] = useState([]);
-    const [loadError, setLoadError] = useState(null);
-    // Bumped by Retry so a failed load can be run again in place.
+    const [loadError, setLoadError] = useState('');
+    const [claimState, setClaimState] = useState({});
+    const [claimError, setClaimError] = useState({});
+    const [loadedAt, setLoadedAt] = useState(null);
+    const [refreshWarning, setRefreshWarning] = useState('');
     const [reloadKey, setReloadKey] = useState(0);
-    const retryLoad = () => {
-        setLoadError(null);
-        setIsLoading(true);
-        setReloadKey(key => key + 1);
-    };
-    // Diamonds attached to the achievements the player has unlocked. The
-    // rewards exist in the shared config but were invisible here.
-    const [rewardTotal, setRewardTotal] = useState(0);
+    const hasAuthoritativeRead = useRef(false);
+    const loadedUserId = useRef(null);
 
     useEffect(() => {
-        if (avatarLoading) return;
-        async function loadAchievements() {
+        if (avatarLoading) return undefined;
+        let cancelled = false;
+        const user = avatarUser || getAuthUser();
+        if (!user) {
+            loadedUserId.current = null;
+            hasAuthoritativeRead.current = false;
+            setUserId(null);
+            setItems([]);
+            setClaimState({});
+            setClaimError({});
+            setLoadedAt(null);
+            setRefreshWarning('');
+            setLoadError('');
+            setIsLoading(false);
+            return () => { cancelled = true; };
+        }
+        if (loadedUserId.current !== user.id) {
+            loadedUserId.current = user.id;
+            hasAuthoritativeRead.current = false;
+            setItems([]);
+            setClaimState({});
+            setClaimError({});
+            setLoadedAt(null);
+            setRefreshWarning('');
+        }
+        setUserId(user.id);
+        if (!online) {
+            setIsLoading(false);
+            if (hasAuthoritativeRead.current) {
+                setLoadError('');
+                setRefreshWarning('Offline. The Last Authoritative Read Remains Visible, And Claims Are Paused.');
+            } else {
+                setLoadError('You Are Offline. Authoritative Achievements Need A Live Server Read.');
+            }
+            return () => { cancelled = true; };
+        }
+        setIsLoading(true);
+        setLoadError('');
+        async function load() {
             try {
-                const user = avatarUser || getAuthUser();
-
-                if (!user) {
-                    // Show all achievements as locked for guests
-                    setAchievements(TRIVIA_ACHIEVEMENTS.map(a => ({ ...a, unlocked: false, prog: null })));
-                    setIsLoading(false);
-                    return;
-                }
-                setUserId(user.id);
-
-                // Get user's trivia stats
-                const { data: streakData, error: streakError } = await supabase
-                    .from('trivia_streaks')
-                    .select('*')
-                    .eq('user_id', user.id)
-                    .maybeSingle();
-                // A failed streak read leaves the streak achievements locked
-                // rather than failing the page; the score history still counts.
-                if (streakError) console.warn('[Achievements] Streak read failed:', streakError.message);
-
-                const scores = await fetchAllScores(supabase, user.id);
-
-                // ONE aggregator for the whole app. The page used to hand-roll a
-                // 7-field stats object that omitted perfectGames, categoryCorrect,
-                // the speed fields and maxGamesInDay entirely, so ~half the real
-                // achievement list could never evaluate true here.
-                const stats = computeTriviaStats(scores, streakData);
-
-                // isUnlocked() evaluates each predicate defensively — one bad
-                // requirement must not take down the whole page.
-                const processedAchievements = TRIVIA_ACHIEVEMENTS.map(achievement => ({
-                    ...achievement,
-                    unlocked: isUnlocked(achievement, stats),
-                    prog: progressFor(achievement.id, stats)
-                }));
-
-                setAchievements(processedAchievements);
-                setUnlockedCount(processedAchievements.filter(a => a.unlocked).length);
-                setRewardTotal(sumAchievementRewards(processedAchievements.filter(a => a.unlocked)));
-
-                // Celebrate anything unlocked since the player last looked.
-                const unlockedIds = processedAchievements.filter(a => a.unlocked).map(a => a.id);
-                const alreadySeen = readSeenUnlocks(user.id);
-                const fresh = unlockedIds.filter(id => !alreadySeen.includes(id));
-                if (fresh.length > 0) {
-                    // Don't fire on a first-ever visit by a player who already
-                    // qualifies for a pile of achievements — only celebrate when
-                    // we have a prior baseline to compare against.
-                    if (alreadySeen.length > 0) {
-                        setNewlyUnlocked(fresh);
-                        try { busEmit.celebration('confetti'); } catch (e) { /* non-critical */ }
-                    }
-                    writeSeenUnlocks(user.id, unlockedIds);
+                if (!online) throw new Error('offline');
+                const body = await readResponse(await authedFetch('/api/trivia/achievements'));
+                const next = validateRead(body);
+                if (!cancelled) {
+                    setItems(next);
+                    setLoadedAt(new Date());
+                    setRefreshWarning('');
+                    hasAuthoritativeRead.current = true;
                 }
             } catch (error) {
-                console.warn('Error loading achievements:', error);
-                setAchievements(TRIVIA_ACHIEVEMENTS.map(a => ({ ...a, unlocked: false, prog: null })));
-                setLoadError('We Could Not Load Your Achievements Right Now. Please Try Again.');
+                console.warn('[TriviaAchievements] Read Failed:', error?.message || error);
+                if (!cancelled) {
+                    if (hasAuthoritativeRead.current) {
+                        setLoadError('');
+                        setRefreshWarning('The Latest Achievement Refresh Failed. The Last Authoritative Read Remains Visible.');
+                    } else {
+                        setLoadError('We Could Not Load Your Authoritative Achievements Right Now. Please Try Again.');
+                    }
+                }
+            } finally {
+                if (!cancelled) setIsLoading(false);
             }
-            setIsLoading(false);
         }
+        load();
+        const onFocus = () => { if (online && !cancelled) setReloadKey((key) => key + 1); };
+        window.addEventListener('focus', onFocus);
+        return () => {
+            cancelled = true;
+            window.removeEventListener('focus', onFocus);
+        };
+    }, [avatarLoading, avatarUser?.id, online, reloadKey]);
 
-        loadAchievements();
+    const summary = useMemo(() => {
+        const credited = items.filter(hasSettledReceipt);
+        return {
+            credited: credited.length,
+            eligible: items.filter((item) => item.state === 'eligible').length,
+            errors: items.filter((item) => item.state === 'error' || (item.state === 'awarded' && !hasSettledReceipt(item))).length,
+            settledDiamonds: credited.reduce((sum, item) => sum + item.settledDiamonds, 0),
+        };
+    }, [items]);
 
-        // Realtime subscription — live updates (same scope as loadAchievements)
-        const user = avatarUser || getAuthUser();
-        if (!user) return;
-        const _ch = supabase
-            .channel(`trivia-ach:${user.id}`)
-            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'trivia_scores', filter: `user_id=eq.${user.id}` }, () => { loadAchievements(); })
-            .subscribe();
-        return () => { supabase.removeChannel(_ch); };
-    }, [avatarUser?.id, avatarLoading, reloadKey]);
+    const categories = useMemo(() => {
+        const grouped = new Map();
+        for (const item of items) {
+            if (!grouped.has(item.category)) grouped.set(item.category, []);
+            grouped.get(item.category).push(item);
+        }
+        return Array.from(grouped.entries()).sort(([left], [right]) => left.localeCompare(right));
+    }, [items]);
 
-    const overallProgress = TRIVIA_ACHIEVEMENTS.length > 0
-        ? Math.round((unlockedCount / TRIVIA_ACHIEVEMENTS.length) * 100)
-        : 0;
+    const claim = async (achievementId) => {
+        if (!online || claimState[achievementId] === 'pending') return;
+        setClaimState((state) => ({ ...state, [achievementId]: 'pending' }));
+        setClaimError((state) => ({ ...state, [achievementId]: '' }));
+        try {
+            const body = await readResponse(await authedFetch('/api/trivia/achievements', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ achievementId }),
+            }));
+            if (body.contract !== ACHIEVEMENT_CONTRACT || body.version !== ACHIEVEMENT_VERSION) throw new Error('invalid_achievement_contract');
+            const authoritative = safeNormalizeItem(body.item || body.achievement || body.result?.item || body.result);
+            if (!authoritative || authoritative.id !== achievementId) throw new Error('invalid_achievement_contract');
+            setItems((current) => current.map((item) => item.id === achievementId ? authoritative : item));
+            setClaimState((state) => ({ ...state, [achievementId]: authoritative.state === 'error' ? 'error' : 'complete' }));
+            setClaimError((state) => ({ ...state, [achievementId]: authoritative.state === 'error' ? ERROR_COPY[authoritative.errorCode] || 'The Award Was Not Settled.' : '' }));
+        } catch (error) {
+            console.warn('[TriviaAchievements] Claim Failed:', error?.message || error);
+            const authoritative = safeNormalizeItem(error?.body?.item);
+            if (authoritative?.id === achievementId) {
+                setItems((current) => current.map((item) => item.id === achievementId ? authoritative : item));
+            }
+            setClaimState((state) => ({ ...state, [achievementId]: 'error' }));
+            setClaimError((state) => ({ ...state, [achievementId]: ERROR_COPY[error?.code] || 'The Award Was Not Settled. Retry Uses The Same Server Claim.' }));
+        }
+    };
+
     const signedOut = !isLoading && !userId;
+    const retry = () => {
+        setIsLoading(true);
+        setReloadKey((key) => key + 1);
+    };
 
     return (
         <TriviaErrorBoundary pageName="Achievements">
-        <>
-            <SEOHead
-                title="Trivia Achievements - Unlock Rewards"
-                description="Track Your Poker Trivia Achievements. Unlock Badges, Rewards, And Bragging Rights."
-                canonical="/hub/trivia/achievements"
-            />
-
-            <PageTransition>
-                <div
-                    className="trivia-progress-page trivia-progress-page--achievements"
-                    data-trivia-family="progress"
-                    data-trivia-surface="achievements"
-                >
-                    <UniversalHeader pageDepth={2} />
-
-                    <main className="trivia-progress-shell" aria-labelledby="trivia-achievements-title">
-                        <TriviaConsole
-                            as="section"
-                            eyebrow="Player Progress"
-                            title="Achievements"
-                            titleAs="h1"
-                            titleId="trivia-achievements-title"
-                            pill={isLoading
-                                ? 'Loading'
-                                : loadError
-                                    ? 'Error'
-                                    : `${formatTriviaDisplayNumber(unlockedCount)} Of ${formatTriviaDisplayNumber(TRIVIA_ACHIEVEMENTS.length)}`}
-                            pillInk={loadError ? 'red' : !isLoading && unlockedCount > 0 ? 'green' : 'blue'}
-                            className="trivia-progress-console"
-                            aria-labelledby="trivia-achievements-title"
-                            secondaryAction={{
-                                label: 'Back To Trivia',
-                                onClick: () => router.push('/hub/trivia'),
-                            }}
-                            // A failed load has two real actions, so both print
-                            // on the painted plates (footer law).
-                            primaryAction={!isLoading && loadError ? {
-                                label: 'Retry',
-                                onClick: retryLoad,
-                            } : undefined}
-                        >
-                        {/* Newly-unlocked notice */}
-                        {newlyUnlocked.length > 0 && (
-                            <section className="trivia-progress-notice" role="status">
-                                <p className="tc-ink--green">
-                                    {formatTriviaDisplayNumber(newlyUnlocked.length)} New {newlyUnlocked.length === 1 ? 'Achievement' : 'Achievements'} Unlocked
-                                </p>
-                                <button
-                                    type="button"
-                                    className="tc-word"
-                                    onClick={() => setNewlyUnlocked([])}
-                                >
-                                    Dismiss
-                                </button>
-                            </section>
-                        )}
-
-                        {isLoading ? (
-                            <p className="trivia-progress-state trivia-progress-state--loading" role="status">
-                                Loading Achievements
-                            </p>
-                        ) : loadError ? (
-                            <section className="trivia-progress-state trivia-progress-state--error" role="alert">
-                                <p>{loadError}</p>
-                            </section>
-                        ) : (
-                            <div className="trivia-progress-content">
-                                {signedOut && (
-                                    <p className="trivia-progress-intro">
-                                        Sign In To Track Your Achievements. Every Achievement Is Shown Locked Until Then.
-                                    </p>
+            <>
+                <SEOHead title="Trivia Achievements - Verified Awards" description="Track Server-Verified Poker Trivia Achievements And Settled Award Receipts." canonical="/hub/trivia/achievements" noindex />
+                <PageTransition>
+                    <div className="trivia-progress-page trivia-progress-page--achievements" data-trivia-family="progress" data-trivia-surface="achievements">
+                        <UniversalHeader pageDepth={2} />
+                        <main className="trivia-progress-shell" aria-labelledby="trivia-achievements-title">
+                            <TriviaConsole
+                                as="section"
+                                eyebrow="Player Progress"
+                                title="Achievements"
+                                titleAs="h1"
+                                titleId="trivia-achievements-title"
+                                subtitle="Verified Criteria And Settled Receipts"
+                                pill={isLoading ? 'Loading' : loadError ? 'Error' : signedOut ? 'Guest' : `${formatTriviaDisplayNumber(summary.credited)} Credited`}
+                                pillInk={loadError || summary.errors > 0 ? 'red' : summary.credited > 0 ? 'green' : 'blue'}
+                                className="trivia-progress-console"
+                                secondaryAction={{ label: 'Back To Trivia', onClick: () => router.push('/hub/trivia') }}
+                                primaryAction={!isLoading && loadError ? { label: 'Retry', onClick: retry } : signedOut ? { label: 'Sign In', onClick: () => router.push('/auth/login?redirect=/hub/trivia/achievements') } : undefined}
+                            >
+                                <ResponsiveModeArt art={TRIVIA_INTRO_ART.achievements} priority />
+                                {isLoading ? <p className="trivia-progress-state trivia-progress-state--loading" role="status">Loading Authoritative Achievements</p> : loadError ? <section className="trivia-progress-state trivia-progress-state--error" role="alert"><p>{loadError}</p></section> : signedOut ? (
+                                    <section className="trivia-progress-empty"><p className="trivia-progress-empty-copy">Sign In To Read Your Server-Verified Achievement Progress. Guest Visits Never Appear As Locked Or Earned Awards.</p></section>
+                                ) : (
+                                    <div className="trivia-progress-content trivia-progress-content--achievements">
+                                        {refreshWarning ? <section className="trivia-progress-notice trivia-progress-notice--warning" role="status"><p>{refreshWarning}</p>{online ? <button type="button" className="tc-word" onClick={retry}>Retry Refresh</button> : null}</section> : null}
+                                        {summary.errors > 0 ? <section className="trivia-progress-notice trivia-progress-notice--warning" role="status"><p>Partial Achievement Data: {formatTriviaDisplayNumber(summary.errors)} {summary.errors === 1 ? 'Record Needs' : 'Records Need'} Attention.</p></section> : null}
+                                        <section className="trivia-progress-section trivia-progress-achievement-ledger" aria-labelledby="trivia-achievement-summary">
+                                            <h2 id="trivia-achievement-summary" className="trivia-progress-heading">Award Ledger</h2>
+                                            <ul className="tc-rows trivia-progress-rows trivia-progress-rows--split" aria-label="Authoritative Achievement Summary">
+                                                <li className="tc-row"><span className="tc-row__label">Definitions</span><span className="tc-row__value">{formatTriviaDisplayNumber(items.length)}</span></li>
+                                                <li className="tc-row"><span className="tc-row__label">Eligible</span><span className="tc-row__value tc-ink--blue">{formatTriviaDisplayNumber(summary.eligible)}</span></li>
+                                                <li className="tc-row"><span className="tc-row__label">Credited</span><span className="tc-row__value tc-ink--green">{formatTriviaDisplayNumber(summary.credited)}</span></li>
+                                                <li className="tc-row"><span className="tc-row__label">Settled Diamonds</span><span className="tc-row__value tc-ink--gold">{formatTriviaDisplayNumber(summary.settledDiamonds)}</span></li>
+                                            </ul>
+                                        </section>
+                                        {items.length === 0 ? <section className="trivia-progress-empty"><p className="trivia-progress-empty-copy">No Achievement Definitions Are Available From The Server.</p></section> : categories.map(([category, categoryItems]) => (
+                                            <section className="trivia-progress-section trivia-progress-achievement-category" key={category} aria-labelledby={`trivia-achievement-${category}`}>
+                                                <h2 id={`trivia-achievement-${category}`} className="trivia-progress-heading">{printTitle(category)}</h2>
+                                                <ul className="trivia-progress-list">{categoryItems.map((item) => <AchievementItem key={`${item.id}:${item.version}`} item={item} claimState={claimState[item.id]} claimError={claimError[item.id]} online={online} onClaim={claim} />)}</ul>
+                                            </section>
+                                        ))}
+                                        {loadedAt ? <p className="trivia-progress-read-time">Last Authoritative Read {loadedAt.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</p> : null}
+                                    </div>
                                 )}
-
-                                {/* Overall progress and the diamonds attached to what
-                                    the player has unlocked, printed as rows. */}
-                                <ul className="tc-rows trivia-progress-rows" aria-label="Achievement Summary">
-                                    <li className="tc-row">
-                                        <span className="tc-row__label">Unlocked</span>
-                                        <span className="tc-row__value">
-                                            {formatTriviaDisplayNumber(unlockedCount)} Of {formatTriviaDisplayNumber(TRIVIA_ACHIEVEMENTS.length)}
-                                        </span>
-                                    </li>
-                                    <li className="tc-row">
-                                        <span className="tc-row__label">Completion</span>
-                                        <span className="tc-row__value tc-ink--blue">{overallProgress}%</span>
-                                    </li>
-                                    <li className="tc-row">
-                                        <span className="tc-row__label">Diamonds Earned</span>
-                                        <span className="tc-row__value tc-ink--gold">{formatTriviaDisplayNumber(rewardTotal)}</span>
-                                    </li>
-                                </ul>
-
-                                {/* Per-category progress: 30 achievements is a long
-                                    flat list without it. */}
-                                <section className="trivia-progress-section" aria-labelledby="trivia-achievements-categories">
-                                    <h2 id="trivia-achievements-categories" className="trivia-progress-heading">By Category</h2>
-                                    <ul className="tc-rows trivia-progress-rows trivia-progress-rows--split">
-                                        {ACHIEVEMENT_CATEGORIES.map(cat => {
-                                            const inCat = achievements.filter(a => a.category === cat.id);
-                                            if (inCat.length === 0) return null;
-                                            const done = inCat.filter(a => a.unlocked).length;
-                                            return (
-                                                <li
-                                                    key={`cat-${cat.id}`}
-                                                    className="tc-row"
-                                                    data-category={cat.id}
-                                                >
-                                                    <span className="tc-row__label">{printTitle(cat.name)}</span>
-                                                    <span className={`tc-row__value${done === inCat.length ? ' tc-ink--green' : ''}`}>
-                                                        {formatTriviaDisplayNumber(done)} / {formatTriviaDisplayNumber(inCat.length)}
-                                                    </span>
-                                                </li>
-                                            );
-                                        })}
-                                    </ul>
-                                </section>
-
-                                <section className="trivia-progress-section" aria-labelledby="trivia-achievements-list">
-                                    <h2 id="trivia-achievements-list" className="trivia-progress-heading">All Achievements</h2>
-                                    <ul className="trivia-progress-list">
-                                        {achievements.map(achievement => {
-                                            const rarity = RARITY_CONFIG[achievement.rarity] || null;
-                                            const rarityInk = RARITY_INK[achievement.rarity] || 'tc-ink--muted';
-                                            const showProgress = !achievement.unlocked && achievement.prog && achievement.prog.target > 1;
-                                            return (
-                                                <li
-                                                    key={achievement.id}
-                                                    className="trivia-progress-item"
-                                                    data-achievement-id={achievement.id}
-                                                    data-category={achievement.category}
-                                                    data-rarity={achievement.rarity}
-                                                    data-state={achievement.unlocked ? 'unlocked' : 'locked'}
-                                                >
-                                                    <h3 className="trivia-progress-item__title">
-                                                        <span>{printTitle(achievement.name)}</span>
-                                                        {newlyUnlocked.includes(achievement.id) && (
-                                                            <span className="trivia-progress-item__new tc-ink--green">New</span>
-                                                        )}
-                                                    </h3>
-                                                    <p className="trivia-progress-item__description">
-                                                        {printTitle(achievement.description)}
-                                                    </p>
-                                                    <p className="trivia-progress-item__meta">
-                                                        {rarity && (
-                                                            <span className={rarityInk}>{printTitle(rarity.label)}</span>
-                                                        )}
-                                                        {achievement.reward?.diamonds > 0 && (
-                                                            <span className="tc-ink--gold">
-                                                                {formatTriviaDisplayNumber(achievement.reward.diamonds)} Diamonds
-                                                            </span>
-                                                        )}
-                                                        {achievement.unlocked ? (
-                                                            <span className="tc-ink--green">Unlocked</span>
-                                                        ) : showProgress ? (
-                                                            <span
-                                                                className="tc-ink--blue"
-                                                                aria-label={`${printTitle(achievement.name)} Progress ${achievement.prog.current} Of ${achievement.prog.target}`}
-                                                            >
-                                                                {formatTriviaDisplayNumber(achievement.prog.current)} / {formatTriviaDisplayNumber(achievement.prog.target)}
-                                                            </span>
-                                                        ) : (
-                                                            <span className="tc-ink--muted">Locked</span>
-                                                        )}
-                                                    </p>
-                                                </li>
-                                            );
-                                        })}
-                                    </ul>
-                                </section>
-                            </div>
-                        )}
-                        </TriviaConsole>
-                    </main>
-                </div>
-    </PageTransition>
-        </>
+                            </TriviaConsole>
+                        </main>
+                    </div>
+                </PageTransition>
+            </>
         </TriviaErrorBoundary>
     );
 }

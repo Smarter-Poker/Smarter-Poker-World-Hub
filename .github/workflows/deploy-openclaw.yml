@@ -2,16 +2,19 @@ name: Deploy Open Claw Dispatcher + Script Jobs
 
 # Immutable Open Claw releases. Host-managed credentials are validated in
 # place, never printed, copied into artifacts, derived from one another, or
-# overwritten by deployment. The only GitHub-managed keys are main's legacy
-# alert delivery keys (TWILIO_* and ADMIN_PHONE), merged key by key and
-# atomically after the full contract validates; see the validation step.
+# overwritten by deployment. GitHub-managed delivery keys are main's legacy
+# alert keys plus the API-restricted YouTube discovery key. They are merged
+# key by key and atomically after the full contract validates.
 
 on:
   push:
     branches: [main]
     paths:
       - 'scripts/openclaw-cron-dispatcher.py'
-      - 'scripts/video_library_scraper.py'
+      - 'scripts/video_source_registry_ingest.py'
+      - 'scripts/video_enrichment_worker.py'
+      - 'scripts/video_reel_candidate_worker.py'
+      - 'scripts/video_native_studio_worker.py'
       - 'scripts/video_library_to_reels.py'
       - 'scripts/openclaw-requirements.txt'
       - 'scripts/openclaw-requirements.lock'
@@ -20,6 +23,15 @@ on:
       - '.github/workflows/deploy-openclaw.yml'
   workflow_dispatch:
     inputs:
+      source_registry_max_sources:
+        description: Bounded registry sources to ingest after exact-main promotion
+        required: false
+        default: '0'
+        type: choice
+        options:
+          - '0'
+          - '25'
+          - '100'
       publisher_backfill_batches:
         description: Verified 500-item Reel publisher batches to run after promotion
         required: false
@@ -193,10 +205,11 @@ jobs:
       # An unset or still-malformed secret is never uploaded and leaves the
       # host value alone; the complete host contract is then required below,
       # so fallback cannot turn a missing/invalid destination into a pass.
-      # Every other key (CRON_SECRET, WORKERS_CRON_SECRET, Supabase and routing)
-      # stays host-managed and is never written by deployment. Values are
-      # never printed; warnings and errors name only the key.
-      - name: Validate the complete runtime contract and merge managed alert keys
+      # YOUTUBE_DATA_API_KEY is also GitHub-managed because the supported
+      # registry worker requires it for every scheduled discovery cycle. Every
+      # other key (CRON_SECRET, WORKERS_CRON_SECRET, Supabase and routing) stays
+      # host-managed. Values are never printed; diagnostics name only the key.
+      - name: Validate the complete runtime contract and merge managed delivery keys
         env:
           HOST: ${{ secrets.OPENCLAW_HOST }}
           SSH_USER: ${{ secrets.HETZNER_SSH_USER || 'root' }}
@@ -204,6 +217,7 @@ jobs:
           TWILIO_AUTH_TOKEN: ${{ secrets.TWILIO_AUTH_TOKEN }}
           TWILIO_PHONE_NUMBER: ${{ secrets.TWILIO_PHONE_NUMBER }}
           ADMIN_PHONE: ${{ secrets.ADMIN_PHONE }}
+          YOUTUBE_DATA_API_KEY: ${{ secrets.YOUTUBE_DATA_API_KEY }}
         run: |
           set -euo pipefail
           umask 077
@@ -213,7 +227,10 @@ jobs:
           import os
           import sys
 
-          MANAGED_KEYS = ('TWILIO_ACCOUNT_SID', 'TWILIO_AUTH_TOKEN', 'TWILIO_PHONE_NUMBER', 'ADMIN_PHONE')
+          MANAGED_KEYS = (
+              'TWILIO_ACCOUNT_SID', 'TWILIO_AUTH_TOKEN', 'TWILIO_PHONE_NUMBER',
+              'ADMIN_PHONE', 'YOUTUBE_DATA_API_KEY',
+          )
           lines = []
           for key in MANAGED_KEYS:
               raw_value = os.environ.get(key, '')
@@ -223,7 +240,7 @@ jobs:
               if (len(value) < 2 or any(ch.isspace() for ch in value)
                       or any(ch in value for ch in ('"', "'", '\\'))):
                   print(
-                      f'::warning title=Open Claw alert secret fallback::{key} is malformed; '
+                      f'::warning title=Open Claw managed secret fallback::{key} is malformed; '
                       'retaining the validated host value',
                       file=sys.stderr,
                   )
@@ -255,7 +272,10 @@ jobs:
 
           ENV_PATH = Path(sys.argv[1])
           MANAGED_PATH = Path(sys.argv[2])
-          MANAGED_KEYS = ('TWILIO_ACCOUNT_SID', 'TWILIO_AUTH_TOKEN', 'TWILIO_PHONE_NUMBER', 'ADMIN_PHONE')
+          MANAGED_KEYS = (
+              'TWILIO_ACCOUNT_SID', 'TWILIO_AUTH_TOKEN', 'TWILIO_PHONE_NUMBER',
+              'ADMIN_PHONE', 'YOUTUBE_DATA_API_KEY',
+          )
 
           def parse(text):
               values = {}
@@ -289,10 +309,10 @@ jobs:
           for line_number, raw in enumerate(MANAGED_PATH.read_text(encoding='utf-8').splitlines(), 1):
               key, separator, value = raw.partition('=')
               if not separator or key not in MANAGED_KEYS or key in managed:
-                  raise SystemExit(f'unexpected managed alert line {line_number}')
+                  raise SystemExit(f'unexpected managed delivery line {line_number}')
               if (len(value) < 2 or any(ch.isspace() for ch in value)
                       or any(ch in value for ch in ('"', "'", '\\'))):
-                  raise SystemExit(f'malformed managed alert key: {key}')
+                  raise SystemExit(f'malformed managed delivery key: {key}')
               managed[key] = value
 
           merged = dict(values)
@@ -321,14 +341,13 @@ jobs:
           ipaddress.ip_address(required('DISPATCHER_PRIVATE_IP'))
           if required('DISPATCHER_ROLE') not in ('primary', 'secondary'):
               raise SystemExit('DISPATCHER_ROLE must be primary or secondary')
-          # Main required every legacy alert delivery key after each deploy;
-          # the release now requires them before anything is promoted.
+          # Require every GitHub-managed delivery key before promotion.
           for key in MANAGED_KEYS:
               required(key, 2)
 
           changed = sorted(key for key, value in managed.items() if values.get(key) != value)
           if not changed:
-              print('Runtime contract valid; managed alert keys unchanged')
+              print('Runtime contract valid; managed delivery keys unchanged')
               raise SystemExit(0)
 
           merged_lines = []
@@ -367,7 +386,7 @@ jobs:
               os.fsync(directory)
           finally:
               os.close(directory)
-          print('Runtime contract valid; merged managed alert keys: ' + ', '.join(changed))
+          print('Runtime contract valid; merged managed delivery keys: ' + ', '.join(changed))
           PY
           test "$(sudo stat -c '%U:%G %a' /etc/openclaw.env)" = 'root:root 600'
           EOSSH
@@ -428,7 +447,7 @@ jobs:
           local_stage="$(mktemp -d "$RUNNER_TEMP/openclaw-stage.XXXXXX")"
           build_container="wh-openclaw-build-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
           trap 'docker rm -f "$build_container" >/dev/null 2>&1 || true; rm -rf -- "$local_stage"' EXIT
-          cp scripts/openclaw-cron-dispatcher.py scripts/video_library_scraper.py \
+          cp scripts/openclaw-cron-dispatcher.py scripts/video_source_registry_ingest.py scripts/video_enrichment_worker.py scripts/video_reel_candidate_worker.py scripts/video_native_studio_worker.py \
             scripts/video_library_to_reels.py scripts/openclaw-requirements.txt \
             scripts/openclaw-requirements.lock "$local_stage/"
           timeout --signal=TERM --kill-after=10s 900s docker run --rm --pull=never \
@@ -458,13 +477,16 @@ jobs:
           manifest_hash="$(sha256sum "$local_stage/release-manifest.sha256" | awk '{print $1}')"
           archive_hash="$(sha256sum "$archive" | awk '{print $1}')"
           dispatcher_hash="$(sha256sum scripts/openclaw-cron-dispatcher.py | awk '{print $1}')"
-          scraper_hash="$(sha256sum scripts/video_library_scraper.py | awk '{print $1}')"
+          scraper_hash="$(sha256sum scripts/video_source_registry_ingest.py | awk '{print $1}')"
+          enrichment_hash="$(sha256sum scripts/video_enrichment_worker.py | awk '{print $1}')"
+          candidate_hash="$(sha256sum scripts/video_reel_candidate_worker.py | awk '{print $1}')"
+          studio_hash="$(sha256sum scripts/video_native_studio_worker.py | awk '{print $1}')"
           publisher_hash="$(sha256sum scripts/video_library_to_reels.py | awk '{print $1}')"
           lock_hash="$(sha256sum scripts/openclaw-requirements.lock | awk '{print $1}')"
           scp "$archive" "$SSH_USER@$HOST:$upload"
           ssh "$SSH_USER@$HOST" 'bash -s' -- \
             "$GITHUB_SHA" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" \
-            "$archive_hash" "$dispatcher_hash" "$scraper_hash" "$publisher_hash" "$lock_hash" "$manifest_hash" <<'EOSSH'
+            "$archive_hash" "$dispatcher_hash" "$scraper_hash" "$enrichment_hash" "$candidate_hash" "$studio_hash" "$publisher_hash" "$lock_hash" "$manifest_hash" <<'EOSSH'
           set -euo pipefail
           release_sha="$1"
           run_id="$2"
@@ -472,14 +494,17 @@ jobs:
           archive_hash="$4"
           dispatcher_hash="$5"
           scraper_hash="$6"
-          publisher_hash="$7"
-          lock_hash="$8"
-          manifest_hash="$9"
+          enrichment_hash="$7"
+          candidate_hash="$8"
+          studio_hash="$9"
+          publisher_hash="${10}"
+          lock_hash="${11}"
+          manifest_hash="${12}"
           case "$release_sha" in (*[!0-9a-f]*|'') exit 2 ;; esac
           test "${#release_sha}" -eq 40
           case "$run_id" in (*[!0-9]*|'') exit 2 ;; esac
           case "$run_attempt" in (*[!0-9]*|'') exit 2 ;; esac
-          for expected_hash in "$archive_hash" "$dispatcher_hash" "$scraper_hash" "$publisher_hash" "$lock_hash" "$manifest_hash"; do
+          for expected_hash in "$archive_hash" "$dispatcher_hash" "$scraper_hash" "$enrichment_hash" "$candidate_hash" "$studio_hash" "$publisher_hash" "$lock_hash" "$manifest_hash"; do
             case "$expected_hash" in (*[!0-9a-f]*|'') exit 2 ;; esac
             test "${#expected_hash}" -eq 64
           done
@@ -535,7 +560,10 @@ jobs:
           rm -f "$upload"
 
           test "$(sudo sha256sum "$release/openclaw-cron-dispatcher.py" | awk '{print $1}')" = "$dispatcher_hash"
-          test "$(sudo sha256sum "$release/video_library_scraper.py" | awk '{print $1}')" = "$scraper_hash"
+          test "$(sudo sha256sum "$release/video_source_registry_ingest.py" | awk '{print $1}')" = "$scraper_hash"
+          test "$(sudo sha256sum "$release/video_enrichment_worker.py" | awk '{print $1}')" = "$enrichment_hash"
+          test "$(sudo sha256sum "$release/video_reel_candidate_worker.py" | awk '{print $1}')" = "$candidate_hash"
+          test "$(sudo sha256sum "$release/video_native_studio_worker.py" | awk '{print $1}')" = "$studio_hash"
           test "$(sudo sha256sum "$release/video_library_to_reels.py" | awk '{print $1}')" = "$publisher_hash"
           test "$(sudo sha256sum "$release/openclaw-requirements.lock" | awk '{print $1}')" = "$lock_hash"
 
@@ -556,7 +584,13 @@ jobs:
           run_preflight "openclaw-dispatcher-preflight-${run_id}-${run_attempt}" \
             /usr/bin/env -u PYTHONHOME -u PYTHONPATH "PYTHONPATH=$release/vendor" /usr/bin/python3 -s "$release/openclaw-cron-dispatcher.py" --preflight-only
           run_preflight "openclaw-scraper-preflight-${run_id}-${run_attempt}" \
-            /usr/bin/env -u PYTHONHOME -u PYTHONPATH "PYTHONPATH=$release/vendor" /usr/bin/python3 -s "$release/video_library_scraper.py" --preflight-only
+            /usr/bin/env -u PYTHONHOME -u PYTHONPATH "PYTHONPATH=$release/vendor" /usr/bin/python3 -s "$release/video_source_registry_ingest.py" --preflight-only
+          run_preflight "openclaw-enrichment-preflight-${run_id}-${run_attempt}" \
+            /usr/bin/env -u PYTHONHOME -u PYTHONPATH "PYTHONPATH=$release/vendor" /usr/bin/python3 -s "$release/video_enrichment_worker.py" --preflight-only
+          run_preflight "openclaw-candidate-preflight-${run_id}-${run_attempt}" \
+            /usr/bin/env -u PYTHONHOME -u PYTHONPATH "PYTHONPATH=$release/vendor" /usr/bin/python3 -s "$release/video_reel_candidate_worker.py" --preflight-only
+          run_preflight "openclaw-native-studio-preflight-${run_id}-${run_attempt}" \
+            /usr/bin/env -u PYTHONHOME -u PYTHONPATH "PYTHONPATH=$release/vendor" /usr/bin/python3 -s "$release/video_native_studio_worker.py" --preflight-only
           run_preflight "openclaw-publisher-preflight-${run_id}-${run_attempt}" \
             /usr/bin/env -u PYTHONHOME -u PYTHONPATH "PYTHONPATH=$release/vendor" /usr/bin/python3 -s "$release/video_library_to_reels.py" --preflight-only
           sudo systemd-run --quiet --wait --collect \
@@ -591,12 +625,15 @@ jobs:
           unit_upload="openclaw-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}.service"
           unit_hash="$(sha256sum scripts/openclaw.service | awk '{print $1}')"
           dispatcher_hash="$(sha256sum scripts/openclaw-cron-dispatcher.py | awk '{print $1}')"
-          scraper_hash="$(sha256sum scripts/video_library_scraper.py | awk '{print $1}')"
+          scraper_hash="$(sha256sum scripts/video_source_registry_ingest.py | awk '{print $1}')"
+          enrichment_hash="$(sha256sum scripts/video_enrichment_worker.py | awk '{print $1}')"
+          candidate_hash="$(sha256sum scripts/video_reel_candidate_worker.py | awk '{print $1}')"
+          studio_hash="$(sha256sum scripts/video_native_studio_worker.py | awk '{print $1}')"
           publisher_hash="$(sha256sum scripts/video_library_to_reels.py | awk '{print $1}')"
           scp scripts/openclaw.service "$SSH_USER@$HOST:$unit_upload"
           ssh "$SSH_USER@$HOST" 'bash -s' -- \
             "$GITHUB_SHA" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" \
-            "$unit_hash" "$dispatcher_hash" "$scraper_hash" "$publisher_hash" <<'EOSSH'
+            "$unit_hash" "$dispatcher_hash" "$scraper_hash" "$enrichment_hash" "$candidate_hash" "$studio_hash" "$publisher_hash" <<'EOSSH'
           set -euo pipefail
           release_sha="$1"
           run_id="$2"
@@ -604,12 +641,15 @@ jobs:
           unit_hash="$4"
           dispatcher_hash="$5"
           scraper_hash="$6"
-          publisher_hash="$7"
+          enrichment_hash="$7"
+          candidate_hash="$8"
+          studio_hash="$9"
+          publisher_hash="${10}"
           case "$release_sha" in (*[!0-9a-f]*|'') exit 2 ;; esac
           test "${#release_sha}" -eq 40
           case "$run_id" in (*[!0-9]*|'') exit 2 ;; esac
           case "$run_attempt" in (*[!0-9]*|'') exit 2 ;; esac
-          for expected_hash in "$unit_hash" "$dispatcher_hash" "$scraper_hash" "$publisher_hash"; do
+          for expected_hash in "$unit_hash" "$dispatcher_hash" "$scraper_hash" "$enrichment_hash" "$candidate_hash" "$studio_hash" "$publisher_hash"; do
             case "$expected_hash" in (*[!0-9a-f]*|'') exit 2 ;; esac
             test "${#expected_hash}" -eq 64
           done
@@ -725,7 +765,10 @@ jobs:
           test "$invocation_two" = "$invocation_one"
           test "$(sudo readlink "$current")" = "$release"
           test "$(sudo sha256sum "$current/openclaw-cron-dispatcher.py" | awk '{print $1}')" = "$dispatcher_hash"
-          test "$(sudo sha256sum "$current/video_library_scraper.py" | awk '{print $1}')" = "$scraper_hash"
+          test "$(sudo sha256sum "$current/video_source_registry_ingest.py" | awk '{print $1}')" = "$scraper_hash"
+          test "$(sudo sha256sum "$current/video_enrichment_worker.py" | awk '{print $1}')" = "$enrichment_hash"
+          test "$(sudo sha256sum "$current/video_reel_candidate_worker.py" | awk '{print $1}')" = "$candidate_hash"
+          test "$(sudo sha256sum "$current/video_native_studio_worker.py" | awk '{print $1}')" = "$studio_hash"
           test "$(sudo sha256sum "$current/video_library_to_reels.py" | awk '{print $1}')" = "$publisher_hash"
           sudo sh -c "cd '$current' && sha256sum --quiet -c release-manifest.sha256"
           test "$(sudo systemctl show openclaw.service -p User --value)" = openclaw
@@ -738,10 +781,9 @@ jobs:
           done
           for route in \
             /api/cron/video-library-scraper \
-            /api/cron/video-library-reels \
-            /api/cron/video-library-backfill \
-            /api/cron/video-library-purge \
-            /api/cron/video-library-views; do
+            /api/cron/video-reel-candidates \
+            /api/cron/video-native-studio \
+            /api/cron/video-library-reels; do
             # Do not use grep -q here. With pipefail enabled, grep can close the
             # pipe on the first match and journalctl then exits on SIGPIPE (141),
             # turning a successful registration check into a failed release.
@@ -780,6 +822,110 @@ jobs:
           trap - ERR
           sudo rm -f "$unit_backup"
           rm -f "$unit_upload"
+          EOSSH
+
+      - name: Run requested bounded source-registry ingestion
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.source_registry_max_sources != '0' }}
+        env:
+          HOST: ${{ secrets.OPENCLAW_HOST }}
+          SSH_USER: ${{ secrets.HETZNER_SSH_USER || 'root' }}
+          SOURCE_REGISTRY_MAX_SOURCES: ${{ inputs.source_registry_max_sources }}
+        run: |
+          set -euo pipefail
+          case "$SOURCE_REGISTRY_MAX_SOURCES" in 25|100) ;; *) exit 2 ;; esac
+          ssh \
+            -o ServerAliveInterval=30 \
+            -o ServerAliveCountMax=20 \
+            -o TCPKeepAlive=yes \
+            "$SSH_USER@$HOST" 'bash -s' -- \
+            "$GITHUB_SHA" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" \
+            "$SOURCE_REGISTRY_MAX_SOURCES" <<'EOSSH'
+          set -euo pipefail
+          release_sha="$1"
+          run_id="$2"
+          run_attempt="$3"
+          max_sources="$4"
+          case "$release_sha" in (*[!0-9a-f]*|'') exit 2 ;; esac
+          test "${#release_sha}" -eq 40
+          case "$run_id" in (*[!0-9]*|'') exit 2 ;; esac
+          case "$run_attempt" in (*[!0-9]*|'') exit 2 ;; esac
+          case "$max_sources" in 25|100) ;; *) exit 2 ;; esac
+
+          current=/opt/openclaw/current
+          release="/opt/openclaw/releases/${release_sha}"
+          unit="openclaw-source-registry-${run_id}-${run_attempt}"
+          sudo test -L "$current"
+          test "$(sudo readlink "$current")" = "$release"
+          sudo sh -c "cd '$current' && sha256sum --quiet -c release-manifest.sha256"
+          sudo test -f /etc/openclaw.env
+          test "$(sudo stat -c '%U:%G %a' /etc/openclaw.env)" = 'root:root 600'
+
+          cleanup() {
+            rc=$?
+            trap - EXIT HUP INT TERM
+            sudo systemctl stop "$unit.service" >/dev/null 2>&1 || true
+            sudo systemctl reset-failed "$unit.service" >/dev/null 2>&1 || true
+            exit "$rc"
+          }
+          trap cleanup EXIT HUP INT TERM
+          set +e
+          sudo systemd-run \
+            --quiet \
+            --wait \
+            --collect \
+            --unit "$unit" \
+            --property=User=openclaw \
+            --property=Group=openclaw \
+            --property=WorkingDirectory="$current" \
+            --property=EnvironmentFile=/etc/openclaw.env \
+            --property=RuntimeMaxSec=1200 \
+            /usr/bin/env -u PYTHONHOME -u PYTHONPATH \
+              "PYTHONPATH=$current/vendor" \
+              /usr/bin/python3 -s "$current/video_source_registry_ingest.py" \
+                --max-sources "$max_sources"
+          worker_rc=$?
+          set -e
+          summary="$(sudo journalctl -u "$unit.service" --no-pager --output=cat | /usr/bin/python3 -c '
+          import json
+          import sys
+          for line in reversed(sys.stdin.read().splitlines()):
+              try:
+                  payload = json.loads(line)
+              except json.JSONDecodeError:
+                  continue
+              if isinstance(payload, dict) and "sources_processed" in payload and "totals" in payload:
+                  print(json.dumps(payload, sort_keys=True))
+                  raise SystemExit(0)
+          raise SystemExit("registry ingestion emitted no structured summary")
+          ')"
+          test -n "$summary"
+          /usr/bin/python3 - "$summary" "$worker_rc" <<'PY'
+          import json
+          import sys
+          payload = json.loads(sys.argv[1])
+          worker_rc = int(sys.argv[2])
+          if payload.get('sources_processed', 0) < 1:
+              raise SystemExit('registry ingestion processed no sources')
+          totals = payload.get('totals') or {}
+          for key in ('candidates', 'qualified', 'inserted', 'duplicates', 'rejected', 'quota_units'):
+              if not isinstance(totals.get(key), int) or totals[key] < 0:
+                  raise SystemExit(f'invalid registry total: {key}')
+          print(json.dumps({
+              'sources_processed': payload['sources_processed'],
+              'totals': totals,
+              'failed_sources': [
+                  {
+                      'source_id': row.get('source_id'),
+                      'source_name': row.get('source_name'),
+                      'failure_code': row.get('failure_code'),
+                  }
+                  for row in payload.get('results', []) if row.get('status') == 'failed'
+              ],
+          }, sort_keys=True))
+          if worker_rc:
+              raise SystemExit(f'registry ingestion worker exited {worker_rc}')
+          PY
+          trap - EXIT HUP INT TERM
           EOSSH
 
       - name: Run requested bounded Reel backfill

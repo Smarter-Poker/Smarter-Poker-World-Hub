@@ -91,7 +91,7 @@ export default function MessageRequests() {
             if (senderIds.length > 0) {
                 const { data: profiles } = await supabase
                     .from('profiles')
-                    .select('id, username, avatar_url')
+                    .select('id, username, display_name, avatar_url')
                     .in('id', senderIds);
                 (profiles || []).forEach(p => { profilesMap[p.id] = p; });
             }
@@ -318,7 +318,7 @@ export default function MessageRequests() {
                                                 href={`/hub/user/${request.sender?.username || ''}`}
                                                 style={{ ...styles.senderName, textDecoration: 'none', color: 'inherit' }}
                                             >
-                                                {request.sender?.full_name || request.sender?.username || 'Unknown'}
+                                                {request.sender?.display_name || request.sender?.username || 'Unknown'}
                                             </Link>
                                             {request.sender?.username && (
                                                 <div style={{ fontSize: 12, color: '#6b7280', marginTop: 1 }}>

@@ -1,5 +1,8 @@
 const fs = require('fs');
 const path = require('path');
+const {
+  patchNextGoogleFontLoaderSource,
+} = require('./next-google-font-loader-patch.cjs');
 
 console.log('🔧 Running Smarter.Poker Next.js Build-Time Patching Engine...');
 
@@ -229,6 +232,34 @@ for (const rel of [
     }
   } else {
     console.log('   ⚠️ manifests-singleton path not found, skipping patch 7.');
+  }
+}
+
+// ── 7a. Harden next/font/google against extensionless Google font URLs ───────
+// Google Fonts can return an extensionless `/l/font?...` URL even though the
+// response is a valid WOFF2 file. Next 16.3.3 unconditionally indexes the
+// result of a terminal-extension regex, so that valid response crashes the
+// production build after the font has already downloaded. Preserve Next's
+// fetch/cache/CSS replacement path and determine the emitted extension from
+// the downloaded file signature only when the URL itself cannot provide it.
+for (const rel of [
+  '../node_modules/next/dist/compiled/@next/font/dist/google/loader.js',
+  '../node_modules/next/dist/esm/compiled/@next/font/dist/google/loader.js',
+]) {
+  const googleFontLoaderPath = path.resolve(__dirname, rel);
+  const flavor = rel.includes('/esm/') ? 'esm' : 'cjs';
+  if (!fs.existsSync(googleFontLoaderPath)) {
+    console.log(`   Note: next/font/google ${flavor} loader is not present; skipping patch 7a.`);
+    continue;
+  }
+
+  const content = fs.readFileSync(googleFontLoaderPath, 'utf8');
+  const result = patchNextGoogleFontLoaderSource(content);
+  if (result.changed) {
+    fs.writeFileSync(googleFontLoaderPath, result.source, 'utf8');
+    console.log(`   Patched next/font/google extension inference (${flavor}).`);
+  } else {
+    console.log(`   next/font/google ${flavor} loader status: ${result.status}.`);
   }
 }
 

@@ -124,8 +124,12 @@ test('no browser read of profiles names an owner-only column', () => {
       const names = ownerOnlyNamesIn(m[1].replace(/\$\{[^}]*\}/g, ''));
       if (names.length) offenders.push(`${rel}: .from('profiles')${m[1].slice(0, 80)} -> ${names}`);
     }
-    // an embedded profiles(...) in any select string
-    const embedRe = /\bprofiles(?:\s*!\s*\w+)?\s*\(([^)]*)\)/g;
+    // an embedded join in any select string, in every PostgREST spelling:
+    // profiles(...), profiles!fk(...), profiles!fk!inner(...), the
+    // alias-on-column form profiles:user_id(...), and an aliased
+    // author:profiles(...) / author:profiles!fk(...) (the \b after the colon
+    // catches the alias). The old pattern missed profiles:user_id(...).
+    const embedRe = /\bprofiles(?:\s*:\s*\w+)?(?:\s*!\s*\w+)*\s*\(([^)]*)\)/g;
     for (const m of src.matchAll(embedRe)) {
       const names = ownerOnlyNamesIn(m[1]);
       if (names.length) offenders.push(`${rel}: profiles(${m[1].trim().slice(0, 60)}) -> ${names}`);

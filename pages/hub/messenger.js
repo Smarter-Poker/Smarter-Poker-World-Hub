@@ -29,6 +29,7 @@ import { eventBus, EventType, busEmit } from '../../src/engine/EventBus';
 import useTrainingBus from '../../src/hooks/useTrainingBus';
 import useMessengerSearch from '../../src/hooks/useMessengerSearch';
 import { resolveMessengerClubEntry } from '../../src/lib/messengerClubEntry.mjs';
+import { organizeConversations } from '../../src/lib/messengerOrganization.mjs';
 import { createMessengerSendOperation, restoreMessengerSendOperations, messengerOperationMessage,
     mergeMessengerPendingMessages, reconcileMessengerMessage, acknowledgeMessengerSend,
     performMessengerSend, saveMessengerSendOperation } from '../../src/lib/messengerSendOperation.mjs';
@@ -341,7 +342,7 @@ function MessengerPage() {
             if (authUser) {
                 return {
                     ...authUser,
-                    username: authUser.user_metadata?.poker_alias || authUser.email?.split('@')[0],
+                    username: authUser.user_metadata?.poker_alias || authUser.user_metadata?.username || null,
                     avatar_url: authUser.user_metadata?.avatar_url || null,
                     full_name: authUser.user_metadata?.full_name || null,
                 };
@@ -398,14 +399,6 @@ function MessengerPage() {
     const [callType, setCallType] = useState('video'); // 'audio' or 'video'
     const [callRoomName, setCallRoomName] = useState('');
     const [showUserInfo, setShowUserInfo] = useState(false);
-    const [showPushPrompt, setShowPushPrompt] = useState(false);
-
-    const [pushPromptHandled, setPushPromptHandled] = useState(() => {
-        if (typeof window !== 'undefined') {
-            return localStorage.getItem('messenger_push_prompt_handled') === '1';
-        }
-        return false;
-    });
     // Editing State
     const [editingMessage, setEditingMessage] = useState(null); // message being edited
     const [editText, setEditText] = useState('');
@@ -501,7 +494,7 @@ function MessengerPage() {
     const [showScrollDown, setShowScrollDown] = useState(false);
 
     // OneSignal Push Notifications
-    const { isInitialized: pushReady, isSubscribed: pushSubscribed, subscribe: subscribePush, setExternalUserId } = useOneSignal();
+    const { isInitialized: pushReady, subscribe: subscribePush } = useOneSignal();
 
     // Dark Mode detection & theme override
     useEffect(() => {
@@ -525,11 +518,22 @@ function MessengerPage() {
 
     // Preference update handler with Supabase sync
     const updatePreference = async (key, value) => {
+        const previous = preferences;
         const updated = { ...preferences, [key]: value };
         setPreferences(updated);
-        await messengerPreferences.update(user?.id, { [key]: value });
+        try {
+            await messengerPreferences.update(user?.id, { [key]: value });
+        } catch (error) {
+            // A persisted delivery setting must never be shown as changed when
+            // the write failed. Restore the previous account-confirmed value.
+            setPreferences(previous);
+            setToast({ type: 'error', message: 'Could Not Save Notification Preference' });
+            return;
+        }
 
-        // 📲 PUSH NOTIFICATIONS: Hook toggle into OneSignal subscribe/unsubscribe
+        // The persisted messenger_alerts setting now governs delivery. Enabling
+        // it can enroll this device; disabling it leaves the subscription in
+        // place but the server gate suppresses Messenger alerts on every device.
         if (key === 'notifications') {
             if (value && pushReady && subscribePush) {
                 try {
@@ -733,7 +737,7 @@ function MessengerPage() {
                     const prof = profileResp?.profile || {};
                     setUser({
                         ...authUser,
-                        username: prof.username || authUser.email?.split('@')[0],
+                        username: prof.username || authUser.user_metadata?.poker_alias || authUser.user_metadata?.username || null,
                         avatar_url: prof.avatar_url,
                         full_name: prof.full_name,
                         is_vip: prof.is_vip
@@ -1000,7 +1004,7 @@ function MessengerPage() {
 
             setUser(previous => previous?.id === nextId ? { ...previous, ...authUser } : {
                 ...authUser,
-                username: authUser.user_metadata?.poker_alias || authUser.email?.split('@')[0],
+                username: authUser.user_metadata?.poker_alias || authUser.user_metadata?.username || null,
                 avatar_url: authUser.user_metadata?.avatar_url || null,
             });
             // The workspace effect loads a new actor after its state commits.
@@ -1750,7 +1754,7 @@ function MessengerPage() {
             setConnectionStatus('connected');
             setClubAccess({ userId, clubs: result.clubs });
             setConversations(result.conversations);
-            setWorkspaceUnread({ key: requestKey, counts: result.unreadCounts });
+            setWorkspaceUnread({ key: requestKey, counts: result.unreadCounts, attentionCounts: result.attentionCounts });
             setWeeklyPreview(result.weeklySummary ? { key: requestKey, report: result.weeklySummary } : null);
             setInboxError(null);
         } catch (error) {
@@ -2646,7 +2650,7 @@ function MessengerPage() {
             const content = rawContent.trim() ? `[Forwarded] ${rawContent.trim()}` : '[Forwarded Message]';
             const receipt = await queueMessengerSend(content, { actorId, conversationId: targetConversation.id });
             if (receipt && current()) {
-                setToast({ type: 'success', message: `Message Forwarded To ${targetConversation.otherUser?.full_name || targetConversation.otherUser?.display_name || targetConversation.otherUser?.username || 'Conversation'}` });
+                setToast({ type: 'success', message: `Message Forwarded To ${targetConversation.otherUser?.display_name || targetConversation.otherUser?.username || 'Conversation'}` });
                 busEmit.messageForwarded(original.conversation_id || activeConversation?.id, targetConversation.id);
             }
         } finally {
@@ -2684,7 +2688,7 @@ function MessengerPage() {
         const metadata = getClubMetadata();
         const profile = isClubMode && clubPage
             ? { id: actorId, username: clubPage.name, avatar_url: clubPage.avatar_url, is_club_identity: true, club_id: clubPage.id }
-            : { id: actorId, username: user.full_name || user.username || user.user_metadata?.username, avatar_url: user.avatar_url || user.user_metadata?.avatar_url };
+            : { id: actorId, username: user.username || user.user_metadata?.username, avatar_url: user.avatar_url || user.user_metadata?.avatar_url };
         const sameAccount = () => authIdentityRef.current === actorId && authGenerationRef.current === generation;
         const current = () => sameAccount() && workspaceRef.current === scope && activeConversationRef.current?.id === conversationId;
         const blobUrl = URL.createObjectURL(file);
@@ -2830,7 +2834,7 @@ function MessengerPage() {
             if (isRequest) {
                 setToast({
                     type: 'info',
-                    message: `${otherUser.full_name || otherUser.username} isn't your friend - your message will be sent as a request`
+                    message: `${otherUser.display_name || otherUser.username} isn't your friend - your message will be sent as a request`
                 });
             }
         } catch (e) {
@@ -3038,98 +3042,6 @@ function MessengerPage() {
         return () => window.removeEventListener('message', handleParentMessage);
     }, [conversations, router.query.hideHeader]);
 
-    // 📲 Link OneSignal to user ID for push notifications
-    useEffect(() => {
-        let cancelled = false;
-        let promptTimer = null;
-
-        if (user?.id && pushReady && setExternalUserId) {
-            // Link user's Supabase ID to OneSignal for targeted notifications
-            setExternalUserId(user.id);
-
-            // Check Supabase for cross-device persistence (if localStorage missed it)
-            if (!pushPromptHandled && !pushSubscribed) {
-                supabase.from('profiles').select('messenger_preferences').eq('id', user.id).maybeSingle().then(({ data }) => {
-                    if (cancelled) return;
-                    if (data?.messenger_preferences?.pushPromptHandled) {
-                        setPushPromptHandled(true);
-                        try { localStorage.setItem('messenger_push_prompt_handled', '1'); } catch (e) { console.warn('[App] Handled exception:', e); }
-                        return;
-                    }
-                    // User hasn't handled it — show prompt after 3s delay
-                    promptTimer = setTimeout(() => {
-                        if (!cancelled) setShowPushPrompt(true);
-                    }, 3000);
-                });
-            }
-        }
-
-        return () => {
-            cancelled = true;
-            if (promptTimer) clearTimeout(promptTimer);
-        };
-    }, [user?.id, pushReady, pushSubscribed, pushPromptHandled, setExternalUserId]);
-
-    /**
-     * Persist "the user has answered the push prompt" everywhere it is read:
-     * local state, localStorage, and profiles.messenger_preferences. The RPC is
-     * an atomic JSONB merge; the fallback is a read-modify-write, which is only
-     * safe here because this flag is one-way (false -> true).
-     */
-    const persistPushPromptHandled = useCallback(async () => {
-        setPushPromptHandled(true);
-        try {
-            localStorage.setItem('messenger_push_prompt_handled', '1');
-        } catch (e) {
-            console.warn('[Messenger] push prompt localStorage write failed:', e?.message || e);
-        }
-        if (!user?.id) return;
-        try {
-            const { error } = await supabase.rpc('fn_merge_messenger_preferences', {
-                p_user_id: user.id,
-                p_key: 'pushPromptHandled',
-                p_value: true,
-            });
-            if (!error) return;
-            throw error;
-        } catch (_) {
-            try {
-                const { data: cur } = await supabase
-                    .from('profiles')
-                    .select('messenger_preferences')
-                    .eq('id', user.id)
-                    .maybeSingle();
-                const merged = { ...(cur?.messenger_preferences || {}), pushPromptHandled: true };
-                const { error: prefErr } = await supabase
-                    .from('profiles')
-                    .update({ messenger_preferences: merged })
-                    .eq('id', user.id);
-                if (prefErr) {
-                    console.warn('[Messenger] push prompt pref persist failed:', prefErr.message);
-                }
-            } catch (e2) {
-                console.warn('[Messenger] push prompt pref persist failed:', e2?.message || e2);
-            }
-        }
-    }, [user?.id]);
-
-    const handlePushEnable = useCallback(async () => {
-        let success = false;
-        try {
-            if (subscribePush) success = await subscribePush();
-        } catch (e) {
-            console.warn('[Messenger] push subscribe failed:', e?.message || e);
-        }
-        await persistPushPromptHandled();
-        setShowPushPrompt(false);
-        if (success) setToast({ type: 'success', message: 'Push Notifications Enabled' });
-    }, [subscribePush, persistPushPromptHandled]);
-
-    const handlePushDismiss = useCallback(async () => {
-        await persistPushPromptHandled();
-        setShowPushPrompt(false);
-    }, [persistPushPromptHandled]);
-
     const enterClubWorkspace = (club, folder = 'messages') => {
         if (!club || !joinedClubs.some(c => c.id === club.id)) return;
         setWorkspaceSelection({ clubId: club.id, folder: folder === 'invoices' ? 'invoices' : 'messages' });
@@ -3172,6 +3084,7 @@ function MessengerPage() {
             otherUser: {
                 id: 'jarvis',
                 username: 'jarvis',
+                display_name: 'Jarvis',
                 full_name: 'Jarvis',
                 avatar_url: null,
             },
@@ -3221,10 +3134,9 @@ function MessengerPage() {
 
         // Generate unique room name: smarter-poker-{conversationId}-{timestamp}
         const roomName = `smarter-poker-${activeConversation.id.slice(0, 8)}-${Date.now()}`;
-        // BUG FIX: Use profile-fetched name (user.full_name from line 2651), not
-        // user.user_metadata.full_name which is stale Google OAuth data for Google
-        // sign-in users who changed their profile name after registration.
-        const callerName = user.full_name || user.username || user.user_metadata?.full_name || user.user_metadata?.username || 'Someone';
+        // callerName is broadcast to the callee, so it is the public handle only:
+        // full_name (profile or stale Google OAuth user_metadata) is owner-only.
+        const callerName = user.display_name || user.username || user.user_metadata?.username || user.user_metadata?.poker_alias || 'Someone';
         const callerAvatar = user.avatar_url || user.user_metadata?.avatar_url || null;
 
         // Set calling state to show "Calling..." UI
@@ -3336,7 +3248,7 @@ function MessengerPage() {
             outgoingRingToneRef.current.start();
         }
 
-        setToast({ type: 'info', message: `Calling ${otherUser.full_name || otherUser.username}...` });
+        setToast({ type: 'info', message: `Calling ${otherUser.display_name || otherUser.username}...` });
     };
 
     const isEndingCallRef = useRef(false);
@@ -3553,8 +3465,7 @@ function MessengerPage() {
     // rendered blank for one - including the union's weekly statement thread.
     // The API path names it `title`, the direct-Supabase fallback `group_name`.
     const activeTitle =
-        otherUser?.full_name
-        || otherUser?.display_name
+        otherUser?.display_name
         || otherUser?.username
         || activeConversation?.title
         || activeConversation?.group_name
@@ -3672,9 +3583,9 @@ function MessengerPage() {
                                     onMouseEnter={e => e.currentTarget.style.background = C.hoverBg}
                                     onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                                 >
-                                    <Avatar src={conv.otherUser?.avatar_url} name={conv.otherUser?.full_name || conv.otherUser?.display_name || conv.otherUser?.username} size={36} />
+                                    <Avatar src={conv.otherUser?.avatar_url} name={conv.otherUser?.display_name || conv.otherUser?.username} size={36} />
                                     <div>
-                                        <div style={{ fontWeight: 600, fontSize: 14, color: C.text }}>{conv.otherUser?.full_name || conv.otherUser?.display_name || conv.otherUser?.username}</div>
+                                        <div style={{ fontWeight: 600, fontSize: 14, color: C.text }}>{conv.otherUser?.display_name || conv.otherUser?.username}</div>
                                     </div>
                                 </button>
                             ))}
@@ -3688,17 +3599,6 @@ function MessengerPage() {
 
             {/* Toast Notifications */}
             <Toast toast={toast} onDismiss={() => setToast(null)} theme={C} />
-
-            {/* Push Notification Subscription Banner */}
-            {showPushPrompt && !pushSubscribed && (
-                <PushPromptModal
-                    setShowPushPrompt={setShowPushPrompt}
-                    onEnable={handlePushEnable}
-                    onDismiss={handlePushDismiss}
-                    C={C}
-                    isMobile={isMobile}
-                />
-            )}
 
             {/* Ringing Audio for Incoming Calls */}
             <audio
@@ -3761,7 +3661,7 @@ function MessengerPage() {
                             boxShadow: '0 0 0 4px rgba(0,132,255,0.3), 0 0 30px rgba(0,132,255,0.4)',
                             animation: 'ring 1.5s infinite',
                         }}>
-                            {!callingUser.avatar_url && (callingUser.username?.[0]?.toUpperCase() || callingUser.full_name?.[0]?.toUpperCase() || '?')}
+                            {!callingUser.avatar_url && (callingUser.username?.[0]?.toUpperCase() || callingUser.display_name?.[0]?.toUpperCase() || '?')}
                         </div>
 
                         {/* Callee Name */}
@@ -3771,7 +3671,7 @@ function MessengerPage() {
                             fontWeight: 600,
                             margin: '0 0 8px 0',
                         }}>
-                            {callingUser.full_name || callingUser.username || 'User'}
+                            {callingUser.display_name || callingUser.username || 'User'}
                         </h2>
 
                         {/* Status */}
@@ -3972,7 +3872,7 @@ function MessengerPage() {
                             {callType === 'video' ? <VideoIcon size={24} color="white" /> : <PhoneIcon size={24} color="white" />}
                             <div>
                                 <div style={{ color: 'white', fontWeight: 600 }}>
-                                    {callType === 'video' ? 'Video' : 'Voice'} Call With {activeConversation?.otherUser?.full_name || activeConversation?.otherUser?.display_name || activeConversation?.otherUser?.username || 'User'}
+                                    {callType === 'video' ? 'Video' : 'Voice'} Call With {activeConversation?.otherUser?.display_name || activeConversation?.otherUser?.username || 'User'}
                                 </div>
                                 <div style={{ color: '#888', fontSize: 12 }}>Smarter Poker Video</div>
                             </div>
@@ -4002,10 +3902,10 @@ function MessengerPage() {
                     {/* LiveKit Video Component — BUG-1 FIX: Pass auth token for API calls */}
                     <LiveKitCall
                         roomName={callRoomName}
-                        participantName={user?.full_name || user?.username || user?.user_metadata?.username || 'User'}
+                        participantName={user?.display_name || user?.username || user?.user_metadata?.username || user?.user_metadata?.poker_alias || 'User'}
                         participantId={user?.id}
                         callType={callType}
-                        otherUserName={activeConversation?.otherUser?.full_name || activeConversation?.otherUser?.display_name || activeConversation?.otherUser?.username}
+                        otherUserName={activeConversation?.otherUser?.display_name || activeConversation?.otherUser?.username}
                         onEnd={endCall}
                         authToken={getAccessToken()}
                     />
@@ -4103,6 +4003,7 @@ function MessengerPage() {
                     <ClubArenaWorkspace clubs={joinedClubs} open={clubDrawerOpen}
                         clubId={workspaceSelection.clubId} folder={workspaceSelection.folder} theme={C}
                         unreadCounts={workspaceUnread?.key === workspaceKey ? workspaceUnread.counts : messengerUnread?.clubs?.[workspaceSelection.clubId]}
+                        attentionCounts={workspaceUnread?.key === workspaceKey ? workspaceUnread.attentionCounts : null}
                         clubUnread={messengerUnread?.clubs}
                         onEnter={enterClubWorkspace} onExit={leaveClubWorkspace}
                         onFolder={folder => setWorkspaceSelection(prev => ({ ...prev, folder }))} />
@@ -4188,30 +4089,10 @@ function MessengerPage() {
                             </div>
                         ) : (
                             <>                                {/* Regular Conversations */}
-                                {conversations.filter(conv => {
-                                    // ITEM 13 (2026-09-08): ?filter=unread was a
-                                    // hamburger row that landed on the identical
-                                    // default inbox, because nothing here read the
-                                    // param. Now it does.
-                                    if (router.query.filter === 'unread'
-                                        && !(Number(conv.unreadCount) > 0)) return false;
-                                    if (!searchQuery) return true;
-                                    const q = searchQuery.toLowerCase();
-                                    const otherName = conv.otherUser?.full_name?.toLowerCase() || '';
-                                    const otherDisplayName = conv.otherUser?.display_name?.toLowerCase() || '';
-                                    const otherUsername = conv.otherUser?.username?.toLowerCase() || '';
-                                    // Group threads have no other user, so matching on
-                                    // names alone hid them the moment anything was typed.
-                                    const groupTitle = (conv.title || conv.group_name || '').toLowerCase();
-                                    return otherName.includes(q) || otherDisplayName.includes(q)
-                                        || otherUsername.includes(q) || groupTitle.includes(q);
-                                }).sort((a, b) => {
-                                    // Pinned conversations always sort to top (using localStorage-backed state)
-                                    const aPinned = pinnedConvoIds.includes(a.id);
-                                    const bPinned = pinnedConvoIds.includes(b.id);
-                                    if (aPinned && !bPinned) return -1;
-                                    if (!aPinned && bPinned) return 1;
-                                    return 0; // Preserve existing chronological order
+                                {organizeConversations(conversations, {
+                                    pinnedIds: pinnedConvoIds,
+                                    unreadOnly: router.query.filter === 'unread',
+                                    query: searchQuery,
                                 }).map(conv => (
                                     <ConversationItem
                                         key={conv.id}
@@ -4365,6 +4246,7 @@ function MessengerPage() {
                                 otherUser: {
                                     id: 'jarvis',
                                     username: 'jarvis',
+                                    display_name: 'Jarvis',
                                     full_name: 'Jarvis',
                                     avatar_url: null
                                 },
@@ -4833,7 +4715,7 @@ function MessengerPage() {
                                         })
                                     ); })()}
                                     {/* Typing indicator */}
-                                    {otherTyping && <TypingIndicator name={otherUser?.full_name || otherUser?.display_name || otherUser?.username} theme={C} />}
+                                    {otherTyping && <TypingIndicator name={otherUser?.display_name || otherUser?.username} theme={C} />}
                                     {hasNewerMessages && <button type="button" disabled={loadingNewerMessages} onClick={loadNewerMessages}
                                         style={{ ...continuityButtonStyle, display: 'block', margin: '12px auto' }}>
                                         {loadingNewerMessages ? 'Loading Newer Messages...' : 'Load Newer Messages'}
@@ -4966,7 +4848,6 @@ function MessengerPage() {
     );
 }
 
-const PushPromptModal = dynamic(() => import('../../src/components/messenger/modals/PushPromptModal'), { ssr: false });
 export default function MessengerPageWithBoundary() {
     return (
         <HubErrorBoundary name="Messenger">

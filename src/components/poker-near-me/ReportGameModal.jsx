@@ -391,7 +391,7 @@ export default function ReportGameModal({
                             venue_id: activeVenue.id,
                             rating: reviewForm.rating,
                             review_text: reviewForm.reviewText.trim(),
-                            reviewer_name: user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Anonymous',
+                            reviewer_name: user?.user_metadata?.display_name || user?.user_metadata?.username || user?.user_metadata?.poker_alias || 'Anonymous',
                             category_ratings: reviewForm.categoryRatings,
                         }),
                     });

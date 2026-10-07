@@ -33,9 +33,12 @@ import {
   auditActionFilter,
 } from '../src/components/horses/auditFilters.js';
 import { pagerModel, rangeLabel } from '../src/components/horses/pagerModel.js';
+import { readHorsesConsoleSource } from './helpers/horses-console-source.mjs';
 
 const ROOT = new URL('../', import.meta.url);
-const read = (path) => readFile(new URL(path, ROOT), 'utf8');
+const read = (path) => path === INDEX
+  ? readHorsesConsoleSource()
+  : readFile(new URL(path, ROOT), 'utf8');
 
 const INDEX = 'pages/horses/index.js';
 const COMPONENT_DIR = 'src/components/horses/';
@@ -247,12 +250,12 @@ test('Previous is offset-driven and rangeLabel is the label alone', () => {
 // ═══════════════════════════════════════════════════════════════════════════
 
 test('the Audit Export CSV button CALLS exportAuditLog', async () => {
-  const src = await read(INDEX);
+  const src = await read(`${COMPONENT_DIR}AuditPanel.jsx`);
   // The declaration is not the deliverable. This is.
   assert.match(
     src,
-    /onClick=\{exportAuditLog\}/,
-    'the Export CSV button must be bound to exportAuditLog, not to an inline downloadCsv',
+    /onClick=\{exportLog\}/,
+    'the Export CSV button must be bound to the panel-owned exportLog handler',
   );
   // And the page-only export it replaced is gone: no inline toCsv over the
   // 100 rows on screen.
@@ -261,33 +264,33 @@ test('the Audit Export CSV button CALLS exportAuditLog', async () => {
     'the page-only audit export must be deleted, not left beside the real one',
   );
   // The walk itself still carries the three columns an auditor needs.
-  assert.match(src, /jsonColumns: \['details', 'before_state', 'after_state'\]/);
+  assert.match(src, /jsonColumns: \['details','before_state','after_state'\]/);
   assert.match(src, /exportAllCsv\(\{/);
   // The progress state is reachable now.
-  assert.match(src, /auditExporting/);
+  assert.match(src, /exporting/);
   assert.ok(
-    (src.match(/\bauditExporting\b/g) || []).length >= 4,
-    'auditExporting must be rendered, not only declared',
+    (src.match(/\bexporting\b/g) || []).length >= 4,
+    'exporting must be rendered, not only declared',
   );
 });
 
 test('the audit target, from and to filters actually render', async () => {
-  const src = await read(INDEX);
-  for (const setter of ['setAuditTarget', 'setAuditFrom', 'setAuditTo']) {
+  const src = await read(`${COMPONENT_DIR}AuditPanel.jsx`);
+  for (const setter of ['setTargetInput', 'setFrom', 'setTo']) {
     assert.ok(
       (src.match(new RegExp(`\\b${setter}\\b`, 'g')) || []).length >= 2,
       `${setter} is declared and never called - the filter has no input`,
     );
   }
-  assert.match(src, /id="audit-target"/);
-  assert.match(src, /id="audit-from"/);
-  assert.match(src, /id="audit-to"/);
+  assert.match(src, /aria-label="Target ID"/);
+  assert.match(src, /<label>From <input type="date"/);
+  assert.match(src, /<label>To <input type="date"/);
 });
 
 test('the audit filter select is driven by the shared group table', async () => {
-  const src = await read(INDEX);
+  const src = await read(`${COMPONENT_DIR}AuditPanel.jsx`);
   assert.match(src, /AUDIT_FILTER_GROUPS\.map/);
-  assert.match(src, /auditActionFilter\(auditPrefix\)/);
+  assert.match(src, /auditActionFilter\(prefix\)/);
   // The two options that were TARGET types rather than action prefixes, and so
   // matched zero rows, must not be filter values of their own any more.
   assert.ok(!/<option value="content_author">/.test(src));
@@ -296,35 +299,37 @@ test('the audit filter select is driven by the shared group table', async () => 
 
 test('no loader is bound bare to onClick, where the event becomes its first argument', async () => {
   const code = stripComments(await read(INDEX));
+  const mint = stripComments(await read(`${COMPONENT_DIR}MintPanel.jsx`));
   // loadMintData(ledgerOffset) and loadGrinderData(offset) both take a number
   // first. onClick={loadMintData} handed them a React synthetic event.
   assert.ok(!/onClick=\{loadMintData\}/.test(code), 'onClick={loadMintData} passes the event as an offset');
   assert.ok(!/onClick=\{loadGrinderData\}/.test(code), 'onClick={loadGrinderData} passes the event as an offset');
-  assert.match(code, /loadMintData\(0\)/);
+  assert.ok(!/onClick=\{load\}/.test(mint), 'onClick={load} passes the event as an offset');
+  assert.match(mint, /onClick=\{\(\) => load\(0, filters\)\}/);
 });
 
 test('the Mint idempotency key rotates with the payload', async () => {
-  const code = stripComments(await read(INDEX));
-  const at = code.indexOf('const mintPayloadKey');
+  const code = stripComments(await read(`${COMPONENT_DIR}MintPanel.jsx`));
+  const at = code.indexOf('const payloadKey');
   assert.ok(at > 0, 'the key must be derived from the composed payload');
   const declaration = code.slice(at, at + 300);
   // Every field of the composed operation participates in the key, so it
   // rotates the moment the intent changes and never outlives it.
-  for (const field of ['mintAction', 'mintAsset', 'mintTargetKind', 'mintTargetId', 'mintAmount', 'mintReason']) {
+  for (const field of ['form.action', 'form.asset', 'form.target', 'form.targetId', 'form.amount', 'form.reason']) {
     assert.ok(
-      new RegExp(`\\b${field}\\b`).test(declaration),
+      declaration.includes(field),
       `${field} must be part of the idempotency key`,
     );
   }
-  assert.match(code, /setMintOpId\(newMintOpId\(\)\)/);
+  assert.match(code, /setOpId\(newOpId\(\)\)/);
 });
 
 test('the Mint receipt is built from what the console composed', async () => {
-  const src = await read(INDEX);
+  const src = await read(`${COMPONENT_DIR}MintPanel.jsx`);
   // Not read off the raw fn_ca_mint return, which the route never promises.
-  assert.match(src, /action: mintConfirm\.action/);
-  assert.match(src, /amount: mintConfirm\.amount/);
-  assert.match(src, /op_id: mintConfirm\.opId/);
+  assert.match(src, /action: confirm\.action/);
+  assert.match(src, /amount: confirm\.amount/);
+  assert.match(src, /opId: confirm\.opId/);
 });
 
 /**
@@ -349,7 +354,7 @@ test('the Mint receipt is built from what the console composed', async () => {
  * aliases (PHASE1-CONTRACTS addendum item 13).
  */
 test('the console has exactly one source for every fleet number', async () => {
-  const src = await read(INDEX);
+  const src = await read(`${COMPONENT_DIR}FleetPanel.jsx`);
   const code = stripComments(src);
 
   // Neither fleet route is called from this page any more.
@@ -370,8 +375,9 @@ test('the console has exactly one source for every fleet number', async () => {
   // the registry seam rather than inline.
   const registry = await read(`${COMPONENT_DIR}tabRegistry.js`);
   assert.match(registry, /id: 'fleet', label: 'Fleet Command'/);
-  assert.match(registry, /load: \(\) => import\('\.\/FleetPanel'\)/);
-  assert.match(src, /RegistryPanel &&/, 'a registry tab renders through panelComponentFor');
+  const dynamicPanels = await read(`${COMPONENT_DIR}dynamicPanels.js`);
+  assert.match(dynamicPanels, /const FleetPanel = dynamic\(\(\) => import\('\.\/FleetPanel'\)/);
+  assert.match(dynamicPanels, /fleet: FleetPanel/, 'the explicit component map owns the Fleet panel');
 
   // The panel talks to the fleet route and to nothing else.
   const panel = await read(`${COMPONENT_DIR}FleetPanel.jsx`);
@@ -383,8 +389,8 @@ test('the console has exactly one source for every fleet number', async () => {
 });
 
 test('the disposable-email caveat reads the path the route actually uses', async () => {
-  const src = await read(INDEX);
-  assert.match(src, /abuseData\.abuse\?\.stats\?\.disposableScope/);
+  const src = await read(`${COMPONENT_DIR}AntiAbusePanel.jsx`);
+  assert.match(src, /stats\.disposableScope/);
 });
 
 /**
@@ -418,7 +424,7 @@ test('the fleet roster is paged by the route, not sliced client-side', async () 
 });
 
 test('Club Arena counts come from the route, never from a page length', async () => {
-  const src = await read(INDEX);
+  const src = await read(`${COMPONENT_DIR}ClubArenaPanel.jsx`);
   assert.match(src, /memberChipTotal/);
   assert.match(src, /memberCount/);
   // The fabricated club balance is gone.
@@ -435,8 +441,10 @@ test('Club Arena counts come from the route, never from a page length', async ()
 });
 
 test('every capped list sends its limit explicitly and can say it is capped', async () => {
-  const src = await read(INDEX);
-  for (const constant of ['CA_OVERVIEW_LIMIT', 'CA_CLUB_LIMIT', 'CA_LEDGER_LIMIT', 'MINT_TARGET_LIMIT']) {
+  const src = await read(`${COMPONENT_DIR}ClubArenaPanel.jsx`);
+  const economy = await read(`${COMPONENT_DIR}EconomyPanel.jsx`);
+  const rendered = `${src}\n${economy}`;
+  for (const constant of ['CA_OVERVIEW_LIMIT', 'CA_CLUB_LIMIT', 'CA_LEDGER_LIMIT']) {
     assert.ok(src.includes(`const ${constant} =`), `${constant} must be declared`);
     assert.ok(
       (src.match(new RegExp(`\\b${constant}\\b`, 'g')) || []).length >= 2,
@@ -450,12 +458,12 @@ test('every capped list sends its limit explicitly and can say it is capped', as
   assert.ok((src.match(/<ShowingOf/g) || []).length >= 5, 'every capped list needs the note');
   for (const flag of ['circulationTruncated', 'unaccountedSeatExitsTruncated', 'rpcRowCap',
     'pendingCashoutTotalTruncated', 'diamondPurchaseTruncated']) {
-    assert.ok(src.includes(flag), `${flag} is returned by a route and must be rendered`);
+    assert.ok(rendered.includes(flag), `${flag} is returned by a route and must be rendered`);
   }
 });
 
 test('a section loads from an effect keyed on the section, not only from a click', async () => {
-  const src = await read(INDEX);
+  const src = await read(`${COMPONENT_DIR}ClubArenaPanel.jsx`);
   assert.match(
     src,
     /caSection === 'ledger' && !caLedger && !caLedgerLoading[\s\S]{0,40}loadCaLedger\(\)/,
@@ -465,9 +473,9 @@ test('a section loads from an effect keyed on the section, not only from a click
 });
 
 test('a filter change resets the audit page before it loads, in one effect', async () => {
-  const src = await read(INDEX);
-  const resetAudit = src.indexOf('setAuditPage(0);');
-  const loadOnFilterChange = src.indexOf("if (activeTab === 'audit' && auditLoaded) loadAuditLog();");
+  const src = await read(`${COMPONENT_DIR}AuditPanel.jsx`);
+  const resetAudit = src.indexOf('setOffset(0);');
+  const loadOnFilterChange = src.indexOf('load();');
   assert.ok(resetAudit > 0 && loadOnFilterChange > 0);
   assert.ok(
     resetAudit < loadOnFilterChange,
@@ -477,11 +485,10 @@ test('a filter change resets the audit page before it loads, in one effect', asy
   // the auditPage closure of a load effect running in the same commit, so the
   // old pair sent one request at the stale offset and one at 0. The single
   // effect only resets when the page is off 0 and lets the page change reload.
-  assert.match(src, /const filterChanged = auditQuerySeenRef\.current !== auditQuery;/);
-  assert.match(src, /if \(filterChanged && auditPage !== 0\) \{\s*setAuditPage\(0\);\s*return;/);
+  assert.match(src, /const changed = seen\.current !== queryKey;[\s\S]*?if \(changed && offset !== 0\) \{ setOffset\(0\); return; \}[\s\S]*?load\(\)/);
   // And both loaders drop a late response for a superseded request.
-  assert.match(src, /auditSeqRef/);
-  assert.match(src, /reviewsSeqRef/);
+  assert.match(src, /sequence/);
+  assert.match(src, /trailSequence/);
 });
 
 test('the Ledger Drift export admits it is a sample', async () => {
@@ -491,10 +498,10 @@ test('the Ledger Drift export admits it is a sample', async () => {
 });
 
 test('the promo expiry survives a round trip through the operator timezone', async () => {
-  const src = await read(INDEX);
-  assert.match(src, /function toLocalDateTimeInput\(/);
-  assert.match(src, /function localInputToIso\(/);
-  assert.match(src, /expires_at: toLocalDateTimeInput\(code\.expires_at\)/);
+  const src = await read(`${COMPONENT_DIR}PromoPanel.jsx`);
+  assert.match(src, /function localInput\(value\)/);
+  assert.match(src, /function iso\(value\)/);
+  assert.match(src, /expires_at: localInput\(row\.expires_at\)/);
   assert.ok(
     !/String\(code\.expires_at\)\.slice\(0, 16\)/.test(src),
     'slicing a UTC ISO string into a datetime-local input shifts the expiry every save',
@@ -502,7 +509,7 @@ test('the promo expiry survives a round trip through the operator timezone', asy
 });
 
 test('the ticket action cannot mislabel a status the route will not set', async () => {
-  const src = await read(INDEX);
+  const src = await read(`${COMPONENT_DIR}BugReportsPanel.jsx`);
   assert.ok(
     !/\{ticket\.status === 'open' \? 'Resolve' : 'Reopen'\}/.test(src),
     'a binary button read "Reopen" on an in_progress ticket and downgraded it',
@@ -529,8 +536,8 @@ test('the console imports every shared Phase 1 component', async () => {
   ]) {
     assert.match(
       src,
-      new RegExp(`from '\\.\\./\\.\\./src/components/horses/${name}'`),
-      `${INDEX} should import ${name} from src/components/horses/`,
+      new RegExp(`from ['"][^'"]*${name}['"]`),
+      `the shell or extracted owning panel should import ${name}`,
     );
   }
 });
@@ -609,36 +616,48 @@ test('the nav is a real ARIA tablist and every tab points at the one panel', asy
 });
 
 test('both dialogs render inside an error boundary', async () => {
-  const src = await read(INDEX);
+  const src = await readFile(new URL(INDEX, ROOT), 'utf8');
   const boundaries = (src.match(/<ErrorBoundary/g) || []).length;
-  assert.ok(boundaries >= 3, `panel plus both dialogs need a boundary, found ${boundaries}`);
+  assert.ok(boundaries >= 1, `the active panel and every panel-owned dialog need a shell boundary, found ${boundaries}`);
   const lastClose = src.lastIndexOf('</ErrorBoundary>');
-  const lastModal = src.lastIndexOf('</Modal>');
-  assert.ok(lastClose > lastModal, 'the last dialog must close before its boundary does');
+  const panel = src.lastIndexOf('<Panel ');
+  assert.ok(lastClose > panel, 'the active panel must close before its boundary does');
 });
 
 test('the tab and the Club Arena section are mirrored into the URL', async () => {
   const src = await read(INDEX);
+  const app = await read('pages/_app.js');
   assert.match(src, /resolveInitialTab\(router\.query\)/);
   assert.match(src, /resolveInitialSection\(router\.query\)/);
-  assert.match(src, /router\.replace\(\{ pathname: router\.pathname, query \}, undefined, \{ shallow: true \}\)/);
+  assert.match(src, /const target = \{ pathname: router\.pathname, query: nextUrlQuery\(state, router\.query\) \}/);
+  assert.match(src, /method === 'replace'[\s\S]*?router\.replace\(target, undefined, \{ shallow: true, scroll: false \}\)/);
   // A push for a real navigation is what makes Back undo a jump; a replace on
   // every write overwrites the entry it came from.
-  assert.match(src, /router\.push\(\{ pathname: router\.pathname, query \}, undefined, \{ shallow: true \}\)/);
+  assert.match(src, /router\.push\(target, undefined, \{ shallow: true, scroll: false \}\)/);
   // The hydration latch, and the guard that stops the write effect acting on a
   // difference it has not seen resolved.
   assert.match(src, /urlHydratedRef/);
   assert.match(src, /urlSyncedRef/);
+  assert.match(src, /pendingUrlStateRef/);
+  assert.match(src, /queuedUrlStateRef/);
+  assert.match(src, /startUrlWriteRef/);
+  assert.match(src, /if \(urlMatchesState\(pending, router\.query\)\) \{[\s\S]*?if \(queued\) startUrlWriteRef\.current\?\.\(queued, 'push'\)/);
+  assert.match(src, /pendingUrlStateRef\.current = null;[\s\S]*?queuedUrlStateRef\.current = null;[\s\S]*?setActiveTab\(resolveInitialTab\(router\.query\)\)/);
+  assert.match(src, /queuedUrlStateRef\.current = pending\.activeTab === state\.activeTab[\s\S]*?\? null[\s\S]*?: state;/);
+  assert.match(src, /Promise\.resolve\(navigation\)[\s\S]*?finishWrite\(completed === false\)[\s\S]*?finishWrite\(true\)/);
+  assert.match(src, /event\.currentTarget\.dataset\.tabid/);
+  assert.match(app, /resolvedPath === '\/hub\/reels' \|\| resolvedPath === '\/horses'[\s\S]*?\? resolvedPath[\s\S]*?: router\.asPath/);
+  assert.ok(!src.includes('urlWriteEpoch'), 'URL writes must not depend on a render-driven retry counter');
   assert.match(src, /if \(!urlSyncedRef\.current\) return;/);
   // The registry owns the default section.
   assert.match(src, /useState\(DEFAULT_CA_SECTION\)/);
 });
 
 test('Bug Reports reads the service-role route, not live_help_tickets from the browser', async () => {
-  const src = await read(INDEX);
+  const src = await read(`${COMPONENT_DIR}BugReportsPanel.jsx`);
   assert.match(src, /section: 'tickets'/);
   assert.match(src, /club-arena-admin\?\$\{params\.toString\(\)\}|club-arena-admin/);
-  assert.ok(src.includes('section=tickets'), 'the panel should document the section=tickets contract');
+  assert.match(src, /new URLSearchParams\(\{ section: 'tickets'/);
   assert.ok(
     !src.includes("from('live_help_tickets')"),
     'live_help_tickets must not be queried from the browser',
@@ -662,19 +681,19 @@ test('the dead grinder and pipeline actions are gone, not disabled', async () =>
 });
 
 test('loading and empty are distinct states on the roster', async () => {
-  const src = await read(INDEX);
-  assert.match(src, /personasLoading/);
+  const src = await read(`${COMPONENT_DIR}StablePanel.jsx`);
+  assert.match(src, /loading=\{loading\}/);
   assert.match(
     src,
-    /!personasError && !personasLoading && filteredPersonas\.length === 0/,
-    'the empty state must be gated on the load having finished',
+    /empty=\{personas\.length \? 'No Horses Match The Current Search And Filter\.' : 'No Horses Are In The Stable Yet\.'\}/,
+    'the table receives a distinct empty message while loading is a separate prop',
   );
 });
 
 test('both directions of the bulk activate confirm, through the shared dialog', async () => {
-  const src = await read(INDEX);
-  assert.match(src, /Activate All \$\{num\(ids\.length\)\} Horses\?/);
-  assert.match(src, /Rest All \$\{num\(ids\.length\)\} Horses\?/);
+  const src = await read(`${COMPONENT_DIR}StablePanel.jsx`);
+  assert.match(src, /Activate All \$\{num\(personas\.length\)\} Horses\?/);
+  assert.match(src, /Rest All \$\{num\(personas\.length\)\} Horses\?/);
   // And no confirmation anywhere in the console is a window.confirm any more:
   // it has no dialog role, no focus management and cannot carry the
   // thresholdDecision sentence. Comments may still name it.
@@ -744,9 +763,9 @@ test('every shared component file obeys the house rules', async () => {
  * Phase 2 review found: thirteen tabs asking for invented names, invisible to
  * a `god`, suite green throughout.
  */
-test('tabRegistry exports twenty tabs in order, and Fleet Command replaced Grinder', async () => {
+test('tabRegistry exports twenty-eight tabs in order, and Fleet Command replaced Grinder', async () => {
   const src = await read(`${COMPONENT_DIR}tabRegistry.js`);
-  const ids = [...src.matchAll(/\{ id: '([a-z]+)', label:/g)].map((m) => m[1]);
+  const ids = [...src.matchAll(/\{ id: '([a-z-]+)', label:/g)].map((m) => m[1]);
   assert.deepEqual(ids, [
     'stable',
     // Phase 3: was 'grinder'.
@@ -760,8 +779,14 @@ test('tabRegistry exports twenty tabs in order, and Fleet Command replaced Grind
     'players',
     // Phase 5.
     'integrity',
+    // Phase 6.
+    'floor', 'tournaments', 'cashier', 'rake',
+    // Phase 8.
+    'platform',
+    // Phase 9.
+    'sql-console', 'hg-moderation', 'hand-reviews',
   ]);
-  assert.equal(ids.length, 20);
+  assert.equal(ids.length, 28);
   assert.match(src, /export const TABS = \[/);
   assert.match(src, /export const DEFAULT_TAB = 'stable'/);
 
@@ -774,7 +799,7 @@ test('tabRegistry exports twenty tabs in order, and Fleet Command replaced Grind
   // the server module that defines it rather than copied into this file.
   const { ALL_PERMISSIONS } = await import('../src/lib/horses/permissions.js');
   const { TABS } = await import(`../${COMPONENT_DIR}tabRegistry.js`);
-  assert.equal(TABS.length, 20);
+  assert.equal(TABS.length, 28);
   assert.deepEqual(TABS.map((t) => t.id), ids, 'the parsed order is the exported order');
   for (const tab of TABS) {
     assert.ok(
@@ -786,35 +811,39 @@ test('tabRegistry exports twenty tabs in order, and Fleet Command replaced Grind
   const players = TABS.find((t) => t.id === 'players');
   assert.equal(players.label, 'Players');
   assert.equal(players.permission, 'players.read');
-  assert.equal(typeof players.load, 'function', 'Players is its own code-split module');
+  const dynamicPanels = await read(`${COMPONENT_DIR}dynamicPanels.js`);
+  assert.match(dynamicPanels, /players: PlayersPanel/);
   assert.notEqual(players.legacy, true, 'it is not rendered inline by index.js');
 
   const integrity = TABS.find((t) => t.id === 'integrity');
   assert.equal(integrity.label, 'Integrity');
   assert.equal(integrity.permission, 'players.read');
-  assert.equal(typeof integrity.load, 'function', 'Integrity is its own code-split module');
+  assert.match(dynamicPanels, /integrity: IntegrityPanel/);
   assert.notEqual(integrity.legacy, true, 'it is not rendered inline by index.js');
 
   const fleet = TABS.find((t) => t.id === 'fleet');
   assert.equal(fleet.label, 'Fleet Command');
   assert.equal(fleet.permission, 'fleet.read');
-  assert.equal(typeof fleet.load, 'function', 'Fleet Command is its own code-split module');
+  assert.match(dynamicPanels, /fleet: FleetPanel/);
   assert.notEqual(fleet.legacy, true, 'it is not rendered inline by index.js any more');
 });
 
 test('every paged list on the page renders a real Pager', async () => {
-  const src = await read(INDEX);
-  const pagers = (src.match(/<Pager\b/g) || []).length;
+  const src = `${await read(`${COMPONENT_DIR}AuditPanel.jsx`)}\n${await read(`${COMPONENT_DIR}BugReportsPanel.jsx`)}`;
+  const mint = await read(`${COMPONENT_DIR}MintPanel.jsx`);
+  const fleet = await read(`${COMPONENT_DIR}FleetPanel.jsx`);
+  const rendered = `${src}\n${mint}\n${fleet}`;
+  const pagers = (rendered.match(/<Pager\b/g) || []).length;
   assert.ok(
     pagers >= 4,
     `expected a Pager on the Mint ledger, Bug Reports, the grinder roster and the audit log, found ${pagers}`,
   );
-  assert.match(src, /goMintLedgerPage\(mintLedgerOffset \+ MINT_LEDGER_PAGE_SIZE\)/);
+  assert.match(mint, /onNext=\{\(\) => load\(\(ledger\.offset \|\| 0\) \+ PAGE, filters\)\}/);
   // The hand-rolled audit pagination is gone.
   assert.ok(!/`Page \$\{auditPage \+ 1\}`/.test(src), 'the audit log uses the shared Pager now');
   // hasMore is threaded through wherever a route can send it.
   assert.match(src, /hasMore=\{tickets\.hasMore\}/);
-  assert.match(src, /hasMore=\{auditHasMore\}/);
+  assert.match(src, /hasMore=\{hasMore\}/);
 });
 
 test('usePagedList carries hasMore alongside a total that may be null', async () => {
@@ -824,15 +853,15 @@ test('usePagedList carries hasMore alongside a total that may be null', async ()
 });
 
 test('bulk selections are chunked at 500 ids per request', async () => {
-  const src = await read(INDEX);
+  const src = await read(`${COMPONENT_DIR}StablePanel.jsx`);
   assert.match(src, /const BULK_CHUNK = 500;/);
-  assert.match(src, /i \+= BULK_CHUNK/);
+  assert.match(src, /index \+= BULK_CHUNK/);
 });
 
 test('optimistic reverts are by id set, not by whole-roster snapshot', async () => {
-  const src = await read(INDEX);
-  assert.match(src, /revertActiveForRows/);
-  assert.match(src, /restorePersonaRows/);
+  const src = await read(`${COMPONENT_DIR}StablePanel.jsx`);
+  assert.match(src, /const idSet = new Set\(ids\)/);
+  assert.match(src, /const prior = new Map\(personas\.filter/);
   assert.ok(
     !/setPersonas\(snapshot\)/.test(src),
     'restoring a captured roster clobbers rows the 2s sync tick refreshed mid-flight',

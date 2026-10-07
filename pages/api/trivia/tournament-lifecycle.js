@@ -12,9 +12,10 @@
  *     registration close  ->  seed + bracket generation  ->  round advancement
  *     ->  final standings  ->  atomic, idempotent prize payout
  *
- * It is driven by /api/cron/trivia-tournament-tick (Vercel cron) and can also
- * remains dormant and may only be invoked manually with CRON_SECRET during an
- * approved recovery. Phase 1 has no Vercel, OpenClaw or worker schedule for it.
+ * Phase 6 replaced this legacy engine with the fenced nightly engine. The
+ * exported helpers remain for compatible readers, but the HTTP authority is a
+ * private tombstone so enabling the public route flag cannot revive a second
+ * bracket, refund, or payout owner.
  *
  * Auth: `Authorization: Bearer ${CRON_SECRET}` (same convention as every other
  * cron-facing route in this repo). Never callable by an end user.
@@ -45,10 +46,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { reportApiError } from '../../../src/lib/apiErrorHandler';
 import { requireAdminSecret } from '../../../src/lib/trivia/adminAuth';
-import {
-    areTriviaTournamentsReleased,
-    rejectUnavailableTriviaTournament,
-} from '../../../src/lib/trivia/tournamentReleaseControl.mjs';
 
 // ───────────────────────────────────────────────────────────────────────────
 // TUNABLES
@@ -1113,35 +1110,30 @@ export async function runTournamentLifecycle(sb, opts = {}) {
 }
 
 // ───────────────────────────────────────────────────────────────────────────
-// HTTP HANDLER (ops / manual poke — CRON_SECRET only, never a user route)
+// HTTP HANDLER (authenticated tombstone; the Phase 6 engine is authoritative)
 // ───────────────────────────────────────────────────────────────────────────
 
-export default async function handler(req, res) {
-    try {
-        if (req.method !== 'POST' && req.method !== 'GET') {
-            return res.status(405).json({ success: false, error: 'Method not allowed' });
-        }
-
-        // Use the shared gate rather than a hand-rolled comparison. It is
-        // fail-closed on an unset/blank secret, rejects a secret too short to be
-        // one, compares in constant time, and refuses the ?secret= query form.
-        // This route settles tournaments and moves diamonds — it should not have
-        // its own weaker copy of the check.
-        if (!requireAdminSecret(req, res, { label: 'tournament-lifecycle' })) return;
-        if (!areTriviaTournamentsReleased(process.env)) {
-            return rejectUnavailableTriviaTournament(res);
-        }
-
-        const body = req.body || {};
-        const tournamentId =
-            typeof body.tournament_id === 'string' && body.tournament_id.length > 0 ? body.tournament_id : null;
-        const dryRun = body.dry_run === true;
-
-        const out = await runTournamentLifecycle(serviceClient(), { tournamentId, dryRun });
-        return res.status(out.success ? 200 : 500).json(out);
-    } catch (e) {
-        console.error('[tournament-lifecycle] unexpected:', e);
-        try { reportApiError(e, { route: '/api/trivia/tournament-lifecycle' }); } catch (_) {}
-        return res.status(500).json({ success: false, error: 'internal_error' });
+export default function handler(req, res) {
+    if (req.method !== 'POST' && req.method !== 'GET') {
+        res.setHeader('Allow', 'GET, POST');
+        return res.status(405).json({ success: false, error: 'method_not_allowed' });
     }
+
+    // Authenticate before returning Gone so public callers cannot use this
+    // retired financial authority as a release-state oracle.
+    if (!requireAdminSecret(req, res, { label: 'tournament-lifecycle-retired' })) return;
+
+    res.setHeader('Cache-Control', 'private, no-store, max-age=0');
+    console.warn('[trivia-retired-route]', JSON.stringify({
+        event: 'retired_route_invoked',
+        route: '/api/trivia/tournament-lifecycle',
+        method: req.method,
+        replacement: '/api/trivia/nightly/[action]',
+        occurred_at: new Date().toISOString(),
+    }));
+    return res.status(410).json({
+        success: false,
+        error: 'legacy_tournament_lifecycle_retired',
+        replacement: 'fenced_nightly_tournament_engine',
+    });
 }

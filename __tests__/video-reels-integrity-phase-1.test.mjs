@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import test from 'node:test';
 import {
   APP_ORIGIN,
@@ -30,7 +30,6 @@ const REELS_CLIENT = read('../src/lib/reelsFeedClient.js');
 const VIDEO_CATALOG_API = read('../pages/api/video-library/catalog.js');
 const VIDEO_AVAILABILITY = read('../src/lib/videoLibraryAvailability.js');
 const FEED_CACHE = read('../src/lib/feedCache.js');
-const VIDEO_CLIPPER = read('../src/content-engine/pipeline/VideoClipper.js');
 const YOUTUBE_FAILURE_API = read('../pages/api/youtube/report-embed-failure.js');
 const YOUTUBE_ERROR_MANAGER = read('../src/hooks/useYouTubeErrorManager.js');
 const YOUTUBE_PIPELINE_RECOVERY = read('../pages/api/cron/yt-pipeline-recovery.js');
@@ -51,6 +50,43 @@ const {
 } = clientModule;
 const feedCacheModule = await import(`data:text/javascript;base64,${Buffer.from(FEED_CACHE).toString('base64')}`);
 
+const RETIRED_DIRECT_VIDEO_WRITERS = [
+  '../scripts/ingest-pokernews-videos.js',
+  '../scripts/seed-reels.mjs',
+  '../scripts/mass-horse-posts.mjs',
+  '../src/content-engine/pipeline/post-video-clip.js',
+  '../src/content-engine/pipeline/unleash-horses.js',
+  '../pages/api/admin/initialize-horse-sources.js',
+  '../src/content-engine/pipeline/ClipLibrary.js',
+  '../src/content-engine/pipeline/SportsClipLibrary.js',
+  // Phase 10 deleted the JS content mirror with its native clipper; the
+  // SQL publisher is the only remaining writer, so the file stays retired.
+  '../src/content-engine/pipeline/VideoClipper.js',
+];
+
+test('retired video utilities cannot bypass the managed Reel publisher', () => {
+  for (const path of RETIRED_DIRECT_VIDEO_WRITERS) {
+    assert.equal(existsSync(new URL(path, import.meta.url)), false, `${path} must remain retired`);
+  }
+
+  const scriptsDirectory = new URL('../scripts/', import.meta.url);
+  const videoUtilityNames = readdirSync(scriptsDirectory)
+    .filter(name => /(?:video|reel|clip)/i.test(name))
+    .filter(name => /\.(?:c?js|mjs)$/.test(name));
+  const directManagedWrites = [];
+  for (const name of videoUtilityNames) {
+    const source = readFileSync(new URL(name, scriptsDirectory), 'utf8');
+    if (/\.from\(['"]social_(?:reels|posts)['"]\)[\s\S]{0,300}?\.(?:insert|upsert)\(/.test(source)) {
+      directManagedWrites.push(name);
+    }
+  }
+  assert.deepEqual(
+    directManagedWrites,
+    [],
+    'video maintenance utilities must publish through the verified atomic publisher, not write social tables directly',
+  );
+});
+
 test('the published Reels verifier is read-only and rejects hostile live payloads', () => {
   assert.equal(isBrowserReadOnlyRequest('GET', `${APP_ORIGIN}/api/reels/feed`), true);
   for (const method of ['POST', 'PUT', 'PATCH', 'DELETE']) {
@@ -69,7 +105,7 @@ test('the published Reels verifier is read-only and rejects hostile live payload
     video_url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
     source_name: 'Verified Source',
     source_attribution_url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
-    origin_type: 'video_library',
+    source_type: 'video_library',
     is_public: true,
     availability_status: 'verified',
     embeddable: true,
@@ -210,16 +246,6 @@ test('third-party YouTube is embed-only and never enters the native transcode qu
   assert.match(queueFunction, /rights_status[\s\S]*(owned|licensed)/i);
   assert.match(queueFunction, /media_status[\s\S]*queued/i);
   assert.match(MIGRATION, /status\s*=\s*'cancelled'/i);
-
-  const downloadMethod = VIDEO_CLIPPER.match(
-    /async downloadVideo\(url, options = \{\}\)[\s\S]*?\n    \}/,
-  )?.[0] || '';
-  assert.match(downloadMethod, /rightsStatus[\s\S]*owned[\s\S]*licensed[\s\S]*rights_clearance_required/);
-  assert.match(VIDEO_CLIPPER, /async processVideo[\s\S]*rights_clearance_required[\s\S]*this\.downloadVideo/);
-  assert.match(VIDEO_CLIPPER, /async uploadAndCreateReel[\s\S]*rights_clearance_required[\s\S]*readFileSync/);
-  assert.doesNotMatch(VIDEO_CLIPPER, /SUPABASE_SERVICE_ROLE_KEY\s*\|\|/);
-  assert.match(VIDEO_CLIPPER, /Reel creation failed[\s\S]*\.remove\(\[storagePath\]\)/);
-  assert.match(VIDEO_CLIPPER, /success:\s*results\.length === clips\.length/);
   assert.match(interceptFunction, /v_provenance_yt_id[\s\S]*owned[\s\S]*licensed[\s\S]*canonical_asset_key\s*:=\s*'youtube:'/i);
 });
 
@@ -555,7 +581,7 @@ test('social feed caches are viewer-scoped and never persist interaction truth',
   try {
     await feedCacheModule.feedCache.setPosts([
       { id: 'community', isLiked: true, isBookmarked: true, reactions: ['love'] },
-      { id: 'managed', origin_type: 'video_library', isLiked: true },
+      { id: 'managed', source_asset_id: '33333333-3333-4333-8333-333333333333', publication_key: 'video-library:fixture', isLiked: true },
     ], viewerA);
     const ownCache = await feedCacheModule.feedCache.getPosts(viewerA);
     const otherCache = await feedCacheModule.feedCache.getPosts(viewerB);

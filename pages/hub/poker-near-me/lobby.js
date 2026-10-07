@@ -1778,12 +1778,13 @@ export default function PokerNearMeLobby() {
     return () => { cancelled = true; };
   }, [selectedVenueForReview, getAuthToken]);
 
-  // Never publish an email address as the public reviewer_name. Supabase users
-  // carry the display name under user_metadata, not at the top level.
+  // Never publish an email address or a real name (full_name / name, which are
+  // owner-only Google OAuth data) as the public reviewer_name. Supabase users
+  // carry the public handle under user_metadata, not at the top level.
   const reviewerDisplayName = useMemo(() => (
     user?.user_metadata?.display_name
-    || user?.user_metadata?.full_name
-    || user?.user_metadata?.name
+    || user?.user_metadata?.username
+    || user?.user_metadata?.poker_alias
     || user?.display_name
     || ''
   ), [user]);

@@ -109,6 +109,7 @@ test('every mutating route files an audit row through auditOperatorAction', () =
     'horse.bulk_delete',
     'ticket.set_status',
     'settings.save',
+    'postmode.set',
   ]) {
     assert.ok(stable.includes(`'${action}'`), `stable-admin must audit ${action}`);
   }
@@ -1012,6 +1013,7 @@ test('club-arena-admin: set_club_status audits club.set_status with before and a
       action: 'set_club_status',
       clubId: '33333333-3333-3333-3333-333333333333',
       status: 'suspended',
+      reason: 'Operational safety review',
     },
     query: {},
     method: 'POST',
@@ -1021,6 +1023,7 @@ test('club-arena-admin: set_club_status audits club.set_status with before and a
   assert.equal(audits[0].p_action, 'club.set_status');
   assert.equal(audits[0].p_before_state.status, 'active');
   assert.equal(audits[0].p_details.status, 'suspended');
+  assert.equal(audits[0].p_details.reason, 'Operational safety review');
 
   await assert.rejects(
     caHandle({
@@ -1335,7 +1338,8 @@ test('stable-admin: every action asks for the permission it actually needs', asy
     [{ action: 'audit_log' }, 'audit.read'],
     [{ action: 'set_ticket_status', id: uuidAt(1), status: 'resolved' }, 'support.write'],
     [{ action: 'set_active', id: uuidAt(2), is_active: true }, 'content.write'],
-    [{ action: 'save_settings', settings: { posts_per_day: 3 } }, 'content.write'],
+    [{ action: 'save_settings', settings: { engine_enabled: false } }, 'content.write'],
+    [{ action: 'set_post_mode', mode: 'poker_news', enabled: true }, 'content.write'],
   ]) {
     await assert.rejects(
       stableHandle({ req: fakeReq({ method: 'POST' }), op: consoleOnly, db, body }),
@@ -1346,6 +1350,225 @@ test('stable-admin: every action asks for the permission it actually needs', asy
   // the per-action check instead of being refused at the door.
   const { spec: stableSpec } = await import(path.join(ROUTE_DIR, 'stable-admin.js'));
   assert.equal(stableSpec.permission, 'console.read');
+});
+
+test('stable-admin: read_settings answers any operator with the one live key and nothing else', async () => {
+  // The row still carries the dead columns (posts_per_day and friends hold
+  // their last written values); the read must not ship them to a browser as if
+  // they meant something. Phase 10: the engine reads engine_enabled and nothing
+  // else from this table.
+  const row = { id: 'settings-1', posts_per_day: 20, ai_model: 'gpt-4o', engine_enabled: true, updated_at: '2026-10-06T00:00:00Z' };
+  const db = fakeDb({ content_settings: { rows: [row] } });
+  const consoleOnly = { ...fakeOp(db), permissions: ['console.read'] };
+  const out = await stableHandle({ req: fakeReq({ method: 'POST' }), op: consoleOnly, db, body: { action: 'read_settings' } });
+  assert.deepEqual(out, { settings: { id: 'settings-1', engine_enabled: true, updated_at: '2026-10-06T00:00:00Z' } });
+  const read = db.calls.find((c) => c.table === 'content_settings');
+  assert.ok(read, 'the service role reads the row: a browser no longer can');
+  assert.doesNotMatch(read.select, /\*/, 'named columns only');
+  assert.match(read.select, /\bengine_enabled\b/);
+  assert.doesNotMatch(read.select, /posts_per_day|min_delay_minutes|max_delay_minutes|ai_model|temperature|auto_publish|peak_hours/, 'a dead column is never read back');
+  assert.equal(read.insert, undefined);
+  assert.equal(read.update, undefined);
+});
+
+test('stable-admin: save_settings writes engine_enabled only and refuses every dead key', async () => {
+  const row = { id: 'settings-1', engine_enabled: false, updated_at: '2026-10-06T00:00:00Z' };
+  const audits = [];
+  const db = fakeDb(
+    { content_settings: { rows: [row] } },
+    { fn_log_admin_action: async (args) => { audits.push(args); return { data: true, error: null }; } }
+  );
+  const op = { ...fakeOp(db), permissions: ['content.write'] };
+  const call = (settings) => stableHandle({ req: fakeReq({ method: 'POST' }), op, db, body: { action: 'save_settings', settings } });
+
+  // A key the engine does not read is refused, not trimmed: a stale tab must
+  // learn its control is dead rather than be told the write landed.
+  for (const dead of [{ posts_per_day: 3 }, { engine_enabled: true, ai_model: 'gpt-4o' }, { auto_publish: false }, { temperature: 0.5 }, { peak_hours: [9] }]) {
+    await assert.rejects(call(dead), (e) => e.status === 400 && /Unknown Setting/.test(e.message));
+  }
+  await assert.rejects(call({}), (e) => e.status === 400 && /No Settings To Save/.test(e.message));
+  await assert.rejects(call({ engine_enabled: 'true' }), (e) => e.status === 400 && /engine_enabled must be a boolean/.test(e.message));
+  assert.equal(db.calls.filter((c) => c.update || c.insert).length, 0, 'a refused body never reaches the table');
+
+  const out = await call({ engine_enabled: true });
+  const write = db.calls.find((c) => c.table === 'content_settings' && c.update);
+  assert.ok(write, 'the one live key is written');
+  assert.deepEqual(Object.keys(write.update).sort(), ['engine_enabled', 'updated_at']);
+  assert.equal(write.update.engine_enabled, true);
+  assert.ok(write.filters.some(([o, col, v]) => o === 'eq' && col === 'id' && v === 'settings-1'), 'the lowest-id row, by id');
+  assert.doesNotMatch(write.select, /\*/, 'the row read back names its columns');
+  assert.ok('settings' in out);
+  assert.equal(audits.length, 1);
+  assert.equal(audits[0].p_action, 'settings.save');
+  assert.equal(audits[0].p_target_type, 'content_settings');
+  assert.deepEqual(audits[0].p_before_state, { engine_enabled: false });
+  assert.deepEqual(audits[0].p_details, { fields: ['engine_enabled'] });
+});
+
+test('stable-admin: read_post_modes answers any operator with every mode row, named columns, by mode', async () => {
+  const rows = [
+    { mode: 'poker_news', enabled: true, description: 'A link to a poker news article with a comment.', approved_by: 'pre-existing', approved_at: '2026-09-06T12:25:35Z', created_at: '2026-09-06T12:25:35Z' },
+    { mode: 'grounded_hand', enabled: false, description: 'A post about a hand the horse actually played.', approved_by: null, approved_at: null, created_at: '2026-09-06T12:25:35Z' },
+    { mode: 'table_talk', enabled: false, description: 'A line said at the table.', approved_by: null, approved_at: null, created_at: '2026-10-06T12:25:35Z' },
+  ];
+  const db = fakeDb({ horse_post_modes: { rows } });
+  const consoleOnly = { ...fakeOp(db), permissions: ['console.read'] };
+  const out = await stableHandle({ req: fakeReq({ method: 'POST' }), op: consoleOnly, db, body: { action: 'read_post_modes' } });
+
+  // Every row, in mode order, so a row a later migration adds (table_talk)
+  // appears with no change to this route or the panel.
+  assert.deepEqual(out.modes.map((m) => m.mode), ['grounded_hand', 'poker_news', 'table_talk']);
+  assert.deepEqual(Object.keys(out.modes[0]).sort(), ['approved_at', 'approved_by', 'description', 'enabled', 'mode']);
+  const read = db.calls.find((c) => c.table === 'horse_post_modes');
+  assert.ok(read, 'the service role reads the table: a browser cannot');
+  assert.doesNotMatch(read.select, /\*/, 'named columns only');
+  for (const col of ['mode', 'enabled', 'description', 'approved_by', 'approved_at']) {
+    assert.match(read.select, new RegExp(`\\b${col}\\b`), `the read names ${col}`);
+  }
+  assert.deepEqual(read.filters.find(([o]) => o === 'order'), ['order', 'mode', { ascending: true }]);
+  assert.equal(read.insert, undefined);
+  assert.equal(read.update, undefined);
+  assert.equal(read.delete, undefined);
+
+  // console.read is the floor and it is enough; no permission at all is not.
+  await assert.rejects(
+    stableHandle({ req: fakeReq({ method: 'POST' }), op: { ...fakeOp(db), permissions: [] }, db, body: { action: 'read_post_modes' } }),
+    (e) => e.status === 403 && /console\.read/.test(e.message)
+  );
+});
+
+test('stable-admin: set_post_mode is one audited UPDATE of an existing row, and enabling stamps the approval', async () => {
+  const rows = [{ mode: 'grounded_hand', enabled: false, description: 'd', approved_by: null, approved_at: null }];
+  const audits = [];
+  const db = fakeDb(
+    { horse_post_modes: { rows } },
+    { fn_log_admin_action: async (args) => { audits.push(args); return { data: true, error: null }; } }
+  );
+  const op = { ...fakeOp(db), permissions: ['content.write'] };
+  const out = await stableHandle({
+    req: fakeReq({ method: 'POST' }),
+    op,
+    db,
+    body: { action: 'set_post_mode', mode: 'grounded_hand', enabled: true },
+  });
+  assert.equal(out.mode.mode, 'grounded_hand');
+  // The list rides back with the row, re-read from the table AFTER the write,
+  // so a flip costs the operator one call against the route's write limit.
+  assert.ok(Array.isArray(out.modes) && out.modes.length === 1, 'the whole list comes back with the row');
+  const modeCalls = db.calls.filter((c) => c.table === 'horse_post_modes');
+  const updateAt = modeCalls.findIndex((c) => c.update);
+  const listAt = modeCalls.findIndex((c) => c.filters.some(([o, col]) => o === 'order' && col === 'mode'));
+  assert.ok(updateAt > -1 && listAt > updateAt, 'the list is read after the write, never before it');
+
+  const writes = db.calls.filter((c) => c.table === 'horse_post_modes' && c.update);
+  assert.equal(writes.length, 1, 'one switch, one write');
+  const [write] = writes;
+  assert.equal(write.update.enabled, true);
+  assert.equal(write.update.approved_by, 'op@example.com', 'enabling records who approved, by the identity the route resolved');
+  assert.match(String(write.update.approved_at), /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/, 'enabling records when');
+  assert.deepEqual(Object.keys(write.update).sort(), ['approved_at', 'approved_by', 'enabled'], 'nothing else moves');
+  assert.ok(write.filters.some(([o, col, v]) => o === 'eq' && col === 'mode' && v === 'grounded_hand'), 'by mode, the primary key');
+  assert.doesNotMatch(write.select, /\*/, 'the row read back names its columns');
+  assert.ok(db.calls.every((c) => c.insert === undefined), 'never an insert: a new mode arrives as a disabled migration row');
+
+  assert.equal(audits.length, 1, 'one switch, one audit row');
+  assert.equal(audits[0].p_action, 'postmode.set');
+  assert.equal(audits[0].p_target_type, 'horse_post_modes');
+  assert.equal(audits[0].p_target_id, 'grounded_hand');
+  assert.deepEqual(audits[0].p_before_state, { enabled: false, approved_by: null, approved_at: null });
+  assert.deepEqual(Object.keys(audits[0].p_after_state).sort(), ['approved_at', 'approved_by', 'enabled']);
+  assert.deepEqual(audits[0].p_details, { mode: 'grounded_hand', enabled: true, approval_stamped: true });
+  assert.equal(audits[0].p_admin_user_id, op.user.id);
+});
+
+test('stable-admin: disabling a mode leaves its approval record alone', async () => {
+  const rows = [{ mode: 'poker_news', enabled: true, description: 'd', approved_by: 'pre-existing', approved_at: '2026-09-06T12:25:35Z' }];
+  const audits = [];
+  const db = fakeDb(
+    { horse_post_modes: { rows } },
+    { fn_log_admin_action: async (args) => { audits.push(args); return { data: true, error: null }; } }
+  );
+  const op = { ...fakeOp(db), permissions: ['content.write'] };
+  await stableHandle({
+    req: fakeReq({ method: 'POST' }),
+    op,
+    db,
+    body: { action: 'set_post_mode', mode: 'poker_news', enabled: false },
+  });
+  const write = db.calls.find((c) => c.table === 'horse_post_modes' && c.update);
+  assert.deepEqual(write.update, { enabled: false }, 'the approval is history, not state: a disable does not erase who first allowed the mode');
+  assert.equal(audits.length, 1);
+  assert.equal(audits[0].p_action, 'postmode.set');
+  assert.deepEqual(audits[0].p_details, { mode: 'poker_news', enabled: false, approval_stamped: false });
+});
+
+test('stable-admin: set_post_mode refuses an unknown mode, a non-boolean, a bad name and a reader', async () => {
+  const rows = [{ mode: 'poker_news', enabled: true, description: 'd', approved_by: 'pre-existing', approved_at: '2026-09-06T12:25:35Z' }];
+  const db = fakeDb({ horse_post_modes: { rows } });
+  const op = { ...fakeOp(db), permissions: ['content.write'] };
+  const call = (body, who = op) => stableHandle({ req: fakeReq({ method: 'POST' }), op: who, db, body });
+
+  // A mode nobody seeded is a 404, and the table is never written to invent it.
+  await assert.rejects(call({ action: 'set_post_mode', mode: 'table_talk', enabled: true }), (e) => e.status === 404 && e.code === 'not_found');
+  assert.ok(db.calls.every((c) => c.insert === undefined && c.update === undefined), 'an unknown mode is neither created nor written');
+
+  for (const body of [
+    { action: 'set_post_mode', mode: 'poker_news', enabled: 'true' },
+    { action: 'set_post_mode', mode: 'poker_news', enabled: 1 },
+    { action: 'set_post_mode', mode: 'poker_news' },
+    { action: 'set_post_mode', mode: 'Poker News', enabled: true },
+    { action: 'set_post_mode', mode: "poker_news'; drop table", enabled: true },
+    { action: 'set_post_mode', mode: '', enabled: true },
+    { action: 'set_post_mode', enabled: true },
+  ]) {
+    await assert.rejects(call(body), (e) => e.status === 400, `refused: ${JSON.stringify(body)}`);
+  }
+  assert.ok(db.calls.every((c) => c.update === undefined), 'a malformed body never reaches the table');
+
+  // Reading the modes is console floor; flipping one is a content write.
+  const consoleOnly = { ...fakeOp(db), permissions: ['console.read'] };
+  await assert.rejects(
+    call({ action: 'set_post_mode', mode: 'poker_news', enabled: true }, consoleOnly),
+    (e) => e.status === 403 && /content\.write/.test(e.message)
+  );
+});
+
+test('stable-admin: a database failure on a mode flip is mapped, never echoed', async () => {
+  const db = fakeDb({
+    horse_post_modes: { error: { code: '42501', message: 'permission denied for table horse_post_modes' } },
+  });
+  const op = { ...fakeOp(db), permissions: ['content.write'] };
+  const quiet = console.error;
+  console.error = () => {};
+  try {
+    await assert.rejects(
+      stableHandle({ req: fakeReq({ method: 'POST' }), op, db, body: { action: 'set_post_mode', mode: 'poker_news', enabled: true } }),
+      (e) => {
+        assert.ok(e.status >= 400);
+        assert.doesNotMatch(e.message, /permission denied|horse_post_modes/, 'no database text reaches the operator');
+        return true;
+      }
+    );
+    await assert.rejects(
+      stableHandle({ req: fakeReq({ method: 'POST' }), op, db, body: { action: 'read_post_modes' } }),
+      (e) => e.status >= 400 && !/permission denied|horse_post_modes/.test(e.message)
+    );
+  } finally {
+    console.error = quiet;
+  }
+});
+
+test('stable-admin: pipeline_runs answers any operator with the recent runs, newest first', async () => {
+  const runs = [{ id: 'r2', started_at: '2026-10-05T10:00:00Z' }, { id: 'r1', started_at: '2026-10-04T10:00:00Z' }];
+  const db = fakeDb({ pipeline_runs: { rows: runs } });
+  const consoleOnly = { ...fakeOp(db), permissions: ['console.read'] };
+  const out = await stableHandle({ req: fakeReq({ method: 'POST' }), op: consoleOnly, db, body: { action: 'pipeline_runs' } });
+  assert.ok(Array.isArray(out.runs));
+  const read = db.calls.find((c) => c.table === 'pipeline_runs');
+  assert.ok(read, 'the service role reads the runs: a browser no longer can');
+  assert.doesNotMatch(read.select, /\*|metadata/, 'named columns only, never the run notes');
+  assert.deepEqual(read.filters.find(([op]) => op === 'order'), ['order', 'started_at', { ascending: false }]);
+  assert.deepEqual(read.filters.find(([op]) => op === 'limit'), ['limit', 10]);
 });
 
 test('stable-admin: audit_log and set_ticket_status ask for their own permission', async () => {
@@ -1602,17 +1825,43 @@ test('anti-abuse: an unknown section is a 400', async () => {
 
 const { handle: analyticsHandle, spec: analyticsSpec } = await import(path.join(ROUTE_DIR, 'analytics.js'));
 
+/**
+ * Phase 10 (2026-10-06): the route serves one type, summary, from one database
+ * function, fn_fleet_content_metrics(p_days). The shape below is the contract
+ * both the page and the weekly digest build to; the route hands it on whole.
+ */
+const METRICS_SAMPLE = Object.freeze({
+  window: { days: 7, since: '2026-09-29T15:00:00+00:00', until: '2026-10-06T15:00:00+00:00' },
+  feed: { horse_posts: 10, feed_posts: 80, horse_share_pct: 12.5 },
+  reactions: { human_likes: 4, human_comments: 1, horse_posts: 10, per_horse_post: 0.5 },
+  captions: { horse_posts: 10, distinct_captions: 9, distinct_caption_pct: 90.0 },
+  coverage: { horses_posted: 8, fleet_size: 900, coverage_pct: 0.9, coverage_pct_of_1000: 0.8 },
+  readiness: { horses_not_social_ready: 62 },
+  posts: { horse_posts: 10, horses_posted: 8 },
+  runs: [{ job_name: '/cron/horse-posts', runs: 1, succeeded: 1, errored: 0, killed: 0, skipped_runs: 0, engine_off_runs: 0, due: 0, posted: 0, failed: 0, collided: 0, enqueued: 0 }],
+  ledger: { phrases: [{ kind: 'caption', rows_written: 0, distinct_keys: 0, rows_that_repeat: 0 }], assets: { rows: 0, distinct: 0 } },
+});
+
+const analyticsCall = (db) => (query) =>
+  analyticsHandle({ req: fakeReq(), op: fakeOp(db), db, body: {}, query, method: 'GET' });
+
 test('analytics: days and type are validated before anything is loaded', async () => {
   const db = fakeDb();
-  const call = (query) => analyticsHandle({ req: fakeReq(), op: fakeOp(db), db, body: {}, query, method: 'GET' });
+  const call = analyticsCall(db);
   await assert.rejects(call({ type: 'summary', days: 'abc' }), (e) => e.status === 400);
   await assert.rejects(call({ type: 'summary', days: '0' }), (e) => e.status === 400);
   await assert.rejects(call({ type: 'summary', days: '366' }), (e) => e.status === 400);
   await assert.rejects(call({ type: 'made-up' }), (e) => e.status === 400 && /Invalid Type/.test(e.message));
+  // Phase 10: the three types the mirror served went with it.
+  for (const retired of ['errors', 'top-horses', 'clips']) {
+    await assert.rejects(call({ type: retired }), (e) => e.status === 400 && /Invalid Type/.test(e.message));
+  }
   assert.equal(analyticsSpec.permission, 'console.read');
+  assert.deepEqual(analyticsSpec.methods, ['GET']);
+  assert.equal(analyticsSpec.limit, 'read');
 
   // A repeated query param arrives as an array. Validate the selected first
-  // value without coupling this unit test to the live analytics service.
+  // value; the function is never called for a request that fails validation.
   await assert.rejects(
     call({ type: ['made-up', 'summary'], days: ['7'] }),
     (e) => e.status === 400 && /Invalid Type/.test(e.message)
@@ -1621,22 +1870,75 @@ test('analytics: days and type are validated before anything is loaded', async (
     call({ type: ['summary', 'errors'], days: ['0', '7'] }),
     (e) => e.status === 400 && /Days Must Be Between/.test(e.message)
   );
-  // A repeated query param arrives as an array. It used to 400 where the
-  // original coerced and defaulted.
+  assert.equal(db.calls.length, 0, 'nothing is read before validation passes');
+});
+
+test('analytics: summary calls fn_fleet_content_metrics with the validated window and returns the object whole', async () => {
+  const db = fakeDb(
+    {},
+    {
+      fn_fleet_content_metrics: async (args) => ({
+        data: { ...METRICS_SAMPLE, window: { ...METRICS_SAMPLE.window, days: args.p_days } },
+        error: null,
+      }),
+    }
+  );
+  const call = analyticsCall(db);
+
+  const payload = await call({ type: 'summary', days: '30' });
+  assert.deepEqual(db.calls, [{ rpc: 'fn_fleet_content_metrics', args: { p_days: 30 } }]);
+  assert.deepEqual(Object.keys(payload).sort(), ['data', 'window_days']);
+  assert.equal(payload.window_days, 30);
+  assert.deepEqual(
+    Object.keys(payload.data).sort(),
+    ['captions', 'coverage', 'feed', 'ledger', 'posts', 'reactions', 'readiness', 'runs', 'window'],
+    'the nine contract keys, untouched'
+  );
+  assert.equal(payload.data.window.days, 30);
+  assert.equal(payload.data.feed.horse_share_pct, 12.5);
+  assert.equal(payload.data.readiness.horses_not_social_ready, 62);
+
+  // No days: the window defaults to 7. An array of days is coerced to its
+  // first value, where the original 400'd.
+  const defaulted = await call({});
+  assert.equal(defaulted.window_days, 7);
+  assert.deepEqual(db.calls.at(-1), { rpc: 'fn_fleet_content_metrics', args: { p_days: 7 } });
+  const coerced = await call({ type: ['summary', 'errors'], days: ['14'] });
+  assert.equal(coerced.window_days, 14);
+  assert.deepEqual(db.calls.at(-1), { rpc: 'fn_fleet_content_metrics', args: { p_days: 14 } });
+});
+
+test('analytics: a function error is one 503 with a sentence this route wrote, never the database text', async () => {
   const quiet = console.error;
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   console.error = () => {};
-  process.env.SUPABASE_SERVICE_ROLE_KEY = '';
   try {
+    const failing = fakeDb(
+      {},
+      {
+        fn_fleet_content_metrics: async () => ({
+          data: null,
+          error: { message: 'relation "public.social_posts" does not exist', code: '42P01' },
+        }),
+      }
+    );
+    await assert.rejects(analyticsCall(failing)({ type: 'summary' }), (e) => {
+      assert.equal(e.status, 503);
+      assert.equal(e.code, 'analytics_unavailable');
+      assert.equal(e.message, 'Analytics Is Unavailable');
+      assert.doesNotMatch(e.message, /social_posts|42P01/);
+      return true;
+    });
+    assert.equal(failing.calls.length, 1, 'one call, no retry');
+
+    // A function that answers with nothing is unavailable too: the page must
+    // read Unknown, never a fabricated zero.
+    const empty = fakeDb({}, { fn_fleet_content_metrics: async () => ({ data: null, error: null }) });
     await assert.rejects(
-      call({ type: ['summary', 'errors'], days: ['7'] }),
-      (e) => e.status === 503 && e.code === 'analytics_unavailable',
-      'the array is coerced, so the request reaches the service and fails there, not at validation'
+      analyticsCall(empty)({ type: 'summary' }),
+      (e) => e.status === 503 && e.code === 'analytics_unavailable'
     );
   } finally {
     console.error = quiet;
-    if (serviceKey === undefined) delete process.env.SUPABASE_SERVICE_ROLE_KEY;
-    else process.env.SUPABASE_SERVICE_ROLE_KEY = serviceKey;
   }
 });
 

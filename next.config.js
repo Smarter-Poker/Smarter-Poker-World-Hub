@@ -163,6 +163,12 @@ const withPWA = require('@ducanh2912/next-pwa').default({
   // build-cost denylist and is NOT what keeps public/ out of the precache.
   // See the additionalManifestEntries comment below for what actually does.
   workboxOptions: {
+    // The custom worker owns client takeover because its activate handler must
+    // retire rejected Trivia art before any controlled page can reload under
+    // the new release. Workbox defaults this to true, which registered a
+    // second activate listener that claimed clients in parallel with that
+    // migration and exposed the pre-migration cache state to installed PWAs.
+    clientsClaim: false,
     // ─── THE ROOT SERVICE WORKER MUST BE ABLE TO INSTALL ───────────────────
     // Dan, 2026-08-29, from an iPhone: "ENABLE NOTIFICATIONS ISN'T WORKING",
     // with Club Arena's prompt showing "The notification service worker did
@@ -362,7 +368,7 @@ const withPWA = require('@ducanh2912/next-pwa').default({
         urlPattern: ({ url, sameOrigin }) => sameOrigin && url.pathname.startsWith('/images/trivia/'),
         handler: 'CacheFirst',
         options: {
-          cacheName: 'trivia-art-32d8d51ff2',
+          cacheName: 'trivia-art-2aeb3f37c9',
           expiration: { maxEntries: 160, maxAgeSeconds: 60 * 60 * 24 * 30 }, // 30 days
         },
       },
@@ -735,7 +741,6 @@ const nextConfig = {
       { protocol: 'https', hostname: '*.supabase.co' }, // Any Supabase project
       { protocol: 'https', hostname: 'images.unsplash.com' }, // Fallback stock photos
       { protocol: 'https', hostname: 'smarter.poker' }, // Platform CDN
-      { protocol: 'https', hostname: 'diamond.smarter.poker' }, // Diamond assets
       { protocol: 'https', hostname: 'auth.smarter.poker' }, // Supabase auth + storage proxy (avatars, logos)
       { protocol: 'https', hostname: '*.smarter.poker' }, // Catch-all for platform sub-domains
       { protocol: 'https', hostname: 'api.qrserver.com' }, // QR code generation

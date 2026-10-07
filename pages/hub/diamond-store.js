@@ -464,7 +464,7 @@ const VIP_FAQ = [
   },
   {
     q: 'Does One Membership Cover Both Smarter.Poker And Club Arena?',
-    a: 'Yes. A Single Membership Covers The Whole Platform. The Same Account Session Carries Your VIP Status Into Club Arena, Diamond Arena And Every Training Tool, With Nothing Extra To Activate.',
+    a: 'Yes. A Single Membership Covers The Whole Platform. The Same Account Session Carries Your VIP Status Into Club Arena And Every Training Tool, With Nothing Extra To Activate.',
   },
   {
     q: 'Do I Still Pay Tournament Buy-Ins As A VIP?',
@@ -3989,8 +3989,8 @@ export default function DiamondStorePage({
                       },
                       {
                         id: 'vip-benefits-arena',
-                        label: 'Club & Diamond Arena Features',
-                        category: 'Club & Diamond Arena',
+                        label: 'Club Arena Features',
+                        category: 'Club Arena',
                       },
                     ].map((group) => {
                       const benefits = displayedVipBenefits.filter(

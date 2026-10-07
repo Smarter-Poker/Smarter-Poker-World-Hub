@@ -1,80 +1,41 @@
-# Phase 1 Plan: Restore Safe Supply And Endless Delivery
+# Phase 9 Plan: Creator Rights, Attribution, And Moderation
 
-## Confirmed Production Failure
+## Confirmed Baseline
 
-- Production has 2,397 poker clips, 8,936 sports clips, and 2,171 Video Library rows, but no managed supply currently reaches the public canonical Reels feed.
-- The legacy feed admits only rows with `source_post_id`, which excludes all 68 existing YouTube Reels and leaves seven native personal uploads.
-- Horse video supply is zero because the global content-engine switch is off and the current route reports a successful skip.
-- The Video Library publisher was green-but-skipped through the disabled fleet route. The official publisher and slots eligibility migrations are now installed; the independent Open Claw route and bounded production backfill still require merged-source publication and live proof.
-- The Social Media carousel fetches at most 50 canonical rows once and discards `next_cursor`.
-- The canonical candidate feed currently rejects slots and sports by design, so category expansion needs an explicit allowlisted API contract rather than removal of safety gates.
+Phase 8 is protected-merged and live through `ab60785a5cf86a3fcafb217d0b0578ae0daacdd2`. Search, study continuity, canonical delivery, availability gates, rights-cleared native processing, and the bounded player remain authoritative. Phase 9 owns RGT-03 through RGT-07 and OPS-01 only.
 
-## Wave 1: Contract And Tests
+## Wave 1: Durable Rights And Moderation Authority
 
-- [x] Add failing migration contract tests for canonical fields, rights gating, kill switch, and atomic publication.
-- [x] Add failing bridge tests for pagination, allowlisted topic validation, RPC publication, and explicit author identity.
-- [x] Add failing feed tests for poker topic, ready playback, canonical-only results, and backward-compatible deep links.
+1. Add owner-scoped creator source claims and submissions with operation identity, evidence references and digests, rights scope, territories, validity, exact attribution, disclosures, and reviewed lifecycle state.
+2. Add durable content reports and takedown cases/events with replay-safe submission and least-privilege creator/admin access.
+3. Apply takedowns in one database transaction that first suppresses every linked Library, Reel, post, search, saved, study, and deep-link read while preserving engagement and legal history.
+4. Recheck active rights at publication and worker completion; external object deletion remains an explicit cleanup receipt after durable suppression.
 
-## Wave 2: Database Foundation
+## Wave 2: Creator And Operator Workflows
 
-- [x] Add `origin_type`, `playback_type`, `topic`, `rights_status`, `source_asset_id`, `canonical_asset_key`, and duplicate lineage fields.
-- [x] Replace the YouTube intercept so it preserves provenance and defaults third-party playback to embed-only.
-- [x] Gate native jobs on explicit owned or licensed rights.
-- [x] Add a global library-Reel publication setting and fail-closed RPC check.
-- [x] Add a canonical partial unique index for library publications.
-- [x] Add `publish_video_library_reel` with transaction-level idempotency and post/Reel assertions.
-- [x] Backfill canonical fields without deleting engagement records.
+1. Add bearer-bound, account-exact creator APIs for claims, submissions, attribution, clip reviews, reports, and takedowns.
+2. Add the mobile-first painted Creator Rights Console with sources, submissions, attribution, clip reviews, and case status.
+3. Add the minimum operator moderation surface needed to review claims/submissions/reports and apply or reject takedowns. Phase 10 retains expanded analytics and operations dashboards.
 
-## Wave 3: Publisher And Feed Wiring
+## Wave 3: Trustworthy Public Delivery
 
-- [x] Replace direct bridge inserts with the publication RPC.
-- [x] Require an explicit system author; remove unrelated-profile fallback.
-- [x] Page every source table and validate every candidate.
-- [x] Publish only explicitly allowed poker and casino-slots library types in this phase.
-- [x] Update full-screen Reels, embedded Reels, and public Reels APIs to use canonical topic and playback fields.
-- [x] Keep legacy deep links and old rows playable during transition.
+1. Return exact creator/channel attribution, canonical source URL, disclosure labels, and Made For Kids state through canonical Reel and Library contracts.
+2. Remove unrelated identity fallbacks. Managed third-party media without exact attribution fails closed.
+3. Render one shared trust strip and one shared report workflow across dedicated Reels, embedded Reels, Social, and Video Library.
+4. Preserve YouTube branding and controls, identifying referrer, embed-only playback, and the one-visible-autoplay-player budget.
 
 ## Wave 4: Verification And Release
 
-- [ ] Run targeted tests and coverage for all new logic.
-- [ ] Run typecheck, lint, complete production build, and secret/stub/diff checks.
-- [ ] Dry-run the migration and execute its assertions.
-- [ ] Commit with the required Smarter-Poker identity and push without bypassing hooks.
-- [ ] Confirm the PR, CI result, merge, migration ledger, and production SHA.
-- [ ] Prove one canonical test publication is created once, linked on both tables, poker-filtered, embed-ready, and produces no transcode job.
-- [ ] Prove replay, stale link, kill-switch, and simulated mid-flight failure behavior.
+1. Run focused migration, API, UI, canonical-feed, hostile-state, and connected Video/Reels suites.
+2. Exercise duplicate/concurrent operations, cross-account access, expiry/revocation, worker/publication races, stale storage, old bookmarks, mid-flight removal, and cleanup-pending behavior.
+3. Run the production build and required protected checks.
+4. Install the exact migration once, read back schema/grants/RLS/functions, protected-merge, wait for Vercel, and verify exact live identity and affected behavior.
 
-## Wave 5: Restore Managed Supply
+## Phase 9 Acceptance Gates
 
-- [x] Install and read back the official publisher and slots eligibility migrations after the Tier 2 preflights.
-- [x] Route the existing Open Claw Video Library job to the verified atomic publisher independently of `content_settings.engine_enabled`.
-- [x] Verify availability and embeddability before publication; do not publish unknown library rows.
-- [x] Add an independently controlled, approved `/cron/horse-video-reels` worker route and Open Claw schedule while leaving unrelated generated/text modes disabled.
-- [x] Record positive and negative YouTube verdicts in the shared verifier contract before a horse video becomes public.
-- [x] Preserve horse identity as ordinary author identity without exposing an internal horse label in the viewer.
-- [ ] Backfill in bounded, replay-safe pages until at least 2,000 unique verified candidates are public or every remaining candidate has a recorded rejection reason.
-
-## Wave 6: Endless Multi-Topic Social Reels
-
-- [x] Replace poker-only client/server naming and filtering with a validated category contract: `for-you`, `poker`, `casino-slots`, `sports`, and `following`.
-- [x] Keep category-specific topic isolation and all public-ready, rights, availability, moderation, deletion, and attribution gates.
-- [x] Store and consume `next_cursor` in the Social Media carousel and load the next page within three Reels of the boundary.
-- [x] Preserve the active Reel while appending or merging realtime first-page changes.
-- [x] Abort stale requests, prevent cursor loops, retain the current list on a mid-flight failure, and retry only by explicit user action.
-- [x] Keep the mounted media window bounded to previous/current/next and prevent offscreen audio.
-- [x] Add regression fixtures for 2,000 candidates, three-page continuation, stale storage, old deep links, and interrupted continuation.
-
-## Phase 1 Acceptance Gates
-
-1. A library video publication creates exactly one Reel and one linked social post.
-2. Replaying or racing the request returns the existing publication.
-3. A third-party YouTube publication creates no transcode job.
-4. Owned or licensed processing remains explicitly available for Phase 6.
-5. The new Reel appears on poker Reels surfaces and in the main social feed.
-6. Poker, Casino And Slots, Sports, and Following responses are category-correct; For You may mix only explicitly eligible categories.
-7. A disabled publication switch blocks writes without partial rows.
-8. Old Reel IDs and legacy rows remain playable throughout the transition.
-9. CI is green, the PR is merged, the migration is applied, and production serves the merged SHA.
-10. The Social Media viewer crosses 50 unique Reels and at least three cursor pages without closing.
-11. At least 2,000 unique verified Reels are publicly eligible, or every unfilled candidate has an explicit verifier, rights, moderation, or deduplication reason.
-12. A disabled global horse content engine does not disable the separately approved video supply mode.
+- Creator claims, submissions, rights grants, attribution changes, reports, and takedowns have durable replay-safe receipts.
+- Creators can read only their own records and cannot self-approve; operators have a separately audited review boundary.
+- Takedown success means all public readers fail closed immediately, including stale saves and old links, while history and engagement remain preserved.
+- All public video surfaces show exact attribution and applicable sponsored, promotional, generated, community-submitted, responsible-play, and Made For Kids labels.
+- Third-party YouTube media remains embed-only with controls, branding, referrer identity, and one active iframe.
+- Focused and connected tests, production build, required CI, protected merge, migration installation/readback, Vercel READY identity, and live behavior proof all pass.

@@ -548,7 +548,7 @@ export default async function handler(req, res) {
       if (requesterIds.length > 0) {
         const { data: requesters } = await getSupabase()
           .from('profiles')
-          .select('id, display_name, email')
+          .select('id, display_name, username')
           .in('id', requesterIds);
         for (const p of requesters || []) profileById.set(p.id, p);
       }
@@ -557,7 +557,8 @@ export default async function handler(req, res) {
         const p = profileById.get(r.requester_user_id) || null;
         return {
           ...r,
-          profiles: p ? { display_name: p.display_name, email: p.email } : null,
+          // A union lead is not platform staff: no email (ruling 25).
+          profiles: p ? { display_name: p.display_name, username: p.username } : null,
         };
       });
 

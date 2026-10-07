@@ -29,31 +29,16 @@ async function runTests() {
     };
 
     // ─────────────────────────────────────────────────────────────────────────
-    // TEST 1: Check Auth Status
+    // TEST 1: Who this harness runs as
     // ─────────────────────────────────────────────────────────────────────────
-    console.log('📋 TEST 1: Check Authentication Status');
-    try {
-        // NOTE: destructured deliberately. This is a standalone Node test
-        // harness, not browser/app code, so the repo's ban on the Supabase
-        // client auth helpers does not apply here - but the pre-commit hook
-        // matches the literal string `supabase.auth.getUser`, which would
-        // block any commit that touches this file. Same call, different shape.
-        const auth = supabase.auth;
-        const { data: { user }, error } = await auth.getUser();
-        if (user) {
-            console.log(`   ✅ Authenticated as: ${user.email} (${user.id})`);
-            results.passed++;
-            results.tests.push({ name: 'Auth Check', status: 'PASS', userId: user.id });
-        } else {
-            console.log('   ⚠️  NOT AUTHENTICATED - This is why posts fail!');
-            console.log('   ℹ️  The anon key can read but not write without a logged-in user');
-            results.tests.push({ name: 'Auth Check', status: 'WARN', msg: 'Not authenticated' });
-        }
-    } catch (e) {
-        console.log(`   ❌ Error: ${e.message}`);
-        results.failed++;
-        results.tests.push({ name: 'Auth Check', status: 'FAIL', error: e.message });
-    }
+    // There is nothing to ask. The client above is built from the public key
+    // and never signs in, so it has no session by construction: it is anon,
+    // every time. Asking the auth server "who am I" from here could only ever
+    // answer "nobody" - so this states it instead of making the call.
+    console.log('📋 TEST 1: Caller Identity');
+    console.log('   ℹ️  Public key, no session: every request below runs as anon.');
+    console.log('   ℹ️  Reads granted to anon succeed; writes are expected to be refused by RLS.');
+    results.tests.push({ name: 'Caller Identity', status: 'INFO', msg: 'anon (public key, no session)' });
 
     // ─────────────────────────────────────────────────────────────────────────
     // TEST 2: Fetch Posts (SELECT)
@@ -116,7 +101,10 @@ async function runTests() {
                 content_type: 'text',
                 visibility: 'public'
             })
-            .select()
+            // Name the column. A bare select asks for every column, and the
+            // browser roles are granted social_posts column by column (all but
+            // origin_type and metadata), so `*` is refused. Only the id is used.
+            .select('id')
             .maybeSingle();
 
         if (error) {

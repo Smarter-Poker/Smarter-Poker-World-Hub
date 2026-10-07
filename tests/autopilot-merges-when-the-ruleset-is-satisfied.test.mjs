@@ -1,25 +1,18 @@
 /**
- * LAW: autopilot merges a pull request the ruleset would merge.
+ * LAW: autopilot merges only what the ruleset would merge, and never around it.
  *
- * Added 2026-09-04. `.github/scripts/queue-pr.sh` (byte-identical in seven
- * repos, enforced by estate-integrity) enables squash auto-merge, and GitHub's
- * auto-merge waits for the REQUIRED checks only. But when a PR was already
- * mergeable by the time the sweep reached it, `--auto` was refused with
- * "Pull request is in unstable status" and the script's fallback merged CLEAN
- * only - so a PR with every required check green and one OPTIONAL suite red
- * landed if autopilot got there before the checks finished, and sat open
- * forever if it got there after. World Hub #1364 sat that way: seven required
- * checks green, Global Footer E2E red, "the next sweep will look again" every
- * ten minutes with no report.
- *
- * The bar is the ruleset's, in both directions:
- *   - UNSTABLE in a repo whose base ruleset requires checks means everything
- *     required is green (a red or pending required check reports BLOCKED), so
- *     it merges - naming what was waived, never silently;
- *   - UNSTABLE in a repo with NO required checks means the only check there is
- *     has failed, so it does not merge (the original guard, kept);
- *   - a red required check is refused by GitHub on the merge call itself, and
- *     the script surfaces that instead of pretending.
+ * Added 2026-09-04 for the 98-line queue-pr.sh of that day, which merged an
+ * UNSTABLE pull request itself after naming the optional suite it waived.
+ * Rewritten 2026-10-05 when this repo converged on Club Arena's copy of
+ * `.github/scripts/queue-pr.sh` (byte-identical across the estate, enforced by
+ * Club Arena's estate-integrity audit; it had been red on this file since
+ * 2026-09-16). The converged script keeps the two rules that have never
+ * changed - SQUASH ONLY, NEVER --admin - and drops the waiver path: a pull
+ * request is queued with `--auto`, and is merged directly ONLY when GitHub
+ * already reports it CLEAN and the base branch still requires status checks,
+ * so the server enforces the checks on the merge call. UNSTABLE is refused
+ * out loud, as an error, rather than merged on a named waiver; the script no
+ * longer decides for itself that a red check did not matter.
  *
  * This runs the real script against a fake `gh`, so it tests what the script
  * DOES, not what its comments say.
@@ -34,29 +27,38 @@ import { join } from 'node:path';
 const SCRIPT = join(process.cwd(), '.github', 'scripts', 'queue-pr.sh');
 const scriptText = readFileSync(SCRIPT, 'utf8');
 
-// The script asks `gh pr view --json statusCheckRollup --jq '<filter>'`. The
-// fake gh evaluates THAT filter (lifted from the script, so the test follows
-// the script rather than the other way round) against the scenario's rollup.
-const rollupJq = (scriptText.match(/--json statusCheckRollup \\\n\s+--jq '([^']+)'/) || [])[1];
+const RULES_WITH_CHECKS = JSON.stringify([
+  { type: 'non_fast_forward' },
+  { type: 'pull_request' },
+  {
+    type: 'required_status_checks',
+    parameters: { required_status_checks: [{ context: 'TypeScript Check' }, { context: 'Build' }] },
+  },
+]);
+const RULES_WITHOUT_CHECKS = JSON.stringify([{ type: 'non_fast_forward' }, { type: 'pull_request' }]);
 
-// A `gh` that answers from a scenario and records every merge it was asked to
-// perform. Each scenario says: what --auto answers, what state the PR is in,
-// how many checks the base ruleset requires, what the rollup holds, and
-// whether GitHub accepts the direct merge.
+// A `gh` that answers from a scenario and records every call. Each scenario
+// says what the PR looks like, what `--auto` answers, what the base ruleset
+// requires, and whether GitHub accepts a direct merge.
 function runScenario(s) {
   const dir = mkdtempSync(join(tmpdir(), 'queue-pr-'));
   const calls = join(dir, 'calls.log');
-  writeFileSync(join(dir, 'rollup.json'), JSON.stringify({ statusCheckRollup: s.rollup }));
-  writeFileSync(join(dir, 'filter.jq'), rollupJq || '.');
+  const view = JSON.stringify({
+    state: s.state ?? 'OPEN',
+    isDraft: s.draft ?? false,
+    mergeStateStatus: s.mergeState ?? 'CLEAN',
+    autoMergeRequest: s.armed ? { enabledAt: '2026-10-05T00:00:00Z' } : null,
+    baseRefName: 'main',
+  });
+  writeFileSync(join(dir, 'view.json'), view);
+  writeFileSync(join(dir, 'rules.json'), s.rules ?? RULES_WITH_CHECKS);
   const gh = `#!/usr/bin/env bash
 echo "$*" >> "${calls}"
 case "$*" in
-  *"--squash --auto"*) echo "${s.autoAnswer}"; exit ${s.autoExit} ;;
-  *"--json mergeStateStatus"*) echo "${s.state}"; exit 0 ;;
-  *"--json baseRefName"*) echo "main"; exit 0 ;;
-  *"rules/branches/main"*) echo "${s.requiredCount}"; exit 0 ;;
-  *"--json statusCheckRollup"*) jq -r -f "${dir}/filter.jq" "${dir}/rollup.json"; exit 0 ;;
-  *"--squash"*) echo "${s.mergeAnswer}"; exit ${s.mergeExit} ;;
+  *"--squash --auto"*) echo "${s.autoAnswer ?? 'auto-merge armed'}"; exit ${s.autoExit ?? 0} ;;
+  *"--json state,isDraft,mergeStateStatus,autoMergeRequest,baseRefName"*) cat "${dir}/view.json"; exit 0 ;;
+  *"rules/branches/main"*) cat "${dir}/rules.json"; exit 0 ;;
+  *"--squash"*) echo "${s.mergeAnswer ?? 'Merged pull request #1364'}"; exit ${s.mergeExit ?? 0} ;;
 esac
 echo "unexpected gh call: $*" >&2; exit 99
 `;
@@ -69,80 +71,68 @@ echo "unexpected gh call: $*" >&2; exit 99
   let log = '';
   try { log = readFileSync(calls, 'utf8'); } catch (_) { /* no gh call at all */ }
   rmSync(dir, { recursive: true, force: true });
-  const merges = log.split('\n').filter((l) => /--squash$/.test(l.trim())).length;
-  return { out: `${res.stdout}${res.stderr}`, status: res.status, merges };
+  const lines = log.split('\n').map((l) => l.trim()).filter(Boolean);
+  const directMerges = lines.filter((l) => /^pr merge .* --squash$/.test(l)).length;
+  const autoArms = lines.filter((l) => /--squash --auto$/.test(l)).length;
+  return { out: `${res.stdout}${res.stderr}`, status: res.status, directMerges, autoArms, lines };
 }
 
-const GREEN = { name: 'TypeScript Check', conclusion: 'SUCCESS' };
-const OPTIONAL_RED = { name: 'Global Footer E2E', conclusion: 'FAILURE' };
+const REFUSED_CLEAN = { autoAnswer: 'X Pull request Pull request is in clean status', autoExit: 1 };
+const REFUSED_UNSTABLE = { autoAnswer: 'X Pull request Pull request is in unstable status', autoExit: 1 };
 
-test('the script reads the not-green checks with a filter this test can lift', () => {
-  assert.ok(rollupJq, 'queue-pr.sh must ask statusCheckRollup with a --jq filter on the continuation line');
+test('every merge the script can make is a squash, and none of them is --admin', () => {
+  // Comments may name the flag to forbid it; code may not use it.
+  const code = scriptText.replace(/^\s*#.*$/gm, '');
+  assert.doesNotMatch(code, /--admin/, 'the one flag that has ever put red code on main');
+  const merges = scriptText.match(/gh pr merge[^\n]*/g) ?? [];
+  assert.ok(merges.length > 0);
+  for (const m of merges) assert.match(m, /--squash/, m);
 });
 
-test('UNSTABLE with required checks green and an optional suite red MERGES, naming the waiver', () => {
-  const r = runScenario({
-    autoAnswer: 'X Pull request Pull request is in unstable status',
-    autoExit: 1,
-    state: 'UNSTABLE',
-    requiredCount: 7,
-    rollup: [GREEN, OPTIONAL_RED],
-    mergeAnswer: 'Merged pull request #1364',
-    mergeExit: 0,
-  });
-  assert.equal(r.merges, 1, `expected exactly one direct squash merge\n${r.out}`);
-  assert.match(r.out, /merged #1364 directly/);
-  assert.match(r.out, /not green and not required: .*Global Footer E2E/, 'the waived suite must be named in the log');
-  assert.doesNotMatch(r.out, /::warning::/);
+test('a pull request that can be armed is queued and left to GitHub', () => {
+  const r = runScenario({ mergeState: 'BLOCKED' });
+  assert.equal(r.autoArms, 1, r.out);
+  assert.equal(r.directMerges, 0, 'nothing is merged by hand while auto-merge will do it');
   assert.equal(r.status, 0);
 });
 
-test('UNSTABLE in a repo whose base requires NO checks does not merge', () => {
-  const r = runScenario({
-    autoAnswer: 'X Pull request Branch does not have required protected branch rules',
-    autoExit: 1,
-    state: 'UNSTABLE',
-    requiredCount: 0,
-    rollup: [OPTIONAL_RED],
-    mergeAnswer: 'should never be called',
-    mergeExit: 0,
-  });
-  assert.equal(r.merges, 0, `must not merge when the only check there is has failed\n${r.out}`);
-  assert.match(r.out, /requires no checks/);
+test('CLEAN with required checks on the base merges directly, exactly once, through the server', () => {
+  const r = runScenario({ ...REFUSED_CLEAN, mergeState: 'CLEAN' });
+  assert.equal(r.directMerges, 1, `expected exactly one direct squash merge\n${r.out}`);
+  assert.match(r.out, /Merged #1364 only after GitHub reported the protected PR clean/);
   assert.equal(r.status, 0);
 });
 
-test('a red REQUIRED check is refused by GitHub on the merge call and the script says so', () => {
+test('CLEAN on a base that requires NO checks is refused: a direct merge there bypasses nothing because there is nothing to bypass', () => {
+  const r = runScenario({ ...REFUSED_CLEAN, mergeState: 'CLEAN', rules: RULES_WITHOUT_CHECKS });
+  assert.equal(r.directMerges, 0, `must not merge where no check was ever required\n${r.out}`);
+  assert.match(r.out, /::error::main has no required checks; refusing a direct merge/);
+  assert.equal(r.status, 1);
+});
+
+test('UNSTABLE is never merged on a waiver; it is reported as an error and the merge is not attempted', () => {
+  const r = runScenario({ ...REFUSED_UNSTABLE, mergeState: 'UNSTABLE' });
+  assert.equal(r.directMerges, 0, `the script may not decide a red check did not matter\n${r.out}`);
+  assert.match(r.out, /::error::Could not arm protected auto-merge for #1364 \(state=UNSTABLE\)/);
+  assert.equal(r.status, 1, 'a pull request that cannot be queued is a loud failure, not a warning');
+});
+
+test('a red REQUIRED check is GitHub\'s refusal, surfaced, never worked around', () => {
   const r = runScenario({
-    autoAnswer: 'X Pull request Pull request is in unstable status',
-    autoExit: 1,
-    state: 'UNSTABLE',
-    requiredCount: 7,
-    rollup: [{ name: 'TypeScript Check', conclusion: 'FAILURE' }],
+    ...REFUSED_CLEAN,
+    mergeState: 'CLEAN',
     mergeAnswer: 'X Pull request is not mergeable: Required status check TypeScript Check is failing. (HTTP 405)',
     mergeExit: 1,
   });
-  assert.equal(r.merges, 1, 'the merge is attempted once and GitHub is the authority');
-  assert.doesNotMatch(r.out, /merged #1364 directly/);
-  assert.match(r.out, /::warning::#1364 could not be queued yet/);
-  assert.equal(r.status, 0, 'a refused merge never fails the sweep');
+  assert.equal(r.directMerges, 1, 'the merge is attempted once and GitHub is the authority');
+  assert.doesNotMatch(r.out, /Merged #1364/);
+  assert.notEqual(r.status, 0, 'a refused merge fails the step so somebody reads it');
 });
 
-test('CLEAN still merges directly, and every merge is a squash with no --admin', () => {
-  const r = runScenario({
-    autoAnswer: 'X Pull request Pull request is in clean status',
-    autoExit: 1,
-    state: 'CLEAN',
-    requiredCount: 7,
-    rollup: [GREEN],
-    mergeAnswer: 'Merged pull request #1364',
-    mergeExit: 0,
-  });
-  assert.equal(r.merges, 1);
-  assert.match(r.out, /merged #1364 directly/);
-  // The header comments NAME the forbidden flags in order to forbid them, so
-  // judge the code, not the commentary.
-  const code = scriptText.split('\n').filter((l) => !/^\s*#/.test(l)).join('\n');
-  assert.doesNotMatch(code, /gh pr merge[^\n]*--(merge|rebase)\b/, 'squash only - merge commits and rebase merges are disabled');
-  assert.doesNotMatch(code, /--admin/, 'never --admin: it bypasses required checks');
+test('a draft, a closed PR, or one already armed is left alone without a single merge call', () => {
+  for (const s of [{ draft: true }, { state: 'MERGED' }, { armed: true }]) {
+    const r = runScenario(s);
+    assert.equal(r.autoArms + r.directMerges, 0, `${JSON.stringify(s)}\n${r.out}`);
+    assert.equal(r.status, 0);
+  }
 });

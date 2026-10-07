@@ -34,6 +34,10 @@ import { DAILY_DIAMOND_CAPS } from '../../../src/lib/trivia/triviaEngine';
 import { formatTriviaDisplayNumber } from '../../../src/lib/trivia/formatTriviaDisplayNumber';
 import HubPageSummary from '../../../src/components/seo/HubPageSummary';
 import { printPlayerName } from '../../../src/lib/trivia/printPlayerName';
+import { createAccountOperationScope, isStaleAccountOperation } from '../../../src/lib/trivia/accountOperationScope.mjs';
+import Phase9SettlementReceipt from '../../../src/components/trivia/phase9/Phase9SettlementReceipt';
+import Phase9RunReview from '../../../src/components/trivia/phase9/Phase9RunReview';
+import { projectPhase9Recovery } from '../../../src/components/trivia/phase9/phase9RunModel.mjs';
 
 // Roster size requested from /api/trivia/session-start. The 30-second clock
 // realistically allows well under 30 answers, so 60 is generous headroom;
@@ -57,50 +61,114 @@ export default function TimeAttackPage() {
     const isStartingRef = useRef(false); // Prevent double-click race
     const [questions, setQuestions] = useState([]);
     const [userId, setUserId] = useState(null);
+    const accountOperationScopeRef = useRef(null);
+    if (!accountOperationScopeRef.current) {
+        accountOperationScopeRef.current = createAccountOperationScope();
+    }
+    const resolvedAccountId = authLoading
+        ? userId
+        : (avatarUser?.id || getAuthUser()?.id || null);
+    if (!authLoading) accountOperationScopeRef.current.transition(resolvedAccountId);
     const [dailyDiamondsEarned, setDailyDiamondsEarned] = useState(0);
     const [leaderboard, setLeaderboard] = useState([]);
     const [personalBest, setPersonalBest] = useState(0);
     const [result, setResult] = useState(null);
+    const [settlementResult, setSettlementResult] = useState(null);
     const [isVip, setIsVip] = useState(false);
     const [showOutOfDiamonds, setShowOutOfDiamonds] = useState(false);
     const [pageLoading, setPageLoading] = useState(true);
     const [startError, setStartError] = useState(null);
     // Server-authoritative run: session-start deals, session-answer grades
     // each tap, session-submit caps and pays. No client-side crediting.
-    const serverRun = useServerGradedRun('time-attack');
+    const serverRun = useServerGradedRun('time-attack', { accountId: resolvedAccountId });
     // Answers actually recorded via session-answer this game, in tap order:
     // { questionId, displayIndex }. This is what session-submit grades from;
     // unanswered served questions are deliberately omitted (the server counts
     // them wrong, which is free here because payout is per-correct).
     const sessionAnswersRef = useRef([]);
+    const accountLoadRef = useRef(0);
+    const accountIdentityRef = useRef(null);
+    const startOperationRef = useRef(null);
+    const forceNewStartRef = useRef(false);
 
     useEffect(() => {
         if (authLoading) return;
+        const user = avatarUser || getAuthUser();
+        const nextAccountId = user?.id || null;
+        const identityChanged = accountIdentityRef.current !== nextAccountId;
+        accountIdentityRef.current = nextAccountId;
+        const operationScope = accountOperationScopeRef.current.transition(nextAccountId);
+        const request = ++accountLoadRef.current;
+        if (identityChanged) {
+            startOperationRef.current = null;
+            forceNewStartRef.current = false;
+            isStartingRef.current = false;
+            savePhaseRef.current = 0;
+            serverResultRef.current = null;
+            sessionAnswersRef.current = [];
+            setQuestions([]);
+            setResult(null);
+            setSettlementResult(null);
+            setSaveErrorPayload(null);
+            setStartError(null);
+            setShowOutOfDiamonds(false);
+            setDailyDiamondsEarned(0);
+            setPersonalBest(0);
+            setIsVip(false);
+            setGameState('lobby');
+        }
+        setUserId(nextAccountId);
+        setPageLoading(true);
         // Phase 56: was missing .catch — if either promise rejected, unhandled
         // rejection propagated up. Now caught + logged with finally still firing.
-        Promise.all([loadUserData(), loadLeaderboard()])
-            .catch(e => console.warn('[TimeAttack] init load failed:', e))
-            .finally(() => setPageLoading(false));
+        Promise.all([loadUserData(user, request, operationScope), loadLeaderboard()])
+            .catch(e => {
+                if (accountOperationScopeRef.current.isCurrent(operationScope)) {
+                    console.warn('[TimeAttack] init load failed:', e);
+                }
+            })
+            .finally(() => {
+                if (request === accountLoadRef.current
+                    && accountOperationScopeRef.current.isCurrent(operationScope)) setPageLoading(false);
+            });
     }, [avatarUser?.id, authLoading]);
     // Realtime subscription — live updates
     useEffect(() => {
         if (!userId) return;
         const _ch = supabase
             .channel(`trivia-ta:${userId}`)
-            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'trivia_scores', filter: `user_id=eq.${userId}` }, () => { loadUserData(); })
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'trivia_scores', filter: `user_id=eq.${userId}` }, () => {
+                const operationScope = accountOperationScopeRef.current.capture();
+                if (operationScope.identity !== userId) return;
+                loadUserData({ id: userId }, ++accountLoadRef.current, operationScope);
+            })
             .subscribe();
         return () => { supabase.removeChannel(_ch); };
     }, [userId]);
 
-    async function loadUserData() {
-        const user = avatarUser || getAuthUser();
-        if (!user) return;
-
-        setUserId(user.id);
+    async function loadUserData(
+        user = avatarUser || getAuthUser(),
+        request = ++accountLoadRef.current,
+        operationScope = accountOperationScopeRef.current.capture(),
+    ) {
+        if (operationScope.identity !== (user?.id || null)) return;
+        if (!user) {
+            if (request !== accountLoadRef.current
+                || !accountOperationScopeRef.current.isCurrent(operationScope)) return;
+            // Drop the prior account before the hook can recover or settle
+            // against stale browser custody.
+            setUserId(null);
+            setIsVip(false);
+            setDailyDiamondsEarned(0);
+            setPersonalBest(0);
+            return;
+        }
 
         // Check VIP status
         await DiamondEngine.init(user.id);
         const vipStatus = await DiamondEngine.isVIP();
+        if (request !== accountLoadRef.current
+            || !accountOperationScopeRef.current.isCurrent(operationScope)) return;
         setIsVip(vipStatus);
 
         // Get today's time attack diamonds.
@@ -115,6 +183,8 @@ export default function TimeAttackPage() {
             .eq('mode', 'time-attack')
             .gte('created_at', todayStartCST)
             .limit(50) // time attack scores
+        if (request !== accountLoadRef.current
+            || !accountOperationScopeRef.current.isCurrent(operationScope)) return;
 
         if (scores) {
             const total = scores.reduce((sum, s) => sum + (s.diamonds_earned || 0), 0);
@@ -130,6 +200,8 @@ export default function TimeAttackPage() {
             .order('correct_count', { ascending: false })
             .limit(1)
             .maybeSingle();
+        if (request !== accountLoadRef.current
+            || !accountOperationScopeRef.current.isCurrent(operationScope)) return;
 
         if (best) {
             setPersonalBest(best.correct_count);
@@ -169,9 +241,87 @@ export default function TimeAttackPage() {
         }
     }
 
-    async function handleStart() {
+    async function recoverTimeAttackRun() {
         if (isStartingRef.current) return;
+        if (!userId) {
+            router.push('/auth/login?redirect=/hub/trivia/time-attack');
+            return;
+        }
+        const operationScope = accountOperationScopeRef.current.capture();
+        if (operationScope.identity !== userId) return;
+        const startOperation = { operationScope };
         isStartingRef.current = true;
+        startOperationRef.current = startOperation;
+        setStartError(null);
+        setPageLoading(true);
+        try {
+            const resumed = await serverRun.resume({ count: QUESTIONS_PER_SESSION });
+            if (!accountOperationScopeRef.current.isCurrent(operationScope)) return;
+            if (resumed?.resumedSettlement && resumed.settlement) {
+                const settled = resumed.settlement;
+                serverResultRef.current = settled;
+                setSettlementResult(settled);
+                savePhaseRef.current = 1;
+                await handleComplete({
+                    correctCount: Math.max(0, Number(settled.correct) || 0),
+                    wrongCount: Math.max(0, (Number(settled.total) || 0) - (Number(settled.correct) || 0)),
+                    diamondsEarned: Math.max(0, Number(settled.diamondsAwarded) || 0),
+                    fastAnswers: 0,
+                    answerResults: [],
+                    mode: 'time-attack',
+                });
+                return;
+            }
+
+            const resumedQuestions = Array.isArray(resumed?.questions) ? resumed.questions : [];
+            if (resumedQuestions.length === 0) throw new Error('resume_questions_missing');
+            const projection = projectPhase9Recovery(resumedQuestions);
+            setQuestions(resumedQuestions);
+            sessionAnswersRef.current = projection.recordedAnswers;
+            savePhaseRef.current = 0;
+            serverResultRef.current = null;
+            setSettlementResult(null);
+
+            // A 30-second clock cannot be truthfully recreated after a page
+            // reload. Settle the answers already bound by the server rather
+            // than grant a fresh clock or abandon the charged entry.
+            await handleComplete({
+                correctCount: projection.correctCount,
+                wrongCount: projection.wrongCount,
+                diamondsEarned: projection.correctCount,
+                fastAnswers: 0,
+                answerResults: [],
+                mode: 'time-attack',
+            });
+        } catch (error) {
+            if (!accountOperationScopeRef.current.isCurrent(operationScope)
+                || isStaleAccountOperation(error)) return;
+            console.warn('[TimeAttack] Recovery failed:', error?.message || error);
+            setStartError('Could Not Recover This Account-Scoped Run. Check Your Connection And Try Again.');
+            setGameState('lobby');
+        } finally {
+            if (startOperationRef.current === startOperation) {
+                startOperationRef.current = null;
+                isStartingRef.current = false;
+                if (accountOperationScopeRef.current.isCurrent(operationScope)) setPageLoading(false);
+            }
+        }
+    }
+
+    async function handleStart() {
+        const forceNew = forceNewStartRef.current;
+        forceNewStartRef.current = false;
+        if (!userId) {
+            setStartError('Please Sign In To Play Time Attack.');
+            return;
+        }
+        if (!forceNew && serverRun.hasRecoverableSession) return recoverTimeAttackRun();
+        if (isStartingRef.current) return;
+        const operationScope = accountOperationScopeRef.current.capture();
+        if (operationScope.identity !== (userId || null)) return;
+        const startOperation = { operationScope };
+        isStartingRef.current = true;
+        startOperationRef.current = startOperation;
         try {
         // Reset the per-game save pipeline. This is the REAL "Play Again" path
         // (the complete screen's button calls handleStart) - a stale phase or
@@ -182,6 +332,7 @@ export default function TimeAttackPage() {
         sessionAnswersRef.current = [];
         setSaveErrorPayload(null);
         setResult(null);
+        setSettlementResult(null);
 
         // FIX(audit #3): the `sessionStorage.trivia_paid` short-circuit is gone.
         // Nothing writes that flag any more (TriviaLobby no longer pre-charges),
@@ -204,7 +355,10 @@ export default function TimeAttackPage() {
         let served;
         try {
             served = await serverRun.start({ count: QUESTIONS_PER_SESSION });
+            if (!accountOperationScopeRef.current.isCurrent(operationScope)) return;
         } catch (e) {
+            if (!accountOperationScopeRef.current.isCurrent(operationScope)
+                || isStaleAccountOperation(e)) return;
             console.warn('[TimeAttack] Server session start failed:', e?.message || e);
             // A 402 is the balance gate, not a connection problem: show the
             // Not Enough Diamonds state alone instead of both messages.
@@ -216,9 +370,10 @@ export default function TimeAttackPage() {
             return;
         }
         if (!served || !Array.isArray(served.questions) || served.questions.length === 0) {
-            // NEVER charge for an empty game.
-            serverRun.reset();
-            setStartError('We Could Not Load Any Questions Right Now. Please Check Your Connection And Try Again.');
+            // A successful start may already have charged before the malformed
+            // roster is detected here. Keep custody so retry reuses that exact
+            // session and cannot create a second entry charge.
+            setStartError('We Could Not Confirm The Dealt Questions. Retry This Same Entry Request.');
             return;
         }
 
@@ -229,7 +384,10 @@ export default function TimeAttackPage() {
         setStartError(null);
         setGameState('playing');
         } finally {
-            isStartingRef.current = false;
+            if (startOperationRef.current === startOperation) {
+                startOperationRef.current = null;
+                isStartingRef.current = false;
+            }
         }
     }
 
@@ -238,7 +396,14 @@ export default function TimeAttackPage() {
     // and the first answer per question is binding server-side, so the
     // component's retry after a rejection cannot double-count.
     async function gradeAnswer({ questionId, displayIndex }) {
+        const operationScope = accountOperationScopeRef.current.capture();
+        if (operationScope.identity !== (userId || null)) {
+            throw new Error('stale_account_operation');
+        }
         const verdict = await serverRun.answer({ questionId, displayIndex });
+        if (!accountOperationScopeRef.current.isCurrent(operationScope)) {
+            throw new Error('stale_account_operation');
+        }
         sessionAnswersRef.current.push({ questionId, displayIndex });
         return verdict;
     }
@@ -249,11 +414,20 @@ export default function TimeAttackPage() {
     // the already-paid result instead of re-submitting a closed session.
     const serverResultRef = useRef(null);
 
+    useEffect(() => {
+        if (gameState === 'complete' && serverResultRef.current?.sessionId) {
+            serverRun.acknowledgeSettlement();
+        }
+    }, [gameState, result?.diamondsEarned, serverRun.acknowledgeSettlement]);
+
     // NOTE: a handlePlayAgain() that set gameState 'ready' used to live here. It
     // was dead code — nothing called it and no render branch existed for 'ready',
     // so its idempotency reset never ran. That reset now lives in handleStart.
 
     async function handleComplete(gameResult) {
+        const operationScope = accountOperationScopeRef.current.capture();
+        if (operationScope.identity !== (userId || null)) return;
+        const isCurrentAccountOperation = () => accountOperationScopeRef.current.isCurrent(operationScope);
         setResult(gameResult);
         setGameState('saving');
 
@@ -273,13 +447,16 @@ export default function TimeAttackPage() {
                             displayIndex: a.displayIndex
                         }))
                     );
+                    if (!isCurrentAccountOperation()) return;
                     serverResultRef.current = submitted;
+                    setSettlementResult(submitted);
                     savePhaseRef.current = 1;
                     if ((submitted?.diamondsAwarded || 0) > 0) {
                         busEmit.diamondsEarned(submitted.diamondsAwarded, 'Time Attack');
                     }
                 }
                 const settled = serverResultRef.current || {};
+                if (settled?.sessionId) setSettlementResult(settled);
                 const awarded = Number.isFinite(settled.diamondsAwarded) ? settled.diamondsAwarded : 0;
                 const serverCorrect = Number.isFinite(settled.correct) ? settled.correct : (gameResult.correctCount || 0);
 
@@ -302,22 +479,25 @@ export default function TimeAttackPage() {
                 savePhaseRef.current = Math.max(savePhaseRef.current, 3);
 
                 // Done saving — reset phase tracker for next game
+                if (!isCurrentAccountOperation()) return;
                 setGameState('complete');
                 setSaveErrorPayload(null);
                 savePhaseRef.current = 0;
 
             } catch (e) {
+                if (!isCurrentAccountOperation() || isStaleAccountOperation(e)) return;
                 console.warn('[TimeAttack] Failed to save data:', e);
                 setSaveErrorPayload(gameResult);
                 setGameState('saving_error');
                 return; // halt and show retry UI (savePhaseRef preserves progress)
             }
         } else {
+            if (!isCurrentAccountOperation()) return;
             setGameState('complete');
             setSaveErrorPayload(null);
         }
 
-        loadLeaderboard();
+        if (isCurrentAccountOperation()) loadLeaderboard();
     }
 
     // Retry function for network drops — resumes from where it left off
@@ -325,6 +505,12 @@ export default function TimeAttackPage() {
         setGameState('saving');
         setSaveErrorPayload(null);
         handleComplete(result); // savePhaseRef skips already-completed steps
+    };
+
+    const handlePlayAgain = () => {
+        serverRun.acknowledgeSettlement();
+        forceNewStartRef.current = true;
+        handleStart();
     };
 
 
@@ -335,8 +521,12 @@ export default function TimeAttackPage() {
             : gameState === 'saving_error'
                 ? { label: 'Retry Save', onClick: handleRetrySave }
                 : gameState === 'complete'
-                    ? { label: 'Play Again', onClick: handleStart }
-                    : { label: 'Start Time Attack', onClick: handleStart };
+                    ? { label: 'Play Again', onClick: handlePlayAgain }
+                    : !userId
+                        ? { label: 'Sign In To Play', onClick: () => router.push('/auth/login?redirect=/hub/trivia/time-attack') }
+                        : serverRun.hasRecoverableSession
+                            ? { label: 'Recover Run Result', onClick: recoverTimeAttackRun }
+                            : { label: 'Start Time Attack', onClick: handleStart };
 
     const secondaryAction = showOutOfDiamonds
         ? { label: 'Close', onClick: () => setShowOutOfDiamonds(false) }
@@ -357,14 +547,16 @@ export default function TimeAttackPage() {
                     ? 'Retry'
                     : gameState === 'saving'
                         ? 'Saving'
-                        : '30 Sec';
+                        : !userId
+                            ? 'Sign In'
+                            : serverRun.hasRecoverableSession ? 'Recover' : '30 Sec';
 
     return (
         <TriviaErrorBoundary pageName="Time Attack">
             <>
                 <SEOHead
                     title="Time Attack Trivia: Beat The Clock"
-                    description="Race Against The Clock In Time Attack Poker Trivia On Smarter.Poker. Answer As Many Questions As You Can Before Time Runs Out. Free To Play, And Nothing In It Is A Wager."
+                    description="Race the physical 30-second shot clock in server-verified Time Attack poker trivia, track your personal best and daily cap, and receive a verified settlement receipt."
                     canonical="/hub/trivia/time-attack"
                 />
 
@@ -417,8 +609,9 @@ export default function TimeAttackPage() {
                             )}
 
                             {!pageLoading && gameState === 'lobby' && (
-                                <section className="trivia-challenge-stage trivia-challenge-stage--lobby">
+                                <section className="trivia-challenge-stage trivia-challenge-stage--lobby phase9-intro-layout">
                                     <ResponsiveModeArt art={TRIVIA_INTRO_ART_TIME_ATTACK} priority />
+                                    <div className="phase9-intro-copy">
                                     {startError && (
                                         <p className="trivia-challenge-state trivia-challenge-state--error" role="alert">
                                             {startError}
@@ -428,6 +621,16 @@ export default function TimeAttackPage() {
                                     <div className="trivia-challenge-intro">
                                         <p>30 Seconds. How Many Can You Answer?</p>
                                     </div>
+                                    {!userId && (
+                                        <p className="trivia-challenge-notice" role="status">
+                                            Sign In To Start Or Recover A Server-Verified Run.
+                                        </p>
+                                    )}
+                                    {userId && serverRun.hasRecoverableSession && (
+                                        <p className="trivia-challenge-notice" role="status">
+                                            Recover The Answers Already Recorded. The Clock Will Not Be Restarted.
+                                        </p>
+                                    )}
 
                                     <dl className="trivia-challenge-stats">
                                         <div className="trivia-challenge-stat">
@@ -475,6 +678,7 @@ export default function TimeAttackPage() {
                                             </ol>
                                         </section>
                                     )}
+                                    </div>
                                 </section>
                             )}
 
@@ -516,12 +720,31 @@ export default function TimeAttackPage() {
                                             <dt>Diamonds</dt>
                                             <dd>+{formatTriviaDisplayNumber(result.diamondsEarned)}</dd>
                                         </div>
+                                        <div className="trivia-challenge-stat">
+                                            <dt>Personal Best</dt>
+                                            <dd>{formatTriviaDisplayNumber(personalBest)}</dd>
+                                        </div>
+                                        <div className="trivia-challenge-stat">
+                                            <dt>Daily Cap</dt>
+                                            <dd>{formatTriviaDisplayNumber(dailyDiamondsEarned)} Of {formatTriviaDisplayNumber(DAILY_DIAMOND_CAP)}</dd>
+                                        </div>
                                     </dl>
                                     {result.fastAnswers > 0 && (
                                         <p className="trivia-challenge-notice">
                                             {formatTriviaDisplayNumber(result.fastAnswers)} Lightning-Fast {result.fastAnswers === 1 ? 'Answer' : 'Answers'}
                                         </p>
                                     )}
+                                    <Phase9RunReview
+                                        questions={questions}
+                                        settlement={settlementResult}
+                                        title="Review Missed Questions"
+                                    />
+                                    <Phase9SettlementReceipt
+                                        settlement={settlementResult}
+                                        modeLabel="Time Attack"
+                                        correctCount={result.correctCount}
+                                        totalQuestions={settlementResult?.total || questions.length}
+                                    />
                                 </section>
                             )}
                         </TriviaConsole>

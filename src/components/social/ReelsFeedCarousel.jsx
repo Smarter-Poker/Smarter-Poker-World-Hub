@@ -13,6 +13,7 @@ import { supabase } from '../../lib/supabase';
 import { useSupabase } from '../../providers/SupabaseProvider';
 import { busEmit, eventBus, EventType } from '../../engine/EventBus';
 import { getAccessToken, getAuthUser } from '../../lib/authUtils';
+import { submitReelReport } from '../../lib/reelsReportClient.mjs';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import GiphyPicker from '../shared/GiphyPicker';
@@ -22,7 +23,7 @@ import {
   fetchPokerReels,
   isUnclassifiedNativeCommunityReel,
 } from '../../lib/reelsFeedClient';
-import { scanReelsContinuations } from '../../lib/reelsContinuation.mjs';
+import { loadCanonicalReelsWindow } from '../../lib/reelsFeedController.mjs';
 import {
   BACKGROUND_REELS_REFRESH,
   REELS_BACKGROUND_REFRESH_DELAY_MS,
@@ -53,6 +54,13 @@ import VideoLibraryConsole, {
   ConsoleDataRow,
 } from '../video-library/console/VideoLibraryConsole';
 import ReelResponsibleGamingNotice from './ReelResponsibleGamingNotice';
+import ReelCard from '../reels/ReelCard';
+import ReelPlayerFrame from '../reels/ReelPlayerFrame';
+import ReelFeedbackActions from '../reels/ReelFeedbackActions';
+import ReelTrustStrip from '../reels/ReelTrustStrip';
+import { reelSourceKey } from '../../lib/reelsFeedback.mjs';
+import { recordReelsDeliveryMetric } from '../../lib/reelsDeliveryMetrics';
+import { capReelsInMemory, dataSaverEnabled } from '../../lib/reelsDeliveryContract.mjs';
 
 // Time ago helper
 function timeAgo(d) {
@@ -112,7 +120,7 @@ function reelSourceName(reel) {
   return reel?.channel_name
     || reel?.profiles?.full_name
     || reel?.profiles?.username
-    || `${reelTopicLabel(reel)} Creator`;
+    || 'Creator Unavailable';
 }
 
 function reelSourceUrl(reel) {
@@ -201,46 +209,6 @@ function isReelsAuthError(error) {
   return error?.code === 'REELS_AUTH_REQUIRED' || error?.status === 401 || error?.status === 403;
 }
 
-// Individual Reel Card in the carousel
-function ReelCard({ reel, onClick }) {
-  const isYouTube = isYouTubeUrl(reel.video_url);
-  const youtubeThumbnail = isYouTube
-    ? reel.thumbnail_url || getYouTubeThumbnail(reel.video_url)
-    : null;
-  const creatorName = reelSourceName(reel);
-
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="vlc-reel-card"
-      aria-label={`Open reel by ${creatorName}`}
-    >
-      <span className="vlc-reel-card__media">
-        {isYouTube && youtubeThumbnail ? (
-          <img src={youtubeThumbnail} alt={reel.caption || 'Reel'} loading="lazy" />
-        ) : !isYouTube ? (
-          <video
-            src={reel.video_url}
-            muted
-            playsInline
-            preload="none"
-            poster={reel.thumbnail_url || undefined}
-            aria-label={reel.caption || 'Reel preview'}
-          />
-        ) : (
-          <span className="vlc-reel-card__fallback">Verified Video</span>
-        )}
-      </span>
-      <span className="vlc-reel-card__author">
-        {reel.profiles?.avatar_url ? <img src={reel.profiles.avatar_url} alt="" /> : null}
-        <span>{creatorName}</span>
-      </span>
-      <span className="vlc-reel-card__caption">{reel.caption || 'Open Reel'}</span>
-    </button>
-  );
-}
-
 function ReelViewer({
   reels,
   startIndex,
@@ -252,6 +220,9 @@ function ReelViewer({
   onRetryContinuation,
   onActiveIndexChange,
 }) {
+  const prefersDataSaver = useMemo(() => dataSaverEnabled({
+    connection: typeof navigator !== 'undefined' ? navigator.connection : null,
+  }), []);
   const { user: providerUser } = useSupabase();
   const [authUser, setAuthUser] = useState(providerUser || null);
   const activeUserIdRef = useRef(providerUser?.id || null);
@@ -260,24 +231,15 @@ function ReelViewer({
     accountScopeRef.current = createReelAccountScope(providerUser?.id);
   }
 
-  // Source-aware atomic engagement counter.
-  // Reels in the carousel may come from social_reels OR social_posts.
-  // Uses SECURITY DEFINER RPCs - single UPDATE, no read-then-write race condition.
-  const incrementMetric = async (reel, field, amount) => {
-    if (!reel?.id) return;
-    try {
-      if (reel.source === 'posts') {
-        const rpc = amount > 0 ? 'increment_post_count' : 'decrement_post_count';
-        const { error } = await supabase.rpc(rpc, { p_post_id: reel.id, p_field: field });
-        if (error) throw error;
-      } else {
-        const rpc = amount > 0 ? 'increment_reel_count' : 'decrement_reel_count';
-        const { error } = await supabase.rpc(rpc, { p_reel_id: reel.id, p_field: field });
-        if (error) throw error;
-      }
-    } catch (e) {
-      console.warn('[ReelCarousel] Atomic counter update failed:', e?.message || e);
-    }
+  const recordShareMetric = async (reel, destination = 'external') => {
+    const token = getAccessToken();
+    if (!reel?.id || !token) return;
+    const response = await fetch('/api/social/share-count', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ post_id: reel.id, destination }),
+    });
+    if (!response.ok) throw new Error('Share metric failed');
   };
 
   const [currentIndex, setCurrentIndex] = useState(startIndex);
@@ -457,7 +419,6 @@ function ReelViewer({
   const commentRequestGuardRef = useRef(null);
   const activeCommentReelIdRef = useRef(null);
   if (!commentRequestGuardRef.current) commentRequestGuardRef.current = createLatestRequestGuard();
-  const viewedReelsRef = useRef(new Set());
   const reelFileInputRef = useRef(null);
   const videoRef = useRef(null);
   // Report state
@@ -508,6 +469,25 @@ function ReelViewer({
   const currentSourceName = reelSourceName(currentReel);
   const currentSourceUrl = reelSourceUrl(currentReel);
   activeCommentReelIdRef.current = currentReel?.id || null;
+
+  const handleRecommendationFeedback = (action) => {
+    if (!currentReel?.id) return;
+    if (action === 'not-interested') {
+      void handleDislike();
+    } else if (action === 'already-watched') {
+      setWatchedReelIds((previous) => persistWatchedReelIds([...new Set([...previous, currentReel.id])], activeUserIdRef.current || null));
+    } else {
+      const source = reelSourceKey(currentReel);
+      setNotInterestedIds((previous) => {
+        const next = new Set(previous);
+        if (action === 'hide-source' && source) reels.forEach((reel) => { if (reelSourceKey(reel) === source) next.add(reel.id); });
+        else next.add(currentReel.id);
+        return persistNotInterestedReelIds(next, activeUserIdRef.current || null);
+      });
+      goNext();
+    }
+    closePanel();
+  };
   const interactionReelIds = useMemo(() => normaliseReelIds(reels), [reels]);
   const interactionAuthorIds = useMemo(() => normaliseReelAuthorIds(reels), [reels]);
 
@@ -1639,7 +1619,7 @@ function ReelViewer({
       // Clipboard copy = link preview, not a social share — skip metric + bus event
       if (platform !== 'copy') {
         if (!ownerRequest.isCurrent()) return;
-        incrementMetric(reel, 'share_count', 1);
+        await recordShareMetric(reel, platform === 'native' ? 'external' : platform);
         if (userId) busEmit.socialPostShared(reel.id, userId);
       }
     } catch {
@@ -1676,7 +1656,7 @@ function ReelViewer({
       if (!response.ok) throw new Error(result.error || 'Share failed');
       if (!ownerRequest.isCurrent()) return;
       if (!result.already_shared) {
-        incrementMetric(reel, 'share_count', 1);
+        await recordShareMetric(reel, 'feed');
         busEmit.socialPostShared(reel.id, userId);
         busEmit.dataMutated('social');
       }
@@ -1701,13 +1681,7 @@ function ReelViewer({
     if (!userId) return;
     const ownerRequest = accountScopeRef.current.capture(userId);
     try {
-      const { error } = await supabase.from('social_interactions').insert({
-        user_id: userId,
-        post_id: currentReel.id,
-        interaction_type: 'report',
-        metadata: { reason: reportReason.trim() },
-      });
-      if (error) throw error;
+      await submitReelReport({ reelId: currentReel.id, reason: reportReason, ownerId: userId, accessToken: getAccessToken() });
       if (!ownerRequest.isCurrent()) return;
       setReportSubmitted(true);
       // BUG FIX (RFC-7): track report modal dismiss timer — prevents setState-after-unmount.
@@ -1788,20 +1762,7 @@ function ReelViewer({
       progressRAF.current = null;
     }
 
-    // Deduplicated view count — defer 2s so rapid swipes don't inflate counts.
-    // Only fires if the user actually watches for at least 2 seconds.
-    const reelId = reels[currentIndex]?.id;
-    const viewCountTimer =
-      reelId && authUser?.id && !viewedReelsRef.current.has(reelId)
-        ? setTimeout(() => {
-            viewedReelsRef.current.add(reelId);
-            setViewCounts((prev) => ({
-              ...prev,
-              [reelId]: (prev[reelId] || reels[currentIndex]?.view_count || 0) + 1,
-            }));
-            incrementMetric(reels[currentIndex], 'view_count', 1);
-          }, 2000)
-        : null;
+    const viewCountTimer = null;
 
     // Native video autoplay — only runs for non-YouTube reels.
     // Play via canplay event because the video element may be remounting due to key change;
@@ -2453,7 +2414,7 @@ function ReelViewer({
               }}
             />
 
-            <div className="vlc-carousel-viewer-media">
+            <ReelPlayerFrame className="vlc-carousel-viewer-media" reelId={currentReel.id} dataSaver={prefersDataSaver}>
               {/* YouTube thumbnail — instant visual feedback while iframe loads */}
               {isYouTubeUrl(currentReel.video_url) && (
                 <img
@@ -2572,6 +2533,7 @@ function ReelViewer({
                 // useEffect added above.
                 muted={muted}
                 playsInline
+                preload={prefersDataSaver ? 'metadata' : 'auto'}
                 poster={currentReel.thumbnail_url || undefined}
                 style={{
                   width: '100%',
@@ -2678,7 +2640,7 @@ function ReelViewer({
                   );
                 }
               })}
-            </div>
+            </ReelPlayerFrame>
             {paused && ytReady && !ytError && (
               <span className="vlc-carousel-play-state" aria-live="polite">
                 Paused
@@ -2829,6 +2791,7 @@ function ReelViewer({
               </ConsoleCopy>
             )}
             <ReelResponsibleGamingNotice topic={currentReel.topic} />
+            <ReelTrustStrip reel={currentReel} compact />
           </div>
         </div>
 
@@ -2845,6 +2808,13 @@ function ReelViewer({
                   <div className="vlc-carousel-options" role="group" aria-label="Report Reason">
                     {[
                       'Inappropriate Content',
+                      'Copyright Or Rights',
+                      'Incorrect Attribution',
+                      'Unlabeled Promotion',
+                      'Unlabeled Generated Media',
+                      'Underage Or Safety',
+                      'Gambling Harm',
+                      'Playback Unavailable',
                       'Spam Or Scam',
                       'Harassment',
                       'Misinformation',
@@ -2926,6 +2896,7 @@ function ReelViewer({
                 >
                   Report
                 </button>
+                <ReelFeedbackActions onFeedback={handleRecommendationFeedback} />
               </div>
             ) : showShortcutsOverlay ? (
               <>
@@ -3233,6 +3204,8 @@ function ReelViewer({
 }
 // Main Reels Feed Carousel component
 export function ReelsFeedCarousel() {
+  const deliveryStartRef = useRef(Date.now());
+  const deliveryMeasuredRef = useRef(false);
   const router = useRouter();
   const { user: providerUser } = useSupabase();
   const ownerId = providerUser?.id || null;
@@ -3440,21 +3413,28 @@ export function ReelsFeedCarousel() {
         throw error;
       }
       const notInterested = loadNotInterestedReelIds(ownerId);
-      const payload = await scanReelsContinuations({
-        fetchPage: (pageCursor) => fetchPokerReels({
-          limit: 50,
-          cursor: pageCursor,
-          signal: reelsRequest.signal,
-          scope: following ? 'following' : 'social-carousel',
-          category: activeCategory,
-          accessToken,
-        }),
+      const payload = await loadCanonicalReelsWindow({
+        limit: 50,
+        signal: reelsRequest.signal,
+        scope: following ? 'following' : 'social-carousel',
+        category: activeCategory,
+        accessToken,
+        signedIn: Boolean(ownerId),
         selectRows: (rows) => rows
           .filter((reel) => !notInterested.has(reel.id))
           .map((reel) => ({ ...reel, source: 'reels' })),
       });
       if (!reelsRequest.isCurrent()) return;
       const allReels = payload.data;
+      if (!background && allReels.length && !deliveryMeasuredRef.current) {
+        deliveryMeasuredRef.current = true;
+        void recordReelsDeliveryMetric({
+          surface: 'social',
+          feedMode: following ? 'following' : 'for-you',
+          startupMs: Date.now() - deliveryStartRef.current,
+          playbackType: allReels[0]?.playback_type || 'unknown',
+        });
+      }
       const { nextCursor, hasMore: pageHasMore } = readContinuationState(payload);
 
       if (background) {
@@ -3616,16 +3596,14 @@ export function ReelsFeedCarousel() {
       const notInterested = loadNotInterestedReelIds(ownerId);
       const existingIds = new Set(reelsRef.current.map((reel) => reel.id));
       const seenThisScan = new Set();
-      const payload = await scanReelsContinuations({
+      const payload = await loadCanonicalReelsWindow({
         cursor,
-        fetchPage: (pageCursor) => fetchPokerReels({
-          limit: 50,
-          cursor: pageCursor,
-          signal: reelsRequest.signal,
-          scope: following ? 'following' : 'social-carousel',
-          category: activeCategory,
-          accessToken,
-        }),
+        limit: 50,
+        signal: reelsRequest.signal,
+        scope: following ? 'following' : 'social-carousel',
+        category: activeCategory,
+        accessToken,
+        signedIn: Boolean(ownerId),
         selectRows: (rows) => rows
           .filter((reel) => !notInterested.has(reel.id))
           .map((reel) => ({ ...reel, source: 'reels' }))
@@ -3649,7 +3627,10 @@ export function ReelsFeedCarousel() {
       setHasMore(pageHasMore);
       if (payload.data.length > 0) {
         setReels((current) => {
-          const merged = mergeCarouselReels(current, payload.data);
+          const merged = capReelsInMemory(
+            mergeCarouselReels(current, payload.data),
+            current[viewerActiveIndexRef.current]?.id,
+          );
           reelsRef.current = merged;
           return merged;
         });
@@ -3960,7 +3941,7 @@ export function ReelsFeedCarousel() {
             className="vlc-feed-reel-strip"
           >
             {reels.map((reel, index) => (
-              <ReelCard key={reel.id} reel={reel} onClick={() => openViewer(index)} />
+              <ReelCard key={reel.id} reel={reel} onOpen={() => openViewer(index)} />
             ))}
           </div>
           {continuationError ? (

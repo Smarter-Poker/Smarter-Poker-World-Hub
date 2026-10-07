@@ -245,7 +245,7 @@ export async function getBlockedUsers(userId) {
         const blockedIds = blockedRows.map(r => r.blocked_id);
         const { data: profiles } = await supabase
             .from('profiles')
-            .select('id, username, avatar_url')
+            .select('id, username, display_name, avatar_url')
             .in('id', blockedIds);
 
         const profileMap = {};

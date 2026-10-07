@@ -67,7 +67,7 @@
       "label": "Poker Trivia",
       "theme": "dark",
       "accent": "#20d6ff",
-      "artwork": { "src": "/images/footers/world-hub/footer-poker-trivia-v2.png", "width": 1916, "height": 821, "sha256": "11953ff98260cd80a40496a91df14e7c39b54d3b19f41a669590ba7b72675a04", "cropToContentBounds": true, "contentBounds": { "x": 1, "y": 229, "width": 1914, "height": 286 } },
+      "artwork": { "src": "/images/footers/world-hub/footer-poker-trivia-v2.png", "sources": [{ "type": "image/webp", "srcSet": "/images/footers/world-hub/footer-poker-trivia-v2-640.8127741cce.webp 640w, /images/footers/world-hub/footer-poker-trivia-v2-960.ce11e590da.webp 960w, /images/footers/world-hub/footer-poker-trivia-v2-1916.d526120ec9.webp 1916w", "sizes": "(max-width: 356px) 294px, (max-width: 1071px) 82.5vw, 883px" }], "width": 1916, "height": 821, "sha256": "11953ff98260cd80a40496a91df14e7c39b54d3b19f41a669590ba7b72675a04", "cropToContentBounds": true, "contentBounds": { "x": 1, "y": 229, "width": 1914, "height": 286 } },
       "routePrefixes": ["/hub/trivia"],
       "items": [
         { "href": "/hub/trivia", "label": "Lobby", "title": "Trivia Lobby", "icon": "help" },

@@ -50,6 +50,10 @@ const panel = await readFile(
   path.join(HERE, '..', 'src/components/horses/PlayersPanel.jsx'),
   'utf8'
 );
+const dynamicPanels = await readFile(
+  path.join(HERE, '..', 'src/components/horses/dynamicPanels.js'),
+  'utf8'
+);
 
 // ── includeHorses, the parameter with a law attached ────────────────────────
 
@@ -204,7 +208,9 @@ test('the tab is registered, code split, and gated on players.read', () => {
   const tab = findTab('players');
   assert.ok(tab, 'the players tab is not in the registry');
   assert.equal(tab.permission, 'players.read');
-  assert.equal(typeof tab.load, 'function', 'the panel must be code split like fleet and staff');
+  assert.match(dynamicPanels, /const PlayersPanel = dynamic\(\(\) => import\('\.\/PlayersPanel'\)/,
+    'the panel must be code split like fleet and staff');
+  assert.match(dynamicPanels, /players: PlayersPanel/);
   assert.ok(
     visibleTabs(TABS).some((t) => t.id === 'players'),
     'the players tab must actually be shipped, not registered and hidden'
@@ -267,6 +273,13 @@ test('a scope with no guard says so before it is chosen', () => {
     /No Guard Watches This Scope Yet/,
     'and must say plainly that transfers and social record a decision and stop nothing'
   );
+});
+
+test('the whole-account scope discloses partial enforcement before it is chosen', () => {
+  assert.match(panel, /SCOPE_META\[restrictDraft\.scope\]\?\.partial === true/);
+  assert.match(panel, /Cash Games And Tournament Entry Are Guarded\. Transfers And Social Are Recorded/);
+  assert.match(panel, /SCOPE_META\[restrictDraft\.scope\]\?\.partial !== true/,
+    'the no-guard warning must not claim a whole-account restriction stops nothing');
 });
 
 test('each list only loads while its section is open', () => {

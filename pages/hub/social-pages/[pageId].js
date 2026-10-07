@@ -738,7 +738,7 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, onDe
                             {comments.filter(c => !c.parent_id).slice(0, commentDisplayLimit).map(c => (
                                 <div key={c.id}>
                                     <div style={{ display: 'flex', gap: 8, marginBottom: 4 }}>
-                                        <Avatar src={c.author?.avatar_url} name={c.author?.full_name} size={28} />
+                                        <Avatar src={c.author?.avatar_url} name={c.author?.display_name || c.author?.username} size={28} />
                                         <div style={{ flex: 1 }}>
                                             {/* P8-11: Inline comment edit */}
                                             {editingComment === c.id ? (
@@ -750,7 +750,7 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, onDe
                                                 </div>
                                             ) : (
                                                 <div style={{ background: C.bg, borderRadius: 12, padding: '8px 12px' }}>
-                                                    <div style={{ fontSize: 12, fontWeight: 700, color: C.text }}>{c.author?.full_name || c.author?.username || 'Unknown'}</div>
+                                                    <div style={{ fontSize: 12, fontWeight: 700, color: C.text }}>{c.author?.display_name || c.author?.username || 'Unknown'}</div>
                                                     <div style={{ fontSize: 13, color: C.text }}>{renderMentions(c.content)}</div>
                                                     {/* Phase 3: Comment media (GIF/image) display */}
                                                     {c.media_url && (
@@ -830,10 +830,10 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, onDe
                                     {/* Nested replies */}
                                     {comments.filter(r => r.parent_id === c.id).map(r => (
                                         <div key={r.id} style={{ display: 'flex', gap: 8, marginLeft: 36, marginBottom: 4, borderLeft: `2px solid ${C.border}`, paddingLeft: 8 }}>
-                                            <Avatar src={r.author?.avatar_url} name={r.author?.full_name} size={24} />
+                                            <Avatar src={r.author?.avatar_url} name={r.author?.display_name || r.author?.username} size={24} />
                                             <div style={{ flex: 1 }}>
                                                 <div style={{ background: C.bg, borderRadius: 12, padding: '6px 10px' }}>
-                                                    <div style={{ fontSize: 11, fontWeight: 700, color: C.text }}>{r.author?.full_name || r.author?.username || 'Unknown'}</div>
+                                                    <div style={{ fontSize: 11, fontWeight: 700, color: C.text }}>{r.author?.display_name || r.author?.username || 'Unknown'}</div>
                                                     <div style={{ fontSize: 12, color: C.text }}>{renderMentions(r.content)}</div>
                                                     {r.media_url && (
                                                         <div style={{ marginTop: 4 }}>
@@ -856,13 +856,13 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, onDe
                                                 <input type="text" value={replyText} onChange={e => setReplyText(e.target.value)}
                                                     onKeyDown={e => {
                                                         if (e.key === 'Enter' && replyText.trim()) {
-                                                            const tempReply = { id: `temp-${Date.now()}`, content: replyText.trim(), parent_id: c.id, created_at: new Date().toISOString(), author: { full_name: isOwnerOnOwnPage ? page?.name : user.user_metadata?.full_name, avatar_url: isOwnerOnOwnPage ? page?.avatar_url : user.user_metadata?.avatar_url } };
+                                                            const tempReply = { id: `temp-${Date.now()}`, content: replyText.trim(), parent_id: c.id, created_at: new Date().toISOString(), author: { display_name: isOwnerOnOwnPage ? page?.name : user.user_metadata?.full_name, avatar_url: isOwnerOnOwnPage ? page?.avatar_url : user.user_metadata?.avatar_url } };
                                                             setComments(prev => [...prev, tempReply]);
                                                             const txt = replyText.trim(); setReplyText(''); setReplyTo(null);
                                                             (async () => { try { const token = getAccessToken(); const res = await fetch('/api/social/pages/engage', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify({ action: 'comment', post_id: post.id, user_id: user.id, content: txt, parent_id: c.id }) }); if (res.ok) { const json = await res.json(); if (json.success) { setComments(prev => prev.map(x => x.id === tempReply.id ? json.data : x)); onComment(post.id); eventBus.emit(EventType.SOCIAL_COMMENT_UPDATE, { postId: post.id, userId: user.id, action: 'add', comment: json.data }); } } else { setComments(prev => prev.filter(x => x.id !== tempReply.id)); } } catch(e) { setComments(prev => prev.filter(x => x.id !== tempReply.id)); } })();
                                                         }
                                                     }}
-                                                    placeholder={`Reply to ${c.author?.full_name || 'comment'}...`}
+                                                    placeholder={`Reply to ${c.author?.display_name || c.author?.username || 'comment'}...`}
                                                     style={{ flex: 1, padding: '6px 10px', borderRadius: 16, border: `1px solid ${C.border}`, fontSize: 12, fontFamily: 'inherit', outline: 'none', background: C.bg }} />
                                             </div>
                                         </div>
@@ -928,7 +928,7 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, onDe
                                                         if (e.key === 'Enter' && (commentText.trim() || commentMediaUrl)) {
                                                             setIsTyping(false);
                                                             if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
-                                                            const tempComment = { id: `temp-${Date.now()}`, content: commentText.trim(), parent_id: null, created_at: new Date().toISOString(), media_url: commentMediaUrl, media_type: commentMediaType, author: { full_name: isOwnerOnOwnPage ? page?.name : user.user_metadata?.full_name, avatar_url: isOwnerOnOwnPage ? page?.avatar_url : user.user_metadata?.avatar_url } };
+                                                            const tempComment = { id: `temp-${Date.now()}`, content: commentText.trim(), parent_id: null, created_at: new Date().toISOString(), media_url: commentMediaUrl, media_type: commentMediaType, author: { display_name: isOwnerOnOwnPage ? page?.name : user.user_metadata?.full_name, avatar_url: isOwnerOnOwnPage ? page?.avatar_url : user.user_metadata?.avatar_url } };
                                                             setComments(prev => [...prev, tempComment]);
                                                             const txt = commentText.trim(); const mUrl = commentMediaUrl; const mType = commentMediaType;
                                                             setCommentText(''); setCommentMediaUrl(null); setCommentMediaType(null); setShowGifPicker(false);
@@ -947,7 +947,7 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, onDe
                                                     if (!commentText.trim() && !commentMediaUrl) return;
                                                     setIsTyping(false);
                                                     if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
-                                                    const tempComment = { id: `temp-${Date.now()}`, content: commentText.trim(), parent_id: null, created_at: new Date().toISOString(), media_url: commentMediaUrl, media_type: commentMediaType, author: { full_name: isOwnerOnOwnPage ? page?.name : user.user_metadata?.full_name, avatar_url: isOwnerOnOwnPage ? page?.avatar_url : user.user_metadata?.avatar_url } };
+                                                    const tempComment = { id: `temp-${Date.now()}`, content: commentText.trim(), parent_id: null, created_at: new Date().toISOString(), media_url: commentMediaUrl, media_type: commentMediaType, author: { display_name: isOwnerOnOwnPage ? page?.name : user.user_metadata?.full_name, avatar_url: isOwnerOnOwnPage ? page?.avatar_url : user.user_metadata?.avatar_url } };
                                                     setComments(prev => [...prev, tempComment]);
                                                     const txt = commentText.trim(); const mUrl = commentMediaUrl; const mType = commentMediaType;
                                                     setCommentText(''); setCommentMediaUrl(null); setCommentMediaType(null); setShowGifPicker(false);
@@ -1183,8 +1183,11 @@ export default function SocialPageDetail() {
     const fetchFollowers = useCallback(async () => {
         if (!page?.id) return;
         try {
-            const reqParam = user?.id ? `&requester_id=${user.id}` : '';
-            const res = await fetch(`/api/social/pages/follow?page_id=${page.id}${reqParam}`);
+            // Identity is the bearer token, never a query id (the API ignores requester_id).
+            const token = getAccessToken();
+            const res = await fetch(`/api/social/pages/follow?page_id=${page.id}`, {
+                headers: token ? { Authorization: `Bearer ${token}` } : {},
+            });
             if (!res.ok) throw new Error(`Request failed (${res.status})`);
             const json = await res.json();
             if (json.success) setFollowers(json.data || []);
@@ -1351,7 +1354,7 @@ export default function SocialPageDetail() {
         setSeatAction({ gameId, type: actionType });
         try {
             const token = getAccessToken();
-            const playerName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Player';
+            const playerName = user?.user_metadata?.display_name || user?.user_metadata?.username || user?.user_metadata?.poker_alias || 'Player';
             const res = await fetch('/api/social/pages/games', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
@@ -2669,7 +2672,7 @@ export default function SocialPageDetail() {
                                     ) : (
                                         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                                             {followers
-                                                .filter(f => !memberSearch || (f.profile?.full_name || f.profile?.username || '').toLowerCase().includes(memberSearch.toLowerCase()))
+                                                .filter(f => !memberSearch || (f.profile?.display_name || f.profile?.username || '').toLowerCase().includes(memberSearch.toLowerCase()))
                                                 .map(f => (
                                                 <div
                                                   role="button"
@@ -2682,10 +2685,10 @@ export default function SocialPageDetail() {
                                                 onMouseEnter={e => e.currentTarget.style.background = C.bg}
                                                 onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                                                 >
-                                                    <Avatar src={f.profile?.avatar_url} name={f.profile?.full_name || f.profile?.username} size={44} />
+                                                    <Avatar src={f.profile?.avatar_url} name={f.profile?.display_name || f.profile?.username} size={44} />
                                                     <div style={{ flex: 1 }}>
                                                         <div style={{ fontSize: 14, fontWeight: 600, color: C.text, display: 'flex', alignItems: 'center', gap: 6 }}>
-                                                            {f.profile?.full_name || f.profile?.username || 'Unknown'}
+                                                            {f.profile?.display_name || f.profile?.username || 'Unknown'}
                                                             {/* #9 Role badges */}
                                                             {f.role && f.role !== 'member' && (
                                                                 <span style={{
@@ -3487,7 +3490,7 @@ export default function SocialPageDetail() {
                                     </div>
                                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
                                         {followers.slice(0, 10).map(f => (
-                                            <Avatar key={f.id} src={f.profile?.avatar_url} name={f.profile?.full_name} size={36} />
+                                            <Avatar key={f.id} src={f.profile?.avatar_url} name={f.profile?.display_name || f.profile?.username} size={36} />
                                         ))}
                                     </div>
                                 </div>
@@ -3547,7 +3550,7 @@ export default function SocialPageDetail() {
                                   </div>
                               ) : (
                                   inviteFriends
-                                      .filter(f => !inviteSearch || (f.full_name || f.display_name || f.username || '').toLowerCase().includes(inviteSearch.toLowerCase()))
+                                      .filter(f => !inviteSearch || (f.display_name || f.username || '').toLowerCase().includes(inviteSearch.toLowerCase()))
                                       .map(friend => (
                                           <div key={friend.id} style={{
                                               display: 'flex', alignItems: 'center', gap: 12,
@@ -3556,7 +3559,7 @@ export default function SocialPageDetail() {
                                               <Avatar src={friend.avatar_url} name={friend.display_name || friend.username} size={40} />
                                               <div style={{ flex: 1 }}>
                                                   <div style={{ fontSize: 14, fontWeight: 600, color: C.text }}>
-                                                      {friend.display_name || friend.full_name || friend.username}
+                                                      {friend.display_name || friend.username}
                                                   </div>
                                                   {friend.username && (
                                                       <div style={{ fontSize: 12, color: C.textSec }}>@{friend.username}</div>

@@ -31,7 +31,10 @@ test('every dynamic trivia mode uses the server-authoritative session flow', () 
     ]);
     assert.doesNotMatch(modePage, /router\.query\.serverGrading/);
     assert.match(modePage, /if \(serverGraded\) \{[\s\S]*serverRun\.start/);
-    assert.match(modePage, /if \(!useServerPayout \|\| !serverResult\?\.scoreId\)/);
+    assert.match(modePage, /if \(!useServerPayout\) \{[\s\S]*throw new Error\('verified_score_missing'\)/);
+    assert.match(modePage, /scoreIdRef\.current = serverResult\?\.receipt\?\.scoreId \|\| serverResult\?\.scoreId \|\| null/);
+    assert.match(modePage, /if \(!scoreIdRef\.current\) projectionWarning =/,
+        'an optional projection id cannot cause a paid settlement retry');
 });
 
 test('browser trivia pages do not mutate server-owned analytics tables', () => {

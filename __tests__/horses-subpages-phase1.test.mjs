@@ -40,16 +40,21 @@ import { pagerModel } from '../src/components/horses/pagerModel.js';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const read = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8');
 
-const SUB_PAGES = [
-  'pages/horses/sql-console.js',
-  'pages/horses/hg-moderation.js',
-  'pages/horses/hand-reviews.js',
+const SQL_PANEL = 'src/components/horses/SqlConsolePanel.jsx';
+const HG_PANEL = 'src/components/horses/HgModerationPanel.jsx';
+const HAND_PANEL = 'src/components/horses/HandReviewsPanel.jsx';
+const SUB_PAGES = [SQL_PANEL, HG_PANEL, HAND_PANEL];
+const LEGACY_ROUTES = [
+  ['pages/horses/sql-console.js', 'sql-console'],
+  ['pages/horses/hg-moderation.js', 'hg-moderation'],
+  ['pages/horses/hand-reviews.js', 'hand-reviews'],
 ];
 
 // Files this phase owns. The CSS is the token SOURCE, so it keeps its hex;
 // it is still bound by the em-dash rule.
 const OWNED = [
   ...SUB_PAGES,
+  ...LEGACY_ROUTES.map(([file]) => file),
   'pages/horses/horses.module.css',
   'src/lib/horsesAdminTokens.js',
   'src/lib/antiAbuse.js',
@@ -66,11 +71,11 @@ const EM_DASH = '—';
 // truncated to nothing, every negative assertion goes green and only this
 // fails.
 
-test('each sub-page is still a real page, so the negative checks mean something', () => {
+test('each folded sub-page is still a real panel, so the negative checks mean something', () => {
   for (const rel of SUB_PAGES) {
     const body = read(rel);
     assert.ok(body.length > 4000, `${rel} is ${body.length} bytes; it has been gutted`);
-    assert.match(body, /export default function \w+/, `${rel} lost its default-exported component`);
+    assert.match(body, /export default function \w+Panel/, `${rel} lost its default-exported panel`);
     assert.match(body, /useState\(/, `${rel} lost its state`);
   }
   const css = read('pages/horses/horses.module.css');
@@ -153,14 +158,25 @@ test('the three sub-pages carry no emoji either', () => {
 
 // ── Presence module ────────────────────────────────────────────────────────────
 
-test('src/lib/horsePresence.js stays (six social surfaces import it) and carries no emoji', () => {
-  // The Phase 1 audit snapshot did not include pages/hub/social-media or
-  // src/components/social, so it called this module dead. In the real repo
-  // six files import isHorseOnlineNow. It stays; only its emoji header goes.
-  const src = read('src/lib/horsePresence.js');
-  assert.match(src, /export function isHorseOnlineNow/);
-  assert.doesNotMatch(src, EMOJI);
-  assert.equal(src.includes(EM_DASH), false);
+test('src/lib/horsePresence.js is gone and nothing imports it', () => {
+  // 2026-10-05: presence has one definition, the database's (fn_profile_presence
+  // over profiles.is_online and a heartbeat under five minutes old). A player
+  // with no browser keeps a real heartbeat written server-side, so no code runs
+  // a schedule any more and the module that did is deleted.
+  assert.equal(fs.existsSync(path.join(ROOT, 'src/lib/horsePresence.js')), false);
+  const importers = [];
+  const walk = (dir) => {
+    if (!fs.existsSync(dir)) return;
+    for (const name of fs.readdirSync(dir)) {
+      if (name === 'node_modules' || name.startsWith('.')) continue;
+      const full = path.join(dir, name);
+      if (fs.statSync(full).isDirectory()) walk(full);
+      else if (/\.(m?js|jsx|ts|tsx|cjs)$/.test(name)
+        && /['"][^'"]*\/horsePresence(?:\.js)?['"]/.test(fs.readFileSync(full, 'utf8'))) importers.push(full);
+    }
+  };
+  for (const dir of ['pages', 'src', 'app', 'lib']) walk(path.join(ROOT, dir));
+  assert.deepEqual(importers, []);
 });
 
 // ── Token integrity ────────────────────────────────────────────────────────
@@ -238,125 +254,39 @@ test('every var(--...) named on T is declared in the .tokenScope block itself', 
  * Opening `<div ...>` tags, brace-aware so an arrow function or a template
  * literal in an attribute cannot end the tag early.
  */
-function openingDivTags(body) {
-  const tags = [];
-  let i = 0;
-  while ((i = body.indexOf('<div', i)) !== -1) {
-    let depth = 0;
-    let j = i + 4;
-    let end = -1;
-    while (j < body.length) {
-      const ch = body[j];
-      if (ch === '{') depth += 1;
-      else if (ch === '}') depth -= 1;
-      else if (ch === '>' && depth === 0) { end = j; break; }
-      j += 1;
-    }
-    if (end === -1) break;
-    tags.push({ start: i, end: end + 1, text: body.slice(i, end + 1) });
-    i = end + 1;
-  }
-  return tags;
+function foldedPanelRoot(body) {
+  return body.match(/<section[^>]*styles\.tokenScope[^>]*>/)?.[0] || null;
 }
-
-/**
- * A full-page root is any element that paints the whole viewport. Every state
- * these pages can return is one: the loading state, the auth-failure state,
- * the 403 and the page itself. That is the property the class has to hold on,
- * and it is discovered from the source rather than hard-coded, so a NEW root
- * is checked the day it is added.
- */
-function fullPageRoots(body) {
-  return openingDivTags(body).filter((t) => /minHeight:\s*'100vh'/.test(t.text));
-}
-
-// The branches each page can return through, from the review's own inventory.
-// The assertion is >= so a new state is caught by the per-root check rather
-// than by an equality that a legitimate addition would break.
-const ROOT_EXPECTATIONS = {
-  'pages/horses/sql-console.js': {
-    min: 3,
-    states: ['Authenticating Agent', 'This Is A Failure To Ask The Route'],
-  },
-  'pages/horses/hg-moderation.js': {
-    min: 4,
-    states: ['Verifying Access', 'Could Not Verify Your Role', '403 - Operator Access Required'],
-  },
-  'pages/horses/hand-reviews.js': {
-    min: 3,
-    states: ['Authenticating', 'Could Not Verify Your Role'],
-  },
-};
 
 test('the stylesheet declares .tokenScope as one of the token-block selectors', () => {
   const { selector } = tokenScopeBlock();
   assert.match(selector, /(^|,|\s)\.tokenScope\s*(,|$)/, 'the selector list must name .tokenScope');
 });
 
-test('EVERY full-page root of EVERY sub-page carries styles.tokenScope', () => {
-  // This is the test the whole .tokenScope design exists for, stated at
-  // horsesAdminTokens.js and again in horses.module.css: "a new root without
-  // that class renders uncoloured". Asserting the class appears once per file
-  // could not see that. Every root is enumerated and checked individually.
+test('every folded panel owns a token-scoped section and no viewport shell', () => {
   for (const rel of SUB_PAGES) {
     const body = read(rel);
     assert.match(
       body,
-      /import\s+styles\s+from\s+['"]\.\/horses\.module\.css['"]/,
+      /import\s+styles\s+from\s+['"]\.\.\/\.\.\/\.\.\/pages\/horses\/horses\.module\.css['"]/,
       `${rel} must import the module`
     );
 
-    const roots = fullPageRoots(body);
-    const expected = ROOT_EXPECTATIONS[rel];
-    assert.ok(
-      roots.length >= expected.min,
-      `${rel} exposes ${roots.length} full-page roots; at least ${expected.min} were expected ` +
-        '(loading, auth failure, 403 where present, and the page). If a root was removed, ' +
-        'lower the expectation deliberately; do not delete the check.'
-    );
+    assert.ok(foldedPanelRoot(body), `${rel} must scope its panel root`);
+    assert.doesNotMatch(body, /minHeight:\s*['"]100vh['"]/, `${rel} must not recreate the console shell`);
 
-    roots.forEach((root, i) => {
-      assert.match(
-        root.text,
-        /styles\.tokenScope/,
-        `${rel}: full-page root #${i + 1} at offset ${root.start} does not carry styles.tokenScope, ` +
-          `so every var() inside it resolves to nothing. Tag: ${root.text.slice(0, 120)}`
-      );
-    });
+  }
+});
 
-    // And the named states really are among those roots, so a page cannot pass
-    // by rendering one root and dropping the early-return branches entirely.
-    for (const marker of expected.states) {
-      // The copy is usually quoted in a comment as well as rendered, so every
-      // occurrence is considered and at least one has to sit inside a root.
-      const offsets = [];
-      for (let at = body.indexOf(marker); at !== -1; at = body.indexOf(marker, at + 1)) offsets.push(at);
-      assert.ok(offsets.length > 0, `${rel} lost the "${marker}" state`);
-
-      const owners = offsets
-        .map((at) => {
-          const before = roots.filter((r) => r.start < at);
-          if (before.length === 0) return null;
-          const nearest = before[before.length - 1];
-          const next = roots.find((r) => r.start > nearest.start);
-          // Inside this root's region, and not merely somewhere after it.
-          return !next || at < next.start ? nearest : null;
-        })
-        .filter(Boolean);
-
-      assert.ok(
-        owners.length > 0,
-        `${rel}: "${marker}" is not rendered inside any full-page root, so that state paints ` +
-          'nothing full-bleed and the token scope cannot reach it'
-      );
-      for (const owner of owners) {
-        assert.match(
-          owner.text,
-          /styles\.tokenScope/,
-          `${rel}: the root rendering "${marker}" is missing styles.tokenScope`
-        );
-      }
-    }
+test('legacy URLs issue reversible server redirects and preserve query parameters', () => {
+  for (const [rel, tab] of LEGACY_ROUTES) {
+    const body = read(rel);
+    assert.match(body, /export async function getServerSideProps\(\{ query \}\)/);
+    assert.match(body, /permanent:\s*false/);
+    assert.match(body, /Object\.entries\(query \|\| \{\}\)/, `${rel} must preserve bookmarks`);
+    assert.match(body, /Array\.isArray\(value\)/, `${rel} must preserve repeated query parameters`);
+    assert.match(body, new RegExp(`redirectedQuery\\(query, '${tab}'\\)`));
+    assert.doesNotMatch(body, /from ['"]react['"]|useEffect\(|useState\(/, `${rel} must stay a thin wrapper`);
   }
 });
 
@@ -437,7 +367,7 @@ test('pagerModel: an empty first page offers neither direction', () => {
 test("hg-moderation's Pager can never click Previous below zero", () => {
   // The component derives the offsets itself, so the clamp is asserted on the
   // source rather than through the model.
-  const body = read('pages/horses/hg-moderation.js');
+  const body = read(HG_PANEL);
   assert.match(body, /const\s+prevOffset\s*=\s*Math\.max\(\s*0\s*,\s*offset\s*-\s*pageSize\s*\)/);
   assert.equal(
     /onOffset\(\s*offset\s*-\s*pageSize\s*\)/.test(body),
@@ -447,7 +377,7 @@ test("hg-moderation's Pager can never click Previous below zero", () => {
 });
 
 test("hg-moderation's rewind guard is honest about a failed load", () => {
-  const body = read('pages/horses/hg-moderation.js');
+  const body = read(HG_PANEL);
   assert.match(body, /function\s+shouldRewind\s*\(/, 'the rewind rule must be a named, readable predicate');
   const fn = body.slice(body.indexOf('function shouldRewind'));
   const guard = fn.slice(0, fn.indexOf('}\n') + 1);
@@ -458,7 +388,7 @@ test("hg-moderation's rewind guard is honest about a failed load", () => {
 // ── hg-moderation ──────────────────────────────────────────────────────────
 
 test('hg-moderation has a Pager that uses the shared arithmetic', () => {
-  const body = read('pages/horses/hg-moderation.js');
+  const body = read(HG_PANEL);
   assert.match(body, /function\s+Pager\s*\(/, 'a Pager component must exist');
   assert.match(
     body,
@@ -473,7 +403,7 @@ test('hg-moderation has a Pager that uses the shared arithmetic', () => {
 });
 
 test('hg-moderation treats an unknown total as unknown on BOTH tabs', () => {
-  const body = read('pages/horses/hg-moderation.js');
+  const body = read(HG_PANEL);
   // Finding 7: the two tabs guarded `total` differently, so a string or object
   // total rendered as "[object Object] Reports In This Queue" on one of them.
   const guards = body.match(/setTotal\(\s*Number\.isFinite\(\s*d\.total\s*\)\s*\?\s*d\.total\s*:\s*null\s*\)/g) || [];
@@ -491,7 +421,7 @@ test('hg-moderation treats an unknown total as unknown on BOTH tabs', () => {
 });
 
 test('hg-moderation rewinds an offset that has fallen off the end of a queue', () => {
-  const body = read('pages/horses/hg-moderation.js');
+  const body = read(HG_PANEL);
   // Finding 9: resolve the last report on the last page, refresh, and the page
   // showed "No Reports On This Page" with Next disabled and only Previous to
   // recover. Both tabs now step back.
@@ -501,7 +431,7 @@ test('hg-moderation rewinds an offset that has fallen off the end of a queue', (
 });
 
 test('hg-moderation wires the pager into BOTH Reports and Appeals', () => {
-  const body = read('pages/horses/hg-moderation.js');
+  const body = read(HG_PANEL);
   const pagers = body.match(/<Pager\b/g) || [];
   assert.equal(pagers.length, 2, `expected exactly two pagers, found ${pagers.length}`);
   assert.match(body, /noun="Reports"/);
@@ -509,13 +439,13 @@ test('hg-moderation wires the pager into BOTH Reports and Appeals', () => {
 });
 
 test('hg-moderation pages both list routes with limit and offset', () => {
-  const body = read('pages/horses/hg-moderation.js');
+  const body = read(HG_PANEL);
   assert.match(body, /hg-reports\?status=\$\{status\}&limit=\$\{PAGE_SIZE\}&offset=\$\{offset\}/);
   assert.match(body, /hg-appeals\?status=\$\{status\}&limit=\$\{PAGE_SIZE\}&offset=\$\{offset\}/);
 });
 
 test('hg-moderation resets the offset when the filter changes', () => {
-  const body = read('pages/horses/hg-moderation.js');
+  const body = read(HG_PANEL);
   // Otherwise switching status on page 4 lands on page 4 of the new queue,
   // which is usually empty and reads as "no reports".
   const resets =
@@ -524,7 +454,7 @@ test('hg-moderation resets the offset when the filter changes', () => {
 });
 
 test('hg-moderation renders Onboarding and GDPR as labelled rows, not raw JSON', () => {
-  const body = read('pages/horses/hg-moderation.js');
+  const body = read(HG_PANEL);
   assert.match(body, /function\s+KeyValueRows\s*\(/);
   const uses = body.match(/<KeyValueRows\b/g) || [];
   assert.equal(uses.length, 2, `expected KeyValueRows in both tabs, found ${uses.length}`);
@@ -533,8 +463,18 @@ test('hg-moderation renders Onboarding and GDPR as labelled rows, not raw JSON',
   assert.match(body, /<details/);
 });
 
+test('hg-moderation tabs share one mounted panel and support roving keyboard focus', () => {
+  const body = read(HG_PANEL);
+  assert.match(body, /aria-controls="hg-moderation-panel"/);
+  assert.match(body, /id="hg-moderation-panel"\s+role="tabpanel"/);
+  assert.doesNotMatch(body, /aria-controls=\{`hg-moderation-panel-/,
+    'inactive tabs must not point at panels that are absent from the document');
+  assert.match(body, /tabIndex=\{tab === i \? 0 : -1\}/);
+  for (const key of ['ArrowLeft', 'ArrowRight', 'Home', 'End']) assert.match(body, new RegExp(`'${key}'`));
+});
+
 test('an irreversible erase and an onboarding lookup always render a receipt', () => {
-  const body = read('pages/horses/hg-moderation.js');
+  const body = read(HG_PANEL);
   // Finding 2: `{result && ...}` rendered NOTHING when the payload was null,
   // 0 or false. hg-gdpr-erase returns whatever the RPC returned, and
   // hg-onboarding-status legitimately returns null for a user with no row, so
@@ -555,7 +495,7 @@ test('an irreversible erase and an onboarding lookup always render a receipt', (
 });
 
 test('KeyValueRows tells the truth about an array payload', () => {
-  const body = read('pages/horses/hg-moderation.js');
+  const body = read(HG_PANEL);
   // Finding 8: an array fell to `entries = []` and the panel asserted "The
   // Response Carried No Fields." while the Raw disclosure right below showed
   // the array.
@@ -566,7 +506,7 @@ test('KeyValueRows tells the truth about an array payload', () => {
 // ── hand-reviews ───────────────────────────────────────────────────────────
 
 test('hand-reviews states the fleet cap and offers Show All', () => {
-  const body = read('pages/horses/hand-reviews.js');
+  const body = read(HAND_PANEL);
   assert.ok(body.includes('Showing Top ${FLEET_PREVIEW} Of ${horses.length} Horses'), 'must say Showing Top 40 Of N');
   assert.match(body, /Showing Top /, 'the literal phrase must survive any refactor of the template');
   assert.match(body, /showAllHorses/, 'a Show All toggle must exist');
@@ -582,7 +522,7 @@ test('hand-reviews states the fleet cap and offers Show All', () => {
 });
 
 test('hand-reviews exports every table to CSV', () => {
-  const body = read('pages/horses/hand-reviews.js');
+  const body = read(HAND_PANEL);
   assert.match(body, /downloadCsv/);
   assert.match(body, /toCsv/);
   assert.match(body, /stampedName/);
@@ -595,7 +535,7 @@ test('hand-reviews exports every table to CSV', () => {
 });
 
 test('hand-reviews declares explicit [key, header] export columns', () => {
-  const body = read('pages/horses/hand-reviews.js');
+  const body = read(HAND_PANEL);
   for (const name of [
     'AUDIT_COLUMNS',
     'TELEMETRY_COLUMNS',
@@ -613,7 +553,7 @@ test('hand-reviews declares explicit [key, header] export columns', () => {
 });
 
 test('hand-reviews paging is honest about what it does not know', () => {
-  const body = read('pages/horses/hand-reviews.js');
+  const body = read(HAND_PANEL);
   assert.match(body, /rows\.length\s*===\s*PAGE_SIZE\s*&&/, 'More must render only on a full page');
   assert.match(body, /Page \$\{\s*page\s*\+\s*1\s*\}/, 'the position must read Page N');
   assert.equal(
@@ -626,14 +566,14 @@ test('hand-reviews paging is honest about what it does not know', () => {
 // ── sql-console ────────────────────────────────────────────────────────────
 
 test('sql-console exports the current result set', () => {
-  const body = read('pages/horses/sql-console.js');
+  const body = read(SQL_PANEL);
   assert.match(body, /downloadCsv/);
   assert.match(body, /toCsv/);
   assert.match(body, /stampedName\(\s*'sql-console-result'\s*\)/);
 });
 
 test('sql-console DATA_MUTATED handler does something an operator can see', () => {
-  const body = read('pages/horses/sql-console.js');
+  const body = read(SQL_PANEL);
   assert.match(body, /Data Changed By Another Console Since This Query Ran/);
   assert.match(body, /setStaleSince/);
   assert.equal(
@@ -644,7 +584,7 @@ test('sql-console DATA_MUTATED handler does something an operator can see', () =
 });
 
 test('sql-console cannot raise a stale alarm about its own commit', () => {
-  const body = read('pages/horses/sql-console.js');
+  const body = read(SQL_PANEL);
   // Finding 6: `event?.source || event?.payload?.source` short-circuits on an
   // envelope that carries the EMITTER name ('SQLConsole') as its source, so
   // the payload tag is never consulted and the console warns about itself.
@@ -670,7 +610,7 @@ test('sql-console cannot raise a stale alarm about its own commit', () => {
 });
 
 test('sql-console keeps its commit gate exactly as designed', () => {
-  const body = read('pages/horses/sql-console.js');
+  const body = read(SQL_PANEL);
   // The three properties the gate depends on. This test exists so a later
   // edit to this file cannot quietly weaken them.
   assert.match(body, /confirmText\.trim\(\)\s*===\s*pendingSql/, 'commit must require a verbatim retype');
@@ -777,12 +717,7 @@ test('the sub-pages never use the throwing single-row read', () => {
   }
 });
 
-test('each sub-page takes the route\'s answer on who is an operator, on a live line', () => {
-  // Re-verification M-1. The three legacy profile roles were the gate, and
-  // that list is exactly what Phase 2 made incomplete: requireOperator admits
-  // an active ca_operator_grants row too. So the pages ask
-  // GET operator-admin?section=policy through operatorGate, and the
-  // client-side role list is gone from every executable line.
+test('folded panels inherit the console gate and never duplicate a legacy role check', () => {
   const ROLES = /\[\s*(['"])admin\1\s*,\s*(['"])superadmin\2\s*,\s*(['"])god\3\s*\]/;
   for (const rel of SUB_PAGES) {
     const lines = read(rel).split('\n');
@@ -798,16 +733,11 @@ test('each sub-page takes the route\'s answer on who is an operator, on a live l
       0,
       `${rel} still reads the role from profiles for itself`
     );
-    assert.ok(
-      live.some((l) => /import \{ operatorGate \} from '\.\.\/\.\.\/src\/components\/horses\/operatorAdmin'/.test(l)),
-      `${rel} must import operatorGate`
-    );
-    assert.ok(
-      live.some((l) => /await operatorGate\(token\)/.test(l)),
-      `${rel} must ask the route with the bearer`
-    );
-    // Denied goes away; not-verified gets the retry screen, never a denial.
-    assert.ok(live.some((l) => /gate\.denied/.test(l)), `${rel} must branch on gate.denied`);
-    assert.ok(live.some((l) => /gate\.ok/.test(l)), `${rel} must branch on gate.ok`);
+    assert.equal(live.some((l) => /operatorGate|getAuthUser|getFreshAccessToken/.test(l)), false,
+      `${rel} must not duplicate the parent console's auth lifecycle`);
   }
+  assert.match(read(SQL_PANEL), /function SqlConsolePanel\(\{ authFetch \}\)/);
+  assert.match(read(SQL_PANEL), /await authFetch\('\/api\/admin\/execute-sql'/);
+  assert.match(read(HG_PANEL), /function HgModerationPanel\(\{ authFetch, permissions = null \}\)/);
+  assert.match(read(HG_PANEL), /return authFetch\(path,/);
 });

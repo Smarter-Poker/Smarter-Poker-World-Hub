@@ -8,7 +8,11 @@
  *   { action: 'set_active',    id, is_active }
  *   { action: 'bulk_active',   ids: [...], is_active }
  *   { action: 'bulk_delete',   ids: [...] }
- *   { action: 'save_settings', settings: {...} }
+ *   { action: 'save_settings', settings: { engine_enabled } }
+ *   { action: 'read_settings' }           (read)
+ *   { action: 'read_post_modes' }         (read)
+ *   { action: 'set_post_mode', mode, enabled }
+ *   { action: 'pipeline_runs' }           (read)
  *   { action: 'set_ticket_status', id, status }
  *   { action: 'audit_log', ...filters }   (read)
  *
@@ -86,10 +90,25 @@ const HORSE_FIELDS = [
 /**
  * Settings keys the panel owns. `id` is handled separately.
  *
- * These are the SOCIAL CONTENT engine's settings and nothing else. The row is
- * read by `src/content-engine/pipeline/PipelineCommander.js`, which writes
- * posts and stories; `ai_model` and `temperature` steer that writing and are
- * legitimate.
+ * ONE KEY (Phase 10, 2026-10-06). The live content engine is the workers
+ * repo (src/lib/content-engine/Fleet.ts), and it reads exactly two things
+ * from the settings surfaces: `content_settings.engine_enabled`, the master
+ * switch, read fresh per horse and failing closed, and
+ * `horse_post_modes.enabled` per mode, which read_post_modes and
+ * set_post_mode below serve. The stale hub JS mirror that this comment used
+ * to name as the reader of this row is deleted by Phase 10; it had not run
+ * for the fleet in months. Nothing live ever read `posts_per_day`,
+ * `min_delay_minutes`, `max_delay_minutes`, `ai_model`, `temperature`,
+ * `auto_publish` or `peak_hours`: per-horse cadence is data on
+ * content_authors, and the engine calls no model at all, so "GPT-4o (Best)"
+ * was a false statement about the platform.
+ *
+ * So those seven keys left this list the way the `grinder_*` keys did a
+ * month earlier: a control that steers nothing is a promise the page cannot
+ * keep. A save body that names one of them is refused outright rather than
+ * trimmed, so a stale browser tab learns the key is dead instead of being
+ * told its write landed. The columns still exist and hold their last written
+ * values; this route simply refuses to move them.
  *
  * The four `grinder_*` keys that used to sit at the end of this list were
  * REMOVED on 2026-09-04. They were write-only: this route accepted them, the
@@ -120,23 +139,22 @@ const HORSE_FIELDS = [
  * simply stops accepting writes to them, so the values can no longer move and
  * no screen can imply they mean anything.
  */
-const SETTINGS_FIELDS = [
-  'posts_per_day',
-  'min_delay_minutes',
-  'max_delay_minutes',
-  'ai_model',
-  'temperature',
-  'engine_enabled',
-  'auto_publish',
-  'peak_hours',
-];
+const SETTINGS_FIELDS = ['engine_enabled'];
 
-const SETTING_RANGES = {
-  posts_per_day: [1, 100],
-  min_delay_minutes: [5, 180],
-  max_delay_minutes: [15, 300],
-  temperature: [0, 1],
-};
+/**
+ * Numeric settings and their bounds. Empty since Phase 10: the one key left
+ * is a boolean. The loop in validateSettings stays, so a numeric setting that
+ * earns a reader one day gets its range checked by naming it here.
+ */
+const SETTING_RANGES = {};
+
+/**
+ * What read_settings returns and what save_settings reads back: the id, the
+ * keys this route owns, and the stamp. Never `*`: the dead columns hold their
+ * last written values and must not travel to a browser as if they meant
+ * something.
+ */
+export const SETTINGS_READ_COLUMNS = ['id', ...SETTINGS_FIELDS, 'updated_at'].join(', ');
 
 /**
  * Contract item 6. The old ceiling was 600 with the comment "the stable is 593
@@ -168,6 +186,10 @@ const ACTIONS = [
   'bulk_delete',
   'set_ticket_status',
   'save_settings',
+  'read_settings',
+  'read_post_modes',
+  'set_post_mode',
+  'pipeline_runs',
   'audit_log',
 ];
 
@@ -232,21 +254,20 @@ function validateSettings(settings) {
     }
     if (n < min || n > max) errors.push(`${key} must be between ${min} and ${max}`);
   }
-  if (settings.min_delay_minutes !== undefined && settings.max_delay_minutes !== undefined) {
-    if (Number(settings.min_delay_minutes) > Number(settings.max_delay_minutes)) {
-      errors.push('min_delay_minutes cannot exceed max_delay_minutes');
-    }
-  }
   if (settings.engine_enabled !== undefined && typeof settings.engine_enabled !== 'boolean') {
     errors.push('engine_enabled must be a boolean');
   }
-  if (settings.auto_publish !== undefined && typeof settings.auto_publish !== 'boolean') {
-    errors.push('auto_publish must be a boolean');
-  }
-  if (settings.peak_hours !== undefined && !Array.isArray(settings.peak_hours)) {
-    errors.push('peak_hours must be an array');
-  }
   return errors;
+}
+
+/**
+ * The keys a save body names that this route no longer owns. Reported, not
+ * trimmed: `pick` would quietly drop them and answer 200, which is the exact
+ * shape of lie this file exists to stop.
+ */
+function unknownSettingKeys(settings) {
+  if (!settings || typeof settings !== 'object' || Array.isArray(settings)) return [];
+  return Object.keys(settings).filter((key) => !SETTINGS_FIELDS.includes(key));
 }
 
 /** A horse id the operator sent. Malformed ids become a 400, never a 22P02. */
@@ -546,6 +567,8 @@ async function setTicketStatus(db, op, req, body) {
 
 // -- SETTINGS ----------------------------------------------------------------
 async function saveSettings(db, op, req, body) {
+  const unknown = unknownSettingKeys(body.settings);
+  if (unknown.length) throw badRequest(`Unknown Setting: ${unknown.join(', ')}`);
   const settings = pick(body.settings, SETTINGS_FIELDS);
   if (Object.keys(settings).length === 0) throw badRequest('No Settings To Save');
   const errors = validateSettings(settings);
@@ -557,7 +580,7 @@ async function saveSettings(db, op, req, body) {
   // is the contract the reader must match: lowest id wins, always.
   const { data: current, error: readErr } = await db
     .from('content_settings')
-    .select('*')
+    .select(SETTINGS_READ_COLUMNS)
     .order('id', { ascending: true })
     .limit(1)
     .maybeSingle();
@@ -567,7 +590,7 @@ async function saveSettings(db, op, req, body) {
     const { data, error } = await db
       .from('content_settings')
       .insert([{ ...settings, updated_at: new Date().toISOString() }])
-      .select()
+      .select(SETTINGS_READ_COLUMNS)
       .maybeSingle();
     if (error) throw mapDbError(error, 'The Engine Settings', { route: 'horses.stable-admin' });
     await auditOperatorAction(op, req, {
@@ -585,7 +608,7 @@ async function saveSettings(db, op, req, body) {
     .from('content_settings')
     .update({ ...settings, updated_at: new Date().toISOString() })
     .eq('id', current.id)
-    .select()
+    .select(SETTINGS_READ_COLUMNS)
     .maybeSingle();
   if (error) throw mapDbError(error, 'The Engine Settings', { route: 'horses.stable-admin' });
   if (!data) throw new ApiError(500, 'Settings Row Vanished Mid-Write', 'settings_missing');
@@ -599,6 +622,141 @@ async function saveSettings(db, op, req, body) {
     details: { fields: Object.keys(settings) },
   });
   return { settings: data };
+}
+
+/**
+ * The engine settings row, read for the console (2026-10-05).
+ *
+ * The console used to read content_settings straight from the browser with the
+ * public key, which only worked because the table was readable by anybody:
+ * any visitor could read the content engine's posting cadence and model. The
+ * read lives here now, behind operator auth and the service role, so the table
+ * can be closed to anon and authenticated. Same row the writer updates: the
+ * lowest id.
+ */
+async function readSettings(db) {
+  const { data, error } = await db
+    .from('content_settings')
+    .select(SETTINGS_READ_COLUMNS)
+    .order('id', { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  if (error) throw mapDbError(error, 'The Engine Settings', { route: 'horses.stable-admin' });
+  return { settings: data || null };
+}
+
+// -- POSTING MODES (Phase 10, 2026-10-06) ------------------------------------
+//
+// Each row of horse_post_modes is one WAY a horse can post. The live engine
+// (workers src/lib/content-engine/Fleet.ts) reads `enabled` per mode, fails
+// closed, and caches it for a minute; a new row starts disabled and turning
+// it on is the owner's. This is the owner's hold, and the route keeps it:
+//
+//   - set_post_mode UPDATEs a row that already exists. It never INSERTs: a
+//     new way to post arrives as a disabled migration row, never from a
+//     switch, and a mode name nobody seeded is a 404 here.
+//   - Nothing flips on its own. One switch is one call is one audited write,
+//     with the row before and after it.
+//   - Enabling stamps approved_by and approved_at, because enabling IS the
+//     approval. Disabling leaves both alone: the approval is history, and a
+//     mode switched off for a day does not lose the record of who first
+//     allowed it.
+//
+// The browser cannot read the table at all (the-roster-never-reaches-a-browser
+// law), so the list and the switch both come through here.
+
+/** Named columns: the switch, the words beside it, and the approval. Never `*`. */
+export const POST_MODE_COLUMNS = 'mode, enabled, description, approved_by, approved_at';
+
+/** A mode name is a snake_case key the migrations seeded, never free text. */
+const POST_MODE_RE = /^[a-z][a-z0-9_]{0,63}$/;
+
+async function readPostModes(db) {
+  const { data, error } = await db
+    .from('horse_post_modes')
+    .select(POST_MODE_COLUMNS)
+    .order('mode', { ascending: true });
+  if (error) throw mapDbError(error, 'The Posting Mode List', { route: 'horses.stable-admin' });
+  return { modes: Array.isArray(data) ? data : [] };
+}
+
+async function setPostMode(db, op, req, body) {
+  const mode = text(body.mode, { min: 1, max: 64 });
+  if (!mode || !POST_MODE_RE.test(mode)) throw badRequest('A Valid Mode Name Is Required');
+  if (typeof body.enabled !== 'boolean') throw badRequest('enabled Must Be A Boolean');
+  const enabled = body.enabled;
+
+  const { data: before, error: readErr } = await db
+    .from('horse_post_modes')
+    .select(POST_MODE_COLUMNS)
+    .eq('mode', mode)
+    .maybeSingle();
+  if (readErr) throw mapDbError(readErr, 'That Posting Mode', { route: 'horses.stable-admin' });
+  if (!before) throw notFound('That Posting Mode Does Not Exist');
+
+  const patch = { enabled };
+  if (enabled) {
+    // The operator who flipped it on is the approver. The email is what a
+    // person reads on the Settings tab; the id is the fallback the audit row
+    // carries anyway.
+    patch.approved_by = op?.user?.email || op?.user?.id || null;
+    patch.approved_at = new Date().toISOString();
+  }
+
+  const { data, error } = await db
+    .from('horse_post_modes')
+    .update(patch)
+    .eq('mode', mode)
+    .select(POST_MODE_COLUMNS)
+    .maybeSingle();
+  if (error) throw mapDbError(error, 'That Posting Mode', { route: 'horses.stable-admin' });
+  // A zero-row write is reported, not hidden: the row was there a moment ago.
+  if (!data) throw notFound('That Posting Mode Does Not Exist');
+
+  await auditOperatorAction(op, req, {
+    action: 'postmode.set',
+    targetType: 'horse_post_modes',
+    targetId: mode,
+    before: pick(before, ['enabled', 'approved_by', 'approved_at']),
+    after: pick(data, ['enabled', 'approved_by', 'approved_at']),
+    details: { mode, enabled, approval_stamped: enabled },
+  });
+
+  // The whole list, re-read from the table AFTER the write, rides back with
+  // the row. The route's write limit is 30 calls a minute per operator and a
+  // flip that cost a write plus a separate re-read would spend two of them;
+  // this way the Settings tab shows what the table holds for one call. The
+  // write has already happened and is audited, so a failed list read is
+  // reported as `modes: null` (the panel re-reads on its own) and never turns
+  // a completed flip into an error.
+  let modes;
+  try {
+    modes = (await readPostModes(db)).modes;
+  } catch (listErr) {
+    modes = null;
+    console.error('[horses.stable-admin] post-mode list re-read failed after a flip:', listErr?.code || listErr?.message);
+  }
+  return { mode: data, modes };
+}
+
+/**
+ * The content pipeline's recent runs, for the Pipeline and Stats tabs. Read
+ * here for the same reason as the settings: the browser used to read
+ * pipeline_runs with the public key, so its post and video counts were
+ * readable by anybody.
+ */
+export const PIPELINE_RUN_COLUMNS =
+  'id, run_type, started_at, completed_at, text_posts_created, videos_created, memes_created, news_shared, errors, duration_seconds';
+const PIPELINE_RUNS_SHOWN = 10;
+
+async function readPipelineRuns(db) {
+  const { data, error } = await db
+    .from('pipeline_runs')
+    .select(PIPELINE_RUN_COLUMNS)
+    .order('started_at', { ascending: false })
+    .limit(PIPELINE_RUNS_SHOWN);
+  if (error) throw mapDbError(error, 'The Pipeline Runs', { route: 'horses.stable-admin' });
+  return { runs: Array.isArray(data) ? data : [] };
 }
 
 // -- AUDIT LOG (read) --------------------------------------------------------
@@ -855,6 +1013,12 @@ const ACTION_PERMISSIONS = Object.freeze({
   delete_horse: PERMISSIONS.CONTENT_WRITE,
   bulk_delete: PERMISSIONS.CONTENT_WRITE,
   save_settings: PERMISSIONS.CONTENT_WRITE,
+  read_settings: PERMISSIONS.CONSOLE_READ,
+  // Reading which ways a horse may post is console floor; flipping one is a
+  // content write, the same permission as the master switch.
+  read_post_modes: PERMISSIONS.CONSOLE_READ,
+  set_post_mode: PERMISSIONS.CONTENT_WRITE,
+  pipeline_runs: PERMISSIONS.CONSOLE_READ,
   set_ticket_status: PERMISSIONS.SUPPORT_WRITE,
   audit_log: PERMISSIONS.AUDIT_READ,
 });
@@ -877,6 +1041,10 @@ export async function handle({ req, op, db, body }) {
   }
 
   if (action === 'audit_log') return auditLog(db, body);
+  if (action === 'read_settings') return readSettings(db);
+  if (action === 'read_post_modes') return readPostModes(db);
+  if (action === 'set_post_mode') return setPostMode(db, op, req, body);
+  if (action === 'pipeline_runs') return readPipelineRuns(db);
   if (action === 'set_ticket_status') return setTicketStatus(db, op, req, body);
 
   if (action === 'create_horse') return createHorse(db, op, req, body);

@@ -24,6 +24,15 @@ const {
 );
 assert.equal(Number.isFinite(VIDEO_LIBRARY_VERIFICATION_MAX_AGE_MS), true);
 assert.equal(Number.isFinite(VIDEO_LIBRARY_MAX_FUTURE_SKEW_MS), true);
+// The reader also imports the pure browser-shape module (what a browser may
+// know about a Reel); the harnesses hand it the REAL toBrowserReel too.
+const REEL_SHAPE_SOURCE = readFileSync(
+  new URL('../src/lib/socialReelShape.js', import.meta.url),
+  'utf8',
+);
+const { toBrowserReel } = await import(
+  `data:text/javascript;base64,${Buffer.from(REEL_SHAPE_SOURCE).toString('base64')}`
+);
 const MINE_API = read('../pages/api/reels/mine.js');
 const SAVED_API = read('../pages/api/reels/saved.js');
 const SAVED_STATUS_API = read('../pages/api/reels/saved-status.js');
@@ -36,6 +45,7 @@ function loadEligibilityHarness() {
   const transformed = SERVER
     .replace(/import \{ createClient \} from '[^']+';\n/, '')
     .replace(/import \{[\s\S]*?\} from '\.\.\/videoLibraryAvailability';\n/, '')
+    .replace(/import \{ toBrowserReel \} from '\.\.\/socialReelShape';\n/, '')
     .replace(/export class /g, 'class ')
     .replace(/export async function /g, 'async function ')
     .replace(/export const /g, 'const ');
@@ -44,6 +54,7 @@ function loadEligibilityHarness() {
     VIDEO_LIBRARY_ALLOWED_TYPES: ['cash', 'tournament', 'slots'],
     VIDEO_LIBRARY_MAX_FUTURE_SKEW_MS,
     VIDEO_LIBRARY_VERIFICATION_MAX_AGE_MS,
+    toBrowserReel,
     Buffer,
     Date,
     Error,
@@ -127,6 +138,7 @@ function loadCollectionReaderHarness(client, { scanChunkSize = 240, followingPag
   const transformed = SERVER
     .replace(/import \{ createClient \} from '[^']+';\n/, '')
     .replace(/import \{[\s\S]*?\} from '\.\.\/videoLibraryAvailability';\n/, '')
+    .replace(/import \{ toBrowserReel \} from '\.\.\/socialReelShape';\n/, '')
     .replace('const SCAN_CHUNK_SIZE = 240;', `const SCAN_CHUNK_SIZE = ${scanChunkSize};`)
     .replace('const FOLLOWING_PAGE_SIZE = 1_000;', `const FOLLOWING_PAGE_SIZE = ${followingPageSize};`)
     .replace(/export class /g, 'class ')
@@ -137,6 +149,7 @@ function loadCollectionReaderHarness(client, { scanChunkSize = 240, followingPag
     VIDEO_LIBRARY_ALLOWED_TYPES: ['cash', 'tournament', 'slots'],
     VIDEO_LIBRARY_MAX_FUTURE_SKEW_MS,
     VIDEO_LIBRARY_VERIFICATION_MAX_AGE_MS,
+    toBrowserReel,
     Buffer,
     Date,
     Error,
@@ -270,6 +283,34 @@ function createMemoryClient(tables, { validNativeStorage = true, queryResponses 
     queryLog,
     from: table => new Query(table),
     async rpc(name, args) {
+      if (name === 'resolve_social_reel_reference') {
+        const aliases = tables.social_reel_aliases || [];
+        const alias = aliases.find(row => (
+          row.alias_reel_id === args.p_reference_id
+          || row.alias_source_post_id === args.p_reference_id
+        ));
+        if (alias) return {
+          data: [{
+            requested_id: args.p_reference_id,
+            canonical_reel_id: alias.canonical_reel_id,
+            alias_reel_id: alias.alias_reel_id,
+            redirected: true,
+          }],
+          error: null,
+        };
+        const reel = (tables.social_reels || []).find(row => (
+          row.id === args.p_reference_id || row.source_post_id === args.p_reference_id
+        ));
+        return {
+          data: reel ? [{
+            requested_id: args.p_reference_id,
+            canonical_reel_id: reel.id,
+            alias_reel_id: null,
+            redirected: reel.id !== args.p_reference_id,
+          }] : [],
+          error: null,
+        };
+      }
       if (name !== 'fn_filter_valid_user_video_storage_urls') {
         throw new Error(`Unsupported memory-client RPC: ${name}`);
       }
@@ -851,6 +892,7 @@ test('public server readers admit only storage-proven unknown native uploads and
   const loser = {
     ...winner,
     id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+    is_public: false,
     created_at: '2026-05-08T12:00:01.000Z',
   };
   const sourcePost = {
@@ -875,6 +917,12 @@ test('public server readers admit only storage-proven unknown native uploads and
   };
   const tablesForPost = post => ({
     social_reels: [loser, winner],
+    social_reel_aliases: [{
+      alias_reel_id: loser.id,
+      alias_source_post_id: postId,
+      canonical_reel_id: winner.id,
+      canonical_asset_key: canonicalAssetKey,
+    }],
     social_posts: [post],
     profiles: [{ id: ownerId, username: 'owner', full_name: 'Owner', avatar_url: null }],
     social_follows: [{ follower_id: ownerId, following_id: ownerId }],
@@ -1226,6 +1274,11 @@ test('canonical collection eligibility rejects deleted, private, and stale targe
     'all',
     { allowOwnerPrivate: true, ownerId },
   ), null);
+  assert.equal(
+    normalize(nativeRow({ source_post_id: postId }), emptyContext(), 'all'),
+    null,
+    'a linked Reel becomes unavailable immediately when its source post no longer exists',
+  );
 
   const privatePostContext = emptyContext();
   privatePostContext.postById.set(postId, {

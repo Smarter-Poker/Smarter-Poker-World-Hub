@@ -9,15 +9,10 @@
  *      the same grant that resolves a support ticket also mints a billion
  *      chips. Naming the permission per tab is the first half of splitting
  *      that; the server side is the half that will enforce it.
- *   2. A `load` thunk for tabs that are their OWN module. index.js is 5,900
- *      lines of one component; every tab written from Phase 2 on lives in its
- *      own file and is code-split. index.js wraps `load` in next/dynamic with
- *      ssr: false - dynamic() is not imported here on purpose, so this module
- *      stays importable by a plain `node --test` with no node_modules.
- *
- * `legacy: true` means the panel is still rendered inline by index.js. Those
- * come out one at a time in Phase 9; nothing else about a tab changes when it
- * moves, which is the point of the registry.
+ *   2. A stable id for the explicit dynamic component map. Phase 9 keeps this
+ *      registry pure data and declares every literal import at the top level
+ *      in dynamicPanels.js, which lets Next attach preload metadata while this
+ *      module remains importable by a plain `node --test`.
  *
  * There are NO placeholder tabs in the nav. A tab appears here when its panel
  * exists. `placeholder: true` is supported by the nav filter below so a future
@@ -53,7 +48,7 @@
  */
 export const TABS = [
   // The fleet: three views of the same horses, so one read permission.
-  { id: 'stable', label: 'Social Horses', permission: 'fleet.read', legacy: true },
+  { id: 'stable', label: 'Social Horses', permission: 'fleet.read' },
   // ── Phase 3. The Grinder tab BECAME Fleet Command ─────────────────────────
   //
   // Same slot in the bar, same read permission, its own module. The panel it
@@ -67,28 +62,27 @@ export const TABS = [
   // grinder roster any more, and a bookmark is not a reason to keep a name
   // that has stopped being true.
   { id: 'fleet', label: 'Fleet Command', permission: 'fleet.read',
-    aliases: ['grinder'],
-    load: () => import('./FleetPanel') },
-  { id: 'pipeline', label: 'Pipeline', permission: 'fleet.read', legacy: true },
+    aliases: ['grinder'] },
+  { id: 'pipeline', label: 'Pipeline', permission: 'fleet.read' },
   // The only tab whose view IS its write: there is no settings.read, and the
   // panel is the form.
-  { id: 'settings', label: 'Settings', permission: 'settings.write', legacy: true },
+  { id: 'settings', label: 'Settings', permission: 'settings.write' },
   // Statistics and Economy both report money. Reading them is money.read.
-  { id: 'stats', label: 'Statistics', permission: 'money.read', legacy: true },
-  { id: 'merch', label: 'Merch Catalog', permission: 'console.read', legacy: true },
-  { id: 'promo', label: 'Promo Codes', permission: 'console.read', legacy: true },
-  { id: 'economy', label: 'Economy', permission: 'money.read', legacy: true },
-  { id: 'mint', label: 'The Mint', permission: 'money.read', legacy: true },
+  { id: 'stats', label: 'Statistics', permission: 'money.read' },
+  { id: 'merch', label: 'Merch Catalog', permission: 'console.read' },
+  { id: 'promo', label: 'Promo Codes', permission: 'console.read' },
+  { id: 'economy', label: 'Economy', permission: 'money.read' },
+  { id: 'mint', label: 'The Mint', permission: 'money.read' },
   // Anti-Abuse and Bug Reports are both player records read side by side.
-  { id: 'antiabuse', label: 'Anti-Abuse', permission: 'players.read', legacy: true },
-  { id: 'clubarena', label: 'Club Arena', permission: 'clubs.read', legacy: true },
-  { id: 'bugreports', label: 'Bug Reports', permission: 'players.read', legacy: true },
+  { id: 'antiabuse', label: 'Anti-Abuse', permission: 'players.read' },
+  { id: 'clubarena', label: 'Club Arena', permission: 'clubs.read' },
+  { id: 'bugreports', label: 'Bug Reports', permission: 'players.read' },
   // Geeves and Reviews moderate content; moderation.write gates the buttons
   // inside them, console.read opens the page.
-  { id: 'geeves', label: 'Geeves KB', permission: 'console.read', legacy: true },
-  { id: 'reviews', label: 'Reviews', permission: 'console.read', legacy: true },
-  { id: 'scrapers', label: 'Scrapers', permission: 'console.read', legacy: true },
-  { id: 'audit', label: 'Audit Log', permission: 'audit.read', legacy: true },
+  { id: 'geeves', label: 'Geeves KB', permission: 'console.read' },
+  { id: 'reviews', label: 'Reviews', permission: 'console.read' },
+  { id: 'scrapers', label: 'Scrapers', permission: 'console.read' },
+  { id: 'audit', label: 'Audit Log', permission: 'audit.read' },
 
   // ── Phase 2. The first two tabs that are their OWN modules ────────────────
   //
@@ -104,10 +98,8 @@ export const TABS = [
   // `load` makes them code-split: index.js wraps it in next/dynamic. dynamic()
   // is deliberately not imported here so this module stays importable by a
   // plain `node --test` with no node_modules.
-  { id: 'staff', label: 'Staff And Roles', permission: 'console.read',
-    load: () => import('./StaffPanel') },
-  { id: 'approvals', label: 'Approvals', permission: 'console.read',
-    load: () => import('./ApprovalsPanel') },
+  { id: 'staff', label: 'Staff And Roles', permission: 'console.read' },
+  { id: 'approvals', label: 'Approvals', permission: 'console.read' },
 
   // ── Phase 4. The player, as an operator can see and act on them ──────────
   //
@@ -123,14 +115,28 @@ export const TABS = [
   // because the tab is also the restriction list, the observation log, the
   // ticket queue and the reports queue. A name that describes one section is
   // a name that goes stale the moment the second one lands.
-  { id: 'players', label: 'Players', permission: 'players.read',
-    load: () => import('./PlayersPanel') },
+  { id: 'players', label: 'Players', permission: 'players.read' },
 
   // Phase 5. Findings, evidence and human decisions in one operator surface.
   // The read permission opens the queue; the route separately enforces every
   // case write and any money-moving sanction. Horses remain in every result.
-  { id: 'integrity', label: 'Integrity', permission: 'players.read',
-    load: () => import('./IntegrityPanel') },
+  { id: 'integrity', label: 'Integrity', permission: 'players.read' },
+
+  // Phase 6. Operational oversight stays read-only in these four panels.
+  // Authority that already belongs to Club Arena is linked, never copied.
+  { id: 'floor', label: 'Live Floor', permission: 'clubs.read' },
+  { id: 'tournaments', label: 'Tournaments', permission: 'clubs.read' },
+  { id: 'cashier', label: 'Cashier', permission: 'money.read' },
+  { id: 'rake', label: 'Rake', permission: 'money.read' },
+
+  // Phase 8. Read-only control-plane evidence. Existing source-specific routes
+  // continue to own every write; this tab requires only the console read floor.
+  { id: 'platform', label: 'Platform Operations', permission: 'console.read' },
+
+  // Phase 9. Former standalone pages now share this shell and its tokens.
+  { id: 'sql-console', label: 'SQL Console', permission: 'sql.execute' },
+  { id: 'hg-moderation', label: 'HG Moderation', permission: 'players.read' },
+  { id: 'hand-reviews', label: 'Hand Reviews', permission: 'fleet.read' },
 ];
 
 export const DEFAULT_TAB = 'stable';
@@ -149,16 +155,11 @@ export const CA_SECTIONS = [
   // the maker-checker tab above is also called Approvals, and two unrelated
   // screens with one name in one nav is a wrong click waiting to happen.
   ['approvals', 'Union Applications'],
+  ['operations', 'Operations'],
+  ['announcements', 'Announcements'],
 ];
 
 export const DEFAULT_CA_SECTION = 'overview';
-
-/** Pages that live outside this SPA but belong to the same console. */
-export const EXTERNAL_LINKS = [
-  { href: '/horses/sql-console', label: 'SQL Console' },
-  { href: '/horses/hg-moderation', label: 'HG Moderation' },
-  { href: '/horses/hand-reviews', label: 'Hand Reviews' },
-];
 
 /** What the nav renders: everything registered that is not a placeholder. */
 export function visibleTabs(tabs = TABS) {

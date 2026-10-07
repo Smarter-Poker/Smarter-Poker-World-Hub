@@ -20,6 +20,10 @@ const socialPage = readFileSync(
   new URL('../pages/hub/social-media/index.js', import.meta.url),
   'utf8'
 );
+const sharedCard = readFileSync(
+  new URL('../src/components/reels/ReelCard.jsx', import.meta.url),
+  'utf8'
+);
 
 function between(start, end) {
   const from = source.indexOf(start);
@@ -32,7 +36,7 @@ function between(start, end) {
 function loadPureContinuationHelpers() {
   const helperSource = between(
     'function mergeCarouselReels',
-    '// Individual Reel Card in the carousel'
+    'function ReelViewer('
   );
   return Function(
     'canonicalReelKey',
@@ -108,7 +112,6 @@ test('category realtime adaptation rejects explicit cross-category topic changes
     is_public: true,
     is_deleted: false,
     media_status: 'ready',
-    origin_type: 'social_post',
     source_type: 'native',
     playback_type: 'native',
     rights_status: 'user_authorized',
@@ -154,7 +157,7 @@ test('the Social Media viewer requests the next cursor within three loaded Reels
     viewer,
     /remainingLoadedReels <= REELS_NEAR_END_THRESHOLD[\s\S]*onNearEnd\?\.\(\)/
   );
-  assert.match(continuation, /fetchPokerReels\(\{[\s\S]*cursor: pageCursor/);
+  assert.match(continuation, /loadCanonicalReelsWindow\(\{[\s\S]*cursor,/);
   assert.match(continuation, /reelsCursorRef\.current = nextCursor/);
   assert.match(continuation, /setHasMore\(pageHasMore\)/);
 });
@@ -174,9 +177,7 @@ test('the initial Social carousel scan crosses hidden pages and preserves a paus
   const initialLoad = between('const loadReels = useCallback', 'const loadMoreReels = useCallback');
   const emptyState = between("if (reels.length === 0)", 'return (\n    <>');
 
-  assert.match(initialLoad, /scanReelsContinuations\(\{/);
-  assert.match(initialLoad, /fetchPage: \(pageCursor\) => fetchPokerReels\(\{/);
-  assert.match(initialLoad, /cursor: pageCursor/);
+  assert.match(initialLoad, /loadCanonicalReelsWindow\(\{/);
   assert.match(initialLoad, /selectRows: \(rows\) => rows[\s\S]*!notInterested\.has\(reel\.id\)/);
   assert.match(initialLoad, /payload\.continuation_paused === true && nextCursor/);
   assert.match(initialLoad, /setContinuationError\(\{[\s\S]*cursor: nextCursor/);
@@ -390,13 +391,7 @@ test('failed foreground refreshes preserve the mounted Reel window and expose re
 });
 
 test('mixed-source cards use channel attribution without poker-only fallback copy', () => {
-  const card = between(
-    'function ReelCard(',
-    'function ReelViewer('
-  );
-
-  assert.match(card, /const creatorName = reelSourceName\(reel\)/);
-  assert.match(source, /reel\?\.channel_name[\s\S]*reel\?\.profiles\?\.full_name/);
-  assert.match(card, />Verified Video</);
-  assert.doesNotMatch(card, /Poker Creator|Verified Poker Video|Poker reel preview/);
+  assert.match(sharedCard, /reel\?\.channel_name[\s\S]*reel\?\.profiles\?\.full_name/);
+  assert.match(sharedCard, />Verified Reel</);
+  assert.doesNotMatch(sharedCard, /Poker Creator|Verified Poker Video|Poker reel preview/);
 });

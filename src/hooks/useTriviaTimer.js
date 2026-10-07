@@ -3,6 +3,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 /**
  * useTriviaTimer — shared shot-clock hook for trivia game pages.
  * TRAIN-TRIVIA-TIMER-1
+ * TRAIN-WIRE-TRIVIA-TIMER-1
  *
  * Encapsulates the duplicated timer pattern that previously lived in
  * mixed.js, pvp.js, tournaments.js, endless.js, and survival-game.js.

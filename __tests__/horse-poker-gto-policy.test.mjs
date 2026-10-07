@@ -6,7 +6,7 @@ import {
   getPostflopStrategy,
   getPreflopPolicy,
   makeGTODecision,
-} from '../src/content-engine/services/HorsePokerGTO.js';
+} from '../src/lib/poker-engine/brain/HorsePokerGTO.js';
 import { SolverPolicyService } from '../src/services/SolverPolicyService.js';
 
 const chartRow = {

@@ -29,6 +29,7 @@ import './delete-account-closes-the-account.test.mjs';
  * No single deletion can hide a regression.
  */
 import './club-arena-shell-cache.test.mjs';
+import './club-arena-mint-chips-live-rate.test.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import { test } from 'node:test';
@@ -107,6 +108,15 @@ import './global-header-profile-frame-law.test.mjs';
 // Delete Account had been sending a value Settings ignores.
 import './hamburger-signout-contract.test.mjs';
 import './menu-query-params-are-real.test.mjs';
+import './next-google-font-loader-patch.test.mjs';
+// 2026-10-05: update_page_preferences REPLACES the whole jsonb column, so every
+// service that calls it must merge the caller's patch over the stored value,
+// and a failed read or save must throw rather than look saved.
+import './page-preferences-merge-before-save.test.mjs';
+// Phase 10, 2026-10-06: the five fleet content metrics come from one database
+// function, service_role only, whose feed denominator keeps horses in it; the
+// analytics route and the Stats tab read that function and nothing else.
+import './fleet-content-metrics.test.mjs';
 import './horse-hand-reviews-panel.test.mjs';
 import './horses-console-phase1.test.mjs';
 import './horses-libs-review.test.mjs';
@@ -116,6 +126,11 @@ import './horses-libs-review.test.mjs';
 // next" in three separate documents, which is the shape of a rule that keeps
 // getting re-broken.
 import './horses-no-language-model-for-the-fleet.test.mjs';
+// Phase 10, 2026-10-06: the Settings tab offers the two switches the live
+// engine reads (the master switch and one per posting mode) and nothing that
+// steers nothing; a mode flip is an audited UPDATE of an existing row, never an
+// insert and never automatic.
+import './horses-settings-wired-to-the-worker.test.mjs';
 import './horses-operator-foundation.test.mjs';
 import './horses-phase2-client.test.mjs';
 import './horses-phase2-migration.test.mjs';
@@ -140,9 +155,19 @@ import './horses-phase5-server.test.mjs';
 import './horses-phase5-integrity-is-honest.law.test.mjs';
 import './horses-phase5-reverify.test.mjs';
 import './horses-phase5-release-audit.test.mjs';
+// Phase 9 shared infrastructure: session-only operator context, discoverable
+// Next chunks, and accessible large-list virtualization. Imported here because
+// required CHECK 8 runs this meta-guard without a full application build.
+import './horses-phase9-infrastructure.test.mjs';
+import './horses-club-arena-panel.test.mjs';
+import './horses-phase9-architecture.test.mjs';
+import './horses-phase9-core-panels.test.mjs';
+import './horses-phase9-legacy-panels.test.mjs';
 import './operator-console-visual-system.test.mjs';
 import './horses-admin-states-are-honest.law.test.mjs';
 import './horses-operator-console-parses.law.test.mjs';
+// A retired (benched, closed) horse is never selected again (2026-10-06).
+import './a-closed-horse-is-never-selected-again.law.test.mjs';
 import './horses-reverify-client.test.mjs';
 import './horses-reverify-panels.test.mjs';
 import './horses-reverify-routes.test.mjs';
@@ -266,6 +291,16 @@ import './trivia-pvp-containment.test.mjs';
 // Trivia Phase 5: server-owned PvP engine v2 (stable 20-45 s horse deadline, human first, ledger settlement).
 import './trivia-pvp-engine-v2.test.mjs';
 import './trivia-tournament-containment.test.mjs';
+// Trivia Phase 6: nightly tournament engine (8 PM Central schedule, horse population, bracket, settlement).
+import './trivia-nightly-tournament.test.mjs';
+// Trivia Phase 7: competitive journey analytics, lobby/account boundaries,
+// exact PvP/tournament consumer contracts, and request-time token rollover.
+import './trivia-competitive-journey-analytics.test.mjs';
+import './trivia-competitive-lobby-phase-7.test.mjs';
+import './trivia-lobby-account-isolation.test.mjs';
+import './trivia-phase-7-pvp-consumer-model.test.mjs';
+import './trivia-phase-7-tournament-consumer-model.test.mjs';
+import './trivia-pvp-token-rollover.test.mjs';
 // Trivia Phase 3: eligibility-only paid/competitive pools, engine v3 golden seeds.
 import './trivia-phase-3-engine.test.mjs';
 // Trivia Phase 3: the spend route refuses a stray trivia_entry charge.
@@ -290,8 +325,14 @@ import './world-copy-policy.test.mjs';
 import './openclaw-workers-secret.test.mjs';
 // Phase 7 dispatcher entry and the puzzle migration invariants (2026-09-30).
 import './phase7-content-dispatch.test.mjs';
+// Phase 10 dispatcher entry for the Monday fleet digest (2026-10-07).
+import './fleet-weekly-digest-dispatch.test.mjs';
 // Required CHECK 8 also enforces the recovered Video worker publication boundary.
 import './openclaw-video-library-routing.test.mjs';
+import './video-source-registry-phase3.test.mjs';
+import './video-enrichment-editorial-phase4.test.mjs';
+import './video-reel-candidate-phase5.test.mjs';
+import './video-native-studio-phase6.test.mjs';
 // The same boundary's shared 7-day availability-freshness contract: SQL,
 // JavaScript readers, Python renewal target and daily verifier capacity.
 import './video-library-freshness-contract.test.mjs';
@@ -315,17 +356,24 @@ import './background-video-upload-recovery.test.mjs';
 import './news-live-wire-phase-4.test.mjs';
 import './news-reels-club-arena-console.test.mjs';
 import './profile-reels-console.test.mjs';
+import './reels-phase2-profile-quarantine.test.mjs';
+import './reels-phase2-profile-removal-and-cache.test.mjs';
+import './reels-phase2-route-runtime.test.mjs';
+import './reels-phase2-reconciliation-operator.test.mjs';
+import './reels-reconciliation-authority-repair-migration.test.mjs';
+import './reels-service-rpc-authority-compat-migration.test.mjs';
+import './reels-authority-repair-postgres.test.mjs';
 import './reels-carousel-console.test.mjs';
 import './reels-console-dependencies.test.mjs';
 import './reels-embedded-console-visual.test.mjs';
 import './historical-user-reels-recovery-migration.test.mjs';
 import './historical-user-reels-post-rights-followup-migration.test.mjs';
+import './social-reel-alias-reconciliation-migration.test.mjs';
 import './reels-live-check.test.mjs';
 import './reels-mixed-category-contract.test.mjs';
 import './reels-social-endless-continuation.test.mjs';
 import './social-feed-request-sequencing.test.mjs';
 import './user-reel-publication-recovery.test.mjs';
-import './video-clipper-storage-namespace.test.mjs';
 import './video-embed-report-adjudication.test.mjs';
 import './video-library-access-phase-9.test.mjs';
 import './video-library-club-arena-console.test.mjs';
@@ -335,8 +383,12 @@ import './video-library-phase-7.test.mjs';
 import './video-reels-api-resilience.test.mjs';
 import './video-reels-collections-integrity.test.mjs';
 import './video-reels-integrity-phase-1.test.mjs';
+import './video-reels-phase7-unified-delivery.test.mjs';
+import './video-reels-phase8-learning-contract.test.mjs';
+import './video-reels-phase8-learning-loop.test.mjs';
 import './video-reels-ui-integrity.test.mjs';
 import './video-reels-youtube-sql-security.test.mjs';
+import './video-operations-live-safety.test.mjs';
 
 // 2026-09-04: a synthetic probe never signs a person out. login-probe was
 // pointed at Dan's own account and called a bare signOut() - global scope -
@@ -362,10 +414,6 @@ import './owner-operational-realtime-feed-visibility.test.mjs';
 // 2026-09-04: a probe that cannot run says so where probes speak (recovery-probe
 // had been silent for a day: unconfigured, and exiting before its heartbeat).
 import './a-probe-that-cannot-run-says-so.law.test.mjs';
-// 2026-09-07. A horse's avatar is uploaded where a human's is (bucket
-// avatars, <profile uuid>/avatar.png), never under a name that says horse:
-// the storage path is in the <img src> of every seat and post.
-import './a-horse-avatar-is-uploaded-where-a-human-one-is.law.test.mjs';
 // 2026-09-04: the 3am pager. Alertmanager posts page=sms alerts to the Hub
 // route added in this commit; this suite pins the auth gate, Twilio call,
 // retry semantics, and house rules (only the six named alerts wake anyone).
@@ -506,12 +554,33 @@ import './hand-clip-mode-row-migration.test.mjs';
 import './hand-clip-render-lib.test.mjs';
 import './render-hand-clips-cron.test.mjs';
 import './hand-clip-config.test.mjs';
+// Phase 8 video learning: approved-only semantic/full-text search, owner-only
+// study continuity, and service-owned bot-resistant organic measurement.
+import './video-learning-discovery-phase8-migration.test.mjs';
 
 // 2026-09-30 profile privacy: a stranger reads only public profile columns,
 // and the owner reads their own money, legal name and whereabouts through
 // get_my_full_profile(). A browser read naming an owner-only column is
 // refused whole (42501) once Club Arena revokes them.
 import './a-profile-shows-strangers-only-what-the-table-needs.law.test.mjs';
+import './a-server-route-hands-a-stranger-no-private-field.law.test.mjs';
+
+// 2026-10-05: the roster (content_authors) never reaches a browser. Presence
+// is one `online` list from /api/social/presence for every player alike, and
+// the /horses console reads the roster through /api/horses/roster.
+import './the-roster-never-reaches-a-browser.law.test.mjs';
+
+// 2026-10-05: a post never says who wrote it. No browser read of social_posts
+// names origin_type or metadata (or selects *), and every server route hands a
+// post over as toBrowserPost(row): only the metadata keys the UI renders.
+import './a-post-never-says-who-wrote-it.law.test.mjs';
+
+// 2026-10-05: a Reel never says who made it. No browser file names
+// social_reels.origin_type, every Reel leaves the server reader through
+// toBrowserReel(row), and a source name is the video's, never the pipeline's.
+import './a-reel-never-says-who-made-it.law.test.mjs';
+// Players attest a Sports Reel topic the way a horse does (World Hub #2150).
+import './players-share-sports-reels.test.mjs';
 
 const REPO = path.resolve(new URL('.', import.meta.url).pathname, '..');
 
@@ -563,6 +632,8 @@ const REQUIRED_TEST_FILES = [
     // Phase 5 server-owned PvP engine v2 source contracts and transport policy.
     '__tests__/trivia-pvp-engine-v2.test.mjs',
     '__tests__/trivia-tournament-containment.test.mjs',
+    // Phase 6 nightly tournament API policy, release gate, legacy entry rewire and OpenClaw job gate.
+    '__tests__/trivia-nightly-tournament.test.mjs',
     // Phase 3 question eligibility + deterministic engine v3 (1,000 golden seeds).
     '__tests__/trivia-phase-3-engine.test.mjs',
     // The spend route refuses a trivia_entry charge; entry is charged at session start.
@@ -656,6 +727,8 @@ const CI_UNREACHABLE_ON_PURPOSE = {
     'messenger-utils.test.mjs': 'self-executing harness, process.exit() on import',
     'server-auth-asymmetric.test.mjs': 'self-executing harness, process.exit() on import',
 };
+
+import './video-operations-phase10.test.mjs';
 
 test('every guard in __tests__ is reachable by CI', () => {
     const here = fs.readFileSync(path.join(REPO, '__tests__', '_test-guards-exist.test.mjs'), 'utf8');

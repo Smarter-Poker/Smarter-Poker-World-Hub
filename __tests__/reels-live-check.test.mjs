@@ -5,6 +5,7 @@ import test from 'node:test';
 import {
   APP_ORIGIN,
   REQUIRED_RECEIPT_CHECKS,
+  assertHorseReelProfiles,
   SOURCE_DIVERSITY_FLOORS,
   SUP07_ALIASES,
   crawlAccountCollection,
@@ -42,7 +43,6 @@ function nativeRow(index, overrides = {}) {
     source_story_id: null,
     youtube_video_id: null,
     media_status: 'ready',
-    origin_type: 'horse',
     playback_type: 'native',
     topic: 'poker',
     rights_status: 'owned',
@@ -68,7 +68,6 @@ function youtubeRow(index = 1, overrides = {}) {
     video_url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
     source_type: 'youtube',
     youtube_video_id: 'dQw4w9WgXcQ',
-    origin_type: 'video_library',
     playback_type: 'youtube_embed',
     topic: 'sports',
     rights_status: 'embed_only',
@@ -123,6 +122,10 @@ test('ordinary article live proof is scoped to the requested post and its reader
   assert.match(ARTICLE_READER, /role="dialog"[\s\S]*aria-label="Article Reader"/);
   assert.match(REELS_LIVE_CHECK, /page\.getByText\(\/Click To Read Full Article\/i\)\.filter\(\{ visible: true \}\)/);
   assert.match(REELS_LIVE_CHECK, /page\.getByRole\('dialog', \{ name: 'Article Reader' \}\)/);
+  assert.match(REELS_LIVE_CHECK, /const target = readerSandboxOpen \? articleReaderErrors : pageErrors;/);
+  assert.match(REELS_LIVE_CHECK, /readerSandboxOpen = true;[\s\S]*articleLabel\.click\(\);[\s\S]*readerSandboxOpen = false;/);
+  assert.doesNotMatch(REELS_LIVE_CHECK, /unexpectedReaderErrors|sandboxed\|service worker is disabled/);
+  assert.match(REELS_LIVE_CHECK, /\.vlc-collection-alert:visible, \.vlc-collection-pager \[role="alert"\]:visible/);
 });
 
 function page(data, {
@@ -225,12 +228,18 @@ test('live Reel validation rejects partial, duplicate, stale, legacy, and restri
 test('horse Reels resolve ordinary player profiles, including maintained zero-version database UUIDs', () => {
   const row = nativeRow(30);
   validateFeedPage(page([row]), 'for-you');
+  assertHorseReelProfiles([row]);
   assert.throws(
-    () => validateFeedPage(page([{ ...row, profiles: null }]), 'for-you'),
+    () => assertHorseReelProfiles([{ ...row, profiles: null }]),
     /ordinary player profile/,
   );
   assert.throws(
-    () => validateFeedPage(page([{ ...row, profiles: { ...row.profiles, id: uuid(31) } }]), 'for-you'),
+    () => validateFeedPage(page([{ ...row, origin_type: 'horse' }]), 'for-you'),
+    /says who published it/,
+    'the public API never carries origin_type',
+  );
+  assert.throws(
+    () => assertHorseReelProfiles([{ ...row, profiles: { ...row.profiles, id: uuid(31) } }]),
     /profile disagrees/,
   );
   assert.throws(
@@ -254,7 +263,6 @@ test('horse Reels resolve ordinary player profiles, including maintained zero-ve
 test('unknown topic is accepted only for the exact storage-proven native social-post shape', () => {
   const row = nativeRow(40, {
     topic: 'unknown',
-    origin_type: 'social_post',
     source_type: 'native',
     playback_type: 'native',
     rights_status: 'user_authorized',
@@ -268,7 +276,7 @@ test('unknown topic is accepted only for the exact storage-proven native social-
     { source_asset_id: uuid(900) },
     { native_processing_requested: true },
     { source_post_id: 'not-a-uuid' },
-    { origin_type: 'legacy' },
+    { source_type: 'youtube' },
     { rights_status: 'unknown' },
   ]) {
     assert.throws(
@@ -294,7 +302,9 @@ test('complete canonical crawler reaches a terminal page above two thousand with
     }));
   }
   let requested = 0;
-  const result = await crawlCanonicalFeed(async () => pages[requested++]);
+  const result = await crawlCanonicalFeed(async () => pages[requested++], {
+    classifyOrigins: async (ids) => new Map(ids.map((id) => [id, 'horse'])),
+  });
   assert.equal(result.rows.length, 2_001);
   assert.equal(result.pageCount, 17);
   assert.equal(result.mix.topics.poker, 2_001);
@@ -318,6 +328,22 @@ test('complete canonical crawler reaches a terminal page above two thousand with
 test('all eleven SUP-07 aliases stay pinned to four canonical winners and source posts', () => {
   const migration = readFileSync(new URL('../supabase/migrations/20260927144041_recover_historical_user_reels.sql', import.meta.url), 'utf8');
   assert.equal(SUP07_ALIASES.length, 11);
+  assert.equal(SUP07_ALIASES.filter(alias => alias.kind === 'loser').length, 3);
+  assert.match(
+    REELS_LIVE_CHECK,
+    /is_public:\s*id === group\.winner/,
+    'the live authority check must require canonical winners public and reconciled aliases private',
+  );
+  assert.match(
+    REELS_LIVE_CHECK,
+    /const message = error instanceof Error \? error\.message\.split\('\\n'\)\[0\]\.trim\(\) : ''/,
+    'the bounded live receipt must retain the first safe diagnostic line for non-assertion failures',
+  );
+  assert.match(
+    REELS_LIVE_CHECK,
+    /\}, \{ id: bookmarkAlias\.winner \}\);/,
+    'an old loser bookmark must canonicalize its browser URL to the surviving winner',
+  );
   assert.equal(new Set(SUP07_ALIASES.map(alias => alias.reference)).size, 11);
   assert.equal(new Set(SUP07_ALIASES.map(alias => alias.winner)).size, 4);
   assert.equal(new Set(SUP07_ALIASES.map(alias => alias.post)).size, 4);
@@ -548,6 +574,7 @@ test('workflow retains and independently asserts the complete sanitized receipt'
       staleAuthMobile: {
         revoked: {
           apiStatuses: [401],
+          apiOutcome: 'server-rejected',
           reauthPrompt: true,
           activePlayers: 0,
           browserErrors: 0,
@@ -560,6 +587,7 @@ test('workflow retains and independently asserts the complete sanitized receipt'
         },
         expired: {
           apiStatuses: [],
+          apiOutcome: 'client-rejected-before-request',
           reauthPrompt: true,
           activePlayers: 0,
           browserErrors: 0,
@@ -659,8 +687,22 @@ test('workflow retains and independently asserts the complete sanitized receipt'
       ...receipt,
       coverage: { ...receipt.coverage, staleAuthMobile: undefined },
     }),
-    /Revoked stale auth did not fail closed/,
+    /Revoked stale auth omitted its API status proof/,
   );
+  assert.equal(validateReceipt({
+    ...receipt,
+    coverage: {
+      ...receipt.coverage,
+      staleAuthMobile: {
+        ...receipt.coverage.staleAuthMobile,
+        revoked: {
+          ...receipt.coverage.staleAuthMobile.revoked,
+          apiStatuses: [],
+          apiOutcome: 'client-rejected-before-request',
+        },
+      },
+    },
+  }).status, 'passed');
   assert.throws(
     () => validateReceipt({
       ...receipt,
@@ -691,6 +733,10 @@ test('workflow retains and independently asserts the complete sanitized receipt'
   assert.match(
     E2E_WORKFLOW,
     /name: Assert complete sanitized Reels receipt[\s\S]*REELS_EXPECTED_SHA: \$\{\{ inputs\.expected_sha \}\}/,
+  );
+  assert.match(
+    E2E_WORKFLOW,
+    /expected_sha:\s*\n\s+description: Full deployed commit SHA \(required only for a published live verification suite\)\s*\n\s+type: string\s*\n\s+required: false\s*\n\s+default: ''/,
   );
   assert.throws(
     () => validateReceipt({ ...receipt, checks: receipt.checks.slice(1) }),

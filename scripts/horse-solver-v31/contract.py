@@ -15,7 +15,7 @@ from typing import Any, Iterable
 
 MANIFEST_CONTRACT = "smarter-poker.horse-solver-v31-manifest.v1"
 RANGE_BUNDLE_CONTRACT = "smarter-poker.horse-solver-v31-range-bundle.v1"
-ICM_MODEL_CONTRACT = "smarter-poker.horse-solver-v31-icm-model.v1"
+ICM_MODEL_CONTRACT = "smarter-poker.horse-solver-v31-icm-model.v2"
 INPUT_BUNDLE_CONTRACT = "smarter-poker.horse-solver-v31-input-bundle.v2"
 COMBO_ORDER = "card=rank*4+suit; combo=b*(b-1)/2+a; 2c2d=0..AhAs=1325"
 HEX40 = re.compile(r"^[0-9a-f]{40}$")
@@ -66,6 +66,19 @@ ROOT_KEYS = {
     "self_test",
     "scenarios",
 }
+FEATURE_CONTRACT_VERSIONS = frozenset({"rank-suit-count-v1", "holdem-board-relative-v2"})
+
+
+def feature_contract_version(value: dict[str, Any]) -> str:
+    """Omission is legacy only; an explicit unknown version is never inferred."""
+    version = value.get("feature_contract_version", "rank-suit-count-v1")
+    if not isinstance(version, str) or version not in FEATURE_CONTRACT_VERSIONS:
+        raise ContractError("unknown feature_contract_version")
+    return version
+
+
+def manifest_keys(value: Any) -> set[str]:
+    return ROOT_KEYS | ({"feature_contract_version"} if isinstance(value, dict) and "feature_contract_version" in value else set())
 FILE_KEYS = {"path", "checksum"}
 SCENARIO_KEYS = {
     "scenario_id",
@@ -93,7 +106,8 @@ SCENARIO_KEYS = {
     "targets",
 }
 ICM_ROOT_KEYS = {"contract", "models"}
-ICM_MODEL_KEYS = {"model_id", "oop_stack_chips", "ip_stack_chips", "points"}
+ICM_MODEL_KEYS = {"model_id", "oop_stack_chips", "ip_stack_chips", "points",
+                  "root_pot_chips", "source_snapshot_path", "source_snapshot_checksum"}
 ICM_POINT_KEYS = {"player", "stack_chips", "utility"}
 TARGET_KEYS = {
     "target_id",
@@ -129,6 +143,24 @@ POSITIONS_BY_TABLE = {
 
 class ContractError(ValueError):
     """The approved manifest or one of its pinned files is not trustworthy."""
+
+
+def validate_postflop_positions(scenario: dict[str, Any]) -> None:
+    """Pio player zero acts first postflop, independent of preflop aggressor.
+
+    Heads-up SB is the Button and acts LAST postflop; multiway dealt-table
+    blind order is SB then BB. Never repair approved inputs by relabeling.
+    """
+    size = scenario.get('table_size')
+    if isinstance(size, bool) or not isinstance(size, int) or size not in POSITIONS_BY_TABLE:
+        raise ContractError('invalid postflop table size')
+    oop, ip = scenario.get('oop_position'), scenario.get('ip_position')
+    allowed = POSITIONS_BY_TABLE[size]
+    if not isinstance(oop, str) or not isinstance(ip, str) or oop not in allowed or ip not in allowed or oop == ip:
+        raise ContractError('invalid postflop positions')
+    order = ['BB', 'SB'] if size == 2 else ['SB','BB','UTG','UTG1','UTG2','UTG3','MP','HJ','CO','BTN']
+    if order.index(oop) >= order.index(ip):
+        raise ContractError('Pio OOP/IP contradict physical postflop action order')
 
 
 JSON_MAX_SAFE_INTEGER = (1 << 53) - 1
@@ -345,7 +377,7 @@ def input_bundle_identity(p_bundle: Any) -> dict[str, Any]:
             "icm_model_checksum",
             "files",
             "approval_note",
-        },
+        } | ({"feature_contract_version"} if isinstance(p_bundle, dict) and "feature_contract_version" in p_bundle else set()),
         "input approval bundle",
     )
     bundle_key = _json_string(bundle["bundle_key"], "input approval bundle_key")
@@ -421,8 +453,10 @@ def input_bundle_identity(p_bundle: Any) -> dict[str, Any]:
     )
     if not identity_files:
         raise ContractError("input approval has no immutable input receipts")
+    feature_contract_version(bundle)
     return {
         "contract": INPUT_BUNDLE_CONTRACT,
+        **({"feature_contract_version": bundle["feature_contract_version"]} if "feature_contract_version" in bundle else {}),
         "bundle_key": bundle_key,
         "bundle_version": bundle_version,
         "range_bundle_checksum": range_checksum,
@@ -590,6 +624,32 @@ def _icm_models(input_root: Path, manifest: dict[str, Any]) -> dict[str, dict[st
         ip_stack = _positive_integer(
             model["ip_stack_chips"], f"ICM models[{model_index}].ip_stack_chips"
         )
+        pot = _positive_integer(model["root_pot_chips"], "ICM root pot")
+        source_path = _safe_relative_path(model["source_snapshot_path"], "ICM source path")
+        source_checksum = _nonzero_hex(model["source_snapshot_checksum"], 64, "ICM source checksum")
+        source = _exact_keys(_json_bytes(_verify_file(input_root, source_path, source_checksum).read_bytes(), "ICM source snapshot"),
+            {"contract", "utility_unit", "field_stacks_chips", "payouts", "oop_index", "ip_index", "root_pot_chips"}, "ICM source snapshot")
+        if source["contract"] != "smarter-poker.horse-solver-v31-icm-snapshot.v1" or source["utility_unit"] != "payout":
+            raise ContractError("ICM source snapshot contract/utility units are invalid")
+        stacks, payouts = source["field_stacks_chips"], source["payouts"]
+        if not isinstance(stacks, list) or not 2 <= len(stacks) <= 10:
+            raise ContractError("ICM snapshot requires 2..10 live field stacks")
+        stacks = [_positive_integer(value, "ICM field stack") for value in stacks]
+        if not isinstance(payouts, list) or not 1 <= len(payouts) <= len(stacks):
+            raise ContractError("ICM snapshot payout count is invalid")
+        payouts = [_finite_number(value, "ICM payout", 0) for value in payouts]
+        if sum(payouts) <= 0 or any(a < b for a, b in zip(payouts, payouts[1:])):
+            raise ContractError("ICM payouts must be descending with a positive pool")
+        oop_index = _positive_integer(source["oop_index"], "ICM OOP index", allow_zero=True)
+        ip_index = _positive_integer(source["ip_index"], "ICM IP index", allow_zero=True)
+        if oop_index == ip_index or max(oop_index, ip_index) >= len(stacks):
+            raise ContractError("ICM source player indexes are invalid")
+        if stacks[oop_index] != oop_stack or stacks[ip_index] != ip_stack or source["root_pot_chips"] != pot:
+            raise ContractError("ICM source stacks/root pot differ from model")
+        # Stacks are chips behind at the solve root; the pot is added once.
+        payout_per_chip = sum(payouts) / (sum(stacks) + pot)
+        if not math.isfinite(payout_per_chip) or payout_per_chip <= 0:
+            raise ContractError("ICM payout-to-chip normalization is not finite and positive")
         points = model["points"]
         if not isinstance(points, list):
             raise ContractError(f"ICM models[{model_index}].points must be an array")
@@ -614,6 +674,8 @@ def _icm_models(input_root: Path, manifest: dict[str, Any]) -> dict[str, dict[st
                 f"ICM models[{model_index}].points[{point_index}].utility",
                 0,
             )
+            if utility > sum(payouts):
+                raise ContractError("ICM utility exceeds the remaining prize pool")
             identity = (player, stack)
             if identity in seen_points:
                 raise ContractError("ICM model repeats a player/stack point")
@@ -624,7 +686,7 @@ def _icm_models(input_root: Path, manifest: dict[str, Any]) -> dict[str, dict[st
             ordered = sorted(by_player[player])
             if len(ordered) < 2:
                 raise ContractError(f"ICM model {model_id} needs at least two {player} points")
-            if ordered[0][0] > starting_stack - effective or ordered[-1][0] < starting_stack + effective:
+            if ordered[0][0] > starting_stack - effective or ordered[-1][0] < starting_stack + effective + pot:
                 raise ContractError(f"ICM model {model_id} does not cover every reachable {player} stack")
             if any(
                 later[1] <= earlier[1]
@@ -636,6 +698,9 @@ def _icm_models(input_root: Path, manifest: dict[str, Any]) -> dict[str, dict[st
             "model_id": model_id,
             "oop_stack_chips": oop_stack,
             "ip_stack_chips": ip_stack,
+            "root_pot_chips": pot,
+            "payout_per_chip": payout_per_chip,
+            "source_snapshot_checksum": source_checksum,
             "points": tuple(
                 (player, stack, utility)
                 for player in ("OOP", "IP")
@@ -752,7 +817,10 @@ def _validate_scenario(
     icm_models: dict[str, dict[str, Any]],
     verify_inputs: bool,
 ) -> dict[str, Any]:
-    scenario = _exact_keys(raw, SCENARIO_KEYS, f"scenarios[{index}]")
+    keys = SCENARIO_KEYS | ({"purpose", "conditional_root_action"} & set(raw) if isinstance(raw, dict) else set())
+    scenario = _exact_keys(raw, keys, f"scenarios[{index}]")
+    if scenario.get("purpose", "harvest") not in ("harvest", "self_test"):
+        raise ContractError(f"scenarios[{index}].purpose must be harvest or self_test")
     scenario_id = _json_string(
         scenario["scenario_id"], f"scenarios[{index}].scenario_id"
     )
@@ -779,6 +847,7 @@ def _validate_scenario(
     if isinstance(table_size, bool) or not isinstance(table_size, int) or table_size not in POSITIONS_BY_TABLE:
         raise ContractError(f"scenarios[{index}].table_size is invalid")
     positions = POSITIONS_BY_TABLE[table_size]
+    validate_postflop_positions(scenario)
     if (
         scenario["oop_position"] not in positions
         or scenario["ip_position"] not in positions
@@ -820,6 +889,8 @@ def _validate_scenario(
                 raise ContractError(
                     f"scenarios[{index}] ICM stacks do not match effective_stack_chips"
                 )
+            if model["root_pot_chips"] != scenario["pot_chips"]:
+                raise ContractError(f"scenarios[{index}] ICM root pot does not match scenario")
     else:
         if icm_model_id is not None:
             raise ContractError(f"scenarios[{index}] chip/cash EV may not name an ICM model")
@@ -881,7 +952,30 @@ def _validate_scenario(
             raise ContractError(f"scenarios[{index}] has a duplicate target id or node")
         seen_targets.add(target["target_id"])
         seen_nodes.add(target["node"])
+    validate_conditional_root_action(scenario)
     return scenario
+
+
+def validate_conditional_root_action(scenario: dict[str, Any]) -> None:
+    """A forced authored jam models its response, never the preceding jam policy."""
+    if "conditional_root_action" not in scenario:
+        return
+    conditional = _exact_keys(scenario["conditional_root_action"], {"action", "model"}, "conditional_root_action")
+    stack = scenario["effective_stack_chips"]
+    targets = scenario["targets"]
+    if (conditional != {"action": "all_in", "model": "authored_opponent_jam_response"}
+        or scenario.get("purpose", "harvest") != "harvest"
+        or scenario["tree_lines"] != [[stack, stack]]
+        or len(targets) != 1):
+        raise ContractError("conditional root action requires one authored root-jam response")
+    target = targets[0]
+    if (target["node"] != f"r:0:b{stack}"
+        or target["board"] != scenario["flop_board"]
+        or target["node_role"] != "all_in"
+        or target["facing_kind"] != "all_in"
+        or target["facing_size_bucket"] != "all_in"
+        or target["expected_children"] != ["c", "f"]):
+        raise ContractError("conditional root action must bind the exact root all-in response target")
 
 
 @dataclass(frozen=True)
@@ -896,6 +990,7 @@ class ApprovedManifest:
     @property
     def provenance(self) -> dict[str, str]:
         return {
+            **({"feature_contract_version": feature_contract_version(self.raw)} if "feature_contract_version" in self.raw else {}),
             "dataset_key": self.raw["dataset_key"],
             "solver_version": self.raw["solver_version"],
             "solver_binary_checksum": self.raw["solver_binary_checksum"],
@@ -926,7 +1021,9 @@ def load_manifest(
     expected = _nonzero_hex(expected_checksum, 64, "APPROVED_MANIFEST_CHECKSUM")
     if checksum != expected:
         raise ContractError(f"manifest checksum mismatch: {checksum}")
-    manifest = _exact_keys(_json_bytes(payload, "manifest"), ROOT_KEYS, "manifest")
+    decoded = _json_bytes(payload, "manifest")
+    manifest = _exact_keys(decoded, manifest_keys(decoded), "manifest")
+    feature_contract_version(manifest)
     if manifest["contract"] != MANIFEST_CONTRACT:
         raise ContractError("manifest contract is invalid")
     if manifest["enabled"] is not True:
@@ -991,7 +1088,8 @@ def load_manifest(
             if target["target_id"] in all_target_ids:
                 raise ContractError(f"duplicate target_id: {target['target_id']}")
             all_target_ids.add(target["target_id"])
-            target_machines.add(target["machine_id"])
+            if scenario.get("purpose", "harvest") == "harvest":
+                target_machines.add(target["machine_id"])
     if target_machines != {"M1", "M2"}:
         raise ContractError("manifest must assign source targets to both M1 and M2")
     self_test = _exact_keys(manifest["self_test"], SELF_TEST_KEYS, "self_test")
@@ -1010,6 +1108,10 @@ def load_manifest(
     ):
         raise ContractError("self_test expected_children is invalid")
     self_scenario = scenario_by_id[self_test["scenario_id"]]
+    if any(scenario.get("purpose", "harvest") == "self_test"
+           and scenario["scenario_id"] != self_test["scenario_id"]
+           for scenario in scenarios):
+        raise ContractError("self_test purpose must match the referenced self_test scenario")
     self_target = next(
         (target for target in self_scenario["targets"] if target["node"] == self_test["node"]),
         None,

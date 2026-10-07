@@ -1,0 +1,71 @@
+.horizontalScroll {
+  width: 100%;
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--bg-panel);
+}
+
+.table {
+  color: var(--text);
+  font-size: 0.8125rem;
+}
+
+.caption {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.header,
+.row {
+  display: grid;
+  align-items: stretch;
+}
+
+.header {
+  min-height: 44px;
+  color: var(--accent);
+  background: var(--bg-surface);
+  border-bottom: 1px solid var(--line);
+  font-weight: 700;
+}
+
+.headerCell,
+.cell {
+  min-width: 0;
+  padding: 0.7rem 0.75rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.row {
+  border-bottom: 1px solid var(--line);
+  background: var(--bg-panel);
+}
+
+.row:hover {
+  background: var(--bg-surface);
+}
+
+.alignRight {
+  text-align: right;
+}
+
+.alignCenter {
+  text-align: center;
+}
+
+@media (max-width: 480px) {
+  .headerCell,
+  .cell {
+    padding-inline: 0.625rem;
+  }
+}

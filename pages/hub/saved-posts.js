@@ -9,7 +9,7 @@
  * SAFETY: This is a NEW page — no existing code is modified.
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
 import SEOHead from '../../src/components/seo/SEOHead';
@@ -83,7 +83,7 @@ function SavedPostCard({ post, author, onUnsave, currentUserId }) {
                 />
                 <div style={{ flex: 1 }}>
                     <Link href={`/hub/user/${author?.username}`} style={{ fontWeight: 600, fontSize: 14, color: C.text, textDecoration: 'none' }}>
-                        {author?.full_name || author?.username || 'User'}
+                        {author?.display_name || author?.username || 'User'}
                     </Link>
                     <div style={{ fontSize: 12, color: C.textSec }}>
                         {timeAgo(post.created_at)}
@@ -160,57 +160,60 @@ export default function SavedPostsPage() {
     const [savedPosts, setSavedPosts] = useState([]);
     const [authorMap, setAuthorMap] = useState({});
     const [loading, setLoading] = useState(true);
+    const [loadError, setLoadError] = useState('');
+    const requestRef = useRef(null);
 
     const loadSavedPosts = useCallback(async () => {
+        requestRef.current?.abort();
+        const controller = new AbortController();
+        requestRef.current = controller;
+        setLoadError('');
         try {
             const user = getAuthUser();
             if (!user) {
+                setCurrentUser(null);
+                setSavedPosts([]);
                 setLoading(false);
                 return;
             }
             setCurrentUser(user);
 
-            // 1. Get bookmarked post IDs
-            const { data: bookmarks, error: bmErr } = await supabase
-                .from('social_interactions')
-                .select('post_id, created_at')
-                .eq('user_id', user.id)
-                .eq('interaction_type', 'bookmark')
-                .order('created_at', { ascending: false });
-
-            if (bmErr || !bookmarks?.length) {
+            // The server derives bookmark ownership from the verified token
+            // and re-applies the Social feed privacy/video eligibility gates.
+            const token = getAccessToken();
+            const response = await fetch('/api/social/saved-posts', {
+                method: 'GET',
+                cache: 'no-store',
+                signal: controller.signal,
+                headers: {
+                    Accept: 'application/json',
+                    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                },
+            });
+            const payload = await response.json().catch(() => null);
+            const posts = payload?.data;
+            if (response.status === 401) {
+                // A cached local user is not an authenticated session. Never
+                // mislabel stale auth as an authoritative empty collection.
+                setCurrentUser(null);
                 setSavedPosts([]);
-                setLoading(false);
+                setAuthorMap({});
                 return;
             }
-
-            const postIds = bookmarks.map(b => b.post_id);
-
-            // 2. Fetch those posts
-            const { data: posts, error: postErr } = await supabase
-                .from('social_posts')
-                .select('*')
-                .in('id', postIds);
-
-            if (postErr || !posts?.length) {
-                setSavedPosts([]);
-                setLoading(false);
-                return;
+            if (!response.ok || !payload?.success || !Array.isArray(posts)) {
+                throw new Error(payload?.error || 'Saved Posts are temporarily unavailable');
             }
-
-            // 3. Order posts by bookmark time (most recently saved first)
-            const bookmarkOrder = {};
-            bookmarks.forEach((b, i) => { bookmarkOrder[b.post_id] = i; });
-            posts.sort((a, b) => (bookmarkOrder[a.id] ?? 999) - (bookmarkOrder[b.id] ?? 999));
 
             setSavedPosts(posts);
+            if (!posts.length) setAuthorMap({});
 
-            // 4. Fetch author profiles
+            // Fetch only public profile chrome after the authoritative post
+            // collection has removed unavailable or no-longer-visible rows.
             const authorIds = [...new Set(posts.map(p => p.author_id).filter(Boolean))];
             if (authorIds.length > 0) {
                 const { data: profiles } = await supabase
                     .from('profiles')
-                    .select('id, username, avatar_url')
+                    .select('id, username, display_name, avatar_url')
                     .in('id', authorIds);
 
                 if (profiles) {
@@ -220,13 +223,32 @@ export default function SavedPostsPage() {
                 }
             }
         } catch (err) {
+            if (err?.name === 'AbortError') return;
             console.warn('Load saved posts error:', err);
+            setLoadError('Saved Posts Could Not Be Refreshed');
+        } finally {
+            if (requestRef.current === controller) {
+                requestRef.current = null;
+                setLoading(false);
+            }
         }
-        setLoading(false);
     }, []);
 
     useEffect(() => {
         loadSavedPosts();
+        return () => requestRef.current?.abort();
+    }, [loadSavedPosts]);
+
+    useEffect(() => {
+        const revalidate = () => {
+            if (document.visibilityState === 'visible') loadSavedPosts();
+        };
+        window.addEventListener('focus', revalidate);
+        document.addEventListener('visibilitychange', revalidate);
+        return () => {
+            window.removeEventListener('focus', revalidate);
+            document.removeEventListener('visibilitychange', revalidate);
+        };
     }, [loadSavedPosts]);
 
     const handleUnsave = (postId) => {
@@ -256,7 +278,9 @@ export default function SavedPostsPage() {
                             <div>
                                 <h1 style={{ margin: 0, fontSize: 24, fontWeight: 700, color: C.text }}>Saved Posts</h1>
                                 <div style={{ fontSize: 14, color: C.textSec }}>
-                                    {savedPosts.length} {savedPosts.length === 1 ? 'item' : 'items'} Saved
+                                    {loadError
+                                        ? 'Saved Items Unavailable'
+                                        : `${savedPosts.length} ${savedPosts.length === 1 ? 'item' : 'items'} Saved`}
                                 </div>
                             </div>
                         </div>
@@ -272,6 +296,19 @@ export default function SavedPostsPage() {
                                     }} />
                                 ))}
                                 <style>{`@keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }`}</style>
+                            </div>
+                        ) : loadError ? (
+                            <div role="alert" style={{
+                                textAlign: 'center', padding: '60px 24px',
+                                background: C.card, borderRadius: 12, boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+                            }}>
+                                <div style={{ fontSize: 48, marginBottom: 16, opacity: 0.4 }}>↻</div>
+                                <h3 style={{ margin: '0 0 8px', color: C.text, fontSize: 20 }}>Refresh Needed</h3>
+                                <p style={{ margin: '0 0 20px', color: C.textSec, fontSize: 15 }}>{loadError}</p>
+                                <button type="button" onClick={() => { setLoading(true); loadSavedPosts(); }} style={{
+                                    padding: '10px 24px', border: 0, borderRadius: 8,
+                                    background: C.blue, color: 'white', cursor: 'pointer', fontWeight: 600,
+                                }}>Try Again</button>
                             </div>
                         ) : !currentUser ? (
                             <div style={{

@@ -6,9 +6,11 @@
  * on its destination page. Until this change every destination printed its
  * own lobby thumbnail. This file pins the replacement so it cannot drift back:
  *
- *   - sixteen families (the lobby plus the fifteen registry modes) each have
- *     their own intro-v1 art, rendered through ResponsiveModeArt on the page
- *     that is that family's destination;
+ *   - twenty families (the lobby, fifteen registry modes, and four progress/account routes) each have
+ *     their own versioned art, rendered through ResponsiveModeArt on the page
+ *     that is that family's destination; Phase 8 advances five families to
+ *     intro-v2 and Phase 10 advances four progress/account routes to intro-v3,
+ *     while retaining the complete intro-v1 rollback set;
  *   - no destination source prints a modes-console-v1 thumbnail;
  *   - every crop ships 640/960/1440 in AVIF and WebP, content-hashed (the name
  *     carries the first 10 hex of the file's sha256), at its true size, and
@@ -26,7 +28,12 @@ import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import test from 'node:test';
 import { TRIVIA_MODES } from '../src/config/triviaModeRegistry.mjs';
-import { TRIVIA_INTRO_ART, TRIVIA_INTRO_ART_VERSION } from '../src/config/triviaIntroArt.mjs';
+import {
+    TRIVIA_INTRO_ART,
+    TRIVIA_INTRO_ART_PHASE10_VERSION,
+    TRIVIA_INTRO_ART_PHASE8_VERSION,
+    TRIVIA_INTRO_ART_VERSION,
+} from '../src/config/triviaIntroArt.mjs';
 import { triviaArtCacheName } from '../scripts/trivia-art/art-cache-name.mjs';
 import { TRIVIA_THUMBNAIL_PREVIEWS } from '../src/config/triviaThumbnailPreviews.mjs';
 import { TRIVIA_MIDDLE_MODES } from '../src/config/triviaModeRegistry.mjs';
@@ -47,10 +54,17 @@ const DESTINATION = Object.freeze({
     mixed: 'pages/hub/trivia/mixed.js',
     survival: 'pages/hub/trivia/survival-game.js',
     'time-attack': 'pages/hub/trivia/time-attack.js',
-    pvp: 'pages/hub/trivia/pvp.js',
+    pvp: 'src/components/trivia/pvp/PvpCompetitiveExperience.jsx',
     tournaments: 'pages/hub/trivia/tournaments.js',
+    stats: 'pages/hub/trivia/stats.js',
+    leaderboard: 'pages/hub/trivia/leaderboard.js',
+    achievements: 'pages/hub/trivia/achievements.js',
+    settings: 'pages/hub/trivia/settings.js',
 });
-const FAMILIES = ['lobby', ...TRIVIA_MODES.map((mode) => mode.id)];
+const CORE_FAMILIES = ['lobby', ...TRIVIA_MODES.map((mode) => mode.id)];
+const PHASE10_FAMILIES = new Set(['stats', 'leaderboard', 'achievements', 'settings']);
+const FAMILIES = [...CORE_FAMILIES, ...PHASE10_FAMILIES];
+const PHASE8_FAMILIES = new Set(['daily', 'mtt', 'cash', 'icm', 'gto']);
 const CROPS = Object.freeze({ mobile: [16, 10], wide: [12, 5] });
 
 function webpSize(buf) {
@@ -73,12 +87,13 @@ function parseSrcset(value) {
 }
 
 test('every family has its own destination art, rendered by its destination', () => {
-    assert.equal(FAMILIES.length, 16);
+    assert.equal(FAMILIES.length, 20);
     assert.deepEqual(Object.keys(TRIVIA_INTRO_ART).sort(), [...FAMILIES].sort());
     assert.deepEqual(Object.keys(DESTINATION).sort(), [...FAMILIES].sort());
     for (const id of FAMILIES) {
         const source = read(DESTINATION[id]);
-        assert.match(source, new RegExp(`\\b${constName(id)}\\b`), `${DESTINATION[id]} uses ${constName(id)}`);
+        const artReference = PHASE10_FAMILIES.has(id) ? `TRIVIA_INTRO_ART.${id}` : constName(id);
+        assert.match(source, new RegExp(`\\b${artReference.replace('.', '\\.') }\\b`), `${DESTINATION[id]} uses ${artReference}`);
         assert.match(source, /<ResponsiveModeArt\b/, `${DESTINATION[id]} renders ResponsiveModeArt`);
         assert.equal(TRIVIA_INTRO_ART[id].key, id);
     }
@@ -103,7 +118,11 @@ test('no destination prints a lobby thumbnail as its central image', () => {
 });
 
 test('each crop ships 640/960/1440 AVIF and WebP, content-hashed, at its true size', () => {
-    const listed = new Set();
+    const listed = new Map([
+        [TRIVIA_INTRO_ART_VERSION, new Set()],
+        [TRIVIA_INTRO_ART_PHASE8_VERSION, new Set()],
+        [TRIVIA_INTRO_ART_PHASE10_VERSION, new Set()],
+    ]);
     for (const id of FAMILIES) {
         const art = TRIVIA_INTRO_ART[id];
         assert.match(art.preview, /^data:image\/webp;base64,[A-Za-z0-9+/=]+$/, `${id} preview is an inline WebP`);
@@ -116,28 +135,51 @@ test('each crop ships 640/960/1440 AVIF and WebP, content-hashed, at its true si
                 const entries = parseSrcset(c[format]);
                 assert.deepEqual(entries.map((e) => e.width), [640, 960, 1440], `${id} ${crop} ${format} widths`);
                 for (const { url, width } of entries) {
-                    const m = url.match(/^\/images\/trivia\/intro-v1\/([a-z-]+)-(mobile|wide)-(\d+)\.([0-9a-f]{10})\.(avif|webp)$/);
-                    assert.ok(m, `${url} is an intro-v1 content-hashed name`);
-                    assert.deepEqual([m[1], m[2], Number(m[3]), m[5]], [id, crop, width, format]);
+                    const m = url.match(/^\/images\/trivia\/(intro-v1|intro-v2|intro-v3)\/([a-z-]+)-(mobile|wide)-(\d+)\.([0-9a-f]{10})\.(avif|webp)$/);
+                    assert.ok(m, `${url} is a versioned, content-hashed Trivia art name`);
+                    const expectedVersion = PHASE10_FAMILIES.has(id)
+                        ? TRIVIA_INTRO_ART_PHASE10_VERSION
+                        : PHASE8_FAMILIES.has(id)
+                            ? TRIVIA_INTRO_ART_PHASE8_VERSION
+                            : TRIVIA_INTRO_ART_VERSION;
+                    assert.equal(m[1], expectedVersion, `${id} uses ${expectedVersion}`);
+                    assert.deepEqual([m[2], m[3], Number(m[4]), m[6]], [id, crop, width, format]);
                     const buf = readFileSync(join(ROOT, 'public', url));
-                    assert.equal(sha(buf).slice(0, 10), m[4], `${url} name carries its own content hash`);
+                    assert.equal(sha(buf).slice(0, 10), m[5], `${url} name carries its own content hash`);
                     if (format === 'webp') {
                         assert.deepEqual(webpSize(buf), { width, height: Math.round((width * rh) / rw) }, `${url} true size`);
                     } else {
                         assert.equal(buf.toString('ascii', 4, 12), 'ftypavif', `${url} is AVIF`);
                     }
                     assert.ok(buf.length < 220_000, `${url} is sized sensibly (${buf.length} bytes)`);
-                    listed.add(url.split('/').pop());
+                    listed.get(m[1]).add(url.split('/').pop());
                 }
             }
             assert.ok(c.src.endsWith('.webp') && c.webp.includes(c.src), `${id} ${crop} fallback src is one of its WebP files`);
         }
     }
-    const onDisk = readdirSync(join(ROOT, 'public/images/trivia', TRIVIA_INTRO_ART_VERSION));
-    assert.deepEqual(onDisk.sort(), [...listed].sort(), 'intro-v1 holds exactly the manifest files, no orphans');
+    const phase4Manifest = JSON.parse(read('docs/trivia/evidence/p4-art-intro-art-manifest.json'));
+    const preservedV1 = Object.values(phase4Manifest.families)
+        .flatMap((family) => Object.values(family.crops).flatMap((entry) => entry.files.map((file) => file.file)))
+        .sort();
+    assert.deepEqual(
+        readdirSync(join(ROOT, 'public/images/trivia', TRIVIA_INTRO_ART_VERSION)).sort(),
+        preservedV1,
+        'intro-v1 remains byte-for-byte complete even after five destinations advance to intro-v2',
+    );
+    assert.deepEqual(
+        readdirSync(join(ROOT, 'public/images/trivia', TRIVIA_INTRO_ART_PHASE8_VERSION)).sort(),
+        [...listed.get(TRIVIA_INTRO_ART_PHASE8_VERSION)].sort(),
+        'intro-v2 holds exactly the five Phase 8 families and no orphans',
+    );
+    assert.deepEqual(
+        readdirSync(join(ROOT, 'public/images/trivia', TRIVIA_INTRO_ART_PHASE10_VERSION)).sort(),
+        [...listed.get(TRIVIA_INTRO_ART_PHASE10_VERSION)].sort(),
+        'intro-v3 holds exactly the four Phase 10 families and no orphans',
+    );
 });
 
-test('the distinctness proof covers exactly the files that ship, and passes', () => {
+test('the Phase 4 distinctness proof remains bound to the preserved intro-v1 set', () => {
     const proof = JSON.parse(read('docs/trivia/evidence/p4-art-intro-art-proof.json'));
     assert.equal(proof.pass, true);
     assert.ok(proof.threshold_bits >= 12);
@@ -146,16 +188,16 @@ test('the distinctness proof covers exactly the files that ship, and passes', ()
     // measures the shared lighting falloff rather than the picture.
     assert.ok(proof.min_phash >= proof.threshold_bits, `pHash min ${proof.min_phash}`);
     assert.ok(proof.min_dhash256 >= 4 * proof.threshold_bits, `dHash256 min ${proof.min_dhash256}`);
-    assert.deepEqual(Object.keys(proof.shipped).sort(), [...FAMILIES].sort());
-    for (const id of FAMILIES) {
+    assert.deepEqual(Object.keys(proof.shipped).sort(), [...CORE_FAMILIES].sort());
+    const manifest = JSON.parse(read('docs/trivia/evidence/p4-art-intro-art-manifest.json'));
+    for (const id of CORE_FAMILIES) {
         for (const crop of Object.keys(CROPS)) {
-            const largest = parseSrcset(TRIVIA_INTRO_ART[id][crop].webp).at(-1).url;
-            assert.equal(proof.shipped[id][crop], sha(readFileSync(join(ROOT, 'public', largest))), `${id} ${crop} proof is for the shipped file`);
+            const phase4File = manifest.families[id].crops[crop].files.find((file) => file.format === 'webp' && file.width === 1440);
+            assert.equal(proof.shipped[id][crop], phase4File.sha256, `${id} ${crop} proof remains bound to the preserved intro-v1 file`);
         }
     }
-    const manifest = JSON.parse(read('docs/trivia/evidence/p4-art-intro-art-manifest.json'));
     assert.equal(manifest.model_licence, 'Apache-2.0');
-    for (const id of FAMILIES) {
+    for (const id of CORE_FAMILIES) {
         const family = manifest.families[id];
         assert.ok(Number.isInteger(family.seed) && family.prompt.startsWith('Subject: '), `${id} records prompt and seed`);
         assert.equal(sha(family.prompt), family.prompt_sha256);
@@ -177,9 +219,10 @@ test('ResponsiveModeArt reserves its box, paints a preview, and is lazy unless i
     assert.deepEqual([...css.matchAll(/#[0-9a-fA-F]{3,8}\b/g)].map((m) => m[0]), ['#000'], 'schema ink only');
     for (const [id, rel] of Object.entries(DESTINATION)) {
         const tags = [...read(rel).matchAll(/<ResponsiveModeArt\b[\s\S]*?\/>/g)].map((m) => m[0]);
-        assert.equal(tags.length, 1, `${rel} renders its art once`);
+        const expectedBranches = id === 'tournaments' ? 2 : 1;
+        assert.equal(tags.length, expectedBranches, `${rel} renders art only in its mutually exclusive hero branches`);
         if (id === 'lobby') assert.doesNotMatch(tags[0], /\bpriority\b/, 'the Daily header stays the lobby hero');
-        else assert.match(tags[0], /\bpriority\b/, `${rel}: the intro art is the page hero`);
+        else for (const tag of tags) assert.match(tag, /\bpriority\b/, `${rel}: the intro art is the page hero`);
     }
 });
 
@@ -200,7 +243,8 @@ test('the service worker cache for Trivia art is named for the exact art that sh
     const worker = read('worker/index.js');
     assert.ok(worker.includes(`const TRIVIA_ART_CACHE = '${name}';`),
         `worker/index.js must name ${name} (run node scripts/trivia-art/art-cache-name.mjs after changing any Trivia art)`);
-    assert.match(worker, /await self\.clients\.claim\(\);\s*await retireStaleTriviaArt\(\);/);
+    assert.match(worker, /await retireStaleTriviaArt\(\);[\s\S]*?await self\.clients\.claim\(\);/,
+        'the new worker must retire rejected Trivia art before it claims any client');
     assert.match(worker, /name\.indexOf\('trivia-art-'\) === 0 && name !== TRIVIA_ART_CACHE/);
     assert.match(worker, /pathname\.indexOf\('\/images\/trivia\/'\) === 0/);
     const config = read('next.config.js');

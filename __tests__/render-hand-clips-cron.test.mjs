@@ -17,6 +17,8 @@ import {
   CLIP_PAGE_URL,
   JOB_NAME,
   PAINT_WAIT_MS,
+  SETTLE_WAIT_MS,
+  SETTLE_POLL_MS,
   STILL_PARAMS,
   pageScripts,
   publicUrlFor,
@@ -103,7 +105,7 @@ function makeBrowser({
   stepFollows = true,
   shotData = (i) => Buffer.from(`still-${i}`).toString('base64'),
 } = {}) {
-  const rec = { injected: null, gotos: [], cdp: [], shots: 0, seeks: [], paints: [], closed: 0, stateReads: 0, stepReads: 0 };
+  const rec = { injected: null, gotos: [], cdp: [], shots: 0, seeks: [], settles: [], paints: [], order: [], closed: 0, stateReads: 0, stepReads: 0 };
   let reads = 0;
   let step = 0;
   const session = {
@@ -111,6 +113,7 @@ function makeBrowser({
     send: async (method, params) => {
       rec.cdp.push({ method, params });
       if (method === 'Page.captureScreenshot') {
+        rec.order.push('shot');
         const n = rec.shots;
         rec.shots += 1;
         return { data: shotData(n) };
@@ -122,7 +125,7 @@ function makeBrowser({
     evaluateOnNewDocument: async (fn, payload) => { rec.injected = { fn, payload }; },
     goto: async (url, opts) => { rec.gotos.push({ url, opts }); },
     createCDPSession: async () => session,
-    evaluate: async (fn, arg) => {
+    evaluate: async (fn, arg, arg2) => {
       if (fn === pageScripts.clipState) {
         rec.stateReads += 1;
         const state = states[Math.min(reads, states.length - 1)];
@@ -136,7 +139,8 @@ function makeBrowser({
         return seekReturns;
       }
       if (fn === pageScripts.clipStep) { rec.stepReads += 1; return step; }
-      if (fn === pageScripts.painted) { rec.paints.push(arg); return true; }
+      if (fn === pageScripts.settled) { rec.settles.push([arg, arg2]); rec.order.push('settled'); return true; }
+      if (fn === pageScripts.painted) { rec.paints.push(arg); rec.order.push('painted'); return true; }
       throw new Error('unexpected page script');
     },
   };
@@ -254,10 +258,12 @@ test('a user job: claim, inject C1, goto, one still per frame at its beat, encod
   });
   assert.deepEqual(browser.rec.gotos, [{ url: CLIP_PAGE_URL, opts: { waitUntil: 'networkidle2', timeout: 60000 } }]);
 
-  // The camera: every frame sought in order, each commit confirmed and painted, one still each.
+  // The camera: every frame sought in order, each commit confirmed, the card squeeze settled, painted, one still each.
   assert.deepEqual(browser.rec.seeks, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
   assert.ok(browser.rec.stepReads >= 11, 'data-clip-step is read for every frame');
+  assert.deepEqual(browser.rec.settles, new Array(11).fill([SETTLE_WAIT_MS, SETTLE_POLL_MS]));
   assert.deepEqual(browser.rec.paints, new Array(11).fill(PAINT_WAIT_MS));
+  assert.deepEqual(browser.rec.order, new Array(11).fill(['settled', 'painted', 'shot']).flat(), 'a still is taken only after the squeeze settled and a paint');
   assert.equal(browser.rec.shots, 11);
   assert.ok(browser.rec.cdp.every((c) => c.method === 'Page.captureScreenshot'), 'no screencast, nothing else over CDP');
   assert.deepEqual(browser.rec.cdp[0].params, { ...STILL_PARAMS });

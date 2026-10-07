@@ -6,7 +6,7 @@
  * PUT  /api/social/pages/follow  - Update follower preferences (notifications, role)
  */
 import { createClient } from '../../../../src/lib/supabaseServerClient';
-import { requireAuth } from '../../../../src/lib/auth-middleware';
+import { requireAuth, optionalAuth } from '../../../../src/lib/auth-middleware';
 import { reportApiError } from '../../../../src/lib/apiErrorHandler';
 
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
@@ -182,8 +182,8 @@ export default async function handler(req, res) {
                   .from('social_pages').select('owner_id, name').eq('id', page_id).maybeSingle();
               if (ownerPage && ownerPage.owner_id !== user_id) {
                   const { data: followerProfile } = await getSupabase()
-                      .from('profiles').select('username, full_name').eq('id', user_id).maybeSingle();
-                  const followerName = followerProfile?.username || followerProfile?.full_name || 'Someone';
+                      .from('profiles').select('username').eq('id', user_id).maybeSingle();
+                  const followerName = followerProfile?.username || 'Someone';
                   const notifTitle = requiresApproval ? '🔔 New Follow Request' : '🎉 New Follower';
                   const notifMsg = requiresApproval
                       ? `${followerName} wants to follow your page "${ownerPage.name}". Approve or reject in your Live Games tab.`
@@ -211,7 +211,17 @@ export default async function handler(req, res) {
           const page_id = safeQ(req.query.page_id);
           const user_id = safeQ(req.query.user_id);
           const role = safeQ(req.query.role);
-          const requester_id = safeQ(req.query.requester_id);
+          // Identity comes from the verified JWT only (rule 5). A
+          // ?requester_id= query value is ignored: it let any caller claim
+          // to be a private page's owner and read its member list. No token,
+          // or an invalid one, means an anonymous caller.
+          let requester_id = null;
+          try {
+              const requester = await optionalAuth(req, getSupabase());
+              requester_id = requester?.id || null;
+          } catch (_authErr) {
+              requester_id = null;
+          }
 
           if (page_id) {
               // Get followers for a page
@@ -241,7 +251,7 @@ export default async function handler(req, res) {
                   if (userIds.length > 0) {
                       const { data: profileData } = await getSupabase()
                           .from('profiles')
-                          .select('id, username, full_name, avatar_url')
+                          .select('id, username, display_name, avatar_url')
                           .in('id', userIds)
                               .limit(100);
                       (profileData || []).forEach(p => { profiles[p.id] = p; });
@@ -271,10 +281,14 @@ export default async function handler(req, res) {
           }
 
           if (user_id) {
-              // Get pages a user follows
+              // Get pages a user follows. The person themselves sees every
+              // follow, pending ones included. Anyone else sees only approved
+              // follows of public pages: membership of a private page, or a
+              // request still waiting on its owner, is not a stranger's to read.
+              const isSelf = requester_id === user_id;
               const { data, error } = await getSupabase()
                   .from('social_page_followers')
-                  .select('page_id, role, created_at')
+                  .select('page_id, role, status, created_at')
                   .eq('user_id', user_id)
                       .limit(100);
 
@@ -292,8 +306,13 @@ export default async function handler(req, res) {
                   (pageData || []).forEach(p => { pages[p.id] = p; });
               }
 
-              const enriched = (data || []).map(f => ({
+              const visible = isSelf
+                  ? (data || [])
+                  : (data || []).filter(f => f.status === 'approved'
+                      && pages[f.page_id] && pages[f.page_id].is_public !== false);
+              const enriched = visible.map(({ status, ...f }) => ({
                   ...f,
+                  ...(isSelf ? { status } : {}),
                   page: pages[f.page_id] || null
               }));
 

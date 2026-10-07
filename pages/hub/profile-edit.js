@@ -172,6 +172,9 @@ export default function ProfilePage() {
         first_name: '',
         last_name: '',
         username: '',
+        // Public name other players see (ruling 25). Never derived from
+        // first/last name, which are the owner's private legal name.
+        display_name: '',
         bio: '',
         city: '',
         state: '',
@@ -210,7 +213,7 @@ export default function ProfilePage() {
         const handleBeforeUnload = (e) => {
             if (!originalProfile || !profile) return;
             // Compare key fields to detect dirty state
-            const fields = ['first_name','last_name','username','bio','city','state','country',
+            const fields = ['first_name','last_name','username','display_name','bio','city','state','country',
                 'phone','email','website','twitter','instagram','tiktok','telegram',
                 'hendon_url','favorite_game','favorite_hand','favorite_hand_plo',
                 'home_casino','birth_year','birthday','card_back_preference'];
@@ -256,7 +259,7 @@ export default function ProfilePage() {
     // ── Dirty check helper — detects unsaved changes ──
     const isDirty = (() => {
         if (!originalProfile || !profile) return false;
-        const fields = ['first_name','last_name','username','bio','city','state','country',
+        const fields = ['first_name','last_name','username','display_name','bio','city','state','country',
             'phone','email','website','twitter','instagram','tiktok','telegram',
             'hendon_url','favorite_game','favorite_hand','favorite_hand_plo',
             'home_casino','birth_year','birthday','card_back_preference'];
@@ -378,7 +381,7 @@ export default function ProfilePage() {
                     {profile.cover_photo_url && (
                         <img
                             src={profile.cover_photo_url}
-                            alt="Cover photo"
+                            alt="Cover Photo"
                             loading="lazy"
                             style={{
                                 position: 'absolute', inset: 0, width: '100%', height: '100%',
@@ -771,7 +774,7 @@ export default function ProfilePage() {
                                     >
                                         <img
                                             src={friend.avatar_url || '/default-avatar.png'}
-                                            alt={friend.full_name || friend.username}
+                                            alt={friend.display_name || friend.username}
                                             loading="lazy"
                                             style={{
                                                 width: 80, height: 80, borderRadius: '50%',
@@ -783,7 +786,7 @@ export default function ProfilePage() {
                                             fontSize: 13, fontWeight: 600, color: C.text,
                                             maxWidth: 80, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'
                                         }}>
-                                            {friend.full_name || friend.username || 'User'}
+                                            {friend.display_name || friend.username || 'User'}
                                         </div>
                                         {friend.mutualCount > 0 && (
                                             <div style={{ fontSize: 11, color: C.textSec }}>
@@ -888,7 +891,11 @@ export default function ProfilePage() {
                         {undoSnapshot && !isDirty && (
                             <button
                                 onClick={async () => {
-                                    // Restore snapshot and save to DB
+                                    // Restore snapshot and save to DB. Keep what is
+                                    // on screen now so a refused save can put it back.
+                                    const beforeUndo = { ...profile };
+                                    const beforeUndoOriginal = { ...originalProfile };
+                                    const snapshot = undoSnapshot;
                                     setProfile({ ...undoSnapshot });
                                     setOriginalProfile({ ...undoSnapshot });
                                     setUndoSnapshot(null);
@@ -898,7 +905,7 @@ export default function ProfilePage() {
                                         const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
                                         const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
                                         const undoToken = getProfileJwt();
-                                        await fetch(`${supabaseUrl}/rest/v1/profiles?id=eq.${user.id}`, {
+                                        const undoRes = await fetch(`${supabaseUrl}/rest/v1/profiles?id=eq.${user.id}`, {
                                             method: 'PATCH',
                                             headers: { 'apikey': supabaseKey, 'Authorization': `Bearer ${undoToken}`, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
                                             body: JSON.stringify({
@@ -906,11 +913,17 @@ export default function ProfilePage() {
                                                 last_name: (undoSnapshot.last_name || '').trim(),
                                                 full_name: `${(undoSnapshot.first_name || '').trim()} ${(undoSnapshot.last_name || '').trim()}`.trim(),
                                                 username: (undoSnapshot.username || '').trim() || null,
+                                                // Restore the public name from the snapshot itself,
+                                                // never rebuilt from the legal name (ruling 25).
+                                                display_name: (undoSnapshot.display_name || '').trim() || null,
                                                 bio: undoSnapshot.bio, city: undoSnapshot.city, state: undoSnapshot.state,
                                                 country: undoSnapshot.country, phone: undoSnapshot.phone, email: undoSnapshot.email,
                                                 updated_at: new Date().toISOString(),
                                             }),
                                         });
+                                        // A refused PATCH (expired session, a taken
+                                        // username) must not be reported as restored.
+                                        if (!undoRes.ok) throw new Error(`Undo save failed (${undoRes.status})`);
                                         // Full 4-layer sync for undo save
                                         window.dispatchEvent(new CustomEvent('profile-updated', {
                                             detail: {
@@ -918,6 +931,7 @@ export default function ProfilePage() {
                                                 first_name: (undoSnapshot.first_name || '').trim(),
                                                 last_name: (undoSnapshot.last_name || '').trim(),
                                                 username: undoSnapshot.username,
+                                                display_name: (undoSnapshot.display_name || '').trim() || null,
                                                 avatar_url: undoSnapshot.avatar_url,
                                             }
                                         }));
@@ -931,6 +945,11 @@ export default function ProfilePage() {
                                         setMessage('Undo successful - previous profile restored.');
                                     } catch (e) {
                                         console.warn('Undo save error:', e);
+                                        // Nothing was saved: show the saved profile again
+                                        // and keep the Undo button so they can retry.
+                                        setProfile(beforeUndo);
+                                        setOriginalProfile(beforeUndoOriginal);
+                                        setUndoSnapshot(snapshot);
                                         setMessage('Error: Could not undo. Please try again.');
                                     }
                                 }}

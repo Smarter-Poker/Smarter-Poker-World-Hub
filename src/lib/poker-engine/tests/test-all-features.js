@@ -10,10 +10,10 @@ import 'dotenv/config';
 const { default: Brain } = await import('../brain/index.js');
 
 // --- Import Advanced (for fatigue, tilt, rivalry) ---
-const Adv = await import('../../../content-engine/services/HorsePokerAdvanced.js');
+const Adv = await import('../brain/HorsePokerAdvanced.js');
 
 // --- Import Personality (for play style, skill tier, chat) ---
-const Personality = await import('../../../content-engine/services/HorsePokerPersonality.js');
+const Personality = await import('../brain/HorsePokerPersonality.js');
 
 let passed = 0;
 let failed = 0;

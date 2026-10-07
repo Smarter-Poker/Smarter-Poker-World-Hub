@@ -42,13 +42,13 @@ test('the stable admin header names the engine it actually read', async () => {
 });
 
 test('a failed content settings read never reports a default as fact', async () => {
-  const page = await read('pages/horses/index.js');
+  const page = await read('src/components/horses/SettingsPanel.jsx');
   assert.match(
     page,
-    /if \(settingsRes\.error\)/,
+    /if \(result\.error\)/,
     'the settings read error must be inspected, not discarded'
   );
-  assert.match(page, /setSettingsLoaded\(false\)/, 'an unread setting must not count as loaded');
+  assert.match(page, /setLoaded\(false\)/, 'an unread setting must not count as loaded');
   assert.doesNotMatch(
     page,
     /^\s*if \(settingsRes\.data\) setSettings\(\(prev\) => \(\{ \.\.\.prev, \.\.\.settingsRes\.data \}\)\);$/m,
@@ -101,79 +101,83 @@ test('DEFECT 1: the System Controls card never asserts a setting it did not read
   // settingsLoaded guard, so a failed read painted the hardcoded component default
   // as a confident accent-green "Running" on the same screen where the header three
   // hundred lines above already read "Content Engine Unknown".
-  const page = await read('pages/horses/index.js');
+  const page = await read('src/components/horses/SettingsPanel.jsx');
   assert.doesNotMatch(
     page,
     /\{settings\.engine_enabled \? 'Running' : 'Stopped'\}/,
     'the unguarded Content Engine state must not come back'
   );
-  assert.doesNotMatch(
-    page,
-    /\{settings\.auto_publish \? 'Active' : 'Manual'\}/,
-    'the unguarded Auto-Publish state must not come back'
-  );
   assert.match(
     page,
-    /\{!settingsLoaded \? 'Unknown' : settings\.engine_enabled \? 'Running' : 'Stopped'\}/,
+    /\{!loaded \? 'Unknown' : settings\.engine_enabled \? 'Running' : 'Stopped'\}/,
     'Content Engine must read Unknown until the row is actually read'
   );
-  assert.match(
-    page,
-    /\{!settingsLoaded \? 'Unknown' : settings\.auto_publish \? 'Active' : 'Manual'\}/,
-    'Auto-Publish must read Unknown until the row is actually read'
+  // The Auto-Publish switch is gone (Phase 10, 2026-10-06): nothing live ever
+  // read content_settings.auto_publish, so the honest state for it was not
+  // Unknown, it was "this switch does nothing". It must not come back in any
+  // state. Comments are stripped first: the panel is allowed to say why it went.
+  assert.doesNotMatch(
+    page.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/^\s*\/\/.*$/gm, ' '),
+    /auto_publish|Auto-Publish/,
+    'the Auto-Publish switch must stay gone'
   );
   assert.match(
     page,
-    /These Controls Are Locked\./,
+    /Controls Are Locked Because The Saved Settings Row Was Not Read\./,
     'an operator looking at defaults must be told they are defaults'
   );
+  // The posting modes are read separately and must be just as honest: null
+  // until read, an error state when the read fails, never "no modes" for an
+  // unread list.
+  assert.match(page, /const \[modes, setModes\] = useState\(null\);/, 'the mode list starts unread, not empty');
+  assert.match(page, /Posting Modes Not Read: \{modesError\}/, 'a failed mode read must say so');
+  assert.match(page, /Their State Is Unknown/, 'an unread mode list must read as unknown');
 });
 
 test('DEFECT 1: no settings control is writable while the row is unread', async () => {
-  // flushSettings POSTs the WHOLE settings object, so one toggle flipped from an
-  // unread state would have written every hardcoded default over the live row.
-  const page = await read('pages/horses/index.js');
-  const start = page.indexOf("{activeTab === 'settings' && (");
-  const end = page.indexOf("{activeTab === 'stats' && (", start);
-  assert.ok(start > 0 && end > start, 'the settings view must still be locatable');
-  const settingsView = page.slice(start, end);
+  // A toggle flipped from an unread state used to write every hardcoded default
+  // over the live row. The payload is a patch now, but the guard stays: a
+  // switch whose live value was never read has nothing honest to write.
+  const settingsView = await read('src/components/horses/SettingsPanel.jsx');
 
   // Split on element openers so each chunk is one control, then demand the guard on
   // every chunk that can queue a write. A new control added without it fails here.
+  // Two kinds of write exist on this page: update() queues the master switch and
+  // flipMode() writes one posting mode row.
   const controls = settingsView.split(/<(?=input|select|textarea)/).slice(1);
-  const writable = controls.filter((chunk) => chunk.includes('updateSetting('));
+  const writable = controls.filter((chunk) => chunk.includes('update(') || chunk.includes('flipMode('));
   assert.ok(
-    writable.length >= 5,
-    `expected at least the five writable settings controls, found ${writable.length}`
+    writable.length >= 2,
+    `expected the Content Engine switch and the Posting Mode switch, found ${writable.length}`
   );
   for (const chunk of writable) {
     assert.ok(
-      chunk.includes('disabled={!settingsLoaded}'),
-      `a settings control queues a write with no settingsLoaded guard: ${chunk.slice(0, 140)}`
+      chunk.includes('disabled={!loaded || !canWrite}'),
+      `a settings control queues a write with no loaded/permission guard: ${chunk.slice(0, 140)}`
     );
   }
 });
 
 test('DEFECT 1: updateSetting refuses to queue a write the page never read', async () => {
-  const page = await read('pages/horses/index.js');
-  const start = page.indexOf('const updateSetting = useCallback(');
-  assert.ok(start > -1, 'updateSetting must still be here');
-  const body = page.slice(start, page.indexOf('}, [flushSettings', start));
+  const page = await read('src/components/horses/SettingsPanel.jsx');
+  const start = page.indexOf('const update = useCallback(');
+  assert.ok(start > -1, 'the panel-owned update callback must still be here');
+  const body = page.slice(start, page.indexOf('}, [canWrite, flush, loaded', start));
 
-  const guardAt = body.indexOf('if (!settingsLoaded)');
-  const writeAt = body.indexOf('pendingSettings.current = next');
+  const guardAt = body.indexOf('if (!loaded || !canWrite)');
+  const writeAt = body.indexOf('pendingRef.current = next');
   assert.ok(guardAt > -1, 'updateSetting must refuse when settings were never read');
   assert.ok(writeAt > guardAt, 'the refusal must precede the queued write, not follow it');
   // Fail closed AND say why: a control that drops the change in silence is the same
   // lie as one that writes the defaults over the live row.
   assert.ok(
-    body.slice(guardAt, writeAt).includes('showNotification('),
+    body.slice(guardAt, writeAt).includes('showNotification?.('),
     'the refusal must be surfaced to the operator, not dropped silently'
   );
   assert.match(
     page,
-    /\}, \[flushSettings, settingsLoaded, showNotification\]\);/,
-    'settingsLoaded must be in the dependency list or the guard reads a stale flag'
+    /\}, \[canWrite, flush, loaded, patchContext, showNotification\]\);/,
+    'loaded and canWrite must be in the dependency list or the guard reads stale state'
   );
 });
 
@@ -181,22 +185,22 @@ test('DEFECT 2: a failed settings read is not reported as a failed save', async 
   // settingsError was written by BOTH the read path and the save path and rendered
   // as "Settings Not Saved", so an operator whose read failed was told their edits
   // were lost when nothing had ever been written.
-  const page = await read('pages/horses/index.js');
+  const page = await read('src/components/horses/SettingsPanel.jsx');
   assert.match(
     page,
-    /const \[settingsReadError, setSettingsReadError\] = useState\(null\);/,
+    /const \[readError, setReadError\] = useState\(''\);/,
     'the read failure needs its own state'
   );
-  assert.match(page, /Settings Not Read: \{settingsReadError\}/, 'a read failure must say it was a read');
-  assert.match(page, /Settings Not Saved: \{settingsError\}/, 'a save failure must still say it was a save');
+  assert.match(page, /Settings Not Read: \{readError\}/, 'a read failure must say it was a read');
+  assert.match(page, /Settings Not Saved: \{saveError\}/, 'a save failure must still say it was a save');
 
-  const readStart = page.indexOf('if (settingsRes.error) {');
+  const readStart = page.indexOf('if (result.error) {');
   assert.ok(readStart > -1, 'the settings read path must still be locatable');
-  const readEnd = page.indexOf('setPipelineRuns(', readStart);
+  const readEnd = page.indexOf('setLoading(false)', readStart);
   assert.ok(readEnd > readStart, 'the settings read path must still be bounded');
   assert.doesNotMatch(
     page.slice(readStart, readEnd),
-    /setSettingsError\(/,
+    /setSaveError\(/,
     'the settings read must never write to the save-error channel'
   );
 });

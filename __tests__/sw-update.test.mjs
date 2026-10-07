@@ -89,10 +89,11 @@ test('the first worker to claim an uncontrolled page never reloads it', () => {
     // unregistering the root worker, clearing sessionStorage and navigating to
     // /hub once: the resulting document reported
     // performance.getEntriesByType('navigation')[0].type === 'reload' and
-    // sp_sw_reloaded_at had just been written. next-pwa builds the worker with
-    // skipWaiting + clientsClaim, so on a page that loaded WITHOUT a controller
-    // the worker claims immediately and controllerchange fires even though the
-    // page's HTML and chunks came straight off the network. Nothing is stale;
+    // sp_sw_reloaded_at had just been written. The generated worker skips
+    // waiting, then the custom activation handler claims after cache migration.
+    // On a page loaded WITHOUT a controller that first claim fires
+    // controllerchange even though the page's HTML and chunks came straight
+    // off the network. Nothing is stale;
     // the reload is pure flicker, and the sessionStorage cooldown cannot
     // suppress it because a fresh session starts with empty sessionStorage.
     assert.match(

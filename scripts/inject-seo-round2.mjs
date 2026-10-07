@@ -50,8 +50,6 @@ const ADDITIONAL_CONFIG = {
     'hub/commander/venues/index.js': { title: 'Venues', noindex: true },
     'hub/commander/waitlist/[venueId].js': { title: 'Waitlist', noindex: true },
 
-    // Diamond Arena sub-pages
-
     // Training dynamic routes
     'hub/training/arena/[gameId].js': { title: 'Training Arena — Play Game', noindex: true },
     'hub/training/category/[categoryId].js': { title: 'Training Category', noindex: true },

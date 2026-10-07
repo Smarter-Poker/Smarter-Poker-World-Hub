@@ -265,7 +265,6 @@ export function isUnclassifiedNativeCommunityReel(reel) {
     && reel?.is_public === true
     && reel?.is_deleted !== true
     && reel?.media_status === 'ready'
-    && reel?.origin_type === 'social_post'
     && reel?.source_type === 'native'
     && reel?.playback_type === 'native'
     && reel?.rights_status === 'user_authorized'
@@ -340,8 +339,9 @@ export function isPlayableReel(reel, { category = 'for-you', directId = null } =
     && reel.canonical_asset_key
     && reel.canonical_asset_key !== `youtube:${youtubeId}`
   ) return false;
-  const managedLibrary = reel.origin_type === 'video_library'
-    || reel.source_type === 'video_library'
+  // Never origin_type: a browser is never told who published a Reel
+  // (src/lib/socialReelShape.js). The library's own identity columns suffice.
+  const managedLibrary = reel.source_type === 'video_library'
     || Boolean(reel.source_asset_id)
     || String(reel.publication_key || '').startsWith('video-library:');
   if (

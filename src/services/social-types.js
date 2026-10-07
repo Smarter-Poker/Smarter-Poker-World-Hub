@@ -27,12 +27,13 @@
  * @returns {SocialAuthor}
  */
 export function createAuthor(profile) {
-    if (!profile) return { id: null, username: 'Anonymous', full_name: null, display_name_preference: 'full_name', avatarUrl: null, level: 1, tier: 'BRONZE', isVerified: false, isFollowing: false };
+    if (!profile) return { id: null, username: 'Anonymous', display_name: null, avatarUrl: null, level: 1, tier: 'BRONZE', isVerified: false, isFollowing: false };
     return {
         id: profile.user_id || profile.id,
         username: profile.username || 'Anonymous',
-        full_name: profile.full_name || null,                              // For display name preference
-        display_name_preference: profile.display_name_preference || 'full_name', // User preference
+        // Public name only: full_name is owner-only (ruling 25), so an
+        // author carries display_name, never the legal name.
+        display_name: profile.display_name || null,
         avatarUrl: profile.avatar_url || null,
         level: profile.current_level || 1,
         tier: profile.tier_id || 'BRONZE',
@@ -92,8 +93,7 @@ export function createPost(row, author = null) {
         author: author || createAuthor({
             user_id: row.author_id,
             username: row.author_username,
-            full_name: row.author_full_name,                     // For display name preference
-            display_name_preference: row.author_display_name_preference, // User's preference
+            display_name: row.author_display_name,
             avatar_url: row.author_avatar,
             current_level: row.author_level,
             tier_id: row.author_tier

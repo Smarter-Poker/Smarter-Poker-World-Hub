@@ -1,0 +1,705 @@
+{
+  "version": "intro-v2",
+  "phase": "Trivia Phase 8 core solo and strategy UI",
+  "generated_at": "2026-10-05",
+  "generator": "OpenAI built-in imagegen",
+  "rules": "Project-bound, text-free route scenes; black-first machined casino realism; no logos, watermark, generic chip still-life, SaaS frame, glassmorphism, purple/magenta, robot or holographic assistant.",
+  "source_policy": "The selected full-resolution built-in outputs are versioned in scripts/trivia-art/sources/intro-v2. The Phase 4 intro-v1 sources and shipped exports are preserved unchanged.",
+  "normalization": "ImageMagick Lanczos cover-resize to 1536x1024, centered. Mobile crop is 1536x960. Wide crop is 1536x640; MTT uses y=80 to retain the physical tournament clock, all others use y=192.",
+  "encoders": {
+    "avif": "avifenc -q 46 -s 4 -y 420 --ignore-exif --ignore-xmp",
+    "webp": "cwebp -q 72 -m 6 -sharp_yuv -metadata none"
+  },
+  "families": {
+    "daily": {
+      "generation_output": "exec-acb14c23-fcfa-483c-8ac2-8dd671cda479.png",
+      "prompt_file": "scripts/trivia-art/sources/intro-v2/daily-prompt.txt",
+      "prompt_sha256": "1f885a99264d5b1a5152f040314fba7e334b2328a8733d4a545396055e8cb2fd",
+      "source_file": "scripts/trivia-art/sources/intro-v2/daily-source.png",
+      "source_sha256": "89cced4ae314085cd5ff6f24cf8a5266d72e8718ef0780432550d7ab147d308f",
+      "source_dimensions": [
+        1586,
+        992
+      ],
+      "crops": {
+        "mobile": {
+          "ratio": [
+            16,
+            10
+          ],
+          "box": [
+            0,
+            32,
+            1536,
+            960
+          ],
+          "files": [
+            {
+              "file": "daily-mobile-1440.06e3aff161.webp",
+              "crop": "mobile",
+              "width": 1440,
+              "format": "webp",
+              "bytes": 69434,
+              "sha256": "06e3aff161a19b6c947d8fc732f0627fa602a344761841bf15749ecc48768185"
+            },
+            {
+              "file": "daily-mobile-1440.a72bab076a.avif",
+              "crop": "mobile",
+              "width": 1440,
+              "format": "avif",
+              "bytes": 43845,
+              "sha256": "a72bab076aed814c2d9cfdf9cf6fe9e3d9b353259ee5adfc9019e5042a4612d1"
+            },
+            {
+              "file": "daily-mobile-640.1b1f968971.avif",
+              "crop": "mobile",
+              "width": 640,
+              "format": "avif",
+              "bytes": 14654,
+              "sha256": "1b1f968971a34e4797604219471cb48d7429640b634d5aa3cf7911a04335b3ba"
+            },
+            {
+              "file": "daily-mobile-640.ed6738b5f3.webp",
+              "crop": "mobile",
+              "width": 640,
+              "format": "webp",
+              "bytes": 24302,
+              "sha256": "ed6738b5f359b64f92913d52dc9b16d95c129419a642754647167753a0c4545e"
+            },
+            {
+              "file": "daily-mobile-960.b144584132.avif",
+              "crop": "mobile",
+              "width": 960,
+              "format": "avif",
+              "bytes": 25786,
+              "sha256": "b1445841329acfcf11cde9b528d8474221a08b833dab785ae08b1d0d04107771"
+            },
+            {
+              "file": "daily-mobile-960.c306453af0.webp",
+              "crop": "mobile",
+              "width": 960,
+              "format": "webp",
+              "bytes": 42808,
+              "sha256": "c306453af09a9afd54edd1e0d7c46ea010b027606e4ccdd37aad46f455b9af8a"
+            }
+          ]
+        },
+        "wide": {
+          "ratio": [
+            12,
+            5
+          ],
+          "box": [
+            0,
+            192,
+            1536,
+            640
+          ],
+          "files": [
+            {
+              "file": "daily-wide-1440.0f78c2524d.avif",
+              "crop": "wide",
+              "width": 1440,
+              "format": "avif",
+              "bytes": 30478,
+              "sha256": "0f78c2524db60b99ced2ad56dece05204c97d37255f6f704851854f1eec8ea01"
+            },
+            {
+              "file": "daily-wide-1440.7ab0e6aea3.webp",
+              "crop": "wide",
+              "width": 1440,
+              "format": "webp",
+              "bytes": 50084,
+              "sha256": "7ab0e6aea37ff7543c037f4d769fad23668b1853390d49d1a3cf7373257e7bae"
+            },
+            {
+              "file": "daily-wide-640.c383e3376d.webp",
+              "crop": "wide",
+              "width": 640,
+              "format": "webp",
+              "bytes": 18292,
+              "sha256": "c383e3376da086d9952a3eb21e3bbcd6414e455437ce283e51e3760c3fe594a7"
+            },
+            {
+              "file": "daily-wide-640.dc642bde4c.avif",
+              "crop": "wide",
+              "width": 640,
+              "format": "avif",
+              "bytes": 10465,
+              "sha256": "dc642bde4c2fcac69369c90135269e96e9e362ff43d21b4bdb97f05a387c5a97"
+            },
+            {
+              "file": "daily-wide-960.62ae5d5c6e.webp",
+              "crop": "wide",
+              "width": 960,
+              "format": "webp",
+              "bytes": 30684,
+              "sha256": "62ae5d5c6e56cbfa2315ef15c8eb61e7edec32edaac4f4d5ec0fec7a69ef700b"
+            },
+            {
+              "file": "daily-wide-960.d25a4e3208.avif",
+              "crop": "wide",
+              "width": 960,
+              "format": "avif",
+              "bytes": 18505,
+              "sha256": "d25a4e3208f1546cf35412458d45f1f63b0891ce0d2a626523cbaa00a723f60f"
+            }
+          ]
+        }
+      },
+      "visual_review": "Accepted: occupied live broadcast table, overhead light ring and cameras, daily prize beacon, no text or generic chip still-life."
+    },
+    "mtt": {
+      "generation_output": "exec-ed407ad9-0213-4a2e-a21f-f197d8b0bd04.png",
+      "prompt_file": "scripts/trivia-art/sources/intro-v2/mtt-prompt.txt",
+      "prompt_sha256": "7e694148e57a6c6575b6f14d4af090d4d0a7e79d7a7c12f14b88cc504771ac9e",
+      "source_file": "scripts/trivia-art/sources/intro-v2/mtt-source.png",
+      "source_sha256": "76e3e4bd49513cecc908ad3ae3a23603bac62469e09ef7f78c9a0852e740a742",
+      "source_dimensions": [
+        1774,
+        887
+      ],
+      "crops": {
+        "mobile": {
+          "ratio": [
+            16,
+            10
+          ],
+          "box": [
+            0,
+            32,
+            1536,
+            960
+          ],
+          "files": [
+            {
+              "file": "mtt-mobile-1440.2362c87940.webp",
+              "crop": "mobile",
+              "width": 1440,
+              "format": "webp",
+              "bytes": 77760,
+              "sha256": "2362c87940c8a77c4ea9e233a0ada885e54f67988ce524bff9084e06d2b1b867"
+            },
+            {
+              "file": "mtt-mobile-1440.4ca07873e8.avif",
+              "crop": "mobile",
+              "width": 1440,
+              "format": "avif",
+              "bytes": 47704,
+              "sha256": "4ca07873e8c56da66dbdc4174ada3b38132afd86287e20e01f364c3ab26ebe08"
+            },
+            {
+              "file": "mtt-mobile-640.2a23fda015.avif",
+              "crop": "mobile",
+              "width": 640,
+              "format": "avif",
+              "bytes": 15737,
+              "sha256": "2a23fda0152dd32097e2ead610c240ee18259e18f1dfd0d471d21ba5a04b6b5f"
+            },
+            {
+              "file": "mtt-mobile-640.97f6462ffd.webp",
+              "crop": "mobile",
+              "width": 640,
+              "format": "webp",
+              "bytes": 27454,
+              "sha256": "97f6462ffd2668077391108a4438c5f108f0f8d8f4f92fc176443fb8f1504ab1"
+            },
+            {
+              "file": "mtt-mobile-960.9205486a0a.webp",
+              "crop": "mobile",
+              "width": 960,
+              "format": "webp",
+              "bytes": 47610,
+              "sha256": "9205486a0adb3ad275ff3098554ce8bd8c9ccb4018610f0bb4106396a0ae626e"
+            },
+            {
+              "file": "mtt-mobile-960.a626d2d59b.avif",
+              "crop": "mobile",
+              "width": 960,
+              "format": "avif",
+              "bytes": 28067,
+              "sha256": "a626d2d59bdfe9a3dbf8c67a873c9e90569217cbca94cdfe2a6f0c7770a95d3b"
+            }
+          ]
+        },
+        "wide": {
+          "ratio": [
+            12,
+            5
+          ],
+          "box": [
+            0,
+            80,
+            1536,
+            640
+          ],
+          "files": [
+            {
+              "file": "mtt-wide-1440.91fabbea27.webp",
+              "crop": "wide",
+              "width": 1440,
+              "format": "webp",
+              "bytes": 57940,
+              "sha256": "91fabbea27193a9c9c806eec34848dae022c6f5d0988b43b45fb139c59318f34"
+            },
+            {
+              "file": "mtt-wide-1440.9c24371260.avif",
+              "crop": "wide",
+              "width": 1440,
+              "format": "avif",
+              "bytes": 36828,
+              "sha256": "9c243712605c68deb948a4a04dcf772137fca953a8601689789bb0edc67e35d7"
+            },
+            {
+              "file": "mtt-wide-640.884b5f5b9b.avif",
+              "crop": "wide",
+              "width": 640,
+              "format": "avif",
+              "bytes": 12011,
+              "sha256": "884b5f5b9b86d22d1c92d40c0b4accfec97e7f14dd0428e2d2e76e7c84267089"
+            },
+            {
+              "file": "mtt-wide-640.e65bf713ca.webp",
+              "crop": "wide",
+              "width": 640,
+              "format": "webp",
+              "bytes": 20448,
+              "sha256": "e65bf713cac493bbd0ca23b6d16ddf1879ce25be6f8b860a2363b854beaf5b35"
+            },
+            {
+              "file": "mtt-wide-960.a047e79808.webp",
+              "crop": "wide",
+              "width": 960,
+              "format": "webp",
+              "bytes": 35970,
+              "sha256": "a047e798083b38638d79a3c509703005eec7bdf0515b2c8f05e50207180a80a3"
+            },
+            {
+              "file": "mtt-wide-960.b3712ca0ce.avif",
+              "crop": "wide",
+              "width": 960,
+              "format": "avif",
+              "bytes": 21480,
+              "sha256": "b3712ca0ce4bce0a8fe70af49e22cd7b499899f5662ecb809f235922a6c8e98e"
+            }
+          ]
+        }
+      },
+      "visual_review": "Accepted: after wide-crop correction, the rail-level nine-seat final table retains unequal working stacks, the mechanical tournament clock, empty arena tables and trophy."
+    },
+    "cash": {
+      "generation_output": "exec-8ba21c81-3634-47ab-bcde-ffe47e6473f0.png",
+      "prompt_file": "scripts/trivia-art/sources/intro-v2/cash-prompt.txt",
+      "prompt_sha256": "b9f7e88ae94e289e25aa0d924bef1a2b8183b27fc37b4f57fcae36106a8257cb",
+      "source_file": "scripts/trivia-art/sources/intro-v2/cash-source.png",
+      "source_sha256": "4717602d1ed51eac30bcd9b51384c112c078fe080eefe0b7057f489ac0fd2da6",
+      "source_dimensions": [
+        1586,
+        992
+      ],
+      "crops": {
+        "mobile": {
+          "ratio": [
+            16,
+            10
+          ],
+          "box": [
+            0,
+            32,
+            1536,
+            960
+          ],
+          "files": [
+            {
+              "file": "cash-mobile-1440.0d993771fe.avif",
+              "crop": "mobile",
+              "width": 1440,
+              "format": "avif",
+              "bytes": 39983,
+              "sha256": "0d993771fe42c54de1441ac4cd150f3fb4127877c3b2bc99e199d38df79582ae"
+            },
+            {
+              "file": "cash-mobile-1440.e781fb5e75.webp",
+              "crop": "mobile",
+              "width": 1440,
+              "format": "webp",
+              "bytes": 68262,
+              "sha256": "e781fb5e75442c973aeae1994fbe3698a3eecf562ff76218e71172c38d03f4d7"
+            },
+            {
+              "file": "cash-mobile-640.8b19e86180.avif",
+              "crop": "mobile",
+              "width": 640,
+              "format": "avif",
+              "bytes": 13035,
+              "sha256": "8b19e86180fb7ef2cab0bbf8244cd070ef45355d87a39ec80f50461903e25484"
+            },
+            {
+              "file": "cash-mobile-640.9ab2b1eaa0.webp",
+              "crop": "mobile",
+              "width": 640,
+              "format": "webp",
+              "bytes": 23512,
+              "sha256": "9ab2b1eaa0c905f29fcfad4611f5aaf520aa80d87fc19819ad915e984b092f7e"
+            },
+            {
+              "file": "cash-mobile-960.6a2c05b670.webp",
+              "crop": "mobile",
+              "width": 960,
+              "format": "webp",
+              "bytes": 40768,
+              "sha256": "6a2c05b670da7f6ea579def218a6ca4e679a9f868f429fe943ea85f6101e2813"
+            },
+            {
+              "file": "cash-mobile-960.8a923ae919.avif",
+              "crop": "mobile",
+              "width": 960,
+              "format": "avif",
+              "bytes": 22783,
+              "sha256": "8a923ae91994e79a0205f002fdf608d3213559bf10100254fce9a2fa7010b60f"
+            }
+          ]
+        },
+        "wide": {
+          "ratio": [
+            12,
+            5
+          ],
+          "box": [
+            0,
+            192,
+            1536,
+            640
+          ],
+          "files": [
+            {
+              "file": "cash-wide-1440.7e1fb6fbe2.avif",
+              "crop": "wide",
+              "width": 1440,
+              "format": "avif",
+              "bytes": 30368,
+              "sha256": "7e1fb6fbe2dda318715c38f9c7d6b9953cd26fbad465718453414372a30d0cbd"
+            },
+            {
+              "file": "cash-wide-1440.c6c53900fa.webp",
+              "crop": "wide",
+              "width": 1440,
+              "format": "webp",
+              "bytes": 52790,
+              "sha256": "c6c53900fa998a3bd976bd69fa9a902819de52780d81734c9bf698ba5d42f793"
+            },
+            {
+              "file": "cash-wide-640.bc80780e18.webp",
+              "crop": "wide",
+              "width": 640,
+              "format": "webp",
+              "bytes": 17788,
+              "sha256": "bc80780e1855f9eb40df90899f73aa6930a296a426bf778ff2c9c6da71336dca"
+            },
+            {
+              "file": "cash-wide-640.c60d80c6cc.avif",
+              "crop": "wide",
+              "width": 640,
+              "format": "avif",
+              "bytes": 9677,
+              "sha256": "c60d80c6cc107e4a117d9f04c0a06cef7b60d9522fc5f1447076a644a766644c"
+            },
+            {
+              "file": "cash-wide-960.039e3e161a.avif",
+              "crop": "wide",
+              "width": 960,
+              "format": "avif",
+              "bytes": 17192,
+              "sha256": "039e3e161ab08c7653959abbc772e7a42857d88a7733cbe94700e13d644d8e2e"
+            },
+            {
+              "file": "cash-wide-960.324a307406.webp",
+              "crop": "wide",
+              "width": 960,
+              "format": "webp",
+              "bytes": 31058,
+              "sha256": "324a307406bb1635f78c4025da49222c40953d5789901953795c287528b9a480"
+            }
+          ]
+        }
+      },
+      "visual_review": "Accepted: occupied high-limit table in a live hand, shoulder viewpoint, hole cards and recessed chip racks, distinct private-room composition."
+    },
+    "icm": {
+      "generation_output": "exec-a74b6460-280a-49ae-b3e8-f46ace29753d.png",
+      "prompt_file": "scripts/trivia-art/sources/intro-v2/icm-prompt.txt",
+      "prompt_sha256": "13eb55a5397ef4aa626fee53535523794a0a209854086bdfd11f52ed29a51fa0",
+      "source_file": "scripts/trivia-art/sources/intro-v2/icm-source.png",
+      "source_sha256": "71bdf42fc87b03097b2f59f46c73f0a4464beb0ab5f1dc430f4343c647272369",
+      "source_dimensions": [
+        1774,
+        887
+      ],
+      "crops": {
+        "mobile": {
+          "ratio": [
+            16,
+            10
+          ],
+          "box": [
+            0,
+            32,
+            1536,
+            960
+          ],
+          "files": [
+            {
+              "file": "icm-mobile-1440.03ab882ac3.avif",
+              "crop": "mobile",
+              "width": 1440,
+              "format": "avif",
+              "bytes": 41482,
+              "sha256": "03ab882ac3e4db70817d5a9afdd6cbb51abb3908a47238a88f21b93789e8a251"
+            },
+            {
+              "file": "icm-mobile-1440.4711edbc72.webp",
+              "crop": "mobile",
+              "width": 1440,
+              "format": "webp",
+              "bytes": 72998,
+              "sha256": "4711edbc72bf68754bab76db5e00dd71fc2b1bcb2564b03c398f7f008d3a4f4c"
+            },
+            {
+              "file": "icm-mobile-640.c6696d8acc.webp",
+              "crop": "mobile",
+              "width": 640,
+              "format": "webp",
+              "bytes": 24844,
+              "sha256": "c6696d8acce091adfc3e004a178f238aa317cf04ca34a7867ec6dd19d74fdf95"
+            },
+            {
+              "file": "icm-mobile-640.c7c8c7837a.avif",
+              "crop": "mobile",
+              "width": 640,
+              "format": "avif",
+              "bytes": 13775,
+              "sha256": "c7c8c7837a726f1faa7c5d964af5f6d2e266755af6599d6fd1e5171dfa8aa205"
+            },
+            {
+              "file": "icm-mobile-960.6e8cf78905.avif",
+              "crop": "mobile",
+              "width": 960,
+              "format": "avif",
+              "bytes": 24518,
+              "sha256": "6e8cf789055fc9f24226152f2dbc70802b0fceb9447cfa355660d0244f6f42b5"
+            },
+            {
+              "file": "icm-mobile-960.700e61f333.webp",
+              "crop": "mobile",
+              "width": 960,
+              "format": "webp",
+              "bytes": 43840,
+              "sha256": "700e61f33359c77a69c75572a679223839a2e1433565bbd5cf5de72642a24dba"
+            }
+          ]
+        },
+        "wide": {
+          "ratio": [
+            12,
+            5
+          ],
+          "box": [
+            0,
+            192,
+            1536,
+            640
+          ],
+          "files": [
+            {
+              "file": "icm-wide-1440.832fd35540.webp",
+              "crop": "wide",
+              "width": 1440,
+              "format": "webp",
+              "bytes": 55580,
+              "sha256": "832fd3554079050f334f0bb81ecd2d31b9f679710bfd33f1ba2e15a1ca48b500"
+            },
+            {
+              "file": "icm-wide-1440.92de2ab01f.avif",
+              "crop": "wide",
+              "width": 1440,
+              "format": "avif",
+              "bytes": 31726,
+              "sha256": "92de2ab01f9ea03704e8d2f1b27de22cff2847f1c4b1e083511a19b9deb9b773"
+            },
+            {
+              "file": "icm-wide-640.1cccca5685.avif",
+              "crop": "wide",
+              "width": 640,
+              "format": "avif",
+              "bytes": 10365,
+              "sha256": "1cccca568597334227e900382f35ddf6ae8dd51969dfb3084a3cffcda850af28"
+            },
+            {
+              "file": "icm-wide-640.bd3572cd4f.webp",
+              "crop": "wide",
+              "width": 640,
+              "format": "webp",
+              "bytes": 18828,
+              "sha256": "bd3572cd4f080ab4af55b85a7b60951f77423193e3d896b7970e2ad4980206db"
+            },
+            {
+              "file": "icm-wide-960.7ba107911f.avif",
+              "crop": "wide",
+              "width": 960,
+              "format": "avif",
+              "bytes": 18219,
+              "sha256": "7ba107911f615d981cf015da05d435dbdad46313d0cf3280b6534ccf73590d55"
+            },
+            {
+              "file": "icm-wide-960.ac878d1abe.webp",
+              "crop": "wide",
+              "width": 960,
+              "format": "webp",
+              "bytes": 33226,
+              "sha256": "ac878d1abe977ef7ef6261a14eca3a136de63162fdaee473568491a7ce1f168c"
+            }
+          ]
+        }
+      },
+      "visual_review": "Accepted: dominant, medium and short stacks are unmistakable; vacant chair, exit corridor and descending gold prize objects communicate payout pressure."
+    },
+    "gto": {
+      "generation_output": "exec-0db3cf6d-8e3c-4ace-a7a5-df044c5f5d78.png",
+      "prompt_file": "scripts/trivia-art/sources/intro-v2/gto-prompt.txt",
+      "prompt_sha256": "4d571ae152bbc961a6c5751695194840394901de3a927bcd2d2e7375b6bf8d5a",
+      "source_file": "scripts/trivia-art/sources/intro-v2/gto-source.png",
+      "source_sha256": "2fdae3b05c4fdb533f7f822b408f3c1f23e9d04e82d9834627f58e66c40d8070",
+      "source_dimensions": [
+        1774,
+        887
+      ],
+      "crops": {
+        "mobile": {
+          "ratio": [
+            16,
+            10
+          ],
+          "box": [
+            0,
+            32,
+            1536,
+            960
+          ],
+          "files": [
+            {
+              "file": "gto-mobile-1440.80c3b428a5.avif",
+              "crop": "mobile",
+              "width": 1440,
+              "format": "avif",
+              "bytes": 44093,
+              "sha256": "80c3b428a5b63f695d82c13acb29d63076acb29e3cba0d59dff05918d06450c6"
+            },
+            {
+              "file": "gto-mobile-1440.ba0d66c543.webp",
+              "crop": "mobile",
+              "width": 1440,
+              "format": "webp",
+              "bytes": 72328,
+              "sha256": "ba0d66c5435c330def7574a5b13056c3a42b42950bf629011b8b87ebfdc06339"
+            },
+            {
+              "file": "gto-mobile-640.7fb0da9bbc.avif",
+              "crop": "mobile",
+              "width": 640,
+              "format": "avif",
+              "bytes": 14497,
+              "sha256": "7fb0da9bbc5618937c124dc2a665a09da2aafa332775e3bcdcd753c8764f24f2"
+            },
+            {
+              "file": "gto-mobile-640.b00c72bfba.webp",
+              "crop": "mobile",
+              "width": 640,
+              "format": "webp",
+              "bytes": 25588,
+              "sha256": "b00c72bfba55962092dbf06de97c6a70ab7975dd414e0e8a2e6cfa7083ed9507"
+            },
+            {
+              "file": "gto-mobile-960.40e39db3d4.webp",
+              "crop": "mobile",
+              "width": 960,
+              "format": "webp",
+              "bytes": 44924,
+              "sha256": "40e39db3d48c220baf9230989e392728d14801cb421f04603183832f4db22f51"
+            },
+            {
+              "file": "gto-mobile-960.9e8647c91f.avif",
+              "crop": "mobile",
+              "width": 960,
+              "format": "avif",
+              "bytes": 25778,
+              "sha256": "9e8647c91f75bc11a645493fc95b5cd0863f59cd710cb5b719da70cbffc3f066"
+            }
+          ]
+        },
+        "wide": {
+          "ratio": [
+            12,
+            5
+          ],
+          "box": [
+            0,
+            192,
+            1536,
+            640
+          ],
+          "files": [
+            {
+              "file": "gto-wide-1440.a651ccb256.webp",
+              "crop": "wide",
+              "width": 1440,
+              "format": "webp",
+              "bytes": 52922,
+              "sha256": "a651ccb256b74500daf242c7e1bc682fcac93de0479b9c3bf0c07bc2d272c9fc"
+            },
+            {
+              "file": "gto-wide-1440.b4f2b234e0.avif",
+              "crop": "wide",
+              "width": 1440,
+              "format": "avif",
+              "bytes": 32773,
+              "sha256": "b4f2b234e05f96cdc2d23f1fbed927048458dea9e73e8eb6f609698a787694da"
+            },
+            {
+              "file": "gto-wide-640.7ef7c43ec7.webp",
+              "crop": "wide",
+              "width": 640,
+              "format": "webp",
+              "bytes": 18692,
+              "sha256": "7ef7c43ec79a0534130934375630a590fc20727c596cd3bef7d994c9ae4d3509"
+            },
+            {
+              "file": "gto-wide-640.c04d761695.avif",
+              "crop": "wide",
+              "width": 640,
+              "format": "avif",
+              "bytes": 10636,
+              "sha256": "c04d7616956f4e545c7693b5bc1abc4bfad8e60153567a9d0d6767ced6345fba"
+            },
+            {
+              "file": "gto-wide-960.37b7f91a18.avif",
+              "crop": "wide",
+              "width": 960,
+              "format": "avif",
+              "bytes": 19234,
+              "sha256": "37b7f91a183fb96a9cf0cb7cc1494d8e0999ade67b0b6119bf5d8bd76ffcf62b"
+            },
+            {
+              "file": "gto-wide-960.bc25f26560.webp",
+              "crop": "wide",
+              "width": 960,
+              "format": "webp",
+              "bytes": 32476,
+              "sha256": "bc25f26560282bdfa6a005a3d28d953235304d280dce4450f24e537f6c80cd28"
+            }
+          ]
+        }
+      },
+      "visual_review": "Accepted: real table physically connected to a machined analyst booth with blank range tiles, mechanical slats and dial; no hologram or invented values."
+    }
+  }
+}

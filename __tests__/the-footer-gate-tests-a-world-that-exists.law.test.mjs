@@ -265,3 +265,68 @@ test('the specs never import a module Playwright cannot transpile', () => {
     assert.ok(imports.includes('./world-menu-signed-out-exclusions.json'),
         'the skip list must be the same file the law reads');
 });
+
+test('the footer gate waits for product facts instead of WebKit lifecycle accidents', () => {
+    const spec = read(FOOTER_SPEC);
+    const app = read('pages/_app.js');
+    assert.match(
+        spec,
+        /page\.goto\(route, \{ waitUntil: 'commit', timeout: 15_000 \}\)/,
+        'route navigation must stop waiting once the production document commits',
+    );
+    assert.doesNotMatch(
+        app,
+        /worldHubHydrated/,
+        'production code must not carry a test-only hydration marker',
+    );
+    assert.doesNotMatch(
+        spec,
+        /visitHydrated|worldHubHydrated/,
+        'WebKit readiness must not depend on an unrelated global effect',
+    );
+    assert.match(
+        spec,
+        /const visitReady = async[\s\S]*?attempt < 2[\s\S]*?timeout: 7_500/,
+        'product-owned readiness must retry within a bounded per-test budget',
+    );
+    assert.match(
+        spec,
+        /visitReady\(page, '\/hub\/diamond-store'[\s\S]*?data-world-copy-policy[\s\S]*?marketplace/,
+        'the marketplace test must wait for its own client-owned copy-policy effect',
+    );
+    assert.match(
+        spec,
+        /page\.goto\(definition!\.artwork\.src[\s\S]*?waitUntil: 'load'[\s\S]*?approved artwork was not served[\s\S]*?toBe\(200\)/,
+        'the artwork matrix must prove and warm the exact asset in the browser before rendering it',
+    );
+    assert.match(
+        spec,
+        /for \(let attempt = 0; attempt < 3; attempt \+= 1\)/,
+        'navigation recovery must remain bounded to three attempts',
+    );
+    assert.match(
+        spec,
+        /page\.goto\('about:blank', \{ waitUntil: 'commit', timeout: 5_000 \}\)/,
+        'a failed navigation attempt must discard the stranded document before retrying',
+    );
+    assert.match(
+        spec,
+        /TimeoutError\|Navigation timeout/,
+        'a bounded WebKit navigation timeout must receive the same limited retry as document replacement',
+    );
+    assert.doesNotMatch(
+        spec,
+        /image\.decode\(\)/,
+        'WebKit image readiness must be polled from complete and intrinsic size, not decode()',
+    );
+    assert.match(
+        spec,
+        /navBox!\.height - expectedClubFooterHeight\(320\)/,
+        'the 320px check must measure the fixed control shell against its own shared height token',
+    );
+    assert.match(
+        spec,
+        /visitReady\(page, '\/hub\/training'[\s\S]*?data-footer-scroll-armed[\s\S]*?value: 'true'/,
+        'hydration-owned scroll behavior must receive its explicit bounded readiness wait',
+    );
+});

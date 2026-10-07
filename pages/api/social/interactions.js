@@ -85,7 +85,7 @@ export default async function handler(req, res) {
                       if (userIds.length > 0) {
                           const { data: profiles } = await getSupabase()
                               .from('profiles')
-                              .select('id, username, full_name, avatar_url')
+                              .select('id, username, avatar_url')
                               .in('id', userIds);
 
                           const profileMap = {};

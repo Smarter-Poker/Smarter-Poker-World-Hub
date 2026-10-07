@@ -37,6 +37,7 @@ const sessionSubmitRoute = read('pages/api/trivia/session-submit.js');
 const sessionAnswerRoute = read('pages/api/trivia/session-answer.js');
 const settlementCron = read('pages/api/cron/pvp-settle.js');
 const pvpPage = read('pages/hub/trivia/pvp.js');
+const pvpExperience = read('src/components/trivia/pvp/PvpCompetitiveExperience.jsx');
 const migration = read('supabase/migrations/20260906120000_trivia_pvp_containment.sql');
 const openClawDispatcher = read('scripts/openclaw-cron-dispatcher.py');
 const vercelCronPaths = new Set((JSON.parse(read('vercel.json')).crons || []).map(cron => cron.path));
@@ -778,13 +779,16 @@ test('solo session creation fails closed on RPC schema drift and resumes races',
         'a duplicate solo create must reload and resume the durable session');
 });
 
-test('ambiguous PvP session-start failures do not falsely promise that no stake moved', () => {
-    const start = pvpPage.indexOf('async function beginMatchSession');
-    const end = pvpPage.indexOf('async function gradeAnswer', start);
+test('ambiguous PvP join failures read the durable server state before offering another entry', () => {
+    const start = pvpExperience.indexOf('const handleJoin = useCallback');
+    const end = pvpExperience.indexOf('const handleCancel = useCallback', start);
     assert.ok(start >= 0 && end > start);
-    const beginMatchSession = pvpPage.slice(start, end);
-    assert.doesNotMatch(beginMatchSession, /Nothing was charged|nothing was charged/);
-    assert.match(beginMatchSession, /Your stake may be pending; retry to resume the same match/);
+    const handleJoin = pvpExperience.slice(start, end);
+    assert.match(handleJoin, /joinNonceRef\.current/);
+    assert.match(handleJoin, /readDto\('resume', \{ method: 'GET', actionGeneration \}\)/);
+    assert.match(handleJoin, /authority\.isActionCurrent\(actionGeneration\)/);
+    assert.match(handleJoin, /restored && isActivePvpState\(restored\.state\)/);
+    assert.doesNotMatch(handleJoin, /Nothing was charged|nothing was charged|No New Entry Was Created/);
 });
 
 test('entry, public settlement and direct page all use the server-only gate', () => {
@@ -793,8 +797,10 @@ test('entry, public settlement and direct page all use the server-only gate', ()
     assert.match(sessionSubmitRoute, /mode === 'pvp' && !isTriviaPvpReleased\(process\.env\)[\s\S]{0,140}rejectUnavailableTriviaPvp\(res\)/);
     assert.match(settlementRoute, /if \(!isTriviaPvpReleased\(process\.env\)\)[\s\S]{0,160}rejectUnavailableTriviaPvp\(res\)/);
     assert.match(pvpPage, /export function getServerSideProps\(\)[\s\S]{0,160}triviaPvpPageReleaseResult\(process\.env\)/);
-    assert.match(pvpPage, /if \(pvpHorsesEnabled\) \{[\s\S]{0,180}handleHorseMatch\(stake\)/);
-    assert.match(pvpPage, /async function handleHorseMatch\(stake\) \{[\s\S]{0,80}!pvpHorsesEnabled/);
+    assert.match(pvpPage, /pvpHorsesEnabled=\{pvpHorsesEnabled\}/);
+    assert.match(pvpExperience, /requestPvp\('join'/);
+    assert.doesNotMatch(pvpExperience, /handleHorseMatch|pvpMatchmaking|\.from\('trivia_pvp_/,
+        'horse selection, matching and table access must stay behind the server contract');
     assert.doesNotMatch(settlementCron, /isTriviaPvpReleased|rejectUnavailableTriviaPvp/,
         'the authenticated sweep must still drain/refund funded matches while entry is off');
     assert.match(settlementCron, /Cache-Control', 'private, no-store, max-age=0'/,
@@ -824,7 +830,7 @@ test('settlement delegates decision, credits and close to one locked atomic RPC'
 });
 
 test('session submission delegates deadline enforcement to the locked award transaction', () => {
-    const awardCall = sessionSubmitRoute.indexOf("sb.rpc('award_trivia_run_v2'");
+    const awardCall = sessionSubmitRoute.indexOf("sb.rpc('award_trivia_run_v4'");
     assert.ok(awardCall >= 0);
     assert.doesNotMatch(sessionSubmitRoute, /\.update\(\{ status: 'expired' \}\)/,
         'an app-side check/write pair can race the award transaction');

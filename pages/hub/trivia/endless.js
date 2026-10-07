@@ -41,6 +41,11 @@ import { getAccessToken } from '../../../src/lib/authUtils';
 import * as triviaAudio from '../../../src/lib/trivia/triviaAudio';
 import HubPageSummary from '../../../src/components/seo/HubPageSummary';
 import { readOwnProfile } from '../../../src/lib/ownProfile';
+import { createAccountOperationScope, isStaleAccountOperation } from '../../../src/lib/trivia/accountOperationScope.mjs';
+import Phase9SettlementReceipt from '../../../src/components/trivia/phase9/Phase9SettlementReceipt';
+import Phase9RunReview from '../../../src/components/trivia/phase9/Phase9RunReview';
+import { projectPhase9Recovery } from '../../../src/components/trivia/phase9/phase9RunModel.mjs';
+import usePhase9ReducedMotion from '../../../src/components/trivia/phase9/usePhase9ReducedMotion';
 
 const GAME_ENTRY_COST = 10; // restored with server-graded adoption - rewards pay via award_trivia_run now
 
@@ -88,7 +93,16 @@ export default function EndlessModePage() {
     // a capped player was told they earned diamonds that never reached their
     // balance.
     const [awardedDiamonds, setAwardedDiamonds] = useState(null);
+    const [settlementResult, setSettlementResult] = useState(null);
     const [userId, setUserId] = useState(null);
+    const accountOperationScopeRef = useRef(null);
+    if (!accountOperationScopeRef.current) {
+        accountOperationScopeRef.current = createAccountOperationScope();
+    }
+    const resolvedAccountId = authLoading
+        ? userId
+        : (avatarUser?.id || getAuthUser()?.id || null);
+    if (!authLoading) accountOperationScopeRef.current.transition(resolvedAccountId);
     const [isLoading, setIsLoading] = useState(true);
     const [highScore, setHighScore] = useState(0);
     const [isVip, setIsVip] = useState(false);
@@ -109,7 +123,7 @@ export default function EndlessModePage() {
 
     // Server-authoritative run: session-start deals, session-answer grades
     // each tap, session-submit caps and pays. No client-side crediting.
-    const serverRun = useServerGradedRun('endless');
+    const serverRun = useServerGradedRun('endless', { accountId: resolvedAccountId });
     // Current question's server verdict (wasCorrect / correctDisplayIndex);
     // null until session-answer resolves, cleared on advance. The reveal is
     // driven entirely from this - the client holds no answer key.
@@ -122,6 +136,12 @@ export default function EndlessModePage() {
     // skipped questions are deliberately omitted (the server counts them
     // wrong, which is free here because payout is per-correct).
     const sessionAnswersRef = useRef([]);
+    const accountLoadRef = useRef(0);
+    const accountIdentityRef = useRef(null);
+    const startOperationRef = useRef(null);
+    const forceNewStartRef = useRef(false);
+    const answerOperationRef = useRef(null);
+    const lifelineOperationRef = useRef(null);
 
     const [userDiamonds, setUserDiamonds] = useState(0);
 
@@ -174,6 +194,7 @@ export default function EndlessModePage() {
 
     const startTimeRef = useRef(null);
     const [gameDurationSec, setGameDurationSec] = useState(0);
+    const reduceMotion = usePhase9ReducedMotion();
 
     // ── SOUND: one switch, globally ──────────────────────────────────
     // triviaAudio owns the mute flag for the whole trivia system. This page
@@ -189,14 +210,55 @@ export default function EndlessModePage() {
     // Initialize
     useEffect(() => {
         if (authLoading) return;
+        const resolvedUser = avatarUser || getAuthUser();
+        const nextAccountId = resolvedUser?.id || null;
+        const identityChanged = accountIdentityRef.current !== nextAccountId;
+        accountIdentityRef.current = nextAccountId;
+        const operationScope = accountOperationScopeRef.current.transition(nextAccountId);
+        const request = ++accountLoadRef.current;
+        let cancelled = false;
+        const isCurrent = () => !cancelled
+            && accountLoadRef.current === request
+            && accountOperationScopeRef.current.isCurrent(operationScope);
+        if (identityChanged) {
+            startOperationRef.current = null;
+            forceNewStartRef.current = false;
+            answerOperationRef.current = null;
+            lifelineOperationRef.current = null;
+            isStartingRef.current = false;
+            answerLockRef.current = false;
+            lifelineBusyRef.current = false;
+            savePhaseRef.current = 0;
+            serverResultRef.current = null;
+            sessionAnswersRef.current = [];
+            setQuestions([]);
+            setUserDiamonds(0);
+            setIsVip(false);
+            setAccessToken(null);
+            setAwardedDiamonds(null);
+            setSettlementResult(null);
+            setSaveErrorPayload(null);
+            setActionError(null);
+            setStreak(0);
+            setDiamondsEarned(0);
+            setMisses(0);
+            setHighScore(0);
+            setPreGameHighScore(0);
+            streakRef.current = 0;
+            diamondsEarnedRef.current = 0;
+            missesRef.current = 0;
+            currentIndexRef.current = 0;
+            setGameState('ready');
+        }
         async function init() {
-            const user = avatarUser || getAuthUser();
+            const user = resolvedUser;
             if (user) {
                 setUserId(user.id);
                 try { setAccessToken(getAccessToken()); } catch (e) { /* anonymous report still allowed */ }
                 // Check VIP status
                 await DiamondEngine.init(user.id);
                 const vipStatus = await DiamondEngine.isVIP();
+                if (!isCurrent()) return;
                 setIsVip(vipStatus);
                 // Load high score (ignore errors - table may not exist)
                 try {
@@ -206,15 +268,24 @@ export default function EndlessModePage() {
                         .eq('user_id', user.id)
                         .eq('mode', 'random')
                         .maybeSingle();
+                    if (!isCurrent()) return;
                     if (data) { setHighScore(data.high_score || 0); setPreGameHighScore(data.high_score || 0); }
                 } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
                 // Load user diamonds
                 try {
                     const { data: profile } = await readOwnProfile(supabase, 'diamonds', { expectId: user.id });
+                    if (!isCurrent()) return;
                     if (profile) setUserDiamonds(profile.diamonds || 0);
                 } catch (e) {
                     console.warn('Failed to load diamonds:', e);
                 }
+            } else {
+                // Account-scoped recovery must never inherit the previous
+                // browser user's custody key after a sign-out/account switch.
+                setUserId(null);
+                setAccessToken(null);
+                setIsVip(false);
+                setUserDiamonds(0);
             }
             // Load settings from the shared 'trivia_settings' store that
             // /hub/trivia/settings now writes to (one settings system).
@@ -234,9 +305,11 @@ export default function EndlessModePage() {
 
             // Questions are dealt by the server when a game starts - nothing
             // to preload here.
+            if (!isCurrent()) return;
             setIsLoading(false);
         }
         init();
+        return () => { cancelled = true; };
     }, [avatarUser?.id, authLoading]);
 
     // Realtime: Refresh data when scores/diamonds change
@@ -245,10 +318,14 @@ export default function EndlessModePage() {
         const _ch = supabase
             .channel(`trivia-endless:${userId}`)
             .on('postgres_changes', { event: '*', schema: 'public', table: 'endless_high_scores', filter: `user_id=eq.${userId}` }, async () => {
+                const operationScope = accountOperationScopeRef.current.capture();
+                if (operationScope.identity !== userId) return;
                 try {
                     const { data } = await supabase.from('endless_high_scores').select('high_score').eq('user_id', userId).eq('mode', 'random').maybeSingle();
+                    if (!accountOperationScopeRef.current.isCurrent(operationScope)) return;
                     if (data) setHighScore(data.high_score || 0);
                     const { data: profile } = await readOwnProfile(supabase, 'diamonds', { expectId: userId });
+                    if (!accountOperationScopeRef.current.isCurrent(operationScope)) return;
                     if (profile) setUserDiamonds(profile.diamonds || 0);
                 } catch (e) {
                     console.warn('[Endless] Realtime refresh failed:', e);
@@ -293,9 +370,97 @@ export default function EndlessModePage() {
         return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
     }, [timer.isTimerRunning]);
 
-    async function startGame() {
+    async function resumeServerRun() {
         if (isStartingRef.current) return;
+        if (!userId) {
+            router.push('/auth/login?redirect=/hub/trivia/endless');
+            return;
+        }
+        const operationScope = accountOperationScopeRef.current.capture();
+        if (operationScope.identity !== userId) return;
+        const startOperation = { operationScope };
         isStartingRef.current = true;
+        startOperationRef.current = startOperation;
+        setIsLoading(true);
+        setLoadError(null);
+        try {
+            const resumed = await serverRun.resume({ count: QUESTIONS_PER_SESSION });
+            if (!accountOperationScopeRef.current.isCurrent(operationScope)) return;
+            if (resumed?.resumedSettlement && resumed.settlement) {
+                const settled = resumed.settlement;
+                serverResultRef.current = settled;
+                setSettlementResult(settled);
+                const correct = Math.max(0, Number(settled.correct) || 0);
+                const awarded = Math.max(0, Number(settled.diamondsAwarded) || 0);
+                streakRef.current = correct;
+                diamondsEarnedRef.current = correct;
+                setStreak(correct);
+                setDiamondsEarned(correct);
+                setAwardedDiamonds(awarded);
+                setGameState('gameover');
+                return;
+            }
+
+            const resumedQuestions = Array.isArray(resumed?.questions) ? resumed.questions : [];
+            if (resumedQuestions.length === 0) throw new Error('resume_questions_missing');
+            const projection = projectPhase9Recovery(resumedQuestions);
+            setQuestions(resumedQuestions);
+            sessionAnswersRef.current = projection.recordedAnswers;
+            streakRef.current = projection.correctCount;
+            diamondsEarnedRef.current = projection.correctCount;
+            missesRef.current = projection.wrongCount;
+            currentIndexRef.current = Math.min(projection.questionIndex, Math.max(0, resumedQuestions.length - 1));
+            setStreak(projection.correctCount);
+            setDiamondsEarned(projection.correctCount);
+            setMisses(projection.wrongCount);
+            setCurrentIndex(currentIndexRef.current);
+            setPreGameHighScore(highScore);
+            setAwardedDiamonds(null);
+            setSettlementResult(null);
+            setVerdict(null);
+            setIsPaused(false);
+            setGameDurationSec(0);
+            setLifelinesUsedThisGame(0);
+            answerLockRef.current = false;
+            trivia.reset();
+            timer.resetTimer();
+            startTimeRef.current = Date.now();
+
+            if (projection.complete || projection.wrongCount >= MAX_MISSES) {
+                setGameState('saving');
+                await saveGameResult(operationScope);
+            } else {
+                setGameState('playing');
+            }
+        } catch (error) {
+            if (!accountOperationScopeRef.current.isCurrent(operationScope)
+                || isStaleAccountOperation(error)) return;
+            console.warn('[Endless] Resume failed:', error?.message || error);
+            setLoadError('Could Not Resume This Account-Scoped Run. Check Your Connection And Try Again.');
+            setGameState('ready');
+        } finally {
+            if (startOperationRef.current === startOperation) {
+                startOperationRef.current = null;
+                isStartingRef.current = false;
+                if (accountOperationScopeRef.current.isCurrent(operationScope)) setIsLoading(false);
+            }
+        }
+    }
+
+    async function startGame() {
+        const forceNew = forceNewStartRef.current;
+        forceNewStartRef.current = false;
+        if (!userId) {
+            setLoadError('Please Sign In To Play Endless Trivia.');
+            return;
+        }
+        if (!forceNew && serverRun.hasRecoverableSession) return resumeServerRun();
+        if (isStartingRef.current) return;
+        const operationScope = accountOperationScopeRef.current.capture();
+        if (operationScope.identity !== (userId || null)) return;
+        const startOperation = { operationScope };
+        isStartingRef.current = true;
+        startOperationRef.current = startOperation;
         try {
         setLoadError(null);
 
@@ -306,6 +471,7 @@ export default function EndlessModePage() {
         serverResultRef.current = null;
         sessionAnswersRef.current = [];
         setSaveErrorPayload(null);
+        setSettlementResult(null);
 
         // Open the server session BEFORE any charge, so a start failure can
         // never eat an entry fee. The served questions are used VERBATIM -
@@ -317,8 +483,11 @@ export default function EndlessModePage() {
         setIsLoading(true);
         try {
             served = await serverRun.start({ count: QUESTIONS_PER_SESSION });
+            if (!accountOperationScopeRef.current.isCurrent(operationScope)) return;
         } catch (e) {
             console.warn('[Endless] Server session start failed:', e?.message || e);
+            if (!accountOperationScopeRef.current.isCurrent(operationScope)
+                || isStaleAccountOperation(e)) return;
             // A 402 is the balance gate, not a connection problem: show the
             // Not Enough Diamonds state alone instead of both messages.
             if (e?.status === 402) {
@@ -328,12 +497,13 @@ export default function EndlessModePage() {
             setLoadError('We Could Not Load Any Questions Right Now. Please Check Your Connection And Try Again.');
             return;
         } finally {
-            setIsLoading(false);
+            if (accountOperationScopeRef.current.isCurrent(operationScope)) setIsLoading(false);
         }
         if (!served || !Array.isArray(served.questions) || served.questions.length === 0) {
-            // NEVER charge for an empty game.
-            serverRun.reset();
-            setLoadError('We Could Not Load Any Questions Right Now. Please Check Your Connection And Try Again.');
+            // Preserve the durable start pointer: the server may already have
+            // charged this session. Retry must re-adopt that same entry rather
+            // than erase custody and create a second charge.
+            setLoadError('We Could Not Confirm The Dealt Questions. Retry This Same Entry Request.');
             return;
         }
 
@@ -365,14 +535,17 @@ export default function EndlessModePage() {
         setScreenShake(false);
         startTimeRef.current = Date.now();
         } finally {
-            isStartingRef.current = false;
+            if (startOperationRef.current === startOperation) {
+                startOperationRef.current = null;
+                isStartingRef.current = false;
+            }
         }
     }
 
     // Side-effects of timer tick: haptics, screenShake, heartbeat audio.
     // useTriviaTimer owns the countdown; this effect only reacts to timer.timeLeft changes.
     useEffect(() => {
-        if (!timer.isTimerRunning || trivia.showResult) {
+        if (!timer.isTimerRunning || trivia.showResult || reduceMotion) {
             if (heartbeatIntervalRef.current) clearInterval(heartbeatIntervalRef.current);
             setScreenShake(false);
             return;
@@ -382,17 +555,17 @@ export default function EndlessModePage() {
         const t = timer.timeLeft;
 
         // Haptic feedback (if enabled)
-        if (settings.haptics && 'vibrate' in navigator) {
+        if (!reduceMotion && settings.haptics && 'vibrate' in navigator) {
             const baseVibration = t <= 3 ? 100 : t <= 8 ? 50 : 20;
             navigator.vibrate(Math.round(baseVibration * intensityMultiplier));
         }
 
         // Screen shake (if enabled)
-        if (settings.screenShake && t <= 3 && t > 0) setScreenShake(true);
+        if (!reduceMotion && settings.screenShake && t <= 3 && t > 0) setScreenShake(true);
         else setScreenShake(false);
 
         // Heartbeat audio (if enabled)
-        if (settings.audio && t <= 8 && t > 0) {
+        if (!reduceMotion && settings.audio && t <= 8 && t > 0) {
             const volume = 0.3 * intensityMultiplier;
             const speed = Math.max(200, 600 - ((8 - t) * 50));
             if (heartbeatIntervalRef.current) clearInterval(heartbeatIntervalRef.current);
@@ -411,7 +584,7 @@ export default function EndlessModePage() {
             if (heartbeatIntervalRef.current) clearInterval(heartbeatIntervalRef.current);
             closeHeartbeatAudio();
         };
-    }, [timer.isTimerRunning, trivia.showResult, timer.timeLeft, settings]);
+    }, [timer.isTimerRunning, trivia.showResult, timer.timeLeft, settings, reduceMotion]);
 
     // Handle timeout - one miss, not instant game over. The timeout is
     // recorded server-side as a skip (displayIndex -1), which session-answer
@@ -420,7 +593,7 @@ export default function EndlessModePage() {
     function handleTimeOut() {
         timer.setIsTimerRunning(false);
         setScreenShake(false);
-        if ('vibrate' in navigator) navigator.vibrate([200, 100, 200]);
+        if (!reduceMotion && 'vibrate' in navigator) navigator.vibrate([200, 100, 200]);
         gradeAnswer(-1);
     }
 
@@ -437,7 +610,9 @@ export default function EndlessModePage() {
      * this page used to call lost authenticated EXECUTE on 2026-08-03, so
      * every purchase silently failed.
      */
-    async function chargeLifeline(cost, source) {
+    async function chargeLifeline(cost, source, operationScope) {
+        if (!accountOperationScopeRef.current.isCurrent(operationScope)
+            || operationScope.identity !== (userId || null)) return false;
         if (isVip) return true;              // VIP lifelines are free
         if (!userId) return true;            // Guest play — nothing to charge
         if (userDiamonds < cost) {
@@ -449,6 +624,7 @@ export default function EndlessModePage() {
                 description: 'Endless Trivia skip lifeline',
                 referenceId: `trivia_lifeline:${serverRun.sessionId}:${currentQuestion?.id}:skip`,
             });
+            if (!accountOperationScopeRef.current.isCurrent(operationScope)) return false;
             if (!charge.success) {
                 setShowOutOfDiamonds(true);
                 return false;
@@ -457,9 +633,13 @@ export default function EndlessModePage() {
             // DiamondEngine.deduct auto-emits busEmit.diamondsSpent
             return true;
         } catch (e) {
+            if (!accountOperationScopeRef.current.isCurrent(operationScope)
+                || isStaleAccountOperation(e)) return false;
             console.warn('[Endless] Lifeline deduction failed:', e);
             setActionError('Could Not Purchase That Lifeline. Please Try Again.');
-            setTimeout(() => setActionError(null), 3000);
+            setTimeout(() => {
+                if (accountOperationScopeRef.current.isCurrent(operationScope)) setActionError(null);
+            }, 3000);
             return false;
         }
     }
@@ -468,6 +648,8 @@ export default function EndlessModePage() {
     // question is never answered: it is omitted from session-submit, so it is
     // not a miss and does not break the streak - it just burns a lifeline.
     async function useSkipQuestion() {
+        const operationScope = accountOperationScopeRef.current.capture();
+        if (operationScope.identity !== (userId || null)) return;
         if (trivia.showResult || skipUsedThisQuestion || answerLockRef.current) return;
         if (lifelinesUsedThisGame >= MAX_LIFELINES_PER_GAME) {
             // Lifeline limit reached — silently prevent
@@ -477,9 +659,12 @@ export default function EndlessModePage() {
         // guards above don't re-render fast enough to stop a double-tap, which
         // charged twice and skipped two questions.
         if (lifelineBusyRef.current) return;
+        const lifelineOperation = { operationScope };
         lifelineBusyRef.current = true;
+        lifelineOperationRef.current = lifelineOperation;
         try {
-            const paid = await chargeLifeline(LIFELINE_COST, 'trivia_lifeline');
+            const paid = await chargeLifeline(LIFELINE_COST, 'trivia_lifeline', operationScope);
+            if (!accountOperationScopeRef.current.isCurrent(operationScope)) return;
             if (!paid) return;
             setLifelinesUsedThisGame(prev => prev + 1);
 
@@ -490,7 +675,7 @@ export default function EndlessModePage() {
             // roster somehow runs out, end the run instead of advancing into
             // an empty board.
             if (currentIndexRef.current + 1 >= questions.length) {
-                endRun();
+                endRun(operationScope);
                 return;
             }
             setCurrentIndex(prev => { const next = prev + 1; currentIndexRef.current = next; return next; });
@@ -499,7 +684,10 @@ export default function EndlessModePage() {
             setSkipUsedThisQuestion(false);
             timer.resetTimer();
         } finally {
-            lifelineBusyRef.current = false;
+            if (lifelineOperationRef.current === lifelineOperation) {
+                lifelineOperationRef.current = null;
+                lifelineBusyRef.current = false;
+            }
         }
     }
 
@@ -509,17 +697,24 @@ export default function EndlessModePage() {
     // player can re-tap - the endpoint is idempotent per question, so a retry
     // cannot double-record. displayIndex -1 is the shot-clock timeout.
     async function gradeAnswer(displayIndex) {
+        const operationScope = accountOperationScopeRef.current.capture();
+        if (operationScope.identity !== (userId || null)) return;
         if (answerLockRef.current || trivia.showResult) return;
         const q = questions[currentIndex];
         if (!q || typeof q.id !== 'string') return;
+        const answerOperation = { operationScope, questionId: q.id };
         answerLockRef.current = true;
+        answerOperationRef.current = answerOperation;
         timer.setIsTimerRunning(false);
         if (displayIndex >= 0) trivia.setSelectedAnswer(displayIndex); // instant visual lock on the tap
         try {
             const v = await serverRun.answer({ questionId: q.id, displayIndex });
-            applyVerdict(q, displayIndex, v);
+            if (!accountOperationScopeRef.current.isCurrent(operationScope)) return;
+            applyVerdict(q, displayIndex, v, operationScope);
         } catch (e) {
             console.warn('[Endless] Answer grading failed:', e?.message || e);
+            if (!accountOperationScopeRef.current.isCurrent(operationScope)
+                || isStaleAccountOperation(e)) return;
             if (displayIndex < 0) {
                 // Timeout that could not reach the server: no re-tap is
                 // possible, so record it locally (session-submit still grades
@@ -529,24 +724,28 @@ export default function EndlessModePage() {
                 missesRef.current = missCount;
                 setMisses(missCount);
                 if (missCount >= MAX_MISSES) {
-                    endRun();
+                    endRun(operationScope);
                 } else {
-                    scheduleAdvance(400);
+                    scheduleAdvance(400, operationScope);
                 }
             } else {
                 // Unlock and let the player re-tap; give the shot clock back.
                 trivia.setSelectedAnswer(null);
                 answerLockRef.current = false;
                 setActionError('Could Not Submit That Answer. Please Tap It Again.');
-                setTimeout(() => setActionError(null), 3000);
+                setTimeout(() => {
+                    if (accountOperationScopeRef.current.isCurrent(operationScope)) setActionError(null);
+                }, 3000);
                 timer.setIsTimerRunning(true);
             }
+        } finally {
+            if (answerOperationRef.current === answerOperation) answerOperationRef.current = null;
         }
     }
 
     // Side effects that used to key off the client-computed correct_index now
     // key off the server verdict. Zero answer-key reads in the play path.
-    function applyVerdict(q, displayIndex, v) {
+    function applyVerdict(q, displayIndex, v, operationScope) {
         setVerdict(v);
         trivia.setShowResult(true);
         sessionAnswersRef.current.push({ questionId: q.id, displayIndex });
@@ -559,30 +758,33 @@ export default function EndlessModePage() {
             setDiamondsEarned(prev => { const next = prev + 1; diamondsEarnedRef.current = next; return next; });
             setStreak(prev => { const next = prev + 1; streakRef.current = next; return next; });
             busEmit.decisionCorrect(streakRef.current);
-            scheduleAdvance(1000);
+            scheduleAdvance(1000, operationScope);
         } else {
             const missCount = missesRef.current + 1;
             missesRef.current = missCount;
             setMisses(missCount);
             busEmit.decisionIncorrect(streakRef.current);
-            busEmit.screenShake('medium');
+            if (!reduceMotion) busEmit.screenShake('medium');
             if (missCount >= MAX_MISSES) {
                 // Third miss: hold the reveal, then settle the run.
                 if (answerTimeoutRef.current) clearTimeout(answerTimeoutRef.current);
-                answerTimeoutRef.current = setTimeout(endRun, 1500);
+                answerTimeoutRef.current = setTimeout(() => {
+                    if (accountOperationScopeRef.current.isCurrent(operationScope)) endRun(operationScope);
+                }, 1500);
             } else {
-                scheduleAdvance(1500);
+                scheduleAdvance(1500, operationScope);
             }
         }
     }
 
     // Advance to the next question after the reveal, or end the run when the
     // 100-question roster is exhausted (a fresh game is a fresh session).
-    function scheduleAdvance(delayMs) {
+    function scheduleAdvance(delayMs, operationScope) {
         if (answerTimeoutRef.current) clearTimeout(answerTimeoutRef.current);
         answerTimeoutRef.current = setTimeout(() => {
+            if (!accountOperationScopeRef.current.isCurrent(operationScope)) return;
             if (currentIndexRef.current + 1 >= questions.length) {
-                endRun();
+                endRun(operationScope);
                 return;
             }
             setCurrentIndex(prev => { const next = prev + 1; currentIndexRef.current = next; return next; });
@@ -594,10 +796,12 @@ export default function EndlessModePage() {
         }, delayMs);
     }
 
-    function endRun() {
+    function endRun(operationScope = accountOperationScopeRef.current.capture()) {
+        if (operationScope.identity !== (userId || null)
+            || !accountOperationScopeRef.current.isCurrent(operationScope)) return;
         finalizeDuration();
         setGameState('saving');
-        saveGameResult();
+        saveGameResult(operationScope);
     }
 
     const [saveErrorPayload, setSaveErrorPayload] = useState(null);
@@ -606,7 +810,19 @@ export default function EndlessModePage() {
     // the already-paid result instead of re-submitting a closed session.
     const serverResultRef = useRef(null);
 
-    async function saveGameResult() {
+    // Keep the settling pointer through the response-to-render gap, then
+    // retire it only after the terminal screen has committed. This preserves
+    // reload recovery without making Play Again replay the closed session.
+    useEffect(() => {
+        if (gameState === 'gameover' && serverResultRef.current?.sessionId) {
+            serverRun.acknowledgeSettlement();
+        }
+    }, [gameState, awardedDiamonds, serverRun.acknowledgeSettlement]);
+
+    async function saveGameResult(operationScope = accountOperationScopeRef.current.capture()) {
+        if (operationScope.identity !== (userId || null)
+            || !accountOperationScopeRef.current.isCurrent(operationScope)) return;
+        const isCurrentAccountOperation = () => accountOperationScopeRef.current.isCurrent(operationScope);
         if (!userId) {
             setGameState('gameover');
             return;
@@ -626,7 +842,9 @@ export default function EndlessModePage() {
                         displayIndex: a.displayIndex
                     }))
                 );
+                if (!isCurrentAccountOperation()) return;
                 serverResultRef.current = submitted;
+                setSettlementResult(submitted);
                 savePhaseRef.current = 1;
 
                 // Local balance from the server's post-award number, with a
@@ -635,6 +853,7 @@ export default function EndlessModePage() {
                     setUserDiamonds(submitted.newBalance);
                 } else {
                     const { data: profile } = await readOwnProfile(supabase, 'diamonds', { expectId: userId });
+                    if (!isCurrentAccountOperation()) return;
                     if (profile) setUserDiamonds(profile.diamonds || 0);
                 }
                 if ((submitted?.diamondsAwarded || 0) > 0) {
@@ -672,6 +891,7 @@ export default function EndlessModePage() {
                             high_score: serverCorrect,
                             achieved_at: new Date().toISOString()
                         }, { onConflict: 'user_id,mode' });
+                    if (!isCurrentAccountOperation()) return;
                     if (hsErr) {
                         console.warn('[Endless] High-score upsert failed (non-fatal):', hsErr.message);
                     }
@@ -695,6 +915,7 @@ export default function EndlessModePage() {
             savePhaseRef.current = 0;
         } catch (e) {
             console.warn('[Endless] Failed to save game result:', e);
+            if (!isCurrentAccountOperation() || isStaleAccountOperation(e)) return;
             // Save failed (network drop) -> Provide Retry UI (savePhaseRef preserves progress)
             setSaveErrorPayload({ finalDiamonds: diamondsEarnedRef.current, finalStreak: streakRef.current });
             setGameState('saving_error');
@@ -712,7 +933,19 @@ export default function EndlessModePage() {
     // just-played questions are now in trivia_user_question_history), and
     // startGame() opens the new session BEFORE charging another entry fee.
     function playAgain() {
+        serverRun.acknowledgeSettlement();
+        forceNewStartRef.current = true;
         startGame();
+    }
+
+    function pauseGame() {
+        timer.setIsTimerRunning(false);
+        setIsPaused(true);
+    }
+
+    function resumePausedGame() {
+        setIsPaused(false);
+        timer.setIsTimerRunning(true);
     }
 
 
@@ -727,7 +960,7 @@ export default function EndlessModePage() {
             : isLoading
                 ? 'Loading'
                 : {
-                    ready: balanceLabel,
+                    ready: !userId ? 'Sign In' : serverRun.hasRecoverableSession ? 'Resume' : balanceLabel,
                     playing: `${formatTriviaDisplayNumber(timer.timeLeft)} Sec`,
                     saving: 'Saving',
                     saving_error: 'Retry',
@@ -736,13 +969,23 @@ export default function EndlessModePage() {
 
     const primaryAction = showOutOfDiamonds
         ? { label: 'Get Diamonds', onClick: () => router.push('/hub/diamond-store') }
+        : isPaused
+            ? { label: 'Resume Game', onClick: resumePausedGame }
         : gameState === 'ready'
             ? {
-                label: loadError ? 'Try Again' : 'Start Endless Trivia',
-                onClick: startGame,
+                label: !userId
+                    ? 'Sign In To Play'
+                    : serverRun.hasRecoverableSession
+                        ? 'Resume Endless Run'
+                        : loadError ? 'Try Again' : 'Start Endless Trivia',
+                onClick: !userId
+                    ? () => router.push('/auth/login?redirect=/hub/trivia/endless')
+                    : serverRun.hasRecoverableSession ? resumeServerRun : startGame,
                 disabled: isLoading,
                 'aria-disabled': isLoading,
             }
+            : gameState === 'playing'
+                ? { label: 'Pause Game', onClick: pauseGame }
             : gameState === 'saving_error'
                 ? { label: 'Retry Save', onClick: handleRetrySave }
                 : gameState === 'gameover'
@@ -760,7 +1003,7 @@ export default function EndlessModePage() {
             <>
                 <SEOHead
                     title="Endless Trivia - Keep The Streak Alive"
-                    description="Endless Poker Trivia On Smarter.Poker: Questions Keep Coming Until You Stop, And A Wrong Answer Costs You Nothing But The Explanation That Follows It. Free To Play, And Nothing In It Is A Wager."
+                    description="Endless Poker Trivia On Smarter.Poker: enter a server-verified run, answer until the third miss, use limited lifelines, and review the final settlement receipt."
                     canonical="/hub/trivia/endless"
                 />
 
@@ -816,8 +1059,9 @@ export default function EndlessModePage() {
                                 )}
 
                                 {gameState === 'ready' && !isLoading && (
-                                    <section className="trivia-challenge-intro" aria-labelledby="endless-ready-title">
+                                    <section className="trivia-challenge-intro phase9-intro-layout" aria-labelledby="endless-ready-title">
                                         <ResponsiveModeArt art={TRIVIA_INTRO_ART_ENDLESS} priority />
+                                        <div className="phase9-intro-copy">
                                         <h2 id="endless-ready-title">Answer Until The Third Miss</h2>
                                         <p>
                                             Build The Longest Streak You Can Across A Server-Dealt
@@ -825,6 +1069,16 @@ export default function EndlessModePage() {
                                         </p>
                                         {loadError && (
                                             <p className="trivia-challenge-alert" role="alert">{loadError}</p>
+                                        )}
+                                        {!userId && (
+                                            <p className="trivia-challenge-notice" role="status">
+                                                Sign In To Start Or Recover A Server-Verified Run.
+                                            </p>
+                                        )}
+                                        {userId && serverRun.hasRecoverableSession && (
+                                            <p className="trivia-challenge-notice" role="status">
+                                                Your Existing Entry Is Safe. Resume It Without Paying Again.
+                                            </p>
                                         )}
                                         <dl className="trivia-challenge-stats">
                                             <div className="trivia-challenge-stat">
@@ -855,6 +1109,7 @@ export default function EndlessModePage() {
                                         <p className="trivia-challenge-note">
                                             Each Correct Answer Earns One Diamond. Skips Do Not Count As Misses.
                                         </p>
+                                        </div>
                                     </section>
                                 )}
 
@@ -885,10 +1140,7 @@ export default function EndlessModePage() {
                                         <button
                                             type="button"
                                             className="trivia-challenge-action"
-                                            onClick={() => {
-                                                setIsPaused(false);
-                                                timer.setIsTimerRunning(true);
-                                            }}
+                                            onClick={resumePausedGame}
                                         >
                                             Resume Game
                                         </button>
@@ -961,11 +1213,12 @@ export default function EndlessModePage() {
                                                         type="button"
                                                         role="switch"
                                                         aria-labelledby="endless-audio-label"
-                                                        aria-checked={settings.audio}
+                                                        aria-checked={!reduceMotion && settings.audio}
+                                                        disabled={reduceMotion}
                                                         className="trivia-challenge-switch"
                                                         onClick={() => triviaAudio.setMuted(settings.audio)}
                                                     >
-                                                        {settings.audio ? 'On' : 'Off'}
+                                                        {reduceMotion ? 'Reduced' : settings.audio ? 'On' : 'Off'}
                                                     </button>
                                                 </div>
                                                 <div className="trivia-challenge-setting">
@@ -974,11 +1227,12 @@ export default function EndlessModePage() {
                                                         type="button"
                                                         role="switch"
                                                         aria-labelledby="endless-haptics-label"
-                                                        aria-checked={settings.haptics}
+                                                        aria-checked={!reduceMotion && settings.haptics}
+                                                        disabled={reduceMotion}
                                                         className="trivia-challenge-switch"
                                                         onClick={() => setSettings(prev => ({ ...prev, haptics: !prev.haptics }))}
                                                     >
-                                                        {settings.haptics ? 'On' : 'Off'}
+                                                        {reduceMotion ? 'Reduced' : settings.haptics ? 'On' : 'Off'}
                                                     </button>
                                                 </div>
                                                 <div className="trivia-challenge-setting">
@@ -987,11 +1241,12 @@ export default function EndlessModePage() {
                                                         type="button"
                                                         role="switch"
                                                         aria-labelledby="endless-shake-label"
-                                                        aria-checked={settings.screenShake}
+                                                        aria-checked={!reduceMotion && settings.screenShake}
+                                                        disabled={reduceMotion}
                                                         className="trivia-challenge-switch"
                                                         onClick={() => setSettings(prev => ({ ...prev, screenShake: !prev.screenShake }))}
                                                     >
-                                                        {settings.screenShake ? 'On' : 'Off'}
+                                                        {reduceMotion ? 'Reduced' : settings.screenShake ? 'On' : 'Off'}
                                                     </button>
                                                 </div>
                                                 <fieldset className="trivia-challenge-setting-group">
@@ -1111,6 +1366,19 @@ export default function EndlessModePage() {
                                         {streak > preGameHighScore && streak > 0 && (
                                             <p className="trivia-challenge-note" role="status">New High Score</p>
                                         )}
+
+                                        <Phase9RunReview
+                                            questions={questions}
+                                            settlement={settlementResult}
+                                            title="Review Missed Questions"
+                                        />
+
+                                        <Phase9SettlementReceipt
+                                            settlement={settlementResult}
+                                            modeLabel="Endless"
+                                            correctCount={streak}
+                                            totalQuestions={settlementResult?.total || questions.length}
+                                        />
 
                                         <button
                                             type="button"

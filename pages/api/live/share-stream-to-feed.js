@@ -34,7 +34,7 @@ export default async function handler(req, res) {
         // Fetch stream metadata + broadcaster profile for the post card
         const { data: stream, error: streamErr } = await supabase
             .from('live_streams')
-            .select('id, broadcaster_id, title, thumbnail_url, preview_clip_url, status, is_draft, profiles!broadcaster_id(username, full_name)')
+            .select('id, broadcaster_id, title, thumbnail_url, preview_clip_url, status, is_draft, profiles!broadcaster_id(username, display_name)')
             .eq('id', stream_id)
             .maybeSingle();
 
@@ -73,7 +73,7 @@ export default async function handler(req, res) {
             return res.json({ success: true, already_shared: true, postId: existing[0].id });
         }
 
-        const broadcasterName = stream.profiles?.username || stream.profiles?.full_name || 'a broadcaster';
+        const broadcasterName = stream.profiles?.username || stream.profiles?.display_name || 'a broadcaster';
         const liveLabel = stream.status === 'live' ? '🔴 LIVE' : '📼 Replay';
         const titleLine = stream.title ? `"${stream.title}"` : '';
 

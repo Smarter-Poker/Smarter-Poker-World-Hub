@@ -9,6 +9,7 @@ import { createPost, createComment, createAuthor } from './social-types';
 import { claimReward } from '../lib/claimReward';
 import { busEmit } from '../engine/EventBus';
 import { getAuthUser, getAccessToken, getFreshAccessToken } from '../lib/authUtils';
+import { BROWSER_POST_SELECT, toBrowserPost } from '../lib/socialPostShape';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // 🌐 SOCIAL SERVICE CLASS
@@ -47,8 +48,6 @@ export class SocialService {
                     post_id: row.post_id,
                     author_id: row.author_id,
                     author_username: row.author_username,
-                    author_full_name: row.author_full_name,
-                    author_display_name_preference: row.author_display_name_preference,
                     author_avatar: row.author_avatar,
                     author_level: row.author_level,
                     content: row.content,
@@ -74,7 +73,7 @@ export class SocialService {
             console.warn('RPC fallback: using direct query for feed');
             const { data, error } = await this.supabase
                 .from('social_posts')
-                .select('*')
+                .select(BROWSER_POST_SELECT)
                 .or('visibility.eq.public,visibility.is.null')
                 .order('created_at', { ascending: false })
                 .range(offset, offset + limit);
@@ -110,11 +109,11 @@ export class SocialService {
                 // 2026-08-15 audit: user_dna_profiles does not exist (PGRST200 on
                 // every call) — author data lives on profiles (id/level).
                 .select(`
-          *,
+          ${BROWSER_POST_SELECT},
           author:profiles!author_id (
             id,
             username,
-            display_name_preference,
+            display_name,
             avatar_url,
             level
           )
@@ -203,7 +202,7 @@ export class SocialService {
                         visibility,
                         achievement_data: achievementData
                     })
-                    .select('*')
+                    .select(BROWSER_POST_SELECT)
                     .maybeSingle();
 
                 if (error) {
@@ -280,7 +279,7 @@ export class SocialService {
                     updated_at: new Date().toISOString()
                 })
                 .eq('id', postId)
-                .select()
+                .select(BROWSER_POST_SELECT)
                 .maybeSingle();
 
             if (error) throw error;
@@ -324,14 +323,6 @@ export class SocialService {
 
             if (error) throw error;
             if (!deletedPost) throw new Error('Not authorized to delete this post or post not found');
-
-            // POST-DELETE CLEANUP: Only execute if we successfully deleted the post
-            try {
-                const { error: err_social_reels_fasl4 } = await this.supabase.from('social_reels').delete().eq('source_post_id', postId);
-                if (err_social_reels_fasl4) console.warn('[Supabase] Silent mutation failed in social_reels:', err_social_reels_fasl4.message);
-            } catch (e) {
-                console.warn('[SocialService] Reel cleanup after post delete failed:', e?.message || e);
-            }
 
             if (streamInfo) {
                 try {
@@ -482,7 +473,7 @@ export class SocialService {
           author:profiles!author_id (
             id,
             username,
-            display_name_preference,
+            display_name,
             avatar_url,
             level
           )
@@ -526,7 +517,7 @@ export class SocialService {
           author:profiles!author_id (
             id,
             username,
-            display_name_preference,
+            display_name,
             avatar_url,
             level
           )
@@ -931,8 +922,10 @@ export class SocialService {
                     if (onNewPost) {
                         // Wrap raw DB row in createPost() to match the SocialPost format
                         // that views expect (author, engagement, isLiked, etc.)
+                        // Only what a browser may know: no origin_type, and
+                        // metadata reduced to the keys the UI renders.
                         const formattedPost = createPost({
-                            ...payload.new,
+                            ...toBrowserPost(payload.new),
                             post_id: payload.new.id,
                             author_username: 'New Post', // Minimal — will be refreshed by debounced full load
                             author_avatar: null,

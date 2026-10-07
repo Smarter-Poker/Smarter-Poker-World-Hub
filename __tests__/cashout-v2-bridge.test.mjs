@@ -360,10 +360,10 @@ test('source integration retains a single V2 dispatcher and no legacy response c
     assert.match(source, /cashoutUserClient\(auth.token\)/);
     assert.match(source, /dispatchCashout\(client, context\)/);
   }
-  const horses = fs.readFileSync(new URL('../pages/horses/index.js', import.meta.url), 'utf8');
+  const horses = fs.readFileSync(new URL('../src/components/horses/ClubArenaPanel.jsx', import.meta.url), 'utf8');
   assert.match(horses, /retainCashoutTerminalIntent/);
   assert.match(horses, /'X-Idempotency-Key': operationId/);
-  assert.match(horses, /expectedActorId: user.id/);
+  assert.match(horses, /expectedActorId: operatorId/);
   assert.match(horses, /body\?\.receipt\?\.operationId !== operationId/);
   assert.doesNotMatch(horses, /localStorage\.removeItem\([^\n]*cashout-terminal/);
 });

@@ -69,6 +69,9 @@ test('no app code sends a trivia_entry spend', () => {
     const allowed = new Set([
         'src/lib/diamonds/spendSources.mjs',   // the refusal itself
         'src/lib/trivia/rules/index.mjs',      // ledger metadata for the session-start charge
+        // Pure read-only receipt projection. It must know the transaction kind
+        // to verify the database-owned entry charge, but cannot initiate one.
+        'src/lib/trivia/settlementReceiptPolicy.mjs',
     ]);
     const found = [];
     const walk = dir => {
@@ -86,4 +89,16 @@ test('no app code sends a trivia_entry spend', () => {
         if (fs.existsSync(path.join(ROOT, dir))) walk(dir);
     }
     assert.deepEqual(found.filter(f => !allowed.has(f)), []);
+});
+
+test('the settlement receipt consumer cannot become a trivia_entry spend path', () => {
+    const policy = read('src/lib/trivia/settlementReceiptPolicy.mjs');
+
+    // Keep the legitimate immutable-ledger read explicit, while proving this
+    // allowlisted consumer has no transport or spend-source capability.
+    assert.match(policy, /referenceId: `trivia_entry_\$\{sessionId\}`/);
+    assert.match(policy, /kind: 'trivia_entry'/);
+    assert.doesNotMatch(policy, /\bfetch\s*\(/);
+    assert.doesNotMatch(policy, /\.rpc\s*\(/);
+    assert.doesNotMatch(policy, /checkSpendSource|ALLOWED_SPEND_SOURCES|\/api\/diamonds\/spend/);
 });

@@ -139,11 +139,12 @@ test('the worker is served immutable, like the OCR engine', () => {
     // 256-character limit and errored two production deploys.
     const runner = read('scripts/copy-reader-assets.mjs');
     assert.match(runner, /copy-pdfjs-assets\.mjs/, 'the runner must actually copy the worker');
-    assert.match(vercel.buildCommand, /copy-reader-assets\.mjs/);
     const pkg = JSON.parse(read('package.json'));
+    const deployedBuild = `${vercel.buildCommand}\n${pkg.scripts['build:vercel'] || ''}`;
+    assert.match(deployedBuild, /copy-reader-assets\.mjs/);
     assert.match(pkg.scripts.prebuild, /copy-reader-assets\.mjs/);
-    const copyAt = vercel.buildCommand.indexOf('copy-reader-assets.mjs');
-    const buildAt = vercel.buildCommand.indexOf('next build');
+    const copyAt = deployedBuild.indexOf('copy-reader-assets.mjs');
+    const buildAt = deployedBuild.indexOf('next build');
     assert.ok(copyAt >= 0 && copyAt < buildAt, 'the copy must run BEFORE next build');
 });
 

@@ -7,6 +7,7 @@ const BROWSE_VIEWS = [
     { id: 'cash', name: 'Cash Games' },
     { id: 'tournament', name: 'Tournaments' },
     { id: 'slots', name: 'Casino And Slots' },
+    { id: 'sports', name: 'Sports' },
 ];
 
 const SORT_VIEWS = [

@@ -116,6 +116,7 @@ JOB_TIMEOUTS = {
     '/api/internal/login-bridge-probe': 90,   # relay: Commander's two-leg probe takes 10-30s, relay caps at 50s
     '/api/internal/pnm-integrity-refresh': 300, # exact venue queue rebuild, including polygon assessment
     '/api/cron/trivia-theme-backfill': 300,
+    '/api/cron/trivia-nightly-tournament': 90,  # worker loops <=50s of fenced ticks during live windows
     '/api/cron/trivia-embed-backfill': 300,
     '/api/cron/trivia-player-retag':   300,
     '/api/cron/horse-posts':           600,   # up to 80 publishes, 540s internal deadline
@@ -124,6 +125,7 @@ JOB_TIMEOUTS = {
     '/api/cron/phase6-content':        300,   # grounded club/event reads plus capped publishing
     '/api/cron/phase7-content':        300,   # puzzle reveals plus capped puzzle and story publishing, 240s internal deadline
     '/api/cron/phase9-content':        300,   # one horse hand clip enqueue per fire, 240s internal deadline
+    '/api/cron/fleet-weekly-digest':   120,   # one metrics RPC, two reads, one mail; 90s internal deadline
     '/api/cron/scrape-sports-clips':   300,
     '/api/cron/scrape-poker-clips':    300,
     '/api/cron/revalidate-poker-clips': 120,
@@ -135,9 +137,6 @@ JOB_TIMEOUTS = {
     # discipline: never kill a writer at 120s.
     '/api/cron/video-library-scraper':  1800,
     '/api/cron/video-library-reels':    1800,  #1650s publisher +150s final checkpoint reserve
-    '/api/cron/video-library-backfill': 1800,
-    '/api/cron/video-library-purge':    1800,
-    '/api/cron/video-library-views':    1800,
 }
 def job_timeout(path: str) -> int:
     return JOB_TIMEOUTS.get(path, REQUEST_TIMEOUT)
@@ -671,10 +670,10 @@ ALL_CRONS = [
     ('/api/cron/cleanup-orphan-uploads',    dict(hour=3, minute=30)),
     # ── Video Library — daily fresh content from all 25 creators (SCRIPT_JOBS) ──
     ('/api/cron/video-library-scraper',     dict(hour=6, minute=0)),   # Daily 6am UTC — RSS ingest
+    ('/api/cron/video-library-enrichment',  dict(minute='*/10')),      # Durable bounded Phase 4 jobs
+    ('/api/cron/video-reel-candidates',     dict(minute='5,15,25,35,45,55')), # Phase 5 after enrichment
+    ('/api/cron/video-native-studio',       dict(minute='8,18,28,38,48')), # Phase 6 bounded rights-cleared renders
     ('/api/cron/video-library-reels',       dict(hour=7, minute=0)),   # Daily 7am UTC — Sync reels
-    ('/api/cron/video-library-backfill',    dict(day_of_week='sat', hour=23, minute=0)),  # Weekly Sat 23:00 UTC — fix zero-views/fake dates
-    ('/api/cron/video-library-purge',       dict(day_of_week='sun', hour=0,  minute=0)),  # Weekly Sun 00:00 UTC — delete dead videos
-    ('/api/cron/video-library-views',       dict(day_of_week='fri', hour=22, minute=0)),  # Weekly Fri 22:00 UTC — refresh view counts for top 50
 
     # ══ WAVE 1 (2026-04-24 — migrated from vercel.json; see phase-2a4-wave-plan.md) ══
     # Scrapers (read-only ingest into Supabase, upsert on unique keys)
@@ -765,6 +764,15 @@ ALL_CRONS = [
     # The hand_clip mode row ships disabled, so until the owner approves it
     # the rendered clip stays ready and unpublished. Not a CRITICAL_JOB.
     ('/api/cron/phase9-content',                  dict(minute=25)),          # hourly; one clip enqueue, bounded by the fleet slot
+    # Fleet Content Programme Phase 10 (one engine, measured): the weekly
+    # digest. Monday 09:30 UTC; the workers route reads the same
+    # fn_fleet_content_metrics the horses admin page shows, plus the
+    # engine switch and every mode row, and mails one plain-text summary
+    # through Resend. Read-only: it writes nothing but the mail, and when
+    # FLEET_DIGEST_EMAIL is unset on the workers VM it records
+    # skipped: recipient_unset, by design. Not a CRITICAL_JOB: an absent
+    # Monday mail is itself the signal.
+    ('/api/cron/fleet-weekly-digest',             dict(day_of_week='mon', hour=9, minute=30)),
     ('/api/cron/horses-social-friends',           dict(hour='*/6', minute=15)),
     ('/api/cron/horses-stories',                  dict(minute='5,20,35,50')),
     # RETIRED 2026-09-06: both legacy Trivia tournament lifecycle schedules
@@ -968,6 +976,29 @@ ALL_CRONS = [
 OVERFLOW_CRONS = ALL_CRONS
 
 
+# ─── Phase 6 (2026-10-01): nightly Trivia tournament owner — SHIPPED DISABLED ───
+# ONE canonical OpenClaw identity owns creation (next seven 8:00 PM
+# America/Chicago instances), horse population, live-bracket advancement and
+# settlement. The workers route holds a database lease with a fencing token
+# per invocation, so an active/passive dispatcher pair can never both act, and
+# it only calls the authoritative trivia_tournament_* RPCs.
+# Enabling is root's Phase 12 cutover step: flip the constant below in a
+# reviewed PR in the same window that retires the dormant Vercel tick, with
+# TRIVIA_TOURNAMENTS_ENABLED (and, separately, TRIVIA_TOURNAMENT_HORSES_ENABLED)
+# set on the workers host. Every minute; the worker keeps ticking for ~45 s
+# while an event is in its population or live window.
+TRIVIA_NIGHTLY_TOURNAMENT_JOB = '/api/cron/trivia-nightly-tournament'
+TRIVIA_NIGHTLY_TOURNAMENT_SCHEDULE_ENABLED = False
+FLAG_GATED_CRONS = [
+    (TRIVIA_NIGHTLY_TOURNAMENT_JOB, dict(minute='*'), TRIVIA_NIGHTLY_TOURNAMENT_SCHEDULE_ENABLED),
+]
+
+
+def active_flag_gated_crons():
+    """(path, trigger_kwargs) for the flag-gated jobs whose switch is on."""
+    return [(path, kwargs) for path, kwargs, enabled in FLAG_GATED_CRONS if enabled is True]
+
+
 # Host-portability (2026-08-29). SCRAPER_PY used to resolve only against
 # Path.home()/'Documents'/... — Dan's Mac. On the Hetzner dispatcher the file was
 # absent, should_skip_on_secondary() skipped all five video-library jobs every
@@ -994,17 +1025,15 @@ def _resolve_script(filename: str) -> str:
     return str(_SCRAPER_DIR_CANDIDATES[-1] / filename)
 
 
-SCRAPER_PY = _resolve_script('video_library_scraper.py')
+SCRAPER_PY = _resolve_script('video_source_registry_ingest.py')
 
 # ─── Jobs that invoke a local Python script instead of a Vercel HTTP endpoint ─
 # Maps cron path → list of args passed to `python3 SCRAPER_PY`.
 # Only used as a primary-role fallback for the Mac dispatcher. On secondary
 # (Hetzner), any path in WORKERS_PREFERRED below fires via HTTP instead.
-# 2026-08-15: '--sync-captions' is NOT a flag of video_library_scraper.py
-# (its argparse accepts only --dry-run/--source/--purge/--backfill/
-# --refresh-views/--tag-backfill), so this job exited 2 every night and new
-# library videos never reached social_reels. The flag belongs to
-# video_library_to_reels.py, which no scheduler referenced at all.
+# The registry ingestor owns only supported YouTube Data API discovery.
+# The retired scraper's maintenance modes were removed with it. Availability
+# and metadata are now validated in the supported provider batch before upsert.
 # SCRIPT_JOB_SCRIPTS overrides the script per path; default stays SCRAPER_PY.
 #
 # 2026-09-21 (fleet recertification D1) took video-library-reels out of
@@ -1029,9 +1058,15 @@ SCRAPER_PY = _resolve_script('video_library_scraper.py')
 # it, and SCRIPT_WORKER_OVERLAP below refuses to start if both claim a path.
 # __tests__/video-library-reels-fails-closed.test.mjs runs both halves.
 REELS_BRIDGE_PY = _resolve_script('video_library_to_reels.py')
+ENRICHMENT_PY = _resolve_script('video_enrichment_worker.py')
+CANDIDATE_PY = _resolve_script('video_reel_candidate_worker.py')
+NATIVE_STUDIO_PY = _resolve_script('video_native_studio_worker.py')
 
 SCRIPT_JOB_SCRIPTS = {
     '/api/cron/video-library-reels': REELS_BRIDGE_PY,
+    '/api/cron/video-library-enrichment': ENRICHMENT_PY,
+    '/api/cron/video-reel-candidates': CANDIDATE_PY,
+    '/api/cron/video-native-studio': NATIVE_STUDIO_PY,
 }
 
 # 2026-09-04: '--sync-captions' IS a flag of video_library_to_reels.py, but it
@@ -1050,12 +1085,12 @@ SCRIPT_JOB_SCRIPTS = {
 # verified atomic publisher, never as the old direct-write bridge.
 SCRIPT_JOBS = {
     '/api/cron/video-library-scraper':  [],                   # full daily run
+    '/api/cron/video-library-enrichment': ['--limit', '50'],  # bounded durable queue drain
+    '/api/cron/video-reel-candidates': ['--limit', '25'],     # bounded explainable candidate selection
+    '/api/cron/video-native-studio': ['--limit', '2'],        # bounded rights-cleared FFmpeg work
     '/api/cron/video-library-reels':    [
         '--limit', '750', '--verify', '--verify-platform-supply'
     ],  # bounded official publisher plus shared poker/sports verdict renewal
-    '/api/cron/video-library-backfill': ['--backfill'],
-    '/api/cron/video-library-purge':    ['--purge'],
-    '/api/cron/video-library-views':    ['--refresh-views'],
 }
 
 
@@ -1136,6 +1171,8 @@ WORKERS_PREFERRED = {
     '/api/cron/training-daily-challenge':      '/cron/training-daily-challenge',
     '/api/cron/training-daily-report':         '/cron/training-daily-report',
     '/api/cron/training-cache-drift-audit':    '/cron/training-cache-drift-audit',
+    # Phase 6 nightly tournament owner (flag-gated, see FLAG_GATED_CRONS).
+    '/api/cron/trivia-nightly-tournament':     '/cron/trivia-nightly-tournament',
     # Legacy Trivia tournament workers retired with their schedules on
     # 2026-09-06. Direct worker calls return an authenticated 410 tombstone.
     # '/api/cron/venue-tournaments':           '/cron/venue-tournaments', # RETIRED 2026-09-04
@@ -1194,6 +1231,7 @@ WORKERS_PREFERRED = {
     '/api/cron/phase6-content':                '/cron/phase6-content',
     '/api/cron/phase7-content':                '/cron/phase7-content',
     '/api/cron/phase9-content':                '/cron/phase9-content',
+    '/api/cron/fleet-weekly-digest':           '/cron/fleet-weekly-digest',
     # ─── 2B.3 Option B — generate-trivia-questions (handler 53) ─────────────
     # Workers repo has src/routes/generate-trivia-questions.ts (TS port of the
     # 560 LOC monolith handler) + src/lib/triviaValidator.ts (218 LOC port of
@@ -1263,6 +1301,8 @@ CRITICAL_JOBS = {
     # SCRIPT_JOB exit code is a result like any other; two bad mornings page.
     '/api/cron/video-library-scraper':  2,   # daily; 2 = two days without fresh videos
     '/api/cron/video-library-reels':    2,   # daily; 2 = two days of library videos not reaching the feed
+    '/api/cron/video-reel-candidates':  3,   # ten-minute cadence; three misses = stalled candidate supply
+    '/api/cron/video-native-studio':    3,   # repeated render failures require operator investigation
     '/api/cron/horse-video-reels':      3,   # hourly; 3 = three hours without the horse video supply path
     # The cache audit has two daily idempotent passes. Page if both fail, so a
     # full day can never lose its integrity audit without reaching an operator.
@@ -1274,15 +1314,22 @@ CRITICAL_JOBS = {
     # maintenance break, where a failure is expected. Three in a row is 15
     # minutes of tables nobody can hold, and the break can never eat three.
     '/api/cron/table-socket-probe':     3,
+    # Phase 6: the worker answers 500 when the nightly tournament's DOMAIN health
+    # fails (missing instance, short horses, late start, stuck round, late
+    # settlement), so two consecutive minutes page. Inert until enabled.
+    '/api/cron/trivia-nightly-tournament': 2,
 }
 CRITICAL_RUNBOOKS = {
     '/api/internal/login-bridge-probe': 'smarter-poker-commander/docs/runbooks/login-bridge.md',
     '/api/internal/pnm-integrity-refresh': 'World-Hub .agent/audits/2026-09-05-poker-near-me-phase-6-final-closeout.md',
     '/api/cron/video-library-scraper':  'World-Hub CLAUDE.md 11.3 + journalctl -u openclaw | grep video-library',
     '/api/cron/video-library-reels':    'World-Hub CLAUDE.md 11.3 + journalctl -u openclaw | grep video-library',
+    '/api/cron/video-reel-candidates':  'World-Hub .planning/video-reels-upgrade/STATE.md + journalctl -u openclaw | grep video-reel-candidates',
+    '/api/cron/video-native-studio':    'World-Hub .planning/video-reels-upgrade/STATE.md + journalctl -u openclaw | grep video-native-studio',
     '/api/cron/horse-video-reels':      'World-Hub .planning/video-reels-upgrade/STATE.md + journalctl -u openclaw | grep horse-video-reels',
     '/api/cron/training-cache-drift-audit': 'World-Hub .agent/audits/2026-09-08-horse-phase3-certification.md',
     '/api/cron/table-socket-probe':     'club-arena/docs/runbooks/tables-say-reconnecting.md',
+    '/api/cron/trivia-nightly-tournament': 'World-Hub docs/trivia/PHASE-6-RELEASE-REPORT.md (runbook) + trivia_tournament_health_v1()',
 }
 _critical_state = {}
 
@@ -1486,32 +1533,119 @@ def fire_cron(path: str):
 
 def fire_script(path: str, extra_args: list):
     """
-    Run the video_library_scraper.py with the given extra args.
-    The script itself POSTs its result back to the Vercel status webhook,
-    so the audit log stays up to date even though we're running locally.
+    Run a local script job and record its outcome in the shared cron ledger.
+
+    Script jobs bypass the HTTP cron middleware, so without this runner-owned
+    record they are invisible to cron_execution_log and U4.3 can only report
+    them as silent. The same UUID is used for the start upsert and terminal
+    update so a bounded retry after an ambiguous network result cannot create
+    duplicate execution rows. Telemetry is best-effort and never blocks the
+    established worker from running.
     """
     cmd = [sys.executable, SCRIPT_JOB_SCRIPTS.get(path, SCRAPER_PY)] + extra_args
     log.info(f'▶ Script job {path} → {" ".join(cmd)}')
-    t0 = time.time()
+    t0 = time.monotonic()
     timeout = job_timeout(path)
+    execution_id = str(uuid.uuid4())
+    job_name = path.replace('/api', '', 1)
+
+    def write_execution(payload, *, starting):
+        base = os.environ.get('NEXT_PUBLIC_SUPABASE_URL', '').rstrip('/')
+        key = os.environ.get('SUPABASE_SERVICE_ROLE_KEY', '')
+        if not base or not key:
+            log.warning(f'⚠️ {path} execution telemetry unavailable (Supabase config missing)')
+            return False
+
+        endpoint = f'{base}/rest/v1/cron_execution_log'
+        headers = {
+            'apikey': key,
+            'Authorization': f'Bearer {key}',
+            'Content-Type': 'application/json',
+            'Prefer': 'resolution=merge-duplicates,return=minimal' if starting else 'return=minimal',
+        }
+        params = {'on_conflict': 'id'} if starting else {'id': f'eq.{execution_id}'}
+
+        for attempt in range(2):
+            try:
+                if starting:
+                    response = requests.post(
+                        endpoint,
+                        params=params,
+                        headers=headers,
+                        json=payload,
+                        timeout=3,
+                        allow_redirects=False,
+                    )
+                else:
+                    response = requests.patch(
+                        endpoint,
+                        params=params,
+                        headers=headers,
+                        json=payload,
+                        timeout=3,
+                        allow_redirects=False,
+                    )
+                if 200 <= response.status_code < 300:
+                    return True
+                # Retry only transient server/throttle outcomes. Authorization,
+                # schema and request errors are deterministic for this attempt.
+                if response.status_code not in (408, 425, 429) and response.status_code < 500:
+                    log.warning(
+                        f'⚠️ {path} execution telemetry refused (HTTP {response.status_code})'
+                    )
+                    return False
+                last_error = f'HTTP {response.status_code}'
+            except requests.RequestException as exc:
+                last_error = type(exc).__name__
+            except Exception as exc:
+                last_error = type(exc).__name__
+
+            if attempt < 1:
+                time.sleep(0.25)
+
+        log.warning(f'⚠️ {path} execution telemetry failed ({last_error})')
+        return False
+
+    write_execution({
+        'id': execution_id,
+        'job_name': job_name,
+        'status': 'running',
+        'result': {},
+        'error': None,
+    }, starting=True)
+
+    def finish_execution(status, result, error=None):
+        completed_at = datetime.now(timezone.utc).isoformat()
+        write_execution({
+            'status': status,
+            'completed_at': completed_at,
+            'duration_ms': max(0, int((time.monotonic() - t0) * 1000)),
+            'result': result,
+            'error': error,
+        }, starting=False)
+
     try:
         result = subprocess.run(
             cmd,
             capture_output=False,  # let stdout/stderr flow to our log
             timeout=timeout,
         )
-        elapsed = round(time.time() - t0, 1)
+        elapsed = round(time.monotonic() - t0, 1)
         if result.returncode == 0:
             log.info(f'✅ {path} script exited 0 [{elapsed}s]')
+            finish_execution('success', {'exit_code': 0})
             _critical_record(path, True)
         else:
             log.warning(f'⚠️ {path} script exited {result.returncode} [{elapsed}s]')
+            finish_execution('error', {'exit_code': int(result.returncode)}, 'script_exit_nonzero')
             _critical_record(path, False, f'exit {result.returncode} after {elapsed}s')
     except subprocess.TimeoutExpired:
         log.error(f'❌ {path} script TIMEOUT after {timeout}s (killed)')
+        finish_execution('error', {'timeout_seconds': timeout}, 'script_timeout')
         _critical_record(path, False, f'killed at {timeout}s')
     except Exception as e:
         log.error(f'❌ {path} script {type(e).__name__}: {e}')
+        finish_execution('error', {}, 'dispatcher_exception')
         _critical_record(path, False, f'{type(e).__name__}: {e}')
 
 
@@ -2217,7 +2351,7 @@ def main():
     # keeps its historical id (no churn for the ~75 single-registration jobs)
     # and repeats get a stable, deterministic '#2' / '#3'.
     _id_counts = {}
-    for path, trigger_kwargs in ALL_CRONS:
+    for path, trigger_kwargs in ALL_CRONS + active_flag_gated_crons():
         if should_skip_on_secondary(path, role):
             log.info(f'  Skipped (secondary, SCRIPT_JOB): {path}')
             skipped += 1

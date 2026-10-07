@@ -1,6 +1,6 @@
 import React from 'react';
 import dynamic from 'next/dynamic';
-import { C } from './constants';
+import { C, DISPLAY_NAME_MAX_LENGTH } from './constants';
 import { supabase } from '../../lib/supabase';
 import { getProfileJwt } from './utils';
 import { ProfilePictureHistory } from '../social/ProfilePictureHistory';
@@ -50,6 +50,22 @@ export default function BasicInfoSection({
                                         {usernameStatus === 'taken' && 'Username is already taken'}
                                     </div>
                                 )}
+                            </div>
+                            {/* Display Name (ruling 25): the public name other players
+                                see. First and last name are the owner's private legal
+                                name and are never copied into it. Empty means other
+                                players see the username. */}
+                            <div>
+                                <ProfileField
+                                    label="Display Name"
+                                    value={profile.display_name}
+                                    onChange={updateField('display_name')}
+                                    placeholder="Optional"
+                                    maxLength={DISPLAY_NAME_MAX_LENGTH}
+                                />
+                                <div style={{ fontSize: 11, color: C.textSec, marginTop: -12, marginBottom: 8, paddingLeft: 2 }}>
+                                    Other Players See This. Leave It Blank To Show Your Username.
+                                </div>
                             </div>
                         </div>
                         <ProfileField label="Bio" value={profile.bio} onChange={updateField('bio')} type="textarea" placeholder="Tell Us About Yourself And Your Poker Journey..." icon="" maxLength={500} showCount />

@@ -8,6 +8,7 @@
  * the same safety checks this module centralises.
  */
 import { createClient } from '../supabaseServerClient';
+import { toBrowserReel } from '../socialReelShape';
 import {
     BLOCKED_VIDEO_LIBRARY_IDS,
     VIDEO_LIBRARY_ALLOWED_TYPES,
@@ -143,6 +144,14 @@ const REEL_SELECT = [
     'canonical_asset_key',
     'publication_key',
     'native_processing_requested',
+    'attribution_name',
+    'attribution_url',
+    'disclosure_kind',
+    'sponsor_name',
+    'made_for_kids',
+    'moderation_state',
+    'takedown_case_id',
+    'taken_down_at',
     'legacy_transition_eligible',
     'legacy_transition_expires_at',
 ].join(',');
@@ -156,6 +165,14 @@ const LIBRARY_SELECT = [
     'availability_status',
     'embeddable',
     'availability_checked_at',
+    'attribution_name',
+    'attribution_url',
+    'disclosure_kind',
+    'sponsor_name',
+    'made_for_kids',
+    'moderation_state',
+    'takedown_case_id',
+    'taken_down_at',
 ].join(',');
 
 let serviceClient = null;
@@ -298,14 +315,6 @@ function boundedSourceName(value) {
     if (typeof value !== 'string') return null;
     const compact = value.replace(/\s+/g, ' ').trim();
     return compact && compact.length <= 160 ? compact : null;
-}
-
-function sourceNameFromMetadata(metadata) {
-    if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) return null;
-    return boundedSourceName(metadata.clip_source)
-        || boundedSourceName(metadata.source_name)
-        || boundedSourceName(metadata.channel_name)
-        || boundedSourceName(metadata.source);
 }
 
 function isTrustedNativeUrl(value, authorId) {
@@ -657,8 +666,8 @@ async function loadEligibilityContext(client, rows) {
                     'audience_list',
                     'is_flagged',
                     'is_deleted',
-                    'metadata',
-                    'origin_type',
+                    // Never metadata or origin_type: a Reel is judged and
+                    // named by what it is, not by who published it.
                     'playback_type',
                     'topic',
                     'rights_status',
@@ -774,7 +783,8 @@ function sourcePostOwnsUnknownNativeUpload(row, sourcePost, videoUrl) {
 }
 
 function normalizeEligibleRow(row, context, scope, options = {}) {
-    if (!row || row.is_deleted === true || row.media_status !== 'ready') return null;
+    if (!row || row.is_deleted === true || row.media_status !== 'ready'
+        || row.moderation_state === 'taken_down' || row.taken_down_at) return null;
     const ownerId = String(options.ownerId || '').trim();
     const isOwnerPrivate = options.allowOwnerPrivate === true
         && UUID_RE.test(ownerId)
@@ -812,6 +822,7 @@ function normalizeEligibleRow(row, context, scope, options = {}) {
         return null;
     }
     if (managedLibrary) {
+        if (asset.moderation_state === 'taken_down' || asset.taken_down_at) return null;
         const expectedCanonicalKey = asset?.youtube_video_id
             ? `youtube:${asset.youtube_video_id}`
             : null;
@@ -904,13 +915,21 @@ function normalizeEligibleRow(row, context, scope, options = {}) {
     const canonicalAssetKey = canonicalKeyForRow({ ...row, video_url: videoUrl });
     if (!canonicalAssetKey) return null;
     const topic = explicitTopic;
-    const sourcePost = row.source_post_id ? context.postById.get(row.source_post_id) : null;
-    const sourceName = boundedSourceName(asset?.source_name)
-        || boundedSourceName(asset?.source_id)
-        || sourceNameFromMetadata(sourcePost?.metadata);
-    const sourceAttributionUrl = youtubeId
-        ? `https://www.youtube.com/watch?v=${youtubeId}`
-        : null;
+    // The source is a property of the video (its own attribution or the shared
+    // library's record of it), never of the linked post's metadata: only the
+    // publishing pipeline writes a clip_source there, so a name read from it
+    // would appear on a horse's Reel and on no player's.
+    const sourceName = boundedSourceName(row.attribution_name)
+        || boundedSourceName(asset?.attribution_name)
+        || boundedSourceName(asset?.source_name)
+        || boundedSourceName(asset?.source_id);
+    const sourceAttributionUrl = safeHttpUrl(row.attribution_url)
+        || safeHttpUrl(asset?.attribution_url)
+        || (youtubeId ? `https://www.youtube.com/watch?v=${youtubeId}` : null);
+    // The immutable, time-bounded legacy transition predates persisted creator
+    // attribution. Preserve that already-installed bridge while fresh catalog
+    // proof is established; every non-transition managed row fails closed.
+    if (managedLibrary && youtubeId && !legacyTransitionEligible && (!sourceName || !sourceAttributionUrl)) return null;
 
     return {
         id: row.id,
@@ -940,7 +959,12 @@ function normalizeEligibleRow(row, context, scope, options = {}) {
         source_name: sourceName,
         source_url: sourceAttributionUrl,
         source_attribution_url: sourceAttributionUrl,
-        origin_type: originType,
+        disclosure_kind: row.disclosure_kind || asset?.disclosure_kind || 'organic',
+        sponsor_name: boundedSourceName(row.sponsor_name || asset?.sponsor_name),
+        made_for_kids: row.made_for_kids ?? asset?.made_for_kids ?? null,
+        moderation_state: row.moderation_state || asset?.moderation_state || 'active',
+        takedown_case_id: row.takedown_case_id || asset?.takedown_case_id || null,
+        taken_down_at: row.taken_down_at || asset?.taken_down_at || null,
         playback_type: playbackType,
         topic,
         rights_status: rightsStatus,
@@ -1090,9 +1114,9 @@ function publicRow(row, profileMap) {
     const profile = profileMap.get(row.author_id) || null;
     const channelName = row.source_name
         || (row.playback_type === 'youtube_embed' ? 'Original YouTube Source' : null)
-        || profile?.full_name
+        || profile?.display_name
         || profile?.username
-        || 'Smarter.Poker';
+        || 'Creator Unavailable';
     const {
         _hasLivePost,
         _managedLibrary,
@@ -1100,16 +1124,19 @@ function publicRow(row, profileMap) {
         _rawVideoUrl,
         ...safe
     } = row;
-    return {
+    return toBrowserReel({
         ...safe,
         channel_name: channelName,
         profiles: profile ? {
             id: profile.id,
             username: profile.username || null,
-            full_name: profile.full_name || null,
+            display_name: profile.display_name || null,
+            // Kept under the old key for the reel cards that read it: the
+            // PUBLIC display name. The legal name is owner-only (ruling 25).
+            full_name: profile.display_name || null,
             avatar_url: profile.avatar_url || null,
         } : null,
-    };
+    });
 }
 
 async function attachProfiles(client, rows) {
@@ -1119,7 +1146,7 @@ async function attachProfiles(client, rows) {
     const profiles = authorIds.length
         ? await readAllByValues(client, {
             table: 'profiles',
-            select: 'id,username,full_name,avatar_url',
+            select: 'id,username,display_name,avatar_url',
             column: 'id',
             values: authorIds,
         })
@@ -1213,10 +1240,24 @@ async function readDetail(client, id, scope, sort, category, followedAuthorIds =
         return { status: 'unavailable', row: null };
     }
 
+    // Phase 2 gives every retired Reel and linked source-post identifier a
+    // durable database-owned winner. Resolve before reading eligibility so a
+    // hidden tombstone can keep an old bookmark working without ever becoming
+    // public again. The winner still passes every ordinary rights, audience,
+    // topic, storage and availability gate below.
+    const { data: resolutionRows, error: resolutionError } = await client.rpc(
+        'resolve_social_reel_reference',
+        { p_reference_id: id },
+    );
+    if (resolutionError) throw resolutionError;
+    const resolution = Array.isArray(resolutionRows) ? resolutionRows[0] : resolutionRows;
+    const resolvedId = String(resolution?.canonical_reel_id || id).trim();
+    if (!UUID_RE.test(resolvedId)) return { status: 'not_found', row: null };
+
     const { data, error } = await client
         .from('social_reels')
         .select(REEL_SELECT)
-        .or(`id.eq.${id},source_post_id.eq.${id}`)
+        .or(`id.eq.${resolvedId},source_post_id.eq.${resolvedId}`)
         .limit(20);
     if (error) throw error;
     const directRows = Array.isArray(data) ? data : [];
@@ -1231,14 +1272,18 @@ async function readDetail(client, id, scope, sort, category, followedAuthorIds =
     const directEligible = await eligibleRows(client, directRows, scope, eligibilityOptions);
     if (!directEligible.length) return { status: 'unavailable', row: null };
     const winnerByKey = await canonicalWinners(client, directRows, scope, eligibilityOptions);
-    const requested = directEligible.find(row => row.id === id || row.source_post_id === id)
+    const requested = directEligible.find(row => row.id === resolvedId || row.source_post_id === resolvedId)
         || directEligible[0];
     const winner = winnerByKey.get(requested.canonical_asset_key) || requested;
     if (scope === 'following' && !isFollowedAuthor(followedAuthorIds, winner.author_id)) {
         return { status: 'unavailable', row: null };
     }
     winner._cursor = cursorForRow(winner, sort);
-    return { status: 'found', row: winner };
+    return {
+        status: 'found',
+        row: winner,
+        redirectedFrom: resolvedId === id ? null : id,
+    };
 }
 
 async function readOwnedCollectionChunk(client, { ownerId, cursor, limit }) {
@@ -1247,6 +1292,24 @@ async function readOwnedCollectionChunk(client, { ownerId, cursor, limit }) {
         .select(REEL_SELECT)
         .eq('author_id', ownerId)
         .eq('is_deleted', false)
+        .not('created_at', 'is', null);
+    query = applyCollectionCursorFilter(query, cursor, 'created_at');
+    const { data, error } = await query
+        .order('created_at', { ascending: false })
+        .order('id', { ascending: false })
+        .limit(limit);
+    if (error) throw error;
+    return Array.isArray(data) ? data : [];
+}
+
+async function readPublicProfileCollectionChunk(client, { authorId, cursor, limit }) {
+    let query = client
+        .from('social_reels')
+        .select(REEL_SELECT)
+        .eq('author_id', authorId)
+        .eq('is_public', true)
+        .eq('is_deleted', false)
+        .eq('media_status', 'ready')
         .not('created_at', 'is', null);
     query = applyCollectionCursorFilter(query, cursor, 'created_at');
     const { data, error } = await query
@@ -1569,6 +1632,88 @@ export async function readOwnedPokerReels(options = {}) {
 }
 
 /**
+ * Read the public Reels shown on a player profile through the same fail-closed
+ * eligibility boundary as the main feed. Profiles previously queried
+ * social_reels directly, which allowed a stale rights or availability verdict
+ * to survive after the canonical feed had removed the Reel.
+ */
+export async function readPublicProfileReels(options = {}) {
+    const client = options.client || getServiceClient();
+    const authorId = String(options.authorId || '').trim();
+    if (!PERSISTED_UUID_RE.test(authorId)) {
+        throw new ReelsFeedInputError('Invalid Reel profile');
+    }
+    const limit = clampCollectionLimit(options.limit);
+    const cursor = parseCollectionCursor(options.cursor, 'profile');
+    const selected = [];
+    const selectedKeys = new Set();
+    let scanCursor = cursor;
+    let lastScannedCursor = cursor;
+    let scanned = 0;
+    let exhausted = false;
+
+    while (selected.length < limit + 1 && scanned < MAX_OWNED_SCAN_ROWS) {
+        const chunkSize = Math.min(COLLECTION_SCAN_CHUNK_SIZE, MAX_OWNED_SCAN_ROWS - scanned);
+        const rawRows = await readPublicProfileCollectionChunk(client, {
+            authorId,
+            cursor: scanCursor,
+            limit: chunkSize,
+        });
+        if (!rawRows.length) {
+            exhausted = true;
+            break;
+        }
+        scanned += rawRows.length;
+        lastScannedCursor = collectionCursorForRow(
+            rawRows[rawRows.length - 1],
+            'profile',
+            'created_at',
+        );
+        scanCursor = lastScannedCursor;
+
+        const eligible = await eligibleRows(client, rawRows, 'all', {
+            allowUnknownNativeUpload: true,
+            category: COLLECTION_CATEGORY,
+        });
+        const winnerByKey = await canonicalWinners(client, rawRows, 'all', {
+            allowUnknownNativeUpload: true,
+            category: COLLECTION_CATEGORY,
+        });
+        for (const row of eligible) {
+            if (
+                winnerByKey.get(row.canonical_asset_key)?.id !== row.id
+                || selectedKeys.has(row.canonical_asset_key)
+            ) continue;
+            selectedKeys.add(row.canonical_asset_key);
+            selected.push(row);
+            if (selected.length >= limit + 1) break;
+        }
+        if (rawRows.length < chunkSize) {
+            exhausted = true;
+            break;
+        }
+    }
+
+    const hasBufferedRow = selected.length > limit;
+    const pageRows = selected.slice(0, limit);
+    const scanBudgetReached = scanned >= MAX_OWNED_SCAN_ROWS && !exhausted && !hasBufferedRow;
+    const hasMore = hasBufferedRow || !exhausted;
+    const nextPosition = hasMore
+        ? (pageRows.length
+            ? collectionCursorForRow(pageRows[pageRows.length - 1], 'profile', 'created_at')
+            : lastScannedCursor)
+        : null;
+
+    return {
+        data: await attachProfiles(client, pageRows),
+        hasMore,
+        nextCursor: encodeCursor(nextPosition),
+        partial: scanBudgetReached,
+        scanned,
+    };
+}
+
+/**
  * Read a user's saved collection without trusting historical saved targets.
  * Target Reel rows are loaded in bounded batches and passed through the same
  * public eligibility and canonical-winner checks as the public feed.
@@ -1659,9 +1804,10 @@ export async function readPublicReelById(options = {}) {
         category,
     );
     return {
-        data: detail.row || null,
+        data: detail.row ? toBrowserReel(detail.row) : null,
         category,
         detailStatus: detail.status,
+        redirectedFrom: detail.redirectedFrom || null,
     };
 }
 
@@ -1743,6 +1889,7 @@ export async function readPokerReelsFeed(options = {}) {
         data,
         category,
         detailStatus: detail.status,
+        redirectedFrom: detail.redirectedFrom || null,
         hasMore,
         nextCursor,
         partial: page.partial,

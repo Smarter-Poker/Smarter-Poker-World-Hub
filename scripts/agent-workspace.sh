@@ -1,10 +1,5 @@
 #!/usr/bin/env bash
 
-# .husky/reference-transaction refuses a ref update that would orphan local
-# commits. This script moves refs backwards as part of its job, so it
-# announces the intent rather than the guard learning to ignore a command
-# shape. See that hook for what it saves before it refuses.
-export AGENT_REF_GUARD_OK=1
 # ONE WORKING TREE PER AGENT. Never share a checkout.
 #
 # THE PROBLEM THIS SOLVES
@@ -12,9 +7,8 @@ export AGENT_REF_GUARD_OK=1
 # exactly one HEAD, one index and one set of uncommitted files, so when agent B
 # runs `git checkout -b`, agent A's in-progress edits either travel onto B's
 # branch or get stashed out from under it. Neither agent is told. The evidence
-# was sitting in this repo: eight abandoned stashes and six `backup/*` branches
-# from `git-unstick.sh` rescues, each one somebody's work being saved from
-# somebody else's checkout.
+# was sitting in this repo: eight abandoned stashes and six `backup/*` branches,
+# each one somebody's work being saved from somebody else's checkout.
 #
 # Branch protection cannot help here. This damage happens before anything is
 # pushed, and the Antigravity `git reset --hard origin/main` loop then destroys
@@ -46,7 +40,29 @@ fi
 ROOT=$(git rev-parse --path-format=absolute --git-common-dir)
 ROOT=${ROOT%/.git}
 REPO=$(basename "$ROOT")
-TREES="${AGENT_WORKTREE_ROOT:-$HOME/Documents/.agent-trees/$REPO}"
+# ── WORKTREES LIVE ON THE EXTERNAL SSD (2026-09-29) ────────────────────────
+#
+# AGENTS.md has said for weeks that agent worktrees belong on
+# /Volumes/SmarterWork/agent-work. This script said otherwise, and this script
+# is what agents actually run: its default put every tree it made under
+# $HOME/Documents/.agent-trees. On 2026-09-29 the Mac carried 659 registered
+# worktrees, 490 of them on the boot disk, which reached 100% of its container
+# with 116 MiB left. Nothing announced itself as "disk full": npm ci died with
+# ENOSPC inside a pre-push gate, vitest failed on temp files, and a merge
+# resolved into a tree that could not be written. Agents spent hours on it.
+#
+# So the default follows the law: the SSD when it is mounted and writable, the
+# old path only as a fallback for a machine that has no SSD attached, and
+# AGENT_WORKTREE_ROOT still overrides both.
+SSD_TREES="/Volumes/SmarterWork/agent-work"
+if [ -n "${AGENT_WORKTREE_ROOT:-}" ]; then
+  TREES="$AGENT_WORKTREE_ROOT"
+elif [ -d "$SSD_TREES" ] && [ -w "$SSD_TREES" ]; then
+  TREES="$SSD_TREES/$REPO"
+else
+  echo "note: $SSD_TREES is not mounted or not writable; falling back to the boot disk." >&2
+  TREES="$HOME/Documents/.agent-trees/$REPO"
+fi
 
 SAFE_AGENT=$(printf '%s' "$AGENT" | tr -c 'A-Za-z0-9._-' '-')
 BRANCH="agent/${SAFE_AGENT}/$(printf '%s' "$SLUG" | sed 's#^agent/[^/]*/##')"
@@ -80,6 +96,13 @@ git -C "$ROOT" fetch origin main --quiet 2>/dev/null || true
 if [ -z "${AGENT_WORKSPACE_REEXEC:-}" ] && [ -r "$0" ]; then
   _MAIN_COPY=$(git -C "$ROOT" show origin/main:scripts/agent-workspace.sh 2>/dev/null || true)
   if [ -n "$_MAIN_COPY" ] && [ "$_MAIN_COPY" != "$(cat "$0")" ]; then
+    # An older provisioner would reinstate the Mac copies/installs that the
+    # user prohibited. Never hand this machine back to that implementation.
+    if [ "$(uname -s)" = Darwin ] && [[ "$_MAIN_COPY" != *'# MAC_DEPENDENCIES_CI_ONLY_V1'* ]]; then
+      echo "# origin/main has the older Mac dependency provisioner; refusing that handover" >&2
+      echo "# use git worktree add directly; dependency installation belongs in CI" >&2
+      exit 1
+    fi
     _MAIN_SCRIPT=$(mktemp "${TMPDIR:-/tmp}/agent-workspace.XXXXXX")
     printf '%s\n' "$_MAIN_COPY" > "$_MAIN_SCRIPT"
     echo "# this copy of agent-workspace.sh differs from origin/main - running main's copy instead" >&2
@@ -88,10 +111,14 @@ if [ -z "${AGENT_WORKSPACE_REEXEC:-}" ] && [ -r "$0" ]; then
   fi
 fi
 
-# Share the main clone's dependencies. The alternative is an npm install per
-# tree - minutes each, gigabytes across 47 trees - or a test gate that silently
-# skips, which is how a red test reaches main and blocks the bundle for all.
-# node_modules: a COPY-ON-WRITE CLONE, never a symlink.
+# MAC_DEPENDENCIES_CI_ONLY_V1
+# User policy, 2026-09-11: Mac worktrees receive no dependency copies or installs.
+# APFS clones still grow when tools write them, and the fallback is a full copy.
+# Superseded in part September 17: applicable local prechecks must run before
+# push. The helper still never copies or installs Mac dependencies. Prepare
+# exact locked dependencies explicitly in a unique owned SSD checkout after
+# checking mounted/writable storage and ensuring node_modules is not shared.
+# Existing shared tools may be read without mutation. Non-Mac behavior is unchanged.
 #
 # 2026-08-23. This used to be `ln -s`, and a symlink is not a safe thing to hand
 # an agent, because npm WRITES THROUGH IT. `npm ci` deletes node_modules before
@@ -103,8 +130,7 @@ fi
 #
 # `cp -Rc` is an APFS clone: about five seconds, and copy-on-write, so it costs
 # no real disk until something modifies it. Each tree now owns its node_modules
-# outright, which means `npm ci` in a worktree is simply SAFE - the thing agents
-# were doing all along.
+# outright. This historical approach is no longer permitted on the Mac.
 #
 # 2026-08-25: EVERY PACKAGE ROOT, AND ON EVERY ENTRY - NOT JUST AT CREATION.
 #
@@ -131,6 +157,10 @@ fi
 # when the directory is already there, so the steady-state cost is one `[ -e ]`
 # per package root.
 provision_node_modules() {
+  if [ "$(uname -s)" = Darwin ]; then
+    echo "# ${1:-.}/node_modules: automatic Mac provisioning disabled; prepare owned SSD dependencies for required local prechecks" >&2
+    return 0
+  fi
   # $1 = package dir relative to the repo root ("" for the root itself)
   local rel="$1"
   local src="$ROOT${rel:+/$rel}"
@@ -145,7 +175,7 @@ provision_node_modules() {
   [ -e "$dst/node_modules" ] && return 0
 
   # PRESENT IS NOT USABLE, at the source either (2026-09-08). The World Hub's
-  # main clone held ONE package (typescript) after a git-safe-push clean and a
+  # main clone held ONE package (typescript) after an interrupted install and a
   # rolled-back install, and every tree claimed that day cloned that one
   # package and came up with no `next`, no `tsc` and a dead pre-push hook.
   # So the source is judged by its payload, and when it fails the judgement
@@ -158,7 +188,7 @@ provision_node_modules() {
     if [ -n "$donor" ]; then
       echo "# $label: the main clone's copy is hollow; cloning from $donor instead" >&2
       src="${donor%/node_modules}"
-      src="${src%${rel:+/$rel}}"
+      src="${src%"${rel:+/$rel}"}"
     elif [ -z "$rel" ] && [ -x "$ROOT/scripts/check-node-modules.sh" ]; then
       echo "# $label: the main clone's copy is hollow and no sibling can donate; repairing the main clone" >&2
       bash "$ROOT/scripts/check-node-modules.sh" 2>&1 | sed "s/^/#   /" >&2 || true
@@ -339,6 +369,9 @@ EOF_PKGS
 # So verify the payload, not the path. Repair from whichever copy in this
 # repository actually has the binary.
 verify_native_deps() {
+  # Repairing an existing shared link would mutate every consumer. On the Mac
+  # this path must neither copy native packages nor remove incomplete ones.
+  [ "$(uname -s)" = Darwin ] && return 0
   local dst="$1"
   [ -d "$dst/node_modules" ] || return 0
 
@@ -390,26 +423,6 @@ verify_all_native_deps() {
 
 git -C "$ROOT" fetch origin main --quiet
 
-# ── SNAPSHOT EVERY OTHER TREE BEFORE TOUCHING ANYTHING ──────────────────────
-#
-# The ten-minute launchd snapshot is the intended safety net, and on a Mac that
-# has not granted Full Disk Access it captures NOTHING: ~/Documents is
-# TCC-protected, so an unprivileged launchd agent may stat a path inside it but
-# not open one. Measured 2026-08-22 — 73 runs, zero snapshots, while nine trees
-# held uncommitted work.
-#
-# THIS script runs in an agent's own shell, which does have that access. And it
-# runs at exactly the right moment: an agent arriving is precisely when another
-# agent's uncommitted work is most likely to be disturbed. So take the snapshot
-# here too.
-#
-# Deliberately unfailable and silent: `|| true` and output discarded, because a
-# safety net must never be the reason a workspace claim fails. It costs about a
-# second. If you want to see what it captured:
-#   bash scripts/agent-trees-snapshot.sh --list
-SNAP="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/agent-trees-snapshot.sh"
-[ -f "$SNAP" ] && (cd "$ROOT" && bash "$SNAP" >/dev/null 2>&1) || true
-
 if [ -d "$DIR" ] && git -C "$DIR" rev-parse --git-dir >/dev/null 2>&1; then
   # Reuse. Refuse to move an agent off work it has not committed - that is the
   # exact destruction this script exists to prevent.
@@ -447,7 +460,7 @@ if [ -d "$DIR" ] && git -C "$DIR" rev-parse --git-dir >/dev/null 2>&1; then
       if [ "${BEHIND:-0}" -ge 10 ]; then
         echo "# That is far enough back to fail CI on tests you never touched." >&2
       fi
-      echo "# Once your work is committed:  git -C '$DIR' rebase origin/main" >&2
+      echo "# Once your work is committed:  git -C '$DIR' merge origin/main" >&2
     fi
     # DEPENDENCIES ARE STILL REPAIRED ON THE WAY OUT (2026-08-25).
     #
@@ -463,15 +476,23 @@ if [ -d "$DIR" ] && git -C "$DIR" rev-parse --git-dir >/dev/null 2>&1; then
     # startup, and a workspace script that said "leaving it as it is" and did.
     provision_all_package_roots
     verify_all_native_deps
+    node "$DIR/docs/agent-policy/agent-policy.mjs" check >&2
+    echo "# Read current policy: node '$DIR/docs/agent-policy/agent-policy.mjs' read" >&2
     [ "$MODE" = "--print-path" ] && echo "$DIR" || echo "cd '$DIR'"
     exit 0
   fi
-  git -C "$DIR" checkout -q -B "$BRANCH" origin/main
+  CURRENT_BRANCH="$(git -C "$DIR" branch --show-current)"
+  if [ "$CURRENT_BRANCH" != "$BRANCH" ]; then
+    echo "workspace path $DIR already belongs to branch '$CURRENT_BRANCH'; choose a different agent name" >&2
+    exit 1
+  fi
 else
   mkdir -p "$TREES"
-  # -B moves the branch to origin/main if it already exists, and creates it
-  # otherwise. --force lets one agent re-take a branch name it owns.
-  git -C "$ROOT" worktree add --force -B "$BRANCH" "$DIR" origin/main >/dev/null
+  if git -C "$ROOT" show-ref --verify --quiet "refs/heads/$BRANCH"; then
+    echo "branch '$BRANCH' already exists without its expected worktree; choose a new slug" >&2
+    exit 1
+  fi
+  git -C "$ROOT" worktree add -b "$BRANCH" "$DIR" origin/main >/dev/null
 fi
 
 # The one identity this estate can deploy under. Vercel refuses to build a
@@ -492,7 +513,7 @@ bash "$ROOT/scripts/ensure-hooks.sh" 2>&1 | sed "s/^/# /" >&2 || true
 # hooks in every tree at once, with only an ERR_MODULE_NOT_FOUND to go on.
 # Probe it here - the one moment an agent is guaranteed to be looking - and
 # repair rather than report.
-bash "$ROOT/scripts/check-node-modules.sh" 2>&1 | sed "s/^/# /" >&2 || true
+bash "$ROOT/scripts/check-node-modules.sh" --check 2>&1 | sed "s/^/# /" >&2 || true
 
 # Every other guard in this estate queries GitHub, so all of them are blind to
 # work that never reached it. Ten commits sat in worktrees for nineteen hours on
@@ -500,9 +521,33 @@ bash "$ROOT/scripts/check-node-modules.sh" 2>&1 | sed "s/^/# /" >&2 || true
 # frequent moment anybody looks at this machine, so the scan happens here.
 bash "$ROOT/scripts/check-unpushed-work.sh" --quiet 2>&1 | sed "s/^/# /" >&2 || true
 
+# The freshness scan is the same argument one guard over, and until 2026-09-21
+# it was the one with no reader at all. `.husky/pre-push` was its ONLY caller
+# anywhere in this repo - no workflow references it - and
+# `scripts/guard-shared-clone.sh` forbids pushing from ~/Documents/club-arena.
+# So the single tree every Cowork agent is pointed at, and the tree an agent
+# LOADS `CLAUDE.md` and `.claude/skills/**` out of, was the one tree the check
+# never ran in. On 2026-09-21 it was found 258 commits and four days behind,
+# serving the SUPERSEDED September 16 owner instruction: every agent that read
+# it was told it was a read-only helper waiting in a numbered release queue,
+# which the September 17 instruction on origin/main had already revoked.
+#
+# The jam was not the 2026-09-12 one. No commit sat on local main - HEAD was a
+# clean ancestor of origin/main. 1218 tracked files were dirty, so
+# `git merge --ff-only` refused with "Your local changes would be overwritten",
+# and the estate runs it as `pull -q --ff-only` into a log nobody reads.
+#
+# Same placement and same reason as the scan above: an agent claiming a
+# workspace is the most frequent moment anybody looks at this machine. ADVISORY
+# and never blocking - CLAUDE.md 10.87 rule 1 is explicit that a freshness
+# guard which can wedge every push is worse than the staleness it reports.
+bash "$ROOT/scripts/check-checkout-freshness.sh" --quiet 2>&1 | sed "s/^/# /" >&2 || true
+
 provision_all_package_roots
 verify_all_native_deps
 
+node "$DIR/docs/agent-policy/agent-policy.mjs" check >&2
+echo "# Read current policy: node '$DIR/docs/agent-policy/agent-policy.mjs' read" >&2
 echo "# worktree: $DIR" >&2
 echo "# branch:   $BRANCH  (from origin/main)" >&2
 if [ "$MODE" = "--print-path" ]; then

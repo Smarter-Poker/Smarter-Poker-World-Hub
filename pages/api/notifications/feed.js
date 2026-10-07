@@ -319,21 +319,21 @@ export default async function handler(req, res) {
             const [byIdResult, byNameResult] = await Promise.all([
                 actorIds.length > 0
                     ? supabase.from('profiles')
-                        .select('id, username, full_name, display_name, avatar_url')
+                        .select('id, username, display_name, avatar_url')
                         .in('id', actorIds)
                         .limit(50)
                     : Promise.resolve({ data: [] }),
                 actorNames.length > 0
                     ? supabase.from('profiles')
-                        .select('id, username, full_name, display_name, avatar_url')
-                        .in('full_name', actorNames)
+                        .select('id, username, display_name, avatar_url')
+                        .in('display_name', actorNames)
                         .limit(50)
                     : Promise.resolve({ data: [] }),
             ]);
 
             (byIdResult.data || []).forEach(p => { profileById[p.id] = p; });
             (byNameResult.data || []).forEach(p => {
-                if (p.full_name) profileByName[p.full_name.toLowerCase()] = p;
+                if (p.display_name) profileByName[p.display_name.toLowerCase()] = p;
             });
         }
 
@@ -383,7 +383,7 @@ export default async function handler(req, res) {
                 return SOCIAL_VERB.test(m[2]) ? m[1] : null;
             })();
 
-            const displayNameRaw = profile?.display_name || profile?.full_name || profile?.username 
+            const displayNameRaw = profile?.display_name || profile?.username
                 || n.data?.actor_name || n.data?.sender_name
                 || personFromTitle
                 || n.title

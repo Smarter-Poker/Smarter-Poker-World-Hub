@@ -1,6 +1,6 @@
 import { getProfileJwt, compressImage } from './utils';
 import { getAccessToken, getAuthUser } from '../../../src/lib/authUtils';
-import { MAX_UPLOAD_SIZE } from './constants';
+import { MAX_UPLOAD_SIZE, DISPLAY_NAME_MAX_LENGTH } from './constants';
 import { busEmit } from '../../../src/engine/EventBus';
 import { broadcastSync } from '../../../src/lib/broadcastSync';
 import { claimReward } from '../../../src/lib/claimReward';
@@ -95,7 +95,7 @@ const fetchUser = async () => {
                         if (friendsData.length > 0) {
                             const friendIds = friendsData.map(f => f.user_id === authUser.id ? f.friend_id : f.user_id);
                             const profilesRes = await fetch(
-                                `${supabaseUrl}/rest/v1/profiles?id=in.(${friendIds.join(',')})&select=id,username,avatar_url`,
+                                `${supabaseUrl}/rest/v1/profiles?id=in.(${friendIds.join(',')})&select=id,username,display_name,avatar_url`,
                                 { headers }
                             );
                             const friendProfiles = profilesRes.ok ? await profilesRes.json() : [];
@@ -437,6 +437,14 @@ const handleSave = async () => {
                 return;
             }
         }
+        // Display name is the public name (ruling 25): optional, trimmed,
+        // at most DISPLAY_NAME_MAX_LENGTH characters. Empty is saved as NULL so
+        // other players see the username.
+        const displayName = (profile.display_name || '').trim();
+        if (displayName.length > DISPLAY_NAME_MAX_LENGTH) {
+            setMessage(`Error: Display name must be ${DISPLAY_NAME_MAX_LENGTH} characters or fewer.`);
+            return;
+        }
         setSaving(true);
         setMessage('');
         setSavePhase('Validating');
@@ -450,7 +458,11 @@ const handleSave = async () => {
 
         const updatePayload = {
             full_name: `${(profile.first_name || '').trim()} ${(profile.last_name || '').trim()}`.trim(),
-            display_name: `${(profile.first_name || '').trim()} ${(profile.last_name || '').trim()}`.trim() || (profile.username || '').trim() || null,
+            // Ruling 25: display_name is what strangers see, so it is the
+            // owner's own choice and is NEVER derived from first/last name
+            // (those three legal-name columns above and below are owner-only).
+            // Deriving it published every saver's legal name.
+            display_name: displayName || null,
             first_name: (profile.first_name || '').trim(),
             last_name: (profile.last_name || '').trim(),
             username: (profile.username || '').trim() || null,
@@ -574,6 +586,7 @@ const handleSave = async () => {
                         first_name: (profile.first_name || '').trim(),
                         last_name: (profile.last_name || '').trim(),
                         username: profile.username,
+                        display_name: displayName || null,
                         avatar_url: profile.avatar_url,
                     }
                 }));

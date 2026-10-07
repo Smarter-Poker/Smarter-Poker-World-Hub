@@ -162,7 +162,7 @@ test('all 13 requested worlds use exact approved artwork and unique six-destinat
   );
 });
 
-test('all 191 fixed-footer physical routes resolve to one exact-artwork family', () => {
+test('all 192 fixed-footer physical routes resolve to one exact-artwork family', () => {
   // The five Marketplace store-tab routes are one page component and own a
   // single in-flow commerce footer. They are excluded from the fixed-artwork
   // family for the same reason Page 1 is.
@@ -192,14 +192,14 @@ test('all 191 fixed-footer physical routes resolve to one exact-artwork family',
     return owners.length ? [{ route, owners }] : [];
   });
 
-  assert.equal(applicable.length, 191);
+  assert.equal(applicable.length, 192);
   for (const { route, owners } of applicable) {
     assert.equal(owners.length, 1, `${route} resolves to ${owners.map((owner) => owner.id).join(', ')}`);
     assert.ok(owners[0].artwork, `${route} resolved to a legacy footer`);
   }
 
   const matrix = fs.readFileSync(path.join(ROOT, 'docs/world-hub-footer-route-matrix.md'), 'utf8');
-  assert.match(matrix, /\*\*Total applicable physical routes: 191\.\*\*/);
+  assert.match(matrix, /\*\*Total applicable physical routes: 192\.\*\*/);
   for (const { route } of applicable) {
     assert.ok(matrix.includes(`| \`${route}\` |`), `${route} is missing from the route matrix`);
   }
@@ -269,7 +269,10 @@ test('the app shell resolves a world footer, one spacer, and the Club Arena boun
   // is stretched to the clamped footer box. See FOOTER_ARTWORK_HEIGHT.
   assert.match(nav, /objectFit: 'fill'/);
   assert.match(nav, /FOOTER_ARTWORK_HEIGHT = 'clamp\(44px, 12\.326vw, 132px\)'/);
-  assert.match(nav, /height: FOOTER_ARTWORK_HEIGHT/);
+  assert.match(
+    nav,
+    /className="bn-nav bn-artwork-nav"[\s\S]*?style=\{\{[\s\S]*?height: FOOTER_ARTWORK_HEIGHT,[\s\S]*?alignItems: 'flex-end',[\s\S]*?pointerEvents: 'none'/
+  );
   assert.match(nav, /gridTemplateColumns: `repeat\(\$\{items\.length\}, minmax\(0, 1fr\)\)`/);
   assert.match(nav, /overflow: 'hidden'/);
   assert.match(nav, /position: 'fixed'/);

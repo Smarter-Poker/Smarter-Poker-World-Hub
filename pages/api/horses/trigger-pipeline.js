@@ -9,11 +9,12 @@
  *
  *   1. No pipeline_runs row is written. This route used to fetch
  *      `/api/cron/horses-stories`, which does not exist anywhere under
- *      pages/api/cron/ (the horses-* cron files live in archive/cron/ and are
- *      not routable). The fetch 404'd, the subsequent .json() threw, the throw
- *      was swallowed, and the route returned { success: true } after writing a
- *      pipeline_runs row for a run that never happened. Logging a run that did
- *      not execute is what made the lie durable.
+ *      pages/api/cron/ (the horses-* cron files sat unroutable in an archive
+ *      directory until Phase 10 deleted them). The fetch 404'd, the subsequent
+ *      .json() threw, the throw was swallowed, and the route returned
+ *      { success: true } after writing a pipeline_runs row for a run that
+ *      never happened. Logging a run that did not execute is what made the lie
+ *      durable.
  *
  *   2. No self-fetch. The old code built its target from req.headers.host and
  *      sent `Bearer ${process.env.CRON_SECRET}` to it, so a spoofed Host header

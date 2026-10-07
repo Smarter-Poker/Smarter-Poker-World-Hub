@@ -65,9 +65,12 @@ PUSH_BASE=$(git merge-base "$CANDIDATE" refs/remotes/origin/main) || {
     echo "PUSH BLOCKED: fetch the protected main reference before checking."; exit 1;
 }
 CHANGED_FILES=$(git diff --name-only "$PUSH_BASE" "$CANDIDATE") || exit 1
+# Deleted paths still make this an application candidate and therefore retain
+# dependency/baseline checks, but their absent bytes must not be parsed.
+CONTENT_FILES=$(git diff --name-only --diff-filter=ACMR "$PUSH_BASE" "$CANDIDATE") || exit 1
 
 # Native module files are checked by Node; application JS/JSX uses Babel below.
-for file in $(printf '%s\n' "$CHANGED_FILES" | grep -E '\.(mjs|cjs)$'); do
+for file in $(printf '%s\n' "$CONTENT_FILES" | grep -E '\.(mjs|cjs)$'); do
     node --check "$file" || exit 1
 done
 if printf '%s\n' "$CHANGED_FILES" | grep -qE '(^|/)(AGENTS|CLAUDE|AGENT-PLAYBOOK|PUBLISHING)\.md$|^docs/agent-policy/|^\.agent/|^scripts/hooks/pre-push-js-safety\.sh$|^\.husky/pre-push$'; then
@@ -79,9 +82,10 @@ if [ -z "$CHANGED_FILES" ]; then
     exit 0
 fi
 
-JS_FILES=$(echo "$CHANGED_FILES" | grep -v 'public/hub/club-arena/assets/' | grep -E '\.(js|jsx|ts|tsx)$' | grep -v node_modules | grep -v '.next/')
+ALL_JS_FILES=$(echo "$CHANGED_FILES" | grep -v 'public/hub/club-arena/assets/' | grep -E '\.(js|jsx|ts|tsx)$' | grep -v node_modules | grep -v '.next/')
+JS_FILES=$(echo "$CONTENT_FILES" | grep -v 'public/hub/club-arena/assets/' | grep -E '\.(js|jsx|ts|tsx)$' | grep -v node_modules | grep -v '.next/')
 
-if [ -z "$JS_FILES" ]; then
+if [ -z "$ALL_JS_FILES" ]; then
     echo -e "${GREEN}✓ No JS/TS files changed. Push allowed.${NC}"
     exit 0
 fi
@@ -92,7 +96,7 @@ node -e "require.resolve('@babel/parser')" >/dev/null 2>&1 || {
     echo "PUSH BLOCKED: install locked private dependencies; @babel/parser is unavailable."
     exit 1
 }
-if printf '%s\n' "$JS_FILES" | grep -qE '\.(ts|tsx)$' && [ ! -x node_modules/.bin/tsc ]; then
+if printf '%s\n' "$ALL_JS_FILES" | grep -qE '\.(ts|tsx)$' && [ ! -x node_modules/.bin/tsc ]; then
     echo "PUSH BLOCKED: install locked private dependencies; TypeScript is unavailable."
     exit 1
 fi
@@ -630,7 +634,7 @@ NEXTJS_CONFIG_ERRORS=0
 
 # 11a — vercel.json buildCommand must include --webpack for Next.js >= 15
 if [ -f "vercel.json" ]; then
-    BUILD_CMD=$(node -e "try{const d=require('./vercel.json');console.log(d.buildCommand||'')}catch(e){}" 2>/dev/null || echo "")
+    BUILD_CMD=$(node -e "try{const d=require('./vercel.json');const p=require('./package.json');const c=d.buildCommand||'';const m=c.match(/^npm run ([A-Za-z0-9:_-]+)$/);console.log(m&&p.scripts?.[m[1]]?c+' && '+p.scripts[m[1]]:c)}catch(e){}" 2>/dev/null || echo "")
     if [ -n "$BUILD_CMD" ]; then
         NEXT_VERSION=$(node -e "try{const p=require('./node_modules/next/package.json');console.log(p.version)}catch(e){console.log('0')}" 2>/dev/null || echo "0")
         NEXT_MAJOR=$(echo "$NEXT_VERSION" | cut -d. -f1)

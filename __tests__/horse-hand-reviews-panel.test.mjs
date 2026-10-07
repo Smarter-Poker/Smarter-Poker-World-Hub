@@ -32,7 +32,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const SRC = fs.readFileSync(path.join(ROOT, 'pages/horses/hand-reviews.js'), 'utf8');
+const SRC = fs.readFileSync(path.join(ROOT, 'src/components/horses/HandReviewsPanel.jsx'), 'utf8');
 
 // ── The logic, mirrored exactly from the page ────────────────────────────
 const RANK = { critical: 0, warn: 1, info: 2 };
@@ -201,11 +201,15 @@ test('no em dashes in the panel source', () => {
 
 // ── 2026-09-04 (Phase 1 of the horse real-time build plan): the Data Ledger ──
 test('the ledger section reads ca_horse_data_ledger and renders a failed read as failed', () => {
-  assert.ok(SRC.includes("supabase.rpc('ca_horse_data_ledger')"), 'the panel must read the ledger RPC');
+  assert.ok(SRC.includes("['ca_horse_data_ledger', undefined]"), 'the bounded batch must include the ledger RPC');
+  assert.ok(SRC.includes("rpcWithSignal(name, args, signal)"), 'the ledger read must use the cancellable shared reader');
+  assert.ok(SRC.includes("apply(results[2], 'Data Ledger', setLedger, setLedgerError, [])"),
+    'the ledger result and failure must reach their dedicated states');
   // a failed read must LOOK failed, never like an empty ledger (which is a
   // critical audit finding of its own, data_ledger_missing)
   assert.ok(SRC.includes('The Ledger Read FAILED'), 'a failed ledger read must say so');
-  assert.ok(SRC.includes('data_ledger_missing'), 'an empty ledger must name the audit finding it corresponds to');
+  assert.ok(SRC.includes('Data Ledger Missing'),
+    'an empty ledger must name the audit finding in operator-facing Title Case');
   // the expander is a real button that names its panel, like the others
   const btn = SRC.indexOf('aria-controls="ledger-panel"');
   assert.ok(btn > 0, 'the ledger expander must name ledger-panel');
@@ -231,7 +235,9 @@ test('the ledger can be filtered by kind and exported', () => {
 
 // ── 2026-09-08 (Phase 4): certified corpus and exact receipts ─────────────
 test('the panel distinguishes no active certified corpus from a failed status read', () => {
-  assert.ok(SRC.includes("supabase.rpc(\n      'ca_gto_v31_certification_status'"));
+  assert.ok(SRC.includes("['ca_gto_v31_certification_status', { p_dataset_id: null }]"));
+  assert.ok(SRC.includes("apply(results[9], 'Certification', setCertification, setCertificationError, null)"),
+    'certification must preserve failed-read versus no-active-dataset states');
   assert.ok(SRC.includes('The Certification Read FAILED'));
   assert.ok(SRC.includes('No Active Certified Dataset.'));
   assert.ok(SRC.includes('The Horse Runtime Must Fall Back.'));

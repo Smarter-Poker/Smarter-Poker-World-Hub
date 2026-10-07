@@ -3,7 +3,7 @@
  *
  * Every solver field keeps its meaning and is printed as a label / value row
  * or a labelled block on the black glass of the Trivia console
- * (#ClubArenaConsole): the solver line, its confidence, the EV in big blinds,
+ * (#ClubArenaConsole): the solver line, its frequency, verified EV in big blinds,
  * the explanation, the GTO approach and each alternate line with its
  * frequency. Sections still collapse. No icon glyphs, gradients, rounded
  * panels, shadows or hover states: the console master is the only frame.
@@ -12,29 +12,25 @@
  *
  * VISUAL CARD CONTRACT (fixed in this pass)
  * -----------------------------------------
- * `/api/trivia/render-gto-panel` takes `{ question_id: <uuid> }` — nothing
- * else — and requires `Authorization: Bearer <supabase session token>`, because
+ * `/api/trivia/render-gto-panel` takes the bound `{ question_id, session_id }`
+ * pair and requires `Authorization: Bearer <supabase session token>`, because
  * it calls a paid image API. The previous implementation POSTed a free-form
  * prompt with no auth header (401 for every user) and was never invoked by any
  * UI. It is now wired to an explicit, opt-in "Generate visual card" button with
  * real loading / error / empty states.
  *
- * To enable the button, pass the question's uuid:
- *     <GTOScenarioDisplay questionId={currentQuestion.id} ... />
- * Without it the button is hidden and the panel behaves exactly as before.
+ * To enable the button, pass the authenticated account plus the current
+ * answered session/question/category contract. Without that complete scope,
+ * the button is hidden and the text analysis remains available.
  */
 
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { getAccessToken } from '../../lib/authUtils';
 import { toTitleCase } from '../../lib/trivia/titleCase';
+import { canRenderStrategyVisualCard } from '../../lib/trivia/strategyVisualCardPolicy.mjs';
 import styles from './GTOScenarioDisplay.module.css';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
-/** Categories the render-gto-panel route will actually render (it 400s on the rest). */
-const PANEL_CATEGORIES = new Set([
-    'gto_theory', 'gto_scenarios', 'mtt_situations', 'cash_game_situations', 'icm_chip_ev',
-]);
 
 // Format poker text: enforce BB/SB spacing and capitalization rules
 const formatPokerText = (text) => {
@@ -133,6 +129,7 @@ const describePanelError = (status, apiError) => {
     if (status === 403) return 'This Account Cannot Generate Visual Cards.';
     if (status === 404) return 'This Hand Is Not In The Question Library Yet.';
     if (status === 400) return 'A Visual Card Is Not Available For This Question Type.';
+    if (status === 422) return 'No Verified Solver Data Is Available For This Question.';
     if (status === 429) return 'Too Many Requests Right Now. Try Again In A Moment.';
     if (status >= 500) return 'The Panel Renderer Is Unavailable. Try Again Shortly.';
     return apiError ? toTitleCase(String(apiError).replace(/_/g, ' ')) : 'Could Not Generate The Visual Card. Please Try Again.';
@@ -177,10 +174,13 @@ const CollapsibleSection = ({ title, children, defaultOpen = true }) => {
 export default function GTOScenarioDisplay({
     action,
     confidence,
+    preferredFrequency,
     explanation,
     gtoApproach,
     evAnalysis,
     alternateLines = [],
+    frequencyRows = [],
+    rangeSummary,
     // Kept for API compatibility; the verdict line above the panel says it.
     isCorrectAnswer,
     showDetails = true,
@@ -190,6 +190,8 @@ export default function GTOScenarioDisplay({
     // row) to enable the "Generate visual card" button.
     questionId,
     sessionId,
+    accountId,
+    mode,
     question,
     category,
     // Accepted for API compatibility (callers may pass the whole row).
@@ -199,24 +201,16 @@ export default function GTOScenarioDisplay({
     // Optional: explicit supabase access token. Falls back to the session.
     accessToken,
 }) {
+    const panelHeadingId = useId();
     const [aiImageUrl, setAiImageUrl] = useState(imageUrl || null);
     const [isLoadingImage, setIsLoadingImage] = useState(false);
     const [panelError, setPanelError] = useState(null);
     const [isIllustrative, setIsIllustrative] = useState(false);
     const [showCard, setShowCard] = useState(Boolean(imageUrl));
-    const isMounted = useRef(true);
-
-    useEffect(() => {
-        isMounted.current = true;
-        return () => { isMounted.current = false; };
-    }, []);
-
-    // Keep in sync when the parent supplies/clears an image for a new question.
-    useEffect(() => {
-        setAiImageUrl(imageUrl || null);
-        setShowCard(Boolean(imageUrl));
-        setPanelError(null);
-    }, [imageUrl]);
+    const [renderRetry, setRenderRetry] = useState(null);
+    const requestRef = useRef(null);
+    const requestGenerationRef = useRef(0);
+    const activeScopeKeyRef = useRef('');
 
     const actionInk = getActionInk(action);
 
@@ -227,15 +221,81 @@ export default function GTOScenarioDisplay({
         return typeof raw === 'string' && UUID_RE.test(raw) ? raw : null;
     }, [questionId, question]);
 
+    const resolvedSessionId = typeof sessionId === 'string' && UUID_RE.test(sessionId)
+        ? sessionId
+        : null;
+    const resolvedAccountId = typeof accountId === 'string' && UUID_RE.test(accountId)
+        ? accountId
+        : null;
+    const requestScopeKey = `${resolvedAccountId || ''}\u0000${resolvedSessionId || ''}\u0000${resolvedQuestionId || ''}`;
+    const renderedScopeKeyRef = useRef(requestScopeKey);
+    // Advance synchronously during render. A response from the previous
+    // account/question can resolve before effects run, so an effect-only
+    // abort is not a sufficient stale-write fence.
+    activeScopeKeyRef.current = requestScopeKey;
+    const stateBelongsToCurrentScope = renderedScopeKeyRef.current === requestScopeKey;
+    const scopedAiImageUrl = stateBelongsToCurrentScope ? aiImageUrl : null;
+    const scopedIsLoadingImage = stateBelongsToCurrentScope ? isLoadingImage : false;
+    const scopedPanelError = stateBelongsToCurrentScope ? panelError : null;
+    const scopedShowCard = stateBelongsToCurrentScope ? showCard : false;
+    const scopedRenderRetry = stateBelongsToCurrentScope ? renderRetry : null;
+
     const resolvedCategory = category
         || (question && typeof question === 'object' ? question.category : null);
 
-    // Hide the button when we know the route would reject the question anyway.
-    const canGenerateCard = Boolean(resolvedQuestionId && sessionId)
-        && (!resolvedCategory || PANEL_CATEGORIES.has(resolvedCategory));
+    const hasAuthoritativeSolverEvidence = (Array.isArray(frequencyRows) && frequencyRows.length > 0)
+        || (evAnalysis?.value !== null
+            && evAnalysis?.value !== undefined
+            && Number.isFinite(Number(evAnalysis.value)));
+
+    // Hide the button when the route would reject the question or the reveal
+    // has no real server-owned solver evidence to anchor the visual.
+    const canGenerateCard = Boolean(resolvedAccountId && resolvedQuestionId && resolvedSessionId)
+        && hasAuthoritativeSolverEvidence
+        && canRenderStrategyVisualCard(mode, resolvedCategory);
+
+    // A generated card and every pending request belong to one exact
+    // account/session/question tuple. Changing any member immediately retires
+    // the previous request and clears its UI so another player's or another
+    // question's panel can never flash into the current reveal.
+    useEffect(() => {
+        renderedScopeKeyRef.current = requestScopeKey;
+        requestGenerationRef.current += 1;
+        requestRef.current?.abort();
+        requestRef.current = null;
+        setAiImageUrl(imageUrl || null);
+        setIsLoadingImage(false);
+        setPanelError(null);
+        setIsIllustrative(false);
+        setShowCard(Boolean(imageUrl));
+        setRenderRetry(null);
+        return () => {
+            requestGenerationRef.current += 1;
+            requestRef.current?.abort();
+            requestRef.current = null;
+        };
+    }, [resolvedAccountId, resolvedQuestionId, resolvedSessionId, imageUrl]);
+
+    // A 409 render_in_progress response is shared-work coordination, not a
+    // failed answer and not permission to poll. One scoped timer only unlocks
+    // the user-invoked retry after the server-provided bound.
+    useEffect(() => {
+        if (!renderRetry || renderRetry.ready === true) return undefined;
+        const waitMs = Math.max(0, renderRetry.availableAt - Date.now());
+        const retryScopeKey = requestScopeKey;
+        const timeoutId = window.setTimeout(() => {
+            if (activeScopeKeyRef.current !== retryScopeKey) return;
+            setRenderRetry(current => (
+                current?.availableAt === renderRetry.availableAt
+                    ? { ...current, ready: true }
+                    : current
+            ));
+        }, waitMs);
+        return () => window.clearTimeout(timeoutId);
+    }, [renderRetry, requestScopeKey]);
 
     const fetchAiPanel = useCallback(async () => {
-        if (!resolvedQuestionId || isLoadingImage) return;
+        if (!canGenerateCard || scopedIsLoadingImage || (scopedRenderRetry && scopedRenderRetry.ready !== true)) return;
 
         let token = accessToken || null;
         if (!token) {
@@ -246,8 +306,21 @@ export default function GTOScenarioDisplay({
             return;
         }
 
+        const controller = new AbortController();
+        requestRef.current?.abort();
+        requestRef.current = controller;
+        const requestGeneration = ++requestGenerationRef.current;
+        const requestScope = requestScopeKey;
+        const requestIsCurrent = () => (
+            !controller.signal.aborted
+            && requestRef.current === controller
+            && requestGenerationRef.current === requestGeneration
+            && activeScopeKeyRef.current === requestScope
+        );
+
         setIsLoadingImage(true);
         setPanelError(null);
+        setRenderRetry(null);
         setShowCard(true);
 
         try {
@@ -259,11 +332,32 @@ export default function GTOScenarioDisplay({
                 },
                 body: JSON.stringify({
                     question_id: resolvedQuestionId,
-                    session_id: sessionId,
+                    session_id: resolvedSessionId,
                 }),
+                signal: controller.signal,
             });
 
             const data = await response.json().catch(() => ({}));
+
+            if (!requestIsCurrent()) return;
+
+            if (response.status === 409 && data?.error === 'render_in_progress') {
+                const retryHeaderSeconds = Number(response.headers?.get?.('Retry-After'));
+                const responseRetryMs = Number(data?.retryAfterMs);
+                const suppliedRetryMs = Number.isFinite(responseRetryMs) && responseRetryMs > 0
+                    ? responseRetryMs
+                    : Number.isFinite(retryHeaderSeconds) && retryHeaderSeconds > 0
+                        ? retryHeaderSeconds * 1000
+                        : 1000;
+                const retryAfterMs = Math.max(1000, Math.min(180_000, Math.ceil(suppliedRetryMs)));
+                setRenderRetry({
+                    availableAt: Date.now() + retryAfterMs,
+                    waitSeconds: Math.ceil(retryAfterMs / 1000),
+                    ready: false,
+                });
+                setShowCard(false);
+                return;
+            }
 
             if (!response.ok || data?.success === false) {
                 throw new Error(describePanelError(response.status, data?.error));
@@ -272,19 +366,25 @@ export default function GTOScenarioDisplay({
                 // Empty state: the call succeeded but produced nothing to show.
                 throw new Error('No Visual Card Is Available For This Hand Yet.');
             }
+            if (data?.illustrative === true) {
+                throw new Error('The Renderer Returned Illustrative Numbers, So The Card Was Not Shown.');
+            }
 
-            if (!isMounted.current) return;
+            if (!requestIsCurrent()) return;
             setAiImageUrl(data.imageUrl);
-            setIsIllustrative(Boolean(data.illustrative));
+            setIsIllustrative(false);
         } catch (error) {
+            if (controller.signal.aborted || error?.name === 'AbortError' || !requestIsCurrent()) return;
             console.warn('[GTOScenarioDisplay] visual card failed:', error?.message || error);
-            if (!isMounted.current) return;
             setPanelError(error?.message || 'Could Not Generate The Visual Card.');
             setShowCard(false);
         } finally {
-            if (isMounted.current) setIsLoadingImage(false);
+            if (requestIsCurrent()) {
+                requestRef.current = null;
+                setIsLoadingImage(false);
+            }
         }
-    }, [resolvedQuestionId, isLoadingImage, accessToken, sessionId]);
+    }, [accessToken, canGenerateCard, requestScopeKey, resolvedQuestionId, resolvedSessionId, scopedIsLoadingImage, scopedRenderRetry]);
 
     const handleImageError = useCallback(() => {
         setAiImageUrl(null);
@@ -293,41 +393,55 @@ export default function GTOScenarioDisplay({
     }, []);
 
     // ── Normalised, defensive view data ──────────────────────────────────
-    const confidenceNumber = Number(confidence);
-    const hasConfidence = Number.isFinite(confidenceNumber);
-    const confidencePct = hasConfidence
-        ? Math.max(0, Math.min(100, Math.round(confidenceNumber)))
+    const frequencyNumber = Number(preferredFrequency ?? confidence);
+    const hasPreferredFrequency = Number.isFinite(frequencyNumber);
+    const preferredFrequencyPct = hasPreferredFrequency
+        ? Math.max(0, Math.min(100, Math.round(frequencyNumber * 10) / 10))
         : null;
 
     const evValueNumber = Number(evAnalysis?.value);
-    const hasEvValue = Number.isFinite(evValueNumber);
+    const hasEvValue = evAnalysis?.value !== null
+        && evAnalysis?.value !== undefined
+        && Number.isFinite(evValueNumber);
     const hasEvSection = Boolean(evAnalysis) && (hasEvValue || Boolean(evAnalysis?.description));
+    const evUnitLabel = typeof evAnalysis?.unitLabel === 'string' && evAnalysis.unitLabel
+        ? evAnalysis.unitLabel
+        : 'Big Blinds';
+    const evDisplay = hasEvValue
+        ? `${evValueNumber >= 0 ? '+' : ''}${evValueNumber} ${evUnitLabel}`
+        : null;
+    const evEvidenceLabel = hasEvValue
+        && typeof evAnalysis?.sourceLabel === 'string'
+        && typeof evAnalysis?.provenanceLabel === 'string'
+        ? `${evAnalysis.sourceLabel}. ${evAnalysis.provenanceLabel}.`
+        : null;
 
-    const lines = Array.isArray(alternateLines) ? alternateLines.filter(Boolean) : [];
+    const mixRows = Array.isArray(frequencyRows) ? frequencyRows.filter(Boolean) : [];
+    const lines = mixRows.length === 0 && Array.isArray(alternateLines) ? alternateLines.filter(Boolean) : [];
 
-    const hasAnyContent = Boolean(action || explanation || gtoApproach || hasEvSection || lines.length);
+    const hasAnyContent = Boolean(action || explanation || gtoApproach || hasEvSection || mixRows.length || lines.length || rangeSummary);
 
     // Empty state: nothing to say and no card — render nothing rather than an
     // empty chrome-only panel.
-    if (!hasAnyContent && !aiImageUrl && !isLoadingImage) {
+    if (!hasAnyContent && !scopedAiImageUrl && !scopedIsLoadingImage) {
         return null;
     }
 
     // ── Visual-card view (loading + image share one reserved box) ─────────
-    if (showCard && (isLoadingImage || aiImageUrl)) {
+    if (scopedShowCard && (scopedIsLoadingImage || scopedAiImageUrl)) {
         return (
-            <div className={styles.panel}>
-                <p className={`${styles.kicker} ${isIllustrative ? styles.kickerWarn : ''}`}>
+            <section className={styles.panel} aria-labelledby={panelHeadingId}>
+                <h3 id={panelHeadingId} className={`${styles.kicker} ${isIllustrative ? styles.kickerWarn : ''}`}>
                     {isIllustrative ? 'Illustrative Numbers' : 'Jarvis Panel'}
-                </p>
-                <div className={styles.aiPanelContainer} aria-busy={isLoadingImage ? 'true' : 'false'}>
-                    {isLoadingImage ? (
+                </h3>
+                <div className={styles.aiPanelContainer} aria-busy={scopedIsLoadingImage ? 'true' : 'false'}>
+                    {scopedIsLoadingImage ? (
                         <p className={styles.loadingLabel} role="status" aria-live="polite">
                             Rendering The Jarvis GTO Panel
                         </p>
                     ) : (
                         <img
-                            src={aiImageUrl}
+                            src={scopedAiImageUrl}
                             alt={action
                                 ? `GTO Analysis Panel For The ${action} Line`
                                 : 'GTO Analysis Panel'}
@@ -350,18 +464,18 @@ export default function GTOScenarioDisplay({
                         </button>
                     </div>
                 )}
-            </div>
+            </section>
         );
     }
 
     return (
-        <div className={styles.panel}>
-            <p className={styles.kicker}>Jarvis Solver Analysis</p>
+        <section className={styles.panel} aria-labelledby={panelHeadingId}>
+            <h3 id={panelHeadingId} className={styles.kicker}>Jarvis Solver Analysis</h3>
 
             {/* Headline figures as label / value rows on the glass. Each row
                 is omitted when its value is unknown, so the panel never prints
                 "undefined%" or an invented number. */}
-            {(action || confidencePct !== null || hasEvValue) && (
+            {(action || preferredFrequencyPct !== null || hasEvValue) && (
                 <ul className="tc-rows">
                     {action && (
                         <li className="tc-row">
@@ -369,12 +483,12 @@ export default function GTOScenarioDisplay({
                             <span className={`tc-row__value ${styles.actionText} tc-ink--${actionInk}`}>{action}</span>
                         </li>
                     )}
-                    {confidencePct !== null && (
+                    {preferredFrequencyPct !== null && (
                         <li className="tc-row">
-                            <span className="tc-row__label">Solver Confidence</span>
+                            <span className="tc-row__label">Preferred Line Frequency</span>
                             <span className={`tc-row__value tc-ink--${actionInk}`}>
-                                <span aria-hidden="true">{confidencePct}%</span>
-                                <span className={styles.srOnly}>{`Solver Confidence ${confidencePct} Percent`}</span>
+                                <span aria-hidden="true">{preferredFrequencyPct}%</span>
+                                <span className={styles.srOnly}>{`Preferred Solver Line Frequency ${preferredFrequencyPct} Percent`}</span>
                             </span>
                         </li>
                     )}
@@ -382,8 +496,14 @@ export default function GTOScenarioDisplay({
                         <li className="tc-row">
                             <span className="tc-row__label">Expected Value</span>
                             <span className={`tc-row__value tc-ink--${evValueNumber >= 0 ? 'green' : 'red'}`}>
-                                {`${evValueNumber >= 0 ? '+' : ''}${evValueNumber} BB`}
+                                {evDisplay}
                             </span>
+                        </li>
+                    )}
+                    {evEvidenceLabel && (
+                        <li className="tc-row">
+                            <span className="tc-row__label">EV Evidence</span>
+                            <span className="tc-row__value">{evEvidenceLabel}</span>
                         </li>
                     )}
                 </ul>
@@ -421,7 +541,7 @@ export default function GTOScenarioDisplay({
                         <CollapsibleSection title="EV Analysis">
                             {hasEvValue && (
                                 <p className={`${styles.evValue} tc-ink--${evValueNumber >= 0 ? 'green' : 'red'}`}>
-                                    {`${evValueNumber >= 0 ? '+' : ''}${evValueNumber} BB`}
+                                    {evDisplay}
                                 </p>
                             )}
                             {evAnalysis?.description && (
@@ -432,6 +552,27 @@ export default function GTOScenarioDisplay({
                                     }}
                                 />
                             )}
+                        </CollapsibleSection>
+                    )}
+
+                    {mixRows.length > 0 && (
+                        <CollapsibleSection title="Range And Frequency Mix" defaultOpen={true}>
+                            {rangeSummary && <p className={styles.rangeSummary}>{rangeSummary}</p>}
+                            <ul className={`tc-rows ${styles.frequencyList}`} aria-label="Solver action frequencies">
+                                {mixRows.map((line, index) => {
+                                    const frequency = Number(line?.frequency);
+                                    return (
+                                        <li key={`${line?.action || 'line'}-${index}`} className={`tc-row ${styles.frequencyRow}`}>
+                                            <span className={`tc-row__label tc-ink--${getActionInk(line?.action)}`}>
+                                                {line?.action || 'Solver Line'}
+                                            </span>
+                                            <span className="tc-row__value">
+                                                {Number.isFinite(frequency) ? `${frequency}% Of Solver Mix` : 'Frequency Not Released'}
+                                            </span>
+                                        </li>
+                                    );
+                                })}
+                            </ul>
                         </CollapsibleSection>
                     )}
 
@@ -469,10 +610,17 @@ export default function GTOScenarioDisplay({
             )}
 
             {/* Visual-card action + error state */}
-            {(canGenerateCard || panelError) && (
+            {(canGenerateCard || scopedPanelError || scopedRenderRetry) && (
                 <div className={styles.panelActions}>
-                    {panelError && (
-                        <p className={`${styles.panelError} tc-ink--red`} role="alert">{panelError}</p>
+                    {scopedPanelError && (
+                        <p className={`${styles.panelError} tc-ink--red`} role="alert">{scopedPanelError}</p>
+                    )}
+                    {scopedRenderRetry && (
+                        <p className={`${styles.panelError} tc-ink--blue`} role="status" aria-live="polite">
+                            {scopedRenderRetry.ready
+                                ? 'The Shared Render Window Is Clear. Retry When Ready.'
+                                : `Another Request Is Rendering This Panel. Retry Is Available In ${scopedRenderRetry.waitSeconds} Seconds.`}
+                        </p>
                     )}
                     {canGenerateCard && (
                         <>
@@ -480,9 +628,15 @@ export default function GTOScenarioDisplay({
                                 type="button"
                                 className="tc-word"
                                 onClick={fetchAiPanel}
-                                disabled={isLoadingImage}
+                                disabled={scopedIsLoadingImage || (scopedRenderRetry && scopedRenderRetry.ready !== true)}
                             >
-                                {panelError ? 'Try Visual Card Again' : 'Generate Visual Card'}
+                                {scopedRenderRetry?.ready
+                                    ? 'Retry Visual Card'
+                                    : scopedRenderRetry
+                                        ? 'Visual Card Render In Progress'
+                                        : scopedPanelError
+                                            ? 'Try Visual Card Again'
+                                            : 'Generate Visual Card'}
                             </button>
                             <p className={styles.panelHint}>
                                 Renders This Hand As A Jarvis-Styled Analysis Card.
@@ -491,7 +645,7 @@ export default function GTOScenarioDisplay({
                     )}
                 </div>
             )}
-        </div>
+        </section>
     );
 }
 
@@ -501,7 +655,9 @@ export default function GTOScenarioDisplay({
 export function GTOScenarioCompact({ action, confidence, explanation }) {
     const actionInk = getActionInk(action);
     const confidenceNumber = Number(confidence);
-    const hasConfidence = Number.isFinite(confidenceNumber);
+    const hasConfidence = confidence !== null
+        && confidence !== undefined
+        && Number.isFinite(confidenceNumber);
 
     if (!action && !explanation) return null;
 
@@ -517,7 +673,7 @@ export function GTOScenarioCompact({ action, confidence, explanation }) {
                     )}
                     {hasConfidence && (
                         <li className="tc-row">
-                            <span className="tc-row__label">Solver Confidence</span>
+                            <span className="tc-row__label">Solver Line Frequency</span>
                             <span className={`tc-row__value tc-ink--${actionInk}`}>
                                 {`${Math.max(0, Math.min(100, Math.round(confidenceNumber)))}%`}
                             </span>

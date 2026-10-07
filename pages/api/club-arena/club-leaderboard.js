@@ -11,7 +11,12 @@ import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
  *   'big_winners' - Players with highest net positive flow (7 days)
  * 
  * Body: { clubId, action, limit? }
- * Auth: Bearer token (any club member)
+ * Auth: Bearer token of CLUB STAFF only. Every metric here is a member's chip
+ *       balance or chip flow - that member's own money (Ruling 25,
+ *       2026-09-30). The rankings answer exactly the people the database
+ *       already lets read a club's roster wallets: is_club_admin(club, user),
+ *       the rule behind the club_members row policy. A fellow member is
+ *       refused (403); the route used to answer any member.
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';
 const { isUUID } = require('../../../src/lib/club-arena/validate');
@@ -54,15 +59,21 @@ export default async function handler(req, res) {
 
       const maxLimit = Math.min(limit || 50, 100);
 
-      // Verify membership
-      const { data: membership } = await getSupabase()
-          .from('club_members')
-          .select('role')
-          .eq('club_id', clubId)
-          .eq('user_id', user.id)
-          .maybeSingle();
-
-      if (!membership) return res.status(403).json({ error: 'Not a club member' });
+      // CLUB STAFF ONLY (2026-10-07). This route runs as the service role, so
+      // the club_members row policy - a member reads their own row, club staff
+      // read the roster - never applied to it, and every member of a club got
+      // every other member's chip balance, 7-day chip volume and net chip flow.
+      // Ask the database the same question that policy asks: the club owner,
+      // or an active owner/co-owner/admin, and never in a Diamond club. A
+      // failed check is not a yes.
+      const { data: isClubStaff, error: staffErr } = await getSupabase()
+          .rpc('is_club_admin', { p_club_id: clubId, p_user_id: user.id });
+      if (staffErr) {
+          return res.status(503).json({ error: 'Club staff check unavailable, try again' });
+      }
+      if (isClubStaff !== true) {
+          return res.status(403).json({ error: "Only club staff can see members' chip balances and chip flows" });
+      }
 
       // ─── CHIPS: Top players by chip balance ──────────────────
       if (action === 'chips' || !action) {

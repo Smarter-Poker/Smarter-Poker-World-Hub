@@ -36,8 +36,43 @@ import {
   persistUserReelPublicationIntent,
   updateUserReelPublicationIntent,
 } from '../../../src/lib/userReelPublicationRecovery.mjs';
+import {
+  DEFAULT_USER_REEL_TOPIC,
+  USER_REEL_TOPIC_LABELS,
+  loadUserReelTopics,
+  normalizeUserReelTopic,
+} from '../../../src/lib/userReelTopics.mjs';
 // useComposeStore import removed (2026-05-03): the /compose route handoff
 // is gone, inline staging handles everything via local component state.
+
+// The name other people see on a check-in. Callers pass different user
+// shapes (the social-media user object, a raw Supabase auth user), so this
+// reads the public fields itself instead of trusting `user.name`: the legal
+// name is owner-only (ruling 25) and an email local part is never a name.
+// `user.name` is used only when no public field exists and it is neither the
+// legal name nor derived from the email address.
+export function publicNameOf(user) {
+  if (!user) return 'Player';
+  const meta = user.user_metadata || {};
+  const pick =
+    user.display_name ||
+    user.username ||
+    user.alias ||
+    meta.display_name ||
+    meta.username ||
+    meta.poker_alias;
+  if (pick) return pick;
+  const name = typeof user.name === 'string' ? user.name.trim() : '';
+  if (!name || name.includes('@')) return 'Player';
+  const lower = name.toLowerCase();
+  const legal = [user.full_name, meta.full_name]
+    .filter(Boolean)
+    .map((v) => String(v).trim().toLowerCase());
+  if (legal.includes(lower)) return 'Player';
+  const localPart = String(user.email || meta.email || '').split('@')[0].toLowerCase();
+  if (localPart && localPart === lower) return 'Player';
+  return name;
+}
 
 export function SharedPostCreator({
   user,
@@ -65,6 +100,10 @@ export function SharedPostCreator({
   const [uploadProgress, setUploadProgress] = useState(null); // null | { pct: number, label: string }
   const [error, setError] = useState('');
   const [shareToPokerReels, setShareToPokerReels] = useState(false);
+  // The Reel topic the player attests. Only topics the database accepts are
+  // offered (see userReelTopics.mjs); Poker is always accepted.
+  const [reelTopic, setReelTopic] = useState(DEFAULT_USER_REEL_TOPIC);
+  const [reelTopicOptions, setReelTopicOptions] = useState([DEFAULT_USER_REEL_TOPIC]);
   // STAGE-AWARE BANNER (audit-6 2026-04-30 per Dan):
   // 'picker'  — user just tapped Photo/Video, OS file picker is opening
   // 'loading' — picker dismissed, iOS handing the file off (sandbox copy + iCloud pull)
@@ -182,6 +221,22 @@ export function SharedPostCreator({
   useEffect(() => {
     if (!canShareToPokerReels && shareToPokerReels) setShareToPokerReels(false);
   }, [canShareToPokerReels, shareToPokerReels]);
+
+  useEffect(() => {
+    if (!canShareToPokerReels) return undefined;
+    let cancelled = false;
+    loadUserReelTopics(supabase).then((topics) => {
+      if (!cancelled) setReelTopicOptions(topics);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [canShareToPokerReels]);
+
+  // A topic the database does not accept is never submitted.
+  useEffect(() => {
+    if (!reelTopicOptions.includes(reelTopic)) setReelTopic(DEFAULT_USER_REEL_TOPIC);
+  }, [reelTopicOptions, reelTopic]);
 
   useEffect(() => {
     if (!user?.id) return;
@@ -846,7 +901,7 @@ export function SharedPostCreator({
           try {
             const { data } = await supabase
               .from('profiles')
-              // BUG-13 FIX: also select display_name as fallback when full_name is null
+              // Public columns only: full_name is owner-only (ruling 25).
               .select('id, username, display_name')
               .ilike('username', `%${query}%`)
               .limit(5);
@@ -934,13 +989,16 @@ export function SharedPostCreator({
       setError('');
 
       const wantsPokerReel = shareToPokerReels && canShareToPokerReels;
+      const submittedReelTopic =
+        normalizeUserReelTopic(reelTopicOptions.includes(reelTopic) ? reelTopic : null)
+        || DEFAULT_USER_REEL_TOPIC;
       if (wantsPokerReel && postVisibility !== 'public') {
-        setError('Poker Reels are public. Change this post to Public or turn off Reel featuring.');
+        setError('Reels are public. Change this post to Public or turn off Reel featuring.');
         _submittingRef.current = false;
         return;
       }
       if (wantsPokerReel && !isSingleVideoDraft) {
-        setError('Poker Reels can feature exactly one video per post.');
+        setError('Reels can feature exactly one video per post.');
         _submittingRef.current = false;
         return;
       }
@@ -1141,6 +1199,7 @@ export function SharedPostCreator({
                         userId: user.id,
                         videoUrl: publicUrl,
                         caption: content.trim() || null,
+                        topic: submittedReelTopic,
                       });
                       persistUserReelPublicationIntent(
                         window.localStorage,
@@ -1442,6 +1501,7 @@ export function SharedPostCreator({
           videoUrl: urls[0],
           caption: finalContent || null,
           thumbnailUrl: persistedThumbnailUrl,
+          topic: submittedReelTopic,
         });
         persistUserReelPublicationIntent(
           window.localStorage,
@@ -1497,7 +1557,7 @@ export function SharedPostCreator({
           linkPreview,
           postVisibility,
           persistedThumbnailUrl,
-          shouldPublishPokerReel,
+          shouldPublishPokerReel ? submittedReelTopic : false,
           reelPublicationIntent?.id || null,
         );
       }
@@ -1511,7 +1571,7 @@ export function SharedPostCreator({
                 headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
                 body: JSON.stringify({
                   venue_id: checkInVenue.id,
-                  user_name: authorOverride ? authorOverride.name : user?.name || 'Player',
+                  user_name: authorOverride ? authorOverride.name : publicNameOf(user),
                   message: finalContent || null,
                   skip_post: true,
                 }),
@@ -2022,11 +2082,8 @@ export function SharedPostCreator({
                   <Avatar name={u.username} size={32} />
                   <div>
                     <div style={{ fontWeight: 600, fontSize: 14 }}>@{u.username}</div>
-                    {u.full_name || u.display_name ? (
-                      <div style={{ fontSize: 12, color: C.textSec }}>
-                        {/* BUG-13 FIX: fall back to display_name if full_name is null */}
-                        {u.full_name || u.display_name}
-                      </div>
+                    {u.display_name ? (
+                      <div style={{ fontSize: 12, color: C.textSec }}>{u.display_name}</div>
                     ) : null}
                   </div>
                 </div>
@@ -2991,22 +3048,54 @@ export function SharedPostCreator({
           {/* Reels, Find Friends, and Club Pages are in the bottom/side navigation naturally */}
         </div>
         {canFeaturePokerReel && (
-          <label style={{
+          <div style={{
             margin: '2px 12px 8px', padding: '10px 12px', borderRadius: 8,
             background: '#F0F7FF', border: '1px solid #C7DDF8',
-            display: 'flex', alignItems: 'flex-start', gap: 9,
-            color: '#344054', fontSize: 12, lineHeight: 1.4, cursor: 'pointer',
+            color: '#344054', fontSize: 12, lineHeight: 1.4,
           }}>
-            <input
-              type="checkbox"
-              checked={shareToPokerReels}
-              onChange={(event) => setShareToPokerReels(event.target.checked)}
-              style={{ width: 17, height: 17, marginTop: 1, accentColor: C.blue }}
-            />
-            <span>
-              Feature This One Video In Poker Reels. It Will Be Published Publicly, And I Confirm It Is Poker-Related And Mine To Share.
-            </span>
-          </label>
+            {reelTopicOptions.length > 1 && (
+              <div
+                role="radiogroup"
+                aria-label="Reel Topic"
+                data-testid="reel-topic-choice"
+                style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}
+              >
+                <span style={{ fontWeight: 600 }}>Share To</span>
+                {reelTopicOptions.map((topic) => {
+                  const selected = reelTopic === topic;
+                  return (
+                    <button
+                      key={topic}
+                      type="button"
+                      role="radio"
+                      aria-checked={selected}
+                      onClick={() => setReelTopic(topic)}
+                      style={{
+                        padding: '4px 12px', borderRadius: 999, cursor: 'pointer',
+                        fontSize: 12, fontWeight: 600,
+                        border: `1px solid ${selected ? C.blue : '#C7DDF8'}`,
+                        background: selected ? C.blue : '#FFFFFF',
+                        color: selected ? '#FFFFFF' : '#344054',
+                      }}
+                    >
+                      {USER_REEL_TOPIC_LABELS[topic]} Reels
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+            <label style={{ display: 'flex', alignItems: 'flex-start', gap: 9, cursor: 'pointer' }}>
+              <input
+                type="checkbox"
+                checked={shareToPokerReels}
+                onChange={(event) => setShareToPokerReels(event.target.checked)}
+                style={{ width: 17, height: 17, marginTop: 1, accentColor: C.blue }}
+              />
+              <span>
+                Feature This One Video In {USER_REEL_TOPIC_LABELS[reelTopic] || 'Poker'} Reels. It Will Be Published Publicly, And I Confirm It Is {USER_REEL_TOPIC_LABELS[reelTopic] || 'Poker'}-Related And Mine To Share.
+              </span>
+            </label>
+          </div>
         )}
         <div style={{ padding: '4px 8px 8px', display: 'flex', gap: 8, alignItems: 'center' }}>
           {context === 'social-media' && (

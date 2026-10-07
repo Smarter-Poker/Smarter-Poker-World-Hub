@@ -22,6 +22,7 @@ import {
   flagsUrl,
   handsUrl,
   healthUrl,
+  linksUrl,
   listMeta,
   openCaseBody,
   pairsUrl,
@@ -47,6 +48,7 @@ import { TABS, findTab, visibleTabs } from '../src/components/horses/tabRegistry
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const component = (name) => path.join(HERE, '..', 'src/components/horses', name);
 const panel = await readFile(component('IntegrityPanel.jsx'), 'utf8');
+const dynamicPanels = await readFile(component('dynamicPanels.js'), 'utf8');
 const integritySource = await readFile(component('integrityAdmin.js'), 'utf8');
 const operatorFetchSource = await readFile(component('useOperatorFetch.js'), 'utf8');
 const pagedListSource = await readFile(component('usePagedList.js'), 'utf8');
@@ -80,22 +82,24 @@ test('the Integrity tab is visible, code split, and read-gated', () => {
   assert.ok(tab);
   assert.equal(tab.label, 'Integrity');
   assert.equal(tab.permission, 'players.read');
-  assert.equal(typeof tab.load, 'function');
+  assert.match(dynamicPanels, /const IntegrityPanel = dynamic\(\(\) => import\('\.\/IntegrityPanel'\)/);
+  assert.match(dynamicPanels, /integrity: IntegrityPanel/);
   assert.notEqual(tab.legacy, true);
   assert.ok(visibleTabs(TABS).some((entry) => entry.id === 'integrity'));
 });
 
-test('every client URL names one of the seven route sections', () => {
+test('every client URL names one of the eight route sections', () => {
   const urls = [
     queueUrl({}),
     caseUrl('case-1'),
     pairsUrl({}),
     flagsUrl({}),
+    linksUrl({}),
     timingUrl({}),
     handsUrl({ playerId: 'player-1' }),
     healthUrl(),
   ];
-  assert.equal(INTEGRITY_SECTIONS.length, 7);
+  assert.equal(INTEGRITY_SECTIONS.length, 8);
   for (const url of urls) {
     assert.ok(url.startsWith(INTEGRITY_ADMIN));
     const section = new URL(url, 'https://x').searchParams.get('section');
@@ -120,12 +124,26 @@ test('queue filters keep server ranking and cursor pagination explicit', () => {
 });
 
 test('no Integrity URL has a horse exclusion parameter', () => {
-  for (const url of [queueUrl({}), pairsUrl({}), flagsUrl({}), timingUrl({}), handsUrl({ playerId: 'p' })]) {
+  for (const url of [queueUrl({}), pairsUrl({}), flagsUrl({}), linksUrl({}), timingUrl({}), handsUrl({ playerId: 'p' })]) {
     assert.ok(!/include.?horses|exclude.?horses|is_horse/i.test(url), url);
   }
   assert.ok(!/includeHorses|Exclude Horses|Hide Horses/.test(panel));
   assert.match(panel, /player_a_is_horse/,
     'horse identity belongs beside a result as disclosure');
+});
+
+test('identity links use bounded cursor paging and optional evidence dates', () => {
+  const url = new URL(linksUrl({
+    since: '2026-09-01T00:00:00Z',
+    asOf: '2026-10-01T00:00:00Z',
+    cursor: { evidence_weight: 100, player_a_id: 'a' },
+    limit: 25,
+  }), 'https://x');
+  assert.equal(url.searchParams.get('section'), 'links');
+  assert.equal(url.searchParams.get('since'), '2026-09-01T00:00:00Z');
+  assert.equal(url.searchParams.get('asOf'), '2026-10-01T00:00:00Z');
+  assert.equal(url.searchParams.get('limit'), '25');
+  assert.match(url.searchParams.get('cursor'), /evidence_weight/);
 });
 
 test('every mutation carries an operation ID and the route action name', () => {
@@ -236,7 +254,7 @@ test('the queue has three honest empty answers', () => {
   assert.equal(integrityEmptyState({ state: 'review_available', rowCount: 2 }), null);
 });
 
-test('the live health banner is above all seven local sections', () => {
+test('the live health banner is above all eight local sections', () => {
   const banner = panel.indexOf('<DetectorHealthBanner');
   const nav = panel.indexOf('aria-label="Integrity Sections"');
   assert.ok(banner > 0 && nav > banner,
@@ -489,6 +507,13 @@ test('the deadline stays armed until the body is read, not just until the header
   assert.doesNotMatch(failed.message, /500|Request Failed/,
     'a timeout is not a server refusal and must not read like one');
 
+  const ignoredSignal = await settle(withRequestTimeout(
+    () => new Promise(() => {}),
+    { timeoutMs: 40 },
+  ));
+  assert.equal(isTimeoutError(ignoredSignal), true,
+    'the deadline must reject even when token refresh or another callback ignores AbortSignal');
+
   // Work that finishes inside the bound is untouched, and a real server error
   // keeps its own identity rather than being dressed up as a timeout.
   assert.equal(await withRequestTimeout(async () => 'body', { timeoutMs: 5000 }), 'body');
@@ -525,13 +550,13 @@ test('useOperatorFetch bounds the whole round trip and keeps its unmount abort',
     'the bound is a named constant, justified in a comment, and a caller may override it');
   assert.match(src, /A caller with a heavier read passes `timeoutMs`/,
     'the chosen bound must be justified where it is defined');
-  assert.match(src, /const timer = setTimeout\(\(\) => \{ timedOut = true; abort\(\); \}, ms\);/,
-    'the abort must be on a real timer, not only on unmount');
+  assert.match(src, /const timer = setTimeout\(\(\) => \{[\s\S]*?timedOut = true;[\s\S]*?abort\(\);[\s\S]*?rejectDeadline\(timeoutError\(ms\)\);[\s\S]*?\}, ms\);/,
+    'the timer must both abort cooperative work and reject work that ignores the signal');
   assert.match(src, /clearTimeout\(timer\);/, 'the timer must be cleared');
 
   // The timer is armed, then the work is awaited, and only then is it cleared.
   const armed = src.indexOf('const timer = setTimeout(');
-  const awaited = src.indexOf('return await run(controller.signal);');
+  const awaited = src.indexOf('return await Promise.race(');
   const cleared = src.indexOf('clearTimeout(timer);');
   assert.ok(armed > 0 && awaited > armed && cleared > awaited,
     'the timer may only be cleared after the awaited work has fully settled');
@@ -553,6 +578,10 @@ test('useOperatorFetch bounds the whole round trip and keeps its unmount abort',
   assert.match(src, /err\.name = 'TimeoutError';/, 'a timeout is its own outcome, not a 500');
   assert.match(src, /controllersRef\.current\.add\(controller\)/,
     'the unmount abort set must survive the repair');
+  const tokenAt = src.indexOf('const token = await getFreshAccessToken();');
+  const boundAt = src.indexOf('withRequestTimeout(async (signal) => {');
+  assert.ok(tokenAt > boundAt,
+    'token refresh must share the same deadline as the request it authorizes');
   assert.match(src, /signals: \[controller \? controller\.signal : null, options\.signal\]/,
     'the unmount controller and the caller signal both still cancel');
 });

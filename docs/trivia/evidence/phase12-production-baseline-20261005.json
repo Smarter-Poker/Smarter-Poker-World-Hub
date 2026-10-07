@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "observedAt": "2026-10-05T23:39:28Z",
+  "projectRef": "kuklfnapbkmacvwxktbh",
+  "mode": "read_only_and_rollback_only",
+  "verifier": {
+    "path": "scripts/trivia/phase1-production-db-verify.cjs",
+    "sha256": "8f4f2b052316f6f970c238c80fa5fa152958c373277fb224683add379fce4d42",
+    "passed": 17,
+    "failed": 0,
+    "total": 17,
+    "durableProbeRowsRetained": false
+  },
+  "historicalTournamentInventory": {
+    "legacyTournaments": 5,
+    "cancelled": 2,
+    "completed": 3,
+    "completedEntrants": 208,
+    "participantKind": {
+      "horse": 208,
+      "human": 0
+    },
+    "settledTestEvents": [
+      {
+        "entrants": 100,
+        "prizePool": 2300,
+        "ranked": 100,
+        "payoutTotal": 2300
+      },
+      {
+        "entrants": 100,
+        "prizePool": 2300,
+        "ranked": 100,
+        "payoutTotal": 2300
+      }
+    ],
+    "quarantined184DiamondEvent": {
+      "entrants": 8,
+      "participantKind": "horse",
+      "prizePool": 184,
+      "ranked": 0,
+      "payoutTotal": 0,
+      "reasonCode": "legacy_8_horse_184_pool_unsettled",
+      "classification": "test_era_quarantine",
+      "liabilityProved": false,
+      "financialRepairPerformed": false
+    }
+  },
+  "conclusion": "The exact production baseline is internally consistent. Historical Trivia tournaments are test-era horse fixtures; the 184-diamond anomaly remains quarantined and must not be paid, refunded, ranked, deleted, or exposed in public seasons without new original-ledger evidence proving a liability."
+}

@@ -27,7 +27,8 @@ async function testSocialConfig() {
     // 1. Check Tables
     const { count: postCount, error: tableError } = await supabase
         .from('social_posts')
-        .select('*', { count: 'exact', head: true });
+        // Not '*': the public key may name only browser-granted columns.
+        .select('id', { count: 'exact', head: true });
 
     if (tableError) {
         console.error('❌ Table Check Failed:', tableError.message);
