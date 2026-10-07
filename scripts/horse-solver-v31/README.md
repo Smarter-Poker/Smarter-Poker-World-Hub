@@ -189,6 +189,18 @@ fails closed.
 
 ## Pio semantics pinned by the worker
 
+Dedicated authored opponent-jam response scenarios may explicitly declare
+`conditional_root_action: {"action":"all_in","model":"authored_opponent_jam_response"}`.
+This models the IP response conditional on an OOP root jam with the approved
+range; it does not claim that the preceding jam is equilibrium play. The
+scenario must be harvest-only, have exactly one root `r:0:bSTACK` all-in target
+on the flop board with children `["c","f"]`, and have only `[STACK,STACK]` as
+its tree line. The worker emits `force_line STACK` before `build_tree`, because
+`add_line` alone retains Pio's automatic root check. The explicit assumption
+is bound by the approved manifest checksum. Existing unconditioned scenarios
+emit no forced action. Reach, matchup, independent-holdout and quality gates
+remain unchanged; a conditional dataset still cannot serve without passing them.
+
 - Startup must acknowledge `set_end_string END` and `is_ready`; `show_version`
   and `show_hand_order` must exactly match the approved manifest and pinned
   order file. Solver and manifest identity text must already be canonical; the

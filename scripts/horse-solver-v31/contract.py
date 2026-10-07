@@ -784,7 +784,7 @@ def _validate_scenario(
     icm_models: dict[str, dict[str, Any]],
     verify_inputs: bool,
 ) -> dict[str, Any]:
-    keys = SCENARIO_KEYS | {"purpose"} if isinstance(raw, dict) and "purpose" in raw else SCENARIO_KEYS
+    keys = SCENARIO_KEYS | ({"purpose", "conditional_root_action"} & set(raw) if isinstance(raw, dict) else set())
     scenario = _exact_keys(raw, keys, f"scenarios[{index}]")
     if scenario.get("purpose", "harvest") not in ("harvest", "self_test"):
         raise ContractError(f"scenarios[{index}].purpose must be harvest or self_test")
@@ -918,7 +918,30 @@ def _validate_scenario(
             raise ContractError(f"scenarios[{index}] has a duplicate target id or node")
         seen_targets.add(target["target_id"])
         seen_nodes.add(target["node"])
+    validate_conditional_root_action(scenario)
     return scenario
+
+
+def validate_conditional_root_action(scenario: dict[str, Any]) -> None:
+    """A forced authored jam models its response, never the preceding jam policy."""
+    if "conditional_root_action" not in scenario:
+        return
+    conditional = _exact_keys(scenario["conditional_root_action"], {"action", "model"}, "conditional_root_action")
+    stack = scenario["effective_stack_chips"]
+    targets = scenario["targets"]
+    if (conditional != {"action": "all_in", "model": "authored_opponent_jam_response"}
+        or scenario.get("purpose", "harvest") != "harvest"
+        or scenario["tree_lines"] != [[stack, stack]]
+        or len(targets) != 1):
+        raise ContractError("conditional root action requires one authored root-jam response")
+    target = targets[0]
+    if (target["node"] != f"r:0:b{stack}"
+        or target["board"] != scenario["flop_board"]
+        or target["node_role"] != "all_in"
+        or target["facing_kind"] != "all_in"
+        or target["facing_size_bucket"] != "all_in"
+        or target["expected_children"] != ["c", "f"]):
+        raise ContractError("conditional root action must bind the exact root all-in response target")
 
 
 @dataclass(frozen=True)

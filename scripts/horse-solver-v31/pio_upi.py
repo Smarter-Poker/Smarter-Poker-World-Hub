@@ -18,6 +18,7 @@ from contract import (
     ContractError,
     load_range_vector,
     parse_source_combo_order,
+    validate_conditional_root_action,
 )
 
 
@@ -53,6 +54,7 @@ class NodeLine:
 PIO_ACK_COMMANDS = frozenset(
     {
         "add_line",
+        "force_line",
         "build_tree",
         "clear_lines",
         "go",
@@ -773,6 +775,7 @@ def setup_commands(
     *,
     icm_model: dict[str, Any] | None = None,
 ) -> list[str]:
+    validate_conditional_root_action(scenario)
     if (
         len(oop_range) != 1326
         or len(ip_range) != 1326
@@ -793,6 +796,8 @@ def setup_commands(
         "add_line " + " ".join(_format_number(value) for value in line)
         for line in scenario["tree_lines"]
     )
+    if "conditional_root_action" in scenario:
+        commands.append(f"force_line {scenario['effective_stack_chips']}")
     # Pio 3.8's set_rake requires an existing tree, including the zero-rake
     # command used before installing ICM. Select the EV model before solving.
     commands.append("build_tree")
