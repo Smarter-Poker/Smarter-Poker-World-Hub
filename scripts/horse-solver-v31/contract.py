@@ -132,6 +132,24 @@ class ContractError(ValueError):
     """The approved manifest or one of its pinned files is not trustworthy."""
 
 
+def validate_postflop_positions(scenario: dict[str, Any]) -> None:
+    """Pio player zero acts first postflop, independent of preflop aggressor.
+
+    Heads-up SB is the Button and acts LAST postflop; multiway dealt-table
+    blind order is SB then BB. Never repair approved inputs by relabeling.
+    """
+    size = scenario.get('table_size')
+    if isinstance(size, bool) or size not in POSITIONS_BY_TABLE:
+        raise ContractError('invalid postflop table size')
+    oop, ip = scenario.get('oop_position'), scenario.get('ip_position')
+    allowed = POSITIONS_BY_TABLE[size]
+    if oop not in allowed or ip not in allowed or oop == ip:
+        raise ContractError('invalid postflop positions')
+    order = ['BB', 'SB'] if size == 2 else ['SB','BB','UTG','UTG1','UTG2','UTG3','MP','HJ','CO','BTN']
+    if order.index(oop) >= order.index(ip):
+        raise ContractError('Pio OOP/IP contradict physical postflop action order')
+
+
 JSON_MAX_SAFE_INTEGER = (1 << 53) - 1
 
 
@@ -814,6 +832,7 @@ def _validate_scenario(
     if isinstance(table_size, bool) or not isinstance(table_size, int) or table_size not in POSITIONS_BY_TABLE:
         raise ContractError(f"scenarios[{index}].table_size is invalid")
     positions = POSITIONS_BY_TABLE[table_size]
+    validate_postflop_positions(scenario)
     if (
         scenario["oop_position"] not in positions
         or scenario["ip_position"] not in positions
