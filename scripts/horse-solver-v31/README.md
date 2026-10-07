@@ -228,6 +228,13 @@ remain unchanged; a conditional dataset still cannot serve without passing them.
   river fixture returned zero with the old order and the expected 250 chips
   per player with activation last. This is an engine-semantics fixture only,
   never a harvested serving cell or a substitute for held-out qualification.
+- Bundles containing ICM harvest scenarios also run that isolated linear-ICM
+  protocol fixture at startup. Both named EVs and their actual positive-mass
+  combo EVs must equal 250 chips; empty payoff activation fails before export.
+  The fixture clears its ICM table on success or failure and then the ordinary
+  cash self-test restores the real scenario tree. It never becomes a target,
+  source artifact or serving cell; legitimate zero/negative study EVs remain
+  allowed.
 - Convergence is `set_accuracy <fraction> fraction`, then argument-free `go`
   and `wait_for_solver`. `go <accuracy>` would mean seconds/steps, not an
   accuracy target. `calc_results` is parsed as named fields and the approved
