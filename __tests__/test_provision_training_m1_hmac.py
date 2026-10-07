@@ -112,7 +112,7 @@ class ProvisionTrainingM1Hmac(unittest.TestCase):
             provisioner.validate_rsa_4096_spki(self.spki, '0' * 64)
         with tempfile.TemporaryDirectory() as directory:
             config = self.config(directory)
-            api = FakeApi([entry(target=['production', 'preview'])])
+            api = FakeApi([entry(target=['production', 'preview'], branch='release')])
             with self.assertRaises(provisioner.ProvisionError):
                 provisioner.provision(config, api, random_bytes=random_bytes)
             self.assertEqual(calls['random'], 0)
@@ -137,6 +137,114 @@ class ProvisionTrainingM1Hmac(unittest.TestCase):
                             random_bytes=lambda _size: generated.append(True) or b'x' * 32,
                         )
                 self.assertEqual(generated, [])
+
+    def test_shared_scope_is_separated_without_reading_or_writing_old_value(self):
+        for kind in ('sensitive', 'encrypted'):
+            before = [entry(target=['production','preview','development'], env_type=kind), entry('other', key='OTHER', updated=10)]
+            separated = [entry(target=['preview','development'], env_type=kind, updated=1001), before[1]]
+            created = [*separated, entry('new_prod', updated=1002)]
+            with tempfile.TemporaryDirectory() as directory:
+                config = self.config(directory)
+                class ScopeApi:
+                    def __init__(self): self.reads=0; self.writes=[]
+                    def list_entries(self):
+                        self.reads+=1
+                        return [before,separated,created][self.reads-1]
+                    def patch_targets(self, identity, targets):
+                        receipt=json.loads((config.artifact_dir/provisioner.RECEIPT_FILENAME).read_text())
+                        self_outer.assertEqual(receipt['mutationStep'],'scope_patch_attempted')
+                        self_outer.assertTrue((config.artifact_dir/provisioner.CIPHERTEXT_FILENAME).exists())
+                        self.writes.append(('targets',identity,targets))
+                    def create_production(self, secret):
+                        receipt=json.loads((config.artifact_dir/provisioner.RECEIPT_FILENAME).read_text())
+                        self_outer.assertEqual(receipt['mutationStep'],'production_create_attempted')
+                        self_outer.assertEqual(receipt['scopeSeparatedInventory'],list(map(provisioner.safe_metadata,separated)))
+                        self.writes.append(('create',bytes(secret)))
+                self_outer=self;api=ScopeApi()
+                receipt=provisioner.provision(config,api,random_bytes=lambda _:b'x'*32,encryptor=lambda *_:b'c'*512)
+                self.assertEqual(receipt['status'],'complete')
+                self.assertEqual(receipt['environmentVariableId'],'new_prod')
+                self.assertEqual(api.writes[0],('targets','env_m1',['development','preview']))
+                self.assertEqual(len(api.writes),2)
+                self.assertNotIn('provider-opaque-value',(config.artifact_dir/provisioner.RECEIPT_FILENAME).read_text())
+
+    def test_scope_recovery_requires_verified_precreate_receipt_and_exact_inventory(self):
+        original=entry(target=['production','preview'])
+        remainder=[entry(target=['preview'],updated=1001)]
+        receipt={'operation':'phase6_m1_hmac_rotation','projectId':provisioner.PROJECT_ID,'teamId':provisioner.TEAM_ID,
+                 'status':'scope_separated','mutationStep':'scope_patch_verified','scopeBefore':provisioner.safe_metadata(original),
+                 'scopeSeparatedInventory':list(map(provisioner.safe_metadata,remainder)), 'ciphertext':{'sha256':'c'*64}, 'requestId':'prior-request'}
+        self.assertEqual(provisioner.scope_plan(remainder,receipt)[0],'create_after_verified_separation')
+        for mutation in ({'status':'mutation_unverified'},{'mutationStep':'production_create_attempted'},{'teamId':'other'}, {'scopeSeparatedInventory':[]}):
+            with self.assertRaises(provisioner.ProvisionError): provisioner.scope_plan(remainder,{**receipt,**mutation})
+        with self.assertRaises(provisioner.ProvisionError): provisioner.scope_plan(remainder)
+
+    def test_scope_failure_retains_unknown_operation_and_never_creates_after_unverified_patch(self):
+        with tempfile.TemporaryDirectory() as directory:
+            config=self.config(directory)
+            class FailedScopeApi:
+                creates=0;patches=0
+                def list_entries(self): return [entry(target=['production','preview'])]
+                def patch_targets(self,*args): self.patches+=1;raise provisioner.ProvisionError('transport unknown')
+                def create_production(self,*args): self.creates+=1
+            api=FailedScopeApi()
+            with self.assertRaises(provisioner.ProvisionError):
+                provisioner.provision(config,api,encryptor=lambda *_:b'c'*512)
+            receipt=json.loads((config.artifact_dir/provisioner.RECEIPT_FILENAME).read_text())
+            self.assertEqual(receipt['status'],'mutation_unverified')
+            self.assertEqual(receipt['mutationStep'],'scope_patch_attempted')
+            self.assertEqual((api.patches,api.creates),(1,0))
+
+    def test_scope_metadata_rejects_overlap_branch_and_invalid_targets(self):
+        for rows in ([entry(target=['production','preview']),entry('other',target=['preview'])],
+                     [entry(target=['production','production'])], [entry(target=['unknown'])],
+                     [entry(target=[])], [entry(target=['production','preview'],branch='branch')]):
+            with self.assertRaises(provisioner.ProvisionError):provisioner.scope_plan(rows)
+        before=[entry(),entry('preview',target=['preview'])]
+        self.assertEqual(provisioner.scope_plan(before)[0],'rotate')
+
+    def test_create_unknown_is_not_retried_or_eligible_for_recovery(self):
+        before=[entry(target=['production','preview'])]
+        separated=[entry(target=['preview'],updated=1001)]
+        with tempfile.TemporaryDirectory() as directory:
+            config=self.config(directory)
+            class UnknownApi:
+                lists=0; creates=0
+                def list_entries(self):
+                    self.lists+=1;return before if self.lists==1 else separated
+                def patch_targets(self,*args): pass
+                def create_production(self,*args):
+                    self.creates+=1;raise provisioner.ProvisionError('POST acknowledgement unknown')
+            api=UnknownApi()
+            with self.assertRaises(provisioner.ProvisionError):provisioner.provision(config,api,encryptor=lambda *_:b'c'*512)
+            receipt=json.loads((config.artifact_dir/provisioner.RECEIPT_FILENAME).read_text())
+            self.assertEqual(api.creates,1)
+            self.assertEqual(receipt['mutationStep'],'production_create_attempted')
+            with self.assertRaises(provisioner.ProvisionError):provisioner.scope_plan(separated,receipt)
+
+    def test_scope_and_create_readbacks_refuse_unrelated_or_partial_inventory(self):
+        before=[entry(target=['production','preview']),entry('other',key='OTHER')]
+        separated=[entry(target=['preview'],updated=1001),before[1]]
+        provisioner.verify_separation(before,separated,provisioner.safe_metadata(before[0]))
+        for bad in ([entry(target=['production','preview'],updated=1001),before[1]],
+                    [separated[0],entry('other',key='OTHER',updated=1001)]):
+            with self.assertRaises(provisioner.ProvisionError):provisioner.verify_separation(before,bad,provisioner.safe_metadata(before[0]))
+        created=[*separated,entry('new_prod',updated=1002)]
+        self.assertEqual(provisioner.verify_creation(separated,created)['id'],'new_prod')
+        with self.assertRaises(provisioner.ProvisionError):provisioner.verify_creation(separated,created+[entry('extra',key='EXTRA')])
+
+    def test_target_patch_omits_value_and_create_is_sensitive_production_without_upsert(self):
+        calls=[]
+        api=provisioner.VercelApi('token',provisioner.PROJECT_ID,provisioner.TEAM_ID)
+        def capture(method,path,payload=None,raw_body=None):
+            calls.append((method,path,payload,bytes(raw_body) if raw_body else None))
+        api._request=capture
+        api.patch_targets('old',['preview','development'])
+        api.create_production(bytearray(b'a'*64))
+        self.assertEqual(calls[0][2],{'target':['preview','development']})
+        self.assertIsNone(calls[0][3])
+        self.assertNotIn('upsert',calls[1][1])
+        body=json.loads(calls[1][3]);self.assertEqual(body['target'],['production']);self.assertEqual(body['type'],'sensitive')
 
     def test_success_patches_only_value_retains_only_ciphertext_and_safe_receipt(self):
         secret_bytes = bytes(range(32))

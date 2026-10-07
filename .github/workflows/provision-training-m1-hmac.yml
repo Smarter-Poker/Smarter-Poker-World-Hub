@@ -46,6 +46,9 @@ jobs:
           fetch-depth: 1
           persist-credentials: false
 
+      - name: Verify scope-preserving provisioning before any mutation
+        run: python3 -m unittest discover -s __tests__ -p test_provision_training_m1_hmac.py
+
       - name: Validate, rotate once, and encrypt without persisting plaintext
         id: provision
         env:
