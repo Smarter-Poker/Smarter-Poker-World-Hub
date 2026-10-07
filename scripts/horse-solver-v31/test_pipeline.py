@@ -821,6 +821,25 @@ class ManifestAndGatewayTests(unittest.TestCase):
             self.assertEqual(approval["files"][-1]["checksum"], result["manifest_checksum"])
             self.assertEqual(input_bundle_checksum(approval), result["input_bundle_checksum"])
 
+            legacy_provenance = ApprovedManifest(Path("unused"), inputs, manifest, result["manifest_checksum"]).provenance
+            self.assertNotIn("feature_contract_version", legacy_provenance)
+            versioned_draft = {**draft, "feature_contract_version": "holdem-board-relative-v2"}
+            draft_path.write_bytes(canonical_json(versioned_draft))
+            versioned_args = types.SimpleNamespace(**vars(args))
+            versioned_args.manifest_output = "manifests/v2.json"
+            versioned_args.approval_output = "approvals/v2.json"
+            with mock.patch.object(prepare_bundle, "verify_published_pipeline"), mock.patch.object(
+                prepare_bundle, "load_manifest", side_effect=accept_manifest
+            ):
+                versioned_result = prepare_bundle.prepare(versioned_args)
+            versioned_approval = json.loads((inputs / "approvals" / "v2.json").read_text())
+            versioned_manifest = json.loads((inputs / "manifests" / "v2.json").read_text())
+            self.assertEqual(versioned_approval["feature_contract_version"], "holdem-board-relative-v2")
+            self.assertNotEqual(versioned_result["input_bundle_checksum"], result["input_bundle_checksum"])
+            self.assertEqual(versioned_manifest["input_bundle_checksum"], input_bundle_checksum(versioned_approval))
+            self.assertEqual(ApprovedManifest(Path("unused"), inputs, versioned_manifest, versioned_result["manifest_checksum"]).provenance["feature_contract_version"], "holdem-board-relative-v2")
+            draft_path.write_bytes(canonical_json(draft))
+
             conflicting_args = types.SimpleNamespace(**vars(args))
             conflicting_args.manifest_output = "manifests/conflict.json"
             conflicting_args.approval_output = "approvals/conflict.json"
@@ -867,6 +886,19 @@ class ManifestAndGatewayTests(unittest.TestCase):
         expected = "91b7ae079daa5100ac80001c50fcca145e5ced8048adf455b4f5e84a5e5aaf51"
         self.assertEqual(INPUT_BUNDLE_CONTRACT, "smarter-poker.horse-solver-v31-input-bundle.v2")
         self.assertEqual(input_bundle_checksum(bundle), expected)
+        # Legacy omission retains the exact historical identity; explicit
+        # feature contracts become immutable approval bytes without a cycle.
+        for version in ("rank-suit-count-v1", "holdem-board-relative-v2"):
+            versioned = {**bundle, "feature_contract_version": version}
+            self.assertNotEqual(input_bundle_checksum(versioned), expected)
+            self.assertEqual(input_bundle_checksum({**versioned, "approval_note": "other review"}), input_bundle_checksum(versioned))
+        self.assertNotEqual(
+            input_bundle_checksum({**bundle, "feature_contract_version": "rank-suit-count-v1"}),
+            input_bundle_checksum({**bundle, "feature_contract_version": "holdem-board-relative-v2"}),
+        )
+        for unknown in (None, "", "v3", 2):
+            with self.subTest(unknown=unknown), self.assertRaisesRegex(ContractError, "feature_contract_version"):
+                input_bundle_checksum({**bundle, "feature_contract_version": unknown})
         self.assertEqual(input_bundle_id(expected), "91b7ae07-9daa-5100-8c80-001c50fcca14")
         changed_manifest = json.loads(json.dumps(bundle))
         changed_manifest["files"][-1]["checksum"] = "b" * 64

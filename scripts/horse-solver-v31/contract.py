@@ -66,6 +66,19 @@ ROOT_KEYS = {
     "self_test",
     "scenarios",
 }
+FEATURE_CONTRACT_VERSIONS = frozenset({"rank-suit-count-v1", "holdem-board-relative-v2"})
+
+
+def feature_contract_version(value: dict[str, Any]) -> str:
+    """Omission is legacy only; an explicit unknown version is never inferred."""
+    version = value.get("feature_contract_version", "rank-suit-count-v1")
+    if not isinstance(version, str) or version not in FEATURE_CONTRACT_VERSIONS:
+        raise ContractError("unknown feature_contract_version")
+    return version
+
+
+def manifest_keys(value: Any) -> set[str]:
+    return ROOT_KEYS | ({"feature_contract_version"} if isinstance(value, dict) and "feature_contract_version" in value else set())
 FILE_KEYS = {"path", "checksum"}
 SCENARIO_KEYS = {
     "scenario_id",
@@ -346,7 +359,7 @@ def input_bundle_identity(p_bundle: Any) -> dict[str, Any]:
             "icm_model_checksum",
             "files",
             "approval_note",
-        },
+        } | ({"feature_contract_version"} if isinstance(p_bundle, dict) and "feature_contract_version" in p_bundle else set()),
         "input approval bundle",
     )
     bundle_key = _json_string(bundle["bundle_key"], "input approval bundle_key")
@@ -422,8 +435,10 @@ def input_bundle_identity(p_bundle: Any) -> dict[str, Any]:
     )
     if not identity_files:
         raise ContractError("input approval has no immutable input receipts")
+    feature_contract_version(bundle)
     return {
         "contract": INPUT_BUNDLE_CONTRACT,
+        **({"feature_contract_version": bundle["feature_contract_version"]} if "feature_contract_version" in bundle else {}),
         "bundle_key": bundle_key,
         "bundle_version": bundle_version,
         "range_bundle_checksum": range_checksum,
@@ -956,6 +971,7 @@ class ApprovedManifest:
     @property
     def provenance(self) -> dict[str, str]:
         return {
+            **({"feature_contract_version": feature_contract_version(self.raw)} if "feature_contract_version" in self.raw else {}),
             "dataset_key": self.raw["dataset_key"],
             "solver_version": self.raw["solver_version"],
             "solver_binary_checksum": self.raw["solver_binary_checksum"],
@@ -986,7 +1002,9 @@ def load_manifest(
     expected = _nonzero_hex(expected_checksum, 64, "APPROVED_MANIFEST_CHECKSUM")
     if checksum != expected:
         raise ContractError(f"manifest checksum mismatch: {checksum}")
-    manifest = _exact_keys(_json_bytes(payload, "manifest"), ROOT_KEYS, "manifest")
+    decoded = _json_bytes(payload, "manifest")
+    manifest = _exact_keys(decoded, manifest_keys(decoded), "manifest")
+    feature_contract_version(manifest)
     if manifest["contract"] != MANIFEST_CONTRACT:
         raise ContractError("manifest contract is invalid")
     if manifest["enabled"] is not True:
