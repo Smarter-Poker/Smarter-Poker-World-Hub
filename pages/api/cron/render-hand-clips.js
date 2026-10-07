@@ -35,12 +35,12 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { spawn } from 'node:child_process';
-import { copyFile, mkdir, readdir } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { withCronHealth } from '../../../src/lib/cronHealth.js';
 import {
-  CLIP_FONTS_DIR,
+  CLIP_FONT_FILE,
   CLIP_HEIGHT,
   CLIP_TIMEZONE,
   CLIP_WIDTH,
@@ -76,22 +76,33 @@ const _binPath = (x) => {
 // @sparticuz/chromium 153 ships chrome-headless-shell and no longer exposes a
 // `headless` getter; its README launches puppeteer with headless: "shell", so
 // that is the fallback when the getter is absent.
-// The transport glyph font (see CLIP_FONTS_DIR): every .ttf in the traced
-// folder is copied into the fontconfig directory @sparticuz/chromium reads
-// (FONTCONFIG_PATH, /tmp/fonts by default; its fonts.conf lists that folder).
-// The copy happens after executablePath(), which is what creates the folder
-// and sets the variable, and before launch, when fontconfig scans it. A
-// missing folder renders the clip without the glyphs rather than not at all.
+// The transport glyph font (see CLIP_FONT_FILE): the traced file is written
+// into the fontconfig directory @sparticuz/chromium reads (FONTCONFIG_PATH,
+// /tmp/fonts by default; its fonts.conf lists that folder). The copy happens
+// after executablePath(), which is what creates the folder and sets the
+// variable, and before launch, when fontconfig scans it. A missing file
+// renders the clip without the glyphs rather than not at all.
+//
+// THE SOURCE PATH IS A LITERAL ON PURPOSE (2026-10-07). The first version read
+// the folder as join(process.cwd(), ...CLIP_FONTS_DIR.split('/')). The build
+// tracer (@vercel/nft) evaluates the path handed to a file read; a known
+// prefix with an unknown rest becomes a wildcard on the prefix, and the
+// prefix here was the project root, so the trace swallowed the whole
+// repository including .next/lock, which Next deletes at exit, and both
+// production builds of #2215 died in the deploy step on
+// "ENOENT: lstat '/vercel/path0/.next/lock'". A path the tracer can read
+// to the end traces one file and nothing else.
+const CLIP_FONT_SOURCE = join(process.cwd(), 'fonts', 'hand-clip', 'NotoSansSymbols2-HandClip.ttf');
+
 async function provisionClipFonts(log = console.log) {
-    const source = join(process.cwd(), ...CLIP_FONTS_DIR.split('/'));
     const target = process.env.FONTCONFIG_PATH || join(tmpdir(), 'fonts');
     try {
-        const names = (await readdir(source)).filter((n) => n.toLowerCase().endsWith('.ttf'));
+        const bytes = await readFile(CLIP_FONT_SOURCE);
         await mkdir(target, { recursive: true });
-        for (const name of names) await copyFile(join(source, name), join(target, name));
-        return names.length;
+        await writeFile(join(target, CLIP_FONT_FILE), bytes);
+        return 1;
     } catch (err) {
-        log(`[render-hand-clips] clip fonts not provisioned from ${source}: ${err && err.message ? err.message : err}`);
+        log(`[render-hand-clips] clip font not provisioned from ${CLIP_FONT_SOURCE}: ${err && err.message ? err.message : err}`);
         return 0;
     }
 }

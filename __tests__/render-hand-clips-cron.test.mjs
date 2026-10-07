@@ -573,7 +573,12 @@ test('the real handler module exports the Vercel config and a wrapped default ha
   // The share page's transport glyphs and the owner's clock: the font folder is copied into
   // the fontconfig directory after executablePath() and before launch; the browser runs on CLIP_TIMEZONE.
   assert.match(source, /const executablePath = await chromium\.executablePath\(\);\s*await provisionClipFonts\(\);\s*return puppeteer\.launch\(/);
-  assert.match(source, /CLIP_FONTS_DIR\.split\('\/'\)/);
+  // The source path is a literal the build tracer can read to the end: a process.cwd() prefix with an
+  // unknown rest became a wildcard on the project root and killed both production builds of #2215.
+  assert.match(source, /const CLIP_FONT_SOURCE = join\(process\.cwd\(\), 'fonts', 'hand-clip', 'NotoSansSymbols2-HandClip\.ttf'\);/);
+  assert.match(source, /await readFile\(CLIP_FONT_SOURCE\)/);
+  const fontCode = source.split('\n').filter((l) => !/^\s*(\/\/|\*|\/\*)/.test(l)).join('\n');
+  assert.doesNotMatch(fontCode, /readdir\(|copyFile\(|\.\.\.CLIP_FONT/, 'no folder read, no spread path, nothing the tracer turns into a wildcard');
   assert.match(source, /process\.env\.FONTCONFIG_PATH \|\| join\(tmpdir\(\), 'fonts'\)/);
   assert.match(source, /env: \{ \.\.\.process\.env, TZ: CLIP_TIMEZONE \}/);
   // @sparticuz/chromium 153 is an ES module: the real adapter must load it with
