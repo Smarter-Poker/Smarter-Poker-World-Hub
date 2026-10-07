@@ -190,11 +190,29 @@ export default async function handler(req, res) {
       }
 
       // Also get current balance
-      const { data: profile } = await getSupabase()
+      const { data: profile, error: profileErr } = await getSupabase()
         .from('profiles')
         .select('diamonds, vip_expires_at, is_vip, vip_tier')
         .eq('id', userId)
         .maybeSingle();
+      /*
+       * AN UNREAD BALANCE IS NOT A BALANCE OF ZERO (2026-10-07, 10.86).
+       *
+       * The error used to be discarded and the response sent
+       * `balance: profile?.diamonds ?? 0`, so a refused or failed profile read
+       * told the wallet the player held 0 diamonds, and the wallet painted and
+       * cached it. Now an unreadable profile sends `profileRead: false` with
+       * `balance: null`, and the wallet keeps the figure it already had. The
+       * rows still render: they are what the player came for.
+       */
+      const profileRead =
+        !profileErr && !!profile && Number.isFinite(Number(profile.diamonds));
+      if (!profileRead) {
+        console.warn(
+          '[diamond-transactions] balance unread:',
+          profileErr?.message || (profile ? 'non-numeric balance' : 'no profile row')
+        );
+      }
 
       // Response includes the LIVE balance — never let the browser serve a
       // cached pre-transaction balance right after a purchase/transfer.
@@ -493,10 +511,12 @@ export default async function handler(req, res) {
         // read, and the panel must say so rather than draw empty bars.
         flow,
         filter,
-        balance: profile?.diamonds ?? 0,
-        vip_expiration_date: profile?.vip_expires_at || null,
-        is_vip: profile?.is_vip || false,
-        vip_tier: profile?.vip_tier || null,
+        // null when the profile could not be read; `profileRead` says which.
+        profileRead,
+        balance: profileRead ? Number(profile.diamonds) : null,
+        vip_expiration_date: profileRead ? profile.vip_expires_at || null : null,
+        is_vip: profileRead ? profile.is_vip || false : null,
+        vip_tier: profileRead ? profile.vip_tier || null : null,
         limit,
         offset,
       });

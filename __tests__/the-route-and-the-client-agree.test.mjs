@@ -412,10 +412,59 @@ test('every bucket production can emit carries a label, and the wallet prints la
     assert.equal(typeof label, 'string', `bucket '${key}' has no label`);
     assert.ok(label.length > 0, `bucket '${key}' has an empty label`);
   }
-  assert.equal(BUCKET_KEYS.length, 21, 'the pinned bucket set changed size without this guard moving');
+  /* 21 -> 22 on 2026-10-07: `arena_rake` ('Diamond Arena Rake') joined the
+     database on 2026-10-05 (Club Arena migration 20261005183028) and this
+     snapshot had not been told. */
+  assert.equal(BUCKET_KEYS.length, 22, 'the pinned bucket set changed size without this guard moving');
+  assert.equal(BUCKET_LABELS.arena_rake, 'Diamond Arena Rake');
   assert.ok(
     /marketplaceCopy\(name\)/.test(CLIENT),
     'the bars no longer print the SQL label through marketplaceCopy, so a new ' +
       'bucket would arrive with raw copy'
   );
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PART 5 - AN UNREAD ANSWER IS NEVER A ZERO, AND THE RAW DESCRIPTION IS NEVER
+// PRINTED (2026-10-07 regression sweep)
+// ═══════════════════════════════════════════════════════════════════════════
+
+test('an unread profile is sent as an unread balance, never as 0', () => {
+  const block = between(ROUTE, 'data: profile', "from('profiles')", 'profile read');
+  assert.ok(
+    /\{\s*data:\s*profile,\s*error:\s*profileErr\s*\}/.test(`{ ${block}`),
+    'the route discards the profile read error again, so a refused read becomes balance 0'
+  );
+  assert.ok(
+    !/profile\?\.diamonds\s*\?\?\s*0/.test(ROUTE),
+    'the route coerces an unread balance to 0 again (10.86 rule 2)'
+  );
+  assert.ok(
+    /balance:\s*profileRead\s*\?\s*Number\(profile\.diamonds\)\s*:\s*null/.test(ROUTE),
+    'the route no longer sends null for a balance it could not read'
+  );
+});
+
+test('the wallet keeps the figure it had when the route could not read the balance', () => {
+  assert.ok(
+    !/data\.balance\s*\?\?\s*0/.test(CLIENT),
+    'the wallet turns an unread balance into 0 again'
+  );
+  assert.ok(
+    /if\s*\(balanceRead\)\s*\{\s*setBalance\(bal\)/.test(CLIENT),
+    'the wallet overwrites its balance with an unread one'
+  );
+  assert.ok(
+    /filterRef\.current === 'all' && balanceRead\)/.test(CLIENT),
+    'the wallet caches a page whose balance it could not read'
+  );
+});
+
+test('a ledger row prints player_line or its label, never the raw description', () => {
+  assert.ok(
+    !/tx\.description/.test(CLIENT),
+    'the wallet reads tx.description again; phase 6 says a player reads player_line, ' +
+      'and the raw description carries operator notes and the internal Mint prefix'
+  );
+  assert.ok(/value=\{tx\.player_line \|\| config\.label\}/.test(CLIENT));
 });
