@@ -44,8 +44,16 @@ export const CLIP_STYLE = 'felt-720p';
 export const CLIP_MIN_MS = 15000;
 export const CLIP_MAX_MS = 40000;
 export const END_HOLD_MS = 1500;
-export const CLIP_WIDTH = 1280;
-export const CLIP_HEIGHT = 720;
+/**
+ * THE FRAME IS THE SHARE PAGE (owner, 2026-10-07). A clip is the hand share
+ * page itself, pixel for pixel: the 900px column with its header, felt,
+ * caption, street tabs, transport, results strip and footer, as a recipient
+ * of the link sees it. That column is taller than it is wide, so the frame
+ * is the feed portrait (4:5) that holds it at full size with the page
+ * background around it. Nothing is scaled down and nothing is cut.
+ */
+export const CLIP_WIDTH = 1080;
+export const CLIP_HEIGHT = 1350;
 export const GOTO_TIMEOUT_MS = 60000;
 export const READY_TIMEOUT_MS = 30000;
 /** The page commits a sought frame (data-clip-step) within this. */
@@ -67,7 +75,7 @@ export const POLL_MS = 250;
 export const STORAGE_BUCKET = 'social-media';
 export const DEFAULT_SUPABASE_URL = 'https://kuklfnapbkmacvwxktbh.supabase.co';
 
-/** Page.captureScreenshot for one still: the 1280x720 stage, JPEG 85. */
+/** Page.captureScreenshot for one still: the 1080x1350 frame, JPEG 85. */
 export const STILL_PARAMS = Object.freeze({
   format: 'jpeg',
   quality: 85,
@@ -141,8 +149,12 @@ export function heroInHand(handRow, heroId) {
   return hero.length > 0 && players.some((p) => p && typeof p === 'object' && String(p.userId) === hero);
 }
 
-/** Contract C1: the payload the page reads before any render. */
-export function buildClipPayload(handRow, factsRow, discardRow, job) {
+/**
+ * Contract C1: the payload the page reads before any render. `tableName`
+ * is the table's name from `tables` (null when the row is gone), which the
+ * page prints in the share header the way the archive's share does.
+ */
+export function buildClipPayload(handRow, factsRow, discardRow, job, tableRow = null) {
   const heroId = String(job.author_id);
   const rowHole = handRow && handRow.hole_cards && typeof handRow.hole_cards === 'object'
     ? handRow.hole_cards[heroId]
@@ -159,6 +171,7 @@ export function buildClipPayload(handRow, factsRow, discardRow, job) {
     style: job.style || CLIP_STYLE,
     heroId,
     row: handRow,
+    tableName: tableRow && typeof tableRow.name === 'string' && tableRow.name.trim() ? tableRow.name : null,
     privateHoleCards,
     discardedCards,
     minMs: CLIP_MIN_MS,
@@ -266,7 +279,7 @@ async function callRpc(supa, name, args) {
  *   launch()                     -> a puppeteer-style browser (newPage, close)
  *   runFfmpeg(args)              -> resolves when ffmpeg exits 0, rejects otherwise
  *   upload(path, body, type)     -> resolves when the object is stored, rejects otherwise
- *   fetchHand(job)               -> { hand, facts, discard } from the service client
+ *   fetchHand(job)               -> { hand, facts, discard, table } from the service client
  *   now()                        -> ms since the epoch; sleep(ms) -> a promise
  */
 export async function renderClipJob(job, deps) {
@@ -369,11 +382,11 @@ export async function renderClipJob(job, deps) {
   try {
     await mkdir(work, { recursive: true });
 
-    // 2. The hand, the hero's facts row and discard row; the hero must be a player.
-    const { hand, facts, discard } = (await fetchHand(job)) || {};
+    // 2. The hand, the hero's facts row and discard row, the table's name; the hero must be a player.
+    const { hand, facts, discard, table } = (await fetchHand(job)) || {};
     if (!hand) return await fail('hand_not_found');
     if (!heroInHand(hand, job.author_id)) return await fail('hero_not_in_hand');
-    const payload = buildClipPayload(hand, facts || null, discard || null, job);
+    const payload = buildClipPayload(hand, facts || null, discard || null, job, table || null);
 
     // 3. The browser and the clip page.
     browser = await launch();

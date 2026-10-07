@@ -116,8 +116,9 @@ async function uploadToStorage(path, body, contentType) {
     }
 }
 
-// The hand, the hero's ca_hand_facts row (hole cards) and the hero's
-// hand_discards row (draw variants); every read is one indexed row.
+// The hand, the hero's ca_hand_facts row (hole cards), the hero's
+// hand_discards row (draw variants) and the table's name (tables.name, the
+// title the share page prints); every read is one indexed row.
 function fetchHandWith(supa) {
     return async function fetchHand(job) {
         const { data: hand, error } = await supa
@@ -147,7 +148,17 @@ function fetchHandWith(supa) {
                 .maybeSingle();
             discard = data || null;
         }
-        return { hand, facts: facts || null, discard };
+
+        let table = null;
+        if (hand.table_id) {
+            const { data } = await supa
+                .from('tables')
+                .select('name')
+                .eq('id', hand.table_id)
+                .maybeSingle();
+            table = data || null;
+        }
+        return { hand, facts: facts || null, discard, table };
     };
 }
 
