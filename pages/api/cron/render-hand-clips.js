@@ -158,7 +158,7 @@ async function uploadToStorage(path, body, contentType) {
 
 // The hand, the hero's ca_hand_facts row (hole cards), the hero's
 // hand_discards row (draw variants) and the table's name (tables.name, the
-// title the share page prints); every read is one indexed row.
+// title the replayer prints); every read is one indexed row.
 function fetchHandWith(supa) {
     return async function fetchHand(job) {
         const { data: hand, error } = await supa
