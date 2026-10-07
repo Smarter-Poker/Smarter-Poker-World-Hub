@@ -14,11 +14,26 @@ import {
   v31IngressDatabaseFailureStatus,
   verifyV31IngressRequest,
   v31FeatureContractVersion,
+  v31PolicyExportSchema,
 } from '../src/lib/horses/solverV31IngressAuth.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const ROUTE = fs.readFileSync(path.join(ROOT, 'pages/api/internal/horse-solver-v31.js'), 'utf8');
 const HEX = (char) => char.repeat(64);
+
+test('policy V4 is explicitly signed and declared; omission remains V3', () => {
+  const legacy = envelope('COMPACTOR', 'register_dataset');
+  assert.equal(v31PolicyExportSchema(legacy.provenance), 'smarter-poker.pio-policy.v3');
+  assert.equal(v31IngressEnvelopeIsValid(legacy, 'COMPACTOR'), true);
+  const upgraded = {...legacy, provenance: {...legacy.provenance, policy_export_schema: 'smarter-poker.pio-policy.v4'}};
+  assert.equal(v31IngressEnvelopeIsValid(upgraded, 'COMPACTOR'), true);
+  assert.notEqual(v31IngressBodySha256(Buffer.from(JSON.stringify(upgraded))), v31IngressBodySha256(Buffer.from(JSON.stringify(legacy))));
+  for (const invalid of [null, 'smarter-poker.pio-policy.v3', '', 4]) {
+    assert.equal(v31IngressEnvelopeIsValid({...legacy, provenance: {...legacy.provenance, policy_export_schema: invalid}}, 'COMPACTOR'), false);
+  }
+  assert.match(ROUTE, /policy_export_schema: provenance.policy_export_schema/);
+  assert.match(ROUTE, /v31PolicyExportSchema\(contract\) !== v31PolicyExportSchema\(provenance\)/);
+});
 
 function provenance() {
   return {

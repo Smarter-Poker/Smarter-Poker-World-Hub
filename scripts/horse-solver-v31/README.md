@@ -104,6 +104,33 @@ fails closed.
 
 ## Deployment order
 
+### Explicit complete solver-state export
+
+The optional manifest field `policy_export_schema: "smarter-poker.pio-policy.v4"`
+selects complete offline source export. Omission retains the exact existing V3
+payload and approval identity bytes; explicit V3, null and unknown versions are
+rejected. V4 is conditionally bound into input approval identity, signed
+provenance, dataset declaration and checkpoint validation, never inferred from
+node contents. Matching database support is required before ingesting V4.
+
+`complete_public_state` is exact **solver-effective** public state reconstructed
+from the Pio node action path, not a claim that both actual table players have
+equal stacks. `root_behind_chips` and `remaining_chips` describe the symmetric
+effective-stack tree. Actual unequal ICM starting stacks and payout-normalization
+inputs are separately referenced in `utility.icm_model`, bound to the approved
+numerical snapshot and ICM model bundle checksum. Cash/chip utility explicitly
+has no ICM model; actual scenario objective, utility context and rake are kept.
+All chip quantities are integers, public history contains street/actor/position/
+family/street-total target, and full-raise increments survive short all-ins.
+
+`solver_ranges` contains both exact canonical `show_range OOP/IP` vectors at
+that node, unrounded and unnormalized, with finite [0,1] weights and zero board
+blockers. The acting player's vector is the same reach vector used for existing
+policy validation; there is no second actor-reach field. These are privileged
+offline solver labels, not a live opponent posterior or permitted hidden-hand
+serving input. This source-data repair does not qualify a predictive model,
+change inference, relax quality gates, or authorize promotion.
+
 1. From a clean checkout whose exact commit is already on `origin/main`, fill
    an enabled copy of `manifest.disabled.example.json`. Keep only
    `input_bundle_id` and `input_bundle_checksum` at their documented zero

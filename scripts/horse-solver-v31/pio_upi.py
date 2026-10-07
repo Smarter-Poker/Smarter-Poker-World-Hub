@@ -1009,6 +1009,89 @@ def target_context(scenario: dict[str, Any], target: dict[str, Any]) -> dict[str
     }
 
 
+def complete_node_state(scenario: dict[str, Any], target: dict[str, Any], *,
+                        icm_model: dict[str, Any] | None = None,
+                        icm_model_checksum: str | None = None) -> dict[str, Any]:
+    """Exact solver-effective public state, not actual unequal table stacks."""
+    bb, root, stack = (scenario[key] for key in ("chips_per_bb", "pot_chips", "effective_stack_chips"))
+    if any(type(value) is not int or value <= 0 for value in (bb, root, stack)):
+        raise PioError("complete state requires positive integer chip inputs")
+    validate_postflop_positions(scenario)
+    if not isinstance(icm_model_checksum, str) or not re.fullmatch(r"[0-9a-f]{64}", icm_model_checksum) or icm_model_checksum == "0" * 64:
+        raise PioError("complete state requires the approved ICM bundle checksum")
+    # Reuse the actual setup owner to validate the exact model the tree used.
+    _icm_setup_commands(scenario, icm_model)
+    utility = {"objective": scenario["objective"], "utility_context": scenario["utility_context"],
+               # Canonical ICM input uses null (mutually exclusive cash rake),
+               # but the actual Pio tree explicitly has rake disabled as 0 0.
+               "rake": [0, 0] if scenario["objective"] == "icm" else scenario["rake"], "icm_model_bundle_checksum": icm_model_checksum,
+               "icm_model": None}
+    if icm_model is not None:
+        source = icm_model.get("source_snapshot_checksum")
+        if not isinstance(source, str) or not re.fullmatch(r"[0-9a-f]{64}", source) or source == "0" * 64:
+            raise PioError("complete state requires the approved numerical ICM snapshot")
+        utility["icm_model"] = {key: icm_model[key] for key in (
+            "model_id", "source_snapshot_checksum", "oop_stack_chips", "ip_stack_chips",
+            "root_pot_chips", "payout_per_chip")}
+    line = analyze_node(target["node"], root_pot_chips=root,
+                        effective_stack_chips=stack,
+                        preflop_aggressor=scenario["preflop_aggressor_solver_player"])
+    actor, stage, pot, bet, increment = 0, 0, root, 0, bb
+    contributions, spent, history = [0, 0], [0, 0], []
+    for token in target["node"].split(":")[2:]:
+        if CARD.fullmatch(token):
+            stage += 1
+            actor, bet, increment = 0, 0, bb
+            contributions = [0, 0]
+            continue
+        old = contributions[actor]
+        remaining = stack - spent[actor]
+        if token == "c":
+            family = "call" if bet > old else "check"
+            target_chips = bet
+        elif token.startswith("b") and token[1:].isdigit():
+            target_chips = int(token[1:])
+            all_in = target_chips == old + remaining
+            if target_chips <= bet or target_chips > old + remaining:
+                raise PioError("invalid complete-state wager")
+            if target_chips < bet + increment and not all_in:
+                raise PioError("wager is below the full minimum raise")
+            family = "all_in" if all_in else ("raise" if bet else "bet")
+            raised_by = target_chips - bet
+            if raised_by >= increment:
+                increment = raised_by
+            bet = target_chips
+        else:
+            raise PioError("unsupported public action in complete state")
+        paid = target_chips - old
+        if paid < 0 or paid > remaining:
+            raise PioError("invalid complete-state payment")
+        contributions[actor] = target_chips
+        spent[actor] += paid
+        pot += paid
+        history.append({"street": ("flop", "turn", "river")[stage],
+                        "solver_player": actor, "position": scenario["oop_position" if actor == 0 else "ip_position"],
+                        "family": family, "target_chips": target_chips})
+        actor = 1 - actor
+    if (actor != line.actor or pot != line.pot_chips or tuple(contributions) != line.contributions
+            or tuple(spent) != line.total_spent or bet != line.current_target):
+        raise PioError("complete state disagrees with authoritative node chronology")
+    return {
+        "schema": "smarter-poker.pio-complete-public-state.v1",
+        "stack_semantics": "solver-effective-behind-at-root", "utility": utility,
+        "node": target["node"], "board": target["board"], "root_board": scenario["flop_board"],
+        "street": ("flop", "turn", "river")[stage], "acting_solver_player": actor,
+        "table_size": scenario["table_size"],
+        "positions": [scenario["oop_position"], scenario["ip_position"]],
+        "chips_per_bb": bb, "root_pot_chips": root, "root_behind_chips": [stack, stack],
+        "pot_chips": pot, "contributions_chips": contributions,
+        "total_spent_chips": spent, "remaining_chips": [stack - value for value in spent],
+        "current_target_chips": bet, "to_call_chips": bet - contributions[actor],
+        "last_full_raise_increment_chips": increment, "minimum_raise_target_chips": bet + increment,
+        "public_history": history,
+    }
+
+
 def harvest_node(
     pio: Callable[[str], str],
     scenario: dict[str, Any],
@@ -1017,7 +1100,12 @@ def harvest_node(
     manifest_checksum: str,
     source_combo_order_checksum: str,
     range_bundle_checksum: str,
+    policy_export_schema: str = "smarter-poker.pio-policy.v3",
+    icm_model: dict[str, Any] | None = None,
+    icm_model_checksum: str | None = None,
 ) -> dict[str, Any]:
+    if policy_export_schema not in ("smarter-poker.pio-policy.v3", "smarter-poker.pio-policy.v4"):
+        raise PioError("unknown policy export schema")
     context = target_context(scenario, target)
     line = analyze_node(
         target["node"],
@@ -1095,8 +1183,8 @@ def harvest_node(
         "facing_target_chips": line.facing_target_chips,
         "facing_actor_total_chips": line.facing_actor_total_chips,
     }
-    return {
-        "schema": "smarter-poker.pio-policy.v3",
+    result = {
+        "schema": policy_export_schema,
         "node": node,
         "node_context": full_context,
         "line_proof": {
@@ -1121,6 +1209,17 @@ def harvest_node(
         "source_combo_order_checksum": source_combo_order_checksum,
         "range_bundle_checksum": range_bundle_checksum,
     }
+    if policy_export_schema == "smarter-poker.pio-policy.v4":
+        ranges = {player: reach}
+        other = "IP" if player == "OOP" else "OOP"
+        ranges[other] = parse_vector(pio(f"show_range {other} {node}"), allow_nan=False, label="show_range")
+        for name, weights in ranges.items():
+            for index, weight in enumerate(weights):
+                if not math.isfinite(weight) or not 0 <= weight <= 1 or (any(card in board_cards for card in COMBO_CARDS[index]) and weight != 0):
+                    raise PioError(f"{name} exact range has invalid weight at combo {index}")
+        result["complete_public_state"] = complete_node_state(scenario, target, icm_model=icm_model, icm_model_checksum=icm_model_checksum)
+        result["solver_ranges"] = {"schema": "smarter-poker.pio-exact-node-ranges.v1", "OOP": ranges["OOP"], "IP": ranges["IP"]}
+    return result
 
 def run_icm_activation_self_test(pio: Callable[[str], str]) -> dict[str, float]:
     """Isolated protocol fixture, never a serving scenario or source artifact.
