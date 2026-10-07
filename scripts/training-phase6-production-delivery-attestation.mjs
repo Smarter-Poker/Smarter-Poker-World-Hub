@@ -23,6 +23,7 @@ import {
 } from 'node:fs';
 import { dirname, isAbsolute, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import {createAtomicManagementTransport} from './lib/phase6AtomicManagementSql.mjs';
 import {
   buildTrainingAttestationContinuationPrecommit,
   selectPublicAttestationContinuationAnswer,
@@ -567,14 +568,22 @@ export function readMachineCollectorConfig(env = process.env) {
     /^[a-z0-9]{20}$/,
     'TRAINING_PHASE6_EXPECTED_SUPABASE_PROJECT_REF is required'
   );
-  const databaseUrl = validateDatabaseCredential(
+  const databaseTransportMode = String(env.TRAINING_PHASE6_ADMIN_DATABASE_TRANSPORT || 'postgres');
+  assert.ok(['postgres','supabase_atomic_management'].includes(databaseTransportMode), 'Unknown administrator database transport');
+  const databaseUrl = databaseTransportMode === 'postgres' ? validateDatabaseCredential(
     readPrivateCredential({
       directValue: env.TRAINING_PHASE6_ADMIN_DATABASE_URL,
       filePath: env.TRAINING_PHASE6_ADMIN_DATABASE_CREDENTIAL_FILE,
       label: 'Phase 6 administrator database',
     }),
     expectedSupabaseProjectRef
-  );
+  ) : null;
+  const managementWorkdir = databaseTransportMode === 'supabase_atomic_management' ? resolve(env.TRAINING_PHASE6_ADMIN_MANAGEMENT_WORKDIR || '.') : null;
+  const managementScratchDirectory = databaseTransportMode === 'supabase_atomic_management' ? dirname(paths[1]) : null;
+  if (databaseTransportMode === 'supabase_atomic_management') {
+    assert.equal(env.TRAINING_PHASE6_ADMIN_DATABASE_URL, undefined, 'atomic Management mode refuses a separate database credential');
+    assert.equal(env.TRAINING_PHASE6_ADMIN_DATABASE_CREDENTIAL_FILE, undefined, 'atomic Management mode refuses a separate database credential file');
+  }
   const vercelToken = readPrivateCredential({
     directValue: env.TRAINING_PHASE6_VERCEL_TOKEN,
     filePath: env.TRAINING_PHASE6_VERCEL_TOKEN_FILE,
@@ -645,6 +654,9 @@ export function readMachineCollectorConfig(env = process.env) {
     expectedAuditUserId,
     expectedSupabaseProjectRef,
     databaseUrl,
+    databaseTransportMode,
+    managementWorkdir,
+    managementScratchDirectory,
     vercelToken,
     vercelProject,
     vercelScope: String(env.TRAINING_PHASE6_VERCEL_SCOPE || '').trim() || null,
@@ -2217,9 +2229,8 @@ export function validateAdministratorCloseout(
   );
   assert.equal(collector?.kind, ADMIN_COLLECTOR_KIND, 'administrator collector kind mismatch');
   assert.equal(collector?.status, 'complete', 'administrator collector did not complete');
-  assert.equal(
-    collector?.queryMode,
-    'read_only_plus_explicit_rolled_back_probes',
+  assert.ok(
+    ['read_only_plus_explicit_rolled_back_probes','atomic_management_read_only_plus_self_aborting_probes'].includes(collector?.queryMode),
     'administrator collector query mode mismatch'
   );
   assert.ok(
@@ -2794,6 +2805,11 @@ function rowsFromQuery(result, label) {
 }
 
 async function rollbackAndVerify(database, label, postRollbackCheck = null) {
+  if (database.atomicManagement) {
+    assert.equal(postRollbackCheck, null, 'atomic read completion refuses a separate postcheck');
+    await database.finishReadOnly();
+    return;
+  }
   await database.query('ROLLBACK');
   const state = rowsFromQuery(
     await database.query(
@@ -2811,7 +2827,46 @@ async function rollbackAndVerify(database, label, postRollbackCheck = null) {
   if (postRollbackCheck) await postRollbackCheck();
 }
 
+export function atomicCorrelationPlan(publicEvidence, c) {
+  const parent = publicEvidence.publicApi.parentCandidateAttempts.find(p => p.eventKey === c.continuation.parentEventKey);
+  assert.ok(parent, 'atomic correlation parent is missing');
+  return [
+    {key:'mode',params:[],text:`SELECT current_setting('transaction_read_only') AS "transactionReadOnly",
+      current_user AS "currentUser", current_database() AS "currentDatabase",
+      current_setting('server_version_num') AS "serverVersionNum"`},
+    {key:'attempt',params:[c.attemptId,c.auditUserId],text:`SELECT id::text AS "attemptId", user_id::text AS "auditUserId",
+      client_nonce AS "sessionId", game_id AS "gameId", level,
+      session_kind AS "sessionKind", difficulty, expected_hands AS "expectedHands",
+      config_hash AS "configHash", practice_only AS "practiceOnly", status
+      FROM public.training_attempts WHERE id = $1::uuid AND user_id = $2::uuid`},
+    {key:'served',params:[c.expectedEventKeys],text:`SELECT event_key AS "eventKey", question_id AS "questionId",
+      user_id::text AS "auditUserId", policy_checksum AS "policyChecksum",
+      metadata ->> 'attemptId' AS "attemptId", (metadata ->> 'handOrdinal')::integer AS "handOrdinal",
+      (metadata ->> 'decisionOrdinal')::integer AS "decisionOrdinal", metadata ->> 'snapshotKey' AS "snapshotKey",
+      metadata ->> 'difficultyMode' AS "difficultyMode", metadata -> 'rngRolls' AS "rngRolls"
+      FROM public.training_question_events WHERE event_type = 'served' AND event_key = ANY($1::text[]) ORDER BY event_key`},
+    {key:'answers',params:[c.auditUserId,c.expectedEventKeys],text:`SELECT submission_id AS "submissionId", user_id::text AS "auditUserId",
+      attempt_id::text AS "attemptId", session_id AS "sessionId", hand_ordinal AS "handOrdinal", decision_ordinal AS "decisionOrdinal",
+      snapshot_key AS "snapshotKey", question_id AS "questionId", answer_id AS "answerId", is_correct AS "isCorrect",
+      lower(evidence_metadata ->> 'policyChecksum') AS "policyChecksum"
+      FROM public.training_answers WHERE user_id = $1::uuid AND submission_id = ANY($2::text[]) ORDER BY submission_id`},
+    {key:'slot',params:[c.attemptId,c.continuation.handOrdinal,c.continuation.decisionOrdinal],text:`SELECT attempt_id::text AS "attemptId", hand_ordinal AS "handOrdinal",
+      decision_ordinal AS "decisionOrdinal", snapshot_key AS "snapshotKey", parent_snapshot_key AS "parentSnapshotKey",
+      parent_submission_id AS "parentSubmissionId" FROM public.training_attempt_decision_slots
+      WHERE attempt_id = $1::uuid AND hand_ordinal = $2::integer AND decision_ordinal = $3::integer`},
+    {key:'snapshots',params:[[parent.snapshotKey,c.continuation.snapshotKey]],text:`SELECT snapshot_key AS "snapshotKey", source_question_id AS "questionId",
+      game_id AS "gameId", level, content_digest AS "contentDigest", question_data AS "questionData"
+      FROM public.training_question_snapshots WHERE snapshot_key = ANY($1::text[]) ORDER BY snapshot_key`},
+    {key:'authority',params:['training-attempt-decision-authority-v1'],text:`SELECT a.contract_version AS "contractVersion", a.evidence_kind AS "evidenceKind",
+      a.evidence_event_key AS "evidenceEventKey", (e.event_key IS NOT NULL) AS "evidenceEventExists",
+      (e.user_id IS NOT NULL) AS "evidenceOwnerPresent" FROM public.training_delivery_authority_attestations a
+      LEFT JOIN public.training_question_events e ON e.event_type = 'served' AND e.event_key = a.evidence_event_key
+      WHERE a.contract_version = $1::text`},
+  ];
+}
+
 async function collectReadOnlyDatabaseCorrelation(database, publicEvidence, publicContract) {
+  if (database.atomicManagement) await database.prepareReadOnly(atomicCorrelationPlan(publicEvidence,publicContract));
   let transactionStarted = false;
   let rolledBack = false;
   try {
@@ -3433,6 +3488,26 @@ async function collectNegativeRefusalMatrix(
     'negative probe implementation and release contract diverged'
   );
   const probes = {};
+  if (database.atomicManagement) {
+    const parent=publicEvidence.publicApi.parentCandidateAttempts[0];
+    const continuation=publicEvidence.publicApi.continuation;
+    const postChecks={
+      changedAnswerReplay:{text:`SELECT answer_id AS "answerId" FROM public.training_answers
+        WHERE user_id = $1::uuid AND submission_id = $2::text`,params:[publicContract.auditUserId,parent.submissionId],expectedRows:[{answerId:parent.selectedAnswer}]},
+      changedSlotBinding:{text:`SELECT snapshot_key AS "snapshotKey" FROM public.training_attempt_decision_slots
+        WHERE attempt_id = $1::uuid AND hand_ordinal = $2::integer AND decision_ordinal = $3::integer`,params:[publicContract.attemptId,continuation.handOrdinal,continuation.decisionOrdinal],expectedRows:[{snapshotKey:databaseEvidence.continuationSlot.snapshotKey}]},
+      neverServedSnapshot:{text:`SELECT count(*)::integer AS count FROM public.training_question_events
+        WHERE event_type = 'served' AND event_key = $1::text AND user_id = $2::uuid`,params:[parent.eventKey,publicContract.auditUserId],expectedRows:[{count:1}]},
+    };
+    const receipts=await database.collectNegative(ADMIN_NEGATIVE_PROBES.map(name=>({name,
+      input:probeInputFor(name,publicEvidence,publicContract,databaseEvidence,nowEpochSeconds),
+      expectation:ADMIN_NEGATIVE_PROBE_EXPECTATIONS[name],postCheck:postChecks[name]||null})));
+    for (const name of ADMIN_NEGATIVE_PROBES) {
+      assert.deepEqual(receipts[name],{status:'passed',refusalObserved:true,subtransactionRolledBack:true,postRollbackVerified:true},`atomic negative rollback evidence incomplete: ${name}`);
+      probes[name]='passed';
+    }
+    return {status:'passed',probeCount:ADMIN_NEGATIVE_PROBES.length,transactionRolledBack:true,probes};
+  }
   for (const name of ADMIN_NEGATIVE_PROBES) {
     probes[name] = await runOneRollbackNegativeProbe(
       database,
@@ -3800,6 +3875,15 @@ export function verifyAuthenticPredecessorArtifact(config, publicContract) {
 
 async function collectAuthenticPredecessorCompatibility(database, config, publicContract) {
   const artifact = verifyAuthenticPredecessorArtifact(config, publicContract);
+  if (database.atomicManagement) await database.prepareReadOnly([{key:'predecessor',
+    text:`SELECT event_key AS "eventKey", user_id::text AS "auditUserId",
+      metadata ->> 'attemptId' AS "attemptId", (metadata ->> 'handOrdinal')::integer AS "handOrdinal",
+      (metadata ->> 'decisionOrdinal')::integer AS "decisionOrdinal", metadata ->> 'legacyReceiptId' AS "receiptId",
+      metadata ->> 'legacyProofKind' AS "legacyProofKind" FROM public.training_question_events
+      WHERE event_type = 'served' AND user_id = $1::uuid AND metadata ->> 'attemptId' = $2::text
+      AND metadata ->> 'legacyReceiptId' = ANY($3::text[]) AND metadata ->> 'legacySignedReceiptRecovery' = 'true'
+      ORDER BY (metadata ->> 'decisionOrdinal')::integer`,
+    params:[artifact.payload.auditUserId,artifact.payload.attemptId,[artifact.payload.initial.receiptId,artifact.payload.continuation.receiptId]]}]);
   let transactionStarted = false;
   let rolledBack = false;
   try {
@@ -3931,7 +4015,8 @@ function validateMachineCollectorCoreConfig(config, runtime) {
       'controlled rehearsal was not explicitly acknowledged as non-authentic'
     );
   }
-  if (!runtime.databaseTransport)
+  assert.ok(['postgres','supabase_atomic_management'].includes(config.databaseTransportMode || 'postgres'), 'Unknown administrator database transport');
+  if (!runtime.databaseTransport && config.databaseTransportMode !== 'supabase_atomic_management')
     validateDatabaseCredential(config.databaseUrl, config.expectedSupabaseProjectRef);
   if (!runtime.logTransport) {
     assert.ok(
@@ -3987,9 +4072,9 @@ export async function collectMachineAdministratorEvidenceCore(config, runtime = 
 
   const database =
     runtime.databaseTransport ||
-    (await createPostgresMachineCollectorTransport({
-      connectionString: config.databaseUrl,
-    }));
+    (config.databaseTransportMode === 'supabase_atomic_management'
+      ? createAtomicManagementTransport({workdir:config.managementWorkdir,scratchDirectory:config.managementScratchDirectory,expectedProjectRef:config.expectedSupabaseProjectRef})
+      : await createPostgresMachineCollectorTransport({connectionString: config.databaseUrl}));
   const logTransport =
     runtime.logTransport ||
     createVercelCliRuntimeLogTransport({
@@ -4122,7 +4207,7 @@ export async function collectMachineAdministratorEvidenceCore(config, runtime = 
       kind: ADMIN_COLLECTOR_KIND,
       status: 'complete',
       generatedAt: verifiedAt,
-      queryMode: 'read_only_plus_explicit_rolled_back_probes',
+      queryMode: database.atomicManagement ? 'atomic_management_read_only_plus_self_aborting_probes' : 'read_only_plus_explicit_rolled_back_probes',
       currentUser: identity.currentUser,
       currentDatabase: identity.currentDatabase,
       serverVersionNum: identity.serverVersionNum,
