@@ -12,6 +12,8 @@ import {
   HAND_COLUMNS,
   JOB_NAME,
   PAINT_WAIT_MS,
+  SETTLE_WAIT_MS,
+  SETTLE_POLL_MS,
   RENDER_DEADLINE_MS,
   SEEK_TIMEOUT_MS,
   STILL_PARAMS,
@@ -47,6 +49,8 @@ test('the constants are the C6 numbers', () => {
   assert.equal(RENDER_DEADLINE_MS, 270000);
   assert.equal(SEEK_TIMEOUT_MS, 10000);
   assert.equal(PAINT_WAIT_MS, 2000);
+  assert.equal(SETTLE_WAIT_MS, 4000);
+  assert.equal(SETTLE_POLL_MS, 50);
   assert.deepEqual({ ...STILL_PARAMS, clip: { ...STILL_PARAMS.clip } }, {
     format: 'jpeg',
     quality: 85,
@@ -241,6 +245,18 @@ test('the browser scripts inject the payload, read the state and the step, read 
     assert.equal(rafs, 2);
     globalThis.requestAnimationFrame = () => {};
     assert.equal(await pageScripts.painted(5), false, 'a compositor that never paints does not hang the camera');
+
+    // settled: a card squeeze still running on the felt is waited out, or the timeout.
+    let animating = true;
+    globalThis.document = {
+      querySelector: (sel) => (sel === '[data-rs-animating="on"]' && animating ? {} : null),
+    };
+    setTimeout(() => { animating = false; }, 30);
+    assert.equal(await pageScripts.settled(1000, 5), true, 'the still waits for the new card to turn face up');
+    assert.equal(animating, false);
+    assert.equal(await pageScripts.settled(1000, 5), true, 'nothing running resolves at once');
+    animating = true;
+    assert.equal(await pageScripts.settled(20, 5), false, 'a squeeze that never ends does not hang the camera');
 
     for (const fn of Object.values(pageScripts)) {
       assert.doesNotMatch(fn.toString(), /\b(require|import|process)\b/, 'self-contained for puppeteer serialisation');
