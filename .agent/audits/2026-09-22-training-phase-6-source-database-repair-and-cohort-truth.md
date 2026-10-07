@@ -760,3 +760,71 @@ literal null and adds the empty-string case to the pre-secret fail-closed
 regression matrix. Provisioning and the one bounded M1 canary remain held until
 that correction passes protected review, merges, and is live. Phase 6 remains
 open and Phase 7 has not started.
+
+### 2026-09-30 Post-Rotation Git-Source Activation Marker
+
+Provisioning workflow PR #2057 passed its required protected checks and
+squash-merged as `98f8d88bff026736a86bf4c15bf5585c39d96613`.
+Security follow-up PR #2059 also passed every required check, squash-merged as
+`ed05cf99486b6e01c46dc34af187c8fd37fcae6c`, and production serves that
+exact revision on deployment `dpl_FRbXmrtUh2tYqdCD9n6VmJ3HDJGG` with healthy
+database and Training grading checks. No provisioning run exists yet.
+
+This separate,
+non-secret checkpoint-only change is pre-staged so that the already-approved
+World Hub Git-source route can create one ordinary production deployment after
+the M1 HMAC value is rotated. It must remain draft and unmerged until the
+manual provisioning workflow has succeeded for the exact protected-main
+revision and emitted a matching non-secret request receipt plus M1-encrypted
+ciphertext artifact.
+
+When those predicates are independently verified, this pull request may be
+marked ready and protected-merged. The merge, rather than a Vercel API deploy,
+deploy hook, local build, or alternate project, is the activation event for the
+new Production environment value. Production must then report the merge (or a
+verified descendant containing it), healthy database and Training grading
+checks, and an M1 signed-gateway probe that returns an authenticated response
+before the ciphertext may be released to M1 for exactly one bounded canary.
+This marker contains no credential, rotates nothing by itself, leaves the
+global header untouched, and does not close Phase 6 or start Phase 7.
+
+### 2026-10-01 M1 Execution-Channel Revalidation
+
+The Policy 2.9 reader was rerun after resumption at
+2026-10-01T20:01:22.983Z. It emitted manifest
+`a659f31c5c1c2b0864889508079a635dd5fe2fc98decfbfc9d3f9c80dd45ec3b`
+with owner, operating, hardening, and reference hashes respectively
+`b9478d0331314413d8e12c41210b63479cdcabc1f86ed3fdcb3251efa36e6349`,
+`a8bc3c04dce3354ebdd51a89c0b7d715af3344edcc794d33f6b3ad64506961d5`,
+`d5fc451ce5caf6d6b5e64597a13883e1246581678fe53c962339d0a66136993e`,
+and `adce89c3f838f2f373cd504a00329d53906404d1dd42a647f672af6c16f95555`.
+The owned worktree remains on the external SSD with 108 GiB free on
+`/Volumes/SmarterWork` and 306 GiB free on `/Volumes/SmarterArchives`.
+
+Protected main had advanced to
+`bb968a5778e1cbfb04c4eb82178b8a09e83f0c62`; production served that exact
+healthy build as deployment `dpl_HxhDmWB11zXf8ogxmWmCdSqVLcWD`. Draft PR
+#2058 was reconciled with that protected revision as merge commit
+`943e6646160d26fa93cbc228eefebb02de6e3e12`. It remains intentionally draft
+and unmerged because provisioning has not succeeded.
+
+Three independent read-only channel audits found no registered M1 execution
+path. GitHub reported zero repository runners across all 27 repositories,
+zero Codespaces, and zero provisioning workflow runs. No Windows or M1 runner
+exists; the provisioning workflow is Ubuntu-only and cannot execute
+PioSOLVER. Codex exposes only the local Mac host. The certified M1 hostname
+`SmarterPoker2` resolves to `10.1.10.51`, but it has no ARP entry, did not
+answer IPv4 or IPv6 ping, and did not expose SSH, SMB, RDP, WinRM, or the
+one-shot coordinator ports. The one-shot coordinator is inbound-only: M1 must
+register its ephemeral RSA key and execute the Windows/Pio validation locally.
+It is not running, and its previous TLS certificate no longer has the required
+four-hour lifetime. Running the canary on the Mac, M2, or a hosted runner would
+violate the sealed hostname, Pio binary, range, and physical-host contracts.
+
+Production still contains zero M1 worker receipts and zero artifact-catalog
+rows for the exact reserved parent and child. The authority scope remains
+prepared and unused. No HMAC was generated or rotated, no ciphertext was
+released, no activation merge or deployment occurred, and no canary was
+attempted. The next state-changing operation remains fail-closed until the
+certified M1 host is online through an existing supported execution channel.
+Phase 6 remains open and Phase 7 has not started.
