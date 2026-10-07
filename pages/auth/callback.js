@@ -259,6 +259,7 @@ export default function AuthCallback() {
                 //      handles new users (CREATED), existing users (EXISTS),
                 //      and same-email-different-provider linking (LINKED). ──
                 setStatus('Setting up your account…');
+                let newPlayerNeedsPhone = false;
                 try {
                     const meta = user.user_metadata || {};
                     const fullName =
@@ -297,6 +298,19 @@ export default function AuthCallback() {
                             message: `ensure-profile ${resp.status}: ${String(body).slice(0, 300)}`,
                             status: resp.status,
                         });
+                    } else {
+                        // A player whose profile was JUST created, and whose
+                        // welcome package is waiting on a phone verification,
+                        // gets the welcome screen as their first screen
+                        // (2026-10-07, Dan). Existing players go where they
+                        // were going.
+                        try {
+                            const created = await resp.clone().json().catch(() => null);
+                            if (created?.created === true
+                                && created?.welcomePackage?.withheldReason === 'phone_not_verified') {
+                                newPlayerNeedsPhone = true;
+                            }
+                        } catch (_jsonErr) { /* non-blocking */ }
                     }
                 } catch (epErr) {
                     // Non-blocking
@@ -360,7 +374,9 @@ export default function AuthCallback() {
                     nextPath = rawNext;
                 }
 
-                const dest = nextPath || (isCommanderOrigin ? '/commander/dashboard' : '/hub');
+                const dest = nextPath
+                    || (isCommanderOrigin ? '/commander/dashboard' : null)
+                    || (newPlayerNeedsPhone ? '/hub/verify-phone?welcome=1' : '/hub');
 
 
 
