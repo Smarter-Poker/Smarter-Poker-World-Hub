@@ -940,8 +940,9 @@ def _normalized_frequencies(
             raise PioError(f"strategy contains an invalid frequency at combo {index}")
         total = sum(values)
         if not live[index]:
-            if abs(total) > 0.00002:
-                raise PioError(f"unreached combo {index} carries strategy")
+            # Pio can retain a conditional strategy for a hand whose exact
+            # matchup mass is zero. It is not occurrence evidence: keep the
+            # finite/bounds validation above, then export zero frequencies.
             continue
         if not 0.98 <= total <= 1.02:
             raise PioError(f"live combo {index} frequencies sum to {total}")
@@ -1044,6 +1045,9 @@ def harvest_node(
         if weight > 0 and reach_weight <= 0:
             raise PioError(f"calc_ev reports matchups for unreachable combo {index}")
         normalized_weight = 0.0 if blocked else round(weight, 8)
+        if not blocked and weight > 0 and normalized_weight == 0:
+            # Never erase real positive occurrence mass by decimal rounding.
+            normalized_weight = weight
         normalized_matchups.append(normalized_weight)
         live.append(normalized_weight > 0)
     frequencies = _normalized_frequencies(raw_frequencies, live)

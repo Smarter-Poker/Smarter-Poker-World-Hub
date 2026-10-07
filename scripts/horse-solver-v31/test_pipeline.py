@@ -54,6 +54,7 @@ from pio_upi import (  # noqa: E402
     parse_children,
     parse_calc_results,
     parse_calc_ev,
+    _normalized_frequencies,
     run_self_test,
     solve_scenario,
     setup_commands,
@@ -181,6 +182,39 @@ class NodeLineTests(unittest.TestCase):
 
 
 class PioHarvestTests(unittest.TestCase):
+    def test_zero_mass_conditional_strategy_is_not_occurrence_evidence(self):
+        raw = {'c': [1.0] * 1326, 'b50': [0.0] * 1326}
+        live = [True] * 1326
+        live[0] = False
+        normalized = _normalized_frequencies(raw, live)
+        self.assertEqual(normalized['c'][0], 0)
+        self.assertEqual(normalized['c'][1], 1)
+        for invalid in (float('inf'), float('nan'), -0.1, 1.1):
+            raw['c'][0] = invalid
+            with self.assertRaises(PioError):
+                _normalized_frequencies(raw, live)
+        raw['c'][0] = 1
+        raw['c'][1] = 0.5
+        with self.assertRaises(PioError):
+            _normalized_frequencies(raw, live)
+
+    def test_tiny_positive_matchups_remain_live_in_the_export(self):
+        scenario = base_scenario()
+        kwargs = dict(manifest_checksum='c'*64, source_combo_order_checksum='d'*64, range_bundle_checksum='e'*64)
+        baseline = harvest_node(self.fake_pio, scenario, scenario['targets'][0], **kwargs)
+        index = next(i for i, mass in enumerate(baseline['matchups']) if mass > 0)
+        def tiny_mass(command):
+            raw = self.fake_pio(command)
+            if command == 'calc_ev OOP r:0':
+                rows = [line.split() for line in raw.splitlines()]
+                rows[1][index] = '0.000000000001'
+                return '\n'.join(' '.join(row) for row in rows)
+            return raw
+        result = harvest_node(tiny_mass, scenario, scenario['targets'][0], **kwargs)
+        self.assertGreater(result['matchups'][index], 0)
+        self.assertIsNotNone(result['policy_evs_bb'][index])
+        self.assertAlmostEqual(sum(values[index] for values in result['frequencies'].values()), 1)
+
     def test_undefined_ev_is_allowed_only_for_exact_zero_matchup_mass(self):
         for undefined in ('inf', '-inf', 'nan'):
             with self.subTest(undefined=undefined):
