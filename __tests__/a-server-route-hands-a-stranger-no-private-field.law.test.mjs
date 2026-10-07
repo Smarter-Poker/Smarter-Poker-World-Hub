@@ -25,6 +25,11 @@
  *      here until somebody has asked that question about it.
  *   2. No route builds a display name that falls back to a legal name
  *      (`display_name || full_name`, `full_name || username`, ...).
+ *   3. (2026-10-07) A member's club wallet is theirs too. A route that reads
+ *      club_members.chip_balance is listed in WALLET_REVIEWED with the reason
+ *      it never reaches a fellow member, and the club leaderboard - which
+ *      handed every member every other member's balance and chip flows -
+ *      asks the database's own club-staff rule before it reads either.
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -181,4 +186,74 @@ test('no server route falls back to a legal name for a display name', () => {
       'Use display_name || username:\n' +
       offenders.join('\n')
   );
+});
+
+// ─── Rule 3: a member's club wallet (2026-10-07) ─────────────────────────────
+// Ruling 25 names "Diamond or chip balance". club_members.chip_balance is a
+// member's money. Its row policy lets a member read their own row and lets
+// club staff (is_club_admin), a cashier's downline scope and a union overseer
+// read the rest - but a route here runs as the service role, which no row
+// policy binds. /api/club-arena/club-leaderboard answered ANY member with every
+// other member's balance, 7-day chip volume and net chip flow until 2026-10-07.
+// Reviewed 2026-10-07. Each entry says why the balance never reaches a fellow
+// member: SELF (the caller's own wallet), STAFF (the gate named runs first), or
+// not a member's wallet at all.
+const WALLET_REVIEWED = {
+  'pages/api/club-arena/agent-analytics.js': 'STAFF: club owner/admin, or an agent pinned to their own downline',
+  'pages/api/club-arena/agent-dashboard.js': 'STAFF: club owner/admin, or an agent pinned to their own downline',
+  'pages/api/club-arena/cashier-info.js': "SELF: the caller's own wallet (cash-out presets are owner/admin only)",
+  'pages/api/club-arena/club-leaderboard.js': 'STAFF: is_club_admin(club, caller) before any balance or chip flow is read',
+  'pages/api/club-arena/delete-club.js': 'STAFF: the club owner, deleting the club',
+  'pages/api/club-arena/leave-club.js': "SELF: the leaving member's own wallet",
+  'pages/api/club-arena/player-sessions.js': 'STAFF: club owner/admin/super_agent',
+  'pages/api/club-arena/rakeback.js': "SELF: the caller's own wallet",
+  'pages/api/club-arena/smart-recommendations.js': 'STAFF: club owner/admin/super_agent',
+  'pages/api/club-arena/spin-activation.js': "not a member's: the union's own wallet, union lead or platform admin",
+  'pages/api/club-arena/table-chips.js': 'SELF, or club owner/admin/super_agent, or the engine key',
+  'pages/api/club-arena/transfer-chips.js': "SELF: the sender's own balance; the recipient's is read only to prove membership",
+  'pages/api/club-arena/union-wallet.js': "not a member's: the union's own wallet, union lead or platform admin",
+  'pages/api/horses/club-arena-admin.js': 'STAFF: withOperatorRoute clubs.read / clubs.write',
+  'pages/api/horses/fleet-admin.js': 'STAFF: withOperatorRoute fleet.read',
+  'pages/api/horses/floor-admin.js': 'STAFF: withOperatorRoute',
+  'pages/api/horses/mint.js': 'STAFF: withOperatorRoute money.read / money.write',
+};
+
+// Comments do not read a wallet; `://` inside a URL is not a comment.
+const codeOnly = (src) => src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:\\])\/\/.*$/gm, '$1');
+const readsWallet = (src) => /\bchip_balance\b/.test(codeOnly(src));
+
+test("every server route that reads a member's club wallet has been reviewed", () => {
+  const unreviewed = apiFiles()
+    .map((file) => relative(ROOT, file))
+    .filter((rel) => !WALLET_REVIEWED[rel] && readsWallet(readFileSync(join(ROOT, rel), 'utf8')));
+  assert.deepEqual(
+    unreviewed,
+    [],
+    "These routes read club_members.chip_balance as the service role, which the row policy does not bind. " +
+      "Answer a balance only to its owner or behind a club-staff gate, then add the file to WALLET_REVIEWED with the reason:\n" +
+      unreviewed.join('\n')
+  );
+});
+
+test('every reviewed wallet entry still exists and still reads a balance', () => {
+  for (const rel of Object.keys(WALLET_REVIEWED)) {
+    let src;
+    try {
+      src = readFileSync(join(ROOT, rel), 'utf8');
+    } catch {
+      assert.fail(`${rel} is listed in WALLET_REVIEWED but no longer exists - remove the entry`);
+    }
+    assert.ok(readsWallet(src), `${rel} no longer reads chip_balance - remove it from WALLET_REVIEWED`);
+  }
+});
+
+test("the club leaderboard asks the club-staff rule before it reads any member's balance or chip flow", () => {
+  const code = codeOnly(readFileSync(join(ROOT, 'pages/api/club-arena/club-leaderboard.js'), 'utf8'));
+  const gate = code.search(/\.rpc\(\s*'is_club_admin'\s*,\s*\{\s*p_club_id:\s*clubId,\s*p_user_id:\s*user\.id\s*\}\s*\)/);
+  const refuse = code.indexOf('if (isClubStaff !== true)');
+  const balance = code.search(/\bchip_balance\b/);
+  const flows = code.search(/\.from\(\s*'chip_transactions'\s*\)/);
+  assert.ok(gate > 0, "the leaderboard must ask is_club_admin(club, caller) - the rule behind the club_members row policy");
+  assert.ok(refuse > gate, 'anything but a true answer from the staff check must be refused');
+  assert.ok(balance > refuse && flows > refuse, 'the staff check must run before any balance or chip flow is read');
 });
