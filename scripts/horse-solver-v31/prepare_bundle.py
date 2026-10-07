@@ -15,7 +15,8 @@ from typing import Any
 from contract import (
     MANIFEST_CONTRACT,
     REQUIRED_PIPELINE_FILES,
-    ROOT_KEYS,
+    manifest_keys,
+    feature_contract_version,
     ContractError,
     _exact_keys,
     _json_bytes,
@@ -59,6 +60,7 @@ def base_approval_bundle(
     manifest_checksum: str,
 ) -> dict[str, Any]:
     return {
+        **({"feature_contract_version": feature_contract_version(manifest)} if "feature_contract_version" in manifest else {}),
         "bundle_key": bundle_key,
         "bundle_version": bundle_version,
         "range_bundle_checksum": manifest["range_bundle_checksum"],
@@ -165,7 +167,9 @@ def prepare(args: argparse.Namespace) -> dict[str, Any]:
     if output_path == approval_path or draft_path in {output_path, approval_path}:
         raise ContractError("draft, manifest output, and approval output must be distinct")
 
-    draft = _exact_keys(_json_bytes(draft_path.read_bytes(), "manifest draft"), ROOT_KEYS, "manifest")
+    decoded = _json_bytes(draft_path.read_bytes(), "manifest draft")
+    draft = _exact_keys(decoded, manifest_keys(decoded), "manifest")
+    feature_contract_version(draft)
     if draft["contract"] != MANIFEST_CONTRACT or draft["enabled"] is not True:
         raise ContractError("manifest draft must be an enabled V31 manifest")
     if draft["input_bundle_id"] != PLACEHOLDER_BUNDLE_ID:
