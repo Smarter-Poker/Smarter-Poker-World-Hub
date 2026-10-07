@@ -29,6 +29,7 @@ import './delete-account-closes-the-account.test.mjs';
  * No single deletion can hide a regression.
  */
 import './club-arena-shell-cache.test.mjs';
+import './club-arena-mint-chips-live-rate.test.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import { test } from 'node:test';
@@ -373,7 +374,6 @@ import './reels-mixed-category-contract.test.mjs';
 import './reels-social-endless-continuation.test.mjs';
 import './social-feed-request-sequencing.test.mjs';
 import './user-reel-publication-recovery.test.mjs';
-import './video-clipper-storage-namespace.test.mjs';
 import './video-embed-report-adjudication.test.mjs';
 import './video-library-access-phase-9.test.mjs';
 import './video-library-club-arena-console.test.mjs';
@@ -414,10 +414,6 @@ import './owner-operational-realtime-feed-visibility.test.mjs';
 // 2026-09-04: a probe that cannot run says so where probes speak (recovery-probe
 // had been silent for a day: unconfigured, and exiting before its heartbeat).
 import './a-probe-that-cannot-run-says-so.law.test.mjs';
-// 2026-09-07. A horse's avatar is uploaded where a human's is (bucket
-// avatars, <profile uuid>/avatar.png), never under a name that says horse:
-// the storage path is in the <img src> of every seat and post.
-import './a-horse-avatar-is-uploaded-where-a-human-one-is.law.test.mjs';
 // 2026-09-04: the 3am pager. Alertmanager posts page=sms alerts to the Hub
 // route added in this commit; this suite pins the auth gate, Twilio call,
 // retry semantics, and house rules (only the six named alerts wake anyone).

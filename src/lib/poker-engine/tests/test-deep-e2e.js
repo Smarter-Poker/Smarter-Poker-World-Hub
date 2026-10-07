@@ -28,7 +28,7 @@ function assert(condition, label) {
     console.debug('═══════════════════════════════════════════════════\n');
 
     const Brain = require('../brain');
-    const Adv = require('../../../content-engine/services/HorsePokerAdvanced');
+    const Adv = require('../brain/HorsePokerAdvanced');
 
     // ═══════════════════════════════════════════
     // TEST 1: SUPABASE TABLE EXISTENCE

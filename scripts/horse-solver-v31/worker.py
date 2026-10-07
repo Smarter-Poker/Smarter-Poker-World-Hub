@@ -29,6 +29,7 @@ from pio_upi import (
     PioProcess,
     harvest_node,
     run_self_test,
+    run_icm_activation_self_test,
     solve_scenario,
     validate_pipeline_imports,
 )
@@ -331,6 +332,11 @@ def solver_self_test(pio: Any, manifest: ApprovedManifest) -> tuple[dict[str, An
     self_scenario = next(
         scenario for scenario in scenarios if scenario["scenario_id"] == self_test["scenario_id"]
     )
+    if any(scenario.get("objective") == "icm" and scenario.get("purpose", "harvest") == "harvest"
+           for scenario in scenarios):
+        run_icm_activation_self_test(pio)
+    # Restore the actual self-test tree last. Legacy manifests may harvest
+    # that scenario, so the private protocol fixture must never replace it.
     convergence = solve_scenario(pio, self_scenario, manifest)
     receipt = run_self_test(pio, self_scenario, self_test, convergence=convergence)
     return self_scenario, receipt

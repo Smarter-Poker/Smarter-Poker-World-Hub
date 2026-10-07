@@ -53,6 +53,15 @@ export const SEEK_TIMEOUT_MS = 10000;
 export const SEEK_POLL_MS = 50;
 /** Two animation frames are waited for after the commit, or this long. */
 export const PAINT_WAIT_MS = 2000;
+/**
+ * A card squeeze still running on the felt (a host with data-rs-animating="on")
+ * is waited out before the still, or this long. The replay profile turns a
+ * new board card face up over about a second; a still taken inside that
+ * second shows the card's back, which is what the first live clip did on
+ * the turn and the river (2026-10-07).
+ */
+export const SETTLE_WAIT_MS = 4000;
+export const SETTLE_POLL_MS = 50;
 export const RENDER_DEADLINE_MS = 270000;
 export const POLL_MS = 250;
 export const STORAGE_BUCKET = 'social-media';
@@ -106,6 +115,16 @@ export const pageScripts = Object.freeze({
     return { frames: beats.length, rate: Number(h.rate), beats, holdMs, plannedMs: Number(h.plannedMs) };
   },
   seek: (index) => !!(window.__spClip && typeof window.__spClip.seek === 'function' && window.__spClip.seek(index)),
+  /** Resolves true once no card squeeze is running on the felt, false when timeoutMs passes first. */
+  settled: (timeoutMs, pollMs) => new Promise((resolve) => {
+    const until = Date.now() + timeoutMs;
+    const check = () => {
+      if (!document.querySelector('[data-rs-animating="on"]')) return resolve(true);
+      if (Date.now() >= until) return resolve(false);
+      return setTimeout(check, pollMs);
+    };
+    check();
+  }),
   /** Resolves true after two animation frames, false when timeoutMs passes first. */
   painted: (timeoutMs) => new Promise((resolve) => {
     let settled = false;
@@ -377,7 +396,7 @@ export async function renderClipJob(job, deps) {
     const guard = durationGuard(plannedMs, CLIP_MIN_MS, CLIP_MAX_MS);
     if (guard) return await fail(guard);
 
-    // 5. One still per frame: seek, the commit confirmed, a paint, a screenshot.
+    // 5. One still per frame: seek, the commit confirmed, the squeeze settled, a paint, a screenshot.
     session = await page.createCDPSession();
     for (let i = 0; i < plan.frames; i += 1) {
       if (now() >= deadlineAt) return await fail('render_deadline');
@@ -386,6 +405,7 @@ export async function renderClipJob(job, deps) {
       const committed = await waitForStep(i, SEEK_TIMEOUT_MS);
       if (committed === 'deadline') return await fail('render_deadline');
       if (committed !== 'committed') return await fail('clip_seek_timeout');
+      await page.evaluate(pageScripts.settled, SETTLE_WAIT_MS, SETTLE_POLL_MS);
       await page.evaluate(pageScripts.painted, PAINT_WAIT_MS);
       const shot = await session.send('Page.captureScreenshot', { ...STILL_PARAMS });
       const data = shot && shot.data ? String(shot.data) : '';

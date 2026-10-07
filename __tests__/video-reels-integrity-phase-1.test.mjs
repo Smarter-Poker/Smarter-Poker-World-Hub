@@ -30,7 +30,6 @@ const REELS_CLIENT = read('../src/lib/reelsFeedClient.js');
 const VIDEO_CATALOG_API = read('../pages/api/video-library/catalog.js');
 const VIDEO_AVAILABILITY = read('../src/lib/videoLibraryAvailability.js');
 const FEED_CACHE = read('../src/lib/feedCache.js');
-const VIDEO_CLIPPER = read('../src/content-engine/pipeline/VideoClipper.js');
 const YOUTUBE_FAILURE_API = read('../pages/api/youtube/report-embed-failure.js');
 const YOUTUBE_ERROR_MANAGER = read('../src/hooks/useYouTubeErrorManager.js');
 const YOUTUBE_PIPELINE_RECOVERY = read('../pages/api/cron/yt-pipeline-recovery.js');
@@ -60,6 +59,9 @@ const RETIRED_DIRECT_VIDEO_WRITERS = [
   '../pages/api/admin/initialize-horse-sources.js',
   '../src/content-engine/pipeline/ClipLibrary.js',
   '../src/content-engine/pipeline/SportsClipLibrary.js',
+  // Phase 10 deleted the JS content mirror with its native clipper; the
+  // SQL publisher is the only remaining writer, so the file stays retired.
+  '../src/content-engine/pipeline/VideoClipper.js',
 ];
 
 test('retired video utilities cannot bypass the managed Reel publisher', () => {
@@ -83,12 +85,6 @@ test('retired video utilities cannot bypass the managed Reel publisher', () => {
     [],
     'video maintenance utilities must publish through the verified atomic publisher, not write social tables directly',
   );
-
-  // Owned/licensed native uploads are the one maintained media exception.
-  // Keep its explicit rights gate pinned so it cannot become a third-party
-  // YouTube backdoor while managed library assets use the SQL publisher.
-  assert.match(VIDEO_CLIPPER, /\['owned', 'licensed'\]\.includes\(rightsStatus\)/);
-  assert.match(VIDEO_CLIPPER, /\.from\(['"]social_reels['"]\)[\s\S]*?\.insert\(/);
 });
 
 test('the published Reels verifier is read-only and rejects hostile live payloads', () => {
@@ -250,16 +246,6 @@ test('third-party YouTube is embed-only and never enters the native transcode qu
   assert.match(queueFunction, /rights_status[\s\S]*(owned|licensed)/i);
   assert.match(queueFunction, /media_status[\s\S]*queued/i);
   assert.match(MIGRATION, /status\s*=\s*'cancelled'/i);
-
-  const downloadMethod = VIDEO_CLIPPER.match(
-    /async downloadVideo\(url, options = \{\}\)[\s\S]*?\n    \}/,
-  )?.[0] || '';
-  assert.match(downloadMethod, /rightsStatus[\s\S]*owned[\s\S]*licensed[\s\S]*rights_clearance_required/);
-  assert.match(VIDEO_CLIPPER, /async processVideo[\s\S]*rights_clearance_required[\s\S]*this\.downloadVideo/);
-  assert.match(VIDEO_CLIPPER, /async uploadAndCreateReel[\s\S]*rights_clearance_required[\s\S]*readFileSync/);
-  assert.doesNotMatch(VIDEO_CLIPPER, /SUPABASE_SERVICE_ROLE_KEY\s*\|\|/);
-  assert.match(VIDEO_CLIPPER, /Reel creation failed[\s\S]*\.remove\(\[storagePath\]\)/);
-  assert.match(VIDEO_CLIPPER, /success:\s*results\.length === clips\.length/);
   assert.match(interceptFunction, /v_provenance_yt_id[\s\S]*owned[\s\S]*licensed[\s\S]*canonical_asset_key\s*:=\s*'youtube:'/i);
 });
 

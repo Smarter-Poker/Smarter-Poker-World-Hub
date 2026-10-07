@@ -19,6 +19,7 @@ from contract import (
     load_range_vector,
     parse_source_combo_order,
     validate_postflop_positions,
+    validate_conditional_root_action,
 )
 
 
@@ -54,6 +55,7 @@ class NodeLine:
 PIO_ACK_COMMANDS = frozenset(
     {
         "add_line",
+        "force_line",
         "build_tree",
         "clear_lines",
         "go",
@@ -744,7 +746,7 @@ def _icm_setup_commands(
         raise PioError("approved ICM root pot does not match the scenario")
     if not isinstance(points, (tuple, list)) or len(points) < 4:
         raise PioError("approved ICM interpolation points are incomplete")
-    commands = ["reset_icm_tables", f"set_icm {oop_stack} {ip_stack}"]
+    commands = ["reset_icm_tables"]
     seen: set[tuple[str, int]] = set()
     for point in points:
         if not isinstance(point, (tuple, list)) or len(point) != 3:
@@ -764,6 +766,9 @@ def _icm_setup_commands(
         )
     if {player for player, _stack in seen} != {"OOP", "IP"}:
         raise PioError("approved ICM interpolation points omit a player")
+    # Licensed Pio 3.8 snapshots the payoff table when set_icm activates it.
+    # Acknowledged points added afterward do not refresh that active table.
+    commands.append(f"set_icm {oop_stack} {ip_stack}")
     return commands
 
 
@@ -774,6 +779,7 @@ def setup_commands(
     *,
     icm_model: dict[str, Any] | None = None,
 ) -> list[str]:
+    validate_conditional_root_action(scenario)
     if (
         len(oop_range) != 1326
         or len(ip_range) != 1326
@@ -794,6 +800,8 @@ def setup_commands(
         "add_line " + " ".join(_format_number(value) for value in line)
         for line in scenario["tree_lines"]
     )
+    if "conditional_root_action" in scenario:
+        commands.append(f"force_line {scenario['effective_stack_chips']}")
     # Pio 3.8's set_rake requires an existing tree, including the zero-rake
     # command used before installing ICM. Select the EV model before solving.
     commands.append("build_tree")
@@ -848,6 +856,9 @@ def setup_commands(
     if scenario.get("objective") == "icm":
         if rake_commands != ["set_rake 0 0"] or not active_icm_commands:
             raise PioError("an ICM scenario must disable rake and install one ICM model")
+        activations = [command for command in active_icm_commands if command.startswith("set_icm ")]
+        if len(activations) != 1 or active_icm_commands[-1] != activations[0]:
+            raise PioError("ICM must activate exactly once after every interpolation point")
     elif len(rake_commands) != 1 or active_icm_commands:
         raise PioError("a cash/chip-EV scenario must clear ICM and install one rake model")
     if any(
@@ -1110,6 +1121,48 @@ def harvest_node(
         "source_combo_order_checksum": source_combo_order_checksum,
         "range_bundle_checksum": range_bundle_checksum,
     }
+
+def run_icm_activation_self_test(pio: Callable[[str], str]) -> dict[str, float]:
+    """Isolated protocol fixture, never a serving scenario or source artifact.
+
+    PioProcess remaps canonical ranges/vectors through the attested native
+    order. The royal-flush board ties both singleton hands; linear payout
+    utility makes each player's independently known net EV 500/2 chips.
+    """
+    def command(text: str) -> str:
+        return PioProcess._clean_response(text, pio(text))
+
+    hands = {"OOP": {"Ah", "Ad"}, "IP": {"Kh", "Kd"}}
+    indices = {player: next(i for i, cards in enumerate(COMBO_CARDS) if set(cards) == hand)
+               for player, hand in hands.items()}
+    commands = ["set_pot 0 0 500", "set_eff_stack 1000", "set_board AsKsQsJsTs"]
+    commands += ["set_range " + player + " " + " ".join("1" if i == indices[player] else "0" for i in range(1326))
+                 for player in ("OOP", "IP")]
+    commands += ["clear_lines", "add_line 0 0", "add_line 1000 1000", "build_tree", "set_rake 0 0", "reset_icm_tables"]
+    commands += _icm_setup_commands(
+        {"objective": "icm", "icm_model_id": "analytic.linear", "rake": None,
+         "effective_stack_chips": 1000, "pot_chips": 500},
+        {"model_id": "analytic.linear", "oop_stack_chips": 1000, "ip_stack_chips": 1000,
+         "root_pot_chips": 500, "payout_per_chip": 1.0,
+         "points": (("OOP", 0, 0.0), ("OOP", 2500, 2500.0),
+                    ("IP", 0, 0.0), ("IP", 2500, 2500.0))})[1:]
+    commands += ["go 1 steps", "wait_for_solver"]
+    try:
+        for text in commands:
+            command(text)
+        summary = parse_calc_results(command("calc_results"))
+        for player in ("OOP", "IP"):
+            named = summary["ev_" + player.lower() + "_chips"]
+            evs, weights = parse_calc_ev(command("calc_ev " + player + " r:0"), label="ICM activation self-test")
+            live = [i for i, weight in enumerate(weights) if weight > 0]
+            if live != [indices[player]] or abs(named - 250.0) > 0.0005 or abs(evs[indices[player]] - 250.0) > 0.0005:
+                raise PioError("ICM activation self-test failed its independently known nonzero utility")
+        if summary["exploitability_chips"] > 0.0005:
+            raise PioError("ICM activation self-test returned unexpected exploitability")
+        return {"ev_oop_chips": summary["ev_oop_chips"], "ev_ip_chips": summary["ev_ip_chips"]}
+    finally:
+        # Even a refused fixture may not leave its payoff table in the study.
+        command("reset_icm_tables")
 
 
 def run_self_test(

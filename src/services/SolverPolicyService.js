@@ -120,7 +120,7 @@ export const SOLVER_POLICY_SURFACES = Object.freeze([
   policySurface(
     'horse-poker-gto',
     SOLVER_POLICY_INTEGRATION.SERVICE_CONSUMER,
-    'src/content-engine/services/HorsePokerGTO.js',
+    'src/lib/poker-engine/brain/HorsePokerGTO.js',
     { consumer: 'horse-poker-gto', authority: 'canonical_policy_envelope' },
   ),
   policySurface(

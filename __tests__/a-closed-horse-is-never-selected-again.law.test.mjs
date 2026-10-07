@@ -41,31 +41,11 @@ test('the legacy table engine never seats a benched horse or a closed account', 
   }
 });
 
-test('a horse befriends only people with open accounts', () => {
-  const src = read('src/content-engine/pipeline/HorseSocialEngine.js');
-  const [q] = chain(src, 'profiles', "select('id, username, full_name')");
-  assert.match(q, /\.eq\('is_horse', false\)/);
-  assert.match(q, /\.neq\('status', 'deleted'\)/);
-});
-
-test('a horse never likes or comments on a deleted post', () => {
-  const src = read('src/content-engine/pipeline/HorseSocialEngine.js');
-  const feeds = [
-    ...chain(src, 'social_posts', "select('id, author_id, content_type, content, link_site_name')"),
-    ...chain(src, 'social_posts', "select('id, author_id')"),
-  ];
-  assert.ok(feeds.length >= 2);
-  for (const q of feeds) assert.match(q, /\.eq\('is_deleted', false\)/);
-});
-
-test('every horse persona the content engine acts as is an active author', () => {
+test('every horse persona this repo still acts as is an active author', () => {
+  // The JS content mirror that used to carry six of these selectors was
+  // deleted in Phase 10; the live engine's selectors are pinned in the
+  // workers repo. This is the roster read left in this repo.
   const files = [
-    'src/content-engine/pipeline/HorseSocialEngine.js',
-    'src/content-engine/pipeline/PipelineCommander.js',
-    'src/content-engine/pipeline/AutonomousHorseAvatarAgent.js',
-    'src/content-engine/pipeline/HorseAvatarGenerator.js',
-    'src/content-engine/services/HorseRelationships.js',
-    'src/content-engine/services/HorseSocialIntelligence.js',
     'src/services/ClipDeduplicationService.js',
   ];
   for (const f of files) {

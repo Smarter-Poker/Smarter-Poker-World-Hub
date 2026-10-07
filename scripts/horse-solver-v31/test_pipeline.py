@@ -39,6 +39,7 @@ from contract import (  # noqa: E402
     load_range_vector,
     pipeline_bundle_checksum,
     validate_postflop_positions,
+    _validate_scenario,
 )
 from gateway import (  # noqa: E402
     GatewayError,
@@ -57,11 +58,13 @@ from pio_upi import (  # noqa: E402
     parse_calc_ev,
     _normalized_frequencies,
     run_self_test,
+    run_icm_activation_self_test,
     solve_scenario,
     setup_commands,
     target_context,
     texture_class,
     validate_pipeline_imports,
+    PIO_ACK_COMMANDS,
 )
 from worker import (  # noqa: E402
     artifact_id,
@@ -126,6 +129,33 @@ def base_scenario() -> dict:
 
 
 class NodeLineTests(unittest.TestCase):
+    def test_conditional_root_jam_is_explicit_and_forced_before_build(self):
+        scenario = base_scenario()
+        self.assertFalse(any(c.startswith("force_line") for c in setup_commands(scenario, [1.] * 1326, [1.] * 1326)))
+        scenario["conditional_root_action"] = {"action": "all_in", "model": "authored_opponent_jam_response"}
+        scenario["tree_lines"] = [[1000, 1000]]
+        scenario["targets"][0].update(node="r:0:b1000", node_role="all_in", facing_kind="all_in", facing_size_bucket="all_in", expected_children=["c", "f"])
+        _validate_scenario(scenario, 0, Path("."), {}, {}, False)
+        commands = setup_commands(scenario, [1.] * 1326, [1.] * 1326)
+        self.assertLess(commands.index("add_line 1000 1000"), commands.index("force_line 1000"))
+        self.assertLess(commands.index("force_line 1000"), commands.index("build_tree"))
+        self.assertIn("force_line", PIO_ACK_COMMANDS)
+        import copy
+        for field, value in [("conditional_root_action", {"action": "all_in", "model": "equilibrium"}), ("conditional_root_action", None), ("conditional_root_action", False), ("conditional_root_action", 1), ("conditional_root_action", {"action": "all_in"}), ("conditional_root_action", {"action": "all_in", "model": "authored_opponent_jam_response", "unknown": 1}), ("purpose", "self_test"), ("tree_lines", [[0, 1000, 1000]]), ("tree_lines", [[1000, 1000], [0, 1000, 1000]])]:
+            invalid = copy.deepcopy(scenario)
+            invalid[field] = value
+            with self.subTest(field=field, value=value), self.assertRaises(ContractError):
+                _validate_scenario(invalid, 0, Path("."), {}, {}, False)
+        invalid = copy.deepcopy(scenario)
+        invalid["targets"].append(dict(invalid["targets"][0], target_id="second", node="r:0:c:b1000"))
+        with self.assertRaises(ContractError):
+            _validate_scenario(invalid, 0, Path("."), {}, {}, False)
+        for field, value in [("node", "r:0:c:b1000"), ("board", "AhKd7c"), ("node_role", "facing_bet"), ("expected_children", ["c", "f", "b2000"])]:
+            invalid = copy.deepcopy(scenario)
+            invalid["targets"][0][field] = value
+            with self.subTest(field=field, value=value), self.assertRaises(ContractError):
+                _validate_scenario(invalid, 0, Path("."), {}, {}, False)
+
     def line(self, node: str, preflop: int | None = None):
         return analyze_node(
             node,
@@ -405,10 +435,53 @@ class PioHarvestTests(unittest.TestCase):
         self.assertLess(commands.index("set_icm 1000 1400"), commands.index("go"))
         self.assertEqual(sum(command.startswith("set_icm_point ") for command in commands), 4)
         self.assertIn("set_icm_point OOP 2000 2500", commands)
+        # Licensed Pio 3.8 activates a snapshot; points must precede activation.
+        activation = commands.index("set_icm 1000 1400")
+        point_positions = [i for i, command in enumerate(commands) if command.startswith("set_icm_point ")]
+        self.assertTrue(all(index < activation for index in point_positions))
+        self.assertEqual(commands[activation - 1], "set_icm_point IP 2400 2500")
         # A payout utility of 1 is 2500 chip-equivalent units, not one chip.
         model.pop("payout_per_chip")
         with self.assertRaisesRegex(PioError, "normalization"):
             setup_commands(scenario, [1.0] * 1326, [1.0] * 1326, icm_model=model)
+
+    def test_icm_activation_fixture_rejects_empty_activation_and_cleans_up(self):
+        def fake_engine(force_empty=False, bad_ack=False):
+            trace, points, ranges = [], [], {}
+            active = [0.0]
+            def pio(command):
+                trace.append(command)
+                verb = command.split()[0]
+                if verb == "reset_icm_tables": points.clear()
+                if verb == "set_icm_point": points.append(command)
+                if verb == "set_icm": active[0] = 250.0 if len(points) == 4 and not force_empty else 0.0
+                if verb == "set_range": ranges[command.split()[1]] = [float(x) for x in command.split()[2:]]
+                if verb == "calc_results":
+                    return f"EV OOP: {active[0]}\nEV IP: {active[0]}\nOOP's MES: {active[0]}\nIP's MES: {active[0]}\nExploitable for: 0.000"
+                if verb == "calc_ev":
+                    weights = ranges[command.split()[1]]
+                    return " ".join(str(active[0]) if w else "nan" for w in weights) + "\n" + " ".join(map(str, weights))
+                return "wrong acknowledgement" if bad_ack and verb == "set_icm" else verb + " ok!"
+            return pio, trace
+        pio, trace = fake_engine()
+        self.assertEqual(run_icm_activation_self_test(pio), {"ev_oop_chips": 250.0, "ev_ip_chips": 250.0})
+        self.assertEqual(trace[-1], "reset_icm_tables")
+        self.assertTrue(all(trace.index(point) < trace.index("set_icm 1000 1000") for point in trace if point.startswith("set_icm_point ")))
+        import pio_upi
+        install = pio_upi._icm_setup_commands
+        def old_empty_activation_order(*args):
+            commands = install(*args)
+            return [commands[0], commands[-1], *commands[1:-1]]
+        pio, trace = fake_engine()
+        with mock.patch.object(pio_upi, "_icm_setup_commands", side_effect=old_empty_activation_order):
+            with self.assertRaisesRegex(PioError, "nonzero utility"):
+                run_icm_activation_self_test(pio)
+        self.assertEqual(trace[-1], "reset_icm_tables")
+        for options, error in (({"force_empty": True}, "nonzero utility"), ({"bad_ack": True}, "acknowledgement")):
+            pio, trace = fake_engine(**options)
+            with self.subTest(options=options), self.assertRaisesRegex(PioError, error):
+                run_icm_activation_self_test(pio)
+            self.assertEqual(trace[-1], "reset_icm_tables")
 
     def test_rake_and_icm_cannot_share_a_tree_and_go_never_uses_accuracy_as_seconds(self):
         scenario = base_scenario()
@@ -773,6 +846,25 @@ class ManifestAndGatewayTests(unittest.TestCase):
             self.assertEqual(approval["files"][-1]["checksum"], result["manifest_checksum"])
             self.assertEqual(input_bundle_checksum(approval), result["input_bundle_checksum"])
 
+            legacy_provenance = ApprovedManifest(Path("unused"), inputs, manifest, result["manifest_checksum"]).provenance
+            self.assertNotIn("feature_contract_version", legacy_provenance)
+            versioned_draft = {**draft, "feature_contract_version": "holdem-board-relative-v2"}
+            draft_path.write_bytes(canonical_json(versioned_draft))
+            versioned_args = types.SimpleNamespace(**vars(args))
+            versioned_args.manifest_output = "manifests/v2.json"
+            versioned_args.approval_output = "approvals/v2.json"
+            with mock.patch.object(prepare_bundle, "verify_published_pipeline"), mock.patch.object(
+                prepare_bundle, "load_manifest", side_effect=accept_manifest
+            ):
+                versioned_result = prepare_bundle.prepare(versioned_args)
+            versioned_approval = json.loads((inputs / "approvals" / "v2.json").read_text())
+            versioned_manifest = json.loads((inputs / "manifests" / "v2.json").read_text())
+            self.assertEqual(versioned_approval["feature_contract_version"], "holdem-board-relative-v2")
+            self.assertNotEqual(versioned_result["input_bundle_checksum"], result["input_bundle_checksum"])
+            self.assertEqual(versioned_manifest["input_bundle_checksum"], input_bundle_checksum(versioned_approval))
+            self.assertEqual(ApprovedManifest(Path("unused"), inputs, versioned_manifest, versioned_result["manifest_checksum"]).provenance["feature_contract_version"], "holdem-board-relative-v2")
+            draft_path.write_bytes(canonical_json(draft))
+
             conflicting_args = types.SimpleNamespace(**vars(args))
             conflicting_args.manifest_output = "manifests/conflict.json"
             conflicting_args.approval_output = "approvals/conflict.json"
@@ -819,6 +911,19 @@ class ManifestAndGatewayTests(unittest.TestCase):
         expected = "91b7ae079daa5100ac80001c50fcca145e5ced8048adf455b4f5e84a5e5aaf51"
         self.assertEqual(INPUT_BUNDLE_CONTRACT, "smarter-poker.horse-solver-v31-input-bundle.v2")
         self.assertEqual(input_bundle_checksum(bundle), expected)
+        # Legacy omission retains the exact historical identity; explicit
+        # feature contracts become immutable approval bytes without a cycle.
+        for version in ("rank-suit-count-v1", "holdem-board-relative-v2"):
+            versioned = {**bundle, "feature_contract_version": version}
+            self.assertNotEqual(input_bundle_checksum(versioned), expected)
+            self.assertEqual(input_bundle_checksum({**versioned, "approval_note": "other review"}), input_bundle_checksum(versioned))
+        self.assertNotEqual(
+            input_bundle_checksum({**bundle, "feature_contract_version": "rank-suit-count-v1"}),
+            input_bundle_checksum({**bundle, "feature_contract_version": "holdem-board-relative-v2"}),
+        )
+        for unknown in (None, "", "v3", 2):
+            with self.subTest(unknown=unknown), self.assertRaisesRegex(ContractError, "feature_contract_version"):
+                input_bundle_checksum({**bundle, "feature_contract_version": unknown})
         self.assertEqual(input_bundle_id(expected), "91b7ae07-9daa-5100-8c80-001c50fcca14")
         changed_manifest = json.loads(json.dumps(bundle))
         changed_manifest["files"][-1]["checksum"] = "b" * 64
@@ -898,6 +1003,20 @@ class ManifestAndGatewayTests(unittest.TestCase):
         with mock.patch.object(worker, "solve_scenario", return_value={}) as solve, mock.patch.object(worker, "run_self_test", return_value={"verified": True}):
             selected, receipt = worker.solver_self_test(lambda command: "", with_fixture)
         self.assertIs(selected, fixture)
+        icm_train = json.loads(json.dumps(train))
+        icm_train["objective"] = "icm"
+        guarded = ApprovedManifest(Path("manifest.json"), Path("inputs"),
+            {"scenarios": [fixture, icm_train, holdout], "self_test": {"scenario_id": "analytic.selftest"}}, "a" * 64)
+        order = []
+        with mock.patch.object(worker, "solve_scenario", side_effect=lambda *args: order.append("real_tree") or {}), mock.patch.object(worker, "run_self_test", return_value={"verified": True}), mock.patch.object(worker, "run_icm_activation_self_test", side_effect=lambda *args: order.append("private_icm_fixture")) as activation:
+            worker.solver_self_test(lambda command: "", with_fixture)
+            activation.assert_not_called()
+            worker.solver_self_test(lambda command: "", guarded)
+            activation.assert_called_once()
+        self.assertEqual(order, ["real_tree", "private_icm_fixture", "real_tree"])
+        with mock.patch.object(worker, "solve_scenario", return_value={}), mock.patch.object(worker, "run_self_test", return_value={"verified": True}), mock.patch.object(worker, "run_icm_activation_self_test", side_effect=PioError("inactive ICM")):
+            with self.assertRaisesRegex(PioError, "inactive ICM"):
+                worker.solver_self_test(lambda command: "", guarded)
         self.assertTrue(receipt["verified"])
         self.assertIs(solve.call_args.args[1], fixture)
 

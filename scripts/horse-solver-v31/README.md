@@ -189,6 +189,18 @@ fails closed.
 
 ## Pio semantics pinned by the worker
 
+Dedicated authored opponent-jam response scenarios may explicitly declare
+`conditional_root_action: {"action":"all_in","model":"authored_opponent_jam_response"}`.
+This models the IP response conditional on an OOP root jam with the approved
+range; it does not claim that the preceding jam is equilibrium play. The
+scenario must be harvest-only, have exactly one root `r:0:bSTACK` all-in target
+on the flop board with children `["c","f"]`, and have only `[STACK,STACK]` as
+its tree line. The worker emits `force_line STACK` before `build_tree`, because
+`add_line` alone retains Pio's automatic root check. The explicit assumption
+is bound by the approved manifest checksum. Existing unconditioned scenarios
+emit no forced action. Reach, matchup, independent-holdout and quality gates
+remain unchanged; a conditional dataset still cannot serve without passing them.
+
 - Startup must acknowledge `set_end_string END` and `is_ready`; `show_version`
   and `show_hand_order` must exactly match the approved manifest and pinned
   order file. Solver and manifest identity text must already be canonical; the
@@ -210,6 +222,19 @@ fails closed.
   installed. An ICM tree explicitly uses `set_rake 0 0` to disable inherited
   rake before resetting and installing its complete pinned ICM table; Pio does
   not permit active rake and ICM at the same time.
+- Install every approved interpolation point before activating `set_icm`.
+  Licensed Pio 3.8 snapshots the points at activation; point acknowledgments
+  afterward do not refresh the active payoff table. An independent linear-ICM
+  river fixture returned zero with the old order and the expected 250 chips
+  per player with activation last. This is an engine-semantics fixture only,
+  never a harvested serving cell or a substitute for held-out qualification.
+- Bundles containing ICM harvest scenarios also run that isolated linear-ICM
+  protocol fixture at startup. Both named EVs and their actual positive-mass
+  combo EVs must equal 250 chips; empty payoff activation fails before export.
+  The fixture clears its ICM table on success or failure and then the ordinary
+  cash self-test restores the real scenario tree. It never becomes a target,
+  source artifact or serving cell; legitimate zero/negative study EVs remain
+  allowed.
 - Convergence is `set_accuracy <fraction> fraction`, then argument-free `go`
   and `wait_for_solver`. `go <accuracy>` would mean seconds/steps, not an
   accuracy target. `calc_results` is parsed as named fields and the approved
