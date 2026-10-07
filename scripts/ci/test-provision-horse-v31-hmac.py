@@ -37,17 +37,51 @@ class ProvisionTests(unittest.TestCase):
         with self.assertRaises(module.ProvisionError):
             module.verify_after(before, after, 'M1')
 
+    def test_absent_creation_refuses_ambiguous_or_unrelated_changes(self):
+        missing = entries()[1:]
+        self.assertIsNone(module.select_target(missing, 'M1', allow_missing=True))
+        self.assertEqual(module.verify_after(missing, entries(), 'M1')['id'], 'M1')
+        for ambiguous in [entries() + [entries()[0]],
+                          [dict(entries()[0], target=['preview'])] + missing,
+                          [dict(entries()[0], gitBranch='untrusted')] + missing]:
+            with self.assertRaises(module.ProvisionError):
+                module.select_target(ambiguous, 'M1', allow_missing=True)
+        changed = entries()
+        changed[1]['updatedAt'] = 2
+        with self.assertRaises(module.ProvisionError):
+            module.verify_after(missing, changed, 'M1')
+
+    def test_create_request_is_exact_sensitive_production_and_scrubbed(self):
+        observed = {}
+        class Response:
+            def __enter__(self): return self
+            def __exit__(self, *args): pass
+            def read(self, size): return b''
+        def opener(request, timeout):
+            observed['request'] = request
+            observed['body'] = json.loads(bytes(request.data))
+            return Response()
+        api = module.VercelApi('fake-test-token', module.PROJECT_ID, module.TEAM_ID, opener)
+        api.create_value('M2', bytearray(b'01' * 32))
+        self.assertEqual(observed['request'].get_method(), 'POST')
+        self.assertEqual(observed['body'], {'key': 'HORSE_SOLVER_V31_M2_HMAC_SECRET',
+            'type': 'sensitive', 'target': ['production'], 'value': '01' * 32})
+        self.assertNotIn('upsert', observed['request'].full_url)
+        self.assertEqual(set(observed['request'].data), {0})
+
     def test_rerun_and_invalid_principal_refuse_before_access(self):
         with self.assertRaisesRegex(module.ProvisionError, 'reruns'):
             module.load_config({'V31_PRINCIPAL': 'M1', 'GITHUB_RUN_ATTEMPT': '2'})
         with self.assertRaisesRegex(module.ProvisionError, 'principal'):
             module.load_config({'V31_PRINCIPAL': 'M3'})
 
-    def run_provision(self, folder, fail=False):
+    def run_provision(self, folder, fail=False, missing=False):
         class Api:
             writes = 0
             def list_entries(self):
                 data = entries()
+                if missing and not self.writes:
+                    return [item for item in data if item['id'] != 'M2']
                 if self.writes:
                     data[1]['updatedAt'] = 2
                 return data
@@ -56,6 +90,9 @@ class ProvisionTests(unittest.TestCase):
                 if fail:
                     raise module.ProvisionError('transport outcome unknown')
                 self.assert_id = entry_id
+            def create_value(self, principal, secret):
+                self.assert_principal = principal
+                self.patch_value(principal, secret)
         config = module.Config('M2', 'a' * 40, 'a' * 40, 'refs/heads/main', '123', '1',
             'v31-bounded-request', 'fake-test-token', module.PROJECT_ID, module.TEAM_ID,
             b'public-key', 'b' * 64, Path(folder) / 'artifact', None)
@@ -80,6 +117,18 @@ class ProvisionTests(unittest.TestCase):
             self.assertEqual(self.run_provision(folder)['status'], 'complete')
         with tempfile.TemporaryDirectory() as folder:
             self.assertEqual(self.run_provision(folder, fail=True)['status'], 'mutation_unverified')
+
+    def test_creation_receipts_preserve_known_and_unknown_outcomes(self):
+        with tempfile.TemporaryDirectory() as folder:
+            receipt = self.run_provision(folder, missing=True)
+            self.assertEqual(receipt['status'], 'complete')
+            self.assertEqual(receipt['mutationKind'], 'create')
+            self.assertEqual(receipt['environmentVariableId'], 'M2')
+            self.assertIsNone(receipt['updatedAtBefore'])
+        with tempfile.TemporaryDirectory() as folder:
+            receipt = self.run_provision(folder, missing=True, fail=True)
+            self.assertEqual(receipt['status'], 'mutation_unverified')
+            self.assertIsNone(receipt['environmentVariableId'])
 
 
 if __name__ == '__main__':
