@@ -31,6 +31,7 @@ from contract import (  # noqa: E402
     ContractError,
     _finite_number,
     _json_bytes,
+    _icm_models,
     canonical_hand_order_tokens,
     input_bundle_checksum,
     input_bundle_id,
@@ -51,6 +52,7 @@ from pio_upi import (  # noqa: E402
     analyze_node,
     harvest_node,
     parse_children,
+    parse_calc_results,
     run_self_test,
     solve_scenario,
     setup_commands,
@@ -178,6 +180,23 @@ class NodeLineTests(unittest.TestCase):
 
 
 class PioHarvestTests(unittest.TestCase):
+    def test_real_pio38_calc_results_has_optional_runtime_and_required_equity_fields(self):
+        captured = "\n".join(("EV OOP: 250.000", "EV IP: 250.000",
+            "OOP's MES: 250.000", "IP's MES: 250.000", "Exploitable for: 0.000"))
+        parsed = parse_calc_results(captured)
+        self.assertEqual(parsed, {"ev_oop_chips": 250, "ev_ip_chips": 250,
+            "oop_mes_chips": 250, "ip_mes_chips": 250, "exploitability_chips": 0})
+        self.assertNotIn("running_time_seconds", parsed)
+        self.assertEqual(parse_calc_results(captured + "\nrunning time: 1.25")["running_time_seconds"], 1.25)
+        for runtime in ("-1", "NaN", "Infinity", "invalid", "1 seconds"):
+            with self.subTest(runtime=runtime), self.assertRaises(PioError):
+                parse_calc_results(captured + "\nrunning time: " + runtime)
+        with self.assertRaises(PioError):
+            parse_calc_results(captured + "\nrunning time: 1\nrunning time: 2")
+        for missing in captured.splitlines():
+            with self.subTest(missing=missing), self.assertRaises(PioError):
+                parse_calc_results("\n".join(line for line in captured.splitlines() if line != missing))
+
     def fake_pio(self, command: str) -> str:
         if command == "show_children r:0":
             return "r:0:c r:0:b50 r:0:b1000"
@@ -246,11 +265,12 @@ class PioHarvestTests(unittest.TestCase):
         )
         self.assertAlmostEqual(result["weighted_policy_ev_bb"], 1.8)
 
-    def test_rake_and_exactly_one_icm_mode_precede_tree_build(self):
+    def test_rake_and_exactly_one_icm_mode_follow_tree_build_and_precede_go(self):
         scenario = base_scenario()
         commands = setup_commands(scenario, [1.0] * 1326, [1.0] * 1326)
         self.assertLess(commands.index("reset_icm_tables"), commands.index("set_rake 0 0"))
-        self.assertLess(commands.index("set_rake 0 0"), commands.index("build_tree"))
+        self.assertLess(commands.index("build_tree"), commands.index("reset_icm_tables"))
+        self.assertLess(commands.index("set_rake 0 0"), commands.index("go"))
         self.assertFalse(any(command.startswith("set_icm") for command in commands))
         self.assertIn("set_accuracy 0.005 fraction", commands)
         self.assertEqual(commands[commands.index("set_accuracy 0.005 fraction") + 1], "go")
@@ -261,6 +281,8 @@ class PioHarvestTests(unittest.TestCase):
             "model_id": "satellite.1000",
             "oop_stack_chips": 1000,
             "ip_stack_chips": 1400,
+            "root_pot_chips": 100,
+            "payout_per_chip": 0.0004,
             "points": (
                 ("OOP", 0, 0.0),
                 ("OOP", 2000, 1.0),
@@ -272,10 +294,15 @@ class PioHarvestTests(unittest.TestCase):
             scenario, [1.0] * 1326, [1.0] * 1326, icm_model=model
         )
         self.assertLess(commands.index("set_rake 0 0"), commands.index("reset_icm_tables"))
-        self.assertLess(commands.index("reset_icm_tables"), commands.index("build_tree"))
+        self.assertLess(commands.index("build_tree"), commands.index("set_rake 0 0"))
         self.assertEqual(sum(command.startswith("set_icm ") for command in commands), 1)
-        self.assertLess(commands.index("set_icm 1000 1400"), commands.index("build_tree"))
+        self.assertLess(commands.index("set_icm 1000 1400"), commands.index("go"))
         self.assertEqual(sum(command.startswith("set_icm_point ") for command in commands), 4)
+        self.assertIn("set_icm_point OOP 2000 2500", commands)
+        # A payout utility of 1 is 2500 chip-equivalent units, not one chip.
+        model.pop("payout_per_chip")
+        with self.assertRaisesRegex(PioError, "normalization"):
+            setup_commands(scenario, [1.0] * 1326, [1.0] * 1326, icm_model=model)
 
     def test_rake_and_icm_cannot_share_a_tree_and_go_never_uses_accuracy_as_seconds(self):
         scenario = base_scenario()
@@ -309,9 +336,15 @@ class PioHarvestTests(unittest.TestCase):
             (root / scenario["ip_range_path"]).write_text(payload, encoding="utf-8")
             manifest = ApprovedManifest(root / "manifest.json", root, {}, "a" * 64)
             commands: list[str] = []
+            tree_built = False
 
             def pio(command: str) -> str:
+                nonlocal tree_built
                 commands.append(command)
+                if command == "build_tree":
+                    tree_built = True
+                if command.startswith("set_rake ") and not tree_built:
+                    raise PioError("set_rake missing/incorrect tree")
                 if command == "calc_results":
                     return "\n".join(
                         (
@@ -344,6 +377,10 @@ class PioTransportTests(unittest.TestCase):
                     f"""\
                     #!/usr/bin/env python3
                     import sys
+                    from pathlib import Path
+
+                    if Path.cwd() != Path(__file__).resolve().parent:
+                        raise RuntimeError("distribution files require executable-local cwd")
 
                     HAND_ORDER = {approved_order!r}
                     PIO_TO_CANONICAL = {pio_to_canonical!r}
@@ -401,6 +438,41 @@ class PioTransportTests(unittest.TestCase):
 
 
 class ManifestAndGatewayTests(unittest.TestCase):
+    def test_icm_normalization_binds_snapshot_and_covers_the_root_pot(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            source = {"contract": "smarter-poker.horse-solver-v31-icm-snapshot.v1",
+                      "utility_unit": "payout", "field_stacks_chips": [1000, 1400],
+                      "payouts": [100], "oop_index": 0, "ip_index": 1,
+                      "root_pot_chips": 100}
+            source_bytes = canonical_json(source)
+            (root / "snapshot.json").write_bytes(source_bytes)
+            model = {"model_id": "real.snapshot", "oop_stack_chips": 1000,
+                     "ip_stack_chips": 1400, "root_pot_chips": 100,
+                     "source_snapshot_path": "snapshot.json",
+                     "source_snapshot_checksum": digest(source_bytes),
+                     "points": [{"player": "OOP", "stack_chips": 0, "utility": 0},
+                                {"player": "OOP", "stack_chips": 2100, "utility": 84},
+                                {"player": "IP", "stack_chips": 400, "utility": 16},
+                                {"player": "IP", "stack_chips": 2500, "utility": 100}]}
+            def load():
+                payload = canonical_json({"contract": ICM_MODEL_CONTRACT, "models": [model]})
+                (root / "model.json").write_bytes(payload)
+                return _icm_models(root, {"icm_model_path": "model.json",
+                                          "icm_model_checksum": digest(payload)})
+            self.assertAlmostEqual(load()["real.snapshot"]["payout_per_chip"], 0.04)
+            model["points"][1]["stack_chips"] = 2000
+            with self.assertRaisesRegex(ContractError, "reachable"):
+                load()
+            model["points"][1]["stack_chips"] = 2100
+            model["points"][1]["utility"] = 101
+            with self.assertRaisesRegex(ContractError, "prize pool"):
+                load()
+            model["points"][1]["utility"] = 84
+            (root / "snapshot.json").write_bytes(source_bytes + b" ")
+            with self.assertRaises(ContractError):
+                load()
+
     def test_gateway_response_parser_is_strict_and_operation_bound(self):
         payload = canonical_json(
             {"success": True, "operation": "dataset_contract", "result": {"state": "building"}}
@@ -709,6 +781,19 @@ class ManifestAndGatewayTests(unittest.TestCase):
         self.assertEqual(len(compactor.declared_coverage(manifest)), 1)
         self.assertEqual(owned_targets(train, "M1"), train["targets"])
         self.assertEqual(owned_targets(train, "M2"), [])
+        fixture = json.loads(json.dumps(train))
+        fixture.update({"scenario_id": "analytic.selftest", "purpose": "self_test"})
+        fixture["targets"][0]["target_id"] = "analytic.only"
+        with_fixture = ApprovedManifest(Path("manifest.json"), Path("inputs"),
+            {"scenarios": [fixture, train, holdout], "self_test": {"scenario_id": "analytic.selftest"}}, "a" * 64)
+        self.assertEqual(compactor.declared_coverage(with_fixture), compactor.declared_coverage(manifest))
+        self.assertEqual(owned_targets(fixture, "M1"), [])
+        self.assertEqual(owned_targets(fixture, "M2"), [])
+        with mock.patch.object(worker, "solve_scenario", return_value={}) as solve, mock.patch.object(worker, "run_self_test", return_value={"verified": True}):
+            selected, receipt = worker.solver_self_test(lambda command: "", with_fixture)
+        self.assertIs(selected, fixture)
+        self.assertTrue(receipt["verified"])
+        self.assertIs(solve.call_args.args[1], fixture)
 
         missing_holdout = ApprovedManifest(
             Path("manifest.json"), Path("inputs"), {"scenarios": [train]}, "a" * 64
@@ -965,16 +1050,30 @@ class ManifestAndGatewayTests(unittest.TestCase):
                         "model_id": "satellite.1000",
                         "oop_stack_chips": 1000,
                         "ip_stack_chips": 1400,
+                        "root_pot_chips": 100,
+                        "source_snapshot_path": "models/snapshot.json",
+                        "source_snapshot_checksum": digest(canonical_json({
+                            "contract": "smarter-poker.horse-solver-v31-icm-snapshot.v1",
+                            "utility_unit": "payout", "field_stacks_chips": [1000, 1400],
+                            "payouts": [1], "oop_index": 0, "ip_index": 1,
+                            "root_pot_chips": 100,
+                        })),
                         "points": [
                             {"player": "OOP", "stack_chips": 0, "utility": 0},
-                            {"player": "OOP", "stack_chips": 2000, "utility": 1},
+                            {"player": "OOP", "stack_chips": 2100, "utility": 1},
                             {"player": "IP", "stack_chips": 400, "utility": 0.2},
-                            {"player": "IP", "stack_chips": 2400, "utility": 1},
+                            {"player": "IP", "stack_chips": 2500, "utility": 1},
                         ],
                     }
                 ],
             }
             icm_bytes = canonical_json(icm_bundle)
+            (input_root / "models" / "snapshot.json").write_bytes(canonical_json({
+                "contract": "smarter-poker.horse-solver-v31-icm-snapshot.v1",
+                "utility_unit": "payout", "field_stacks_chips": [1000, 1400],
+                "payouts": [1], "oop_index": 0, "ip_index": 1,
+                "root_pot_chips": 100,
+            }))
             (input_root / "models" / "icm.json").write_bytes(icm_bytes)
             scenario = base_scenario()
             scenario["oop_range_checksum"] = digest(range_payload)
@@ -1042,6 +1141,30 @@ class ManifestAndGatewayTests(unittest.TestCase):
             self.assertEqual(loaded.provenance["manifest_checksum"], digest(manifest_bytes))
             self.assertEqual(loaded.source_combo_order, canonical_hand_order_tokens())
             self.assertEqual(loaded.icm_models["satellite.1000"]["ip_stack_chips"], 1400)
+            fixture_manifest = json.loads(json.dumps(manifest))
+            fixture_scenario = json.loads(json.dumps(scenario))
+            fixture_scenario.update({"scenario_id": "analytic.selftest", "purpose": "self_test"})
+            fixture_scenario["targets"][0]["target_id"] = "analytic.only"
+            fixture_manifest["scenarios"].append(fixture_scenario)
+            fixture_manifest["self_test"]["scenario_id"] = "analytic.selftest"
+            def load_fixture():
+                payload = canonical_json(fixture_manifest)
+                manifest_path.write_bytes(payload)
+                return load_manifest(manifest_path, expected_checksum=digest(payload),
+                    input_root=input_root, pipeline_root=pipeline_root)
+            self.assertEqual(len(load_fixture().raw["scenarios"]), 3)
+            fixture_manifest["self_test"]["scenario_id"] = scenario["scenario_id"]
+            with self.assertRaisesRegex(ContractError, "purpose must match"):
+                load_fixture()
+            fixture_manifest["self_test"]["scenario_id"] = "analytic.selftest"
+            fixture_scenario["purpose"] = "unknown"
+            with self.assertRaisesRegex(ContractError, "purpose must be"):
+                load_fixture()
+            fixture_scenario["purpose"] = "self_test"
+            fixture_scenario["unrecognized"] = True
+            with self.assertRaises(ContractError):
+                load_fixture()
+            manifest_path.write_bytes(manifest_bytes)
             invalid_combo = b"\xff"
             (input_root / "combo.txt").write_bytes(invalid_combo)
             invalid_combo_manifest = json.loads(json.dumps(manifest))

@@ -1,34 +1,34 @@
 /**
  * HORSE ANALYTICS API
- * GET /api/horses/analytics?type=summary|errors|top-horses|clips&days=1..365
- * Returns metrics for the admin dashboard.
+ * GET /api/horses/analytics?type=summary&days=1..365
+ * Returns the Phase 10 fleet content metrics for the admin dashboard.
  *
  * PHASE 1 NOTE (2026-09-02). This was the weakest route in the set: it built a
  * NEW Supabase client on every request, then spent a GoTrue network round trip
  * per call to do what the shared verifier does locally with the token it
  * already has, and it passed an unvalidated `parseInt(days)` - NaN for
- * `?days=abc` - straight into the analytics service. It is now built on src/lib/horses/operatorRoute.js:
- * console.read, one cached service-role client owned by the wrapper, local JWT
- * verification, and `days` validated to 1..365 before it reaches anything.
+ * `?days=abc` - straight into the analytics service. It is now built on
+ * src/lib/horses/operatorRoute.js: console.read, one cached service-role client
+ * owned by the wrapper, local JWT verification, and `days` validated to 1..365
+ * before it reaches anything.
  *
- * HorseAlertingService is imported dynamically inside the handler. It reaches
- * for the content-engine pipeline, which is a different deployment unit from
- * this console, and a module-scope import made every request to this route pay
- * for that graph even when the type parameter never used it.
+ * PHASE 10 NOTE (2026-10-06). The numbers used to come from a stale JavaScript
+ * mirror of the engine, imported dynamically, which read horse_analytics, a
+ * table nothing live writes, so every figure it showed was empty. They now come
+ * from one database function, public.fn_fleet_content_metrics(p_days), the same
+ * function the weekly digest mail reads, so the page and the mail cannot
+ * disagree. The function is service_role only; the wrapper's injected `db` is
+ * that client, and this route adds the operator permission boundary. The
+ * errors, top-horses and clips types went with the mirror: only `summary` is
+ * served, anything else is a 400.
  */
 import { withOperatorRoute } from '../../../src/lib/horses/operatorRoute.js';
 import { PERMISSIONS } from '../../../src/lib/horses/permissions.js';
 import { ApiError, badRequest } from '../../../src/lib/horses/apiEnvelope.js';
 import { int, enumOf } from '../../../src/lib/horses/validate.js';
 
-const TYPES = ['summary', 'errors', 'top-horses', 'clips'];
-
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
-
-/** The wrapper has already refused the request if this is missing. */
-function serviceKey() {
-  return process.env.SUPABASE_SERVICE_ROLE_KEY;
-}
+const TYPES = ['summary'];
+const DEFAULT_DAYS = 7;
 
 export const spec = {
   name: 'horses.analytics',
@@ -37,33 +37,22 @@ export const spec = {
   limit: 'read',
 };
 
-/**
- * Run one analytics service call with the service's own errors kept OUT of the
- * response.
- *
- * `scrubError` only replaces messages that LOOK like database text; anything
- * else is returned to the browser verbatim, first 200 characters. So any error
- * HorseAlertingService throws - a fetch failure carrying an internal URL, a
- * TypeError naming a private field - reached the operator's screen, where the
- * original route had always returned the fixed string 'Failed to load
- * analytics'. Every call now becomes one 503 with a sentence this file wrote.
- */
-async function callAnalytics(label, run) {
-  try {
-    return await run();
-  } catch (err) {
-    console.error(`[horses.analytics] ${label} failed:`, err?.message || err);
-    throw new ApiError(503, 'Analytics Is Unavailable', 'analytics_unavailable');
-  }
-}
-
 /** A repeated query param arrives as an array; take the first value. */
 function firstValue(value) {
   if (Array.isArray(value)) return value.length ? value[0] : undefined;
   return value;
 }
 
-export async function handle({ query }) {
+/**
+ * One failure sentence, written here. The database's own message is logged
+ * under the route name and never reaches the operator's screen.
+ */
+function unavailable(reason) {
+  console.error('[horses.analytics] fn_fleet_content_metrics failed:', reason);
+  return new ApiError(503, 'Analytics Is Unavailable', 'analytics_unavailable');
+}
+
+export async function handle({ db, query }) {
   // `?type=summary&type=errors` made query.type an array, enumOf returned null
   // for a non-string, and the route 400'd where the original coerced.
   const type = enumOf(String(firstValue(query.type) ?? 'summary'), TYPES);
@@ -75,45 +64,19 @@ export async function handle({ query }) {
   if (rawDays !== undefined && rawDays !== '' && numDays === null) {
     throw badRequest('Days Must Be Between 1 And 365');
   }
-  const days = numDays ?? 7;
+  const days = numDays ?? DEFAULT_DAYS;
 
-  let HorseAlertingService;
-  let ClipUsageTracker;
-  try {
-    ({ HorseAlertingService, ClipUsageTracker } = await import(
-      '../../../src/content-engine/pipeline/HorseAlertingService.js'
-    ));
-  } catch (err) {
-    console.error('[horses.analytics] alerting service unavailable:', err?.message);
-    throw new ApiError(503, 'Analytics Is Unavailable', 'analytics_unavailable');
+  const result = await db.rpc('fn_fleet_content_metrics', { p_days: days });
+  if (result.error) throw unavailable(result.error.message || 'rpc error');
+
+  // The function returns one jsonb object with nine fixed keys. Anything else
+  // means the live function is not the one this route was written against.
+  const metrics = result.data;
+  if (!metrics || typeof metrics !== 'object' || Array.isArray(metrics)) {
+    throw unavailable('the function returned no object');
   }
 
-  const alertingService = await callAnalytics(
-    'construct',
-    async () => new HorseAlertingService(SUPABASE_URL, serviceKey())
-  );
-
-  if (type === 'summary') {
-    return { data: await callAnalytics('summary', () => alertingService.getAnalyticsSummary(days)) };
-  }
-
-  if (type === 'errors') {
-    const [recent, breakdown] = await callAnalytics('errors', () =>
-      Promise.all([alertingService.getRecentErrors(20), alertingService.getErrorBreakdown(days)])
-    );
-    return { data: { recent, breakdown } };
-  }
-
-  if (type === 'top-horses') {
-    return { data: await callAnalytics('top-horses', () => alertingService.getTopHorses(days, 10)) };
-  }
-
-  const usedClips = await callAnalytics('clips', async () => {
-    const tracker = new ClipUsageTracker(SUPABASE_URL, serviceKey());
-    return tracker.getRecentlyUsedClips(24);
-  });
-  const clips = usedClips || [];
-  return { data: { usedInLast24h: clips.length, clips } };
+  return { data: metrics, window_days: days };
 }
 
 export default withOperatorRoute(spec, handle);
