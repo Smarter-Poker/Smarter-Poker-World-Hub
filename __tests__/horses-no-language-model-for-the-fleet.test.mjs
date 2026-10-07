@@ -37,15 +37,13 @@
  * repo next. A test is the only form of a rule that argues back.
  *
  * IF THIS FILE GOES RED, YOUR CHANGE IS THE BUG. Do not loosen an assertion to
- * land a card. The only place "model" is said in this console is the AI
- * Settings card, written for the SOCIAL CONTENT engine's content_settings row,
- * which has nothing to do with poker. The JS mirror that read that row was
- * deleted in Phase 10; the live engine (Fleet.ts in the workers repo) reads
- * only engine_enabled from it, and the next phase retires the controls that
- * steer nothing. The legitimate place to
- * steer how many horses take seats is Fleet Command, which writes
- * ca_horse_fleet_policy and which the engine genuinely reads once per club per
- * cycle.
+ * land a card. There is NO legitimate place to say "model" in this console any
+ * more (Phase 10, 2026-10-06): the AI Settings card that once steered a social
+ * content engine through `ai_model` and `temperature` is gone too, because the
+ * live engine (the workers repo) calls no model and never read either key. The
+ * legitimate place to steer how many horses take seats is Fleet Command, which
+ * writes ca_horse_fleet_policy and which the engine genuinely reads once per
+ * club per cycle.
  */
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
@@ -140,30 +138,40 @@ test('the settings route refuses every grinder_* key', async () => {
   );
 });
 
-test('the settings route still owns the social content engine keys', async () => {
-  // The negative above must not be satisfied by deleting the whole card. The
-  // JS mirror that read these keys was deleted in Phase 10 and the live engine
-  // (Fleet.ts in the workers repo) reads only engine_enabled; the allowlist
-  // stays pinned here until the Settings tab is rewired to what the worker
-  // reads, which replaces this test.
+test('the settings route owns exactly the one key the live engine reads', async () => {
+  // Phase 10 (2026-10-06). The negative above must not be satisfied by deleting
+  // the whole card: `engine_enabled` is real, the workers engine reads it per
+  // horse (src/lib/content-engine/Fleet.ts) and fails closed on it. It is also
+  // the ONLY content_settings key anything live reads. The seven that used to
+  // sit beside it steered nothing, and `ai_model` with its "GPT-4o (Best)"
+  // option said something untrue about the platform.
   const body = await read('pages/api/horses/stable-admin.js');
   const allowlist = body.match(/const SETTINGS_FIELDS = \[([\s\S]*?)\];/)[1];
+  const keys = [...allowlist.matchAll(/'([^']+)'/g)].map((m) => m[1]);
+  assert.deepEqual(
+    keys,
+    ['engine_enabled'],
+    'SETTINGS_FIELDS must be exactly engine_enabled: a key nothing reads is a control that lies',
+  );
+});
 
-  for (const key of [
-    'posts_per_day',
-    'min_delay_minutes',
-    'max_delay_minutes',
-    'ai_model',
-    'temperature',
-    'engine_enabled',
-    'auto_publish',
-    'peak_hours',
-  ]) {
-    assert.ok(
-      allowlist.includes(`'${key}'`),
-      `SETTINGS_FIELDS lost ${key}. That one is real: the content pipeline reads it.`,
-    );
-  }
+test('no settings control names a language model or a knob the engine does not have', async () => {
+  const panel = code(await read('src/components/horses/SettingsPanel.jsx'));
+  assert.equal(
+    /gpt-|claude-|llama|mistral/i.test(panel),
+    false,
+    'the Settings tab names a language model again. The fleet calls none.',
+  );
+  assert.equal(
+    /\b(ai_model|temperature|posts_per_day|min_delay_minutes|max_delay_minutes|auto_publish|peak_hours)\b/.test(panel),
+    false,
+    'the Settings tab writes a content_settings key nothing live reads',
+  );
+  assert.equal(
+    /<select\b|type="range"|type="number"/.test(panel),
+    false,
+    'the Settings tab is two kinds of switch now: a model select or a cadence number is a control that steers nothing',
+  );
 });
 
 test('the Settings tab points an operator at the control that does work', async () => {

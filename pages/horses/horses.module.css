@@ -976,6 +976,55 @@
     gap: 16px;
 }
 
+/* A line of explanation under a card's controls. Tokens only, no raw hex. */
+.settingNote {
+    color: var(--text-dim);
+    font-size: 12px;
+    line-height: 1.5;
+    margin: 16px 0 0;
+}
+
+/*
+ * Posting Modes (Phase 10). One row per way a horse can post: the name, the
+ * description and the approval on the left, the switch and its state word on
+ * the right. The switch is the same .toggleSwitch the master switch uses.
+ */
+.modeList {
+    list-style: none;
+    margin: 16px 0 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.modeRow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    padding: 14px 0;
+    border-top: 1px solid var(--line);
+}
+
+.modeText {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+}
+
+.modeText strong {
+    color: var(--text);
+    font-size: 14px;
+}
+
+.modeMeta {
+    color: var(--text-dim);
+    font-size: 12px;
+    line-height: 1.4;
+    overflow-wrap: anywhere;
+}
+
 /* ═══════════════════════════════════════════════════════════════════════════
    STATISTICS VIEW
    ═══════════════════════════════════════════════════════════════════════════ */

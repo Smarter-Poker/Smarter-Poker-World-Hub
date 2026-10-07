@@ -191,6 +191,19 @@ async function probeViewport(browser, storageState, viewport) {
     if (responseUrl.origin === PRODUCTION_ORIGIN && path.startsWith('/api/horses/')) {
       apiStatuses.push({ method: response.request().method(), path, status: response.status() });
     }
+    // Evidence only: the seated-humans count the console served, so it can be
+    // compared with a direct database count taken at the same moment.
+    if (responseUrl.origin === PRODUCTION_ORIGIN && path === '/api/horses/platform-admin'
+        && responseUrl.searchParams.get('section') === 'engine' && response.status() === 200) {
+      response.json().then((body) => {
+        const value = body?.database?.humansSeated;
+        receipt.platformHumansSeated = {
+          value: Number.isInteger(value) ? value : null,
+          observedAt: new Date().toISOString(),
+          viewport: viewport.name,
+        };
+      }).catch(() => {});
+    }
   });
 
   await context.route('**/*', async (route) => {

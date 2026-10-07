@@ -109,6 +109,7 @@ test('every mutating route files an audit row through auditOperatorAction', () =
     'horse.bulk_delete',
     'ticket.set_status',
     'settings.save',
+    'postmode.set',
   ]) {
     assert.ok(stable.includes(`'${action}'`), `stable-admin must audit ${action}`);
   }
@@ -1337,7 +1338,8 @@ test('stable-admin: every action asks for the permission it actually needs', asy
     [{ action: 'audit_log' }, 'audit.read'],
     [{ action: 'set_ticket_status', id: uuidAt(1), status: 'resolved' }, 'support.write'],
     [{ action: 'set_active', id: uuidAt(2), is_active: true }, 'content.write'],
-    [{ action: 'save_settings', settings: { posts_per_day: 3 } }, 'content.write'],
+    [{ action: 'save_settings', settings: { engine_enabled: false } }, 'content.write'],
+    [{ action: 'set_post_mode', mode: 'poker_news', enabled: true }, 'content.write'],
   ]) {
     await assert.rejects(
       stableHandle({ req: fakeReq({ method: 'POST' }), op: consoleOnly, db, body }),
@@ -1350,19 +1352,210 @@ test('stable-admin: every action asks for the permission it actually needs', asy
   assert.equal(stableSpec.permission, 'console.read');
 });
 
-test('stable-admin: read_settings answers any operator with the settings row and nothing else', async () => {
-  const row = { id: 'settings-1', posts_per_day: 20, engine_enabled: true };
+test('stable-admin: read_settings answers any operator with the one live key and nothing else', async () => {
+  // The row still carries the dead columns (posts_per_day and friends hold
+  // their last written values); the read must not ship them to a browser as if
+  // they meant something. Phase 10: the engine reads engine_enabled and nothing
+  // else from this table.
+  const row = { id: 'settings-1', posts_per_day: 20, ai_model: 'gpt-4o', engine_enabled: true, updated_at: '2026-10-06T00:00:00Z' };
   const db = fakeDb({ content_settings: { rows: [row] } });
   const consoleOnly = { ...fakeOp(db), permissions: ['console.read'] };
   const out = await stableHandle({ req: fakeReq({ method: 'POST' }), op: consoleOnly, db, body: { action: 'read_settings' } });
-  assert.deepEqual(out, { settings: row });
+  assert.deepEqual(out, { settings: { id: 'settings-1', engine_enabled: true, updated_at: '2026-10-06T00:00:00Z' } });
   const read = db.calls.find((c) => c.table === 'content_settings');
   assert.ok(read, 'the service role reads the row: a browser no longer can');
   assert.doesNotMatch(read.select, /\*/, 'named columns only');
-  assert.match(read.select, /\bposts_per_day\b/);
   assert.match(read.select, /\bengine_enabled\b/);
+  assert.doesNotMatch(read.select, /posts_per_day|min_delay_minutes|max_delay_minutes|ai_model|temperature|auto_publish|peak_hours/, 'a dead column is never read back');
   assert.equal(read.insert, undefined);
   assert.equal(read.update, undefined);
+});
+
+test('stable-admin: save_settings writes engine_enabled only and refuses every dead key', async () => {
+  const row = { id: 'settings-1', engine_enabled: false, updated_at: '2026-10-06T00:00:00Z' };
+  const audits = [];
+  const db = fakeDb(
+    { content_settings: { rows: [row] } },
+    { fn_log_admin_action: async (args) => { audits.push(args); return { data: true, error: null }; } }
+  );
+  const op = { ...fakeOp(db), permissions: ['content.write'] };
+  const call = (settings) => stableHandle({ req: fakeReq({ method: 'POST' }), op, db, body: { action: 'save_settings', settings } });
+
+  // A key the engine does not read is refused, not trimmed: a stale tab must
+  // learn its control is dead rather than be told the write landed.
+  for (const dead of [{ posts_per_day: 3 }, { engine_enabled: true, ai_model: 'gpt-4o' }, { auto_publish: false }, { temperature: 0.5 }, { peak_hours: [9] }]) {
+    await assert.rejects(call(dead), (e) => e.status === 400 && /Unknown Setting/.test(e.message));
+  }
+  await assert.rejects(call({}), (e) => e.status === 400 && /No Settings To Save/.test(e.message));
+  await assert.rejects(call({ engine_enabled: 'true' }), (e) => e.status === 400 && /engine_enabled must be a boolean/.test(e.message));
+  assert.equal(db.calls.filter((c) => c.update || c.insert).length, 0, 'a refused body never reaches the table');
+
+  const out = await call({ engine_enabled: true });
+  const write = db.calls.find((c) => c.table === 'content_settings' && c.update);
+  assert.ok(write, 'the one live key is written');
+  assert.deepEqual(Object.keys(write.update).sort(), ['engine_enabled', 'updated_at']);
+  assert.equal(write.update.engine_enabled, true);
+  assert.ok(write.filters.some(([o, col, v]) => o === 'eq' && col === 'id' && v === 'settings-1'), 'the lowest-id row, by id');
+  assert.doesNotMatch(write.select, /\*/, 'the row read back names its columns');
+  assert.ok('settings' in out);
+  assert.equal(audits.length, 1);
+  assert.equal(audits[0].p_action, 'settings.save');
+  assert.equal(audits[0].p_target_type, 'content_settings');
+  assert.deepEqual(audits[0].p_before_state, { engine_enabled: false });
+  assert.deepEqual(audits[0].p_details, { fields: ['engine_enabled'] });
+});
+
+test('stable-admin: read_post_modes answers any operator with every mode row, named columns, by mode', async () => {
+  const rows = [
+    { mode: 'poker_news', enabled: true, description: 'A link to a poker news article with a comment.', approved_by: 'pre-existing', approved_at: '2026-09-06T12:25:35Z', created_at: '2026-09-06T12:25:35Z' },
+    { mode: 'grounded_hand', enabled: false, description: 'A post about a hand the horse actually played.', approved_by: null, approved_at: null, created_at: '2026-09-06T12:25:35Z' },
+    { mode: 'table_talk', enabled: false, description: 'A line said at the table.', approved_by: null, approved_at: null, created_at: '2026-10-06T12:25:35Z' },
+  ];
+  const db = fakeDb({ horse_post_modes: { rows } });
+  const consoleOnly = { ...fakeOp(db), permissions: ['console.read'] };
+  const out = await stableHandle({ req: fakeReq({ method: 'POST' }), op: consoleOnly, db, body: { action: 'read_post_modes' } });
+
+  // Every row, in mode order, so a row a later migration adds (table_talk)
+  // appears with no change to this route or the panel.
+  assert.deepEqual(out.modes.map((m) => m.mode), ['grounded_hand', 'poker_news', 'table_talk']);
+  assert.deepEqual(Object.keys(out.modes[0]).sort(), ['approved_at', 'approved_by', 'description', 'enabled', 'mode']);
+  const read = db.calls.find((c) => c.table === 'horse_post_modes');
+  assert.ok(read, 'the service role reads the table: a browser cannot');
+  assert.doesNotMatch(read.select, /\*/, 'named columns only');
+  for (const col of ['mode', 'enabled', 'description', 'approved_by', 'approved_at']) {
+    assert.match(read.select, new RegExp(`\\b${col}\\b`), `the read names ${col}`);
+  }
+  assert.deepEqual(read.filters.find(([o]) => o === 'order'), ['order', 'mode', { ascending: true }]);
+  assert.equal(read.insert, undefined);
+  assert.equal(read.update, undefined);
+  assert.equal(read.delete, undefined);
+
+  // console.read is the floor and it is enough; no permission at all is not.
+  await assert.rejects(
+    stableHandle({ req: fakeReq({ method: 'POST' }), op: { ...fakeOp(db), permissions: [] }, db, body: { action: 'read_post_modes' } }),
+    (e) => e.status === 403 && /console\.read/.test(e.message)
+  );
+});
+
+test('stable-admin: set_post_mode is one audited UPDATE of an existing row, and enabling stamps the approval', async () => {
+  const rows = [{ mode: 'grounded_hand', enabled: false, description: 'd', approved_by: null, approved_at: null }];
+  const audits = [];
+  const db = fakeDb(
+    { horse_post_modes: { rows } },
+    { fn_log_admin_action: async (args) => { audits.push(args); return { data: true, error: null }; } }
+  );
+  const op = { ...fakeOp(db), permissions: ['content.write'] };
+  const out = await stableHandle({
+    req: fakeReq({ method: 'POST' }),
+    op,
+    db,
+    body: { action: 'set_post_mode', mode: 'grounded_hand', enabled: true },
+  });
+  assert.equal(out.mode.mode, 'grounded_hand');
+  // The list rides back with the row, re-read from the table AFTER the write,
+  // so a flip costs the operator one call against the route's write limit.
+  assert.ok(Array.isArray(out.modes) && out.modes.length === 1, 'the whole list comes back with the row');
+  const modeCalls = db.calls.filter((c) => c.table === 'horse_post_modes');
+  const updateAt = modeCalls.findIndex((c) => c.update);
+  const listAt = modeCalls.findIndex((c) => c.filters.some(([o, col]) => o === 'order' && col === 'mode'));
+  assert.ok(updateAt > -1 && listAt > updateAt, 'the list is read after the write, never before it');
+
+  const writes = db.calls.filter((c) => c.table === 'horse_post_modes' && c.update);
+  assert.equal(writes.length, 1, 'one switch, one write');
+  const [write] = writes;
+  assert.equal(write.update.enabled, true);
+  assert.equal(write.update.approved_by, 'op@example.com', 'enabling records who approved, by the identity the route resolved');
+  assert.match(String(write.update.approved_at), /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/, 'enabling records when');
+  assert.deepEqual(Object.keys(write.update).sort(), ['approved_at', 'approved_by', 'enabled'], 'nothing else moves');
+  assert.ok(write.filters.some(([o, col, v]) => o === 'eq' && col === 'mode' && v === 'grounded_hand'), 'by mode, the primary key');
+  assert.doesNotMatch(write.select, /\*/, 'the row read back names its columns');
+  assert.ok(db.calls.every((c) => c.insert === undefined), 'never an insert: a new mode arrives as a disabled migration row');
+
+  assert.equal(audits.length, 1, 'one switch, one audit row');
+  assert.equal(audits[0].p_action, 'postmode.set');
+  assert.equal(audits[0].p_target_type, 'horse_post_modes');
+  assert.equal(audits[0].p_target_id, 'grounded_hand');
+  assert.deepEqual(audits[0].p_before_state, { enabled: false, approved_by: null, approved_at: null });
+  assert.deepEqual(Object.keys(audits[0].p_after_state).sort(), ['approved_at', 'approved_by', 'enabled']);
+  assert.deepEqual(audits[0].p_details, { mode: 'grounded_hand', enabled: true, approval_stamped: true });
+  assert.equal(audits[0].p_admin_user_id, op.user.id);
+});
+
+test('stable-admin: disabling a mode leaves its approval record alone', async () => {
+  const rows = [{ mode: 'poker_news', enabled: true, description: 'd', approved_by: 'pre-existing', approved_at: '2026-09-06T12:25:35Z' }];
+  const audits = [];
+  const db = fakeDb(
+    { horse_post_modes: { rows } },
+    { fn_log_admin_action: async (args) => { audits.push(args); return { data: true, error: null }; } }
+  );
+  const op = { ...fakeOp(db), permissions: ['content.write'] };
+  await stableHandle({
+    req: fakeReq({ method: 'POST' }),
+    op,
+    db,
+    body: { action: 'set_post_mode', mode: 'poker_news', enabled: false },
+  });
+  const write = db.calls.find((c) => c.table === 'horse_post_modes' && c.update);
+  assert.deepEqual(write.update, { enabled: false }, 'the approval is history, not state: a disable does not erase who first allowed the mode');
+  assert.equal(audits.length, 1);
+  assert.equal(audits[0].p_action, 'postmode.set');
+  assert.deepEqual(audits[0].p_details, { mode: 'poker_news', enabled: false, approval_stamped: false });
+});
+
+test('stable-admin: set_post_mode refuses an unknown mode, a non-boolean, a bad name and a reader', async () => {
+  const rows = [{ mode: 'poker_news', enabled: true, description: 'd', approved_by: 'pre-existing', approved_at: '2026-09-06T12:25:35Z' }];
+  const db = fakeDb({ horse_post_modes: { rows } });
+  const op = { ...fakeOp(db), permissions: ['content.write'] };
+  const call = (body, who = op) => stableHandle({ req: fakeReq({ method: 'POST' }), op: who, db, body });
+
+  // A mode nobody seeded is a 404, and the table is never written to invent it.
+  await assert.rejects(call({ action: 'set_post_mode', mode: 'table_talk', enabled: true }), (e) => e.status === 404 && e.code === 'not_found');
+  assert.ok(db.calls.every((c) => c.insert === undefined && c.update === undefined), 'an unknown mode is neither created nor written');
+
+  for (const body of [
+    { action: 'set_post_mode', mode: 'poker_news', enabled: 'true' },
+    { action: 'set_post_mode', mode: 'poker_news', enabled: 1 },
+    { action: 'set_post_mode', mode: 'poker_news' },
+    { action: 'set_post_mode', mode: 'Poker News', enabled: true },
+    { action: 'set_post_mode', mode: "poker_news'; drop table", enabled: true },
+    { action: 'set_post_mode', mode: '', enabled: true },
+    { action: 'set_post_mode', enabled: true },
+  ]) {
+    await assert.rejects(call(body), (e) => e.status === 400, `refused: ${JSON.stringify(body)}`);
+  }
+  assert.ok(db.calls.every((c) => c.update === undefined), 'a malformed body never reaches the table');
+
+  // Reading the modes is console floor; flipping one is a content write.
+  const consoleOnly = { ...fakeOp(db), permissions: ['console.read'] };
+  await assert.rejects(
+    call({ action: 'set_post_mode', mode: 'poker_news', enabled: true }, consoleOnly),
+    (e) => e.status === 403 && /content\.write/.test(e.message)
+  );
+});
+
+test('stable-admin: a database failure on a mode flip is mapped, never echoed', async () => {
+  const db = fakeDb({
+    horse_post_modes: { error: { code: '42501', message: 'permission denied for table horse_post_modes' } },
+  });
+  const op = { ...fakeOp(db), permissions: ['content.write'] };
+  const quiet = console.error;
+  console.error = () => {};
+  try {
+    await assert.rejects(
+      stableHandle({ req: fakeReq({ method: 'POST' }), op, db, body: { action: 'set_post_mode', mode: 'poker_news', enabled: true } }),
+      (e) => {
+        assert.ok(e.status >= 400);
+        assert.doesNotMatch(e.message, /permission denied|horse_post_modes/, 'no database text reaches the operator');
+        return true;
+      }
+    );
+    await assert.rejects(
+      stableHandle({ req: fakeReq({ method: 'POST' }), op, db, body: { action: 'read_post_modes' } }),
+      (e) => e.status >= 400 && !/permission denied|horse_post_modes/.test(e.message)
+    );
+  } finally {
+    console.error = quiet;
+  }
 });
 
 test('stable-admin: pipeline_runs answers any operator with the recent runs, newest first', async () => {

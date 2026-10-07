@@ -42,7 +42,7 @@ class ProvisionTests(unittest.TestCase):
         self.assertIsNone(module.select_target(missing, 'M1', allow_missing=True))
         self.assertEqual(module.verify_after(missing, entries(), 'M1')['id'], 'M1')
         for ambiguous in [entries() + [entries()[0]],
-                          [dict(entries()[0], target=['preview'])] + missing,
+                          [dict(entries()[0], target=[])] + missing,
                           [dict(entries()[0], gitBranch='untrusted')] + missing]:
             with self.assertRaises(module.ProvisionError):
                 module.select_target(ambiguous, 'M1', allow_missing=True)
@@ -50,6 +50,27 @@ class ProvisionTests(unittest.TestCase):
         changed[1]['updatedAt'] = 2
         with self.assertRaises(module.ProvisionError):
             module.verify_after(missing, changed, 'M1')
+
+    def test_preview_coexists_with_exact_production_and_remains_untouched(self):
+        preview = dict(entries()[0], id='M1-preview', target=['preview'])
+        before = entries() + [preview]
+        after = entries() + [dict(preview)]
+        after[0]['updatedAt'] = 2
+        self.assertEqual(module.select_target(before, 'M1')['id'], 'M1')
+        self.assertEqual(module.verify_after(before, after, 'M1')['id'], 'M1')
+        after[-1]['updatedAt'] = 2
+        with self.assertRaises(module.ProvisionError):
+            module.verify_after(before, after, 'M1')
+        for extra in [dict(preview, id='overlap', target=['production', 'preview']),
+                      dict(preview, id='duplicate-production', target=['production'])]:
+            with self.assertRaises(module.ProvisionError):
+                module.select_target(before + [extra], 'M1')
+
+    def test_preview_only_allows_production_creation_without_preview_rotation(self):
+        preview = dict(entries()[0], id='M1-preview', target=['preview'])
+        before = entries()[1:] + [preview]
+        self.assertIsNone(module.select_target(before, 'M1', allow_missing=True))
+        self.assertEqual(module.verify_after(before, entries() + [preview], 'M1')['id'], 'M1')
 
     def test_create_request_is_exact_sensitive_production_and_scrubbed(self):
         observed = {}

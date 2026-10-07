@@ -145,7 +145,7 @@ export function engineModel(body) {
     dealableTables: engine.dealableTableCount ?? engine.dealableTables ?? engine.dealable_tables,
     stalledTables: engine.stalledTableCount ?? engine.stalledTables ?? engine.stalled_tables,
     tournaments: engine.activeTournaments ?? engine.active_tournaments,
-    humansSeated: engine.humansSeated ?? engine.humans_seated,
+    humansSeated: database.humansSeated ?? database.humans_seated,
     occupiedSeats: database.occupiedSeats ?? database.occupied_seats,
     averageHandsPerHour: engine.avgHandsPerHour ?? engine.averageHandsPerHour ?? engine.average_hands_per_hour,
     estimatedHandsPerSecond: estimated,
