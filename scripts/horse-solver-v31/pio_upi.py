@@ -1117,6 +1117,48 @@ def harvest_node(
         "range_bundle_checksum": range_bundle_checksum,
     }
 
+def run_icm_activation_self_test(pio: Callable[[str], str]) -> dict[str, float]:
+    """Isolated protocol fixture, never a serving scenario or source artifact.
+
+    PioProcess remaps canonical ranges/vectors through the attested native
+    order. The royal-flush board ties both singleton hands; linear payout
+    utility makes each player's independently known net EV 500/2 chips.
+    """
+    def command(text: str) -> str:
+        return PioProcess._clean_response(text, pio(text))
+
+    hands = {"OOP": {"Ah", "Ad"}, "IP": {"Kh", "Kd"}}
+    indices = {player: next(i for i, cards in enumerate(COMBO_CARDS) if set(cards) == hand)
+               for player, hand in hands.items()}
+    commands = ["set_pot 0 0 500", "set_eff_stack 1000", "set_board AsKsQsJsTs"]
+    commands += ["set_range " + player + " " + " ".join("1" if i == indices[player] else "0" for i in range(1326))
+                 for player in ("OOP", "IP")]
+    commands += ["clear_lines", "add_line 0 0", "add_line 1000 1000", "build_tree", "set_rake 0 0", "reset_icm_tables"]
+    commands += _icm_setup_commands(
+        {"objective": "icm", "icm_model_id": "analytic.linear", "rake": None,
+         "effective_stack_chips": 1000, "pot_chips": 500},
+        {"model_id": "analytic.linear", "oop_stack_chips": 1000, "ip_stack_chips": 1000,
+         "root_pot_chips": 500, "payout_per_chip": 1.0,
+         "points": (("OOP", 0, 0.0), ("OOP", 2500, 2500.0),
+                    ("IP", 0, 0.0), ("IP", 2500, 2500.0))})[1:]
+    commands += ["go 1 steps", "wait_for_solver"]
+    try:
+        for text in commands:
+            command(text)
+        summary = parse_calc_results(command("calc_results"))
+        for player in ("OOP", "IP"):
+            named = summary["ev_" + player.lower() + "_chips"]
+            evs, weights = parse_calc_ev(command("calc_ev " + player + " r:0"), label="ICM activation self-test")
+            live = [i for i, weight in enumerate(weights) if weight > 0]
+            if live != [indices[player]] or abs(named - 250.0) > 0.0005 or abs(evs[indices[player]] - 250.0) > 0.0005:
+                raise PioError("ICM activation self-test failed its independently known nonzero utility")
+        if summary["exploitability_chips"] > 0.0005:
+            raise PioError("ICM activation self-test returned unexpected exploitability")
+        return {"ev_oop_chips": summary["ev_oop_chips"], "ev_ip_chips": summary["ev_ip_chips"]}
+    finally:
+        # Even a refused fixture may not leave its payoff table in the study.
+        command("reset_icm_tables")
+
 
 def run_self_test(
     pio: Callable[[str], str],

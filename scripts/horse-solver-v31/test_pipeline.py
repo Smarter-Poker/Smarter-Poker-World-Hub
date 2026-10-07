@@ -57,6 +57,7 @@ from pio_upi import (  # noqa: E402
     parse_calc_ev,
     _normalized_frequencies,
     run_self_test,
+    run_icm_activation_self_test,
     solve_scenario,
     setup_commands,
     target_context,
@@ -418,6 +419,44 @@ class PioHarvestTests(unittest.TestCase):
         model.pop("payout_per_chip")
         with self.assertRaisesRegex(PioError, "normalization"):
             setup_commands(scenario, [1.0] * 1326, [1.0] * 1326, icm_model=model)
+
+    def test_icm_activation_fixture_rejects_empty_activation_and_cleans_up(self):
+        def fake_engine(force_empty=False, bad_ack=False):
+            trace, points, ranges = [], [], {}
+            active = [0.0]
+            def pio(command):
+                trace.append(command)
+                verb = command.split()[0]
+                if verb == "reset_icm_tables": points.clear()
+                if verb == "set_icm_point": points.append(command)
+                if verb == "set_icm": active[0] = 250.0 if len(points) == 4 and not force_empty else 0.0
+                if verb == "set_range": ranges[command.split()[1]] = [float(x) for x in command.split()[2:]]
+                if verb == "calc_results":
+                    return f"EV OOP: {active[0]}\nEV IP: {active[0]}\nOOP's MES: {active[0]}\nIP's MES: {active[0]}\nExploitable for: 0.000"
+                if verb == "calc_ev":
+                    weights = ranges[command.split()[1]]
+                    return " ".join(str(active[0]) if w else "nan" for w in weights) + "\n" + " ".join(map(str, weights))
+                return "wrong acknowledgement" if bad_ack and verb == "set_icm" else verb + " ok!"
+            return pio, trace
+        pio, trace = fake_engine()
+        self.assertEqual(run_icm_activation_self_test(pio), {"ev_oop_chips": 250.0, "ev_ip_chips": 250.0})
+        self.assertEqual(trace[-1], "reset_icm_tables")
+        self.assertTrue(all(trace.index(point) < trace.index("set_icm 1000 1000") for point in trace if point.startswith("set_icm_point ")))
+        import pio_upi
+        install = pio_upi._icm_setup_commands
+        def old_empty_activation_order(*args):
+            commands = install(*args)
+            return [commands[0], commands[-1], *commands[1:-1]]
+        pio, trace = fake_engine()
+        with mock.patch.object(pio_upi, "_icm_setup_commands", side_effect=old_empty_activation_order):
+            with self.assertRaisesRegex(PioError, "nonzero utility"):
+                run_icm_activation_self_test(pio)
+        self.assertEqual(trace[-1], "reset_icm_tables")
+        for options, error in (({"force_empty": True}, "nonzero utility"), ({"bad_ack": True}, "acknowledgement")):
+            pio, trace = fake_engine(**options)
+            with self.subTest(options=options), self.assertRaisesRegex(PioError, error):
+                run_icm_activation_self_test(pio)
+            self.assertEqual(trace[-1], "reset_icm_tables")
 
     def test_rake_and_icm_cannot_share_a_tree_and_go_never_uses_accuracy_as_seconds(self):
         scenario = base_scenario()
@@ -907,6 +946,20 @@ class ManifestAndGatewayTests(unittest.TestCase):
         with mock.patch.object(worker, "solve_scenario", return_value={}) as solve, mock.patch.object(worker, "run_self_test", return_value={"verified": True}):
             selected, receipt = worker.solver_self_test(lambda command: "", with_fixture)
         self.assertIs(selected, fixture)
+        icm_train = json.loads(json.dumps(train))
+        icm_train["objective"] = "icm"
+        guarded = ApprovedManifest(Path("manifest.json"), Path("inputs"),
+            {"scenarios": [fixture, icm_train, holdout], "self_test": {"scenario_id": "analytic.selftest"}}, "a" * 64)
+        order = []
+        with mock.patch.object(worker, "solve_scenario", side_effect=lambda *args: order.append("real_tree") or {}), mock.patch.object(worker, "run_self_test", return_value={"verified": True}), mock.patch.object(worker, "run_icm_activation_self_test", side_effect=lambda *args: order.append("private_icm_fixture")) as activation:
+            worker.solver_self_test(lambda command: "", with_fixture)
+            activation.assert_not_called()
+            worker.solver_self_test(lambda command: "", guarded)
+            activation.assert_called_once()
+        self.assertEqual(order, ["real_tree", "private_icm_fixture", "real_tree"])
+        with mock.patch.object(worker, "solve_scenario", return_value={}), mock.patch.object(worker, "run_self_test", return_value={"verified": True}), mock.patch.object(worker, "run_icm_activation_self_test", side_effect=PioError("inactive ICM")):
+            with self.assertRaisesRegex(PioError, "inactive ICM"):
+                worker.solver_self_test(lambda command: "", guarded)
         self.assertTrue(receipt["verified"])
         self.assertIs(solve.call_args.args[1], fixture)
 
