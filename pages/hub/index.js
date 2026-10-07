@@ -4,7 +4,9 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/router';
 import useHasMounted from '../../src/hooks/useHasMounted';
+import { supabase } from '../../src/lib/supabase';
 import Head from 'next/head';
 import SEOHead from '../../src/components/seo/SEOHead';
 import { hubCollectionSchema } from '../../src/lib/seo/hubPageSchema';
@@ -84,10 +86,51 @@ function WorldHubLoadingText() {
     return hasMounted ? <>Loading World Hub...</> : null;
 }
 
+// A player whose profile is this young and still unverified gets the welcome
+// screen as their first screen; older unverified accounts (pre-2026-10-07
+// OAuth signups) are offered it from the hamburger menu instead.
+const WELCOME_SCREEN_MAX_AGE_MS = 14 * 24 * 60 * 60 * 1000;
+
 export default function HubPage() {
+    const router = useRouter();
     const [menuOpen, setMenuOpen] = useState(false);
     const [user, setUser] = useState(null);
     const [cardCustomizerOpen, setCardCustomizerOpen] = useState(false);
+    // null = unknown yet, true/false once the profile row has been read.
+    const [phoneVerified, setPhoneVerified] = useState(null);
+
+    // ── PHONE VERIFICATION / WELCOME PACKAGE (2026-10-07, Dan) ────────────
+    // The signup form no longer collects a phone. A brand-new player sees
+    // /hub/verify-phone first (claim the 30-day VIP card + 500 diamonds, or
+    // skip); anyone unverified keeps a "Verify Phone Number" menu item.
+    useEffect(() => {
+        const authUser = getAuthUser();
+        if (!authUser?.id) return undefined;
+        let cancelled = false;
+        (async () => {
+            try {
+                const { data: profile } = await supabase
+                    .from('profiles')
+                    .select('phone_verified, created_at')
+                    .eq('id', authUser.id)
+                    .maybeSingle();
+                if (cancelled || !profile) return;
+                const verified = profile.phone_verified === true;
+                setPhoneVerified(verified);
+                if (verified) return;
+                const dismissed = !!authUser.user_metadata?.phone_prompt_dismissed_at;
+                let skippedThisSession = false;
+                try { skippedThisSession = sessionStorage.getItem('phone_prompt_skipped') === '1'; } catch (_e) { /* ignore */ }
+                const createdMs = profile.created_at ? new Date(profile.created_at).getTime() : 0;
+                const isNew = Number.isFinite(createdMs) && createdMs > 0
+                    && (Date.now() - createdMs) < WELCOME_SCREEN_MAX_AGE_MS;
+                if (isNew && !dismissed && !skippedThisSession) {
+                    router.replace('/hub/verify-phone?welcome=1');
+                }
+            } catch (_e) { /* never block the hub on this */ }
+        })();
+        return () => { cancelled = true; };
+    }, [router]);
 
     // Special unlocked card IDs for this user (for the customizer panel)
     const [unlockedSpecialIds, setUnlockedSpecialIds] = useState([]);
@@ -145,7 +188,7 @@ export default function HubPage() {
         return () => window.removeEventListener('hub-open-customizer', handleOpenCustomizer);
     }, []);
 
-    const menuConfig = getMenuConfig('hub-home', user, {}, handlers);
+    const menuConfig = getMenuConfig('hub-home', user, { phoneUnverified: phoneVerified === false }, handlers);
 
     return (
         <>

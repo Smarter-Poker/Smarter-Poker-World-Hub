@@ -52,7 +52,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [mode, setMode] = useState('login'); // 'login' or 'signup'
+  const [mode] = useState('login'); // always 'login': the Sign Up link now routes to /auth/signup
   const [message, setMessage] = useState(null);
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true); // Default to checked
@@ -999,25 +999,35 @@ export default function LoginPage() {
           )}
         </form>
 
-        {/* Sign Up toggle — covers the cyan "Sign Up" text in the image */}
+        {/* "Don't Have An Account? Sign Up" — covers the cyan "Sign Up" text in
+            the image. MOBILE FIX (2026-10-07): this used to be a 2.2%-tall
+            hotspot (13px on a phone) that only flipped an internal `mode`
+            flag. The artwork is baked, so nothing visible changed and Dan
+            reported "the sign up button doesn't work and isn't clickable".
+            It now navigates straight to the real /auth/signup form, carries
+            any email already typed, and is tall enough to actually tap. */}
         <button
+          type="button"
           onClick={() => {
-            setMode(mode === 'login' ? 'signup' : 'login');
-            setError(null);
-            setMessage(null);
+            const safeEmail = email ? email.trim().toLowerCase() : '';
+            if (safeEmail) {
+              try { sessionStorage.setItem('signup_email_prefill', safeEmail); } catch (_ssErr) { /* ignore */ }
+            }
+            router.push('/auth/signup');
           }}
           style={{
             position: 'absolute',
-            top: '88.2%',
-            left: '52%',
-            width: '22%',
-            height: '2.2%',
+            top: '86.2%',
+            left: '38%',
+            width: '40%',
+            height: '5.5%',
             background: 'transparent',
             border: 'none',
             cursor: 'pointer',
             zIndex: 10,
           }}
-          title={mode === 'login' ? 'Sign Up' : 'Sign In'}
+          title="Sign Up"
+          aria-label="Don't Have An Account? Sign Up"
         />
       </div>
       </div>
