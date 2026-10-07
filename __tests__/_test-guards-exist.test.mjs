@@ -324,6 +324,8 @@ import './world-copy-policy.test.mjs';
 import './openclaw-workers-secret.test.mjs';
 // Phase 7 dispatcher entry and the puzzle migration invariants (2026-09-30).
 import './phase7-content-dispatch.test.mjs';
+// Phase 10 dispatcher entry for the Monday fleet digest (2026-10-07).
+import './fleet-weekly-digest-dispatch.test.mjs';
 // Required CHECK 8 also enforces the recovered Video worker publication boundary.
 import './openclaw-video-library-routing.test.mjs';
 import './video-source-registry-phase3.test.mjs';
