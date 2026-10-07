@@ -382,10 +382,14 @@ def parse_calc_ev(raw: str, *, label: str) -> tuple[list[float], list[float]]:
     if len(vectors) != 2:
         raise PioError(f"{label} did not contain exact EV and matchup vectors")
     evs, matchups = vectors
-    if any(math.isinf(value) for value in evs):
-        raise PioError(f"{label} EV vector contains infinity")
     if any(not math.isfinite(value) or value < 0 for value in matchups):
         raise PioError(f"{label} matchup vector contains an invalid value")
+    # Real Pio 3.8 returns undefined EV (NaN or infinity) where matchup
+    # mass is exactly zero. Such combos are never serving evidence and the
+    # harvester exports null, not an invented EV. Check the raw mass before
+    # normalization so even tiny positive mass must retain a finite EV.
+    if any(not math.isfinite(value) and weight > 0 for value, weight in zip(evs, matchups)):
+        raise PioError(f"{label} EV vector contains a nonfinite value with positive matchup mass")
     return evs, matchups
 
 
