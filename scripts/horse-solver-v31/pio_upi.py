@@ -745,7 +745,7 @@ def _icm_setup_commands(
         raise PioError("approved ICM root pot does not match the scenario")
     if not isinstance(points, (tuple, list)) or len(points) < 4:
         raise PioError("approved ICM interpolation points are incomplete")
-    commands = ["reset_icm_tables", f"set_icm {oop_stack} {ip_stack}"]
+    commands = ["reset_icm_tables"]
     seen: set[tuple[str, int]] = set()
     for point in points:
         if not isinstance(point, (tuple, list)) or len(point) != 3:
@@ -765,6 +765,9 @@ def _icm_setup_commands(
         )
     if {player for player, _stack in seen} != {"OOP", "IP"}:
         raise PioError("approved ICM interpolation points omit a player")
+    # Licensed Pio 3.8 snapshots the payoff table when set_icm activates it.
+    # Acknowledged points added afterward do not refresh that active table.
+    commands.append(f"set_icm {oop_stack} {ip_stack}")
     return commands
 
 
@@ -852,6 +855,9 @@ def setup_commands(
     if scenario.get("objective") == "icm":
         if rake_commands != ["set_rake 0 0"] or not active_icm_commands:
             raise PioError("an ICM scenario must disable rake and install one ICM model")
+        activations = [command for command in active_icm_commands if command.startswith("set_icm ")]
+        if len(activations) != 1 or active_icm_commands[-1] != activations[0]:
+            raise PioError("ICM must activate exactly once after every interpolation point")
     elif len(rake_commands) != 1 or active_icm_commands:
         raise PioError("a cash/chip-EV scenario must clear ICM and install one rake model")
     if any(

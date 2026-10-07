@@ -222,6 +222,12 @@ remain unchanged; a conditional dataset still cannot serve without passing them.
   installed. An ICM tree explicitly uses `set_rake 0 0` to disable inherited
   rake before resetting and installing its complete pinned ICM table; Pio does
   not permit active rake and ICM at the same time.
+- Install every approved interpolation point before activating `set_icm`.
+  Licensed Pio 3.8 snapshots the points at activation; point acknowledgments
+  afterward do not refresh the active payoff table. An independent linear-ICM
+  river fixture returned zero with the old order and the expected 250 chips
+  per player with activation last. This is an engine-semantics fixture only,
+  never a harvested serving cell or a substitute for held-out qualification.
 - Convergence is `set_accuracy <fraction> fraction`, then argument-free `go`
   and `wait_for_solver`. `go <accuracy>` would mean seconds/steps, not an
   accuracy target. `calc_results` is parsed as named fields and the approved

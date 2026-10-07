@@ -409,6 +409,11 @@ class PioHarvestTests(unittest.TestCase):
         self.assertLess(commands.index("set_icm 1000 1400"), commands.index("go"))
         self.assertEqual(sum(command.startswith("set_icm_point ") for command in commands), 4)
         self.assertIn("set_icm_point OOP 2000 2500", commands)
+        # Licensed Pio 3.8 activates a snapshot; points must precede activation.
+        activation = commands.index("set_icm 1000 1400")
+        point_positions = [i for i, command in enumerate(commands) if command.startswith("set_icm_point ")]
+        self.assertTrue(all(index < activation for index in point_positions))
+        self.assertEqual(commands[activation - 1], "set_icm_point IP 2400 2500")
         # A payout utility of 1 is 2500 chip-equivalent units, not one chip.
         model.pop("payout_per_chip")
         with self.assertRaisesRegex(PioError, "normalization"):
