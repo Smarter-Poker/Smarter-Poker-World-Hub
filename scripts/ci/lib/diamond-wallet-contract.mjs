@@ -123,7 +123,7 @@ export const FLOW_LINE_KEYS = [
 
 /*
  * EVERY BUCKET fn_diamond_kind_bucket CAN EMIT, with the label it emits
- * beside it. Twenty-one: twenty reachable by a THEN, plus `other_earned`,
+ * beside it. Twenty-two: twenty-one reachable by a THEN, plus `other_earned`,
  * which is the final ELSE and therefore reachable by every credit kind
  * nobody has classified yet - the one most likely to appear without warning.
  *
@@ -141,6 +141,9 @@ export const FLOW_LINE_KEYS = [
 export const BUCKET_LABELS = Object.freeze({
   // spent side
   arena: 'Diamond Arena Seats',
+  // Added to fn_diamond_kind_bucket by Club Arena migration 20261005183028
+  // (the Diamond cash rake, kind cash_rake). Read off production 2026-10-07.
+  arena_rake: 'Diamond Arena Rake',
   gifts_sent: 'Gifts To Friends',
   transfers: 'Transfers',
   vip: 'VIP Membership',
