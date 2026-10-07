@@ -1,0 +1,58 @@
+name: Training Phase 6 Public Certificate
+on:
+  workflow_dispatch:
+    inputs:
+      expected_sha:
+        description: Exact protected-main and serving Git SHA
+        required: true
+        type: string
+      deployment_url:
+        description: Immutable canonical Vercel deployment URL
+        required: true
+        type: string
+permissions:
+  contents: read
+concurrency:
+  group: training-phase6-public-certificate
+  cancel-in-progress: false
+jobs:
+  collect-public:
+    environment: Production
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
+    timeout-minutes: 35
+    steps:
+      - name: Require protected source
+        env:
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
+        run: |
+          test "$GITHUB_REF" = refs/heads/main
+          test "$GITHUB_SHA" = "$EXPECTED_SHA"
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.12.0
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: node --test __tests__/training-phase6-public-certificate.test.mjs
+      - run: npx playwright install --with-deps chromium
+      - name: Collect public evidence only
+        env:
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
+          DEPLOYMENT_URL: ${{ inputs.deployment_url }}
+          TEST_USER_EMAIL: ${{ vars.TEST_USER_EMAIL || secrets.TEST_USER_EMAIL }}
+          TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD }}
+          NEXT_PUBLIC_SUPABASE_URL: https://kuklfnapbkmacvwxktbh.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+          PUBLIC_EVIDENCE: ${{ runner.temp }}/training-phase6-public.json
+        run: node scripts/ci/training-phase6-public-certificate.mjs
+      - name: Upload public evidence, never sessions
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: training-phase6-public-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/training-phase6-public.json
+          if-no-files-found: warn
+          retention-days: 14

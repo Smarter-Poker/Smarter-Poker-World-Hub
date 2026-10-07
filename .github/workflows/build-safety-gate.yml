@@ -208,6 +208,9 @@ jobs:
       - name: "CHECK 24: Training server-authority contracts"
         run: npm run test:training:phase6-authority
 
+      - name: Training Phase 6 Public Certificate Safety
+        run: node --test __tests__/training-phase6-public-certificate.test.mjs
+
       # The behavioral migration verifiers exercise disposable PostgreSQL 17
       # clusters. Ubuntu 24.04 ships PostgreSQL 16, which cannot model the PG17
       # MAINTAIN privilege enforced in production. Both GitHub-hosted and the
