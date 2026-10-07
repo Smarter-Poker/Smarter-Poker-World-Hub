@@ -152,11 +152,11 @@ def validate_postflop_positions(scenario: dict[str, Any]) -> None:
     blind order is SB then BB. Never repair approved inputs by relabeling.
     """
     size = scenario.get('table_size')
-    if isinstance(size, bool) or size not in POSITIONS_BY_TABLE:
+    if isinstance(size, bool) or not isinstance(size, int) or size not in POSITIONS_BY_TABLE:
         raise ContractError('invalid postflop table size')
     oop, ip = scenario.get('oop_position'), scenario.get('ip_position')
     allowed = POSITIONS_BY_TABLE[size]
-    if oop not in allowed or ip not in allowed or oop == ip:
+    if not isinstance(oop, str) or not isinstance(ip, str) or oop not in allowed or ip not in allowed or oop == ip:
         raise ContractError('invalid postflop positions')
     order = ['BB', 'SB'] if size == 2 else ['SB','BB','UTG','UTG1','UTG2','UTG3','MP','HJ','CO','BTN']
     if order.index(oop) >= order.index(ip):

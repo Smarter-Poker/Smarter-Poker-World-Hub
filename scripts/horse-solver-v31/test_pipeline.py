@@ -237,6 +237,15 @@ class PioHarvestTests(unittest.TestCase):
         with self.assertRaises(ContractError):
             validate_postflop_positions(scenario)
 
+    def test_direct_position_boundary_rejects_noninteger_and_unhashable_values(self):
+        for field, value in [('table_size', 2.0), ('table_size', []), ('table_size', True), ('oop_position', []), ('ip_position', {})]:
+            scenario = base_scenario()
+            scenario[field] = value
+            with self.assertRaises(ContractError):
+                validate_postflop_positions(scenario)
+            with self.assertRaises(PioError):
+                target_context(scenario, scenario['targets'][0])
+
     def test_zero_mass_conditional_strategy_is_not_occurrence_evidence(self):
         raw = {'c': [1.0] * 1326, 'b50': [0.0] * 1326}
         live = [True] * 1326
