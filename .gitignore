@@ -100,7 +100,6 @@ public/workbox-*.js
 public/workbox-*.js.map
 public/worker-*.js
 scripts/poker-brain/.venv/
-src/content-engine/node_modules
 vercel_deploy_output.txt
 yarn-debug.log*
 yarn-error.log*

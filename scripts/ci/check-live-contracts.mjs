@@ -114,7 +114,7 @@ async function columnsTheCodeNames() {
 /** Every model id named in code, with where and which endpoint it is for. */
 function modelsTheCodeNames() {
   const out = new Map();
-  const dirs = ['pages/api', 'src/lib', 'src/content-engine', 'vendor/commander-shared/src/lib'];
+  const dirs = ['pages/api', 'src/lib', 'vendor/commander-shared/src/lib'];
   const walk = (dir, acc = []) => {
     let entries = [];
     try { entries = readdirSync(join(ROOT, dir)); } catch { return acc; }
