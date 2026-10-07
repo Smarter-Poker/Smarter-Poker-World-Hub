@@ -414,6 +414,9 @@ def _launch_approved_solver():
     return subprocess.Popen(
         [PIO_EXE], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT, bufsize=1, universal_newlines=True,
+        # Pio resolves its licensed installation files relative to its own
+        # executable directory, not the controller-delivered pipeline bundle.
+        cwd=os.path.dirname(PIO_EXE),
         env=_solver_child_environment(),
     )
 

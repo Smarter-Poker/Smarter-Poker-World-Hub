@@ -770,7 +770,7 @@ try:
     scope.update({
         'orchestrate': GatewayAvailable(),
         'subprocess': CaptureSubprocess,
-        'PIO_EXE': 'approved-pio.exe',
+        'PIO_EXE': os.path.abspath('licensed-pio/approved-pio.exe'),
     })
     scope['_launch_approved_solver']()
 finally:
@@ -778,6 +778,7 @@ finally:
     os.environ.update(old_environment)
 
 child_environment = CaptureSubprocess.kwargs['env']
+assert CaptureSubprocess.kwargs.get('cwd') == os.path.dirname(scope['PIO_EXE']), 'Pio must launch from its licensed executable directory'
 assert child_environment == {
     'PATH': r'C:\\Windows\\System32',
     'SYSTEMROOT': r'C:\\Windows',
