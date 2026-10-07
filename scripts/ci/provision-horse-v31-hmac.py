@@ -248,7 +248,11 @@ def select_target(entries: Sequence[Mapping[str, Any]], principal: str, *, allow
     ids = [entry["id"] for entry in safe_entries]
     if len(ids) != len(set(ids)):
         raise ProvisionError("Vercel environment metadata contains duplicate IDs")
-    matches = [entry for entry in safe_entries if entry["key"] == secret_key]
+    same_key = [entry for entry in safe_entries if entry["key"] == secret_key]
+    if any(not entry["target"] or not set(entry["target"]).issubset({"production", "preview", "development"})
+           for entry in same_key):
+        raise ProvisionError("V31 HMAC environment entry has an ambiguous target scope")
+    matches = [entry for entry in same_key if "production" in entry["target"]]
     if not matches and allow_missing:
         return None
     if len(matches) != 1:
