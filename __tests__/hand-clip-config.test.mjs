@@ -41,7 +41,11 @@ test('next.config.js marks the browser packages external and traces them into th
     assert.ok(externals.includes(name), `serverExternalPackages carries ${name}`);
   }
   const includes = nextConfig.slice(nextConfig.indexOf('outputFileTracingIncludes: {'), nextConfig.indexOf('experimental: {'));
-  assert.match(includes, /'pages\/api\/cron\/render-hand-clips': \[\s*'node_modules\/@sparticuz\/chromium\/\*\*\/\*',\s*'node_modules\/puppeteer-core\/\*\*\/\*',\s*'node_modules\/@ffmpeg-installer\/linux-x64\/\*\*\/\*',\s*'node_modules\/@ffprobe-installer\/linux-x64\/\*\*\/\*',\s*\]/);
+  assert.match(includes, /'pages\/api\/cron\/render-hand-clips': \[\s*'node_modules\/@sparticuz\/chromium\/\*\*\/\*',\s*'node_modules\/puppeteer-core\/\*\*\/\*',\s*'node_modules\/@ffmpeg-installer\/linux-x64\/\*\*\/\*',\s*'node_modules\/@ffprobe-installer\/linux-x64\/\*\*\/\*',\s*\/\/[^\n]*\n\s*'fonts\/hand-clip\/\*\*\/\*',\s*\]/);
+  // The transport glyph font rides with the route: the subset, its licence and its provenance note.
+  assert.ok(existsSync(path.join(REPO, 'fonts/hand-clip/NotoSansSymbols2-HandClip.ttf')), 'the glyph font is in the repo');
+  assert.ok(existsSync(path.join(REPO, 'fonts/hand-clip/OFL.txt')), 'its licence travels with it');
+  assert.match(read('fonts/hand-clip/README.md'), /Noto Sans Symbols 2[\s\S]*pyftsubset[\s\S]*U\+2300-23FF/);
   assert.match(includes, /'pages\/api\/cron\/transcode-videos': \[\s*'node_modules\/@ffmpeg-installer\/linux-x64\/\*\*\/\*',\s*'node_modules\/@ffprobe-installer\/linux-x64\/\*\*\/\*',\s*\]/, 'the transcode include is unchanged');
   const excludes = nextConfig.slice(nextConfig.indexOf('outputFileTracingExcludes: {'), nextConfig.indexOf('outputFileTracingIncludes: {'));
   // Next applies outputFileTracingExcludes AFTER outputFileTracingIncludes, so a

@@ -566,10 +566,16 @@ test('the real handler module exports the Vercel config and a wrapped default ha
   assert.equal(typeof mod.default, 'function');
   const source = readFileSync(new URL('../pages/api/cron/render-hand-clips.js', import.meta.url), 'utf8');
   assert.match(source, /withCronHealth\('render-hand-clips', createHandler\(\)\)/);
-  assert.match(source, /executablePath: await chromium\.executablePath\(\)/);
+  assert.match(source, /executablePath,\s*args: chromium\.args/);
   assert.match(source, /args: chromium\.args/);
   assert.match(source, /headless: chromium\.headless === undefined \? 'shell' : chromium\.headless/, 'the v153 package ships chrome-headless-shell');
   assert.match(source, /defaultViewport: \{ width: CLIP_WIDTH, height: CLIP_HEIGHT, deviceScaleFactor: 1 \}/);
+  // The share page's transport glyphs and the owner's clock: the font folder is copied into
+  // the fontconfig directory after executablePath() and before launch; the browser runs on CLIP_TIMEZONE.
+  assert.match(source, /const executablePath = await chromium\.executablePath\(\);\s*await provisionClipFonts\(\);\s*return puppeteer\.launch\(/);
+  assert.match(source, /CLIP_FONTS_DIR\.split\('\/'\)/);
+  assert.match(source, /process\.env\.FONTCONFIG_PATH \|\| join\(tmpdir\(\), 'fonts'\)/);
+  assert.match(source, /env: \{ \.\.\.process\.env, TZ: CLIP_TIMEZONE \}/);
   // @sparticuz/chromium 153 is an ES module: the real adapter must load it with
   // a dynamic import (a require() of an ESM external fails the webpack build).
   assert.match(source, /await import\('@sparticuz\/chromium'\)/);

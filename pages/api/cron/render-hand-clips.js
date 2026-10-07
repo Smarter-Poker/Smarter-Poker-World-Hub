@@ -35,9 +35,14 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { spawn } from 'node:child_process';
+import { copyFile, mkdir, readdir } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { withCronHealth } from '../../../src/lib/cronHealth.js';
 import {
+  CLIP_FONTS_DIR,
   CLIP_HEIGHT,
+  CLIP_TIMEZONE,
   CLIP_WIDTH,
   HAND_COLUMNS,
   JOB_NAME,
@@ -71,17 +76,41 @@ const _binPath = (x) => {
 // @sparticuz/chromium 153 ships chrome-headless-shell and no longer exposes a
 // `headless` getter; its README launches puppeteer with headless: "shell", so
 // that is the fallback when the getter is absent.
+// The transport glyph font (see CLIP_FONTS_DIR): every .ttf in the traced
+// folder is copied into the fontconfig directory @sparticuz/chromium reads
+// (FONTCONFIG_PATH, /tmp/fonts by default; its fonts.conf lists that folder).
+// The copy happens after executablePath(), which is what creates the folder
+// and sets the variable, and before launch, when fontconfig scans it. A
+// missing folder renders the clip without the glyphs rather than not at all.
+async function provisionClipFonts(log = console.log) {
+    const source = join(process.cwd(), ...CLIP_FONTS_DIR.split('/'));
+    const target = process.env.FONTCONFIG_PATH || join(tmpdir(), 'fonts');
+    try {
+        const names = (await readdir(source)).filter((n) => n.toLowerCase().endsWith('.ttf'));
+        await mkdir(target, { recursive: true });
+        for (const name of names) await copyFile(join(source, name), join(target, name));
+        return names.length;
+    } catch (err) {
+        log(`[render-hand-clips] clip fonts not provisioned from ${source}: ${err && err.message ? err.message : err}`);
+        return 0;
+    }
+}
+
 async function launchChromium() {
     // @sparticuz/chromium 153 is an ES module (type: module); webpack refuses a
     // require() of an ESM external, so it is loaded with a dynamic import.
     const chromiumModule = await import('@sparticuz/chromium');
     const chromium = chromiumModule && chromiumModule.default ? chromiumModule.default : chromiumModule;
     const puppeteer = require('puppeteer-core');
+    const executablePath = await chromium.executablePath();
+    await provisionClipFonts();
     return puppeteer.launch({
-        executablePath: await chromium.executablePath(),
+        executablePath,
         args: chromium.args,
         headless: chromium.headless === undefined ? 'shell' : chromium.headless,
         defaultViewport: { width: CLIP_WIDTH, height: CLIP_HEIGHT, deviceScaleFactor: 1 },
+        // The owner's clock for the share header's date (CLIP_TIMEZONE).
+        env: { ...process.env, TZ: CLIP_TIMEZONE },
     });
 }
 
