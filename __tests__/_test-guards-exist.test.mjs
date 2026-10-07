@@ -125,6 +125,11 @@ import './horses-libs-review.test.mjs';
 // next" in three separate documents, which is the shape of a rule that keeps
 // getting re-broken.
 import './horses-no-language-model-for-the-fleet.test.mjs';
+// Phase 10, 2026-10-06: the Settings tab offers the two switches the live
+// engine reads (the master switch and one per posting mode) and nothing that
+// steers nothing; a mode flip is an audited UPDATE of an existing row, never an
+// insert and never automatic.
+import './horses-settings-wired-to-the-worker.test.mjs';
 import './horses-operator-foundation.test.mjs';
 import './horses-phase2-client.test.mjs';
 import './horses-phase2-migration.test.mjs';
