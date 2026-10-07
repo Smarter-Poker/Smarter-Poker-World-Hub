@@ -45,26 +45,33 @@ export const CLIP_MIN_MS = 15000;
 export const CLIP_MAX_MS = 40000;
 export const END_HOLD_MS = 1500;
 /**
- * THE FRAME IS THE SHARE PAGE (owner, 2026-10-07). A clip is the hand share
- * page itself, pixel for pixel: the 900px column with its header, felt,
- * caption, street tabs, transport, results strip and footer, as a recipient
- * of the link sees it. That column is taller than it is wide, so the frame
- * is the feed portrait (4:5) that holds it at full size with the page
- * background around it. Nothing is scaled down and nothing is cut.
+ * THE FRAME IS THE ARENA'S HAND REPLAYER (owner, 2026-10-07). A clip is the
+ * hand replayer as Club Arena shows it on a hand by id, pixel for pixel:
+ * the 900px column with its header, felt, caption, street tabs, transport
+ * and results strip, and no footer, because the arena's replayer has none.
+ * The page is reached through the public share route (it needs no sign-in)
+ * but is fed the arena's own source (Club Arena `clipSourceFrom`, the
+ * archive's reconstruction straight from the record); a first cut cloned
+ * the share page instead, whose wire does not carry where the pot went
+ * (its last frame left the sample's winner at 119.20 where the arena
+ * shows 932.70) under a footer the arena never shows. That
+ * column is taller than it is wide, so the frame is the feed portrait
+ * (4:5) that holds it at full size with the page background around it.
+ * Nothing is scaled down and nothing is cut.
  */
 export const CLIP_WIDTH = 1080;
 export const CLIP_HEIGHT = 1350;
 /**
- * THE OWNER'S CLOCK (2026-10-07). The share page prints the hand's time in
+ * THE OWNER'S CLOCK (2026-10-07). The replayer prints the hand's time in
  * the viewer's own time zone; a clip has no viewer at render time, so it
  * prints the owner's, which is what the owner compares it against.
  */
 export const CLIP_TIMEZONE = 'America/Chicago';
 /**
- * THE TRANSPORT GLYPHS (2026-10-07). The share page draws its transport
+ * THE TRANSPORT GLYPHS (2026-10-07). The replayer draws its transport
  * buttons with text symbols (first, previous, play, pause, next) that the
  * viewer's system font supplies. The packed Chromium ships Open Sans only,
- * so the first share-page clip rendered five empty buttons. fonts/hand-clip
+ * so the first full-page clip rendered five empty buttons. fonts/hand-clip
  * holds a subset of Noto Sans Symbols 2 (OFL) that carries them, under this
  * name; the route writes it into the fontconfig directory before the
  * browser starts.

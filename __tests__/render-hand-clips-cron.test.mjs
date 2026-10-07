@@ -570,7 +570,7 @@ test('the real handler module exports the Vercel config and a wrapped default ha
   assert.match(source, /args: chromium\.args/);
   assert.match(source, /headless: chromium\.headless === undefined \? 'shell' : chromium\.headless/, 'the v153 package ships chrome-headless-shell');
   assert.match(source, /defaultViewport: \{ width: CLIP_WIDTH, height: CLIP_HEIGHT, deviceScaleFactor: 1 \}/);
-  // The share page's transport glyphs and the owner's clock: the font folder is copied into
+  // The replayer's transport glyphs and the owner's clock: the font folder is copied into
   // the fontconfig directory after executablePath() and before launch; the browser runs on CLIP_TIMEZONE.
   assert.match(source, /const executablePath = await chromium\.executablePath\(\);\s*await provisionClipFonts\(\);\s*return puppeteer\.launch\(/);
   // The source path is a literal the build tracer can read to the end: a process.cwd() prefix with an
