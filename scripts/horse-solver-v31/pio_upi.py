@@ -18,6 +18,7 @@ from contract import (
     ContractError,
     load_range_vector,
     parse_source_combo_order,
+    validate_postflop_positions,
     validate_conditional_root_action,
 )
 
@@ -975,6 +976,10 @@ def _node_board_matches(target: dict[str, Any], scenario: dict[str, Any]) -> Non
 
 
 def target_context(scenario: dict[str, Any], target: dict[str, Any]) -> dict[str, Any]:
+    try:
+        validate_postflop_positions(scenario)
+    except ContractError as error:
+        raise PioError(str(error)) from error
     _node_board_matches(target, scenario)
     line = analyze_node(
         target["node"],

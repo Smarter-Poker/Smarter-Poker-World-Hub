@@ -38,6 +38,7 @@ from contract import (  # noqa: E402
     load_manifest,
     load_range_vector,
     pipeline_bundle_checksum,
+    validate_postflop_positions,
     _validate_scenario,
 )
 from gateway import (  # noqa: E402
@@ -212,6 +213,39 @@ class NodeLineTests(unittest.TestCase):
 
 
 class PioHarvestTests(unittest.TestCase):
+    def test_heads_up_postflop_positions_cannot_reverse_blinds(self):
+        scenario = base_scenario()
+        scenario['table_size'] = 2
+        with self.assertRaises(PioError):
+            target_context(scenario, scenario['targets'][0])
+        with self.assertRaises(ContractError):
+            validate_postflop_positions(scenario)
+        scenario['oop_position'], scenario['ip_position'] = 'BB', 'SB'
+        for pot_type, aggressor in [('limped', None), ('srp', 0), ('srp', 1), ('3bet', 0), ('3bet', 1), ('4bet_plus', 0), ('4bet_plus', 1)]:
+            scenario['pot_type'] = pot_type
+            scenario['preflop_aggressor_solver_player'] = aggressor
+            validate_postflop_positions(scenario)
+        scenario['pot_type'], scenario['preflop_aggressor_solver_player'] = 'limped', None
+        context = target_context(scenario, scenario['targets'][0])
+        self.assertEqual(context['hero_position'], 'BB')
+        self.assertEqual(context['opponent_position'], 'SB')
+
+    def test_multiway_postflop_order_is_not_heads_up_blind_order(self):
+        scenario = base_scenario()
+        validate_postflop_positions(scenario)
+        scenario['oop_position'], scenario['ip_position'] = 'BB', 'SB'
+        with self.assertRaises(ContractError):
+            validate_postflop_positions(scenario)
+
+    def test_direct_position_boundary_rejects_noninteger_and_unhashable_values(self):
+        for field, value in [('table_size', 2.0), ('table_size', []), ('table_size', True), ('oop_position', []), ('ip_position', {})]:
+            scenario = base_scenario()
+            scenario[field] = value
+            with self.assertRaises(ContractError):
+                validate_postflop_positions(scenario)
+            with self.assertRaises(PioError):
+                target_context(scenario, scenario['targets'][0])
+
     def test_zero_mass_conditional_strategy_is_not_occurrence_evidence(self):
         raw = {'c': [1.0] * 1326, 'b50': [0.0] * 1326}
         live = [True] * 1326
