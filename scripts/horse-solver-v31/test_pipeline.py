@@ -38,6 +38,7 @@ from contract import (  # noqa: E402
     load_manifest,
     load_range_vector,
     pipeline_bundle_checksum,
+    _validate_scenario,
 )
 from gateway import (  # noqa: E402
     GatewayError,
@@ -61,6 +62,7 @@ from pio_upi import (  # noqa: E402
     target_context,
     texture_class,
     validate_pipeline_imports,
+    PIO_ACK_COMMANDS,
 )
 from worker import (  # noqa: E402
     artifact_id,
@@ -125,6 +127,33 @@ def base_scenario() -> dict:
 
 
 class NodeLineTests(unittest.TestCase):
+    def test_conditional_root_jam_is_explicit_and_forced_before_build(self):
+        scenario = base_scenario()
+        self.assertFalse(any(c.startswith("force_line") for c in setup_commands(scenario, [1.] * 1326, [1.] * 1326)))
+        scenario["conditional_root_action"] = {"action": "all_in", "model": "authored_opponent_jam_response"}
+        scenario["tree_lines"] = [[1000, 1000]]
+        scenario["targets"][0].update(node="r:0:b1000", node_role="all_in", facing_kind="all_in", facing_size_bucket="all_in", expected_children=["c", "f"])
+        _validate_scenario(scenario, 0, Path("."), {}, {}, False)
+        commands = setup_commands(scenario, [1.] * 1326, [1.] * 1326)
+        self.assertLess(commands.index("add_line 1000 1000"), commands.index("force_line 1000"))
+        self.assertLess(commands.index("force_line 1000"), commands.index("build_tree"))
+        self.assertIn("force_line", PIO_ACK_COMMANDS)
+        import copy
+        for field, value in [("conditional_root_action", {"action": "all_in", "model": "equilibrium"}), ("conditional_root_action", None), ("conditional_root_action", False), ("conditional_root_action", 1), ("conditional_root_action", {"action": "all_in"}), ("conditional_root_action", {"action": "all_in", "model": "authored_opponent_jam_response", "unknown": 1}), ("purpose", "self_test"), ("tree_lines", [[0, 1000, 1000]]), ("tree_lines", [[1000, 1000], [0, 1000, 1000]])]:
+            invalid = copy.deepcopy(scenario)
+            invalid[field] = value
+            with self.subTest(field=field, value=value), self.assertRaises(ContractError):
+                _validate_scenario(invalid, 0, Path("."), {}, {}, False)
+        invalid = copy.deepcopy(scenario)
+        invalid["targets"].append(dict(invalid["targets"][0], target_id="second", node="r:0:c:b1000"))
+        with self.assertRaises(ContractError):
+            _validate_scenario(invalid, 0, Path("."), {}, {}, False)
+        for field, value in [("node", "r:0:c:b1000"), ("board", "AhKd7c"), ("node_role", "facing_bet"), ("expected_children", ["c", "f", "b2000"])]:
+            invalid = copy.deepcopy(scenario)
+            invalid["targets"][0][field] = value
+            with self.subTest(field=field, value=value), self.assertRaises(ContractError):
+                _validate_scenario(invalid, 0, Path("."), {}, {}, False)
+
     def line(self, node: str, preflop: int | None = None):
         return analyze_node(
             node,
