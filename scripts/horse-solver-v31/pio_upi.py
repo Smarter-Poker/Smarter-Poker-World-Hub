@@ -382,10 +382,14 @@ def parse_calc_ev(raw: str, *, label: str) -> tuple[list[float], list[float]]:
     if len(vectors) != 2:
         raise PioError(f"{label} did not contain exact EV and matchup vectors")
     evs, matchups = vectors
-    if any(math.isinf(value) for value in evs):
-        raise PioError(f"{label} EV vector contains infinity")
     if any(not math.isfinite(value) or value < 0 for value in matchups):
         raise PioError(f"{label} matchup vector contains an invalid value")
+    # Real Pio 3.8 returns undefined EV (NaN or infinity) where matchup
+    # mass is exactly zero. Such combos are never serving evidence and the
+    # harvester exports null, not an invented EV. Check the raw mass before
+    # normalization so even tiny positive mass must retain a finite EV.
+    if any(not math.isfinite(value) and weight > 0 for value, weight in zip(evs, matchups)):
+        raise PioError(f"{label} EV vector contains a nonfinite value with positive matchup mass")
     return evs, matchups
 
 
@@ -936,8 +940,9 @@ def _normalized_frequencies(
             raise PioError(f"strategy contains an invalid frequency at combo {index}")
         total = sum(values)
         if not live[index]:
-            if abs(total) > 0.00002:
-                raise PioError(f"unreached combo {index} carries strategy")
+            # Pio can retain a conditional strategy for a hand whose exact
+            # matchup mass is zero. It is not occurrence evidence: keep the
+            # finite/bounds validation above, then export zero frequencies.
             continue
         if not 0.98 <= total <= 1.02:
             raise PioError(f"live combo {index} frequencies sum to {total}")
@@ -1040,6 +1045,9 @@ def harvest_node(
         if weight > 0 and reach_weight <= 0:
             raise PioError(f"calc_ev reports matchups for unreachable combo {index}")
         normalized_weight = 0.0 if blocked else round(weight, 8)
+        if not blocked and weight > 0 and normalized_weight == 0:
+            # Never erase real positive occurrence mass by decimal rounding.
+            normalized_weight = weight
         normalized_matchups.append(normalized_weight)
         live.append(normalized_weight > 0)
     frequencies = _normalized_frequencies(raw_frequencies, live)

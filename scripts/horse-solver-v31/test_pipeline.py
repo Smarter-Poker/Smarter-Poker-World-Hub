@@ -53,6 +53,8 @@ from pio_upi import (  # noqa: E402
     harvest_node,
     parse_children,
     parse_calc_results,
+    parse_calc_ev,
+    _normalized_frequencies,
     run_self_test,
     solve_scenario,
     setup_commands,
@@ -180,6 +182,85 @@ class NodeLineTests(unittest.TestCase):
 
 
 class PioHarvestTests(unittest.TestCase):
+    def test_zero_mass_conditional_strategy_is_not_occurrence_evidence(self):
+        raw = {'c': [1.0] * 1326, 'b50': [0.0] * 1326}
+        live = [True] * 1326
+        live[0] = False
+        normalized = _normalized_frequencies(raw, live)
+        self.assertEqual(normalized['c'][0], 0)
+        self.assertEqual(normalized['c'][1], 1)
+        for invalid in (float('inf'), float('nan'), -0.1, 1.1):
+            raw['c'][0] = invalid
+            with self.assertRaises(PioError):
+                _normalized_frequencies(raw, live)
+        raw['c'][0] = 1
+        raw['c'][1] = 0.5
+        with self.assertRaises(PioError):
+            _normalized_frequencies(raw, live)
+
+    def test_tiny_positive_matchups_remain_live_in_the_export(self):
+        scenario = base_scenario()
+        kwargs = dict(manifest_checksum='c'*64, source_combo_order_checksum='d'*64, range_bundle_checksum='e'*64)
+        baseline = harvest_node(self.fake_pio, scenario, scenario['targets'][0], **kwargs)
+        index = next(i for i, mass in enumerate(baseline['matchups']) if mass > 0)
+        def tiny_mass(command):
+            raw = self.fake_pio(command)
+            if command == 'calc_ev OOP r:0':
+                rows = [line.split() for line in raw.splitlines()]
+                rows[1][index] = '0.000000000001'
+                return '\n'.join(' '.join(row) for row in rows)
+            return raw
+        result = harvest_node(tiny_mass, scenario, scenario['targets'][0], **kwargs)
+        self.assertGreater(result['matchups'][index], 0)
+        self.assertIsNotNone(result['policy_evs_bb'][index])
+        self.assertAlmostEqual(sum(values[index] for values in result['frequencies'].values()), 1)
+
+    def test_undefined_ev_is_allowed_only_for_exact_zero_matchup_mass(self):
+        for undefined in ('inf', '-inf', 'nan'):
+            with self.subTest(undefined=undefined):
+                ev = ['100'] * 1326
+                mass = ['4'] * 1326
+                ev[0], mass[0] = undefined, '0'
+                values, weights = parse_calc_ev('\n'.join((' '.join(ev), ' '.join(mass))), label='captured EV')
+                self.assertEqual(weights[0], 0)
+                for positive in ('4', '0.000000000001'):
+                    mass[0] = positive
+                    with self.assertRaises(PioError):
+                        parse_calc_ev('\n'.join((' '.join(ev), ' '.join(mass))), label='live EV')
+                for invalid in ('-1', 'nan', 'inf'):
+                    mass[0] = invalid
+                    with self.assertRaises(PioError):
+                        parse_calc_ev('\n'.join((' '.join(ev), ' '.join(mass))), label='invalid mass')
+
+    def test_unreachable_infinite_ev_exports_null_but_live_action_still_refuses(self):
+        def undefined_pio(command):
+            raw = self.fake_pio(command)
+            if command.startswith('calc_ev '):
+                rows = raw.splitlines()
+                values = rows[0].split()
+                values = ['inf' if value == 'nan' else value for value in values]
+                return '\n'.join((' '.join(values), rows[1]))
+            return raw
+        scenario = base_scenario()
+        kwargs = dict(manifest_checksum='c'*64, source_combo_order_checksum='d'*64, range_bundle_checksum='e'*64)
+        node = harvest_node(undefined_pio, scenario, scenario['targets'][0], **kwargs)
+        self.assertIn(None, node['policy_evs_bb'])
+        for index, mass in enumerate(node['matchups']):
+            if mass == 0:
+                self.assertIsNone(node['policy_evs_bb'][index])
+                for values in node['action_evs_bb'].values():
+                    self.assertIsNone(values[index])
+        def invalid_action(command):
+            raw = undefined_pio(command)
+            if command == 'calc_ev OOP r:0:c':
+                rows = [line.split() for line in raw.splitlines()]
+                live_index = next(i for i, mass in enumerate(node['matchups']) if mass > 0)
+                rows[0][live_index], rows[1][live_index] = 'inf', '0'
+                return '\n'.join(' '.join(row) for row in rows)
+            return raw
+        with self.assertRaises(PioError):
+            harvest_node(invalid_action, scenario, scenario['targets'][0], **kwargs)
+
     def test_real_pio38_calc_results_has_optional_runtime_and_required_equity_fields(self):
         captured = "\n".join(("EV OOP: 250.000", "EV IP: 250.000",
             "OOP's MES: 250.000", "IP's MES: 250.000", "Exploitable for: 0.000"))
