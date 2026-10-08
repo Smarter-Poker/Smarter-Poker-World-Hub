@@ -18,6 +18,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
 import { Crown, Gem, CheckCircle2 } from 'lucide-react';
+import { capture, FunnelEvents } from '../../src/lib/analytics';
 import SEOHead from '../../src/components/seo/SEOHead';
 import { supabase } from '../../src/lib/supabase';
 import { useRequireAuth, authedFetch } from '../../src/lib/authUtils';
@@ -79,6 +80,12 @@ export default function VerifyPhonePage() {
     // so a missing user keeps the skeleton up instead of flashing the form.
     const checking = authChecking || !user?.id || !profileChecked;
 
+    // Funnel: how many players reach this screen, and from where.
+    useEffect(() => {
+        if (checking || alreadyVerified) return;
+        try { capture(FunnelEvents.PHONE_VERIFY_SHOWN, { welcome: isWelcome }); } catch (_e) { /* analytics is best-effort */ }
+    }, [checking, alreadyVerified, isWelcome]);
+
     // ── Resend cooldown ─────────────────────────────────────────────────
     useEffect(() => {
         if (cooldown <= 0) return undefined;
@@ -107,13 +114,14 @@ export default function VerifyPhonePage() {
             setStage('code');
             setCode('');
             setCooldown(RESEND_COOLDOWN_S);
+            try { capture(FunnelEvents.PHONE_VERIFY_CODE_SENT, { welcome: isWelcome }); } catch (_e) { /* best-effort */ }
             setTimeout(() => codeRef.current?.focus(), 50);
         } catch (err) {
             setError(err.message || 'Failed To Send Code');
         } finally {
             setBusy(false);
         }
-    }, [busy, cooldown, digits]);
+    }, [busy, cooldown, digits, isWelcome]);
 
     const verifyCode = useCallback(async () => {
         if (busy) return;
@@ -136,6 +144,14 @@ export default function VerifyPhonePage() {
             if (!res.ok || !data.success) throw new Error(data.error || 'Verification Failed');
             setResult(data);
             setStage('done');
+            try {
+                capture(FunnelEvents.PHONE_VERIFIED, {
+                    welcome: isWelcome,
+                    vip_granted: !!data.vipGranted,
+                    welcome_diamonds: Number(data.welcomeDiamonds || 0),
+                    package_status: data.packageStatus || null,
+                });
+            } catch (_e) { /* best-effort */ }
             // Hydrate the header and balance the way the old welcome popup did:
             // the VIP badge flips on and the diamonds land without a reload.
             try {
@@ -162,7 +178,7 @@ export default function VerifyPhonePage() {
         } finally {
             setBusy(false);
         }
-    }, [busy, code, digits, user?.id]);
+    }, [busy, code, digits, user?.id, isWelcome]);
 
     const skip = useCallback(() => {
         if (busy) return;
@@ -170,12 +186,13 @@ export default function VerifyPhonePage() {
         // This session's flag first so the hub never bounces back; the metadata
         // write (for later sessions) is fired without holding the navigation.
         try { sessionStorage.setItem('phone_prompt_skipped', '1'); } catch (_e) { /* ignore */ }
+        try { capture(FunnelEvents.PHONE_VERIFY_SKIPPED, { welcome: isWelcome }); } catch (_e) { /* best-effort */ }
         try {
             supabase.auth.updateUser({ data: { [DISMISS_KEY]: new Date().toISOString() } })
                 .catch(() => { /* non-blocking */ });
         } catch (_e) { /* non-blocking */ }
         router.replace('/hub');
-    }, [router, busy]);
+    }, [router, busy, isWelcome]);
 
     const goHub = useCallback(() => {
         try { sessionStorage.setItem('just_authenticated', 'true'); } catch (_e) { /* ignore */ }

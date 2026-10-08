@@ -55,6 +55,10 @@ import '../tests/spin-500x-retired.test.mjs';
 import '../tests/no-stray-club-arena-build.test.mjs';
 import '../tests/one-build-command.test.mjs';
 import '../tests/spin-reserve-fund-contract.test.mjs';
+// The welcome package (30-day VIP + 500 diamonds) is earned by phone
+// verification, never at birth (Dan, 2026-10-07). Executed here for the same
+// workflow-permission reason as the suites above.
+import './the-welcome-package-is-earned-by-phone-verification.law.test.mjs';
 
 // ─────────────────────────────────────────────────────────────────────────
 // The 48 guards CI had never run.
