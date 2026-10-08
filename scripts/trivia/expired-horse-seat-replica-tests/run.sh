@@ -22,21 +22,21 @@ fi
 
 for binary in postgres initdb pg_ctl psql createdb pg_config; do
   [[ -x "$pg_bin/$binary" ]] || {
-    echo "Phase 12 cutover replica gate requires PostgreSQL 17 binary: $binary" >&2
+    echo "Expired horse replica gate requires PostgreSQL 17 binary: $binary" >&2
     exit 2
   }
 done
 [[ "$("$pg_bin/postgres" --version)" == *" 17."* ]] || {
-  echo "Phase 12 cutover replica gate requires exact PostgreSQL 17" >&2
+  echo "Expired horse replica gate requires exact PostgreSQL 17" >&2
   exit 2
 }
 
-tmp_parent="$(printenv P12_CUTOVER_TMP_PARENT 2>/dev/null || true)"
+tmp_parent="$(printenv TRIVIA_EXPIRED_HORSE_TMP_PARENT 2>/dev/null || printenv P12_CUTOVER_TMP_PARENT 2>/dev/null || true)"
 if [[ -z "$tmp_parent" ]]; then
   tmp_parent="$(printenv RUNNER_TEMP 2>/dev/null || true)"
 fi
 if [[ -z "$tmp_parent" ]]; then
-  echo "Set P12_CUTOVER_TMP_PARENT to an existing scratch parent" >&2
+  echo "Set TRIVIA_EXPIRED_HORSE_TMP_PARENT to an existing scratch parent" >&2
   exit 2
 fi
 if [[ "$(uname -s)" == "Darwin"
@@ -55,12 +55,12 @@ space_kb() {
 }
 
 before_kb="$(space_kb)"
-echo "p12-cutover-pg17 space_before_kb=$before_kb"
+echo "expired-horse-pg17 space_before_kb=$before_kb"
 if (( before_kb < 524288 )); then
-  echo "Phase 12 cutover replica gate requires at least 524288 KiB free scratch space" >&2
+  echo "Expired horse replica gate requires at least 524288 KiB free scratch space" >&2
   exit 2
 fi
-work_root="$(mktemp -d "$tmp_parent/p12pg.XXXXXX")"
+work_root="$(mktemp -d "$tmp_parent/eh.XXXXXX")"
 data_dir="$work_root/data"
 socket_dir="$work_root"
 # Unix sockets have a short platform path limit; do not add a nested directory.
@@ -75,11 +75,11 @@ cleanup() {
     "$pg_bin/pg_ctl" -D "$data_dir" -m immediate -w stop >/dev/null 2>&1 || true
   fi
   case "$work_root" in
-    "$tmp_parent"/p12pg.*) rm -rf -- "$work_root" ;;
+    "$tmp_parent"/eh.*) rm -rf -- "$work_root" ;;
     *) echo "Refusing unsafe replica cleanup target: $work_root" >&2; rc=3 ;;
   esac
   after_kb="$(space_kb)"
-  echo "p12-cutover-pg17 space_after_kb=$after_kb"
+  echo "expired-horse-pg17 space_after_kb=$after_kb"
   exit "$rc"
 }
 trap cleanup EXIT INT TERM
@@ -103,34 +103,25 @@ pg_share="$("$pg_bin/pg_config" --sharedir)"
     exit 1
   }
 started=1
-"$pg_bin/createdb" -h "$socket_dir" -p "$port" -U postgres p12_cutover
+"$pg_bin/createdb" -h "$socket_dir" -p "$port" -U postgres expired_horse
 
 run_psql() {
   "$pg_bin/psql" -X -v ON_ERROR_STOP=1 \
-    -h "$socket_dir" -p "$port" -U postgres -d p12_cutover "$@"
+    -h "$socket_dir" -p "$port" -U postgres -d expired_horse "$@"
 }
 
-run_psql -f "$repo_root/scripts/trivia/p12-cutover-replica-tests/00_fixture.sql"
-run_psql -f "$repo_root/supabase/migrations/20261006014200_trivia_p12_competitive_cutover_authority.sql"
-run_psql -f "$repo_root/supabase/migrations/20261008181229_trivia_zero_canary_funding_validation.sql"
-run_psql -f "$repo_root/scripts/trivia/p12-cutover-replica-tests/10_assertions.sql"
-run_psql -f "$repo_root/scripts/trivia/p12-cutover-replica-tests/20_metrics_before.sql"
-run_psql -f "$repo_root/supabase/migrations/20261008153740_trivia_metrics_use_builtin_wall_clock.sql"
-run_psql -f "$repo_root/scripts/trivia/p12-cutover-replica-tests/30_metrics_after.sql"
-
-run_psql -f "$repo_root/scripts/trivia/p12-cutover-replica-tests/40_canary_funding.sql"
-
-# Exercise the exact documented forward rollback, then reapply the guarded
-# correction in this disposable database. Production history is never replayed.
-sed -n '/^\/\*$/,/^\*\/$/{ /^\/\*$/d; /^\*\/$/d; p; }' \
-  "$repo_root/supabase/migrations/20261008181229_trivia_zero_canary_funding_validation.sql" | run_psql
-run_psql -c "DO \$rollback\$ BEGIN IF md5(pg_get_functiondef('public.trivia_competitive_tournament_canary_ready_v1(uuid,integer,boolean)'::regprocedure)) <> '8735454d414ecd263951bb6b867a9a48' THEN RAISE EXCEPTION 'forward rollback did not restore predecessor'; END IF; END \$rollback\$;"
-run_psql -f "$repo_root/supabase/migrations/20261008181229_trivia_zero_canary_funding_validation.sql"
-run_psql -f "$repo_root/scripts/trivia/p12-cutover-replica-tests/40_canary_funding.sql"
-
-peak_kb="$(space_kb)"
-echo "p12-cutover-pg17 space_peak_free_kb=$peak_kb"
-echo "p12-cutover-pg17 PASS postgres=$("$pg_bin/postgres" --version)"
-
-# Original horse-seat expiry recovery is qualified in its isolated PG17 fixture.
-bash "$repo_root/scripts/trivia/expired-horse-seat-replica-tests/run.sh"
+migration="$repo_root/supabase/migrations/20261008193857_trivia_expired_horse_seat_recovery.sql"
+node "$repo_root/scripts/trivia/expired-horse-seat-replica-tests/extract.mjs" "$repo_root" "$work_root" "$migration"
+run_psql -f "$repo_root/scripts/trivia/expired-horse-seat-replica-tests/fixture.sql"
+run_psql -f "$work_root/prepare_horse_seat.sql" -f "$work_root/resolve_matchup.sql"
+run_psql -f "$repo_root/scripts/trivia/expired-horse-seat-replica-tests/before.sql"
+run_psql -f "$migration"
+run_psql -f "$repo_root/scripts/trivia/expired-horse-seat-replica-tests/boundaries.sql"
+run_psql -f "$repo_root/scripts/trivia/expired-horse-seat-replica-tests/assertions.sql"
+run_psql -f "$work_root/rollback-refusal.sql"
+{ cat "$work_root/rollback.sql"; cat "$repo_root/scripts/trivia/expired-horse-seat-replica-tests/before.sql"; echo ROLLBACK\;; } | run_psql
+# Fresh fixture state only: verify guarded reapplication after the exact rollback.
+{ cat "$work_root/rollback.sql"; echo COMMIT\;; } | run_psql
+run_psql -f "$migration"
+run_psql -f "$repo_root/scripts/trivia/expired-horse-seat-replica-tests/assertions.sql"
+echo "expired-horse-pg17 PASS postgres=$("$pg_bin/postgres" --version)"
