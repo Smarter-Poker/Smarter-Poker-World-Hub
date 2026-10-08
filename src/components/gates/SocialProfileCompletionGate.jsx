@@ -305,6 +305,11 @@ export default function SocialProfileCompletionGate({ profile, onComplete }) {
                                     {submitting ? <span style={s.spinner} /> : 'Finish ✓'}
                                 </button>
                             </div>
+                            {profile?.phone_verified !== true && (
+                                <div style={s.packageNote}>
+                                    Next: Verify Your Phone Number From The Hub Menu To Claim Your Welcome Package, A 30-Day VIP Card And 500 Diamonds.
+                                </div>
+                            )}
                         </div>
                     )}
 
@@ -428,6 +433,11 @@ const s = {
         cursor: 'pointer', minWidth: 92,
     },
     helper: { fontSize: 12, marginTop: 8, minHeight: 18, fontWeight: 500 },
+    packageNote: {
+        marginTop: 14, padding: '10px 12px', borderRadius: 10,
+        background: 'rgba(0, 212, 255, 0.08)', border: '1px solid rgba(0, 212, 255, 0.25)',
+        color: 'rgba(255,255,255,0.8)', fontSize: 12, lineHeight: 1.45, textAlign: 'center',
+    },
     suggestionsRow: { display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, marginTop: 12 },
     suggestLabel: { fontSize: 12, color: 'rgba(255,255,255,0.55)', fontWeight: 600 },
     suggestionChip: {

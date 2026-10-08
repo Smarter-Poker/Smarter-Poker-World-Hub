@@ -755,6 +755,205 @@ export default function SignUpPage() {
     }
   };
 
+  // The form fields, rendered once for the desktop art card and once for the
+  // phone layout (CSS decides which tree is visible; both share this state).
+  const signupFields = (
+    <>
+                {/* First Name & Last Name */}
+                <div className="auth-field-row">
+                  <div className="auth-field-group">
+                    <label className="auth-label">First Name</label>
+                    <input
+                      type="text"
+                      className="auth-input-styled"
+                      placeholder=""
+                      value={formData.firstName}
+                      onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                      required
+                    />
+                  </div>
+                  <div className="auth-field-group">
+                    <label className="auth-label">Last Name</label>
+                    <input
+                      type="text"
+                      className="auth-input-styled"
+                      placeholder=""
+                      value={formData.lastName}
+                      onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                      required
+                    />
+                  </div>
+                </div>
+
+                {/* Email Address */}
+                <div className="auth-field-group">
+                  <label className="auth-label">Email Address</label>
+                  <input
+                    type="email"
+                    className="auth-input-styled"
+                    placeholder=""
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    required
+                  />
+                </div>
+
+                {/* Password */}
+                <div className="auth-field-group">
+                  <label className="auth-label">Password</label>
+                  <input
+                    type="password"
+                    className="auth-input-styled"
+                    placeholder=""
+                    value={formData.password}
+                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                    required
+                    minLength={PW_MIN_LENGTH}
+                  />
+                </div>
+
+                {/* Date of Birth */}
+                <div className="auth-field-group">
+                  <label className="auth-label">Date Of Birth <span style={{ color: "#00d4ff", fontSize: "9px", textTransform: "none" }}>(Must Be 18+)</span></label>
+                  <div className="auth-field-row">
+                    <select
+                      className="auth-input-styled"
+                      value={formData.birthMonth || ""}
+                      onChange={(e) => setFormData({ ...formData, birthMonth: e.target.value })}
+                      required
+                    >
+                      <option value="" disabled>Month</option>
+                      {months.map((m) => (
+                        <option key={m.value} value={m.value}>{m.label}</option>
+                      ))}
+                    </select>
+                    <select
+                      className="auth-input-styled"
+                      value={formData.birthDay || ""}
+                      onChange={(e) => setFormData({ ...formData, birthDay: e.target.value })}
+                      required
+                    >
+                      <option value="" disabled>Day</option>
+                      {days.map((d) => (
+                        <option key={d} value={d}>{d}</option>
+                      ))}
+                    </select>
+                    <select
+                      className="auth-input-styled"
+                      value={formData.birthYear || ""}
+                      onChange={(e) => setFormData({ ...formData, birthYear: e.target.value })}
+                      required
+                    >
+                      <option value="" disabled>Year</option>
+                      {years.map((y) => (
+                        <option key={y} value={y}>{y}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                {/* City & State */}
+                <div className="auth-field-row">
+                  <div className="auth-field-group" style={{ flex: 2 }}>
+                    <label className="auth-label">City</label>
+                    <input
+                      type="text"
+                      className="auth-input-styled"
+                      placeholder=""
+                      value={formData.city}
+                      onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                      required
+                    />
+                  </div>
+                  <div className="auth-field-group" style={{ flex: 1 }}>
+                    <label className="auth-label">State</label>
+                    <select
+                      className="auth-input-styled"
+                      value={formData.state}
+                      onChange={(e) => setFormData({ ...formData, state: e.target.value })}
+                      required
+                    >
+                      <option value="" disabled>Select</option>
+                      {usStates.map((s) => (
+                        <option key={s} value={s}>{s}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                {/* Poker Alias */}
+                <div className="auth-field-group">
+                  <label className="auth-label">Poker Alias <span style={{ color: "#00d4ff", fontSize: "9px", textTransform: "none" }}>(You Can Change This Later)</span></label>
+                  <input
+                    type="text"
+                    className="auth-input-styled"
+                    placeholder=""
+                    value={formData.pokerAlias}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        pokerAlias: e.target.value.replace(/[^a-zA-Z0-9_]/g, ""),
+                      })
+                    }
+                    required
+                    minLength={3}
+                  />
+                  {formData.pokerAlias.length >= 3 && aliasAvailable !== null && (
+                    <div style={{ fontSize: "11px", fontWeight: "bold", color: aliasAvailable ? "#4ade80" : "#f87171" }}>
+                      {aliasAvailable ? "User Name Is Available" : "Username Not Available"}
+                    </div>
+                  )}
+                </div>
+
+                {/* Promo Code */}
+                <div className="auth-field-group">
+                  <label className="auth-label">Promo Or Referral Code <span style={{ color: "#00d4ff", fontSize: "9px", textTransform: "none" }}>(Optional)</span></label>
+                  <input
+                    type="text"
+                    className="auth-input-styled"
+                    placeholder="ENTER CODE"
+                    value={formData.promoCode}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        promoCode: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ""),
+                      })
+                    }
+                    maxLength={20}
+                    style={{ textTransform: "uppercase" }}
+                  />
+                  {/* THE VALIDATION RAN, NOTHING SHOWED IT (fixed 2026-08-25).
+                      The debounced effect above calls
+                      /api/promo/validate-{promo,referral}-code and sets
+                      promoChecking / promoError / promoDetails - and not one of
+                      the three was rendered anywhere. A mistyped code looked
+                      exactly like a good one right up until the account was
+                      created without the bonus, because handleSignUp only
+                      stores the pending code when `promoValid` is true. */}
+                  {promoChecking && (
+                    <div style={{ marginTop: '6px', color: '#9aa5b6', fontSize: '11px' }}>
+                      Checking Code...
+                    </div>
+                  )}
+                  {!promoChecking && promoError && (
+                    <div
+                      role="alert"
+                      style={{ marginTop: '6px', color: '#ff6b6b', fontSize: '11px' }}
+                    >
+                      {promoError}
+                    </div>
+                  )}
+                  {!promoChecking && promoValid && (
+                    <div style={{ marginTop: '6px', color: '#31A24C', fontSize: '11px' }}>
+                      {isReferralCode
+                        ? `Referral Code Accepted${referralDetails?.username ? ` - ${referralDetails.username}` : ''}`
+                        : `Promo Code Accepted${promoDetails?.description ? ` - ${promoDetails.description}` : ''}`}
+                    </div>
+                  )}
+                </div>
+    </>
+  );
+
   // ─────────────────────────────────────────────────────────────────────────
   // RENDER
   // ─────────────────────────────────────────────────────────────────────────
@@ -768,7 +967,22 @@ export default function SignUpPage() {
 
       {step === 'info' ? (
         <>
+        {/* PHONE-FIRST LAYOUT (2026-10-08, Dan). Below 600px the painted
+            card's form window is ~164px wide and every field is cramped
+            inside a scroll box. On phones the artwork's top (logo, Create
+            Account, the social buttons) stays as a header and the form
+            renders full-width beneath it with real controls. Both trees
+            are always in the DOM and share the same state; CSS picks one,
+            so there is no server/client mismatch and no flash. */}
+        <style dangerouslySetInnerHTML={{ __html: `
+          .sp-signup-phone { display: none; }
+          @media (max-width: 599px) {
+            .sp-signup-desktop { display: none !important; }
+            .sp-signup-phone { display: block; }
+          }
+        ` }} />
         <div
+          className="sp-signup-desktop"
           style={{
             position: 'relative',
             width: '100%',
@@ -1018,198 +1232,7 @@ export default function SignUpPage() {
                   }
                 ` }} />
 
-                {/* First Name & Last Name */}
-                <div className="auth-field-row">
-                  <div className="auth-field-group">
-                    <label className="auth-label">First Name</label>
-                    <input
-                      type="text"
-                      className="auth-input-styled"
-                      placeholder=""
-                      value={formData.firstName}
-                      onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
-                      required
-                    />
-                  </div>
-                  <div className="auth-field-group">
-                    <label className="auth-label">Last Name</label>
-                    <input
-                      type="text"
-                      className="auth-input-styled"
-                      placeholder=""
-                      value={formData.lastName}
-                      onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
-                      required
-                    />
-                  </div>
-                </div>
-
-                {/* Email Address */}
-                <div className="auth-field-group">
-                  <label className="auth-label">Email Address</label>
-                  <input
-                    type="email"
-                    className="auth-input-styled"
-                    placeholder=""
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    required
-                  />
-                </div>
-
-                {/* Password */}
-                <div className="auth-field-group">
-                  <label className="auth-label">Password</label>
-                  <input
-                    type="password"
-                    className="auth-input-styled"
-                    placeholder=""
-                    value={formData.password}
-                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                    required
-                    minLength={PW_MIN_LENGTH}
-                  />
-                </div>
-
-                {/* Date of Birth */}
-                <div className="auth-field-group">
-                  <label className="auth-label">Date Of Birth <span style={{ color: "#00d4ff", fontSize: "9px", textTransform: "none" }}>(Must Be 18+)</span></label>
-                  <div className="auth-field-row">
-                    <select
-                      className="auth-input-styled"
-                      value={formData.birthMonth || ""}
-                      onChange={(e) => setFormData({ ...formData, birthMonth: e.target.value })}
-                      required
-                    >
-                      <option value="" disabled>Month</option>
-                      {months.map((m) => (
-                        <option key={m.value} value={m.value}>{m.label}</option>
-                      ))}
-                    </select>
-                    <select
-                      className="auth-input-styled"
-                      value={formData.birthDay || ""}
-                      onChange={(e) => setFormData({ ...formData, birthDay: e.target.value })}
-                      required
-                    >
-                      <option value="" disabled>Day</option>
-                      {days.map((d) => (
-                        <option key={d} value={d}>{d}</option>
-                      ))}
-                    </select>
-                    <select
-                      className="auth-input-styled"
-                      value={formData.birthYear || ""}
-                      onChange={(e) => setFormData({ ...formData, birthYear: e.target.value })}
-                      required
-                    >
-                      <option value="" disabled>Year</option>
-                      {years.map((y) => (
-                        <option key={y} value={y}>{y}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-
-                {/* City & State */}
-                <div className="auth-field-row">
-                  <div className="auth-field-group" style={{ flex: 2 }}>
-                    <label className="auth-label">City</label>
-                    <input
-                      type="text"
-                      className="auth-input-styled"
-                      placeholder=""
-                      value={formData.city}
-                      onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                      required
-                    />
-                  </div>
-                  <div className="auth-field-group" style={{ flex: 1 }}>
-                    <label className="auth-label">State</label>
-                    <select
-                      className="auth-input-styled"
-                      value={formData.state}
-                      onChange={(e) => setFormData({ ...formData, state: e.target.value })}
-                      required
-                    >
-                      <option value="" disabled>Select</option>
-                      {usStates.map((s) => (
-                        <option key={s} value={s}>{s}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-
-                {/* Poker Alias */}
-                <div className="auth-field-group">
-                  <label className="auth-label">Poker Alias <span style={{ color: "#00d4ff", fontSize: "9px", textTransform: "none" }}>(You Can Change This Later)</span></label>
-                  <input
-                    type="text"
-                    className="auth-input-styled"
-                    placeholder=""
-                    value={formData.pokerAlias}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        pokerAlias: e.target.value.replace(/[^a-zA-Z0-9_]/g, ""),
-                      })
-                    }
-                    required
-                    minLength={3}
-                  />
-                  {formData.pokerAlias.length >= 3 && aliasAvailable !== null && (
-                    <div style={{ fontSize: "11px", fontWeight: "bold", color: aliasAvailable ? "#4ade80" : "#f87171" }}>
-                      {aliasAvailable ? "User Name Is Available" : "Username Not Available"}
-                    </div>
-                  )}
-                </div>
-
-                {/* Promo Code */}
-                <div className="auth-field-group">
-                  <label className="auth-label">Promo Or Referral Code <span style={{ color: "#00d4ff", fontSize: "9px", textTransform: "none" }}>(Optional)</span></label>
-                  <input
-                    type="text"
-                    className="auth-input-styled"
-                    placeholder="ENTER CODE"
-                    value={formData.promoCode}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        promoCode: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ""),
-                      })
-                    }
-                    maxLength={20}
-                    style={{ textTransform: "uppercase" }}
-                  />
-                  {/* THE VALIDATION RAN, NOTHING SHOWED IT (fixed 2026-08-25).
-                      The debounced effect above calls
-                      /api/promo/validate-{promo,referral}-code and sets
-                      promoChecking / promoError / promoDetails - and not one of
-                      the three was rendered anywhere. A mistyped code looked
-                      exactly like a good one right up until the account was
-                      created without the bonus, because handleSignUp only
-                      stores the pending code when `promoValid` is true. */}
-                  {promoChecking && (
-                    <div style={{ marginTop: '6px', color: '#9aa5b6', fontSize: '11px' }}>
-                      Checking Code...
-                    </div>
-                  )}
-                  {!promoChecking && promoError && (
-                    <div
-                      role="alert"
-                      style={{ marginTop: '6px', color: '#ff6b6b', fontSize: '11px' }}
-                    >
-                      {promoError}
-                    </div>
-                  )}
-                  {!promoChecking && promoValid && (
-                    <div style={{ marginTop: '6px', color: '#31A24C', fontSize: '11px' }}>
-                      {isReferralCode
-                        ? `Referral Code Accepted${referralDetails?.username ? ` - ${referralDetails.username}` : ''}`
-                        : `Promo Code Accepted${promoDetails?.description ? ` - ${promoDetails.description}` : ''}`}
-                    </div>
-                  )}
-                </div>
+                {signupFields}
               </div>
               
 {/* Checkbox 18+ — the box and its label are baked into the artwork.
@@ -1342,6 +1365,108 @@ export default function SignUpPage() {
               />
             </form>
           </div>
+        </div>
+
+        {/* ─── PHONE LAYOUT (<600px) ───────────────────────────────────── */}
+        <div className="sp-signup-phone dynamic-auth-form" style={phoneStyles.page}>
+          <style dangerouslySetInnerHTML={{ __html: `
+            .sp-signup-phone .auth-field-group { display: flex; flex-direction: column; gap: 6px; width: 100%; }
+            .sp-signup-phone .auth-field-row { display: flex; gap: 12px; width: 100%; }
+            .sp-signup-phone .auth-label {
+              color: rgba(255, 255, 255, 0.72); font-size: 12px; font-weight: 600;
+              letter-spacing: 0.6px; text-transform: uppercase; pointer-events: none;
+            }
+            .sp-signup-phone .auth-input-styled {
+              width: 100%; height: 48px; min-height: 48px !important;
+              background: rgba(11, 14, 20, 0.85) !important;
+              border: 1px solid rgba(0, 212, 255, 0.25) !important; border-radius: 10px;
+              color: #fff !important; font-size: 16px !important; padding: 0 14px !important;
+              box-sizing: border-box; outline: none !important; transition: border-color 0.2s, box-shadow 0.2s;
+            }
+            .sp-signup-phone .auth-input-styled:focus {
+              border-color: rgba(0, 212, 255, 0.85) !important; box-shadow: 0 0 10px rgba(0, 212, 255, 0.3);
+            }
+            .sp-signup-phone .auth-input-styled::placeholder { color: rgba(255, 255, 255, 0.3); }
+            .sp-signup-phone select.auth-input-styled { appearance: auto !important; cursor: pointer; }
+            .sp-signup-phone input[type="checkbox"] { opacity: 1; }
+          ` }} />
+
+          {/* Art header: the top 34% of the painted card (logo, Create Account,
+              the Google and Facebook buttons) at full width. Hotspots are
+              measured against that cropped region. */}
+          <div style={phoneStyles.art} aria-hidden="false">
+            <button
+              type="button"
+              onClick={() => router.push('/')}
+              title="Back"
+              aria-label="Back"
+              style={{ ...phoneStyles.hotspot, top: '9%', left: '3%', width: '11%', height: '10%' }}
+            />
+            <button
+              type="button"
+              onClick={() => handleOAuthSignIn('google')}
+              disabled={!!oauthLoading}
+              title="Continue With Google"
+              aria-label="Continue With Google"
+              style={{ ...phoneStyles.hotspot, top: '66%', left: '29%', width: '42%', height: '10.5%', cursor: oauthLoading ? 'wait' : 'pointer' }}
+            />
+            <button
+              type="button"
+              onClick={() => handleOAuthSignIn('facebook')}
+              disabled={!!oauthLoading}
+              title="Continue With Facebook"
+              aria-label="Continue With Facebook"
+              style={{ ...phoneStyles.hotspot, top: '79%', left: '29%', width: '42%', height: '10.5%', cursor: oauthLoading ? 'wait' : 'pointer' }}
+            />
+            <div style={phoneStyles.artFade} />
+          </div>
+
+          <form onSubmit={handleSignUp} style={phoneStyles.panel} noValidate={false}>
+            {error && (
+              <div role="alert" style={phoneStyles.error}>
+                {error}
+                {errorDetail && <div style={phoneStyles.errorDetail}>{errorDetail}</div>}
+              </div>
+            )}
+
+            {signupFields}
+
+            <label style={phoneStyles.termsRow}>
+              <input
+                type="checkbox"
+                checked={ageConfirmed}
+                onChange={(e) => setAgeConfirmed(e.target.checked)}
+                required
+                style={phoneStyles.checkbox}
+              />
+              <span style={phoneStyles.termsText}>
+                I Confirm That I Am <strong>18 Years Of Age Or Older</strong> And Agree To The Platform's Terms.
+              </span>
+            </label>
+
+            <button
+              type="submit"
+              disabled={loading || aliasAvailable === false || !ageConfirmed}
+              style={{
+                ...phoneStyles.submit,
+                opacity: loading || aliasAvailable === false || !ageConfirmed ? 0.5 : 1,
+              }}
+            >
+              {loading ? 'Creating Your Account...' : 'Create Account'}
+            </button>
+
+            <div style={phoneStyles.ssl}>256-Bit SSL Encrypted</div>
+            <div style={phoneStyles.legal}>
+              By Signing Up, You Agree To Our{' '}
+              <button type="button" onClick={() => setLegalModal('terms')} style={phoneStyles.legalLink}>Terms Of Service</button>
+              {' '}And{' '}
+              <button type="button" onClick={() => setLegalModal('privacy')} style={phoneStyles.legalLink}>Privacy Policy</button>
+            </div>
+            <div style={phoneStyles.signin}>
+              Already Have An Account?{' '}
+              <button type="button" onClick={() => router.push('/auth/login')} style={phoneStyles.signinLink}>Sign In</button>
+            </div>
+          </form>
         </div>
 
         {/* ─── Legal Modal ─────────────────────────────────────────────── */}
@@ -2229,5 +2354,118 @@ const styles = {
     fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
     fontWeight: 500,
     letterSpacing: '0.5px',
+  },
+};
+
+// ── PHONE LAYOUT STYLES (<600px) ──────────────────────────────────────────
+const phoneStyles = {
+  page: {
+    minHeight: '100dvh',
+    background: '#070a12',
+    color: '#e6f1ff',
+    fontFamily: "var(--font-inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+  },
+  art: {
+    position: 'relative',
+    width: '100%',
+    // The art is 819x1024; the header shows its top 34% (through the
+    // "Or Sign Up With Email" divider): 0.34 * 1024/819 = 42.5% of the width.
+    paddingTop: '42.5%',
+    backgroundImage: "url('/images/dynamic-signup-bg.webp')",
+    backgroundSize: '100% auto',
+    backgroundPosition: 'top center',
+    backgroundRepeat: 'no-repeat',
+    backgroundColor: '#000',
+    overflow: 'hidden',
+  },
+  artFade: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: '18%',
+    background: 'linear-gradient(180deg, rgba(7, 10, 18, 0) 0%, #070a12 100%)',
+    pointerEvents: 'none',
+  },
+  hotspot: {
+    position: 'absolute',
+    background: 'transparent',
+    border: 'none',
+    cursor: 'pointer',
+    zIndex: 10,
+    minHeight: 0,
+  },
+  panel: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '14px',
+    padding: '4px 16px 32px',
+    maxWidth: '520px',
+    margin: '0 auto',
+  },
+  error: {
+    padding: '10px 12px',
+    background: 'rgba(240, 40, 73, 0.9)',
+    color: '#fff',
+    textAlign: 'center',
+    borderRadius: '10px',
+    fontSize: '14px',
+    fontWeight: 700,
+  },
+  errorDetail: { marginTop: 4, fontSize: '11px', fontWeight: 'normal', opacity: 0.85, wordBreak: 'break-word' },
+  termsRow: {
+    display: 'flex',
+    alignItems: 'flex-start',
+    gap: '10px',
+    marginTop: '4px',
+    cursor: 'pointer',
+  },
+  checkbox: {
+    width: '20px',
+    height: '20px',
+    margin: '1px 0 0',
+    accentColor: '#0072ff',
+    flexShrink: 0,
+  },
+  termsText: { fontSize: '13px', lineHeight: 1.4, color: 'rgba(230, 241, 255, 0.85)' },
+  submit: {
+    width: '100%',
+    // height, not min-height: the card's "min-height: 0 !important" opt-out
+    // applies to every button under .dynamic-auth-form.
+    height: '50px',
+    border: 'none',
+    borderRadius: '12px',
+    background: 'linear-gradient(135deg, #00c6ff 0%, #0072ff 100%)',
+    color: '#fff',
+    fontSize: '16px',
+    fontWeight: 700,
+    cursor: 'pointer',
+    boxShadow: '0 0 24px rgba(0, 198, 255, 0.3)',
+    marginTop: '4px',
+  },
+  ssl: { textAlign: 'center', fontSize: '12px', color: 'rgba(230, 241, 255, 0.55)' },
+  legal: { textAlign: 'center', fontSize: '11px', color: 'rgba(230, 241, 255, 0.5)', lineHeight: 1.6 },
+  legalLink: {
+    background: 'none',
+    border: 'none',
+    padding: 0,
+    minHeight: 0,
+    color: '#00c6ff',
+    fontSize: '11px',
+    textDecoration: 'underline',
+    cursor: 'pointer',
+    fontFamily: 'inherit',
+  },
+  signin: { textAlign: 'center', fontSize: '14px', color: 'rgba(230, 241, 255, 0.7)', marginTop: '6px' },
+  signinLink: {
+    background: 'none',
+    border: 'none',
+    padding: 0,
+    minHeight: 0,
+    color: '#00c6ff',
+    fontSize: '14px',
+    fontWeight: 600,
+    cursor: 'pointer',
+    fontFamily: 'inherit',
   },
 };
