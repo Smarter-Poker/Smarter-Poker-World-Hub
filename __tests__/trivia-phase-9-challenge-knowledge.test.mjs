@@ -390,3 +390,20 @@ test('mobile survival bays and desktop Phase 9 composition have explicit breakpo
     assert.match(css, /@media \(min-width: 720px\)[\s\S]*?\.trivia-challenge-levels\s*\{[\s\S]*?repeat\(5,/);
     assert.match(css, /@media \(min-width: 860px\)[\s\S]*?\.phase9-intro-layout\s*\{[\s\S]*?grid-template-columns:/);
 });
+
+ test('challenge summaries do not contradict authenticated entry or authoritative stop rules', () => {
+    const summary = read('src/components/seo/HubPageSummary.js');
+    const challengeCopy = summary.slice(summary.indexOf('  trivia: {'), summary.indexOf("  'trivia-pvp':"));
+    assert.doesNotMatch(challengeCopy, /Free To Play|No Account|One Life|No Stop Condition|No Way To Lose|Skipping Is Free/);
+    const entries = challengeCopy.split(/(?:^|\n)  (?:trivia|'trivia-[a-z-]+'): \{/).slice(1);
+    assert.equal(entries.length, 5);
+    for (const entry of entries) {
+        assert.match(entry, /Sign In To Start Or Recover/);
+        assert.match(entry, /Entry Cost/);
+        assert.match(entry, /Server/);
+    }
+    assert.match(challengeCopy, /One Hundred Questions.*Three Miss/);
+    assert.match(challengeCopy, /Ten Levels Of Twenty Questions.*Increasing Accuracy Requirements/);
+    assert.match(summary, /page === 'trivia' \|\| String\(page\).startsWith\('trivia-'\)/);
+    assert.match(summary, /Entry And Reward Terms Are Shown Before Play/);
+});
