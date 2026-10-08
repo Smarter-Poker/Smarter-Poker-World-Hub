@@ -188,6 +188,11 @@ test('strategy pages remain thin route delegates and layout has separate mobile 
         assert.match(route, new RegExp(`<StrategyTrivia mode=["']${mode}["']`));
     }
 
+    const source = read('src/components/trivia/StrategyTrivia.jsx');
+    assert.match(source, /<main className="trivia-console-standalone">[\s\S]*?<TriviaSkeleton[\s\S]*?<\/main>/);
+    assert.match(source, /<UniversalHeader[\s\S]*?<main className="content">[\s\S]*?titleAs="h1"/);
+    assert.doesNotMatch(source, /<div className="(?:content|trivia-console-standalone)">/);
+
     const css = read('src/styles/worlds/trivia-console-strategy.css');
     assert.match(css, /\.strategy-lobby__art[\s\S]*\.strategy-lobby__brief/);
     assert.match(css, /@media \(min-width: 900px\)[\s\S]*grid-template-columns:/);

@@ -151,6 +151,11 @@ jobs:
           CI: true
           NEXT_PUBLIC_BASE_URL: http://127.0.0.1:${{ steps.port.outputs.port }}
 
+      - name: Trivia mounted-account and pending-result browser regressions
+        id: trivia_browser_races
+        if: ${{ !cancelled() && steps.production_server_ready.outcome == 'success' }}
+        run: node scripts/trivia/browser-race-proof/run.cjs
+
       - name: Verify Diamond Marketplace Page 1 commerce anatomy
         run: npx playwright test e2e/05-diamond-store.spec.ts --project=marketplace-audit-chromium --no-deps --grep "diamond (starter and cinematic packs expose complete readable offer details|variable catalog partition stays complete without duplication)" --workers=1
         env:
@@ -209,4 +214,5 @@ jobs:
           path: |
             playwright-report/
             test-results/
+            ${{ steps.trivia_browser_races.outputs.evidence-directory }}/results.json
           retention-days: 14

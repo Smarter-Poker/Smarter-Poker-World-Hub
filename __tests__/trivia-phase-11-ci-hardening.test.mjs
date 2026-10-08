@@ -184,18 +184,23 @@ test('the existing production-build browser job owns Trivia budgets and installe
     const runWhenServerIsReady = /if: \$\{\{ !cancelled\(\) && steps\.production_server_ready\.outcome == 'success' \}\}/g;
     assert.equal(
         [...workflow.matchAll(runWhenServerIsReady)].length,
-        2,
-        'both Trivia browser gates must still run after an unrelated browser suite fails when the production server is ready',
+        3,
+        'all three Trivia browser gates must still run after an unrelated browser suite fails when the production server is ready',
     );
     const triviaPerformanceStep = workflow.indexOf('name: Trivia Phase 11 mobile p75 performance budgets');
     const triviaPwaStep = workflow.indexOf('name: Trivia installed-PWA upgrade and rollback compatibility');
+    const triviaRacesStep = workflow.indexOf('name: Trivia mounted-account and pending-result browser regressions');
     const unrelatedFooterStep = workflow.indexOf('name: Verify footer routes and geometry');
     assert.ok(
-        triviaPerformanceStep < unrelatedFooterStep && triviaPwaStep < unrelatedFooterStep,
+        triviaPerformanceStep >= 0 && triviaPwaStep >= 0 && triviaRacesStep >= 0
+            && triviaPerformanceStep < unrelatedFooterStep && triviaPwaStep < unrelatedFooterStep
+            && triviaRacesStep < unrelatedFooterStep,
         'scoped Trivia release evidence must run before the unrelated footer matrix',
     );
     assert.match(workflow, /trivia-performance-budget\.spec\.ts --project=trivia-performance/);
     assert.match(workflow, /trivia-pwa-rollback\.spec\.ts --project=trivia-pwa/);
+    assert.equal(workflow.split('run: node scripts/trivia/browser-race-proof/run.cjs').length - 1, 1, 'actual browser race suite executes once');
+    assert.match(workflow, /steps\.trivia_browser_races\.outputs\.evidence-directory/);
     assert.match(workflow, /TRIVIA_PVP_ENABLED:\s*'true'/);
     assert.match(workflow, /TRIVIA_TOURNAMENTS_ENABLED:\s*'true'/);
 
