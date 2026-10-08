@@ -95,6 +95,11 @@ test('each mode has its own words, not one blurb repeated', () => {
   // Free modes say they are free. Paid competitive modes preserve their
   // authoritative Diamond economics instead of making a false free claim.
   const paidCompetitiveTrivia = {
+    trivia: /Sign In To Start Or Recover[\s\S]*Entry Cost[\s\S]*Server Receipts/i,
+    'trivia-endless': /Sign In To Start Or Recover[\s\S]*Entry Cost[\s\S]*Server/i,
+    'trivia-survival': /Sign In To Start Or Recover[\s\S]*Entry Cost[\s\S]*Server/i,
+    'trivia-time-attack': /Sign In To Start Or Recover[\s\S]*Entry Cost[\s\S]*Server/i,
+    'trivia-mixed': /Sign In To Start Or Recover[\s\S]*Entry Cost[\s\S]*Server/i,
     'trivia-pvp': /Diamond Stake[\s\S]*Rake[\s\S]*Possible Return/i,
     'trivia-tournaments': /Entry[\s\S]*Rake[\s\S]*Prize Pool/i,
   };

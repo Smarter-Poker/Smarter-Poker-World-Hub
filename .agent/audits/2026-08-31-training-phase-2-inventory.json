@@ -6768,6 +6768,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "pages/hub/training/challenges.js",
+            "src/components/seo/HubPageSummary.js",
             "src/components/store/DiamondWalletModal.jsx",
             "src/components/ui/HamburgerMenu.jsx",
             "src/components/ui/InviteFriendsModal.jsx",
@@ -9467,6 +9468,7 @@
         "authExpiry": {
           "status": "implemented-or-detected",
           "evidence": [
+            "src/components/seo/HubPageSummary.js",
             "src/lib/authUtils.js",
             "src/lib/supabaseKeys.js"
           ],
@@ -10232,6 +10234,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "pages/hub/training/jarvis.js",
+            "src/components/seo/HubPageSummary.js",
             "src/components/store/DiamondWalletModal.jsx",
             "src/components/ui/HamburgerMenu.jsx",
             "src/components/ui/InviteFriendsModal.jsx",
@@ -10543,6 +10546,7 @@
         "authExpiry": {
           "status": "implemented-or-detected",
           "evidence": [
+            "src/components/seo/HubPageSummary.js",
             "src/components/store/DiamondWalletModal.jsx",
             "src/components/ui/HamburgerMenu.jsx",
             "src/components/ui/InviteFriendsModal.jsx",
@@ -15454,6 +15458,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "pages/hub/training/solutions.js",
+            "src/components/seo/HubPageSummary.js",
             "src/lib/authUtils.js",
             "src/lib/supabaseKeys.js"
           ],
@@ -17617,6 +17622,7 @@
         "authExpiry": {
           "status": "implemented-or-detected",
           "evidence": [
+            "src/components/seo/HubPageSummary.js",
             "src/components/store/DiamondWalletModal.jsx",
             "src/components/ui/HamburgerMenu.jsx",
             "src/components/ui/InviteFriendsModal.jsx",
@@ -36056,7 +36062,7 @@
         {
           "element": "link",
           "name": "Terms",
-          "line": 659,
+          "line": 661,
           "handler": null,
           "destination": "/terms",
           "type": null,
@@ -36066,7 +36072,7 @@
         {
           "element": "link",
           "name": "Privacy",
-          "line": 662,
+          "line": 664,
           "handler": null,
           "destination": "/privacy",
           "type": null,
@@ -36087,7 +36093,7 @@
         "offline": false,
         "stale": false,
         "success": false,
-        "authExpiry": false
+        "authExpiry": true
       },
       "persistenceWrites": {
         "localStorage": 0,
@@ -66372,11 +66378,11 @@
       "effectRef": "src/components/seo/HubPageSummary.js"
     },
     {
-      "id": "src/components/seo/HubPageSummary.js:659:2",
+      "id": "src/components/seo/HubPageSummary.js:661:2",
       "file": "src/components/seo/HubPageSummary.js",
       "element": "link",
       "name": "Terms",
-      "line": 659,
+      "line": 661,
       "handler": null,
       "destination": "/terms",
       "type": null,
@@ -66385,11 +66391,11 @@
       "effectRef": "src/components/seo/HubPageSummary.js"
     },
     {
-      "id": "src/components/seo/HubPageSummary.js:662:3",
+      "id": "src/components/seo/HubPageSummary.js:664:3",
       "file": "src/components/seo/HubPageSummary.js",
       "element": "link",
       "name": "Privacy",
-      "line": 662,
+      "line": 664,
       "handler": null,
       "destination": "/privacy",
       "type": null,
