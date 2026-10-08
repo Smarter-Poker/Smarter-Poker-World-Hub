@@ -256,3 +256,18 @@ and 33 pre-existing Social warnings. Full maintained production build passed
 The diagnostic-only hosted run 37797925101 is still queued; its candidate is
 superseded by this authoritative fix when submitted. Genuine final hosted
 acceptance, protected integration, publication and certificate remain pending.
+
+
+The remaining local Reels failure was a test-fixture contract drift: the
+menu test intercepted retired REST social_reels reads, while the real page
+now reads /api/reels/feed and refuses ineligible media. Its fixture now uses
+that canonical GET response and a fresh eligible embed shape. The actual
+fallback-to-approved-header handoff passes, retaining all ownership/focus
+assertions. Final full WebKit menu suite passed 17/17 without retries (53.8s);
+27 focused menu contracts and targeted lint passed. The runtime build remains
+the identical qualified Social source from 6840a58f0. This fixture/checkpoint
+submission supersedes the still-building 37798948772 acceptance candidate.
+Fresh database function body hashes match the earlier readback; all four
+ledger rows remain installed. Direct service-role read calls returned objects;
+anon and authenticated fleet/identity calls each refused with SQLSTATE 42501.
+Sanitized results are archived. No database state was changed.

@@ -74,7 +74,16 @@ async function installReelsFixture(page: Page) {
     id: 'phase-2-menu-audit-reel',
     author_id: 'phase-2-menu-audit-author',
     caption: 'Phase 2 Menu Audit',
-    video_url: 'https://media.smarter.poker.test/phase-2-menu-audit.mp4',
+    video_url: 'https://www.youtube.com/embed/abcdefghijk',
+    youtube_video_id: 'abcdefghijk',
+    topic: 'poker',
+    media_status: 'ready',
+    playback_type: 'youtube_embed',
+    rights_status: 'embed_only',
+    canonical_asset_key: 'youtube:abcdefghijk',
+    availability_status: 'verified',
+    availability_checked_at: new Date().toISOString(),
+    embeddable: true,
     thumbnail_url: null,
     view_count: 0,
     like_count: 0,
@@ -83,12 +92,11 @@ async function installReelsFixture(page: Page) {
     is_public: true,
     source_type: 'user',
   }];
-  await page.route('**/rest/v1/social_reels*', async (route) => {
+  await page.route('**/api/reels/feed?*', async (route) => {
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
-      headers: { 'content-range': '0-0/1' },
-      body: JSON.stringify(fixture),
+      body: JSON.stringify({ success: true, data: fixture, has_more: false, next_cursor: null }),
     });
   });
   await page.route('**/rest/v1/profiles*', async (route) => {
@@ -103,7 +111,7 @@ async function installReelsFixture(page: Page) {
       }]),
     });
   });
-  await page.route('https://media.smarter.poker.test/phase-2-menu-audit.mp4', async (route) => {
+  await page.route('https://www.youtube.com/embed/abcdefghijk*', async (route) => {
     await route.fulfill({ status: 204, body: '' });
   });
 }
