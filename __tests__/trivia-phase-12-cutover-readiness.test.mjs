@@ -293,3 +293,22 @@ test('restricted operations UI consumes all gates plus sanitized recovery health
     assert.match(snapshot, /cutover_pvp_public_mismatch/);
     assert.match(snapshot, /cutover_tournament_scheduler_mismatch/);
 });
+
+
+test('forward free-canary validator matches immutable admission without weakening paid or named-wallet proof', () => {
+    const correction = read('supabase/migrations/20261008181229_trivia_zero_canary_funding_validation.sql');
+    const executable = correction.slice(0, correction.indexOf('-- FORWARD ROLLBACK'));
+    assert.equal((executable.match(/CASE WHEN p_paid THEN 'player_wallet' ELSE 'none' END/g) || []).length, 2);
+    assert.match(executable, /IF p_paid IS NULL/);
+    assert.match(executable, /v_humans < 1/);
+    assert.match(executable, /trivia_competitive_test_wallet_active_at_v1/);
+    assert.match(executable, /trivia_competitive_settlement_ready_v1/);
+    assert.match(executable, /p_paid AND NOT EXISTS/);
+    assert.match(executable, /md5\(pg_catalog\.pg_get_functiondef/);
+    assert.doesNotMatch(executable, /GRANT|INSERT INTO|UPDATE public\.|DELETE FROM/i);
+    const runner = read('scripts/trivia/p12-cutover-replica-tests/run.sh');
+    assert.ok(runner.indexOf('20261008181229_trivia_zero_canary_funding_validation.sql') < runner.indexOf('10_assertions.sql'));
+    assert.match(runner, /40_canary_funding\.sql/);
+    const admission = read('supabase/migrations/20261001200000_trivia_p6_nightly_tournament_engine.sql');
+    assert.match(admission, /CASE WHEN v_fee = 0 THEN 'none' WHEN p_kind = 'human' THEN 'player_wallet'/);
+});
