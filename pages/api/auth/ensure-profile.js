@@ -193,10 +193,9 @@ export default async function handler(req, res) {
               // creates the profile at signUp, so by the time /auth/callback asks,
               // the row already EXISTS. Say here whether the welcome package is
               // still waiting on a phone so the callback can make the welcome
-              // screen a new player's first screen. Young = under 14 days, the
-              // same window pages/hub/index.js uses.
-              const WELCOME_WINDOW_MS = 14 * 24 * 60 * 60 * 1000;
-              const isYoung = Number.isFinite(createdTime) && (now - createdTime) < WELCOME_WINDOW_MS;
+              // screen the player's first screen. Every unverified account
+              // qualifies (2026-10-08, Dan: no age window); the callback and
+              // the hub honour a dismissal in user metadata.
               const phoneVerifiedNow = existingProfile.phone_verified === true;
 
               return res.json({
@@ -206,9 +205,7 @@ export default async function handler(req, res) {
                   isBrandNew,
                   welcomePackage: phoneVerifiedNow
                       ? { granted: true }
-                      : (isYoung
-                          ? { granted: false, withheldReason: 'phone_not_verified', claimAt: '/hub/verify-phone' }
-                          : { granted: false }),
+                      : { granted: false, withheldReason: 'phone_not_verified', claimAt: '/hub/verify-phone' },
               });
           }
 

@@ -25,6 +25,7 @@ import HubPageSummary from '../../src/components/seo/HubPageSummary';
 import dynamic from 'next/dynamic';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
+import WelcomePackageNudge from '../../src/components/hub/WelcomePackageNudge';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import { getAuthUser } from '../../src/lib/authUtils';
 import { claimReward } from '../../src/lib/claimReward';
@@ -86,10 +87,10 @@ function WorldHubLoadingText() {
     return hasMounted ? <>Loading World Hub...</> : null;
 }
 
-// A player whose profile is this young and still unverified gets the welcome
-// screen as their first screen; older unverified accounts (pre-2026-10-07
-// OAuth signups) are offered it from the hamburger menu instead.
-const WELCOME_SCREEN_MAX_AGE_MS = 14 * 24 * 60 * 60 * 1000;
+// EVERY unverified player sees the welcome screen once (2026-10-08, Dan):
+// the 14-day window that used to exempt older OAuth signups is gone. One
+// Skip (phone_prompt_dismissed_at in user metadata) ends the interstitial
+// for good; after that the hamburger item and the transient nudge remain.
 
 export default function HubPage() {
     const router = useRouter();
@@ -111,7 +112,7 @@ export default function HubPage() {
             try {
                 const { data: profile } = await supabase
                     .from('profiles')
-                    .select('phone_verified, created_at')
+                    .select('phone_verified')
                     .eq('id', authUser.id)
                     .maybeSingle();
                 if (cancelled || !profile) return;
@@ -121,10 +122,7 @@ export default function HubPage() {
                 const dismissed = !!authUser.user_metadata?.phone_prompt_dismissed_at;
                 let skippedThisSession = false;
                 try { skippedThisSession = sessionStorage.getItem('phone_prompt_skipped') === '1'; } catch (_e) { /* ignore */ }
-                const createdMs = profile.created_at ? new Date(profile.created_at).getTime() : 0;
-                const isNew = Number.isFinite(createdMs) && createdMs > 0
-                    && (Date.now() - createdMs) < WELCOME_SCREEN_MAX_AGE_MS;
-                if (isNew && !dismissed && !skippedThisSession) {
+                if (!dismissed && !skippedThisSession) {
                     router.replace('/hub/verify-phone?welcome=1');
                 }
             } catch (_e) { /* never block the hub on this */ }
@@ -256,6 +254,12 @@ export default function HubPage() {
                 position:fixed layer over the whole viewport, so this sits
                 under it, out of the way, and a reader who scrolls finds it. */}
             <HubPageSummary page="hub" as="h1" />
+
+            {/* Transient reminder for a player who skipped the welcome screen:
+                same corner and lifetime as DiamondToast, once per session. */}
+            <HubErrorBoundary name="Welcome Package Nudge" fallback={<></>}>
+                <WelcomePackageNudge phoneVerified={phoneVerified} />
+            </HubErrorBoundary>
 
             {/* WorldHub 3D carousel — isolated so a bad orb/import NEVER crashes the page */}
             <HubErrorBoundary name="World Hub">
