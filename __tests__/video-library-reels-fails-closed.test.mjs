@@ -119,7 +119,10 @@ os.environ['HOME'] = tmp
 os.environ['OPENCLAW_ALERT_STATE'] = str(Path(tmp) / 'alert-state.json')
 os.environ['SP_LOG_DIR'] = str(Path(tmp) / 'logs')
 os.environ['CRON_SECRET'] = 'test-secret'
-for key in ('WORKERS_BASE_URL', 'SP_SCRAPER_DIR', 'SP_ENABLE_SCRIPT_JOBS', 'DISPATCHER_ROLE'):
+# Route isolation must not inherit another test's synthetic telemetry credentials.
+# Script-job telemetry has its own maintained contract; this harness tests routing.
+for key in ('WORKERS_BASE_URL', 'SP_SCRAPER_DIR', 'SP_ENABLE_SCRIPT_JOBS', 'DISPATCHER_ROLE',
+            'NEXT_PUBLIC_SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY'):
     os.environ.pop(key, None)
 
 spec = importlib.util.spec_from_file_location('dispatcher', sys.argv[1])
