@@ -1393,7 +1393,10 @@ export default function SignUpPage() {
 
           {/* Art header: the top 34% of the painted card (logo, Create Account,
               the Google and Facebook buttons) at full width. Hotspots are
-              measured against that cropped region. */}
+              measured against that cropped region: the painted Google button
+              sits at rows 113-126 of a 166px header on a 390px phone (68-76%),
+              Facebook at 86-89%; each hotspot is 24px tall, centred on its
+              button, and they do not overlap. */}
           <div style={phoneStyles.art} aria-hidden="false">
             <button
               type="button"
@@ -1408,7 +1411,7 @@ export default function SignUpPage() {
               disabled={!!oauthLoading}
               title="Continue With Google"
               aria-label="Continue With Google"
-              style={{ ...phoneStyles.hotspot, top: '66%', left: '29%', width: '42%', height: '10.5%', cursor: oauthLoading ? 'wait' : 'pointer' }}
+              style={{ ...phoneStyles.hotspot, top: '62.5%', left: '27%', width: '46%', height: '14.5%', cursor: oauthLoading ? 'wait' : 'pointer' }}
             />
             <button
               type="button"
@@ -1416,7 +1419,7 @@ export default function SignUpPage() {
               disabled={!!oauthLoading}
               title="Continue With Facebook"
               aria-label="Continue With Facebook"
-              style={{ ...phoneStyles.hotspot, top: '79%', left: '29%', width: '42%', height: '10.5%', cursor: oauthLoading ? 'wait' : 'pointer' }}
+              style={{ ...phoneStyles.hotspot, top: '77%', left: '27%', width: '46%', height: '14.5%', cursor: oauthLoading ? 'wait' : 'pointer' }}
             />
             <div style={phoneStyles.artFade} />
           </div>
