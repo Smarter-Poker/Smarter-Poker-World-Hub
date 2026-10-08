@@ -157,8 +157,8 @@ export default async function handler(req, res) {
               // Gated on the register, not on a zero balance (2026-10-08): any other
               // credit (daily login, the 25-diamond phone award) landing first used to
               // block the restart forever. welcomePackageAlreadyPaid is two indexed
-              // lookups and only runs for a verified account created after the
-              // cutover, so it is not a per-login cost for everyone.
+              // lookups and only runs for a verified account created after the Mint
+              // register started (older accounts answer "paid" with no query).
               if (existingProfile.phone_verified === true) {
                   try {
                       const ownEmail = typeof authUser?.email === 'string' ? authUser.email.trim() : '';

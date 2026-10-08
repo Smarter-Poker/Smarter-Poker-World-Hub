@@ -76,7 +76,8 @@ test('verify-otp is signed-in only, pays once, and honours the throwaway-inbox r
   assert.match(verifyOtp, /welcomePackageAlreadyPaid\(supabase, authedUserId, profile\.created_at\)/, 'older accounts paid by seed:, signup_bonus or at birth are never paid a second 500');
   assert.match(verifyOtp, /\.select\('id'\);/, 'the profile write must return its row; zero rows is not "verified"');
   const lib = read('src/lib/welcomePackage.js');
-  assert.match(lib, /WELCOME_PACKAGE_EARNED_SINCE = '2026-10-08T04:09:38Z'/, 'the cutover is the migration install time');
+  assert.match(lib, /MINT_REGISTER_STARTED = '2026-09-03T01:53:41Z'/, 'accounts older than the register were paid at birth with no record');
+  assert.match(lib, /created < Date\.parse\(MINT_REGISTER_STARTED\)/, 'from the register start on, the register decides (refused birth grants are still owed)');
   assert.match(lib, /`seed:\$\{userId\}`/, 'seed: register rows count as paid');
   assert.match(lib, /transaction_type\.eq\.signup_bonus/, 'signup_bonus rows count as paid');
 });
