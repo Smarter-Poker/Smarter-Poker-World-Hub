@@ -186,7 +186,33 @@ for (const world of WORLD_MENU_VISUAL_CASES) {
 
     await page.keyboard.press('Escape');
     await expect(drawer).toBeHidden();
-    await expect(trigger).toBeFocused();
+    try {
+      await expect(trigger).toBeFocused();
+    } catch (error) {
+      // DOM structure only: retain no feed text, identities or session data.
+      const focusState = await page.evaluate(() => {
+        const target = document.querySelector('[data-world-menu-trigger]');
+        const ancestors: Array<{ tag: string; inert: boolean; hidden: string | null }> = [];
+        for (let node = target; node; node = node.parentElement) {
+          ancestors.push({ tag: node.tagName, inert: node.hasAttribute('inert'), hidden: node.getAttribute('aria-hidden') });
+        }
+        return {
+          activeTag: document.activeElement?.tagName,
+          activeTrigger: document.activeElement?.getAttribute('data-world-menu-trigger'),
+          targetConnected: target?.isConnected,
+          ancestors,
+          scrollY: window.scrollY,
+          bodyPosition: document.body.style.position,
+          bodyOverflow: document.body.style.overflow,
+          menus: Array.from(document.querySelectorAll('[data-world-command-menu]')).map((node) => ({
+            world: node.getAttribute('data-world-command-menu'),
+            visibility: getComputedStyle(node).visibility,
+          })),
+        };
+      });
+      console.warn(`[world-menu-focus-failure] ${JSON.stringify(focusState)}`);
+      throw error;
+    }
     await expect(page.locator('body')).not.toHaveCSS('overflow', 'hidden');
   });
 }

@@ -222,3 +222,18 @@ loading states without changing controls. Dedicated certificate/consumer
 contracts passed 31/31; targeted verifier lint and whitespace passed. Genuine
 production results remain pending. Corrected visual sheets now replace the old
 fixture-failure sheets; all 28 desktop/mobile panels were reviewed.
+
+
+Canonical resumption policies reread at 2026-10-08T15:02:34.660Z, v2.9,
+all preceding hashes unchanged; repository/publishing/storage references and
+checkpoint reread at d4d751adb. Final local Stable Admin contracts passed
+1,138/1,138. Required exact-head protected checks passed (safety run
+37794970231). Footer run 37794970189 passed Stable Admin, Trivia/PWA,
+Marketplace and footer routes/geometry, then failed Social Media WebKit close
+focus. Artifact retained in the evidence archive. Local production WebKit
+Social Media passed in isolation and in the full sequence; the latter passed
+14 cases and failed Reels fallback availability locally. No successful full
+menu gate is claimed. Failure-only, non-content DOM diagnostics now retain
+focus target/ancestor inert state to distinguish remount and isolation causes;
+assertions and timeouts are unchanged. Protected merge/publication/certificate
+remain pending.
