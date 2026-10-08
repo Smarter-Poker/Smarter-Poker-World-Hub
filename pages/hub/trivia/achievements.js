@@ -87,7 +87,14 @@ function AchievementItem({ item, claimState, claimError, online, onClaim }) {
             <p className="trivia-progress-item__meta">
                 <span>{printTitle(item.category)}</span>
                 <span>{printTitle(item.rarity)}</span>
-                {hasProgress ? <span className="tc-ink--blue" aria-label={`${printTitle(item.title)} Progress ${progress} Of ${item.progressTarget}`}>{formatTriviaDisplayNumber(progress)} / {formatTriviaDisplayNumber(item.progressTarget)}</span> : null}
+                {hasProgress ? (
+                    <span className="tc-ink--blue">
+                        <span style={{ position: 'absolute', width: 1, height: 1, padding: 0, margin: -1, overflow: 'hidden', clipPath: 'inset(50%)', whiteSpace: 'nowrap', border: 0 }}>
+                            Progress {formatTriviaDisplayNumber(progress)} Of {formatTriviaDisplayNumber(item.progressTarget)}
+                        </span>
+                        <span aria-hidden="true">{formatTriviaDisplayNumber(progress)} / {formatTriviaDisplayNumber(item.progressTarget)}</span>
+                    </span>
+                ) : null}
             </p>
 
             {renderedState === 'credited' ? (

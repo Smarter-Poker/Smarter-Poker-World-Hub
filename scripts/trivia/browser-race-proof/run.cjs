@@ -175,6 +175,12 @@ const snapshot = (owner, state) => ({
       await expect.poll(() => Boolean(pendingRead)).toBe(true);
       await page.evaluate(() => window.switchAccount('account-b'));
       await expect(page.getByText('B Verified Award', { exact: true })).toBeVisible();
+      const progress = page.locator('[data-achievement-id="first_win"] .trivia-progress-item__meta > span').last();
+      await expect(progress).toContainText('Progress 1 Of 1');
+      await expect(progress.locator('[aria-hidden="true"]')).toHaveText('1 / 1');
+      await expect(progress.locator('[aria-hidden="true"]')).toBeVisible();
+      expect(await progress.getAttribute('aria-label')).toBe(null);
+      expect(await progress.locator('span').first().evaluate((node) => getComputedStyle(node).clipPath)).toBe('inset(50%)');
       await json(pendingRead, snapshot('A', 'awarded'));
       await flush(page);
       await expect(page.getByText('B Verified Award', { exact: true })).toBeVisible();

@@ -228,6 +228,9 @@ test('achievements consume only the authoritative contract and gate diamonds on 
   assert.match(source, /hasSettledReceipt/);
   assert.match(source, /receiptId && item\.journalId && item\.transactionId/);
   assert.match(source, /Award Record Incomplete\. No Diamond Amount Is Displayed/);
+  assert.match(source, /Progress \{formatTriviaDisplayNumber\(progress\)\} Of \{formatTriviaDisplayNumber\(item\.progressTarget\)\}/);
+  assert.match(source, /<span aria-hidden="true">\{formatTriviaDisplayNumber\(progress\)\} \/ \{formatTriviaDisplayNumber\(item\.progressTarget\)\}<\/span>/);
+  assert.doesNotMatch(source, /<span[^>]+aria-label=/, 'plain achievement metadata spans must use text rather than prohibited accessible names');
   assert.match(source, /Claim Pending/);
   assert.match(source, /Retry Same Claim/);
   assert.match(source, /body: JSON\.stringify\(\{ achievementId \}\)/);
