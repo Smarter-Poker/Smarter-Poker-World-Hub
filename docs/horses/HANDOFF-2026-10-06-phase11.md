@@ -271,3 +271,8 @@ Fresh database function body hashes match the earlier readback; all four
 ledger rows remain installed. Direct service-role read calls returned objects;
 anon and authenticated fleet/identity calls each refused with SQLSTATE 42501.
 Sanitized results are archived. No database state was changed.
+
+
+Final hosted run 37800295268 passed production build, Stable Admin, Trivia, Marketplace, footer routes and premium Chromium/WebKit menu. Phase 3 mobile then failed both browsers because Poker Near Me narrow-container overrides reduced six command descriptions to 11px below the maintained 12px readability minimum. Both owning narrow-container rules now retain 12px; assertions remain unchanged. Mobile performance was skipped after that failure and is not passing evidence. Corrected build/browser qualification and resubmission remain pending.
+
+Corrected full production build passed 507/507 and unchanged bundle budgets. All maintained Phase 3 mobile browser cases passed 32/32 without retries at the corrected source, including Poker Near Me in Chromium and WebKit (51.7s). Focused menu contracts passed 17/17; whitespace checks passed. Source retains both 12px floors and an enforced narrow-container regression. Hosted final-head qualification, publication and genuine certificate remain pending.
