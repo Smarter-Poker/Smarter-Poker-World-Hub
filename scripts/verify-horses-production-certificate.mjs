@@ -37,6 +37,7 @@ const receipt = {
   },
   authenticated: false,
   viewports: [],
+  failedViewport: null,
   failureCode: null,
 };
 
@@ -213,7 +214,8 @@ async function probeViewport(browser, storageState, viewport) {
       mutationAttempts.push({
         method,
         scope: requestUrl.origin === PRODUCTION_ORIGIN ? 'production' : 'external',
-        path: requestUrl.pathname,
+        path: requestUrl.origin === PRODUCTION_ORIGIN && requestUrl.pathname === '/api/horses/stable-admin'
+          ? '/api/horses/stable-admin' : '[redacted]',
       });
       await route.abort('blockedbyclient');
       return;
@@ -299,6 +301,17 @@ async function probeViewport(browser, storageState, viewport) {
       apiStatuses,
       mutationAttemptCount: mutationAttempts.length,
     };
+  } catch (error) {
+    // Preserve counts and the known static offender even when a viewport fails.
+    // Never retain arbitrary URL segments, queries, bodies or authentication.
+    receipt.failedViewport = {
+      name: viewport.name,
+      pageErrorCount: pageErrors.length,
+      chunkFailureCount: chunkFailures.length,
+      mutationAttemptCount: mutationAttempts.length,
+      mutationAttempts: mutationAttempts.slice(0, 20),
+    };
+    throw error;
   } finally {
     await context.close();
   }

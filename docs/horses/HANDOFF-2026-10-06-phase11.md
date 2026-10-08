@@ -72,3 +72,51 @@ controls, silently exclude horses or claim unavailable evidence is healthy.
 | Live behavior | Pending authenticated desktop and 375px route proof. |
 
 No pending row may be rewritten as complete without its direct evidence.
+
+
+## Authorized continuation, 2026-10-08
+
+Owner: Stable Admin resumption. Owned branch
+`agent/codex/stable-admin-final-resumption-20261008`, checkout
+`/Volumes/SmarterWork/agent-work/stable-admin-resumption-20261008/world-hub`.
+Scope: recover the Phase 11 certificate and footer gate, repair connected
+support behavior, qualify and publish through protected World Hub delivery,
+complete the 28-tab/nested audit and final documentation using direct evidence.
+No engine replacement or installed migration replay.
+
+Canonical policies freshly emitted/read at `2026-10-08T13:52:32.125Z`, version
+2.9, manifest `a659f31c5c1c2b0864889508079a635dd5fe2fc98decfbfc9d3f9c80dd45ec3b`.
+Owner hash `b9478d0331314413d8e12c41210b63479cdcabc1f86ed3fdcb3251efa36e6349`;
+operating `a8bc3c04dce3354ebdd51a89c0b7d715af3344edcc794d33f6b3ad64506961d5`;
+hardening `d5fc451ce5caf6d6b5e64597a13883e1246581678fe53c962339d0a66136993e`;
+reference `adce89c3f838f2f373cd504a00329d53906404d1dd42a647f672af6c16f95555`.
+Repository AGENTS, CLAUDE, AGENT-PLAYBOOK, PUBLISHING, storage guide and existing
+checkpoint were read. Base `1dcecd9a78a38d6e1e8e94ab9f5358f8401b8255`.
+
+Inherited closeout source and full continuation patches are preserved under
+`/Volumes/SmarterArchives/agent-evidence/stable-admin-phase11/resumption-20261008`.
+Final delivery assertions/docs are separated until actual production proof.
+Original worktree remains untouched. PR #2162 was closed as fully superseded.
+
+Prepared fixes: four named stable-admin reads use GET with unchanged action
+permissions and GET writes refused before database access; support ticket status
+sends the API's `id`, with a connected failing-before/passing-after regression;
+footer PWA builds use explicit `PWA_ENABLED=1`, preserving production CSP while
+avoiding local WebKit HTTPS upgrades; failed certificates retain bounded redacted
+diagnostics. 109 Stable Admin and 52 footer/certificate/CSP/state checks passed,
+with targeted lint and diff checks. No new repair is published yet.
+
+Two full builds previously failed ENOSPC after successful compilation. Direct
+APFS readback identifies the 256 GiB SmarterWork quota at 99.3%, while the same
+external container has 746 GB unallocated. A task-owned case-sensitive volume
+`StableAdminBuild20261008` (UUID/device to be verified before cleanup) was created
+on that external container with 10 GB reserve/25 GB quota. It is mounted at
+this task's `build-storage`; ignored `.next` links to its `next` subdirectory.
+A first mount at `.next` exposed protected macOS volume metadata to Next's scan
+and was immediately relocated before retry. No existing volume, quota or other
+task's files changed. Remove only this created allocation after delivery.
+
+Configured GitHub access and production certificate secret/variable names are
+available; no values were extracted. Full build, integration, required hosted
+checks, protected merge, Vercel READY/health, genuine certificate, full surface
+audit and final protected documentation remain pending.

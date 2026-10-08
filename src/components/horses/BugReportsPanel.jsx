@@ -22,8 +22,9 @@ export default function BugReportsPanel({ authFetch, showNotification, permissio
   const setTicketFilter = tickets.setFilter;
   useEffect(() => { const id = window.setTimeout(() => setTicketFilter('q', search.trim()), 300); return () => window.clearTimeout(id); }, [search, setTicketFilter]);
   const update = async (id, status) => {
+    if (!canWrite) return;
     try {
-      await authFetch('/api/horses/stable-admin', { method: 'POST', body: JSON.stringify({ action: 'set_ticket_status', ticketId: id, status }) });
+      await authFetch('/api/horses/stable-admin', { method: 'POST', body: JSON.stringify({ action: 'set_ticket_status', id, status }) });
       showNotification?.(`Ticket Marked ${status === 'resolved' ? 'Resolved' : 'Open'}`); tickets.refresh();
     } catch (cause) { showNotification?.(`Could Not Update Ticket: ${cause.message}`, 'error'); }
   };

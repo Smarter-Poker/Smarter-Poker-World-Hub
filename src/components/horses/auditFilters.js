@@ -67,3 +67,13 @@ export function auditActionFilter(id, groups = AUDIT_FILTER_GROUPS) {
   if (prefixes.length === 0) return {};
   return { actionPrefixes: prefixes, actionPrefix: prefixes[0] };
 }
+
+/** Preserve multi-prefix filters as repeated query parameters for Next API reads. */
+export function auditReadUrl(filters = {}) {
+  const params = new URLSearchParams({ action: 'audit_log' });
+  for (const [key, value] of Object.entries(filters)) {
+    if (value === undefined || value === null || value === '') continue;
+    for (const item of Array.isArray(value) ? value : [value]) params.append(key, String(item));
+  }
+  return `/api/horses/stable-admin?${params.toString()}`;
+}

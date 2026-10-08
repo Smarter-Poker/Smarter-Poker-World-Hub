@@ -73,3 +73,11 @@ test('receipt schema contains only sanitized operational evidence', () => {
   assert.match(verifier, /mutationAttemptCount/);
   assert.match(verifier, /apiStatuses/);
 });
+
+
+test('failed viewport diagnostics retain bounded counts without arbitrary URLs', () => {
+  assert.match(verifier, /receipt.failedViewport =/);
+  assert.match(verifier, /mutationAttempts: mutationAttempts.slice\(0, 20\)/);
+  assert.match(verifier, /\? '\/api\/horses\/stable-admin' : '\[redacted\]'/);
+  assert.doesNotMatch(verifier, /path: requestUrl.pathname/);
+});

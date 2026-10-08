@@ -84,10 +84,10 @@ jobs:
       - name: Build production application
         run: npm run build -- --webpack
         env:
-          # next-pwa is deliberately disabled outside Vercel. This maintained
-          # production-build job is the only existing browser gate that can
-          # exercise an installed worker without creating another broad build.
-          VERCEL: '1'
+          # Exercise the installed worker without impersonating HTTPS hosting.
+          # VERCEL=1 also embeds upgrade-insecure-requests in the build manifest,
+          # which makes WebKit upgrade this local HTTP server's resources.
+          PWA_ENABLED: '1'
           VERCEL_GIT_COMMIT_SHA: ${{ github.sha }}
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co' }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder' }}

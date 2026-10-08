@@ -869,3 +869,18 @@ test.describe('dynamic World Hub footer route and visual contract', () => {
     await probePage.close();
   });
 });
+
+
+test('footer target security headers match its serving scheme', async ({ request, baseURL }) => {
+  const response = await request.get('/hub/training');
+  expect(response.status()).toBe(200);
+  const policy = response.headers()['content-security-policy'] || '';
+  for (const directive of ["object-src 'none'", "base-uri 'self'", "form-action 'self'", "frame-ancestors 'self'"]) {
+    expect(policy).toContain(directive);
+  }
+  if (new URL(baseURL!).protocol === 'http:') {
+    expect(policy).not.toContain('upgrade-insecure-requests');
+  } else {
+    expect(policy).toContain('upgrade-insecure-requests');
+  }
+});
