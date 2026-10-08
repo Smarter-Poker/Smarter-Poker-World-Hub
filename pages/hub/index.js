@@ -99,6 +99,9 @@ export default function HubPage() {
     const [cardCustomizerOpen, setCardCustomizerOpen] = useState(false);
     // null = unknown yet, true/false once the profile row has been read.
     const [phoneVerified, setPhoneVerified] = useState(null);
+    // True while the hub is handing a player to the welcome screen, so the
+    // transient nudge never spends its once-per-session showing on the way out.
+    const [redirectingToWelcome, setRedirectingToWelcome] = useState(false);
 
     // ── PHONE VERIFICATION / WELCOME PACKAGE (2026-10-07, Dan) ────────────
     // The signup form no longer collects a phone. A brand-new player sees
@@ -122,7 +125,13 @@ export default function HubPage() {
                 const dismissed = !!authUser.user_metadata?.phone_prompt_dismissed_at;
                 let skippedThisSession = false;
                 try { skippedThisSession = sessionStorage.getItem('phone_prompt_skipped') === '1'; } catch (_e) { /* ignore */ }
-                if (!dismissed && !skippedThisSession) {
+                let shownThisSession = false;
+                try { shownThisSession = sessionStorage.getItem('phone_prompt_shown') === '1'; } catch (_e) { /* ignore */ }
+                if (!dismissed && !skippedThisSession && !shownThisSession) {
+                    // Once per session: leaving the welcome screen by any route
+                    // (header, back button) does not bounce the player back.
+                    try { sessionStorage.setItem('phone_prompt_shown', '1'); } catch (_e) { /* ignore */ }
+                    setRedirectingToWelcome(true);
                     router.replace('/hub/verify-phone?welcome=1');
                 }
             } catch (_e) { /* never block the hub on this */ }
@@ -258,7 +267,7 @@ export default function HubPage() {
             {/* Transient reminder for a player who skipped the welcome screen:
                 same corner and lifetime as DiamondToast, once per session. */}
             <HubErrorBoundary name="Welcome Package Nudge" fallback={<></>}>
-                <WelcomePackageNudge phoneVerified={phoneVerified} />
+                <WelcomePackageNudge phoneVerified={redirectingToWelcome ? null : phoneVerified} />
             </HubErrorBoundary>
 
             {/* WorldHub 3D carousel — isolated so a bad orb/import NEVER crashes the page */}

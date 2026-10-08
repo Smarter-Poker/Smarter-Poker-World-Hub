@@ -186,6 +186,9 @@ export default function VerifyPhonePage() {
         // This session's flag first so the hub never bounces back; the metadata
         // write (for later sessions) is fired without holding the navigation.
         try { sessionStorage.setItem('phone_prompt_skipped', '1'); } catch (_e) { /* ignore */ }
+        // The player just said "not now": the hub's reminder card waits for
+        // the next session instead of popping up on the screen they land on.
+        try { sessionStorage.setItem('sp_welcome_nudge_shown', '1'); } catch (_e) { /* ignore */ }
         try { capture(FunnelEvents.PHONE_VERIFY_SKIPPED, { welcome: isWelcome }); } catch (_e) { /* best-effort */ }
         try {
             supabase.auth.updateUser({ data: { [DISMISS_KEY]: new Date().toISOString() } })
@@ -230,7 +233,7 @@ export default function VerifyPhonePage() {
                         <>
                             <h1 style={styles.title}>Phone Verified</h1>
                             <p style={styles.lead}>
-                                Your Number Is Already Verified And Your Welcome Package Has Been Applied To This Account.
+                                Your Phone Number Is Already Verified On This Account.
                             </p>
                             <button type="button" onClick={goHub} style={styles.primaryBtn}>Go To The Hub →</button>
                         </>

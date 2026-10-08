@@ -1,7 +1,7 @@
 /**
  * SOCIAL PROFILE COMPLETION GATE
  * ═══════════════════════════════════════════════════════════════════════════
- * 3-step modal shown the first time a user (typically a Google OAuth signup)
+ * 2-step modal (name, username) shown the first time a user (typically a Google OAuth signup)
  * enters /hub/social-media. Required fields:
  *
  *   1. Full Name      — confirm or edit (pre-filled from Google given+family).
@@ -22,6 +22,7 @@
  */
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { Gem } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { getAccessToken, getAuthUser } from '../../lib/authUtils';
 import { busEmit } from '../../engine/EventBus';
@@ -202,7 +203,7 @@ export default function SocialProfileCompletionGate({ profile, onComplete }) {
             <div style={s.overlay} role="dialog" aria-modal="true" aria-labelledby="spcg-title">
                 <div style={s.modal}>
                     <div style={s.header}>
-                        <div style={s.iconWrap}>💎</div>
+                        <div style={s.iconWrap}><Gem size={26} strokeWidth={1.75} aria-hidden="true" /></div>
                         <h2 id="spcg-title" style={s.title}>Finish Your Profile</h2>
                         <p style={s.subtitle}>Two Quick Steps Before You Jump Into Social - So Other Players Can Find You.</p>
                     </div>
