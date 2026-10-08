@@ -55,6 +55,7 @@ const RAW = {
 test('the series page renders its head on the server, in every branch, with no placeholder', () => {
   const src = read('pages/hub/series/[id].js');
   assert.match(src, /export async function getServerSideProps\(\{ params, req, res \}\)/);
+  assert.match(src, /canonicalSeriesRouteId\(requestedId\)[\s\S]*?destination: `\/hub\/series\/\$\{canonicalId\}`[\s\S]*?permanent: true/);
   assert.match(src, /fetchSeries\(params\?\.id, originFrom\(req\)\)/);
   assert.ok(!src.includes('title="Poker Series Details"'), 'the placeholder title is gone');
   assert.ok(!src.includes(PLACEHOLDER), 'the placeholder description is gone');

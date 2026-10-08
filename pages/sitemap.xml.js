@@ -11,6 +11,7 @@ import { GLOSSARY_TERMS, glossaryTermPath } from '../src/content/glossary/terms'
 import { isTriviaPvpReleased } from '../src/lib/trivia/pvpReleaseControl.mjs';
 import { areTriviaTournamentsReleased } from '../src/lib/trivia/tournamentReleaseControl.mjs';
 import {
+  canonicalSeriesRouteId,
   isServableSeriesParentEvidence,
   toPokerSeriesRouteId,
   tournamentSeriesIdFromPointerUid,
@@ -405,7 +406,8 @@ async function buildPokerEventDetailUrls() {
   const urls = new Map();
   const offeredSeriesIds = new Set();
   const addSeries = (rawId) => {
-    const id = Number(rawId);
+    const canonicalId = canonicalSeriesRouteId(rawId);
+    const id = Number(canonicalId);
     if (!Number.isSafeInteger(id) || id <= 0) return;
     offeredSeriesIds.add(String(id));
     const path = `/hub/series/${id}`;

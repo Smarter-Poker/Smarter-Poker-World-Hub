@@ -3,6 +3,16 @@
 // card can never resolve to a tournament_series row with the same primary key.
 export const POKER_SERIES_ROUTE_ID_OFFSET = 5_000_000;
 
+// Search Console identified these two routes as the same Wynn Signature
+// Series (August 17 to September 7, 2026). The legacy row has no series_uid;
+// its source name, dates, venue, and Las Vegas location match the newer
+// PokerAtlas row at 5001034, whose UID identifies Wynn Las Vegas. Keep the
+// known alias explicit rather than guessing across same-title, multi-venue
+// series such as the Trailblazer pages.
+const SERIES_ROUTE_REDIRECTS = new Map([
+  [5_001_020, 5_001_034],
+]);
+
 function asPositiveSafeInteger(value) {
   const id = Number(value);
   return Number.isSafeInteger(id) && id > 0 ? id : null;
@@ -26,6 +36,13 @@ export function fromPokerSeriesRouteId(routeId) {
 
 export function isPokerSeriesRouteId(routeId) {
   return fromPokerSeriesRouteId(routeId) !== null;
+}
+
+/** Return the maintained public route for a known duplicate series ID. */
+export function canonicalSeriesRouteId(routeId) {
+  const id = asPositiveSafeInteger(routeId);
+  if (id === null) return null;
+  return String(SERIES_ROUTE_REDIRECTS.get(id) ?? id);
 }
 
 const SHA256_HEX = /^[a-f0-9]{64}$/i;
