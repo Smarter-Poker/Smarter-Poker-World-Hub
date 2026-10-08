@@ -60,9 +60,10 @@ if (( before_kb < 524288 )); then
   echo "Phase 12 cutover replica gate requires at least 524288 KiB free scratch space" >&2
   exit 2
 fi
-work_root="$(mktemp -d "$tmp_parent/p12-cutover-pg17.XXXXXX")"
+work_root="$(mktemp -d "$tmp_parent/p12pg.XXXXXX")"
 data_dir="$work_root/data"
-socket_dir="$work_root/socket"
+socket_dir="$work_root"
+# Unix sockets have a short platform path limit; do not add a nested directory.
 mkdir -p "$socket_dir"
 port="$((55432 + ($$ % 1000)))"
 started=0
@@ -74,7 +75,7 @@ cleanup() {
     "$pg_bin/pg_ctl" -D "$data_dir" -m immediate -w stop >/dev/null 2>&1 || true
   fi
   case "$work_root" in
-    "$tmp_parent"/p12-cutover-pg17.*) rm -rf -- "$work_root" ;;
+    "$tmp_parent"/p12pg.*) rm -rf -- "$work_root" ;;
     *) echo "Refusing unsafe replica cleanup target: $work_root" >&2; rc=3 ;;
   esac
   after_kb="$(space_kb)"
@@ -97,7 +98,10 @@ pg_share="$("$pg_bin/pg_config" --sharedir)"
   -c shared_memory_type=mmap -c dynamic_shared_memory_type=mmap >/dev/null
 "$pg_bin/pg_ctl" -D "$data_dir" \
   -o "-F -k $socket_dir -p $port -c listen_addresses=''" \
-  -w start >/dev/null
+  -l "$work_root/postgres.log" -w start >/dev/null || {
+    cat "$work_root/postgres.log" >&2
+    exit 1
+  }
 started=1
 "$pg_bin/createdb" -h "$socket_dir" -p "$port" -U postgres p12_cutover
 
@@ -109,6 +113,9 @@ run_psql() {
 run_psql -f "$repo_root/scripts/trivia/p12-cutover-replica-tests/00_fixture.sql"
 run_psql -f "$repo_root/supabase/migrations/20261006014200_trivia_p12_competitive_cutover_authority.sql"
 run_psql -f "$repo_root/scripts/trivia/p12-cutover-replica-tests/10_assertions.sql"
+run_psql -f "$repo_root/scripts/trivia/p12-cutover-replica-tests/20_metrics_before.sql"
+run_psql -f "$repo_root/supabase/migrations/20261008153740_trivia_metrics_use_builtin_wall_clock.sql"
+run_psql -f "$repo_root/scripts/trivia/p12-cutover-replica-tests/30_metrics_after.sql"
 
 peak_kb="$(space_kb)"
 echo "p12-cutover-pg17 space_peak_free_kb=$peak_kb"
