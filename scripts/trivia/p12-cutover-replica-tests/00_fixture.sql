@@ -160,7 +160,7 @@ CREATE TABLE public.trivia_tournament_field_snapshots (
 CREATE TABLE public.trivia_tournament_results (
     tournament_id uuid NOT NULL,
     participant_kind text NOT NULL,
-    payout bigint NOT NULL DEFAULT 0
+    payout integer NOT NULL DEFAULT 0
 );
 
 CREATE FUNCTION public.trivia_tournament_clock()

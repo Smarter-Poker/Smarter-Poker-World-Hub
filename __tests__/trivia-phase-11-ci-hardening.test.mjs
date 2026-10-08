@@ -72,8 +72,11 @@ test('the maintained gate runs the real Phase 12 migration once on its existing 
     assert.match(runner, /PostgreSQL 17/);
     assert.match(runner, /PHASE6_POSTGRES_BIN/);
     assert.match(runner, /trap cleanup EXIT INT TERM/);
-    assert.match(runner, /p12-cutover-pg17\.\*/);
+    assert.match(runner, /p12pg\.\*/);
     assert.match(runner, /20261006014200_trivia_p12_competitive_cutover_authority\.sql/);
+    assert.match(runner, /20_metrics_before\.sql/);
+    assert.match(runner, /20261008153740_trivia_metrics_use_builtin_wall_clock\.sql/);
+    assert.match(runner, /30_metrics_after\.sql/);
     assert.match(runner, /space_before_kb/);
     assert.match(runner, /before_kb < 524288/);
     assert.match(runner, /shared_memory_type=mmap/);
@@ -276,4 +279,33 @@ test('approved shared chrome is responsive and below-fold lobby art waits for th
     assert.match(responsiveArt, /srcSet=\{ready \? art\.mobile\.webp : undefined\}/);
     assert.match(responsiveArt, /src=\{ready \? art\.mobile\.src : art\.preview\}/);
     assert.match(lobby, /src=\{quickStakesArtReady \? TRIVIA_QUICK_STAKES_MODE\.image : TRANSPARENT_PIXEL\}/);
+});
+
+// The forecast is enforced by the existing Phase 11 required check.
+test('30/90-day forecasts conserve journals, model depletion, refunds and daily limits', async () => {
+    const { simulateTriviaEconomy } = await import('../src/lib/trivia/economySimulation.mjs');
+    const config = { openingBalance: 20000, floor: 0, dailyCeiling: 3000, exposureCeiling: 3000,
+        horseTarget: 140 };
+    for (const days of [30, 90]) {
+        const horses = simulateTriviaEconomy({ ...config, days });
+        assert.equal(horses.endingBalance, 20000 - days * 140);
+        assert.equal(horses.blocked, 0);
+        assert.equal(horses.variance, 0);
+        assert.equal(horses.terminalEscrow, 0);
+        const refunds = simulateTriviaEconomy({ ...config, days, humanEntrants: 8, refundEvery: 1 });
+        assert.equal(refunds.endingBalance, 20000);
+        assert.equal(refunds.rake, 0);
+        assert.equal(refunds.refunds, days);
+        const loss = simulateTriviaEconomy({ ...config, days, humanEntrants: 8, humanWinners: true });
+        assert.equal(loss.admitted, 14);
+        assert.equal(loss.endingBalance, 400);
+        assert.equal(loss.blocked, days - 14);
+        assert.equal(loss.sustainableAtRequestedVolume, false);
+        const stress = simulateTriviaEconomy({ ...config, days, humanEntrants: 8,
+            humanWinners: true, pvpPerDay: 40 });
+        assert.ok(stress.blocked > 0);
+        assert.ok(stress.minBalance >= 0);
+        assert.equal(stress.variance, 0);
+        assert.equal(stress.terminalEscrow, 0);
+    }
 });
