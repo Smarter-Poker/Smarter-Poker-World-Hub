@@ -27,6 +27,11 @@ import {
 } from '../../../src/hooks/useTriviaPreferenceRuntime';
 import * as triviaAudio from '../../../src/lib/trivia/triviaAudio';
 import { toTitleCase } from '../../../src/lib/trivia/titleCase';
+import {
+    createLatestRequestScope,
+    createAccountOperationScope,
+    shouldGateAccountOwnedRender,
+} from '../../../src/lib/trivia/accountOperationScope.mjs';
 
 const DIFFICULTY_OPTIONS = ['easy', 'medium', 'hard'];
 const INTENSITY_OPTIONS = ['low', 'medium', 'high'];
@@ -77,10 +82,10 @@ function applyGameSettings(preferences) {
     return audioApplied;
 }
 
-function NativeToggle({ id, checked, onChange, disabled = false }) {
+function NativeToggle({ id, label, checked, onChange, disabled = false }) {
     return (
         <label className="trivia-progress-native-switch" htmlFor={id} data-checked={checked ? 'true' : 'false'}>
-            <input id={id} type="checkbox" checked={checked} disabled={disabled} onChange={(event) => onChange(event.target.checked)} />
+            <input id={id} type="checkbox" aria-label={label} checked={checked} disabled={disabled} onChange={(event) => onChange(event.target.checked)} />
             <span aria-hidden="true" className="trivia-progress-native-switch__track"><span /></span>
             <span className="trivia-progress-native-switch__state">{checked ? 'On' : 'Off'}</span>
         </label>
@@ -127,6 +132,25 @@ export default function TriviaSettings() {
     const online = useOnlineStatus();
     const { user: avatarUser, loading: avatarLoading } = useAvatar();
     const [userId, setUserId] = useState(null);
+    const accountOperationScopeRef = useRef(null);
+    if (!accountOperationScopeRef.current) {
+        accountOperationScopeRef.current = createAccountOperationScope();
+    }
+    const loadRequestScopeRef = useRef(null);
+    if (!loadRequestScopeRef.current) {
+        loadRequestScopeRef.current = createLatestRequestScope();
+    }
+    const requestIdentityRef = useRef(undefined);
+    const resolvedAccountId = avatarLoading
+        ? userId
+        : (avatarUser?.id || getAuthUser()?.id || null);
+    if (!avatarLoading) {
+        accountOperationScopeRef.current.transition(resolvedAccountId);
+        if (requestIdentityRef.current !== resolvedAccountId) {
+            requestIdentityRef.current = resolvedAccountId;
+            loadRequestScopeRef.current.invalidate();
+        }
+    }
     const [preferences, setPreferences] = useState({ ...DEFAULT_TRIVIA_PREFERENCES });
     const [cloudPreferences, setCloudPreferences] = useState(null);
     const [syncStatus, setSyncStatus] = useState('loading');
@@ -135,6 +159,7 @@ export default function TriviaSettings() {
     const [messageTone, setMessageTone] = useState('');
     const [messageKey, setMessageKey] = useState('');
     const timerRef = useRef(null);
+    const loadedIdentityRef = useRef(undefined);
 
     const flash = useCallback((text, tone = 'success', key = 'sync') => {
         setMessage(text);
@@ -154,31 +179,63 @@ export default function TriviaSettings() {
 
     const load = useCallback(async () => {
         if (avatarLoading) return;
-        const resolvedUserId = avatarUser?.id || getAuthUser()?.id || null;
-        setUserId(resolvedUserId);
+        const resolvedUserId = resolvedAccountId;
+        const operationScope = accountOperationScopeRef.current.capture();
+        const loadRequest = loadRequestScopeRef.current.begin();
+        // A same-account storage/online refresh must not race an in-flight
+        // mutation. begin() returns null while that mutation owns the scope;
+        // its success or rollback applies the one authoritative visible copy.
+        if (loadRequest === null) return;
+        // The render boundary above is the sole owner of identity transitions.
+        // An old storage-listener callback can briefly survive until its
+        // effect cleanup runs; it must never transition the scope back to the
+        // prior account and make stale work current again.
+        if (operationScope.identity !== resolvedUserId) return;
+        const isCurrent = () => accountOperationScopeRef.current.isCurrent(operationScope)
+            && loadRequestScopeRef.current.isCurrent(loadRequest);
+        if (loadedIdentityRef.current !== resolvedUserId) {
+            loadedIdentityRef.current = resolvedUserId;
+            const cached = getLocalTriviaPreferences(resolvedUserId);
+            window.clearTimeout(timerRef.current);
+            setUserId(resolvedUserId);
+            setPreferences(cached);
+            setCloudPreferences(null);
+            setSyncRevision(0);
+            setMessage('');
+            setMessageTone('');
+            setMessageKey('');
+            applyGameSettings(cached);
+        }
         setSyncStatus('loading');
         try {
             if (resolvedUserId && !online) {
                 const cached = getLocalTriviaPreferences(resolvedUserId);
+                if (!isCurrent()) return;
                 setPreferences(cached);
                 setSyncStatus('stale');
                 applyGameSettings(cached);
                 return;
             }
             const state = await getTriviaPreferencesState(resolvedUserId);
+            if (!isCurrent()) return;
             applyState(state);
         } catch (error) {
+            if (!isCurrent()) return;
             console.warn('[TriviaSettings] Load Failed:', error?.message || error);
             const cached = getLocalTriviaPreferences(resolvedUserId);
+            if (!isCurrent()) return;
             setPreferences(cached);
             setSyncStatus(resolvedUserId ? 'stale' : 'local');
             applyGameSettings(cached);
             flash(resolvedUserId ? 'Cloud Settings Could Not Be Read. Showing This Device Copy.' : 'Showing This Device Settings.', 'error');
         }
-    }, [applyState, avatarLoading, avatarUser?.id, flash, online]);
+    }, [applyState, avatarLoading, flash, online, resolvedAccountId]);
 
     useEffect(() => { load(); }, [load]);
-    useEffect(() => () => window.clearTimeout(timerRef.current), []);
+    useEffect(() => () => {
+        loadRequestScopeRef.current.invalidate();
+        window.clearTimeout(timerRef.current);
+    }, []);
 
     useEffect(() => {
         const syncOtherTab = (event) => {
@@ -190,37 +247,55 @@ export default function TriviaSettings() {
         return () => window.removeEventListener('storage', syncOtherTab);
     }, [load]);
 
-    const locked = ['loading', 'saving', 'conflict'].includes(syncStatus);
+    const accountBoundaryPending = shouldGateAccountOwnedRender({
+        loading: avatarLoading,
+        resolvedIdentity: resolvedAccountId,
+        loadedIdentity: userId,
+    });
+    const locked = accountBoundaryPending || ['loading', 'saving', 'conflict'].includes(syncStatus);
 
     const persist = async (key, next) => {
+        const operationScope = accountOperationScopeRef.current.capture();
+        if (operationScope.identity !== (userId || null)) return;
+        const mutation = loadRequestScopeRef.current.beginMutation();
+        if (mutation === null) return;
+        const isCurrent = () => accountOperationScopeRef.current.isCurrent(operationScope)
+            && loadRequestScopeRef.current.isMutationCurrent(mutation);
+        const operationUserId = operationScope.identity;
         const previous = preferences;
         const previousSyncStatus = syncStatus;
-        setPreferences(next);
-        applyGameSettings(next);
-        if (!userId) {
-            saveTriviaPreferencesLocally(null, next, { pending: false, baseRevision: 0 });
-            setSyncStatus('local');
-            flash('Saved On This Device.', 'success', key);
-            return;
-        }
-        if (!online) {
-            saveTriviaPreferencesLocally(userId, next, { pending: true, baseRevision: syncRevision });
-            setSyncStatus('pending');
-            flash('Saved On This Device. Cloud Sync Is Pending.', 'warning', key);
-            return;
-        }
-        setSyncStatus('saving');
         try {
-            const saved = await updateTriviaPreferences(userId, next);
+            setPreferences(next);
+            applyGameSettings(next);
+            if (!operationUserId) {
+                saveTriviaPreferencesLocally(null, next, { pending: false, baseRevision: 0 });
+                setSyncStatus('local');
+                flash('Saved On This Device.', 'success', key);
+                return;
+            }
+            if (!online) {
+                saveTriviaPreferencesLocally(operationUserId, next, { pending: true, baseRevision: syncRevision });
+                setSyncStatus('pending');
+                flash('Saved On This Device. Cloud Sync Is Pending.', 'warning', key);
+                return;
+            }
+            setSyncStatus('saving');
+            const saved = await updateTriviaPreferences(operationUserId, next);
+            if (!isCurrent()) return;
             const revision = Math.max(0, Number(saved?._sync?.revision) || syncRevision + 1);
+            const authoritativePreferences = { ...next, ...(saved || {}) };
+            delete authoritativePreferences._sync;
+            setPreferences(authoritativePreferences);
+            applyGameSettings(authoritativePreferences);
             setSyncRevision(revision);
-            setCloudPreferences(next);
+            setCloudPreferences(authoritativePreferences);
             setSyncStatus('cloud');
             flash('Saved To Your Account.', 'success', key);
         } catch (error) {
+            if (!isCurrent()) return;
             console.warn('[TriviaSettings] Save Failed:', error?.message || error);
             if (error?.code === 'trivia_preferences_conflict') {
-                saveTriviaPreferencesLocally(userId, next, { pending: true, baseRevision: syncRevision });
+                saveTriviaPreferencesLocally(operationUserId, next, { pending: true, baseRevision: syncRevision });
                 setCloudPreferences(error.cloudPreferences || null);
                 setSyncRevision(Math.max(0, Number(error.revision) || syncRevision));
                 setSyncStatus('conflict');
@@ -230,7 +305,7 @@ export default function TriviaSettings() {
             setPreferences(previous);
             applyGameSettings(previous);
             const preservePendingDeviceCopy = ['pending', 'stale'].includes(previousSyncStatus);
-            saveTriviaPreferencesLocally(userId, previous, {
+            saveTriviaPreferencesLocally(operationUserId, previous, {
                 pending: preservePendingDeviceCopy,
                 baseRevision: syncRevision,
             });
@@ -242,6 +317,8 @@ export default function TriviaSettings() {
                 'error',
                 key,
             );
+        } finally {
+            loadRequestScopeRef.current.endMutation(mutation);
         }
     };
 
@@ -251,32 +328,54 @@ export default function TriviaSettings() {
     };
 
     const retrySync = async () => {
-        if (!userId || !online) {
+        const operationScope = accountOperationScopeRef.current.capture();
+        if (operationScope.identity !== (userId || null)) return;
+        const operationUserId = operationScope.identity;
+        if (!operationUserId || !online) {
             flash('Connect To The Internet To Retry Cloud Sync.', 'warning');
             return;
         }
+        const mutation = loadRequestScopeRef.current.beginMutation();
+        if (mutation === null) return;
+        const isCurrent = () => accountOperationScopeRef.current.isCurrent(operationScope)
+            && loadRequestScopeRef.current.isMutationCurrent(mutation);
         setSyncStatus('saving');
         try {
-            const state = await syncPendingTriviaPreferences(userId);
+            const state = await syncPendingTriviaPreferences(operationUserId);
+            if (!isCurrent()) return;
             applyState(state);
             flash(state.status === 'conflict' ? 'Choose Which Settings To Keep.' : 'Cloud Sync Complete.', state.status === 'conflict' ? 'warning' : 'success');
         } catch (error) {
+            if (!isCurrent()) return;
             console.warn('[TriviaSettings] Retry Failed:', error?.message || error);
             setSyncStatus('error');
             flash('Cloud Sync Failed. This Device Copy Was Kept.', 'error');
+        } finally {
+            loadRequestScopeRef.current.endMutation(mutation);
         }
     };
 
     const resolveConflict = async (choice) => {
+        const operationScope = accountOperationScopeRef.current.capture();
+        if (operationScope.identity !== (userId || null) || !operationScope.identity) return;
+        const operationUserId = operationScope.identity;
+        const mutation = loadRequestScopeRef.current.beginMutation();
+        if (mutation === null) return;
+        const isCurrent = () => accountOperationScopeRef.current.isCurrent(operationScope)
+            && loadRequestScopeRef.current.isMutationCurrent(mutation);
         setSyncStatus('saving');
         try {
-            const state = await resolveTriviaPreferencesConflict(userId, choice);
+            const state = await resolveTriviaPreferencesConflict(operationUserId, choice);
+            if (!isCurrent()) return;
             applyState(state);
             flash(choice === 'cloud' ? 'Cloud Settings Restored On This Device.' : 'This Device Settings Saved To Your Account.');
         } catch (error) {
+            if (!isCurrent()) return;
             console.warn('[TriviaSettings] Conflict Resolution Failed:', error?.message || error);
             setSyncStatus('conflict');
             flash('Conflict Resolution Failed. No Copy Was Discarded.', 'error');
+        } finally {
+            loadRequestScopeRef.current.endMutation(mutation);
         }
     };
 
@@ -284,9 +383,9 @@ export default function TriviaSettings() {
     const statusMessage = message ? (
         <p className={`trivia-progress-status tc-ink--${messageTone === 'error' ? 'red' : messageTone === 'warning' ? 'gold' : 'green'}`} role={messageTone === 'error' ? 'alert' : 'status'}>{message}</p>
     ) : null;
-    const syncLabel = {
+    const syncLabel = accountBoundaryPending ? 'Loading' : ({
         loading: 'Loading', local: 'Local', cloud: 'Cloud', stale: 'Offline Copy', pending: 'Sync Pending', conflict: 'Conflict', saving: 'Saving', error: 'Retry Needed',
-    }[syncStatus] || 'Local';
+    }[syncStatus] || 'Local');
 
     return (
         <TriviaErrorBoundary pageName="Settings">
@@ -304,11 +403,13 @@ export default function TriviaSettings() {
                                 titleId="trivia-settings-title"
                                 subtitle="Accessible Local And Cloud Controls"
                                 pill={syncLabel}
-                                pillInk={['conflict', 'error'].includes(syncStatus) ? 'red' : syncStatus === 'pending' || syncStatus === 'stale' ? 'gold' : syncStatus === 'cloud' ? 'green' : 'blue'}
+                                pillInk={!accountBoundaryPending && ['conflict', 'error'].includes(syncStatus) ? 'red' : !accountBoundaryPending && (syncStatus === 'pending' || syncStatus === 'stale') ? 'gold' : !accountBoundaryPending && syncStatus === 'cloud' ? 'green' : 'blue'}
                                 secondaryAction={{ label: 'Back To Trivia', onClick: () => router.push('/hub/trivia') }}
                             >
                                 <ResponsiveModeArt art={TRIVIA_INTRO_ART.settings} priority />
-                                <div className="trivia-progress-content trivia-progress-content--settings">
+                                {accountBoundaryPending ? (
+                                    <p className="trivia-progress-state trivia-progress-state--loading" role="status">Loading Account Settings</p>
+                                ) : <div className="trivia-progress-content trivia-progress-content--settings">
                                     <p className="trivia-progress-intro">{userId ? 'Signed-In Changes Autosave To Your Account When Online.' : 'Signed-Out Changes Stay On This Device.'}</p>
                                     {syncStatus === 'stale' ? <section className="trivia-progress-notice trivia-progress-notice--warning" role="status"><p>Offline Copy. Cloud Values Could Not Be Checked.</p></section> : null}
                                     {syncStatus === 'pending' ? <section className="trivia-progress-notice trivia-progress-notice--warning" role="status"><p>This Device Has Changes Waiting For Cloud Sync.</p><button type="button" className="tc-word" onClick={retrySync}>Retry Sync</button></section> : null}
@@ -327,22 +428,22 @@ export default function TriviaSettings() {
 
                                     <div className="trivia-progress-settings-grid">
                                         <SettingsSection id="trivia-settings-gameplay" title="Gameplay">
-                                            <SettingRow title="Timer Visibility" description="Show The Countdown During Questions" status={messageKey === 'timerEnabled' ? statusMessage : null}><NativeToggle id="trivia-setting-timer" checked={preferences.timerEnabled} disabled={locked} onChange={(value) => update('timerEnabled', value)} /></SettingRow>
-                                            <SettingRow title="Question Hints" description="Show Hints Where A Question Supports Them" status={messageKey === 'hintsEnabled' ? statusMessage : null}><NativeToggle id="trivia-setting-hints" checked={preferences.hintsEnabled} disabled={locked} onChange={(value) => update('hintsEnabled', value)} /></SettingRow>
+                                            <SettingRow title="Timer Visibility" description="Show The Countdown During Questions" status={messageKey === 'timerEnabled' ? statusMessage : null}><NativeToggle id="trivia-setting-timer" label="Timer Visibility" checked={preferences.timerEnabled} disabled={locked} onChange={(value) => update('timerEnabled', value)} /></SettingRow>
+                                            <SettingRow title="Question Hints" description="Show Hints Where A Question Supports Them" status={messageKey === 'hintsEnabled' ? statusMessage : null}><NativeToggle id="trivia-setting-hints" label="Question Hints" checked={preferences.hintsEnabled} disabled={locked} onChange={(value) => update('hintsEnabled', value)} /></SettingRow>
                                             <SettingRow title="Difficulty" description="Preferred Endless Mode Question Difficulty" status={messageKey === 'difficulty' ? statusMessage : null}><ChoiceRow label="Difficulty" options={DIFFICULTY_OPTIONS} value={preferences.difficulty} disabled={locked} onSelect={(value) => update('difficulty', value)} /></SettingRow>
                                         </SettingsSection>
 
                                         <SettingsSection id="trivia-settings-feedback" title="Feedback">
-                                            <SettingRow title="Sound Effects" description="Countdown And Answer Feedback Audio" status={messageKey === 'soundEffects' ? statusMessage : null}><NativeToggle id="trivia-setting-sound" checked={preferences.soundEffects} disabled={locked} onChange={(value) => update('soundEffects', value)} /></SettingRow>
-                                            <SettingRow title="Haptic Vibration" description="Mobile Vibration During Time Pressure" status={messageKey === 'haptics' ? statusMessage : null}><NativeToggle id="trivia-setting-haptics" checked={preferences.haptics} disabled={locked} onChange={(value) => update('haptics', value)} /></SettingRow>
-                                            <SettingRow title="Screen Shake" description="Board Motion During Final Countdown" status={messageKey === 'screenShake' ? statusMessage : null}><NativeToggle id="trivia-setting-shake" checked={preferences.screenShake} disabled={locked} onChange={(value) => update('screenShake', value)} /></SettingRow>
+                                            <SettingRow title="Sound Effects" description="Countdown And Answer Feedback Audio" status={messageKey === 'soundEffects' ? statusMessage : null}><NativeToggle id="trivia-setting-sound" label="Sound Effects" checked={preferences.soundEffects} disabled={locked} onChange={(value) => update('soundEffects', value)} /></SettingRow>
+                                            <SettingRow title="Haptic Vibration" description="Mobile Vibration During Time Pressure" status={messageKey === 'haptics' ? statusMessage : null}><NativeToggle id="trivia-setting-haptics" label="Haptic Vibration" checked={preferences.haptics} disabled={locked} onChange={(value) => update('haptics', value)} /></SettingRow>
+                                            <SettingRow title="Screen Shake" description="Board Motion During Final Countdown" status={messageKey === 'screenShake' ? statusMessage : null}><NativeToggle id="trivia-setting-shake" label="Screen Shake" checked={preferences.screenShake} disabled={locked} onChange={(value) => update('screenShake', value)} /></SettingRow>
                                             <SettingRow title="Feedback Intensity" description="Strength Of Audio, Haptic, And Motion Cues" status={messageKey === 'intensity' ? statusMessage : null}><ChoiceRow label="Feedback Intensity" options={INTENSITY_OPTIONS} value={preferences.intensity} disabled={locked} onSelect={(value) => update('intensity', value)} /></SettingRow>
                                         </SettingsSection>
 
                                         <SettingsSection id="trivia-settings-accessibility" title="Accessibility">
-                                            <SettingRow title="Reduced Motion" description="Suppress Nonessential Trivia Animation And Shake" status={messageKey === 'reducedMotion' ? statusMessage : null}><NativeToggle id="trivia-setting-motion" checked={preferences.reducedMotion} disabled={locked} onChange={(value) => update('reducedMotion', value)} /></SettingRow>
-                                            <SettingRow title="High Contrast" description="Increase Separation Between Text, Rules, And Black Surfaces" status={messageKey === 'highContrast' ? statusMessage : null}><NativeToggle id="trivia-setting-contrast" checked={preferences.highContrast} disabled={locked} onChange={(value) => update('highContrast', value)} /></SettingRow>
-                                            <SettingRow title="Larger Text" description="Increase Live Trivia Body And Control Text" status={messageKey === 'largerText' ? statusMessage : null}><NativeToggle id="trivia-setting-text" checked={preferences.largerText} disabled={locked} onChange={(value) => update('largerText', value)} /></SettingRow>
+                                            <SettingRow title="Reduced Motion" description="Suppress Nonessential Trivia Animation And Shake" status={messageKey === 'reducedMotion' ? statusMessage : null}><NativeToggle id="trivia-setting-motion" label="Reduced Motion" checked={preferences.reducedMotion} disabled={locked} onChange={(value) => update('reducedMotion', value)} /></SettingRow>
+                                            <SettingRow title="High Contrast" description="Increase Separation Between Text, Rules, And Black Surfaces" status={messageKey === 'highContrast' ? statusMessage : null}><NativeToggle id="trivia-setting-contrast" label="High Contrast" checked={preferences.highContrast} disabled={locked} onChange={(value) => update('highContrast', value)} /></SettingRow>
+                                            <SettingRow title="Larger Text" description="Increase Live Trivia Body And Control Text" status={messageKey === 'largerText' ? statusMessage : null}><NativeToggle id="trivia-setting-text" label="Larger Text" checked={preferences.largerText} disabled={locked} onChange={(value) => update('largerText', value)} /></SettingRow>
                                         </SettingsSection>
 
                                         <SettingsSection id="trivia-settings-notifications" title="Notifications">
@@ -358,7 +459,7 @@ export default function TriviaSettings() {
                                             <li className="trivia-progress-setting trivia-progress-setting--actions"><button type="button" className="tc-word" disabled={locked} onClick={restoreDefaults}>Restore Defaults</button>{userId && ['pending', 'error', 'stale'].includes(syncStatus) ? <button type="button" className="tc-word" disabled={!online} onClick={retrySync}>Retry Sync</button> : null}</li>
                                         </SettingsSection>
                                     </div>
-                                </div>
+                                </div>}
                             </TriviaConsole>
                         </main>
                     </div>

@@ -12,6 +12,7 @@ const FOCUSED_TESTS = [
     '__tests__/trivia-phase-9-challenge-knowledge.test.mjs',
     '__tests__/trivia-phase-10-art-provenance.test.mjs',
     '__tests__/trivia-phase-10-progress-account.test.mjs',
+    '__tests__/trivia-ledger-phase-2.test.mjs',
     '__tests__/trivia-achievement-authority.test.mjs',
     '__tests__/page-preferences-merge-before-save.test.mjs',
     '__tests__/trivia-preferences-atomic-cas.test.mjs',
@@ -100,6 +101,47 @@ test('the maintained gate runs the real Phase 12 migration once on its existing 
         /standby masked the latest owner health/,
         /compatibility RPC did not enter canonical recovery fence/,
     ]) assert.match(assertions, contract);
+});
+
+test('the maintained gate runs the Phase 11 payout and Phase 9 solo migrations once on PostgreSQL 17', () => {
+    const workflow = read('.github/workflows/build-safety-gate.yml');
+    const resolvedPg17 = workflow.indexOf('Resolve Exact PostgreSQL 17 Training Test Binaries');
+    const gates = [
+        {
+            name: 'Trivia Phase 11 Payout Control PostgreSQL 17 Authority',
+            path: 'scripts/trivia/p11-payout-control-replica-tests/run.sh',
+            migrations: [
+                '20261006053300_trivia_p11_payout_control_authority.sql',
+            ],
+        },
+        {
+            name: 'Trivia Phase 9 Solo Authority PostgreSQL 17 Cutover',
+            path: 'scripts/trivia/phase9-solo-authority-replica-tests/run.sh',
+            migrations: [
+                '20261006061400_trivia_phase9_retire_generic_lifeline_spend.sql',
+                '20261006061500_trivia_phase9_paid_skip_and_endless_score_authority.sql',
+                '20261006143500_trivia_phase9_fk_advisor_hardening.sql',
+            ],
+        },
+    ];
+
+    for (const gate of gates) {
+        assert.equal(workflow.split(gate.path).length - 1, 1, `${gate.path} must run exactly once`);
+        assert.ok(resolvedPg17 < workflow.indexOf(gate.name), `${gate.name} must reuse the resolved PG17 binaries`);
+
+        const runner = read(gate.path);
+        assert.match(runner, /PostgreSQL 17/);
+        assert.match(runner, /PHASE6_POSTGRES_BIN/);
+        assert.match(runner, /trap cleanup EXIT INT TERM/);
+        const migrationPositions = gate.migrations.map((migration) => {
+            assert.equal(runner.split(migration).length - 1, 1, `${migration} must be applied exactly once`);
+            return runner.indexOf(migration);
+        });
+        for (let index = 1; index < migrationPositions.length; index += 1) {
+            assert.ok(migrationPositions[index - 1] < migrationPositions[index], `${gate.name} migrations must remain ordered`);
+        }
+        assert.ok(migrationPositions.at(-1) < runner.indexOf('10_assertions.sql'), `${gate.name} must assert after migrations`);
+    }
 });
 
 test('every rebuilt Trivia route has finite p75 Core Web Vitals and resource ceilings', () => {

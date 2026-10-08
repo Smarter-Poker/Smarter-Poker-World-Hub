@@ -161,7 +161,7 @@ export function parseOperationsActionRequest(body) {
 export function parseSupportLookupRequest(query) {
     const kind = typeof query?.kind === 'string' ? query.kind.trim() : '';
     const targetId = typeof query?.targetId === 'string' ? query.targetId.trim() : '';
-    if (!['user', 'pvp_match', 'tournament', 'question'].includes(kind) || !UUID_RE.test(targetId)) {
+    if (!['user', 'pvp_match', 'tournament', 'question', 'settlement'].includes(kind) || !UUID_RE.test(targetId)) {
         return invalid('invalid_support_lookup');
     }
     return { ok: true, value: { kind, targetId } };

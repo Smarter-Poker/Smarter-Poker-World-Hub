@@ -102,6 +102,54 @@ const IMMEDIATE_REVEAL_MODES = new Set([
     'daily', 'history', 'rules', 'pro', 'arcade', 'mtt', 'cash', 'icm', 'gto',
     'mixed', 'survival', 'endless', 'time-attack',
 ]);
+const PAID_SKIP_MODES = new Set(['endless', 'survival']);
+
+const EMPTY_PAID_SKIP_STATUS = Object.freeze({
+    paidSkipCount: 0,
+    paidSkipLimit: 3,
+    nonPaidMissCount: 0,
+    terminalFailureCount: 0,
+    missLimit: null,
+    runMissLimitReached: false,
+    requiredCorrect: null,
+    maxPossibleCorrect: null,
+    survivalLevel: null,
+});
+
+async function loadPaidSkipStatus(sb, mode, sessionId, userId) {
+    if (!PAID_SKIP_MODES.has(mode)) return { ...EMPTY_PAID_SKIP_STATUS };
+    const { data, error } = await sb.rpc('trivia_paid_skip_status_v1', {
+        p_session_id: sessionId,
+        p_user_id: userId,
+    });
+    if (error || data?.success !== true
+        || !Number.isInteger(data?.paidSkipCount)
+        || data.paidSkipCount < 0 || data.paidSkipCount > 3
+        || data.paidSkipLimit !== 3
+        || !Number.isInteger(data?.nonPaidMissCount) || data.nonPaidMissCount < 0
+        || !Number.isInteger(data?.terminalFailureCount) || data.terminalFailureCount < 0
+        || !Number.isInteger(data?.missLimit) || data.missLimit < 1
+        || (mode === 'survival'
+            && (!Number.isInteger(data?.survivalLevel)
+                || data.survivalLevel < 1 || data.survivalLevel > 10))
+        || (mode !== 'survival' && data?.survivalLevel !== null)
+        || typeof data?.runMissLimitReached !== 'boolean') {
+        console.warn('[trivia session-start] paid-skip status failed:',
+            error?.message || data?.error || 'invalid_response');
+        throw new Error('paid_skip_status_unavailable');
+    }
+    return {
+        paidSkipCount: data.paidSkipCount,
+        paidSkipLimit: data.paidSkipLimit,
+        nonPaidMissCount: data.nonPaidMissCount,
+        terminalFailureCount: data.terminalFailureCount,
+        missLimit: data.missLimit,
+        runMissLimitReached: data.runMissLimitReached,
+        survivalLevel: mode === 'survival' ? data.survivalLevel : null,
+        requiredCorrect: Number.isInteger(data.requiredCorrect) ? data.requiredCorrect : null,
+        maxPossibleCorrect: Number.isInteger(data.maxPossibleCorrect) ? data.maxPossibleCorrect : null,
+    };
+}
 
 function validPermutation(value, optionCount) {
     return Array.isArray(value)
@@ -295,6 +343,7 @@ async function startOrResumeSoloV3(res, sb, userId, mode, sessionId, parentSessi
     let body = toSoloStartResponse(data);
     try {
         body = await enrichV3StartResponse(sb, mode, sessionId, userId, body);
+        Object.assign(body, await loadPaidSkipStatus(sb, mode, sessionId, userId));
     } catch (_error) {
         return res.status(500).json({ success: false, error: 'session_resume_failed' });
     }
@@ -459,6 +508,12 @@ async function serveExistingSoloSession(res, sb, userId, session, {
     if (questions.length !== expectedCount) {
         return res.status(409).json({ success: false, error: 'revision_provenance_unavailable' });
     }
+    let paidSkipStatus;
+    try {
+        paidSkipStatus = await loadPaidSkipStatus(sb, session.mode, session.id, userId);
+    } catch (_error) {
+        return res.status(500).json({ success: false, error: 'session_resume_failed' });
+    }
     res.setHeader('Cache-Control', 'private, no-cache, no-store, must-revalidate');
     return res.status(200).json({
         success: true,
@@ -471,6 +526,7 @@ async function serveExistingSoloSession(res, sb, userId, session, {
         entryState: session.entry_state || 'legacy',
         expiresAt: session.expires_at || null,
         newBalance,
+        ...paidSkipStatus,
     });
 }
 

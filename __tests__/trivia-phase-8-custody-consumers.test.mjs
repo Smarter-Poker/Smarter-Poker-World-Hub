@@ -109,13 +109,52 @@ test('legacy solo start actions fail closed until their authenticated account id
     );
 });
 
-test('post-start roster validation never retires a potentially charged solo session', () => {
-    for (const file of [
-        'pages/hub/trivia/mixed.js',
-        'pages/hub/trivia/endless.js',
-        'pages/hub/trivia/survival-game.js',
-        'pages/hub/trivia/time-attack.js',
+function visit(node, inspect) {
+    if (!node || typeof node !== 'object') return;
+    if (typeof node.type === 'string') inspect(node);
+    for (const value of Object.values(node)) {
+        if (Array.isArray(value)) value.forEach(child => visit(child, inspect));
+        else if (value && typeof value === 'object') visit(value, inspect);
+    }
+}
+
+function resetCalls(node) {
+    const calls = [];
+    visit(node, child => {
+        if (child.type === 'CallExpression'
+            && child.callee.type === 'MemberExpression'
+            && child.callee.object.name === 'serverRun'
+            && child.callee.property.name === 'reset') calls.push(child);
+    });
+    return calls;
+}
+
+test('post-start roster validation preserves custody; UI reset requires authoritative retirement', () => {
+    for (const [file, retirementName] of [
+        ['pages/hub/trivia/mixed.js', null],
+        ['pages/hub/trivia/endless.js', 'leaveRetiredRun'],
+        ['pages/hub/trivia/survival-game.js', 'leaveRetiredLevel'],
+        ['pages/hub/trivia/time-attack.js', null],
     ]) {
-        assert.doesNotMatch(read(file), /serverRun\.reset\(\)/, `${file} preserves retry custody after start`);
+        const source = read(file);
+        const component = defaultComponent(source, file);
+        if (!retirementName) {
+            assert.equal(resetCalls(component).length, 0, `${file} preserves retry custody after start`);
+            continue;
+        }
+        const retirement = component.body.body.find(node =>
+            node.type === 'FunctionDeclaration' && node.id.name === retirementName);
+        assert.ok(retirement, `${file} has an explicit retirement boundary`);
+        const guard = retirement.body.body[0];
+        assert.equal(guard.type, 'IfStatement');
+        assert.equal(guard.test.type, 'UnaryExpression');
+        assert.equal(guard.test.operator, '!');
+        assert.equal(guard.test.argument.callee.name, 'isRetiredTriviaRunError');
+        assert.equal(guard.test.argument.arguments[0].name, 'error');
+        assert.equal(guard.consequent.type, 'ReturnStatement');
+        assert.equal(guard.consequent.argument.value, false);
+        assert.equal(resetCalls(retirement).length, 1);
+        assert.equal(resetCalls(component).length, 1,
+            `${file} cannot reset from roster validation or another unguarded path`);
     }
 });

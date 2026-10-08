@@ -142,6 +142,59 @@ async function readSoloSettlementReceipt(sb, userId, sessionId, result) {
     };
 }
 
+function normalizeHighScoreProjection(value, mode, expectedCorrect = null) {
+    if (mode !== 'endless') return { ok: true, projection: null };
+    if (!Number.isInteger(expectedCorrect) || expectedCorrect < 0) {
+        return { ok: false, error: 'invalid_high_score_projection' };
+    }
+    if (value?.status === 'ineligible'
+        && value.reason === 'historical_run_boundary_overrun'
+        && value.highScore === null && value.improved === false) {
+        return { ok: true, projection: {
+            status: 'ineligible',
+            reason: value.reason,
+            highScore: null,
+            improved: false,
+        } };
+    }
+    if (value?.status === 'pending'
+        && ['boundary_status_unavailable', 'projection_unavailable'].includes(value.reason)
+        && value.highScore === null && value.improved === false) {
+        return { ok: true, projection: {
+            status: 'pending',
+            reason: value.reason,
+            highScore: null,
+            improved: false,
+        } };
+    }
+    if (!value || value.success !== true || value.status !== 'persisted'
+        || !Number.isInteger(value.verifiedCorrect) || value.verifiedCorrect < 0
+        || value.verifiedCorrect !== expectedCorrect
+        || !Number.isInteger(value.highScore) || value.highScore < value.verifiedCorrect
+        || typeof value.improved !== 'boolean'
+        || typeof value.replayed !== 'boolean'
+        || typeof value.projectionId !== 'string' || !UUID_RE.test(value.projectionId)) {
+        return { ok: false, error: 'invalid_high_score_projection' };
+    }
+    return { ok: true, projection: {
+        status: value.status,
+        highScore: value.highScore,
+        improved: value.improved,
+        verifiedCorrect: value.verifiedCorrect,
+        replayed: value.replayed,
+        projectionId: value.projectionId,
+    } };
+}
+
+function authoritativeSurvivalLevel(session) {
+    if (session?.mode !== 'survival') return { ok: true, survivalLevel: null };
+    if (!Number.isInteger(session?.survival_level)
+        || session.survival_level < 1 || session.survival_level > 10) {
+        return { ok: false, error: 'invalid_survival_level_authority' };
+    }
+    return { ok: true, survivalLevel: session.survival_level };
+}
+
 const isPlainRecord = value => Boolean(value)
     && typeof value === 'object'
     && !Array.isArray(value);
@@ -285,6 +338,10 @@ function projectStoredLegacySettlement(session) {
 }
 
 async function respondWithStoredLegacySettlement(res, sb, userId, session) {
+    const survivalAuthority = authoritativeSurvivalLevel(session);
+    if (!survivalAuthority.ok) {
+        return res.status(502).json({ success: false, error: survivalAuthority.error });
+    }
     const projected = projectStoredLegacySettlement(session);
     if (!projected.ok) {
         console.warn('[trivia session-submit] immutable replay unavailable:', projected.error);
@@ -295,14 +352,51 @@ async function respondWithStoredLegacySettlement(res, sb, userId, session) {
         console.warn('[trivia session-submit] settlement receipt unavailable:', evidence.error);
         return res.status(502).json({ success: false, error: evidence.error });
     }
+    const replayRequestId = typeof session.settlement_request_id === 'string'
+        && UUID_RE.test(session.settlement_request_id)
+        ? session.settlement_request_id
+        : session.id;
+    const response = projected.response;
+    const { data: replay, error: replayError } = await sb.rpc('award_trivia_run_v5', {
+        p_session_id: session.id,
+        p_score: Number.isInteger(response.score) ? response.score : 0,
+        p_correct: Number.isInteger(response.correct) ? response.correct : 0,
+        p_total: Number.isInteger(response.total) ? response.total : 0,
+        p_answered: 0,
+        p_diamonds: Number.isInteger(response.diamondsAwarded) ? response.diamondsAwarded : 0,
+        p_completion_total: Number.isInteger(response.servedTotal) ? response.servedTotal : 0,
+        p_completion_answered: 0,
+        p_request_id: replayRequestId,
+        p_settlement_snapshot: null,
+    });
+    if (replayError || replay?.success !== true) {
+        const code = replay?.error || 'settlement_replay_failed';
+        console.warn('[trivia session-submit] v5 immutable replay failed:', replayError?.message || code);
+        return res.status(v3ErrorStatus(code)).json({ success: false, error: code });
+    }
+    const normalizedProjection = normalizeHighScoreProjection(
+        replay.highScoreProjection, session.mode, projected.response.correct);
+    if (!normalizedProjection.ok) {
+        console.warn('[trivia session-submit] immutable high-score projection invalid:', normalizedProjection.error);
+        return res.status(502).json({ success: false, error: normalizedProjection.error });
+    }
     res.setHeader('Cache-Control', 'private, no-cache, no-store, must-revalidate');
-    return res.status(200).json({ ...projected.response, receipt: evidence.receipt });
+    return res.status(200).json({
+        ...projected.response,
+        ...(session.mode === 'survival'
+            ? { survivalLevel: survivalAuthority.survivalLevel }
+            : {}),
+        receipt: evidence.receipt,
+        ...(normalizedProjection.projection
+            ? { highScoreProjection: normalizedProjection.projection }
+            : {}),
+    });
 }
 
 async function reloadStoredLegacySession(sb, userId, sessionId) {
     const { data, error } = await sb
         .from('trivia_sessions')
-        .select('id, user_id, mode, question_ids, status, settlement_result')
+        .select('id, user_id, mode, question_ids, status, settlement_result, settlement_request_id, survival_level')
         .eq('id', sessionId)
         .eq('user_id', userId)
         .maybeSingle();
@@ -313,7 +407,7 @@ async function reloadStoredLegacySession(sb, userId, sessionId) {
 /**
  * Engine v3 reward: today's formulas (calculateDiamonds / arcade stake pot / daily
  * caps) applied to the DATABASE grade. The database re-grades inside
- * trivia_session_settle_solo_v4 and refuses any stale grade basis
+ * trivia_session_settle_solo_v5 and refuses any stale grade basis
  * ('grade_changed').
  */
 async function v3RewardDiamonds(sb, userId, mode, grade, ageMs, cashedOut, playDate) {
@@ -341,6 +435,10 @@ async function v3RewardDiamonds(sb, userId, mode, grade, ageMs, cashedOut, playD
 }
 
 async function submitV3(req, res, sb, userId, session) {
+    const survivalAuthority = authoritativeSurvivalLevel(session);
+    if (!survivalAuthority.ok) {
+        return res.status(502).json({ success: false, error: survivalAuthority.error });
+    }
     const sig = req.body?.contractSignature;
     const competitive = session.mode === 'pvp' || session.mode === 'tournaments';
     if ((sig != null || competitive) && sig !== session.contract_signature) {
@@ -362,6 +460,9 @@ async function submitV3(req, res, sb, userId, session) {
             success: true, sessionId: session.id, mode: session.mode, engine: 'trivia-engine/3',
             correct: data.correct, total: data.graded_total, score: data.score, voided: data.voided,
             replayed: data.replayed === true, diamondsAwarded: 0, resultHash: data.result_hash,
+            ...(session.mode === 'survival'
+                ? { survivalLevel: survivalAuthority.survivalLevel }
+                : {}),
         });
     }
     const createdMs = session.created_at ? new Date(session.created_at).getTime() : NaN;
@@ -382,7 +483,7 @@ async function submitV3(req, res, sb, userId, session) {
                 req.body?.cashedOut === true, playDate,
             )
             : 0;
-        const { data, error } = await sb.rpc('trivia_session_settle_solo_v4', {
+        const { data, error } = await sb.rpc('trivia_session_settle_solo_v5', {
             p_session_id: session.id, p_user_id: userId, p_diamonds: diamonds,
             p_grade_basis: grade, p_request_id: requestId,
         });
@@ -391,7 +492,26 @@ async function submitV3(req, res, sb, userId, session) {
         if (data?.error !== 'grade_changed') break;
     }
     if (!settled || settled.success !== true) {
-        return res.status(v3ErrorStatus(settled?.error)).json({ success: false, error: settled?.error || 'award_failed' });
+        return res.status(v3ErrorStatus(settled?.error)).json({
+            success: false,
+            error: settled?.error || 'award_failed',
+            ...(Number.isInteger(settled?.nonPaidMissCount)
+                ? { nonPaidMissCount: settled.nonPaidMissCount }
+                : {}),
+            ...(Number.isInteger(settled?.terminalFailureCount)
+                ? { terminalFailureCount: settled.terminalFailureCount }
+                : {}),
+            ...(Number.isInteger(settled?.missLimit) ? { missLimit: settled.missLimit } : {}),
+            ...(typeof settled?.runMissLimitReached === 'boolean'
+                ? { runMissLimitReached: settled.runMissLimitReached }
+                : {}),
+        });
+    }
+    const normalizedProjection = normalizeHighScoreProjection(
+        settled.highScoreProjection, session.mode, settled.correct);
+    if (!normalizedProjection.ok) {
+        console.warn('[trivia session-submit] atomic high-score projection invalid:', normalizedProjection.error);
+        return res.status(502).json({ success: false, error: normalizedProjection.error });
     }
     const response = {
         success: true, sessionId: session.id, mode: session.mode, engine: 'trivia-engine/3',
@@ -413,13 +533,22 @@ async function submitV3(req, res, sb, userId, session) {
                 voided,
             };
         }) : [],
+        ...(session.mode === 'survival'
+            ? { survivalLevel: survivalAuthority.survivalLevel }
+            : {}),
     };
     const evidence = await readSoloSettlementReceipt(sb, userId, session.id, response);
     if (!evidence.ok) {
         console.warn('[trivia session-submit] settlement receipt unavailable:', evidence.error);
         return res.status(502).json({ success: false, error: evidence.error });
     }
-    return res.status(200).json({ ...response, receipt: evidence.receipt });
+    return res.status(200).json({
+        ...response,
+        receipt: evidence.receipt,
+        ...(normalizedProjection.projection
+            ? { highScoreProjection: normalizedProjection.projection }
+            : {}),
+    });
 }
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -531,7 +660,7 @@ export default async function handler(req, res) {
         // --- LOAD THE SESSION (service role; RLS blocks client writes) ----
         const { data: session, error: loadErr } = await sb
             .from('trivia_sessions')
-            .select('id, user_id, mode, question_ids, question_revision_ids, permutations, status, created_at, expires_at, answers, settlement_result, score, correct_count, diamonds_awarded, engine_version, contract_signature')
+            .select('id, user_id, mode, question_ids, question_revision_ids, permutations, status, created_at, expires_at, answers, settlement_result, settlement_request_id, score, correct_count, diamonds_awarded, engine_version, contract_signature, survival_level')
             .eq('id', sessionId)
             .maybeSingle();
         if (loadErr) {
@@ -545,6 +674,10 @@ export default async function handler(req, res) {
         // guessed session id cannot be cashed in by another account.
         if (session.user_id !== userId) {
             return res.status(403).json({ success: false, error: 'not_your_session' });
+        }
+        const survivalAuthority = authoritativeSurvivalLevel(session);
+        if (!survivalAuthority.ok) {
+            return res.status(502).json({ success: false, error: survivalAuthority.error });
         }
         if (session.mode === 'pvp' && !isTriviaPvpReleased(process.env)) {
             return rejectUnavailableTriviaPvp(res);
@@ -578,7 +711,7 @@ export default async function handler(req, res) {
             || (!Number.isFinite(expiresMs) && ageMs > SESSION_TTL_MS)
         );
         // `deadlinePassed` is advisory response metadata only. The locked
-        // award_trivia_run_v4 delegates to the locked v2 award transaction and
+        // award_trivia_run_v5 delegates to the locked v4 award transaction and
         // is the deadline authority: checking
         // and closing here would leave a TOCTOU window in which another submit
         // could cross expires_at after this read but before the SQL award.
@@ -772,7 +905,7 @@ export default async function handler(req, res) {
         const requestId = typeof req.body?.requestId === 'string' && UUID_RE.test(req.body.requestId)
             ? req.body.requestId
             : sessionId;
-        const { data: award, error: awardErr } = await sb.rpc('award_trivia_run_v4', {
+        const { data: award, error: awardErr } = await sb.rpc('award_trivia_run_v5', {
             p_session_id: sessionId,
             p_score: score,
             p_correct: correct,
@@ -794,7 +927,20 @@ export default async function handler(req, res) {
             const code = award.error === 'session_not_found' ? 404
                 : award.error === 'session_expired' ? 410
                 : 409;
-            return res.status(code).json({ success: false, error: award.error || 'award_rejected' });
+            return res.status(code).json({
+                success: false,
+                error: award.error || 'award_rejected',
+                ...(Number.isInteger(award?.nonPaidMissCount)
+                    ? { nonPaidMissCount: award.nonPaidMissCount }
+                    : {}),
+                ...(Number.isInteger(award?.terminalFailureCount)
+                    ? { terminalFailureCount: award.terminalFailureCount }
+                    : {}),
+                ...(Number.isInteger(award?.missLimit) ? { missLimit: award.missLimit } : {}),
+                ...(typeof award?.runMissLimitReached === 'boolean'
+                    ? { runMissLimitReached: award.runMissLimitReached }
+                    : {}),
+            });
         }
         const verifiedAward = validateTriviaAwardResponse(award, {
             sessionId,
@@ -847,7 +993,22 @@ export default async function handler(req, res) {
             return res.status(502).json({ success: false, error: 'settlement_snapshot_unavailable' });
         }
 
-        const completeResponse = { ...response, receipt: evidence.receipt };
+        const normalizedProjection = normalizeHighScoreProjection(
+            award?.highScoreProjection, mode, response.correct);
+        if (!normalizedProjection.ok) {
+            console.warn('[trivia session-submit] atomic high-score projection invalid:', normalizedProjection.error);
+            return res.status(502).json({ success: false, error: normalizedProjection.error });
+        }
+        const completeResponse = {
+            ...response,
+            ...(mode === 'survival'
+                ? { survivalLevel: survivalAuthority.survivalLevel }
+                : {}),
+            receipt: evidence.receipt,
+            ...(normalizedProjection.projection
+                ? { highScoreProjection: normalizedProjection.projection }
+                : {}),
+        };
         res.setHeader('Cache-Control', 'private, no-cache, no-store, must-revalidate');
         return res.status(200).json(completeResponse);
     } catch (e) {

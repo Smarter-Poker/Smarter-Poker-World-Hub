@@ -127,6 +127,8 @@ export function v3ErrorStatus(code) {
         case 'insufficient_diamonds': return 402;
         case 'session_expired': return 410;
         case 'insufficient_eligible_pool': return 503;
+        case 'high_score_projection_failed':
+        case 'invalid_high_score_projection': return 502;
         case 'invalid_mode': case 'invalid_arguments': case 'invalid_display_index':
         case 'unsupported_session_mode':
         case 'question_not_in_session': case 'invalid_scope': return 400;
@@ -134,6 +136,7 @@ export function v3ErrorStatus(code) {
         case 'position_out_of_order': case 'grade_changed': case 'seat_has_open_session':
         case 'contract_mismatch': case 'survival_continuation_used': case 'survival_complete':
         case 'survival_level_not_passed': case 'invalid_survival_continuation':
+        case 'run_miss_limit_reached':
         case 'answer_not_bound': case 'answer_not_revealed': case 'answer_already_recorded':
         case 'question_still_valid': case 'revision_provenance_unavailable': case 'revision_not_found':
         case 'not_engine_v3': case 'not_legacy_session': case 'settlement_snapshot_invalid':

@@ -39,6 +39,12 @@ import {
     isStaleAccountOperation,
     staleAccountOperationError,
 } from '../lib/trivia/accountOperationScope.mjs';
+import { acquireActiveTriviaRun } from '../lib/trivia/activeRunSignal.mjs';
+import { isTerminalEndlessHighScoreProjection } from '../lib/trivia/highScoreProjectionPolicy.mjs';
+import {
+    isAuthoritativeRetirementCode,
+    triviaRunErrorCode,
+} from '../lib/trivia/runRecoveryPolicy.mjs';
 
 /**
  * Kill switch. Flip to true only AFTER
@@ -63,6 +69,8 @@ export const SERVER_GRADING_ENABLED = true;
  * in /api/trivia/pvp-settle-match from both players' server-graded counts.
  */
 const SELF_SETTLING_MODES = new Set(['tournaments']);
+const DURABLE_TIMEOUT_MODES = new Set(['endless', 'survival']);
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 function createStartNonce() {
     if (globalThis.crypto?.randomUUID) return globalThis.crypto.randomUUID();
@@ -83,19 +91,55 @@ function browserStorage() {
     }
 }
 
-const RETIRED_RECOVERY_ERRORS = new Set([
-    'session_not_found',
-    'not_your_session',
-    'session_closed',
-    'session_expired',
-    'session_not_resumable',
-    'session_mode_conflict',
-]);
-
 function recoveryCustodyError() {
     const error = new Error('recovery_custody_unavailable');
     error.code = 'recovery_custody_unavailable';
     return error;
+}
+
+function settlementAuthorityError(mode) {
+    const error = new Error(`invalid_${mode}_settlement_authority`);
+    error.code = `invalid_${mode}_settlement_authority`;
+    return error;
+}
+
+/**
+ * Endless and Survival result screens advance durable player state. A 200
+ * response is not enough: every authority field they consume must be present,
+ * exact and internally consistent before the hook caches the settlement or
+ * releases the active-run lease.
+ */
+function requireChallengeSettlementAuthority(mode, settlement) {
+    if (mode !== 'endless' && mode !== 'survival') return;
+    const correctLimit = mode === 'survival' ? 20 : 100;
+    if (!Number.isInteger(settlement?.correct)
+        || settlement.correct < 0
+        || settlement.correct > correctLimit
+        || !Number.isInteger(settlement?.diamondsAwarded)
+        || settlement.diamondsAwarded < 0) {
+        throw settlementAuthorityError(mode);
+    }
+    if (mode === 'survival') {
+        if (!Number.isInteger(settlement.survivalLevel)
+            || settlement.survivalLevel < 1
+            || settlement.survivalLevel > 10) {
+            throw settlementAuthorityError(mode);
+        }
+        return;
+    }
+
+    const projection = settlement.highScoreProjection;
+    const pendingProjection = projection?.status === 'pending'
+        && ['boundary_status_unavailable', 'projection_unavailable'].includes(projection.reason)
+        && projection.highScore === null
+        && projection.improved === false;
+    if (!isTerminalEndlessHighScoreProjection(projection) && !pendingProjection) {
+        throw settlementAuthorityError(mode);
+    }
+    if (projection?.status === 'persisted'
+        && projection.verifiedCorrect !== settlement.correct) {
+        throw settlementAuthorityError(mode);
+    }
 }
 
 async function postJson(url, body, resolveAccessToken) {
@@ -138,6 +182,11 @@ export default function useServerGradedRun(mode, opts = {}) {
     const [sessionId, setSessionId] = useState(null);
     const [isStarting, setIsStarting] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [paidSkipCount, setPaidSkipCount] = useState(0);
+    const [nonPaidMissCount, setNonPaidMissCount] = useState(0);
+    const [terminalFailureCount, setTerminalFailureCount] = useState(0);
+    const [missLimit, setMissLimit] = useState(null);
+    const [runMissLimitReached, setRunMissLimitReached] = useState(false);
     const [error, setError] = useState(null);
 
     // Synchronous guards. setState is async, so a double-tap can fire two
@@ -156,6 +205,7 @@ export default function useServerGradedRun(mode, opts = {}) {
     const pendingStartNonceRef = useRef(null);
     const settlementRequestIdRef = useRef(null);
     const recoveryRef = useRef(null);
+    const activeRunReleaseRef = useRef(null);
     const [recoverableSession, setRecoverableSession] = useState(null);
     const lastSettlementRef = useRef(null);
     const [lastSettlement, setLastSettlement] = useState(null);
@@ -192,6 +242,17 @@ export default function useServerGradedRun(mode, opts = {}) {
         return typeof accessToken === 'string' && accessToken ? accessToken : null;
     }, [accessToken, accessTokenProvider]);
 
+    const markRunActive = useCallback(() => {
+        if (!activeRunReleaseRef.current) {
+            activeRunReleaseRef.current = acquireActiveTriviaRun();
+        }
+    }, []);
+    const clearActiveRun = useCallback(() => {
+        if (!activeRunReleaseRef.current) return;
+        activeRunReleaseRef.current();
+        activeRunReleaseRef.current = null;
+    }, []);
+
     const persistRecovery = useCallback((record) => {
         if (mode === 'pvp' || !accountId) return null;
         const storage = browserStorage();
@@ -204,7 +265,9 @@ export default function useServerGradedRun(mode, opts = {}) {
             : null;
         if (!verified || verified.sessionId !== written.sessionId
             || verified.phase !== written.phase
-            || verified.settlementRequestId !== written.settlementRequestId) return null;
+            || verified.settlementRequestId !== written.settlementRequestId
+            || verified.pendingTimeoutQuestionId !== written.pendingTimeoutQuestionId
+            || verified.survivalLevel !== written.survivalLevel) return null;
         recoveryRef.current = verified;
         setRecoverableSession(verified);
         return verified;
@@ -219,9 +282,54 @@ export default function useServerGradedRun(mode, opts = {}) {
         setRecoverableSession(null);
     }, [accountId, mode]);
 
+    const persistPendingTimeout = useCallback((questionId, expectedSessionId = sessionRef.current) => {
+        if (!DURABLE_TIMEOUT_MODES.has(mode)) return null;
+        if (!accountId || !UUID_RE.test(String(questionId || '')) || !expectedSessionId) {
+            throw recoveryCustodyError();
+        }
+        const recovery = recoveryRef.current
+            || readSoloRunRecovery(browserStorage(), mode, accountId);
+        if (!recovery || recovery.sessionId !== expectedSessionId) throw recoveryCustodyError();
+        const custody = persistRecovery(createSoloRunRecovery({
+            ...recovery,
+            phase: 'active',
+            settlementRequestId: null,
+            pendingTimeoutQuestionId: String(questionId),
+        }));
+        if (!custody || custody.pendingTimeoutQuestionId !== questionId) {
+            throw recoveryCustodyError();
+        }
+        return custody;
+    }, [accountId, mode, persistRecovery]);
+
+    const clearPendingTimeout = useCallback((questionId, expectedSessionId = sessionRef.current) => {
+        if (!DURABLE_TIMEOUT_MODES.has(mode)) return true;
+        if (!accountId || !expectedSessionId) throw recoveryCustodyError();
+        const recovery = recoveryRef.current
+            || readSoloRunRecovery(browserStorage(), mode, accountId);
+        if (!recovery || recovery.sessionId !== expectedSessionId) throw recoveryCustodyError();
+        if (!recovery.pendingTimeoutQuestionId) return true;
+        if (questionId && recovery.pendingTimeoutQuestionId !== questionId) return false;
+        const custody = persistRecovery(createSoloRunRecovery({
+            ...recovery,
+            pendingTimeoutQuestionId: null,
+        }));
+        if (!custody || custody.pendingTimeoutQuestionId !== null) throw recoveryCustodyError();
+        return true;
+    }, [accountId, mode, persistRecovery]);
+
     // Re-adopt only a validated, account-and-mode-scoped pointer. The session
     // itself is not trusted until resume() makes the authenticated server read.
     useEffect(() => {
+        // React development remounts effects without recreating refs. Restore
+        // the current identity on setup, and invalidate it on every cleanup so
+        // an in-flight response can never acquire a run lease after unmount.
+        operationScopeRef.current.transition(operationIdentity);
+        const invalidateLifecycle = () => {
+            operationScopeRef.current.transition(null);
+            clearActiveRun();
+        };
+        clearActiveRun();
         // An auth or mode boundary invalidates every in-memory capability.
         // Keeping the previous session ref would let a newly-authenticated
         // account send a request against the prior account's run.
@@ -239,17 +347,23 @@ export default function useServerGradedRun(mode, opts = {}) {
         setError(null);
         setIsStarting(false);
         setIsSubmitting(false);
+        setPaidSkipCount(0);
+        setNonPaidMissCount(0);
+        setTerminalFailureCount(0);
+        setMissLimit(null);
+        setRunMissLimitReached(false);
         if (mode === 'pvp' || !accountId) {
             recoveryRef.current = null;
             setRecoverableSession(null);
-            return;
+            return invalidateLifecycle;
         }
         const record = readSoloRunRecovery(browserStorage(), mode, accountId);
         recoveryRef.current = record;
         pendingStartNonceRef.current = record?.sessionId || null;
         settlementRequestIdRef.current = record?.settlementRequestId || null;
         setRecoverableSession(record);
-    }, [accountId, mode]);
+        return invalidateLifecycle;
+    }, [accountId, clearActiveRun, mode, operationIdentity]);
 
     const openSession = useCallback(async ({ count, category, difficulty, matchId, parentSessionId } = {}, requireRecovery = false) => {
         if (!isEnabled) throw new Error('server_grading_disabled');
@@ -285,6 +399,8 @@ export default function useServerGradedRun(mode, opts = {}) {
                         createdAt: recovery?.createdAt || Date.now(),
                         expiresAt: recovery?.expiresAt || null,
                         settlementRequestId: recovery?.settlementRequestId || null,
+                        pendingTimeoutQuestionId: recovery?.pendingTimeoutQuestionId || null,
+                        survivalLevel: recovery?.survivalLevel || null,
                     }));
                     if (!custody) throw recoveryCustodyError();
                     recovery = custody;
@@ -310,18 +426,28 @@ export default function useServerGradedRun(mode, opts = {}) {
             pendingStartNonceRef.current = null;
             sessionRef.current = json.sessionId;
             contractSignatureRef.current = json.contractSignature || null;
+            markRunActive();
             lastSettlementRef.current = null;
             setLastSettlement(null);
             setSessionId(json.sessionId);
+            setPaidSkipCount(Number.isInteger(json.paidSkipCount) ? json.paidSkipCount : 0);
+            setNonPaidMissCount(Number.isInteger(json.nonPaidMissCount) ? json.nonPaidMissCount : 0);
+            setTerminalFailureCount(Number.isInteger(json.terminalFailureCount) ? json.terminalFailureCount : 0);
+            setMissLimit(Number.isInteger(json.missLimit) ? json.missLimit : null);
+            setRunMissLimitReached(json.runMissLimitReached === true);
             if (mode !== 'pvp' && accountId) {
-                persistRecovery(createSoloRunRecovery({
+                const custody = persistRecovery(createSoloRunRecovery({
                     mode,
                     accountId,
                     sessionId: json.sessionId,
                     phase: 'active',
                     createdAt: recovery?.createdAt || Date.now(),
                     expiresAt: json.expiresAt || recovery?.expiresAt || null,
+                    pendingTimeoutQuestionId: recovery?.pendingTimeoutQuestionId || null,
+                    survivalLevel: Number.isInteger(json.survivalLevel) ? json.survivalLevel : null,
                 }));
+                if (!custody) throw recoveryCustodyError();
+                recovery = custody;
             }
             // questions[].options are already permuted; no correct_index.
             return {
@@ -334,13 +460,22 @@ export default function useServerGradedRun(mode, opts = {}) {
                 expiresAt: json.expiresAt || null,
                 contract: json.contract || null,
                 contractSignature: json.contractSignature || null,
+                paidSkipCount: Number.isInteger(json.paidSkipCount) ? json.paidSkipCount : 0,
+                nonPaidMissCount: Number.isInteger(json.nonPaidMissCount) ? json.nonPaidMissCount : 0,
+                terminalFailureCount: Number.isInteger(json.terminalFailureCount) ? json.terminalFailureCount : 0,
+                missLimit: Number.isInteger(json.missLimit) ? json.missLimit : null,
+                runMissLimitReached: json.runMissLimitReached === true,
+                requiredCorrect: Number.isInteger(json.requiredCorrect) ? json.requiredCorrect : null,
+                maxPossibleCorrect: Number.isInteger(json.maxPossibleCorrect) ? json.maxPossibleCorrect : null,
+                pendingTimeoutQuestionId: recovery?.pendingTimeoutQuestionId || null,
+                survivalLevel: Number.isInteger(json.survivalLevel) ? json.survivalLevel : null,
             };
         } catch (e) {
             if (!operationScopeRef.current.isCurrent(operationScope) || isStaleAccountOperation(e)) {
                 throw staleAccountOperationError();
             }
-            const code = e?.payload?.error || e?.code || e?.message;
-            if (mode !== 'pvp' && RETIRED_RECOVERY_ERRORS.has(code)) {
+            const code = triviaRunErrorCode(e);
+            if (mode !== 'pvp' && isAuthoritativeRetirementCode(code)) {
                 pendingStartNonceRef.current = null;
                 retireRecovery();
             }
@@ -353,7 +488,7 @@ export default function useServerGradedRun(mode, opts = {}) {
                 if (operationScopeRef.current.isCurrent(operationScope)) setIsStarting(false);
             }
         }
-    }, [accountId, captureCurrentOperation, isEnabled, mode, persistRecovery, requireCurrentOperation, resolveAccessToken, retireRecovery]);
+    }, [accountId, captureCurrentOperation, isEnabled, markRunActive, mode, persistRecovery, requireCurrentOperation, resolveAccessToken, retireRecovery]);
 
     const start = useCallback((args = {}) => openSession(args, false), [openSession]);
     /**
@@ -373,19 +508,139 @@ export default function useServerGradedRun(mode, opts = {}) {
         const id = sessionRef.current;
         if (!id) throw new Error('no_open_session');
         if (typeof questionId !== 'string') throw new Error('missing_question_id');
-        const verdict = await postJson(
-            '/api/trivia/session-answer',
-            {
-                sessionId: id,
-                questionId,
-                displayIndex: Number.isInteger(displayIndex) ? displayIndex : -1,
-                invalidQuestion: invalidQuestion === true,
-            },
-            resolveAccessToken
-        );
-        requireCurrentOperation(operationScope);
-        return verdict;
-    }, [captureCurrentOperation, isEnabled, requireCurrentOperation, resolveAccessToken]);
+        const durableTimeout = DURABLE_TIMEOUT_MODES.has(mode)
+            && invalidQuestion !== true
+            && displayIndex === -1;
+        try {
+            // A shot-clock expiry is a real scoring mutation. Its exact
+            // question must be durably recoverable before the request leaves;
+            // otherwise a lost response followed by reload could erase the
+            // miss and let the browser advance out of sequence.
+            if (durableTimeout) persistPendingTimeout(questionId, id);
+            const verdict = await postJson(
+                '/api/trivia/session-answer',
+                {
+                    sessionId: id,
+                    questionId,
+                    displayIndex: Number.isInteger(displayIndex) ? displayIndex : -1,
+                    invalidQuestion: invalidQuestion === true,
+                },
+                resolveAccessToken
+            );
+            requireCurrentOperation(operationScope);
+            if (durableTimeout && !clearPendingTimeout(questionId, id)) {
+                throw recoveryCustodyError();
+            }
+            if (Number.isInteger(verdict.nonPaidMissCount)) setNonPaidMissCount(verdict.nonPaidMissCount);
+            if (Number.isInteger(verdict.terminalFailureCount)) setTerminalFailureCount(verdict.terminalFailureCount);
+            if (Number.isInteger(verdict.missLimit)) setMissLimit(verdict.missLimit);
+            if (typeof verdict.runMissLimitReached === 'boolean') {
+                setRunMissLimitReached(verdict.runMissLimitReached);
+            }
+            return verdict;
+        } catch (e) {
+            if (!operationScopeRef.current.isCurrent(operationScope) || isStaleAccountOperation(e)) {
+                throw staleAccountOperationError();
+            }
+            const code = triviaRunErrorCode(e);
+            if (DURABLE_TIMEOUT_MODES.has(mode)
+                && code === 'position_out_of_order'
+                && UUID_RE.test(String(e?.payload?.priorQuestionId || ''))) {
+                try {
+                    persistPendingTimeout(e.payload.priorQuestionId, id);
+                } catch (custodyError) {
+                    custodyError.status = e.status;
+                    custodyError.payload = e.payload;
+                    throw custodyError;
+                }
+            }
+            if (Number.isInteger(e?.payload?.nonPaidMissCount)) {
+                setNonPaidMissCount(e.payload.nonPaidMissCount);
+            }
+            if (Number.isInteger(e?.payload?.terminalFailureCount)) {
+                setTerminalFailureCount(e.payload.terminalFailureCount);
+            }
+            if (Number.isInteger(e?.payload?.missLimit)) setMissLimit(e.payload.missLimit);
+            if (typeof e?.payload?.runMissLimitReached === 'boolean') {
+                setRunMissLimitReached(e.payload.runMissLimitReached);
+            }
+            if (isAuthoritativeRetirementCode(code)) {
+                sessionRef.current = null;
+                contractSignatureRef.current = null;
+                setSessionId(null);
+                clearActiveRun();
+                retireRecovery();
+            }
+            throw e;
+        }
+    }, [captureCurrentOperation, clearActiveRun, clearPendingTimeout, isEnabled, mode, persistPendingTimeout, requireCurrentOperation, resolveAccessToken, retireRecovery]);
+
+    /**
+     * Atomically buy/VIP-authorize and bind one Endless/Survival skip. The
+     * server derives the fixed price, VIP status, cap and wallet reference;
+     * the same session/question retry returns the immutable first receipt.
+     */
+    const paidSkip = useCallback(async ({ questionId, clientNonce } = {}) => {
+        if (!isEnabled) throw new Error('server_grading_disabled');
+        const operationScope = captureCurrentOperation();
+        const id = sessionRef.current;
+        if (!id) throw new Error('no_open_session');
+        if (typeof questionId !== 'string') throw new Error('missing_question_id');
+        try {
+            const receipt = await postJson(
+                '/api/trivia/session-paid-skip',
+                {
+                    sessionId: id,
+                    questionId,
+                    clientNonce: typeof clientNonce === 'string' ? clientNonce : createStartNonce(),
+                },
+                resolveAccessToken
+            );
+            requireCurrentOperation(operationScope);
+            setPaidSkipCount(receipt.paidSkipCount);
+            if (Number.isInteger(receipt.nonPaidMissCount)) setNonPaidMissCount(receipt.nonPaidMissCount);
+            if (Number.isInteger(receipt.terminalFailureCount)) setTerminalFailureCount(receipt.terminalFailureCount);
+            if (Number.isInteger(receipt.missLimit)) setMissLimit(receipt.missLimit);
+            if (typeof receipt.runMissLimitReached === 'boolean') {
+                setRunMissLimitReached(receipt.runMissLimitReached);
+            }
+            return receipt;
+        } catch (e) {
+            if (!operationScopeRef.current.isCurrent(operationScope) || isStaleAccountOperation(e)) {
+                throw staleAccountOperationError();
+            }
+            const code = triviaRunErrorCode(e);
+            if (DURABLE_TIMEOUT_MODES.has(mode)
+                && code === 'position_out_of_order'
+                && UUID_RE.test(String(e?.payload?.priorQuestionId || ''))) {
+                try {
+                    persistPendingTimeout(e.payload.priorQuestionId, id);
+                } catch (custodyError) {
+                    custodyError.status = e.status;
+                    custodyError.payload = e.payload;
+                    throw custodyError;
+                }
+            }
+            if (Number.isInteger(e?.payload?.nonPaidMissCount)) {
+                setNonPaidMissCount(e.payload.nonPaidMissCount);
+            }
+            if (Number.isInteger(e?.payload?.terminalFailureCount)) {
+                setTerminalFailureCount(e.payload.terminalFailureCount);
+            }
+            if (Number.isInteger(e?.payload?.missLimit)) setMissLimit(e.payload.missLimit);
+            if (typeof e?.payload?.runMissLimitReached === 'boolean') {
+                setRunMissLimitReached(e.payload.runMissLimitReached);
+            }
+            if (isAuthoritativeRetirementCode(code)) {
+                sessionRef.current = null;
+                contractSignatureRef.current = null;
+                setSessionId(null);
+                clearActiveRun();
+                retireRecovery();
+            }
+            throw e;
+        }
+    }, [captureCurrentOperation, clearActiveRun, isEnabled, mode, persistPendingTimeout, requireCurrentOperation, resolveAccessToken, retireRecovery]);
 
     /**
      * @param {Array<{questionId: string, displayIndex: number}>} answers
@@ -440,6 +695,7 @@ export default function useServerGradedRun(mode, opts = {}) {
                 resolveAccessToken
             );
             requireCurrentOperation(operationScope);
+            requireChallengeSettlementAuthority(mode, json);
             lastSettlementRef.current = json;
             setLastSettlement(json);
             // The session is single-use in memory, but keep the durable
@@ -449,19 +705,27 @@ export default function useServerGradedRun(mode, opts = {}) {
             sessionRef.current = null;
             contractSignatureRef.current = null;
             setSessionId(null);
+            // A pending Endless high-score projection is still recoverable
+            // settlement work. Keep both its durable custody and the active
+            // run lease so a service-worker update cannot reload the result
+            // screen between settlement and the exact projection retry.
+            const projectionPending = mode === 'endless'
+                && !isTerminalEndlessHighScoreProjection(json?.highScoreProjection);
+            if (!projectionPending) clearActiveRun();
             return json;
         } catch (e) {
             if (!operationScopeRef.current.isCurrent(operationScope) || isStaleAccountOperation(e)) {
                 throw staleAccountOperationError();
             }
-            const code = e?.payload?.error || e?.code || e?.message;
+            const code = triviaRunErrorCode(e);
             // Unknown transport/5xx/409 outcomes retain the exact settlement
             // request and session identity. Only an authoritative terminal
             // read retires it; a retry can then replay the one server result.
-            if (RETIRED_RECOVERY_ERRORS.has(code)) {
+            if (isAuthoritativeRetirementCode(code)) {
                 sessionRef.current = null;
                 contractSignatureRef.current = null;
                 setSessionId(null);
+                clearActiveRun();
                 retireRecovery();
             }
             setError(e.message || 'submit_failed');
@@ -473,7 +737,7 @@ export default function useServerGradedRun(mode, opts = {}) {
                 if (operationScopeRef.current.isCurrent(operationScope)) setIsSubmitting(false);
             }
         }
-    }, [accountId, captureCurrentOperation, isEnabled, mode, persistRecovery, requireCurrentOperation, resolveAccessToken, retireRecovery]);
+    }, [accountId, captureCurrentOperation, clearActiveRun, isEnabled, mode, persistRecovery, requireCurrentOperation, resolveAccessToken, retireRecovery]);
 
     const resume = useCallback(async (args = {}) => {
         const operationScope = captureCurrentOperation();
@@ -496,15 +760,20 @@ export default function useServerGradedRun(mode, opts = {}) {
         sessionRef.current = recovery.sessionId;
         settlementRequestIdRef.current = recovery.settlementRequestId;
         setSessionId(recovery.sessionId);
+        markRunActive();
         const settlement = await submit([], { recovering: true });
         requireCurrentOperation(operationScope);
         return {
             resumed: true,
             resumedSettlement: true,
             sessionId: recovery.sessionId,
+            // Settlement replay must carry fresh server authority. The
+            // account-scoped recovery level is only a routing hint and can
+            // never substitute for an omitted/malformed response field.
+            survivalLevel: settlement?.survivalLevel,
             settlement,
         };
-    }, [accountId, captureCurrentOperation, mode, openSession, requireCurrentOperation, submit]);
+    }, [accountId, captureCurrentOperation, markRunActive, mode, openSession, requireCurrentOperation, submit]);
 
     const acknowledgeSettlement = useCallback(() => {
         try { captureCurrentOperation(); } catch (error) {
@@ -512,9 +781,13 @@ export default function useServerGradedRun(mode, opts = {}) {
             throw error;
         }
         if (!lastSettlementRef.current) return false;
+        if (mode === 'endless'
+            && !isTerminalEndlessHighScoreProjection(
+                lastSettlementRef.current?.highScoreProjection)) return false;
         retireRecovery();
+        clearActiveRun();
         return true;
-    }, [captureCurrentOperation, retireRecovery]);
+    }, [captureCurrentOperation, clearActiveRun, mode, retireRecovery]);
 
     const reset = useCallback(() => {
         try { captureCurrentOperation(); } catch (error) {
@@ -528,6 +801,12 @@ export default function useServerGradedRun(mode, opts = {}) {
         setSessionId(null);
         setLastSettlement(null);
         setError(null);
+        setPaidSkipCount(0);
+        setNonPaidMissCount(0);
+        setTerminalFailureCount(0);
+        setMissLimit(null);
+        setRunMissLimitReached(false);
+        clearActiveRun();
         if (mode === 'pvp') {
             settlementRequestIdRef.current = null;
             retireRecovery();
@@ -543,21 +822,28 @@ export default function useServerGradedRun(mode, opts = {}) {
         recoveryRef.current = recovery;
         settlementRequestIdRef.current = recovery?.settlementRequestId || null;
         setRecoverableSession(recovery);
-    }, [accountId, captureCurrentOperation, mode, retireRecovery]);
+    }, [accountId, captureCurrentOperation, clearActiveRun, mode, retireRecovery]);
 
     return {
         isEnabled,
         sessionId,
         isStarting,
         isSubmitting,
+        paidSkipCount,
+        nonPaidMissCount,
+        terminalFailureCount,
+        missLimit,
+        runMissLimitReached,
         error,
         hasRecoverableSession: Boolean(recoverableSession),
         recoverableSession,
+        pendingTimeoutQuestionId: recoverableSession?.pendingTimeoutQuestionId || null,
         lastSettlement,
         acknowledgeSettlement,
         start,
         resume,
         answer,
+        paidSkip,
         submit,
         reset,
     };

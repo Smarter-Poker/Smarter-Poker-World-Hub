@@ -34,6 +34,7 @@ import TriviaAnswerOption from '../../../src/components/trivia/TriviaAnswerOptio
 import useTriviaQuestion from '../../../src/hooks/useTriviaQuestion';
 import useTriviaTimer from '../../../src/hooks/useTriviaTimer';
 import useServerGradedRun from '../../../src/hooks/useServerGradedRun';
+import { isRetiredTriviaRunError } from '../../../src/lib/trivia/runRecoveryPolicy.mjs';
 import { shareResult } from '../../../src/lib/trivia/shareResult';
 import { DAILY_DIAMOND_CAPS } from '../../../src/lib/trivia/triviaEngine';
 import ReportQuestionButton from '../../../src/components/trivia/ReportQuestionButton';
@@ -41,7 +42,16 @@ import { getAccessToken } from '../../../src/lib/authUtils';
 import * as triviaAudio from '../../../src/lib/trivia/triviaAudio';
 import HubPageSummary from '../../../src/components/seo/HubPageSummary';
 import { readOwnProfile } from '../../../src/lib/ownProfile';
-import { createAccountOperationScope, isStaleAccountOperation } from '../../../src/lib/trivia/accountOperationScope.mjs';
+import {
+    createAccountOperationScope,
+    isStaleAccountOperation,
+    shouldGateAccountOwnedRender,
+} from '../../../src/lib/trivia/accountOperationScope.mjs';
+import {
+    isIneligibleEndlessHighScoreProjection,
+    isPersistedEndlessHighScoreProjection,
+    isTerminalEndlessHighScoreProjection,
+} from '../../../src/lib/trivia/highScoreProjectionPolicy.mjs';
 import Phase9SettlementReceipt from '../../../src/components/trivia/phase9/Phase9SettlementReceipt';
 import Phase9RunReview from '../../../src/components/trivia/phase9/Phase9RunReview';
 import { projectPhase9Recovery } from '../../../src/components/trivia/phase9/phase9RunModel.mjs';
@@ -57,13 +67,28 @@ const GAME_ENTRY_COST = 10; // restored with server-graded adoption - rewards pa
 const QUESTIONS_PER_SESSION = 100;
 
 // The run ends on the third miss. Wrong answers and shot-clock timeouts both
-// count; skips do not (they are never answered).
+// count; server-recorded paid skips do not.
 const MAX_MISSES = 3;
 
 // Daily cap comes from triviaEngine so the lobby price and the payout ceiling
 // can never disagree. Display-only here: the ACTUAL clamp is applied by
 // /api/trivia/session-submit when it settles the run.
 const DAILY_DIAMOND_CAP = Number.isFinite(DAILY_DIAMOND_CAPS.endless) ? DAILY_DIAMOND_CAPS.endless : 40;
+
+function authoritativeEndlessSettlement(settlement) {
+    if (!Number.isInteger(settlement?.correct)
+        || settlement.correct < 0
+        || settlement.correct > QUESTIONS_PER_SESSION
+        || !Number.isInteger(settlement?.diamondsAwarded)
+        || settlement.diamondsAwarded < 0) return null;
+    const projection = settlement?.highScoreProjection;
+    if (isPersistedEndlessHighScoreProjection(projection)
+        && projection.verifiedCorrect !== settlement.correct) return null;
+    return {
+        correct: settlement.correct,
+        diamondsAwarded: settlement.diamondsAwarded,
+    };
+}
 
 export default function EndlessModePage() {
     useTrainingBus('trivia-endless');
@@ -99,19 +124,20 @@ export default function EndlessModePage() {
     if (!accountOperationScopeRef.current) {
         accountOperationScopeRef.current = createAccountOperationScope();
     }
+    // Authentication loading is an authority boundary, not permission to
+    // keep mutating the previously resolved account. The durable recovery
+    // pointer remains account-scoped and is re-adopted after identity resolves.
     const resolvedAccountId = authLoading
-        ? userId
+        ? null
         : (avatarUser?.id || getAuthUser()?.id || null);
-    if (!authLoading) accountOperationScopeRef.current.transition(resolvedAccountId);
+    accountOperationScopeRef.current.transition(resolvedAccountId);
     const [isLoading, setIsLoading] = useState(true);
     const [highScore, setHighScore] = useState(0);
+    const [highScoreResolved, setHighScoreResolved] = useState(false);
+    const [highScorePersistenceError, setHighScorePersistenceError] = useState('');
+    const [confirmedNewHighScore, setConfirmedNewHighScore] = useState(false);
     const [isVip, setIsVip] = useState(false);
     const [showOutOfDiamonds, setShowOutOfDiamonds] = useState(false);
-    // Captured at startGame so the "NEW HIGH SCORE" banner only celebrates a
-    // genuine record. Previously the banner compared against `highScore`, which
-    // saveGameResult had already overwritten, and used `>=` so merely tying the
-    // previous best (or scoring 0 vs a 0 best) triggered a fake celebration.
-    const [preGameHighScore, setPreGameHighScore] = useState(0);
     // Settings panel visibility. Deliberately NOT part of the persisted
     // `settings` object — it used to be stored inside it, so localStorage
     // 'trivia_settings' carried showPanel:true and the panel auto-opened over
@@ -131,10 +157,9 @@ export default function EndlessModePage() {
     // Locks taps from the moment of the tap until the question advances, so a
     // slow session-answer round-trip cannot accept a second answer.
     const answerLockRef = useRef(false);
-    // Answers actually recorded via session-answer this game, in tap order:
+    // Answers actually recorded by the server this game, in tap order:
     // { questionId, displayIndex }. This is what session-submit grades from;
-    // skipped questions are deliberately omitted (the server counts them
-    // wrong, which is free here because payout is per-correct).
+    // paid skips are binding -1 answers with a separate immutable receipt.
     const sessionAnswersRef = useRef([]);
     const accountLoadRef = useRef(0);
     const accountIdentityRef = useRef(null);
@@ -149,27 +174,35 @@ export default function EndlessModePage() {
     // NOTE: the 50/50 and Double Chance lifelines are gone with the move to
     // server grading - 50/50 needs the answer key the client no longer
     // receives, and Double Chance needs a second attempt the binding
-    // first-answer rule cannot honour. Skip survives because it never answers:
-    // it just advances past a question that is then omitted from the submit.
+    // first-answer rule cannot honour. Skip survives through the dedicated
+    // paid-skip authority, which atomically binds a distinct -1 answer.
     const [lifelinesUsedThisGame, setLifelinesUsedThisGame] = useState(0);
     const LIFELINE_COST = 5;
     const MAX_LIFELINES_PER_GAME = 3;
-    // A lifeline is unavailable when the per-game cap is spent, or (non-VIP only)
-    // the player can't afford it. VIP members get lifelines free, so the balance
-    // check must not disable their buttons.
-    const lifelineLocked = lifelinesUsedThisGame >= MAX_LIFELINES_PER_GAME
-        || (!isVip && userDiamonds < LIFELINE_COST);
+    // Only the server receipt owns entitlement and balance. A cached balance
+    // or VIP read may be stale, so it must never block a valid request before
+    // the paid-skip authority can answer (including an authoritative 402).
+    const lifelineLocked = lifelinesUsedThisGame >= MAX_LIFELINES_PER_GAME;
 
     // Skip Question Lifeline state
     const [skipUsedThisQuestion, setSkipUsedThisQuestion] = useState(false);
     // Surfaced when a lifeline purchase or an answer submission fails (was
     // previously a console.warn only, so the button just looked dead).
     const [actionError, setActionError] = useState(null);
+    const [timeoutRetryQuestionId, setTimeoutRetryQuestionId] = useState(null);
+    const [isTimeoutRetrying, setIsTimeoutRetrying] = useState(false);
 
     // 24-Second Shot Clock State
     const [screenShake, setScreenShake] = useState(false);
     const [isPaused, setIsPaused] = useState(false); // Visibility-based pause
     const heartbeatIntervalRef = useRef(null);
+
+    useEffect(() => {
+        if (!authLoading) return;
+        timer.setIsTimerRunning(false);
+        setIsPaused(true);
+        setGameState(previous => previous === 'ready' ? previous : 'ready');
+    }, [authLoading, timer.setIsTimerRunning]);
 
     // Refs to avoid stale closures in setTimeout-triggered saveGameResult
     const streakRef = useRef(0);
@@ -242,8 +275,14 @@ export default function EndlessModePage() {
             setStreak(0);
             setDiamondsEarned(0);
             setMisses(0);
+            setLifelinesUsedThisGame(0);
+            setSkipUsedThisQuestion(false);
+            setTimeoutRetryQuestionId(null);
+            setIsTimeoutRetrying(false);
             setHighScore(0);
-            setPreGameHighScore(0);
+            setHighScoreResolved(false);
+            setHighScorePersistenceError('');
+            setConfirmedNewHighScore(false);
             streakRef.current = 0;
             diamondsEarnedRef.current = 0;
             missesRef.current = 0;
@@ -260,17 +299,27 @@ export default function EndlessModePage() {
                 const vipStatus = await DiamondEngine.isVIP();
                 if (!isCurrent()) return;
                 setIsVip(vipStatus);
-                // Load high score (ignore errors - table may not exist)
+                // Load the read-only public projection for the lobby. A failed
+                // read is not a zero score; completed runs are compared and
+                // projected by the server settlement authority below.
                 try {
-                    const { data } = await supabase
+                    const { data, error } = await supabase
                         .from('endless_high_scores')
                         .select('high_score')
                         .eq('user_id', user.id)
                         .eq('mode', 'random')
                         .maybeSingle();
                     if (!isCurrent()) return;
-                    if (data) { setHighScore(data.high_score || 0); setPreGameHighScore(data.high_score || 0); }
-                } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
+                    if (error) throw error;
+                    setHighScore(data?.high_score || 0);
+                    setHighScoreResolved(true);
+                    setHighScorePersistenceError('');
+                } catch (e) {
+                    console.warn('[Endless] High-score read failed:', e?.message || e);
+                    if (isCurrent()) {
+                        setHighScorePersistenceError('Your Existing High Score Could Not Be Displayed. Completed Runs Still Use The Server-Owned Record Authority.');
+                    }
+                }
                 // Load user diamonds
                 try {
                     const { data: profile } = await readOwnProfile(supabase, 'diamonds', { expectId: user.id });
@@ -321,19 +370,51 @@ export default function EndlessModePage() {
                 const operationScope = accountOperationScopeRef.current.capture();
                 if (operationScope.identity !== userId) return;
                 try {
-                    const { data } = await supabase.from('endless_high_scores').select('high_score').eq('user_id', userId).eq('mode', 'random').maybeSingle();
+                    const { data, error } = await supabase.from('endless_high_scores').select('high_score').eq('user_id', userId).eq('mode', 'random').maybeSingle();
                     if (!accountOperationScopeRef.current.isCurrent(operationScope)) return;
-                    if (data) setHighScore(data.high_score || 0);
+                    if (error) {
+                        setHighScorePersistenceError('Your High Score Could Not Be Refreshed. Only A Server-Confirmed Projection Can Show A Record.');
+                    } else {
+                        setHighScore(data?.high_score || 0);
+                        setHighScoreResolved(true);
+                        setHighScorePersistenceError('');
+                    }
                     const { data: profile } = await readOwnProfile(supabase, 'diamonds', { expectId: userId });
                     if (!accountOperationScopeRef.current.isCurrent(operationScope)) return;
                     if (profile) setUserDiamonds(profile.diamonds || 0);
                 } catch (e) {
+                    if (!accountOperationScopeRef.current.isCurrent(operationScope)) return;
                     console.warn('[Endless] Realtime refresh failed:', e);
+                    setHighScorePersistenceError('Your High Score Could Not Be Refreshed. Only A Server-Confirmed Projection Can Show A Record.');
                 }
             })
             .subscribe();
         return () => { supabase.removeChannel(_ch); };
     }, [userId]);
+
+    function applyAuthoritativeHighScoreProjection(
+        settlement,
+        operationScope = accountOperationScopeRef.current.capture(),
+    ) {
+        if (operationScope.identity !== (userId || null)
+            || !accountOperationScopeRef.current.isCurrent(operationScope)) return false;
+        const projection = settlement?.highScoreProjection;
+        if (isPersistedEndlessHighScoreProjection(projection)
+            && projection.verifiedCorrect === settlement?.correct) {
+            setHighScore(projection.highScore);
+            setHighScoreResolved(true);
+            setConfirmedNewHighScore(projection.improved);
+            setHighScorePersistenceError('');
+            return true;
+        }
+        setConfirmedNewHighScore(false);
+        if (isIneligibleEndlessHighScoreProjection(projection)) {
+            setHighScorePersistenceError('Your Run And Diamond Award Were Settled, But This Recovered Run Is Not Eligible For A High-Score Projection. No Record Claim Is Being Shown.');
+            return true;
+        }
+        setHighScorePersistenceError('Your Run And Diamond Award Were Settled, But The Server High-Score Projection Is Still Pending. No Record Claim Is Being Shown.');
+        return false;
+    }
 
     // Save settings to localStorage when changed. Merges into whatever the
     // settings page stored so this page never clobbers keys it doesn't own
@@ -384,26 +465,104 @@ export default function EndlessModePage() {
         setIsLoading(true);
         setLoadError(null);
         try {
-            const resumed = await serverRun.resume({ count: QUESTIONS_PER_SESSION });
+            let resumed = await serverRun.resume({ count: QUESTIONS_PER_SESSION });
             if (!accountOperationScopeRef.current.isCurrent(operationScope)) return;
             if (resumed?.resumedSettlement && resumed.settlement) {
                 const settled = resumed.settlement;
+                const authority = authoritativeEndlessSettlement(settled);
+                if (!authority) throw new Error('invalid_endless_settlement_authority');
                 serverResultRef.current = settled;
                 setSettlementResult(settled);
-                const correct = Math.max(0, Number(settled.correct) || 0);
-                const awarded = Math.max(0, Number(settled.diamondsAwarded) || 0);
+                const correct = authority.correct;
+                const awarded = authority.diamondsAwarded;
                 streakRef.current = correct;
                 diamondsEarnedRef.current = correct;
                 setStreak(correct);
                 setDiamondsEarned(correct);
                 setAwardedDiamonds(awarded);
+                applyAuthoritativeHighScoreProjection(settled, operationScope);
                 setGameState('gameover');
                 return;
             }
 
+            // A reload can occur after the shot clock expired but before the
+            // binding -1 receipt reached the browser. Replay that exact,
+            // account/session-scoped mutation before gameplay is enabled.
+            let timeoutReplayFailure = null;
+            let timeoutReplayTerminal = false;
+            const pendingTimeoutQuestionId = resumed?.pendingTimeoutQuestionId;
+            if (typeof pendingTimeoutQuestionId === 'string') {
+                try {
+                    const receipt = await serverRun.answer({
+                        questionId: pendingTimeoutQuestionId,
+                        displayIndex: -1,
+                    });
+                    if (!accountOperationScopeRef.current.isCurrent(operationScope)) return;
+                    resumed = {
+                        ...resumed,
+                        pendingTimeoutQuestionId: null,
+                        nonPaidMissCount: Number.isInteger(receipt?.nonPaidMissCount)
+                            ? receipt.nonPaidMissCount
+                            : resumed.nonPaidMissCount,
+                        runMissLimitReached: typeof receipt?.runMissLimitReached === 'boolean'
+                            ? receipt.runMissLimitReached
+                            : resumed.runMissLimitReached,
+                        questions: (Array.isArray(resumed.questions) ? resumed.questions : []).map(question => (
+                            question?.id === pendingTimeoutQuestionId
+                                ? {
+                                    ...question,
+                                    state: 'answered',
+                                    answerState: {
+                                        storedDisplayIndex: -1,
+                                        wasCorrect: receipt?.wasCorrect === true,
+                                        correctDisplayIndex: Number.isInteger(receipt?.correctDisplayIndex)
+                                            ? receipt.correctDisplayIndex
+                                            : -1,
+                                        outcome: receipt?.outcome || 'skip',
+                                        explanation: typeof receipt?.explanation === 'string' ? receipt.explanation : null,
+                                        ...(receipt?.voided === true ? { voided: true } : {}),
+                                    },
+                                }
+                                : question
+                        )),
+                    };
+                } catch (error) {
+                    if (!accountOperationScopeRef.current.isCurrent(operationScope)
+                        || isStaleAccountOperation(error)) return;
+                    const code = error?.payload?.error || error?.code || error?.message;
+                    if (code === 'run_miss_limit_reached') {
+                        timeoutReplayTerminal = true;
+                        resumed = {
+                            ...resumed,
+                            nonPaidMissCount: Number.isInteger(error?.payload?.nonPaidMissCount)
+                                ? error.payload.nonPaidMissCount
+                                : resumed.nonPaidMissCount,
+                            runMissLimitReached: true,
+                        };
+                    } else {
+                        timeoutReplayFailure = {
+                            questionId: code === 'position_out_of_order'
+                                && typeof error?.payload?.priorQuestionId === 'string'
+                                ? error.payload.priorQuestionId
+                                : pendingTimeoutQuestionId,
+                            message: code === 'position_out_of_order'
+                                ? 'An Earlier Expired Question Still Needs Server Confirmation. Confirm It Before The Run Resumes.'
+                                : 'The Expired Answer Is Still Waiting For Server Confirmation. Retry It To Resume This Run.',
+                        };
+                    }
+                }
+            }
+
             const resumedQuestions = Array.isArray(resumed?.questions) ? resumed.questions : [];
             if (resumedQuestions.length === 0) throw new Error('resume_questions_missing');
-            const projection = projectPhase9Recovery(resumedQuestions);
+            if (!Number.isInteger(resumed?.nonPaidMissCount)
+                || resumed.nonPaidMissCount < 0
+                || typeof resumed?.runMissLimitReached !== 'boolean') {
+                throw new Error('resume_run_boundary_missing');
+            }
+            const projection = projectPhase9Recovery(resumedQuestions, {
+                authoritativeFailureCount: resumed.nonPaidMissCount,
+            });
             setQuestions(resumedQuestions);
             sessionAnswersRef.current = projection.recordedAnswers;
             streakRef.current = projection.correctCount;
@@ -414,19 +573,36 @@ export default function EndlessModePage() {
             setDiamondsEarned(projection.correctCount);
             setMisses(projection.wrongCount);
             setCurrentIndex(currentIndexRef.current);
-            setPreGameHighScore(highScore);
             setAwardedDiamonds(null);
             setSettlementResult(null);
             setVerdict(null);
             setIsPaused(false);
             setGameDurationSec(0);
-            setLifelinesUsedThisGame(0);
+            setLifelinesUsedThisGame(Math.min(
+                MAX_LIFELINES_PER_GAME,
+                Math.max(0, Number(resumed.paidSkipCount) || 0),
+            ));
+            setConfirmedNewHighScore(false);
+            startTimeRef.current = Date.now();
+
+            if (timeoutReplayFailure) {
+                if (!holdExpiredQuestionForRetry(
+                    timeoutReplayFailure.questionId,
+                    resumedQuestions,
+                    timeoutReplayFailure.message,
+                )) throw new Error('resume_timeout_question_missing');
+                setGameState('playing');
+                return;
+            }
+
+            setTimeoutRetryQuestionId(null);
+            setIsTimeoutRetrying(false);
             answerLockRef.current = false;
             trivia.reset();
             timer.resetTimer();
-            startTimeRef.current = Date.now();
 
-            if (projection.complete || projection.wrongCount >= MAX_MISSES) {
+            if (timeoutReplayTerminal || projection.complete || resumed.runMissLimitReached === true
+                || projection.wrongCount >= MAX_MISSES) {
                 setGameState('saving');
                 await saveGameResult(operationScope);
             } else {
@@ -472,6 +648,7 @@ export default function EndlessModePage() {
         sessionAnswersRef.current = [];
         setSaveErrorPayload(null);
         setSettlementResult(null);
+        setConfirmedNewHighScore(false);
 
         // Open the server session BEFORE any charge, so a start failure can
         // never eat an entry fee. The served questions are used VERBATIM -
@@ -518,7 +695,6 @@ export default function EndlessModePage() {
         setMisses(0);
         setCurrentIndex(0);
         setGameDurationSec(0);
-        setPreGameHighScore(highScore);
         streakRef.current = 0;
         diamondsEarnedRef.current = 0;
         missesRef.current = 0;
@@ -529,7 +705,13 @@ export default function EndlessModePage() {
         trivia.reset();
         // Reset all lifeline states for new game
         setSkipUsedThisQuestion(false);
-        setLifelinesUsedThisGame(0);
+        setTimeoutRetryQuestionId(null);
+        setIsTimeoutRetrying(false);
+        setActionError(null);
+        setLifelinesUsedThisGame(Math.min(
+            MAX_LIFELINES_PER_GAME,
+            Math.max(0, Number(served.paidSkipCount) || 0),
+        ));
         // Start shot clock
         timer.resetTimer();
         setScreenShake(false);
@@ -593,8 +775,52 @@ export default function EndlessModePage() {
     function handleTimeOut() {
         timer.setIsTimerRunning(false);
         setScreenShake(false);
+        if (authLoading) return;
         if (!reduceMotion && 'vibrate' in navigator) navigator.vibrate([200, 100, 200]);
         gradeAnswer(-1);
+    }
+
+    function holdExpiredQuestionForRetry(questionId, roster = questions, message = null) {
+        const retryIndex = roster.findIndex(question => question?.id === questionId);
+        if (retryIndex < 0) return false;
+        setCurrentIndex(retryIndex);
+        currentIndexRef.current = retryIndex;
+        setVerdict(null);
+        trivia.reset();
+        setSkipUsedThisQuestion(false);
+        setTimeoutRetryQuestionId(questionId);
+        setIsTimeoutRetrying(false);
+        setIsPaused(false);
+        answerLockRef.current = true;
+        timer.setIsTimerRunning(false);
+        setActionError(message || 'Time Expired. Confirm This Exact Expired Answer With The Server Before Play Can Continue.');
+        return true;
+    }
+
+    function retryExpiredQuestion() {
+        gradeAnswer(-1, { allowPendingTimeoutRetry: true });
+    }
+
+    function leaveRetiredRun(error) {
+        if (!isRetiredTriviaRunError(error)) return false;
+        serverRun.reset();
+        answerLockRef.current = false;
+        lifelineBusyRef.current = false;
+        sessionAnswersRef.current = [];
+        serverResultRef.current = null;
+        savePhaseRef.current = 0;
+        setQuestions([]);
+        setTimeoutRetryQuestionId(null);
+        setIsTimeoutRetrying(false);
+        setSkipUsedThisQuestion(false);
+        setActionError(null);
+        setSaveErrorPayload(null);
+        setSettlementResult(null);
+        setAwardedDiamonds(null);
+        setGameState('ready');
+        setLoadError('That Server Run Is Closed Or Expired. Its Custody Was Retired; Start A Fresh Run.');
+        timer.setIsTimerRunning(false);
+        return true;
     }
 
     function finalizeDuration() {
@@ -603,54 +829,17 @@ export default function EndlessModePage() {
         }
     }
 
-    /**
-     * Charge a lifeline. Returns true when the player may use it.
-     * VIP members are never charged (matching HintButtons.jsx / StrategyTrivia).
-     * Charges route through DiamondEngine.deduct - the direct balance RPC
-     * this page used to call lost authenticated EXECUTE on 2026-08-03, so
-     * every purchase silently failed.
-     */
-    async function chargeLifeline(cost, source, operationScope) {
-        if (!accountOperationScopeRef.current.isCurrent(operationScope)
-            || operationScope.identity !== (userId || null)) return false;
-        if (isVip) return true;              // VIP lifelines are free
-        if (!userId) return true;            // Guest play — nothing to charge
-        if (userDiamonds < cost) {
-            setShowOutOfDiamonds(true);
-            return false;
-        }
-        try {
-            const charge = await DiamondEngine.deduct(cost, source, {
-                description: 'Endless Trivia skip lifeline',
-                referenceId: `trivia_lifeline:${serverRun.sessionId}:${currentQuestion?.id}:skip`,
-            });
-            if (!accountOperationScopeRef.current.isCurrent(operationScope)) return false;
-            if (!charge.success) {
-                setShowOutOfDiamonds(true);
-                return false;
-            }
-            if (charge.balance !== undefined) setUserDiamonds(charge.balance);
-            // DiamondEngine.deduct auto-emits busEmit.diamondsSpent
-            return true;
-        } catch (e) {
-            if (!accountOperationScopeRef.current.isCurrent(operationScope)
-                || isStaleAccountOperation(e)) return false;
-            console.warn('[Endless] Lifeline deduction failed:', e);
-            setActionError('Could Not Purchase That Lifeline. Please Try Again.');
-            setTimeout(() => {
-                if (accountOperationScopeRef.current.isCurrent(operationScope)) setActionError(null);
-            }, 3000);
-            return false;
-        }
-    }
-
-    // Skip Question Function (costs 5 diamonds, free for VIP). The skipped
-    // question is never answered: it is omitted from session-submit, so it is
-    // not a miss and does not break the streak - it just burns a lifeline.
+    // The server atomically derives VIP/price, locks the run, enforces the
+    // three-skip cap, posts the Diamond debit (when owed), records the binding
+    // -1 answer and returns one immutable receipt. Retrying this exact
+    // session/question replays that receipt without another debit.
     async function useSkipQuestion() {
         const operationScope = accountOperationScopeRef.current.capture();
         if (operationScope.identity !== (userId || null)) return;
         if (trivia.showResult || skipUsedThisQuestion || answerLockRef.current) return;
+        const question = questions[currentIndexRef.current];
+        const sessionId = serverRun.sessionId;
+        if (!question?.id || !sessionId) return;
         if (lifelinesUsedThisGame >= MAX_LIFELINES_PER_GAME) {
             // Lifeline limit reached — silently prevent
             return;
@@ -662,14 +851,48 @@ export default function EndlessModePage() {
         const lifelineOperation = { operationScope };
         lifelineBusyRef.current = true;
         lifelineOperationRef.current = lifelineOperation;
+        answerLockRef.current = true;
+        setSkipUsedThisQuestion(true);
+        timer.setIsTimerRunning(false);
+        let completed = false;
         try {
-            const paid = await chargeLifeline(LIFELINE_COST, 'trivia_lifeline', operationScope);
+            const skipReceipt = await serverRun.paidSkip({ questionId: question.id });
             if (!accountOperationScopeRef.current.isCurrent(operationScope)) return;
-            if (!paid) return;
-            setLifelinesUsedThisGame(prev => prev + 1);
+            if (!skipReceipt || skipReceipt.storedDisplayIndex !== -1
+                || skipReceipt.outcome !== 'skip'
+                || !Number.isInteger(skipReceipt.paidSkipCount)
+                || skipReceipt.paidSkipCount < 1
+                || skipReceipt.paidSkipCount > MAX_LIFELINES_PER_GAME
+                || !Number.isInteger(skipReceipt.nonPaidMissCount)
+                || skipReceipt.nonPaidMissCount < 0
+                || typeof skipReceipt.runMissLimitReached !== 'boolean') {
+                throw new Error('paid_skip_not_recorded');
+            }
+            setUserDiamonds(skipReceipt.newBalance);
+            // `vip`/`entitlementWasVip` describe the original immutable
+            // transaction. The separately locked profile projection is the
+            // only receipt field that may update the current membership UI.
+            setIsVip(skipReceipt.currentVipEligible === true);
+            if (skipReceipt.newlyCharged && skipReceipt.diamondsCharged > 0) {
+                busEmit.diamondsSpent(skipReceipt.diamondsCharged, 'trivia_lifeline');
+            }
+            if (!sessionAnswersRef.current.some(answer => answer.questionId === question.id)) {
+                sessionAnswersRef.current.push({ questionId: question.id, displayIndex: -1 });
+            }
+            setLifelinesUsedThisGame(skipReceipt.paidSkipCount);
+            const authoritativeMisses = Math.min(MAX_MISSES, skipReceipt.nonPaidMissCount);
+            missesRef.current = authoritativeMisses;
+            setMisses(authoritativeMisses);
 
-            setSkipUsedThisQuestion(true);
-            timer.setIsTimerRunning(false);
+            completed = true;
+
+            // A replay can report that another device already reached the
+            // terminal miss boundary after this skip originally committed.
+            // Settle instead of advancing into a server-refused answer.
+            if (skipReceipt.runMissLimitReached) {
+                endRun(operationScope);
+                return;
+            }
 
             // Move to next question without penalty (keep streak). If the
             // roster somehow runs out, end the run instead of advancing into
@@ -682,8 +905,62 @@ export default function EndlessModePage() {
             trivia.reset();
             setVerdict(null);
             setSkipUsedThisQuestion(false);
+            answerLockRef.current = false;
             timer.resetTimer();
+        } catch (error) {
+            if (!accountOperationScopeRef.current.isCurrent(operationScope)
+                || isStaleAccountOperation(error)) return;
+            console.warn('[Endless] Paid skip record failed:', error?.message || error);
+            const code = error?.payload?.error || error?.code || error?.message;
+            if (leaveRetiredRun(error)) {
+                completed = true;
+                return;
+            }
+            if (Number.isInteger(error?.payload?.newBalance)) {
+                setUserDiamonds(error.payload.newBalance);
+            }
+            if (Number.isInteger(error?.payload?.paidSkipCount)) {
+                setLifelinesUsedThisGame(Math.min(MAX_LIFELINES_PER_GAME, error.payload.paidSkipCount));
+            }
+            if (Number.isInteger(error?.payload?.nonPaidMissCount)) {
+                const authoritativeMisses = Math.min(MAX_MISSES, Math.max(0, error.payload.nonPaidMissCount));
+                missesRef.current = authoritativeMisses;
+                setMisses(authoritativeMisses);
+            }
+            if (code === 'position_out_of_order') {
+                completed = true;
+                const priorQuestionId = typeof error?.payload?.priorQuestionId === 'string'
+                    ? error.payload.priorQuestionId
+                    : null;
+                if (!priorQuestionId || !holdExpiredQuestionForRetry(
+                    priorQuestionId,
+                    questions,
+                    'An Earlier Expired Question Still Needs Server Confirmation Before A Paid Skip Can Be Used.',
+                )) {
+                    setTimeoutRetryQuestionId(null);
+                    setIsTimeoutRetrying(false);
+                    answerLockRef.current = true;
+                    timer.setIsTimerRunning(false);
+                    setActionError('The Server Requested An Earlier Question That Is Missing From This Run. Reload And Resume The Same Run Before Continuing.');
+                }
+            } else if (error?.status === 402 || code === 'insufficient_diamonds') {
+                setShowOutOfDiamonds(true);
+                setActionError(null);
+            } else if (code === 'paid_skip_limit_reached') {
+                setActionError('The Server-Verified Three-Skip Limit Has Been Reached For This Run.');
+            } else if (code === 'run_miss_limit_reached') {
+                completed = true;
+                setActionError(null);
+                endRun(operationScope);
+            } else {
+                setActionError('The Skip Was Not Confirmed. Retry This Question; A Committed Receipt Cannot Charge Twice.');
+            }
         } finally {
+            if (!completed && accountOperationScopeRef.current.isCurrent(operationScope)) {
+                answerLockRef.current = false;
+                setSkipUsedThisQuestion(false);
+                timer.setIsTimerRunning(true);
+            }
             if (lifelineOperationRef.current === lifelineOperation) {
                 lifelineOperationRef.current = null;
                 lifelineBusyRef.current = false;
@@ -693,41 +970,74 @@ export default function EndlessModePage() {
 
     // Per-answer server grading. Lock the tap immediately, record it with
     // /api/trivia/session-answer (the first answer per question is BINDING
-    // server-side), then reveal from the verdict. A failed call unlocks so the
-    // player can re-tap - the endpoint is idempotent per question, so a retry
-    // cannot double-record. displayIndex -1 is the shot-clock timeout.
-    async function gradeAnswer(displayIndex) {
+    // server-side), then reveal from the verdict. Positive-answer failures
+    // unlock for another tap. A failed shot-clock
+    // timeout never advances locally: its exact -1 mutation remains locked to
+    // this question until the idempotent server receipt succeeds.
+    async function gradeAnswer(displayIndex, { allowPendingTimeoutRetry = false } = {}) {
         const operationScope = accountOperationScopeRef.current.capture();
         if (operationScope.identity !== (userId || null)) return;
-        if (answerLockRef.current || trivia.showResult) return;
         const q = questions[currentIndex];
         if (!q || typeof q.id !== 'string') return;
+        const pendingTimeoutId = timeoutRetryQuestionId || serverRun.pendingTimeoutQuestionId;
+        const retryingTimeout = displayIndex === -1
+            && allowPendingTimeoutRetry
+            && pendingTimeoutId === q.id;
+        if (answerOperationRef.current) return;
+        if ((answerLockRef.current && !retryingTimeout) || trivia.showResult) return;
         const answerOperation = { operationScope, questionId: q.id };
         answerLockRef.current = true;
         answerOperationRef.current = answerOperation;
         timer.setIsTimerRunning(false);
+        if (displayIndex === -1) {
+            setTimeoutRetryQuestionId(q.id);
+            setIsTimeoutRetrying(true);
+        }
         if (displayIndex >= 0) trivia.setSelectedAnswer(displayIndex); // instant visual lock on the tap
         try {
             const v = await serverRun.answer({ questionId: q.id, displayIndex });
             if (!accountOperationScopeRef.current.isCurrent(operationScope)) return;
+            if (displayIndex === -1) {
+                setTimeoutRetryQuestionId(null);
+                setIsTimeoutRetrying(false);
+                setActionError(null);
+            }
             applyVerdict(q, displayIndex, v, operationScope);
         } catch (e) {
             console.warn('[Endless] Answer grading failed:', e?.message || e);
             if (!accountOperationScopeRef.current.isCurrent(operationScope)
                 || isStaleAccountOperation(e)) return;
-            if (displayIndex < 0) {
-                // Timeout that could not reach the server: no re-tap is
-                // possible, so record it locally (session-submit still grades
-                // it server-side) and count the miss without a reveal.
-                sessionAnswersRef.current.push({ questionId: q.id, displayIndex: -1 });
-                const missCount = missesRef.current + 1;
-                missesRef.current = missCount;
-                setMisses(missCount);
-                if (missCount >= MAX_MISSES) {
-                    endRun(operationScope);
-                } else {
-                    scheduleAdvance(400, operationScope);
+            const code = e?.payload?.error || e?.code || e?.message;
+            if (leaveRetiredRun(e)) return;
+            if (Number.isInteger(e?.payload?.nonPaidMissCount)) {
+                const authoritativeMisses = Math.min(MAX_MISSES, Math.max(0, e.payload.nonPaidMissCount));
+                missesRef.current = authoritativeMisses;
+                setMisses(authoritativeMisses);
+            }
+            if (code === 'run_miss_limit_reached') {
+                setTimeoutRetryQuestionId(null);
+                setIsTimeoutRetrying(false);
+                endRun(operationScope);
+            } else if (code === 'position_out_of_order') {
+                const priorQuestionId = typeof e?.payload?.priorQuestionId === 'string'
+                    ? e.payload.priorQuestionId
+                    : null;
+                if (!priorQuestionId || !holdExpiredQuestionForRetry(
+                    priorQuestionId,
+                    questions,
+                    'An Earlier Expired Question Still Needs Server Confirmation. Confirm It Before Returning To This Question.',
+                )) {
+                    setTimeoutRetryQuestionId(null);
+                    setIsTimeoutRetrying(false);
+                    answerLockRef.current = true;
+                    timer.setIsTimerRunning(false);
+                    setActionError('The Server Requested An Earlier Question That Is Missing From This Run. Reload And Resume The Same Run Before Continuing.');
                 }
+            } else if (displayIndex < 0) {
+                // Fail closed on the same expired question. The hook retained
+                // its durable pendingTimeoutQuestionId before transport, so
+                // this explicit retry can safely replay the exact -1 write.
+                holdExpiredQuestionForRetry(q.id);
             } else {
                 // Unlock and let the player re-tap; give the shot clock back.
                 trivia.setSelectedAnswer(null);
@@ -750,6 +1060,16 @@ export default function EndlessModePage() {
         trivia.setShowResult(true);
         sessionAnswersRef.current.push({ questionId: q.id, displayIndex });
 
+        const hasAuthoritativeMissCount = Number.isInteger(v?.nonPaidMissCount)
+            && v.nonPaidMissCount >= 0;
+        const authoritativeMissCount = hasAuthoritativeMissCount
+            ? Math.min(MAX_MISSES, v.nonPaidMissCount)
+            : null;
+        if (hasAuthoritativeMissCount) {
+            missesRef.current = authoritativeMissCount;
+            setMisses(authoritativeMissCount);
+        }
+
         if (v?.wasCorrect === true) {
             // Server payout is count-based for endless: 1 diamond per correct
             // answer (capped daily at settle time). The old streak-multiplier
@@ -758,14 +1078,23 @@ export default function EndlessModePage() {
             setDiamondsEarned(prev => { const next = prev + 1; diamondsEarnedRef.current = next; return next; });
             setStreak(prev => { const next = prev + 1; streakRef.current = next; return next; });
             busEmit.decisionCorrect(streakRef.current);
-            scheduleAdvance(1000, operationScope);
+            if (v?.runMissLimitReached === true) {
+                if (answerTimeoutRef.current) clearTimeout(answerTimeoutRef.current);
+                answerTimeoutRef.current = setTimeout(() => {
+                    if (accountOperationScopeRef.current.isCurrent(operationScope)) endRun(operationScope);
+                }, 1000);
+            } else {
+                scheduleAdvance(1000, operationScope);
+            }
         } else {
-            const missCount = missesRef.current + 1;
+            const missCount = hasAuthoritativeMissCount
+                ? authoritativeMissCount
+                : missesRef.current + 1;
             missesRef.current = missCount;
             setMisses(missCount);
             busEmit.decisionIncorrect(streakRef.current);
             if (!reduceMotion) busEmit.screenShake('medium');
-            if (missCount >= MAX_MISSES) {
+            if (v?.runMissLimitReached === true || missCount >= MAX_MISSES) {
                 // Third miss: hold the reveal, then settle the run.
                 if (answerTimeoutRef.current) clearTimeout(answerTimeoutRef.current);
                 answerTimeoutRef.current = setTimeout(() => {
@@ -805,19 +1134,23 @@ export default function EndlessModePage() {
     }
 
     const [saveErrorPayload, setSaveErrorPayload] = useState(null);
-    const savePhaseRef = useRef(0); // 0=none, 1=settled, 2=highscore, 3=history, 4=score
+    const savePhaseRef = useRef(0); // 0=not settled, 1=authoritative settlement received
     // Server settlement result, kept in a ref so a saving_error retry re-uses
     // the already-paid result instead of re-submitting a closed session.
     const serverResultRef = useRef(null);
 
     // Keep the settling pointer through the response-to-render gap, then
-    // retire it only after the terminal screen has committed. This preserves
-    // reload recovery without making Play Again replay the closed session.
+    // retire it only after BOTH settlement and the high-score projection are
+    // terminal. A pending projection is recoverable work, not success: the
+    // same session/request custody must survive reload and an explicit retry.
     useEffect(() => {
-        if (gameState === 'gameover' && serverResultRef.current?.sessionId) {
+        const projection = serverResultRef.current?.highScoreProjection;
+        if (gameState === 'gameover'
+            && serverResultRef.current?.sessionId
+            && isTerminalEndlessHighScoreProjection(projection)) {
             serverRun.acknowledgeSettlement();
         }
-    }, [gameState, awardedDiamonds, serverRun.acknowledgeSettlement]);
+    }, [gameState, awardedDiamonds, settlementResult, serverRun.acknowledgeSettlement, userId]);
 
     async function saveGameResult(operationScope = accountOperationScopeRef.current.capture()) {
         if (operationScope.identity !== (userId || null)
@@ -832,9 +1165,9 @@ export default function EndlessModePage() {
             // Phase 1: settle the run server-side (only if not already
             // settled). The server grades from the answers it stored at tap
             // time, applies the daily cap and pays per correct answer through
-            // a locked RPC - no client-side crediting, ever. Skipped questions
-            // are omitted from the array: the server counts them wrong, which
-            // is harmless because payout is per-correct.
+            // a locked RPC - no client-side crediting, ever. Paid skips and
+            // timeouts were already bound through session-answer and their
+            // stable displayIndex -1 receipts are included in this replay.
             if (savePhaseRef.current < 1) {
                 const submitted = await serverRun.submit(
                     sessionAnswersRef.current.map(a => ({
@@ -843,6 +1176,9 @@ export default function EndlessModePage() {
                     }))
                 );
                 if (!isCurrentAccountOperation()) return;
+                if (!authoritativeEndlessSettlement(submitted)) {
+                    throw new Error('invalid_endless_settlement_authority');
+                }
                 serverResultRef.current = submitted;
                 setSettlementResult(submitted);
                 savePhaseRef.current = 1;
@@ -861,8 +1197,10 @@ export default function EndlessModePage() {
                 }
             }
             const settled = serverResultRef.current || {};
-            const awarded = Number.isFinite(settled.diamondsAwarded) ? settled.diamondsAwarded : 0;
-            const serverCorrect = Number.isFinite(settled.correct) ? settled.correct : streakRef.current;
+            const authority = authoritativeEndlessSettlement(settled);
+            if (!authority) throw new Error('invalid_endless_settlement_authority');
+            const awarded = authority.diamondsAwarded;
+            const serverCorrect = authority.correct;
 
             // Show what the server actually graded and credited, not what the
             // client hoped for.
@@ -872,42 +1210,10 @@ export default function EndlessModePage() {
             setDiamondsEarned(serverCorrect);
             diamondsEarnedRef.current = serverCorrect;
 
-            // Phase 2: Update high score (only if not already updated).
-            //
-            // Downgraded from throw to warn: `endless_high_scores` is created by
-            // no migration in this repo (the load path at init() even comments
-            // "table may not exist"). Throwing here meant that if the table is
-            // missing or mis-permissioned in production, EVERY game that beat the
-            // high score dead-ended in a Retry loop that could never succeed —
-            // after diamonds had already been awarded in phase 1. A cosmetic
-            // high-score row is not worth trapping the player.
-            if (savePhaseRef.current < 2) {
-                if (serverCorrect > highScore) {
-                    const { error: hsErr } = await supabase
-                        .from('endless_high_scores')
-                        .upsert({
-                            user_id: userId,
-                            mode: 'random',
-                            high_score: serverCorrect,
-                            achieved_at: new Date().toISOString()
-                        }, { onConflict: 'user_id,mode' });
-                    if (!isCurrentAccountOperation()) return;
-                    if (hsErr) {
-                        console.warn('[Endless] High-score upsert failed (non-fatal):', hsErr.message);
-                    }
-                    setHighScore(serverCorrect);
-                }
-                savePhaseRef.current = 2;
-            }
-
-            // Settlement atomically finalized history, mastery and skip
-            // telemetry from the binding server answers.
-            savePhaseRef.current = Math.max(savePhaseRef.current, 3);
-
-            // Phase 4: session-submit persisted the verified score atomically.
-            if (savePhaseRef.current < 4) {
-                savePhaseRef.current = 4;
-            }
+            // session-submit projects the verified score through a max-only,
+            // server-owned authority. The browser can read the public board,
+            // but it cannot write or decide that a record improved.
+            applyAuthoritativeHighScoreProjection(settled, operationScope);
 
             // Success! Game saved — reset phase for next game.
             setGameState('gameover');
@@ -916,6 +1222,7 @@ export default function EndlessModePage() {
         } catch (e) {
             console.warn('[Endless] Failed to save game result:', e);
             if (!isCurrentAccountOperation() || isStaleAccountOperation(e)) return;
+            if (leaveRetiredRun(e)) return;
             // Save failed (network drop) -> Provide Retry UI (savePhaseRef preserves progress)
             setSaveErrorPayload({ finalDiamonds: diamondsEarnedRef.current, finalStreak: streakRef.current });
             setGameState('saving_error');
@@ -929,10 +1236,47 @@ export default function EndlessModePage() {
         saveGameResult(); // savePhaseRef skips already-completed steps
     };
 
+    const retryHighScoreProjection = async () => {
+        if (isStartingRef.current || !userId) return;
+        const operationScope = accountOperationScopeRef.current.capture();
+        if (operationScope.identity !== userId) return;
+        const retryOperation = { operationScope };
+        isStartingRef.current = true;
+        startOperationRef.current = retryOperation;
+        setIsLoading(true);
+        try {
+            const resumed = await serverRun.resume({ count: QUESTIONS_PER_SESSION });
+            if (!accountOperationScopeRef.current.isCurrent(operationScope)) return;
+            if (!resumed?.resumedSettlement || !resumed.settlement) {
+                throw new Error('projection_retry_settlement_missing');
+            }
+            const settled = resumed.settlement;
+            if (!authoritativeEndlessSettlement(settled)) {
+                throw new Error('invalid_endless_settlement_authority');
+            }
+            serverResultRef.current = settled;
+            setSettlementResult(settled);
+            applyAuthoritativeHighScoreProjection(settled, operationScope);
+        } catch (error) {
+            if (!accountOperationScopeRef.current.isCurrent(operationScope)
+                || isStaleAccountOperation(error)) return;
+            console.warn('[Endless] High-score projection retry failed:', error?.message || error);
+            setHighScorePersistenceError('The Server High-Score Projection Is Still Pending. Retry The Same Settled Run; No Record Claim Is Being Shown.');
+        } finally {
+            if (startOperationRef.current === retryOperation) {
+                startOperationRef.current = null;
+                isStartingRef.current = false;
+                if (accountOperationScopeRef.current.isCurrent(operationScope)) setIsLoading(false);
+            }
+        }
+    };
+
     // Play Again - the server deals a FRESH roster for every session (the
     // just-played questions are now in trivia_user_question_history), and
     // startGame() opens the new session BEFORE charging another entry fee.
     function playAgain() {
+        if (!isTerminalEndlessHighScoreProjection(
+            serverResultRef.current?.highScoreProjection)) return;
         serverRun.acknowledgeSettlement();
         forceNewStartRef.current = true;
         startGame();
@@ -950,6 +1294,13 @@ export default function EndlessModePage() {
 
 
     const creditedDiamonds = awardedDiamonds != null ? awardedDiamonds : diamondsEarned;
+    const highScoreProjectionPending = gameState === 'gameover'
+        && Boolean(userId)
+        && !isTerminalEndlessHighScoreProjection(settlementResult?.highScoreProjection);
+    const activeTimeoutRetryQuestionId = timeoutRetryQuestionId || serverRun.pendingTimeoutQuestionId;
+    const timeoutRetryRequired = gameState === 'playing'
+        && Boolean(currentQuestion?.id)
+        && activeTimeoutRetryQuestionId === currentQuestion.id;
     // The pill is a short painted slot (about eight characters at 375px);
     // longer state, balance and timer copy is printed on the glass below.
     const balanceLabel = isVip ? 'VIP' : 'Ready';
@@ -961,10 +1312,10 @@ export default function EndlessModePage() {
                 ? 'Loading'
                 : {
                     ready: !userId ? 'Sign In' : serverRun.hasRecoverableSession ? 'Resume' : balanceLabel,
-                    playing: `${formatTriviaDisplayNumber(timer.timeLeft)} Sec`,
+                    playing: timeoutRetryRequired ? 'Confirm' : `${formatTriviaDisplayNumber(timer.timeLeft)} Sec`,
                     saving: 'Saving',
                     saving_error: 'Retry',
-                    gameover: 'Final',
+                    gameover: highScoreProjectionPending ? 'Retry' : 'Final',
                 }[gameState] || balanceLabel;
 
     const primaryAction = showOutOfDiamonds
@@ -985,11 +1336,15 @@ export default function EndlessModePage() {
                 'aria-disabled': isLoading,
             }
             : gameState === 'playing'
-                ? { label: 'Pause Game', onClick: pauseGame }
+                ? timeoutRetryRequired
+                    ? { label: isTimeoutRetrying ? 'Confirming Expired Answer' : 'Retry Expired Answer', onClick: retryExpiredQuestion, disabled: isTimeoutRetrying }
+                    : { label: 'Pause Game', onClick: pauseGame }
             : gameState === 'saving_error'
                 ? { label: 'Retry Save', onClick: handleRetrySave }
                 : gameState === 'gameover'
-                    ? { label: 'Play Again', onClick: playAgain }
+                    ? highScoreProjectionPending
+                        ? { label: isLoading ? 'Retrying Record Projection' : 'Retry Record Projection', onClick: retryHighScoreProjection, disabled: isLoading }
+                        : { label: 'Play Again', onClick: playAgain }
                     : null;
 
     const secondaryAction = showOutOfDiamonds
@@ -997,6 +1352,35 @@ export default function EndlessModePage() {
         : gameState === 'gameover'
             ? { label: 'Back To Trivia', onClick: () => router.push('/hub/trivia') }
             : null;
+
+    const accountBoundaryPending = shouldGateAccountOwnedRender({
+        loading: authLoading,
+        resolvedIdentity: resolvedAccountId,
+        loadedIdentity: userId,
+    });
+    if (accountBoundaryPending) {
+        return (
+            <TriviaErrorBoundary pageName="Endless Mode">
+                <>
+                    <SEOHead title="Endless Trivia - Keep The Streak Alive" description="Endless Poker Trivia On Smarter.Poker: enter a server-verified run, answer until the third miss, use limited lifelines, and review the final settlement receipt." canonical="/hub/trivia/endless" />
+                    <div className="trivia-challenge-page trivia-challenge-page--endless" data-trivia-family="challenge" data-trivia-surface="endless" data-game-state="loading">
+                        <UniversalHeader pageDepth={2} />
+                        <PageTransition>
+                            <main className="trivia-challenge-shell" aria-labelledby="endless-trivia-title">
+                                <TriviaConsole className="trivia-challenge-console" eyebrow="Three Miss Challenge" title="Endless Trivia" titleId="endless-trivia-title" subtitle="Keep The Streak Alive" pill="Loading" aria-labelledby="endless-trivia-title" secondaryAction={{ label: 'Back To Trivia', onClick: () => router.push('/hub/trivia') }}>
+                                    <section className="trivia-challenge-intro phase9-intro-layout" aria-label="Loading Account Run">
+                                        <ResponsiveModeArt art={TRIVIA_INTRO_ART_ENDLESS} priority />
+                                        <p className="trivia-challenge-notice" role="status">Loading The Authoritative Run For This Account</p>
+                                    </section>
+                                </TriviaConsole>
+                            </main>
+                        </PageTransition>
+                    </div>
+                </>
+                <HubPageSummary page="trivia-endless" as="h1" />
+            </TriviaErrorBoundary>
+        );
+    }
 
     return (
         <TriviaErrorBoundary pageName="Endless Mode">
@@ -1069,6 +1453,9 @@ export default function EndlessModePage() {
                                         </p>
                                         {loadError && (
                                             <p className="trivia-challenge-alert" role="alert">{loadError}</p>
+                                        )}
+                                        {highScorePersistenceError && (
+                                            <p className="trivia-challenge-notice" role="status">{highScorePersistenceError}</p>
                                         )}
                                         {!userId && (
                                             <p className="trivia-challenge-notice" role="status">
@@ -1154,6 +1541,21 @@ export default function EndlessModePage() {
                                     >
                                         {actionError && (
                                             <p className="trivia-challenge-alert" role="alert">{actionError}</p>
+                                        )}
+                                        {timeoutRetryRequired && (
+                                            <section className="trivia-challenge-state trivia-challenge-state--error" role="alert" aria-live="assertive" aria-labelledby="endless-timeout-retry-title">
+                                                <h3 id="endless-timeout-retry-title">Expired Answer Needs Confirmation</h3>
+                                                <p id="endless-timeout-retry-copy">The Run Is Locked On This Question Until Its Exact Timeout Is Recorded By The Server.</p>
+                                                <button
+                                                    type="button"
+                                                    className="trivia-challenge-action"
+                                                    onClick={retryExpiredQuestion}
+                                                    disabled={isTimeoutRetrying}
+                                                    aria-describedby="endless-timeout-retry-copy"
+                                                >
+                                                    {isTimeoutRetrying ? 'Confirming Expired Answer' : 'Retry Expired Answer'}
+                                                </button>
+                                            </section>
                                         )}
 
                                         <dl className="trivia-challenge-stats trivia-challenge-stats--compact">
@@ -1288,7 +1690,7 @@ export default function EndlessModePage() {
                                                     selectedAnswer={trivia.selectedAnswer}
                                                     correctIndex={verdict ? verdict.correctDisplayIndex : null}
                                                     showResult={trivia.showResult}
-                                                    disabled={trivia.selectedAnswer !== null || trivia.showResult}
+                                                    disabled={trivia.selectedAnswer !== null || trivia.showResult || timeoutRetryRequired}
                                                     onSelect={gradeAnswer}
                                                 />
                                             ))}
@@ -1299,7 +1701,7 @@ export default function EndlessModePage() {
                                                 type="button"
                                                 className="trivia-challenge-action trivia-challenge-action--lifeline"
                                                 onClick={useSkipQuestion}
-                                                disabled={lifelineLocked}
+                                                disabled={lifelineLocked || skipUsedThisQuestion || answerLockRef.current}
                                             >
                                                 Skip Question | {isVip ? 'VIP Included' : `${formatTriviaDisplayNumber(LIFELINE_COST)} Diamonds`}
                                             </button>
@@ -1341,7 +1743,7 @@ export default function EndlessModePage() {
                                             </div>
                                             <div className="trivia-challenge-stat">
                                                 <dt>Best Streak</dt>
-                                                <dd>{formatTriviaDisplayNumber(Math.max(highScore, streak))}</dd>
+                                                <dd>{highScoreResolved ? formatTriviaDisplayNumber(highScore) : 'Unavailable'}</dd>
                                             </div>
                                             {gameDurationSec > 0 && (
                                                 <div className="trivia-challenge-stat">
@@ -1363,8 +1765,12 @@ export default function EndlessModePage() {
                                             </p>
                                         )}
 
-                                        {streak > preGameHighScore && streak > 0 && (
+                                        {confirmedNewHighScore && (
                                             <p className="trivia-challenge-note" role="status">New High Score</p>
+                                        )}
+
+                                        {highScorePersistenceError && (
+                                            <p className="trivia-challenge-alert" role="alert">{highScorePersistenceError}</p>
                                         )}
 
                                         <Phase9RunReview

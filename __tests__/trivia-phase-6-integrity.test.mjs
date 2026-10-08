@@ -22,6 +22,9 @@ const phase3Engine = read('src/lib/trivia/phase3Engine.mjs');
 const legacySubmit = read('pages/api/trivia/submit.js');
 const generator = read('pages/api/cron/generate-trivia.js');
 const diamondEngine = read('src/services/DiamondEngine.js');
+const serverGradedRun = read('src/hooks/useServerGradedRun.js');
+const paidSkipApi = read('pages/api/trivia/session-paid-skip.js');
+const genericSpendApi = read('pages/api/diamonds/spend.js');
 const deterministicSeeder = read('scripts/trivia-deterministic-seed.js');
 const endless = read('pages/hub/trivia/endless.js');
 const survival = read('pages/hub/trivia/survival-game.js');
@@ -91,11 +94,16 @@ test('legacy forged scores are retired and model strategy generation is disabled
     assert.match(deterministicSeeder, /engine_version: 3/);
 });
 
-test('browser diamond spends carry an idempotency reference', () => {
+test('browser diamond spends are idempotent and paid skips use atomic server authority', () => {
     assert.match(diamondEngine, /const referenceId = metadata\.referenceId/);
     assert.match(diamondEngine, /referenceId,/);
-    assert.match(endless, /trivia_lifeline:\$\{serverRun\.sessionId\}:\$\{currentQuestion\?\.id\}:skip/);
-    assert.match(survival, /trivia_lifeline:\$\{serverRun\.sessionId\}:\$\{currentQuestion\?\.id\}:skip/);
+    assert.match(serverGradedRun, /\/api\/trivia\/session-paid-skip/);
+    assert.match(endless, /serverRun\.paidSkip\(\{ questionId: question\.id \}\)/);
+    assert.match(survival, /serverRun\.paidSkip\(\{ questionId: question\.id \}\)/);
+    assert.match(paidSkipApi, /rpc\('trivia_paid_skip_v1'/);
+    assert.match(genericSpendApi, /paid_skip_requires_session_authority/);
+    assert.doesNotMatch(endless, /trivia_lifeline:\$\{serverRun\.sessionId\}/);
+    assert.doesNotMatch(survival, /trivia_lifeline:\$\{serverRun\.sessionId\}/);
 });
 
 test('streak and PvP statistics are owned by verified server settlement', () => {

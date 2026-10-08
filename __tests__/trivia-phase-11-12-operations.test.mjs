@@ -352,7 +352,7 @@ test('the operations page fetches the restricted projection and retains exact re
     assert.match(page, /Restricted Operator Authority/);
     assert.match(page, /method:\s*'POST'/);
     assert.match(page, /Retry Same Request/);
-    assert.match(page, /Payout hold unavailable/);
+    assert.match(page, /Payout Hold Unavailable/);
     assert.match(page, /Durable database cutover authority/);
     for (const gate of ['pvp_public', 'pvp_horses', 'tournament_public', 'tournament_horses', 'tournament_scheduler']) {
         assert.match(page, new RegExp(gate));

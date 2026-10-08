@@ -28,6 +28,13 @@ import {
     isStrategyVisualCardCategory,
     isStrategyVisualCardMode,
 } from '../src/lib/trivia/strategyVisualCardPolicy.mjs';
+import {
+    isTerminalEndlessHighScoreProjection,
+} from '../src/lib/trivia/highScoreProjectionPolicy.mjs';
+import {
+    isAuthoritativeRetirementCode,
+    triviaRunErrorCode,
+} from '../src/lib/trivia/runRecoveryPolicy.mjs';
 
 const SESSION = '11111111-1111-4111-8111-111111111111';
 const USER = '22222222-2222-4222-8222-222222222222';
@@ -73,8 +80,9 @@ function jsonResponse(status, body) {
     };
 }
 
-function loadRecoveryHook({ accountId = USER, storage = memoryStorage(), fetchImpl } = {}) {
+function loadRecoveryHook({ accountId = USER, mode = 'daily', storage = memoryStorage(), fetchImpl } = {}) {
     const calls = [];
+    const activeRun = { acquired: 0, released: 0, active: 0 };
     const fetch = async (url, init = {}) => {
         calls.push({ url, body: JSON.parse(init.body || '{}') });
         return fetchImpl
@@ -100,12 +108,33 @@ function loadRecoveryHook({ accountId = USER, storage = memoryStorage(), fetchIm
                 isStaleAccountOperation,
                 staleAccountOperationError,
             },
+            '../lib/trivia/activeRunSignal.mjs': {
+                acquireActiveTriviaRun: () => {
+                    activeRun.acquired += 1;
+                    activeRun.active += 1;
+                    let released = false;
+                    return () => {
+                        if (released) return;
+                        released = true;
+                        activeRun.released += 1;
+                        activeRun.active -= 1;
+                    };
+                },
+            },
+            '../lib/trivia/highScoreProjectionPolicy.mjs': {
+                isTerminalEndlessHighScoreProjection,
+            },
+            '../lib/trivia/runRecoveryPolicy.mjs': {
+                isAuthoritativeRetirementCode,
+                triviaRunErrorCode,
+            },
         },
         globals: { window: { localStorage: storage }, fetch },
     });
     return {
+        activeRun,
         calls,
-        hook: module.default('daily', accountId == null ? {} : { accountId }),
+        hook: module.default(mode, accountId == null ? {} : { accountId }),
         storage,
     };
 }
@@ -289,15 +318,238 @@ test('settlement recovery retires only on an authoritative terminal result or UI
     assert.equal(readSoloRunRecovery(settled.storage, 'daily', USER), null);
 });
 
+test('settlement replay acquires the live-run lease before submit and releases it on the terminal receipt', async () => {
+    const storage = memoryStorage();
+    const recovery = createSoloRunRecovery({
+        mode: 'daily',
+        accountId: USER,
+        sessionId: SESSION,
+        phase: 'settling',
+        settlementRequestId: REQUEST,
+        createdAt: Date.now(),
+    });
+    assert.ok(writeSoloRunRecovery(storage, recovery));
+    const run = loadRecoveryHook({
+        storage,
+        fetchImpl: (url) => {
+            assert.match(url, /\/session-submit$/);
+            assert.equal(run.activeRun.active, 1, 'the settlement request leaves only while the run lease is held');
+            return jsonResponse(200, {
+                success: true,
+                sessionId: SESSION,
+                correct: 8,
+                diamondsAwarded: 4,
+                receipt: { verified: true },
+            });
+        },
+    });
+
+    const resumed = await run.hook.resume();
+    assert.equal(resumed.resumedSettlement, true);
+    assert.equal(run.activeRun.acquired, 1);
+    assert.equal(run.activeRun.released, 1);
+    assert.equal(run.activeRun.active, 0);
+    assert.deepEqual(run.calls.map(call => call.url), ['/api/trivia/session-submit']);
+});
+
+test('a pending Endless projection keeps custody and the reload-blocking lease through exact retry', async () => {
+    let submits = 0;
+    const run = loadRecoveryHook({
+        mode: 'endless',
+        fetchImpl: url => {
+            if (url.endsWith('/session-start')) {
+                return jsonResponse(200, {
+                    success: true,
+                    sessionId: SESSION,
+                    questions: [],
+                    entryCost: 0,
+                    entryState: 'free',
+                });
+            }
+            submits += 1;
+            return jsonResponse(200, {
+                success: true,
+                sessionId: SESSION,
+                correct: 8,
+                diamondsAwarded: 4,
+                highScoreProjection: submits === 1
+                    ? { status: 'pending', reason: 'projection_unavailable', highScore: null, improved: false }
+                    : {
+                        status: 'persisted',
+                        highScore: 8,
+                        verifiedCorrect: 8,
+                        improved: true,
+                        replayed: true,
+                        projectionId: '14141414-1414-4141-8141-141414141414',
+                    },
+                receipt: { verified: true },
+            });
+        },
+    });
+    await run.hook.start({ count: 10 });
+    const pending = await run.hook.submit([]);
+    assert.equal(pending.highScoreProjection.status, 'pending');
+    assert.equal(run.activeRun.active, 1, 'pending projection remains protected from service-worker reload');
+    assert.equal(readSoloRunRecovery(run.storage, 'endless', USER)?.phase, 'settling');
+    assert.equal(run.hook.acknowledgeSettlement(), false, 'pending projection cannot be falsely acknowledged');
+
+    const replayed = await run.hook.resume();
+    assert.equal(replayed.settlement.highScoreProjection.status, 'persisted');
+    assert.equal(run.activeRun.active, 0, 'terminal projection releases the live-run lease');
+    assert.equal(run.hook.acknowledgeSettlement(), true);
+    assert.equal(readSoloRunRecovery(run.storage, 'endless', USER), null);
+});
+
+test('challenge settlement custody rejects missing Survival authority and mismatched Endless projection truth', async () => {
+    const survivalStorage = memoryStorage();
+    assert.ok(writeSoloRunRecovery(survivalStorage, createSoloRunRecovery({
+        mode: 'survival',
+        accountId: USER,
+        sessionId: SESSION,
+        phase: 'settling',
+        settlementRequestId: REQUEST,
+        survivalLevel: 6,
+        createdAt: Date.now(),
+    })));
+    const survival = loadRecoveryHook({
+        mode: 'survival',
+        storage: survivalStorage,
+        fetchImpl: () => jsonResponse(200, {
+            success: true,
+            sessionId: SESSION,
+            correct: 15,
+            diamondsAwarded: 4,
+            receipt: { verified: true },
+        }),
+    });
+    await assert.rejects(survival.hook.resume(), error => {
+        assert.equal(error.code, 'invalid_survival_settlement_authority');
+        return true;
+    });
+    assert.equal(
+        readSoloRunRecovery(survivalStorage, 'survival', USER)?.survivalLevel,
+        6,
+        'the local hint stays recoverable but is never promoted to settlement authority',
+    );
+
+    const endless = loadRecoveryHook({
+        mode: 'endless',
+        fetchImpl: url => url.endsWith('/session-start')
+            ? jsonResponse(200, {
+                success: true,
+                sessionId: SESSION,
+                questions: [],
+                entryCost: 0,
+                entryState: 'free',
+            })
+            : jsonResponse(200, {
+                success: true,
+                sessionId: SESSION,
+                correct: 5,
+                diamondsAwarded: 4,
+                highScoreProjection: {
+                    status: 'persisted',
+                    highScore: 50,
+                    verifiedCorrect: 50,
+                    improved: true,
+                    replayed: false,
+                    projectionId: '14141414-1414-4141-8141-141414141414',
+                },
+                receipt: { verified: true },
+            }),
+    });
+    await endless.hook.start({ count: 10 });
+    await assert.rejects(endless.hook.submit([]), error => {
+        assert.equal(error.code, 'invalid_endless_settlement_authority');
+        return true;
+    });
+    assert.equal(endless.activeRun.active, 1, 'invalid authority cannot retire the live-run lease');
+    assert.equal(readSoloRunRecovery(endless.storage, 'endless', USER)?.phase, 'settling');
+    assert.equal(endless.hook.acknowledgeSettlement(), false);
+});
+
+test('hook lifecycle cleanup invalidates every in-flight operation before releasing its lease', () => {
+    const source = readFileSync('src/hooks/useServerGradedRun.js', 'utf8');
+    assert.match(source, /const invalidateLifecycle = \(\) => \{\s*operationScopeRef\.current\.transition\(null\);\s*clearActiveRun\(\);\s*\}/);
+    assert.match(source, /operationScopeRef\.current\.transition\(operationIdentity\);[\s\S]*?return invalidateLifecycle/);
+    assert.match(source, /const json = await postJson[\s\S]*?requireCurrentOperation\(operationScope\);[\s\S]*?markRunActive\(\)/);
+
+    const lifecycle = createAccountOperationScope('endless\0account-a');
+    const pendingStart = lifecycle.capture();
+    lifecycle.transition(null);
+    assert.equal(lifecycle.isCurrent(pendingStart), false,
+        'a response resolving after cleanup cannot become current or acquire a lease');
+});
+
 test('a solo UI reset cannot discard custody for a possibly charged session', async () => {
     const run = loadRecoveryHook();
     await run.hook.start({ count: 10 });
+    assert.equal(run.activeRun.active, 1);
     const before = readSoloRunRecovery(run.storage, 'daily', USER);
     assert.equal(before?.sessionId, SESSION);
 
     run.hook.reset();
 
+    assert.equal(run.activeRun.active, 0, 'reset releases the in-memory live-run lease');
     assert.deepEqual(readSoloRunRecovery(run.storage, 'daily', USER), before);
+});
+
+test('an Endless timeout survives a lost response and clears only after the exact receipt is replayed', async () => {
+    const questionId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+    const storage = memoryStorage();
+    const failed = loadRecoveryHook({
+        mode: 'endless',
+        storage,
+        fetchImpl: url => url.endsWith('/session-start')
+            ? jsonResponse(200, {
+                success: true,
+                sessionId: SESSION,
+                questions: [{ id: questionId, options: ['A', 'B'] }],
+                entryCost: 0,
+                entryState: 'free',
+            })
+            : jsonResponse(503, { success: false, error: 'temporarily_unavailable' }),
+    });
+    await failed.hook.start({ count: 10 });
+    await assert.rejects(
+        failed.hook.answer({ questionId, displayIndex: -1 }),
+        error => error.message === 'temporarily_unavailable',
+    );
+    assert.equal(
+        readSoloRunRecovery(storage, 'endless', USER)?.pendingTimeoutQuestionId,
+        questionId,
+        'the expired question is durable before the request leaves and survives an unknown outcome',
+    );
+
+    const replay = loadRecoveryHook({
+        mode: 'endless',
+        storage,
+        fetchImpl: url => url.endsWith('/session-start')
+            ? jsonResponse(200, {
+                success: true,
+                sessionId: SESSION,
+                questions: [{ id: questionId, options: ['A', 'B'] }],
+                entryCost: 0,
+                entryState: 'free',
+                resumed: true,
+            })
+            : jsonResponse(200, {
+                success: true,
+                storedDisplayIndex: -1,
+                wasCorrect: false,
+                fresh: false,
+                nonPaidMissCount: 1,
+                runMissLimitReached: false,
+            }),
+    });
+    const resumed = await replay.hook.resume({ count: 10 });
+    assert.equal(resumed.pendingTimeoutQuestionId, questionId);
+    await replay.hook.answer({ questionId, displayIndex: -1 });
+    assert.equal(
+        readSoloRunRecovery(storage, 'endless', USER)?.pendingTimeoutQuestionId,
+        null,
+        'only the authoritative answer receipt retires the timeout custody',
+    );
 });
 
 test('invalid answers use one atomic RPC and durable void retries never reveal an answer key', async () => {
@@ -351,7 +603,7 @@ test('invalid answers use one atomic RPC and durable void retries never reveal a
     const duplicateRes = apiResponse();
     await duplicate.handler(answerRequest({ sessionId: SESSION, questionId, displayIndex: 0 }), duplicateRes);
     assert.equal(duplicateRes.statusCode, 200);
-    assert.equal(duplicate.calls.rpc[0].name, 'trivia_session_answer_v4');
+    assert.equal(duplicate.calls.rpc[0].name, 'trivia_solo_answer_v1');
     assert.deepEqual(duplicate.calls.from, ['trivia_sessions'], 'durable void returns before any key or solver lookup');
     assert.deepEqual(duplicateRes.body, {
         success: true,
@@ -386,7 +638,7 @@ test('invalid answers use one atomic RPC and durable void retries never reveal a
     }), legacyRes);
     assert.equal(legacyRes.statusCode, 200);
     assert.deepEqual(legacy.calls.rpc[0], {
-        name: 'trivia_legacy_session_answer_v1',
+        name: 'trivia_solo_answer_v1',
         args: {
             p_session_id: SESSION,
             p_user_id: USER,
@@ -537,14 +789,15 @@ test('routes wire account-bound resume, settlement replay, answer reconstruction
     assert.match(start, /trivia_session_answers/);
     assert.match(answer, /invalidQuestion === true/);
     assert.match(answer, /trivia_record_invalid_question_v1/);
-    assert.match(answer, /trivia_session_answer_v4/);
+    assert.match(answer, /trivia_solo_answer_v1/);
     assert.match(answer, /question_still_valid/);
     assert.match(answer, /answer_already_recorded/);
     assert.match(answer, /const durableVoid = v3\.voided === true/);
     assert.match(answer, /recorded\?\.stored\?\.v === true/);
     assert.doesNotMatch(answer.slice(answer.indexOf('if (durableVoid)'), answer.indexOf('// Verdicts exist only')), /correctDisplayIndex|explanation|solverMetadata/);
     assert.match(answer, /body\.solverMetadata = analysis/);
-    assert.match(hook, /'session_closed'/);
+    assert.equal(isAuthoritativeRetirementCode('session_closed'), true,
+        'the shared recovery policy, not a duplicated hook literal, owns terminal retirement');
     assert.match(hook, /recovery_custody_unavailable/);
     assert.match(hook, /if \(mode !== 'pvp' && !accountId\) throw recoveryCustodyError\(\)/);
     assert.match(hook, /const verified = written[\s\S]*readSoloRunRecovery/);
@@ -556,7 +809,7 @@ test('routes wire account-bound resume, settlement replay, answer reconstruction
     assert.match(submit, /stored roster is malformed/);
     assert.match(submit, /keyById\.size !== rosterIds\.length/);
     assert.match(submit, /eligibilityById\.size !== rosterIds\.length/);
-    assert.match(submit, /\.rpc\('award_trivia_run_v4'/);
+    assert.match(submit, /\.rpc\('award_trivia_run_v5'/);
     assert.match(migration, /p_completion_answered/);
     assert.match(migration, /p_completion_total/);
     assert.match(migration, /count\(\*\) FILTER \(WHERE a\.outcome IS NOT NULL[\s\S]*INTO v_completion_answered/);

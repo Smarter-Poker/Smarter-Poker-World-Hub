@@ -9,6 +9,10 @@ import {
   rankComparableTriviaScores,
   summarizeTriviaScores,
 } from '../src/lib/trivia/progressAccount.mjs';
+import {
+  createLatestRequestScope,
+  shouldGateAccountOwnedRender,
+} from '../src/lib/trivia/accountOperationScope.mjs';
 
 const ROOT = process.cwd();
 const read = (file) => readFileSync(join(ROOT, file), 'utf8');
@@ -129,6 +133,93 @@ test('settings use labeled native controls and explicit local cloud failure cont
   assert.match(page, /pending: true/);
 });
 
+test('settings reset account-owned state and fence every delayed cloud mutation at identity changes', () => {
+  const source = read('pages/hub/trivia/settings.js');
+  assert.match(source, /createAccountOperationScope/);
+  assert.match(source, /accountOperationScopeRef\.current\.transition\(resolvedAccountId\)/);
+  assert.match(source, /const resolvedUserId = resolvedAccountId;\s*const operationScope = accountOperationScopeRef\.current\.capture\(\);\s*[\s\S]*?if \(operationScope\.identity !== resolvedUserId\) return;/);
+  const loadBody = source.match(/const load = useCallback\(async \(\) => \{([\s\S]*?)\n    \}, \[applyState,/i)?.[1] || '';
+  assert.doesNotMatch(loadBody, /\.transition\(/,
+    'a stale storage callback must not transition account scope back to its captured identity');
+  assert.match(source, /loadedIdentityRef\.current !== resolvedUserId/);
+  assert.match(source, /setCloudPreferences\(null\)/);
+  assert.match(source, /setSyncRevision\(0\)/);
+  assert.match(source, /setMessage\(''\)/);
+  assert.match(source, /const operationScope = accountOperationScopeRef\.current\.capture\(\)/);
+  assert.match(source, /const isCurrent = \(\) => accountOperationScopeRef\.current\.isCurrent\(operationScope\)/);
+  assert.match(source, /const operationUserId = operationScope\.identity/);
+  assert.match(source, /await updateTriviaPreferences\(operationUserId, next\);\s*if \(!isCurrent\(\)\) return;/);
+  assert.match(source, /await syncPendingTriviaPreferences\(operationUserId\);\s*if \(!isCurrent\(\)\) return;/);
+  assert.match(source, /await resolveTriviaPreferencesConflict\(operationUserId, choice\);\s*if \(!isCurrent\(\)\) return;/);
+  assert.match(source, /accountBoundaryPending = shouldGateAccountOwnedRender/);
+  assert.match(source, /accountBoundaryPending \? \(\s*<p[^>]+>Loading Account Settings<\/p>/);
+  assert.match(source, /const loadRequest = loadRequestScopeRef\.current\.begin\(\)/);
+  assert.match(source, /if \(loadRequest === null\) return;/);
+  assert.match(source, /loadRequestScopeRef\.current\.isCurrent\(loadRequest\)/);
+  assert.match(source, /const mutation = loadRequestScopeRef\.current\.beginMutation\(\)/);
+  assert.match(source, /loadRequestScopeRef\.current\.isMutationCurrent\(mutation\)/);
+  assert.match(source, /setPreferences\(authoritativePreferences\);\s*applyGameSettings\(authoritativePreferences\)/);
+});
+
+test('same-account settings reads accept only the newest request generation', () => {
+  const requests = createLatestRequestScope();
+  const olderCloudRead = requests.begin();
+  const newerStorageRefresh = requests.begin();
+  assert.equal(requests.isCurrent(olderCloudRead), false);
+  assert.equal(requests.isCurrent(newerStorageRefresh), true);
+  requests.invalidate();
+  assert.equal(requests.isCurrent(newerStorageRefresh), false);
+});
+
+test('settings mutations invalidate older reads and reject storage refreshes until the visible save commits', () => {
+  const requests = createLatestRequestScope();
+  const olderCloudRead = requests.begin();
+  const save = requests.beginMutation();
+  assert.equal(requests.isCurrent(olderCloudRead), false,
+    'an older cloud response cannot replace the optimistic saved value');
+  assert.equal(requests.begin(), null,
+    'a storage refresh cannot enter while the save owns the visible settings state');
+  assert.equal(requests.beginMutation(), null,
+    'a second save cannot replace the mutation that owns the visible settings state');
+  assert.equal(requests.isMutationCurrent(save), true);
+  assert.equal(requests.endMutation(save), true);
+  const postSaveRefresh = requests.begin();
+  assert.equal(requests.isCurrent(postSaveRefresh), true);
+});
+
+test('account-owned progress pages gate the committed render across every identity transition', () => {
+  assert.equal(shouldGateAccountOwnedRender({ loading: true, resolvedIdentity: 'a', loadedIdentity: 'a' }), true);
+  assert.equal(shouldGateAccountOwnedRender({ resolvedIdentity: 'b', loadedIdentity: 'a' }), true);
+  assert.equal(shouldGateAccountOwnedRender({ resolvedIdentity: null, loadedIdentity: 'a' }), true);
+  assert.equal(shouldGateAccountOwnedRender({ resolvedIdentity: 'b', loadedIdentity: 'b' }), false);
+  assert.equal(shouldGateAccountOwnedRender({ resolvedIdentity: null, loadedIdentity: null }), false);
+
+  for (const file of ['pages/hub/trivia/achievements.js', 'pages/hub/trivia/settings.js']) {
+    const source = read(file);
+    assert.match(source, /accountBoundaryPending = shouldGateAccountOwnedRender\(\{/);
+  }
+  const achievements = read('pages/hub/trivia/achievements.js');
+  assert.match(achievements, /const renderLoading = isLoading \|\| accountBoundaryPending/);
+  assert.match(achievements, /\{renderLoading \? <p[^>]+>Loading Authoritative Achievements<\/p>/);
+});
+
+test('every native settings toggle has a unique accessible name', () => {
+  const source = read('pages/hub/trivia/settings.js');
+  assert.match(source, /<input id=\{id\} type="checkbox" aria-label=\{label\}/);
+  const labels = [...source.matchAll(/<NativeToggle\s+id="[^"]+"\s+label="([^"]+)"/g)].map(match => match[1]);
+  assert.deepEqual(labels, [
+    'Timer Visibility',
+    'Question Hints',
+    'Sound Effects',
+    'Haptic Vibration',
+    'Screen Shake',
+    'Reduced Motion',
+    'High Contrast',
+    'Larger Text',
+  ]);
+  assert.equal(new Set(labels).size, labels.length);
+});
+
 test('achievements consume only the authoritative contract and gate diamonds on complete receipts', () => {
   const source = read('pages/hub/trivia/achievements.js');
   assert.match(source, /\/api\/trivia\/achievements/);
@@ -143,6 +234,34 @@ test('achievements consume only the authoritative contract and gate diamonds on 
   assert.match(source, /loadedUserId\.current !== user\.id/);
   assert.match(source, /hasAuthoritativeRead\.current = false/);
   assert.doesNotMatch(source, /computeTriviaStats|isUnlocked|sumAchievementRewards|trivia_achievements_seen|localStorage|confetti/);
+});
+
+test('achievement reads and claims cannot commit across an account boundary', () => {
+  const source = read('pages/hub/trivia/achievements.js');
+  assert.match(source, /createAccountOperationScope/);
+  assert.match(source, /accountOperationScopeRef\.current\.transition\(resolvedAccountId\)/);
+  assert.match(source, /const operationScope = accountOperationScopeRef\.current\.capture\(\)/);
+  assert.match(source, /operationScope\.identity !== user\.id/);
+  assert.match(source, /const isCurrent = \(\) => accountOperationScopeRef\.current\.isCurrent\(operationScope\)/);
+  assert.match(source, /readResponse\(await authedFetch\('\/api\/trivia\/achievements', \{[\s\S]*?\}\)\);\s*if \(!isCurrent\(\)\) return;/);
+  assert.match(source, /catch \(error\) \{\s*if \(!isCurrent\(\)\) return;[\s\S]*?Claim Failed/);
+  assert.match(source, /const readRequest = requestScopeRef\.current\.begin\(\)/);
+  assert.match(source, /requestScopeRef\.current\.isCurrent\(readRequest\)/);
+  assert.match(source, /const mutation = requestScopeRef\.current\.beginMutation\(\)/);
+  assert.match(source, /requestScopeRef\.current\.isMutationCurrent\(mutation\)/);
+  assert.match(source, /requestScopeRef\.current\.endMutation\(mutation\)/);
+});
+
+test('an achievement claim prevents an older refresh from replacing its canonical receipt', () => {
+  const requests = createLatestRequestScope();
+  let visibleState = 'eligible';
+  const delayedRefresh = requests.begin();
+  const claim = requests.beginMutation();
+  visibleState = 'credited';
+  if (requests.isCurrent(delayedRefresh)) visibleState = 'eligible';
+  assert.equal(visibleState, 'credited');
+  assert.equal(requests.begin(), null, 'focus refresh is blocked until claim response is applied');
+  assert.equal(requests.endMutation(claim), true);
 });
 
 test('all four progress destinations wire their own responsive art key', () => {

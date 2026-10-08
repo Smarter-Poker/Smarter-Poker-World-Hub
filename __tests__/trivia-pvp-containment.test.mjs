@@ -830,7 +830,7 @@ test('settlement delegates decision, credits and close to one locked atomic RPC'
 });
 
 test('session submission delegates deadline enforcement to the locked award transaction', () => {
-    const awardCall = sessionSubmitRoute.indexOf("sb.rpc('award_trivia_run_v4'");
+    const awardCall = sessionSubmitRoute.indexOf("sb.rpc('award_trivia_run_v5'");
     assert.ok(awardCall >= 0);
     assert.doesNotMatch(sessionSubmitRoute, /\.update\(\{ status: 'expired' \}\)/,
         'an app-side check/write pair can race the award transaction');
