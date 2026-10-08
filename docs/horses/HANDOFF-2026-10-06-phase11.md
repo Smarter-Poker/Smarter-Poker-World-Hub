@@ -174,3 +174,19 @@ targeted lint and whitespace checks passed. Full Stable Admin contract evidence
 for unchanged inputs remains the preceding 1,136-test pass. Source, protected
 checks, hosted SSR/footer credentials, Vercel production identity and genuine
 production certificate still require direct delivery evidence.
+
+
+Resumption receipt: canonical policies reread at 2026-10-08T14:22:04.477Z;
+version 2.9 and all five hashes above unchanged. Repository/publishing/storage
+references and checkpoint reread. Candidate 89629c662 passed ordinary pre-push
+and is remotely preserved. Generated PR #2228 was reused and its description
+updated with concrete repair evidence. Exact-head required gate run 37791581240
+failed only the roster privacy law's obsolete POST-body settings-read matcher.
+The matcher now requires the exact authorized GET and rejects the old POST body;
+server-only table and route permission assertions remain. Hosted footer run
+37791580823 is still building and is not yet passing evidence.
+
+An independent full-catalogue visual/overflow audit retained sanitized local
+fixtures at 1440x900 and 375x812: all 28 panels passed real navigation, settled
+loading, no document/body overflow and no page/chunk errors; 56 screenshots
+archived. These are fixture rendering evidence, not genuine production data.

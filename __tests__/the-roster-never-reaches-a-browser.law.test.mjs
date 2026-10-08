@@ -172,7 +172,8 @@ test('the console reads the engine settings through the operator route', () => {
   const files = browserFiles().map(rel);
   assert.ok(files.includes('src/components/horses/SettingsPanel.jsx'), 'the import walk reaches the settings panel');
   for (const file of ['pages/horses/index.js', 'src/components/horses/SettingsPanel.jsx']) {
-    assert.match(stripComments(read(file)), /action: 'read_settings'/, file);
+    assert.match(stripComments(read(file)), /authFetch\('\/api\/horses\/stable-admin\?action=read_settings'\)/, file);
+    assert.doesNotMatch(stripComments(read(file)), /body:\s*\{\s*action:\s*'read_settings'/, file);
   }
   const route = stripComments(read('pages/api/horses/stable-admin.js'));
   assert.match(route, /read_settings: PERMISSIONS\.CONSOLE_READ/);
