@@ -134,6 +134,14 @@ jobs:
           tail -100 /tmp/footer-next-server.log || true
           exit 1
 
+      - name: Verify Stable Admin tab and nested navigation
+        if: ${{ !cancelled() && steps.production_server_ready.outcome == 'success' }}
+        run: npx playwright test e2e/025-horses-console-phase9.spec.ts --project=chromium --project=mobile-chrome --no-deps --workers=1
+        env:
+          CI: true
+          PLAYWRIGHT_BASE_URL: http://127.0.0.1:${{ steps.port.outputs.port }}
+          NEXT_PUBLIC_BASE_URL: http://127.0.0.1:${{ steps.port.outputs.port }}
+
       # Trivia owns the new release evidence in this shared production-build
       # job. Run it as soon as the server is ready so unrelated World/footer
       # failures cannot skip or delay the scoped Phase 11 certification.

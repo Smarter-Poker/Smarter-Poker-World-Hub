@@ -120,3 +120,57 @@ Configured GitHub access and production certificate secret/variable names are
 available; no values were extracted. Full build, integration, required hosted
 checks, protected merge, Vercel READY/health, genuine certificate, full surface
 audit and final protected documentation remain pending.
+
+
+Integrated qualification: protected main `3cb65ec97` was merged without
+conflicts. Candidate `4aab96d53c4ba9644c8702522c6403b87084768c` passed all 1,136
+maintained Stable Admin tests and 27 isolated documentation/footer/certificate
+contracts. Earlier 52 focused footer/CSP/state checks remain valid for unchanged
+source. Normal hooks were restored through the maintained `npm run prepare`;
+the initial local commit was amended through those hooks before submission.
+
+All required prebuild/build-script suites passed. The first output-directory
+link exposed Node realpath dependency lookup outside the checkout; a link to
+this task's own node_modules in its build-storage parent repaired that lookup.
+The failed Next build stage and bundle check then passed: 507/507 static pages,
+30 explicit panel chunks, /horses initial JavaScript 58,057 bytes (gzip 19,491),
+total initial JavaScript 373,125 bytes (gzip 117,663). Build logs retained in
+the owned task folder. Created build volume UUID:
+`5CEDF70B-29DB-4F91-A181-4B91DFCF6D55`, currently device disk7s1.
+
+Local Phase 9 browser suite passed all 12 desktop/mobile checks with isolated
+fixtures and real built documents/chunks. All 28 tabs were visited. Footer
+Chromium/WebKit passed 50/52 tests, including all geometry, hydration, scroll,
+controls and serving-scheme CSP checks. Both remaining failures are the same
+SSR home-games read returning 500 in this local server without production
+database credentials. The route inventory count assertion passed; an initial
+suspicion of inventory drift was incorrect. No credentials were extracted and
+no assertion was weakened. Exact-head hosted footer proof with its configured
+secrets remains required. The genuine production certificate remains pending.
+
+An additional maintained nested-navigation case covers the 47 registered
+Fleet, Players, Integrity, HG, Economy, Platform and Club Arena sections. Its
+first desktop failure was a test expectation: canonical Overview omits the
+section parameter. The test now normalizes that documented default and scrolls
+top-level tabs into view before real clicks; corrected results pending.
+
+
+Final local mobile qualification: the old max-width:768px `.nav` rule centered
+the non-shrinking 3,511px tablist. At 375px, Fleet Command's rectangle started
+at x=-1,423px with scrollLeft=0, outside the reachable left scroll range. A real
+click reproduced the timeout; the sanitized fixture screenshot is retained in
+the evidence archive. The later mobile scroll-strip rule now explicitly uses
+justify-content:flex-start. No forced click or timeout extension supplies the
+fix. The rebuilt PWA production output and bundle budget passed. The full final
+Phase 9 browser suite passed 14/14 without retries, including every top-level
+tab and all 47 registered nested navigation sections at 1440x900 and 375x812
+with reduced motion. The earlier mobile attempts were interrupted as obsolete
+and are not counted as passes.
+
+The existing Global Footer E2E production-build workflow now runs that same
+console suite in Chromium desktop/mobile before its other independent gates.
+Focused architecture/footer contracts passed 26/26 after this wiring change;
+targeted lint and whitespace checks passed. Full Stable Admin contract evidence
+for unchanged inputs remains the preceding 1,136-test pass. Source, protected
+checks, hosted SSR/footer credentials, Vercel production identity and genuine
+production certificate still require direct delivery evidence.
