@@ -34,14 +34,34 @@ export function originFrom(req) {
 export function toSeoSeries(raw) {
   if (!raw || typeof raw !== 'object' || raw.id === undefined || raw.id === null) return null;
   const s = (x) => (typeof x === 'string' && x.trim() ? x.trim() : null);
+  const publicText = (x) => {
+    const value = s(x);
+    return value && !/^(unknown|various|unnamed|n\/?a|tbd|tba|none|null|undefined|-+)$/i.test(value)
+      ? value
+      : null;
+  };
   const n = (x) => (typeof x === 'number' && Number.isFinite(x) ? x : null);
+  // Some scraped parent rows omit their venue even though every child event
+  // records it. Use that source evidence only when the nonempty values agree;
+  // a multi-venue tour must not inherit an arbitrary stop as its location.
+  const unanimousEventText = (field) => {
+    const values = new Map();
+    for (const event of Array.isArray(raw.events) ? raw.events : []) {
+      const value = publicText(event?.[field]);
+      if (value) values.set(value.toLocaleLowerCase('en-US'), value);
+    }
+    return values.size === 1 ? values.values().next().value : null;
+  };
+  const venueName = publicText(raw.venue_name) || publicText(raw.venue) || unanimousEventText('venue_name');
+  const city = publicText(raw.city) || unanimousEventText('city');
+  const state = publicText(raw.state) || unanimousEventText('state');
   return {
     id: String(raw.id),
     name: s(raw.name),
-    venueName: s(raw.venue_name) || s(raw.venue),
-    city: s(raw.city),
-    state: s(raw.state),
-    location: s(raw.location),
+    venueName,
+    city,
+    state,
+    location: publicText(raw.location) || [city, state].filter(Boolean).join(', ') || null,
     startDate: s(raw.start_date),
     endDate: s(raw.end_date),
     mainEventBuyin: n(raw.main_event_buyin),

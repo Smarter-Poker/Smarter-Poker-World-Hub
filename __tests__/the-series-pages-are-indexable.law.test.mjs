@@ -59,7 +59,7 @@ test('the series page renders its head on the server, in every branch, with no p
   assert.ok(!src.includes('title="Poker Series Details"'), 'the placeholder title is gone');
   assert.ok(!src.includes(PLACEHOLDER), 'the placeholder description is gone');
   // The loading branch and the not-found branch both render the shared head.
-  const loading = src.indexOf('if (loading || !id) {');
+  const loading = src.indexOf('if (loading || !id || (error && isPublicSeries(seoSeries))) {');
   const notFound = src.indexOf('if (error || !series) {');
   assert.ok(loading > -1 && notFound > -1, 'the page keeps its loading and not-found branches');
   assert.ok(
@@ -73,6 +73,10 @@ test('the series page renders its head on the server, in every branch, with no p
   assert.match(src, /res\.statusCode = 503/);
   assert.match(src, /'Retry-After', '120'/);
   assert.match(src, /noindex=\{true\}/, 'a series with nothing to index stays out of the index');
+  assert.match(src, /error && isPublicSeries\(seoSeries\)/, 'a transient browser API error keeps the server-rendered page');
+  assert.match(src, /Published Series Facts And Schedule Remain Available Above/);
+  assert.match(src, /<SeriesHead series=\{seoSeries \|\| toSeoSeries\(series\)\} \/>/, 'client hydration preserves the server canonical');
+  assert.match(src, /\.from\('poker_series'\)[\s\S]*?\.eq\('series_uid', series\.seriesUid\)[\s\S]*?\.order\('id', \{ ascending: true \}\)/, 'same-table duplicate records use the sitemap primary');
 });
 
 test('a served series gets its own title, fitting description and self canonical', () => {
@@ -114,6 +118,36 @@ test('props are JSON-safe and a series with nothing to index is refused', () => 
   assert.equal(toSeoSeries({ name: 'no id' }), null);
   assert.equal(isPublicSeries(toSeoSeries({ id: 9, name: '   ' })), false);
   assert.equal(isPublicSeries(null), false);
+});
+
+test('missing parent venue metadata is recovered only from unanimous event evidence', () => {
+  const atOneVenue = toSeoSeries({
+    ...RAW,
+    venue_name: null,
+    venue: null,
+    city: null,
+    state: null,
+    events: [
+      { event_name: 'Event 1', venue_name: 'TCH Social', city: 'Irving', state: 'TX' },
+      { event_name: 'Event 2', venue_name: 'TCH Social', city: 'Irving', state: 'TX' },
+    ],
+  });
+  assert.equal(atOneVenue.venueName, 'TCH Social');
+  assert.equal(atOneVenue.city, 'Irving');
+  assert.equal(atOneVenue.state, 'TX');
+  assert.match(seriesTitle(atOneVenue), /At Irving/);
+  assert.match(seriesDescription(atOneVenue), /TCH Social in Irving, TX/);
+
+  const multipleVenues = toSeoSeries({
+    ...RAW,
+    venue_name: null,
+    venue: null,
+    events: [
+      { event_name: 'Event 1', venue_name: 'TCH Social' },
+      { event_name: 'Event 2', venue_name: 'Texas Card House' },
+    ],
+  });
+  assert.equal(multipleVenues.venueName, null, 'a multi-venue tour does not inherit an arbitrary venue');
 });
 
 test('formatRange reads the API date shapes and refuses anything else', () => {

@@ -19,8 +19,14 @@ import {
   seriesPlace,
   seriesSchema,
   seriesTitle,
+  toSeoSeries,
 } from '../../../src/lib/poker-near-me/seriesSeo.mjs';
-import { isPokerSeriesRouteId, tournamentSeriesIdFromPointerUid } from '../../../src/lib/poker-near-me/seriesRouteIdentity.mjs';
+import {
+  isPokerSeriesRouteId,
+  isServableSeriesParentEvidence,
+  toPokerSeriesRouteId,
+  tournamentSeriesIdFromPointerUid,
+} from '../../../src/lib/poker-near-me/seriesRouteIdentity.mjs';
 import Link from 'next/link';
 import { useState, useEffect, Fragment, useRef, useCallback } from 'react';
 import useSWR from 'swr';
@@ -302,15 +308,33 @@ async function primarySeriesRouteId(series) {
     const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
     if (!url || !key) return null;
     const { createClient } = await import('@supabase/supabase-js');
-    const { data } = await createClient(url, key)
+    const supabase = createClient(url, key);
+    const { data } = await supabase
       .from('tournament_series')
       .select('id, is_suppressed')
       .eq('series_uid', series.seriesUid)
       .limit(1)
       .maybeSingle();
-    if (!data || data.is_suppressed === true) return null;
-    const id = Number(data.id);
-    return Number.isSafeInteger(id) && id > 0 ? String(id) : null;
+    if (data && data.is_suppressed !== true) {
+      const id = Number(data.id);
+      if (Number.isSafeInteger(id) && id > 0) return String(id);
+    }
+
+    // The sitemap also collapses duplicate poker_series rows by uid. Keep
+    // their page canonical in step with that rule, choosing the lowest
+    // servable source id when no tournament_series parent owns the uid.
+    const { data: pokerSeries } = await supabase
+      .from('poker_series')
+      .select('id, is_suppressed, data_quality, source_url, scrape_url, scrape_html_hash, scrape_timestamp, scrape_batch_id')
+      .eq('series_uid', series.seriesUid)
+      .or('is_suppressed.is.null,is_suppressed.eq.false')
+      .in('data_quality', ['scraped_verified', 'scraped_inferred', 'manual_research'])
+      .order('id', { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    if (!pokerSeries || !isServableSeriesParentEvidence(pokerSeries)) return null;
+    const routeId = toPokerSeriesRouteId(pokerSeries.id);
+    return routeId === null ? null : String(routeId);
   } catch (e) {
     console.warn('[series] primary route lookup failed:', e?.message || e);
     return null;
@@ -733,7 +757,7 @@ export default function SeriesDetailPage({ seoSeries = null }) {
   };
 
   // Loading state (also show while router hasn't provided id yet)
-  if (loading || !id) {
+  if (loading || !id || (error && isPublicSeries(seoSeries))) {
     return (
       <>
         <SeriesHead series={seoSeries} />
@@ -752,11 +776,16 @@ export default function SeriesDetailPage({ seoSeries = null }) {
               nothing is waiting, and the summary above already carries the
               schedule, so saying it is still loading contradicts the page it
               sits in (AEO phase 3, 2026-09-19). */}
-          {hasMounted && (
+          {hasMounted && !error && (
             <div className="loading-container">
               <div className="loading-spinner" />
               <p className="loading-text">Loading Series Details...</p>
             </div>
+          )}
+          {hasMounted && error && (
+            <p className="loading-text" role="status">
+              Some Interactive Series Details Are Temporarily Unavailable. The Published Series Facts And Schedule Remain Available Above.
+            </p>
           )}
         </main>
         <style suppressHydrationWarning dangerouslySetInnerHTML={{ __html: styles }} />
@@ -856,12 +885,7 @@ export default function SeriesDetailPage({ seoSeries = null }) {
 
   return (
     <>
-      <SEOHead
-        title={series.name}
-        description={series.name + ' - ' + formatDateRange(series.start_date, series.end_date) + ' at ' + (venueName || location.city)}
-        ogImage={series.logo_url || seoSeries?.logoUrl || null}
-        canonical={`/hub/series/${id}`}
-      />
+      <SeriesHead series={seoSeries || toSeoSeries(series)} />
       <UniversalHeader 
         pageDepth={2} 
         onMenuClick={() => setMenuOpen(true)}
