@@ -83,7 +83,7 @@ export default function WelcomePackageNudge({ phoneVerified }) {
                         <span style={styles.sub}>Verify Your Phone For A 30-Day VIP Card + 500 Diamonds</span>
                     </span>
                 </button>
-                <button type="button" onClick={dismiss} className="sp-icon-btn" style={styles.close} aria-label="Not now">
+                <button type="button" onClick={dismiss} style={styles.close} aria-label="Not Now">
                     <X size={16} strokeWidth={2.25} aria-hidden="true" />
                 </button>
             </div>
@@ -100,7 +100,8 @@ const styles = {
         top: '54px',
         left: '12px',
         right: '12px',
-        zIndex: 99998,
+        // Below HamburgerMenu (10099/10100) so an open menu is never covered.
+        zIndex: 9000,
         display: 'flex',
         justifyContent: 'center',
         pointerEvents: 'none',
@@ -148,6 +149,8 @@ const styles = {
     sub: { fontSize: '11px', color: 'rgba(230, 241, 255, 0.72)', lineHeight: 1.25 },
     close: {
         width: '44px',
+        minHeight: 0,
+        flexShrink: 0,
         background: 'transparent',
         border: 'none',
         borderLeft: '1px solid rgba(255, 255, 255, 0.08)',

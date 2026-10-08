@@ -87,10 +87,10 @@ test.describe('Auth — Signup Page', () => {
     await page.goto('/auth/signup');
     await page.waitForLoadState('domcontentloaded');
 
-    await expect(page.locator('input[type="email"]')).toBeVisible();
-    // Signup has TWO password inputs (password + confirm). `.first()` avoids
-    // Playwright's strict-mode violation which fails on multi-match.
-    await expect(page.locator('input[type="password"]').first()).toBeVisible();
+    // The page renders the form twice (painted desktop card + phone layout,
+    // 2026-10-08) and CSS shows one per viewport, so match the visible one.
+    await expect(page.locator('input[type="email"]:visible')).toBeVisible();
+    await expect(page.locator('input[type="password"]:visible')).toBeVisible();
   });
 });
 

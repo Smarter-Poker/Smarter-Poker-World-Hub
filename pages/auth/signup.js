@@ -814,7 +814,7 @@ export default function SignUpPage() {
 
                 {/* Date of Birth */}
                 <div className="auth-field-group">
-                  <label className="auth-label">Date Of Birth <span style={{ color: "#00d4ff", fontSize: "9px", textTransform: "none" }}>(Must Be 18+)</span></label>
+                  <label className="auth-label">Date Of Birth <span className="auth-label-hint" style={{ color: "#00d4ff", fontSize: "9px", textTransform: "none" }}>(Must Be 18+)</span></label>
                   <div className="auth-field-row">
                     <select
                       className="auth-input-styled"
@@ -883,7 +883,7 @@ export default function SignUpPage() {
 
                 {/* Poker Alias */}
                 <div className="auth-field-group">
-                  <label className="auth-label">Poker Alias <span style={{ color: "#00d4ff", fontSize: "9px", textTransform: "none" }}>(You Can Change This Later)</span></label>
+                  <label className="auth-label">Poker Alias <span className="auth-label-hint" style={{ color: "#00d4ff", fontSize: "9px", textTransform: "none" }}>(You Can Change This Later)</span></label>
                   <input
                     type="text"
                     className="auth-input-styled"
@@ -907,7 +907,7 @@ export default function SignUpPage() {
 
                 {/* Promo Code */}
                 <div className="auth-field-group">
-                  <label className="auth-label">Promo Or Referral Code <span style={{ color: "#00d4ff", fontSize: "9px", textTransform: "none" }}>(Optional)</span></label>
+                  <label className="auth-label">Promo Or Referral Code <span className="auth-label-hint" style={{ color: "#00d4ff", fontSize: "9px", textTransform: "none" }}>(Optional)</span></label>
                   <input
                     type="text"
                     className="auth-input-styled"
@@ -1388,7 +1388,10 @@ export default function SignUpPage() {
             }
             .sp-signup-phone .auth-input-styled::placeholder { color: rgba(255, 255, 255, 0.3); }
             .sp-signup-phone select.auth-input-styled { appearance: auto !important; cursor: pointer; }
-            .sp-signup-phone input[type="checkbox"] { opacity: 1; }
+            .sp-signup-phone.dynamic-auth-form input[type="checkbox"] { opacity: 1; }
+            .sp-signup-phone input[type="checkbox"]:focus-visible { outline: 2px solid #00c6ff; outline-offset: 2px; }
+            .sp-signup-phone .auth-label-hint { font-size: 12px !important; }
+            .sp-signup-phone .auth-field-row select.auth-input-styled { min-width: 0; padding: 0 8px !important; }
           ` }} />
 
           {/* Art header: the top 34% of the painted card (logo, Create Account,
@@ -1397,13 +1400,13 @@ export default function SignUpPage() {
               sits at rows 113-126 of a 166px header on a 390px phone (68-76%),
               Facebook at 86-89%; each hotspot is 24px tall, centred on its
               button, and they do not overlap. */}
-          <div style={phoneStyles.art} aria-hidden="false">
+          <div style={phoneStyles.art}>
             <button
               type="button"
               onClick={() => router.push('/')}
               title="Back"
               aria-label="Back"
-              style={{ ...phoneStyles.hotspot, top: '9%', left: '3%', width: '11%', height: '10%' }}
+              style={{ ...phoneStyles.hotspot, top: '0%', left: '0%', width: '17%', height: '22%' }}
             />
             <button
               type="button"
@@ -1424,14 +1427,7 @@ export default function SignUpPage() {
             <div style={phoneStyles.artFade} />
           </div>
 
-          <form onSubmit={handleSignUp} style={phoneStyles.panel} noValidate={false}>
-            {error && (
-              <div role="alert" style={phoneStyles.error}>
-                {error}
-                {errorDetail && <div style={phoneStyles.errorDetail}>{errorDetail}</div>}
-              </div>
-            )}
-
+          <form onSubmit={handleSignUp} style={phoneStyles.panel}>
             {signupFields}
 
             <label style={phoneStyles.termsRow}>
@@ -1446,6 +1442,15 @@ export default function SignUpPage() {
                 I Confirm That I Am <strong>18 Years Of Age Or Older</strong> And Agree To The Platform's Terms.
               </span>
             </label>
+
+            {/* The error sits directly above the button the player just
+                tapped; at the top of a ten-field form it was off-screen. */}
+            {error && (
+              <div role="alert" style={phoneStyles.error}>
+                {error}
+                {errorDetail && <div style={phoneStyles.errorDetail}>{errorDetail}</div>}
+              </div>
+            )}
 
             <button
               type="submit"
@@ -2386,7 +2391,7 @@ const phoneStyles = {
     left: 0,
     right: 0,
     bottom: 0,
-    height: '18%',
+    height: '10%',
     background: 'linear-gradient(180deg, rgba(7, 10, 18, 0) 0%, #070a12 100%)',
     pointerEvents: 'none',
   },
@@ -2426,6 +2431,7 @@ const phoneStyles = {
   checkbox: {
     width: '20px',
     height: '20px',
+    opacity: 1,
     margin: '1px 0 0',
     accentColor: '#0072ff',
     flexShrink: 0,
@@ -2447,14 +2453,14 @@ const phoneStyles = {
     marginTop: '4px',
   },
   ssl: { textAlign: 'center', fontSize: '12px', color: 'rgba(230, 241, 255, 0.55)' },
-  legal: { textAlign: 'center', fontSize: '11px', color: 'rgba(230, 241, 255, 0.5)', lineHeight: 1.6 },
+  legal: { textAlign: 'center', fontSize: '12px', color: 'rgba(230, 241, 255, 0.5)', lineHeight: 1.6 },
   legalLink: {
     background: 'none',
     border: 'none',
     padding: 0,
     minHeight: 0,
     color: '#00c6ff',
-    fontSize: '11px',
+    fontSize: '12px',
     textDecoration: 'underline',
     cursor: 'pointer',
     fontFamily: 'inherit',

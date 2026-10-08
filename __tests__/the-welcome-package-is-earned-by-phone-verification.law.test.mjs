@@ -59,7 +59,8 @@ test('the latest handle_new_user migration grants no VIP card and mints nothing 
 test('ensure-profile grants the package only behind a server-side phone verification', () => {
   assert.match(ensureProfile, /is_vip: !isDisposable && phoneVerified,/, 'VIP on INSERT requires phoneVerified');
   assert.match(ensureProfile, /if \(!phoneVerified\) return;/, 'grantWelcomeDiamonds refuses an unverified profile');
-  assert.match(ensureProfile, /existingProfile\.phone_verified === true && Number\(existingProfile\.diamonds \?\? 0\) === 0/, 'the later-login re-ask is gated on phone_verified');
+  assert.match(ensureProfile, /if \(existingProfile\.phone_verified === true\) \{/, 'the later-login re-ask is gated on phone_verified');
+  assert.match(ensureProfile, /welcomePackageAlreadyPaid\(getSupabase\(\), user_id, existingProfile\.created_at\)/, 'the re-ask uses the same "already paid" answer as verify-otp');
   assert.match(ensureProfile, /\.select\('[^']*phone_verified[^']*'\)/, 'the EXISTS read selects phone_verified (it did not, once)');
   assert.match(ensureProfile, /withheldReason: 'phone_not_verified', claimAt: '\/hub\/verify-phone'/, 'the EXISTS response says the package is waiting on a phone');
   assert.match(ensureProfile, /const socialProfileCompleted = hadExplicitAlias;/, 'the social gate no longer requires a phone');
@@ -72,6 +73,12 @@ test('verify-otp is signed-in only, pays once, and honours the throwaway-inbox r
   assert.match(verifyOtp, /p_op_id: `signup:\$\{authedUserId\}`/, 'the 500 is minted under the same idempotent op id handle_new_user used');
   assert.match(verifyOtp, /return res\.status\(503\)\.json\(\{\s*\n\s*success: false,/, 'a failed profile write fails closed');
   assert.match(verifyOtp, /packageStatus,/, 'the response reports what happened to the package');
+  assert.match(verifyOtp, /welcomePackageAlreadyPaid\(supabase, authedUserId, profile\.created_at\)/, 'older accounts paid by seed:, signup_bonus or at birth are never paid a second 500');
+  assert.match(verifyOtp, /\.select\('id'\);/, 'the profile write must return its row; zero rows is not "verified"');
+  const lib = read('src/lib/welcomePackage.js');
+  assert.match(lib, /WELCOME_PACKAGE_EARNED_SINCE = '2026-10-08T04:09:38Z'/, 'the cutover is the migration install time');
+  assert.match(lib, /`seed:\$\{userId\}`/, 'seed: register rows count as paid');
+  assert.match(lib, /transaction_type\.eq\.signup_bonus/, 'signup_bonus rows count as paid');
 });
 
 test('the welcome screen exists, is a hub page with the global header, and is reachable from the menu', () => {
