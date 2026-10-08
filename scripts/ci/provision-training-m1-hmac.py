@@ -211,8 +211,12 @@ def load_config(env: Mapping[str, str]) -> Config:
 
 def _targets(value: Any) -> tuple[str, ...]:
     if isinstance(value, str):
+        if value not in {"production", "preview", "development"}:
+            raise ProvisionError("Vercel environment target is unsupported")
         return (value,)
     if isinstance(value, list) and all(isinstance(item, str) for item in value):
+        if not value or len(value) != len(set(value)) or any(item not in {"production", "preview", "development"} for item in value):
+            raise ProvisionError("Vercel environment targets are empty, duplicate or unsupported")
         return tuple(sorted(value))
     raise ProvisionError("Vercel environment target metadata is invalid")
 
@@ -238,7 +242,7 @@ def select_target(entries: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
     ids = [entry["id"] for entry in safe_entries]
     if len(ids) != len(set(ids)):
         raise ProvisionError("Vercel environment metadata contains duplicate IDs")
-    matches = [entry for entry in safe_entries if entry["key"] == SECRET_KEY]
+    matches = [entry for entry in safe_entries if entry["key"] == SECRET_KEY and "production" in entry["target"]]
     if len(matches) != 1:
         raise ProvisionError("expected exactly one M1 HMAC environment entry")
     target = matches[0]
@@ -248,6 +252,68 @@ def select_target(entries: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
         raise ProvisionError("M1 HMAC environment entry must not be branch-scoped")
     if target["type"].lower() != "sensitive":
         raise ProvisionError("M1 HMAC environment entry must be Vercel Sensitive")
+    return target
+
+
+def scope_plan(entries: Sequence[Mapping[str, Any]], recovery_receipt: Mapping[str, Any] | None = None) -> tuple[str, dict[str, Any]]:
+    safe = [safe_metadata(entry) for entry in entries]
+    if len({item["id"] for item in safe}) != len(safe):
+        raise ProvisionError("duplicate Vercel environment IDs")
+    matches = [item for item in safe if item["key"] == SECRET_KEY]
+    if not matches or any(item["gitBranch"] is not None or item["type"].lower() not in {"sensitive", "encrypted"} for item in matches):
+        raise ProvisionError("Training M1 scope is missing, branch-scoped or unsafe")
+    # No ambiguous overlap even outside Production; preserve every other entry.
+    seen: set[str] = set()
+    for item in matches:
+        if seen.intersection(item["target"]):
+            raise ProvisionError("Training M1 environment scopes overlap")
+        seen.update(item["target"])
+    production = [item for item in matches if "production" in item["target"]]
+    if len(production) == 1:
+        target = production[0]
+        if target["target"] == ["production"]:
+            return "rotate", select_target(entries)
+        if len(matches) != 1:
+            raise ProvisionError("shared Training M1 entry is not unique")
+        return "separate", target
+    # A disappeared Production scope never authorizes guessed creation. Only
+    # a retained, verified pre-POST separation receipt can continue that action.
+    if recovery_receipt is None or recovery_receipt.get("status") != "scope_separated" or recovery_receipt.get("mutationStep") != "scope_patch_verified":
+        raise ProvisionError("missing Production requires a verified scope-separation receipt")
+    if recovery_receipt.get("operation") != "phase6_m1_hmac_rotation" or recovery_receipt.get("projectId") != PROJECT_ID or recovery_receipt.get("teamId") != TEAM_ID:
+        raise ProvisionError("scope recovery receipt has another operation identity")
+    if recovery_receipt.get("scopeSeparatedInventory") != safe or not HEX_RE.fullmatch(str(recovery_receipt.get("ciphertext", {}).get("sha256", ""))):
+        raise ProvisionError("scope recovery metadata differs from the durable receipt")
+    original = recovery_receipt.get("scopeBefore")
+    if not isinstance(original, Mapping) or original.get("key") != SECRET_KEY or "production" not in original.get("target", []) or len(original.get("target", [])) < 2:
+        raise ProvisionError("scope recovery original shared entry is invalid")
+    matching = [item for item in matches if item["id"] == original.get("id")]
+    if len(matching) != 1 or matching[0]["target"] != sorted(t for t in original["target"] if t != "production"):
+        raise ProvisionError("scope recovery retained entry is not the verified remainder")
+    return "create_after_verified_separation", matching[0]
+
+
+def verify_separation(before: Sequence[Mapping[str, Any]], after: Sequence[Mapping[str, Any]], target: Mapping[str, Any]) -> None:
+    old = {item["id"]: item for item in map(safe_metadata, before)}
+    new = {item["id"]: item for item in map(safe_metadata, after)}
+    if old.keys() != new.keys():
+        raise ProvisionError("inventory changed during scope separation")
+    for identity, item in old.items():
+        if identity != target["id"]:
+            if item != new[identity]:
+                raise ProvisionError("unrelated entry changed during scope separation")
+        else:
+            expected = {**item, "target": sorted(t for t in item["target"] if t != "production"), "updatedAt": new[identity]["updatedAt"]}
+            if new[identity] != expected or _timestamp(new[identity]["updatedAt"]) <= _timestamp(item["updatedAt"]):
+                raise ProvisionError("scope separation metadata was not verified")
+
+
+def verify_creation(before: Sequence[Mapping[str, Any]], after: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
+    old = {item["id"]: item for item in map(safe_metadata, before)}
+    new = {item["id"]: item for item in map(safe_metadata, after)}
+    target = select_target(after)
+    if target["id"] in old or set(new) != set(old) | {target["id"]} or any(new.get(identity) != item for identity, item in old.items()):
+        raise ProvisionError("Production creation changed existing inventory")
     return target
 
 
@@ -319,7 +385,7 @@ class VercelApi:
         try:
             response = self._opener(req, timeout=20)
             with response:
-                if method == "PATCH":
+                if method in ("PATCH", "POST"):
                     while response.read(64 * 1024):
                         pass
                     return None
@@ -360,6 +426,20 @@ class VercelApi:
         finally:
             for index in range(len(body)):
                 body[index] = 0
+
+    def patch_targets(self, entry_id: str, targets: Sequence[str]) -> None:
+        query = parse.urlencode({"teamId": self._team_id})
+        self._request("PATCH", f"/v9/projects/{self._project_id}/env/{parse.quote(entry_id, safe='')}?{query}", payload={"target": list(targets)})
+
+    def create_production(self, secret_value: bytearray) -> None:
+        # No upsert: an overlapping scope must cause a provider refusal.
+        query = parse.urlencode({"teamId": self._team_id})
+        body = bytearray(b'{"key":"SOLVER_WORKER_M1_HMAC_SECRET","type":"sensitive","target":["production"],"value":"')
+        body.extend(secret_value); body.extend(b'"}')
+        try:
+            self._request("POST", f"/v10/projects/{self._project_id}/env?{query}", raw_body=body)
+        finally:
+            for index in range(len(body)): body[index] = 0
 
 
 def _new_secret(random_bytes: Callable[[int], bytes]) -> bytearray:
@@ -425,6 +505,15 @@ def _write_exclusive(path: Path, payload: bytes) -> None:
         os.fsync(descriptor)
     finally:
         os.close(descriptor)
+    _sync_directory(path.parent)
+
+
+def _sync_directory(path: Path) -> None:
+    descriptor = os.open(path, os.O_RDONLY)
+    try:
+        os.fsync(descriptor)
+    finally:
+        os.close(descriptor)
 
 
 def _write_receipt(path: Path, receipt: Mapping[str, Any]) -> None:
@@ -437,6 +526,7 @@ def _write_receipt(path: Path, receipt: Mapping[str, Any]) -> None:
     finally:
         os.close(descriptor)
     os.replace(temporary, path)
+    _sync_directory(path.parent)
 
 
 def _mark_ciphertext_created(output_path: Path | None) -> None:
@@ -457,9 +547,10 @@ def provision(
     random_bytes: Callable[[int], bytes] = secrets.token_bytes,
     encryptor: Callable[[bytes, bytearray], bytes] = encrypt_oaep_sha256,
     now: Callable[[], str] = _utc_now,
+    recovery_receipt: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     before_entries = api.list_entries()
-    before_target = select_target(before_entries)
+    mode, before_target = scope_plan(before_entries, recovery_receipt)
     if config.artifact_dir.exists():
         raise ProvisionError("artifact directory already exists")
 
@@ -486,6 +577,8 @@ def provision(
             "projectId": config.project_id,
             "teamId": config.team_id,
             "environmentVariableId": before_target["id"],
+            "scopeMode": mode,
+            "scopeBefore": before_target,
             "publicKeySpkiSha256": config.public_key_fingerprint,
             "ciphertext": {
                 "filename": CIPHERTEXT_FILENAME,
@@ -502,12 +595,30 @@ def provision(
         _mark_ciphertext_created(config.github_output)
 
         try:
+            if mode == "separate":
+                receipt["status"] = "scope_patch_in_progress"
+                receipt["mutationStep"] = "scope_patch_attempted"
+                _write_receipt(receipt_path, receipt)
+                api.patch_targets(before_target["id"], [target for target in before_target["target"] if target != "production"])
+                separated = api.list_entries()
+                verify_separation(before_entries, separated, before_target)
+                receipt["status"] = "scope_separated"
+                receipt["mutationStep"] = "scope_patch_verified"
+                receipt["scopeSeparatedInventory"] = list(map(safe_metadata, separated))
+                _write_receipt(receipt_path, receipt)
+                before_entries = separated
+            if mode == "create_after_verified_separation":
+                receipt["recoveryRequestId"] = recovery_receipt["requestId"]
             receipt["status"] = "mutation_in_progress"
+            receipt["mutationStep"] = "production_patch_attempted" if mode == "rotate" else "production_create_attempted"
             receipt["recordedAt"] = now()
             _write_receipt(receipt_path, receipt)
-            api.patch_value(before_target["id"], secret)
+            if mode == "rotate":
+                api.patch_value(before_target["id"], secret)
+            else:
+                api.create_production(secret)
             after_entries = api.list_entries()
-            after_target = verify_after(before_entries, after_entries)
+            after_target = verify_after(before_entries, after_entries) if mode == "rotate" else verify_creation(before_entries, after_entries)
         except Exception:
             receipt["status"] = "mutation_unverified"
             receipt["recordedAt"] = now()
@@ -515,6 +626,7 @@ def provision(
             raise
 
         receipt["status"] = "complete"
+        receipt["environmentVariableId"] = after_target["id"]
         receipt["updatedAtAfter"] = after_target["updatedAt"]
         receipt["recordedAt"] = now()
         _write_receipt(receipt_path, receipt)

@@ -274,42 +274,40 @@ test('the footer gate waits for product facts instead of WebKit lifecycle accide
         /page\.goto\(route, \{ waitUntil: 'commit', timeout: 15_000 \}\)/,
         'route navigation must stop waiting once the production document commits',
     );
-    assert.match(
+    assert.doesNotMatch(
         app,
-        /document\.documentElement\.dataset\.worldHubHydrated = 'true'/,
-        'the app must expose a route-independent marker after React effects run',
-    );
-    assert.match(
-        spec,
-        /document\.documentElement\.dataset\.worldHubHydrated === 'true'[\s\S]*?timeout: 15_000/,
-        'the gate must prove client hydration before checking feature-owned state',
-    );
-    assert.match(
-        spec,
-        /const visitHydrated = async/,
-        'client readiness must have an explicit helper separate from the SSR inventory visit',
+        /worldHubHydrated/,
+        'production code must not carry a test-only hydration marker',
     );
     assert.doesNotMatch(
-        spec.slice(spec.indexOf('const visit = async'), spec.indexOf('const visitHydrated = async')),
-        /worldHubHydrated/,
-        'the 203-route server-render inventory must not wait for client effects it does not assert',
+        spec,
+        /visitHydrated|worldHubHydrated/,
+        'WebKit readiness must not depend on an unrelated global effect',
     );
-    for (const route of ['/hub/diamond-store', '/hub/training', 'entry.route', '/hub/video-library']) {
-        assert.match(
-            spec,
-            new RegExp(`visitHydrated\\(page, ${route === 'entry.route' ? route.replace('.', '\\.') : `'${route}'`}\\)`),
-            `${route} interaction proof must wait for the root hydration marker`,
-        );
-    }
+    assert.match(
+        spec,
+        /const visitReady = async[\s\S]*?attempt < 2[\s\S]*?timeout: 7_500/,
+        'product-owned readiness must retry within a bounded per-test budget',
+    );
+    assert.match(
+        spec,
+        /visitReady\(page, '\/hub\/diamond-store'[\s\S]*?data-world-copy-policy[\s\S]*?marketplace/,
+        'the marketplace test must wait for its own client-owned copy-policy effect',
+    );
+    assert.match(
+        spec,
+        /page\.goto\(definition!\.artwork\.src[\s\S]*?waitUntil: 'load'[\s\S]*?approved artwork was not served[\s\S]*?toBe\(200\)/,
+        'the artwork matrix must prove and warm the exact asset in the browser before rendering it',
+    );
     assert.match(
         spec,
         /for \(let attempt = 0; attempt < 3; attempt \+= 1\)/,
-        'hydration recovery must remain bounded to three attempts',
+        'navigation recovery must remain bounded to three attempts',
     );
     assert.match(
         spec,
         /page\.goto\('about:blank', \{ waitUntil: 'commit', timeout: 5_000 \}\)/,
-        'a failed hydration attempt must discard the stranded document before retrying',
+        'a failed navigation attempt must discard the stranded document before retrying',
     );
     assert.match(
         spec,
@@ -328,7 +326,7 @@ test('the footer gate waits for product facts instead of WebKit lifecycle accide
     );
     assert.match(
         spec,
-        /data-footer-scroll-armed[\s\S]*?timeout: 15_000/,
+        /visitReady\(page, '\/hub\/training'[\s\S]*?data-footer-scroll-armed[\s\S]*?value: 'true'/,
         'hydration-owned scroll behavior must receive its explicit bounded readiness wait',
     );
 });

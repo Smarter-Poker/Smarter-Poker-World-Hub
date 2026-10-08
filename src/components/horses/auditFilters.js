@@ -30,7 +30,10 @@ export const AUDIT_FILTER_GROUPS = [
   { id: 'hg', label: 'Home Game Moderation', prefixes: ['hg.'] },
   { id: 'ticket', label: 'Support Tickets', prefixes: ['ticket.', 'set_ticket_status'] },
   { id: 'horse', label: 'Horse Records', prefixes: ['horse.', 'horses.', 'content_author'] },
-  { id: 'settings', label: 'Engine Settings', prefixes: ['settings.', 'content_settings'] },
+  // `postmode.` is the Settings tab's other switch (Phase 10): a flip of a
+  // horse_post_modes row files postmode.set, and an operator asking "what
+  // changed on the engine settings" means those too.
+  { id: 'settings', label: 'Engine Settings', prefixes: ['settings.', 'postmode.', 'content_settings'] },
   { id: 'promo', label: 'Promo Codes', prefixes: ['promo.', 'promo_code'] },
   { id: 'review', label: 'Review Moderation', prefixes: ['review.', 'restore_reviewer'] },
   { id: 'avatar', label: 'Avatar Generation', prefixes: ['avatar.'] },

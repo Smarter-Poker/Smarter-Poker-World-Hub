@@ -12,6 +12,10 @@ import {
   HAND_COLUMNS,
   JOB_NAME,
   PAINT_WAIT_MS,
+  SETTLE_WAIT_MS,
+  SETTLE_POLL_MS,
+  CLIP_TIMEZONE,
+  CLIP_FONT_FILE,
   RENDER_DEADLINE_MS,
   SEEK_TIMEOUT_MS,
   STILL_PARAMS,
@@ -47,12 +51,16 @@ test('the constants are the C6 numbers', () => {
   assert.equal(RENDER_DEADLINE_MS, 270000);
   assert.equal(SEEK_TIMEOUT_MS, 10000);
   assert.equal(PAINT_WAIT_MS, 2000);
+  assert.equal(SETTLE_WAIT_MS, 4000);
+  assert.equal(SETTLE_POLL_MS, 50);
+  assert.equal(CLIP_TIMEZONE, 'America/Chicago');
+  assert.equal(CLIP_FONT_FILE, 'NotoSansSymbols2-HandClip.ttf');
   assert.deepEqual({ ...STILL_PARAMS, clip: { ...STILL_PARAMS.clip } }, {
     format: 'jpeg',
     quality: 85,
     captureBeyondViewport: false,
     optimizeForSpeed: true,
-    clip: { x: 0, y: 0, width: 1280, height: 720, scale: 1 },
+    clip: { x: 0, y: 0, width: 1080, height: 1350, scale: 1 },
   });
   for (const col of ['id', 'table_id', 'hand_number', 'game_variant', 'small_blind', 'big_blind', 'players', 'actions', 'board',
     'community_cards', 'community_cards2', 'community_cards3', 'rit_boards', 'pots', 'pot_size', 'winners', 'winners_by_board',
@@ -78,11 +86,14 @@ test('buildClipPayload is the C1 shape: facts fill the hero cards only when the 
     style: 'felt-720p',
     heroId: HERO,
     row: HAND,
+    tableName: null,
     privateHoleCards: { [HERO]: facts.hole_cards },
     discardedCards: {},
     minMs: 15000,
     maxMs: 40000,
   });
+  assert.equal(buildClipPayload(HAND, facts, null, JOB, { name: 'Main Street' }).tableName, 'Main Street', 'the table name rides along for the share header');
+  assert.equal(buildClipPayload(HAND, facts, null, JOB, { name: '  ' }).tableName, null, 'a blank name is no name');
   const withRowCards = buildClipPayload({ ...HAND, hole_cards: { [HERO]: ['As', 'Ks'] } }, facts, null, JOB);
   assert.deepEqual(withRowCards.privateHoleCards, {}, 'the row already carries the hero cards');
   const draw = buildClipPayload(HAND, null, { discarded_card: { rank: '7', suit: 'd' }, seat_number: 1 }, JOB);
@@ -135,7 +146,7 @@ test('ffmpegArgsFor and posterArgsFor are exactly the C6 step 5 commands', () =>
   assert.deepEqual(ffmpegArgsFor('/tmp/j/frames.txt', '/tmp/j/clip.mp4'), [
     '-y', '-hide_banner', '-loglevel', 'error',
     '-f', 'concat', '-safe', '0', '-i', '/tmp/j/frames.txt',
-    '-vf', 'scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(ow-iw)/2:(oh-ih)/2:color=black',
+    '-vf', 'scale=1080:1350:force_original_aspect_ratio=decrease,pad=1080:1350:(ow-iw)/2:(oh-ih)/2:color=black',
     '-r', '30',
     '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '22',
     '-pix_fmt', 'yuv420p',
@@ -241,6 +252,18 @@ test('the browser scripts inject the payload, read the state and the step, read 
     assert.equal(rafs, 2);
     globalThis.requestAnimationFrame = () => {};
     assert.equal(await pageScripts.painted(5), false, 'a compositor that never paints does not hang the camera');
+
+    // settled: a card squeeze still running on the felt is waited out, or the timeout.
+    let animating = true;
+    globalThis.document = {
+      querySelector: (sel) => (sel === '[data-rs-animating="on"]' && animating ? {} : null),
+    };
+    setTimeout(() => { animating = false; }, 30);
+    assert.equal(await pageScripts.settled(1000, 5), true, 'the still waits for the new card to turn face up');
+    assert.equal(animating, false);
+    assert.equal(await pageScripts.settled(1000, 5), true, 'nothing running resolves at once');
+    animating = true;
+    assert.equal(await pageScripts.settled(20, 5), false, 'a squeeze that never ends does not hang the camera');
 
     for (const fn of Object.values(pageScripts)) {
       assert.doesNotMatch(fn.toString(), /\b(require|import|process)\b/, 'self-contained for puppeteer serialisation');

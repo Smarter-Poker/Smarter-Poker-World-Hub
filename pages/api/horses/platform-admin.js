@@ -92,26 +92,52 @@ async function paged(db, table, columns, orderColumn, page, filters) {
   return runPaged(query, page);
 }
 
+/**
+ * HUMANS SEATED IS READ FROM THE LIVE TABLES, NOT FROM ENGINE MEMORY (launch
+ * audit, 2026-10-07). This number used to be the engine's public
+ * `/health.humansSeatedTotal`, which only covers tables the engine has loaded
+ * (a waiting table with a person at it and no engine counted zero) and counts
+ * a seat row whose status already says `left` while its `left_at` is still
+ * open. The database is the authority: a person (not a horse) holding a chip
+ * stack in an open, non-terminal, non-left seat at a running, active or
+ * waiting table. Observers never hold a seat row, so they never count. Horses
+ * are identified here as data only (CLAUDE.md 10.5); the occupied-seat total
+ * beside it still counts every player.
+ */
+export function humansSeatedQuery(db) {
+  return db.from('table_seats')
+    .select('id, profiles!fk_table_seats_user_id_profiles!inner(is_horse), tables!inner(status)', { count: 'exact', head: true })
+    .is('left_at', null)
+    .is('terminal_closed_at', null)
+    .neq('status', 'left')
+    .gt('stack', 0)
+    .not('profiles.is_horse', 'is', true)
+    .in('tables.status', LIVE_TABLE_STATUSES);
+}
+
 async function sectionEngine(db, requestId) {
   const c = sourceCollector({ requestId, route: 'horses.platform-admin' });
-  const [engine, tableCount, seatCount] = await Promise.all([
+  const [engine, tableCount, seatCount, humanCount] = await Promise.all([
     readEngineHealth({ url: ENGINE_HEALTH_URL }),
     db.from('tables').select('id', { count: 'exact', head: true }).in('status', LIVE_TABLE_STATUSES),
     db.from('table_seats').select('id', { count: 'exact', head: true }).is('left_at', null),
+    humansSeatedQuery(db),
   ]);
   c.check('tables', tableCount);
   c.check('table_seats', seatCount);
+  c.check('table_seats_humans', humanCount);
   if (!engine.ok) c.fail('engine_health', new Error('Engine health unavailable'));
 
   const databaseActiveTables = tableCount.error ? null : tableCount.count;
   const occupiedSeats = seatCount.error ? null : seatCount.count;
+  const humansSeated = humanCount.error || typeof humanCount.count !== 'number' ? null : humanCount.count;
   const divergence = floorDivergence(databaseActiveTables, engine.ok ? engine.activeTables : null);
   const estimated = estimatedPlatformHandsPerSecond(engine.activeTables, engine.avgHandsPerHour);
   return {
     ...meta('engine', c),
     state: !engine.ok && tableCount.error && seatCount.error
       ? 'engine.unknown'
-      : !engine.ok || tableCount.error || seatCount.error
+      : !engine.ok || tableCount.error || seatCount.error || humanCount.error
         ? 'engine.partial'
         : engine.state === 'degraded' ? 'engine.degraded'
         : divergence?.diverged ? 'engine.diverged' : 'engine.ready',
@@ -130,7 +156,6 @@ async function sectionEngine(db, requestId) {
       averageActionLatencyMs: engine.averageActionProcessingMs ?? null,
       actionLatencySample: engine.actionProcessingSamples ?? null,
       actionLatencyViolations: engine.actionProcessingThresholdViolations ?? null,
-      humansSeated: engine.humansSeatedTotal ?? null,
       cache: engine.cached === true ? 'Cached' : engine.cached === false ? 'Fresh' : null,
       stale: null,
       maintenance: engine.maintenance ?? null,
@@ -144,6 +169,8 @@ async function sectionEngine(db, requestId) {
       activeTables: databaseActiveTables,
       occupiedSeats,
       includesHorses: true,
+      humansSeated,
+      humansSeatedSource: 'public.table_seats: open, non-left, non-terminal seats with chips at live tables, people only',
     },
     divergence,
     unavailableContractFields: [

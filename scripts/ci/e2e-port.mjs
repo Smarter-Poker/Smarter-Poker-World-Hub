@@ -27,6 +27,10 @@
  */
 
 const SLOTS = 300; // 300 * 10 = a 3000-port window above the base
+// curl rejects SIP/SIPS ports even when a local HTTP server is listening.
+// The runner-derived window previously handed one GitHub runner port 5060,
+// making its readiness probe fail before any browser contract ran.
+const CURL_RESERVED_PORTS = new Set([5060]);
 
 export function portFor(base) {
   // CA_E2E_PORT_OFFSET is the explicit override, for anyone who needs to pin
@@ -34,7 +38,13 @@ export function portFor(base) {
   const explicit = process.env.CA_E2E_PORT_OFFSET;
   if (explicit !== undefined && explicit !== '') {
     const n = Number(explicit);
-    if (Number.isFinite(n)) return base + Math.trunc(n) * 10;
+    if (Number.isFinite(n)) {
+      const port = base + Math.trunc(n) * 10;
+      if (CURL_RESERVED_PORTS.has(port)) {
+        throw new RangeError(`E2E port ${port} is reserved and cannot be probed with curl`);
+      }
+      return port;
+    }
   }
 
   // Only self-hosted runners share a host. A GitHub-hosted runner has the VM
@@ -48,7 +58,9 @@ export function portFor(base) {
     h ^= id.charCodeAt(i);
     h = Math.imul(h, 16777619) >>> 0;
   }
-  return base + (h % SLOTS) * 10;
+  const safeOffsets = Array.from({ length: SLOTS }, (_, offset) => offset)
+    .filter((offset) => !CURL_RESERVED_PORTS.has(base + offset * 10));
+  return base + safeOffsets[h % safeOffsets.length] * 10;
 }
 
 // CLI: `node scripts/ci/e2e-port.mjs 4173`

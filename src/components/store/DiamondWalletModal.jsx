@@ -881,7 +881,11 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
         if (res.ok) {
           const data = await res.json();
           const txns = data.transactions || [];
-          const bal = data.balance ?? 0;
+          /* The route sends `balance: null` with `profileRead: false` when it
+             could not read the profile (10.86). An unread balance never
+             overwrites the figure on screen, and is never cached as 0. */
+          const balanceRead = typeof data.balance === 'number' && Number.isFinite(data.balance);
+          const bal = balanceRead ? data.balance : null;
           const tot = data.total || 0;
           if (data.counts) setServerCounts(data.counts);
           // Only a first page carries it; never clear it on a Load More.
@@ -920,15 +924,17 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
               return [...prev, ...txns.filter((t) => !seen.has(t.id))];
             });
           }
-          setBalance(bal);
+          if (balanceRead) {
+            setBalance(bal);
+            setVipExpirationDate(data.vip_expiration_date || null);
+            setIsVipStatus(data.is_vip || false);
+            setVipTier(data.vip_tier || null);
+          }
           setTotal(tot);
-          setVipExpirationDate(data.vip_expiration_date || null);
-          setIsVipStatus(data.is_vip || false);
-          setVipTier(data.vip_tier || null);
           /* ── PERF-2: Cache first page for instant re-opens ──
              Only the unfiltered first page: a cached page of "Refunds" would be
              restored on the next open under whatever tab was then selected. */
-          if (offset === 0 && filterRef.current === 'all') {
+          if (offset === 0 && filterRef.current === 'all' && balanceRead) {
             setCachedTransactions(
               user.id,
               txns,
@@ -1462,7 +1468,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
         const config = txConfigFor(txType);
         return (
           config.label.toLowerCase().includes(q) ||
-          (tx.player_line || tx.description || '').toLowerCase().includes(q) ||
+          (tx.player_line || '').toLowerCase().includes(q) ||
           String(tx.amount).includes(q)
         );
       });
@@ -2635,7 +2641,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                             {/* Phase 6: the ledger's own player line, never
                                 the raw description an operator wrote. */}
                             <WalletDescription
-                              value={tx.player_line || tx.description || config.label}
+                              value={tx.player_line || config.label}
                             />
                           </div>
                         </div>

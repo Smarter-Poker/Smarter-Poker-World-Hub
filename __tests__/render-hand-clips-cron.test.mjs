@@ -17,6 +17,8 @@ import {
   CLIP_PAGE_URL,
   JOB_NAME,
   PAINT_WAIT_MS,
+  SETTLE_WAIT_MS,
+  SETTLE_POLL_MS,
   STILL_PARAMS,
   pageScripts,
   publicUrlFor,
@@ -103,7 +105,7 @@ function makeBrowser({
   stepFollows = true,
   shotData = (i) => Buffer.from(`still-${i}`).toString('base64'),
 } = {}) {
-  const rec = { injected: null, gotos: [], cdp: [], shots: 0, seeks: [], paints: [], closed: 0, stateReads: 0, stepReads: 0 };
+  const rec = { injected: null, gotos: [], cdp: [], shots: 0, seeks: [], settles: [], paints: [], order: [], closed: 0, stateReads: 0, stepReads: 0 };
   let reads = 0;
   let step = 0;
   const session = {
@@ -111,6 +113,7 @@ function makeBrowser({
     send: async (method, params) => {
       rec.cdp.push({ method, params });
       if (method === 'Page.captureScreenshot') {
+        rec.order.push('shot');
         const n = rec.shots;
         rec.shots += 1;
         return { data: shotData(n) };
@@ -122,7 +125,7 @@ function makeBrowser({
     evaluateOnNewDocument: async (fn, payload) => { rec.injected = { fn, payload }; },
     goto: async (url, opts) => { rec.gotos.push({ url, opts }); },
     createCDPSession: async () => session,
-    evaluate: async (fn, arg) => {
+    evaluate: async (fn, arg, arg2) => {
       if (fn === pageScripts.clipState) {
         rec.stateReads += 1;
         const state = states[Math.min(reads, states.length - 1)];
@@ -136,7 +139,8 @@ function makeBrowser({
         return seekReturns;
       }
       if (fn === pageScripts.clipStep) { rec.stepReads += 1; return step; }
-      if (fn === pageScripts.painted) { rec.paints.push(arg); return true; }
+      if (fn === pageScripts.settled) { rec.settles.push([arg, arg2]); rec.order.push('settled'); return true; }
+      if (fn === pageScripts.painted) { rec.paints.push(arg); rec.order.push('painted'); return true; }
       throw new Error('unexpected page script');
     },
   };
@@ -144,7 +148,7 @@ function makeBrowser({
   return { rec, launch: async () => browser };
 }
 
-function makeDeps({ supa, browser, hand = makeHand(), facts = null, discard = null, ffmpegFails = false, uploadFails = false, nowStepMs = 10, tmpRoot } = {}) {
+function makeDeps({ supa, browser, hand = makeHand(), facts = null, discard = null, table = { name: 'Main Street' }, ffmpegFails = false, uploadFails = false, nowStepMs = 10, tmpRoot } = {}) {
   const rec = { ffmpeg: [], uploads: [], logs: [], listFiles: [] };
   let t = 1700000000000;
   const deps = {
@@ -163,7 +167,7 @@ function makeDeps({ supa, browser, hand = makeHand(), facts = null, discard = nu
       rec.uploads.push({ path, bytes: body.length, contentType });
       if (uploadFails) throw new Error('upload 503: storage unavailable');
     },
-    fetchHand: async () => ({ hand, facts, discard }),
+    fetchHand: async () => ({ hand, facts, discard, table }),
     now: () => { t += nowStepMs; return t; },
     sleep: async () => {},
     log: (msg) => rec.logs.push(String(msg)),
@@ -249,15 +253,17 @@ test('a user job: claim, inject C1, goto, one still per frame at its beat, encod
   // C1 injected before any script, then the live clip page.
   assert.equal(browser.rec.injected.fn, pageScripts.inject);
   assert.deepEqual(browser.rec.injected.payload, {
-    v: 1, style: 'felt-720p', heroId: HERO, row: makeHand(),
+    v: 1, style: 'felt-720p', heroId: HERO, row: makeHand(), tableName: 'Main Street',
     privateHoleCards: { [HERO]: [{ rank: 'A', suit: 's' }] }, discardedCards: {}, minMs: 15000, maxMs: 40000,
   });
   assert.deepEqual(browser.rec.gotos, [{ url: CLIP_PAGE_URL, opts: { waitUntil: 'networkidle2', timeout: 60000 } }]);
 
-  // The camera: every frame sought in order, each commit confirmed and painted, one still each.
+  // The camera: every frame sought in order, each commit confirmed, the card squeeze settled, painted, one still each.
   assert.deepEqual(browser.rec.seeks, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
   assert.ok(browser.rec.stepReads >= 11, 'data-clip-step is read for every frame');
+  assert.deepEqual(browser.rec.settles, new Array(11).fill([SETTLE_WAIT_MS, SETTLE_POLL_MS]));
   assert.deepEqual(browser.rec.paints, new Array(11).fill(PAINT_WAIT_MS));
+  assert.deepEqual(browser.rec.order, new Array(11).fill(['settled', 'painted', 'shot']).flat(), 'a still is taken only after the squeeze settled and a paint');
   assert.equal(browser.rec.shots, 11);
   assert.ok(browser.rec.cdp.every((c) => c.method === 'Page.captureScreenshot'), 'no screencast, nothing else over CDP');
   assert.deepEqual(browser.rec.cdp[0].params, { ...STILL_PARAMS });
@@ -293,8 +299,8 @@ test('a user job: claim, inject C1, goto, one still per frame at its beat, encod
     p_video_url: publicUrlFor(SUPABASE_URL, paths.video),
     p_poster_url: publicUrlFor(SUPABASE_URL, paths.poster),
     p_duration_ms: PLANNED_MS,
-    p_width: 1280,
-    p_height: 720,
+    p_width: 1080,
+    p_height: 1350,
     p_frames: 11,
     p_render_ms: finishes[0].args.p_render_ms,
     p_error: null,
@@ -560,10 +566,21 @@ test('the real handler module exports the Vercel config and a wrapped default ha
   assert.equal(typeof mod.default, 'function');
   const source = readFileSync(new URL('../pages/api/cron/render-hand-clips.js', import.meta.url), 'utf8');
   assert.match(source, /withCronHealth\('render-hand-clips', createHandler\(\)\)/);
-  assert.match(source, /executablePath: await chromium\.executablePath\(\)/);
+  assert.match(source, /executablePath,\s*args: chromium\.args/);
   assert.match(source, /args: chromium\.args/);
   assert.match(source, /headless: chromium\.headless === undefined \? 'shell' : chromium\.headless/, 'the v153 package ships chrome-headless-shell');
   assert.match(source, /defaultViewport: \{ width: CLIP_WIDTH, height: CLIP_HEIGHT, deviceScaleFactor: 1 \}/);
+  // The replayer's transport glyphs and the owner's clock: the font folder is copied into
+  // the fontconfig directory after executablePath() and before launch; the browser runs on CLIP_TIMEZONE.
+  assert.match(source, /const executablePath = await chromium\.executablePath\(\);\s*await provisionClipFonts\(\);\s*return puppeteer\.launch\(/);
+  // The source path is a literal the build tracer can read to the end: a process.cwd() prefix with an
+  // unknown rest became a wildcard on the project root and killed both production builds of #2215.
+  assert.match(source, /const CLIP_FONT_SOURCE = join\(process\.cwd\(\), 'fonts', 'hand-clip', 'NotoSansSymbols2-HandClip\.ttf'\);/);
+  assert.match(source, /await readFile\(CLIP_FONT_SOURCE\)/);
+  const fontCode = source.split('\n').filter((l) => !/^\s*(\/\/|\*|\/\*)/.test(l)).join('\n');
+  assert.doesNotMatch(fontCode, /readdir\(|copyFile\(|\.\.\.CLIP_FONT/, 'no folder read, no spread path, nothing the tracer turns into a wildcard');
+  assert.match(source, /process\.env\.FONTCONFIG_PATH \|\| join\(tmpdir\(\), 'fonts'\)/);
+  assert.match(source, /env: \{ \.\.\.process\.env, TZ: CLIP_TIMEZONE \}/);
   // @sparticuz/chromium 153 is an ES module: the real adapter must load it with
   // a dynamic import (a require() of an ESM external fails the webpack build).
   assert.match(source, /await import\('@sparticuz\/chromium'\)/);
@@ -573,6 +590,7 @@ test('the real handler module exports the Vercel config and a wrapped default ha
   assert.match(source, /'x-upsert': 'true'/);
   assert.match(source, /\.from\('ca_hand_facts'\)[\s\S]*\.eq\('hand_id', job\.hand_id\)[\s\S]*\.eq\('user_id', job\.author_id\)/);
   assert.match(source, /\.from\('hand_discards'\)[\s\S]*\.eq\('table_id', hand\.table_id\)[\s\S]*\.eq\('hand_number', hand\.hand_number\)[\s\S]*\.eq\('user_id', job\.author_id\)/);
+  assert.match(source, /\.from\('tables'\)[\s\S]*\.select\('name'\)[\s\S]*\.eq\('id', hand\.table_id\)/, 'the table name is read for the share header');
   const code = source.split('\n').filter((l) => !/^\s*(\/\/|\*|\/\*)/.test(l)).join('\n');
   assert.doesNotMatch(code, /setInterval|retry|is_horse/i, 'no watcher, no retry, no horse filter in the code');
   const lib = readFileSync(new URL('../src/lib/server/handClipRender.js', import.meta.url), 'utf8');

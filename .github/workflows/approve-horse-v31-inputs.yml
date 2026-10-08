@@ -1,0 +1,69 @@
+name: Approve Horse V31 Inputs
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        type: choice
+        options: [qualify, approve]
+        default: qualify
+        required: true
+      expected_commit:
+        type: string
+        required: true
+      approval_path:
+        description: Committed .agent/v31-inputs/name.json; required for approve
+        type: string
+      approval_sha256:
+        type: string
+      bundle_checksum:
+        type: string
+      bundle_id:
+        type: string
+permissions:
+  contents: read
+concurrency:
+  group: horse-v31-input-approval
+  cancel-in-progress: false
+jobs:
+  approve:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Bind execution to protected main
+        env:
+          EXPECTED_COMMIT: ${{ inputs.expected_commit }}
+        run: |
+          test "$GITHUB_REF" = refs/heads/main
+          test "$GITHUB_RUN_ATTEMPT" = 1
+          test "$EXPECTED_COMMIT" = "$GITHUB_SHA"
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.12.0
+      - name: Verify approval guards
+        run: node --test __tests__/horse-v31-input-approval.test.mjs
+      - name: Qualify existing identity or approve exact immutable inputs
+        env:
+          EXPECTED_COMMIT: ${{ inputs.expected_commit }}
+          V31_MODE: ${{ inputs.mode }}
+          V31_APPROVAL_PATH: ${{ inputs.approval_path }}
+          V31_APPROVAL_SHA256: ${{ inputs.approval_sha256 }}
+          V31_BUNDLE_CHECKSUM: ${{ inputs.bundle_checksum }}
+          V31_BUNDLE_ID: ${{ inputs.bundle_id }}
+          V31_RECEIPT: ${{ runner.temp }}/v31-input-operation.json
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          TEST_USER_EMAIL: ${{ vars.TEST_USER_EMAIL || secrets.TEST_USER_EMAIL }}
+          TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD }}
+        run: node scripts/ci/approve-horse-v31-inputs.mjs
+      - name: Retain sanitized operation receipt
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: horse-v31-input-operation-${{ github.run_id }}
+          path: ${{ runner.temp }}/v31-input-operation.json
+          if-no-files-found: warn
+          retention-days: 7

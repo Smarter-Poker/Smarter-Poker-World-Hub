@@ -328,10 +328,22 @@ export default async function handler(req, res) {
 
           // ═══════════════════════════════════════════════════════════════
           // AUTHENTICATED PATH — persist verification, grant the 30-day VIP
-          // trial, pay the catalog's phone_verified action.
+          // trial, pay the catalog's phone_verified action, and issue the
+          // WELCOME PACKAGE.
+          //
+          // THE WELCOME PACKAGE IS PAID HERE, NOT AT SIGNUP (2026-10-07, Dan).
+          // The signup form no longer collects a phone number; a new player
+          // confirms email, logs in, and is shown /hub/verify-phone. Verifying
+          // the handset is what earns the welcome package: the 30-day VIP card
+          // (below) and the 500 welcome diamonds, issued by the Mint under the
+          // same op id handle_new_user used to mint at birth - signup:<uid> -
+          // so a player who was already granted at birth under the old flow
+          // is replayed as a no-op and never paid twice. handle_new_user and
+          // ensure-profile no longer grant either at profile creation.
           // ═══════════════════════════════════════════════════════════════
           let vipGranted      = false;
           let diamondsAwarded = 0;
+          let welcomeDiamonds = 0;
 
           try {
               const now        = new Date();
@@ -400,6 +412,33 @@ export default async function handler(req, res) {
                       console.warn('[verify-otp] Diamond award error (non-blocking):', awardErr?.message || awardErr);
                   }
 
+                  // ── Welcome package: 500 diamonds through the Mint ──────────
+                  // Idempotent on op_id signup:<uid> (replayed → already paid).
+                  // A refusal (diamond_issuance freeze) is not fatal: the profile
+                  // row now says phone_verified, and ensure-profile re-asks the
+                  // Mint for the same op id on the next login of a verified,
+                  // zero-balance player, so the grant restarts from its record.
+                  try {
+                      const { data: minted, error: mintErr } = await supabase.rpc('fn_ca_mint', {
+                          p_asset: 'diamonds',
+                          p_destination: 'player',
+                          p_target_id: authedUserId,
+                          p_amount: 500,
+                          p_reason: 'Welcome package issued on phone verification',
+                          p_op_id: `signup:${authedUserId}`,
+                          p_class: 'promotional',
+                      });
+                      if (mintErr) {
+                          console.warn('[verify-otp] welcome package mint failed:', mintErr.message);
+                      } else if (minted?.ok && !minted?.replayed) {
+                          welcomeDiamonds = 500;
+                      } else if (!minted?.ok && !minted?.replayed) {
+                          console.warn('[verify-otp] The Mint did not issue the welcome package:', minted?.reason);
+                      }
+                  } catch (mintThrow) {
+                      console.warn('[verify-otp] welcome package mint threw (non-blocking):', mintThrow?.message || mintThrow);
+                  }
+
                   // ── Audit trail for the VIP grant itself (no diamond value) ──
                   // Kept as a ledger note only; the actual 25 💎 credit is the
                   // award_diamonds_v2 row above, not this one.
@@ -432,6 +471,8 @@ export default async function handler(req, res) {
               verified: true,
               vipGranted,
               diamondsAwarded,
+              welcomeDiamonds,
+              vipDays: vipGranted ? PHONE_VIP_TRIAL_DAYS : 0,
           });
 
       } catch (error) {

@@ -44,8 +44,39 @@ export const CLIP_STYLE = 'felt-720p';
 export const CLIP_MIN_MS = 15000;
 export const CLIP_MAX_MS = 40000;
 export const END_HOLD_MS = 1500;
-export const CLIP_WIDTH = 1280;
-export const CLIP_HEIGHT = 720;
+/**
+ * THE FRAME IS THE ARENA'S HAND REPLAYER (owner, 2026-10-07). A clip is the
+ * hand replayer as Club Arena shows it on a hand by id, pixel for pixel:
+ * the 900px column with its header, felt, caption, street tabs, transport
+ * and results strip, and no footer, because the arena's replayer has none.
+ * The page is reached through the public share route (it needs no sign-in)
+ * but is fed the arena's own source (Club Arena `clipSourceFrom`, the
+ * archive's reconstruction straight from the record); a first cut cloned
+ * the share page instead, whose wire does not carry where the pot went
+ * (its last frame left the sample's winner at 119.20 where the arena
+ * shows 932.70) under a footer the arena never shows. That
+ * column is taller than it is wide, so the frame is the feed portrait
+ * (4:5) that holds it at full size with the page background around it.
+ * Nothing is scaled down and nothing is cut.
+ */
+export const CLIP_WIDTH = 1080;
+export const CLIP_HEIGHT = 1350;
+/**
+ * THE OWNER'S CLOCK (2026-10-07). The replayer prints the hand's time in
+ * the viewer's own time zone; a clip has no viewer at render time, so it
+ * prints the owner's, which is what the owner compares it against.
+ */
+export const CLIP_TIMEZONE = 'America/Chicago';
+/**
+ * THE TRANSPORT GLYPHS (2026-10-07). The replayer draws its transport
+ * buttons with text symbols (first, previous, play, pause, next) that the
+ * viewer's system font supplies. The packed Chromium ships Open Sans only,
+ * so the first full-page clip rendered five empty buttons. fonts/hand-clip
+ * holds a subset of Noto Sans Symbols 2 (OFL) that carries them, under this
+ * name; the route writes it into the fontconfig directory before the
+ * browser starts.
+ */
+export const CLIP_FONT_FILE = 'NotoSansSymbols2-HandClip.ttf';
 export const GOTO_TIMEOUT_MS = 60000;
 export const READY_TIMEOUT_MS = 30000;
 /** The page commits a sought frame (data-clip-step) within this. */
@@ -53,12 +84,21 @@ export const SEEK_TIMEOUT_MS = 10000;
 export const SEEK_POLL_MS = 50;
 /** Two animation frames are waited for after the commit, or this long. */
 export const PAINT_WAIT_MS = 2000;
+/**
+ * A card squeeze still running on the felt (a host with data-rs-animating="on")
+ * is waited out before the still, or this long. The replay profile turns a
+ * new board card face up over about a second; a still taken inside that
+ * second shows the card's back, which is what the first live clip did on
+ * the turn and the river (2026-10-07).
+ */
+export const SETTLE_WAIT_MS = 4000;
+export const SETTLE_POLL_MS = 50;
 export const RENDER_DEADLINE_MS = 270000;
 export const POLL_MS = 250;
 export const STORAGE_BUCKET = 'social-media';
 export const DEFAULT_SUPABASE_URL = 'https://kuklfnapbkmacvwxktbh.supabase.co';
 
-/** Page.captureScreenshot for one still: the 1280x720 stage, JPEG 85. */
+/** Page.captureScreenshot for one still: the 1080x1350 frame, JPEG 85. */
 export const STILL_PARAMS = Object.freeze({
   format: 'jpeg',
   quality: 85,
@@ -106,6 +146,16 @@ export const pageScripts = Object.freeze({
     return { frames: beats.length, rate: Number(h.rate), beats, holdMs, plannedMs: Number(h.plannedMs) };
   },
   seek: (index) => !!(window.__spClip && typeof window.__spClip.seek === 'function' && window.__spClip.seek(index)),
+  /** Resolves true once no card squeeze is running on the felt, false when timeoutMs passes first. */
+  settled: (timeoutMs, pollMs) => new Promise((resolve) => {
+    const until = Date.now() + timeoutMs;
+    const check = () => {
+      if (!document.querySelector('[data-rs-animating="on"]')) return resolve(true);
+      if (Date.now() >= until) return resolve(false);
+      return setTimeout(check, pollMs);
+    };
+    check();
+  }),
   /** Resolves true after two animation frames, false when timeoutMs passes first. */
   painted: (timeoutMs) => new Promise((resolve) => {
     let settled = false;
@@ -122,8 +172,12 @@ export function heroInHand(handRow, heroId) {
   return hero.length > 0 && players.some((p) => p && typeof p === 'object' && String(p.userId) === hero);
 }
 
-/** Contract C1: the payload the page reads before any render. */
-export function buildClipPayload(handRow, factsRow, discardRow, job) {
+/**
+ * Contract C1: the payload the page reads before any render. `tableName`
+ * is the table's name from `tables` (null when the row is gone), which the
+ * page prints in the share header the way the archive's share does.
+ */
+export function buildClipPayload(handRow, factsRow, discardRow, job, tableRow = null) {
   const heroId = String(job.author_id);
   const rowHole = handRow && handRow.hole_cards && typeof handRow.hole_cards === 'object'
     ? handRow.hole_cards[heroId]
@@ -140,6 +194,7 @@ export function buildClipPayload(handRow, factsRow, discardRow, job) {
     style: job.style || CLIP_STYLE,
     heroId,
     row: handRow,
+    tableName: tableRow && typeof tableRow.name === 'string' && tableRow.name.trim() ? tableRow.name : null,
     privateHoleCards,
     discardedCards,
     minMs: CLIP_MIN_MS,
@@ -247,7 +302,7 @@ async function callRpc(supa, name, args) {
  *   launch()                     -> a puppeteer-style browser (newPage, close)
  *   runFfmpeg(args)              -> resolves when ffmpeg exits 0, rejects otherwise
  *   upload(path, body, type)     -> resolves when the object is stored, rejects otherwise
- *   fetchHand(job)               -> { hand, facts, discard } from the service client
+ *   fetchHand(job)               -> { hand, facts, discard, table } from the service client
  *   now()                        -> ms since the epoch; sleep(ms) -> a promise
  */
 export async function renderClipJob(job, deps) {
@@ -350,11 +405,11 @@ export async function renderClipJob(job, deps) {
   try {
     await mkdir(work, { recursive: true });
 
-    // 2. The hand, the hero's facts row and discard row; the hero must be a player.
-    const { hand, facts, discard } = (await fetchHand(job)) || {};
+    // 2. The hand, the hero's facts row and discard row, the table's name; the hero must be a player.
+    const { hand, facts, discard, table } = (await fetchHand(job)) || {};
     if (!hand) return await fail('hand_not_found');
     if (!heroInHand(hand, job.author_id)) return await fail('hero_not_in_hand');
-    const payload = buildClipPayload(hand, facts || null, discard || null, job);
+    const payload = buildClipPayload(hand, facts || null, discard || null, job, table || null);
 
     // 3. The browser and the clip page.
     browser = await launch();
@@ -377,7 +432,7 @@ export async function renderClipJob(job, deps) {
     const guard = durationGuard(plannedMs, CLIP_MIN_MS, CLIP_MAX_MS);
     if (guard) return await fail(guard);
 
-    // 5. One still per frame: seek, the commit confirmed, a paint, a screenshot.
+    // 5. One still per frame: seek, the commit confirmed, the squeeze settled, a paint, a screenshot.
     session = await page.createCDPSession();
     for (let i = 0; i < plan.frames; i += 1) {
       if (now() >= deadlineAt) return await fail('render_deadline');
@@ -386,6 +441,7 @@ export async function renderClipJob(job, deps) {
       const committed = await waitForStep(i, SEEK_TIMEOUT_MS);
       if (committed === 'deadline') return await fail('render_deadline');
       if (committed !== 'committed') return await fail('clip_seek_timeout');
+      await page.evaluate(pageScripts.settled, SETTLE_WAIT_MS, SETTLE_POLL_MS);
       await page.evaluate(pageScripts.painted, PAINT_WAIT_MS);
       const shot = await session.send('Page.captureScreenshot', { ...STILL_PARAMS });
       const data = shot && shot.data ? String(shot.data) : '';

@@ -29,6 +29,7 @@ import './delete-account-closes-the-account.test.mjs';
  * No single deletion can hide a regression.
  */
 import './club-arena-shell-cache.test.mjs';
+import './club-arena-mint-chips-live-rate.test.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import { test } from 'node:test';
@@ -112,6 +113,10 @@ import './next-google-font-loader-patch.test.mjs';
 // service that calls it must merge the caller's patch over the stored value,
 // and a failed read or save must throw rather than look saved.
 import './page-preferences-merge-before-save.test.mjs';
+// Phase 10, 2026-10-06: the five fleet content metrics come from one database
+// function, service_role only, whose feed denominator keeps horses in it; the
+// analytics route and the Stats tab read that function and nothing else.
+import './fleet-content-metrics.test.mjs';
 import './horse-hand-reviews-panel.test.mjs';
 import './horses-console-phase1.test.mjs';
 import './horses-libs-review.test.mjs';
@@ -121,6 +126,11 @@ import './horses-libs-review.test.mjs';
 // next" in three separate documents, which is the shape of a rule that keeps
 // getting re-broken.
 import './horses-no-language-model-for-the-fleet.test.mjs';
+// Phase 10, 2026-10-06: the Settings tab offers the two switches the live
+// engine reads (the master switch and one per posting mode) and nothing that
+// steers nothing; a mode flip is an audited UPDATE of an existing row, never an
+// insert and never automatic.
+import './horses-settings-wired-to-the-worker.test.mjs';
 import './horses-operator-foundation.test.mjs';
 import './horses-phase2-client.test.mjs';
 import './horses-phase2-migration.test.mjs';
@@ -315,6 +325,8 @@ import './world-copy-policy.test.mjs';
 import './openclaw-workers-secret.test.mjs';
 // Phase 7 dispatcher entry and the puzzle migration invariants (2026-09-30).
 import './phase7-content-dispatch.test.mjs';
+// Phase 10 dispatcher entry for the Monday fleet digest (2026-10-07).
+import './fleet-weekly-digest-dispatch.test.mjs';
 // Required CHECK 8 also enforces the recovered Video worker publication boundary.
 import './openclaw-video-library-routing.test.mjs';
 import './video-source-registry-phase3.test.mjs';
@@ -362,7 +374,6 @@ import './reels-mixed-category-contract.test.mjs';
 import './reels-social-endless-continuation.test.mjs';
 import './social-feed-request-sequencing.test.mjs';
 import './user-reel-publication-recovery.test.mjs';
-import './video-clipper-storage-namespace.test.mjs';
 import './video-embed-report-adjudication.test.mjs';
 import './video-library-access-phase-9.test.mjs';
 import './video-library-club-arena-console.test.mjs';
@@ -403,10 +414,6 @@ import './owner-operational-realtime-feed-visibility.test.mjs';
 // 2026-09-04: a probe that cannot run says so where probes speak (recovery-probe
 // had been silent for a day: unconfigured, and exiting before its heartbeat).
 import './a-probe-that-cannot-run-says-so.law.test.mjs';
-// 2026-09-07. A horse's avatar is uploaded where a human's is (bucket
-// avatars, <profile uuid>/avatar.png), never under a name that says horse:
-// the storage path is in the <img src> of every seat and post.
-import './a-horse-avatar-is-uploaded-where-a-human-one-is.law.test.mjs';
 // 2026-09-04: the 3am pager. Alertmanager posts page=sms alerts to the Hub
 // route added in this commit; this suite pins the auth gate, Twilio call,
 // retry semantics, and house rules (only the six named alerts wake anyone).

@@ -6,6 +6,13 @@ import test from 'node:test';
 const ROOT = new URL('../', import.meta.url);
 const read = (path) => readFileSync(new URL(path, ROOT), 'utf8');
 
+test('the authenticated immutable input approval guards pass', () => {
+  const result = spawnSync(process.execPath, ['--test', '__tests__/horse-v31-input-approval.test.mjs'], {
+    cwd: ROOT, encoding: 'utf8', timeout: 120_000,
+  });
+  assert.equal(result.status, 0, `${result.stdout}\n${result.stderr}`);
+});
+
 test('the certified V31 solver pipeline passes its hermetic parser and contract suite', () => {
   const result = spawnSync(
     process.env.PYTHON_BIN || 'python3',
@@ -18,6 +25,20 @@ test('the certified V31 solver pipeline passes its hermetic parser and contract 
   assert.ok(Number(count[1]) >= 14, `expected at least 14 Python tests, got ${count[1]}`);
   assert.match(result.stderr, /OK/);
 });
+
+for (const suite of [
+  'scripts/horse-solver-v31/test_compile_inputs.py',
+  'scripts/ci/test-provision-horse-v31-hmac.py',
+]) {
+  test(`V31 commissioning prerequisite ${suite} passes`, () => {
+    const result = spawnSync(process.env.PYTHON_BIN || 'python3', [suite], {
+      cwd: ROOT, encoding: 'utf8', timeout: 120_000,
+    });
+    assert.equal(result.status, 0, `${result.stdout}\n${result.stderr}`);
+    assert.match(result.stderr, /Ran \d+ tests/);
+    assert.match(result.stderr, /OK/);
+  });
+}
 
 test('workers use narrow HMAC ingress and PostgreSQL-owned node seals', () => {
   const worker = read('scripts/horse-solver-v31/worker.py');
@@ -44,8 +65,9 @@ test('workers use narrow HMAC ingress and PostgreSQL-owned node seals', () => {
   assert.doesNotMatch(compactor, /mark_candidate|promote_dataset/);
   assert.match(pio, /calc_ev \{player\} \{node\}:\{action\}/);
   const rakeSetup = pio.indexOf('commands.append(f"set_rake');
-  const treeBuild = pio.indexOf('"build_tree",', rakeSetup);
-  assert.ok(rakeSetup > 0 && treeBuild > rakeSetup);
+  const treeBuild = pio.indexOf('commands.append("build_tree")');
+  const go = pio.indexOf('"go",', rakeSetup);
+  assert.ok(treeBuild > 0 && rakeSetup > treeBuild && go > rakeSetup);
   assert.match(documentation, /cannot mark a candidate or promote one/);
   assert.match(documentation, /no OpenClaw dependency/);
   assert.match(preparer, /"approved": False/);

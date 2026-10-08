@@ -1,0 +1,89 @@
+name: Provision Horse V31 HMAC
+run-name: Horse V31 HMAC ${{ inputs.request_id }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      principal:
+        description: Exact worker principal to rotate
+        required: true
+        type: choice
+        options: [M1, M2, COMPACTOR]
+      expected_commit:
+        description: Exact current protected-main commit to provision
+        required: true
+        type: string
+      request_id:
+        description: Non-secret bounded request identifier
+        required: true
+        type: string
+      confirm:
+        description: Exact one-time rotation acknowledgement
+        required: true
+        type: string
+      recipient_public_key_spki_b64:
+        description: Base64 DER SubjectPublicKeyInfo for the recipient's ephemeral RSA-4096 key
+        required: true
+        type: string
+      recipient_public_key_spki_sha256:
+        description: Lowercase SHA-256 of the exact SPKI DER bytes
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: horse-v31-hmac-provision
+  cancel-in-progress: false
+
+jobs:
+  provision:
+    name: Rotate once and seal for the recipient
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: Production – hub-vanguard
+    steps:
+      - name: Bind execution to this protected main dispatch
+        env:
+          EXPECTED_COMMIT: ${{ inputs.expected_commit }}
+        run: |
+          test "$GITHUB_REF" = refs/heads/main
+          test "$GITHUB_RUN_ATTEMPT" = 1
+          test "$EXPECTED_COMMIT" = "$GITHUB_SHA"
+
+      - name: Check out the exact protected-main revision without retained credentials
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Verify provisioning invariants before any mutation
+        run: python3 scripts/ci/test-provision-horse-v31-hmac.py
+
+      - name: Validate, rotate once, and encrypt without persisting plaintext
+        id: provision
+        env:
+          V31_PRINCIPAL: ${{ inputs.principal }}
+          EXPECTED_COMMIT: ${{ inputs.expected_commit }}
+          V31_REQUEST_ID: ${{ inputs.request_id }}
+          V31_ROTATION_CONFIRM: ${{ inputs.confirm }}
+          RECIPIENT_PUBLIC_KEY_SPKI_B64: ${{ inputs.recipient_public_key_spki_b64 }}
+          RECIPIENT_PUBLIC_KEY_SPKI_SHA256: ${{ inputs.recipient_public_key_spki_sha256 }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: python3 scripts/ci/provision-horse-v31-hmac.py
+
+      - name: Retain only ciphertext and non-secret receipt for one day
+        if: ${{ always() && steps.provision.outputs.ciphertext_created == 'true' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: horse-v31-${{ github.run_id }}
+          path: |
+            ${{ runner.temp }}/horse-v31-hmac/recipient-hmac.oaep-sha256.bin
+            ${{ runner.temp }}/horse-v31-hmac/receipt.json
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 0

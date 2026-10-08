@@ -13,11 +13,27 @@ import {
   v31IngressEnvelopeIsValid,
   v31IngressDatabaseFailureStatus,
   verifyV31IngressRequest,
+  v31FeatureContractVersion,
+  v31PolicyExportSchema,
 } from '../src/lib/horses/solverV31IngressAuth.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const ROUTE = fs.readFileSync(path.join(ROOT, 'pages/api/internal/horse-solver-v31.js'), 'utf8');
 const HEX = (char) => char.repeat(64);
+
+test('policy V4 is explicitly signed and declared; omission remains V3', () => {
+  const legacy = envelope('COMPACTOR', 'register_dataset');
+  assert.equal(v31PolicyExportSchema(legacy.provenance), 'smarter-poker.pio-policy.v3');
+  assert.equal(v31IngressEnvelopeIsValid(legacy, 'COMPACTOR'), true);
+  const upgraded = {...legacy, provenance: {...legacy.provenance, policy_export_schema: 'smarter-poker.pio-policy.v4'}};
+  assert.equal(v31IngressEnvelopeIsValid(upgraded, 'COMPACTOR'), true);
+  assert.notEqual(v31IngressBodySha256(Buffer.from(JSON.stringify(upgraded))), v31IngressBodySha256(Buffer.from(JSON.stringify(legacy))));
+  for (const invalid of [null, 'smarter-poker.pio-policy.v3', '', 4]) {
+    assert.equal(v31IngressEnvelopeIsValid({...legacy, provenance: {...legacy.provenance, policy_export_schema: invalid}}, 'COMPACTOR'), false);
+  }
+  assert.match(ROUTE, /policy_export_schema: provenance.policy_export_schema/);
+  assert.match(ROUTE, /v31PolicyExportSchema\(contract\) !== v31PolicyExportSchema\(provenance\)/);
+});
 
 function provenance() {
   return {
@@ -44,6 +60,23 @@ function envelope(principal, operation, payload = {}) {
     payload,
   };
 }
+
+test('feature contracts are explicit immutable provenance and omission is legacy only', () => {
+  const legacy = envelope('M1', 'dataset_contract');
+  assert.equal(v31FeatureContractVersion(legacy.provenance), 'rank-suit-count-v1');
+  assert.equal(v31IngressEnvelopeIsValid(legacy, 'M1'), true);
+  for (const version of ['rank-suit-count-v1', 'holdem-board-relative-v2']) {
+    const versioned = { ...legacy, provenance: { ...legacy.provenance, feature_contract_version: version } };
+    assert.equal(v31IngressEnvelopeIsValid(versioned, 'M1'), true);
+    assert.notEqual(v31IngressBodySha256(Buffer.from(JSON.stringify(versioned))), v31IngressBodySha256(Buffer.from(JSON.stringify(legacy))));
+  }
+  for (const version of [null, '', 'future-v3', 2]) {
+    const unknown = { ...legacy, provenance: { ...legacy.provenance, feature_contract_version: version } };
+    assert.equal(v31IngressEnvelopeIsValid(unknown, 'M1'), false);
+  }
+  assert.match(ROUTE, /v31FeatureContractVersion\(contract\) !== v31FeatureContractVersion\(provenance\)/);
+  assert.match(ROUTE, /feature_contract_version: provenance.feature_contract_version/);
+});
 
 test('wire bytes, timestamp, principal and body hash are all HMAC bound', () => {
   const principal = 'M1';

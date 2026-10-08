@@ -21,6 +21,7 @@ from contract import (
     ContractError,
     _json_bytes,
     load_manifest,
+    policy_export_schema,
     sha256_file,
 )
 from gateway import MAX_BODY_BYTES, GatewayClient, GatewayError, canonical_json
@@ -28,7 +29,10 @@ from pio_upi import (
     PioError,
     PioProcess,
     harvest_node,
+    complete_node_state,
+    COMBO_CARDS,
     run_self_test,
+    run_icm_activation_self_test,
     solve_scenario,
     validate_pipeline_imports,
 )
@@ -225,6 +229,26 @@ def mark_invalid(heartbeat: WorkerHeartbeat) -> None:
     heartbeat.invalid += 1
 
 
+def complete_checkpoint_matches(node: dict[str, Any], scenario: dict[str, Any], target: dict[str, Any], *, icm_model: dict[str, Any] | None = None, icm_model_checksum: str | None = None) -> bool:
+    try:
+        if node.get("complete_public_state") != complete_node_state(scenario, target, icm_model=icm_model, icm_model_checksum=icm_model_checksum):
+            return False
+        ranges = node.get("solver_ranges")
+        if not isinstance(ranges, dict) or set(ranges) != {"schema", "OOP", "IP"} or ranges["schema"] != "smarter-poker.pio-exact-node-ranges.v1":
+            return False
+        board = {target["board"][i:i+2] for i in range(0, len(target["board"]), 2)}
+        for player in ("OOP", "IP"):
+            values = ranges[player]
+            if not isinstance(values, list) or len(values) != 1326:
+                return False
+            for index, value in enumerate(values):
+                if type(value) not in (int, float) or not math.isfinite(value) or not 0 <= value <= 1 or (any(card in board for card in COMBO_CARDS[index]) and value != 0):
+                    return False
+        return True
+    except (PioError, KeyError, TypeError, ValueError):
+        return False
+
+
 def artifact_matches(
     artifact: dict[str, Any],
     manifest: ApprovedManifest,
@@ -261,6 +285,8 @@ def artifact_matches(
         and isinstance(nodes, list)
         and len(nodes) == 1
         and isinstance(node, dict)
+        and node.get("schema") == policy_export_schema(manifest.raw)
+        and (policy_export_schema(manifest.raw) != "smarter-poker.pio-policy.v4" or complete_checkpoint_matches(node, scenario, target, icm_model=manifest.icm_models.get(scenario["icm_model_id"]), icm_model_checksum=manifest.raw["icm_model_checksum"]))
         and node.get("node") == target["node"]
         and isinstance(node.get("line_proof"), dict)
         and node["line_proof"].get("manifest_checksum") == manifest.checksum
@@ -320,6 +346,8 @@ def ordered_scenarios(manifest: ApprovedManifest) -> list[dict[str, Any]]:
 def owned_targets(scenario: dict[str, Any], machine: str) -> list[dict[str, Any]]:
     """Return only the manifest targets assigned to this independent split."""
 
+    if scenario.get("purpose", "harvest") == "self_test":
+        return []
     return [target for target in scenario["targets"] if target["machine_id"] == machine]
 
 
@@ -329,6 +357,11 @@ def solver_self_test(pio: Any, manifest: ApprovedManifest) -> tuple[dict[str, An
     self_scenario = next(
         scenario for scenario in scenarios if scenario["scenario_id"] == self_test["scenario_id"]
     )
+    if any(scenario.get("objective") == "icm" and scenario.get("purpose", "harvest") == "harvest"
+           for scenario in scenarios):
+        run_icm_activation_self_test(pio)
+    # Restore the actual self-test tree last. Legacy manifests may harvest
+    # that scenario, so the private protocol fixture must never replace it.
     convergence = solve_scenario(pio, self_scenario, manifest)
     receipt = run_self_test(pio, self_scenario, self_test, convergence=convergence)
     return self_scenario, receipt
@@ -461,6 +494,9 @@ def run(args: argparse.Namespace) -> None:
                                         "source_combo_order_checksum"
                                     ],
                                     range_bundle_checksum=manifest.raw["range_bundle_checksum"],
+                                    policy_export_schema=policy_export_schema(manifest.raw),
+                                    icm_model=manifest.icm_models.get(scenario["icm_model_id"]),
+                                    icm_model_checksum=manifest.raw["icm_model_checksum"],
                                 )
                             artifact = make_artifact(manifest, args.machine, scenario, target, node)
                         except (ContractError, PioError):

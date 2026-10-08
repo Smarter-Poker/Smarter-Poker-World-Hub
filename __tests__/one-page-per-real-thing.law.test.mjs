@@ -59,7 +59,10 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { registryCodeForTour } from '../src/lib/seo/tourPageSeo.js';
 import { seriesPath, seriesSelfPath, toSeoSeries } from '../src/lib/poker-near-me/seriesSeo.mjs';
-import { tournamentSeriesIdFromPointerUid } from '../src/lib/poker-near-me/seriesRouteIdentity.mjs';
+import {
+  canonicalSeriesRouteId,
+  tournamentSeriesIdFromPointerUid,
+} from '../src/lib/poker-near-me/seriesRouteIdentity.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const read = (file) => fs.readFileSync(path.join(ROOT, file), 'utf8');
@@ -67,11 +70,20 @@ const REGISTRY = JSON.parse(read('data/tour-source-registry.json')).tours;
 
 test('the sitemap offers one URL per series, across the tables and within each', () => {
   const src = read('pages/sitemap.xml.js');
+  assert.equal(canonicalSeriesRouteId(5001020), '5001034', 'the eventless legacy Wynn row resolves to the verified series');
+  assert.equal(canonicalSeriesRouteId(5001034), '5001034', 'the canonical Wynn row remains itself');
+  assert.match(src, /const canonicalId = canonicalSeriesRouteId\(rawId\)/, 'the sitemap emits only canonical route IDs');
   // Both passes must consult AND populate the claimed set: the Trailblazer
   // pairs were both poker_series rows, and only the first pass was adding.
   const pokerPass = src.slice(src.indexOf("results[1].status === 'fulfilled'"), src.indexOf("results[2].status"));
   assert.match(pokerPass, /claimedUids\.has\(uid\)/, 'the poker_series pass checks the claimed uids');
   assert.match(pokerPass, /claimedUids\.add\(uid\)/, 'the poker_series pass also claims its own uids');
+});
+
+test('known legacy series aliases permanently redirect to their canonical page', () => {
+  const src = read('pages/hub/series/[id].js');
+  assert.match(src, /canonicalSeriesRouteId\(requestedId\)/);
+  assert.match(src, /destination: `\/hub\/series\/\$\{canonicalId\}`[\s\S]*?permanent: true/);
 });
 
 test('the sitemap offers one URL per tour', () => {

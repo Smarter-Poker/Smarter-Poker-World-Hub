@@ -16,7 +16,7 @@ import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
  *
  * Architecture:
  *   - 32 anti-exploit modules (all active)
- *   - GTO solver (lazy-loaded from content-engine/services/)
+ *   - GTO solver (lazy-loaded from brain/HorsePokerGTO.js)
  *   - Personality overlays (lazy-loaded)
  *   - Live opponent modeling (wired through barrel export)
  *   - PLO/PLO5/PLO6/PLO8 variant brains

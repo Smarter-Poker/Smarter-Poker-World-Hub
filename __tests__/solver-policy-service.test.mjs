@@ -1280,7 +1280,7 @@ test('runtime surface registry matches the real service, strict-reader, delegate
   const expected = [
     ['deterministic-get-question', 'service_consumer', 'src/engines/DeterministicGTOEngine.js', 'get-question'],
     ['admin-inspection', 'service_consumer', 'pages/api/admin/inspect-pio-data.js', 'admin-inspection'],
-    ['horse-poker-gto', 'service_consumer', 'src/content-engine/services/HorsePokerGTO.js', 'horse-poker-gto'],
+    ['horse-poker-gto', 'service_consumer', 'src/lib/poker-engine/brain/HorsePokerGTO.js', 'horse-poker-gto'],
     ['god-mode-library', 'service_consumer', 'lib/god-mode-service.ts', 'god-mode'],
     ['get-question-route', 'delegated_service', 'pages/api/training/get-question.js', null],
     ['batch-preload', 'delegated_service', 'pages/api/training/batch-preload.js', null],

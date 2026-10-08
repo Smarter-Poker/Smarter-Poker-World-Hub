@@ -35,9 +35,14 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { spawn } from 'node:child_process';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { withCronHealth } from '../../../src/lib/cronHealth.js';
 import {
+  CLIP_FONT_FILE,
   CLIP_HEIGHT,
+  CLIP_TIMEZONE,
   CLIP_WIDTH,
   HAND_COLUMNS,
   JOB_NAME,
@@ -71,17 +76,52 @@ const _binPath = (x) => {
 // @sparticuz/chromium 153 ships chrome-headless-shell and no longer exposes a
 // `headless` getter; its README launches puppeteer with headless: "shell", so
 // that is the fallback when the getter is absent.
+// The transport glyph font (see CLIP_FONT_FILE): the traced file is written
+// into the fontconfig directory @sparticuz/chromium reads (FONTCONFIG_PATH,
+// /tmp/fonts by default; its fonts.conf lists that folder). The copy happens
+// after executablePath(), which is what creates the folder and sets the
+// variable, and before launch, when fontconfig scans it. A missing file
+// renders the clip without the glyphs rather than not at all.
+//
+// THE SOURCE PATH IS A LITERAL ON PURPOSE (2026-10-07). The first version read
+// the folder as join(process.cwd(), ...CLIP_FONTS_DIR.split('/')). The build
+// tracer (@vercel/nft) evaluates the path handed to a file read; a known
+// prefix with an unknown rest becomes a wildcard on the prefix, and the
+// prefix here was the project root, so the trace swallowed the whole
+// repository including .next/lock, which Next deletes at exit, and both
+// production builds of #2215 died in the deploy step on
+// "ENOENT: lstat '/vercel/path0/.next/lock'". A path the tracer can read
+// to the end traces one file and nothing else.
+const CLIP_FONT_SOURCE = join(process.cwd(), 'fonts', 'hand-clip', 'NotoSansSymbols2-HandClip.ttf');
+
+async function provisionClipFonts(log = console.log) {
+    const target = process.env.FONTCONFIG_PATH || join(tmpdir(), 'fonts');
+    try {
+        const bytes = await readFile(CLIP_FONT_SOURCE);
+        await mkdir(target, { recursive: true });
+        await writeFile(join(target, CLIP_FONT_FILE), bytes);
+        return 1;
+    } catch (err) {
+        log(`[render-hand-clips] clip font not provisioned from ${CLIP_FONT_SOURCE}: ${err && err.message ? err.message : err}`);
+        return 0;
+    }
+}
+
 async function launchChromium() {
     // @sparticuz/chromium 153 is an ES module (type: module); webpack refuses a
     // require() of an ESM external, so it is loaded with a dynamic import.
     const chromiumModule = await import('@sparticuz/chromium');
     const chromium = chromiumModule && chromiumModule.default ? chromiumModule.default : chromiumModule;
     const puppeteer = require('puppeteer-core');
+    const executablePath = await chromium.executablePath();
+    await provisionClipFonts();
     return puppeteer.launch({
-        executablePath: await chromium.executablePath(),
+        executablePath,
         args: chromium.args,
         headless: chromium.headless === undefined ? 'shell' : chromium.headless,
         defaultViewport: { width: CLIP_WIDTH, height: CLIP_HEIGHT, deviceScaleFactor: 1 },
+        // The owner's clock for the share header's date (CLIP_TIMEZONE).
+        env: { ...process.env, TZ: CLIP_TIMEZONE },
     });
 }
 
@@ -116,8 +156,9 @@ async function uploadToStorage(path, body, contentType) {
     }
 }
 
-// The hand, the hero's ca_hand_facts row (hole cards) and the hero's
-// hand_discards row (draw variants); every read is one indexed row.
+// The hand, the hero's ca_hand_facts row (hole cards), the hero's
+// hand_discards row (draw variants) and the table's name (tables.name, the
+// title the replayer prints); every read is one indexed row.
 function fetchHandWith(supa) {
     return async function fetchHand(job) {
         const { data: hand, error } = await supa
@@ -147,7 +188,17 @@ function fetchHandWith(supa) {
                 .maybeSingle();
             discard = data || null;
         }
-        return { hand, facts: facts || null, discard };
+
+        let table = null;
+        if (hand.table_id) {
+            const { data } = await supa
+                .from('tables')
+                .select('name')
+                .eq('id', hand.table_id)
+                .maybeSingle();
+            table = data || null;
+        }
+        return { hand, facts: facts || null, discard, table };
     };
 }
 

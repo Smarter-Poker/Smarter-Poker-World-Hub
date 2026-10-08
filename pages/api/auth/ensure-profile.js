@@ -91,7 +91,7 @@ export default async function handler(req, res) {
           // Step 1: Check if profile exists by user_id
           const { data: existingProfile, error: checkError } = await getSupabase()
               .from('profiles')
-              .select('id, username, full_name, email, created_at, last_active, is_online, diamonds')
+              .select('id, username, full_name, email, created_at, last_active, is_online, diamonds, phone_verified')
               .eq('id', user_id)
               .maybeSingle();
 
@@ -148,7 +148,12 @@ export default async function handler(req, res) {
               // register row and is skipped before the Mint is asked. Gated on a zero balance,
               // so the register is read on the rare account this can apply to, not on every
               // presence ping.
-              if (Number(existingProfile.diamonds ?? 0) === 0) {
+              // THE WELCOME PACKAGE IS EARNED BY PHONE VERIFICATION (2026-10-07, Dan):
+              // pages/api/sms/verify-otp.js issues the 500 under signup:<id> once the
+              // handset is confirmed. This re-ask therefore only runs for a player whose
+              // row already says phone_verified - it restarts a refused grant, it never
+              // starts one for an unverified account.
+              if (existingProfile.phone_verified === true && Number(existingProfile.diamonds ?? 0) === 0) {
                   try {
                       const ownEmail = typeof authUser?.email === 'string' ? authUser.email.trim() : '';
                       if (!isDisposableEmail(ownEmail)) {
@@ -182,11 +187,26 @@ export default async function handler(req, res) {
               const now = Date.now();
               const isBrandNew = (now - createdTime) < 60000; // Created in last 60 seconds
 
+              // The phone-verification welcome screen (2026-10-07): the DB trigger
+              // creates the profile at signUp, so by the time /auth/callback asks,
+              // the row already EXISTS. Say here whether the welcome package is
+              // still waiting on a phone so the callback can make the welcome
+              // screen a new player's first screen. Young = under 14 days, the
+              // same window pages/hub/index.js uses.
+              const WELCOME_WINDOW_MS = 14 * 24 * 60 * 60 * 1000;
+              const isYoung = Number.isFinite(createdTime) && (now - createdTime) < WELCOME_WINDOW_MS;
+              const phoneVerifiedNow = existingProfile.phone_verified === true;
+
               return res.json({
                   status: 'EXISTS',
                   profile: existingProfile,
                   created: false,
-                  isBrandNew
+                  isBrandNew,
+                  welcomePackage: phoneVerifiedNow
+                      ? { granted: true }
+                      : (isYoung
+                          ? { granted: false, withheldReason: 'phone_not_verified', claimAt: '/hub/verify-phone' }
+                          : { granted: false }),
               });
           }
 
@@ -322,8 +342,15 @@ export default async function handler(req, res) {
           // fn_ca_mint credits it, journals it (class promotional) and registers it under op_id
           // signup:<uid>, which is idempotent, so calling this twice grants once. The old body
           // upserted user_diamond_balance, a mirror table that the profile trigger overwrites.
+          // 2026-10-07 (Dan): the welcome package is no longer granted at profile creation.
+          // The signup form stopped collecting a phone number; the player verifies it on
+          // /hub/verify-phone after first login and pages/api/sms/verify-otp.js issues the
+          // 500 (same op id, signup:<uid>) and the 30-day VIP card at that moment. This
+          // function is kept so both insert paths stay symmetrical, and it only pays a
+          // profile that already carries a server-side phone verification receipt.
           const grantWelcomeDiamonds = async () => {
               if (isDisposable) return;
+              if (!phoneVerified) return;
               const { data: minted, error: mintErr } = await getSupabase().rpc('fn_ca_mint', {
                   p_asset: 'diamonds',
                   p_destination: 'player',
@@ -409,9 +436,12 @@ export default async function handler(req, res) {
               );
           }
 
+          // The social-profile gate exists for OAuth signups that arrive with no
+          // chosen handle. An email signup chose its alias on the form; its phone
+          // is collected by /hub/verify-phone now (2026-10-07), so a missing phone
+          // no longer sends it through that gate.
           const hadExplicitAlias = !!(metadata?.poker_alias || metadata?.preferred_username);
-          const hadPhone         = !!(metadata?.phone || metadata?.phone_number);
-          const socialProfileCompleted = hadExplicitAlias && hadPhone;
+          const socialProfileCompleted = hadExplicitAlias;
 
           // Create the profile with all the defaults
           const { data: newProfile, error: insertError } = await getSupabase()
@@ -457,11 +487,14 @@ export default async function handler(req, res) {
                   diamond_multiplier: 1.0,
                   skill_tier: 'Newcomer',
                   access_tier: 'Full_Access',
-                  is_vip: !isDisposable,              // Welcome VIP bonus
-                  vip_tier: isDisposable ? null : 'monthly',  // 30-day VIP card
-                  vip_expires_at: isDisposable
-                      ? null
-                      : new Date(new Date().setDate(new Date().getDate() + 30)).toISOString(),
+                  // The 30-day VIP card is part of the welcome package, which is now
+                  // earned by verifying a phone on /hub/verify-phone (2026-10-07).
+                  // A profile with a server-side receipt (phoneVerified) still gets it.
+                  is_vip: !isDisposable && phoneVerified,
+                  vip_tier: (!isDisposable && phoneVerified) ? 'monthly' : null,
+                  vip_expires_at: (!isDisposable && phoneVerified)
+                      ? new Date(new Date().setDate(new Date().getDate() + 30)).toISOString()
+                      : null,
                   created_at: new Date().toISOString(),
                   last_login: new Date().toISOString(),
                   last_active: new Date().toISOString(),
@@ -563,10 +596,12 @@ export default async function handler(req, res) {
               profile: newProfile,
               created: true,
               welcomePackage: {
-                  granted: !isDisposable,
-                  diamonds: isDisposable ? 0 : 500,
-                  vipDays: isDisposable ? 0 : 30,
-                  ...(isDisposable ? { withheldReason: 'disposable_email_domain' } : {}),
+                  granted: !isDisposable && phoneVerified,
+                  diamonds: (!isDisposable && phoneVerified) ? 500 : 0,
+                  vipDays: (!isDisposable && phoneVerified) ? 30 : 0,
+                  ...(isDisposable
+                      ? { withheldReason: 'disposable_email_domain' }
+                      : (!phoneVerified ? { withheldReason: 'phone_not_verified', claimAt: '/hub/verify-phone' } : {})),
               },
               message: 'Profile created successfully - user was orphaned but is now fixed!'
           });

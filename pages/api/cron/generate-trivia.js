@@ -1,10 +1,10 @@
 /**
  * DAILY TRIVIA GENERATION CRON — the content engine
  * ═══════════════════════════════════════════════════════════════════════════
- * This route is the revived, corrected replacement for archive/cron/generate-trivia.js
- * (which was archived, unroutable, auth-bypassable and mathematically incapable
- * of satisfying the product promise). Everything the audit found wrong there is
- * fixed here:
+ * This route is the revived, corrected replacement for the archived
+ * generate-trivia cron (deleted in Phase 10; it was unroutable, auth-bypassable
+ * and mathematically incapable of satisfying the product promise). Everything
+ * the audit found wrong there is fixed here:
  *
  *   ARCHIVED BUG                         FIX APPLIED HERE
  *   ----------------------------------   --------------------------------------

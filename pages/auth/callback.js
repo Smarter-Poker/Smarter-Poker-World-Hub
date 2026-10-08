@@ -259,6 +259,7 @@ export default function AuthCallback() {
                 //      handles new users (CREATED), existing users (EXISTS),
                 //      and same-email-different-provider linking (LINKED). ──
                 setStatus('Setting up your account…');
+                let newPlayerNeedsPhone = false;
                 try {
                     const meta = user.user_metadata || {};
                     const fullName =
@@ -297,6 +298,20 @@ export default function AuthCallback() {
                             message: `ensure-profile ${resp.status}: ${String(body).slice(0, 300)}`,
                             status: resp.status,
                         });
+                    } else {
+                        // A young profile whose welcome package is waiting on a
+                        // phone verification gets the welcome screen as its
+                        // first screen (2026-10-07, Dan). Verified or older
+                        // players go where they were going.
+                        try {
+                            const ensured = await resp.clone().json().catch(() => null);
+                            // ensure-profile reports a young, unverified profile
+                            // whether it created the row or the DB trigger did.
+                            const dismissed = !!user.user_metadata?.phone_prompt_dismissed_at;
+                            if (ensured?.welcomePackage?.withheldReason === 'phone_not_verified' && !dismissed) {
+                                newPlayerNeedsPhone = true;
+                            }
+                        } catch (_jsonErr) { /* non-blocking */ }
                     }
                 } catch (epErr) {
                     // Non-blocking
@@ -360,7 +375,9 @@ export default function AuthCallback() {
                     nextPath = rawNext;
                 }
 
-                const dest = nextPath || (isCommanderOrigin ? '/commander/dashboard' : '/hub');
+                const dest = nextPath
+                    || (isCommanderOrigin ? '/commander/dashboard' : null)
+                    || (newPlayerNeedsPhone ? '/hub/verify-phone?welcome=1' : '/hub');
 
 
 

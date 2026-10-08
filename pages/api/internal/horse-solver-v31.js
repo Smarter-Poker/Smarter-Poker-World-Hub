@@ -8,6 +8,8 @@ import {
   v31IngressDatabaseFailureStatus,
   v31IngressEnvelopeIsValid,
   verifyV31IngressRequest,
+  v31FeatureContractVersion,
+  v31PolicyExportSchema,
 } from '../../../src/lib/horses/solverV31IngressAuth.mjs';
 import { createClient } from '../../../src/lib/supabaseServerClient';
 
@@ -115,6 +117,10 @@ async function rpc(supabase, name, args, timeoutMs = DB_TIMEOUT_MS) {
 
 function contractMatches(contract, provenance) {
   if (!contract || contract.contract !== 'smarter-poker.gto-v31-worker-contract.v1') return false;
+  if (!v31FeatureContractVersion(contract)
+      || v31FeatureContractVersion(contract) !== v31FeatureContractVersion(provenance)
+      || !v31PolicyExportSchema(contract)
+      || v31PolicyExportSchema(contract) !== v31PolicyExportSchema(provenance)) return false;
   const fields = [
     'dataset_key',
     'solver_version',
@@ -215,6 +221,10 @@ async function dispatch(supabase, envelope) {
     }
     const datasetId = await rpc(supabase, 'fn_gto_v31_register_dataset', {
       p_dataset: {
+        ...(Object.prototype.hasOwnProperty.call(provenance, 'policy_export_schema')
+          ? { policy_export_schema: provenance.policy_export_schema } : {}),
+        ...(Object.prototype.hasOwnProperty.call(provenance, 'feature_contract_version')
+          ? { feature_contract_version: provenance.feature_contract_version } : {}),
         dataset_key: provenance.dataset_key,
         solver_version: provenance.solver_version,
         solver_binary_checksum: provenance.solver_binary_checksum,

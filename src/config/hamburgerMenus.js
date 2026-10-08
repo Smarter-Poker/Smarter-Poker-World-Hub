@@ -266,6 +266,21 @@ export const MenuIcons = {
 export const MENU_CONFIGS = {
     'hub-home': (user, state, handlers) => ({
         menuItems: [
+            // Shown to every player who has not verified a phone number
+            // (2026-10-07, Dan): verifying is what pays the welcome package.
+            ...(state?.phoneUnverified
+                ? [
+                    createMenuItem.navigation(
+                        'Verify Phone Number',
+                        '/hub/verify-phone',
+                        MenuIcons.shield,
+                        null,
+                        null,
+                        { id: 'verify-phone', description: 'Claim Your Welcome Package: 30-Day VIP Card + 500 Diamonds' }
+                    ),
+                    createMenuItem.divider(),
+                ]
+                : []),
             createMenuItem.section('Quick Navigation'),
             createMenuItem.grid([
                 {

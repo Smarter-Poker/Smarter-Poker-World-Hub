@@ -161,6 +161,12 @@ jobs:
       - name: Local Scraper Runtime Integrity And Delivery
         run: python3 -m unittest scripts/test_local_scraper_runtime.py -v
 
+      - name: Training M1 Scope-Preserving HMAC Provisioning
+        run: python3 -m unittest discover -s __tests__ -p test_provision_training_m1_hmac.py
+
+      - name: Training M1 Atomic Source-Pin Transition
+        run: python3 -m unittest discover -s scripts/preflop-deep -p test_transition_m1_bounded_canary.py
+
       - name: Messenger Club And Invoice Separation
         run: >-
           node --experimental-vm-modules --test
@@ -204,6 +210,12 @@ jobs:
 
       - name: "CHECK 24: Training server-authority contracts"
         run: npm run test:training:phase6-authority
+
+      - name: Training Phase 6 Public Certificate Safety
+        run: node --test __tests__/training-phase6-public-certificate.test.mjs
+
+      - name: Training Phase 6 Atomic Management SQL Safety
+        run: node --test __tests__/training-phase6-atomic-management-sql.test.mjs
 
       # The behavioral migration verifiers exercise disposable PostgreSQL 17
       # clusters. Ubuntu 24.04 ships PostgreSQL 16, which cannot model the PG17
@@ -273,6 +285,9 @@ jobs:
 
       - name: "Trivia Phase 9 Solo Authority PostgreSQL 17 Cutover"
         run: bash scripts/trivia/phase9-solo-authority-replica-tests/run.sh
+
+      - name: Training Phase 6 Atomic Management PostgreSQL Rollback Authority
+        run: node scripts/qualify-phase6-atomic-management-pg17.mjs
 
       # Reuse the already-resolved PG17 binaries. The gate owns one disposable
       # local cluster/database, removes it on every exit, and applies the real

@@ -1,12 +1,18 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { createHash, generateKeyPairSync, sign } from 'node:crypto';
-import { chmod, mkdtemp, readFile, readdir, rm, stat, writeFile } from 'node:fs/promises';
+import { chmod, mkdir, mkdtemp, readFile, readdir, rm, stat, writeFile } from 'node:fs/promises';
+import {readFileSync} from 'node:fs';
 import { createServer } from 'node:http';
-import { tmpdir } from 'node:os';
+import { tmpdir as operatingSystemTmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
+function tmpdir() {
+  const directory=operatingSystemTmpdir();
+  if (process.platform === 'darwin') assert.ok(directory.startsWith('/Volumes/SmarterWork/agent-work/'), 'Mac test fixtures require task-owned external SSD TMPDIR');
+  return directory;
+}
 import {
   buildTrainingAttestationContinuationPrecommit,
   TRAINING_ATTESTATION_CONTINUATION_SELECTION_RULE,
@@ -28,6 +34,7 @@ import {
   continueRouteWithProtectionBypass,
   installAttestationProtectionBypassRoute,
   attachAttestationClientErrorCapture,
+  atomicCorrelationPlan,
   createSlidingWindowRequestPacer,
   createVercelCliRuntimeLogTransport,
   decodeReceiptObservation,
@@ -51,6 +58,7 @@ import {
   validateImmutableDeploymentUrl,
   verifyAuthenticPredecessorArtifact,
 } from '../scripts/training-phase6-production-delivery-attestation.mjs';
+import {createAtomicManagementTransport} from '../scripts/lib/phase6AtomicManagementSql.mjs';
 import {
   NODE_SEMANTICS,
   POLICY_KIND,
@@ -2580,6 +2588,13 @@ test('machine collector accepts credentials from private out-of-repository files
   assert.equal(config.predecessor.rehearsalAcknowledged, true);
   assert.equal(config.vercelProject, 'hub-vanguard');
   assert.equal(config.protectionBypassSecret, 'phase6-test-bypass-secret');
+  const managementEnv={...env,TRAINING_PHASE6_ADMIN_DATABASE_TRANSPORT:'supabase_atomic_management',
+    TRAINING_PHASE6_ADMIN_DATABASE_CREDENTIAL_FILE:undefined,TRAINING_PHASE6_ADMIN_MANAGEMENT_WORKDIR:directory};
+  const managementConfig=readMachineCollectorConfig(managementEnv);
+  assert.equal(managementConfig.databaseUrl,null);
+  assert.equal(managementConfig.databaseTransportMode,'supabase_atomic_management');
+  assert.throws(()=>readMachineCollectorConfig({...managementEnv,TRAINING_PHASE6_ADMIN_DATABASE_CREDENTIAL_FILE:databaseCredentialPath}),/refuses a separate database credential file/);
+  assert.throws(()=>readMachineCollectorConfig({...managementEnv,TRAINING_PHASE6_ADMIN_DATABASE_TRANSPORT:'unknown'}),/Unknown administrator database transport/);
   assert.throws(
     () =>
       readMachineCollectorConfig({
@@ -2590,6 +2605,45 @@ test('machine collector accepts credentials from private out-of-repository files
   );
   await chmod(vercelCredentialPath, 0o644);
   assert.throws(() => readMachineCollectorConfig(env), /must not be group\/world accessible/);
+});
+
+test('atomic management core uses one CLI batch per phase and retains original row validators', async (t) => {
+  const directory=await mkdtemp(join(tmpdir(),'phase6-atomic-core-'));
+  t.after(()=>rm(directory,{recursive:true,force:true}));
+  await mkdir(join(directory,'supabase/.temp'),{recursive:true});
+  await writeFile(join(directory,'supabase/.temp/project-ref'),'a'.repeat(20));
+  assert.throws(()=>createAtomicManagementTransport({workdir:directory,scratchDirectory:directory,expectedProjectRef:'b'.repeat(20)}),/linked project differs/);
+  const publicPath=join(directory,'public.json');
+  const evidence=publicCloseoutEvidence();await writeFile(publicPath,jsonBytes(evidence));
+  const contract=validateCompletePublicAttestation(evidence);
+  const plan=atomicCorrelationPlan(evidence,contract);
+  const tags={mode:'transaction-mode',attempt:'attempt-correlation',served:'served-correlation',answers:'answer-correlation',slot:'continuation-slot-correlation',snapshots:'continuation-snapshot-correlation',authority:'private-attestation-correlation'};
+  const fake=fakeMachineDatabase(evidence),rows={};
+  await fake.query('BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY');
+  for(const q of plan)rows[q.key]=(await fake.query(`/* phase6:${tags[q.key]} */ ${q.text}`,q.params)).rows;
+  let calls=0;
+  const database=createAtomicManagementTransport({workdir:directory,scratchDirectory:directory,expectedProjectRef:'a'.repeat(20),spawnSyncFn(_exe,args){
+    calls++;const sql=readFileSync(args[args.indexOf('--file')+1],'utf8');
+    assert.match(sql,/\nROLLBACK;/);
+    assert.equal(args.includes('--linked'),true);assert.equal(args.includes('--db-url'),false);
+    const result=calls===1?rows:Object.fromEntries(['answeredSlotPromotion','changedAnswerReplay','changedSlotBinding','neverServedSnapshot','nonV4PredecessorId','nullOwnerLegacyEvent'].map(name=>[name,{status:'passed',refusalObserved:true,subtransactionRolledBack:true,postRollbackVerified:true}]));
+    return {status:0,stdout:JSON.stringify({boundary:'a'.repeat(32),rows:[{phase6AtomicResult:result}],warning:`untrusted <${'a'.repeat(32)}>`})};
+  }});
+  const collected=await collectMachineAdministratorEvidenceCore(machineCoreConfig(publicPath),{
+    databaseTransport:database,logTransport:passingLogTransport(evidence),predecessorTransport:passingPredecessorTransport(),
+    fetchFn:healthyDeploymentFetch(),now:()=>new Date(VERIFIED_AT),nowMs:()=>123});
+  assert.equal(calls,2);assert.equal(collected.adminEvidence.collector.rollbackVerificationCount,8);
+  assert.equal(collected.adminEvidence.correlation.servedEventCount,21);
+  assert.equal(collected.adminEvidence.collector.queryMode,'atomic_management_read_only_plus_self_aborting_probes');
+  for (const outcome of [
+    {status:1,stdout:''},
+    {status:0,stdout:'not-json'},
+    {status:0,stdout:JSON.stringify({boundary:'a'.repeat(32),rows:[],warning:`untrusted <${'a'.repeat(32)}>`})},
+    {status:0,stdout:JSON.stringify({boundary:'a'.repeat(32),rows:[{phase6AtomicResult:{}}],warning:`untrusted <${'a'.repeat(32)}>`})},
+  ]) {
+    const denied=createAtomicManagementTransport({workdir:directory,scratchDirectory:directory,expectedProjectRef:'a'.repeat(20),spawnSyncFn:()=>outcome});
+    await assert.rejects(()=>denied.prepareReadOnly(plan));
+  }
 });
 
 test('machine collector core orchestrates exact health, parameterized read-only correlation, six rollback probes, logs, and predecessor rehearsal', async (t) => {

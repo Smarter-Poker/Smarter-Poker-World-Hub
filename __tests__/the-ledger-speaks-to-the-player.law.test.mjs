@@ -23,13 +23,20 @@ test('the ledger API asks for player_line with every row', () => {
   assert.match(api, /\.select\('\*, player_line', \{ count: 'exact' \}\)/);
 });
 
-test('the modal prints player_line, falls back to the label, and never the raw description alone', () => {
+/* REPOINTED 2026-10-07, stricter rather than weaker. This pin used to accept
+   `tx.player_line || tx.description || config.label`, a middle fallback that
+   printed the RAW description whenever player_line was absent. The raw
+   description carries operator notes and the internal "The Mint: " prefix
+   (Club Arena migration 20261007102421), so the description is now never a
+   fallback at all: player_line, else the kind's label. */
+test('the modal prints player_line, falls back to the label, and never the raw description', () => {
   const modal = read('src/components/store/DiamondWalletModal.jsx');
-  assert.ok(modal.includes('value={tx.player_line || tx.description || config.label}'));
+  assert.ok(modal.includes('value={tx.player_line || config.label}'));
+  assert.doesNotMatch(modal, /tx\.description/);
   assert.ok(modal.includes("tx.player_line && tx.player_line !== config.label"));
   assert.ok(modal.includes('<WalletDescription value={tx.player_line} />'));
   assert.doesNotMatch(modal, /<WalletDescription value=\{tx\.description\} \/>/);
   assert.doesNotMatch(modal, /value=\{tx\.description \|\| config\.label\}/);
   // Search still finds a row by the line the player reads.
-  assert.ok(modal.includes("(tx.player_line || tx.description || '').toLowerCase().includes(q)"));
+  assert.ok(modal.includes("(tx.player_line || '').toLowerCase().includes(q)"));
 });

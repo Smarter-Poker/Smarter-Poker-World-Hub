@@ -628,6 +628,8 @@ const nextConfig = {
       'node_modules/puppeteer-core/**/*',
       'node_modules/@ffmpeg-installer/linux-x64/**/*',
       'node_modules/@ffprobe-installer/linux-x64/**/*',
+      // The hand replayer's transport glyph font (fonts/hand-clip, OFL).
+      'fonts/hand-clip/**/*',
     ],
   },
   experimental: {

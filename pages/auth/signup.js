@@ -133,7 +133,6 @@ export default function SignUpPage() {
     city: '',
     state: '',
     pokerAlias: '',
-    phone: '',
     promoCode: '',
   });
 
@@ -167,15 +166,11 @@ export default function SignUpPage() {
   const [verificationCode, setVerificationCode] = useState('');
   const [verifying, setVerifying] = useState(false);
 
-  // SMS Phone Verification State
-  const [phoneVerified, setPhoneVerified] = useState(false);
-  const [phoneSendingOtp, setPhoneSendingOtp] = useState(false);
-  const [phoneOtpSent, setPhoneOtpSent] = useState(false);
-  const [phoneOtp, setPhoneOtp] = useState('');
-  const [phoneVerifying, setPhoneVerifying] = useState(false);
-  const [phoneError, setPhoneError] = useState('');
-  const [phoneOtpCooldown, setPhoneOtpCooldown] = useState(0);
-  const [showPhoneModal, setShowPhoneModal] = useState(false);
+  // PHONE VERIFICATION MOVED OUT OF SIGNUP (2026-10-07, Dan). The number is
+  // no longer collected here. A new player verifies it on /hub/verify-phone
+  // after email confirmation and first login, which is what pays out the
+  // welcome package (30-day VIP card + 500 diamonds); it can be skipped and
+  // reached later from the hub hamburger menu.
 
   // Legal modal: null | 'terms' | 'privacy'
   const [legalModal, setLegalModal] = useState(null);
@@ -297,102 +292,6 @@ export default function SignUpPage() {
     return () => clearTimeout(timeout);
   }, [formData.pokerAlias]);
 
-  // Format phone number
-  const formatPhone = (value) => {
-    const cleaned = value.replace(/\D/g, '');
-    if (cleaned.length <= 3) return cleaned;
-    if (cleaned.length <= 6) return `(${cleaned.slice(0, 3)}) ${cleaned.slice(3)}`;
-    return `(${cleaned.slice(0, 3)}) ${cleaned.slice(3, 6)}-${cleaned.slice(6, 10)}`;
-  };
-
-  // ─────────────────────────────────────────────────────────────────────────
-  // SMS PHONE VERIFICATION FUNCTIONS
-  // ─────────────────────────────────────────────────────────────────────────
-  const sendPhoneOtp = async () => {
-    const cleanPhone = formData.phone.replace(/\D/g, '');
-    if (cleanPhone.length !== 10) {
-      setPhoneError('Please enter a valid 10-digit phone number');
-      return;
-    }
-
-    setPhoneSendingOtp(true);
-    setPhoneError('');
-
-    try {
-      const res = await fetch('/api/sms/send-otp', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone: cleanPhone }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.error || 'Failed to send code');
-      }
-
-      setPhoneOtpSent(true);
-      setShowPhoneModal(true); // Show verification modal
-      // Start 60-second cooldown
-      setPhoneOtpCooldown(60);
-      const interval = setInterval(() => {
-        setPhoneOtpCooldown((prev) => {
-          if (prev <= 1) {
-            clearInterval(interval);
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-    } catch (err) {
-      setPhoneError(err.message);
-    } finally {
-      setPhoneSendingOtp(false);
-    }
-  };
-
-  const verifyPhoneOtp = async () => {
-    if (phoneOtp.length !== 4) {
-      setPhoneError('Please Enter The 4-Digit Code');
-      return;
-    }
-
-    setPhoneVerifying(true);
-    setPhoneError('');
-
-    try {
-      const cleanPhone = formData.phone.replace(/\D/g, '');
-      const res = await fetch('/api/sms/verify-otp', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone: cleanPhone, code: phoneOtp }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.error || 'Verification failed');
-      }
-
-      setPhoneVerified(true);
-      setShowPhoneModal(false); // Close modal on success
-      setPhoneError('');
-    } catch (err) {
-      setPhoneError(err.message);
-    } finally {
-      setPhoneVerifying(false);
-    }
-  };
-
-  // Reset phone verification if phone number changes
-  useEffect(() => {
-    if (phoneVerified || phoneOtpSent) {
-      setPhoneVerified(false);
-      setPhoneOtpSent(false);
-      setPhoneOtp('');
-      setPhoneError('');
-    }
-  }, [formData.phone]);
 
   // Check promo or referral code validity with debounce
   useEffect(() => {
@@ -673,13 +572,6 @@ export default function SignUpPage() {
       return;
     }
 
-    const cleanPhone = formData.phone.replace(/\D/g, '');
-    if (cleanPhone.length !== 10) {
-      setError('Please Enter A Valid 10-Digit Phone Number');
-      setLoading(false);
-      return;
-    }
-
     setLoading(true);
 
     // Sanitize: trim whitespace from names before any DB write
@@ -704,18 +596,11 @@ export default function SignUpPage() {
             state: formData.state,
             birth_year: parseInt(formData.birthYear),
             birthday: `${formData.birthYear}-${formData.birthMonth}-${formData.birthDay}`,
-            // [Phase 6.1.27] The SMS gate above is what stops one handset
-            // opening unlimited accounts, and nothing was persisting it.
-            // `phone_verified` appeared once in this file — as a PostHog
-            // property, not a database write — so profiles.phone_verified
-            // was never set by signup. The duplicate-phone guard in
-            // pages/api/sms/verify-otp.js only matches rows where it is
-            // true, which made that guard a no-op on the signup path.
-            // Every free diamond is real money; N throwaway accounts is the
-            // cheapest attack on the economy. ensure-profile.js copies both
-            // of these onto the profile row it creates.
-            phone: cleanPhone.length === 10 ? `+1${cleanPhone}` : null,
-            phone_verified: !!phoneVerified,
+            // Phone is verified AFTER first login on /hub/verify-phone
+            // (2026-10-07); ensure-profile reads phone_verified from the
+            // server-side receipt, never from this client metadata.
+            phone: null,
+            phone_verified: false,
           },
           // Enable email confirmation - redirect to /auth/callback after verification
           emailRedirectTo: `${window.location.origin}/auth/callback`,
@@ -762,7 +647,7 @@ export default function SignUpPage() {
           capture(FunnelEvents.SIGNUP, {
             has_referral: !!isReferralCode,
             has_promo: !!formData.promoCode && !isReferralCode,
-            phone_verified: !!phoneVerified,
+            phone_verified: false,
           });
         }
       } catch (_pcErr) {
@@ -910,6 +795,19 @@ export default function SignUpPage() {
             }}
           >
             <style dangerouslySetInnerHTML={{ __html: `
+              /* MOBILE (2026-10-07): the form never set a font, so iOS fell back
+                 to -webkit-standard (a serif) for every label and input, and the
+                 global mobile "input, select { min-height: 44px }" rule in
+                 src/index.css stretched the 36px fields (and the 2%-tall
+                 checkbox hotspot) to 44px. The card's geometry is owned by
+                 the artwork, so it opts out, exactly as /auth/login does. */
+              .dynamic-auth-form {
+                 font-family: var(--font-inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+              }
+              .dynamic-auth-form input, .dynamic-auth-form select, .dynamic-auth-form button {
+                 min-height: 0 !important;
+                 font-family: inherit;
+              }
               .dynamic-auth-form input, .dynamic-auth-form select {
                  background: transparent;
                  border: none;
@@ -1263,73 +1161,6 @@ export default function SignUpPage() {
                   )}
                 </div>
 
-                {/* Phone Number */}
-                <div className="auth-field-group">
-                  <label className="auth-label">Phone Number</label>
-                  <div className="auth-field-row" style={{ alignItems: "center" }}>
-                    <span style={{ color: "#fff", fontSize: "14px", padding: "0 12px", background: "rgba(255,255,255,0.1)", height: "36px", display: "flex", alignItems: "center", borderRadius: "4px", border: "1px solid rgba(255,255,255,0.1)" }}>+1</span>
-                    <input
-                      type="tel"
-                      className="auth-input-styled"
-                      placeholder=""
-                      value={formatPhone(formData.phone)}
-                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                      required
-                      disabled={phoneVerified}
-                      maxLength={14}
-                      style={{ color: phoneVerified ? "#31A24C" : "#fff" }}
-                    />
-                    {!phoneVerified && (
-                      <button
-                        type="button"
-                        onClick={sendPhoneOtp}
-                        disabled={
-                          phoneSendingOtp ||
-                          phoneOtpCooldown > 0 ||
-                          formData.phone.replace(/\D/g, "").length !== 10
-                        }
-                        style={{
-                          height: "36px",
-                          padding: "0 12px",
-                          background: "rgba(0, 110, 255, 0.8)",
-                          color: "#fff",
-                          border: "none",
-                          borderRadius: "4px",
-                          cursor: (phoneSendingOtp || phoneOtpCooldown > 0 || formData.phone.replace(/\D/g, "").length !== 10) ? "not-allowed" : "pointer",
-                          opacity: (phoneSendingOtp || phoneOtpCooldown > 0 || formData.phone.replace(/\D/g, "").length !== 10) ? 0.5 : 1,
-                          fontWeight: "bold",
-                          flexShrink: 0,
-                          fontSize: "11px",
-                          textTransform: "uppercase",
-                          transition: "opacity 0.2s"
-                        }}
-                      >
-                        {phoneSendingOtp ? "Sending..." : phoneOtpCooldown > 0 ? `Wait ${phoneOtpCooldown}s` : "Send Code"}
-                      </button>
-                    )}
-                  </div>
-                  {/* SEND-CODE FAILURES WERE INVISIBLE (fixed 2026-08-25).
-                      sendPhoneOtp's catch sets phoneError, but the only render
-                      of it lived inside {showPhoneModal && ...} - and the modal
-                      is opened on SUCCESS only. So a Twilio outage, a rate
-                      limit or a rejected number made the button flicker and
-                      nothing else, while !phoneVerified hard-disables Create
-                      Account below: a dead form with no explanation. */}
-                  {!showPhoneModal && phoneError && (
-                    <div
-                      role="alert"
-                      style={{
-                        marginTop: '6px',
-                        color: '#ff6b6b',
-                        fontSize: '11px',
-                        lineHeight: 1.35,
-                      }}
-                    >
-                      {phoneError}
-                    </div>
-                  )}
-                </div>
-
                 {/* Promo Code */}
                 <div className="auth-field-group">
                   <label className="auth-label">Promo Or Referral Code <span style={{ color: "#00d4ff", fontSize: "9px", textTransform: "none" }}>(Optional)</span></label>
@@ -1378,18 +1209,33 @@ export default function SignUpPage() {
                 </div>
               </div>
               
-{/* Checkbox 18+ */}
+{/* Checkbox 18+ — the box and its label are baked into the artwork.
+                  Measured in public/images/dynamic-signup-bg.jpg (819x1024) the
+                  box spans x 256-272, y 816-831. The card is 10/14 and the art
+                  is 8/10, so background-size: cover scales the art to the card's
+                  HEIGHT and crops ~5.4% off each side: on a phone the box lands
+                  at left 29.0%, top 79.7%, 2.2% of the card's WIDTH square.
+                  The old hotspot used 2% of the HEIGHT for its height (a
+                  different scale) and the global mobile "input { min-height:
+                  44px }" rule then stretched it to 44px, so the painted mark
+                  sat below and right of the box (Dan's screenshot, 2026-10-07).
+                  The invisible input now covers the box AND the label text
+                  (a 10px box is no tap target), opts out of the min-height,
+                  and the mark is drawn inside the painted box. */}
               <input
                 type="checkbox"
                 checked={ageConfirmed}
                 onChange={(e) => setAgeConfirmed(e.target.checked)}
                 required
+                aria-label="I Confirm That I Am 18 Years Of Age Or Older And Agree To The Platform's Terms"
                 style={{
                   position: 'absolute',
-                  top: '80.5%',
-                  left: '31%',
-                  width: '2%',
-                  height: '2%',
+                  top: '78.9%',
+                  left: '27.5%',
+                  width: '46%',
+                  height: '3.6%',
+                  minHeight: 0,
+                  margin: 0,
                   opacity: 0.01,
                   cursor: 'pointer',
                   zIndex: 10,
@@ -1400,17 +1246,21 @@ export default function SignUpPage() {
                 <svg
                   style={{
                     position: 'absolute',
-                    top: '80.5%',
-                    left: '31%',
-                    width: '2%',
-                    height: '2%',
+                    top: '79.55%',
+                    left: '29.0%',
+                    width: '2.3%',
+                    aspectRatio: '1 / 1',
+                    height: 'auto',
                     pointerEvents: 'none',
                     zIndex: 11,
                   }}
                   viewBox="0 0 24 24"
                   fill="none"
-                  stroke="#00D4FF"
-                  strokeWidth="3"
+                  stroke="#0072ff"
+                  strokeWidth="4.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
                 >
                   <polyline points="20 6 9 17 4 12"></polyline>
                 </svg>
@@ -1419,7 +1269,7 @@ export default function SignUpPage() {
               {/* Create Account Button */}
               <button
                 type="submit"
-                disabled={loading || aliasAvailable === false || !ageConfirmed || !phoneVerified}
+                disabled={loading || aliasAvailable === false || !ageConfirmed}
                 title="Create Account"
                 style={{
                   position: 'absolute',
@@ -1430,7 +1280,7 @@ export default function SignUpPage() {
                   background: 'transparent',
                   border: 'none',
                   cursor:
-                    loading || aliasAvailable === false || !ageConfirmed || !phoneVerified
+                    loading || aliasAvailable === false || !ageConfirmed
                       ? 'not-allowed'
                       : 'pointer',
                   zIndex: 10,
@@ -1792,8 +1642,8 @@ export default function SignUpPage() {
                     </span>
                   </div>
                   <div style={styles.profileRow}>
-                    <span style={styles.profileLabel}>Starting Diamonds</span>
-                    <span style={styles.profileValue}>💎 500</span>
+                    <span style={styles.profileLabel}>Welcome Package</span>
+                    <span style={styles.profileValue}>VIP Card + 💎 500 (Verify Phone)</span>
                   </div>
                   <div style={styles.profileRow}>
                     <span style={styles.profileLabel}>Skill Tier</span>
@@ -1805,11 +1655,13 @@ export default function SignUpPage() {
                   onClick={() => {
                     // Set flag so hub plays intro animation
                     sessionStorage.setItem('just_authenticated', 'true');
-                    router.push('/hub');
+                    // A brand-new player's first screen is the welcome package:
+                    // verify a phone for the VIP card + 500 diamonds, or skip.
+                    router.push('/hub/verify-phone?welcome=1');
                   }}
                   style={styles.submitButton}
                 >
-                  Enter The Hub →
+                  Claim Welcome Package →
                 </button>
               </div>
             )}
@@ -1827,174 +1679,6 @@ export default function SignUpPage() {
             )}
           </div>
 
-          {/* ═══════════════════════════════════════════════════════════════
-                    PHONE VERIFICATION MODAL - iOS SMS AUTOFILL SUPPORT
-                    ═══════════════════════════════════════════════════════════════ */}
-          {showPhoneModal && (
-            <div
-              style={{
-                position: 'fixed',
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                background: 'rgba(0, 0, 0, 0.85)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                zIndex: 9999,
-                padding: '20px',
-              }}
-            >
-              <div
-                style={{
-                  background: '#242526',
-                  border: '3px solid #555',
-                  borderRadius: '8px',
-                  padding: '32px 24px',
-                  maxWidth: '360px',
-                  width: '100%',
-                  textAlign: 'center',
-                  boxShadow: '0 2px 12px rgba(0, 0, 0, 0.4)',
-                }}
-              >
-                {/* Title */}
-                <h2
-                  style={{
-                    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                    fontSize: '22px',
-                    fontWeight: '700',
-                    color: '#E4E6EB',
-                    margin: '0 0 8px 0',
-                  }}
-                >
-                  Verify Phone
-                </h2>
-
-                <p
-                  style={{
-                    fontSize: '14px',
-                    color: '#B0B3B8',
-                    margin: '0 0 24px 0',
-                  }}
-                >
-                  Enter The 4-Digit Code Sent To
-                  <br />
-                  <span style={{ color: '#1877F2', fontWeight: '600' }}>
-                    +1 {formatPhone(formData.phone)}
-                  </span>
-                </p>
-
-                {/* OTP Input - with iOS SMS autofill support */}
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  autoComplete="one-time-code"
-                  value={phoneOtp}
-                  onChange={(e) => setPhoneOtp(e.target.value.replace(/\D/g, '').slice(0, 4))}
-                  placeholder="• • • •"
-                  autoFocus
-                  style={{
-                    width: '100%',
-                    padding: '16px',
-                    fontSize: '28px',
-                    fontWeight: '700',
-                    letterSpacing: '8px',
-                    textAlign: 'center',
-                    background: '#3A3B3C',
-                    border: phoneOtp.length === 4 ? '2px solid #31A24C' : '1px solid #3E4042',
-                    borderRadius: '6px',
-                    color: '#E4E6EB',
-                    outline: 'none',
-                    fontFamily: 'monospace',
-                    boxSizing: 'border-box',
-                  }}
-                  maxLength={4}
-                />
-
-                {/* Error message */}
-                {phoneError && (
-                  <p
-                    style={{
-                      color: '#F02849',
-                      fontSize: '13px',
-                      marginTop: '12px',
-                      marginBottom: '0',
-                    }}
-                  >
-                    {phoneError}
-                  </p>
-                )}
-
-                {/* Verify Button */}
-                <button
-                  type="button"
-                  onClick={verifyPhoneOtp}
-                  disabled={phoneVerifying || phoneOtp.length !== 4}
-                  style={{
-                    width: '100%',
-                    marginTop: '20px',
-                    padding: '14px',
-                    background: phoneOtp.length === 4 ? '#1877F2' : 'rgba(100, 100, 100, 0.5)',
-                    border: 'none',
-                    borderRadius: '6px',
-                    color: '#FFFFFF',
-                    fontWeight: '600',
-                    fontSize: '15px',
-                    cursor: phoneOtp.length === 4 ? 'pointer' : 'not-allowed',
-                    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                  }}
-                >
-                  {phoneVerifying ? 'Verifying...' : 'Verify Code'}
-                </button>
-
-                {/* Resend code link */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (phoneOtpCooldown === 0) {
-                      sendPhoneOtp();
-                    }
-                  }}
-                  disabled={phoneOtpCooldown > 0}
-                  style={{
-                    marginTop: '16px',
-                    background: 'none',
-                    border: 'none',
-                    color: phoneOtpCooldown > 0 ? '#B0B3B8' : '#1877F2',
-                    fontSize: '13px',
-                    cursor: phoneOtpCooldown > 0 ? 'not-allowed' : 'pointer',
-                    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                  }}
-                >
-                  {phoneOtpCooldown > 0
-                    ? `Resend Code In ${phoneOtpCooldown}s`
-                    : "Didn't Get The Code? Resend"}
-                </button>
-
-                {/* Cancel button */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowPhoneModal(false);
-                    setPhoneOtp('');
-                    setPhoneError('');
-                  }}
-                  style={{
-                    marginTop: '8px',
-                    background: 'none',
-                    border: 'none',
-                    color: '#B0B3B8',
-                    fontSize: '13px',
-                    cursor: 'pointer',
-                    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                  }}
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          )}
         </>
       )}
     </>

@@ -166,7 +166,6 @@ import {
   sweepStaleScrollLocks,
   clearBodyScrollLockIfUnheld,
 } from '../src/lib/scrollLock';
-import { readOwnProfile } from '../src/lib/ownProfile';
 
 /*
  * ITEM 2 (2026-09-08): these two were STATIC imports, so every page on the site
@@ -296,6 +295,7 @@ const HUB_ROUTES_WITHOUT_SHARED_HEADER = new Set([
   '/hub/social-media/compose',
   '/hub/tournaments',
   '/hub/trivia/survival',
+  '/hub/verify-phone',
 ]);
 // GlobalReportBugButton removed — bug reporting is inside every HamburgerMenu via ReportBugWidget
 // ═══════════════════════════════════════════════════════════════════════════
@@ -492,10 +492,6 @@ const DiamondToast = dynamic(() => import('../src/components/diamonds/DiamondToa
   ssr: false,
 });
 
-// Dynamic import for Phone Verification VIP Modal
-const PhoneVerifyVIPModal = dynamic(() => import('../src/components/modals/PhoneVerifyVIPModal'), {
-  ssr: false,
-});
 
 // Dynamic import for Global Error Catcher (catches async/event handler errors)
 const GlobalErrorCatcher = dynamic(() => import('../src/components/ui/GlobalErrorCatcher'), {
@@ -805,65 +801,11 @@ function NavigationGuard({ children }) {
  *
  * If any requirement fails → fail-closed → SystemOffline screen
  */
-// ═══════════════════════════════════════════════════════════════════════════
-// PHONE VERIFY VIP GATE — Shows phone verification popup for new signups
-// Checks sessionStorage for `needs_phone_verify` flag set by auth callback
-// ONLY shows if user hasn't already verified their phone
-// ═══════════════════════════════════════════════════════════════════════════
-function PhoneVerifyGate() {
-  const [showPhoneVerify, setShowPhoneVerify] = useState(false);
-  const [verifyUserId, setVerifyUserId] = useState(null);
-  const router = useRouter();
-
-  useEffect(() => {
-    // Check on route change or mount — slight delay to let page settle
-    const timer = setTimeout(async () => {
-      const userId = sessionStorage.getItem('needs_phone_verify');
-      if (!userId || userId.length < 10) return;
-
-      // Only show on hub or commander pages, not auth pages
-      const path = router.asPath;
-      if (!path.startsWith('/hub') && !path.startsWith('/commander/dashboard')) return;
-
-      // ── CRITICAL: Check if user already has phone verified ──────────
-      // Don't show popup for returning users who already verified
-      try {
-        const { supabase } = await import('../src/lib/supabase');
-        const { data: profile } = await readOwnProfile(supabase, 'phone_verified, phone', { expectId: userId });
-
-        if (profile?.phone_verified && profile?.phone) {
-          // Already verified — don't show popup, clean up flag
-          sessionStorage.removeItem('needs_phone_verify');
-          console.log('[PhoneVerifyGate] User already verified phone, skipping popup');
-          return;
-        }
-      } catch (err) {
-        console.warn('[PhoneVerifyGate] Profile check failed (showing popup):', err.message);
-        // On error, still show popup — better to ask again than skip
-      }
-
-      setVerifyUserId(userId);
-      setShowPhoneVerify(true);
-    }, 2500); // 2.5s delay so the user sees the page first
-    return () => clearTimeout(timer);
-  }, [router.asPath]);
-
-  if (!showPhoneVerify || !verifyUserId) return null;
-
-  return (
-    <PhoneVerifyVIPModal
-      userId={verifyUserId}
-      onClose={() => {
-        setShowPhoneVerify(false);
-        sessionStorage.removeItem('needs_phone_verify');
-      }}
-      onVerified={() => {
-        setShowPhoneVerify(false);
-        sessionStorage.removeItem('needs_phone_verify');
-      }}
-    />
-  );
-}
+// PHONE VERIFY VIP GATE — RETIRED (2026-10-07). Nothing set its
+// `needs_phone_verify` flag any more and its modal advertised a 90-day card.
+// Phone verification lives on /hub/verify-phone (30-day VIP card + 500
+// welcome diamonds), reached as a new player's first screen and from the hub
+// hamburger menu until verified.
 
 // ═══════════════════════════════════════════════════════════════════════════
 // WELCOME MODAL GATE — Renders NewUserWelcomeModal on first hub visit
@@ -994,18 +936,6 @@ export default function App({ Component, pageProps }) {
     ? null
     : routeWorldFooterConfig || (bottomNavRouteConfig ? getFallbackFooter() : null);
   const [isEmbedded, setIsEmbedded] = useState(false);
-
-  // Production browser gates must distinguish a committed SSR document from
-  // a client that is actually ready to own interactions. WebKit can expose
-  // the former while a replacement document or late resource prevents React
-  // effects from running. Keep this marker global and route-independent so
-  // readiness checks never infer hydration from a feature-specific detail.
-  useEffect(() => {
-    document.documentElement.dataset.worldHubHydrated = 'true';
-    return () => {
-      delete document.documentElement.dataset.worldHubHydrated;
-    };
-  }, []);
 
   // Two legacy settings surfaces intentionally suppress platform chrome when
   // embedded. Evaluate after hydration so server and first client render agree.
@@ -1285,9 +1215,6 @@ export default function App({ Component, pageProps }) {
                                 <HubErrorBoundary name="PWA Install Prompt" fallback={<></>}>
                                   <ServiceWorkerUpdater />
                                   <PWAInstallPrompt />
-                                </HubErrorBoundary>
-                                <HubErrorBoundary name="Phone Verify Gate" fallback={<></>}>
-                                  <PhoneVerifyGate />
                                 </HubErrorBoundary>
                                 <HubErrorBoundary name="Proactive Help" fallback={<></>}>
                                   <ProactiveHelp

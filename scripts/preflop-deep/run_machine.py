@@ -414,6 +414,9 @@ def _launch_approved_solver():
     return subprocess.Popen(
         [PIO_EXE], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT, bufsize=1, universal_newlines=True,
+        # Pio resolves its licensed installation files relative to its own
+        # executable directory, not the controller-delivered pipeline bundle.
+        cwd=os.path.dirname(PIO_EXE),
         env=_solver_child_environment(),
     )
 
@@ -805,9 +808,11 @@ def _parse_calc_results(raw):
         if not math.isfinite(value):
             raise RuntimeError("calc_results returned a non-finite field")
         parsed[output_name] = value
-    if set(parsed) != set(expected.values()):
+    required = set(expected.values()) - {"running_time_seconds"}
+    if not required.issubset(parsed):
         raise RuntimeError("calc_results omitted a required named field")
-    if parsed["running_time_seconds"] < 0 or parsed["exploitability_chips"] < 0:
+    # Pio 3.8 omits runtime; absence is not a fabricated zero or missing EV.
+    if ("running_time_seconds" in parsed and parsed["running_time_seconds"] < 0) or parsed["exploitability_chips"] < 0:
         raise RuntimeError("calc_results returned an impossible negative metric")
     return parsed
 

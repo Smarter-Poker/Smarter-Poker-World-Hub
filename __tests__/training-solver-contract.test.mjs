@@ -770,7 +770,7 @@ try:
     scope.update({
         'orchestrate': GatewayAvailable(),
         'subprocess': CaptureSubprocess,
-        'PIO_EXE': 'approved-pio.exe',
+        'PIO_EXE': os.path.abspath('licensed-pio/approved-pio.exe'),
     })
     scope['_launch_approved_solver']()
 finally:
@@ -778,6 +778,7 @@ finally:
     os.environ.update(old_environment)
 
 child_environment = CaptureSubprocess.kwargs['env']
+assert CaptureSubprocess.kwargs.get('cwd') == os.path.dirname(scope['PIO_EXE']), 'Pio must launch from its licensed executable directory'
 assert child_environment == {
     'PATH': r'C:\\Windows\\System32',
     'SYSTEMROOT': r'C:\\Windows',
@@ -1053,6 +1054,25 @@ IP's MES: 343.408
 Exploitable for: 55.209''')
 assert summary['exploitability_chips'] == 55.209
 assert summary['running_time_seconds'] == 52.977
+without_runtime = scope['_parse_calc_results']('''EV OOP: 181.767
+EV IP: 293.233
+OOP's MES: 242.008
+IP's MES: 343.408
+Exploitable for: 55.209''')
+assert 'running_time_seconds' not in without_runtime
+assert without_runtime['exploitability_chips'] == 55.209
+scope['_assert_calc_results_ev_consistent'](1.81767, 2.93233, without_runtime)
+for omitted in ['EV OOP', 'EV IP', "OOP's MES", "IP's MES", 'Exploitable for']:
+    missing = '\\n'.join(line for line in '''EV OOP: 181.767
+EV IP: 293.233
+OOP's MES: 242.008
+IP's MES: 343.408
+Exploitable for: 55.209'''.splitlines() if not line.startswith(omitted + ':'))
+    try:
+        scope['_parse_calc_results'](missing)
+        raise AssertionError('required scientific field missing was accepted')
+    except RuntimeError:
+        pass
 scope['_assert_calc_results_ev_consistent'](1.81767, 2.93233, summary)
 try:
     scope['_assert_calc_results_ev_consistent'](1.9, 2.93233, summary)
@@ -1110,8 +1130,9 @@ test('harvested solver rows record the phase state instead of hardcoded 100 BB f
   assert.doesNotMatch(harvester, /"pot_bb": POT_CHIPS \/ CHIPS_PER_BB/);
   assert.match(orchestrator, /pot, eff, rake,[\s\S]*\{6: "flop", 8: "turn", 10: "river"\}\[len\(full\)\],[\s\S]*gt, stack/);
   assert.ok(
-    harvester.indexOf('"set_rake %s" % rake') < harvester.indexOf('"build_tree"'),
-    'rake must be applied before the Pio tree is built',
+    harvester.indexOf('"build_tree"') < harvester.indexOf('"set_rake %s" % rake')
+      && harvester.indexOf('"set_rake %s" % rake') < harvester.indexOf('"go"'),
+    'Pio 3.8 rake must be applied after building the tree and before solving',
   );
 });
 
