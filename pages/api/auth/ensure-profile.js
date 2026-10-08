@@ -19,11 +19,13 @@ import { reportApiError } from '../../../src/lib/apiErrorHandler';
 import { isDisposableEmail, normalizeEmail, hashEmail } from '../../../src/lib/antiAbuse';
 
 /**
- * How long a phone-verification receipt stays usable. The signup form verifies
- * the handset, then the user still has to finish the form, submit, and confirm
- * their email before ensure-profile runs — so this cannot be tight. Long enough
- * to complete a signup, short enough that a receipt is not a permanent bearer
- * token for a number.
+ * How long a phone-verification receipt stays usable. HISTORICAL (pre
+ * 2026-10-07): the signup form verified the handset before the account
+ * existed and verify-otp left a server-side receipt for ensure-profile to
+ * honour. Since 2026-10-07 the phone is verified after login on
+ * /hub/verify-phone (signed-in only; no receipts are written any more), so a
+ * receipt can only come from a signup started under the old form. Kept so
+ * such an in-flight signup is still honoured; harmless otherwise.
  */
 const PHONE_RECEIPT_TTL_MS = 60 * 60 * 1000; // 1 hour
 
@@ -300,12 +302,13 @@ export default async function handler(req, res) {
           // borrowing six characters of it makes the fallback unique too without
           // needing a lock.
           // ── IS THIS HANDSET ACTUALLY VERIFIED? ──────────────────────────
-          // The signup form verifies the phone BEFORE the account exists, so
-          // /api/sms/verify-otp has no session to write to and used to return
-          // success and write nothing at all - leaving the client as the only
-          // witness. It now writes a receipt keyed on the number the moment
-          // Twilio's code matches, which is a fact the browser cannot invent.
-          // Fail CLOSED: no receipt, or a read that errors, means not verified.
+          // Since 2026-10-07 the phone is verified AFTER login on
+          // /hub/verify-phone, so a brand-new profile is normally unverified
+          // here and the welcome package is paid by verify-otp later. The
+          // receipt check below only honours a signup that started under the
+          // old form (verify-before-signUp); the browser's own metadata is
+          // never trusted. Fail CLOSED: no receipt, or a read that errors,
+          // means not verified.
           const claimedPhone = String(metadata?.phone || metadata?.phone_number || '')
               .replace(/\D/g, '');
           let phoneVerified = Boolean(authUser?.phone_confirmed_at);
@@ -393,14 +396,12 @@ export default async function handler(req, res) {
           }
 
           // ── SOCIAL PROFILE COMPLETION GATE ──
-          // Mark profile complete only if the caller supplied BOTH an explicit
-          // alias (poker_alias / preferred_username in metadata) AND a phone.
-          // Currently the email signup form only passes poker_alias (no phone),
-          // and Google/Facebook OAuth pass neither, so all new signups will be
-          // gated when they enter Social Media — which matches the requirement
-          // of collecting phone numbers from every user. If the email signup
-          // form is updated to collect phone, those users will be marked
-          // complete out of the gate automatically.
+          // Complete when the caller chose a handle (poker_alias /
+          // preferred_username in metadata): the email signup form always
+          // does, Google/Facebook OAuth never do, so only OAuth signups meet
+          // the two-step name + username gate on entering Social Media.
+          // The phone is NOT part of this gate (2026-10-08): it is verified
+          // on /hub/verify-phone, which pays the welcome package.
           // ═══════════════════════════════════════════════════════════════
           // 🛡️ WELCOME-PACKAGE ABUSE GATE
           // Throwaway-inbox farming is the cheapest attack on this economy: the

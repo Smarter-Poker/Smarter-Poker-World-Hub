@@ -18,6 +18,11 @@ import {
     normalizeAchievementItem,
     normalizeAchievementSnapshot,
 } from '../../../src/lib/trivia/achievementAuthority.mjs';
+import {
+    createLatestRequestScope,
+    createAccountOperationScope,
+    shouldGateAccountOwnedRender,
+} from '../../../src/lib/trivia/accountOperationScope.mjs';
 
 const ERROR_COPY = Object.freeze({
     authentication_required: 'Sign In Again To Read Or Claim This Achievement.',
@@ -112,6 +117,23 @@ export default function TriviaAchievements() {
     const online = useOnlineStatus();
     const { user: avatarUser, loading: avatarLoading } = useAvatar();
     const [userId, setUserId] = useState(null);
+    const accountOperationScopeRef = useRef(null);
+    if (!accountOperationScopeRef.current) {
+        accountOperationScopeRef.current = createAccountOperationScope();
+    }
+    const requestScopeRef = useRef(null);
+    if (!requestScopeRef.current) {
+        requestScopeRef.current = createLatestRequestScope();
+    }
+    const requestIdentityRef = useRef(undefined);
+    const resolvedAccountId = avatarLoading
+        ? null
+        : (avatarUser?.id || getAuthUser()?.id || null);
+    accountOperationScopeRef.current.transition(resolvedAccountId);
+    if (!avatarLoading && requestIdentityRef.current !== resolvedAccountId) {
+        requestIdentityRef.current = resolvedAccountId;
+        requestScopeRef.current.invalidate();
+    }
     const [items, setItems] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [loadError, setLoadError] = useState('');
@@ -125,9 +147,16 @@ export default function TriviaAchievements() {
 
     useEffect(() => {
         if (avatarLoading) return undefined;
+        const readRequest = requestScopeRef.current.begin();
+        if (readRequest === null) return undefined;
         let cancelled = false;
         const user = avatarUser || getAuthUser();
+        const operationScope = accountOperationScopeRef.current.capture();
+        const isCurrent = () => !cancelled
+            && accountOperationScopeRef.current.isCurrent(operationScope)
+            && requestScopeRef.current.isCurrent(readRequest);
         if (!user) {
+            if (!isCurrent()) return () => { cancelled = true; };
             loadedUserId.current = null;
             hasAuthoritativeRead.current = false;
             setUserId(null);
@@ -140,6 +169,7 @@ export default function TriviaAchievements() {
             setIsLoading(false);
             return () => { cancelled = true; };
         }
+        if (operationScope.identity !== user.id) return () => { cancelled = true; };
         if (loadedUserId.current !== user.id) {
             loadedUserId.current = user.id;
             hasAuthoritativeRead.current = false;
@@ -167,15 +197,16 @@ export default function TriviaAchievements() {
                 if (!online) throw new Error('offline');
                 const body = await readResponse(await authedFetch('/api/trivia/achievements'));
                 const next = validateRead(body);
-                if (!cancelled) {
+                if (isCurrent()) {
                     setItems(next);
                     setLoadedAt(new Date());
                     setRefreshWarning('');
                     hasAuthoritativeRead.current = true;
                 }
             } catch (error) {
+                if (!isCurrent()) return;
                 console.warn('[TriviaAchievements] Read Failed:', error?.message || error);
-                if (!cancelled) {
+                if (isCurrent()) {
                     if (hasAuthoritativeRead.current) {
                         setLoadError('');
                         setRefreshWarning('The Latest Achievement Refresh Failed. The Last Authoritative Read Remains Visible.');
@@ -184,11 +215,11 @@ export default function TriviaAchievements() {
                     }
                 }
             } finally {
-                if (!cancelled) setIsLoading(false);
+                if (isCurrent()) setIsLoading(false);
             }
         }
         load();
-        const onFocus = () => { if (online && !cancelled) setReloadKey((key) => key + 1); };
+        const onFocus = () => { if (online && isCurrent()) setReloadKey((key) => key + 1); };
         window.addEventListener('focus', onFocus);
         return () => {
             cancelled = true;
@@ -217,6 +248,12 @@ export default function TriviaAchievements() {
 
     const claim = async (achievementId) => {
         if (!online || claimState[achievementId] === 'pending') return;
+        const operationScope = accountOperationScopeRef.current.capture();
+        if (operationScope.identity !== (userId || null)) return;
+        const mutation = requestScopeRef.current.beginMutation();
+        if (mutation === null) return;
+        const isCurrent = () => accountOperationScopeRef.current.isCurrent(operationScope)
+            && requestScopeRef.current.isMutationCurrent(mutation);
         setClaimState((state) => ({ ...state, [achievementId]: 'pending' }));
         setClaimError((state) => ({ ...state, [achievementId]: '' }));
         try {
@@ -225,13 +262,16 @@ export default function TriviaAchievements() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ achievementId }),
             }));
+            if (!isCurrent()) return;
             if (body.contract !== ACHIEVEMENT_CONTRACT || body.version !== ACHIEVEMENT_VERSION) throw new Error('invalid_achievement_contract');
             const authoritative = safeNormalizeItem(body.item || body.achievement || body.result?.item || body.result);
             if (!authoritative || authoritative.id !== achievementId) throw new Error('invalid_achievement_contract');
+            if (!isCurrent()) return;
             setItems((current) => current.map((item) => item.id === achievementId ? authoritative : item));
             setClaimState((state) => ({ ...state, [achievementId]: authoritative.state === 'error' ? 'error' : 'complete' }));
             setClaimError((state) => ({ ...state, [achievementId]: authoritative.state === 'error' ? ERROR_COPY[authoritative.errorCode] || 'The Award Was Not Settled.' : '' }));
         } catch (error) {
+            if (!isCurrent()) return;
             console.warn('[TriviaAchievements] Claim Failed:', error?.message || error);
             const authoritative = safeNormalizeItem(error?.body?.item);
             if (authoritative?.id === achievementId) {
@@ -239,10 +279,18 @@ export default function TriviaAchievements() {
             }
             setClaimState((state) => ({ ...state, [achievementId]: 'error' }));
             setClaimError((state) => ({ ...state, [achievementId]: ERROR_COPY[error?.code] || 'The Award Was Not Settled. Retry Uses The Same Server Claim.' }));
+        } finally {
+            requestScopeRef.current.endMutation(mutation);
         }
     };
 
-    const signedOut = !isLoading && !userId;
+    const accountBoundaryPending = shouldGateAccountOwnedRender({
+        loading: avatarLoading,
+        resolvedIdentity: resolvedAccountId,
+        loadedIdentity: userId,
+    });
+    const renderLoading = isLoading || accountBoundaryPending;
+    const signedOut = !renderLoading && !userId;
     const retry = () => {
         setIsLoading(true);
         setReloadKey((key) => key + 1);
@@ -263,14 +311,14 @@ export default function TriviaAchievements() {
                                 titleAs="h1"
                                 titleId="trivia-achievements-title"
                                 subtitle="Verified Criteria And Settled Receipts"
-                                pill={isLoading ? 'Loading' : loadError ? 'Error' : signedOut ? 'Guest' : `${formatTriviaDisplayNumber(summary.credited)} Credited`}
+                                pill={renderLoading ? 'Loading' : loadError ? 'Error' : signedOut ? 'Guest' : `${formatTriviaDisplayNumber(summary.credited)} Credited`}
                                 pillInk={loadError || summary.errors > 0 ? 'red' : summary.credited > 0 ? 'green' : 'blue'}
                                 className="trivia-progress-console"
                                 secondaryAction={{ label: 'Back To Trivia', onClick: () => router.push('/hub/trivia') }}
-                                primaryAction={!isLoading && loadError ? { label: 'Retry', onClick: retry } : signedOut ? { label: 'Sign In', onClick: () => router.push('/auth/login?redirect=/hub/trivia/achievements') } : undefined}
+                                primaryAction={!renderLoading && loadError ? { label: 'Retry', onClick: retry } : signedOut ? { label: 'Sign In', onClick: () => router.push('/auth/login?redirect=/hub/trivia/achievements') } : undefined}
                             >
                                 <ResponsiveModeArt art={TRIVIA_INTRO_ART.achievements} priority />
-                                {isLoading ? <p className="trivia-progress-state trivia-progress-state--loading" role="status">Loading Authoritative Achievements</p> : loadError ? <section className="trivia-progress-state trivia-progress-state--error" role="alert"><p>{loadError}</p></section> : signedOut ? (
+                                {renderLoading ? <p className="trivia-progress-state trivia-progress-state--loading" role="status">Loading Authoritative Achievements</p> : loadError ? <section className="trivia-progress-state trivia-progress-state--error" role="alert"><p>{loadError}</p></section> : signedOut ? (
                                     <section className="trivia-progress-empty"><p className="trivia-progress-empty-copy">Sign In To Read Your Server-Verified Achievement Progress. Guest Visits Never Appear As Locked Or Earned Awards.</p></section>
                                 ) : (
                                     <div className="trivia-progress-content trivia-progress-content--achievements">

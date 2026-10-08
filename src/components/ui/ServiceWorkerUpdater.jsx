@@ -58,6 +58,10 @@
  * one). The uncontrolled -> controlled transition is recorded and ignored.
  */
 import { useEffect } from 'react';
+import {
+    hasActiveTriviaRun,
+    subscribeToActiveTriviaRuns,
+} from '../../lib/trivia/activeRunSignal.mjs';
 
 const RELOAD_GUARD = 'sp_sw_reloaded_at';
 const RELOAD_COOLDOWN_MS = 60_000;
@@ -67,7 +71,7 @@ const RELOAD_COOLDOWN_MS = 60_000;
  * worker already controls the next navigation after `controllerchange`; the
  * current document can safely finish its session on the assets it loaded.
  */
-function isLiveGameplaySession() {
+function isLiveTrainingGameplaySession() {
     try {
         return /^\/hub\/training\/(?:arena|play)\//.test(window.location.pathname);
     } catch {
@@ -104,12 +108,20 @@ export default function ServiceWorkerUpdater() {
         if (typeof window === 'undefined' || !('serviceWorker' in navigator)) return undefined;
 
         let cancelled = false;
+        let triviaReloadDeferred = false;
 
         // Whether this document was already being served by a worker. Captured
         // BEFORE anything is promoted, because it is the only thing that
         // distinguishes "a newer build took over" from "a worker took over for
         // the first time", and only the first of those is worth a reload.
         const hadControllerAtLoad = Boolean(navigator.serviceWorker.controller);
+
+        const reloadForUpdatedWorker = () => {
+            if (cancelled) return;
+            if (recentlyReloaded()) return;
+            markReloaded();
+            window.location.reload();
+        };
 
         const onControllerChange = () => {
             if (cancelled) return;
@@ -118,14 +130,24 @@ export default function ServiceWorkerUpdater() {
             // Reloading here is the double load Dan reported and it corrects
             // nothing. The new worker serves the NEXT navigation either way.
             if (!hadControllerAtLoad) return;
-            if (isLiveGameplaySession()) return;
+            if (isLiveTrainingGameplaySession()) return;
+            // A server-issued Trivia session is an actual live decision, not a
+            // route guess. Let it settle or unmount before replacing its page.
+            if (hasActiveTriviaRun()) {
+                triviaReloadDeferred = true;
+                return;
+            }
             // A different worker is now in charge, so the HTML and chunks this
             // page is running came from the OLD one. Reload to pick up the new
             // build. Once per minute at most.
-            if (recentlyReloaded()) return;
-            markReloaded();
-            window.location.reload();
+            reloadForUpdatedWorker();
         };
+
+        const unsubscribeFromTriviaRuns = subscribeToActiveTriviaRuns((active) => {
+            if (active || !triviaReloadDeferred) return;
+            triviaReloadDeferred = false;
+            reloadForUpdatedWorker();
+        });
 
         navigator.serviceWorker.addEventListener('controllerchange', onControllerChange);
 
@@ -176,6 +198,7 @@ export default function ServiceWorkerUpdater() {
 
         return () => {
             cancelled = true;
+            unsubscribeFromTriviaRuns();
             navigator.serviceWorker.removeEventListener('controllerchange', onControllerChange);
         };
     }, []);

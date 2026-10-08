@@ -51,6 +51,8 @@ function migration(suffix) {
 
 const FOUNDATION = migration('trivia_p2_ledger_foundation');
 const SOLO_SWITCH = migration('trivia_p2_solo_paths_switch');
+const LIFELINE_CUTOVER = migration('trivia_phase9_retire_generic_lifeline_spend');
+const PHASE9_AUTHORITY = migration('trivia_phase9_paid_skip_and_endless_score_authority');
 
 function objectLiteral(source, marker) {
     const start = source.indexOf(marker);
@@ -185,10 +187,18 @@ test('the ledger migrations keep browser roles out and install every switch OFF'
     }
 });
 
-test('the lifeline spend route and the economy audit use the Phase 2 functions', () => {
+test('lifeline spend is retired from the generic route and bound by Phase9 authority', () => {
     const spend = read('pages/api/diamonds/spend.js');
-    assert.match(spend, /source === 'trivia_lifeline' \? 'trivia_solo_spend' : 'deduct_diamonds'/);
+    const paidSkip = read('pages/api/trivia/session-paid-skip.js');
+    assert.match(spend, /source === 'trivia_lifeline'/);
+    assert.match(spend, /paid_skip_requires_session_authority/);
+    assert.doesNotMatch(spend, /source === 'trivia_lifeline' \? 'trivia_solo_spend'/);
     assert.match(spend, /supabase\.rpc\(spendRpc,\s*\{/);
+    assert.match(paidSkip, /rpc\('trivia_paid_skip_v1'/);
+    assert.match(LIFELINE_CUTOVER, /92044f698f1a78110cea321397f8344751170ec011ff90c6ee92a7d9530fdf35/);
+    assert.match(LIFELINE_CUTOVER, /paid_skip_requires_session_authority/);
+    assert.match(PHASE9_AUTHORITY, /trivia_solo_spend_before_phase9_v1/);
+    assert.match(PHASE9_AUTHORITY, /trivia_paid_skip_receipts_v1/);
     const audit = read('pages/api/cron/trivia-economy-audit.js');
     assert.match(audit, /rpc\('run_trivia_economy_audit_v1'\)/);
     assert.match(audit, /rpc\('trivia_ledger_health_v1'\)/);

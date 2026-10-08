@@ -73,7 +73,11 @@ function loadReplayRoute(session) {
         },
         async rpc(name, args) {
             calls.rpc.push({ name, args });
-            throw new Error(`unexpected replay RPC: ${name}`);
+            assert.equal(name, 'award_trivia_run_v5');
+            assert.equal(args.p_session_id, session.id);
+            assert.equal(args.p_request_id, session.settlement_request_id);
+            assert.equal(args.p_settlement_snapshot, null, 'replay must not replace its sealed snapshot');
+            return { data: { ...session.settlement_result, replayed: true }, error: null };
         },
     };
     const { module, exposed } = loadSurface(ROUTE, {
@@ -184,7 +188,12 @@ test('a submitted legacy session replays its sealed response before any mutable 
     assert.equal(res.body.replayed, true);
     assert.equal(res.body.receipt.requestId, ORIGINAL_REQUEST);
     assert.notEqual(res.body.receipt.requestId, RETRY_REQUEST, 'a retry cannot replace durable request identity');
-    assert.deepEqual(calls.rpc, []);
+    assert.deepEqual(calls.rpc, [{ name: 'award_trivia_run_v5', args: {
+        p_session_id: SESSION, p_score: 100, p_correct: 1,
+        p_total: 1, p_answered: 0, p_diamonds: 0,
+        p_completion_total: 1, p_completion_answered: 0,
+        p_request_id: ORIGINAL_REQUEST, p_settlement_snapshot: null,
+    } }]);
     assert.deepEqual(calls.updates, []);
     assert.deepEqual([...new Set(calls.tables)], ['trivia_sessions']);
 });
@@ -211,7 +220,12 @@ test('a historical settlement without a review returns only immutable fields it 
     assert.equal(res.body.receipt.requestId, ORIGINAL_REQUEST);
     assert.equal(Object.hasOwn(res.body, 'total'), false);
     assert.equal(Object.hasOwn(res.body, 'perQuestion'), false);
-    assert.deepEqual(calls.rpc, []);
+    assert.deepEqual(calls.rpc, [{ name: 'award_trivia_run_v5', args: {
+        p_session_id: SESSION, p_score: 100, p_correct: 1,
+        p_total: 0, p_answered: 0, p_diamonds: 0,
+        p_completion_total: 0, p_completion_answered: 0,
+        p_request_id: ORIGINAL_REQUEST, p_settlement_snapshot: null,
+    } }]);
     assert.deepEqual(calls.updates, []);
     assert.deepEqual([...new Set(calls.tables)], ['trivia_sessions']);
 });
@@ -280,7 +294,7 @@ test('a first legacy settlement is atomically sealed by the award RPC and can be
     assert.equal(projected.ok, true);
     assert.equal(projected.response.replayed, true);
     assert.deepEqual(projected.response.perQuestion, atomicSnapshot.perQuestion);
-    assert.match(SOURCE, /\.rpc\('award_trivia_run_v4'/);
+    assert.match(SOURCE, /\.rpc\('award_trivia_run_v5'/);
     assert.match(SOURCE, /p_settlement_snapshot: \{ deadlinePassed, perQuestion \}/);
     assert.match(SOURCE, /canonicalJson\(award\?\.api_response_v1\) !== canonicalJson\(response\)/);
     assert.doesNotMatch(SOURCE, /\.update\(\{ settlement_result:/);

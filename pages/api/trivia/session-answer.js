@@ -63,6 +63,34 @@ function validPermutation(value, optionCount) {
         && new Set(value).size === optionCount;
 }
 
+function runBoundaryFields(value) {
+    const fields = {};
+    if (Number.isInteger(value?.nonPaidMissCount) && value.nonPaidMissCount >= 0) {
+        fields.nonPaidMissCount = value.nonPaidMissCount;
+    }
+    if (Number.isInteger(value?.terminalFailureCount) && value.terminalFailureCount >= 0) {
+        fields.terminalFailureCount = value.terminalFailureCount;
+    }
+    if (Number.isInteger(value?.missLimit) && value.missLimit >= 1) {
+        fields.missLimit = value.missLimit;
+    }
+    if (typeof value?.runMissLimitReached === 'boolean') {
+        fields.runMissLimitReached = value.runMissLimitReached;
+    }
+    return fields;
+}
+
+function sequencingFields(value) {
+    return {
+        ...(Number.isInteger(value?.expectedPosition) && value.expectedPosition >= 1
+            ? { expectedPosition: value.expectedPosition }
+            : {}),
+        ...(typeof value?.priorQuestionId === 'string' && UUID_RE.test(value.priorQuestionId)
+            ? { priorQuestionId: value.priorQuestionId }
+            : {}),
+    };
+}
+
 export default async function handler(req, res) {
     try {
         if (req.method !== 'POST') {
@@ -172,7 +200,7 @@ export default async function handler(req, res) {
 
         // --- ENGINE V3: the database records, times and grades the answer ---
         if (session.engine_version) {
-            const { data: v3, error: v3Err } = await sb.rpc('trivia_session_answer_v4', {
+            const { data: v3, error: v3Err } = await sb.rpc('trivia_solo_answer_v1', {
                 p_session_id: sessionId,
                 p_user_id: userId,
                 p_question_id: questionId,
@@ -185,7 +213,12 @@ export default async function handler(req, res) {
             }
             res.setHeader('Cache-Control', 'private, no-cache, no-store, must-revalidate');
             if (!v3 || v3.success !== true) {
-                return res.status(v3ErrorStatus(v3?.error)).json({ success: false, error: v3?.error || 'record_rejected' });
+                return res.status(v3ErrorStatus(v3?.error)).json({
+                    success: false,
+                    error: v3?.error || 'record_rejected',
+                    ...runBoundaryFields(v3),
+                    ...sequencingFields(v3),
+                });
             }
             const body = {
                 success: true,
@@ -195,6 +228,7 @@ export default async function handler(req, res) {
                 fresh: v3.duplicate !== true,
                 storedDisplayIndex: Number.isInteger(v3.storedDisplayIndex) ? v3.storedDisplayIndex : idx,
                 outcome: v3.outcome,
+                ...runBoundaryFields(v3),
             };
             const durableVoid = v3.voided === true
                 || v3.serverVoided === true
@@ -228,7 +262,7 @@ export default async function handler(req, res) {
         // invalidity authority before it writes anything. A question that is
         // no longer valid is durably recorded as a keyless neutral void in
         // the same transaction; the API never performs a check-then-write.
-        const { data: recorded, error: recordErr } = await sb.rpc('trivia_legacy_session_answer_v1', {
+        const { data: recorded, error: recordErr } = await sb.rpc('trivia_solo_answer_v1', {
             p_session_id: sessionId,
             p_user_id: userId,
             p_question_id: questionId,
@@ -241,7 +275,12 @@ export default async function handler(req, res) {
         }
         if (!recorded || recorded.success !== true) {
             const error = recorded?.error || 'record_rejected';
-            return res.status(v3ErrorStatus(error)).json({ success: false, error });
+            return res.status(v3ErrorStatus(error)).json({
+                success: false,
+                error,
+                ...runBoundaryFields(recorded),
+                ...sequencingFields(recorded),
+            });
         }
         if (recorded?.stored?.v === true) {
             // Legacy sessions carry the same durable server-void marker in
@@ -257,6 +296,7 @@ export default async function handler(req, res) {
                 storedDisplayIndex: -1,
                 outcome: 'voided',
                 voided: true,
+                ...runBoundaryFields(recorded),
             });
         }
 
@@ -282,6 +322,7 @@ export default async function handler(req, res) {
                 storedDisplayIndex: -1,
                 outcome: 'voided',
                 voided: true,
+                ...runBoundaryFields(recorded),
             });
         }
 
@@ -334,6 +375,7 @@ export default async function handler(req, res) {
             fresh: answerReceipt.fresh,
             explanation: typeof review.explanation === 'string' ? review.explanation : null,
             solverMetadata,
+            ...runBoundaryFields(recorded),
         });
     } catch (e) {
         console.warn('[trivia session-answer] unexpected:', e);

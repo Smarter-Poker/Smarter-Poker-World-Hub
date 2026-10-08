@@ -73,7 +73,7 @@ test('session start owns canonical run sizes and atomic entry charging', () => {
 });
 
 test('settlement persists a verified score atomically and closes wheel forgery paths', () => {
-    assert.match(submit, /rpc\('award_trivia_run_v4'/);
+    assert.match(submit, /rpc\('award_trivia_run_v5'/);
     assert.match(submit, /validateTriviaAwardResponse\(award/);
     assert.match(submit, /scoreId: receipt\.scoreId/);
     assert.match(submit, /invalid_award_receipt/);

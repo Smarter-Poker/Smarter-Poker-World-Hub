@@ -33,8 +33,9 @@ function getSupabase() {
 // account SID lands in the Twilio REST URL path (→ ERR_UNESCAPED_CHARACTERS),
 // the auth token corrupts the Basic-auth header (→ 401), and the "from" number
 // is rejected as non-E.164. Net effect before this fix: send-otp 500'd on every
-// call in prod, and because signup REQUIRES phone verification, NOBODY could
-// complete the full signup form.
+// call in prod, and because signup REQUIRED phone verification at the time,
+// NOBODY could complete the full signup form. (Since 2026-10-07 the phone is
+// verified after login on /hub/verify-phone, which is this route's only caller.)
 const accountSid = (process.env.TWILIO_ACCOUNT_SID || '').trim();
 const authToken = (process.env.TWILIO_AUTH_TOKEN || '').trim();
 const twilioPhone = (process.env.TWILIO_PHONE_NUMBER || '').trim();

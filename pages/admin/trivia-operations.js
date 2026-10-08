@@ -138,6 +138,7 @@ export default function TriviaOperationsPage() {
     const [questionForm, setQuestionForm] = useState({ targetId: '', reasonCode: 'operator_review', reason: '' });
     const [pvpReason, setPvpReason] = useState('');
     const [tournamentForm, setTournamentForm] = useState({ targetId: '', reason: '' });
+    const [settlementForm, setSettlementForm] = useState({ targetId: '', reason: '' });
     const [incidentForm, setIncidentForm] = useState({ incidentKey: '', severity: 'warning', status: 'open', note: '', reason: '' });
     const [lookupForm, setLookupForm] = useState({ kind: 'user', targetId: '' });
     const [lookupState, setLookupState] = useState({ busy: false, result: null, error: null });
@@ -394,10 +395,26 @@ export default function TriviaOperationsPage() {
             ) : null}
 
             {can('settlement_control') ? (
-                <Panel title="Payout hold unavailable">
-                    <p style={S.muted}>The Phase 2 Settlement Contract Has No Payout-Only Hold At Its Actual Settlement Choke Point. No Hold Switch Is Shown Because An Unenforced Database Flag Would Be Fake Authority.</p>
+                <Panel title="Settlement payout control">
+                    <div style={S.formGrid}>
+                        <label style={S.label}>Settlement ID
+                            <input style={S.input} value={settlementForm.targetId} onChange={(event) => setSettlementForm({ ...settlementForm, targetId: event.target.value })} placeholder="UUID" />
+                        </label>
+                        <label style={S.label}>Required Operational Reason
+                            <textarea style={S.textarea} value={settlementForm.reason} onChange={(event) => setSettlementForm({ ...settlementForm, reason: event.target.value })} />
+                        </label>
+                    </div>
+                    <div style={S.actions}>
+                        <ActionButton danger disabled={actionState.busy} onClick={() => executeAction({ action: 'payout_hold', reason: settlementForm.reason, targetId: settlementForm.targetId.trim(), payload: {} })}>Hold Payout</ActionButton>
+                        <ActionButton disabled={actionState.busy} onClick={() => executeAction({ action: 'payout_release', reason: settlementForm.reason, targetId: settlementForm.targetId.trim(), payload: {} })}>Release Payout</ActionButton>
+                    </div>
+                    <p style={S.note}>The Hold Is Enforced Inside The Authoritative Settlement Transaction. It Blocks Payout And Rake Settlement, Never Exact-Entry Cancellation Refunds Or A Valid Zero-Movement Void. Every Hold And Release Uses The Same Settlement ID And Produces An Immutable Receipt.</p>
                 </Panel>
-            ) : null}
+            ) : (
+                <Panel title="Settlement payout control">
+                    <p style={S.note}>Payout Hold Unavailable. This Operator Session Does Not Carry The Named Settlement-Control Capability.</p>
+                </Panel>
+            )}
 
             {can('incident_note') ? (
                 <Panel title="Immutable incident note">
@@ -426,7 +443,7 @@ export default function TriviaOperationsPage() {
                 <Panel title="Privacy-safe support lookup">
                     <div style={S.formGrid}>
                         <label style={S.label}>Record Kind
-                            <select style={S.input} value={lookupForm.kind} onChange={(event) => setLookupForm({ ...lookupForm, kind: event.target.value })}><option value="user">User</option><option value="pvp_match">PvP Match</option><option value="tournament">Tournament</option><option value="question">Question</option></select>
+                            <select style={S.input} value={lookupForm.kind} onChange={(event) => setLookupForm({ ...lookupForm, kind: event.target.value })}><option value="user">User</option><option value="pvp_match">PvP Match</option><option value="tournament">Tournament</option><option value="question">Question</option><option value="settlement">Settlement</option></select>
                         </label>
                         <label style={S.label}>Record ID
                             <input style={S.input} value={lookupForm.targetId} onChange={(event) => setLookupForm({ ...lookupForm, targetId: event.target.value })} placeholder="UUID" />

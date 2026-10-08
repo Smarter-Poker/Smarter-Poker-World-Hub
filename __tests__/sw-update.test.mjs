@@ -31,6 +31,7 @@ const UPDATER = readFileSync(join(ROOT, 'src/components/ui/ServiceWorkerUpdater.
 const WORKER = readFileSync(join(ROOT, 'worker/index.js'), 'utf8');
 const APP = readFileSync(join(ROOT, 'pages/_app.js'), 'utf8');
 const NEXT_CONFIG = readFileSync(join(ROOT, 'next.config.js'), 'utf8');
+const RUN_HOOK = readFileSync(join(ROOT, 'src/hooks/useServerGradedRun.js'), 'utf8');
 
 test('root worker registration is app-owned and rejects safely in WebKit', () => {
     assert.match(
@@ -103,7 +104,7 @@ test('the first worker to claim an uncontrolled page never reloads it', () => {
     );
     const controllerHandler = UPDATER.slice(UPDATER.indexOf('const onControllerChange'));
     const firstClaimGuard = controllerHandler.indexOf('if (!hadControllerAtLoad) return;');
-    const reload = controllerHandler.indexOf('window.location.reload()');
+    const reload = controllerHandler.indexOf('reloadForUpdatedWorker();');
     assert.ok(firstClaimGuard >= 0, 'the first-claim transition is not guarded');
     assert.ok(reload > firstClaimGuard, 'the first-claim guard must precede the reload');
     // The flag has to be read at mount, before anything promotes a waiting
@@ -118,9 +119,73 @@ test('the first worker to claim an uncontrolled page never reloads it', () => {
 test('a worker update never reloads a live Training gameplay session', () => {
     assert.match(UPDATER, /\/hub\\\/training\\\/\(\?:arena\|play\)/, 'Training gameplay routes are not identified');
     const controllerHandler = UPDATER.slice(UPDATER.indexOf('const onControllerChange'));
-    const gameplayGuard = controllerHandler.indexOf('isLiveGameplaySession()');
-    const reload = controllerHandler.indexOf('window.location.reload()');
+    const gameplayGuard = controllerHandler.indexOf('isLiveTrainingGameplaySession()');
+    const reload = controllerHandler.indexOf('reloadForUpdatedWorker();');
     assert.ok(gameplayGuard >= 0 && reload > gameplayGuard, 'gameplay must be guarded before the reload');
+});
+
+test('a worker update defers on an actual active Trivia run, not a Trivia route guess', () => {
+    assert.match(UPDATER, /hasActiveTriviaRun\(\)/, 'the updater does not inspect the shared live-run signal');
+    assert.match(UPDATER, /subscribeToActiveTriviaRuns/, 'a deferred update cannot resume when the last run settles');
+    assert.doesNotMatch(UPDATER, /\/hub\\\/trivia/, 'Trivia safety must follow the server run rather than a route whitelist');
+    const controllerHandler = UPDATER.slice(UPDATER.indexOf('const onControllerChange'));
+    const activeGuard = controllerHandler.indexOf('if (hasActiveTriviaRun())');
+    const reload = controllerHandler.indexOf('reloadForUpdatedWorker();');
+    assert.ok(activeGuard >= 0 && reload > activeGuard, 'the active-run guard must precede the reload');
+    assert.match(
+        UPDATER,
+        /if \(active \|\| !triviaReloadDeferred\) return;[\s\S]*?triviaReloadDeferred = false;[\s\S]*?reloadForUpdatedWorker\(\)/,
+        'the deferred update must reload only after the aggregate run signal reaches zero'
+    );
+});
+
+test('the shared Trivia run lease is acquired, settled, reset and always released on unmount', () => {
+    assert.match(RUN_HOOK, /activeRunReleaseRef = useRef\(null\)/);
+    assert.match(RUN_HOOK, /activeRunReleaseRef\.current = acquireActiveTriviaRun\(\)/);
+    const accountEffect = RUN_HOOK.slice(
+        RUN_HOOK.indexOf('// Re-adopt only a validated'),
+        RUN_HOOK.indexOf('const openSession')
+    );
+    assert.match(
+        accountEffect,
+        /operationScopeRef\.current\.transition\(operationIdentity\);[\s\S]*?const invalidateLifecycle = \(\) => \{\s*operationScopeRef\.current\.transition\(null\);\s*clearActiveRun\(\);\s*\};[\s\S]*?return invalidateLifecycle;[\s\S]*?setRecoverableSession\(record\);\s*return invalidateLifecycle;/,
+        'both effect branches must install the lifecycle-invalidating unmount cleanup'
+    );
+    const resume = RUN_HOOK.slice(RUN_HOOK.indexOf('const resume = useCallback'), RUN_HOOK.indexOf('const acknowledgeSettlement'));
+    assert.match(
+        resume,
+        /sessionRef\.current = recovery\.sessionId;[\s\S]*?markRunActive\(\);[\s\S]*?await submit\(\[\], \{ recovering: true \}\)/,
+        'settlement replay must hold a run lease before the network request'
+    );
+    assert.match(
+        RUN_HOOK,
+        /const projectionPending = mode === 'endless'[\s\S]*?!isTerminalEndlessHighScoreProjection\(json\?\.highScoreProjection\);\s*if \(!projectionPending\) clearActiveRun\(\);\s*return json;/,
+        'a nonterminal Endless projection must retain its live-run lease'
+    );
+    assert.match(
+        RUN_HOOK,
+        /if \(mode === 'endless'[\s\S]*?!isTerminalEndlessHighScoreProjection\([\s\S]*?lastSettlementRef\.current\?\.highScoreProjection\)\) return false;[\s\S]*?retireRecovery\(\);\s*clearActiveRun\(\);/,
+        'acknowledgement must refuse malformed or pending projection receipts'
+    );
+    assert.match(RUN_HOOK, /const reset = useCallback[\s\S]*?setError\(null\);[\s\S]*?clearActiveRun\(\);/);
+});
+
+test('active Trivia run leases are aggregate, idempotent and notify only at zero crossings', async () => {
+    const signal = await import(`../src/lib/trivia/activeRunSignal.mjs?sw-test=${Date.now()}`);
+    const transitions = [];
+    const unsubscribe = signal.subscribeToActiveTriviaRuns(active => transitions.push(active));
+    const releaseFirst = signal.acquireActiveTriviaRun();
+    const releaseSecond = signal.acquireActiveTriviaRun();
+    assert.equal(signal.hasActiveTriviaRun(), true);
+    assert.deepEqual(transitions, [true], 'a second mounted run does not emit a false boundary');
+    releaseFirst();
+    releaseFirst();
+    assert.equal(signal.hasActiveTriviaRun(), true, 'one unmount cannot clear another run');
+    assert.deepEqual(transitions, [true]);
+    releaseSecond();
+    assert.equal(signal.hasActiveTriviaRun(), false);
+    assert.deepEqual(transitions, [true, false]);
+    unsubscribe();
 });
 
 test('the updater is mounted app-wide, not on one page', () => {

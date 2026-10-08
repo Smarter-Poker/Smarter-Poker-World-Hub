@@ -31,12 +31,9 @@
         edit to this file uncommittable.)
      2. A token that is present but invalid/expired is a hard 401 — no silent
         downgrade to the anonymous path.
-     3. NO token at all is still allowed, but ONLY for pure code verification.
-        pages/auth/signup.js verifies the phone BEFORE supabase.auth.signUp()
-        runs, so there is genuinely no session to present at that point. That
-        path now performs ZERO profile writes — it answers "is this code
-        correct for this phone", nothing more. Signup itself persists
-        phone_verified on the row it creates.
+     3. NO token at all is a hard 401 (2026-10-08). The signup form stopped
+        verifying a phone before supabase.auth.signUp() on 2026-10-07; the
+        only caller is the signed-in /hub/verify-phone screen.
      4. Free VIP grant cut 90 days → 30 days, matching the standard signup
         trial (supabase/migrations/20260330120000_vip_paywall_30day_trial.sql).
         VIP is a subscription; a 90-day giveaway for owning a phone was three
@@ -46,8 +43,7 @@
         (25 💎) through award_diamonds_v2 — the single capped, idempotent,
         service-role-only award path — instead of writing a cosmetic
         zero-amount diamond_transactions row that credited nothing.
-     6. The duplicate-phone guard now runs on BOTH paths (authenticated and
-        anonymous signup). It is the single strongest anti-multi-account
+     6. The duplicate-phone guard runs after a correct code. It is the single strongest anti-multi-account
         control in the codebase and the signup path had no equivalent. It
         cannot be used to enumerate accounts: it only fires AFTER a correct
         OTP, which means the caller physically controls that handset.
@@ -56,6 +52,7 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/apiErrorHandler';
+import { isDisposableEmail } from '../../../src/lib/antiAbuse';
 
 let _supabase = null;
 function getSupabase() {
@@ -84,9 +81,9 @@ const PHONE_VIP_TRIAL_DAYS = 30;
 /**
  * Resolve the caller's identity from the Authorization header ONLY.
  *
- * Returns { userId, error }.
- *   • no header            → { userId: null }          (anonymous signup path)
- *   • header + valid jwt   → { userId: '<uuid>' }
+ * Returns { userId, email, error }.
+ *   • no header            → { userId: null }          (refused with 401 below)
+ *   • header + valid jwt   → { userId: '<uuid>', email }
  *   • header + bad jwt     → { userId: null, error: 'Invalid or expired session' }
  *
  * The request body is never consulted. That was the whole vulnerability.
@@ -103,7 +100,7 @@ async function resolveAuthedUser(req, supabase) {
         if (error || !data?.user?.id) {
             return { userId: null, error: 'Invalid or expired session' };
         }
-        return { userId: data.user.id };
+        return { userId: data.user.id, email: typeof data.user.email === 'string' ? data.user.email.trim() : '' };
     } catch (err) {
         console.warn('[verify-otp] auth.getUser threw:', err?.message || err);
         return { userId: null, error: 'Invalid or expired session' };
@@ -125,12 +122,18 @@ export default async function handler(req, res) {
       // ═══════════════════════════════════════════════════════════════════
       // IDENTITY — from the JWT, never from the body.
       // A present-but-invalid token is rejected outright so a stale session
-      // can never quietly fall through to the anonymous (no-write) path and
-      // leave the user wondering why nothing was granted.
+      // is never mistaken for a signed-out caller.
       // ═══════════════════════════════════════════════════════════════════
-      const { userId: authedUserId, error: authError } = await resolveAuthedUser(req, supabase);
+      const { userId: authedUserId, email: authedEmail, error: authError } = await resolveAuthedUser(req, supabase);
       if (authError) {
           return res.status(401).json({ success: false, error: authError });
+      }
+      // AUTHENTICATED ONLY (2026-10-08). The signup form no longer verifies a
+      // phone before supabase.auth.signUp(), so the session-less path has no
+      // caller left. Leaving it open let anyone burn OTP attempts and write
+      // phone_verification_receipts with no account at all.
+      if (!authedUserId) {
+          return res.status(401).json({ success: false, error: 'Sign in to verify your phone number' });
       }
 
       try {
@@ -248,21 +251,16 @@ export default async function handler(req, res) {
           // enumeration oracle (which is exactly why send-otp deliberately
           // defers the check to here).
           //
-          // On the anonymous signup path there is no user id to exclude, so
-          // ANY existing verified owner of this number blocks the signup.
+          // The caller's own row is excluded so re-verifying your own number
+          // is allowed (it pays nothing a second time, see below).
           // ═══════════════════════════════════════════════════════════════
-          let dupQuery = supabase
+          const { data: duplicateProfiles, error: dupError } = await supabase
               .from('profiles')
               .select('id')
               .eq('phone', cleanPhone)
               .eq('phone_verified', true)
+              .neq('id', authedUserId)
               .limit(1);
-
-          if (authedUserId) {
-              dupQuery = dupQuery.neq('id', authedUserId); // allow re-verifying your own number
-          }
-
-          const { data: duplicateProfiles, error: dupError } = await dupQuery;
 
           if (dupError) {
               // Fail CLOSED. A DB hiccup must not become a free pass around the
@@ -276,53 +274,11 @@ export default async function handler(req, res) {
 
           if (duplicateProfiles && duplicateProfiles.length > 0) {
               console.warn(
-                  `[verify-otp] Security block: ${authedUserId || 'anonymous signup'} tried to verify phone ${cleanPhone} already in use by another verified account.`
+                  `[verify-otp] Security block: ${authedUserId} tried to verify phone ${cleanPhone} already in use by another verified account.`
               );
               return res.status(409).json({
                   success: false,
                   error: 'This phone number is already registered to another verified account.'
-              });
-          }
-
-          // ═══════════════════════════════════════════════════════════════
-          // ANONYMOUS PATH — code verification ONLY, zero profile writes.
-          // pages/auth/signup.js calls this before supabase.auth.signUp(), so
-          // there is no session yet and no row to write to. Signup persists
-          // phone / phone_verified itself on the profile it creates.
-          // ═══════════════════════════════════════════════════════════════
-          if (!authedUserId) {
-              // ...BUT LEAVE A RECEIPT (2026-08-25).
-              // "Zero profile writes" was right — there is no row yet. The
-              // problem was that it left NO server-side record of any kind, so
-              // the only witness that this handset had ever been verified was
-              // the browser, and ensure-profile trusted the browser: it read
-              // `phone_verified` straight out of user_metadata, which the
-              // account holder can set for themselves with
-              // supabase.auth.updateUser({ data: { phone_verified: true } }).
-              // One handset, unlimited accounts, unlimited welcome diamonds —
-              // around the control the block above calls the single strongest
-              // anti-farming measure we have.
-              //
-              // A receipt keyed on the number is a fact the client cannot
-              // invent. ensure-profile confirms against it and fails closed.
-              // Not fatal if it fails: refusing a verification we just proved
-              // is worse than a signup that has to re-verify.
-              const { error: receiptError } = await supabase
-                  .from('phone_verification_receipts')
-                  .upsert(
-                      { phone: cleanPhone, verified_at: new Date().toISOString() },
-                      { onConflict: 'phone' }
-                  );
-              if (receiptError) {
-                  console.warn('[verify-otp] receipt write failed:', receiptError.message);
-              }
-
-              return res.status(200).json({
-                  success: true,
-                  message: 'Phone number verified successfully',
-                  verified: true,
-                  vipGranted: false,
-                  diamondsAwarded: 0,
               });
           }
 
@@ -344,6 +300,17 @@ export default async function handler(req, res) {
           let vipGranted      = false;
           let diamondsAwarded = 0;
           let welcomeDiamonds = 0;
+          // What happened to the welcome package, for an honest success screen:
+          //   'granted'            paid now
+          //   'already_claimed'    this account was paid before (replayed)
+          //   'withheld_disposable' throwaway inbox: verified, nothing paid
+          //   'mint_refused'       the Mint refused (issuance freeze); the
+          //                        later-login re-ask in ensure-profile restarts it
+          let packageStatus   = 'mint_refused';
+
+          // 🛡️ Same throwaway-inbox rule ensure-profile applies: the account
+          // keeps full access and a verified phone, but no free money.
+          const isDisposable = isDisposableEmail(authedEmail || '');
 
           try {
               const now        = new Date();
@@ -357,9 +324,17 @@ export default async function handler(req, res) {
                   .maybeSingle();
 
               // Lifetime VIP is never touched. Otherwise only extend, never shorten.
-              const existingExpiry = profile?.vip_expires_at ? new Date(profile.vip_expires_at) : null;
-              const isLifetime     = profile?.vip_tier === 'lifetime';
-              const shouldGrantVip = !isLifetime
+              // FIRST VERIFICATION ONLY (2026-10-08): re-verifying your own number,
+              // or a new number on an already-verified account, used to hand out
+              // another 30 days every time. The card is part of a one-time
+              // welcome package; the catalog award below is lifetime-once for
+              // the same reason.
+              const existingExpiry   = profile?.vip_expires_at ? new Date(profile.vip_expires_at) : null;
+              const isLifetime       = profile?.vip_tier === 'lifetime';
+              const firstVerification = profile?.phone_verified !== true;
+              const shouldGrantVip = firstVerification
+                  && !isDisposable
+                  && !isLifetime
                   && (!profile?.is_vip || !existingExpiry || existingExpiry < vipExpires);
 
               // Always update phone + phone_verified
@@ -379,7 +354,15 @@ export default async function handler(req, res) {
                   .eq('id', authedUserId);
 
               if (updateError) {
+                  // FAIL CLOSED (2026-10-08). The OTP row is already consumed; a
+                  // 200 here used to tell the player "You're all set" while the
+                  // profile still said unverified, and the hub sent them straight
+                  // back to the welcome screen for a fresh code with no explanation.
                   console.warn('[verify-otp] Profile update error:', updateError);
+                  return res.status(503).json({
+                      success: false,
+                      error: 'Your code was correct but we could not save the verification. Please request a new code and try again.',
+                  });
               } else {
                   vipGranted = shouldGrantVip;
 
@@ -390,7 +373,7 @@ export default async function handler(req, res) {
                   // The reference id is USER-SCOPED: diamond_transactions.reference_id
                   // is globally unique, so an unscoped id would let the first
                   // claimer permanently block everyone else.
-                  try {
+                  if (!isDisposable) try {
                       const { data: award, error: awardError } = await supabase.rpc('award_diamonds_v2', {
                           p_user_id:      authedUserId,
                           p_action_key:   'phone_verified',
@@ -418,7 +401,10 @@ export default async function handler(req, res) {
                   // row now says phone_verified, and ensure-profile re-asks the
                   // Mint for the same op id on the next login of a verified,
                   // zero-balance player, so the grant restarts from its record.
-                  try {
+                  if (isDisposable) {
+                      packageStatus = 'withheld_disposable';
+                      console.warn('[ANTI-ABUSE] Disposable signup domain verified a phone - WITHHOLDING welcome package.', { userId: authedUserId });
+                  } else try {
                       const { data: minted, error: mintErr } = await supabase.rpc('fn_ca_mint', {
                           p_asset: 'diamonds',
                           p_destination: 'player',
@@ -432,7 +418,10 @@ export default async function handler(req, res) {
                           console.warn('[verify-otp] welcome package mint failed:', mintErr.message);
                       } else if (minted?.ok && !minted?.replayed) {
                           welcomeDiamonds = 500;
-                      } else if (!minted?.ok && !minted?.replayed) {
+                          packageStatus = 'granted';
+                      } else if (minted?.replayed) {
+                          packageStatus = 'already_claimed';
+                      } else {
                           console.warn('[verify-otp] The Mint did not issue the welcome package:', minted?.reason);
                       }
                   } catch (mintThrow) {
@@ -473,6 +462,7 @@ export default async function handler(req, res) {
               diamondsAwarded,
               welcomeDiamonds,
               vipDays: vipGranted ? PHONE_VIP_TRIAL_DAYS : 0,
+              packageStatus,
           });
 
       } catch (error) {
