@@ -212,6 +212,13 @@ export const FunnelEvents = Object.freeze({
     BANKROLL_FIRST_ENTRY: 'bankroll_first_entry',
     BANKROLL_RECEIPT_SCANNED: 'bankroll_receipt_scanned',
     BANKROLL_RECEIPT_FILED: 'bankroll_receipt_filed',
+    // Phone verification after login (2026-10-08). The welcome package
+    // (30-day VIP card + 500 diamonds) is earned on /hub/verify-phone, so
+    // the question is how many new players reach it, verify, or skip.
+    PHONE_VERIFY_SHOWN: 'phone_verify_shown',
+    PHONE_VERIFY_CODE_SENT: 'phone_verify_code_sent',
+    PHONE_VERIFIED: 'phone_verified',
+    PHONE_VERIFY_SKIPPED: 'phone_verify_skipped',
 });
 
 export default { capture, identify, reset, register, FunnelEvents };

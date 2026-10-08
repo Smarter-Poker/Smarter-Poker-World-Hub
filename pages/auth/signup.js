@@ -992,7 +992,10 @@ export default function SignUpPage() {
                     border: 1px solid rgba(0, 212, 255, 0.2) !important;
                     border-radius: 4px;
                     color: #fff !important;
-                    font-size: 14px !important;
+                    /* 16px, not 14px: iOS Safari zooms the whole page into any
+                       focused input smaller than 16px, which is why the form
+                       "jumped" on tap (2026-10-08). */
+                    font-size: 16px !important;
                     padding: 0 10px !important;
                     box-sizing: border-box;
                     outline: none !important;
