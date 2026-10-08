@@ -162,7 +162,12 @@ export function AvatarProvider({ children }) {
                 });
                 clearTimeout(timeoutId);
                 const data = await res.json();
-                if (data.created || data.isBrandNew) {
+                // THE WELCOME PACKAGE IS EARNED BY PHONE VERIFICATION (2026-10-07).
+                // The "500 Diamonds + 30-Day VIP Card" popup is only true once the
+                // package was actually granted; a brand-new unverified player is
+                // shown /hub/verify-phone instead, and its success screen is the
+                // welcome. ensure-profile says which case this is.
+                if ((data.created || data.isBrandNew) && data.welcomePackage?.granted === true) {
                     console.debug('[ANTIGRAVITY] Profile was missing or brand new - checking welcome modal for:', data.profile?.username);
 
                     // NEW USER WELCOME PACKAGE: Trigger welcome modal
