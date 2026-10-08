@@ -1,6 +1,9 @@
 import React, { createContext, useContext } from 'react';
 export const identity = createContext({ id: 'account-a' });
-export const useAvatar = () => ({ user: useContext(identity), loading: false });
+export const useAvatar = () => {
+  const user = useContext(identity);
+  return { user, loading: user.loading === true };
+};
 export const getAuthUser = () => window.fixtureAccount;
 export const getAccessToken = () => 'isolated-browser-fixture';
 export const authedFetch = (url, options = {}) =>

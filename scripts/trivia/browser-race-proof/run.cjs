@@ -497,6 +497,37 @@ const snapshot = (owner, state) => ({
       );
       await ctx.close();
     }
+    for (const [mode, title] of [
+      ['mtt', 'MTT Scenarios'],
+      ['cash', 'Cash Game'],
+      ['icm', 'ICM & Chip EV'],
+      ['gto', 'GTO Master'],
+    ]) {
+      const { ctx, page, go } = await fresh('strategy-' + mode + '&authLoading=true');
+      await go();
+      await expect(page.getByTestId('trivia-skeleton')).toBeVisible();
+      await expect(page.getByRole('main')).toHaveCount(1);
+      await expect(
+        page.getByRole('main').getByRole('heading', { level: 1, name: title, exact: true })
+      ).toBeVisible();
+      await page.evaluate(() => window.switchLoading(false));
+      await expect(
+        page.locator('[data-strategy-mode="' + mode + '"][data-game-state="lobby"]')
+      ).toBeVisible();
+      await expect(page.getByRole('main')).toHaveCount(1);
+      await expect(
+        page.getByRole('main').getByRole('heading', { level: 1, name: title, exact: true })
+      ).toBeVisible();
+      await expect(
+        page.getByRole('main').getByRole('button', { name: 'Start Challenge', exact: true })
+      ).toBeVisible();
+      results.push(
+        'strategy ' +
+          mode +
+          ': one main-content landmark contains the actual loading title and hydrated lobby/actions'
+      );
+      await ctx.close();
+    }
     expect(pageErrors).toEqual([]);
     console.log(JSON.stringify({ status: 'passed', results, evidenceDirectory: output }, null, 2));
     fs.writeFileSync(

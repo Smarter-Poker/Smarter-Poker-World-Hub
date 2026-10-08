@@ -3,6 +3,8 @@ import { createRoot } from 'react-dom/client';
 import Achievements from '../../../pages/hub/trivia/achievements.js';
 import Settings from '../../../pages/hub/trivia/settings.js';
 import Endless from '../../../pages/hub/trivia/endless.js';
+import Strategy from '../../../src/components/trivia/StrategyTrivia.jsx';
+import '../../../src/styles/worlds/trivia-console-strategy.css';
 import Art from '../../../src/components/trivia/console/ResponsiveModeArt.jsx';
 import Updater from '../../../src/components/ui/ServiceWorkerUpdater.jsx';
 import {
@@ -10,12 +12,19 @@ import {
   hasActiveTriviaRun,
 } from '../../../src/lib/trivia/activeRunSignal.mjs';
 import { identity } from './fixture.jsx';
-window.fixtureAccount = { id: 'account-a' };
+window.fixtureAccount = {
+  id: 'account-a',
+  loading: new URLSearchParams(location.search).get('authLoading') === 'true',
+};
 function App() {
   const [account, setAccount] = useState(window.fixtureAccount);
   const [art, setArt] = useState('broken');
   window.switchAccount = (id) => {
     window.fixtureAccount = { id };
+    setAccount(window.fixtureAccount);
+  };
+  window.switchLoading = (loading) => {
+    window.fixtureAccount = { ...window.fixtureAccount, loading };
     setAccount(window.fixtureAccount);
   };
   window.switchArt = setArt;
@@ -37,7 +46,9 @@ function App() {
   }
   return (
     <identity.Provider value={account}>
-      {mode === 'achievements' ? (
+      {mode?.startsWith('strategy-') ? (
+        <Strategy mode={mode.slice('strategy-'.length)} />
+      ) : mode === 'achievements' ? (
         <Achievements />
       ) : mode === 'settings' ? (
         <Settings />
