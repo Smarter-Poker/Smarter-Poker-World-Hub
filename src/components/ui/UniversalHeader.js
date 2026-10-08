@@ -747,7 +747,7 @@ export default function UniversalHeader({
   // Now handled by useDiamondBalance hook
 
   // ── VIP status bus listener - updates VIP badge in real time ──
-  // Triggered by PhoneVerifyVIPModal after successful phone verification
+  // Triggered by /hub/verify-phone after a successful phone verification
   useEffect(() => {
     const handleVipChange = (e) => {
       console.debug('[UniversalHeader] 🚌 VIP status change event received:', e.detail);

@@ -185,7 +185,7 @@ export default function useCurrentUser() {
         const handler = () => {
             // Ignore the echo of our own dispatch in fetchProfile. A genuine
             // profile-edit save (profileHandlers, BasicInfoSection,
-            // CustomAvatarBuilder, PhoneVerifyVIPModal, ...) dispatches outside
+            // CustomAvatarBuilder, /hub/verify-phone, ...) dispatches outside
             // that bracket and still refetches exactly as before.
             if (selfDispatchDepth > 0) return;
             fetchedRef.current = false;

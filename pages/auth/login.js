@@ -1017,10 +1017,12 @@ export default function LoginPage() {
           }}
           style={{
             position: 'absolute',
-            top: '86.2%',
+            // Starts where the Magic Link hotspot ends (82.2% + 4.6%) so the
+            // two never overlap.
+            top: '86.8%',
             left: '38%',
             width: '40%',
-            height: '5.5%',
+            height: '4.9%',
             background: 'transparent',
             border: 'none',
             cursor: 'pointer',
