@@ -22,6 +22,7 @@ import {
   toSeoSeries,
 } from '../../../src/lib/poker-near-me/seriesSeo.mjs';
 import {
+  canonicalSeriesRouteId,
   isPokerSeriesRouteId,
   isServableSeriesParentEvidence,
   toPokerSeriesRouteId,
@@ -342,6 +343,17 @@ async function primarySeriesRouteId(series) {
 }
 
 export async function getServerSideProps({ params, req, res }) {
+  const requestedId = String(params?.id ?? '');
+  const canonicalId = canonicalSeriesRouteId(requestedId);
+  if (canonicalId && canonicalId !== requestedId) {
+    return {
+      redirect: {
+        destination: `/hub/series/${canonicalId}`,
+        permanent: true,
+      },
+    };
+  }
+
   const { series: seoSeries, status } = await fetchSeries(params?.id, originFrom(req));
   if (seoSeries) {
     const primary = await primarySeriesRouteId(seoSeries);
