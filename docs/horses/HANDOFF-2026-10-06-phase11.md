@@ -211,3 +211,14 @@ Trivia worker contract still requiring VERCEL=1 and counting unrelated ready
 steps globally. Its assertions now require explicit PWA_ENABLED=1, refuse
 HTTPS-host impersonation and independently count the two Trivia gates. Worker
 and rollback assertions remain. Validation and corrected submission pending.
+
+
+Corrected Trivia focused group passed 180/180 locally, ordinary hooks passed,
+submitted as 2cea2d7fe. This owned PR has automatic merging disabled so direct
+release ownership retains the final footer acceptance gate. The production
+certificate now additionally visits Statistics, Settings and Pipeline at both
+widths, requires their authenticated reads to succeed and waits for their
+loading states without changing controls. Dedicated certificate/consumer
+contracts passed 31/31; targeted verifier lint and whitespace passed. Genuine
+production results remain pending. Corrected visual sheets now replace the old
+fixture-failure sheets; all 28 desktop/mobile panels were reviewed.

@@ -137,7 +137,7 @@ async function waitForPanel(page, tabId, heading) {
   const panel = page.locator('main[role="tabpanel"]');
   await panel.getByText(/^Loading /).waitFor({ state: 'detached', timeout: 20_000 }).catch(() => {});
   requireCondition(await panel.getByText(/^Loading /).count() === 0, `panel_${tabId}_still_loading`);
-  requireCondition(await panel.getByText(/Could Not Be Loaded|The Code For This Tab Did Not Arrive/i).count() === 0, `panel_${tabId}_load_failure`);
+  requireCondition(await panel.getByText(/Could Not Be Loaded|Could Not Be Displayed|The Code For This Tab Did Not Arrive/i).count() === 0, `panel_${tabId}_load_failure`);
 }
 
 async function assertNoOverflow(page, viewport, surface, samples) {
@@ -273,11 +273,36 @@ async function probeViewport(browser, storageState, viewport) {
 
     await page.waitForFunction(() => !document.body.innerText.includes('Reading Economy Evidence...'), null, { timeout: 20_000 });
     await assertNoOverflow(page, viewport, 'close-and-jobs', overflowSamples);
+    // Later merged consumers are part of this same read-only certification.
+    await waitForPanel(page, 'stats', 'Platform Statistics');
+    await waitForApi(apiStatuses, '/api/horses/analytics');
+    await page.waitForFunction(() => !document.querySelector('main[role="tabpanel"]')?.innerText.includes('Reading The'), null, { timeout: 20_000 });
+    requireCondition(await page.getByText('Analytics Unavailable:', { exact: false }).count() === 0, `${viewport.name}_analytics_unavailable`);
+    await assertNoOverflow(page, viewport, 'statistics', overflowSamples);
+
+    const settingsReadsBefore = apiStatuses.filter((entry) => entry.path === '/api/horses/stable-admin').length;
+    await waitForPanel(page, 'settings', 'Engine Settings');
+    await waitForApi(apiStatuses, '/api/horses/stable-admin', settingsReadsBefore);
+    await page.waitForFunction(() => !document.querySelector('main[role="tabpanel"]')?.innerText.includes('Reading The'), null, { timeout: 20_000 });
+    requireCondition(await page.getByText('Settings Not Read:', { exact: false }).count() === 0, `${viewport.name}_settings_unavailable`);
+    requireCondition(await page.getByText('Controls Are Locked Because The Saved Settings Row Was Not Read.', { exact: false }).count() === 0, `${viewport.name}_settings_not_loaded`);
+    requireCondition(await page.getByText('Posting Modes Not Read:', { exact: false }).count() === 0, `${viewport.name}_posting_modes_unavailable`);
+    await assertNoOverflow(page, viewport, 'settings', overflowSamples);
+
+    const pipelineReadsBefore = apiStatuses.filter((entry) => entry.path === '/api/horses/stable-admin').length;
+    await waitForPanel(page, 'pipeline', 'Content Pipeline');
+    await waitForApi(apiStatuses, '/api/horses/stable-admin', pipelineReadsBefore);
+    await page.getByText('Loading Pipeline Runs', { exact: true }).waitFor({ state: 'detached', timeout: 20_000 });
+    requireCondition(await page.getByText('Pipeline Runs Unavailable:', { exact: false }).count() === 0, `${viewport.name}_pipeline_unavailable`);
+    await assertNoOverflow(page, viewport, 'pipeline', overflowSamples);
+
     const requiredApiPaths = [
       '/api/horses/floor-admin',
       '/api/horses/integrity-admin',
       '/api/horses/platform-admin',
       '/api/horses/economy-admin',
+      '/api/horses/analytics',
+      '/api/horses/stable-admin',
     ];
     for (const path of requiredApiPaths) {
       const matches = apiStatuses.filter((entry) => entry.path === path);
@@ -295,6 +320,7 @@ async function probeViewport(browser, storageState, viewport) {
       tabCount,
       requiredTabs: true,
       phase11Surfaces: true,
+      laterConsumers: ['statistics', 'settings', 'pipeline'],
       overflowPx: overflowSamples,
       pageErrorCount: pageErrors.length,
       chunkFailureCount: chunkFailures.length,
