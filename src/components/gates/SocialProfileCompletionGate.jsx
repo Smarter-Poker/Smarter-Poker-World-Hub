@@ -6,10 +6,14 @@
  *
  *   1. Full Name      — confirm or edit (pre-filled from Google given+family).
  *   2. @Username      — live availability check + 3 collision-aware suggestions.
- *   3. Phone Number   — required contact info (US country code default).
+ *
+ * Phone number is NOT collected here (2026-10-08): it is verified on
+ * /hub/verify-phone, which is what pays the welcome package. An unverified
+ * number written from this gate used to land in profiles.phone in a
+ * non-E.164 shape the one-handset guard could never match.
  *
  * Trigger: profile.social_profile_completed === false.
- * Cannot be dismissed without completing all three. (No close X, no overlay
+ * Cannot be dismissed without completing both steps. (No close X, no overlay
  * dismiss.) The user can still navigate elsewhere via the bottom nav, but the
  * modal will reappear next time they enter Social Media.
  *
@@ -32,40 +36,13 @@ const ANIM = `
 .spcg-suggestion:hover { background: rgba(0,212,255,0.18) !important; border-color: rgba(0,212,255,0.5) !important; }
 `;
 
-const COUNTRIES = [
-    { code: '+1',  flag: '🇺🇸', label: 'US/CA' },
-    { code: '+44', flag: '🇬🇧', label: 'UK' },
-    { code: '+61', flag: '🇦🇺', label: 'AU' },
-    { code: '+91', flag: '🇮🇳', label: 'IN' },
-    { code: '+52', flag: '🇲🇽', label: 'MX' },
-    { code: '+55', flag: '🇧🇷', label: 'BR' },
-    { code: '+49', flag: '🇩🇪', label: 'DE' },
-    { code: '+33', flag: '🇫🇷', label: 'FR' },
-    { code: '+81', flag: '🇯🇵', label: 'JP' },
-    { code: '+86', flag: '🇨🇳', label: 'CN' },
-];
-
 const USERNAME_RE = /^[a-zA-Z0-9][a-zA-Z0-9_.]{2,19}$/;
-
-// Format phone digits as xxx-xxx-xxxx for +1 (Dan's preferred display format),
-// otherwise leave digits with spaces every 3 chars.
-function formatPhone(digits, countryCode) {
-    const d = (digits || '').replace(/\D/g, '');
-    if (countryCode === '+1') {
-        if (d.length <= 3) return d;
-        if (d.length <= 6) return `${d.slice(0, 3)}-${d.slice(3)}`;
-        return `${d.slice(0, 3)}-${d.slice(3, 6)}-${d.slice(6, 10)}`;
-    }
-    return d.replace(/(\d{3})(?=\d)/g, '$1 ').trim();
-}
 
 export default function SocialProfileCompletionGate({ profile, onComplete }) {
     // ── Step state ──
     const [step, setStep] = useState(1);
     const [fullName, setFullName] = useState('');
     const [username, setUsername] = useState('');
-    const [country, setCountry] = useState('+1');
-    const [phoneDigits, setPhoneDigits] = useState('');
     const [submitting, setSubmitting] = useState(false);
     const [submitError, setSubmitError] = useState('');
 
@@ -91,18 +68,7 @@ export default function SocialProfileCompletionGate({ profile, onComplete }) {
             .replace(/[^a-zA-Z0-9_.]/g, '')
             .slice(0, 20);
         setUsername(cleanedAlias);
-        // Pre-fill phone if we somehow already have it. Stored format may be
-        // "+1 5551234567" (this gate's format), "+15551234567" (E.164), or any
-        // user-typed string from profile-edit. Without country-code stripping
-        // the modal would render a stored "+15551234567" as "155-123-4567" —
-        // an invalid area code starting with 1.
-        const rawDigits = (profile.phone || '').replace(/\D/g, '');
-        if (rawDigits.length === 11 && rawDigits.startsWith('1')) {
-            setCountry('+1');
-            setPhoneDigits(rawDigits.slice(1));
-        } else if (rawDigits) {
-            setPhoneDigits(rawDigits);
-        }
+
     }, [profile]);
 
     // ── Username availability checker (used by the debounce effect AND by
@@ -178,10 +144,9 @@ export default function SocialProfileCompletionGate({ profile, onComplete }) {
     // ── Step validation ──
     const nameValid     = fullName.trim().length >= 2 && fullName.trim().length <= 80 && /[A-Za-zÀ-ÖØ-öø-ÿ]/.test(fullName);
     const usernameValid = USERNAME_RE.test(username.trim()) && availability?.available === true;
-    const phoneValid    = phoneDigits.replace(/\D/g, '').length >= 7;
 
     const handleSubmit = useCallback(async () => {
-        if (!nameValid || !usernameValid || !phoneValid) return;
+        if (!nameValid || !usernameValid) return;
         setSubmitting(true);
         setSubmitError('');
         try {
@@ -195,7 +160,6 @@ export default function SocialProfileCompletionGate({ profile, onComplete }) {
                 body: JSON.stringify({
                     full_name: fullName.trim(),
                     username:  username.trim(),
-                    phone:     `${country} ${phoneDigits.replace(/\D/g, '')}`.trim(),
                 }),
             });
             const data = await resp.json();
@@ -210,9 +174,6 @@ export default function SocialProfileCompletionGate({ profile, onComplete }) {
                 } else if (data?.error === 'invalid_name') {
                     setSubmitError(data.message || 'Please enter a valid name.');
                     setStep(1);
-                } else if (data?.error === 'invalid_phone') {
-                    setSubmitError(data.message || 'Please enter a valid phone number.');
-                    // Already on step 3
                 } else {
                     setSubmitError(data?.message || 'Could not save your profile. Try again.');
                 }
@@ -233,7 +194,7 @@ export default function SocialProfileCompletionGate({ profile, onComplete }) {
         } finally {
             setSubmitting(false);
         }
-    }, [fullName, username, country, phoneDigits, nameValid, usernameValid, phoneValid, onComplete, runUsernameCheck]);
+    }, [fullName, username, nameValid, usernameValid, onComplete, runUsernameCheck]);
 
     return (
         <>
@@ -243,12 +204,12 @@ export default function SocialProfileCompletionGate({ profile, onComplete }) {
                     <div style={s.header}>
                         <div style={s.iconWrap}>💎</div>
                         <h2 id="spcg-title" style={s.title}>Finish Your Profile</h2>
-                        <p style={s.subtitle}>One Quick Step Before You Jump Into Social - So Other Players Can Find You.</p>
+                        <p style={s.subtitle}>Two Quick Steps Before You Jump Into Social - So Other Players Can Find You.</p>
                     </div>
 
                     {/* Step indicator */}
                     <div style={s.stepRow}>
-                        {[1, 2, 3].map((n) => (
+                        {[1, 2].map((n) => (
                             <div key={n} style={{
                                 ...s.stepDot,
                                 background: step >= n ? 'linear-gradient(135deg, #00d4ff, #0099ff)' : 'rgba(255,255,255,0.1)',
@@ -332,61 +293,13 @@ export default function SocialProfileCompletionGate({ profile, onComplete }) {
                                     ))}
                                 </div>
                             )}
-                            <div style={s.actionsRow}>
-                                <button style={s.btnSecondary} onClick={() => setStep(1)}>← Back</button>
-                                <button
-                                    className="spcg-btn-primary"
-                                    style={s.btnPrimary}
-                                    disabled={!usernameValid}
-                                    onClick={() => setStep(3)}
-                                >Continue →</button>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* ── Step 3: Phone ── */}
-                    {step === 3 && (
-                        <div style={s.stepBlock}>
-                            <label style={s.label} htmlFor="spcg-phone">Phone Number</label>
-                            <div style={s.inputGroup}>
-                                <select
-                                    style={s.countrySelect}
-                                    value={country}
-                                    onChange={(e) => setCountry(e.target.value)}
-                                    aria-label="Country code"
-                                >
-                                    {COUNTRIES.map((c) => (
-                                        <option key={c.code} value={c.code} style={{ background: '#0a1628' }}>
-                                            {c.flag} {c.code} {c.label}
-                                        </option>
-                                    ))}
-                                </select>
-                                <input
-                                    id="spcg-phone"
-                                    className="spcg-input"
-                                    style={{ ...s.input, paddingLeft: 12 }}
-                                    type="tel"
-                                    inputMode="numeric"
-                                    autoComplete="tel"
-                                    placeholder={country === '+1' ? '555-123-4567' : '5551234567'}
-                                    value={formatPhone(phoneDigits, country)}
-                                    onChange={(e) => setPhoneDigits(e.target.value.replace(/\D/g, '').slice(0, 15))}
-                                    maxLength={20}
-                                    autoFocus
-                                />
-                            </div>
-                            <div style={s.helper}>
-                                {phoneValid
-                                    ? <span style={{ color: '#4ade80' }}>✓ Looks Good</span>
-                                    : <span style={{ color: 'rgba(255,255,255,0.5)' }}>We Use This For Account Recovery And Friend Matching Only.</span>}
-                            </div>
                             {submitError && <div style={s.errorBox}>{submitError}</div>}
                             <div style={s.actionsRow}>
-                                <button style={s.btnSecondary} onClick={() => setStep(2)} disabled={submitting}>← Back</button>
+                                <button style={s.btnSecondary} onClick={() => setStep(1)} disabled={submitting}>← Back</button>
                                 <button
                                     className="spcg-btn-primary"
                                     style={s.btnPrimary}
-                                    disabled={!phoneValid || !usernameValid || !nameValid || submitting}
+                                    disabled={!usernameValid || !nameValid || submitting}
                                     onClick={handleSubmit}
                                 >
                                     {submitting ? <span style={s.spinner} /> : 'Finish ✓'}
@@ -394,6 +307,7 @@ export default function SocialProfileCompletionGate({ profile, onComplete }) {
                             </div>
                         </div>
                     )}
+
                 </div>
             </div>
         </>

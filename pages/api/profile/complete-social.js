@@ -31,10 +31,14 @@ export default async function handler(req, res) {
         }
         if (!applyRateLimit(req, res, LIMITS.write)) return;
 
+        // Phone is no longer collected here (2026-10-08): it is verified on
+        // /hub/verify-phone. A legacy client may still send one; it is passed
+        // through unchanged and the RPC treats an absent phone as "leave it".
         const { full_name, username, phone } = req.body || {};
-        if (typeof full_name !== 'string' || typeof username !== 'string' || typeof phone !== 'string') {
+        if (typeof full_name !== 'string' || typeof username !== 'string'
+            || (phone !== undefined && phone !== null && typeof phone !== 'string')) {
             return res.status(400).json({ success: false, error: 'invalid_body',
-                message: 'full_name, username, and phone are required strings.' });
+                message: 'full_name and username are required strings.' });
         }
 
         const auth = req.headers.authorization || '';
@@ -57,7 +61,7 @@ export default async function handler(req, res) {
         const { data, error } = await sb.rpc('claim_social_profile', {
             p_full_name: full_name,
             p_username:  username,
-            p_phone:     phone,
+            p_phone:     typeof phone === 'string' ? phone : null,
         });
 
         if (error) {
