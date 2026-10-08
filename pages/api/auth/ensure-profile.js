@@ -91,7 +91,7 @@ export default async function handler(req, res) {
           // Step 1: Check if profile exists by user_id
           const { data: existingProfile, error: checkError } = await getSupabase()
               .from('profiles')
-              .select('id, username, full_name, email, created_at, last_active, is_online, diamonds')
+              .select('id, username, full_name, email, created_at, last_active, is_online, diamonds, phone_verified')
               .eq('id', user_id)
               .maybeSingle();
 
@@ -187,11 +187,26 @@ export default async function handler(req, res) {
               const now = Date.now();
               const isBrandNew = (now - createdTime) < 60000; // Created in last 60 seconds
 
+              // The phone-verification welcome screen (2026-10-07): the DB trigger
+              // creates the profile at signUp, so by the time /auth/callback asks,
+              // the row already EXISTS. Say here whether the welcome package is
+              // still waiting on a phone so the callback can make the welcome
+              // screen a new player's first screen. Young = under 14 days, the
+              // same window pages/hub/index.js uses.
+              const WELCOME_WINDOW_MS = 14 * 24 * 60 * 60 * 1000;
+              const isYoung = Number.isFinite(createdTime) && (now - createdTime) < WELCOME_WINDOW_MS;
+              const phoneVerifiedNow = existingProfile.phone_verified === true;
+
               return res.json({
                   status: 'EXISTS',
                   profile: existingProfile,
                   created: false,
-                  isBrandNew
+                  isBrandNew,
+                  welcomePackage: phoneVerifiedNow
+                      ? { granted: true }
+                      : (isYoung
+                          ? { granted: false, withheldReason: 'phone_not_verified', claimAt: '/hub/verify-phone' }
+                          : { granted: false }),
               });
           }
 
@@ -421,9 +436,12 @@ export default async function handler(req, res) {
               );
           }
 
+          // The social-profile gate exists for OAuth signups that arrive with no
+          // chosen handle. An email signup chose its alias on the form; its phone
+          // is collected by /hub/verify-phone now (2026-10-07), so a missing phone
+          // no longer sends it through that gate.
           const hadExplicitAlias = !!(metadata?.poker_alias || metadata?.preferred_username);
-          const hadPhone         = !!(metadata?.phone || metadata?.phone_number);
-          const socialProfileCompleted = hadExplicitAlias && hadPhone;
+          const socialProfileCompleted = hadExplicitAlias;
 
           // Create the profile with all the defaults
           const { data: newProfile, error: insertError } = await getSupabase()

@@ -20,6 +20,8 @@ import Link from 'next/link';
 import SEOHead from '../../src/components/seo/SEOHead';
 import { supabase } from '../../src/lib/supabase';
 import { useRequireAuth, authedFetch } from '../../src/lib/authUtils';
+import { busEmit } from '../../src/engine/EventBus';
+import { showDiamondToast } from '../../src/components/diamonds/DiamondToast';
 
 const RESEND_COOLDOWN_S = 60;
 const DISMISS_KEY = 'phone_prompt_dismissed_at';
@@ -56,16 +58,16 @@ export default function VerifyPhonePage() {
         let cancelled = false;
         (async () => {
             try {
-                const { data: profile } = await supabase
+                // profiles.phone is not readable by the browser (column grant
+                // withheld on purpose); phone_verified is.
+                const { data: profile, error: readErr } = await supabase
                     .from('profiles')
-                    .select('phone_verified, phone')
+                    .select('phone_verified')
                     .eq('id', user.id)
                     .maybeSingle();
                 if (cancelled) return;
-                if (profile?.phone_verified === true) {
-                    setAlreadyVerified(true);
-                    if (profile.phone) setPhone(String(profile.phone).replace(/^\+1/, ''));
-                }
+                if (readErr) console.warn('[verify-phone] profile read failed:', readErr.message);
+                if (profile?.phone_verified === true) setAlreadyVerified(true);
             } catch (_e) { /* show the form anyway */ }
             if (!cancelled) setProfileChecked(true);
         })();
@@ -131,10 +133,21 @@ export default function VerifyPhonePage() {
             if (!res.ok || !data.success) throw new Error(data.error || 'Verification Failed');
             setResult(data);
             setStage('done');
+            // Hydrate the header and balance the way the old welcome popup did:
+            // the VIP badge flips on and the diamonds land without a reload.
             try {
-                // The menu item and the first-screen check read these.
-                await supabase.auth.updateUser({ data: { phone_verified_client: true } });
-                localStorage.removeItem('sp-profile-cache');
+                const earned = Number(data.welcomeDiamonds || 0) + Number(data.diamondsAwarded || 0);
+                if (data.vipGranted) {
+                    window.dispatchEvent(new CustomEvent('vip-status-changed', { detail: { vipGranted: true } }));
+                }
+                if (earned > 0) {
+                    showDiamondToast(earned, 'Welcome Package');
+                    busEmit.diamondsEarned(earned, 'Welcome Package');
+                }
+                window.dispatchEvent(new Event('profile-updated'));
+                // The official popup is for a package already in hand; this
+                // screen just delivered it, so it never needs to show again.
+                localStorage.setItem(`sp-welcome-shown-${user?.id}`, 'true');
             } catch (_e) { /* cosmetic */ }
         } catch (err) {
             setError(err.message || 'Verification Failed');
@@ -339,7 +352,8 @@ export default function VerifyPhonePage() {
 const CYAN = '#00d4ff';
 const styles = {
     page: {
-        minHeight: '100dvh',
+        // The approved global header sits above this page in the flow (~56px).
+        minHeight: 'calc(100dvh - 56px)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
