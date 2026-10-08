@@ -237,3 +237,22 @@ menu gate is claimed. Failure-only, non-content DOM diagnostics now retain
 focus target/ancestor inert state to distinguish remount and isolation causes;
 assertions and timeouts are unchanged. Protected merge/publication/certificate
 remain pending.
+
+
+The shared footer blocker now has a reproducible source cause. A controlled
+local feed GET was held while the real Social menu opened on its skeleton.
+Escape closed it, then completing the feed replaced the entire header: the
+unchanged toBeFocused assertion failed against the new approved trigger.
+The page now reuses one keyed UniversalHeader at the same position under
+PageTransition in both loading and populated branches. No delay, forced focus
+or acceptance weakening supplies correctness. The exact reproducing sequence
+and the converse hydration-before-close sequence both pass in WebKit; the
+original Social containment test passes too (3/3). Both new cases assert the
+original trigger stays connected, focus returns, and body/inert isolation
+releases. Failing-before artifact retained under social-hydration-before-fix.
+Connected menu/feed contracts passed 36/36; targeted lint has zero errors
+and 33 pre-existing Social warnings. Full maintained production build passed
+507/507 and bundle budgets (/horses 58,057 bytes; gzip 19,491).
+The diagnostic-only hosted run 37797925101 is still queued; its candidate is
+superseded by this authoritative fix when submitted. Genuine final hosted
+acceptance, protected integration, publication and certificate remain pending.

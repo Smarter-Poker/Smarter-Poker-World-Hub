@@ -262,3 +262,36 @@ for (const path of ['/hub/friends', '/hub/messenger', '/hub/reels']) {
     }
   });
 }
+
+
+for (const closeBeforeHydration of [true, false]) {
+  test(`Social Media preserves menu focus when feed hydration finishes ${closeBeforeHydration ? 'after' : 'before'} close`, async ({ page }) => {
+    let releaseFeed!: () => void;
+    const feedReady = new Promise<void>((resolve) => { releaseFeed = resolve; });
+    await page.route('**/api/social/feed?*', async (route) => {
+      await feedReady;
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ posts: [], hasMore: false, nextOffset: 0 }) });
+    });
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.goto('/hub/social-media', { waitUntil: 'domcontentloaded' });
+    await expect(page.locator('.sf-skel').first()).toBeVisible();
+    const trigger = await expectTriggerPainted(page);
+    const originalTrigger = await trigger.elementHandle();
+    await trigger.click();
+    const drawer = page.locator('[data-world-command-menu="social-media"]:visible');
+    await expect(drawer).toHaveCount(1);
+    if (closeBeforeHydration) await page.keyboard.press('Escape');
+    releaseFeed();
+    await expect(page.locator('.sf-skel')).toHaveCount(0);
+    expect(await originalTrigger?.evaluate((element) => element.isConnected)).toBe(true);
+    if (!closeBeforeHydration) {
+      await expect(drawer).toHaveCount(1);
+      await expect(page.locator('body')).toHaveCSS('overflow', 'hidden');
+      await page.keyboard.press('Escape');
+    }
+    await expect(drawer).toHaveCount(0);
+    await expect(trigger).toBeFocused();
+    await expect(page.locator('body')).not.toHaveCSS('overflow', 'hidden');
+    expect(await trigger.evaluate((element) => element.closest('[inert]'))).toBeNull();
+  });
+}
