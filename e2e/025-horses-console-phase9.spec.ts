@@ -56,7 +56,7 @@ function apiFixture(permissions: string[]) {
   return {
     success: true,
     ...page,
-    data: page,
+    data: { ...page, clubs: [], unions: [] },
     operatorId: OPERATOR_ID,
     userId: OPERATOR_ID,
     permissions,
@@ -157,6 +157,8 @@ async function expectPanelChunkSettled(page: Page, label: string) {
   await expect(panel.getByText(`Loading ${label}`, { exact: true })).toHaveCount(0, { timeout: 15_000 });
   await expect(panel.getByRole('heading', { name: `${label} Could Not Be Loaded`, exact: true })).toHaveCount(0);
   await expect(panel.getByText('The Code For This Tab Did Not Arrive.', { exact: false })).toHaveCount(0);
+  await expect(panel.getByText(/^(?:Loading |Reading .*\.\.\.$)/)).toHaveCount(0, { timeout: 15_000 });
+  await expect(panel.getByRole('heading', { name: /Could Not Be Displayed$/ })).toHaveCount(0);
 }
 
 test.describe('25. Stable Admin Phase 9 architecture smoke', () => {

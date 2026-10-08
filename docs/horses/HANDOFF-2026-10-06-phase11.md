@@ -190,3 +190,15 @@ An independent full-catalogue visual/overflow audit retained sanitized local
 fixtures at 1440x900 and 375x812: all 28 panels passed real navigation, settled
 loading, no document/body overflow and no page/chunk errors; 56 screenshots
 archived. These are fixture rendering evidence, not genuine production data.
+
+
+The screenshot review found a catalogue-test blind spot: the generic nested
+`data` fixture omitted Mint destination arrays, so its error boundary caught a
+render failure that page-error/chunk-only checks missed. Actual targets API
+returns both arrays; this was a fixture defect, not an observed live Mint
+defect. The fixture now carries the canonical arrays and the maintained
+settled-panel helper refuses caught render boundaries. Corrected catalogue
+audit passed both viewports, replacing all 56 screenshots; strengthened
+maintained browser suite passed 14/14 without retries. Focused architecture,
+core-panel, documentation and privacy contracts passed 33/33; targeted lint and
+whitespace passed. Earlier 2-case audit is superseded by this corrected run.
