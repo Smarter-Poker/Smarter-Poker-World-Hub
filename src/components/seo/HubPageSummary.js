@@ -452,7 +452,7 @@ export const HUB_PAGE_SUMMARIES = {
   trivia: {
     heading: 'About Poker Trivia',
     lead:
-      'Poker Trivia Is The Smarter Poker Quiz Game: Questions On Hand Rankings, Pot Odds, Tournament History, Rules Disputes And The People Who Made The Game. Several Modes Run On The Same Question Bank, From An Endless Run To A Timed Sprint To A One Life Survival Game, With Streaks, Achievements And A Public Leaderboard On Top. It Is Free To Play, Needs No Account To Start, And Nothing In It Is A Wager.',
+      'Poker Trivia Offers Server Scored Questions On Hand Rankings, Pot Odds, Tournament History And Rules. Choose A Knowledge Room Or A Challenge, Sign In To Start Or Recover Your Run, And Review The Entry Cost, VIP Eligibility And Reward Limits Before Playing. Challenge Modes Include Three Miss, Progressive Survival, Time Attack And Mixed Questions. Results And Diamond Activity Are Confirmed By Server Receipts.',
     links: [
       // Head To Head and Trivia Tournaments ARE NOT LINKED from these
       // summaries while their release gates are closed
@@ -462,8 +462,8 @@ export const HUB_PAGE_SUMMARIES = {
       // same change that opens the gate: the sitemap reads the gate
       // itself, and a-summary-only-links-to-a-page-that-exists fails
       // until the two agree (AEO phase 3, 2026-09-18).
-      { name: 'Endless', href: '/hub/trivia/endless', text: 'Keep Answering Until You Decide To Stop.' },
-      { name: 'Survival', href: '/hub/trivia/survival-game', text: 'One Run, And A Wrong Answer Ends It.' },
+      { name: 'Endless', href: '/hub/trivia/endless', text: 'One Hundred Questions, With A Three Miss Limit.' },
+      { name: 'Survival', href: '/hub/trivia/survival-game', text: 'Ten Levels With Increasing Accuracy Requirements.' },
       { name: 'Time Attack', href: '/hub/trivia/time-attack', text: 'As Many As You Can Before The Clock Runs Out.' },
       { name: 'Mixed', href: '/hub/trivia/mixed', text: 'Every Category At Once, In Random Order.' },
       { name: 'Leaderboard', href: '/hub/trivia/leaderboard', text: 'Who Is Ahead Today, This Week And All Time.' },
@@ -472,27 +472,27 @@ export const HUB_PAGE_SUMMARIES = {
   'trivia-endless': {
     heading: 'About Endless Mode',
     lead:
-      'Endless Is Poker Trivia With No Stop Condition: Questions Keep Coming Until You Decide To Leave, And Your Run Is Scored On How Far You Got And How Often You Were Right. It Is The Mode For Learning Rather Than Competing, Because A Wrong Answer Costs You Nothing But The Explanation That Follows It. Free To Play, And No Account Is Needed To Start A Run.',
+      'Endless Is The Three Miss Challenge: Work Through A Dealt Round Of One Hundred Questions Until You Finish Or Reach Three Misses. Sign In To Start Or Recover Your Run. Review Entry Cost, VIP Eligibility, Reward Limits And Paid Skip Terms Before Playing. Answers, Skips And Settlement Are Recorded By The Server, And A Pending Receipt Can Be Recovered Without Starting A Second Entry.',
     links: [
       { name: 'Poker Trivia', href: '/hub/trivia', text: 'Every Mode, And How The Question Bank Works.' },
-      { name: 'Survival', href: '/hub/trivia/survival-game', text: 'The Same Questions, With One Life.' },
+      { name: 'Survival', href: '/hub/trivia/survival-game', text: 'Twenty Questions Per Level, With Increasing Accuracy Requirements.' },
       { name: 'Poker Glossary', href: '/glossary', text: 'Look Up Anything A Question Used And You Did Not Know.' },
     ],
   },
   'trivia-survival': {
     heading: 'About Survival Mode',
     lead:
-      'Survival Is One Run With One Life: Answer Correctly And The Next Question Comes, Answer Wrong And The Run Is Over. The Score Is How Deep You Got, Which Makes It The Mode Where Knowing You Do Not Know Is Worth As Much As Knowing. Streaks Carry Across Sessions And The Best Runs Reach The Leaderboard. Free To Play, And Nothing In It Is A Wager.',
+      'Survival Advances Through Ten Levels Of Twenty Questions With Increasing Accuracy Requirements. Sign In To Start Or Recover Your Level, And Review Entry Cost, VIP Eligibility, Reward Limits And Paid Skip Terms Before Playing. The Server Records Each Answer And Settles Each Level; Advancement Depends On Meeting That Level\'s Required Score.',
     links: [
       { name: 'Poker Trivia', href: '/hub/trivia', text: 'Every Mode, And How The Question Bank Works.' },
       { name: 'Leaderboard', href: '/hub/trivia/leaderboard', text: 'The Deepest Runs Today, This Week And All Time.' },
-      { name: 'Endless', href: '/hub/trivia/endless', text: 'The Same Questions, With No Way To Lose.' },
+      { name: 'Endless', href: '/hub/trivia/endless', text: 'One Hundred Questions, With A Three Miss Limit.' },
     ],
   },
   'trivia-time-attack': {
     heading: 'About Time Attack',
     lead:
-      'Time Attack Gives You A Fixed Clock And Counts How Many Questions You Answer Correctly Before It Runs Out. Skipping Is Free And Guessing Is Not, So The Mode Rewards Reading Fast And Knowing When To Move On, Which Is A Closer Match To A Real Decision At The Table Than Any Amount Of Thinking Time Would Be. Free To Play, And No Account Is Needed To Start.',
+      'Time Attack Gives You A Timed Round Of Poker Questions. Sign In To Start Or Recover Your Run, And Review Entry Cost, VIP Eligibility And Reward Limits Before Playing. The Server Records Your Answers And Confirms The Final Score And Diamond Result. Keep The Same Run When Recovering A Pending Answer Or Settlement.',
     links: [
       { name: 'Poker Trivia', href: '/hub/trivia', text: 'Every Mode, And How The Question Bank Works.' },
       { name: 'GTO Training', href: '/hub/training', text: 'Timed Decisions On Real Hands Rather Than Questions.' },
@@ -502,11 +502,11 @@ export const HUB_PAGE_SUMMARIES = {
   'trivia-mixed': {
     heading: 'About Mixed Mode',
     lead:
-      'Mixed Draws From Every Category At Once And In Random Order: Hand Rankings Next To Tournament History Next To A Rules Dispute Next To Pot Odds. It Is The Mode That Finds The Category You Have Been Avoiding, Because You Cannot See What Is Coming And Cannot Prepare For It. Free To Play, And Nothing In It Is A Wager.',
+      'Mixed Combines Poker Questions From Different Categories In One Dealt Round. Sign In To Start Or Recover Your Run, And Review Entry Cost, VIP Eligibility And Reward Limits Before Playing. The Server Records Each Answer And Confirms The Final Score And Diamond Result. Recovery Retains Your Original Run And Recorded Answers.',
     links: [
       { name: 'Poker Trivia', href: '/hub/trivia', text: 'Every Mode, And How The Question Bank Works.' },
       { name: 'Poker Glossary', href: '/glossary', text: 'Seventy Four Terms Defined, For The Category You Keep Missing.' },
-      { name: 'Endless', href: '/hub/trivia/endless', text: 'The Same Breadth, With No Stop Condition.' },
+      { name: 'Endless', href: '/hub/trivia/endless', text: 'A Dealt Round With A Three Miss Limit.' },
     ],
   },
   'trivia-pvp': {
@@ -533,7 +533,7 @@ export const HUB_PAGE_SUMMARIES = {
       'The Trivia Leaderboard Ranks Players On Daily, Weekly And All Time Windows, Across Every Mode: Deepest Survival Run, Highest Time Attack Count, Longest Streak And Best Mixed Category Score. Rankings Update As Runs Finish, So The Board Is What Happened Today Rather Than A Weekly Snapshot. Free To Appear On, And Nothing On It Is A Wager Or A Payout.',
     links: [
       { name: 'Poker Trivia', href: '/hub/trivia', text: 'Every Mode, And How The Question Bank Works.' },
-      { name: 'Survival', href: '/hub/trivia/survival-game', text: 'The Mode Most Of The Top Runs Come From.' },
+      { name: 'Survival', href: '/hub/trivia/survival-game', text: 'Progress Through Levels With Increasing Accuracy Requirements.' },
       { name: 'Smarter Rewards', href: '/hub/smarter-rewards', text: 'What Playing Regularly Earns You.' },
     ],
   },
@@ -655,7 +655,9 @@ export default function HubPageSummary({ page, as = 'h2' }) {
         ))}
       </ul>
       <p style={styles.compliance}>
-        Free To Play. 18+. Diamonds And Chips Have No Cash Value.{' '}
+        {page === 'trivia' || String(page).startsWith('trivia-')
+          ? '18+. Entry And Reward Terms Are Shown Before Play. Diamonds And Chips Have No Cash Value.'
+          : 'Free To Play. 18+. Diamonds And Chips Have No Cash Value.'}{' '}
         <Link href="/terms" style={styles.inlineLink}>
           Terms
         </Link>
