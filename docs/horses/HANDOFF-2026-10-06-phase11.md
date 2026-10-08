@@ -202,3 +202,12 @@ audit passed both viewports, replacing all 56 screenshots; strengthened
 maintained browser suite passed 14/14 without retries. Focused architecture,
 core-panel, documentation and privacy contracts passed 33/33; targeted lint and
 whitespace passed. Earlier 2-case audit is superseded by this corrected run.
+
+
+Canonical policy resumption receipt: 2026-10-08T14:37:58.694Z, v2.9, all
+manifest/source hashes above unchanged; repository references and checkpoint
+reread at candidate b8c636c38. Exact-head safety run 37793081220 exposed the
+Trivia worker contract still requiring VERCEL=1 and counting unrelated ready
+steps globally. Its assertions now require explicit PWA_ENABLED=1, refuse
+HTTPS-host impersonation and independently count the two Trivia gates. Worker
+and rollback assertions remain. Validation and corrected submission pending.

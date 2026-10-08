@@ -176,11 +176,12 @@ test('every rebuilt Trivia route has finite p75 Core Web Vitals and resource cei
 
 test('the existing production-build browser job owns Trivia budgets and installed-PWA rollback', () => {
     const workflow = read('.github/workflows/global-footer-e2e.yml');
-    assert.match(workflow, /VERCEL:\s*'1'/, 'the maintained build must emit the real root worker');
+    assert.match(workflow, /PWA_ENABLED:\s*'1'/, 'the maintained HTTP build must emit the real root worker without HTTPS-host impersonation');
+    assert.doesNotMatch(workflow, /VERCEL:\s*'1'/, 'the loopback build must not embed HTTPS-only resource upgrades');
     assert.match(workflow, /name: Wait for server\s+id: production_server_ready/);
     const runWhenServerIsReady = /if: \$\{\{ !cancelled\(\) && steps\.production_server_ready\.outcome == 'success' \}\}/g;
     assert.equal(
-        [...workflow.matchAll(runWhenServerIsReady)].length,
+        [...workflow.slice(workflow.indexOf('name: Trivia Phase 11 mobile p75 performance budgets'), workflow.indexOf('name: Verify Diamond Marketplace')).matchAll(runWhenServerIsReady)].length,
         2,
         'both Trivia browser gates must still run after an unrelated browser suite fails when the production server is ready',
     );
