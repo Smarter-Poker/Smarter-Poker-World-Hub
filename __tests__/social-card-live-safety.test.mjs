@@ -56,6 +56,16 @@ test('social card certificate distinguishes successful import from both empty st
   assert.throws(() => classifyHistorySurface({ importButtons: 0 }), /terminal state/);
 });
 
+test('social card certificate holds the ten pointer inside the browser event loop', () => {
+  assert.match(script, /new PointerEvent\('pointerdown'/);
+  assert.match(script, /pointerType: 'touch'/);
+  assert.match(script, /setTimeout\(resolve, 500\)/);
+  assert.match(script, /new PointerEvent\('pointerup'/);
+  assert.match(script, /receipt\.stage = 'dispatch-ten-hold'/);
+  assert.match(script, /receipt\.stage = 'await-ten-suits'/);
+  assert.match(script, /tenAriaExpanded/);
+});
+
 test('recent hand import starts from the indexed own-facts window and bounds the public hand lookup', async () => {
   const owner = '11111111-1111-4111-8111-111111111111';
   const newest = '22222222-2222-4222-8222-222222222222';
