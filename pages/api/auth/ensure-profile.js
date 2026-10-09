@@ -17,6 +17,7 @@ import { reportApiError } from '../../../src/lib/apiErrorHandler';
 // 🛡️ ANTI-ABUSE: disposable-domain detection gates the Welcome Package.
 // antiAbuse.js was written for exactly this and had no caller until now.
 import { isDisposableEmail, normalizeEmail, hashEmail } from '../../../src/lib/antiAbuse';
+import { welcomePackageAlreadyPaid } from '../../../src/lib/welcomePackage';
 
 /**
  * How long a phone-verification receipt stays usable. HISTORICAL (pre
@@ -147,30 +148,29 @@ export default async function handler(req, res) {
               // diamond_issuance freeze was open), the profile sits at 0 with no signup: or
               // seed: register row. A later login asks again for the SAME op id, so the grant
               // is issued once the freeze lifts and never twice: an existing player carries a
-              // register row and is skipped before the Mint is asked. Gated on a zero balance,
-              // so the register is read on the rare account this can apply to, not on every
-              // presence ping.
+              // register row and is skipped before the Mint is asked.
               // THE WELCOME PACKAGE IS EARNED BY PHONE VERIFICATION (2026-10-07, Dan):
               // pages/api/sms/verify-otp.js issues the 500 under signup:<id> once the
               // handset is confirmed. This re-ask therefore only runs for a player whose
               // row already says phone_verified - it restarts a refused grant, it never
               // starts one for an unverified account.
-              if (existingProfile.phone_verified === true && Number(existingProfile.diamonds ?? 0) === 0) {
+              // Gated on the register, not on a zero balance (2026-10-08): any other
+              // credit (daily login, the 25-diamond phone award) landing first used to
+              // block the restart forever. welcomePackageAlreadyPaid is two indexed
+              // lookups and only runs for a verified account created after the Mint
+              // register started (older accounts answer "paid" with no query).
+              if (existingProfile.phone_verified === true) {
                   try {
                       const ownEmail = typeof authUser?.email === 'string' ? authUser.email.trim() : '';
                       if (!isDisposableEmail(ownEmail)) {
-                          const { data: registerRows, error: registerErr } = await getSupabase()
-                              .from('ca_mint_ledger')
-                              .select('op_id')
-                              .in('op_id', [`signup:${user_id}`, `seed:${user_id}`])
-                              .limit(1);
-                          if (!registerErr && (registerRows?.length ?? 0) === 0) {
+                          const paid = await welcomePackageAlreadyPaid(getSupabase(), user_id, existingProfile.created_at);
+                          if (!paid.paid) {
                               const { data: minted, error: mintErr } = await getSupabase().rpc('fn_ca_mint', {
                                   p_asset: 'diamonds',
                                   p_destination: 'player',
                                   p_target_id: user_id,
                                   p_amount: 500,
-                                  p_reason: 'Signup welcome grant issued by ensure-profile on a later login',
+                                  p_reason: 'Welcome package re-asked by ensure-profile on a later login',
                                   p_op_id: `signup:${user_id}`,
                                   p_class: 'promotional',
                               });
@@ -193,10 +193,9 @@ export default async function handler(req, res) {
               // creates the profile at signUp, so by the time /auth/callback asks,
               // the row already EXISTS. Say here whether the welcome package is
               // still waiting on a phone so the callback can make the welcome
-              // screen a new player's first screen. Young = under 14 days, the
-              // same window pages/hub/index.js uses.
-              const WELCOME_WINDOW_MS = 14 * 24 * 60 * 60 * 1000;
-              const isYoung = Number.isFinite(createdTime) && (now - createdTime) < WELCOME_WINDOW_MS;
+              // screen the player's first screen. Every unverified account
+              // qualifies (2026-10-08, Dan: no age window); the callback and
+              // the hub honour a dismissal in user metadata.
               const phoneVerifiedNow = existingProfile.phone_verified === true;
 
               return res.json({
@@ -206,9 +205,7 @@ export default async function handler(req, res) {
                   isBrandNew,
                   welcomePackage: phoneVerifiedNow
                       ? { granted: true }
-                      : (isYoung
-                          ? { granted: false, withheldReason: 'phone_not_verified', claimAt: '/hub/verify-phone' }
-                          : { granted: false }),
+                      : { granted: false, withheldReason: 'phone_not_verified', claimAt: '/hub/verify-phone' },
               });
           }
 

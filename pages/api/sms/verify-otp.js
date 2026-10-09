@@ -40,7 +40,7 @@
         months of 150/day + 4,500/month diamond ceilings ($45/mo of headroom)
         for $0.
      5. Phone verification now pays the catalog's `phone_verified` action
-        (25 💎) through award_diamonds_v2 — the single capped, idempotent,
+        (25 diamonds) through award_diamonds_v2 — the single capped, idempotent,
         service-role-only award path — instead of writing a cosmetic
         zero-amount diamond_transactions row that credited nothing.
      6. The duplicate-phone guard runs after a correct code. It is the single strongest anti-multi-account
@@ -53,6 +53,7 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/apiErrorHandler';
 import { isDisposableEmail } from '../../../src/lib/antiAbuse';
+import { welcomePackageAlreadyPaid } from '../../../src/lib/welcomePackage';
 
 let _supabase = null;
 function getSupabase() {
@@ -317,11 +318,21 @@ export default async function handler(req, res) {
               const vipExpires = new Date(now.getTime() + PHONE_VIP_TRIAL_DAYS * 24 * 60 * 60 * 1000);
 
               // ── SAFETY: never shorten an existing longer/paid VIP ────────
-              const { data: profile } = await supabase
+              const { data: profile, error: profileReadErr } = await supabase
                   .from('profiles')
-                  .select('is_vip, vip_tier, vip_expires_at, phone_verified')
+                  .select('is_vip, vip_tier, vip_expires_at, phone_verified, created_at')
                   .eq('id', authedUserId)
                   .maybeSingle();
+              // FAIL CLOSED (2026-10-08): with no profile read, the VIP safety
+              // checks below would treat a paid or lifetime card as absent and
+              // could shorten it. No row at all means nothing can be saved.
+              if (profileReadErr || !profile) {
+                  console.warn('[verify-otp] profile read failed:', profileReadErr?.message || 'no profile row');
+                  return res.status(503).json({
+                      success: false,
+                      error: 'Your Code Was Correct But We Could Not Save The Verification. Please Request A New Code And Try Again.',
+                  });
+              }
 
               // Lifetime VIP is never touched. Otherwise only extend, never shorten.
               // FIRST VERIFICATION ONLY (2026-10-08): re-verifying your own number,
@@ -348,25 +359,26 @@ export default async function handler(req, res) {
                   updateFields.vip_expires_at = vipExpires.toISOString();
               }
 
-              const { error: updateError } = await supabase
+              const { data: updatedRows, error: updateError } = await supabase
                   .from('profiles')
                   .update(updateFields)
-                  .eq('id', authedUserId);
+                  .eq('id', authedUserId)
+                  .select('id');
 
-              if (updateError) {
+              if (updateError || !updatedRows || updatedRows.length === 0) {
                   // FAIL CLOSED (2026-10-08). The OTP row is already consumed; a
                   // 200 here used to tell the player "You're all set" while the
                   // profile still said unverified, and the hub sent them straight
                   // back to the welcome screen for a fresh code with no explanation.
-                  console.warn('[verify-otp] Profile update error:', updateError);
+                  console.warn('[verify-otp] Profile update error:', updateError?.message || 'no row updated');
                   return res.status(503).json({
                       success: false,
-                      error: 'Your code was correct but we could not save the verification. Please request a new code and try again.',
+                      error: 'Your Code Was Correct But We Could Not Save The Verification. Please Request A New Code And Try Again.',
                   });
               } else {
                   vipGranted = shouldGrantVip;
 
-                  // ── Diamond award: catalog action `phone_verified` (25 💎) ──
+                  // ── Diamond award: catalog action `phone_verified` (25 diamonds) ──
                   // Lifetime-once, exempt from the daily cap, amount resolved
                   // server-side from diamond_reward_catalog. award_diamonds_v2 is
                   // idempotent on the reference id, so a re-verify pays nothing.
@@ -401,9 +413,26 @@ export default async function handler(req, res) {
                   // row now says phone_verified, and ensure-profile re-asks the
                   // Mint for the same op id on the next login of a verified,
                   // zero-balance player, so the grant restarts from its record.
+                  // Older accounts were paid at birth by paths fn_ca_mint's own
+                  // replay check cannot see (seed:, signup_bonus, pre-register).
+                  // src/lib/welcomePackage.js is the single answer to "already paid".
+                  let alreadyPaid = { paid: false };
+                  if (!isDisposable) {
+                      try {
+                          alreadyPaid = await welcomePackageAlreadyPaid(supabase, authedUserId, profile.created_at);
+                      } catch (paidErr) {
+                          alreadyPaid = { paid: true, reason: 'unknown', error: paidErr?.message };
+                      }
+                  }
                   if (isDisposable) {
                       packageStatus = 'withheld_disposable';
                       console.warn('[ANTI-ABUSE] Disposable signup domain verified a phone - WITHHOLDING welcome package.', { userId: authedUserId });
+                  } else if (alreadyPaid.paid && alreadyPaid.reason !== 'unknown') {
+                      packageStatus = 'already_claimed';
+                  } else if (alreadyPaid.paid) {
+                      // Could not tell: pay nothing now, the ensure-profile re-ask retries.
+                      packageStatus = 'mint_refused';
+                      console.warn('[verify-otp] welcome-paid check failed; not minting:', alreadyPaid.error);
                   } else try {
                       const { data: minted, error: mintErr } = await supabase.rpc('fn_ca_mint', {
                           p_asset: 'diamonds',
@@ -429,7 +458,7 @@ export default async function handler(req, res) {
                   }
 
                   // ── Audit trail for the VIP grant itself (no diamond value) ──
-                  // Kept as a ledger note only; the actual 25 💎 credit is the
+                  // Kept as a ledger note only; the actual 25 diamonds credit is the
                   // award_diamonds_v2 row above, not this one.
                   if (shouldGrantVip) {
                       const { error: err_diamond_transactions_tcij9 } = await supabase
@@ -438,7 +467,7 @@ export default async function handler(req, res) {
                               user_id: authedUserId,
                               amount: 0,
                               transaction_type: 'bonus',
-                              description: `VIP Card Activated - ${PHONE_VIP_TRIAL_DAYS}-Day FREE VIP For Phone Verification! 📱`,
+                              description: `VIP Card Activated - ${PHONE_VIP_TRIAL_DAYS}-Day FREE VIP For Phone Verification`,
                               metadata: {
                                   source: 'phone_verification_vip',
                                   phone: cleanPhone,
@@ -451,7 +480,12 @@ export default async function handler(req, res) {
                   }
               }
           } catch (profileErr) {
-              console.warn('[verify-otp] Profile/VIP update error (non-blocking):', profileErr);
+              // Never answer "verified" on a path that may not have saved.
+              console.warn('[verify-otp] Profile/VIP update error:', profileErr);
+              return res.status(503).json({
+                  success: false,
+                  error: 'Your Code Was Correct But We Could Not Save The Verification. Please Request A New Code And Try Again.',
+              });
           }
 
           return res.status(200).json({

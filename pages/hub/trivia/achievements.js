@@ -252,6 +252,10 @@ export default function TriviaAchievements() {
         if (operationScope.identity !== (userId || null)) return;
         const mutation = requestScopeRef.current.beginMutation();
         if (mutation === null) return;
+        // The mutation owns this request generation now. Its invalidated
+        // refresh cannot clear loading in finally; retire that read indicator
+        // here so the authoritative items and claim state remain visible.
+        setIsLoading(false);
         const isCurrent = () => accountOperationScopeRef.current.isCurrent(operationScope)
             && requestScopeRef.current.isMutationCurrent(mutation);
         setClaimState((state) => ({ ...state, [achievementId]: 'pending' }));

@@ -285,7 +285,7 @@ INSERT INTO public.trivia_tournament_entrants (
 VALUES
     ('92000000-0000-4000-8000-000000000001',
      'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1', 'human', 'entered',
-     'player_wallet', 'Named Human One',
+     'none', 'Named Human One',
      pg_catalog.clock_timestamp() - interval '25 minutes'),
     ('92000000-0000-4000-8000-000000000002',
      'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1', 'human', 'entered',

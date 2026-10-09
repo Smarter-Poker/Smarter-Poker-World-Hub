@@ -993,11 +993,11 @@ export default function StrategyTrivia({ mode }) {
         // entry point shows.
         return (
             <PageTransition>
-                <div className="trivia-console-standalone">
+                <main className="trivia-console-standalone">
                     <TriviaConsole title={config.title} eyebrow="Strategy Table" pill="Loading" titleAs="h1">
                         <TriviaSkeleton label={`Loading ${config.title}`} />
                     </TriviaConsole>
-                </div>
+                </main>
             </PageTransition>
         );
     }
@@ -1070,7 +1070,7 @@ export default function StrategyTrivia({ mode }) {
                     ) : null}
                 </TriviaConsoleDialog>
 
-                <div className="content">
+                <main className="content">
                     <TriviaConsole
                         className="strategy-console"
                         eyebrow="Strategy Table"
@@ -1619,7 +1619,7 @@ export default function StrategyTrivia({ mode }) {
                         );
                     })()}
                     </TriviaConsole>
-                </div>
+                </main>
             </div>
         </PageTransition>
     );

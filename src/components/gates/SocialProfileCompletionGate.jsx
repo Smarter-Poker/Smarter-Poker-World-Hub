@@ -1,7 +1,7 @@
 /**
  * SOCIAL PROFILE COMPLETION GATE
  * ═══════════════════════════════════════════════════════════════════════════
- * 3-step modal shown the first time a user (typically a Google OAuth signup)
+ * 2-step modal (name, username) shown the first time a user (typically a Google OAuth signup)
  * enters /hub/social-media. Required fields:
  *
  *   1. Full Name      — confirm or edit (pre-filled from Google given+family).
@@ -22,6 +22,7 @@
  */
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { Gem } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { getAccessToken, getAuthUser } from '../../lib/authUtils';
 import { busEmit } from '../../engine/EventBus';
@@ -202,7 +203,7 @@ export default function SocialProfileCompletionGate({ profile, onComplete }) {
             <div style={s.overlay} role="dialog" aria-modal="true" aria-labelledby="spcg-title">
                 <div style={s.modal}>
                     <div style={s.header}>
-                        <div style={s.iconWrap}>💎</div>
+                        <div style={s.iconWrap}><Gem size={26} strokeWidth={1.75} aria-hidden="true" /></div>
                         <h2 id="spcg-title" style={s.title}>Finish Your Profile</h2>
                         <p style={s.subtitle}>Two Quick Steps Before You Jump Into Social - So Other Players Can Find You.</p>
                     </div>
@@ -305,6 +306,11 @@ export default function SocialProfileCompletionGate({ profile, onComplete }) {
                                     {submitting ? <span style={s.spinner} /> : 'Finish ✓'}
                                 </button>
                             </div>
+                            {profile?.phone_verified !== true && (
+                                <div style={s.packageNote}>
+                                    Next: Verify Your Phone Number From The Hub Menu To Claim Your Welcome Package, A 30-Day VIP Card And 500 Diamonds.
+                                </div>
+                            )}
                         </div>
                     )}
 
@@ -428,6 +434,11 @@ const s = {
         cursor: 'pointer', minWidth: 92,
     },
     helper: { fontSize: 12, marginTop: 8, minHeight: 18, fontWeight: 500 },
+    packageNote: {
+        marginTop: 14, padding: '10px 12px', borderRadius: 10,
+        background: 'rgba(0, 212, 255, 0.08)', border: '1px solid rgba(0, 212, 255, 0.25)',
+        color: 'rgba(255,255,255,0.8)', fontSize: 12, lineHeight: 1.45, textAlign: 'center',
+    },
     suggestionsRow: { display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, marginTop: 12 },
     suggestLabel: { fontSize: 12, color: 'rgba(255,255,255,0.55)', fontWeight: 600 },
     suggestionChip: {

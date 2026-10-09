@@ -1,0 +1,9 @@
+# Trivia minimum horse PvP reserve
+
+The installed competitive gate requires 25,000 available diamonds. Genuine named-wallet canaries left the Trivia treasury at 20,008, with the issuance funding account at -20,000. Under the owner instruction to finish launch blockers, Codex allocates the minimum 4,992 diamonds through the existing platform-issuance treasury routine. The treasury becomes 25,000 and its issuance counterpart -24,992. No player or horse wallet receives a credit or debit; no existing payout, price, cap, floor, rule or competitive flag changes. This establishes the admission reserve, not an unlimited 90-day bankroll.
+
+Before commit, an actual production transaction executed the funding twice with the same immutable key. Assertions proved one two-leg journal, zero variance, no player-wallet legs and the exact balances. The transaction was rolled back, and readback confirmed 20,008/-20,000 and zero retained probe journals. The forward migration locks and asserts both preimages, repeats the same idempotency proof and aborts if the state changed. Rollback uses a new balanced reversal journal only when still unused; history is retained.
+
+Evidence: external archive trivia-program-20260929/evidence/p9-12/PROGRESS.md. Other launch qualifications and public competitive gates remain pending.
+
+Installed at 2026-10-08T16:14:18Z through the supported migration route as `20261008161418_trivia_minimum_horse_pvp_reserve`. Exact source SHA-256: `eb65083b4e8c77e3f07097bb5f9d08a77f1a55dd8f35f3b2c3da10435683097e`. Funding journal `6cba061b-4a80-4fe4-9ac5-2a267f5b5332` records debit/credit 4,992, two lines, net zero and zero player-wallet lines. Readback proves treasury 25,000, issuance -24,992, clean ledger and all five competitive gates off. The database-owner caller is recorded honestly as postgres; no JWT identity was simulated.

@@ -72,8 +72,11 @@ test('the maintained gate runs the real Phase 12 migration once on its existing 
     assert.match(runner, /PostgreSQL 17/);
     assert.match(runner, /PHASE6_POSTGRES_BIN/);
     assert.match(runner, /trap cleanup EXIT INT TERM/);
-    assert.match(runner, /p12-cutover-pg17\.\*/);
+    assert.match(runner, /p12pg\.\*/);
     assert.match(runner, /20261006014200_trivia_p12_competitive_cutover_authority\.sql/);
+    assert.match(runner, /20_metrics_before\.sql/);
+    assert.match(runner, /20261008153740_trivia_metrics_use_builtin_wall_clock\.sql/);
+    assert.match(runner, /30_metrics_after\.sql/);
     assert.match(runner, /space_before_kb/);
     assert.match(runner, /before_kb < 524288/);
     assert.match(runner, /shared_memory_type=mmap/);
@@ -182,18 +185,23 @@ test('the existing production-build browser job owns Trivia budgets and installe
     const runWhenServerIsReady = /if: \$\{\{ !cancelled\(\) && steps\.production_server_ready\.outcome == 'success' \}\}/g;
     assert.equal(
         [...workflow.slice(workflow.indexOf('name: Trivia Phase 11 mobile p75 performance budgets'), workflow.indexOf('name: Verify Diamond Marketplace')).matchAll(runWhenServerIsReady)].length,
-        2,
-        'both Trivia browser gates must still run after an unrelated browser suite fails when the production server is ready',
+        3,
+        'all three Trivia browser gates must still run after an unrelated browser suite fails when the production server is ready',
     );
     const triviaPerformanceStep = workflow.indexOf('name: Trivia Phase 11 mobile p75 performance budgets');
     const triviaPwaStep = workflow.indexOf('name: Trivia installed-PWA upgrade and rollback compatibility');
+    const triviaRacesStep = workflow.indexOf('name: Trivia mounted-account and pending-result browser regressions');
     const unrelatedFooterStep = workflow.indexOf('name: Verify footer routes and geometry');
     assert.ok(
-        triviaPerformanceStep < unrelatedFooterStep && triviaPwaStep < unrelatedFooterStep,
+        triviaPerformanceStep >= 0 && triviaPwaStep >= 0 && triviaRacesStep >= 0
+            && triviaPerformanceStep < unrelatedFooterStep && triviaPwaStep < unrelatedFooterStep
+            && triviaRacesStep < unrelatedFooterStep,
         'scoped Trivia release evidence must run before the unrelated footer matrix',
     );
     assert.match(workflow, /trivia-performance-budget\.spec\.ts --project=trivia-performance/);
     assert.match(workflow, /trivia-pwa-rollback\.spec\.ts --project=trivia-pwa/);
+    assert.equal(workflow.split('run: node scripts/trivia/browser-race-proof/run.cjs').length - 1, 1, 'actual browser race suite executes once');
+    assert.match(workflow, /steps\.trivia_browser_races\.outputs\.evidence-directory/);
     assert.match(workflow, /TRIVIA_PVP_ENABLED:\s*'true'/);
     assert.match(workflow, /TRIVIA_TOURNAMENTS_ENABLED:\s*'true'/);
 
@@ -277,4 +285,33 @@ test('approved shared chrome is responsive and below-fold lobby art waits for th
     assert.match(responsiveArt, /srcSet=\{ready \? art\.mobile\.webp : undefined\}/);
     assert.match(responsiveArt, /src=\{ready \? art\.mobile\.src : art\.preview\}/);
     assert.match(lobby, /src=\{quickStakesArtReady \? TRIVIA_QUICK_STAKES_MODE\.image : TRANSPARENT_PIXEL\}/);
+});
+
+// The forecast is enforced by the existing Phase 11 required check.
+test('30/90-day forecasts conserve journals, model depletion, refunds and daily limits', async () => {
+    const { simulateTriviaEconomy } = await import('../src/lib/trivia/economySimulation.mjs');
+    const config = { openingBalance: 20000, floor: 0, dailyCeiling: 3000, exposureCeiling: 3000,
+        horseTarget: 140 };
+    for (const days of [30, 90]) {
+        const horses = simulateTriviaEconomy({ ...config, days });
+        assert.equal(horses.endingBalance, 20000 - days * 140);
+        assert.equal(horses.blocked, 0);
+        assert.equal(horses.variance, 0);
+        assert.equal(horses.terminalEscrow, 0);
+        const refunds = simulateTriviaEconomy({ ...config, days, humanEntrants: 8, refundEvery: 1 });
+        assert.equal(refunds.endingBalance, 20000);
+        assert.equal(refunds.rake, 0);
+        assert.equal(refunds.refunds, days);
+        const loss = simulateTriviaEconomy({ ...config, days, humanEntrants: 8, humanWinners: true });
+        assert.equal(loss.admitted, 14);
+        assert.equal(loss.endingBalance, 400);
+        assert.equal(loss.blocked, days - 14);
+        assert.equal(loss.sustainableAtRequestedVolume, false);
+        const stress = simulateTriviaEconomy({ ...config, days, humanEntrants: 8,
+            humanWinners: true, pvpPerDay: 40 });
+        assert.ok(stress.blocked > 0);
+        assert.ok(stress.minBalance >= 0);
+        assert.equal(stress.variance, 0);
+        assert.equal(stress.terminalEscrow, 0);
+    }
 });
