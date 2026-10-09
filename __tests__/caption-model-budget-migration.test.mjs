@@ -89,8 +89,6 @@ test('caption budget migration enforces atomic reservation, bounded settlement a
 
   const scratch = mkdtempSync(join(scratchBase, 'run-'));
   const data = join(scratch, 'data');
-  const socket = join(scratch, 'socket');
-  mkdirSync(socket);
   const port = await reservePort();
   let started = false;
   const admin = new Client({ host: '127.0.0.1', port, user: 'postgres', database: 'postgres' });
@@ -102,7 +100,7 @@ test('caption budget migration enforces atomic reservation, bounded settlement a
     execFileSync(pgCtl, [
       '-D', data,
       '-l', join(scratch, 'postgres.log'),
-      '-o', `-F -p ${port} -c listen_addresses=127.0.0.1`,
+      '-o', `-F -p ${port} -c listen_addresses=127.0.0.1 -c unix_socket_directories=''`,
       '-w', 'start',
     ], { stdio: 'ignore' });
     started = true;
