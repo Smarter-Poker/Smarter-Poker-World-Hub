@@ -136,8 +136,20 @@ async function verifyCardSurface({ browser, env, client, userId, receipt }) {
     receipt.stage = 'open-card-picker';
     let dialog = await openPicker();
     receipt.stage = 'resolve-ten-button';
-    const ten = dialog.getByRole('button', { name: '10. Hold for suits', exact: true });
+    const quickRankButtons = dialog.locator('button[aria-controls="quick-rank-suits"]');
+    const visibleOneKeys = dialog.locator('button[aria-controls="quick-rank-suits"]:visible')
+      .filter({ hasText: /^1$/ });
+    const quickRankButtonCount = await quickRankButtons.count();
+    const visibleOneCount = await visibleOneKeys.count();
+    const tenAriaLabel = visibleOneCount === 1
+      ? await visibleOneKeys.first().getAttribute('aria-label')
+      : null;
+    receipt.diagnostics = { quickRankButtonCount, visibleOneCount, tenAriaLabel };
+    assert.equal(quickRankButtonCount, 13, 'The quick-rank selector did not render all ranks');
+    assert.equal(visibleOneCount, 1, 'The quick-rank selector did not render one unique visible 1 key');
+    const ten = visibleOneKeys.first();
     await ten.waitFor({ state: 'visible' });
+    assert.equal(tenAriaLabel, '10. Hold for suits', 'The 1 quick-rank key did not expose the ten long-press label');
     // Keep the complete hold inside the browser event loop. The split
     // Node-side dispatch did not surface the suit choices in headless
     // Chromium, while this preserves one continuous browser-owned gesture.
@@ -151,9 +163,7 @@ async function verifyCardSurface({ browser, env, client, userId, receipt }) {
         bubbles: true, pointerType: 'touch', isPrimary: true, button: 0, buttons: 0,
       }));
     });
-    receipt.diagnostics = {
-      tenAriaExpanded: await ten.getAttribute('aria-expanded') === 'true',
-    };
+    receipt.diagnostics.tenAriaExpanded = await ten.getAttribute('aria-expanded') === 'true';
     receipt.stage = 'await-ten-suits';
     await dialog.getByRole('group', { name: '10 suit choices' }).waitFor({ state: 'visible' });
     receipt.checks.longPressTen = true;

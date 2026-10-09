@@ -57,6 +57,12 @@ test('social card certificate distinguishes successful import from both empty st
 });
 
 test('social card certificate holds the ten pointer inside the browser event loop', () => {
+  assert.match(script, /button\[aria-controls="quick-rank-suits"\]/);
+  assert.match(script, /hasText: \/\^1\$\//);
+  assert.match(script, /The 1 quick-rank key did not expose the ten long-press label/);
+  assert.match(script, /quickRankButtonCount/);
+  assert.match(script, /visibleOneCount/);
+  assert.match(script, /tenAriaLabel/);
   assert.match(script, /new PointerEvent\('pointerdown'/);
   assert.match(script, /pointerType: 'touch'/);
   assert.match(script, /setTimeout\(resolve, 500\)/);
