@@ -294,7 +294,7 @@ async function handler(req, res) {
             }
 
             const entry = gateCtx.get(row.recipient_user_id) || { prefs: null, legacy: null };
-            const gateOpts = {};
+            const gateOpts = { recipient: row.recipient_user_id };
             if (needsDailyCount(entry, row.event)) {
                 // Precomputed in ONE query before the loop. This used to be a
                 // per-row `count: exact` awaited inside the send loop -- up to
