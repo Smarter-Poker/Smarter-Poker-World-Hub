@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
+import { CONSOLE_ZONES } from '../src/components/video-library/console/consoleGeometry.mjs';
 
 const read = path => readFileSync(new URL(path, import.meta.url), 'utf8');
 const PAGE = read('../pages/hub/video-library.js');
@@ -103,4 +104,15 @@ test('account-scoped mutations invalidate stale completions and stale local filt
   assert.match(PAGE, /Old localStorage values from retired filters fail closed/);
   assert.match(PAGE, /\['ALL', 'cash', 'tournament', 'slots', 'sports'\]\.includes\(filters\.selectedType\)/);
   assert.doesNotMatch(PAGE, /catch\s*\([^)]*\)\s*=>\s*\{\s*\}/);
+});
+
+
+test('painted console eyebrow and subtitle retain a readable phone floor', () => {
+  assert.match(CONSOLE_CSS, /\.eyebrow\s*\{[^}]*font-size:\s*max\(12px, 2\.6cqw\)/);
+  assert.match(CONSOLE_CSS, /\.subtitle\s*\{[^}]*font-size:\s*max\(12px, 3\.2cqw\)/);
+  for (const label of ['eyebrow', 'subtitle']) {
+    assert.match(CONSOLE_CSS, new RegExp(`\\.${label}\\s*\\{[^}]*line-height:\\s*1;`));
+  }
+  assert.ok(CONSOLE_ZONES.eyebrow.x + CONSOLE_ZONES.eyebrow.width < CONSOLE_ZONES.pill.x);
+  assert.ok(CONSOLE_ZONES.eyebrow.y + CONSOLE_ZONES.eyebrow.height <= CONSOLE_ZONES.title.y);
 });

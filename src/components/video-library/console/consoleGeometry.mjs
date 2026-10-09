@@ -4,7 +4,7 @@ export const CONSOLE_PLATES_HEIGHT = 277;
 export const CONSOLE_CAP_HEIGHT = 72;
 
 export const CONSOLE_ZONES = Object.freeze({
-    eyebrow: Object.freeze({ x: 100, y: 128, width: 540, height: 34 }),
+    eyebrow: Object.freeze({ x: 100, y: 128, width: 550, height: 38 }),
     title: Object.freeze({ x: 100, y: 166, width: 540, height: 86 }),
     titleBesidePill: Object.freeze({ x: 100, y: 166, width: 470, height: 86 }),
     subtitle: Object.freeze({ x: 102, y: 262, width: 540, height: 42 }),
