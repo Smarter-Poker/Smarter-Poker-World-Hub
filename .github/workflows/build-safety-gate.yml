@@ -192,6 +192,9 @@ jobs:
           __tests__/correction-accounting-display.test.mjs
           __tests__/credit-change-accounting-display.test.mjs
 
+      - name: Phone Verification Artwork And Welcome Guards
+        run: node --test __tests__/phone-verification-console.test.mjs __tests__/the-welcome-package-is-earned-by-phone-verification.law.test.mjs
+
       - name: Messenger Live Probe Safety
         run: node scripts/ci/messenger-live-check.mjs --self-test
 
