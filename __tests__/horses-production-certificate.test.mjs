@@ -1,3 +1,4 @@
+import { sanitizedMutationPath } from '../scripts/lib/horses-certificate-diagnostics.mjs';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
@@ -78,7 +79,7 @@ test('receipt schema contains only sanitized operational evidence', () => {
 test('failed viewport diagnostics retain bounded counts without arbitrary URLs', () => {
   assert.match(verifier, /receipt.failedViewport =/);
   assert.match(verifier, /mutationAttempts: mutationAttempts.slice\(0, 20\)/);
-  assert.match(verifier, /\? '\/api\/horses\/stable-admin' : '\[redacted\]'/);
+  assert.match(verifier, /path: sanitizedMutationPath\(requestUrl, PRODUCTION_ORIGIN\)/);
   assert.doesNotMatch(verifier, /path: requestUrl.pathname/);
 });
 
@@ -92,4 +93,16 @@ test('read-only certificate includes later fleet, settings and retired-pipeline 
   assert.match(verifier, /posting_modes_unavailable/);
   assert.match(verifier, /pipeline_unavailable/);
   assert.match(verifier, /laterConsumers: \['statistics', 'settings', 'pipeline'\]/);
+});
+
+
+test('mutation labels expose only fixed same-origin endpoints without queries', () => {
+  const origin = 'https://smarter.poker';
+  for (const path of ['/api/horses/stable-admin', '/api/auth/ensure-profile', '/api/user/get-header-stats', '/api/pwa/prompt-status', '/api/rewards/eggs/evaluate']) {
+    assert.equal(sanitizedMutationPath(new URL(`${origin}${path}?userId=private&token=private`), origin), path);
+    assert.equal(sanitizedMutationPath(new URL(`https://foreign.example${path}`), origin), '[redacted]');
+  }
+  for (const path of ['/api/private', '/api/auth/ensure-profile/private-id', '/api/user/12345678-1234-1234-1234-123456789012']) {
+    assert.equal(sanitizedMutationPath(new URL(`${origin}${path}`), origin), '[redacted]');
+  }
 });

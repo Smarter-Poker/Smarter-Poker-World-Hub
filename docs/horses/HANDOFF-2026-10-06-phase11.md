@@ -285,3 +285,39 @@ The performance blocker reproduced at 375px: Video Library console eyebrow compu
 Focused visible-label readback exposed the proportional fitter shrinking the 375px eyebrow to 11.82px and clipping glyphs in its old 34-unit zone. Eyebrow width 550 and height 38 retain its original origin, finish before the existing pill, and end at the next title zone; explicit line-height 1 on eyebrow/subtitle removes inherited leading. Font floors remain 12px. Corrected measured fit and maintained budget need verification before submission.
 
 Final corrected Video Library source passed the unchanged mobile budget case without retries (2.6s case, 3.1s suite), full production compilation/static generation and unchanged Stable Admin bundle budgets. Visible glyph measurements at 375/390 show no small text, both labels at least 12px, fit ratio 1 and glyphs inside the painted zones (0.5px subpixel tolerance). Nineteen connected console contracts and the final nine focused console cases passed; eight changed Trivia integration contracts passed. Earlier unrelated passing evidence is reused. Final-head hosted acceptance, protected merge, publication, genuine certificate and docs closeout remain pending.
+
+
+Production-certificate recovery, 2026-10-09T03:31:38.363Z: canonical policies
+freshly emitted/read, version 2.9 and preceding hashes unchanged. Published
+protected source f54830335813562aedb5c868755466f195dda224 passed the full hosted
+browser gate but genuine certificate 37874025554/job 113638330729 failed
+`desktop_mutation_attempted`: five same-origin POST attempts were blocked,
+authentication succeeded, page/chunk error counts were zero. The old sanitized
+receipt cannot identify the exact five-request split. Source tracing found the
+shared header read still using POST and global profile initialization, reward
+sweep and PWA install recording mounted on the staff route. The owned follow-up
+branch agent/codex/stable-admin-readonly-shell-20261009 corrects the header to
+GET and prevents those automatic player writes on /horses while preserving
+ordinary player routes and authenticated reads. Strict certificate blocking
+remains; diagnostic labels are limited to exact fixed endpoint names, with
+queries and unknown/dynamic/external paths redacted. Prepared five-file final
+closeout remains separately archived; genuine certification and protected final
+documentation integration remain pending. No production data was changed by
+the blocked requests and no installed migration was replayed.
+
+
+Read-only shell qualification: 29 focused header, account-isolation, portrait,
+actual auth-transition and certificate privacy/blocking contracts passed. The
+frozen corrected production build passed 507/507 pages and unchanged Phase 9
+bundle budgets (58,057 bytes initial /horses, gzip 19,491; total 373,125, gzip
+117,662). Connected synthetic browser regression passed both desktop and mobile
+without retries (2/2, 6.5s): eight certificate surfaces, authenticated header
+GET, deferred mount timers advanced, zero automatic same-origin mutations.
+The auth-effect regression also proves ordinary profile initialization resumes
+after staff navigation. Targeted lint has zero errors and 20 existing warnings;
+whitespace and canonical policy integrity passed. New contracts are wired into
+the existing required safety job; browser regression runs in the maintained
+footer workflow. Failed prior certificate artifact is 11593966968, digest
+sha256:290692135956a99a4f66966f6fcecc66d98aa061999825535ab96ba620467be0.
+Protected follow-up merge, publication, genuine certification and final docs
+integration remain pending. No unaffected historical broad suite was repeated.
