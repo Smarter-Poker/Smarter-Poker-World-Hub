@@ -21,8 +21,12 @@ export function validateConfiguration(env) {
 }
 
 export function isForbiddenPostMutation(method, value) {
-  if (['GET', 'HEAD', 'OPTIONS'].includes(String(method || '').toUpperCase())) return false;
+  const normalizedMethod = String(method || '').toUpperCase();
+  if (['GET', 'HEAD', 'OPTIONS'].includes(normalizedMethod)) return false;
   const url = new URL(value);
+  // This signed-in POST only reads the canonical presence RPC and is issued by
+  // the social feed itself; keep every other /api/social mutation fail-closed.
+  if (normalizedMethod === 'POST' && url.pathname === '/api/social/presence') return false;
   return /\/api\/(?:posts|social)|\/rest\/v1\/(?:posts|social_posts|social_page_posts)(?:\?|$)/.test(`${url.pathname}${url.search}`);
 }
 
@@ -175,8 +179,12 @@ async function verifyCardSurface({ browser, env, client, userId, receipt }) {
     delete receipt.diagnostics;
 
     receipt.stage = 'duplicate-card-refusal';
-    await dialog.getByRole('button', { name: exactSemanticLabel('Add 10 of spades to your hand') }).click();
+    const tenSuits = dialog.getByRole('group', { name: exactSemanticLabel('10 suit choices') });
+    await tenSuits.getByRole('button', { name: exactSemanticLabel('Add 10 of spades to your hand') }).click();
+    await tenSuits.waitFor({ state: 'hidden' });
+    await dialog.getByRole('button', { name: exactSemanticLabel('Remove 10 of spades from your hand') }).waitFor({ state: 'visible' });
     const duplicate = dialog.getByRole('button', { name: exactSemanticLabel('Add 10 of spades to your hand') });
+    assert.equal(await duplicate.count(), 1, 'The selected card control was not unique after the quick suit tray closed');
     assert.equal(await duplicate.isDisabled(), true, 'A selected card could be added twice');
     receipt.checks.duplicateRefusal = true;
     await dialog.getByRole('button', { name: exactSemanticLabel('Add ace of hearts to your hand') }).click();
@@ -365,6 +373,7 @@ export function selfTest() {
   assert.equal(classifyHistorySurface({ importButtons: 1 }), 'imported-own-hand');
   assert.equal(classifyHistorySurface({ importButtons: 0, emptyText: true }), 'empty-history');
   assert.equal(isForbiddenPostMutation('POST', 'https://smarter.poker/api/social/posts'), true);
+  assert.equal(isForbiddenPostMutation('POST', 'https://smarter.poker/api/social/presence'), false);
   assert.equal(isForbiddenPostMutation('POST', `${AUTH_ORIGIN}/rest/v1/social_posts`), true);
   assert.equal(isForbiddenPostMutation('PATCH', `${AUTH_ORIGIN}/rest/v1/profiles?id=eq.fixture`), false);
   console.log('Social card live verifier safety checks passed');

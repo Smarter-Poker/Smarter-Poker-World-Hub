@@ -81,6 +81,15 @@ test('semantic labels allow title casing but preserve the exact card and action'
   assert.equal(addTenSpades.test('Remove 10 Of Spades From Your Hand'), false);
 });
 
+test('duplicate proof selects from the quick suit tray before checking the unique disabled grid card', () => {
+  assert.match(script, /const tenSuits = dialog\.getByRole\('group', \{ name: exactSemanticLabel\('10 suit choices'\) \}\)/);
+  assert.match(script, /tenSuits\.getByRole\('button', \{ name: exactSemanticLabel\('Add 10 of spades to your hand'\) \}\)\.click\(\)/);
+  assert.match(script, /tenSuits\.waitFor\(\{ state: 'hidden' \}\)/);
+  assert.match(script, /exactSemanticLabel\('Remove 10 of spades from your hand'\) \}\)\.waitFor\(\{ state: 'visible' \}\)/);
+  assert.match(script, /assert\.equal\(await duplicate\.count\(\), 1/);
+  assert.match(script, /assert\.equal\(await duplicate\.isDisabled\(\), true/);
+});
+
 test('recent hand import starts from the indexed own-facts window and bounds the public hand lookup', async () => {
   const owner = '11111111-1111-4111-8111-111111111111';
   const newest = '22222222-2222-4222-8222-222222222222';
@@ -133,6 +142,9 @@ test('recent hand import starts from the indexed own-facts window and bounds the
 });
 
 test('social card certificate blocks publication but permits its bounded preference restore', () => {
+  assert.equal(isForbiddenPostMutation('POST', `${APP_ORIGIN}/api/social/presence`), false);
+  assert.equal(isForbiddenPostMutation('PUT', `${APP_ORIGIN}/api/social/presence`), true);
+  assert.equal(isForbiddenPostMutation('POST', `${APP_ORIGIN}/api/social/post`), true);
   assert.equal(isForbiddenPostMutation('POST', `${APP_ORIGIN}/api/social/pages/posts`), true);
   assert.equal(isForbiddenPostMutation('POST', `${AUTH_ORIGIN}/rest/v1/posts`), true);
   assert.equal(isForbiddenPostMutation('PATCH', `${AUTH_ORIGIN}/rest/v1/profiles?id=eq.fixture`), false);
