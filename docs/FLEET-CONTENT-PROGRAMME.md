@@ -28,8 +28,9 @@ Source work started from protected `main` at
 `agent/codex/caption-model-budget-20261009`. The canonical and portable policy
 reader receipts were version 2.9, manifest
 `a659f31c5c1c2b0864889508079a635dd5fe2fc98decfbfc9d3f9c80dd45ec3b`,
-emitted at `2026-10-09T04:40:13.757Z`; the portable files matched the canonical
-copies.
+initially emitted at `2026-10-09T04:40:13.757Z` and freshly re-emitted after
+resumption at `2026-10-09T04:53:11.870Z`; the portable files matched the
+canonical copies.
 
 Migration `20261009044054_caption_model_daily_budget_contract.sql` adds the
 disabled-by-default, zero-budget, unconfigured daily micro-USD reservation
