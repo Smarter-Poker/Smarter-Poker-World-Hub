@@ -157,6 +157,37 @@ test('caption budget migration enforces atomic reservation, bounded settlement a
       (await admin.query('SELECT ai_model FROM public.content_settings WHERE id=1')).rows[0].ai_model,
       'legacy-model',
     );
+    const rpcSecurity = await admin.query(`
+      SELECT p.proname, r.rolname AS owner, p.prosecdef, p.proconfig
+        FROM pg_proc p
+        JOIN pg_namespace n ON n.oid = p.pronamespace
+        JOIN pg_roles r ON r.oid = p.proowner
+       WHERE n.nspname = 'public'
+         AND p.proname IN ('reserve_caption_model_budget', 'settle_caption_model_budget')
+       ORDER BY p.proname
+    `);
+    assert.deepEqual(
+      rpcSecurity.rows.map((row) => ({
+        name: row.proname,
+        owner: row.owner,
+        securityDefiner: row.prosecdef,
+        searchPath: row.proconfig,
+      })),
+      [
+        {
+          name: 'reserve_caption_model_budget',
+          owner: 'postgres',
+          securityDefiner: true,
+          searchPath: ['search_path=pg_catalog, public, extensions'],
+        },
+        {
+          name: 'settle_caption_model_budget',
+          owner: 'postgres',
+          securityDefiner: true,
+          searchPath: ['search_path=pg_catalog, public, extensions'],
+        },
+      ],
+    );
 
     const browser = new Client({ host: '127.0.0.1', port, user: 'postgres', database: 'postgres' });
     clients.push(browser);
@@ -312,22 +343,34 @@ test('caption budget migration enforces atomic reservation, bounded settlement a
     );
     assert.equal(response.rows[0].decision, 'reserved');
     assert.equal(response.rows[0].committed_microusd, '100');
+    const secondReservation = response.rows[0];
 
     await admin.query(`
       UPDATE public.caption_model_budget_settings
-         SET daily_budget_microusd = 200, request_reservation_microusd = 70,
+         SET daily_budget_microusd = 150, request_reservation_microusd = 70,
              provider_qualified_reservation_microusd = 70,
              provider_qualified_at = clock_timestamp()
        WHERE id = 1
     `);
-    response = await first.query("SELECT * FROM public.reserve_caption_model_budget('unknown-outcome')");
-    assert.equal(response.rows[0].decision, 'reserved');
-    assert.equal(response.rows[0].committed_microusd, '170');
+    const overlap = await Promise.all([
+      second.query(
+        'SELECT * FROM public.settle_caption_model_budget($1,$2,0)',
+        [secondReservation.reservation_id, exhaustedKey],
+      ),
+      first.query("SELECT * FROM public.reserve_caption_model_budget('settle-reserve-overlap')"),
+    ]);
+    assert.equal(overlap[0].rows[0].settled, true);
+    assert.ok(['reserved', 'budget_exhausted'].includes(overlap[1].rows[0].decision));
+    response = await first.query(
+      "SELECT * FROM public.reserve_caption_model_budget('settle-reserve-overlap')",
+    );
+    assert.ok(['reserved', 'duplicate'].includes(response.rows[0].decision));
+    assert.equal(response.rows[0].committed_microusd, '110');
 
     const ledger = await admin.query(`
       SELECT status, reserved_microusd, charged_microusd
         FROM public.caption_model_budget_ledger
-       WHERE idempotency_key = 'unknown-outcome'
+       WHERE idempotency_key = 'settle-reserve-overlap'
     `);
     assert.deepEqual(ledger.rows[0], {
       status: 'reserved',
