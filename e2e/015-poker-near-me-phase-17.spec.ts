@@ -223,7 +223,7 @@ test.describe('Poker Near Me phase 17 cross-engine and accessibility hardening',
     await expect(page.locator('body')).toHaveClass(/world-poker-near-me/);
     await expect(page.locator('[data-footer-world="poker-near-me"]')).toHaveCount(1);
 
-    const panel = page.locator('[data-pnm-secondary-foundation] .cmd-panel').first();
+    const panel = page.locator('[data-pnm-secondary-foundation] [data-pnm-console="painted-panel-v1"]').first();
     // In local WebKit the dev server can briefly detach/re-attach the global
     // stylesheet while a newly compiled route receives HMR. Poll the complete
     // frame atomically so the assertion cannot land inside that dev-only swap.
@@ -232,16 +232,22 @@ test.describe('Poker Near Me phase 17 cross-engine and accessibility hardening',
       const before = getComputedStyle(element, '::before');
       return {
         widths: [style.borderTopWidth, style.borderRightWidth, style.borderBottomWidth, style.borderLeftWidth],
-        styles: [style.borderTopStyle, style.borderRightStyle, style.borderBottomStyle, style.borderLeftStyle],
         radius: style.borderRadius,
         decoration: before.content,
       };
     }), { timeout: 15_000 }).toEqual({
-      widths: ['1px', '1px', '1px', '1px'],
-      styles: ['solid', 'solid', 'solid', 'solid'],
-      radius: '3px',
+      widths: ['0px', '0px', '0px', '0px'],
+      radius: '0px',
       decoration: 'none',
     });
+    // The complete frame is painted in three slices; CSS must not draw a
+    // second frame over it. Check each slice, not merely the absence of borders.
+    for (const part of ['head', 'body', 'foot']) {
+      const slice = panel.locator(`.pnc-panel__${part}`);
+      await expect(slice).toBeVisible();
+      await expect.poll(() => slice.evaluate((element) => getComputedStyle(element).backgroundImage))
+        .toContain('/images/pnm-console/');
+    }
 
     const hostBox = await page.getByRole('link', { name: 'Host A Game' }).boundingBox();
     expect(hostBox?.height).toBeGreaterThanOrEqual(44);

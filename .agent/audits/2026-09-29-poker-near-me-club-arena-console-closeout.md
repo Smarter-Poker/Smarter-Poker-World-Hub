@@ -6,6 +6,30 @@ Worktree: `/Volumes/SmarterWork/agent-work/claude-pnm-console-20260929/world-hub
 
 ## 2026-10-08 final continuation
 
+Resumption receipt, 2026-10-09T23:27:43.266Z: canonical policy reader emitted full version 2.9;
+all hashes below remain unchanged and portable check with canonical passed. Repository entrypoints,
+publishing, storage guide, live-cash-games policy and this checkpoint were reread. Production proof
+agents independently read matching policies at 23:28:13.491Z and 23:28:23.847Z.
+PR #2236 protected squash merged as `041e05344ebba89cfc96acf7b040be489b23a1f1` at
+2026-10-09T03:44:37Z; all seven required gates passed. Current served protected descendant is
+`4862768a2d6703ffba42d29b3f882c91becd1ca7`, production deployment
+`dpl_FJJMoTSxFQz5vSScAPmHTYuxWECz`; all 36 PR paths are byte-identical to the merge.
+PokerAtlas immutable generation installed and hash-checked at the merge revision on 2026-10-09.
+The old supervisor left daemon PID 80651 orphaned; its exact old release path was verified and
+the process stopped to release its writer lock. The installed supervisor owns bounded group shutdown.
+
+Production public APIs and paging passed; events degraded flags are all false. Current sitemap:
+1,317 total, 1,143 Poker Near Me URLs: 400 discovery/geography, 478 venue profiles, 29 tours,
+225 series, two daily/calendar, nine Home Games. Catalog truth remains explicit: live=false,
+running=null, no fabricated estimates. Tour metadata retains its older stated update date;
+successful delivery does not certify universal source freshness or nationwide completeness.
+Targeted live map fullscreen 390x844, tour controls, and header/menu borders passed. Ten representative
+desktop/mobile renders returned HTTP 200, one main, zero overflow, broken images or runtime errors.
+The old Home Games browser assertion targeted retired `.cmd-panel` markup. Its maintained successor
+asserts the actual painted panel, all three raster frame slices and zero competing CSS borders;
+the corrected test passes against production. Evidence is retained under
+`/Volumes/SmarterArchives/agent-evidence/codex-pnm-final-20261008/`.
+
 The owner requested a focused resumption after another agent's work. The current protected
 `origin/main` base is `f04dee718aa31638fce826429f53d716a942aad8`; the owned continuation branch is
 `agent/codex/pnm-final-closeout-20261008` in
