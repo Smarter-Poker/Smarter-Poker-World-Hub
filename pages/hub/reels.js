@@ -79,6 +79,7 @@ import VideoLibraryConsole, {
   ConsoleDataRow,
 } from '../../src/components/video-library/console/VideoLibraryConsole';
 import ReelResponsibleGamingNotice from '../../src/components/social/ReelResponsibleGamingNotice';
+import PokerCardText from '../../src/components/social/PokerCardText';
 import { feedListingCacheHeaders } from '../../src/lib/seo/publicFeedData';
 import {
   FEED_LISTING_LIMIT,
@@ -3856,7 +3857,7 @@ export default function ReelsPage({ reelsListing = null }) {
                       <ReelAction onClick={() => { setEditingComment(null); setEditCommentText(''); }}>Cancel Edit</ReelAction>
                     </div>
                   </>
-                ) : comment.content && <p className={styles.copy}>{comment.content}</p>}
+                ) : comment.content && <p className={styles.copy}><PokerCardText text={comment.content} /></p>}
                 {comment.media_url && <img src={comment.media_url} className={styles.media} alt="Comment Attachment" loading="lazy" />}
                 <div className={styles.actions}>
                   <ReelAction aria-pressed={Boolean(commentLikes[comment.id])} onClick={() => handleCommentLike(comment.id)}>{commentLikes[comment.id] ? 'Liked' : 'Like'}</ReelAction>

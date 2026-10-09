@@ -15,6 +15,7 @@ import { submitReelReport } from '../../lib/reelsReportClient.mjs';
 import { busEmit, eventBus, EventType } from '../../engine/EventBus';
 import Link from 'next/link';
 import ReelTrustStrip from '../reels/ReelTrustStrip';
+import PokerCardText from './PokerCardText';
 import GiphyPicker from '../shared/GiphyPicker';
 import {
   buildReelPath,
@@ -2563,7 +2564,7 @@ export function ReelsViewer({ onClose }) {
                       aria-label="Edit Comment"
                     />
                   ) : comment.content ? (
-                    <p className={styles.commentCopy}>{comment.content}</p>
+                    <p className={styles.commentCopy}><PokerCardText text={comment.content} /></p>
                   ) : null}
                   {comment.media_url ? (
                     <img

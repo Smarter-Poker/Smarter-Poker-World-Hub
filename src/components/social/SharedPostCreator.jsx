@@ -3208,6 +3208,7 @@ export function SharedPostCreator({
       )}
       {showPokerCardPicker && (
         <PokerCardPicker
+          accountId={user?.id || null}
           initialMarkup={pokerCardsMarkup}
           onInsert={insertPokerCards}
           onClose={() => setShowPokerCardPicker(false)}

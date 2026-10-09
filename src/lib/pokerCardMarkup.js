@@ -58,6 +58,105 @@ export function normalizePokerCardMarkup(text = '') {
   return formatPokerCards(hand, board);
 }
 
+export const POKER_CARD_PRESET_LIMIT = 12;
+export const POKER_CARD_PRESET_NAME_LIMIT = 40;
+const POKER_CARD_PRESET_STORAGE_PREFIX = 'sp-poker-card-presets:v1';
+
+export function pokerCardPresetStorageKey(accountId) {
+  const owner = typeof accountId === 'string' ? accountId.trim() : '';
+  return owner ? `${POKER_CARD_PRESET_STORAGE_PREFIX}:${encodeURIComponent(owner)}` : null;
+}
+
+export function normalizePokerCardPresetName(name) {
+  return typeof name === 'string'
+    ? name.trim().replace(/\s+/g, ' ').slice(0, POKER_CARD_PRESET_NAME_LIMIT)
+    : '';
+}
+
+function normalizePokerCardPreset(value) {
+  if (!value || typeof value !== 'object') return null;
+  const id = typeof value.id === 'string' ? value.id.trim().slice(0, 80) : '';
+  const name = normalizePokerCardPresetName(value.name);
+  const markup = normalizePokerCardMarkup(value.markup);
+  const boardCount = parsePokerCards(markup).board.length;
+  if (!id || !name || !markup || (boardCount > 0 && boardCount < 3)) return null;
+  return { id, name, markup };
+}
+
+export function normalizePokerCardPresets(value) {
+  if (!Array.isArray(value)) return [];
+  const normalized = [];
+  const ids = new Set();
+  const names = new Set();
+  for (const candidate of value) {
+    const preset = normalizePokerCardPreset(candidate);
+    if (!preset) continue;
+    const foldedName = preset.name.toLowerCase();
+    if (ids.has(preset.id) || names.has(foldedName)) continue;
+    ids.add(preset.id);
+    names.add(foldedName);
+    normalized.push(preset);
+    if (normalized.length === POKER_CARD_PRESET_LIMIT) break;
+  }
+  return normalized;
+}
+
+export function loadPokerCardPresets(storage, accountId) {
+  const key = pokerCardPresetStorageKey(accountId);
+  if (!key || !storage?.getItem) return [];
+  try {
+    return normalizePokerCardPresets(JSON.parse(storage.getItem(key) || '[]'));
+  } catch {
+    return [];
+  }
+}
+
+export function persistPokerCardPresets(storage, accountId, presets) {
+  const key = pokerCardPresetStorageKey(accountId);
+  const normalized = normalizePokerCardPresets(presets);
+  if (!key || !storage?.setItem) return false;
+  try {
+    storage.setItem(key, JSON.stringify(normalized));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function requirePresetName(presets, name, exceptId = null) {
+  const normalized = normalizePokerCardPresetName(name);
+  if (!normalized) throw new Error('Enter A Preset Name');
+  if (presets.some((preset) => preset.id !== exceptId && preset.name.toLowerCase() === normalized.toLowerCase())) {
+    throw new Error('A Preset With That Name Already Exists');
+  }
+  return normalized;
+}
+
+export function createPokerCardPreset(presets, name, markup, id) {
+  const current = normalizePokerCardPresets(presets);
+  if (current.length >= POKER_CARD_PRESET_LIMIT) throw new Error(`You Can Save Up To ${POKER_CARD_PRESET_LIMIT} Presets`);
+  const normalizedName = requirePresetName(current, name);
+  const normalizedMarkup = normalizePokerCardMarkup(markup);
+  const boardCount = parsePokerCards(normalizedMarkup).board.length;
+  if (!normalizedMarkup || (boardCount > 0 && boardCount < 3)) throw new Error('Save A Complete Hand Or Board');
+  const presetId = typeof id === 'string' && id.trim()
+    ? id.trim().slice(0, 80)
+    : globalThis.crypto?.randomUUID?.() || `preset-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+  if (current.some((preset) => preset.id === presetId)) throw new Error('Preset Could Not Be Saved');
+  return [...current, { id: presetId, name: normalizedName, markup: normalizedMarkup }];
+}
+
+export function renamePokerCardPreset(presets, id, name) {
+  const current = normalizePokerCardPresets(presets);
+  if (!current.some((preset) => preset.id === id)) throw new Error('Preset Not Found');
+  const normalizedName = requirePresetName(current, name, id);
+  return current.map((preset) => preset.id === id ? { ...preset, name: normalizedName } : preset);
+}
+
+export function deletePokerCardPreset(presets, id) {
+  return normalizePokerCardPresets(presets).filter((preset) => preset.id !== id);
+}
+
 export function containsPokerCards(text) {
   if (!text) return false;
   CARD_TOKEN_PATTERN.lastIndex = 0;

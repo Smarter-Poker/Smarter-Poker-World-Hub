@@ -1,6 +1,18 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { PokerCardImage } from './PokerCardText';
-import { formatPokerCards, parsePokerCards } from '../../lib/pokerCardMarkup';
+import PokerCardText, { PokerCardImage } from './PokerCardText';
+import {
+  createPokerCardPreset,
+  deletePokerCardPreset,
+  formatPokerCards,
+  loadPokerCardPresets,
+  normalizePokerCardPresets,
+  persistPokerCardPresets,
+  parsePokerCards,
+  renamePokerCardPreset,
+} from '../../lib/pokerCardMarkup';
+import { loadAppSettings, saveAppSetting } from '../../lib/appSettingsSync';
+import { supabase } from '../../lib/supabase';
+import { fetchRecentClubArenaHands } from '../../lib/clubArenaHandImport.mjs';
 
 const RANKS = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
 const QUICK_RANKS = RANKS.map((rank) => ({ rank, key: rank === 'T' ? '1' : rank }));
@@ -35,13 +47,24 @@ const withoutBoardCard = (cards, index) => {
   return next.length > 3 ? next : next.filter(Boolean);
 };
 
-export default function PokerCardPicker({ initialMarkup = '', onInsert, onClose }) {
+export default function PokerCardPicker({ accountId = null, initialMarkup = '', onInsert, onClose }) {
   const initialCards = useMemo(() => parsePokerCards(initialMarkup), [initialMarkup]);
   const [zone, setZone] = useState('hand');
   const [hand, setHand] = useState(initialCards.hand);
   const [board, setBoard] = useState(initialCards.board);
   const [quickRank, setQuickRank] = useState(null);
   const [pressingRank, setPressingRank] = useState(null);
+  const [presets, setPresets] = useState([]);
+  const [presetName, setPresetName] = useState('');
+  const [editingPresetId, setEditingPresetId] = useState(null);
+  const [presetMessage, setPresetMessage] = useState('');
+  const [recentHands, setRecentHands] = useState([]);
+  const [recentHandsLoading, setRecentHandsLoading] = useState(false);
+  const [recentHandsError, setRecentHandsError] = useState('');
+  const [recentHandsRejected, setRecentHandsRejected] = useState(0);
+  const [recentHandsRefresh, setRecentHandsRefresh] = useState(0);
+  const [handImportMessage, setHandImportMessage] = useState('');
+  const presetRevisionRef = useRef(0);
   const longPressTimerRef = useRef(null);
   const suppressClickRef = useRef(false);
   const suppressResetTimerRef = useRef(null);
@@ -51,6 +74,54 @@ export default function PokerCardPicker({ initialMarkup = '', onInsert, onClose 
   const rankButtonRefs = useRef({});
   const openRankRef = useRef(null);
   const allSelected = useMemo(() => [...hand, ...board].filter(Boolean), [hand, board]);
+
+  useEffect(() => {
+    presetRevisionRef.current += 1;
+    const revision = presetRevisionRef.current;
+    setPresetName('');
+    setEditingPresetId(null);
+    setPresetMessage('');
+    if (!accountId || typeof window === 'undefined') {
+      setPresets([]);
+      return undefined;
+    }
+
+    const local = loadPokerCardPresets(window.localStorage, accountId);
+    setPresets(local);
+    let cancelled = false;
+    loadAppSettings(accountId).then((settings) => {
+      if (cancelled || presetRevisionRef.current !== revision) return;
+      if (Array.isArray(settings?.poker_card_presets)) {
+        const remote = normalizePokerCardPresets(settings.poker_card_presets);
+        setPresets(remote);
+        persistPokerCardPresets(window.localStorage, accountId, remote);
+      }
+    });
+    return () => { cancelled = true; };
+  }, [accountId]);
+
+  useEffect(() => {
+    setRecentHands([]);
+    setRecentHandsError('');
+    setRecentHandsRejected(0);
+    setHandImportMessage('');
+    if (!accountId) {
+      setRecentHandsLoading(false);
+      return undefined;
+    }
+    let cancelled = false;
+    setRecentHandsLoading(true);
+    fetchRecentClubArenaHands(supabase, accountId).then(({ hands, rejected }) => {
+      if (cancelled) return;
+      setRecentHands(hands);
+      setRecentHandsRejected(rejected);
+    }).catch((error) => {
+      if (!cancelled) setRecentHandsError(error?.message || 'Recent Club Arena Hands Are Temporarily Unavailable');
+    }).finally(() => {
+      if (!cancelled) setRecentHandsLoading(false);
+    });
+    return () => { cancelled = true; };
+  }, [accountId, recentHandsRefresh]);
 
   useEffect(() => {
     const handleKeyDown = (event) => {
@@ -103,6 +174,43 @@ export default function PokerCardPicker({ initialMarkup = '', onInsert, onClose 
   }, [quickRank]);
 
   const boardFull = board.length >= 5 && !board.includes(null);
+
+  const commitPresets = (next, message) => {
+    const normalized = normalizePokerCardPresets(next);
+    presetRevisionRef.current += 1;
+    setPresets(normalized);
+    persistPokerCardPresets(window.localStorage, accountId, normalized);
+    saveAppSetting('poker_card_presets', normalized);
+    setPresetMessage(message);
+  };
+
+  const savePreset = () => {
+    try {
+      const next = editingPresetId
+        ? renamePokerCardPreset(presets, editingPresetId, presetName)
+        : createPokerCardPreset(presets, presetName, formatPokerCards(hand, board));
+      commitPresets(next, editingPresetId ? 'Preset Renamed' : 'Preset Saved');
+      setPresetName('');
+      setEditingPresetId(null);
+    } catch (error) {
+      setPresetMessage(error?.message || 'Preset Could Not Be Saved');
+    }
+  };
+
+  const usePreset = (preset) => {
+    const cards = parsePokerCards(preset.markup);
+    setHand(cards.hand);
+    setBoard(cards.board);
+    setZone(cards.hand.length ? 'hand' : 'board');
+    setPresetMessage(`${preset.name} Loaded`);
+  };
+
+  const importRecentHand = (recentHand) => {
+    setHand(recentHand.hand);
+    setBoard(recentHand.board);
+    setZone(recentHand.hand.length ? 'hand' : 'board');
+    setHandImportMessage(`${recentHand.label} Imported`);
+  };
 
   const choose = (card) => {
     if (allSelected.some((selected) => sameCard(selected, card))) return false;
@@ -326,6 +434,130 @@ export default function PokerCardPicker({ initialMarkup = '', onInsert, onClose 
             </div>
           ))}
         </div>
+
+        <section aria-labelledby="club-arena-hand-import-title" style={{ margin: '0 18px 14px', padding: 12, borderRadius: 12, border: '1px solid rgba(59,130,246,0.35)', background: 'rgba(37,99,235,0.08)' }}>
+          <div id="club-arena-hand-import-title" style={{ color: '#93c5fd', fontSize: 12, fontWeight: 800, letterSpacing: 0.7, textTransform: 'uppercase' }}>
+            Recent Club Arena Hands
+          </div>
+          {!accountId ? (
+            <p style={{ margin: '8px 0 0', color: '#94a3b8', fontSize: 12 }}>Sign In To Import Your Hands.</p>
+          ) : recentHandsLoading ? (
+            <p role="status" style={{ margin: '8px 0 0', color: '#cbd5e1', fontSize: 12 }}>Loading Your Recent Hands...</p>
+          ) : recentHandsError ? (
+            <div role="alert" style={{ marginTop: 8 }}>
+              <p style={{ margin: '0 0 8px', color: '#fca5a5', fontSize: 12 }}>{recentHandsError}</p>
+              <button
+                type="button"
+                onClick={() => setRecentHandsRefresh((value) => value + 1)}
+                style={{ minWidth: 96, minHeight: 44, padding: '8px 12px', border: '1px solid rgba(255,255,255,0.18)', borderRadius: 8, background: 'transparent', color: '#fff', fontWeight: 700, cursor: 'pointer' }}
+              >
+                Try Again
+              </button>
+            </div>
+          ) : recentHands.length ? (
+            <div style={{ display: 'grid', gap: 8, marginTop: 9 }}>
+              {recentHands.map((recentHand) => (
+                <button
+                  type="button"
+                  key={recentHand.id}
+                  onClick={() => importRecentHand(recentHand)}
+                  aria-label={`Import ${recentHand.label}`}
+                  style={{ width: '100%', minHeight: 52, padding: '8px 10px', border: '1px solid rgba(147,197,253,0.35)', borderRadius: 9, background: 'rgba(2,6,23,0.58)', color: '#fff', textAlign: 'left', cursor: 'pointer' }}
+                >
+                  <span style={{ display: 'block', marginBottom: 4, color: '#bfdbfe', fontSize: 12, fontWeight: 800 }}>{recentHand.label}</span>
+                  <PokerCardText text={formatPokerCards(recentHand.hand, recentHand.board)} style={{ fontSize: 12 }} />
+                </button>
+              ))}
+            </div>
+          ) : (
+            <p style={{ margin: '8px 0 0', color: '#94a3b8', fontSize: 12 }}>
+              {recentHandsRejected ? 'Recent Hands Had No Complete Card Data To Import.' : 'No Recent Club Arena Hands To Import.'}
+            </p>
+          )}
+          <div aria-live="polite" style={{ minHeight: 18, marginTop: 5, color: '#cbd5e1', fontSize: 12 }}>
+            {handImportMessage}
+          </div>
+        </section>
+
+        <section aria-labelledby="poker-card-presets-title" style={{ margin: '0 18px 14px', padding: 12, borderRadius: 12, border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.04)' }}>
+          <div id="poker-card-presets-title" style={{ color: '#fbbf24', fontSize: 12, fontWeight: 800, letterSpacing: 0.7, textTransform: 'uppercase' }}>
+            Saved Hands And Boards
+          </div>
+          {!accountId ? (
+            <p style={{ margin: '8px 0 0', color: '#94a3b8', fontSize: 12 }}>Sign In To Save Presets To Your Account.</p>
+          ) : (
+            <>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 9 }}>
+                <label htmlFor="poker-card-preset-name" style={{ position: 'absolute', width: 1, height: 1, padding: 0, margin: -1, overflow: 'hidden', clip: 'rect(0, 0, 0, 0)', whiteSpace: 'nowrap', border: 0 }}>
+                  {editingPresetId ? 'New Preset Name' : 'Preset Name'}
+                </label>
+                <input
+                  id="poker-card-preset-name"
+                  value={presetName}
+                  maxLength={40}
+                  onChange={(event) => { setPresetName(event.target.value); setPresetMessage(''); }}
+                  placeholder={editingPresetId ? 'New Preset Name' : 'Name This Setup'}
+                  style={{ flex: '1 1 180px', minWidth: 0, minHeight: 44, boxSizing: 'border-box', borderRadius: 9, border: '1px solid rgba(255,255,255,0.2)', background: '#07101d', color: '#fff', padding: '10px 12px', fontSize: 16 }}
+                />
+                <button
+                  type="button"
+                  onClick={savePreset}
+                  disabled={!presetName.trim() || (!editingPresetId && !canInsert)}
+                  style={{ minWidth: 96, minHeight: 44, padding: '9px 14px', border: 0, borderRadius: 9, background: presetName.trim() && (editingPresetId || canInsert) ? '#2563eb' : '#334155', color: '#fff', fontWeight: 800, cursor: presetName.trim() && (editingPresetId || canInsert) ? 'pointer' : 'not-allowed' }}
+                >
+                  {editingPresetId ? 'Save Name' : 'Save Preset'}
+                </button>
+                {editingPresetId && (
+                  <button
+                    type="button"
+                    onClick={() => { setEditingPresetId(null); setPresetName(''); setPresetMessage(''); }}
+                    style={{ minWidth: 72, minHeight: 44, padding: '9px 12px', border: '1px solid rgba(255,255,255,0.16)', borderRadius: 9, background: 'transparent', color: '#cbd5e1', fontWeight: 700, cursor: 'pointer' }}
+                  >
+                    Cancel
+                  </button>
+                )}
+              </div>
+              <div aria-live="polite" style={{ minHeight: 18, marginTop: 5, color: '#cbd5e1', fontSize: 12 }}>
+                {presetMessage}
+              </div>
+              {presets.length > 0 && (
+                <div style={{ display: 'grid', gap: 8, marginTop: 3 }}>
+                  {presets.map((preset) => (
+                    <div key={preset.id} style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6, padding: 7, borderRadius: 9, background: 'rgba(2,6,23,0.55)' }}>
+                      <button
+                        type="button"
+                        onClick={() => usePreset(preset)}
+                        aria-label={`Use ${preset.name} preset`}
+                        style={{ flex: '1 1 130px', minWidth: 0, minHeight: 44, padding: '8px 10px', border: '1px solid rgba(245,158,11,0.42)', borderRadius: 8, background: 'rgba(245,158,11,0.10)', color: '#fff', fontWeight: 800, textAlign: 'left', cursor: 'pointer' }}
+                      >
+                        {preset.name}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => { setEditingPresetId(preset.id); setPresetName(preset.name); setPresetMessage(''); }}
+                        aria-label={`Rename ${preset.name} preset`}
+                        style={{ minWidth: 70, minHeight: 44, padding: '8px 10px', border: '1px solid rgba(255,255,255,0.16)', borderRadius: 8, background: 'transparent', color: '#cbd5e1', fontWeight: 700, cursor: 'pointer' }}
+                      >
+                        Rename
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          commitPresets(deletePokerCardPreset(presets, preset.id), 'Preset Deleted');
+                          if (editingPresetId === preset.id) { setEditingPresetId(null); setPresetName(''); }
+                        }}
+                        aria-label={`Delete ${preset.name} preset`}
+                        style={{ minWidth: 68, minHeight: 44, padding: '8px 10px', border: '1px solid rgba(248,113,113,0.45)', borderRadius: 8, background: 'transparent', color: '#fca5a5', fontWeight: 700, cursor: 'pointer' }}
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+        </section>
 
         <div style={{ padding: '0 12px 10px' }}>
           <div style={{ color: '#fbbf24', fontSize: 11, fontWeight: 800, margin: '0 6px 6px' }}>
