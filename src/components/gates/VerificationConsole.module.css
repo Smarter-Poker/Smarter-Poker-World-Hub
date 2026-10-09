@@ -1,0 +1,30 @@
+.page { min-height: calc(100dvh - 56px); background: #000; display: flex; flex-direction: column; align-items: center; padding: 12px 4px 80px; }
+.console { width: min(620px, 100%); position: relative; container-type: inline-size; color: #e4e7ec; font-family: 'Inter', sans-serif; }
+.art { display: block; width: 100%; height: auto; pointer-events: none; }
+.hitbox { position: absolute; display: grid; place-items: center; background: transparent; border: 0; padding: 0; cursor: pointer; color: #e4e7ec; }
+.hitbox:focus-visible, .input:focus-visible { outline: 2px solid #45adff; outline-offset: -3px; }
+.hitbox:disabled { cursor: not-allowed; }
+.close { left: 80.5%; top: 7.5%; width: 8%; height: 5.5%; }
+.input { box-sizing: border-box; position: absolute; left: 29%; top: 58.1%; width: 52%; height: 4.3%; padding: 0 2%; background: transparent; border: 0; color: #f4f7fb; font-size: clamp(16px, 3.1cqw, 21px); min-width: 0; }
+.input::placeholder { color: #9aa5b3; }
+.send { left: 18.5%; top: 64.7%; width: 62%; height: 5.4%; font-size: 3.9cqw; font-weight: 700; }
+.send:disabled .liveAction { color: #9aa5b3; }
+.liveAction { width: 88%; background: #05213e; padding: 1.1cqw 0; }
+.skip { left: 41%; top: 77.3%; width: 18%; height: 3%; }
+.liveSkip { width: 130%; background: #020c14; font-size: 2.7cqw; color: #00d4ff; }
+.hub { left: 42%; top: 86%; width: 7%; height: 3%; }
+.help { left: 51%; top: 86%; width: 7%; height: 3%; }
+.liveLabel { position: absolute; left: 17.5%; top: 54.8%; width: 65%; height: 2.5%; background: #020b12; font-size: 2.9cqw; }
+.codePrefix { position: absolute; left: 18%; top: 58.4%; width: 8%; height: 3.5%; display: grid; place-items: center; background: #131b25; font-size: 2.7cqw; }
+.codeActions { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 1cqw 3cqw; background: #020b12; font-size: 2.4cqw; text-align: center; }
+.codeActions span { width: 100%; }
+.codeActions button { background: transparent; color: #00d4ff; border: 0; padding: 0; font: inherit; text-decoration: underline; cursor: pointer; min-height: 24px; }
+.codeActions button:disabled { opacity: 0.5; cursor: not-allowed; }
+.rewardStatus { position: absolute; left: 20%; top: 46.8%; width: 60%; height: 5.5%; display: flex; align-items: center; justify-content: space-around; gap: 3%; font-size: 2.7cqw; text-align: center; }
+.rewardStatus span { width: 46%; background: #020b12; padding: 1cqw 0; }
+.completion { position: absolute; left: 17.5%; top: 57.3%; width: 65%; height: 5.7%; box-sizing: border-box; margin: 0; padding: 0.5cqw; background: #020b12; font-size: 2.6cqw; text-align: center; overflow-y: auto; }
+.error { width: min(500px, 88%); margin: 8px 0; color: #ff5b6e; text-align: center; font-size: 14px; }
+.srOnly { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+
+.stateFooter { position: absolute; top: 72%; left: 20%; width: 60%; height: 12.5%; background: #020b12; display: flex; flex-direction: column; justify-content: center; gap: 1cqw; text-align: center; }
+.stateFooter > button { color: #00d4ff; background: transparent; border: 0; font-size: 2.7cqw; text-decoration: underline; cursor: pointer; min-height: 24px; }
