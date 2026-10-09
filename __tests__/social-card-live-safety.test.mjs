@@ -142,6 +142,9 @@ test('recent hand import starts from the indexed own-facts window and bounds the
 });
 
 test('social card certificate blocks publication but permits its bounded preference restore', () => {
+  assert.equal(isForbiddenPostMutation('POST', `${APP_ORIGIN}/api/social/presence`), false);
+  assert.equal(isForbiddenPostMutation('PUT', `${APP_ORIGIN}/api/social/presence`), true);
+  assert.equal(isForbiddenPostMutation('POST', `${APP_ORIGIN}/api/social/post`), true);
   assert.equal(isForbiddenPostMutation('POST', `${APP_ORIGIN}/api/social/pages/posts`), true);
   assert.equal(isForbiddenPostMutation('POST', `${AUTH_ORIGIN}/rest/v1/posts`), true);
   assert.equal(isForbiddenPostMutation('PATCH', `${AUTH_ORIGIN}/rest/v1/profiles?id=eq.fixture`), false);
