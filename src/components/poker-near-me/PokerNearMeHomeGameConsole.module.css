@@ -1,0 +1,539 @@
+/*
+ * Home Games companion rules for Poker Near Me's painted console.
+ * Static chrome comes from the approved raster kit; this file only places
+ * live DOM copy and controls over those complete painted faces.
+ */
+
+.page {
+  min-height: 100vh;
+  overflow-x: clip;
+  color: #f4f7fb;
+  background: #010305;
+  font-family: var(--font-inter), Inter, system-ui, sans-serif;
+}
+
+.main {
+  display: grid;
+  width: min(100%, 1040px);
+  min-width: 0;
+  margin: 0 auto;
+  padding: clamp(18px, 3vw, 34px) clamp(10px, 2.4vw, 24px) 80px;
+  gap: clamp(16px, 2.4vw, 28px);
+}
+
+.topbar {
+  position: sticky;
+  top: var(--sp-header-height, 56px);
+  z-index: 110;
+  width: 100%;
+  background: #010305;
+}
+
+.topbarInner {
+  display: flex;
+  width: min(100%, 1040px);
+  min-width: 0;
+  margin: 0 auto;
+  padding: 7px clamp(10px, 2.4vw, 24px);
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.paintedAction {
+  appearance: none;
+  display: inline-grid;
+  width: min(100%, 220px);
+  min-width: 134px;
+  min-height: 44px;
+  aspect-ratio: 348 / 114;
+  margin: 0;
+  padding: 0 13%;
+  overflow: hidden;
+  grid-auto-flow: column;
+  grid-auto-columns: max-content;
+  place-content: center;
+  align-items: center;
+  gap: 7px;
+  color: #e4e7ec;
+  border: 0;
+  border-radius: 0;
+  background: transparent url('/images/pnm-console/painted-controls-v1/button-secondary.png') center / contain no-repeat;
+  box-shadow: none;
+  font: 800 clamp(12px, 1.1vw, 14px)/1 var(--font-rajdhani), Rajdhani, Inter, sans-serif;
+  letter-spacing: .075em;
+  text-align: center;
+  text-decoration: none;
+  text-transform: uppercase;
+  white-space: nowrap;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.paintedActionPrimary {
+  color: #f4f7fb;
+  background-image: url('/images/pnm-console/painted-controls-v1/button-primary.png');
+}
+
+.paintedAction:focus-visible,
+.iconAction:focus-visible,
+.fieldControl:focus-visible {
+  outline: 3px solid #8fd4ff;
+  outline-offset: 2px;
+}
+
+.paintedAction:disabled {
+  opacity: .5;
+  cursor: wait;
+}
+
+.actionIcon {
+  width: 36px;
+  height: 36px;
+  flex-basis: 36px;
+}
+
+.topbarAction {
+  width: min(46vw, 190px);
+  min-width: 134px;
+  padding-right: 10%;
+  padding-left: 10%;
+}
+
+.panelBody {
+  gap: clamp(12px, 2cqw, 20px);
+  padding-bottom: clamp(16px, 3cqw, 30px);
+}
+
+.radiusControls,
+.manualHeader,
+.stateRow,
+.noticeRow {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 12px;
+}
+
+.radiusControls,
+.manualHeader {
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+
+.sectionLabel {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
+}
+
+.radiusOptions {
+  display: flex;
+  min-width: 0;
+  flex: 1 1 420px;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 5px;
+}
+
+.radiusAction {
+  width: 134px;
+  min-width: 134px;
+  padding: 0 8%;
+}
+
+.cityAction,
+.locationAction,
+.searchAction,
+.retryAction,
+.emptyAction,
+.recoveryAction {
+  flex: 0 0 auto;
+}
+
+.locationAction {
+  width: min(100%, 228px);
+}
+
+.manualForm {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: minmax(180px, .75fr) minmax(240px, 1.25fr) auto;
+  align-items: end;
+  gap: 12px;
+}
+
+.fieldGroup {
+  display: grid;
+  min-width: 0;
+  gap: 6px;
+}
+
+.fieldLabel {
+  color: #45adff;
+  font: 700 12px/1 var(--font-rajdhani), Rajdhani, Inter, sans-serif;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+}
+
+.fieldWell {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  min-height: 52px;
+  align-items: center;
+  background: transparent url('/images/pnm-console/painted-controls-v1/search-well.webp') center / contain no-repeat;
+}
+
+.fieldControl {
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  padding: 0 clamp(18px, 8%, 42px);
+  color: #f4f7fb;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  font: 700 15px/1 var(--font-rajdhani), Rajdhani, Inter, sans-serif;
+  letter-spacing: .035em;
+  color-scheme: dark;
+}
+
+.fieldControl::placeholder {
+  color: #9aa5b3;
+  opacity: 1;
+}
+
+.noticeRow {
+  align-items: flex-start;
+}
+
+.stateRow {
+  align-items: flex-start;
+}
+
+.stateCopy {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.centeredState {
+  display: grid;
+  min-width: 0;
+  justify-items: center;
+  gap: 10px;
+  text-align: center;
+}
+
+.createHomeGame {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  padding: 6px 0 12px;
+  justify-content: center;
+}
+
+.createHomeGameInner {
+  display: grid;
+  width: min(100%, 600px);
+  min-width: 0;
+  padding: 4px 0;
+  justify-items: center;
+  gap: 12px;
+  color: #e4e7ec;
+  background: transparent;
+  text-align: center;
+}
+
+.heroIcon {
+  width: 64px;
+  height: 64px;
+  flex-basis: 64px;
+}
+
+.createTitle {
+  max-width: 520px;
+  margin: 0;
+  color: #e4e7ec;
+  font: 800 clamp(20px, 4.2cqw, 28px)/1.12 var(--font-rajdhani), Rajdhani, Inter, sans-serif;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+}
+
+.copy,
+.finePrint {
+  max-width: 520px;
+  margin: 0;
+  color: #9aa5b3;
+  font: 600 max(13px, 3cqw)/1.45 var(--font-inter), Inter, sans-serif;
+}
+
+.benefitList {
+  display: grid;
+  width: min(100%, 520px);
+  margin: 2px 0;
+  padding: 0;
+  gap: 4px;
+  list-style: none;
+  text-align: left;
+}
+
+.benefitRow {
+  display: flex;
+  min-height: 44px;
+  align-items: center;
+  gap: 10px;
+  color: #d7dee7;
+  font: 600 max(13px, 2.8cqw)/1.25 var(--font-inter), Inter, sans-serif;
+}
+
+.benefitIcon {
+  width: 40px;
+  height: 40px;
+  flex-basis: 40px;
+}
+
+.actionGroup {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.finePrint {
+  font-size: max(12px, 2.7cqw);
+}
+
+.hostAction.hostAction {
+  width: 100% !important;
+  max-width: 348px;
+  min-height: 44px !important;
+  margin-top: 12px;
+  color: #f4f7fb !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent url('/images/pnm-console/painted-controls-v1/button-primary.png') center / contain no-repeat !important;
+  box-shadow: none !important;
+}
+
+.geofencePosition {
+  position: fixed;
+  right: 0;
+  bottom: calc(var(--sp-bottom-nav-height, 56px) + env(safe-area-inset-bottom, 0px) + 8px);
+  left: 0;
+  z-index: 9999;
+  padding: 0 10px;
+  pointer-events: none;
+}
+
+.geofencePanel {
+  width: min(100%, 720px);
+  margin: 0 auto;
+  pointer-events: auto;
+}
+
+.geofenceBody {
+  padding-bottom: clamp(12px, 2.4cqw, 22px);
+}
+
+.geofenceContent {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 12px;
+}
+
+.geofenceIcon {
+  width: 52px;
+  height: 52px;
+  flex-basis: 52px;
+}
+
+.geofenceCopy {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.venueName {
+  overflow: hidden;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.geofenceActions {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+}
+
+.geofenceAction {
+  width: 134px;
+  min-width: 134px;
+  padding: 0 8%;
+}
+
+.iconAction {
+  appearance: none;
+  display: grid;
+  width: 44px;
+  height: 44px;
+  margin: 0;
+  padding: 0;
+  place-items: center;
+  color: inherit;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  cursor: pointer;
+}
+
+.recoveryPanel {
+  width: min(100%, 680px);
+  margin: 0 auto;
+}
+
+.recoveryPanelCompact {
+  width: 100%;
+}
+
+.recoveryBody {
+  padding-bottom: clamp(16px, 3cqw, 30px);
+}
+
+.recoveryContent {
+  display: grid;
+  min-width: 0;
+  justify-items: center;
+  gap: 10px;
+  text-align: center;
+}
+
+.recoveryMessage {
+  max-width: 440px;
+  overflow-wrap: anywhere;
+}
+
+.toast {
+  position: fixed;
+  top: calc(var(--sp-header-height, 56px) + 18px);
+  left: 50%;
+  z-index: 9999;
+  width: min(calc(100vw - 24px), 348px);
+  transform: translateX(-50%);
+  opacity: 1;
+  transition: opacity 120ms ease-out;
+}
+
+.toastExit {
+  opacity: 0;
+}
+
+@media (max-width: 760px) {
+  .manualForm {
+    grid-template-columns: 1fr;
+  }
+
+  .searchAction {
+    justify-self: center;
+  }
+
+  .geofenceContent {
+    flex-wrap: wrap;
+  }
+
+  .geofenceCopy {
+    flex-basis: calc(100% - 64px);
+  }
+
+  .geofenceActions {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .main {
+    padding-right: 8px;
+    padding-left: 8px;
+  }
+
+  .topbarInner {
+    padding-right: 6px;
+    padding-left: 6px;
+  }
+
+  .topbarAction {
+    width: min(46vw, 174px);
+    min-width: 128px;
+    padding-right: 7%;
+    padding-left: 7%;
+    font-size: 12px;
+  }
+
+  .topbarAction :global(.pnc-icon) {
+    width: 34px;
+    height: 34px;
+    flex-basis: 34px;
+  }
+
+  .radiusOptions {
+    flex-basis: 100%;
+  }
+
+  .radiusAction {
+    width: 128px;
+    min-width: 128px;
+  }
+
+  .cityAction,
+  .locationAction {
+    margin: 0 auto;
+  }
+
+  .stateRow {
+    flex-wrap: wrap;
+  }
+
+  .retryAction {
+    margin: 0 auto;
+  }
+
+  .geofencePosition {
+    padding-right: 4px;
+    padding-left: 4px;
+  }
+
+  .geofenceIcon {
+    width: 44px;
+    height: 44px;
+    flex-basis: 44px;
+  }
+
+  .geofenceCopy {
+    flex-basis: calc(100% - 56px);
+  }
+
+  .geofenceActions {
+    flex-wrap: wrap;
+  }
+
+  .geofenceAction {
+    width: 128px;
+    min-width: 128px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toast {
+    transition: none;
+  }
+}

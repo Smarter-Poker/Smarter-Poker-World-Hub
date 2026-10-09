@@ -18,25 +18,25 @@ import { busEmit, eventBus, EventType } from '../../../src/engine/EventBus';
 import TourPageSummary from '../../../src/components/seo/TourPageSummary';
 import { tourSeo, tourSchema, registryCodeForTour, tourCanonical } from '../../../src/lib/seo/tourPageSeo';
 import { DeepRouteNotice } from '../../../src/components/poker-near-me/DeepRouteSignalDeck';
-import { PokerNearMePanelShell } from '../../../src/components/poker-near-me/PokerNearMeConsole';
+import { PokerNearMeConsoleIcon, PokerNearMePanelShell } from '../../../src/components/poker-near-me/PokerNearMeConsole';
 import tourSourceRegistry from '../../../data/tour-source-registry.json';
 
 
 const TOUR_COLORS = {
-  'WSOP': { bg: 'linear-gradient(135deg, #c9a227, #8b6914)', text: '#000' },
-  'WPT': { bg: 'linear-gradient(135deg, #dc2626, #991b1b)', text: '#fff' },
-  'WSOPC': { bg: 'linear-gradient(135deg, #c9a227, #8b6914)', text: '#000' },
-  'MSPT': { bg: 'linear-gradient(135deg, #1e40af, #1e3a8a)', text: '#fff' },
-  'RGPS': { bg: 'linear-gradient(135deg, #059669, #047857)', text: '#fff' },
-  'PGT': { bg: 'linear-gradient(135deg, #7c3aed, #5b21b6)', text: '#fff' },
-  'TRITON': { bg: 'linear-gradient(135deg, #0891b2, #0e7490)', text: '#fff' },
-  'NAPT': { bg: 'linear-gradient(135deg, #dc2626, #991b1b)', text: '#fff' },
-  'CPPT': { bg: 'linear-gradient(135deg, #0f766e, #134e4a)', text: '#fff' },
-  'BPO': { bg: 'linear-gradient(135deg, #0369a1, #0c4a6e)', text: '#fff' },
-  'FPN': { bg: 'linear-gradient(135deg, #4338ca, #312e81)', text: '#fff' },
-  'LIPS': { bg: 'linear-gradient(135deg, #be185d, #831843)', text: '#fff' },
-  'ROUGHRIDER': { bg: 'linear-gradient(135deg, #854d0e, #713f12)', text: '#fff' },
-  'default': { bg: 'linear-gradient(135deg, #374151, #1f2937)', text: '#fff' },
+  'WSOP': { bg: '#b9943f', text: '#05080c', tone: 'gold' },
+  'WPT': { bg: '#123753', text: '#f4f7fb', tone: 'blue' },
+  'WSOPC': { bg: '#b9943f', text: '#05080c', tone: 'gold' },
+  'MSPT': { bg: '#123753', text: '#f4f7fb', tone: 'blue' },
+  'RGPS': { bg: '#123753', text: '#f4f7fb', tone: 'blue' },
+  'PGT': { bg: '#123753', text: '#f4f7fb', tone: 'blue' },
+  'TRITON': { bg: '#123753', text: '#f4f7fb', tone: 'blue' },
+  'NAPT': { bg: '#123753', text: '#f4f7fb', tone: 'blue' },
+  'CPPT': { bg: '#123753', text: '#f4f7fb', tone: 'blue' },
+  'BPO': { bg: '#123753', text: '#f4f7fb', tone: 'blue' },
+  'FPN': { bg: '#123753', text: '#f4f7fb', tone: 'blue' },
+  'LIPS': { bg: '#123753', text: '#f4f7fb', tone: 'blue' },
+  'ROUGHRIDER': { bg: '#123753', text: '#f4f7fb', tone: 'blue' },
+  'default': { bg: '#123753', text: '#f4f7fb', tone: 'blue' },
 };
 
 const TOUR_TYPE_LABELS = {
@@ -48,11 +48,11 @@ const TOUR_TYPE_LABELS = {
   charity: 'Charity',
 };
 
-const ACTIVITY_TYPE_COLORS = {
-  update: { bg: 'rgba(96, 165, 250, 0.15)', text: '#60a5fa', border: 'rgba(96, 165, 250, 0.3)' },
-  announcement: { bg: 'rgba(0, 212, 255, 0.15)', text: '#00D4FF', border: 'rgba(0, 212, 255, 0.3)' },
-  promotion: { bg: 'rgba(74, 222, 128, 0.15)', text: '#4ade80', border: 'rgba(74, 222, 128, 0.3)' },
-  result: { bg: 'rgba(167, 139, 250, 0.15)', text: '#a78bfa', border: 'rgba(167, 139, 250, 0.3)' },
+const ACTIVITY_TYPE_LABELS = {
+  update: 'Update',
+  announcement: 'Announcement',
+  promotion: 'Promotion',
+  result: 'Result',
 };
 
 function formatDate(dateStr) {
@@ -98,39 +98,16 @@ function timeAgo(dateStr) {
   const date = new Date(dateStr);
   const diffMs = now - date;
   const diffMins = Math.floor(diffMs / 60000);
-  if (diffMins < 1) return 'just now';
-  if (diffMins < 60) return diffMins + 'm ago';
+  if (diffMins < 1) return 'Just Now';
+  if (diffMins < 60) return diffMins + 'm Ago';
   const diffHours = Math.floor(diffMins / 60);
-  if (diffHours < 24) return diffHours + 'h ago';
+  if (diffHours < 24) return diffHours + 'h Ago';
   const diffDays = Math.floor(diffHours / 24);
-  if (diffDays < 30) return diffDays + 'd ago';
+  if (diffDays < 30) return diffDays + 'd Ago';
   const diffMonths = Math.floor(diffDays / 30);
-  return diffMonths + 'mo ago';
+  return diffMonths + 'mo Ago';
 }
 
-function getSeriesTypeBadge(type) {
-  const map = {
-    major: { label: 'Major', bg: '#7c3aed' },
-    circuit: { label: 'Circuit', bg: '#2563eb' },
-    regional: { label: 'Regional', bg: '#059669' },
-    festival: { label: 'Festival', bg: '#d97706' },
-    championship: { label: 'Championship', bg: '#dc2626' },
-    default: { label: type || 'Series', bg: '#4b5563' },
-  };
-  return map[type] || map.default;
-}
-
-// ── Smarter.Poker Standard: buy-in tier colors ───────────────────────────────
-const BUY_IN_TIER_STYLE = {
-  tbd:   { bg: 'rgba(100,116,139,0.15)', color: '#64748b', border: 'rgba(100,116,139,0.3)', label: 'TBD' },
-  value: { bg: 'rgba(34,197,94,0.15)',  color: '#22c55e', border: 'rgba(34,197,94,0.3)' },
-  low:   { bg: 'rgba(0,212,255,0.12)',  color: '#00D4FF', border: 'rgba(0,212,255,0.3)' },
-  mid:   { bg: 'rgba(59,130,246,0.15)', color: '#60a5fa', border: 'rgba(59,130,246,0.3)' },
-  midhi: { bg: 'rgba(139,92,246,0.15)', color: '#a78bfa', border: 'rgba(139,92,246,0.3)' },
-  high:  { bg: 'rgba(234,179,8,0.15)',  color: '#eab308', border: 'rgba(234,179,8,0.3)' },
-  super: { bg: 'rgba(249,115,22,0.15)', color: '#f97316', border: 'rgba(249,115,22,0.3)' },
-  ultra: { bg: 'rgba(236,72,153,0.15)', color: '#ec4899', border: 'rgba(236,72,153,0.3)' },
-};
 function getBuyInTier(amount) {
   if (!amount) return 'tbd';
   if (amount < 500) return 'value';
@@ -141,11 +118,6 @@ function getBuyInTier(amount) {
   if (amount < 100000) return 'super';
   return 'ultra';
 }
-const GAME_COLORS = {
-  NLH:'#00D4FF', PLO:'#a78bfa', O8:'#fb923c', HORSE:'#f59e0b',
-  STUD:'#94a3b8','STUD-8':'#94a3b8', RAZZ:'#f43f5e', MIXED:'#10b981',
-  LHE:'#6b7280', SHORT:'#06b6d4', '2-7':'#84cc16', PLO5:'#c084fc',
-};
 
 /**
  * AEO phase 3 (2026-09-18). This page had no data function at all, so Next
@@ -493,14 +465,14 @@ export default function TourDetailPage({ seo, stops = [], events = [], facts = n
     const url = window.location.href;
     if (navigator.clipboard) {
       navigator.clipboard.writeText(url).then(() => {
-        setShareMessage('Link copied!');
+        setShareMessage('Link Copied');
         setTimeout(() => setShareMessage(''), 2000);
       }).catch(() => {
-        setShareMessage('Failed to copy');
+        setShareMessage('Failed To Copy');
         setTimeout(() => setShareMessage(''), 2000);
       });
     } else {
-      setShareMessage('Copy not supported');
+      setShareMessage('Copy Not Supported');
       setTimeout(() => setShareMessage(''), 2000);
     }
   }
@@ -628,18 +600,18 @@ export default function TourDetailPage({ seo, stops = [], events = [], facts = n
             saying it is still loading contradicts the page it sits in
             (AEO phase 3, 2026-09-19). */}
         {hasMounted && loading && (
-          <div className="loading-container">
-            <div className="loading-spinner" />
+          <PokerNearMePanelShell as="section" className="tour-state" bodyClassName="tour-state__body" aria-live="polite">
+            <PokerNearMeConsoleIcon name="calendar" className="tour-state__icon" />
             <p className="loading-text">Loading Tour Details...</p>
-          </div>
+          </PokerNearMePanelShell>
         )}
 
         {error && !loading && (
-          <div className="error-container">
-            <div className="error-icon">!</div>
+          <PokerNearMePanelShell as="section" className="tour-state" bodyClassName="tour-state__body" role="alert">
+            <PokerNearMeConsoleIcon name="alert" className="tour-state__icon" />
             <h2 className="error-title">Tour Not Found</h2>
-            <p className="error-text">{error?.message || 'An error occurred loading this tour.'}</p>
-          </div>
+            <p className="error-text">{error?.message || 'An Error Occurred Loading This Tour.'}</p>
+          </PokerNearMePanelShell>
         )}
 
         {tour && !loading && (
@@ -668,23 +640,16 @@ export default function TourDetailPage({ seo, stops = [], events = [], facts = n
                   <h2 className="tour-name">{tour.tour_name}</h2>
                   <div className="header-actions">
                     <button
-                      className={'follow-btn' + (isFollowed ? ' followed' : '')}
+                      type="button"
+                      className={'tour-action follow-btn' + (isFollowed ? ' followed' : '')}
                       onClick={handleFollow}
                     >
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill={isFollowed ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2">
-                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-                      </svg>
+                      <PokerNearMeConsoleIcon name="saved" className="tour-action__icon" />
                       {isFollowed ? 'Following' : 'Follow'}
                       {followerCount > 0 && <span className="follow-count">{followerCount}</span>}
                     </button>
-                    <button className="share-btn" onClick={handleShare}>
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <circle cx="18" cy="5" r="3" />
-                        <circle cx="6" cy="12" r="3" />
-                        <circle cx="18" cy="19" r="3" />
-                        <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
-                        <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
-                      </svg>
+                    <button type="button" className="tour-action share-btn" onClick={handleShare}>
+                      <PokerNearMeConsoleIcon name="share" className="tour-action__icon" />
                       Share
                     </button>
                     {shareMessage && <span className="share-message">{shareMessage}</span>}
@@ -692,7 +657,7 @@ export default function TourDetailPage({ seo, stops = [], events = [], facts = n
                 </div>
 
                 <div className="badges-row">
-                  <span className="tour-code-badge" style={{ background: tourColor.bg, color: tourColor.text }}>
+                  <span className="tour-code-badge" data-tone={tourColor.tone}>
                     {tour.tour_code}
                   </span>
                   {tourTypeLabel && (
@@ -704,10 +669,7 @@ export default function TourDetailPage({ seo, stops = [], events = [], facts = n
 
                 {tour.headquarters && (
                   <div className="headquarters">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-                      <circle cx="12" cy="10" r="3" />
-                    </svg>
+                    <PokerNearMeConsoleIcon name="location" className="tour-meta-icon" />
                     <span>{tour.headquarters}</span>
                   </div>
                 )}
@@ -715,8 +677,8 @@ export default function TourDetailPage({ seo, stops = [], events = [], facts = n
             </PokerNearMePanelShell>
 
                         {/* ══ SMARTER.POKER STANDARD: Tab Navigation ══ */}
-            <section className="sp-tabs-bar">
-              <div className="sp-tabs-inner">
+            <PokerNearMePanelShell as="section" className="sp-tabs-bar" bodyClassName="sp-tabs-shell__body" aria-label="Tour Sections">
+              <div className="sp-tabs-inner" aria-label="Tour Sections">
                 {[
                   { id: 'schedule', label: currentStopType === 'current' ? 'Current Event' : currentStopType === 'next' ? 'Next Event' : 'Event Schedule' },
                   { id: 'stops',    label: 'All Stops',      count: allStops.length || (tour.stops_2026||[]).length },
@@ -724,8 +686,9 @@ export default function TourDetailPage({ seo, stops = [], events = [], facts = n
                   { id: 'results',  label: 'Results', count: results.length || null },
                 ].map(tab => (
                   <button
+                    type="button"
                     key={tab.id}
-                    id={`tab-${tab.id}`}
+                    aria-pressed={activeTab === tab.id}
                     className={`sp-tab${activeTab === tab.id ? ' sp-tab-active' : ''}`}
                     onClick={() => setActiveTab(tab.id)}
                   >
@@ -734,23 +697,30 @@ export default function TourDetailPage({ seo, stops = [], events = [], facts = n
                   </button>
                 ))}
               </div>
-            </section>
+            </PokerNearMePanelShell>
 
             {/* ══ TAB: EVENT SCHEDULE (Smarter.Poker Standard) ══ */}
             {activeTab === 'schedule' && (
-            <section className="sp-schedule-section">
+            <PokerNearMePanelShell as="section" className="sp-schedule-section" bodyClassName="sp-schedule-section__body">
               {/* Current / Next Stop Banner */}
               {currentStop && (
-                <div
+                <PokerNearMePanelShell
+                  as="article"
                   className={`sp-stop-banner sp-stop-banner-clickable ${currentStopType === 'current' ? 'sp-stop-live' : 'sp-stop-next'}`}
+                  bodyClassName="sp-stop-banner__body"
                   onClick={() => setSelectedStop(currentStop)}
                   role="button" tabIndex={0}
-                  onKeyDown={e => e.key === 'Enter' && setSelectedStop(currentStop)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                      event.preventDefault();
+                      setSelectedStop(currentStop);
+                    }
+                  }}
                 >
                   <div className="sp-stop-banner-left">
-                    <span className={`sp-stop-status-dot ${currentStopType === 'current' ? 'dot-live' : 'dot-next'}`} />
+                    <PokerNearMeConsoleIcon name="live-games" className="sp-stop-status-icon" />
                     <span className="sp-stop-status-label">
-                      {currentStopType === 'current' ? 'LIVE NOW' : 'NEXT STOP'}
+                      {currentStopType === 'current' ? 'Live Now' : 'Next Stop'}
                     </span>
                     <span className="sp-stop-name">{currentStop.stop_name}</span>
                   </div>
@@ -767,11 +737,11 @@ export default function TourDetailPage({ seo, stops = [], events = [], facts = n
                       </span>
                     )}
                     <span className="sp-view-sched-hint">
-                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                      <PokerNearMeConsoleIcon name="calendar" className="tour-inline-icon" />
                       View Full Schedule
                     </span>
                   </div>
-                </div>
+                </PokerNearMePanelShell>
               )}
 
 
@@ -795,7 +765,7 @@ export default function TourDetailPage({ seo, stops = [], events = [], facts = n
                       <div className="sp-filter-bar">
                         <input
                           className="sp-filter-input"
-                          placeholder="Search events..."
+                          placeholder="Search Events"
                           value={eventFilter}
                           onChange={e => setEventFilter(e.target.value)}
                           id="event-search-input"
@@ -816,8 +786,8 @@ export default function TourDetailPage({ seo, stops = [], events = [], facts = n
                     {/* ── Smarter.Poker Standard Event Table ── */}
                     {filtered.length === 0 && (
                       <div className="sp-empty">
-                        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#4b5563" strokeWidth="1.5"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-                        <p>No Events found{eventFilter ? ` matching "${eventFilter}"` : '. Schedule coming soon.'}.</p>
+                        <PokerNearMeConsoleIcon name="calendar" className="tour-state__icon" />
+                        <p>{eventFilter ? `No Events Found Matching "${eventFilter}".` : 'No Events Found. Schedule Coming Soon.'}</p>
                       </div>
                     )}
 
@@ -837,22 +807,20 @@ export default function TourDetailPage({ seo, stops = [], events = [], facts = n
 
                         {filtered.map((evt, idx) => {
                           const tier = getBuyInTier(evt.buy_in);
-                          const tierStyle = BUY_IN_TIER_STYLE[tier];
-                          const gameColor = GAME_COLORS[evt.game_type] || '#94a3b8';
                           const isMain = evt.is_main_event || (evt.event_name||'').toLowerCase().includes('main event');
                           const isHR = evt.is_high_roller || (evt.buy_in >= 25000);
                           return (
                             <div key={idx} className={`sp-event-row${isMain ? ' sp-event-main' : ''}${isHR ? ' sp-event-hr' : ''}`}>
                               <div className="sp-col-num">
                                 {isMain ? (
-                                  <span className="sp-main-star">★</span>
+                                  <PokerNearMeConsoleIcon name="trophy" className="sp-main-star" />
                                 ) : (
                                   <span className="sp-evt-num">{evt.event_number || (idx+1)}</span>
                                 )}
                               </div>
                               <div className="sp-col-name">
                                 <span className="sp-evt-name">{evt.event_name}</span>
-                                <span className="sp-game-badge" style={{ color: gameColor, borderColor: gameColor + '44' }}>
+                                <span className="sp-game-badge">
                                   {evt.game_type || 'NLH'}
                                 </span>
                                 {evt.re_entry && <span className="sp-flag-badge sp-flag-reentry">Re-Entry</span>}
@@ -862,7 +830,7 @@ export default function TourDetailPage({ seo, stops = [], events = [], facts = n
                                 {evt.is_seniors_event && <span className="sp-flag-badge sp-flag-seniors">Seniors</span>}
                               </div>
                               <div className="sp-col-buyin">
-                                <span className="sp-buyin-chip" style={{ background: tierStyle.bg, color: tierStyle.color, borderColor: tierStyle.border }}>
+                                <span className="sp-buyin-chip" data-tier={tier}>
                                   {evt.buy_in ? formatMoney(evt.buy_in) : 'TBD'}
                                 </span>
                                 {evt.entry_fee > 0 && <span className="sp-fee">+{formatMoney(evt.entry_fee)}</span>}
@@ -890,17 +858,17 @@ export default function TourDetailPage({ seo, stops = [], events = [], facts = n
                       </div>
                     )}
                     {srcEvents.length > 0 && srcEvents[0]?.data_quality === 'pending' && (
-                      <p className="sp-data-note">⚠ Showing Registry Data - Live Schedule Scrape Pending</p>
+                      <p className="sp-data-note"><PokerNearMeConsoleIcon name="alert" className="tour-inline-icon" />Showing Registry Data - Live Schedule Scrape Pending</p>
                     )}
                   </>
                 );
               })()}
-            </section>
+            </PokerNearMePanelShell>
             )}
 
             {/* ══ TAB: ALL STOPS ══ */}
             {activeTab === 'stops' && (
-            <section className="tour-series">
+            <PokerNearMePanelShell as="section" className="tour-series" bodyClassName="tour-section__body">
               <h2 className="section-title">
                 {new Date().getFullYear()} Tour Stops
                 {(() => {
@@ -912,12 +880,7 @@ export default function TourDetailPage({ seo, stops = [], events = [], facts = n
 
               {(!tour.upcoming_series || tour.upcoming_series.length === 0) && (!tour.series_2026 || tour.series_2026.length === 0) && (
                 <div className="empty-state">
-                  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#4b5563" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-                    <line x1="16" y1="2" x2="16" y2="6" />
-                    <line x1="8" y1="2" x2="8" y2="6" />
-                    <line x1="3" y1="10" x2="21" y2="10" />
-                  </svg>
+                  <PokerNearMeConsoleIcon name="calendar" className="tour-state__icon" />
                   <p>No Upcoming Stops Announced Yet.</p>
                   <p className="empty-subtext">Check Back Soon For Updates.</p>
                 </div>
@@ -934,12 +897,19 @@ export default function TourDetailPage({ seo, stops = [], events = [], facts = n
                   const hasGranularDbStops = allStops.some(s => s.stop_city || s.stop_venue);
                   return hasGranularDbStops ? allStops : [];
                 })().map((s, idx) => (
-                  <div
+                  <PokerNearMePanelShell
+                    as="article"
                     key={'db-' + idx}
                     className="series-card series-card-clickable"
+                    bodyClassName="series-card__body"
                     onClick={() => setSelectedStop(s)}
                     role="button" tabIndex={0}
-                    onKeyDown={e => e.key === 'Enter' && setSelectedStop(s)}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault();
+                        setSelectedStop(s);
+                      }
+                    }}
                   >
                     <div className="series-card-header">
                       <h3 className="series-name">{s.stop_name || s.short_name || s.name}</h3>
@@ -947,21 +917,21 @@ export default function TourDetailPage({ seo, stops = [], events = [], facts = n
                     </div>
                     {(s.stop_city || s.stop_state || s.city || s.state) && (
                       <div className="series-location">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                        <PokerNearMeConsoleIcon name="location" className="tour-inline-icon" />
                         <span>{[s.stop_city||s.city, s.stop_state||s.state].filter(Boolean).join(', ')}</span>
                       </div>
                     )}
-                    {s.stop_venue && <div className="series-location" style={{color:'#94a3b8',fontSize:'12px'}}><span>{s.stop_venue}</span></div>}
+                    {s.stop_venue && <div className="series-venue"><span>{s.stop_venue}</span></div>}
                     <div className="series-dates">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                      <PokerNearMeConsoleIcon name="calendar" className="tour-inline-icon" />
                       <span>{formatDateRange(s.stop_start_date, s.stop_end_date) || s.dates || 'TBD'}</span>
                     </div>
                     {s.events?.length > 0 && <div className="sp-stop-event-count">{s.events.length} Events</div>}
                     <div className="sp-view-sched-cta">
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                      <PokerNearMeConsoleIcon name="calendar" className="tour-inline-icon" />
                       View Full Schedule
                     </div>
-                  </div>
+                  </PokerNearMePanelShell>
                 ))}
                 {/* Also render registry stops when DB only has generic consolidated stops (no granular venue/city data) */}
                 {!allStops.some(s => s.stop_city || s.stop_venue) && (tour.stops_2026 || []).map((s, idx) => {
@@ -979,30 +949,37 @@ export default function TourDetailPage({ seo, stops = [], events = [], facts = n
                     }))
                   };
                   return (
-                    <div
+                    <PokerNearMePanelShell
+                      as="article"
                       key={'reg-' + idx}
                       className="series-card series-card-clickable"
+                      bodyClassName="series-card__body"
                       onClick={() => setSelectedStop(stopShape)}
                       role="button" tabIndex={0}
-                      onKeyDown={e => e.key === 'Enter' && setSelectedStop(stopShape)}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter' || event.key === ' ') {
+                          event.preventDefault();
+                          setSelectedStop(stopShape);
+                        }
+                      }}
                     >
                       <div className="series-card-header"><h3 className="series-name">{s.name}</h3></div>
-                      {s.location && <div className="series-location"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg><span>{s.location}</span></div>}
-                      <div className="series-dates"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span>{s.dates || 'TBD'}</span></div>
+                      {s.location && <div className="series-location"><PokerNearMeConsoleIcon name="location" className="tour-inline-icon" /><span>{s.location}</span></div>}
+                      <div className="series-dates"><PokerNearMeConsoleIcon name="calendar" className="tour-inline-icon" /><span>{s.dates || 'TBD'}</span></div>
                       <div className="sp-view-sched-cta">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                        <PokerNearMeConsoleIcon name="calendar" className="tour-inline-icon" />
                         View Schedule
                       </div>
-                    </div>
+                    </PokerNearMePanelShell>
                   );
                 })}
               </div>
-            </section>
+            </PokerNearMePanelShell>
             )}
 
             {/* ══ TAB: ABOUT ══ */}
             {activeTab === 'about' && (
-            <section className="tour-about">
+            <PokerNearMePanelShell as="section" className="tour-about" bodyClassName="tour-section__body">
               <h2 className="section-title">About</h2>
               <div className="about-grid">
                 {tour.official_website && (
@@ -1015,11 +992,7 @@ export default function TourDetailPage({ seo, stops = [], events = [], facts = n
                       className="about-link"
                     >
                       {tour.official_website.replace(/^https?:\/\//, '').replace(/\/$/, '')}
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: '4px' }}>
-                        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
-                        <polyline points="15 3 21 3 21 9" />
-                        <line x1="10" y1="14" x2="21" y2="3" />
-                      </svg>
+                      <PokerNearMeConsoleIcon name="globe" className="tour-inline-icon" />
                     </a>
                   </div>
                 )}
@@ -1061,30 +1034,30 @@ export default function TourDetailPage({ seo, stops = [], events = [], facts = n
                   </div>
                 )}
               </div>
-            </section>
+            </PokerNearMePanelShell>
             )}
 
             {/* ══ TAB: RESULTS ══ */}
             {activeTab === 'results' && (
             <>
-              <section className="tour-activity">
+              <PokerNearMePanelShell as="section" className="tour-activity" bodyClassName="tour-section__body">
                 <h2 className="section-title">Latest Updates</h2>
                 <div className="activity-container">
                   {activities.length === 0 && (
                     <div className="empty-state">
-                      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#4b5563" strokeWidth="1.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                      <PokerNearMeConsoleIcon name="info" className="tour-state__icon" />
                       <p>No Updates Yet.</p>
                     </div>
                   )}
                   {activities.length > 0 && (
                     <div className="activity-list">
                       {activities.map((activity, idx) => {
-                        const typeColor = ACTIVITY_TYPE_COLORS[activity.type] || ACTIVITY_TYPE_COLORS.update;
+                        const typeKey = ACTIVITY_TYPE_LABELS[activity.type] ? activity.type : 'update';
                         return (
                           <div key={idx} className="activity-item">
                             <div className="activity-header">
-                              <span className="activity-type-badge" style={{ background: typeColor.bg, color: typeColor.text, borderColor: typeColor.border }}>
-                                {(activity.type || 'update').charAt(0).toUpperCase() + (activity.type || 'update').slice(1)}
+                              <span className="activity-type-badge" data-activity-type={typeKey}>
+                                {ACTIVITY_TYPE_LABELS[typeKey]}
                               </span>
                               <span className="activity-time">{timeAgo(activity.created_at)}</span>
                             </div>
@@ -1095,13 +1068,13 @@ export default function TourDetailPage({ seo, stops = [], events = [], facts = n
                     </div>
                   )}
                 </div>
-              </section>
-              <section className="tour-results">
+              </PokerNearMePanelShell>
+              <PokerNearMePanelShell as="section" className="tour-results" bodyClassName="tour-section__body">
                 <h2 className="section-title">Recent Results</h2>
                 <div className="results-container">
                   {results.length === 0 && (
                     <div className="empty-state">
-                      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#4b5563" strokeWidth="1.5"><path d="M18 2H6v7a6 6 0 0012 0V2Z"/><path d="M4 22h16"/></svg>
+                      <PokerNearMeConsoleIcon name="trophy" className="tour-state__icon" />
                       <p>No Results Available Yet.</p>
                     </div>
                   )}
@@ -1122,23 +1095,26 @@ export default function TourDetailPage({ seo, stops = [], events = [], facts = n
                     </div>
                   )}
                 </div>
-              </section>
+              </PokerNearMePanelShell>
             </>
             )}
 
             {/* Notifications — always visible */}
-            <section className="tour-notifications">
+            <PokerNearMePanelShell as="section" className="tour-notifications" bodyClassName="tour-section__body">
               <div className="notif-card">
                 <div className="notif-content">
-                  <p className="notif-text">{'Get notified about new ' + tour.tour_name + ' events and results'}</p>
+                  <p className="notif-text">{'Get Notified About New ' + tour.tour_name + ' Events And Results'}</p>
                   {notifPermission === 'granted' ? (
-                    <span className="notif-enabled">Notifications Enabled</span>
+                    <span className="notif-enabled"><PokerNearMeConsoleIcon name="saved" className="tour-inline-icon" />Notifications Enabled</span>
                   ) : (
-                    <button className="notif-btn" onClick={handleEnableNotifications}>Enable Notifications</button>
+                    <button type="button" className="notif-btn" onClick={handleEnableNotifications}>
+                      <PokerNearMeConsoleIcon name="saved" className="tour-inline-icon" />
+                      Enable Notifications
+                    </button>
                   )}
                 </div>
               </div>
-            </section>
+            </PokerNearMePanelShell>
           </>
         )}
       </main>
@@ -1151,1191 +1127,1119 @@ export default function TourDetailPage({ seo, stops = [], events = [], facts = n
 }
 
 const styles = `
-  /* Metal UI Variables */
   :root {
-    --metal-dark: #0a0a15;
-    --metal-base: #0d1117;
-    --metal-mid: #1a2332;
-    --metal-highlight: #3d4f5f;
-    --neon-cyan: #00D4FF;
-    --neon-cyan-glow: rgba(0, 212, 255, 0.6);
-    --metal-gradient: linear-gradient(180deg, #3d4f5f 0%, #1a2332 50%, #0d1117 100%);
-    --glow-cyan: 0 0 10px var(--neon-cyan), 0 0 20px var(--neon-cyan-glow);
+    --tour-black: #020407;
+    --tour-black-raised: #071018;
+    --tour-silver: #c6d0db;
+    --tour-muted: #8f9aa8;
+    --tour-dim: #65717f;
+    --tour-blue: #31a8ff;
+    --tour-blue-soft: #8fd4ff;
+    --tour-gold: #d6b76a;
+    --tour-alert: #ff5b6e;
   }
 
   .tour-page {
-    font-family: 'Rajdhani', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-    min-height: 100vh; padding-bottom: 70px;
-    background: radial-gradient(ellipse at top, #0f172a 0%, #030712 50%),
-                radial-gradient(ellipse at bottom right, #1e1b4b 0%, #030712 50%);
-    background-color: #030712;
-    color: #e2e8f0;
-    padding-bottom: 80px;
+    min-height: 100vh;
+    box-sizing: border-box;
+    overflow-x: clip;
+    padding: 20px 0 96px;
+    background: var(--tour-black);
+    color: var(--tour-silver);
+    font-family: var(--font-rajdhani), Rajdhani, var(--font-inter), Inter, sans-serif;
   }
 
-  /* Clickable cards + banners */
-  .series-card-clickable {
-    cursor: pointer;
-    transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
-  }
-  .series-card-clickable:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 24px rgba(0,212,255,0.12);
-    border-color: rgba(0,212,255,0.3) !important;
-  }
-  .series-card-clickable:focus-visible {
-    outline: 2px solid rgba(0,212,255,0.6);
-    outline-offset: 2px;
-  }
-  .sp-view-sched-cta {
-    display: flex; align-items: center; gap: 5px;
-    margin-top: 10px; font-size:12px; font-weight: 600;
-    color: #00D4FF; text-transform: uppercase; letter-spacing: 0.5px;
-    opacity: 0; transition: opacity 0.15s;
-  }
-  .series-card-clickable:hover .sp-view-sched-cta { opacity: 1; }
-
-  .sp-stop-banner-clickable {
-    cursor: pointer;
-    transition: filter 0.15s;
-  }
-  .sp-stop-banner-clickable:hover { filter: brightness(1.08); }
-  .sp-view-sched-hint {
-    display: flex; align-items: center; gap: 4px;
-    font-size:12px; color: rgba(255,255,255,0.6); font-weight: 500;
-    margin-top: 4px;
+  body.world-poker-near-me .tour-page {
+    background: var(--tour-black) !important;
   }
 
-  .sp-event-row-clickable {
-    cursor: pointer;
-  }
-  .sp-event-row-clickable:hover { background: rgba(0,212,255,0.04) !important; }
-
-
-  /* Loading */
-  .loading-container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    min-height: 60vh;
-    gap: 16px;
-  }
-  .loading-spinner {
-    width: 40px;
-    height: 40px;
-    border: 3px solid rgba(0, 212, 255, 0.2);
-    border-top-color: #00D4FF;
-    border-radius: 50%;
-    animation: spin 0.8s linear infinite;
-  }
-  @keyframes spin {
-    to { transform: rotate(360deg); }
-  }
-  .loading-text {
-    color: #94a3b8;
-    font-size: 14px;
+  body.world-poker-near-me .tour-page .pnc-panel.sp-tabs-bar {
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: none !important;
+    box-shadow: none !important;
   }
 
-  /* Error */
-  .error-container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    min-height: 60vh;
-    gap: 12px;
+  body.world-poker-near-me .tour-page .sp-tabs-inner {
+    gap: 8px !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: none !important;
+    box-shadow: none !important;
+  }
+
+  body.world-poker-near-me .tour-page .sp-tab,
+  body.world-poker-near-me .tour-page .tour-action,
+  body.world-poker-near-me .tour-page .notif-btn {
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent url('/images/pnm-console/painted-controls-v1/button-secondary.png') center / contain no-repeat !important;
+    box-shadow: none !important;
+  }
+
+  body.world-poker-near-me .tour-page .sp-tab-active,
+  body.world-poker-near-me .tour-page .tour-action.follow-btn,
+  body.world-poker-near-me .tour-page .notif-btn {
+    background-image: url('/images/pnm-console/painted-controls-v1/button-primary.png') !important;
+  }
+
+  body.world-poker-near-me .tour-page .sp-filter-bar {
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: none !important;
+  }
+
+  body.world-poker-near-me .tour-page .sp-filter-input,
+  body.world-poker-near-me .tour-page .sp-filter-select {
+    height: auto !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent url('/images/pnm-console/painted-controls-v1/search-well.webp') center / contain no-repeat !important;
+    box-shadow: none !important;
+  }
+
+  body.world-poker-near-me .tour-page .sp-filter-select {
+    width: min(100%, 260px) !important;
+    padding: 0 14% !important;
+  }
+
+  body.world-poker-near-me .tour-page .sp-filter-input {
+    padding: 0 10% !important;
+  }
+
+  body.world-poker-near-me .tour-page .sp-filter-select:is(:hover, :focus),
+  body.world-poker-near-me .tour-page .sp-filter-input:is(:hover, :focus) {
+    border: 0 !important;
+    outline: 0 !important;
+  }
+
+  body.world-poker-near-me .tour-page .sp-filter-select:focus-visible,
+  body.world-poker-near-me .tour-page .sp-filter-input:focus-visible {
+    outline: 2px solid var(--tour-blue-soft) !important;
+    outline-offset: -5px !important;
+  }
+
+  .tour-page *,
+  .tour-page *::before,
+  .tour-page *::after {
+    box-sizing: border-box;
+  }
+
+  .tour-page > .pnc-panel,
+  .tour-page > .tour-header {
+    width: min(calc(100% - 24px), 940px);
+    margin: 0 auto 18px;
+  }
+
+  .tour-state__body {
+    display: grid;
+    justify-items: center;
+    gap: 10px;
+    min-height: 240px;
+    align-content: center;
+    padding: 28px clamp(18px, 4vw, 42px);
     text-align: center;
-    padding: 24px;
-  }
-  .error-icon {
-    width: 56px;
-    height: 56px;
-    border-radius: 50%;
-    background: rgba(239, 68, 68, 0.15);
-    border: 2px solid rgba(239, 68, 68, 0.3);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 24px;
-    font-weight: 700;
-    color: #ef4444;
-  }
-  .error-title {
-    font-size: 20px;
-    font-weight: 700;
-    color: #f1f5f9;
-    margin: 0;
-  }
-  .error-text {
-    font-size: 14px;
-    color: #94a3b8;
-    margin: 0;
-  }
-  .back-link-btn {
-    margin-top: 12px;
-    padding: 10px 24px;
-    background: rgba(0, 212, 255, 0.15);
-    border: 1px solid rgba(0, 212, 255, 0.3);
-    border-radius: 8px;
-    color: #00D4FF;
-    text-decoration: none;
-    font-size: 14px;
-    font-weight: 500;
-    transition: all 0.2s;
-  }
-  .back-link-btn:hover {
-    background: rgba(0, 212, 255, 0.25);
   }
 
-  /* Header Section. The painted chassis owns this block's width, gutters
-     and frame: see the venue and tour head rules in
-     src/styles/worlds/poker-near-me-command-surfaces.css. */
-  .tour-header__body .header-content {
-    max-width: 100%;
+  .tour-state__icon {
+    width: 48px;
+    height: 48px;
+    flex: 0 0 48px;
+    opacity: 0.84;
+  }
+
+  .loading-text,
+  .error-text {
     margin: 0;
-    padding-top: 4px;
+    color: var(--tour-muted);
+    font: 600 14px/1.5 var(--font-inter), Inter, sans-serif;
   }
+
+  .error-title {
+    margin: 0;
+    color: #f4f7fb;
+    font-size: 22px;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .tour-header__body {
+    display: grid;
+    gap: 16px;
+    padding: 24px clamp(18px, 4vw, 40px) 22px;
+  }
+
+  .tour-header__body .header-content {
+    display: grid;
+    gap: 14px;
+    min-width: 0;
+  }
+
   .breadcrumb-nav {
-    margin-bottom: 20px;
+    min-width: 0;
   }
+
   .breadcrumb-list {
     display: flex;
     align-items: center;
-    list-style: none;
+    flex-wrap: wrap;
+    gap: 6px;
     margin: 0;
     padding: 0;
-    flex-wrap: wrap;
-    gap: 0;
+    list-style: none;
   }
+
   .breadcrumb-item {
-    display: flex;
-    align-items: center;
-    font-size: 13px;
-    font-weight: 500;
-  }
-  .breadcrumb-link {
-    color: #94a3b8;
-    text-decoration: none;
-    transition: color 0.2s;
-  }
-  .breadcrumb-link:hover {
-    color: #00D4FF;
-  }
-  .breadcrumb-sep {
-    margin: 0 8px;
-    color: #475569;
-  }
-  .breadcrumb-current {
-    color: #00D4FF;
-    font-weight: 600;
-    max-width: 280px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-  .header-top-row {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 16px;
-    margin-bottom: 12px;
-  }
-  .tour-name {
-    font-size: 32px;
-    font-weight: 800;
-    color: #f1f5f9;
-    margin: 0;
-    line-height: 1.2;
-    flex: 1;
-    min-width: 200px;
-  }
-  .header-actions {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex-shrink: 0;
-  }
-  .follow-btn,
-  .share-btn {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-    padding: 8px 16px;
-    border-radius: 8px;
-    font-size: 13px;
-    font-weight: 600;
-    font-family: 'Inter', sans-serif;
-    cursor: pointer;
-    transition: all 0.2s;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    background: rgba(255, 255, 255, 0.05);
-    color: #cbd5e1;
+    min-width: 0;
+    color: var(--tour-dim);
+    font: 700 12px/1.2 var(--font-inter), Inter, sans-serif;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
   }
-  .follow-btn:hover,
-  .share-btn:hover {
-    background: rgba(255, 255, 255, 0.1);
-    border-color: rgba(255, 255, 255, 0.2);
+
+  .breadcrumb-link {
+    color: var(--tour-muted);
+    text-decoration: none;
   }
-  .follow-btn.followed {
-    background: rgba(0, 212, 255, 0.15);
-    border-color: rgba(0, 212, 255, 0.4);
-    color: #00D4FF;
+
+  .breadcrumb-link:focus-visible {
+    outline: 2px solid var(--tour-blue-soft);
+    outline-offset: 3px;
   }
-  .follow-count {
+
+  .breadcrumb-sep {
+    margin-left: 6px;
+    color: var(--tour-dim);
+  }
+
+  .breadcrumb-current {
+    max-width: min(48vw, 360px);
+    overflow: hidden;
+    color: var(--tour-blue-soft);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .header-top-row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 18px;
+    min-width: 0;
+  }
+
+  .tour-name {
+    flex: 1 1 auto;
+    min-width: 0;
+    margin: 0;
+    color: #f4f7fb;
+    font-size: clamp(28px, 5vw, 42px);
+    font-weight: 700;
+    letter-spacing: 0.015em;
+    line-height: 1.02;
+  }
+
+  .header-actions {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 8px;
+  }
+
+  .tour-action,
+  .notif-btn,
+  .sp-tab {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    min-width: 20px;
-    height: 20px;
-    padding: 0 6px;
-    border-radius: 10px;
-    background: rgba(0, 212, 255, 0.2);
-    font-size:12px;
-    font-weight: 700;
-    color: #00D4FF;
+    gap: 7px;
+    aspect-ratio: 348 / 114;
+    padding: 0 17px;
+    border: 0;
+    border-radius: 0;
+    background: transparent url('/images/pnm-console/painted-controls-v1/button-secondary.png') center / contain no-repeat;
+    box-shadow: none;
+    color: var(--tour-silver);
+    cursor: pointer;
+    font: 800 12px/1 var(--font-rajdhani), Rajdhani, sans-serif;
+    letter-spacing: 0.1em;
+    text-shadow: 0 1px 0 #000;
+    text-transform: uppercase;
+    touch-action: manipulation;
   }
+
+  .tour-action {
+    width: 156px;
+    max-width: 100%;
+  }
+
+  .tour-action.follow-btn,
+  .sp-tab-active,
+  .notif-btn {
+    background-image: url('/images/pnm-console/painted-controls-v1/button-primary.png');
+    color: #f4f7fb;
+  }
+
+  .tour-action:active,
+  .notif-btn:active,
+  .sp-tab:active,
+  .series-card-clickable:active,
+  .sp-stop-banner-clickable:active {
+    filter: brightness(1.16);
+  }
+
+  .tour-action:focus-visible,
+  .notif-btn:focus-visible,
+  .sp-tab:focus-visible,
+  .series-card-clickable:focus-visible,
+  .sp-stop-banner-clickable:focus-visible,
+  .sp-filter-input:focus-visible,
+  .sp-filter-select:focus-visible {
+    outline: 2px solid var(--tour-blue-soft);
+    outline-offset: -5px;
+  }
+
+  .tour-action__icon {
+    width: 19px;
+    height: 19px;
+    flex: 0 0 19px;
+  }
+
+  .follow-count {
+    padding-left: 7px;
+    border-left: 1px solid #6d7b89;
+    color: inherit;
+  }
+
   .share-message {
-    font-size: 12px;
-    color: #22c55e;
-    font-weight: 500;
-    animation: fadeIn 0.2s ease;
+    width: 100%;
+    color: var(--tour-blue-soft);
+    font: 700 12px/1.2 var(--font-inter), Inter, sans-serif;
+    letter-spacing: 0.05em;
+    text-align: right;
   }
-  @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(-4px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
+
   .badges-row {
     display: flex;
     align-items: center;
-    gap: 8px;
-    margin-bottom: 12px;
     flex-wrap: wrap;
+    gap: 0;
+    min-height: 30px;
   }
-  .tour-code-badge {
-    display: inline-flex;
-    align-items: center;
-    padding: 6px 14px;
-    border-radius: 6px;
-    font-size: 13px;
-    font-weight: 700;
-    letter-spacing: 0.5px;
-  }
+
+  .tour-code-badge,
   .tour-type-badge {
     display: inline-flex;
     align-items: center;
-    padding: 6px 14px;
-    border-radius: 6px;
-    font-size: 12px;
-    font-weight: 600;
-    background: rgba(99, 102, 241, 0.15);
-    color: #a5b4fc;
-    border: 1px solid rgba(99, 102, 241, 0.25);
-    text-transform: capitalize;
-  }
-  .headquarters {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    color: #94a3b8;
-    font-size: 14px;
-  }
-
-  /* About Section */
-  .tour-about {
-    padding: 0 16px;
-    margin-bottom: 32px;
-  }
-  .tour-about > * {
-    max-width: 900px;
-    margin-left: auto;
-    margin-right: auto;
-  }
-  .section-title {
-    font-size: 20px;
-    font-weight: 700;
-    color: #f1f5f9;
-    margin: 0 0 16px 0;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    max-width: 900px;
-  }
-  .about-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 16px;
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    border-radius: 12px;
-    padding: 20px;
-    backdrop-filter: blur(12px);
-  }
-  .about-item {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-  }
-  .about-item-full {
-    grid-column: 1 / -1;
-  }
-  .about-label {
-    font-size:12px;
-    font-weight: 600;
+    min-height: 28px;
+    padding: 0 14px;
+    border-left: 1px solid #3a4652;
+    color: var(--tour-muted);
+    font: 800 12px/1 var(--font-inter), Inter, sans-serif;
+    letter-spacing: 0.13em;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
-    color: #64748b;
-  }
-  .about-value {
-    font-size: 14px;
-    color: #e2e8f0;
-    font-weight: 500;
-  }
-  .main-event-buyin {
-    color: #00D4FF;
-    font-weight: 600;
-  }
-  .about-link {
-    display: inline-flex;
-    align-items: center;
-    color: #00D4FF;
-    text-decoration: none;
-    font-size: 14px;
-    font-weight: 500;
-    transition: opacity 0.2s;
-  }
-  .about-link:hover {
-    opacity: 0.8;
-    text-decoration: underline;
-  }
-  .about-notes {
-    font-size: 14px;
-    color: #94a3b8;
-    line-height: 1.6;
-    margin: 0;
-  }
-  .regions-list {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-  }
-  .region-tag {
-    display: inline-flex;
-    padding: 4px 10px;
-    border-radius: 20px;
-    font-size: 12px;
-    font-weight: 500;
-    background: rgba(99, 102, 241, 0.1);
-    color: #a5b4fc;
-    border: 1px solid rgba(99, 102, 241, 0.2);
   }
 
-  /* Series Section */
-  .tour-series {
-    padding: 0 16px;
-    margin-bottom: 32px;
+  .tour-code-badge[data-tone='gold'] {
+    color: var(--tour-gold);
   }
-  .tour-series > * {
-    max-width: 900px;
-    margin-left: auto;
-    margin-right: auto;
+
+  .tour-code-badge[data-tone='blue'] {
+    color: var(--tour-blue-soft);
   }
-  .series-count {
-    display: inline-flex;
+
+  .headquarters,
+  .series-location,
+  .series-dates,
+  .series-venue {
+    display: flex;
     align-items: center;
-    justify-content: center;
-    min-width: 24px;
-    height: 24px;
-    padding: 0 8px;
-    border-radius: 12px;
-    background: rgba(0, 212, 255, 0.15);
-    color: #00D4FF;
-    font-size: 13px;
-    font-weight: 600;
+    gap: 8px;
+    min-width: 0;
+    color: var(--tour-muted);
+    font: 600 13px/1.4 var(--font-inter), Inter, sans-serif;
   }
-  .series-grid {
+
+  .tour-meta-icon,
+  .tour-inline-icon {
+    width: 18px;
+    height: 18px;
+    flex: 0 0 18px;
+  }
+
+  .sp-tabs-shell__body {
+    padding: 14px clamp(14px, 3vw, 28px);
+  }
+
+  .sp-tabs-inner {
     display: grid;
-    grid-template-columns: 1fr;
-    gap: 12px;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 8px;
   }
-  .series-card {
-    position: relative;
-    display: block;
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    border-radius: 12px;
-    padding: 20px;
-    text-decoration: none;
+
+  .sp-tab {
+    width: 100%;
+    min-width: 0;
+    white-space: nowrap;
+  }
+
+  .sp-tab-count {
+    padding-left: 6px;
+    border-left: 1px solid #6d7b89;
     color: inherit;
-    transition: all 0.2s;
-    backdrop-filter: blur(12px);
+  }
+
+  .sp-schedule-section__body,
+  .tour-section__body {
+    display: grid;
+    gap: 18px;
+    padding: 22px clamp(18px, 4vw, 38px) 26px;
+  }
+
+  .sp-stop-banner {
+    width: 100%;
+    margin: 0;
     cursor: pointer;
   }
-  .series-card:hover {
-    background: rgba(255, 255, 255, 0.06);
-    border-color: rgba(0, 212, 255, 0.3);
-    transform: translateY(-1px);
+
+  .sp-stop-banner__body {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    padding: 16px clamp(16px, 3vw, 28px);
   }
+
+  .sp-stop-banner-left,
+  .sp-stop-banner-right {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 9px 12px;
+    min-width: 0;
+  }
+
+  .sp-stop-banner-right {
+    justify-content: flex-end;
+  }
+
+  .sp-stop-status-icon {
+    width: 28px;
+    height: 28px;
+    flex: 0 0 28px;
+  }
+
+  .sp-stop-status-label {
+    color: var(--tour-blue-soft);
+    font: 800 12px/1 var(--font-inter), Inter, sans-serif;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+  }
+
+  .sp-stop-next .sp-stop-status-label {
+    color: var(--tour-gold);
+  }
+
+  .sp-stop-name {
+    color: #f4f7fb;
+    font-size: 16px;
+    font-weight: 800;
+  }
+
+  .sp-stop-venue,
+  .sp-stop-loc {
+    color: var(--tour-muted);
+    font: 600 13px/1.3 var(--font-inter), Inter, sans-serif;
+  }
+
+  .sp-stop-dates {
+    color: var(--tour-blue-soft);
+    font: 800 12px/1.3 var(--font-inter), Inter, sans-serif;
+  }
+
+  .sp-view-sched-hint,
+  .sp-view-sched-cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--tour-blue-soft);
+    font: 800 12px/1.2 var(--font-inter), Inter, sans-serif;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+  }
+
+  .sp-filter-bar {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .sp-filter-input,
+  .sp-filter-select {
+    min-width: 0;
+    min-height: 44px;
+    border: 0;
+    border-radius: 0;
+    background: transparent url('/images/pnm-console/painted-controls-v1/search-well.webp') center / contain no-repeat;
+    box-shadow: none;
+    color: #f4f7fb;
+    font: 700 13px/1 var(--font-inter), Inter, sans-serif;
+    outline: 0;
+  }
+
+  .sp-filter-input {
+    flex: 1 1 320px;
+    aspect-ratio: 1829 / 313;
+    padding: 0 10%;
+  }
+
+  .sp-filter-select {
+    flex: 0 1 260px;
+    aspect-ratio: 1829 / 313;
+    padding: 0 14%;
+    appearance: none;
+    cursor: pointer;
+  }
+
+  .sp-filter-input::placeholder {
+    color: var(--tour-dim);
+  }
+
+  .sp-filter-select option {
+    background: var(--tour-black-raised);
+    color: #f4f7fb;
+  }
+
+  .sp-filter-count {
+    color: var(--tour-dim);
+    font: 700 12px/1.2 var(--font-inter), Inter, sans-serif;
+    letter-spacing: 0.05em;
+    white-space: nowrap;
+  }
+
+  .sp-event-table-wrap {
+    min-width: 0;
+    overflow-x: auto;
+    scrollbar-color: #30516c var(--tour-black);
+  }
+
+  .sp-event-header-row,
+  .sp-event-row {
+    display: grid;
+    grid-template-columns: 44px minmax(190px, 1fr) 92px 100px 86px 92px 82px 92px;
+    align-items: center;
+    min-width: 800px;
+    padding: 0 10px;
+  }
+
+  .sp-event-header-row {
+    min-height: 38px;
+    border-bottom: 1px solid #33404c;
+    color: var(--tour-dim);
+    font: 800 12px/1.2 var(--font-inter), Inter, sans-serif;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .sp-event-row {
+    min-height: 58px;
+    border-bottom: 1px solid #202a33;
+  }
+
+  .sp-event-row:last-child {
+    border-bottom: 0;
+  }
+
+  .sp-event-main {
+    border-left: 2px solid var(--tour-gold);
+  }
+
+  .sp-event-hr:not(.sp-event-main) {
+    border-left: 2px solid var(--tour-blue);
+  }
+
+  .sp-col-num {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .sp-main-star {
+    width: 24px;
+    height: 24px;
+    flex: 0 0 24px;
+  }
+
+  .sp-evt-num,
+  .sp-fee,
+  .sp-time-val,
+  .sp-latereg-val,
+  .sp-na {
+    color: var(--tour-dim);
+    font: 700 12px/1.3 var(--font-inter), Inter, sans-serif;
+  }
+
+  .sp-col-name {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 5px 7px;
+    min-width: 0;
+    padding: 8px 8px 8px 0;
+  }
+
+  .sp-evt-name {
+    flex: 1 1 150px;
+    min-width: 120px;
+    overflow: hidden;
+    color: var(--tour-silver);
+    font: 700 13px/1.3 var(--font-inter), Inter, sans-serif;
+    text-overflow: ellipsis;
+  }
+
+  .sp-game-badge,
+  .sp-flag-badge,
+  .sp-buyin-chip,
+  .sp-gtd-chip,
+  .sp-stop-type-badge {
+    display: inline-flex;
+    align-items: center;
+    min-height: 20px;
+    padding-left: 7px;
+    border-left: 1px solid #526170;
+    color: var(--tour-blue-soft);
+    font: 800 12px/1.2 var(--font-inter), Inter, sans-serif;
+    letter-spacing: 0.05em;
+    white-space: nowrap;
+  }
+
+  .sp-flag-main,
+  .sp-buyin-chip[data-tier='high'],
+  .sp-buyin-chip[data-tier='super'],
+  .sp-buyin-chip[data-tier='ultra'],
+  .sp-gtd-chip {
+    border-left-color: var(--tour-gold);
+    color: var(--tour-gold);
+  }
+
+  .sp-flag-hr,
+  .sp-flag-reentry {
+    color: var(--tour-blue-soft);
+  }
+
+  .sp-flag-ladies,
+  .sp-flag-seniors,
+  .sp-buyin-chip[data-tier='tbd'],
+  .sp-buyin-chip[data-tier='value'] {
+    color: var(--tour-muted);
+  }
+
+  .sp-col-buyin,
+  .sp-col-date,
+  .sp-col-time,
+  .sp-col-latereg,
+  .sp-col-chips,
+  .sp-col-gtd {
+    display: flex;
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+  }
+
+  .sp-date-val,
+  .sp-chips-val {
+    color: var(--tour-muted);
+    font: 600 12px/1.3 var(--font-inter), Inter, sans-serif;
+  }
+
+  .sp-empty,
+  .empty-state {
+    display: grid;
+    justify-items: center;
+    gap: 10px;
+    padding: 34px 18px;
+    color: var(--tour-muted);
+    text-align: center;
+  }
+
+  .sp-empty p,
+  .empty-state p {
+    margin: 0;
+    color: inherit;
+    font: 600 14px/1.5 var(--font-inter), Inter, sans-serif;
+  }
+
+  .empty-subtext {
+    color: var(--tour-dim) !important;
+    font-size: 13px !important;
+  }
+
+  .sp-data-note {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    margin: 0;
+    padding-top: 12px;
+    border-top: 1px solid #35414c;
+    color: var(--tour-gold);
+    font: 700 12px/1.4 var(--font-inter), Inter, sans-serif;
+    text-align: center;
+  }
+
+  .section-title {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin: 0;
+    color: #f4f7fb;
+    font-size: 21px;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    line-height: 1.15;
+    text-transform: uppercase;
+  }
+
+  .series-count {
+    padding-left: 9px;
+    border-left: 1px solid #526170;
+    color: var(--tour-blue-soft);
+    font-size: 13px;
+  }
+
+  .series-grid {
+    display: grid;
+    gap: 12px;
+  }
+
+  .series-card {
+    width: 100%;
+    margin: 0;
+    cursor: pointer;
+  }
+
+  .series-card__body {
+    display: grid;
+    gap: 9px;
+    padding: 18px clamp(16px, 3vw, 28px);
+  }
+
   .series-card-header {
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
     gap: 12px;
-    margin-bottom: 12px;
   }
+
   .series-name {
-    font-size: 16px;
-    font-weight: 700;
-    color: #f1f5f9;
+    min-width: 0;
     margin: 0;
-    line-height: 1.3;
-    flex: 1;
-  }
-  .series-type-badge {
-    display: inline-flex;
-    padding: 3px 10px;
-    border-radius: 20px;
-    font-size:12px;
-    font-weight: 600;
-    color: #fff;
-    white-space: nowrap;
-    flex-shrink: 0;
-  }
-  .series-venue,
-  .series-location,
-  .series-dates {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 13px;
-    color: #94a3b8;
-    margin-bottom: 6px;
-  }
-  .venue-link-text {
-    color: #00D4FF;
-    text-decoration: underline;
-    text-decoration-color: rgba(0, 212, 255, 0.3);
-    text-underline-offset: 2px;
-    cursor: pointer;
-    transition: text-decoration-color 0.2s;
-  }
-  .venue-link-text:hover {
-    text-decoration-color: #00D4FF;
-  }
-  .series-venue svg,
-  .series-location svg,
-  .series-dates svg {
-    flex-shrink: 0;
-    opacity: 0.6;
-  }
-  .series-meta {
-    display: flex;
-    gap: 20px;
-    margin-top: 12px;
-    padding-top: 12px;
-    border-top: 1px solid rgba(255, 255, 255, 0.06);
-  }
-  .meta-item {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-  }
-  .meta-label {
-    font-size:12px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.3px;
-    color: #64748b;
-  }
-  .meta-value {
-    font-size: 15px;
-    font-weight: 700;
-    color: #00D4FF;
-  }
-  .series-card-arrow {
-    position: absolute;
-    top: 50%;
-    right: 16px;
-    transform: translateY(-50%);
-    color: #4b5563;
-    transition: color 0.2s;
-  }
-  .series-card:hover .series-card-arrow {
-    color: #00D4FF;
+    color: #f4f7fb;
+    font-size: 17px;
+    font-weight: 800;
+    line-height: 1.25;
   }
 
-  /* Empty State */
-  .empty-state {
-    text-align: center;
-    padding: 48px 24px;
-    background: rgba(255, 255, 255, 0.02);
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    border-radius: 12px;
-  }
-  .empty-state p {
-    margin: 8px 0 0 0;
-    color: #94a3b8;
-    font-size: 14px;
-  }
-  .empty-subtext {
-    color: #64748b !important;
-    font-size: 13px !important;
-  }
-
-  /* Tour Stops Section */
-  .tour-stops {
-    margin-bottom: 24px;
-  }
-  .stops-list {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-  }
-  .stop-row {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 12px 14px;
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    border-radius: 8px;
-    transition: all 0.2s;
-  }
-  .stop-row:hover {
-    background: rgba(255, 255, 255, 0.06);
-  }
-  .stop-clickable {
-    cursor: pointer;
-  }
-  .stop-clickable:hover {
-    border-color: rgba(0, 212, 255, 0.3);
-  }
-  .stop-index {
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
-    background: rgba(0, 212, 255, 0.15);
-    color: #00D4FF;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+  .series-venue {
+    color: var(--tour-dim);
     font-size: 12px;
-    font-weight: 700;
-    flex-shrink: 0;
   }
-  .stop-info {
-    flex: 1;
+
+  .sp-stop-type-badge {
+    flex: 0 0 auto;
+    text-transform: uppercase;
+  }
+
+  .sp-stype-current {
+    color: var(--tour-blue-soft);
+  }
+
+  .sp-stype-next {
+    color: var(--tour-gold);
+  }
+
+  .sp-stype-future,
+  .sp-stype-past {
+    color: var(--tour-muted);
+  }
+
+  .sp-stop-event-count {
+    color: var(--tour-dim);
+    font: 700 12px/1.3 var(--font-inter), Inter, sans-serif;
+  }
+
+  .about-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0;
+  }
+
+  .about-item {
+    display: grid;
+    gap: 6px;
+    min-width: 0;
+    padding: 15px 18px;
+    border-top: 1px solid #27333e;
+  }
+
+  .about-item:nth-child(even) {
+    border-left: 1px solid #27333e;
+  }
+
+  .about-item-full {
+    grid-column: 1 / -1;
+    border-left: 0 !important;
+  }
+
+  .about-label,
+  .result-label {
+    color: var(--tour-dim);
+    font: 800 12px/1.2 var(--font-inter), Inter, sans-serif;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+  }
+
+  .about-value,
+  .about-notes {
+    margin: 0;
+    color: var(--tour-silver);
+    font: 600 14px/1.55 var(--font-inter), Inter, sans-serif;
+    overflow-wrap: anywhere;
+  }
+
+  .main-event-buyin {
+    color: var(--tour-gold);
+    font-weight: 800;
+  }
+
+  .about-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    min-width: 0;
+    color: var(--tour-blue-soft);
+    font: 700 14px/1.4 var(--font-inter), Inter, sans-serif;
+    overflow-wrap: anywhere;
+    text-decoration: none;
+  }
+
+  .about-link:focus-visible {
+    outline: 2px solid var(--tour-blue-soft);
+    outline-offset: 3px;
+  }
+
+  .regions-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 12px;
+  }
+
+  .region-tag {
+    padding-left: 8px;
+    border-left: 1px solid #526170;
+    color: var(--tour-muted);
+    font: 700 12px/1.3 var(--font-inter), Inter, sans-serif;
+  }
+
+  .activity-container,
+  .results-container {
     min-width: 0;
   }
-  .stop-name {
-    display: block;
-    font-size: 14px;
-    font-weight: 600;
-    color: #e2e8f0;
-  }
-  .stop-clickable .stop-name {
-    color: #00D4FF;
-  }
-  .stop-location {
-    display: block;
-    font-size: 12px;
-    color: #94a3b8;
-  }
-  .stop-dates {
-    font-size: 13px;
-    color: #94a3b8;
-    white-space: nowrap;
-    flex-shrink: 0;
-  }
-  .stop-link-icon {
-    flex-shrink: 0;
-  }
-  @media (max-width: 640px) {
-    .stop-row {
-      padding: 10px 12px;
-      gap: 10px;
-    }
-    .stop-name {
-      font-size: 13px;
-    }
-    .stop-dates {
-      font-size:12px;
-    }
+
+  .activity-list,
+  .results-grid {
+    display: grid;
   }
 
-  /* Activity Feed Section */
-  .tour-activity {
-    padding: 0 16px;
-    margin-bottom: 32px;
+  .activity-item,
+  .result-card {
+    display: grid;
+    gap: 9px;
+    padding: 16px 4px;
+    border-bottom: 1px solid #27333e;
   }
-  .tour-activity > * {
-    max-width: 900px;
-    margin-left: auto;
-    margin-right: auto;
+
+  .activity-item:last-child,
+  .result-card:last-child {
+    border-bottom: 0;
   }
-  .activity-container {
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    border-radius: 12px;
-    overflow: hidden;
-    backdrop-filter: blur(12px);
-  }
-  .activity-list {
-    display: flex;
-    flex-direction: column;
-  }
-  .activity-item {
-    padding: 16px 20px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
-    transition: background 0.15s;
-  }
-  .activity-item:last-child {
-    border-bottom: none;
-  }
-  .activity-item:hover {
-    background: rgba(255, 255, 255, 0.02);
-  }
+
   .activity-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 12px;
-    margin-bottom: 8px;
-  }
-  .activity-type-badge {
-    display: inline-flex;
-    align-items: center;
-    padding: 3px 10px;
-    border-radius: 20px;
-    border: 1px solid;
-    font-size:12px;
-    font-weight: 600;
-    text-transform: capitalize;
-  }
-  .activity-time {
-    font-size: 12px;
-    color: #64748b;
-    font-weight: 500;
-    white-space: nowrap;
-  }
-  .activity-content {
-    margin: 0;
-    font-size: 14px;
-    color: #cbd5e1;
-    line-height: 1.5;
   }
 
-  /* Tournament Results Section */
-  .tour-results {
-    padding: 0 16px;
-    margin-bottom: 32px;
+  .activity-type-badge {
+    padding-left: 8px;
+    border-left: 1px solid #526170;
+    color: var(--tour-blue-soft);
+    font: 800 12px/1.2 var(--font-inter), Inter, sans-serif;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
   }
-  .tour-results > * {
-    max-width: 900px;
-    margin-left: auto;
-    margin-right: auto;
+
+  .activity-type-badge[data-activity-type='result'] {
+    color: var(--tour-gold);
   }
-  .results-container {
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    border-radius: 12px;
-    overflow: hidden;
-    backdrop-filter: blur(12px);
-  }
-  .results-grid {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 0;
-  }
-  .result-card {
-    padding: 18px 20px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
-    transition: background 0.15s;
-  }
-  .result-card:last-child {
-    border-bottom: none;
-  }
-  .result-card:hover {
-    background: rgba(255, 255, 255, 0.02);
-  }
-  .result-event-name {
-    font-size: 15px;
-    font-weight: 700;
-    color: #f1f5f9;
-    margin-bottom: 4px;
-  }
+
+  .activity-time,
   .result-event-date {
-    font-size: 12px;
-    color: #64748b;
-    margin-bottom: 12px;
+    color: var(--tour-dim);
+    font: 700 12px/1.3 var(--font-inter), Inter, sans-serif;
   }
+
+  .activity-content {
+    margin: 0;
+    color: var(--tour-silver);
+    font: 600 14px/1.55 var(--font-inter), Inter, sans-serif;
+  }
+
+  .result-event-name {
+    color: #f4f7fb;
+    font: 800 15px/1.35 var(--font-inter), Inter, sans-serif;
+  }
+
   .result-details {
     display: flex;
     flex-wrap: wrap;
-    gap: 16px;
-  }
-  .result-row {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-  }
-  .result-label {
-    font-size:12px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.3px;
-    color: #64748b;
-  }
-  .result-winner {
-    font-size: 14px;
-    font-weight: 700;
-    color: #00D4FF;
-  }
-  .result-prize {
-    font-size: 14px;
-    font-weight: 700;
-    color: #4ade80;
-  }
-  .result-value {
-    font-size: 14px;
-    font-weight: 600;
-    color: #e2e8f0;
+    gap: 14px 24px;
   }
 
-  /* Notifications Opt-in */
-  .tour-notifications {
-    padding: 0 16px;
-    margin-bottom: 32px;
+  .result-row {
+    display: grid;
+    gap: 3px;
+    min-width: 90px;
   }
+
+  .result-winner,
+  .result-prize,
+  .result-value {
+    color: var(--tour-silver);
+    font: 700 14px/1.3 var(--font-inter), Inter, sans-serif;
+  }
+
+  .result-prize {
+    color: var(--tour-gold);
+  }
+
   .notif-card {
-    max-width: 900px;
-    margin: 0 auto;
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    border-radius: 12px;
-    padding: 20px 24px;
-    backdrop-filter: blur(12px);
+    min-width: 0;
   }
+
   .notif-content {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 16px;
-    flex-wrap: wrap;
-  }
-  .notif-text {
-    margin: 0;
-    font-size: 14px;
-    color: #94a3b8;
-    font-weight: 500;
-  }
-  .notif-btn {
-    display: inline-flex;
-    align-items: center;
-    padding: 8px 18px;
-    border-radius: 8px;
-    font-size: 13px;
-    font-weight: 600;
-    font-family: 'Inter', sans-serif;
-    cursor: pointer;
-    transition: all 0.2s;
-    background: rgba(0, 212, 255, 0.12);
-    border: 1px solid rgba(0, 212, 255, 0.3);
-    color: #00D4FF;
-  }
-  .notif-btn:hover {
-    background: rgba(0, 212, 255, 0.22);
-    border-color: #00D4FF;
-  }
-  .notif-enabled {
-    font-size: 13px;
-    font-weight: 600;
-    color: #4ade80;
   }
 
-  /* Responsive */
-  @media (max-width: 640px) {
-    .tour-name {
-      font-size: 24px;
+  .notif-text {
+    margin: 0;
+    color: var(--tour-muted);
+    font: 700 14px/1.5 var(--font-inter), Inter, sans-serif;
+  }
+
+  .notif-btn {
+    flex: 0 0 204px;
+    width: 204px;
+    max-width: 100%;
+  }
+
+  .notif-enabled {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    color: var(--tour-blue-soft);
+    font: 800 12px/1.2 var(--font-inter), Inter, sans-serif;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  @media (max-width: 760px) {
+    .tour-page {
+      padding-top: 12px;
     }
+
+    .tour-page > .pnc-panel,
+    .tour-page > .tour-header {
+      width: min(calc(100% - 16px), 940px);
+      margin-bottom: 12px;
+    }
+
     .header-top-row {
-      flex-direction: column;
-      gap: 12px;
+      display: grid;
     }
+
+    .header-actions {
+      width: 100%;
+      justify-content: flex-start;
+    }
+
+    .tour-action {
+      flex: 1 1 145px;
+      width: auto;
+      max-width: 180px;
+    }
+
+    .share-message {
+      text-align: left;
+    }
+
+    .sp-tabs-inner {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    body.world-poker-near-me .tour-page .sp-tabs-inner {
+      grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    }
+
+    .sp-stop-banner__body {
+      display: grid;
+    }
+
+    .sp-stop-banner-right {
+      justify-content: flex-start;
+    }
+
+    .sp-filter-input,
+    .sp-filter-select {
+      flex-basis: 100%;
+      width: 100%;
+    }
+
+    body.world-poker-near-me .tour-page .sp-filter-select {
+      width: 100% !important;
+    }
+
+    .sp-filter-select {
+      aspect-ratio: 1829 / 313;
+    }
+
+    .sp-event-table-wrap {
+      overflow: visible;
+    }
+
+    .sp-event-header-row {
+      display: none;
+    }
+
+    .sp-event-row {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 7px;
+      min-width: 0;
+      padding: 14px 8px;
+    }
+
+    .sp-col-num {
+      justify-content: flex-start;
+    }
+
+    .sp-col-name {
+      display: flex;
+      align-items: flex-start;
+      flex-direction: column;
+      padding: 0;
+    }
+
+    .sp-col-buyin,
+    .sp-col-date,
+    .sp-col-time,
+    .sp-col-latereg,
+    .sp-col-chips,
+    .sp-col-gtd {
+      display: grid;
+      grid-template-columns: 72px minmax(0, 1fr);
+      align-items: center;
+      margin-left: 32px;
+    }
+
+    .sp-col-buyin::before,
+    .sp-col-date::before,
+    .sp-col-time::before,
+    .sp-col-latereg::before,
+    .sp-col-chips::before,
+    .sp-col-gtd::before {
+      color: var(--tour-dim);
+      font: 800 12px/1.2 var(--font-inter), Inter, sans-serif;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    .sp-col-buyin::before { content: 'Buy-In'; }
+    .sp-col-date::before { content: 'Date'; }
+    .sp-col-time::before { content: 'Start Time'; }
+    .sp-col-latereg::before { content: 'Late Reg'; }
+    .sp-col-chips::before { content: 'Chips'; }
+    .sp-col-gtd::before { content: 'Guarantee'; }
+
     .about-grid {
       grid-template-columns: 1fr;
     }
-    .header-actions {
-      width: 100%;
+
+    .about-item,
+    .about-item:nth-child(even) {
+      grid-column: 1;
+      border-left: 0 !important;
     }
-    .follow-btn,
-    .share-btn {
-      flex: 1;
-      justify-content: center;
-    }
-    .result-details {
-      flex-direction: column;
-      gap: 10px;
-    }
+
     .notif-content {
+      align-items: flex-start;
       flex-direction: column;
-      text-align: center;
     }
   }
 
-  /* ═══ SMARTER.POKER STANDARD STYLES ═══════════════════════════════════════ */
-
-  /* Tab Bar */
-  .sp-tabs-bar {
-    padding: 0 16px;
-    margin-bottom: 0;
-    border-bottom: 1px solid rgba(255,255,255,0.08);
-  }
-  .sp-tabs-inner {
-    max-width: 900px;
-    margin: 0 auto;
-    display: flex;
-    gap: 0;
-    overflow-x: auto;
-    scrollbar-width: none;
-  }
-  .sp-tabs-inner::-webkit-scrollbar { display: none; }
-  .sp-tab {
-    padding: 12px 20px;
-    font-size: 14px;
-    font-weight: 600;
-    font-family: 'Inter', sans-serif;
-    color: #64748b;
-    background: none;
-    border: none;
-    border-bottom: 2px solid transparent;
-    cursor: pointer;
-    white-space: nowrap;
-    transition: all 0.2s;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
-  .sp-tab:hover { color: #94a3b8; }
-  .sp-tab-active {
-    color: #00D4FF;
-    border-bottom-color: #00D4FF;
-  }
-  .sp-tab-count {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 20px;
-    height: 18px;
-    padding: 0 5px;
-    border-radius: 9px;
-    background: rgba(0,212,255,0.15);
-    color: #00D4FF;
-    font-size:12px;
-    font-weight: 700;
-  }
-
-  /* Schedule Section */
-  .sp-schedule-section {
-    max-width: 900px;
-    margin: 0 auto;
-    padding: 20px 16px;
-  }
-
-  /* Current/Next Stop Banner */
-  .sp-stop-banner {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    padding: 14px 18px;
-    border-radius: 10px;
-    margin-bottom: 20px;
-    border: 1px solid;
-  }
-  .sp-stop-live {
-    background: rgba(0,212,255,0.08);
-    border-color: rgba(0,212,255,0.25);
-  }
-  .sp-stop-next {
-    background: rgba(139,92,246,0.08);
-    border-color: rgba(139,92,246,0.25);
-  }
-  .sp-stop-banner-left {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    flex-wrap: wrap;
-  }
-  .sp-stop-status-dot {
-    width: 8px; height: 8px;
-    border-radius: 50%;
-    flex-shrink: 0;
-  }
-  .dot-live { background: #00D4FF; box-shadow: 0 0 6px #00D4FF; animation: pulse-dot 1.5s infinite; }
-  .dot-next { background: #a78bfa; }
-  @keyframes pulse-dot {
-    0%,100% { opacity: 1; } 50% { opacity: 0.4; }
-  }
-  .sp-stop-status-label {
-    font-size:12px; font-weight: 800;
-    letter-spacing: 0.08em;
-    color: #64748b;
-  }
-  .sp-stop-name {
-    font-size: 15px; font-weight: 700; color: #f1f5f9;
-  }
-  .sp-stop-banner-right {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    flex-wrap: wrap;
-  }
-  .sp-stop-venue { font-size: 13px; color: #94a3b8; }
-  .sp-stop-loc { font-size: 13px; color: #64748b; }
-  .sp-stop-dates {
-    font-size: 12px; color: #00D4FF; font-weight: 600;
-    padding: 2px 8px;
-    background: rgba(0,212,255,0.1);
-    border-radius: 4px;
-  }
-
-  /* Filter Bar */
-  .sp-filter-bar {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 16px;
-    flex-wrap: wrap;
-  }
-  .sp-filter-input {
-    flex: 1;
-    min-width: 160px;
-    padding: 8px 12px;
-    background: rgba(255,255,255,0.05);
-    border: 1px solid rgba(255,255,255,0.1);
-    border-radius: 8px;
-    color: #f1f5f9;
-    font-size: 13px;
-    outline: none;
-    transition: border-color 0.2s;
-    font-family: 'Inter', sans-serif;
-  }
-  .sp-filter-input::placeholder { color: #4b5563; }
-  .sp-filter-input:focus { border-color: rgba(0,212,255,0.4); }
-  .sp-filter-select {
-    padding: 8px 12px;
-    background: rgba(255,255,255,0.05);
-    border: 1px solid rgba(255,255,255,0.1);
-    border-radius: 8px;
-    color: #94a3b8;
-    font-size: 13px;
-    outline: none;
-    cursor: pointer;
-    font-family: 'Inter', sans-serif;
-    appearance: none;
-  }
-  .sp-filter-count {
-    font-size: 12px; color: #4b5563; white-space: nowrap;
-  }
-
-  /* Event Table */
-  .sp-event-table-wrap {
-    border: 1px solid rgba(255,255,255,0.06);
-    border-radius: 10px;
-    overflow: hidden;
-  }
-  .sp-event-header-row {
-    display: grid;
-    grid-template-columns: 44px 1fr 100px 100px 90px 100px 90px 100px;
-    gap: 0;
-    padding: 0 12px;
-    height: 36px;
-    align-items: center;
-    background: rgba(255,255,255,0.03);
-    border-bottom: 1px solid rgba(255,255,255,0.06);
-    font-size:12px;
-    font-weight: 700;
-    letter-spacing: 0.06em;
-    color: #4b5563;
-    text-transform: uppercase;
-  }
-  .sp-event-row {
-    display: grid;
-    grid-template-columns: 44px 1fr 100px 100px 90px 100px 90px 100px;
-    gap: 0;
-    padding: 0 12px;
-    min-height: 52px;
-    align-items: center;
-    border-bottom: 1px solid rgba(255,255,255,0.04);
-    transition: background 0.15s;
-  }
-  .sp-event-row:last-child { border-bottom: none; }
-  .sp-event-row:hover { background: rgba(255,255,255,0.03); }
-  .sp-event-main {
-    background: rgba(234,179,8,0.04);
-    border-left: 2px solid rgba(234,179,8,0.4);
-  }
-  .sp-event-hr {
-    background: rgba(139,92,246,0.04);
-    border-left: 2px solid rgba(139,92,246,0.3);
-  }
-
-  /* Column cells */
-  .sp-col-num {
-    display: flex; align-items: center; justify-content: center;
-  }
-  .sp-evt-num {
-    font-size: 12px; color: #4b5563; font-weight: 700;
-  }
-  .sp-main-star {
-    font-size: 14px; color: #eab308;
-  }
-  .sp-col-name {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    flex-wrap: wrap;
-    padding: 8px 0;
-    min-width: 0;
-  }
-  .sp-evt-name {
-    font-size: 13px; font-weight: 600; color: #e2e8f0;
-    flex: 1; min-width: 120px;
-    overflow: hidden; text-overflow: ellipsis;
-  }
-  .sp-game-badge {
-    font-size:12px; font-weight: 700;
-    padding: 2px 6px;
-    border-radius: 4px;
-    border: 1px solid;
-    white-space: nowrap;
-    flex-shrink: 0;
-    letter-spacing: 0.04em;
-    background: rgba(0,0,0,0.2);
-  }
-  .sp-flag-badge {
-    font-size:12px; font-weight: 600;
-    padding: 2px 6px; border-radius: 4px;
-    white-space: nowrap; flex-shrink: 0;
-  }
-  .sp-flag-main { background: rgba(234,179,8,0.15); color: #eab308; }
-  .sp-flag-hr { background: rgba(139,92,246,0.15); color: #a78bfa; }
-  .sp-flag-reentry { background: rgba(59,130,246,0.15); color: #60a5fa; }
-  .sp-flag-ladies { background: rgba(236,72,153,0.15); color: #ec4899; }
-  .sp-flag-seniors { background: rgba(34,197,94,0.15); color: #22c55e; }
-
-  .sp-col-buyin {
-    display: flex; flex-direction: column; gap: 2px;
-  }
-  .sp-buyin-chip {
-    display: inline-flex;
-    align-items: center;
-    padding: 3px 8px;
-    border-radius: 6px;
-    border: 1px solid;
-    font-size: 12px; font-weight: 700;
-    white-space: nowrap;
-    width: fit-content;
-  }
-  .sp-fee { font-size:12px; color: #4b5563; }
-
-  .sp-col-date {
-    display: flex; flex-direction: column; gap: 2px;
-  }
-  .sp-date-val { font-size: 12px; color: #94a3b8; font-weight: 500; }
-  .sp-time-val { font-size:12px; color: #64748b; }
-
-  .sp-chips-val { font-size: 12px; color: #94a3b8; }
-  .sp-col-chips {
-    display: flex; align-items: center; justify-content: flex-start;
-  }
-  .sp-levels-val { font-size: 12px; color: #94a3b8; }
-
-  .sp-col-gtd {
-    display: flex; align-items: center;
-  }
-  .sp-gtd-chip {
-    font-size: 12px; font-weight: 700;
-    color: #22c55e;
-    padding: 2px 7px;
-    background: rgba(34,197,94,0.1);
-    border-radius: 5px;
-  }
-  .sp-na { color: #374151; font-size: 13px; }
-
-  /* Empty state */
-  .sp-empty {
-    display: flex; flex-direction: column; align-items: center;
-    gap: 12px; padding: 48px 24px; text-align: center;
-    color: #64748b; font-size: 14px;
-  }
-  .sp-data-note {
-    margin-top: 12px;
-    font-size: 12px; color: #64748b;
-    text-align: center; padding: 8px;
-    background: rgba(234,179,8,0.05);
-    border-radius: 6px;
-    border: 1px solid rgba(234,179,8,0.15);
-  }
-
-  /* Stop type badges */
-  .sp-stop-type-badge {
-    font-size:12px; font-weight: 700;
-    padding: 2px 7px; border-radius: 4px;
-    text-transform: uppercase; letter-spacing: 0.06em;
-  }
-  .sp-stype-current { background: rgba(0,212,255,0.15); color: #00D4FF; }
-  .sp-stype-next { background: rgba(139,92,246,0.15); color: #a78bfa; }
-  .sp-stype-future { background: rgba(100,116,139,0.15); color: #64748b; }
-  .sp-stype-past { background: rgba(71,85,105,0.1); color: #475569; }
-
-  .sp-stop-event-count {
-    font-size:12px; color: #64748b;
-    margin-top: 6px;
-  }
-  .sp-view-stop-btn {
-    margin-top: 8px;
-    padding: 5px 12px;
-    border: 1px solid rgba(0,212,255,0.3);
-    border-radius: 6px;
-    background: rgba(0,212,255,0.08);
-    color: #00D4FF;
-    font-size: 12px; font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s;
-    font-family: 'Inter', sans-serif;
-    display: inline-block;
-  }
-  .sp-view-stop-btn:hover {
-    background: rgba(0,212,255,0.15);
-  }
-
-  /* Mobile: collapse table to cards on small screens */
-  @media (max-width: 640px) {
-    .sp-event-header-row { display: none; }
-    .sp-event-row {
-      grid-template-columns: 1fr;
-      grid-template-rows: auto;
-      gap: 6px;
-      padding: 12px 14px;
+  @media (max-width: 390px) {
+    .tour-header__body,
+    .sp-schedule-section__body,
+    .tour-section__body {
+      padding-left: 14px;
+      padding-right: 14px;
     }
-    .sp-col-num { justify-content: flex-start; }
-    .sp-col-name { flex-direction: column; align-items: flex-start; }
-    .sp-col-buyin, .sp-col-date, .sp-col-time, .sp-col-latereg, .sp-col-chips, .sp-col-gtd {
-      display: flex;
-      justify-content: flex-start;
-      margin-left: 44px;
+
+    .tour-name {
+      font-size: 26px;
     }
-    .sp-col-buyin::before { content: 'Buy-In: '; font-size:12px; color: #4b5563; min-width: 56px; }
-    .sp-col-date::before { content: 'Date: '; font-size:12px; color: #4b5563; min-width: 40px; }
-    .sp-col-time::before { content: 'Time: '; font-size:12px; color: #4b5563; min-width: 44px; }
-    .sp-col-latereg::before { content: 'Late Reg: '; font-size:12px; color: #4b5563; min-width: 48px; }
-    .sp-col-chips::before { content: 'Chips: '; font-size:12px; color: #4b5563; min-width: 44px; }
-    .sp-col-gtd::before { content: 'GTD: '; font-size:12px; color: #4b5563; min-width: 36px; }
-    .sp-tabs-bar { padding: 0 10px; }
-    .sp-tab { padding: 10px 14px; font-size: 13px; }
+
+    .tour-action {
+      flex-basis: calc(50% - 4px);
+      min-width: 0;
+      padding: 0 10px;
+      font-size: 12px;
+    }
+
+    .sp-tab {
+      padding: 0 9px;
+      font-size: 12px;
+      letter-spacing: 0.06em;
+    }
+
+    .sp-stop-banner-left,
+    .sp-stop-banner-right {
+      align-items: flex-start;
+      flex-direction: column;
+    }
+
+    .breadcrumb-current {
+      max-width: 70vw;
+    }
+
+    .result-details {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
   }
 `;

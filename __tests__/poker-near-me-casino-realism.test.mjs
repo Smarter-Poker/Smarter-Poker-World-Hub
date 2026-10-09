@@ -400,8 +400,11 @@ test('global search detail is a nested accessible dialog that isolates the searc
 
 test('Home Games page CSS is hydration-stable', () => {
   const homeGames = read('pages/hub/home-games.js');
-  assert.match(homeGames, /<style dangerouslySetInnerHTML=\{\{ __html: `/);
-  assert.doesNotMatch(homeGames, /<style>\{`\s*\.hg-page\s*\{/);
+  const app = read('pages/_app.js');
+
+  assert.match(app, /import '\.\.\/src\/styles\/worlds\/poker-near-me-home-games-directory\.css';/);
+  assert.doesNotMatch(homeGames, /<style(?:\s|>)/);
+  assert.doesNotMatch(homeGames, /dangerouslySetInnerHTML/);
 });
 
 test('Home Games geo and host-dashboard routes declare the machined secondary foundation', () => {
@@ -730,8 +733,8 @@ test('small support labels use stable AA colors instead of translucent low-contr
   const series = read('pages/hub/poker-series.js');
 
   assert.match(calendar, /\.ev-stop-name[^}]*color:\s*#9aa8b5/);
-  assert.match(calendar, /\.ev-event-count[^}]*color:\s*#c4a7f7/);
-  assert.match(calendar, /\.ev-buyin-range[^}]*color:\s*#c4a7f7/);
+  assert.match(calendar, /\.ev-event-count[^}]*color:\s*var\(--ec-silver\)/);
+  assert.match(calendar, /\.ev-buyin-range[^}]*color:\s*#9aa8b5/);
   assert.match(calendar, /\.ev-recurrence[^}]*color:\s*#d9b35c/);
   assert.match(calendar, /\.ec-dot-more[^}]*color:\s*#aeb9c8/);
   assert.match(calendar, /\.ec-error-detail[^}]*color:\s*#aeb9c8/);

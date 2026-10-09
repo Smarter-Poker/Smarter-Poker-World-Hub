@@ -144,9 +144,15 @@ test.describe('Poker Near Me phase 14 shared map foundation', () => {
       const response = await page.goto('/hub/poker-near-me/map', { waitUntil: 'domcontentloaded' });
       expect(response?.status()).toBe(200);
 
-      const map = page.locator('[data-map-foundation="shared-v3"][data-map-ready="true"]').first();
+      // Anchor the frame through the stable map foundation. Leaflet briefly
+      // toggles data-map-ready while fullscreen invalidates its size; deriving
+      // the ancestor from a live `[data-map-ready=true]` locator can otherwise
+      // jump to a different map surface during that resize.
+      const surface = page.locator('[data-pnm-map-surface="true"]')
+        .filter({ has: page.locator('[data-map-foundation="shared-v3"]') })
+        .first();
+      const map = surface.locator('[data-map-foundation="shared-v3"][data-map-ready="true"]').first();
       await expect(map).toBeVisible({ timeout: 60_000 });
-      const surface = map.locator('xpath=ancestor::*[@data-pnm-map-surface="true"][1]');
       await surface.locator('[data-map-fullscreen-control="true"]').click();
       await expect(surface).toHaveAttribute('data-map-fullscreen', 'true');
       await expect.poll(

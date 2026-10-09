@@ -5,6 +5,11 @@
  */
 
 import React, { useState, useEffect } from 'react';
+import {
+  PokerNearMePanelShell,
+  PokerNearMeConsoleIcon,
+} from './PokerNearMeConsole';
+import styles from './PokerNearMeHomeGameConsole.module.css';
 
 const GEOFENCE_ALERT_TIMEOUT_MS = 30000;
 
@@ -28,89 +33,55 @@ export default function GeofenceAlertBanner({ venue, onCheckin, onReview, onDism
       if (onDismiss) onDismiss();
     }, GEOFENCE_ALERT_TIMEOUT_MS);
     return () => clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [venueKey]);
 
   if (!visible || !venue) return null;
 
   return (
-    <div style={{
-      position: 'fixed',
-      bottom: 0,
-      left: 0,
-      right: 0,
-      zIndex: 9999,
-      padding: '0 16px 16px',
-      pointerEvents: 'none',
-    }}>
-      <div style={{
-        maxWidth: 560,
-        margin: '0 auto',
-        background: 'rgba(15, 23, 42, 0.95)',
-        backdropFilter: 'blur(16px)',
-        border: '1px solid rgba(212, 168, 83, 0.4)',
-        borderRadius: 14,
-        padding: '16px 20px',
-        display: 'flex',
-        alignItems: 'center',
-        gap: 16,
-        boxShadow: '0 -4px 24px rgba(0,0,0,0.5)',
-        pointerEvents: 'auto',
-      }}>
-        {/* Venue icon */}
-        <div style={{
-          width: 44, height: 44, borderRadius: 10,
-          background: 'rgba(255,255,255,0.15)',
-          border: '1px solid rgba(255,255,255,0.3)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-        }}>
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2">
-            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" />
-            <circle cx="12" cy="10" r="3" />
-          </svg>
-        </div>
+    <div className={styles.geofencePosition}>
+      <PokerNearMePanelShell
+        as="aside"
+        role="status"
+        aria-live="polite"
+        className={styles.geofencePanel}
+        bodyClassName={styles.geofenceBody}
+      >
+        <div className={styles.geofenceContent}>
+          <PokerNearMeConsoleIcon name="location" className={styles.geofenceIcon} />
 
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 14, fontWeight: 600, color: '#ffffff', marginBottom: 2 }}>
-            You Are Near A Poker Venue!
+          <div className={styles.geofenceCopy}>
+            <p className="pnc-label">Poker Venue Nearby</p>
+            <p className={`pnc-data-row__value ${styles.venueName}`}>{venue.name}</p>
           </div>
-          <div style={{ fontSize: 15, fontWeight: 700, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-            {venue.name}
-          </div>
-        </div>
 
-        <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
-          <button onClick={onCheckin} style={{
-            padding: '8px 14px', borderRadius: 8,
-            background: 'linear-gradient(135deg, #ffffff, #cbd5e1)',
-            border: 'none', color: '#000', fontSize: 13, fontWeight: 600, cursor: 'pointer',
-          }}>Check In</button>
-          <button onClick={onReview} style={{
-            padding: '8px 14px', borderRadius: 8,
-            background: 'rgba(255,255,255,0.1)',
-            border: '1px solid rgba(255,255,255,0.2)',
-            color: '#fff', fontSize: 13, fontWeight: 500, cursor: 'pointer',
-          }}>Review</button>
-          <button
-            type="button"
-            aria-label="Dismiss"
-            title="Dismiss"
-            onClick={() => { setVisible(false); if (onDismiss) onDismiss(); }}
-            style={{
-              /* 18px glyph in 13px padding clears the 44px floor the rest of the
-                 console holds to. It was 6px, which made a 30px target with no
-                 accessible name at all. */
-              padding: '13px', borderRadius: 6, minWidth: 44, minHeight: 44,
-              background: 'transparent', border: 'none', color: 'rgba(255,255,255,0.4)',
-              cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }}
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-            </svg>
-          </button>
+          <div className={styles.geofenceActions}>
+            <button
+              type="button"
+              onClick={onCheckin}
+              className={`${styles.paintedAction} ${styles.paintedActionPrimary} ${styles.geofenceAction}`}
+            >
+              Check In
+            </button>
+            <button
+              type="button"
+              onClick={onReview}
+              className={`${styles.paintedAction} ${styles.geofenceAction}`}
+            >
+              Review
+            </button>
+            <button
+              type="button"
+              aria-label="Dismiss"
+              title="Dismiss"
+              onClick={() => { setVisible(false); if (onDismiss) onDismiss(); }}
+              className={styles.iconAction}
+              style={{ minWidth: 44, minHeight: 44 }}
+            >
+              <PokerNearMeConsoleIcon name="close" />
+            </button>
+          </div>
         </div>
-      </div>
+      </PokerNearMePanelShell>
     </div>
   );
 }

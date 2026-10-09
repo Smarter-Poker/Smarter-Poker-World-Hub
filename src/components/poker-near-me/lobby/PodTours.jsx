@@ -1,5 +1,13 @@
 import React from 'react';
 import TourCard from '../TourCard';
+import LobbyPodConsole, {
+  LobbyPodCardList,
+  LobbyPodControlPanel,
+  LobbyPodField,
+  LobbyPodResultsBar,
+  LobbyPodState,
+  PNM_US_STATE_CODES,
+} from './LobbyPodConsole';
 
 export default function PodTours({
   filters, setFilters,
@@ -27,37 +35,65 @@ export default function PodTours({
   }
   
   return (
-    <div>
-      <div style={{ display: 'flex', gap: 8, marginBottom: 12, alignItems: 'center', flexWrap: 'wrap' }}>
-        <input type="text" placeholder="Search Tours..." value={tourSearch} autoComplete="off"
-          onChange={(e) => setFilters(prev => ({ ...prev, tourSearch: e.target.value }))}
-          style={{ flex: 1, minWidth: 120, padding: '8px 14px', borderRadius: 8, border: '1.5px solid rgba(148,163,184,0.15)', background: 'rgba(13,17,23,0.7)', color: '#e0e8f0', fontSize: 13, fontFamily: 'inherit', outline: 'none', transition: 'border-color 0.2s', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.2)' }} />
-        <select value={tourState}
-          onChange={(e) => setFilters(prev => ({ ...prev, tourState: e.target.value }))}
-          style={{ background: 'rgba(13,17,23,0.7)', border: '1.5px solid rgba(148,163,184,0.15)', borderRadius: 8, padding: '8px 14px', color: '#e0e8f0', fontSize: 13, fontFamily: 'inherit', cursor: 'pointer', outline: 'none', minWidth: 110, boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.2)' }}>
-          <option value="all" style={{ background: '#0d1117' }}>All States</option>
-          {['AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT','VA','WA','WV','WI','WY','DC'].map(st => (
-            <option key={st} value={st} style={{ background: '#0d1117' }}>{st}</option>
+    <LobbyPodConsole className="pnm-lobby-pod--tours">
+      <LobbyPodControlPanel
+        title="Poker Tour Directory"
+        description="Search Touring Poker Brands And Stops By Name Or State."
+        icon="trophy"
+      >
+        <div className="pnm-lobby-pod__field-row">
+          <LobbyPodField label="Tour Search" icon="search">
+            <input
+              type="text"
+              aria-label="Search Tours"
+              placeholder="Search Tours..."
+              value={tourSearch}
+              autoComplete="off"
+              onChange={(e) => setFilters(prev => ({ ...prev, tourSearch: e.target.value }))}
+            />
+          </LobbyPodField>
+          <LobbyPodField label="State" icon="filter">
+            <select
+              aria-label="Filter Tours By State"
+              value={tourState}
+              onChange={(e) => setFilters(prev => ({ ...prev, tourState: e.target.value }))}
+            >
+              <option value="all">All States</option>
+              {PNM_US_STATE_CODES.map(st => <option key={st} value={st}>{st}</option>)}
+            </select>
+          </LobbyPodField>
+        </div>
+      </LobbyPodControlPanel>
+
+      <LobbyPodResultsBar>
+        <strong>{filteredTours.length}</strong> {filteredTours.length === 1 ? 'Tour' : 'Tours'}
+      </LobbyPodResultsBar>
+
+      {!toursLoaded && filteredTours.length === 0 ? (
+        <LobbyPodState kind="loading" title="Loading Poker Tours">
+          <p>Connecting To The National Tour Directory.</p>
+        </LobbyPodState>
+      ) : null}
+
+      {filteredTours.length > 0 ? (
+        <LobbyPodCardList>
+          {filteredTours.map((t, i) => (
+            <TourCard
+              key={t.tour_code || t.id || `tour-${i}`}
+              tour={t}
+              isFavorited={!!favorites['tour-' + (t.id || t.tour_code)]}
+              onFavorite={(e) => { e?.stopPropagation(); handleToggleFavorite(t.id || t.tour_code, t, 'tour'); }}
+              onNavigate={(path) => router.push(path)}
+            />
           ))}
-        </select>
-        <span style={{ fontSize: 12, color: 'rgba(200,214,229,0.4)' }}>
-          <span style={{ color: '#d4a853', fontWeight: 700 }}>{filteredTours.length}</span> tour{filteredTours.length !== 1 ? 's' : ''}
-        </span>
-      </div>
-      <div style={{ display: 'grid', gap: 12 }}>
-        {filteredTours.map((t, i) => <TourCard key={t.tour_code || t.id || `tour-${i}`} tour={t} isFavorited={!!favorites['tour-' + (t.id || t.tour_code)]} onFavorite={(e) => { e?.stopPropagation(); handleToggleFavorite(t.id || t.tour_code, t, 'tour'); }} onNavigate={(path) => router.push(path)} />)}
-      </div>
-      {!toursLoaded && tours.length === 0 && (
-        <div style={{ display: 'grid', gap: 12 }}>
-          {[1,2,3,4].map(n => <div key={n} style={{ height: 90, borderRadius: 12, background: 'linear-gradient(90deg, rgba(30,40,55,0.5) 25%, rgba(50,60,80,0.5) 50%, rgba(30,40,55,0.5) 75%)', backgroundSize: '200% 100%', animation: 'pnm-shimmer 1.5s ease-in-out infinite', border: '1px solid rgba(148,163,184,0.08)' }} />)}
-        </div>
-      )}
+        </LobbyPodCardList>
+      ) : null}
+
       {toursLoaded && filteredTours.length === 0 && (
-        <div style={{ textAlign: 'center', padding: 40, color: 'rgba(200,214,229,0.4)' }}>
-          <p style={{ fontSize: 14, fontWeight: 600 }}>No Tours Found</p>
-          <p style={{ fontSize: 12 }}>Try Adjusting Your Search Criteria</p>
-        </div>
+        <LobbyPodState kind="empty" title="No Tours Found">
+          <p>Try Adjusting Your Search Criteria.</p>
+        </LobbyPodState>
       )}
-    </div>
+    </LobbyPodConsole>
   );
 }

@@ -11,10 +11,19 @@ const nav = read('src/styles/worlds/poker-near-me-console-nav.css');
 const navComponent = read('src/components/poker-near-me/PokerNearMeFamilyNav.jsx');
 const eventsCalendar = read('pages/hub/events-calendar.js');
 const dailyTournamentsPage = read('pages/hub/daily-tournaments.js');
+const tourDetail = read('pages/hub/tours/[code].js');
 const pnmTab = read('pages/hub/poker-near-me/[pnmTab].js');
 const favorites = read('src/components/poker-near-me/FavoritesTabPanel.jsx');
 const liveGames = read('src/components/poker-near-me/LiveGamesFeed.jsx');
 const dailyTab = read('src/components/poker-near-me/DailyTournamentsTabPanel.jsx');
+const appShell = read('pages/_app.js');
+const podCss = read('src/styles/worlds/poker-near-me-console-pods.css');
+const lobbyPods = [
+  'src/components/poker-near-me/lobby/PodVenueSearchEngine.jsx',
+  'src/components/poker-near-me/lobby/PodHomeGames.jsx',
+  'src/components/poker-near-me/lobby/PodTours.jsx',
+  'src/components/poker-near-me/lobby/PodSeries.jsx',
+].map(read);
 
 /* ------------------------------------------------------------------ *
  * 1. Generic form controls sit on painted art, not on flat CSS boxes.
@@ -103,6 +112,22 @@ test('the daily tournaments card action is a painted plate', () => {
   assert.match(dailyTab, /className="action-btn primary pnm-console-cta pnm-console-cta--primary"/);
   assert.match(dailyTab, /href=\{t\.pokerAtlasUrl\}/, 'the outbound link is preserved');
   assert.match(dailyTab, /rel="noopener noreferrer"/);
+});
+
+test('every reachable lobby pod inherits the shared painted pod system', () => {
+  const podImport = "import '../src/styles/worlds/poker-near-me-console-pods.css';";
+  assert.ok(appShell.includes(podImport), 'the shared pod finish must load globally');
+  assert.ok(
+    appShell.indexOf(podImport) < appShell.indexOf("import '../src/styles/worlds/poker-near-me-console-menu.css';"),
+    'the command drawer remains the final shared Poker Near Me cascade layer',
+  );
+  assert.match(podCss, /painted-controls-v1\/search-well\.webp/);
+  assert.match(podCss, /painted-controls-v1\/button-primary\.png/);
+  assert.match(podCss, /painted-controls-v1\/button-secondary\.png/);
+  for (const source of lobbyPods) {
+    assert.match(source, /LobbyPodConsole/);
+    assert.doesNotMatch(source, /<svg|(?:linear|radial|conic)-gradient\(|backdropFilter|backdrop-filter/);
+  }
 });
 
 /* ------------------------------------------------------------------ *
@@ -226,6 +251,29 @@ test('the malformed inline select arrow data uri is gone for good', () => {
   assert.doesNotMatch(eventsCalendar, /&quot;data:image\/svg/);
   assert.doesNotMatch(eventsCalendar, /data:image\/svg\+xml/);
   assert.doesNotMatch(dailyTournamentsPage, /&quot;data:image\/svg/);
+});
+
+test('the Events Calendar location dialog uses the shared accessible lifecycle', () => {
+  assert.match(eventsCalendar, /useAccessibleDialog/);
+  assert.match(eventsCalendar, /open: isOpen/);
+  assert.match(eventsCalendar, /surfaceRef=\{dialogRef\}/);
+  assert.match(eventsCalendar, /ref=\{initialFocusRef\}/);
+  assert.match(eventsCalendar, /role="dialog"/);
+  assert.match(eventsCalendar, /aria-modal="true"/);
+});
+
+test('tour section controls and stop cards keep complete keyboard semantics', () => {
+  assert.doesNotMatch(tourDetail, /role="tablist"|role="tab"/, 'incomplete APG tab semantics must not ship');
+  assert.match(tourDetail, /aria-pressed=\{activeTab === tab\.id\}/, 'section buttons expose their selected state');
+  assert.equal(
+    (tourDetail.match(/event\.key === 'Enter' \|\| event\.key === ' '/g) || []).length,
+    3,
+    'each clickable stop opens with Enter or Space',
+  );
+  assert.ok(
+    (tourDetail.match(/event\.preventDefault\(\);[\s\S]{0,100}setSelectedStop\(/g) || []).length >= 3,
+    'Space activation never scrolls the page underneath the stop card',
+  );
 });
 
 /* ------------------------------------------------------------------ *

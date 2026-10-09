@@ -36,6 +36,7 @@ import PokerNearMeConsole, {
   PokerNearMePanelShell,
   PokerNearMeConsoleIcon,
 } from '../../../src/components/poker-near-me/PokerNearMeConsole';
+import homeGameStyles from '../../../src/components/poker-near-me/PokerNearMeHomeGameConsole.module.css';
 import { useEffect, useState, useCallback, useRef } from 'react';
 // The flat lucide set this page used to draw its chrome with is gone: every
 // pictogram now comes from the painted Poker Near Me control kit, and anything
@@ -64,11 +65,11 @@ const NEAR_ME_SCHEMA = hubCollectionSchema({
 });
 
 const RADIUS_OPTIONS = [
-  { value: 10,  label: '10 mi' },
-  { value: 25,  label: '25 mi' },
-  { value: 50,  label: '50 mi' },
-  { value: 100, label: '100 mi' },
-  { value: 250, label: '250 mi' },
+  { value: 10,  label: '10 MI' },
+  { value: 25,  label: '25 MI' },
+  { value: 50,  label: '50 MI' },
+  { value: 100, label: '100 MI' },
+  { value: 250, label: '250 MI' },
 ];
 
 // US state abbreviations for the manual-fallback select
@@ -285,7 +286,7 @@ export default function HomeGamesNearMePage({ publicCities = [] }) {
   }, [search, requestGeolocation]);
 
   // Auto-prompt on mount (respects the browser's permission dialog)
-  useEffect(() => { requestGeolocation(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
+  useEffect(() => { requestGeolocation(); }, []);
 
   // When the user changes radius, re-search. Also fires after a failed
   // search ('error') — otherwise the pill highlight moves but nothing
@@ -294,7 +295,6 @@ export default function HomeGamesNearMePage({ publicCities = [] }) {
     if (mode === 'nearby' && coords && (status === 'ready' || status === 'error')) {
       search({ lat: coords.lat, lng: coords.lng, radiusMiles: radius });
     }
-    /* eslint-disable-next-line react-hooks/exhaustive-deps */
   }, [radius]);
 
   function handleManualSearch(e) {
@@ -327,7 +327,7 @@ export default function HomeGamesNearMePage({ publicCities = [] }) {
   const isLoading = status === 'locating' || status === 'searching';
 
   return (
-    <div className="min-h-screen bg-[#0A1526] text-white" style={{ fontFamily: "var(--font-inter), -apple-system, BlinkMacSystemFont, sans-serif" }}>
+    <div className={homeGameStyles.page}>
       {/* audit M-5: this was the ONLY home-games surface using a raw next/head
           instead of SEOHead, so it emitted no <link rel="canonical">, no
           Open Graph and no Twitter tags — despite being the page every other
@@ -342,20 +342,22 @@ export default function HomeGamesNearMePage({ publicCities = [] }) {
       <PokerNearMeFamilyNav className="pnm-family-nav--standalone" />
 
       {/* Top bar */}
-      <div className="pnm-location-topbar sticky top-0 z-10 border-b border-[#1E293B] bg-[#0A1526]/95 backdrop-blur-sm">
-        <div className="max-w-5xl mx-auto px-4 py-3 flex items-center gap-3">
-          <Link href="/hub/home-games/in" className="text-[#94A3B8] flex items-center gap-1" style={{ minHeight: 44 }}>
+      <div className={`pnm-location-topbar ${homeGameStyles.topbar}`}>
+        <div className={homeGameStyles.topbarInner}>
+          <Link href="/hub/home-games/in" className={`${homeGameStyles.paintedAction} ${homeGameStyles.topbarAction}`}>
             <PokerNearMeConsoleIcon name="back" />
-            <span className="text-sm">Home Games</span>
+            <span>Home Games</span>
           </Link>
-          <div className="flex-1" />
-          <Link href="https://commander.smarter.poker/commander/register?tier=home_game&from=poker_near_me&return=%2Fhub%2Fcommander%2Fhome-games%2Fcreate" className="cmd-btn cmd-btn-primary h-11 px-4 text-xs">
+          <Link
+            href="https://commander.smarter.poker/commander/register?tier=home_game&from=poker_near_me&return=%2Fhub%2Fcommander%2Fhome-games%2Fcreate"
+            className={`${homeGameStyles.paintedAction} ${homeGameStyles.paintedActionPrimary} ${homeGameStyles.topbarAction}`}
+          >
             Host A Game
           </Link>
         </div>
       </div>
 
-      <main className="max-w-5xl mx-auto px-4 py-6 space-y-6" data-pnm-secondary-foundation="interaction-v1">
+      <main className={homeGameStyles.main} data-pnm-secondary-foundation="interaction-v1">
         {/* Header. This is a public Poker Near Me route, so its chassis is the
             painted Poker Near Me console, not the Club Commander panel system
             it used to borrow. The crest, rails and closing cap are master art;
@@ -377,24 +379,23 @@ export default function HomeGamesNearMePage({ publicCities = [] }) {
 
         {/* Radius selector (only while browsing near the user's own position) */}
         {isNearbyMode && (
-          <PokerNearMePanelShell>
-            <div className="flex items-center justify-between gap-3 flex-wrap" style={{ paddingBottom: '3cqw' }}>
-              <div className="flex items-center gap-2">
+          <PokerNearMePanelShell bodyClassName={homeGameStyles.panelBody}>
+            <div className={homeGameStyles.radiusControls}>
+              <div className={homeGameStyles.sectionLabel}>
                 <PokerNearMeConsoleIcon name="location" />
                 <span className="pnc-label">Within</span>
               </div>
-              <div className="flex flex-wrap gap-2">
+              <div className={homeGameStyles.radiusOptions} role="group" aria-label="Search Radius">
                 {RADIUS_OPTIONS.map((opt) => (
                   <button
                     key={opt.value}
                     type="button"
                     onClick={() => setRadius(opt.value)}
                     disabled={isLoading}
-                    className={`px-4 py-2 rounded-lg text-sm font-semibold border transition-all ${
-                      radius === opt.value
-                        ? 'border-[#22D3EE] bg-[#22D3EE]/15 text-[#22D3EE]'
-                        : 'border-[#4A5E78] text-[#94A3B8] hover:bg-[#132240]'
-                    }`}
+                    aria-pressed={radius === opt.value}
+                    className={`${homeGameStyles.paintedAction} ${homeGameStyles.radiusAction} ${
+                      radius === opt.value ? homeGameStyles.paintedActionPrimary : ''
+                    }`.trim()}
                   >
                     {opt.label}
                   </button>
@@ -403,7 +404,7 @@ export default function HomeGamesNearMePage({ publicCities = [] }) {
               <button
                 type="button"
                 onClick={() => setManualOpen(true)}
-                className="cmd-btn cmd-btn-secondary h-11 px-4 text-xs"
+                className={`${homeGameStyles.paintedAction} ${homeGameStyles.cityAction}`}
               >
                 Search Another City
               </button>
@@ -416,15 +417,15 @@ export default function HomeGamesNearMePage({ publicCities = [] }) {
             unmount this form permanently, leaving no way to browse another
             city (for a trip, say) short of a full page reload. */}
         {showManualForm && (
-          <PokerNearMePanelShell>
+          <PokerNearMePanelShell bodyClassName={homeGameStyles.panelBody}>
             {coords && (
-              <div className="flex items-center justify-between gap-3 flex-wrap mb-4">
-                <p className="text-sm font-medium text-white">Search Another City</p>
+              <div className={homeGameStyles.manualHeader}>
+                <p className="pnc-label">Search Another City</p>
                 <button
                   type="button"
                   onClick={() => { setManualOpen(false); handleUseMyLocation(); }}
                   disabled={isLoading}
-                  className="cmd-btn cmd-btn-secondary h-8 px-3 text-xs flex items-center gap-1.5 disabled:opacity-50"
+                  className={`${homeGameStyles.paintedAction} ${homeGameStyles.locationAction}`}
                 >
                   <PokerNearMeConsoleIcon name="location" />
                   Back To Near Me
@@ -432,31 +433,41 @@ export default function HomeGamesNearMePage({ publicCities = [] }) {
               </div>
             )}
             {status === 'denied' && (
-              <div className="flex items-start gap-2 mb-4">
+              <div className={homeGameStyles.noticeRow}>
                 <PokerNearMeConsoleIcon name="location" />
                 <p className="pnc-copy pnc-ink--gold" role="status">{error || 'Search By State Or City Instead.'}</p>
               </div>
             )}
-            <form onSubmit={handleManualSearch} className="grid sm:grid-cols-[120px_1fr_auto] gap-3" style={{ paddingBottom: '3cqw' }}>
-              <select
-                value={manualState}
-                onChange={(e) => setManualState(e.target.value)}
-                className="cmd-input h-10 px-3"
-              >
-                <option value="">State</option>
-                {US_STATES.map((s) => <option key={s} value={s}>{s}</option>)}
-              </select>
-              <input
-                type="text"
-                value={manualCity}
-                onChange={(e) => setManualCity(e.target.value)}
-                placeholder="City (optional)"
-                className="cmd-input h-10 px-3"
-              />
+            <form onSubmit={handleManualSearch} className={homeGameStyles.manualForm}>
+              <label className={homeGameStyles.fieldGroup}>
+                <span className={homeGameStyles.fieldLabel}>State</span>
+                <span className={homeGameStyles.fieldWell}>
+                  <select
+                    value={manualState}
+                    onChange={(e) => setManualState(e.target.value)}
+                    className={homeGameStyles.fieldControl}
+                  >
+                    <option value="">Any State</option>
+                    {US_STATES.map((s) => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                </span>
+              </label>
+              <label className={homeGameStyles.fieldGroup}>
+                <span className={homeGameStyles.fieldLabel}>City</span>
+                <span className={homeGameStyles.fieldWell}>
+                  <input
+                    type="text"
+                    value={manualCity}
+                    onChange={(e) => setManualCity(e.target.value)}
+                    placeholder="City (Optional)"
+                    className={homeGameStyles.fieldControl}
+                  />
+                </span>
+              </label>
               <button
                 type="submit"
                 disabled={!manualState && !manualCity}
-                className="cmd-btn cmd-btn-primary h-11 px-4 text-sm flex items-center gap-2 disabled:opacity-50"
+                className={`${homeGameStyles.paintedAction} ${homeGameStyles.paintedActionPrimary} ${homeGameStyles.searchAction}`}
               >
                 <PokerNearMeConsoleIcon name="search" />
                 Search
@@ -467,17 +478,17 @@ export default function HomeGamesNearMePage({ publicCities = [] }) {
 
         {/* Error banner (non-denied) */}
         {status === 'error' && (
-          <PokerNearMePanelShell role="alert">
-            <div className="flex items-start gap-2" style={{ paddingBottom: '3cqw' }}>
+          <PokerNearMePanelShell role="alert" bodyClassName={homeGameStyles.panelBody}>
+            <div className={homeGameStyles.stateRow}>
               <PokerNearMeConsoleIcon name="info" />
-              <div className="flex-1">
+              <div className={homeGameStyles.stateCopy}>
                 <p className="pnc-label pnc-ink--red">Search Failed</p>
                 <p className="pnc-copy">{error}</p>
               </div>
               <button
                 type="button"
                 onClick={retryLastSearch}
-                className="cmd-btn cmd-btn-secondary h-11 px-4 text-xs"
+                className={`${homeGameStyles.paintedAction} ${homeGameStyles.retryAction}`}
               >
                 Retry
               </button>
@@ -487,8 +498,8 @@ export default function HomeGamesNearMePage({ publicCities = [] }) {
 
         {/* Loading state */}
         {isLoading && (
-          <PokerNearMePanelShell aria-busy="true">
-            <div className="flex flex-col items-center text-center" style={{ paddingBottom: '3cqw' }}>
+          <PokerNearMePanelShell aria-busy="true" bodyClassName={homeGameStyles.panelBody}>
+            <div className={homeGameStyles.centeredState}>
               <PokerNearMeConsoleIcon name="location" />
               <p className="pnc-copy pnc-copy--center" role="status" aria-live="polite">
                 {status === 'locating' ? 'Finding Your Location…' : 'Searching Nearby Home Games…'}
@@ -499,14 +510,17 @@ export default function HomeGamesNearMePage({ publicCities = [] }) {
 
         {/* Results */}
         {status === 'ready' && groups.length === 0 && (
-          <PokerNearMePanelShell>
-            <div className="text-center" style={{ paddingBottom: '3cqw' }}>
+          <PokerNearMePanelShell bodyClassName={homeGameStyles.panelBody}>
+            <div className={homeGameStyles.centeredState}>
               <PokerNearMeConsoleIcon name="home" />
               <h2 className="pnc-label">No Home Games Found Nearby</h2>
               <p className="pnc-copy pnc-copy--center">
                 {isNearbyMode ? 'Try Expanding Your Radius, Or Start A Game Yourself.' : 'Try A Different State Or City.'}
               </p>
-              <Link href="https://commander.smarter.poker/commander/register?tier=home_game&from=poker_near_me&return=%2Fhub%2Fcommander%2Fhome-games%2Fcreate" className="cmd-btn cmd-btn-primary h-11 px-5 text-sm inline-flex items-center gap-2 mt-4">
+              <Link
+                href="https://commander.smarter.poker/commander/register?tier=home_game&from=poker_near_me&return=%2Fhub%2Fcommander%2Fhome-games%2Fcreate"
+                className={`${homeGameStyles.paintedAction} ${homeGameStyles.paintedActionPrimary} ${homeGameStyles.emptyAction}`}
+              >
                 Host A Home Game
               </Link>
             </div>

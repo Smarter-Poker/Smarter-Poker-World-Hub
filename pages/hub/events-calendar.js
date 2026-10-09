@@ -18,17 +18,11 @@
 import SEOHead from '../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import { useState, useEffect, useRef, useMemo, memo, useDeferredValue } from 'react';
-// 2026-05-07 — UI-UX-Pro-Max: Lucide icons replace 11 hand-rolled SVG components
-import {
-    MapPin, Calendar as CalendarLuc, Map as MapLuc,
-    ChevronLeft as ChevLeft, ChevronRight as ChevRight,
-    X as XLuc, Crosshair, Clock, RefreshCw,
-} from 'lucide-react';
 import { useRouter } from 'next/router';
 import useSWR from 'swr';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import PokerNearMeFamilyNav from '../../src/components/poker-near-me/PokerNearMeFamilyNav';
-import { PokerNearMeConsoleIcon } from '../../src/components/poker-near-me/PokerNearMeConsole';
+import { PokerNearMeConsoleIcon, PokerNearMePanelShell } from '../../src/components/poker-near-me/PokerNearMeConsole';
 import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import useVenueRealtime from '../../src/hooks/useVenueRealtime';
@@ -37,6 +31,7 @@ import dynamic from 'next/dynamic';
 import { resolveEntityCoordinates, haversineDistance } from '../../src/lib/geoUtils';
 import { fetchJsonWithDeadline } from '../../src/lib/server/fetchJsonWithDeadline';
 import { hubCollectionSchema } from '../../src/lib/seo/hubPageSchema';
+import useAccessibleDialog from '../../src/hooks/useAccessibleDialog';
 
 // AEO phase 3 (2026-09-17): this page had copy and no structured data.
 const EVENTS_SCHEMA = hubCollectionSchema({
@@ -84,18 +79,18 @@ const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'Ju
 const DATE_RANGES = [
   { key: 'today',    label: 'Today' },
   { key: 'tomorrow', label: 'Tomorrow' },
-  { key: 'week',     label: 'This week' },
-  { key: 'weekend',  label: 'This weekend' },
-  { key: '14days',   label: 'Next 14 days' },
-  { key: '30days',   label: 'Next 30 days' },
-  { key: '60days',   label: 'Next 60 days' },
-  { key: '90days',   label: 'Next 3 months' },
-  { key: '180days',  label: 'Next 6 months' },
-  { key: '365days',  label: 'Next 12 months' },
+  { key: 'week',     label: 'This Week' },
+  { key: 'weekend',  label: 'This Weekend' },
+  { key: '14days',   label: 'Next 14 Days' },
+  { key: '30days',   label: 'Next 30 Days' },
+  { key: '60days',   label: 'Next 60 Days' },
+  { key: '90days',   label: 'Next 3 Months' },
+  { key: '180days',  label: 'Next 6 Months' },
+  { key: '365days',  label: 'Next 12 Months' },
 ];
 
 const BUY_IN_TIERS = [
-  { key: 'all',       label: 'All buy-ins', min: null, max: null },
+  { key: 'all',       label: 'All Buy-Ins', min: null, max: null },
   { key: '0-100',     label: 'Under $100',  min: 0,    max: 100 },
   { key: '100-300',   label: '$100 - $300', min: 100,  max: 300 },
   { key: '300-1000',  label: '$300 - $1K',  min: 300,  max: 1000 },
@@ -104,7 +99,7 @@ const BUY_IN_TIERS = [
 ];
 
 const GAME_TYPES = [
-  { key: 'all',   label: 'All games' },
+  { key: 'all',   label: 'All Games' },
   { key: 'NLH',   label: 'NLH' },
   { key: 'PLO',   label: 'PLO' },
   { key: 'Mixed', label: 'Mixed' },
@@ -112,27 +107,27 @@ const GAME_TYPES = [
 ];
 
 const EVENT_TYPES = [
-  { key: 'all',    label: 'All events' },
-  { key: 'daily',  label: 'Daily tournaments' },
-  { key: 'series', label: 'Poker series' },
-  { key: 'tour',   label: 'Tour events' },
-  { key: 'home_game', label: 'Home-game tournaments' },
+  { key: 'all',    label: 'All Events' },
+  { key: 'daily',  label: 'Daily Tournaments' },
+  { key: 'series', label: 'Poker Series' },
+  { key: 'tour',   label: 'Tour Events' },
+  { key: 'home_game', label: 'Home-Game Tournaments' },
 ];
 
 const SORT_OPTIONS = [
   { key: 'date',       label: 'Soonest' },
   { key: 'buyin',      label: 'Cheapest' },
-  { key: 'buyin_desc', label: 'Most expensive' },
+  { key: 'buyin_desc', label: 'Most Expensive' },
   { key: 'distance',   label: 'Nearest' },
 ];
 
 const DISTANCE_OPTIONS = [
-  { key: '25',  label: '25 miles' },
-  { key: '50',  label: '50 miles' },
-  { key: '100', label: '100 miles' },
-  { key: '200', label: '200 miles' },
-  { key: '500', label: '500 miles' },
-  { key: 'any', label: 'Any distance' },
+  { key: '25',  label: '25 Miles' },
+  { key: '50',  label: '50 Miles' },
+  { key: '100', label: '100 Miles' },
+  { key: '200', label: '200 Miles' },
+  { key: '500', label: '500 Miles' },
+  { key: 'any', label: 'Any Distance' },
 ];
 
 const POPULAR_CITIES = [
@@ -213,12 +208,12 @@ function getDateKey(date) {
 function getDaysInMonth(year, month) { return new Date(year, month + 1, 0).getDate(); }
 function getFirstDayOfMonth(year, month) { return new Date(year, month, 1).getDay(); }
 
-/* ───── Source Badge Colors ───── */
-const SOURCE_COLORS = {
-  daily:  { bg: 'rgba(0, 212, 255, 0.15)', border: 'rgba(0, 212, 255, 0.4)',  text: '#00D4FF', label: 'Daily' },
-  series: { bg: 'rgba(168, 85, 247, 0.15)', border: 'rgba(168, 85, 247, 0.4)', text: '#A855F7', label: 'Series' },
-  tour:   { bg: 'rgba(245, 158, 11, 0.15)', border: 'rgba(245, 158, 11, 0.4)', text: '#F59E0B', label: 'Tour' },
-  home_game: { bg: 'rgba(216, 187, 125, 0.12)', border: 'rgba(216, 187, 125, 0.42)', text: '#D8BB7D', label: 'Home Game' },
+/* ───── Source Labels ───── */
+const SOURCE_LABELS = {
+  daily: 'Daily',
+  series: 'Series',
+  tour: 'Tour',
+  home_game: 'Home Game',
 };
 
 async function fetchCalendarData(url) {
@@ -229,20 +224,9 @@ async function fetchCalendarData(url) {
   return data;
 }
 
-/* ───── SVG icons replaced by Lucide (see imports). Local components removed. ───── */
-const MapPinIcon    = ({ size = 14, ...rest }) => <MapPin size={size} aria-hidden {...rest} />;
-const CalendarIcon  = ({ size = 16, ...rest }) => <CalendarLuc size={size} aria-hidden {...rest} />;
-const MapIcon       = (props) => <MapLuc size={16} aria-hidden {...props} />;
-const ChevronLeft   = (props) => <ChevLeft size={18} aria-hidden {...props} />;
-const ChevronRight  = (props) => <ChevRight size={18} aria-hidden {...props} />;
-const XIcon         = (props) => <XLuc size={18} aria-hidden {...props} />;
-const CrosshairIcon = (props) => <Crosshair size={16} aria-hidden {...props} />;
-const ClockIcon     = (props) => <Clock size={13} aria-hidden {...props} />;
-const RefreshIcon   = (props) => <RefreshCw size={13} aria-hidden {...props} />;
-
 /* ───── Event Card Component ───── */
 const EventCard = memo(function EventCard({ event, todayKey }) {
-  const source = SOURCE_COLORS[event.source] || SOURCE_COLORS.daily;
+  const sourceLabel = SOURCE_LABELS[event.source] || SOURCE_LABELS.daily;
   const dateIsToday = event.event_date === todayKey;
 
   const href = useMemo(() => {
@@ -262,7 +246,7 @@ const EventCard = memo(function EventCard({ event, todayKey }) {
   const [imgSrc, setImgSrc] = useState(event.logo_url || officialLogoFallback);
 
   return (
-    <div className="ev-card" data-today={dateIsToday ? '1' : ''}>
+    <PokerNearMePanelShell as="article" className="ev-card" bodyClassName="ev-card__body" data-today={dateIsToday ? '1' : ''}>
       {/* ── LEFT: Full-height logo (appears ONCE) ── */}
       <div className="ev-card-logo">
           <img
@@ -283,9 +267,9 @@ const EventCard = memo(function EventCard({ event, todayKey }) {
       <div className="ev-card-data">
         {/* Top row: source badge + buy-in/GTD */}
         <div className="ev-data-top">
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <span className="ev-source" style={{ background: source.bg, borderColor: source.border, color: source.text }}>
-              {source.label}
+          <div className="ev-data-heading">
+            <span className="ev-source" data-source={event.source || 'daily'}>
+              {sourceLabel}
             </span>
 
             <h3 className="ev-name">
@@ -314,7 +298,7 @@ const EventCard = memo(function EventCard({ event, todayKey }) {
         <div className="ev-meta">
           {event.venue_name && (
             <span className="ev-meta-item">
-              <MapPinIcon />
+              <PokerNearMeConsoleIcon name="location" className="ec-inline-icon" />
               {event.venue_id ? (
                 <Link href={`/hub/venues/${event.venue_id}`} className="ev-venue-link">{event.venue_name}</Link>
               ) : event.venue_name}
@@ -326,8 +310,8 @@ const EventCard = memo(function EventCard({ event, todayKey }) {
             </span>
           )}
           {event.start_time && (
-            <span className="ev-meta-item" style={{ color: '#ec4899', fontWeight: 500 }}>
-              <ClockIcon />
+            <span className="ev-meta-item ev-start-time">
+              <PokerNearMeConsoleIcon name="calendar" className="ec-inline-icon" />
               {formatTime(event.start_time)} {event.state && STATE_TZ[event.state] ? STATE_TZ[event.state] : ''}
             </span>
           )}
@@ -338,7 +322,7 @@ const EventCard = memo(function EventCard({ event, todayKey }) {
           )}
           {event.recurrence_label && (
             <span className="ev-meta-item ev-recurrence">
-              <RefreshIcon />
+              <PokerNearMeConsoleIcon name="event-ticket" className="ec-inline-icon" />
               {event.recurrence_label}
             </span>
           )}
@@ -370,7 +354,7 @@ const EventCard = memo(function EventCard({ event, todayKey }) {
           </div>
         )}
       </div>
-    </div>
+    </PokerNearMePanelShell>
   );
 });
 
@@ -381,6 +365,10 @@ function LocationModal({ isOpen, onClose, onSetLocation, currentLocation }) {
   const [gpsLoading, setGpsLoading] = useState(false);
   const [locError, setLocError] = useState('');
   const isMountedRef = useRef(true);
+  const { dialogRef, initialFocusRef } = useAccessibleDialog({
+    open: isOpen,
+    onClose,
+  });
   useEffect(() => { return () => { isMountedRef.current = false; }; }, []);
 
   if (!isOpen) return null;
@@ -398,7 +386,7 @@ function LocationModal({ isOpen, onClose, onSetLocation, currentLocation }) {
       () => {
         if (!isMountedRef.current) return;
         setGpsLoading(false);
-        setLocError('GPS not available. Please enter a city.');
+        setLocError('GPS Not Available. Please Enter A City.');
       },
       { timeout: 8000 }
     );
@@ -425,27 +413,40 @@ function LocationModal({ isOpen, onClose, onSetLocation, currentLocation }) {
       onSetLocation({ lat: null, lng: null, label: stateInput, source: 'state', state: stateInput });
       onClose();
     } else {
-      setLocError('City not found. Try selecting from the list or enter a state.');
+      setLocError('City Not Found. Try Selecting From The List Or Enter A State.');
     }
   };
 
   return (
     <div className="loc-overlay" onClick={onClose}>
-      <div className="loc-modal" role="dialog" aria-modal="true" aria-labelledby="loc-modal-title" onClick={e => e.stopPropagation()}>
+      <PokerNearMePanelShell
+        as="section"
+        className="loc-modal"
+        bodyClassName="loc-modal__body"
+        surfaceRef={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="loc-modal-title"
+        tabIndex={-1}
+        onClick={e => e.stopPropagation()}
+      >
         <div className="loc-modal-header">
           <h2 id="loc-modal-title">Change Location</h2>
-          <button className="loc-close sp-icon-btn" onClick={onClose} aria-label="Close"><XIcon /></button>
+          <button ref={initialFocusRef} type="button" className="loc-close sp-icon-btn" onClick={onClose} aria-label="Close">
+            <PokerNearMeConsoleIcon name="close" className="ec-control-icon" />
+          </button>
         </div>
 
         {locError && (
-          <p style={{ color: '#f87171', fontSize: 13, margin: '0 0 12px', padding: '8px 12px', background: 'rgba(248,113,113,0.1)', borderRadius: 6, border: '1px solid rgba(248,113,113,0.3)' }}>
+          <p className="loc-error" role="alert">
+            <PokerNearMeConsoleIcon name="alert" className="ec-inline-icon" />
             {locError}
           </p>
         )}
 
-        <button className="loc-gps-btn" onClick={handleUseGps} disabled={gpsLoading}>
-          <CrosshairIcon />
-          {gpsLoading ? 'Getting location…' : 'Use my GPS location'}
+        <button type="button" className="loc-gps-btn" onClick={handleUseGps} disabled={gpsLoading}>
+          <PokerNearMeConsoleIcon name="location" className="ec-control-icon" />
+          {gpsLoading ? 'Getting Location...' : 'Use My GPS Location'}
         </button>
 
         <form className="loc-form" onSubmit={handleManualSubmit}>
@@ -455,7 +456,7 @@ function LocationModal({ isOpen, onClose, onSetLocation, currentLocation }) {
               <input
                 id="loc-city-input"
                 type="text"
-                placeholder="e.g. Las Vegas"
+                placeholder="Example: Las Vegas"
                 value={cityInput}
                 onChange={e => setCityInput(e.target.value)}
                 className="loc-input"
@@ -476,7 +477,7 @@ function LocationModal({ isOpen, onClose, onSetLocation, currentLocation }) {
           <span className="loc-popular-label">Popular Cities</span>
           <div className="loc-popular-grid">
             {POPULAR_CITIES.map(city => (
-              <button key={city} className="loc-city-btn" onClick={() => handleCitySelect(city)}>
+              <button type="button" key={city} className="loc-city-btn" onClick={() => handleCitySelect(city)}>
                 {city}
               </button>
             ))}
@@ -484,40 +485,59 @@ function LocationModal({ isOpen, onClose, onSetLocation, currentLocation }) {
         </div>
 
         {currentLocation && (
-          <button className="loc-clear" onClick={() => { onSetLocation(null); onClose(); }}>
+          <button type="button" className="loc-clear" onClick={() => { onSetLocation(null); onClose(); }}>
             Clear Location Filter
           </button>
         )}
-      </div>
+      </PokerNearMePanelShell>
     </div>
   );
 }
 
 
 export async function getServerSideProps(context) {
+  // Render date-dependent controls from one server-owned calendar key. Vercel
+  // renders in UTC while a visitor renders in their local timezone; calling
+  // `new Date()` independently on both sides marked different day tabs around
+  // midnight UTC and made React discard the server tree during hydration.
+  const initialDateKey = new Date().toISOString().slice(0, 10);
   try {
     const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http';
     const host = context.req.headers.host || 'localhost:3000';
     // [B3 FIX] Match server-side default (week) to client useState default ('week') to prevent layout shift
     const url = `${protocol}://${host}/api/poker/events-calendar?dateRange=week&limit=200&sort=date`;
     const data = await fetchJsonWithDeadline(url, { timeoutMs: 5_000 });
-    return { props: { fallbackData: data?.success ? data : null } };
+    return { props: { fallbackData: data?.success ? data : null, initialDateKey } };
   } catch (err) {
-    return { props: { fallbackData: null } };
+    return { props: { fallbackData: null, initialDateKey } };
   }
 }
 
 /* ───── Main Page Component ───── */
-export default function EventsCalendarPage({ fallbackData }) {
+export default function EventsCalendarPage({ fallbackData, initialDateKey }) {
   const router = useRouter();
-  const now = new Date();
+  const initialDate = useMemo(() => {
+    const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(initialDateKey || '');
+    if (!match) return { year: 1970, month: 0, dayIndex: 4, key: '1970-01-01' };
+    const year = Number(match[1]);
+    const month = Number(match[2]) - 1;
+    const day = Number(match[3]);
+    return {
+      year,
+      month,
+      dayIndex: new Date(Date.UTC(year, month, day)).getUTCDay(),
+      key: initialDateKey,
+    };
+  }, [initialDateKey]);
   const [menuOpen, setMenuOpen] = useState(false);
   const menuConfig = useMemo(() => getMenuConfig('events'), []);
   
   // View states: 'list' | 'calendar' | 'map'
   const [viewMode, setViewMode] = useState('list');
-  const [calYear, setCalYear] = useState(now.getFullYear());
-  const [calMonth, setCalMonth] = useState(now.getMonth());
+  const [calYear, setCalYear] = useState(initialDate.year);
+  const [calMonth, setCalMonth] = useState(initialDate.month);
+  const [todayKey, setTodayKey] = useState(initialDate.key);
+  const [todayDayIndex, setTodayDayIndex] = useState(initialDate.dayIndex);
   const [selectedCalDate, setSelectedCalDate] = useState(null);
   const [showLocationModal, setShowLocationModal] = useState(false);
 
@@ -536,7 +556,18 @@ export default function EventsCalendarPage({ fallbackData }) {
 
   // Pagination
   const [visibleCount, setVisibleCount] = useState(50);
-  const todayKey = useMemo(() => getTodayKey(), []);
+  // After hydration, move the marker to the visitor's local calendar day. The
+  // first client render remains byte-for-byte aligned with SSR.
+  useEffect(() => {
+    const localDateKey = getTodayKey();
+    const localNow = new Date();
+    setTodayKey(localDateKey);
+    setTodayDayIndex(localNow.getDay());
+    if (localDateKey.slice(0, 7) !== initialDate.key.slice(0, 7)) {
+      setCalYear(localNow.getFullYear());
+      setCalMonth(localNow.getMonth());
+    }
+  }, [initialDate.key]);
 
   // Try GPS on mount and restore previous location from PNM
   useEffect(() => {
@@ -827,40 +858,43 @@ export default function EventsCalendarPage({ fallbackData }) {
         <div className="ec-space-overlay" />
 
         {/* ── Location Active Strip — always at top, just below Global Header ── */}
-        <div className="ec-location-strip">
+        <PokerNearMePanelShell as="section" className="ec-location-strip" bodyClassName="ec-location-strip__body" aria-label="Location Filter">
           {userLocation ? (
             <div className="pnm-location-pill">
-              <div className="pnm-location-dot" />
+              <PokerNearMeConsoleIcon name="location" className="ec-control-icon" />
               <span className="pnm-location-label">Location Active</span>
               {userLocation.label && userLocation.label !== 'My Location' && (
                 <span className="pnm-location-city">{userLocation.label}</span>
               )}
               <button
+                type="button"
                 className="pnm-location-clear"
                 onClick={() => { handleLocationChange(null); }}
-                aria-label="Clear location"
-              ><XLuc size={14} aria-hidden /></button>
+                aria-label="Clear Location"
+              ><PokerNearMeConsoleIcon name="close" className="ec-control-icon" /></button>
             </div>
           ) : (
             <button
+              type="button"
               className="ec-gps-btn"
               onClick={() => setShowLocationModal(true)}
               id="ec-location-btn"
             >
-              <MapPinIcon size={14} />
+              <PokerNearMeConsoleIcon name="location" className="ec-control-icon" />
               Set Location
             </button>
           )}
-        </div>
+        </PokerNearMePanelShell>
 
         {/* ── Page Header ── */}
-        <div className="ec-hero" style={{ position: 'relative', textAlign: 'center' }}>
-          {/* Centered title block */}
-          <h1 className="ec-title"><span className="ec-white">EVENTS</span> <span className="ec-cyan">CALENDAR</span></h1>
-          <p className="ec-subtitle" style={{ display: 'flex', flexDirection: 'row', gap: '8px', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'center' }}>
-            {loading ? 'Loading…' : `${totalCount.toLocaleString()} tournaments found`}
+        <PokerNearMePanelShell as="section" className="ec-hero" bodyClassName="ec-hero__body">
+          <div className="ec-hero-copy">
+          <p className="ec-eyebrow">Live Poker Discovery Network</p>
+          <h1 className="ec-title"><span className="ec-white">Events</span> <span className="ec-cyan">Calendar</span></h1>
+          <p className="ec-subtitle">
+            {loading ? 'Loading...' : `${totalCount.toLocaleString()} Tournaments Found`}
             {stats.sources && !loading && (
-              <span className="ec-source-counts" style={{ display: 'inline', marginLeft: '4px' }}>
+              <span className="ec-source-counts">
                 &middot; {[
                   stats.sources.daily > 0 && `${stats.sources.daily.toLocaleString()} Daily`,
                   stats.sources.series > 0 && `${stats.sources.series.toLocaleString()} Series`,
@@ -870,11 +904,11 @@ export default function EventsCalendarPage({ fallbackData }) {
               </span>
             )}
             {useSmartAgg && !loading && (
-              <span className="ec-smart-agg-note" style={{ display: 'inline', marginLeft: '4px' }}>&middot; Recurring Events Showing Next Occurrence</span>
+              <span className="ec-smart-agg-note">&middot; Recurring Events Showing Next Occurrence</span>
             )}
           </p>
-          {/* Search box — absolute right */}
-          <div style={{ position: 'absolute', top: 0, right: 0 }}>
+          </div>
+          <div className="ec-hero-search">
             <form className="ec-search-wrap" role="search" onSubmit={(e) => { e.preventDefault(); setSearchQuery(searchInput); }}>
               <PokerNearMeConsoleIcon name="search" className="ec-search-icon" />
               <label htmlFor="ec-search-input" className="ec-sr-only">Search Tournaments</label>
@@ -887,22 +921,22 @@ export default function EventsCalendarPage({ fallbackData }) {
                 id="ec-search-input"
               />
               {searchInput && (
-                <button type="button" className="ec-search-clear" aria-label="Clear search" onClick={() => { setSearchInput(''); setSearchQuery(''); }}>
-                  <XIcon />
+                <button type="button" className="ec-search-clear" aria-label="Clear Search" onClick={() => { setSearchInput(''); setSearchQuery(''); }}>
+                  <PokerNearMeConsoleIcon name="close" className="ec-control-icon" />
                 </button>
               )}
             </form>
           </div>
-        </div>
+        </PokerNearMePanelShell>
         
         {/* Day of Week Tabs — centered */}
-        <div className="ec-day-selector">
+        <PokerNearMePanelShell as="section" className="ec-day-selector" bodyClassName="ec-day-selector__body" aria-label="Day Of Week">
           <div className="ec-day-tabs-row">
             <div className="ec-day-tabs">
               {(() => {
                 // [B2 FIX] Compute today index once for all 7 tabs instead of 7× per render
                 const DAYS = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
-                const todayIdx = new Date().getDay();
+                const todayIdx = todayDayIndex;
                 return DAYS.map(day => {
                   const dayIdx = DAYS.indexOf(day);
                   let daysAhead = dayIdx - todayIdx;
@@ -911,13 +945,14 @@ export default function EventsCalendarPage({ fallbackData }) {
                   const isActive = dayOfWeek === day;
                   return (
                     <button
+                      type="button"
                       key={day}
                       className={`ec-day-tab${isActive ? ' active' : ''}${isToday ? ' today' : ''}`}
                       onClick={() => setDayOfWeek(isActive ? '' : day)}
                       aria-pressed={isActive}
                     >
-                      {isToday && <span className="ec-day-today-dot" />}
-                      <span className="ec-day-short">{day.substring(0, 3).toUpperCase()}</span>
+                      {isToday && <PokerNearMeConsoleIcon name="live-games" className="ec-day-today-icon" />}
+                      <span className="ec-day-short">{day.substring(0, 3)}</span>
                       <span className="ec-day-full">{day}</span>
                     </button>
                   );
@@ -925,10 +960,10 @@ export default function EventsCalendarPage({ fallbackData }) {
               })()}
             </div>
           </div>
-        </div>
+        </PokerNearMePanelShell>
 
         {/* ── Always-Visible Filter Bar (centered, Poker Near Me style) ── */}
-        <div className="ec-filter-bar">
+        <PokerNearMePanelShell as="section" className="ec-filter-bar" bodyClassName="ec-filter-bar__body" aria-label="Tournament Filters">
 
           {/* Event Type — Show All / Daily / Series / Tour */}
           <div className="ec-filter-group">
@@ -1030,41 +1065,42 @@ export default function EventsCalendarPage({ fallbackData }) {
           {activeFilterCount > 0 && (
             <div className="ec-filter-group ec-filter-group--clear">
               <label className="ec-filter-label">&nbsp;</label>
-              <button className="ec-clear-btn" onClick={clearFilters}>
+              <button type="button" className="ec-clear-btn" onClick={clearFilters}>
                 Clear ({activeFilterCount})
               </button>
             </div>
           )}
-        </div>
+        </PokerNearMePanelShell>
 
         {/* ── Content ── */}
         <div className="ec-content">
           {loading && (
-            <div className="ec-loading" role="status" aria-live="polite" aria-busy="true">
-              <div className="ec-spinner" />
-              <p>Finding Tournaments…</p>
-            </div>
+            <PokerNearMePanelShell as="section" className="ec-loading" bodyClassName="ec-state__body" role="status" aria-live="polite" aria-busy="true">
+              <PokerNearMeConsoleIcon name="calendar" className="ec-state-icon" />
+              <p>Finding Tournaments...</p>
+            </PokerNearMePanelShell>
           )}
 
           {error && !loading && (
-            <div className="ec-error">
+            <PokerNearMePanelShell as="section" className="ec-error" bodyClassName="ec-state__body" role="alert">
+              <PokerNearMeConsoleIcon name="alert" className="ec-state-icon" />
               <p>Failed To Load Events</p>
-              <p className="ec-error-detail">{error?.message || 'Unknown error'}</p>
-            </div>
+              <p className="ec-error-detail">{error?.message || 'Unknown Error'}</p>
+            </PokerNearMePanelShell>
           )}
 
           {/* ── MAP VIEW ── */}
           {!loading && !error && viewMode === 'map' && (
-            <div className="ec-map-view" style={{ marginTop: '16px', borderRadius: '16px', overflow: 'hidden', height: 'calc(100vh - 280px)', minHeight: '600px', border: '1px solid rgba(255,255,255,0.1)' }}>
+            <div className="ec-map-view">
               <VenueMap 
                 venues={mapEvents}
                 userLocation={userLocation}
                 fullHeight={true}
                 hideLegend={false}
                 uniformColor="#ffffff"
-                mapEyebrow="Tournament calendar map"
-                mapTitle="Events across the country"
-                mapDetail={`${mapEvents.length} scheduled locations · select a marker for event details`}
+                mapEyebrow="Tournament Calendar Map"
+                mapTitle="Events Across The Country"
+                mapDetail={`${mapEvents.length} Scheduled Locations · Select A Marker For Event Details`}
               />
             </div>
           )}
@@ -1073,12 +1109,12 @@ export default function EventsCalendarPage({ fallbackData }) {
           {!loading && !error && viewMode === 'list' && (
             <div className="ec-list">
               {events.length === 0 ? (
-                <div className="ec-empty">
-                  <CalendarIcon size={40} />
+                <PokerNearMePanelShell as="section" className="ec-empty" bodyClassName="ec-state__body">
+                  <PokerNearMeConsoleIcon name="calendar" className="ec-state-icon" />
                   <p className="ec-empty-title">No Tournaments Found</p>
                   <p className="ec-empty-sub">Try Adjusting Your Filters Or Expanding Your Search Area.</p>
-                  <button className="ec-empty-btn" onClick={clearFilters}>Clear All Filters</button>
-                </div>
+                  <button type="button" className="ec-empty-btn" onClick={clearFilters}>Clear All Filters</button>
+                </PokerNearMePanelShell>
               ) : (
                 <>
                   {dateGroups.order.map(dk => (
@@ -1101,7 +1137,7 @@ export default function EventsCalendarPage({ fallbackData }) {
                   ))}
 
                   {visibleCount < events.length && (
-                    <button className="ec-load-more" onClick={() => setVisibleCount(v => v + 100)}>
+                    <button type="button" className="ec-load-more" onClick={() => setVisibleCount(v => v + 100)}>
                       Show More ({events.length - visibleCount} Remaining)
                     </button>
                   )}
@@ -1112,12 +1148,12 @@ export default function EventsCalendarPage({ fallbackData }) {
 
           {/* ── CALENDAR VIEW ── */}
           {!loading && !error && viewMode === 'calendar' && (
-            <div className="ec-calendar">
+            <PokerNearMePanelShell as="section" className="ec-calendar" bodyClassName="ec-calendar__body">
               <div className="ec-month-nav">
-                <button className="ec-nav-btn" onClick={goToPrevMonth} aria-label="Previous month"><ChevronLeft /></button>
+                <button type="button" className="ec-nav-btn" onClick={goToPrevMonth} aria-label="Previous Month"><PokerNearMeConsoleIcon name="back" className="ec-control-icon" /><span>Previous</span></button>
                 <h2 className="ec-month-label">{MONTH_NAMES[calMonth]} {calYear}</h2>
-                <button className="ec-nav-btn" onClick={goToNextMonth} aria-label="Next month"><ChevronRight /></button>
-                <button className="ec-today-btn" onClick={goToToday} aria-label="Jump to today">Today</button>
+                <button type="button" className="ec-nav-btn" onClick={goToNextMonth} aria-label="Next Month"><span>Next</span><PokerNearMeConsoleIcon name="directions" className="ec-control-icon" /></button>
+                <button type="button" className="ec-today-btn" onClick={goToToday} aria-label="Jump To Today">Today</button>
               </div>
 
               <div className="ec-grid-header">
@@ -1152,10 +1188,10 @@ export default function EventsCalendarPage({ fallbackData }) {
               </div>
 
               {selectedCalDate && (
-                <div className="ec-cal-events">
+                <PokerNearMePanelShell as="section" className="ec-cal-events" bodyClassName="ec-cal-events__body">
                   <h3 className="ec-cal-events-title">
                     {formatDateFull(selectedCalDate)}
-                    <span className="ec-cal-events-count">{selectedCalTotal} event{selectedCalTotal !== 1 ? 's' : ''}</span>
+                    <span className="ec-cal-events-count">{selectedCalTotal} {selectedCalTotal === 1 ? 'Event' : 'Events'}</span>
                   </h3>
                   {selectedDateLoading ? (
                     <p className="ec-cal-no-events" role="status">Loading Every Event For This Date...</p>
@@ -1170,9 +1206,9 @@ export default function EventsCalendarPage({ fallbackData }) {
                       </LazyRender>
                     ))
                   )}
-                </div>
+                </PokerNearMePanelShell>
               )}
-            </div>
+            </PokerNearMePanelShell>
           )}
         </div>
       </main>
@@ -1185,586 +1221,1212 @@ export default function EventsCalendarPage({ fallbackData }) {
         currentLocation={userLocation}
       />
 
-      <style suppressHydrationWarning dangerouslySetInnerHTML={{ __html: `
-        /* ═══ BASE ═══ */
-        .ec-page {
-          min-height: 100vh; padding-bottom: 70px;
-          position: relative;
-          color: #fff;
-          font-family: 'Rajdhani', 'Inter', -apple-system, sans-serif;
-          overflow-x: hidden;
-        }
-        .ec-space-bg {
-          position: fixed; inset: 0; z-index: -2;
-          background:
-            radial-gradient(ellipse at 20% 20%, rgba(59, 130, 246, 0.15) 0%, transparent 50%),
-            radial-gradient(ellipse at 80% 80%, rgba(139, 92, 246, 0.1) 0%, transparent 50%),
-            radial-gradient(ellipse at 50% 50%, rgba(6, 182, 212, 0.08) 0%, transparent 60%),
-            linear-gradient(180deg, #030712 0%, #0a1628 30%, #0f172a 50%, #0a1628 70%, #030712 100%);
-        }
-        .ec-space-overlay {
-          position: fixed; inset: 0; z-index: -1;
-          background: linear-gradient(180deg, rgba(3,7,18,0.3) 0%, transparent 20%, transparent 80%, rgba(3,7,18,0.5) 100%);
-        }
-
-        /* ═══ LOCATION STRIP — top of page, just below global header ═══ */
-        .ec-location-strip {
-          display: flex; justify-content: center; align-items: center;
-          padding: 8px 16px 4px;
-          min-height: 44px;
-        }
-
-        /* ═══ HERO ═══ */
-        .ec-hero { padding: 8px 20px 12px; max-width: 1100px; margin: 0 auto; }
-        .ec-title {
-          font-family: 'Orbitron', 'Rajdhani', sans-serif;
-          font-size: 26px; font-weight: 700; margin: 0 auto;
-          letter-spacing: 2px; text-transform: uppercase;
-          text-shadow: 0 0 20px rgba(0,212,255,0.3);
-          text-align: center;
-        }
-        .ec-subtitle { font-size: 14px; color: rgba(255,255,255,0.5); margin: 8px auto 0; text-align: center; }
-        .ec-white { color: #fff; }
-        .ec-cyan { color: #00D4FF; text-shadow: 0 0 15px rgba(0,212,255,0.6); }
-        /* ═══ VENUE LOGO IN CARD ═══ */
-        .ev-venue-logo {
-          width: 44px; height: 44px; object-fit: contain;
-          border-radius: 8px;
-          background: rgba(255,255,255,0.05);
-          border: 1px solid rgba(255,255,255,0.08);
-          flex-shrink: 0;
-        }
-        .ec-source-counts {
-          display: flex; gap: 12px; justify-content: center; margin-top: 4px;
-          font-size: 12px; color: #9aa8b5;
-        }
-        .ec-source-counts span::before { content: ''; display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-right: 4px; vertical-align: middle; }
-        .ec-source-counts span:nth-child(1)::before { background: #00D4FF; }
-        .ec-source-counts span:nth-child(2)::before { background: #A855F7; }
-        .ec-source-counts span:nth-child(3)::before { background: #F59E0B; }
-        .ec-smart-agg-note {
-          display: block; font-size: 12px; color: #d9b35c;
-          margin-top: 4px; font-style: italic;
-        }
-
-        /* ═══ FILTER BAR — centered, wraps on mobile ═══ */
-        .ec-filter-bar {
-          max-width: 1200px; margin: 0 auto;
-          padding: 8px 16px 12px;
-          display: flex; align-items: flex-end; gap: 8px;
-          flex-wrap: wrap; justify-content: center;
-          overflow-x: visible;
-        }
-        .ec-filter-bar::-webkit-scrollbar { display: none; }
-        .ec-filter-group {
-          display: flex; flex-direction: column; gap: 4px; min-width: 0;
-        }
-        .ec-filter-group--clear {
-          align-self: flex-end;
-        }
-        .ec-filter-label {
-          font-size: 12px; text-transform: uppercase; letter-spacing: 0.8px;
-          color: #aeb9c8; font-weight: 600; white-space: nowrap;
-          padding-left: 2px;
-        }
-        .ec-filter-select {
-          padding: 8px 24px 8px 10px; min-width: 100px;
-          background: rgba(0,0,0,0.35);
-          border: 1px solid rgba(255,255,255,0.15); border-radius: 10px;
-          color: #fff; font-size: 12px; font-weight: 500; outline: none;
-          font-family: inherit; cursor: pointer; transition: all 0.2s;
-          appearance: auto;
-          background-image: none;
-        }
-        .ec-filter-select:hover  { border-color: rgba(255,255,255,0.3); }
-        .ec-filter-select:focus  { border-color: #00D4FF; outline: none !important; box-shadow: none !important; }
-        .ec-filter-select option  { background: #0f172a; color: #fff; }
-        .ec-filter-select:disabled { opacity: 0.4; cursor: not-allowed; }
-        .ec-filter-bar *:focus, .ec-search-input:focus { outline: none !important; box-shadow: none !important; }
-
-        /* Location GPS button (fallback when no location) */
-        .ec-gps-btn {
-          display: flex; align-items: center; gap: 7px;
-          padding: 9px 14px;
-          background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(200,214,229,0.06) 100%);
-          border: 1.5px solid rgba(255,255,255,0.3);
-          border-radius: 20px; color: #fff;
-          font-size: 13px; font-weight: 700; cursor: pointer;
-          transition: all 0.25s; font-family: inherit;
-          white-space: nowrap; animation: gpsGlow 2.5s ease-in-out infinite;
-        }
-        @keyframes gpsGlow {
-          0%,100% { box-shadow: 0 0 8px rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.2); }
-          50% { box-shadow: 0 0 18px rgba(255,255,255,0.25); border-color: rgba(255,255,255,0.45); }
-        }
-        .ec-gps-btn:hover { background: rgba(255,255,255,0.18); transform: translateY(-1px); }
-        /* Location Active pill — same as PNM */
-        .pnm-location-area { align-self: flex-end; flex-shrink: 0; }
-        .pnm-location-pill {
-          display: flex; align-items: center; gap: 8px;
-          padding: 6px 12px;
-          background: rgba(63,185,80,0.08); border: 1.5px solid rgba(63,185,80,0.3);
-          border-radius: 20px; font-size: 12px; font-weight: 600;
-          animation: locationActivePulse 3s ease-in-out infinite;
-          white-space: nowrap;
-        }
-        @keyframes locationActivePulse {
-          0%,100% { border-color: rgba(63,185,80,0.2); box-shadow: 0 0 0 rgba(63,185,80,0); }
-          50% { border-color: rgba(63,185,80,0.45); box-shadow: 0 0 10px rgba(63,185,80,0.1); }
-        }
-        .pnm-location-dot {
-          width: 8px; height: 8px; border-radius: 50%; background: #3fb950;
-          flex-shrink: 0; box-shadow: 0 0 6px rgba(63,185,80,0.6);
-          animation: locationDotPulse 2s ease-in-out infinite;
-        }
-        @keyframes locationDotPulse {
-          0%,100% { opacity: 1; } 50% { opacity: 0.5; }
-        }
-        .pnm-location-label {
-          color: #3fb950; font-weight: 700; font-size: 12px;
-          text-transform: uppercase; letter-spacing: 0.8px;
-        }
-        .pnm-location-city {
-          color: rgba(226,232,240,0.8); font-size: 12px;
-          max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-        }
-        .pnm-location-clear {
-          background: none; border: none; color: rgba(255,255,255,0.3);
-          font-size: 16px; cursor: pointer; line-height: 1; padding: 0 2px;
-          transition: color 0.2s;
-        }
-        .pnm-location-clear:hover { color: #ef4444; }
-
-        /* Clear All button */
-        .ec-clear-btn {
-          padding: 9px 14px; background: none;
-          border: 1px solid rgba(255,255,255,0.15); border-radius: 10px;
-          color: rgba(255,255,255,0.5); font-size: 12px; font-weight: 600;
-          cursor: pointer; transition: all 0.15s; font-family: inherit;
-          white-space: nowrap;
-        }
-        .ec-clear-btn:hover { border-color: rgba(255,255,255,0.3); color: #fff; }
-
-        /* ═══ DAY TABS — centered ═══ */
-        .ec-day-selector { padding: 0 20px 16px; overflow-x: visible; }
-        .ec-day-tabs-row { display: flex; align-items: center; justify-content: center; gap: 8px; min-width: 0; }
-        .ec-day-tabs {
-          display: flex; gap: 4px; flex-wrap: wrap;
-          justify-content: center; overflow-x: visible;
-        }
-        .ec-day-tabs::-webkit-scrollbar { display: none; }
-        .ec-day-tab {
-          position: relative; padding: 10px 16px;
-          background: linear-gradient(180deg, rgba(61,79,95,0.2) 0%, rgba(26,35,50,0.4) 100%);
-          border: 1px solid #3d4f5f; border-radius: 8px;
-          color: rgba(255,255,255,0.7); font-size: 14px; font-weight: 600;
-          font-family: 'Rajdhani', sans-serif; cursor: pointer; transition: all 0.2s;
-          white-space: nowrap; text-transform: uppercase; letter-spacing: 0.5px;
-        }
-        /* Today tab — CYAN/BLUE matching the EVENTS CALENDAR title */
-        .ec-day-tab.today {
-          border-color: #00D4FF;
-          color: #00D4FF;
-          background: linear-gradient(180deg, rgba(0,212,255,0.18) 0%, rgba(0,212,255,0.08) 100%);
-          box-shadow: inset 0 0 8px rgba(0,212,255,0.1);
-        }
-        .ec-day-tab.today.active {
-          background: linear-gradient(135deg, #00D4FF, #0099CC);
-          border-color: #00D4FF; color: #000;
-          box-shadow: 0 0 15px rgba(0,212,255,0.5), 0 0 30px rgba(0,212,255,0.2);
-        }
-        .ec-day-today-dot {
-          position: absolute; top: 5px; right: 5px;
-          width: 5px; height: 5px; border-radius: 50%; background: #00D4FF;
-          box-shadow: 0 0 4px rgba(0,212,255,0.8);
-        }
-        .ec-day-tab:hover {
-          background: linear-gradient(180deg, rgba(61,79,95,0.4) 0%, rgba(26,35,50,0.6) 100%);
-          border-color: #00D4FF; box-shadow: 0 0 10px rgba(0,212,255,0.2);
-        }
-        .ec-day-tab.active {
-          background: linear-gradient(135deg, #00D4FF, #0099CC);
-          border-color: #00D4FF; color: #000;
-          box-shadow: 0 0 15px rgba(0,212,255,0.5), 0 0 30px rgba(0,212,255,0.2);
-        }
-        .ec-day-short { display: inline; }
-        .ec-day-full  { display: none; }
-        @media (min-width: 768px) {
-          .ec-day-short { display: none; }
-          .ec-day-full  { display: inline; }
-        }
-
-        /* ═══ SEARCH BAR (inline inside hero) ═══ */
-        .ec-search-wrap {
-          position: relative; display: flex; align-items: center;
-          background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.15);
-          border-radius: 12px; padding: 0 14px; transition: all 0.2s;
-        }
-        .ec-search-wrap:focus-within { border-color: rgba(0,212,255,0.5); box-shadow: 0 0 0 3px rgba(0,212,255,0.1); }
-        .ec-search-wrap svg { color: rgba(255,255,255,0.4); flex-shrink: 0; }
-        .ec-search-input {
-          flex: 1; padding: 12px 10px; background: none; border: none; color: #fff;
-          font-size: 14px; outline: none; font-family: inherit;
-        }
-        .ec-search-input::placeholder { color: #9aa8b5; }
-        .ec-search-clear {
-          background: none; border: none; color: rgba(255,255,255,0.4); cursor: pointer; padding: 4px;
-          display: flex; align-items: center;
-        }
-
-        /* ═══ CONTENT ═══ */
-        .ec-content { max-width: 1100px; margin: 0 auto; padding: 0 16px; }
-
-        .ec-loading {
-          display: flex; flex-direction: column; align-items: center; padding: 80px 20px;
-          color: rgba(255,255,255,0.5);
-        }
-        .ec-spinner {
-          width: 40px; height: 40px; border: 3px solid rgba(255,255,255,0.1);
-          border-top-color: #00D4FF; border-radius: 50%;
-          animation: ec-spin 0.8s linear infinite;
-        }
-        @keyframes ec-spin { to { transform: rotate(360deg); } }
-        .ec-loading p { margin-top: 12px; font-size: 14px; }
-        .ec-error { text-align: center; padding: 60px 20px; color: #f87171; }
-        .ec-error-detail { color: #aeb9c8; font-size: 13px; margin-top: 4px; }
-        .ec-empty {
-          text-align: center; padding: 60px 20px;
-          display: flex; flex-direction: column; align-items: center; color: #aeb9c8;
-        }
-        .ec-empty-title { font-size: 18px; font-weight: 600; color: rgba(255,255,255,0.6); margin: 16px 0 6px; }
-        .ec-empty-sub { font-size: 13px; margin: 0 0 16px; }
-        .ec-empty-btn {
-          padding: 10px 24px; background: rgba(0,212,255,0.15); border: 1px solid rgba(0,212,255,0.3);
-          border-radius: 10px; color: #00D4FF; font-size: 13px; font-weight: 600;
-          cursor: pointer; font-family: inherit;
-        }
-
-        /* ═══ LIST VIEW ═══ */
-        .ec-date-group { margin-bottom: 20px; }
-        .ec-date-header {
-          display: flex; align-items: center; justify-content: space-between;
-          padding: 8px 0; margin-bottom: 8px;
-          border-bottom: 1px solid rgba(255,255,255,0.1);
-        }
-        .ec-date-header.today { border-bottom-color: rgba(0,212,255,0.4); }
-        .ec-date-label {
-          font-size: 15px; font-weight: 700; color: rgba(255,255,255,0.8);
-          text-transform: uppercase; letter-spacing: 0.5px;
-        }
-        .ec-date-header.today .ec-date-label { color: #00D4FF; }
-        .ec-date-count {
-          font-size: 12px; color: #aeb9c8; font-weight: 600;
-          background: rgba(255,255,255,0.06); padding: 2px 10px; border-radius: 10px;
-        }
-        .ec-load-more {
-          display: block; width: 100%; padding: 14px; margin: 12px 0;
-          background: rgba(0,212,255,0.08); border: 1px solid rgba(0,212,255,0.2);
-          border-radius: 10px; color: #00D4FF; font-size: 14px; font-weight: 600;
-          cursor: pointer; font-family: inherit; transition: all 0.2s;
-        }
-        .ec-load-more:hover { background: rgba(0,212,255,0.15); }
-
-        /* ═══ EVENT CARD ═══ */
-        .ev-card {
-          display: flex; align-items: stretch; gap: 0;
-          margin-bottom: 6px;
-          background: rgba(15, 23, 42, 0.5); backdrop-filter: blur(8px);
-          border: 1px solid rgba(255,255,255,0.08); border-radius: 12px;
-          transition: all 0.15s; overflow: hidden;
-        }
-        .ev-card:hover { background: rgba(15, 23, 42, 0.7); border-color: rgba(255,255,255,0.15); }
-        .ev-card[data-today="1"] { border-color: rgba(0,212,255,0.3); }
-
-        /* ── Logo column: full height, fixed width ── */
-        .ev-card-logo {
-          width: 80px; min-height: 80px; flex-shrink: 0;
-          display: flex; align-items: center; justify-content: center;
-          background: rgba(0,0,0,0.25);
-          border-right: 1px solid rgba(255,255,255,0.06);
-        }
-        .ev-logo-img {
-          width: 56px; height: 56px; object-fit: contain; border-radius: 8px;
-        }
-        .ev-logo-fallback {
-          width: 56px; height: 56px; border-radius: 8px;
-          display: flex; align-items: center; justify-content: center;
-          background: linear-gradient(135deg, rgba(0,212,255,0.15), rgba(168,85,247,0.15));
-          border: 1px solid rgba(255,255,255,0.1);
-          color: rgba(255,255,255,0.5); font-size: 18px; font-weight: 700;
-          letter-spacing: 1px; font-family: 'Rajdhani', sans-serif;
-        }
-
-        /* ── Data column: all tournament info ── */
-        .ev-card-data {
-          flex: 1; min-width: 0; padding: 12px 14px;
-          display: flex; flex-direction: column; justify-content: center; gap: 4px;
-        }
-        .ev-data-top {
-          display: flex; justify-content: space-between; align-items: flex-start; gap: 12px;
-        }
-        .ev-data-numbers {
-          flex-shrink: 0; text-align: right;
-          display: flex; flex-direction: column; align-items: flex-end; gap: 2px;
-        }
-        .ev-badges { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; margin-top: 2px; }
-
-        .ev-source {
-          display: inline-block; font-size: 12px; font-weight: 700;
-          padding: 2px 8px; border-radius: 4px; border: 1px solid;
-          text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;
-        }
-        .ev-name { margin: 0; font-size: 14px; font-weight: 600; color: #fff; line-height: 1.3; }
-        .ev-name-link { color: #fff; text-decoration: none; }
-        .ev-name-link:hover { color: #00D4FF; }
-        .ev-meta { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 4px; align-items: center; }
-        .ev-meta-item {
-          display: flex; align-items: center; gap: 4px;
-          font-size: 12px; color: rgba(255,255,255,0.5);
-        }
-        .ev-venue-link { color: rgba(0,212,255,0.8); text-decoration: none; font-weight: 500; }
-        .ev-venue-link:hover { color: #00D4FF; text-decoration: underline; }
-        .ev-location { color: #9aa8b5; }
-        .ev-stale {
-          color: #f59e0b; font-weight: 600; font-size: 12px;
-          border: 1px solid rgba(245,158,11,0.45); border-radius: 4px; padding: 0 6px;
-        }
-        .ev-distance { color: rgba(0,212,255,0.7); font-weight: 600; }
-        .ev-recurrence { color: #d9b35c; font-style: italic; }
-        .ev-tour-code {
-          display: inline-block; font-size: 12px; font-weight: 700;
-          color: rgba(245,158,11,0.8); background: rgba(245,158,11,0.1);
-          padding: 1px 6px; border-radius: 3px;
-        }
-        .ev-stop-name { font-size: 12px; color: #9aa8b5; }
-        .ev-buyin { font-size: 16px; font-weight: 700; color: #fff; }
-        .ev-buyin-range { font-size: 12px; color: #c4a7f7; font-weight: 600; }
-        .ev-gtd { font-size: 12px; font-weight: 600; color: #22c55e; }
-        .ev-game-type {
-          font-size: 12px; font-weight: 700; color: rgba(255,255,255,0.5);
-          background: rgba(255,255,255,0.06); padding: 2px 8px; border-radius: 4px;
-        }
-        .ev-event-count { font-size: 12px; color: #c4a7f7; }
-
-        /* ═══ CALENDAR VIEW ═══ */
-        .ec-calendar { }
-        .ec-month-nav {
-          display: flex; align-items: center; justify-content: center; gap: 14px; margin-bottom: 16px;
-        }
-        .ec-nav-btn {
-          display: flex; align-items: center; justify-content: center;
-          width: 36px; height: 36px; border: 1px solid rgba(255,255,255,0.15);
-          border-radius: 8px; background: rgba(0,0,0,0.3); color: rgba(255,255,255,0.7);
-          cursor: pointer; transition: all 0.15s;
-        }
-        .ec-nav-btn:hover { border-color: rgba(0,212,255,0.4); color: #00D4FF; }
-        .ec-month-label {
-          font-size: 20px; font-weight: 700; color: #fff; margin: 0;
-          min-width: 200px; text-align: center;
-        }
-        .ec-today-btn {
-          padding: 6px 14px; border: 1px solid rgba(0,212,255,0.3);
-          border-radius: 6px; background: rgba(0,212,255,0.1); color: #00D4FF;
-          font-size: 12px; font-weight: 600; cursor: pointer; font-family: inherit;
-        }
-        .ec-grid-header { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; margin-bottom: 4px; }
-        .ec-day-hdr {
-          text-align: center; font-size: 12px; font-weight: 600;
-          color: #aeb9c8; padding: 8px 0;
-          text-transform: uppercase; letter-spacing: 0.04em;
-        }
-        .ec-grid {
-          display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px;
-          background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.08);
-          border-radius: 12px; overflow: hidden;
-        }
-        .ec-cell {
-          min-height: 72px; padding: 6px;
-          background: rgba(15,23,42,0.4); border: 1px solid transparent;
-          display: flex; flex-direction: column; align-items: center;
-          cursor: default; transition: background 0.12s;
-        }
-        .ec-cell.has-day { cursor: pointer; }
-        .ec-cell.has-day:hover { background: rgba(255,255,255,0.06); }
-        .ec-cell.today { background: rgba(0,212,255,0.06); }
-        .ec-cell.selected { background: rgba(0,212,255,0.1); border-color: rgba(0,212,255,0.3); }
-        .ec-cell.empty { background: rgba(0,0,0,0.15); }
-        .ec-day-num {
-          font-size: 13px; font-weight: 500; color: rgba(255,255,255,0.7);
-          width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;
-          border-radius: 50%;
-        }
-        .ec-day-num.today { background: #00D4FF; color: #000; font-weight: 700; }
-        .ec-dot-row { display: flex; align-items: center; gap: 3px; margin-top: 4px; flex-wrap: wrap; justify-content: center; }
-        .ec-dot { width: 5px; height: 5px; border-radius: 50%; background: #00D4FF; }
-        .ec-dot-more { font-size: 12px; font-weight: 600; color: #aeb9c8; }
-        .ec-cal-events {
-          margin-top: 20px; padding: 16px;
-          background: rgba(15,23,42,0.5); border: 1px solid rgba(255,255,255,0.1);
-          border-radius: 12px;
-        }
-        .ec-cal-events-title {
-          font-size: 16px; font-weight: 700; color: #fff; margin: 0 0 12px;
-          display: flex; align-items: center; gap: 10px;
-        }
-        .ec-cal-events-count { font-size: 13px; font-weight: 500; color: #aeb9c8; }
-        .ec-cal-no-events { color: #aeb9c8; font-size: 13px; padding: 12px 0; }
-
-        /* ═══ LOCATION MODAL ═══ */
-        .loc-overlay {
-          position: fixed; inset: 0; z-index: 1000;
-          background: rgba(0,0,0,0.7); backdrop-filter: blur(4px);
-          display: flex; align-items: center; justify-content: center; padding: 20px;
-          padding-top: max(env(safe-area-inset-top, 0px), 20px);
-          padding-bottom: max(env(safe-area-inset-bottom, 0px), 20px);
-          box-sizing: border-box;
-        }
-        .loc-modal {
-          background: #0f172a; border: 1px solid rgba(255,255,255,0.15);
-          border-radius: 16px; padding: 24px; width: 100%; max-width: 480px;
-          max-height: 90vh; overflow-y: auto;
-        }
-        .loc-modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        .loc-modal-header h2 { margin: 0; font-size: 20px; font-weight: 700; color: #fff; }
-        .loc-close { background: none; border: none; color: rgba(255,255,255,0.5); cursor: pointer; padding: 4px; min-width: 44px; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
-        .loc-gps-btn {
-          width: 100%; padding: 14px; display: flex; align-items: center; justify-content: center; gap: 8px;
-          background: rgba(0,212,255,0.1); border: 1px solid rgba(0,212,255,0.3);
-          border-radius: 10px; color: #00D4FF; font-size: 14px; font-weight: 600;
-          cursor: pointer; font-family: inherit; margin-bottom: 16px; transition: all 0.2s;
-        }
-        .loc-gps-btn:hover { background: rgba(0,212,255,0.2); }
-        .loc-gps-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-        .loc-form { margin-bottom: 20px; }
-        .loc-inputs { display: flex; gap: 8px; margin-bottom: 10px; }
-        .loc-input {
-          flex: 1; padding: 12px 14px; background: rgba(0,0,0,0.3);
-          border: 1px solid rgba(255,255,255,0.15); border-radius: 8px;
-          color: #fff; font-size: 14px; outline: none; font-family: inherit;
-        }
-        .loc-input:focus { border-color: rgba(0,212,255,0.4); }
-        .loc-input::placeholder { color: #9aa8b5; }
-        .loc-select {
-          width: 90px; padding: 12px 8px; background: rgba(0,0,0,0.3);
-          border: 1px solid rgba(255,255,255,0.15); border-radius: 8px;
-          color: #fff; font-size: 14px; outline: none; font-family: inherit;
-        }
-        .loc-submit {
-          width: 100%; padding: 12px; background: linear-gradient(135deg, #00D4FF, #0099CC);
-          border: none; border-radius: 8px; color: #000; font-size: 14px; font-weight: 600;
-          cursor: pointer; font-family: inherit;
-        }
-        .loc-popular { }
-        .loc-popular-label {
-          display: block; font-size: 12px; color: #aeb9c8;
-          text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; font-weight: 600;
-        }
-        .loc-popular-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
-        .loc-city-btn {
-          padding: 10px 12px; background: rgba(255,255,255,0.04);
-          border: 1px solid rgba(255,255,255,0.08); border-radius: 8px;
-          color: rgba(255,255,255,0.7); font-size: 13px; text-align: left;
-          cursor: pointer; transition: all 0.15s; font-family: inherit;
-        }
-        .loc-city-btn:hover { background: rgba(0,212,255,0.1); border-color: rgba(0,212,255,0.3); color: #00D4FF; }
-        .loc-clear {
-          width: 100%; margin-top: 16px; padding: 10px;
-          background: none; border: 1px solid rgba(255,255,255,0.15);
-          border-radius: 8px; color: rgba(255,255,255,0.5); font-size: 13px;
-          cursor: pointer; font-family: inherit;
-        }
-        .loc-clear:hover { border-color: rgba(255,255,255,0.3); color: #fff; }
-
-        /* ═══ RESPONSIVE ═══ */
-        @media (max-width: 768px) {
-          .ec-filter-bar {
-            padding: 8px 12px 10px;
-            gap: 8px;
-            overflow-x: visible;
-            flex-wrap: wrap;
-            justify-content: center;
-            -webkit-overflow-scrolling: touch;
-            scrollbar-width: none;
-          }
-          .ec-filter-bar::-webkit-scrollbar { display: none; }
-          .ec-filter-group { flex-shrink: 0; }
-          .ec-filter-select { min-width: 110px; font-size: 12px; }
-          .ec-location-btn { min-width: 110px; font-size: 12px; }
-          .ec-search-bar { padding: 0 12px 10px; }
-          .ec-title { font-size: 20px; letter-spacing: 1px; }
-          .ec-cell { min-height: 52px; padding: 4px 2px; }
-          .ec-day-num { font-size: 12px; width: 24px; height: 24px; }
-          .ec-month-label { font-size: 17px; min-width: 140px; }
-          .ev-card { flex-direction: row; }
-          .ev-card-logo { width: 64px; min-height: 64px; }
-          .ev-logo-img { width: 44px; height: 44px; }
-          .ev-logo-fallback { width: 44px; height: 44px; font-size: 15px; }
-          .ev-data-top { flex-direction: column; gap: 4px; }
-          .ev-data-numbers { flex-direction: row; flex-wrap: wrap; align-items: center; gap: 8px; }
-        }
-        @media (max-width: 480px) {
-          .ec-filter-select { min-width: 95px; padding: 8px 22px 8px 10px; }
-        }
-
-        /* ═══ A11y: visually-hidden label for screen readers ═══ */
-        .ec-sr-only {
-          position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
-          overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
-        }
-
-        /* ═══ Location modal: per-field labels ═══ */
-        .loc-field { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 0; }
-        .loc-field--state { flex: 0 0 110px; }
-        .loc-input-label {
-          font-size: 12px; font-weight: 600; letter-spacing: 0.4px;
-          text-transform: uppercase; color: rgba(255,255,255,0.5);
-        }
-
-        /* ═══ Touch-target compliance (UI-UX-Pro-Max priority 2 — 44pt minimum) ═══ */
-        .ec-nav-btn { width: 44px; height: 44px; }
-        .ec-today-btn { min-height: 36px; }
-        .loc-close {
-          min-width: 44px; min-height: 44px; display: inline-flex;
-          align-items: center; justify-content: center; border-radius: 8px;
-        }
-        .pnm-location-clear {
-          min-width: 44px; min-height: 44px; display: inline-flex;
-          align-items: center; justify-content: center; border-radius: 50%;
-          padding: 0; font-size: 0;
-        }
-        .ec-search-clear {
-          min-width: 44px; min-height: 44px; display: inline-flex;
-          align-items: center; justify-content: center; border-radius: 50%;
-        }
-
-        /* ═══ Motion guard (UI-UX-Pro-Max priority 7 — WCAG 2.3.3) ═══ */
-        @media (prefers-reduced-motion: reduce) {
-          .ec-gps-btn,
-          .pnm-location-pill,
-          .pnm-location-dot { animation: none !important; }
-          .ec-spinner { animation: ec-spin 2s linear infinite; }
-          .ev-card,
-          .ec-cell,
-          .ec-filter-select,
-          .loc-gps-btn,
-          .loc-city-btn,
-          .loc-clear,
-          .ec-clear-btn,
-          .ec-day-tab,
-          .ec-empty-btn,
-          .ec-load-more { transition: none !important; }
-        }
-
-        /* ═══ Layout: hero search reflows on narrow screens (UI-UX-Pro-Max priority 5) ═══ */
-        @media (max-width: 640px) {
-          .ec-hero { display: flex; flex-direction: column; align-items: center; gap: 8px; }
-          .ec-hero > div[style*="position: absolute"] {
-            position: static !important; width: 100% !important;
-            max-width: 320px; margin: 4px auto 0;
-          }
-          .ec-hero > div[style*="position: absolute"] .ec-search-wrap { width: 100% !important; }
-        }
-      ` }} />
+      <style suppressHydrationWarning dangerouslySetInnerHTML={{ __html: styles }} />
     </>
   );
 }
+
+const styles = `
+  :root {
+    --ec-black: #020407;
+    --ec-raised: #071018;
+    --ec-silver: #c6d0db;
+    --ec-muted: #8f9aa8;
+    --ec-dim: #65717f;
+    --ec-blue: #31a8ff;
+    --ec-blue-soft: #8fd4ff;
+    --ec-gold: #d6b76a;
+    --ec-alert: #ff7078;
+  }
+
+  .ec-page {
+    min-height: 100vh;
+    box-sizing: border-box;
+    overflow-x: clip;
+    padding: 14px 0 92px;
+    background: var(--ec-black);
+    color: var(--ec-silver);
+    font-family: var(--font-rajdhani), Rajdhani, var(--font-inter), Inter, sans-serif;
+  }
+
+  .ec-page *,
+  .ec-page *::before,
+  .ec-page *::after,
+  .loc-overlay *,
+  .loc-overlay *::before,
+  .loc-overlay *::after {
+    box-sizing: border-box;
+  }
+
+  body.world-poker-near-me .ec-page {
+    background: var(--ec-black) !important;
+  }
+
+  .ec-space-bg,
+  .ec-space-overlay {
+    display: none;
+  }
+
+  body.world-poker-near-me .ec-page > .pnc-panel.ec-location-strip,
+  body.world-poker-near-me .ec-page > .pnc-panel.ec-hero,
+  body.world-poker-near-me .ec-page > .pnc-panel.ec-day-selector,
+  body.world-poker-near-me .ec-page > .pnc-panel.ec-filter-bar,
+  body.world-poker-near-me .ec-page .pnc-panel.ec-calendar,
+  body.world-poker-near-me .ec-page .pnc-panel.ec-loading,
+  body.world-poker-near-me .ec-page .pnc-panel.ec-error,
+  body.world-poker-near-me .ec-page .pnc-panel.ec-empty,
+  body.world-poker-near-me .ec-page .pnc-panel.ev-card,
+  body.world-poker-near-me .ec-page .pnc-panel.ec-cal-events,
+  body.world-poker-near-me .pnc-panel.loc-modal {
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: none !important;
+    box-shadow: none !important;
+    transform: none !important;
+  }
+
+  body.world-poker-near-me .ec-page > .pnc-panel.ec-hero,
+  body.world-poker-near-me .ec-page > .pnc-panel.ec-filter-bar {
+    display: block !important;
+    grid-template-columns: none !important;
+  }
+
+  body.world-poker-near-me :is(
+    .ec-page > .pnc-panel.ec-location-strip,
+    .ec-page > .pnc-panel.ec-hero,
+    .ec-page > .pnc-panel.ec-day-selector,
+    .ec-page > .pnc-panel.ec-filter-bar,
+    .ec-page .pnc-panel.ec-calendar,
+    .ec-page .pnc-panel.ec-loading,
+    .ec-page .pnc-panel.ec-error,
+    .ec-page .pnc-panel.ec-empty,
+    .ec-page .pnc-panel.ev-card,
+    .ec-page .pnc-panel.ec-cal-events,
+    .pnc-panel.loc-modal
+  )::before,
+  body.world-poker-near-me :is(
+    .ec-page > .pnc-panel.ec-location-strip,
+    .ec-page > .pnc-panel.ec-hero,
+    .ec-page > .pnc-panel.ec-day-selector,
+    .ec-page > .pnc-panel.ec-filter-bar,
+    .ec-page .pnc-panel.ec-calendar,
+    .ec-page .pnc-panel.ec-loading,
+    .ec-page .pnc-panel.ec-error,
+    .ec-page .pnc-panel.ec-empty,
+    .ec-page .pnc-panel.ev-card,
+    .ec-page .pnc-panel.ec-cal-events,
+    .pnc-panel.loc-modal
+  )::after {
+    content: none !important;
+  }
+
+  body.world-poker-near-me .ec-page .pnc-panel.ev-card:hover,
+  body.world-poker-near-me .ec-page .pnc-panel.ev-card:active {
+    border: 0 !important;
+    background: none !important;
+    box-shadow: none !important;
+    transform: none !important;
+  }
+
+  .ec-location-strip,
+  .ec-hero,
+  .ec-day-selector,
+  .ec-filter-bar {
+    width: min(calc(100% - 24px), 1100px) !important;
+    margin: 0 auto 14px !important;
+  }
+
+  .ec-location-strip__body {
+    display: flex;
+    min-height: 58px;
+    align-items: center;
+    justify-content: center;
+    padding: 8px clamp(14px, 3vw, 28px);
+  }
+
+  .ec-control-icon,
+  .ec-inline-icon {
+    width: 18px;
+    height: 18px;
+    flex: 0 0 18px;
+  }
+
+  .ec-gps-btn,
+  .ec-clear-btn,
+  .ec-empty-btn,
+  .ec-load-more,
+  .ec-nav-btn,
+  .ec-today-btn,
+  .loc-gps-btn,
+  .loc-submit,
+  .loc-city-btn,
+  .loc-clear {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    min-height: 44px;
+    aspect-ratio: 348 / 114;
+    padding: 0 16px;
+    overflow: hidden;
+    border: 0;
+    border-radius: 0;
+    background: transparent url('/images/pnm-console/painted-controls-v1/button-secondary.png') center / contain no-repeat;
+    box-shadow: none;
+    color: var(--ec-silver);
+    cursor: pointer;
+    font: 800 12px/1 var(--font-rajdhani), Rajdhani, sans-serif;
+    letter-spacing: 0.07em;
+    text-align: center;
+    text-transform: uppercase;
+    white-space: nowrap;
+    touch-action: manipulation;
+  }
+
+  .ec-empty-btn,
+  .ec-today-btn,
+  .loc-gps-btn,
+  .loc-submit {
+    background-image: url('/images/pnm-console/painted-controls-v1/button-primary.png');
+    color: #f4f7fb;
+  }
+
+  body.world-poker-near-me :is(
+    .ec-page .ec-gps-btn,
+    .ec-page .ec-clear-btn,
+    .ec-page .ec-load-more,
+    .ec-page .ec-today-btn
+  ) {
+    border: 0 !important;
+    border-radius: 0 !important;
+    background-color: transparent !important;
+    background-position: center !important;
+    background-repeat: no-repeat !important;
+    background-size: contain !important;
+    box-shadow: none !important;
+  }
+
+  .ec-gps-btn {
+    width: 170px;
+    max-width: 100%;
+  }
+
+  .pnm-location-pill {
+    display: flex;
+    width: min(100%, 390px);
+    min-height: 48px;
+    aspect-ratio: 1829 / 313;
+    align-items: center;
+    gap: 8px;
+    padding: 0 clamp(28px, 8%, 52px);
+    border: 0;
+    border-radius: 0;
+    background: transparent url('/images/pnm-console/painted-controls-v1/search-well.webp') center / contain no-repeat;
+    box-shadow: none;
+    color: var(--ec-silver);
+  }
+
+  body.world-poker-near-me .ec-page .pnm-location-pill {
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent url('/images/pnm-console/painted-controls-v1/search-well.webp') center / contain no-repeat !important;
+    box-shadow: none !important;
+  }
+
+  .pnm-location-label {
+    color: var(--ec-blue-soft);
+    font: 800 12px/1 var(--font-inter), Inter, sans-serif;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .pnm-location-city {
+    min-width: 0;
+    overflow: hidden;
+    color: var(--ec-muted);
+    font: 700 12px/1.2 var(--font-inter), Inter, sans-serif;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .pnm-location-clear,
+  .ec-search-clear,
+  .loc-close {
+    display: inline-grid;
+    width: 44px;
+    min-width: 44px;
+    height: 44px;
+    min-height: 44px;
+    padding: 0;
+    place-items: center;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    color: var(--ec-muted);
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+
+  .ec-hero__body {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(280px, 0.58fr);
+    align-items: center;
+    gap: 20px clamp(22px, 5vw, 64px);
+    padding: 26px clamp(20px, 5vw, 52px) 30px;
+  }
+
+  .ec-hero-copy {
+    display: grid;
+    gap: 10px;
+    min-width: 0;
+  }
+
+  .ec-eyebrow {
+    margin: 0;
+    color: var(--ec-blue);
+    font: 800 12px/1 var(--font-inter), Inter, sans-serif;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+  }
+
+  body.world-poker-near-me .ec-page .ec-title {
+    margin: 0 !important;
+    color: #f4f7fb !important;
+    font-size: clamp(34px, 5vw, 58px) !important;
+    font-weight: 500 !important;
+    line-height: 0.98 !important;
+    letter-spacing: -0.025em !important;
+    text-shadow: none !important;
+    text-transform: uppercase;
+  }
+
+  .ec-cyan {
+    color: var(--ec-blue-soft);
+  }
+
+  body.world-poker-near-me .ec-page .ec-subtitle {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 7px;
+    max-width: 720px;
+    margin: 0 !important;
+    color: var(--ec-muted) !important;
+    font: 700 12px/1.5 var(--font-inter), Inter, sans-serif !important;
+    letter-spacing: 0.06em !important;
+    text-align: left !important;
+    text-transform: uppercase;
+  }
+
+  .ec-source-counts,
+  .ec-smart-agg-note {
+    color: var(--ec-dim);
+  }
+
+  .ec-smart-agg-note {
+    color: #d9b35c;
+  }
+
+  .ec-hero-search {
+    min-width: 0;
+  }
+
+  body.world-poker-near-me .ec-page .ec-search-wrap.ec-search-wrap {
+    width: 100% !important;
+    min-height: 48px;
+    aspect-ratio: 1829 / 313;
+    padding: 0 clamp(24px, 8%, 48px) !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent url('/images/pnm-console/painted-controls-v1/search-well.webp') center / contain no-repeat !important;
+    box-shadow: none !important;
+  }
+
+  body.world-poker-near-me .ec-page .ec-search-input.ec-search-input {
+    min-width: 0;
+    min-height: 44px;
+    padding: 0 8px !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    color: #f4f7fb !important;
+    font-size: 16px !important;
+    outline: 0 !important;
+  }
+
+  .ec-search-input::placeholder {
+    color: #9aa8b5;
+  }
+
+  .ec-day-selector__body {
+    padding: 14px clamp(14px, 3vw, 28px);
+  }
+
+  .ec-day-tabs-row {
+    min-width: 0;
+  }
+
+  body.world-poker-near-me .ec-page .ec-day-tabs {
+    display: flex !important;
+    grid-template-columns: none !important;
+    flex-wrap: wrap !important;
+    justify-content: center;
+    gap: 7px !important;
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: none !important;
+    box-shadow: none !important;
+  }
+
+  body.world-poker-near-me .ec-page .ec-day-tab.ec-day-tab {
+    position: relative;
+    flex: 0 0 138px;
+    min-width: 138px !important;
+    min-height: 44px !important;
+    aspect-ratio: 348 / 114;
+    padding: 0 12px !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent url('/images/pnm-console/painted-controls-v1/button-secondary.png') center / contain no-repeat !important;
+    box-shadow: none !important;
+    color: var(--ec-silver) !important;
+  }
+
+  body.world-poker-near-me .ec-page .ec-day-tab.ec-day-tab.active,
+  body.world-poker-near-me .ec-page .ec-day-tab.ec-day-tab[aria-pressed='true'] {
+    background-image: url('/images/pnm-console/painted-controls-v1/button-primary.png') !important;
+    color: #f4f7fb !important;
+  }
+
+  body.world-poker-near-me .ec-page .ec-day-tab.ec-day-tab.today:not(.active) {
+    color: var(--ec-blue-soft) !important;
+  }
+
+  .ec-day-today-icon {
+    width: 18px;
+    height: 18px;
+    flex: 0 0 18px;
+  }
+
+  .ec-day-short {
+    display: inline;
+  }
+
+  .ec-day-full {
+    display: none;
+  }
+
+  .ec-filter-bar__body {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    align-items: end;
+    gap: 12px 10px;
+    padding: 18px clamp(16px, 4vw, 38px) 22px;
+  }
+
+  .ec-filter-group {
+    display: grid;
+    gap: 6px;
+    min-width: 0;
+  }
+
+  .ec-filter-label {
+    padding-left: 5%;
+    color: #aeb9c8;
+    font: 800 12px/1.2 var(--font-inter), Inter, sans-serif;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  body.world-poker-near-me .ec-page .ec-filter-select.ec-filter-select {
+    width: 100% !important;
+    min-width: 0 !important;
+    height: auto !important;
+    min-height: 44px !important;
+    aspect-ratio: 348 / 114;
+    padding: 0 12% !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background-color: transparent !important;
+    background-image: url('/images/pnm-console/painted-controls-v1/button-secondary.png') !important;
+    background-position: center !important;
+    background-repeat: no-repeat !important;
+    background-size: contain !important;
+    box-shadow: none !important;
+    color: #eef5fb !important;
+    font-size: 16px !important;
+  }
+
+  .ec-filter-select option,
+  .loc-select option {
+    background: var(--ec-raised);
+    color: #f4f7fb;
+  }
+
+  .ec-clear-btn {
+    width: 100%;
+  }
+
+  .ec-content {
+    width: min(calc(100% - 24px), 1100px) !important;
+    margin: 0 auto;
+    padding: 0 !important;
+  }
+
+  .ec-loading,
+  .ec-error,
+  .ec-empty {
+    width: 100%;
+    margin: 0;
+  }
+
+  .ec-state__body {
+    display: grid;
+    justify-items: center;
+    gap: 10px;
+    min-height: 250px;
+    align-content: center;
+    padding: 28px clamp(18px, 5vw, 48px);
+    color: var(--ec-muted);
+    text-align: center;
+  }
+
+  .ec-state__body p {
+    margin: 0;
+    color: inherit;
+    font: 700 14px/1.5 var(--font-inter), Inter, sans-serif;
+  }
+
+  .ec-state-icon {
+    width: 48px;
+    height: 48px;
+    flex: 0 0 48px;
+    opacity: 0.85;
+  }
+
+  .ec-error .ec-state__body {
+    color: var(--ec-alert);
+  }
+
+  .ec-error-detail {
+    color: #aeb9c8 !important;
+    font-size: 12px !important;
+  }
+
+  .ec-empty-title {
+    color: #f4f7fb !important;
+    font-size: 18px !important;
+    text-transform: uppercase;
+  }
+
+  .ec-empty-btn {
+    width: 190px;
+    max-width: 100%;
+    margin-top: 5px;
+  }
+
+  .ec-map-view {
+    height: max(600px, calc(100vh - 250px));
+    min-height: 600px;
+    margin-top: 6px;
+    overflow: visible;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  body.world-poker-near-me .ec-page .ec-map-view {
+    overflow: visible !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+
+  .ec-date-group {
+    margin-bottom: 18px;
+  }
+
+  .ec-date-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    min-height: 44px;
+    margin-bottom: 7px;
+    padding: 0 8px 7px;
+    border-bottom: 1px solid #35414c;
+  }
+
+  .ec-date-header.today {
+    border-bottom-color: var(--ec-blue);
+  }
+
+  .ec-date-label {
+    color: var(--ec-silver);
+    font-size: 15px;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .ec-date-header.today .ec-date-label {
+    color: var(--ec-blue-soft);
+  }
+
+  .ec-date-count {
+    padding-left: 9px;
+    border-left: 1px solid #526170;
+    color: #aeb9c8;
+    font: 800 12px/1.2 var(--font-inter), Inter, sans-serif;
+  }
+
+  .ec-load-more {
+    width: min(100%, 280px);
+    margin: 16px auto 0;
+  }
+
+  .ev-card {
+    width: 100%;
+    margin: 0 0 8px;
+  }
+
+  .ev-card__body {
+    display: flex;
+    align-items: stretch;
+    min-width: 0;
+    padding: 0;
+  }
+
+  .ev-card-logo {
+    display: grid;
+    width: 92px;
+    min-height: 112px;
+    flex: 0 0 92px;
+    place-items: center;
+    border-right: 1px solid #27333e;
+  }
+
+  .ev-logo-img {
+    width: 64px;
+    height: 64px;
+    object-fit: contain;
+  }
+
+  .ev-card-data {
+    display: grid;
+    flex: 1 1 auto;
+    gap: 8px;
+    min-width: 0;
+    align-content: center;
+    padding: 16px clamp(14px, 3vw, 26px);
+  }
+
+  .ev-data-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 14px;
+    min-width: 0;
+  }
+
+  .ev-data-heading {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .ev-data-numbers {
+    display: grid;
+    flex: 0 0 auto;
+    gap: 3px;
+    text-align: right;
+  }
+
+  .ev-source,
+  .ev-game-type,
+  .ev-stale,
+  .ev-tour-code,
+  .ev-event-count {
+    display: inline-flex;
+    align-items: center;
+    min-height: 20px;
+    padding-left: 8px;
+    border-left: 1px solid #526170;
+    color: var(--ec-blue-soft);
+    font: 800 12px/1.2 var(--font-inter), Inter, sans-serif;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  .ev-source[data-source='tour'],
+  .ev-source[data-source='home_game'],
+  .ev-tour-code,
+  .ev-gtd {
+    color: var(--ec-gold);
+  }
+
+  .ev-source[data-source='series'],
+  .ev-event-count {
+    color: var(--ec-silver);
+  }
+
+  .ev-name {
+    margin: 5px 0 0;
+    color: #f4f7fb;
+    font: 800 16px/1.3 var(--font-inter), Inter, sans-serif;
+  }
+
+  .ev-name-link {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  .ev-name-link:focus-visible,
+  .ev-venue-link:focus-visible {
+    outline: 2px solid var(--ec-blue-soft);
+    outline-offset: 3px;
+  }
+
+  .ev-meta,
+  .ev-badges {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 7px 12px;
+  }
+
+  .ev-meta-item,
+  .ev-stop-name {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    color: var(--ec-muted);
+    font: 600 12px/1.35 var(--font-inter), Inter, sans-serif;
+  }
+
+  .ev-stop-name {
+    color: #9aa8b5;
+  }
+
+  .ev-start-time,
+  .ev-distance,
+  .ev-venue-link {
+    color: var(--ec-blue-soft);
+  }
+
+  .ev-venue-link {
+    font-weight: 700;
+    text-decoration: none;
+  }
+
+  .ev-recurrence {
+    color: #d9b35c;
+  }
+
+  .ev-stale {
+    color: var(--ec-alert);
+  }
+
+  .ev-buyin {
+    color: #f4f7fb;
+    font-size: 18px;
+    font-weight: 800;
+  }
+
+  .ev-buyin-range {
+    color: #9aa8b5;
+    font: 700 12px/1.3 var(--font-inter), Inter, sans-serif;
+  }
+
+  .ev-gtd {
+    font: 800 12px/1.3 var(--font-inter), Inter, sans-serif;
+  }
+
+  .ec-calendar {
+    width: 100%;
+    margin: 0;
+  }
+
+  .ec-calendar__body {
+    display: grid;
+    gap: 16px;
+    padding: 22px clamp(14px, 4vw, 38px) 28px;
+  }
+
+  .ec-month-nav {
+    display: grid;
+    grid-template-columns: 144px minmax(180px, 1fr) 144px 132px;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .ec-nav-btn,
+  .ec-today-btn {
+    width: 100%;
+  }
+
+  .ec-month-label {
+    min-width: 0;
+    margin: 0;
+    color: #f4f7fb;
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-align: center;
+  }
+
+  .ec-grid-header,
+  .ec-grid {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+  }
+
+  .ec-grid-header {
+    border-bottom: 1px solid #35414c;
+  }
+
+  .ec-day-hdr {
+    min-width: 0;
+    padding: 8px 2px;
+    color: var(--ec-muted);
+    font: 800 12px/1.2 var(--font-inter), Inter, sans-serif;
+    letter-spacing: 0.06em;
+    text-align: center;
+    text-transform: uppercase;
+  }
+
+  .ec-grid {
+    overflow: hidden;
+    border-bottom: 1px solid #27333e;
+  }
+
+  .ec-cell {
+    display: flex;
+    min-width: 0;
+    min-height: 76px;
+    align-items: center;
+    flex-direction: column;
+    padding: 8px 3px;
+    border: 0;
+    border-right: 1px solid #202a33;
+    border-bottom: 1px solid #202a33;
+    border-radius: 0;
+    background: #050a0f;
+    box-shadow: none;
+    color: var(--ec-silver);
+    cursor: default;
+  }
+
+  .ec-cell:nth-child(7n) {
+    border-right: 0;
+  }
+
+  .ec-cell.has-day {
+    cursor: pointer;
+  }
+
+  .ec-cell.today {
+    color: var(--ec-blue-soft);
+  }
+
+  .ec-cell.selected {
+    background: #081724;
+    color: #f4f7fb;
+  }
+
+  .ec-cell.empty {
+    background: #03070a;
+  }
+
+  .ec-day-num {
+    display: grid;
+    min-width: 28px;
+    min-height: 28px;
+    place-items: center;
+    color: inherit;
+    font: 800 13px/1 var(--font-inter), Inter, sans-serif;
+  }
+
+  .ec-day-num.today {
+    border-bottom: 2px solid var(--ec-blue);
+    color: var(--ec-blue-soft);
+  }
+
+  .ec-dot-row {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 4px;
+    margin-top: 7px;
+  }
+
+  .ec-dot {
+    width: 12px;
+    height: 2px;
+    background: var(--ec-blue);
+  }
+
+  .ec-dot-more {
+    color: #aeb9c8;
+    font: 800 12px/1 var(--font-inter), Inter, sans-serif;
+  }
+
+  .ec-cal-events {
+    width: 100%;
+    margin: 2px 0 0;
+  }
+
+  .ec-cal-events__body {
+    display: grid;
+    gap: 10px;
+    padding: 18px clamp(14px, 3vw, 28px);
+  }
+
+  .ec-cal-events-title {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 9px;
+    margin: 0;
+    color: #f4f7fb;
+    font-size: 17px;
+    font-weight: 800;
+  }
+
+  .ec-cal-events-count {
+    padding-left: 9px;
+    border-left: 1px solid #526170;
+    color: var(--ec-muted);
+    font-size: 12px;
+  }
+
+  .ec-cal-no-events {
+    margin: 0;
+    padding: 12px 0;
+    color: var(--ec-muted);
+    font: 700 13px/1.4 var(--font-inter), Inter, sans-serif;
+  }
+
+  .loc-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    display: grid;
+    overflow-y: auto;
+    place-items: center;
+    padding: max(env(safe-area-inset-top, 0px), 20px) 18px max(env(safe-area-inset-bottom, 0px), 20px);
+    background: rgba(0, 0, 0, 0.84);
+  }
+
+  .loc-modal {
+    width: min(100%, 540px);
+    max-height: 90vh;
+    margin: auto;
+    overflow-y: auto;
+  }
+
+  .loc-modal__body {
+    display: grid;
+    gap: 16px;
+    padding: 22px clamp(18px, 4vw, 34px) 28px;
+  }
+
+  .loc-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+  }
+
+  .loc-modal-header h2 {
+    margin: 0;
+    color: #f4f7fb;
+    font-size: 22px;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  .loc-error {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    padding-left: 10px;
+    border-left: 2px solid var(--ec-alert);
+    color: var(--ec-alert);
+    font: 700 13px/1.4 var(--font-inter), Inter, sans-serif;
+  }
+
+  .loc-gps-btn,
+  .loc-submit,
+  .loc-clear {
+    width: min(100%, 230px);
+    justify-self: center;
+  }
+
+  .loc-form {
+    display: grid;
+    gap: 12px;
+    margin: 0;
+  }
+
+  .loc-inputs {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 140px;
+    gap: 10px;
+  }
+
+  .loc-field {
+    display: grid;
+    gap: 5px;
+    min-width: 0;
+  }
+
+  .loc-input-label,
+  .loc-popular-label {
+    padding-left: 5%;
+    color: #aeb9c8;
+    font: 800 12px/1.2 var(--font-inter), Inter, sans-serif;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  body.world-poker-near-me .loc-modal .loc-input,
+  body.world-poker-near-me .loc-modal .loc-select {
+    width: 100%;
+    min-width: 0;
+    min-height: 44px;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background-color: transparent !important;
+    background-position: center !important;
+    background-repeat: no-repeat !important;
+    background-size: contain !important;
+    box-shadow: none !important;
+    color: #f4f7fb !important;
+    font-size: 16px !important;
+    outline: 0 !important;
+  }
+
+  body.world-poker-near-me .loc-modal .loc-input {
+    aspect-ratio: 1829 / 313;
+    padding: 0 10% !important;
+    background-image: url('/images/pnm-console/painted-controls-v1/search-well.webp') !important;
+  }
+
+  .loc-input::placeholder {
+    color: #9aa8b5;
+  }
+
+  body.world-poker-near-me .loc-modal .loc-select {
+    aspect-ratio: 348 / 114;
+    padding: 0 14% !important;
+    background-image: url('/images/pnm-console/painted-controls-v1/button-secondary.png') !important;
+  }
+
+  .loc-popular {
+    display: grid;
+    gap: 10px;
+  }
+
+  .loc-popular-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 7px;
+  }
+
+  .loc-city-btn {
+    width: 100%;
+    min-width: 0;
+    padding: 0 10px;
+    font-size: 12px;
+  }
+
+  :is(
+    .ec-gps-btn,
+    .ec-clear-btn,
+    .ec-empty-btn,
+    .ec-load-more,
+    .ec-nav-btn,
+    .ec-today-btn,
+    .loc-gps-btn,
+    .loc-submit,
+    .loc-city-btn,
+    .loc-clear,
+    .pnm-location-clear,
+    .ec-search-clear,
+    .loc-close,
+    .ec-day-tab,
+    .ec-cell
+  ):focus-visible,
+  .ec-filter-select:focus-visible,
+  .ec-search-input:focus-visible,
+  .loc-input:focus-visible,
+  .loc-select:focus-visible {
+    outline: 2px solid var(--ec-blue-soft) !important;
+    outline-offset: -5px !important;
+  }
+
+  :is(
+    .ec-gps-btn,
+    .ec-clear-btn,
+    .ec-empty-btn,
+    .ec-load-more,
+    .ec-nav-btn,
+    .ec-today-btn,
+    .loc-gps-btn,
+    .loc-submit,
+    .loc-city-btn,
+    .loc-clear,
+    .pnm-location-clear,
+    .ec-search-clear,
+    .loc-close,
+    .ec-day-tab,
+    .ec-cell
+  ):active {
+    filter: brightness(1.15);
+  }
+
+  .ec-sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  @media (min-width: 768px) {
+    .ec-day-short {
+      display: none;
+    }
+
+    .ec-day-full {
+      display: inline;
+    }
+  }
+
+  @media (max-width: 760px) {
+    .ec-location-strip,
+    .ec-hero,
+    .ec-day-selector,
+    .ec-filter-bar,
+    .ec-content {
+      width: min(calc(100% - 16px), 1100px) !important;
+    }
+
+    .ec-hero__body {
+      grid-template-columns: 1fr;
+      gap: 16px;
+      padding: 22px 16px 24px;
+    }
+
+    .ec-hero-search {
+      width: min(100%, 440px);
+    }
+
+    .ec-filter-bar__body {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      padding: 16px 14px 20px;
+    }
+
+    .ec-map-view {
+      height: max(520px, calc(100vh - 190px));
+      min-height: 520px;
+    }
+
+    .ev-card__body {
+      display: grid;
+      grid-template-columns: 72px minmax(0, 1fr);
+    }
+
+    .ev-card-logo {
+      width: 72px;
+      min-height: 100%;
+      flex-basis: 72px;
+    }
+
+    .ev-logo-img {
+      width: 48px;
+      height: 48px;
+    }
+
+    .ev-data-top {
+      display: grid;
+    }
+
+    .ev-data-numbers {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 6px 12px;
+      text-align: left;
+    }
+
+    .ec-month-nav {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .ec-month-label {
+      grid-column: 1 / -1;
+      grid-row: 1;
+    }
+
+    .ec-nav-btn {
+      grid-row: 2;
+    }
+
+    .ec-today-btn {
+      grid-column: 1 / -1;
+      width: min(100%, 170px);
+      justify-self: center;
+    }
+
+    .ec-cell {
+      min-height: 58px;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .ec-filter-bar__body {
+      grid-template-columns: 1fr;
+    }
+
+    .ec-filter-label {
+      padding-left: 7%;
+    }
+
+    .loc-inputs,
+    .loc-popular-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .loc-city-btn {
+      width: min(100%, 240px);
+      justify-self: center;
+    }
+
+    .ec-grid {
+      font-size: 12px;
+    }
+
+    .ec-cell {
+      min-height: 52px;
+      padding-inline: 1px;
+    }
+
+    .ec-dot {
+      width: 8px;
+    }
+
+    .ec-day-hdr {
+      letter-spacing: 0;
+    }
+  }
+`;

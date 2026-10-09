@@ -8,6 +8,7 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const read = (path) => readFileSync(join(ROOT, path), 'utf8');
 
 const hamburger = read('src/components/ui/HamburgerMenu.jsx');
+const pnmMenu = read('src/styles/worlds/poker-near-me-console-menu.css');
 const geeves = read('src/components/ui/GeevesMenuWidget.jsx');
 const reportBug = read('src/components/ui/ReportBugWidget.jsx');
 const hubPageShell = read('src/components/ui/HubPageShell.jsx');
@@ -98,6 +99,35 @@ test('adaptive mobile drawer keeps search, safe areas, and descriptions readable
     hamburger,
     /\.sp-menu-description,\s*\.sp-drawer\[data-responsive-composition='adaptive'\] \.sp-grid-description \{\s*font-size: 12px !important;/,
   );
+});
+
+test('Poker Near Me narrow command descriptions retain the mobile readability floor', () => {
+  const narrowRules = pnmMenu.slice(pnmMenu.indexOf('/* Narrow phones:'));
+  for (const width of [389, 374]) {
+    const block = narrowRules.match(new RegExp(`@container pnm-command-drawer \\(max-width: ${width}px\\)[\\s\\S]*?\\n\\}`));
+    assert.ok(block, `missing narrow composition ${width}`);
+    assert.match(block[0], /font-size: 12px !important;/);
+    assert.doesNotMatch(block[0], /font-size: 11px/);
+  }
+
+  const compactStart = narrowRules.indexOf('@container pnm-command-drawer (max-width: 359px)');
+  const compact = narrowRules.slice(compactStart, narrowRules.indexOf('@media', compactStart));
+  assert.ok(compactStart >= 0, 'missing compact 359px composition');
+  assert.match(compact, /--pnm-icon-size: 26px/);
+  const compactTitle = compact.match(/\.sp-grid-tile > span:last-child > span:first-child \{[^}]*\}/);
+  assert.ok(compactTitle, 'missing compact primary-title rule');
+  assert.match(compactTitle[0], /font-size: 12px !important;/);
+  assert.match(compactTitle[0], /white-space: normal;/);
+  assert.doesNotMatch(compactTitle[0], /white-space: nowrap/);
+});
+
+test('Poker Near Me painted command drawer restores one continuous inward edge after its frame reset', () => {
+  const resetIndex = pnmMenu.indexOf(".sp-drawer[data-pnm-console='painted-command-drawer-v1'] {");
+  const leftIndex = pnmMenu.indexOf("[data-pnm-console='painted-command-drawer-v1'][data-direction='left']");
+  const rightIndex = pnmMenu.indexOf("[data-pnm-console='painted-command-drawer-v1'][data-direction='right']");
+  assert.ok(resetIndex >= 0 && leftIndex > resetIndex && rightIndex > resetIndex);
+  assert.match(pnmMenu.slice(leftIndex, rightIndex), /border-right: 1px solid rgba\(170, 184, 196, 0\.38\) !important;/);
+  assert.match(pnmMenu.slice(rightIndex), /border-left: 1px solid rgba\(170, 184, 196, 0\.38\) !important;/);
 });
 
 test('Geeves exposes its disclosure state and mobile-sized controls with reduced-motion scrolling', () => {
