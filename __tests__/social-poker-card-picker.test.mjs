@@ -69,6 +69,48 @@ test('hostile or stale selections are normalized at the data boundary', () => {
   assert.equal(markup.normalizePokerCardMarkup(`${formatted}[[sp-card:As]]`), formatted);
 });
 
+test('saved card presets persist in separate account-owned browser caches', () => {
+  const values = new Map();
+  const storage = {
+    getItem: (key) => values.get(key) ?? null,
+    setItem: (key, value) => values.set(key, value),
+  };
+  const hand = 'Hand [[sp-card:As]][[sp-card:Kh]]';
+  const dan = markup.createPokerCardPreset([], ' Big Slick ', hand, 'preset-1');
+  assert.equal(markup.persistPokerCardPresets(storage, 'account-a', dan), true);
+  assert.deepEqual(markup.loadPokerCardPresets(storage, 'account-a'), [{ id: 'preset-1', name: 'Big Slick', markup: hand }]);
+  assert.deepEqual(markup.loadPokerCardPresets(storage, 'account-b'), []);
+  assert.notEqual(markup.pokerCardPresetStorageKey('account-a'), markup.pokerCardPresetStorageKey('account-b'));
+});
+
+test('saved card preset create, rename, use and delete data stays canonical', () => {
+  const flop = 'Hand [[sp-card:As]][[sp-card:Kh]] | Board [[sp-card:Qd]][[sp-card:Jc]][[sp-card:2s]]';
+  const created = markup.createPokerCardPreset([], 'Tournament Hand', flop, 'preset-2');
+  const renamed = markup.renamePokerCardPreset(created, 'preset-2', 'Final Table');
+  assert.deepEqual(markup.parsePokerCards(renamed[0].markup), markup.parsePokerCards(flop));
+  assert.equal(renamed[0].name, 'Final Table');
+  assert.deepEqual(markup.deletePokerCardPreset(renamed, 'preset-2'), []);
+  assert.throws(() => markup.createPokerCardPreset(renamed, 'final table', flop, 'preset-3'), /Already Exists/);
+});
+
+test('saved card presets reject partial boards and discard corrupt persisted entries', () => {
+  assert.throws(
+    () => markup.createPokerCardPreset([], 'Broken Flop', 'Board [[sp-card:As]][[sp-card:Kh]]', 'preset-4'),
+    /Complete Hand Or Board/
+  );
+  const storage = {
+    getItem: () => '{not-json',
+    setItem: () => { throw new Error('storage unavailable'); },
+  };
+  assert.deepEqual(markup.loadPokerCardPresets(storage, 'account-a'), []);
+  assert.equal(markup.persistPokerCardPresets(storage, 'account-a', []), false);
+  assert.deepEqual(markup.normalizePokerCardPresets([
+    { id: 'bad', name: '', markup: 'Hand [[sp-card:As]]' },
+    { id: 'good', name: 'Aces', markup: 'Hand [[sp-card:As]][[sp-card:Ah]]' },
+    { id: 'duplicate-name', name: 'aces', markup: 'Hand [[sp-card:Ks]][[sp-card:Kh]]' },
+  ]), [{ id: 'good', name: 'Aces', markup: 'Hand [[sp-card:As]][[sp-card:Ah]]' }]);
+});
+
 test('feed truncation never exposes or splits card storage tokens', () => {
   const card = '[[sp-card:As]]';
   assert.deepEqual(markup.truncatePokerText(`1234${card}after`, 5), {
@@ -151,6 +193,21 @@ test('primary social surfaces render card tokens as cards', () => {
   assert.match(uploadGhost, /<PokerCardText text=\{displayContent\.text\} \/>/);
 });
 
+test('every enumerated raw social-content surface routes its body through PokerCardText', () => {
+  const contracts = new Map([
+    ['pages/hub/home-games/[slug].js', /<PokerCardText text=\{p\.content\} \/>/],
+    ['pages/hub/reels.js', /<PokerCardText text=\{comment\.content\} \/>/],
+    ['src/components/social/Reels.jsx', /<PokerCardText text=\{comment\.content\} \/>/],
+    ['src/components/social/ReelsFeedCarousel.jsx', /<ConsoleCopy><PokerCardText text=\{comment\.content\} \/><\/ConsoleCopy>/],
+    ['src/components/social/SmarterPokerStyleCard.jsx', /<PokerCardText text=\{comment\.text \|\| comment\.content\} \/>/],
+  ]);
+  for (const [file, contract] of contracts) {
+    const source = read(file);
+    assert.match(source, /import PokerCardText/);
+    assert.match(source, contract, `${file} still renders raw social content`);
+  }
+});
+
 test('the surfaces removed from the card list really render no post body', () => {
   let checked = 0;
   const offenders = [];
@@ -190,6 +247,9 @@ test('picker forbids duplicates and respects hand and board limits', () => {
   assert.match(source, /if \(choose\(card\)\) setQuickRank\(null\)/);
   assert.match(source, /repeat\(auto-fit, minmax\(44px, 1fr\)\)/);
   assert.doesNotMatch(source, /<span[\s\S]{0,160}role="button"/);
+  assert.match(source, /loadAppSettings\(accountId\)/);
+  assert.match(source, /saveAppSetting\('poker_card_presets'/);
+  assert.match(source, /minHeight: 44/);
 });
 
 test('SmarterPokerStyleCard stays off the card list only while nothing mounts it', () => {

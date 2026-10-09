@@ -58,6 +58,7 @@ import ReelCard from '../reels/ReelCard';
 import ReelPlayerFrame from '../reels/ReelPlayerFrame';
 import ReelFeedbackActions from '../reels/ReelFeedbackActions';
 import ReelTrustStrip from '../reels/ReelTrustStrip';
+import PokerCardText from './PokerCardText';
 import { reelSourceKey } from '../../lib/reelsFeedback.mjs';
 import { recordReelsDeliveryMetric } from '../../lib/reelsDeliveryMetrics';
 import { capReelsInMemory, dataSaverEnabled } from '../../lib/reelsDeliveryContract.mjs';
@@ -3036,7 +3037,7 @@ function ReelViewer({
                           </button>
                         </div>
                       ) : (
-                        comment.content && <ConsoleCopy>{comment.content}</ConsoleCopy>
+                        comment.content && <ConsoleCopy><PokerCardText text={comment.content} /></ConsoleCopy>
                       )}
                       {comment.media_url && (
                         <img

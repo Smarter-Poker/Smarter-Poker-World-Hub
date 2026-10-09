@@ -32,6 +32,7 @@ import { getAccessToken, getSafeUser } from '../../../src/lib/authUtils';
 import PokerNearMeConsole from '../../../src/components/poker-near-me/PokerNearMeConsole';
 import HomeGamesSeatReservation from '../../../src/components/home-games/HomeGamesSeatReservation';
 import TournamentList from '../../../src/components/home-games/TournamentList';
+import PokerCardText from '../../../src/components/social/PokerCardText';
 import { safeCopyToClipboard } from '../../../src/lib/clipboard';
 import { toast } from '../../../src/stores/toastStore';
 import { rememberPokerPlace, capturePokerNearMeEvent } from '../../../src/lib/poker-near-me/activity';
@@ -1413,7 +1414,7 @@ export default function PublicHomeGamePage({ data, serverError }) {
                         <time>{new Date(p.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</time>
                         {p.is_pinned && <span className="hgs-post-pin">Pinned</span>}
                       </header>
-                      <p>{p.content}</p>
+                      <p><PokerCardText text={p.content} /></p>
                       <footer>
                         <span>{p.like_count || 0} Likes</span>
                         <span>·</span>
