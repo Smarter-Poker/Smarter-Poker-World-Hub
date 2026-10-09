@@ -1,0 +1,7 @@
+# Expired horse-seat recovery regression
+
+The maintained Phase12 cutover runner invokes this finite PostgreSQL17 regression. Set `P12_CUTOVER_TMP_PARENT` (or `TRIVIA_EXPIRED_HORSE_TMP_PARENT`) to an existing private scratch parent; Mac scratch must reside on the external work SSD. Each run creates and removes its own disposable database directory.
+
+Original preparation and matchup resolver bodies are extracted from the owning Phase6 migration. The exact forward recovery migration and its documented rollback are exercised, with original horse-plan/no-show constraints. Both original failures reproduce before correction; expired preparation refuses without a session, original no-show scoring/seed advancement succeeds once, and playing horses still require plans. Live, human and closed-round preparation boundaries remain guarded. Rollback refuses incompatible retained no-show history; it restores the exact original function hash when disposable fixture state is compatible, followed by guarded reapplication.
+
+The minimal session-open dependency is explicitly a boundary stub, returning `invalid_arguments` so the test observes whether original preparation reaches it. Ancillary event/winner/round consumers are counted stubs. This is original-function and constraint regression protection, not a claim of full session, monetary, production or tournament qualification. The real clock is retained.
