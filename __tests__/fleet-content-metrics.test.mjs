@@ -199,7 +199,8 @@ test('the readiness count excludes retired tombstones and preserves live drift',
   assert.doesNotMatch(body, /ca\.is_active IS TRUE/);
   assert.match(readinessSql, /SECURITY INVOKER/);
   assert.match(readinessSql, /ALTER FUNCTION public\.fn_horses_not_social_ready\(\) OWNER TO postgres;/);
-  assert.match(readinessSql, /GRANT EXECUTE ON FUNCTION public\.fn_horses_not_social_ready\(\)\s+TO authenticated, service_role;/);
+  assert.match(readinessSql, /GRANT EXECUTE ON FUNCTION public\.fn_horses_not_social_ready\(\)\s+TO service_role;/);
+  assert.match(readinessSql, /has_function_privilege\('authenticated', 'public\.fn_horses_not_social_ready\(\)', 'EXECUTE'\)/);
 });
 
 test('Phase 10 retires only the audited seeded_content orphan and preserves its rows', () => {

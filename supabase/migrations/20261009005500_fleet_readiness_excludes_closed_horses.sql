@@ -21,7 +21,7 @@
 --     a-closed-horse-is-never-selected-again.law.test.mjs.
 --   - Preserve the zero-argument table signature, STABLE volatility,
 --     SECURITY INVOKER behavior, pinned search_path, postgres ownership and
---     authenticated/service_role execute grants.
+--     service_role-only execute grant currently installed in production.
 --
 -- EVIDENCE:
 --   __tests__/a-closed-horse-is-never-selected-again.law.test.mjs records
@@ -100,7 +100,7 @@ BEGIN
      OR v_security_definer IS DISTINCT FROM false
      OR NOT COALESCE('search_path=public, pg_temp' = ANY(v_config), false)
      OR has_function_privilege('anon', 'public.fn_horses_not_social_ready()', 'EXECUTE')
-     OR NOT has_function_privilege('authenticated', 'public.fn_horses_not_social_ready()', 'EXECUTE')
+     OR has_function_privilege('authenticated', 'public.fn_horses_not_social_ready()', 'EXECUTE')
      OR NOT has_function_privilege('service_role', 'public.fn_horses_not_social_ready()', 'EXECUTE') THEN
     RAISE EXCEPTION 'pre-flight failed: owner, security, search_path or grants drifted';
   END IF;
@@ -151,7 +151,7 @@ ALTER FUNCTION public.fn_horses_not_social_ready() OWNER TO postgres;
 REVOKE ALL ON FUNCTION public.fn_horses_not_social_ready()
   FROM PUBLIC, anon, authenticated, service_role;
 GRANT EXECUTE ON FUNCTION public.fn_horses_not_social_ready()
-  TO authenticated, service_role;
+  TO service_role;
 
 -- 3. POST-APPLY ASSERTIONS
 DO $postapply$
@@ -185,7 +185,7 @@ BEGIN
   END IF;
 
   IF has_function_privilege('anon', 'public.fn_horses_not_social_ready()', 'EXECUTE')
-     OR NOT has_function_privilege('authenticated', 'public.fn_horses_not_social_ready()', 'EXECUTE')
+     OR has_function_privilege('authenticated', 'public.fn_horses_not_social_ready()', 'EXECUTE')
      OR NOT has_function_privilege('service_role', 'public.fn_horses_not_social_ready()', 'EXECUTE') THEN
     RAISE EXCEPTION 'post-apply failed: execute grants changed';
   END IF;
@@ -239,5 +239,5 @@ COMMIT;
 -- REVOKE ALL ON FUNCTION public.fn_horses_not_social_ready()
 --   FROM PUBLIC, anon, authenticated, service_role;
 -- GRANT EXECUTE ON FUNCTION public.fn_horses_not_social_ready()
---   TO authenticated, service_role;
+--   TO service_role;
 -- COMMIT;
