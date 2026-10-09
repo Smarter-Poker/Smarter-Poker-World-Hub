@@ -1255,6 +1255,7 @@ class PokerAtlasSessionManager:
             self.last_connect_time = datetime.now(timezone.utc)
             self._session_dead = False
             self.consecutive_fetch_failures = 0
+            self.tier2_failures = 0
             log.info('  ✅ Session ready')
             watchdog_timer.cancel()
             return True
@@ -1373,6 +1374,24 @@ class PokerAtlasSessionManager:
             )
             if result is not None:
                 return result
+
+            # A persistent browser can close between the pre-flight check and
+            # this fetch. Recover the exact venue in this call: the caller
+            # deliberately pins its durable sweep cursor when all tiers fail,
+            # so deferring reconnection until the next venue would instead
+            # turn one recoverable browser lifecycle event into a partial run.
+            # This retry is intentionally bounded to one reconnect and one
+            # same-URL fetch; a second failure falls through to the existing
+            # independent tiers and ultimately preserves the fail-closed cursor.
+            if self._session_dead:
+                log.info('  Browser context died during fetch - reconnecting once for the same venue')
+                if self.connect():
+                    result = self.fetch_page(
+                        url, expected_slug=expected_slug,
+                        expected_name=expected_name,
+                    )
+                    if result is not None:
+                        return result
 
         # === TIER 2: PlayWrightFetcher ===
         if self.tier2_failures < 5:

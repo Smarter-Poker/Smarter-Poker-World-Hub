@@ -4,6 +4,55 @@ Date: 2026-09-29. Component: World Hub (non-engine client work).
 Branch: `agent/claude-pnm-20260920/pnm-club-arena-console`.
 Worktree: `/Volumes/SmarterWork/agent-work/claude-pnm-console-20260929/world-hub`.
 
+## 2026-10-08 final continuation
+
+The owner requested a focused resumption after another agent's work. The current protected
+`origin/main` base is `f04dee718aa31638fce826429f53d716a942aad8`; the owned continuation branch is
+`agent/codex/pnm-final-closeout-20261008` in
+`/Volumes/SmarterWork/agent-work/codex-pnm-final-20261008/worktree`. The external SSD was
+verified mounted as its own filesystem before recovery. This continuation is limited to Poker
+Near Me defects, their directly shared menu/header consumers, focused regression evidence,
+protected publication, and live behavior proof.
+
+Current policy receipt: `node /Users/smarter.poker/Documents/agent-policy.mjs read` and the
+portable reader/check emitted matching bytes on 2026-10-09T00:48:39.768Z. Policy version 2.9,
+manifest `a659f31c5c1c2b0864889508079a635dd5fe2fc98decfbfc9d3f9c80dd45ec3b`;
+OWNER-POLICY `b9478d0331314413d8e12c41210b63479cdcabc1f86ed3fdcb3251efa36e6349`,
+OPERATING-LAW `a8bc3c04dce3354ebdd51a89c0b7d715af3344edcc794d33f6b3ad64506961d5`,
+HARDENING `d5fc451ce5caf6d6b5e64597a13883e1246581678fe53c962339d0a66136993e`,
+REFERENCE-INDEX `adce89c3f838f2f373cd504a00329d53906404d1dd42a647f672af6c16f95555`,
+reader `d5e6189878846064ac60269a41dfc4e6d9a7bda54610110ddc5813230198f36e`, and
+reader test `6fa4010b3e02e35fca064cb6fb945861a69869a25fad32e4e773951431fc05ef`.
+Canonical and repository policy files, `PUBLISHING.md`, this checkpoint, the live-cash-games
+policy, and Club Arena Console skill 1.5.0 were read before changes.
+
+The continuation closes the three previously recorded visual gaps: the opaque matte outside both
+painted button chamfers, the four generic lobby pods, and the generic tour-detail body. It also
+rebuilds the Events Calendar and public/companion Home Games surfaces on the shared painted console,
+keeps the map as the primary expandable control, and repairs the 320-390px Poker Near Me drawer
+label geometry. Runtime values remain HTML and every original API, auth, map, favorite, geolocation,
+filter, navigation, and realtime path remains live.
+
+Independent diff review found and this branch fixed six functional gaps before release: Home Games
+now pages its complete result set (including a behavioral 650-row GPS regression), honors the real
+200/500-mile radii, treats Any as nationwide, exposes every state, uses the UUID-safe canonical URL
+builder for cards and map markers, isolates nested keyboard controls, sends a signed-out Save action
+to authentication, and gives tour sections/stop cards honest keyboard semantics. The deterministic
+button-alpha tool now refuses an output whose approved hash drifts.
+
+The live-data audit found a separate truthful PokerAtlas `partial` warning caused by Scrapling browser
+contexts closing mid-venue, not by a feed outage, stale runtime, cadence threshold, or missing
+credentials. The daemon now performs exactly one reconnect and one same-URL Tier-1 retry before its
+existing fallbacks, resets its Tier-2 failure counter after a successful reconnect, and still retains
+the sweep cursor if recovery fails. Three focused persistence/session tests pass. No health threshold
+or provenance rule was weakened; catalog evidence still cannot be presented as live activity.
+
+Focused verification on the integrated candidate: 106/106 directly affected contracts, 381/381
+Poker Near Me contracts plus the 5/5 pre-suite, the new 650-row paging behavior, and 3/3 dead-context
+recovery tests pass. Babel parsed all changed application/API modules, PostCSS parsed all four changed
+stylesheets, changed-file ESLint passed, and `git diff --check` is clean. The exact protected build,
+browser proof, merge, publication, and post-deploy identities are recorded below once complete.
+
 ## Policy receipt
 
 `node /Users/smarter.poker/Documents/agent-policy.mjs read`, emitted 2026-09-21T22:16:05.248Z

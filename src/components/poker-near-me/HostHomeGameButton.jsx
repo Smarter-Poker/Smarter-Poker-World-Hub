@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { getAuthUser, getAccessToken } from '../../lib/authUtils';
+import { PokerNearMeConsoleIcon } from './PokerNearMeConsole';
+import styles from './PokerNearMeHomeGameConsole.module.css';
 
 // WIRING FIX: this component used to GET '/api/check-access' while its sibling
 // CreateHomeGame.jsx GET '/api/commander/check-access' — the same Commander access
@@ -80,20 +82,13 @@ export default function HostHomeGameButton({ className }) {
   return (
     <button
       type="button"
-      className={className || "hg-host-btn relative overflow-hidden"}
+      className={`${className || 'hg-host-btn'} ${styles.paintedAction} ${styles.paintedActionPrimary} ${styles.hostAction}`}
       onClick={handleStart}
       disabled={checking}
+      aria-busy={checking}
     >
-      {checking ? (
-        <div className="absolute inset-0 bg-[#242526]/95 flex items-center justify-center z-10">
-          <div className="w-4 h-4 border-2 border-[#1877F2]/30 border-t-[#1877F2] rounded-full animate-spin mr-2" />
-          <span className="text-xs font-semibold text-[#E4E6EB]">Checking...</span>
-        </div>
-      ) : null}
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-        <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
-      </svg>
-      Host A Home Game
+      <PokerNearMeConsoleIcon name={checking ? 'info' : 'home'} className={styles.actionIcon} />
+      <span aria-live="polite">{checking ? 'Checking Status' : 'Host A Home Game'}</span>
     </button>
   );
 }

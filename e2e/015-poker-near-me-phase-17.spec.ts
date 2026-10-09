@@ -433,16 +433,18 @@ test.describe('Poker Near Me phase 17 cross-engine and accessibility hardening',
       const after = getComputedStyle(element, '::after');
       return {
         widths: [style.borderTopWidth, style.borderRightWidth, style.borderBottomWidth, style.borderLeftWidth],
-        color: style.borderTopColor,
+        artwork: style.backgroundImage,
         radius: style.borderRadius,
         clipPath: style.clipPath,
         decoration: after.content,
       };
     });
     expect(new Set(frame.widths).size).toBe(1);
-    expect(frame.widths[0]).toBe('1px');
-    expect(frame.color).toBe('rgb(72, 199, 255)');
-    expect(frame.radius).toBe('3px');
+    // The selected state is one complete painted primary plate. A second CSS
+    // border or radius would stack a generic frame over its intact corners.
+    expect(frame.widths[0]).toBe('0px');
+    expect(frame.artwork).toContain('button-primary.png');
+    expect(frame.radius).toBe('0px');
     expect(frame.clipPath).toBe('none');
     expect(frame.decoration).toBe('none');
     await expectNoOverflow(page, 'open Poker Near Me command menu');

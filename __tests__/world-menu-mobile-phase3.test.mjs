@@ -109,6 +109,24 @@ test('Poker Near Me narrow command descriptions retain the mobile readability fl
     assert.match(block[0], /font-size: 12px !important;/);
     assert.doesNotMatch(block[0], /font-size: 11px/);
   }
+  const compactStart = narrowRules.indexOf('@container pnm-command-drawer (max-width: 359px)');
+  const compact = narrowRules.slice(compactStart, narrowRules.indexOf('@media', compactStart));
+  assert.ok(compactStart >= 0, 'missing compact 359px composition');
+  assert.match(compact, /--pnm-icon-size: 26px/);
+  const compactTitle = compact.match(/\.sp-grid-tile > span:last-child > span:first-child \{[^}]*\}/);
+  assert.ok(compactTitle, 'missing compact primary-title rule');
+  assert.match(compactTitle[0], /font-size: 12px !important;/);
+  assert.match(compactTitle[0], /white-space: normal;/);
+  assert.doesNotMatch(compactTitle[0], /white-space: nowrap/);
+});
+
+test('Poker Near Me painted command drawer restores one continuous inward edge after its frame reset', () => {
+  const resetIndex = pnmMenu.indexOf(".sp-drawer[data-pnm-console='painted-command-drawer-v1'] {");
+  const leftIndex = pnmMenu.indexOf("[data-pnm-console='painted-command-drawer-v1'][data-direction='left']");
+  const rightIndex = pnmMenu.indexOf("[data-pnm-console='painted-command-drawer-v1'][data-direction='right']");
+  assert.ok(resetIndex >= 0 && leftIndex > resetIndex && rightIndex > resetIndex);
+  assert.match(pnmMenu.slice(leftIndex, rightIndex), /border-right: 1px solid rgba\(170, 184, 196, 0\.38\) !important;/);
+  assert.match(pnmMenu.slice(rightIndex), /border-left: 1px solid rgba\(170, 184, 196, 0\.38\) !important;/);
 });
 
 test('Geeves exposes its disclosure state and mobile-sized controls with reduced-motion scrolling', () => {

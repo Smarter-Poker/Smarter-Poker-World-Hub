@@ -25,20 +25,26 @@ import PokerNearMeFamilyNav from '../../src/components/poker-near-me/PokerNearMe
 import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import { getVenueFavorites, addVenueFavorite, removeVenueFavorite } from '../../src/services/pokerNearMeFavorites';
 import useTrainingBus from '../../src/hooks/useTrainingBus';
+// LocationEnableModal owns its full-screen chrome and close-control clearance
+// with env(safe-area-inset-top, 0px) inside the shared accessible dialog.
 import LocationEnableModal from '../../src/components/ui/LocationEnableModal';
 
-const VenueCard = dynamic(() => import('../../src/components/poker-near-me/VenueCard'), { ssr: false });
 const VenueMap = dynamic(() => import('../../src/components/poker-near-me/VenueMap'), { ssr: false });
 import { MapErrorBoundary } from '../../src/components/poker-near-me/VenueMap';
 import HostHomeGameButton from '../../src/components/poker-near-me/HostHomeGameButton';
+import PokerNearMeConsole, {
+    PokerNearMeConsoleIcon,
+    PokerNearMePanelShell,
+} from '../../src/components/poker-near-me/PokerNearMeConsole';
 import { homeGameUrl } from '../../src/lib/home-games/urls';
+import { US_STATES_BY_CODE } from '../../src/lib/home-games/locationUtils';
 import HubPageSummary from '../../src/components/seo/HubPageSummary';
 
 const PAGE_SIZE = 12;
 
 // ═══════════════════════════════════════════════════════════════════
 // HomeGameCard — venue-card density pattern (redesigned 2026-05-12).
-// Old design: 16:9 red-gradient cover dominated the card and the
+// Old design: a flat 16:9 fallback cover dominated the card and the
 // adapter stripped default_game_type/stakes/frequency/typical_day/
 // time/buyin/games_hosted before they reached the card, so the body
 // had nothing to show. New design mirrors the poker-near-me venue
@@ -49,7 +55,7 @@ const PAGE_SIZE = 12;
 // instead of the 16:9 dominant area. All data comes from
 // /api/public/home-games/discover.
 // ═══════════════════════════════════════════════════════════════════
-function HomeGameCard({ venue, onNavigate, onFavorite, isFavorited }) {
+function HomeGameCard({ venue, onNavigate, onFavorite, isFavorited, favoriteRequiresSignIn = false }) {
     // ── Format helpers ──────────────────────────────────────────────
     const formatTime = (t) => {
         if (!t) return null;
@@ -73,7 +79,7 @@ function HomeGameCard({ venue, onNavigate, onFavorite, isFavorited }) {
         const hi = venue.typical_buyin_max;
         if (lo != null && hi != null) return `$${lo}-$${hi}`;
         if (lo != null) return `$${lo}+`;
-        if (hi != null) return `up to $${hi}`;
+        if (hi != null) return `Up To $${hi}`;
         return null;
     };
 
@@ -103,373 +109,113 @@ function HomeGameCard({ venue, onNavigate, onFavorite, isFavorited }) {
         if (onNavigate) onNavigate();
     };
     const handleKey = (e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
+        if (e.target === e.currentTarget && e.key === 'Enter') {
             e.preventDefault();
             if (onNavigate) onNavigate();
         }
     };
 
     return (
-        <div className="hgc-card" role="button" tabIndex={0} onClick={handleCardClick} onKeyDown={handleKey}>
-            {/* Optional cover banner — only renders when an actual cover photo
-                has been uploaded. Replaces the prior 16:9 red-gradient fallback
-                that dominated the card with no content underneath it. */}
+        <PokerNearMePanelShell
+            as="article"
+            className="hgd-card"
+            bodyClassName="hgd-card__surface"
+            tabIndex={0}
+            role="link"
+            aria-label={`Open ${venue.name || 'Home Game'} Details`}
+            onClick={handleCardClick}
+            onKeyDown={handleKey}
+        >
             {venue.cover_url && (
-                <div className="hgc-cover">
-                    <img src={venue.cover_url} alt="" className="hgc-cover-img" loading="lazy" />
-                    <div className="hgc-cover-fade" />
-                </div>
+                <figure className="hgd-card__cover">
+                    <img src={venue.cover_url} alt="" loading="lazy" />
+                </figure>
             )}
 
-            {/* Header: avatar + name + host + city/state + distance + favorite */}
-            <div className="hgc-header">
-                <div className="hgc-avatar">
+            <header className="hgd-card__header">
+                <div className="hgd-card__avatar" aria-hidden="true">
                     {venue.avatar_url ? (
                         <img src={venue.avatar_url} alt="" loading="lazy" />
                     ) : (
-                        <div className="hgc-avatar-fallback">{(venue.name || 'H').charAt(0)}</div>
+                        <span>{(venue.name || 'H').charAt(0)}</span>
                     )}
                 </div>
-                <div className="hgc-title-block">
-                    <h3 className="hgc-name" title={venue.name}>{venue.name}</h3>
-                    <div className="hgc-host">
-                        {venue.host_display_name ? `Hosted by ${venue.host_display_name}` : 'Home Game'}
-                    </div>
-                    <div className="hgc-location">
-                        <svg className="hgc-pin" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-                            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-                            <circle cx="12" cy="10" r="3" />
-                        </svg>
+                <div className="hgd-card__identity">
+                    <h3 title={venue.name}>{venue.name}</h3>
+                    <p>{venue.host_display_name ? `Hosted By ${venue.host_display_name}` : 'Home Game'}</p>
+                    <div className="hgd-card__location">
+                        <PokerNearMeConsoleIcon name="location" />
                         <span>{venue.city || ''}{venue.state ? `, ${venue.state}` : ''}</span>
-                        <span className="hgc-badge-home">Home Game</span>
+                        <strong>Home Game</strong>
                     </div>
                 </div>
-                <div className="hgc-header-right">
+                <div className="hgd-card__commands">
                     {venue.distance_miles != null && (
-                        <div className="hgc-distance">
-                            <svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                                <path d="M3.4 20.6L12 2l8.6 18.6L12 17z" />
-                            </svg>
-                            {/* audit L-4: discover rounds to whole miles for host-address
-                                privacy — .toFixed(1) rendered a fake "7.0 mi" decimal. */}
+                        <span className="hgd-card__distance">
+                            <PokerNearMeConsoleIcon name="directions" />
                             {Math.round(Number(venue.distance_miles))} Mi
-                        </div>
+                        </span>
                     )}
                     {onFavorite && (
                         <button
-                            className={'hgc-fav' + (isFavorited ? ' hgc-fav-on' : '')}
+                            type="button"
+                            className={`hgd-icon-button${isFavorited ? ' is-active' : ''}`}
                             onClick={(e) => { e.stopPropagation(); onFavorite(e); }}
-                            aria-label={isFavorited ? 'Unfavorite' : 'Favorite'}
+                            aria-label={favoriteRequiresSignIn
+                                ? 'Sign In To Save Home Game'
+                                : isFavorited ? 'Remove From Saved Home Games' : 'Save Home Game'}
+                            aria-pressed={isFavorited}
                         >
-                            <svg width="15" height="15" viewBox="0 0 24 24" fill={isFavorited ? '#ef4444' : 'none'} stroke="currentColor" strokeWidth="2">
-                                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-                            </svg>
+                            <PokerNearMeConsoleIcon name="saved" />
                         </button>
                     )}
                 </div>
-            </div>
+            </header>
 
-            {/* NEXT GAME status row (only when a game is scheduled) */}
             {hasNextGame && (
-                <div className="hgc-status">
-                    <span className="hgc-status-label">NEXT GAME</span>
-                    <span className="hgc-status-value">
-                        {nextGameDate}
-                        {nextTimeLine ? ` · ${nextTimeLine}` : ''}
-                    </span>
-                    {venue.next_game_title && (
-                        <span className="hgc-status-title">· {venue.next_game_title}</span>
-                    )}
-                    {hasSeats && (
-                        <span className="hgc-status-pill hgc-status-pill-live">
-                            {seatsLeft} SEAT{seatsLeft === 1 ? '' : 'S'} LEFT
-                        </span>
-                    )}
-                    {isFull && (
-                        <span className="hgc-status-pill hgc-status-pill-full">FULL</span>
-                    )}
+                <div className="hgd-card__next-game">
+                    <PokerNearMeConsoleIcon name="calendar" />
+                    <div>
+                        <span>Next Game</span>
+                        <strong>{nextGameDate}{nextTimeLine ? ` · ${nextTimeLine}` : ''}</strong>
+                        {venue.next_game_title ? <small>{venue.next_game_title}</small> : null}
+                    </div>
+                    {hasSeats ? <b>{seatsLeft} Seat{seatsLeft === 1 ? '' : 's'} Left</b> : null}
+                    {isFull ? <b className="is-full">Full</b> : null}
                 </div>
             )}
 
-            {/* Body: STAKES | SCHEDULE two-column grid */}
-            <div className="hgc-body-grid">
-                <div className="hgc-col">
-                    <div className="hgc-col-label">STAKES</div>
-                    <div className="hgc-col-primary">{stakesLine || '-'}</div>
-                    {buyinLine && (
-                        <div className="hgc-col-sub">Buy-In {buyinLine}</div>
-                    )}
-                    {venue.max_players && (
-                        <div className="hgc-col-sub">{venue.max_players} Max Players</div>
-                    )}
-                </div>
-                <div className="hgc-col">
-                    <div className="hgc-col-label">SCHEDULE</div>
-                    <div className="hgc-col-primary">{freqLabel || 'On Demand'}</div>
-                    {daysLine && (
-                        <div className="hgc-col-sub">{daysLine}</div>
-                    )}
-                    {timeLine && (
-                        <div className="hgc-col-sub">{timeLine}</div>
-                    )}
-                </div>
+            <div className="hgd-card__facts">
+                <section>
+                    <span>Stakes</span>
+                    <strong>{stakesLine || 'Not Listed'}</strong>
+                    {buyinLine ? <small>Buy-In {buyinLine}</small> : null}
+                    {venue.max_players ? <small>{venue.max_players} Max Players</small> : null}
+                </section>
+                <section>
+                    <span>Schedule</span>
+                    <strong>{freqLabel || 'On Demand'}</strong>
+                    {daysLine ? <small>{daysLine}</small> : null}
+                    {timeLine ? <small>{timeLine}</small> : null}
+                </section>
             </div>
 
-            {/* Footer: stats + Details action */}
-            <div className="hgc-footer">
-                <div className="hgc-stats">
+            <footer className="hgd-card__footer">
+                <div className="hgd-card__stats">
                     <span><strong>{venue.member_count || 0}</strong> Members</span>
-                    <span>·</span>
                     <span><strong>{venue.saves_count || 0}</strong> Followers</span>
-                    {venue.games_hosted > 0 && (
-                        <>
-                            <span>·</span>
-                            <span><strong>{venue.games_hosted}</strong> Hosted</span>
-                        </>
-                    )}
+                    {venue.games_hosted > 0 ? <span><strong>{venue.games_hosted}</strong> Hosted</span> : null}
                 </div>
                 <button
-                    className="hgc-action-btn"
+                    type="button"
+                    className="hgd-painted-button hgd-painted-button--secondary hgd-card__details"
                     onClick={(e) => { e.stopPropagation(); if (onNavigate) onNavigate(); }}
                 >
-                    Details
-                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true">
-                        <polyline points="9 18 15 12 9 6" />
-                    </svg>
+                    <PokerNearMeConsoleIcon name="more" />
+                    <span>Details</span>
                 </button>
-            </div>
-
-            <style>{`
-                .hgc-card {
-                    display: flex;
-                    flex-direction: column;
-                    background: linear-gradient(160deg, rgba(15,23,42,.85) 0%, rgba(8,14,26,.95) 100%);
-                    border: 1.5px solid rgba(148,163,184,.15);
-                    border-radius: 14px;
-                    overflow: hidden;
-                    cursor: pointer;
-                    transition: border-color .15s ease, transform .15s ease, box-shadow .15s ease;
-                }
-                .hgc-card:hover,
-                .hgc-card:active {
-                    border-color: rgba(59,130,246,.5);
-                    box-shadow: 0 10px 28px rgba(0,0,0,.5), 0 0 20px rgba(59,130,246,.12);
-                }
-                .hgc-card:focus-visible {
-                    border-color: rgba(59,130,246,.5);
-                    transform: translateY(-2px);
-                    box-shadow: 0 10px 28px rgba(0,0,0,.5), 0 0 20px rgba(59,130,246,.12);
-                    outline: none;
-                }
-                .hgc-cover {
-                    position: relative;
-                    height: 90px;
-                    background: linear-gradient(135deg, #1e293b, #0f172a);
-                    overflow: hidden;
-                }
-                .hgc-cover-img { width: 100%; height: 100%; object-fit: cover; }
-                .hgc-cover-fade {
-                    position: absolute; inset: 0;
-                    background: linear-gradient(180deg, rgba(10,15,28,0) 50%, rgba(10,15,28,.55) 100%);
-                    pointer-events: none;
-                }
-                .hgc-header {
-                    display: flex;
-                    gap: 12px;
-                    padding: 14px;
-                    align-items: flex-start;
-                }
-                .hgc-avatar {
-                    width: 48px; height: 48px;
-                    border-radius: 8px;
-                    overflow: hidden;
-                    background: #1a1f2e;
-                    flex-shrink: 0;
-                    border: 1px solid rgba(59,130,246,.25);
-                }
-                .hgc-avatar img { width: 100%; height: 100%; object-fit: cover; }
-                .hgc-avatar-fallback {
-                    width: 100%; height: 100%;
-                    display: flex; align-items: center; justify-content: center;
-                    font-size: 20px; font-weight: 900; color: #60a5fa;
-                }
-                .hgc-title-block { min-width: 0; flex: 1; }
-                .hgc-name {
-                    font-size: 15px; font-weight: 800; margin: 0 0 2px;
-                    color: #fff;
-                    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-                    letter-spacing: -.2px;
-                }
-                .hgc-host {
-                    font-size: 12px; color: rgba(255,255,255,.55);
-                    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-                }
-                .hgc-location {
-                    font-size: 11px;
-                    color: rgba(148,163,184,.7);
-                    margin-top: 4px;
-                    display: flex; align-items: center; gap: 5px;
-                    flex-wrap: wrap;
-                }
-                .hgc-pin { opacity: .8; flex-shrink: 0; }
-                .hgc-badge-home {
-                    display: inline-flex; align-items: center;
-                    padding: 2px 7px;
-                    background: rgba(59,130,246,.12);
-                    border: 1px solid rgba(59,130,246,.25);
-                    color: #60a5fa;
-                    font-size: 9px;
-                    font-weight: 800;
-                    letter-spacing: .8px;
-                    text-transform: uppercase;
-                    border-radius: 3px;
-                }
-                .hgc-header-right {
-                    display: flex; flex-direction: column; gap: 6px; align-items: flex-end;
-                    flex-shrink: 0;
-                }
-                .hgc-distance {
-                    display: inline-flex; align-items: center; gap: 4px;
-                    font-size: 11px;
-                    font-weight: 700;
-                    color: rgba(255,255,255,.65);
-                    background: rgba(255,255,255,.04);
-                    border: 1px solid rgba(148,163,184,.18);
-                    padding: 3px 8px;
-                    border-radius: 12px;
-                }
-                .hgc-fav {
-                    /* The favourite control measured 30x44 on a phone: the
-                       44px floor was met on one axis only, so the hit box was
-                       14px short of the rule on the other. */
-                    width: 44px; height: 44px;
-                    min-width: 44px; min-height: 44px;
-                    border-radius: 50%;
-                    background: rgba(10,10,21,.65);
-                    border: 1px solid rgba(255,255,255,.1);
-                    color: rgba(255,255,255,.8);
-                    cursor: pointer;
-                    display: flex; align-items: center; justify-content: center;
-                    backdrop-filter: blur(4px);
-                    -webkit-backdrop-filter: blur(4px);
-                    transition: background .15s ease;
-                }
-                .hgc-fav:hover { background: rgba(59,130,246,.4); }
-                .hgc-fav-on { color: #60a5fa; }
-
-                .hgc-status {
-                    display: flex;
-                    align-items: center;
-                    gap: 8px;
-                    padding: 8px 12px;
-                    margin: 0 14px 12px;
-                    background: rgba(16,185,129,.08);
-                    border: 1px solid rgba(16,185,129,.2);
-                    border-radius: 6px;
-                    flex-wrap: wrap;
-                    font-size: 12px;
-                }
-                .hgc-status-label {
-                    font-size: 9px;
-                    font-weight: 900;
-                    color: #10b981;
-                    letter-spacing: 1px;
-                    padding: 2px 6px;
-                    background: rgba(16,185,129,.15);
-                    border-radius: 3px;
-                }
-                .hgc-status-value {
-                    font-weight: 700;
-                    color: rgba(255,255,255,.9);
-                }
-                .hgc-status-title {
-                    color: rgba(255,255,255,.55);
-                    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-                    max-width: 100%;
-                    flex: 1 1 auto;
-                }
-                .hgc-status-pill {
-                    margin-left: auto;
-                    padding: 3px 8px;
-                    font-size: 10px;
-                    font-weight: 800;
-                    letter-spacing: .5px;
-                    border-radius: 3px;
-                }
-                .hgc-status-pill-live { background: rgba(16,185,129,.92); color: #fff; }
-                .hgc-status-pill-full { background: rgba(148,163,184,.45); color: rgba(255,255,255,.85); }
-
-                .hgc-body-grid {
-                    display: grid;
-                    grid-template-columns: 1fr 1fr;
-                    gap: 1px;
-                    background: rgba(148,163,184,.12);
-                    margin: 0 14px;
-                    border: 1px solid rgba(148,163,184,.12);
-                    border-radius: 6px;
-                    overflow: hidden;
-                }
-                .hgc-col {
-                    padding: 10px 12px;
-                    background: rgba(15,23,42,.5);
-                    display: flex; flex-direction: column; gap: 2px;
-                }
-                .hgc-col-label {
-                    font-size: 10px;
-                    font-weight: 800;
-                    color: rgba(148,163,184,.6);
-                    letter-spacing: .8px;
-                    text-transform: uppercase;
-                    margin-bottom: 4px;
-                }
-                .hgc-col-primary {
-                    font-size: 13px;
-                    font-weight: 700;
-                    color: rgba(255,255,255,.9);
-                }
-                .hgc-col-sub {
-                    font-size: 11px;
-                    color: rgba(255,255,255,.55);
-                }
-
-                .hgc-footer {
-                    display: flex;
-                    align-items: center;
-                    justify-content: space-between;
-                    gap: 10px;
-                    padding: 12px 14px;
-                    flex-wrap: wrap;
-                }
-                .hgc-stats {
-                    display: flex;
-                    gap: 6px;
-                    font-size: 11px;
-                    color: rgba(255,255,255,.45);
-                    flex-wrap: wrap;
-                    align-items: center;
-                }
-                .hgc-stats strong { color: #fff; font-weight: 700; margin-right: 3px; }
-                .hgc-action-btn {
-                    display: inline-flex;
-                    align-items: center;
-                    gap: 5px;
-                    padding: 7px 14px;
-                    background: rgba(59,130,246,.12);
-                    border: 1px solid rgba(59,130,246,.3);
-                    color: #60a5fa;
-                    font-size: 12px;
-                    font-weight: 700;
-                    letter-spacing: .3px;
-                    border-radius: 6px;
-                    cursor: pointer;
-                    transition: all .15s ease;
-                }
-                .hgc-action-btn:hover {
-                    background: rgba(59,130,246,.2);
-                    border-color: rgba(59,130,246,.5);
-                }
-            `}</style>
-        </div>
+            </footer>
+        </PokerNearMePanelShell>
     );
 }
 
@@ -482,13 +228,14 @@ function HomeGameCard({ venue, onNavigate, onFavorite, isFavorited }) {
 export default function HomeGamesPage() {
     const router = useRouter();
     const { user } = useAvatar();
-    const bus = useTrainingBus();
+    useTrainingBus();
     const userId = user?.id;
 
     // Data states
     const [venues, setVenues] = useState([]);
-    const [allHomeGames, setAllHomeGames] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [loadError, setLoadError] = useState('');
+    const [loadRevision, setLoadRevision] = useState(0);
     const [searchQuery, setSearchQuery] = useState('');
     const [userLocation, setUserLocation] = useState(null);
     const [gpsLoading, setGpsLoading] = useState(false);
@@ -542,6 +289,8 @@ export default function HomeGamesPage() {
         const ac = new AbortController();
         const token = getAccessToken();
         const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+        setLoading(true);
+        setLoadError('');
 
         // audit H-1: this used to request `?limit=100` with NO lat/lng and a
         // `[]` dep array. Without coordinates discover takes its non-GPS
@@ -562,20 +311,50 @@ export default function HomeGamesPage() {
             params.set('state', filters.selectedState);
         }
         if (searchQuery.trim()) params.set('search', searchQuery.trim());
-        if (!scoped && userLocation?.lat != null && userLocation?.lng != null) {
+        if (
+            !scoped
+            && filters.radius !== 'Any'
+            && userLocation?.lat != null
+            && userLocation?.lng != null
+        ) {
             params.set('lat', String(userLocation.lat));
             params.set('lng', String(userLocation.lng));
-            params.set('radius_miles',
-                filters.radius === 'Any' ? '150' : String(Math.min(Number(filters.radius) || 150, 150)));
+            params.set('radius_miles', String(Math.min(Number(filters.radius) || 100, 500)));
         }
-        fetch(`/api/public/home-games/discover?${params.toString()}`, { signal: ac.signal, headers })
-            .then(r => r.json())
-            .then(json => {
-                if (!json?.success) throw new Error(json?.error || 'discover failed');
-                const rows = Array.isArray(json.groups) ? json.groups : [];
+        setDisplayCount(PAGE_SIZE);
+
+        (async () => {
+            const rows = [];
+            let offset = 0;
+            let hasMore = true;
+            let pageCount = 0;
+            while (hasMore && pageCount < 501) {
+                params.set('offset', String(offset));
+                const response = await fetch(
+                    `/api/public/home-games/discover?${params.toString()}`,
+                    { signal: ac.signal, headers },
+                );
+                const json = await response.json();
+                if (!response.ok || !json?.success) {
+                    throw new Error(json?.error || `discover failed (${response.status})`);
+                }
+                const pageRows = Array.isArray(json.groups) ? json.groups : [];
+                rows.push(...pageRows);
+                hasMore = json?.pagination?.has_more === true;
+                offset = Number(json?.pagination?.next_offset);
+                if (hasMore && (!Number.isFinite(offset) || offset < 0)) {
+                    throw new Error('discover pagination cursor is invalid');
+                }
+                pageCount += 1;
+            }
+            if (hasMore) throw new Error('discover pagination exceeded its safety bound');
+
+            // A row can move between pages while activity changes. Keep the
+            // first occurrence so a live refresh never renders duplicate cards.
+            const uniqueRows = Array.from(new Map(rows.map((row) => [String(row.id), row])).values());
                 // Adapt to the shape VenueCard/VenueMap expect: they look for
                 // id, name, city, state, latitude, longitude, venue_type.
-                const adapted = rows.map(g => ({
+                const adapted = uniqueRows.map(g => ({
                     id: g.id,
                     slug: g.slug,                       // canonical URL key
                     club_code: g.club_code,             // share fallback
@@ -640,21 +419,20 @@ export default function HomeGamesPage() {
                     distance_mi: g.distance_miles ?? null,
                     has_tournaments: !!g.next_game_date,
                 }));
-                setAllHomeGames(adapted);
                 setVenues(adapted);
+                setLoadError('');
                 setLoading(false);
-            })
-            .catch((e) => {
+        })().catch((e) => {
                 if (e?.name === 'AbortError') return;
                 console.warn('[home-games] discover load failed:', e);
-                setAllHomeGames([]);
                 setVenues([]);
+                setLoadError('Home Games Could Not Be Loaded. Please Try Again.');
                 setLoading(false);
             });
         return () => ac.abort();
         // Re-query when the user's location or scope changes. Previously `[]`,
         // so the GPS fix acquired below never reached the API.
-    }, [userLocation, filters.selectedState, filters.radius, searchQuery]);
+    }, [userLocation, filters.selectedState, filters.radius, searchQuery, loadRevision]);
 
     // Restore a recent, previously accepted location without prompting. Fresh
     // geolocation requests are always initiated by the visible Enable GPS
@@ -741,7 +519,10 @@ export default function HomeGamesPage() {
     // Toggle favorite (Optimistic with Rollback)
     const toggleFavorite = async (venueId, e, venueData) => {
         if (e) e.stopPropagation();
-        if (!userId) return;
+        if (!userId) {
+            router.push(`/auth/login?redirect=${encodeURIComponent('/hub/home-games')}`);
+            return;
+        }
         const key = 'venue-' + venueId;
         const isFav = !!favorites[key];
         if (isFav) {
@@ -834,7 +615,6 @@ export default function HomeGamesPage() {
     const remaining = sortedVenues.length - displayed.length;
 
     // Handle search
-    const searchDebounceRef = useRef(null);
     const handleSearchChange = (e) => {
         setSearchQuery(e.target.value);
     };
@@ -844,13 +624,7 @@ export default function HomeGamesPage() {
     };
 
     // Get unique states from home game venues
-    const availableStates = useMemo(() => {
-        const states = new Set();
-        (allHomeGames.length > 0 ? allHomeGames : venues).forEach(v => {
-            if (v.state) states.add(v.state);
-        });
-        return Array.from(states).sort();
-    }, [venues, allHomeGames]);
+    const availableStates = useMemo(() => Object.keys(US_STATES_BY_CODE).sort(), []);
 
     return (
         <>
@@ -861,12 +635,14 @@ export default function HomeGamesPage() {
                 jsonLd={HOME_GAMES_SCHEMA}
             />
 
-            <div className="space-bg"><div className="space-overlay" /></div>
+            <div className="hgd-backdrop" aria-hidden="true" />
 
-            <div className="hg-page">
-                <UniversalHeader pageDepth={1} onMenuClick={() => setMenuOpen(true)} onBackClick={() => {
-                    router.back();
-                }} />
+            <div className="hg-page hgd-page" data-pnm-home-games-directory="true">
+                <UniversalHeader
+                    pageDepth={1}
+                    onMenuClick={() => setMenuOpen(true)}
+                    onBackClick={() => router.back()}
+                />
 
                 <PokerNearMeFamilyNav />
 
@@ -876,108 +652,162 @@ export default function HomeGamesPage() {
                     user={user}
                 />
 
-                <main data-pnm-secondary-foundation="interaction-v1">
+                <main className="hgd-directory" data-pnm-secondary-foundation="interaction-v1">
+                    <section className="hgd-hero-stage" aria-labelledby="home-games-directory-title">
+                        <PokerNearMeConsole
+                            className="hgd-hero"
+                            eyebrow="Private Poker Discovery"
+                            title="Home Games"
+                            titleId="home-games-directory-title"
+                            titleAs="h1"
+                            subtitle="Find Local Games, Follow Trusted Hosts, Or Open Your Own Table"
+                            pill={loading ? 'Searching' : `${sortedVenues.length} Found`}
+                            crest="club"
+                            foot="foot"
+                        />
+                    </section>
 
-                {/* ═══ PAGE TITLE ═══ */}
-                <div className="hg-title-bar">
-                    <h1 className="hg-title">HOME GAMES</h1>
-                    <p className="hg-subtitle">Private Games • Local Community • Your Table</p>
-                </div>
-
-                {/* ═══ SIDEBAR + MAIN LAYOUT ═══ */}
-                <div className="hg-layout">
-
-                    {/* ─── LEFT SIDEBAR ─── */}
-                    <aside className="hg-sidebar" role="navigation" aria-label="Home Games navigation">
-                        {/* GPS LOCATION */}
-                        <div className="hg-sidebar-filters">
-                            {!userLocation && (
-                                <button className={'hg-gps-btn' + (gpsLoading ? ' loading' : '')} onClick={requestGpsLocation} disabled={gpsLoading}>
-                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                        <circle cx="12" cy="12" r="3" />
-                                        <path d="M12 2v4M12 18v4M2 12h4M18 12h4" />
-                                    </svg>
-                                    {gpsLoading ? 'Locating...' : 'Enable GPS'}
-                                </button>
-                            )}
-
-                            {userLocation && gpsLocationLabel && (
-                                <div className="hg-gps-label">
-                                    <div className="hg-gps-pulse" />
-                                    <div style={{ flex: 1, minWidth: 0 }}>
-                                        <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px', color: 'rgba(74,222,128,0.7)', marginBottom: 2 }}>Your Location</div>
-                                        <strong style={{ fontSize: 13 }}>{gpsLocationLabel}</strong>
-                                    </div>
-                                    <button onClick={() => { setUserLocation(null); setGpsLocationLabel(null); }} className="hg-gps-clear" title="Clear Location">&times;</button>
+                    <div className="hgd-layout">
+                        <PokerNearMePanelShell
+                            as="aside"
+                            className="hgd-filter-console"
+                            bodyClassName="hgd-filter-console__body"
+                            aria-label="Home Game Discovery Controls"
+                        >
+                            <header className="hgd-panel-heading">
+                                <PokerNearMeConsoleIcon name="filter" />
+                                <div>
+                                    <span>Discovery Controls</span>
+                                    <strong>Refine The Directory</strong>
                                 </div>
-                            )}
+                            </header>
 
-                            {/* SEARCH */}
-                            <form className="hg-search-form" onSubmit={handleSearch}>
-                                <svg className="hg-search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                    <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
-                                </svg>
+                            {!userLocation ? (
+                                <button
+                                    type="button"
+                                    className="hgd-painted-button hgd-painted-button--secondary hgd-gps-button"
+                                    onClick={requestGpsLocation}
+                                    disabled={gpsLoading}
+                                >
+                                    <PokerNearMeConsoleIcon name="location" />
+                                    <span>{gpsLoading ? 'Locating...' : 'Enable GPS'}</span>
+                                </button>
+                            ) : null}
+
+                            {userLocation && gpsLocationLabel ? (
+                                <div className="hgd-location-readout" aria-live="polite">
+                                    <PokerNearMeConsoleIcon name="location" />
+                                    <div>
+                                        <span>Your Location</span>
+                                        <strong>{gpsLocationLabel}</strong>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        className="hgd-icon-button"
+                                        onClick={() => {
+                                            setUserLocation(null);
+                                            setGpsLocationLabel(null);
+                                        }}
+                                        aria-label="Clear Location"
+                                        title="Clear Location"
+                                    >
+                                        <PokerNearMeConsoleIcon name="close" />
+                                    </button>
+                                </div>
+                            ) : null}
+
+                            <form className="hgd-search-well" role="search" onSubmit={handleSearch}>
+                                <PokerNearMeConsoleIcon name="search" />
                                 <input
-                                    type="text"
-                                    className="hg-search-input"
+                                    type="search"
                                     placeholder="Search Home Games..."
                                     value={searchQuery}
                                     onChange={handleSearchChange}
                                     autoComplete="off"
+                                    aria-label="Search Home Games"
                                 />
                             </form>
 
-                            <div className="hg-section-title">Filters</div>
-
-                            {/* RADIUS */}
-                            <div className="hg-filter-group">
-                                <label>Radius</label>
-                                <select
-                                    value={filters.radius}
-                                    onChange={e => setFilters({ ...filters, radius: e.target.value === 'Any' ? 'Any' : Number(e.target.value) })}
-                                    className="hg-select"
-                                >
-                                    <option value={25}>25 Mi</option>
-                                    <option value={50}>50 Mi</option>
-                                    <option value={100}>100 Mi</option>
-                                    <option value={200}>200 Mi</option>
-                                    <option value={500}>500 Mi</option>
-                                    <option value="Any">Any</option>
-                                </select>
-                            </div>
-
-                            {/* STATE */}
-                            <div className="hg-filter-group">
-                                <label>State</label>
-                                <select
-                                    value={filters.selectedState}
-                                    onChange={e => setFilters(f => ({ ...f, selectedState: e.target.value }))}
-                                    className="hg-select"
-                                >
-                                    <option value="all">All States</option>
-                                    {availableStates.map(st => (
-                                        <option key={st} value={st}>{st}</option>
-                                    ))}
-                                </select>
-                            </div>
-
-                            {/* HOST A GAME CTA */}
-                            <HostHomeGameButton className="hg-host-btn" />
-                        </div>
-                    </aside>
-
-                    {/* ─── MAIN CONTENT ─── */}
-                    <div className="hg-main">
-                        <div className="hg-content">
-                            {loading ? (
-                                <div className="hg-loading">
-                                    <div className="hg-spinner" />
-                                    <p>Finding Home Games Near You...</p>
+                            <div className="hgd-filter-console__section">
+                                <span>Filters</span>
+                                <div className="hgd-filter-field">
+                                    <label htmlFor="home-games-radius">Radius</label>
+                                    <div className="hgd-select-well">
+                                        <select
+                                            id="home-games-radius"
+                                            value={filters.radius}
+                                            disabled={!userLocation}
+                                            aria-describedby={!userLocation ? 'home-games-radius-hint' : undefined}
+                                            onChange={e => setFilters({ ...filters, radius: e.target.value === 'Any' ? 'Any' : Number(e.target.value) })}
+                                        >
+                                            <option value={25}>25 Mi</option>
+                                            <option value={50}>50 Mi</option>
+                                            <option value={100}>100 Mi</option>
+                                            <option value={200}>200 Mi</option>
+                                            <option value={500}>500 Mi</option>
+                                            <option value="Any">Any</option>
+                                        </select>
+                                    </div>
+                                    {!userLocation ? (
+                                        <small id="home-games-radius-hint">Enable Location To Filter By Distance.</small>
+                                    ) : null}
                                 </div>
+
+                                <div className="hgd-filter-field">
+                                    <label htmlFor="home-games-state">State</label>
+                                    <div className="hgd-select-well">
+                                        <select
+                                            id="home-games-state"
+                                            value={filters.selectedState}
+                                            onChange={e => setFilters(f => ({ ...f, selectedState: e.target.value }))}
+                                        >
+                                            <option value="all">All States</option>
+                                            {availableStates.map(st => (
+                                                <option key={st} value={st}>{st}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <HostHomeGameButton className="hgd-host-action" />
+                        </PokerNearMePanelShell>
+
+                        <section className="hgd-results" aria-label="Home Game Search Results">
+                            {loading ? (
+                                <PokerNearMePanelShell
+                                    as="section"
+                                    className="hgd-state-console"
+                                    bodyClassName="hgd-state-console__body"
+                                    aria-live="polite"
+                                    aria-busy="true"
+                                >
+                                    <PokerNearMeConsoleIcon name="globe" className="hgd-state-console__spinner" />
+                                    <h2>Finding Home Games Near You</h2>
+                                    <p>Scanning The Community Directory And Privacy-Safe Map.</p>
+                                </PokerNearMePanelShell>
+                            ) : loadError ? (
+                                <PokerNearMePanelShell
+                                    as="section"
+                                    className="hgd-state-console"
+                                    bodyClassName="hgd-state-console__body"
+                                    role="alert"
+                                >
+                                    <PokerNearMeConsoleIcon name="info" />
+                                    <h2>Directory Connection Interrupted</h2>
+                                    <p>{loadError}</p>
+                                    <button
+                                        type="button"
+                                        className="hgd-painted-button hgd-painted-button--primary"
+                                        onClick={() => setLoadRevision(value => value + 1)}
+                                    >
+                                        <PokerNearMeConsoleIcon name="globe" />
+                                        <span>Try Again</span>
+                                    </button>
+                                </PokerNearMePanelShell>
                             ) : (
                                 <>
-                                    {/* MAP */}
-                                    <div className="hg-map-card">
+                                    <div className="hgd-map-stage">
                                         <MapErrorBoundary>
                                             <VenueMap
                                                 venues={sortedVenues}
@@ -987,927 +817,106 @@ export default function HomeGamesPage() {
                                                 mapEyebrow="Community Game Map"
                                                 mapTitle="Home Games Near You"
                                                 mapDetail={`${sortedVenues.length} Privacy Safe Locations · Exact Addresses Stay Private`}
-                                                onVenueClick={(venue) => {
-                                                    // Unified routing: prefer public slug (canonical URL);
-                                                    // fall back to club/invite code share page; last resort
-                                                    // is staying put. Never send to /hub/venues anymore —
-                                                    // those don't resolve for home games.
-                                                    if (venue?.slug) {
-                                                        router.push('/hub/home-games/' + venue.slug);
-                                                    } else if (venue?.club_code) {
-                                                        router.push('/home-game/' + venue.club_code);
-                                                    }
-                                                }}
+                                                onVenueClick={(venue) => router.push(homeGameUrl(venue))}
                                             />
                                         </MapErrorBoundary>
                                     </div>
 
-                                    {/* RESULTS BAR */}
-                                    <div className="hg-results-bar">
-                                        <span className="hg-results-count">{sortedVenues.length} Home Game{sortedVenues.length !== 1 ? 's' : ''} Found</span>
-
-                                        <div className="hg-sort-wrapper">
-                                            <label className="hg-sort-label">Sort:</label>
-                                            <select
-                                                value={sortBy}
-                                                onChange={e => setSortBy(e.target.value)}
-                                                className="hg-sort-select"
-                                            >
-                                                <option value="default">{userLocation ? 'Nearest First' : 'Default'}</option>
-                                                <option value="distance">Distance (Nearest)</option>
-                                                <option value="trust-desc">Trust Score (High → Low)</option>
-                                                <option value="name-az">Name (A → Z)</option>
-                                                <option value="name-za">Name (Z → A)</option>
-                                            </select>
+                                    <PokerNearMePanelShell
+                                        as="section"
+                                        className="hgd-results-console"
+                                        bodyClassName="hgd-results-console__body"
+                                        aria-label="Result Count And Sorting"
+                                    >
+                                        <div className="hgd-results-count">
+                                            <PokerNearMeConsoleIcon name="community" />
+                                            <span>{sortedVenues.length} Home Game{sortedVenues.length !== 1 ? 's' : ''} Found</span>
                                         </div>
-
-                                    </div>
-
-                                    {/* VENUE CARDS */}
-                                    {sortedVenues.length === 0 ? (
-                                        <div className="hg-empty">
-                                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth="1.5">
-                                                <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
-                                                <polyline points="9 22 9 12 15 12 15 22" />
-                                            </svg>
-                                            <p>No Home Games Found</p>
-                                            <p style={{ fontSize: 13, opacity: 0.5, marginTop: 4 }}>Try Adjusting Your Filters Or Expanding Your Radius</p>
-                                            <div style={{ marginTop: 16 }}>
-                                                <HostHomeGameButton />
+                                        <div className="hgd-sort-control">
+                                            <label htmlFor="home-games-sort">Sort</label>
+                                            <div className="hgd-select-well">
+                                                <select
+                                                    id="home-games-sort"
+                                                    value={sortBy}
+                                                    onChange={e => setSortBy(e.target.value)}
+                                                >
+                                                    <option value="default">{userLocation ? 'Nearest First' : 'Default'}</option>
+                                                    <option value="distance">Distance (Nearest)</option>
+                                                    <option value="trust-desc">Trust Score (High To Low)</option>
+                                                    <option value="name-az">Name (A To Z)</option>
+                                                    <option value="name-za">Name (Z To A)</option>
+                                                </select>
                                             </div>
                                         </div>
+                                    </PokerNearMePanelShell>
+
+                                    {sortedVenues.length === 0 ? (
+                                        <PokerNearMePanelShell
+                                            as="section"
+                                            className="hgd-state-console"
+                                            bodyClassName="hgd-state-console__body"
+                                        >
+                                            <PokerNearMeConsoleIcon name="home" />
+                                            <h2>No Home Games Found</h2>
+                                            <p>Adjust Your Filters Or Expand Your Search Radius.</p>
+                                            <HostHomeGameButton />
+                                        </PokerNearMePanelShell>
                                     ) : (
-                                        <div className="hg-cards-section">
-                                            <div className="hg-card-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px', alignItems: 'stretch' }}>
+                                        <div className="hgd-cards-section">
+                                            <div className="hgd-card-grid">
                                                 {displayed.map((venue, i) => (
                                                     <HomeGameCard
                                                         key={venue.id || i}
                                                         venue={venue}
                                                         isFavorited={!!favorites['venue-' + venue.id]}
+                                                        favoriteRequiresSignIn={!userId}
                                                         onFavorite={(e) => toggleFavorite(venue.id, e, venue)}
-                                                        onNavigate={() => {
-                                                            // Unified routing: prefer slug, fall back to invite/club code share page
-                                                            if (venue?.slug) {
-                                                                router.push('/hub/home-games/' + venue.slug);
-                                                            } else if (venue?.club_code) {
-                                                                router.push('/home-game/' + venue.club_code);
-                                                            }
-                                                        }}
+                                                        onNavigate={() => router.push(homeGameUrl(venue))}
                                                     />
                                                 ))}
                                             </div>
-                                            {remaining > 0 && (
-                                                <div className="hg-load-more">
-                                                    <button className="hg-load-more-btn" onClick={() => setDisplayCount(prev => prev + PAGE_SIZE)}>
-                                                        Show More ({remaining} Remaining)
+                                            {remaining > 0 ? (
+                                                <div className="hgd-load-more">
+                                                    <button
+                                                        type="button"
+                                                        className="hgd-painted-button hgd-painted-button--secondary"
+                                                        onClick={() => setDisplayCount(prev => prev + PAGE_SIZE)}
+                                                    >
+                                                        <PokerNearMeConsoleIcon name="more" />
+                                                        <span>Show More ({remaining} Remaining)</span>
                                                     </button>
                                                 </div>
-                                            )}
+                                            ) : null}
                                         </div>
                                     )}
                                 </>
                             )}
+                        </section>
+                    </div>
+
+                    <PokerNearMePanelShell
+                        as="footer"
+                        className="hgd-location-console"
+                        bodyClassName="hgd-location-console__body"
+                    >
+                        <PokerNearMeConsoleIcon name="location" />
+                        <div>
+                            <span>Location Signal</span>
+                            <strong>{gpsLocationLabel || 'GPS Not Enabled'}</strong>
                         </div>
-                    </div>
-                </div>
-
-                {/* ═══ RED PIN + YOUR LOCATION — BOTTOM ═══ */}
-                <div className="hg-location-footer">
-                    <div className="hg-red-pin">
-                        <svg width="32" height="42" viewBox="0 0 32 42" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M16 0C7.164 0 0 7.164 0 16c0 12 16 26 16 26s16-14 16-26C32 7.164 24.836 0 16 0z" fill="#ef4444"/>
-                            <circle cx="16" cy="16" r="7" fill="#fff"/>
-                            <circle cx="16" cy="16" r="4" fill="#ef4444"/>
-                            {/* Glow effect */}
-                            <circle cx="16" cy="16" r="10" fill="none" stroke="#ef4444" strokeWidth="1" opacity="0.4">
-                                <animate attributeName="r" values="10;14;10" dur="2s" repeatCount="indefinite"/>
-                                <animate attributeName="opacity" values="0.4;0;0.4" dur="2s" repeatCount="indefinite"/>
-                            </circle>
-                        </svg>
-                    </div>
-                    <div className="hg-location-text">YOUR LOCATION</div>
-                    {gpsLocationLabel && (
-                        <div className="hg-location-city">{gpsLocationLabel}</div>
-                    )}
-                </div>
-
+                    </PokerNearMePanelShell>
                 </main>
 
-                {/* ═══ SMART LOCATION ENABLE MODAL ═══ */}
                 <LocationEnableModal
                     isOpen={showLocationModal}
                     onClose={() => setShowLocationModal(false)}
-                    onRetry={() => { setShowLocationModal(false); requestGpsLocation(); }}
+                    onRetry={() => {
+                        setShowLocationModal(false);
+                        requestGpsLocation();
+                    }}
                 />
-
-                {/* Raw style text is not hydration-safe when the CSS contains
-                    apostrophes: SSR entity-escapes them inside the style raw
-                    text element while the client creates literal characters.
-                    Emit one identical text payload in both environments. */}
-                <style dangerouslySetInnerHTML={{ __html: `
-                    .hg-page {
-                        min-height: 100vh;
-                        padding-bottom: 70px;
-                        display: flex;
-                        flex-direction: column;
-                        position: relative;
-                        color: #fff;
-                        font-family: 'Inter', -apple-system, sans-serif;
-                        overflow-x: hidden;
-                    }
-
-                    /* ═══ PAGE TITLE — WHITE ═══ */
-                    .hg-title-bar {
-                        text-align: center;
-                        padding: clamp(12px, 2vh, 28px) 20px clamp(8px, 1.5vh, 18px);
-                        position: relative;
-                        flex-shrink: 0;
-                    }
-                    .hg-title {
-                        font-size: clamp(22px, 3.5vw, 36px);
-                        font-weight: 900;
-                        letter-spacing: clamp(1.5px, 0.3vw, 3px);
-                        margin: 0;
-                        color: #ffffff;
-                        text-shadow: 0 0 30px rgba(255,255,255,0.15), 0 2px 4px rgba(0,0,0,0.5);
-                    }
-                    .hg-subtitle {
-                        margin: clamp(3px, 0.5vh, 6px) 0 0;
-                        font-size: clamp(11px, 1.2vw, 14px);
-                        color: rgba(148,163,184,0.6);
-                        letter-spacing: 1px;
-                        font-weight: 500;
-                    }
-
-                    /* ═══ LAYOUT ═══ */
-                    .hg-layout {
-                        display: flex;
-                        width: 100%;
-                        max-width: 1600px;
-                        margin: 0 auto;
-                        min-height: calc(100vh - 160px);
-                        gap: 0;
-                    }
-
-                    /* ═══ SIDEBAR ═══ */
-                    .hg-sidebar {
-                        width: clamp(130px, 12vw, 175px);
-                        min-width: clamp(130px, 12vw, 175px);
-                        flex-shrink: 0;
-                        background: linear-gradient(180deg, rgba(12,20,35,0.97) 0%, rgba(8,14,26,0.99) 100%);
-                        border-right: 2px solid rgba(148,163,184,0.12);
-                        padding: 6px 0;
-                        position: sticky;
-                        top: 64px;
-                        height: calc(100vh - 64px);
-                        overflow-y: auto;
-                        overflow-x: hidden;
-                        z-index: 50;
-                        box-shadow: 4px 0 24px rgba(0,0,0,0.3);
-                        scrollbar-width: thin;
-                        scrollbar-color: rgba(239,68,68,0.3) transparent;
-                    }
-                    .hg-sidebar::-webkit-scrollbar { width: 4px; }
-                    .hg-sidebar::-webkit-scrollbar-thumb { background: rgba(239,68,68,0.25); border-radius: 2px; }
-
-                    .hg-sidebar-filters {
-                        padding: 8px 8px;
-                    }
-
-                    .hg-section-title {
-                        font-size: 11px;
-                        font-weight: 800;
-                        text-transform: uppercase;
-                        letter-spacing: 1.5px;
-                        color: rgba(148,163,184,0.4);
-                        margin-bottom: 10px;
-                        margin-top: 6px;
-                        padding: 0 4px;
-                    }
-
-                    .hg-gps-btn {
-                        display: flex;
-                        align-items: center;
-                        gap: 8px;
-                        width: 100%;
-                        padding: 10px 12px;
-                        background: linear-gradient(135deg, rgba(239,68,68,0.12) 0%, rgba(200,50,50,0.08) 100%);
-                        border: 1.5px solid rgba(239,68,68,0.35);
-                        border-radius: 10px;
-                        color: #ef4444;
-                        font-size: 13px;
-                        font-weight: 700;
-                        cursor: pointer;
-                        transition: all 0.3s;
-                        margin-bottom: 10px;
-                        letter-spacing: 0.4px;
-                        animation: hgGlow 2.5s ease-in-out infinite;
-                        box-shadow: 0 0 12px rgba(239,68,68,0.15);
-                    }
-                    @keyframes hgGlow {
-                        0%, 100% { box-shadow: 0 0 8px rgba(239,68,68,0.12); border-color: rgba(239,68,68,0.25); }
-                        50% { box-shadow: 0 0 20px rgba(239,68,68,0.3), 0 0 40px rgba(239,68,68,0.1); border-color: rgba(239,68,68,0.5); }
-                    }
-                    .hg-gps-btn:hover,
-                    .hg-gps-btn:active {
-                        border-color: rgba(69,173,255,0.6);
-                        color: #45adff;
-                    }
-
-                    .hg-gps-label {
-                        display: flex;
-                        align-items: center;
-                        gap: 6px;
-                        padding: 8px 8px;
-                        background: rgba(34,197,94,0.06);
-                        border: 1px solid rgba(34,197,94,0.2);
-                        border-radius: 8px;
-                        font-size: 12px;
-                        color: rgba(255,255,255,0.8);
-                        margin-bottom: 10px;
-                    }
-                    .hg-gps-pulse {
-                        width: 8px;
-                        height: 8px;
-                        border-radius: 50%;
-                        background: #4ade80;
-                        flex-shrink: 0;
-                        animation: gpsPulse 2s ease-in-out infinite;
-                    }
-                    @keyframes gpsPulse {
-                        0%, 100% { box-shadow: 0 0 0 0 rgba(74,222,128,0.5); }
-                        50% { box-shadow: 0 0 0 4px rgba(74,222,128,0); }
-                    }
-                    .hg-gps-clear {
-                        margin-left: auto;
-                        background: none;
-                        border: none;
-                        color: rgba(255,255,255,0.3);
-                        font-size: 18px;
-                        cursor: pointer;
-                        line-height: 1;
-                        padding: 0;
-                    }
-                    .hg-gps-clear:hover { color: #ef4444; }
-
-                    .hg-search-form {
-                        display: flex;
-                        align-items: center;
-                        gap: 8px;
-                        margin-bottom: 10px;
-                        background: rgba(0,0,0,0.35);
-                        border: 1.5px solid rgba(148,163,184,0.15);
-                        border-radius: 8px;
-                        padding: 0 10px;
-                        transition: border-color 0.2s;
-                    }
-                    .hg-search-form:focus-within {
-                        border-color: rgba(239,68,68,0.4);
-                    }
-                    .hg-search-icon {
-                        flex-shrink: 0;
-                        color: rgba(148,163,184,0.45);
-                    }
-                    .hg-search-input {
-                        flex: 1;
-                        padding: 8px 0;
-                        background: transparent;
-                        border: none;
-                        color: #e2e8f0;
-                        font-size: 13px;
-                        font-family: inherit;
-                        outline: none;
-                        min-width: 0;
-                    }
-                    .hg-search-input::placeholder { color: rgba(148,163,184,0.35); }
-
-                    .hg-filter-group {
-                        margin-bottom: 10px;
-                    }
-                    .hg-filter-group label {
-                        display: block;
-                        font-size: 11px;
-                        font-weight: 700;
-                        color: rgba(255,255,255,0.5);
-                        margin-bottom: 4px;
-                        padding: 0 2px;
-                        text-transform: uppercase;
-                        letter-spacing: 0.5px;
-                    }
-                    .hg-select {
-                        width: 100%;
-                        padding: 7px 8px;
-                        background: rgba(0,0,0,0.35);
-                        border: 1.5px solid rgba(148,163,184,0.15);
-                        border-radius: 6px;
-                        color: #e2e8f0;
-                        font-size: 12px;
-                        font-family: inherit;
-                        cursor: pointer;
-                        appearance: auto;
-                    }
-                    .hg-select:focus {
-                        border-color: rgba(239,68,68,0.4);
-                        outline: none;
-                    }
-
-                    .hg-host-btn {
-                        display: flex;
-                        align-items: center;
-                        justify-content: center;
-                        gap: 6px;
-                        width: 100%;
-                        min-height: 44px;
-                        padding: 10px 12px;
-                        margin-top: 14px;
-                        background: #071018;
-                        border: 1px solid rgba(133,153,173,0.3);
-                        border-radius: 2px;
-                        color: #e4e7ec;
-                        font-size: 13px;
-                        font-weight: 800;
-                        letter-spacing: 0.5px;
-                        cursor: pointer;
-                        box-shadow: inset 0 1px 0 rgba(255,255,255,0.05), inset 0 -1px 0 rgba(0,0,0,0.6);
-                    }
-                    .hg-host-btn:active {
-                        border-color: rgba(69,173,255,0.6);
-                        color: #f4f7fb;
-                    }
-                    .hg-host-btn:focus-visible {
-                        outline: 2px solid #45adff;
-                        outline-offset: 2px;
-                    }
-
-                    /* ═══ MAIN CONTENT ═══ */
-                    .hg-main {
-                        flex: 1;
-                        min-width: 0;
-                        padding: 0 clamp(10px, 1.5vw, 20px) 20px;
-                    }
-                    .hg-content {
-                        padding: 0;
-                        max-width: 100%;
-                        margin: 0;
-                        width: 100%;
-                    }
-
-                    /* ═══ MAP ═══ */
-                    .hg-map-card {
-                        position: relative;
-                        /* Keep the shared fullscreen map's exit chrome below
-                           the device status bar even if the global map theme
-                           is loaded late or overridden by a future page skin. */
-                        --hg-map-safe-area-top: env(safe-area-inset-top, 0px);
-                        border-radius: 3px;
-                        background: #020507;
-                        margin-bottom: 2px;
-                    }
-                    .hg-map-card .pnm-map-surface--fullscreen .pnm-map-surface__header {
-                        min-height: calc(66px + var(--hg-map-safe-area-top));
-                        padding-top: calc(10px + var(--hg-map-safe-area-top));
-                    }
-
-                    /* ═══ RESULTS BAR — Matches Poker Near Me ═══ */
-                    .hg-results-bar {
-                        display: flex;
-                        justify-content: center;
-                        align-items: center;
-                        padding: 8px 4px;
-                        margin-bottom: 2px;
-                        flex-wrap: wrap;
-                        gap: 16px;
-                    }
-                    .hg-results-count {
-                        font-size: 15px;
-                        color: rgba(255,255,255,0.6);
-                        font-weight: 600;
-                    }
-                    .hg-sort-wrapper {
-                        display: flex;
-                        align-items: center;
-                        gap: 6px;
-                    }
-                    .hg-sort-label {
-                        font-size: 12px;
-                        color: rgba(148,163,184,0.6);
-                        font-weight: 600;
-                        text-transform: uppercase;
-                        letter-spacing: 0.5px;
-                        white-space: nowrap;
-                    }
-                    .hg-sort-select {
-                        padding: 5px 28px 5px 10px;
-                        border-radius: 8px;
-                        border: 1px solid rgba(226,232,240,0.25);
-                        background: rgba(10,16,28,0.8);
-                        color: #e2e8f0;
-                        font-size: 12px;
-                        font-weight: 600;
-                        font-family: inherit;
-                        cursor: pointer;
-                        appearance: none;
-                        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23e2e8f0' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
-                        background-repeat: no-repeat;
-                        background-position: right 8px center;
-                        transition: all 0.2s;
-                    }
-                    .hg-sort-select:hover,
-                    .hg-sort-select:focus {
-                        border-color: rgba(226,232,240,0.5);
-                        outline: none;
-                        box-shadow: 0 0 8px rgba(226,232,240,0.1);
-                    }
-                    .hg-expand-map-btn {
-                        display: inline-flex;
-                        align-items: center;
-                        gap: 5px;
-                        padding: 5px 12px;
-                        background: rgba(226,232,240,0.06);
-                        border: 1px solid rgba(226,232,240,0.2);
-                        border-radius: 8px;
-                        color: #e2e8f0;
-                        font-size: 12px;
-                        font-weight: 600;
-                        cursor: pointer;
-                        transition: all 0.2s;
-                        font-family: inherit;
-                        white-space: nowrap;
-                    }
-                    .hg-expand-map-btn:hover {
-                        background: rgba(226,232,240,0.12);
-                        border-color: rgba(226,232,240,0.35);
-                        box-shadow: 0 0 10px rgba(226,232,240,0.08);
-                    }
-
-                    /* ═══ CARD GRID ═══ */
-                    .hg-cards-section {
-                        margin-top: 2px;
-                    }
-                    .hg-card-grid {
-                        display: grid;
-                        grid-template-columns: repeat(2, 1fr);
-                        gap: 16px;
-                        align-items: stretch;
-                    }
-
-                    /* ═══ PREMIUM VENUE CARD — Vault-V3 Metal Frame (matched to PNM) ═══ */
-                    .vc3-card {
-                        position: relative;
-                        overflow: hidden;
-                        background: linear-gradient(160deg, rgba(16,24,36,0.95) 0%, rgba(10,16,26,0.98) 100%);
-                        border: 2px solid rgba(148,163,184,0.16);
-                        border-radius: 14px;
-                        padding: 16px 18px 14px;
-                        transition: border-color 0.3s, box-shadow 0.3s, background 0.3s;
-                        display: flex;
-                        flex-direction: column;
-                        height: 100%;
-                        box-shadow:
-                            inset 0 1px 0 rgba(255,255,255,0.06),
-                            inset 0 -1px 0 rgba(0,0,0,0.3),
-                            inset 0 0 20px rgba(148,163,184,0.04),
-                            0 4px 20px rgba(0,0,0,0.45),
-                            0 1px 3px rgba(0,0,0,0.2);
-                    }
-                    .vc3-card::after {
-                        content: '';
-                        position: absolute;
-                        top: 0; left: 0; right: 0;
-                        height: 1px;
-                        background: linear-gradient(90deg, transparent 5%, rgba(148,163,184,0.25) 30%, rgba(148,163,184,0.15) 70%, transparent 95%);
-                        pointer-events: none;
-                    }
-                    .vc3-card:hover,
-                    .vc3-card:active {
-                        filter: brightness(1.08);
-                        background: linear-gradient(160deg, rgba(18,28,42,0.97) 0%, rgba(12,20,32,0.99) 100%);
-                        box-shadow:
-                            inset 0 1px 0 rgba(255,255,255,0.08),
-                            inset 0 0 20px rgba(212,168,83,0.03),
-                            0 8px 32px rgba(0,0,0,0.55),
-                            0 0 0 1px rgba(255,255,255,0.06);
-                    }
-                    .vc3-header {
-                        display: flex;
-                        align-items: flex-start;
-                        justify-content: space-between;
-                        gap: 8px;
-                        margin-bottom: 8px;
-                    }
-                    .vc3-type-label {
-                        font-size: 12px;
-                        font-weight: 500;
-                        letter-spacing: 0.2px;
-                    }
-                    .vc3-right-stack {
-                        display: flex;
-                        flex-direction: column;
-                        align-items: flex-end;
-                        gap: 4px;
-                        flex-shrink: 0;
-                    }
-                    .vc3-name {
-                        font-size: 16px;
-                        font-weight: 800;
-                        margin: 0;
-                        color: #e8ecf0;
-                        line-height: 1.25;
-                        letter-spacing: -0.15px;
-                    }
-                    .vc3-address {
-                        display: flex;
-                        align-items: flex-start;
-                        gap: 5px;
-                        font-size: 12.5px;
-                        color: rgba(255,255,255,0.48);
-                        margin: 0 0 8px;
-                        line-height: 1.35;
-                    }
-                    .vc3-address span {
-                        overflow: hidden;
-                        text-overflow: ellipsis;
-                    }
-                    .vc3-host {
-                        display: flex;
-                        align-items: center;
-                        gap: 6px;
-                        margin: 2px 0 4px;
-                    }
-                    .vc3-host-name { font-size: 12px; color: #58a6ff; font-weight: 600; }
-                    .vc3-host-link { font-size: 11px; color: #3fb950; text-decoration: underline; margin-left: 2px; }
-                    .vc3-description { font-size: 12px; color: rgba(255,255,255,0.4); margin: 0 0 6px; line-height: 1.4; font-style: italic; }
-                    .vc3-badges {
-                        display: flex;
-                        flex-wrap: wrap;
-                        gap: 5px;
-                        margin-bottom: 8px;
-                    }
-                    .vc3-badge {
-                        padding: 2px 8px;
-                        border-radius: 4px;
-                        font-size: 10px;
-                        font-weight: 700;
-                        text-transform: uppercase;
-                        letter-spacing: 0.4px;
-                        border: 1px solid transparent;
-                    }
-                    .vc3-data-zone {
-                        margin-bottom: 4px;
-                    }
-                    .vc3-games {
-                        display: flex;
-                        flex-wrap: wrap;
-                        gap: 5px;
-                        margin-bottom: 6px;
-                    }
-                    .vc3-game-chip {
-                        padding: 3px 8px;
-                        border-radius: 4px;
-                        font-size: 11px;
-                        font-weight: 600;
-                        border: 1px solid;
-                        white-space: nowrap;
-                    }
-                    .vc3-stakes {
-                        display: flex;
-                        align-items: center;
-                        gap: 5px;
-                        font-size: 12px;
-                        color: rgba(212,168,83,0.8);
-                        font-weight: 600;
-                        margin: 0 0 6px;
-                    }
-                    .vc3-hours {
-                        display: flex;
-                        align-items: center;
-                        gap: 5px;
-                        font-size: 12px;
-                        color: rgba(255,255,255,0.42);
-                        margin: 0 0 6px;
-                    }
-                    /* Trust score — Illuminated Gauge (metal glow) */
-                    .vc3-trust {
-                        padding: 8px 0 6px;
-                        border-top: 1px solid rgba(148,163,184,0.08);
-                        margin-top: 4px;
-                    }
-                    .vc3-trust-header {
-                        display: flex;
-                        justify-content: space-between;
-                        align-items: center;
-                        margin-bottom: 5px;
-                    }
-                    .vc3-trust-label { font-size: 11px; font-weight: 700; }
-                    .vc3-trust-val { font-size: 11px; font-weight: 800; }
-                    .vc3-trust-track {
-                        height: 6px;
-                        background: rgba(148,163,184,0.08);
-                        border-radius: 3px;
-                        overflow: hidden;
-                        box-shadow:
-                            inset 0 1px 2px rgba(0,0,0,0.4),
-                            0 0 0 1px rgba(148,163,184,0.06);
-                    }
-                    .vc3-trust-fill {
-                        height: 100%;
-                        border-radius: 3px;
-                        transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
-                        box-shadow: 0 0 8px currentColor;
-                        position: relative;
-                    }
-                    .vc3-trust-fill::after {
-                        content: '';
-                        position: absolute;
-                        top: 0; left: 0; right: 0;
-                        height: 2px;
-                        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
-                        border-radius: 3px;
-                    }
-                    /* Action bar — Metal-framed buttons */
-                    .vc3-actions {
-                        display: flex;
-                        align-items: center;
-                        justify-content: space-between;
-                        gap: 8px;
-                        padding-top: 10px;
-                        border-top: 1px solid rgba(255,255,255,0.06);
-                        margin-top: auto;
-                    }
-                    .vc3-actions-secondary { display: flex; gap: 5px; }
-                    .vc3-actions-primary { display: flex !important; gap: 6px; flex: 1; justify-content: flex-end; flex-wrap: nowrap; }
-                    .vc3-icon-btn {
-                        display: flex; align-items: center; justify-content: center;
-                        width: 34px; height: 34px; border-radius: 8px;
-                        border: 1.5px solid rgba(148,163,184,0.12);
-                        background: linear-gradient(180deg, rgba(25,35,55,0.8) 0%, rgba(15,23,42,0.9) 100%);
-                        color: rgba(148,163,184,0.5);
-                        text-decoration: none; cursor: pointer;
-                        transition: all 0.25s;
-                        box-shadow:
-                            inset 0 1px 0 rgba(255,255,255,0.04),
-                            0 2px 4px rgba(0,0,0,0.25);
-                    }
-                    .vc3-icon-btn:hover,
-                    .vc3-icon-btn:active {
-                        background: linear-gradient(180deg, rgba(30,42,65,0.9) 0%, rgba(20,30,48,0.95) 100%);
-                        border-color: rgba(148,163,184,0.25);
-                        color: #e2e8f0;
-                        box-shadow:
-                            inset 0 1px 0 rgba(255,255,255,0.06),
-                            0 4px 8px rgba(0,0,0,0.35);
-                    }
-                    .vc3-pill {
-                        display: inline-flex !important; align-items: center; gap: 5px;
-                        padding: 8px 12px; border-radius: 8px;
-                        font-size: 11.5px; font-weight: 700;
-                        cursor: pointer; border: 1.5px solid transparent;
-                        transition: all 0.25s; font-family: inherit;
-                        white-space: nowrap; line-height: 1;
-                        box-shadow:
-                            inset 0 1px 0 rgba(255,255,255,0.06),
-                            0 2px 4px rgba(0,0,0,0.25);
-                    }
-                    .vc3-pill span { font-size: 11px; }
-                    .vc3-pill-checkin {
-                        background: linear-gradient(180deg, rgba(34,197,94,0.18) 0%, rgba(34,197,94,0.1) 100%);
-                        color: #4ade80;
-                        border-color: rgba(34,197,94,0.25);
-                    }
-                    .vc3-pill-checkin:hover {
-                        background: linear-gradient(180deg, rgba(34,197,94,0.28) 0%, rgba(34,197,94,0.18) 100%);
-                        box-shadow: 0 0 12px rgba(34,197,94,0.15), inset 0 1px 0 rgba(34,197,94,0.2);
-                    }
-                    .vc3-pill-review {
-                        background: linear-gradient(180deg, rgba(59,130,246,0.18) 0%, rgba(59,130,246,0.1) 100%);
-                        color: #60a5fa;
-                        border-color: rgba(59,130,246,0.25);
-                    }
-                    .vc3-pill-review:hover {
-                        background: linear-gradient(180deg, rgba(59,130,246,0.28) 0%, rgba(59,130,246,0.18) 100%);
-                        box-shadow: 0 0 12px rgba(59,130,246,0.15), inset 0 1px 0 rgba(59,130,246,0.2);
-                    }
-                    .vc3-pill-details {
-                        background: linear-gradient(180deg, rgba(212,168,83,0.18) 0%, rgba(212,168,83,0.1) 100%);
-                        color: #d4a853;
-                        border-color: rgba(212,168,83,0.25);
-                    }
-                    .vc3-pill-details:hover {
-                        background: linear-gradient(180deg, rgba(212,168,83,0.28) 0%, rgba(212,168,83,0.18) 100%);
-                        box-shadow: 0 0 12px rgba(212,168,83,0.15), inset 0 1px 0 rgba(212,168,83,0.2);
-                    }
-                    .vc3-fav {
-                        background: none;
-                        border: none;
-                        padding: 4px;
-                        cursor: pointer;
-                        transition: transform 0.2s;
-                    }
-                    .vc3-fav:active { filter: brightness(1.25); }
-                    .vc3-fav.active svg { filter: drop-shadow(0 0 6px rgba(239,68,68,0.5)); }
-                    .vc3-distance {
-                        display: inline-flex;
-                        align-items: center;
-                        gap: 3px;
-                        padding: 3px 8px;
-                        background: rgba(255,255,255,0.05);
-                        border: 1px solid rgba(255,255,255,0.1);
-                        border-radius: 12px;
-                        font-size: 10.5px;
-                        font-weight: 600;
-                        color: rgba(255,255,255,0.6);
-                        white-space: nowrap;
-                    }
-                    .vc3-hours-compact {
-                        font-size: 11px;
-                        color: rgba(255,255,255,0.4);
-                        font-weight: 500;
-                        white-space: nowrap;
-                    }
-
-                    .hg-load-more {
-                        text-align: center;
-                        padding: 20px 0;
-                    }
-                    .hg-load-more-btn {
-                        display: inline-flex;
-                        align-items: center;
-                        gap: 8px;
-                        padding: 12px 28px;
-                        background: linear-gradient(135deg, rgba(239,68,68,0.15) 0%, rgba(200,50,50,0.08) 100%);
-                        border: 2px solid rgba(239,68,68,0.35);
-                        border-radius: 10px;
-                        color: #ef4444;
-                        font-size: 14px;
-                        font-weight: 700;
-                        cursor: pointer;
-                        transition: all 0.2s;
-                    }
-                    .hg-load-more-btn:hover,
-                    .hg-load-more-btn:active {
-                        border-color: rgba(69,173,255,0.6);
-                        color: #f4f7fb;
-                    }
-
-                    /* ═══ EMPTY / LOADING ═══ */
-                    .hg-empty {
-                        display: flex;
-                        flex-direction: column;
-                        align-items: center;
-                        justify-content: center;
-                        padding: 60px 20px;
-                        color: rgba(148,163,184,0.6);
-                        text-align: center;
-                        background: linear-gradient(160deg, rgba(15,23,42,0.5) 0%, rgba(8,14,25,0.7) 100%);
-                        border: 1.5px solid rgba(148,163,184,0.1);
-                        border-radius: 16px;
-                        box-shadow: inset 0 1px 0 rgba(255,255,255,0.04), 0 4px 16px rgba(0,0,0,0.3);
-                        margin: 8px 0;
-                    }
-                    .hg-empty p:first-of-type {
-                        font-size: 18px;
-                        font-weight: 700;
-                        color: rgba(255,255,255,0.6);
-                        margin-top: 12px;
-                    }
-                    .hg-loading {
-                        display: flex;
-                        flex-direction: column;
-                        align-items: center;
-                        justify-content: center;
-                        padding: 80px 20px;
-                        color: rgba(148,163,184,0.6);
-                    }
-                    .hg-spinner {
-                        width: 40px;
-                        height: 40px;
-                        border: 3px solid rgba(239,68,68,0.15);
-                        border-top: 3px solid #ef4444;
-                        border-radius: 50%;
-                        animation: spin 1s linear infinite;
-                        margin-bottom: 16px;
-                    }
-                    @keyframes spin { to { transform: rotate(360deg); } }
-
-                    /* ═══ RED PIN + YOUR LOCATION FOOTER ═══ */
-                    .hg-location-footer {
-                        display: flex;
-                        flex-direction: column;
-                        align-items: center;
-                        justify-content: center;
-                        padding: 24px 20px 36px;
-                        position: relative;
-                    }
-                    .hg-red-pin {
-                        position: relative;
-                        animation: pinBounce 2s ease-in-out infinite;
-                        filter: drop-shadow(0 4px 12px rgba(239,68,68,0.4));
-                    }
-                    @keyframes pinBounce {
-                        0%, 100% { transform: translateY(0); }
-                        50% { transform: translateY(-6px); }
-                    }
-                    .hg-location-text {
-                        margin-top: 8px;
-                        font-size: 13px;
-                        font-weight: 800;
-                        letter-spacing: 2px;
-                        text-transform: uppercase;
-                        color: #ef4444;
-                        text-shadow: 0 0 20px rgba(239,68,68,0.3);
-                    }
-                    .hg-location-city {
-                        margin-top: 4px;
-                        font-size: 12px;
-                        font-weight: 600;
-                        color: rgba(255,255,255,0.5);
-                        letter-spacing: 0.5px;
-                    }
-
-                    /* ═══ SPACE BG (shared with PNM) ═══ */
-                    .space-bg {
-                        position: fixed;
-                        inset: 0;
-                        background:
-                            radial-gradient(ellipse at 20% 20%, rgba(59, 130, 246, 0.12) 0%, transparent 50%),
-                            radial-gradient(ellipse at 80% 80%, rgba(139, 92, 246, 0.08) 0%, transparent 50%),
-                            radial-gradient(ellipse at 50% 50%, rgba(6, 182, 212, 0.06) 0%, transparent 60%),
-                            linear-gradient(180deg, #020408 0%, #0a1628 30%, #0d1b2a 50%, #0a1628 70%, #020408 100%);
-                        z-index: -2;
-                    }
-                    .space-bg::before {
-                        content: '';
-                        position: absolute;
-                        inset: 0;
-                        background-image:
-                            repeating-linear-gradient(0deg, transparent, transparent 39px, rgba(148,163,184,0.04) 39px, rgba(148,163,184,0.04) 40px),
-                            repeating-linear-gradient(90deg, transparent, transparent 39px, rgba(148,163,184,0.04) 39px, rgba(148,163,184,0.04) 40px);
-                        background-size: 40px 40px;
-                    }
-                    .space-overlay {
-                        position: fixed;
-                        inset: 0;
-                        background:
-                            radial-gradient(ellipse at 50% 0%, rgba(148,163,184,0.05) 0%, transparent 50%),
-                            linear-gradient(180deg, rgba(3,7,18,0.4) 0%, transparent 15%, transparent 85%, rgba(3,7,18,0.6) 100%);
-                        z-index: -1;
-                    }
-
-                    /* ═══ MOBILE RESPONSIVE ═══ */
-                    @media (max-width: 768px) {
-                        .hg-title-bar {
-                            padding: clamp(6px, 1.5vh, 14px) 14px clamp(4px, 1vh, 10px);
-                        }
-                        .hg-title {
-                            font-size: clamp(20px, 5.5vw, 28px);
-                            letter-spacing: clamp(1px, 0.4vw, 2px);
-                        }
-                        .hg-subtitle {
-                            font-size: clamp(10px, 2.5vw, 13px);
-                        }
-                        .hg-layout {
-                            flex-direction: column;
-                        }
-                        .hg-sidebar {
-                            width: 100%;
-                            min-width: 100%;
-                            height: auto;
-                            flex-shrink: 0;
-                            max-height: none;
-                            border-right: none;
-                            border-bottom: 2px solid rgba(148,163,184,0.12);
-                            box-shadow: 0 4px 24px rgba(0,0,0,0.3);
-                            padding: 6px 0 8px;
-                            position: sticky;
-                            top: 56px;
-                            z-index: 100;
-                        }
-                        .hg-sidebar-filters {
-                            display: flex;
-                            flex-wrap: wrap;
-                            gap: 6px;
-                            padding: 6px 10px;
-                            align-items: flex-start;
-                        }
-                        .hg-section-title { width: 100%; margin-bottom: 4px; }
-                        .hg-search-form {
-                            flex: 1;
-                            min-width: 160px;
-                            margin-bottom: 0;
-                        }
-                        .hg-gps-btn { min-width: 110px; flex: 0; margin-bottom: 0; }
-                        .hg-gps-label { width: 100%; }
-                        .hg-filter-group { margin-bottom: 0; }
-                        .hg-select { font-size: 12px; padding: 6px 8px; }
-                        .hg-host-btn { margin-top: 4px; min-width: 0; }
-                        .hg-main { padding: 0 10px 40px; }
-                        .hg-card-grid {
-                            grid-template-columns: 1fr !important;
-                        }
-                        .hg-map-card { border-radius: 3px; }
-                    }
-                ` }} />
             </div>
+
             <HubPageSummary page="home-games" />
         </>
     );

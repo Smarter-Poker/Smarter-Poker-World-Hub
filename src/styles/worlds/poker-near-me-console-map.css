@@ -1930,6 +1930,16 @@ body.world-poker-near-me .pnm-map-surface .map-pref-option {
   }
 }
 
+/* The painted coverage panel declares display with !important after the
+   shared map layout stylesheet. Reassert the constrained-viewport ownership
+   rule at the same cascade layer: an expanded legend temporarily owns the HUD
+   lane, while collapsing it restores the live coverage panel. */
+@media (max-width: 768px), (max-height: 500px) {
+  body.world-poker-near-me .pnm-map-surface .pnm-map-overlay-stack[data-legend-expanded='true'] .pnm-map-coverage.pnc-panel {
+    display: none !important;
+  }
+}
+
 /* Short landscape: the HUD keeps its live counts and actions on one line,
    and moves right of the 44px zoom rail so no two instruments overlap. The
    title and status line stay in the accessibility tree (the status is the

@@ -148,6 +148,10 @@ test('painted map stylesheet is globally wired, native-ratio, responsive and fre
   assert.match(styles, /\.pnm-map-surface--fullscreen\s*\{[^}]*position:\s*fixed\s*!important;[^}]*width:\s*100vw\s*!important;[^}]*height:\s*100dvh\s*!important/s);
   assert.match(styles, /@media \(max-width: 600px\)/);
   assert.match(styles, /@media \(max-height: 500px\) and \(orientation: landscape\)/);
+  assert.match(
+    styles,
+    /@media \(max-width: 768px\), \(max-height: 500px\)[\s\S]*?\.pnm-map-overlay-stack\[data-legend-expanded='true'\] \.pnm-map-coverage\.pnc-panel\s*\{[^}]*display:\s*none\s*!important;/,
+  );
   assert.match(styles, /min-height:\s*44px/g);
 
   assert.doesNotMatch(styles, /(?:linear|radial|conic)-gradient/i);

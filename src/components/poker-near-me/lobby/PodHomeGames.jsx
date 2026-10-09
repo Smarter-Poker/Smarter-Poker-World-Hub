@@ -13,11 +13,21 @@
  * "Near You" tab of the PNM lobby.
  */
 
-import React, { useCallback } from 'react';
+import React, { useCallback, useState } from 'react';
 import dynamic from 'next/dynamic';
 import VenueCard from '../VenueCard';
 import { cachedFetch } from './PnmApiCache';
 import { homeGameUrl } from '../../../lib/home-games/urls';
+import LobbyPodConsole, {
+  LobbyPodAction,
+  LobbyPodCardList,
+  LobbyPodControlPanel,
+  LobbyPodField,
+  LobbyPodPanel,
+  LobbyPodResultsBar,
+  LobbyPodState,
+  PNM_US_STATE_CODES,
+} from './LobbyPodConsole';
 
 const CreateHomeGame = dynamic(() => import('../CreateHomeGame'), { ssr: false });
 
@@ -159,6 +169,7 @@ export default function PodHomeGames({
   const hgSearch = filters.hgSearch || '';
   const hgState = filters.hgState || 'all';
   const hgHasSearched = filters.hgHasSearched || false;
+  const [discoverError, setDiscoverError] = useState('');
 
   // Only the canonical home-game feed populates this list. We no longer
   // pull from `venues.filter(v => v.venue_type === 'home_game')` — that
@@ -166,6 +177,7 @@ export default function PodHomeGames({
   const displayGames = Array.isArray(podHomeGames) ? podHomeGames : [];
 
   const handleSearch = useCallback(() => {
+    setDiscoverError('');
     setFilters(prev => ({ ...prev, hgHasSearched: true }));
     const params = new URLSearchParams();
     params.set('limit', '100');
@@ -205,6 +217,7 @@ export default function PodHomeGames({
       })
       .catch(err => {
         console.warn('[PodHomeGames] discover fetch failed:', err);
+        setDiscoverError('Home Game Search Is Temporarily Unavailable.');
         setPodHomeGames([]);
       })
       .finally(() => setLoading(false));
@@ -230,106 +243,123 @@ export default function PodHomeGames({
   }, [handleVenueNavigate]);
 
   return (
-    <div>
-      {/* Search parameters */}
-      <div style={{ background: 'rgba(13,17,23,0.95)', border: '1px solid rgba(48,54,61,0.8)', borderRadius: 14, padding: 14, marginBottom: 14 }}>
-        <div style={{ display: 'flex', gap: 8, marginBottom: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-          <input type="text" placeholder="Search Home Games..." value={hgSearch} autoComplete="off"
-            onChange={(e) => setFilters(prev => ({ ...prev, hgSearch: e.target.value }))}
-            style={{ flex: 1, minWidth: 120, padding: '8px 12px', borderRadius: 8, border: '1px solid rgba(48,54,61,0.6)', background: '#161b22', color: '#c9d1d9', fontSize: 13, fontFamily: 'inherit' }} />
-          <select value={hgState}
-            onChange={(e) => setFilters(prev => ({ ...prev, hgState: e.target.value }))}
-            style={{ background: '#161b22', border: '1px solid rgba(48,54,61,0.6)', borderRadius: 8, padding: '8px 10px', color: '#c9d1d9', fontSize: 12, fontFamily: 'inherit', cursor: 'pointer', minWidth: 90 }}>
-            <option value="all">All States</option>
-            {['AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT','VA','WA','WV','WI','WY','DC'].map(st => (
-              <option key={st} value={st}>{st}</option>
-            ))}
-          </select>
+    <LobbyPodConsole className="pnm-lobby-pod--home-games">
+      <LobbyPodControlPanel
+        title="Home Game Discovery"
+        description="Search The Canonical Club Commander Home Game Directory."
+        icon="home"
+      >
+        <div className="pnm-lobby-pod__field-row">
+          <LobbyPodField label="Home Game Search" icon="search">
+            <input
+              type="text"
+              aria-label="Search Home Games"
+              placeholder="Search Home Games..."
+              value={hgSearch}
+              autoComplete="off"
+              onChange={(e) => setFilters(prev => ({ ...prev, hgSearch: e.target.value }))}
+            />
+          </LobbyPodField>
+          <LobbyPodField label="State" icon="filter">
+            <select
+              aria-label="Filter Home Games By State"
+              value={hgState}
+              onChange={(e) => setFilters(prev => ({ ...prev, hgState: e.target.value }))}
+            >
+              <option value="all">All States</option>
+              {PNM_US_STATE_CODES.map(st => <option key={st} value={st}>{st}</option>)}
+            </select>
+          </LobbyPodField>
         </div>
-        <button onClick={handleSearch}
-          style={{ width: '100%', padding: '10px 0', borderRadius: 10, border: '1px solid rgba(63,185,80,0.4)', background: 'linear-gradient(135deg, #238636, #196c2e)', color: '#ffffff', fontSize: 14, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', boxShadow: '0 4px 16px rgba(35,134,54,0.3)' }}>
-          Find Home Games
-        </button>
-      </div>
+        <div className="pnm-lobby-pod__actions">
+          <LobbyPodAction variant="primary" onClick={handleSearch} disabled={loading}>
+            {loading ? 'Searching Home Games' : 'Find Home Games'}
+          </LobbyPodAction>
+        </div>
+      </LobbyPodControlPanel>
 
       {hgHasSearched ? (
-        <div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, padding: '6px 10px', background: 'rgba(22,27,34,0.8)', borderRadius: 8, border: '1px solid rgba(48,54,61,0.6)' }}>
-            <span style={{ fontSize: 12, color: '#c9d1d9' }}>
-              <span style={{ color: '#d4a853', fontWeight: 800 }}>{displayGames.length}</span> Home game{displayGames.length !== 1 ? 's' : ''}
-            </span>
-            <button onClick={() => { setPodHomeGames([]); setFilters(prev => ({ ...prev, hgSearch: '', hgState: 'all', hgHasSearched: false })); }}
-              style={{ background: 'none', border: 'none', color: '#8b949e', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit', textDecoration: 'underline' }}>Clear</button>
-          </div>
-          {loading && <div style={{ display: 'grid', gap: 12 }}>
-            {[1,2,3].map(n => <div key={n} style={{ height: 80, borderRadius: 12, background: 'linear-gradient(90deg, rgba(30,40,55,0.5) 25%, rgba(50,60,80,0.5) 50%, rgba(30,40,55,0.5) 75%)', backgroundSize: '200% 100%', animation: 'pnm-shimmer 1.5s ease-in-out infinite', border: '1px solid rgba(148,163,184,0.08)' }} />)}
-          </div>}
-          <div style={{ display: 'grid', gap: 12 }}>
-            {displayGames.map(v => (
-              <VenueCard
-                key={v.id}
-                venue={v}
-                isFavorited={!!favorites['venue-' + v.id]}
-                onFavorite={(e) => { e?.stopPropagation(); handleToggleFavorite(v.id, v); }}
-                onNavigate={() => navigateToHomeGame(v)}
-                userLocation={userLocation}
-                checkinCount={checkinCounts[String(v.id)] || 0}
-                reviewStats={reviewStatsMap[String(v.id)]}
-              />
-            ))}
-          </div>
-          {displayGames.length === 0 && !loading && (
-            <div style={{ textAlign: 'center', padding: 40, color: '#8b949e' }}>
-              <p style={{ fontSize: 15, fontWeight: 600, marginBottom: 6, color: '#c9d1d9' }}>No Home Games Found</p>
-              <p style={{ fontSize: 13 }}>Try A Different Search Or State Filter.</p>
-            </div>
-          )}
-        </div>
+        <>
+          <LobbyPodResultsBar
+            onClear={() => {
+              setDiscoverError('');
+              setPodHomeGames([]);
+              setFilters(prev => ({ ...prev, hgSearch: '', hgState: 'all', hgHasSearched: false }));
+            }}
+            clearLabel="Clear Home Game Search"
+          >
+            <strong>{displayGames.length}</strong> {displayGames.length === 1 ? 'Home Game' : 'Home Games'}
+          </LobbyPodResultsBar>
+
+          {discoverError ? (
+            <LobbyPodState
+              kind="error"
+              title="Home Game Search Unavailable"
+              action={(
+                <LobbyPodAction variant="danger" onClick={handleSearch} disabled={loading}>
+                  {loading ? 'Retrying Search' : 'Retry Search'}
+                </LobbyPodAction>
+              )}
+            >
+              <p>{discoverError}</p>
+            </LobbyPodState>
+          ) : null}
+
+          {loading ? (
+            <LobbyPodState kind="loading" title="Searching Home Games">
+              <p>Checking The Club Commander Directory For Matching Public Games.</p>
+            </LobbyPodState>
+          ) : null}
+
+          {displayGames.length > 0 ? (
+            <LobbyPodCardList>
+              {displayGames.map(v => (
+                <VenueCard
+                  key={v.id}
+                  venue={v}
+                  isFavorited={!!favorites['venue-' + v.id]}
+                  onFavorite={(e) => { e?.stopPropagation(); handleToggleFavorite(v.id, v); }}
+                  onNavigate={() => navigateToHomeGame(v)}
+                  userLocation={userLocation}
+                  checkinCount={checkinCounts[String(v.id)] || 0}
+                  reviewStats={reviewStatsMap[String(v.id)]}
+                />
+              ))}
+            </LobbyPodCardList>
+          ) : null}
+
+          {displayGames.length === 0 && !loading && !discoverError ? (
+            <LobbyPodState kind="empty" title="No Home Games Found">
+              <p>Try A Different Search Or State Filter.</p>
+            </LobbyPodState>
+          ) : null}
+        </>
       ) : (
-        <div style={{ textAlign: 'center', padding: '30px 16px' }}>
-          <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="rgba(148,163,184,0.2)" strokeWidth="1" style={{ marginBottom: 14 }}>
-            <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" /><polyline points="9 22 9 12 15 12 15 22" />
-          </svg>
-          <p style={{ fontSize: 15, fontWeight: 700, color: '#c9d1d9', marginBottom: 6 }}>Find Or List Home Games</p>
-          <p style={{ fontSize: 13, color: '#8b949e', lineHeight: 1.5 }}>Search For Home Games Near You Or Filter By State. Use The Search Bar Above To Get Started.</p>
-        </div>
+        <LobbyPodState kind="intro" title="Find Or List Home Games">
+          <p>Search For Home Games Near You Or Filter By State. Use The Search Controls Above To Get Started.</p>
+        </LobbyPodState>
       )}
 
-      {/* List Your Home Game section */}
-      <div style={{ marginTop: 16 }}>
-        <button
+      <section className="pnm-lobby-pod__create-region" aria-label="List Your Home Game">
+        <LobbyPodAction
+          variant={filters.showCreateHomeGame ? 'primary' : 'secondary'}
           onClick={() => setFilters(prev => ({ ...prev, showCreateHomeGame: !prev.showCreateHomeGame }))}
-          style={{
-            width: '100%', padding: '12px 0',
-            borderRadius: 12,
-            border: filters.showCreateHomeGame ? '1px solid rgba(34,197,94,0.4)' : '1px solid rgba(148,163,184,0.12)',
-            background: filters.showCreateHomeGame ? 'rgba(34,197,94,0.08)' : 'rgba(212,168,83,0.04)',
-            color: filters.showCreateHomeGame ? '#22c55e' : 'rgba(200,214,229,0.6)',
-            fontSize: 14, fontWeight: 700,
-            cursor: 'pointer', fontFamily: 'Inter, system-ui, sans-serif',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-            transition: 'all 0.2s',
-          }}
+          aria-expanded={Boolean(filters.showCreateHomeGame)}
         >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M12 5v14M5 12h14" />
-          </svg>
-          {filters.showCreateHomeGame ? 'Hide' : 'List Your Home Game On Poker Near Me'}
-        </button>
+          {filters.showCreateHomeGame ? 'Hide Home Game Setup' : 'List Your Home Game'}
+        </LobbyPodAction>
         {filters.showCreateHomeGame && (
-          <div style={{
-            marginTop: 12,
-            background: 'rgba(13,17,23,0.95)',
-            border: '1px solid rgba(34,197,94,0.2)',
-            borderRadius: 14,
-            overflow: 'hidden',
-          }}>
+          <LobbyPodPanel
+            as="div"
+            className="pnm-lobby-pod__create-panel"
+            bodyClassName="pnm-lobby-pod__create-body"
+          >
             <CreateHomeGame
               onCancel={() => setFilters(prev => ({ ...prev, showCreateHomeGame: false }))}
             />
-          </div>
+          </LobbyPodPanel>
         )}
-      </div>
-    </div>
+      </section>
+    </LobbyPodConsole>
   );
 }

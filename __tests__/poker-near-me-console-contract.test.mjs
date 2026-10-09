@@ -27,6 +27,11 @@ const PANEL_ASSETS = Object.freeze({
   'panel-foot.png': [1000, 72, '9e68d4067af5b1caaa69d73de2dd14d28c9301d41ee17f56b83af686e7d4e138'],
 });
 
+const BUTTON_ASSETS = Object.freeze({
+  'button-primary.png': [348, 114, '612777b4518ef8c731c495e84f683a927a420b23c5cb63af3fd4f0f1d8f45a59'],
+  'button-secondary.png': [348, 114, 'bcdb0a6999c94233b85b2053dd119f1bb93a5c7d487d122f4f99d2c990d397b1'],
+});
+
 test('painted console masters retain exact native geometry and immutable hashes', () => {
   for (const [name, [width, height, sha256]] of Object.entries(PANEL_ASSETS)) {
     const path = `public/images/pnm-console/painted-panels-v1/${name}`;
@@ -214,6 +219,40 @@ test('every reusable pictogram is a substantial transparent painted object', () 
     if (deviation < 40) failures.push(`${icon}: luminance deviation ${deviation.toFixed(1)} < 40, painted detail lost`);
   }
   assert.deepEqual(failures, [], `pictograms read from ${ICON_DIR}`);
+});
+
+test('painted button plates follow their chamfer instead of an opaque rectangle', () => {
+  const failures = [];
+  for (const [name, [expectedWidth, expectedHeight, expectedHash]] of Object.entries(BUTTON_ASSETS)) {
+    const path = `public/images/pnm-console/painted-controls-v1/${name}`;
+    const info = pngInfo(path);
+    const png = decodePng(bytes(path));
+    assert.deepEqual([info.width, info.height], [expectedWidth, expectedHeight], `${name} geometry drifted`);
+    assert.equal(info.sha256, expectedHash, `${name} pixels drifted`);
+    assert.ok([4, 6].includes(info.colorType), `${name} must preserve alpha transparency`);
+
+    for (let y = 0; y < png.height; y += 1) {
+      for (let x = 0; x < png.width; x += 1) {
+        const cornerDistance = Math.min(
+          x + y,
+          (png.width - 1 - x) + y,
+          x + (png.height - 1 - y),
+          (png.width - 1 - x) + (png.height - 1 - y),
+        );
+        if (cornerDistance <= 20 && png.alpha[y * png.width + x] !== 0) {
+          failures.push(`${name}: opaque corner matte at ${x},${y}`);
+        }
+      }
+    }
+    assert.ok(png.alpha[Math.floor(png.height / 2) * png.width + Math.floor(png.width / 2)] > 200);
+  }
+  assert.deepEqual(failures, []);
+
+  const surgery = read('scripts/art/clean-pnm-button-alpha.py');
+  assert.match(surgery, /RGB pixels changed/);
+  assert.match(surgery, /distance >= SOLID_FROM/);
+  assert.match(surgery, /if digest != expected\["clean"\]:/);
+  assert.match(surgery, /generated \{source\.name\} hash drifted/);
 });
 
 test('console components keep master slices separate and live values in DOM zones', () => {

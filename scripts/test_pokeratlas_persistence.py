@@ -312,6 +312,139 @@ class PokerAtlasPersistenceTests(unittest.TestCase):
 
         self.assertIsNone(result)
 
+    def test_dead_context_reconnects_once_and_retries_same_url_before_fallback(self):
+        requested = (
+            "https://www.pokeratlas.com/poker-room/test-room/cash-games"
+        )
+        html = (
+            "<html><head><title>Test Room Poker Room</title></head>"
+            "<body><h1>Test Room</h1>"
+            "<li class='cash-games-list-item'>$1/$3 NLH</li></body></html>"
+        )
+        response = types.SimpleNamespace(
+            status=200,
+            url=requested,
+            html_content=html,
+            body=b"",
+        )
+        dead_fetch = mock.Mock(side_effect=RuntimeError(
+            "BrowserContext.new_page: Target page, context or browser has been closed"
+        ))
+        recovered_fetch = mock.Mock(return_value=response)
+        dead_session = types.SimpleNamespace(fetch=dead_fetch, close=mock.Mock())
+        recovered_session = types.SimpleNamespace(
+            start=mock.Mock(),
+            fetch=recovered_fetch,
+            close=mock.Mock(),
+        )
+        manager = daemon.PokerAtlasSessionManager()
+        manager.session = dead_session
+        manager.tier2_failures = 5
+        timer = mock.Mock()
+
+        with mock.patch.object(daemon, "_browser_heal", None):
+            with mock.patch.object(daemon, "_network_available", return_value=True):
+                with mock.patch.object(daemon, "_kill_zombie_browsers"):
+                    with mock.patch.object(daemon.threading, "Timer", return_value=timer):
+                        with mock.patch(
+                            "scrapling.fetchers.StealthySession",
+                            return_value=recovered_session,
+                        ):
+                            with mock.patch.object(
+                                daemon, "fallback_fetch_playwright",
+                            ) as playwright_fallback:
+                                with mock.patch.object(
+                                    daemon, "fallback_fetch_urllib",
+                                ) as urllib_fallback:
+                                    result = manager.fetch_with_fallback(
+                                        requested,
+                                        expected_slug="test-room",
+                                        expected_name="Test Room",
+                                    )
+
+        self.assertEqual(result, html)
+        self.assertEqual(dead_fetch.call_count, 1)
+        self.assertEqual(recovered_fetch.call_count, 1)
+        self.assertEqual(recovered_fetch.call_args.args[0], requested)
+        self.assertEqual(manager.tier2_failures, 0)
+        recovered_session.start.assert_called_once_with()
+        timer.start.assert_called_once_with()
+        timer.cancel.assert_called_once_with()
+        playwright_fallback.assert_not_called()
+        urllib_fallback.assert_not_called()
+
+    def test_dead_context_reconnect_failure_keeps_sweep_cursor_for_retry(self):
+        failed_fetch = mock.Mock(side_effect=RuntimeError(
+            "BrowserContext.new_page: Target page, context or browser has been closed"
+        ))
+        manager = daemon.PokerAtlasSessionManager()
+        manager.session = types.SimpleNamespace(fetch=failed_fetch)
+
+        with TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            with self._cycle_context(base):
+                with mock.patch.object(manager, "connect", return_value=False) as reconnect:
+                    with mock.patch.object(
+                        daemon, "fallback_fetch_playwright", return_value=None,
+                    ) as playwright_fallback:
+                        with mock.patch.object(
+                            daemon, "fallback_fetch_urllib", return_value=None,
+                        ) as urllib_fallback:
+                            with mock.patch.object(daemon, "sb_delete") as delete:
+                                result = daemon.run_scrape_cycle(manager)
+
+            state = json.loads(
+                (base / "data" / "pokeratlas-sweep-state.json").read_text()
+            )
+
+        self.assertEqual(result["run_status"], daemon.RUN_FAILED)
+        self.assertFalse(result["healthy_progress"])
+        self.assertEqual(state["cursor"], 0)
+        self.assertEqual(failed_fetch.call_count, 1)
+        reconnect.assert_called_once_with()
+        playwright_fallback.assert_called_once()
+        urllib_fallback.assert_called_once()
+        delete.assert_not_called()
+
+    def test_dead_context_same_url_retry_is_bounded_without_recursion(self):
+        requested = (
+            "https://www.pokeratlas.com/poker-room/test-room/cash-games"
+        )
+        dead_error = RuntimeError(
+            "BrowserContext.new_page: Target page, context or browser has been closed"
+        )
+        first_fetch = mock.Mock(side_effect=dead_error)
+        retry_fetch = mock.Mock(side_effect=dead_error)
+        manager = daemon.PokerAtlasSessionManager()
+        manager.session = types.SimpleNamespace(fetch=first_fetch)
+
+        def reconnect_once():
+            manager.session = types.SimpleNamespace(fetch=retry_fetch)
+            manager._session_dead = False
+            return True
+
+        with mock.patch.object(
+            manager, "connect", side_effect=reconnect_once,
+        ) as reconnect:
+            with mock.patch.object(
+                daemon, "fallback_fetch_playwright", return_value=None,
+            ) as playwright_fallback:
+                with mock.patch.object(
+                    daemon, "fallback_fetch_urllib", return_value=None,
+                ) as urllib_fallback:
+                    result = manager.fetch_with_fallback(
+                        requested,
+                        expected_slug="test-room",
+                        expected_name="Test Room",
+                    )
+
+        self.assertIsNone(result)
+        self.assertEqual(first_fetch.call_count, 1)
+        self.assertEqual(retry_fetch.call_count, 1)
+        reconnect.assert_called_once_with()
+        playwright_fallback.assert_called_once()
+        urllib_fallback.assert_called_once()
+
     def test_quarantined_room_advances_but_transient_failure_retries(self):
         venues = [
             {
