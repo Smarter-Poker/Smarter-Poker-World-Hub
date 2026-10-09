@@ -135,13 +135,29 @@ async function verifyCardSurface({ browser, env, client, userId, receipt }) {
 
     receipt.stage = 'open-card-picker';
     let dialog = await openPicker();
-    receipt.stage = 'long-press-ten';
+    receipt.stage = 'resolve-ten-button';
     const ten = dialog.getByRole('button', { name: '10. Hold for suits', exact: true });
-    await ten.dispatchEvent('pointerdown', { pointerType: 'touch', isPrimary: true, button: 0 });
-    await sleep(500);
-    await ten.dispatchEvent('pointerup', { pointerType: 'touch', isPrimary: true, button: 0 });
+    await ten.waitFor({ state: 'visible' });
+    // Keep the complete hold inside the browser event loop. The split
+    // Node-side dispatch did not surface the suit choices in headless
+    // Chromium, while this preserves one continuous browser-owned gesture.
+    receipt.stage = 'dispatch-ten-hold';
+    await ten.evaluate(async (button) => {
+      button.dispatchEvent(new PointerEvent('pointerdown', {
+        bubbles: true, pointerType: 'touch', isPrimary: true, button: 0, buttons: 1,
+      }));
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      button.dispatchEvent(new PointerEvent('pointerup', {
+        bubbles: true, pointerType: 'touch', isPrimary: true, button: 0, buttons: 0,
+      }));
+    });
+    receipt.diagnostics = {
+      tenAriaExpanded: await ten.getAttribute('aria-expanded') === 'true',
+    };
+    receipt.stage = 'await-ten-suits';
     await dialog.getByRole('group', { name: '10 suit choices' }).waitFor({ state: 'visible' });
     receipt.checks.longPressTen = true;
+    delete receipt.diagnostics;
 
     receipt.stage = 'duplicate-card-refusal';
     await dialog.getByRole('button', { name: 'Add 10 of spades to your hand', exact: true }).click();
