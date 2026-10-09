@@ -175,8 +175,11 @@ async function verifyCardSurface({ browser, env, client, userId, receipt }) {
     delete receipt.diagnostics;
 
     receipt.stage = 'duplicate-card-refusal';
-    await dialog.getByRole('button', { name: exactSemanticLabel('Add 10 of spades to your hand') }).click();
+    const tenSuits = dialog.getByRole('group', { name: exactSemanticLabel('10 suit choices') });
+    await tenSuits.getByRole('button', { name: exactSemanticLabel('Add 10 of spades to your hand') }).click();
+    await tenSuits.waitFor({ state: 'hidden' });
     const duplicate = dialog.getByRole('button', { name: exactSemanticLabel('Add 10 of spades to your hand') });
+    assert.equal(await duplicate.count(), 1, 'The selected card control was not unique after the quick suit tray closed');
     assert.equal(await duplicate.isDisabled(), true, 'A selected card could be added twice');
     receipt.checks.duplicateRefusal = true;
     await dialog.getByRole('button', { name: exactSemanticLabel('Add ace of hearts to your hand') }).click();
