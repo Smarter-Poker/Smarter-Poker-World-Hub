@@ -85,6 +85,7 @@ test('duplicate proof selects from the quick suit tray before checking the uniqu
   assert.match(script, /const tenSuits = dialog\.getByRole\('group', \{ name: exactSemanticLabel\('10 suit choices'\) \}\)/);
   assert.match(script, /tenSuits\.getByRole\('button', \{ name: exactSemanticLabel\('Add 10 of spades to your hand'\) \}\)\.click\(\)/);
   assert.match(script, /tenSuits\.waitFor\(\{ state: 'hidden' \}\)/);
+  assert.match(script, /exactSemanticLabel\('Remove 10 of spades from your hand'\) \}\)\.waitFor\(\{ state: 'visible' \}\)/);
   assert.match(script, /assert\.equal\(await duplicate\.count\(\), 1/);
   assert.match(script, /assert\.equal\(await duplicate\.isDisabled\(\), true/);
 });
