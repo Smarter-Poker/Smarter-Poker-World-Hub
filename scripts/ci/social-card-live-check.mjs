@@ -33,6 +33,11 @@ export function classifyHistorySurface({ importButtons, emptyText, rejectedText 
   throw new Error('Recent hand surface did not reach an explicit terminal state');
 }
 
+export function exactSemanticLabel(value) {
+  const escaped = String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return new RegExp(`^${escaped}$`, 'i');
+}
+
 export function validateReceipt(receipt, expectedSha) {
   assert.equal(receipt.status, 'passed', 'Social card live verification did not pass');
   assert.equal(receipt.expectedSha, expectedSha, 'Receipt expected revision differs');
@@ -149,7 +154,7 @@ async function verifyCardSurface({ browser, env, client, userId, receipt }) {
     assert.equal(visibleOneCount, 1, 'The quick-rank selector did not render one unique visible 1 key');
     const ten = visibleOneKeys.first();
     await ten.waitFor({ state: 'visible' });
-    assert.equal(tenAriaLabel, '10. Hold for suits', 'The 1 quick-rank key did not expose the ten long-press label');
+    assert.match(tenAriaLabel || '', exactSemanticLabel('10. Hold for suits'), 'The 1 quick-rank key did not expose the ten long-press label');
     // Keep the complete hold inside the browser event loop. The split
     // Node-side dispatch did not surface the suit choices in headless
     // Chromium, while this preserves one continuous browser-owned gesture.
@@ -165,19 +170,19 @@ async function verifyCardSurface({ browser, env, client, userId, receipt }) {
     });
     receipt.diagnostics.tenAriaExpanded = await ten.getAttribute('aria-expanded') === 'true';
     receipt.stage = 'await-ten-suits';
-    await dialog.getByRole('group', { name: '10 suit choices' }).waitFor({ state: 'visible' });
+    await dialog.getByRole('group', { name: exactSemanticLabel('10 suit choices') }).waitFor({ state: 'visible' });
     receipt.checks.longPressTen = true;
     delete receipt.diagnostics;
 
     receipt.stage = 'duplicate-card-refusal';
-    await dialog.getByRole('button', { name: 'Add 10 of spades to your hand', exact: true }).click();
-    const duplicate = dialog.getByRole('button', { name: 'Add 10 of spades to your hand', exact: true });
+    await dialog.getByRole('button', { name: exactSemanticLabel('Add 10 of spades to your hand') }).click();
+    const duplicate = dialog.getByRole('button', { name: exactSemanticLabel('Add 10 of spades to your hand') });
     assert.equal(await duplicate.isDisabled(), true, 'A selected card could be added twice');
     receipt.checks.duplicateRefusal = true;
-    await dialog.getByRole('button', { name: 'Add ace of hearts to your hand', exact: true }).click();
+    await dialog.getByRole('button', { name: exactSemanticLabel('Add ace of hearts to your hand') }).click();
 
     receipt.stage = 'canonical-card-artwork';
-    const selectedTen = dialog.getByRole('button', { name: 'Remove 10 of spades from your hand' }).locator('img');
+    const selectedTen = dialog.getByRole('button', { name: exactSemanticLabel('Remove 10 of spades from your hand') }).locator('img');
     assert.match(await selectedTen.getAttribute('src'), /\/hub\/club-arena\/cards\/2color\/spades_10\.webp$/);
     receipt.checks.canonicalArtwork = true;
 
@@ -195,22 +200,22 @@ async function verifyCardSurface({ browser, env, client, userId, receipt }) {
     await dialog.getByRole('button', { name: 'Add Cards To Post', exact: true }).click();
     await page.getByText('Poker Cards In This Post', { exact: true }).waitFor({ state: 'visible' });
     assert.match(
-      await page.getByText('Poker Cards In This Post', { exact: true }).locator('..').getByAltText('Ten of spades').getAttribute('src'),
+      await page.getByText('Poker Cards In This Post', { exact: true }).locator('..').getByAltText(exactSemanticLabel('Ten of spades')).getAttribute('src'),
       /\/hub\/club-arena\/cards\/2color\/spades_10\.webp$/,
     );
 
     receipt.stage = 'reload-local-draft';
     await page.reload({ waitUntil: 'domcontentloaded', timeout: 60_000 });
     await page.getByText('Poker Cards In This Post', { exact: true }).waitFor({ state: 'visible', timeout: 30_000 });
-    await page.getByAltText('Ten of spades').first().waitFor({ state: 'visible' });
+    await page.getByAltText(exactSemanticLabel('Ten of spades')).first().waitFor({ state: 'visible' });
     receipt.checks.draftReload = true;
 
     receipt.stage = 'reload-delete-account-preset';
     dialog = await openPicker();
-    await dialog.getByRole('button', { name: `Use ${presetName} preset`, exact: true }).waitFor({ state: 'visible', timeout: 20_000 });
-    await dialog.getByRole('button', { name: `Use ${presetName} preset`, exact: true }).click();
+    await dialog.getByRole('button', { name: exactSemanticLabel(`Use ${presetName} preset`) }).waitFor({ state: 'visible', timeout: 20_000 });
+    await dialog.getByRole('button', { name: exactSemanticLabel(`Use ${presetName} preset`) }).click();
     await dialog.getByText(`${presetName} Loaded`, { exact: true }).waitFor({ state: 'visible' });
-    await dialog.getByRole('button', { name: `Delete ${presetName} preset`, exact: true }).click();
+    await dialog.getByRole('button', { name: exactSemanticLabel(`Delete ${presetName} preset`) }).click();
     await dialog.getByText('Preset Deleted', { exact: true }).waitFor({ state: 'visible' });
     await waitForSetting(
       client,
