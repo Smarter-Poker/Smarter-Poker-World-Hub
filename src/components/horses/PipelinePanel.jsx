@@ -15,7 +15,7 @@ export default function PipelinePanel({ authFetch, postsPerDay = 20 }) {
     // Operator route, service role: pipeline_runs is not readable from a browser.
     let result;
     try {
-      const body = await authFetch('/api/horses/stable-admin', { method: 'POST', body: JSON.stringify({ action: 'pipeline_runs' }) });
+      const body = await authFetch('/api/horses/stable-admin?action=pipeline_runs');
       result = { data: Array.isArray(body?.runs) ? body.runs : [], error: null };
     } catch (cause) {
       result = { data: null, error: cause instanceof Error ? cause : new Error(String(cause)) };

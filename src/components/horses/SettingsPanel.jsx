@@ -80,9 +80,7 @@ export default function SettingsPanel({ authFetch, showNotification, onNavigate,
     // browser (pages/api/horses/stable-admin.js, read_settings).
     let result;
     try {
-      const body = await authFetch('/api/horses/stable-admin', {
-        method: 'POST', body: JSON.stringify({ action: 'read_settings' }),
-      });
+      const body = await authFetch('/api/horses/stable-admin?action=read_settings');
       result = { data: body?.settings || null, error: null };
     } catch (cause) {
       result = { data: null, error: cause instanceof Error ? cause : new Error(String(cause)) };
@@ -109,9 +107,7 @@ export default function SettingsPanel({ authFetch, showNotification, onNavigate,
     // Same route, same reason: horse_post_modes is a server-only table.
     let result;
     try {
-      const body = await authFetch('/api/horses/stable-admin', {
-        method: 'POST', body: JSON.stringify({ action: 'read_post_modes' }),
-      });
+      const body = await authFetch('/api/horses/stable-admin?action=read_post_modes');
       result = { data: Array.isArray(body?.modes) ? body.modes : null, error: null };
     } catch (cause) {
       result = { data: null, error: cause instanceof Error ? cause : new Error(String(cause)) };

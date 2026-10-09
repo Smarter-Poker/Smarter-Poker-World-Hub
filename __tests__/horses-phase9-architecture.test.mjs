@@ -217,3 +217,10 @@ test('the production build runs the Phase 9 lazy-bundle checker', async () => {
   assert.match(checker, /initialFiles\.has\(file\)/);
   assert.match(checker, /baselinePageBytes/);
 });
+
+
+test('the existing production-build browser gate enforces desktop and mobile console navigation', async () => {
+  const workflow = await read('.github/workflows/global-footer-e2e.yml');
+  assert.match(workflow, /npx playwright test e2e\/025-horses-console-phase9\.spec\.ts --project=chromium --project=mobile-chrome --no-deps --workers=1/);
+  assert.match(workflow, /PLAYWRIGHT_BASE_URL: http:\/\/127\.0\.0\.1:\$\{\{ steps\.port\.outputs\.port \}\}/);
+});

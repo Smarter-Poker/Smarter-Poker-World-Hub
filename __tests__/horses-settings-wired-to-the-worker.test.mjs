@@ -139,9 +139,9 @@ test('the panel offers the master switch and the mode switches, and nothing that
   const panel = code(raw);
 
   assert.match(panel, /const DEFAULTS = Object\.freeze\(\{ engine_enabled: false \}\);/, 'one default, and it is false');
-  assert.match(panel, /action: 'read_settings'/);
+  assert.match(panel, /authFetch\('\/api\/horses\/stable-admin\?action=read_settings'\)/);
   assert.match(panel, /action: 'save_settings'/);
-  assert.match(panel, /action: 'read_post_modes'/);
+  assert.match(panel, /authFetch\('\/api\/horses\/stable-admin\?action=read_post_modes'\)/);
   assert.match(panel, /action: 'set_post_mode', mode, enabled/);
 
   for (const key of DEAD_KEYS) {

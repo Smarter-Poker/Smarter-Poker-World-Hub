@@ -2114,3 +2114,69 @@ test('listShape: sourceCollector names the source and logs the database text', (
   assert.ok(logged.some((line) => line.includes('req-9') && line.includes('relation "unions"')));
   assert.equal(sourceCollector({}).list(), undefined);
 });
+
+
+test('stable-admin: GET settings uses the same safe projection as legacy POST', async () => {
+  const db = fakeDb({ content_settings: { rows: [{ id: 'settings-1', engine_enabled: true }] } });
+  const op = { ...fakeOp(db), permissions: ['console.read'] };
+  const out = await stableHandle({ req: fakeReq({ method: 'GET' }), op, db, query: { action: 'read_settings' }, body: { action: 'save_settings' } });
+  assert.equal(out.settings.engine_enabled, true);
+  assert.equal(db.calls.some((call) => call.update || call.insert || call.delete), false);
+});
+
+test('stable-admin: GET refuses every write before accessing the database', async () => {
+  const actions = ['create_horse', 'update_horse', 'set_active', 'bulk_active', 'delete_horse', 'bulk_delete', 'save_settings', 'set_post_mode', 'set_ticket_status'];
+  for (const action of actions) {
+    const db = fakeDb({});
+    await assert.rejects(stableHandle({ req: fakeReq({ method: 'GET' }), op: fakeOp(db), db, query: { action } }), /Requires POST/);
+    assert.equal(db.calls.length, 0, action);
+  }
+});
+
+test('stable-admin: GET audit still requires audit.read and rejects ambiguous actions', async () => {
+  const db = fakeDb({});
+  const op = { ...fakeOp(db), permissions: ['console.read'] };
+  await assert.rejects(stableHandle({ req: fakeReq({ method: 'GET' }), op, db, query: { action: 'audit_log' } }), /Permission Required/);
+  await assert.rejects(stableHandle({ req: fakeReq({ method: 'GET' }), op, db, query: { action: ['read_settings', 'save_settings'] } }), /Unknown Action/);
+  assert.equal(db.calls.length, 0);
+});
+
+
+test('audit GET URL preserves multiple prefixes, paging and encoded filters', async () => {
+  const { auditReadUrl } = await import('../src/components/horses/auditFilters.js');
+  const url = new URL(auditReadUrl({ actionPrefixes: ['settings.', 'postmode.'], offset: 0, limit: 100, targetType: 'a&b', empty: '', absent: null }), 'https://example.test');
+  assert.equal(url.searchParams.get('action'), 'audit_log');
+  assert.deepEqual(url.searchParams.getAll('actionPrefixes'), ['settings.', 'postmode.']);
+  assert.equal(url.searchParams.get('offset'), '0');
+  assert.equal(url.searchParams.get('targetType'), 'a&b');
+  assert.equal(url.searchParams.has('empty'), false);
+  assert.equal(url.searchParams.has('absent'), false);
+});
+
+
+test('support status UI sends the canonical id through the real handler and refreshes after success', async () => {
+  const panel = fs.readFileSync(path.join(HERE, '..', 'src/components/horses/BugReportsPanel.jsx'), 'utf8');
+  const start = panel.indexOf('  const update = async');
+  const end = panel.indexOf('\n  return <', start);
+  assert.ok(start >= 0 && end > start);
+  const buildUpdate = new Function('authFetch', 'showNotification', 'tickets', 'canWrite', panel.slice(start, end) + '; return update;');
+  const id = uuidAt(7);
+  const audits = [];
+  const db = fakeDb({ live_help_tickets: { rows: [{ id, status: 'open' }] } }, { fn_log_admin_action: async (args) => { audits.push(args); return { data: true, error: null }; } });
+  const op = { ...fakeOp(db), permissions: ['support.write'] };
+  let refreshes = 0;
+  const notifications = [];
+  const authFetch = async (url, options) => {
+    assert.equal(url, '/api/horses/stable-admin');
+    assert.equal(options.method, 'POST');
+    return stableHandle({ req: fakeReq({ method: 'POST' }), op, db, body: JSON.parse(options.body) });
+  };
+  await buildUpdate(authFetch, (...args) => notifications.push(args), { refresh: () => { refreshes++; } }, true)(id, 'resolved');
+  assert.equal(refreshes, 1);
+  assert.equal(audits.length, 1);
+  assert.equal(audits[0].p_target_id, id);
+  assert.equal(notifications[0][0], 'Ticket Marked Resolved');
+  const before = db.calls.length;
+  await buildUpdate(authFetch, () => {}, { refresh: () => { refreshes++; } }, false)(id, 'open');
+  assert.equal(db.calls.length, before, 'a read-only UI never submits a write');
+});

@@ -65,7 +65,7 @@
 # 2026-09-01) contradicted that and forced `git add -f` for every new memory
 # file, which is how decision records silently failed to land. Keep it
 # trackable; put nothing secret in it (the same rule CLAUDE.md states).
-.next/
+.next
 .venv
 .vercel
 playwright/.auth/

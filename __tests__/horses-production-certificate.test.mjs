@@ -73,3 +73,23 @@ test('receipt schema contains only sanitized operational evidence', () => {
   assert.match(verifier, /mutationAttemptCount/);
   assert.match(verifier, /apiStatuses/);
 });
+
+
+test('failed viewport diagnostics retain bounded counts without arbitrary URLs', () => {
+  assert.match(verifier, /receipt.failedViewport =/);
+  assert.match(verifier, /mutationAttempts: mutationAttempts.slice\(0, 20\)/);
+  assert.match(verifier, /\? '\/api\/horses\/stable-admin' : '\[redacted\]'/);
+  assert.doesNotMatch(verifier, /path: requestUrl.pathname/);
+});
+
+
+test('read-only certificate includes later fleet, settings and retired-pipeline consumers', () => {
+  for (const [tab, heading, surface] of [['stats', 'Platform Statistics', 'statistics'], ['settings', 'Engine Settings', 'settings'], ['pipeline', 'Content Pipeline', 'pipeline']]) {
+    assert.ok(verifier.includes(`waitForPanel(page, '${tab}', '${heading}')`));
+    assert.ok(verifier.includes(`assertNoOverflow(page, viewport, '${surface}'`));
+  }
+  assert.match(verifier, /analytics_unavailable/);
+  assert.match(verifier, /posting_modes_unavailable/);
+  assert.match(verifier, /pipeline_unavailable/);
+  assert.match(verifier, /laterConsumers: \['statistics', 'settings', 'pipeline'\]/);
+});

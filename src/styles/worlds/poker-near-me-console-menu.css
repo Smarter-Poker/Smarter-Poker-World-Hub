@@ -542,13 +542,13 @@ body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'
 /* Narrow phones: a second line of copy only prints where it fits the face. */
 @container pnm-command-drawer (max-width: 389px) {
   body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-grid-tile .sp-grid-description {
-    font-size: 11px !important;
+    font-size: 12px !important;
   }
 }
 
 @container pnm-command-drawer (max-width: 374px) {
   body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-menu-row :is(.sp-menu-description, [id^='sp-hint-']) {
-    font-size: 11px !important;
+    font-size: 12px !important;
   }
 }
 

@@ -56,7 +56,7 @@ function apiFixture(permissions: string[]) {
   return {
     success: true,
     ...page,
-    data: page,
+    data: { ...page, clubs: [], unions: [] },
     operatorId: OPERATOR_ID,
     userId: OPERATOR_ID,
     permissions,
@@ -157,6 +157,8 @@ async function expectPanelChunkSettled(page: Page, label: string) {
   await expect(panel.getByText(`Loading ${label}`, { exact: true })).toHaveCount(0, { timeout: 15_000 });
   await expect(panel.getByRole('heading', { name: `${label} Could Not Be Loaded`, exact: true })).toHaveCount(0);
   await expect(panel.getByText('The Code For This Tab Did Not Arrive.', { exact: false })).toHaveCount(0);
+  await expect(panel.getByText(/^(?:Loading |Reading .*\.\.\.$)/)).toHaveCount(0, { timeout: 15_000 });
+  await expect(panel.getByRole('heading', { name: /Could Not Be Displayed$/ })).toHaveCount(0);
 }
 
 test.describe('25. Stable Admin Phase 9 architecture smoke', () => {
@@ -184,6 +186,61 @@ test.describe('25. Stable Admin Phase 9 architecture smoke', () => {
       await expectPanelChunkSettled(page, label);
     }
 
+    expect(failures.pageErrors).toEqual([]);
+    expect(failures.chunkFailures).toEqual([]);
+  });
+
+  test('every registered nested navigation surface settles without a runtime or chunk failure', async ({ page }, testInfo) => {
+    test.setTimeout(180_000);
+    await page.setViewportSize(testInfo.project.name.startsWith('mobile')
+      ? { width: 375, height: 812 } : { width: 1440, height: 900 });
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    const failures = watchRuntime(page);
+    await installSignedInPolicyFixture(page);
+    await page.goto('/horses', { waitUntil: 'domcontentloaded' });
+    const groups = [
+      { id: 'fleet', label: 'Fleet Command', role: 'tablist' as const, name: 'Fleet Command Sections', count: 6 },
+      { id: 'players', label: 'Players', role: 'tablist' as const, name: 'Players Sections', count: 6 },
+      { id: 'integrity', label: 'Integrity', role: 'tablist' as const, name: 'Integrity Sections', count: 8 },
+      { id: 'hg-moderation', label: 'HG Moderation', role: 'tablist' as const, name: 'Moderation Sections', count: 4 },
+      { id: 'economy', label: 'Economy', role: 'navigation' as const, name: 'Economy sections', count: 6 },
+      { id: 'platform', label: 'Platform Operations', role: 'navigation' as const, name: 'Platform Operations Sections', count: 7 },
+    ];
+    const panel = page.locator('main[role="tabpanel"]');
+    for (const group of groups) {
+      const topTab = page.locator(`[role="tab"][data-tabid="${group.id}"]`);
+      await topTab.scrollIntoViewIfNeeded();
+      await topTab.click();
+      await expectSelectedTab(page, group.id);
+      await expectPanelChunkSettled(page, group.label);
+      const navigation = panel.getByRole(group.role, { name: group.name, exact: true });
+      const items = navigation.getByRole(group.role === 'tablist' ? 'tab' : 'button');
+      await expect(items).toHaveCount(group.count);
+      for (let index = 0; index < group.count; index += 1) {
+        await items.nth(index).scrollIntoViewIfNeeded();
+        await items.nth(index).click();
+        if (group.role === 'tablist') await expect(items.nth(index)).toHaveAttribute('aria-selected', 'true');
+        await expect(panel.getByText(/^(?:Loading |Reading .*\.\.\.$)/)).toHaveCount(0, { timeout: 15_000 });
+        await expect(panel.getByText('The Code For This Tab Did Not Arrive.', { exact: false })).toHaveCount(0);
+      }
+    }
+    const clubTab = page.locator('[role="tab"][data-tabid="clubarena"]');
+    await clubTab.scrollIntoViewIfNeeded();
+    await clubTab.click();
+    await expectSelectedTab(page, 'clubarena');
+    await expectPanelChunkSettled(page, 'Club Arena');
+    const sections = [
+      ['overview', 'Overview'], ['clubs', 'Clubs'], ['revenue', 'Revenue'],
+      ['ledger', 'Ledger'], ['finance', 'Cashouts'], ['users', 'Users'],
+      ['unions', 'Unions'], ['approvals', 'Union Applications'],
+      ['operations', 'Operations'], ['announcements', 'Announcements'],
+    ];
+    for (const [id, label] of sections) {
+      await panel.getByRole('button', { name: new RegExp(`^${label}(?: \u0028[\d,]+\u0029)?$`) }).click();
+      await expect.poll(() => (new URL(page.url()).searchParams.get('section') || 'overview')).toBe(id);
+      await expect(panel.getByText(/^(?:Loading |Reading .*\.\.\.$)/)).toHaveCount(0, { timeout: 15_000 });
+      await expect(panel.getByText('The Code For This Tab Did Not Arrive.', { exact: false })).toHaveCount(0);
+    }
     expect(failures.pageErrors).toEqual([]);
     expect(failures.chunkFailures).toEqual([]);
   });

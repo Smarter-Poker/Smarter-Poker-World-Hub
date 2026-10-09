@@ -74,7 +74,16 @@ async function installReelsFixture(page: Page) {
     id: 'phase-2-menu-audit-reel',
     author_id: 'phase-2-menu-audit-author',
     caption: 'Phase 2 Menu Audit',
-    video_url: 'https://media.smarter.poker.test/phase-2-menu-audit.mp4',
+    video_url: 'https://www.youtube.com/embed/abcdefghijk',
+    youtube_video_id: 'abcdefghijk',
+    topic: 'poker',
+    media_status: 'ready',
+    playback_type: 'youtube_embed',
+    rights_status: 'embed_only',
+    canonical_asset_key: 'youtube:abcdefghijk',
+    availability_status: 'verified',
+    availability_checked_at: new Date().toISOString(),
+    embeddable: true,
     thumbnail_url: null,
     view_count: 0,
     like_count: 0,
@@ -83,12 +92,11 @@ async function installReelsFixture(page: Page) {
     is_public: true,
     source_type: 'user',
   }];
-  await page.route('**/rest/v1/social_reels*', async (route) => {
+  await page.route('**/api/reels/feed?*', async (route) => {
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
-      headers: { 'content-range': '0-0/1' },
-      body: JSON.stringify(fixture),
+      body: JSON.stringify({ success: true, data: fixture, has_more: false, next_cursor: null }),
     });
   });
   await page.route('**/rest/v1/profiles*', async (route) => {
@@ -103,7 +111,7 @@ async function installReelsFixture(page: Page) {
       }]),
     });
   });
-  await page.route('https://media.smarter.poker.test/phase-2-menu-audit.mp4', async (route) => {
+  await page.route('https://www.youtube.com/embed/abcdefghijk*', async (route) => {
     await route.fulfill({ status: 204, body: '' });
   });
 }
@@ -186,7 +194,33 @@ for (const world of WORLD_MENU_VISUAL_CASES) {
 
     await page.keyboard.press('Escape');
     await expect(drawer).toBeHidden();
-    await expect(trigger).toBeFocused();
+    try {
+      await expect(trigger).toBeFocused();
+    } catch (error) {
+      // DOM structure only: retain no feed text, identities or session data.
+      const focusState = await page.evaluate(() => {
+        const target = document.querySelector('[data-world-menu-trigger]');
+        const ancestors: Array<{ tag: string; inert: boolean; hidden: string | null }> = [];
+        for (let node = target; node; node = node.parentElement) {
+          ancestors.push({ tag: node.tagName, inert: node.hasAttribute('inert'), hidden: node.getAttribute('aria-hidden') });
+        }
+        return {
+          activeTag: document.activeElement?.tagName,
+          activeTrigger: document.activeElement?.getAttribute('data-world-menu-trigger'),
+          targetConnected: target?.isConnected,
+          ancestors,
+          scrollY: window.scrollY,
+          bodyPosition: document.body.style.position,
+          bodyOverflow: document.body.style.overflow,
+          menus: Array.from(document.querySelectorAll('[data-world-command-menu]')).map((node) => ({
+            world: node.getAttribute('data-world-command-menu'),
+            visibility: getComputedStyle(node).visibility,
+          })),
+        };
+      });
+      console.warn(`[world-menu-focus-failure] ${JSON.stringify(focusState)}`);
+      throw error;
+    }
     await expect(page.locator('body')).not.toHaveCSS('overflow', 'hidden');
   });
 }
@@ -234,5 +268,38 @@ for (const path of ['/hub/friends', '/hub/messenger', '/hub/reels']) {
       await expect(page.locator('[data-world-menu-trigger="route-fallback"]')).toBeFocused();
       await expect(page.locator('[data-world-command-menu="social-media"]:visible')).toHaveCount(0);
     }
+  });
+}
+
+
+for (const closeBeforeHydration of [true, false]) {
+  test(`Social Media preserves menu focus when feed hydration finishes ${closeBeforeHydration ? 'after' : 'before'} close`, async ({ page }) => {
+    let releaseFeed!: () => void;
+    const feedReady = new Promise<void>((resolve) => { releaseFeed = resolve; });
+    await page.route('**/api/social/feed?*', async (route) => {
+      await feedReady;
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ posts: [], hasMore: false, nextOffset: 0 }) });
+    });
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.goto('/hub/social-media', { waitUntil: 'domcontentloaded' });
+    await expect(page.locator('.sf-skel').first()).toBeVisible();
+    const trigger = await expectTriggerPainted(page);
+    const originalTrigger = await trigger.elementHandle();
+    await trigger.click();
+    const drawer = page.locator('[data-world-command-menu="social-media"]:visible');
+    await expect(drawer).toHaveCount(1);
+    if (closeBeforeHydration) await page.keyboard.press('Escape');
+    releaseFeed();
+    await expect(page.locator('.sf-skel')).toHaveCount(0);
+    expect(await originalTrigger?.evaluate((element) => element.isConnected)).toBe(true);
+    if (!closeBeforeHydration) {
+      await expect(drawer).toHaveCount(1);
+      await expect(page.locator('body')).toHaveCSS('overflow', 'hidden');
+      await page.keyboard.press('Escape');
+    }
+    await expect(drawer).toHaveCount(0);
+    await expect(trigger).toBeFocused();
+    await expect(page.locator('body')).not.toHaveCSS('overflow', 'hidden');
+    expect(await trigger.evaluate((element) => element.closest('[inert]'))).toBeNull();
   });
 }
