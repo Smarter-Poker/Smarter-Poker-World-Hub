@@ -582,13 +582,15 @@ jobs:
 
   social-card-live:
     name: Published Social Card Test Account Verification
-    if: ${{ inputs.suite == 'social-card-live' }}
+    if: ${{ inputs.suite == 'social-card-live' && github.ref == 'refs/heads/main' }}
     runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 15
     permissions:
       contents: read
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: '24.12.0'
@@ -597,6 +599,25 @@ jobs:
         run: |
           node scripts/ci/social-card-live-check.mjs --self-test
           node --test __tests__/social-card-live-safety.test.mjs
+      - name: Prove deployed Social Card runtime is included in protected source
+        env:
+          DEPLOYED_SHA: ${{ inputs.expected_sha }}
+          SOURCE_SHA: ${{ github.sha }}
+        run: |
+          test "$GITHUB_REF" = refs/heads/main
+          git cat-file -e "$DEPLOYED_SHA^{commit}"
+          git cat-file -e "$SOURCE_SHA^{commit}"
+          git merge-base --is-ancestor "$DEPLOYED_SHA" "$SOURCE_SHA"
+          git diff --quiet "$DEPLOYED_SHA" "$SOURCE_SHA" -- \
+            'pages/hub/home-games/[slug].js' \
+            pages/hub/reels.js \
+            src/components/social/PokerCardPicker.jsx \
+            src/components/social/Reels.jsx \
+            src/components/social/ReelsFeedCarousel.jsx \
+            src/components/social/SharedPostCreator.jsx \
+            src/components/social/SmarterPokerStyleCard.jsx \
+            src/lib/clubArenaHandImport.mjs \
+            src/lib/pokerCardMarkup.js
       - name: Restore locked dependencies
         id: social-card-live-nm-cache
         uses: actions/cache@v4

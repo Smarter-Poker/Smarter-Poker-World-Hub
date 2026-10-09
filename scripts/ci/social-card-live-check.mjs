@@ -17,7 +17,7 @@ export function validateConfiguration(env) {
   ]) assert.ok(String(env[key] || '').trim(), `${key} is required`);
   assert.equal(new URL(env.NEXT_PUBLIC_SUPABASE_URL).origin, AUTH_ORIGIN, 'Unexpected authentication origin');
   assert.match(env.SOCIAL_CARD_EXPECTED_SHA, SHA, 'Expected deployed SHA must be a full commit');
-  assert.equal(env.SOCIAL_CARD_SOURCE_SHA, env.SOCIAL_CARD_EXPECTED_SHA, 'Workflow source is not the expected protected revision');
+  assert.match(env.SOCIAL_CARD_SOURCE_SHA, SHA, 'Workflow source SHA must be a full commit');
 }
 
 export function isForbiddenPostMutation(method, value) {
@@ -37,6 +37,7 @@ export function validateReceipt(receipt, expectedSha) {
   assert.equal(receipt.status, 'passed', 'Social card live verification did not pass');
   assert.equal(receipt.expectedSha, expectedSha, 'Receipt expected revision differs');
   assert.equal(receipt.observedSha, expectedSha, 'Receipt production revision differs');
+  assert.match(receipt.sourceSha, SHA, 'Receipt has no protected workflow source revision');
   assert.ok(String(receipt.deploymentId || '').startsWith('dpl_'), 'Receipt has no deployment identity');
   for (const key of [
     'authenticatedServiceIdentity', 'canonicalArtwork', 'longPressTen',
