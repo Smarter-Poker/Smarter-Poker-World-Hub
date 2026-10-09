@@ -11,7 +11,7 @@ export default function VerificationConsole({ checking, alreadyVerified, stage, 
     const isCode = stage === 'code' && !complete;
     const action = complete ? goHub : isCode ? verifyCode : sendCode;
     const actionLabel = checking ? 'Loading Your Account...' : complete ? 'Enter The Hub'
-        : busy ? (isCode ? 'Verifying...' : 'Sending...') : isCode ? 'Verify And Claim' : 'Send Verification Code';
+        : busy ? (isCode ? 'Verifying...' : 'Sending...') : isCode ? 'Verify And Claim' : cooldown > 0 ? `Send In ${cooldown}s` : 'Send Verification Code';
     return <main className={styles.page}>
         <section className={styles.console} aria-labelledby="verification-title" aria-busy={busy || checking}>
             <img className={styles.art} src="/images/verification/phone-welcome-v2.webp" alt="" aria-hidden="true" draggable={false} />
@@ -19,13 +19,13 @@ export default function VerificationConsole({ checking, alreadyVerified, stage, 
             <p className={styles.srOnly}>Verify Your Phone Number To Unlock Your Welcome Package. 30-Day VIP Card And 500 Diamonds.</p>
             <button type="button" className={`${styles.hitbox} ${styles.close}`} onClick={complete ? goHub : skip}
                 disabled={busy || checking} aria-label="Close Verification" />
-            {complete && <div className={styles.rewardStatus} role="status">
+            {complete && !alreadyVerified && <div className={styles.rewardStatus} role="status">
                 {packageStatus === 'withheld_disposable' ? 'Welcome Package Not Eligible' : <>
                     <span>{vipDays > 0 ? `${vipDays}-Day VIP Activated` : 'VIP Already On Your Account'}</span>
                     <span>{welcomeDiamonds > 0 ? `+${welcomeDiamonds} Diamonds Added` : packageStatus === 'mint_refused' ? 'Diamonds Pending' : 'Welcome Diamonds Already Claimed'}</span>
                 </>}
             </div>}
-            <form onSubmit={(event) => { event.preventDefault(); if (!checking && !busy && (complete || (isCode ? code.length === 4 : digits.length === 10))) action(); }}>
+            <form onSubmit={(event) => { event.preventDefault(); if (!checking && !busy && (complete || (isCode ? code.length === 4 : digits.length === 10 && cooldown === 0))) action(); }}>
                 <label className={isCode || complete || checking ? styles.liveLabel : styles.srOnly} htmlFor={isCode ? 'vp-code' : 'vp-phone'}>
                     {checking ? 'Loading Your Account...' : complete ? 'Your Phone Is Verified' : isCode ? '4-Digit Verification Code' : 'US Mobile Number'}
                 </label>
@@ -34,11 +34,11 @@ export default function VerificationConsole({ checking, alreadyVerified, stage, 
                     className={`${styles.input} ${isCode ? styles.codeInput : ''}`} type={isCode ? 'text' : 'tel'} inputMode={isCode ? 'numeric' : 'tel'}
                     autoComplete={isCode ? 'one-time-code' : 'tel-national'} maxLength={isCode ? 4 : 14}
                     placeholder={isCode ? '4-Digit Code' : '(555) 555-5555'} value={isCode ? code : formatPhone(phone)}
-                    disabled={busy} onChange={isCode ? onCodeChange : onPhoneChange} />}
+                    aria-describedby={error ? 'verification-error' : undefined} disabled={busy} onChange={isCode ? onCodeChange : onPhoneChange} />}
                 {complete && <p className={styles.completion}>{alreadyVerified ? 'Already Verified On This Account.' : doneLead}</p>}
                 <button type="submit" className={`${styles.hitbox} ${styles.send}`} aria-label={actionLabel}
-                    disabled={checking || busy || (!complete && (isCode ? code.length !== 4 : digits.length !== 10))}>
-                    <span className={isCode || complete || checking || busy ? styles.liveAction : styles.srOnly}>{actionLabel}</span>
+                    disabled={checking || busy || (!complete && (isCode ? code.length !== 4 : digits.length !== 10 || cooldown > 0))}>
+                    <span className={isCode || complete || checking || busy || cooldown > 0 ? styles.liveAction : styles.srOnly}>{actionLabel}</span>
                 </button>
             </form>
             {isCode && <div className={styles.stateFooter}><div className={styles.codeActions}>
@@ -53,6 +53,6 @@ export default function VerificationConsole({ checking, alreadyVerified, stage, 
             <Link href="/hub" className={`${styles.hitbox} ${styles.hub}`} onClick={(event) => { event.preventDefault(); if (!busy && !checking) (complete ? goHub : skip)(); }} aria-label="Hub" />
             <Link href="/hub/help" className={`${styles.hitbox} ${styles.help}`} aria-label="Help" />
         </section>
-        {error && <p role="alert" className={styles.error}>{error}</p>}
+        {error && <p id="verification-error" role="alert" className={styles.error}>{error}</p>}
     </main>;
 }

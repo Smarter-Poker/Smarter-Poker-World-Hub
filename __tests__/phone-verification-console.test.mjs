@@ -24,6 +24,7 @@ test('phone input and send action occupy real semantic controls', () => {
   assert.equal(send.props.disabled, false);
   f.find(n => n?.type === 'form').props.onSubmit({ preventDefault() {} });
   assert.deepEqual(f.calls, ['send']);
+  assert.equal(fixture({ cooldown: 30 }).find(n => n?.props?.type === 'submit').props.disabled, true);
   assert.equal(fixture({ digits: '555' }).find(n => n?.props?.type === 'submit').props.disabled, true);
 });
 test('code stage uses code input, verification and cooldown controls', () => {
@@ -52,4 +53,10 @@ test('close and skip share the existing dismissal handler and errors are announc
   f.find(n => n?.props?.['aria-label'] === 'Skip For Now').props.onClick();
   assert.deepEqual(f.calls, ['skip', 'skip']);
   assert.equal(f.find(n => n?.props?.role === 'alert').props.children, 'Invalid Code');
+});
+
+test('an already verified account does not claim unobserved VIP or diamond grants', () => {
+ const f = fixture({ alreadyVerified: true, vipDays: 0, welcomeDiamonds: 0 });
+ assert.equal(f.find(n => n?.props?.role === 'status'), undefined);
+ assert.equal(f.find(n => n?.type === 'input'), undefined);
 });
