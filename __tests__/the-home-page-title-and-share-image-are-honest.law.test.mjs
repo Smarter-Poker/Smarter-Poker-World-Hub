@@ -20,6 +20,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import vm from 'node:vm';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const read = (file) => fs.readFileSync(path.join(ROOT, file), 'utf8');
@@ -148,7 +149,7 @@ test('every public page title fits a search result once SEOHead has added the si
  * six, and the Poker Near Me grid to 0.267 on every single load.
  */
 const SIZED_IMAGES = [
-  { file: 'pages/index.js', asset: 'public/images/landing-hero.webp', needle: 'src="/images/landing-hero.webp"' },
+  { file: 'pages/index.js', asset: 'public/images/landing-hero-v2.webp', needle: 'src="/images/landing-hero-v2.webp"' },
   {
     file: 'src/components/poker-near-me/lobby/LobbyOverlay.jsx',
     asset: 'public/images/lobby-pods/poker-near-me-grid.webp',
@@ -174,6 +175,45 @@ test('every early image declares the pixels the file actually has', () => {
   const shimmer = read('pages/index.js').match(/shimmer: \{[\s\S]*?\},/)?.[0] || '';
   assert.doesNotMatch(shimmer, /paddingBottom/, 'the shimmer does not reserve a band in the flow');
   assert.match(shimmer, /position: 'absolute'/, 'the shimmer is an overlay');
+});
+
+test('the interactive landing artwork keeps aligned, bounded crops and correctly sized WebP files', () => {
+  const source = read('pages/index.js');
+  const configs = source.slice(source.indexOf('const HOTSPOTS ='), source.indexOf('function ArtworkSlice'));
+  const { main, details, phone } = vm.runInNewContext(`${configs}; ({ main: HOTSPOTS, details: OVERLAY_HOTSPOTS, phone: PHONE_PANELS })`);
+  assert.equal(main.length, 6);
+  assert.equal(phone.length, 7, 'phone bankroll and discovery have separate readable panels');
+  assert.equal(main.find(s => s.id === 'join-now').href, '/auth/signup');
+  assert.equal(main.find(s => s.id === 'club-commander').href, '/hub/commander');
+
+  for (const spots of [main, phone, ...Object.values(details)]) {
+    for (const spot of spots) {
+      assert.ok(spot.width > 0 && spot.height > 0, spot.id);
+      assert.ok(spot.left >= 0 && spot.top >= 0 && spot.left + spot.width <= 100 && spot.top + spot.height <= 100,
+        `${spot.id} stays inside the rendered artwork`);
+    }
+    for (let i = 0; i < spots.length; i++) for (let j = i + 1; j < spots.length; j++) {
+      const a = spots[i], b = spots[j];
+      const overlap = Math.min(a.left + a.width, b.left + b.width) > Math.max(a.left, b.left)
+        && Math.min(a.top + a.height, b.top + b.height) > Math.max(a.top, b.top);
+      assert.equal(overlap, false, `${a.id} and ${b.id} do not intercept each other's clicks`);
+    }
+  }
+  for (const spot of main.filter(s => s.action === 'overlay')) {
+    assert.ok(details[spot.overlayKey]?.length, `${spot.id} has its detail actions`);
+    const bytes = fs.readFileSync(path.join(ROOT, 'public', spot.image));
+    const pixels = webpSize(bytes);
+    assert.equal(pixels.width, spot.imageWidth, spot.id);
+    assert.equal(pixels.height, spot.imageHeight, spot.id);
+    assert.ok(bytes.length < 600 * 1024, `${spot.id} stays below the full-size transfer budget`);
+    const smaller = fs.readFileSync(path.join(ROOT, 'public', spot.image.replace('.webp', '-640.webp')));
+    const smallPixels = webpSize(smaller);
+    assert.equal(smallPixels.width, 640);
+    assert.ok(Math.abs(smallPixels.height - 640 * pixels.height / pixels.width) < 1, 'responsive variant preserves shape');
+    assert.ok(smaller.length < 350 * 1024);
+  }
+  assert.match(source, /maxWidth: '937px'/, 'desktop does not enlarge the main raster');
+  assert.match(source, /maxWidth: `\$\{width \* spot\.width \/ 100\}px`/, 'phone crops do not enlarge their native pixels');
 });
 
 test('the share image is the 1200 x 630 PNG the meta tags promise, under 400 KB', () => {
