@@ -75,7 +75,7 @@ async function waitForSetting(client, userId, predicate, message) {
   assert.fail(message);
 }
 
-async function authenticateBrowser(browser, email, password) {
+async function authenticateBrowser(browser, email, password, expectedUserId) {
   const context = await browser.newContext({
     baseURL: APP_ORIGIN,
     viewport: { width: 390, height: 844 },
@@ -100,11 +100,17 @@ async function authenticateBrowser(browser, email, password) {
   }
   await page.waitForURL(/\/hub(?:\/|$|\?)/, { timeout: 45_000 });
   assert.equal(new URL(page.url()).origin, APP_ORIGIN, 'Authenticated browser left production');
+  const browserUserId = await page.evaluate(() => {
+    const session = JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}');
+    if (session?.user?.id) localStorage.setItem(`sp_firstrun_notif_v2_${session.user.id}`, String(Date.now()));
+    return session?.user?.id || null;
+  });
+  assert.equal(browserUserId, expectedUserId, 'Browser session differs from configured test identity');
   return { context, page };
 }
 
 async function verifyCardSurface({ browser, env, client, userId, receipt }) {
-  const { context, page } = await authenticateBrowser(browser, env.TEST_USER_EMAIL, env.TEST_USER_PASSWORD);
+  const { context, page } = await authenticateBrowser(browser, env.TEST_USER_EMAIL, env.TEST_USER_PASSWORD, userId);
   const postMutations = [];
   page.on('request', (request) => {
     if (isForbiddenPostMutation(request.method(), request.url())) postMutations.push('forbidden');
@@ -178,11 +184,18 @@ async function verifyCardSurface({ browser, env, client, userId, receipt }) {
     );
     receipt.checks.presetRoundTrip = true;
 
-    await dialog.getByText('Loading Your Recent Hands...', { exact: true }).waitFor({ state: 'detached', timeout: 20_000 }).catch(() => {});
     const importButtons = dialog.getByRole('button', { name: /^Import (?:Hand|Club Arena Hand)/ });
+    const emptyHistory = dialog.getByText('No Recent Club Arena Hands To Import.', { exact: true });
+    const rejectedHistory = dialog.getByText('Recent Hands Had No Complete Card Data To Import.', { exact: true });
+    await Promise.any([
+      importButtons.first().waitFor({ state: 'visible', timeout: 20_000 }),
+      emptyHistory.waitFor({ state: 'visible', timeout: 20_000 }),
+      rejectedHistory.waitFor({ state: 'visible', timeout: 20_000 }),
+    ]).catch(() => assert.fail('Recent hand surface did not reach an explicit terminal state'));
+    assert.equal(await dialog.getByRole('alert').count(), 0, 'Recent hand surface returned an error state');
     const importCount = await importButtons.count();
-    const emptyText = await dialog.getByText('No Recent Club Arena Hands To Import.', { exact: true }).isVisible().catch(() => false);
-    const rejectedText = await dialog.getByText('Recent Hands Had No Complete Card Data To Import.', { exact: true }).isVisible().catch(() => false);
+    const emptyText = await emptyHistory.isVisible().catch(() => false);
+    const rejectedText = await rejectedHistory.isVisible().catch(() => false);
     const outcome = classifyHistorySurface({ importButtons: importCount, emptyText, rejectedText });
     if (importCount > 0) {
       const label = await importButtons.first().getAttribute('aria-label');
