@@ -41,7 +41,7 @@ on:
       suite:
         description: Verification suite to run
         type: choice
-        options: [full, horses-phase9-postgrest, messenger-live, messenger-send-live, messenger-continuity-live, reels-live, video-operations-live, reels-reconciliation-audit, reels-reconciliation-apply]
+        options: [full, horses-phase9-postgrest, messenger-live, messenger-send-live, messenger-continuity-live, reels-live, video-operations-live, social-card-live, reels-reconciliation-audit, reels-reconciliation-apply]
         default: full
       expected_sha:
         description: Full deployed commit SHA (required only for a published live verification suite)
@@ -577,6 +577,57 @@ jobs:
         with:
           name: video-operations-live-receipt
           path: test-results/video-operations-live/result.json
+          if-no-files-found: error
+          retention-days: 7
+
+  social-card-live:
+    name: Published Social Card Test Account Verification
+    if: ${{ inputs.suite == 'social-card-live' }}
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24.12.0'
+          cache: npm
+      - name: Verify Social Card live probe safety
+        run: |
+          node scripts/ci/social-card-live-check.mjs --self-test
+          node --test __tests__/social-card-live-safety.test.mjs
+      - name: Restore locked dependencies
+        id: social-card-live-nm-cache
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: nm-wh-noscripts-${{ runner.os }}-node24-${{ hashFiles('package-lock.json') }}
+      - name: Install locked dependencies
+        if: steps.social-card-live-nm-cache.outputs.cache-hit != 'true'
+        run: npm ci --ignore-scripts
+      - name: Install verification browser
+        run: |
+          if [ "${{ runner.environment }}" = "self-hosted" ]; then npx playwright install chromium; else npx playwright install --with-deps chromium; fi
+      - name: Verify published Social Card composer with designated test account
+        run: node scripts/ci/social-card-live-check.mjs
+        env:
+          TEST_USER_EMAIL: ${{ vars.TEST_USER_EMAIL || secrets.TEST_USER_EMAIL }}
+          TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          SOCIAL_CARD_EXPECTED_SHA: ${{ inputs.expected_sha }}
+          SOCIAL_CARD_SOURCE_SHA: ${{ github.sha }}
+      - name: Assert complete sanitized Social Card receipt
+        run: node scripts/ci/social-card-live-check.mjs --check-receipt test-results/social-card-live/result.json
+        env:
+          SOCIAL_CARD_EXPECTED_SHA: ${{ inputs.expected_sha }}
+      - name: Retain sanitized Social Card receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: social-card-live-receipt
+          path: test-results/social-card-live/result.json
           if-no-files-found: error
           retention-days: 7
 
