@@ -23,7 +23,7 @@ export function validateConfiguration(env) {
 export function isForbiddenPostMutation(method, value) {
   if (['GET', 'HEAD', 'OPTIONS'].includes(String(method || '').toUpperCase())) return false;
   const url = new URL(value);
-  return /\/api\/(?:posts|social)|\/rest\/v1\/(?:posts|social_page_posts)(?:\?|$)/.test(`${url.pathname}${url.search}`);
+  return /\/api\/(?:posts|social)|\/rest\/v1\/(?:posts|social_posts|social_page_posts)(?:\?|$)/.test(`${url.pathname}${url.search}`);
 }
 
 export function classifyHistorySurface({ importButtons, emptyText, rejectedText }) {
@@ -111,12 +111,14 @@ async function authenticateBrowser(browser, email, password, expectedUserId) {
 }
 
 async function verifyCardSurface({ browser, env, client, userId, receipt }) {
+  receipt.stage = 'authenticate-browser';
   const { context, page } = await authenticateBrowser(browser, env.TEST_USER_EMAIL, env.TEST_USER_PASSWORD, userId);
   const postMutations = [];
   page.on('request', (request) => {
     if (isForbiddenPostMutation(request.method(), request.url())) postMutations.push('forbidden');
   });
   try {
+    receipt.stage = 'open-social-composer';
     await page.goto('/hub/social-media', { waitUntil: 'domcontentloaded', timeout: 60_000 });
     await page.getByRole('button', { name: 'Poker Cards', exact: true }).first().waitFor({ state: 'visible', timeout: 45_000 });
     await page.evaluate(({ keys, presetKey }) => {
@@ -131,7 +133,9 @@ async function verifyCardSurface({ browser, env, client, userId, receipt }) {
       return dialog;
     };
 
+    receipt.stage = 'open-card-picker';
     let dialog = await openPicker();
+    receipt.stage = 'long-press-ten';
     const ten = dialog.getByRole('button', { name: '10. Hold for suits', exact: true });
     await ten.dispatchEvent('pointerdown', { pointerType: 'touch', isPrimary: true, button: 0 });
     await sleep(500);
@@ -139,16 +143,19 @@ async function verifyCardSurface({ browser, env, client, userId, receipt }) {
     await dialog.getByRole('group', { name: '10 suit choices' }).waitFor({ state: 'visible' });
     receipt.checks.longPressTen = true;
 
+    receipt.stage = 'duplicate-card-refusal';
     await dialog.getByRole('button', { name: 'Add 10 of spades to your hand', exact: true }).click();
     const duplicate = dialog.getByRole('button', { name: 'Add 10 of spades to your hand', exact: true });
     assert.equal(await duplicate.isDisabled(), true, 'A selected card could be added twice');
     receipt.checks.duplicateRefusal = true;
     await dialog.getByRole('button', { name: 'Add ace of hearts to your hand', exact: true }).click();
 
+    receipt.stage = 'canonical-card-artwork';
     const selectedTen = dialog.getByRole('button', { name: 'Remove 10 of spades from your hand' }).locator('img');
     assert.match(await selectedTen.getAttribute('src'), /\/hub\/club-arena\/cards\/2color\/spades_10\.webp$/);
     receipt.checks.canonicalArtwork = true;
 
+    receipt.stage = 'save-account-preset';
     const presetName = `Production Certificate ${Date.now()}`;
     await dialog.locator('#poker-card-preset-name').fill(presetName);
     await dialog.getByRole('button', { name: 'Save Preset', exact: true }).click();
@@ -166,11 +173,13 @@ async function verifyCardSurface({ browser, env, client, userId, receipt }) {
       /\/hub\/club-arena\/cards\/2color\/spades_10\.webp$/,
     );
 
+    receipt.stage = 'reload-local-draft';
     await page.reload({ waitUntil: 'domcontentloaded', timeout: 60_000 });
     await page.getByText('Poker Cards In This Post', { exact: true }).waitFor({ state: 'visible', timeout: 30_000 });
     await page.getByAltText('Ten of spades').first().waitFor({ state: 'visible' });
     receipt.checks.draftReload = true;
 
+    receipt.stage = 'reload-delete-account-preset';
     dialog = await openPicker();
     await dialog.getByRole('button', { name: `Use ${presetName} preset`, exact: true }).waitFor({ state: 'visible', timeout: 20_000 });
     await dialog.getByRole('button', { name: `Use ${presetName} preset`, exact: true }).click();
@@ -185,6 +194,7 @@ async function verifyCardSurface({ browser, env, client, userId, receipt }) {
     );
     receipt.checks.presetRoundTrip = true;
 
+    receipt.stage = 'classify-own-hand-import';
     const importButtons = dialog.getByRole('button', { name: /^Import (?:Hand|Club Arena Hand)/ });
     const emptyHistory = dialog.getByText('No Recent Club Arena Hands To Import.', { exact: true });
     const rejectedHistory = dialog.getByText('Recent Hands Had No Complete Card Data To Import.', { exact: true });
@@ -207,6 +217,7 @@ async function verifyCardSurface({ browser, env, client, userId, receipt }) {
     await dialog.getByRole('button', { name: 'Close Card Picker' }).click();
     assert.equal(postMutations.length, 0, 'The certificate attempted to publish a post');
     receipt.checks.noPostMutation = true;
+    receipt.stage = 'card-surface-complete';
   } finally {
     await context.close();
   }
@@ -230,10 +241,12 @@ export async function runLiveVerification(env = process.env) {
   let originalSettings;
   let originalSettingsLoaded = false;
   try {
+    receipt.stage = 'production-health';
     const health = await readHealth(env.SOCIAL_CARD_EXPECTED_SHA);
     receipt.observedSha = health.commitSha;
     receipt.deploymentId = health.deploymentId;
 
+    receipt.stage = 'authenticate-service-identity';
     const { createClient } = await import('@supabase/supabase-js');
     client = createClient(AUTH_ORIGIN, env.NEXT_PUBLIC_SUPABASE_ANON_KEY, {
       auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
@@ -248,11 +261,13 @@ export async function runLiveVerification(env = process.env) {
     receipt.accountFingerprint = fingerprint(userId);
     receipt.checks.authenticatedServiceIdentity = true;
 
+    receipt.stage = 'snapshot-account-preferences';
     const profile = await client.from('profiles').select('app_settings').eq('id', userId).maybeSingle();
     assert.ifError(profile.error);
     originalSettings = clone(profile.data?.app_settings);
     originalSettingsLoaded = true;
 
+    receipt.stage = 'read-own-hand-facts';
     const ownFacts = await client.from('ca_hand_facts')
       .select('hand_id, user_id, played_at')
       .order('played_at', { ascending: false })
@@ -262,6 +277,7 @@ export async function runLiveVerification(env = process.env) {
     receipt.history = { participantRows: ownFacts.data?.length || 0, outcome: null };
     receipt.checks.otherUsersFactsDenied = true;
 
+    receipt.stage = 'deny-anonymous-hand-facts';
     const anonymous = createClient(AUTH_ORIGIN, env.NEXT_PUBLIC_SUPABASE_ANON_KEY, {
       auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
     });
@@ -269,18 +285,21 @@ export async function runLiveVerification(env = process.env) {
     assert.ok(anonFacts.error || (anonFacts.data || []).length === 0, 'Anonymous query exposed private hand facts');
     receipt.checks.anonymousFactsDenied = true;
 
+    receipt.stage = 'launch-browser';
     const { chromium } = await import('playwright');
     browser = await chromium.launch({ headless: true });
     await verifyCardSurface({ browser, env, client, userId, receipt });
 
+    receipt.stage = 'final-production-health';
     const finalHealth = await readHealth(env.SOCIAL_CARD_EXPECTED_SHA);
     assert.equal(finalHealth.deploymentId, receipt.deploymentId, 'Production deployment changed during verification');
+    delete receipt.stage;
     receipt.status = 'passed';
   } catch (error) {
     receipt.status = 'failed';
     receipt.failure = error instanceof assert.AssertionError
       ? String(error.message).split('\n')[0].slice(0, 240)
-      : 'Live certificate could not complete; inspect the named workflow stage';
+      : `Live certificate failed during ${receipt.stage || 'unknown-stage'} (${error?.name || 'Error'})`;
     process.exitCode = 1;
   } finally {
     if (browser) await browser.close().catch(() => {});
@@ -301,6 +320,7 @@ export async function runLiveVerification(env = process.env) {
         }
       }
     }
+    if (receipt.status === 'passed') delete receipt.stage;
     if (receipt.status === 'passed') validateReceipt(receipt, env.SOCIAL_CARD_EXPECTED_SHA);
     await mkdir(evidencePath.split('/').slice(0, -1).join('/') || '.', { recursive: true });
     await writeFile(evidencePath, `${JSON.stringify(receipt, null, 2)}\n`, { mode: 0o600 });
@@ -314,6 +334,7 @@ export function selfTest() {
   assert.equal(classifyHistorySurface({ importButtons: 1 }), 'imported-own-hand');
   assert.equal(classifyHistorySurface({ importButtons: 0, emptyText: true }), 'empty-history');
   assert.equal(isForbiddenPostMutation('POST', 'https://smarter.poker/api/social/posts'), true);
+  assert.equal(isForbiddenPostMutation('POST', `${AUTH_ORIGIN}/rest/v1/social_posts`), true);
   assert.equal(isForbiddenPostMutation('PATCH', `${AUTH_ORIGIN}/rest/v1/profiles?id=eq.fixture`), false);
   console.log('Social card live verifier safety checks passed');
 }
