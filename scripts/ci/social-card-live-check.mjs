@@ -253,17 +253,13 @@ export async function runLiveVerification(env = process.env) {
     originalSettings = clone(profile.data?.app_settings);
     originalSettingsLoaded = true;
 
-    const ownHands = await client.from('hand_history')
-      .select('id, hand_number, board, community_cards, created_at')
-      .filter('players', 'cs', JSON.stringify([{ userId }]))
-      .order('created_at', { ascending: false })
-      .limit(8);
-    assert.ifError(ownHands.error);
-    receipt.history = { participantRows: ownHands.data?.length || 0, outcome: null };
-
-    const ownFacts = await client.from('ca_hand_facts').select('hand_id, user_id').limit(25);
+    const ownFacts = await client.from('ca_hand_facts')
+      .select('hand_id, user_id, played_at')
+      .order('played_at', { ascending: false })
+      .limit(25);
     assert.ifError(ownFacts.error);
     assert.ok((ownFacts.data || []).every((row) => row.user_id === userId), 'Authenticated query exposed another user\'s hand facts');
+    receipt.history = { participantRows: ownFacts.data?.length || 0, outcome: null };
     receipt.checks.otherUsersFactsDenied = true;
 
     const anonymous = createClient(AUTH_ORIGIN, env.NEXT_PUBLIC_SUPABASE_ANON_KEY, {

@@ -9,6 +9,7 @@ import {
   validateConfiguration,
   validateReceipt,
 } from '../scripts/ci/social-card-live-check.mjs';
+import { fetchRecentClubArenaHands } from '../src/lib/clubArenaHandImport.mjs';
 
 const workflow = readFileSync(new URL('../.github/workflows/e2e-tests.yml', import.meta.url), 'utf8');
 const script = readFileSync(new URL('../scripts/ci/social-card-live-check.mjs', import.meta.url), 'utf8');
@@ -53,6 +54,48 @@ test('social card certificate distinguishes successful import from both empty st
   assert.equal(classifyHistorySurface({ importButtons: 0, emptyText: true }), 'empty-history');
   assert.equal(classifyHistorySurface({ importButtons: 0, rejectedText: true }), 'empty-no-complete-card-data');
   assert.throws(() => classifyHistorySurface({ importButtons: 0 }), /terminal state/);
+});
+
+test('recent hand import starts from the indexed own-facts window and bounds the public hand lookup', async () => {
+  const owner = '11111111-1111-4111-8111-111111111111';
+  const calls = [];
+  const db = {
+    from(table) {
+      calls.push([table, 'from']);
+      return {
+        select(columns) { calls.push([table, 'select', columns]); return this; },
+        order(column, options) { calls.push([table, 'order', column, options]); return this; },
+        in(column, values) { calls.push([table, 'in', column, values]); return this; },
+        async limit(value) {
+          calls.push([table, 'limit', value]);
+          if (table === 'ca_hand_facts') return {
+            error: null,
+            data: [{
+              hand_id: '22222222-2222-4222-8222-222222222222', user_id: owner,
+              played_at: '2026-10-09T00:00:00Z', hole_cards: ['As', 'Kh'],
+            }],
+          };
+          return {
+            error: null,
+            data: [{
+              id: '22222222-2222-4222-8222-222222222222', hand_number: 8,
+              created_at: '2026-10-09T00:00:00Z', community_cards: ['2c', '7d', 'Th'],
+            }],
+          };
+        },
+      };
+    },
+  };
+  const result = await fetchRecentClubArenaHands(db, owner, 500);
+  assert.equal(result.hands.length, 1);
+  assert.deepEqual(calls.find((call) => call[0] === 'ca_hand_facts' && call[1] === 'order').slice(2), [
+    'played_at', { ascending: false },
+  ]);
+  assert.equal(calls.find((call) => call[0] === 'ca_hand_facts' && call[1] === 'limit')[2], 8);
+  assert.deepEqual(calls.find((call) => call[0] === 'hand_history' && call[1] === 'in').slice(2), [
+    'id', ['22222222-2222-4222-8222-222222222222'],
+  ]);
+  assert.equal(calls.some((call) => call[1] === 'filter'), false);
 });
 
 test('social card certificate blocks publication but permits its bounded preference restore', () => {
