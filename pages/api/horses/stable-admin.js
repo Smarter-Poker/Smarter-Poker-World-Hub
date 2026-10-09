@@ -1025,15 +1025,21 @@ const ACTION_PERMISSIONS = Object.freeze({
 
 export const spec = {
   name: 'horses.stable-admin',
-  methods: ['POST'],
+  methods: ['GET', 'POST'],
   // The floor. The real gate is ACTION_PERMISSIONS, checked below.
   permission: PERMISSIONS.CONSOLE_READ,
-  limit: 'write',
+  limit: { GET: 'read', POST: 'write' },
 };
 
-export async function handle({ req, op, db, body }) {
+const READ_ACTIONS = new Set(['read_settings', 'read_post_modes', 'pipeline_runs', 'audit_log']);
+
+export async function handle({ req, op, db, body = {}, query = {} }) {
+  const isRead = req.method === 'GET';
+  if (isRead) body = query;
   const action = enumOf(body.action, ACTIONS);
   if (!action) throw badRequest('Unknown Action');
+  // GET must never reach a writer, even for an operator with write authority.
+  if (isRead && !READ_ACTIONS.has(action)) throw badRequest('This Action Requires POST');
 
   const required = ACTION_PERMISSIONS[action];
   if (!required || !hasPermission(op.permissions, required)) {

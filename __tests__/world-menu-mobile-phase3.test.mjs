@@ -109,7 +109,6 @@ test('Poker Near Me narrow command descriptions retain the mobile readability fl
     assert.match(block[0], /font-size: 12px !important;/);
     assert.doesNotMatch(block[0], /font-size: 11px/);
   }
-
   const compactStart = narrowRules.indexOf('@container pnm-command-drawer (max-width: 359px)');
   const compact = narrowRules.slice(compactStart, narrowRules.indexOf('@media', compactStart));
   assert.ok(compactStart >= 0, 'missing compact 359px composition');

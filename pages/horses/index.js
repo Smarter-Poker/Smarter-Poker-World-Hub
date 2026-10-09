@@ -144,7 +144,7 @@ export default function HorsesAdmin() {
       authFetch('/api/horses/club-arena-admin?section=badges'),
       // content_settings is not readable from a browser: the operator route
       // reads it with the service role.
-      authFetch('/api/horses/stable-admin', { method: 'POST', body: JSON.stringify({ action: 'read_settings' }) }),
+      authFetch('/api/horses/stable-admin?action=read_settings'),
     ]).then(([badgeResult, settingsResult]) => {
       if (cancelled) return;
       if (badgeResult.status === 'fulfilled') {

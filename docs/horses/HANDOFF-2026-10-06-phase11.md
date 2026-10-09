@@ -72,3 +72,216 @@ controls, silently exclude horses or claim unavailable evidence is healthy.
 | Live behavior | Pending authenticated desktop and 375px route proof. |
 
 No pending row may be rewritten as complete without its direct evidence.
+
+
+## Authorized continuation, 2026-10-08
+
+Owner: Stable Admin resumption. Owned branch
+`agent/codex/stable-admin-final-resumption-20261008`, checkout
+`/Volumes/SmarterWork/agent-work/stable-admin-resumption-20261008/world-hub`.
+Scope: recover the Phase 11 certificate and footer gate, repair connected
+support behavior, qualify and publish through protected World Hub delivery,
+complete the 28-tab/nested audit and final documentation using direct evidence.
+No engine replacement or installed migration replay.
+
+Canonical policies freshly emitted/read at `2026-10-08T13:52:32.125Z`, version
+2.9, manifest `a659f31c5c1c2b0864889508079a635dd5fe2fc98decfbfc9d3f9c80dd45ec3b`.
+Owner hash `b9478d0331314413d8e12c41210b63479cdcabc1f86ed3fdcb3251efa36e6349`;
+operating `a8bc3c04dce3354ebdd51a89c0b7d715af3344edcc794d33f6b3ad64506961d5`;
+hardening `d5fc451ce5caf6d6b5e64597a13883e1246581678fe53c962339d0a66136993e`;
+reference `adce89c3f838f2f373cd504a00329d53906404d1dd42a647f672af6c16f95555`.
+Repository AGENTS, CLAUDE, AGENT-PLAYBOOK, PUBLISHING, storage guide and existing
+checkpoint were read. Base `1dcecd9a78a38d6e1e8e94ab9f5358f8401b8255`.
+
+Inherited closeout source and full continuation patches are preserved under
+`/Volumes/SmarterArchives/agent-evidence/stable-admin-phase11/resumption-20261008`.
+Final delivery assertions/docs are separated until actual production proof.
+Original worktree remains untouched. PR #2162 was closed as fully superseded.
+
+Prepared fixes: four named stable-admin reads use GET with unchanged action
+permissions and GET writes refused before database access; support ticket status
+sends the API's `id`, with a connected failing-before/passing-after regression;
+footer PWA builds use explicit `PWA_ENABLED=1`, preserving production CSP while
+avoiding local WebKit HTTPS upgrades; failed certificates retain bounded redacted
+diagnostics. 109 Stable Admin and 52 footer/certificate/CSP/state checks passed,
+with targeted lint and diff checks. No new repair is published yet.
+
+Two full builds previously failed ENOSPC after successful compilation. Direct
+APFS readback identifies the 256 GiB SmarterWork quota at 99.3%, while the same
+external container has 746 GB unallocated. A task-owned case-sensitive volume
+`StableAdminBuild20261008` (UUID/device to be verified before cleanup) was created
+on that external container with 10 GB reserve/25 GB quota. It is mounted at
+this task's `build-storage`; ignored `.next` links to its `next` subdirectory.
+A first mount at `.next` exposed protected macOS volume metadata to Next's scan
+and was immediately relocated before retry. No existing volume, quota or other
+task's files changed. Remove only this created allocation after delivery.
+
+Configured GitHub access and production certificate secret/variable names are
+available; no values were extracted. Full build, integration, required hosted
+checks, protected merge, Vercel READY/health, genuine certificate, full surface
+audit and final protected documentation remain pending.
+
+
+Integrated qualification: protected main `3cb65ec97` was merged without
+conflicts. Candidate `4aab96d53c4ba9644c8702522c6403b87084768c` passed all 1,136
+maintained Stable Admin tests and 27 isolated documentation/footer/certificate
+contracts. Earlier 52 focused footer/CSP/state checks remain valid for unchanged
+source. Normal hooks were restored through the maintained `npm run prepare`;
+the initial local commit was amended through those hooks before submission.
+
+All required prebuild/build-script suites passed. The first output-directory
+link exposed Node realpath dependency lookup outside the checkout; a link to
+this task's own node_modules in its build-storage parent repaired that lookup.
+The failed Next build stage and bundle check then passed: 507/507 static pages,
+30 explicit panel chunks, /horses initial JavaScript 58,057 bytes (gzip 19,491),
+total initial JavaScript 373,125 bytes (gzip 117,663). Build logs retained in
+the owned task folder. Created build volume UUID:
+`5CEDF70B-29DB-4F91-A181-4B91DFCF6D55`, currently device disk7s1.
+
+Local Phase 9 browser suite passed all 12 desktop/mobile checks with isolated
+fixtures and real built documents/chunks. All 28 tabs were visited. Footer
+Chromium/WebKit passed 50/52 tests, including all geometry, hydration, scroll,
+controls and serving-scheme CSP checks. Both remaining failures are the same
+SSR home-games read returning 500 in this local server without production
+database credentials. The route inventory count assertion passed; an initial
+suspicion of inventory drift was incorrect. No credentials were extracted and
+no assertion was weakened. Exact-head hosted footer proof with its configured
+secrets remains required. The genuine production certificate remains pending.
+
+An additional maintained nested-navigation case covers the 47 registered
+Fleet, Players, Integrity, HG, Economy, Platform and Club Arena sections. Its
+first desktop failure was a test expectation: canonical Overview omits the
+section parameter. The test now normalizes that documented default and scrolls
+top-level tabs into view before real clicks; corrected results pending.
+
+
+Final local mobile qualification: the old max-width:768px `.nav` rule centered
+the non-shrinking 3,511px tablist. At 375px, Fleet Command's rectangle started
+at x=-1,423px with scrollLeft=0, outside the reachable left scroll range. A real
+click reproduced the timeout; the sanitized fixture screenshot is retained in
+the evidence archive. The later mobile scroll-strip rule now explicitly uses
+justify-content:flex-start. No forced click or timeout extension supplies the
+fix. The rebuilt PWA production output and bundle budget passed. The full final
+Phase 9 browser suite passed 14/14 without retries, including every top-level
+tab and all 47 registered nested navigation sections at 1440x900 and 375x812
+with reduced motion. The earlier mobile attempts were interrupted as obsolete
+and are not counted as passes.
+
+The existing Global Footer E2E production-build workflow now runs that same
+console suite in Chromium desktop/mobile before its other independent gates.
+Focused architecture/footer contracts passed 26/26 after this wiring change;
+targeted lint and whitespace checks passed. Full Stable Admin contract evidence
+for unchanged inputs remains the preceding 1,136-test pass. Source, protected
+checks, hosted SSR/footer credentials, Vercel production identity and genuine
+production certificate still require direct delivery evidence.
+
+
+Resumption receipt: canonical policies reread at 2026-10-08T14:22:04.477Z;
+version 2.9 and all five hashes above unchanged. Repository/publishing/storage
+references and checkpoint reread. Candidate 89629c662 passed ordinary pre-push
+and is remotely preserved. Generated PR #2228 was reused and its description
+updated with concrete repair evidence. Exact-head required gate run 37791581240
+failed only the roster privacy law's obsolete POST-body settings-read matcher.
+The matcher now requires the exact authorized GET and rejects the old POST body;
+server-only table and route permission assertions remain. Hosted footer run
+37791580823 is still building and is not yet passing evidence.
+
+An independent full-catalogue visual/overflow audit retained sanitized local
+fixtures at 1440x900 and 375x812: all 28 panels passed real navigation, settled
+loading, no document/body overflow and no page/chunk errors; 56 screenshots
+archived. These are fixture rendering evidence, not genuine production data.
+
+
+The screenshot review found a catalogue-test blind spot: the generic nested
+`data` fixture omitted Mint destination arrays, so its error boundary caught a
+render failure that page-error/chunk-only checks missed. Actual targets API
+returns both arrays; this was a fixture defect, not an observed live Mint
+defect. The fixture now carries the canonical arrays and the maintained
+settled-panel helper refuses caught render boundaries. Corrected catalogue
+audit passed both viewports, replacing all 56 screenshots; strengthened
+maintained browser suite passed 14/14 without retries. Focused architecture,
+core-panel, documentation and privacy contracts passed 33/33; targeted lint and
+whitespace passed. Earlier 2-case audit is superseded by this corrected run.
+
+
+Canonical policy resumption receipt: 2026-10-08T14:37:58.694Z, v2.9, all
+manifest/source hashes above unchanged; repository references and checkpoint
+reread at candidate b8c636c38. Exact-head safety run 37793081220 exposed the
+Trivia worker contract still requiring VERCEL=1 and counting unrelated ready
+steps globally. Its assertions now require explicit PWA_ENABLED=1, refuse
+HTTPS-host impersonation and independently count the two Trivia gates. Worker
+and rollback assertions remain. Validation and corrected submission pending.
+
+
+Corrected Trivia focused group passed 180/180 locally, ordinary hooks passed,
+submitted as 2cea2d7fe. This owned PR has automatic merging disabled so direct
+release ownership retains the final footer acceptance gate. The production
+certificate now additionally visits Statistics, Settings and Pipeline at both
+widths, requires their authenticated reads to succeed and waits for their
+loading states without changing controls. Dedicated certificate/consumer
+contracts passed 31/31; targeted verifier lint and whitespace passed. Genuine
+production results remain pending. Corrected visual sheets now replace the old
+fixture-failure sheets; all 28 desktop/mobile panels were reviewed.
+
+
+Canonical resumption policies reread at 2026-10-08T15:02:34.660Z, v2.9,
+all preceding hashes unchanged; repository/publishing/storage references and
+checkpoint reread at d4d751adb. Final local Stable Admin contracts passed
+1,138/1,138. Required exact-head protected checks passed (safety run
+37794970231). Footer run 37794970189 passed Stable Admin, Trivia/PWA,
+Marketplace and footer routes/geometry, then failed Social Media WebKit close
+focus. Artifact retained in the evidence archive. Local production WebKit
+Social Media passed in isolation and in the full sequence; the latter passed
+14 cases and failed Reels fallback availability locally. No successful full
+menu gate is claimed. Failure-only, non-content DOM diagnostics now retain
+focus target/ancestor inert state to distinguish remount and isolation causes;
+assertions and timeouts are unchanged. Protected merge/publication/certificate
+remain pending.
+
+
+The shared footer blocker now has a reproducible source cause. A controlled
+local feed GET was held while the real Social menu opened on its skeleton.
+Escape closed it, then completing the feed replaced the entire header: the
+unchanged toBeFocused assertion failed against the new approved trigger.
+The page now reuses one keyed UniversalHeader at the same position under
+PageTransition in both loading and populated branches. No delay, forced focus
+or acceptance weakening supplies correctness. The exact reproducing sequence
+and the converse hydration-before-close sequence both pass in WebKit; the
+original Social containment test passes too (3/3). Both new cases assert the
+original trigger stays connected, focus returns, and body/inert isolation
+releases. Failing-before artifact retained under social-hydration-before-fix.
+Connected menu/feed contracts passed 36/36; targeted lint has zero errors
+and 33 pre-existing Social warnings. Full maintained production build passed
+507/507 and bundle budgets (/horses 58,057 bytes; gzip 19,491).
+The diagnostic-only hosted run 37797925101 is still queued; its candidate is
+superseded by this authoritative fix when submitted. Genuine final hosted
+acceptance, protected integration, publication and certificate remain pending.
+
+
+The remaining local Reels failure was a test-fixture contract drift: the
+menu test intercepted retired REST social_reels reads, while the real page
+now reads /api/reels/feed and refuses ineligible media. Its fixture now uses
+that canonical GET response and a fresh eligible embed shape. The actual
+fallback-to-approved-header handoff passes, retaining all ownership/focus
+assertions. Final full WebKit menu suite passed 17/17 without retries (53.8s);
+27 focused menu contracts and targeted lint passed. The runtime build remains
+the identical qualified Social source from 6840a58f0. This fixture/checkpoint
+submission supersedes the still-building 37798948772 acceptance candidate.
+Fresh database function body hashes match the earlier readback; all four
+ledger rows remain installed. Direct service-role read calls returned objects;
+anon and authenticated fleet/identity calls each refused with SQLSTATE 42501.
+Sanitized results are archived. No database state was changed.
+
+
+Final hosted run 37800295268 passed production build, Stable Admin, Trivia, Marketplace, footer routes and premium Chromium/WebKit menu. Phase 3 mobile then failed both browsers because Poker Near Me narrow-container overrides reduced six command descriptions to 11px below the maintained 12px readability minimum. Both owning narrow-container rules now retain 12px; assertions remain unchanged. Mobile performance was skipped after that failure and is not passing evidence. Corrected build/browser qualification and resubmission remain pending.
+
+Corrected full production build passed 507/507 and unchanged bundle budgets. All maintained Phase 3 mobile browser cases passed 32/32 without retries at the corrected source, including Poker Near Me in Chromium and WebKit (51.7s). Focused menu contracts passed 17/17; whitespace checks passed. Source retains both 12px floors and an enforced narrow-container regression. Hosted final-head qualification, publication and genuine certificate remain pending.
+
+
+Authorized parallel continuation resumed 2026-10-08 (America/Chicago); canonical policy reader emitted at 2026-10-09T00:45:38.041Z, v2.9 and all preceding hashes unchanged. Repository/publishing/checkpoint/storage references reread; mounted SSD has free space. Final head 5a7574e18 passed all seven required checks, build, Stable Admin, Trivia, footer and both mobile/menu gates. Run 37804307696 finally failed only Video Library mobile small-text readability. Source fix investigation is scoped to that release blocker. Current protected main c2a31a27a integrated; the single Trivia contract conflict preserves new main race and migration assertions plus the scoped three-gate count and our explicit PWA build contract. No installed migration is replayed.
+
+The performance blocker reproduced at 375px: Video Library console eyebrow computed 9.594px and subtitle 11.808px, both with fit ratio 1. Hosted wider mobile had one failing eyebrow node. The owning CSS now retains max(12px, proportional size) for both labels; no budget, artwork exemption, timeout or assertion was weakened. The source regression is retained in the existing Video Library console contract. Corrected browser/build and final provider evidence remain pending.
+
+Focused visible-label readback exposed the proportional fitter shrinking the 375px eyebrow to 11.82px and clipping glyphs in its old 34-unit zone. Eyebrow width 550 and height 38 retain its original origin, finish before the existing pill, and end at the next title zone; explicit line-height 1 on eyebrow/subtitle removes inherited leading. Font floors remain 12px. Corrected measured fit and maintained budget need verification before submission.
+
+Final corrected Video Library source passed the unchanged mobile budget case without retries (2.6s case, 3.1s suite), full production compilation/static generation and unchanged Stable Admin bundle budgets. Visible glyph measurements at 375/390 show no small text, both labels at least 12px, fit ratio 1 and glyphs inside the painted zones (0.5px subpixel tolerance). Nineteen connected console contracts and the final nine focused console cases passed; eight changed Trivia integration contracts passed. Earlier unrelated passing evidence is reused. Final-head hosted acceptance, protected merge, publication, genuine certificate and docs closeout remain pending.

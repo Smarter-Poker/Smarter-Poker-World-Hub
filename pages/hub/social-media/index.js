@@ -6159,13 +6159,27 @@ function SocialMediaPage() {
   // ever opening two 50-row readers or two realtime channels.
   const inlineReelsCarousel = <ReelsFeedCarousel key={SOCIAL_FEED_REELS_KEY} />;
 
+  // Keep the navigation owner at the same keyed position under the same
+  // parent through feed hydration. Remounting it after Escape detaches the
+  // button that just received focus and can interrupt modal cleanup.
+  const commandHeader = (
+    <UniversalHeader
+      key="social-command-header"
+      pageDepth={1}
+      onBackClick={showClubPages ? () => setShowClubPages(false) : undefined}
+      showSearch={false}
+      commandMenuOpen={commandMenuOpen}
+      onCommandMenuOpenChange={setCommandMenuOpen}
+    />
+  );
   // Only show loading skeleton if intro is done and still loading
   if (loading )
     return (
       // No paddingBottom here: pages/_app.js mounts BottomNavSpacer after every
       // page, which is the one sanctioned bottom-nav clearance (PR #766, #992).
-      <>
+      <PageTransition>
       {head}
+      {commandHeader}
       <div style={{ minHeight: '100dvh', background: C.bg }}>
         <style>{`
                 @keyframes sf-shimmer {
@@ -6179,14 +6193,6 @@ function SocialMediaPage() {
                     border-radius: 6px;
                 }
             `}</style>
-        {/* Global navigation is functional during feed hydration. The Social
-            drawer remains the single Facebook-styled command surface. */}
-        <UniversalHeader
-          pageDepth={1}
-          showSearch={false}
-          commandMenuOpen={commandMenuOpen}
-          onCommandMenuOpenChange={setCommandMenuOpen}
-        />
         {/* Stories row skeleton */}
         <div style={{ display: 'flex', gap: 12, padding: '16px 16px 8px', overflowX: 'hidden' }}>
           {[1, 2, 3, 4, 5].map((i) => (
@@ -6244,13 +6250,13 @@ function SocialMediaPage() {
         ))}
       </div>
       <HubPageSummary page="social-media" as="h1" />
-      </>
+      </PageTransition>
     );
 
   return (
     <PageTransition>
-      
       {head}
+      {commandHeader}
 
       {/* Slide-out Sidebar Overlay */}
       {sidebarOpen && (
@@ -7061,15 +7067,6 @@ function SocialMediaPage() {
           boxSizing: 'border-box',
         }}
       >
-        {/* Standard Hub Header with Hamburger Menu */}
-        <UniversalHeader
-          pageDepth={1}
-          onBackClick={showClubPages ? () => setShowClubPages(false) : undefined}
-          showSearch={false}
-          commandMenuOpen={commandMenuOpen}
-          onCommandMenuOpenChange={setCommandMenuOpen}
-        />
-
         {/* Global Search Overlay */}
         {showGlobalSearch && (
           <div
