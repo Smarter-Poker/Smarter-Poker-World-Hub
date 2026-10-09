@@ -58,6 +58,9 @@ test('social card certificate distinguishes successful import from both empty st
 
 test('recent hand import starts from the indexed own-facts window and bounds the public hand lookup', async () => {
   const owner = '11111111-1111-4111-8111-111111111111';
+  const newest = '22222222-2222-4222-8222-222222222222';
+  const rejected = '33333333-3333-4333-8333-333333333333';
+  const oldest = '44444444-4444-4444-8444-444444444444';
   const calls = [];
   const db = {
     from(table) {
@@ -70,31 +73,37 @@ test('recent hand import starts from the indexed own-facts window and bounds the
           calls.push([table, 'limit', value]);
           if (table === 'ca_hand_facts') return {
             error: null,
-            data: [{
-              hand_id: '22222222-2222-4222-8222-222222222222', user_id: owner,
-              played_at: '2026-10-09T00:00:00Z', hole_cards: ['As', 'Kh'],
-            }],
+            data: [
+              { hand_id: '55555555-5555-4555-8555-555555555555', user_id: 'attacker', played_at: '2026-10-09T01:00:00Z', hole_cards: ['Qs', 'Qh'] },
+              { hand_id: newest, user_id: owner, played_at: '2026-10-09T00:00:00Z', hole_cards: ['As', 'Kh'] },
+              { hand_id: rejected, user_id: owner, played_at: '2026-10-08T23:00:00Z', hole_cards: ['As', 'As'] },
+              { hand_id: oldest, user_id: owner, played_at: '2026-10-08T22:00:00Z', hole_cards: ['9c', '9d'] },
+            ],
           };
           return {
             error: null,
-            data: [{
-              id: '22222222-2222-4222-8222-222222222222', hand_number: 8,
-              created_at: '2026-10-09T00:00:00Z', community_cards: ['2c', '7d', 'Th'],
-            }],
+            // Deliberately not in recent-facts order: the importer must restore it.
+            data: [
+              { id: oldest, hand_number: 6, created_at: '2026-10-08T22:00:00Z', community_cards: [] },
+              { id: rejected, hand_number: 7, created_at: '2026-10-08T23:00:00Z', community_cards: [] },
+              { id: newest, hand_number: 8, created_at: '2026-10-09T00:00:00Z', community_cards: ['2c', '7d', 'Th'] },
+            ],
           };
         },
       };
     },
   };
   const result = await fetchRecentClubArenaHands(db, owner, 500);
-  assert.equal(result.hands.length, 1);
+  assert.deepEqual(result.hands.map((hand) => hand.id), [newest, oldest]);
+  assert.equal(result.rejected, 1, 'duplicate private cards must be rejected');
   assert.deepEqual(calls.find((call) => call[0] === 'ca_hand_facts' && call[1] === 'order').slice(2), [
     'played_at', { ascending: false },
   ]);
   assert.equal(calls.find((call) => call[0] === 'ca_hand_facts' && call[1] === 'limit')[2], 8);
   assert.deepEqual(calls.find((call) => call[0] === 'hand_history' && call[1] === 'in').slice(2), [
-    'id', ['22222222-2222-4222-8222-222222222222'],
+    'id', [newest, rejected, oldest],
   ]);
+  assert.doesNotMatch(JSON.stringify(result), /attacker|55555555/);
   assert.equal(calls.some((call) => call[1] === 'filter'), false);
 });
 
