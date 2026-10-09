@@ -9,6 +9,7 @@ import {
   validateConfiguration,
   validateReceipt,
 } from '../scripts/ci/social-card-live-check.mjs';
+import { fetchRecentClubArenaHands } from '../src/lib/clubArenaHandImport.mjs';
 
 const workflow = readFileSync(new URL('../.github/workflows/e2e-tests.yml', import.meta.url), 'utf8');
 const script = readFileSync(new URL('../scripts/ci/social-card-live-check.mjs', import.meta.url), 'utf8');
@@ -53,6 +54,57 @@ test('social card certificate distinguishes successful import from both empty st
   assert.equal(classifyHistorySurface({ importButtons: 0, emptyText: true }), 'empty-history');
   assert.equal(classifyHistorySurface({ importButtons: 0, rejectedText: true }), 'empty-no-complete-card-data');
   assert.throws(() => classifyHistorySurface({ importButtons: 0 }), /terminal state/);
+});
+
+test('recent hand import starts from the indexed own-facts window and bounds the public hand lookup', async () => {
+  const owner = '11111111-1111-4111-8111-111111111111';
+  const newest = '22222222-2222-4222-8222-222222222222';
+  const rejected = '33333333-3333-4333-8333-333333333333';
+  const oldest = '44444444-4444-4444-8444-444444444444';
+  const calls = [];
+  const db = {
+    from(table) {
+      calls.push([table, 'from']);
+      return {
+        select(columns) { calls.push([table, 'select', columns]); return this; },
+        order(column, options) { calls.push([table, 'order', column, options]); return this; },
+        in(column, values) { calls.push([table, 'in', column, values]); return this; },
+        async limit(value) {
+          calls.push([table, 'limit', value]);
+          if (table === 'ca_hand_facts') return {
+            error: null,
+            data: [
+              { hand_id: '55555555-5555-4555-8555-555555555555', user_id: 'attacker', played_at: '2026-10-09T01:00:00Z', hole_cards: ['Qs', 'Qh'] },
+              { hand_id: newest, user_id: owner, played_at: '2026-10-09T00:00:00Z', hole_cards: ['As', 'Kh'] },
+              { hand_id: rejected, user_id: owner, played_at: '2026-10-08T23:00:00Z', hole_cards: ['As', 'As'] },
+              { hand_id: oldest, user_id: owner, played_at: '2026-10-08T22:00:00Z', hole_cards: ['9c', '9d'] },
+            ],
+          };
+          return {
+            error: null,
+            // Deliberately not in recent-facts order: the importer must restore it.
+            data: [
+              { id: oldest, hand_number: 6, created_at: '2026-10-08T22:00:00Z', community_cards: [] },
+              { id: rejected, hand_number: 7, created_at: '2026-10-08T23:00:00Z', community_cards: [] },
+              { id: newest, hand_number: 8, created_at: '2026-10-09T00:00:00Z', community_cards: ['2c', '7d', 'Th'] },
+            ],
+          };
+        },
+      };
+    },
+  };
+  const result = await fetchRecentClubArenaHands(db, owner, 500);
+  assert.deepEqual(result.hands.map((hand) => hand.id), [newest, oldest]);
+  assert.equal(result.rejected, 1, 'duplicate private cards must be rejected');
+  assert.deepEqual(calls.find((call) => call[0] === 'ca_hand_facts' && call[1] === 'order').slice(2), [
+    'played_at', { ascending: false },
+  ]);
+  assert.equal(calls.find((call) => call[0] === 'ca_hand_facts' && call[1] === 'limit')[2], 8);
+  assert.deepEqual(calls.find((call) => call[0] === 'hand_history' && call[1] === 'in').slice(2), [
+    'id', [newest, rejected, oldest],
+  ]);
+  assert.doesNotMatch(JSON.stringify(result), /attacker|55555555/);
+  assert.equal(calls.some((call) => call[1] === 'filter'), false);
 });
 
 test('social card certificate blocks publication but permits its bounded preference restore', () => {

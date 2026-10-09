@@ -168,14 +168,14 @@ test('recent Club Arena import uses participant RLS plus own-row facts and retur
         in(column, value) { calls.push([table, 'in', column, value]); return this; },
         async limit(value) {
           calls.push([table, 'limit', value]);
-          if (table === 'hand_history') return { data: handRows, error: null };
-          return {
+          if (table === 'ca_hand_facts') return {
             data: [
               { hand_id: 'hand-1', user_id: 'attacker', hole_cards: [{ rank: 'Q', suit: 's' }, { rank: 'Q', suit: 'h' }] },
-              { hand_id: 'hand-1', user_id: owner, hole_cards: [{ rank: 'A', suit: 'spades' }, { rank: 'K', suit: 'hearts' }] },
+              { hand_id: 'hand-1', user_id: owner, played_at: '2026-10-08T12:00:00Z', hole_cards: [{ rank: 'A', suit: 'spades' }, { rank: 'K', suit: 'hearts' }] },
             ],
             error: null,
           };
+          return { data: handRows, error: null };
         },
       };
       return chain;
@@ -184,13 +184,14 @@ test('recent Club Arena import uses participant RLS plus own-row facts and retur
   const result = await fetchRecentClubArenaHands(db, owner, 500);
   assert.equal(result.hands.length, 1);
   assert.deepEqual(result.hands[0].hand, [{ rank: 'A', suit: 's' }, { rank: 'K', suit: 'h' }]);
-  assert.equal(calls.find((call) => call[0] === 'hand_history' && call[1] === 'limit')[2], RECENT_CLUB_ARENA_HAND_LIMIT);
-  assert.deepEqual(calls.find((call) => call[0] === 'hand_history' && call[1] === 'filter').slice(2), [
-    'players', 'cs', JSON.stringify([{ userId: owner }]),
+  assert.equal(calls.find((call) => call[0] === 'ca_hand_facts' && call[1] === 'limit')[2], RECENT_CLUB_ARENA_HAND_LIMIT);
+  assert.deepEqual(calls.find((call) => call[0] === 'ca_hand_facts' && call[1] === 'order').slice(2), [
+    'played_at', { ascending: false },
   ]);
   const handSelect = calls.find((call) => call[0] === 'hand_history' && call[1] === 'select')[2];
   assert.doesNotMatch(handSelect, /players|hole_cards/);
-  assert.deepEqual(calls.find((call) => call[0] === 'ca_hand_facts' && call[1] === 'in').slice(2), ['hand_id', ['hand-1']]);
+  assert.deepEqual(calls.find((call) => call[0] === 'hand_history' && call[1] === 'in').slice(2), ['id', ['hand-1']]);
+  assert.equal(calls.some((call) => call[1] === 'filter'), false);
   assert.doesNotMatch(JSON.stringify(result), /attacker/);
 });
 

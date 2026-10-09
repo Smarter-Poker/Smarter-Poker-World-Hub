@@ -86,44 +86,43 @@ export function clubArenaHandForComposer(row, userId, privateHoleCards = null) {
 }
 
 /**
- * Authenticated reads only. hand_history RLS supplies participant-owned public
- * data; ca_hand_facts own-row RLS supplies the viewer's private cards. The
- * second identity check below fails closed even if that policy regresses.
+ * Authenticated reads only. ca_hand_facts own-row RLS and its
+ * (user_id, played_at DESC) index select the bounded recent set first;
+ * hand_history RLS then supplies participant-owned public data for only those
+ * ids. The identity check below fails closed even if the facts policy regresses.
  */
 export async function fetchRecentClubArenaHands(db, userId, limit = RECENT_CLUB_ARENA_HAND_LIMIT) {
   const owner = typeof userId === 'string' ? userId.trim() : '';
   if (!db?.from || !owner) throw new Error('Sign In To Import Club Arena Hands');
   const boundedLimit = Math.max(1, Math.min(RECENT_CLUB_ARENA_HAND_LIMIT, Number(limit) || RECENT_CLUB_ARENA_HAND_LIMIT));
+  // Do not put a user id in this query. ca_hand_facts_own_read owns narrowing,
+  // while the indexed played_at order prevents the unbounded JSON containment
+  // scan that times out for high-volume Club Arena accounts.
+  const factsResult = await db
+    .from('ca_hand_facts')
+    .select('hand_id, user_id, hole_cards, played_at')
+    .order('played_at', { ascending: false })
+    .limit(boundedLimit);
+  if (factsResult?.error) throw new Error('Your Club Arena Cards Are Temporarily Unavailable');
+  const ownFacts = (factsResult?.data || []).filter((fact) => (
+    String(fact?.user_id || '') === owner && fact?.hand_id
+  ));
+  const handIds = [...new Set(ownFacts.map((fact) => String(fact.hand_id)))];
+  if (!handIds.length) return { hands: [], rejected: 0 };
+
   const handResult = await db
     .from('hand_history')
     // No roster and no hole-card map enters the browser result.
     .select('id, hand_number, board, community_cards, created_at')
-    .filter('players', 'cs', JSON.stringify([{ userId: owner }]))
-    .order('created_at', { ascending: false })
-    .order('id', { ascending: false })
-    .limit(boundedLimit);
-  if (handResult?.error) throw new Error('Recent Club Arena Hands Are Temporarily Unavailable');
-  const rows = Array.isArray(handResult?.data) ? handResult.data : [];
-  const handIds = rows.map((row) => row?.id).filter(Boolean);
-  if (!handIds.length) return { hands: [], rejected: 0 };
-
-  // Do not put a user id in this query. ca_hand_facts_own_read owns narrowing.
-  const factsResult = await db
-    .from('ca_hand_facts')
-    .select('hand_id, user_id, hole_cards')
-    .in('hand_id', handIds)
+    .in('id', handIds)
     .limit(handIds.length);
-  if (factsResult?.error) throw new Error('Your Club Arena Cards Are Temporarily Unavailable');
-  const ownCardsByHand = new Map();
-  for (const fact of factsResult?.data || []) {
-    if (String(fact?.user_id || '') !== owner || !fact?.hand_id) continue;
-    ownCardsByHand.set(String(fact.hand_id), fact.hole_cards);
-  }
+  if (handResult?.error) throw new Error('Recent Club Arena Hands Are Temporarily Unavailable');
+  const rowById = new Map((handResult?.data || []).map((row) => [String(row?.id), row]));
 
-  const hands = rows
-    .map((row) => clubArenaHandForComposer(row, owner, ownCardsByHand.get(String(row.id))))
+  const hands = ownFacts
+    .map((fact) => clubArenaHandForComposer(rowById.get(String(fact.hand_id)), owner, fact.hole_cards))
     .filter(Boolean);
-  return { hands, rejected: rows.length - hands.length };
+  return { hands, rejected: ownFacts.length - hands.length };
 }
 
 export default {
