@@ -795,3 +795,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
 
 <!-- END:nextjs-agent-rules -->
+
+
+## Routing Operational Alerts
+Operational alerts must never reach the owner's phone. A real alert reaches the store (public.operational_alert_events) and the board (v_ca_alert_board), never the owner's phone. Do not add triggers or code that page the owner for system issues, outages, or engine failures.

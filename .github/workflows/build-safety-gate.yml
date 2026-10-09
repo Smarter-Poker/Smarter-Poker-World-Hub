@@ -107,6 +107,9 @@ jobs:
           # never ran is the thing this whole file exists to prevent.
           fetch-depth: 0
 
+      - name: Law Test (No Operational Pushes to Owner)
+        run: node scripts/ci/law-test-no-operational-pushes.mjs
+
       - name: Record Start Time
         id: timer
         run: echo "start=$(date +%s)" >> $GITHUB_OUTPUT
