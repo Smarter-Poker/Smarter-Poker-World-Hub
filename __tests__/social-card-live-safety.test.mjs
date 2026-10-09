@@ -5,6 +5,7 @@ import {
   APP_ORIGIN,
   AUTH_ORIGIN,
   classifyHistorySurface,
+  exactSemanticLabel,
   isForbiddenPostMutation,
   validateConfiguration,
   validateReceipt,
@@ -70,6 +71,14 @@ test('social card certificate holds the ten pointer inside the browser event loo
   assert.match(script, /receipt\.stage = 'dispatch-ten-hold'/);
   assert.match(script, /receipt\.stage = 'await-ten-suits'/);
   assert.match(script, /tenAriaExpanded/);
+});
+
+test('semantic labels allow title casing but preserve the exact card and action', () => {
+  const addTenSpades = exactSemanticLabel('Add 10 of spades to your hand');
+  assert.equal(addTenSpades.test('Add 10 Of Spades To Your Hand'), true);
+  assert.equal(addTenSpades.test('Add 9 Of Spades To Your Hand'), false);
+  assert.equal(addTenSpades.test('Add 10 Of Hearts To Your Hand'), false);
+  assert.equal(addTenSpades.test('Remove 10 Of Spades From Your Hand'), false);
 });
 
 test('recent hand import starts from the indexed own-facts window and bounds the public hand lookup', async () => {
