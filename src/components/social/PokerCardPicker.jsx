@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { PokerCardImage } from './PokerCardText';
+import PokerCardText, { PokerCardImage } from './PokerCardText';
 import {
   createPokerCardPreset,
   deletePokerCardPreset,
@@ -11,6 +11,8 @@ import {
   renamePokerCardPreset,
 } from '../../lib/pokerCardMarkup';
 import { loadAppSettings, saveAppSetting } from '../../lib/appSettingsSync';
+import { supabase } from '../../lib/supabase';
+import { fetchRecentClubArenaHands } from '../../lib/clubArenaHandImport.mjs';
 
 const RANKS = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
 const QUICK_RANKS = RANKS.map((rank) => ({ rank, key: rank === 'T' ? '1' : rank }));
@@ -56,6 +58,12 @@ export default function PokerCardPicker({ accountId = null, initialMarkup = '', 
   const [presetName, setPresetName] = useState('');
   const [editingPresetId, setEditingPresetId] = useState(null);
   const [presetMessage, setPresetMessage] = useState('');
+  const [recentHands, setRecentHands] = useState([]);
+  const [recentHandsLoading, setRecentHandsLoading] = useState(false);
+  const [recentHandsError, setRecentHandsError] = useState('');
+  const [recentHandsRejected, setRecentHandsRejected] = useState(0);
+  const [recentHandsRefresh, setRecentHandsRefresh] = useState(0);
+  const [handImportMessage, setHandImportMessage] = useState('');
   const presetRevisionRef = useRef(0);
   const longPressTimerRef = useRef(null);
   const suppressClickRef = useRef(false);
@@ -91,6 +99,29 @@ export default function PokerCardPicker({ accountId = null, initialMarkup = '', 
     });
     return () => { cancelled = true; };
   }, [accountId]);
+
+  useEffect(() => {
+    setRecentHands([]);
+    setRecentHandsError('');
+    setRecentHandsRejected(0);
+    setHandImportMessage('');
+    if (!accountId) {
+      setRecentHandsLoading(false);
+      return undefined;
+    }
+    let cancelled = false;
+    setRecentHandsLoading(true);
+    fetchRecentClubArenaHands(supabase, accountId).then(({ hands, rejected }) => {
+      if (cancelled) return;
+      setRecentHands(hands);
+      setRecentHandsRejected(rejected);
+    }).catch((error) => {
+      if (!cancelled) setRecentHandsError(error?.message || 'Recent Club Arena Hands Are Temporarily Unavailable');
+    }).finally(() => {
+      if (!cancelled) setRecentHandsLoading(false);
+    });
+    return () => { cancelled = true; };
+  }, [accountId, recentHandsRefresh]);
 
   useEffect(() => {
     const handleKeyDown = (event) => {
@@ -172,6 +203,13 @@ export default function PokerCardPicker({ accountId = null, initialMarkup = '', 
     setBoard(cards.board);
     setZone(cards.hand.length ? 'hand' : 'board');
     setPresetMessage(`${preset.name} Loaded`);
+  };
+
+  const importRecentHand = (recentHand) => {
+    setHand(recentHand.hand);
+    setBoard(recentHand.board);
+    setZone(recentHand.hand.length ? 'hand' : 'board');
+    setHandImportMessage(`${recentHand.label} Imported`);
   };
 
   const choose = (card) => {
@@ -396,6 +434,50 @@ export default function PokerCardPicker({ accountId = null, initialMarkup = '', 
             </div>
           ))}
         </div>
+
+        <section aria-labelledby="club-arena-hand-import-title" style={{ margin: '0 18px 14px', padding: 12, borderRadius: 12, border: '1px solid rgba(59,130,246,0.35)', background: 'rgba(37,99,235,0.08)' }}>
+          <div id="club-arena-hand-import-title" style={{ color: '#93c5fd', fontSize: 12, fontWeight: 800, letterSpacing: 0.7, textTransform: 'uppercase' }}>
+            Recent Club Arena Hands
+          </div>
+          {!accountId ? (
+            <p style={{ margin: '8px 0 0', color: '#94a3b8', fontSize: 12 }}>Sign In To Import Your Hands.</p>
+          ) : recentHandsLoading ? (
+            <p role="status" style={{ margin: '8px 0 0', color: '#cbd5e1', fontSize: 12 }}>Loading Your Recent Hands...</p>
+          ) : recentHandsError ? (
+            <div role="alert" style={{ marginTop: 8 }}>
+              <p style={{ margin: '0 0 8px', color: '#fca5a5', fontSize: 12 }}>{recentHandsError}</p>
+              <button
+                type="button"
+                onClick={() => setRecentHandsRefresh((value) => value + 1)}
+                style={{ minWidth: 96, minHeight: 44, padding: '8px 12px', border: '1px solid rgba(255,255,255,0.18)', borderRadius: 8, background: 'transparent', color: '#fff', fontWeight: 700, cursor: 'pointer' }}
+              >
+                Try Again
+              </button>
+            </div>
+          ) : recentHands.length ? (
+            <div style={{ display: 'grid', gap: 8, marginTop: 9 }}>
+              {recentHands.map((recentHand) => (
+                <button
+                  type="button"
+                  key={recentHand.id}
+                  onClick={() => importRecentHand(recentHand)}
+                  aria-label={`Import ${recentHand.label}`}
+                  style={{ width: '100%', minHeight: 52, padding: '8px 10px', border: '1px solid rgba(147,197,253,0.35)', borderRadius: 9, background: 'rgba(2,6,23,0.58)', color: '#fff', textAlign: 'left', cursor: 'pointer' }}
+                >
+                  <span style={{ display: 'block', marginBottom: 4, color: '#bfdbfe', fontSize: 12, fontWeight: 800 }}>{recentHand.label}</span>
+                  <PokerCardText text={formatPokerCards(recentHand.hand, recentHand.board)} style={{ fontSize: 12 }} />
+                </button>
+              ))}
+            </div>
+          ) : (
+            <p style={{ margin: '8px 0 0', color: '#94a3b8', fontSize: 12 }}>
+              {recentHandsRejected ? 'Recent Hands Had No Complete Card Data To Import.' : 'No Recent Club Arena Hands To Import.'}
+            </p>
+          )}
+          <div aria-live="polite" style={{ minHeight: 18, marginTop: 5, color: '#cbd5e1', fontSize: 12 }}>
+            {handImportMessage}
+          </div>
+        </section>
 
         <section aria-labelledby="poker-card-presets-title" style={{ margin: '0 18px 14px', padding: 12, borderRadius: 12, border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.04)' }}>
           <div id="poker-card-presets-title" style={{ color: '#fbbf24', fontSize: 12, fontWeight: 800, letterSpacing: 0.7, textTransform: 'uppercase' }}>
