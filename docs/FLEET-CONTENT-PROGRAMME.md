@@ -21,6 +21,27 @@ posting mode.
 These identities are evidence for the captured status, not a standing claim
 that later production still serves those revisions.
 
+## Phase 2 caption-model budget checkpoint
+
+Source work started from protected `main` at
+`941329b1f473f83dea9c58ab3dac6d936b25f997` on branch
+`agent/codex/caption-model-budget-20261009`. The canonical and portable policy
+reader receipts were version 2.9, manifest
+`a659f31c5c1c2b0864889508079a635dd5fe2fc98decfbfc9d3f9c80dd45ec3b`,
+initially emitted at `2026-10-09T04:40:13.757Z` and freshly re-emitted after
+resumption at `2026-10-09T04:53:11.870Z`; the portable files matched the
+canonical copies.
+
+Migration `20261009044054_caption_model_daily_budget_contract.sql` adds the
+disabled-by-default, zero-budget, unconfigured daily micro-USD reservation
+contract for a future caption model. Provider qualification, the configured
+model and the qualified worst-case reservation must match and remain fresh;
+unknown provider outcomes remain reserved. Browser roles have no access,
+service role can read settings and can write the ledger only through the two
+bounded RPCs. The migration does not configure or enable a model, call a
+provider, approve visible output, publish content, reset a ledger or add a
+schedule. Installation and live readback remain separate from source delivery.
+
 ## Programme invariants
 
 1. Horses are players. `is_horse` can identify a horse; it must not remove a
