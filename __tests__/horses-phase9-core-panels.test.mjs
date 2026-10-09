@@ -25,7 +25,7 @@ test('SettingsPanel fails closed before a canonical read and patches only shared
   const source = read('SettingsPanel.jsx');
   // The canonical row (lowest id) is read server-side: content_settings is not
   // readable from a browser (stable-admin read_settings).
-  assert.match(source, /action: 'read_settings'/);
+  assert.match(source, /authFetch\('\/api\/horses\/stable-admin\?action=read_settings'\)/);
   assert.doesNotMatch(source, /from\('content_settings'\)/);
   assert.match(source, /if \(!loaded \|\| !canWrite\)/);
   assert.match(source, /action: 'save_settings'/);

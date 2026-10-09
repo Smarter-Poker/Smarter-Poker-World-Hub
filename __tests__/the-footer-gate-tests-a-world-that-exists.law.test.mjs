@@ -330,3 +330,13 @@ test('the footer gate waits for product facts instead of WebKit lifecycle accide
         'hydration-owned scroll behavior must receive its explicit bounded readiness wait',
     );
 });
+
+
+test('the local PWA browser build never impersonates HTTPS Vercel hosting', () => {
+    const workflow = read('.github/workflows/global-footer-e2e.yml');
+    const config = read('next.config.js');
+    assert.match(workflow, /PWA_ENABLED: '1'/);
+    assert.doesNotMatch(workflow, /^\s+VERCEL: /m);
+    assert.match(config, /disable: !\(process.env.VERCEL \|\| process.env.PWA_ENABLED === '1'\)/);
+    assert.match(config, /process.env.VERCEL \? \['upgrade-insecure-requests'\]/);
+});

@@ -8,6 +8,7 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const read = (path) => readFileSync(join(ROOT, path), 'utf8');
 
 const hamburger = read('src/components/ui/HamburgerMenu.jsx');
+const pnmMenu = read('src/styles/worlds/poker-near-me-console-menu.css');
 const geeves = read('src/components/ui/GeevesMenuWidget.jsx');
 const reportBug = read('src/components/ui/ReportBugWidget.jsx');
 const hubPageShell = read('src/components/ui/HubPageShell.jsx');
@@ -98,6 +99,16 @@ test('adaptive mobile drawer keeps search, safe areas, and descriptions readable
     hamburger,
     /\.sp-menu-description,\s*\.sp-drawer\[data-responsive-composition='adaptive'\] \.sp-grid-description \{\s*font-size: 12px !important;/,
   );
+});
+
+test('Poker Near Me narrow command descriptions retain the mobile readability floor', () => {
+  const narrowRules = pnmMenu.slice(pnmMenu.indexOf('/* Narrow phones:'));
+  for (const width of [389, 374]) {
+    const block = narrowRules.match(new RegExp(`@container pnm-command-drawer \\(max-width: ${width}px\\)[\\s\\S]*?\\n\\}`));
+    assert.ok(block, `missing narrow composition ${width}`);
+    assert.match(block[0], /font-size: 12px !important;/);
+    assert.doesNotMatch(block[0], /font-size: 11px/);
+  }
 });
 
 test('Geeves exposes its disclosure state and mobile-sized controls with reduced-motion scrolling', () => {
