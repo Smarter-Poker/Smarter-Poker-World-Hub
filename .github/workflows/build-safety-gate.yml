@@ -332,6 +332,14 @@ jobs:
           mkdir -p "$PUBLIC_PROFILE_POSTGRES_ROOT"
           node --test __tests__/public-profile-rpc-migration-postgres.test.mjs
 
+      - name: Home Games Address Visibility PostgreSQL 17 Contract
+        env:
+          PG17_BINDIR: ${{ env.PHASE6_POSTGRES_BIN }}
+          HOME_GAMES_ADDRESS_POSTGRES_ROOT: ${{ runner.temp }}/home-games-address
+        run: |
+          mkdir -p "$HOME_GAMES_ADDRESS_POSTGRES_ROOT"
+          node --test __tests__/home-games-address-visibility-postgres.test.mjs
+
       - name: Social Horse Real Name PostgreSQL 17 Contract
         env:
           PG17_BINDIR: ${{ env.PHASE6_POSTGRES_BIN }}

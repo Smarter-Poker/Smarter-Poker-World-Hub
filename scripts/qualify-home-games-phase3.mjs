@@ -249,9 +249,12 @@ export async function qualify(env = process.env) {
     assert.ok(deniedTournament.error, 'stranger created a tournament');
     const gameId = await safe(host.client.rpc('rpc_hg_create_tournament', tournamentParams), 'host tournament creation');
     assert.match(gameId, /^[a-f0-9-]{36}$/);
-    const games = await safe(admin.from('commander_home_games').select('id,address').eq('group_id', group.id), 'tournament readback');
+    const games = await safe(admin.from('commander_home_games').select('id,address,address_visible_to').eq('group_id', group.id), 'tournament readback');
     assert.equal(games.length, 1);
     assert.equal(games[0].address, privateAddress);
+    assert.equal(games[0].address_visible_to, 'approved');
+    const privateTournamentRead = await safe(stranger.client.rpc('rpc_hg_list_public_tournaments', { p_group_id: group.id }), 'private tournament stranger read');
+    assert.deepEqual(privateTournamentRead, [], 'private tournament RPC exposed schedule to stranger');
     receipt.checks.hostAndStrangerTournamentPermission = true;
     const invite = await safe(host.client.rpc('create_home_group_invite_token', { p_group_id: group.id, p_caller_user_id: host.id, p_max_uses: 1, p_label: marker }), 'host invitation creation');
     assert.equal(invite.success, true);
@@ -264,6 +267,12 @@ export async function qualify(env = process.env) {
     assert.equal(memberships.length, 1);
     assert.equal(memberships[0].status, 'approved');
     receipt.checks.invitedMembershipPersisted = true;
+    const memberCalendar = await safe(member.client.rpc('get_user_home_games_calendar', { p_caller_user_id: member.id }), 'approved member calendar');
+    const calendarGame = memberCalendar.find(game => game.game_id === gameId);
+    assert.ok(calendarGame, 'approved member calendar omitted persisted tournament');
+    assert.equal(calendarGame.address, privateAddress);
+    assert.equal(calendarGame.address_visible, true);
+    receipt.checks.addressVisibilityContractPersisted = true;
     const groupPath = `/api/commander/home-games/groups/${group.id}`;
     const ownerDetail = await api(groupPath, host);
     assert.equal(ownerDetail.status, 200);
@@ -310,6 +319,10 @@ export async function qualify(env = process.env) {
     await safe(host.client.rpc('manage_home_group_member', { p_group_id: group.id, p_member_user_id: member.id, p_action: 'ban', p_caller_user_id: host.id }), 'host ban');
     const banned = await safe(admin.from('commander_home_members').select('status').eq('group_id', group.id).eq('user_id', member.id).maybeSingle(), 'ban readback');
     assert.equal(banned.status, 'banned');
+    const bannedCalendar = await safe(member.client.rpc('get_user_home_games_calendar', { p_caller_user_id: member.id }), 'banned member calendar');
+    assert.equal(bannedCalendar.some(game => game.game_id === gameId), false, 'banned member retained private calendar access');
+    const bannedTournaments = await safe(member.client.rpc('rpc_hg_list_public_tournaments', { p_group_id: group.id }), 'banned member tournament read');
+    assert.deepEqual(bannedTournaments, []);
     const bannedPost = await api('/api/social/pages/posts', member, { page_id: page.id, content: `${marker} refused` });
     assert.equal(bannedPost.status, 403);
     receipt.checks.bannedMemberRefused = true;
