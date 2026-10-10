@@ -16,6 +16,7 @@
   <key>StandardErrorPath</key><string>/dev/null</string>
   <key>EnvironmentVariables</key>
   <dict>
+    <key>PYTHONPATH</key><string>/Volumes/SmarterWork/agent-work/pnm-production-runtimes-20261009/pdf-packages</string>
     <key>PATH</key><string>/Users/smarter.poker/.local/share/smarter-poker-venv/bin:/usr/local/bin:/usr/bin:/bin:/opt/homebrew/bin</string>
     <key>PYTHONUNBUFFERED</key><string>1</string>
     <key>TMPDIR</key><string>/Volumes/SmarterWork/agent-work/pnm-production-runtimes-20261009/series/tmp</string>
