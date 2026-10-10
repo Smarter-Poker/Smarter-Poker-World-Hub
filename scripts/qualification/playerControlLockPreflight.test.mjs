@@ -1,19 +1,23 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {migration} from './playerControlFixture.mjs';
-test('P3 creates the provider policy before its exact trigger footprint NOWAIT',()=>{
+import {foundation,migration} from './playerControlFixture.mjs';
+test('P3 separates cold provider policy from exact bounded hot trigger footprint',()=>{
  const install=migration.split('COMMIT;')[0];
  const expected=[...new Set([...install.matchAll(/CREATE TRIGGER[^;]+?ON (public\.\w+)\s+FOR EACH ROW/g)].map(m=>m[1]))].sort();
  const lock=/LOCK TABLE (public\.ca_player_restrictions,[\s\S]+?) IN SHARE ROW EXCLUSIVE MODE NOWAIT;/.exec(install);
- assert.match(install,/SET LOCAL statement_timeout = '30s';/);
  assert.ok(lock);const actual=lock[1].split(',').map(x=>x.trim());
  assert.deepEqual([...actual,'public.tournament_players'].sort(),expected);assert.equal(actual.length,26);
- const first='LOCK TABLE public.tournament_players IN SHARE ROW EXCLUSIVE MODE NOWAIT;';
+ const first='LOCK TABLE public.tournament_players IN SHARE ROW EXCLUSIVE MODE;';
  assert.ok(install.indexOf(first)<install.indexOf(lock[0]));
- assert.ok(install.indexOf(first)>install.indexOf('CREATE POLICY own_session_revocation'));
- assert.ok(install.indexOf(first)<install.indexOf('\nCREATE TRIGGER'));
+ assert.ok(install.indexOf(lock[0])<install.indexOf('\nCREATE TRIGGER'));
  assert.equal((install.match(/LOCK TABLE/g)||[]).length,2);
- assert.ok(install.indexOf(lock[0])>install.indexOf('CREATE POLICY own_session_revocation'));
- assert.doesNotMatch(install.slice(0,install.indexOf('CREATE POLICY')),/LOCK TABLE/);
- assert.doesNotMatch(lock[0],/auth\.users/);
+ assert.doesNotMatch(install,/CREATE POLICY|LOCK TABLE auth\.users/);
+ assert.doesNotMatch(foundation.split('COMMIT;')[0],/CREATE FUNCTION|CREATE TRIGGER|LOCK TABLE/);
+ assert.match(foundation,/EXECUTABLE ROLLBACK TEMPLATE/);
+ assert.match(foundation,/DROP TABLE public\.ca_player_session_revocations;/);
+ assert.match(foundation,/rollback refused: enforcement or durable use exists/);
+ assert.match(foundation,/CREATE POLICY own_session_revocation/);
+ assert.match(install,/P3 requires installed player_control_cold_foundation/);
+ assert.match(install,/SET LOCAL lock_timeout = '3s';/);
+ assert.match(install,/SET LOCAL statement_timeout = '30s';/);
 });

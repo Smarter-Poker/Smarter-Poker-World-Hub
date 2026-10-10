@@ -14,40 +14,79 @@ DO $pre$ BEGIN
   END IF;
 END $pre$;
 
-CREATE TABLE public.ca_player_control_operations (
-  op_id text PRIMARY KEY CHECK (length(op_id) BETWEEN 1 AND 200),
-  actor_id uuid NOT NULL, user_id uuid NOT NULL,
-  action text NOT NULL CHECK (action IN ('restrict','lift','force_logout')),
-  payload jsonb NOT NULL, result jsonb NOT NULL,
-  created_at timestamptz NOT NULL DEFAULT now()
-);
-ALTER TABLE public.ca_player_control_operations ENABLE ROW LEVEL SECURITY;
-REVOKE ALL ON public.ca_player_control_operations FROM PUBLIC, anon, authenticated;
-GRANT SELECT,INSERT ON public.ca_player_control_operations TO service_role;
-
-CREATE TABLE public.ca_player_session_revocations (
-  user_id uuid PRIMARY KEY,
-  revoked_before timestamptz NOT NULL,
-  op_id text NOT NULL,
-  updated_at timestamptz NOT NULL DEFAULT now()
-);
-ALTER TABLE public.ca_player_session_revocations ENABLE ROW LEVEL SECURITY;
-REVOKE ALL ON public.ca_player_session_revocations FROM PUBLIC, anon, authenticated;
-GRANT SELECT ON public.ca_player_session_revocations TO authenticated;
-GRANT SELECT,INSERT,UPDATE ON public.ca_player_session_revocations TO service_role;
-CREATE POLICY own_session_revocation ON public.ca_player_session_revocations
-  FOR SELECT TO authenticated USING (user_id = (SELECT auth.uid()));
-DO $publication$ BEGIN
-  IF EXISTS (SELECT 1 FROM pg_publication WHERE pubname='supabase_realtime') THEN
-    ALTER PUBLICATION supabase_realtime ADD TABLE public.ca_player_session_revocations;
-  END IF;
-END $publication$;
+-- The separately committed cold foundation releases provider policy-grant locks.
+-- Refuse missing, drifted or already-used foundations; never recreate/replay it.
+DO $foundation$
+DECLARE v_actual text[];
+BEGIN
+ IF to_regclass('public.ca_player_control_operations') IS NULL
+ OR to_regclass('public.ca_player_session_revocations') IS NULL THEN
+  RAISE EXCEPTION 'P3 requires installed player_control_cold_foundation';
+ END IF;
+ SELECT array_agg(c.relname||':'||a.attname||':'||format_type(a.atttypid,a.atttypmod)||':'||a.attnotnull ORDER BY c.relname,a.attnum)
+ INTO v_actual FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
+ JOIN pg_attribute a ON a.attrelid=c.oid AND a.attnum>0 AND NOT a.attisdropped
+ WHERE n.nspname='public' AND c.relname IN('ca_player_control_operations','ca_player_session_revocations');
+ IF v_actual IS DISTINCT FROM ARRAY[
+ 'ca_player_control_operations:op_id:text:true',
+ 'ca_player_control_operations:actor_id:uuid:true',
+ 'ca_player_control_operations:user_id:uuid:true',
+ 'ca_player_control_operations:action:text:true',
+ 'ca_player_control_operations:payload:jsonb:true',
+ 'ca_player_control_operations:result:jsonb:true',
+ 'ca_player_control_operations:created_at:timestamp with time zone:true',
+ 'ca_player_session_revocations:user_id:uuid:true',
+ 'ca_player_session_revocations:revoked_before:timestamp with time zone:true',
+ 'ca_player_session_revocations:op_id:text:true',
+ 'ca_player_session_revocations:updated_at:timestamp with time zone:true']::text[]
+ OR EXISTS(SELECT 1 FROM pg_class WHERE oid IN('public.ca_player_control_operations'::regclass,'public.ca_player_session_revocations'::regclass)
+  AND (relowner<>'postgres'::regrole OR NOT relrowsecurity OR relforcerowsecurity OR relkind<>'r'))
+ OR (SELECT count(*) FROM pg_policy WHERE polrelid='public.ca_player_control_operations'::regclass)<>0
+ OR (SELECT count(*) FROM pg_policy WHERE polrelid='public.ca_player_session_revocations'::regclass)<>1
+ OR NOT EXISTS(SELECT 1 FROM pg_policy WHERE polrelid='public.ca_player_session_revocations'::regclass
+  AND polname='own_session_revocation' AND polcmd='r' AND polpermissive AND polroles=ARRAY['authenticated'::regrole::oid]
+  AND regexp_replace(pg_get_expr(polqual,polrelid),'[[:space:]]','','g')='(user_id=(SELECTauth.uid()ASuid))')
+ OR (SELECT array_agg(c.relname||':'||pg_get_constraintdef(k.oid) ORDER BY c.relname,pg_get_constraintdef(k.oid))
+ FROM pg_constraint k JOIN pg_class c ON c.oid=k.conrelid
+ WHERE k.conrelid IN('public.ca_player_control_operations'::regclass,'public.ca_player_session_revocations'::regclass)
+ AND k.contype<>'n') IS DISTINCT FROM ARRAY[
+ $v$ca_player_control_operations:CHECK (((length(op_id) >= 1) AND (length(op_id) <= 200)))$v$,
+ $v$ca_player_control_operations:CHECK ((action = ANY (ARRAY['restrict'::text, 'lift'::text, 'force_logout'::text])))$v$,
+ $v$ca_player_control_operations:PRIMARY KEY (op_id)$v$,
+ $v$ca_player_session_revocations:PRIMARY KEY (user_id)$v$]::text[]
+ OR (SELECT array_agg(c.relname||':'||a.attname||':'||pg_get_expr(d.adbin,d.adrelid) ORDER BY c.relname,a.attname)
+ FROM pg_attrdef d JOIN pg_class c ON c.oid=d.adrelid JOIN pg_attribute a ON a.attrelid=c.oid AND a.attnum=d.adnum
+ WHERE c.oid IN('public.ca_player_control_operations'::regclass,'public.ca_player_session_revocations'::regclass))
+ IS DISTINCT FROM ARRAY['ca_player_control_operations:created_at:now()','ca_player_session_revocations:updated_at:now()']::text[]
+ OR EXISTS(SELECT 1 FROM pg_attribute WHERE attrelid IN('public.ca_player_control_operations'::regclass,'public.ca_player_session_revocations'::regclass)
+ AND (attidentity<>'' OR attgenerated<>''))
+ OR EXISTS(SELECT 1 FROM pg_trigger WHERE tgrelid IN('public.ca_player_control_operations'::regclass,'public.ca_player_session_revocations'::regclass) AND NOT tgisinternal)
+ OR EXISTS(SELECT 1 FROM pg_class c CROSS JOIN LATERAL aclexplode(c.relacl) acl
+ WHERE c.oid IN('public.ca_player_control_operations'::regclass,'public.ca_player_session_revocations'::regclass) AND acl.grantee=0)
+ OR EXISTS(SELECT 1 FROM pg_publication p WHERE p.pubname='supabase_realtime'
+ AND NOT EXISTS(SELECT 1 FROM pg_publication_rel r WHERE r.prpubid=p.oid AND r.prrelid='public.ca_player_session_revocations'::regclass))
+ OR has_table_privilege('authenticated','public.ca_player_control_operations','SELECT,INSERT,UPDATE,DELETE')
+ OR has_table_privilege('anon','public.ca_player_session_revocations','SELECT,INSERT,UPDATE,DELETE')
+ OR has_table_privilege('authenticated','public.ca_player_session_revocations','INSERT,UPDATE,DELETE')
+ OR NOT has_table_privilege('authenticated','public.ca_player_session_revocations','SELECT')
+ OR NOT (has_table_privilege('service_role','public.ca_player_control_operations','SELECT')
+ AND has_table_privilege('service_role','public.ca_player_control_operations','INSERT'))
+ OR NOT (has_table_privilege('service_role','public.ca_player_session_revocations','SELECT')
+ AND has_table_privilege('service_role','public.ca_player_session_revocations','INSERT')
+ AND has_table_privilege('service_role','public.ca_player_session_revocations','UPDATE')) THEN
+  RAISE EXCEPTION 'P3 foundation catalog/permissions drift';
+ END IF;
+ IF EXISTS(SELECT 1 FROM public.ca_player_control_operations)
+ OR EXISTS(SELECT 1 FROM public.ca_player_session_revocations) THEN
+  RAISE EXCEPTION 'P3 foundation is not unused';
+ END IF;
+END $foundation$;
 
 -- Acquire every existing CREATE TRIGGER target before its trigger DDL.
--- Supautils policy-grant checks can lock unrelated auth relations: create the
--- new-table policy first, then refuse every existing target contention NOWAIT.
+-- No policy DDL occurs here: the first hot target can wait bounded by 3s.
+-- Remaining target contention refuses NOWAIT before any enforcement DDL.
 -- These are the exact final trigger lock modes, so there is no later upgrade.
-LOCK TABLE public.tournament_players IN SHARE ROW EXCLUSIVE MODE NOWAIT;
+LOCK TABLE public.tournament_players IN SHARE ROW EXCLUSIVE MODE;
 LOCK TABLE public.ca_player_restrictions,
   public.chip_transactions,
   public.club_chat,

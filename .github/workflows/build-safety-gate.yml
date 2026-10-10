@@ -306,6 +306,7 @@ jobs:
           PG_BIN: ${{ env.PHASE6_POSTGRES_BIN }}
           TMPDIR: ${{ runner.temp }}
         run: |
+          node --test scripts/qualification/playerControlLockPreflight.test.mjs
           node scripts/qualify-player-control-pg17.mjs
           node scripts/qualify-operator-export-artifacts-pg17.mjs
 

@@ -662,3 +662,31 @@ receipt+response header under one stable deployment. Eleven focused contracts
 pass; required safety also runs the new regression. Existing strict read-only
 certificate is unchanged. No production export has run. All publication/live
 acceptance remains pending.
+
+### Cold foundation and atomic enforcement, 05:36 UTC
+
+Canonical policies fully emitted/read at2026-10-10T05:34:26.489Z, v2.9;
+manifest/source hashes above unchanged. Both repository/publishing/CLAUDE
+references, owning maintenance handoff/programme, migration rules, storage
+and existing checkpoint freshly read atWH620c0c3a7 andCA67904f71a2.
+
+The policy-first bb6 source safely refused55P03 at05:30, with no installation.
+The final qualified repair separates only unused storage/policy/publication
+into20261010053114_player_control_cold_foundation, then atomic enforcement
+into20261010053147_player_restrictions_converge_and_logout_is_durable.
+The never-installed035338 source is replaced, not replayed. FoundationSHA256
+78d77b8a3eec8fd1ece1ee71b4d6d8ec0239fd634ca20114444d162fd68dc077;
+mainSHA25616ef33428ff616cc88d013c6da3bbc0ef09b06df939187163f82560fa1a002b2.
+Main refuses missing/drifted/used foundation, checks each expected service grant,
+waits bounded3s for first hot target and takes other26 targets NOWAIT beforeDDL.
+No provider auth lock survives the separate cold transaction. Guarded executable
+rollback refuses installed or used foundations; noCASCADE or control toggle.
+
+Root exact nativePG17 repeat passed cold3s atomic refusal, empty rollback/reinstall,
+five independent missing-grant refusals, drift/use refusal, hot3s refusal with
+unchanged hook/empty foundation, successful enforcement with auth reader held,
+all P3 boundaries and real concurrent restriction/logout exactly once.
+Focused source/privacy/export/certificate contracts27/27 passed without skips;
+required safety now explicitly runs the maintained lock-footprint regression.
+Fresh production05:35:50 read still showed noP3 ledger/tables, original6027 hook,
+and noDDL-window refusal. Installation and final publication proof remain pending.

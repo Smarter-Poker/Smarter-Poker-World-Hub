@@ -98,7 +98,7 @@ const MIGRATIONS = [
   'supabase/migrations/20260904183000_ca_the_restriction_guard_can_actually_be_reached.sql',
   'supabase/migrations/20260904183500_ca_the_seat_guard_sees_a_revived_seat.sql',
   'supabase/migrations/20260904193000_ca_creating_rg_limits_must_not_loosen_one.sql',
-  'supabase/migrations/20261010035338_player_restrictions_converge_and_logout_is_durable.sql',
+  'supabase/migrations/20261010053147_player_restrictions_converge_and_logout_is_durable.sql',
 ];
 /** The first one, where the tables and the vocabulary are declared. */
 const MIGRATION = MIGRATIONS[0];

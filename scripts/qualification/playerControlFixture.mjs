@@ -4,8 +4,9 @@ export const other='22222222-2222-4222-8222-222222222222';
 export const operator='33333333-3333-4333-8333-333333333333';
 export const oldSession='44444444-4444-4444-8444-444444444444';
 export const newSession='55555555-5555-4555-8555-555555555555';
-export const migrationPath=new URL('../../supabase/migrations/20261010035338_player_restrictions_converge_and_logout_is_durable.sql',import.meta.url);
+export const migrationPath=new URL('../../supabase/migrations/20261010053147_player_restrictions_converge_and_logout_is_durable.sql',import.meta.url);
 export const migration=fs.readFileSync(migrationPath,'utf8');
+export const foundation=fs.readFileSync(new URL('../../supabase/migrations/20261010053114_player_control_cold_foundation.sql',import.meta.url),'utf8');
 export function fixtureSql() {
  const social=new Map();
  for(const match of migration.matchAll(/CREATE TRIGGER zz_restriction_social(?:_edit)?_guard BEFORE (INSERT|UPDATE OF ([^\n]+)) ON public\.(\w+)\n FOR EACH ROW EXECUTE FUNCTION public\.fn_ca_refuse_restricted_social\('([^']+)'\);/g)) {
