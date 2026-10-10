@@ -15,7 +15,7 @@ import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PokerNearMeFamilyNav from '../../../src/components/poker-near-me/PokerNearMeFamilyNav';
 import DeepRouteSignalDeck, { DeepRouteNotice } from '../../../src/components/poker-near-me/DeepRouteSignalDeck';
 import PokerNearMeRecentRail from '../../../src/components/poker-near-me/PokerNearMeRecentRail';
-import { PokerNearMePanelShell } from '../../../src/components/poker-near-me/PokerNearMeConsole';
+import { PokerNearMePanelShell, PokerNearMeConsoleIcon } from '../../../src/components/poker-near-me/PokerNearMeConsole';
 import PokerIdentityMark from '../../../src/components/poker-near-me/PokerIdentityMark';
 import { getVenueLogoUrl } from '../../../src/components/poker-near-me/pnm-utils';
 import MapSurfaceFrame from '../../../src/components/poker-near-me/MapSurfaceFrame';
@@ -2775,7 +2775,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
 
             {/* Daily Tournaments Section */}
             {groupedSchedules && Object.keys(groupedSchedules || {}).length > 0 && (
-              <section id="tournaments-section" className="tournaments-section">
+              <PokerNearMePanelShell as="section" id="tournaments-section" className="tournaments-section venue-console-body">
                 <h2 className="section-title">Daily Tournament Schedule</h2>
                 <div className="schedule-container">
                   {Object.entries(groupedSchedules || {}).map(function ([day, schedules]) {
@@ -2828,12 +2828,12 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
                     );
                   })}
                 </div>
-              </section>
+              </PokerNearMePanelShell>
             )}
 
             {/* No tournaments fallback */}
             {(!groupedSchedules || Object.keys(groupedSchedules || {}).length === 0) && venue.has_tournaments && (
-              <section id="tournaments-section" className="tournaments-section">
+              <PokerNearMePanelShell as="section" id="tournaments-section" className="tournaments-section venue-console-body">
                 <h2 className="section-title">Daily Tournament Schedule</h2>
                 <div className="empty-tournaments">
                   <p>{venue.schedule_read_error ? 'Tournament Schedule Could Not Be Loaded. Please Try Again.' : 'Tournament Schedule Data Is Being Collected For This Venue.'}</p>
@@ -2843,7 +2843,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
                     </a>
                   )}
                 </div>
-              </section>
+              </PokerNearMePanelShell>
             )}
 
             {/* Last Scraped Badge */}
@@ -2980,13 +2980,10 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
             {/* ============================================ */}
             {/* LIVE GAMES SECTION                           */}
             {/* ============================================ */}
-            <section className="live-games-section">
+            <PokerNearMePanelShell as="section" className="live-games-section venue-console-body">
               <div className="section-header-row">
                 <h2 className="section-title">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#00D4FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '8px', verticalAlign: 'middle' }}>
-                    <circle cx="12" cy="12" r="10" />
-                    <circle cx="12" cy="12" r="3" />
-                  </svg>
+                  <PokerNearMeConsoleIcon name="live-games" />
                   Live Games
                   {liveGames.length > 0 && (
                     <span className="live-count-badge">{liveGames.length} Active</span>
@@ -3121,14 +3118,11 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
                 </div>
               ) : (
                 <div className="empty-section-card">
-                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                    <circle cx="12" cy="12" r="10" />
-                    <circle cx="12" cy="12" r="3" />
-                  </svg>
+                  <PokerNearMeConsoleIcon name="live-games" />
                   <p>No Live Game Reports. Be The First To Report What&apos;S Running!</p>
                 </div>
               )}
-            </section>
+            </PokerNearMePanelShell>
 
             {/* ============================================ */}
             {/* CHECK-INS SECTION                            */}

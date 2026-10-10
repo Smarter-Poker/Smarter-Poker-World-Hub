@@ -14,6 +14,26 @@ const root = process.cwd();
 const read = (file) => fs.readFileSync(path.join(root, file), 'utf8');
 const exists = (file) => fs.existsSync(path.join(root, file));
 
+test('venue schedule and live report states use complete painted panels without changing handlers', () => {
+  const page = read('pages/hub/venues/[id].js');
+  assert.equal((page.match(/<PokerNearMePanelShell as="section" id="tournaments-section"/g) || []).length, 2);
+  assert.match(page, /<PokerNearMePanelShell as="section" className="live-games-section venue-console-body"/);
+  assert.match(page, /onSubmit=\{handleReportGame\}/);
+  assert.match(page, /disabled=\{reportSubmitting \|\| !reportForm.stakes.trim\(\)\}/);
+  assert.match(page, /venue.schedule_read_error \? 'Tournament Schedule Could Not Be Loaded/);
+  const css = read('src/styles/worlds/poker-near-me-console-deep.css');
+  assert.match(css, /\.venue-console-body[\s\S]*button-primary\.png/);
+  assert.match(css, /\.venue-console-body[\s\S]*utility-well\.webp/);
+});
+
+test('observed intelligence carries painted rails in loading, empty and populated states', () => {
+  const widget = read('src/components/poker-near-me/BestTimeToGoWidget.jsx');
+  assert.equal((widget.match(/<PokerNearMePanelShell className="bttg-widget/g) || []).length, 3);
+  assert.match(widget, /Modeled Estimates Are Excluded/);
+  assert.match(widget, /heatData\?\.data_mode === 'observed_history'/);
+  assert.match(widget, /className="bttg-widget bttg-empty venue-console-body" role="status"/);
+});
+
 test('the signal deck prints its description once', () => {
   const deck = read('src/components/poker-near-me/DeepRouteSignalDeck.jsx');
   // The console head used to be handed the same string the body prints, so

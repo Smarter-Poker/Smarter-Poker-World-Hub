@@ -264,30 +264,26 @@ def parse_date(text: str) -> str | None:
     if m: return m.group(0)
     m2 = re.search(r"\b("+"|".join(MONTHS)+r")\b\.?\s+(\d{1,2})(?:st|nd|rd|th)?(?:,?\s*(20\d\d))?", text, re.I)
     if m2:
-        year_stated = m2.group(3) is not None
         mo,day,yr = MONTHS[m2.group(1).lower()], int(m2.group(2)), int(m2.group(3) or now.year)
         try:
             dt = datetime(yr,mo,day,tzinfo=timezone.utc)
-            # Only roll the year forward when the source text did NOT state one.
-            # Rolling a stated year turned archived schedules ("March 5, 2026")
-            # into future events that never existed.
-            if dt < now - timedelta(days=1):
-                if year_stated: return None
-                dt = dt.replace(year=yr+1)
+            # A source that omits the year does not authorize projecting a past
+            # date into next year.  That turned an Oct 9 live panel into a
+            # plausible-looking Oct 9, 2027 event on Oct 10, 2026.
+            if dt.date() < now.date():
+                return None
             return dt.strftime("%Y-%m-%d")
         except ValueError: pass
     m3 = re.search(r"\b(\d{1,2})/(\d{1,2})(?:/(\d{2,4}))?\b", text)
     if m3:
-        year_stated = m3.group(3) is not None
         mo,day = int(m3.group(1)), int(m3.group(2))
         yr = int(m3.group(3) or now.year)
         if yr < 100: yr += 2000
         if 1<=mo<=12 and 1<=day<=31:
             try:
                 dt = datetime(yr,mo,day,tzinfo=timezone.utc)
-                if dt < now - timedelta(days=1):
-                    if year_stated: return None
-                    dt = dt.replace(year=yr+1)
+                if dt.date() < now.date():
+                    return None
                 return dt.strftime("%Y-%m-%d")
             except ValueError: pass
     return None
@@ -428,6 +424,10 @@ def is_servable_scraped_start_time(
 
 def game_from(text: str) -> str:
     u = text.upper()
+    # PokerAtlas uses this exact type for a rotation of two split-pot games;
+    # it is neither NLH nor a single Omaha event.  Keep O8 alone out of this
+    # combined-game branch.
+    if re.search(r"\b(?:O8\s*/\s*S8|S8\s*/\s*O8)\b", u): return "Mixed"
     if "PLO" in u or "OMAHA" in u: return "PLO"
     if "MIXED" in u or "HORSE" in u: return "Mixed"
     if "STUD" in u: return "Stud"
@@ -2447,7 +2447,8 @@ def scrape_venue(venue:dict, session, batch_id:str, hm_map:dict, cp_map:dict,
                 continue
             for origin in external_origins:
                 venue.setdefault("_extra_origins", []).append(origin)
-            if source_confirms_valid_empty(html):
+            recurring_schedule_empty = source_confirms_valid_empty(html)
+            if recurring_schedule_empty:
                 mark_valid_empty("pokeratlas", final_url)
 
             # PRIMARY PATH: the recurring weekly schedule from the page HTML.
@@ -2466,7 +2467,11 @@ def scrape_venue(venue:dict, session, batch_id:str, hm_map:dict, cp_map:dict,
                 if recs:
                     log(f"      [PA:NEXT_DATA] {len(recs)} records (no schedule section)")
             # FALLBACK: generic extractor
-            if not recs and has_tourn(html):
+            # A source-owned ``no-tournaments`` marker applies to the recurring
+            # schedule section.  Do not let unrelated live/calendar copy on the
+            # same page fall through the generic heuristic and become a made-up
+            # daily row.  Structured dated data remains eligible above.
+            if not recs and not recurring_schedule_empty and has_tourn(html):
                 recs = extract_html(html, name, vid, batch_id, final_url, "pokeratlas", state)
             add(recs, "pokeratlas", final_url)
 
@@ -2992,9 +2997,12 @@ class DaemonSessionManager:
 
     @staticmethod
     def _is_access_challenge(html: str) -> bool:
+        # ``/cdn-cgi/challenge-platform/...`` is also injected into complete,
+        # readable Cloudflare-protected pages.  It is not challenge evidence by
+        # itself; retain the explicit interstitial text and cf-chl DOM markers.
         return bool(re.search(
             r"just a moment|security verification|checking your browser|"
-            r"cf-chl-|challenge-platform|cloudflare ray id|"
+            r"cf-chl-|cloudflare ray id|"
             r"enable javascript and cookies to continue",
             str(html or ""),
             re.I,
