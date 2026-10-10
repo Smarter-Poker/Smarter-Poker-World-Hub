@@ -26,9 +26,13 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import vm from 'node:vm';
+import { execFileSync } from 'node:child_process';
+import { fuzzyMatchScore } from '../src/components/poker-near-me/pnm-utils.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const read = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8');
+const read = (rel) => process.env.PNM_SEARCH_SOURCE_REV && rel === 'src/components/poker-near-me/GlobalSearchOverlay.jsx'
+  ? execFileSync('git', ['show', `${process.env.PNM_SEARCH_SOURCE_REV}:${rel}`], { cwd: ROOT, encoding: 'utf8' })
+  : fs.readFileSync(path.join(ROOT, rel), 'utf8');
 const stripComments = (src) => src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
 
 const SEARCH = 'src/components/poker-near-me/GlobalSearchOverlay.jsx';
@@ -40,9 +44,9 @@ const VOICE = 'src/components/poker-near-me/VoiceSearch.jsx';
 
 function searchHelpers() {
   const src = read(SEARCH);
-  const scope = vm.createContext({ Date, URLSearchParams });
+  const scope = vm.createContext({ Date, URLSearchParams, fuzzyMatchScore });
   vm.runInContext(src.slice(src.indexOf('const US_STATES ='), src.indexOf('// ─── Painted system'))
-    + ';this.helpers={parseNaturalLanguageQuery,overlapsWindow,timeWindowRange,venueMatchesStakes,collectSearchVenuePages,tourMatchesDiscoveryFilters};', scope);
+    + ';this.helpers={parseNaturalLanguageQuery,overlapsWindow,timeWindowRange,venueMatchesStakes,collectSearchVenuePages,tourMatchesDiscoveryFilters,venueNameMatchScore};', scope);
   return scope.helpers;
 }
 
@@ -90,17 +94,17 @@ test('typing and stale submit errors cannot overwrite the newest search or reviv
 
 test('the actual submit callback refuses an older cached failure after a newer result', async () => {
   const src = read(SEARCH);
-  const scope = vm.createContext({ Date, URLSearchParams, AbortController, console, clearTimeout });
+  const scope = vm.createContext({ Date, URLSearchParams, AbortController, console, clearTimeout, fuzzyMatchScore });
   const pending = [];
   const state = {};
   Object.assign(scope, {
     localQuery: '', userLocation: null, inputRef: { current: null },
     submitSeqRef: { current: 0 }, debounceRef: { current: null }, abortControllerRef: { current: null },
-    cachedFetch: () => new Promise((resolve, reject) => pending.push({ resolve, reject })),
+    cachedFetch: url => new Promise((resolve, reject) => pending.push({ url, resolve, reject })),
     matchTours: () => [], matchSeries: () => [], useCallback: fn => fn,
     setRecentSearches: () => {},
   });
-  for (const name of ['Phase', 'IsLoading', 'SearchError', 'MissingFilterCoverage', 'VisibleResultCount', 'CitySuggestions', 'DetailItem', 'NlIntent', 'SelectedIndex', 'VenueResults', 'TourResults', 'SeriesResults']) {
+  for (const name of ['Phase', 'IsLoading', 'SearchError', 'MissingFilterCoverage', 'VisibleResultCount', 'NameMatchFallback', 'CitySuggestions', 'DetailItem', 'NlIntent', 'SelectedIndex', 'VenueResults', 'TourResults', 'SeriesResults']) {
     scope[`set${name}`] = value => { state[name] = value; };
   }
   vm.runInContext(src.slice(src.indexOf('const US_STATES ='), src.indexOf('// ─── Painted system'))
@@ -124,6 +128,46 @@ test('the actual submit callback refuses an older cached failure after a newer r
   await filtered;
   assert.equal(state.VenueResults.length, 1);
   assert.equal(state.MissingFilterCoverage, 2, 'combined filters retain the union of missing published evidence');
+
+  const typo = scope.submit(null, '1/2 PLO Bellago in NV');
+  pending[3].resolve({ data: [], has_more: false });
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(pending.length, 5, 'an empty exact name search must read the filtered published directory for typo suggestions');
+  assert.match(pending[4].url, /state=NV/);
+  assert.doesNotMatch(pending[4].url, /search=/);
+  pending[4].resolve({ data: Array.from({ length: 200 }, (_, id) => ({ id, name: `Unrelated Room ${id}`, city: 'Reno' })), has_more: true, paging_source: 'database' });
+  await new Promise(resolve => setImmediate(resolve));
+  assert.match(pending[5].url, /offset=200/);
+  pending[5].resolve({ data: [{ id: 201, name: 'Bellagio', city: 'Las Vegas', games_offered: ['PLO'], stakes_cash: ['$1/$2'] }, { id: 202, name: 'Bellagio High Stakes', games_offered: ['PLO'], stakes_cash: ['$5/$10'] }], has_more: false, paging_source: 'database' });
+  await typo;
+  assert.equal(state.VenueResults.length, 1, 'a similar name never overrides the requested stakes or game type');
+  assert.equal(state.VenueResults[0].id, 201);
+  assert.equal(state.NameMatchFallback, true);
+
+  const invalidated = scope.submit(null, 'Bellago');
+  pending[6].resolve({ data: [], has_more: false });
+  await new Promise(resolve => setImmediate(resolve));
+  const latest = scope.submit(null, 'New Venue');
+  pending[8].resolve({ data: [{ id: 999, name: 'New Venue' }], has_more: false });
+  await latest;
+  pending[7].reject(new Error('Late Fuzzy Fallback Failure'));
+  await invalidated;
+  assert.equal(state.SearchError, false);
+  assert.equal(state.VenueResults[0].id, 999);
+  assert.equal(state.NameMatchFallback, false);
+});
+
+test('venue typo suggestions require every published name or city word and remain labelled', () => {
+  const { venueNameMatchScore: score } = searchHelpers();
+  assert.ok(Number.isFinite(score('Bellago Las Vgas', { name: 'Bellagio', city: 'Las Vegas' })));
+  assert.equal(score('Bellago Chicago', { name: 'Bellagio', city: 'Las Vegas' }), Infinity);
+  assert.equal(score('Las Las', { city: 'Las Vegas' }), Infinity);
+  assert.equal(score('Unpublished Room', {}), Infinity);
+  assert.equal(score('In', { name: 'Indianapolis Club' }), Infinity);
+  const src = read(SEARCH);
+  assert.match(src, /!venues\.length && apiQuery\.trim\(\)\.length >= 3/);
+  assert.match(src, /Closest Published Venue And City Name Matches/);
+  assert.match(src, /!isLoading && !searchError && nameMatchFallback/);
 });
 
 test('search exhausts published result pages before stakes filtering and refuses incomplete pages', async () => {

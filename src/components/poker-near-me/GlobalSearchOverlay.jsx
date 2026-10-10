@@ -150,6 +150,30 @@ function venueMatchesStakes(venue, stakes) {
   });
 }
 
+// A fallback is a name/location suggestion, never evidence of current games.
+// Require every query word to match a different published word so a single
+// similar city token cannot turn an unrelated venue into a result.
+function venueNameMatchScore(query, venue) {
+  const words = String(query || '').toLowerCase().match(/[a-z0-9]+/g) || [];
+  const targets = [venue?.name, venue?.city].filter(Boolean).join(' ').toLowerCase().match(/[a-z0-9]+/g) || [];
+  if (!words.length || words.length > 12 || !targets.length) return Infinity;
+  const used = new Set();
+  let score = 0;
+  for (const word of words) {
+    let best = Infinity;
+    let selected = -1;
+    targets.forEach((target, index) => {
+      if (used.has(index)) return;
+      const value = word.length < 3 ? (word === target ? 0 : Infinity) : fuzzyMatchScore(word, target);
+      if (value <= (word.length >= 5 ? 2 : 1) && value < best) { best = value; selected = index; }
+    });
+    if (selected < 0) return Infinity;
+    used.add(selected);
+    score += best;
+  }
+  return score;
+}
+
 function tourMatchesDiscoveryFilters(tour, stateCode, range) {
   if (!stateCode && !range) return true;
   const stops = ['upcoming_series', 'stops_2026', 'series_2026']
@@ -594,6 +618,7 @@ export default function GlobalSearchOverlay({
   const [searchError, setSearchError] = useState(false);
   const [missingFilterCoverage, setMissingFilterCoverage] = useState(0);
   const [visibleResultCount, setVisibleResultCount] = useState(20);
+  const [nameMatchFallback, setNameMatchFallback] = useState(false);
   const debounceRef = useRef(null);
   // [BUG FIX] AbortController ref — cancels stale in-flight venue suggestion fetches
   const abortControllerRef = useRef(null);
@@ -663,6 +688,7 @@ export default function GlobalSearchOverlay({
       }
       setDetailItem(null);
       setSearchError(false);
+      setNameMatchFallback(false);
       focusTimer = setTimeout(() => inputRef.current?.focus(), 120);
     } else {
       // [BUG FIX] Cancel any pending debounce + in-flight fetch when overlay closes
@@ -808,6 +834,7 @@ export default function GlobalSearchOverlay({
     setSearchError(false);
     setMissingFilterCoverage(0);
     setVisibleResultCount(20);
+    setNameMatchFallback(false);
     // A keystroke invalidates both submit and typeahead ownership immediately.
     // Debouncing a replacement request must not leave the old one authoritative.
     ++submitSeqRef.current;
@@ -875,6 +902,7 @@ export default function GlobalSearchOverlay({
     setSearchError(false);
     setMissingFilterCoverage(0);
     setVisibleResultCount(20);
+    setNameMatchFallback(false);
     if (debounceRef.current) clearTimeout(debounceRef.current);
     // BUG FIX: an aborted search used to `return` from inside the try block, skipping
     // setIsLoading(false) — the skeleton loaders then spun forever (typing one more
@@ -926,13 +954,25 @@ export default function GlobalSearchOverlay({
         if (isCurrentSubmit()) setIsLoading(false);
         return;
       }
-      const venues = await collectSearchVenuePages(data, venueUrl, async url => {
+      const readVenuePage = async url => {
         if (cachedFetch) return cachedFetch(url);
         const response = await fetch(url, { signal });
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         return response.json();
-      }, () => isCurrentSubmit() && !signal.aborted);
+      };
+      let venues = await collectSearchVenuePages(data, venueUrl, readVenuePage, () => isCurrentSubmit() && !signal.aborted);
       if (!venues || !isCurrentSubmit()) return;
+      if (!venues.length && apiQuery.trim().length >= 3) {
+        const fallbackParams = new URLSearchParams(params);
+        fallbackParams.delete('search');
+        const fallbackUrl = `/api/poker/venues?${fallbackParams.toString()}`;
+        const fallback = await collectSearchVenuePages(await readVenuePage(fallbackUrl), fallbackUrl, readVenuePage, () => isCurrentSubmit() && !signal.aborted);
+        if (!fallback || !isCurrentSubmit() || signal.aborted) return;
+        venues = fallback.map((venue, index) => ({ venue, index, score: venueNameMatchScore(apiQuery, venue) }))
+          .filter(result => Number.isFinite(result.score))
+          .sort((a, b) => a.score - b.score || a.index - b.index).map(result => result.venue);
+        setNameMatchFallback(venues.length > 0);
+      }
       // Missing catalogue fields are not confirmed game/stakes matches. Surface
       // that coverage gap separately instead of silently removing the filter.
       let list = venues;
@@ -1297,6 +1337,10 @@ export default function GlobalSearchOverlay({
           {/* RESULTS phase — full list below the map */}
           {phase === 'results' && (
             <div className="gso-console-list">
+
+              {!isLoading && !searchError && nameMatchFallback && (
+                <p className="gso-empty__copy" role="status">Closest Published Venue And City Name Matches. Confirm The Venue Before Planning Your Visit.</p>
+              )}
 
               {isLoading && <SearchSkeletons />}
 
