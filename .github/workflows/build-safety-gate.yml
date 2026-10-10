@@ -302,6 +302,14 @@ jobs:
           mkdir -p "$CAPTION_BUDGET_POSTGRES_ROOT"
           node --test __tests__/caption-model-budget-migration.test.mjs
 
+      - name: Public Profile RPC Privacy PostgreSQL 17 Contract
+        env:
+          PG17_BINDIR: ${{ env.PHASE6_POSTGRES_BIN }}
+          PUBLIC_PROFILE_POSTGRES_ROOT: ${{ runner.temp }}/public-profile-rpc
+        run: |
+          mkdir -p "$PUBLIC_PROFILE_POSTGRES_ROOT"
+          node --test __tests__/public-profile-rpc-migration-postgres.test.mjs
+
       # Reuse the already-resolved PG17 binaries. Each authority gate owns one
       # disposable local cluster, removes it on every exit, and applies the
       # shipped migration over its exact predecessor fixture.
