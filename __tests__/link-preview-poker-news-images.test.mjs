@@ -89,7 +89,8 @@ test('PokerNews first-party OpenGraph returns the actual story image, never its 
   const res = {
     statusCode: 200,
     body: null,
-    setHeader() {},
+    headers: {},
+    setHeader(name, value) { this.headers[name.toLowerCase()] = value; },
     status(code) { this.statusCode = code; return this; },
     json(body) { this.body = body; return this; },
   };
@@ -101,6 +102,7 @@ test('PokerNews first-party OpenGraph returns the actual story image, never its 
   }, res);
   assert.equal(res.statusCode, 200);
   assert.equal(res.body.image, null, 'a rejected publisher logo cannot re-enter through generic fallback');
+  assert.equal(res.headers['cache-control'], 'private, no-store');
 });
 
 test('Upswing first-party WordPress metadata resolves its featured article image', async () => {
@@ -132,4 +134,38 @@ test('Upswing first-party WordPress metadata resolves its featured article image
   assert.equal(result.description, 'Exploit players who overfold.');
   assert.equal(calls.length, 2);
   assert.ok(calls.every((url) => url.startsWith('https://upswingpoker.com/wp-json/wp/v2/')));
+});
+
+test('Upswing falls back to bounded first-party OpenGraph when WordPress media fails', async () => {
+  for (const failure of ['missing-media-id', 'posts-throw', 'media-http-failure']) {
+    const calls = [];
+    const { read } = loadKnownPublisherReader(async (url) => {
+      calls.push(String(url));
+      if (String(url).includes('/wp-json/wp/v2/posts?')) {
+        if (failure === 'posts-throw') throw new Error('publisher API unavailable');
+        return {
+          ok: true,
+          headers: { get() { return null; } },
+          async text() {
+            return JSON.stringify([{ featured_media: failure === 'missing-media-id' ? 0 : 793986 }]);
+          },
+        };
+      }
+      if (String(url).includes('/wp-json/wp/v2/media/')) return { ok: false };
+      return {
+        ok: true,
+        headers: { get() { return null; } },
+        async text() {
+          return [
+            '<meta property="og:title" content="Stop Playing GTO Against Blinds That Fold Too Much">',
+            '<meta property="og:image" content="https://upswingpoker.com/wp-content/uploads/2026/09/1200x630-2.jpg">',
+          ].join('');
+        },
+      };
+    });
+    const result = await read('https://upswingpoker.com/how-to-respond-big-blind-small-blind-too-tight/');
+    assert.equal(result.image, 'https://upswingpoker.com/wp-content/uploads/2026/09/1200x630-2.jpg', failure);
+    assert.equal(result.title, 'Stop Playing GTO Against Blinds That Fold Too Much', failure);
+    assert.equal(calls.at(-1), 'https://upswingpoker.com/how-to-respond-big-blind-small-blind-too-tight/');
+  }
 });
