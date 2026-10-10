@@ -41,7 +41,7 @@ on:
       suite:
         description: Verification suite to run
         type: choice
-        options: [full, horses-phase9-postgrest, messenger-live, messenger-send-live, messenger-continuity-live, reels-live, video-operations-live, social-card-live, reels-reconciliation-audit, reels-reconciliation-apply]
+        options: [full, horses-phase9-postgrest, messenger-live, messenger-send-live, messenger-continuity-live, reels-live, video-operations-live, social-card-live, social-feed-normal-live, reels-reconciliation-audit, reels-reconciliation-apply]
         default: full
       expected_sha:
         description: Full deployed commit SHA (required only for a published live verification suite)
@@ -649,6 +649,79 @@ jobs:
         with:
           name: social-card-live-receipt
           path: test-results/social-card-live/result.json
+          if-no-files-found: error
+          retention-days: 7
+
+  social-feed-normal-live:
+    name: Published Social Feed Normal UI Verification
+    if: ${{ inputs.suite == 'social-feed-normal-live' && github.ref == 'refs/heads/main' }}
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24.12.0'
+          cache: npm
+      - name: Verify Social feed live probe safety
+        run: |
+          node scripts/ci/social-feed-normal-live-check.mjs --self-test
+          node --test __tests__/social-feed-normal-live-safety.test.mjs
+      - name: Prove deployed Social feed runtime is included in protected source
+        env:
+          DEPLOYED_SHA: ${{ inputs.expected_sha }}
+          SOURCE_SHA: ${{ github.sha }}
+        run: |
+          test "$GITHUB_REF" = refs/heads/main
+          git cat-file -e "$DEPLOYED_SHA^{commit}"
+          git cat-file -e "$SOURCE_SHA^{commit}"
+          git merge-base --is-ancestor "$DEPLOYED_SHA" "$SOURCE_SHA"
+          git diff --quiet "$DEPLOYED_SHA" "$SOURCE_SHA" -- \
+            pages/hub/social-media/index.js \
+            pages/api/link-preview/index.js \
+            pages/api/social/feed.js \
+            pages/api/social/post.js \
+            src/components/social/ArticleCard.jsx \
+            src/components/social/ReelsFeedCarousel.jsx \
+            src/components/reels/ReelCard.jsx \
+            src/lib/articlePreviewMetadata.mjs \
+            src/lib/canonicalBrowserPost.mjs \
+            src/lib/reelCreatorName.mjs \
+            src/lib/reelsRealtimeRefresh.mjs \
+            src/lib/socialAuthorityBroadcast.mjs
+      - name: Restore locked dependencies
+        id: social-feed-normal-live-nm-cache
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: nm-wh-noscripts-${{ runner.os }}-node24-${{ hashFiles('package-lock.json') }}
+      - name: Install locked dependencies
+        if: steps.social-feed-normal-live-nm-cache.outputs.cache-hit != 'true'
+        run: npm ci --ignore-scripts
+      - name: Install verification browser
+        run: |
+          if [ "${{ runner.environment }}" = "self-hosted" ]; then npx playwright install chromium; else npx playwright install --with-deps chromium; fi
+      - name: Verify published Social feed with designated test account
+        run: node scripts/ci/social-feed-normal-live-check.mjs
+        env:
+          TEST_USER_EMAIL: ${{ vars.TEST_USER_EMAIL || secrets.TEST_USER_EMAIL }}
+          TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD }}
+          SOCIAL_FEED_EXPECTED_SHA: ${{ inputs.expected_sha }}
+          SOCIAL_FEED_SOURCE_SHA: ${{ github.sha }}
+      - name: Assert complete sanitized Social feed receipt
+        run: node scripts/ci/social-feed-normal-live-check.mjs --check-receipt test-results/social-feed-normal/result.json
+        env:
+          SOCIAL_FEED_EXPECTED_SHA: ${{ inputs.expected_sha }}
+      - name: Retain sanitized Social feed receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: social-feed-normal-live-receipt
+          path: test-results/social-feed-normal
           if-no-files-found: error
           retention-days: 7
 

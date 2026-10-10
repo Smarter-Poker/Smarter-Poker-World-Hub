@@ -17,7 +17,7 @@
  *   2. for a row the caller can see, its metadata (reduced to the keys the UI
  *      renders, displayMetadata) and its author's public card (id, username,
  *      display_name, avatar_url) are read with the service role; origin_type is
- *      never read.
+ *      used only by the server-side video authority gate and never returned.
  *
  * A horse's post and a human's come back in the same shape.
  */
@@ -26,7 +26,6 @@ import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { BROWSER_POST_SELECT, displayMetadata } from '../../../src/lib/socialPostShape';
 import {
     POST_SELECT,
-    isPublicAudiencePost,
     managedVideoPostIsEligible,
     managedVideoEligibilityExpiresAt,
     nativeVideoIsReady,
@@ -90,7 +89,8 @@ export default async function handler(req, res) {
     if (!id) return res.status(400).json({ success: false, error: 'Invalid post' });
 
     try {
-        const visible = await callerClient(bearerToken(req))
+        const caller = callerClient(bearerToken(req));
+        let visible = await caller
             .from('social_posts')
             .select(BROWSER_POST_SELECT)
             .eq('id', id)
@@ -112,7 +112,7 @@ export default async function handler(req, res) {
                 .eq('id', id)
                 .maybeSingle();
             if (authority.error) throw authority.error;
-            if (!authority.data || !isPublicAudiencePost(authority.data)) {
+            if (!authority.data) {
                 return res.status(404).json({ success: false, error: 'Post not found' });
             }
             const context = await readManagedEligibilityContext([authority.data]);
@@ -123,6 +123,20 @@ export default async function handler(req, res) {
                 return res.status(404).json({ success: false, error: 'Post not found' });
             }
             eligibilityExpiresAt = managedVideoEligibilityExpiresAt(authority.data, context);
+
+            // The service-only authority read above can take long enough for a
+            // post's audience or deletion state to change. Re-read through the
+            // same caller-scoped RLS policy before returning it. This preserves
+            // owner/friend deep links without turning a formerly-visible row
+            // into a service-role disclosure.
+            visible = await caller
+                .from('social_posts')
+                .select(BROWSER_POST_SELECT)
+                .eq('id', id)
+                .eq('is_deleted', false)
+                .maybeSingle();
+            if (visible.error) throw visible.error;
+            if (!visible.data) return res.status(404).json({ success: false, error: 'Post not found' });
         }
         const authorId = visible.data.author_id;
         const [notes, author] = await Promise.all([

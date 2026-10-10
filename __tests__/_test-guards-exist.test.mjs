@@ -376,6 +376,7 @@ import './reels-embedded-console-visual.test.mjs';
 import './social-feed-normal-ui.test.mjs';
 import './link-preview-poker-news-images.test.mjs';
 import './social-authority-broadcast.test.mjs';
+import './social-feed-normal-live-safety.test.mjs';
 import './historical-user-reels-recovery-migration.test.mjs';
 import './historical-user-reels-post-rights-followup-migration.test.mjs';
 import './social-reel-alias-reconciliation-migration.test.mjs';
