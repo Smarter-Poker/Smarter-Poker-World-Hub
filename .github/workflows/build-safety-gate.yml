@@ -340,6 +340,14 @@ jobs:
           mkdir -p "$HOME_GAMES_ADDRESS_POSTGRES_ROOT"
           node --test __tests__/home-games-address-visibility-postgres.test.mjs
 
+      - name: Home Games Owner Consistency PostgreSQL 17 Contract
+        env:
+          PG17_BINDIR: ${{ env.PHASE6_POSTGRES_BIN }}
+          HOME_GAMES_OWNER_POSTGRES_ROOT: ${{ runner.temp }}/home-games-owner
+        run: |
+          mkdir -p "$HOME_GAMES_OWNER_POSTGRES_ROOT"
+          node --test __tests__/home-games-owner-consistency-postgres.test.mjs
+
       - name: Social Horse Real Name PostgreSQL 17 Contract
         env:
           PG17_BINDIR: ${{ env.PHASE6_POSTGRES_BIN }}

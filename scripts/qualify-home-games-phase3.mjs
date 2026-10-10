@@ -344,6 +344,9 @@ export async function qualify(env = process.env) {
     const pendingJoin = await safe(stranger.client.rpc('join_home_group', { p_group_id: group.id, p_caller_user_id: stranger.id }), 'public approval request');
     assert.equal(pendingJoin.success, true);
     assert.equal(pendingJoin.status, 'pending');
+    const publicRequestedMembership = await safe(admin.from('commander_home_members').select('id,status').eq('group_id', group.id).eq('user_id', stranger.id), 'public pending membership readback');
+    assert.equal(publicRequestedMembership.length, 1);
+    assert.equal(publicRequestedMembership[0].status, 'pending');
     const pendingPost = await api('/api/social/pages/posts', stranger, { page_id: page.id, content: `${marker} pending refused` });
     assert.equal(pendingPost.status, 403);
     await safe(host.client.rpc('manage_home_group_member', { p_group_id: group.id, p_member_user_id: stranger.id, p_action: 'approve', p_caller_user_id: host.id }), 'host approval');

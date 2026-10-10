@@ -116,6 +116,8 @@ test('invitation preserves approval and fixture games are verified and removed b
   const source = readFileSync(new URL('../scripts/qualify-home-games-phase3.mjs', import.meta.url), 'utf8');
   assert.match(source, /joined\.status, 'pending'/);
   assert.match(source, /requestedMembership\[0\]\.status, 'pending'/);
+  assert.match(source, /publicRequestedMembership\.length, 1/);
+  assert.match(source, /publicRequestedMembership\[0\]\.status, 'pending'/);
   assert.ok(source.indexOf("'host invitation approval'") < source.indexOf("'approved member calendar'"));
   assert.match(source, /game\.host_id, users\[0\]\.id/);
   assert.match(source, /game\.title, marker/);
