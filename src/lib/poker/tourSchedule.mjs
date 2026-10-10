@@ -7,6 +7,15 @@ const day = (value) => {
   return Number.isFinite(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value ? value : null;
 };
 const text = (value) => String(value || '').trim();
+// Punctuation/spacing are presentation, not a new physical stop. Keep dates,
+// complete ranges and places in the identity so repeat visits remain distinct.
+const identityText = value => text(value).normalize('NFKC').toLowerCase()
+  .replace(/[\u2010-\u2015\u2212]/g, '-').replace(/\s*-\s*/g, '-')
+  .replace(/\s+/g, ' ');
+export function tourStopIdentityKey({ name, start, end, venue, city, state }) {
+  return JSON.stringify([identityText(name), start || '', end || start || '',
+    identityText(venue), identityText(city), identityText(state)]);
+}
 const host = (value) => {
   try {
     const url = new URL(value);
@@ -61,7 +70,7 @@ export function databaseTourStops(rows, tours) {
     const city = text(row.stop_city);
     const state = text(row.stop_state);
     if (!start || !end || end < start || !name) continue;
-    const key = [row.tour_code, name.toLowerCase(), venue.toLowerCase(), city.toLowerCase(), state.toLowerCase(), start, end].join('|');
+    const key = `${row.tour_code}|${tourStopIdentityKey({ name, start, end, venue, city, state })}`;
     const previous = groups.get(key);
     if (previous && Date.parse(previous.scrape_timestamp) >= observed) continue;
     groups.set(key, {

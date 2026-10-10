@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { useRouter } from 'next/router';
 import useSWR from 'swr';
+import { sourceVerificationTime } from '../../src/lib/poker-near-me/scheduleTemporal.mjs';
 import useVenueRealtime from '../../src/hooks/useVenueRealtime';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import PokerNearMeFamilyNav from '../../src/components/poker-near-me/PokerNearMeFamilyNav';
@@ -232,11 +233,11 @@ export default function DailyTournaments() {
     const scheduleStatusLabel = scheduleState === 'error'
         ? 'Schedule connection unavailable'
         : scheduleState === 'degraded'
-            ? 'Partial live coverage · supplemental sources remain available'
+            ? 'Partial schedule coverage · supplemental sources remain available'
             : scheduleState === 'syncing'
-                ? 'Refreshing verified schedules'
-                : 'Verified schedule feed synchronized';
-    const scheduleFreshness = swrData?.lastUpdated || scheduleMeta?.generatedAt || null;
+                ? 'Refreshing schedules'
+                : 'Schedule feed synchronized';
+    const scheduleFreshness = sourceVerificationTime(swrData?.lastUpdated);
 
     // ── GPS / Distance Filter ─────────────────────────────────────────────
     // [P1-B FIX] Moved above clearFilters — useState setters must be declared before
@@ -418,9 +419,10 @@ export default function DailyTournaments() {
                             <span>{scheduleStatusLabel}</span>
                             {scheduleFreshness && (
                                 <time dateTime={scheduleFreshness}>
-                                    {scheduleFreshness.slice(0, 10)} {scheduleFreshness.slice(11, 16)} UTC
+                                    Latest Source Verification: {scheduleFreshness.slice(0, 10)} {scheduleFreshness.slice(11, 16)} UTC
                                 </time>
                             )}
+                            {!scheduleFreshness && <span>Source Verification Time Unavailable</span>}
                         </div>
                     </div>
                     <div className="dt-header-right">

@@ -6,6 +6,7 @@
 import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { reportApiError } from '../../../../src/lib/apiErrorHandler';
 import { canonicalPublicUrl } from '../../../../src/lib/publicOrigin.mjs';
+import { isPublicCanonicalVenue } from '../../../../src/lib/poker-near-me/venueIntegrity';
 
 // NOTE: Removed edge runtime — this handler uses Node.js Pages Router API (req.query/res.status/etc)
 // and cannot run on Vercel Edge Runtime. Keep as Node.js runtime.
@@ -36,7 +37,7 @@ export default async function handler(req, res) {
 
     try {
       const safeQ = (v) => v ? (Array.isArray(v) ? String(v[0]) : typeof v === 'object' ? null : String(v)) : v;
-      const id = safeQ(req.query.id);
+      let id = safeQ(req.query.id);
 
       if (!id) {
         return res.status(400).json({
@@ -46,7 +47,7 @@ export default async function handler(req, res) {
       }
 
       // Fetch venue with public fields only
-      const { data: venue, error: venueError } = await getSupabase()
+      const lookupVenue = (venueId) => getSupabase()
         .from('poker_venues')
         // NOTE: every column below is verified to exist on poker_venues.
         // Ten columns that do NOT exist (zip_code, poker_room_phone,
@@ -82,11 +83,36 @@ export default async function handler(req, res) {
           about,
           tagline,
           profile_photo_url,
-          cover_photo_url
+          cover_photo_url,
+          is_active,
+          is_suppressed,
+          canonical_venue_id
         `)
-        .eq('id', id)
-        .eq('is_active', true)
+        .eq('id', venueId)
         .maybeSingle();
+      let { data: venue, error: venueError } = await lookupVenue(id);
+
+      if (venueError && venue) {
+        // A contradictory lookup cannot certify identity or clear its error
+        // by following an alias. Preserve an explicit unavailable outcome.
+        reportApiError(venueError, req);
+        return res.status(503).json({ success: false, error: { code: 'VENUE_UNAVAILABLE', message: 'Venue information is temporarily unavailable' } });
+      }
+
+      if (venue?.canonical_venue_id != null) {
+        const aliasId = venue.id;
+        const canonicalResult = await lookupVenue(venue.canonical_venue_id);
+        if (canonicalResult.error || !isPublicCanonicalVenue(canonicalResult.data)) {
+          return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Canonical venue not found' } });
+        }
+        venue = { ...canonicalResult.data, canonical_redirect_from: aliasId };
+        venueError = null;
+        id = String(venue.id);
+      } else if (venue && !isPublicCanonicalVenue(venue)) {
+        // A known retired/suppressed identity must not be resurrected through
+        // the unrelated social-page fallback below.
+        return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Venue not found' } });
+      }
 
       if (venueError) {
         // Never let a column drift degrade silently into a 404 again.

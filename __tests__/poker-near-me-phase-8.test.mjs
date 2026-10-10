@@ -1,10 +1,57 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { isVenueMapEligible, summarizeVenueIntegrity } from '../src/lib/poker-near-me/venueIntegrity.js';
+import { isVenueMapEligible, summarizeVenueIntegrity, isPublicCanonicalVenue } from '../src/lib/poker-near-me/venueIntegrity.js';
 import { applyVenueIntegrity, assessVenueLocation } from '../src/lib/poker-near-me/venueIntegrityServer.js';
 
 const read = (path) => readFile(new URL(`../${path}`, import.meta.url), 'utf8');
+
+test('alias targets must be active unsuppressed canonical public identities', async () => {
+  const valid = { id: 12, is_active: true, is_suppressed: false, canonical_venue_id: null };
+  assert.equal(isPublicCanonicalVenue(valid), true);
+  for (const invalid of [null, {}, { ...valid, is_active: false }, { ...valid, is_suppressed: true }, { ...valid, canonical_venue_id: 13 }]) {
+    assert.equal(isPublicCanonicalVenue(invalid), false);
+  }
+  const discovery = await read('pages/api/poker/venues.js');
+  const publicDetail = await read('pages/api/public/venue/[id].js');
+  assert.match(discovery, /!canonicalError && isPublicCanonicalVenue\(canonical\)/);
+  assert.match(publicDetail, /!isPublicCanonicalVenue\(canonicalResult.data\)/);
+  assert.match(publicDetail, /id = String\(venue.id\)/);
+  assert.match(publicDetail, /venue && !isPublicCanonicalVenue\(venue\)/);
+});
+
+test('inactive listings and polygon matches cannot claim closure or verified addresses', async () => {
+  const profile = await read('pages/hub/venues/[id].js');
+  assert.match(profile, /venue.is_active === false/);
+  assert.match(profile.match(/const PUBLIC_VENUE_FIELDS = \[[\s\S]*?\];/)?.[0] || '', /'is_active'/);
+  assert.match(profile, /This does not confirm a permanent closure/);
+  const location = await read('src/components/poker-near-me/PokerNearMeLocationPage.jsx');
+  assert.match(location, /State-Coordinate Match/);
+  assert.doesNotMatch(location, />Location Verified</);
+});
+
+test('public venue handler resolves alias before downstream reads and refuses hidden targets', async () => {
+  const source = await read('pages/api/public/venue/[id].js');
+  const boundary = source.slice(source.indexOf('const safeQ ='), source.indexOf('if (venueError) {'));
+  const execute = new Function('getSupabase', 'isPublicCanonicalVenue', 'reportApiError', `return async (req, res) => { ${boundary}; return { venue, id }; };`);
+  const alias = { id: 1, is_active: false, is_suppressed: true, canonical_venue_id: 2 };
+  const canonical = { id: 2, is_active: true, is_suppressed: false, canonical_venue_id: null };
+  for (const target of [canonical, { ...canonical, is_active: false }, { ...canonical, is_suppressed: true }, { ...canonical, canonical_venue_id: 3 }, null]) {
+    const reads = [];
+    const database = { from() { let id; return { select() { return this; }, eq(_key, value) { id = value; return this; }, maybeSingle() { reads.push(id); return Promise.resolve({ data: String(id) === '1' ? alias : target, error: null }); } }; } };
+    const res = { status(code) { this.code = code; return this; }, json(body) { return body; } };
+    const result = await execute(() => database, isPublicCanonicalVenue, () => {})({ query: { id: '1' } }, res);
+    assert.deepEqual(reads.map(String), ['1', '2']);
+    if (target === canonical) {
+      assert.equal(result.id, '2');
+      assert.equal(result.venue.canonical_redirect_from, 1);
+    } else assert.equal(res.code, 404);
+  }
+  const database = { from() { return { select() { return this; }, eq() { return this; }, maybeSingle() { return Promise.resolve({ data: alias, error: new Error('ambiguous lookup') }); } }; } };
+  const res = { status(code) { this.code = code; return this; }, json(body) { return body; } };
+  await execute(() => database, isPublicCanonicalVenue, () => {})({ query: { id: '1' } }, res);
+  assert.equal(res.code, 503);
+});
 
 test('state polygons hold contradictory venue coordinates out of maps', () => {
   const conflict = { name: 'California Identity With Nevada Pin', state: 'CA', latitude: 36.1238, longitude: -115.1683 };
