@@ -1402,6 +1402,47 @@ GENERIC_PROMOTION_NOISE_RE = re.compile(
     r"\$[\d,]+\s+every\s+\d+\s+minutes?",
     re.I,
 )
+GENERIC_EXPLICIT_DATE_EVIDENCE_RE = re.compile(
+    r"\b20\d{2}-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12]\d|3[01])\b|"
+    r"\b(?:" + "|".join(sorted(MONTHS, key=len, reverse=True)) +
+    r")\b\.?\s+\d{1,2}(?:st|nd|rd|th)?(?:,?\s*20\d{2})?\b|"
+    r"\b\d{1,2}/\d{1,2}(?:/\d{2,4})?\b",
+    re.I,
+)
+GENERIC_EXPLICIT_RECURRING_DAY_RE = re.compile(
+    r"\b(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday)s?\b|"
+    r"\b(?:mon|tue|wed|thu|fri|sat|sun|daily|nightly)\b",
+    re.I,
+)
+
+
+def explicit_generic_recurring_day(text: str) -> str | None:
+    """Return a recurring day only when the candidate says one explicitly."""
+    if not GENERIC_EXPLICIT_RECURRING_DAY_RE.search(str(text or "")):
+        return None
+    return normalize_day(text)
+
+
+def generic_event_date_is_current_or_future(event_date: str) -> bool:
+    """Reject malformed and historical exact dates from current schedules."""
+    try:
+        parsed = datetime.strptime(str(event_date), "%Y-%m-%d").date()
+    except (TypeError, ValueError):
+        return False
+    return parsed >= datetime.now(timezone.utc).date()
+
+
+def pdf_source_has_historical_archive_year(source_url: str) -> bool:
+    """Identify an explicit past-year directory in a PDF source path."""
+    try:
+        path = urllib.parse.urlsplit(str(source_url or "")).path
+    except ValueError:
+        return False
+    current_year = datetime.now(timezone.utc).year
+    return any(
+        int(year) < current_year
+        for year in re.findall(r"/(20\d{2})(?=/|$)", path)
+    )
 
 
 def is_generic_tournament_candidate(text: str) -> bool:
@@ -1435,7 +1476,26 @@ def extract_html(html:str, venue_name:str, vid, batch_id:str, source_url:str, sr
         if buyin is None: return  # No valid buy-in found — skip this block
         st = normalize_time(tm.group(1))
         ed = parse_date(txt)
-        day = normalize_day(txt) if not ed else None
+        if ed and not generic_event_date_is_current_or_future(ed):
+            return
+        if not ed and GENERIC_EXPLICIT_DATE_EVIDENCE_RE.search(txt):
+            # A past or invalid exact date must not silently degrade into a
+            # weekly template just because its text also names a weekday.
+            return
+        day = explicit_generic_recurring_day(txt) if not ed else None
+        if not ed and not day:
+            # Generic PDF/HTML extraction has no authority to turn an undated
+            # event into a Daily schedule. Recurrence must be source evidence.
+            return
+        if (
+            not ed
+            and str(src_type or "").lower().startswith("pdf")
+            and pdf_source_has_historical_archive_year(source_url)
+        ):
+            # An old upload directory cannot authorize a current recurrence.
+            # A current/future exact date in the PDF remains authoritative even
+            # when a venue replaces a file at a stable historical URL.
+            return
         stack = None
         sm = re.search(r"(?:stack|chips)[:\s]*([0-9,]+)",txt,re.I)
         if sm:
@@ -1466,7 +1526,7 @@ def extract_html(html:str, venue_name:str, vid, batch_id:str, source_url:str, sr
         dk=f"{ed or day}-{st}-{buyin}-{game_from(txt)}"
         if dk in seen: return
         seen.add(dk)
-        rec = make_rec(venue_name,vid,batch_id,day or "Daily",ed,st,buyin,
+        rec = make_rec(venue_name,vid,batch_id,day,ed,st,buyin,
             game_from(txt),fmt_from(txt),gtd,tname,source_url,src_type,h,stack,blvl,rebuy,late,
             state=state, age=parse_age(txt),
             quality="scraped_inferred",

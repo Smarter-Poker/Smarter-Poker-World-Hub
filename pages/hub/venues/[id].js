@@ -13,6 +13,7 @@ import useSWR from 'swr';
 import { useRouter } from 'next/router';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PokerNearMeFamilyNav from '../../../src/components/poker-near-me/PokerNearMeFamilyNav';
+import { resolveVenueTimeZone } from '../../../src/components/poker-near-me/pnm-utils';
 import DeepRouteSignalDeck, { DeepRouteNotice } from '../../../src/components/poker-near-me/DeepRouteSignalDeck';
 import PokerNearMeRecentRail from '../../../src/components/poker-near-me/PokerNearMeRecentRail';
 import { PokerNearMePanelShell, PokerNearMeConsoleIcon } from '../../../src/components/poker-near-me/PokerNearMeConsole';
@@ -407,6 +408,46 @@ const VENUE_HERO_PLATES = {
 };
 
 const DAYS_ORDER = ['Daily', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+
+function formatScheduleOccurrenceDate(value) {
+  if (typeof value !== 'string') return null;
+  var match = /^(\d{4})-(\d{2})-(\d{2})(?:$|T)/.exec(value);
+  if (!match) return null;
+  var iso = match[1] + '-' + match[2] + '-' + match[3];
+  if (iso === '1970-01-01') return null;
+  var year = Number(match[1]), month = Number(match[2]), day = Number(match[3]);
+  var leap = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
+  var monthDays = [31, leap ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+  if (year < 1 || month < 1 || month > 12 || day < 1 || day > monthDays[month - 1]) return null;
+  var months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  return { iso: iso, label: months[month - 1] + ' ' + day + ', ' + year };
+}
+
+function scheduleGroupIsToday(day, schedules, today) {
+  if (!today) return false;
+  return schedules.some(function (schedule) {
+    var date = formatScheduleOccurrenceDate(schedule.event_date);
+    return date ? date.iso === today.iso : !schedule.event_date && day === today.day;
+  });
+}
+
+function scheduleVenueToday(timezone, now) {
+  if (!timezone) return null;
+  var parts;
+  try {
+    parts = new Intl.DateTimeFormat('en-US', { timeZone: timezone, weekday: 'long', year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(now);
+  } catch {
+    return null;
+  }
+  var part = function (type) { return parts.find(function (item) { return item.type === type; }).value; };
+  return { iso: part('year') + '-' + part('month') + '-' + part('day'), day: part('weekday') };
+}
+
+function compareScheduleOccurrences(a, b) {
+  var first = formatScheduleOccurrenceDate(a.event_date), second = formatScheduleOccurrenceDate(b.event_date);
+  var dates = (first ? first.iso : '').localeCompare(second ? second.iso : '');
+  return dates;
+}
 
 function formatTime(timeStr) {
   if (!timeStr) return '';
@@ -1831,6 +1872,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
       if (!grouped[day]) grouped[day] = [];
       grouped[day].push(s);
     });
+    Object.values(grouped).forEach(function (schedules) { schedules.sort(compareScheduleOccurrences); });
     var sorted = {};
     DAYS_ORDER.forEach(function (day) {
       if (grouped[day]) sorted[day] = grouped[day];
@@ -1846,10 +1888,10 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
   // clock can sit on a different calendar day than the visitor's, which would
   // make the "Today" badge a hydration mismatch. The badge simply appears once
   // the browser clock is known.
-  const [todayName, setTodayName] = useState(null);
+  const [scheduleToday, setScheduleToday] = useState(null);
   useEffect(function () {
-    setTodayName(DAYS_ORDER[(new Date().getDay() + 6) % 7]);
-  }, []);
+    setScheduleToday(scheduleVenueToday(resolveVenueTimeZone(venue), new Date()));
+  }, [venue?.timezone, venue?.state]);
 
   // Compute rating distribution
   var getRatingDistribution = function () {
@@ -2779,7 +2821,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
                 <h2 className="section-title">Daily Tournament Schedule</h2>
                 <div className="schedule-container">
                   {Object.entries(groupedSchedules || {}).map(function ([day, schedules]) {
-                    var isToday = day === todayName;
+                    var isToday = scheduleGroupIsToday(day, schedules, scheduleToday);
                     return (
                       <div key={day} className={'day-group' + (isToday ? ' today' : '')}>
                         <div className="day-header">
@@ -2788,8 +2830,10 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
                         </div>
                         <div className="schedule-cards">
                           {schedules.map(function (s, idx) {
+                            var scheduleDate = formatScheduleOccurrenceDate(s.event_date);
                             return (
                               <div key={idx} className="schedule-card">
+                                {scheduleDate && <p className="schedule-notes"><time dateTime={scheduleDate.iso}>{scheduleDate.label}</time></p>}
                                 <div className="schedule-row">
                                   <div className="schedule-time">
                                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#00D4FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '4px', verticalAlign: 'middle' }}>
