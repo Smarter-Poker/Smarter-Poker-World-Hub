@@ -82,7 +82,7 @@ BEGIN
     WHERE p.context_entity_id IS NOT DISTINCT FROM p_context_entity_id
     ORDER BY c.last_message_at DESC NULLS LAST;
 END;
-$function$
+$function$;
 
 CREATE OR REPLACE FUNCTION public.fn_messenger_continuity_visible(p_user_id uuid, p_conversation_id uuid)
  RETURNS TABLE(id uuid, created_at timestamp with time zone, sender_id uuid)
@@ -99,7 +99,7 @@ AS $function$
     AND COALESCE(d.delivery_mode,'immediate')<>'weekly_detail'
     AND (public.fn_messenger_message_visible_to(m.id,p_user_id)
       OR public.fn_accounting_correction_legacy_identity(m.id,p_user_id) IS NOT NULL);
-$function$
+$function$;
 
 CREATE OR REPLACE FUNCTION public.fn_messenger_message_page(p_user_id uuid, p_conversation_id uuid, p_before timestamp with time zone DEFAULT NULL::timestamp with time zone, p_before_id uuid DEFAULT NULL::uuid, p_limit integer DEFAULT 50)
  RETURNS TABLE(id uuid, conversation_id uuid, sender_id uuid, content text, message_type text, media_metadata jsonb, created_at timestamp with time zone, updated_at timestamp with time zone, is_deleted boolean, is_edited boolean, profiles jsonb)
@@ -145,7 +145,7 @@ BEGIN
      AND (public.fn_messenger_message_visible_to(m.id,p_user_id) OR legacy.identity IS NOT NULL)
    AND (p_before IS NULL OR m.created_at<p_before OR (p_before_id IS NOT NULL AND m.created_at=p_before AND m.id<p_before_id))
  ORDER BY m.created_at DESC,m.id DESC LIMIT p_limit;
-END $function$
+END $function$;
 
 CREATE OR REPLACE FUNCTION public.fn_messenger_search_messages(p_user_id uuid, p_conversation_ids uuid[], p_query text, p_limit integer DEFAULT 50)
  RETURNS TABLE(id uuid, conversation_id uuid, sender_id uuid, content text, created_at timestamp with time zone, message_type text, media_metadata jsonb)
@@ -192,7 +192,7 @@ BEGIN
      AND (public.fn_messenger_message_visible_to(m.id,p_user_id) OR legacy.identity IS NOT NULL)
    AND strpos(lower(CASE WHEN legacy.identity IS NOT NULL THEN 'Correction receipt unavailable.' WHEN i.invoice_type='credit_limit_change' THEN 'This records a credit-capacity change. No chips were transferred and no payment is due.' ELSE m.content END),lower(btrim(p_query)))>0
  ORDER BY m.created_at DESC,m.id DESC LIMIT p_limit;
-END $function$
+END $function$;
 
 DO $$
 BEGIN
@@ -244,7 +244,7 @@ COMMIT;
 --     WHERE p.context_entity_id IS NOT DISTINCT FROM p_context_entity_id
 --     ORDER BY c.last_message_at DESC NULLS LAST;
 -- END;
--- $function$
+-- $function$;
 -- 
 -- CREATE OR REPLACE FUNCTION public.fn_messenger_continuity_visible(p_user_id uuid, p_conversation_id uuid)
 --  RETURNS TABLE(id uuid, created_at timestamp with time zone, sender_id uuid)
@@ -260,7 +260,7 @@ COMMIT;
 --     AND COALESCE(d.delivery_mode,'immediate')<>'weekly_detail'
 --     AND (public.fn_messenger_message_visible_to(m.id,p_user_id)
 --       OR public.fn_accounting_correction_legacy_identity(m.id,p_user_id) IS NOT NULL);
--- $function$
+-- $function$;
 -- 
 -- CREATE OR REPLACE FUNCTION public.fn_messenger_message_page(p_user_id uuid, p_conversation_id uuid, p_before timestamp with time zone DEFAULT NULL::timestamp with time zone, p_before_id uuid DEFAULT NULL::uuid, p_limit integer DEFAULT 50)
 --  RETURNS TABLE(id uuid, conversation_id uuid, sender_id uuid, content text, message_type text, media_metadata jsonb, created_at timestamp with time zone, updated_at timestamp with time zone, is_deleted boolean, is_edited boolean, profiles jsonb)
@@ -305,7 +305,7 @@ COMMIT;
 --      AND (public.fn_messenger_message_visible_to(m.id,p_user_id) OR legacy.identity IS NOT NULL)
 --    AND (p_before IS NULL OR m.created_at<p_before OR (p_before_id IS NOT NULL AND m.created_at=p_before AND m.id<p_before_id))
 --  ORDER BY m.created_at DESC,m.id DESC LIMIT p_limit;
--- END $function$
+-- END $function$;
 -- 
 -- CREATE OR REPLACE FUNCTION public.fn_messenger_search_messages(p_user_id uuid, p_conversation_ids uuid[], p_query text, p_limit integer DEFAULT 50)
 --  RETURNS TABLE(id uuid, conversation_id uuid, sender_id uuid, content text, created_at timestamp with time zone, message_type text, media_metadata jsonb)
@@ -351,7 +351,7 @@ COMMIT;
 --      AND (public.fn_messenger_message_visible_to(m.id,p_user_id) OR legacy.identity IS NOT NULL)
 --    AND strpos(lower(CASE WHEN legacy.identity IS NOT NULL THEN 'Correction receipt unavailable.' WHEN i.invoice_type='credit_limit_change' THEN 'This records a credit-capacity change. No chips were transferred and no payment is due.' ELSE m.content END),lower(btrim(p_query)))>0
 --  ORDER BY m.created_at DESC,m.id DESC LIMIT p_limit;
--- END $function$
+-- END $function$;
 -- 
 -- DROP FUNCTION public.fn_messenger_hide_message(uuid,uuid);
 -- DROP TABLE public.messenger_hidden_messages;
