@@ -49,6 +49,7 @@ import { useFeedPrefetchObserver } from '../../../src/hooks/useProfilePrefetch';
 import { useRouter } from 'next/router';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '../../../src/lib/supabase';
+import { subscribeSocialAuthority } from '../../../src/lib/socialAuthorityBroadcast.mjs';
 import { eventBus, EventType, busEmit } from '../../../src/engine/EventBus';
 import { getAuthUser, ensureAuthReady } from '../../../src/lib/authUtils';
 import { useUnreadCount } from '../../../src/hooks/useUnreadCount';
@@ -4290,25 +4291,25 @@ function SocialMediaPage() {
       }
       ids.forEach((id) => { reconcileHeldPost(id); });
     };
-    const authorityChannel = supabase
-      .channel('social-video-authority')
-      .on('broadcast', { event: 'managed_video_invalidated' }, (message) => {
-        const notice = message?.payload;
+    const unsubscribeAuthority = subscribeSocialAuthority(supabase, (event) => {
+      if (event.type === 'broadcast') {
+        const notice = event.payload;
         const keys = notice && typeof notice === 'object' ? Object.keys(notice).sort() : [];
         if (
           keys.join(',') === 'id,kind'
           && notice.kind === 'post'
           && typeof notice.id === 'string'
         ) reconcileHeldPost(notice.id);
-      })
-      .subscribe((status) => {
-        if (status !== 'SUBSCRIBED') return;
+        return;
+      }
+      if (event.type === 'status' && event.status === 'SUBSCRIBED') {
         if (subscribedOnce) reconcileMountedPosts();
         subscribedOnce = true;
-      });
+      }
+    });
     return () => {
       active = false;
-      supabase.removeChannel(authorityChannel);
+      unsubscribeAuthority();
     };
   }, [user?.id]);
 

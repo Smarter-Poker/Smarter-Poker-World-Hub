@@ -10,6 +10,7 @@ import {
   reportFailureToServer,
 } from '../../hooks/useYouTubeErrorManager';
 import { supabase } from '../../lib/supabase';
+import { subscribeSocialAuthority } from '../../lib/socialAuthorityBroadcast.mjs';
 import { useSupabase } from '../../providers/SupabaseProvider';
 import { busEmit, eventBus, EventType } from '../../engine/EventBus';
 import { getAccessToken, getAuthUser } from '../../lib/authUtils';
@@ -3743,22 +3744,22 @@ export function ReelsFeedCarousel() {
       .subscribe();
 
     let authoritySubscribedOnce = false;
-    const authorityChannel = supabase
-      .channel('social-video-authority')
-      .on('broadcast', { event: 'managed_video_invalidated' }, (message) => {
-        const notice = message?.payload;
+    const unsubscribeAuthority = subscribeSocialAuthority(supabase, (event) => {
+      if (event.type === 'broadcast') {
+        const notice = event.payload;
         const keys = notice && typeof notice === 'object' ? Object.keys(notice).sort() : [];
         if (
           keys.join(',') === 'id,kind'
           && notice.kind === 'reel'
           && /^[0-9a-f-]{36}$/i.test(String(notice.id || ''))
         ) scheduleBackgroundReelsRefresh();
-      })
-      .subscribe((status) => {
-        if (status !== 'SUBSCRIBED') return;
+        return;
+      }
+      if (event.type === 'status' && event.status === 'SUBSCRIBED') {
         if (authoritySubscribedOnce) scheduleBackgroundReelsRefresh();
         authoritySubscribedOnce = true;
-      });
+      }
+    });
 
     const handleDataMutated = (event) => {
       if (event?.payload === 'social' || event?.payload === 'reels') {
@@ -3774,7 +3775,7 @@ export function ReelsFeedCarousel() {
       pendingContinuationRef.current = null;
       if (reloadDebounceRef.current) clearTimeout(reloadDebounceRef.current);
       supabase.removeChannel(_ch);
-      supabase.removeChannel(authorityChannel);
+      unsubscribeAuthority();
       eventBus.off(EventType.DATA_MUTATED, handleDataMutated);
     };
   }, [loadReels, removeMountedReels, scheduleBackgroundReelsRefresh]);
