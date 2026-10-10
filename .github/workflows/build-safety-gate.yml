@@ -349,6 +349,9 @@ jobs:
       - name: Messenger Account Continuity And History Navigation
         run: PG_BIN="$PHASE6_POSTGRES_BIN" python3 scripts/ci/test-messenger-continuity-postgres.py
 
+      - name: Messenger Deletion Persists Per Account
+        run: PG_BIN="$PHASE6_POSTGRES_BIN" python3 scripts/ci/test-messenger-deletion-postgres.py
+
       - name: Messenger Reads Stop At The Displayed Message
         run: PG_BIN="$PHASE6_POSTGRES_BIN" python3 scripts/ci/test-messenger-bounded-read-postgres.py
 

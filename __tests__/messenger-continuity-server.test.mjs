@@ -167,3 +167,29 @@ test('history rejects invalid new navigation rather than clamping it or calling 
   const f=fixture();const result=await f.history({conversationId:conversation,...extra});assert.equal(result.statusCode,400);assert.equal(f.calls.length,0);
  }
 });
+
+function deletionFixture(rpcResult) {
+ const calls=[];
+ const db={rpc:async(name,args)=>{calls.push({name,args});return {data:rpcResult,error:null};}};
+ const route=moduleAt('pages/api/messenger/delete-message.js',{
+  createClient:()=>db,getServerUserWithFallback:async()=>({user:{id:user}}),applyRateLimit:()=>true,LIMITS:{write:{}},reportApiError(){}
+ }).default;
+ return {calls,async request(body){const res={statusCode:200,status(n){this.statusCode=n;return this;},json(body){this.body=body;return this;}};
+ await route({method:'POST',headers:{authorization:'Bearer local-fixture'},body},res);return res;}};
+}
+test('delete rejects a structured database denial instead of treating an object as success',async()=>{
+ const f=deletionFixture({success:false,error:'only the sender can delete this message'});
+ const result=await f.request({messageId:message});
+ assert.equal(result.statusCode,403);assert.equal(result.body.success,false);
+});
+test('delete-for-me uses the authenticated account and confirms durable hiding',async()=>{
+ const f=deletionFixture({success:true,message_id:message});
+ const result=await f.request({messageId:message,deleteType:'for_me',userId:other});
+ assert.equal(result.statusCode,200);assert.equal(f.calls[0].name,'fn_messenger_hide_message');
+ assert.equal(f.calls[0].args.p_user_id,user);
+});
+test('deletion rejects invalid identifiers and modes before touching persistence',async()=>{
+ for(const body of [{messageId:'temporary'},{messageId:message,deleteType:'all'},{}]){
+  const f=deletionFixture({success:true});assert.equal((await f.request(body)).statusCode,400);assert.equal(f.calls.length,0);
+ }
+});

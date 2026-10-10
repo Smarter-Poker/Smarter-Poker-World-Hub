@@ -20,7 +20,7 @@ function readFixture() {
     const workspaceRef = { current: 'scope-a' }, activeConversationRef = { current: { id: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc' } };
     const code = slice(messenger, '    const markConversationRead =', '    const loadMessages =');
     const read = evaluate(code, {
-        workspaceKey: 'scope-a', workspaceRef, activeConversationRef, markConversationReadRef: {},
+        workspaceKey: 'scope-a', workspaceRef, activeConversationRef, getHiddenMessageIds: () => new Set(), markConversationReadRef: {},
         document: { get visibilityState() { return state.hidden ? 'hidden' : 'visible'; } },
         user: { id: 'account-a' }, getAccessToken: () => 'fixture',
         authedFetch: (url, options) => { const pending = deferred(); state.requests.push({ url, options, ...pending }); return pending.promise; },
@@ -81,7 +81,7 @@ test('the actual incoming-message subscription schedules a scoped read after dis
     const f = readFixture();
     evaluate(block, {
         useEffect: fn => fn(), user: { id: 'account-a' }, activeConversation: { id: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc' },
-        workspaceKey: 'scope-a', workspaceRef, activeConversationRef,
+        workspaceKey: 'scope-a', workspaceRef, activeConversationRef, getHiddenMessageIds: () => new Set(),
         supabase: { channel: () => channel, from: () => query },
         preferencesRef: { current: { messageSounds: false } }, profileCacheRef: { current: new Map() }, PROFILE_CACHE_MAX: 50,
         setMessages: update => painted.push(update([])), setIncomingRead: value => { candidates.push(value); },
@@ -239,4 +239,42 @@ test('a late failure cannot unlock a replacement attempt at the same visible bou
     pending.resolve(false);
     for (let i = 0; i < 8; i++) await Promise.resolve();
     assert.equal(lastVisibleReadRef.current, replacement);
+});
+
+function deletionFixture() {
+ const id='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', original={id,content:'Original'}, arrival={id:'later',content:'Concurrent arrival'};
+ const state={rows:[original],requests:[],toasts:[],events:[],writes:[]};
+ const hidden=new Set(), workspaceRef={current:'scope-a'},activeConversationRef={current:{id:'conversation-a'}};
+ const cache=new Map([['conversation-a',[original]]]);
+ const remove=evaluate(slice(messenger,'    // A deletion is complete only','    // Handle message editing'),{
+  user:{id:'account-a'},activeConversation:{id:'conversation-a'},workspaceRef,activeConversationRef,localStorage:{setItem:(...args)=>state.writes.push(args)},
+  deletionFlightsRef:{current:new Set()},getHiddenMessageIds:()=>hidden,messageCacheRef:{current:cache},getAccessToken:()=> 'fixture',
+  authedFetch:(_url,options)=>{const request=deferred();state.requests.push({...request,options});return request.promise;},
+  setMessages:update=>{state.rows=update(state.rows);},setToast:toast=>state.toasts.push(toast),saveJarvisHistory(){},isMessageId,
+  busEmit:{dataMutated:(...args)=>state.events.push(args)},refreshUnread:()=>state.events.push('unread'),broadcastSync:()=>state.events.push('sync'),console:{warn(){}},
+ },'handleDeleteMessage');
+ return {id,original,arrival,state,hidden,cache,remove,workspaceRef,activeConversationRef};
+}
+test('message deletion waits for persistence then prevents cached resurrection and refreshes both counts',async()=>{
+ const f=deletionFixture(),pending=f.remove(f.id);
+ assert.deepEqual(f.state.rows,[f.original]);assert.deepEqual(f.state.toasts,[]);
+ assert.deepEqual(JSON.parse(f.state.requests[0].options.body),{messageId:f.id,deleteType:'for_me'});
+ f.state.rows.push(f.arrival);
+ f.state.requests[0].resolve(response({success:true}));assert.equal(await pending,true);
+ assert.deepEqual(f.state.rows,[f.arrival]);assert.deepEqual(f.cache.get('conversation-a'),[]);assert.equal(f.hidden.has(f.id),true);
+ assert.equal(f.state.writes[0][0],'sp-hidden-messages:account-a');assert.equal(f.state.events.length,3);
+});
+test('rejected deletion preserves the message and concurrent arrivals with no false success or snapshot rollback',async()=>{
+ const f=deletionFixture(),pending=f.remove(f.id,'for_everyone');f.state.rows.push(f.arrival);
+ f.state.requests[0].resolve(response({success:false}));assert.equal(await pending,false);
+ assert.deepEqual(f.state.rows,[f.original,f.arrival]);assert.equal(f.hidden.size,0);assert.equal(f.state.events.length,0);
+ assert.equal(f.state.toasts.at(-1).type,'error');
+ const retry=f.remove(f.id,'for_everyone');assert.equal(f.state.requests.length,2);f.state.requests[1].resolve(response({success:true}));await retry;
+});
+test('duplicate deletion is bounded and late acknowledgement never changes another account workspace',async()=>{
+ const f=deletionFixture(),pending=f.remove(f.id);assert.equal(await f.remove(f.id),false);assert.equal(f.state.requests.length,1);
+ f.workspaceRef.current='scope-b';f.activeConversationRef.current={id:'conversation-b'};
+ f.state.rows=[f.arrival];f.cache.set('conversation-a',[f.arrival]);f.state.requests[0].resolve(response({success:true}));await pending;
+ assert.deepEqual(f.state.rows,[f.arrival]);assert.deepEqual(f.cache.get('conversation-a'),[f.arrival]);assert.equal(f.state.toasts.length,0);
+ assert.equal(f.state.writes[0][0],'sp-hidden-messages:account-a');
 });
