@@ -31,6 +31,11 @@ from poker_series_scraper import (  # noqa: E402
 
 
 class PokerSeriesDiscoveryTests(unittest.TestCase):
+    def test_credential_loader_does_not_read_checkout_environment_files(self):
+        with mock.patch.dict(os.environ, {}, clear=True), mock.patch.object(Path, 'read_text') as read:
+            self.assertIsNone(scraper._load_supabase_key())
+            read.assert_not_called()
+
     def tearDown(self):
         scraper.CURRENT_SESSION = None
         scraper.STOP_REQUESTED = False

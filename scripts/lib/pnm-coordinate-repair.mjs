@@ -67,7 +67,7 @@ export function qualifyCoordinateRepair(venue, evidence, reviewedIdentity = {}, 
   if (!['verified', 'border'].includes(location.status)) return refuse('coordinate_state_conflict');
   if (venue.address && identity(venue.address) !== identity(entity.address.streetAddress)) return refuse('existing_address_conflict');
   return {
-    id: venue.id, accepted: true, name: venue.name, city: venue.city, state: venue.state,
+    id: venue.id, accepted: true, name: venue.name, venue_type: venue.venue_type, city: venue.city, state: venue.state,
     expected_revision: venue.location_integrity_revision,
     expected_address: venue.address || null,
     corrected_city: reviewedIdentity.correctCity || venue.city,
@@ -89,8 +89,8 @@ export function coordinateRepairSql(plans) {
         || !/^[a-f0-9]{64}$/.test(plan.source_sha256) || !roomUrl(plan.source_url)) throw new Error('Unqualified repair plan');
   }
   const payload = JSON.stringify(plans).replace(/'/g, "''");
-  const candidates = `jsonb_to_recordset('${payload}'::jsonb) AS p(id integer,name text,city text,state text,expected_revision timestamptz,expected_address text,address text,corrected_city text,website text,latitude double precision,longitude double precision,location_status text,location_reason text,source_url text,source_sha256 text,source_observed_at timestamptz)`;
-  const guard = `v.id=p.id AND v.name=p.name AND v.city=p.city AND v.state=p.state AND v.address IS NOT DISTINCT FROM p.expected_address AND v.location_integrity_revision=p.expected_revision AND v.is_active IS TRUE AND v.is_suppressed IS NOT TRUE AND v.canonical_venue_id IS NULL AND v.latitude IS NULL AND v.longitude IS NULL AND v.lat IS NULL AND v.lng IS NULL AND v.source IS DISTINCT FROM 'self_registration'`;
+  const candidates = `jsonb_to_recordset('${payload}'::jsonb) AS p(id integer,name text,venue_type text,city text,state text,expected_revision timestamptz,expected_address text,address text,corrected_city text,website text,latitude double precision,longitude double precision,location_status text,location_reason text,source_url text,source_sha256 text,source_observed_at timestamptz)`;
+  const guard = `v.id=p.id AND v.name=p.name AND v.venue_type=p.venue_type AND v.city=p.city AND v.state=p.state AND v.address IS NOT DISTINCT FROM p.expected_address AND v.location_integrity_revision=p.expected_revision AND v.is_active IS TRUE AND v.is_suppressed IS NOT TRUE AND v.canonical_venue_id IS NULL AND v.latitude IS NULL AND v.longitude IS NULL AND v.lat IS NULL AND v.lng IS NULL AND v.source IS DISTINCT FROM 'self_registration'`;
   return `BEGIN;
 DO $repair$
 DECLARE matched integer;

@@ -61,27 +61,12 @@ EVIDENCE_DIR.mkdir(parents=True, exist_ok=True)
 
 SUPABASE_URL = "https://kuklfnapbkmacvwxktbh.supabase.co"
 def _load_supabase_key():
-    """launchd jobs do not inherit shell env; the old fallback chain read the
-    SAME env var twice, so a missing var became SUPABASE_KEY=None and every
-    PostgREST call failed with urllib's 'expected string or bytes-like object'
-    (None header) - 689 scraped event rows were dropped PER RUN with the
-    scrape itself reporting success. Fall back to parsing .env.local."""
-    key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
-    if key:
-        return key
-    env_file = PROJECT_ROOT / ".env.local"
-    try:
-        for line in env_file.read_text().splitlines():
-            line = line.strip()
-            if line.startswith("SUPABASE_SERVICE_ROLE_KEY="):
-                return line.split("=", 1)[1].strip().strip('"').strip("'")
-    except OSError:
-        pass
-    return None
+    """Use the canonical service identity injected by the verified runtime."""
+    return os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
 
 SUPABASE_KEY = _load_supabase_key()
 if not SUPABASE_KEY:
-    print("FATAL: SUPABASE_SERVICE_ROLE_KEY not in environment or .env.local - "
+    print("FATAL: SUPABASE_SERVICE_ROLE_KEY not supplied by configured runtime - "
           "every DB write would silently fail. Exiting.", flush=True)
     raise SystemExit(2)
 SB_HDRS = {

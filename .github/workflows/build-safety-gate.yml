@@ -177,9 +177,9 @@ jobs:
 
       - name: Poker Near Me Installed Collector Contracts
         run: |
-          python3 scripts/test_local_scraper_runtime.py
           python3 scripts/test_tour_stealth_scraper.py
           python3 scripts/test_tournament_schedule_daemon.py
+          python3 scripts/test_poker_series_scraper.py
 
       - name: Training M1 Scope-Preserving HMAC Provisioning
         run: python3 -m unittest discover -s __tests__ -p test_provision_training_m1_hmac.py

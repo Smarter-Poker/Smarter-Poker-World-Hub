@@ -116,6 +116,30 @@ class RuntimeProof(unittest.TestCase):
         with self.assertRaisesRegex(runtime.RuntimeFault, 'manifest_file_set_mismatch'):
             runtime.inspect_release(self.root)
 
+    def test_series_runtime_preserves_daemon_mode_and_catalog_inputs(self):
+        files, inputs = runtime.COMPONENTS['series']
+        for name in files:
+            path = self.repo / name
+            path.parent.mkdir(exist_ok=True)
+            path.write_text('import sys\nraise SystemExit(7 if "--daemon" in sys.argv else 9)\n')
+        for name in inputs:
+            (self.inputs / name).write_text('{"catalog":"existing"}')
+        self.git('add', 'scripts')
+        self.git('commit', '-qm', 'series fixture')
+        sha = self.git('rev-parse', 'HEAD').strip()
+        self.git('update-ref', 'refs/remotes/origin/main', sha)
+        series_root = self.base / 'series-runtime'
+        with patch.object(runtime, 'verify_python'):
+            result = runtime.install(self.repo, sha, series_root, self.state,
+                                     self.inputs, Path(sys.executable), 'series', self.root)
+        self.assertEqual(result['component'], 'series')
+        self.assertFalse((series_root / 'auth.json').exists())
+        self.assertTrue(all((self.state / name).is_file() for name in inputs))
+        with contextlib.redirect_stderr(io.StringIO()):
+            self.assertEqual(runtime.run(series_root), 1)
+        self.assertEqual(self.requests[0]['p_source'], 'local.series-runtime')
+        self.assertEqual(self.requests[0]['p_payload']['failure_code'], 'daemon_exited_7')
+
     def test_tournament_daemon_exit_is_failure_not_one_shot_success(self):
         files, _ = runtime.COMPONENTS['tournaments']
         for name in files:

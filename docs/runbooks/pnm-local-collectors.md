@@ -1,6 +1,6 @@
 # Poker Near Me local collector installation
 
-The existing tour and daily-tournament LaunchAgents run immutable protected
+The existing tour, daily-tournament and series LaunchAgents run immutable protected
 source through `scripts/local_scraper_runtime.py`. PokerAtlas retains its
 separate existing generation. This does not create another business schedule.
 
@@ -22,10 +22,15 @@ segments with `tournaments`. The installer references the canonical credential
 store internally, validates project and permissions, and never copies secrets.
 Do not source environment files or print credential contents.
 
+For the series collector use component/directory `series`. Its maintained
+catalog inputs are `master_poker_series_list.json` and `all-venues.json`;
+the runner preserves `--daemon` and the existing six-hour business loop.
+
 Create each component's `tmp` and existing log directory on the SSD before
 loading its maintained plist. Install the checked-in
 `scripts/com.smarter-poker.tour-scraper.plist` and
-`scripts/com.smarter-poker.tournament-schedule-daemon.plist` into their existing
+`scripts/com.smarter-poker.tournament-schedule-daemon.plist` and
+`scripts/com.smarter-poker.series-scraper.plist` into their existing
 LaunchAgent registrations only after protected integration. Preserve the tour
 three-day interval and the daily collector's existing daemon behavior.
 Do not start a second writer or alter another scraper's registration.

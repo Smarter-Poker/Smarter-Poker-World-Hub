@@ -6,12 +6,30 @@ from datetime import date
 import io
 import json
 import sys
+import types
 from unittest import mock
 
 import tour_stealth_scraper as scraper
-import scrape_tour_full_schedules as legacy_full
-import scrape_tour_native as legacy_native
-import scrape_tours_targeted as legacy_targeted
+# These legacy publishers are imported only to exercise their real parser and
+# fail-disabled write guards. Their eager browser/client imports must not turn
+# offline contracts into browser-package installation or credential access.
+fetchers = types.ModuleType('scrapling.fetchers')
+def forbidden_offline_transport(*_args, **_kwargs):
+    raise AssertionError('offline parser contract attempted a browser transport')
+fetchers.Fetcher = forbidden_offline_transport
+fetchers.StealthySession = forbidden_offline_transport
+fetchers.DynamicFetcher = forbidden_offline_transport
+supabase_stub = types.ModuleType('supabase')
+supabase_stub.create_client = lambda *_args, **_kwargs: None
+dotenv_stub = types.ModuleType('dotenv')
+dotenv_stub.load_dotenv = lambda *_args, **_kwargs: False
+with mock.patch.dict(sys.modules, {'scrapling': types.ModuleType('scrapling'),
+                                  'scrapling.fetchers': fetchers,
+                                  'supabase': supabase_stub,
+                                  'dotenv': dotenv_stub}):
+    import scrape_tour_full_schedules as legacy_full
+    import scrape_tour_native as legacy_native
+    import scrape_tours_targeted as legacy_targeted
 
 
 class TourStopExtractionTests(unittest.TestCase):

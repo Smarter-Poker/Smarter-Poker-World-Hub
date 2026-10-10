@@ -73,6 +73,7 @@ test('atomic plans enforce exact preimage, missing coordinates, concurrency, bou
   assert.match(sql, /BEGIN;/);
   assert.match(sql, /FOR UPDATE OF v/);
   assert.match(sql, /location_integrity_revision=p.expected_revision/);
+  assert.match(sql, /v.venue_type=p.venue_type/);
   assert.match(sql, /v.latitude IS NULL AND v.longitude IS NULL AND v.lat IS NULL AND v.lng IS NULL/);
   assert.match(sql, /INSERT INTO public.venue_location_integrity_log/);
   assert.match(sql, /RAISE EXCEPTION 'Coordinate repair audit count mismatch'/);

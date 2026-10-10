@@ -34,6 +34,9 @@ COMPONENTS = {
     'tournaments': (('scripts/tournament-schedule-daemon.py',
                      'scripts/scraper_data_truth.py', 'scripts/browser_heal.py'),
                     ()),
+    'series': (('scripts/poker_series_scraper.py', 'scripts/scraper_data_truth.py',
+                'scripts/browser_heal.py'),
+               ('master_poker_series_list.json', 'all-venues.json')),
 }
 SUPABASE_URL = 'https://kuklfnapbkmacvwxktbh.supabase.co'
 # Every operational alert is addressed to the production-alerts fleet. The
@@ -353,7 +356,10 @@ def run(root):
             except RuntimeFault as error:
                 print(str(error), file=sys.stderr, flush=True)
             files, _ = COMPONENTS[component]
-            code, terminating = supervise([config['python'], str(release / files[0])], release, env)
+            argv = [config['python'], str(release / files[0])]
+            if component == 'series':
+                argv.append('--daemon')
+            code, terminating = supervise(argv, release, env)
             if terminating:
                 return 0
             if component == 'tours' and code == 0:
