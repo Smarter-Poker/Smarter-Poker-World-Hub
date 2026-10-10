@@ -162,6 +162,7 @@ test('post deep links pin the target through the caller-scoped post API without 
     social.indexOf('// Handle ?post=<postId> deep link'),
     social.indexOf('// Handle ?stream=<streamId> query param')
   );
+  assert.match(deepLink, /contentType: p\.link_url \? \(p\.content_type === 'article' \? 'article' : 'link'\) : p\.content_type/);
   assert.match(deepLink, /if \(router\.isReady && router\.query\.post\)/);
   assert.doesNotMatch(deepLink, /router\.query\.post && user\?\.id/);
   assert.doesNotMatch(

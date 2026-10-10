@@ -4855,7 +4855,11 @@ function SocialMediaPage() {
                 id: p.id,
                 authorId: p.author_id,
                 content: p.content,
-                contentType: p.content_type,
+                // Older news/article rows were published with a text-ish content_type
+                // but a real link_url. The normal feed formatter promotes those into
+                // link cards; deep links must do the same or the pinned card renders as
+                // plain text and never mounts ArticleCard's preview-image hydration.
+                contentType: p.link_url ? (p.content_type === 'article' ? 'article' : 'link') : p.content_type,
                 mediaUrls: p.media_urls || [],
                 thumbnailUrl: p.thumbnail_url || null,
                 thumbnail_url: p.thumbnail_url || null,
