@@ -58,17 +58,14 @@ function readAccessToken() {
     }
 }
 
-async function requestHeaderStats(userId) {
+async function requestHeaderStats() {
     const accessToken = readAccessToken();
     const response = await fetch('/api/user/get-header-stats', {
-        method: 'POST',
+        method: 'GET',
+        cache: 'no-store',
         headers: {
-            'Content-Type': 'application/json',
             ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
         },
-        // The route derives identity from the JWT and ignores this field; it is
-        // sent only because all three previous call sites sent it.
-        body: JSON.stringify(userId ? { userId } : {}),
     });
     // Callers historically inspected `result.success` themselves and treated a
     // non-ok response as "no usable data", so resolve with whatever JSON came
@@ -80,7 +77,7 @@ async function requestHeaderStats(userId) {
  * Fetch header stats, sharing one request across concurrent callers.
  *
  * @param {object}  [options]
- * @param {string}  [options.userId]    current user id (optional, informational)
+ * @param {string}  [options.userId]    current user id (optional, cache isolation key)
  * @param {boolean} [options.force]     bypass the short result cache
  * @param {number}  [options.maxAgeMs]  how stale a cached payload may be
  * @returns {Promise<object>} the parsed /api/user/get-header-stats payload
@@ -111,7 +108,7 @@ export function getHeaderStats(options = {}) {
     }
 
     const requestedFor = userId;
-    const pending = requestHeaderStats(userId).then(
+    const pending = requestHeaderStats().then(
         (result) => {
             // Only the CURRENT in-flight request may write the cache. A
             // superseded older request resolving late must not clobber a

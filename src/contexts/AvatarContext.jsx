@@ -24,7 +24,9 @@ export function useAvatar() {
     return context;
 }
 
-export function AvatarProvider({ children }) {
+export function AvatarProvider({ children, automaticPlayerWrites = true }) {
+    const playerWritesAllowedRef = useRef(automaticPlayerWrites);
+    playerWritesAllowedRef.current = automaticPlayerWrites;
     const [user, setUser] = useState(null);
     // BUGFIX (header-audit, avatar reload): this was `useState(null)`. AvatarProvider is
     // the ONE piece of header state that survives navigation — it sits in _app above the
@@ -126,7 +128,8 @@ export function AvatarProvider({ children }) {
     // Load user on mount - WAIT for INITIAL_SESSION before concluding user is null
     useEffect(() => {
         async function ensureUserProfile(user, session) {
-            if (!user) return;
+            // Staff evidence navigation must not initialize player records or rewards.
+            if (!automaticPlayerWrites || !user) return;
             try {
                 // Use the session passed in directly (avoids race condition where
                 // getSession() returns null because the new session isn't persisted yet)
@@ -141,6 +144,7 @@ export function AvatarProvider({ children }) {
                     token = _lsToken2;
                 }
 
+                if (!playerWritesAllowedRef.current) return;
                 const controller = new AbortController();
                 const timeoutId = setTimeout(() => controller.abort(), 5000); // 5s timeout
 
@@ -289,7 +293,9 @@ export function AvatarProvider({ children }) {
             subscription.unsubscribe();
             clearTimeout(fallbackTimeout);
         };
-    }, []);
+        // Re-subscribe when leaving the staff route so INITIAL_SESSION resumes
+        // ordinary profile initialization without interrupting authenticated reads.
+    }, [automaticPlayerWrites]);
 
     // ═══════════════════════════════════════════════════════════════════
     // HARDENED: Listen for vip-status-changed bus events so gates

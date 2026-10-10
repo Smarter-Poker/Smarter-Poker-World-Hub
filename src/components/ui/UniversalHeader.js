@@ -71,7 +71,7 @@ const C = {
 // ── Header data cache freshness window ────────────────────────────────────
 // The header is rendered per-page (it is NOT mounted in _app), so it remounts on
 // EVERY route change. Without this guard each navigation fired a
-// /api/user/get-header-stats POST - up to ~8 DB round-trips - purely to re-derive
+// /api/user/get-header-stats read - up to ~8 DB round-trips - purely to re-derive
 // data already sitting in localStorage. Inside this window we trust the cache.
 const HEADER_CACHE_FRESH_MS = 60 * 1000;
 
@@ -760,24 +760,7 @@ export default function UniversalHeader({
       // Re-fetch header stats to pick up all profile changes
       if (!user?.id) return;
       try {
-        // Get access token for JWT auth
-        let accessToken = null;
-        try {
-          const authData = JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}');
-          accessToken = authData?.access_token || null;
-        } catch (e) {
-          console.warn('[App] Handled exception:', e?.message || e);
-        }
-
-        const response = await fetch('/api/user/get-header-stats', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
-          },
-          body: JSON.stringify({ userId: user.id }),
-        });
-        const result = await response.json();
+        const result = await getHeaderStats({ userId: user.id, force: true });
         if (result.success && result.profile) {
           const vipActive = resolveActiveVip(
             !!result.profile.is_vip,

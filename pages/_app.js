@@ -877,7 +877,8 @@ export default function App({ Component, pageProps }) {
   const isCommander = router.asPath.startsWith('/commander');
 
   // Determine if this route requires global capitalization per User specification
-  const path = router.asPath.split('?')[0];
+  const path = router.asPath.split(/[?#]/, 1)[0];
+  const automaticPlayerWrites = path !== '/horses' && !path.startsWith('/horses/');
   const isTrainingRoute = path === '/hub/training' || path.startsWith('/hub/training/');
   const trainingPathLeaf = path.split('/').filter(Boolean).at(-1);
   const candidateTrainingArtId =
@@ -1123,7 +1124,7 @@ export default function App({ Component, pageProps }) {
             <WorldCopyPolicy worldId={worldCopyWorldId} />
             <ThemeProvider>
               <UnreadProvider>
-                <AvatarProvider>
+                <AvatarProvider automaticPlayerWrites={automaticPlayerWrites}>
                   <ExternalLinkProvider>
                     <PushProvider>
                       <TrainingSettingsProvider>
@@ -1212,11 +1213,11 @@ export default function App({ Component, pageProps }) {
                               </HubErrorBoundary>
                               <ToastProvider>
                                 <HubErrorBoundary name="Notification Prompt" fallback={<></>}>
-                                  <GlobalNotificationPrompt />
+                                  {automaticPlayerWrites && <GlobalNotificationPrompt />}
                                 </HubErrorBoundary>
                                 <HubErrorBoundary name="PWA Install Prompt" fallback={<></>}>
                                   <ServiceWorkerUpdater />
-                                  <PWAInstallPrompt />
+                                  {automaticPlayerWrites && <PWAInstallPrompt />}
                                 </HubErrorBoundary>
                                 <HubErrorBoundary name="Proactive Help" fallback={<></>}>
                                   <ProactiveHelp
@@ -1248,7 +1249,7 @@ export default function App({ Component, pageProps }) {
                                   <WelcomeModalGate />
                                 </HubErrorBoundary>
                                 <HubErrorBoundary name="Easter Egg Watcher" fallback={<></>}>
-                                  <EasterEggWatcher />
+                                  {automaticPlayerWrites && <EasterEggWatcher />}
                                 </HubErrorBoundary>
                               </ToastProvider>
                             </WorldThemeProvider>

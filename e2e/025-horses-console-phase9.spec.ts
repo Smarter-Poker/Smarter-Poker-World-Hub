@@ -162,6 +162,51 @@ async function expectPanelChunkSettled(page: Page, label: string) {
 }
 
 test.describe('25. Stable Admin Phase 9 architecture smoke', () => {
+  test('signed-in certification surfaces make no automatic production mutations', async ({ page }) => {
+    test.setTimeout(90_000);
+    await installSignedInPolicyFixture(page);
+    // Restore the real auth client against a synthetic user, never a live identity.
+    await page.route('**/auth/v1/user', route => route.fulfill({
+      status: 200, contentType: 'application/json',
+      body: JSON.stringify({ id: OPERATOR_ID, email: 'phase9.fixture@example.invalid', role: 'authenticated', app_metadata: {}, user_metadata: {} }),
+    }));
+    const unsafe: string[] = [];
+    const headerReads: string[] = [];
+    page.on('request', request => {
+      const url = new URL(request.url());
+      if (url.origin !== new URL(page.url()).origin) return;
+      if (!['GET', 'HEAD', 'OPTIONS'].includes(request.method())) unsafe.push(`${request.method()} ${url.pathname}`);
+      if (url.pathname === '/api/user/get-header-stats' && request.method() === 'GET'
+        && request.headers().authorization?.startsWith('Bearer ')) headerReads.push(url.pathname);
+    });
+    await page.clock.install();
+    await page.goto('/horses?tab=floor', { waitUntil: 'domcontentloaded' });
+    await expect.poll(() => headerReads.length).toBeGreaterThan(0);
+    for (const [id, label, section] of [
+      ['floor', 'Live Floor', ''], ['tournaments', 'Tournaments', ''],
+      ['integrity', 'Integrity', 'Identity Links'], ['platform', 'Platform Operations', 'Incidents'],
+      ['economy', 'Economy Command', 'Close And Jobs'], ['stats', 'Platform Statistics', ''],
+      ['settings', 'Engine Settings', ''], ['pipeline', 'Content Pipeline', ''],
+    ]) {
+      const tab = page.locator(`[role="tab"][data-tabid="${id}"]`);
+      await tab.scrollIntoViewIfNeeded();
+      await tab.click();
+      await expectSelectedTab(page, id);
+      await expectPanelChunkSettled(page, label);
+      if (section) {
+        const panel = page.locator('main[role="tabpanel"]');
+        const control = panel.getByRole(id === 'integrity' ? 'tab' : 'button', { name: section, exact: true });
+        await control.click();
+        await expect(panel.getByText(/^(?:Loading |Reading .*\.\.\.$)/)).toHaveCount(0, { timeout: 15_000 });
+      }
+    }
+    // Drive the deferred global-mount boundary without sleeping or changing
+    // application guards. A forbidden egg/profile mount would now emit its POST.
+    await page.clock.fastForward(4_100);
+    await expect(page.locator('main[role="tabpanel"]')).toBeVisible();
+    expect(unsafe).toEqual([]);
+  });
+
   test('discovers and visits every rendered top-level tab without a runtime or chunk failure', async ({ page }) => {
     test.setTimeout(180_000);
     const failures = watchRuntime(page);

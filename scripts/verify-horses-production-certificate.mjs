@@ -1,3 +1,4 @@
+import { sanitizedMutationPath } from './lib/horses-certificate-diagnostics.mjs';
 import { chromium } from '@playwright/test';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
@@ -214,8 +215,7 @@ async function probeViewport(browser, storageState, viewport) {
       mutationAttempts.push({
         method,
         scope: requestUrl.origin === PRODUCTION_ORIGIN ? 'production' : 'external',
-        path: requestUrl.origin === PRODUCTION_ORIGIN && requestUrl.pathname === '/api/horses/stable-admin'
-          ? '/api/horses/stable-admin' : '[redacted]',
+        path: sanitizedMutationPath(requestUrl, PRODUCTION_ORIGIN),
       });
       await route.abort('blockedbyclient');
       return;
