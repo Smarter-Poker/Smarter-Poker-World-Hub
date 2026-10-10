@@ -2,6 +2,22 @@
 
 ## Authorized Remaining-Capability Continuation, October 9, 2026
 
+Fresh resumption receipt: full canonical policies emitted/read at
+`2026-10-10T05:03:54.349Z`, v2.9, all manifest/source hashes below unchanged.
+Repository/publishing/CLAUDE/path references, storage, existing checkpoint,
+migration rules and complete maintenance handoff/programme freshly read.
+Current heads: World Hub `af7e67bba081ed98f688e007f089cc8611aa57a3`,
+Club Arena `87aaee9d825388fa660373944e25eff749c31cdd`.
+Both normal pushes passed. Draft PRs #2263 and #6621 are attached and owned
+by this chat, without automatic merging. Hosted World Hub safety run
+38025988710 failed two cashout hook fixtures because they omitted the newly
+imported account-scope store. The original caller-owned ABA fences and
+zero-dispatch/zero-mutation assertions remain unchanged; the fixture now
+explicitly refuses unexpected store reads instead of hiding that boundary.
+Failure-before retained. Club Arena trusted money-trigger declaration passed;
+remaining exact-head hosted suites, migration installation, publication,
+engine activation and genuine live proof remain pending.
+
 Owner instruction: "YES, GET ALL 6 OF THESE BUILT AND FINISHED SO WE CAN LAUNCH".
 This explicitly expands the completed oversight assignment to P3, O1, O2, O7,
 C2 and C4. The prior protected delivery and installed migrations remain intact.

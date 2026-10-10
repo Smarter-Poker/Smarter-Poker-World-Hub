@@ -296,6 +296,7 @@ test('existing operator fetch refuses auth ABA during token refresh before any r
   const hook = compiled('../src/components/horses/useOperatorFetch.js', {
     react: { useRef: current => ({ current }), useEffect: effect => effect(), useCallback: fn => fn },
     '../../lib/authUtils': { getFreshAccessToken: () => token },
+    '../../stores/stableAdminStore': { useStableAdminStore: { getState() { throw new Error('Caller-owned cashout scope must remain authoritative'); } } },
   }).default;
   const fence = createCashoutActorFence(); fence.update(id(12));
   const fetchBefore = globalThis.fetch;
@@ -414,6 +415,7 @@ test('late confirmed response after account ABA cannot acknowledge or mutate the
   const hook = compiled('../src/components/horses/useOperatorFetch.js', {
     react: { useRef: current => ({ current }), useEffect: effect => effect(), useCallback: fn => fn },
     '../../lib/authUtils': { getFreshAccessToken: async () => 'original-token' },
+    '../../stores/stableAdminStore': { useStableAdminStore: { getState() { throw new Error('Caller-owned cashout scope must remain authoritative'); } } },
   }).default;
   const oldFetch = globalThis.fetch;
   globalThis.fetch = async () => { fetches++; return { ok: true, json: () => body }; };
