@@ -38,9 +38,11 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { createRequire } from 'node:module';
+import { execFileSync } from 'node:child_process';
 import { dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import * as socialPostShape from '../src/lib/socialPostShape.js';
+import * as homeGamePostAccess from '../src/lib/home-games/socialPostAccessServer.mjs';
 import {
   BROWSER_POST_COLUMNS,
   BROWSER_POST_SELECT,
@@ -424,7 +426,9 @@ test('every server route that selects the server column list hands back a browse
 // ── GET /api/social/post, run for real with its imports injected ────────────
 
 const ts = require('typescript');
-const POST_ROUTE = read('pages/api/social/post.js');
+const POST_ROUTE = process.env.HG_POST_BEFORE === '1'
+  ? execFileSync('git', ['show', 'HEAD:pages/api/social/post.js'], { encoding: 'utf8' })
+  : read('pages/api/social/post.js');
 const POST_ID = '00000000-0000-4000-8000-0000000000aa';
 const TOKEN = 'caller-token-0123456789abcdef0123456789';
 
@@ -435,6 +439,9 @@ function loadPostRoute({
   visibleError = null,
   authorRow = { id: 'a', username: 'u', display_name: 'D', avatar_url: null },
   videoAuthority = {},
+  mirrorPages = [],
+  mirrorGroups = [],
+  mirrorError = null,
 }) {
   const calls = [];
   let callerRead = 0;
@@ -447,6 +454,11 @@ function loadPostRoute({
         const builder = {
           select(cols) { q.select = cols; return builder; },
           eq(col, v) { q.filters.push([col, v]); return builder; },
+          in(col, values) { q.filters.push([col, values]); return builder; },
+          then(resolve, reject) {
+            const rows = table === 'social_pages' ? mirrorPages : mirrorGroups;
+            return Promise.resolve({ data: rows, error: mirrorError }).then(resolve, reject);
+          },
           maybeSingle() {
             if (key === 'service-key' && table === 'profiles') return Promise.resolve({ data: authorRow, error: null });
             if (key === 'service-key' && q.select === 'authority-columns') {
@@ -477,6 +489,7 @@ function loadPostRoute({
     '../../../src/lib/supabaseServerClient': { createClient },
     '../../../src/lib/apiRateLimit': { applyRateLimit: () => true, LIMITS: { read: {} } },
     '../../../src/lib/socialPostShape': shape,
+    '../../../src/lib/home-games/socialPostAccessServer.mjs': { ...homeGamePostAccess },
     './feed': {
       POST_SELECT: 'authority-columns',
       readManagedEligibilityContext: videoAuthority.readContext || (async () => ({})),
@@ -667,4 +680,26 @@ test('/api/social/post fails a changed video closed on any authority or lookup f
   await mod.default({ method: 'GET', query: { id: POST_ID }, headers: {} }, res);
   assert.equal(res.statusCode, 503);
   assert.equal(res.body.post, undefined);
+});
+
+test('/api/social/post checks current Home Game parent after RLS-visible mirror read', async () => {
+  const pageId = '00000000-0000-4000-8000-000000000456';
+  for (const decision of ['private', 'unlisted', 'inactive', 'missing', 'unavailable', 'public', 'orphan']) {
+    const { mod, calls } = loadPostRoute({
+      visibleRow: { id: POST_ID, author_id: 'a', content: 'Formerly public mirror' },
+      notes: { source_page_id: decision === 'orphan' ? undefined : pageId, page_type: 'home_game', page_name: 'Host' },
+      mirrorPages: [{ id: pageId, page_type: 'home_game', is_public: decision !== 'unlisted', linked_entity_type: 'home_group', linked_entity_id: 'group' }],
+      mirrorGroups: decision === 'missing' ? [] : [{ id: 'group', is_active: decision !== 'inactive', is_private: decision === 'private' }],
+      mirrorError: decision === 'unavailable' ? { message: 'Private Authority Detail' } : null,
+    });
+    const res = fakeRes();
+    await mod.default({ method: 'GET', query: { id: POST_ID }, headers: {} }, res);
+    assert.equal(res.statusCode, decision === 'public' ? 200 : decision === 'unavailable' ? 503 : 404, decision);
+    assert.equal(calls[0].key, 'anon-key', 'public-parent checks never bypass caller RLS');
+    if (decision !== 'public') {
+      assert.equal(res.body.post, undefined);
+      assert.doesNotMatch(JSON.stringify(res.body), /source_page_id/);
+    }
+    assert.doesNotMatch(JSON.stringify(res.body), /Private Authority Detail|origin_type/);
+  }
 });

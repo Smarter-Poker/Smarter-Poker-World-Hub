@@ -23,12 +23,14 @@
  *      home_group_id, next_game_date, next_game_title,
  *      host: { display_name, avatar_url } }
  *
- *  CDN-cached 60s fresh / 300s stale-while-revalidate.
+ *  Current publication is rechecked on every request.
  */
 
 import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../../src/lib/apiErrorHandler';
+import { fetchAllHomeGameDirectoryRows } from '../../../../src/lib/home-games/geoDirectoryServer.mjs';
+import { addPublicHomeGameSeatCounts, publicHomeGamesUnavailable } from '../../../../src/lib/home-games/publicScheduleServer.mjs';
 
 let _supabase = null;
 function getSupabase() {
@@ -104,7 +106,7 @@ export default async function handler(req, res) {
       return res.status(405).json({ success: false, error: 'Method not allowed' });
     }
 
-    res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
+    res.setHeader('Cache-Control', 'private, no-store');
 
     const safeQ = (v) => v ? (Array.isArray(v) ? String(v[0]) : typeof v === 'object' ? null : String(v)) : v;
     const state = safeQ(req.query.state);
@@ -372,7 +374,7 @@ export default async function handler(req, res) {
       groupList = groupList.slice(0, limit);
     }
 
-    const groupIds = groupList.map((g) => g.id);
+    let groupIds = groupList.map((g) => g.id);
     if (!groupIds.length) {
       return res.status(200).json({
         success: true,
@@ -390,16 +392,24 @@ export default async function handler(req, res) {
 
     // ── 2. Pull the matching social_pages for each group (slug, counts, avatar/cover).
     const groupIdStrs = groupIds.map(String);
-    const { data: pages } = await supabase
+    const { data: pages, error: pagesError } = await supabase
       .from('social_pages')
       .select('id, slug, linked_entity_id, avatar_url, cover_url, follower_count, post_count, view_count, is_public')
       .eq('linked_entity_type', 'home_group')
       .in('linked_entity_id', groupIdStrs);
+    if (pagesError) throw pagesError;
 
     const pageByGroupId = {};
+    const unlistedGroups = new Set();
     (pages || []).forEach((p) => {
       pageByGroupId[p.linked_entity_id] = p;
+      if (p.is_public === false) unlistedGroups.add(String(p.linked_entity_id));
     });
+    // Keep raw offsets/has_more: removing unlisted rows must not skip the next
+    // database page, including when an entire page is hidden. Consumers already
+    // follow the authoritative continuation instead of using output count.
+    groupList = groupList.filter((group) => !unlistedGroups.has(String(group.id)));
+    groupIds = groupList.map((group) => group.id);
 
     // ── 3. Pull the next upcoming game per group (single query, filter app-side).
     // Timezone safety: toISOString() is UTC, so from ~5pm local onward in US
@@ -407,11 +417,10 @@ export default async function handler(req, res) {
     // excluded — exactly when players are looking for a game. Shift 12h west
     // so the cutoff never runs ahead of any US local date.
     const today = new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString().slice(0, 10);
-    // Budget the row cap by group count. A flat 100 is shared across up to 100
-    // groups, so groups with dense schedules (weekly games booked a year out)
-    // eat the whole budget and other groups lose their "Next game" banner.
-    const upcomingRowCap = Math.min(1000, Math.max(100, groupIds.length * 5));
-    const { data: upcoming, error: upcomingErr } = await supabase
+    // Read the complete bounded schedule before picking one event per group.
+    // A shared limit lets a dense first group's schedule hide another group's
+    // next game. Stable tie-breaks and a ceiling sentinel prevent false absence.
+    const upcomingResult = groupIds.length ? await fetchAllHomeGameDirectoryRows((start, end) => supabase
       .from('commander_home_games')
       .select('id, group_id, title, scheduled_date, start_time, game_type, stakes, rsvp_yes, max_players, status')
       .in('group_id', groupIds)
@@ -421,17 +430,17 @@ export default async function handler(req, res) {
       // draft and in_progress games in the "Next game" banner.
       .in('status', ['scheduled', 'confirmed'])
       .order('scheduled_date', { ascending: true })
-      .limit(upcomingRowCap);
-
-    if (upcomingErr) {
-      // eslint-disable-next-line no-console
-      console.warn('[public/home-games/discover] upcoming games query failed:', upcomingErr.message);
-    }
+      .order('start_time', { ascending: true })
+      .order('id', { ascending: true })
+      .range(start, end)) : { rows: [], complete: true, error: null };
+    if (upcomingResult.error || !upcomingResult.complete) throw upcomingResult.error || new Error('Incomplete upcoming schedule');
 
     const nextByGroupId = {};
-    (upcoming || []).forEach((g) => {
+    upcomingResult.rows.forEach((g) => {
       if (!nextByGroupId[g.group_id]) nextByGroupId[g.group_id] = g;
     });
+    const nextGames = await addPublicHomeGameSeatCounts(supabase, Object.values(nextByGroupId));
+    for (const game of nextGames) nextByGroupId[game.group_id] = game;
 
     // ── 4. Shape response. Use social_page slug for canonical URL when present;
     //      fall back to club_code so the card never has a null href.
@@ -509,7 +518,7 @@ export default async function handler(req, res) {
         next_game_time: next?.start_time || null,
         next_game_title: next?.title || null,
         next_game_seats_left:
-          next && next.max_players != null ? Math.max(0, (next.max_players || 0) - (next.rsvp_yes || 0)) : null,
+          next && next.max_players != null ? Math.max(0, next.max_players - next.rsvp_seats) : null,
         host: g.profiles
           ? { id: g.profiles.id, display_name: g.profiles.display_name, avatar_url: g.profiles.avatar_url }
           : null,
@@ -555,7 +564,7 @@ export default async function handler(req, res) {
     // eslint-disable-next-line no-console
     console.warn('[public/home-games/discover]', err);
     if (!res.headersSent) {
-      return res.status(500).json({ success: false, error: err?.message || 'Internal server error' });
+      return publicHomeGamesUnavailable(res);
     }
   }
 }

@@ -10,6 +10,7 @@ import { requireAuth } from '../../../../src/lib/auth-middleware';
 import { reportApiError } from '../../../../src/lib/apiErrorHandler';
 
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
+import { homeGamePostAccess } from '../../../../src/lib/home-games/socialPostAccessServer.mjs';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -47,6 +48,20 @@ export default async function handler(req, res) {
           if (!post_id || !action) {
               return res.status(400).json({ success: false, error: 'action and post_id required' });
           }
+
+          // Resolve comment authority from its actual parent, not the claimed
+          // post_id. Otherwise a public post id can mask a private comment id.
+          let authoritativePostId = post_id;
+          if (action === 'like_comment') {
+              const { data: comment, error: commentError } = await getSupabase()
+                  .from('social_page_post_comments').select('post_id')
+                  .eq('id', req.body.comment_id).maybeSingle();
+              if (commentError) throw commentError;
+              if (!comment) return res.status(404).json({ success: false, error: 'Comment not found' });
+              authoritativePostId = comment.post_id;
+          }
+          const access = await homeGamePostAccess(getSupabase(), authoritativePostId, user_id, true);
+          if (!access.allowed) return res.status(access.status).json({ success: false, error: 'Post unavailable' });
 
           if (action === 'like') {
               const reaction_type = req.body.reaction_type || 'like';
@@ -256,6 +271,11 @@ export default async function handler(req, res) {
               return res.status(400).json({ success: false, error: 'post_id required' });
           }
 
+          res.setHeader('Cache-Control', 'private, no-store, max-age=0');
+          const { user: requester } = await getServerUserWithFallback(req, getSupabase());
+          const access = await homeGamePostAccess(getSupabase(), post_id, requester?.id || null);
+          if (!access.allowed) return res.status(access.status).json({ success: false, error: 'Post unavailable' });
+
           const { data, error } = await getSupabase()
               .from('social_page_post_comments')
               .select('*')
@@ -335,13 +355,16 @@ export default async function handler(req, res) {
           // Verify comment ownership
           const { data: commentData } = await getSupabase()
               .from('social_page_post_comments')
-              .select('id, user_id')
+              .select('id, user_id, post_id')
               .eq('id', id)
               .maybeSingle();
           if (!commentData) return res.status(404).json({ success: false, error: 'Comment not found' });
           if (commentData.user_id !== user_id) {
               return res.status(403).json({ success: false, error: 'Not authorized to edit this comment' });
           }
+
+          const access = await homeGamePostAccess(getSupabase(), commentData.post_id, user_id, true);
+          if (!access.allowed) return res.status(access.status).json({ success: false, error: 'Post unavailable' });
 
           const { data, error } = await getSupabase()
               .from('social_page_post_comments')

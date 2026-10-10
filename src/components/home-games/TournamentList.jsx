@@ -66,7 +66,7 @@ function normalizeTournament(t) {
         ? `${t.scheduled_date}T${String(t.start_time).slice(0,8) || '00:00:00'}`
         : null),
     entries_cap: t.entries_cap ?? t.max_players ?? null,
-    rsvp_yes: typeof t.rsvp_yes === 'number' ? t.rsvp_yes : 0,
+    rsvp_yes: typeof t.rsvp_seats === 'number' ? t.rsvp_seats : typeof t.rsvp_yes === 'number' ? t.rsvp_yes : 0,
     status: t.status || 'scheduled',
     address: t.address || null,
     neighborhood: t.neighborhood || null,

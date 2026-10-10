@@ -7,13 +7,14 @@
  *  Resolves social_pages.slug (page_type='home_game') → linked commander_home_group
  *  and returns the full public profile: group, host, upcoming games, posts, counts.
  *
- *  No auth required. Private groups return 404.
- *  CDN-cached 30s / 180s SWR.
+ *  No auth required. Private/unlisted groups return a reduced invitation identity.
+ *  Current privacy is checked on every request; public projections are not cached.
  */
 
 import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../../src/lib/apiErrorHandler';
+import { addPublicHomeGameSeatCounts, publicHomeGamesUnavailable } from '../../../../src/lib/home-games/publicScheduleServer.mjs';
 
 let _supabase = null;
 function getSupabase() {
@@ -34,7 +35,7 @@ export default async function handler(req, res) {
       return res.status(405).json({ success: false, error: 'Method not allowed' });
     }
 
-    res.setHeader('Cache-Control', 'public, s-maxage=30, stale-while-revalidate=180');
+    res.setHeader('Cache-Control', 'private, no-store');
 
     const safeQ = (v) => v ? (Array.isArray(v) ? String(v[0]) : typeof v === 'object' ? null : String(v)) : v;
     const slug = safeQ(req.query.slug);
@@ -103,6 +104,7 @@ export default async function handler(req, res) {
     //     their page, so this catches the real unlisted case without
     //     mass-hiding rows where the column happens to be NULL.
     if (group.is_private || page.is_public === false) {
+      res.setHeader('Cache-Control', 'private, no-store');
       return res.status(200).json({
         success: true,
         data: {
@@ -185,6 +187,8 @@ export default async function handler(req, res) {
       .gte('scheduled_date', today)
       .in('status', ['scheduled', 'confirmed'])
       .order('scheduled_date', { ascending: true })
+      .order('start_time', { ascending: true })
+      .order('id', { ascending: true })
       .limit(20);
 
     // Never swallow a schema drift here — an errored select yields
@@ -192,34 +196,13 @@ export default async function handler(req, res) {
     if (upcomingErr) {
       // eslint-disable-next-line no-console
       console.warn('[public/home-games/[slug]] upcoming games query failed:', upcomingErr.message);
+      throw upcomingErr;
     }
 
     // rsvp_yes is a legacy party-row count. Capacity is guest-aware now, so
     // publish a privacy-safe aggregate seat count without exposing RSVP rows.
     // The request RPC/trigger remains the authoritative placement decision.
-    let upcomingGamesOut = upcomingGames || [];
-    const upcomingGameIds = upcomingGamesOut.map((game) => game.id).filter(Boolean);
-    if (upcomingGameIds.length > 0) {
-      const { data: rsvpSeatRows, error: rsvpSeatErr } = await supabase
-        .from('commander_home_rsvps')
-        .select('game_id, bringing_guests')
-        .in('game_id', upcomingGameIds)
-        .eq('response', 'yes');
-      if (rsvpSeatErr) {
-        console.warn('[public/home-games/[slug]] RSVP seat aggregate failed:', rsvpSeatErr.message);
-      } else {
-        const seatsByGame = new Map();
-        for (const rsvp of rsvpSeatRows || []) {
-          const guests = Number(rsvp?.bringing_guests);
-          const seats = 1 + (Number.isFinite(guests) ? Math.max(0, Math.trunc(guests)) : 0);
-          seatsByGame.set(rsvp.game_id, (seatsByGame.get(rsvp.game_id) || 0) + seats);
-        }
-        upcomingGamesOut = upcomingGamesOut.map((game) => ({
-          ...game,
-          rsvp_seats: seatsByGame.get(game.id) || 0,
-        }));
-      }
-    }
+    const upcomingGamesOut = await addPublicHomeGameSeatCounts(supabase, upcomingGames || []);
 
     // 4. Recent public posts on the social page
     // audit F-33: this did not destructure `error`, so an RLS change or schema
@@ -239,6 +222,7 @@ export default async function handler(req, res) {
 
     if (postsErr) {
       console.warn('[public/home-games/[slug]] posts query failed:', postsErr.message);
+      throw postsErr;
     }
 
     // Hydrate post authors in one batch
@@ -247,10 +231,11 @@ export default async function handler(req, res) {
       const authorIds = Array.from(new Set(posts.map((p) => p.author_id).filter(Boolean)));
       let authors = {};
       if (authorIds.length) {
-        const { data: profRows } = await supabase
+        const { data: profRows, error: authorsError } = await supabase
           .from('profiles')
           .select('id, display_name, avatar_url')
           .in('id', authorIds);
+        if (authorsError) throw authorsError;
         (profRows || []).forEach((p) => {
           authors[p.id] = p;
         });
@@ -323,7 +308,7 @@ export default async function handler(req, res) {
     // eslint-disable-next-line no-console
     console.warn('[public/home-games/[slug]]', err);
     if (!res.headersSent) {
-      return res.status(500).json({ success: false, error: 'Internal server error' });
+      return publicHomeGamesUnavailable(res);
     }
   }
 }

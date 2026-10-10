@@ -10,6 +10,7 @@ import { reportApiError } from '../../../../src/lib/apiErrorHandler';
 // queries per hit.
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 import { canonicalPublicUrl } from '../../../../src/lib/publicOrigin.mjs';
+import { addPublicHomeGameSeatCounts, publicHomeGamesUnavailable } from '../../../../src/lib/home-games/publicScheduleServer.mjs';
 
 // NOTE: Removed edge runtime — this handler uses Node.js Pages Router API (req.query/res.status/etc)
 // and cannot run on Vercel Edge Runtime. Keep as Node.js runtime.
@@ -29,7 +30,8 @@ export default async function handler(req, res) {
   try {
     // CDN cache: fresh for 60s, serve stale up to 300s
     if (req.method === 'GET') {
-      res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
+      // Hosts can revoke publication immediately; never retain an old public projection.
+      res.setHeader('Cache-Control', 'private, no-store');
     }
 
     if (req.method !== 'GET') {
@@ -96,15 +98,24 @@ export default async function handler(req, res) {
         .eq('is_active', true)
         .maybeSingle();
 
-      if (groupError || !group) {
+      if (groupError) throw groupError;
+      if (!group) {
         return res.status(404).json({
           success: false,
           error: { code: 'NOT_FOUND', message: 'Home game group not found' }
         });
       }
 
-      // For private groups, only show basic info
-      if (group.is_private) {
+      // The alternate share-code route must honor the same unlisting decision
+      // as the slug route. A failed visibility read cannot grant publication.
+      const { data: linkedPages, error: pageError } = await getSupabase()
+        .from('social_pages')
+        .select('id, is_public')
+        .eq('linked_entity_type', 'home_group')
+        .eq('linked_entity_id', group.id);
+      if (pageError) throw pageError;
+      if (group.is_private || (linkedPages || []).some((page) => page.is_public === false)) {
+        res.setHeader('Cache-Control', 'private, no-store');
         return res.status(200).json({
           success: true,
           data: {
@@ -122,7 +133,7 @@ export default async function handler(req, res) {
             upcoming_games: [],
             message: 'This is a private group. Request an invite to see details.',
             links: {
-              join_request: `/hub/commander/home-games/join?code=${code}`,
+              join_request: `/hub/commander/home-games/join?code=${encodeURIComponent(code)}`,
               smarter_poker: canonicalPublicUrl(`/home-game/${encodeURIComponent(code)}`),
             }
           }
@@ -176,20 +187,25 @@ export default async function handler(req, res) {
         .in('status', ['scheduled', 'confirmed'])
         .gte('scheduled_date', todayCutoff)
         .order('scheduled_date', { ascending: true })
+        .order('start_time', { ascending: true })
+        .order('id', { ascending: true })
         .limit(20);
 
       // Surface schema drift instead of rendering "no upcoming games".
       if (upcomingErr) {
         console.warn('[public/home-game/[code]] upcoming games query failed:', upcomingErr.message);
+        throw upcomingErr;
       }
+      const upcomingGamesOut = await addPublicHomeGameSeatCounts(getSupabase(), upcomingGames || []);
 
       // Get recent game history (count only)
-      const { count: recentGamesCount } = await getSupabase()
+      const { count: recentGamesCount, error: recentGamesError } = await getSupabase()
         .from('commander_home_games')
         .select('*', { count: 'exact', head: true })
         .eq('group_id', group.id)
         .eq('status', 'completed')
         .gte('scheduled_date', new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]);
+      if (recentGamesError) throw recentGamesError;
 
       return res.status(200).json({
         success: true,
@@ -224,29 +240,26 @@ export default async function handler(req, res) {
             host_id: group.owner?.id || null,
             host_avatar: group.owner?.avatar_url
           },
-          upcoming_games: upcomingGames || [],
+          upcoming_games: upcomingGamesOut,
           stats: {
             games_last_90_days: recentGamesCount || 0,
             total_games_hosted: group.games_hosted,
             total_members: group.member_count
           },
           links: {
-            join_request: `/hub/commander/home-games/join?code=${code}`,
+            join_request: `/hub/commander/home-games/join?code=${encodeURIComponent(code)}`,
             smarter_poker: canonicalPublicUrl(`/home-game/${encodeURIComponent(code)}`),
           }
         }
       });
     } catch (error) {
       console.warn('Public home game API error:', error);
-      return res.status(500).json({
-        success: false,
-        error: { code: 'SERVER_ERROR', message: 'Failed to fetch home game' }
-      });
+      return publicHomeGamesUnavailable(res);
     }
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_reportError) { console.warn('[App] Handled exception:', _reportError?.message || _reportError); }
     console.warn('[API Error]', err);
-    if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
+    if (!res.headersSent) return publicHomeGamesUnavailable(res);
   }
 }

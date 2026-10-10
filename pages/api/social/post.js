@@ -24,6 +24,7 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { BROWSER_POST_SELECT, displayMetadata } from '../../../src/lib/socialPostShape';
+import { publicHomeGameMirrors } from '../../../src/lib/home-games/socialPostAccessServer.mjs';
 import {
     POST_SELECT,
     managedVideoPostIsEligible,
@@ -155,6 +156,8 @@ export default async function handler(req, res) {
         ]);
         if (notes.error) throw notes.error;
         if (author.error) throw author.error;
+        const currentlyVisible = await publicHomeGameMirrors(service, [{ ...visible.data, metadata: notes.data?.metadata }]);
+        if (!currentlyVisible.length) return res.status(404).json({ success: false, error: 'Post not found' });
 
         const post = {
             ...visible.data,

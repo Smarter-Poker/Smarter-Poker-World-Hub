@@ -25,6 +25,7 @@ import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 // emitted raw from this (public, unauthenticated) endpoint.
 import { jitterCoord, publicDistanceToGroup } from '../../../src/lib/home-games/geoPrivacy';
 import { homeGameUrl } from '../../../src/lib/home-games/urls';
+import { publicHomeGameSettings, publicHomeGroupsByLinkedPages } from '../../../src/lib/home-games/publicVenueProjection.mjs';
 import { isVenueWithinPokerMapBounds, parsePokerMapBounds } from '../../../src/lib/poker-near-me/mapBounds';
 import { applyVenueIntegrity } from '../../../src/lib/poker-near-me/venueIntegrityServer';
 import { fetchVenueDirectoryResilient } from '../../../src/lib/poker-near-me/venueDirectoryServer';
@@ -363,15 +364,16 @@ async function fetchPublicHomeGroups({ state, city, search, lat, lng, radius, ef
     if (rows.length > 0) {
         const groupIdStrings = rows.map((g) => String(g.id));
         try {
-            const { data: pages } = await sb
+            const { data: pages, error: pagesError } = await sb
                 .from('social_pages')
-                .select('id, slug, linked_entity_id, follower_count, avatar_url, cover_url')
+                .select('id, slug, linked_entity_id, follower_count, avatar_url, cover_url, is_public')
                 .eq('linked_entity_type', 'home_group')
                 .in('linked_entity_id', groupIdStrings);
+            if (pagesError) throw pagesError;
             const pageByGroupId = new Map(
                 (pages || []).map((p) => [p.linked_entity_id, p])
             );
-            rows = rows.map((g) => {
+            rows = publicHomeGroupsByLinkedPages(rows, pages).map((g) => {
                 const p = pageByGroupId.get(String(g.id));
                 return {
                     ...g,
@@ -380,7 +382,10 @@ async function fetchPublicHomeGroups({ state, city, search, lat, lng, radius, ef
                     social_page_id: p?.id || null,
                 };
             });
-        } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
+        } catch (e) {
+            console.warn('[venues] Home Games publication decision unavailable:', e?.message || e);
+            return [];
+        }
     }
 
     // GPS distance + radius filter (reuses the same calculateDistance helper
@@ -450,7 +455,7 @@ async function fetchPublicHomeGroups({ state, city, search, lat, lng, radius, ef
     // so the frontend map/list components can render home groups alongside
     // regular venues.
     return rows.map((g) => {
-        const settings = g.settings || {};
+        const settings = publicHomeGameSettings(g.settings);
         let stakes = [];
         let games = [];
         let tournaments = [];
@@ -831,6 +836,11 @@ export default async function handler(req, res) {
           const offset = parseInt(req.query.offset, 10) || 0;
           // Merge 'type' and 'venue_type' so both ?type=casino and ?venue_type=casino work
           const effectiveType = type || venue_type || null;
+          if (!id && (!effectiveType || ['home_game', 'home_games'].includes(effectiveType))) {
+              // This response can contain a revocable Home Game projection.
+              // Keep the unrelated casino/room-only directory cache unchanged.
+              res.setHeader('Cache-Control', 'private, no-store, max-age=0');
+          }
           requestMaxResults = maxResults;
           requestFilters = { id, state, city, type: effectiveType, tournaments, search, featured };
           let venues = [];
@@ -843,19 +853,36 @@ export default async function handler(req, res) {
               const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
               if (isUuid) {
                   // Phase 41: Native UUID lookup for Home Games (commander_home_groups)
-                  const { data: homeGroup } = await sb.from('commander_home_groups').select(`
+                  res.setHeader('Cache-Control', 'private, no-store, max-age=0');
+                  const { data: homeGroup, error: homeGroupError } = await sb.from('commander_home_groups').select(`
                       id, name, description, tagline, city, state, latitude, longitude,
                       profile_photo_url, cover_photo_url, default_game_type, default_stakes,
                       typical_buyin_min, typical_buyin_max, frequency, typical_day, typical_time,
-                      member_count, games_hosted, is_active, settings, owner_id
-                  `).eq('id', id).maybeSingle();
+                      member_count, games_hosted, is_active, is_private, settings, owner_id
+                  `).eq('id', id).eq('is_active', true).eq('is_private', false).maybeSingle();
+                  if (homeGroupError) {
+                      res.setHeader('Cache-Control', 'no-store');
+                      return res.status(503).json({ success: false, error: 'Home Game unavailable' });
+                  }
+                  if (!homeGroup || homeGroup.is_active !== true || homeGroup.is_private !== false) {
+                      res.setHeader('Cache-Control', 'no-store');
+                      return res.status(404).json({ success: false, error: 'Home Game not found' });
+                  }
                   
                   if (homeGroup && homeGroup.is_active !== false) {
-                      const { data: page } = await sb.from('social_pages')
-                          .select('id, follower_count, slug')
+                      const { data: page, error: pageError } = await sb.from('social_pages')
+                          .select('id, follower_count, slug, is_public')
                           .eq('linked_entity_type', 'home_group')
                           .eq('linked_entity_id', homeGroup.id)
                           .maybeSingle();
+                      if (pageError) {
+                          res.setHeader('Cache-Control', 'no-store');
+                          return res.status(503).json({ success: false, error: 'Home Game unavailable' });
+                      }
+                      if (page?.is_public === false) {
+                          res.setHeader('Cache-Control', 'no-store');
+                          return res.status(404).json({ success: false, error: 'Home Game not found' });
+                      }
 
                       // Derive stakes / games / tournaments from `settings`, the
                       // same way fetchPublicHomeGroups does for the list. This
@@ -863,7 +890,7 @@ export default async function handler(req, res) {
                       // read settings.tournaments, so a home game showing
                       // "$40 Bounty Tournament" on Poker Near Me rendered
                       // "schedule not yet published" on its own detail page.
-                      const hgSettings = homeGroup.settings || {};
+                      const hgSettings = publicHomeGameSettings(homeGroup.settings);
                       const hgStakes = [];
                       const hgGames = [];
                       const hgTournaments = [];
@@ -918,7 +945,7 @@ export default async function handler(req, res) {
                           games_hosted: homeGroup.games_hosted,
                           follower_count: page?.follower_count || 0,
                           slug: page?.slug || null,
-                          settings: homeGroup.settings || {},
+                          settings: hgSettings,
                           owner_id: homeGroup.owner_id,
                           social_page_id: page?.id || null,
                           address: null,
@@ -1277,7 +1304,12 @@ export default async function handler(req, res) {
                   }
 
                   if (spQuery) {
-                      const { data: socialPages } = await spQuery.limit(500);
+                      const { data: rawSocialPages } = await spQuery.limit(500);
+                      // A stale public social-page bit cannot republish a
+                      // private/inactive/unlisted authoritative Home Game.
+                      const socialPages = (rawSocialPages || []).filter(sp =>
+                          sp.page_type !== 'home_game' ||
+                          (sp.linked_entity_type === 'home_group' && homeGroupMap.has(String(sp.linked_entity_id))));
                       if (socialPages && socialPages.length > 0) {
                           const DAYS_ORDER = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
                           // Extract day in US Eastern Time to prevent Vercel UTC drift
@@ -1653,11 +1685,11 @@ export default async function handler(req, res) {
                                           // fixed — it inherited the RAW host coordinate, quietly
                                           // undoing the C-1 work for any home game whose social page
                                           // was never geocoded. Same shared jitter as everywhere else.
-                                          if (!primaryLat && !primaryLng && hg.latitude && hg.longitude) {
-                                              const _hgPriv = jitterCoord(hg.id, hg.latitude, hg.longitude);
-                                              primaryLat = _hgPriv.lat;
-                                              primaryLng = _hgPriv.lng;
-                                          }
+                                          // The group projection already snapped these points.
+                                          // Never use raw social-page geocoding for a home address,
+                                          // nor snap a previously snapped point a second time.
+                                          primaryLat = hg.latitude;
+                                          primaryLng = hg.longitude;
                                       }
                                   }
 

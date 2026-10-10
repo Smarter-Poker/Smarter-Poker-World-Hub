@@ -14,6 +14,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { React, elements, loadSurface, render, textOf } from './social-poker-card-harness.mjs';
+import * as homeGamePrivacy from '../src/lib/home-games/socialPrivacyServer.mjs';
 
 const noop = () => {};
 
@@ -254,6 +255,7 @@ const loadPagePostsApi = (supabase) => withEnv(
     mocks: {
       'src/lib/supabaseServerClient.js': { createClient: () => supabase },
       'src/lib/apiRateLimit.js': { applyRateLimit: () => true, LIMITS: {} },
+      'src/lib/home-games/socialPrivacyServer.mjs': homeGamePrivacy,
     },
   }),
 );
@@ -279,7 +281,7 @@ test('page posts API: every post carries its page identity next to the author it
   assert.deepEqual(inFilter, ['in', 'id', ['pg1', 'pg2']], 'one lookup covers every page in the response');
 });
 
-test('page posts API: a page that cannot be read leaves page null, never the poster as a stand-in', async () => {
+test('page posts API: an unreadable parent fails closed, never publishing a possibly private post or poster stand-in', async () => {
   const supabase = fakeSupabase({
     social_page_posts: [POST_ROW],
     profiles: [POSTER],
@@ -288,10 +290,34 @@ test('page posts API: a page that cannot be read leaves page null, never the pos
   const { module } = loadPagePostsApi(supabase);
   const res = fakeRes();
   await module.default({ method: 'GET', query: { page_id: 'pg1' }, headers: {} }, res);
-  assert.equal(res.statusCode, 200);
-  assert.equal(res.body.data.length, 1);
-  assert.equal(res.body.data[0].page, null);
-  assert.deepEqual(res.body.data[0].author, POSTER);
+  assert.equal(res.statusCode, 500);
+  assert.equal(res.body.success, false);
+  assert.equal(res.body.data, undefined);
+  assert.ok(!JSON.stringify(res.body).includes(POSTER.username));
+  assert.ok(!JSON.stringify(res.body).includes(POST_ROW.content));
+});
+
+test('page posts API: real current Home Game privacy hides private, unlisted and inactive parents and preserves public page identity', async () => {
+  for (const scenario of [
+    { isPrivate: true, isPublic: true, isActive: true, visible: false },
+    { isPrivate: false, isPublic: true, isActive: true, visible: true },
+    { isPrivate: false, isPublic: false, isActive: true, visible: false },
+    { isPrivate: false, isPublic: true, isActive: false, visible: false },
+  ]) {
+    const supabase = fakeSupabase({
+      social_page_posts: [POST_ROW], profiles: [POSTER],
+      social_pages: [{ ...PAGE_ROW, page_type: 'home_game', linked_entity_type: 'home_group', linked_entity_id: 'group1', is_public: scenario.isPublic }],
+      commander_home_groups: [{ id: 'group1', is_active: scenario.isActive, is_private: scenario.isPrivate }],
+    });
+    const { module } = loadPagePostsApi(supabase);
+    const res = fakeRes();
+    await module.default({ method: 'GET', query: { page_id: 'pg1' }, headers: {} }, res);
+    assert.equal(res.statusCode, 200);
+    assert.equal(res.headers['Cache-Control'], 'private, no-store');
+    assert.equal(res.body.data.length, scenario.visible ? 1 : 0);
+    if (scenario.visible) assert.deepEqual(res.body.data[0].page, PAGE_IDENTITY);
+    assert.ok(supabase.calls.some(call => call.table === 'commander_home_groups'), 'actual authoritative parent is read');
+  }
 });
 
 const VENUE_POSTS_API = 'pages/api/public/venue/[id]/posts.js';

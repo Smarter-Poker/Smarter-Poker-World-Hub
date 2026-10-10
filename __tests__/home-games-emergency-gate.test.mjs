@@ -255,8 +255,11 @@ test('public seat request exposes event guest policy and forwards the controlled
     readFile(publicHomeGamePagePath, 'utf8'),
   ]);
   assert.match(apiSource, /max_players, min_players, allow_guests, guest_limit, rsvp_yes/);
-  assert.match(apiSource, /\.select\('game_id, bringing_guests'\)/);
-  assert.match(apiSource, /rsvp_seats: seatsByGame\.get\(game\.id\) \|\| 0/);
+  assert.match(apiSource, /addPublicHomeGameSeatCounts\(supabase, upcomingGames \|\| \[\]\)/);
+  const aggregateSource = await readFile(path.join(repoRoot, 'src/lib/home-games/publicScheduleServer.mjs'), 'utf8');
+  assert.match(aggregateSource, /\.select\('id, game_id, bringing_guests'\)/);
+  assert.match(aggregateSource, /rsvp_seats: seatsByGame\.get\(game\.id\) \|\| 0/);
+  assert.match(aggregateSource, /fetchAllHomeGameDirectoryRows/);
   assert.match(pageSource, /seatEvent\.allow_guests === true/);
   assert.match(pageSource, /bringing_guests: bringingGuests/);
   assert.match(pageSource, /guest_names: guestNames/);

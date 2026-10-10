@@ -55,6 +55,7 @@ const videoLibraryAvailability = await import('../src/lib/videoLibraryAvailabili
 const socialTopics = await import('../src/lib/socialTopics.js');
 const feedRanking = await import('../src/lib/feedRanking.js');
 const socialPostShape = await import('../src/lib/socialPostShape.js');
+const homeGamePrivacy = await import('../src/lib/home-games/socialPrivacyServer.mjs');
 
 function compile(source, mocks) {
     const code = ts.transpileModule(source, {
@@ -94,6 +95,7 @@ function compileFeedRoute() {
         '../../../src/lib/socialTopics': socialTopics,
         '../../../src/lib/feedRanking': feedRanking,
         '../../../src/lib/socialPostShape': socialPostShape,
+        '../../../src/lib/home-games/socialPrivacyServer.mjs': homeGamePrivacy,
         '../../../src/lib/serverAuth': {
             getServerUserWithFallback: async (req) => {
                 const token = String(req?.headers?.authorization || '').replace(/^Bearer\s+/i, '');
@@ -209,6 +211,12 @@ export function installFakeSupabase(rows, options = {}) {
         const url = new URL(String(input));
         calls.push({ url, init, path: url.pathname, method: init.method || 'GET' });
         const path = url.pathname;
+        if (path.endsWith('/rest/v1/social_pages') || path.endsWith('/rest/v1/commander_home_groups')) {
+            const tableRows = path.endsWith('/rest/v1/social_pages') ? options.pages : options.groups;
+            if (tableRows === 'error') return jsonResponse('read unavailable', 500);
+            const wanted = /^in\.\((.*)\)$/.exec(url.searchParams.get('id') || '');
+            return jsonResponse((tableRows || []).filter(row => !wanted || wanted[1].split(',').includes(row.id)));
+        }
         if (path.endsWith('/rest/v1/social_posts')) {
             const offset = Number.parseInt(url.searchParams.get('offset') || '0', 10);
             const limit = Number.parseInt(url.searchParams.get('limit') || '100', 10);
@@ -282,9 +290,9 @@ export function response() {
 }
 
 /** One request through the real handler against `rows`; restores fetch. */
-export async function runFeed(rows, { query = {}, auth = null, playedWith } = {}) {
+export async function runFeed(rows, { query = {}, auth = null, playedWith, pages, groups } = {}) {
     const route = loadFeedRoute();
-    const fake = installFakeSupabase(rows, { playedWith });
+    const fake = installFakeSupabase(rows, { playedWith, pages, groups });
     try {
         const res = response();
         await route.default(request({ query, auth }), res);

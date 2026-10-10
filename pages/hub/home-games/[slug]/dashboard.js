@@ -252,18 +252,44 @@ function ModerationTab({ group, token }) {
   const [err, setErr] = useState('');
   const [acting, setActing] = useState(null);
   const [actionNotice, setActionNotice] = useState('');
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const nextOffset = useRef(0);
+  const loadInFlight = useRef(false);
+  const loadGeneration = useRef(0);
 
-  const load = useCallback(async () => {
-    if (!token || !group?.id) return;
-    setLoading(true); setErr('');
+  const load = useCallback(async (append = false) => {
+    if (!token || !group?.id || loadInFlight.current) return;
+    loadInFlight.current = true;
+    const generation = loadGeneration.current;
+    const offset = append ? nextOffset.current : 0;
+    if (append) setLoadingMore(true); else setLoading(true);
+    setErr('');
     try {
-      const d = await apiFetch(`/api/commander/home-games/groups/${group.id}/posts?moderation=1&limit=50`, token);
-      setReports(d.reports || d.posts || []);
-    } catch (e) { setErr(e.message); }
-    setLoading(false);
+      const d = await apiFetch(`/api/commander/home-games/groups/${group.id}/posts?moderation=1&limit=50&offset=${offset}`, token);
+      if (generation !== loadGeneration.current) return;
+      if (!Array.isArray(d.reports) || !Number.isInteger(d.next_offset) || d.next_offset < offset || (d.has_more === true && d.next_offset <= offset)) throw new Error('Moderation queue continuation unavailable. Please retry.');
+      setReports(prev => [...new Map((append ? [...prev, ...d.reports] : d.reports).map(report => [report.id, report])).values()]);
+      nextOffset.current = d.next_offset;
+      setHasMore(d.has_more === true);
+    } catch (e) { if (generation === loadGeneration.current) setErr(e.message); }
+    finally {
+      if (generation === loadGeneration.current) {
+        loadInFlight.current = false;
+        setLoading(false);
+        setLoadingMore(false);
+      }
+    }
   }, [token, group?.id]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    loadGeneration.current += 1;
+    loadInFlight.current = false;
+    nextOffset.current = 0;
+    setReports([]); setHasMore(false); setLoadingMore(false);
+    load();
+    return () => { loadGeneration.current += 1; };
+  }, [load]);
 
   const handleHide = async (postId) => {
     setActing(postId);
@@ -271,9 +297,10 @@ function ModerationTab({ group, token }) {
     try {
       await apiFetch(`/api/commander/home-games/groups/${group.id}/posts`, token, {
         method: 'PATCH',
-        body: { post_id: postId, action: 'hide' },
+        body: { report_id: postId, action: 'hide' },
       });
-      setReports(prev => prev.filter(r => r.id !== postId));
+      setReports(prev => prev.map(r => r.id === postId ? { ...r, is_hidden: true } : r));
+      setActionNotice('Content hidden. The report remains pending review.');
     } catch (e) {
       // REPORT_ALREADY_RESOLVED: another moderator already actioned this report (409)
       const msg = e.message || '';
@@ -319,10 +346,10 @@ function ModerationTab({ group, token }) {
         </div>
       )}
       <div style={{ background: 'rgba(6,182,212,.07)', border: '1px solid rgba(6,182,212,.2)', borderRadius: 3, padding: 12, marginBottom: 16, fontSize: 12, color: '#67e8f9' }}>
-        Host Moderation - Hide Or Remove Content Within Your Group. High-Severity Reports (Illegal, Self-Harm, Doxxing) Are Automatically Escalated To Platform Staff.
+        Host Moderation - Hide Reported Posts Within Your Group. Reports Remain Pending Platform Review. High-Severity Reports (Illegal, Self-Harm, Doxxing) Are Automatically Escalated To Platform Staff.
       </div>
       {reports.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: '40px 0', color: C.textMuted, fontSize: 14 }}>No Pending Moderation Items.</div>
+        <div style={{ textAlign: 'center', padding: '40px 0', color: C.textMuted, fontSize: 14 }}>{hasMore ? 'No Pending Items In This Slice. More Reports Are Available.' : err ? 'Moderation Queue Unavailable. Please Retry.' : 'No Pending Moderation Items.'}</div>
       ) : (
         reports.map(r => (
           <div key={r.id} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 3, padding: 16, marginBottom: 10 }}>
@@ -330,13 +357,18 @@ function ModerationTab({ group, token }) {
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <span style={{ fontSize: 12, color: C.textMuted }}>{r.author_display || r.author_name}</span>
               <span style={{ flex: 1 }} />
-              <button onClick={() => handleHide(r.id)} disabled={acting === r.id} style={{ minHeight: 44, padding: '5px 14px', borderRadius: 2, border: `1px solid ${C.border}`, background: 'rgba(239,68,68,.1)', color: '#f87171', fontSize: 12, fontWeight: 700, cursor: acting === r.id ? 'wait' : 'pointer' }}>
-                {acting === r.id ? '…' : 'Hide'}
-              </button>
+              {r.reported_type === 'post' ? (
+                <button onClick={() => handleHide(r.id)} disabled={acting === r.id || r.is_hidden === true} style={{ minHeight: 44, padding: '5px 14px', borderRadius: 2, border: `1px solid ${C.border}`, background: 'rgba(239,68,68,.1)', color: '#f87171', fontSize: 12, fontWeight: 700, cursor: acting === r.id ? 'wait' : 'pointer' }}>
+                  {acting === r.id ? '…' : r.is_hidden ? 'Hidden / Awaiting Review' : 'Hide'}
+                </button>
+              ) : <span style={{ color: C.textSec, fontSize: 12 }}>Platform Review Required</span>}
             </div>
           </div>
         ))
       )}
+      {(hasMore || err) && <button type="button" onClick={() => load(hasMore)} disabled={loadingMore} style={{ minHeight: 44, width: '100%', padding: '10px 16px', border: `1px solid ${C.border}`, borderRadius: 2, background: C.card, color: C.text, fontWeight: 700, cursor: loadingMore ? 'wait' : 'pointer' }}>
+        {loadingMore ? 'Loading More Reports…' : hasMore ? 'Load More Reports' : 'Retry Queue'}
+      </button>}
     </div>
   );
 }

@@ -3,6 +3,8 @@ import { createRequire } from 'node:module';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import vm from 'node:vm';
+import { publishPlannedHomeGameTournaments, submitHomeGameOccurrence } from '../src/lib/home-games/tournamentPublication.mjs';
+import { homeGameSocialWriteAccess } from '../src/lib/home-games/socialPrivacyServer.mjs';
 
 /**
  * Source contracts for the Home Games surfaces of Poker Near Me.
@@ -42,6 +44,267 @@ const HOST_BUTTON = 'src/components/poker-near-me/HostHomeGameButton.jsx';
 const HOME_GAME_CONSOLE_CSS = 'src/components/poker-near-me/PokerNearMeHomeGameConsole.module.css';
 const HOME_GAME_DIRECTORY_CSS = 'src/styles/worlds/poker-near-me-home-games-directory.css';
 const DISCOVER_API = 'pages/api/public/home-games/discover.js';
+
+function runPublicHomeGameHandler(file, tables, query = {}, request = {}) {
+  class Query {
+    constructor(table) { this.table = table; this.filters = []; this.start = 0; this.end = null; this.one = false; }
+    select() { return this; }
+    update(values) { this.updates = values; return this; }
+    eq(key, value) { this.filters.push((row) => row[key] === value); return this; }
+    in(key, values) { this.filters.push((row) => values.includes(row[key])); return this; }
+    gte() { return this; }
+    lte() { return this; }
+    not() { return this; }
+    or() { return this; }
+    order() { return this; }
+    ilike() { return this; }
+    range(start, end) { this.start = start; this.end = end; return this; }
+    limit(count) { this.end = this.start + count - 1; return this; }
+    maybeSingle() { this.one = true; return this; }
+    then(resolve, reject) {
+      const fixture = tables[this.table] || [];
+      if (fixture.error) return Promise.resolve({ data: null, error: fixture.error }).then(resolve, reject);
+      let rows = fixture.filter((row) => this.filters.every((filter) => filter(row)));
+      if (this.updates) rows = rows.map(row => ({ ...row, ...this.updates }));
+      rows = rows.slice(this.start, this.end === null ? undefined : this.end + 1);
+      return Promise.resolve({ data: this.one ? rows[0] || null : rows, error: null, count: rows.length }).then(resolve, reject);
+    }
+  }
+  const supabase = { from: (table) => new Query(table) };
+  const load = (path) => {
+    const compiled = nodeRequire('@babel/core').transformSync(read(path), {
+      babelrc: false, configFile: false,
+      plugins: [nodeRequire.resolve('@babel/plugin-transform-modules-commonjs')],
+    }).code;
+    const module = { exports: {} };
+    vm.runInNewContext(compiled, {
+      module, exports: module.exports, process: { env: { NEXT_PUBLIC_SUPABASE_URL: 'https://qualification.invalid', SUPABASE_SERVICE_ROLE_KEY: 'qualification-only-placeholder' } },
+      console: { warn() {}, error() {} }, setTimeout, clearTimeout,
+      require(specifier) {
+        if (specifier.endsWith('/supabaseServerClient')) return { createClient: () => supabase };
+        if (specifier.endsWith('/apiRateLimit')) return { applyRateLimit: () => true, LIMITS: { read: {} } };
+        if (specifier.endsWith('/apiErrorHandler')) return { reportApiError() {} };
+        if (specifier.endsWith('/serverAuth')) return { getServerUserWithFallback: async () => ({ user: null }) };
+        if (specifier.endsWith('/auth-middleware')) return { requireAuth: async () => request.authUser || null };
+        if (specifier.endsWith('/publicOrigin.mjs')) return { canonicalPublicUrl: (value) => `https://smarter.poker${value}` };
+        const resolved = new URL(specifier, new URL(path, root));
+        return load(resolved.pathname.slice(root.pathname.length));
+      },
+    }, { filename: path });
+    return module.exports;
+  };
+  const res = {
+    headersSent: false, statusCode: 200, headers: {}, body: null,
+    setHeader(key, value) { this.headers[key] = value; },
+    status(code) { this.statusCode = code; return this; },
+    json(body) { this.body = body; return this; },
+  };
+  return load(file).default({ method: 'GET', query, headers: {}, ...request }, res).then(() => res);
+}
+
+const publicGroupFixture = {
+  id: 'group-a', name: 'Scoped Game', club_code: 'SHARE1', is_private: false,
+  is_active: true, owner: { id: 'host-a', display_name: 'Host' },
+};
+const publicPageFixture = {
+  id: 'page-a', slug: 'scoped-game', page_type: 'home_game', is_public: true,
+  linked_entity_type: 'home_group', linked_entity_id: 'group-a',
+};
+
+test('editing a Home Games post cannot bypass a ban or publish private-group content', async () => {
+  for (const status of ['pending', 'banned', 'approved']) {
+    const response = await runPublicHomeGameHandler('pages/api/social/pages/posts.js', {
+      social_pages: [publicPageFixture],
+      commander_home_groups: [{ ...publicGroupFixture, owner_id: 'host-a', is_private: true }],
+      commander_home_members: [{ group_id: 'group-a', user_id: 'member-a', status, role: 'member' }],
+      social_page_posts: [{ id: 'post-a', page_id: 'page-a', author_id: 'member-a' }],
+    }, {}, { method: 'PUT', authUser: { id: 'member-a' }, body: { id: 'post-a', content: 'Edited', visibility: 'public' } });
+    assert.equal(response.statusCode, status === 'approved' ? 200 : 403);
+    if (status === 'approved') assert.equal(response.body.data.visibility, 'private');
+  }
+});
+
+test('first game writes confirm only durable identifiers and never retry an unknown acknowledgment', async () => {
+  const id = '11111111-1111-4111-8111-111111111111';
+  const cases = [
+    [200, { event: { id } }, 'confirmed'],
+    [200, { success: true }, 'unknown'],
+    [200, { event: { id: true } }, 'unknown'],
+    [503, { error: 'Unavailable' }, 'unknown'],
+    [409, { error: 'Conflict' }, 'unknown'],
+    [403, { error: 'Refused' }, 'rejected'],
+  ];
+  for (const [status, body, expected] of cases) {
+    const calls = [];
+    const result = await submitHomeGameOccurrence(async (url, init) => {
+      calls.push({ url, init });
+      return { ok: status < 300, status, json: async () => body };
+    }, { group_id: 'group-a' }, 'scoped-token', 'same-operation');
+    assert.equal(result.status, expected);
+    assert.equal(calls.length, 1);
+    assert.equal(calls[0].init.headers['X-Idempotency-Key'], 'same-operation');
+  }
+  assert.equal((await submitHomeGameOccurrence(async () => { throw new Error('Disconnected'); }, {}, 'token', 'operation')).status, 'unknown');
+  const source = read(CMD_CREATE);
+  assert.match(source, /submitHomeGameOccurrence\(/);
+  assert.match(source, /eventSubmissionLockRef\.current/);
+  assert.match(source, /Review Saved Group Schedule/);
+});
+
+test('a code share link honors the linked page unlisting and bypasses schedule reads', async () => {
+  const res = await runPublicHomeGameHandler('pages/api/public/home-game/[code].js', {
+    commander_home_groups: [publicGroupFixture],
+    social_pages: [{ ...publicPageFixture, is_public: false }],
+    commander_home_games: [{ id: 'event-a', group_id: 'group-a', status: 'scheduled', title: 'Private Schedule' }],
+  }, { code: 'SHARE1' });
+  assert.equal(res.statusCode, 200);
+  assert.equal(res.body.data.group.is_private, true);
+  assert.equal(res.body.data.upcoming_games.length, 0);
+  assert.match(res.headers['Cache-Control'], /no-store/);
+});
+
+test('both public profile APIs distinguish missing groups from dependency failures', async () => {
+  for (const [file, query] of [
+    ['pages/api/public/home-game/[code].js', { code: 'SHARE1' }],
+    ['pages/api/public/home-games/[slug].js', { slug: 'scoped-game' }],
+  ]) {
+    for (const failedTable of ['commander_home_groups', 'social_pages', 'commander_home_games', 'commander_home_rsvps']) {
+      const tables = {
+        commander_home_groups: [publicGroupFixture], social_pages: [publicPageFixture],
+        commander_home_games: [{ id: 'event-a', group_id: 'group-a', status: 'scheduled' }],
+        commander_home_rsvps: [],
+      };
+      tables[failedTable] = { error: { message: 'Sensitive Database Detail' } };
+      const res = await runPublicHomeGameHandler(file, tables, query);
+      assert.equal(res.statusCode, 503, `${file}: ${failedTable} outage is unavailable, not empty/not found`);
+      assert.match(res.headers['Cache-Control'], /no-store/);
+      assert.doesNotMatch(JSON.stringify(res.body), /Sensitive Database Detail/);
+    }
+  }
+});
+
+test('both public profiles include every RSVP party when publishing guest-aware capacity', async () => {
+  for (const [file, query] of [
+    ['pages/api/public/home-game/[code].js', { code: 'SHARE1' }],
+    ['pages/api/public/home-games/[slug].js', { slug: 'scoped-game' }],
+  ]) {
+    const res = await runPublicHomeGameHandler(file, {
+      commander_home_groups: [publicGroupFixture], social_pages: [publicPageFixture],
+      commander_home_games: [{ id: 'event-a', group_id: 'group-a', status: 'scheduled' }],
+      commander_home_rsvps: Array.from({ length: 1_005 }, (_, index) => ({
+        id: `rsvp-${index}`, game_id: 'event-a', response: 'yes', bringing_guests: 2,
+      })),
+    }, query);
+    assert.equal(res.statusCode, 200);
+    assert.equal(res.body.data.upcoming_games[0].rsvp_seats, 3_015);
+  }
+});
+
+test('discovery withholds unlisted groups and fails closed on publication-read errors', async () => {
+  const tables = {
+    commander_home_groups: [publicGroupFixture],
+    social_pages: [{ ...publicPageFixture, is_public: false }],
+  };
+  const hidden = await runPublicHomeGameHandler(DISCOVER_API, tables);
+  assert.equal(hidden.statusCode, 200);
+  assert.equal(hidden.body.groups.length, 0);
+  tables.social_pages = { error: { message: 'Sensitive Publication Error' } };
+  const failed = await runPublicHomeGameHandler(DISCOVER_API, tables);
+  assert.equal(failed.statusCode, 503);
+  assert.match(failed.headers['Cache-Control'], /no-store/);
+  assert.doesNotMatch(JSON.stringify(failed.body), /Sensitive Publication Error/);
+});
+
+test('a dense schedule cannot starve another group next-game card and seats include guests', async () => {
+  const tables = {
+    commander_home_groups: [publicGroupFixture, { ...publicGroupFixture, id: 'group-b' }],
+    social_pages: [publicPageFixture],
+    commander_home_games: [
+      ...Array.from({ length: 1_000 }, (_, index) => ({
+        id: `a-${index}`, group_id: 'group-a', status: 'scheduled', scheduled_date: '2026-11-01', max_players: 9,
+      })),
+      { id: 'b-1', group_id: 'group-b', status: 'confirmed', scheduled_date: '2026-12-01', title: 'Next B', max_players: 9 },
+    ],
+    commander_home_rsvps: [{ id: 'rsvp-b', game_id: 'b-1', response: 'yes', bringing_guests: 3 }],
+  };
+  const res = await runPublicHomeGameHandler(DISCOVER_API, tables);
+  assert.equal(res.statusCode, 200);
+  const next = res.body.groups.find((group) => group.id === 'group-b');
+  assert.equal(next.next_game_title, 'Next B');
+  assert.equal(next.next_game_seats_left, 5);
+  tables.commander_home_games = { error: { message: 'Schedule Failed' } };
+  const failed = await runPublicHomeGameHandler(DISCOVER_API, tables);
+  assert.equal(failed.statusCode, 503);
+});
+
+test('creation distinguishes confirmed, unconfirmed and undated tournament plans without retrying writes', async () => {
+  const calls = [];
+  const sb = { rpc(name, args) {
+    calls.push({ name, args });
+    if (args.p_name === 'Confirmed') return { data: '11111111-1111-4111-8111-111111111111', error: null };
+    if (args.p_name === 'Unknown Ack') throw new Error('Transport Failed');
+    if (args.p_name === 'Rejected') return { data: null, error: { message: 'Rejected' } };
+    return { data: null, error: null };
+  } };
+  const result = await publishPlannedHomeGameTournaments(sb, 'group-a', [
+    ...['Confirmed', 'Unknown Ack', 'Rejected', 'Empty Response'].map((name) => ({
+      name, scheduled_date: '2026-11-01', scheduled_time: '19:00', buy_in: 100,
+    })),
+    { name: 'Undated Preference', recurring: true }, { name: '' },
+  ]);
+  assert.deepEqual(result.confirmed.map((plan) => plan.name), ['Confirmed']);
+  assert.deepEqual(result.unconfirmed.map((plan) => plan.name), ['Unknown Ack', 'Rejected', 'Empty Response']);
+  assert.deepEqual(result.unscheduled.map((plan) => plan.name), ['Undated Preference']);
+  assert.equal(calls.length, 4, 'one invocation per dated plan, no retries');
+  assert.ok(calls.every((call) => call.name === 'rpc_hg_create_tournament' && call.args.p_group_id === 'group-a'));
+  const source = read(CMD_CREATE);
+  assert.match(source, /setTournamentPublication\(await publishPlannedHomeGameTournaments/);
+  assert.match(source, /tournamentPublication\.unconfirmed\.length > 0/);
+  assert.match(source, /Review Saved Schedule/);
+  assert.match(source, /groupSubmissionLockRef\.current \|\| createdGroup/);
+  assert.doesNotMatch(source, /token\.substring|localStorage\.getItem\('smarter-poker-auth'\)\?\.slice/);
+  assert.doesNotMatch(source, /Is Live\. Your Social Page Was Auto-Created/);
+});
+
+test('public social page/author reads cannot reveal Home Games posts after privacy or unlisting changes', async () => {
+  const file = 'pages/api/social/pages/posts.js';
+  for (const restriction of ['private', 'unlisted', 'inactive']) {
+    const tables = {
+      social_pages: [{ ...publicPageFixture, is_public: restriction !== 'unlisted' }],
+      commander_home_groups: [{ ...publicGroupFixture, is_private: restriction === 'private', is_active: restriction !== 'inactive' }],
+      social_page_posts: [{ id: 'post-a', page_id: 'page-a', author_id: 'host-a', visibility: 'public', is_approved: true, content: 'Restricted Content' }],
+    };
+    for (const query of [{ page_id: 'page-a' }, { author_id: 'host-a' }]) {
+      const res = await runPublicHomeGameHandler(file, tables, query);
+      assert.equal(res.statusCode, 200);
+      assert.equal(res.body.data.length, 0, `${restriction} must cover page and author lookups`);
+    }
+  }
+});
+
+test('Home Games social writes require an approved canonical member or host, not a pending/banned follower', async () => {
+  for (const status of ['pending', 'banned', 'approved']) {
+    const query = {
+      select() { return this; }, eq() { return this; },
+      maybeSingle: async () => ({ data: { status, role: 'co_host' }, error: null }),
+    };
+    const sb = { from: (table) => table === 'commander_home_groups' ? {
+      select() { return this; }, eq() { return this; },
+      maybeSingle: async () => ({ data: { id: 'group-a', owner_id: 'host-a', is_active: true, is_private: true }, error: null }),
+    } : query };
+    const result = await homeGameSocialWriteAccess(sb, publicPageFixture, 'member-a');
+    assert.equal(result.allowed, status === 'approved');
+    assert.equal(result.staff, status === 'approved');
+    assert.equal(result.public, false, 'private groups never mirror globally');
+  }
+  const posts = read('pages/api/social/pages/posts.js');
+  assert.match(posts, /homeGameSocialWriteAccess\(getSupabase\(\), page, author_id\)/);
+  assert.match(posts, /if \(!homeAccess.allowed\) return res.status\(403\)/);
+  assert.match(posts, /if \(homeAccess.public && data && data.is_approved/);
+  const feed = read('pages/api/social/feed.js');
+  assert.match(feed, /homeGamePagePublicFlags\(mirroredPages/);
+  assert.match(feed, /homePageFlags.get\(post.metadata.source_page_id\) !== true\) continue/);
+});
 
 /* ═══════════════════════════════════════════════════════════════════════════
    1. RESTORATION — what this pass fixed
@@ -256,6 +519,8 @@ test('GPS discovery behavior pages and returns more than 500 in-radius groups', 
       if (specifier.endsWith('/supabaseServerClient')) return { createClient: () => supabase };
       if (specifier.endsWith('/apiRateLimit')) return { applyRateLimit: () => true, LIMITS: { read: {} } };
       if (specifier.endsWith('/apiErrorHandler')) return { reportApiError: () => undefined };
+      if (specifier.endsWith('/geoDirectoryServer.mjs')) return nodeRequire('../src/lib/home-games/geoDirectoryServer.mjs');
+      if (specifier.endsWith('/publicScheduleServer.mjs')) return nodeRequire('../src/lib/home-games/publicScheduleServer.mjs');
       throw new Error(`Unexpected import in discover handler: ${specifier}`);
     },
     console,
@@ -404,16 +669,20 @@ test('a private home game is never listed in the public geography directory', ()
   }
 });
 
-test('a private group HTML response is never stored in a shared edge cache', () => {
+test('mutable Home Game publication cannot retain an old public projection in a shared cache', () => {
   const src = read(PUBLIC_SLUG);
   assert.ok(
     src.includes("res.setHeader('Cache-Control', 'private, no-store')"),
     'private groups must not be edge-cached'
   );
   assert.ok(
-    src.includes("'public, s-maxage=30, stale-while-revalidate=180'"),
-    'public groups keep their edge cache'
+    !/s-maxage|stale-while-revalidate/.test(src),
+    'public-to-private changes must not leave stale public HTML'
   );
+  for (const file of ['pages/api/public/home-game/[code].js', 'pages/api/public/home-games/[slug].js', DISCOVER_API]) {
+    assert.ok(read(file).includes("res.setHeader('Cache-Control', 'private, no-store')"), file);
+    assert.doesNotMatch(read(file), /s-maxage|stale-while-revalidate/);
+  }
 });
 
 test('the secret invite credential never reaches a public surface', () => {
@@ -493,5 +762,25 @@ test('the geography directory degrades to 503, never to a 500 or a lie', () => {
   }
   // And the slug route says the same thing to a crawler rather than 500ing
   // a URL out of the index.
-  assert.ok(read(PUBLIC_SLUG).includes("apiRes.status === 429 ? 503 : 500"));
+  const source = read(PUBLIC_SLUG);
+  const ssr = source.slice(source.indexOf('export async function getServerSideProps'), source.indexOf('function formatStakesLine'));
+  assert.match(ssr, /res\.statusCode = 503/);
+  assert.doesNotMatch(ssr, /res\.statusCode = 500/);
+});
+
+test('actual Home Games SSR honors unavailable and non-cacheable publication responses', async () => {
+  const source = read(PUBLIC_SLUG);
+  const fn = source.slice(source.indexOf('export async function getServerSideProps'), source.indexOf('function formatStakesLine')).replace('export ', '');
+  for (const status of [200, 429, 503]) {
+    const context = { SITE_URL: 'https://smarter.poker', console: { warn() {} }, fetch: async () => ({ status, ok: status === 200, json: async () => ({ success: true, data: { group: { is_private: false } } }) }) };
+    vm.createContext(context);
+    vm.runInContext(`${fn}; this.load = getServerSideProps`, context);
+    const headers = {};
+    const res = { statusCode: 200, setHeader(key, value) { headers[key] = value; } };
+    const out = await context.load({ params: { slug: 'scoped-game' }, req: { headers: {} }, res });
+    assert.equal(headers['Cache-Control'], 'private, no-store');
+    assert.equal(res.statusCode, status === 200 ? 200 : 503);
+    assert.equal(out.props.serverError, status !== 200);
+    if (status !== 200) assert.equal(headers['Retry-After'], '60');
+  }
 });
