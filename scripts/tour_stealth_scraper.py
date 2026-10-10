@@ -107,6 +107,16 @@ def sb_insert(path: str, rows: list) -> int:
     """POST rows; return the count the DB CONFIRMED writing."""
     if not rows:
         return 0
+    # PostgREST requires identical object keys within each JSON-array request.
+    # Keep absent optional fields absent (database defaults remain authoritative)
+    # and retain partial acknowledgments if a later independent group fails.
+    groups = {}
+    for row in rows:
+        groups.setdefault(tuple(sorted(row)), []).append(row)
+    return sum(_sb_insert_homogeneous(path, batch) for batch in groups.values())
+
+
+def _sb_insert_homogeneous(path: str, rows: list) -> int:
     req = urllib.request.Request(
         f"{SUPABASE_URL}/rest/v1/{path}", data=json.dumps(rows).encode(),
         method="POST", headers=SB_INSERT_HDRS)
@@ -404,6 +414,13 @@ def tour_page_identity(code: str, tour_name: str, requested_url: str,
     label = " ".join(labels).lower()
     label_words = set(re.findall(r"[a-z0-9]+", label))
     expected_code = re.sub(r"[^a-z0-9]", "", str(code or "").lower())
+    if (expected_code in {'wpt', 'wptprime'}
+            and requested_identity == final_identity
+            and final_identity[0] == 'worldpokertour.com'
+            and final_identity[1] == '/event/schedule'
+            and canonical_contract
+            and re.search(r'/event/(?:main-tour|prime)-[a-z0-9-]+-season-20\d{2}', page_html or '')):
+        return True, 'source_owned_wpt_schedule'
     if (expected_code in {'seminole', 'shrpo'}
             and final_identity[0] == 'seminolehardrockpokeropen.com'
             and seminole_schedule_title(page_html)):
@@ -457,6 +474,51 @@ def extract_stops(html: str, base_url: str, today: date = None, tour_code: str =
     html = re.sub(r'<!--.*?-->', ' ', html, flags=re.S)
     code = str(tour_code or '').upper()
     host = urllib.parse.urlparse(base_url).hostname
+    if code in {'WPT', 'WPTPRIME'}:
+        # The current combined schedule contains multiple tour families and
+        # incidental international navigation. Only its dated USA table cards
+        # prove a domestic stop; the displayed date is not a festival span.
+        parsed = urllib.parse.urlsplit(base_url)
+        if (parsed.scheme != 'https' or host not in {'worldpokertour.com', 'www.worldpokertour.com'}
+                or parsed.path.rstrip('/') != '/event/schedule'):
+            return []
+        stops, seen = [], set()
+        cutoff = (today or datetime.now(timezone.utc).date()) - timedelta(days=14)
+        family = 'main-tour' if code == 'WPT' else 'prime'
+        visible = re.sub(r'<(script|style|noscript)\b[^>]*>.*?</\1>', ' ', html, flags=re.I | re.S)
+        for card in re.findall(r'<tr\b[^>]*>(.*?)</tr>', visible, re.I | re.S):
+            spans = [normalize_stop_name(s) for s in re.findall(r'<span\b[^>]*>(.*?)</span>', card, re.I | re.S)]
+            if len(spans) < 4 or not re.fullmatch(r'20\d{2}', spans[2]):
+                continue
+            try:
+                start = datetime.strptime(' '.join(spans[:3]), '%b %d %Y').date()
+            except ValueError:
+                continue
+            if start < cutoff or not any(re.search(r',\s*(?:USA|United States)\s*$', s) for s in spans[3:]):
+                continue
+            links = re.findall(r'<a\b[^>]*href=["\']([^"\']+)["\'][^>]*>(.*?)</a>', card, re.I | re.S)
+            if len(links) < 2:
+                continue
+            try:
+                event_url = urllib.parse.urljoin(base_url, links[0][0])
+                venue_url = urllib.parse.urljoin(base_url, links[1][0])
+                event = urllib.parse.urlsplit(event_url)
+            except ValueError:
+                continue
+            if (event.scheme != 'https' or event.hostname not in {'worldpokertour.com', 'www.worldpokertour.com'}
+                    or not re.fullmatch(r'/event/' + family + r'-[a-z0-9-]+-season-' + spans[2], event.path.rstrip('/'))
+                    or venue_url != event_url):
+                continue
+            name, venue = normalize_stop_name(links[0][1]), normalize_stop_name(links[1][1])
+            if not is_plausible_tour_stop_name(name) or not venue:
+                continue
+            key = (name.lower(), start.isoformat())
+            if key in seen:
+                continue
+            seen.add(key)
+            stops.append({'stop_name': name, 'start': start.isoformat(), 'end': start.isoformat(),
+                          'venue': venue, 'source_scope': 'published WPT USA calendar start'})
+        return stops
     if code in {'RRPT', 'ROUGHRIDER'} and host in {'roughriderpokertour.com', 'www.roughriderpokertour.com'}:
         # EventON's visible event descriptions contain unrelated Golden Ticket
         # promotion dates. Read only its source-owned Event calendar records.
@@ -772,6 +834,8 @@ def build_stop_row(code: str, stop: dict, source_url: str,
         row['notes'] = f"Source-owned JSON-LD event-start summary from {source_url} on {scraped_at[:10]}; calendar point date only, duration and event pricing not published."
     if stop.get('source_scope') == 'published event-calendar start':
         row['notes'] = f"Source-owned event-calendar start from {source_url} on {scraped_at[:10]}; point date only, full festival duration and event pricing unqualified."
+    if stop.get('source_scope') == 'published WPT USA calendar start':
+        row['notes'] = f"Source-owned WPT USA calendar start from {source_url} on {scraped_at[:10]}; point date only, full festival duration and event pricing unqualified."
     if stop.get('source_scope') == 'dated schedule envelope':
         row['notes'] = f"Source-owned series summary from dated schedule rows at {source_url} on {scraped_at[:10]}; schedule date envelope, not an individual tournament or priced event."
     if stop.get('source_scope') == 'announced festival span':
@@ -987,7 +1051,7 @@ def verify_html(html: str) -> bool:
 BUILTIN_TOURS = [
     ("WSOPC", "WSOP Circuit", "https://www.wsop.com/circuit/"),
     ("WSOP", "World Series of Poker", "https://www.wsop.com/tournaments/"),
-    ("WPT", "World Poker Tour", "https://www.worldpokertour.com/schedule/"),
+    ("WPT", "World Poker Tour", "https://www.worldpokertour.com/event/schedule"),
     ("MSPT", "Mid-States Poker Tour", "https://msptpoker.com/schedule/"),
     ("RGPS", "RunGood Poker Series", "https://www.rungood.com/blogs/tour-news-1/rungood-poker-series-announces-2026-fall-season-golden-expedition"),
     ("CPPT", "Card Player Poker Tour", "https://www.cardplayerpokertour.com/schedule/"),
@@ -1006,6 +1070,15 @@ BUILTIN_TOURS = [
 ]
 
 
+def select_schedule_url(code: str, url: str) -> str:
+    """Repair only the two observed retired registry values, never newer URLs."""
+    obsolete = {'WPT': 'https://www.worldpokertour.com/schedule/',
+                'WPTPRIME': 'https://www.worldpokertour.com/tours/'}
+    if url == obsolete.get(code):
+        return 'https://www.worldpokertour.com/event/schedule'
+    return url
+
+
 def load_tours() -> list:
     rows = sb_get("tour_source_registry",
                   "?select=tour_code,tour_name,schedule_url,official_website&is_active=eq.true")
@@ -1018,7 +1091,7 @@ def load_tours() -> list:
         url = r.get("schedule_url") or r.get("official_website")
         code = str(r.get("tour_code") or "").strip().upper()
         if code and url and code not in seen_codes:
-            tours.append((code, r.get("tour_name") or code, url))
+            tours.append((code, r.get("tour_name") or code, select_schedule_url(code, url)))
             seen_codes.add(code)
     if tours:
         # The database registry is authoritative. Mixing its current URLs with

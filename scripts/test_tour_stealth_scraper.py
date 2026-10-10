@@ -33,6 +33,62 @@ with mock.patch.dict(sys.modules, {'scrapling': types.ModuleType('scrapling'),
 
 
 class TourStopExtractionTests(unittest.TestCase):
+    def test_insert_groups_optional_fields_and_preserves_partial_acknowledgment(self):
+        rows = [{'stop_name': 'First', 'venue': 'Actual Room'}, {'stop_name': 'Second'}]
+        class Response:
+            def __enter__(self): return self
+            def __exit__(self, *_args): pass
+            def read(self): return b'[{"id":"confirmed-first"}]'
+        def write(request, **_kwargs):
+            payload = json.loads(request.data)
+            self.assertTrue(all(set(row) == set(payload[0]) for row in payload))
+            if 'venue' not in payload[0]:
+                raise OSError('second owned batch unavailable')
+            return Response()
+        with mock.patch.object(scraper.urllib.request, 'urlopen', side_effect=write) as transport:
+            self.assertEqual(scraper.sb_insert('tour_stop_events', rows), 1)
+            self.assertEqual(transport.call_count, 2)
+        self.assertNotIn('venue', rows[1])
+
+    def test_wpt_obsolete_source_selection_preserves_newer_registry(self):
+        rows = [{'tour_code': 'WPT', 'schedule_url': 'https://www.worldpokertour.com/schedule/'},
+                {'tour_code': 'WPTPRIME', 'schedule_url': 'https://www.worldpokertour.com/tours/'}]
+        with mock.patch.object(scraper, 'sb_get', return_value=rows):
+            self.assertEqual([x[2] for x in scraper.load_tours()], ['https://www.worldpokertour.com/event/schedule'] * 2)
+        for code in ('WPT', 'WPTPRIME', 'OTHER'):
+            newer = 'https://www.worldpokertour.com/event/new-current-schedule'
+            self.assertEqual(scraper.select_schedule_url(code, newer), newer)
+        self.assertEqual(scraper.select_schedule_url('OTHER', rows[0]['schedule_url']), rows[0]['schedule_url'])
+
+    def test_wpt_current_cards_separate_owned_us_point_dates(self):
+        def card(family, country='USA', year='2026', host=''):
+            url = host + '/event/' + family + '-wpt-championship-season-2026'
+            return f'<tr><td><span>Oct</span><span>23</span><span>{year}</span><a href="{url}">WPT Championship</a><a href="{url}">Bay 101 Casino</a><span>San Jose, CA 95112, {country}</span></td></tr>'
+        source = 'https://www.worldpokertour.com/event/schedule'
+        page = card('main-tour') + card('prime') + card('special-events') + card('main-tour', 'Canada')
+        for code in ('WPT', 'WPTPRIME'):
+            stops = scraper.extract_stops(page, source, date(2026, 10, 10), code)
+            self.assertEqual(len(stops), 1)
+            self.assertEqual(stops[0]['start'], '2026-10-23')
+            self.assertEqual(stops[0]['end'], stops[0]['start'])
+            self.assertEqual(stops[0]['venue'], 'Bay 101 Casino')
+            row = scraper.build_stop_row(code, stops[0], source, 'a' * 64, '2026-10-10T00:00:00Z')
+            self.assertIn('point date only', row['notes'])
+            self.assertNotIn('buy_in', row)
+        for invalid in (card('main-tour', year=''), card('main-tour', year='2025'),
+                        card('main-tour', host='https://foreign.test'), '<!--' + card('main-tour') + '-->',
+                        '<script>' + card('main-tour') + '</script>', card('main-tour').replace('<span>23</span>', '<span>32</span>')):
+            self.assertEqual(scraper.extract_stops(invalid, source, date(2026, 10, 10), 'WPT'), [])
+        valid = card('main-tour')
+        head, tail = valid.rsplit('href="/event/', 1)
+        for malformed in (valid.replace('href="/event/', 'href="https://[invalid/', 1),
+                          head + 'href="https://[invalid/' + tail):
+            self.assertEqual(len(scraper.extract_stops(malformed + valid, source, date(2026, 10, 10), 'WPT')), 1)
+        self.assertEqual(scraper.extract_stops(page, 'https://foreign.test/event/schedule', date(2026, 10, 10), 'WPT'), [])
+        for code in ('WPT', 'WPTPRIME'):
+            self.assertTrue(scraper.tour_page_identity(code, code, source, source, page)[0])
+            self.assertFalse(scraper.tour_page_identity(code, code, source, 'https://foreign.test/event/schedule', page)[0])
+
     def test_generic_parser_does_not_publish_commented_out_schedule(self):
         page = '<h1>Official Poker Schedule</h1><!-- <h2>Archived Poker Championship</h2><p>October 20-30, 2026</p> -->'
         self.assertEqual(scraper.extract_stops(page, 'https://tour.test/schedule/', date(2026, 10, 10)), [])
@@ -685,12 +741,12 @@ class TourSourceContractTests(unittest.TestCase):
         rows = [{
             "tour_code": "WPT",
             "tour_name": "World Poker Tour",
-            "schedule_url": "https://www.worldpokertour.com/schedule/",
+            "schedule_url": "https://www.worldpokertour.com/event/new-owned-schedule",
             "official_website": None,
         }]
         with mock.patch.object(scraper, "sb_get", return_value=rows):
             self.assertEqual(scraper.load_tours(), [(
-                "WPT", "World Poker Tour", "https://www.worldpokertour.com/schedule/",
+                "WPT", "World Poker Tour", "https://www.worldpokertour.com/event/new-owned-schedule",
             )])
 
     def test_unreadable_registry_fails_closed_without_stale_builtins(self):
