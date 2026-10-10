@@ -1539,3 +1539,34 @@ Engine owner full-policy receipt13:22:34.915UTC v2.9/hashunchanged plus current
 CA repository/publishing/fullCLAUDE/maintenancehandoff/programme/deploy references
 and checkpoint freshly read. Root delegates engine delivery exclusively to that
 helper, retains WH and checkpoint ownership, and does not duplicate operations.
+
+### Audit submission and affected production certificate, 13:34 UTC
+
+WH normal hooks/push PASS at17d48e9b7c3cba0d4432e8acfccbe8b21ee3234a,
+treebc5587204bac72551f4a66471736ac76580150bf. AttachedPR2286 owns this
+follow-up. Exacthead hosted gates are running; retired ownautopilot38055646222
+terminalCANCELLED and autoMergeRequestnull. Localtypecheck reports0errors.
+The unused-hook heuristic warned on imperative useStableAdminStore.getState;
+source uses the import and no runtime or assertion was changed to conceal it.
+Pathclassifier package files are manually reviewed: exactly locked React18.3.1
+test renderer and its development-only dependencies, verification input with
+no engine/API/runtime dependency. Root compared all27 build/browser input
+hashes with current source: zero mismatches.
+
+Existing strict production certificate now additionally observes Players,
+Geeves and Scrapers at both widths, retaining originaleight surfaces and strict
+safe-method fence. Actual named GET observations, settled/errorfree panels,
+28tabs, original identity/error/overflow gates and sanitized evidence remain
+mandatory. The11-case certificate contracts pass including missing/failedread,
+wrongaction/nonGET and unfinished/errorpanel countercases. This changes only
+verification source; qualified runtimebuild/browser inputs are unchanged.
+Fresh production execution remains pending protected integration and READY.
+
+CA client solepublisher38055402343 SUCCESS; both origins independently serve
+67e42c6c082fb8522e0c25731ba6de8d84451a93, built13:24:09UTC. Published runtime
+inventory complete:true and sessionRevoked blob13f1208be0a14858eb5973169f57f85b5da38bdd
+matches qualified/mergedsource. Normalpostdeploy38055652963 is running and
+remains pending. EnginePR6638 exactf506a78c283298ea1e31211ef30bcda29f3eccb0
+submitted after normalhooks, compiler,145focusedengine/3source/821binding,
+client4339/Node122 and engine9450checks passed;166existing engine skips are
+not claimed executed. Protected engine checks/merge/activation/live remain pending.
