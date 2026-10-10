@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { qualifyCoordinateRepair, coordinateRepairSql } from '../scripts/lib/pnm-coordinate-repair.mjs';
+import { qualifyCoordinateRepair, coordinateRepairSql, qualifyDuplicateRetirement, duplicateRetirementSql } from '../scripts/lib/pnm-coordinate-repair.mjs';
 
 const now = Date.parse('2026-10-10T04:00:00Z');
 const venue = { id: 3458, name: 'Encore Boston Harbor', venue_type: 'casino', city: 'Everett', state: 'MA', country: 'US', is_active: true, is_suppressed: false, canonical_venue_id: null, latitude: null, longitude: null, lat: null, lng: null, location_integrity_revision: '2026-09-01T10:00:00Z' };
@@ -81,4 +81,33 @@ test('atomic plans enforce exact preimage, missing coordinates, concurrency, bou
   assert.throws(() => coordinateRepairSql([]));
   assert.throws(() => coordinateRepairSql([qualify(), qualify()]));
   assert.throws(() => coordinateRepairSql([{ ...qualify(), accepted: false }]));
+});
+
+test('duplicate retirement requires an exact active public physical target and source identity', () => {
+  const target = { ...venue, id: 100, address: 'One Broadway', latitude: 42.39595, longitude: -71.06881, pokeratlas_url: evidence.final_url + '/tournaments' };
+  const plan = qualifyDuplicateRetirement(venue, target, evidence, [], {}, now);
+  assert.equal(plan.accepted, true);
+  for (const change of [{ is_active: false }, { is_suppressed: true }, { source: 'self_registration' }, { latitude: 0 }, { address: 'Wrong address' }, { pokeratlas_url: 'https://www.pokeratlas.com/poker-room/other' }]) {
+    assert.equal(qualifyDuplicateRetirement(venue, { ...target, ...change }, evidence, [], {}, now).accepted, false);
+  }
+  assert.equal(qualifyDuplicateRetirement(venue, venue, evidence, [], {}, now).accepted, false);
+  assert.equal(qualifyDuplicateRetirement(venue, target, evidence, [{ id: 'broken', venue_id: venue.id }], {}, now).accepted, false);
+});
+
+test('duplicate SQL locks exact full preimages, retains URLs and histories, audits schedule preimages and impersonates nobody', () => {
+  const target = { ...venue, id: 100, address: 'One Broadway', latitude: 42.39595, longitude: -71.06881, pokeratlas_url: evidence.final_url };
+  const plan = qualifyDuplicateRetirement(venue, target, evidence, [], {}, now);
+  const sql = duplicateRetirementSql([plan]);
+  assert.match(sql, /actual IS DISTINCT FROM p->'before_record'/);
+  assert.match(sql, /actual IS DISTINCT FROM p->'canonical_record'/);
+  assert.match(sql, /Schedule cohort changed/);
+  assert.match(sql, /Schedule preimage changed/);
+  assert.match(sql, /jsonb_array_elements\(p->'schedules'\) AS e\(value\) WHERE e.value->>'is_active'/);
+  assert.doesNotMatch(sql, /jsonb_array_elements\(p->'schedules'\) s WHERE s->>/);
+  assert.match(sql, /_duplicate_schedule_preimages/);
+  assert.match(sql, /retired_by=NULL/);
+  assert.match(sql, /canonical_venue_id=\(p->>'canonical_id'\)::integer/);
+  assert.doesNotMatch(sql, /DELETE FROM|UPDATE public\.poker_venues SET[^;]*slug=/i);
+  assert.throws(() => duplicateRetirementSql([plan, plan]));
+  assert.throws(() => duplicateRetirementSql([{ ...plan, accepted: false }]));
 });

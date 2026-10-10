@@ -569,7 +569,23 @@ def sanitize_tournament_name(name: str | None) -> str | None:
     """Remove HTML fragments, CSS selectors, and junk from scraped tournament names."""
     if not name:
         return None
-    name = html_lib.unescape(str(name)).strip()
+    name = str(name).strip()
+    # Bound entity decoding so multiply encoded CSS/JS cannot
+    # become a persisted event title before a later consumer decodes it.
+    for _ in range(8):
+        decoded = html_lib.unescape(name)
+        if decoded == name:
+            break
+        name = decoded
+    code_artifact = re.compile(
+        r'\b(?:text-decoration|font-(?:size|family|weight)|display|background(?:-color)?|text-align|line-height|z-index)\s*:'
+        r'|\bcolor\s*:\s*(?:var\s*\(|rgba?\s*\(|#[\da-f])'
+        r'|@(?:media|supports|font-face)\b'
+        r'|\b(?:document|window)\.(?:querySelector|addEventListener|__\w+)'
+        r'|\bmodule\.exports|[{}]', re.I,
+    )
+    if code_artifact.search(name):
+        return None
     name = re.sub(r"[\u2012-\u2015]", " - ", name)
     name = re.sub(r"\s+", " ", name)
     # Reject names containing HTML tags

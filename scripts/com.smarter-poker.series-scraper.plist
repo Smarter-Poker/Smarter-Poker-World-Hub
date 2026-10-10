@@ -10,11 +10,10 @@
     <string>run</string><string>--root</string>
     <string>/Volumes/SmarterWork/agent-work/pnm-production-runtimes-20261009/series</string>
   </array>
-  <key>WorkingDirectory</key><string>/Volumes/SmarterWork/agent-work/pnm-production-runtimes-20261009/series</string>
   <key>RunAtLoad</key><true/>
   <key>KeepAlive</key><true/>
-  <key>StandardOutPath</key><string>/Volumes/SmarterWork/agent-work/pnm-production-runtimes-20261009/series/state/tournament-logs/series-pipeline-stdout.log</string>
-  <key>StandardErrorPath</key><string>/Volumes/SmarterWork/agent-work/pnm-production-runtimes-20261009/series/state/tournament-logs/series-pipeline-stderr.log</string>
+  <key>StandardOutPath</key><string>/dev/null</string>
+  <key>StandardErrorPath</key><string>/dev/null</string>
   <key>EnvironmentVariables</key>
   <dict>
     <key>PATH</key><string>/Users/smarter.poker/.local/share/smarter-poker-venv/bin:/usr/local/bin:/usr/bin:/bin:/opt/homebrew/bin</string>
