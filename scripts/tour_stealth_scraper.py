@@ -50,7 +50,7 @@ HEARTBEAT = LOG_DIR / "heartbeat.json"
 LOG_FILE = LOG_DIR / f"tour_stealth_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log"
 
 sys.path.insert(0, str(PROJECT_ROOT / "scripts"))
-from scraper_data_truth import tour_stop_identity
+from scraper_data_truth import tour_stop_identity, US_STATE_NAME_TO_CODE
 
 try:
     import browser_heal as _browser_heal
@@ -271,6 +271,16 @@ def normalize_stop_name(value: object) -> str:
     return re.sub(r"\s+", " ", text).strip()
 
 
+def seminole_schedule_title(page_html: str) -> str | None:
+    """The persisted SEMINOLE family and older SHRPO alias share this source."""
+    titles = [normalize_stop_name(value) for value in re.findall(
+        r'<h1\b[^>]*>(.*?)</h1>', page_html or '', re.I | re.S,
+    )]
+    return next((value for value in titles if re.fullmatch(
+        r'20\d{2} Rock .N. Roll Poker Open Schedule', value,
+    )), None)
+
+
 def is_plausible_tour_stop_name(value: object) -> bool:
     """Conservative guard against casino promotions becoming tour stops."""
 
@@ -394,6 +404,15 @@ def tour_page_identity(code: str, tour_name: str, requested_url: str,
     label = " ".join(labels).lower()
     label_words = set(re.findall(r"[a-z0-9]+", label))
     expected_code = re.sub(r"[^a-z0-9]", "", str(code or "").lower())
+    if (expected_code in {'seminole', 'shrpo'}
+            and final_identity[0] == 'seminolehardrockpokeropen.com'
+            and seminole_schedule_title(page_html)):
+        return True, 'source_owned_seminole_schedule'
+    if (expected_code == 'tch'
+            and final_identity[0] == 'trailblazer.texascardhouse.com'
+            and 'trailblazer poker tour' in label
+            and re.search(r'<script\b[^>]*class=[\"\']ts-data[\"\']', page_html or '', re.I)):
+        return True, 'source_owned_trailblazer_stops'
     if (expected_code == 'wsopc' and final_identity[0] in {'wsop.com', 'www.wsop.com'}
             and re.search(r'<li\b[^>]*data-competition-type=[\"\']circuit[\"\']', page_html or '', re.I)
             and re.search(r'WSOP Circuit\s*-', page_html or '', re.I)):
@@ -433,6 +452,116 @@ def extract_stops(html: str, base_url: str, today: date = None, tour_code: str =
     """Generic stop extractor: date-range matches paired with the nearest
     preceding heading/link text. Conservative by design - a missed stop is
     recoverable on the next run, a garbage stop pollutes the calendar."""
+    code = str(tour_code or '').upper()
+    host = urllib.parse.urlparse(base_url).hostname
+    if code == 'TCH' and host == 'trailblazer.texascardhouse.com':
+        stops, seen = [], set()
+        cutoff = (today or datetime.now(timezone.utc).date()) - timedelta(days=14)
+        for attrs, raw in re.findall(r'<script\b([^>]*)>(.*?)</script>', html, re.I | re.S):
+            if (not re.search(r'\btype=[\"\']application/json[\"\']', attrs, re.I)
+                    or not re.search(r'\bclass=[\"\']ts-data[\"\']', attrs, re.I)):
+                continue
+            try:
+                payload = json.loads(raw)
+            except (TypeError, ValueError):
+                continue
+            if not isinstance(payload, list):
+                continue
+            for entry in payload:
+                if not isinstance(entry, dict):
+                    continue
+                name = normalize_stop_name(entry.get('name'))
+                number = entry.get('stop')
+                named_number = re.match(r'^Stop (\d+)\b', name)
+                if (not isinstance(number, (float, int)) or isinstance(number, bool)
+                        or number <= 0 or int(number) != number or not named_number
+                        or int(named_number[1]) != number or not is_plausible_tour_stop_name(name)):
+                    continue
+                start, end = entry.get('start_iso'), entry.get('end_iso')
+                if not all(isinstance(value, str) and re.fullmatch(r'20\d{2}-\d{2}-\d{2}', value) for value in (start, end)):
+                    continue
+                try:
+                    start_day, end_day = date.fromisoformat(start), date.fromisoformat(end)
+                except ValueError:
+                    continue
+                if end_day < start_day or end_day < cutoff or (name, start) in seen:
+                    continue
+                seen.add((name, start))
+                stop = {'stop_name': name, 'start': start, 'end': end,
+                        'source_scope': 'announced festival span'}
+                if entry.get('venues'):
+                    stop['venue'] = normalize_stop_name(entry['venues'])
+                if entry.get('schedule_published') in (0, 1, False, True):
+                    stop['schedule_published'] = bool(entry['schedule_published'])
+                stops.append(stop)
+        return stops
+    if code == 'VENETIAN' and host in {'www.venetianlasvegas.com', 'venetianlasvegas.com'}:
+        # Series labels and ranges are adjacent visible lines in one paragraph.
+        # A nearest-heading scan steals the surrounding marketing header or CTA.
+        stops = []
+        for paragraph in re.findall(r'<p\b[^>]*>(.*?)</p>', html, re.I | re.S):
+            if not re.match(r'\s*<b\b[^>]*>\s*(?:Current|Next) Series:', paragraph, re.I):
+                continue
+            content = re.sub(r'^\s*<b\b[^>]*>.*?</b>', '', paragraph, count=1, flags=re.I | re.S)
+            lines = [normalize_stop_name(line) for line in re.split(r'<br\s*/?>', content, flags=re.I)]
+            lines = [line for line in lines if line]
+            if len(lines) < 2 or not DATE_RANGE.fullmatch(lines[1]):
+                continue  # "May-July TBD" is not a dated stop.
+            stops.extend(extract_stops(
+                f'<h2>{html_lib.escape(lines[0])}</h2><p>{html_lib.escape(lines[1])}</p>',
+                base_url, today,
+            ))
+        return stops
+    if code == 'RGPS' and host in {'www.rungood.com', 'rungood.com'}:
+        stops = []
+        # Scope the explicit year to the schedule heading and its adjacent table;
+        # archived navigation, JSON app data and copyright cannot supply a year.
+        for year, table in re.findall(
+            r'<h2\b[^>]*>\s*(20\d{2}) RunGood Poker Series Fall Schedule\s*</h2>\s*<table\b[^>]*>(.*?)</table>',
+            html, re.I | re.S,
+        ):
+            headings = [normalize_stop_name(cell).lower() for cell in re.findall(r'<th\b[^>]*>(.*?)</th>', table, re.I | re.S)]
+            if headings != ['dates', 'venue', 'location']:
+                continue
+            for row in re.findall(r'<tr\b[^>]*>(.*?)</tr>', table, re.I | re.S):
+                cells = [normalize_stop_name(cell) for cell in re.findall(r'<td\b[^>]*>(.*?)</td>', row, re.I | re.S)]
+                if len(cells) != 3 or not DATE_RANGE.fullmatch(cells[0]):
+                    continue
+                location = re.fullmatch(r'(.+),\s*([^,]+)', cells[2])
+                state = US_STATE_NAME_TO_CODE.get(location[2].upper()) if location else None
+                if not state:
+                    continue  # International stops are outside the US discovery scope.
+                candidates = extract_stops(
+                    f'<h1>{year} Schedule</h1><h2>{html_lib.escape(cells[1])}</h2><p>{html_lib.escape(cells[0])}</p>',
+                    base_url, today,
+                )
+                for stop in candidates:
+                    stop.update({'venue': cells[1], 'city': location[1], 'state': state})
+                    stops.append(stop)
+        return stops
+    if code in {'SEMINOLE', 'SHRPO'} and host in {'www.seminolehardrockpokeropen.com', 'seminolehardrockpokeropen.com'}:
+        # This official schedule publishes dated individual rows, not stop ranges.
+        # Derive only the source-owned series envelope, without inventing a Main
+        # Event, buy-in, venue, time or a fabricated aggregate tournament number.
+        title = seminole_schedule_title(html)
+        dates = []
+        if title:
+            for table in re.findall(r'<table\b[^>]*>(.*?)</table>', html, re.I | re.S):
+                headings = [normalize_stop_name(cell).lower() for cell in re.findall(r'<th\b[^>]*>(.*?)</th>', table, re.I | re.S)]
+                if headings != ['event', 'date', 'time', 'buy-in', 'tournament description', 'details']:
+                    continue
+                for row in re.findall(r'<tr\b[^>]*>(.*?)</tr>', table, re.I | re.S):
+                    cells = [normalize_stop_name(cell) for cell in re.findall(r'<td\b[^>]*>(.*?)</td>', row, re.I | re.S)]
+                    if len(cells) != 6 or not re.fullmatch(r'\d+[A-Z]?', cells[0]):
+                        continue
+                    match = re.fullmatch(r'[A-Za-z]+,\s*([A-Za-z]+) (\d{1,2}), (20\d{2})', cells[1])
+                    if match and match[3] == title[:4]:
+                        iso = _iso(match[1], int(match[2]), int(match[3]))
+                        if iso:
+                            dates.append(iso)
+        if dates and date.fromisoformat(max(dates)) >= (today or datetime.now(timezone.utc).date()) - timedelta(days=14):
+            return [{'stop_name': title.removesuffix(' Schedule'), 'start': min(dates), 'end': max(dates), 'source_scope': 'dated schedule envelope'}]
+        return []
     if (str(tour_code or '').upper() == 'PGT'
             and urllib.parse.urlparse(base_url).hostname in {'www.pgt.com', 'pgt.com'}):
         stops, seen = [], set()
@@ -592,6 +721,13 @@ def build_stop_row(code: str, stop: dict, source_url: str,
         row['notes'] = f"Source-owned stop summary from {source_url} on {scraped_at[:10]}; not an individual tournament or priced event."
     if stop.get('start_only'):
         row['notes'] = f"Source-owned JSON-LD event-start summary from {source_url} on {scraped_at[:10]}; calendar point date only, duration and event pricing not published."
+    if stop.get('source_scope') == 'dated schedule envelope':
+        row['notes'] = f"Source-owned series summary from dated schedule rows at {source_url} on {scraped_at[:10]}; schedule date envelope, not an individual tournament or priced event."
+    if stop.get('source_scope') == 'announced festival span':
+        publication = ('individual schedule published' if stop.get('schedule_published') is True
+                       else 'individual schedule unpublished' if stop.get('schedule_published') is False
+                       else 'individual schedule publication unknown')
+        row['notes'] = f"Source-owned announced festival span from {source_url} on {scraped_at[:10]}; {publication}; source-reported venue labels, address/city unverified; not an individual tournament or priced event."
     return row
 
 
@@ -675,6 +811,85 @@ def reactivatable_stop_matches(existing_rows: list[dict], current_stops: list[di
     return matches
 
 
+def refreshable_stop_matches(existing_rows: list[dict], current_stops: list[dict],
+                             source_url: str) -> list[tuple[dict, dict]]:
+    """Select only exact active stop summaries owned by this source/writer.
+
+    Re-observation refreshes provenance, not manually researched records, event
+    details, dates or identity. A curated equivalent remains the public owner.
+    """
+    current = {tour_stop_identity({'stop_name': stop.get('stop_name'),
+                                   'stop_start_date': stop.get('start')}): stop
+               for stop in current_stops}
+    curated = {tour_stop_identity(row) for row in existing_rows
+               if row.get('data_quality') in {'scraped_verified', 'manual_research'}}
+    matches = []
+    for row in existing_rows:
+        identity = tour_stop_identity(row)
+        stop = current.get(identity)
+        if (not stop or identity in curated or not row.get('id')
+                or row.get('data_quality') != 'scraped_inferred'
+                or row.get('scrape_script') != 'tour_stealth_scraper.py'
+                or str(row.get('source_url') or '').rstrip('/') != source_url.rstrip('/')
+                or row.get('event_number') is not None
+                or str(row.get('stop_end_date') or '')[:10] != stop.get('end')):
+            continue
+        matches.append((row, stop))
+    return matches
+
+
+def refresh_stop_provenance(code: str, row: dict, stop: dict, source_url: str,
+                            html_hash: str, scraped_at: str) -> bool:
+    """CAS the observed source preimage and require exact persisted readback.
+
+    A lost response remains unconfirmed. A later scrape rereads the durable
+    preimage and refreshes the same ID, never inserts a duplicate or retries an
+    unknown write blindly. Dates and public identity are deliberately omitted.
+    """
+    if not refreshable_stop_matches([row], [stop], source_url):
+        return False
+    proof = build_stop_row(code, stop, source_url, html_hash, scraped_at)
+    patch = {key: proof[key] for key in (
+        'scrape_url', 'scrape_html_hash', 'scrape_timestamp', 'scrape_script',
+        'notes',
+    )}
+    expected = {key: row.get(key) for key in (
+        'id', 'stop_name', 'stop_start_date', 'stop_end_date', 'data_quality',
+        'scrape_script', 'source_url', 'scrape_timestamp', 'scrape_html_hash',
+        'event_number',
+    )}
+    expected['tour_code'] = code
+    filt = '&'.join(
+        f'{key}=is.null' if value is None else
+        f'{key}=eq.{urllib.parse.quote(str(value), safe="")}'
+        for key, value in expected.items()
+    )
+    req = urllib.request.Request(
+        f'{SUPABASE_URL}/rest/v1/tour_stop_events?{filt}',
+        data=json.dumps(patch).encode(), method='PATCH', headers=SB_PATCH_HDRS,
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=20) as response:
+            returned = json.loads(response.read() or b'[]')
+        if not isinstance(returned, list) or len(returned) != 1:
+            return False
+        actual = returned[0]
+        if not isinstance(actual, dict) or str(actual.get('id')) != str(row['id']):
+            return False
+        if any(actual.get(key) != value for key, value in expected.items() if key not in patch):
+            return False
+        for key, value in patch.items():
+            if key == 'scrape_timestamp':
+                if datetime.fromisoformat(str(actual.get(key)).replace('Z', '+00:00')) != datetime.fromisoformat(value.replace('Z', '+00:00')):
+                    return False
+            elif actual.get(key) != value:
+                return False
+        return True
+    except Exception as exc:
+        log(f'  [REFRESH ERR] tour_stop_events: {type(exc).__name__}')
+        return False
+
+
 def verify_html(html: str) -> bool:
     if not html or len(html) < 1000:
         return False
@@ -691,7 +906,7 @@ BUILTIN_TOURS = [
     ("WSOP", "World Series of Poker", "https://www.wsop.com/tournaments/"),
     ("WPT", "World Poker Tour", "https://www.worldpokertour.com/schedule/"),
     ("MSPT", "Mid-States Poker Tour", "https://msptpoker.com/schedule/"),
-    ("RGPS", "RunGood Poker Series", "https://rungoodgear.com/poker-series/"),
+    ("RGPS", "RunGood Poker Series", "https://www.rungood.com/blogs/tour-news-1/rungood-poker-series-announces-2026-fall-season-golden-expedition"),
     ("CPPT", "Card Player Poker Tour", "https://www.cardplayerpokertour.com/schedule/"),
     ("PGT", "PokerGO Tour", "https://www.pgt.com/schedule"),
     ("NAPT", "North American Poker Tour", "https://www.pokerstarslive.com/napt/schedule/"),
@@ -700,11 +915,11 @@ BUILTIN_TOURS = [
     ("LIPS", "Ladies International Poker Series", "https://www.lipspoker.org/schedule"),
     ("ROUGHRIDER", "Roughrider Poker Tour", "https://roughriderpokertour.com/schedule/"),
     ("PAT", "PokerAtlas Tour", "https://pokeratlastour.com/schedule"),
-    ("SHRPO", "Seminole Hard Rock Poker Open", "https://www.seminolehardrockpokeropen.com/schedule/"),
-    ("VENETIAN", "Venetian DeepStack", "https://www.venetianlasvegas.com/casino/poker/tournaments.html"),
+    ("SHRPO", "Seminole Hard Rock Poker Open", "https://www.seminolehardrockpokeropen.com/2026-rock-n-roll-poker-open-schedule/"),
+    ("VENETIAN", "Venetian DeepStack", "https://www.venetianlasvegas.com/resort/casino/poker/deepstack-extravaganza-poker-tournament.html"),
     ("BORGATA", "Borgata Poker Series", "https://www.theborgata.com/casino/poker/tournaments"),
     ("LODGE", "Lodge Championship Series", "https://thelodgepokerclub.com/austin/lcs/"),
-    ("TCH", "Texas Card House Series", "https://texascardhouse.com/tournaments/"),
+    ("TCH", "Texas Card House Series", "https://trailblazer.texascardhouse.com/"),
 ]
 
 
@@ -849,7 +1064,8 @@ def main():
                 existing_rows = sb_get(
                     "tour_stop_events",
                     f"?select=id,stop_name,stop_start_date,stop_end_date,start_date,"
-                    f"data_quality,scrape_script,source_url&tour_code=eq."
+                    f"data_quality,scrape_script,source_url,scrape_timestamp,"
+                    f"scrape_html_hash,event_number&tour_code=eq."
                     f"{urllib.parse.quote(code)}",
                 )
                 if existing_rows is None:
@@ -866,11 +1082,14 @@ def main():
                     reactivations = reactivatable_stop_matches(
                         existing_rows, stops, effective_source_url,
                     )
+                    refreshes = refreshable_stop_matches(
+                        existing_rows, stops, effective_source_url,
+                    )
                     rows = [
                         build_stop_row(code, s, effective_source_url, hhash, now_iso)
                         for s in fresh
                     ]
-                    attempted = len(rows) + len(reactivations)
+                    attempted = len(rows) + len(reactivations) + len(refreshes)
                     written = sb_insert("tour_stop_events", rows)
                     for stale_row, current_stop in reactivations:
                         patch = build_stop_row(
@@ -880,9 +1099,15 @@ def main():
                             "tour_stop_events", [str(stale_row["id"])], patch,
                         ):
                             written += 1
+                    for observed_row, current_stop in refreshes:
+                        if refresh_stop_provenance(
+                            code, observed_row, current_stop,
+                            effective_source_url, hhash, now_iso,
+                        ):
+                            written += 1
                     rejected = attempted - written
-                    log(f"    {written}/{attempted} new or reactivated row(s) confirmed "
-                        f"({len(stops) - len(fresh) - len(reactivations)} active exact "
+                    log(f"    {written}/{attempted} new, reactivated or refreshed row(s) confirmed "
+                        f"({len(stops) - len(fresh) - len(reactivations) - len(refreshes)} other exact "
                         "name/date identities already present)")
                     if rejected:
                         source_errors += 1
@@ -954,7 +1179,7 @@ def main():
                     run_status=final_run_status)
     log("=" * 70)
     log(f"DONE - {tours_ok}/{len(tours)} tours fetched, {total_stops} stops found, "
-        f"{total_written}/{total_attempted} new rows written, "
+        f"{total_written}/{total_attempted} persisted rows confirmed, "
         f"{total_rejected} rejected, {source_errors} source/write errors")
     log("=" * 70)
     # Non-zero exit when the run wrote nothing AND found nothing - the launcher
