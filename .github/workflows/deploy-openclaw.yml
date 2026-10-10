@@ -780,6 +780,7 @@ jobs:
             sudo grep -zq "^${key}=" "/proc/$pid/environ"
           done
           for route in \
+            /api/cron/phase6-content \
             /api/cron/video-library-scraper \
             /api/cron/video-reel-candidates \
             /api/cron/video-native-studio \
