@@ -134,7 +134,12 @@ async function inspectArticle(page, id) {
         normalized(candidate.alt) === normalized(expectedPost.title) && candidate.naturalWidth >= 200
       ));
       if (image) {
-        const author = element.querySelector(`a[href="/hub/user/${CSS.escape(expectedPost.authorUsername)}"]`);
+        const authorLinks = [...element.querySelectorAll(`a[href="/hub/user/${CSS.escape(expectedPost.authorUsername)}"]`)];
+        // The avatar and the visible display name both link to the same profile.
+        // Certify the actual visible author words, not the avatar-only anchor.
+        const author = authorLinks.find((candidate) => (
+          normalized(candidate.textContent) === normalized(expectedPost.authorName)
+        ));
         const body = element.querySelector('[data-post-content="true"]');
         const titleNode = [...element.querySelectorAll('div,span')].find((node) => (
           node.children.length === 0 && normalized(node.textContent) === normalized(expectedPost.title)
