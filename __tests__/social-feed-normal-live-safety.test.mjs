@@ -81,4 +81,6 @@ test('the probe uses the reported articles, waits through the removed timer, and
   assert.match(source, /route\.abort\('blockedbyclient'\)/);
   assert.doesNotMatch(source, /\.click\(\{\s*force:\s*true/);
   assert.match(workflow, /src\/lib\/socialPostClient\.js/);
+  assert.match(workflow, /src\/components\/social\/SharedLinkPreviewCard\.jsx/);
+  assert.match(workflow, /pages\/hub\/social-pages\/\[pageId\]\.js/);
 });

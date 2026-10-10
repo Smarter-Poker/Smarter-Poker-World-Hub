@@ -329,7 +329,12 @@ export default function ArticleCard({
 
     return (
         <div
+            role="button"
+            tabIndex={0}
             onClick={handleClick}
+            onKeyDown={(event) => {
+                if (event.key === 'Enter' || event.key === ' ') handleClick(event);
+            }}
             style={{
                 border: `1px solid ${C.border}`,
                 borderRadius: 8,
