@@ -169,6 +169,11 @@ test('post deep links pin the target through the caller-scoped post API without 
     /if \(processedPostIdRef\.current !== postId\) \{\s*processedPostIdRef\.current = postId;/
   );
   assert.match(deepLink, /if \(p\) \{\s*processedPostIdRef\.current = postId;/);
+  assert.match(social, /const formatDeepLinkPost = \(p\) =>/);
+  assert.match(social, /const requestedPostId = Array\.isArray\(router\.query\.post\)/);
+  assert.match(social, /\[0-9a-f\]\{8\}-\[0-9a-f\]\{4\}-\[1-5\]\[0-9a-f\]\{3\}/);
+  assert.match(social, /const linkedPost = await fetchBrowserPost\(String\(requestedPostId\)\)/);
+  assert.match(social, /deepLinkPostRef\.current = formatted;/);
   assert.match(deepLink, /return;\s*\}\s*router\.replace\('\/hub\/social-media'/);
 });
 
