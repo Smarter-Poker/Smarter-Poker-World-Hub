@@ -4836,16 +4836,16 @@ function SocialMediaPage() {
       })();
     }
     // Handle ?post=<postId> deep link (notifications, search, share links)
-    if (router.query.post) {
+    if (router.query.post && user?.id) {
       const postId = router.query.post;
       if (processedPostIdRef.current !== postId) {
-        processedPostIdRef.current = postId;
         (async () => {
           try {
             // The server answers as this viewer, with only the metadata the
             // UI renders: a browser never reads a whole social_posts row.
             const p = await fetchBrowserPost(String(postId));
             if (p) {
+              processedPostIdRef.current = postId;
               const meta = p.metadata || {};
               const formatted = {
                 id: p.id,
@@ -4886,10 +4886,14 @@ function SocialMediaPage() {
               setPosts((prev) => [formatted, ...prev.filter((x) => x.id !== formatted.id)]);
               if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' });
             } else {
+              processedPostIdRef.current = postId;
               toast.info('That post is no longer available');
             }
           } catch (e) {
             console.warn('[post param] failed:', e);
+            // Keep the URL intact so the effect can retry after the auth/session
+            // state finishes hydrating instead of permanently dropping the share.
+            return;
           }
           router.replace('/hub/social-media', undefined, { shallow: true });
         })();

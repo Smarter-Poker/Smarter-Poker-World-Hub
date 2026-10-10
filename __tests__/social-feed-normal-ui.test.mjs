@@ -157,6 +157,20 @@ test('feed never resets itself on a timer, focus, or new-content signal', () => 
   assert.match(manualNotice, /onClick=\{async \(\) => \{[\s\S]*?window\.scrollTo[\s\S]*?await loadFeed\(0, false\)/);
 });
 
+test('post deep links wait for a hydrated signed-in user before consuming the target', () => {
+  const deepLink = social.slice(
+    social.indexOf('// Handle ?post=<postId> deep link'),
+    social.indexOf('// Handle ?stream=<streamId> query param')
+  );
+  assert.match(deepLink, /if \(router\.query\.post && user\?\.id\)/);
+  assert.doesNotMatch(
+    deepLink,
+    /if \(processedPostIdRef\.current !== postId\) \{\s*processedPostIdRef\.current = postId;/
+  );
+  assert.match(deepLink, /if \(p\) \{\s*processedPostIdRef\.current = postId;/);
+  assert.match(deepLink, /return;\s*\}\s*router\.replace\('\/hub\/social-media'/);
+});
+
 test('video realtime changes update or remove only the mounted card', () => {
   const branch = social.slice(
     social.indexOf("if (updatedPost.content_type === 'video')"),
