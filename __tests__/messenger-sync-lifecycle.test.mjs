@@ -192,3 +192,51 @@ test('Messenger return and cross-window events use current workspace handlers wi
     assert.deepEqual(calls[2], ['messages', 'active']);
     cleanup(); assert.equal(listeners.size, 0); assert.equal(receive, null);
 });
+
+test('a failed visible read releases its boundary so an explicit second read can persist', async () => {
+    const f = readFixture();
+    const workspaceRef = f.workspaceRef;
+    const lastVisibleReadRef = { current: null };
+    const visibleReadRef = { current: null };
+    const code = slice(messenger, '    // A rendered row outside the viewport', '    // Typing indicator broadcast');
+    evaluate(code, {
+        useEffect() {}, incomingRead: null, workspaceRef, activeConversationRef: f.activeConversationRef,
+        messages: [{ id: readMessageId, conversation_id: f.activeConversationRef.current.id }],
+        pendingScrollRef: { current: null }, lastVisibleReadRef, visibleReadRef,
+        document: { visibilityState: 'visible' }, isMessageId, visibleMessageBoundary,
+        messagesContainerRef: { current: { getBoundingClientRect: () => ({ top: 0, bottom: 100 }), querySelectorAll: () => [{ dataset: { messageId: readMessageId }, getBoundingClientRect: () => ({ top: 0, bottom: 50, left: 0, right: 100 }) }] } },
+        markConversationReadRef: { current: f.read },
+    }, 'undefined');
+    visibleReadRef.current();
+    visibleReadRef.current();
+    assert.equal(f.state.requests.length, 1, 'coalesce the same in-flight boundary');
+    f.state.requests[0].resolve(response({ success: false }));
+    for (let i = 0; i < 8; i++) await Promise.resolve();
+    visibleReadRef.current();
+    assert.equal(f.state.requests.length, 2, 'failure must not permanently suppress this displayed boundary');
+    f.state.requests[1].resolve(response({ success: true, readThrough: '2026-10-09T20:00:00Z' }));
+    for (let i = 0; i < 8; i++) await Promise.resolve();
+    visibleReadRef.current();
+    assert.equal(f.state.requests.length, 2, 'acknowledged boundary stays deduplicated');
+    assert.equal(f.state.broadcasts.length, 1);
+    assert.ok(f.state.refreshes.includes('header'));
+});
+
+test('a late failure cannot unlock a replacement attempt at the same visible boundary', async () => {
+    const pending = deferred(), lastVisibleReadRef = { current: null }, visibleReadRef = { current: null };
+    const conversationId = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc';
+    evaluate(slice(messenger, '    // A rendered row outside the viewport', '    // Typing indicator broadcast'), {
+        useEffect() {}, incomingRead: null, workspaceRef: { current: 'scope-a' },
+        activeConversationRef: { current: { id: conversationId } }, messages: [{ id: readMessageId, conversation_id: conversationId }],
+        pendingScrollRef: { current: null }, lastVisibleReadRef, visibleReadRef,
+        document: { visibilityState: 'visible' }, isMessageId, visibleMessageBoundary,
+        messagesContainerRef: { current: { getBoundingClientRect: () => ({ top: 0, bottom: 100 }), querySelectorAll: () => [{ dataset: { messageId: readMessageId }, getBoundingClientRect: () => ({ top: 0, bottom: 50, left: 0, right: 100 }) }] } },
+        markConversationReadRef: { current: () => pending.promise },
+    }, 'undefined');
+    visibleReadRef.current();
+    const replacement = { key: lastVisibleReadRef.current.key };
+    lastVisibleReadRef.current = replacement;
+    pending.resolve(false);
+    for (let i = 0; i < 8; i++) await Promise.resolve();
+    assert.equal(lastVisibleReadRef.current, replacement);
+});

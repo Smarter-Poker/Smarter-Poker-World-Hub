@@ -54,6 +54,34 @@ class GenericTournamentFallbackTests(unittest.TestCase):
           }}</script></body></html>
         '''.replace("'", '"')
 
+    @staticmethod
+    def _hard_rock_current_schedule_page() -> str:
+        """Trimmed from PokerAtlas' current recurring-schedule markup."""
+        return '''
+          <section class="tournament-schedule"><h2>Tournament Schedule</h2><ol>
+            <li><a><div class="tournament"><h2><span class="name"><span>Limit Omaha 8 / Stud 8 or Better</span></span></h2>
+              <div class="details"><div class="time"><span class="hour">11:00am</span><div class="days"><ul>
+                <li class="">M</li><li class="">T</li><li class="active">W</li><li class="">T</li><li class="">F</li><li class="">S</li><li class="">S</li>
+              </ul></div></div><div class="game"><span class="buy-in">$150</span><span class="type">O8/S8</span></div></div>
+            </div></a></li>
+            <li><a><div class="tournament"><h2><span class="name"><span>Deep Stack</span></span></h2>
+              <div class="details"><div class="time"><span class="hour">11:00am</span><div class="days"><ul>
+                <li class="">M</li><li class="">T</li><li class="">W</li><li class="active">T</li><li class="">F</li><li class="">S</li><li class="">S</li>
+              </ul></div></div><div class="game"><span class="buy-in">$150</span><span class="type">NL Holdem</span></div></div>
+            </div></a></li>
+            <li><a><div class="tournament"><h2><span class="name"><span>Pot Limit Omaha Deep Stack</span></span></h2>
+              <div class="details"><div class="time"><span class="hour">6:00pm</span><div class="days"><ul>
+                <li class="">M</li><li class="">T</li><li class="active">W</li><li class="">T</li><li class="">F</li><li class="">S</li><li class="">S</li>
+              </ul></div></div><div class="game"><span class="buy-in">$160</span><span class="type">PL Omaha</span></div></div>
+            </div></a></li>
+            <li><a><div class="tournament"><h2><span class="name"><span>NLH Quad Stack Bounty</span></span></h2>
+              <div class="details"><div class="time"><span class="hour">6:00pm</span><div class="days"><ul>
+                <li class="">M</li><li class="">T</li><li class="">W</li><li class="">T</li><li class="active">F</li><li class="">S</li><li class="">S</li>
+              </ul></div></div><div class="game"><span class="buy-in">$200</span><span class="type">NL Holdem</span></div></div>
+            </div></a></li>
+          </ol></section>
+        '''
+
     def test_pokeratlas_identity_accepts_matching_room_and_state(self):
         matched, _origins, reason = DAEMON.pokeratlas_room_page_identity(
             self._pa_page("South Point", "NV"), "South Point", "NV",
@@ -75,6 +103,51 @@ class GenericTournamentFallbackTests(unittest.TestCase):
         )
         self.assertFalse(matched)
         self.assertEqual(reason, "json_ld_state_or_name_missing")
+
+    def test_current_hard_rock_recurring_markup_yields_four_exact_rows(self):
+        rows = DAEMON.parse_pa_html(
+            self._hard_rock_current_schedule_page(),
+            "Seminole Hard Rock Tampa", 1826, "offline-batch",
+            "https://www.pokeratlas.com/poker-room/hard-rock-tampa/tournaments",
+            "FL",
+        )
+        self.assertEqual(
+            [
+                (
+                    row["tournament_name"], row["day_of_week"],
+                    row["start_time"], row["buy_in"], row["game_type"],
+                )
+                for row in rows
+            ],
+            [
+                ("Limit Omaha 8 / Stud 8 or Better", "Wednesday", "11:00AM", 150, "Mixed"),
+                ("Deep Stack", "Thursday", "11:00AM", 150, "NLH"),
+                ("Pot Limit Omaha Deep Stack", "Wednesday", "6:00PM", 160, "PLO"),
+                ("NLH Quad Stack Bounty", "Friday", "6:00PM", 200, "NLH"),
+            ],
+        )
+        self.assertTrue(all(row["is_recurring"] for row in rows))
+
+    def test_only_combined_o8_s8_type_is_classified_as_mixed(self):
+        self.assertEqual(DAEMON.game_from("O8/S8"), "Mixed")
+        self.assertNotEqual(DAEMON.game_from("O8"), "Mixed")
+
+    def test_yearless_past_date_is_not_rolled_into_next_year(self):
+        real_datetime = DAEMON.datetime
+
+        class FixedDatetime(real_datetime):
+            @classmethod
+            def now(cls, tz=None):
+                return cls(2026, 10, 10, 12, 0, tzinfo=DAEMON.timezone.utc)
+
+        with mock.patch.object(DAEMON, "datetime", FixedDatetime):
+            self.assertIsNone(DAEMON.parse_date("Oct 9"))
+            self.assertIsNone(DAEMON.parse_date("10/9"))
+            self.assertIsNone(DAEMON.parse_date("Oct 9, 2025"))
+            self.assertIsNone(DAEMON.parse_date("10/9/2025"))
+            self.assertEqual(DAEMON.parse_date("Oct 11"), "2026-10-11")
+            self.assertEqual(DAEMON.parse_date("Oct 9, 2027"), "2027-10-09")
+            self.assertEqual(DAEMON.parse_date("10/9/2027"), "2027-10-09")
 
     def test_pokeratlas_schedule_response_accepts_exact_final_and_canonical_room(self):
         requested = "https://www.pokeratlas.com/poker-room/verified-room/tournaments"
@@ -179,6 +252,103 @@ class GenericTournamentFallbackTests(unittest.TestCase):
         self.assertEqual(rows[0]["buy_in"], 150)
         self.assertEqual(rows[0]["day_of_week"], "Friday")
         self.assertEqual(rows[0]["data_quality"], "scraped_inferred")
+
+    def test_semantic_undated_container_cannot_become_daily_template(self):
+        html = """
+          <div class="poker-tournament event">
+            11:00 AM $150 Buy-In No Limit Hold'em Tournament
+          </div>
+        """
+        rows = DAEMON.extract_html(
+            html, "Verified Room", 99, "offline-batch",
+            "https://example.com/tournaments", "website", "NV",
+        )
+        self.assertEqual(rows, [])
+
+    def test_semantic_explicit_daily_container_remains_recurring(self):
+        html = """
+          <div class="poker-tournament event">
+            Daily 11:00 AM $150 Buy-In No Limit Hold'em Tournament
+          </div>
+        """
+        rows = DAEMON.extract_html(
+            html, "Verified Room", 99, "offline-batch",
+            "https://example.com/tournaments", "website", "NV",
+        )
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["day_of_week"], "Daily")
+        self.assertTrue(rows[0]["is_recurring"])
+
+    def test_archived_pdf_url_cannot_create_current_daily_projection(self):
+        # Trimmed from the exact SHRT 2019 PDF that produced one undated
+        # template and was expanded into 14 current October 2026 rows.
+        pdf_text = """
+          DAY 1C • FEB 21 | 11AM DAY 1F • FEB 23 | 11AM
+          DAY 2 • FEB 24 | NOON
+          $360 BUY-IN • NLH (RE-ENTRY) • BIG BLIND ANTE • 25,000 STARTING UNITS
+        """
+        rows = DAEMON.extract_html(
+            pdf_text, "Seminole Hard Rock Tampa", 1826, "offline-batch",
+            "https://www.shrtpoker.com/wp-content/uploads/2019/01/"
+            "SHRTPC-Event-1-360-NLH-200K_final.pdf",
+            "pdf_website", "FL",
+        )
+        self.assertEqual(rows, [])
+
+    def test_undated_pdf_candidate_cannot_become_daily_template(self):
+        rows = DAEMON.extract_html(
+            "11AM $360 BUY-IN NLH Tournament", "Verified Room", 99,
+            "offline-batch", "https://example.com/current-schedule.pdf",
+            "pdf_website", "NV",
+        )
+        self.assertEqual(rows, [])
+
+    def test_explicit_historical_pdf_date_cannot_become_weekly_template(self):
+        rows = DAEMON.extract_html(
+            "Friday February 20, 2019 11AM $360 BUY-IN NLH Tournament",
+            "Verified Room", 99, "offline-batch",
+            "https://example.com/schedule.pdf", "pdf_website", "NV",
+        )
+        self.assertEqual(rows, [])
+
+    def test_explicit_future_pdf_date_remains_a_dated_event(self):
+        real_datetime = DAEMON.datetime
+
+        class FixedDatetime(real_datetime):
+            @classmethod
+            def now(cls, tz=None):
+                return cls(2026, 10, 10, 12, 0, tzinfo=DAEMON.timezone.utc)
+
+        with mock.patch.object(DAEMON, "datetime", FixedDatetime):
+            rows = DAEMON.extract_html(
+                "October 11, 2026 11AM $360 BUY-IN NLH Tournament",
+                "Verified Room", 99, "offline-batch",
+                "https://example.com/schedule.pdf", "pdf_website", "NV",
+            )
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["event_date"], "2026-10-11")
+        self.assertIsNone(rows[0]["day_of_week"])
+        self.assertFalse(rows[0]["is_recurring"])
+
+    def test_future_dated_pdf_at_old_upload_path_remains_a_fact(self):
+        real_datetime = DAEMON.datetime
+
+        class FixedDatetime(real_datetime):
+            @classmethod
+            def now(cls, tz=None):
+                return cls(2026, 10, 10, 12, 0, tzinfo=DAEMON.timezone.utc)
+
+        with mock.patch.object(DAEMON, "datetime", FixedDatetime):
+            rows = DAEMON.extract_html(
+                "October 11, 2026 11AM $360 BUY-IN NLH Tournament",
+                "Verified Room", 99, "offline-batch",
+                "https://example.com/wp-content/uploads/2019/01/schedule.pdf",
+                "pdf_website", "NV",
+            )
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["event_date"], "2026-10-11")
+        self.assertIsNone(rows[0]["day_of_week"])
+        self.assertFalse(rows[0]["is_recurring"])
 
     def test_dom_json_and_truncated_names_are_rejected(self):
         artifacts = (
@@ -384,7 +554,14 @@ class GenericTournamentFallbackTests(unittest.TestCase):
     @mock.patch.object(DAEMON.time, "sleep")
     def test_identity_checked_empty_schedule_is_wired_to_venue_result(self, _sleep):
         page = self._pa_page("Verified Room", "NV").replace(
-            "</body>", '<section class="tournament-schedule no-tournaments"></section></body>',
+            "</body>", '''
+              <section class="tournament-schedule">
+                <p class="no-tournaments">No recurring tournament schedule.</p>
+              </section>
+              <table><tr class="live-tournament">
+                <td>Oct 9 10:00am $300 Buy In No Limit Hold'em Tournament</td>
+              </tr></table>
+            </body>''',
         )
         session = mock.Mock()
         session.source_errors = 0
@@ -405,6 +582,7 @@ class GenericTournamentFallbackTests(unittest.TestCase):
         with mock.patch.object(DAEMON, "save_evidence", return_value="offline.json"):
             result = DAEMON.scrape_venue(venue, session, "offline-batch", {}, {})
         self.assertFalse(result["found"])
+        self.assertEqual(result["records"], [])
         self.assertTrue(result["valid_empty"])
         self.assertEqual(result["source"], "pokeratlas")
         self.assertEqual(
@@ -831,6 +1009,30 @@ class SessionTruthTests(unittest.TestCase):
         ):
             self.assertEqual(manager.fetch_page("https://example.test/challenge"), "")
         self.assertEqual(manager.source_errors, 1)
+        self.assertEqual(manager.fetch_attempts, 1)
+
+    def test_valid_page_with_cloudflare_instrumentation_is_not_a_challenge(self):
+        manager = DAEMON.DaemonSessionManager()
+        manager.session = mock.Mock()
+        manager.session.fetch.return_value = object()
+        page = '''
+          <html><head><title>Verified Room Poker Tournaments</title></head>
+          <body><main><h1>Verified Room</h1>
+            <section class="tournament-schedule">
+              <div class="tournament"><span class="hour">7:00pm</span>
+                <span class="buy-in">$150</span><span class="type">NL Holdem</span>
+              </div>
+            </section>
+          </main><script src="/cdn-cgi/challenge-platform/scripts/jsd/main.js"></script>
+          </body></html>
+        '''
+        with mock.patch.object(
+            manager, "_await", return_value=self._Response(200, page),
+        ), mock.patch.object(
+            manager, "connect", side_effect=AssertionError("valid page retried"),
+        ):
+            self.assertEqual(manager.fetch_page("https://example.test/schedule"), page)
+        self.assertEqual(manager.source_errors, 0)
         self.assertEqual(manager.fetch_attempts, 1)
 
     def test_challenge_retry_must_return_real_nonempty_html(self):
