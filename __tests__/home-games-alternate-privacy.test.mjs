@@ -362,3 +362,48 @@ test('native post creation forwards the original canonical contract without manu
   assert.equal(calls, 1);
   assert.match(failed.body.error, /unconfirmed/);
 });
+
+test('actual moderation continuation retains rows on failure, advances empty slices, deduplicates and guards concurrent loads', async () => {
+  const dashboard = fs.readFileSync(new URL('../pages/hub/home-games/[slug]/dashboard.js', import.meta.url), 'utf8');
+  const start = dashboard.indexOf('  const load = useCallback(async (append = false)', dashboard.indexOf('function ModerationTab'));
+  const end = dashboard.indexOf('  }, [token, group?.id]);', start) + '  }, [token, group?.id]);'.length;
+  assert.ok(start > 0 && end > start, 'execute the maintained callback, not a replacement implementation');
+  const state = { reports: [], hasMore: false, err: '', loading: false, loadingMore: false };
+  const nextOffset = { current: 0 }, loadInFlight = { current: false }, loadGeneration = { current: 1 };
+  const requests = [];
+  let release;
+  const answers = [
+    { reports: [{ id: 'a', content: 'first' }], next_offset: 50, has_more: true },
+    { reports: [], next_offset: 100, has_more: true },
+    new Error('Unavailable'),
+    { reports: [{ id: 'a', content: 'updated' }, { id: 'b' }], next_offset: 150, has_more: false },
+  ];
+  const apiFetch = async url => {
+    requests.push(url);
+    if (requests.length === 1) await new Promise(resolve => { release = resolve; });
+    const answer = answers.shift();
+    if (answer instanceof Error) throw answer;
+    return answer;
+  };
+  const setters = ['reports', 'hasMore', 'loadingMore', 'loading', 'err'].map(key => value => { state[key] = typeof value === 'function' ? value(state[key]) : value; });
+  const load = new Function('useCallback', 'token', 'group', 'apiFetch', 'nextOffset', 'loadInFlight', 'loadGeneration', 'setReports', 'setHasMore', 'setLoadingMore', 'setLoading', 'setErr', `${dashboard.slice(start, end)}; return load;`)(fn => fn, 'fixture-token', { id: GROUP_ID }, apiFetch, nextOffset, loadInFlight, loadGeneration, ...setters);
+  const first = load();
+  await load(true);
+  assert.equal(requests.length, 1, 'the ref blocks a second request before React can rerender');
+  release(); await first;
+  await load(true);
+  assert.equal(nextOffset.current, 100, 'empty filtered slice still advances the authoritative raw offset');
+  assert.equal(state.hasMore, true);
+  await load(true);
+  assert.equal(state.err, 'Unavailable');
+  assert.deepEqual(state.reports, [{ id: 'a', content: 'first' }]);
+  assert.equal(nextOffset.current, 100, 'failure preserves retry position');
+  await load(true);
+  assert.deepEqual(state.reports, [{ id: 'a', content: 'updated' }, { id: 'b' }]);
+  assert.equal(state.hasMore, false);
+  assert.deepEqual(requests.map(url => Number(new URL(url, 'https://fixture.invalid').searchParams.get('offset'))), [0, 50, 100, 100]);
+  assert.equal(loadInFlight.current, false);
+  assert.equal(state.loadingMore, false);
+  assert.match(dashboard, /hasMore \? 'No Pending Items In This Slice\. More Reports Are Available\.'/);
+  assert.match(dashboard, /onClick=\{\(\) => load\(hasMore\)\}[^\n]*minHeight: 44/);
+});
