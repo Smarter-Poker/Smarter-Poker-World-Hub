@@ -41,7 +41,7 @@ on:
       suite:
         description: Verification suite to run
         type: choice
-        options: [full, horses-phase9-postgrest, messenger-live, messenger-send-live, messenger-continuity-live, reels-live, video-operations-live, social-card-live, reels-reconciliation-audit, reels-reconciliation-apply]
+        options: [full, horses-phase9-postgrest, messenger-live, messenger-send-live, messenger-continuity-live, messenger-deletion-live, reels-live, video-operations-live, social-card-live, reels-reconciliation-audit, reels-reconciliation-apply]
         default: full
       expected_sha:
         description: Full deployed commit SHA (required only for a published live verification suite)
@@ -414,7 +414,7 @@ jobs:
 
   messenger-live:
     name: Published Messenger Test Account Verification
-    if: ${{ inputs.suite == 'messenger-live' || inputs.suite == 'messenger-send-live' || inputs.suite == 'messenger-continuity-live' }}
+    if: ${{ inputs.suite == 'messenger-live' || inputs.suite == 'messenger-send-live' || inputs.suite == 'messenger-continuity-live' || inputs.suite == 'messenger-deletion-live' }}
     runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 12
     permissions:
@@ -474,6 +474,19 @@ jobs:
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
           MESSENGER_EXPECTED_SHA: ${{ inputs.expected_sha }}
           MESSENGER_VERIFY_MODE: isolated-continuity
+          MESSENGER_FIXTURE_CONVERSATION_ID: ${{ inputs.messenger_fixture_conversation_id }}
+          MESSENGER_FIXTURE_MESSAGE_ID: ${{ inputs.messenger_fixture_message_id }}
+          MESSENGER_FIXTURE_FIRST_UNREAD_ID: ${{ inputs.messenger_fixture_first_unread_id }}
+      - name: Verify exact isolated Messenger deletion
+        if: ${{ inputs.suite == 'messenger-deletion-live' }}
+        run: node scripts/ci/messenger-deletion-live.mjs
+        env:
+          TEST_USER_EMAIL: ${{ vars.TEST_USER_EMAIL || secrets.TEST_USER_EMAIL }}
+          TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          MESSENGER_EXPECTED_SHA: ${{ inputs.expected_sha }}
+          MESSENGER_VERIFY_MODE: isolated-deletion
           MESSENGER_FIXTURE_CONVERSATION_ID: ${{ inputs.messenger_fixture_conversation_id }}
           MESSENGER_FIXTURE_MESSAGE_ID: ${{ inputs.messenger_fixture_message_id }}
           MESSENGER_FIXTURE_FIRST_UNREAD_ID: ${{ inputs.messenger_fixture_first_unread_id }}

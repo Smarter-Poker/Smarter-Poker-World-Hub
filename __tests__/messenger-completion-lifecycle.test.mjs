@@ -30,7 +30,7 @@ function messageFixture() {
         setHistoryError() {}, setHasNewerMessages() {}, setFirstUnreadMessageId() {}, continuity: { ingestSavedItems() {} },
         messageCacheRef: { current: new Map([['conversation-a', [initial]]]) }, setMessages, setLoadingMessages() {}, setHasMoreMessages() {},
         getAccessToken: () => 'fixture', authedFetch: () => { const request = deferred(); state.requests.push(request); return request.promise; }, user: { id: 'account-a' },
-        localStorage: { getItem: () => '[]' }, hiddenMessageIds: new Set(), markConversationRead: async (...args) => state.reads.push(args),
+        localStorage: { getItem: () => '[]' }, getHiddenMessageIds: () => state.hidden || new Set(), markConversationRead: async (...args) => state.reads.push(args),
         setToast: value => state.toasts.push(value), loadMessagesRef: {}, console: quiet, compareMessageTimestamps,
         setIncomingRead: value => state.intents.push(value),
         sendOperationsRef: { current: new Map() }, restoreMessengerSendOperations, reconcileMessengerMessage,
@@ -108,7 +108,7 @@ function paginationFixture() {
         workspaceKey: scope, workspaceRef, activeConversationRef, messagesContainerRef: { current: container }, getAccessToken: () => 'fixture',
         authedFetch: () => { const request = deferred(); state.requests.push(request); return request.promise; }, user: { id: 'account-a' },
         setHasMoreMessages() {}, setMessages: value => { state.rows = typeof value === 'function' ? value(state.rows) : value; },
-        localStorage: { getItem: () => '[]' }, isPaginatingRef: {}, requestAnimationFrame: fn => state.frames.push(fn), console: quiet,
+        localStorage: { getItem: () => '[]' }, getHiddenMessageIds: () => new Set(), isPaginatingRef: {}, requestAnimationFrame: fn => state.frames.push(fn), console: quiet,
     }, 'loadOlderMessages');
     return { state, workspaceRef, activeConversationRef, lock, make, generation, container };
 }
@@ -265,4 +265,13 @@ test('the after-render read selects the latest visible persisted message and lea
     evaluate(code, context, 'undefined'); assert.equal(reads.length, 1, 'hidden windows cannot acknowledge');
     document.visibilityState = 'visible'; workspaceRef.current = 'scope-b';
     evaluate(code, context, 'undefined'); assert.equal(reads.length, 1, 'stale workspace intent cannot acknowledge');
+});
+
+
+test('an already-running snapshot cannot resurrect a message acknowledged as deleted', async () => {
+    const f = messageFixture(), pending = f.load('conversation-a');
+    f.state.hidden = new Set([f.initial.id]);
+    f.state.rows = [];
+    f.state.requests[0].resolve(response({ success: true, messages: [f.initial] })); await pending;
+    assert.deepEqual(f.state.rows, []);
 });
